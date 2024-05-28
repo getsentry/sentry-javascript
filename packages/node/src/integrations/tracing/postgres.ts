@@ -1,22 +1,28 @@
 import { PgInstrumentation } from '@opentelemetry/instrumentation-pg';
 import { defineIntegration } from '@sentry/core';
-import { addOpenTelemetryInstrumentation } from '@sentry/opentelemetry';
 import type { IntegrationFn } from '@sentry/types';
+import { generateInstrumentOnce } from '../../otel/instrument';
 
 import { addOriginToSpan } from '../../utils/addOriginToSpan';
 
+const INTEGRATION_NAME = 'Postgres';
+
+export const instrumentPostgres = generateInstrumentOnce(
+  INTEGRATION_NAME,
+  () =>
+    new PgInstrumentation({
+      requireParentSpan: true,
+      requestHook(span) {
+        addOriginToSpan(span, 'auto.db.otel.postgres');
+      },
+    }),
+);
+
 const _postgresIntegration = (() => {
   return {
-    name: 'Postgres',
+    name: INTEGRATION_NAME,
     setupOnce() {
-      addOpenTelemetryInstrumentation(
-        new PgInstrumentation({
-          requireParentSpan: true,
-          requestHook(span) {
-            addOriginToSpan(span, 'auto.db.otel.postgres');
-          },
-        }),
-      );
+      instrumentPostgres();
     },
   };
 }) satisfies IntegrationFn;

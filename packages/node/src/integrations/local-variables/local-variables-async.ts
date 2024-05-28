@@ -75,7 +75,7 @@ export const localVariablesAsyncIntegration = defineIntegration(((
 
   async function startInspector(): Promise<void> {
     // We load inspector dynamically because on some platforms Node is built without inspector support
-    const inspector = await import('inspector');
+    const inspector = await import('node:inspector');
     if (!inspector.url()) {
       inspector.open(0);
     }

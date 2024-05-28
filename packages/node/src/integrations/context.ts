@@ -1,3 +1,4 @@
+/* eslint-disable max-lines */
 import { execFile } from 'node:child_process';
 import { readFile, readdir } from 'node:fs';
 import * as os from 'node:os';
@@ -17,6 +18,12 @@ import type {
 
 export const readFileAsync = promisify(readFile);
 export const readDirAsync = promisify(readdir);
+
+// Process enhanced with methods from Node 18, 20, 22 as @types/node
+// is on `14.18.0` to match minimum version requirements of the SDK
+interface ProcessWithCurrentValues extends NodeJS.Process {
+  availableMemory?(): number;
+}
 
 const INTEGRATION_NAME = 'Context';
 
@@ -114,8 +121,16 @@ export const nodeContextIntegration = defineIntegration(_nodeContextIntegration)
  */
 function _updateContext(contexts: Contexts): Contexts {
   // Only update properties if they exist
+
   if (contexts?.app?.app_memory) {
     contexts.app.app_memory = process.memoryUsage().rss;
+  }
+
+  if (contexts?.app?.free_memory && typeof (process as ProcessWithCurrentValues).availableMemory === 'function') {
+    const freeMemory = (process as ProcessWithCurrentValues).availableMemory?.();
+    if (freeMemory != null) {
+      contexts.app.free_memory = freeMemory;
+    }
   }
 
   if (contexts?.device?.free_memory) {
@@ -183,11 +198,23 @@ function getCultureContext(): CultureContext | undefined {
   return;
 }
 
-function getAppContext(): AppContext {
+/**
+ * Get app context information from process
+ */
+export function getAppContext(): AppContext {
   const app_memory = process.memoryUsage().rss;
   const app_start_time = new Date(Date.now() - process.uptime() * 1000).toISOString();
+  // https://nodejs.org/api/process.html#processavailablememory
+  const appContext: AppContext = { app_start_time, app_memory };
 
-  return { app_start_time, app_memory };
+  if (typeof (process as ProcessWithCurrentValues).availableMemory === 'function') {
+    const freeMemory = (process as ProcessWithCurrentValues).availableMemory?.();
+    if (freeMemory != null) {
+      appContext.free_memory = freeMemory;
+    }
+  }
+
+  return appContext;
 }
 
 /**

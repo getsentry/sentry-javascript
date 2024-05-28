@@ -185,8 +185,6 @@ test.describe('performance events', () => {
   });
 
   test('captures a navigation transaction directly after pageload', async ({ page }) => {
-    await page.goto('/');
-
     const clientPageloadTxnPromise = waitForTransaction('sveltekit-2-svelte-5', txnEvent => {
       return txnEvent?.contexts?.trace?.op === 'pageload' && txnEvent?.tags?.runtime === 'browser';
     });
@@ -194,6 +192,8 @@ test.describe('performance events', () => {
     const clientNavigationTxnPromise = waitForTransaction('sveltekit-2-svelte-5', txnEvent => {
       return txnEvent?.contexts?.trace?.op === 'navigation' && txnEvent?.tags?.runtime === 'browser';
     });
+
+    await page.goto('/');
 
     const navigationClickPromise = page.locator('#routeWithParamsLink').click();
 

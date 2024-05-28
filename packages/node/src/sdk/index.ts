@@ -11,10 +11,13 @@ import {
   requestDataIntegration,
   startSession,
 } from '@sentry/core';
-import { openTelemetrySetupCheck, setOpenTelemetryContextAsyncContextStrategy } from '@sentry/opentelemetry';
+import {
+  openTelemetrySetupCheck,
+  setOpenTelemetryContextAsyncContextStrategy,
+  setupEventContextTrace,
+} from '@sentry/opentelemetry';
 import type { Client, Integration, Options } from '@sentry/types';
 import {
-  GLOBAL_OBJ,
   consoleSandbox,
   dropUndefinedKeys,
   logger,
@@ -26,7 +29,6 @@ import { consoleIntegration } from '../integrations/console';
 import { nodeContextIntegration } from '../integrations/context';
 import { contextLinesIntegration } from '../integrations/contextlines';
 
-import moduleModule from 'module';
 import { httpIntegration } from '../integrations/http';
 import { localVariablesIntegration } from '../integrations/local-variables';
 import { modulesIntegration } from '../integrations/modules';
@@ -37,13 +39,10 @@ import { spotlightIntegration } from '../integrations/spotlight';
 import { getAutoPerformanceIntegrations } from '../integrations/tracing';
 import { makeNodeTransport } from '../transports';
 import type { NodeClientOptions, NodeOptions } from '../types';
+import { isCjs } from '../utils/commonjs';
 import { defaultStackParser, getSentryRelease } from './api';
 import { NodeClient } from './client';
-import { initOpenTelemetry } from './initOtel';
-
-function isCjs(): boolean {
-  return typeof require !== 'undefined';
-}
+import { initOpenTelemetry, maybeInitializeEsmLoader } from './initOtel';
 
 function getCjsOnlyIntegrations(): Integration[] {
   return isCjs() ? [modulesIntegration()] : [];
@@ -95,8 +94,6 @@ function shouldAddPerformanceIntegrations(options: Options): boolean {
   return options.enableTracing || options.tracesSampleRate != null || 'tracesSampler' in options;
 }
 
-declare const __IMPORT_META_URL_REPLACEMENT__: string;
-
 /**
  * Initialize Sentry for Node.
  */
@@ -133,31 +130,7 @@ function _init(
   }
 
   if (!isCjs()) {
-    const [nodeMajor, nodeMinor] = process.versions.node.split('.').map(Number);
-
-    // Register hook was added in v20.6.0 and v18.19.0
-    if (nodeMajor >= 22 || (nodeMajor === 20 && nodeMinor >= 6) || (nodeMajor === 18 && nodeMinor >= 19)) {
-      // We need to work around using import.meta.url directly because jest complains about it.
-      const importMetaUrl =
-        typeof __IMPORT_META_URL_REPLACEMENT__ !== 'undefined' ? __IMPORT_META_URL_REPLACEMENT__ : undefined;
-
-      if (!GLOBAL_OBJ._sentryEsmLoaderHookRegistered && importMetaUrl) {
-        try {
-          // @ts-expect-error register is available in these versions
-          moduleModule.register('@opentelemetry/instrumentation/hook.mjs', importMetaUrl);
-          GLOBAL_OBJ._sentryEsmLoaderHookRegistered = true;
-        } catch (error) {
-          logger.warn('Failed to register ESM hook', error);
-        }
-      }
-    } else {
-      consoleSandbox(() => {
-        // eslint-disable-next-line no-console
-        console.warn(
-          '[Sentry] You are using Node.js in ESM mode ("import syntax"). The Sentry Node.js SDK is not compatible with ESM in Node.js versions before 18.19.0 or before 20.6.0. Please either build your application with CommonJS ("require() syntax"), or use version 7.x of the Sentry Node.js SDK.',
-        );
-      });
-    }
+    maybeInitializeEsmLoader();
   }
 
   setOpenTelemetryContextAsyncContextStrategy();
@@ -199,12 +172,16 @@ function _init(
   // There is no way to use this SDK without OpenTelemetry!
   if (!options.skipOpenTelemetrySetup) {
     initOpenTelemetry(client);
+    validateOpenTelemetrySetup();
   }
 
-  validateOpenTelemetrySetup();
+  setupEventContextTrace(client);
 }
 
-function validateOpenTelemetrySetup(): void {
+/**
+ * Validate that your OpenTelemetry setup is correct.
+ */
+export function validateOpenTelemetrySetup(): void {
   if (!DEBUG_BUILD) {
     return;
   }

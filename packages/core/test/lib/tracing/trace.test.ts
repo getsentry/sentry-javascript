@@ -24,6 +24,7 @@ import {
   withActiveSpan,
 } from '../../../src/tracing';
 import { SentryNonRecordingSpan } from '../../../src/tracing/sentryNonRecordingSpan';
+import { startNewTrace } from '../../../src/tracing/trace';
 import { _setSpanForScope } from '../../../src/utils/spanOnScope';
 import { getActiveSpan, getRootSpan, getSpanDescendants, spanIsSampled } from '../../../src/utils/spanUtils';
 import { TestClient, getDefaultTestClientOptions } from '../../mocks/client';
@@ -1587,6 +1588,35 @@ describe('suppressTracing', () => {
 
       expect(child.isRecording()).toBe(false);
       expect(spanIsSampled(child)).toBe(false);
+    });
+  });
+});
+
+describe('startNewTrace', () => {
+  beforeEach(() => {
+    getCurrentScope().clear();
+    getIsolationScope().clear();
+  });
+
+  it('creates a new propagation context on the current scope', () => {
+    const oldCurrentScopeItraceId = getCurrentScope().getPropagationContext().traceId;
+
+    startNewTrace(() => {
+      const newCurrentScopeItraceId = getCurrentScope().getPropagationContext().traceId;
+
+      expect(newCurrentScopeItraceId).toMatch(/^[a-f0-9]{32}$/);
+      expect(newCurrentScopeItraceId).not.toEqual(oldCurrentScopeItraceId);
+    });
+  });
+
+  it('keeps the propagation context on the isolation scope as-is', () => {
+    const oldIsolationScopeTraceId = getIsolationScope().getPropagationContext().traceId;
+
+    startNewTrace(() => {
+      const newIsolationScopeTraceId = getIsolationScope().getPropagationContext().traceId;
+
+      expect(newIsolationScopeTraceId).toMatch(/^[a-f0-9]{32}$/);
+      expect(newIsolationScopeTraceId).toEqual(oldIsolationScopeTraceId);
     });
   });
 });

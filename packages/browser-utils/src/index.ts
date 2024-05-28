@@ -18,7 +18,6 @@ export { addClickKeypressInstrumentationHandler } from './instrument/dom';
 
 export { addHistoryInstrumentationHandler } from './instrument/history';
 
-export {
-  addXhrInstrumentationHandler,
-  SENTRY_XHR_DATA_KEY,
-} from './instrument/xhr';
+export { fetch, setTimeout, clearCachedImplementation, getNativeImplementation } from './getNativeImplementation';
+
+export { addXhrInstrumentationHandler, SENTRY_XHR_DATA_KEY } from './instrument/xhr';

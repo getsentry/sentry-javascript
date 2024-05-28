@@ -128,6 +128,8 @@ export function makeTerserPlugin() {
           '_sentrySpan',
           '_sentryScope',
           '_sentryIsolationScope',
+          // require-in-the-middle calls `Module._resolveFilename`. We cannot mangle this (AWS lambda layer bundle).
+          '_resolveFilename',
         ],
       },
     },

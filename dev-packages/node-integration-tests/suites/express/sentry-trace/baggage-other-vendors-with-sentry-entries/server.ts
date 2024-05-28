@@ -9,9 +9,6 @@ Sentry.init({
   environment: 'prod',
   // disable requests to /express
   tracePropagationTargets: [/^(?!.*express).*$/],
-  integrations: [
-    // TODO: This used to use the Express integration
-  ],
   tracesSampleRate: 1.0,
   transport: loggingTransport,
 });

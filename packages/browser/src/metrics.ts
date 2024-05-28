@@ -1,5 +1,5 @@
-import type { MetricData } from '@sentry/core';
 import { BrowserMetricsAggregator, metrics as metricsCore } from '@sentry/core';
+import type { MetricData, Metrics } from '@sentry/types';
 
 /**
  * Adds a value to a counter metric
@@ -37,7 +37,7 @@ function gauge(name: string, value: number, data?: MetricData): void {
   metricsCore.gauge(BrowserMetricsAggregator, name, value, data);
 }
 
-export const metrics = {
+export const metrics: Metrics = {
   increment,
   distribution,
   set,

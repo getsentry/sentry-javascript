@@ -1,4 +1,3 @@
-import { isWrapped } from '@opentelemetry/core';
 import { ConnectInstrumentation } from '@opentelemetry/instrumentation-connect';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
@@ -6,23 +5,26 @@ import {
   captureException,
   defineIntegration,
   getClient,
-  isEnabled,
   spanToJSON,
 } from '@sentry/core';
-import { addOpenTelemetryInstrumentation } from '@sentry/opentelemetry';
 import type { IntegrationFn, Span } from '@sentry/types';
-import { consoleSandbox } from '@sentry/utils';
+import { generateInstrumentOnce } from '../../otel/instrument';
+import { ensureIsWrapped } from '../../utils/ensureIsWrapped';
 
 type ConnectApp = {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   use: (middleware: any) => void;
 };
 
+const INTEGRATION_NAME = 'Connect';
+
+export const instrumentConnect = generateInstrumentOnce(INTEGRATION_NAME, () => new ConnectInstrumentation());
+
 const _connectIntegration = (() => {
   return {
-    name: 'Connect',
+    name: INTEGRATION_NAME,
     setupOnce() {
-      addOpenTelemetryInstrumentation(new ConnectInstrumentation({}));
+      instrumentConnect();
     },
   };
 }) satisfies IntegrationFn;
@@ -48,14 +50,7 @@ export const setupConnectErrorHandler = (app: ConnectApp): void => {
     });
   }
 
-  if (!isWrapped(app.use) && isEnabled()) {
-    consoleSandbox(() => {
-      // eslint-disable-next-line no-console
-      console.warn(
-        '[Sentry] Connect is not instrumented. This is likely because you required/imported connect before calling `Sentry.init()`.',
-      );
-    });
-  }
+  ensureIsWrapped(app.use, 'connect');
 };
 
 function addConnectSpanAttributes(span: Span): void {

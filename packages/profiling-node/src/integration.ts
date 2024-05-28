@@ -6,6 +6,7 @@ import { logger, timestampInSeconds, uuid4 } from '@sentry/utils';
 
 import { CpuProfilerBindings } from './cpu_profiler';
 import { DEBUG_BUILD } from './debug-build';
+import { NODE_MAJOR, NODE_VERSION } from './nodeVersion';
 import { MAX_PROFILE_DURATION_MS, maybeProfileSpan, stopSpanProfile } from './spanProfileUtils';
 import type { RawThreadCpuProfile } from './types';
 
@@ -320,6 +321,15 @@ interface ProfilingIntegration extends Integration {
 
 /** Exported only for tests. */
 export const _nodeProfilingIntegration = ((): ProfilingIntegration => {
+  if (DEBUG_BUILD && ![16, 18, 20, 22].includes(NODE_MAJOR)) {
+    logger.warn(
+      `[Profiling] You are using a Node.js version that does not have prebuilt binaries (${NODE_VERSION}).`,
+      'The @sentry/profiling-node package only has prebuilt support for the following LTS versions of Node.js: 16, 18, 20, 22.',
+      'To use the @sentry/profiling-node package with this version of Node.js, you will need to compile the native addon from source.',
+      'See: https://github.com/getsentry/sentry-javascript/tree/develop/packages/profiling-node#building-the-package-from-source',
+    );
+  }
+
   return {
     name: 'ProfilingIntegration',
     profiler: new ContinuousProfiler(),

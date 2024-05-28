@@ -1,5 +1,8 @@
 import { vi } from 'vitest';
 import type { MockInstance } from 'vitest';
+import { useFakeTimers } from '../../utils/use-fake-timers';
+
+useFakeTimers();
 
 import { getClient } from '@sentry/core';
 import type { ErrorEvent, Event } from '@sentry/types';
@@ -10,9 +13,7 @@ import type { ReplayContainer } from '../../../src/replay';
 import { Error } from '../../fixtures/error';
 import { Transaction } from '../../fixtures/transaction';
 import { resetSdkMock } from '../../mocks/resetSdkMock';
-import { useFakeTimers } from '../../utils/use-fake-timers';
 
-useFakeTimers();
 let replay: ReplayContainer;
 
 describe('Integration | coreHandlers | handleAfterSendEvent', () => {
