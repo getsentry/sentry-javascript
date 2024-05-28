@@ -1,6 +1,6 @@
 import { setApplication } from '@ember/test-helpers';
 import { isTesting } from '@embroider/macros';
-import * as Sentry from '@sentry/browser';
+import * as Sentry from '@sentry/ember';
 import Application from 'dummy/app';
 import config from 'dummy/config/environment';
 import { start } from 'ember-qunit';
