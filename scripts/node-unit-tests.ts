@@ -40,10 +40,11 @@ const SKIP_TEST_PACKAGES: Record<NodeVersion, VersionConfig> = {
       '@sentry/nestjs',
     ],
     legacyDeps: ['lerna@7.1.1'],
+    legacyDeps: ['lerna@7.1.1', 'nx@16.4.1'],
   },
   '16': {
     ignoredPackages: ['@sentry/vercel-edge', '@sentry/astro'],
-    legacyDeps: ['lerna@7.1.1'],
+    legacyDeps: ['lerna@7.1.1', 'nx@16.4.1'],
   },
   '18': {
     ignoredPackages: [],
