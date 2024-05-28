@@ -68,6 +68,7 @@ describe('BaseClient', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
+    jest.useRealTimers();
   });
 
   describe('constructor() / getDsn()', () => {
@@ -1194,7 +1195,7 @@ describe('BaseClient', () => {
     });
 
     test('calls async `beforeSend` and uses original event without any changes', done => {
-      jest.useFakeTimers();
+      jest.useFakeTimers({ legacyFakeTimers: true });
       expect.assertions(2);
 
       const beforeSend = jest.fn(
@@ -1224,7 +1225,7 @@ describe('BaseClient', () => {
     });
 
     test('calls async `beforeSendTransaction` and uses original event without any changes', done => {
-      jest.useFakeTimers();
+      jest.useFakeTimers({ legacyFakeTimers: true });
       expect.assertions(2);
 
       const beforeSendTransaction = jest.fn(
@@ -1254,7 +1255,7 @@ describe('BaseClient', () => {
     });
 
     test('calls async `beforeSend` and uses the modified event', done => {
-      jest.useFakeTimers();
+      jest.useFakeTimers({ legacyFakeTimers: true });
       expect.assertions(2);
 
       const beforeSend = jest.fn(async event => {
@@ -1284,7 +1285,7 @@ describe('BaseClient', () => {
     });
 
     test('calls async `beforeSendTransaction` and uses the modified event', done => {
-      jest.useFakeTimers();
+      jest.useFakeTimers({ legacyFakeTimers: true });
       expect.assertions(2);
 
       const beforeSendTransaction = jest.fn(async event => {
@@ -1314,7 +1315,7 @@ describe('BaseClient', () => {
     });
 
     test('calls async `beforeSend` and discards the event', () => {
-      jest.useFakeTimers();
+      jest.useFakeTimers({ legacyFakeTimers: true });
       expect.assertions(2);
 
       const beforeSend = jest.fn(
@@ -1336,7 +1337,7 @@ describe('BaseClient', () => {
     });
 
     test('calls async `beforeSendTransaction` and discards the event', () => {
-      jest.useFakeTimers();
+      jest.useFakeTimers({ legacyFakeTimers: true });
       expect.assertions(2);
 
       const beforeSendTransaction = jest.fn(
@@ -1773,7 +1774,7 @@ describe('BaseClient', () => {
 
   describe('sendEvent', () => {
     beforeEach(() => {
-      jest.useFakeTimers();
+      jest.useFakeTimers({ legacyFakeTimers: true });
     });
 
     afterEach(() => {

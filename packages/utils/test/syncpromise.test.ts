@@ -120,7 +120,7 @@ describe('SyncPromise', () => {
   });
 
   test('with setTimeout', async () => {
-    jest.useFakeTimers();
+    jest.useFakeTimers({ legacyFakeTimers: true });
     expect.assertions(1);
 
     return new SyncPromise<number>(resolve => {
@@ -146,7 +146,7 @@ describe('SyncPromise', () => {
   });
 
   test('calling the callback not immediatly', () => {
-    jest.useFakeTimers();
+    jest.useFakeTimers({ legacyFakeTimers: true });
     expect.assertions(4);
 
     const qp = new SyncPromise<number>(resolve =>

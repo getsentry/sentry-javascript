@@ -7,7 +7,7 @@ describe('Session Flusher', () => {
   let mockClient: Client;
 
   beforeEach(() => {
-    jest.useFakeTimers();
+    jest.useFakeTimers({ legacyFakeTimers: true });
     sendSession = jest.fn(() => Promise.resolve({ status: 'success' }));
     mockClient = {
       sendSession,

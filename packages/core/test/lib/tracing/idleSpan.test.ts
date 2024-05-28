@@ -22,7 +22,7 @@ const dsn = 'https://123@sentry.io/42';
 
 describe('startIdleSpan', () => {
   beforeEach(() => {
-    jest.useFakeTimers();
+    jest.useFakeTimers({ legacyFakeTimers: true });
 
     getCurrentScope().clear();
     getIsolationScope().clear();

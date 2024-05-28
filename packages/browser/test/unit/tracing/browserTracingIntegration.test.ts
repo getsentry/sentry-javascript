@@ -929,7 +929,7 @@ describe('browserTracingIntegration', () => {
 
   describe('idleTimeout', () => {
     it('is created by default', () => {
-      jest.useFakeTimers();
+      jest.useFakeTimers({ legacyFakeTimers: true });
       const client = new BrowserClient(
         getDefaultBrowserClientOptions({
           tracesSampleRate: 1,
@@ -963,7 +963,7 @@ describe('browserTracingIntegration', () => {
     });
 
     it('can be a custom value', () => {
-      jest.useFakeTimers();
+      jest.useFakeTimers({ legacyFakeTimers: true });
 
       const client = new BrowserClient(
         getDefaultBrowserClientOptions({
@@ -1001,7 +1001,7 @@ describe('browserTracingIntegration', () => {
   // TODO(lforst): I cannot manage to get this test to pass.
   /*
   it('heartbeatInterval can be a custom value', () => {
-    jest.useFakeTimers();
+    jest.useFakeTimers({ legacyFakeTimers: true });
 
     const interval = 200;
 

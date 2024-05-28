@@ -325,7 +325,7 @@ const testHarness = ({
   enableConsole,
   vm,
 }: TestHarnessOpts) => {
-  jest.useFakeTimers();
+  jest.useFakeTimers({ legacyFakeTimers: true });
   const providedErrorHandlerSpy = jest.fn();
   const warnHandlerSpy = jest.fn();
   const consoleErrorSpy = jest.fn();
