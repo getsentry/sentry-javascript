@@ -179,6 +179,8 @@ export class ServerRuntimeClient<
         checkin_margin: monitorConfig.checkinMargin,
         max_runtime: monitorConfig.maxRuntime,
         timezone: monitorConfig.timezone,
+        failure_issue_threshold: monitorConfig.failureIssueThreshold,
+        recovery_threshold: monitorConfig.recoveryThreshold,
       };
     }
 
