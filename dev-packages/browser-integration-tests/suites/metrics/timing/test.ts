@@ -67,8 +67,15 @@ sentryTest('allows to wrap sync methods with a timing metric', async ({ getLocal
 
   expect(transactionEvent).toBeDefined();
   expect(transactionEvent.transaction).toEqual('manual span');
-  // @ts-expect-error this is fine...
-  expect(transactionEvent._metrics_summary).toEqual({
+
+  const spans = transactionEvent.spans || [];
+
+  expect(spans.length).toBe(1);
+  const span = spans[0];
+  expect(span.op).toEqual('metrics.timing');
+  expect(span.description).toEqual('timingSync');
+  expect(span.timestamp! - span.start_timestamp).toEqual(duration);
+  expect(span._metrics_summary).toEqual({
     'd:timingSync@second': [
       {
         count: 1,
@@ -143,8 +150,15 @@ sentryTest('allows to wrap async methods with a timing metric', async ({ getLoca
 
   expect(transactionEvent).toBeDefined();
   expect(transactionEvent.transaction).toEqual('manual span');
-  // @ts-expect-error this is fine...
-  expect(transactionEvent._metrics_summary).toEqual({
+
+  const spans = transactionEvent.spans || [];
+
+  expect(spans.length).toBe(1);
+  const span = spans[0];
+  expect(span.op).toEqual('metrics.timing');
+  expect(span.description).toEqual('timingAsync');
+  expect(span.timestamp! - span.start_timestamp).toEqual(duration);
+  expect(span._metrics_summary).toEqual({
     'd:timingAsync@second': [
       {
         count: 1,

@@ -54,6 +54,7 @@ function addToMetricsAggregator(
 
   const span = getActiveSpan();
   const rootSpan = span ? getRootSpan(span) : undefined;
+  const transactionName = rootSpan && spanToJSON(rootSpan).description;
 
   const { unit, tags, timestamp } = data;
   const { release, environment } = client.getOptions();
@@ -64,8 +65,8 @@ function addToMetricsAggregator(
   if (environment) {
     metricTags.environment = environment;
   }
-  if (rootSpan) {
-    metricTags.transaction = spanToJSON(rootSpan).description || '';
+  if (transactionName) {
+    metricTags.transaction = transactionName;
   }
 
   DEBUG_BUILD && logger.log(`Adding value of ${value} to ${metricType} metric ${name}`);
