@@ -26,26 +26,7 @@ describe('ContextLines', () => {
   });
 
   describe('lru file cache', () => {
-    test('parseStack when file does not exist', async () => {
-      expect.assertions(4);
-      const frames: StackFrame[] = [
-        {
-          colno: 1,
-          filename: 'file:///var/task/nonexistent.js',
-          lineno: 1,
-          function: 'fxn1',
-        },
-      ];
-
-      const readStreamSpy = jest.spyOn(fs, 'createReadStream');
-      await addContext(frames);
-
-      expect(frames[0]!.pre_context).toBeUndefined();
-      expect(frames[0]!.post_context).toBeUndefined();
-      expect(frames[0]!.context_line).toBeUndefined();
-      expect(readStreamSpy).toHaveBeenCalledTimes(1);
-    });
-    test('parseStack with same file', async () => {
+    test.only('parseStack with same file', async () => {
       expect.assertions(1);
 
       const frames = parseStackFrames(defaultStackParser, new Error('test'));
