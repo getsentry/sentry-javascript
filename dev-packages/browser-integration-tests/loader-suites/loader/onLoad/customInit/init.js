@@ -19,8 +19,6 @@ window.sentryIsLoaded = () => {
   return !!(
     !(typeof __sentry === 'undefined') &&
     __sentry.version &&
-    __sentry[__sentry.version] &&
-    __sentry[__sentry.version].stack &&
-    __sentry[__sentry.version].stack.getClient()
+    !!__sentry[__sentry.version]
   );
 };

@@ -22,17 +22,17 @@ describe('getSentryCarrier', () => {
         __SENTRY__: {
           version: SDK_VERSION,
           [SDK_VERSION]: {
-            integrations: [() => {}],
+            acs: {},
           },
         },
       };
 
       const globalObject = { ...originalGlobalObject };
-      // @ts-expect-error - TS complains because the object spread makes the version key become type string
+      // @ts-expect-error - this is just a test object, not passing a full ACS
       const sentryCarrier = getSentryCarrier(globalObject);
 
       expect(sentryCarrier).toEqual({
-        integrations: [expect.any(Function)],
+        acs: {},
       });
 
       expect(globalObject).toStrictEqual(originalGlobalObject);
@@ -45,19 +45,19 @@ describe('getSentryCarrier', () => {
         __SENTRY__: {
           version: '8.0.0' as const, // another SDK set this
           '8.0.0': {
-            // and this object
-            extensions: {},
+            // @ts-expect-error - this is just a test object, not passing a full stack
+            stack: {},
           },
           [SDK_VERSION]: {
-            integrations: [() => {}],
+            // @ts-expect-error - this is just a test object, not passing a full ACS
+            acs: {},
           },
-          // @ts-expect-error - this is just a test object, no need to pass a hub
           hub: {},
         },
       });
 
       expect(sentryCarrier).toEqual({
-        integrations: [expect.any(Function)],
+        acs: {},
       });
     });
 
