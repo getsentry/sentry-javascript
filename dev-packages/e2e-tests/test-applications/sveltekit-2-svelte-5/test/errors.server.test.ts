@@ -20,6 +20,16 @@ test.describe('server-side errors', () => {
     );
 
     expect(errorEvent.tags).toMatchObject({ runtime: 'node' });
+
+    expect(errorEvent.request).toEqual({
+      cookies: {},
+      headers: expect.objectContaining({
+        accept: expect.any(String),
+        'user-agent': expect.any(String),
+      }),
+      method: 'GET',
+      url: 'http://localhost:3030/universal-load-error',
+    });
   });
 
   test('captures server load error', async ({ page }) => {
@@ -40,6 +50,16 @@ test.describe('server-side errors', () => {
     );
 
     expect(errorEvent.tags).toMatchObject({ runtime: 'node' });
+
+    expect(errorEvent.request).toEqual({
+      cookies: {},
+      headers: expect.objectContaining({
+        accept: expect.any(String),
+        'user-agent': expect.any(String),
+      }),
+      method: 'GET',
+      url: 'http://localhost:3030/server-load-error',
+    });
   });
 
   test('captures server route (GET) error', async ({ page }) => {
@@ -61,5 +81,14 @@ test.describe('server-side errors', () => {
     );
 
     expect(errorEvent.transaction).toEqual('GET /server-route-error');
+
+    expect(errorEvent.request).toEqual({
+      cookies: {},
+      headers: expect.objectContaining({
+        accept: expect.any(String),
+      }),
+      method: 'GET',
+      url: 'http://localhost:3030/server-route-error',
+    });
   });
 });
