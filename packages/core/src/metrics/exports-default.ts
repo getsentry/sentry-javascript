@@ -1,4 +1,10 @@
-import type { Client, MetricData, Metrics, DurationUnit, MetricsAggregator as MetricsAggregatorInterface } from '@sentry/types';
+import type {
+  Client,
+  DurationUnit,
+  MetricData,
+  Metrics,
+  MetricsAggregator as MetricsAggregatorInterface,
+} from '@sentry/types';
 import { MetricsAggregator } from './aggregator';
 import { metrics as metricsCore } from './exports';
 

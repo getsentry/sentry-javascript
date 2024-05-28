@@ -1,5 +1,5 @@
 import { BrowserMetricsAggregator, metrics as metricsCore } from '@sentry/core';
-import type { MetricData, Metrics, DurationUnit } from '@sentry/types';
+import type { DurationUnit, MetricData, Metrics } from '@sentry/types';
 
 /**
  * Adds a value to a counter metric
