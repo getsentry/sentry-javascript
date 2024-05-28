@@ -73,7 +73,7 @@
                     "type": 2,
                     "tagName": "a",
                     "attributes": {
-                      "href": "/page-0.html"
+                      "href": "http://sentry-test.io/page-0.html"
                     },
                     "childNodes": [
                       {

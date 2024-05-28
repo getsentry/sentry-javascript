@@ -8,35 +8,32 @@ import {
   shouldSkipTracingTest,
 } from '../../../../utils/helpers';
 
-sentryTest(
-  'should create a pageload transaction based on `sentry-trace` <meta>',
-  async ({ getLocalTestPath, page }) => {
-    if (shouldSkipTracingTest()) {
-      sentryTest.skip();
-    }
+sentryTest('should create a pageload transaction based on `sentry-trace` <meta>', async ({ getLocalTestUrl, page }) => {
+  if (shouldSkipTracingTest()) {
+    sentryTest.skip();
+  }
 
-    const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
 
-    const eventData = await getFirstSentryEnvelopeRequest<Event>(page, url);
+  const eventData = await getFirstSentryEnvelopeRequest<Event>(page, url);
 
-    expect(eventData.contexts?.trace).toMatchObject({
-      op: 'pageload',
-      parent_span_id: '1121201211212012',
-      trace_id: '12312012123120121231201212312012',
-    });
+  expect(eventData.contexts?.trace).toMatchObject({
+    op: 'pageload',
+    parent_span_id: '1121201211212012',
+    trace_id: '12312012123120121231201212312012',
+  });
 
-    expect(eventData.spans?.length).toBeGreaterThan(0);
-  },
-);
+  expect(eventData.spans?.length).toBeGreaterThan(0);
+});
 
 sentryTest(
   'should pick up `baggage` <meta> tag, propagate the content in transaction and not add own data',
-  async ({ getLocalTestPath, page }) => {
+  async ({ getLocalTestUrl, page }) => {
     if (shouldSkipTracingTest()) {
       sentryTest.skip();
     }
 
-    const url = await getLocalTestPath({ testDir: __dirname });
+    const url = await getLocalTestUrl({ testDir: __dirname });
 
     const envHeader = await getFirstSentryEnvelopeRequest<EventEnvelopeHeaders>(page, url, envelopeHeaderRequestParser);
 
@@ -52,12 +49,12 @@ sentryTest(
 
 sentryTest(
   "should create a navigation that's not influenced by `sentry-trace` <meta>",
-  async ({ getLocalTestPath, page }) => {
+  async ({ getLocalTestUrl, page }) => {
     if (shouldSkipTracingTest()) {
       sentryTest.skip();
     }
 
-    const url = await getLocalTestPath({ testDir: __dirname });
+    const url = await getLocalTestUrl({ testDir: __dirname });
 
     const pageloadRequest = await getFirstSentryEnvelopeRequest<Event>(page, url);
     const navigationRequest = await getFirstSentryEnvelopeRequest<Event>(page, `${url}#foo`);

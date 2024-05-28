@@ -5,7 +5,7 @@ import { getReplaySnapshot, shouldSkipReplayTest, waitForReplayRunning } from '.
 
 sentryTest(
   '[error-mode] should not flush if error event is ignored in beforeErrorSampling',
-  async ({ getLocalTestPath, page, browserName, forceFlushReplay }) => {
+  async ({ getLocalTestUrl, page, browserName, forceFlushReplay }) => {
     // Skipping this in webkit because it is flakey there
     if (shouldSkipReplayTest() || browserName === 'webkit') {
       sentryTest.skip();
@@ -19,7 +19,7 @@ sentryTest(
       });
     });
 
-    const url = await getLocalTestPath({ testDir: __dirname });
+    const url = await getLocalTestUrl({ testDir: __dirname });
 
     await page.goto(url);
     await waitForReplayRunning(page);

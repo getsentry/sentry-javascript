@@ -8,8 +8,8 @@ import { getFirstSentryEnvelopeRequest } from '../../../../../utils/helpers';
 // https://github.com/microsoft/playwright/issues/10376
 sentryTest(
   'should assign request and response context from a failed 500 fetch request',
-  async ({ getLocalTestPath, page }) => {
-    const url = await getLocalTestPath({ testDir: __dirname });
+  async ({ getLocalTestUrl, page }) => {
+    const url = await getLocalTestUrl({ testDir: __dirname });
 
     await page.route('**/foo', route => {
       return route.fulfill({

@@ -8,7 +8,7 @@ import {
   shouldSkipReplayTest,
 } from '../../../../../utils/replayHelpers';
 
-sentryTest('captures request body size when body is sent', async ({ getLocalTestPath, page }) => {
+sentryTest('captures request body size when body is sent', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipReplayTest()) {
     sentryTest.skip();
   }
@@ -32,7 +32,7 @@ sentryTest('captures request body size when body is sent', async ({ getLocalTest
     return getReplayPerformanceSpans(recordingEvents).some(span => span.op === 'resource.fetch');
   });
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
   await page.goto(url);
 
   const [, request, { replayRecordingSnapshots }] = await Promise.all([
@@ -95,7 +95,7 @@ sentryTest('captures request body size when body is sent', async ({ getLocalTest
   ]);
 });
 
-sentryTest('captures request size from non-text request body', async ({ getLocalTestPath, page }) => {
+sentryTest('captures request size from non-text request body', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipReplayTest()) {
     sentryTest.skip();
   }
@@ -119,7 +119,7 @@ sentryTest('captures request size from non-text request body', async ({ getLocal
     return getReplayPerformanceSpans(recordingEvents).some(span => span.op === 'resource.fetch');
   });
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
   await page.goto(url);
 
   const [, request, { replayRecordingSnapshots }] = await Promise.all([

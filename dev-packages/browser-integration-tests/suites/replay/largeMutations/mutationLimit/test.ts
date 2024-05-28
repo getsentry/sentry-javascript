@@ -10,7 +10,7 @@ import {
 
 sentryTest(
   'handles large mutations by stopping replay when `mutationLimit` configured',
-  async ({ getLocalTestPath, page, forceFlushReplay, browserName }) => {
+  async ({ getLocalTestUrl, page, forceFlushReplay, browserName }) => {
     if (shouldSkipReplayTest() || browserName === 'webkit') {
       sentryTest.skip();
     }
@@ -23,7 +23,7 @@ sentryTest(
       });
     });
 
-    const url = await getLocalTestPath({ testDir: __dirname });
+    const url = await getLocalTestUrl({ testDir: __dirname });
 
     // We have to click in order to ensure the LCP is generated, leading to consistent results
     async function gotoPageAndClick() {

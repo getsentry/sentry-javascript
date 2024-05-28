@@ -6,7 +6,7 @@ import { getReplayEvent, shouldSkipReplayTest, waitForReplayRequest } from '../.
 
 const MAX_REPLAY_DURATION = 2000;
 
-sentryTest('keeps track of max duration across reloads', async ({ getLocalTestPath, page }) => {
+sentryTest('keeps track of max duration across reloads', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipReplayTest()) {
     sentryTest.skip();
   }
@@ -22,7 +22,7 @@ sentryTest('keeps track of max duration across reloads', async ({ getLocalTestPa
   const reqPromise0 = waitForReplayRequest(page, 0);
   const reqPromise1 = waitForReplayRequest(page, 1);
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
 
   await page.goto(url);
 

@@ -4,13 +4,13 @@ import type { Event } from '@sentry/types';
 import { sentryTest } from '../../../../utils/fixtures';
 import { getMultipleSentryEnvelopeRequests, shouldSkipTracingTest } from '../../../../utils/helpers';
 
-sentryTest('should capture a thrown error within an async startSpan callback', async ({ getLocalTestPath, page }) => {
+sentryTest('should capture a thrown error within an async startSpan callback', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipTracingTest()) {
     sentryTest.skip();
   }
   const envelopePromise = getMultipleSentryEnvelopeRequests<Event>(page, 2);
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
   await page.goto(url);
 
   const clickPromise = page.getByText('Button 1').click();

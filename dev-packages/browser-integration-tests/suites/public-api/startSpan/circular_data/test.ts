@@ -4,12 +4,12 @@ import type { Event } from '@sentry/types';
 import { sentryTest } from '../../../../utils/fixtures';
 import { getFirstSentryEnvelopeRequest, shouldSkipTracingTest } from '../../../../utils/helpers';
 
-sentryTest('should be able to handle circular data', async ({ getLocalTestPath, page }) => {
+sentryTest('should be able to handle circular data', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipTracingTest()) {
     sentryTest.skip();
   }
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
   const eventData = await getFirstSentryEnvelopeRequest<Event>(page, url);
 
   expect(eventData.type).toBe('transaction');

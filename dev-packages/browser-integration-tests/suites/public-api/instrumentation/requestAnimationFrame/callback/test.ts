@@ -4,8 +4,8 @@ import { sentryTest } from '../../../../../utils/fixtures';
 
 sentryTest(
   'wrapped callback should preserve correct context - window (not-bound)',
-  async ({ getLocalTestPath, page }) => {
-    const url = await getLocalTestPath({ testDir: __dirname });
+  async ({ getLocalTestUrl, page }) => {
+    const url = await getLocalTestUrl({ testDir: __dirname });
 
     await page.goto(url);
 
@@ -24,8 +24,8 @@ sentryTest(
 
 sentryTest(
   'wrapped callback should preserve correct context - `bind` bound method',
-  async ({ getLocalTestPath, page }) => {
-    const url = await getLocalTestPath({ testDir: __dirname });
+  async ({ getLocalTestUrl, page }) => {
+    const url = await getLocalTestUrl({ testDir: __dirname });
 
     await page.goto(url);
 

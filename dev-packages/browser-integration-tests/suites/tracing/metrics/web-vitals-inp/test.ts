@@ -9,7 +9,7 @@ import {
   shouldSkipTracingTest,
 } from '../../../../utils/helpers';
 
-sentryTest('should capture an INP click event span.', async ({ browserName, getLocalTestPath, page }) => {
+sentryTest('should capture an INP click event span.', async ({ browserName, getLocalTestUrl, page }) => {
   const supportedBrowsers = ['chromium'];
 
   if (shouldSkipTracingTest() || !supportedBrowsers.includes(browserName)) {
@@ -24,7 +24,7 @@ sentryTest('should capture an INP click event span.', async ({ browserName, getL
     });
   });
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
 
   await page.goto(url);
   await getFirstSentryEnvelopeRequest<SentryEvent>(page); // wait for page load
@@ -98,7 +98,7 @@ sentryTest('should capture an INP click event span.', async ({ browserName, getL
 
 sentryTest(
   'should choose the slowest interaction click event when INP is triggered.',
-  async ({ browserName, getLocalTestPath, page }) => {
+  async ({ browserName, getLocalTestUrl, page }) => {
     const supportedBrowsers = ['chromium'];
 
     if (shouldSkipTracingTest() || !supportedBrowsers.includes(browserName)) {
@@ -113,7 +113,7 @@ sentryTest(
       });
     });
 
-    const url = await getLocalTestPath({ testDir: __dirname });
+    const url = await getLocalTestUrl({ testDir: __dirname });
 
     await page.goto(url);
     await getFirstSentryEnvelopeRequest<SentryEvent>(page);

@@ -8,13 +8,13 @@ function delay(ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-sentryTest('should queue and retry events when they fail to send', async ({ getLocalTestPath, page }) => {
+sentryTest('should queue and retry events when they fail to send', async ({ getLocalTestUrl, page }) => {
   // makeBrowserOfflineTransport is not included in any CDN bundles
   if (process.env.PW_BUNDLE && process.env.PW_BUNDLE.startsWith('bundle')) {
     sentryTest.skip();
   }
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
 
   // This would be the obvious way to test offline support but it doesn't appear to work!
   // await context.setOffline(true);

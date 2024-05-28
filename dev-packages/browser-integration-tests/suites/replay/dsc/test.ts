@@ -13,13 +13,13 @@ type TestWindow = Window & {
 
 sentryTest(
   'should add replay_id to dsc of transactions when in session mode',
-  async ({ getLocalTestPath, page, browserName }) => {
+  async ({ getLocalTestUrl, page, browserName }) => {
     // This is flaky on webkit, so skipping there...
     if (shouldSkipReplayTest() || shouldSkipTracingTest() || browserName === 'webkit') {
       sentryTest.skip();
     }
 
-    const url = await getLocalTestPath({ testDir: __dirname });
+    const url = await getLocalTestUrl({ testDir: __dirname });
     await page.goto(url);
 
     const transactionReq = waitForTransactionRequest(page);
@@ -63,13 +63,13 @@ sentryTest(
 
 sentryTest(
   'should not add replay_id to dsc of transactions when in buffer mode',
-  async ({ getLocalTestPath, page, browserName }) => {
+  async ({ getLocalTestUrl, page, browserName }) => {
     // This is flaky on webkit, so skipping there...
     if (shouldSkipReplayTest() || shouldSkipTracingTest() || browserName === 'webkit') {
       sentryTest.skip();
     }
 
-    const url = await getLocalTestPath({ testDir: __dirname });
+    const url = await getLocalTestUrl({ testDir: __dirname });
     await page.goto(url);
 
     const transactionReq = waitForTransactionRequest(page);
@@ -109,7 +109,7 @@ sentryTest(
 
 sentryTest(
   'should add replay_id to dsc of transactions when switching from buffer to session mode',
-  async ({ getLocalTestPath, page, browserName }) => {
+  async ({ getLocalTestUrl, page, browserName }) => {
     // This is flaky on webkit, so skipping there...
     if (shouldSkipReplayTest() || shouldSkipTracingTest() || browserName === 'webkit') {
       sentryTest.skip();
@@ -123,7 +123,7 @@ sentryTest(
       });
     });
 
-    const url = await getLocalTestPath({ testDir: __dirname });
+    const url = await getLocalTestUrl({ testDir: __dirname });
     await page.goto(url);
 
     const transactionReq = waitForTransactionRequest(page);
@@ -170,7 +170,7 @@ sentryTest(
 
 sentryTest(
   'should not add replay_id to dsc of transactions if replay is not enabled',
-  async ({ getLocalTestPath, page, browserName }) => {
+  async ({ getLocalTestUrl, page, browserName }) => {
     // This is flaky on webkit, so skipping there...
     if (shouldSkipReplayTest() || shouldSkipTracingTest() || browserName === 'webkit') {
       sentryTest.skip();
@@ -184,7 +184,7 @@ sentryTest(
       });
     });
 
-    const url = await getLocalTestPath({ testDir: __dirname });
+    const url = await getLocalTestUrl({ testDir: __dirname });
     await page.goto(url);
 
     const transactionReq = waitForTransactionRequest(page);

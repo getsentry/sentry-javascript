@@ -27,7 +27,6 @@ const getAsset = (assetDir: string, asset: string): string => {
 export type TestFixtures = {
   _autoSnapshotSuffix: void;
   testDir: string;
-  getLocalTestPath: (options: { testDir: string }) => Promise<string>;
   getLocalTestUrl: (options: { testDir: string; skipRouteHandler?: boolean }) => Promise<string>;
   forceFlushReplay: () => Promise<string>;
   enableConsole: () => void;
@@ -81,15 +80,6 @@ const sentryTest = base.extend<TestFixtures>({
     });
   },
 
-  getLocalTestPath: ({}, use) => {
-    return use(async ({ testDir }) => {
-      const pagePath = `file:///${path.resolve(testDir, './dist/index.html')}`;
-
-      await build(testDir);
-
-      return pagePath;
-    });
-  },
   runInChromium: ({ runInSingleBrowser }, use) => {
     return use((fn, args) => runInSingleBrowser('chromium', fn, args));
   },
