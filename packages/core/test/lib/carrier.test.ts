@@ -1,5 +1,5 @@
+import { SDK_VERSION } from '@sentry/utils';
 import { getSentryCarrier } from '../../src/carrier';
-import { SDK_VERSION } from '../../src/version';
 
 describe('getSentryCarrier', () => {
   describe('base case (one SDK)', () => {
@@ -7,16 +7,12 @@ describe('getSentryCarrier', () => {
       const globalObject = {};
       const sentryCarrier = getSentryCarrier(globalObject);
 
-      expect(sentryCarrier).toEqual({
-        extensions: {},
-      });
+      expect(sentryCarrier).toEqual({});
 
       expect(globalObject).toEqual({
         __SENTRY__: {
           version: SDK_VERSION,
-          [SDK_VERSION]: {
-            extensions: {},
-          },
+          [SDK_VERSION]: {},
         },
       });
     });
@@ -71,26 +67,23 @@ describe('getSentryCarrier', () => {
           version: '8.0.0' as const,
           '8.0.0': {
             // and this object
-            integrations: [() => {}],
+            acs: {},
           },
         },
       };
 
+      // @ts-expect-error - this is just a test object, no need to pass a hub
       const sentryCarrier = getSentryCarrier(globalObject);
 
-      expect(sentryCarrier).toEqual({
-        extensions: {},
-      });
+      expect(sentryCarrier).toEqual({});
 
       expect(globalObject).toEqual({
         __SENTRY__: {
           version: '8.0.0',
           '8.0.0': {
-            integrations: [expect.any(Function)],
+            acs: {},
           },
-          [SDK_VERSION]: {
-            extensions: {},
-          },
+          [SDK_VERSION]: {},
         },
       });
     });

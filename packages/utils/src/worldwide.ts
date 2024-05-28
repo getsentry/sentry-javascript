@@ -17,10 +17,23 @@ import type { Client, MetricsAggregator, Scope, VersionString } from '@sentry/ty
 import type { SdkSource } from './env';
 import { SDK_VERSION } from './version';
 
-type BackwardsCompatibleSentryCarrier = {
-  // v8 scope stack (replaces .hub)
-  stack?: any;
+interface SentryCarrier {
   acs?: any;
+  stack?: any;
+
+  globalScope?: Scope;
+  defaultIsolationScope?: Scope;
+  defaultCurrentScope?: Scope;
+  globalMetricsAggregators: WeakMap<Client, MetricsAggregator> | undefined;
+
+  /** Overwrites TextEncoder used in `@sentry/utils`, need for `react-native@0.73` and older */
+  encodePolyfill?: (input: string) => Uint8Array;
+  /** Overwrites TextDecoder used in `@sentry/utils`, need for `react-native@0.73` and older */
+  decodePolyfill?: (input: Uint8Array) => string;
+}
+
+// TODO(v9): Clean up or remove this type
+type BackwardsCompatibleSentryCarrier = SentryCarrier & {
   // pre-v7 hub (replaced by .stack)
   hub: any;
   integrations?: any[];
@@ -30,14 +43,6 @@ type BackwardsCompatibleSentryCarrier = {
     // eslint-disable-next-line @typescript-eslint/ban-types
     [key: string]: Function;
   };
-  globalScope: Scope | undefined;
-  defaultCurrentScope: Scope | undefined;
-  defaultIsolationScope: Scope | undefined;
-  globalMetricsAggregators: WeakMap<Client, MetricsAggregator> | undefined;
-  /** Overwrites TextEncoder used in `@sentry/utils`, need for `react-native@0.73` and older */
-  encodePolyfill?: (input: string) => Uint8Array;
-  /** Overwrites TextDecoder used in `@sentry/utils`, need for `react-native@0.73` and older */
-  decodePolyfill?: (input: Uint8Array) => string;
 };
 
 /** Internal global with common properties and Sentry extensions  */
@@ -68,7 +73,7 @@ export type InternalGlobal = {
    */
   _sentryDebugIds?: Record<string, string>;
   __SENTRY__: {
-    [key: VersionString]: BackwardsCompatibleSentryCarrier;
+    [key: VersionString]: SentryCarrier;
     version: VersionString;
   } & BackwardsCompatibleSentryCarrier;
   /**
@@ -83,10 +88,8 @@ export type InternalGlobal = {
 /** Get's the global object for the current JavaScript runtime */
 export const GLOBAL_OBJ = globalThis as unknown as InternalGlobal;
 
-type SingletonKeys = Exclude<keyof InternalGlobal['__SENTRY__'], 'version' | VersionString>;
-
 /**
- * Returns a global singleton contained in the global `__SENTRY__` object.
+ * Returns a global singleton contained in the global `__SENTRY__[]` object.
  *
  * If the singleton doesn't already exist in `__SENTRY__`, it will be created using the given factory
  * function and added to the `__SENTRY__` object.
@@ -96,7 +99,7 @@ type SingletonKeys = Exclude<keyof InternalGlobal['__SENTRY__'], 'version' | Ver
  * @param obj (Optional) The global object on which to look for `__SENTRY__`, if not `GLOBAL_OBJ`'s return value
  * @returns the singleton
  */
-export function getGlobalSingleton<T>(name: SingletonKeys, creator: () => T, obj?: unknown): T {
+export function getGlobalSingleton<T>(name: keyof SentryCarrier, creator: () => T, obj?: unknown): T {
   const gbl = (obj || GLOBAL_OBJ) as InternalGlobal;
   const __SENTRY__ = (gbl.__SENTRY__ = gbl.__SENTRY__ || {});
   const versionedCarrier = (__SENTRY__[SDK_VERSION] = __SENTRY__[SDK_VERSION] || {});
