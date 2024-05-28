@@ -10,7 +10,7 @@ import { isBuild } from '../common/utils/isBuild';
 import { distDirRewriteFramesIntegration } from './distDirRewriteFramesIntegration';
 
 export * from '@sentry/node';
-import type { EventProcessor } from '@sentry/types';
+import type { Event, EventProcessor } from '@sentry/types';
 import { httpIntegration } from './httpIntegration';
 
 export { httpIntegration };
@@ -190,13 +190,22 @@ export function init(options: NodeOptions): void {
 
         const originalException = hint.originalException;
 
-        const isReactControlFlowError =
+        const isPostponeError =
           typeof originalException === 'object' &&
           originalException !== null &&
           '$$typeof' in originalException &&
           originalException.$$typeof === Symbol.for('react.postpone');
 
-        if (isReactControlFlowError) {
+        if (isPostponeError) {
+          // Postpone errors are used for partial-pre-rendering (PPR)
+          return null;
+        }
+
+        // We don't want to capture suspense errors as they are simply used by React/Next.js for control flow
+        if (
+          isReactErrorEventWithErrorCode(event, 460) || // Suspense Exception: This is not a real error! It's an implementation detail...
+          isReactErrorEventWithErrorCode(event, 474) // Suspense Exception: This is not a real error, and should not leak into...
+        ) {
           return null;
         }
 
@@ -220,3 +229,18 @@ function sdkAlreadyInitialized(): boolean {
 export * from '../common';
 
 export { wrapApiHandlerWithSentry } from '../common/wrapApiHandlerWithSentry';
+
+// https://github.com/facebook/react/blob/6f23540c7d39d7da2091284322008dadd055c031/scripts/error-codes/codes.json
+function isReactErrorEventWithErrorCode(event: Event, errorCode: number): boolean {
+  const exceptionValue = event.exception && event.exception.values && event.exception.values[0].value;
+  if (typeof exceptionValue !== 'string') {
+    return false;
+  }
+
+  // Example https://reactjs.org/docs/error-decoder.html?invariant=423
+  // With newer React versions, the messages changed to a different website https://react.dev/errors/418
+  return (
+    exceptionValue.includes(`reactjs.org/docs/error-decoder.html?invariant=${errorCode}`) ||
+    exceptionValue.includes(`react.dev/errors/${errorCode}`)
+  );
+}
