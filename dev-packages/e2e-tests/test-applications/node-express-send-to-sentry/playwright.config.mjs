@@ -1,10 +1,16 @@
-import type { PlaywrightTestConfig } from '@playwright/test';
 import { devices } from '@playwright/test';
+
+// Fix urls not resolving to localhost on Node v17+
+// See: https://github.com/axios/axios/issues/3821#issuecomment-1413727575
+import { setDefaultResultOrder } from 'dns';
+setDefaultResultOrder('ipv4first');
+
+const expressPort = 3030;
 
 /**
  * See https://playwright.dev/docs/test-configuration.
  */
-const config: PlaywrightTestConfig = {
+const config = {
   testDir: './tests',
   /* Maximum time one test can run for. */
   timeout: 150_000,
@@ -21,14 +27,15 @@ const config: PlaywrightTestConfig = {
   forbidOnly: !!process.env.CI,
   /* Retry on CI only */
   retries: 0,
-  /* Opt out of parallel tests on CI. */
-  workers: 1,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: 'list',
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
     /* Maximum time each action such as `click()` can take. Defaults to 0 (no limit). */
     actionTimeout: 0,
+
+    /* Base URL to use in actions like `await page.goto('/')`. */
+    baseURL: `http://localhost:${expressPort}`,
 
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
@@ -58,13 +65,12 @@ const config: PlaywrightTestConfig = {
   ],
 
   /* Run your local dev server before starting the tests */
-  webServer: {
-    command: 'pnpm start',
-    port: 3030,
-    env: {
-      PORT: '3030',
+  webServer: [
+    {
+      command: 'pnpm start',
+      port: expressPort,
     },
-  },
+  ],
 };
 
 export default config;

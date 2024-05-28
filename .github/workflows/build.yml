@@ -1140,7 +1140,8 @@ jobs:
           - ${{ github.actor == 'dependabot[bot]' }}
         test-application:
           [
-            'react-send-to-sentry'
+            'react-send-to-sentry',
+            'node-express-send-to-sentry'
           ]
         build-command:
           - false
