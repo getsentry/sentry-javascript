@@ -12,7 +12,6 @@ import type {
 import {
   addNonEnumerableProperty,
   dropUndefinedKeys,
-  dynamicSamplingContextToSentryBaggageHeader,
   generateSentryTraceHeader,
   timestampInSeconds,
 } from '@sentry/utils';
@@ -22,7 +21,6 @@ import { getCurrentScope } from '../currentScopes';
 import { getMetricSummaryJsonForSpan, updateMetricSummaryOnSpan } from '../metrics/metric-summary';
 import type { MetricType } from '../metrics/types';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../semanticAttributes';
-import { getDynamicSamplingContextFromSpan } from '../tracing';
 import type { SentrySpan } from '../tracing/sentrySpan';
 import { SPAN_STATUS_OK, SPAN_STATUS_UNSET } from '../tracing/spanstatus';
 import { _getSpanForScope } from './spanOnScope';
@@ -68,14 +66,6 @@ export function spanToTraceHeader(span: Span): string {
   const { traceId, spanId } = span.spanContext();
   const sampled = spanIsSampled(span);
   return generateSentryTraceHeader(traceId, spanId, sampled);
-}
-
-/**
- * Convert a Span to a baggage header.
- */
-export function spanToBaggageHeader(span: Span): string | undefined {
-  const dsc = getDynamicSamplingContextFromSpan(span);
-  return dynamicSamplingContextToSentryBaggageHeader(dsc);
 }
 
 /**
@@ -218,7 +208,7 @@ export function addChildSpanToSpan(span: SpanWithPotentialChildren, childSpan: S
 
   // We store a list of child spans on the parent span
   // We need this for `getSpanDescendants()` to work
-  if (span[CHILD_SPANS_FIELD] && span[CHILD_SPANS_FIELD].size < 1000) {
+  if (span[CHILD_SPANS_FIELD]) {
     span[CHILD_SPANS_FIELD].add(childSpan);
   } else {
     addNonEnumerableProperty(span, CHILD_SPANS_FIELD, new Set([childSpan]));

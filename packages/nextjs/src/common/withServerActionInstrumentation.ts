@@ -9,13 +9,12 @@ import { logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from './debug-build';
 import { isNotFoundNavigationError, isRedirectNavigationError } from './nextNavigationErrorUtils';
-import { platformSupportsStreaming } from './utils/platformSupportsStreaming';
-import { flushQueue } from './utils/responseEnd';
+import { flushSafelyWithTimeout } from './utils/responseEnd';
 import { escapeNextjsTracing } from './utils/tracingUtils';
+import { vercelWaitUntil } from './utils/vercelWaitUntil';
 
 interface Options {
   formData?: FormData;
-  // TODO(v8): Whenever we decide to drop support for Next.js <= 12 we can automatically pick up the headers becauase "next/headers" will be resolvable.
   headers?: Headers;
   recordResponse?: boolean;
 }
@@ -132,16 +131,7 @@ async function withServerActionInstrumentationImplementation<A extends (...args:
               },
             );
           } finally {
-            if (!platformSupportsStreaming()) {
-              // Lambdas require manual flushing to prevent execution freeze before the event is sent
-              await flushQueue();
-            }
-
-            if (process.env.NEXT_RUNTIME === 'edge') {
-              // flushQueue should not throw
-              // eslint-disable-next-line @typescript-eslint/no-floating-promises
-              flushQueue();
-            }
+            vercelWaitUntil(flushSafelyWithTimeout());
           }
         },
       );

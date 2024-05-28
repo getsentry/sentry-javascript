@@ -1,3 +1,4 @@
+import { setTimeout } from '@sentry-internal/browser-utils';
 import { addBreadcrumb } from '@sentry/core';
 import { logger } from '@sentry/utils';
 

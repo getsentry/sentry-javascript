@@ -56,6 +56,30 @@ test('Sends successful transaction', async ({ baseURL }) => {
       },
     }),
   );
+
+  const spans = transactionEvent.spans || [];
+
+  expect(spans).toEqual([
+    {
+      data: {
+        'hapi.type': 'router',
+        'http.method': 'GET',
+        'http.route': '/test-success',
+        'otel.kind': 'INTERNAL',
+        'sentry.op': 'router.hapi',
+        'sentry.origin': 'auto.http.otel.hapi',
+      },
+      description: 'GET /test-success',
+      op: 'router.hapi',
+      origin: 'auto.http.otel.hapi',
+      parent_span_id: expect.any(String),
+      span_id: expect.any(String),
+      start_timestamp: expect.any(Number),
+      status: 'ok',
+      timestamp: expect.any(Number),
+      trace_id: expect.any(String),
+    },
+  ]);
 });
 
 test('Sends parameterized transactions to Sentry', async ({ baseURL }) => {

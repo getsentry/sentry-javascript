@@ -4,6 +4,136 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 8.5.0
+
+### Important Changes
+
+- **feat(react): Add React 19 to peer deps (#12207)**
+
+This release adds support for React 19 in the `@sentry/react` SDK package.
+
+- **feat(node): Add `@sentry/node/preload` hook (#12213)**
+
+This release adds a new way to initialize `@sentry/node`, which allows you to use the SDK with performance
+instrumentation even if you cannot call `Sentry.init()` at the very start of your app.
+
+First, run the SDK like this:
+
+```bash
+node --require @sentry/node/preload ./app.js
+```
+
+Now, you can initialize and import the rest of the SDK later or asynchronously:
+
+```js
+const express = require('express');
+const Sentry = require('@sentry/node');
+
+const dsn = await getSentryDsn();
+Sentry.init({ dsn });
+```
+
+For more details, head over to the
+[PR Description of the new feature](https://github.com/getsentry/sentry-javascript/pull/12213). Our docs will be updated
+soon with a new guide.
+
+### Other Changes
+
+- feat(browser): Do not include metrics in base CDN bundle (#12230)
+- feat(core): Add `startNewTrace` API (#12138)
+- feat(core): Allow to pass custom scope to `captureFeedback()` (#12216)
+- feat(core): Only allow `SerializedSession` in session envelope items (#11979)
+- feat(nextjs): Use Vercel's `waitUntil` to defer freezing of Vercel Lambdas (#12133)
+- feat(node): Ensure manual OTEL setup works (#12214)
+- fix(aws-serverless): Avoid minifying `Module._resolveFilename` in Lambda layer bundle (#12232)
+- fix(aws-serverless): Ensure lambda layer uses default export from `ImportInTheMiddle` (#12233)
+- fix(browser): Improve browser extension error message check (#12146)
+- fix(browser): Remove optional chaining in INP code (#12196)
+- fix(nextjs): Don't report React postpone errors (#12194)
+- fix(nextjs): Use global scope for generic event filters (#12205)
+- fix(node): Add origin to redis span (#12201)
+- fix(node): Change import of `@prisma/instrumentation` to use default import (#12185)
+- fix(node): Only import `inspector` asynchronously (#12231)
+- fix(replay): Update matcher for hydration error detection to new React docs (#12209)
+- ref(profiling-node): Add warning when using non-LTS node (#12211)
+
+## 8.4.0
+
+### Important Changes
+
+- **feat(nextjs): Trace pageloads in App Router (#12157)**
+
+If you are using Next.js version `14.3.0-canary.64` or above, the Sentry Next.js SDK will now trace clientside pageloads
+with React Server Components. This means, that client-side errors like
+`Error: An error occurred in the Server Components render.`, which previously didn't give you much information on how
+that error was caused, can now be traced back to a specific error in a server component.
+
+- **feat(angular): Add Support for Angular 18 (#12183)**
+
+This release guarantees support for Angular 18 with `@sentry/angular`.
+
+### Other Changes
+
+- feat(deps): Bump @opentelemetry/instrumentation-aws-lambda from 0.41.0 to 0.41.1 (#12078)
+- fix(metrics): Ensure string values are interpreted for metrics (#12165)
+
+## 8.3.0
+
+### Important Changes
+
+- **Better Node Framework Span Data**
+
+This release improves data quality of spans emitted by Express, Fastify, Connect, Koa, Nest.js and Hapi.
+
+- feat(node): Ensure connect spans have better data (#12130)
+- feat(node): Ensure express spans have better data (#12107)
+- feat(node): Ensure fastify spans have better data (#12106)
+- feat(node): Ensure hapi spans have better data (#12140)
+- feat(node): Ensure koa spans have better data (#12108)
+- feat(node): Ensure Nest.js spans have better data (#12139)
+- feat(deps): Bump @opentelemetry/instrumentation-express from 0.38.0 to 0.39.0 (#12079)
+
+- **feat(node): No-code init via `--import=@sentry/node/init` (#11999)**
+
+When using Sentry in ESM mode, you can now use Sentry without manually calling init like this:
+
+```bash
+ SENTRY_DSN=https://examplePublicKey@o0.ingest.sentry.io/0 node --import=@sentry/node/init app.mjs
+```
+
+When using CommonJS, you can do:
+
+```bash
+ SENTRY_DSN=https://examplePublicKey@o0.ingest.sentry.io/0 node --require=@sentry/node/init app.js
+```
+
+### Other Changes
+
+- chore: Align and update MIT license dates (#12143)
+- chore: Resolve or postpone a random assortment of TODOs (#11977)
+- doc(migration): Add entry for runWithAsyncContext (#12153)
+- docs: Add migration docs to point out that default import does not work (#12100)
+- docs(sveltekit): process.env.SENTRY_AUTH_TOKEN (#12118)
+- feat(browser): Ensure `browserProfilingIntegration` is published to CDN (#12158)
+- feat(google-cloud): Expose ESM build (#12149)
+- feat(nextjs): Ignore Prisma critical dependency warnings (#12144)
+- feat(node): Add app.free_memory info to events (#12150)
+- feat(node): Do not create GraphQL resolver spans by default (#12097)
+- feat(node): Use `node:` prefix for node built-ins (#11895)
+- feat(replay): Use unwrapped `setTimeout` to avoid e.g. angular change detection (#11924)
+- fix(core): Add dsn to span envelope header (#12096)
+- fix(feedback): Improve feedback border color in dark-mode, and prevent auto-dark mode when a theme is picked (#12126)
+- fix(feedback): Set optionOverrides to be optional in TS definition (#12125)
+- fix(nextjs): Don't put `undefined` values in props (#12131)
+- fix(nextjs): Fix legacy configuration method detection for emitting warning (#12136)
+- fix(node): Ensure fetch/http breadcrumbs are created correctly (#12137)
+- fix(node): Update `@prisma/instrumentation` from 5.13.0 to 5.14.0 (#12081)
+- ref(node): Add log for running in ESM/CommonJS mode (#12134)
+- ref(node): Handle failing hook registration gracefully (#12135)
+- ref(node): Only show instrumentation warning when tracing is enabled (#12141)
+
+Work in this release contributed by @pboling. Thank you for your contribution!
+
 ## 8.2.1
 
 - fix(aws-serverless): Fix build of lambda layer (#12083)

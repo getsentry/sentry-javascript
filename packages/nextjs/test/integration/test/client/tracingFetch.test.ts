@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { SerializedEvent } from '@sentry/types';
+import { Event } from '@sentry/types';
 import { countEnvelopes, getMultipleSentryEnvelopeRequests } from './utils/helpers';
 
 test('should correctly instrument `fetch` for performance tracing', async ({ page }) => {
@@ -12,7 +12,7 @@ test('should correctly instrument `fetch` for performance tracing', async ({ pag
     });
   });
 
-  const transaction = await getMultipleSentryEnvelopeRequests<SerializedEvent>(page, 1, {
+  const transaction = await getMultipleSentryEnvelopeRequests<Event>(page, 1, {
     url: '/fetch',
     envelopeType: 'transaction',
   });

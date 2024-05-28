@@ -29,7 +29,17 @@ describe('express tracing experimental', () => {
                   'express.name': 'corsMiddleware',
                   'express.type': 'middleware',
                 }),
-                description: 'middleware - corsMiddleware',
+                description: 'corsMiddleware',
+                op: 'middleware.express',
+                origin: 'auto.http.otel.express',
+              }),
+              expect.objectContaining({
+                data: expect.objectContaining({
+                  'express.name': '/test/express',
+                  'express.type': 'request_handler',
+                }),
+                description: '/test/express',
+                op: 'request_handler.express',
                 origin: 'auto.http.otel.express',
               }),
             ]),
@@ -44,7 +54,7 @@ describe('express tracing experimental', () => {
         .ignore('session', 'sessions')
         .expect({
           transaction: {
-            transaction: 'GET /',
+            transaction: 'GET /\\/test\\/regex/',
             transaction_info: {
               source: 'route',
             },
@@ -67,13 +77,13 @@ describe('express tracing experimental', () => {
     });
 
     test.each([['array1'], ['array5']])(
-      'should set a correct transaction name for routes consisting of arrays of routes',
+      'should set a correct transaction name for routes consisting of arrays of routes for %p',
       ((segment: string, done: () => void) => {
         createRunner(__dirname, 'server.js')
           .ignore('session', 'sessions')
           .expect({
             transaction: {
-              transaction: 'GET /',
+              transaction: 'GET /test/array1,/\\/test\\/array[2-9]/',
               transaction_info: {
                 source: 'route',
               },
@@ -105,12 +115,12 @@ describe('express tracing experimental', () => {
       ['arr55/required/lastParam'],
       ['arr/requiredPath/optionalPath/'],
       ['arr/requiredPath/optionalPath/lastParam'],
-    ])('should handle more complex regexes in route arrays correctly', ((segment: string, done: () => void) => {
+    ])('should handle more complex regexes in route arrays correctly for %p', ((segment: string, done: () => void) => {
       createRunner(__dirname, 'server.js')
         .ignore('session', 'sessions')
         .expect({
           transaction: {
-            transaction: 'GET /',
+            transaction: 'GET /test/arr/:id,/\\/test\\/arr[0-9]*\\/required(path)?(\\/optionalPath)?\\/(lastParam)?/',
             transaction_info: {
               source: 'route',
             },

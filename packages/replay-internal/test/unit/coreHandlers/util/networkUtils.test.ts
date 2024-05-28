@@ -1,5 +1,3 @@
-import { vi } from 'vitest';
-
 import { NETWORK_BODY_MAX_SIZE } from '../../../../src/constants';
 import {
   buildNetworkRequestOrResponse,
@@ -8,8 +6,9 @@ import {
   getFullUrl,
   parseContentLengthHeader,
 } from '../../../../src/coreHandlers/util/networkUtils';
+import { useFakeTimers } from '../../../utils/use-fake-timers';
 
-vi.useFakeTimers();
+useFakeTimers();
 
 describe('Unit | coreHandlers | util | networkUtils', () => {
   describe('parseContentLengthHeader()', () => {

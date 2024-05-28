@@ -1,22 +1,10 @@
-import type {
-  Client,
-  MeasurementUnit,
-  MetricsAggregator as MetricsAggregatorInterface,
-  Primitive,
-} from '@sentry/types';
+import type { Client, MetricData, MetricsAggregator as MetricsAggregatorInterface } from '@sentry/types';
 import { getGlobalSingleton, logger } from '@sentry/utils';
 import { getClient } from '../currentScopes';
 import { DEBUG_BUILD } from '../debug-build';
 import { getActiveSpan, getRootSpan, spanToJSON } from '../utils/spanUtils';
 import { COUNTER_METRIC_TYPE, DISTRIBUTION_METRIC_TYPE, GAUGE_METRIC_TYPE, SET_METRIC_TYPE } from './constants';
 import type { MetricType } from './types';
-
-export interface MetricData {
-  unit?: MeasurementUnit;
-  tags?: Record<string, Primitive>;
-  timestamp?: number;
-  client?: Client;
-}
 
 type MetricsAggregatorConstructor = {
   new (client: Client): MetricsAggregatorInterface;
@@ -90,7 +78,7 @@ function addToMetricsAggregator(
  * @experimental This API is experimental and might have breaking changes in the future.
  */
 function increment(aggregator: MetricsAggregatorConstructor, name: string, value: number = 1, data?: MetricData): void {
-  addToMetricsAggregator(aggregator, COUNTER_METRIC_TYPE, name, value, data);
+  addToMetricsAggregator(aggregator, COUNTER_METRIC_TYPE, name, ensureNumber(value), data);
 }
 
 /**
@@ -99,7 +87,7 @@ function increment(aggregator: MetricsAggregatorConstructor, name: string, value
  * @experimental This API is experimental and might have breaking changes in the future.
  */
 function distribution(aggregator: MetricsAggregatorConstructor, name: string, value: number, data?: MetricData): void {
-  addToMetricsAggregator(aggregator, DISTRIBUTION_METRIC_TYPE, name, value, data);
+  addToMetricsAggregator(aggregator, DISTRIBUTION_METRIC_TYPE, name, ensureNumber(value), data);
 }
 
 /**
@@ -117,7 +105,7 @@ function set(aggregator: MetricsAggregatorConstructor, name: string, value: numb
  * @experimental This API is experimental and might have breaking changes in the future.
  */
 function gauge(aggregator: MetricsAggregatorConstructor, name: string, value: number, data?: MetricData): void {
-  addToMetricsAggregator(aggregator, GAUGE_METRIC_TYPE, name, value, data);
+  addToMetricsAggregator(aggregator, GAUGE_METRIC_TYPE, name, ensureNumber(value), data);
 }
 
 export const metrics = {
@@ -130,3 +118,8 @@ export const metrics = {
    */
   getMetricsAggregatorForClient,
 };
+
+// Although this is typed to be a number, we try to handle strings as well here
+function ensureNumber(number: number | string): number {
+  return typeof number === 'string' ? parseInt(number) : number;
+}

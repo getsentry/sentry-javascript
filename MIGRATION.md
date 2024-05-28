@@ -706,10 +706,11 @@ You can import from `@sentry/browser` (or from a respective SDK package like `@s
 
 ### Server-side SDKs (Node, Deno, Bun, etc.)
 
-Removed top-level exports: `enableAnrDetection`, `Anr`, `deepReadDirSync`
+Removed top-level exports: `enableAnrDetection`, `Anr`, `deepReadDirSync`, `runWithAsyncContext`
 
 - [Removal of `enableAnrDetection` and `Anr` class](./MIGRATION.md#removal-of-enableanrdetection-and-anr-class)
 - [Removal of `deepReadDirSync` method](./MIGRATION.md#removal-of-deepreaddirsync-method)
+- [Removal of `runWithAsyncContext` method](./MIGRATION.md#removal-of-runwithasynccontext-method)
 
 #### Removal of `enableAnrDetection` and `Anr` class
 
@@ -719,6 +720,22 @@ The `enableAnrDetection` and `Anr` class have been removed. See the
 #### Removal of `deepReadDirSync` method
 
 The `deepReadDirSync` method has been removed. There is no replacement API.
+
+#### Removal of `runWithAsyncContext` method
+
+The `runWithAsyncContext` method has been removed in favour of `Sentry.withIsolationScope`.
+
+```js
+// before (v7)
+Sentry.runWithAsyncContext(() => {
+  // Your code here...
+});
+
+// after (v8)
+Sentry.withIsolationScope(() => {
+  // Your code here...
+});
+```
 
 ### Next.js SDK
 
@@ -1322,6 +1339,14 @@ export class HeaderComponent {
   ngOnChanges(changes: SimpleChanges) {}
 }
 ```
+
+## 6. Build Changes
+
+We now provide a proper ESM output of the SDK. There have also been some other build changes under the hood. One side
+effect of this is that importing Sentry as a default import does not work anymore. Note that this was never supported
+(even on v7) and this was never intended to work (and also not documented anywhere). However, it seems that for some
+configuration combinations, it was still possible to do `import Sentry from '@sentry/browser'`. This is not possible
+anymore in v8. Please use `import * as Sentry from '@sentry/browser'` instead.
 
 # Upgrading Sentry Feedback (beta, 7.x to 8.0)
 

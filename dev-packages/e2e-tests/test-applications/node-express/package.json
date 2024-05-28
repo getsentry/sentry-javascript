@@ -20,7 +20,7 @@
     "@types/node": "18.15.1",
     "express": "4.19.2",
     "typescript": "4.9.5",
-    "zod": "^3.22.4"
+    "zod": "~3.22.4"
   },
   "devDependencies": {
     "@sentry-internal/event-proxy-server": "link:../../../event-proxy-server",
