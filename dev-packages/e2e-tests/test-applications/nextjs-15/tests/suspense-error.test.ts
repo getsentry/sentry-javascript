@@ -6,11 +6,11 @@ test('should not capture serverside suspense errors', async ({ page }) => {
     return transactionEvent?.transaction === 'Page Server Component (/suspense-error)';
   });
 
-  let errorEventReceived = false;
+  let errorEvent;
   waitForError('nextjs-15', async transactionEvent => {
     return transactionEvent?.transaction === 'Page Server Component (/suspense-error)';
-  }).then(() => {
-    errorEventReceived = true;
+  }).then(event => {
+    errorEvent = event;
   });
 
   await page.goto(`/suspense-error`);
@@ -20,5 +20,5 @@ test('should not capture serverside suspense errors', async ({ page }) => {
   const pageServerComponentTransaction = await pageServerComponentTransactionPromise;
   expect(pageServerComponentTransaction).toBeDefined();
 
-  expect(errorEventReceived).toBe(false);
+  expect(errorEvent).toBeUndefined();
 });
