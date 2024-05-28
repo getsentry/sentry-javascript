@@ -46,11 +46,7 @@ export interface SendFeedbackParams {
   tags?: { [key: string]: Primitive };
 }
 
-export interface SendFeedbackOptions extends EventHint {
-  /**
-   * Should include replay with the feedback?
-   */
-  includeReplay?: boolean;
-}
-
-export type SendFeedback = (params: SendFeedbackParams, options?: SendFeedbackOptions) => Promise<string>;
+export type SendFeedback = (
+  params: SendFeedbackParams,
+  hint?: EventHint & { includeReplay?: boolean },
+) => Promise<string>;

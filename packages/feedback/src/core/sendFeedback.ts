@@ -1,13 +1,7 @@
 import { captureFeedback } from '@sentry/core';
 import { getClient } from '@sentry/core';
 import { getCurrentScope } from '@sentry/core';
-import type {
-  Event,
-  SendFeedback,
-  SendFeedbackOptions,
-  SendFeedbackParams,
-  TransportMakeRequestResponse,
-} from '@sentry/types';
+import type { Event, EventHint, SendFeedback, SendFeedbackParams, TransportMakeRequestResponse } from '@sentry/types';
 import { getLocationHref } from '@sentry/utils';
 import { FEEDBACK_API_SOURCE } from '../constants';
 
@@ -15,10 +9,10 @@ import { FEEDBACK_API_SOURCE } from '../constants';
  * Public API to send a Feedback item to Sentry
  */
 export const sendFeedback: SendFeedback = (
-  options: SendFeedbackParams,
-  hint: SendFeedbackOptions = { includeReplay: true },
+  params: SendFeedbackParams,
+  hint: EventHint & { includeReplay?: boolean } = { includeReplay: true },
 ): Promise<string> => {
-  if (!options.message) {
+  if (!params.message) {
     throw new Error('Unable to submit feedback with empty message');
   }
 
@@ -29,14 +23,14 @@ export const sendFeedback: SendFeedback = (
     throw new Error('No client setup, cannot send feedback.');
   }
 
-  if (options.tags) {
-    getCurrentScope().setTags(options.tags);
+  if (params.tags && Object.keys(params.tags).length) {
+    getCurrentScope().setTags(params.tags);
   }
   const eventId = captureFeedback(
     {
       source: FEEDBACK_API_SOURCE,
       url: getLocationHref(),
-      ...options,
+      ...params,
     },
     hint,
   );
