@@ -14,7 +14,6 @@ describe('metrics.timing', () => {
   });
 
   beforeEach(() => {
-    jest.useFakeTimers('legacy');
     testClient = new TestClient(options);
     setCurrentClient(testClient);
   });
@@ -78,7 +77,10 @@ describe('metrics.timing', () => {
   });
 
   it('works with a sync callback', async () => {
-    const res = metricsDefault.timing('t1', () => 'oho');
+    const res = metricsDefault.timing('t1', () => {
+      sleepSync(200);
+      return 'oho';
+    });
     expect(res).toStrictEqual('oho');
 
     const sendSpy = jest.spyOn(testClient.getTransport()!, 'send');
@@ -93,7 +95,10 @@ describe('metrics.timing', () => {
   });
 
   it('works with an async callback', async () => {
-    const res = metricsDefault.timing('t1', async () => 'oho');
+    const res = metricsDefault.timing('t1', async () => {
+      await new Promise(resolve => setTimeout(resolve, 200));
+      return 'oho';
+    });
     expect(res).toBeInstanceOf(Promise);
     expect(await res).toStrictEqual('oho');
 
@@ -108,3 +113,12 @@ describe('metrics.timing', () => {
     ]);
   });
 });
+
+function sleepSync(milliseconds: number): void {
+  const start = Date.now();
+  for (let i = 0; i < 1e7; i++) {
+    if (new Date().getTime() - start > milliseconds) {
+      break;
+    }
+  }
+}
