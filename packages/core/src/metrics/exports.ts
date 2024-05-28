@@ -2,7 +2,7 @@ import type { Client, DurationUnit, MetricData, MetricsAggregator as MetricsAggr
 import { getGlobalSingleton, logger, timestampInSeconds } from '@sentry/utils';
 import { getClient } from '../currentScopes';
 import { DEBUG_BUILD } from '../debug-build';
-import { startInactiveSpan } from '../tracing';
+import { startSpanManual } from '../tracing';
 import { handleCallbackErrors } from '../utils/handleCallbackErrors';
 import { getActiveSpan, getRootSpan, spanToJSON } from '../utils/spanUtils';
 import { COUNTER_METRIC_TYPE, DISTRIBUTION_METRIC_TYPE, GAUGE_METRIC_TYPE, SET_METRIC_TYPE } from './constants';
@@ -111,23 +111,27 @@ function timing<T = void>(
   // callback form
   if (typeof value === 'function') {
     const startTime = timestampInSeconds();
-    const span = startInactiveSpan({
-      op: 'metrics.timing',
-      name,
-      startTime,
-      onlyIfParent: true,
-    });
 
-    return handleCallbackErrors(
-      () => value(),
-      () => {
-        // no special error handling necessary
+    return startSpanManual(
+      {
+        op: 'metrics.timing',
+        name,
+        startTime,
+        onlyIfParent: true,
       },
-      () => {
-        const endTime = timestampInSeconds();
-        const timeDiff = endTime - startTime;
-        distribution(aggregator, name, timeDiff, { ...data, unit: 'second' });
-        span.end(endTime);
+      span => {
+        return handleCallbackErrors(
+          () => value(),
+          () => {
+            // no special error handling necessary
+          },
+          () => {
+            const endTime = timestampInSeconds();
+            const timeDiff = endTime - startTime;
+            distribution(aggregator, name, timeDiff, { ...data, unit: 'second' });
+            span.end(endTime);
+          },
+        );
       },
     );
   }
