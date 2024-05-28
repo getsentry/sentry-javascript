@@ -10,7 +10,7 @@ import { isBuild } from '../common/utils/isBuild';
 import { distDirRewriteFramesIntegration } from './distDirRewriteFramesIntegration';
 
 export * from '@sentry/node';
-import type { Event, EventProcessor } from '@sentry/types';
+import type { EventProcessor } from '@sentry/types';
 import { httpIntegration } from './httpIntegration';
 
 export { httpIntegration };
