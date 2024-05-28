@@ -1,4 +1,4 @@
-import type { StackFrame, StackLineParser, StackParser } from '@sentry/types';
+import type { Event, StackFrame, StackLineParser, StackParser } from '@sentry/types';
 
 const STACKTRACE_FRAME_LIMIT = 50;
 export const UNKNOWN_FUNCTION = '?';
@@ -132,4 +132,21 @@ export function getFunctionName(fn: unknown): string {
     // can cause a "Permission denied" exception (see raven-js#495).
     return defaultFunctionName;
   }
+}
+
+/**
+ * Get's stack frames from an event without needing to check for undefined properties.
+ */
+export function getFramesFromEvent(event: Event): StackFrame[] | undefined {
+  const exception = event.exception;
+
+  if (exception) {
+    try {
+      // @ts-expect-error Object could be undefined
+      return exception.values[0].stacktrace.frames;
+    } catch (_oO) {
+      return undefined;
+    }
+  }
+  return undefined;
 }
