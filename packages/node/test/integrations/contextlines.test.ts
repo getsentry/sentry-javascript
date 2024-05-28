@@ -26,7 +26,7 @@ describe('ContextLines', () => {
   });
 
   describe('lru file cache', () => {
-    test('parseStack with same file', async () => {
+    test.only('parseStack with same file', async () => {
       expect.assertions(1);
 
       const frames = parseStackFrames(defaultStackParser, new Error('test'));

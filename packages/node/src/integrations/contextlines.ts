@@ -10,6 +10,16 @@ const LRU_FILE_CONTENTS_CACHE = new LRUMap<string, Record<number, string>>(10);
 const DEFAULT_LINES_OF_CONTEXT = 7;
 const INTEGRATION_NAME = 'ContextLines';
 
+interface ContextLinesOptions {
+  /**
+   * Sets the number of context lines for each frame when loading a file.
+   * Defaults to 7.
+   *
+   * Set to 0 to disable loading and inclusion of source files.
+   **/
+  frameContextLines?: number;
+}
+
 /**
  * Exported for testing purposes.
  */
@@ -18,11 +28,35 @@ export function resetFileContentCache(): void {
 }
 
 /**
+ * Determines if context lines should be skipped for a file.
+ * - .min.js files are and not useful since they dont point to the original source
+ * - node: prefixed modules are part of the runtime and cannot be resolved to a file
+ */
+function shouldSkipContextLinesForFile(path: string): boolean {
+  return path.endsWith('.min.js') || path.startsWith('node:');
+}
+/**
+ * Checks if we have all the contents that we need in the cache.
+ */
+function rangeExistsInContentCache(file: string, range: ReadlineRange): boolean {
+  const contents = LRU_FILE_CONTENTS_CACHE.get(file);
+
+  if (!contents) {
+    return false;
+  }
+
+  for (let i = range[0]; i <= range[1]; i++) {
+    if (!contents[i]) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+/**
  * Creates contiguous ranges of lines to read from a file. In the case where context lines overlap,
  * the ranges are merged to create a single range.
- * @param lines
- * @param linecontext
- * @returns
  */
 function makeLineReaderRanges(lines: number[], linecontext: number): ReadlineRange[] {
   if (!lines.length) {
@@ -60,7 +94,8 @@ function makeLineReaderRanges(lines: number[], linecontext: number): ReadlineRan
 function getContextLinesFromFile(path: string, ranges: ReadlineRange[], output: Record<number, string>): Promise<void> {
   return new Promise((resolve, _reject) => {
     // It is important *not* to have any async code between createInterface and the 'line' event listener
-    // as it will cause the 'line' event to be emitted before the listener is attached.
+    // as it will cause the 'line' event to
+    // be emitted before the listener is attached.
     const fileStream = createInterface({
       input: createReadStream(path),
     });
@@ -101,34 +136,6 @@ function getContextLinesFromFile(path: string, ranges: ReadlineRange[], output: 
   });
 }
 
-interface ContextLinesOptions {
-  /**
-   * Sets the number of context lines for each frame when loading a file.
-   * Defaults to 7.
-   *
-   * Set to 0 to disable loading and inclusion of source files.
-   **/
-  frameContextLines?: number;
-}
-
-/** Exported on
- * ly for tests, as a type-safe variant. */
-export const _contextLinesIntegration = ((options: ContextLinesOptions = {}) => {
-  const contextLines = options.frameContextLines !== undefined ? options.frameContextLines : DEFAULT_LINES_OF_CONTEXT;
-
-  return {
-    name: INTEGRATION_NAME,
-    processEvent(event) {
-      return addSourceContext(event, contextLines);
-    },
-  };
-}) satisfies IntegrationFn;
-
-/**
- * Capture the lines before and after the frame's context.
- */
-export const contextLinesIntegration = defineIntegration(_contextLinesIntegration);
-
 async function addSourceContext(event: Event, contextLines: number): Promise<Event> {
   // keep a lookup map of which files we've already enqueued to read,
   // so we don't enqueue the same file multiple times which would cause multiple i/o reads
@@ -145,17 +152,16 @@ async function addSourceContext(event: Event, contextLines: number): Promise<Eve
       for (let i = exception.stacktrace.frames.length - 1; i >= 0; i--) {
         const frame = exception.stacktrace.frames[i];
 
-        // Cases where collecting context lines is either not useful or possible
-        // - .min.js files are and not useful since they dont point to the original source
-        // - node: prefixed modules are part of the runtime and cannot be resolved to a file
-        if (frame.filename?.endsWith('.min.js') || frame.filename?.startsWith('node:')) {
+        if (
+          typeof frame.filename !== 'string' ||
+          typeof frame.lineno !== 'number' ||
+          shouldSkipContextLinesForFile(frame.filename)
+        ) {
           continue;
         }
 
-        if (frame.filename && typeof frame.lineno === 'number') {
-          if (!filesToLines[frame.filename]) filesToLines[frame.filename] = [];
-          filesToLines[frame.filename].push(frame.lineno);
-        }
+        if (!filesToLines[frame.filename]) filesToLines[frame.filename] = [];
+        filesToLines[frame.filename].push(frame.lineno);
       }
     }
   }
@@ -170,6 +176,11 @@ async function addSourceContext(event: Event, contextLines: number): Promise<Eve
     // Sort ranges so that they are sorted by line increasing order and match how the file is read.
     filesToLines[file].sort((a, b) => a - b);
     const ranges = makeLineReaderRanges(filesToLines[file], contextLines);
+
+    // If the contents are already in the cache, then we dont need to read the file.
+    if (ranges.every(r => rangeExistsInContentCache(file, r))) {
+      continue;
+    }
 
     let cache = LRU_FILE_CONTENTS_CACHE.get(file);
     if (!cache) {
@@ -198,7 +209,11 @@ async function addSourceContext(event: Event, contextLines: number): Promise<Eve
 }
 
 /** Adds context lines to frames */
-function addSourceContextToFrames(frames: StackFrame[], contextLines: number, cache: LRUMap<string, Record<number, string>>): void {
+function addSourceContextToFrames(
+  frames: StackFrame[],
+  contextLines: number,
+  cache: LRUMap<string, Record<number, string>>,
+): void {
   for (const frame of frames) {
     // Only add context if we have a filename and it hasn't already been added
     if (frame.filename && frame.context_line === undefined && typeof frame.lineno === 'number') {
@@ -273,12 +288,32 @@ export function addContextToFrame(
 // Helper functions for generating line context ranges. They take a line number and the number of lines of context to
 // include before and after the line and generate an inclusive range of indices.
 type ReadlineRange = [start: number, end: number];
+// Compute inclusive end context range
 function makeRangeStart(line: number, linecontext: number): number {
   return Math.max(1, line - linecontext);
 }
+// Compute inclusive start context range
 function makeRangeEnd(line: number, linecontext: number): number {
   return line + linecontext;
 }
+// Determine start and end indices for context range (inclusive);
 function makeContextRange(line: number, linecontext: number): [start: number, end: number] {
   return [makeRangeStart(line, linecontext), makeRangeEnd(line, linecontext)];
 }
+
+/** Exported only for tests, as a type-safe variant. */
+export const _contextLinesIntegration = ((options: ContextLinesOptions = {}) => {
+  const contextLines = options.frameContextLines !== undefined ? options.frameContextLines : DEFAULT_LINES_OF_CONTEXT;
+
+  return {
+    name: INTEGRATION_NAME,
+    processEvent(event) {
+      return addSourceContext(event, contextLines);
+    },
+  };
+}) satisfies IntegrationFn;
+
+/**
+ * Capture the lines before and after the frame's context.
+ */
+export const contextLinesIntegration = defineIntegration(_contextLinesIntegration);
