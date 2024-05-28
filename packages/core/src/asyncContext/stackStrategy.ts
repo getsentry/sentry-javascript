@@ -132,19 +132,9 @@ export class AsyncContextStack {
  */
 function getAsyncContextStack(): AsyncContextStack {
   const registry = getMainCarrier();
+  const sentry = getSentryCarrier(registry);
 
-  // For now we continue to keep this as `hub` on the ACS,
-  // as e.g. the Loader Script relies on this.
-  // Eventually we may change this if/when we update the loader to not require this field anymore
-  // Related, we also write to `hub` in {@link ./../sdk.ts registerClientOnGlobalHub}
-  const sentry = getSentryCarrier(registry) as { hub?: AsyncContextStack };
-
-  if (sentry.hub) {
-    return sentry.hub;
-  }
-
-  sentry.hub = new AsyncContextStack(getDefaultCurrentScope(), getDefaultIsolationScope());
-  return sentry.hub;
+  return (sentry.stack = sentry.stack || new AsyncContextStack(getDefaultCurrentScope(), getDefaultIsolationScope()));
 }
 
 function withScope<T>(callback: (scope: ScopeInterface) => T): T {
@@ -152,9 +142,9 @@ function withScope<T>(callback: (scope: ScopeInterface) => T): T {
 }
 
 function withSetScope<T>(scope: ScopeInterface, callback: (scope: ScopeInterface) => T): T {
-  const hub = getAsyncContextStack() as AsyncContextStack;
-  return hub.withScope(() => {
-    hub.getStackTop().scope = scope;
+  const stack = getAsyncContextStack() as AsyncContextStack;
+  return stack.withScope(() => {
+    stack.getStackTop().scope = scope;
     return callback(scope);
   });
 }
