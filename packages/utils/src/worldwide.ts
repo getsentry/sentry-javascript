@@ -74,7 +74,7 @@ export type InternalGlobal = {
   _sentryDebugIds?: Record<string, string>;
   __SENTRY__: {
     [key: VersionString]: SentryCarrier;
-    version: VersionString;
+    version?: VersionString;
   } & BackwardsCompatibleSentryCarrier;
   /**
    * Raw module metadata that is injected by bundler plugins.
