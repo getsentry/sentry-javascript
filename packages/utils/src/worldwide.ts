@@ -12,7 +12,7 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import type { Client, MetricsAggregator, Scope, VersionString } from '@sentry/types';
+import type { Client, MetricsAggregator, Scope } from '@sentry/types';
 
 import type { SdkSource } from './env';
 import { SDK_VERSION } from './version';
@@ -72,9 +72,8 @@ export type InternalGlobal = {
    * file.
    */
   _sentryDebugIds?: Record<string, string>;
-  __SENTRY__: {
-    [key: VersionString]: SentryCarrier;
-    version?: VersionString;
+  __SENTRY__: Record<Exclude<string, 'version'>, SentryCarrier> & {
+    version?: string;
   } & BackwardsCompatibleSentryCarrier;
   /**
    * Raw module metadata that is injected by bundler plugins.

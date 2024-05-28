@@ -57,7 +57,7 @@ export type { Extra, Extras } from './extra';
 export type { Hub } from './hub';
 export type { Integration, IntegrationClass, IntegrationFn } from './integration';
 export type { Mechanism } from './mechanism';
-export type { ExtractedNodeRequestData, HttpHeaderValue, Primitive, WorkerLocation, VersionString } from './misc';
+export type { ExtractedNodeRequestData, HttpHeaderValue, Primitive, WorkerLocation } from './misc';
 export type { ClientOptions, Options } from './options';
 export type { Package } from './package';
 export type { PolymorphicEvent, PolymorphicRequest } from './polymorphics';

@@ -1,4 +1,4 @@
-import type { Client, Integration, MetricsAggregator, Scope, VersionString } from '@sentry/types';
+import type { Client, Integration, MetricsAggregator, Scope } from '@sentry/types';
 import { GLOBAL_OBJ, SDK_VERSION } from '@sentry/utils';
 import type { AsyncContextStack } from './asyncContext/stackStrategy';
 import type { AsyncContextStrategy } from './asyncContext/types';
@@ -12,9 +12,8 @@ export interface Carrier {
 }
 
 type VersionedCarrier = {
-  [key: VersionString]: SentryCarrier;
-  version?: VersionString;
-};
+  version?: string;
+} & Record<Exclude<string, 'version'>, SentryCarrier>;
 
 interface SentryCarrier {
   acs?: AsyncContextStrategy;
