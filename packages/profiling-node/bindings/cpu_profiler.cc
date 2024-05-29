@@ -528,8 +528,7 @@ CreateFrameNode(const napi_env &env, const v8::CpuProfileNode &node,
 };
 
 napi_value CreateSample(const napi_env &env, ProfileFormat format,
-                        const uint32_t stack_id,
-                        const int64_t sample_timestamp,
+                        const uint32_t stack_id, const int64_t sample_timestamp,
                         const uint32_t thread_id) {
   napi_value js_node;
   napi_create_object(env, &js_node);
@@ -546,9 +545,8 @@ napi_value CreateSample(const napi_env &env, ProfileFormat format,
   napi_value timestamp;
   napi_create_int64(env, sample_timestamp, &timestamp);
 
-  if(format == ProfileFormat::kFormatThread) {
-    napi_set_named_property(env, js_node, "elapsed_since_start_ns",
-                            timestamp);
+  if (format == ProfileFormat::kFormatThread) {
+    napi_set_named_property(env, js_node, "elapsed_since_start_ns", timestamp);
   } else if (format == ProfileFormat::kFormatChunk) {
     napi_set_named_property(env, js_node, "timestamp", timestamp);
   }
