@@ -21,7 +21,7 @@ import type { Component, JSX, ParentProps } from 'solid-js';
 import { createComponent } from 'solid-js/web';
 import { DEBUG_BUILD } from './debug-build';
 
-const CLIENTS_WITH_INSTRUMENT_NAVIGATION: Client[] = [];
+const CLIENTS_WITH_INSTRUMENT_NAVIGATION = new WeakSet<Client>();
 
 type UserBeforeLeave = (listener: (e: BeforeLeaveEventArgs) => void) => void;
 type UseLocation = () => Location;
@@ -36,7 +36,7 @@ interface SolidRouterOptions {
 
 function handleNavigation(location: string): void {
   const client = getClient();
-  if (!client || !CLIENTS_WITH_INSTRUMENT_NAVIGATION.includes(client)) {
+  if (!client || !CLIENTS_WITH_INSTRUMENT_NAVIGATION.has(client)) {
     return;
   }
 
@@ -135,7 +135,7 @@ export function solidRouterBrowserTracingIntegration(
       }
 
       if (instrumentNavigation) {
-        CLIENTS_WITH_INSTRUMENT_NAVIGATION.push(client);
+        CLIENTS_WITH_INSTRUMENT_NAVIGATION.add(client);
       }
     },
   };
