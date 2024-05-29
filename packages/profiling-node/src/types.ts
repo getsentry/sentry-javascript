@@ -52,13 +52,13 @@ export interface RawChunkCpuProfile extends BaseProfile {
 }
 export interface PrivateV8CpuProfilerBindings {
   startProfiling(name: string): void;
-  stopProfiling(name: string, threadId: number, collectResources: boolean, format: 0): RawThreadCpuProfile | null;
-  stopProfiling(name: string, threadId: number, collectResources: boolean, format: 1): RawChunkCpuProfile | null;
+  stopProfiling(name: string, format: 0, threadId: number, collectResources: boolean): RawThreadCpuProfile | null;
+  stopProfiling(name: string, format: 1, threadId: number, collectResources: boolean): RawChunkCpuProfile | null;
   stopProfiling(
     name: string,
+    format: 0 | 1,
     threadId: number,
     collectResources: boolean,
-    format: 0 | 1,
   ): RawThreadCpuProfile | RawChunkCpuProfile | null;
   getFrameModule(abs_path: string): string;
 }

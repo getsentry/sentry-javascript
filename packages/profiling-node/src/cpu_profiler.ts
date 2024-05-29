@@ -162,13 +162,13 @@ const CpuProfilerBindings: V8CpuProfilerBindings = {
   },
 
   // @ts-expect-error overload fails to infer the correct return type
-  stopProfiling(name: string, format: 0 | 1 = 0) {
+  stopProfiling(name: string, format: 0 | 1) {
     if (!PrivateCpuProfilerBindings) {
       DEBUG_BUILD &&
         logger.log('[Profiling] Bindings not loaded or profile was never started, ignoring call to stopProfiling.');
       return null;
     }
-    const profile = PrivateCpuProfilerBindings.stopProfiling(name, threadId, !!GLOBAL_OBJ._sentryDebugIds, format);
+    const profile = PrivateCpuProfilerBindings.stopProfiling(name, format, threadId, !!GLOBAL_OBJ._sentryDebugIds);
     return profile;
   },
 };
