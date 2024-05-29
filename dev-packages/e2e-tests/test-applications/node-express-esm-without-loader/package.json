@@ -18,7 +18,6 @@
     "@playwright/test": "^1.27.1"
   },
   "volta": {
-    "extends": "../../package.json",
-    "node": "18.19.1"
+    "extends": "../../package.json"
   }
 }
