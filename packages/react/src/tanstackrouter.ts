@@ -7,51 +7,7 @@ import {
 
 import { browserTracingIntegration as originalBrowserTracingIntegration } from '@sentry/browser';
 import type { Integration } from '@sentry/types';
-
-// The following types are vendored types from TanStack Router, so we don't have to depend on the actual package
-
-export interface VendoredTanstackRouter {
-  history: VendoredTanstackRouterHistory;
-  state: VendoredTanstackRouterState;
-  matchRoutes: (
-    pathname: string,
-    // eslint-disable-next-line @typescript-eslint/ban-types
-    locationSearch: {},
-    opts?: {
-      preload?: boolean;
-      throwOnError?: boolean;
-    },
-  ) => Array<VendoredTanstackRouterRouteMatch>;
-  subscribe(
-    eventType: 'onResolved' | 'onBeforeNavigate',
-    callback: (stateUpdate: {
-      toLocation: VendoredTanstackRouterLocation;
-      fromLocation: VendoredTanstackRouterLocation;
-    }) => void,
-  ): () => void;
-}
-
-interface VendoredTanstackRouterLocation {
-  pathname: string;
-  // eslint-disable-next-line @typescript-eslint/ban-types
-  search: {};
-  state: string;
-}
-
-export interface VendoredTanstackRouterHistory {
-  subscribe: (cb: () => void) => () => void;
-}
-
-export interface VendoredTanstackRouterState {
-  matches: Array<VendoredTanstackRouterRouteMatch>;
-  pendingMatches?: Array<VendoredTanstackRouterRouteMatch>;
-}
-
-export interface VendoredTanstackRouterRouteMatch {
-  routeId: string;
-  pathname: string;
-  params: { [key: string]: string };
-}
+import type { VendoredTanstackRouter, VendoredTanstackRouterRouteMatch } from './vendor/tanstackrouter-types';
 
 /**
  * A custom browser tracing integration for TanStack Router.
@@ -160,7 +116,7 @@ function routeMatchToParamSpanAttributes(match: VendoredTanstackRouterRouteMatch
 
   const paramAttributes: Record<string, string> = {};
   for (const key of Object.keys(match.params)) {
-    paramAttributes[`params.${key}`] = match.params[key];
+    paramAttributes[`url.path.params.${key}`] = match.params[key];
   }
 
   return paramAttributes;
