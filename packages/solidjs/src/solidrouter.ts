@@ -1,11 +1,9 @@
 import {
-  WINDOW,
   browserTracingIntegration,
   getActiveSpan,
   getRootSpan,
   spanToJSON,
   startBrowserTracingNavigationSpan,
-  startBrowserTracingPageLoadSpan,
 } from '@sentry/browser';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
@@ -136,11 +134,10 @@ export function solidRouterBrowserTracingIntegration(
 ): Integration {
   const integration = browserTracingIntegration({
     ...options,
-    instrumentPageLoad: false,
     instrumentNavigation: false,
   });
 
-  const { instrumentPageLoad = true, instrumentNavigation = true, useBeforeLeave, useLocation } = options;
+  const { instrumentNavigation = true, useBeforeLeave, useLocation } = options;
 
   return {
     ...integration,
@@ -150,18 +147,6 @@ export function solidRouterBrowserTracingIntegration(
     },
     afterAllSetup(client) {
       integration.afterAllSetup(client);
-
-      const initPathName = WINDOW && WINDOW.location && WINDOW.location.pathname;
-      if (instrumentPageLoad && initPathName) {
-        startBrowserTracingPageLoadSpan(client, {
-          name: initPathName,
-          attributes: {
-            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
-            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.solidjs.solidrouter',
-          },
-        });
-      }
 
       if (instrumentNavigation) {
         CLIENTS_WITH_INSTRUMENT_NAVIGATION.add(client);
