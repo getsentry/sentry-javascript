@@ -1,3 +1,5 @@
+import './instrument.cjs';
+
 import { createRequestHandler } from '@remix-run/express';
 import { installGlobals } from '@remix-run/node';
 import compression from 'compression';
