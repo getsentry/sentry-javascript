@@ -1,4 +1,4 @@
-import type { ThreadCpuProfile } from '@sentry/types';
+import type { ThreadCpuProfile, ContinuousThreadCpuProfile } from '@sentry/types';
 import { CpuProfilerBindings, PrivateCpuProfilerBindings } from '../src/cpu_profiler';
 import type { RawThreadCpuProfile } from '../src/types';
 
@@ -22,13 +22,10 @@ const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 const profiled = async (name: string, fn: () => void, format: 0 | 1 = 0) => {
   CpuProfilerBindings.startProfiling(name);
   await fn();
-  return CpuProfilerBindings.stopProfiling(name, 0);
+  return CpuProfilerBindings.stopProfiling(name, format);
 };
 
-const assertValidSamplesAndStacks = (
-  stacks: ThreadCpuProfile['stacks'],
-  samples: ThreadCpuProfile['samples'] | ContinuousThreadCpuProfile['samples'],
-) => {
+const assertValidSamplesAndStacks = (stacks: ThreadCpuProfile['stacks'], samples: ThreadCpuProfile['samples'] | ContinuousThreadCpuProfile["samples"]) => {
   expect(stacks.length).toBeGreaterThan(0);
   expect(samples.length).toBeGreaterThan(0);
   expect(stacks.length <= samples.length).toBe(true);
@@ -217,23 +214,19 @@ describe('Profiler bindings', () => {
   });
 
   it('chunk format type', async () => {
-    const profile = await profiled(
-      'non nullable stack',
-      async () => {
-        await wait(1000);
-        fibonacci(36);
-        await wait(1000);
-      },
-      1,
-    );
+    const profile = await profiled('non nullable stack', async () => {
+      await wait(1000);
+      fibonacci(36);
+      await wait(1000);
+    }, 1);
 
     if (!profile) fail('Profile is null');
 
     for (const sample of profile.samples) {
-      if (!('timestamp' in sample)) {
+      if (!("timestamp" in sample)) {
         throw new Error(`Sample ${JSON.stringify(sample)} has no timestamp`);
       }
-      expect(sample.timestamp).toBeDefined();
+      expect(sample.timestamp).toBeDefined()
     }
   });
 
