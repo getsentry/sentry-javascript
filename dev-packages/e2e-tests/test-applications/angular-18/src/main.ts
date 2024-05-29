@@ -9,7 +9,7 @@ Sentry.init({
   tracesSampleRate: 1.0,
   integrations: [Sentry.browserTracingIntegration({})],
   tunnel: `http://localhost:3031/`, // proxy server
-  debug: true,
+  debug: !!process.env.DEBUG,
 });
 
 bootstrapApplication(AppComponent, appConfig).catch(err => console.error(err));

@@ -19,7 +19,7 @@ Sentry.init({
     }),
   ],
   tunnel: `http://localhost:3031/`, // proxy server
-  debug: true,
+  debug: !!process.env.DEBUG,
 });
 
 app.use(router);

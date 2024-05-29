@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '@sentry-internal/event-proxy-server';
+import { waitForTransaction } from '@sentry-internal/test-utils';
 
 test('server pageload request span has nested request span for sub request', async ({ page }) => {
   const serverTxnEventPromise = waitForTransaction('sveltekit-2-svelte-5', txnEvent => {

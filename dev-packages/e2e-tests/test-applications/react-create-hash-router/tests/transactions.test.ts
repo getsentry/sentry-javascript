@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '@sentry-internal/event-proxy-server';
+import { waitForTransaction } from '@sentry-internal/test-utils';
 
 test('Captures a pageload transaction', async ({ page }) => {
   const transactionEventPromise = waitForTransaction('react-create-hash-router', event => {

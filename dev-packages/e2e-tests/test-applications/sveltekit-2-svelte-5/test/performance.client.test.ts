@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '@sentry-internal/event-proxy-server';
+import { waitForTransaction } from '@sentry-internal/test-utils';
 import { waitForInitialPageload } from './utils';
 
 test.describe('client-specific performance events', () => {

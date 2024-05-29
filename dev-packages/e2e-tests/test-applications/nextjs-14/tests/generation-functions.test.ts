@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { waitForError, waitForTransaction } from '@sentry-internal/event-proxy-server';
+import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
 
 test('Should send a transaction event for a generateMetadata() function invokation', async ({ page }) => {
   const testTitle = 'foobarasdf';

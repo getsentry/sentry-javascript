@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '@sentry-internal/event-proxy-server';
+import { waitForTransaction } from '@sentry-internal/test-utils';
 
 test('sends a pageload transaction with a parameterized URL', async ({ page }) => {
   const transactionPromise = waitForTransaction('react-router-6-use-routes', async transactionEvent => {
