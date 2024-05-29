@@ -27,8 +27,7 @@
     "svelte": "^3.54.0",
     "svelte-check": "^3.0.1",
     "typescript": "^5.0.0",
-    "vite": "^4.2.0",
-    "wait-port": "1.0.4"
+    "vite": "^4.2.0"
   },
   "type": "module"
 }

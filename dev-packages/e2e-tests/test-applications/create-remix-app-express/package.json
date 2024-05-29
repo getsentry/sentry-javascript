@@ -49,8 +49,7 @@
     "eslint-plugin-react-hooks": "^4.6.0",
     "tsx": "4.7.2",
     "typescript": "^5.1.6",
-    "vite-tsconfig-paths": "^4.2.1",
-    "wait-port": "1.0.4"
+    "vite-tsconfig-paths": "^4.2.1"
   },
   "volta": {
     "extends": "../../package.json"
