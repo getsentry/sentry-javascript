@@ -527,7 +527,8 @@ CreateFrameNode(const napi_env &env, const v8::CpuProfileNode &node,
   return js_node;
 };
 
-napi_value CreateSample(const napi_env &env, const uint32_t stack_id,
+napi_value CreateSample(const napi_env &env, ProfileFormat format,
+                        const uint32_t stack_id,
                         const int64_t sample_timestamp,
                         const uint32_t thread_id) {
   napi_value js_node;
@@ -542,10 +543,15 @@ napi_value CreateSample(const napi_env &env, const uint32_t stack_id,
                           NAPI_AUTO_LENGTH, &thread_id_prop);
   napi_set_named_property(env, js_node, "thread_id", thread_id_prop);
 
-  napi_value elapsed_since_start_ns_prop;
-  napi_create_int64(env, sample_timestamp, &elapsed_since_start_ns_prop);
-  napi_set_named_property(env, js_node, "elapsed_since_start_ns",
-                          elapsed_since_start_ns_prop);
+  napi_value timestamp;
+  napi_create_int64(env, sample_timestamp, &timestamp);
+
+  if(format == ProfileFormat::kFormatThread) {
+    napi_set_named_property(env, js_node, "elapsed_since_start_ns",
+                            timestamp);
+  } else if (format == ProfileFormat::kFormatChunk) {
+    napi_set_named_property(env, js_node, "timestamp", timestamp);
+  }
 
   return js_node;
 };
@@ -609,11 +615,11 @@ static void GetSamples(const napi_env &env, const v8::CpuProfile *profile,
 
     napi_value sample = nullptr;
     if (format == ProfileFormat::kFormatThread) {
-      sample = CreateSample(env, stack_index,
+      sample = CreateSample(env, format, stack_index,
                             (sample_timestamp - profile_start_time_us) * 1e3,
                             thread_id);
     } else if (format == ProfileFormat::kFormatChunk) {
-      sample = CreateSample(env, stack_index, sample_timestamp, 0);
+      sample = CreateSample(env, format, stack_index, sample_timestamp, 0);
     }
 
     if (!sample) {

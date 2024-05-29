@@ -70,6 +70,7 @@ export type {
   ThreadCpuStack,
   ThreadCpuFrame,
   ThreadCpuProfile,
+  ContinuousThreadCpuProfile,
   Profile,
   ProfileChunk,
 } from './profiling';
