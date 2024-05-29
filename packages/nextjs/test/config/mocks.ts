@@ -4,7 +4,6 @@
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-import * as rimraf from 'rimraf';
 
 import { CLIENT_SDK_CONFIG_FILE, EDGE_SDK_CONFIG_FILE, SERVER_SDK_CONFIG_FILE } from './fixtures';
 
@@ -41,13 +40,13 @@ jest.spyOn(os, 'tmpdir').mockReturnValue(TEMP_DIR_PATH);
 // In theory, we should always land in the `else` here, but this saves the cases where the prior run got interrupted and
 // the `afterAll` below didn't happen.
 if (fs.existsSync(TEMP_DIR_PATH)) {
-  rimraf.sync(path.join(TEMP_DIR_PATH, '*'));
-} else {
-  fs.mkdirSync(TEMP_DIR_PATH);
+  fs.rmSync(TEMP_DIR_PATH, { recursive: true, force: true });
 }
 
+fs.mkdirSync(TEMP_DIR_PATH);
+
 afterAll(() => {
-  rimraf.sync(TEMP_DIR_PATH);
+  fs.rmSync(TEMP_DIR_PATH, { recursive: true, force: true });
 });
 
 // In order to know what to expect in the webpack config `entry` property, we need to know the path of the temporary
