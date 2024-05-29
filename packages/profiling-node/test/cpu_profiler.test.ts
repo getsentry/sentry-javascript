@@ -22,7 +22,7 @@ const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 const profiled = async (name: string, fn: () => void, format: 0 | 1 = 0) => {
   CpuProfilerBindings.startProfiling(name);
   await fn();
-  return CpuProfilerBindings.stopProfiling(name, format);
+  return CpuProfilerBindings.stopProfiling(name, 0);
 };
 
 const assertValidSamplesAndStacks = (

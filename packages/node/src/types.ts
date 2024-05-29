@@ -41,13 +41,6 @@ export interface BaseNodeOptions {
    * equivalent to returning 1 and returning `false` is equivalent to returning 0.
    */
   profilesSampler?: (samplingContext: SamplingContext) => number | boolean;
-  /**
-   * Indicates which profiler mode to use. In continuous mode, the profiler will start and stop and flush profiles
-   * to sentry on a set interval basis while the span mode will consider initializing a profile on a per span basis.
-   *
-   * Hidden until release.
-   * profilerMode?: 'continuous' | 'span';
-   */
 
   /** Sets an optional server name (device name) */
   serverName?: string;

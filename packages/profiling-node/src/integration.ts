@@ -467,8 +467,8 @@ class ContinuousProfiler {
    */
   public start(): void {
     if (!this._client) {
-      // The client is not attached to the profiler in the event that users did not pass the profilerMode: "continuous"
-      // to the SDK init. In this case, calling start() and stop() is a noop action. The reason this exists is because
+      // The client is not attached to the profiler if the user has not enabled continuous profiling.
+      // In this case, calling start() and stop() is a noop action.The reason this exists is because
       // it makes the types easier to work with and avoids users having to do null checks.
       DEBUG_BUILD && logger.log('[Profiling] Profiler was never attached to the client.');
       return;
@@ -608,7 +608,9 @@ export const _nodeProfilingIntegration = ((): ProfilingIntegration => {
     setup(client: NodeClient) {
       DEBUG_BUILD && logger.log('[Profiling] Profiling integration setup.');
       const options = client.getOptions();
-      switch (options.profilerMode) {
+
+      const mode = options.profilesSampleRate === undefined || options.profilesSampleRate === 0 ? 'span' : 'continuous';
+      switch (mode) {
         case 'continuous': {
           DEBUG_BUILD && logger.log('[Profiling] Continuous profiler mode enabled.');
           this.profiler.initialize(client);
@@ -623,7 +625,7 @@ export const _nodeProfilingIntegration = ((): ProfilingIntegration => {
         }
         default: {
           DEBUG_BUILD &&
-            logger.warn(`[Profiling] Unknown profiler mode: ${options.profilerMode}, profiler was not initialized`);
+            logger.warn(`[Profiling] Unknown profiler mode: ${mode}, profiler was not initialized`);
         }
       }
     },
