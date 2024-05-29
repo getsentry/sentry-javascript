@@ -15,24 +15,53 @@ import {
 } from '@sentry/core';
 import type { Client, Integration, Span } from '@sentry/types';
 import { logger } from '@sentry/utils';
-import type { BeforeLeaveEventArgs, Location, RouteSectionProps, RouterProps } from '@solidjs/router';
 import { createEffect, mergeProps, splitProps } from 'solid-js';
 import type { Component, JSX, ParentProps } from 'solid-js';
 import { createComponent } from 'solid-js/web';
 import { DEBUG_BUILD } from './debug-build';
 
-const CLIENTS_WITH_INSTRUMENT_NAVIGATION = new WeakSet<Client>();
+// Vendored solid router types so that we don't need to depend on solid router.
+// These are not exhaustive and loose on purpose.
+interface Location {
+  pathname: string;
+}
 
-type UserBeforeLeave = (listener: (e: BeforeLeaveEventArgs) => void) => void;
-type UseLocation = () => Location;
+interface BeforeLeaveEventArgs {
+  from: Location;
+  to: string | number;
+}
 
-let _useBeforeLeave: UserBeforeLeave;
-let _useLocation: UseLocation;
+interface RouteSectionProps<T = unknown> {
+  location: Location;
+  data?: T;
+  children?: JSX.Element;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type RouteDefinition<S extends string | string[] = any, T = unknown> = {
+  path?: S;
+  children?: RouteDefinition | RouteDefinition[];
+  component?: Component<RouteSectionProps<T>>;
+};
+
+interface RouterProps {
+  base?: string;
+  root?: Component<RouteSectionProps>;
+  children?: JSX.Element | RouteDefinition | RouteDefinition[];
+}
 
 interface SolidRouterOptions {
   useBeforeLeave: UserBeforeLeave;
   useLocation: UseLocation;
 }
+
+type UserBeforeLeave = (listener: (e: BeforeLeaveEventArgs) => void) => void;
+type UseLocation = () => Location;
+
+const CLIENTS_WITH_INSTRUMENT_NAVIGATION = new WeakSet<Client>();
+
+let _useBeforeLeave: UserBeforeLeave;
+let _useLocation: UseLocation;
 
 function handleNavigation(location: string): void {
   const client = getClient();

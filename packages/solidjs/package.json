@@ -48,15 +48,12 @@
     "@sentry/utils": "8.7.0"
   },
   "peerDependencies": {
-    "solid-js": "1.8.x"
+    "solid-js": "^1.8.4"
   },
   "devDependencies": {
     "@solidjs/testing-library": "0.8.5",
-    "solid-js": "1.8.11",
+    "solid-js": "^1.8.11",
     "vite-plugin-solid": "^2.8.2"
-  },
-  "optionalDependencies": {
-    "@solidjs/router": "0.13.3"
   },
   "scripts": {
     "build": "run-p build:transpile build:types",
