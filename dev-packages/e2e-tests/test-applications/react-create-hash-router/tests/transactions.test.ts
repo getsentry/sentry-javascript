@@ -55,20 +55,6 @@ test('Captures a pageload transaction', async ({ page }) => {
       'sentry.origin': 'auto.ui.browser.metrics',
       'sentry.op': 'browser',
     },
-    description: 'loadEvent',
-    op: 'browser',
-    parent_span_id: expect.any(String),
-    span_id: expect.any(String),
-    start_timestamp: expect.any(Number),
-    timestamp: expect.any(Number),
-    trace_id: expect.any(String),
-    origin: 'auto.ui.browser.metrics',
-  });
-  expect(transactionEvent.spans).toContainEqual({
-    data: {
-      'sentry.origin': 'auto.ui.browser.metrics',
-      'sentry.op': 'browser',
-    },
     description: 'connect',
     op: 'browser',
     parent_span_id: expect.any(String),

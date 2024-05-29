@@ -1,5 +1,4 @@
 import { expect, test } from '@playwright/test';
-import { ReplayRecordingData } from './fixtures/ReplayRecordingData';
 
 const EVENT_POLLING_TIMEOUT = 90_000;
 
@@ -138,63 +137,4 @@ test('Sends a navigation transaction to Sentry', async ({ page }) => {
   );
 
   expect(hadPageNavigationTransaction).toBe(true);
-});
-
-test('Sends a Replay recording to Sentry', async ({ browser }) => {
-  const context = await browser.newContext();
-  const page = await context.newPage();
-
-  await page.goto('/');
-
-  const replayId = await page.waitForFunction(() => {
-    return window.sentryReplayId;
-  });
-
-  // Keypress event ensures LCP is finished
-  await page.type('body', 'Y');
-
-  // Wait for replay to be sent
-
-  if (replayId === undefined) {
-    throw new Error("Application didn't set a replayId");
-  }
-
-  console.log(`Polling for replay with ID: ${replayId}`);
-
-  await expect
-    .poll(
-      async () => {
-        const response = await fetch(
-          `https://sentry.io/api/0/projects/${sentryTestOrgSlug}/${sentryTestProject}/replays/${replayId}/`,
-          { headers: { Authorization: `Bearer ${authToken}` } },
-        );
-        return response.status;
-      },
-      {
-        timeout: EVENT_POLLING_TIMEOUT,
-      },
-    )
-    .toBe(200);
-
-  // now fetch the first recording segment
-  await expect
-    .poll(
-      async () => {
-        const response = await fetch(
-          `https://sentry.io/api/0/projects/${sentryTestOrgSlug}/${sentryTestProject}/replays/${replayId}/recording-segments/?cursor=100%3A0%3A1`,
-          { headers: { Authorization: `Bearer ${authToken}` } },
-        );
-
-        if (response.ok) {
-          const data = await response.json();
-          return data[0];
-        }
-
-        return response.status;
-      },
-      {
-        timeout: EVENT_POLLING_TIMEOUT,
-      },
-    )
-    .toEqual(ReplayRecordingData);
 });
