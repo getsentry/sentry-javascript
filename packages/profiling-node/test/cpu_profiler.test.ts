@@ -74,6 +74,16 @@ describe('Private bindings', () => {
     }).not.toThrow();
   });
 
+  it('throws if invalid format is supplied', async () => {
+    PrivateCpuProfilerBindings.startProfiling('profiled-program');
+    await wait(100);
+    expect(() => {
+      // @ts-expect-error invalid format value
+      const profile = PrivateCpuProfilerBindings.stopProfiling('profiled-program', Number.MAX_SAFE_INTEGER, 0, false);
+      if (!profile) throw new Error('No profile');
+    }).toThrow("StopProfiling expects a valid format type as second argument.");
+  });
+
   it('collects resources', async () => {
     PrivateCpuProfilerBindings.startProfiling('profiled-program');
     await wait(100);
@@ -167,7 +177,7 @@ describe('Profiler bindings', () => {
     expect(second).toBe(null);
   });
 
-  it('weird cases', () => {
+  it('multiple calls with same title', () => {
     CpuProfilerBindings.startProfiling('same-title');
     expect(() => {
       CpuProfilerBindings.stopProfiling('same-title', 0);

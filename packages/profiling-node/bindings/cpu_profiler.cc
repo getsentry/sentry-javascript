@@ -1136,8 +1136,21 @@ static napi_value StopProfiling(napi_env env, napi_callback_info info)
   bool collect_resources;
   napi_get_value_bool(env, argv[3], &collect_resources);
 
+  ProfileFormat format_enum = static_cast<ProfileFormat>(format);
+
+  if (format_enum != ProfileFormat::kFormatThread &&
+      format_enum != ProfileFormat::kFormatChunk)
+  {
+    napi_throw_error(env, "NAPI_ERROR",
+                     "StopProfiling expects a valid format type as second argument.");
+
+    napi_value napi_null;
+    assert(napi_get_null(env, &napi_null) == napi_ok);
+    return napi_null;
+  }
+
   napi_value js_profile =
-      TranslateProfile(env, cpu_profile, static_cast<ProfileFormat>(format), thread_id, collect_resources);
+      TranslateProfile(env, cpu_profile, format_enum, thread_id, collect_resources);
 
   napi_value measurements;
   napi_create_object(env, &measurements);
