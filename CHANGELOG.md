@@ -4,6 +4,60 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 8.6.0
+
+### Important Changes
+
+- **feat(metrics): Add `timings` method to metrics (#12226)**
+
+  This introduces a new method, `metrics.timing()`, which can be used in two ways:
+
+  1. With a numeric value, to simplify creating a distribution metric. This will default to `second` as unit:
+
+  ```js
+  Sentry.metrics.timing('myMetric', 100);
+  ```
+
+  2. With a callback, which will wrap the duration of the callback. This can accept a sync or async callback. It will
+     create an inactive span around the callback and at the end emit a metric with the duration of the span in seconds:
+
+  ```js
+  const returnValue = Sentry.metrics.timing('myMetric', measureThisFunction);
+  ```
+
+- **feat(react): Add `Sentry.reactErrorHandler` (#12147)**
+
+  This PR introduces `Sentry.reactErrorHandler`, which you can use in React 19 as follows:
+
+  ```js
+  import * as Sentry from '@sentry/react';
+  import { hydrateRoot } from 'react-dom/client';
+
+  ReactDOM.hydrateRoot(
+    document.getElementById('root'),
+    <React.StrictMode>
+      <App />
+    </React.StrictMode>,
+    {
+      onUncaughtError: Sentry.reactErrorHandler(),
+      onCaughtError: Sentry.reactErrorHandler((error, errorInfo) => {
+        // optional callback if users want custom config.
+      }),
+    },
+  );
+  ```
+
+  For more details, take a look at [the PR](https://github.com/getsentry/sentry-javascript/pull/12147). Our
+  documentation will be updated soon!
+
+### Other Changes
+
+- feat(sveltekit): Add request data to server-side events (#12254)
+- fix(core): Pass in cron monitor config correctly (#12248)
+- fix(nextjs): Don't capture suspense errors in server components (#12261)
+- fix(tracing): Ensure sent spans are limited to 1000 (#12252)
+- ref(core): Use versioned carrier on global object (#12206)
+
 ## 8.5.0
 
 ### Important Changes

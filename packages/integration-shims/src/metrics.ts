@@ -13,4 +13,10 @@ export const metricsShim: Metrics = {
   distribution: warn,
   set: warn,
   gauge: warn,
+  timing: (_name: unknown, value: number | (() => unknown)) => {
+    warn();
+    if (typeof value === 'function') {
+      return value();
+    }
+  },
 };

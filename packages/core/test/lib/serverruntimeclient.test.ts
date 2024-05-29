@@ -89,6 +89,8 @@ describe('ServerRuntimeClient', () => {
           checkinMargin: 2,
           maxRuntime: 12333,
           timezone: 'Canada/Eastern',
+          failureIssueThreshold: 2,
+          recoveryThreshold: 3,
         },
       );
 
@@ -112,6 +114,8 @@ describe('ServerRuntimeClient', () => {
                 checkin_margin: 2,
                 max_runtime: 12333,
                 timezone: 'Canada/Eastern',
+                failure_issue_threshold: 2,
+                recovery_threshold: 3,
               },
             },
           ],
