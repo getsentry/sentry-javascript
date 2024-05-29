@@ -609,7 +609,7 @@ export const _nodeProfilingIntegration = ((): ProfilingIntegration => {
       DEBUG_BUILD && logger.log('[Profiling] Profiling integration setup.');
       const options = client.getOptions();
 
-      const mode = options.profilesSampleRate === undefined || options.profilesSampleRate === 0 ? 'span' : 'continuous';
+      const mode = options.profilesSampleRate === undefined || options.profilesSampleRate === 0 ? 'continuous' : 'span';
       switch (mode) {
         case 'continuous': {
           DEBUG_BUILD && logger.log('[Profiling] Continuous profiler mode enabled.');
