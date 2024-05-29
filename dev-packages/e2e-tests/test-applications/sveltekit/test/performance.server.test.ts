@@ -32,4 +32,14 @@ test('server pageload request span has nested request span for sub request', asy
       expect.objectContaining({ op: 'http.server', description: 'GET /api/users' }),
     ]),
   );
+
+  expect(serverTxnEvent.request).toEqual({
+    cookies: {},
+    headers: expect.objectContaining({
+      accept: expect.any(String),
+      'user-agent': expect.any(String),
+    }),
+    method: 'GET',
+    url: 'http://localhost:3030/server-load-fetch',
+  });
 });

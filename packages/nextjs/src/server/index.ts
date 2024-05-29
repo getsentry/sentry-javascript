@@ -190,13 +190,23 @@ export function init(options: NodeOptions): void {
 
         const originalException = hint.originalException;
 
-        const isReactControlFlowError =
+        const isPostponeError =
           typeof originalException === 'object' &&
           originalException !== null &&
           '$$typeof' in originalException &&
           originalException.$$typeof === Symbol.for('react.postpone');
 
-        if (isReactControlFlowError) {
+        if (isPostponeError) {
+          // Postpone errors are used for partial-pre-rendering (PPR)
+          return null;
+        }
+
+        // We don't want to capture suspense errors as they are simply used by React/Next.js for control flow
+        const exceptionMessage = event.exception?.values?.[0]?.value;
+        if (
+          exceptionMessage?.includes('Suspense Exception: This is not a real error!') ||
+          exceptionMessage?.includes('Suspense Exception: This is not a real error, and should not leak')
+        ) {
           return null;
         }
 

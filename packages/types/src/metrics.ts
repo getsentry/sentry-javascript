@@ -1,5 +1,5 @@
 import type { Client } from './client';
-import type { MeasurementUnit } from './measurement';
+import type { DurationUnit, MeasurementUnit } from './measurement';
 import type { Primitive } from './misc';
 
 export interface MetricData {
@@ -99,4 +99,16 @@ export interface Metrics {
    * @experimental This API is experimental and might have breaking changes in the future.
    */
   gauge(name: string, value: number, data?: MetricData): void;
+
+  /**
+   * Adds a timing metric.
+   * The metric is added as a distribution metric.
+   *
+   * You can either directly capture a numeric `value`, or wrap a callback function in `timing`.
+   * In the latter case, the duration of the callback execution will be captured as a span & a metric.
+   *
+   * @experimental This API is experimental and might have breaking changes in the future.
+   */
+  timing(name: string, value: number, unit?: DurationUnit, data?: Omit<MetricData, 'unit'>): void;
+  timing<T>(name: string, callback: () => T, unit?: DurationUnit, data?: Omit<MetricData, 'unit'>): T;
 }

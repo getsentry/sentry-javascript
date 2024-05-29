@@ -1,5 +1,4 @@
 import { expect, test } from '@playwright/test';
-import axios, { AxiosError } from 'axios';
 
 const authToken = process.env.E2E_TEST_AUTH_TOKEN;
 const sentryTestOrgSlug = process.env.E2E_TEST_SENTRY_ORG_SLUG;
@@ -20,24 +19,12 @@ test('Sends a client-side exception to Sentry', async ({ page }) => {
   await expect
     .poll(
       async () => {
-        try {
-          const response = await axios.get(
-            `https://sentry.io/api/0/projects/${sentryTestOrgSlug}/${sentryTestProject}/events/${exceptionEventId}/`,
-            { headers: { Authorization: `Bearer ${authToken}` } },
-          );
+        const response = await fetch(
+          `https://sentry.io/api/0/projects/${sentryTestOrgSlug}/${sentryTestProject}/events/${exceptionEventId}/`,
+          { headers: { Authorization: `Bearer ${authToken}` } },
+        );
 
-          return response.status;
-        } catch (e) {
-          if (e instanceof AxiosError && e.response) {
-            if (e.response.status !== 404) {
-              throw e;
-            } else {
-              return e.response.status;
-            }
-          } else {
-            throw e;
-          }
-        }
+        return response.status;
       },
       {
         timeout: EVENT_POLLING_TIMEOUT,
@@ -71,28 +58,19 @@ test('Sends a pageload transaction to Sentry', async ({ page }) => {
       await expect
         .poll(
           async () => {
-            try {
-              const response = await axios.get(
-                `https://sentry.io/api/0/projects/${sentryTestOrgSlug}/${sentryTestProject}/events/${transactionEventId}/`,
-                { headers: { Authorization: `Bearer ${authToken}` } },
-              );
+            const response = await fetch(
+              `https://sentry.io/api/0/projects/${sentryTestOrgSlug}/${sentryTestProject}/events/${transactionEventId}/`,
+              { headers: { Authorization: `Bearer ${authToken}` } },
+            );
 
-              if (response.data.contexts.trace.op === 'pageload') {
+            if (response.ok) {
+              const data = await response.json();
+              if (data.contexts.trace.op === 'pageload') {
                 hadPageLoadTransaction = true;
               }
-
-              return response.status;
-            } catch (e) {
-              if (e instanceof AxiosError && e.response) {
-                if (e.response.status !== 404) {
-                  throw e;
-                } else {
-                  return e.response.status;
-                }
-              } else {
-                throw e;
-              }
             }
+
+            return response.status;
           },
           {
             timeout: EVENT_POLLING_TIMEOUT,
@@ -136,28 +114,19 @@ test('Sends a navigation transaction to Sentry', async ({ page }) => {
       await expect
         .poll(
           async () => {
-            try {
-              const response = await axios.get(
-                `https://sentry.io/api/0/projects/${sentryTestOrgSlug}/${sentryTestProject}/events/${transactionEventId}/`,
-                { headers: { Authorization: `Bearer ${authToken}` } },
-              );
+            const response = await fetch(
+              `https://sentry.io/api/0/projects/${sentryTestOrgSlug}/${sentryTestProject}/events/${transactionEventId}/`,
+              { headers: { Authorization: `Bearer ${authToken}` } },
+            );
 
-              if (response.data.contexts.trace.op === 'navigation') {
+            if (response.ok) {
+              const data = await response.json();
+              if (data.contexts.trace.op === 'navigation') {
                 hadPageNavigationTransaction = true;
               }
-
-              return response.status;
-            } catch (e) {
-              if (e instanceof AxiosError && e.response) {
-                if (e.response.status !== 404) {
-                  throw e;
-                } else {
-                  return e.response.status;
-                }
-              } else {
-                throw e;
-              }
             }
+
+            return response.status;
           },
           {
             timeout: EVENT_POLLING_TIMEOUT,
