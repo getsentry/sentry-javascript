@@ -5,7 +5,7 @@ import { logger, uuid4 } from '@sentry/utils';
 
 import { CpuProfilerBindings } from './cpu_profiler';
 import { DEBUG_BUILD } from './debug-build';
-import type { RawThreadCpuProfile } from './types';
+import { RawThreadCpuProfile } from './types';
 import { isValidSampleRate } from './utils';
 
 export const MAX_PROFILE_DURATION_MS = 30 * 1000;

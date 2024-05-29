@@ -22,8 +22,9 @@ import { env, versions } from 'process';
 import { isMainThread, threadId } from 'worker_threads';
 
 import type { ProfileChunkItem } from '@sentry/types/build/types/envelope';
+import { ContinuousThreadCpuProfile } from '../../types/src/profiling';
 import { DEBUG_BUILD } from './debug-build';
-import type { RawThreadCpuProfile } from './types';
+import type { RawChunkCpuProfile, RawThreadCpuProfile } from './types';
 
 // We require the file because if we import it, it will be included in the bundle.
 // I guess tsc does not check file contents when it's imported.
@@ -186,7 +187,7 @@ function createProfilePayload(
  */
 function createProfileChunkPayload(
   client: Client,
-  cpuProfile: RawThreadCpuProfile,
+  cpuProfile: RawChunkCpuProfile,
   {
     release,
     environment,
@@ -217,14 +218,14 @@ function createProfileChunkPayload(
     profiler_id: profiler_id,
     timestamp: new Date(start_timestamp).toISOString(),
     platform: 'node',
-    version: FORMAT_VERSION,
+    version: CONTINUOUS_FORMAT_VERSION,
     release: release,
     environment: environment,
     measurements: cpuProfile.measurements,
     debug_meta: {
       images: applyDebugMetadata(client, cpuProfile.resources),
     },
-    profile: enrichedThreadProfile,
+    profile: enrichedThreadProfile as ContinuousThreadCpuProfile,
   };
 
   return profile;
@@ -237,7 +238,7 @@ export function createProfilingChunkEvent(
   start_timestamp: number,
   client: Client,
   options: { release?: string; environment?: string },
-  profile: RawThreadCpuProfile,
+  profile: RawChunkCpuProfile,
   identifiers: { trace_id: string | undefined; chunk_id: string; profiler_id: string },
 ): ProfileChunk | null {
   if (!isValidProfileChunk(profile)) {
@@ -311,7 +312,7 @@ export function isValidProfile(profile: RawThreadCpuProfile): profile is RawThre
  * @param profile
  * @returns
  */
-export function isValidProfileChunk(profile: RawThreadCpuProfile): profile is RawThreadCpuProfile {
+export function isValidProfileChunk(profile: RawChunkCpuProfile): profile is RawChunkCpuProfile {
   if (profile.samples.length <= 1) {
     DEBUG_BUILD &&
       // Log a warning if the profile has less than 2 samples so users can know why

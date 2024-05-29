@@ -526,7 +526,7 @@ class ContinuousProfiler {
     }
     DEBUG_BUILD && logger.log(`[Profiling] Stopping profiling chunk: ${this._chunkId}`);
 
-    const profile = CpuProfilerBindings.stopProfiling(this._chunkId);
+    const profile = CpuProfilerBindings.stopProfiling(this._chunkId, 1);
     if (!profile || !this._chunkStartTimestampMS) {
       DEBUG_BUILD && logger.log(`[Profiling] _chunkiledStartTraceID to collect profile for: ${this._chunkId}`);
       return;

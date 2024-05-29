@@ -166,30 +166,19 @@ class Bindings implements V8CpuProfilerBindings {
     }
 
     return PrivateCpuProfilerBindings.startProfiling(name);
-  }
+  },
 
-  public stopProfiling(name: string, format: ProfileFormat.THREAD): RawThreadCpuProfile | null;
-  public stopProfiling(name: string, format: ProfileFormat.CHUNK): RawChunkCpuProfile | null;
-  public stopProfiling(
-    name: string,
-    format: ProfileFormat.CHUNK | ProfileFormat.THREAD,
-  ): RawThreadCpuProfile | RawChunkCpuProfile | null {
+  // @ts-expect-error overload fails to infer the correct return type
+  stopProfiling(name: string, format: 0 | 1 = 0) {
     if (!PrivateCpuProfilerBindings) {
       DEBUG_BUILD &&
         logger.log('[Profiling] Bindings not loaded or profile was never started, ignoring call to stopProfiling.');
       return null;
     }
-
-    return PrivateCpuProfilerBindings.stopProfiling(
-      name,
-      format as unknown as any,
-      threadId,
-      !!GLOBAL_OBJ._sentryDebugIds,
-    );
-  }
-}
-
-const CpuProfilerBindings = new Bindings();
+    const profile = PrivateCpuProfilerBindings.stopProfiling(name, threadId, !!GLOBAL_OBJ._sentryDebugIds, format);
+    return profile;
+  },
+};
 
 export { PrivateCpuProfilerBindings };
 export { CpuProfilerBindings };
