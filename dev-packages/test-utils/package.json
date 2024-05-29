@@ -44,6 +44,7 @@
     "@playwright/test": "^1.44.1"
   },
   "devDependencies": {
+    "@playwright/test": "^1.44.1",
     "@sentry/types": "8.7.0",
     "@sentry/utils": "8.7.0"
   },
