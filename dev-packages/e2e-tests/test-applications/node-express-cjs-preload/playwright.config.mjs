@@ -1,7 +1,5 @@
 import { devices } from '@playwright/test';
 
-
-
 const eventProxyPort = 3031;
 const expressPort = 3030;
 
