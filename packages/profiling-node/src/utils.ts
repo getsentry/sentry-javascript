@@ -22,14 +22,16 @@ import { env, versions } from 'process';
 import { isMainThread, threadId } from 'worker_threads';
 
 import type { ProfileChunkItem } from '@sentry/types/build/types/envelope';
+import { ContinuousThreadCpuProfile } from '../../types/src/profiling';
 import { DEBUG_BUILD } from './debug-build';
-import type { RawThreadCpuProfile } from './types';
+import type { RawChunkCpuProfile, RawThreadCpuProfile } from './types';
 
 // We require the file because if we import it, it will be included in the bundle.
 // I guess tsc does not check file contents when it's imported.
 const THREAD_ID_STRING = String(threadId);
 const THREAD_NAME = isMainThread ? 'main' : 'worker';
 const FORMAT_VERSION = '1';
+const CONTINUOUS_FORMAT_VERSION = '2';
 
 // Os machine was backported to 16.18, but this was not reflected in the types
 // @ts-expect-error ignore missing
@@ -48,7 +50,9 @@ const ARCH = os.arch();
  * @param {ThreadCpuProfile | RawThreadCpuProfile} profile
  * @returns {boolean}
  */
-function isRawThreadCpuProfile(profile: ThreadCpuProfile | RawThreadCpuProfile): profile is RawThreadCpuProfile {
+function isRawThreadCpuProfile(
+  profile: ThreadCpuProfile | RawThreadCpuProfile | ContinuousThreadCpuProfile | RawChunkCpuProfile,
+): profile is RawThreadCpuProfile | RawChunkCpuProfile {
   return !('thread_metadata' in profile);
 }
 
@@ -59,7 +63,9 @@ function isRawThreadCpuProfile(profile: ThreadCpuProfile | RawThreadCpuProfile):
  * @param {ThreadCpuProfile | RawThreadCpuProfile} profile
  * @returns {ThreadCpuProfile}
  */
-export function enrichWithThreadInformation(profile: ThreadCpuProfile | RawThreadCpuProfile): ThreadCpuProfile {
+export function enrichWithThreadInformation(
+  profile: ThreadCpuProfile | RawThreadCpuProfile | ContinuousThreadCpuProfile | RawChunkCpuProfile,
+): ThreadCpuProfile | ContinuousThreadCpuProfile {
   if (!isRawThreadCpuProfile(profile)) {
     return profile;
   }
@@ -73,7 +79,7 @@ export function enrichWithThreadInformation(profile: ThreadCpuProfile | RawThrea
         name: THREAD_NAME,
       },
     },
-  };
+  } as ThreadCpuProfile | ContinuousThreadCpuProfile;
 }
 
 /**
@@ -161,7 +167,7 @@ function createProfilePayload(
     debug_meta: {
       images: applyDebugMetadata(client, cpuProfile.resources),
     },
-    profile: enrichedThreadProfile,
+    profile: enrichedThreadProfile as ThreadCpuProfile,
     transaction: {
       name: transaction,
       id: event_id,
@@ -181,7 +187,7 @@ function createProfilePayload(
  */
 function createProfileChunkPayload(
   client: Client,
-  cpuProfile: RawThreadCpuProfile,
+  cpuProfile: RawChunkCpuProfile,
   {
     release,
     environment,
@@ -212,14 +218,14 @@ function createProfileChunkPayload(
     profiler_id: profiler_id,
     timestamp: new Date(start_timestamp).toISOString(),
     platform: 'node',
-    version: FORMAT_VERSION,
+    version: CONTINUOUS_FORMAT_VERSION,
     release: release,
     environment: environment,
     measurements: cpuProfile.measurements,
     debug_meta: {
       images: applyDebugMetadata(client, cpuProfile.resources),
     },
-    profile: enrichedThreadProfile,
+    profile: enrichedThreadProfile as ContinuousThreadCpuProfile,
   };
 
   return profile;
@@ -232,7 +238,7 @@ export function createProfilingChunkEvent(
   start_timestamp: number,
   client: Client,
   options: { release?: string; environment?: string },
-  profile: RawThreadCpuProfile,
+  profile: RawChunkCpuProfile,
   identifiers: { trace_id: string | undefined; chunk_id: string; profiler_id: string },
 ): ProfileChunk | null {
   if (!isValidProfileChunk(profile)) {
@@ -306,7 +312,7 @@ export function isValidProfile(profile: RawThreadCpuProfile): profile is RawThre
  * @param profile
  * @returns
  */
-export function isValidProfileChunk(profile: RawThreadCpuProfile): profile is RawThreadCpuProfile {
+export function isValidProfileChunk(profile: RawChunkCpuProfile): profile is RawChunkCpuProfile {
   if (profile.samples.length <= 1) {
     DEBUG_BUILD &&
       // Log a warning if the profile has less than 2 samples so users can know why
