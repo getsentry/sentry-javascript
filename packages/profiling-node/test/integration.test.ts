@@ -54,6 +54,7 @@ describe('ProfilingIntegration', () => {
       getOptions: () => {
         return {
           _metadata: {},
+          profilesSampleRate: 1,
         };
       },
       getDsn: () => {

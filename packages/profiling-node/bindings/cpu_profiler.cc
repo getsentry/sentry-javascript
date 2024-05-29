@@ -603,7 +603,7 @@ CreateFrameNode(const napi_env &env, const v8::CpuProfileNode &node,
   return js_node;
 };
 
-napi_value CreateSample(const napi_env &env, ProfileFormat format,
+napi_value CreateSample(const napi_env &env, const ProfileFormat format,
                         const uint32_t stack_id, const int64_t sample_timestamp, const double chunk_timestamp,
                         const uint32_t thread_id)
 {
@@ -772,9 +772,9 @@ static void GetSamples(const napi_env &env, const v8::CpuProfile *profile,
 }
 
 static napi_value
-TranslateMeasurementsDouble(const napi_env &env, const char *unit,
+TranslateMeasurementsDouble(const napi_env &env, const ProfileFormat format, const char *unit,
+                            const uint64_t profile_start_timestamp,
                             const uint16_t size,
-
                             const std::vector<double> &values,
                             const std::vector<uint64_t> &timestamps)
 {
@@ -824,7 +824,15 @@ TranslateMeasurementsDouble(const napi_env &env, const char *unit,
     napi_create_int64(env, timestamps[i], &ts);
 
     napi_set_named_property(env, entry, "value", value);
-    napi_set_named_property(env, entry, "elapsed_since_start_ns", ts);
+    if(format == ProfileFormat::kFormatThread)
+    {
+      napi_set_named_property(env, entry, "elapsed_since_start_ns", ts);
+    }
+    else if(format == ProfileFormat::kFormatChunk)
+    {
+      napi_set_named_property(env, entry, "timestamp", ts);
+    }
+
     napi_set_element(env, values_array, i, entry);
   }
 
@@ -834,7 +842,8 @@ TranslateMeasurementsDouble(const napi_env &env, const char *unit,
 }
 
 static napi_value
-TranslateMeasurements(const napi_env &env, const char *unit,
+TranslateMeasurements(const napi_env &env, const ProfileFormat format, const char *unit,
+                      const uint64_t profile_start_timestamp,
                       const uint16_t size, const std::vector<uint64_t> &values,
                       const std::vector<uint64_t> &timestamps)
 {
@@ -872,11 +881,20 @@ TranslateMeasurements(const napi_env &env, const char *unit,
     napi_value value;
     napi_create_int64(env, values[i], &value);
 
-    napi_value ts;
-    napi_create_int64(env, timestamps[i], &ts);
 
     napi_set_named_property(env, entry, "value", value);
-    napi_set_named_property(env, entry, "elapsed_since_start_ns", ts);
+    if(format == ProfileFormat::kFormatThread)
+    {
+      napi_value ts;
+      napi_create_int64(env, timestamps[i], &ts);
+      napi_set_named_property(env, entry, "elapsed_since_start_ns", ts);
+    }
+    else if(format == ProfileFormat::kFormatChunk)
+    {
+      napi_value ts;
+      napi_create_double(env, timestamps[i], &ts);
+      napi_set_named_property(env, entry, "timestamp", ts);
+    }
     napi_set_element(env, values_array, i, entry);
   }
 
@@ -887,7 +905,7 @@ TranslateMeasurements(const napi_env &env, const char *unit,
 
 static napi_value TranslateProfile(const napi_env &env,
                                    const v8::CpuProfile *profile,
-                                   enum ProfileFormat format,
+                                   const enum ProfileFormat format,
                                    const uint64_t profile_start_timestamp,
                                    const uint32_t thread_id,
                                    bool collect_resources)
@@ -1148,7 +1166,7 @@ static napi_value StopProfiling(napi_env env, napi_callback_info info)
   bool collect_resources;
   napi_get_value_bool(env, argv[3], &collect_resources);
 
-  ProfileFormat format_enum = static_cast<ProfileFormat>(format);
+  const ProfileFormat format_enum = static_cast<ProfileFormat>(format);
 
   if (format_enum != ProfileFormat::kFormatThread &&
       format_enum != ProfileFormat::kFormatChunk)
@@ -1172,7 +1190,7 @@ static napi_value StopProfiling(napi_env env, napi_callback_info info)
   {
     static const char *memory_unit = "byte";
     napi_value heap_usage_measurements = TranslateMeasurements(
-        env, memory_unit, profile->second->heap_usage_write_index(),
+        env, format, memory_unit, profile->second->profile_start_timestamp(), profile->second->heap_usage_write_index(),
         profile->second->heap_usage_values(),
         profile->second->heap_usage_timestamps());
 
@@ -1187,7 +1205,7 @@ static napi_value StopProfiling(napi_env env, napi_callback_info info)
   {
     static const char *cpu_unit = "percent";
     napi_value cpu_usage_measurements = TranslateMeasurementsDouble(
-        env, cpu_unit, profile->second->cpu_usage_write_index(),
+        env, format, cpu_unit, profile->second->profile_start_timestamp(), profile->second->cpu_usage_write_index(),
         profile->second->cpu_usage_values(),
         profile->second->cpu_usage_timestamps());
 
