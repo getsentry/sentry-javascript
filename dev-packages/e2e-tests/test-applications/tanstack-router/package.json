@@ -25,8 +25,8 @@
     "@vitejs/plugin-react-swc": "^3.5.0",
     "typescript": "^5.2.2",
     "vite": "^5.2.0",
-    "@playwright/test": "^1.41.1",
-    "@sentry-internal/event-proxy-server": "link:../../../event-proxy-server"
+    "@playwright/test": "^1.44.1",
+    "@sentry-internal/test-utils": "link:../../../test-utils"
   },
   "volta": {
     "extends": "../../package.json"

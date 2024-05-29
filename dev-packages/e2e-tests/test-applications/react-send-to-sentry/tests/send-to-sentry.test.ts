@@ -90,7 +90,7 @@ test('Sends a navigation transaction to Sentry', async ({ page }) => {
   await page.goto('/');
 
   // Give pageload transaction time to finish
-  page.waitForTimeout(4000);
+  await page.waitForTimeout(4000);
 
   const linkElement = page.locator('id=navigation');
   await linkElement.click();
