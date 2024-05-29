@@ -48,6 +48,7 @@ export type NextConfigObject = {
     instrumentationHook?: boolean;
     clientTraceMetadata?: string[];
   };
+  productionBrowserSourceMaps?: boolean;
 };
 
 export type SentryBuildOptions = {
