@@ -22,13 +22,11 @@
     "dotenv": "16.0.3",
     "esbuild": "0.20.0",
     "glob": "8.0.3",
-    "rimraf": "^3.0.2",
     "ts-node": "10.9.1",
     "yaml": "2.2.2"
   },
   "volta": {
-    "node": "18.20.2",
-    "yarn": "1.22.22",
+    "extends": "../../package.json",
     "pnpm": "8.15.8"
   }
 }

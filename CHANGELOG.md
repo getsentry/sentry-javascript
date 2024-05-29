@@ -4,6 +4,35 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 8.7.0
+
+### Important Changes
+
+- **feat(react): Add TanStack Router integration (#12095)**
+
+  This release adds instrumentation for TanStack router with a new `tanstackRouterBrowserTracingIntegration` in the
+  `@sentry/react` SDK:
+
+  ```javascript
+  import * as Sentry from '@sentry/react';
+  import { createRouter } from '@tanstack/react-router';
+
+  const router = createRouter({
+    // Your router options...
+  });
+
+  Sentry.init({
+    dsn: '___PUBLIC_DSN___',
+    integrations: [Sentry.tanstackRouterBrowserTracingIntegration(router)],
+    tracesSampleRate: 1.0,
+  });
+  ```
+
+### Other Changes
+
+- fix(nextjs): Do not hide `sourceMappingURL` comment on client when `nextConfig.productionBrowserSourceMaps: true` is
+  set (#12278)
+
 ## 8.6.0
 
 ### Important Changes

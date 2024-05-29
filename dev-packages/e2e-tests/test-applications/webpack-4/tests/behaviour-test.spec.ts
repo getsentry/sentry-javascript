@@ -1,5 +1,4 @@
 import { expect, test } from '@playwright/test';
-import axios, { AxiosError } from 'axios';
 
 const EVENT_POLLING_TIMEOUT = 90_000;
 
@@ -18,23 +17,11 @@ test('Sends an exception to Sentry', async ({ page }) => {
   await expect
     .poll(
       async () => {
-        try {
-          const response = await axios.get(
-            `https://sentry.io/api/0/projects/${sentryTestOrgSlug}/${sentryTestProject}/events/${exceptionEventId}/`,
-            { headers: { Authorization: `Bearer ${authToken}` } },
-          );
-          return response.status;
-        } catch (e) {
-          if (e instanceof AxiosError && e.response) {
-            if (e.response.status !== 404) {
-              throw e;
-            } else {
-              return e.response.status;
-            }
-          } else {
-            throw e;
-          }
-        }
+        const response = await fetch(
+          `https://sentry.io/api/0/projects/${sentryTestOrgSlug}/${sentryTestProject}/events/${exceptionEventId}/`,
+          { headers: { Authorization: `Bearer ${authToken}` } },
+        );
+        return response.status;
       },
       {
         timeout: EVENT_POLLING_TIMEOUT,
