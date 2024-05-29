@@ -17,6 +17,11 @@ interface EventProxyServerOptions {
   port: number;
   /** The name for the proxy server used for referencing it with listener functions */
   proxyServerName: string;
+  /**
+   * Whether or not to forward the event to sentry. @default `true`
+   * This is helpful when you can't register a tunnel in the SDK setup (e.g. lambda layer without Sentry.init call)
+   */
+  forwardToSentry?: boolean;
 }
 
 interface SentryRequestCallbackData {
@@ -56,12 +61,31 @@ export async function startEventProxyServer(options: EventProxyServerOptions): P
 
       const envelopeHeader: EnvelopeItem[0] = JSON.parse(proxyRequestBody.split('\n')[0]);
 
-      if (!envelopeHeader.dsn) {
+      const shouldForwardEventToSentry = options.forwardToSentry != null ? options.forwardToSentry : true;
+
+      if (!envelopeHeader.dsn && shouldForwardEventToSentry) {
         // eslint-disable-next-line no-console
         console.log(
           '[event-proxy-server] Warn: No dsn on envelope header. Maybe a client-report was received. Proxy request body:',
           proxyRequestBody,
         );
+
+        proxyResponse.writeHead(200);
+        proxyResponse.write('{}', 'utf-8');
+        proxyResponse.end();
+        return;
+      }
+
+      if (!shouldForwardEventToSentry) {
+        const data: SentryRequestCallbackData = {
+          envelope: parseEnvelope(proxyRequestBody),
+          rawProxyRequestBody: proxyRequestBody,
+          rawSentryResponseBody: '',
+          sentryResponseStatusCode: 200,
+        };
+        eventCallbackListeners.forEach(listener => {
+          listener(Buffer.from(JSON.stringify(data)).toString('base64'));
+        });
 
         proxyResponse.writeHead(200);
         proxyResponse.write('{}', 'utf-8');
@@ -269,7 +293,13 @@ async function registerCallbackServerPort(serverName: string, port: string): Pro
   await writeFile(tmpFilePath, port, { encoding: 'utf8' });
 }
 
-function retrieveCallbackServerPort(serverName: string): Promise<string> {
-  const tmpFilePath = path.join(os.tmpdir(), `${TEMP_FILE_PREFIX}${serverName}`);
-  return readFile(tmpFilePath, 'utf8');
+async function retrieveCallbackServerPort(serverName: string): Promise<string> {
+  try {
+    const tmpFilePath = path.join(os.tmpdir(), `${TEMP_FILE_PREFIX}${serverName}`);
+    return await readFile(tmpFilePath, 'utf8');
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.log('Could not read callback server port', e);
+    throw e;
+  }
 }
