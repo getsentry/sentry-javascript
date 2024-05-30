@@ -25,7 +25,10 @@ const profiled = async (name: string, fn: () => void, format: 0 | 1 = 0) => {
   return CpuProfilerBindings.stopProfiling(name, format);
 };
 
-const assertValidSamplesAndStacks = (stacks: ThreadCpuProfile['stacks'], samples: ThreadCpuProfile['samples'] | ContinuousThreadCpuProfile["samples"]) => {
+const assertValidSamplesAndStacks = (
+  stacks: ThreadCpuProfile['stacks'],
+  samples: ThreadCpuProfile['samples'] | ContinuousThreadCpuProfile['samples'],
+) => {
   expect(stacks.length).toBeGreaterThan(0);
   expect(samples.length).toBeGreaterThan(0);
   expect(stacks.length <= samples.length).toBe(true);
@@ -81,7 +84,7 @@ describe('Private bindings', () => {
       // @ts-expect-error invalid format value
       const profile = PrivateCpuProfilerBindings.stopProfiling('profiled-program', Number.MAX_SAFE_INTEGER, 0, false);
       if (!profile) throw new Error('No profile');
-    }).toThrow("StopProfiling expects a valid format type as second argument.");
+    }).toThrow('StopProfiling expects a valid format type as second argument.');
   });
 
   it('collects resources', async () => {
@@ -214,19 +217,23 @@ describe('Profiler bindings', () => {
   });
 
   it('chunk format type', async () => {
-    const profile = await profiled('non nullable stack', async () => {
-      await wait(1000);
-      fibonacci(36);
-      await wait(1000);
-    }, 1);
+    const profile = await profiled(
+      'non nullable stack',
+      async () => {
+        await wait(1000);
+        fibonacci(36);
+        await wait(1000);
+      },
+      1,
+    );
 
     if (!profile) fail('Profile is null');
 
     for (const sample of profile.samples) {
-      if (!("timestamp" in sample)) {
+      if (!('timestamp' in sample)) {
         throw new Error(`Sample ${JSON.stringify(sample)} has no timestamp`);
       }
-      expect(sample.timestamp).toBeDefined()
+      expect(sample.timestamp).toBeDefined();
     }
   });
 
