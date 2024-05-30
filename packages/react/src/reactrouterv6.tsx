@@ -47,7 +47,7 @@ let _createRoutesFromChildren: CreateRoutesFromChildren;
 let _matchRoutes: MatchRoutes;
 let _stripBasename: boolean = false;
 
-const CLIENTS_WITH_INSTRUMENT_NAVIGATION: Client[] = [];
+const CLIENTS_WITH_INSTRUMENT_NAVIGATION = new WeakSet<Client>();
 
 interface ReactRouterOptions {
   useEffect: UseEffect;
@@ -108,7 +108,7 @@ export function reactRouterV6BrowserTracingIntegration(
       }
 
       if (instrumentNavigation) {
-        CLIENTS_WITH_INSTRUMENT_NAVIGATION.push(client);
+        CLIENTS_WITH_INSTRUMENT_NAVIGATION.add(client);
       }
     },
   };
@@ -222,7 +222,7 @@ function handleNavigation(
   const branches = Array.isArray(matches) ? matches : _matchRoutes(routes, location, basename);
 
   const client = getClient();
-  if (!client || !CLIENTS_WITH_INSTRUMENT_NAVIGATION.includes(client)) {
+  if (!client || !CLIENTS_WITH_INSTRUMENT_NAVIGATION.has(client)) {
     return;
   }
 

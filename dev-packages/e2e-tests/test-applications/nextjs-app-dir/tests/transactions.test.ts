@@ -1,6 +1,5 @@
 import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/event-proxy-server';
-import axios, { AxiosError } from 'axios';
 
 const packageJson = require('../package.json');
 
@@ -22,24 +21,11 @@ test('Sends a pageload transaction', async ({ page }) => {
   await expect
     .poll(
       async () => {
-        try {
-          const response = await axios.get(
-            `https://sentry.io/api/0/projects/${sentryTestOrgSlug}/${sentryTestProject}/events/${transactionEventId}/`,
-            { headers: { Authorization: `Bearer ${authToken}` } },
-          );
-
-          return response.status;
-        } catch (e) {
-          if (e instanceof AxiosError && e.response) {
-            if (e.response.status !== 404) {
-              throw e;
-            } else {
-              return e.response.status;
-            }
-          } else {
-            throw e;
-          }
-        }
+        const response = await fetch(
+          `https://sentry.io/api/0/projects/${sentryTestOrgSlug}/${sentryTestProject}/events/${transactionEventId}/`,
+          { headers: { Authorization: `Bearer ${authToken}` } },
+        );
+        return response.status;
       },
       {
         timeout: EVENT_POLLING_TIMEOUT,

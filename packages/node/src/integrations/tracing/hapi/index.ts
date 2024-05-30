@@ -3,14 +3,11 @@ import {
   SDK_VERSION,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SPAN_STATUS_ERROR,
   captureException,
   defineIntegration,
-  getActiveSpan,
   getClient,
   getDefaultIsolationScope,
   getIsolationScope,
-  getRootSpan,
   spanToJSON,
 } from '@sentry/core';
 import type { IntegrationFn, Span } from '@sentry/types';
@@ -79,18 +76,10 @@ export const hapiErrorPlugin = {
           logger.warn('Isolation scope is still the default isolation scope - skipping setting transactionName');
       }
 
-      const activeSpan = getActiveSpan();
-      const rootSpan = activeSpan ? getRootSpan(activeSpan) : undefined;
-
       if (request.response && isBoomObject(request.response)) {
         sendErrorToSentry(request.response);
       } else if (isErrorEvent(event)) {
         sendErrorToSentry(event.error);
-      }
-
-      if (rootSpan) {
-        rootSpan.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
-        rootSpan.end();
       }
     });
   },
