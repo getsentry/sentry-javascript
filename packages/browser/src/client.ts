@@ -14,6 +14,7 @@ import type {
 } from '@sentry/types';
 import { createClientReportEnvelope, dsnToString, getSDKSource, logger } from '@sentry/utils';
 
+import { getReplay } from '@sentry-internal/replay';
 import { DEBUG_BUILD } from './debug-build';
 import { eventFromException, eventFromMessage } from './eventbuilder';
 import { WINDOW } from './helpers';
@@ -69,6 +70,11 @@ export class BrowserClient extends BaseClient<BrowserClientOptions> {
         }
       });
     }
+
+    window.addEventListener('beforeunload', () => {
+      getReplay()?.flush();
+    });
+
   }
 
   /**
