@@ -624,8 +624,7 @@ export const _nodeProfilingIntegration = ((): ProfilingIntegration => {
           break;
         }
         default: {
-          DEBUG_BUILD &&
-            logger.warn(`[Profiling] Unknown profiler mode: ${mode}, profiler was not initialized`);
+          DEBUG_BUILD && logger.warn(`[Profiling] Unknown profiler mode: ${mode}, profiler was not initialized`);
         }
       }
     },
