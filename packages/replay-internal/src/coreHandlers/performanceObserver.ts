@@ -1,7 +1,8 @@
-import { addLcpInstrumentationHandler, addPerformanceInstrumentationHandler } from '@sentry-internal/browser-utils';
+import { addClsInstrumentationHandler, addFidInstrumentationHandler, addLcpInstrumentationHandler, addPerformanceInstrumentationHandler } from '@sentry-internal/browser-utils';
 
 import type { ReplayContainer } from '../types';
-import { getLargestContentfulPaint } from '../util/createPerformanceEntries';
+import { getLargestContentfulPaint, getCumulativeLayoutShift, getFirstInputDelay, getInteractionToNextPaint } from '../util/createPerformanceEntries';
+import { addInpInstrumentationHandler } from '@sentry-internal/browser-utils/build/types/metrics/instrument';
 
 /**
  * Sets up a PerformanceObserver to listen to all performance entry types.
@@ -28,6 +29,15 @@ export function setupPerformanceObserver(replay: ReplayContainer): () => void {
   clearCallbacks.push(
     addLcpInstrumentationHandler(({ metric }) => {
       replay.replayPerformanceEntries.push(getLargestContentfulPaint(metric));
+    }),
+    addClsInstrumentationHandler(({ metric }) => {
+      replay.replayPerformanceEntries.push(getCumulativeLayoutShift(metric));
+    }),
+    addFidInstrumentationHandler(({ metric }) => {
+      replay.replayPerformanceEntries.push(getFirstInputDelay(metric));
+    }),
+    addInpInstrumentationHandler(({ metric }) => {
+      replay.replayPerformanceEntries.push(getInteractionToNextPaint(metric));
     }),
   );
 

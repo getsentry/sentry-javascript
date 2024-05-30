@@ -7,6 +7,9 @@ import type {
   AllPerformanceEntryData,
   ExperimentalPerformanceResourceTiming,
   LargestContentfulPaintData,
+  CumulativeLayoutShiftData,
+  FirstInputDelayData,
+  InteractionToNextPaintData,
   NavigationData,
   PaintData,
   ReplayPerformanceEntry,
@@ -141,7 +144,7 @@ function createResourceEntry(
 }
 
 /**
- * Add a LCP event to the replay based on an LCP metric.
+ * Add a LCP event to the replay based on a LCP metric.
  */
 export function getLargestContentfulPaint(metric: {
   value: number;
@@ -156,8 +159,98 @@ export function getLargestContentfulPaint(metric: {
   const end = getAbsoluteTime(value);
 
   const data: ReplayPerformanceEntry<LargestContentfulPaintData> = {
-    type: 'largest-contentful-paint',
+    type: 'web-vital',
     name: 'largest-contentful-paint',
+    start: end,
+    end,
+    data: {
+      value,
+      size: value,
+      nodeId: element ? record.mirror.getId(element) : undefined,
+    },
+  };
+
+  return data;
+}
+
+/**
+ * Add a CLS event to the replay based on a CLS metric.
+ */
+export function getCumulativeLayoutShift(metric: {
+  value: number;
+  entries: PerformanceEntry[];
+}): ReplayPerformanceEntry<CumulativeLayoutShiftData> {
+  const entries = metric.entries;
+  const lastEntry = entries[entries.length - 1] as (PerformanceEntry & { element?: Element }) | undefined;
+  const element = lastEntry ? lastEntry.element : undefined;
+
+  const value = metric.value;
+
+  const end = getAbsoluteTime(value);
+
+  const data: ReplayPerformanceEntry<CumulativeLayoutShiftData> = {
+    type: 'web-vital',
+    name: 'cumulative-layout-shift',
+    start: end,
+    end,
+    data: {
+      value,
+      size: value,
+      nodeId: element ? record.mirror.getId(element) : undefined,
+    },
+  };
+
+  return data;
+}
+
+/**
+ * Add a FID event to the replay based on a FID metric.
+ */
+export function getFirstInputDelay(metric: {
+  value: number;
+  entries: PerformanceEntry[];
+}): ReplayPerformanceEntry<FirstInputDelayData> {
+  const entries = metric.entries;
+  const lastEntry = entries[entries.length - 1] as (PerformanceEntry & { element?: Element }) | undefined;
+  const element = lastEntry ? lastEntry.element : undefined;
+
+  const value = metric.value;
+
+  const end = getAbsoluteTime(value);
+
+  const data: ReplayPerformanceEntry<FirstInputDelayData> = {
+    type: 'web-vital',
+    name: 'first-input-delay',
+    start: end,
+    end,
+    data: {
+      value,
+      size: value,
+      nodeId: element ? record.mirror.getId(element) : undefined,
+    },
+  };
+
+  return data;
+}
+
+/**
+ * Add an INP event to the replay based on an INP metric.
+ */
+export function getInteractionToNextPaint(metric: {
+  value: number;
+  entries: PerformanceEntry[];
+}): ReplayPerformanceEntry<InteractionToNextPaintData> {
+  const entries = metric.entries;
+  const lastEntry = entries[entries.length - 1] as (PerformanceEntry & { element?: Element }) | undefined;
+  const element = lastEntry ? lastEntry.element : undefined;
+
+  const value = metric.value;
+
+  const end = getAbsoluteTime(value);
+
+  const data: ReplayPerformanceEntry<InteractionToNextPaintData> = {
+    type: 'web-vital',
+    name: 'interaction-to-next-paint',
     start: end,
     end,
     data: {

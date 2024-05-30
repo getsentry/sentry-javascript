@@ -108,10 +108,46 @@ export interface LargestContentfulPaintData {
   nodeId?: number;
 }
 
+export interface CumulativeLayoutShiftData {
+  /**
+   * Render time (in ms) of the CLS
+   */
+  value: number;
+  size: number;
+  /**
+   * The recording id of the CLS node. -1 if not found
+   */
+  nodeId?: number;
+}
+
+export interface FirstInputDelayData {
+  /**
+   * Render time (in ms) of the FID
+   */
+  value: number;
+  size: number;
+  /**
+   * The recording id of the FID node. -1 if not found
+   */
+  nodeId?: number;
+}
+
+export interface InteractionToNextPaintData {
+  /**
+   * Render time (in ms) of the INP
+   */
+  value: number;
+  size: number;
+  /**
+   * The recording id of the INP node. -1 if not found
+   */
+  nodeId?: number;
+}
+
 /**
  * Entries that come from window.performance
  */
-export type AllPerformanceEntryData = PaintData | NavigationData | ResourceData | LargestContentfulPaintData;
+export type AllPerformanceEntryData = PaintData | NavigationData | ResourceData | LargestContentfulPaintData | CumulativeLayoutShiftData | FirstInputDelayData;
 
 export interface MemoryData {
   memory: {

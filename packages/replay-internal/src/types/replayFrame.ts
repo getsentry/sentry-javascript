@@ -3,6 +3,9 @@ import type { Breadcrumb } from '@sentry/types';
 import type {
   HistoryData,
   LargestContentfulPaintData,
+  CumulativeLayoutShiftData,
+  FirstInputDelayData,
+  InteractionToNextPaintData,
   MemoryData,
   NavigationData,
   NetworkRequestData,
@@ -167,6 +170,21 @@ interface ReplayLargestContentfulPaintFrame extends ReplayBaseSpanFrame {
   op: 'largest-contentful-paint';
 }
 
+interface ReplayCumulativeLayoutShiftFrame extends ReplayBaseSpanFrame {
+  data: CumulativeLayoutShiftData;
+  op: 'cumulative-layout-shift';
+}
+
+interface ReplayFirstInputDelayFrame extends ReplayBaseSpanFrame {
+  data: FirstInputDelayData;
+  op: 'first-input-delay';
+}
+
+interface ReplayInteractionToNextPaintFrame extends ReplayBaseSpanFrame {
+  data: InteractionToNextPaintData;
+  op: 'interaction-to-next-paint';
+}
+
 interface ReplayMemoryFrame extends ReplayBaseSpanFrame {
   data: MemoryData;
   op: 'memory';
@@ -197,6 +215,9 @@ export type ReplaySpanFrame =
   | ReplayHistoryFrame
   | ReplayRequestFrame
   | ReplayLargestContentfulPaintFrame
+  | ReplayCumulativeLayoutShiftFrame
+  | ReplayFirstInputDelayFrame
+  | ReplayInteractionToNextPaintFrame
   | ReplayMemoryFrame
   | ReplayNavigationFrame
   | ReplayPaintFrame
