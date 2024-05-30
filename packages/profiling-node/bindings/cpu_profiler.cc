@@ -24,8 +24,7 @@ static const v8::CpuProfilingNamingMode
 static const v8::CpuProfilingLoggingMode
     kDefaultLoggingMode(v8::CpuProfilingLoggingMode::kEagerLogging);
 
-enum ProfileFormat
-{
+enum ProfileFormat {
   kFormatThread = 0,
   kFormatChunk = 1,
 };
@@ -38,46 +37,40 @@ enum ProfileFormat
 static const char *kEagerLoggingMode = "eager";
 static const char *kLazyLoggingMode = "lazy";
 
-v8::CpuProfilingLoggingMode GetLoggingMode()
-{
+v8::CpuProfilingLoggingMode GetLoggingMode() {
   static const char *logging_mode(getenv("SENTRY_PROFILER_LOGGING_MODE"));
 
   // most times this wont be set so just bail early
-  if (!logging_mode)
-  {
+  if (!logging_mode) {
     return kDefaultLoggingMode;
   }
 
   // other times it'll likely be set to lazy as eager is the default
-  if (strcmp(logging_mode, kLazyLoggingMode) == 0)
-  {
+  if (strcmp(logging_mode, kLazyLoggingMode) == 0) {
     return v8::CpuProfilingLoggingMode::kLazyLogging;
-  }
-  else if (strcmp(logging_mode, kEagerLoggingMode) == 0)
-  {
+  } else if (strcmp(logging_mode, kEagerLoggingMode) == 0) {
     return v8::CpuProfilingLoggingMode::kEagerLogging;
   }
 
   return kDefaultLoggingMode;
 }
 
-uint64_t timestamp_milliseconds()
-{
-  return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+uint64_t timestamp_milliseconds() {
+  return std::chrono::duration_cast<std::chrono::milliseconds>(
+             std::chrono::system_clock::now().time_since_epoch())
+      .count();
 }
 
 class SentryProfile;
 class Profiler;
 
-enum class ProfileStatus
-{
+enum class ProfileStatus {
   kNotStarted,
   kStarted,
   kStopped,
 };
 
-class MeasurementsTicker
-{
+class MeasurementsTicker {
 private:
   uv_timer_t timer;
   uint64_t period_ms;
@@ -92,8 +85,7 @@ private:
 
 public:
   MeasurementsTicker(uv_loop_t *loop)
-      : period_ms(100), isolate(v8::Isolate::GetCurrent())
-  {
+      : period_ms(100), isolate(v8::Isolate::GetCurrent()) {
     uv_timer_init(loop, &timer);
     uv_handle_set_data(reinterpret_cast<uv_handle_t *>(&timer), this);
     uv_unref(reinterpret_cast<uv_handle_t *>(&timer));
@@ -118,45 +110,38 @@ public:
 
   size_t listener_count();
 
-  ~MeasurementsTicker()
-  {
+  ~MeasurementsTicker() {
     uv_timer_stop(&timer);
 
     auto handle = reinterpret_cast<uv_handle_t *>(&timer);
 
     // Calling uv_close on an inactive handle will cause a segfault.
-    if (uv_is_active(handle))
-    {
+    if (uv_is_active(handle)) {
       uv_close(handle, nullptr);
     }
   }
 };
 
-size_t MeasurementsTicker::listener_count()
-{
+size_t MeasurementsTicker::listener_count() {
   return heap_listeners.size() + cpu_listeners.size();
 }
 
 // Heap tickers
-void MeasurementsTicker::heap_callback()
-{
+void MeasurementsTicker::heap_callback() {
   isolate->GetHeapStatistics(&heap_stats);
   uint64_t ts = uv_hrtime();
 
-  for (auto cb : heap_listeners)
-  {
+  for (auto cb : heap_listeners) {
     cb.second(ts, heap_stats);
   }
 }
 
 void MeasurementsTicker::add_heap_listener(
     std::string &profile_id,
-    const std::function<bool(uint64_t, v8::HeapStatistics &)> cb)
-{
+    const std::function<bool(uint64_t, v8::HeapStatistics &)> cb) {
   heap_listeners.emplace(profile_id, cb);
 
-  if (listener_count() == 1)
-  {
+  if (listener_count() == 1) {
     uv_timer_set_repeat(&timer, period_ms);
     uv_timer_start(&timer, ticker, 0, period_ms);
   }
@@ -164,30 +149,25 @@ void MeasurementsTicker::add_heap_listener(
 
 void MeasurementsTicker::remove_heap_listener(
     std::string &profile_id,
-    const std::function<bool(uint64_t, v8::HeapStatistics &)> &cb)
-{
+    const std::function<bool(uint64_t, v8::HeapStatistics &)> &cb) {
   heap_listeners.erase(profile_id);
 
-  if (listener_count() == 0)
-  {
+  if (listener_count() == 0) {
     uv_timer_stop(&timer);
   }
 };
 
 // CPU tickers
-void MeasurementsTicker::cpu_callback()
-{
+void MeasurementsTicker::cpu_callback() {
   uv_cpu_info_t *cpu = &cpu_stats;
   int count;
   int err = uv_cpu_info(&cpu, &count);
 
-  if (err)
-  {
+  if (err) {
     return;
   }
 
-  if (count < 1)
-  {
+  if (count < 1) {
     return;
   }
 
@@ -195,8 +175,7 @@ void MeasurementsTicker::cpu_callback()
   uint64_t total = 0;
   uint64_t idle_total = 0;
 
-  for (int i = 0; i < count; i++)
-  {
+  for (int i = 0; i < count; i++) {
     uv_cpu_info_t *core = cpu + i;
 
     total += core->cpu_times.user;
@@ -212,20 +191,15 @@ void MeasurementsTicker::cpu_callback()
   double total_avg = total / count;
   double rate = 1.0 - idle_avg / total_avg;
 
-  if (rate < 0.0 || isinf(rate) || isnan(rate))
-  {
+  if (rate < 0.0 || isinf(rate) || isnan(rate)) {
     rate = 0.0;
   }
 
   auto it = cpu_listeners.begin();
-  while (it != cpu_listeners.end())
-  {
-    if (it->second(ts, rate))
-    {
+  while (it != cpu_listeners.end()) {
+    if (it->second(ts, rate)) {
       it = cpu_listeners.erase(it);
-    }
-    else
-    {
+    } else {
       ++it;
     }
   };
@@ -233,38 +207,32 @@ void MeasurementsTicker::cpu_callback()
   uv_free_cpu_info(cpu, count);
 };
 
-void MeasurementsTicker::ticker(uv_timer_t *handle)
-{
+void MeasurementsTicker::ticker(uv_timer_t *handle) {
   MeasurementsTicker *self = static_cast<MeasurementsTicker *>(handle->data);
   self->heap_callback();
   self->cpu_callback();
 }
 
 void MeasurementsTicker::add_cpu_listener(
-    std::string &profile_id, const std::function<bool(uint64_t, double)> cb)
-{
+    std::string &profile_id, const std::function<bool(uint64_t, double)> cb) {
   cpu_listeners.emplace(profile_id, cb);
 
-  if (listener_count() == 1)
-  {
+  if (listener_count() == 1) {
     uv_timer_set_repeat(&timer, period_ms);
     uv_timer_start(&timer, ticker, 0, period_ms);
   }
 }
 
 void MeasurementsTicker::remove_cpu_listener(
-    std::string &profile_id, const std::function<bool(uint64_t, double)> &cb)
-{
+    std::string &profile_id, const std::function<bool(uint64_t, double)> &cb) {
   cpu_listeners.erase(profile_id);
 
-  if (listener_count() == 0)
-  {
+  if (listener_count() == 0) {
     uv_timer_stop(&timer);
   }
 };
 
-class Profiler
-{
+class Profiler {
 public:
   std::unordered_map<std::string, SentryProfile *> active_profiles;
 
@@ -277,8 +245,7 @@ public:
             v8::CpuProfiler::New(isolate, kNamingMode, GetLoggingMode())) {}
 };
 
-class SentryProfile
-{
+class SentryProfile {
 private:
   uint64_t started_at;
   uint64_t timestamp;
@@ -299,10 +266,8 @@ private:
 
 public:
   explicit SentryProfile(const char *id)
-      : started_at(uv_hrtime()),
-        timestamp(timestamp_milliseconds()),
-        memory_sampler_cb([this](uint64_t ts, v8::HeapStatistics &stats)
-                          {
+      : started_at(uv_hrtime()), timestamp(timestamp_milliseconds()),
+        memory_sampler_cb([this](uint64_t ts, v8::HeapStatistics &stats) {
           if ((heap_write_index >= heap_stats_ts.capacity()) ||
               heap_write_index >= heap_stats_usage.capacity()) {
             return true;
@@ -315,10 +280,10 @@ public:
               static_cast<uint64_t>(stats.used_heap_size()));
           ++heap_write_index;
 
-          return false; }),
+          return false;
+        }),
 
-        cpu_sampler_cb([this](uint64_t ts, double rate)
-                       {
+        cpu_sampler_cb([this](uint64_t ts, double rate) {
           if (cpu_write_index >= cpu_stats_ts.capacity() ||
               cpu_write_index >= cpu_stats_usage.capacity()) {
             return true;
@@ -328,10 +293,10 @@ public:
           cpu_stats_usage.insert(cpu_stats_usage.begin() + cpu_write_index,
                                  rate);
           ++cpu_write_index;
-          return false; }),
+          return false;
+        }),
 
-        status(ProfileStatus::kNotStarted), id(id)
-  {
+        status(ProfileStatus::kNotStarted), id(id) {
     heap_stats_ts.reserve(300);
     heap_stats_usage.reserve(300);
     cpu_stats_ts.reserve(300);
@@ -351,8 +316,7 @@ public:
   v8::CpuProfile *Stop(Profiler *profiler);
 };
 
-void SentryProfile::Start(Profiler *profiler)
-{
+void SentryProfile::Start(Profiler *profiler) {
   v8::Local<v8::String> profile_title =
       v8::String::NewFromUtf8(v8::Isolate::GetCurrent(), id.c_str(),
                               v8::NewStringType::kNormal)
@@ -376,10 +340,8 @@ void SentryProfile::Start(Profiler *profiler)
 
 static void CleanupSentryProfile(Profiler *profiler,
                                  SentryProfile *sentry_profile,
-                                 const std::string &profile_id)
-{
-  if (sentry_profile == nullptr)
-  {
+                                 const std::string &profile_id) {
+  if (sentry_profile == nullptr) {
     return;
   }
 
@@ -388,8 +350,7 @@ static void CleanupSentryProfile(Profiler *profiler,
   delete sentry_profile;
 };
 
-v8::CpuProfile *SentryProfile::Stop(Profiler *profiler)
-{
+v8::CpuProfile *SentryProfile::Stop(Profiler *profiler) {
   // Stop the CPU Profiler
   v8::CpuProfile *profile = profiler->cpu_profiler->StopProfiling(
       v8::String::NewFromUtf8(v8::Isolate::GetCurrent(), id.c_str(),
@@ -406,33 +367,27 @@ v8::CpuProfile *SentryProfile::Stop(Profiler *profiler)
 }
 
 // Memory getters
-const std::vector<uint64_t> &SentryProfile::heap_usage_timestamps() const
-{
+const std::vector<uint64_t> &SentryProfile::heap_usage_timestamps() const {
   return heap_stats_ts;
 };
 
-const std::vector<uint64_t> &SentryProfile::heap_usage_values() const
-{
+const std::vector<uint64_t> &SentryProfile::heap_usage_values() const {
   return heap_stats_usage;
 };
 
-const uint16_t &SentryProfile::heap_usage_write_index() const
-{
+const uint16_t &SentryProfile::heap_usage_write_index() const {
   return heap_write_index;
 };
 
 // CPU getters
-const std::vector<uint64_t> &SentryProfile::cpu_usage_timestamps() const
-{
+const std::vector<uint64_t> &SentryProfile::cpu_usage_timestamps() const {
   return cpu_stats_ts;
 };
 
-const std::vector<double> &SentryProfile::cpu_usage_values() const
-{
+const std::vector<double> &SentryProfile::cpu_usage_values() const {
   return cpu_stats_usage;
 };
-const uint16_t &SentryProfile::cpu_usage_write_index() const
-{
+const uint16_t &SentryProfile::cpu_usage_write_index() const {
   return cpu_write_index;
 };
 const uint64_t &SentryProfile::profile_start_timestamp() const {
@@ -451,8 +406,7 @@ static void CleanupSentryProfile(Profiler *profiler,
   delete sentry_profile;
 };
 
-const uint64_t &SentryProfile::profile_start_timestamp() const
-{
+const uint64_t &SentryProfile::profile_start_timestamp() const {
   return timestamp;
 };
 
@@ -468,10 +422,8 @@ static const char kSentryFileDelimiter = ':';
 static const std::string kNodeModulesPath =
     std::string("node_modules") + kPlatformSeparator;
 
-static void GetFrameModule(const std::string &abs_path, std::string &module)
-{
-  if (abs_path.empty())
-  {
+static void GetFrameModule(const std::string &abs_path, std::string &module) {
+  if (abs_path.empty()) {
     return;
   }
 
@@ -479,26 +431,22 @@ static void GetFrameModule(const std::string &abs_path, std::string &module)
 
   // Drop .js extension
   size_t module_len = module.length();
-  if (module.compare(module_len - 3, 3, ".js") == 0)
-  {
+  if (module.compare(module_len - 3, 3, ".js") == 0) {
     module = module.substr(0, module_len - 3);
   }
 
   // Drop anything before and including node_modules/
   size_t node_modules_pos = module.rfind(kNodeModulesPath);
-  if (node_modules_pos != std::string::npos)
-  {
+  if (node_modules_pos != std::string::npos) {
     module = module.substr(node_modules_pos + 13);
   }
 
   // Replace all path separators with dots except the last one, that one is
   // replaced with a colon
   int match_count = 0;
-  for (int pos = module.length() - 1; pos >= 0; pos--)
-  {
+  for (int pos = module.length() - 1; pos >= 0; pos--) {
     // if there is a match and it's not the first character, replace it
-    if (module[pos] == kPlatformSeparator)
-    {
+    if (module[pos] == kPlatformSeparator) {
       module[pos] =
           match_count == 0 ? kSentryFileDelimiter : kSentryPathDelimiter;
       match_count++;
@@ -508,21 +456,18 @@ static void GetFrameModule(const std::string &abs_path, std::string &module)
 #ifdef _WIN32
   // Strip out C: prefix. On Windows, the drive letter is not part of the module
   // name
-  if (module[1] == kWinDiskPrefix)
-  {
+  if (module[1] == kWinDiskPrefix) {
     // We will try and strip our the disk prefix.
     module = module.substr(2, std::string::npos);
   }
 #endif
 
-  if (module[0] == '.')
-  {
+  if (module[0] == '.') {
     module = module.substr(1, std::string::npos);
   }
 }
 
-static napi_value GetFrameModuleWrapped(napi_env env, napi_callback_info info)
-{
+static napi_value GetFrameModuleWrapped(napi_env env, napi_callback_info info) {
   size_t argc = 2;
   napi_value argv[2];
   napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
@@ -547,8 +492,7 @@ static napi_value GetFrameModuleWrapped(napi_env env, napi_callback_info info)
 napi_value
 CreateFrameNode(const napi_env &env, const v8::CpuProfileNode &node,
                 std::unordered_map<std::string, std::string> &module_cache,
-                napi_value &resources)
-{
+                napi_value &resources) {
   napi_value js_node;
   napi_create_object(env, &js_node);
 
@@ -560,8 +504,7 @@ CreateFrameNode(const napi_env &env, const v8::CpuProfileNode &node,
   napi_create_int32(env, node.GetColumnNumber(), &colno_prop);
   napi_set_named_property(env, js_node, "colno", colno_prop);
 
-  if (node.GetSourceType() != v8::CpuProfileNode::SourceType::kScript)
-  {
+  if (node.GetSourceType() != v8::CpuProfileNode::SourceType::kScript) {
     napi_value system_frame_prop;
     napi_get_boolean(env, false, &system_frame_prop);
     napi_set_named_property(env, js_node, "in_app", system_frame_prop);
@@ -574,8 +517,7 @@ CreateFrameNode(const napi_env &env, const v8::CpuProfileNode &node,
 
   const char *resource = node.GetScriptResourceNameStr();
 
-  if (resource != nullptr)
-  {
+  if (resource != nullptr) {
     // resource is absolute path, set it on the abs_path property
     napi_value abs_path_prop;
     napi_create_string_utf8(env, resource, NAPI_AUTO_LENGTH, &abs_path_prop);
@@ -588,17 +530,13 @@ CreateFrameNode(const napi_env &env, const v8::CpuProfileNode &node,
     std::string module;
     std::string resource_str = std::string(resource);
 
-    if (resource_str.empty())
-    {
+    if (resource_str.empty()) {
       return js_node;
     }
 
-    if (module_cache.find(resource_str) != module_cache.end())
-    {
+    if (module_cache.find(resource_str) != module_cache.end()) {
       module = module_cache[resource_str];
-    }
-    else
-    {
+    } else {
       napi_value resource;
       napi_create_string_utf8(env, resource_str.c_str(), NAPI_AUTO_LENGTH,
                               &resource);
@@ -608,8 +546,7 @@ CreateFrameNode(const napi_env &env, const v8::CpuProfileNode &node,
       module_cache.emplace(resource_str, module);
     }
 
-    if (!module.empty())
-    {
+    if (!module.empty()) {
       napi_value filename_prop;
       napi_create_string_utf8(env, module.c_str(), NAPI_AUTO_LENGTH,
                               &filename_prop);
@@ -621,9 +558,9 @@ CreateFrameNode(const napi_env &env, const v8::CpuProfileNode &node,
 };
 
 napi_value CreateSample(const napi_env &env, const enum ProfileFormat format,
-                        const uint32_t stack_id, const int64_t sample_timestamp, const double chunk_timestamp,
-                        const uint32_t thread_id)
-{
+                        const uint32_t stack_id, const int64_t sample_timestamp,
+                        const double chunk_timestamp,
+                        const uint32_t thread_id) {
   napi_value js_node;
   napi_create_object(env, &js_node);
 
@@ -636,14 +573,11 @@ napi_value CreateSample(const napi_env &env, const enum ProfileFormat format,
                           NAPI_AUTO_LENGTH, &thread_id_prop);
   napi_set_named_property(env, js_node, "thread_id", thread_id_prop);
 
-  if (format == ProfileFormat::kFormatThread)
-  {
+  if (format == ProfileFormat::kFormatThread) {
     napi_value timestamp;
     napi_create_int64(env, sample_timestamp, &timestamp);
     napi_set_named_property(env, js_node, "elapsed_since_start_ns", timestamp);
-  }
-  else if (format == ProfileFormat::kFormatChunk)
-  {
+  } else if (format == ProfileFormat::kFormatChunk) {
     napi_value timestamp;
     napi_create_double(env, chunk_timestamp, &timestamp);
     napi_set_named_property(env, js_node, "timestamp", timestamp);
@@ -654,12 +588,10 @@ napi_value CreateSample(const napi_env &env, const enum ProfileFormat format,
 
 std::string kDelimiter = std::string(";");
 std::string hashCpuProfilerNodeByPath(const v8::CpuProfileNode *node,
-                                      std::string &path)
-{
+                                      std::string &path) {
   path.clear();
 
-  while (node != nullptr)
-  {
+  while (node != nullptr) {
     path.append(std::to_string(node->GetNodeId()));
     node = node->GetParent();
   }
@@ -668,10 +600,11 @@ std::string hashCpuProfilerNodeByPath(const v8::CpuProfileNode *node,
 }
 
 static void GetSamples(const napi_env &env, const v8::CpuProfile *profile,
-                       ProfileFormat format, const uint64_t profile_start_timestamp_ms, const uint32_t thread_id,
-                       napi_value &samples, napi_value &stacks,
-                       napi_value &frames, napi_value &resources)
-{
+                       ProfileFormat format,
+                       const uint64_t profile_start_timestamp_ms,
+                       const uint32_t thread_id, napi_value &samples,
+                       napi_value &stacks, napi_value &frames,
+                       napi_value &resources) {
   const int64_t profile_start_time_us = profile->GetStartTime();
   const int64_t sampleCount = profile->GetSamplesCount();
 
@@ -689,8 +622,7 @@ static void GetSamples(const napi_env &env, const v8::CpuProfile *profile,
 
   std::string node_hash = "";
 
-  for (int i = 0; i < sampleCount; i++)
-  {
+  for (int i = 0; i < sampleCount; i++) {
     uint32_t stack_index = unique_stack_id;
 
     const v8::CpuProfileNode *node = profile->GetSample(i);
@@ -698,8 +630,7 @@ static void GetSamples(const napi_env &env, const v8::CpuProfile *profile,
 
     // If a node was only on top of the stack once, then it will only ever
     // be inserted once and there is no need for hashing.
-    if (node->GetHitCount() > 1)
-    {
+    if (node->GetHitCount() > 1) {
       hashCpuProfilerNodeByPath(node, node_hash);
 
       std::unordered_map<std::string, uint32_t>::iterator
@@ -707,25 +638,24 @@ static void GetSamples(const napi_env &env, const v8::CpuProfile *profile,
 
       // If we have a hit, update the stack index, otherwise
       // insert it into the hash table and continue.
-      if (stack_index_cache_hit == stack_lookup_table.end())
-      {
+      if (stack_index_cache_hit == stack_lookup_table.end()) {
         stack_lookup_table.emplace(node_hash, stack_index);
-      }
-      else
-      {
+      } else {
         stack_index = stack_index_cache_hit->second;
       }
     }
 
     uint64_t sample_delta_us = sample_timestamp - profile_start_time_us;
     uint64_t sample_timestamp_ns = sample_delta_us * 1e3;
-    double seconds_since_start = profile_start_timestamp_ms + (sample_timestamp - profile_start_time_us) * 1e-3;
+    double seconds_since_start =
+        profile_start_timestamp_ms +
+        (sample_timestamp - profile_start_time_us) * 1e-3;
 
     napi_value sample = nullptr;
-    sample = CreateSample(env, format, stack_index, sample_timestamp_ns, seconds_since_start, thread_id);
+    sample = CreateSample(env, format, stack_index, sample_timestamp_ns,
+                          seconds_since_start, thread_id);
 
-    if (stack_index != unique_stack_id)
-    {
+    if (stack_index != unique_stack_id) {
       napi_value index;
       napi_create_uint32(env, i, &index);
       napi_set_property(env, samples, index, sample);
@@ -739,14 +669,12 @@ static void GetSamples(const napi_env &env, const v8::CpuProfile *profile,
 
     uint32_t stack_depth = 0;
 
-    while (node != nullptr && stack_depth < kMaxStackDepth)
-    {
+    while (node != nullptr && stack_depth < kMaxStackDepth) {
       auto nodeId = node->GetNodeId();
       auto frame_index = frame_lookup_table.find(nodeId);
 
       // If the frame does not exist in the index
-      if (frame_index == frame_lookup_table.end())
-      {
+      if (frame_index == frame_lookup_table.end()) {
         frame_lookup_table.emplace(nodeId, unique_frame_id);
 
         napi_value frame_id;
@@ -759,9 +687,7 @@ static void GetSamples(const napi_env &env, const v8::CpuProfile *profile,
                           CreateFrameNode(env, *node, module_cache, resources));
 
         unique_frame_id++;
-      }
-      else
-      {
+      } else {
         // If it was already indexed, just add it's id to the stack
         napi_value depth;
         napi_create_uint32(env, stack_depth, &depth);
@@ -788,23 +714,19 @@ static void GetSamples(const napi_env &env, const v8::CpuProfile *profile,
   }
 }
 
-static napi_value
-TranslateMeasurementsDouble(const napi_env &env, const enum ProfileFormat format, const char *unit,
-                            const uint64_t profile_start_timestamp_ms,
-                            const uint16_t size,
-                            const std::vector<double> &values,
-                            const std::vector<uint64_t> &timestamps)
-{
-  if (size > values.size() || size > timestamps.size())
-  {
+static napi_value TranslateMeasurementsDouble(
+    const napi_env &env, const enum ProfileFormat format, const char *unit,
+    const uint64_t profile_start_timestamp_ms, const uint16_t size,
+    const std::vector<double> &values,
+    const std::vector<uint64_t> &timestamps) {
+  if (size > values.size() || size > timestamps.size()) {
     napi_throw_range_error(env, "NAPI_ERROR",
                            "CPU measurement size is larger than the number of "
                            "values or timestamps");
     return nullptr;
   }
 
-  if (values.size() != timestamps.size())
-  {
+  if (values.size() != timestamps.size()) {
     napi_throw_range_error(env, "NAPI_ERROR",
                            "CPU measurement entries are corrupt, expected "
                            "values and timestamps to be of equal length");
@@ -823,32 +745,27 @@ TranslateMeasurementsDouble(const napi_env &env, const enum ProfileFormat format
 
   uint16_t idx = size;
 
-  for (size_t i = 0; i < idx; i++)
-  {
+  for (size_t i = 0; i < idx; i++) {
     napi_value entry;
     napi_create_object(env, &entry);
 
     napi_value value;
-    if (napi_create_double(env, values[i], &value) != napi_ok)
-    {
-      if (napi_create_double(env, 0.0, &value) != napi_ok)
-      {
+    if (napi_create_double(env, values[i], &value) != napi_ok) {
+      if (napi_create_double(env, 0.0, &value) != napi_ok) {
         continue;
       }
     }
 
     napi_set_named_property(env, entry, "value", value);
 
-    if (format == ProfileFormat::kFormatThread)
-    {
+    if (format == ProfileFormat::kFormatThread) {
       napi_value ts;
       napi_create_int64(env, timestamps[i], &ts);
       napi_set_named_property(env, entry, "elapsed_since_start_ns", ts);
-    }
-    else if (format == ProfileFormat::kFormatChunk)
-    {
+    } else if (format == ProfileFormat::kFormatChunk) {
       napi_value ts;
-      napi_create_double(env, profile_start_timestamp_ms + (timestamps[i] * 1e-6), &ts);
+      napi_create_double(
+          env, profile_start_timestamp_ms + (timestamps[i] * 1e-6), &ts);
       napi_set_named_property(env, entry, "timestamp", ts);
     }
 
@@ -861,21 +778,19 @@ TranslateMeasurementsDouble(const napi_env &env, const enum ProfileFormat format
 }
 
 static napi_value
-TranslateMeasurements(const napi_env &env, const enum ProfileFormat format, const char *unit,
+TranslateMeasurements(const napi_env &env, const enum ProfileFormat format,
+                      const char *unit,
                       const uint64_t profile_start_timestamp_ms,
                       const uint16_t size, const std::vector<uint64_t> &values,
-                      const std::vector<uint64_t> &timestamps)
-{
-  if (size > values.size() || size > timestamps.size())
-  {
+                      const std::vector<uint64_t> &timestamps) {
+  if (size > values.size() || size > timestamps.size()) {
     napi_throw_range_error(env, "NAPI_ERROR",
                            "Memory measurement size is larger than the number "
                            "of values or timestamps");
     return nullptr;
   }
 
-  if (values.size() != timestamps.size())
-  {
+  if (values.size() != timestamps.size()) {
     napi_throw_range_error(env, "NAPI_ERROR",
                            "Memory measurement entries are corrupt, expected "
                            "values and timestamps to be of equal length");
@@ -892,8 +807,7 @@ TranslateMeasurements(const napi_env &env, const enum ProfileFormat format, cons
   napi_value values_array;
   napi_create_array(env, &values_array);
 
-  for (size_t i = 0; i < size; i++)
-  {
+  for (size_t i = 0; i < size; i++) {
     napi_value entry;
     napi_create_object(env, &entry);
 
@@ -901,16 +815,14 @@ TranslateMeasurements(const napi_env &env, const enum ProfileFormat format, cons
     napi_create_int64(env, values[i], &value);
 
     napi_set_named_property(env, entry, "value", value);
-    if (format == ProfileFormat::kFormatThread)
-    {
+    if (format == ProfileFormat::kFormatThread) {
       napi_value ts;
       napi_create_int64(env, timestamps[i], &ts);
       napi_set_named_property(env, entry, "elapsed_since_start_ns", ts);
-    }
-    else if (format == ProfileFormat::kFormatChunk)
-    {
+    } else if (format == ProfileFormat::kFormatChunk) {
       napi_value ts;
-      napi_create_double(env, profile_start_timestamp_ms + (timestamps[i] * 1e-6), &ts);
+      napi_create_double(
+          env, profile_start_timestamp_ms + (timestamps[i] * 1e-6), &ts);
       napi_set_named_property(env, entry, "timestamp", ts);
     }
     napi_set_element(env, values_array, i, entry);
@@ -926,8 +838,7 @@ static napi_value TranslateProfile(const napi_env &env,
                                    const enum ProfileFormat format,
                                    const uint64_t profile_start_timestamp_ms,
                                    const uint32_t thread_id,
-                                   bool collect_resources)
-{
+                                   bool collect_resources) {
   napi_value js_profile;
 
   napi_create_object(env, &js_profile);
@@ -955,15 +866,12 @@ static napi_value TranslateProfile(const napi_env &env,
   napi_set_named_property(env, js_profile, "profiler_logging_mode",
                           logging_mode);
 
-  GetSamples(env, profile, format, profile_start_timestamp_ms, thread_id, samples, stacks, frames,
-             resources);
+  GetSamples(env, profile, format, profile_start_timestamp_ms, thread_id,
+             samples, stacks, frames, resources);
 
-  if (collect_resources)
-  {
+  if (collect_resources) {
     napi_set_named_property(env, js_profile, "resources", resources);
-  }
-  else
-  {
+  } else {
     napi_create_array(env, &resources);
     napi_set_named_property(env, js_profile, "resources", resources);
   }
@@ -971,8 +879,7 @@ static napi_value TranslateProfile(const napi_env &env,
   return js_profile;
 }
 
-static napi_value StartProfiling(napi_env env, napi_callback_info info)
-{
+static napi_value StartProfiling(napi_env env, napi_callback_info info) {
   size_t argc = 1;
   napi_value argv[1];
 
@@ -981,8 +888,7 @@ static napi_value StartProfiling(napi_env env, napi_callback_info info)
   napi_valuetype callbacktype0;
   assert(napi_typeof(env, argv[0], &callbacktype0) == napi_ok);
 
-  if (callbacktype0 != napi_string)
-  {
+  if (callbacktype0 != napi_string) {
     napi_throw_error(
         env, "NAPI_ERROR",
         "TypeError: StartProfiling expects a string as first argument.");
@@ -999,8 +905,7 @@ static napi_value StartProfiling(napi_env env, napi_callback_info info)
   assert(napi_get_value_string_utf8(env, argv[0], title, len + 1, &len) ==
          napi_ok);
 
-  if (len < 1)
-  {
+  if (len < 1) {
     napi_throw_error(env, "NAPI_ERROR",
                      "StartProfiling expects a non-empty string as first "
                      "argument, got an empty string.");
@@ -1017,8 +922,7 @@ static napi_value StartProfiling(napi_env env, napi_callback_info info)
   Profiler *profiler;
   assert(napi_get_instance_data(env, (void **)&profiler) == napi_ok);
 
-  if (!profiler)
-  {
+  if (!profiler) {
     napi_throw_error(env, "NAPI_ERROR",
                      "StartProfiling: Profiler is not initialized.");
 
@@ -1031,8 +935,7 @@ static napi_value StartProfiling(napi_env env, napi_callback_info info)
   const std::string profile_id(title);
   // In case we have a collision, cleanup the old profile first
   auto existing_profile = profiler->active_profiles.find(profile_id);
-  if (existing_profile != profiler->active_profiles.end())
-  {
+  if (existing_profile != profiler->active_profiles.end()) {
     existing_profile->second->Stop(profiler);
     CleanupSentryProfile(profiler, existing_profile->second, profile_id);
   }
@@ -1050,15 +953,13 @@ static napi_value StartProfiling(napi_env env, napi_callback_info info)
 
 // StopProfiling(string title)
 // https://v8docs.nodesource.com/node-18.2/d2/d34/classv8_1_1_cpu_profiler.html#a40ca4c8a8aa4c9233aa2a2706457cc80
-static napi_value StopProfiling(napi_env env, napi_callback_info info)
-{
+static napi_value StopProfiling(napi_env env, napi_callback_info info) {
   size_t argc = 4;
   napi_value argv[4];
 
   assert(napi_get_cb_info(env, info, &argc, argv, NULL, NULL) == napi_ok);
 
-  if (argc < 3)
-  {
+  if (argc < 3) {
     napi_throw_error(env, "NAPI_ERROR",
                      "StopProfiling expects at least three arguments.");
 
@@ -1072,8 +973,7 @@ static napi_value StopProfiling(napi_env env, napi_callback_info info)
   napi_valuetype callbacktype0;
   assert(napi_typeof(env, argv[0], &callbacktype0) == napi_ok);
 
-  if (callbacktype0 != napi_string)
-  {
+  if (callbacktype0 != napi_string) {
     napi_throw_error(env, "NAPI_ERROR",
                      "StopProfiling expects a string as first argument.");
 
@@ -1090,8 +990,7 @@ static napi_value StopProfiling(napi_env env, napi_callback_info info)
   assert(napi_get_value_string_utf8(env, argv[0], title, len + 1, &len) ==
          napi_ok);
 
-  if (len < 1)
-  {
+  if (len < 1) {
     napi_throw_error(
         env, "NAPI_ERROR",
         "StopProfiling expects a non empty string as first argument.");
@@ -1106,8 +1005,7 @@ static napi_value StopProfiling(napi_env env, napi_callback_info info)
   napi_valuetype callbacktype1;
   assert(napi_typeof(env, argv[1], &callbacktype1) == napi_ok);
 
-  if (callbacktype1 != napi_number)
-  {
+  if (callbacktype1 != napi_number) {
     napi_throw_error(env, "NAPI_ERROR",
                      "StopProfiling expects a format type as second argument.");
 
@@ -1121,8 +1019,7 @@ static napi_value StopProfiling(napi_env env, napi_callback_info info)
   napi_valuetype callbacktype2;
   assert(napi_typeof(env, argv[2], &callbacktype2) == napi_ok);
 
-  if (callbacktype2 != napi_number)
-  {
+  if (callbacktype2 != napi_number) {
     napi_throw_error(
         env, "NAPI_ERROR",
         "StopProfiling expects a thread_id integer as third argument.");
@@ -1144,8 +1041,7 @@ static napi_value StopProfiling(napi_env env, napi_callback_info info)
   Profiler *profiler;
   assert(napi_get_instance_data(env, (void **)&profiler) == napi_ok);
 
-  if (!profiler)
-  {
+  if (!profiler) {
     napi_throw_error(env, "NAPI_ERROR",
                      "StopProfiling: Profiler is not initialized.");
 
@@ -1158,8 +1054,7 @@ static napi_value StopProfiling(napi_env env, napi_callback_info info)
   auto profile = profiler->active_profiles.find(profile_id);
 
   // If the profile was never started, silently ignore the call and return null
-  if (profile == profiler->active_profiles.end())
-  {
+  if (profile == profiler->active_profiles.end()) {
     napi_value napi_null;
     assert(napi_get_null(env, &napi_null) == napi_ok);
     return napi_null;
@@ -1169,8 +1064,7 @@ static napi_value StopProfiling(napi_env env, napi_callback_info info)
 
   // If for some reason stopProfiling was called with an invalid profile title
   // or if that title had somehow been stopped already, profile will be null.
-  if (!cpu_profile)
-  {
+  if (!cpu_profile) {
     CleanupSentryProfile(profiler, profile->second, profile_id);
 
     napi_value napi_null;
@@ -1187,8 +1081,7 @@ static napi_value StopProfiling(napi_env env, napi_callback_info info)
   const ProfileFormat format_type = static_cast<ProfileFormat>(format);
 
   if (format_type != ProfileFormat::kFormatThread &&
-      format_type != ProfileFormat::kFormatChunk)
-  {
+      format_type != ProfileFormat::kFormatChunk) {
     napi_throw_error(
         env, "NAPI_ERROR",
         "StopProfiling expects a valid format type as second argument.");
@@ -1198,37 +1091,37 @@ static napi_value StopProfiling(napi_env env, napi_callback_info info)
     return napi_null;
   }
 
-  napi_value js_profile = TranslateProfile(env, cpu_profile, format_type, profile->second->profile_start_timestamp(),
-                                           thread_id, collect_resources);
+  napi_value js_profile = TranslateProfile(
+      env, cpu_profile, format_type, profile->second->profile_start_timestamp(),
+      thread_id, collect_resources);
 
   napi_value measurements;
   napi_create_object(env, &measurements);
 
-  if (profile->second->heap_usage_write_index() > 0)
-  {
+  if (profile->second->heap_usage_write_index() > 0) {
     static const char *memory_unit = "byte";
-    napi_value heap_usage_measurements = TranslateMeasurements(
-        env, format_type, memory_unit, profile->second->profile_start_timestamp(), profile->second->heap_usage_write_index(),
-        profile->second->heap_usage_values(),
-        profile->second->heap_usage_timestamps());
+    napi_value heap_usage_measurements =
+        TranslateMeasurements(env, format_type, memory_unit,
+                              profile->second->profile_start_timestamp(),
+                              profile->second->heap_usage_write_index(),
+                              profile->second->heap_usage_values(),
+                              profile->second->heap_usage_timestamps());
 
-    if (heap_usage_measurements != nullptr)
-    {
+    if (heap_usage_measurements != nullptr) {
       napi_set_named_property(env, measurements, "memory_footprint",
                               heap_usage_measurements);
     };
   };
 
-  if (profile->second->cpu_usage_write_index() > 0)
-  {
+  if (profile->second->cpu_usage_write_index() > 0) {
     static const char *cpu_unit = "percent";
     napi_value cpu_usage_measurements = TranslateMeasurementsDouble(
-        env, format_type, cpu_unit, profile->second->profile_start_timestamp(), profile->second->cpu_usage_write_index(),
+        env, format_type, cpu_unit, profile->second->profile_start_timestamp(),
+        profile->second->cpu_usage_write_index(),
         profile->second->cpu_usage_values(),
         profile->second->cpu_usage_timestamps());
 
-    if (cpu_usage_measurements != nullptr)
-    {
+    if (cpu_usage_measurements != nullptr) {
       napi_set_named_property(env, measurements, "cpu_usage",
                               cpu_usage_measurements);
     };
@@ -1242,25 +1135,20 @@ static napi_value StopProfiling(napi_env env, napi_callback_info info)
   return js_profile;
 };
 
-void FreeAddonData(napi_env env, void *data, void *hint)
-{
+void FreeAddonData(napi_env env, void *data, void *hint) {
   Profiler *profiler = static_cast<Profiler *>(data);
 
-  if (profiler == nullptr)
-  {
+  if (profiler == nullptr) {
     return;
   }
 
-  if (!profiler->active_profiles.empty())
-  {
-    for (auto &profile : profiler->active_profiles)
-    {
+  if (!profiler->active_profiles.empty()) {
+    for (auto &profile : profiler->active_profiles) {
       CleanupSentryProfile(profiler, profile.second, profile.first);
     }
   }
 
-  if (profiler->cpu_profiler != nullptr)
-  {
+  if (profiler->cpu_profiler != nullptr) {
     profiler->cpu_profiler->Dispose();
     profiler->cpu_profiler = nullptr;
   }
@@ -1268,12 +1156,10 @@ void FreeAddonData(napi_env env, void *data, void *hint)
   delete profiler;
 }
 
-napi_value Init(napi_env env, napi_value exports)
-{
+napi_value Init(napi_env env, napi_value exports) {
   v8::Isolate *isolate = v8::Isolate::GetCurrent();
 
-  if (isolate == nullptr)
-  {
+  if (isolate == nullptr) {
     napi_throw_error(env, nullptr,
                      "Failed to initialize Sentry profiler: isolate is null.");
     return NULL;
@@ -1281,8 +1167,7 @@ napi_value Init(napi_env env, napi_value exports)
 
   Profiler *profiler = new Profiler(env, isolate);
 
-  if (napi_set_instance_data(env, profiler, FreeAddonData, NULL) != napi_ok)
-  {
+  if (napi_set_instance_data(env, profiler, FreeAddonData, NULL) != napi_ok) {
     napi_throw_error(env, nullptr, "Failed to set instance data for profiler.");
     return NULL;
   }
@@ -1290,15 +1175,13 @@ napi_value Init(napi_env env, napi_value exports)
   napi_value start_profiling;
   if (napi_create_function(env, "startProfiling", NAPI_AUTO_LENGTH,
                            StartProfiling, exports,
-                           &start_profiling) != napi_ok)
-  {
+                           &start_profiling) != napi_ok) {
     napi_throw_error(env, nullptr, "Failed to create startProfiling function.");
     return NULL;
   }
 
   if (napi_set_named_property(env, exports, "startProfiling",
-                              start_profiling) != napi_ok)
-  {
+                              start_profiling) != napi_ok) {
     napi_throw_error(env, nullptr,
                      "Failed to set startProfiling property on exports.");
     return NULL;
@@ -1307,15 +1190,13 @@ napi_value Init(napi_env env, napi_value exports)
   napi_value stop_profiling;
   if (napi_create_function(env, "stopProfiling", NAPI_AUTO_LENGTH,
                            StopProfiling, exports,
-                           &stop_profiling) != napi_ok)
-  {
+                           &stop_profiling) != napi_ok) {
     napi_throw_error(env, nullptr, "Failed to create stopProfiling function.");
     return NULL;
   }
 
   if (napi_set_named_property(env, exports, "stopProfiling", stop_profiling) !=
-      napi_ok)
-  {
+      napi_ok) {
     napi_throw_error(env, nullptr,
                      "Failed to set stopProfiling property on exports.");
     return NULL;
@@ -1324,15 +1205,13 @@ napi_value Init(napi_env env, napi_value exports)
   napi_value get_frame_module;
   if (napi_create_function(env, "getFrameModule", NAPI_AUTO_LENGTH,
                            GetFrameModuleWrapped, exports,
-                           &get_frame_module) != napi_ok)
-  {
+                           &get_frame_module) != napi_ok) {
     napi_throw_error(env, nullptr, "Failed to create getFrameModule function.");
     return NULL;
   }
 
   if (napi_set_named_property(env, exports, "getFrameModule",
-                              get_frame_module) != napi_ok)
-  {
+                              get_frame_module) != napi_ok) {
     napi_throw_error(env, nullptr,
                      "Failed to set getFrameModule property on exports.");
     return NULL;
