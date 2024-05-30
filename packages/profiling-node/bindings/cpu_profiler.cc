@@ -10,6 +10,7 @@
 #include <v8-profiler.h>
 #include <v8.h>
 
+#include <chrono>
 #include <functional>
 #include <string>
 #include <unordered_map>
