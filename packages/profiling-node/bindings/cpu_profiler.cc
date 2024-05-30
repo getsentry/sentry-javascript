@@ -838,12 +838,17 @@ TranslateMeasurementsDouble(const napi_env &env, const ProfileFormat format, con
     }
 
     napi_set_named_property(env, entry, "value", value);
-    if(format == ProfileFormat::kFormatThread)
+
+    if (format == ProfileFormat::kFormatThread)
     {
+      napi_value ts;
+      napi_create_int64(env, timestamps[i], &ts);
       napi_set_named_property(env, entry, "elapsed_since_start_ns", ts);
     }
-    else if(format == ProfileFormat::kFormatChunk)
+    else if (format == ProfileFormat::kFormatChunk)
     {
+      napi_value ts;
+      napi_create_double(env, profile_start_timestamp + timestamps[i], &ts);
       napi_set_named_property(env, entry, "timestamp", ts);
     }
 
@@ -895,18 +900,17 @@ TranslateMeasurements(const napi_env &env, const ProfileFormat format, const cha
     napi_value value;
     napi_create_int64(env, values[i], &value);
 
-
     napi_set_named_property(env, entry, "value", value);
-    if(format == ProfileFormat::kFormatThread)
+    if (format == ProfileFormat::kFormatThread)
     {
       napi_value ts;
       napi_create_int64(env, timestamps[i], &ts);
       napi_set_named_property(env, entry, "elapsed_since_start_ns", ts);
     }
-    else if(format == ProfileFormat::kFormatChunk)
+    else if (format == ProfileFormat::kFormatChunk)
     {
       napi_value ts;
-      napi_create_double(env, timestamps[i], &ts);
+      napi_create_double(env, profile_start_timestamp + [i], &ts);
       napi_set_named_property(env, entry, "timestamp", ts);
     }
     napi_set_element(env, values_array, i, entry);
