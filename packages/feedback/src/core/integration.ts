@@ -276,11 +276,10 @@ export const buildFeedbackIntegration = ({
           return;
         }
 
-        const actor = _createActor();
         if (DOCUMENT.readyState === 'loading') {
-          DOCUMENT.addEventListener('DOMContentLoaded', actor.appendToDom);
+          DOCUMENT.addEventListener('DOMContentLoaded', () => _createActor().appendToDom);
         } else {
-          actor.appendToDom();
+          _createActor().appendToDom();
         }
       },
 
