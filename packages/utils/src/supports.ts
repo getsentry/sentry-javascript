@@ -76,12 +76,13 @@ export function supportsFetch(): boolean {
     return false;
   }
 }
+
 /**
- * isNativeFetch checks if the given function is a native implementation of fetch()
+ * isNative checks if the given function is a native implementation
  */
 // eslint-disable-next-line @typescript-eslint/ban-types
-export function isNativeFetch(func: Function): boolean {
-  return func && /^function fetch\(\)\s+\{\s+\[native code\]\s+\}$/.test(func.toString());
+export function isNativeFunction(func: Function): boolean {
+  return func && /^function\s+\w+\(\)\s+\{\s+\[native code\]\s+\}$/.test(func.toString());
 }
 
 /**
@@ -101,7 +102,7 @@ export function supportsNativeFetch(): boolean {
 
   // Fast path to avoid DOM I/O
   // eslint-disable-next-line @typescript-eslint/unbound-method
-  if (isNativeFetch(WINDOW.fetch)) {
+  if (isNativeFunction(WINDOW.fetch)) {
     return true;
   }
 
@@ -117,7 +118,7 @@ export function supportsNativeFetch(): boolean {
       doc.head.appendChild(sandbox);
       if (sandbox.contentWindow && sandbox.contentWindow.fetch) {
         // eslint-disable-next-line @typescript-eslint/unbound-method
-        result = isNativeFetch(sandbox.contentWindow.fetch);
+        result = isNativeFunction(sandbox.contentWindow.fetch);
       }
       doc.head.removeChild(sandbox);
     } catch (err) {

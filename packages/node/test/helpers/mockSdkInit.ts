@@ -3,7 +3,7 @@ import { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
 import { getClient, getCurrentScope, getGlobalScope, getIsolationScope } from '@sentry/core';
 import type { NodeClient } from '../../src';
 
-import { init } from '../../src/sdk/init';
+import { init } from '../../src/sdk';
 import type { NodeClientOptions } from '../../src/types';
 
 const PUBLIC_DSN = 'https://username@domain/123';

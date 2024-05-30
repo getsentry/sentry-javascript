@@ -1,6 +1,8 @@
 import { vi } from 'vitest';
 
-vi.useFakeTimers();
+import { useFakeTimers } from '../../utils/use-fake-timers';
+
+useFakeTimers();
 vi.setSystemTime(new Date('2023-01-01'));
 
 vi.mock('@sentry/utils', async () => ({

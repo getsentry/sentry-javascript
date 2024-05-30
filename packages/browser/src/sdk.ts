@@ -6,6 +6,7 @@ import {
   getIntegrationsToSetup,
   getReportDialogEndpoint,
   initAndBind,
+  lastEventId,
   startSession,
 } from '@sentry/core';
 import type { DsnLike, Integration, Options, UserFeedback } from '@sentry/types';
@@ -59,22 +60,32 @@ function applyDefaultOptions(optionsArg: BrowserOptions = {}): BrowserOptions {
   return { ...defaultOptions, ...optionsArg };
 }
 
+type ExtensionProperties = {
+  chrome?: Runtime;
+  browser?: Runtime;
+};
+type Runtime = {
+  runtime?: {
+    id?: string;
+  };
+};
+
 function shouldShowBrowserExtensionError(): boolean {
-  const windowWithMaybeChrome = WINDOW as typeof WINDOW & { chrome?: { runtime?: { id?: string } } };
-  const isInsideChromeExtension =
-    windowWithMaybeChrome &&
-    windowWithMaybeChrome.chrome &&
-    windowWithMaybeChrome.chrome.runtime &&
-    windowWithMaybeChrome.chrome.runtime.id;
+  const windowWithMaybeExtension = WINDOW as typeof WINDOW & ExtensionProperties;
 
-  const windowWithMaybeBrowser = WINDOW as typeof WINDOW & { browser?: { runtime?: { id?: string } } };
-  const isInsideBrowserExtension =
-    windowWithMaybeBrowser &&
-    windowWithMaybeBrowser.browser &&
-    windowWithMaybeBrowser.browser.runtime &&
-    windowWithMaybeBrowser.browser.runtime.id;
+  const extensionKey = windowWithMaybeExtension.chrome ? 'chrome' : 'browser';
+  const extensionObject = windowWithMaybeExtension[extensionKey];
 
-  return !!isInsideBrowserExtension || !!isInsideChromeExtension;
+  const runtimeId = extensionObject && extensionObject.runtime && extensionObject.runtime.id;
+  const href = (WINDOW.location && WINDOW.location.href) || '';
+
+  const extensionProtocols = ['chrome-extension:', 'moz-extension:', 'ms-browser-extension:'];
+
+  // Running the SDK in a dedicated extension page and calling Sentry.init is fine; no risk of data leakage
+  const isDedicatedExtensionPage =
+    !!runtimeId && WINDOW === WINDOW.top && extensionProtocols.some(protocol => href.startsWith(`${protocol}//`));
+
+  return !!runtimeId && !isDedicatedExtensionPage;
 }
 
 /**
@@ -168,7 +179,7 @@ export function init(browserOptions: BrowserOptions = {}): void {
 export interface ReportDialogOptions {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [key: string]: any;
-  eventId: string;
+  eventId?: string;
   dsn?: DsnLike;
   user?: {
     email?: string;
@@ -197,7 +208,7 @@ export interface ReportDialogOptions {
  *
  * @param options Everything is optional, we try to fetch all info need from the global scope.
  */
-export function showReportDialog(options: ReportDialogOptions): void {
+export function showReportDialog(options: ReportDialogOptions = {}): void {
   // doesn't work without a document (React Native)
   if (!WINDOW.document) {
     DEBUG_BUILD && logger.error('Global document not defined in showReportDialog call');
@@ -218,6 +229,13 @@ export function showReportDialog(options: ReportDialogOptions): void {
       ...scope.getUser(),
       ...options.user,
     };
+  }
+
+  if (!options.eventId) {
+    const eventId = lastEventId();
+    if (eventId) {
+      options.eventId = eventId;
+    }
   }
 
   const script = WINDOW.document.createElement('script');

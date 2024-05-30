@@ -1,4 +1,4 @@
-import { init, tryPatchHandler } from './sdk';
+import * as Sentry from './index';
 
 const lambdaTaskRoot = process.env.LAMBDA_TASK_ROOT;
 if (lambdaTaskRoot) {
@@ -7,9 +7,21 @@ if (lambdaTaskRoot) {
     throw Error(`LAMBDA_TASK_ROOT is non-empty(${lambdaTaskRoot}) but _HANDLER is not set`);
   }
 
-  init();
+  Sentry.init({
+    // We want to load the performance integrations here, if the tracesSampleRate is set for the layer in env vars
+    // Sentry node's `getDefaultIntegrations` will load them if tracing is enabled,
+    // which is the case if `tracesSampleRate` is set.
+    // We can safely add all the node default integrations
+    integrations: Sentry.getDefaultIntegrations(
+      process.env.SENTRY_TRACES_SAMPLE_RATE
+        ? {
+            tracesSampleRate: parseFloat(process.env.SENTRY_TRACES_SAMPLE_RATE),
+          }
+        : {},
+    ),
+  });
 
-  tryPatchHandler(lambdaTaskRoot, handlerString);
+  Sentry.tryPatchHandler(lambdaTaskRoot, handlerString);
 } else {
   throw Error('LAMBDA_TASK_ROOT environment variable is not set');
 }

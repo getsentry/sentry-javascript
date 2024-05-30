@@ -1,22 +1,12 @@
-import type {
-  Client,
-  MeasurementUnit,
-  MetricsAggregator as MetricsAggregatorInterface,
-  Primitive,
-} from '@sentry/types';
-import { getGlobalSingleton, logger } from '@sentry/utils';
+import type { Client, DurationUnit, MetricData, MetricsAggregator as MetricsAggregatorInterface } from '@sentry/types';
+import { getGlobalSingleton, logger, timestampInSeconds } from '@sentry/utils';
 import { getClient } from '../currentScopes';
 import { DEBUG_BUILD } from '../debug-build';
+import { startSpanManual } from '../tracing';
+import { handleCallbackErrors } from '../utils/handleCallbackErrors';
 import { getActiveSpan, getRootSpan, spanToJSON } from '../utils/spanUtils';
 import { COUNTER_METRIC_TYPE, DISTRIBUTION_METRIC_TYPE, GAUGE_METRIC_TYPE, SET_METRIC_TYPE } from './constants';
 import type { MetricType } from './types';
-
-export interface MetricData {
-  unit?: MeasurementUnit;
-  tags?: Record<string, Primitive>;
-  timestamp?: number;
-  client?: Client;
-}
 
 type MetricsAggregatorConstructor = {
   new (client: Client): MetricsAggregatorInterface;
@@ -64,6 +54,7 @@ function addToMetricsAggregator(
 
   const span = getActiveSpan();
   const rootSpan = span ? getRootSpan(span) : undefined;
+  const transactionName = rootSpan && spanToJSON(rootSpan).description;
 
   const { unit, tags, timestamp } = data;
   const { release, environment } = client.getOptions();
@@ -74,8 +65,8 @@ function addToMetricsAggregator(
   if (environment) {
     metricTags.environment = environment;
   }
-  if (rootSpan) {
-    metricTags.transaction = spanToJSON(rootSpan).description || '';
+  if (transactionName) {
+    metricTags.transaction = transactionName;
   }
 
   DEBUG_BUILD && logger.log(`Adding value of ${value} to ${metricType} metric ${name}`);
@@ -90,7 +81,7 @@ function addToMetricsAggregator(
  * @experimental This API is experimental and might have breaking changes in the future.
  */
 function increment(aggregator: MetricsAggregatorConstructor, name: string, value: number = 1, data?: MetricData): void {
-  addToMetricsAggregator(aggregator, COUNTER_METRIC_TYPE, name, value, data);
+  addToMetricsAggregator(aggregator, COUNTER_METRIC_TYPE, name, ensureNumber(value), data);
 }
 
 /**
@@ -99,7 +90,55 @@ function increment(aggregator: MetricsAggregatorConstructor, name: string, value
  * @experimental This API is experimental and might have breaking changes in the future.
  */
 function distribution(aggregator: MetricsAggregatorConstructor, name: string, value: number, data?: MetricData): void {
-  addToMetricsAggregator(aggregator, DISTRIBUTION_METRIC_TYPE, name, value, data);
+  addToMetricsAggregator(aggregator, DISTRIBUTION_METRIC_TYPE, name, ensureNumber(value), data);
+}
+
+/**
+ * Adds a timing metric.
+ * The metric is added as a distribution metric.
+ *
+ * You can either directly capture a numeric `value`, or wrap a callback function in `timing`.
+ * In the latter case, the duration of the callback execution will be captured as a span & a metric.
+ *
+ * @experimental This API is experimental and might have breaking changes in the future.
+ */
+function timing<T = void>(
+  aggregator: MetricsAggregatorConstructor,
+  name: string,
+  value: number | (() => T),
+  unit: DurationUnit = 'second',
+  data?: Omit<MetricData, 'unit'>,
+): T | void {
+  // callback form
+  if (typeof value === 'function') {
+    const startTime = timestampInSeconds();
+
+    return startSpanManual(
+      {
+        op: 'metrics.timing',
+        name,
+        startTime,
+        onlyIfParent: true,
+      },
+      span => {
+        return handleCallbackErrors(
+          () => value(),
+          () => {
+            // no special error handling necessary
+          },
+          () => {
+            const endTime = timestampInSeconds();
+            const timeDiff = endTime - startTime;
+            distribution(aggregator, name, timeDiff, { ...data, unit: 'second' });
+            span.end(endTime);
+          },
+        );
+      },
+    );
+  }
+
+  // value form
+  distribution(aggregator, name, value, { ...data, unit });
 }
 
 /**
@@ -117,7 +156,7 @@ function set(aggregator: MetricsAggregatorConstructor, name: string, value: numb
  * @experimental This API is experimental and might have breaking changes in the future.
  */
 function gauge(aggregator: MetricsAggregatorConstructor, name: string, value: number, data?: MetricData): void {
-  addToMetricsAggregator(aggregator, GAUGE_METRIC_TYPE, name, value, data);
+  addToMetricsAggregator(aggregator, GAUGE_METRIC_TYPE, name, ensureNumber(value), data);
 }
 
 export const metrics = {
@@ -125,8 +164,14 @@ export const metrics = {
   distribution,
   set,
   gauge,
+  timing,
   /**
    * @ignore This is for internal use only.
    */
   getMetricsAggregatorForClient,
 };
+
+// Although this is typed to be a number, we try to handle strings as well here
+function ensureNumber(number: number | string): number {
+  return typeof number === 'string' ? parseInt(number) : number;
+}

@@ -121,11 +121,10 @@ export type { Stacktrace, StackParser, StackLineParser, StackLineParserFn } from
 export type { PropagationContext, TracePropagationTargets } from './tracing';
 export type { StartSpanOptions } from './startSpanOptions';
 export type {
-  CustomSamplingContext,
-  SamplingContext,
   TraceparentData,
   TransactionSource,
 } from './transaction';
+export type { CustomSamplingContext, SamplingContext } from './samplingcontext';
 export type {
   DurationUnit,
   InformationUnit,
@@ -165,6 +164,8 @@ export type {
   MetricsAggregator,
   MetricBucketItem,
   MetricInstance,
+  MetricData,
+  Metrics,
 } from './metrics';
 export type { ParameterizedString } from './parameterize';
 export type { ViewHierarchyData, ViewHierarchyWindow } from './view-hierarchy';

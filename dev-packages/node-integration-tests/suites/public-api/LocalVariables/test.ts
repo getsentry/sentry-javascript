@@ -76,6 +76,12 @@ conditionalTest({ min: 18 })('LocalVariables integration', () => {
       .start(done);
   });
 
+  conditionalTest({ min: 19 })('Node v19+', () => {
+    test('Should not import inspector when not in use', done => {
+      createRunner(__dirname, 'deny-inspector.mjs').ensureNoErrorOutput().ignore('session').start(done);
+    });
+  });
+
   test('Includes local variables for caught exceptions when enabled', done => {
     createRunner(__dirname, 'local-variables-caught.js')
       .ignore('session')

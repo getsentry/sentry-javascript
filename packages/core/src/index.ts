@@ -15,6 +15,7 @@ export {
   captureException,
   captureEvent,
   captureMessage,
+  lastEventId,
   close,
   flush,
   setContext,
@@ -24,6 +25,7 @@ export {
   setTags,
   setUser,
   isInitialized,
+  isEnabled,
   startSession,
   endSession,
   captureSession,
@@ -36,9 +38,11 @@ export {
   withScope,
   withIsolationScope,
   getClient,
+} from './currentScopes';
+export {
   getDefaultCurrentScope,
   getDefaultIsolationScope,
-} from './currentScopes';
+} from './defaultScopes';
 export { setAsyncContextStrategy } from './asyncContext';
 export { getMainCarrier } from './carrier';
 export { makeSession, closeSession, updateSession } from './session';
@@ -52,7 +56,6 @@ export { initAndBind, setCurrentClient } from './sdk';
 export { createTransport } from './transports/base';
 export { makeOfflineTransport } from './transports/offline';
 export { makeMultiplexedTransport } from './transports/multiplexed';
-export { SDK_VERSION } from './version';
 export {
   getIntegrationsToSetup,
   addIntegration,
@@ -67,7 +70,6 @@ export { handleCallbackErrors } from './utils/handleCallbackErrors';
 export { parameterize } from './utils/parameterize';
 export {
   spanToTraceHeader,
-  spanToBaggageHeader,
   spanToJSON,
   spanIsSampled,
   spanToTraceContext,
@@ -94,7 +96,7 @@ export { rewriteFramesIntegration } from './integrations/rewriteframes';
 export { sessionTimingIntegration } from './integrations/sessiontiming';
 export { zodErrorsIntegration } from './integrations/zoderrors';
 export { metrics } from './metrics/exports';
-export type { MetricData } from './metrics/exports';
+export type { MetricData } from '@sentry/types';
 export { metricsDefault } from './metrics/exports-default';
 export { BrowserMetricsAggregator } from './metrics/browser-aggregator';
 export { getMetricSummaryJsonForSpan } from './metrics/metric-summary';
@@ -104,3 +106,5 @@ export { captureFeedback } from './feedback';
 
 // eslint-disable-next-line deprecation/deprecation
 export { getCurrentHubShim, getCurrentHub } from './getCurrentHubShim';
+
+export { SDK_VERSION } from '@sentry/utils';

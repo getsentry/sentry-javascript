@@ -129,15 +129,17 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
     const latestSpanEndTimestamp = childEndTimestamps.length ? Math.max(...childEndTimestamps) : undefined;
 
     const spanEndTimestamp = spanTimeInputToSeconds(timestamp);
+    // In reality this should always exist here, but type-wise it may be undefined...
     const spanStartTimestamp = spanToJSON(span).start_timestamp;
 
     // The final endTimestamp should:
     // * Never be before the span start timestamp
     // * Be the latestSpanEndTimestamp, if there is one, and it is smaller than the passed span end timestamp
     // * Otherwise be the passed end timestamp
-    const endTimestamp = Math.max(
-      spanStartTimestamp || -Infinity,
-      Math.min(spanEndTimestamp, latestSpanEndTimestamp || Infinity),
+    // Final timestamp can never be after finalTimeout
+    const endTimestamp = Math.min(
+      spanStartTimestamp ? spanStartTimestamp + finalTimeout / 1000 : Infinity,
+      Math.max(spanStartTimestamp || -Infinity, Math.min(spanEndTimestamp, latestSpanEndTimestamp || Infinity)),
     );
 
     span.end(endTimestamp);
@@ -240,7 +242,7 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
     }
 
     const attributes: SpanAttributes = spanJSON.data || {};
-    if (spanJSON.op === 'ui.action.click' && !attributes[SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON]) {
+    if (!attributes[SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON]) {
       span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON, _finishReason);
     }
 
@@ -248,6 +250,7 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
 
     const childSpans = getSpanDescendants(span).filter(child => child !== span);
 
+    let discardedSpans = 0;
     childSpans.forEach(childSpan => {
       // We cancel all pending spans with status "cancelled" to indicate the idle span was finished early
       if (childSpan.isRecording()) {
@@ -277,8 +280,13 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
 
       if (!spanEndedBeforeFinalTimeout || !spanStartedBeforeIdleSpanEnd) {
         removeChildSpanFromSpan(span, childSpan);
+        discardedSpans++;
       }
     });
+
+    if (discardedSpans > 0) {
+      span.setAttribute('sentry.idle_span_discarded_spans', discardedSpans);
+    }
   }
 
   client.on('spanStart', startedSpan => {

@@ -1,11 +1,5 @@
 import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/event-proxy-server';
-import axios, { AxiosError } from 'axios';
-
-const authToken = process.env.E2E_TEST_AUTH_TOKEN;
-const sentryTestOrgSlug = process.env.E2E_TEST_SENTRY_ORG_SLUG;
-const sentryTestProject = process.env.E2E_TEST_SENTRY_TEST_PROJECT;
-const EVENT_POLLING_TIMEOUT = 90_000;
 
 test('Sends an API route transaction', async ({ baseURL }) => {
   const pageloadTransactionEventPromise = waitForTransaction('node-koa', transactionEvent => {
@@ -15,10 +9,9 @@ test('Sends an API route transaction', async ({ baseURL }) => {
     );
   });
 
-  await axios.get(`${baseURL}/test-transaction`);
+  await fetch(`${baseURL}/test-transaction`);
 
   const transactionEvent = await pageloadTransactionEventPromise;
-  const transactionEventId = transactionEvent.event_id;
 
   expect(transactionEvent.contexts?.trace).toEqual({
     data: {
@@ -35,7 +28,7 @@ test('Sends an API route transaction', async ({ baseURL }) => {
       'http.method': 'GET',
       'http.scheme': 'http',
       'http.target': '/test-transaction',
-      'http.user_agent': 'axios/1.6.7',
+      'http.user_agent': 'node',
       'http.flavor': '1.1',
       'net.transport': 'ip_tcp',
       'net.host.ip': expect.any(String),
@@ -61,10 +54,12 @@ test('Sends an API route transaction', async ({ baseURL }) => {
             'koa.name': '',
             'koa.type': 'middleware',
             'otel.kind': 'INTERNAL',
-            'sentry.origin': 'manual',
+            'sentry.origin': 'auto.http.otel.koa',
+            'sentry.op': 'middleware.koa',
           },
-          origin: 'manual',
-          description: 'middleware - ',
+          op: 'middleware.koa',
+          origin: 'auto.http.otel.koa',
+          description: '< unknown >',
           parent_span_id: expect.any(String),
           span_id: expect.any(String),
           start_timestamp: expect.any(Number),
@@ -78,16 +73,18 @@ test('Sends an API route transaction', async ({ baseURL }) => {
             'koa.name': '/test-transaction',
             'koa.type': 'router',
             'otel.kind': 'INTERNAL',
-            'sentry.origin': 'manual',
+            'sentry.origin': 'auto.http.otel.koa',
+            'sentry.op': 'router.koa',
           },
-          description: 'router - /test-transaction',
+          op: 'router.koa',
+          description: '/test-transaction',
           parent_span_id: expect.any(String),
           span_id: expect.any(String),
           start_timestamp: expect.any(Number),
           status: 'ok',
           timestamp: expect.any(Number),
           trace_id: expect.any(String),
-          origin: 'manual',
+          origin: 'auto.http.otel.koa',
         },
         {
           data: {
@@ -125,32 +122,4 @@ test('Sends an API route transaction', async ({ baseURL }) => {
       },
     }),
   );
-
-  await expect
-    .poll(
-      async () => {
-        try {
-          const response = await axios.get(
-            `https://sentry.io/api/0/projects/${sentryTestOrgSlug}/${sentryTestProject}/events/${transactionEventId}/`,
-            { headers: { Authorization: `Bearer ${authToken}` } },
-          );
-
-          return response.status;
-        } catch (e) {
-          if (e instanceof AxiosError && e.response) {
-            if (e.response.status !== 404) {
-              throw e;
-            } else {
-              return e.response.status;
-            }
-          } else {
-            throw e;
-          }
-        }
-      },
-      {
-        timeout: EVENT_POLLING_TIMEOUT,
-      },
-    )
-    .toBe(200);
 });

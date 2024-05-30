@@ -1,3 +1,7 @@
+// Import this first
+import './instrument';
+
+// Import other modules
 import { BaseExceptionFilter, HttpAdapterHost, NestFactory } from '@nestjs/core';
 import * as Sentry from '@sentry/node';
 import { AppModule1, AppModule2 } from './app.module';
@@ -6,14 +10,6 @@ const app1Port = 3030;
 const app2Port = 3040;
 
 async function bootstrap() {
-  Sentry.init({
-    environment: 'qa', // dynamic sampling bias to keep transactions
-    dsn: process.env.E2E_TEST_DSN,
-    tunnel: `http://localhost:3031/`, // proxy server
-    tracesSampleRate: 1,
-    tracePropagationTargets: ['http://localhost:3030', '/external-allowed'],
-  });
-
   const app1 = await NestFactory.create(AppModule1);
 
   const { httpAdapter } = app1.get(HttpAdapterHost);

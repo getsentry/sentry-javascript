@@ -1,7 +1,15 @@
 import type { Client, Envelope, ErrorEvent, Event, TransactionEvent } from '@sentry/types';
 import { SentryError, SyncPromise, dsnToString, logger } from '@sentry/utils';
 
-import { Scope, addBreadcrumb, getCurrentScope, getIsolationScope, makeSession, setCurrentClient } from '../../src';
+import {
+  Scope,
+  addBreadcrumb,
+  getCurrentScope,
+  getIsolationScope,
+  lastEventId,
+  makeSession,
+  setCurrentClient,
+} from '../../src';
 import * as integrationModule from '../../src/integration';
 import { TestClient, getDefaultTestClientOptions } from '../mocks/client';
 import { AdHocIntegration, TestIntegration } from '../mocks/integration';
@@ -226,7 +234,6 @@ describe('BaseClient', () => {
       const client = new TestClient(options);
 
       client.captureException(new Error('test exception'));
-
       expect(TestClient.instance!.event).toEqual(
         expect.objectContaining({
           environment: 'production',
@@ -242,6 +249,14 @@ describe('BaseClient', () => {
           timestamp: 2020,
         }),
       );
+    });
+
+    test('sets the correct lastEventId', () => {
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
+      const client = new TestClient(options);
+
+      const eventId = client.captureException(new Error('test exception'));
+      expect(eventId).toEqual(lastEventId());
     });
 
     test('allows for providing explicit scope', () => {
@@ -343,6 +358,14 @@ describe('BaseClient', () => {
       );
     });
 
+    test('sets the correct lastEventId', () => {
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
+      const client = new TestClient(options);
+
+      const eventId = client.captureMessage('test message');
+      expect(eventId).toEqual(lastEventId());
+    });
+
     test('should call `eventFromException` if input to `captureMessage` is not a primitive', () => {
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
       const client = new TestClient(options);
@@ -442,6 +465,14 @@ describe('BaseClient', () => {
           timestamp: 2020,
         }),
       );
+    });
+
+    test('sets the correct lastEventId', () => {
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
+      const client = new TestClient(options);
+
+      const eventId = client.captureEvent({ message: 'message' }, undefined);
+      expect(eventId).toEqual(lastEventId());
     });
 
     test('does not overwrite existing timestamp', () => {
@@ -947,6 +978,38 @@ describe('BaseClient', () => {
       expect(TestClient.instance!.event!.transaction).toBe('/dogs/are/great');
     });
 
+    test('calls `beforeSendSpan` and uses original spans without any changes', () => {
+      expect.assertions(2);
+
+      const beforeSendSpan = jest.fn(span => span);
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSendSpan });
+      const client = new TestClient(options);
+
+      const transaction: Event = {
+        transaction: '/cats/are/great',
+        type: 'transaction',
+        spans: [
+          {
+            description: 'first span',
+            span_id: '9e15bf99fbe4bc80',
+            start_timestamp: 1591603196.637835,
+            trace_id: '86f39e84263a4de99c326acab3bfe3bd',
+          },
+          {
+            description: 'second span',
+            span_id: 'aa554c1f506b0783',
+            start_timestamp: 1591603196.637835,
+            trace_id: '86f39e84263a4de99c326acab3bfe3bd',
+          },
+        ],
+      };
+      client.captureEvent(transaction);
+
+      expect(beforeSendSpan).toHaveBeenCalledTimes(2);
+      const capturedEvent = TestClient.instance!.event!;
+      expect(capturedEvent.spans).toEqual(transaction.spans);
+    });
+
     test('calls `beforeSend` and uses the modified event', () => {
       expect.assertions(2);
 
@@ -977,6 +1040,45 @@ describe('BaseClient', () => {
 
       expect(beforeSendTransaction).toHaveBeenCalled();
       expect(TestClient.instance!.event!.transaction).toBe('/adopt/dont/shop');
+    });
+
+    test('calls `beforeSendSpan` and uses the modified spans', () => {
+      expect.assertions(3);
+
+      const beforeSendSpan = jest.fn(span => {
+        span.data = { version: 'bravo' };
+        return span;
+      });
+
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSendSpan });
+      const client = new TestClient(options);
+      const transaction: Event = {
+        transaction: '/cats/are/great',
+        type: 'transaction',
+        spans: [
+          {
+            description: 'first span',
+            span_id: '9e15bf99fbe4bc80',
+            start_timestamp: 1591603196.637835,
+            trace_id: '86f39e84263a4de99c326acab3bfe3bd',
+          },
+          {
+            description: 'second span',
+            span_id: 'aa554c1f506b0783',
+            start_timestamp: 1591603196.637835,
+            trace_id: '86f39e84263a4de99c326acab3bfe3bd',
+          },
+        ],
+      };
+
+      client.captureEvent(transaction);
+
+      expect(beforeSendSpan).toHaveBeenCalledTimes(2);
+      const capturedEvent = TestClient.instance!.event!;
+      for (const [idx, span] of capturedEvent.spans!.entries()) {
+        const originalSpan = transaction.spans![idx];
+        expect(span).toEqual({ ...originalSpan, data: { version: 'bravo' } });
+      }
     });
 
     test('calls `beforeSend` and discards the event', () => {
@@ -1015,6 +1117,38 @@ describe('BaseClient', () => {
       // error, but because `beforeSendTransaction` returned `null`
       expect(captureExceptionSpy).not.toBeCalled();
       expect(loggerWarnSpy).toBeCalledWith('before send for type `transaction` returned `null`, will not send event.');
+    });
+
+    test('calls `beforeSendSpan` and discards the span', () => {
+      expect.assertions(2);
+
+      const beforeSendSpan = jest.fn(() => null);
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSendSpan });
+      const client = new TestClient(options);
+
+      const transaction: Event = {
+        transaction: '/cats/are/great',
+        type: 'transaction',
+        spans: [
+          {
+            description: 'first span',
+            span_id: '9e15bf99fbe4bc80',
+            start_timestamp: 1591603196.637835,
+            trace_id: '86f39e84263a4de99c326acab3bfe3bd',
+          },
+          {
+            description: 'second span',
+            span_id: 'aa554c1f506b0783',
+            start_timestamp: 1591603196.637835,
+            trace_id: '86f39e84263a4de99c326acab3bfe3bd',
+          },
+        ],
+      };
+      client.captureEvent(transaction);
+
+      expect(beforeSendSpan).toHaveBeenCalledTimes(2);
+      const capturedEvent = TestClient.instance!.event!;
+      expect(capturedEvent.spans).toHaveLength(0);
     });
 
     test('calls `beforeSend` and logs info about invalid return value', () => {

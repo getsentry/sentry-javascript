@@ -1,3 +1,4 @@
+import { setTimeout } from '@sentry-internal/browser-utils';
 import type { ErrorEvent, Event, TransactionEvent, TransportMakeRequestResponse } from '@sentry/types';
 
 import type { ReplayContainer } from '../types';

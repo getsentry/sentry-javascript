@@ -18,8 +18,8 @@ const redis = new Redis({ port: 6379 });
 async function run() {
   await Sentry.startSpan(
     {
-      name: 'Test Transaction',
-      op: 'transaction',
+      name: 'Test Span',
+      op: 'test-span',
     },
     async () => {
       try {

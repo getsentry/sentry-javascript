@@ -1,3 +1,6 @@
+const builtinModules = require('module').builtinModules;
+const nodePrefixedBuiltinModules = builtinModules.map(m => `node:${m}`);
+
 module.exports = [
   // Browser SDK (ESM)
   {
@@ -55,6 +58,20 @@ module.exports = [
     limit: '87 KB',
   },
   {
+    name: '@sentry/browser (incl. Tracing, Replay, Feedback, metrics)',
+    path: 'packages/browser/build/npm/esm/index.js',
+    import: createImport('init', 'browserTracingIntegration', 'replayIntegration', 'feedbackIntegration', 'metrics'),
+    gzip: true,
+    limit: '100 KB',
+  },
+  {
+    name: '@sentry/browser (incl. metrics)',
+    path: 'packages/browser/build/npm/esm/index.js',
+    import: createImport('init', 'metrics'),
+    gzip: true,
+    limit: '40 KB',
+  },
+  {
     name: '@sentry/browser (incl. Feedback)',
     path: 'packages/browser/build/npm/esm/index.js',
     import: createImport('init', 'feedbackIntegration'),
@@ -80,6 +97,7 @@ module.exports = [
     name: '@sentry/react',
     path: 'packages/react/build/esm/index.js',
     import: createImport('init', 'ErrorBoundary'),
+    ignore: ['react/jsx-runtime'],
     gzip: true,
     limit: '27 KB',
   },
@@ -87,6 +105,7 @@ module.exports = [
     name: '@sentry/react (incl. Tracing)',
     path: 'packages/react/build/esm/index.js',
     import: createImport('init', 'ErrorBoundary', 'reactRouterV6BrowserTracingIntegration'),
+    ignore: ['react/jsx-runtime'],
     gzip: true,
     limit: '37 KB',
   },
@@ -130,7 +149,7 @@ module.exports = [
     name: 'CDN Bundle (incl. Tracing, Replay)',
     path: createCDNPath('bundle.tracing.replay.min.js'),
     gzip: true,
-    limit: '70 KB',
+    limit: '72 KB',
   },
   {
     name: 'CDN Bundle (incl. Tracing, Replay, Feedback)',
@@ -151,7 +170,7 @@ module.exports = [
     path: createCDNPath('bundle.tracing.min.js'),
     gzip: false,
     brotli: false,
-    limit: '105 KB',
+    limit: '110 KB',
   },
   {
     name: 'CDN Bundle (incl. Tracing, Replay) - uncompressed',
@@ -190,26 +209,18 @@ module.exports = [
     name: '@sentry/node',
     path: 'packages/node/build/esm/index.js',
     import: createImport('init'),
-    ignore: [
-      'node:http',
-      'node:https',
-      'node:diagnostics_channel',
-      'async_hooks',
-      'child_process',
-      'fs',
-      'os',
-      'path',
-      'inspector',
-      'worker_threads',
-      'http',
-      'stream',
-      'zlib',
-      'net',
-      'tls',
-      'module',
-    ],
+    ignore: [...builtinModules, ...nodePrefixedBuiltinModules],
     gzip: true,
     limit: '180 KB',
+  },
+  // AWS SDK (ESM)
+  {
+    name: '@sentry/aws-serverless',
+    path: 'packages/aws-serverless/build/npm/esm/index.js',
+    import: createImport('init'),
+    ignore: [...builtinModules, ...nodePrefixedBuiltinModules],
+    gzip: true,
+    limit: '140 KB',
   },
 ];
 

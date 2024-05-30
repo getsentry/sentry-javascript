@@ -1,7 +1,5 @@
 import { GLOBAL_OBJ } from '@sentry/utils';
 
-export { DEFAULT_THEME } from './theme';
-
 // exporting a separate copy of `WINDOW` rather than exporting the one from `@sentry/browser`
 // prevents the browser package from being bundled in the CDN bundle, and avoids a
 // circular dependency between the browser and feedback packages
@@ -29,5 +27,3 @@ export const FEEDBACK_WIDGET_SOURCE = 'widget';
 export const FEEDBACK_API_SOURCE = 'api';
 
 export const SUCCESS_MESSAGE_TIMEOUT = 5000;
-
-export const CROP_COLOR = '#ffffff';

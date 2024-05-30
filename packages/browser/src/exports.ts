@@ -28,6 +28,7 @@ export {
   captureMessage,
   close,
   createTransport,
+  lastEventId,
   flush,
   // eslint-disable-next-line deprecation/deprecation
   getCurrentHub,
@@ -66,8 +67,6 @@ export {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
 } from '@sentry/core';
-
-export * from './metrics';
 
 export { WINDOW } from './helpers';
 export { BrowserClient } from './client';
