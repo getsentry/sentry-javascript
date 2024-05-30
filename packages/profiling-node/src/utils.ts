@@ -22,7 +22,7 @@ import { env, versions } from 'process';
 import { isMainThread, threadId } from 'worker_threads';
 
 import type { ProfileChunkItem } from '@sentry/types/build/types/envelope';
-import { ContinuousThreadCpuProfile } from '../../types/src/profiling';
+import type { ContinuousThreadCpuProfile } from '../../types/src/profiling';
 import { DEBUG_BUILD } from './debug-build';
 import type { RawChunkCpuProfile, RawThreadCpuProfile } from './types';
 
