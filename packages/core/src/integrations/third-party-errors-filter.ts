@@ -62,7 +62,7 @@ export const thirdPartyErrorFilterIntegration = defineIntegration((options: Opti
             ? 'some'
             : 'every';
 
-        const behaviourApplies = frameKeys[arrayMethod](key => !options.filterKeys.includes(key));
+        const behaviourApplies = frameKeys[arrayMethod](keys => !keys.some(key => options.filterKeys.includes(key)));
 
         if (behaviourApplies) {
           const shouldDrop =
@@ -84,7 +84,7 @@ export const thirdPartyErrorFilterIntegration = defineIntegration((options: Opti
   };
 });
 
-function getBundleKeysForAllFramesWithFilenames(event: Event): string[] | undefined {
+function getBundleKeysForAllFramesWithFilenames(event: Event): string[][] | undefined {
   const frames = getFramesFromEvent(event);
 
   if (!frames) {
@@ -95,7 +95,15 @@ function getBundleKeysForAllFramesWithFilenames(event: Event): string[] | undefi
     frames
       // Exclude frames without a filename since these are likely native code or built-ins
       .filter(frame => !!frame.filename)
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      .map(frame => (frame.module_metadata ? frame.module_metadata.bundle_key || '' : ''))
+      .map(frame => {
+        if (frame.module_metadata) {
+          return Object.keys(frame.module_metadata)
+            .filter(key => key.startsWith(BUNDLER_PLUGIN_APP_KEY_PREFIX))
+            .map(key => key.slice(BUNDLER_PLUGIN_APP_KEY_PREFIX.length));
+        }
+        return [];
+      })
   );
 }
+
+const BUNDLER_PLUGIN_APP_KEY_PREFIX = '_sentryBundlerPluginAppKey:';

@@ -99,7 +99,10 @@ const MOCK_CLIENT = {
 describe('ThirdPartyErrorFilter', () => {
   beforeEach(() => {
     GLOBAL_OBJ._sentryModuleMetadata = GLOBAL_OBJ._sentryModuleMetadata || {};
-    GLOBAL_OBJ._sentryModuleMetadata[stack] = { bundle_key: 'some-key' };
+    GLOBAL_OBJ._sentryModuleMetadata[stack] = {
+      '_sentryBundlerPluginAppKey:some-key': true,
+      '_sentryBundlerPluginAppKey:some-other-key': true,
+    };
   });
 
   describe('drop-error-if-contains-third-party-frames', () => {
