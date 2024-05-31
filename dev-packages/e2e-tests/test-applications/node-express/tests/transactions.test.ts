@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '@sentry-internal/event-proxy-server';
+import { waitForTransaction } from '@sentry-internal/test-utils';
 
 test('Sends an API route transaction', async ({ baseURL }) => {
   const pageloadTransactionEventPromise = waitForTransaction('node-express', transactionEvent => {

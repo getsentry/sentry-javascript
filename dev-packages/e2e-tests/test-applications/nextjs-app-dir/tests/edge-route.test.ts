@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { waitForError, waitForTransaction } from '@sentry-internal/event-proxy-server';
+import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
 
 test('Should create a transaction for edge routes', async ({ request }) => {
   const edgerouteTransactionPromise = waitForTransaction('nextjs-13-app-dir', async transactionEvent => {

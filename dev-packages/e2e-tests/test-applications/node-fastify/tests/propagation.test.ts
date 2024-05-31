@@ -1,6 +1,6 @@
 import crypto from 'crypto';
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '@sentry-internal/event-proxy-server';
+import { waitForTransaction } from '@sentry-internal/test-utils';
 import { SpanJSON } from '@sentry/types';
 
 test('Propagates trace for outgoing http requests', async ({ baseURL }) => {

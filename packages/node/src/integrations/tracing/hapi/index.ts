@@ -15,7 +15,7 @@ import { logger } from '@sentry/utils';
 import { DEBUG_BUILD } from '../../../debug-build';
 import { generateInstrumentOnce } from '../../../otel/instrument';
 import { ensureIsWrapped } from '../../../utils/ensureIsWrapped';
-import type { Boom, RequestEvent, ResponseObject, Server } from './types';
+import type { RequestEvent, Server } from './types';
 
 const INTEGRATION_NAME = 'Hapi';
 
@@ -37,10 +37,6 @@ const _hapiIntegration = (() => {
  * If you also want to capture errors, you need to call `setupHapiErrorHandler(server)` after you set up your server.
  */
 export const hapiIntegration = defineIntegration(_hapiIntegration);
-
-function isBoomObject(response: ResponseObject | Boom): response is Boom {
-  return response && (response as Boom).isBoom !== undefined;
-}
 
 function isErrorEvent(event: RequestEvent): event is RequestEvent {
   return event && (event as RequestEvent).error !== undefined;
@@ -76,9 +72,7 @@ export const hapiErrorPlugin = {
           logger.warn('Isolation scope is still the default isolation scope - skipping setting transactionName');
       }
 
-      if (request.response && isBoomObject(request.response)) {
-        sendErrorToSentry(request.response);
-      } else if (isErrorEvent(event)) {
+      if (isErrorEvent(event)) {
         sendErrorToSentry(event.error);
       }
     });

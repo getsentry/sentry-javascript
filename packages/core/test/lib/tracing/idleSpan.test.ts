@@ -122,9 +122,9 @@ describe('startIdleSpan', () => {
       span.setAttribute('foo', 'bar');
       // Try adding a child here - we do this in browser tracing...
       const inner = startInactiveSpan({ name: 'from beforeSpanEnd', startTime: baseTimeInSeconds });
-      inner?.end(baseTimeInSeconds);
+      inner.end(baseTimeInSeconds + 1);
     });
-    const idleSpan = startIdleSpan({ name: 'idle span 2', startTime: baseTimeInSeconds }, { beforeSpanEnd });
+    const idleSpan = startIdleSpan({ name: 'idle span', startTime: baseTimeInSeconds }, { beforeSpanEnd });
     expect(idleSpan).toBeDefined();
 
     expect(beforeSpanEnd).not.toHaveBeenCalled();
@@ -140,6 +140,10 @@ describe('startIdleSpan', () => {
 
     expect(beforeSendTransaction).toHaveBeenCalledTimes(1);
     const transaction = transactions[0];
+
+    expect(transaction.start_timestamp).toBe(baseTimeInSeconds);
+    // It considers the end time of the span we added in beforeSpanEnd
+    expect(transaction.timestamp).toBe(baseTimeInSeconds + 1);
 
     expect(transaction.contexts?.trace?.data).toEqual(
       expect.objectContaining({
@@ -178,9 +182,9 @@ describe('startIdleSpan', () => {
     });
 
     // discardedSpan - startTimestamp is too large
-    const discardedSpan = startInactiveSpan({ name: 'discarded span', startTime: baseTimeInSeconds + 99 });
+    const discardedSpan = startInactiveSpan({ name: 'discarded span 1', startTime: baseTimeInSeconds + 99 });
     // discardedSpan2 - endTime is too large
-    const discardedSpan2 = startInactiveSpan({ name: 'discarded span', startTime: baseTimeInSeconds + 3 });
+    const discardedSpan2 = startInactiveSpan({ name: 'discarded span 2', startTime: baseTimeInSeconds + 3 });
     discardedSpan2.end(baseTimeInSeconds + 99)!;
 
     // Should be cancelled - will not finish
