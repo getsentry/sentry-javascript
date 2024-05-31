@@ -9,7 +9,6 @@ import type {
   EventHint,
   Options,
   ParameterizedString,
-  RemoteConfigStorage,
   SeverityLevel,
   UserFeedback,
 } from '@sentry/types';
@@ -118,24 +117,6 @@ export class BrowserClient extends BaseClient<BrowserClientOptions> {
   protected _prepareEvent(event: Event, hint: EventHint, scope?: Scope): PromiseLike<Event | null> {
     event.platform = event.platform || 'javascript';
     return super._prepareEvent(event, hint, scope);
-  }
-
-  /**
-   * @inheritdoc
-   */
-  protected _createRemoteStorage(): RemoteConfigStorage {
-    function getKey(key: string): string {
-      return `_sentryRC:${key}`;
-    }
-
-    return {
-      get(key: string) {
-        return localStorage.getItem(getKey(key));
-      },
-      set(key: string, value: string) {
-        return localStorage.setItem(getKey(key), value);
-      },
-    };
   }
 
   /**
