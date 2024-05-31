@@ -10,7 +10,7 @@ test('Captures a pageload transaction', async ({ page }) => {
 
   const transactionEvent = await transactionEventPromise;
   expect(transactionEvent.contexts?.trace).toEqual({
-    data: expect.objectContaining({
+    data: {
       deviceMemory: expect.any(String),
       effectiveConnectionType: expect.any(String),
       hardwareConcurrency: expect.any(String),
@@ -19,7 +19,7 @@ test('Captures a pageload transaction', async ({ page }) => {
       'sentry.origin': 'auto.pageload.react.reactrouter_v6',
       'sentry.sample_rate': 1,
       'sentry.source': 'route',
-    }),
+    },
     op: 'pageload',
     span_id: expect.any(String),
     trace_id: expect.any(String),
