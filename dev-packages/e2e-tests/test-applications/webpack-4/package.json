@@ -9,7 +9,6 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.44.1",
-    "@sentry-internal/test-utils": "link:../../../test-utils",
     "@sentry/browser": "latest || *",
     "webpack": "^4.47.0",
     "terser-webpack-plugin": "^4.2.3",

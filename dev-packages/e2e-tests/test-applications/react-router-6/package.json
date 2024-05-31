@@ -42,7 +42,6 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.44.1",
-    "@sentry-internal/test-utils": "link:../../../test-utils",
     "serve": "14.0.1"
   },
   "volta": {
