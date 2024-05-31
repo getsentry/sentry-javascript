@@ -12,7 +12,6 @@ Sentry.init({
   ],
   defaultIntegrations: false,
   tracesSampleRate: 1,
-  debug: true,
 });
 
 const activeSpan = Sentry.getActiveSpan();
