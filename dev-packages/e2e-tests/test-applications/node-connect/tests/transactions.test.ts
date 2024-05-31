@@ -3,7 +3,7 @@ import { waitForTransaction } from '@sentry-internal/event-proxy-server';
 
 const authToken = process.env.E2E_TEST_AUTH_TOKEN;
 const sentryTestOrgSlug = process.env.E2E_TEST_SENTRY_ORG_SLUG;
-const sentryTestProject = process.env.E2E_TEST_SENTRY_TEST_PROJECT;
+const sentryTestProject = process.env.E2E_TEST_SENTRY_PROJECT;
 const EVENT_POLLING_TIMEOUT = 90_000;
 
 test('Sends an API route transaction', async ({ baseURL }) => {
