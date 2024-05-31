@@ -1,6 +1,6 @@
 import * as child_process from 'child_process';
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '@sentry-internal/event-proxy-server';
+import { waitForTransaction } from '@sentry-internal/test-utils';
 
 test('Lambda layer SDK bundle sends events', async ({ request }) => {
   const transactionEventPromise = waitForTransaction('aws-serverless-lambda-layer', transactionEvent => {

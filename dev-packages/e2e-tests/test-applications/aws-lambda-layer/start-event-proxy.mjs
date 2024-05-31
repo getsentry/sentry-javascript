@@ -1,6 +1,4 @@
-import { startEventProxyServer } from '@sentry-internal/event-proxy-server';
-
-console.log('start proxy server');
+import { startEventProxyServer } from '@sentry-internal/test-utils';
 
 startEventProxyServer({
   port: 3031,

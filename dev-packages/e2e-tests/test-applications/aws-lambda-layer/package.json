@@ -13,7 +13,7 @@
   "dependencies": {
   },
   "devDependencies": {
-    "@sentry-internal/event-proxy-server": "link:../../../event-proxy-server",
+    "@sentry-internal/test-utils": "link:../../../test-utils",
     "@playwright/test": "^1.41.1",
     "wait-port": "1.0.4"
   },
