@@ -92,9 +92,9 @@ jobs:
           - test-application: 'react-create-hash-router'
             build-command: 'test:build-canary'
             label: 'react-create-hash-router (canary)'
-          - test-application: 'standard-frontend-react'
+          - test-application: 'react-router-6'
             build-command: 'test:build-canary'
-            label: 'standard-frontend-react (canary)'
+            label: 'react-router-6 (canary)'
 
     steps:
       - name: Check out current commit
