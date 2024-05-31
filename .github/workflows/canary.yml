@@ -63,7 +63,7 @@ jobs:
       PUBLIC_E2E_TEST_DSN: ${{ secrets.E2E_TEST_DSN }}
       REACT_APP_E2E_TEST_DSN: ${{ secrets.E2E_TEST_DSN }}
       E2E_TEST_SENTRY_ORG_SLUG: 'sentry-javascript-sdks'
-      E2E_TEST_SENTRY_TEST_PROJECT: 'sentry-javascript-e2e-tests'
+      E2E_TEST_SENTRY_PROJECT: 'sentry-javascript-e2e-tests'
     strategy:
       fail-fast: false
       matrix:
