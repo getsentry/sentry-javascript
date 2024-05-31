@@ -993,6 +993,7 @@ jobs:
           [
             'angular-17',
             'angular-18',
+            'aws-lambda-layer',
             'cloudflare-astro',
             'node-express',
             'create-react-app',
