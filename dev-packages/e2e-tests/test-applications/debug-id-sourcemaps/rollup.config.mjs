@@ -7,7 +7,7 @@ export default defineConfig({
   plugins: [
     sentryRollupPlugin({
       org: process.env.E2E_TEST_SENTRY_ORG_SLUG,
-      project: process.env.E2E_TEST_SENTRY_TEST_PROJECT,
+      project: process.env.E2E_TEST_SENTRY_PROJECT,
       authToken: process.env.E2E_TEST_AUTH_TOKEN,
     }),
   ],

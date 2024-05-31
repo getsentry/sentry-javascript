@@ -32,32 +32,13 @@ Sentry.init({
   tracesSampleRate: 1.0,
   release: 'e2e-test',
 
+  tunnel: 'http://localhost:3031',
+
   // Always capture replays, so we can test this properly
   replaysSessionSampleRate: 1.0,
   replaysOnErrorSampleRate: 0.0,
 
-  debug: true,
-});
-
-Object.defineProperty(window, 'sentryReplayId', {
-  get() {
-    return replay['_replay'].session.id;
-  },
-});
-
-Sentry.addEventProcessor(event => {
-  if (
-    event.type === 'transaction' &&
-    (event.contexts?.trace?.op === 'pageload' || event.contexts?.trace?.op === 'navigation')
-  ) {
-    const eventId = event.event_id;
-    if (eventId) {
-      window.recordedTransactions = window.recordedTransactions || [];
-      window.recordedTransactions.push(eventId);
-    }
-  }
-
-  return event;
+  debug: !!process.env.DEBUG,
 });
 
 const sentryCreateHashRouter = Sentry.wrapCreateBrowserRouter(createHashRouter);

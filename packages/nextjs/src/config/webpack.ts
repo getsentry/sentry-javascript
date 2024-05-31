@@ -329,7 +329,8 @@ export function constructWebpackConfigFunction(
           // the browser won't look for them and throw errors into the console when it can't find them. Because this is a
           // front-end-only problem, and because `sentry-cli` handles sourcemaps more reliably with the comment than
           // without, the option to use `hidden-source-map` only applies to the client-side build.
-          newConfig.devtool = !isServer ? 'hidden-source-map' : 'source-map';
+          newConfig.devtool =
+            isServer || userNextConfig.productionBrowserSourceMaps ? 'source-map' : 'hidden-source-map';
         }
 
         newConfig.plugins = newConfig.plugins || [];

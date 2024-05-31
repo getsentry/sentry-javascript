@@ -342,7 +342,10 @@ export class SentrySpan implements Span {
 
     if (hasMeasurements) {
       DEBUG_BUILD &&
-        logger.log('[Measurements] Adding measurements to transaction', JSON.stringify(measurements, undefined, 2));
+        logger.log(
+          '[Measurements] Adding measurements to transaction event',
+          JSON.stringify(measurements, undefined, 2),
+        );
       transaction.measurements = measurements;
     }
 

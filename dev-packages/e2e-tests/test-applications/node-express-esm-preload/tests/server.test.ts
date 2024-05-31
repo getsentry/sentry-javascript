@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { waitForError, waitForTransaction } from '@sentry-internal/event-proxy-server';
+import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
 
 test('Should record exceptions captured inside handlers', async ({ request }) => {
   const errorEventPromise = waitForError('node-express-esm-preload', errorEvent => {

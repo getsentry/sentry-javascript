@@ -1,6 +1,6 @@
 {
   "name": "@sentry/aws-serverless",
-  "version": "8.5.0",
+  "version": "8.7.0",
   "description": "Official Sentry SDK for AWS Lambda and AWS Serverless Environments",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/serverless",
@@ -65,10 +65,10 @@
   "dependencies": {
     "@opentelemetry/instrumentation-aws-lambda": "0.41.1",
     "@opentelemetry/instrumentation-aws-sdk": "0.41.0",
-    "@sentry/core": "8.5.0",
-    "@sentry/node": "8.5.0",
-    "@sentry/types": "8.5.0",
-    "@sentry/utils": "8.5.0",
+    "@sentry/core": "8.7.0",
+    "@sentry/node": "8.7.0",
+    "@sentry/types": "8.7.0",
+    "@sentry/utils": "8.7.0",
     "@types/aws-lambda": "^8.10.62"
   },
   "devDependencies": {
@@ -76,9 +76,10 @@
   },
   "scripts": {
     "build": "run-p build:transpile build:types build:bundle",
-    "build:bundle": "yarn ts-node scripts/buildLambdaLayer.ts",
+    "build:bundle": "yarn build:layer",
+    "build:layer": "yarn ts-node scripts/buildLambdaLayer.ts",
     "build:dev": "run-p build:transpile build:types",
-    "build:transpile": "rollup -c rollup.npm.config.mjs",
+    "build:transpile": "rollup -c rollup.npm.config.mjs && yarn build:layer",
     "build:types": "run-s build:types:core build:types:downlevel",
     "build:types:core": "tsc -p tsconfig.types.json",
     "build:types:downlevel": "yarn downlevel-dts build/npm/types build/npm/types-ts3.8 --to ts3.8",
