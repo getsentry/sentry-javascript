@@ -251,10 +251,11 @@ export const buildFeedbackIntegration = ({
     };
 
     const _createActor = (optionOverrides: OverrideFeedbackConfiguration = {}): ActorComponent => {
-      const shadow = _createShadow(_options);
-      const actor = Actor({ triggerLabel: optionOverrides.triggerLabel || _options.triggerLabel, shadow });
-      const mergedOptions = mergeOptions(_options, {
-        ...optionOverrides,
+      const mergedOptions = mergeOptions(_options, optionOverrides);
+      const shadow = _createShadow(mergedOptions);
+      const actor = Actor({ triggerLabel: mergedOptions.triggerLabel, shadow });
+      _attachTo(actor.el, {
+        ...mergedOptions,
         onFormOpen() {
           actor.hide();
         },
@@ -265,7 +266,6 @@ export const buildFeedbackIntegration = ({
           actor.show();
         },
       });
-      _attachTo(actor.el, mergedOptions);
       return actor;
     };
 
