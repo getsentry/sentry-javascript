@@ -130,7 +130,7 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
       // If we have no spans, we just end, nothing else to do here
       if (!spans.length) {
         onIdleSpanEnded(spanEndTimestamp);
-        return Reflect.apply(target, thisArg, args);
+        return Reflect.apply(target, thisArg, [spanEndTimestamp]);
       }
 
       const childEndTimestamps = spans
