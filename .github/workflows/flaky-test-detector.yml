@@ -85,6 +85,7 @@ jobs:
         env:
           CHANGED_TEST_PATHS: ${{ steps.changed.outputs.browser_integration_files }}
           TEST_RUN_COUNT: 'AUTO'
+          PW_BUNDLE: bundle_tracing_replay_feedback
 
       - name: Artifacts upload
         uses: actions/upload-artifact@v4
