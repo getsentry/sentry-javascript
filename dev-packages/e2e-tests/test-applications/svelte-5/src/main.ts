@@ -10,7 +10,7 @@ Sentry.init({
   tracesSampleRate: 1.0,
   integrations: [Sentry.browserTracingIntegration(), Sentry.replayIntegration()],
   tunnel: 'http://localhost:3031/', // proxy server
-  debug: true,
+  debug: !!process.env.DEBUG,
 });
 
 const target = document.getElementById('app');

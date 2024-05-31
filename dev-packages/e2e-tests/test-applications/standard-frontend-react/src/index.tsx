@@ -38,12 +38,6 @@ Sentry.init({
   replaysOnErrorSampleRate: 0.0,
 });
 
-Object.defineProperty(window, 'sentryReplayId', {
-  get() {
-    return replay['_replay'].session.id;
-  },
-});
-
 Sentry.addEventProcessor(event => {
   if (
     event.type === 'transaction' &&

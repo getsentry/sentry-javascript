@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '@sentry-internal/event-proxy-server';
+import { waitForTransaction } from '@sentry-internal/test-utils';
 
 test('Should allow for async context isolation in the edge SDK', async ({ request }) => {
   // test.skip(process.env.TEST_ENV === 'development', "Doesn't work in dev mode.");

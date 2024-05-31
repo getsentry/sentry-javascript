@@ -4,7 +4,7 @@ import * as Sentry from '@sentry/sveltekit';
 Sentry.init({
   environment: 'qa', // dynamic sampling bias to keep transactions
   dsn: env.PUBLIC_E2E_TEST_DSN,
-  debug: true,
+  debug: !!env.PUBLIC_DEBUG,
   tunnel: `http://localhost:3031/`, // proxy server
   tracesSampleRate: 1.0,
 });

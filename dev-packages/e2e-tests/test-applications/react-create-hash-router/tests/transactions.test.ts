@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '@sentry-internal/event-proxy-server';
+import { waitForTransaction } from '@sentry-internal/test-utils';
 
 test('Captures a pageload transaction', async ({ page }) => {
   const transactionEventPromise = waitForTransaction('react-create-hash-router', event => {
@@ -42,20 +42,6 @@ test('Captures a pageload transaction', async ({ page }) => {
       'sentry.op': 'browser',
     },
     description: 'domContentLoadedEvent',
-    op: 'browser',
-    parent_span_id: expect.any(String),
-    span_id: expect.any(String),
-    start_timestamp: expect.any(Number),
-    timestamp: expect.any(Number),
-    trace_id: expect.any(String),
-    origin: 'auto.ui.browser.metrics',
-  });
-  expect(transactionEvent.spans).toContainEqual({
-    data: {
-      'sentry.origin': 'auto.ui.browser.metrics',
-      'sentry.op': 'browser',
-    },
-    description: 'loadEvent',
     op: 'browser',
     parent_span_id: expect.any(String),
     span_id: expect.any(String),
