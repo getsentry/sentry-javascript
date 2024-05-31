@@ -1,3 +1,4 @@
+import type { Client } from './client';
 import type { ClientOptions } from './options';
 import type { Transport } from './transport';
 
@@ -40,35 +41,28 @@ export interface RemoteConfigInterface {
   getSource: () => RemoteConfigSource;
 }
 
-// export interface ConfigMetadata {
-//   type: ConfigType;
-//   source: Source;
-// }
-// interface ConfigObject<T = any> {
-//   meta: ConfigMetadata;
-//   value: T;
-// }
-
 export interface RemoteConfigStorage {
   get: (key: string) => any;
   set: (key: string, value: any) => void;
 }
 
 export interface RemoteConfigOptions {
+  client: Client;
   storage: RemoteConfigStorage;
-  transport: Transport;
   defaultConfigName?: string;
 }
 
+interface RemoteConfigFeature {
+  key: string;
+  value: string | number | boolean;
+}
+
 export interface RemoteConfigPayload {
+  features: RemoteConfigFeature[];
   options: RemoteConfigPayloadOptions;
   version: number;
 }
 export interface RemoteConfigPayloadOptions {
   sample_rate: RemoteOverrideableConfig['sampleRate'];
   traces_sample_rate: RemoteOverrideableConfig['tracesSampleRate'];
-  // XXX: This is temporary, ideally we can return `_activeConfig.options ||
-  // config`, but we are special casing `options.user_config` for UI
-  // iteration speed.
-  user_config: Record<string, any>;
 }

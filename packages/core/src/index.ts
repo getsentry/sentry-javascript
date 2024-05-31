@@ -39,13 +39,11 @@ export {
   withIsolationScope,
   getClient,
 } from './currentScopes';
-export {
-  getDefaultCurrentScope,
-  getDefaultIsolationScope,
-} from './defaultScopes';
+export { getDefaultCurrentScope, getDefaultIsolationScope } from './defaultScopes';
 export { setAsyncContextStrategy } from './asyncContext';
 export { getMainCarrier } from './carrier';
 export { makeSession, closeSession, updateSession } from './session';
+export { remoteConfig } from './remoteconfig';
 export { SessionFlusher } from './sessionflusher';
 export { Scope } from './scope';
 export { notifyEventProcessors } from './eventProcessors';
@@ -56,11 +54,8 @@ export { initAndBind, setCurrentClient } from './sdk';
 export { createTransport } from './transports/base';
 export { makeOfflineTransport } from './transports/offline';
 export { makeMultiplexedTransport } from './transports/multiplexed';
-export {
-  getIntegrationsToSetup,
-  addIntegration,
-  defineIntegration,
-} from './integration';
+export { SDK_VERSION } from './version';
+export { getIntegrationsToSetup, addIntegration, defineIntegration } from './integration';
 export { applyScopeDataToEvent, mergeScopeData } from './utils/applyScopeDataToEvent';
 export { prepareEvent } from './utils/prepareEvent';
 export { createCheckInEnvelope } from './checkin';

@@ -4,83 +4,145 @@ import type {
   RemoteConfigPayload,
   RemoteConfigInterface,
   RemoteConfigSource,
+  Transport,
+  RemoteConfigPayloadOptions,
 } from '@sentry/types';
+import { getRemoteConfigEndpoint } from './api';
 
 const DEFAULT_CONFIG_NAME = '__default';
 
+// type RemoteConfigState = 'INITIALIZING' | 'INITIALIZED';
+
+export interface RemoteConfigActive {
+  features: Record<string, any>;
+  options: RemoteConfigPayloadOptions;
+  version: number;
+}
+
 /**
- * Remote Configuration fetches configuration from a remote server.
+ *
  */
 export function remoteConfig({
+  client,
   defaultConfigName = DEFAULT_CONFIG_NAME,
   storage,
-  transport,
 }: RemoteConfigOptions): RemoteConfigInterface {
-  let _activeConfig: RemoteConfigPayload | undefined;
+  let _activeConfig: RemoteConfigActive | undefined;
   let _pendingConfig: RemoteConfigPayload | undefined;
-  let _lastFetch: Date | undefined;
+  // let _lastFetch: Date | undefined;
   let _lastUpdate: Date | undefined;
   let _source: RemoteConfigSource = 'DEFAULT';
   let _hasUpdate: boolean = false;
-  let _state: RemoteConfigState = 'INITIALIZING';
+  // let _state: RemoteConfigState = 'INITIALIZING';
+  let _transport: Transport | undefined;
 
-  console.log('remoteConfig!!');
-
-  function _initConfig() {
+  /**
+   *
+   */
+  function _initConfig(): void {
     // Use cached configuration if it exists
     const cachedValue = storage.get(defaultConfigName);
     if (cachedValue) {
-      _activeConfig = cachedValue;
+      _loadConfig(cachedValue);
       _source = 'CACHED';
-      _state = 'INITIALIZED';
+      // _state = 'INITIALIZED';
     }
+
+    fetch();
+  }
+
+  function _initTransport(): void {
+    const clientOptions = client.getOptions();
+    const dsn = client.getDsn();
+
+    if (!dsn) {
+      return;
+    }
+
+    _transport = clientOptions.transport({
+      tunnel: clientOptions.tunnel,
+      recordDroppedEvent: client.recordDroppedEvent.bind(client),
+      ...clientOptions.transportOptions,
+      url: getRemoteConfigEndpoint(
+        dsn,
+        clientOptions.tunnel,
+        clientOptions._metadata ? clientOptions._metadata.sdk : undefined,
+      ),
+      method: 'GET',
+    });
+  }
+
+  /**
+   * Initialize remote config integration
+   */
+  function _initialize(): void {
+    _initTransport();
+    _initConfig();
   }
 
   /**
    * Checks if the current cached configuration is expired
    */
-  function _checkCacheExpired() {
-    const lastFetched = storage.get(`${defaultConfigName}_lastFetch`);
+  // function _checkCacheExpired() {
+  //   const lastFetched = storage.get(`${defaultConfigName}_lastFetch`);
+  // }
+
+  /**
+   * Loads a fetched/cached config so that it is usable by public APIs
+   */
+  function _loadConfig(config: RemoteConfigPayload): void {
+    _activeConfig = {
+      features: config.features.reduce<Record<string, any>>((acc, { key, value }) => {
+        acc[key] = value;
+        return acc;
+      }, {}),
+      options: config.options,
+      version: config.version,
+    };
   }
 
-  _initConfig();
-
-  function _fetch(): Promise<void> {
+  /**
+   *
+   */
+  function _fetch(): PromiseLike<void> {
     return new Promise((resolve, reject) => {
+      if (!_transport) {
+        return resolve();
+      }
+
       // TODO
-      transport
-        // @ts-expect-error envelopes and such
-        .send([[], [[{ type: 'features' }, {}]]])
-        .then(resp => {
-          _lastFetch = new Date();
-          // on success, check if cached, then do nothing
-          if (resp.statusCode === 304) {
-            // _state = "SUCCESS_CACHED";
+      return (
+        _transport
+          // @ts-expect-error envelopes and such
+          .send([[], [[{ type: 'features' }, {}]]])
+          .then(resp => {
+            // _lastFetch = new Date();
+            // on success, check if cached, then do nothing
+            if (resp.statusCode === 304) {
+              // _state = "SUCCESS_CACHED";
 
-            return;
-          }
+              return;
+            }
 
-          // not cached...get body and send pending
-          // @ts-expect-error resp.response not typed
-          resp.response.json().then((data: RemoteConfigPayload) => {
-            _lastFetch = new Date();
-            _pendingConfig = data;
-            _hasUpdate = true;
+            // not cached...get body and send pending
+            // @ts-expect-error resp.response not typed
+            resp.response
+              .json()
+              .then((data: RemoteConfigPayload) => {
+                // _lastFetch = new Date();
+                _pendingConfig = data;
+                _hasUpdate = true;
 
-            storage.set(defaultConfigName, data);
-            storage.set(`${defaultConfigName}_lastFetch`, +_lastFetch);
-            // _state = "SUCCESS";
-            resolve();
-          });
-        });
-      // .catch((err: unknown) => {
-      //   // TODO handle error
-      //   // set fetch state to error
-      //
-      //   // _state = "ERROR";
-      //   _lastFetch = new Date();
-      //   reject(err);
-      // });
+                storage.set(defaultConfigName, data);
+                // storage.set(`${defaultConfigName}_lastFetch`, +_lastFetch);
+                // _state = "SUCCESS";
+                resolve();
+              })
+              .catch(() => {
+                // TODO: Error handling
+              });
+          })
+      );
     });
   }
 
@@ -93,7 +155,8 @@ export function remoteConfig({
       return false;
     }
 
-    _activeConfig = _pendingConfig;
+    _loadConfig(_pendingConfig);
+    _pendingConfig = undefined;
     _source = 'REMOTE';
     _lastUpdate = new Date();
 
@@ -115,15 +178,15 @@ export function remoteConfig({
     void _fetch();
   }
 
+  /**
+   *
+   */
   function getSource(): 'DEFAULT' | 'CACHED' | 'REMOTE' {
     return _source;
   }
 
   /** @inheritDoc */
   function getInternal(config: RemoteOverrideableConfig): RemoteOverrideableConfig {
-    // XXX: This is temporary, ideally we can return `_activeConfig.options ||
-    // config`, but we are special casing `options.user_config` for UI
-    // iteration speed.
     return {
       sampleRate: (_activeConfig && _activeConfig.options.sample_rate) || config.sampleRate,
       tracesSampleRate: (_activeConfig && _activeConfig.options.traces_sample_rate) || config.tracesSampleRate,
@@ -132,8 +195,10 @@ export function remoteConfig({
 
   /** @inheritdoc */
   function get<T>(defaultConfig: T): T {
-    return (_activeConfig && (_activeConfig.options.user_config as T)) || defaultConfig;
+    return (_activeConfig && (_activeConfig.features as T)) || defaultConfig;
   }
+
+  _initialize();
 
   return {
     applyUpdate,

@@ -9,7 +9,6 @@ import type {
   EventHint,
   Options,
   ParameterizedString,
-  RemoteConfigStorage,
   SeverityLevel,
   UserFeedback,
 } from '@sentry/types';
@@ -118,38 +117,6 @@ export class BrowserClient extends BaseClient<BrowserClientOptions> {
   protected _prepareEvent(event: Event, hint: EventHint, scope?: Scope): PromiseLike<Event | null> {
     event.platform = event.platform || 'javascript';
     return super._prepareEvent(event, hint, scope);
-  }
-
-  /**
-   * @inheritdoc
-   */
-  protected _createRemoteStorage(): RemoteConfigStorage {
-    function getKey(key: string): string {
-      return `_sentryRC:${key}`;
-    }
-
-    return {
-      get(key: string): unknown {
-        const value = WINDOW.localStorage.getItem(getKey(key));
-
-        if (value === null) {
-          return value;
-        }
-
-        try {
-          return JSON.parse(value);
-        } catch {
-          return null;
-        }
-      },
-      set(key: string, value: any): void {
-        try {
-          WINDOW.localStorage.setItem(getKey(key), JSON.stringify(value));
-        } catch {
-          DEBUG_BUILD && logger.error('Unable to serialize configuration and save to localStorage');
-        }
-      },
-    };
   }
 
   /**
