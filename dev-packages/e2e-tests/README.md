@@ -9,7 +9,6 @@ Prerequisites: Docker
 
 - Copy `.env.example` to `.env`
 - Fill in auth information in `.env` for an example Sentry project
-  - The `E2E_TEST_AUTH_TOKEN` must have all the default permissions
 - Run `yarn build:tarball` in the root of the repository
 
 To finally run all of the tests:
