@@ -3,28 +3,86 @@ import { forEachEnvelopeItem, getFramesFromEvent } from '@sentry/utils';
 import { defineIntegration } from '../integration';
 import { addMetadataToStackFrames, stripMetadataFromStackFrames } from '../metadata';
 
-type Behaviour =
-  | 'drop-if-some-frames-not-matched'
-  | 'drop-if-every-frames-not-matched'
-  | 'apply-tag-if-some-frames-not-matched'
-  | 'apply-tag-if-every-frames-not-matched';
-
 interface Options {
   /**
-   * Keys that have been provided in the Sentry bundler plugin.
+   * Keys that have been provided in the Sentry bundler plugin, identifying your bundles.
    */
+  // TODO(lforst): Explain in JSDoc which option exactly needs to be set when we have figured out the API and deep link to the option in npm
   filterKeys: string[];
 
   /**
-   * Defines how the integration should behave:
+   * Defines how the integration should behave. "Third-Party Stack Frames" are stack frames that did not come from files marked with a matching bundle key.
    *
-   * - `drop-if-some-frames-not-matched`: Drops error events that contain stack frames that did not come from files marked with a matching bundle key.
-   * - `drop-if-every-frames-not-matched`: Drops error events exclusively contain stack frames that did not come from files marked with a matching bundle key
-   * - `apply-tag-if-some-frames-not-matched`: Keep events, but apply a `not-application-code: True` tag in case some frames did not come from user code.
-   * - `apply-tag-if-every-frames-not-matched`: Keep events, but apply a `not-application-code: True` tag in case ale frames did not come from user code.
+   * You can define the behaviour with one of 4 modes:
+   * - `drop-error-if-contains-third-party-frames`: Drop error events that contain at least one third-party stack frame.
+   * - `drop-error-if-exclusively-contains-third-party-frames`: Drop error events that exclusively contain third-party stack frames.
+   * - `apply-tag-if-contains-third-party-frames`: Keep all error events, but apply a `third_party_code: true` tag in case the error contains at least one third-party stack frame.
+   * - `apply-tag-if-exclusively-contains-third-party-frames`: Keep all error events, but apply a `third_party_code: true` tag in case the error contains exclusively third-party stack frames.
+   *
+   * If you chose the mode to only apply tags, the tags can then be used in Sentry to filter your issue stream by entering `!third_party_code:True` in the search bar.
    */
-  behaviour: Behaviour;
+  behaviour:
+    | 'drop-error-if-contains-third-party-frames'
+    | 'drop-error-if-exclusively-contains-third-party-frames'
+    | 'apply-tag-if-contains-third-party-frames'
+    | 'apply-tag-if-exclusively-contains-third-party-frames';
 }
+/**
+ * This integration allows you to filter out, or tag error events that do not come from user code marked with a bundle key via the Sentry bundler plugins.
+ */
+export const thirdPartyErrorFilterIntegration = defineIntegration((options: Options) => {
+  return {
+    name: 'ThirdPartyErrorsFilter',
+    setup(client) {
+      // We need to strip metadata from stack frames before sending them to Sentry since these are client side only.
+      // TODO(lforst): Move this cleanup logic into a more central place in the SDK.
+      client.on('beforeEnvelope', envelope => {
+        forEachEnvelopeItem(envelope, (item, type) => {
+          if (type === 'event') {
+            const event = Array.isArray(item) ? (item as EventItem)[1] : undefined;
+
+            if (event) {
+              stripMetadataFromStackFrames(event);
+              item[1] = event;
+            }
+          }
+        });
+      });
+    },
+    processEvent(event, _hint, client) {
+      const stackParser = client.getOptions().stackParser;
+      addMetadataToStackFrames(stackParser, event);
+
+      const frameKeys = getBundleKeysForAllFramesWithFilenames(event);
+
+      if (frameKeys) {
+        const arrayMethod =
+          options.behaviour === 'drop-error-if-contains-third-party-frames' ||
+          options.behaviour === 'apply-tag-if-contains-third-party-frames'
+            ? 'some'
+            : 'every';
+
+        const behaviourApplies = frameKeys[arrayMethod](key => !options.filterKeys.includes(key));
+
+        if (behaviourApplies) {
+          const shouldDrop =
+            options.behaviour === 'drop-error-if-contains-third-party-frames' ||
+            options.behaviour === 'drop-error-if-exclusively-contains-third-party-frames';
+          if (shouldDrop) {
+            return null;
+          } else {
+            event.tags = {
+              ...event.tags,
+              third_party_code: true,
+            };
+          }
+        }
+      }
+
+      return event;
+    },
+  };
+});
 
 function getBundleKeysForAllFramesWithFilenames(event: Event): string[] | undefined {
   const frames = getFramesFromEvent(event);
@@ -41,54 +99,3 @@ function getBundleKeysForAllFramesWithFilenames(event: Event): string[] | undefi
       .map(frame => (frame.module_metadata ? frame.module_metadata.bundle_key || '' : ''))
   );
 }
-
-/**
- * This integration filters out errors that do not come from user code marked with a bundle key via the Sentry bundler plugins.
- */
-export const thirdPartyErrorFilterIntegration = defineIntegration((options: Options) => {
-  // Since the logic for out behaviours is inverted, we need to use the opposite array method.
-  const arrayMethod = options.behaviour.match(/some/) ? 'every' : 'some';
-  const shouldDrop = !!options.behaviour.match(/drop/);
-
-  return {
-    name: 'ThirdPartyErrorsFilter',
-    setup(client) {
-      // We need to strip metadata from stack frames before sending them to Sentry since these are client side only.
-      client.on('beforeEnvelope', envelope => {
-        forEachEnvelopeItem(envelope, (item, type) => {
-          if (type === 'event') {
-            const event = Array.isArray(item) ? (item as EventItem)[1] : undefined;
-
-            if (event) {
-              stripMetadataFromStackFrames(event);
-              item[1] = event;
-            }
-          }
-        });
-      });
-    },
-    processEvent(event, _, client) {
-      const stackParser = client.getOptions().stackParser;
-      addMetadataToStackFrames(stackParser, event);
-
-      const frameKeys = getBundleKeysForAllFramesWithFilenames(event);
-
-      if (frameKeys) {
-        const match = frameKeys[arrayMethod](key => !options.filterKeys.includes(key));
-
-        if (match) {
-          if (shouldDrop) {
-            return null;
-          } else {
-            event.tags = {
-              ...event.tags,
-              'not-application-code': true,
-            };
-          }
-        }
-      }
-
-      return event;
-    },
-  };
-});

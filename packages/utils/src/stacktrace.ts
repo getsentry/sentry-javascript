@@ -141,9 +141,17 @@ export function getFramesFromEvent(event: Event): StackFrame[] | undefined {
   const exception = event.exception;
 
   if (exception) {
+    const frames: StackFrame[] = [];
     try {
       // @ts-expect-error Object could be undefined
-      return exception.values[0].stacktrace.frames;
+      exception.values.forEach(value => {
+        // @ts-expect-error Value could be undefined
+        if (value.stacktrace.frames) {
+          // @ts-expect-error Value could be undefined
+          frames.push(...value.stacktrace.frames);
+        }
+      });
+      return frames;
     } catch (_oO) {
       return undefined;
     }

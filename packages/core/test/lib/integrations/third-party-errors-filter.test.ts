@@ -8,7 +8,7 @@ function clone<T>(data: T): T {
 
 const stack = new Error().stack || '';
 
-const eventSomeFrames: Event = {
+const eventWithThirdAndFirstPartyFrames: Event = {
   exception: {
     values: [
       {
@@ -35,7 +35,7 @@ const eventSomeFrames: Event = {
   },
 };
 
-const eventAllFrames: Event = {
+const eventWithOnlyFirstPartyFrames: Event = {
   exception: {
     values: [
       {
@@ -62,7 +62,7 @@ const eventAllFrames: Event = {
   },
 };
 
-const eventNoFrames: Event = {
+const eventWithOnlyThirdPartyFrames: Event = {
   exception: {
     values: [
       {
@@ -102,103 +102,143 @@ describe('ThirdPartyErrorFilter', () => {
     GLOBAL_OBJ._sentryModuleMetadata[stack] = { bundle_key: 'some-key' };
   });
 
-  describe('drop-if-any-frames-not-matched', () => {
-    it('should drop event if not all frames matched', async () => {
+  describe('drop-error-if-contains-third-party-frames', () => {
+    it('should keep event if there are exclusively first-party frames', async () => {
       const integration = thirdPartyErrorFilterIntegration({
-        behaviour: 'drop-if-every-frames-not-matched',
+        behaviour: 'drop-error-if-contains-third-party-frames',
         filterKeys: ['some-key'],
       });
 
-      const event = clone(eventSomeFrames);
+      const event = clone(eventWithOnlyFirstPartyFrames);
+      const result = await integration.processEvent?.(event, {}, MOCK_CLIENT);
+      expect(result).toBeDefined();
+    });
+
+    it('should drop event if there is at least one third-party frame', async () => {
+      const integration = thirdPartyErrorFilterIntegration({
+        behaviour: 'drop-error-if-contains-third-party-frames',
+        filterKeys: ['some-key'],
+      });
+
+      const event = clone(eventWithThirdAndFirstPartyFrames);
       const result = await integration.processEvent?.(event, {}, MOCK_CLIENT);
       expect(result).toBe(null);
     });
 
-    it('should keep event if all frames matched', async () => {
+    it('should drop event if all frames are third-party frames', async () => {
       const integration = thirdPartyErrorFilterIntegration({
-        behaviour: 'drop-if-every-frames-not-matched',
+        behaviour: 'drop-error-if-contains-third-party-frames',
         filterKeys: ['some-key'],
       });
 
-      const event = clone(eventAllFrames);
-      const result = await integration.processEvent?.(event, {}, MOCK_CLIENT);
-      expect(result).toBeDefined();
-    });
-  });
-
-  describe('drop-if-some-frames-not-matched', () => {
-    it('should drop event if not all frames matched', async () => {
-      const integration = thirdPartyErrorFilterIntegration({
-        behaviour: 'drop-if-some-frames-not-matched',
-        filterKeys: ['some-key'],
-      });
-
-      const event = clone(eventNoFrames);
+      const event = clone(eventWithOnlyThirdPartyFrames);
       const result = await integration.processEvent?.(event, {}, MOCK_CLIENT);
       expect(result).toBe(null);
     });
+  });
 
-    it('should keep event if all frames matched', async () => {
+  describe('drop-error-if-exclusively-contains-third-party-frames', () => {
+    it('should keep event if there are exclusively first-party frames', async () => {
       const integration = thirdPartyErrorFilterIntegration({
-        behaviour: 'drop-if-some-frames-not-matched',
+        behaviour: 'drop-error-if-exclusively-contains-third-party-frames',
         filterKeys: ['some-key'],
       });
 
-      const event = clone(eventSomeFrames);
+      const event = clone(eventWithOnlyFirstPartyFrames);
       const result = await integration.processEvent?.(event, {}, MOCK_CLIENT);
       expect(result).toBeDefined();
+    });
+
+    it('should keep event if there is at least one first-party frame', async () => {
+      const integration = thirdPartyErrorFilterIntegration({
+        behaviour: 'drop-error-if-exclusively-contains-third-party-frames',
+        filterKeys: ['some-key'],
+      });
+
+      const event = clone(eventWithThirdAndFirstPartyFrames);
+      const result = await integration.processEvent?.(event, {}, MOCK_CLIENT);
+      expect(result).toBeDefined();
+    });
+
+    it('should drop event if all frames are third-party frames', async () => {
+      const integration = thirdPartyErrorFilterIntegration({
+        behaviour: 'drop-error-if-exclusively-contains-third-party-frames',
+        filterKeys: ['some-key'],
+      });
+
+      const event = clone(eventWithOnlyThirdPartyFrames);
+      const result = await integration.processEvent?.(event, {}, MOCK_CLIENT);
+      expect(result).toBe(null);
     });
   });
 
-  describe('apply-tag-if-any-frames-not-matched', () => {
-    it('should tag event if not all frames matched', async () => {
+  describe('apply-tag-if-contains-third-party-frames', () => {
+    it('should not tag event if exclusively contains first-party frames', async () => {
       const integration = thirdPartyErrorFilterIntegration({
-        behaviour: 'apply-tag-if-every-frames-not-matched',
+        behaviour: 'apply-tag-if-contains-third-party-frames',
         filterKeys: ['some-key'],
       });
 
-      const event = clone(eventSomeFrames);
+      const event = clone(eventWithOnlyFirstPartyFrames);
       const result = await integration.processEvent?.(event, {}, MOCK_CLIENT);
-      expect(result).toBeDefined();
-      expect(result?.tags).toEqual({ 'not-application-code': true });
+      expect(result?.tags?.third_party_code).toBeUndefined();
     });
 
-    it('should not tag event if all frames matched', async () => {
+    it('should tag event if contains at least one third-party frame', async () => {
       const integration = thirdPartyErrorFilterIntegration({
-        behaviour: 'apply-tag-if-every-frames-not-matched',
+        behaviour: 'apply-tag-if-contains-third-party-frames',
         filterKeys: ['some-key'],
       });
 
-      const event = clone(eventAllFrames);
+      const event = clone(eventWithThirdAndFirstPartyFrames);
       const result = await integration.processEvent?.(event, {}, MOCK_CLIENT);
-      expect(result).toBeDefined();
-      expect(result?.tags).toBeUndefined();
+      expect(result?.tags).toMatchObject({ third_party_code: true });
+    });
+
+    it('should tag event if contains exclusively third-party frames', async () => {
+      const integration = thirdPartyErrorFilterIntegration({
+        behaviour: 'apply-tag-if-contains-third-party-frames',
+        filterKeys: ['some-key'],
+      });
+
+      const event = clone(eventWithOnlyThirdPartyFrames);
+      const result = await integration.processEvent?.(event, {}, MOCK_CLIENT);
+      expect(result?.tags).toMatchObject({ third_party_code: true });
     });
   });
 
-  describe('apply-tag-if-some-frames-not-matched', () => {
-    it('should tag event if not all frames matched', async () => {
+  describe('apply-tag-if-exclusively-contains-third-party-frames', () => {
+    it('should not tag event if exclusively contains first-party frames', async () => {
       const integration = thirdPartyErrorFilterIntegration({
-        behaviour: 'apply-tag-if-some-frames-not-matched',
+        behaviour: 'apply-tag-if-exclusively-contains-third-party-frames',
         filterKeys: ['some-key'],
       });
 
-      const event = clone(eventNoFrames);
+      const event = clone(eventWithOnlyFirstPartyFrames);
       const result = await integration.processEvent?.(event, {}, MOCK_CLIENT);
-      expect(result).toBeDefined();
-      expect(result?.tags).toEqual({ 'not-application-code': true });
+      expect(result?.tags?.third_party_code).toBeUndefined();
     });
 
-    it('should not tag event if all frames matched', async () => {
+    it('should not tag event if contains at least one first-party frame', async () => {
       const integration = thirdPartyErrorFilterIntegration({
-        behaviour: 'apply-tag-if-some-frames-not-matched',
+        behaviour: 'apply-tag-if-exclusively-contains-third-party-frames',
         filterKeys: ['some-key'],
       });
 
-      const event = clone(eventSomeFrames);
+      const event = clone(eventWithThirdAndFirstPartyFrames);
       const result = await integration.processEvent?.(event, {}, MOCK_CLIENT);
-      expect(result).toBeDefined();
-      expect(result?.tags).toBeUndefined();
+      expect(result?.tags?.third_party_code).toBeUndefined();
+    });
+
+    it('should tag event if contains exclusively third-party frames', async () => {
+      const integration = thirdPartyErrorFilterIntegration({
+        behaviour: 'apply-tag-if-exclusively-contains-third-party-frames',
+        filterKeys: ['some-key'],
+      });
+
+      const event = clone(eventWithOnlyThirdPartyFrames);
+      const result = await integration.processEvent?.(event, {}, MOCK_CLIENT);
+      expect(result?.tags).toMatchObject({ third_party_code: true });
     });
   });
 });
