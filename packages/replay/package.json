@@ -5,6 +5,10 @@
   "main": "build/npm/cjs/index.js",
   "module": "build/npm/esm/index.js",
   "types": "build/npm/types/index.d.ts",
+  "publishConfig": {
+    "access": "public",
+    "tag": "v7"
+  },
   "typesVersions": {
     "<4.9": {
       "build/npm/types/index.d.ts": [
