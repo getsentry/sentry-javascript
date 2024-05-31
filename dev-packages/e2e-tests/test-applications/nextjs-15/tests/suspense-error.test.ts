@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { waitForError, waitForTransaction } from '@sentry-internal/event-proxy-server';
+import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
 
 test('should not capture serverside suspense errors', async ({ page }) => {
   const pageServerComponentTransactionPromise = waitForTransaction('nextjs-15', async transactionEvent => {
