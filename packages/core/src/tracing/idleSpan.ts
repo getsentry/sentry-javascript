@@ -268,17 +268,7 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
       }
 
       const childSpanJSON = spanToJSON(childSpan);
-      const { timestamp: childEndTimestamp, start_timestamp: childStartTimestamp } = childSpanJSON;
-
-      if (!childStartTimestamp || !childEndTimestamp) {
-        DEBUG_BUILD &&
-          logger.log(
-            '[Tracing] Discarding span since it has no start or end timestamp',
-            JSON.stringify(childSpan, undefined, 2),
-          );
-
-        return;
-      }
+      const { timestamp: childEndTimestamp = 0, start_timestamp: childStartTimestamp = 0 } = childSpanJSON;
 
       const spanStartedBeforeIdleSpanEnd = childStartTimestamp <= endTimestamp;
 
@@ -289,11 +279,7 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
       if (DEBUG_BUILD) {
         const stringifiedSpan = JSON.stringify(childSpan, undefined, 2);
         if (!spanStartedBeforeIdleSpanEnd) {
-          logger.log(
-            '[Tracing] Discarding span since it happened after idle span was finished',
-            stringifiedSpan,
-            endTimestamp,
-          );
+          logger.log('[Tracing] Discarding span since it happened after idle span was finished', stringifiedSpan);
         } else if (!spanEndedBeforeFinalTimeout) {
           logger.log('[Tracing] Discarding span since it finished after idle span final timeout', stringifiedSpan);
         }
