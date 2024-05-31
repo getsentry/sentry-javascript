@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { waitForError } from '@sentry-internal/test-utils';
+import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
 
 test('Sends thrown error to Sentry', async ({ baseURL }) => {
   const errorEventPromise = waitForError('node-hapi', errorEvent => {
