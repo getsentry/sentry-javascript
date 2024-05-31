@@ -141,4 +141,61 @@ describe('Unit | util | createPerformanceEntries', () => {
       });
     });
   });
+
+  describe('getCumulativeLayoutShift', () => {
+    it('works with an CLS metric', async () => {
+      const metric = {
+        value: 5108.299,
+        entries: [],
+      };
+
+      const event = getCumulativeLayoutShift(metric);
+
+      expect(event).toEqual({
+        type: 'web-vital',
+        name: 'cumulative-layout-shift',
+        start: 1672531205.108299,
+        end: 1672531205.108299,
+        data: { value: 5108.299, size: 5108.299, nodeId: undefined },
+      });
+    });
+  });
+
+  describe('getFirstInputDelay', () => {
+    it('works with an FID metric', async () => {
+      const metric = {
+        value: 5108.299,
+        entries: [],
+      };
+
+      const event = getFirstInputDelay(metric);
+
+      expect(event).toEqual({
+        type: 'web-vital',
+        name: 'first-input-delay',
+        start: 1672531205.108299,
+        end: 1672531205.108299,
+        data: { value: 5108.299, size: 5108.299, nodeId: undefined },
+      });
+    });
+  });
+
+  describe('getInteractionToNextPaint', () => {
+    it('works with an INP metric', async () => {
+      const metric = {
+        value: 5108.299,
+        entries: [],
+      };
+
+      const event = getInteractionToNextPaint(metric);
+
+      expect(event).toEqual({
+        type: 'web-vital',
+        name: 'interaction-to-next-paint',
+        start: 1672531205.108299,
+        end: 1672531205.108299,
+        data: { value: 5108.299, size: 5108.299, nodeId: undefined },
+      });
+    });
+  });
 });
