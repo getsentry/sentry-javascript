@@ -1,6 +1,11 @@
 import { addEventProcessor, applySdkMetadata, hasTracingEnabled, setTag } from '@sentry/core';
 import type { BrowserOptions } from '@sentry/react';
-import { nextRoutesStackParser, defaultStackLineParsers, getDefaultIntegrations as getReactDefaultIntegrations, init as reactInit } from '@sentry/react';
+import {
+  defaultStackLineParsers,
+  getDefaultIntegrations as getReactDefaultIntegrations,
+  init as reactInit,
+  nextRoutesStackParser,
+} from '@sentry/react';
 import type { EventProcessor, Integration } from '@sentry/types';
 import { GLOBAL_OBJ, createStackParser } from '@sentry/utils';
 

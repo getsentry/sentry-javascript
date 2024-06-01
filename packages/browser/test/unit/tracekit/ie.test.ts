@@ -1,8 +1,18 @@
 import { createStackParser } from '@sentry/utils';
 import { exceptionFromError } from '../../../src/eventbuilder';
-import { chromeStackLineParser, geckoStackLineParser, nextRoutesStackParser, winjsStackLineParser } from '../../../src/stack-parsers';
+import {
+  chromeStackLineParser,
+  geckoStackLineParser,
+  nextRoutesStackParser,
+  winjsStackLineParser,
+} from '../../../src/stack-parsers';
 
-const parser = createStackParser(nextRoutesStackParser, chromeStackLineParser, geckoStackLineParser, winjsStackLineParser);
+const parser = createStackParser(
+  nextRoutesStackParser,
+  chromeStackLineParser,
+  geckoStackLineParser,
+  winjsStackLineParser,
+);
 
 describe('Tracekit - IE Tests', () => {
   it('should parse IE 10 error', () => {
