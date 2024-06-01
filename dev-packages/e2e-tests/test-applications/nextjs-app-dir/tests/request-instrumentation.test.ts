@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '@sentry-internal/event-proxy-server';
+import { waitForTransaction } from '@sentry-internal/test-utils';
 
 // Note(lforst): I officially declare bancruptcy on this test. I tried a million ways to make it work but it kept flaking.
 // Sometimes the request span was included in the handler span, more often it wasn't. I have no idea why. Maybe one day we will
