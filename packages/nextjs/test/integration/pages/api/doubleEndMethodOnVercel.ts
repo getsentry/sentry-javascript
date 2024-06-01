@@ -6,6 +6,4 @@ const handler = async (_req: NextApiRequest, res: NextApiResponse): Promise<void
   res.end();
 };
 
-handler.__sentry_test_doesnt_support_streaming__ = true;
-
 export default handler;

@@ -1,4 +1,5 @@
 import type { Envelope, Transport, TransportMakeRequestResponse } from '@sentry/types';
+import { vi } from 'vitest';
 
 import type { Replay as ReplayIntegration } from '../../src/integration';
 import type { ReplayContainer } from '../../src/replay';
@@ -16,7 +17,7 @@ class MockTransport implements Transport {
   send: (request: Envelope) => PromiseLike<TransportMakeRequestResponse>;
 
   constructor() {
-    this.send = jest.fn(async () => {
+    this.send = vi.fn(async () => {
       return {
         statusCode: 200,
       };

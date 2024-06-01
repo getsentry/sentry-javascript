@@ -10,6 +10,7 @@ export {
   extraErrorDataIntegration,
   rewriteFramesIntegration,
   sessionTimingIntegration,
+  captureFeedback,
 } from '@sentry/core';
 
 export {
@@ -38,6 +39,8 @@ export {
   sendFeedback,
 } from '@sentry-internal/feedback';
 
+export * from './metrics';
+
 export {
   defaultRequestInstrumentationOptions,
   instrumentOutgoingRequests,
@@ -58,12 +61,14 @@ export {
   startInactiveSpan,
   startSpanManual,
   withActiveSpan,
+  startNewTrace,
   getSpanDescendants,
   setMeasurement,
   getSpanStatusFromHttpCode,
   setHttpStatus,
   makeMultiplexedTransport,
   moduleMetadataIntegration,
+  zodErrorsIntegration,
 } from '@sentry/core';
 export type { Span } from '@sentry/types';
 export { makeBrowserOfflineTransport } from './transports/offline';

@@ -24,6 +24,7 @@ import type {
   Span,
   SpanAttributes,
   SpanContextData,
+  SpanJSON,
   StartSpanOptions,
   TransactionEvent,
   Transport,
@@ -35,6 +36,7 @@ import {
   addItemToEnvelope,
   checkOrSetAlreadyCaught,
   createAttachmentEnvelopeItem,
+  dropUndefinedKeys,
   isParameterizedString,
   isPlainObject,
   isPrimitive,
@@ -141,6 +143,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
         options._metadata ? options._metadata.sdk : undefined,
       );
       this._transport = options.transport({
+        tunnel: this._options.tunnel,
         recordDroppedEvent: this.recordDroppedEvent.bind(this),
         ...options.transportOptions,
         url,
@@ -648,6 +651,10 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
 
     this.emit('preprocessEvent', event, hint);
 
+    if (!event.type) {
+      isolationScope.setLastEventId(event.event_id || hint.event_id);
+    }
+
     return prepareEvent(options, event, hint, currentScope, this, isolationScope).then(evt => {
       if (evt === null) {
         return evt;
@@ -662,11 +669,11 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
       if (!trace && propagationContext) {
         const { traceId: trace_id, spanId, parentSpanId, dsc } = propagationContext;
         evt.contexts = {
-          trace: {
+          trace: dropUndefinedKeys({
             trace_id,
             span_id: spanId,
             parent_span_id: parentSpanId,
-          },
+          }),
           ...evt.contexts,
         };
 
@@ -890,14 +897,27 @@ function processBeforeSend(
   event: Event,
   hint: EventHint,
 ): PromiseLike<Event | null> | Event | null {
-  const { beforeSend, beforeSendTransaction } = options;
+  const { beforeSend, beforeSendTransaction, beforeSendSpan } = options;
 
   if (isErrorEvent(event) && beforeSend) {
     return beforeSend(event, hint);
   }
 
-  if (isTransactionEvent(event) && beforeSendTransaction) {
-    return beforeSendTransaction(event, hint);
+  if (isTransactionEvent(event)) {
+    if (event.spans && beforeSendSpan) {
+      const processedSpans: SpanJSON[] = [];
+      for (const span of event.spans) {
+        const processedSpan = beforeSendSpan(span);
+        if (processedSpan) {
+          processedSpans.push(processedSpan);
+        }
+      }
+      event.spans = processedSpans;
+    }
+
+    if (beforeSendTransaction) {
+      return beforeSendTransaction(event, hint);
+    }
   }
 
   return event;

@@ -6,8 +6,8 @@
         "dev": "vite dev",
         "build": "vite build",
         "preview": "vite preview",
-        "proxy": "node start-event-proxy.cjs",
-        "clean": "npx rimraf node_modules,pnpm-lock.yaml",
+        "proxy": "node start-event-proxy.mjs",
+        "clean": "npx rimraf node_modules pnpm-lock.yaml",
         "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
         "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
         "test:prod": "TEST_ENV=production playwright test",
@@ -19,8 +19,8 @@
         "@spotlightjs/spotlight": "2.0.0-alpha.1"
     },
     "devDependencies": {
-        "@playwright/test": "^1.36.2",
-        "@sentry-internal/event-proxy-server": "link:../../../event-proxy-server",
+        "@playwright/test": "^1.44.1",
+        "@sentry-internal/test-utils": "link:../../../test-utils",
         "@sentry/types": "latest || *",
         "@sentry/utils": "latest || *",
         "@sveltejs/adapter-auto": "^3.0.0",
@@ -28,11 +28,9 @@
         "@sveltejs/vite-plugin-svelte": "^3.0.0",
         "svelte": "^5.0.0-next.115",
         "svelte-check": "^3.6.0",
-        "ts-node": "10.9.1",
         "tslib": "^2.4.1",
         "typescript": "^5.0.0",
-        "vite": "^5.0.3",
-        "wait-port": "1.0.4"
+        "vite": "^5.0.3"
     },
     "type": "module"
 }

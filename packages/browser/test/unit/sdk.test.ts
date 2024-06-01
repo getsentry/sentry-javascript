@@ -135,6 +135,8 @@ describe('init', () => {
       new MockIntegration('MockIntegration 0.2'),
     ];
 
+    const originalLocation = WINDOW.location || {};
+
     const options = getDefaultBrowserOptions({ dsn: PUBLIC_DSN, defaultIntegrations: DEFAULT_INTEGRATIONS });
 
     afterEach(() => {
@@ -142,7 +144,7 @@ describe('init', () => {
       Object.defineProperty(WINDOW, 'browser', { value: undefined, writable: true });
     });
 
-    it('should log a browser extension error if executed inside a Chrome extension', () => {
+    it('logs a browser extension error if executed inside a Chrome extension', () => {
       const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
       Object.defineProperty(WINDOW, 'chrome', {
@@ -160,7 +162,7 @@ describe('init', () => {
       consoleErrorSpy.mockRestore();
     });
 
-    it('should log a browser extension error if executed inside a Firefox/Safari extension', () => {
+    it('logs a browser extension error if executed inside a Firefox/Safari extension', () => {
       const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
       Object.defineProperty(WINDOW, 'browser', { value: { runtime: { id: 'mock-extension-id' } }, writable: true });
@@ -175,7 +177,30 @@ describe('init', () => {
       consoleErrorSpy.mockRestore();
     });
 
-    it('should not log a browser extension error if executed inside regular browser environment', () => {
+    it.each(['chrome-extension', 'moz-extension', 'ms-browser-extension'])(
+      "doesn't log a browser extension error if executed inside an extension running in a dedicated page (%s)",
+      extensionProtocol => {
+        const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+        // @ts-expect-error - this is a hack to simulate a dedicated page in a browser extension
+        delete WINDOW.location;
+        // @ts-expect-error - this is a hack to simulate a dedicated page in a browser extension
+        WINDOW.location = {
+          href: `${extensionProtocol}://mock-extension-id/dedicated-page.html`,
+        };
+
+        Object.defineProperty(WINDOW, 'browser', { value: { runtime: { id: 'mock-extension-id' } }, writable: true });
+
+        init(options);
+
+        expect(consoleErrorSpy).toBeCalledTimes(0);
+
+        consoleErrorSpy.mockRestore();
+        WINDOW.location = originalLocation;
+      },
+    );
+
+    it("doesn't log a browser extension error if executed inside regular browser environment", () => {
       const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
       init(options);

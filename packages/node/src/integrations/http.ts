@@ -1,6 +1,5 @@
-import type { ClientRequest, IncomingMessage, ServerResponse } from 'http';
+import type { ClientRequest, ServerResponse } from 'node:http';
 import type { Span } from '@opentelemetry/api';
-import { SpanKind } from '@opentelemetry/api';
 import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
 import { addOpenTelemetryInstrumentation } from '@sentry/opentelemetry';
 
@@ -12,17 +11,18 @@ import {
   getIsolationScope,
   isSentryRequestUrl,
   setCapturedScopesOnSpan,
-  spanToJSON,
 } from '@sentry/core';
-import { getClient, getRequestSpanData, getSpanKind } from '@sentry/opentelemetry';
-import type { IntegrationFn } from '@sentry/types';
+import { getClient } from '@sentry/opentelemetry';
+import type { IntegrationFn, SanitizedRequestData } from '@sentry/types';
 
-import { stripUrlQueryAndFragment } from '@sentry/utils';
+import { getSanitizedUrlString, parseUrl, stripUrlQueryAndFragment } from '@sentry/utils';
 import type { NodeClient } from '../sdk/client';
 import { setIsolationScope } from '../sdk/scope';
 import type { HTTPModuleRequestIncomingMessage } from '../transports/http-module';
 import { addOriginToSpan } from '../utils/addOriginToSpan';
 import { getRequestUrl } from '../utils/getRequestUrl';
+
+const INTEGRATION_NAME = 'Http';
 
 interface HttpOptions {
   /**
@@ -47,105 +47,127 @@ interface HttpOptions {
   _instrumentation?: typeof HttpInstrumentation;
 }
 
+let _httpOptions: HttpOptions = {};
+let _httpInstrumentation: HttpInstrumentation | undefined;
+
+/**
+ * Instrument the HTTP module.
+ * This can only be instrumented once! If this called again later, we just update the options.
+ */
+export const instrumentHttp = Object.assign(
+  function (): void {
+    if (_httpInstrumentation) {
+      return;
+    }
+
+    const _InstrumentationClass = _httpOptions._instrumentation || HttpInstrumentation;
+
+    _httpInstrumentation = new _InstrumentationClass({
+      ignoreOutgoingRequestHook: request => {
+        const url = getRequestUrl(request);
+
+        if (!url) {
+          return false;
+        }
+
+        if (isSentryRequestUrl(url, getClient())) {
+          return true;
+        }
+
+        const _ignoreOutgoingRequests = _httpOptions.ignoreOutgoingRequests;
+        if (_ignoreOutgoingRequests && _ignoreOutgoingRequests(url)) {
+          return true;
+        }
+
+        return false;
+      },
+
+      ignoreIncomingRequestHook: request => {
+        const url = getRequestUrl(request);
+
+        const method = request.method?.toUpperCase();
+        // We do not capture OPTIONS/HEAD requests as transactions
+        if (method === 'OPTIONS' || method === 'HEAD') {
+          return true;
+        }
+
+        const _ignoreIncomingRequests = _httpOptions.ignoreIncomingRequests;
+        if (_ignoreIncomingRequests && _ignoreIncomingRequests(url)) {
+          return true;
+        }
+
+        return false;
+      },
+
+      requireParentforOutgoingSpans: false,
+      requireParentforIncomingSpans: false,
+      requestHook: (span, req) => {
+        addOriginToSpan(span, 'auto.http.otel.http');
+
+        // both, incoming requests and "client" requests made within the app trigger the requestHook
+        // we only want to isolate and further annotate incoming requests (IncomingMessage)
+        if (_isClientRequest(req)) {
+          return;
+        }
+
+        const scopes = getCapturedScopesOnSpan(span);
+
+        const isolationScope = (scopes.isolationScope || getIsolationScope()).clone();
+        const scope = scopes.scope || getCurrentScope();
+
+        // Update the isolation scope, isolate this request
+        isolationScope.setSDKProcessingMetadata({ request: req });
+
+        const client = getClient<NodeClient>();
+        if (client && client.getOptions().autoSessionTracking) {
+          isolationScope.setRequestSession({ status: 'ok' });
+        }
+        setIsolationScope(isolationScope);
+        setCapturedScopesOnSpan(span, scope, isolationScope);
+
+        // attempt to update the scope's `transactionName` based on the request URL
+        // Ideally, framework instrumentations coming after the HttpInstrumentation
+        // update the transactionName once we get a parameterized route.
+        const httpMethod = (req.method || 'GET').toUpperCase();
+        const httpTarget = stripUrlQueryAndFragment(req.url || '/');
+
+        const bestEffortTransactionName = `${httpMethod} ${httpTarget}`;
+
+        isolationScope.setTransactionName(bestEffortTransactionName);
+      },
+      responseHook: () => {
+        const client = getClient<NodeClient>();
+        if (client && client.getOptions().autoSessionTracking) {
+          setImmediate(() => {
+            client['_captureRequestSession']();
+          });
+        }
+      },
+      applyCustomAttributesOnSpan: (
+        _span: Span,
+        request: ClientRequest | HTTPModuleRequestIncomingMessage,
+        response: HTTPModuleRequestIncomingMessage | ServerResponse,
+      ) => {
+        const _breadcrumbs = typeof _httpOptions.breadcrumbs === 'undefined' ? true : _httpOptions.breadcrumbs;
+        if (_breadcrumbs) {
+          _addRequestBreadcrumb(request, response);
+        }
+      },
+    });
+
+    addOpenTelemetryInstrumentation(_httpInstrumentation);
+  },
+  {
+    id: INTEGRATION_NAME,
+  },
+);
+
 const _httpIntegration = ((options: HttpOptions = {}) => {
-  const _breadcrumbs = typeof options.breadcrumbs === 'undefined' ? true : options.breadcrumbs;
-  const _ignoreOutgoingRequests = options.ignoreOutgoingRequests;
-  const _ignoreIncomingRequests = options.ignoreIncomingRequests;
-  const _InstrumentationClass = options._instrumentation || HttpInstrumentation;
-
   return {
-    name: 'Http',
+    name: INTEGRATION_NAME,
     setupOnce() {
-      addOpenTelemetryInstrumentation(
-        new _InstrumentationClass({
-          ignoreOutgoingRequestHook: request => {
-            const url = getRequestUrl(request);
-
-            if (!url) {
-              return false;
-            }
-
-            if (isSentryRequestUrl(url, getClient())) {
-              return true;
-            }
-
-            if (_ignoreOutgoingRequests && _ignoreOutgoingRequests(url)) {
-              return true;
-            }
-
-            return false;
-          },
-
-          ignoreIncomingRequestHook: request => {
-            const url = getRequestUrl(request);
-
-            const method = request.method?.toUpperCase();
-            // We do not capture OPTIONS/HEAD requests as transactions
-            if (method === 'OPTIONS' || method === 'HEAD') {
-              return true;
-            }
-
-            if (_ignoreIncomingRequests && _ignoreIncomingRequests(url)) {
-              return true;
-            }
-
-            return false;
-          },
-
-          requireParentforOutgoingSpans: false,
-          requireParentforIncomingSpans: false,
-          requestHook: (span, req) => {
-            addOriginToSpan(span, 'auto.http.otel.http');
-
-            // both, incoming requests and "client" requests made within the app trigger the requestHook
-            // we only want to isolate and further annotate incoming requests (IncomingMessage)
-            if (_isClientRequest(req)) {
-              return;
-            }
-
-            const scopes = getCapturedScopesOnSpan(span);
-
-            const isolationScope = (scopes.isolationScope || getIsolationScope()).clone();
-            const scope = scopes.scope || getCurrentScope();
-
-            // Update the isolation scope, isolate this request
-            isolationScope.setSDKProcessingMetadata({ request: req });
-
-            const client = getClient<NodeClient>();
-            if (client && client.getOptions().autoSessionTracking) {
-              isolationScope.setRequestSession({ status: 'ok' });
-            }
-            setIsolationScope(isolationScope);
-            setCapturedScopesOnSpan(span, scope, isolationScope);
-
-            // attempt to update the scope's `transactionName` based on the request URL
-            // Ideally, framework instrumentations coming after the HttpInstrumentation
-            // update the transactionName once we get a parameterized route.
-            const attributes = spanToJSON(span).data;
-            if (!attributes) {
-              return;
-            }
-
-            const httpMethod = String(attributes['http.method']).toUpperCase() || 'GET';
-            const httpTarget = stripUrlQueryAndFragment(String(attributes['http.target'])) || '/';
-            const bestEffortTransactionName = `${httpMethod} ${httpTarget}`;
-
-            isolationScope.setTransactionName(bestEffortTransactionName);
-          },
-          responseHook: (span, res) => {
-            if (_breadcrumbs) {
-              _addRequestBreadcrumb(span, res);
-            }
-
-            const client = getClient<NodeClient>();
-            if (client && client.getOptions().autoSessionTracking) {
-              setImmediate(() => {
-                client['_captureRequestSession']();
-              });
-            }
-          },
-        }),
-      );
+      _httpOptions = options;
+      instrumentHttp();
     },
   };
 }) satisfies IntegrationFn;
@@ -157,12 +179,16 @@ const _httpIntegration = ((options: HttpOptions = {}) => {
 export const httpIntegration = defineIntegration(_httpIntegration);
 
 /** Add a breadcrumb for outgoing requests. */
-function _addRequestBreadcrumb(span: Span, response: HTTPModuleRequestIncomingMessage | ServerResponse): void {
-  if (getSpanKind(span) !== SpanKind.CLIENT) {
+function _addRequestBreadcrumb(
+  request: ClientRequest | HTTPModuleRequestIncomingMessage,
+  response: HTTPModuleRequestIncomingMessage | ServerResponse,
+): void {
+  // Only generate breadcrumbs for outgoing requests
+  if (!_isClientRequest(request)) {
     return;
   }
 
-  const data = getRequestSpanData(span);
+  const data = getBreadcrumbData(request);
   addBreadcrumb(
     {
       category: 'http',
@@ -174,12 +200,35 @@ function _addRequestBreadcrumb(span: Span, response: HTTPModuleRequestIncomingMe
     },
     {
       event: 'response',
-      // TODO FN: Do we need access to `request` here?
-      // If we do, we'll have to use the `applyCustomAttributesOnSpan` hook instead,
-      // but this has worse context semantics than request/responseHook.
+      request,
       response,
     },
   );
+}
+
+function getBreadcrumbData(request: ClientRequest): Partial<SanitizedRequestData> {
+  try {
+    // `request.host` does not contain the port, but the host header does
+    const host = request.getHeader('host') || request.host;
+    const url = new URL(request.path, `${request.protocol}//${host}`);
+    const parsedUrl = parseUrl(url.toString());
+
+    const data: Partial<SanitizedRequestData> = {
+      url: getSanitizedUrlString(parsedUrl),
+      'http.method': request.method || 'GET',
+    };
+
+    if (parsedUrl.search) {
+      data['http.query'] = parsedUrl.search;
+    }
+    if (parsedUrl.hash) {
+      data['http.fragment'] = parsedUrl.hash;
+    }
+
+    return data;
+  } catch {
+    return {};
+  }
 }
 
 /**
@@ -187,6 +236,6 @@ function _addRequestBreadcrumb(span: Span, response: HTTPModuleRequestIncomingMe
  * and it's an outgoing request.
  * Checking for properties instead of using `instanceOf` to avoid importing the request classes.
  */
-function _isClientRequest(req: ClientRequest | IncomingMessage): req is ClientRequest {
+function _isClientRequest(req: ClientRequest | HTTPModuleRequestIncomingMessage): req is ClientRequest {
   return 'outputData' in req && 'outputSize' in req && !('client' in req) && !('statusCode' in req);
 }

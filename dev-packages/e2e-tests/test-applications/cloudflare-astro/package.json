@@ -7,7 +7,7 @@
     "astro": "astro",
     "build": "astro build",
     "build:bundle": "astro build",
-    "clean": "npx rimraf node_modules,pnpm-lock.yaml",
+    "clean": "npx rimraf node_modules pnpm-lock.yaml",
     "dev": "astro dev",
     "preview": "astro preview",
     "start": "astro dev",

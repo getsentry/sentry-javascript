@@ -1,7 +1,7 @@
+import { Worker } from 'node:worker_threads';
 import { defineIntegration } from '@sentry/core';
 import type { Event, Exception, IntegrationFn } from '@sentry/types';
 import { LRUMap, logger } from '@sentry/utils';
-import { Worker } from 'worker_threads';
 
 import type { NodeClient } from '../../sdk/client';
 import type { FrameVariables, LocalVariablesIntegrationOptions, LocalVariablesWorkerArgs } from './common';
@@ -75,7 +75,7 @@ export const localVariablesAsyncIntegration = defineIntegration(((
 
   async function startInspector(): Promise<void> {
     // We load inspector dynamically because on some platforms Node is built without inspector support
-    const inspector = await import('inspector');
+    const inspector = await import('node:inspector');
     if (!inspector.url()) {
       inspector.open(0);
     }
@@ -84,6 +84,8 @@ export const localVariablesAsyncIntegration = defineIntegration(((
   function startWorker(options: LocalVariablesWorkerArgs): void {
     const worker = new Worker(new URL(`data:application/javascript;base64,${base64WorkerScript}`), {
       workerData: options,
+      // We don't want any Node args to be passed to the worker
+      execArgv: [],
     });
 
     process.on('exit', () => {

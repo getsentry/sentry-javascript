@@ -7,7 +7,7 @@ import type { FeedbackEvent, UserFeedback } from './feedback';
 import type { Profile } from './profiling';
 import type { ReplayEvent, ReplayRecordingData } from './replay';
 import type { SdkInfo } from './sdkinfo';
-import type { SerializedSession, Session, SessionAggregates } from './session';
+import type { SerializedSession, SessionAggregates } from './session';
 import type { SpanJSON } from './span';
 
 // Based on: https://develop.sentry.dev/sdk/envelopes/
@@ -83,13 +83,11 @@ type StatsdItemHeaders = { type: 'statsd'; length: number };
 type ProfileItemHeaders = { type: 'profile' };
 type SpanItemHeaders = { type: 'span' };
 
-// TODO (v8): Replace `Event` with `SerializedEvent`
 export type EventItem = BaseEnvelopeItem<EventItemHeaders, Event>;
 export type AttachmentItem = BaseEnvelopeItem<AttachmentItemHeaders, string | Uint8Array>;
 export type UserFeedbackItem = BaseEnvelopeItem<UserFeedbackItemHeaders, UserFeedback>;
 export type SessionItem =
-  // TODO(v8): Only allow serialized session here (as opposed to Session or SerializedSesison)
-  | BaseEnvelopeItem<SessionItemHeaders, Session | SerializedSession>
+  | BaseEnvelopeItem<SessionItemHeaders, SerializedSession>
   | BaseEnvelopeItem<SessionAggregatesItemHeaders, SessionAggregates>;
 export type ClientReportItem = BaseEnvelopeItem<ClientReportItemHeaders, ClientReport>;
 export type CheckInItem = BaseEnvelopeItem<CheckInItemHeaders, SerializedCheckIn>;

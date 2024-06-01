@@ -4,6 +4,483 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 8.7.0
+
+### Important Changes
+
+- **feat(react): Add TanStack Router integration (#12095)**
+
+  This release adds instrumentation for TanStack router with a new `tanstackRouterBrowserTracingIntegration` in the
+  `@sentry/react` SDK:
+
+  ```javascript
+  import * as Sentry from '@sentry/react';
+  import { createRouter } from '@tanstack/react-router';
+
+  const router = createRouter({
+    // Your router options...
+  });
+
+  Sentry.init({
+    dsn: '___PUBLIC_DSN___',
+    integrations: [Sentry.tanstackRouterBrowserTracingIntegration(router)],
+    tracesSampleRate: 1.0,
+  });
+  ```
+
+### Other Changes
+
+- fix(nextjs): Do not hide `sourceMappingURL` comment on client when `nextConfig.productionBrowserSourceMaps: true` is
+  set (#12278)
+
+## 8.6.0
+
+### Important Changes
+
+- **feat(metrics): Add `timings` method to metrics (#12226)**
+
+  This introduces a new method, `metrics.timing()`, which can be used in two ways:
+
+  1. With a numeric value, to simplify creating a distribution metric. This will default to `second` as unit:
+
+  ```js
+  Sentry.metrics.timing('myMetric', 100);
+  ```
+
+  2. With a callback, which will wrap the duration of the callback. This can accept a sync or async callback. It will
+     create an inactive span around the callback and at the end emit a metric with the duration of the span in seconds:
+
+  ```js
+  const returnValue = Sentry.metrics.timing('myMetric', measureThisFunction);
+  ```
+
+- **feat(react): Add `Sentry.reactErrorHandler` (#12147)**
+
+  This PR introduces `Sentry.reactErrorHandler`, which you can use in React 19 as follows:
+
+  ```js
+  import * as Sentry from '@sentry/react';
+  import { hydrateRoot } from 'react-dom/client';
+
+  ReactDOM.hydrateRoot(
+    document.getElementById('root'),
+    <React.StrictMode>
+      <App />
+    </React.StrictMode>,
+    {
+      onUncaughtError: Sentry.reactErrorHandler(),
+      onCaughtError: Sentry.reactErrorHandler((error, errorInfo) => {
+        // optional callback if users want custom config.
+      }),
+    },
+  );
+  ```
+
+  For more details, take a look at [the PR](https://github.com/getsentry/sentry-javascript/pull/12147). Our
+  documentation will be updated soon!
+
+### Other Changes
+
+- feat(sveltekit): Add request data to server-side events (#12254)
+- fix(core): Pass in cron monitor config correctly (#12248)
+- fix(nextjs): Don't capture suspense errors in server components (#12261)
+- fix(tracing): Ensure sent spans are limited to 1000 (#12252)
+- ref(core): Use versioned carrier on global object (#12206)
+
+## 8.5.0
+
+### Important Changes
+
+- **feat(react): Add React 19 to peer deps (#12207)**
+
+This release adds support for React 19 in the `@sentry/react` SDK package.
+
+- **feat(node): Add `@sentry/node/preload` hook (#12213)**
+
+This release adds a new way to initialize `@sentry/node`, which allows you to use the SDK with performance
+instrumentation even if you cannot call `Sentry.init()` at the very start of your app.
+
+First, run the SDK like this:
+
+```bash
+node --require @sentry/node/preload ./app.js
+```
+
+Now, you can initialize and import the rest of the SDK later or asynchronously:
+
+```js
+const express = require('express');
+const Sentry = require('@sentry/node');
+
+const dsn = await getSentryDsn();
+Sentry.init({ dsn });
+```
+
+For more details, head over to the
+[PR Description of the new feature](https://github.com/getsentry/sentry-javascript/pull/12213). Our docs will be updated
+soon with a new guide.
+
+### Other Changes
+
+- feat(browser): Do not include metrics in base CDN bundle (#12230)
+- feat(core): Add `startNewTrace` API (#12138)
+- feat(core): Allow to pass custom scope to `captureFeedback()` (#12216)
+- feat(core): Only allow `SerializedSession` in session envelope items (#11979)
+- feat(nextjs): Use Vercel's `waitUntil` to defer freezing of Vercel Lambdas (#12133)
+- feat(node): Ensure manual OTEL setup works (#12214)
+- fix(aws-serverless): Avoid minifying `Module._resolveFilename` in Lambda layer bundle (#12232)
+- fix(aws-serverless): Ensure lambda layer uses default export from `ImportInTheMiddle` (#12233)
+- fix(browser): Improve browser extension error message check (#12146)
+- fix(browser): Remove optional chaining in INP code (#12196)
+- fix(nextjs): Don't report React postpone errors (#12194)
+- fix(nextjs): Use global scope for generic event filters (#12205)
+- fix(node): Add origin to redis span (#12201)
+- fix(node): Change import of `@prisma/instrumentation` to use default import (#12185)
+- fix(node): Only import `inspector` asynchronously (#12231)
+- fix(replay): Update matcher for hydration error detection to new React docs (#12209)
+- ref(profiling-node): Add warning when using non-LTS node (#12211)
+
+## 8.4.0
+
+### Important Changes
+
+- **feat(nextjs): Trace pageloads in App Router (#12157)**
+
+If you are using Next.js version `14.3.0-canary.64` or above, the Sentry Next.js SDK will now trace clientside pageloads
+with React Server Components. This means, that client-side errors like
+`Error: An error occurred in the Server Components render.`, which previously didn't give you much information on how
+that error was caused, can now be traced back to a specific error in a server component.
+
+- **feat(angular): Add Support for Angular 18 (#12183)**
+
+This release guarantees support for Angular 18 with `@sentry/angular`.
+
+### Other Changes
+
+- feat(deps): Bump @opentelemetry/instrumentation-aws-lambda from 0.41.0 to 0.41.1 (#12078)
+- fix(metrics): Ensure string values are interpreted for metrics (#12165)
+
+## 8.3.0
+
+### Important Changes
+
+- **Better Node Framework Span Data**
+
+This release improves data quality of spans emitted by Express, Fastify, Connect, Koa, Nest.js and Hapi.
+
+- feat(node): Ensure connect spans have better data (#12130)
+- feat(node): Ensure express spans have better data (#12107)
+- feat(node): Ensure fastify spans have better data (#12106)
+- feat(node): Ensure hapi spans have better data (#12140)
+- feat(node): Ensure koa spans have better data (#12108)
+- feat(node): Ensure Nest.js spans have better data (#12139)
+- feat(deps): Bump @opentelemetry/instrumentation-express from 0.38.0 to 0.39.0 (#12079)
+
+- **feat(node): No-code init via `--import=@sentry/node/init` (#11999)**
+
+When using Sentry in ESM mode, you can now use Sentry without manually calling init like this:
+
+```bash
+ SENTRY_DSN=https://examplePublicKey@o0.ingest.sentry.io/0 node --import=@sentry/node/init app.mjs
+```
+
+When using CommonJS, you can do:
+
+```bash
+ SENTRY_DSN=https://examplePublicKey@o0.ingest.sentry.io/0 node --require=@sentry/node/init app.js
+```
+
+### Other Changes
+
+- chore: Align and update MIT license dates (#12143)
+- chore: Resolve or postpone a random assortment of TODOs (#11977)
+- doc(migration): Add entry for runWithAsyncContext (#12153)
+- docs: Add migration docs to point out that default import does not work (#12100)
+- docs(sveltekit): process.env.SENTRY_AUTH_TOKEN (#12118)
+- feat(browser): Ensure `browserProfilingIntegration` is published to CDN (#12158)
+- feat(google-cloud): Expose ESM build (#12149)
+- feat(nextjs): Ignore Prisma critical dependency warnings (#12144)
+- feat(node): Add app.free_memory info to events (#12150)
+- feat(node): Do not create GraphQL resolver spans by default (#12097)
+- feat(node): Use `node:` prefix for node built-ins (#11895)
+- feat(replay): Use unwrapped `setTimeout` to avoid e.g. angular change detection (#11924)
+- fix(core): Add dsn to span envelope header (#12096)
+- fix(feedback): Improve feedback border color in dark-mode, and prevent auto-dark mode when a theme is picked (#12126)
+- fix(feedback): Set optionOverrides to be optional in TS definition (#12125)
+- fix(nextjs): Don't put `undefined` values in props (#12131)
+- fix(nextjs): Fix legacy configuration method detection for emitting warning (#12136)
+- fix(node): Ensure fetch/http breadcrumbs are created correctly (#12137)
+- fix(node): Update `@prisma/instrumentation` from 5.13.0 to 5.14.0 (#12081)
+- ref(node): Add log for running in ESM/CommonJS mode (#12134)
+- ref(node): Handle failing hook registration gracefully (#12135)
+- ref(node): Only show instrumentation warning when tracing is enabled (#12141)
+
+Work in this release contributed by @pboling. Thank you for your contribution!
+
+## 8.2.1
+
+- fix(aws-serverless): Fix build of lambda layer (#12083)
+- fix(nestjs): Broaden nest.js type (#12076)
+
+## 8.2.0
+
+- feat(redis-cache): Create cache-span with prefixed keys (get/set commands) (#12070)
+- feat(core): Add `beforeSendSpan` hook (#11886)
+- feat(browser): Improve idle span handling (#12065)
+- fix(node): Set transactionName for unsampled spans in httpIntegration (#12071)
+- fix(core): Export Scope interface as `Scope` (#12067)
+- fix(core): Avoid looking up client for `hasTracingEnabled()` if possible (#12066)
+- fix(browser): Use consistent timestamps (#12063)
+- fix(node): Fix check for performance integrations (#12043)
+- ref(sveltekit): Warn to delete source maps if Sentry plugin enabled source maps generation (#12072)
+
+## 8.1.0
+
+This release mainly fixes a couple of bugs from the initial [8.0.0 release](#800). In addition to the changes below, we
+updated some initially missed points in our migration guides and documentation.
+
+- feat(aws-serverless): Fix tree-shaking for aws-serverless package (#12017)
+- feat(node): Bump opentelemetry instrumentation to latest version (#12028)
+- feat(scope): Bring back `lastEventId` on isolation scope (#11951) (#12022)
+- fix(aws-serverless): Export `awslambda-auto`
+- fix(node): Do not warn for missing instrumentation if SDK is disabled (#12041)
+- fix(react): Set dependency-injected functions as early as possible (#12019)
+- fix(react): Warn and fall back gracefully if dependency injected functions are not available (#12026)
+- ref(core): Streamline `parseSampleRate` utility function (#12024)
+- ref(feedback): Make `eventId` optional and use `lastEventId` in report dialog (#12029)
+
+## 8.0.0
+
+The Sentry JS SDK team is proud to announce the release of version `8.0.0` of Sentry's JavaScript SDKs - it's been a
+long time coming! Thanks to everyone for your patience and a special shout out to the brave souls testing preview builds
+and reporting issues - we appreciate your support!
+
+---
+
+### How to Upgrade to Version 8:
+
+We recommend reading the
+[migration guide docs](https://docs.sentry.io/platforms/javascript/migration/v7-to-v8/#migration-codemod) to find out
+how to address any breaking changes in your code for your specific platform or framework.
+
+To automate upgrading to v8 as much as possible, use our migration codemod `@sentry/migr8`:
+
+```sh
+npx @sentry/migr8@latest
+```
+
+All deprecations from the v7 cycle, with the exception of `getCurrentHub()`, have been removed and can no longer be used
+in v8. If you have an advanced Sentry SDK setup, we additionally recommend reading the
+[in-depth migration guide](./MIGRATION.md) in our repo which highlights all changes with additional details and
+information.
+
+The rest of this changelog highlights the most important (breaking) changes and links to more detailed information.
+
+### Version Support
+
+With v8, we dropped support for several old runtimes and browsers
+
+**Node SDKs:** The Sentry JavaScript SDK v8 now supports **Node.js 14.8.0 or higher**. This applies to `@sentry/node`
+and all of our node-based server-side sdks (`@sentry/nextjs`, `@sentry/remix`, etc.). Furthermore, version 8 now ships
+with full support for ESM-based node apps using **Node.js 18.19.0 or higher**.
+
+**Browser SDKs:** The browser SDKs now require
+[**ES2018+**](https://caniuse.com/?feats=mdn-javascript_builtins_regexp_dotall,js-regexp-lookbehind,mdn-javascript_builtins_regexp_named_capture_groups,mdn-javascript_builtins_regexp_property_escapes,mdn-javascript_builtins_symbol_asynciterator,mdn-javascript_functions_method_definitions_async_generator_methods,mdn-javascript_grammar_template_literals_template_literal_revision,mdn-javascript_operators_destructuring_rest_in_objects,mdn-javascript_operators_destructuring_rest_in_arrays,promise-finally)
+compatible browsers. New minimum browser versions:
+
+- Chrome 63
+- Edge 79
+- Safari/iOS Safari 12
+- Firefox 58
+- Opera 50
+- Samsung Internet 8.2
+
+For more details, please see the
+[version support section in our migration guide](./MIGRATION.md#1-version-support-changes).
+
+### Initializing Server-side SDKs (Node, Bun, Deno, Serverless):
+
+In v8, we support a lot more node-based packages than before. In order to ensure auto-instrumentation works, the SDK now
+needs to be imported and initialized before any other import in your code.
+
+We recommend creating a new file (e.g. `instrumentation.js`) to import and initialize the SDK. Then, import the file on
+top of your entry file or detailed instructions, check our updated SDK setup docs
+[initializing the SDK in v8](https://docs.sentry.io/platforms/javascript/guides/node/).
+
+### Performance Monitoring Changes
+
+The API around performance monitoring and tracing has been streamlined, and we've added support for more integrations
+out of the box.
+
+- [Performance Monitoring API](./MIGRATION.md#performance-monitoring-api)
+- [Performance Monitoring Integrations](./MIGRATION.md#performance-monitoring-integrations)
+
+### Functional Integrations
+
+Integrations are now simple functions instead of classes. Class-based integrations
+[have been removed](./MIGRATION.md#removal-of-class-based-integrations):
+
+```javascript
+// old (v7)
+Sentry.init({
+  integrations: [new Sentry.BrowserTracing()],
+});
+
+// new (v8)
+Sentry.init({
+  integrations: [Sentry.browserTracingIntegration()],
+});
+```
+
+### Package removal
+
+The following packages have been removed or replaced and will no longer be published:
+
+- [`@sentry/hub`](./MIGRATION.md#sentryhub)
+- [`@sentry/tracing`](./MIGRATION.md#sentrytracing)
+- [`@sentry/integrations`](./MIGRATION.md#sentryintegrations)
+- [`@sentry/serverless`](./MIGRATION.md#sentryserverless)
+- [`@sentry/replay`](./MIGRATION.md#sentryreplay)
+
+### Changes since `8.0.0-rc.3`
+
+- **feat(nextjs): Remove `transpileClientSDK` (#11978)**
+
+  As we are dropping support for Internet Explorer 11 and other other older browser versions wih version `8.0.0`, we are
+  also removing the `transpileClientSDK` option from the Next.js SDK. If you need to support these browser versions,
+  please configure Webpack and Next.js to down-compile the SDK.
+
+- **feat(serverless): Do not include performance integrations by default (#11998)**
+
+  To keep Lambda bundle size reasonable, the SDK no longer ships with all performance (database) integrations by
+  default. Add the Sentry integrations of the databases and other tools you're using manually to your `Sentry.init` call
+  by following
+  [this guide](https://docs.sentry.io/platforms/javascript/configuration/integrations/#modifying-default-integrations).
+  Note that this change does not apply if you use the SDK with the Sentry AWS Lambda layer.
+
+- feat(feedback): Simplify public css configuration for feedback (#11985)
+- fix(feedback): Check for empty user (#11993)
+- fix(replay): Fix type for `replayCanvasIntegration` (#11995)
+- fix(replay): Fix user activity not being updated in `start()` (#12001)
+
+## 8.0.0-rc.3
+
+### Important Changes
+
+- **feat(bun): Add Bun Global Unhandled Handlers (#11960)**
+
+The Bun SDK will now capture global unhandled errors.
+
+### Other Changes
+
+- feat(node): Log process and thread info on initialisation (#11972)
+- fix(aws-serverless): Include ESM artifacts in package (#11973)
+- fix(browser): Only start `http.client` spans if there is an active parent span (#11974)
+- fix(feedback): Improve CSS theme variable names and layout (#11964)
+- fix(node): Ensure `execArgv` are not sent to worker threads (#11963)
+- ref(feedback): Simplify feedback function params (#11957)
+
+## 8.0.0-rc.2
+
+### Important Changes
+
+- **feat(node): Register ESM patching hooks in init for supported Node.js versions**
+
+This release includes adds support for ESM when `Sentry.init()` is called within a module imported via the `--import`
+Node.js flag:
+
+```sh
+node --import ./your-file-with-sentry-init.mjs your-app.mjs
+```
+
+Note that the SDK only supports ESM for node versions `18.19.0` and above, and `20.6.0` above.
+
+### Other Changes
+
+- deps(node): Bump `@opentelemetry/core` to `1.24.1` and `@opentelemetry/instrumentation` to `0.51.1` (#11941)
+- feat(connect): Warn if connect is not instrumented (#11936)
+- feat(express): Warn if express is not instrumented (#11930)
+- feat(fastify): Warn if fastify is not instrumented (#11917)
+- feat(hapi): Warn if hapi is not instrumented (#11937)
+- feat(koa): Warn if koa is not instrumented (#11931)
+- fix(browser): Continuously record CLS web vital (#11934)
+- fix(feedback): Pick user from any scope (#11928)
+- fix(node): Fix cron instrumentation and add tests (#11811)
+
+## 8.0.0-rc.1
+
+This release contains no changes and was done for technical purposes. This version is considered stable.
+
+For the sake of completeness this changelog entry includes the changes from the previous release candidate:
+
+We recommend to read the detailed [migration guide](https://docs.sentry.io/platforms/javascript/migration/v7-to-v8/) in
+the docs.
+
+### Important Changes
+
+- **feat(node): Support hapi v21 & fix E2E test (#11906)**
+
+We now support hapi v21 and added tests for it.
+
+- **feat(node): Warn if ESM mode is detected (#11914)**
+
+When running Sentry in ESM mode, we will now warn you that this is not supported as of now. We are working on ensuring
+support with ESM builds.
+
+### Other Changes
+
+- feat(feedback): Iterate on css for better scrolling & resizing when browser is small (#11893)
+- fix(node): Ensure prisma integration creates valid DB spans (#11908)
+- fix(node): Include loader hook files in package.json (#11911)
+
+## 8.0.0-rc.0
+
+This is the first release candidate of Sentry JavaScript SDK v8.
+
+We recommend to read the detailed [migration guide](https://docs.sentry.io/platforms/javascript/migration/v7-to-v8/) in
+the docs.
+
+### Important Changes
+
+- **feat(node): Support hapi v21 & fix E2E test (#11906)**
+
+We now support hapi v21 and added tests for it.
+
+- **feat(node): Warn if ESM mode is detected (#11914)**
+
+When running Sentry in ESM mode, we will now warn you that this is not supported as of now. We are working on ensuring
+support with ESM builds.
+
+### Other Changes
+
+- feat(feedback): Iterate on css for better scrolling & resizing when browser is small (#11893)
+- fix(node): Ensure prisma integration creates valid DB spans (#11908)
+- fix(node): Include loader hook files in package.json (#11911)
+
+## 8.0.0-beta.6
+
+This beta release contains various bugfixes and improvements for the v8 beta cycle.
+
+- feat: Add `tunnel` support to multiplexed transport (#11806)
+- feat: Export `spanToBaggageHeader` utility (#11881)
+- feat(browser): Disable standalone `http.client` spans (#11879)
+- feat(ember): Update ember dependencies (#11753)
+- feat(fedback): Convert CDN bundles to use async feedback for lower bundle sizes (#11791)
+- feat(feedback): Add `captureFeedback` method (#11428)
+- feat(feedback): Have screenshot by default (#11839)
+- feat(integrations): Add zod integration (#11144)
+- feat(ioredis): Add integration for `ioredis` (#11856)
+- feat(nextjs): Add transaction name to scope of server component (#11850)
+- feat(nextjs): Be smarter in warning about old ways of init configuration (#11882)
+- feat(nextjs): Set transaction names on scope for route handlers and generation functions (#11869)
+- feat(node): Support Node 22 (#11871)
+- fix(angular): Run tracing calls outside Angular (#11748)
+- fix(feedback): Be consistent about whether screenshot should and can render (#11859)
+- fix(nestjs): Ensure Nest.js interceptor works with non-http context (#11880)
+- fix(node): Fix nest.js error handler (#11874)
+- fix(react): Fix react router v4/v5 instrumentation (#11855)
+- ref: Add geo location types (#11847)
+
 ## 8.0.0-beta.5
 
 This beta release contains various bugfixes and improvements for the v8 beta cycle.
@@ -186,7 +663,7 @@ The following packages will no longer be published
 
 ### Initializing Server-side SDKs (Node, Bun, Next.js, SvelteKit, Astro, Remix):
 
-Initializing the SDKs on the server-side has been simplified. See more details in our migration docs about
+Initializing the SDKs on the server-side has been simplified. More details in our migration docs about
 [initializing the SDK in v8](./MIGRATION.md/#initializing-the-node-sdk).
 
 ### Performance Monitoring Changes

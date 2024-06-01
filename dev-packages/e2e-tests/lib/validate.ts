@@ -22,9 +22,9 @@ export function validate(): boolean {
     missingEnvVar = true;
   }
 
-  if (!process.env.E2E_TEST_SENTRY_TEST_PROJECT) {
+  if (!process.env.E2E_TEST_SENTRY_PROJECT) {
     console.log(
-      'No Sentry project configured! Please configure the E2E_TEST_SENTRY_TEST_PROJECT environment variable with a Sentry project slug!',
+      'No Sentry project configured! Please configure the `E2E_TEST_SENTRY_PROJECT` environment variable with a Sentry project slug!',
     );
     missingEnvVar = true;
   }

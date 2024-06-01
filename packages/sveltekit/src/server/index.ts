@@ -11,6 +11,7 @@ export {
   captureEvent,
   captureMessage,
   captureCheckIn,
+  captureFeedback,
   withMonitor,
   createTransport,
   getClient,
@@ -35,6 +36,7 @@ export {
   makeNodeTransport,
   getDefaultIntegrations,
   defaultStackParser,
+  lastEventId,
   flush,
   close,
   getSentryRelease,
@@ -58,6 +60,7 @@ export {
   startSpan,
   startInactiveSpan,
   startSpanManual,
+  startNewTrace,
   withActiveSpan,
   continueTrace,
   cron,
@@ -71,6 +74,7 @@ export {
   trpcMiddleware,
   spanToJSON,
   spanToTraceHeader,
+  spanToBaggageHeader,
   addOpenTelemetryInstrumentation,
 } from '@sentry/node';
 

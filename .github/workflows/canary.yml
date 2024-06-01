@@ -14,7 +14,7 @@ env:
 
   CACHED_BUILD_PATHS: |
     ${{ github.workspace }}/packages/*/*.tgz
-    ${{ github.workspace }}/dev-packages/event-proxy-server/build
+    ${{ github.workspace }}/dev-packages/test-utils/build
     ${{ github.workspace }}/node_modules
     ${{ github.workspace }}/packages/*/node_modules
     ${{ github.workspace }}/dev-packages/*/node_modules
@@ -63,7 +63,7 @@ jobs:
       PUBLIC_E2E_TEST_DSN: ${{ secrets.E2E_TEST_DSN }}
       REACT_APP_E2E_TEST_DSN: ${{ secrets.E2E_TEST_DSN }}
       E2E_TEST_SENTRY_ORG_SLUG: 'sentry-javascript-sdks'
-      E2E_TEST_SENTRY_TEST_PROJECT: 'sentry-javascript-e2e-tests'
+      E2E_TEST_SENTRY_PROJECT: 'sentry-javascript-e2e-tests'
     strategy:
       fail-fast: false
       matrix:
@@ -83,12 +83,18 @@ jobs:
           - test-application: 'nextjs-14'
             build-command: 'test:build-latest'
             label: 'nextjs-14 (latest)'
+          - test-application: 'nextjs-15'
+            build-command: 'test:build-canary'
+            label: 'nextjs-15 (canary)'
+          - test-application: 'nextjs-15'
+            build-command: 'test:build-latest'
+            label: 'nextjs-15 (latest)'
           - test-application: 'react-create-hash-router'
             build-command: 'test:build-canary'
             label: 'react-create-hash-router (canary)'
-          - test-application: 'standard-frontend-react'
+          - test-application: 'react-router-6'
             build-command: 'test:build-canary'
-            label: 'standard-frontend-react (canary)'
+            label: 'react-router-6 (canary)'
 
     steps:
       - name: Check out current commit
@@ -153,7 +159,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        scenario: [ember-release, embroider-optimized, ember-4.0]
+        # scenario: [ember-release, embroider-optimized, ember-4.0]
+        scenario: [ember-4.0]
     steps:
       - name: 'Check out current commit'
         uses: actions/checkout@v4

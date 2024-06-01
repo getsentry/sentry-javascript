@@ -1,9 +1,7 @@
-import { defineIntegration, mergeScopeData } from '@sentry/core';
+import { Worker } from 'node:worker_threads';
+import { defineIntegration, getCurrentScope, getGlobalScope, getIsolationScope, mergeScopeData } from '@sentry/core';
 import type { Contexts, Event, EventHint, Integration, IntegrationFn, ScopeData } from '@sentry/types';
 import { GLOBAL_OBJ, logger } from '@sentry/utils';
-import * as inspector from 'inspector';
-import { Worker } from 'worker_threads';
-import { getCurrentScope, getGlobalScope, getIsolationScope } from '../..';
 import { NODE_VERSION } from '../../nodeVersion';
 import type { NodeClient } from '../../sdk/client';
 import type { AnrIntegrationOptions, WorkerStartData } from './common';
@@ -149,6 +147,7 @@ async function _startWorker(
   };
 
   if (options.captureStackTrace) {
+    const inspector = await import('node:inspector');
     if (!inspector.url()) {
       inspector.open(0);
     }
@@ -156,6 +155,8 @@ async function _startWorker(
 
   const worker = new Worker(new URL(`data:application/javascript;base64,${base64WorkerScript}`), {
     workerData: options,
+    // We don't want any Node args to be passed to the worker
+    execArgv: [],
   });
 
   process.on('exit', () => {

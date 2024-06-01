@@ -1,3 +1,5 @@
+import { setTimeout } from '@sentry-internal/browser-utils';
+
 type DebouncedCallback = {
   (): void | unknown;
   flush: () => void | unknown;

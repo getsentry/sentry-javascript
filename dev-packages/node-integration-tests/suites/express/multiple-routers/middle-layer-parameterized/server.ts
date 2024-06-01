@@ -4,9 +4,6 @@ import * as Sentry from '@sentry/node';
 Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   release: '1.0',
-  integrations: [
-    // TODO: This used to use the Express integration
-  ],
   tracesSampleRate: 1.0,
   transport: loggingTransport,
 });

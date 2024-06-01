@@ -1,10 +1,21 @@
 import { NestInstrumentation } from '@opentelemetry/instrumentation-nestjs-core';
-import { captureException, defineIntegration, getDefaultIsolationScope, getIsolationScope } from '@sentry/core';
-import { addOpenTelemetryInstrumentation } from '@sentry/opentelemetry';
-import type { IntegrationFn } from '@sentry/types';
+import {
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  captureException,
+  defineIntegration,
+  getClient,
+  getDefaultIsolationScope,
+  getIsolationScope,
+  spanToJSON,
+} from '@sentry/core';
+import type { IntegrationFn, Span } from '@sentry/types';
 import { logger } from '@sentry/utils';
+import { generateInstrumentOnce } from '../../otel/instrument';
 
 interface MinimalNestJsExecutionContext {
+  getType: () => string;
+
   switchToHttp: () => {
     // minimal request object
     // according to official types, all properties are required but
@@ -17,18 +28,29 @@ interface MinimalNestJsExecutionContext {
     };
   };
 }
+
+interface NestJsErrorFilter {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  catch(exception: any, host: any): void;
+}
+
 interface MinimalNestJsApp {
-  useGlobalFilters: (arg0: { catch(exception: unknown): void }) => void;
+  useGlobalFilters: (arg0: NestJsErrorFilter) => void;
   useGlobalInterceptors: (interceptor: {
-    intercept: (context: MinimalNestJsExecutionContext, next: { handle: () => void }) => void;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    intercept: (context: MinimalNestJsExecutionContext, next: { handle: () => any }) => any;
   }) => void;
 }
 
+const INTEGRATION_NAME = 'Nest';
+
+export const instrumentNest = generateInstrumentOnce(INTEGRATION_NAME, () => new NestInstrumentation());
+
 const _nestIntegration = (() => {
   return {
-    name: 'Nest',
+    name: INTEGRATION_NAME,
     setupOnce() {
-      addOpenTelemetryInstrumentation(new NestInstrumentation({}));
+      instrumentNest();
     },
   };
 }) satisfies IntegrationFn;
@@ -40,16 +62,20 @@ const _nestIntegration = (() => {
  */
 export const nestIntegration = defineIntegration(_nestIntegration);
 
-const SentryNestExceptionFilter = {
-  catch(exception: unknown) {
-    captureException(exception);
-  },
-};
-
 /**
  * Setup an error handler for Nest.
  */
-export function setupNestErrorHandler(app: MinimalNestJsApp): void {
+export function setupNestErrorHandler(app: MinimalNestJsApp, baseFilter: NestJsErrorFilter): void {
+  // Sadly, NestInstrumentation has no requestHook, so we need to add the attributes here
+  // We register this hook in this method, because if we register it in the integration `setup`,
+  // it would always run even for users that are not even using Nest.js
+  const client = getClient();
+  if (client) {
+    client.on('spanStart', span => {
+      addNestSpanAttributes(span);
+    });
+  }
+
   app.useGlobalInterceptors({
     intercept(context, next) {
       if (getIsolationScope() === getDefaultIsolationScope()) {
@@ -57,13 +83,47 @@ export function setupNestErrorHandler(app: MinimalNestJsApp): void {
         return next.handle();
       }
 
-      const req = context.switchToHttp().getRequest();
-      if (req.route) {
-        getIsolationScope().setTransactionName(`${req.method?.toUpperCase() || 'GET'} ${req.route.path}`);
+      if (context.getType() === 'http') {
+        const req = context.switchToHttp().getRequest();
+        if (req.route) {
+          getIsolationScope().setTransactionName(`${req.method?.toUpperCase() || 'GET'} ${req.route.path}`);
+        }
       }
+
       return next.handle();
     },
   });
 
-  app.useGlobalFilters(SentryNestExceptionFilter);
+  const wrappedFilter = new Proxy(baseFilter, {
+    get(target, prop, receiver) {
+      if (prop === 'catch') {
+        const originalCatch = Reflect.get(target, prop, receiver);
+
+        return (exception: unknown, host: unknown) => {
+          captureException(exception);
+          return originalCatch.apply(target, [exception, host]);
+        };
+      }
+      return Reflect.get(target, prop, receiver);
+    },
+  });
+
+  app.useGlobalFilters(wrappedFilter);
+}
+
+function addNestSpanAttributes(span: Span): void {
+  const attributes = spanToJSON(span).data || {};
+
+  // this is one of: app_creation, request_context, handler
+  const type = attributes['nestjs.type'];
+
+  // If this is already set, or we have no nest.js span, no need to process again...
+  if (attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] || !type) {
+    return;
+  }
+
+  span.setAttributes({
+    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.otel.nestjs',
+    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: `${type}.nestjs`,
+  });
 }

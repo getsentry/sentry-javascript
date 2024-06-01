@@ -18,6 +18,7 @@ export {
   captureException,
   captureEvent,
   captureMessage,
+  captureFeedback,
   createTransport,
   // eslint-disable-next-line deprecation/deprecation
   getCurrentHub,
@@ -42,6 +43,7 @@ export {
   makeNodeTransport,
   getDefaultIntegrations,
   defaultStackParser,
+  lastEventId,
   flush,
   close,
   getSentryRelease,
@@ -65,6 +67,7 @@ export {
   startSpan,
   startSpanManual,
   startInactiveSpan,
+  startNewTrace,
   withActiveSpan,
   getSpanDescendants,
   continueTrace,
@@ -86,6 +89,7 @@ export {
   mongooseIntegration,
   mysqlIntegration,
   mysql2Integration,
+  redisIntegration,
   nestIntegration,
   setupNestErrorHandler,
   postgresIntegration,
@@ -97,6 +101,7 @@ export {
   trpcMiddleware,
   spanToJSON,
   spanToTraceHeader,
+  spanToBaggageHeader,
   addOpenTelemetryInstrumentation,
 } from '@sentry/node';
 

@@ -8,7 +8,7 @@
     "lint": "eslint --ignore-path .gitignore --cache --cache-location ./node_modules/.cache/eslint .",
     "start": "cross-env NODE_ENV=production node ./server.mjs",
     "typecheck": "tsc",
-    "clean": "npx rimraf node_modules,pnpm-lock.yaml",
+    "clean": "npx rimraf node_modules pnpm-lock.yaml",
     "test:build": "pnpm install && npx playwright install && pnpm build",
     "test:assert": "pnpm playwright test"
   },
@@ -28,8 +28,8 @@
     "source-map-support": "^0.5.21"
   },
   "devDependencies": {
-    "@sentry-internal/event-proxy-server": "link:../../../event-proxy-server",
-    "@playwright/test": "^1.36.2",
+    "@playwright/test": "^1.44.1",
+    "@sentry-internal/test-utils": "link:../../../test-utils",
     "@remix-run/dev": "^2.7.2",
     "@sentry/types": "latest || *",
     "@sentry/utils": "latest || *",
@@ -49,8 +49,7 @@
     "eslint-plugin-react-hooks": "^4.6.0",
     "tsx": "4.7.2",
     "typescript": "^5.1.6",
-    "vite-tsconfig-paths": "^4.2.1",
-    "wait-port": "1.0.4"
+    "vite-tsconfig-paths": "^4.2.1"
   },
   "volta": {
     "extends": "../../package.json"

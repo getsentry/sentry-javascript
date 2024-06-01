@@ -41,6 +41,8 @@ import { logSpanEnd } from './logSpans';
 import { timedEventsToMeasurements } from './measurement';
 import { getCapturedScopesOnSpan } from './utils';
 
+const MAX_SPAN_COUNT = 1000;
+
 /**
  * Span contains all data about a span
  */
@@ -97,12 +99,12 @@ export class SentrySpan implements Span {
 
     this._events = [];
 
+    this._isStandaloneSpan = spanContext.isStandalone;
+
     // If the span is already ended, ensure we finalize the span immediately
     if (this._endTime) {
       this._onSpanEnded();
     }
-
-    this._isStandaloneSpan = spanContext.isStandalone;
   }
 
   /** @inheritdoc */
@@ -259,7 +261,7 @@ export class SentrySpan implements Span {
 
     // if this is a standalone span, we send it immediately
     if (this._isStandaloneSpan) {
-      sendSpanEnvelope(createSpanEnvelope([this]));
+      sendSpanEnvelope(createSpanEnvelope([this], client));
       return;
     }
 
@@ -310,7 +312,12 @@ export class SentrySpan implements Span {
       contexts: {
         trace: spanToTransactionTraceContext(this),
       },
-      spans,
+      spans:
+        // spans.sort() mutates the array, but `spans` is already a copy so we can safely do this here
+        // we do not use spans anymore after this point
+        spans.length > MAX_SPAN_COUNT
+          ? spans.sort((a, b) => a.start_timestamp - b.start_timestamp).slice(0, MAX_SPAN_COUNT)
+          : spans,
       start_timestamp: this._startTime,
       timestamp: this._endTime,
       transaction: this._name,
@@ -335,7 +342,10 @@ export class SentrySpan implements Span {
 
     if (hasMeasurements) {
       DEBUG_BUILD &&
-        logger.log('[Measurements] Adding measurements to transaction', JSON.stringify(measurements, undefined, 2));
+        logger.log(
+          '[Measurements] Adding measurements to transaction event',
+          JSON.stringify(measurements, undefined, 2),
+        );
       transaction.measurements = measurements;
     }
 
@@ -357,9 +367,21 @@ function isStandaloneSpan(span: Span): boolean {
   return span instanceof SentrySpan && span.isStandaloneSpan();
 }
 
+/**
+ * Sends a `SpanEnvelope`.
+ *
+ * Note: If the envelope's spans are dropped, e.g. via `beforeSendSpan`,
+ * the envelope will not be sent either.
+ */
 function sendSpanEnvelope(envelope: SpanEnvelope): void {
   const client = getClient();
   if (!client) {
+    return;
+  }
+
+  const spanItems = envelope[1];
+  if (!spanItems || spanItems.length === 0) {
+    client.recordDroppedEvent('before_send', 'span');
     return;
   }
 

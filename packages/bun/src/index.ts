@@ -26,6 +26,7 @@ export {
   captureEvent,
   captureMessage,
   captureCheckIn,
+  captureFeedback,
   startSession,
   captureSession,
   endSession,
@@ -54,6 +55,7 @@ export {
   makeNodeTransport,
   NodeClient,
   defaultStackParser,
+  lastEventId,
   flush,
   close,
   getSentryRelease,
@@ -80,6 +82,7 @@ export {
   startSpan,
   startInactiveSpan,
   startSpanManual,
+  startNewTrace,
   withActiveSpan,
   getRootSpan,
   getSpanDescendants,
@@ -106,6 +109,7 @@ export {
   mongooseIntegration,
   mysqlIntegration,
   mysql2Integration,
+  redisIntegration,
   nestIntegration,
   setupNestErrorHandler,
   postgresIntegration,
@@ -116,8 +120,10 @@ export {
   initOpenTelemetry,
   spanToJSON,
   spanToTraceHeader,
+  spanToBaggageHeader,
   trpcMiddleware,
   addOpenTelemetryInstrumentation,
+  zodErrorsIntegration,
 } from '@sentry/node';
 
 export {

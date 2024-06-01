@@ -8,13 +8,14 @@ export type { IntegrationIndex } from './integration';
 
 export * from './tracing';
 export * from './semanticAttributes';
-export { createEventEnvelope, createSessionEnvelope, createAttachmentEnvelope, createSpanEnvelope } from './envelope';
+export { createEventEnvelope, createSessionEnvelope, createSpanEnvelope } from './envelope';
 export {
   captureCheckIn,
   withMonitor,
   captureException,
   captureEvent,
   captureMessage,
+  lastEventId,
   close,
   flush,
   setContext,
@@ -24,6 +25,7 @@ export {
   setTags,
   setUser,
   isInitialized,
+  isEnabled,
   startSession,
   endSession,
   captureSession,
@@ -36,9 +38,11 @@ export {
   withScope,
   withIsolationScope,
   getClient,
+} from './currentScopes';
+export {
   getDefaultCurrentScope,
   getDefaultIsolationScope,
-} from './currentScopes';
+} from './defaultScopes';
 export { setAsyncContextStrategy } from './asyncContext';
 export { getMainCarrier } from './carrier';
 export { makeSession, closeSession, updateSession } from './session';
@@ -52,7 +56,6 @@ export { initAndBind, setCurrentClient } from './sdk';
 export { createTransport } from './transports/base';
 export { makeOfflineTransport } from './transports/offline';
 export { makeMultiplexedTransport } from './transports/multiplexed';
-export { SDK_VERSION } from './version';
 export {
   getIntegrationsToSetup,
   addIntegration,
@@ -91,13 +94,17 @@ export { dedupeIntegration } from './integrations/dedupe';
 export { extraErrorDataIntegration } from './integrations/extraerrordata';
 export { rewriteFramesIntegration } from './integrations/rewriteframes';
 export { sessionTimingIntegration } from './integrations/sessiontiming';
+export { zodErrorsIntegration } from './integrations/zoderrors';
 export { metrics } from './metrics/exports';
-export type { MetricData } from './metrics/exports';
+export type { MetricData } from '@sentry/types';
 export { metricsDefault } from './metrics/exports-default';
 export { BrowserMetricsAggregator } from './metrics/browser-aggregator';
 export { getMetricSummaryJsonForSpan } from './metrics/metric-summary';
 export { addTracingHeadersToFetchRequest, instrumentFetchRequest } from './fetch';
 export { trpcMiddleware } from './trpc';
+export { captureFeedback } from './feedback';
 
 // eslint-disable-next-line deprecation/deprecation
 export { getCurrentHubShim, getCurrentHub } from './getCurrentHubShim';
+
+export { SDK_VERSION } from '@sentry/utils';

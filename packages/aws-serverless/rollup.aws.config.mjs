@@ -5,7 +5,7 @@ export default [
   ...makeBundleConfigVariants(
     makeBaseBundleConfig({
       // this automatically sets it to be CJS
-      bundleType: 'node',
+      bundleType: 'aws-lambda',
       entrypoints: ['src/index.ts'],
       licenseTitle: '@sentry/aws-serverless',
       outputFileBase: () => 'index',

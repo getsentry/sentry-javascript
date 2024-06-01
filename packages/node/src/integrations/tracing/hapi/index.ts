@@ -1,25 +1,31 @@
 import { HapiInstrumentation } from '@opentelemetry/instrumentation-hapi';
 import {
   SDK_VERSION,
-  SPAN_STATUS_ERROR,
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   captureException,
   defineIntegration,
-  getActiveSpan,
+  getClient,
   getDefaultIsolationScope,
   getIsolationScope,
-  getRootSpan,
+  spanToJSON,
 } from '@sentry/core';
-import { addOpenTelemetryInstrumentation } from '@sentry/opentelemetry';
-import type { IntegrationFn } from '@sentry/types';
+import type { IntegrationFn, Span } from '@sentry/types';
 import { logger } from '@sentry/utils';
 import { DEBUG_BUILD } from '../../../debug-build';
-import type { Boom, RequestEvent, ResponseObject, Server } from './types';
+import { generateInstrumentOnce } from '../../../otel/instrument';
+import { ensureIsWrapped } from '../../../utils/ensureIsWrapped';
+import type { RequestEvent, Server } from './types';
+
+const INTEGRATION_NAME = 'Hapi';
+
+export const instrumentHapi = generateInstrumentOnce(INTEGRATION_NAME, () => new HapiInstrumentation());
 
 const _hapiIntegration = (() => {
   return {
-    name: 'Hapi',
+    name: INTEGRATION_NAME,
     setupOnce() {
-      addOpenTelemetryInstrumentation(new HapiInstrumentation());
+      instrumentHapi();
     },
   };
 }) satisfies IntegrationFn;
@@ -31,10 +37,6 @@ const _hapiIntegration = (() => {
  * If you also want to capture errors, you need to call `setupHapiErrorHandler(server)` after you set up your server.
  */
 export const hapiIntegration = defineIntegration(_hapiIntegration);
-
-function isBoomObject(response: ResponseObject | Boom): response is Boom {
-  return response && (response as Boom).isBoom !== undefined;
-}
 
 function isErrorEvent(event: RequestEvent): event is RequestEvent {
   return event && (event as RequestEvent).error !== undefined;
@@ -70,18 +72,8 @@ export const hapiErrorPlugin = {
           logger.warn('Isolation scope is still the default isolation scope - skipping setting transactionName');
       }
 
-      const activeSpan = getActiveSpan();
-      const rootSpan = activeSpan ? getRootSpan(activeSpan) : undefined;
-
-      if (request.response && isBoomObject(request.response)) {
-        sendErrorToSentry(request.response);
-      } else if (isErrorEvent(event)) {
+      if (isErrorEvent(event)) {
         sendErrorToSentry(event.error);
-      }
-
-      if (rootSpan) {
-        rootSpan.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
-        rootSpan.end();
       }
     });
   },
@@ -92,4 +84,34 @@ export const hapiErrorPlugin = {
  */
 export async function setupHapiErrorHandler(server: Server): Promise<void> {
   await server.register(hapiErrorPlugin);
+
+  // Sadly, middleware spans do not go through `requestHook`, so we handle those here
+  // We register this hook in this method, because if we register it in the integration `setup`,
+  // it would always run even for users that are not even using hapi
+  const client = getClient();
+  if (client) {
+    client.on('spanStart', span => {
+      addHapiSpanAttributes(span);
+    });
+  }
+
+  // eslint-disable-next-line @typescript-eslint/unbound-method
+  ensureIsWrapped(server.register, 'hapi');
+}
+
+function addHapiSpanAttributes(span: Span): void {
+  const attributes = spanToJSON(span).data || {};
+
+  // this is one of: router, plugin, server.ext
+  const type = attributes['hapi.type'];
+
+  // If this is already set, or we have no Hapi span, no need to process again...
+  if (attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] || !type) {
+    return;
+  }
+
+  span.setAttributes({
+    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.otel.hapi',
+    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: `${type}.hapi`,
+  });
 }

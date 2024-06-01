@@ -3,14 +3,15 @@ import {
   SPAN_STATUS_ERROR,
   SPAN_STATUS_OK,
   captureException,
+  getActiveSpan,
   getClient,
-  getCurrentScope,
   handleCallbackErrors,
   startSpanManual,
   withIsolationScope,
+  withScope,
 } from '@sentry/core';
 import type { WebFetchHeaders } from '@sentry/types';
-import { propagationContextFromHeaders, winterCGHeadersToDict } from '@sentry/utils';
+import { propagationContextFromHeaders, uuid4, winterCGHeadersToDict } from '@sentry/utils';
 
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import type { GenerationFunctionContext } from '../common/types';
@@ -32,6 +33,7 @@ export function wrapGenerationFunctionWithSentry<F extends (...args: any[]) => a
   const { requestAsyncStorage, componentRoute, componentType, generationFunctionIdentifier } = context;
   return new Proxy(generationFunction, {
     apply: (originalFunction, thisArg, args) => {
+      const requestTraceId = getActiveSpan()?.spanContext().traceId;
       return escapeNextjsTracing(() => {
         let headers: WebFetchHeaders | undefined = undefined;
         // We try-catch here just in case anything goes wrong with the async storage here goes wrong since it is Next.js internal API
@@ -50,60 +52,69 @@ export function wrapGenerationFunctionWithSentry<F extends (...args: any[]) => a
           data = { params, searchParams };
         }
 
-        const incomingPropagationContext = propagationContextFromHeaders(
-          headers?.get('sentry-trace') ?? undefined,
-          headers?.get('baggage'),
-        );
+        const headersDict = headers ? winterCGHeadersToDict(headers) : undefined;
 
         const isolationScope = commonObjectToIsolationScope(headers);
-        const propagationContext = commonObjectToPropagationContext(headers, incomingPropagationContext);
 
         return withIsolationScope(isolationScope, () => {
-          isolationScope.setTransactionName(`${componentType}.${generationFunctionIdentifier} (${componentRoute})`);
-          isolationScope.setSDKProcessingMetadata({
-            request: {
-              headers: headers ? winterCGHeadersToDict(headers) : undefined,
-            },
-          });
+          return withScope(scope => {
+            scope.setTransactionName(`${componentType}.${generationFunctionIdentifier} (${componentRoute})`);
 
-          getCurrentScope().setExtra('route_data', data);
-          getCurrentScope().setPropagationContext(propagationContext);
-
-          return startSpanManual(
-            {
-              op: 'function.nextjs',
-              name: `${componentType}.${generationFunctionIdentifier} (${componentRoute})`,
-              forceTransaction: true,
-              attributes: {
-                [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
-                [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nextjs',
+            isolationScope.setSDKProcessingMetadata({
+              request: {
+                headers: headersDict,
               },
-            },
-            span => {
-              return handleCallbackErrors(
-                () => originalFunction.apply(thisArg, args),
-                err => {
-                  if (isNotFoundNavigationError(err)) {
-                    // We don't want to report "not-found"s
-                    span.setStatus({ code: SPAN_STATUS_ERROR, message: 'not_found' });
-                  } else if (isRedirectNavigationError(err)) {
-                    // We don't want to report redirects
-                    span.setStatus({ code: SPAN_STATUS_OK });
-                  } else {
-                    span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
-                    captureException(err, {
-                      mechanism: {
-                        handled: false,
-                      },
-                    });
-                  }
+            });
+
+            const propagationContext = commonObjectToPropagationContext(
+              headers,
+              headersDict?.['sentry-trace']
+                ? propagationContextFromHeaders(headersDict['sentry-trace'], headersDict['baggage'])
+                : {
+                    traceId: requestTraceId || uuid4(),
+                    spanId: uuid4().substring(16),
+                  },
+            );
+
+            scope.setExtra('route_data', data);
+            scope.setPropagationContext(propagationContext);
+
+            return startSpanManual(
+              {
+                op: 'function.nextjs',
+                name: `${componentType}.${generationFunctionIdentifier} (${componentRoute})`,
+                forceTransaction: true,
+                attributes: {
+                  [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+                  [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nextjs',
                 },
-                () => {
-                  span.end();
-                },
-              );
-            },
-          );
+              },
+              span => {
+                return handleCallbackErrors(
+                  () => originalFunction.apply(thisArg, args),
+                  err => {
+                    if (isNotFoundNavigationError(err)) {
+                      // We don't want to report "not-found"s
+                      span.setStatus({ code: SPAN_STATUS_ERROR, message: 'not_found' });
+                    } else if (isRedirectNavigationError(err)) {
+                      // We don't want to report redirects
+                      span.setStatus({ code: SPAN_STATUS_OK });
+                    } else {
+                      span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+                      captureException(err, {
+                        mechanism: {
+                          handled: false,
+                        },
+                      });
+                    }
+                  },
+                  () => {
+                    span.end();
+                  },
+                );
+              },
+            );
+          });
         });
       });
     },

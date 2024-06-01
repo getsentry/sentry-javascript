@@ -5,7 +5,7 @@
   "scripts": {
     "build": "rollup --config rollup.config.mjs",
     "test": "vitest run",
-    "clean": "npx rimraf node_modules,pnpm-lock.yaml",
+    "clean": "npx rimraf node_modules pnpm-lock.yaml",
     "test:build": "pnpm install && pnpm build",
     "test:assert": "pnpm test"
   },

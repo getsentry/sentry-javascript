@@ -1,4 +1,4 @@
-import { addEventProcessor, applySdkMetadata, getClient } from '@sentry/core';
+import { applySdkMetadata, getClient, getGlobalScope } from '@sentry/core';
 import { getDefaultIntegrations, init as nodeInit } from '@sentry/node';
 import type { NodeOptions } from '@sentry/node';
 import { GLOBAL_OBJ, logger } from '@sentry/utils';
@@ -143,7 +143,7 @@ export function init(options: NodeOptions): void {
     }
   });
 
-  addEventProcessor(
+  getGlobalScope().addEventProcessor(
     Object.assign(
       (event => {
         if (event.type === 'transaction') {
@@ -181,8 +181,43 @@ export function init(options: NodeOptions): void {
     ),
   );
 
+  getGlobalScope().addEventProcessor(
+    Object.assign(
+      ((event, hint) => {
+        if (event.type !== undefined) {
+          return event;
+        }
+
+        const originalException = hint.originalException;
+
+        const isPostponeError =
+          typeof originalException === 'object' &&
+          originalException !== null &&
+          '$$typeof' in originalException &&
+          originalException.$$typeof === Symbol.for('react.postpone');
+
+        if (isPostponeError) {
+          // Postpone errors are used for partial-pre-rendering (PPR)
+          return null;
+        }
+
+        // We don't want to capture suspense errors as they are simply used by React/Next.js for control flow
+        const exceptionMessage = event.exception?.values?.[0]?.value;
+        if (
+          exceptionMessage?.includes('Suspense Exception: This is not a real error!') ||
+          exceptionMessage?.includes('Suspense Exception: This is not a real error, and should not leak')
+        ) {
+          return null;
+        }
+
+        return event;
+      }) satisfies EventProcessor,
+      { id: 'DropReactControlFlowErrors' },
+    ),
+  );
+
   if (process.env.NODE_ENV === 'development') {
-    addEventProcessor(devErrorSymbolicationEventProcessor);
+    getGlobalScope().addEventProcessor(devErrorSymbolicationEventProcessor);
   }
 
   DEBUG_BUILD && logger.log('SDK successfully initialized');

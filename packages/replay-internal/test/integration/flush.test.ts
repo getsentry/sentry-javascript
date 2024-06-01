@@ -1,3 +1,10 @@
+import { vi } from 'vitest';
+import type { MockedFunction } from 'vitest';
+
+import { useFakeTimers } from '../utils/use-fake-timers';
+
+useFakeTimers();
+
 import * as SentryBrowserUtils from '@sentry-internal/browser-utils';
 import * as SentryUtils from '@sentry/utils';
 
@@ -5,28 +12,18 @@ import { DEFAULT_FLUSH_MIN_DELAY, MAX_REPLAY_DURATION, WINDOW } from '../../src/
 import type { ReplayContainer } from '../../src/replay';
 import { clearSession } from '../../src/session/clearSession';
 import type { EventBuffer } from '../../src/types';
-import * as AddMemoryEntry from '../../src/util/addMemoryEntry';
 import { createPerformanceEntries } from '../../src/util/createPerformanceEntries';
 import { createPerformanceSpans } from '../../src/util/createPerformanceSpans';
 import * as SendReplay from '../../src/util/sendReplay';
 import { BASE_TIMESTAMP, mockRrweb, mockSdk } from '../index';
 import type { DomHandler } from '../types';
 import { getTestEventCheckout } from '../utils/getTestEvent';
-import { useFakeTimers } from '../utils/use-fake-timers';
 
-useFakeTimers();
-
-async function advanceTimers(time: number) {
-  jest.advanceTimersByTime(time);
-  await new Promise(process.nextTick);
-}
-
-type MockSendReplay = jest.MockedFunction<any>;
-type MockAddPerformanceEntries = jest.MockedFunction<ReplayContainer['_addPerformanceEntries']>;
-type MockAddMemoryEntry = jest.SpyInstance;
-type MockEventBufferFinish = jest.MockedFunction<EventBuffer['finish']>;
-type MockFlush = jest.MockedFunction<ReplayContainer['_flush']>;
-type MockRunFlush = jest.MockedFunction<ReplayContainer['_runFlush']>;
+type MockSendReplay = MockedFunction<any>;
+type MockAddPerformanceEntries = MockedFunction<ReplayContainer['_addPerformanceEntries']>;
+type MockEventBufferFinish = MockedFunction<EventBuffer['finish']>;
+type MockFlush = MockedFunction<ReplayContainer['_flush']>;
+type MockRunFlush = MockedFunction<ReplayContainer['_runFlush']>;
 
 const prevLocation = WINDOW.location;
 const prevBrowserPerformanceTimeOrigin = SentryUtils.browserPerformanceTimeOrigin;
@@ -41,48 +38,41 @@ describe('Integration | flush', () => {
   let mockFlush: MockFlush;
   let mockRunFlush: MockRunFlush;
   let mockEventBufferFinish: MockEventBufferFinish;
-  let mockAddMemoryEntry: MockAddMemoryEntry;
   let mockAddPerformanceEntries: MockAddPerformanceEntries;
 
   beforeAll(async () => {
-    jest.spyOn(SentryBrowserUtils, 'addClickKeypressInstrumentationHandler').mockImplementation(handler => {
+    vi.spyOn(SentryBrowserUtils, 'addClickKeypressInstrumentationHandler').mockImplementation(handler => {
       domHandler = handler;
     });
 
     ({ replay } = await mockSdk());
 
-    mockSendReplay = jest.spyOn(SendReplay, 'sendReplay');
+    mockSendReplay = vi.spyOn(SendReplay, 'sendReplay');
     mockSendReplay.mockImplementation(
-      jest.fn(async () => {
+      vi.fn(async () => {
         return;
       }),
     );
 
     // @ts-expect-error private API
-    mockFlush = jest.spyOn(replay, '_flush');
+    mockFlush = vi.spyOn(replay, '_flush');
 
     // @ts-expect-error private API
-    mockRunFlush = jest.spyOn(replay, '_runFlush');
+    mockRunFlush = vi.spyOn(replay, '_runFlush');
 
     // @ts-expect-error private API
-    mockAddPerformanceEntries = jest.spyOn(replay, '_addPerformanceEntries');
+    mockAddPerformanceEntries = vi.spyOn(replay, '_addPerformanceEntries');
 
     mockAddPerformanceEntries.mockImplementation(async () => {
       return [];
     });
-
-    mockAddMemoryEntry = jest.spyOn(AddMemoryEntry, 'addMemoryEntry');
   });
 
-  beforeEach(() => {
-    jest.runAllTimers();
-    jest.setSystemTime(new Date(BASE_TIMESTAMP));
-    mockSendReplay.mockClear();
+  beforeEach(async () => {
+    await vi.runAllTimersAsync();
+    vi.setSystemTime(new Date(BASE_TIMESTAMP));
     replay.eventBuffer?.destroy();
-    mockAddPerformanceEntries.mockClear();
-    mockFlush.mockClear();
-    mockRunFlush.mockClear();
-    mockAddMemoryEntry.mockClear();
+    vi.clearAllMocks();
 
     sessionStorage.clear();
     clearSession(replay);
@@ -90,7 +80,7 @@ describe('Integration | flush', () => {
     replay.setInitialState();
 
     if (replay.eventBuffer) {
-      jest.spyOn(replay.eventBuffer, 'finish');
+      vi.spyOn(replay.eventBuffer, 'finish');
     }
     mockEventBufferFinish = replay.eventBuffer?.finish as MockEventBufferFinish;
     mockEventBufferFinish.mockClear();
@@ -102,9 +92,8 @@ describe('Integration | flush', () => {
   });
 
   afterEach(async () => {
-    jest.runAllTimers();
-    await new Promise(process.nextTick);
-    jest.setSystemTime(new Date(BASE_TIMESTAMP));
+    await vi.runAllTimersAsync();
+    vi.setSystemTime(new Date(BASE_TIMESTAMP));
     mockRecord.takeFullSnapshot.mockClear();
     Object.defineProperty(WINDOW, 'location', {
       value: prevLocation,
@@ -133,16 +122,12 @@ describe('Integration | flush', () => {
 
     expect(mockFlush).toHaveBeenCalledTimes(4);
 
-    jest.runAllTimers();
-    await new Promise(process.nextTick);
     expect(mockRunFlush).toHaveBeenCalledTimes(1);
 
-    jest.runAllTimers();
-    await new Promise(process.nextTick);
+    await vi.advanceTimersToNextTimerAsync();
     expect(mockRunFlush).toHaveBeenCalledTimes(2);
 
-    jest.runAllTimers();
-    await new Promise(process.nextTick);
+    await vi.advanceTimersToNextTimerAsync();
     expect(mockRunFlush).toHaveBeenCalledTimes(2);
   });
 
@@ -164,18 +149,18 @@ describe('Integration | flush', () => {
       name: 'click',
       event: new Event('click'),
     });
-    await advanceTimers(DEFAULT_FLUSH_MIN_DELAY);
+    await vi.advanceTimersByTimeAsync(DEFAULT_FLUSH_MIN_DELAY);
     // flush #2 @ t=5s - due to click
     expect(mockFlush).toHaveBeenCalledTimes(2);
 
-    await advanceTimers(1000);
+    await vi.advanceTimersByTimeAsync(1000);
     // flush #3 @ t=6s - due to blur
     WINDOW.dispatchEvent(new Event('blur'));
     expect(mockFlush).toHaveBeenCalledTimes(3);
 
     // NOTE: Blur also adds a breadcrumb which calls `addUpdate`, meaning it will
     // flush after `flushMinDelay`, but this gets cancelled by the blur
-    await advanceTimers(8000);
+    await vi.advanceTimersByTimeAsync(8000);
     expect(mockFlush).toHaveBeenCalledTimes(3);
 
     // flush #4 @ t=14s - due to blur
@@ -183,7 +168,7 @@ describe('Integration | flush', () => {
     expect(mockFlush).toHaveBeenCalledTimes(4);
 
     expect(mockRunFlush).toHaveBeenCalledTimes(1);
-    await advanceTimers(6000);
+    await vi.advanceTimersByTimeAsync(6000);
     // t=20s
     // addPerformanceEntries is finished, `flushLock` promise is resolved, calls
     // debouncedFlush, which will call `flush` in 1 second
@@ -236,7 +221,7 @@ describe('Integration | flush', () => {
     );
     // flush #5 @ t=25s - debounced flush calls `flush`
     // 20s + `flushMinDelay` which is 5 seconds
-    await advanceTimers(DEFAULT_FLUSH_MIN_DELAY);
+    await vi.advanceTimersByTimeAsync(DEFAULT_FLUSH_MIN_DELAY);
 
     expect(mockFlush).toHaveBeenCalledTimes(5);
     expect(mockRunFlush).toHaveBeenCalledTimes(2);
@@ -251,7 +236,7 @@ describe('Integration | flush', () => {
     });
 
     // Make sure there's no other calls
-    jest.runAllTimers();
+    vi.runAllTimers();
     await new Promise(process.nextTick);
     expect(mockSendReplay).toHaveBeenCalledTimes(2);
   });
@@ -267,11 +252,11 @@ describe('Integration | flush', () => {
     const TEST_EVENT = getTestEventCheckout({ timestamp: BASE_TIMESTAMP });
     mockRecord._emitter(TEST_EVENT);
 
-    await advanceTimers(DEFAULT_FLUSH_MIN_DELAY);
+    await vi.advanceTimersByTimeAsync(DEFAULT_FLUSH_MIN_DELAY);
     expect(mockFlush).toHaveBeenCalledTimes(1);
 
     // Make sure there's nothing queued up after
-    await advanceTimers(DEFAULT_FLUSH_MIN_DELAY);
+    await vi.advanceTimersByTimeAsync(DEFAULT_FLUSH_MIN_DELAY);
     expect(mockFlush).toHaveBeenCalledTimes(1);
   });
 
@@ -293,13 +278,13 @@ describe('Integration | flush', () => {
     const TEST_EVENT = getTestEventCheckout({ timestamp: BASE_TIMESTAMP });
     mockRecord._emitter(TEST_EVENT);
 
-    await advanceTimers(DEFAULT_FLUSH_MIN_DELAY);
+    await vi.advanceTimersByTimeAsync(DEFAULT_FLUSH_MIN_DELAY);
 
     expect(mockFlush).toHaveBeenCalledTimes(1);
     expect(mockSendReplay).toHaveBeenCalledTimes(0);
 
     // it should re-schedule the flush, so once the min. duration is reached it should automatically send it
-    await advanceTimers(100_000 - DEFAULT_FLUSH_MIN_DELAY);
+    await vi.advanceTimersByTimeAsync(100_000 - DEFAULT_FLUSH_MIN_DELAY);
 
     expect(mockFlush).toHaveBeenCalledTimes(20);
     expect(mockSendReplay).toHaveBeenCalledTimes(1);
@@ -309,7 +294,7 @@ describe('Integration | flush', () => {
 
   it('does not flush if session is too long', async () => {
     replay.getOptions().maxReplayDuration = 100_000;
-    jest.setSystemTime(BASE_TIMESTAMP);
+    vi.setSystemTime(BASE_TIMESTAMP);
 
     sessionStorage.clear();
     clearSession(replay);
@@ -322,7 +307,7 @@ describe('Integration | flush', () => {
       return true;
     };
 
-    await advanceTimers(120_000);
+    await vi.advanceTimersByTimeAsync(120_000);
 
     // click happens first
     domHandler({
@@ -334,7 +319,7 @@ describe('Integration | flush', () => {
     const TEST_EVENT = getTestEventCheckout({ timestamp: BASE_TIMESTAMP });
     mockRecord._emitter(TEST_EVENT);
 
-    await advanceTimers(DEFAULT_FLUSH_MIN_DELAY);
+    await vi.advanceTimersByTimeAsync(DEFAULT_FLUSH_MIN_DELAY);
 
     expect(mockFlush).toHaveBeenCalledTimes(1);
     expect(mockSendReplay).toHaveBeenCalledTimes(0);
@@ -351,7 +336,7 @@ describe('Integration | flush', () => {
     replay['_initializeSessionForSampling']();
     replay.setInitialState();
     await new Promise(process.nextTick);
-    jest.setSystemTime(BASE_TIMESTAMP);
+    vi.setSystemTime(BASE_TIMESTAMP);
 
     // Clear the event buffer to simulate no checkout happened
     replay.eventBuffer!.clear();
@@ -363,7 +348,7 @@ describe('Integration | flush', () => {
     });
 
     // no checkout!
-    await advanceTimers(DEFAULT_FLUSH_MIN_DELAY);
+    await vi.advanceTimersByTimeAsync(DEFAULT_FLUSH_MIN_DELAY);
 
     expect(mockFlush).toHaveBeenCalledTimes(1);
     expect(mockSendReplay).toHaveBeenCalledTimes(1);
@@ -382,6 +367,21 @@ describe('Integration | flush', () => {
             category: 'ui.click',
             message: '<unknown>',
             data: {},
+          },
+        },
+      },
+      {
+        type: 5,
+        timestamp: BASE_TIMESTAMP,
+        data: {
+          tag: 'breadcrumb',
+          payload: {
+            timestamp: BASE_TIMESTAMP / 1000,
+            type: 'default',
+            category: 'console',
+            data: { logger: 'replay' },
+            level: 'info',
+            message: '[Replay] Creating new session',
           },
         },
       },
@@ -408,14 +408,14 @@ describe('Integration | flush', () => {
   it('logs warning if adding event that is after maxReplayDuration', async () => {
     replay.getOptions()._experiments.traceInternals = true;
 
-    const spyLogger = jest.spyOn(SentryUtils.logger, 'info');
+    const spyLogger = vi.spyOn(SentryUtils.logger, 'info');
 
     sessionStorage.clear();
     clearSession(replay);
     replay['_initializeSessionForSampling']();
     replay.setInitialState();
     await new Promise(process.nextTick);
-    jest.setSystemTime(BASE_TIMESTAMP);
+    vi.setSystemTime(BASE_TIMESTAMP);
 
     replay.eventBuffer!.clear();
 
@@ -427,7 +427,7 @@ describe('Integration | flush', () => {
     mockRecord._emitter(TEST_EVENT);
 
     // no checkout!
-    await advanceTimers(DEFAULT_FLUSH_MIN_DELAY);
+    await vi.advanceTimersByTimeAsync(DEFAULT_FLUSH_MIN_DELAY);
 
     // No flush is scheduled is aborted because event is after maxReplayDuration
     expect(mockFlush).toHaveBeenCalledTimes(0);
@@ -457,7 +457,7 @@ describe('Integration | flush', () => {
     replay['_initializeSessionForSampling']();
     replay.setInitialState();
     await new Promise(process.nextTick);
-    jest.setSystemTime(BASE_TIMESTAMP);
+    vi.setSystemTime(BASE_TIMESTAMP);
 
     replay.eventBuffer!.clear();
 
@@ -473,7 +473,7 @@ describe('Integration | flush', () => {
     const TEST_EVENT = getTestEventCheckout({ timestamp: BASE_TIMESTAMP + 100 });
     mockRecord._emitter(TEST_EVENT);
 
-    await advanceTimers(160_000);
+    await vi.advanceTimersByTimeAsync(160_000);
 
     expect(mockFlush).toHaveBeenCalledTimes(1);
     expect(mockSendReplay).toHaveBeenCalledTimes(0);

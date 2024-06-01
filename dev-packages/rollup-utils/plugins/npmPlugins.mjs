@@ -13,21 +13,26 @@ import * as path from 'path';
 import { codecovRollupPlugin } from '@codecov/rollup-plugin';
 import json from '@rollup/plugin-json';
 import replace from '@rollup/plugin-replace';
-import sucrase from '@rollup/plugin-sucrase';
 import cleanup from 'rollup-plugin-cleanup';
+import sucrase from './vendor/sucrase-plugin.mjs';
 
 /**
  * Create a plugin to transpile TS syntax using `sucrase`.
  *
  * @returns An instance of the `@rollup/plugin-sucrase` plugin
  */
-export function makeSucrasePlugin(options = {}) {
-  return sucrase({
-    // Required for bundling OTEL code properly
-    exclude: ['**/*.json'],
-    transforms: ['typescript', 'jsx'],
-    ...options,
-  });
+export function makeSucrasePlugin(options = {}, sucraseOptions = {}) {
+  return sucrase(
+    {
+      // Required for bundling OTEL code properly
+      exclude: ['**/*.json'],
+      ...options,
+    },
+    {
+      transforms: ['typescript', 'jsx'],
+      ...sucraseOptions,
+    },
+  );
 }
 
 export function makeJsonPlugin() {
@@ -113,6 +118,19 @@ export function makeDebugBuildStatementReplacePlugin() {
     preventAssignment: false,
     values: {
       __DEBUG_BUILD__: "(typeof __SENTRY_DEBUG__ === 'undefined' || __SENTRY_DEBUG__)",
+    },
+  });
+}
+
+/**
+ * Because jest doesn't like `import.meta` statements but we still need it in the code base we instead use a magic
+ * string that we replace with import.meta.url in the build.
+ */
+export function makeImportMetaUrlReplacePlugin() {
+  return replace({
+    preventAssignment: false,
+    values: {
+      __IMPORT_META_URL_REPLACEMENT__: 'import.meta.url',
     },
   });
 }

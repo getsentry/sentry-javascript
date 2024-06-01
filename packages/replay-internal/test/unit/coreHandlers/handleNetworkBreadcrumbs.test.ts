@@ -13,8 +13,9 @@ import { beforeAddNetworkBreadcrumb } from '../../../src/coreHandlers/handleNetw
 import type { EventBufferArray } from '../../../src/eventBuffer/EventBufferArray';
 import type { ReplayContainer, ReplayNetworkOptions } from '../../../src/types';
 import { setupReplayContainer } from '../../utils/setupReplayContainer';
+import { useFakeTimers } from '../../utils/use-fake-timers';
 
-jest.useFakeTimers();
+useFakeTimers();
 
 async function waitForReplayEventBuffer() {
   // Need one Promise.resolve() per await in the util functions
@@ -56,7 +57,7 @@ describe('Unit | coreHandlers | handleNetworkBreadcrumbs', () => {
     };
 
     beforeEach(() => {
-      jest.setSystemTime(BASE_TIMESTAMP);
+      vi.setSystemTime(BASE_TIMESTAMP);
 
       options = {
         replay: setupReplayContainer(),
@@ -67,7 +68,7 @@ describe('Unit | coreHandlers | handleNetworkBreadcrumbs', () => {
         networkResponseHeaders: ['content-type', 'accept', 'x-custom-header'],
       };
 
-      jest.runAllTimers();
+      vi.runAllTimers();
     });
 
     it('ignores breadcrumb without data', async () => {

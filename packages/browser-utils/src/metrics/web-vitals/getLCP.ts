@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { WINDOW } from '../types';
+import { WINDOW } from '../../types';
 import { bindReporter } from './lib/bindReporter';
 import { getActivationStart } from './lib/getActivationStart';
 import { getVisibilityWatcher } from './lib/getVisibilityWatcher';

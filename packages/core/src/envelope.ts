@@ -1,6 +1,5 @@
 import type {
-  Attachment,
-  AttachmentItem,
+  Client,
   DsnComponents,
   DynamicSamplingContext,
   Event,
@@ -13,16 +12,18 @@ import type {
   SessionEnvelope,
   SessionItem,
   SpanEnvelope,
+  SpanItem,
+  SpanJSON,
 } from '@sentry/types';
 import {
-  createAttachmentEnvelopeItem,
   createEnvelope,
   createEventEnvelopeHeaders,
   dsnToString,
   getSdkMetadataForEnvelopeHeader,
 } from '@sentry/utils';
 import { createSpanEnvelopeItem } from '@sentry/utils';
-import { type SentrySpan, getDynamicSamplingContextFromSpan } from './tracing';
+import { getDynamicSamplingContextFromSpan } from './tracing/dynamicSamplingContext';
+import type { SentrySpan } from './tracing/sentrySpan';
 import { spanToJSON } from './utils/spanUtils';
 
 /**
@@ -96,37 +97,11 @@ export function createEventEnvelope(
 }
 
 /**
- * Create an Envelope from an event.
- */
-export function createAttachmentEnvelope(
-  event: Event,
-  attachments: Attachment[],
-  dsn?: DsnComponents,
-  metadata?: SdkMetadata,
-  tunnel?: string,
-): EventEnvelope {
-  const sdkInfo = getSdkMetadataForEnvelopeHeader(metadata);
-  enhanceEventWithSdkInfo(event, metadata && metadata.sdk);
-
-  const envelopeHeaders = createEventEnvelopeHeaders(event, sdkInfo, tunnel, dsn);
-
-  // Prevent this data (which, if it exists, was used in earlier steps in the processing pipeline) from being sent to
-  // sentry. (Note: Our use of this property comes and goes with whatever we might be debugging, whatever hacks we may
-  // have temporarily added, etc. Even if we don't happen to be using it at some point in the future, let's not get rid
-  // of this `delete`, lest we miss putting it back in the next time the property is in use.)
-  delete event.sdkProcessingMetadata;
-
-  const attachmentItems: AttachmentItem[] = [];
-  for (const attachment of attachments || []) {
-    attachmentItems.push(createAttachmentEnvelopeItem(attachment));
-  }
-  return createEnvelope<EventEnvelope>(envelopeHeaders, attachmentItems);
-}
-
-/**
  * Create envelope from Span item.
+ *
+ * Takes an optional client and runs spans through `beforeSendSpan` if available.
  */
-export function createSpanEnvelope(spans: SentrySpan[]): SpanEnvelope {
+export function createSpanEnvelope(spans: SentrySpan[], client?: Client): SpanEnvelope {
   function dscHasRequiredProps(dsc: Partial<DynamicSamplingContext>): dsc is DynamicSamplingContext {
     return !!dsc.trace_id && !!dsc.public_key;
   }
@@ -136,10 +111,27 @@ export function createSpanEnvelope(spans: SentrySpan[]): SpanEnvelope {
   // different segments in one envelope
   const dsc = getDynamicSamplingContextFromSpan(spans[0]);
 
+  const dsn = client && client.getDsn();
+  const tunnel = client && client.getOptions().tunnel;
+
   const headers: SpanEnvelope[0] = {
     sent_at: new Date().toISOString(),
     ...(dscHasRequiredProps(dsc) && { trace: dsc }),
+    ...(!!tunnel && dsn && { dsn: dsnToString(dsn) }),
   };
-  const items = spans.map(span => createSpanEnvelopeItem(spanToJSON(span)));
+
+  const beforeSendSpan = client && client.getOptions().beforeSendSpan;
+  const convertToSpanJSON = beforeSendSpan
+    ? (span: SentrySpan) => beforeSendSpan(spanToJSON(span) as SpanJSON)
+    : (span: SentrySpan) => spanToJSON(span);
+
+  const items: SpanItem[] = [];
+  for (const span of spans) {
+    const spanJson = convertToSpanJSON(span);
+    if (spanJson) {
+      items.push(createSpanEnvelopeItem(spanJson));
+    }
+  }
+
   return createEnvelope<SpanEnvelope>(headers, items);
 }

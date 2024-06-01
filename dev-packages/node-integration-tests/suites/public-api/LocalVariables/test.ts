@@ -59,11 +59,27 @@ conditionalTest({ min: 18 })('LocalVariables integration', () => {
       .start(done);
   });
 
+  test('Should include local variables when instrumenting via --require', done => {
+    const requirePath = path.resolve(__dirname, 'local-variables-instrument.js');
+
+    createRunner(__dirname, 'local-variables-no-sentry.js')
+      .withFlags(`--require=${requirePath}`)
+      .ignore('session')
+      .expect({ event: EXPECTED_LOCAL_VARIABLES_EVENT })
+      .start(done);
+  });
+
   test('Should include local variables with ESM', done => {
     createRunner(__dirname, 'local-variables-caught.mjs')
       .ignore('session')
       .expect({ event: EXPECTED_LOCAL_VARIABLES_EVENT })
       .start(done);
+  });
+
+  conditionalTest({ min: 19 })('Node v19+', () => {
+    test('Should not import inspector when not in use', done => {
+      createRunner(__dirname, 'deny-inspector.mjs').ensureNoErrorOutput().ignore('session').start(done);
+    });
   });
 
   test('Includes local variables for caught exceptions when enabled', done => {

@@ -28,6 +28,7 @@ export {
   captureMessage,
   close,
   createTransport,
+  lastEventId,
   flush,
   // eslint-disable-next-line deprecation/deprecation
   getCurrentHub,
@@ -57,6 +58,7 @@ export {
   endSession,
   spanToJSON,
   spanToTraceHeader,
+  spanToBaggageHeader,
 } from '@sentry/core';
 
 export {
@@ -65,8 +67,6 @@ export {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
 } from '@sentry/core';
-
-export * from './metrics';
 
 export { WINDOW } from './helpers';
 export { BrowserClient } from './client';
@@ -88,6 +88,7 @@ export {
   init,
   onLoad,
   showReportDialog,
+  // eslint-disable-next-line deprecation/deprecation
   captureUserFeedback,
 } from './sdk';
 

@@ -1,5 +1,9 @@
 import type { Client, DynamicSamplingContext, Span } from '@sentry/types';
-import { addNonEnumerableProperty, dropUndefinedKeys } from '@sentry/utils';
+import {
+  addNonEnumerableProperty,
+  dropUndefinedKeys,
+  dynamicSamplingContextToSentryBaggageHeader,
+} from '@sentry/utils';
 
 import { DEFAULT_ENVIRONMENT } from '../constants';
 import { getClient } from '../currentScopes';
@@ -92,4 +96,12 @@ export function getDynamicSamplingContextFromSpan(span: Span): Readonly<Partial<
   client.emit('createDsc', dsc);
 
   return dsc;
+}
+
+/**
+ * Convert a Span to a baggage header.
+ */
+export function spanToBaggageHeader(span: Span): string | undefined {
+  const dsc = getDynamicSamplingContextFromSpan(span);
+  return dynamicSamplingContextToSentryBaggageHeader(dsc);
 }

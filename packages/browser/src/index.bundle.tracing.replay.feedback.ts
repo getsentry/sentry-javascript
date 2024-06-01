@@ -4,15 +4,19 @@ registerSpanErrorInstrumentation();
 
 export * from './index.bundle.base';
 
+export * from './metrics';
+
 export {
   getActiveSpan,
   getRootSpan,
   startSpan,
   startInactiveSpan,
   startSpanManual,
+  startNewTrace,
   withActiveSpan,
   getSpanDescendants,
   setMeasurement,
+  captureFeedback,
 } from '@sentry/core';
 
 export {

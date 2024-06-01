@@ -38,13 +38,21 @@ export function wrapGetServerSidePropsWithSentry(
 
       if (serverSideProps && 'props' in serverSideProps) {
         const activeSpan = getActiveSpan();
-        const requestTransaction = getSpanFromRequest(req) ?? (activeSpan ? getRootSpan(activeSpan) : undefined);
-        if (requestTransaction) {
-          (serverSideProps.props as Record<string, unknown>)._sentryTraceData = spanToTraceHeader(requestTransaction);
+        const requestSpan = getSpanFromRequest(req) ?? (activeSpan ? getRootSpan(activeSpan) : undefined);
+        if (requestSpan) {
+          const sentryTrace = spanToTraceHeader(requestSpan);
 
-          const dynamicSamplingContext = getDynamicSamplingContextFromSpan(requestTransaction);
-          (serverSideProps.props as Record<string, unknown>)._sentryBaggage =
-            dynamicSamplingContextToSentryBaggageHeader(dynamicSamplingContext);
+          // The Next.js serializer throws on undefined values so we need to guard for it (#12102)
+          if (sentryTrace) {
+            (serverSideProps.props as Record<string, unknown>)._sentryTraceData = sentryTrace;
+          }
+
+          const dynamicSamplingContext = getDynamicSamplingContextFromSpan(requestSpan);
+          const baggage = dynamicSamplingContextToSentryBaggageHeader(dynamicSamplingContext);
+          // The Next.js serializer throws on undefined values so we need to guard for it (#12102)
+          if (baggage) {
+            (serverSideProps.props as Record<string, unknown>)._sentryBaggage = baggage;
+          }
         }
       }
 
