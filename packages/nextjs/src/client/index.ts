@@ -1,10 +1,9 @@
 import { addEventProcessor, applySdkMetadata, hasTracingEnabled, setTag } from '@sentry/core';
 import type { BrowserOptions } from '@sentry/react';
 import {
-  defaultStackLineParsers,
+  defaultStackLineParsers as reactDefaultStackLineParsers,
   getDefaultIntegrations as getReactDefaultIntegrations,
   init as reactInit,
-  nextRoutesStackParser,
 } from '@sentry/react';
 import type { EventProcessor, Integration } from '@sentry/types';
 import { GLOBAL_OBJ, createStackParser } from '@sentry/utils';
@@ -14,10 +13,15 @@ import { getVercelEnv } from '../common/getVercelEnv';
 import { browserTracingIntegration } from './browserTracingIntegration';
 import { nextjsClientStackFrameNormalizationIntegration } from './clientNormalizationIntegration';
 import { applyTunnelRouteOption } from './tunnelRoute';
+import { nextStackParser } from '../common/nextStackParser';
 
 export * from '@sentry/react';
 
 export { captureUnderscoreErrorException } from '../common/_error';
+
+export const defaultStackLineParsers = [...reactDefaultStackLineParsers, nextStackParser];
+
+export const defaultStackParser = createStackParser(...defaultStackLineParsers);
 
 const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
   __rewriteFramesAssetPrefixPath__: string;
@@ -32,7 +36,7 @@ export function init(options: BrowserOptions): void {
     environment: getVercelEnv(true) || process.env.NODE_ENV,
     defaultIntegrations: getDefaultIntegrations(options),
     ...options,
-    stackParser: options.stackParser || createStackParser(...[nextRoutesStackParser, ...defaultStackLineParsers]),
+    stackParser: options.stackParser || defaultStackParser,
   } satisfies BrowserOptions;
 
   applyTunnelRouteOption(opts);

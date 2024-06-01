@@ -79,7 +79,6 @@ export {
   opera10StackLineParser,
   opera11StackLineParser,
   winjsStackLineParser,
-  nextRoutesStackParser,
 } from './stack-parsers';
 export { eventFromException, eventFromMessage, exceptionFromError } from './eventbuilder';
 export { createUserFeedbackEnvelope } from './userfeedback';

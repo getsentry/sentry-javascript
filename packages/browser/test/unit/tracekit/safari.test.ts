@@ -1,8 +1,9 @@
+import { nextStackParser } from '@sentry/nextjs';
 import { createStackParser } from '@sentry/utils';
 import { exceptionFromError } from '../../../src/eventbuilder';
-import { defaultStackLineParsers, nextRoutesStackParser } from '../../../src/stack-parsers';
+import { defaultStackLineParsers } from '../../../src/stack-parsers';
 
-const parser = createStackParser(...[nextRoutesStackParser, ...defaultStackLineParsers]);
+const parser = createStackParser(...[nextStackParser, ...defaultStackLineParsers]);
 
 describe('Tracekit - Safari Tests', () => {
   it('should parse Safari 6 error', () => {

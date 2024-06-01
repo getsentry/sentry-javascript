@@ -4,5 +4,4 @@ module.exports = {
   ...baseConfig,
   testEnvironment: 'jsdom',
   testMatch: ['<rootDir>/test/unit/**/*.test.ts'],
-  prettierPath: null,
 };

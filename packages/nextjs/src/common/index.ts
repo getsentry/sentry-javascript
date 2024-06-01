@@ -23,3 +23,5 @@ export { wrapPageComponentWithSentry } from './wrapPageComponentWithSentry';
 export { wrapGenerationFunctionWithSentry } from './wrapGenerationFunctionWithSentry';
 
 export { withServerActionInstrumentation } from './withServerActionInstrumentation';
+
+export { nextStackParser } from './nextStackParser';

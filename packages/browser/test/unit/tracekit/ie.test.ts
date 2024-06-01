@@ -1,14 +1,10 @@
+import { nextStackParser } from '@sentry/nextjs';
 import { createStackParser } from '@sentry/utils';
 import { exceptionFromError } from '../../../src/eventbuilder';
-import {
-  chromeStackLineParser,
-  geckoStackLineParser,
-  nextRoutesStackParser,
-  winjsStackLineParser,
-} from '../../../src/stack-parsers';
+import { chromeStackLineParser, geckoStackLineParser, winjsStackLineParser } from '../../../src/stack-parsers';
 
 const parser = createStackParser(
-  nextRoutesStackParser,
+  nextStackParser,
   chromeStackLineParser,
   geckoStackLineParser,
   winjsStackLineParser,
