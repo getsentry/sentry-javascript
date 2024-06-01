@@ -10,10 +10,10 @@ import { GLOBAL_OBJ, createStackParser } from '@sentry/utils';
 
 import { devErrorSymbolicationEventProcessor } from '../common/devErrorSymbolicationEventProcessor';
 import { getVercelEnv } from '../common/getVercelEnv';
+import { nextStackParser } from '../common/nextStackParser';
 import { browserTracingIntegration } from './browserTracingIntegration';
 import { nextjsClientStackFrameNormalizationIntegration } from './clientNormalizationIntegration';
 import { applyTunnelRouteOption } from './tunnelRoute';
-import { nextStackParser } from '../common/nextStackParser';
 
 export * from '@sentry/react';
 

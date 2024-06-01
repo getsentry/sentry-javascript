@@ -3,12 +3,7 @@ import { createStackParser } from '@sentry/utils';
 import { exceptionFromError } from '../../../src/eventbuilder';
 import { chromeStackLineParser, geckoStackLineParser, winjsStackLineParser } from '../../../src/stack-parsers';
 
-const parser = createStackParser(
-  nextStackParser,
-  chromeStackLineParser,
-  geckoStackLineParser,
-  winjsStackLineParser,
-);
+const parser = createStackParser(nextStackParser, chromeStackLineParser, geckoStackLineParser, winjsStackLineParser);
 
 describe('Tracekit - Next.js Tests', () => {
   it('should parse Next.js routes error', () => {
