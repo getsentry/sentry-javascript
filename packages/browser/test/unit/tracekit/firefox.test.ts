@@ -1,5 +1,8 @@
+import { createStackParser } from '@sentry/utils';
 import { exceptionFromError } from '../../../src/eventbuilder';
-import { defaultStackParser as parser } from '../../../src/stack-parsers';
+import { defaultStackLineParsers, nextRoutesStackParser } from '../../../src/stack-parsers';
+
+const parser = createStackParser(...[nextRoutesStackParser, ...defaultStackLineParsers]);
 
 describe('Tracekit - Firefox Tests', () => {
   it('should parse Firefox 3 error', () => {

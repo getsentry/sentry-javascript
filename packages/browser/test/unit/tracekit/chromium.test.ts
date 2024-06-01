@@ -1,5 +1,8 @@
+import { createStackParser } from '@sentry/utils';
 import { exceptionFromError } from '../../../src/eventbuilder';
-import { defaultStackParser as parser } from '../../../src/stack-parsers';
+import { defaultStackLineParsers, nextRoutesStackParser } from '../../../src/stack-parsers';
+
+const parser = createStackParser(...[nextRoutesStackParser, ...defaultStackLineParsers]);
 
 describe('Tracekit - Chrome Tests', () => {
   it('should parse Chrome error with no location', () => {
@@ -590,14 +593,14 @@ describe('Tracekit - Chrome Tests', () => {
       stacktrace: {
         frames: [
           {
-            filename: 'http://localhost:5000/(some)/(thing)/index.html',
+            filename: 'http://localhost:5000/%28some%29/%28thing%29/index.html',
             function: 'more',
             lineno: 25,
             colno: 7,
             in_app: true,
           },
           {
-            filename: 'http://localhost:5000/(some)/(thing)/index.html',
+            filename: 'http://localhost:5000/%28some%29/%28thing%29/index.html',
             function: 'something',
             lineno: 20,
             colno: 16,

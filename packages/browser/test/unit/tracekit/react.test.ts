@@ -1,5 +1,8 @@
+import { createStackParser } from '@sentry/utils';
 import { exceptionFromError } from '../../../src/eventbuilder';
-import { defaultStackParser as parser } from '../../../src/stack-parsers';
+import { defaultStackLineParsers, nextRoutesStackParser } from '../../../src/stack-parsers';
+
+const parser = createStackParser(...[nextRoutesStackParser, ...defaultStackLineParsers]);
 
 describe('Tracekit - React Tests', () => {
   it('should correctly parse Invariant Violation errors and use framesToPop to drop the invariant frame', () => {

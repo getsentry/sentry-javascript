@@ -1,8 +1,8 @@
 import { addEventProcessor, applySdkMetadata, hasTracingEnabled, setTag } from '@sentry/core';
 import type { BrowserOptions } from '@sentry/react';
-import { getDefaultIntegrations as getReactDefaultIntegrations, init as reactInit } from '@sentry/react';
+import { nextRoutesStackParser, defaultStackLineParsers, getDefaultIntegrations as getReactDefaultIntegrations, init as reactInit } from '@sentry/react';
 import type { EventProcessor, Integration } from '@sentry/types';
-import { GLOBAL_OBJ } from '@sentry/utils';
+import { GLOBAL_OBJ, createStackParser } from '@sentry/utils';
 
 import { devErrorSymbolicationEventProcessor } from '../common/devErrorSymbolicationEventProcessor';
 import { getVercelEnv } from '../common/getVercelEnv';
@@ -27,6 +27,7 @@ export function init(options: BrowserOptions): void {
     environment: getVercelEnv(true) || process.env.NODE_ENV,
     defaultIntegrations: getDefaultIntegrations(options),
     ...options,
+    stackParser: options.stackParser || createStackParser(...[nextRoutesStackParser, ...defaultStackLineParsers]),
   } satisfies BrowserOptions;
 
   applyTunnelRouteOption(opts);
