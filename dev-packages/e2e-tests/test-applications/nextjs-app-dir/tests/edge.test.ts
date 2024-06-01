@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { waitForError, waitForTransaction } from '@sentry-internal/event-proxy-server';
+import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
 
 test('Should record exceptions for faulty edge server components', async ({ page }) => {
   const errorEventPromise = waitForError('nextjs-13-app-dir', errorEvent => {

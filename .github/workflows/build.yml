@@ -993,6 +993,7 @@ jobs:
           [
             'angular-17',
             'angular-18',
+            'aws-lambda-layer',
             'cloudflare-astro',
             'node-express',
             'create-react-app',
@@ -1012,7 +1013,7 @@ jobs:
             'react-create-hash-router',
             'react-router-6-use-routes',
             'react-router-5',
-            'standard-frontend-react',
+            'react-router-6',
             'svelte-5',
             'sveltekit',
             'sveltekit-2',
@@ -1039,9 +1040,9 @@ jobs:
           - test-application: 'create-react-app'
             build-command: 'test:build-ts3.8'
             label: 'create-react-app (TS 3.8)'
-          - test-application: 'standard-frontend-react'
+          - test-application: 'react-router-6'
             build-command: 'test:build-ts3.8'
-            label: 'standard-frontend-react (TS 3.8)'
+            label: 'react-router-6 (TS 3.8)'
           - test-application: 'create-next-app'
             build-command: 'test:build-13'
             label: 'create-next-app (next@13)'

@@ -14,7 +14,7 @@ env:
 
   CACHED_BUILD_PATHS: |
     ${{ github.workspace }}/packages/*/*.tgz
-    ${{ github.workspace }}/dev-packages/event-proxy-server/build
+    ${{ github.workspace }}/dev-packages/test-utils/build
     ${{ github.workspace }}/node_modules
     ${{ github.workspace }}/packages/*/node_modules
     ${{ github.workspace }}/dev-packages/*/node_modules
@@ -92,9 +92,9 @@ jobs:
           - test-application: 'react-create-hash-router'
             build-command: 'test:build-canary'
             label: 'react-create-hash-router (canary)'
-          - test-application: 'standard-frontend-react'
+          - test-application: 'react-router-6'
             build-command: 'test:build-canary'
-            label: 'standard-frontend-react (canary)'
+            label: 'react-router-6 (canary)'
 
     steps:
       - name: Check out current commit

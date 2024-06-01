@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { waitForError } from '@sentry-internal/event-proxy-server';
+import { waitForError } from '@sentry-internal/test-utils';
 
 test('Catches errors caught by error boundary', async ({ page }) => {
   page.on('console', message => {
