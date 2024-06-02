@@ -89,7 +89,7 @@ function getFinalConfigObject(
   const nextJsVersion = getNextjsVersion();
   if (nextJsVersion) {
     const { major, minor } = parseSemver(nextJsVersion);
-    if (major && minor && (major >= 15 || (major === 14 && minor >= 3))) {
+    if (typeof major === 'number' && typeof minor === 'number' && (major >= 15 || (major === 14 && minor >= 3))) {
       incomingUserNextConfigObject.experimental = {
         clientTraceMetadata: ['baggage', 'sentry-trace'],
         ...incomingUserNextConfigObject.experimental,
