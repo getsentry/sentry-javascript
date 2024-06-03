@@ -15,8 +15,6 @@ sentryTest('should send a pageload span terminated via child span timeout', asyn
     sentryTest.skip();
   }
 
-  page.on('console', msg => console.log(msg.text()));
-
   const url = await getLocalTestUrl({ testDir: __dirname });
   const req = await waitForTransactionRequestOnUrl(page, url);
 
