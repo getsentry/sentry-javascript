@@ -58,7 +58,7 @@
   },
   "dependencies": {
     "@remix-run/router": "1.x",
-    "@sentry/cli": "^2.31.2",
+    "@sentry/cli": "^2.32.1",
     "@sentry/core": "8.7.0",
     "@sentry/node": "8.7.0",
     "@sentry/opentelemetry": "8.7.0",
