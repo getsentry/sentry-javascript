@@ -66,6 +66,7 @@ describe('Unit | util | createPerformanceEntries', () => {
     it('works with an LCP metric', async () => {
       const metric = {
         value: 5108.299,
+        rating: 'good' as const,
         entries: [],
       };
 
@@ -76,7 +77,7 @@ describe('Unit | util | createPerformanceEntries', () => {
         name: 'largest-contentful-paint',
         start: 1672531205.108299,
         end: 1672531205.108299,
-        data: { value: 5108.299, size: 5108.299, nodeId: undefined },
+        data: { value: 5108.299, rating: 'good', size: 5108.299, nodeId: undefined },
       });
     });
   });
@@ -85,6 +86,7 @@ describe('Unit | util | createPerformanceEntries', () => {
     it('works with an CLS metric', async () => {
       const metric = {
         value: 5108.299,
+        rating: 'good' as const,
         entries: [],
       };
 
@@ -95,7 +97,7 @@ describe('Unit | util | createPerformanceEntries', () => {
         name: 'cumulative-layout-shift',
         start: 1672531205.108299,
         end: 1672531205.108299,
-        data: { value: 5108.299, size: 5108.299, nodeId: undefined },
+        data: { value: 5108.299, size: 5108.299, rating: 'good', nodeId: undefined },
       });
     });
   });
@@ -104,6 +106,7 @@ describe('Unit | util | createPerformanceEntries', () => {
     it('works with an FID metric', async () => {
       const metric = {
         value: 5108.299,
+        rating: 'good' as const,
         entries: [],
       };
 
@@ -114,7 +117,7 @@ describe('Unit | util | createPerformanceEntries', () => {
         name: 'first-input-delay',
         start: 1672531205.108299,
         end: 1672531205.108299,
-        data: { value: 5108.299, size: 5108.299, nodeId: undefined },
+        data: { value: 5108.299, size: 5108.299, rating: 'good', nodeId: undefined },
       });
     });
   });
@@ -123,6 +126,7 @@ describe('Unit | util | createPerformanceEntries', () => {
     it('works with an INP metric', async () => {
       const metric = {
         value: 5108.299,
+        rating: 'good' as const,
         entries: [],
       };
 
@@ -133,7 +137,7 @@ describe('Unit | util | createPerformanceEntries', () => {
         name: 'interaction-to-next-paint',
         start: 1672531205.108299,
         end: 1672531205.108299,
-        data: { value: 5108.299, size: 5108.299, nodeId: undefined },
+        data: { value: 5108.299, size: 5108.299, rating: 'good', nodeId: undefined },
       });
     });
   });

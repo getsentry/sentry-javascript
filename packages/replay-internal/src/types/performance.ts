@@ -96,50 +96,19 @@ export type ResourceData = Pick<PerformanceResourceTiming, 'decodedBodySize' | '
   statusCode?: number;
 };
 
-export interface LargestContentfulPaintData {
+export interface WebVitalData {
   /**
    * Render time (in ms) of the LCP
    */
   value: number;
   size: number;
   /**
+   * The rating as to whether the metric value is within the "good",
+   * "needs improvement", or "poor" thresholds of the metric.
+   */
+  rating: 'good' | 'needs-improvement' | 'poor';
+  /**
    * The recording id of the LCP node. -1 if not found
-   */
-  nodeId?: number;
-}
-
-export interface CumulativeLayoutShiftData {
-  /**
-   * Render time (in ms) of the CLS
-   */
-  value: number;
-  size: number;
-  /**
-   * The recording id of the CLS node. -1 if not found
-   */
-  nodeId?: number;
-}
-
-export interface FirstInputDelayData {
-  /**
-   * Render time (in ms) of the FID
-   */
-  value: number;
-  size: number;
-  /**
-   * The recording id of the FID node. -1 if not found
-   */
-  nodeId?: number;
-}
-
-export interface InteractionToNextPaintData {
-  /**
-   * Render time (in ms) of the INP
-   */
-  value: number;
-  size: number;
-  /**
-   * The recording id of the INP node. -1 if not found
    */
   nodeId?: number;
 }
@@ -147,7 +116,7 @@ export interface InteractionToNextPaintData {
 /**
  * Entries that come from window.performance
  */
-export type AllPerformanceEntryData = PaintData | NavigationData | ResourceData | LargestContentfulPaintData | CumulativeLayoutShiftData | FirstInputDelayData;
+export type AllPerformanceEntryData = PaintData | NavigationData | ResourceData | WebVitalData;
 
 export interface MemoryData {
   memory: {

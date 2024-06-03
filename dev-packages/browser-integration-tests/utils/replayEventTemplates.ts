@@ -128,6 +128,46 @@ export const expectedLCPPerformanceSpan = {
   data: {
     value: expect.any(Number),
     nodeId: expect.any(Number),
+    rating: expect.any(String),
+    size: expect.any(Number),
+  },
+};
+
+export const expectedCLSPerformanceSpan = {
+  op: 'web-vital',
+  description: 'cumulative-layout-shift',
+  startTimestamp: expect.any(Number),
+  endTimestamp: expect.any(Number),
+  data: {
+    value: expect.any(Number),
+    nodeId: expect.any(Number),
+    rating: expect.any(String),
+    size: expect.any(Number),
+  },
+};
+
+export const expectedFIDPerformanceSpan = {
+  op: 'web-vital',
+  description: 'first-input-delay',
+  startTimestamp: expect.any(Number),
+  endTimestamp: expect.any(Number),
+  data: {
+    value: expect.any(Number),
+    nodeId: expect.any(Number),
+    rating: expect.any(String),
+    size: expect.any(Number),
+  },
+};
+
+export const expectedINPPerformanceSpan = {
+  op: 'web-vital',
+  description: 'interaction-to-next-paint',
+  startTimestamp: expect.any(Number),
+  endTimestamp: expect.any(Number),
+  data: {
+    value: expect.any(Number),
+    nodeId: expect.any(Number),
+    rating: expect.any(String),
     size: expect.any(Number),
   },
 };

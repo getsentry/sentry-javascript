@@ -2,15 +2,12 @@ import type { Breadcrumb } from '@sentry/types';
 
 import type {
   HistoryData,
-  LargestContentfulPaintData,
-  CumulativeLayoutShiftData,
-  FirstInputDelayData,
-  InteractionToNextPaintData,
   MemoryData,
   NavigationData,
   NetworkRequestData,
   PaintData,
   ResourceData,
+  WebVitalData,
 } from './performance';
 import type { ReplayEventTypeCustom } from './rrweb';
 
@@ -166,22 +163,22 @@ interface ReplayHistoryFrame extends ReplayBaseSpanFrame {
 }
 
 interface ReplayLargestContentfulPaintFrame extends ReplayBaseSpanFrame {
-  data: LargestContentfulPaintData;
+  data: WebVitalData;
   op: 'largest-contentful-paint';
 }
 
 interface ReplayCumulativeLayoutShiftFrame extends ReplayBaseSpanFrame {
-  data: CumulativeLayoutShiftData;
+  data: WebVitalData;
   op: 'cumulative-layout-shift';
 }
 
 interface ReplayFirstInputDelayFrame extends ReplayBaseSpanFrame {
-  data: FirstInputDelayData;
+  data: WebVitalData;
   op: 'first-input-delay';
 }
 
 interface ReplayInteractionToNextPaintFrame extends ReplayBaseSpanFrame {
-  data: InteractionToNextPaintData;
+  data: WebVitalData;
   op: 'interaction-to-next-paint';
 }
 

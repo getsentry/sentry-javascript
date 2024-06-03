@@ -6,6 +6,9 @@ import {
   expectedFCPPerformanceSpan,
   expectedFPPerformanceSpan,
   expectedLCPPerformanceSpan,
+  expectedCLSPerformanceSpan,
+  expectedFIDPerformanceSpan,
+  expectedINPPerformanceSpan,
   expectedMemoryPerformanceSpan,
   expectedNavigationPerformanceSpan,
   getExpectedReplayEvent,
@@ -62,6 +65,9 @@ sentryTest(
       expect.arrayContaining([
         expectedNavigationPerformanceSpan,
         expectedLCPPerformanceSpan,
+        expectedCLSPerformanceSpan,
+        expectedFIDPerformanceSpan,
+        expectedINPPerformanceSpan,
         expectedFPPerformanceSpan,
         expectedFCPPerformanceSpan,
         expectedMemoryPerformanceSpan, // two memory spans - once per flush

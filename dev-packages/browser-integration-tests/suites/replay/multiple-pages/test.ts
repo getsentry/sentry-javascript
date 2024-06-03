@@ -6,6 +6,9 @@ import {
   expectedFCPPerformanceSpan,
   expectedFPPerformanceSpan,
   expectedLCPPerformanceSpan,
+  expectedCLSPerformanceSpan,
+  expectedFIDPerformanceSpan,
+  expectedINPPerformanceSpan,
   expectedMemoryPerformanceSpan,
   expectedNavigationBreadcrumb,
   expectedNavigationPerformanceSpan,
@@ -83,6 +86,9 @@ sentryTest(
       expect.arrayContaining([
         expectedNavigationPerformanceSpan,
         expectedLCPPerformanceSpan,
+        expectedCLSPerformanceSpan,
+        expectedFIDPerformanceSpan,
+        expectedINPPerformanceSpan,
         expectedFPPerformanceSpan,
         expectedFCPPerformanceSpan,
         expectedMemoryPerformanceSpan, // two memory spans - once per flush
@@ -121,6 +127,9 @@ sentryTest(
       expect.arrayContaining([
         expectedReloadPerformanceSpan,
         expectedLCPPerformanceSpan,
+        expectedCLSPerformanceSpan,
+        expectedFIDPerformanceSpan,
+        expectedINPPerformanceSpan,
         expectedFPPerformanceSpan,
         expectedFCPPerformanceSpan,
         expectedMemoryPerformanceSpan,
@@ -188,6 +197,9 @@ sentryTest(
       expect.arrayContaining([
         expectedNavigationPerformanceSpan,
         expectedLCPPerformanceSpan,
+        expectedCLSPerformanceSpan,
+        expectedFIDPerformanceSpan,
+        expectedINPPerformanceSpan,
         expectedFPPerformanceSpan,
         expectedFCPPerformanceSpan,
         expectedMemoryPerformanceSpan,
@@ -309,6 +321,9 @@ sentryTest(
       expect.arrayContaining([
         expectedNavigationPerformanceSpan,
         expectedLCPPerformanceSpan,
+        expectedCLSPerformanceSpan,
+        expectedFIDPerformanceSpan,
+        expectedINPPerformanceSpan,
         expectedFPPerformanceSpan,
         expectedFCPPerformanceSpan,
         expectedMemoryPerformanceSpan,

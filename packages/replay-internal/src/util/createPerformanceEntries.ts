@@ -6,14 +6,11 @@ import type {
   AllPerformanceEntry,
   AllPerformanceEntryData,
   ExperimentalPerformanceResourceTiming,
-  LargestContentfulPaintData,
-  CumulativeLayoutShiftData,
-  FirstInputDelayData,
-  InteractionToNextPaintData,
   NavigationData,
   PaintData,
   ReplayPerformanceEntry,
   ResourceData,
+  WebVitalData,
 } from '../types';
 
 // Map entryType -> function to normalize data for event
@@ -148,29 +145,10 @@ function createResourceEntry(
  */
 export function getLargestContentfulPaint(metric: {
   value: number;
+  rating: 'good' | 'needs-improvement' | 'poor';
   entries: PerformanceEntry[];
-}): ReplayPerformanceEntry<LargestContentfulPaintData> {
-  const entries = metric.entries;
-  const lastEntry = entries[entries.length - 1] as (PerformanceEntry & { element?: Element }) | undefined;
-  const element = lastEntry ? lastEntry.element : undefined;
-
-  const value = metric.value;
-
-  const end = getAbsoluteTime(value);
-
-  const data: ReplayPerformanceEntry<LargestContentfulPaintData> = {
-    type: 'web-vital',
-    name: 'largest-contentful-paint',
-    start: end,
-    end,
-    data: {
-      value,
-      size: value,
-      nodeId: element ? record.mirror.getId(element) : undefined,
-    },
-  };
-
-  return data;
+}): ReplayPerformanceEntry<WebVitalData> {
+  return getWebVital(metric, 'largest-contentful-paint');
 }
 
 /**
@@ -178,29 +156,10 @@ export function getLargestContentfulPaint(metric: {
  */
 export function getCumulativeLayoutShift(metric: {
   value: number;
+  rating: 'good' | 'needs-improvement' | 'poor';
   entries: PerformanceEntry[];
-}): ReplayPerformanceEntry<CumulativeLayoutShiftData> {
-  const entries = metric.entries;
-  const lastEntry = entries[entries.length - 1] as (PerformanceEntry & { element?: Element }) | undefined;
-  const element = lastEntry ? lastEntry.element : undefined;
-
-  const value = metric.value;
-
-  const end = getAbsoluteTime(value);
-
-  const data: ReplayPerformanceEntry<CumulativeLayoutShiftData> = {
-    type: 'web-vital',
-    name: 'cumulative-layout-shift',
-    start: end,
-    end,
-    data: {
-      value,
-      size: value,
-      nodeId: element ? record.mirror.getId(element) : undefined,
-    },
-  };
-
-  return data;
+}): ReplayPerformanceEntry<WebVitalData> {
+  return getWebVital(metric, 'cumulative-layout-shift');
 }
 
 /**
@@ -208,29 +167,10 @@ export function getCumulativeLayoutShift(metric: {
  */
 export function getFirstInputDelay(metric: {
   value: number;
+  rating: 'good' | 'needs-improvement' | 'poor';
   entries: PerformanceEntry[];
-}): ReplayPerformanceEntry<FirstInputDelayData> {
-  const entries = metric.entries;
-  const lastEntry = entries[entries.length - 1] as (PerformanceEntry & { element?: Element }) | undefined;
-  const element = lastEntry ? lastEntry.element : undefined;
-
-  const value = metric.value;
-
-  const end = getAbsoluteTime(value);
-
-  const data: ReplayPerformanceEntry<FirstInputDelayData> = {
-    type: 'web-vital',
-    name: 'first-input-delay',
-    start: end,
-    end,
-    data: {
-      value,
-      size: value,
-      nodeId: element ? record.mirror.getId(element) : undefined,
-    },
-  };
-
-  return data;
+}): ReplayPerformanceEntry<WebVitalData> {
+  return getWebVital(metric, 'first-input-delay');
 }
 
 /**
@@ -238,24 +178,38 @@ export function getFirstInputDelay(metric: {
  */
 export function getInteractionToNextPaint(metric: {
   value: number;
+  rating: 'good' | 'needs-improvement' | 'poor';
   entries: PerformanceEntry[];
-}): ReplayPerformanceEntry<InteractionToNextPaintData> {
+}): ReplayPerformanceEntry<WebVitalData> {
+  return getWebVital(metric, 'interaction-to-next-paint');
+}
+
+/**
+ * Add an web vital event to the replay based on the web vital metric.
+ */
+export function getWebVital(metric: {
+  value: number;
+  rating: 'good' | 'needs-improvement' | 'poor';
+  entries: PerformanceEntry[];
+}, name: string): ReplayPerformanceEntry<WebVitalData> {
   const entries = metric.entries;
   const lastEntry = entries[entries.length - 1] as (PerformanceEntry & { element?: Element }) | undefined;
   const element = lastEntry ? lastEntry.element : undefined;
 
   const value = metric.value;
+  const rating = metric.rating;
 
   const end = getAbsoluteTime(value);
 
-  const data: ReplayPerformanceEntry<InteractionToNextPaintData> = {
+  const data: ReplayPerformanceEntry<WebVitalData> = {
     type: 'web-vital',
-    name: 'interaction-to-next-paint',
+    name,
     start: end,
     end,
     data: {
       value,
       size: value,
+      rating,
       nodeId: element ? record.mirror.getId(element) : undefined,
     },
   };
