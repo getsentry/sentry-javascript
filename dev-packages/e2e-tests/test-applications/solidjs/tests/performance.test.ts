@@ -23,20 +23,15 @@ test('sends a pageload transaction', async ({ page }) => {
 });
 
 test('sends a navigation transaction', async ({ page }) => {
-  page.on('console', msg => console.log(msg.text()));
-  const pageloadTxnPromise = waitForTransaction('solidjs', async transactionEvent => {
-    return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
-  });
-
-  const navigationTxnPromise = waitForTransaction('solidjs', async transactionEvent => {
+  const transactionPromise = waitForTransaction('solidjs', async transactionEvent => {
     return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'navigation';
   });
 
-  await Promise.all([page.goto(`/`), pageloadTxnPromise]);
+  await page.goto(`/`);
 
-  const [, navigationTxn] = await Promise.all([page.locator('#navLink').click(), navigationTxnPromise]);
+  const [, navigationTransaction] = await Promise.all([page.locator('#navLink').click(), transactionPromise]);
 
-  expect(navigationTxn).toMatchObject({
+  expect(navigationTransaction).toMatchObject({
     contexts: {
       trace: {
         op: 'navigation',
@@ -54,17 +49,11 @@ test('updates the transaction when using the back button', async ({ page }) => {
   // Solid Router sends a `-1` navigation when using the back button.
   // The sentry solidRouterBrowserTracingIntegration tries to update such
   // transactions with the proper name once the `useLocation` hook triggers.
-  page.on('console', msg => console.log(msg.text()));
-
-  const pageloadTxnPromise = waitForTransaction('solidjs', async transactionEvent => {
-    return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
-  });
-
   const navigationTxnPromise = waitForTransaction('solidjs', async transactionEvent => {
     return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'navigation';
   });
 
-  await Promise.all([page.goto(`/`), pageloadTxnPromise]);
+  await page.goto(`/`);
 
   const [, navigationTxn] = await Promise.all([page.locator('#navLink').click(), navigationTxnPromise]);
 
