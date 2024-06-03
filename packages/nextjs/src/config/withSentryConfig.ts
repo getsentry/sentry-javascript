@@ -89,11 +89,13 @@ function getFinalConfigObject(
   const nextJsVersion = getNextjsVersion();
   if (nextJsVersion) {
     const { major, minor } = parseSemver(nextJsVersion);
-    if (typeof major === 'number' && typeof minor === 'number' && (major >= 15 || (major === 14 && minor >= 3))) {
-      incomingUserNextConfigObject.experimental = {
-        clientTraceMetadata: ['baggage', 'sentry-trace'],
-        ...incomingUserNextConfigObject.experimental,
-      };
+    if (major !== undefined && minor !== undefined && (major >= 15 || (major === 14 && minor >= 3))) {
+      incomingUserNextConfigObject.experimental = incomingUserNextConfigObject.experimental || {};
+      incomingUserNextConfigObject.experimental.clientTraceMetadata = [
+        'baggage',
+        'sentry-trace',
+        ...(incomingUserNextConfigObject.experimental?.clientTraceMetadata || []),
+      ];
     }
   } else {
     // eslint-disable-next-line no-console
