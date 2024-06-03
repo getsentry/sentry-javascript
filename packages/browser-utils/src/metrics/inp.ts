@@ -84,6 +84,9 @@ function _trackINP(): () => void {
     const rootSpan = activeSpan ? getRootSpan(activeSpan) : undefined;
 
     const routeName = rootSpan ? spanToJSON(rootSpan).description : undefined;
+    if (routeName === undefined) {
+      return;
+    }
     const user = scope.getUser();
 
     // We need to get the replay, user, and activeTransaction from the current scope
