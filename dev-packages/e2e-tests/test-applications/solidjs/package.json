@@ -14,7 +14,7 @@
   },
   "license": "MIT",
   "devDependencies": {
-    "@playwright/test": "^1.43.1",
+    "@playwright/test": "^1.44.1",
     "@sentry/types": "latest || *",
     "@sentry/utils": "latest || *",
     "autoprefixer": "^10.4.17",
