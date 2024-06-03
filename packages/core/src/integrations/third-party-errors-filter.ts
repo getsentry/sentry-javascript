@@ -5,9 +5,13 @@ import { addMetadataToStackFrames, stripMetadataFromStackFrames } from '../metad
 
 interface Options {
   /**
-   * Keys that have been provided in the Sentry bundler plugin, identifying your bundles.
+   * Keys that have been provided in the Sentry bundler plugin via the the `applicationKey` option, identifying your bundles.
+   *
+   * - Webpack plugin: https://www.npmjs.com/package/@sentry/webpack-plugin#applicationkey
+   * - Vite plugin: https://www.npmjs.com/package/@sentry/vite-plugin#applicationkey
+   * - Esbuild plugin: https://www.npmjs.com/package/@sentry/esbuild-plugin#applicationkey
+   * - Rollup plugin: https://www.npmjs.com/package/@sentry/rollup-plugin#applicationkey
    */
-  // TODO(lforst): Explain in JSDoc which option exactly needs to be set when we have figured out the API and deep link to the option in npm
   filterKeys: string[];
 
   /**
@@ -27,6 +31,7 @@ interface Options {
     | 'apply-tag-if-contains-third-party-frames'
     | 'apply-tag-if-exclusively-contains-third-party-frames';
 }
+
 /**
  * This integration allows you to filter out, or tag error events that do not come from user code marked with a bundle key via the Sentry bundler plugins.
  */
