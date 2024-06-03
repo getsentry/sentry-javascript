@@ -6268,7 +6268,7 @@
   dependencies:
     "@opentelemetry/semantic-conventions" "1.23.0"
 
-"@opentelemetry/core@1.24.1", "@opentelemetry/core@^1.0.0", "@opentelemetry/core@^1.1.0", "@opentelemetry/core@^1.24.1", "@opentelemetry/core@^1.8.0":
+"@opentelemetry/core@1.24.1", "@opentelemetry/core@^1.1.0", "@opentelemetry/core@^1.24.1", "@opentelemetry/core@^1.8.0":
   version "1.24.1"
   resolved "https://registry.yarnpkg.com/@opentelemetry/core/-/core-1.24.1.tgz#35ab9d2ac9ca938e0ffbdfa40c49c169ac8ba80d"
   integrity sha512-wMSGfsdmibI88K9wB498zXY04yThPexo8jvwNNlm542HZB7XrrMRBbAyKJqG8qDRJwIBdBrPMi4V9ZPW/sqrcg==
@@ -6463,11 +6463,11 @@
   integrity sha512-DP2Y91zyw2uNgKLbej6c3IIjyF27sKnRK/UY/6msMIVGPIbZgtH9L0JOioN5L5kYjEkH4CDvt921SjutN7hY4A==
 
 "@opentelemetry/propagator-aws-xray@^1.3.1":
-  version "1.3.1"
-  resolved "https://registry.yarnpkg.com/@opentelemetry/propagator-aws-xray/-/propagator-aws-xray-1.3.1.tgz#7fc77a95fe89c705442b0e5a4218422c2954cc07"
-  integrity sha512-6fDMzFlt5r6VWv7MUd0eOpglXPFqykW8CnOuUxJ1VZyLy6mV1bzBlzpsqEmhx1bjvZYvH93vhGkQZqrm95mlrQ==
+  version "1.24.1"
+  resolved "https://registry.yarnpkg.com/@opentelemetry/propagator-aws-xray/-/propagator-aws-xray-1.24.1.tgz#fd041d43f0eee7d482d272bc23688d42abe216d5"
+  integrity sha512-RzwoLe6QzsYGcpmxxDbbbgSpe3ncxSM4dtFHXh/rCYGjyq0nZGXKvk26mJtWZ4kQ3nuiIoqSZueIuGmt/mvOTA==
   dependencies:
-    "@opentelemetry/core" "^1.0.0"
+    "@opentelemetry/core" "1.24.1"
 
 "@opentelemetry/redis-common@^0.36.2":
   version "0.36.2"
