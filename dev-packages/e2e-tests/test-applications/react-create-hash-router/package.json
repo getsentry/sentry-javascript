@@ -15,8 +15,7 @@
     "react-dom": "18.2.0",
     "react-router-dom": "^6.4.1",
     "react-scripts": "5.0.1",
-    "typescript": "4.4.2",
-    "web-vitals": "2.1.0"
+    "typescript": "4.4.2"
   },
   "scripts": {
     "build": "react-scripts build",
@@ -46,8 +45,8 @@
     ]
   },
   "devDependencies": {
-    "@sentry-internal/event-proxy-server": "link:../../../event-proxy-server",
-    "@playwright/test": "1.26.1",
+    "@playwright/test": "^1.44.1",
+    "@sentry-internal/test-utils": "link:../../../test-utils",
     "serve": "14.0.1"
   },
   "volta": {

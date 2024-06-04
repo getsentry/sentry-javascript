@@ -15,10 +15,9 @@ Sentry.init({
 });
 
 const activeSpan = Sentry.getActiveSpan();
-if (activeSpan) {
-  Sentry.startInactiveSpan({ name: 'pageload-child-span' });
-} else {
-  setTimeout(() => {
-    Sentry.startInactiveSpan({ name: 'pageload-child-span' });
-  }, 200);
-}
+Sentry.startInactiveSpan({
+  name: 'pageload-child-span',
+  onlyIfParent: true,
+  // Set this to ensure we do not discard this span due to timeout
+  startTime: activeSpan && Sentry.spanToJSON(activeSpan).start_timestamp,
+});

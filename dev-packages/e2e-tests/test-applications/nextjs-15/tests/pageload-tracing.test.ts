@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '@sentry-internal/event-proxy-server';
+import { waitForTransaction } from '@sentry-internal/test-utils';
 
 test('all server component transactions should be attached to the pageload request span', async ({ page }) => {
   const pageServerComponentTransactionPromise = waitForTransaction('nextjs-15', async transactionEvent => {
