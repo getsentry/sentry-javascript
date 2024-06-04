@@ -8,7 +8,7 @@ import { CpuProfilerBindings } from './cpu_profiler';
 import { DEBUG_BUILD } from './debug-build';
 import { NODE_MAJOR, NODE_VERSION } from './nodeVersion';
 import { MAX_PROFILE_DURATION_MS, maybeProfileSpan, stopSpanProfile } from './spanProfileUtils';
-import type { RawThreadCpuProfile } from './types';
+import { PROFILE_FORMAT, RawThreadCpuProfile } from './types';
 
 import {
   addProfilesToEnvelope,
@@ -245,7 +245,7 @@ class ContinuousProfiler {
     }
     DEBUG_BUILD && logger.log(`[Profiling] Stopping profiling chunk: ${this._chunkId}`);
 
-    const profile = CpuProfilerBindings.stopProfiling(this._chunkId, 1);
+    const profile = CpuProfilerBindings.stopProfiling(this._chunkId, PROFILE_FORMAT.CHUNK);
     if (!profile || !this._chunkStartTimestampMS) {
       DEBUG_BUILD && logger.log(`[Profiling] _chunkiledStartTraceID to collect profile for: ${this._chunkId}`);
       return;
