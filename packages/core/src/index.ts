@@ -101,3 +101,5 @@ export { captureFeedback } from './feedback';
 
 // eslint-disable-next-line deprecation/deprecation
 export { getCurrentHubShim, getCurrentHub } from './getCurrentHubShim';
+
+export { SDK_VERSION } from '@sentry/utils';
