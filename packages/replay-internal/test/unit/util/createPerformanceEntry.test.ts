@@ -11,7 +11,13 @@ vi.mock('@sentry/utils', async () => ({
 }));
 
 import { WINDOW } from '../../../src/constants';
-import { createPerformanceEntries, getLargestContentfulPaint, getCumulativeLayoutShift, getFirstInputDelay, getInteractionToNextPaint } from '../../../src/util/createPerformanceEntries';
+import {
+  createPerformanceEntries,
+  getCumulativeLayoutShift,
+  getFirstInputDelay,
+  getInteractionToNextPaint,
+  getLargestContentfulPaint,
+} from '../../../src/util/createPerformanceEntries';
 import { PerformanceEntryNavigation } from '../../fixtures/performanceEntry/navigation';
 
 describe('Unit | util | createPerformanceEntries', () => {

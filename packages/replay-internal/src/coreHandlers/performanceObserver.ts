@@ -1,8 +1,17 @@
-import { addClsInstrumentationHandler, addFidInstrumentationHandler, addLcpInstrumentationHandler, addPerformanceInstrumentationHandler } from '@sentry-internal/browser-utils';
-
-import type { ReplayContainer } from '../types';
-import { getLargestContentfulPaint, getCumulativeLayoutShift, getFirstInputDelay, getInteractionToNextPaint } from '../util/createPerformanceEntries';
+import {
+  addClsInstrumentationHandler,
+  addFidInstrumentationHandler,
+  addLcpInstrumentationHandler,
+  addPerformanceInstrumentationHandler,
+} from '@sentry-internal/browser-utils';
 import { addInpInstrumentationHandler } from '@sentry-internal/browser-utils/build/types/metrics/instrument';
+import type { ReplayContainer } from '../types';
+import {
+  getCumulativeLayoutShift,
+  getFirstInputDelay,
+  getInteractionToNextPaint,
+  getLargestContentfulPaint,
+} from '../util/createPerformanceEntries';
 
 /**
  * Sets up a PerformanceObserver to listen to all performance entry types.

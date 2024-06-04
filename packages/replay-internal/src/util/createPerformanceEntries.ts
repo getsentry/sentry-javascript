@@ -187,11 +187,14 @@ export function getInteractionToNextPaint(metric: {
 /**
  * Add an web vital event to the replay based on the web vital metric.
  */
-export function getWebVital(metric: {
-  value: number;
-  rating: 'good' | 'needs-improvement' | 'poor';
-  entries: PerformanceEntry[];
-}, name: string): ReplayPerformanceEntry<WebVitalData> {
+export function getWebVital(
+  metric: {
+    value: number;
+    rating: 'good' | 'needs-improvement' | 'poor';
+    entries: PerformanceEntry[];
+  },
+  name: string,
+): ReplayPerformanceEntry<WebVitalData> {
   const entries = metric.entries;
   const lastEntry = entries[entries.length - 1] as (PerformanceEntry & { element?: Element }) | undefined;
   const element = lastEntry ? lastEntry.element : undefined;

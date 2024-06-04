@@ -2,13 +2,13 @@ import { expect } from '@playwright/test';
 
 import { sentryTest } from '../../../utils/fixtures';
 import {
+  expectedCLSPerformanceSpan,
   expectedClickBreadcrumb,
   expectedFCPPerformanceSpan,
-  expectedFPPerformanceSpan,
-  expectedLCPPerformanceSpan,
-  expectedCLSPerformanceSpan,
   expectedFIDPerformanceSpan,
+  expectedFPPerformanceSpan,
   expectedINPPerformanceSpan,
+  expectedLCPPerformanceSpan,
   expectedMemoryPerformanceSpan,
   expectedNavigationPerformanceSpan,
   getExpectedReplayEvent,
