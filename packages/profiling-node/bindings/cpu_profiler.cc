@@ -573,15 +573,24 @@ napi_value CreateSample(const napi_env &env, const enum ProfileFormat format,
                           NAPI_AUTO_LENGTH, &thread_id_prop);
   napi_set_named_property(env, js_node, "thread_id", thread_id_prop);
 
-  if (format == ProfileFormat::kFormatThread) {
-    napi_value timestamp;
-    napi_create_int64(env, sample_timestamp, &timestamp);
-    napi_set_named_property(env, js_node, "elapsed_since_start_ns", timestamp);
-  } else if (format == ProfileFormat::kFormatChunk) {
-    napi_value timestamp;
-    napi_create_double(env, chunk_timestamp, &timestamp);
-    napi_set_named_property(env, js_node, "timestamp", timestamp);
-  }
+switch(format){
+  case ProfileFormat::kFormatThread:
+    {
+      napi_value timestamp;
+      napi_create_int64(env, sample_timestamp, &timestamp);
+      napi_set_named_property(env, js_node, "elapsed_since_start_ns", timestamp);
+    }
+    break;
+  case ProfileFormat::kFormatChunk:
+    {
+      napi_value timestamp;
+      napi_create_double(env, chunk_timestamp, &timestamp);
+      napi_set_named_property(env, js_node, "timestamp", timestamp);
+    }
+    break;
+  default:
+    break;
+}
 
   return js_node;
 };
@@ -645,11 +654,11 @@ static void GetSamples(const napi_env &env, const v8::CpuProfile *profile,
       }
     }
 
-    uint64_t sample_delta_us = sample_timestamp - profile_start_time_us;
+    uint64_t sample_delta_us = sample_timestamp_us - profile_start_time_us;
     uint64_t sample_timestamp_ns = sample_delta_us * 1e3;
-    double seconds_since_start =
-        profile_start_timestamp_ms +
-        (sample_timestamp - profile_start_time_us) * 1e-3;
+    uint64_t sample_offset_from_profile_start_ms =
+        (sample_timestamp_us - profile_start_time_us) * 1e-3;
+    double seconds_since_start = profile_start_timestamp_ms + sample_offset_from_profile_start_ms;
 
     napi_value sample = nullptr;
     sample = CreateSample(env, format, stack_index, sample_timestamp_ns,
@@ -718,15 +727,15 @@ static napi_value TranslateMeasurementsDouble(
     const napi_env &env, const enum ProfileFormat format, const char *unit,
     const uint64_t profile_start_timestamp_ms, const uint16_t size,
     const std::vector<double> &values,
-    const std::vector<uint64_t> &timestamps) {
-  if (size > values.size() || size > timestamps.size()) {
+    const std::vector<uint64_t> &timestamps_ns) {
+  if (size > values.size() || size > timestamps_ns.size()) {
     napi_throw_range_error(env, "NAPI_ERROR",
                            "CPU measurement size is larger than the number of "
                            "values or timestamps");
     return nullptr;
   }
 
-  if (values.size() != timestamps.size()) {
+  if (values.size() != timestamps_ns.size()) {
     napi_throw_range_error(env, "NAPI_ERROR",
                            "CPU measurement entries are corrupt, expected "
                            "values and timestamps to be of equal length");
@@ -760,12 +769,12 @@ static napi_value TranslateMeasurementsDouble(
 
     if (format == ProfileFormat::kFormatThread) {
       napi_value ts;
-      napi_create_int64(env, timestamps[i], &ts);
+      napi_create_int64(env, timestamps_ns[i], &ts);
       napi_set_named_property(env, entry, "elapsed_since_start_ns", ts);
     } else if (format == ProfileFormat::kFormatChunk) {
       napi_value ts;
       napi_create_double(
-          env, profile_start_timestamp_ms + (timestamps[i] * 1e-6), &ts);
+          env, profile_start_timestamp_ms + (timestamps_ns[i] * 1e-6), &ts);
       napi_set_named_property(env, entry, "timestamp", ts);
     }
 
@@ -782,15 +791,15 @@ TranslateMeasurements(const napi_env &env, const enum ProfileFormat format,
                       const char *unit,
                       const uint64_t profile_start_timestamp_ms,
                       const uint16_t size, const std::vector<uint64_t> &values,
-                      const std::vector<uint64_t> &timestamps) {
-  if (size > values.size() || size > timestamps.size()) {
+                      const std::vector<uint64_t> &timestamps_ns) {
+  if (size > values.size() || size > timestamps_ns.size()) {
     napi_throw_range_error(env, "NAPI_ERROR",
                            "Memory measurement size is larger than the number "
                            "of values or timestamps");
     return nullptr;
   }
 
-  if (values.size() != timestamps.size()) {
+  if (values.size() != timestamps_ns.size()) {
     napi_throw_range_error(env, "NAPI_ERROR",
                            "Memory measurement entries are corrupt, expected "
                            "values and timestamps to be of equal length");
@@ -815,15 +824,24 @@ TranslateMeasurements(const napi_env &env, const enum ProfileFormat format,
     napi_create_int64(env, values[i], &value);
 
     napi_set_named_property(env, entry, "value", value);
-    if (format == ProfileFormat::kFormatThread) {
-      napi_value ts;
-      napi_create_int64(env, timestamps[i], &ts);
-      napi_set_named_property(env, entry, "elapsed_since_start_ns", ts);
-    } else if (format == ProfileFormat::kFormatChunk) {
-      napi_value ts;
-      napi_create_double(
-          env, profile_start_timestamp_ms + (timestamps[i] * 1e-6), &ts);
-      napi_set_named_property(env, entry, "timestamp", ts);
+    switch(format){
+      case ProfileFormat::kFormatThread:
+        {
+          napi_value ts;
+          napi_create_int64(env, timestamps_ns[i], &ts);
+          napi_set_named_property(env, entry, "elapsed_since_start_ns", ts);
+        }
+        break;
+      case ProfileFormat::kFormatChunk:
+        {
+          napi_value ts;
+          napi_create_double(
+              env, profile_start_timestamp_ms + (timestamps_ns[i] * 1e-6), &ts);
+          napi_set_named_property(env, entry, "timestamp", ts);
+        }
+        break;
+      default:
+        break;
     }
     napi_set_element(env, values_array, i, entry);
   }
