@@ -211,7 +211,24 @@ module.exports = [
     import: createImport('init'),
     ignore: [...builtinModules, ...nodePrefixedBuiltinModules],
     gzip: true,
-    limit: '180 KB',
+    limit: '130 KB',
+  },
+  {
+    name: '@sentry/node - without tracing',
+    path: 'packages/node/build/esm/index.js',
+    import: createImport('initWithoutDefaultIntegrations', 'getDefaultIntegrationsWithoutPerformance'),
+    gzip: true,
+    limit: '110 KB',
+    ignore: [...builtinModules, ...nodePrefixedBuiltinModules],
+    modifyWebpackConfig: function (config) {
+      const webpack = require('webpack');
+      config.plugins.push(
+        new webpack.DefinePlugin({
+          __SENTRY_TRACING__: false,
+        }),
+      );
+      return config;
+    },
   },
   // AWS SDK (ESM)
   {
@@ -220,7 +237,7 @@ module.exports = [
     import: createImport('init'),
     ignore: [...builtinModules, ...nodePrefixedBuiltinModules],
     gzip: true,
-    limit: '140 KB',
+    limit: '120 KB',
   },
 ];
 
