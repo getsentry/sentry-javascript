@@ -262,15 +262,6 @@ class ContinuousProfiler {
   }
 
   /**
-   * Determines if the profiler is in continuous mode. In regular mode, no client is attached
-   * and the profiler cannot be started or stopped
-   * @returns boolean
-   */
-  private get isContinousProfilingMode(): boolean {
-    return !!this._client;
-  }
-
-  /**
    * Flushes the profile chunk to Sentry.
    * @param chunk
    */
