@@ -19,6 +19,7 @@ import {
 } from './utils';
 
 const MAX_PROFILE_QUEUE_LENGTH = 50;
+const CHUNK_INTERVAL_MS = 5000;
 const PROFILE_QUEUE: RawThreadCpuProfile[] = [];
 const PROFILE_TIMEOUTS: Record<string, NodeJS.Timeout> = {};
 
@@ -137,37 +138,36 @@ function setupAutomatedSpanProfiling(client: NodeClient): void {
       PROFILE_QUEUE.splice(profileIndex, 1);
       const profile = createProfilingEvent(client, cpuProfile, profiledTransaction);
 
-      if (client.emit && profile) {
-        const integrations =
-          client['_integrations'] && client['_integrations'] !== null && !Array.isArray(client['_integrations'])
-            ? Object.keys(client['_integrations'])
-            : undefined;
+      if (!profile) return;
 
-        // @ts-expect-error bad overload due to unknown event
-        client.emit('preprocessEvent', profile, {
-          event_id: profiledTransaction.event_id,
-          integrations,
-        });
-      }
+      profilesToAddToEnvelope.push(profile);
 
-      if (profile) {
-        profilesToAddToEnvelope.push(profile);
-      }
+      // @ts-expect-error PreprocessEvent uses Event type
+      client.emit('preprocessEvent', profile, {
+        event_id: profiledTransaction.event_id,
+      });
     }
 
     addProfilesToEnvelope(envelope, profilesToAddToEnvelope);
   });
 }
 
+interface ChunkData {
+  id: string | undefined;
+  timer: NodeJS.Timeout | undefined;
+  startTimestampMS: number | undefined;
+  startTraceID: string | undefined;
+}
 class ContinuousProfiler {
   private _profilerId = uuid4();
   private _client: NodeClient | undefined = undefined;
 
-  private _chunkId: string | undefined = undefined;
-  private _chunkTimer: NodeJS.Timeout | undefined = undefined;
-  private _chunkIntervalMS = 5000;
-  private _chunkStartTimestampMS: number | undefined = undefined;
-  private _chunkStartTraceID: string | undefined = undefined;
+  private _chunkData: ChunkData = {
+    id: undefined,
+    timer: undefined,
+    startTimestampMS: undefined,
+    startTraceID: undefined,
+  };
 
   /**
    * Called when the profiler is attached to the client (continuous mode is enabled). If of the profiler
@@ -192,37 +192,18 @@ class ContinuousProfiler {
       DEBUG_BUILD && logger.log('[Profiling] Profiler was never attached to the client.');
       return;
     }
-    if (this._chunkId || this._chunkTimer) {
+    if (this._chunkData.id || this._chunkData.timer) {
       DEBUG_BUILD &&
         logger.log(
-          `[Profiling] Chunk with chunk_id ${this._chunkId} is still running, current chunk will be stopped a new chunk will be started.`,
+          `[Profiling] Chunk with chunk_id ${this._chunkData.id} is still running, current chunk will be stopped a new chunk will be started.`,
         );
       this.stop();
     }
 
-    const scope = getCurrentScope();
-    const isolationScope = getIsolationScope();
-
-    // Extract the trace_id from the current scope and assign start_timestamp as well as the new chunk_id.
-    this._chunkId = uuid4();
-    this._chunkStartTraceID = {
-      ...isolationScope.getPropagationContext(),
-      ...scope.getPropagationContext(),
-    }.traceId;
-    this._chunkStartTimestampMS = timestampInSeconds();
-
-    CpuProfilerBindings.startProfiling(this._chunkId);
-    DEBUG_BUILD && logger.log(`[Profiling] starting profiling chunk: ${this._chunkId}`);
-
-    this._chunkTimer = global.setTimeout(() => {
-      DEBUG_BUILD && logger.log(`[Profiling] Stopping profiling chunk: ${this._chunkId}`);
-      this.stop();
-      DEBUG_BUILD && logger.log('[Profiling] Starting new profiling chunk.');
-      setImmediate(this.start.bind(this));
-    }, this._chunkIntervalMS);
-
-    // Unref timeout so it doesn't keep the process alive.
-    this._chunkTimer.unref();
+    const traceId =
+      getCurrentScope().getPropagationContext().traceId || getIsolationScope().getPropagationContext().traceId;
+    this._initializeChunk(traceId);
+    this._startChunkProfiling(this._chunkData);
   }
 
   /**
@@ -235,40 +216,39 @@ class ContinuousProfiler {
         logger.log('[Profiling] Failed to collect profile, sentry client was never attached to the profiler.');
       return;
     }
-    if (!this._chunkId) {
+    if (!this._chunkData.id) {
       DEBUG_BUILD &&
-        logger.log(`[Profiling] Failed to collect profile for: ${this._chunkId}, the chunk_id is missing.`);
+        logger.log(`[Profiling] Failed to collect profile for: ${this._chunkData.id}, the chunk_id is missing.`);
       return;
     }
-    if (this._chunkTimer) {
-      global.clearTimeout(this._chunkTimer);
+    if (this._chunkData.timer) {
+      global.clearTimeout(this._chunkData.timer);
     }
-    DEBUG_BUILD && logger.log(`[Profiling] Stopping profiling chunk: ${this._chunkId}`);
-
-    const profile = CpuProfilerBindings.stopProfiling(this._chunkId, PROFILE_FORMAT.CHUNK);
-    if (!profile || !this._chunkStartTimestampMS) {
-      DEBUG_BUILD && logger.log(`[Profiling] _chunkiledStartTraceID to collect profile for: ${this._chunkId}`);
+    DEBUG_BUILD && logger.log(`[Profiling] Stopping profiling chunk: ${this._chunkData.id}`);
+    const profile = CpuProfilerBindings.stopProfiling(this._chunkData.id, PROFILE_FORMAT.CHUNK);
+    if (!profile || !this._chunkData.startTimestampMS) {
+      DEBUG_BUILD && logger.log(`[Profiling] _chunkiledStartTraceID to collect profile for: ${this._chunkData.id}`);
       return;
     }
     if (profile) {
-      DEBUG_BUILD && logger.log(`[Profiling] Sending profile chunk ${this._chunkId}.`);
+      DEBUG_BUILD && logger.log(`[Profiling] Sending profile chunk ${this._chunkData.id}.`);
     }
 
-    DEBUG_BUILD && logger.log(`[Profiling] Profile chunk ${this._chunkId} sent to Sentry.`);
+    DEBUG_BUILD && logger.log(`[Profiling] Profile chunk ${this._chunkData.id} sent to Sentry.`);
     const chunk = createProfilingChunkEvent(
-      this._chunkStartTimestampMS,
+      this._chunkData.startTimestampMS,
       this._client,
       this._client.getOptions(),
       profile,
       {
-        chunk_id: this._chunkId,
-        trace_id: this._chunkStartTraceID,
+        chunk_id: this._chunkData.id,
+        trace_id: this._chunkData.startTraceID,
         profiler_id: this._profilerId,
       },
     );
 
     if (!chunk) {
-      DEBUG_BUILD && logger.log(`[Profiling] Failed to create profile chunk for: ${this._chunkId}`);
+      DEBUG_BUILD && logger.log(`[Profiling] Failed to create profile chunk for: ${this._chunkData.id}`);
       this._reset();
       return;
     }
@@ -305,13 +285,46 @@ class ContinuousProfiler {
   }
 
   /**
+   * Starts the profiler and registers the flush timer for a given chunk.
+   * @param chunk
+   */
+  private _startChunkProfiling(chunk: ChunkData) {
+    CpuProfilerBindings.startProfiling(chunk.id!);
+    DEBUG_BUILD && logger.log(`[Profiling] starting profiling chunk: ${chunk.id}`);
+
+    chunk.timer = global.setTimeout(() => {
+      DEBUG_BUILD && logger.log(`[Profiling] Stopping profiling chunk: ${chunk.id}`);
+      this.stop();
+      DEBUG_BUILD && logger.log('[Profiling] Starting new profiling chunk.');
+      setImmediate(this.start.bind(this));
+    }, CHUNK_INTERVAL_MS);
+
+    // Unref timeout so it doesn't keep the process alive.
+    chunk.timer.unref();
+  }
+
+  /**
+   * Initializes new profile chunk metadata
+   */
+  private _initializeChunk(traceId: string): void {
+    this._chunkData = {
+      id: uuid4(),
+      startTraceID: traceId,
+      startTimestampMS: timestampInSeconds(),
+      timer: undefined,
+    };
+  }
+
+  /**
    * Resets the current chunk state.
    */
   private _reset(): void {
-    this._chunkId = undefined;
-    this._chunkTimer = undefined;
-    this._chunkStartTimestampMS = undefined;
-    this._chunkStartTraceID = undefined;
+    this._chunkData = {
+      id: undefined,
+      timer: undefined,
+      startTimestampMS: undefined,
+      startTraceID: undefined,
+    };
   }
 }
 

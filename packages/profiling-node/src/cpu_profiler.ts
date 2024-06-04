@@ -7,7 +7,12 @@ import { getAbi } from 'node-abi';
 
 import { GLOBAL_OBJ, logger } from '@sentry/utils';
 import { DEBUG_BUILD } from './debug-build';
-import type { PrivateV8CpuProfilerBindings, RawChunkCpuProfile, RawThreadCpuProfile, V8CpuProfilerBindings } from './types';
+import type {
+  PrivateV8CpuProfilerBindings,
+  RawChunkCpuProfile,
+  RawThreadCpuProfile,
+  V8CpuProfilerBindings,
+} from './types';
 import { PROFILE_FORMAT } from './types';
 
 const stdlib = familySync();
@@ -165,7 +170,10 @@ class Bindings implements V8CpuProfilerBindings {
 
   stopProfiling(name: string, format: PROFILE_FORMAT.THREAD): RawThreadCpuProfile | null;
   stopProfiling(name: string, format: PROFILE_FORMAT.CHUNK): RawChunkCpuProfile | null;
-  stopProfiling(name: string, format: PROFILE_FORMAT.CHUNK | PROFILE_FORMAT.THREAD): RawThreadCpuProfile | RawChunkCpuProfile | null {
+  stopProfiling(
+    name: string,
+    format: PROFILE_FORMAT.CHUNK | PROFILE_FORMAT.THREAD,
+  ): RawThreadCpuProfile | RawChunkCpuProfile | null {
     if (!PrivateCpuProfilerBindings) {
       DEBUG_BUILD &&
         logger.log('[Profiling] Bindings not loaded or profile was never started, ignoring call to stopProfiling.');
@@ -174,7 +182,7 @@ class Bindings implements V8CpuProfilerBindings {
 
     return PrivateCpuProfilerBindings.stopProfiling(name, format as any, threadId, !!GLOBAL_OBJ._sentryDebugIds);
   }
-};
+}
 
 const CpuProfilerBindings = new Bindings();
 

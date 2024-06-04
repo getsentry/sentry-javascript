@@ -54,8 +54,18 @@ export interface RawChunkCpuProfile extends BaseProfile {
 export interface PrivateV8CpuProfilerBindings {
   startProfiling(name: string): void;
 
-  stopProfiling(name: string, format: PROFILE_FORMAT.THREAD, threadId: number, collectResources: boolean): RawThreadCpuProfile | null;
-  stopProfiling(name: string, format: PROFILE_FORMAT.CHUNK, threadId: number, collectResources: boolean): RawChunkCpuProfile | null;
+  stopProfiling(
+    name: string,
+    format: PROFILE_FORMAT.THREAD,
+    threadId: number,
+    collectResources: boolean,
+  ): RawThreadCpuProfile | null;
+  stopProfiling(
+    name: string,
+    format: PROFILE_FORMAT.CHUNK,
+    threadId: number,
+    collectResources: boolean,
+  ): RawChunkCpuProfile | null;
 
   // Helper methods exposed for testing
   getFrameModule(abs_path: string): string;
