@@ -144,20 +144,15 @@ function setupAutomatedSpanProfiling(client: NodeClient): void {
 }
 
 interface ChunkData {
-  id: string | undefined;
+  id: string;
   timer: NodeJS.Timeout | undefined;
-  startTimestampMS: number | undefined;
-  startTraceID: string | undefined;
+  startTimestampMS: number;
+  startTraceID: string;
 }
 class ContinuousProfiler {
   private _profilerId = uuid4();
   private _client: NodeClient | undefined = undefined;
-  private _chunkData: ChunkData = {
-    id: undefined,
-    timer: undefined,
-    startTimestampMS: undefined,
-    startTraceID: undefined,
-  };
+  private _chunkData: ChunkData | undefined = undefined;
 
   /**
    * Called when the profiler is attached to the client (continuous mode is enabled). If of the profiler
@@ -182,7 +177,7 @@ class ContinuousProfiler {
       DEBUG_BUILD && logger.log('[Profiling] Profiler was never attached to the client.');
       return;
     }
-    if (this._chunkData.id || this._chunkData.timer) {
+    if (this._chunkData) {
       DEBUG_BUILD &&
         logger.log(
           `[Profiling] Chunk with chunk_id ${this._chunkData.id} is still running, current chunk will be stopped a new chunk will be started.`,
@@ -193,7 +188,7 @@ class ContinuousProfiler {
     const traceId =
       getCurrentScope().getPropagationContext().traceId || getIsolationScope().getPropagationContext().traceId;
     this._initializeChunk(traceId);
-    this._startChunkProfiling(this._chunkData);
+    this._startChunkProfiling(this._chunkData!);
   }
 
   /**
@@ -201,7 +196,7 @@ class ContinuousProfiler {
    * @returns void
    */
   public stop(): void {
-    if (this._chunkData.timer) {
+    if (this._chunkData?.timer) {
       global.clearTimeout(this._chunkData.timer);
       this._chunkData.timer = undefined;
       DEBUG_BUILD && logger.log(`[Profiling] Stopping profiling chunk: ${this._chunkData.id}`);
@@ -211,9 +206,9 @@ class ContinuousProfiler {
         logger.log('[Profiling] Failed to collect profile, sentry client was never attached to the profiler.');
       return;
     }
-    if (!this._chunkData.id) {
+    if (!this._chunkData?.id) {
       DEBUG_BUILD &&
-        logger.log(`[Profiling] Failed to collect profile for: ${this._chunkData.id}, the chunk_id is missing.`);
+        logger.log(`[Profiling] Failed to collect profile for: ${this._chunkData?.id}, the chunk_id is missing.`);
       return;
     }
     const profile = CpuProfilerBindings.stopProfiling(this._chunkData.id, ProfileFormat.CHUNK);
@@ -314,12 +309,7 @@ class ContinuousProfiler {
    * Resets the current chunk state.
    */
   private _reset(): void {
-    this._chunkData = {
-      id: undefined,
-      timer: undefined,
-      startTimestampMS: undefined,
-      startTraceID: undefined,
-    };
+    this._chunkData = undefined;
   }
 }
 
