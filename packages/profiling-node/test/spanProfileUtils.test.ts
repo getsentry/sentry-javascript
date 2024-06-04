@@ -31,7 +31,7 @@ function makeClientWithHooks(): [Sentry.NodeClient, Transport] {
   return [client, client.getTransport() as Transport];
 }
 
-function makeContinuousProfilingClient(options?: NodeClientOptions): [Sentry.NodeClient, Transport] {
+function makeContinuousProfilingClient(): [Sentry.NodeClient, Transport] {
   const integration = _nodeProfilingIntegration();
   const client = new Sentry.NodeClient({
     stackParser: Sentry.defaultStackParser,
