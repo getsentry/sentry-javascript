@@ -6,6 +6,7 @@ import type { Transport } from '@sentry/types';
 import { GLOBAL_OBJ, createEnvelope, logger } from '@sentry/utils';
 import { CpuProfilerBindings } from '../src/cpu_profiler';
 import { _nodeProfilingIntegration, type ProfilingIntegration } from '../src/integration';
+import { RawThreadCpuProfile } from '../src/types';
 
 jest.setTimeout(10000);
 
@@ -105,7 +106,7 @@ describe('automated span instrumentation', () => {
         frames: [],
         resources: [],
         profiler_logging_mode: 'lazy',
-      };
+      }
     });
 
     jest.spyOn(transport, 'send').mockReturnValue(Promise.resolve({}));
