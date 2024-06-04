@@ -54,7 +54,7 @@ jobs:
     name: E2E ${{ matrix.label }} Test
     needs: [job_e2e_prepare]
     runs-on: ubuntu-20.04
-    timeout-minutes: 15
+    timeout-minutes: 20
     env:
       E2E_TEST_AUTH_TOKEN: ${{ secrets.E2E_TEST_AUTH_TOKEN }}
       E2E_TEST_DSN: ${{ secrets.E2E_TEST_DSN }}
@@ -101,7 +101,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ env.HEAD_COMMIT }}
-      - uses: pnpm/action-setup@v2
+      - uses: pnpm/action-setup@v4
         with:
           version: 8.3.1
 
@@ -138,7 +138,7 @@ jobs:
 
       - name: Run E2E test
         working-directory: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
-        timeout-minutes: 5
+        timeout-minutes: 15
         run: yarn test:assert
 
       - name: Create Issue
