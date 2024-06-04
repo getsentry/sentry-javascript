@@ -76,7 +76,8 @@ public:
   MeasurementsTicker(uv_loop_t *loop)
       : period_ms(100), isolate(v8::Isolate::GetCurrent()) {
     uv_timer_init(loop, &timer);
-    timer.data = this;
+    uv_handle_set_data(reinterpret_cast<uv_handle_t *>(&timer), this);
+    uv_unref(reinterpret_cast<uv_handle_t *>(&timer));
   }
 
   static void ticker(uv_timer_t *);
@@ -196,6 +197,10 @@ void MeasurementsTicker::cpu_callback() {
 };
 
 void MeasurementsTicker::ticker(uv_timer_t *handle) {
+  if (handle == nullptr) {
+    return;
+  }
+
   MeasurementsTicker *self = static_cast<MeasurementsTicker *>(handle->data);
   self->heap_callback();
   self->cpu_callback();
@@ -323,18 +328,6 @@ void SentryProfile::Start(Profiler *profiler) {
   status = ProfileStatus::kStarted;
 }
 
-static void CleanupSentryProfile(Profiler *profiler,
-                                 SentryProfile *sentry_profile,
-                                 const std::string &profile_id) {
-  if (sentry_profile == nullptr) {
-    return;
-  }
-
-  sentry_profile->Stop(profiler);
-  profiler->active_profiles.erase(profile_id);
-  delete sentry_profile;
-};
-
 v8::CpuProfile *SentryProfile::Stop(Profiler *profiler) {
   // Stop the CPU Profiler
   v8::CpuProfile *profile = profiler->cpu_profiler->StopProfiling(
@@ -374,6 +367,18 @@ const std::vector<double> &SentryProfile::cpu_usage_values() const {
 };
 const uint16_t &SentryProfile::cpu_usage_write_index() const {
   return cpu_write_index;
+};
+
+static void CleanupSentryProfile(Profiler *profiler,
+                                 SentryProfile *sentry_profile,
+                                 const std::string &profile_id) {
+  if (sentry_profile == nullptr) {
+    return;
+  }
+
+  sentry_profile->Stop(profiler);
+  profiler->active_profiles.erase(profile_id);
+  delete sentry_profile;
 };
 
 #ifdef _WIN32
@@ -1049,6 +1054,7 @@ void FreeAddonData(napi_env env, void *data, void *hint) {
 
   if (profiler->cpu_profiler != nullptr) {
     profiler->cpu_profiler->Dispose();
+    profiler->cpu_profiler = nullptr;
   }
 
   delete profiler;
