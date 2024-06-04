@@ -11,6 +11,13 @@
 - [Official SDK Docs](https://docs.sentry.io/)
 - [TypeDoc](http://getsentry.github.io/sentry-javascript/)
 
+## Package Discontinued
+
+The `@sentry/serverless` package was discontinued in version 8.0.0 of the Sentry JavaScript SDKs in favour of dedicated
+SDK packages for AWS Lambda and Google Cloud. For more information, head over to the respective v8 migration guides for
+[Google Cloud](https://docs.sentry.io/platforms/javascript/guides/gcp-functions/migration/v7-to-v8/) and
+[AWS Lambda](https://docs.sentry.io/platforms/javascript/guides/aws-lambda/migration/v7-to-v8/).
+
 ## General
 
 This package is a wrapper around `@sentry/node`, with added functionality related to various Serverless solutions. All
@@ -41,7 +48,8 @@ exports.handler = Sentry.AWSLambda.wrapHandler((event, context, callback) => {
 });
 ```
 
-If you also want to trace performance of all the incoming requests and also outgoing AWS service requests, just set the `tracesSampleRate` option.
+If you also want to trace performance of all the incoming requests and also outgoing AWS service requests, just set the
+`tracesSampleRate` option.
 
 ```javascript
 import * as Sentry from '@sentry/serverless';
@@ -61,7 +69,9 @@ Another and much simpler way to integrate Sentry to your AWS Lambda function is 
 3. Go to Environment variables and add:
    - `NODE_OPTIONS`: `-r @sentry/serverless/build/npm/cjs/awslambda-auto`.
    - `SENTRY_DSN`: `your dsn`.
-   - `SENTRY_TRACES_SAMPLE_RATE`: a number between 0 and 1 representing the chance a transaction is sent to Sentry. For more information, see [docs](https://docs.sentry.io/platforms/node/guides/aws-lambda/configuration/options/#tracesSampleRate).
+   - `SENTRY_TRACES_SAMPLE_RATE`: a number between 0 and 1 representing the chance a transaction is sent to Sentry. For
+     more information, see
+     [docs](https://docs.sentry.io/platforms/node/guides/aws-lambda/configuration/options/#tracesSampleRate).
 
 ### Google Cloud Functions
 
