@@ -8,7 +8,8 @@ import { CpuProfilerBindings } from './cpu_profiler';
 import { DEBUG_BUILD } from './debug-build';
 import { NODE_MAJOR, NODE_VERSION } from './nodeVersion';
 import { MAX_PROFILE_DURATION_MS, maybeProfileSpan, stopSpanProfile } from './spanProfileUtils';
-import { PROFILE_FORMAT, RawThreadCpuProfile } from './types';
+import type { RawThreadCpuProfile } from './types';
+import { PROFILE_FORMAT } from './types';
 
 import {
   addProfilesToEnvelope,
