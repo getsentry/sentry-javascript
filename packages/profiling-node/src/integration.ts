@@ -161,7 +161,6 @@ interface ChunkData {
 class ContinuousProfiler {
   private _profilerId = uuid4();
   private _client: NodeClient | undefined = undefined;
-
   private _chunkData: ChunkData = {
     id: undefined,
     timer: undefined,
@@ -262,6 +261,19 @@ class ContinuousProfiler {
     this._reset();
   }
 
+  /**
+   * Determines if the profiler is in continuous mode. In regular mode, no client is attached
+   * and the profiler cannot be started or stopped
+   * @returns boolean
+   */
+  private get isContinousProfilingMode(): boolean {
+    return !!this._client;
+  }
+
+  /**
+   * Flushes the profile chunk to Sentry.
+   * @param chunk
+   */
   private _flush(chunk: ProfileChunk): void {
     if (!this._client) {
       DEBUG_BUILD &&
@@ -351,11 +363,11 @@ export const _nodeProfilingIntegration = ((): ProfilingIntegration => {
       DEBUG_BUILD && logger.log('[Profiling] Profiling integration setup.');
       const options = client.getOptions();
 
-      const mode = options.profilesSampleRate === undefined || options.profilesSampleRate === 0 ? 'continuous' : 'span';
+      const mode = (options.profilesSampleRate === undefined || options.profilesSampleRate === 0) && !options.profilesSampler ? 'continuous' : 'span';
       switch (mode) {
         case 'continuous': {
           DEBUG_BUILD && logger.log('[Profiling] Continuous profiler mode enabled.');
-          this.profiler.initialize(client);
+          this._profiler.initialize(client);
           break;
         }
         // Default to span profiling when no mode profiler mode is set
