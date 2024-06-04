@@ -324,7 +324,7 @@ function setupAutomatedSpanProfiling(client: NodeClient): void {
       return;
     }
 
-    const profile_id = maybeProfileSpan(client, span, undefined);
+    const profile_id = maybeProfileSpan(client, span);
 
     if (profile_id) {
       const options = client.getOptions();
