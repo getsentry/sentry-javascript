@@ -81,7 +81,6 @@ describe('Private bindings', () => {
     PrivateCpuProfilerBindings.startProfiling('profiled-program');
     await wait(100);
     expect(() => {
-      // @ts-expect-error invalid format value
       const profile = PrivateCpuProfilerBindings.stopProfiling('profiled-program', Number.MAX_SAFE_INTEGER, 0, false);
       if (!profile) throw new Error('No profile');
     }).toThrow('StopProfiling expects a valid format type as second argument.');
