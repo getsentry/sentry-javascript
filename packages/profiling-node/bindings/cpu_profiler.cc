@@ -197,7 +197,7 @@ void MeasurementsTicker::cpu_callback() {
 };
 
 void MeasurementsTicker::ticker(uv_timer_t *handle) {
-  if(handle == nullptr) {
+  if (handle == nullptr) {
     return;
   }
 
