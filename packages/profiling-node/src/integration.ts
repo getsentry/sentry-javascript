@@ -2,7 +2,7 @@ import { defineIntegration, getCurrentScope, getIsolationScope, getRootSpan, spa
 import type { NodeClient } from '@sentry/node';
 import type { Integration, IntegrationFn, Profile, ProfileChunk, Span } from '@sentry/types';
 
-import { logger, LRUMap, timestampInSeconds, uuid4 } from '@sentry/utils';
+import { LRUMap, logger, timestampInSeconds, uuid4 } from '@sentry/utils';
 
 import { CpuProfilerBindings } from './cpu_profiler';
 import { DEBUG_BUILD } from './debug-build';
@@ -336,7 +336,10 @@ export const _nodeProfilingIntegration = ((): ProfilingIntegration => {
       DEBUG_BUILD && logger.log('[Profiling] Profiling integration setup.');
       const options = client.getOptions();
 
-      const mode = (options.profilesSampleRate === undefined || options.profilesSampleRate === 0) && !options.profilesSampler ? 'continuous' : 'span';
+      const mode =
+        (options.profilesSampleRate === undefined || options.profilesSampleRate === 0) && !options.profilesSampler
+          ? 'continuous'
+          : 'span';
       switch (mode) {
         case 'continuous': {
           DEBUG_BUILD && logger.log('[Profiling] Continuous profiler mode enabled.');
