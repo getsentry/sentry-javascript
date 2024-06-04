@@ -90,6 +90,7 @@ describe('automated span instrumentation', () => {
     Sentry.setCurrentClient(client);
     client.init();
 
+    // @ts-expect-error we just mock the return type and ignore the signature
     jest.spyOn(CpuProfilerBindings, 'stopProfiling').mockImplementation(() => {
       return {
         samples: [
@@ -128,6 +129,7 @@ describe('automated span instrumentation', () => {
     Sentry.setCurrentClient(client);
     client.init();
 
+    // @ts-expect-error we just mock the return type and ignore the signature
     jest.spyOn(CpuProfilerBindings, 'stopProfiling').mockImplementation(() => {
       return {
         samples: [
@@ -310,6 +312,7 @@ describe('automated span instrumentation', () => {
       'Error\n    at filename3.js (filename3.js:36:15)': 'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb',
     };
 
+    // @ts-expect-error we just mock the return type and ignore the signature
     jest.spyOn(CpuProfilerBindings, 'stopProfiling').mockImplementation(() => {
       return {
         samples: [
