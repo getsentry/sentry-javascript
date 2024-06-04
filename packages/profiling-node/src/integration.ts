@@ -2,7 +2,7 @@ import { defineIntegration, getCurrentScope, getIsolationScope, getRootSpan, spa
 import type { NodeClient } from '@sentry/node';
 import type { Integration, IntegrationFn, Profile, ProfileChunk, Span } from '@sentry/types';
 
-import { logger, timestampInSeconds, uuid4 } from '@sentry/utils';
+import { logger, LRUMap, timestampInSeconds, uuid4 } from '@sentry/utils';
 
 import { CpuProfilerBindings } from './cpu_profiler';
 import { DEBUG_BUILD } from './debug-build';
@@ -18,18 +18,13 @@ import {
   makeProfileChunkEnvelope,
 } from './utils';
 
-const MAX_PROFILE_QUEUE_LENGTH = 50;
+const PROFILE_MAP = new LRUMap<string, RawThreadCpuProfile>(50);
 const CHUNK_INTERVAL_MS = 5000;
 const PROFILE_QUEUE: RawThreadCpuProfile[] = [];
 const PROFILE_TIMEOUTS: Record<string, NodeJS.Timeout> = {};
 
-function addToProfileQueue(profile: RawThreadCpuProfile): void {
-  PROFILE_QUEUE.push(profile);
-
-  // We only want to keep the last n profiles in the queue.
-  if (PROFILE_QUEUE.length > MAX_PROFILE_QUEUE_LENGTH) {
-    PROFILE_QUEUE.shift();
-  }
+function addToProfileQueue(profile_id: string, profile: RawThreadCpuProfile): void {
+  PROFILE_MAP.set(profile_id, profile);
 }
 
 /**
@@ -66,7 +61,7 @@ function setupAutomatedSpanProfiling(client: NodeClient): void {
 
         const profile = stopSpanProfile(span, profile_id);
         if (profile) {
-          addToProfileQueue(profile);
+          addToProfileQueue(profile_id, profile);
         }
       }, maxProfileDurationMs);
 
@@ -90,7 +85,7 @@ function setupAutomatedSpanProfiling(client: NodeClient): void {
       const profile = stopSpanProfile(span, profile_id);
 
       if (profile) {
-        addToProfileQueue(profile);
+        addToProfileQueue(profile_id, profile);
       }
     }
   });
