@@ -4,6 +4,7 @@ export {
   addFidInstrumentationHandler,
   addTtfbInstrumentationHandler,
   addLcpInstrumentationHandler,
+  isPerformanceEventTiming,
 } from './metrics/instrument';
 
 export {

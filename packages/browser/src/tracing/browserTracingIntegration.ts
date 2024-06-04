@@ -2,6 +2,8 @@
 import {
   addHistoryInstrumentationHandler,
   addPerformanceEntries,
+  addPerformanceInstrumentationHandler,
+  isPerformanceEventTiming,
   startTrackingINP,
   startTrackingInteractions,
   startTrackingLongTasks,
@@ -159,6 +161,9 @@ const DEFAULT_BROWSER_TRACING_OPTIONS: BrowserTracingOptions = {
   ...defaultRequestInstrumentationOptions,
 };
 
+/** We store up to 10 interaction candidates max to cap memory usage. This is the same cap as getINP from web-vitals */
+const MAX_INTERACTIONS = 10;
+
 /**
  * The Browser Tracing integration automatically instruments browser pageload/navigation
  * actions as transactions, and captures requests, metrics and errors as spans.
@@ -192,9 +197,12 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
   };
 
   const _collectWebVitals = startTrackingWebVitals();
+  /** Stores a mapping of interactionIds from PerformanceEventTimings to the origin interaction path */
+  const interactionIdToRouteNameMapping: Record<string, { startTime: number; duration: number; routeName: string }> =
+    {};
 
   if (enableInp) {
-    startTrackingINP();
+    startTrackingINP(interactionIdToRouteNameMapping);
   }
 
   if (enableLongTask) {
@@ -375,6 +383,10 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
         registerInteractionListener(idleTimeout, finalTimeout, childSpanTimeout, latestRoute);
       }
 
+      if (enableInp) {
+        registerInpInteractionListener(latestRoute, interactionIdToRouteNameMapping);
+      }
+
       instrumentOutgoingRequests({
         traceFetch,
         traceXHR,
@@ -439,7 +451,10 @@ function registerInteractionListener(
   idleTimeout: BrowserTracingOptions['idleTimeout'],
   finalTimeout: BrowserTracingOptions['finalTimeout'],
   childSpanTimeout: BrowserTracingOptions['childSpanTimeout'],
-  latestRoute: { name: string | undefined; source: TransactionSource | undefined },
+  latestRoute: {
+    name: string | undefined;
+    source: TransactionSource | undefined;
+  },
 ): void {
   let inflightInteractionSpan: Span | undefined;
   const registerInteractionTransaction = (): void => {
@@ -486,4 +501,75 @@ function registerInteractionListener(
   if (WINDOW.document) {
     addEventListener('click', registerInteractionTransaction, { once: false, capture: true });
   }
+}
+
+/** Creates a listener on interaction entries, and maps interactionIds to the origin path of the interaction */
+function registerInpInteractionListener(
+  latestRoute: { name: string | undefined; source: TransactionSource | undefined },
+  interactionIdToRouteNameMapping: Record<string, { startTime: number; duration: number; routeName: string }>,
+): void {
+  const handleEntries = ({ entries }: { entries: PerformanceEntry[] }): void => {
+    // We need to get the replay, user, and activeTransaction from the current scope
+    // so that we can associate replay id, profile id, and a user display to the span
+    entries.forEach(entry => {
+      if (isPerformanceEventTiming(entry)) {
+        const interactionId = entry.interactionId;
+        if (interactionId === undefined) {
+          return;
+        }
+        const existingInteraction = interactionIdToRouteNameMapping[String(interactionId)];
+        const duration = entry.duration;
+        const startTime = entry.startTime;
+        const interactionIds = Object.keys(interactionIdToRouteNameMapping);
+        // For a first input event to be considered, we must check that an interaction event does not already exist with the same duration and start time.
+        // This is also checked in the web-vitals library.
+        if (entry.entryType === 'first-input') {
+          const matchingEntry = interactionIds
+            .map(key => interactionIdToRouteNameMapping[key])
+            .some(interaction => {
+              return interaction.duration === duration && interaction.startTime === startTime;
+            });
+          if (matchingEntry) {
+            return;
+          }
+        }
+        // Interactions with an id of 0 and are not first-input are not valid.
+        if (!interactionId) {
+          return;
+        }
+        const fastestInteractionId =
+          interactionIds.length > 0
+            ? interactionIds.reduce((a, b) => {
+                return interactionIdToRouteNameMapping[a].duration < interactionIdToRouteNameMapping[b].duration
+                  ? a
+                  : b;
+              })
+            : undefined;
+        // If the interaction already exists, we want to use the duration of the longest entry, since that is what the INP metric uses.
+        if (existingInteraction) {
+          existingInteraction.duration = Math.max(existingInteraction.duration, duration);
+        } else if (
+          interactionIds.length < MAX_INTERACTIONS ||
+          fastestInteractionId === undefined ||
+          duration > interactionIdToRouteNameMapping[fastestInteractionId].duration
+        ) {
+          // If the interaction does not exist, we want to add it to the mapping if there is space, or if the duration is longer than the shortest entry.
+          const routeName = latestRoute.name;
+          if (routeName) {
+            if (fastestInteractionId && Object.keys(interactionIdToRouteNameMapping).length >= MAX_INTERACTIONS) {
+              // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+              delete interactionIdToRouteNameMapping[fastestInteractionId];
+            }
+            interactionIdToRouteNameMapping[String(interactionId)] = {
+              routeName,
+              duration,
+              startTime,
+            };
+          }
+        }
+      }
+    });
+  };
+  addPerformanceInstrumentationHandler('event', handleEntries);
+  addPerformanceInstrumentationHandler('first-input', handleEntries);
 }

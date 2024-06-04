@@ -2,11 +2,8 @@ import {
   SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME,
   SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_UNIT,
   SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_VALUE,
-  getActiveSpan,
   getClient,
   getCurrentScope,
-  getRootSpan,
-  spanToJSON,
   startInactiveSpan,
 } from '@sentry/core';
 import type { Integration, SpanAttributes } from '@sentry/types';
@@ -17,10 +14,12 @@ import { getBrowserPerformanceAPI, msToSec } from './utils';
 /**
  * Start tracking INP webvital events.
  */
-export function startTrackingINP(): () => void {
+export function startTrackingINP(
+  interactionIdToRouteNameMapping: Record<number, { startTime: number; duration: number; routeName: string }>,
+): () => void {
   const performance = getBrowserPerformanceAPI();
   if (performance && browserPerformanceTimeOrigin) {
-    const inpCallback = _trackINP();
+    const inpCallback = _trackINP(interactionIdToRouteNameMapping);
 
     return (): void => {
       inpCallback();
@@ -60,7 +59,9 @@ const INP_ENTRY_MAP: Record<string, 'click' | 'hover' | 'drag' | 'press'> = {
 };
 
 /** Starts tracking the Interaction to Next Paint on the current page. */
-function _trackINP(): () => void {
+function _trackINP(
+  interactionIdToRouteNameMapping: Record<number, { startTime: number; duration: number; routeName: string }>,
+): () => void {
   return addInpInstrumentationHandler(({ metric }) => {
     const client = getClient();
     if (!client || metric.value == undefined) {
@@ -69,7 +70,7 @@ function _trackINP(): () => void {
 
     const entry = metric.entries.find(entry => entry.duration === metric.value && INP_ENTRY_MAP[entry.name]);
 
-    if (!entry) {
+    if (!entry || entry.interactionId === undefined) {
       return;
     }
 
@@ -80,10 +81,13 @@ function _trackINP(): () => void {
     const startTime = msToSec((browserPerformanceTimeOrigin as number) + entry.startTime);
     const duration = msToSec(metric.value);
     const scope = getCurrentScope();
-    const activeSpan = getActiveSpan();
-    const rootSpan = activeSpan ? getRootSpan(activeSpan) : undefined;
 
-    const routeName = rootSpan ? spanToJSON(rootSpan).description : undefined;
+    const routeName = interactionIdToRouteNameMapping[entry.interactionId].routeName;
+
+    if (!routeName) {
+      return;
+    }
+
     const user = scope.getUser();
 
     // We need to get the replay, user, and activeTransaction from the current scope
