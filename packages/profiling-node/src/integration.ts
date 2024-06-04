@@ -283,7 +283,7 @@ class ContinuousProfiler {
    * Starts the profiler and registers the flush timer for a given chunk.
    * @param chunk
    */
-  private _startChunkProfiling(chunk: ChunkData): void  {
+  private _startChunkProfiling(chunk: ChunkData): void {
     CpuProfilerBindings.startProfiling(chunk.id!);
     DEBUG_BUILD && logger.log(`[Profiling] starting profiling chunk: ${chunk.id}`);
 

@@ -180,7 +180,12 @@ class Bindings implements V8CpuProfilerBindings {
       return null;
     }
 
-    return PrivateCpuProfilerBindings.stopProfiling(name, format as unknown as any, threadId, !!GLOBAL_OBJ._sentryDebugIds);
+    return PrivateCpuProfilerBindings.stopProfiling(
+      name,
+      format as unknown as any,
+      threadId,
+      !!GLOBAL_OBJ._sentryDebugIds,
+    );
   }
 }
 
