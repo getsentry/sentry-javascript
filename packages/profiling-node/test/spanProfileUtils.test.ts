@@ -4,7 +4,7 @@ import { getMainCarrier } from '@sentry/core';
 import type { Transport } from '@sentry/types';
 import { GLOBAL_OBJ, createEnvelope, logger } from '@sentry/utils';
 import { CpuProfilerBindings } from '../src/cpu_profiler';
-import { _nodeProfilingIntegration } from '../src/integration';
+import { _nodeProfilingIntegration, type ProfilingIntegration } from '../src/integration';
 
 jest.setTimeout(10000);
 
@@ -280,10 +280,11 @@ describe('automated span instrumentation', () => {
       Sentry.setCurrentClient(client);
       client.init();
 
-      const integration = client.getIntegrationByName('ProfilingIntegration');
-      // @ts-expect-error type of integration isnt narrowed to profiling integration
-      integration.profiler.start();
-
+      const integration = client.getIntegrationByName<ProfilingIntegration>('ProfilingIntegration');
+      if (!integration) {
+        throw new Error('Profiling integration not found');
+      }
+      integration._profiler.start();
       expect(startProfilingSpy).not.toHaveBeenCalled();
     });
   });
@@ -370,11 +371,10 @@ describe('continuous profiling', () => {
   });
   afterEach(() => {
     const client = Sentry.getClient();
-    const integration = client?.getIntegrationByName('ProfilingIntegration');
+    const integration = client?.getIntegrationByName<ProfilingIntegration>('ProfilingIntegration');
 
     if (integration) {
-      // @ts-expect-error type of integration isnt narrowed to profiling integration
-      integration.profiler.stop();
+      integration._profiler.stop();
     }
 
     jest.clearAllMocks();
@@ -391,12 +391,15 @@ describe('continuous profiling', () => {
     client.init();
 
     expect(startProfilingSpy).not.toHaveBeenCalledTimes(1);
-    const integration = client.getIntegrationByName('ProfilingIntegration');
 
-    // @ts-expect-error type of integration isnt narrowed to profiling integration
-    expect(integration.profiler).toBeDefined();
-    // @ts-expect-error type of integration isnt narrowed to profiling integration
-    expect(integration.profiler._client).toBe(client);
+    const integration = client.getIntegrationByName<ProfilingIntegration>('ProfilingIntegration');
+      if (!integration) {
+        throw new Error('Profiling integration not found');
+      }
+      integration._profiler.start();
+
+    expect(integration._profiler).toBeDefined();
+    expect(integration._profiler["_client"]).toBe(client);
   });
 
   it('starts a continuous profile', () => {
@@ -407,10 +410,11 @@ describe('continuous profiling', () => {
     client.init();
 
     expect(startProfilingSpy).not.toHaveBeenCalledTimes(1);
-    const integration = client.getIntegrationByName('ProfilingIntegration');
-
-    // @ts-expect-error type of integration isnt narrowed to profiling integration
-    integration.profiler.start();
+    const integration = client.getIntegrationByName<ProfilingIntegration>('ProfilingIntegration');
+      if (!integration) {
+        throw new Error('Profiling integration not found');
+      }
+      integration._profiler.start();
     expect(startProfilingSpy).toHaveBeenCalledTimes(1);
   });
 
@@ -423,12 +427,12 @@ describe('continuous profiling', () => {
     client.init();
 
     expect(startProfilingSpy).not.toHaveBeenCalledTimes(1);
-    const integration = client.getIntegrationByName('ProfilingIntegration');
-
-    // @ts-expect-error type of integration isnt narrowed to profiling integration
-    integration.profiler.start();
-    // @ts-expect-error type of integration isnt narrowed to profiling integration
-    integration.profiler.start();
+    const integration = client.getIntegrationByName<ProfilingIntegration>('ProfilingIntegration');
+      if (!integration) {
+        throw new Error('Profiling integration not found');
+      }
+    integration._profiler.start();
+    integration._profiler.start();
     expect(startProfilingSpy).toHaveBeenCalledTimes(2);
     expect(stopProfilingSpy).toHaveBeenCalledTimes(1);
   });
@@ -442,10 +446,11 @@ describe('continuous profiling', () => {
     client.init();
 
     expect(startProfilingSpy).not.toHaveBeenCalledTimes(1);
-    const integration = client.getIntegrationByName('ProfilingIntegration');
-
-    // @ts-expect-error type of integration isnt narrowed to profiling integration
-    integration.profiler.start();
+    const integration = client.getIntegrationByName<ProfilingIntegration>('ProfilingIntegration');
+      if (!integration) {
+        throw new Error('Profiling integration not found');
+      }
+    integration._profiler.start();
 
     jest.advanceTimersByTime(5001);
     expect(stopProfilingSpy).toHaveBeenCalledTimes(1);
@@ -461,10 +466,11 @@ describe('continuous profiling', () => {
     client.init();
 
     expect(startProfilingSpy).not.toHaveBeenCalledTimes(1);
-    const integration = client.getIntegrationByName('ProfilingIntegration');
-
-    // @ts-expect-error type of integration isnt narrowed to profiling integration
-    integration.profiler.start();
+    const integration = client.getIntegrationByName<ProfilingIntegration>('ProfilingIntegration');
+      if (!integration) {
+        throw new Error('Profiling integration not found');
+      }
+    integration._profiler.start();
 
     jest.advanceTimersByTime(5001);
     expect(stopProfilingSpy).toHaveBeenCalledTimes(1);
@@ -479,15 +485,15 @@ describe('continuous profiling', () => {
     client.init();
 
     expect(startProfilingSpy).not.toHaveBeenCalledTimes(1);
-    const integration = client.getIntegrationByName('ProfilingIntegration');
-
-    // @ts-expect-error type of integration isnt narrowed to profiling integration
-    integration.profiler.start();
+    const integration = client.getIntegrationByName<ProfilingIntegration>('ProfilingIntegration');
+      if (!integration) {
+        throw new Error('Profiling integration not found');
+      }
+    integration._profiler.start();
 
     jest.advanceTimersByTime(1000);
 
-    // @ts-expect-error type of integration isnt narrowed to profiling integration
-    integration.profiler.stop();
+    integration._profiler.stop();
     expect(stopProfilingSpy).toHaveBeenCalledTimes(1);
 
     jest.advanceTimersByTime(1000);
@@ -534,14 +540,15 @@ describe('continuous profiling', () => {
 
     const transportSpy = jest.spyOn(transport, 'send').mockReturnValue(Promise.resolve({}));
 
-    const integration = client.getIntegrationByName('ProfilingIntegration');
-    // @ts-expect-error type of integration isnt narrowed to profiling integration
-    integration.profiler.start();
+    const integration = client.getIntegrationByName<ProfilingIntegration>('ProfilingIntegration');
+      if (!integration) {
+        throw new Error('Profiling integration not found');
+      }
+    integration._profiler.start();
 
     jest.advanceTimersByTime(1000);
 
-    // @ts-expect-error type of integration isnt narrowed to profiling integration
-    integration.profiler.stop();
+    integration._profiler.stop();
 
     jest.advanceTimersByTime(1000);
 

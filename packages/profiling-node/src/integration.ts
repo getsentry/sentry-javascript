@@ -329,8 +329,8 @@ class ContinuousProfiler {
   }
 }
 
-interface ProfilingIntegration extends Integration {
-  profiler: ContinuousProfiler;
+export interface ProfilingIntegration extends Integration {
+  _profiler: ContinuousProfiler;
 }
 
 /** Exported only for tests. */
@@ -346,7 +346,7 @@ export const _nodeProfilingIntegration = ((): ProfilingIntegration => {
 
   return {
     name: 'ProfilingIntegration',
-    profiler: new ContinuousProfiler(),
+    _profiler: new ContinuousProfiler(),
     setup(client: NodeClient) {
       DEBUG_BUILD && logger.log('[Profiling] Profiling integration setup.');
       const options = client.getOptions();
