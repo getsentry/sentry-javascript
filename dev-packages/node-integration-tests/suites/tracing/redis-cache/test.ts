@@ -53,7 +53,7 @@ describe('redis cache auto instrumentation', () => {
           origin: 'auto.db.otel.redis',
           data: expect.objectContaining({
             'sentry.origin': 'auto.db.otel.redis',
-            'db.statement': 'ioredis-cache:test-key [1 other arguments]',
+            'db.statement': 'set ioredis-cache:test-key [1 other arguments]',
             'cache.key': 'ioredis-cache:test-key',
             'cache.item_size': 2,
             'network.peer.address': 'localhost',

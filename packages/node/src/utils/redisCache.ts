@@ -54,8 +54,9 @@ export function getCacheKeySafely(cmdArgs: IORedisCommandArgs): string {
 /** Determines whether a redis operation should be considered as "cache operation" by checking if a key is prefixed.
  *  We only support certain commands (such as 'set', 'get', 'mget'). */
 export function shouldConsiderForCache(redisCommand: string, key: string, prefixes: string[]): boolean {
-  const lowercaseCommand = redisCommand.toLowerCase();
-  if (!SET_COMMANDS.includes(lowercaseCommand) && !GET_COMMANDS.includes(lowercaseCommand)) return false;
+  if (!getCacheOperation(redisCommand)) {
+    return false;
+  }
 
   return key.split(',').reduce((prev, key) => prev || keyHasPrefix(key, prefixes), false);
 }
