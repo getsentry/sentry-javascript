@@ -14,6 +14,15 @@
 
 - [Official SDK Docs](https://docs.sentry.io/platforms/javascript/angular/)
 
+## Package Discontinued
+
+The `@sentry/angular-ivy` package was discontinued with the release of version 8.0.0 of `@sentry/angular`. The v8
+`@sentry/angular` package is now fully compatible with Ivy by default, making this package obsolete. Furthermore, new
+Angular versions (18+) are supported in version 8.
+
+To upgrade to v8, follow the
+[Angular SDK migration guide](https://docs.sentry.io/platforms/javascript/guides/angular/migration/v7-to-v8/).
+
 ## Angular Version Compatibility
 
 This SDK officially supports Angular 12 to 17 with Angular's new rendering engine, Ivy.
