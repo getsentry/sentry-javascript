@@ -1,5 +1,3 @@
-// biome-ignore lint/nursery/noUnusedImports: reason
-import { h } from 'preact'; // eslint-disable-line @typescript-eslint/no-unused-vars
 import { useEffect } from 'preact/hooks';
 import { DOCUMENT, NAVIGATOR, WINDOW } from '../../constants';
 

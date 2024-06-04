@@ -8,7 +8,6 @@ import { addBreadcrumb, defineIntegration, getClient } from '@sentry/core';
 import type {
   Breadcrumb,
   Client,
-  Event as SentryEvent,
   FetchBreadcrumbData,
   FetchBreadcrumbHint,
   HandlerDataConsole,
@@ -17,6 +16,7 @@ import type {
   HandlerDataHistory,
   HandlerDataXhr,
   IntegrationFn,
+  Event as SentryEvent,
   XhrBreadcrumbData,
   XhrBreadcrumbHint,
 } from '@sentry/types';

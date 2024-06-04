@@ -1,4 +1,4 @@
-import type { ClientRequest, IncomingHttpHeaders, RequestOptions as HTTPRequestOptions } from 'node:http';
+import type { ClientRequest, RequestOptions as HTTPRequestOptions, IncomingHttpHeaders } from 'node:http';
 import type { RequestOptions as HTTPSRequestOptions } from 'node:https';
 
 export type HTTPModuleRequestOptions = HTTPRequestOptions | HTTPSRequestOptions | string | URL;

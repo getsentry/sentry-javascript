@@ -9,11 +9,11 @@ import { NavigationEnd, NavigationStart, ResolveEnd } from '@angular/router';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  browserTracingIntegration as originalBrowserTracingIntegration,
   getActiveSpan,
   getClient,
   getCurrentScope,
   getRootSpan,
+  browserTracingIntegration as originalBrowserTracingIntegration,
   spanToJSON,
   startBrowserTracingNavigationSpan,
   startInactiveSpan,

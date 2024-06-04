@@ -20,11 +20,7 @@
   "publishConfig": {
     "access": "public"
   },
-  "files": [
-    "index.mjs",
-    "index.mjs.map",
-    "index.d.ts"
-  ],
+  "files": ["index.mjs", "index.mjs.map", "index.d.ts"],
   "dependencies": {
     "@sentry/core": "8.7.0",
     "@sentry/types": "8.7.0",
@@ -66,14 +62,10 @@
   "nx": {
     "targets": {
       "build:transpile": {
-        "outputs": [
-          "{projectRoot}/build"
-        ]
+        "outputs": ["{projectRoot}/build"]
       },
       "build:types": {
-        "outputs": [
-          "{projectRoot}/build-types"
-        ]
+        "outputs": ["{projectRoot}/build-types"]
       }
     }
   }

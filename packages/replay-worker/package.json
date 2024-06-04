@@ -7,17 +7,10 @@
   "types": "build/npm/types/index.d.ts",
   "typesVersions": {
     "<4.9": {
-      "build/npm/types/index.d.ts": [
-        "build/npm/types-ts3.8/index.d.ts"
-      ]
+      "build/npm/types/index.d.ts": ["build/npm/types-ts3.8/index.d.ts"]
     }
   },
-  "files": [
-    "cjs",
-    "esm",
-    "types",
-    "types-ts3.8"
-  ],
+  "files": ["cjs", "esm", "types", "types-ts3.8"],
   "sideEffects": false,
   "private": true,
   "scripts": {

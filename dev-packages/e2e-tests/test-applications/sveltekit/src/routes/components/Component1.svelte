@@ -1,9 +1,7 @@
 <script>
-  import Component2 from "./Component2.svelte";
-  import {trackComponent} from '@sentry/sveltekit';
+import { trackComponent } from '@sentry/sveltekit';
 
-  trackComponent({componentName: 'Component1'});
-
+trackComponent({ componentName: 'Component1' });
 </script>
 <h3>Howdy, I'm component 1</h3>
 

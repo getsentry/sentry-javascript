@@ -7,7 +7,10 @@ export class SentryError extends Error {
 
   public logLevel: ConsoleLevel;
 
-  public constructor(public message: string, logLevel: ConsoleLevel = 'warn') {
+  public constructor(
+    public message: string,
+    logLevel: ConsoleLevel = 'warn',
+  ) {
     super(message);
 
     this.name = new.target.prototype.constructor.name;

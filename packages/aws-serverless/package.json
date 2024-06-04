@@ -9,14 +9,7 @@
   "engines": {
     "node": ">=14.18"
   },
-  "files": [
-    "cjs",
-    "esm",
-    "types",
-    "types-ts3.8",
-    "import-hook.mjs",
-    "loader-hook.mjs"
-  ],
+  "files": ["cjs", "esm", "types", "types-ts3.8", "import-hook.mjs", "loader-hook.mjs"],
   "main": "build/npm/cjs/index.js",
   "types": "build/npm/types/index.d.ts",
   "exports": {
@@ -54,9 +47,7 @@
   },
   "typesVersions": {
     "<4.9": {
-      "build/npm/types/index.d.ts": [
-        "build/npm/types-ts3.8/index.d.ts"
-      ]
+      "build/npm/types/index.d.ts": ["build/npm/types-ts3.8/index.d.ts"]
     }
   },
   "publishConfig": {
@@ -102,13 +93,8 @@
   "nx": {
     "targets": {
       "build:bundle": {
-        "dependsOn": [
-          "build:transpile",
-          "build:types"
-        ],
-        "outputs": [
-          "{projectRoot}/build/aws"
-        ]
+        "dependsOn": ["build:transpile", "build:types"],
+        "outputs": ["{projectRoot}/build/aws"]
       }
     }
   }

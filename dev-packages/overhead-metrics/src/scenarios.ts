@@ -55,7 +55,10 @@ export class JankTestScenario implements Scenario {
 }
 
 export class BookingAppScenario implements Scenario {
-  public constructor(private _indexFile: string, private _count: number) {}
+  public constructor(
+    private _indexFile: string,
+    private _count: number,
+  ) {}
 
   /**
    *

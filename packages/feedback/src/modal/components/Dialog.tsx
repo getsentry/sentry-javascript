@@ -1,6 +1,5 @@
 import type { FeedbackFormData, FeedbackInternalOptions } from '@sentry/types';
-// biome-ignore lint/nursery/noUnusedImports: reason
-import { Fragment, h } from 'preact'; // eslint-disable-line @typescript-eslint/no-unused-vars
+import { Fragment } from 'preact'; // eslint-disable-line @typescript-eslint/no-unused-vars
 import type { VNode } from 'preact';
 import { useCallback, useMemo, useState } from 'preact/hooks';
 import { SUCCESS_MESSAGE_TIMEOUT } from '../../constants';

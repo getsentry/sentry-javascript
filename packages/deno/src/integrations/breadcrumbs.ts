@@ -1,12 +1,12 @@
 import { addBreadcrumb, defineIntegration, getClient } from '@sentry/core';
 import type {
   Client,
-  Event as SentryEvent,
   FetchBreadcrumbData,
   FetchBreadcrumbHint,
   HandlerDataConsole,
   HandlerDataFetch,
   IntegrationFn,
+  Event as SentryEvent,
 } from '@sentry/types';
 import {
   addConsoleInstrumentationHandler,

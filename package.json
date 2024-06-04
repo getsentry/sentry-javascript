@@ -22,7 +22,7 @@
     "codecov": "codecov",
     "fix": "run-s fix:biome fix:prettier fix:lerna",
     "fix:lerna": "lerna run fix",
-    "fix:biome": "biome check --apply .",
+    "fix:biome": "biome check --write .",
     "fix:prettier": "prettier \"**/*.md\" \"**/*.css\" --write",
     "changelog": "ts-node ./scripts/get-commit-list.ts",
     "link:yarn": "lerna exec yarn link",
@@ -88,7 +88,7 @@
     "dev-packages/rollup-utils"
   ],
   "devDependencies": {
-    "@biomejs/biome": "^1.4.0",
+    "@biomejs/biome": "^1.8.0",
     "@codecov/rollup-plugin": "0.0.1-beta.5",
     "@rollup/plugin-commonjs": "^25.0.7",
     "@rollup/plugin-esm-shim": "^0.1.5",

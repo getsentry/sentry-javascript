@@ -4,6 +4,6 @@
   "compilerOptions": {
     "declaration": false,
     "declarationMap": false,
-    "skipLibCheck": true,
+    "skipLibCheck": true
   }
 }

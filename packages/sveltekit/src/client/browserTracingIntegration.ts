@@ -2,8 +2,8 @@ import { navigating, page } from '$app/stores';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 import {
   WINDOW,
-  browserTracingIntegration as originalBrowserTracingIntegration,
   getCurrentScope,
+  browserTracingIntegration as originalBrowserTracingIntegration,
   startBrowserTracingNavigationSpan,
   startBrowserTracingPageLoadSpan,
   startInactiveSpan,

@@ -7,7 +7,9 @@ interface FunctionComponent {
 }
 
 interface ClassComponent {
-  new (...args: unknown[]): {
+  new (
+    ...args: unknown[]
+  ): {
     props?: unknown;
     render(...args: unknown[]): unknown;
   };

@@ -8,7 +8,10 @@ import { TestEnv } from '../../../../../../../dev-packages/node-integration-test
 export * from '../../../../../../../dev-packages/node-integration-tests/utils';
 
 export class RemixTestEnv extends TestEnv {
-  private constructor(public readonly server: http.Server, public readonly url: string) {
+  private constructor(
+    public readonly server: http.Server,
+    public readonly url: string,
+  ) {
     super(server, url);
   }
 

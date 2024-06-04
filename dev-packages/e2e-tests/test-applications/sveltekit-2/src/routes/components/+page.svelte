@@ -1,12 +1,7 @@
 <script>
-  import * as Sentry from '@sentry/sveltekit';
+import * as Sentry from '@sentry/sveltekit';
 
-  import Component1 from "./Component1.svelte";
-  import Component2 from "./Component2.svelte";
-  import Component3 from "./Component3.svelte";
-
-  Sentry.trackComponent({componentName: 'components/+page'})
-
+Sentry.trackComponent({ componentName: 'components/+page' });
 </script>
 <h2>Demonstrating Component Tracking</h2>
 

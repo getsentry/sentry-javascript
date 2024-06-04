@@ -1,11 +1,7 @@
 <script lang="ts">
-  import svelteLogo from './assets/svelte.svg'
-  import viteLogo from '/vite.svg'
-  import Counter from './lib/Counter.svelte'
-
-  function throwError() {
-    throw new Error('Error thrown from Svelte 5 E2E test app')
-  }
+function throwError() {
+  throw new Error('Error thrown from Svelte 5 E2E test app');
+}
 </script>
 
 <main>

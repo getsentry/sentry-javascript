@@ -7,7 +7,10 @@ export { CpuUsageSampler, CpuUsage };
 export type CpuUsageSerialized = Partial<{ snapshots: JsonObject<number>; average: number }>;
 
 class CpuUsage {
-  public constructor(public snapshots: TimeBasedMap<number>, public average: number) {}
+  public constructor(
+    public snapshots: TimeBasedMap<number>,
+    public average: number,
+  ) {}
 
   public static fromJSON(data: CpuUsageSerialized): CpuUsage {
     return new CpuUsage(TimeBasedMap.fromJSON<number>(data.snapshots || {}), data.average as number);
@@ -15,7 +18,10 @@ class CpuUsage {
 }
 
 class MetricsDataPoint {
-  public constructor(public timestamp: number, public activeTime: number) {}
+  public constructor(
+    public timestamp: number,
+    public activeTime: number,
+  ) {}
 }
 
 class CpuUsageSampler {

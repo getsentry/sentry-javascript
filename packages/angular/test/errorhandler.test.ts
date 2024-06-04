@@ -24,7 +24,10 @@ class CustomError extends Error {
 }
 
 class ErrorLikeShapedClass implements Partial<Error> {
-  constructor(public name: string, public message: string) {}
+  constructor(
+    public name: string,
+    public message: string,
+  ) {}
 }
 
 function createErrorEvent(message: string, innerError: any): ErrorEvent {
