@@ -23,7 +23,7 @@ export const nextStackParser: StackLineParser = [
     let waitForReplaceFilename = waitForReplaceSegments[waitForReplaceSegments.length - 1];
 
     // In this case, the filename is a URL. So we need to check if it is a valid URL.
-    const fileUrlRegex = /^(\(?)(https?:\/\/[^/]+(\/(?:[^/[\]]+|\[\[?\.{0,3}locale\]?\])*)*)(\)?)$/;
+    const fileUrlRegex = /^(\(?)(https?:\/\/[^/]+(?:\/(?:(?!.[./]|[[?locale]?])[^./[]]+)*)*)(\)?)$/;
 
     if (!fileUrlRegex.test(waitForReplaceFilename) || !waitForReplaceFilename) {
       return defaultStackParser(line)[0];
