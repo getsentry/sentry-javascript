@@ -4,6 +4,7 @@ export {
   addFidInstrumentationHandler,
   addTtfbInstrumentationHandler,
   addLcpInstrumentationHandler,
+  addInpInstrumentationHandler,
 } from './metrics/instrument';
 
 export {

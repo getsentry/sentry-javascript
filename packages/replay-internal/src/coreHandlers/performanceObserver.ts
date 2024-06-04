@@ -3,8 +3,9 @@ import {
   addFidInstrumentationHandler,
   addLcpInstrumentationHandler,
   addPerformanceInstrumentationHandler,
+  addInpInstrumentationHandler,
 } from '@sentry-internal/browser-utils';
-import { addInpInstrumentationHandler } from '@sentry-internal/browser-utils/build/types/metrics/instrument';
+import {  } from '@sentry-internal/browser-utils/build/types/metrics/instrument';
 import type { ReplayContainer } from '../types';
 import {
   getCumulativeLayoutShift,
