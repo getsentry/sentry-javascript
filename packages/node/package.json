@@ -89,7 +89,7 @@
     "@opentelemetry/instrumentation-nestjs-core": "0.37.1",
     "@opentelemetry/instrumentation-pg": "0.41.0",
     "@opentelemetry/resources": "^1.23.0",
-    "@opentelemetry/sdk-trace-base": "^1.23.0",
+    "@opentelemetry/sdk-trace-base": "^1.24.1",
     "@opentelemetry/semantic-conventions": "^1.23.0",
     "@prisma/instrumentation": "5.14.0",
     "@sentry/core": "8.7.0",
