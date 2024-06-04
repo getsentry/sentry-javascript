@@ -48,8 +48,9 @@ export function parseSpanDescription(span: AbstractSpan): SpanDescription {
   const dbSystem = attributes[SEMATTRS_DB_SYSTEM];
   if (
     dbSystem &&
-    typeof attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] === 'string' &&
-    !attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP].startsWith('cache.')
+    (!attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] ||
+      (typeof attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] === 'string' &&
+        !attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP].startsWith('cache.')))
   ) {
     return descriptionForDbSystem({ attributes, name });
   }
