@@ -32,23 +32,20 @@ export function getCacheKeySafely(cmdArgs: IORedisCommandArgs): string {
 
     const keys: string[] = [];
 
-    cmdArgs.forEach(arg => {
-      if (typeof arg === 'string' || typeof arg === 'number') {
-        keys.push(arg.toString());
-      } else if (Buffer.isBuffer(arg)) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const processArg = (arg: string | Buffer | number | any[]): void => {
+      if (typeof arg === 'string' || typeof arg === 'number' || Buffer.isBuffer(arg)) {
         keys.push(arg.toString());
       } else if (Array.isArray(arg)) {
-        arg.forEach(subArg => {
-          if (typeof subArg === 'string' || typeof subArg === 'number') {
-            keys.push(subArg.toString());
-          } else if (Buffer.isBuffer(subArg)) {
-            keys.push(subArg.toString());
-          }
-        });
+        arg.forEach(processArg);
+      } else {
+        keys.push('<unknown>');
       }
-    });
+    };
 
-    return keys.join(',');
+    cmdArgs.forEach(processArg);
+
+    return keys.join(', ');
   } catch (e) {
     return '';
   }

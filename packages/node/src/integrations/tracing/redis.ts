@@ -50,20 +50,26 @@ export const instrumentRedis = generateInstrumentOnce(INTEGRATION_NAME, () => {
 
       const cacheOperation = getCacheOperation(redisCommand);
 
-      if (!cacheOperation) return; // redis command unsupported as cache operation
+      if (!cacheOperation) {
+        // redis command unsupported as cache operation
+        return;
+      }
 
       const cacheItemSize = calculateCacheItemSize(response);
-      if (cacheItemSize) span.setAttribute(SEMANTIC_ATTRIBUTE_CACHE_ITEM_SIZE, cacheItemSize);
+      if (cacheItemSize) {
+        span.setAttribute(SEMANTIC_ATTRIBUTE_CACHE_ITEM_SIZE, cacheItemSize);
+      }
 
-      if (cacheOperation === 'cache.get' && cacheItemSize !== undefined)
+      if (cacheOperation === 'cache.get' && cacheItemSize !== undefined) {
         span.setAttribute(SEMANTIC_ATTRIBUTE_CACHE_HIT, cacheItemSize > 0);
+      }
 
       span.setAttributes({
         [SEMANTIC_ATTRIBUTE_SENTRY_OP]: cacheOperation,
         [SEMANTIC_ATTRIBUTE_CACHE_KEY]: safeKey,
       });
 
-      span.updateName(`${safeKey.substring(0, 1024)}...`);
+      span.updateName(safeKey.length > 1024 ? `${safeKey.substring(0, 1024)}...` : safeKey);
     },
   });
 });

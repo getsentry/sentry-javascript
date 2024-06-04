@@ -91,14 +91,14 @@ describe('redis cache auto instrumentation', () => {
         }),
         // MGET
         expect.objectContaining({
-          description: 'test-key,ioredis-cache:test-key,ioredis-cache:unavailable-data',
+          description: 'test-key, ioredis-cache:test-key, ioredis-cache:unavailable-data',
           op: 'cache.get',
           origin: 'auto.db.otel.redis',
           data: expect.objectContaining({
             'sentry.origin': 'auto.db.otel.redis',
             'db.statement': 'mget [3 other arguments]',
             'cache.hit': true,
-            'cache.key': 'test-key,ioredis-cache:test-key,ioredis-cache:unavailable-data',
+            'cache.key': 'test-key, ioredis-cache:test-key, ioredis-cache:unavailable-data',
             'network.peer.address': 'localhost',
             'network.peer.port': 6379,
           }),

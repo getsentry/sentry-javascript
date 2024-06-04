@@ -22,19 +22,19 @@ describe('Redis', () => {
     it('should return a comma-separated string for multiple arguments', () => {
       const cmdArgs = ['key1', 'key2', 'key3'];
       const result = getCacheKeySafely(cmdArgs);
-      expect(result).toBe('key1,key2,key3');
+      expect(result).toBe('key1, key2, key3');
     });
 
     it('should handle number arguments', () => {
       const cmdArgs = [1, 2, 3];
       const result = getCacheKeySafely(cmdArgs);
-      expect(result).toBe('1,2,3');
+      expect(result).toBe('1, 2, 3');
     });
 
     it('should handle Buffer arguments', () => {
       const cmdArgs = [Buffer.from('key1'), Buffer.from('key2')];
       const result = getCacheKeySafely(cmdArgs);
-      expect(result).toBe('key1,key2');
+      expect(result).toBe('key1, key2');
     });
 
     it('should handle array arguments', () => {
@@ -43,21 +43,30 @@ describe('Redis', () => {
         ['key3', 'key4'],
       ];
       const result = getCacheKeySafely(cmdArgs);
-      expect(result).toBe('key1,key2,key3,key4');
+      expect(result).toBe('key1, key2, key3, key4');
     });
 
     it('should handle mixed type arguments', () => {
-      const cmdArgs = [Buffer.from('key1'), ['key2', 'key3'], [Buffer.from('key4'), 'key5', 'key6', 7]];
+      const cmdArgs = [Buffer.from('key1'), ['key2', 'key3'], [Buffer.from('key4'), 'key5', 'key6', 7, ['key8']]];
       const result = getCacheKeySafely(cmdArgs);
-      expect(result).toBe('key1,key2,key3,key4,key5,key6,7');
+      expect(result).toBe('key1, key2, key3, key4, key5, key6, 7, key8');
     });
 
-    it('should return an empty string if an error occurs', () => {
-      const cmdArgs = [Symbol('key1')]; // Symbols cannot be converted to a string
+    it('should handle nested arrays in arguments', () => {
+      const cmdArgs = [
+        ['key1', 'key2'],
+        ['key3', 'key4', ['key5', ['key6']]],
+      ];
+      const result = getCacheKeySafely(cmdArgs);
+      expect(result).toBe('key1, key2, key3, key4, key5, key6');
+    });
+
+    it('should return <unknown> if the arg type is not supported', () => {
+      const cmdArgs = [Symbol('key1')];
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-ignore
       const result = getCacheKeySafely(cmdArgs);
-      expect(result).toBe('');
+      expect(result).toBe('<unknown>');
     });
   });
 
