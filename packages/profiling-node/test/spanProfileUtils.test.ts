@@ -7,7 +7,7 @@ import { GLOBAL_OBJ, createEnvelope, logger } from '@sentry/utils';
 import { CpuProfilerBindings } from '../src/cpu_profiler';
 import { _nodeProfilingIntegration, type ProfilingIntegration } from '../src/integration';
 import { RawThreadCpuProfile } from '../src/types';
-import { NodeClientOptions } from '@sentry/node/build/types/types';
+import type { NodeClientOptions } from '@sentry/node/build/types/types';
 
 jest.setTimeout(10000);
 

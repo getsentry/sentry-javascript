@@ -13,7 +13,7 @@ import type {
   RawThreadCpuProfile,
   V8CpuProfilerBindings,
 } from './types';
-import { PROFILE_FORMAT } from './types';
+import type { PROFILE_FORMAT } from './types';
 
 const stdlib = familySync();
 const platform = process.env['BUILD_PLATFORM'] || _platform();
