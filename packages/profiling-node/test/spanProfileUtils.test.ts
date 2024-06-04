@@ -1,12 +1,11 @@
 import * as Sentry from '@sentry/node';
 
 import { getMainCarrier } from '@sentry/core';
+import type { NodeClientOptions } from '@sentry/node/build/types/types';
 import type { Transport } from '@sentry/types';
 import { GLOBAL_OBJ, createEnvelope, logger } from '@sentry/utils';
 import { CpuProfilerBindings } from '../src/cpu_profiler';
-import { _nodeProfilingIntegration, type ProfilingIntegration } from '../src/integration';
-import { RawThreadCpuProfile } from '../src/types';
-import type { NodeClientOptions } from '@sentry/node/build/types/types';
+import { type ProfilingIntegration, _nodeProfilingIntegration } from '../src/integration';
 
 jest.setTimeout(10000);
 
