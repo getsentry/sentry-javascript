@@ -13,7 +13,7 @@ import type {
   RawThreadCpuProfile,
   V8CpuProfilerBindings,
 } from './types';
-import type { PROFILE_FORMAT } from './types';
+import type { ProfileFormat } from './types';
 
 const stdlib = familySync();
 const platform = process.env['BUILD_PLATFORM'] || _platform();
@@ -159,7 +159,7 @@ export function importCppBindingsModule(): PrivateV8CpuProfilerBindings {
 const PrivateCpuProfilerBindings: PrivateV8CpuProfilerBindings = importCppBindingsModule();
 
 class Bindings implements V8CpuProfilerBindings {
-  startProfiling(name: string) {
+  public startProfiling(name: string): void {
     if (!PrivateCpuProfilerBindings) {
       DEBUG_BUILD && logger.log('[Profiling] Bindings not loaded, ignoring call to startProfiling.');
       return;
@@ -168,11 +168,11 @@ class Bindings implements V8CpuProfilerBindings {
     return PrivateCpuProfilerBindings.startProfiling(name);
   }
 
-  stopProfiling(name: string, format: PROFILE_FORMAT.THREAD): RawThreadCpuProfile | null;
-  stopProfiling(name: string, format: PROFILE_FORMAT.CHUNK): RawChunkCpuProfile | null;
-  stopProfiling(
+  public stopProfiling(name: string, format: ProfileFormat.THREAD): RawThreadCpuProfile | null;
+  public stopProfiling(name: string, format: ProfileFormat.CHUNK): RawChunkCpuProfile | null;
+  public stopProfiling(
     name: string,
-    format: PROFILE_FORMAT.CHUNK | PROFILE_FORMAT.THREAD,
+    format: ProfileFormat.CHUNK | ProfileFormat.THREAD,
   ): RawThreadCpuProfile | RawChunkCpuProfile | null {
     if (!PrivateCpuProfilerBindings) {
       DEBUG_BUILD &&
@@ -180,7 +180,7 @@ class Bindings implements V8CpuProfilerBindings {
       return null;
     }
 
-    return PrivateCpuProfilerBindings.stopProfiling(name, format as any, threadId, !!GLOBAL_OBJ._sentryDebugIds);
+    return PrivateCpuProfilerBindings.stopProfiling(name, format as unknown as any, threadId, !!GLOBAL_OBJ._sentryDebugIds);
   }
 }
 

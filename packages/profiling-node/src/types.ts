@@ -56,13 +56,13 @@ export interface PrivateV8CpuProfilerBindings {
 
   stopProfiling(
     name: string,
-    format: PROFILE_FORMAT.THREAD,
+    format: ProfileFormat.THREAD,
     threadId: number,
     collectResources: boolean,
   ): RawThreadCpuProfile | null;
   stopProfiling(
     name: string,
-    format: PROFILE_FORMAT.CHUNK,
+    format: ProfileFormat.CHUNK,
     threadId: number,
     collectResources: boolean,
   ): RawChunkCpuProfile | null;
@@ -71,7 +71,7 @@ export interface PrivateV8CpuProfilerBindings {
   getFrameModule(abs_path: string): string;
 }
 
-export enum PROFILE_FORMAT {
+export enum ProfileFormat {
   THREAD = 0,
   CHUNK = 1,
 }
@@ -79,6 +79,6 @@ export enum PROFILE_FORMAT {
 export interface V8CpuProfilerBindings {
   startProfiling(name: string): void;
 
-  stopProfiling(name: string, format: PROFILE_FORMAT.THREAD): RawThreadCpuProfile | null;
-  stopProfiling(name: string, format: PROFILE_FORMAT.CHUNK): RawChunkCpuProfile | null;
+  stopProfiling(name: string, format: ProfileFormat.THREAD): RawThreadCpuProfile | null;
+  stopProfiling(name: string, format: ProfileFormat.CHUNK): RawChunkCpuProfile | null;
 }

@@ -9,7 +9,7 @@ import { DEBUG_BUILD } from './debug-build';
 import { NODE_MAJOR, NODE_VERSION } from './nodeVersion';
 import { MAX_PROFILE_DURATION_MS, maybeProfileSpan, stopSpanProfile } from './spanProfileUtils';
 import type { RawThreadCpuProfile } from './types';
-import { PROFILE_FORMAT } from './types';
+import { ProfileFormat } from './types';
 
 import {
   addProfilesToEnvelope,
@@ -133,7 +133,7 @@ function setupAutomatedSpanProfiling(client: NodeClient): void {
 
       profilesToAddToEnvelope.push(profile);
 
-      // @ts-expect-error PreprocessEvent uses Event type
+      // @ts-expect-error profile does not inherit from Event
       client.emit('preprocessEvent', profile, {
         event_id: profiledTransaction.event_id,
       });
@@ -216,7 +216,7 @@ class ContinuousProfiler {
         logger.log(`[Profiling] Failed to collect profile for: ${this._chunkData.id}, the chunk_id is missing.`);
       return;
     }
-    const profile = CpuProfilerBindings.stopProfiling(this._chunkData.id, PROFILE_FORMAT.CHUNK);
+    const profile = CpuProfilerBindings.stopProfiling(this._chunkData.id, ProfileFormat.CHUNK);
     if (!profile || !this._chunkData.startTimestampMS) {
       DEBUG_BUILD && logger.log(`[Profiling] _chunkiledStartTraceID to collect profile for: ${this._chunkData.id}`);
       return;
@@ -283,7 +283,7 @@ class ContinuousProfiler {
    * Starts the profiler and registers the flush timer for a given chunk.
    * @param chunk
    */
-  private _startChunkProfiling(chunk: ChunkData) {
+  private _startChunkProfiling(chunk: ChunkData): void  {
     CpuProfilerBindings.startProfiling(chunk.id!);
     DEBUG_BUILD && logger.log(`[Profiling] starting profiling chunk: ${chunk.id}`);
 
