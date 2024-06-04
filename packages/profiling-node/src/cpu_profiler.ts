@@ -7,7 +7,8 @@ import { getAbi } from 'node-abi';
 
 import { GLOBAL_OBJ, logger } from '@sentry/utils';
 import { DEBUG_BUILD } from './debug-build';
-import type { PrivateV8CpuProfilerBindings, V8CpuProfilerBindings } from './types';
+import type { PrivateV8CpuProfilerBindings, RawChunkCpuProfile, RawThreadCpuProfile, V8CpuProfilerBindings } from './types';
+import { PROFILE_FORMAT } from './types';
 
 const stdlib = familySync();
 const platform = process.env['BUILD_PLATFORM'] || _platform();
@@ -151,7 +152,8 @@ export function importCppBindingsModule(): PrivateV8CpuProfilerBindings {
 }
 
 const PrivateCpuProfilerBindings: PrivateV8CpuProfilerBindings = importCppBindingsModule();
-const CpuProfilerBindings: V8CpuProfilerBindings = {
+
+class Bindings implements V8CpuProfilerBindings {
   startProfiling(name: string) {
     if (!PrivateCpuProfilerBindings) {
       DEBUG_BUILD && logger.log('[Profiling] Bindings not loaded, ignoring call to startProfiling.');
@@ -159,19 +161,22 @@ const CpuProfilerBindings: V8CpuProfilerBindings = {
     }
 
     return PrivateCpuProfilerBindings.startProfiling(name);
-  },
+  }
 
-  // @ts-expect-error overload fails to infer the correct return type
-  stopProfiling(name: string, format: 0 | 1) {
+  stopProfiling(name: string, format: PROFILE_FORMAT.THREAD): RawThreadCpuProfile | null;
+  stopProfiling(name: string, format: PROFILE_FORMAT.CHUNK): RawChunkCpuProfile | null;
+  stopProfiling(name: string, format: PROFILE_FORMAT.CHUNK | PROFILE_FORMAT.THREAD): RawThreadCpuProfile | RawChunkCpuProfile | null {
     if (!PrivateCpuProfilerBindings) {
       DEBUG_BUILD &&
         logger.log('[Profiling] Bindings not loaded or profile was never started, ignoring call to stopProfiling.');
       return null;
     }
-    const profile = PrivateCpuProfilerBindings.stopProfiling(name, format, threadId, !!GLOBAL_OBJ._sentryDebugIds);
-    return profile;
-  },
+
+    return PrivateCpuProfilerBindings.stopProfiling(name, format as any, threadId, !!GLOBAL_OBJ._sentryDebugIds);
+  }
 };
+
+const CpuProfilerBindings = new Bindings();
 
 export { PrivateCpuProfilerBindings };
 export { CpuProfilerBindings };
