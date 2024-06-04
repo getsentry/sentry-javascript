@@ -18,13 +18,18 @@ import {
   makeProfileChunkEnvelope,
 } from './utils';
 
-const PROFILE_MAP = new LRUMap<string, RawThreadCpuProfile>(50);
 const CHUNK_INTERVAL_MS = 5000;
-const PROFILE_QUEUE: RawThreadCpuProfile[] = [];
+const PROFILE_MAP = new LRUMap<string, RawThreadCpuProfile>(50);
 const PROFILE_TIMEOUTS: Record<string, NodeJS.Timeout> = {};
 
 function addToProfileQueue(profile_id: string, profile: RawThreadCpuProfile): void {
   PROFILE_MAP.set(profile_id, profile);
+}
+
+function takeFromProfileQueue(profile_id: string): RawThreadCpuProfile | undefined {
+  const profile = PROFILE_MAP.get(profile_id);
+  PROFILE_MAP.remove(profile_id);
+  return profile;
 }
 
 /**
@@ -92,7 +97,7 @@ function setupAutomatedSpanProfiling(client: NodeClient): void {
 
   client.on('beforeEnvelope', (envelope): void => {
     // if not profiles are in queue, there is nothing to add to the envelope.
-    if (!PROFILE_QUEUE.length) {
+    if (!PROFILE_MAP.size) {
       return;
     }
 
@@ -116,23 +121,13 @@ function setupAutomatedSpanProfiling(client: NodeClient): void {
         delete profiledTransaction.contexts?.['profile'];
       }
 
-      // We need to find both a profile and a transaction event for the same profile_id.
-      const profileIndex = PROFILE_QUEUE.findIndex(p => p.profile_id === profile_id);
-      if (profileIndex === -1) {
-        DEBUG_BUILD && logger.log(`[Profiling] Could not retrieve profile for transaction: ${profile_id}`);
-        continue;
-      }
-
-      const cpuProfile = PROFILE_QUEUE[profileIndex];
+      const cpuProfile = takeFromProfileQueue(profile_id);
       if (!cpuProfile) {
         DEBUG_BUILD && logger.log(`[Profiling] Could not retrieve profile for transaction: ${profile_id}`);
         continue;
       }
 
-      // Remove the profile from the queue.
-      PROFILE_QUEUE.splice(profileIndex, 1);
       const profile = createProfilingEvent(client, cpuProfile, profiledTransaction);
-
       if (!profile) return;
 
       profilesToAddToEnvelope.push(profile);
