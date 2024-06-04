@@ -4,13 +4,21 @@
   </a>
 </p>
 
-> ⚠️ **Deprecation Notice:** From SDK versions >= `7.47.0` onwards, the `@sentry/tracing` package is officially deprecated. This package will be removed in a future major release. More details can be found in the [migration docs](https://github.com/getsentry/sentry-javascript/blob/7.47.0/MIGRATION.md/#remove-requirement-for-sentrytracing-package-since-7460).
+> ⚠️ **Deprecation Notice:** From SDK versions >= `7.47.0` onwards, the `@sentry/tracing` package is officially
+> deprecated. This package will be removed in a future major release. More details can be found in the
+> [migration docs](https://github.com/getsentry/sentry-javascript/blob/7.47.0/MIGRATION.md/#remove-requirement-for-sentrytracing-package-since-7460).
 
 # Sentry Tracing Extensions
 
 [![npm version](https://img.shields.io/npm/v/@sentry/tracing.svg)](https://www.npmjs.com/package/@sentry/tracing)
 [![npm dm](https://img.shields.io/npm/dm/@sentry/tracing.svg)](https://www.npmjs.com/package/@sentry/tracing)
 [![npm dt](https://img.shields.io/npm/dt/@sentry/tracing.svg)](https://www.npmjs.com/package/@sentry/tracing)
+
+## Package Discontinued
+
+This package was discontinued with version 8.0.0 of the Sentry JavaScript SDKs. Instead, exports from this package are
+exported directly from the main SDK packages like `@sentry/react` or `@sentry/node`. For more information have a look at
+the [Migration Guide](https://github.com/getsentry/sentry-javascript/blob/develop/MIGRATION.md#sentrytracing).
 
 ## Links
 
@@ -19,24 +27,23 @@
 
 ## General
 
-This package contains extensions to the `@sentry/hub` to enable Sentry AM related functionality. It also provides integrations for Browser and Node that provide a good experience out of the box.
+This package contains extensions to the `@sentry/hub` to enable Sentry AM related functionality. It also provides
+integrations for Browser and Node that provide a good experience out of the box.
 
 ## Migrating from @sentry/apm to @sentry/tracing
 
-The tracing integration for JavaScript SDKs has moved from
-[`@sentry/apm`](https://www.npmjs.com/package/@sentry/apm) to
-[`@sentry/tracing`](https://www.npmjs.com/package/@sentry/tracing). While the
-two packages are similar, some imports and APIs have changed slightly.
+The tracing integration for JavaScript SDKs has moved from [`@sentry/apm`](https://www.npmjs.com/package/@sentry/apm) to
+[`@sentry/tracing`](https://www.npmjs.com/package/@sentry/tracing). While the two packages are similar, some imports and
+APIs have changed slightly.
 
-The old package `@sentry/apm` is deprecated in favor of `@sentry/tracing`.
-Future support for `@sentry/apm` is limited to bug fixes only.
+The old package `@sentry/apm` is deprecated in favor of `@sentry/tracing`. Future support for `@sentry/apm` is limited
+to bug fixes only.
 
 ## Migrating from @sentry/apm to @sentry/tracing
 
 ### Browser (CDN bundle)
 
-If you were using the Browser CDN bundle, switch from the old
-`bundle.apm.min.js` to the new tracing bundle:
+If you were using the Browser CDN bundle, switch from the old `bundle.apm.min.js` to the new tracing bundle:
 
 ```html
 <script
@@ -57,8 +64,8 @@ And then update `Sentry.init`:
 
 ### Browser (npm package)
 
-If you were using automatic instrumentation, update the import statement and
-update `Sentry.init` to use the new `BrowserTracing` integration:
+If you were using automatic instrumentation, update the import statement and update `Sentry.init` to use the new
+`BrowserTracing` integration:
 
 ```diff
  import * as Sentry from "@sentry/browser";
@@ -73,20 +80,17 @@ update `Sentry.init` to use the new `BrowserTracing` integration:
  });
 ```
 
-If you were using the `beforeNavigate` option from the `Tracing` integration,
-the API in `BrowserTracing` has changed slightly. Instead of passing in a
-location and returning a string representing transaction name, `beforeNavigate`
-now accepts a transaction context and is expected to return a transaction
-context. You can now add extra tags or change the `op` based on different
-parameters. If you want to access the location like before, you can get it from
+If you were using the `beforeNavigate` option from the `Tracing` integration, the API in `BrowserTracing` has changed
+slightly. Instead of passing in a location and returning a string representing transaction name, `beforeNavigate` now
+accepts a transaction context and is expected to return a transaction context. You can now add extra tags or change the
+`op` based on different parameters. If you want to access the location like before, you can get it from
 `window.location`.
 
-For example, if you had a function like so that computed a custom transaction
-name:
+For example, if you had a function like so that computed a custom transaction name:
 
 ```javascript
-import * as Sentry from "@sentry/browser";
-import { Integrations } from "@sentry/apm";
+import * as Sentry from '@sentry/browser';
+import { Integrations } from '@sentry/apm';
 
 Sentry.init({
   integrations: [
@@ -102,8 +106,8 @@ Sentry.init({
 You would now leverage the context to do the same thing:
 
 ```javascript
-import * as Sentry from "@sentry/browser";
-import { Integrations } from "@sentry/tracing";
+import * as Sentry from '@sentry/browser';
+import { Integrations } from '@sentry/tracing';
 
 Sentry.init({
   integrations: [
@@ -147,8 +151,8 @@ For the full diff:
 
 ### Node
 
-If you were using the Express integration for automatic instrumentation, the
-only necessary change is to update the import statement:
+If you were using the Express integration for automatic instrumentation, the only necessary change is to update the
+import statement:
 
 ```diff
  import * as Sentry from "@sentry/node";

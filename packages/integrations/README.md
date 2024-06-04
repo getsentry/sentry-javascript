@@ -15,6 +15,15 @@
 - [Official SDK Docs](https://docs.sentry.io/quickstart/)
 - [TypeDoc](http://getsentry.github.io/sentry-javascript/)
 
+## Package Discontinued
+
+This package was discontinued with version 8.0.0 of the Sentry JavaScript SDKs. All integrations from this package are
+now directly exported from the SDK packages like `@sentry/react` or `@sentry/node`. For more information have a look at
+the migration guide for
+[client-](https://docs.sentry.io/platforms/javascript/migration/v7-to-v8/#removal-of-sentryintegrations-package) and
+[server-side](https://docs.sentry.io/platforms/javascript/guides/node/migration/v7-to-v8/#removal-of-sentryintegrations-package)
+SDKs.
+
 ## General
 
 Pluggable integrations that can be used to enhance JS SDKs.
