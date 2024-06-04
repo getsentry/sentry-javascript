@@ -50,27 +50,25 @@ export interface RawThreadCpuProfile extends BaseProfile {
 export interface RawChunkCpuProfile extends BaseProfile {
   samples: ChunkSample[];
 }
+
 export interface PrivateV8CpuProfilerBindings {
   startProfiling(name: string): void;
-  stopProfiling(name: string, format: 0, threadId: number, collectResources: boolean): RawThreadCpuProfile | null;
-  stopProfiling(name: string, format: 1, threadId: number, collectResources: boolean): RawChunkCpuProfile | null;
-  stopProfiling(
-    name: string,
-    format: 0 | 1,
-    threadId: number,
-    collectResources: boolean,
-  ): RawThreadCpuProfile | RawChunkCpuProfile | null;
+
+  stopProfiling(name: string, format: PROFILE_FORMAT.THREAD, threadId: number, collectResources: boolean): RawThreadCpuProfile | null;
+  stopProfiling(name: string, format: PROFILE_FORMAT.CHUNK, threadId: number, collectResources: boolean): RawChunkCpuProfile | null;
+
+  // Helper methods exposed for testing
   getFrameModule(abs_path: string): string;
 }
 
-export enum ProfileFormat {
+export enum PROFILE_FORMAT {
   THREAD = 0,
   CHUNK = 1,
 }
 
 export interface V8CpuProfilerBindings {
   startProfiling(name: string): void;
-  stopProfiling(name: string, format: 0): RawThreadCpuProfile | null;
-  stopProfiling(name: string, format: 1): RawChunkCpuProfile | null;
-  stopProfiling(name: string, format: 0 | 1): RawThreadCpuProfile | RawChunkCpuProfile | null;
+
+  stopProfiling(name: string, format: PROFILE_FORMAT.THREAD): RawThreadCpuProfile | null;
+  stopProfiling(name: string, format: PROFILE_FORMAT.CHUNK): RawChunkCpuProfile | null;
 }
