@@ -573,24 +573,20 @@ napi_value CreateSample(const napi_env &env, const enum ProfileFormat format,
                           NAPI_AUTO_LENGTH, &thread_id_prop);
   napi_set_named_property(env, js_node, "thread_id", thread_id_prop);
 
-switch(format){
-  case ProfileFormat::kFormatThread:
-    {
-      napi_value timestamp;
-      napi_create_int64(env, sample_timestamp, &timestamp);
-      napi_set_named_property(env, js_node, "elapsed_since_start_ns", timestamp);
-    }
-    break;
-  case ProfileFormat::kFormatChunk:
-    {
-      napi_value timestamp;
-      napi_create_double(env, chunk_timestamp, &timestamp);
-      napi_set_named_property(env, js_node, "timestamp", timestamp);
-    }
-    break;
+  switch (format) {
+  case ProfileFormat::kFormatThread: {
+    napi_value timestamp;
+    napi_create_int64(env, sample_timestamp, &timestamp);
+    napi_set_named_property(env, js_node, "elapsed_since_start_ns", timestamp);
+  } break;
+  case ProfileFormat::kFormatChunk: {
+    napi_value timestamp;
+    napi_create_double(env, chunk_timestamp, &timestamp);
+    napi_set_named_property(env, js_node, "timestamp", timestamp);
+  } break;
   default:
     break;
-}
+  }
 
   return js_node;
 };
@@ -658,7 +654,8 @@ static void GetSamples(const napi_env &env, const v8::CpuProfile *profile,
     uint64_t sample_timestamp_ns = sample_delta_us * 1e3;
     uint64_t sample_offset_from_profile_start_ms =
         (sample_timestamp_us - profile_start_time_us) * 1e-3;
-    double seconds_since_start = profile_start_timestamp_ms + sample_offset_from_profile_start_ms;
+    double seconds_since_start =
+        profile_start_timestamp_ms + sample_offset_from_profile_start_ms;
 
     napi_value sample = nullptr;
     sample = CreateSample(env, format, stack_index, sample_timestamp_ns,
@@ -824,24 +821,20 @@ TranslateMeasurements(const napi_env &env, const enum ProfileFormat format,
     napi_create_int64(env, values[i], &value);
 
     napi_set_named_property(env, entry, "value", value);
-    switch(format){
-      case ProfileFormat::kFormatThread:
-        {
-          napi_value ts;
-          napi_create_int64(env, timestamps_ns[i], &ts);
-          napi_set_named_property(env, entry, "elapsed_since_start_ns", ts);
-        }
-        break;
-      case ProfileFormat::kFormatChunk:
-        {
-          napi_value ts;
-          napi_create_double(
-              env, profile_start_timestamp_ms + (timestamps_ns[i] * 1e-6), &ts);
-          napi_set_named_property(env, entry, "timestamp", ts);
-        }
-        break;
-      default:
-        break;
+    switch (format) {
+    case ProfileFormat::kFormatThread: {
+      napi_value ts;
+      napi_create_int64(env, timestamps_ns[i], &ts);
+      napi_set_named_property(env, entry, "elapsed_since_start_ns", ts);
+    } break;
+    case ProfileFormat::kFormatChunk: {
+      napi_value ts;
+      napi_create_double(
+          env, profile_start_timestamp_ms + (timestamps_ns[i] * 1e-6), &ts);
+      napi_set_named_property(env, entry, "timestamp", ts);
+    } break;
+    default:
+      break;
     }
     napi_set_element(env, values_array, i, entry);
   }
