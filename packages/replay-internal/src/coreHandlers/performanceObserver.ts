@@ -1,9 +1,9 @@
 import {
   addClsInstrumentationHandler,
   addFidInstrumentationHandler,
+  addInpInstrumentationHandler,
   addLcpInstrumentationHandler,
   addPerformanceInstrumentationHandler,
-  addInpInstrumentationHandler,
 } from '@sentry-internal/browser-utils';
 import type { ReplayContainer } from '../types';
 import {
