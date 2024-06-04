@@ -1,29 +1,26 @@
 /* eslint-disable max-lines */
 import {
-  captureException,
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   getActiveSpan,
+  getGlobalScope,
   getRootSpan,
-  handleCallbackErrors,
   hasTracingEnabled,
   spanToJSON,
   spanToTraceHeader,
+  startSpan,
   withIsolationScope,
 } from '@sentry/core';
 import { continueTrace, getDynamicSamplingContextFromSpan } from '@sentry/opentelemetry';
-import type { WrappedFunction } from '@sentry/types';
-import {
-  addExceptionMechanism,
-  dynamicSamplingContextToSentryBaggageHeader,
-  fill,
-  isNodeEnv,
-  isPrimitive,
-  loadModule,
-  logger,
-  objectify,
-} from '@sentry/utils';
+import type { TransactionSource, WrappedFunction } from '@sentry/types';
+import { dynamicSamplingContextToSentryBaggageHeader, fill, isNodeEnv, loadModule, logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from './debug-build';
+import { captureRemixServerException, errorHandleDataFunction, errorHandleDocumentRequestFunction } from './errors';
 import { getFutureFlagsServer, getRemixVersionFromBuild } from './futureFlags';
+import type { RemixOptions } from './remixOptions';
+import { createRoutes, getTransactionName } from './utils';
 import { extractData, isDeferredData, isResponse, isRouteErrorResponse, json } from './vendor/response';
 import type {
   AppData,
@@ -42,7 +39,6 @@ import type {
 import { normalizeRemixRequest } from './web-fetch';
 
 let FUTURE_FLAGS: FutureConfig | undefined;
-let IS_REMIX_V2: boolean | undefined;
 
 const redirectStatusCodes = new Set([301, 302, 303, 307, 308]);
 function isRedirectResponse(response: Response): boolean {
@@ -51,20 +47,6 @@ function isRedirectResponse(response: Response): boolean {
 
 function isCatchResponse(response: Response): boolean {
   return response.headers.get('X-Remix-Catch') != null;
-}
-
-async function extractResponseError(response: Response): Promise<unknown> {
-  const responseData = await extractData(response);
-
-  if (typeof responseData === 'string' && responseData.length > 0) {
-    return new Error(responseData);
-  }
-
-  if (response.statusText) {
-    return new Error(response.statusText);
-  }
-
-  return responseData;
 }
 
 /**
@@ -113,78 +95,7 @@ export function wrapHandleErrorWithSentry(
   };
 }
 
-/**
- * Captures an exception happened in the Remix server.
- *
- * @param err The error to capture.
- * @param name The name of the origin function.
- * @param request The request object.
- *
- * @returns A promise that resolves when the exception is captured.
- */
-export async function captureRemixServerException(err: unknown, name: string, request: Request): Promise<void> {
-  // Skip capturing if the thrown error is not a 5xx response
-  // https://remix.run/docs/en/v1/api/conventions#throwing-responses-in-loaders
-  if (IS_REMIX_V2 && isRouteErrorResponse(err) && err.status < 500) {
-    return;
-  }
-
-  if (isResponse(err) && err.status < 500) {
-    return;
-  }
-  // Skip capturing if the request is aborted as Remix docs suggest
-  // Ref: https://remix.run/docs/en/main/file-conventions/entry.server#handleerror
-  if (request.signal.aborted) {
-    DEBUG_BUILD && logger.warn('Skipping capture of aborted request');
-    return;
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let normalizedRequest: Record<string, unknown> = request as unknown as any;
-
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    normalizedRequest = normalizeRemixRequest(request as unknown as any);
-  } catch (e) {
-    DEBUG_BUILD && logger.warn('Failed to normalize Remix request');
-  }
-
-  const objectifiedErr = objectify(err);
-
-  captureException(isResponse(objectifiedErr) ? await extractResponseError(objectifiedErr) : objectifiedErr, scope => {
-    const activeSpan = getActiveSpan();
-    const rootSpan = activeSpan && getRootSpan(activeSpan);
-    const activeRootSpanName = rootSpan ? spanToJSON(rootSpan).description : undefined;
-
-    scope.setSDKProcessingMetadata({
-      request: {
-        ...normalizedRequest,
-        // When `route` is not defined, `RequestData` integration uses the full URL
-        route: activeRootSpanName
-          ? {
-              path: activeRootSpanName,
-            }
-          : undefined,
-      },
-    });
-
-    scope.addEventProcessor(event => {
-      addExceptionMechanism(event, {
-        type: 'instrument',
-        handled: false,
-        data: {
-          function: name,
-        },
-      });
-
-      return event;
-    });
-
-    return scope;
-  });
-}
-
-function makeWrappedDocumentRequestFunction(remixVersion?: number) {
+function makeWrappedDocumentRequestFunction(autoInstrumentRemix?: boolean, remixVersion?: number) {
   return function (origDocumentRequestFunction: HandleDocumentRequestFunction): HandleDocumentRequestFunction {
     return async function (
       this: unknown,
@@ -194,31 +105,52 @@ function makeWrappedDocumentRequestFunction(remixVersion?: number) {
       context: EntryContext,
       loadContext?: Record<string, unknown>,
     ): Promise<Response> {
-      return handleCallbackErrors(
-        () => {
-          return origDocumentRequestFunction.call(
-            this,
-            request,
-            responseStatusCode,
-            responseHeaders,
-            context,
-            loadContext,
-          );
-        },
-        err => {
-          const isRemixV1 = !FUTURE_FLAGS?.v2_errorBoundary && remixVersion !== 2;
+      const documentRequestContext = {
+        request,
+        responseStatusCode,
+        responseHeaders,
+        context,
+        loadContext,
+      };
 
-          // This exists to capture the server-side rendering errors on Remix v1
-          // On Remix v2, we capture SSR errors at `handleError`
-          // We also skip primitives here, as we can't dedupe them, and also we don't expect any primitive SSR errors.
-          if (isRemixV1 && !isPrimitive(err)) {
-            // eslint-disable-next-line @typescript-eslint/no-floating-promises
-            captureRemixServerException(err, 'documentRequest', request);
-          }
+      const isRemixV2 = FUTURE_FLAGS?.v2_errorBoundary || remixVersion === 2;
 
-          throw err;
-        },
-      );
+      if (!autoInstrumentRemix) {
+        const activeSpan = getActiveSpan();
+        const rootSpan = activeSpan && getRootSpan(activeSpan);
+
+        const name = rootSpan ? spanToJSON(rootSpan).description : undefined;
+
+        return startSpan(
+          {
+            // If we don't have a root span, `onlyIfParent` will lead to the span not being created anyhow
+            // So we don't need to care too much about the fallback name, it's just for typing purposes....
+            name: name || '<unknown>',
+            onlyIfParent: true,
+            attributes: {
+              method: request.method,
+              url: request.url,
+              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.remix',
+              [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function.remix.document_request',
+            },
+          },
+          () => {
+            return errorHandleDocumentRequestFunction.call(
+              this,
+              origDocumentRequestFunction,
+              documentRequestContext,
+              isRemixV2,
+            );
+          },
+        );
+      } else {
+        return errorHandleDocumentRequestFunction.call(
+          this,
+          origDocumentRequestFunction,
+          documentRequestContext,
+          isRemixV2,
+        );
+      }
     };
   };
 }
@@ -228,39 +160,41 @@ function makeWrappedDataFunction(
   id: string,
   name: 'action' | 'loader',
   remixVersion: number,
+  autoInstrumentRemix?: boolean,
 ): DataFunction {
   return async function (this: unknown, args: DataFunctionArgs): Promise<Response | AppData> {
-    return handleCallbackErrors(
-      async () => {
-        return origFn.call(this, args);
-      },
-      err => {
-        const isRemixV2 = FUTURE_FLAGS?.v2_errorBoundary || remixVersion === 2;
+    const isRemixV2 = FUTURE_FLAGS?.v2_errorBoundary || remixVersion === 2;
 
-        // On Remix v2, we capture all unexpected errors (except the `Route Error Response`s / Thrown Responses) in `handleError` function.
-        // This is both for consistency and also avoid duplicates such as primitives like `string` or `number` being captured twice.
-        // Remix v1 does not have a `handleError` function, so we capture all errors here.
-        if (isRemixV2 ? isResponse(err) : true) {
-          // eslint-disable-next-line @typescript-eslint/no-floating-promises
-          captureRemixServerException(err, name, args.request);
-        }
-
-        throw err;
-      },
-    );
+    if (!autoInstrumentRemix) {
+      return startSpan(
+        {
+          op: `function.remix.${name}`,
+          name: id,
+          attributes: {
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.remix',
+            name,
+          },
+        },
+        () => {
+          return errorHandleDataFunction.call(this, origFn, name, args, isRemixV2);
+        },
+      );
+    } else {
+      return errorHandleDataFunction.call(this, origFn, name, args, isRemixV2);
+    }
   };
 }
 
 const makeWrappedAction =
-  (id: string, remixVersion: number) =>
+  (id: string, remixVersion: number, autoInstrumentRemix?: boolean) =>
   (origAction: DataFunction): DataFunction => {
-    return makeWrappedDataFunction(origAction, id, 'action', remixVersion);
+    return makeWrappedDataFunction(origAction, id, 'action', remixVersion, autoInstrumentRemix);
   };
 
 const makeWrappedLoader =
-  (id: string, remixVersion: number) =>
+  (id: string, remixVersion: number, autoInstrumentRemix?: boolean) =>
   (origLoader: DataFunction): DataFunction => {
-    return makeWrappedDataFunction(origLoader, id, 'loader', remixVersion);
+    return makeWrappedDataFunction(origLoader, id, 'loader', remixVersion, autoInstrumentRemix);
   };
 
 function getTraceAndBaggage(): {
@@ -329,12 +263,35 @@ function makeWrappedRootLoader(remixVersion: number) {
   };
 }
 
-function wrapRequestHandler(origRequestHandler: RequestHandler): RequestHandler {
+function wrapRequestHandler(
+  origRequestHandler: RequestHandler,
+  build: ServerBuild | (() => ServerBuild | Promise<ServerBuild>),
+  autoInstrumentRemix: boolean,
+): RequestHandler {
   return async function (this: unknown, request: RemixRequest, loadContext?: AppLoadContext): Promise<Response> {
     const upperCaseMethod = request.method.toUpperCase();
     // We don't want to wrap OPTIONS and HEAD requests
     if (upperCaseMethod === 'OPTIONS' || upperCaseMethod === 'HEAD') {
       return origRequestHandler.call(this, request, loadContext);
+    }
+
+    let name: string;
+    let source: TransactionSource;
+
+    if (!autoInstrumentRemix) {
+      let resolvedBuild: ServerBuild;
+
+      if (typeof build === 'function') {
+        resolvedBuild = await build();
+      } else {
+        resolvedBuild = build;
+      }
+
+      const routes = createRoutes(resolvedBuild.routes);
+
+      // const routes = createRoutes(build.routes);
+      const url = new URL(request.url);
+      [name, source] = getTransactionName(routes, url);
     }
 
     return withIsolationScope(async isolationScope => {
@@ -350,12 +307,30 @@ function wrapRequestHandler(origRequestHandler: RequestHandler): RequestHandler 
           ...normalizedRequest,
         },
       });
+
       return continueTrace(
         {
           sentryTrace: request.headers.get('sentry-trace') || '',
           baggage: request.headers.get('baggage') || '',
         },
         async () => {
+          if (!autoInstrumentRemix) {
+            return startSpan(
+              {
+                name,
+                attributes: {
+                  [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.remix',
+                  [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
+                  [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
+                  method: request.method,
+                },
+              },
+              () => {
+                return origRequestHandler.call(this, request, loadContext);
+              },
+            );
+          }
+
           return (await origRequestHandler.call(this, request, loadContext)) as Response;
         },
       );
@@ -363,11 +338,16 @@ function wrapRequestHandler(origRequestHandler: RequestHandler): RequestHandler 
   };
 }
 
-function instrumentBuildCallback(build: ServerBuild): ServerBuild {
+function instrumentBuildCallback(build: ServerBuild, autoInstrumentRemix: boolean): ServerBuild {
   const routes: ServerRouteManifest = {};
 
   const remixVersion = getRemixVersionFromBuild(build);
-  IS_REMIX_V2 = remixVersion === 2;
+
+  const globalScope = getGlobalScope();
+
+  globalScope.setSDKProcessingMetadata({
+    IS_REMIX_V2: remixVersion === 2,
+  });
 
   const wrappedEntry = { ...build.entry, module: { ...build.entry.module } };
 
@@ -377,7 +357,7 @@ function instrumentBuildCallback(build: ServerBuild): ServerBuild {
   // We should be able to wrap them, as they may not be wrapped before.
   const defaultExport = wrappedEntry.module.default as undefined | WrappedFunction;
   if (defaultExport && !defaultExport.__sentry_original__) {
-    fill(wrappedEntry.module, 'default', makeWrappedDocumentRequestFunction(remixVersion));
+    fill(wrappedEntry.module, 'default', makeWrappedDocumentRequestFunction(autoInstrumentRemix, remixVersion));
   }
 
   for (const [id, route] of Object.entries(build.routes)) {
@@ -385,12 +365,12 @@ function instrumentBuildCallback(build: ServerBuild): ServerBuild {
 
     const routeAction = wrappedRoute.module.action as undefined | WrappedFunction;
     if (routeAction && !routeAction.__sentry_original__) {
-      fill(wrappedRoute.module, 'action', makeWrappedAction(id, remixVersion));
+      fill(wrappedRoute.module, 'action', makeWrappedAction(id, remixVersion, autoInstrumentRemix));
     }
 
     const routeLoader = wrappedRoute.module.loader as undefined | WrappedFunction;
     if (routeLoader && !routeLoader.__sentry_original__) {
-      fill(wrappedRoute.module, 'loader', makeWrappedLoader(id, remixVersion));
+      fill(wrappedRoute.module, 'loader', makeWrappedLoader(id, remixVersion, autoInstrumentRemix));
     }
 
     // Entry module should have a loader function to provide `sentry-trace` and `baggage`
@@ -415,7 +395,10 @@ function instrumentBuildCallback(build: ServerBuild): ServerBuild {
  */
 export function instrumentBuild(
   build: ServerBuild | (() => ServerBuild | Promise<ServerBuild>),
+  options: RemixOptions,
 ): ServerBuild | (() => ServerBuild | Promise<ServerBuild>) {
+  const autoInstrumentRemix = options?.autoInstrumentRemix || false;
+
   if (typeof build === 'function') {
     return function () {
       const resolvedBuild = build();
@@ -424,41 +407,40 @@ export function instrumentBuild(
         return resolvedBuild.then(build => {
           FUTURE_FLAGS = getFutureFlagsServer(build);
 
-          return instrumentBuildCallback(build);
+          return instrumentBuildCallback(build, autoInstrumentRemix);
         });
       } else {
         FUTURE_FLAGS = getFutureFlagsServer(resolvedBuild);
 
-        return instrumentBuildCallback(resolvedBuild);
+        return instrumentBuildCallback(resolvedBuild, autoInstrumentRemix);
       }
     };
   } else {
     FUTURE_FLAGS = getFutureFlagsServer(build);
 
-    return instrumentBuildCallback(build);
+    return instrumentBuildCallback(build, autoInstrumentRemix);
   }
 }
 
-function makeWrappedCreateRequestHandler(
-  origCreateRequestHandler: CreateRequestHandlerFunction,
-): CreateRequestHandlerFunction {
-  return function (
-    this: unknown,
-    build: ServerBuild | (() => Promise<ServerBuild>),
-    ...args: unknown[]
-  ): RequestHandler {
-    const newBuild = instrumentBuild(build);
-    const requestHandler = origCreateRequestHandler.call(this, newBuild, ...args);
+const makeWrappedCreateRequestHandler = (options: RemixOptions) =>
+  function (origCreateRequestHandler: CreateRequestHandlerFunction): CreateRequestHandlerFunction {
+    return function (
+      this: unknown,
+      build: ServerBuild | (() => Promise<ServerBuild>),
+      ...args: unknown[]
+    ): RequestHandler {
+      const newBuild = instrumentBuild(build, options);
+      const requestHandler = origCreateRequestHandler.call(this, newBuild, ...args);
 
-    return wrapRequestHandler(requestHandler);
+      return wrapRequestHandler(requestHandler, newBuild, options.autoInstrumentRemix || false);
+    };
   };
-}
 
 /**
  * Monkey-patch Remix's `createRequestHandler` from `@remix-run/server-runtime`
  * which Remix Adapters (https://remix.run/docs/en/v1/api/remix) use underneath.
  */
-export function instrumentServer(): void {
+export function instrumentServer(options: RemixOptions): void {
   const pkg = loadModule<{
     createRequestHandler: CreateRequestHandlerFunction;
   }>('@remix-run/server-runtime');
@@ -469,5 +451,5 @@ export function instrumentServer(): void {
     return;
   }
 
-  fill(pkg, 'createRequestHandler', makeWrappedCreateRequestHandler);
+  fill(pkg, 'createRequestHandler', makeWrappedCreateRequestHandler(options));
 }

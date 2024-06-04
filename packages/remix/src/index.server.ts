@@ -116,12 +116,14 @@ export {
 export * from '@sentry/node';
 
 export {
-  captureRemixServerException,
   // eslint-disable-next-line deprecation/deprecation
   wrapRemixHandleError,
   sentryHandleError,
   wrapHandleErrorWithSentry,
 } from './utils/instrumentServer';
+
+export { captureRemixServerException } from './utils/errors';
+
 export { ErrorBoundary, withErrorBoundary } from '@sentry/react';
 export { withSentry } from './client/performance';
 export { captureRemixErrorBoundaryError } from './client/errors';
@@ -134,9 +136,9 @@ export type { SentryMetaArgs } from './utils/types';
  *
  * @param options The options for the SDK.
  */
-export function getDefaultIntegrations(options: RemixOptions): Integration[] {
+export function getRemixDefaultIntegrations(options: RemixOptions): Integration[] {
   return [
-    ...getDefaultNodeIntegrations(options).filter(integration => integration.name !== 'Http'),
+    ...getDefaultNodeIntegrations(options as NodeOptions).filter(integration => integration.name !== 'Http'),
     httpIntegration(),
     remixIntegration(options),
   ];
@@ -166,11 +168,13 @@ export function init(options: RemixOptions): void {
     return;
   }
 
-  options.defaultIntegrations = getDefaultIntegrations(options as NodeOptions);
+  if (options.autoInstrumentRemix) {
+    options.defaultIntegrations = getRemixDefaultIntegrations(options as NodeOptions);
+  }
 
   nodeInit(options as NodeOptions);
 
-  instrumentServer();
+  instrumentServer(options);
 
   setTag('runtime', 'node');
 }

@@ -7,6 +7,7 @@ Sentry.init({
   dsn: process.env.E2E_TEST_DSN,
   tunnel: 'http://localhost:3031/', // proxy server
   sendDefaultPii: true, // Testing the FormData
+  autoInstrumentRemix: true, // auto instrument Remix
   captureActionFormDataKeys: {
     file: true,
     text: true,
