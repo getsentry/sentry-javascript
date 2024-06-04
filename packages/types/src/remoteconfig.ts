@@ -26,10 +26,10 @@ export interface RemoteConfigInterface {
    */
   fetchAndApply: () => any;
   /**
-   * Returns current configuration. Can be from user-supplied defaults, local
+   * Returns current configuration value for a key. Can be from user-supplied defaults, local
    * cache, or remote configuration.
    */
-  get: <T>(defaultConfig: T) => T;
+  get: <T>(key: string, defaultValue: T) => T;
   /**
    * Returns Sentry-internal configuration options.
    */

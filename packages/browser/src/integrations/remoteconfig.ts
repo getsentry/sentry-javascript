@@ -45,12 +45,12 @@ const _remoteConfigIntegration = (() => {
 
       return _inst.fetchAndApply();
     },
-    get<T>(defaultConfig: T): T {
+    get<T>(key: string, defaultValue: T): T {
       if (!_inst) {
-        return defaultConfig;
+        return defaultValue;
       }
 
-      return _inst.get(defaultConfig);
+      return _inst.get(key, defaultValue);
     },
     getInternal(config: RemoteOverrideableConfig): RemoteOverrideableConfig {
       if (!_inst) {

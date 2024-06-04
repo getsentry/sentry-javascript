@@ -115,33 +115,42 @@ export function remoteConfig({
         _transport
           // @ts-expect-error envelopes and such
           .send([[], [[{ type: 'features' }, {}]]])
-          .then(resp => {
-            // _lastFetch = new Date();
-            // on success, check if cached, then do nothing
-            if (resp.statusCode === 304) {
-              // _state = "SUCCESS_CACHED";
+          .then(
+            resp => {
+              // _lastFetch = new Date();
+              // on success, check if cached, then do nothing
+              if (resp.statusCode === 304) {
+                // _state = "SUCCESS_CACHED";
 
-              return;
-            }
+                return;
+              }
 
-            // not cached...get body and send pending
-            // @ts-expect-error resp.response not typed
-            resp.response
-              .json()
-              .then((data: RemoteConfigPayload) => {
-                // _lastFetch = new Date();
-                _pendingConfig = data;
-                _hasUpdate = true;
+              // not cached...get body and send pending
+              // @ts-expect-error resp.response not typed
+              resp.response
+                .json()
+                .then((data: RemoteConfigPayload) => {
+                  console.log('success', data);
+                  // _lastFetch = new Date();
+                  _pendingConfig = data;
+                  _hasUpdate = true;
 
-                storage.set(defaultConfigName, data);
-                // storage.set(`${defaultConfigName}_lastFetch`, +_lastFetch);
-                // _state = "SUCCESS";
-                resolve();
-              })
-              .catch(() => {
-                // TODO: Error handling
-              });
-          })
+                  storage.set(defaultConfigName, data);
+                  // storage.set(`${defaultConfigName}_lastFetch`, +_lastFetch);
+                  // _state = "SUCCESS";
+                  resolve();
+                })
+                .catch(err => {
+                  console.log('catch');
+                  console.error(err);
+                  // TODO: Error handling
+                });
+            },
+            err => {
+              console.error(err);
+              // TODO rejection
+            },
+          )
       );
     });
   }
@@ -194,8 +203,12 @@ export function remoteConfig({
   }
 
   /** @inheritdoc */
-  function get<T>(defaultConfig: T): T {
-    return (_activeConfig && (_activeConfig.features as T)) || defaultConfig;
+  function get<T>(key: string, defaultValue: T): T {
+    if (!_activeConfig || !_activeConfig.features || !(key in _activeConfig.features)) {
+      return defaultValue;
+    }
+
+    return _activeConfig.features[key];
   }
 
   _initialize();
