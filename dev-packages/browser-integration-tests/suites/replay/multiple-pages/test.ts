@@ -81,7 +81,7 @@ sentryTest(
     const collectedPerformanceSpans = [...recording0.performanceSpans, ...recording1.performanceSpans];
     const collectedBreadcrumbs = [...recording0.breadcrumbs, ...recording1.breadcrumbs];
 
-    expect(collectedPerformanceSpans.length).toEqual(6);
+    expect(collectedPerformanceSpans.length).toEqual(8);
     expect(collectedPerformanceSpans).toEqual(
       expect.arrayContaining([
         expectedNavigationPerformanceSpan,
@@ -122,7 +122,7 @@ sentryTest(
     const collectedPerformanceSpansAfterReload = [...recording2.performanceSpans, ...recording3.performanceSpans];
     const collectedBreadcrumbsAdterReload = [...recording2.breadcrumbs, ...recording3.breadcrumbs];
 
-    expect(collectedPerformanceSpansAfterReload.length).toEqual(6);
+    expect(collectedPerformanceSpansAfterReload.length).toEqual(8);
     expect(collectedPerformanceSpansAfterReload).toEqual(
       expect.arrayContaining([
         expectedReloadPerformanceSpan,
@@ -316,7 +316,7 @@ sentryTest(
     ];
     const collectedBreadcrumbsAfterIndexNavigation = [...recording8.breadcrumbs, ...recording9.breadcrumbs];
 
-    expect(collectedPerformanceSpansAfterIndexNavigation.length).toEqual(6);
+    expect(collectedPerformanceSpansAfterIndexNavigation.length).toEqual(8);
     expect(collectedPerformanceSpansAfterIndexNavigation).toEqual(
       expect.arrayContaining([
         expectedNavigationPerformanceSpan,
