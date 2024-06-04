@@ -492,6 +492,11 @@ class ContinuousProfiler {
    * @returns void
    */
   public stop(): void {
+    if (this._chunkData.timer) {
+      global.clearTimeout(this._chunkData.timer);
+      this._chunkData.timer = undefined;
+      DEBUG_BUILD && logger.log(`[Profiling] Stopping profiling chunk: ${this._chunkData.id}`);
+    }
     if (!this._client) {
       DEBUG_BUILD &&
         logger.log('[Profiling] Failed to collect profile, sentry client was never attached to the profiler.');
@@ -502,10 +507,6 @@ class ContinuousProfiler {
         logger.log(`[Profiling] Failed to collect profile for: ${this._chunkData.id}, the chunk_id is missing.`);
       return;
     }
-    if (this._chunkData.timer) {
-      global.clearTimeout(this._chunkData.timer);
-    }
-    DEBUG_BUILD && logger.log(`[Profiling] Stopping profiling chunk: ${this._chunkData.id}`);
     const profile = CpuProfilerBindings.stopProfiling(this._chunkData.id, PROFILE_FORMAT.CHUNK);
     if (!profile || !this._chunkData.startTimestampMS) {
       DEBUG_BUILD && logger.log(`[Profiling] _chunkiledStartTraceID to collect profile for: ${this._chunkData.id}`);
