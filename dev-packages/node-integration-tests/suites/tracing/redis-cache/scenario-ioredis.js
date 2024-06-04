@@ -30,6 +30,8 @@ async function run() {
         await redis.get('test-key');
         await redis.get('ioredis-cache:test-key');
         await redis.get('ioredis-cache:unavailable-data');
+
+        await redis.mget('test-key', 'ioredis-cache:test-key', 'ioredis-cache:unavailable-data');
       } finally {
         await redis.disconnect();
       }

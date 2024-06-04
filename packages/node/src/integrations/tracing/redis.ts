@@ -10,32 +10,12 @@ import {
 } from '@sentry/core';
 import type { IntegrationFn } from '@sentry/types';
 import { generateInstrumentOnce } from '../../otel/instrument';
-
-function keyHasPrefix(key: string, prefixes: string[]): boolean {
-  return prefixes.some(prefix => key.startsWith(prefix));
-}
-
-/** Currently, caching only supports 'get' and 'set' commands. More commands will be added (setex, mget, del, expire) */
-function shouldConsiderForCache(
-  redisCommand: string,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  key: string | number | any[] | Buffer,
-  prefixes: string[],
-): boolean {
-  return (redisCommand === 'get' || redisCommand === 'set') && typeof key === 'string' && keyHasPrefix(key, prefixes);
-}
-
-function calculateCacheItemSize(response: unknown): number | undefined {
-  try {
-    if (Buffer.isBuffer(response)) return response.byteLength;
-    else if (typeof response === 'string') return response.length;
-    else if (typeof response === 'number') return response.toString().length;
-    else if (response === null || response === undefined) return 0;
-    return JSON.stringify(response).length;
-  } catch (e) {
-    return undefined;
-  }
-}
+import {
+  calculateCacheItemSize,
+  getCacheKeySafely,
+  getCacheOperation,
+  shouldConsiderForCache,
+} from '../../utils/redisCache';
 
 interface RedisOptions {
   cachePrefixes?: string[];
@@ -48,11 +28,14 @@ let _redisOptions: RedisOptions = {};
 export const instrumentRedis = generateInstrumentOnce(INTEGRATION_NAME, () => {
   return new IORedisInstrumentation({
     responseHook: (span, redisCommand, cmdArgs, response) => {
-      const key = cmdArgs[0];
+      const safeKey = getCacheKeySafely(cmdArgs);
 
       span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, 'auto.db.otel.redis');
 
-      if (!_redisOptions?.cachePrefixes || !shouldConsiderForCache(redisCommand, key, _redisOptions.cachePrefixes)) {
+      if (
+        !_redisOptions?.cachePrefixes ||
+        !shouldConsiderForCache(redisCommand, safeKey, _redisOptions.cachePrefixes)
+      ) {
         // not relevant for cache
         return;
       }
@@ -65,26 +48,22 @@ export const instrumentRedis = generateInstrumentOnce(INTEGRATION_NAME, () => {
         span.setAttributes({ 'network.peer.address': networkPeerAddress, 'network.peer.port': networkPeerPort });
       }
 
+      const cacheOperation = getCacheOperation(redisCommand);
+
+      if (!cacheOperation) return; // redis command unsupported as cache operation
+
       const cacheItemSize = calculateCacheItemSize(response);
       if (cacheItemSize) span.setAttribute(SEMANTIC_ATTRIBUTE_CACHE_ITEM_SIZE, cacheItemSize);
 
-      if (typeof key === 'string') {
-        switch (redisCommand) {
-          case 'get':
-            span.setAttributes({
-              [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'cache.get_item', // todo: will be changed to cache.get
-              [SEMANTIC_ATTRIBUTE_CACHE_KEY]: key,
-            });
-            if (cacheItemSize !== undefined) span.setAttribute(SEMANTIC_ATTRIBUTE_CACHE_HIT, cacheItemSize > 0);
-            break;
-          case 'set':
-            span.setAttributes({
-              [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'cache.put',
-              [SEMANTIC_ATTRIBUTE_CACHE_KEY]: key,
-            });
-            break;
-        }
-      }
+      if (cacheOperation === 'cache.get' && cacheItemSize !== undefined)
+        span.setAttribute(SEMANTIC_ATTRIBUTE_CACHE_HIT, cacheItemSize > 0);
+
+      span.setAttributes({
+        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: cacheOperation,
+        [SEMANTIC_ATTRIBUTE_CACHE_KEY]: safeKey,
+      });
+
+      span.updateName(`${safeKey.substring(0, 1024)}...`);
     },
   });
 });
