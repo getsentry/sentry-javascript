@@ -1,4 +1,5 @@
 import type { Baggage, Context, Span, SpanContext, TextMapGetter, TextMapSetter } from '@opentelemetry/api';
+import { INVALID_TRACEID } from '@opentelemetry/api';
 import { context } from '@opentelemetry/api';
 import { TraceFlags, propagation, trace } from '@opentelemetry/api';
 import { TraceState, W3CBaggagePropagator, isTracingSuppressed } from '@opentelemetry/core';
@@ -127,7 +128,7 @@ export class SentryPropagator extends W3CBaggagePropagator {
     }
 
     // We also want to avoid setting the default OTEL trace ID, if we get that for whatever reason
-    if (traceId && traceId !== '00000000000000000000000000000000') {
+    if (traceId && traceId !== INVALID_TRACEID) {
       setter.set(carrier, SENTRY_TRACE_HEADER, generateSentryTraceHeader(traceId, spanId, sampled));
     }
 

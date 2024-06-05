@@ -27,7 +27,5 @@ test('Sends a server-side exception to Sentry', async ({ baseURL }) => {
   expect(errorEvent.contexts?.trace).toEqual({
     trace_id: expect.any(String),
     span_id: expect.any(String),
-    // TODO: Why does this have a parent span ID?
-    parent_span_id: expect.any(String),
   });
 });

@@ -26,8 +26,6 @@ test('Sends server-side transactions to Sentry', async ({ baseURL }) => {
         trace: {
           span_id: expect.any(String),
           trace_id: expect.any(String),
-          // TODO: Why does this have a parent span ID?
-          parent_span_id: expect.any(String),
           op: 'http.server',
           origin: 'auto.http.nextjs',
           data: expect.objectContaining({
