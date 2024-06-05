@@ -161,6 +161,7 @@ class ContinuousProfiler {
    */
   public initialize(client: NodeClient): void {
     this._client = client;
+    this._setupSpanChunkInstrumentation(client);
   }
 
   /**
@@ -291,6 +292,29 @@ class ContinuousProfiler {
 
     // Unref timeout so it doesn't keep the process alive.
     chunk.timer.unref();
+  }
+
+  /**
+   * Attaches profiling information to spans that were started
+   * during a profiling session.
+   */
+  private _setupSpanChunkInstrumentation(client: NodeClient): void {
+    client.on('spanStart', _span => {
+      // If we have a profile chunk, then set the following values
+      // on transactions:
+      //  contexts.trace.data['thread.id'] int
+      //  contexts.trace.data['thread.name'] str
+      //  contexts.profile.profiler_id str
+      //
+      // on spans:
+      //  data['thread.id'] int
+      //  data['thread.name'] str
+      //  data['profiler_id'] str
+      //
+      //
+      //  TBD: can we just have a root context instead of attaching
+      //  this to each span. What API can we use to set these values?
+    });
   }
 
   /**
