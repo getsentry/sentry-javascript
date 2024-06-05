@@ -8,9 +8,9 @@ export const SET_COMMANDS = ['set' /* todo: 'setex' */];
 
 /** Determine cache operation based on redis statement */
 export function getCacheOperation(
-  statement: string,
+  command: string,
 ): 'cache.get' | 'cache.put' | 'cache.remove' | 'cache.flush' | undefined {
-  const lowercaseStatement = statement.toLowerCase();
+  const lowercaseStatement = command.toLowerCase();
 
   if (GET_COMMANDS.includes(lowercaseStatement)) {
     return 'cache.get';

@@ -33,7 +33,10 @@ export const instrumentRedis = generateInstrumentOnce(INTEGRATION_NAME, () => {
 
       span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, 'auto.db.otel.redis');
 
+      const cacheOperation = getCacheOperation(redisCommand);
+
       if (
+        !cacheOperation ||
         !_redisOptions?.cachePrefixes ||
         !shouldConsiderForCache(redisCommand, safeKey, _redisOptions.cachePrefixes)
       ) {
@@ -49,14 +52,11 @@ export const instrumentRedis = generateInstrumentOnce(INTEGRATION_NAME, () => {
         span.setAttributes({ 'network.peer.address': networkPeerAddress, 'network.peer.port': networkPeerPort });
       }
 
-      const cacheOperation = getCacheOperation(redisCommand);
-
-      if (!cacheOperation) {
-        // redis command unsupported as cache operation
-        return;
-      }
-
+      // eslint-disable-next-line no-console
+      console.log('response', response);
       const cacheItemSize = calculateCacheItemSize(response);
+      // eslint-disable-next-line no-console
+      console.log('cacheItemSize', cacheItemSize);
       if (cacheItemSize) {
         span.setAttribute(SEMANTIC_ATTRIBUTE_CACHE_ITEM_SIZE, cacheItemSize);
       }
@@ -71,6 +71,8 @@ export const instrumentRedis = generateInstrumentOnce(INTEGRATION_NAME, () => {
       });
 
       span.updateName(safeKey.length > 1024 ? `${safeKey.substring(0, 1024)}...` : safeKey);
+      // eslint-disable-next-line no-console
+      console.log('span',span);
     },
   });
 });
