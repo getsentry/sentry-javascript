@@ -2,6 +2,7 @@ import {
   SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME,
   SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_UNIT,
   SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_VALUE,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   getActiveSpan,
   getClient,
   getCurrentScope,
@@ -83,7 +84,9 @@ function _trackINP(): () => void {
     const activeSpan = getActiveSpan();
     const rootSpan = activeSpan ? getRootSpan(activeSpan) : undefined;
 
-    const routeName = rootSpan ? spanToJSON(rootSpan).description : undefined;
+    // If there is no active span, we fall back to look at the transactionName on the scope
+    // This is set if the pageload/navigation span is already finished,
+    const routeName = rootSpan ? spanToJSON(rootSpan).description : scope.getScopeData().transactionName;
     const user = scope.getUser();
 
     // We need to get the replay, user, and activeTransaction from the current scope
@@ -107,6 +110,7 @@ function _trackINP(): () => void {
       environment: options.environment,
       transaction: routeName,
       [SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME]: metric.value,
+      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.browser.inp',
       user: userDisplay || undefined,
       profile_id: profileId || undefined,
       replay_id: replayId || undefined,
