@@ -69,13 +69,22 @@ export function shouldConsiderForCache(redisCommand: string, key: string, prefix
 
 /** Calculates size based on the cache response value */
 export function calculateCacheItemSize(response: unknown): number | undefined {
-  try {
-    if (Buffer.isBuffer(response)) return response.byteLength;
-    else if (typeof response === 'string') return response.length;
-    else if (typeof response === 'number') return response.toString().length;
-    else if (response === null || response === undefined) return 0;
-    return JSON.stringify(response).length;
-  } catch (e) {
-    return undefined;
-  }
+  const getSize = (value: unknown): number | undefined => {
+    try {
+      if (Buffer.isBuffer(value)) return value.byteLength;
+      else if (typeof value === 'string') return value.length;
+      else if (typeof value === 'number') return value.toString().length;
+      else if (value === null || value === undefined) return 0;
+      return JSON.stringify(value).length;
+    } catch (e) {
+      return undefined;
+    }
+  };
+
+  return Array.isArray(response)
+    ? response.reduce((acc: number | undefined, curr) => {
+        const size = getSize(curr);
+        return typeof size === 'number' ? (acc !== undefined ? acc + size : size) : acc;
+      }, 0)
+    : getSize(response);
 }

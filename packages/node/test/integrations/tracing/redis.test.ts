@@ -180,4 +180,50 @@ describe('Redis', () => {
       });
     });
   });
+
+  describe('calculateCacheItemSize', () => {
+    it('should return byte length for Buffer input', () => {
+      const buffer = Buffer.from('test');
+      const result = calculateCacheItemSize(buffer);
+      expect(result).toBe(4);
+    });
+
+    it('should return string length for string input', () => {
+      const str = 'test';
+      const result = calculateCacheItemSize(str);
+      expect(result).toBe(4);
+    });
+
+    it('should return number length for number input', () => {
+      const num = 1234;
+      const result = calculateCacheItemSize(num);
+      expect(result).toBe(4);
+    });
+
+    it('should return 0 for null or undefined input', () => {
+      const resultForNull = calculateCacheItemSize(null);
+      const resultForUndefined = calculateCacheItemSize(undefined);
+      expect(resultForNull).toBe(0);
+      expect(resultForUndefined).toBe(0);
+    });
+
+    it('should return total size for array input', () => {
+      const arr = ['test', Buffer.from('test'), 1234];
+      const result = calculateCacheItemSize(arr);
+      expect(result).toBe(12);
+    });
+
+    it('should return JSON string length for object input', () => {
+      const obj = { key: 'value' };
+      const result = calculateCacheItemSize(obj);
+      expect(result).toBe(15);
+    });
+
+    it('should return undefined for circular objects', () => {
+      const circularObject: { self?: any } = {};
+      circularObject.self = circularObject; // This creates a circular reference
+      const result = calculateCacheItemSize(circularObject);
+      expect(result).toBeUndefined();
+    });
+  });
 });
