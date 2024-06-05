@@ -1,15 +1,6 @@
 import { exceptionFromError } from '../../../src/eventbuilder';
 import { defaultStackParser as parser } from '../../../src/stack-parsers';
 
-const a =
-  'Error\n' +
-  '    at onClick (http://localhost:3002/(group)/script.js:1:644)\n' +
-  '    at a (http://localhost:3002/[param]/script.js:1:644)\n' +
-  '    at b (http://localhost:3002/[param]/(group)/script.js:1:644)\n' +
-  '    at http://localhost:3002/[param]/script.js:1:644\n' +
-  '    at http://localhost:3002/[param]/(group)/script.js:1:644\n' +
-  '    at http://localhost:3002/(group)/script.js:1:644';
-
 describe('Tracekit - Chrome Tests', () => {
   it('should parse Chrome error with no location', () => {
     const NO_LOCATION = { message: 'foo', name: 'bar', stack: 'error\n at Array.forEach (native)' };
