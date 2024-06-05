@@ -299,6 +299,19 @@ class ContinuousProfiler {
    * during a profiling session.
    */
   private _setupSpanChunkInstrumentation(client: NodeClient): void {
+    // Set context once when the profiler session starts and have the spans inherit from it
+    Sentry.setContext({
+      //  trace: {
+      //    data: {
+      //      'thread.id': int
+      //      'thread.name': str
+      //      profiler_id str
+      //    }
+      //  },
+      //  profiler_id: str
+      //
+    });
+    // vs setting the values for each span
     client.on('spanStart', _span => {
       // If we have a profile chunk, then set the following values
       // on transactions:
