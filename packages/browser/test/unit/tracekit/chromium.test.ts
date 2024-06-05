@@ -579,7 +579,7 @@ describe('Tracekit - Chrome Tests', () => {
       name: 'Error',
       stack: `Error: bad
           at something (http://localhost:5000/(some)/(thing)/index.html:20:16)
-          at http://localhost:5000//(group)/[route]/script.js:1:126
+          at http://localhost:5000/(group)/[route]/script.js:1:126
           at more (http://localhost:5000/(some)/(thing)/index.html:25:7)`,
     };
 
