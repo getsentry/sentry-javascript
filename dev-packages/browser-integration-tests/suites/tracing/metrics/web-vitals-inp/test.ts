@@ -63,6 +63,7 @@ sentryTest('should capture an INP click event span.', async ({ browserName, getL
       sample_rate: '1',
       sampled: 'true',
       trace_id: traceId,
+      transaction: 'test-route',
     },
   });
 
@@ -76,6 +77,7 @@ sentryTest('should capture an INP click event span.', async ({ browserName, getL
       'sentry.origin': 'manual',
       'sentry.sample_rate': 1,
       'sentry.source': 'custom',
+      transaction: 'test-route',
     },
     measurements: {
       inp: {

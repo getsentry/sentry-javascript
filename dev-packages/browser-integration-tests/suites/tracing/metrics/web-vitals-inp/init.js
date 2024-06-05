@@ -13,3 +13,12 @@ Sentry.init({
   ],
   tracesSampleRate: 1,
 });
+
+const client = Sentry.getClient();
+
+if (client) {
+  // Force page load transaction name to a testable value
+  Sentry.startBrowserTracingPageLoadSpan(client, {
+    name: 'test-route',
+  });
+}
