@@ -20,8 +20,8 @@ const client = Sentry.getClient();
 
 // Force page load transaction name to a testable value
 Sentry.startBrowserTracingPageLoadSpan(client, {
-  name: 'test-url',
+  name: 'test-route',
   attributes: {
-    [Sentry.SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+    [Sentry.SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
   },
 });
