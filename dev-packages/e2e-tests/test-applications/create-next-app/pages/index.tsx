@@ -1,4 +1,3 @@
-import * as Sentry from '@sentry/nextjs';
 import Head from 'next/head';
 import Link from 'next/link';
 
@@ -17,8 +16,7 @@ export default function Home() {
           value="Capture Exception"
           id="exception-button"
           onClick={() => {
-            const eventId = Sentry.captureException(new Error('I am an error!'));
-            window.capturedExceptionId = eventId;
+            throw new Error('I am an error!');
           }}
         />
         <Link href="/user/5" id="navigation">

@@ -7,7 +7,7 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
 
   Sentry.flush().then(() => {
     res.status(200).json({
-      transactionIds: global.transactionIds,
+      transactionIds: [],
     });
   });
 }

@@ -1,0 +1,71 @@
+import { expect, test } from '@playwright/test';
+import { waitForTransaction } from '@sentry-internal/test-utils';
+
+const authToken = process.env.E2E_TEST_AUTH_TOKEN;
+const sentryTestOrgSlug = process.env.E2E_TEST_SENTRY_ORG_SLUG;
+const sentryTestProject = process.env.E2E_TEST_SENTRY_PROJECT;
+const EVENT_POLLING_TIMEOUT = 90_000;
+
+test('Sends server-side transactions to Sentry', async ({ baseURL }) => {
+  const transactionEventPromise = waitForTransaction('create-next-app', transactionEvent => {
+    return (
+      transactionEvent.contexts?.trace?.op === 'http.server' && transactionEvent.transaction === 'GET /api/success'
+    );
+  });
+
+  await fetch(`${baseURL}/api/success`);
+
+  const transactionEvent = await transactionEventPromise;
+
+  expect(transactionEvent).toEqual(
+    expect.objectContaining({
+      transaction: 'GET /api/success',
+      transaction_info: { source: 'route' },
+      type: 'transaction',
+      contexts: expect.objectContaining({
+        trace: {
+          span_id: expect.any(String),
+          trace_id: expect.any(String),
+          // TODO: Why does this have a parent span ID?
+          parent_span_id: expect.any(String),
+          op: 'http.server',
+          origin: 'auto.http.nextjs',
+          data: expect.objectContaining({
+            'http.response.status_code': 200,
+            'sentry.op': 'http.server',
+            'sentry.origin': 'auto.http.nextjs',
+            'sentry.sample_rate': 1,
+            'sentry.source': 'route',
+          }),
+          status: 'ok',
+        },
+        runtime: {
+          name: 'node',
+          version: expect.any(String),
+        },
+      }),
+      spans: [
+        {
+          data: {
+            'otel.kind': 'INTERNAL',
+            'sentry.origin': 'manual',
+          },
+          description: 'test-span',
+          origin: 'manual',
+          parent_span_id: transactionEvent.contexts?.trace?.span_id,
+          span_id: expect.any(String),
+          start_timestamp: expect.any(Number),
+          status: 'ok',
+          timestamp: expect.any(Number),
+          trace_id: transactionEvent.contexts?.trace?.trace_id,
+        },
+      ],
+      request: {
+        headers: expect.any(Object),
+        method: 'GET',
+        cookies: {},
+        url: 'http://localhost:3030/api/success',
+      },
+    }),
+  );
+});
