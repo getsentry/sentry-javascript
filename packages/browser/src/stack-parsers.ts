@@ -51,6 +51,7 @@ function createFrame(filename: string, func: string, lineno?: number, colno?: nu
 }
 
 // Chromium based browsers: Chrome, Brave, new Opera, new Edge
+const chromeRegexNoFnName = /^\s*at (\S+?)(?::(\d+))(?::(\d+))\s*$/i;
 const chromeRegex =
   /^\s*at (?:(.+?\)(?: \[.+\])?|.*?) ?\((?:address at )?)?(?:async )?((?:<anonymous>|[-a-z]+:|.*bundle|\/)?.*?)(?::(\d+))?(?::(\d+))?\)?\s*$/i;
 const chromeEvalRegex = /\((\S*)(?::(\d+))(?::(\d+))\)/;
@@ -58,6 +59,14 @@ const chromeEvalRegex = /\((\S*)(?::(\d+))(?::(\d+))\)/;
 // We cannot call this variable `chrome` because it can conflict with global `chrome` variable in certain environments
 // See: https://github.com/getsentry/sentry-javascript/issues/6880
 const chromeStackParserFn: StackLineParserFn = line => {
+  // If the stack line has no function name, we need to parse it differently
+  const noFnParts = chromeRegexNoFnName.exec(line);
+
+  if (noFnParts) {
+    const [, filename, line, col] = noFnParts;
+    return createFrame(filename, UNKNOWN_FUNCTION, +line, +col);
+  }
+
   const parts = chromeRegex.exec(line);
 
   if (parts) {
