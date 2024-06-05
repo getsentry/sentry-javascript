@@ -1,6 +1,15 @@
 import { exceptionFromError } from '../../../src/eventbuilder';
 import { defaultStackParser as parser } from '../../../src/stack-parsers';
 
+const a =
+  'Error\n' +
+  '    at onClick (http://localhost:3002/(group)/script.js:1:644)\n' +
+  '    at a (http://localhost:3002/[param]/script.js:1:644)\n' +
+  '    at b (http://localhost:3002/[param]/(group)/script.js:1:644)\n' +
+  '    at http://localhost:3002/[param]/script.js:1:644\n' +
+  '    at http://localhost:3002/[param]/(group)/script.js:1:644\n' +
+  '    at http://localhost:3002/(group)/script.js:1:644';
+
 describe('Tracekit - Chrome Tests', () => {
   it('should parse Chrome error with no location', () => {
     const NO_LOCATION = { message: 'foo', name: 'bar', stack: 'error\n at Array.forEach (native)' };
@@ -579,6 +588,7 @@ describe('Tracekit - Chrome Tests', () => {
       name: 'Error',
       stack: `Error: bad
           at something (http://localhost:5000/(some)/(thing)/index.html:20:16)
+          at http://localhost:5000//(group)/[route]/script.js:1:126
           at more (http://localhost:5000/(some)/(thing)/index.html:25:7)`,
     };
 
@@ -594,6 +604,13 @@ describe('Tracekit - Chrome Tests', () => {
             function: 'more',
             lineno: 25,
             colno: 7,
+            in_app: true,
+          },
+          {
+            filename: 'http://localhost:5000/(group)/[route]/script.js',
+            function: '?',
+            lineno: 1,
+            colno: 126,
             in_app: true,
           },
           {
