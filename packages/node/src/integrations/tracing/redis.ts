@@ -11,6 +11,7 @@ import {
 import type { IntegrationFn } from '@sentry/types';
 import { generateInstrumentOnce } from '../../otel/instrument';
 import {
+  GET_COMMANDS,
   calculateCacheItemSize,
   getCacheKeySafely,
   getCacheOperation,
@@ -60,7 +61,7 @@ export const instrumentRedis = generateInstrumentOnce(INTEGRATION_NAME, () => {
         span.setAttribute(SEMANTIC_ATTRIBUTE_CACHE_ITEM_SIZE, cacheItemSize);
       }
 
-      if (cacheOperation === 'cache.get' && cacheItemSize !== undefined) {
+      if (GET_COMMANDS.includes(redisCommand) && cacheItemSize !== undefined) {
         span.setAttribute(SEMANTIC_ATTRIBUTE_CACHE_HIT, cacheItemSize > 0);
       }
 
