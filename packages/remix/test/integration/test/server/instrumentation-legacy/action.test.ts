@@ -1,5 +1,5 @@
 import { describe, it } from 'vitest';
-import { RemixTestEnv, assertSentryEvent, assertSentryTransaction } from './utils/helpers';
+import { RemixTestEnv, assertSentryEvent, assertSentryTransaction } from '../utils/helpers';
 
 const useV2 = process.env.REMIX_VERSION === '2';
 
@@ -16,34 +16,23 @@ describe('Remix API Actions', () => {
     const transaction = envelopes[0][2];
 
     assertSentryTransaction(transaction, {
-      transaction: `POST action-json-response/:id`,
+      transaction: `routes/action-json-response${useV2 ? '.' : '/'}$id`,
       spans: [
         {
-          data: {
-            'code.function': 'action',
-            'sentry.op': 'action.remix',
-            'otel.kind': 'INTERNAL',
-            'match.route.id': `routes/action-json-response${useV2 ? '.' : '/'}$id`,
-            'match.params.id': '123123',
-          },
+          description: `routes/action-json-response${useV2 ? '.' : '/'}$id`,
+          op: 'function.remix.action',
         },
         {
-          data: {
-            'code.function': 'loader',
-            'sentry.op': 'loader.remix',
-            'otel.kind': 'INTERNAL',
-            'match.route.id': `routes/action-json-response${useV2 ? '.' : '/'}$id`,
-            'match.params.id': '123123',
-          },
+          description: 'root',
+          op: 'function.remix.loader',
         },
         {
-          data: {
-            'code.function': 'loader',
-            'sentry.op': 'loader.remix',
-            'otel.kind': 'INTERNAL',
-            'match.route.id': 'root',
-            'match.params.id': '123123',
-          },
+          description: `routes/action-json-response${useV2 ? '.' : '/'}$id`,
+          op: 'function.remix.loader',
+        },
+        {
+          description: `routes/action-json-response${useV2 ? '.' : '/'}$id`,
+          op: 'function.remix.document_request',
         },
       ],
       request: {
@@ -84,6 +73,7 @@ describe('Remix API Actions', () => {
     });
 
     assertSentryEvent(event[2], {
+      transaction: expect.stringMatching(/routes\/action-json-response(\/|\.)\$id/),
       exception: {
         values: [
           {
@@ -118,7 +108,7 @@ describe('Remix API Actions', () => {
     const [event] = envelopes.filter(envelope => envelope[1].type === 'event');
 
     assertSentryTransaction(transaction[2], {
-      transaction: `POST action-json-response/:id`,
+      transaction: `routes/action-json-response${useV2 ? '.' : '/'}$id`,
       request: {
         method: 'POST',
         url,
@@ -131,6 +121,7 @@ describe('Remix API Actions', () => {
     });
 
     assertSentryEvent(event[2], {
+      transaction: expect.stringMatching(/routes\/action-json-response(\/|\.)\$id/),
       exception: {
         values: [
           {
@@ -164,18 +155,18 @@ describe('Remix API Actions', () => {
 
     const [transaction_1, transaction_2] = envelopes.filter(envelope => envelope[1].type === 'transaction');
     const [event] = envelopes.filter(envelope => envelope[1].type === 'event');
-
     assertSentryTransaction(transaction_1[2], {
       contexts: {
         trace: {
           op: 'http.server',
           status: 'ok',
           data: {
+            method: 'POST',
             'http.response.status_code': 302,
           },
         },
       },
-      transaction: `POST action-json-response/:id`,
+      transaction: `routes/action-json-response${useV2 ? '.' : '/'}$id`,
     });
 
     assertSentryTransaction(transaction_2[2], {
@@ -184,14 +175,16 @@ describe('Remix API Actions', () => {
           op: 'http.server',
           status: 'internal_error',
           data: {
+            method: 'GET',
             'http.response.status_code': 500,
           },
         },
       },
-      transaction: `GET action-json-response/:id`,
+      transaction: `routes/action-json-response${useV2 ? '.' : '/'}$id`,
     });
 
     assertSentryEvent(event[2], {
+      transaction: expect.stringMatching(/routes\/action-json-response(\/|\.)\$id/),
       exception: {
         values: [
           {
@@ -231,14 +224,16 @@ describe('Remix API Actions', () => {
           op: 'http.server',
           status: 'internal_error',
           data: {
+            method: 'POST',
             'http.response.status_code': 500,
           },
         },
       },
-      transaction: `POST action-json-response/:id`,
+      transaction: `routes/action-json-response${useV2 ? '.' : '/'}$id`,
     });
 
     assertSentryEvent(event[2], {
+      transaction: expect.stringMatching(/routes\/action-json-response(\/|\.)\$id/),
       exception: {
         values: [
           {
@@ -278,14 +273,16 @@ describe('Remix API Actions', () => {
           op: 'http.server',
           status: 'internal_error',
           data: {
+            method: 'POST',
             'http.response.status_code': 500,
           },
         },
       },
-      transaction: `POST action-json-response/:id`,
+      transaction: `routes/action-json-response${useV2 ? '.' : '/'}$id`,
     });
 
     assertSentryEvent(event[2], {
+      transaction: expect.stringMatching(/routes\/action-json-response(\/|\.)\$id/),
       exception: {
         values: [
           {
@@ -325,14 +322,16 @@ describe('Remix API Actions', () => {
           op: 'http.server',
           status: 'internal_error',
           data: {
+            method: 'POST',
             'http.response.status_code': 500,
           },
         },
       },
-      transaction: `POST action-json-response/:id`,
+      transaction: `routes/action-json-response${useV2 ? '.' : '/'}$id`,
     });
 
     assertSentryEvent(event[2], {
+      transaction: expect.stringMatching(/routes\/action-json-response(\/|\.)\$id/),
       exception: {
         values: [
           {
@@ -372,14 +371,16 @@ describe('Remix API Actions', () => {
           op: 'http.server',
           status: 'internal_error',
           data: {
+            method: 'POST',
             'http.response.status_code': 500,
           },
         },
       },
-      transaction: `POST action-json-response/:id`,
+      transaction: `routes/action-json-response${useV2 ? '.' : '/'}$id`,
     });
 
     assertSentryEvent(event[2], {
+      transaction: expect.stringMatching(/routes\/action-json-response(\/|\.)\$id/),
       exception: {
         values: [
           {
@@ -419,14 +420,16 @@ describe('Remix API Actions', () => {
           op: 'http.server',
           status: 'internal_error',
           data: {
+            method: 'POST',
             'http.response.status_code': 500,
           },
         },
       },
-      transaction: `POST server-side-unexpected-errors/:id`,
+      transaction: `routes/server-side-unexpected-errors${useV2 ? '.' : '/'}$id`,
     });
 
     assertSentryEvent(event[2], {
+      transaction: expect.stringMatching(/routes\/server-side-unexpected-errors(\/|\.)\$id/),
       exception: {
         values: [
           {
@@ -466,14 +469,16 @@ describe('Remix API Actions', () => {
           op: 'http.server',
           status: 'internal_error',
           data: {
+            method: 'POST',
             'http.response.status_code': 500,
           },
         },
       },
-      transaction: `POST server-side-unexpected-errors/:id`,
+      transaction: `routes/server-side-unexpected-errors${useV2 ? '.' : '/'}$id`,
     });
 
     assertSentryEvent(event[2], {
+      transaction: expect.stringMatching(/routes\/server-side-unexpected-errors(\/|\.)\$id/),
       exception: {
         values: [
           {
