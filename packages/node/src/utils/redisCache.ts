@@ -1,5 +1,7 @@
 import type { CommandArgs as IORedisCommandArgs } from '@opentelemetry/instrumentation-ioredis';
 
+const SINGLE_ARG_COMMANDS = ['get', 'set', 'setex'];
+
 export const GET_COMMANDS = ['get', 'mget'];
 export const SET_COMMANDS = ['set' /* todo: 'setex' */];
 // todo: del, expire
@@ -24,28 +26,32 @@ function keyHasPrefix(key: string, prefixes: string[]): boolean {
 }
 
 /** Safely converts a redis key to a string (comma-separated if there are multiple keys) */
-export function getCacheKeySafely(cmdArgs: IORedisCommandArgs): string {
+export function getCacheKeySafely(redisCommand: string, cmdArgs: IORedisCommandArgs): string {
   try {
     if (cmdArgs.length === 0) {
       return '';
     }
 
-    const keys: string[] = [];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const joinArgsWithComma = (acc: string, currArg: string | Buffer | number | any[]): string =>
+      acc.length === 0 ? processArg(currArg) : `${acc}, ${processArg(currArg)}`;
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const processArg = (arg: string | Buffer | number | any[]): void => {
+    const processArg = (arg: string | Buffer | number | any[]): string => {
       if (typeof arg === 'string' || typeof arg === 'number' || Buffer.isBuffer(arg)) {
-        keys.push(arg.toString());
+        return arg.toString();
       } else if (Array.isArray(arg)) {
-        arg.forEach(processArg);
+        return arg.reduce(joinArgsWithComma, '');
       } else {
-        keys.push('<unknown>');
+        return '<unknown>';
       }
     };
 
-    cmdArgs.forEach(processArg);
+    if (SINGLE_ARG_COMMANDS.includes(redisCommand) && cmdArgs.length > 0) {
+      return processArg(cmdArgs[0]);
+    }
 
-    return keys.join(', ');
+    return cmdArgs.reduce(joinArgsWithComma, '');
   } catch (e) {
     return '';
   }

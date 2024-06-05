@@ -28,7 +28,7 @@ let _redisOptions: RedisOptions = {};
 export const instrumentRedis = generateInstrumentOnce(INTEGRATION_NAME, () => {
   return new IORedisInstrumentation({
     responseHook: (span, redisCommand, cmdArgs, response) => {
-      const safeKey = getCacheKeySafely(cmdArgs);
+      const safeKey = getCacheKeySafely(redisCommand, cmdArgs);
 
       span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, 'auto.db.otel.redis');
 
