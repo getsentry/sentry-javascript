@@ -10,7 +10,7 @@ console.log('Running build using esbuild version', esbuild.version);
 
 esbuild.buildSync({
   platform: 'node',
-  entryPoints: ['./index.js'],
+  entryPoints: ['./dist/span-profiling.js'],
   outdir: './dist',
   target: 'esnext',
   format: 'cjs',

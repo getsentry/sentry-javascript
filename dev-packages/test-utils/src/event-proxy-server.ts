@@ -286,6 +286,41 @@ export function waitForTransaction(
   });
 }
 
+/** Wait for a transaction to be sent. */
+export function waitForProfile(
+  proxyServerName: string,
+  callback: (transactionEvent: Event) => Promise<boolean> | boolean,
+): Promise<Event> {
+  return new Promise((resolve, reject) => {
+    waitForEnvelopeItem(proxyServerName, async envelopeItem => {
+      const [envelopeItemHeader, envelopeItemBody] = envelopeItem;
+      if (envelopeItemHeader.type === 'profile' && (await callback(envelopeItemBody as Event))) {
+        resolve(envelopeItemBody as Event);
+        return true;
+      }
+      return false;
+    }).catch(reject);
+  });
+}
+
+
+/** Wait for a transaction to be sent. */
+export function waitForProfileChunk(
+  proxyServerName: string,
+  callback: (transactionEvent: Event) => Promise<boolean> | boolean,
+): Promise<Event> {
+  return new Promise((resolve, reject) => {
+    waitForEnvelopeItem(proxyServerName, async envelopeItem => {
+      const [envelopeItemHeader, envelopeItemBody] = envelopeItem;
+      if (envelopeItemHeader.type === 'profile_chunk' && (await callback(envelopeItemBody as Event))) {
+        resolve(envelopeItemBody as Event);
+        return true;
+      }
+      return false;
+    }).catch(reject);
+  });
+}
+
 const TEMP_FILE_PREFIX = 'event-proxy-server-';
 
 async function registerCallbackServerPort(serverName: string, port: string): Promise<void> {

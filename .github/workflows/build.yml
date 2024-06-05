@@ -818,7 +818,6 @@ jobs:
             exit 1
           fi
 
-
   job_node_integration_tests:
     name:
       Node (${{ matrix.node }})${{ (matrix.typescript && format(' (TS {0})', matrix.typescript)) || '' }} Integration
@@ -1026,6 +1025,7 @@ jobs:
             'node-nestjs',
             'node-exports-test-app',
             'node-koa',
+            'node-profiling',
             'node-connect',
             'vue-3',
             'webpack-4',
