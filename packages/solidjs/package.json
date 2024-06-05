@@ -52,6 +52,7 @@
   },
   "devDependencies": {
     "@solidjs/testing-library": "0.8.5",
+    "@solidjs/router": "^0.13.5",
     "solid-js": "^1.8.11",
     "vite-plugin-solid": "^2.8.2"
   },
