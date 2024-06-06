@@ -1,4 +1,5 @@
 export * from './aggregate-errors';
+export * from './array';
 export * from './browser';
 export * from './dsn';
 export * from './error';
