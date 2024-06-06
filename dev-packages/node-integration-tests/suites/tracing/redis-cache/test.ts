@@ -60,6 +60,34 @@ describe('redis cache auto instrumentation', () => {
             'network.peer.port': 6379,
           }),
         }),
+        // SET (with EX)
+        expect.objectContaining({
+          description: 'ioredis-cache:test-key-set-EX',
+          op: 'cache.put',
+          origin: 'auto.db.otel.redis',
+          data: expect.objectContaining({
+            'sentry.origin': 'auto.db.otel.redis',
+            'db.statement': 'set ioredis-cache:test-key-set-EX [3 other arguments]',
+            'cache.key': ['ioredis-cache:test-key-set-EX'],
+            'cache.item_size': 2,
+            'network.peer.address': 'localhost',
+            'network.peer.port': 6379,
+          }),
+        }),
+        // SETEX
+        expect.objectContaining({
+          description: 'ioredis-cache:test-key-setex',
+          op: 'cache.put',
+          origin: 'auto.db.otel.redis',
+          data: expect.objectContaining({
+            'sentry.origin': 'auto.db.otel.redis',
+            'db.statement': 'setex ioredis-cache:test-key-setex [2 other arguments]',
+            'cache.key': ['ioredis-cache:test-key-setex'],
+            'cache.item_size': 2,
+            'network.peer.address': 'localhost',
+            'network.peer.port': 6379,
+          }),
+        }),
         // GET
         expect.objectContaining({
           description: 'ioredis-cache:test-key',

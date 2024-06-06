@@ -4,7 +4,7 @@ import { flatten } from '@sentry/utils';
 const SINGLE_ARG_COMMANDS = ['get', 'set', 'setex'];
 
 export const GET_COMMANDS = ['get', 'mget'];
-export const SET_COMMANDS = ['set' /* todo: 'setex' */];
+export const SET_COMMANDS = ['set', 'setex'];
 // todo: del, expire
 
 /** Determine cache operation based on redis statement */
@@ -56,14 +56,17 @@ export function getCacheKeySafely(redisCommand: string, cmdArgs: IORedisCommandA
 
 /** Determines whether a redis operation should be considered as "cache operation" by checking if a key is prefixed.
  *  We only support certain commands (such as 'set', 'get', 'mget'). */
-export function shouldConsiderForCache(redisCommand: string, key: string[], prefixes: string[]): boolean {
+export function shouldConsiderForCache(redisCommand: string, keys: string[], prefixes: string[]): boolean {
   if (!getCacheOperation(redisCommand)) {
     return false;
   }
 
-  return key.reduce((prev, key) => {
-    return prev || keyHasPrefix(key, prefixes);
-  }, false);
+  for (const key of keys) {
+    if (keyHasPrefix(key, prefixes)) {
+      return true;
+    }
+  }
+  return false;
 }
 
 /** Calculates size based on the cache response value */
