@@ -4,7 +4,7 @@ import { flatten } from '@sentry/utils';
 const SINGLE_ARG_COMMANDS = ['get', 'set', 'setex'];
 
 export const GET_COMMANDS = ['get', 'mget'];
-export const SET_COMMANDS = ['set' /* todo: 'setex' */];
+export const SET_COMMANDS = ['set', 'setex'];
 // todo: del, expire
 
 /** Determine cache operation based on redis statement */
