@@ -1,6 +1,8 @@
 import type { BrowserOptions } from '@sentry/browser';
-import { init as browserInit } from '@sentry/browser';
+import { init as browserInit, setContext } from '@sentry/browser';
 import { applySdkMetadata } from '@sentry/core';
+
+import { version } from 'react';
 
 /**
  * Inits the React SDK
@@ -11,6 +13,6 @@ export function init(options: BrowserOptions): void {
   };
 
   applySdkMetadata(opts, 'react');
-
+  setContext('react', { version });
   browserInit(opts);
 }
