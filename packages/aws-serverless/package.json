@@ -47,6 +47,7 @@
       }
     },
     "./dist/awslambda-auto": {
+      "//": "`./awslambda-auto` is the current path. The `./dist` path is here for legacy support.",
       "require": {
         "default": "./build/npm/cjs/awslambda-auto.js"
       }
