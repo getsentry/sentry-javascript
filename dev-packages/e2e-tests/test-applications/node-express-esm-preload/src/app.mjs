@@ -1,3 +1,4 @@
+import * as http from 'http';
 import * as Sentry from '@sentry/node';
 import express from 'express';
 
@@ -25,6 +26,22 @@ app.get('/test-error', function (req, res) {
   }, 100);
 });
 
+app.get('/http-req', function (req, res) {
+  http
+    .request('http://example.com', httpRes => {
+      let data = '';
+      httpRes.on('data', d => {
+        // we don't care about data
+        data += d;
+      });
+      httpRes.on('end', () => {
+        // span.end();
+        res.status(200).send(data).end();
+      });
+    })
+    .end();
+});
+
 Sentry.setupExpressErrorHandler(app);
 
 app.use(function onError(err, req, res, next) {
@@ -42,6 +59,7 @@ async function run() {
     dsn: process.env.E2E_TEST_DSN,
     tunnel: `http://localhost:3031/`, // proxy server
     tracesSampleRate: 1,
+    debug: true,
   });
 
   app.listen(port, () => {
