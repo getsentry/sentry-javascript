@@ -12,7 +12,6 @@ import type { RawChunkCpuProfile, RawThreadCpuProfile } from './types';
 import { ProfileFormat } from './types';
 import { getGlobalScope } from '../../core/src/currentScopes';
 import { PROFILER_THREAD_NAME } from './utils';
-import { setContext } from '../../core/src/exports';
 
 import {
   addProfilesToEnvelope,
@@ -295,7 +294,7 @@ class ContinuousProfiler {
    */
   private _startChunkProfiling(chunk: ChunkData): void {
     this._setupSpanChunkInstrumentation();
-    CpuProfilerBindings.startProfiling(chunk.id!);
+    CpuProfilerBindings.startProfiling(chunk.id);
     DEBUG_BUILD && logger.log(`[Profiling] starting profiling chunk: ${chunk.id}`);
 
     chunk.timer = global.setTimeout(() => {
