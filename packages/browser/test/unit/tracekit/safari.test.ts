@@ -320,4 +320,39 @@ describe('Tracekit - Safari Tests', () => {
       },
     });
   });
+
+  it('should correctly parse parentheses', () => {
+    const PARENTHESIS_FRAME_EXCEPTION = {
+      message: 'aha',
+      name: 'Error',
+      stack:
+        '@http://localhost:3000/(group)/[route]/script.js:1:131\n' +
+        'global code@http://localhost:3000/(group)/[route]/script.js:1:334',
+    };
+
+    const ex = exceptionFromError(parser, PARENTHESIS_FRAME_EXCEPTION);
+
+    expect(ex).toEqual({
+      value: 'aha',
+      type: 'Error',
+      stacktrace: {
+        frames: [
+          {
+            colno: 334,
+            filename: 'http://localhost:3000/(group)/[route]/script.js',
+            function: 'global code',
+            in_app: true,
+            lineno: 1,
+          },
+          {
+            colno: 131,
+            filename: 'http://localhost:3000/(group)/[route]/script.js',
+            function: '?',
+            in_app: true,
+            lineno: 1,
+          },
+        ],
+      },
+    });
+  });
 });
