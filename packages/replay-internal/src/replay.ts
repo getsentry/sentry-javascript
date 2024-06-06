@@ -100,6 +100,9 @@ export class ReplayContainer implements ReplayContainerInterface {
    */
   public readonly timeouts: Timeouts;
 
+  /** The replay has to be manually started, because no sample rate (neither session or error) was provided. */
+  private _requiresManualStart: boolean;
+
   private _throttledAddEvent: (
     event: RecordingEvent,
     isCheckout?: boolean,
@@ -170,6 +173,7 @@ export class ReplayContainer implements ReplayContainerInterface {
     this._lastActivity = Date.now();
     this._isEnabled = false;
     this._isPaused = false;
+    this._requiresManualStart = false;
     this._hasInitializedCoreListeners = false;
     this._context = {
       errorIds: new Set(),
@@ -246,7 +250,11 @@ export class ReplayContainer implements ReplayContainerInterface {
 
     // If neither sample rate is > 0, then do nothing - user will need to call one of
     // `start()` or `startBuffering` themselves.
-    if (errorSampleRate <= 0 && sessionSampleRate <= 0) {
+    const requiresManualStart = errorSampleRate <= 0 && sessionSampleRate <= 0;
+
+    this._requiresManualStart = requiresManualStart;
+
+    if (requiresManualStart) {
       return;
     }
 
@@ -1049,7 +1057,9 @@ export class ReplayContainer implements ReplayContainerInterface {
   /** Update the initial timestamp based on the buffer content. */
   private _updateInitialTimestampFromEventBuffer(): void {
     const { session, eventBuffer } = this;
-    if (!session || !eventBuffer) {
+    // If replay was started manually (=no sample rate was given),
+    // We do not want to back-port the initial timestamp
+    if (!session || !eventBuffer || this._requiresManualStart) {
       return;
     }
 

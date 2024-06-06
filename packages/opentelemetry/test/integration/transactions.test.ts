@@ -16,6 +16,7 @@ import { logger } from '@sentry/utils';
 
 import { TraceState } from '@opentelemetry/core';
 import { SENTRY_TRACE_STATE_DSC } from '../../src/constants';
+import { makeTraceState } from '../../src/propagator';
 import { SentrySpanProcessor } from '../../src/spanProcessor';
 import { startInactiveSpan, startSpan } from '../../src/trace';
 import type { TestClientInterface } from '../helpers/TestClient';
@@ -267,8 +268,6 @@ describe('Integration | Transactions', () => {
             status: 'ok',
             trace_id: expect.any(String),
             origin: 'auto.test',
-            // local span ID from propagation context
-            parent_span_id: expect.any(String),
           },
         }),
         spans: [expect.any(Object), expect.any(Object)],
@@ -308,8 +307,6 @@ describe('Integration | Transactions', () => {
             status: 'ok',
             trace_id: expect.any(String),
             origin: 'manual',
-            // local span ID from propagation context
-            parent_span_id: expect.any(String),
           },
         }),
         spans: [expect.any(Object), expect.any(Object)],
@@ -334,12 +331,18 @@ describe('Integration | Transactions', () => {
     const traceId = 'd4cda95b652f4a1592b449d5929fda1b';
     const parentSpanId = '6e0c63257de34c92';
 
-    const spanContext = {
+    const traceState = makeTraceState({
+      parentSpanId,
+      dsc: undefined,
+      sampled: true,
+    });
+
+    const spanContext: SpanContext = {
       traceId,
       spanId: parentSpanId,
-      sampled: true,
       isRemote: true,
       traceFlags: TraceFlags.SAMPLED,
+      traceState,
     };
 
     mockSdkInit({ enableTracing: true, beforeSendTransaction });
