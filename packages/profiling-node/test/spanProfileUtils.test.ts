@@ -587,11 +587,7 @@ describe('continuous profiling', () => {
 
     expect(transportSpy.mock.calls?.[0]?.[0]?.[1]?.[0]?.[1]).not.toMatchObject({
       contexts: {
-        profiler: {
-          profiler_id: expect.any(String),
-          ['thread.id']: expect.any(String),
-          ['thread.name']: expect.any(String),
-        },
+        profile: {},
       },
     });
 

@@ -326,6 +326,7 @@ class ContinuousProfiler {
    */
   private _teardownSpanChunkInstrumentation(): void {
     const globalScope = getGlobalScope();
+    globalScope.setContext('profile', {});
   }
 
   /**
