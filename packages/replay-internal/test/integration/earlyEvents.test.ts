@@ -86,7 +86,7 @@ describe('Integration | early events', () => {
     expect(replay.session).toBeDefined();
     expect(replay['_requiresManualStart']).toBe(true);
 
-    // A performance entry that happend before should not extend the session when we manually started
+    // A performance entry that happened before should not extend the session when we manually started
     replay.replayPerformanceEntries.push({
       type: 'largest-contentful-paint',
       name: 'largest-contentful-paint',
