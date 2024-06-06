@@ -25,6 +25,5 @@ test('Sends correct error event', async ({ baseURL }) => {
   expect(errorEvent.contexts?.trace).toEqual({
     trace_id: expect.any(String),
     span_id: expect.any(String),
-    parent_span_id: expect.any(String),
   });
 });
