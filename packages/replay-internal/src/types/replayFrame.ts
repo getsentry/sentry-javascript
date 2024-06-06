@@ -162,24 +162,9 @@ interface ReplayHistoryFrame extends ReplayBaseSpanFrame {
   op: 'navigation.push';
 }
 
-interface ReplayLargestContentfulPaintFrame extends ReplayBaseSpanFrame {
+interface ReplayWebVitalFrame extends ReplayBaseSpanFrame {
   data: WebVitalData;
-  op: 'largest-contentful-paint';
-}
-
-interface ReplayCumulativeLayoutShiftFrame extends ReplayBaseSpanFrame {
-  data: WebVitalData;
-  op: 'cumulative-layout-shift';
-}
-
-interface ReplayFirstInputDelayFrame extends ReplayBaseSpanFrame {
-  data: WebVitalData;
-  op: 'first-input-delay';
-}
-
-interface ReplayInteractionToNextPaintFrame extends ReplayBaseSpanFrame {
-  data: WebVitalData;
-  op: 'interaction-to-next-paint';
+  op: 'largest-contentful-paint' | 'cumulative-layout-shift' | 'first-input-delay' | 'interaction-to-next-paint';
 }
 
 interface ReplayMemoryFrame extends ReplayBaseSpanFrame {
@@ -211,10 +196,7 @@ export type ReplaySpanFrame =
   | ReplayBaseSpanFrame
   | ReplayHistoryFrame
   | ReplayRequestFrame
-  | ReplayLargestContentfulPaintFrame
-  | ReplayCumulativeLayoutShiftFrame
-  | ReplayFirstInputDelayFrame
-  | ReplayInteractionToNextPaintFrame
+  | ReplayWebVitalFrame
   | ReplayMemoryFrame
   | ReplayNavigationFrame
   | ReplayPaintFrame

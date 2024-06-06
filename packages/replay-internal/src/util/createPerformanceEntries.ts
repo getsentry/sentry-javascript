@@ -25,6 +25,31 @@ const ENTRY_TYPES: Record<
   navigation: createNavigationEntry,
 };
 
+export interface Metric {
+  /**
+   * The name of the metric (in acronym form).
+   */
+  name: 'CLS' | 'FCP' | 'FID' | 'INP' | 'LCP' | 'TTFB';
+
+  /**
+   * The current value of the metric.
+   */
+  value: number;
+
+  /**
+   * The rating as to whether the metric value is within the "good",
+   * "needs improvement", or "poor" thresholds of the metric.
+   */
+  rating: 'good' | 'needs-improvement' | 'poor';
+
+  /**
+   * Any performance entries relevant to the metric value calculation.
+   * The array may also be empty if the metric value was not based on any
+   * entries (e.g. a CLS value of 0 given no layout shifts).
+   */
+  entries: PerformanceEntry[] | PerformanceEventTiming[];
+}
+
 /**
  * Create replay performance entries from the browser performance entries.
  */
@@ -143,44 +168,29 @@ function createResourceEntry(
 /**
  * Add a LCP event to the replay based on a LCP metric.
  */
-export function getLargestContentfulPaint(metric: {
-  value: number;
-  rating: 'good' | 'needs-improvement' | 'poor';
-  entries: PerformanceEntry[];
-}): ReplayPerformanceEntry<WebVitalData> {
+export function getLargestContentfulPaint(metric: Metric
+): ReplayPerformanceEntry<WebVitalData> {
   return getWebVital(metric, 'largest-contentful-paint');
 }
 
 /**
  * Add a CLS event to the replay based on a CLS metric.
  */
-export function getCumulativeLayoutShift(metric: {
-  value: number;
-  rating: 'good' | 'needs-improvement' | 'poor';
-  entries: PerformanceEntry[];
-}): ReplayPerformanceEntry<WebVitalData> {
+export function getCumulativeLayoutShift(metric: Metric): ReplayPerformanceEntry<WebVitalData> {
   return getWebVital(metric, 'cumulative-layout-shift');
 }
 
 /**
  * Add a FID event to the replay based on a FID metric.
  */
-export function getFirstInputDelay(metric: {
-  value: number;
-  rating: 'good' | 'needs-improvement' | 'poor';
-  entries: PerformanceEntry[];
-}): ReplayPerformanceEntry<WebVitalData> {
+export function getFirstInputDelay(metric: Metric): ReplayPerformanceEntry<WebVitalData> {
   return getWebVital(metric, 'first-input-delay');
 }
 
 /**
  * Add an INP event to the replay based on an INP metric.
  */
-export function getInteractionToNextPaint(metric: {
-  value: number;
-  rating: 'good' | 'needs-improvement' | 'poor';
-  entries: PerformanceEntry[];
-}): ReplayPerformanceEntry<WebVitalData> {
+export function getInteractionToNextPaint(metric: Metric): ReplayPerformanceEntry<WebVitalData> {
   return getWebVital(metric, 'interaction-to-next-paint');
 }
 
@@ -188,11 +198,7 @@ export function getInteractionToNextPaint(metric: {
  * Add an web vital event to the replay based on the web vital metric.
  */
 export function getWebVital(
-  metric: {
-    value: number;
-    rating: 'good' | 'needs-improvement' | 'poor';
-    entries: PerformanceEntry[];
-  },
+  metric: Metric,
   name: string,
 ): ReplayPerformanceEntry<WebVitalData> {
   const entries = metric.entries;
