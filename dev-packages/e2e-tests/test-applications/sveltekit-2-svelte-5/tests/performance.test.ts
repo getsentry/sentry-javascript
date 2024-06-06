@@ -193,7 +193,7 @@ test.describe('performance events', () => {
       return txnEvent?.contexts?.trace?.op === 'navigation' && txnEvent?.tags?.runtime === 'browser';
     });
 
-    await page.goto('/');
+    await waitForInitialPageload(page, { route: '/' });
 
     const navigationClickPromise = page.locator('#routeWithParamsLink').click();
 
@@ -252,8 +252,6 @@ test.describe('performance events', () => {
   });
 
   test('captures one navigation transaction per redirect', async ({ page }) => {
-    await page.goto('/');
-
     const clientNavigationRedirect1TxnPromise = waitForTransaction('sveltekit-2-svelte-5', txnEvent => {
       return (
         txnEvent?.contexts?.trace?.op === 'navigation' &&
@@ -277,6 +275,8 @@ test.describe('performance events', () => {
         txnEvent?.transaction === '/users/[id]'
       );
     });
+
+    await waitForInitialPageload(page, { route: '/' });
 
     const navigationClickPromise = page.locator('#redirectLink').click();
 

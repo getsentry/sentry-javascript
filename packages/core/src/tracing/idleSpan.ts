@@ -121,7 +121,9 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
         beforeSpanEnd(span);
       }
 
-      const timestamp = args[0] || timestampInSeconds();
+      // Just ensuring that this keeps working, even if we ever have more arguments here
+      const [definedEndTimestamp, ...rest] = args;
+      const timestamp = definedEndTimestamp || timestampInSeconds();
       const spanEndTimestamp = spanTimeInputToSeconds(timestamp);
 
       // Ensure we end with the last span timestamp, if possible
@@ -130,7 +132,7 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
       // If we have no spans, we just end, nothing else to do here
       if (!spans.length) {
         onIdleSpanEnded(spanEndTimestamp);
-        return Reflect.apply(target, thisArg, args);
+        return Reflect.apply(target, thisArg, [spanEndTimestamp, ...rest]);
       }
 
       const childEndTimestamps = spans
@@ -152,7 +154,7 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
       );
 
       onIdleSpanEnded(endTimestamp);
-      return Reflect.apply(target, thisArg, [endTimestamp]);
+      return Reflect.apply(target, thisArg, [endTimestamp, ...rest]);
     },
   });
 

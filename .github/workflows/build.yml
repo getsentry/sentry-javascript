@@ -1014,6 +1014,7 @@ jobs:
             'react-router-6-use-routes',
             'react-router-5',
             'react-router-6',
+            'solidjs',
             'svelte-5',
             'sveltekit',
             'sveltekit-2',
