@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { HandlerDataFetch } from '@sentry/types';
 
+import { isError } from '../is';
 import { fill } from '../object';
 import { supportsNativeFetch } from '../supports';
 import { timestampInSeconds } from '../time';
@@ -65,6 +66,15 @@ function instrumentFetch(): void {
           };
 
           triggerHandlers('fetch', erroredHandlerData);
+
+          if (isError(error) && error.stack === undefined) {
+            // NOTE: If you are a Sentry user, and you are seeing this stack frame,
+            //       it means the error, that was caused by your fetch call did not
+            //       have a stack trace, so the SDK backfilled the stack trace so
+            //       you can see which fetch call failed.
+            error.stack = new Error(error.message).stack;
+          }
+
           // NOTE: If you are a Sentry user, and you are seeing this stack frame,
           //       it means the sentry.javascript SDK caught an error invoking your application code.
           //       This is expected behavior and NOT indicative of a bug with sentry.javascript.
