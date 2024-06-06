@@ -201,7 +201,9 @@ export function makeTraceState({
   // We store the DSC as OTEL trace state on the span context
   const dscString = dsc ? dynamicSamplingContextToSentryBaggageHeader(dsc) : undefined;
 
-  // We _always_ set the parent span ID, because we can infer from the existence of this if we should use this
+  // We _always_ set the parent span ID, even if it is empty
+  // If we'd set this to 'undefined' we could not know if the trace state was set, but there was no parentSpanId,
+  // vs the trace state was not set at all (in which case we want to do fallback handling)
   // If `''`, it should be considered "no parent"
   const traceStateBase = new TraceState().set(SENTRY_TRACE_STATE_PARENT_SPAN_ID, parentSpanId || '');
 
