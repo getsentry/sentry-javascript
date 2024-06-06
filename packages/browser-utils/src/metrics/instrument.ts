@@ -8,7 +8,13 @@ import { onLCP } from './web-vitals/getLCP';
 import { observe } from './web-vitals/lib/observe';
 import { onTTFB } from './web-vitals/onTTFB';
 
-type InstrumentHandlerTypePerformanceObserver = 'longtask' | 'event' | 'navigation' | 'paint' | 'resource';
+type InstrumentHandlerTypePerformanceObserver =
+  | 'longtask'
+  | 'event'
+  | 'navigation'
+  | 'paint'
+  | 'resource'
+  | 'first-input';
 
 type InstrumentHandlerTypeMetric = 'cls' | 'lcp' | 'fid' | 'ttfb' | 'inp';
 
@@ -323,4 +329,11 @@ function getCleanupCallback(
       typeHandlers.splice(index, 1);
     }
   };
+}
+
+/**
+ * Check if a PerformanceEntry is a PerformanceEventTiming by checking for the `duration` property.
+ */
+export function isPerformanceEventTiming(entry: PerformanceEntry): entry is PerformanceEventTiming {
+  return 'duration' in entry;
 }
