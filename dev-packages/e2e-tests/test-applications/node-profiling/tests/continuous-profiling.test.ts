@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { waitForProfileChunk } from '@sentry-internal/test-utils';
 
 test('Sends correct error event', async ({ baseURL }) => {
-  const errorEventPromise = waitForProfileChunk('node-express', event => {
+  const errorEventPromise = waitForProfileChunk('node-profiling', event => {
     return event
   });
 

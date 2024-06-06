@@ -1,4 +1,5 @@
 import * as Sentry from '@sentry/node';
+// @ts-expect-error ignore this for now
 import { nodeProfilingIntegration } from '@sentry/profiling-node';
 import express from 'express';
 

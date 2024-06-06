@@ -3,12 +3,11 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "build": "tsc && node build.mjs",
-    "start": "node src/span-profiling.js",
-    "test:assets": "node build.mjs && node src/span-profiling.js",
+    "clean": "npx rimraf node_modules",
+    "build": "tsc && node build.mjs && node src/span-profiling.js",
+    "test:assets": "node src/span-profiling.js",
     "test:span-profiling": "node test ",
     "test:continuous-profiling": "node test-continuous",
-    "clean": "npx rimraf node_modules",
     "test:build": "npm run build",
     "test:assert": "npm run test:span-profiling && npm run test:continuous-profiling"
   },

@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { waitForProfile } from '@sentry-internal/test-utils';
 
 test('Sends correct error event', async ({ baseURL }) => {
-  const errorEventPromise = waitForProfile('node-express', event => {
+  const errorEventPromise = waitForProfile('node-profiling', event => {
     return event
   });
 
