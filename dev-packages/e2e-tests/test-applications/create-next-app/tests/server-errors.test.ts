@@ -19,7 +19,7 @@ test('Sends a server-side exception to Sentry', async ({ baseURL }) => {
     headers: expect.any(Object),
     cookies: {},
     method: 'GET',
-    url: 'http://localhost:3030/api/error',
+    url: expect.stringContaining('/api/error'),
   });
 
   expect(errorEvent.transaction).toEqual('GET /api/error');

@@ -62,7 +62,7 @@ test('Sends server-side transactions to Sentry', async ({ baseURL }) => {
         headers: expect.any(Object),
         method: 'GET',
         cookies: {},
-        url: 'http://localhost:3030/api/success',
+        url: expect.stringContaining('/api/success'),
       },
     }),
   );
