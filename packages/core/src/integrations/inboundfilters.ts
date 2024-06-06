@@ -71,6 +71,15 @@ function _shouldDropEvent(event: Event, options: Partial<InboundFiltersOptions>)
       );
     return true;
   }
+  if (_isUselessError(event)) {
+    DEBUG_BUILD &&
+      logger.warn(
+        `Event dropped due to not having an error message, error type or stacktrace.\nEvent: ${getEventDescription(
+          event,
+        )}`,
+      );
+    return true;
+  }
   if (_isIgnoredTransaction(event, options.ignoreTransactions)) {
     DEBUG_BUILD &&
       logger.warn(
@@ -198,4 +207,23 @@ function _getEventFilterUrl(event: Event): string | null {
     DEBUG_BUILD && logger.error(`Cannot extract url for event ${getEventDescription(event)}`);
     return null;
   }
+}
+
+function _isUselessError(event: Event): boolean {
+  if (event.type) {
+    // event is not an error
+    return false;
+  }
+
+  // We only want to consider events for dropping that actually have recorded exception values.
+  if (!event.exception || !event.exception.values || event.exception.values.length === 0) {
+    return false;
+  }
+
+  return (
+    // No top-level message
+    !event.message &&
+    // There are no exception values that have a stacktrace, a non-generic-Error type or value
+    !event.exception.values.some(value => value.stacktrace || (value.type && value.type !== 'Error') || value.value)
+  );
 }
