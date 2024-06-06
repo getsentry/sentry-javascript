@@ -46,7 +46,7 @@ export function getPropagationContextFromSpan(span: Span): PropagationContext {
   const dscString = traceState ? traceState.get(SENTRY_TRACE_STATE_DSC) : undefined;
   const traceStateDsc = dscString ? baggageHeaderToDynamicSamplingContext(dscString) : undefined;
 
-  const parentSpanId = traceState ? traceState.get(SENTRY_TRACE_STATE_PARENT_SPAN_ID) : undefined;
+  const parentSpanId = traceState ? traceState.get(SENTRY_TRACE_STATE_PARENT_SPAN_ID) || undefined : undefined;
 
   const sampled = getSamplingDecision(spanContext);
 
@@ -197,17 +197,13 @@ export function makeTraceState({
   parentSpanId?: string;
   dsc?: Partial<DynamicSamplingContext>;
   sampled?: boolean;
-}): TraceState | undefined {
-  if (!parentSpanId && !dsc && sampled !== false) {
-    return undefined;
-  }
-
+}): TraceState {
   // We store the DSC as OTEL trace state on the span context
   const dscString = dsc ? dynamicSamplingContextToSentryBaggageHeader(dsc) : undefined;
 
-  const traceStateBase = parentSpanId
-    ? new TraceState().set(SENTRY_TRACE_STATE_PARENT_SPAN_ID, parentSpanId)
-    : new TraceState();
+  // We _always_ set the parent span ID, because we can infer from the existence of this if we should use this
+  // If `''`, it should be considered "no parent"
+  const traceStateBase = new TraceState().set(SENTRY_TRACE_STATE_PARENT_SPAN_ID, parentSpanId || '');
 
   const traceStateWithDsc = dscString ? traceStateBase.set(SENTRY_TRACE_STATE_DSC, dscString) : traceStateBase;
 

@@ -190,7 +190,7 @@ function getContext(scope: Scope | undefined, forceTransaction: boolean | undefi
 
       const spanContext: SpanContext = {
         traceId: propagationContext.traceId,
-        spanId: propagationContext.parentSpanId || INVALID_SPANID,
+        spanId: propagationContext.parentSpanId || propagationContext.spanId,
         isRemote: true,
         traceFlags: propagationContext.sampled ? TraceFlags.SAMPLED : TraceFlags.NONE,
         traceState,
