@@ -1,4 +1,5 @@
 import type { CommandArgs as IORedisCommandArgs } from '@opentelemetry/instrumentation-ioredis';
+import { flatten } from '@sentry/utils';
 
 const SINGLE_ARG_COMMANDS = ['get', 'set', 'setex'];
 
@@ -26,24 +27,20 @@ function keyHasPrefix(key: string, prefixes: string[]): boolean {
 }
 
 /** Safely converts a redis key to a string (comma-separated if there are multiple keys) */
-export function getCacheKeySafely(redisCommand: string, cmdArgs: IORedisCommandArgs): string {
+export function getCacheKeySafely(redisCommand: string, cmdArgs: IORedisCommandArgs): string[] | undefined {
   try {
     if (cmdArgs.length === 0) {
-      return '';
+      return undefined;
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const joinArgsWithComma = (acc: string, currArg: string | Buffer | number | any[]): string =>
-      acc.length === 0 ? processArg(currArg) : `${acc}, ${processArg(currArg)}`;
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const processArg = (arg: string | Buffer | number | any[]): string => {
+    const processArg = (arg: string | Buffer | number | any[]): string[] => {
       if (typeof arg === 'string' || typeof arg === 'number' || Buffer.isBuffer(arg)) {
-        return arg.toString();
+        return [arg.toString()];
       } else if (Array.isArray(arg)) {
-        return arg.reduce(joinArgsWithComma, '');
+        return flatten(arg.map(arg => processArg(arg)));
       } else {
-        return '<unknown>';
+        return ['<unknown>'];
       }
     };
 
@@ -51,20 +48,22 @@ export function getCacheKeySafely(redisCommand: string, cmdArgs: IORedisCommandA
       return processArg(cmdArgs[0]);
     }
 
-    return cmdArgs.reduce(joinArgsWithComma, '');
+    return flatten(cmdArgs.map(arg => processArg(arg)));
   } catch (e) {
-    return '';
+    return undefined;
   }
 }
 
 /** Determines whether a redis operation should be considered as "cache operation" by checking if a key is prefixed.
  *  We only support certain commands (such as 'set', 'get', 'mget'). */
-export function shouldConsiderForCache(redisCommand: string, key: string, prefixes: string[]): boolean {
+export function shouldConsiderForCache(redisCommand: string, key: string[], prefixes: string[]): boolean {
   if (!getCacheOperation(redisCommand)) {
     return false;
   }
 
-  return key.split(',').reduce((prev, key) => prev || keyHasPrefix(key, prefixes), false);
+  return key.reduce((prev, key) => {
+    return prev || keyHasPrefix(key, prefixes);
+  }, false);
 }
 
 /** Calculates size based on the cache response value */

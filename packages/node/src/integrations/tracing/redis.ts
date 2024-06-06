@@ -36,6 +36,7 @@ export const instrumentRedis = generateInstrumentOnce(INTEGRATION_NAME, () => {
       const cacheOperation = getCacheOperation(redisCommand);
 
       if (
+        !safeKey ||
         !cacheOperation ||
         !_redisOptions?.cachePrefixes ||
         !shouldConsiderForCache(redisCommand, safeKey, _redisOptions.cachePrefixes)
@@ -52,11 +53,8 @@ export const instrumentRedis = generateInstrumentOnce(INTEGRATION_NAME, () => {
         span.setAttributes({ 'network.peer.address': networkPeerAddress, 'network.peer.port': networkPeerPort });
       }
 
-      // eslint-disable-next-line no-console
-      console.log('response', response);
       const cacheItemSize = calculateCacheItemSize(response);
-      // eslint-disable-next-line no-console
-      console.log('cacheItemSize', cacheItemSize);
+
       if (cacheItemSize) {
         span.setAttribute(SEMANTIC_ATTRIBUTE_CACHE_ITEM_SIZE, cacheItemSize);
       }
@@ -70,9 +68,9 @@ export const instrumentRedis = generateInstrumentOnce(INTEGRATION_NAME, () => {
         [SEMANTIC_ATTRIBUTE_CACHE_KEY]: safeKey,
       });
 
-      span.updateName(safeKey.length > 1024 ? `${safeKey.substring(0, 1024)}...` : safeKey);
-      // eslint-disable-next-line no-console
-      console.log('span',span);
+      const spanDescription = safeKey.join(', ');
+
+      span.updateName(spanDescription.length > 1024 ? `${spanDescription.substring(0, 1024)}...` : spanDescription);
     },
   });
 });

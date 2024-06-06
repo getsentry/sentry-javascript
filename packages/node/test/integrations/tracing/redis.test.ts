@@ -10,31 +10,31 @@ describe('Redis', () => {
   describe('getCacheKeySafely (single arg)', () => {
     it('should return an empty string if there are no command arguments', () => {
       const result = getCacheKeySafely('get', []);
-      expect(result).toBe('');
+      expect(result).toBe(undefined);
     });
 
     it('should return a string representation of a single argument', () => {
       const cmdArgs = ['key1'];
       const result = getCacheKeySafely('get', cmdArgs);
-      expect(result).toBe('key1');
+      expect(result).toStrictEqual(['key1']);
     });
 
     it('should return only the key for multiple arguments', () => {
       const cmdArgs = ['key1', 'the-value'];
       const result = getCacheKeySafely('get', cmdArgs);
-      expect(result).toBe('key1');
+      expect(result).toStrictEqual(['key1']);
     });
 
     it('should handle number arguments', () => {
       const cmdArgs = [1, 'the-value'];
       const result = getCacheKeySafely('get', cmdArgs);
-      expect(result).toBe('1');
+      expect(result).toStrictEqual(['1']);
     });
 
     it('should handle Buffer arguments', () => {
       const cmdArgs = [Buffer.from('key1'), Buffer.from('key2')];
       const result = getCacheKeySafely('get', cmdArgs);
-      expect(result).toBe('key1');
+      expect(result).toStrictEqual(['key1']);
     });
 
     it('should return <unknown> if the arg type is not supported', () => {
@@ -42,7 +42,7 @@ describe('Redis', () => {
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-ignore
       const result = getCacheKeySafely('get', cmdArgs);
-      expect(result).toBe('<unknown>');
+      expect(result).toStrictEqual(['<unknown>']);
     });
   });
 
@@ -50,13 +50,13 @@ describe('Redis', () => {
     it('should return a comma-separated string for multiple arguments with mget command', () => {
       const cmdArgs = ['key1', 'key2', 'key3'];
       const result = getCacheKeySafely('mget', cmdArgs);
-      expect(result).toBe('key1, key2, key3');
+      expect(result).toStrictEqual(['key1', 'key2', 'key3']);
     });
 
     it('should handle Buffer arguments', () => {
       const cmdArgs = [Buffer.from('key1'), Buffer.from('key2')];
       const result = getCacheKeySafely('mget', cmdArgs);
-      expect(result).toBe('key1, key2');
+      expect(result).toStrictEqual(['key1', 'key2']);
     });
 
     it('should handle array arguments', () => {
@@ -65,13 +65,13 @@ describe('Redis', () => {
         ['key3', 'key4'],
       ];
       const result = getCacheKeySafely('mget', cmdArgs);
-      expect(result).toBe('key1, key2, key3, key4');
+      expect(result).toStrictEqual(['key1', 'key2', 'key3', 'key4']);
     });
 
     it('should handle mixed type arguments', () => {
       const cmdArgs = [Buffer.from('key1'), ['key2', 'key3'], [Buffer.from('key4'), 'key5', 'key6', 7, ['key8']]];
       const result = getCacheKeySafely('mget', cmdArgs);
-      expect(result).toBe('key1, key2, key3, key4, key5, key6, 7, key8');
+      expect(result).toStrictEqual(['key1', 'key2', 'key3', 'key4', 'key5', 'key6', '7', 'key8']);
     });
 
     it('should handle nested arrays with mixed types in arguments', () => {
@@ -80,7 +80,7 @@ describe('Redis', () => {
         ['key3', 'key4', [Buffer.from('key5'), ['key6']]],
       ];
       const result = getCacheKeySafely('mget', cmdArgs);
-      expect(result).toBe('key1, key2, key3, key4, key5, key6');
+      expect(result).toStrictEqual(['key1', 'key2', 'key3', 'key4', 'key5', 'key6']);
     });
 
     it('should return <unknown> if the arg type is not supported', () => {
@@ -88,7 +88,7 @@ describe('Redis', () => {
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-ignore
       const result = getCacheKeySafely('mget', cmdArgs);
-      expect(result).toBe('<unknown>');
+      expect(result).toStrictEqual(['<unknown>']);
     });
   });
 
@@ -137,7 +137,7 @@ describe('Redis', () => {
     it('should return false for non-cache commands', () => {
       const command = 'EXISTS';
       const commandLowercase = 'exists';
-      const key = 'cache:test-key';
+      const key = ['cache:test-key'];
       const result1 = shouldConsiderForCache(command, key, prefixes);
       const result2 = shouldConsiderForCache(commandLowercase, key, prefixes);
       expect(result1).toBe(false);
@@ -146,35 +146,35 @@ describe('Redis', () => {
 
     it('should return true for cache commands with matching prefix', () => {
       const command = 'get';
-      const key = 'cache:test-key';
+      const key = ['cache:test-key'];
       const result = shouldConsiderForCache(command, key, prefixes);
       expect(result).toBe(true);
     });
 
     it('should return false for cache commands without matching prefix', () => {
       const command = 'get';
-      const key = 'test-key';
+      const key = ['test-key'];
       const result = shouldConsiderForCache(command, key, prefixes);
       expect(result).toBe(false);
     });
 
     it('should return true for multiple keys with at least one matching prefix', () => {
       const command = 'mget';
-      const key = 'test-key,cache:test-key';
+      const key = ['test-key', 'cache:test-key'];
       const result = shouldConsiderForCache(command, key, prefixes);
       expect(result).toBe(true);
     });
 
     it('should return false for multiple keys without any matching prefix', () => {
       const command = 'mget';
-      const key = 'test-key,test-key2';
+      const key = ['test-key', 'test-key2'];
       const result = shouldConsiderForCache(command, key, prefixes);
       expect(result).toBe(false);
     });
 
     GET_COMMANDS.concat(SET_COMMANDS).forEach(command => {
       it(`should return true for ${command} command with matching prefix`, () => {
-        const key = 'cache:test-key';
+        const key = ['cache:test-key'];
         const result = shouldConsiderForCache(command, key, prefixes);
         expect(result).toBe(true);
       });
