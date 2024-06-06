@@ -51,7 +51,7 @@ export function parseSpanDescription(span: AbstractSpan): SpanDescription {
 
   // If db.type exists then this is a database call span
   // If the Redis DB is used as a cache, the span description should not be changed
-  if (dbSystem && (!attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] || !opIsCache)) {
+  if (dbSystem && !opIsCache) {
     return descriptionForDbSystem({ attributes, name });
   }
 
