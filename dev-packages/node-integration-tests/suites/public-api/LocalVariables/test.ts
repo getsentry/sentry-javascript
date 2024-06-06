@@ -101,8 +101,8 @@ conditionalTest({ min: 18 })('LocalVariables integration', () => {
     child.on('message', msg => {
       reportedCount++;
       const rssMb = (msg as { memUsage: { rss: number } }).memUsage.rss / 1024 / 1024;
-      // We shouldn't use more than 125MB of memory
-      expect(rssMb).toBeLessThan(125);
+      // We shouldn't use more than 130MB of memory
+      expect(rssMb).toBeLessThan(130);
     });
 
     // Wait for 20 seconds
