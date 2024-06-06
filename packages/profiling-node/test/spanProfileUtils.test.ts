@@ -574,6 +574,47 @@ describe('continuous profiling', () => {
 
     expect(transportSpy.mock.calls?.[0]?.[0]?.[1]?.[0]?.[0].type).toBe('profile_chunk');
   });
+
+  it('sets global profile context', async () => {
+    const [client, transport] = makeContinuousProfilingClient();
+    Sentry.setCurrentClient(client);
+    client.init();
+
+    const transportSpy = jest.spyOn(transport, 'send').mockReturnValue(Promise.resolve({}));
+
+    const nonProfiledTransaction = Sentry.startInactiveSpan({ forceTransaction: true, name: 'profile_hub' });
+    nonProfiledTransaction.end();
+
+    expect(transportSpy.mock.calls?.[0]?.[0]?.[1]?.[0]?.[1]).not.toMatchObject({
+      contexts: {
+        profiler: {
+          profiler_id: expect.any(String),
+          ['thread.id']: expect.any(String),
+          ['thread.name']: expect.any(String),
+        },
+      },
+    });
+
+    const integration = client.getIntegrationByName<ProfilingIntegration>('ProfilingIntegration');
+    if (!integration) {
+      throw new Error('Profiling integration not found');
+    }
+
+    integration._profiler.start();
+    const profiledTransaction = Sentry.startInactiveSpan({ forceTransaction: true, name: 'profile_hub' });
+    profiledTransaction.end();
+    integration._profiler.stop();
+
+    expect(transportSpy.mock.calls?.[1]?.[0]?.[1]?.[0]?.[1]).toMatchObject({
+      contexts: {
+        profile: {
+          profiler_id: expect.any(String),
+          ['thread.id']: expect.any(String),
+          ['thread.name']: expect.any(String),
+        },
+      },
+    });
+  });
 });
 
 describe('span profiling mode', () => {
@@ -610,7 +651,6 @@ describe('span profiling mode', () => {
     Sentry.startInactiveSpan({ forceTransaction: true, name: 'profile_hub' });
 
     expect(startProfilingSpy).toHaveBeenCalled();
-
     const integration = client.getIntegrationByName<ProfilingIntegration>('ProfilingIntegration');
 
     if (!integration) {
