@@ -12,6 +12,7 @@ import type { RawChunkCpuProfile, RawThreadCpuProfile } from './types';
 import { ProfileFormat } from './types';
 import { getGlobalScope } from '../../core/src/currentScopes';
 import { PROFILER_THREAD_NAME } from './utils';
+import { setContext } from '../../core/src/exports';
 
 import {
   addProfilesToEnvelope,
@@ -313,16 +314,10 @@ class ContinuousProfiler {
    * during a profiling session.
    */
   private _setupSpanChunkInstrumentation(): void {
-    // Set context once when the profiler session starts and have the spans inherit from it
-    const globalScope = getGlobalScope();
-    globalScope.setExtra('trace', {
-      data: {
-        ['thread.id']: PROFILER_THREAD_ID_STRING,
-        ['thread.name']: PROFILER_THREAD_NAME,
-      }
-    });
-    globalScope.setExtra('profiler', {
+    getGlobalScope().setContext('profile', {
       profiler_id: this._profilerId,
+      ['thread.id']: PROFILER_THREAD_ID_STRING,
+      ['thread.name']: PROFILER_THREAD_NAME,
     });
   }
 
@@ -331,8 +326,6 @@ class ContinuousProfiler {
    */
   private _teardownSpanChunkInstrumentation(): void {
     const globalScope = getGlobalScope();
-    globalScope.setExtra('trace', undefined);
-    globalScope.setExtra('profiler', undefined);
   }
 
   /**
