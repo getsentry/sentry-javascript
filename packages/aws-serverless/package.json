@@ -47,6 +47,7 @@
       }
     },
     "./dist/awslambda-auto": {
+      "//": "@deprecated Use `./awslambda-auto` instead",
       "require": {
         "default": "./build/npm/cjs/awslambda-auto.js"
       }
