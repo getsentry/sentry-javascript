@@ -50,12 +50,18 @@ function createFrame(filename: string, func: string, lineno?: number, colno?: nu
   return frame;
 }
 
-// Chromium based browsers: Chrome, Brave, new Opera, new Edge
+// This regex matches frames that have no function name (ie. are at the top level of a module).
+// For example "at http://localhost:5000//script.js:1:126"
+// Frames _with_ function names usually look as follows: "at commitLayoutEffects (react-dom.development.js:23426:1)"
 const chromeRegexNoFnName = /^\s*at (\S+?)(?::(\d+))(?::(\d+))\s*$/i;
+
+// This regex matches all the frames that have a function name.
 const chromeRegex =
   /^\s*at (?:(.+?\)(?: \[.+\])?|.*?) ?\((?:address at )?)?(?:async )?((?:<anonymous>|[-a-z]+:|.*bundle|\/)?.*?)(?::(\d+))?(?::(\d+))?\)?\s*$/i;
+
 const chromeEvalRegex = /\((\S*)(?::(\d+))(?::(\d+))\)/;
 
+// Chromium based browsers: Chrome, Brave, new Opera, new Edge
 // We cannot call this variable `chrome` because it can conflict with global `chrome` variable in certain environments
 // See: https://github.com/getsentry/sentry-javascript/issues/6880
 const chromeStackParserFn: StackLineParserFn = line => {
