@@ -8,8 +8,10 @@ import { CpuProfilerBindings } from './cpu_profiler';
 import { DEBUG_BUILD } from './debug-build';
 import { NODE_MAJOR, NODE_VERSION } from './nodeVersion';
 import { MAX_PROFILE_DURATION_MS, maybeProfileSpan, stopSpanProfile } from './spanProfileUtils';
-import type { RawThreadCpuProfile } from './types';
+import type { RawChunkCpuProfile, RawThreadCpuProfile } from './types';
 import { ProfileFormat } from './types';
+import { getGlobalScope } from '../../core/src/currentScopes';
+import { PROFILER_THREAD_NAME } from './utils';
 
 import {
   addProfilesToEnvelope,
@@ -17,6 +19,7 @@ import {
   createProfilingEvent,
   findProfiledTransactionsFromEnvelope,
   makeProfileChunkEnvelope,
+  PROFILER_THREAD_ID_STRING,
 } from './utils';
 
 const CHUNK_INTERVAL_MS = 5000;
@@ -211,7 +214,9 @@ class ContinuousProfiler {
         logger.log(`[Profiling] Failed to collect profile for: ${this._chunkData?.id}, the chunk_id is missing.`);
       return;
     }
-    const profile = CpuProfilerBindings.stopProfiling(this._chunkData.id, ProfileFormat.CHUNK);
+
+    const profile = this._stopChunkProfiling(this._chunkData);
+
     if (!profile || !this._chunkData.startTimestampMS) {
       DEBUG_BUILD && logger.log(`[Profiling] _chunkiledStartTraceID to collect profile for: ${this._chunkData.id}`);
       return;
@@ -275,10 +280,20 @@ class ContinuousProfiler {
   }
 
   /**
+   * Stops the profile and clears chunk instrumentation from global scope
+   * @returns void
+   */
+  private _stopChunkProfiling(chunk: ChunkData): RawChunkCpuProfile | null {
+    this._teardownSpanChunkInstrumentation();
+    return CpuProfilerBindings.stopProfiling(chunk.id, ProfileFormat.CHUNK);
+  }
+
+  /**
    * Starts the profiler and registers the flush timer for a given chunk.
    * @param chunk
    */
   private _startChunkProfiling(chunk: ChunkData): void {
+    this._setupSpanChunkInstrumentation();
     CpuProfilerBindings.startProfiling(chunk.id!);
     DEBUG_BUILD && logger.log(`[Profiling] starting profiling chunk: ${chunk.id}`);
 
@@ -291,6 +306,33 @@ class ContinuousProfiler {
 
     // Unref timeout so it doesn't keep the process alive.
     chunk.timer.unref();
+  }
+
+  /**
+   * Attaches profiling information to spans that were started
+   * during a profiling session.
+   */
+  private _setupSpanChunkInstrumentation(): void {
+    // Set context once when the profiler session starts and have the spans inherit from it
+    const globalScope = getGlobalScope();
+    globalScope.setExtra('trace', {
+      data: {
+        ['thread.id']: PROFILER_THREAD_ID_STRING,
+        ['thread.name']: PROFILER_THREAD_NAME,
+      }
+    });
+    globalScope.setExtra('profiler', {
+      profiler_id: this._profilerId,
+    });
+  }
+
+  /**
+   * Clear profiling information from global context when a profile is not running.
+   */
+  private _teardownSpanChunkInstrumentation(): void {
+    const globalScope = getGlobalScope();
+    globalScope.setExtra('trace', undefined);
+    globalScope.setExtra('profiler', undefined);
   }
 
   /**
