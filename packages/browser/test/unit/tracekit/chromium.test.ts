@@ -579,6 +579,7 @@ describe('Tracekit - Chrome Tests', () => {
       name: 'Error',
       stack: `Error: bad
           at something (http://localhost:5000/(some)/(thing)/index.html:20:16)
+          at http://localhost:5000/(group)/[route]/script.js:1:126
           at more (http://localhost:5000/(some)/(thing)/index.html:25:7)`,
     };
 
@@ -594,6 +595,13 @@ describe('Tracekit - Chrome Tests', () => {
             function: 'more',
             lineno: 25,
             colno: 7,
+            in_app: true,
+          },
+          {
+            filename: 'http://localhost:5000/(group)/[route]/script.js',
+            function: '?',
+            lineno: 1,
+            colno: 126,
             in_app: true,
           },
           {
