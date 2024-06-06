@@ -5,13 +5,13 @@ import {
   addLcpInstrumentationHandler,
   addPerformanceInstrumentationHandler,
 } from '@sentry-internal/browser-utils';
-import type { AllPerformanceEntryData, ReplayContainer, ReplayPerformanceEntry } from '../types';
-import type { Metric} from '../util/createPerformanceEntries';
+import type { ReplayContainer } from '../types';
 import {
   getCumulativeLayoutShift,
   getFirstInputDelay,
   getInteractionToNextPaint,
   getLargestContentfulPaint,
+  webVitalHandler,
 } from '../util/createPerformanceEntries';
 
 /**
@@ -37,18 +37,14 @@ export function setupPerformanceObserver(replay: ReplayContainer): () => void {
   });
 
   clearCallbacks.push(
-    addLcpInstrumentationHandler(webVitalHandler(getLargestContentfulPaint)),
-    addClsInstrumentationHandler(webVitalHandler(getCumulativeLayoutShift)),
-    addFidInstrumentationHandler(webVitalHandler(getFirstInputDelay)),
-    addInpInstrumentationHandler(webVitalHandler(getInteractionToNextPaint)),
+    addLcpInstrumentationHandler(webVitalHandler(getLargestContentfulPaint, replay)),
+    addClsInstrumentationHandler(webVitalHandler(getCumulativeLayoutShift, replay)),
+    addFidInstrumentationHandler(webVitalHandler(getFirstInputDelay, replay)),
+    addInpInstrumentationHandler(webVitalHandler(getInteractionToNextPaint, replay)),
   );
 
   // A callback to cleanup all handlers
   return () => {
     clearCallbacks.forEach(clearCallback => clearCallback());
   };
-
-  function webVitalHandler(getter: (metric: Metric) => ReplayPerformanceEntry<AllPerformanceEntryData>): (data: { metric: Metric; }) => void {
-    return ({metric}) => void replay.replayPerformanceEntries.push(getter(metric));
-  }
 }

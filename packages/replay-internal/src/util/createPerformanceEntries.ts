@@ -8,6 +8,7 @@ import type {
   ExperimentalPerformanceResourceTiming,
   NavigationData,
   PaintData,
+  ReplayContainer,
   ReplayPerformanceEntry,
   ResourceData,
   WebVitalData,
@@ -27,11 +28,6 @@ const ENTRY_TYPES: Record<
 
 export interface Metric {
   /**
-   * The name of the metric (in acronym form).
-   */
-  name: 'CLS' | 'FCP' | 'FID' | 'INP' | 'LCP' | 'TTFB';
-
-  /**
    * The current value of the metric.
    */
   value: number;
@@ -48,6 +44,13 @@ export interface Metric {
    * entries (e.g. a CLS value of 0 given no layout shifts).
    */
   entries: PerformanceEntry[] | PerformanceEventTiming[];
+}
+
+/**
+ * Handler creater for web vitals
+ */
+export function webVitalHandler(getter: (metric: Metric) => ReplayPerformanceEntry<AllPerformanceEntryData>, replay: ReplayContainer): (data: { metric: Metric; }) => void {
+  return ({metric}) => void replay.replayPerformanceEntries.push(getter(metric));
 }
 
 /**
