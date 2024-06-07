@@ -49,7 +49,7 @@ sentryTest(
 
     expect(replayEvent0).toEqual(getExpectedReplayEvent({ segment_id: 0 }));
 
-    page.locator('#img-button').click();
+    await page.locator('#img-button').click();
 
     const replayEvent1 = getReplayEvent(await reqPromise1);
     const { performanceSpans: performanceSpans1 } = getCustomRecordingEvents(await reqPromise1);
