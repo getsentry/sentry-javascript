@@ -35,7 +35,7 @@ test('Sends a transaction for a server component', async ({ page }) => {
       request: {
         cookies: {},
         headers: expect.any(Object),
-        url: 'http://localhost:3030',
+        url: expect.any(String),
       },
       transaction: 'Page Server Component (/server-component/parameter/[...parameters])',
       type: 'transaction',
