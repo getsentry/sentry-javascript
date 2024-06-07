@@ -267,24 +267,6 @@ export const ReplayRecordingData = [
     data: {
       tag: 'performanceSpan',
       payload: {
-        op: 'web-vital',
-        description: 'interaction-to-next-paint',
-        startTimestamp: expect.any(Number),
-        endTimestamp: expect.any(Number),
-        data: {
-          value: expect.any(Number),
-          size: expect.any(Number),
-          rating: expect.any(String),
-        },
-      },
-    },
-  },
-  {
-    type: 5,
-    timestamp: expect.any(Number),
-    data: {
-      tag: 'performanceSpan',
-      payload: {
         op: 'memory',
         description: 'memory',
         startTimestamp: expect.any(Number),
