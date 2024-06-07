@@ -4,8 +4,8 @@ child_process.execSync('node ./src/run-lambda.js', {
   stdio: 'inherit',
   env: {
     ...process.env,
-    LAMBDA_TASK_ROOT: '.',
-    _HANDLER: 'handle',
+    LAMBDA_TASK_ROOT: '/var/task',
+    _HANDLER: 'src/lambda-function.handle',
 
     NODE_OPTIONS: '--require @sentry/aws-serverless/dist/awslambda-auto',
     SENTRY_DSN: 'http://public@localhost:3031/1337',
