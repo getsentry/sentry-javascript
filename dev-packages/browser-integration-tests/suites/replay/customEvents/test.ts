@@ -51,13 +51,14 @@ sentryTest(
     expect(replayEvent0).toEqual(getExpectedReplayEvent({ segment_id: 0 }));
 
     await page.locator('#img-button').click();
+    await page.locator('#img-button').isVisible();
+
+    await page.waitForTimeout(500);
 
     // Page hide to trigger INP
     await page.evaluate(() => {
       window.dispatchEvent(new Event('pagehide'));
     });
-
-    await page.waitForTimeout(500);
 
     const replayEvent1 = getReplayEvent(await reqPromise1);
     const { performanceSpans: performanceSpans1 } = getCustomRecordingEvents(await reqPromise1);
