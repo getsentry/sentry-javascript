@@ -43,6 +43,14 @@ const testRoutes: Record<string, Route> = {
     path: '/accounts/4',
     query: {},
   },
+  nestedRoute: {
+    matched: [{ path: '/' }, { path: '/categories' }, { path: '/categories/:categoryId' }],
+    params: {
+      categoryId: '1',
+    },
+    path: '/categories/1',
+    query: {},
+  },
   namedRoute: {
     matched: [{ path: '/login' }],
     name: 'login-screen',
@@ -85,6 +93,7 @@ describe('instrumentVueRouter()', () => {
 
   it.each([
     ['normalRoute1', 'normalRoute2', '/accounts/:accountId', 'route'],
+    ['normalRoute1', 'nestedRoute', '/categories/:categoryId', 'route'],
     ['normalRoute2', 'namedRoute', 'login-screen', 'custom'],
     ['normalRoute2', 'unmatchedRoute', '/e8733846-20ac-488c-9871-a5cbcb647294', 'url'],
   ])(
@@ -122,6 +131,7 @@ describe('instrumentVueRouter()', () => {
 
   it.each([
     ['initialPageloadRoute', 'normalRoute1', '/books/:bookId/chapter/:chapterId', 'route'],
+    ['initialPageloadRoute', 'nestedRoute', '/categories/:categoryId', 'route'],
     ['initialPageloadRoute', 'namedRoute', 'login-screen', 'custom'],
     ['initialPageloadRoute', 'unmatchedRoute', '/e8733846-20ac-488c-9871-a5cbcb647294', 'url'],
   ])(
