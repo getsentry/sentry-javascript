@@ -44,13 +44,9 @@ const testRoutes: Record<string, Route> = {
     query: {},
   },
   nestedRoute: {
-    matched: [
-      { path: '/' },
-      { path: '/categories' },
-      { path: '/categories/:categoryId' },
-    ],
+    matched: [{ path: '/' }, { path: '/categories' }, { path: '/categories/:categoryId' }],
     params: {
-      categoryId: '1'
+      categoryId: '1',
     },
     path: '/categories/1',
     query: {},
