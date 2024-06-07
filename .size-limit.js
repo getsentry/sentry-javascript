@@ -15,14 +15,14 @@ module.exports = [
     path: 'packages/browser/build/npm/esm/index.js',
     import: createImport('init', 'browserTracingIntegration'),
     gzip: true,
-    limit: '34 KB',
+    limit: '35 KB',
   },
   {
     name: '@sentry/browser (incl. Tracing, Replay)',
     path: 'packages/browser/build/npm/esm/index.js',
     import: createImport('init', 'browserTracingIntegration', 'replayIntegration'),
     gzip: true,
-    limit: '71 KB',
+    limit: '72 KB',
   },
   {
     name: '@sentry/browser (incl. Tracing, Replay) - with treeshaking flags',
@@ -48,14 +48,14 @@ module.exports = [
     path: 'packages/browser/build/npm/esm/index.js',
     import: createImport('init', 'browserTracingIntegration', 'replayIntegration', 'replayCanvasIntegration'),
     gzip: true,
-    limit: '75 KB',
+    limit: '76 KB',
   },
   {
     name: '@sentry/browser (incl. Tracing, Replay, Feedback)',
     path: 'packages/browser/build/npm/esm/index.js',
     import: createImport('init', 'browserTracingIntegration', 'replayIntegration', 'feedbackIntegration'),
     gzip: true,
-    limit: '87 KB',
+    limit: '89 KB',
   },
   {
     name: '@sentry/browser (incl. Tracing, Replay, Feedback, metrics)',
@@ -69,21 +69,21 @@ module.exports = [
     path: 'packages/browser/build/npm/esm/index.js',
     import: createImport('init', 'metrics'),
     gzip: true,
-    limit: '40 KB',
+    limit: '30 KB',
   },
   {
     name: '@sentry/browser (incl. Feedback)',
     path: 'packages/browser/build/npm/esm/index.js',
     import: createImport('init', 'feedbackIntegration'),
     gzip: true,
-    limit: '40 KB',
+    limit: '41 KB',
   },
   {
     name: '@sentry/browser (incl. sendFeedback)',
     path: 'packages/browser/build/npm/esm/index.js',
     import: createImport('init', 'sendFeedback'),
     gzip: true,
-    limit: '28 KB',
+    limit: '29 KB',
   },
   {
     name: '@sentry/browser (incl. FeedbackAsync)',
@@ -107,7 +107,7 @@ module.exports = [
     import: createImport('init', 'ErrorBoundary', 'reactRouterV6BrowserTracingIntegration'),
     ignore: ['react/jsx-runtime'],
     gzip: true,
-    limit: '37 KB',
+    limit: '38 KB',
   },
   // Vue SDK (ESM)
   {
@@ -143,7 +143,7 @@ module.exports = [
     name: 'CDN Bundle (incl. Tracing)',
     path: createCDNPath('bundle.tracing.min.js'),
     gzip: true,
-    limit: '36 KB',
+    limit: '37 KB',
   },
   {
     name: 'CDN Bundle (incl. Tracing, Replay)',
@@ -193,7 +193,7 @@ module.exports = [
     import: createImport('init'),
     ignore: ['next/router', 'next/constants'],
     gzip: true,
-    limit: '37 KB',
+    limit: '38 KB',
   },
   // SvelteKit SDK (ESM)
   {

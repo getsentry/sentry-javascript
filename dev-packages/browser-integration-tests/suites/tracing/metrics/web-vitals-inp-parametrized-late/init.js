@@ -6,7 +6,7 @@ Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   integrations: [
     Sentry.browserTracingIntegration({
-      idleTimeout: 4000,
+      idleTimeout: 1000,
       enableLongTask: false,
       enableInp: true,
       instrumentPageLoad: false,
@@ -20,8 +20,8 @@ const client = Sentry.getClient();
 
 // Force page load transaction name to a testable value
 Sentry.startBrowserTracingPageLoadSpan(client, {
-  name: 'test-url',
+  name: 'test-route',
   attributes: {
-    [Sentry.SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+    [Sentry.SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
   },
 });
