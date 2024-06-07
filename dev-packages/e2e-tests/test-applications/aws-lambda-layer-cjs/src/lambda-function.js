@@ -3,7 +3,7 @@ const Sentry = require('@sentry/aws-serverless');
 const http = require('http');
 
 async function handle() {
-  await Sentry.startSpan({ name: 'aws-lambda-layer-test-txn', op: 'test' }, async () => {
+  await Sentry.startSpan({ name: 'manual-span', op: 'test' }, async () => {
     await new Promise(resolve => {
       http.get('http://example.com', res => {
         res.on('data', d => {

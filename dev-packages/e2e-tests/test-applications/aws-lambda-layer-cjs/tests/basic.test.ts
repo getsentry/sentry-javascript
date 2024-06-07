@@ -4,7 +4,7 @@ import { waitForTransaction } from '@sentry-internal/test-utils';
 
 test('Lambda layer SDK bundle sends events', async ({ request }) => {
   const transactionEventPromise = waitForTransaction('aws-serverless-lambda-layer-cjs', transactionEvent => {
-    return transactionEvent?.transaction === 'aws-lambda-layer-test-txn';
+    return transactionEvent?.transaction === 'my-lambda';
   });
 
   // Waiting for 1s here because attaching the listener for events in `waitForTransaction` is not synchronous
@@ -24,17 +24,46 @@ test('Lambda layer SDK bundle sends events', async ({ request }) => {
   const transactionEvent = await transactionEventPromise;
 
   // shows the SDK sent a transaction
-  expect(transactionEvent.transaction).toEqual('aws-lambda-layer-test-txn');
+  expect(transactionEvent.transaction).toEqual('my-lambda'); // name should be the function name
+  expect(transactionEvent.contexts?.trace).toEqual({
+    data: {
+      'sentry.sample_rate': 1,
+      'sentry.source': 'custom',
+      'sentry.origin': 'auto.otel.aws-lambda',
+      'cloud.account.id': '123453789012',
+      'faas.id': 'arn:aws:lambda:us-east-1:123453789012:function:my-lambda',
+      'otel.kind': 'SERVER',
+    },
+    origin: 'auto.otel.aws-lambda',
+    span_id: expect.any(String),
+    status: 'ok',
+    trace_id: expect.any(String),
+  });
+
+  expect(transactionEvent.spans).toHaveLength(2);
 
   // shows that the Otel Http instrumentation is working
-  expect(transactionEvent.spans).toHaveLength(1);
-  expect(transactionEvent.spans![0]).toMatchObject({
-    data: expect.objectContaining({
-      'sentry.op': 'http.client',
-      'sentry.origin': 'auto.http.otel.http',
-      url: 'http://example.com/',
+  expect(transactionEvent.spans).toContainEqual(
+    expect.objectContaining({
+      data: expect.objectContaining({
+        'sentry.op': 'http.client',
+        'sentry.origin': 'auto.http.otel.http',
+        url: 'http://example.com/',
+      }),
+      description: 'GET http://example.com/',
+      op: 'http.client',
     }),
-    description: 'GET http://example.com/',
-    op: 'http.client',
-  });
+  );
+
+  // shows that the manual span creation is working
+  expect(transactionEvent.spans).toContainEqual(
+    expect.objectContaining({
+      data: expect.objectContaining({
+        'sentry.op': 'test',
+        'sentry.origin': 'manual',
+      }),
+      description: 'manual-span',
+      op: 'test',
+    }),
+  );
 });

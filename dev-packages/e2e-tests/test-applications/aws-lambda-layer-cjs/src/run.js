@@ -4,7 +4,8 @@ child_process.execSync('node ./src/run-lambda.js', {
   stdio: 'inherit',
   env: {
     ...process.env,
-    LAMBDA_TASK_ROOT: '/var/task',
+    // On AWS, LAMBDA_TASK_ROOT is usually /var/task but for testing, we set it to the CWD to correctly apply our handler
+    LAMBDA_TASK_ROOT: process.cwd(),
     _HANDLER: 'src/lambda-function.handle',
 
     NODE_OPTIONS: '--require @sentry/aws-serverless/dist/awslambda-auto',
