@@ -48,6 +48,8 @@ If you are still encountering issues with OpenTelemetry instrumentation and ESM,
 - ref(browser): Ensure idle span ending is consistent (#12310)
 - ref(profiling): unref timer (#12340)
 
+Work in this release contributed by @dohooo and @ykzts. Thank you for your contributions!
+
 ## 8.7.0
 
 ### Important Changes
