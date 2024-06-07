@@ -37,7 +37,6 @@ Sentry.init({
   dsn: '__PUBLIC_DSN__',
   integrations: [Sentry.solidRouterBrowserTracingIntegration({ useBeforeLeave, useLocation })],
   tracesSampleRate: 1.0, //  Capture 100% of the transactions
-  debug: true,
 });
 
 const SentryRouter = Sentry.withSentryRouterRouting(Router);
@@ -48,6 +47,32 @@ render(
       <Route path="/" component={App} />
       ...
     </SentryRouter>
+  ),
+  document.getElementById('root'),
+);
+```
+
+# ErrorBoundary
+
+To automatically capture exceptions from inside a component tree and render a fallback component, wrap the native Solid
+JS `ErrorBoundary` component with `Sentry.withSentryErrorBoundary`.
+
+```js
+import * as Sentry from '@sentry/solidjs';
+import { ErrorBoundary } from 'solid-js';
+
+Sentry.init({
+  dsn: '__PUBLIC_DSN__',
+  tracesSampleRate: 1.0, //  Capture 100% of the transactions
+});
+
+const SentryErrorBoundary = Sentry.withSentryErrorBoundary(ErrorBoundary);
+
+render(
+  () => (
+    <SentryErrorBoundary fallback={err => <div>Error: {err.message}</div>}>
+      <ProblematicComponent />
+    </SentryErrorBoundary>
   ),
   document.getElementById('root'),
 );
