@@ -13,6 +13,7 @@ export {
   startTrackingLongTasks,
   startTrackingWebVitals,
   startTrackingINP,
+  registerInpInteractionListener,
 } from './metrics/browserMetrics';
 
 export { addClickKeypressInstrumentationHandler } from './instrument/dom';

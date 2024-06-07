@@ -1,6 +1,6 @@
 {
   "name": "@sentry/astro",
-  "version": "8.7.0",
+  "version": "8.8.0",
   "description": "Official Sentry SDK for Astro",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/astro",
@@ -31,17 +31,17 @@
   "types": "build/types/index.types.d.ts",
   "exports": {
     ".": {
+      "types": "./build/types/index.types.d.ts",
       "node": "./build/esm/index.server.js",
       "browser": "./build/esm/index.client.js",
       "import": "./build/esm/index.client.js",
-      "require": "./build/cjs/index.server.js",
-      "types": "./build/types/index.types.d.ts"
+      "require": "./build/cjs/index.server.js"
     },
     "./middleware": {
+      "types": "./build/types/integration/middleware/index.types.d.ts",
       "node": "./build/esm/integration/middleware/index.js",
       "import": "./build/esm/integration/middleware/index.js",
-      "require": "./build/cjs/integration/middleware/index.js",
-      "types": "./build/types/integration/middleware/index.types.d.ts"
+      "require": "./build/cjs/integration/middleware/index.js"
     },
     "./import": {
       "import": {
@@ -61,12 +61,12 @@
     "astro": ">=3.x || >=4.0.0-beta"
   },
   "dependencies": {
-    "@sentry/browser": "8.7.0",
-    "@sentry/core": "8.7.0",
-    "@sentry/node": "8.7.0",
-    "@sentry/types": "8.7.0",
-    "@sentry/utils": "8.7.0",
-    "@sentry/vite-plugin": "^2.14.2"
+    "@sentry/browser": "8.8.0",
+    "@sentry/core": "8.8.0",
+    "@sentry/node": "8.8.0",
+    "@sentry/types": "8.8.0",
+    "@sentry/utils": "8.8.0",
+    "@sentry/vite-plugin": "^2.18.0"
   },
   "devDependencies": {
     "astro": "^3.5.0",

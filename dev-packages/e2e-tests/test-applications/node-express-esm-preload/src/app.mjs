@@ -1,3 +1,4 @@
+import * as http from 'http';
 import * as Sentry from '@sentry/node';
 import express from 'express';
 
@@ -23,6 +24,20 @@ app.get('/test-error', function (req, res) {
       res.status(200).end();
     });
   }, 100);
+});
+
+app.get('/http-req', function (req, res) {
+  http
+    .request('http://example.com', httpRes => {
+      let data = '';
+      httpRes.on('data', d => {
+        data += d;
+      });
+      httpRes.on('end', () => {
+        res.status(200).send(data).end();
+      });
+    })
+    .end();
 });
 
 Sentry.setupExpressErrorHandler(app);

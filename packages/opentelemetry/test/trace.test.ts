@@ -960,6 +960,25 @@ describe('trace', () => {
       });
     });
 
+    it('picks up the trace context from the scope, including parentSpanId, if there is no parent', () => {
+      withScope(scope => {
+        const propagationContext = scope.getPropagationContext();
+        propagationContext.parentSpanId = '1121201211212012';
+        const span = startInactiveSpan({ name: 'test span' });
+
+        expect(span).toBeDefined();
+        expect(spanToJSON(span).trace_id).toEqual(propagationContext.traceId);
+        expect(spanToJSON(span).parent_span_id).toEqual('1121201211212012');
+
+        expect(getDynamicSamplingContextFromSpan(span)).toEqual({
+          ...getDynamicSamplingContextFromClient(propagationContext.traceId, getClient()!),
+          sample_rate: '1',
+          sampled: 'true',
+          transaction: 'test span',
+        });
+      });
+    });
+
     it('picks up the trace context from the parent without DSC', () => {
       withScope(scope => {
         const propagationContext = scope.getPropagationContext();

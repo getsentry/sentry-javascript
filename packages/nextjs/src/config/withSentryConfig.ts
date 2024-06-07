@@ -51,7 +51,7 @@ function getFinalConfigObject(
   if ('sentry' in incomingUserNextConfigObject) {
     // eslint-disable-next-line no-console
     console.warn(
-      '[@sentry/nextjs] Setting a `sentry` property on the Next.js config is no longer supported. Please use the `sentrySDKOptions` argument of `withSentryConfig` instead.',
+      '[@sentry/nextjs] Setting a `sentry` property on the Next.js config object as a means of configuration is no longer supported. Please use the `sentryBuildOptions` argument of of the `withSentryConfig()` function instead.',
     );
 
     // Next 12.2.3+ warns about non-canonical properties on `userNextConfig`.
