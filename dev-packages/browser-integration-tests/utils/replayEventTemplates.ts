@@ -140,7 +140,6 @@ export const expectedCLSPerformanceSpan = {
   endTimestamp: expect.any(Number),
   data: {
     value: expect.any(Number),
-    nodeId: expect.any(Number),
     rating: expect.any(String),
     size: expect.any(Number),
   },
@@ -153,7 +152,6 @@ export const expectedFIDPerformanceSpan = {
   endTimestamp: expect.any(Number),
   data: {
     value: expect.any(Number),
-    nodeId: expect.any(Number),
     rating: expect.any(String),
     size: expect.any(Number),
   },
@@ -166,7 +164,6 @@ export const expectedINPPerformanceSpan = {
   endTimestamp: expect.any(Number),
   data: {
     value: expect.any(Number),
-    nodeId: expect.any(Number),
     rating: expect.any(String),
     size: expect.any(Number),
   },
