@@ -56,6 +56,14 @@ afterAll(() => {
 });
 
 describe('browserTracingIntegration', () => {
+  beforeAll(() => {
+    jest.useFakeTimers();
+  });
+
+  afterAll(() => {
+    jest.useRealTimers();
+  });
+
   beforeEach(() => {
     getCurrentScope().clear();
     getIsolationScope().clear();
@@ -929,7 +937,6 @@ describe('browserTracingIntegration', () => {
 
   describe('idleTimeout', () => {
     it('is created by default', () => {
-      jest.useFakeTimers({ legacyFakeTimers: true });
       const client = new BrowserClient(
         getDefaultBrowserClientOptions({
           tracesSampleRate: 1,
@@ -963,8 +970,6 @@ describe('browserTracingIntegration', () => {
     });
 
     it('can be a custom value', () => {
-      jest.useFakeTimers({ legacyFakeTimers: true });
-
       const client = new BrowserClient(
         getDefaultBrowserClientOptions({
           tracesSampleRate: 1,
@@ -1001,7 +1006,7 @@ describe('browserTracingIntegration', () => {
   // TODO(lforst): I cannot manage to get this test to pass.
   /*
   it('heartbeatInterval can be a custom value', () => {
-    jest.useFakeTimers({ legacyFakeTimers: true });
+
 
     const interval = 200;
 

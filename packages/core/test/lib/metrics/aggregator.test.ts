@@ -14,6 +14,10 @@ describe('MetricsAggregator', () => {
     testClient = new TestClient(options);
   });
 
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
   it('adds items to buckets', () => {
     const aggregator = new MetricsAggregator(testClient);
     aggregator.add('c', 'requests', 1);
@@ -81,12 +85,13 @@ describe('MetricsAggregator', () => {
 
   describe('close', () => {
     test('should flush immediately', () => {
+      const clearIntervalSpy = jest.spyOn(global, 'clearInterval');
       const capture = jest.spyOn(testClient, 'sendEnvelope');
       const aggregator = new MetricsAggregator(testClient);
       aggregator.add('c', 'requests', 1);
       aggregator.close();
       // It should clear the interval.
-      expect(clearInterval).toHaveBeenCalled();
+      expect(clearIntervalSpy).toHaveBeenCalled();
       expect(capture).toBeCalled();
       expect(capture).toBeCalledTimes(1);
     });
@@ -94,6 +99,7 @@ describe('MetricsAggregator', () => {
 
   describe('flush', () => {
     test('should flush immediately', () => {
+      const clearIntervalSpy = jest.spyOn(global, 'clearInterval');
       const capture = jest.spyOn(testClient, 'sendEnvelope');
       const aggregator = new MetricsAggregator(testClient);
       aggregator.add('c', 'requests', 1);
@@ -104,7 +110,7 @@ describe('MetricsAggregator', () => {
       capture.mockReset();
       aggregator.close();
       // It should clear the interval.
-      expect(clearInterval).toHaveBeenCalled();
+      expect(clearIntervalSpy).toHaveBeenCalled();
 
       // It shouldn't be called since it's been already flushed.
       expect(capture).toBeCalledTimes(0);

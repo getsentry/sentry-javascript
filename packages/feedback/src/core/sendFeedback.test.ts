@@ -311,7 +311,7 @@ describe('sendFeedback', () => {
   });
 
   it('handles timeout', async () => {
-    jest.useFakeTimers({ legacyFakeTimers: true });
+    jest.useFakeTimers();
 
     mockSdk();
     jest.spyOn(getClient()!.getTransport()!, 'send').mockImplementation(() => {

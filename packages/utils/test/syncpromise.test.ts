@@ -1,6 +1,10 @@
 import { SyncPromise, rejectedSyncPromise, resolvedSyncPromise } from '../src/syncpromise';
 
 describe('SyncPromise', () => {
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
   test('simple', async () => {
     expect.assertions(1);
 
@@ -120,7 +124,7 @@ describe('SyncPromise', () => {
   });
 
   test('with setTimeout', async () => {
-    jest.useFakeTimers({ legacyFakeTimers: true });
+    jest.useFakeTimers();
     expect.assertions(1);
 
     return new SyncPromise<number>(resolve => {
@@ -146,7 +150,7 @@ describe('SyncPromise', () => {
   });
 
   test('calling the callback not immediatly', () => {
-    jest.useFakeTimers({ legacyFakeTimers: true });
+    jest.useFakeTimers();
     expect.assertions(4);
 
     const qp = new SyncPromise<number>(resolve =>

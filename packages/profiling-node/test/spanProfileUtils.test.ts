@@ -75,12 +75,12 @@ const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 describe('automated span instrumentation', () => {
   beforeEach(() => {
-    jest.useRealTimers();
     // We will mock the carrier as if it has been initialized by the SDK, else everything is short circuited
     getMainCarrier().__SENTRY__ = {};
     GLOBAL_OBJ._sentryDebugIds = undefined as any;
   });
   afterEach(() => {
+    jest.useRealTimers();
     jest.clearAllMocks();
     jest.restoreAllMocks();
     delete getMainCarrier().__SENTRY__;
@@ -385,8 +385,15 @@ describe('automated span instrumentation', () => {
 });
 
 describe('continuous profiling', () => {
-  beforeEach(() => {
+  beforeAll(() => {
     jest.useFakeTimers();
+  });
+
+  afterAll(() => {
+    jest.useRealTimers();
+  });
+
+  beforeEach(() => {
     // We will mock the carrier as if it has been initialized by the SDK, else everything is short circuited
     getMainCarrier().__SENTRY__ = {};
     GLOBAL_OBJ._sentryDebugIds = undefined as any;

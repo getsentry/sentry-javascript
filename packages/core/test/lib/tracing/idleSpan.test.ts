@@ -21,9 +21,15 @@ import { TRACING_DEFAULTS, startIdleSpan } from '../../../src/tracing/idleSpan';
 const dsn = 'https://123@sentry.io/42';
 
 describe('startIdleSpan', () => {
-  beforeEach(() => {
-    jest.useFakeTimers({ legacyFakeTimers: true });
+  beforeAll(() => {
+    jest.useFakeTimers();
+  });
 
+  afterAll(() => {
+    jest.useRealTimers();
+  });
+
+  beforeEach(() => {
     getCurrentScope().clear();
     getIsolationScope().clear();
     getGlobalScope().clear();

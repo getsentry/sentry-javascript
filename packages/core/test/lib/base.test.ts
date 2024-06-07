@@ -58,6 +58,7 @@ jest.mock('@sentry/utils', () => {
 
 describe('BaseClient', () => {
   beforeEach(() => {
+    jest.useFakeTimers();
     TestClient.sendEventCalled = undefined;
     TestClient.instance = undefined;
     clearGlobalScope();
@@ -67,8 +68,8 @@ describe('BaseClient', () => {
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
     jest.useRealTimers();
+    jest.clearAllMocks();
   });
 
   describe('constructor() / getDsn()', () => {
@@ -1195,7 +1196,6 @@ describe('BaseClient', () => {
     });
 
     test('calls async `beforeSend` and uses original event without any changes', done => {
-      jest.useFakeTimers({ legacyFakeTimers: true });
       expect.assertions(2);
 
       const beforeSend = jest.fn(
@@ -1225,7 +1225,6 @@ describe('BaseClient', () => {
     });
 
     test('calls async `beforeSendTransaction` and uses original event without any changes', done => {
-      jest.useFakeTimers({ legacyFakeTimers: true });
       expect.assertions(2);
 
       const beforeSendTransaction = jest.fn(
@@ -1255,7 +1254,6 @@ describe('BaseClient', () => {
     });
 
     test('calls async `beforeSend` and uses the modified event', done => {
-      jest.useFakeTimers({ legacyFakeTimers: true });
       expect.assertions(2);
 
       const beforeSend = jest.fn(async event => {
@@ -1285,7 +1283,6 @@ describe('BaseClient', () => {
     });
 
     test('calls async `beforeSendTransaction` and uses the modified event', done => {
-      jest.useFakeTimers({ legacyFakeTimers: true });
       expect.assertions(2);
 
       const beforeSendTransaction = jest.fn(async event => {
@@ -1315,7 +1312,6 @@ describe('BaseClient', () => {
     });
 
     test('calls async `beforeSend` and discards the event', () => {
-      jest.useFakeTimers({ legacyFakeTimers: true });
       expect.assertions(2);
 
       const beforeSend = jest.fn(
@@ -1337,7 +1333,6 @@ describe('BaseClient', () => {
     });
 
     test('calls async `beforeSendTransaction` and discards the event', () => {
-      jest.useFakeTimers({ legacyFakeTimers: true });
       expect.assertions(2);
 
       const beforeSendTransaction = jest.fn(
@@ -1773,14 +1768,6 @@ describe('BaseClient', () => {
   });
 
   describe('sendEvent', () => {
-    beforeEach(() => {
-      jest.useFakeTimers({ legacyFakeTimers: true });
-    });
-
-    afterEach(() => {
-      jest.useRealTimers();
-    });
-
     it('emits `afterSendEvent` when sending an error', async () => {
       const client = new TestClient(
         getDefaultTestClientOptions({

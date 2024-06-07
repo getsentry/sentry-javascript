@@ -20,6 +20,8 @@ module.exports = {
   },
   testPathIgnorePatterns: ['<rootDir>/build/', '<rootDir>/node_modules/'],
 
+  setupFilesAfterEnv: [`${__dirname}/jest.setup.js`],
+
   // On CI, we do not need the pretty CLI output, as it makes logs harder to parse
   ...(process.env.CI
     ? {
