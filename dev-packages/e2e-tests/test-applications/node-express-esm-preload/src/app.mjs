@@ -31,11 +31,9 @@ app.get('/http-req', function (req, res) {
     .request('http://example.com', httpRes => {
       let data = '';
       httpRes.on('data', d => {
-        // we don't care about data
         data += d;
       });
       httpRes.on('end', () => {
-        // span.end();
         res.status(200).send(data).end();
       });
     })
@@ -59,7 +57,6 @@ async function run() {
     dsn: process.env.E2E_TEST_DSN,
     tunnel: `http://localhost:3031/`, // proxy server
     tracesSampleRate: 1,
-    debug: true,
   });
 
   app.listen(port, () => {
