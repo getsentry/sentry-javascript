@@ -232,7 +232,7 @@ export const ReplayRecordingData = [
       tag: 'performanceSpan',
       payload: {
         op: 'web-vital',
-        description: 'culmulative-layout-shift',
+        description: 'cumulative-layout-shift',
         startTimestamp: expect.any(Number),
         endTimestamp: expect.any(Number),
         data: {

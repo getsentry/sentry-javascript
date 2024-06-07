@@ -152,6 +152,7 @@ describe('Unit | util | createPerformanceEntries', () => {
     it('works with an CLS metric', async () => {
       const metric = {
         value: 5108.299,
+        rating: 'good' as const,
         entries: [],
       };
 
@@ -171,6 +172,7 @@ describe('Unit | util | createPerformanceEntries', () => {
     it('works with an FID metric', async () => {
       const metric = {
         value: 5108.299,
+        rating: 'good' as const,
         entries: [],
       };
 
@@ -190,6 +192,7 @@ describe('Unit | util | createPerformanceEntries', () => {
     it('works with an INP metric', async () => {
       const metric = {
         value: 5108.299,
+        rating: 'good' as const,
         entries: [],
       };
 
