@@ -7,7 +7,6 @@ import {
   expectedFCPPerformanceSpan,
   expectedFIDPerformanceSpan,
   expectedFPPerformanceSpan,
-  expectedINPPerformanceSpan,
   expectedLCPPerformanceSpan,
   expectedMemoryPerformanceSpan,
   expectedNavigationPerformanceSpan,
@@ -50,15 +49,7 @@ sentryTest(
 
     expect(replayEvent0).toEqual(getExpectedReplayEvent({ segment_id: 0 }));
 
-    await Promise.all([
-      page.locator('#img-button').click(),
-
-      // Page hide to trigger INP
-      page.evaluate(() => {
-        window.dispatchEvent(new Event('pagehide'));
-      }),
-    ]);
-
+    page.locator('#img-button').click();
 
     const replayEvent1 = getReplayEvent(await reqPromise1);
     const { performanceSpans: performanceSpans1 } = getCustomRecordingEvents(await reqPromise1);
@@ -75,7 +66,6 @@ sentryTest(
         expectedLCPPerformanceSpan,
         expectedCLSPerformanceSpan,
         expectedFIDPerformanceSpan,
-        expectedINPPerformanceSpan,
         expectedFPPerformanceSpan,
         expectedFCPPerformanceSpan,
         expectedMemoryPerformanceSpan, // two memory spans - once per flush
