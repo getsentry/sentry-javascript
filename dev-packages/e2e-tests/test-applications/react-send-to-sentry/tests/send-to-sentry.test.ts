@@ -160,6 +160,8 @@ test('Sends a Replay recording to Sentry', async ({ browser }) => {
     window.dispatchEvent(new Event('pagehide'));
   });
 
+  await page.waitForTimeout(500);
+
   // Wait for replay to be sent
 
   if (replayId === undefined) {
