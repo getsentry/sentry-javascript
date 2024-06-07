@@ -983,7 +983,7 @@ jobs:
       PUBLIC_E2E_TEST_DSN: ${{ secrets.E2E_TEST_DSN }}
       REACT_APP_E2E_TEST_DSN: ${{ secrets.E2E_TEST_DSN }}
       E2E_TEST_SENTRY_ORG_SLUG: 'sentry-javascript-sdks'
-      E2E_TEST_SENTRY_TEST_PROJECT: 'sentry-javascript-e2e-tests'
+      E2E_TEST_SENTRY_PROJECT: 'sentry-javascript-e2e-tests'
     strategy:
       fail-fast: false
       matrix:
@@ -993,6 +993,7 @@ jobs:
           [
             'angular-17',
             'angular-18',
+            'aws-lambda-layer',
             'cloudflare-astro',
             'node-express',
             'create-react-app',
@@ -1012,7 +1013,8 @@ jobs:
             'react-create-hash-router',
             'react-router-6-use-routes',
             'react-router-5',
-            'standard-frontend-react',
+            'react-router-6',
+            'solidjs',
             'svelte-5',
             'sveltekit',
             'sveltekit-2',
@@ -1039,9 +1041,9 @@ jobs:
           - test-application: 'create-react-app'
             build-command: 'test:build-ts3.8'
             label: 'create-react-app (TS 3.8)'
-          - test-application: 'standard-frontend-react'
+          - test-application: 'react-router-6'
             build-command: 'test:build-ts3.8'
-            label: 'standard-frontend-react (TS 3.8)'
+            label: 'react-router-6 (TS 3.8)'
           - test-application: 'create-next-app'
             build-command: 'test:build-13'
             label: 'create-next-app (next@13)'
@@ -1057,7 +1059,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ env.HEAD_COMMIT }}
-      - uses: pnpm/action-setup@v2
+      - uses: pnpm/action-setup@v4
         with:
           version: 8.3.1
       - name: Set up Node
@@ -1132,7 +1134,7 @@ jobs:
       PUBLIC_E2E_TEST_DSN: ${{ secrets.E2E_TEST_DSN }}
       REACT_APP_E2E_TEST_DSN: ${{ secrets.E2E_TEST_DSN }}
       E2E_TEST_SENTRY_ORG_SLUG: 'sentry-javascript-sdks'
-      E2E_TEST_SENTRY_TEST_PROJECT: 'sentry-javascript-e2e-tests'
+      E2E_TEST_SENTRY_PROJECT: 'sentry-javascript-e2e-tests'
     strategy:
       fail-fast: false
       matrix:
@@ -1154,7 +1156,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ env.HEAD_COMMIT }}
-      - uses: pnpm/action-setup@v2
+      - uses: pnpm/action-setup@v4
         with:
           version: 8.3.1
       - name: Set up Node
@@ -1219,7 +1221,7 @@ jobs:
       E2E_TEST_AUTH_TOKEN: ${{ secrets.E2E_TEST_AUTH_TOKEN }}
       E2E_TEST_DSN: ${{ secrets.E2E_TEST_DSN }}
       E2E_TEST_SENTRY_ORG_SLUG: 'sentry-javascript-sdks'
-      E2E_TEST_SENTRY_TEST_PROJECT: 'sentry-javascript-e2e-tests'
+      E2E_TEST_SENTRY_PROJECT: 'sentry-javascript-e2e-tests'
     strategy:
       fail-fast: false
       matrix:
@@ -1233,7 +1235,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ env.HEAD_COMMIT }}
-      - uses: pnpm/action-setup@v2
+      - uses: pnpm/action-setup@v4
         with:
           version: 8.3.1
       - name: Set up Node

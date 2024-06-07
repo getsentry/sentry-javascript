@@ -1,7 +1,5 @@
 import type { Context, Span, SpanContext, SpanOptions, Tracer } from '@opentelemetry/api';
-import { TraceFlags } from '@opentelemetry/api';
-import { context } from '@opentelemetry/api';
-import { SpanStatusCode, trace } from '@opentelemetry/api';
+import { INVALID_SPANID, SpanStatusCode, TraceFlags, context, trace } from '@opentelemetry/api';
 import { suppressTracing } from '@opentelemetry/core';
 import {
   SDK_VERSION,
@@ -228,7 +226,7 @@ function getContext(scope: Scope | undefined, forceTransaction: boolean | undefi
 
   const traceState = makeTraceState({
     dsc,
-    parentSpanId: spanId,
+    parentSpanId: spanId !== INVALID_SPANID ? spanId : undefined,
     sampled,
   });
 

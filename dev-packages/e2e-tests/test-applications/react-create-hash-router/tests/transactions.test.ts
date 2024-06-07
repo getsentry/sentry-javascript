@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '@sentry-internal/event-proxy-server';
+import { waitForTransaction } from '@sentry-internal/test-utils';
 
 test('Captures a pageload transaction', async ({ page }) => {
   const transactionEventPromise = waitForTransaction('react-create-hash-router', event => {
@@ -10,16 +10,19 @@ test('Captures a pageload transaction', async ({ page }) => {
 
   const transactionEvent = await transactionEventPromise;
   expect(transactionEvent.contexts?.trace).toEqual({
-    data: expect.objectContaining({
+    data: {
       deviceMemory: expect.any(String),
       effectiveConnectionType: expect.any(String),
       hardwareConcurrency: expect.any(String),
+      'lcp.element': 'body > div#root > input#exception-button[type="button"]',
+      'lcp.id': 'exception-button',
+      'lcp.size': 1650,
       'sentry.idle_span_finish_reason': 'idleTimeout',
       'sentry.op': 'pageload',
       'sentry.origin': 'auto.pageload.react.reactrouter_v6',
       'sentry.sample_rate': 1,
       'sentry.source': 'route',
-    }),
+    },
     op: 'pageload',
     span_id: expect.any(String),
     trace_id: expect.any(String),
@@ -42,20 +45,6 @@ test('Captures a pageload transaction', async ({ page }) => {
       'sentry.op': 'browser',
     },
     description: 'domContentLoadedEvent',
-    op: 'browser',
-    parent_span_id: expect.any(String),
-    span_id: expect.any(String),
-    start_timestamp: expect.any(Number),
-    timestamp: expect.any(Number),
-    trace_id: expect.any(String),
-    origin: 'auto.ui.browser.metrics',
-  });
-  expect(transactionEvent.spans).toContainEqual({
-    data: {
-      'sentry.origin': 'auto.ui.browser.metrics',
-      'sentry.op': 'browser',
-    },
-    description: 'loadEvent',
     op: 'browser',
     parent_span_id: expect.any(String),
     span_id: expect.any(String),

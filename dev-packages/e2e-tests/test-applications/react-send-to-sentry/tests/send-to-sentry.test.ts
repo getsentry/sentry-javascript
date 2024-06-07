@@ -5,7 +5,7 @@ const EVENT_POLLING_TIMEOUT = 90_000;
 
 const authToken = process.env.E2E_TEST_AUTH_TOKEN;
 const sentryTestOrgSlug = process.env.E2E_TEST_SENTRY_ORG_SLUG;
-const sentryTestProject = process.env.E2E_TEST_SENTRY_TEST_PROJECT;
+const sentryTestProject = process.env.E2E_TEST_SENTRY_PROJECT;
 
 test('Sends an exception to Sentry', async ({ page }) => {
   await page.goto('/');
@@ -90,7 +90,7 @@ test('Sends a navigation transaction to Sentry', async ({ page }) => {
   await page.goto('/');
 
   // Give pageload transaction time to finish
-  page.waitForTimeout(4000);
+  await page.waitForTimeout(4000);
 
   const linkElement = page.locator('id=navigation');
   await linkElement.click();

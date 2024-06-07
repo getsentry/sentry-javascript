@@ -22,7 +22,7 @@ module.exports = [
     path: 'packages/browser/build/npm/esm/index.js',
     import: createImport('init', 'browserTracingIntegration', 'replayIntegration'),
     gzip: true,
-    limit: '70 KB',
+    limit: '71 KB',
   },
   {
     name: '@sentry/browser (incl. Tracing, Replay) - with treeshaking flags',
@@ -211,7 +211,24 @@ module.exports = [
     import: createImport('init'),
     ignore: [...builtinModules, ...nodePrefixedBuiltinModules],
     gzip: true,
-    limit: '180 KB',
+    limit: '135 KB',
+  },
+  {
+    name: '@sentry/node - without tracing',
+    path: 'packages/node/build/esm/index.js',
+    import: createImport('initWithoutDefaultIntegrations', 'getDefaultIntegrationsWithoutPerformance'),
+    gzip: true,
+    limit: '110 KB',
+    ignore: [...builtinModules, ...nodePrefixedBuiltinModules],
+    modifyWebpackConfig: function (config) {
+      const webpack = require('webpack');
+      config.plugins.push(
+        new webpack.DefinePlugin({
+          __SENTRY_TRACING__: false,
+        }),
+      );
+      return config;
+    },
   },
   // AWS SDK (ESM)
   {
@@ -220,7 +237,7 @@ module.exports = [
     import: createImport('init'),
     ignore: [...builtinModules, ...nodePrefixedBuiltinModules],
     gzip: true,
-    limit: '140 KB',
+    limit: '125 KB',
   },
 ];
 

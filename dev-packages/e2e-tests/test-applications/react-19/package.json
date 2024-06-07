@@ -47,8 +47,8 @@
     ]
   },
   "devDependencies": {
-    "@playwright/test": "^1.43.1",
-    "@sentry-internal/event-proxy-server": "link:../../../event-proxy-server",
+    "@playwright/test": "^1.44.1",
+    "@sentry-internal/test-utils": "link:../../../test-utils",
     "serve": "14.0.1"
   },
   "volta": {

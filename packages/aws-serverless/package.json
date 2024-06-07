@@ -47,6 +47,7 @@
       }
     },
     "./dist/awslambda-auto": {
+      "//": "@deprecated Use `./awslambda-auto` instead",
       "require": {
         "default": "./build/npm/cjs/awslambda-auto.js"
       }
@@ -63,8 +64,8 @@
     "access": "public"
   },
   "dependencies": {
-    "@opentelemetry/instrumentation-aws-lambda": "0.41.1",
-    "@opentelemetry/instrumentation-aws-sdk": "0.41.0",
+    "@opentelemetry/instrumentation-aws-lambda": "0.42.0",
+    "@opentelemetry/instrumentation-aws-sdk": "0.42.0",
     "@sentry/core": "8.7.0",
     "@sentry/node": "8.7.0",
     "@sentry/types": "8.7.0",
@@ -76,9 +77,10 @@
   },
   "scripts": {
     "build": "run-p build:transpile build:types build:bundle",
-    "build:bundle": "yarn ts-node scripts/buildLambdaLayer.ts",
+    "build:bundle": "yarn build:layer",
+    "build:layer": "yarn ts-node scripts/buildLambdaLayer.ts",
     "build:dev": "run-p build:transpile build:types",
-    "build:transpile": "rollup -c rollup.npm.config.mjs",
+    "build:transpile": "rollup -c rollup.npm.config.mjs && yarn build:layer",
     "build:types": "run-s build:types:core build:types:downlevel",
     "build:types:core": "tsc -p tsconfig.types.json",
     "build:types:downlevel": "yarn downlevel-dts build/npm/types build/npm/types-ts3.8 --to ts3.8",

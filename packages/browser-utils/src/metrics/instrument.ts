@@ -225,12 +225,17 @@ function instrumentFid(): void {
 }
 
 function instrumentLcp(): StopListening {
-  return onLCP(metric => {
-    triggerHandlers('lcp', {
-      metric,
-    });
-    _previousLcp = metric;
-  });
+  return onLCP(
+    metric => {
+      triggerHandlers('lcp', {
+        metric,
+      });
+      _previousLcp = metric;
+    },
+    // We want the callback to be called whenever the LCP value updates.
+    // By default, the callback is only called when the tab goes to the background.
+    { reportAllChanges: true },
+  );
 }
 
 function instrumentTtfb(): StopListening {

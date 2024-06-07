@@ -44,14 +44,16 @@
   "dependencies": {
     "@sentry/browser": "8.7.0",
     "@sentry/core": "8.7.0",
-    "@sentry/types": "8.7.0"
+    "@sentry/types": "8.7.0",
+    "@sentry/utils": "8.7.0"
   },
   "peerDependencies": {
-    "solid-js": "1.8.x"
+    "solid-js": "^1.8.4"
   },
   "devDependencies": {
     "@solidjs/testing-library": "0.8.5",
-    "solid-js": "1.8.11",
+    "@solidjs/router": "^0.13.5",
+    "solid-js": "^1.8.11",
     "vite-plugin-solid": "^2.8.2"
   },
   "scripts": {

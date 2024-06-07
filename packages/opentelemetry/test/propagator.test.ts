@@ -616,6 +616,7 @@ describe('SentryPropagator', () => {
         spanId: expect.any(String),
         traceFlags: TraceFlags.NONE,
         traceId: expect.any(String),
+        traceState: makeTraceState({}),
       });
       expect(getSamplingDecision(trace.getSpanContext(context)!)).toBe(undefined);
     });
@@ -681,6 +682,7 @@ describe('SentryPropagator', () => {
         spanId: expect.any(String),
         traceFlags: TraceFlags.NONE,
         traceId: expect.any(String),
+        traceState: makeTraceState({}),
       });
       expect(getSamplingDecision(trace.getSpanContext(context)!)).toBe(undefined);
     });
@@ -693,6 +695,7 @@ describe('SentryPropagator', () => {
         spanId: expect.any(String),
         traceFlags: TraceFlags.NONE,
         traceId: expect.any(String),
+        traceState: makeTraceState({}),
       });
     });
   });
