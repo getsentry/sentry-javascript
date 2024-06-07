@@ -22,10 +22,16 @@ import { startInactiveSpan, startSpan } from '../../src/trace';
 import type { TestClientInterface } from '../helpers/TestClient';
 import { cleanupOtel, getProvider, mockSdkInit } from '../helpers/mockSdkInit';
 
+// This is needed for `jest.useFakeTimers` to work
+// See: https://stackoverflow.com/questions/77694957/typeerror-cannot-assign-to-read-only-property-performance-of-object-object
+Object.defineProperty(global, 'performance', {
+  writable: true,
+});
+
 describe('Integration | Transactions', () => {
   afterEach(() => {
-    jest.restoreAllMocks();
     jest.useRealTimers();
+    jest.restoreAllMocks();
     cleanupOtel();
   });
 
@@ -446,7 +452,7 @@ describe('Integration | Transactions', () => {
     const beforeSendTransaction = jest.fn(() => null);
 
     const now = Date.now();
-    jest.useFakeTimers({ legacyFakeTimers: true });
+    jest.useFakeTimers();
     jest.setSystemTime(now);
 
     const logs: unknown[] = [];
@@ -515,7 +521,7 @@ describe('Integration | Transactions', () => {
 
   it('includes child spans that are finished in the same tick but after their parent span', async () => {
     const now = Date.now();
-    jest.useFakeTimers({ legacyFakeTimers: true });
+    jest.useFakeTimers();
     jest.setSystemTime(now);
 
     const logs: unknown[] = [];
@@ -566,7 +572,7 @@ describe('Integration | Transactions', () => {
 
   it('discards child spans that are finished after their parent span', async () => {
     const now = Date.now();
-    jest.useFakeTimers({ legacyFakeTimers: true });
+    jest.useFakeTimers();
     jest.setSystemTime(now);
 
     const logs: unknown[] = [];
