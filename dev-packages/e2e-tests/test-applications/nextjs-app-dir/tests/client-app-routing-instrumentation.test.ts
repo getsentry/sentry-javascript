@@ -4,7 +4,7 @@ import { waitForTransaction } from '@sentry-internal/test-utils';
 test('Creates a pageload transaction for app router routes', async ({ page }) => {
   const randomRoute = String(Math.random());
 
-  const clientPageloadTransactionPromise = waitForTransaction('nextjs-13-app-dir', transactionEvent => {
+  const clientPageloadTransactionPromise = waitForTransaction('nextjs-app-dir', transactionEvent => {
     return (
       transactionEvent?.transaction === `/server-component/parameter/${randomRoute}` &&
       transactionEvent.contexts?.trace?.op === 'pageload'
@@ -19,7 +19,7 @@ test('Creates a pageload transaction for app router routes', async ({ page }) =>
 test('Creates a navigation transaction for app router routes', async ({ page }) => {
   const randomRoute = String(Math.random());
 
-  const clientPageloadTransactionPromise = waitForTransaction('nextjs-13-app-dir', transactionEvent => {
+  const clientPageloadTransactionPromise = waitForTransaction('nextjs-app-dir', transactionEvent => {
     return (
       transactionEvent?.transaction === `/server-component/parameter/${randomRoute}` &&
       transactionEvent.contexts?.trace?.op === 'pageload'
@@ -30,14 +30,14 @@ test('Creates a navigation transaction for app router routes', async ({ page }) 
   await clientPageloadTransactionPromise;
   await page.getByText('Page (/server-component/parameter/[parameter])').isVisible();
 
-  const clientNavigationTransactionPromise = waitForTransaction('nextjs-13-app-dir', transactionEvent => {
+  const clientNavigationTransactionPromise = waitForTransaction('nextjs-app-dir', transactionEvent => {
     return (
       transactionEvent?.transaction === '/server-component/parameter/foo/bar/baz' &&
       transactionEvent.contexts?.trace?.op === 'navigation'
     );
   });
 
-  const serverComponentTransactionPromise = waitForTransaction('nextjs-13-app-dir', async transactionEvent => {
+  const serverComponentTransactionPromise = waitForTransaction('nextjs-app-dir', async transactionEvent => {
     return (
       transactionEvent?.transaction === 'Page Server Component (/server-component/parameter/[...parameters])' &&
       (await clientNavigationTransactionPromise).contexts?.trace?.trace_id ===

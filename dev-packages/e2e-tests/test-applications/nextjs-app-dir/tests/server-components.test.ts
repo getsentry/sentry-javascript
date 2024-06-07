@@ -1,16 +1,11 @@
 import { expect, test } from '@playwright/test';
 import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
 
-const authToken = process.env.E2E_TEST_AUTH_TOKEN;
-const sentryTestOrgSlug = process.env.E2E_TEST_SENTRY_ORG_SLUG;
-const sentryTestProject = process.env.E2E_TEST_SENTRY_PROJECT;
-const EVENT_POLLING_TIMEOUT = 90_000;
-
 test('Sends a transaction for a server component', async ({ page }) => {
   // TODO: Fix that this is flakey on dev server - might be an SDK bug
   test.skip(process.env.TEST_ENV === 'production', 'Flakey on dev-server');
 
-  const serverComponentTransactionPromise = waitForTransaction('nextjs-13-app-dir', transactionEvent => {
+  const serverComponentTransactionPromise = waitForTransaction('nextjs-app-dir', transactionEvent => {
     return (
       transactionEvent?.contexts?.trace?.op === 'function.nextjs' &&
       transactionEvent?.transaction === 'Page Server Component (/server-component/parameter/[...parameters])'
@@ -20,37 +15,51 @@ test('Sends a transaction for a server component', async ({ page }) => {
   await page.goto('/server-component/parameter/1337/42');
 
   const transactionEvent = await serverComponentTransactionPromise;
-  const transactionEventId = transactionEvent.event_id;
 
-  expect(transactionEvent.request?.headers).toBeDefined();
+  expect(transactionEvent.contexts?.trace).toEqual({
+    data: expect.objectContaining({
+      'sentry.op': 'function.nextjs',
+      'sentry.origin': 'auto.function.nextjs',
+      'sentry.sample_rate': 1,
+      'sentry.source': 'component',
+    }),
+    op: 'function.nextjs',
+    origin: 'auto.function.nextjs',
+    span_id: expect.any(String),
+    status: 'ok',
+    trace_id: expect.any(String),
+  });
 
-  await expect
-    .poll(
-      async () => {
-        const response = await fetch(
-          `https://sentry.io/api/0/projects/${sentryTestOrgSlug}/${sentryTestProject}/events/${transactionEventId}/`,
-          { headers: { Authorization: `Bearer ${authToken}` } },
-        );
-        return response.status;
+  expect(transactionEvent).toEqual(
+    expect.objectContaining({
+      request: {
+        cookies: {},
+        headers: expect.any(Object),
+        url: 'http://localhost:3030',
       },
-      {
-        timeout: EVENT_POLLING_TIMEOUT,
+      transaction: 'Page Server Component (/server-component/parameter/[...parameters])',
+      type: 'transaction',
+      transaction_info: {
+        source: 'component',
       },
-    )
-    .toBe(200);
+      spans: [],
+    }),
+  );
 });
 
 test('Should not set an error status on a server component transaction when it redirects', async ({ page }) => {
   // TODO: Fix that this is flakey on dev server - might be an SDK bug
   test.skip(process.env.TEST_ENV === 'production', 'Flakey on dev-server');
 
-  const serverComponentTransactionPromise = waitForTransaction('nextjs-13-app-dir', async transactionEvent => {
+  const serverComponentTransactionPromise = waitForTransaction('nextjs-app-dir', async transactionEvent => {
     return transactionEvent?.transaction === 'Page Server Component (/server-component/redirect)';
   });
 
   await page.goto('/server-component/redirect');
 
-  expect((await serverComponentTransactionPromise).contexts?.trace?.status).not.toBe('internal_error');
+  const transactionEvent = await serverComponentTransactionPromise;
+
+  expect(transactionEvent.contexts?.trace?.status).not.toBe('internal_error');
 });
 
 test('Should set a "not_found" status on a server component transaction when notFound() is called', async ({
@@ -59,21 +68,23 @@ test('Should set a "not_found" status on a server component transaction when not
   // TODO: Fix that this is flakey on dev server - might be an SDK bug
   test.skip(process.env.TEST_ENV === 'production', 'Flakey on dev-server');
 
-  const serverComponentTransactionPromise = waitForTransaction('nextjs-13-app-dir', async transactionEvent => {
+  const serverComponentTransactionPromise = waitForTransaction('nextjs-app-dir', async transactionEvent => {
     return transactionEvent?.transaction === 'Page Server Component (/server-component/not-found)';
   });
 
   await page.goto('/server-component/not-found');
 
-  expect((await serverComponentTransactionPromise).contexts?.trace?.status).toBe('not_found');
+  const transactionEvent = await serverComponentTransactionPromise;
+
+  expect(transactionEvent.contexts?.trace?.status).toBe('not_found');
 });
 
 test('Should capture an error and transaction with correct status for a faulty server component', async ({ page }) => {
-  const transactionEventPromise = waitForTransaction('nextjs-13-app-dir', async transactionEvent => {
+  const transactionEventPromise = waitForTransaction('nextjs-app-dir', async transactionEvent => {
     return transactionEvent?.transaction === 'Page Server Component (/server-component/faulty)';
   });
 
-  const errorEventPromise = waitForError('nextjs-13-app-dir', errorEvent => {
+  const errorEventPromise = waitForError('nextjs-app-dir', errorEvent => {
     return errorEvent?.exception?.values?.[0]?.value === 'I am a faulty server component';
   });
 
