@@ -192,7 +192,7 @@ export function getLargestContentfulPaint(metric: Metric): ReplayPerformanceEntr
 export function getCumulativeLayoutShift(metric: Metric): ReplayPerformanceEntry<WebVitalData> {
   // get first node that shifts
   const firstEntry = metric.entries[0] as (PerformanceEntry & { sources?: LayoutShiftAttribution[] }) | undefined;
-  const node = firstEntry ? firstEntry.sources ? firstEntry.sources[0].node : undefined : undefined;
+  const node = firstEntry ? (firstEntry.sources ? firstEntry.sources[0].node : undefined) : undefined;
   return getWebVital(metric, 'cumulative-layout-shift', node);
 }
 
