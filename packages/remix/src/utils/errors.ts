@@ -3,7 +3,6 @@ import {
   captureException,
   getActiveSpan,
   getClient,
-  getCurrentScope,
   getRootSpan,
   handleCallbackErrors,
   spanToJSON,
@@ -25,12 +24,15 @@ import { normalizeRemixRequest } from './web-fetch';
  *
  * @returns A promise that resolves when the exception is captured.
  */
-export async function captureRemixServerException(err: unknown, name: string, request: Request): Promise<void> {
-  const { IS_REMIX_V2 } = getCurrentScope().getScopeData().sdkProcessingMetadata;
-
+export async function captureRemixServerException(
+  err: unknown,
+  name: string,
+  request: Request,
+  isRemixV2: boolean = true,
+): Promise<void> {
   // Skip capturing if the thrown error is not a 5xx response
   // https://remix.run/docs/en/v1/api/conventions#throwing-responses-in-loaders
-  if (IS_REMIX_V2 && isRouteErrorResponse(err) && err.status < 500) {
+  if (isRemixV2 && isRouteErrorResponse(err) && err.status < 500) {
     return;
   }
 
@@ -116,7 +118,7 @@ export function errorHandleDocumentRequestFunction(
       // We also skip primitives here, as we can't dedupe them, and also we don't expect any primitive SSR errors.
       if (!isRemixV2 && !isPrimitive(err)) {
         // eslint-disable-next-line @typescript-eslint/no-floating-promises
-        captureRemixServerException(err, 'documentRequest', request);
+        captureRemixServerException(err, 'documentRequest', request, isRemixV2);
       }
 
       throw err;

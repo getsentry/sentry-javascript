@@ -1,3 +1,7 @@
+if (process.env.USE_OTEL !== '1') {
+  require('../instrument.server.cjs');
+}
+
 import type { EntryContext } from '@remix-run/node';
 import { RemixServer } from '@remix-run/react';
 import { renderToString } from 'react-dom/server';

@@ -57,7 +57,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@opentelemetry/instrumentation-http": "0.51.1",
+    "@opentelemetry/instrumentation-http": "0.52.0",
     "@remix-run/router": "1.x",
     "@sentry/cli": "^2.32.1",
     "@sentry/core": "8.9.2",

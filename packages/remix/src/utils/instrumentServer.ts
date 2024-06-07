@@ -4,9 +4,10 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   getActiveSpan,
-  getGlobalScope,
+  getClient,
   getRootSpan,
   hasTracingEnabled,
+  setHttpStatus,
   spanToJSON,
   spanToTraceHeader,
   startSpan,
@@ -34,6 +35,7 @@ import type {
   RemixRequest,
   RequestHandler,
   ServerBuild,
+  ServerRoute,
   ServerRouteManifest,
 } from './vendor/types';
 import { normalizeRemixRequest } from './web-fetch';
@@ -171,7 +173,7 @@ function makeWrappedDataFunction(
           op: `function.remix.${name}`,
           name: id,
           attributes: {
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.remix',
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.remix',
             name,
           },
         },
@@ -268,6 +270,11 @@ function wrapRequestHandler(
   build: ServerBuild | (() => ServerBuild | Promise<ServerBuild>),
   autoInstrumentRemix: boolean,
 ): RequestHandler {
+  let resolvedBuild: ServerBuild;
+  let routes: ServerRoute[];
+  let name: string;
+  let source: TransactionSource;
+
   return async function (this: unknown, request: RemixRequest, loadContext?: AppLoadContext): Promise<Response> {
     const upperCaseMethod = request.method.toUpperCase();
     // We don't want to wrap OPTIONS and HEAD requests
@@ -275,26 +282,19 @@ function wrapRequestHandler(
       return origRequestHandler.call(this, request, loadContext);
     }
 
-    let name: string;
-    let source: TransactionSource;
-
     if (!autoInstrumentRemix) {
-      let resolvedBuild: ServerBuild;
-
       if (typeof build === 'function') {
         resolvedBuild = await build();
       } else {
         resolvedBuild = build;
       }
 
-      const routes = createRoutes(resolvedBuild.routes);
-
-      // const routes = createRoutes(build.routes);
-      const url = new URL(request.url);
-      [name, source] = getTransactionName(routes, url);
+      routes = createRoutes(resolvedBuild.routes);
     }
 
     return withIsolationScope(async isolationScope => {
+      const options = getClient()?.getOptions();
+
       let normalizedRequest: Record<string, unknown> = request;
 
       try {
@@ -302,11 +302,26 @@ function wrapRequestHandler(
       } catch (e) {
         DEBUG_BUILD && logger.warn('Failed to normalize Remix request');
       }
+
+      if (!autoInstrumentRemix) {
+        const url = new URL(request.url);
+        [name, source] = getTransactionName(routes, url);
+
+        isolationScope.setTransactionName(name);
+      }
+
       isolationScope.setSDKProcessingMetadata({
         request: {
           ...normalizedRequest,
+          route: {
+            path: name,
+          },
         },
       });
+
+      if (!options || !hasTracingEnabled(options)) {
+        return origRequestHandler.call(this, request, loadContext);
+      }
 
       return continueTrace(
         {
@@ -325,8 +340,14 @@ function wrapRequestHandler(
                   method: request.method,
                 },
               },
-              () => {
-                return origRequestHandler.call(this, request, loadContext);
+              async span => {
+                const res = (await origRequestHandler.call(this, request, loadContext)) as Response;
+
+                if (isResponse(res)) {
+                  setHttpStatus(span, res.status);
+                }
+
+                return res;
               },
             );
           }
@@ -340,15 +361,7 @@ function wrapRequestHandler(
 
 function instrumentBuildCallback(build: ServerBuild, autoInstrumentRemix: boolean): ServerBuild {
   const routes: ServerRouteManifest = {};
-
   const remixVersion = getRemixVersionFromBuild(build);
-
-  const globalScope = getGlobalScope();
-
-  globalScope.setSDKProcessingMetadata({
-    IS_REMIX_V2: remixVersion === 2,
-  });
-
   const wrappedEntry = { ...build.entry, module: { ...build.entry.module } };
 
   // Not keeping boolean flags like it's done for `requestHandler` functions,
