@@ -155,6 +155,11 @@ test('Sends a Replay recording to Sentry', async ({ browser }) => {
   // Keypress event ensures LCP is finished
   await page.type('body', 'Y');
 
+  // Page hide to trigger INP
+  await page.evaluate(() => {
+    window.dispatchEvent(new Event('pagehide'));
+  });
+
   // Wait for replay to be sent
 
   if (replayId === undefined) {

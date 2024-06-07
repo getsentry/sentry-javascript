@@ -52,6 +52,8 @@ sentryTest(
 
     await page.locator('#img-button').click();
 
+    await page.waitForTimeout(500);
+
     // Page hide to trigger INP
     await page.evaluate(() => {
       window.dispatchEvent(new Event('pagehide'));

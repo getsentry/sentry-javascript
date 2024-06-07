@@ -49,8 +49,11 @@ export interface Metric {
 /**
  * Handler creater for web vitals
  */
-export function webVitalHandler(getter: (metric: Metric) => ReplayPerformanceEntry<AllPerformanceEntryData>, replay: ReplayContainer): (data: { metric: Metric; }) => void {
-  return ({metric}) => void replay.replayPerformanceEntries.push(getter(metric));
+export function webVitalHandler(
+  getter: (metric: Metric) => ReplayPerformanceEntry<AllPerformanceEntryData>,
+  replay: ReplayContainer,
+): (data: { metric: Metric }) => void {
+  return ({ metric }) => void replay.replayPerformanceEntries.push(getter(metric));
 }
 
 /**
@@ -171,8 +174,7 @@ function createResourceEntry(
 /**
  * Add a LCP event to the replay based on a LCP metric.
  */
-export function getLargestContentfulPaint(metric: Metric
-): ReplayPerformanceEntry<WebVitalData> {
+export function getLargestContentfulPaint(metric: Metric): ReplayPerformanceEntry<WebVitalData> {
   return getWebVital(metric, 'largest-contentful-paint');
 }
 
@@ -200,10 +202,7 @@ export function getInteractionToNextPaint(metric: Metric): ReplayPerformanceEntr
 /**
  * Add an web vital event to the replay based on the web vital metric.
  */
-export function getWebVital(
-  metric: Metric,
-  name: string,
-): ReplayPerformanceEntry<WebVitalData> {
+export function getWebVital(metric: Metric, name: string): ReplayPerformanceEntry<WebVitalData> {
   const entries = metric.entries;
   const lastEntry = entries[entries.length - 1] as (PerformanceEntry & { element?: Element }) | undefined;
   const element = lastEntry ? lastEntry.element : undefined;
