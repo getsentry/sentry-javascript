@@ -154,6 +154,7 @@ export const expectedFIDPerformanceSpan = {
     value: expect.any(Number),
     rating: expect.any(String),
     size: expect.any(Number),
+    nodeId: expect.any(Number),
   },
 };
 
@@ -166,6 +167,7 @@ export const expectedINPPerformanceSpan = {
     value: expect.any(Number),
     rating: expect.any(String),
     size: expect.any(Number),
+    nodeId: expect.any(Number),
   },
 };
 

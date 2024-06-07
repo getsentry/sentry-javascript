@@ -175,38 +175,44 @@ function createResourceEntry(
  * Add a LCP event to the replay based on a LCP metric.
  */
 export function getLargestContentfulPaint(metric: Metric): ReplayPerformanceEntry<WebVitalData> {
-  return getWebVital(metric, 'largest-contentful-paint');
+  const lastEntry = metric.entries[metric.entries.length - 1] as (PerformanceEntry & { element?: Element }) | undefined;
+  const element = lastEntry ? lastEntry.element : undefined;
+  return getWebVital(metric, 'largest-contentful-paint', element);
 }
 
 /**
  * Add a CLS event to the replay based on a CLS metric.
  */
 export function getCumulativeLayoutShift(metric: Metric): ReplayPerformanceEntry<WebVitalData> {
-  return getWebVital(metric, 'cumulative-layout-shift');
+  return getWebVital(metric, 'cumulative-layout-shift', undefined);
 }
 
 /**
  * Add a FID event to the replay based on a FID metric.
  */
 export function getFirstInputDelay(metric: Metric): ReplayPerformanceEntry<WebVitalData> {
-  return getWebVital(metric, 'first-input-delay');
+  const lastEntry = metric.entries[metric.entries.length - 1] as (PerformanceEntry & { target?: Element }) | undefined;
+  const element = lastEntry ? lastEntry.target : undefined;
+  return getWebVital(metric, 'first-input-delay', element);
 }
 
 /**
  * Add an INP event to the replay based on an INP metric.
  */
 export function getInteractionToNextPaint(metric: Metric): ReplayPerformanceEntry<WebVitalData> {
-  return getWebVital(metric, 'interaction-to-next-paint');
+  const lastEntry = metric.entries[metric.entries.length - 1] as (PerformanceEntry & { target?: Element }) | undefined;
+  const element = lastEntry ? lastEntry.target : undefined;
+  return getWebVital(metric, 'interaction-to-next-paint', element);
 }
 
 /**
  * Add an web vital event to the replay based on the web vital metric.
  */
-export function getWebVital(metric: Metric, name: string): ReplayPerformanceEntry<WebVitalData> {
-  const entries = metric.entries;
-  const lastEntry = entries[entries.length - 1] as (PerformanceEntry & { element?: Element }) | undefined;
-  const element = lastEntry ? lastEntry.element : undefined;
-
+export function getWebVital(
+  metric: Metric,
+  name: string,
+  element: Element | undefined,
+): ReplayPerformanceEntry<WebVitalData> {
   const value = metric.value;
   const rating = metric.rating;
 
