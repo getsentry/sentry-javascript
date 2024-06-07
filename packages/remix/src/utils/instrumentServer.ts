@@ -15,6 +15,7 @@ import {
 } from '@sentry/core';
 import { continueTrace, getDynamicSamplingContextFromSpan } from '@sentry/opentelemetry';
 import type { TransactionSource, WrappedFunction } from '@sentry/types';
+import type { Span } from '@sentry/types';
 import { dynamicSamplingContextToSentryBaggageHeader, fill, isNodeEnv, loadModule, logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from './debug-build';
@@ -177,8 +178,8 @@ function makeWrappedDataFunction(
             name,
           },
         },
-        () => {
-          return errorHandleDataFunction.call(this, origFn, name, args, isRemixV2);
+        (span: Span) => {
+          return errorHandleDataFunction.call(this, origFn, name, args, isRemixV2, span);
         },
       );
     } else {

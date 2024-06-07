@@ -13,7 +13,7 @@ const config: PlaywrightTestConfig = {
   workers: process.env.CI ? 3 : undefined,
   webServer: {
     env: {
-      NODE_OPTIONS: '--require ./instrument.server.cjs',
+      NODE_OPTIONS: process.env.USE_OTEL === '1' ? '--require ./instrument.server.cjs' : '',
     },
     command: '(cd test/integration/ && yarn build && yarn start)',
     port: 3000,

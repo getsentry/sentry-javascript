@@ -7,6 +7,7 @@ import {
   handleCallbackErrors,
   spanToJSON,
 } from '@sentry/core';
+import type { Span } from '@sentry/types';
 import { addExceptionMechanism, isPrimitive, logger, objectify } from '@sentry/utils';
 import { DEBUG_BUILD } from './debug-build';
 import type { RemixOptions } from './remixOptions';
@@ -135,11 +136,10 @@ export async function errorHandleDataFunction(
   name: string,
   args: DataFunctionArgs,
   isRemixV2: boolean,
+  span?: Span,
 ): Promise<Response | AppData> {
   return handleCallbackErrors(
     async () => {
-      const span = getActiveSpan();
-
       if (name === 'action' && span) {
         const options = getClient()?.getOptions() as RemixOptions;
 

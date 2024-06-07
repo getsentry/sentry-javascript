@@ -7,13 +7,12 @@ describe('Remix API Actions', () => {
   it('correctly instruments a parameterized Remix API action', async () => {
     const env = await RemixTestEnv.init();
     const url = `${env.url}/action-json-response/123123`;
-    const envelopes = await env.getMultipleEnvelopeRequest({
+    const envelope = await env.getEnvelopeRequest({
       url,
       method: 'post',
       envelopeType: 'transaction',
-      count: 1,
     });
-    const transaction = envelopes[0][2];
+    const transaction = envelope[2];
 
     assertSentryTransaction(transaction, {
       transaction: `routes/action-json-response${useV2 ? '.' : '/'}$id`,
