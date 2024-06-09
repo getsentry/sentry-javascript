@@ -313,11 +313,17 @@ class ContinuousProfiler {
    * during a profiling session.
    */
   private _setupSpanChunkInstrumentation(): void {
+    if (!this._client) {
+      DEBUG_BUILD &&
+        logger.log('[Profiling] Failed to collect profile, sentry client was never attached to the profiler.');
+      return;
+    }
+
     getGlobalScope().setContext('profile', {
       profiler_id: this._profilerId,
-      ['thread.id']: PROFILER_THREAD_ID_STRING,
-      ['thread.name']: PROFILER_THREAD_NAME,
     });
+
+    this._client.on('beforeSendEvent', this._assignThreadIdContext);
   }
 
   /**
@@ -337,6 +343,28 @@ class ContinuousProfiler {
       startTraceID: traceId,
       startTimestampMS: timestampInSeconds(),
       timer: undefined,
+    };
+  }
+
+  /**
+   * Assigns thread_id and thread name context to a profiled event.
+   */
+  private _assignThreadIdContext(event: any): any {
+    if (!event.contexts?.profile) {
+      return;
+    }
+
+    if (!event.contexts) {
+      return;
+    }
+
+    event.contexts.trace = {
+      ...(event.contexts.trace ?? {}),
+      data: {
+        ...event.contexts.trace?.data,
+        ['thread.id']: PROFILER_THREAD_ID_STRING,
+        ['thread.name']: PROFILER_THREAD_NAME,
+      },
     };
   }
 

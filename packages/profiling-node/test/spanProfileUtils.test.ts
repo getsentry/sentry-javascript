@@ -322,7 +322,6 @@ describe('automated span instrumentation', () => {
     transaction.end();
     expect(stopProfilingSpy).toHaveBeenCalledTimes(1);
   });
-
   it('enriches profile with debug_id', async () => {
     GLOBAL_OBJ._sentryDebugIds = {
       'Error\n    at filename.js (filename.js:36:15)': 'aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaa',
@@ -603,10 +602,14 @@ describe('continuous profiling', () => {
 
     expect(transportSpy.mock.calls?.[1]?.[0]?.[1]?.[0]?.[1]).toMatchObject({
       contexts: {
+        trace: {
+          data: expect.objectContaining({
+            ['thread.id']: expect.any(String),
+            ['thread.name']: expect.any(String),
+          })
+        },
         profile: {
           profiler_id: expect.any(String),
-          ['thread.id']: expect.any(String),
-          ['thread.name']: expect.any(String),
         },
       },
     });
