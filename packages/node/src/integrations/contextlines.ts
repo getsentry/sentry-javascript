@@ -29,21 +29,20 @@ export function resetFileContentCache(): void {
 
 /**
  * Determines if context lines should be skipped for a file.
- * - .min.js files are and not useful since they dont point to the original source
+ * - .min.(mjs|cjs|js) files are and not useful since they dont point to the original source
  * - node: prefixed modules are part of the runtime and cannot be resolved to a file
+ * - data: skip json, wasm and inline js https://nodejs.org/api/esm.html#data-imports
  */
+const SKIP_CONTEXTLINES_REGEXP = /^(node|data):|\.min\.(mjs|cjs|js$)/;
 function shouldSkipContextLinesForFile(path: string): boolean {
-  return path.endsWith('.min.js') || path.startsWith('node:');
+  return SKIP_CONTEXTLINES_REGEXP.test(path);
 }
 /**
  * Checks if we have all the contents that we need in the cache.
  */
 function rangeExistsInContentCache(file: string, range: ReadlineRange): boolean {
   const contents = LRU_FILE_CONTENTS_CACHE.get(file);
-
-  if (!contents) {
-    return false;
-  }
+  if (!contents) return false;
 
   for (let i = range[0]; i <= range[1]; i++) {
     if (!contents[i]) {
