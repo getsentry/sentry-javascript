@@ -1,5 +1,5 @@
 {
-  "name": "solidjs",
+  "name": "solid",
   "version": "0.0.0",
   "description": "",
   "scripts": {
@@ -28,6 +28,6 @@
   "dependencies": {
     "@solidjs/router": "^0.13.5",
     "solid-js": "^1.8.11",
-    "@sentry/solidjs": "latest || *"
+    "@sentry/solid": "latest || *"
   }
 }

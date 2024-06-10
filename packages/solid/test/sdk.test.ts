@@ -6,7 +6,7 @@ import { init as solidInit } from '../src/sdk';
 
 const browserInit = vi.spyOn(SentryBrowser, 'init');
 
-describe('Initialize SolidJS SDk', () => {
+describe('Initialize Solid SDk', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -19,8 +19,8 @@ describe('Initialize SolidJS SDk', () => {
     const expectedMetadata = {
       _metadata: {
         sdk: {
-          name: 'sentry.javascript.solidjs',
-          packages: [{ name: 'npm:@sentry/solidjs', version: SDK_VERSION }],
+          name: 'sentry.javascript.solid',
+          packages: [{ name: 'npm:@sentry/solid', version: SDK_VERSION }],
           version: SDK_VERSION,
         },
       },

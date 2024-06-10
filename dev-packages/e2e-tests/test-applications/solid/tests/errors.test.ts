@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { waitForError } from '@sentry-internal/test-utils';
 
 test('sends an error', async ({ page }) => {
-  const errorPromise = waitForError('solidjs', async errorEvent => {
+  const errorPromise = waitForError('solid', async errorEvent => {
     return !errorEvent.type;
   });
 
@@ -15,7 +15,7 @@ test('sends an error', async ({ page }) => {
       values: [
         {
           type: 'Error',
-          value: 'Error thrown from SolidJS E2E test app',
+          value: 'Error thrown from Solid E2E test app',
           mechanism: {
             type: 'onerror',
             handled: false,

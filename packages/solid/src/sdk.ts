@@ -3,14 +3,14 @@ import { init as browserInit } from '@sentry/browser';
 import { applySdkMetadata } from '@sentry/core';
 
 /**
- * Initializes the SolidJS SDK
+ * Initializes the Solid SDK
  */
 export function init(options: BrowserOptions): void {
   const opts = {
     ...options,
   };
 
-  applySdkMetadata(opts, 'solidjs');
+  applySdkMetadata(opts, 'solid');
 
   browserInit(opts);
 }

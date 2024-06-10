@@ -1,9 +1,9 @@
 {
-  "name": "@sentry/solidjs",
+  "name": "@sentry/solid",
   "version": "8.8.0",
-  "description": "Official Sentry SDK for SolidJS",
+  "description": "Official Sentry SDK for Solid",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
-  "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/solidjs",
+  "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/solid",
   "author": "Sentry",
   "license": "MIT",
   "engines": {
@@ -71,7 +71,7 @@
     "build:types:watch": "tsc -p tsconfig.types.json --watch",
     "build:tarball": "ts-node ../../scripts/prepack.ts && npm pack ./build",
     "circularDepCheck": "madge --circular src/index.ts",
-    "clean": "rimraf build coverage sentry-solidjs-*.tgz",
+    "clean": "rimraf build coverage sentry-solid-*.tgz",
     "fix": "eslint . --format stylish --fix",
     "lint": "eslint . --format stylish",
     "test": "vitest run",

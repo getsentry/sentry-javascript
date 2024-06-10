@@ -25,7 +25,7 @@ export default function Home() {
           class="border rounded-lg px-2 mb-2 border-red-500 text-red-500 cursor-pointer"
           id="errorBtn"
           onClick={() => {
-            throw new Error('Error thrown from SolidJS E2E test app');
+            throw new Error('Error thrown from Solid E2E test app');
           }}
         >
           Throw error

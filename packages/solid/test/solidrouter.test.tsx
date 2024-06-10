@@ -139,7 +139,7 @@ describe('solidRouterBrowserTracingIntegration', () => {
         data: expect.objectContaining({
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.solidjs.solidrouter',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.solid.solidrouter',
         }),
       }),
     );
@@ -173,7 +173,7 @@ describe('solidRouterBrowserTracingIntegration', () => {
         data: expect.objectContaining({
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.solidjs.solidrouter',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.solid.solidrouter',
         }),
       }),
     );
