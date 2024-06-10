@@ -1,6 +1,6 @@
 import { defineIntegration, getCurrentScope, getIsolationScope, getRootSpan, spanToJSON } from '@sentry/core';
 import type { NodeClient } from '@sentry/node';
-import type { Integration, IntegrationFn, Profile, ProfileChunk, Span } from '@sentry/types';
+import type { Event, Integration, IntegrationFn, Profile, ProfileChunk, Span } from '@sentry/types';
 
 import { LRUMap, logger, timestampInSeconds, uuid4 } from '@sentry/utils';
 
@@ -323,7 +323,7 @@ class ContinuousProfiler {
       profiler_id: this._profilerId,
     });
 
-    this._client.on('beforeSendEvent', this._assignThreadIdContext);
+    this._client.on('beforeSendEvent', e => this._assignThreadIdContext(e));
   }
 
   /**
@@ -349,8 +349,8 @@ class ContinuousProfiler {
   /**
    * Assigns thread_id and thread name context to a profiled event.
    */
-  private _assignThreadIdContext(event: any): any {
-    if (!event.contexts?.profile) {
+  private _assignThreadIdContext(event: Event): any {
+    if (!event?.['contexts']?.['profile']) {
       return;
     }
 
@@ -358,10 +358,12 @@ class ContinuousProfiler {
       return;
     }
 
-    event.contexts.trace = {
-      ...(event.contexts.trace ?? {}),
+    // @ts-expect-error the trace fallback value is wrong, though it should never happen
+    // and in case it does, we dont want to override whatever was passed initially.
+    event.contexts['trace'] = {
+      ...(event.contexts?.['trace'] ?? {}),
       data: {
-        ...event.contexts.trace?.data,
+        ...(event.contexts?.['trace']?.['data'] ?? {}),
         ['thread.id']: PROFILER_THREAD_ID_STRING,
         ['thread.name']: PROFILER_THREAD_NAME,
       },
