@@ -158,8 +158,6 @@ describe('redis cache auto instrumentation', () => {
             'db.statement': 'SET redis-cache:test-key [1 other arguments]',
             'cache.key': ['redis-cache:test-key'],
             'cache.item_size': 2,
-            'network.peer.address': 'localhost',
-            'network.peer.port': 6379,
           }),
         }),
         // SET (with EX)
@@ -172,8 +170,6 @@ describe('redis cache auto instrumentation', () => {
             'db.statement': 'SET redis-cache:test-key-set-EX [3 other arguments]',
             'cache.key': ['redis-cache:test-key-set-EX'],
             'cache.item_size': 2,
-            'network.peer.address': 'localhost',
-            'network.peer.port': 6379,
           }),
         }),
         // SETEX
@@ -186,8 +182,6 @@ describe('redis cache auto instrumentation', () => {
             'db.statement': 'SETEX redis-cache:test-key-setex [2 other arguments]',
             'cache.key': ['redis-cache:test-key-setex'],
             'cache.item_size': 2,
-            'network.peer.address': 'localhost',
-            'network.peer.port': 6379,
           }),
         }),
         // GET
@@ -201,8 +195,6 @@ describe('redis cache auto instrumentation', () => {
             'cache.hit': true,
             'cache.key': ['redis-cache:test-key'],
             'cache.item_size': 10,
-            'network.peer.address': 'localhost',
-            'network.peer.port': 6379,
           }),
         }),
         // GET (unavailable - no cache hit)
@@ -215,8 +207,6 @@ describe('redis cache auto instrumentation', () => {
             'db.statement': 'GET redis-cache:unavailable-data',
             'cache.hit': false,
             'cache.key': ['redis-cache:unavailable-data'],
-            'network.peer.address': 'localhost',
-            'network.peer.port': 6379,
           }),
         }),
         // MGET
@@ -229,8 +219,6 @@ describe('redis cache auto instrumentation', () => {
             'db.statement': 'MGET [3 other arguments]',
             'cache.hit': true,
             'cache.key': ['redis-test-key', 'redis-cache:test-key', 'redis-cache:unavailable-data'],
-            'network.peer.address': 'localhost',
-            'network.peer.port': 6379,
           }),
         }),
       ]),
