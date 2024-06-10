@@ -73,7 +73,6 @@ function instrumentFetch(): void {
             //       have a stack trace, so the SDK backfilled the stack trace so
             //       you can see which fetch call failed.
             error.stack = new Error(error.message).stack;
-            addNonEnumerableProperty(error, 'framesToPop', 1);
           }
 
           // NOTE: If you are a Sentry user, and you are seeing this stack frame,
