@@ -6,6 +6,10 @@
 
 # Official Sentry SDK for SolidJS
 
+[![npm version](https://img.shields.io/npm/v/@sentry/solidjs.svg)](https://www.npmjs.com/package/@sentry/solidjs)
+[![npm dm](https://img.shields.io/npm/dm/@sentry/solidjs.svg)](https://www.npmjs.com/package/@sentry/solidjs)
+[![npm dt](https://img.shields.io/npm/dt/@sentry/solidjs.svg)](https://www.npmjs.com/package/@sentry/solidjs)
+
 This SDK is work in progress, and should not be used before officially released.
 
 # Solid Router
@@ -33,7 +37,6 @@ Sentry.init({
   dsn: '__PUBLIC_DSN__',
   integrations: [Sentry.solidRouterBrowserTracingIntegration({ useBeforeLeave, useLocation })],
   tracesSampleRate: 1.0, //  Capture 100% of the transactions
-  debug: true,
 });
 
 const SentryRouter = Sentry.withSentryRouterRouting(Router);
@@ -48,3 +51,35 @@ render(
   document.getElementById('root'),
 );
 ```
+
+# ErrorBoundary
+
+To automatically capture exceptions from inside a component tree and render a fallback component, wrap the native Solid
+JS `ErrorBoundary` component with `Sentry.withSentryErrorBoundary`.
+
+```js
+import * as Sentry from '@sentry/solidjs';
+import { ErrorBoundary } from 'solid-js';
+
+Sentry.init({
+  dsn: '__PUBLIC_DSN__',
+  tracesSampleRate: 1.0, //  Capture 100% of the transactions
+});
+
+const SentryErrorBoundary = Sentry.withSentryErrorBoundary(ErrorBoundary);
+
+render(
+  () => (
+    <SentryErrorBoundary fallback={err => <div>Error: {err.message}</div>}>
+      <ProblematicComponent />
+    </SentryErrorBoundary>
+  ),
+  document.getElementById('root'),
+);
+```
+
+# Sourcemaps and Releases
+
+To generate and upload source maps of your Solid JS app bundle, check our guide
+[how to configure your bundler](https://docs.sentry.io/platforms/javascript/guides/solid/sourcemaps/#uploading-source-maps)
+to emit source maps.
