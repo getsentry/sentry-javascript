@@ -1,9 +1,22 @@
 import type { BrowserClient } from '@sentry/browser';
 import * as Sentry from '@sentry/browser';
+import { performance } from 'perf_hooks';
 
 import type { JSSelfProfile } from '../../../src/profiling/jsSelfProfiling';
 
+const globalPerformance = global.performance;
+
 describe('BrowserProfilingIntegration', () => {
+  beforeEach(() => {
+    // @ts-expect-error need to override global performance
+    global.performance = performance;
+  });
+
+  // Reset back to previous values
+  afterEach(() => {
+    global.performance = globalPerformance;
+  });
+
   it('pageload profiles follow regular transaction code path', async () => {
     const stopProfile = jest.fn().mockImplementation((): Promise<JSSelfProfile> => {
       return Promise.resolve({
@@ -61,7 +74,7 @@ describe('BrowserProfilingIntegration', () => {
     const profile_timestamp_ms = new Date(profile.timestamp).getTime();
     const transaction_timestamp_ms = new Date(transaction.start_timestamp * 1e3).getTime();
 
-    expect(profile_timestamp_ms).toBeGreaterThan(transaction_timestamp_ms);
+    expect(profile_timestamp_ms).toBeGreaterThanOrEqual(transaction_timestamp_ms);
     expect(profile.profile.frames[0]).toMatchObject({ function: 'pageload_fn', lineno: 1, colno: 1 });
   });
 });

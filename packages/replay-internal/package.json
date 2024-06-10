@@ -55,7 +55,7 @@
     "fix:eslint": "eslint . --format stylish --fix",
     "fix:biome": "biome check --apply .",
     "lint": "eslint . --format stylish",
-    "test": "vitest",
+    "test": "vitest --run",
     "test:watch": "vitest --watch",
     "yalc:publish": "ts-node ../../scripts/prepack.ts --bundles && yalc publish ./build/npm --push --sig"
   },

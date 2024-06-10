@@ -40,14 +40,15 @@ import { getDefaultBrowserClientOptions } from '../helper/browser-client-options
 // 1. Access to window.document API for `window.document.getElementById`
 // 2. Access to window.location API for `window.location.pathname`
 
+const originalGlobalDocument = WINDOW.document;
+const originalGlobalLocation = WINDOW.location;
+const originalGlobalHistory = WINDOW.history;
+
 const dom = new JSDOM(undefined, { url: 'https://example.com/' });
 Object.defineProperty(global, 'document', { value: dom.window.document, writable: true });
 Object.defineProperty(global, 'location', { value: dom.window.document.location, writable: true });
 Object.defineProperty(global, 'history', { value: dom.window.history, writable: true });
 
-const originalGlobalDocument = WINDOW.document;
-const originalGlobalLocation = WINDOW.location;
-const originalGlobalHistory = WINDOW.history;
 afterAll(() => {
   // Clean up JSDom
   Object.defineProperty(WINDOW, 'document', { value: originalGlobalDocument });
@@ -234,7 +235,7 @@ describe('browserTracingIntegration', () => {
     });
   });
 
-  it("trims pageload transactions to the max duration of the transaction's children", async () => {
+  it("trims pageload transactions to the max duration of the transaction's children", () => {
     const client = new BrowserClient(
       getDefaultBrowserClientOptions({
         tracesSampleRate: 1,
@@ -252,7 +253,7 @@ describe('browserTracingIntegration', () => {
     childSpan.end(timestamp);
 
     // Wait for 10ms for idle timeout
-    await new Promise(resolve => setTimeout(resolve, 10));
+    jest.advanceTimersByTime(10);
 
     expect(spanToJSON(pageloadSpan!).timestamp).toBe(timestamp);
   });
