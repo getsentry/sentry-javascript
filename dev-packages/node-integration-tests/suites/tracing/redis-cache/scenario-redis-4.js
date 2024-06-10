@@ -14,17 +14,9 @@ setInterval(() => {}, 1000);
 
 const { createClient } = require('redis-4');
 
-async function initializeClient() {
-  return createClient().connect();
-}
-
-let redisClient;
-
-(async function () {
-  redisClient = await initializeClient();
-})();
-
 async function run() {
+  const redisClient = await createClient().connect();
+
   await Sentry.startSpan(
     {
       name: 'Test Span Redis 4',
