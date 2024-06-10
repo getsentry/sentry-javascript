@@ -12,7 +12,7 @@ const contributorMessageRegex = /Work in this release was contributed by (.+)\. 
 async function run() {
   const { getInput } = core;
 
-  const name = getInput('name') || '@test-user';
+  const name = getInput('name');
 
   if (!name) {
     return;
@@ -20,7 +20,7 @@ async function run() {
 
   const ghUserName = name.startsWith('@') ? name : `@${name}`;
 
-  const cwd = path.join(process.cwd(), '../..');
+  const cwd = process.cwd();
   const changelogFilePath = path.resolve(cwd, 'CHANGELOG.md');
 
   const changelogStr = await fs.readFile(changelogFilePath, 'utf8');
@@ -65,8 +65,8 @@ async function run() {
   );
   fs.writeFile(changelogFilePath, newChangelog);
 
-    // eslint-disable-next-line no-console
-    console.log('Added contributor message.');
+  // eslint-disable-next-line no-console
+  console.log('Added contributor message.');
 }
 
 run();
