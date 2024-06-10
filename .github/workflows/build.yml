@@ -1037,6 +1037,7 @@ jobs:
             'create-remix-app',
             'create-remix-app-legacy',
             'create-remix-app-v2',
+            'create-remix-app-v2-legacy',
             'create-remix-app-express',
             'create-remix-app-express-vite-dev',
             'node-express-esm-loader',
