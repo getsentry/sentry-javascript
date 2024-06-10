@@ -4,11 +4,11 @@
   </a>
 </p>
 
-# Official Sentry SDK for SolidJS
+# Official Sentry SDK for Solid
 
-[![npm version](https://img.shields.io/npm/v/@sentry/solidjs.svg)](https://www.npmjs.com/package/@sentry/solidjs)
-[![npm dm](https://img.shields.io/npm/dm/@sentry/solidjs.svg)](https://www.npmjs.com/package/@sentry/solidjs)
-[![npm dt](https://img.shields.io/npm/dt/@sentry/solidjs.svg)](https://www.npmjs.com/package/@sentry/solidjs)
+[![npm version](https://img.shields.io/npm/v/@sentry/solid.svg)](https://www.npmjs.com/package/@sentry/solid)
+[![npm dm](https://img.shields.io/npm/dm/@sentry/solid.svg)](https://www.npmjs.com/package/@sentry/solid)
+[![npm dt](https://img.shields.io/npm/dt/@sentry/solid.svg)](https://www.npmjs.com/package/@sentry/solid)
 
 This SDK is work in progress, and should not be used before officially released.
 
@@ -30,7 +30,7 @@ Wrap `Router`, `MemoryRouter` or `HashRouter` from `@solidjs/router` using `Sent
 creates a higher order component, which will enable Sentry to reach your router context.
 
 ```js
-import * as Sentry from '@sentry/solidjs';
+import * as Sentry from '@sentry/solid';
 import { Route, Router, useBeforeLeave, useLocation } from '@solidjs/router';
 
 Sentry.init({
@@ -58,7 +58,7 @@ To automatically capture exceptions from inside a component tree and render a fa
 JS `ErrorBoundary` component with `Sentry.withSentryErrorBoundary`.
 
 ```js
-import * as Sentry from '@sentry/solidjs';
+import * as Sentry from '@sentry/solid';
 import { ErrorBoundary } from 'solid-js';
 
 Sentry.init({

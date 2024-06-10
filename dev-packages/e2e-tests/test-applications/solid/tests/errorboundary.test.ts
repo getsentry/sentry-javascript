@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { waitForError } from '@sentry-internal/test-utils';
 
 test('captures an exception', async ({ page }) => {
-  const errorEventPromise = waitForError('solidjs', errorEvent => {
+  const errorEventPromise = waitForError('solid', errorEvent => {
     return !errorEvent.type;
   });
 
@@ -26,7 +26,7 @@ test('captures an exception', async ({ page }) => {
 });
 
 test('captures a second exception after resetting the boundary', async ({ page }) => {
-  const firstErrorEventPromise = waitForError('solidjs', errorEvent => {
+  const firstErrorEventPromise = waitForError('solid', errorEvent => {
     return !errorEvent.type;
   });
 
@@ -48,7 +48,7 @@ test('captures a second exception after resetting the boundary', async ({ page }
     transaction: '/error-boundary-example',
   });
 
-  const secondErrorEventPromise = waitForError('solidjs', errorEvent => {
+  const secondErrorEventPromise = waitForError('solid', errorEvent => {
     return !errorEvent.type;
   });
 
