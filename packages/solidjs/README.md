@@ -6,6 +6,10 @@
 
 # Official Sentry SDK for SolidJS
 
+[![npm version](https://img.shields.io/npm/v/@sentry/solidjs.svg)](https://www.npmjs.com/package/@sentry/solidjs)
+[![npm dm](https://img.shields.io/npm/dm/@sentry/solidjs.svg)](https://www.npmjs.com/package/@sentry/solidjs)
+[![npm dt](https://img.shields.io/npm/dt/@sentry/solidjs.svg)](https://www.npmjs.com/package/@sentry/solidjs)
+
 This SDK is work in progress, and should not be used before officially released.
 
 # Solid Router
@@ -48,3 +52,9 @@ render(
   document.getElementById('root'),
 );
 ```
+
+# Sourcemaps and Releases
+
+To generate and upload source maps of your Solid JS app bundle, check our guide
+[how to configure your bundler](https://docs.sentry.io/platforms/javascript/guides/solid/sourcemaps/#uploading-source-maps)
+to emit source maps.
