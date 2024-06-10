@@ -2,10 +2,7 @@ import * as fs from 'node:fs';
 import type { StackFrame } from '@sentry/types';
 import { parseStackFrames } from '@sentry/utils';
 
-import {
-  _contextLinesIntegration,
-  resetFileContentCache,
-} from '../../src/integrations/contextlines';
+import { _contextLinesIntegration, resetFileContentCache } from '../../src/integrations/contextlines';
 import { defaultStackParser } from '../../src/sdk/api';
 import { getError } from '../helpers/error';
 
@@ -26,7 +23,7 @@ describe('ContextLines', () => {
   });
 
   describe('lru file cache', () => {
-    test.only('parseStack with same file', async () => {
+    test('parseStack with same file', async () => {
       expect.assertions(1);
 
       const frames = parseStackFrames(defaultStackParser, new Error('test'));
@@ -89,12 +86,12 @@ describe('ContextLines', () => {
       const outerFrame = overlappingContextWithFirstError[overlappingContextWithFirstError.length - 2];
 
       expect(innerFrame.context_line).toBe("        return new Error('inner');");
-      expect(innerFrame.pre_context).toHaveLength(7)
-      expect(innerFrame.post_context).toHaveLength(7)
+      expect(innerFrame.pre_context).toHaveLength(7);
+      expect(innerFrame.post_context).toHaveLength(7);
 
       expect(outerFrame.context_line).toBe('        return inner();');
-      expect(outerFrame.pre_context).toHaveLength(7)
-      expect(outerFrame.post_context).toHaveLength(7)
+      expect(outerFrame.pre_context).toHaveLength(7);
+      expect(outerFrame.post_context).toHaveLength(7);
     });
 
     test('parseStack with error on first line errors', async () => {
@@ -102,15 +99,15 @@ describe('ContextLines', () => {
 
       await addContext(overlappingContextWithFirstError);
 
-      const errorFrame = overlappingContextWithFirstError.find(f => f.filename?.endsWith('error.ts'))
+      const errorFrame = overlappingContextWithFirstError.find(f => f.filename?.endsWith('error.ts'));
 
       if (!errorFrame) {
         throw new Error('Could not find error frame');
       }
 
       expect(errorFrame.context_line).toBe("  return new Error('mock error');");
-      expect(errorFrame.pre_context).toHaveLength(2)
-      expect(errorFrame.post_context).toHaveLength(1)
+      expect(errorFrame.pre_context).toHaveLength(2);
+      expect(errorFrame.post_context).toHaveLength(1);
     });
 
     test('parseStack with duplicate files', async () => {
