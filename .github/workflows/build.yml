@@ -224,6 +224,26 @@ jobs:
           message: |
             ⚠️ This PR is opened against **master**. You probably want to open it against **develop**.
 
+  job_external_contributor:
+    name: Mention external contributor in changelog
+    needs: job_get_metadata
+    runs-on: ubuntu-20.04
+    if: |
+      github.event_name == 'pull_request'
+      && github.event.pull_request.author_association != 'COLLABORATOR'
+      && github.event.pull_request.author_association != 'MEMBER'
+      && github.event.pull_request.author_association != 'OWNER'
+    permissions:
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./dev-packages/external-contributor-gh-action
+        with:
+          name: ${{ github.event.pull_request.user.login }}
+      - uses: parkerbxyz/suggest-changes@v1
+        with:
+          comment: 'Please commit the suggested changes from markdownlint.'
+
   job_build:
     name: Build
     needs: [job_get_metadata, job_install_deps]
