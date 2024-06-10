@@ -225,12 +225,13 @@ jobs:
             ⚠️ This PR is opened against **master**. You probably want to open it against **develop**.
 
   job_external_contributor:
-    name: Mention external contributor in changelog
+    name: External Contributors
     needs: job_install_deps
     runs-on: ubuntu-20.04
     if: |
       github.event_name == 'pull_request'
     permissions:
+      contents: read
       pull-requests: write
     steps:
       - uses: actions/checkout@v4
@@ -252,7 +253,7 @@ jobs:
       - name: Propose changes
         uses: parkerbxyz/suggest-changes@v1
         with:
-          comment: 'Please commit the suggested changes from markdownlint.'
+          comment: 'Add external contributor to CHANGELOG.md'
 
   job_build:
     name: Build

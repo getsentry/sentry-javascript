@@ -12,13 +12,15 @@ const contributorMessageRegex = /Work in this release was contributed by (.+)\. 
 async function run() {
   const { getInput } = core;
 
-  const name = getInput('name');
+  const name = getInput('name') || '@test-user';
 
   if (!name) {
     return;
   }
 
-  const cwd = process.cwd();
+  const ghUserName = name.startsWith('@') ? name : `@${name}`;
+
+  const cwd = path.join(process.cwd(), '../..');
   const changelogFilePath = path.resolve(cwd, 'CHANGELOG.md');
 
   const changelogStr = await fs.readFile(changelogFilePath, 'utf8');
@@ -34,8 +36,8 @@ async function run() {
   // If the contributor message already exists, add the new contributor to the list
   if (existing) {
     const users = existing[1].split(/(?:,? and )|(?:, )/);
-    if (!users.includes(name)) {
-      users.push(name);
+    if (!users.includes(ghUserName)) {
+      users.push(ghUserName);
     }
 
     const formatter = new Intl.ListFormat('en', {
@@ -50,15 +52,21 @@ async function run() {
     );
 
     fs.writeFile(changelogFilePath, newChangelog);
+
+    // eslint-disable-next-line no-console
+    console.log('Added contributor to list of existing contributors.');
     return;
   }
 
   // If the contributor message does not exist, add it
   const newChangelog = changelogStr.replace(
     UNRELEASED_HEADING,
-    `${UNRELEASED_HEADING}\nWork in this release was contributed by ${name}. Thank you for your contribution!\n`,
+    `${UNRELEASED_HEADING}\nWork in this release was contributed by ${ghUserName}. Thank you for your contribution!\n`,
   );
   fs.writeFile(changelogFilePath, newChangelog);
+
+    // eslint-disable-next-line no-console
+    console.log('Added contributor message.');
 }
 
 run();
