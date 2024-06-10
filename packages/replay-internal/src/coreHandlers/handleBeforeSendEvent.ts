@@ -21,7 +21,8 @@ export function handleBeforeSendEvent(replay: ReplayContainer): BeforeSendEventC
 }
 
 function handleHydrationError(replay: ReplayContainer, event: ErrorEvent): void {
-  const exceptionValue = event.exception && event.exception.values && event.exception.values[0].value;
+  const exceptionValue =
+    event.exception && event.exception.values && event.exception.values[0] && event.exception.values[0].value;
   if (typeof exceptionValue !== 'string') {
     return;
   }
