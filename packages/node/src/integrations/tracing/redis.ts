@@ -12,6 +12,7 @@ import {
   spanToJSON,
 } from '@sentry/core';
 import type { IntegrationFn } from '@sentry/types';
+import { truncate } from '@sentry/utils';
 import { generateInstrumentOnce } from '../../otel/instrument';
 import {
   GET_COMMANDS,
@@ -20,7 +21,6 @@ import {
   getCacheOperation,
   shouldConsiderForCache,
 } from '../../utils/redisCache';
-import { truncate } from '@sentry/utils/src';
 
 interface RedisOptions {
   cachePrefixes?: string[];
