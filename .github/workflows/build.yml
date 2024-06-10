@@ -231,8 +231,7 @@ jobs:
     if: |
       github.event_name == 'pull_request'
     permissions:
-      contents: read
-      pull-requests: write
+      contents: write
     steps:
       - uses: actions/checkout@v4
       - name: Set up Node
@@ -250,10 +249,10 @@ jobs:
         uses: ./dev-packages/external-contributor-gh-action
         with:
           name: ${{ github.event.pull_request.user.login }}
-      - name: Propose changes
-        uses: parkerbxyz/suggest-changes@v1
+      - name: Commit changes
+        uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          comment: 'Add external contributor to CHANGELOG.md'
+          commit_message: "Add external contributor to CHANGELOG.md"
 
   job_build:
     name: Build
