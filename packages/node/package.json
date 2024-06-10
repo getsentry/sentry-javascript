@@ -82,7 +82,7 @@
     "@opentelemetry/instrumentation-http": "0.52.0",
     "@opentelemetry/instrumentation-ioredis": "0.41.0",
     "@opentelemetry/instrumentation-koa": "0.41.0",
-    "@opentelemetry/instrumentation-mongodb": "0.44.0",
+    "@opentelemetry/instrumentation-mongodb": "0.45.0",
     "@opentelemetry/instrumentation-mongoose": "0.39.0",
     "@opentelemetry/instrumentation-mysql": "0.39.0",
     "@opentelemetry/instrumentation-mysql2": "0.39.0",
