@@ -18,10 +18,10 @@ async function initializeClient() {
   return createClient().connect();
 }
 
-let client;
+let redisClient;
 
 (async function () {
-  client = await initializeClient();
+  redisClient = await initializeClient();
 })();
 
 async function run() {
@@ -32,19 +32,19 @@ async function run() {
     },
     async () => {
       try {
-        await client.set('redis-test-key', 'test-value');
-        await client.set('redis-cache:test-key', 'test-value');
+        await redisClient.set('redis-test-key', 'test-value');
+        await redisClient.set('redis-cache:test-key', 'test-value');
 
-        await client.set('redis-cache:test-key-set-EX', 'test-value', 'EX', 10);
-        await client.setex('redis-cache:test-key-setex', 10, 'test-value');
+        await redisClient.set('redis-cache:test-key-set-EX', 'test-value', 'EX', 10);
+        await redisClient.setex('redis-cache:test-key-setex', 10, 'test-value');
 
-        await client.get('redis-test-key');
-        await client.get('redis-cache:test-key');
-        await client.get('redis-cache:unavailable-data');
+        await redisClient.get('redis-test-key');
+        await redisClient.get('redis-cache:test-key');
+        await redisClient.get('redis-cache:unavailable-data');
 
-        await client.mget('redis-test-key', 'redis-cache:test-key', 'redis-cache:unavailable-data');
+        await redisClient.mget('redis-test-key', 'redis-cache:test-key', 'redis-cache:unavailable-data');
       } finally {
-        await client.disconnect();
+        await redisClient.disconnect();
       }
     },
   );

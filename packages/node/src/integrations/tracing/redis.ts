@@ -20,6 +20,7 @@ import {
   getCacheOperation,
   shouldConsiderForCache,
 } from '../../utils/redisCache';
+import { truncate } from '@sentry/utils/src';
 
 interface RedisOptions {
   cachePrefixes?: string[];
@@ -70,7 +71,7 @@ const cacheResponseHook: RedisResponseCustomAttributeFunction = (span: Span, red
 
   const spanDescription = safeKey.join(', ');
 
-  span.updateName(spanDescription.length > 1024 ? `${spanDescription.substring(0, 1024)}...` : spanDescription);
+  span.updateName(truncate(spanDescription, 1024));
 };
 
 const instrumentIORedis = generateInstrumentOnce('IORedis', () => {
