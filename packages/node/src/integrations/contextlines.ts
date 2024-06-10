@@ -2,7 +2,7 @@ import { createReadStream } from 'node:fs';
 import { createInterface } from 'node:readline';
 import { defineIntegration } from '@sentry/core';
 import type { Event, IntegrationFn, StackFrame } from '@sentry/types';
-import { logger, LRUMap, snipLine } from '@sentry/utils';
+import { LRUMap, logger, snipLine } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
 
