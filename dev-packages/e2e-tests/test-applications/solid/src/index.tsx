@@ -1,5 +1,5 @@
 /* @refresh reload */
-import * as Sentry from '@sentry/solidjs';
+import * as Sentry from '@sentry/solid';
 import { Router, useBeforeLeave, useLocation } from '@solidjs/router';
 import { render } from 'solid-js/web';
 import './index.css';

@@ -71,7 +71,7 @@ function handleNavigation(location: string): void {
     name: location,
     attributes: {
       [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.solidjs.solidrouter',
+      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.solid.solidrouter',
       [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
     },
   });

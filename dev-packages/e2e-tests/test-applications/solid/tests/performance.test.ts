@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
 test('sends a pageload transaction', async ({ page }) => {
-  const transactionPromise = waitForTransaction('solidjs', async transactionEvent => {
+  const transactionPromise = waitForTransaction('solid', async transactionEvent => {
     return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
   });
 
@@ -23,7 +23,7 @@ test('sends a pageload transaction', async ({ page }) => {
 });
 
 test('sends a navigation transaction', async ({ page }) => {
-  const transactionPromise = waitForTransaction('solidjs', async transactionEvent => {
+  const transactionPromise = waitForTransaction('solid', async transactionEvent => {
     return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'navigation';
   });
 
@@ -35,7 +35,7 @@ test('sends a navigation transaction', async ({ page }) => {
     contexts: {
       trace: {
         op: 'navigation',
-        origin: 'auto.navigation.solidjs.solidrouter',
+        origin: 'auto.navigation.solid.solidrouter',
       },
     },
     transaction: '/user/5',
@@ -49,7 +49,7 @@ test('updates the transaction when using the back button', async ({ page }) => {
   // Solid Router sends a `-1` navigation when using the back button.
   // The sentry solidRouterBrowserTracingIntegration tries to update such
   // transactions with the proper name once the `useLocation` hook triggers.
-  const navigationTxnPromise = waitForTransaction('solidjs', async transactionEvent => {
+  const navigationTxnPromise = waitForTransaction('solid', async transactionEvent => {
     return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'navigation';
   });
 
@@ -61,7 +61,7 @@ test('updates the transaction when using the back button', async ({ page }) => {
     contexts: {
       trace: {
         op: 'navigation',
-        origin: 'auto.navigation.solidjs.solidrouter',
+        origin: 'auto.navigation.solid.solidrouter',
       },
     },
     transaction: '/user/5',
@@ -70,7 +70,7 @@ test('updates the transaction when using the back button', async ({ page }) => {
     },
   });
 
-  const backNavigationTxnPromise = waitForTransaction('solidjs', async transactionEvent => {
+  const backNavigationTxnPromise = waitForTransaction('solid', async transactionEvent => {
     return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'navigation';
   });
 
@@ -80,7 +80,7 @@ test('updates the transaction when using the back button', async ({ page }) => {
     contexts: {
       trace: {
         op: 'navigation',
-        origin: 'auto.navigation.solidjs.solidrouter',
+        origin: 'auto.navigation.solid.solidrouter',
       },
     },
     transaction: '/',
