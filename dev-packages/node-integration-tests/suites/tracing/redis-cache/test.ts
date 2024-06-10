@@ -1,6 +1,6 @@
 import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
 
-describe('redis auto instrumentation', () => {
+describe('redis cache auto instrumentation', () => {
   afterAll(() => {
     cleanupChildProcesses();
   });
@@ -12,6 +12,7 @@ describe('redis auto instrumentation', () => {
         expect.objectContaining({
           description: 'set test-key [1 other arguments]',
           op: 'db',
+          origin: 'auto.db.otel.redis',
           data: expect.objectContaining({
             'sentry.op': 'db',
             'db.system': 'redis',
@@ -23,6 +24,7 @@ describe('redis auto instrumentation', () => {
         expect.objectContaining({
           description: 'get test-key',
           op: 'db',
+          origin: 'auto.db.otel.redis',
           data: expect.objectContaining({
             'sentry.op': 'db',
             'db.system': 'redis',
@@ -46,11 +48,41 @@ describe('redis auto instrumentation', () => {
       spans: expect.arrayContaining([
         // SET
         expect.objectContaining({
-          description: 'set ioredis-cache:test-key [1 other arguments]',
+          description: 'ioredis-cache:test-key',
           op: 'cache.put',
+          origin: 'auto.db.otel.redis',
           data: expect.objectContaining({
+            'sentry.origin': 'auto.db.otel.redis',
             'db.statement': 'set ioredis-cache:test-key [1 other arguments]',
-            'cache.key': 'ioredis-cache:test-key',
+            'cache.key': ['ioredis-cache:test-key'],
+            'cache.item_size': 2,
+            'network.peer.address': 'localhost',
+            'network.peer.port': 6379,
+          }),
+        }),
+        // SET (with EX)
+        expect.objectContaining({
+          description: 'ioredis-cache:test-key-set-EX',
+          op: 'cache.put',
+          origin: 'auto.db.otel.redis',
+          data: expect.objectContaining({
+            'sentry.origin': 'auto.db.otel.redis',
+            'db.statement': 'set ioredis-cache:test-key-set-EX [3 other arguments]',
+            'cache.key': ['ioredis-cache:test-key-set-EX'],
+            'cache.item_size': 2,
+            'network.peer.address': 'localhost',
+            'network.peer.port': 6379,
+          }),
+        }),
+        // SETEX
+        expect.objectContaining({
+          description: 'ioredis-cache:test-key-setex',
+          op: 'cache.put',
+          origin: 'auto.db.otel.redis',
+          data: expect.objectContaining({
+            'sentry.origin': 'auto.db.otel.redis',
+            'db.statement': 'setex ioredis-cache:test-key-setex [2 other arguments]',
+            'cache.key': ['ioredis-cache:test-key-setex'],
             'cache.item_size': 2,
             'network.peer.address': 'localhost',
             'network.peer.port': 6379,
@@ -58,25 +90,43 @@ describe('redis auto instrumentation', () => {
         }),
         // GET
         expect.objectContaining({
-          description: 'get ioredis-cache:test-key',
-          op: 'cache.get_item', // todo: will be changed to cache.get
+          description: 'ioredis-cache:test-key',
+          op: 'cache.get',
+          origin: 'auto.db.otel.redis',
           data: expect.objectContaining({
+            'sentry.origin': 'auto.db.otel.redis',
             'db.statement': 'get ioredis-cache:test-key',
             'cache.hit': true,
-            'cache.key': 'ioredis-cache:test-key',
+            'cache.key': ['ioredis-cache:test-key'],
             'cache.item_size': 10,
             'network.peer.address': 'localhost',
             'network.peer.port': 6379,
           }),
         }),
-        // GET (unavailable)
+        // GET (unavailable - no cache hit)
         expect.objectContaining({
-          description: 'get ioredis-cache:unavailable-data',
-          op: 'cache.get_item', // todo: will be changed to cache.get
+          description: 'ioredis-cache:unavailable-data',
+          op: 'cache.get',
+          origin: 'auto.db.otel.redis',
           data: expect.objectContaining({
+            'sentry.origin': 'auto.db.otel.redis',
             'db.statement': 'get ioredis-cache:unavailable-data',
             'cache.hit': false,
-            'cache.key': 'ioredis-cache:unavailable-data',
+            'cache.key': ['ioredis-cache:unavailable-data'],
+            'network.peer.address': 'localhost',
+            'network.peer.port': 6379,
+          }),
+        }),
+        // MGET
+        expect.objectContaining({
+          description: 'test-key, ioredis-cache:test-key, ioredis-cache:unavailable-data',
+          op: 'cache.get',
+          origin: 'auto.db.otel.redis',
+          data: expect.objectContaining({
+            'sentry.origin': 'auto.db.otel.redis',
+            'db.statement': 'mget [3 other arguments]',
+            'cache.hit': true,
+            'cache.key': ['test-key', 'ioredis-cache:test-key', 'ioredis-cache:unavailable-data'],
             'network.peer.address': 'localhost',
             'network.peer.port': 6379,
           }),

@@ -15,6 +15,7 @@ const DEFAULT_SKIP_TESTS_PACKAGES = [
   '@sentry/vue',
   '@sentry/react',
   '@sentry/angular',
+  '@sentry/solid',
   '@sentry/svelte',
   '@sentry/profiling-node',
   '@sentry-internal/browser-utils',

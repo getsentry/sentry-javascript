@@ -320,7 +320,9 @@ export function wrapHandler<TEvent, TResult>(
         throw e;
       } finally {
         clearTimeout(timeoutWarningTimer);
-        span?.end();
+        if (span && span.isRecording()) {
+          span.end();
+        }
         await flush(options.flushTimeout).catch(e => {
           DEBUG_BUILD && logger.error(e);
         });
@@ -328,7 +330,10 @@ export function wrapHandler<TEvent, TResult>(
       return rv;
     }
 
-    if (options.startTrace) {
+    // Only start a trace and root span if the handler is not already wrapped by Otel instrumentation
+    // Otherwise, we create two root spans (one from otel, one from our wrapper).
+    // If Otel instrumentation didn't work or was filtered by users, we still want to trace the handler.
+    if (options.startTrace && !isWrappedByOtel(handler)) {
       const eventWithHeaders = event as { headers?: { [key: string]: string } };
 
       const sentryTrace =
@@ -360,4 +365,20 @@ export function wrapHandler<TEvent, TResult>(
       return processResult(undefined);
     });
   };
+}
+
+/**
+ * Checks if Otel's AWSLambda instrumentation successfully wrapped the handler.
+ * Check taken from @opentelemetry/core
+ */
+function isWrappedByOtel(
+  // eslint-disable-next-line @typescript-eslint/ban-types
+  handler: Function & { __original?: unknown; __unwrap?: unknown; __wrapped?: boolean },
+): boolean {
+  return (
+    typeof handler === 'function' &&
+    typeof handler.__original === 'function' &&
+    typeof handler.__unwrap === 'function' &&
+    handler.__wrapped === true
+  );
 }

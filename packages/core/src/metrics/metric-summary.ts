@@ -10,17 +10,17 @@ import type { MetricType } from './types';
  */
 type MetricSummaryStorage = Map<string, [string, MetricSummary]>;
 
-let SPAN_METRIC_SUMMARY: WeakMap<Span, MetricSummaryStorage> | undefined;
+const METRICS_SPAN_FIELD = '_sentryMetrics';
 
-function getMetricStorageForSpan(span: Span): MetricSummaryStorage | undefined {
-  return SPAN_METRIC_SUMMARY ? SPAN_METRIC_SUMMARY.get(span) : undefined;
-}
+type SpanWithPotentialMetrics = Span & {
+  [METRICS_SPAN_FIELD]?: MetricSummaryStorage;
+};
 
 /**
  * Fetches the metric summary if it exists for the passed span
  */
 export function getMetricSummaryJsonForSpan(span: Span): Record<string, Array<MetricSummary>> | undefined {
-  const storage = getMetricStorageForSpan(span);
+  const storage = (span as SpanWithPotentialMetrics)[METRICS_SPAN_FIELD];
 
   if (!storage) {
     return undefined;
@@ -50,7 +50,10 @@ export function updateMetricSummaryOnSpan(
   tags: Record<string, Primitive>,
   bucketKey: string,
 ): void {
-  const storage = getMetricStorageForSpan(span) || new Map<string, [string, MetricSummary]>();
+  const existingStorage = (span as SpanWithPotentialMetrics)[METRICS_SPAN_FIELD];
+  const storage =
+    existingStorage ||
+    ((span as SpanWithPotentialMetrics)[METRICS_SPAN_FIELD] = new Map<string, [string, MetricSummary]>());
 
   const exportKey = `${metricType}:${sanitizedName}@${unit}`;
   const bucketItem = storage.get(bucketKey);
@@ -79,10 +82,4 @@ export function updateMetricSummaryOnSpan(
       },
     ]);
   }
-
-  if (!SPAN_METRIC_SUMMARY) {
-    SPAN_METRIC_SUMMARY = new WeakMap();
-  }
-
-  SPAN_METRIC_SUMMARY.set(span, storage);
 }

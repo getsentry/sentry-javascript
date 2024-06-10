@@ -7,8 +7,8 @@ import {
   getClient,
   spanToJSON,
 } from '@sentry/core';
-import { addOpenTelemetryInstrumentation } from '@sentry/opentelemetry';
 import type { IntegrationFn, Span } from '@sentry/types';
+import { generateInstrumentOnce } from '../../otel/instrument';
 import { ensureIsWrapped } from '../../utils/ensureIsWrapped';
 
 type ConnectApp = {
@@ -16,11 +16,15 @@ type ConnectApp = {
   use: (middleware: any) => void;
 };
 
+const INTEGRATION_NAME = 'Connect';
+
+export const instrumentConnect = generateInstrumentOnce(INTEGRATION_NAME, () => new ConnectInstrumentation());
+
 const _connectIntegration = (() => {
   return {
-    name: 'Connect',
+    name: INTEGRATION_NAME,
     setupOnce() {
-      addOpenTelemetryInstrumentation(new ConnectInstrumentation({}));
+      instrumentConnect();
     },
   };
 }) satisfies IntegrationFn;

@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { waitForError, waitForTransaction } from '@sentry-internal/event-proxy-server';
+import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
 import { uuid4 } from '@sentry/utils';
 
 test('Sends a loader error to Sentry', async ({ page }) => {

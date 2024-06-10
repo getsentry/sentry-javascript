@@ -1,8 +1,7 @@
 import crypto from 'crypto';
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '@sentry-internal/event-proxy-server';
+import { waitForTransaction } from '@sentry-internal/test-utils';
 import { SpanJSON } from '@sentry/types';
-import axios from 'axios';
 
 test('Propagates trace for outgoing http requests', async ({ baseURL }) => {
   const id = crypto.randomUUID();
@@ -21,7 +20,8 @@ test('Propagates trace for outgoing http requests', async ({ baseURL }) => {
     );
   });
 
-  const { data } = await axios.get(`${baseURL}/test-outgoing-http/${id}`);
+  const response = await fetch(`${baseURL}/test-outgoing-http/${id}`);
+  const data = await response.json();
 
   const inboundTransaction = await inboundTransactionPromise;
   const outboundTransaction = await outboundTransactionPromise;
@@ -66,7 +66,7 @@ test('Propagates trace for outgoing http requests', async ({ baseURL }) => {
       'http.method': 'GET',
       'http.scheme': 'http',
       'http.target': `/test-outgoing-http/${id}`,
-      'http.user_agent': 'axios/1.6.7',
+      'http.user_agent': 'node',
       'http.flavor': '1.1',
       'net.transport': 'ip_tcp',
       'net.host.ip': expect.any(String),
@@ -135,7 +135,8 @@ test('Propagates trace for outgoing fetch requests', async ({ baseURL }) => {
     );
   });
 
-  const { data } = await axios.get(`${baseURL}/test-outgoing-fetch/${id}`);
+  const response = await fetch(`${baseURL}/test-outgoing-fetch/${id}`);
+  const data = await response.json();
 
   const inboundTransaction = await inboundTransactionPromise;
   const outboundTransaction = await outboundTransactionPromise;
@@ -180,7 +181,7 @@ test('Propagates trace for outgoing fetch requests', async ({ baseURL }) => {
       'http.method': 'GET',
       'http.scheme': 'http',
       'http.target': `/test-outgoing-fetch/${id}`,
-      'http.user_agent': 'axios/1.6.7',
+      'http.user_agent': 'node',
       'http.flavor': '1.1',
       'net.transport': 'ip_tcp',
       'net.host.ip': expect.any(String),
@@ -240,7 +241,8 @@ test('Propagates trace for outgoing external http requests', async ({ baseURL })
     );
   });
 
-  const { data } = await axios.get(`${baseURL}/test-outgoing-http-external-allowed`);
+  const response = await fetch(`${baseURL}/test-outgoing-http-external-allowed`);
+  const data = await response.json();
 
   const inboundTransaction = await inboundTransactionPromise;
 
@@ -276,7 +278,8 @@ test('Does not propagate outgoing http requests not covered by tracePropagationT
     );
   });
 
-  const { data } = await axios.get(`${baseURL}/test-outgoing-http-external-disallowed`);
+  const response = await fetch(`${baseURL}/test-outgoing-http-external-disallowed`);
+  const data = await response.json();
 
   const inboundTransaction = await inboundTransactionPromise;
 
@@ -299,7 +302,8 @@ test('Propagates trace for outgoing external fetch requests', async ({ baseURL }
     );
   });
 
-  const { data } = await axios.get(`${baseURL}/test-outgoing-fetch-external-allowed`);
+  const response = await fetch(`${baseURL}/test-outgoing-fetch-external-allowed`);
+  const data = await response.json();
 
   const inboundTransaction = await inboundTransactionPromise;
 
@@ -335,7 +339,8 @@ test('Does not propagate outgoing fetch requests not covered by tracePropagation
     );
   });
 
-  const { data } = await axios.get(`${baseURL}/test-outgoing-fetch-external-disallowed`);
+  const response = await fetch(`${baseURL}/test-outgoing-fetch-external-disallowed`);
+  const data = await response.json();
 
   const inboundTransaction = await inboundTransactionPromise;
 

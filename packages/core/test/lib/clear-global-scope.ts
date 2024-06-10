@@ -1,6 +1,7 @@
 import { GLOBAL_OBJ } from '@sentry/utils';
+import { getSentryCarrier } from '../../src/carrier';
 
 export function clearGlobalScope() {
-  const __SENTRY__ = (GLOBAL_OBJ.__SENTRY__ = GLOBAL_OBJ.__SENTRY__ || {});
-  __SENTRY__.globalScope = undefined;
+  const carrier = getSentryCarrier(GLOBAL_OBJ);
+  carrier.globalScope = undefined;
 }

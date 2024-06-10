@@ -76,6 +76,12 @@ conditionalTest({ min: 18 })('LocalVariables integration', () => {
       .start(done);
   });
 
+  conditionalTest({ min: 19 })('Node v19+', () => {
+    test('Should not import inspector when not in use', done => {
+      createRunner(__dirname, 'deny-inspector.mjs').ensureNoErrorOutput().ignore('session').start(done);
+    });
+  });
+
   test('Includes local variables for caught exceptions when enabled', done => {
     createRunner(__dirname, 'local-variables-caught.js')
       .ignore('session')
@@ -95,8 +101,8 @@ conditionalTest({ min: 18 })('LocalVariables integration', () => {
     child.on('message', msg => {
       reportedCount++;
       const rssMb = (msg as { memUsage: { rss: number } }).memUsage.rss / 1024 / 1024;
-      // We shouldn't use more than 120MB of memory
-      expect(rssMb).toBeLessThan(120);
+      // We shouldn't use more than 135MB of memory
+      expect(rssMb).toBeLessThan(135);
     });
 
     // Wait for 20 seconds

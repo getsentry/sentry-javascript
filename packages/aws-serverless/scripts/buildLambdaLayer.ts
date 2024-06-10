@@ -1,7 +1,6 @@
 /* eslint-disable no-console */
 import * as childProcess from 'child_process';
 import * as fs from 'fs';
-import * as rimraf from 'rimraf';
 
 import { version } from '../package.json';
 
@@ -60,6 +59,6 @@ buildLambdaLayer();
  * there), but also harmless when used in CI.
  */
 function fsForceMkdirSync(path: string): void {
-  rimraf.sync(path);
+  fs.rmSync(path, { recursive: true, force: true });
   fs.mkdirSync(path);
 }

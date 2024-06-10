@@ -4,10 +4,10 @@ import type { ClientReport } from './clientreport';
 import type { DsnComponents } from './dsn';
 import type { Event } from './event';
 import type { FeedbackEvent, UserFeedback } from './feedback';
-import type { Profile } from './profiling';
+import type { Profile, ProfileChunk } from './profiling';
 import type { ReplayEvent, ReplayRecordingData } from './replay';
 import type { SdkInfo } from './sdkinfo';
-import type { SerializedSession, Session, SessionAggregates } from './session';
+import type { SerializedSession, SessionAggregates } from './session';
 import type { SpanJSON } from './span';
 
 // Based on: https://develop.sentry.dev/sdk/envelopes/
@@ -36,6 +36,7 @@ export type EnvelopeItemType =
   | 'attachment'
   | 'event'
   | 'profile'
+  | 'profile_chunk'
   | 'replay_event'
   | 'replay_recording'
   | 'check_in'
@@ -79,16 +80,16 @@ type ClientReportItemHeaders = { type: 'client_report' };
 type ReplayEventItemHeaders = { type: 'replay_event' };
 type ReplayRecordingItemHeaders = { type: 'replay_recording'; length: number };
 type CheckInItemHeaders = { type: 'check_in' };
-type StatsdItemHeaders = { type: 'statsd'; length: number };
 type ProfileItemHeaders = { type: 'profile' };
+type ProfileChunkItemHeaders = { type: 'profile_chunk' };
+type StatsdItemHeaders = { type: 'statsd'; length: number };
 type SpanItemHeaders = { type: 'span' };
 
 export type EventItem = BaseEnvelopeItem<EventItemHeaders, Event>;
 export type AttachmentItem = BaseEnvelopeItem<AttachmentItemHeaders, string | Uint8Array>;
 export type UserFeedbackItem = BaseEnvelopeItem<UserFeedbackItemHeaders, UserFeedback>;
 export type SessionItem =
-  // TODO(v8): Only allow serialized session here (as opposed to Session or SerializedSesison)
-  | BaseEnvelopeItem<SessionItemHeaders, Session | SerializedSession>
+  | BaseEnvelopeItem<SessionItemHeaders, SerializedSession>
   | BaseEnvelopeItem<SessionAggregatesItemHeaders, SessionAggregates>;
 export type ClientReportItem = BaseEnvelopeItem<ClientReportItemHeaders, ClientReport>;
 export type CheckInItem = BaseEnvelopeItem<CheckInItemHeaders, SerializedCheckIn>;
@@ -97,6 +98,7 @@ type ReplayRecordingItem = BaseEnvelopeItem<ReplayRecordingItemHeaders, ReplayRe
 export type StatsdItem = BaseEnvelopeItem<StatsdItemHeaders, string>;
 export type FeedbackItem = BaseEnvelopeItem<FeedbackItemHeaders, FeedbackEvent>;
 export type ProfileItem = BaseEnvelopeItem<ProfileItemHeaders, Profile>;
+export type ProfileChunkItem = BaseEnvelopeItem<ProfileChunkItemHeaders, ProfileChunk>;
 export type SpanItem = BaseEnvelopeItem<SpanItemHeaders, Partial<SpanJSON>>;
 
 export type EventEnvelopeHeaders = { event_id: string; sent_at: string; trace?: DynamicSamplingContext };
@@ -117,13 +119,16 @@ export type ReplayEnvelope = [ReplayEnvelopeHeaders, [ReplayEventItem, ReplayRec
 export type CheckInEnvelope = BaseEnvelope<CheckInEnvelopeHeaders, CheckInItem>;
 export type StatsdEnvelope = BaseEnvelope<StatsdEnvelopeHeaders, StatsdItem>;
 export type SpanEnvelope = BaseEnvelope<SpanEnvelopeHeaders, SpanItem>;
+export type ProfileChunkEnvelope = BaseEnvelope<BaseEnvelopeHeaders, ProfileChunkItem>;
 
 export type Envelope =
   | EventEnvelope
   | SessionEnvelope
   | ClientReportEnvelope
+  | ProfileChunkEnvelope
   | ReplayEnvelope
   | CheckInEnvelope
   | StatsdEnvelope
   | SpanEnvelope;
+
 export type EnvelopeItem = Envelope[1][number];

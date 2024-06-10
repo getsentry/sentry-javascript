@@ -68,8 +68,6 @@ export {
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
 } from '@sentry/core';
 
-export * from './metrics';
-
 export { WINDOW } from './helpers';
 export { BrowserClient } from './client';
 export { makeFetchTransport } from './transports/fetch';

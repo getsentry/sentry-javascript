@@ -157,7 +157,7 @@ export function startTrackingInteractions(): void {
   });
 }
 
-export { startTrackingINP } from './inp';
+export { startTrackingINP, registerInpInteractionListener } from './inp';
 
 /** Starts tracking the Cumulative Layout Shift on the current page. */
 function _trackCLS(): () => void {

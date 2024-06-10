@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '@sentry-internal/event-proxy-server';
+import { waitForTransaction } from '@sentry-internal/test-utils';
 
 test('sends a pageload transaction with a parameterized URL', async ({ page }) => {
   const transactionPromise = waitForTransaction('vue-3', async transactionEvent => {
@@ -60,6 +60,35 @@ test('sends a navigation transaction with a parameterized URL', async ({ page })
       },
     },
     transaction: '/users/:id',
+    transaction_info: {
+      source: 'route',
+    },
+  });
+});
+
+test('sends a pageload transaction with a nested route URL', async ({ page }) => {
+  const transactionPromise = waitForTransaction('vue-3', async transactionEvent => {
+    return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
+  });
+
+  await page.goto(`/categories/123`);
+
+  const rootSpan = await transactionPromise;
+
+  expect(rootSpan).toMatchObject({
+    contexts: {
+      trace: {
+        data: {
+          'sentry.source': 'route',
+          'sentry.origin': 'auto.pageload.vue',
+          'sentry.op': 'pageload',
+          'params.id': '123',
+        },
+        op: 'pageload',
+        origin: 'auto.pageload.vue',
+      },
+    },
+    transaction: '/categories/:id',
     transaction_info: {
       source: 'route',
     },

@@ -58,6 +58,7 @@ export {
   startSpan,
   startInactiveSpan,
   startSpanManual,
+  startNewTrace,
   metricsDefault as metrics,
   inboundFiltersIntegration,
   linkedErrorsIntegration,

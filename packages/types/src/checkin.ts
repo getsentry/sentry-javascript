@@ -37,6 +37,10 @@ export interface SerializedCheckIn {
     // A tz database string representing the timezone which the monitor's execution schedule is in.
     // See: https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
     timezone?: string;
+    // How many consecutive failed check-ins it takes to create an issue.
+    failure_issue_threshold?: number;
+    // How many consecutive OK check-ins it takes to resolve an issue.
+    recovery_threshold?: number;
   };
   contexts?: {
     trace?: TraceContext;
@@ -84,7 +88,7 @@ export interface MonitorConfig {
   // See: https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
   timezone?: SerializedMonitorConfig['timezone'];
   // How many consecutive failed check-ins it takes to create an issue.
-  failure_issue_threshold?: number;
+  failureIssueThreshold?: SerializedMonitorConfig['failure_issue_threshold'];
   // How many consecutive OK check-ins it takes to resolve an issue.
-  recovery_threshold?: number;
+  recoveryThreshold?: SerializedMonitorConfig['recovery_threshold'];
 }

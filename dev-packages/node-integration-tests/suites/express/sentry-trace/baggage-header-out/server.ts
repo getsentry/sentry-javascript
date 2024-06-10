@@ -8,9 +8,6 @@ Sentry.init({
   release: '1.0',
   environment: 'prod',
   tracePropagationTargets: [/^(?!.*express).*$/],
-  integrations: [
-    // TODO: This used to use the Express integration
-  ],
   tracesSampleRate: 1.0,
   transport: loggingTransport,
 });

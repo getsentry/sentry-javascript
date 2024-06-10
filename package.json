@@ -41,7 +41,7 @@
     "yalc:publish": "lerna run yalc:publish"
   },
   "volta": {
-    "node": "18.18.0",
+    "node": "18.20.3",
     "yarn": "1.22.19"
   },
   "workspaces": [
@@ -69,6 +69,7 @@
     "packages/replay-internal",
     "packages/replay-canvas",
     "packages/replay-worker",
+    "packages/solid",
     "packages/svelte",
     "packages/sveltekit",
     "packages/types",
@@ -82,7 +83,7 @@
     "dev-packages/e2e-tests",
     "dev-packages/node-integration-tests",
     "dev-packages/overhead-metrics",
-    "dev-packages/event-proxy-server",
+    "dev-packages/test-utils",
     "dev-packages/size-limit-gh-action",
     "dev-packages/rollup-utils"
   ],
@@ -97,13 +98,13 @@
     "@rollup/plugin-sucrase": "^5.0.2",
     "@rollup/plugin-terser": "^0.4.4",
     "@rollup/plugin-typescript": "^11.1.6",
+    "@rollup/pluginutils": "^5.1.0",
     "@size-limit/file": "~11.1.0",
     "@size-limit/webpack": "~11.1.0",
     "@strictsoftware/typedoc-plugin-monorepo": "^0.3.1",
     "@types/jest": "^27.4.1",
     "@types/jsdom": "^21.1.6",
     "@types/node": "^14.18.0",
-    "@types/rimraf": "^3.0.2",
     "@vitest/coverage-v8": "^1.6.0",
     "codecov": "^3.6.5",
     "deepmerge": "^4.2.2",
@@ -124,6 +125,7 @@
     "rollup-plugin-cleanup": "^3.2.1",
     "rollup-plugin-license": "^3.3.1",
     "size-limit": "~11.1.0",
+    "sucrase": "^3.35.0",
     "ts-jest": "^27.1.4",
     "ts-node": "10.9.1",
     "typedoc": "^0.18.0",

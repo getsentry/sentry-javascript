@@ -45,6 +45,7 @@ export type {
   StatsdItem,
   StatsdEnvelope,
   ProfileItem,
+  ProfileChunkEnvelope,
   SpanEnvelope,
   SpanItem,
 } from './envelope';
@@ -69,7 +70,9 @@ export type {
   ThreadCpuStack,
   ThreadCpuFrame,
   ThreadCpuProfile,
+  ContinuousThreadCpuProfile,
   Profile,
+  ProfileChunk,
 } from './profiling';
 export type { ReplayEvent, ReplayRecordingData, ReplayRecordingMode } from './replay';
 export type {
@@ -164,6 +167,8 @@ export type {
   MetricsAggregator,
   MetricBucketItem,
   MetricInstance,
+  MetricData,
+  Metrics,
 } from './metrics';
 export type { ParameterizedString } from './parameterize';
 export type { ViewHierarchyData, ViewHierarchyWindow } from './view-hierarchy';

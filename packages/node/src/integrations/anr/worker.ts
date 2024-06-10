@@ -1,3 +1,4 @@
+import { Session as InspectorSession } from 'node:inspector';
 import { parentPort, workerData } from 'node:worker_threads';
 import {
   applyScopeDataToEvent,
@@ -15,7 +16,6 @@ import {
   uuid4,
   watchdogTimer,
 } from '@sentry/utils';
-import { Session as InspectorSession } from 'inspector';
 
 import { makeNodeTransport } from '../../transports';
 import { createGetModuleFromFilename } from '../../utils/module';

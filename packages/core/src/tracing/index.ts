@@ -17,6 +17,7 @@ export {
   continueTrace,
   withActiveSpan,
   suppressTracing,
+  startNewTrace,
 } from './trace';
 export {
   getDynamicSamplingContextFromClient,

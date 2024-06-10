@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '@sentry-internal/event-proxy-server';
+import { waitForTransaction } from '@sentry-internal/test-utils';
 
 test('Should send a transaction with a fetch span', async ({ page }) => {
   const transactionPromise = waitForTransaction('nextjs-14', async transactionEvent => {

@@ -62,6 +62,7 @@ export {
   startSpan,
   startInactiveSpan,
   startSpanManual,
+  startNewTrace,
   withActiveSpan,
   getRootSpan,
   getSpanDescendants,

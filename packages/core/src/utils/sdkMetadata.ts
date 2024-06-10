@@ -1,5 +1,5 @@
 import type { Options } from '@sentry/types';
-import { SDK_VERSION } from '../version';
+import { SDK_VERSION } from '@sentry/utils';
 
 /**
  * A builder for the SDK metadata in the options for the SDK initialization.

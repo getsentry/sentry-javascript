@@ -1,6 +1,6 @@
 {
   "name": "@sentry/utils",
-  "version": "8.4.0",
+  "version": "8.8.0",
   "description": "Utilities for all Sentry JavaScript SDKs",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/utils",
@@ -42,7 +42,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/types": "8.4.0"
+    "@sentry/types": "8.8.0"
   },
   "devDependencies": {
     "@types/array.prototype.flat": "^1.2.1",
@@ -67,6 +67,7 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:package": "node test/types/index.js",
+    "version": "node ../../scripts/versionbump.js src/version.ts",
     "yalc:publish": "ts-node ../../scripts/prepack.ts && yalc publish build --push --sig"
   },
   "volta": {

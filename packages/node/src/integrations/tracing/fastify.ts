@@ -8,8 +8,8 @@ import {
   getIsolationScope,
   spanToJSON,
 } from '@sentry/core';
-import { addOpenTelemetryInstrumentation } from '@sentry/opentelemetry';
 import type { IntegrationFn, Span } from '@sentry/types';
+import { generateInstrumentOnce } from '../../otel/instrument';
 import { ensureIsWrapped } from '../../utils/ensureIsWrapped';
 
 // We inline the types we care about here
@@ -33,17 +33,23 @@ interface FastifyRequestRouteInfo {
   routerPath?: string;
 }
 
+const INTEGRATION_NAME = 'Fastify';
+
+export const instrumentFastify = generateInstrumentOnce(
+  INTEGRATION_NAME,
+  () =>
+    new FastifyInstrumentation({
+      requestHook(span) {
+        addFastifySpanAttributes(span);
+      },
+    }),
+);
+
 const _fastifyIntegration = (() => {
   return {
-    name: 'Fastify',
+    name: INTEGRATION_NAME,
     setupOnce() {
-      addOpenTelemetryInstrumentation(
-        new FastifyInstrumentation({
-          requestHook(span) {
-            addFastifySpanAttributes(span);
-          },
-        }),
-      );
+      instrumentFastify();
     },
   };
 }) satisfies IntegrationFn;

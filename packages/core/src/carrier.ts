@@ -1,35 +1,32 @@
-import type { Integration } from '@sentry/types';
-import { GLOBAL_OBJ } from '@sentry/utils';
+import type { Client, Integration, MetricsAggregator, Scope } from '@sentry/types';
+import { GLOBAL_OBJ, SDK_VERSION } from '@sentry/utils';
+import type { AsyncContextStack } from './asyncContext/stackStrategy';
 import type { AsyncContextStrategy } from './asyncContext/types';
 
 /**
- * An object that contains a hub and maintains a scope stack.
+ * An object that contains globally accessible properties and maintains a scope stack.
  * @hidden
  */
 export interface Carrier {
-  __SENTRY__?: SentryCarrier;
+  __SENTRY__?: VersionedCarrier;
 }
+
+type VersionedCarrier = {
+  version?: string;
+} & Record<Exclude<string, 'version'>, SentryCarrier>;
 
 interface SentryCarrier {
   acs?: AsyncContextStrategy;
-}
+  stack?: AsyncContextStack;
 
-/**
- * An object that contains a hub and maintains a scope stack.
- * @hidden
- */
-export interface Carrier {
-  __SENTRY__?: SentryCarrier;
-}
+  globalScope?: Scope;
+  defaultIsolationScope?: Scope;
+  defaultCurrentScope?: Scope;
+  globalMetricsAggregators?: WeakMap<Client, MetricsAggregator> | undefined;
 
-interface SentryCarrier {
-  acs?: AsyncContextStrategy;
-  /**
-   * Extra Hub properties injected by various SDKs
-   */
+  // TODO(v9): Remove these properties - they are no longer used and were left over in v8
   integrations?: Integration[];
   extensions?: {
-    /** Extension methods for the hub, which are bound to the current Hub instance */
     // eslint-disable-next-line @typescript-eslint/ban-types
     [key: string]: Function;
   };
@@ -50,10 +47,12 @@ export function getMainCarrier(): Carrier {
 
 /** Will either get the existing sentry carrier, or create a new one. */
 export function getSentryCarrier(carrier: Carrier): SentryCarrier {
-  if (!carrier.__SENTRY__) {
-    carrier.__SENTRY__ = {
-      extensions: {},
-    };
-  }
-  return carrier.__SENTRY__;
+  const __SENTRY__ = (carrier.__SENTRY__ = carrier.__SENTRY__ || {});
+
+  // For now: First SDK that sets the .version property wins
+  __SENTRY__.version = __SENTRY__.version || SDK_VERSION;
+
+  // Intentionally populating and returning the version of "this" SDK instance
+  // rather than what's set in .version so that "this" SDK always gets its carrier
+  return (__SENTRY__[SDK_VERSION] = __SENTRY__[SDK_VERSION] || {});
 }

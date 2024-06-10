@@ -60,22 +60,32 @@ function applyDefaultOptions(optionsArg: BrowserOptions = {}): BrowserOptions {
   return { ...defaultOptions, ...optionsArg };
 }
 
+type ExtensionProperties = {
+  chrome?: Runtime;
+  browser?: Runtime;
+};
+type Runtime = {
+  runtime?: {
+    id?: string;
+  };
+};
+
 function shouldShowBrowserExtensionError(): boolean {
-  const windowWithMaybeChrome = WINDOW as typeof WINDOW & { chrome?: { runtime?: { id?: string } } };
-  const isInsideChromeExtension =
-    windowWithMaybeChrome &&
-    windowWithMaybeChrome.chrome &&
-    windowWithMaybeChrome.chrome.runtime &&
-    windowWithMaybeChrome.chrome.runtime.id;
+  const windowWithMaybeExtension = WINDOW as typeof WINDOW & ExtensionProperties;
 
-  const windowWithMaybeBrowser = WINDOW as typeof WINDOW & { browser?: { runtime?: { id?: string } } };
-  const isInsideBrowserExtension =
-    windowWithMaybeBrowser &&
-    windowWithMaybeBrowser.browser &&
-    windowWithMaybeBrowser.browser.runtime &&
-    windowWithMaybeBrowser.browser.runtime.id;
+  const extensionKey = windowWithMaybeExtension.chrome ? 'chrome' : 'browser';
+  const extensionObject = windowWithMaybeExtension[extensionKey];
 
-  return !!isInsideBrowserExtension || !!isInsideChromeExtension;
+  const runtimeId = extensionObject && extensionObject.runtime && extensionObject.runtime.id;
+  const href = (WINDOW.location && WINDOW.location.href) || '';
+
+  const extensionProtocols = ['chrome-extension:', 'moz-extension:', 'ms-browser-extension:'];
+
+  // Running the SDK in a dedicated extension page and calling Sentry.init is fine; no risk of data leakage
+  const isDedicatedExtensionPage =
+    !!runtimeId && WINDOW === WINDOW.top && extensionProtocols.some(protocol => href.startsWith(`${protocol}//`));
+
+  return !!runtimeId && !isDedicatedExtensionPage;
 }
 
 /**
