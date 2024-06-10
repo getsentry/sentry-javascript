@@ -34,7 +34,7 @@ async function run() {
         await redisClient.get('redis-cache:test-key');
         await redisClient.get('redis-cache:unavailable-data');
 
-        await redisClient.mGet('redis-test-key', 'redis-cache:test-key', 'redis-cache:unavailable-data');
+        await redisClient.mGet(['redis-test-key', 'redis-cache:test-key', 'redis-cache:unavailable-data']);
       } finally {
         await redisClient.disconnect();
       }
