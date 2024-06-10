@@ -105,6 +105,16 @@ function getContextLinesFromFile(path: string, ranges: ReadlineRange[], output: 
     let rangeStart = ranges[currentRangeIndex][0];
     let rangeEnd = ranges[currentRangeIndex][1];
 
+    // We use this inside Promise.all, so we need to resolve the promise even if there is an error
+    // to prevent Promise.all from short circuiting the rest.
+    fileStream.on('error', e => {
+      DEBUG_BUILD && logger.error(`Failed to read file: ${path}. Error: ${e}`);
+      fileStream.close();
+      fileStream.removeAllListeners();
+      resolve();
+    });
+    fileStream.on('close', resolve);
+
     fileStream.on('line', line => {
       lineNumber++;
       if (lineNumber < rangeStart) return;
@@ -123,14 +133,6 @@ function getContextLinesFromFile(path: string, ranges: ReadlineRange[], output: 
         rangeStart = ranges[currentRangeIndex][0];
         rangeEnd = ranges[currentRangeIndex][1];
       }
-    });
-
-    fileStream.on('close', resolve);
-    // We use this inside Promise.all, so we need to resolve the promise even if there is an error
-    // to prevent Promise.all from short circuiting the rest.
-    fileStream.on('error', e => {
-      DEBUG_BUILD && logger.error(`Failed to read file: ${path}. Error: ${e}`);
-      resolve();
     });
   });
 }
