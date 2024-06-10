@@ -256,6 +256,7 @@ jobs:
           title: "ref: Add external contributor to CHANGELOG.md"
           branch: 'external-contributor/patch-${{ github.event.pull_request.user.login }}'
           delete-branch: true
+          body: This PR adds the external contributor to the CHANGELOG.md file, so that they are credited for their contribution.
 
   job_build:
     name: Build
