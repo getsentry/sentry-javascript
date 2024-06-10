@@ -24,7 +24,7 @@ describe('ContextLines', () => {
 
   describe('lru file cache', () => {
     test('parseStack when file does not exist', async () => {
-      expect.assertions(4)
+      expect.assertions(4);
       const frames: StackFrame[] = [
         {
           colno: 1,
@@ -41,7 +41,7 @@ describe('ContextLines', () => {
       expect(frames[0].post_context).toBeUndefined();
       expect(frames[0].context_line).toBeUndefined();
       expect(readStreamSpy).toHaveBeenCalledTimes(1);
-    })
+    });
     test('parseStack with same file', async () => {
       expect.assertions(1);
 
