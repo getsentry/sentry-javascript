@@ -258,7 +258,6 @@ jobs:
           title: "ref: Add external contributor to CHANGELOG.md"
           branch: 'external-contributor/patch-${{ github.event.pull_request.user.login }}'
           delete-branch: true
-          path: 'CHANGELOG.md'
 
   job_build:
     name: Build
