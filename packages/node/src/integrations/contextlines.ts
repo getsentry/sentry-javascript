@@ -33,7 +33,7 @@ export function resetFileContentCache(): void {
  * - node: prefixed modules are part of the runtime and cannot be resolved to a file
  * - data: skip json, wasm and inline js https://nodejs.org/api/esm.html#data-imports
  */
-const SKIP_CONTEXTLINES_REGEXP = /^(node|data):|\.min\.(mjs|cjs|js$)/;
+const SKIP_CONTEXTLINES_REGEXP = /(^(node|data):)|(\.min\.(mjs|cjs|js$))/;
 function shouldSkipContextLinesForFile(path: string): boolean {
   return SKIP_CONTEXTLINES_REGEXP.test(path);
 }
