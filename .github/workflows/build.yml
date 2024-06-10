@@ -234,6 +234,8 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
@@ -253,6 +255,8 @@ jobs:
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "Add external contributor to CHANGELOG.md"
+          skip_fetch: true
+          skip_checkout: true
 
   job_build:
     name: Build
