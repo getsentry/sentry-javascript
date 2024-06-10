@@ -16,7 +16,8 @@ Developer Documentation.
 
 We use [Volta](https://volta.sh/) to ensure we use consistent versions of node, yarn and pnpm.
 
-Make sure to also enable [pnpm support in Volta](https://docs.volta.sh/advanced/pnpm) if you want to run the E2E tests locally.
+Make sure to also enable [pnpm support in Volta](https://docs.volta.sh/advanced/pnpm) if you want to run the E2E tests
+locally.
 
 `sentry-javascript` is a monorepo containing several packages, and we use `lerna` to manage them. To get started,
 install all dependencies, and then perform an initial build, so TypeScript can read all of the linked type definitions.
