@@ -3,8 +3,8 @@ jest.mock('worker_threads', () => {
   return {
     isMainThread: false,
     threadId: 9999,
-  }
-})
+  };
+});
 jest.setTimeout(10000);
 
 import * as Sentry from '@sentry/node';
