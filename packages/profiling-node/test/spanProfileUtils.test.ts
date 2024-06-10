@@ -606,7 +606,7 @@ describe('continuous profiling', () => {
           data: expect.objectContaining({
             ['thread.id']: expect.any(String),
             ['thread.name']: expect.any(String),
-          })
+          }),
         },
         profile: {
           profiler_id: expect.any(String),

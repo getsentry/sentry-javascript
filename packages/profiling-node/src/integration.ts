@@ -4,22 +4,22 @@ import type { Integration, IntegrationFn, Profile, ProfileChunk, Span } from '@s
 
 import { LRUMap, logger, timestampInSeconds, uuid4 } from '@sentry/utils';
 
+import { getGlobalScope } from '../../core/src/currentScopes';
 import { CpuProfilerBindings } from './cpu_profiler';
 import { DEBUG_BUILD } from './debug-build';
 import { NODE_MAJOR, NODE_VERSION } from './nodeVersion';
 import { MAX_PROFILE_DURATION_MS, maybeProfileSpan, stopSpanProfile } from './spanProfileUtils';
 import type { RawChunkCpuProfile, RawThreadCpuProfile } from './types';
 import { ProfileFormat } from './types';
-import { getGlobalScope } from '../../core/src/currentScopes';
 import { PROFILER_THREAD_NAME } from './utils';
 
 import {
+  PROFILER_THREAD_ID_STRING,
   addProfilesToEnvelope,
   createProfilingChunkEvent,
   createProfilingEvent,
   findProfiledTransactionsFromEnvelope,
   makeProfileChunkEnvelope,
-  PROFILER_THREAD_ID_STRING,
 } from './utils';
 
 const CHUNK_INTERVAL_MS = 5000;
