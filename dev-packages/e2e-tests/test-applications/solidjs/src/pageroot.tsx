@@ -10,6 +10,11 @@ export default function PageRoot(props) {
               Home
             </A>
           </li>
+          <li>
+            <A href="/error-boundary-example" class="no-underline hover:underline">
+              Error Boundary Example
+            </A>
+          </li>
           <li class="py-2 px-4">
             <A href="/error" class="no-underline hover:underline">
               Error
