@@ -1,19 +1,37 @@
-import * as os from 'node:os';
-import { env, versions } from 'node:process';
-import { isMainThread, threadId } from 'node:worker_threads';
-import type { Client, Context, Envelope, Event, StackFrame, StackParser } from '@sentry/types';
+/* eslint-disable max-lines */
+import * as os from 'os';
+import type {
+  Client,
+  Context,
+  DebugImage,
+  DsnComponents,
+  Envelope,
+  Event,
+  EventEnvelopeHeaders,
+  Profile,
+  ProfileChunk,
+  ProfileChunkEnvelope,
+  SdkInfo,
+  StackFrame,
+  StackParser,
+  ThreadCpuProfile,
+} from '@sentry/types';
+import { GLOBAL_OBJ, createEnvelope, dsnToString, forEachEnvelopeItem, logger, uuid4 } from '@sentry/utils';
 
-import { GLOBAL_OBJ, forEachEnvelopeItem, logger } from '@sentry/utils';
+import { env, versions } from 'process';
+import { isMainThread, threadId } from 'worker_threads';
 
+import type { ProfileChunkItem } from '@sentry/types/build/types/envelope';
+import type { ContinuousThreadCpuProfile } from '../../types/src/profiling';
 import { DEBUG_BUILD } from './debug-build';
-import type { Profile, RawThreadCpuProfile, ThreadCpuProfile } from './types';
-import type { DebugImage } from './types';
+import type { RawChunkCpuProfile, RawThreadCpuProfile } from './types';
 
 // We require the file because if we import it, it will be included in the bundle.
 // I guess tsc does not check file contents when it's imported.
 const THREAD_ID_STRING = String(threadId);
 const THREAD_NAME = isMainThread ? 'main' : 'worker';
 const FORMAT_VERSION = '1';
+const CONTINUOUS_FORMAT_VERSION = '2';
 
 // Os machine was backported to 16.18, but this was not reflected in the types
 // @ts-expect-error ignore missing
@@ -32,7 +50,9 @@ const ARCH = os.arch();
  * @param {ThreadCpuProfile | RawThreadCpuProfile} profile
  * @returns {boolean}
  */
-function isRawThreadCpuProfile(profile: ThreadCpuProfile | RawThreadCpuProfile): profile is RawThreadCpuProfile {
+function isRawThreadCpuProfile(
+  profile: ThreadCpuProfile | RawThreadCpuProfile | ContinuousThreadCpuProfile | RawChunkCpuProfile,
+): profile is RawThreadCpuProfile | RawChunkCpuProfile {
   return !('thread_metadata' in profile);
 }
 
@@ -43,7 +63,9 @@ function isRawThreadCpuProfile(profile: ThreadCpuProfile | RawThreadCpuProfile):
  * @param {ThreadCpuProfile | RawThreadCpuProfile} profile
  * @returns {ThreadCpuProfile}
  */
-export function enrichWithThreadInformation(profile: ThreadCpuProfile | RawThreadCpuProfile): ThreadCpuProfile {
+export function enrichWithThreadInformation(
+  profile: ThreadCpuProfile | RawThreadCpuProfile | ContinuousThreadCpuProfile | RawChunkCpuProfile,
+): ThreadCpuProfile | ContinuousThreadCpuProfile {
   if (!isRawThreadCpuProfile(profile)) {
     return profile;
   }
@@ -57,7 +79,7 @@ export function enrichWithThreadInformation(profile: ThreadCpuProfile | RawThrea
         name: THREAD_NAME,
       },
     },
-  };
+  } as ThreadCpuProfile | ContinuousThreadCpuProfile;
 }
 
 /**
@@ -88,7 +110,6 @@ export function createProfilingEvent(client: Client, profile: RawThreadCpuProfil
  * @param {options}
  * @returns {Profile}
  */
-
 function createProfilePayload(
   client: Client,
   cpuProfile: RawThreadCpuProfile,
@@ -146,7 +167,7 @@ function createProfilePayload(
     debug_meta: {
       images: applyDebugMetadata(client, cpuProfile.resources),
     },
-    profile: enrichedThreadProfile,
+    profile: enrichedThreadProfile as ThreadCpuProfile,
     transaction: {
       name: transaction,
       id: event_id,
@@ -156,6 +177,82 @@ function createProfilePayload(
   };
 
   return profile;
+}
+
+/**
+ * Create a profile chunk from raw thread profile
+ * @param {RawThreadCpuProfile} cpuProfile
+ * @param {options}
+ * @returns {Profile}
+ */
+function createProfileChunkPayload(
+  client: Client,
+  cpuProfile: RawChunkCpuProfile,
+  {
+    release,
+    environment,
+    start_timestamp,
+    trace_id,
+    profiler_id,
+    chunk_id,
+  }: {
+    release: string;
+    environment: string;
+    start_timestamp: number;
+    trace_id: string | undefined;
+    chunk_id: string;
+    profiler_id: string;
+  },
+): ProfileChunk {
+  // Log a warning if the profile has an invalid traceId (should be uuidv4).
+  // All profiles and transactions are rejected if this is the case and we want to
+  // warn users that this is happening if they enable debug flag
+  if (trace_id && trace_id.length !== 32) {
+    DEBUG_BUILD && logger.log(`[Profiling] Invalid traceId: ${trace_id} on profiled event`);
+  }
+
+  const enrichedThreadProfile = enrichWithThreadInformation(cpuProfile);
+
+  const profile: ProfileChunk = {
+    chunk_id: chunk_id,
+    profiler_id: profiler_id,
+    timestamp: new Date(start_timestamp).toISOString(),
+    platform: 'node',
+    version: CONTINUOUS_FORMAT_VERSION,
+    release: release,
+    environment: environment,
+    measurements: cpuProfile.measurements,
+    debug_meta: {
+      images: applyDebugMetadata(client, cpuProfile.resources),
+    },
+    profile: enrichedThreadProfile as ContinuousThreadCpuProfile,
+  };
+
+  return profile;
+}
+
+/**
+ * Creates a profiling chunk envelope item, if the profile does not pass validation, returns null.
+ */
+export function createProfilingChunkEvent(
+  start_timestamp: number,
+  client: Client,
+  options: { release?: string; environment?: string },
+  profile: RawChunkCpuProfile,
+  identifiers: { trace_id: string | undefined; chunk_id: string; profiler_id: string },
+): ProfileChunk | null {
+  if (!isValidProfileChunk(profile)) {
+    return null;
+  }
+
+  return createProfileChunkPayload(client, profile, {
+    release: options.release ?? '',
+    environment: options.environment ?? '',
+    start_timestamp: start_timestamp,
+    trace_id: identifiers.trace_id ?? '',
+    chunk_id: identifiers.chunk_id,
+    profiler_id: identifiers.profiler_id,
+  });
 }
 
 /**
@@ -204,6 +301,24 @@ export function isValidProfile(profile: RawThreadCpuProfile): profile is RawThre
   }
 
   if (!profile.profile_id) {
+    return false;
+  }
+
+  return true;
+}
+
+/**
+ * Checks if the profile chunk is valid and can be sent to Sentry.
+ * @param profile
+ * @returns
+ */
+export function isValidProfileChunk(profile: RawChunkCpuProfile): profile is RawChunkCpuProfile {
+  if (profile.samples.length <= 1) {
+    DEBUG_BUILD &&
+      // Log a warning if the profile has less than 2 samples so users can know why
+      // they are not seeing any profiling data and we cant avoid the back and forth
+      // of asking them to provide us with a dump of the profile data.
+      logger.log('[Profiling] Discarding profile chunk because it contains less than 2 samples');
     return false;
   }
 
@@ -260,6 +375,41 @@ export function findProfiledTransactionsFromEnvelope(envelope: Envelope): Event[
   });
 
   return events;
+}
+
+/**
+ * Creates event envelope headers for a profile chunk. This is separate from createEventEnvelopeHeaders util
+ * as the profile chunk does not conform to the sentry event type
+ */
+export function createEventEnvelopeHeaders(
+  sdkInfo: SdkInfo | undefined,
+  tunnel: string | undefined,
+  dsn?: DsnComponents,
+): EventEnvelopeHeaders {
+  return {
+    event_id: uuid4(),
+    sent_at: new Date().toISOString(),
+    ...(sdkInfo && { sdk: sdkInfo }),
+    ...(!!tunnel && dsn && { dsn: dsnToString(dsn) }),
+  };
+}
+
+/**
+ * Creates a standalone profile_chunk envelope.
+ */
+export function makeProfileChunkEnvelope(
+  chunk: ProfileChunk,
+  sdkInfo: SdkInfo | undefined,
+  tunnel: string | undefined,
+  dsn?: DsnComponents,
+): ProfileChunkEnvelope {
+  const profileChunkHeader: ProfileChunkItem[0] = {
+    type: 'profile_chunk',
+  };
+
+  return createEnvelope<ProfileChunkEnvelope>(createEventEnvelopeHeaders(sdkInfo, tunnel, dsn), [
+    [profileChunkHeader, chunk],
+  ]);
 }
 
 const debugIdStackParserCache = new WeakMap<StackParser, Map<string, StackFrame[]>>();

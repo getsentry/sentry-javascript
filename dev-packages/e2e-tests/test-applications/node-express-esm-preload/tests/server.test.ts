@@ -121,3 +121,46 @@ test('Should record a transaction for route with parameters', async ({ request }
     trace_id: expect.any(String),
   });
 });
+
+test('Should record spans from http instrumentation', async ({ request }) => {
+  const transactionEventPromise = waitForTransaction('node-express-esm-preload', transactionEvent => {
+    return transactionEvent.contexts?.trace?.data?.['http.target'] === '/http-req';
+  });
+
+  await request.get('/http-req');
+
+  const transactionEvent = await transactionEventPromise;
+
+  const httpClientSpan = transactionEvent.spans?.find(span => span.op === 'http.client');
+
+  expect(httpClientSpan).toEqual({
+    span_id: expect.any(String),
+    trace_id: expect.any(String),
+    data: {
+      'http.flavor': '1.1',
+      'http.host': 'example.com:80',
+      'http.method': 'GET',
+      'http.response.status_code': 200,
+      'http.response_content_length_uncompressed': expect.any(Number),
+      'http.status_code': 200,
+      'http.status_text': 'OK',
+      'http.target': '/',
+      'http.url': 'http://example.com/',
+      'net.peer.ip': expect.any(String),
+      'net.peer.name': 'example.com',
+      'net.peer.port': 80,
+      'net.transport': 'ip_tcp',
+      'otel.kind': 'CLIENT',
+      'sentry.op': 'http.client',
+      'sentry.origin': 'auto.http.otel.http',
+      url: 'http://example.com/',
+    },
+    description: 'GET http://example.com/',
+    parent_span_id: expect.any(String),
+    start_timestamp: expect.any(Number),
+    timestamp: expect.any(Number),
+    status: 'ok',
+    op: 'http.client',
+    origin: 'auto.http.otel.http',
+  });
+});

@@ -2,8 +2,10 @@ import { expect } from '@playwright/test';
 
 import { sentryTest } from '../../../utils/fixtures';
 import {
+  expectedCLSPerformanceSpan,
   expectedClickBreadcrumb,
   expectedFCPPerformanceSpan,
+  expectedFIDPerformanceSpan,
   expectedFPPerformanceSpan,
   expectedLCPPerformanceSpan,
   expectedMemoryPerformanceSpan,
@@ -62,6 +64,8 @@ sentryTest(
       expect.arrayContaining([
         expectedNavigationPerformanceSpan,
         expectedLCPPerformanceSpan,
+        expectedCLSPerformanceSpan,
+        expectedFIDPerformanceSpan,
         expectedFPPerformanceSpan,
         expectedFCPPerformanceSpan,
         expectedMemoryPerformanceSpan, // two memory spans - once per flush

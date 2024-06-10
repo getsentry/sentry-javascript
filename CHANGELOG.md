@@ -4,6 +4,52 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 8.8.0
+
+- **feat: Upgrade OTEL dependencies (#12388)**
+
+This upgrades the OpenTelemetry dependencies to the latest versions and makes OTEL use `import-in-the-middle` `v1.8.0`.
+This should fix numerous issues with using OTEL instrumentation with ESM.
+
+High level issues fixed with OTEL + ESM:
+
+- incompatibilities with using multiple loaders, commonly encountered while using `tsx` or similar libraries.
+- incompatibilities with libraries that use duplicate namespace exports like `date-fns`.
+- incompatibilities with libraries that use self-referencing namespace imports like `openai`.
+- incompatibilities with dynamic export patterns like exports with function calls.
+- `ENOENT: no such file or directory` bugs that libraries like [`discord.js`](https://github.com/discordjs/discord.js)
+  surface.
+
+If you are still encountering issues with OpenTelemetry instrumentation and ESM, please let us know.
+
+- deps: Bump Sentry bundler plugins to version `2.18.0` (#12381)
+- feat: Add `thirdPartyErrorFilterIntegration` (#12267)
+- feat(core): Filter out error events with exception values and no stacktraces, values, or types (#12387)
+- feat(core): Ignore additional common but inactionable errors (#12384)
+- feat(deps): Bump @opentelemetry/propagator-aws-xray from 1.3.1 to 1.24.1 (#12333)
+- feat(deps): Bump @sentry/cli from 2.31.2 to 2.32.1 (#12332)
+- feat(redis): Support `mget` command in caching functionality (#12380)
+- feat(vercel-edge): Export core integrations from Vercel edge SDK (#12308)
+- fix(browser): Fix idle span ending (#12306)
+- fix(browser): Fix parenthesis parsing logic for chromium (#12373)
+- fix(browser): Fix types export path for CJS (#12305)
+- fix(feedback): Override TriggerLabel Option (#12316)
+- fix(feedback): Wait for document to be ready before doing autoinject (#12294)
+- fix(nextjs): Fix memory leak (#12335)
+- fix(nextjs): Fix version detection and option insertion logic for `clientTraceMetadata` option (#12323)
+- fix(nextjs): Update argument name in log message about `sentry` property on Next.js config object (#12366)
+- fix(node): Do not manually finish / update root Hapi spans. (#12287)
+- fix(node): Fix virtual parent span ID handling & update create-next-app E2E test (#12368)
+- fix(node): Skip capturing Hapi Boom responses v8. (#12288)
+- fix(performance): Fix LCP not getting picked up on initial pageload transaction by setting reportAllChanges to true
+  (#12360)
+- fix(replay): Avoid infinite loop of logs (#12309)
+- fix(replay): Ignore old events when manually starting replay (#12349)
+- ref(browser): Ensure idle span ending is consistent (#12310)
+- ref(profiling): unref timer (#12340)
+
+Work in this release contributed by @dohooo, @mohd-akram, and @ykzts. Thank you for your contributions!
+
 ## 8.7.0
 
 ### Important Changes

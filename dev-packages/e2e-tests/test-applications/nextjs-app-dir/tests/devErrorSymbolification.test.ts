@@ -10,7 +10,7 @@ test.describe('dev mode error symbolification', () => {
   test('should have symbolicated dev errors', async ({ page }) => {
     await page.goto('/');
 
-    const errorEventPromise = waitForError('nextjs-13-app-dir', errorEvent => {
+    const errorEventPromise = waitForError('nextjs-app-dir', errorEvent => {
       return errorEvent?.exception?.values?.[0]?.value === 'Click Error';
     });
 
