@@ -95,8 +95,9 @@ function getContextLinesFromFile(path: string, ranges: ReadlineRange[], output: 
     // It is important *not* to have any async code between createInterface and the 'line' event listener
     // as it will cause the 'line' event to
     // be emitted before the listener is attached.
-    const fileStream = createInterface({
-      input: createReadStream(path),
+    const stream = createReadStream(path)
+    const lineReaded = createInterface({
+      input: stream,
     });
 
     // Init at zero and increment at the start of the loop because lines are 1 indexed.
@@ -107,15 +108,20 @@ function getContextLinesFromFile(path: string, ranges: ReadlineRange[], output: 
 
     // We use this inside Promise.all, so we need to resolve the promise even if there is an error
     // to prevent Promise.all from short circuiting the rest.
-    fileStream.on('error', e => {
+    function onStreamError(e: Error): void {
       DEBUG_BUILD && logger.error(`Failed to read file: ${path}. Error: ${e}`);
-      fileStream.close();
-      fileStream.removeAllListeners();
+      lineReaded.close();
+      lineReaded.removeAllListeners();
       resolve();
-    });
-    fileStream.on('close', resolve);
+    }
 
-    fileStream.on('line', line => {
+    // We need to handle the error event to prevent the process from crashing in < Node 16
+    // https://github.com/nodejs/node/pull/31603
+    stream.on('error', onStreamError);
+    lineReaded.on('error', onStreamError);
+    lineReaded.on('close', resolve);
+
+    lineReaded.on('line', line => {
       lineNumber++;
       if (lineNumber < rangeStart) return;
 
@@ -125,8 +131,8 @@ function getContextLinesFromFile(path: string, ranges: ReadlineRange[], output: 
       if (lineNumber >= rangeEnd) {
         if (currentRangeIndex === ranges.length - 1) {
           // We need to close the file stream and remove listeners, else the reader will continue to run our listener;
-          fileStream.close();
-          fileStream.removeAllListeners();
+          lineReaded.close();
+          lineReaded.removeAllListeners();
           return;
         }
         currentRangeIndex++;
