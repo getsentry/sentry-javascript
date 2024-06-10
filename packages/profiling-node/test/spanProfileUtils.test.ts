@@ -7,8 +7,6 @@ import { GLOBAL_OBJ, createEnvelope, logger } from '@sentry/utils';
 import { CpuProfilerBindings } from '../src/cpu_profiler';
 import { type ProfilingIntegration, _nodeProfilingIntegration } from '../src/integration';
 
-jest.setTimeout(10000);
-
 function makeClientWithHooks(): [Sentry.NodeClient, Transport] {
   const integration = _nodeProfilingIntegration();
   const client = new Sentry.NodeClient({
