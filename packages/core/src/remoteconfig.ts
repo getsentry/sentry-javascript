@@ -78,6 +78,22 @@ export function remoteConfig({
   function _initialize(): void {
     _initTransport();
     _initConfig();
+
+    // configure client's sample rates
+    if (!client) {
+      return;
+    }
+
+    if (_activeConfig && _activeConfig.options.sample_rate) {
+      console.log('setting sampleRate to: ', _activeConfig.options.sample_rate);
+      // @ts-expect-error private
+      client['_options'].sampleRate = _activeConfig.options.sample_rate;
+    }
+    if (_activeConfig && _activeConfig.options.traces_sample_rate) {
+      console.log('setting tracesSampleRate to: ', _activeConfig.options.traces_sample_rate);
+      // @ts-expect-error private
+      client['_options'].tracesSampleRate = _activeConfig.options.traces_sample_rate;
+    }
   }
 
   /**
@@ -140,7 +156,7 @@ export function remoteConfig({
                   // _state = "SUCCESS";
                   resolve();
                 })
-                .catch(err => {
+                .catch((err: unknown) => {
                   console.log('catch');
                   console.error(err);
                   // TODO: Error handling
