@@ -4,7 +4,7 @@
   "scripts": {
     "build": "remix build",
     "dev": "remix dev",
-    "start": "NODE_OPTIONS=require './instrument.server.cjs' remix-serve build/index.js",
+    "start": "NODE_OPTIONS='require=./instrument.server.cjs' remix-serve build/index.js",
     "typecheck": "tsc",
     "clean": "npx rimraf node_modules pnpm-lock.yaml",
     "test:build": "pnpm install && npx playwright install && pnpm build",
