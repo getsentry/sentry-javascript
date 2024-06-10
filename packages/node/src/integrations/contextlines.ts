@@ -42,7 +42,7 @@ function shouldSkipContextLinesForFile(path: string): boolean {
  */
 function rangeExistsInContentCache(file: string, range: ReadlineRange): boolean {
   const contents = LRU_FILE_CONTENTS_CACHE.get(file);
-  if (!contents) return false;
+  if (contents === undefined) return false;
 
   for (let i = range[0]; i <= range[1]; i++) {
     if (contents[i] === undefined) {
@@ -182,7 +182,7 @@ async function addSourceContext(event: Event, contextLines: number): Promise<Eve
     }
 
     let cache = LRU_FILE_CONTENTS_CACHE.get(file);
-    if (!cache) {
+    if (cache === undefined) {
       cache = {};
       LRU_FILE_CONTENTS_CACHE.set(file, cache);
     }
