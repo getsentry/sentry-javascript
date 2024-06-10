@@ -1,6 +1,6 @@
 import { captureException } from '@sentry/browser';
 import type { Component, JSX } from 'solid-js';
-import { mergeProps, splitProps, untrack } from 'solid-js';
+import { mergeProps, splitProps } from 'solid-js';
 import { createComponent } from 'solid-js/web';
 
 type ErrorBoundaryProps = {
@@ -21,7 +21,7 @@ export function withSentryErrorBoundary(ErrorBoundary: Component<ErrorBoundaryPr
       captureException(error);
 
       const f = local.fallback;
-      return typeof f === 'function' ? untrack(() => f(error, reset)) : f;
+      return typeof f === 'function' ? f(error, reset) : f;
     };
 
     return createComponent(ErrorBoundary, mergeProps({ fallback }, others));
