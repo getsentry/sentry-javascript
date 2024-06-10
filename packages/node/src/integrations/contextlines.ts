@@ -95,7 +95,7 @@ function getContextLinesFromFile(path: string, ranges: ReadlineRange[], output: 
     // It is important *not* to have any async code between createInterface and the 'line' event listener
     // as it will cause the 'line' event to
     // be emitted before the listener is attached.
-    const stream = createReadStream(path)
+    const stream = createReadStream(path);
     const lineReaded = createInterface({
       input: stream,
     });
@@ -225,9 +225,11 @@ function addSourceContextToFrames(
     // Only add context if we have a filename and it hasn't already been added
     if (frame.filename && frame.context_line === undefined && typeof frame.lineno === 'number') {
       const contents = cache.get(frame.filename);
-      if (contents) {
-        addContextToFrame(frame.lineno, frame, contextLines, contents);
+      if (contents === undefined) {
+        continue;
       }
+
+      addContextToFrame(frame.lineno, frame, contextLines, contents);
     }
   }
 }
