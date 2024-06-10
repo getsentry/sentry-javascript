@@ -27,22 +27,22 @@ let redisClient;
 async function run() {
   await Sentry.startSpan(
     {
-      name: 'Test Span',
-      op: 'test-span',
+      name: 'Test Span Redis 4',
+      op: 'test-span-redis-4',
     },
     async () => {
       try {
         await redisClient.set('redis-test-key', 'test-value');
         await redisClient.set('redis-cache:test-key', 'test-value');
 
-        await redisClient.set('redis-cache:test-key-set-EX', 'test-value', 'EX', 10);
-        await redisClient.setex('redis-cache:test-key-setex', 10, 'test-value');
+        await redisClient.set('redis-cache:test-key-set-EX', 'test-value', { EX: 10 });
+        await redisClient.setEx('redis-cache:test-key-setex', 10, 'test-value');
 
         await redisClient.get('redis-test-key');
         await redisClient.get('redis-cache:test-key');
         await redisClient.get('redis-cache:unavailable-data');
 
-        await redisClient.mget('redis-test-key', 'redis-cache:test-key', 'redis-cache:unavailable-data');
+        await redisClient.mGet('redis-test-key', 'redis-cache:test-key', 'redis-cache:unavailable-data');
       } finally {
         await redisClient.disconnect();
       }

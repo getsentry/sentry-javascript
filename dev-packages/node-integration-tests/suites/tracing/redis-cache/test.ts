@@ -142,7 +142,7 @@ describe('redis cache auto instrumentation', () => {
 
   test('should create cache spans for prefixed keys (redis-4)', done => {
     const EXPECTED_TRANSACTION = {
-      transaction: 'Test Span',
+      transaction: 'Test Span Redis 4',
       spans: expect.arrayContaining([
         // SET
         expect.objectContaining({
