@@ -13,9 +13,15 @@ describe('Redis', () => {
       expect(result).toBe(undefined);
     });
 
-    it('should return a string representation of a single argument', () => {
+    it('should return a string array representation of a single argument', () => {
       const cmdArgs = ['key1'];
       const result = getCacheKeySafely('get', cmdArgs);
+      expect(result).toStrictEqual(['key1']);
+    });
+
+    it('should return a string array representation of a single argument (uppercase)', () => {
+      const cmdArgs = ['key1'];
+      const result = getCacheKeySafely('GET', cmdArgs);
       expect(result).toStrictEqual(['key1']);
     });
 

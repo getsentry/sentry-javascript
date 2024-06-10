@@ -44,7 +44,7 @@ export function getCacheKeySafely(redisCommand: string, cmdArgs: IORedisCommandA
       }
     };
 
-    if (SINGLE_ARG_COMMANDS.includes(redisCommand) && cmdArgs.length > 0) {
+    if (SINGLE_ARG_COMMANDS.includes(redisCommand.toLowerCase()) && cmdArgs.length > 0) {
       return processArg(cmdArgs[0]);
     }
 

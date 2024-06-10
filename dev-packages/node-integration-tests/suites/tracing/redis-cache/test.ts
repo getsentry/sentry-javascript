@@ -42,7 +42,7 @@ describe('redis cache auto instrumentation', () => {
       .start(done);
   });
 
-  test('should create cache spans for prefixed keys', done => {
+  test('should create cache spans for prefixed keys (ioredis)', done => {
     const EXPECTED_TRANSACTION = {
       transaction: 'Test Span',
       spans: expect.arrayContaining([
@@ -135,6 +135,104 @@ describe('redis cache auto instrumentation', () => {
     };
 
     createRunner(__dirname, 'scenario-ioredis.js')
+      .withDockerCompose({ workingDirectory: [__dirname], readyMatches: ['port=6379'] })
+      .expect({ transaction: EXPECTED_TRANSACTION })
+      .start(done);
+  });
+
+  test('should create cache spans for prefixed keys (redis-4)', done => {
+    const EXPECTED_TRANSACTION = {
+      transaction: 'Test Span',
+      spans: expect.arrayContaining([
+        // SET
+        expect.objectContaining({
+          description: 'redis-cache:test-key',
+          op: 'cache.put',
+          origin: 'auto.db.otel.redis',
+          data: expect.objectContaining({
+            'sentry.origin': 'auto.db.otel.redis',
+            'db.statement': 'SET redis-cache:test-key [1 other arguments]',
+            'cache.key': ['redis-cache:test-key'],
+            'cache.item_size': 2,
+            'network.peer.address': 'localhost',
+            'network.peer.port': 6379,
+          }),
+        }),
+        // SET (with EX)
+        expect.objectContaining({
+          description: 'redis-cache:test-key-set-EX',
+          op: 'cache.put',
+          origin: 'auto.db.otel.redis',
+          data: expect.objectContaining({
+            'sentry.origin': 'auto.db.otel.redis',
+            'db.statement': 'SET redis-cache:test-key-set-EX [3 other arguments]',
+            'cache.key': ['redis-cache:test-key-set-EX'],
+            'cache.item_size': 2,
+            'network.peer.address': 'localhost',
+            'network.peer.port': 6379,
+          }),
+        }),
+        // SETEX
+        expect.objectContaining({
+          description: 'redis-cache:test-key-setex',
+          op: 'cache.put',
+          origin: 'auto.db.otel.redis',
+          data: expect.objectContaining({
+            'sentry.origin': 'auto.db.otel.redis',
+            'db.statement': 'SETEX redis-cache:test-key-setex [2 other arguments]',
+            'cache.key': ['redis-cache:test-key-setex'],
+            'cache.item_size': 2,
+            'network.peer.address': 'localhost',
+            'network.peer.port': 6379,
+          }),
+        }),
+        // GET
+        expect.objectContaining({
+          description: 'redis-cache:test-key',
+          op: 'cache.get',
+          origin: 'auto.db.otel.redis',
+          data: expect.objectContaining({
+            'sentry.origin': 'auto.db.otel.redis',
+            'db.statement': 'GET redis-cache:test-key',
+            'cache.hit': true,
+            'cache.key': ['redis-cache:test-key'],
+            'cache.item_size': 10,
+            'network.peer.address': 'localhost',
+            'network.peer.port': 6379,
+          }),
+        }),
+        // GET (unavailable - no cache hit)
+        expect.objectContaining({
+          description: 'redis-cache:unavailable-data',
+          op: 'cache.get',
+          origin: 'auto.db.otel.redis',
+          data: expect.objectContaining({
+            'sentry.origin': 'auto.db.otel.redis',
+            'db.statement': 'GET redis-cache:unavailable-data',
+            'cache.hit': false,
+            'cache.key': ['redis-cache:unavailable-data'],
+            'network.peer.address': 'localhost',
+            'network.peer.port': 6379,
+          }),
+        }),
+        // MGET
+        expect.objectContaining({
+          description: 'redis-test-key, redis-cache:test-key, redis-cache:unavailable-data',
+          op: 'cache.get',
+          origin: 'auto.db.otel.redis',
+          data: expect.objectContaining({
+            'sentry.origin': 'auto.db.otel.redis',
+            'db.statement': 'MGET [3 other arguments]',
+            'cache.hit': true,
+            'cache.key': ['redis-test-key', 'redis-cache:test-key', 'redis-cache:unavailable-data'],
+            'network.peer.address': 'localhost',
+            'network.peer.port': 6379,
+          }),
+        }),
+      ]),
+    };
+
+    createRunner(__dirname, 'scenario-redis-4.js')
       .withDockerCompose({ workingDirectory: [__dirname], readyMatches: ['port=6379'] })
       .expect({ transaction: EXPECTED_TRANSACTION })
       .start(done);
