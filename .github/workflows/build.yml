@@ -251,12 +251,14 @@ jobs:
         uses: ./dev-packages/external-contributor-gh-action
         with:
           name: ${{ github.event.pull_request.user.login }}
-      - name: Commit changes
-        uses: stefanzweifel/git-auto-commit-action@v5
+      - name: Create PR with changes
+        uses: peter-evans/create-pull-request@v6
         with:
-          commit_message: "Add external contributor to CHANGELOG.md"
-          skip_fetch: true
-          skip_checkout: true
+          commit-message: "ref: Add external contributor to CHANGELOG.md"
+          title: "ref: Add external contributor to CHANGELOG.md"
+          branch: 'external-contributor/patch-${{ github.event.pull_request.user.login }}'
+          delete-branch: true
+          path: 'CHANGELOG.md'
 
   job_build:
     name: Build
