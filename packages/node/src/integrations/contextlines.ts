@@ -45,7 +45,7 @@ function rangeExistsInContentCache(file: string, range: ReadlineRange): boolean 
   if (!contents) return false;
 
   for (let i = range[0]; i <= range[1]; i++) {
-    if (!contents[i]) {
+    if (contents[i] === undefined) {
       return false;
     }
   }

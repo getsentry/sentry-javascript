@@ -33,7 +33,6 @@ describe('ContextLines', () => {
       const readStreamSpy = jest.spyOn(fs, 'createReadStream');
 
       await addContext(frames);
-
       const numCalls = readStreamSpy.mock.calls.length;
       await addContext(frames);
 
