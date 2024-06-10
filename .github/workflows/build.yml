@@ -234,10 +234,12 @@ jobs:
       pull-requests: write
     steps:
       - uses: actions/checkout@v4
-      - uses: ./dev-packages/external-contributor-gh-action
+      - name: Add external contributor to CHANGELOG.md
+        uses: ./dev-packages/external-contributor-gh-action
         with:
           name: ${{ github.event.pull_request.user.login }}
-      - uses: parkerbxyz/suggest-changes@v1
+      - name: Propose changes
+        uses: parkerbxyz/suggest-changes@v1
         with:
           comment: 'Please commit the suggested changes from markdownlint.'
 
