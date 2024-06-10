@@ -10,6 +10,7 @@ import { cleanupOtel, getProvider, mockSdkInit } from '../helpers/mockSdkInit';
 
 describe('Integration | Transactions', () => {
   afterEach(() => {
+    jest.useRealTimers();
     jest.restoreAllMocks();
     cleanupOtel();
   });

@@ -1,6 +1,10 @@
 import { SyncPromise, rejectedSyncPromise, resolvedSyncPromise } from '../src/syncpromise';
 
 describe('SyncPromise', () => {
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
   test('simple', async () => {
     expect.assertions(1);
 

@@ -8,6 +8,7 @@ describe('attachErrorHandler', () => {
   describe('attachProps', () => {
     afterEach(() => {
       jest.resetAllMocks();
+      jest.useRealTimers();
     });
 
     describe("given I don't want to `attachProps`", () => {
@@ -325,6 +326,7 @@ const testHarness = ({
   enableConsole,
   vm,
 }: TestHarnessOpts) => {
+  jest.useRealTimers();
   jest.useFakeTimers();
   const providedErrorHandlerSpy = jest.fn();
   const warnHandlerSpy = jest.fn();

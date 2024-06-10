@@ -499,8 +499,6 @@ describe('NodeClient', () => {
 
 describe('flush/close', () => {
   test('client close function disables _sessionFlusher', async () => {
-    jest.useRealTimers();
-
     const options = getDefaultNodeClientOptions({
       autoSessionTracking: true,
       release: '1.1',

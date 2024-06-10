@@ -64,7 +64,7 @@ describe('withEdgeWrapping', () => {
   it('should return a function that calls trace', async () => {
     const startSpanSpy = jest.spyOn(coreSdk, 'startSpan');
 
-    const request = new Request('https://sentry.io/');
+    const request = new Request('https://sentry.io/', { method: 'POST' });
     const origFunction = jest.fn(_req => new Response());
 
     const wrappedFunction = withEdgeWrapping(origFunction, {
@@ -89,7 +89,11 @@ describe('withEdgeWrapping', () => {
     );
 
     expect(coreSdk.getIsolationScope().getScopeData().sdkProcessingMetadata).toEqual({
-      request: { headers: {} },
+      request: {
+        headers: {},
+        method: 'POST',
+        url: 'https://sentry.io/',
+      },
     });
   });
 

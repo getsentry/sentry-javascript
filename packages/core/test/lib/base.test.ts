@@ -58,6 +58,7 @@ jest.mock('@sentry/utils', () => {
 
 describe('BaseClient', () => {
   beforeEach(() => {
+    jest.useFakeTimers();
     TestClient.sendEventCalled = undefined;
     TestClient.instance = undefined;
     clearGlobalScope();
@@ -67,6 +68,7 @@ describe('BaseClient', () => {
   });
 
   afterEach(() => {
+    jest.useRealTimers();
     jest.clearAllMocks();
   });
 
@@ -1194,7 +1196,6 @@ describe('BaseClient', () => {
     });
 
     test('calls async `beforeSend` and uses original event without any changes', done => {
-      jest.useFakeTimers();
       expect.assertions(2);
 
       const beforeSend = jest.fn(
@@ -1224,7 +1225,6 @@ describe('BaseClient', () => {
     });
 
     test('calls async `beforeSendTransaction` and uses original event without any changes', done => {
-      jest.useFakeTimers();
       expect.assertions(2);
 
       const beforeSendTransaction = jest.fn(
@@ -1254,7 +1254,6 @@ describe('BaseClient', () => {
     });
 
     test('calls async `beforeSend` and uses the modified event', done => {
-      jest.useFakeTimers();
       expect.assertions(2);
 
       const beforeSend = jest.fn(async event => {
@@ -1284,7 +1283,6 @@ describe('BaseClient', () => {
     });
 
     test('calls async `beforeSendTransaction` and uses the modified event', done => {
-      jest.useFakeTimers();
       expect.assertions(2);
 
       const beforeSendTransaction = jest.fn(async event => {
@@ -1314,7 +1312,6 @@ describe('BaseClient', () => {
     });
 
     test('calls async `beforeSend` and discards the event', () => {
-      jest.useFakeTimers();
       expect.assertions(2);
 
       const beforeSend = jest.fn(
@@ -1336,7 +1333,6 @@ describe('BaseClient', () => {
     });
 
     test('calls async `beforeSendTransaction` and discards the event', () => {
-      jest.useFakeTimers();
       expect.assertions(2);
 
       const beforeSendTransaction = jest.fn(
@@ -1772,14 +1768,6 @@ describe('BaseClient', () => {
   });
 
   describe('sendEvent', () => {
-    beforeEach(() => {
-      jest.useFakeTimers();
-    });
-
-    afterEach(() => {
-      jest.useRealTimers();
-    });
-
     it('emits `afterSendEvent` when sending an error', async () => {
       const client = new TestClient(
         getDefaultTestClientOptions({

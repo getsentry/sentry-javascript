@@ -6,8 +6,15 @@ describe('Session Flusher', () => {
   let sendSession: jest.Mock;
   let mockClient: Client;
 
-  beforeEach(() => {
+  beforeAll(() => {
     jest.useFakeTimers();
+  });
+
+  afterAll(() => {
+    jest.useRealTimers();
+  });
+
+  beforeEach(() => {
     sendSession = jest.fn(() => Promise.resolve({ status: 'success' }));
     mockClient = {
       sendSession,

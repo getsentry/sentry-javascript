@@ -62,7 +62,7 @@ describe('Angular Tracing', () => {
         },
         '/users/:id/',
       ],
-    ])('%s', (_, routeSnapshot, expectedParams) => {
+    ])('%s', (_: string, routeSnapshot: unknown, expectedParams: string) => {
       expect(getParameterizedRouteFromSnapshot(routeSnapshot as unknown as ActivatedRouteSnapshot)).toEqual(
         expectedParams,
       );

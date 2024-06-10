@@ -5,6 +5,8 @@ const patchedDecoder = (!global.window.TextDecoder && (global.window.TextDecoder
 
 import { JSDOM } from 'jsdom';
 
+import { performance } from 'perf_hooks';
+
 import type { JSSelfProfile } from '../../../src/profiling/jsSelfProfiling';
 import { convertJSSelfProfileToSampledFormat } from '../../../src/profiling/utils';
 
@@ -21,6 +23,7 @@ const makeJSProfile = (partial: Partial<JSSelfProfile> = {}): JSSelfProfile => {
 const globalDocument = global.document;
 const globalWindow = global.window;
 const globalLocation = global.location;
+const globalPerformance = global.performance;
 
 describe('convertJSSelfProfileToSampledFormat', () => {
   beforeEach(() => {
@@ -29,6 +32,8 @@ describe('convertJSSelfProfileToSampledFormat', () => {
     // @ts-expect-error need to override global document
     global.window = dom.window;
     global.location = dom.window.location;
+    // @ts-expect-error simulate this does not exist...
+    global.performance = performance;
   });
 
   // Reset back to previous values
@@ -36,6 +41,7 @@ describe('convertJSSelfProfileToSampledFormat', () => {
     global.document = globalDocument;
     global.window = globalWindow;
     global.location = globalLocation;
+    global.performance = globalPerformance;
   });
 
   afterAll(() => {

@@ -39,7 +39,7 @@ afterEach(() => {
 
 describe('wrapApiHandlerWithSentry', () => {
   it('should return a function that calls trace', async () => {
-    const request = new Request('https://sentry.io/');
+    const request = new Request('https://sentry.io/', { method: 'POST' });
     const origFunction = jest.fn(_req => new Response());
 
     const wrappedFunction = wrapApiHandlerWithSentry(origFunction, '/user/[userId]/post/[postId]');
