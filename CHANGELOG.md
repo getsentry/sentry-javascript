@@ -4,6 +4,11 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.117.0
+
+- feat(browser/v7): Publish browserprofling CDN bundle (#12224)
+- fix(v7/publish): Add `v7` tag to `@sentry/replay` (#12304)
+
 ## 7.116.0
 
 - build(craft): Publish lambda layer under its own name for v7 (#12098) (#12099)
