@@ -7,15 +7,19 @@ export const GET_COMMANDS = ['get', 'mget'];
 export const SET_COMMANDS = ['set', 'setex'];
 // todo: del, expire
 
+/** Checks if a given command is in the list of redis commands.
+ *  Useful because commands can come in lowercase or uppercase (depending on the library). */
+export function isInCommands(redisCommands: string[], command: string): boolean {
+  return redisCommands.includes(command.toLowerCase());
+}
+
 /** Determine cache operation based on redis statement */
 export function getCacheOperation(
   command: string,
 ): 'cache.get' | 'cache.put' | 'cache.remove' | 'cache.flush' | undefined {
-  const lowercaseStatement = command.toLowerCase();
-
-  if (GET_COMMANDS.includes(lowercaseStatement)) {
+  if (isInCommands(GET_COMMANDS, command)) {
     return 'cache.get';
-  } else if (SET_COMMANDS.includes(lowercaseStatement)) {
+  } else if (isInCommands(SET_COMMANDS, command)) {
     return 'cache.put';
   } else {
     return undefined;
@@ -44,7 +48,7 @@ export function getCacheKeySafely(redisCommand: string, cmdArgs: IORedisCommandA
       }
     };
 
-    if (SINGLE_ARG_COMMANDS.includes(redisCommand.toLowerCase()) && cmdArgs.length > 0) {
+    if (isInCommands(SINGLE_ARG_COMMANDS, redisCommand) && cmdArgs.length > 0) {
       return processArg(cmdArgs[0]);
     }
 

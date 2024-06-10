@@ -19,6 +19,7 @@ import {
   calculateCacheItemSize,
   getCacheKeySafely,
   getCacheOperation,
+  isInCommands,
   shouldConsiderForCache,
 } from '../../utils/redisCache';
 
@@ -60,7 +61,7 @@ const cacheResponseHook: RedisResponseCustomAttributeFunction = (span: Span, red
     span.setAttribute(SEMANTIC_ATTRIBUTE_CACHE_ITEM_SIZE, cacheItemSize);
   }
 
-  if (GET_COMMANDS.includes(redisCommand) && cacheItemSize !== undefined) {
+  if (isInCommands(GET_COMMANDS, redisCommand) && cacheItemSize !== undefined) {
     span.setAttribute(SEMANTIC_ATTRIBUTE_CACHE_HIT, cacheItemSize > 0);
   }
 

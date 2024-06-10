@@ -141,6 +141,10 @@ describe('redis cache auto instrumentation', () => {
   });
 
   test('should create cache spans for prefixed keys (redis-4)', done => {
+    const EXPECTED_REDIS_CONNECT = {
+      transaction: 'redis-connect',
+    };
+
     const EXPECTED_TRANSACTION = {
       transaction: 'Test Span Redis 4',
       spans: expect.arrayContaining([
@@ -234,6 +238,7 @@ describe('redis cache auto instrumentation', () => {
 
     createRunner(__dirname, 'scenario-redis-4.js')
       .withDockerCompose({ workingDirectory: [__dirname], readyMatches: ['port=6379'] })
+      .expect({ transaction: EXPECTED_REDIS_CONNECT })
       .expect({ transaction: EXPECTED_TRANSACTION })
       .start(done);
   });
