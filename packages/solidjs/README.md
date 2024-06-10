@@ -6,6 +6,10 @@
 
 # Official Sentry SDK for SolidJS
 
+[![npm version](https://img.shields.io/npm/v/@sentry/solidjs.svg)](https://www.npmjs.com/package/@sentry/solidjs)
+[![npm dm](https://img.shields.io/npm/dm/@sentry/solidjs.svg)](https://www.npmjs.com/package/@sentry/solidjs)
+[![npm dt](https://img.shields.io/npm/dt/@sentry/solidjs.svg)](https://www.npmjs.com/package/@sentry/solidjs)
+
 This SDK is work in progress, and should not be used before officially released.
 
 # Solid Router
@@ -48,3 +52,37 @@ render(
   document.getElementById('root'),
 );
 ```
+
+# Sourcemaps and Releases
+
+To generate source maps of your Solid JS app bundle, check our guide
+[how to configure your bundler](https://docs.sentry.io/platforms/javascript/guides/solid/sourcemaps) to emit source
+maps.
+
+To
+[create releases and upload source maps](https://docs.sentry.io/platforms/javascript/guides/solid/sourcemaps/uploading/cli)
+to Sentry, we recommend using [sentry-cli](https://github.com/getsentry/sentry-cli). You can for instance create a bash
+script to take care of creating a release, uploading source maps and finalizing the release:
+
+```bash
+#!/bin/bash
+
+VERSION=<your version>
+ORG=<your org-slug>
+PROJECT=<your project-slug>
+
+SOURCEMAPS_PATH=./dist
+
+sentry-cli releases new $VERSION --org $ORG --project $PROJECT
+sentry-cli releases files $VERSION upload-sourcemaps $SOURCEMAPS_PATH --org $ORG --project $PROJECT
+sentry-cli releases finalize $VERSION  --org $ORG --project $PROJECT
+```
+
+Please note that the paths provided in this example work for a typical Solid JS project that adheres to the project
+structure set by [Solid templates](https://github.com/solidjs/templates). If your project setup differs from this
+template, your configuration may need adjustments. Please refer to our documentation of
+[sentry-cli](https://docs.sentry.io/cli/).
+
+Check out our
+[Svelte source maps uploading](https://docs.sentry.io/platforms/javascript/guides/solid/sourcemaps/uploading/) guide for
+more information.
