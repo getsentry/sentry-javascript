@@ -226,7 +226,7 @@ jobs:
 
   job_external_contributor:
     name: Mention external contributor in changelog
-    needs: job_get_metadata
+    needs: job_install_deps
     runs-on: ubuntu-20.04
     if: |
       github.event_name == 'pull_request'
@@ -234,6 +234,17 @@ jobs:
       pull-requests: write
     steps:
       - uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: 'package.json'
+      - name: Check dependency cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ env.CACHED_DEPENDENCY_PATHS }}
+          key: ${{ needs.job_install_deps.outputs.dependency_cache_key }}
+          fail-on-cache-miss: true
+
       - name: Add external contributor to CHANGELOG.md
         uses: ./dev-packages/external-contributor-gh-action
         with:
