@@ -55,7 +55,7 @@ export function instrumentDenoServe(): void {
         arg1.handler = instrumentDenoServeOptions(arg1.handler as RawHandler);
       }
 
-      return serveTarget.apply(serveThisArg, serveArgs);
+      return serveTarget.apply(serveThisArg, serveArgs as Parameters<typeof Deno.serve>);
     },
   });
 }
