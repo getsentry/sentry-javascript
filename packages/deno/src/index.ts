@@ -81,6 +81,8 @@ export {
   spanToJSON,
   spanToTraceHeader,
   spanToBaggageHeader,
+  spanIsSampled,
+  getDynamicSamplingContextFromSpan,
 } from '@sentry/core';
 
 export { DenoClient } from './client';
@@ -96,3 +98,4 @@ export { normalizePathsIntegration } from './integrations/normalizepaths';
 export { contextLinesIntegration } from './integrations/contextlines';
 export { denoCronIntegration } from './integrations/deno-cron';
 export { breadcrumbsIntegration } from './integrations/breadcrumbs';
+export { denoServerIntegration } from './integrations/denoserver';
