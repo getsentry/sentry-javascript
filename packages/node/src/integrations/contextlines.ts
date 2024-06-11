@@ -6,6 +6,7 @@ import { LRUMap, logger, snipLine } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
 
+const FILE_CONTENTS_FS_READ_FAILED = new LRUMap<string, 1>(20);
 const LRU_FILE_CONTENTS_CACHE = new LRUMap<string, Record<number, string>>(10);
 const DEFAULT_LINES_OF_CONTEXT = 7;
 const INTEGRATION_NAME = 'ContextLines';
@@ -109,6 +110,8 @@ function getContextLinesFromFile(path: string, ranges: ReadlineRange[], output: 
     // We use this inside Promise.all, so we need to resolve the promise even if there is an error
     // to prevent Promise.all from short circuiting the rest.
     function onStreamError(e: Error): void {
+      // Mark file path as failed to read and prevent multiple read attempts.
+      FILE_CONTENTS_FS_READ_FAILED.set(path, 1);
       DEBUG_BUILD && logger.error(`Failed to read file: ${path}. Error: ${e}`);
       lineReaded.close();
       lineReaded.removeAllListeners();
@@ -180,11 +183,15 @@ async function addSourceContext(event: Event, contextLines: number): Promise<Eve
 
   const readlinePromises: Promise<void>[] = [];
   for (const file of files) {
+    // If we failed to read this before, dont try again.
+    if (FILE_CONTENTS_FS_READ_FAILED.get(file)) {
+      continue;
+    }
+
+    // Check if the contents are already in the cache and if we can avoid reading the file again.
     // Sort ranges so that they are sorted by line increasing order and match how the file is read.
     filesToLines[file].sort((a, b) => a - b);
     const ranges = makeLineReaderRanges(filesToLines[file], contextLines);
-
-    // If the contents are already in the cache, then we dont need to read the file.
     if (ranges.every(r => rangeExistsInContentCache(file, r))) {
       continue;
     }
