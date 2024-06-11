@@ -2,7 +2,7 @@
 import type { HandlerDataFetch } from '@sentry/types';
 
 import { isError } from '../is';
-import { fill } from '../object';
+import { addNonEnumerableProperty, fill } from '../object';
 import { supportsNativeFetch } from '../supports';
 import { timestampInSeconds } from '../time';
 import { GLOBAL_OBJ } from '../worldwide';
@@ -46,6 +46,15 @@ function instrumentFetch(): void {
         ...handlerData,
       });
 
+      // We capture the stack right here and not in the Promise error callback because Safari (and probably other
+      // browsers too) will wipe the stack trace up to this point, only leaving us with this file which is useless.
+
+      // NOTE: If you are a Sentry user, and you are seeing this stack frame,
+      //       it means the error, that was caused by your fetch call did not
+      //       have a stack trace, so the SDK backfilled the stack trace so
+      //       you can see which fetch call failed.
+      const virtualStackTrace = new Error().stack;
+
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       return originalFetch.apply(GLOBAL_OBJ, args).then(
         (response: Response) => {
@@ -72,7 +81,8 @@ function instrumentFetch(): void {
             //       it means the error, that was caused by your fetch call did not
             //       have a stack trace, so the SDK backfilled the stack trace so
             //       you can see which fetch call failed.
-            error.stack = new Error(error.message).stack;
+            error.stack = virtualStackTrace;
+            addNonEnumerableProperty(error, 'framesToPop', 1);
           }
 
           // NOTE: If you are a Sentry user, and you are seeing this stack frame,
