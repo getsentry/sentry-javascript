@@ -146,6 +146,7 @@ function getContextLinesFromFile(path: string, ranges: ReadlineRange[], output: 
   });
 }
 
+// eslint-disable-next-line complexity
 async function addSourceContext(event: Event, contextLines: number): Promise<Event> {
   // keep a lookup map of which files we've already enqueued to read,
   // so we don't enqueue the same file multiple times which would cause multiple i/o reads
@@ -188,9 +189,9 @@ async function addSourceContext(event: Event, contextLines: number): Promise<Eve
       continue;
     }
 
-    // Check if the contents are already in the cache and if we can avoid reading the file again.
     // Sort ranges so that they are sorted by line increasing order and match how the file is read.
     filesToLines[file].sort((a, b) => a - b);
+    // Check if the contents are already in the cache and if we can avoid reading the file again.
     const ranges = makeLineReaderRanges(filesToLines[file], contextLines);
     if (ranges.every(r => rangeExistsInContentCache(file, r))) {
       continue;
