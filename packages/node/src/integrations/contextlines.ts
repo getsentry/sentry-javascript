@@ -29,6 +29,20 @@ export function resetFileContentCache(): void {
 }
 
 /**
+ * Get or init map value
+ */
+function emplace<T extends LRUMap<K, V>, K extends string, V>(map: T, key: K, contents: V): V {
+  const value = map.get(key);
+
+  if (value === undefined) {
+    map.set(key, contents);
+    return contents;
+  }
+
+  return value;
+}
+
+/**
  * Determines if context lines should be skipped for a file.
  * - .min.(mjs|cjs|js) files are and not useful since they dont point to the original source
  * - node: prefixed modules are part of the runtime and cannot be resolved to a file
@@ -146,7 +160,6 @@ function getContextLinesFromFile(path: string, ranges: ReadlineRange[], output: 
   });
 }
 
-// eslint-disable-next-line complexity
 async function addSourceContext(event: Event, contextLines: number): Promise<Event> {
   // keep a lookup map of which files we've already enqueued to read,
   // so we don't enqueue the same file multiple times which would cause multiple i/o reads
@@ -197,11 +210,7 @@ async function addSourceContext(event: Event, contextLines: number): Promise<Eve
       continue;
     }
 
-    let cache = LRU_FILE_CONTENTS_CACHE.get(file);
-    if (cache === undefined) {
-      cache = {};
-      LRU_FILE_CONTENTS_CACHE.set(file, cache);
-    }
+    const cache = emplace(LRU_FILE_CONTENTS_CACHE, file, {});
     readlinePromises.push(getContextLinesFromFile(file, ranges, cache));
   }
 
