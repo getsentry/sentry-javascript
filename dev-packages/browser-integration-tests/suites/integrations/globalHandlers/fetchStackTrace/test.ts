@@ -9,5 +9,5 @@ sentryTest('should create errors with stack traces for failing fetch calls', asy
 
   const envelopes = await getMultipleSentryEnvelopeRequests<Event>(page, 3, { url, timeout: 10000 });
   const errorEvent = envelopes.find(event => !event.type)!;
-  expect(errorEvent?.exception?.values?.[0].stacktrace).toBeDefined();
+  expect(errorEvent?.exception?.values?.[0].stacktrace?.frames?.length).toBeGreaterThan(0);
 });
