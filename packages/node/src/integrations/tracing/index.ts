@@ -13,7 +13,7 @@ import { instrumentMysql, mysqlIntegration } from './mysql';
 import { instrumentMysql2, mysql2Integration } from './mysql2';
 import { instrumentNest, nestIntegration } from './nest';
 import { instrumentPostgres, postgresIntegration } from './postgres';
-import { redisIntegration } from './redis';
+import { instrumentRedis, redisIntegration } from './redis';
 
 /**
  * With OTEL, all performance integrations will be added, as OTEL only initializes them when the patched package is actually required.
@@ -60,5 +60,6 @@ export function getOpenTelemetryInstrumentationToPreload(): (((options?: any) =>
     instrumentPostgres,
     instrumentHapi,
     instrumentGraphql,
+    instrumentRedis,
   ];
 }

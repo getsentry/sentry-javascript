@@ -55,6 +55,7 @@
     "node-schedule": "^2.1.1",
     "pg": "^8.7.3",
     "proxy": "^2.1.1",
+    "redis-4": "npm:redis@^4.6.14",
     "reflect-metadata": "0.2.1",
     "rxjs": "^7.8.1",
     "yargs": "^16.2.0"
