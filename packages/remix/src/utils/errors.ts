@@ -22,6 +22,7 @@ import { normalizeRemixRequest } from './web-fetch';
  * @param err The error to capture.
  * @param name The name of the origin function.
  * @param request The request object.
+ * @param isRemixV2 Whether the error is from Remix v2 or not. Default is `true`.
  *
  * @returns A promise that resolves when the exception is captured.
  */
@@ -93,7 +94,13 @@ export async function captureRemixServerException(
 }
 
 /**
+ * Wraps the original `HandleDocumentRequestFunction` with error handling.
  *
+ * @param origDocumentRequestFunction The original `HandleDocumentRequestFunction`.
+ * @param requestContext The request context.
+ * @param isRemixV2 Whether the Remix version is v2 or not.
+ *
+ * @returns The wrapped `HandleDocumentRequestFunction`.
  */
 export function errorHandleDocumentRequestFunction(
   this: unknown,
@@ -128,7 +135,16 @@ export function errorHandleDocumentRequestFunction(
 }
 
 /**
+ * Wraps the original `DataFunction` with error handling.
+ * This function also stores the form data keys if the action is being called.
  *
+ * @param origFn The original `DataFunction`.
+ * @param name The name of the function.
+ * @param args The arguments of the function.
+ * @param isRemixV2 Whether the Remix version is v2 or not.
+ * @param span The span to store the form data keys.
+ *
+ * @returns The wrapped `DataFunction`.
  */
 export async function errorHandleDataFunction(
   this: unknown,
