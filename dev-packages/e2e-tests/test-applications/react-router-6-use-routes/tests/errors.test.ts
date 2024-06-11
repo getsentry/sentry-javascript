@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { waitForError, waitForTransaction } from '@sentry-internal/event-proxy-server';
+import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
 
 test('Sends correct error event', async ({ page }) => {
   const errorEventPromise = waitForError('react-router-6-use-routes', event => {

@@ -9,9 +9,6 @@ Sentry.init({
   environment: 'prod',
   // disable requests to /express
   tracePropagationTargets: [/^(?!.*express).*$/],
-  integrations: [
-    // TODO: This used to use the Express integration
-  ],
   tracesSampleRate: 1.0,
   // TODO: We're rethinking the mechanism for including Pii data in DSC, hence commenting out sendDefaultPii for now
   // sendDefaultPii: true,

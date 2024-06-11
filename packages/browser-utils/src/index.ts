@@ -4,6 +4,7 @@ export {
   addFidInstrumentationHandler,
   addTtfbInstrumentationHandler,
   addLcpInstrumentationHandler,
+  addInpInstrumentationHandler,
 } from './metrics/instrument';
 
 export {
@@ -12,13 +13,13 @@ export {
   startTrackingLongTasks,
   startTrackingWebVitals,
   startTrackingINP,
+  registerInpInteractionListener,
 } from './metrics/browserMetrics';
 
 export { addClickKeypressInstrumentationHandler } from './instrument/dom';
 
 export { addHistoryInstrumentationHandler } from './instrument/history';
 
-export {
-  addXhrInstrumentationHandler,
-  SENTRY_XHR_DATA_KEY,
-} from './instrument/xhr';
+export { fetch, setTimeout, clearCachedImplementation, getNativeImplementation } from './getNativeImplementation';
+
+export { addXhrInstrumentationHandler, SENTRY_XHR_DATA_KEY } from './instrument/xhr';

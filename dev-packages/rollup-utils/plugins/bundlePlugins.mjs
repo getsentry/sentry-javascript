@@ -121,13 +121,18 @@ export function makeTerserPlugin() {
           // These are used by instrument.ts in utils for identifying HTML elements & events
           '_sentryCaptured',
           '_sentryId',
+          // Keeps the frozen DSC on a Sentry Span
           '_frozenDsc',
+          // This keeps metrics summary on spans
+          '_metrics_summary',
           // These are used to keep span & scope relationships
           '_sentryRootSpan',
           '_sentryChildSpans',
           '_sentrySpan',
           '_sentryScope',
           '_sentryIsolationScope',
+          // require-in-the-middle calls `Module._resolveFilename`. We cannot mangle this (AWS lambda layer bundle).
+          '_resolveFilename',
         ],
       },
     },

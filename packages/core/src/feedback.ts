@@ -8,10 +8,9 @@ import { getClient, getCurrentScope } from './currentScopes';
 export function captureFeedback(
   params: SendFeedbackParams,
   hint: EventHint & { includeReplay?: boolean } = {},
+  scope = getCurrentScope(),
 ): string {
   const { message, name, email, url, source, associatedEventId, tags } = params;
-
-  const client = getClient();
 
   const feedbackEvent: FeedbackEvent = {
     contexts: {
@@ -29,11 +28,13 @@ export function captureFeedback(
     tags,
   };
 
+  const client = (scope && scope.getClient()) || getClient();
+
   if (client) {
     client.emit('beforeSendFeedback', feedbackEvent, hint);
   }
 
-  const eventId = getCurrentScope().captureEvent(feedbackEvent, hint);
+  const eventId = scope.captureEvent(feedbackEvent, hint);
 
   return eventId;
 }

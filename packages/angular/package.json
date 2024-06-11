@@ -1,6 +1,6 @@
 {
   "name": "@sentry/angular",
-  "version": "8.2.1",
+  "version": "8.9.1",
   "description": "Official Sentry SDK for Angular",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/angular",
@@ -15,16 +15,16 @@
     "access": "public"
   },
   "peerDependencies": {
-    "@angular/common": ">= 14.x <= 17.x",
-    "@angular/core": ">= 14.x <= 17.x",
-    "@angular/router": ">= 14.x <= 17.x",
+    "@angular/common": ">= 14.x <= 18.x",
+    "@angular/core": ">= 14.x <= 18.x",
+    "@angular/router": ">= 14.x <= 18.x",
     "rxjs": "^6.5.5 || ^7.x"
   },
   "dependencies": {
-    "@sentry/browser": "8.2.1",
-    "@sentry/core": "8.2.1",
-    "@sentry/types": "8.2.1",
-    "@sentry/utils": "8.2.1",
+    "@sentry/browser": "8.9.1",
+    "@sentry/core": "8.9.1",
+    "@sentry/types": "8.9.1",
+    "@sentry/utils": "8.9.1",
     "tslib": "^2.4.1"
   },
   "devDependencies": {

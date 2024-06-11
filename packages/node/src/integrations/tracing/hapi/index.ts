@@ -1,31 +1,31 @@
-import { isWrapped } from '@opentelemetry/core';
 import { HapiInstrumentation } from '@opentelemetry/instrumentation-hapi';
 import {
   SDK_VERSION,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SPAN_STATUS_ERROR,
   captureException,
   defineIntegration,
-  getActiveSpan,
   getClient,
   getDefaultIsolationScope,
   getIsolationScope,
-  getRootSpan,
-  isEnabled,
   spanToJSON,
 } from '@sentry/core';
-import { addOpenTelemetryInstrumentation } from '@sentry/opentelemetry';
 import type { IntegrationFn, Span } from '@sentry/types';
-import { consoleSandbox, logger } from '@sentry/utils';
+import { logger } from '@sentry/utils';
 import { DEBUG_BUILD } from '../../../debug-build';
-import type { Boom, RequestEvent, ResponseObject, Server } from './types';
+import { generateInstrumentOnce } from '../../../otel/instrument';
+import { ensureIsWrapped } from '../../../utils/ensureIsWrapped';
+import type { RequestEvent, Server } from './types';
+
+const INTEGRATION_NAME = 'Hapi';
+
+export const instrumentHapi = generateInstrumentOnce(INTEGRATION_NAME, () => new HapiInstrumentation());
 
 const _hapiIntegration = (() => {
   return {
-    name: 'Hapi',
+    name: INTEGRATION_NAME,
     setupOnce() {
-      addOpenTelemetryInstrumentation(new HapiInstrumentation());
+      instrumentHapi();
     },
   };
 }) satisfies IntegrationFn;
@@ -37,10 +37,6 @@ const _hapiIntegration = (() => {
  * If you also want to capture errors, you need to call `setupHapiErrorHandler(server)` after you set up your server.
  */
 export const hapiIntegration = defineIntegration(_hapiIntegration);
-
-function isBoomObject(response: ResponseObject | Boom): response is Boom {
-  return response && (response as Boom).isBoom !== undefined;
-}
 
 function isErrorEvent(event: RequestEvent): event is RequestEvent {
   return event && (event as RequestEvent).error !== undefined;
@@ -76,18 +72,8 @@ export const hapiErrorPlugin = {
           logger.warn('Isolation scope is still the default isolation scope - skipping setting transactionName');
       }
 
-      const activeSpan = getActiveSpan();
-      const rootSpan = activeSpan ? getRootSpan(activeSpan) : undefined;
-
-      if (request.response && isBoomObject(request.response)) {
-        sendErrorToSentry(request.response);
-      } else if (isErrorEvent(event)) {
+      if (isErrorEvent(event)) {
         sendErrorToSentry(event.error);
-      }
-
-      if (rootSpan) {
-        rootSpan.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
-        rootSpan.end();
       }
     });
   },
@@ -110,14 +96,7 @@ export async function setupHapiErrorHandler(server: Server): Promise<void> {
   }
 
   // eslint-disable-next-line @typescript-eslint/unbound-method
-  if (!isWrapped(server.register) && isEnabled()) {
-    consoleSandbox(() => {
-      // eslint-disable-next-line no-console
-      console.warn(
-        '[Sentry] Hapi is not instrumented. This is likely because you required/imported hapi before calling `Sentry.init()`.',
-      );
-    });
-  }
+  ensureIsWrapped(server.register, 'hapi');
 }
 
 function addHapiSpanAttributes(span: Span): void {

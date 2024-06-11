@@ -7,7 +7,13 @@ import { getAbi } from 'node-abi';
 
 import { GLOBAL_OBJ, logger } from '@sentry/utils';
 import { DEBUG_BUILD } from './debug-build';
-import type { PrivateV8CpuProfilerBindings, V8CpuProfilerBindings } from './types';
+import type {
+  PrivateV8CpuProfilerBindings,
+  RawChunkCpuProfile,
+  RawThreadCpuProfile,
+  V8CpuProfilerBindings,
+} from './types';
+import type { ProfileFormat } from './types';
 
 const stdlib = familySync();
 const platform = process.env['BUILD_PLATFORM'] || _platform();
@@ -151,24 +157,39 @@ export function importCppBindingsModule(): PrivateV8CpuProfilerBindings {
 }
 
 const PrivateCpuProfilerBindings: PrivateV8CpuProfilerBindings = importCppBindingsModule();
-const CpuProfilerBindings: V8CpuProfilerBindings = {
-  startProfiling(name: string) {
+
+class Bindings implements V8CpuProfilerBindings {
+  public startProfiling(name: string): void {
     if (!PrivateCpuProfilerBindings) {
       DEBUG_BUILD && logger.log('[Profiling] Bindings not loaded, ignoring call to startProfiling.');
       return;
     }
 
     return PrivateCpuProfilerBindings.startProfiling(name);
-  },
-  stopProfiling(name: string) {
+  }
+
+  public stopProfiling(name: string, format: ProfileFormat.THREAD): RawThreadCpuProfile | null;
+  public stopProfiling(name: string, format: ProfileFormat.CHUNK): RawChunkCpuProfile | null;
+  public stopProfiling(
+    name: string,
+    format: ProfileFormat.CHUNK | ProfileFormat.THREAD,
+  ): RawThreadCpuProfile | RawChunkCpuProfile | null {
     if (!PrivateCpuProfilerBindings) {
       DEBUG_BUILD &&
         logger.log('[Profiling] Bindings not loaded or profile was never started, ignoring call to stopProfiling.');
       return null;
     }
-    return PrivateCpuProfilerBindings.stopProfiling(name, threadId, !!GLOBAL_OBJ._sentryDebugIds);
-  },
-};
+
+    return PrivateCpuProfilerBindings.stopProfiling(
+      name,
+      format as unknown as any,
+      threadId,
+      !!GLOBAL_OBJ._sentryDebugIds,
+    );
+  }
+}
+
+const CpuProfilerBindings = new Bindings();
 
 export { PrivateCpuProfilerBindings };
 export { CpuProfilerBindings };

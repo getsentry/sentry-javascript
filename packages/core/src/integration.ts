@@ -146,7 +146,7 @@ export function setupIntegration(client: Client, integration: Integration, integ
   DEBUG_BUILD && logger.log(`Integration installed: ${integration.name}`);
 }
 
-/** Add an integration to the current hub's client. */
+/** Add an integration to the current scope's client. */
 export function addIntegration(integration: Integration): void {
   const client = getClient();
 

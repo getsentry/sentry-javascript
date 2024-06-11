@@ -60,7 +60,7 @@ export function addMetadataToStackFrames(parser: StackParser, event: Event): voi
       }
 
       for (const frame of exception.stacktrace.frames || []) {
-        if (!frame.filename) {
+        if (!frame.filename || frame.module_metadata) {
           continue;
         }
 

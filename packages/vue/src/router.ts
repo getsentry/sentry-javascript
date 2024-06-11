@@ -83,8 +83,9 @@ export function instrumentVueRouter(
     if (to.name && options.routeLabel !== 'path') {
       spanName = to.name.toString();
       transactionSource = 'custom';
-    } else if (to.matched[0] && to.matched[0].path) {
-      spanName = to.matched[0].path;
+    } else if (to.matched.length > 0) {
+      const lastIndex = to.matched.length - 1;
+      spanName = to.matched[lastIndex].path;
       transactionSource = 'route';
     }
 

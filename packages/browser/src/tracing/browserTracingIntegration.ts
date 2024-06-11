@@ -2,6 +2,7 @@
 import {
   addHistoryInstrumentationHandler,
   addPerformanceEntries,
+  registerInpInteractionListener,
   startTrackingINP,
   startTrackingInteractions,
   startTrackingLongTasks,
@@ -27,10 +28,10 @@ import type { Client, IntegrationFn, StartSpanOptions, TransactionSource } from 
 import type { Span } from '@sentry/types';
 import {
   browserPerformanceTimeOrigin,
+  generatePropagationContext,
   getDomElement,
   logger,
   propagationContextFromHeaders,
-  uuid4,
 } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
@@ -39,6 +40,11 @@ import { registerBackgroundTabDetection } from './backgroundtab';
 import { defaultRequestInstrumentationOptions, instrumentOutgoingRequests } from './request';
 
 export const BROWSER_TRACING_INTEGRATION_ID = 'BrowserTracing';
+
+interface RouteInfo {
+  name: string | undefined;
+  source: TransactionSource | undefined;
+}
 
 /** Options for Browser Tracing integration */
 export interface BrowserTracingOptions {
@@ -204,7 +210,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
     startTrackingInteractions();
   }
 
-  const latestRoute: { name: string | undefined; source: TransactionSource | undefined } = {
+  const latestRoute: RouteInfo = {
     name: undefined,
     source: undefined,
   };
@@ -375,6 +381,10 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
         registerInteractionListener(idleTimeout, finalTimeout, childSpanTimeout, latestRoute);
       }
 
+      if (enableInp) {
+        registerInpInteractionListener(latestRoute);
+      }
+
       instrumentOutgoingRequests({
         traceFetch,
         traceXHR,
@@ -412,8 +422,8 @@ export function startBrowserTracingPageLoadSpan(
  * This will only do something if a browser tracing integration has been setup.
  */
 export function startBrowserTracingNavigationSpan(client: Client, spanOptions: StartSpanOptions): Span | undefined {
-  getCurrentScope().setPropagationContext(generatePropagationContext());
   getIsolationScope().setPropagationContext(generatePropagationContext());
+  getCurrentScope().setPropagationContext(generatePropagationContext());
 
   client.emit('startNavigationSpan', spanOptions);
 
@@ -439,7 +449,7 @@ function registerInteractionListener(
   idleTimeout: BrowserTracingOptions['idleTimeout'],
   finalTimeout: BrowserTracingOptions['finalTimeout'],
   childSpanTimeout: BrowserTracingOptions['childSpanTimeout'],
-  latestRoute: { name: string | undefined; source: TransactionSource | undefined },
+  latestRoute: RouteInfo,
 ): void {
   let inflightInteractionSpan: Span | undefined;
   const registerInteractionTransaction = (): void => {
@@ -486,11 +496,4 @@ function registerInteractionListener(
   if (WINDOW.document) {
     addEventListener('click', registerInteractionTransaction, { once: false, capture: true });
   }
-}
-
-function generatePropagationContext(): { traceId: string; spanId: string } {
-  return {
-    traceId: uuid4(),
-    spanId: uuid4().substring(16),
-  };
 }

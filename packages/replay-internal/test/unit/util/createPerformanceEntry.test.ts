@@ -1,6 +1,8 @@
 import { vi } from 'vitest';
 
-vi.useFakeTimers();
+import { useFakeTimers } from '../../utils/use-fake-timers';
+
+useFakeTimers();
 vi.setSystemTime(new Date('2023-01-01'));
 
 vi.mock('@sentry/utils', async () => ({
@@ -9,7 +11,13 @@ vi.mock('@sentry/utils', async () => ({
 }));
 
 import { WINDOW } from '../../../src/constants';
-import { createPerformanceEntries, getLargestContentfulPaint } from '../../../src/util/createPerformanceEntries';
+import {
+  createPerformanceEntries,
+  getCumulativeLayoutShift,
+  getFirstInputDelay,
+  getInteractionToNextPaint,
+  getLargestContentfulPaint,
+} from '../../../src/util/createPerformanceEntries';
 import { PerformanceEntryNavigation } from '../../fixtures/performanceEntry/navigation';
 
 describe('Unit | util | createPerformanceEntries', () => {
@@ -64,17 +72,78 @@ describe('Unit | util | createPerformanceEntries', () => {
     it('works with an LCP metric', async () => {
       const metric = {
         value: 5108.299,
+        rating: 'good' as const,
         entries: [],
       };
 
       const event = getLargestContentfulPaint(metric);
 
       expect(event).toEqual({
-        type: 'largest-contentful-paint',
+        type: 'web-vital',
         name: 'largest-contentful-paint',
         start: 1672531205.108299,
         end: 1672531205.108299,
-        data: { value: 5108.299, size: 5108.299, nodeId: undefined },
+        data: { value: 5108.299, rating: 'good', size: 5108.299, nodeId: undefined },
+      });
+    });
+  });
+
+  describe('getCumulativeLayoutShift', () => {
+    it('works with an CLS metric', async () => {
+      const metric = {
+        value: 5108.299,
+        rating: 'good' as const,
+        entries: [],
+      };
+
+      const event = getCumulativeLayoutShift(metric);
+
+      expect(event).toEqual({
+        type: 'web-vital',
+        name: 'cumulative-layout-shift',
+        start: 1672531205.108299,
+        end: 1672531205.108299,
+        data: { value: 5108.299, size: 5108.299, rating: 'good', nodeId: undefined },
+      });
+    });
+  });
+
+  describe('getFirstInputDelay', () => {
+    it('works with an FID metric', async () => {
+      const metric = {
+        value: 5108.299,
+        rating: 'good' as const,
+        entries: [],
+      };
+
+      const event = getFirstInputDelay(metric);
+
+      expect(event).toEqual({
+        type: 'web-vital',
+        name: 'first-input-delay',
+        start: 1672531205.108299,
+        end: 1672531205.108299,
+        data: { value: 5108.299, size: 5108.299, rating: 'good', nodeId: undefined },
+      });
+    });
+  });
+
+  describe('getInteractionToNextPaint', () => {
+    it('works with an INP metric', async () => {
+      const metric = {
+        value: 5108.299,
+        rating: 'good' as const,
+        entries: [],
+      };
+
+      const event = getInteractionToNextPaint(metric);
+
+      expect(event).toEqual({
+        type: 'web-vital',
+        name: 'interaction-to-next-paint',
+        start: 1672531205.108299,
+        end: 1672531205.108299,
+        data: { value: 5108.299, size: 5108.299, rating: 'good', nodeId: undefined },
       });
     });
   });

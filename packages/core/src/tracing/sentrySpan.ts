@@ -41,6 +41,8 @@ import { logSpanEnd } from './logSpans';
 import { timedEventsToMeasurements } from './measurement';
 import { getCapturedScopesOnSpan } from './utils';
 
+const MAX_SPAN_COUNT = 1000;
+
 /**
  * Span contains all data about a span
  */
@@ -310,7 +312,12 @@ export class SentrySpan implements Span {
       contexts: {
         trace: spanToTransactionTraceContext(this),
       },
-      spans,
+      spans:
+        // spans.sort() mutates the array, but `spans` is already a copy so we can safely do this here
+        // we do not use spans anymore after this point
+        spans.length > MAX_SPAN_COUNT
+          ? spans.sort((a, b) => a.start_timestamp - b.start_timestamp).slice(0, MAX_SPAN_COUNT)
+          : spans,
       start_timestamp: this._startTime,
       timestamp: this._endTime,
       transaction: this._name,
@@ -335,7 +342,10 @@ export class SentrySpan implements Span {
 
     if (hasMeasurements) {
       DEBUG_BUILD &&
-        logger.log('[Measurements] Adding measurements to transaction', JSON.stringify(measurements, undefined, 2));
+        logger.log(
+          '[Measurements] Adding measurements to transaction event',
+          JSON.stringify(measurements, undefined, 2),
+        );
       transaction.measurements = measurements;
     }
 

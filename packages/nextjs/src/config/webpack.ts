@@ -291,14 +291,18 @@ export function constructWebpackConfigFunction(
         globalErrorFile => fs.existsSync(path.join(appDirPath!, globalErrorFile)),
       );
 
-      if (!hasGlobalErrorFile && !showedMissingGlobalErrorWarningMsg) {
+      if (
+        !hasGlobalErrorFile &&
+        !showedMissingGlobalErrorWarningMsg &&
+        !process.env.SENTRY_SUPPRESS_GLOBAL_ERROR_HANDLER_FILE_WARNING
+      ) {
         // eslint-disable-next-line no-console
         console.log(
           `${chalk.yellow(
             'warn',
           )}  - It seems like you don't have a global error handler set up. It is recommended that you add a ${chalk.cyan(
             'global-error.js',
-          )} file with Sentry instrumentation so that React rendering errors are reported to Sentry. Read more: https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/#react-render-errors-in-app-router`,
+          )} file with Sentry instrumentation so that React rendering errors are reported to Sentry. Read more: https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/#react-render-errors-in-app-router (you can suppress this warning by setting SENTRY_SUPPRESS_GLOBAL_ERROR_HANDLER_FILE_WARNING=1 as environment variable)`,
         );
         showedMissingGlobalErrorWarningMsg = true;
       }
@@ -329,7 +333,8 @@ export function constructWebpackConfigFunction(
           // the browser won't look for them and throw errors into the console when it can't find them. Because this is a
           // front-end-only problem, and because `sentry-cli` handles sourcemaps more reliably with the comment than
           // without, the option to use `hidden-source-map` only applies to the client-side build.
-          newConfig.devtool = !isServer ? 'hidden-source-map' : 'source-map';
+          newConfig.devtool =
+            isServer || userNextConfig.productionBrowserSourceMaps ? 'source-map' : 'hidden-source-map';
         }
 
         newConfig.plugins = newConfig.plugins || [];
@@ -660,10 +665,14 @@ function getRequestAsyncStorageModuleLocation(
 }
 
 function addOtelWarningIgnoreRule(newConfig: WebpackConfigObjectWithModuleRules): void {
-  const ignoreRule = { module: /@opentelemetry\/instrumentation/ };
+  const ignoreRules = [
+    { module: /@opentelemetry\/instrumentation/, message: /Critical dependency/ },
+    { module: /@prisma\/instrumentation/, message: /Critical dependency/ },
+  ];
+
   if (newConfig.ignoreWarnings === undefined) {
-    newConfig.ignoreWarnings = [ignoreRule];
+    newConfig.ignoreWarnings = ignoreRules;
   } else if (Array.isArray(newConfig.ignoreWarnings)) {
-    newConfig.ignoreWarnings.push(ignoreRule);
+    newConfig.ignoreWarnings.push(...ignoreRules);
   }
 }

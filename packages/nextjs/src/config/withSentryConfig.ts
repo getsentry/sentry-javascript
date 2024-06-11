@@ -1,5 +1,7 @@
-import { isThenable } from '@sentry/utils';
+import { isThenable, parseSemver } from '@sentry/utils';
 
+import * as fs from 'fs';
+import { sync as resolveSync } from 'resolve';
 import type {
   ExportedNextConfig as NextConfig,
   NextConfigFunction,
@@ -49,7 +51,7 @@ function getFinalConfigObject(
   if ('sentry' in incomingUserNextConfigObject) {
     // eslint-disable-next-line no-console
     console.warn(
-      '[@sentry/nextjs] Setting a `sentry` property on the Next.js config is no longer supported. Please use the `sentrySDKOptions` argument of `withSentryConfig` instead.',
+      '[@sentry/nextjs] Setting a `sentry` property on the Next.js config object as a means of configuration is no longer supported. Please use the `sentryBuildOptions` argument of of the `withSentryConfig()` function instead.',
     );
 
     // Next 12.2.3+ warns about non-canonical properties on `userNextConfig`.
@@ -81,6 +83,26 @@ function getFinalConfigObject(
     instrumentationHook: true,
     ...incomingUserNextConfigObject.experimental,
   };
+
+  // Add the `clientTraceMetadata` experimental option based on Next.js version. The option got introduced in Next.js version 15.0.0 (actually 14.3.0-canary.64).
+  // Adding the option on lower versions will cause Next.js to print nasty warnings we wouldn't confront our users with.
+  const nextJsVersion = getNextjsVersion();
+  if (nextJsVersion) {
+    const { major, minor } = parseSemver(nextJsVersion);
+    if (major !== undefined && minor !== undefined && (major >= 15 || (major === 14 && minor >= 3))) {
+      incomingUserNextConfigObject.experimental = incomingUserNextConfigObject.experimental || {};
+      incomingUserNextConfigObject.experimental.clientTraceMetadata = [
+        'baggage',
+        'sentry-trace',
+        ...(incomingUserNextConfigObject.experimental?.clientTraceMetadata || []),
+      ];
+    }
+  } else {
+    // eslint-disable-next-line no-console
+    console.log(
+      "[@sentry/nextjs] The Sentry SDK was not able to determine your Next.js version. If you are using Next.js 15 or greater, please add `experimental.clientTraceMetadata: ['sentry-trace', 'baggage']` to your Next.js config to enable pageload tracing for App Router.",
+    );
+  }
 
   return {
     ...incomingUserNextConfigObject,
@@ -162,4 +184,28 @@ function setUpTunnelRewriteRules(userNextConfig: NextConfigObject, tunnelPath: s
       };
     }
   };
+}
+
+function getNextjsVersion(): string | undefined {
+  const nextjsPackageJsonPath = resolveNextjsPackageJson();
+  if (nextjsPackageJsonPath) {
+    try {
+      const nextjsPackageJson: { version: string } = JSON.parse(
+        fs.readFileSync(nextjsPackageJsonPath, { encoding: 'utf-8' }),
+      );
+      return nextjsPackageJson.version;
+    } catch {
+      // noop
+    }
+  }
+
+  return undefined;
+}
+
+function resolveNextjsPackageJson(): string | undefined {
+  try {
+    return resolveSync('next/package.json', { basedir: process.cwd() });
+  } catch {
+    return undefined;
+  }
 }

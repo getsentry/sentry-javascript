@@ -1,21 +1,27 @@
 import { MongoDBInstrumentation } from '@opentelemetry/instrumentation-mongodb';
 import { defineIntegration } from '@sentry/core';
-import { addOpenTelemetryInstrumentation } from '@sentry/opentelemetry';
 import type { IntegrationFn } from '@sentry/types';
+import { generateInstrumentOnce } from '../../otel/instrument';
 
 import { addOriginToSpan } from '../../utils/addOriginToSpan';
 
+const INTEGRATION_NAME = 'Mongo';
+
+export const instrumentMongo = generateInstrumentOnce(
+  INTEGRATION_NAME,
+  () =>
+    new MongoDBInstrumentation({
+      responseHook(span) {
+        addOriginToSpan(span, 'auto.db.otel.mongo');
+      },
+    }),
+);
+
 const _mongoIntegration = (() => {
   return {
-    name: 'Mongo',
+    name: INTEGRATION_NAME,
     setupOnce() {
-      addOpenTelemetryInstrumentation(
-        new MongoDBInstrumentation({
-          responseHook(span) {
-            addOriginToSpan(span, 'auto.db.otel.mongo');
-          },
-        }),
-      );
+      instrumentMongo();
     },
   };
 }) satisfies IntegrationFn;

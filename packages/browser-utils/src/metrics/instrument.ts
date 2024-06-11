@@ -8,7 +8,13 @@ import { onLCP } from './web-vitals/getLCP';
 import { observe } from './web-vitals/lib/observe';
 import { onTTFB } from './web-vitals/onTTFB';
 
-type InstrumentHandlerTypePerformanceObserver = 'longtask' | 'event' | 'navigation' | 'paint' | 'resource';
+type InstrumentHandlerTypePerformanceObserver =
+  | 'longtask'
+  | 'event'
+  | 'navigation'
+  | 'paint'
+  | 'resource'
+  | 'first-input';
 
 type InstrumentHandlerTypeMetric = 'cls' | 'lcp' | 'fid' | 'ttfb' | 'inp';
 
@@ -225,12 +231,17 @@ function instrumentFid(): void {
 }
 
 function instrumentLcp(): StopListening {
-  return onLCP(metric => {
-    triggerHandlers('lcp', {
-      metric,
-    });
-    _previousLcp = metric;
-  });
+  return onLCP(
+    metric => {
+      triggerHandlers('lcp', {
+        metric,
+      });
+      _previousLcp = metric;
+    },
+    // We want the callback to be called whenever the LCP value updates.
+    // By default, the callback is only called when the tab goes to the background.
+    { reportAllChanges: true },
+  );
 }
 
 function instrumentTtfb(): StopListening {
@@ -318,4 +329,11 @@ function getCleanupCallback(
       typeHandlers.splice(index, 1);
     }
   };
+}
+
+/**
+ * Check if a PerformanceEntry is a PerformanceEventTiming by checking for the `duration` property.
+ */
+export function isPerformanceEventTiming(entry: PerformanceEntry): entry is PerformanceEventTiming {
+  return 'duration' in entry;
 }

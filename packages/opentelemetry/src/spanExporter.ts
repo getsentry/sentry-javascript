@@ -17,6 +17,7 @@ import {
 } from '@sentry/core';
 import type { SpanJSON, SpanOrigin, TraceContext, TransactionEvent, TransactionSource } from '@sentry/types';
 import { dropUndefinedKeys, logger } from '@sentry/utils';
+import { SENTRY_TRACE_STATE_PARENT_SPAN_ID } from './constants';
 
 import { DEBUG_BUILD } from './debug-build';
 import { SEMANTIC_ATTRIBUTE_SENTRY_PARENT_IS_REMOTE } from './semanticAttributes';
@@ -30,6 +31,8 @@ import { mapStatus } from './utils/mapStatus';
 import { parseSpanDescription } from './utils/parseSpanDescription';
 
 type SpanNodeCompleted = SpanNode & { span: ReadableSpan };
+
+const MAX_SPAN_COUNT = 1000;
 
 /**
  * A Sentry-specific exporter that converts OpenTelemetry Spans to Sentry Spans & Transactions.
@@ -140,7 +143,12 @@ function maybeSend(spans: ReadableSpan[]): ReadableSpan[] {
       createAndFinishSpanForOtelSpan(child, spans, remaining);
     });
 
-    transactionEvent.spans = spans;
+    // spans.sort() mutates the array, but we do not use this anymore after this point
+    // so we can safely mutate it here
+    transactionEvent.spans =
+      spans.length > MAX_SPAN_COUNT
+        ? spans.sort((a, b) => a.start_timestamp - b.start_timestamp).slice(0, MAX_SPAN_COUNT)
+        : spans;
 
     const measurements = timedEventsToMeasurements(span.events);
     if (measurements) {
@@ -194,7 +202,16 @@ function createTransactionForOtelSpan(span: ReadableSpan): TransactionEvent {
   });
 
   const { traceId: trace_id, spanId: span_id } = span.spanContext();
-  const parent_span_id = span.parentSpanId;
+
+  const parentSpanIdFromTraceState = span.spanContext().traceState?.get(SENTRY_TRACE_STATE_PARENT_SPAN_ID);
+
+  // If parentSpanIdFromTraceState is defined at all, we want it to take presedence
+  // In that case, an empty string should be interpreted as "no parent span id",
+  // even if `span.parentSpanId` is set
+  // this is the case when we are starting a new trace, where we have a virtual span based on the propagationContext
+  // We only want to continue the traceId in this case, but ignore the parent span
+  const parent_span_id =
+    typeof parentSpanIdFromTraceState === 'string' ? parentSpanIdFromTraceState || undefined : span.parentSpanId;
 
   const status = mapStatus(span);
 

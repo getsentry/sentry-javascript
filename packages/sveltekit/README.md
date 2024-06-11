@@ -215,7 +215,7 @@ export default {
       sourceMapsUploadOptions: {
         org: 'my-org-slug',
         project: 'my-project-slug',
-        authToken: 'process.env.SENTRY_AUTH_TOKEN',
+        authToken: process.env.SENTRY_AUTH_TOKEN,
         include: ['dist'],
         cleanArtifacts: true,
         setCommits: {

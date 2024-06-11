@@ -1,8 +1,8 @@
 import { expect, test } from '@playwright/test';
-import { waitForError, waitForTransaction } from '@sentry-internal/event-proxy-server';
+import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
 
 test('Should record exceptions for faulty edge server components', async ({ page }) => {
-  const errorEventPromise = waitForError('nextjs-13-app-dir', errorEvent => {
+  const errorEventPromise = waitForError('nextjs-app-dir', errorEvent => {
     return errorEvent?.exception?.values?.[0]?.value === 'Edge Server Component Error';
   });
 
@@ -20,7 +20,7 @@ test('Should record exceptions for faulty edge server components', async ({ page
 });
 
 test('Should record transaction for edge server components', async ({ page }) => {
-  const serverComponentTransactionPromise = waitForTransaction('nextjs-13-app-dir', async transactionEvent => {
+  const serverComponentTransactionPromise = waitForTransaction('nextjs-app-dir', async transactionEvent => {
     return transactionEvent?.transaction === 'Page Server Component (/edge-server-components)';
   });
 

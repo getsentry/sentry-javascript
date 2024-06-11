@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { WINDOW } from '../../types';
+import { WINDOW } from '../../../types';
 import type { NavigationTimingPolyfillEntry } from '../types';
 
 export const getNavigationEntry = (): PerformanceNavigationTiming | NavigationTimingPolyfillEntry | undefined => {

@@ -6,6 +6,7 @@ import { browserPerformanceTimeOrigin, getComponentName, htmlTreeAsString, logge
 
 import { spanToJSON } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
+import { WINDOW } from '../types';
 import {
   addClsInstrumentationHandler,
   addFidInstrumentationHandler,
@@ -13,7 +14,6 @@ import {
   addPerformanceInstrumentationHandler,
   addTtfbInstrumentationHandler,
 } from './instrument';
-import { WINDOW } from './types';
 import { getBrowserPerformanceAPI, isMeasurementValue, msToSec, startAndEndSpan } from './utils';
 import { getNavigationEntry } from './web-vitals/lib/getNavigationEntry';
 import { getVisibilityWatcher } from './web-vitals/lib/getVisibilityWatcher';
@@ -157,7 +157,7 @@ export function startTrackingInteractions(): void {
   });
 }
 
-export { startTrackingINP } from './inp';
+export { startTrackingINP, registerInpInteractionListener } from './inp';
 
 /** Starts tracking the Cumulative Layout Shift on the current page. */
 function _trackCLS(): () => void {

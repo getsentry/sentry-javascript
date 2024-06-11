@@ -12,8 +12,9 @@ import {
 import { winterCGRequestToRequestData } from '@sentry/utils';
 
 import type { EdgeRouteHandler } from '../../edge/types';
-import { flushQueue } from './responseEnd';
+import { flushSafelyWithTimeout } from './responseEnd';
 import { commonObjectToIsolationScope, escapeNextjsTracing } from './tracingUtils';
+import { vercelWaitUntil } from './vercelWaitUntil';
 
 /**
  * Wraps a function on the edge runtime with error and performance monitoring.
@@ -80,9 +81,11 @@ export function withEdgeWrapping<H extends EdgeRouteHandler>(
 
                 return handlerResult;
               },
-            ).finally(() => flushQueue());
+            );
           },
-        );
+        ).finally(() => {
+          vercelWaitUntil(flushSafelyWithTimeout());
+        });
       });
     });
   };

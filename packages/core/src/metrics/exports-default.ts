@@ -1,6 +1,11 @@
-import type { Client, MetricsAggregator as MetricsAggregatorInterface } from '@sentry/types';
+import type {
+  Client,
+  DurationUnit,
+  MetricData,
+  Metrics,
+  MetricsAggregator as MetricsAggregatorInterface,
+} from '@sentry/types';
 import { MetricsAggregator } from './aggregator';
-import type { MetricData } from './exports';
 import { metrics as metricsCore } from './exports';
 
 /**
@@ -40,17 +45,40 @@ function gauge(name: string, value: number, data?: MetricData): void {
 }
 
 /**
+ * Adds a timing metric.
+ * The metric is added as a distribution metric.
+ *
+ * You can either directly capture a numeric `value`, or wrap a callback function in `timing`.
+ * In the latter case, the duration of the callback execution will be captured as a span & a metric.
+ *
+ * @experimental This API is experimental and might have breaking changes in the future.
+ */
+function timing(name: string, value: number, unit?: DurationUnit, data?: Omit<MetricData, 'unit'>): void;
+function timing<T>(name: string, callback: () => T, unit?: DurationUnit, data?: Omit<MetricData, 'unit'>): T;
+function timing<T = void>(
+  name: string,
+  value: number | (() => T),
+  unit: DurationUnit = 'second',
+  data?: Omit<MetricData, 'unit'>,
+): T | void {
+  return metricsCore.timing(MetricsAggregator, name, value, unit, data);
+}
+
+/**
  * Returns the metrics aggregator for a given client.
  */
 function getMetricsAggregatorForClient(client: Client): MetricsAggregatorInterface {
   return metricsCore.getMetricsAggregatorForClient(client, MetricsAggregator);
 }
 
-export const metricsDefault = {
+export const metricsDefault: Metrics & {
+  getMetricsAggregatorForClient: typeof getMetricsAggregatorForClient;
+} = {
   increment,
   distribution,
   set,
   gauge,
+  timing,
   /**
    * @ignore This is for internal use only.
    */

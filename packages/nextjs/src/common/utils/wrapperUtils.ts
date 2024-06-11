@@ -15,9 +15,9 @@ import {
 import type { Span } from '@sentry/types';
 import { isString } from '@sentry/utils';
 
-import { platformSupportsStreaming } from './platformSupportsStreaming';
-import { autoEndSpanOnResponseEnd, flushQueue } from './responseEnd';
+import { autoEndSpanOnResponseEnd, flushSafelyWithTimeout } from './responseEnd';
 import { commonObjectToIsolationScope, escapeNextjsTracing } from './tracingUtils';
+import { vercelWaitUntil } from './vercelWaitUntil';
 
 declare module 'http' {
   interface IncomingMessage {
@@ -124,15 +124,14 @@ export function withTracedServerSideDataFetcher<F extends (...args: any[]) => Pr
                   throw e;
                 } finally {
                   dataFetcherSpan.end();
-                  if (!platformSupportsStreaming()) {
-                    await flushQueue();
-                  }
                 }
               },
             );
           });
         });
       });
+    }).finally(() => {
+      vercelWaitUntil(flushSafelyWithTimeout());
     });
   };
 }
@@ -198,10 +197,9 @@ export async function callDataFetcherTraced<F extends (...args: any[]) => Promis
         throw e;
       } finally {
         dataFetcherSpan.end();
-        if (!platformSupportsStreaming()) {
-          await flushQueue();
-        }
       }
     },
-  );
+  ).finally(() => {
+    vercelWaitUntil(flushSafelyWithTimeout());
+  });
 }

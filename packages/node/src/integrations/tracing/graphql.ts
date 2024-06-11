@@ -1,7 +1,7 @@
 import { GraphQLInstrumentation } from '@opentelemetry/instrumentation-graphql';
 import { defineIntegration } from '@sentry/core';
-import { addOpenTelemetryInstrumentation } from '@sentry/opentelemetry';
 import type { IntegrationFn } from '@sentry/types';
+import { generateInstrumentOnce } from '../../otel/instrument';
 
 import { addOriginToSpan } from '../../utils/addOriginToSpan';
 
@@ -20,24 +20,31 @@ interface GraphqlOptions {
   ignoreTrivalResolveSpans?: boolean;
 }
 
-const _graphqlIntegration = ((_options: GraphqlOptions = {}) => {
-  const options = {
-    ignoreResolveSpans: true,
-    ignoreTrivialResolveSpans: true,
-    ..._options,
-  };
+const INTEGRATION_NAME = 'Graphql';
 
+export const instrumentGraphql = generateInstrumentOnce<GraphqlOptions>(
+  INTEGRATION_NAME,
+  (_options: GraphqlOptions = {}) => {
+    const options = {
+      ignoreResolveSpans: true,
+      ignoreTrivialResolveSpans: true,
+      ..._options,
+    };
+
+    return new GraphQLInstrumentation({
+      ...options,
+      responseHook(span) {
+        addOriginToSpan(span, 'auto.graphql.otel.graphql');
+      },
+    });
+  },
+);
+
+const _graphqlIntegration = ((options: GraphqlOptions = {}) => {
   return {
-    name: 'Graphql',
+    name: INTEGRATION_NAME,
     setupOnce() {
-      addOpenTelemetryInstrumentation(
-        new GraphQLInstrumentation({
-          ...options,
-          responseHook(span) {
-            addOriginToSpan(span, 'auto.graphql.otel.graphql');
-          },
-        }),
-      );
+      instrumentGraphql(options);
     },
   };
 }) satisfies IntegrationFn;

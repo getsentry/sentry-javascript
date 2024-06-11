@@ -1,5 +1,4 @@
-import type { Debugger, InspectorNotification, Runtime } from 'node:inspector';
-import { Session } from 'node:inspector';
+import type { Debugger, InspectorNotification, Runtime, Session } from 'node:inspector';
 import { defineIntegration, getClient } from '@sentry/core';
 import type { Event, Exception, IntegrationFn, StackParser } from '@sentry/types';
 import { LRUMap, logger } from '@sentry/utils';
@@ -75,11 +74,18 @@ export function createCallbackList<T>(complete: Next<T>): CallbackWrapper<T> {
  * https://nodejs.org/docs/latest-v14.x/api/inspector.html
  */
 class AsyncSession implements DebugSession {
-  private readonly _session: Session;
-
   /** Throws if inspector API is not available */
-  public constructor() {
-    this._session = new Session();
+  private constructor(private readonly _session: Session) {
+    //
+  }
+
+  public static async create(orDefault?: DebugSession | undefined): Promise<DebugSession> {
+    if (orDefault) {
+      return orDefault;
+    }
+
+    const inspector = await import('node:inspector');
+    return new AsyncSession(new inspector.Session());
   }
 
   /** @inheritdoc */
@@ -194,18 +200,6 @@ class AsyncSession implements DebugSession {
   }
 }
 
-/**
- * When using Vercel pkg, the inspector module is not available.
- * https://github.com/getsentry/sentry-javascript/issues/6769
- */
-function tryNewAsyncSession(): AsyncSession | undefined {
-  try {
-    return new AsyncSession();
-  } catch (e) {
-    return undefined;
-  }
-}
-
 const INTEGRATION_NAME = 'LocalVariables';
 
 /**
@@ -213,65 +207,11 @@ const INTEGRATION_NAME = 'LocalVariables';
  */
 const _localVariablesSyncIntegration = ((
   options: LocalVariablesIntegrationOptions = {},
-  session: DebugSession | undefined = tryNewAsyncSession(),
+  sessionOverride?: DebugSession,
 ) => {
   const cachedFrames: LRUMap<string, FrameVariables[]> = new LRUMap(20);
   let rateLimiter: RateLimitIncrement | undefined;
   let shouldProcessEvent = false;
-
-  function handlePaused(
-    stackParser: StackParser,
-    { params: { reason, data, callFrames } }: InspectorNotification<PausedExceptionEvent>,
-    complete: () => void,
-  ): void {
-    if (reason !== 'exception' && reason !== 'promiseRejection') {
-      complete();
-      return;
-    }
-
-    rateLimiter?.();
-
-    // data.description contains the original error.stack
-    const exceptionHash = hashFromStack(stackParser, data?.description);
-
-    if (exceptionHash == undefined) {
-      complete();
-      return;
-    }
-
-    const { add, next } = createCallbackList<FrameVariables[]>(frames => {
-      cachedFrames.set(exceptionHash, frames);
-      complete();
-    });
-
-    // Because we're queuing up and making all these calls synchronously, we can potentially overflow the stack
-    // For this reason we only attempt to get local variables for the first 5 frames
-    for (let i = 0; i < Math.min(callFrames.length, 5); i++) {
-      const { scopeChain, functionName, this: obj } = callFrames[i];
-
-      const localScope = scopeChain.find(scope => scope.type === 'local');
-
-      // obj.className is undefined in ESM modules
-      const fn = obj.className === 'global' || !obj.className ? functionName : `${obj.className}.${functionName}`;
-
-      if (localScope?.object.objectId === undefined) {
-        add(frames => {
-          frames[i] = { function: fn };
-          next(frames);
-        });
-      } else {
-        const id = localScope.object.objectId;
-        add(frames =>
-          session?.getLocalVariables(id, vars => {
-            frames[i] = { function: fn, vars };
-            next(frames);
-          }),
-        );
-      }
-    }
-
-    next([]);
-  }
 
   function addLocalVariablesToException(exception: Exception): void {
     const hash = hashFrames(exception?.stacktrace?.frames);
@@ -330,44 +270,108 @@ const _localVariablesSyncIntegration = ((
       const client = getClient<NodeClient>();
       const clientOptions = client?.getOptions();
 
-      if (session && clientOptions?.includeLocalVariables) {
-        // Only setup this integration if the Node version is >= v18
-        // https://github.com/getsentry/sentry-javascript/issues/7697
-        const unsupportedNodeVersion = NODE_MAJOR < 18;
-
-        if (unsupportedNodeVersion) {
-          logger.log('The `LocalVariables` integration is only supported on Node >= v18.');
-          return;
-        }
-
-        const captureAll = options.captureAllExceptions !== false;
-
-        session.configureAndConnect(
-          (ev, complete) =>
-            handlePaused(clientOptions.stackParser, ev as InspectorNotification<PausedExceptionEvent>, complete),
-          captureAll,
-        );
-
-        if (captureAll) {
-          const max = options.maxExceptionsPerSecond || 50;
-
-          rateLimiter = createRateLimiter(
-            max,
-            () => {
-              logger.log('Local variables rate-limit lifted.');
-              session?.setPauseOnExceptions(true);
-            },
-            seconds => {
-              logger.log(
-                `Local variables rate-limit exceeded. Disabling capturing of caught exceptions for ${seconds} seconds.`,
-              );
-              session?.setPauseOnExceptions(false);
-            },
-          );
-        }
-
-        shouldProcessEvent = true;
+      if (!clientOptions?.includeLocalVariables) {
+        return;
       }
+
+      // Only setup this integration if the Node version is >= v18
+      // https://github.com/getsentry/sentry-javascript/issues/7697
+      const unsupportedNodeVersion = NODE_MAJOR < 18;
+
+      if (unsupportedNodeVersion) {
+        logger.log('The `LocalVariables` integration is only supported on Node >= v18.');
+        return;
+      }
+
+      AsyncSession.create(sessionOverride).then(
+        session => {
+          function handlePaused(
+            stackParser: StackParser,
+            { params: { reason, data, callFrames } }: InspectorNotification<PausedExceptionEvent>,
+            complete: () => void,
+          ): void {
+            if (reason !== 'exception' && reason !== 'promiseRejection') {
+              complete();
+              return;
+            }
+
+            rateLimiter?.();
+
+            // data.description contains the original error.stack
+            const exceptionHash = hashFromStack(stackParser, data?.description);
+
+            if (exceptionHash == undefined) {
+              complete();
+              return;
+            }
+
+            const { add, next } = createCallbackList<FrameVariables[]>(frames => {
+              cachedFrames.set(exceptionHash, frames);
+              complete();
+            });
+
+            // Because we're queuing up and making all these calls synchronously, we can potentially overflow the stack
+            // For this reason we only attempt to get local variables for the first 5 frames
+            for (let i = 0; i < Math.min(callFrames.length, 5); i++) {
+              const { scopeChain, functionName, this: obj } = callFrames[i];
+
+              const localScope = scopeChain.find(scope => scope.type === 'local');
+
+              // obj.className is undefined in ESM modules
+              const fn =
+                obj.className === 'global' || !obj.className ? functionName : `${obj.className}.${functionName}`;
+
+              if (localScope?.object.objectId === undefined) {
+                add(frames => {
+                  frames[i] = { function: fn };
+                  next(frames);
+                });
+              } else {
+                const id = localScope.object.objectId;
+                add(frames =>
+                  session?.getLocalVariables(id, vars => {
+                    frames[i] = { function: fn, vars };
+                    next(frames);
+                  }),
+                );
+              }
+            }
+
+            next([]);
+          }
+
+          const captureAll = options.captureAllExceptions !== false;
+
+          session.configureAndConnect(
+            (ev, complete) =>
+              handlePaused(clientOptions.stackParser, ev as InspectorNotification<PausedExceptionEvent>, complete),
+            captureAll,
+          );
+
+          if (captureAll) {
+            const max = options.maxExceptionsPerSecond || 50;
+
+            rateLimiter = createRateLimiter(
+              max,
+              () => {
+                logger.log('Local variables rate-limit lifted.');
+                session?.setPauseOnExceptions(true);
+              },
+              seconds => {
+                logger.log(
+                  `Local variables rate-limit exceeded. Disabling capturing of caught exceptions for ${seconds} seconds.`,
+                );
+                session?.setPauseOnExceptions(false);
+              },
+            );
+          }
+
+          shouldProcessEvent = true;
+        },
+        error => {
+          logger.log('The `LocalVariables` integration failed to start.', error);
+        },
+      );
     },
     processEvent(event: Event): Event {
       if (shouldProcessEvent) {
