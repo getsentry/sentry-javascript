@@ -92,10 +92,34 @@ export {
   setupHapiErrorHandler,
   spotlightIntegration,
   addOpenTelemetryInstrumentation,
+  metrics,
+  NodeClient,
+  addIntegration,
+  anrIntegration,
+  captureConsoleIntegration,
+  captureSession,
+  connectIntegration,
+  createGetModuleFromFilename,
+  debugIntegration,
+  dedupeIntegration,
+  endSession,
+  extraErrorDataIntegration,
+  getAutoPerformanceIntegrations,
+  httpIntegration,
+  initOpenTelemetry,
+  koaIntegration,
+  nativeNodeFetchIntegration,
+  rewriteFramesIntegration,
+  sessionTimingIntegration,
+  setupConnectErrorHandler,
+  setupKoaErrorHandler,
+  spanToBaggageHeader,
+  spanToJSON,
+  spanToTraceHeader,
+  startSession,
+  trpcMiddleware,
+  zodErrorsIntegration,
 } from '@sentry/node';
-
-// We can still leave this for the carrier init and type exports
-export * from '@sentry/node';
 
 export { init } from './server/sdk';
 
