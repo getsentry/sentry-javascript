@@ -92,10 +92,8 @@ export {
   setupHapiErrorHandler,
   spotlightIntegration,
   addOpenTelemetryInstrumentation,
+  metrics,
 } from '@sentry/node';
-
-// We can still leave this for the carrier init and type exports
-export * from '@sentry/node';
 
 export { init } from './server/sdk';
 

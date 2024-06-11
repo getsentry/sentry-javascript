@@ -10,6 +10,7 @@ export function init(options: NodeOptions): void {
   const opts = {
     ...options,
   };
+
   applySdkMetadata(opts, 'astro', ['astro', 'node']);
 
   initNodeSdk(opts);
