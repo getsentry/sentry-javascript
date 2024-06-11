@@ -44,7 +44,7 @@ app.all(
   createRequestHandler({
     build: viteDevServer
       ? () => viteDevServer.ssrLoadModule('virtual:remix/server-build')
-      : await import('./§build/server/index.js'),
+      : await import('./build/server/index.js'),
   }),
 );
 
