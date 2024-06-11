@@ -314,6 +314,11 @@ export function addPerformanceEntries(span: Span): void {
       delete _measurements['mark.fid'];
     }
 
+    // if the browser supports layout shift, but none was added, we should still add the metric
+    if (!_measurements.cls && PerformanceObserver.supportedEntryTypes.includes('layout-shift')) {
+      _measurements.cls = { value: 0, unit: '' };
+    }
+
     // If FCP is not recorded we should not record the cls value
     // according to the new definition of CLS.
     if (!('fcp' in _measurements)) {
