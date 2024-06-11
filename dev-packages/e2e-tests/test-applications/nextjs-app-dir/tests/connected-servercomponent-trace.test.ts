@@ -4,7 +4,7 @@ import { waitForTransaction } from '@sentry-internal/test-utils';
 test('Will capture a connected trace for all server components and generation functions when visiting a page', async ({
   page,
 }) => {
-  const someConnectedEvent = waitForTransaction('nextjs-13-app-dir', async transactionEvent => {
+  const someConnectedEvent = waitForTransaction('nextjs-app-dir', async transactionEvent => {
     return (
       transactionEvent?.transaction === 'Layout Server Component (/(nested-layout)/nested-layout)' ||
       transactionEvent?.transaction === 'Layout Server Component (/(nested-layout))' ||
@@ -13,28 +13,28 @@ test('Will capture a connected trace for all server components and generation fu
     );
   });
 
-  const layout1Transaction = waitForTransaction('nextjs-13-app-dir', async transactionEvent => {
+  const layout1Transaction = waitForTransaction('nextjs-app-dir', async transactionEvent => {
     return (
       transactionEvent?.transaction === 'Layout Server Component (/(nested-layout)/nested-layout)' &&
       (await someConnectedEvent).contexts?.trace?.trace_id === transactionEvent.contexts?.trace?.trace_id
     );
   });
 
-  const layout2Transaction = waitForTransaction('nextjs-13-app-dir', async transactionEvent => {
+  const layout2Transaction = waitForTransaction('nextjs-app-dir', async transactionEvent => {
     return (
       transactionEvent?.transaction === 'Layout Server Component (/(nested-layout))' &&
       (await someConnectedEvent).contexts?.trace?.trace_id === transactionEvent.contexts?.trace?.trace_id
     );
   });
 
-  const pageTransaction = waitForTransaction('nextjs-13-app-dir', async transactionEvent => {
+  const pageTransaction = waitForTransaction('nextjs-app-dir', async transactionEvent => {
     return (
       transactionEvent?.transaction === 'Page Server Component (/(nested-layout)/nested-layout)' &&
       (await someConnectedEvent).contexts?.trace?.trace_id === transactionEvent.contexts?.trace?.trace_id
     );
   });
 
-  const generateMetadataTransaction = waitForTransaction('nextjs-13-app-dir', async transactionEvent => {
+  const generateMetadataTransaction = waitForTransaction('nextjs-app-dir', async transactionEvent => {
     return (
       transactionEvent?.transaction === 'Page.generateMetadata (/(nested-layout)/nested-layout)' &&
       (await someConnectedEvent).contexts?.trace?.trace_id === transactionEvent.contexts?.trace?.trace_id

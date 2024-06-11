@@ -993,7 +993,7 @@ jobs:
           [
             'angular-17',
             'angular-18',
-            'aws-lambda-layer',
+            'aws-lambda-layer-cjs',
             'cloudflare-astro',
             'node-express',
             'create-react-app',
@@ -1014,7 +1014,7 @@ jobs:
             'react-router-6-use-routes',
             'react-router-5',
             'react-router-6',
-            'solidjs',
+            'solid',
             'svelte-5',
             'sveltekit',
             'sveltekit-2',

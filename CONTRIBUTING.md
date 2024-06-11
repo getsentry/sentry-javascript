@@ -14,9 +14,10 @@ Developer Documentation.
 
 ## Setting up an Environment
 
-To run the test suite and our code linter, node.js and yarn are required.
+We use [Volta](https://volta.sh/) to ensure we use consistent versions of node, yarn and pnpm.
 
-[`node` download](https://nodejs.org/download) [`yarn` download](https://yarnpkg.com/en/docs/install)
+Make sure to also enable [pnpm support in Volta](https://docs.volta.sh/advanced/pnpm) if you want to run the E2E tests
+locally.
 
 `sentry-javascript` is a monorepo containing several packages, and we use `lerna` to manage them. To get started,
 install all dependencies, and then perform an initial build, so TypeScript can read all of the linked type definitions.

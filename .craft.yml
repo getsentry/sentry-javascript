@@ -59,6 +59,9 @@ targets:
     id: '@sentry/react'
     includeNames: /^sentry-react-\d.*\.tgz$/
   - name: npm
+    id: '@sentry/solid'
+    includeNames: /^sentry-solid-\d.*\.tgz$/
+  - name: npm
     id: '@sentry/svelte'
     includeNames: /^sentry-svelte-\d.*\.tgz$/
   - name: npm

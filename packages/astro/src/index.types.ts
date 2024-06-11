@@ -3,6 +3,9 @@
 // exports in this file - which we do below.
 export * from './index.client';
 export * from './index.server';
+export * from '@sentry/node';
+
+import type { NodeOptions } from '@sentry/node';
 
 import type { Integration, Options, StackParser } from '@sentry/types';
 
@@ -11,7 +14,7 @@ import type * as serverSdk from './index.server';
 import sentryAstro from './index.server';
 
 /** Initializes Sentry Astro SDK */
-export declare function init(options: Options | clientSdk.BrowserOptions | serverSdk.NodeOptions): void;
+export declare function init(options: Options | clientSdk.BrowserOptions | NodeOptions): void;
 
 export declare const linkedErrorsIntegration: typeof clientSdk.linkedErrorsIntegration;
 export declare const contextLinesIntegration: typeof clientSdk.contextLinesIntegration;
@@ -29,5 +32,5 @@ export declare const continueTrace: typeof clientSdk.continueTrace;
 
 export declare const Span: clientSdk.Span;
 
-export declare const metrics: typeof clientSdk.metrics & typeof serverSdk.metrics;
+export declare const metrics: typeof clientSdk.metrics & typeof serverSdk;
 export default sentryAstro;
