@@ -3,7 +3,7 @@ import { waitForError } from '@sentry-internal/test-utils';
 
 test('sends an error', async ({ page }) => {
   const errorPromise = waitForError('solid', async errorEvent => {
-    return !errorEvent.type;
+    return !errorEvent.type && errorEvent.transaction === '/';
   });
 
   await Promise.all([page.goto(`/`), page.locator('#errorBtn').click()]);
