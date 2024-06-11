@@ -10,7 +10,10 @@
 [![npm dm](https://img.shields.io/npm/dm/@sentry/solid.svg)](https://www.npmjs.com/package/@sentry/solid)
 [![npm dt](https://img.shields.io/npm/dt/@sentry/solid.svg)](https://www.npmjs.com/package/@sentry/solid)
 
-This SDK is work in progress, and should not be used before officially released.
+This SDK is considered **experimental and in an alpha state**. It may experience breaking changes. Please reach out on
+[GitHub](https://github.com/getsentry/sentry-javascript/issues/new/choose) if you have any feedback or concerns. This
+SDK currently only supports [Solid](https://www.solidjs.com/) and is not yet officially compatible with
+[Solid Start](https://start.solidjs.com/).
 
 # Solid Router
 
