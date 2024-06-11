@@ -4,7 +4,7 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
-## 8.9.0
+## 8.9.1
 
 ### Important changes
 
@@ -34,6 +34,10 @@
 - fix(vue): Handle span name assignment for nested routes in VueRouter (#12398)
 
 Work in this release was contributed by @soch4n. Thank you for your contribution!
+
+## 8.9.0
+
+This release failed to publish correctly, please use `8.9.1` instead.
 
 ## 8.8.0
 
