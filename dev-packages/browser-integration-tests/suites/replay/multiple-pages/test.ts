@@ -7,10 +7,8 @@ import {
   expectedFCPPerformanceSpan,
   expectedFIDPerformanceSpan,
   expectedFPPerformanceSpan,
-  expectedLCPPerformanceSpan,
-  expectedCLSPerformanceSpan,
-  expectedFIDPerformanceSpan,
   expectedINPPerformanceSpan,
+  expectedLCPPerformanceSpan,
   expectedMemoryPerformanceSpan,
   expectedNavigationBreadcrumb,
   expectedNavigationPerformanceSpan,
@@ -69,7 +67,13 @@ sentryTest(
     expect(normalize(recording0.fullSnapshots)).toMatchSnapshot('seg-0-snap-full');
     expect(recording0.incrementalSnapshots.length).toEqual(0);
 
-    const [req1] = await Promise.all([reqPromise1, page.locator('#go-background').click()]);
+    const [req1] = await Promise.all([
+      reqPromise1,
+      page.locator('#go-background').click(),
+      page.evaluate(() => {
+        window.dispatchEvent(new Event('pagehide'));
+      }),
+    ]);
 
     const replayEvent1 = getReplayEvent(req1);
     const recording1 = getReplayRecordingContent(req1);
@@ -90,6 +94,7 @@ sentryTest(
         expectedLCPPerformanceSpan,
         expectedCLSPerformanceSpan,
         expectedFIDPerformanceSpan,
+        expectedINPPerformanceSpan,
         expectedFPPerformanceSpan,
         expectedFCPPerformanceSpan,
         expectedMemoryPerformanceSpan, // two memory spans - once per flush
@@ -111,7 +116,13 @@ sentryTest(
     expect(normalize(recording2.fullSnapshots)).toMatchSnapshot('seg-2-snap-full');
     expect(recording2.incrementalSnapshots.length).toEqual(0);
 
-    const [req3] = await Promise.all([reqPromise3, page.locator('#go-background').click()]);
+    const [req3] = await Promise.all([
+      reqPromise3,
+      page.locator('#go-background').click(),
+      page.evaluate(() => {
+        window.dispatchEvent(new Event('pagehide'));
+      }),
+    ]);
 
     const replayEvent3 = getReplayEvent(req3);
     const recording3 = getReplayRecordingContent(req3);
@@ -130,6 +141,7 @@ sentryTest(
         expectedLCPPerformanceSpan,
         expectedCLSPerformanceSpan,
         expectedFIDPerformanceSpan,
+        expectedINPPerformanceSpan,
         expectedFPPerformanceSpan,
         expectedFCPPerformanceSpan,
         expectedMemoryPerformanceSpan,
@@ -165,7 +177,13 @@ sentryTest(
     expect(normalize(recording4.fullSnapshots)).toMatchSnapshot('seg-4-snap-full');
     expect(recording4.incrementalSnapshots.length).toEqual(0);
 
-    const [req5] = await Promise.all([reqPromise5, page.locator('#go-background').click()]);
+    const [req5] = await Promise.all([
+      reqPromise5,
+      page.locator('#go-background').click(),
+      page.evaluate(() => {
+        window.dispatchEvent(new Event('pagehide'));
+      }),
+    ]);
 
     const replayEvent5 = getReplayEvent(req5);
     const recording5 = getReplayRecordingContent(req5);
@@ -199,6 +217,7 @@ sentryTest(
         expectedLCPPerformanceSpan,
         expectedCLSPerformanceSpan,
         expectedFIDPerformanceSpan,
+        expectedINPPerformanceSpan,
         expectedFPPerformanceSpan,
         expectedFCPPerformanceSpan,
         expectedMemoryPerformanceSpan,
@@ -295,7 +314,13 @@ sentryTest(
     expect(normalize(recording8.fullSnapshots)).toMatchSnapshot('seg-8-snap-full');
     expect(recording8.incrementalSnapshots.length).toEqual(0);
 
-    const [req9] = await Promise.all([reqPromise9, page.locator('#go-background').click()]);
+    const [req9] = await Promise.all([
+      reqPromise9,
+      page.locator('#go-background').click(),
+      page.evaluate(() => {
+        window.dispatchEvent(new Event('pagehide'));
+      }),
+    ]);
 
     const replayEvent9 = getReplayEvent(req9);
     const recording9 = getReplayRecordingContent(req9);
@@ -322,6 +347,7 @@ sentryTest(
         expectedLCPPerformanceSpan,
         expectedCLSPerformanceSpan,
         expectedFIDPerformanceSpan,
+        expectedINPPerformanceSpan,
         expectedFPPerformanceSpan,
         expectedFCPPerformanceSpan,
         expectedMemoryPerformanceSpan,
