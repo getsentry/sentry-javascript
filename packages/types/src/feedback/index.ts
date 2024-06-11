@@ -11,7 +11,7 @@ import type {
 export type { FeedbackFormData } from './form';
 
 import type { FeedbackEvent, SendFeedback, SendFeedbackParams, UserFeedback } from './sendFeedback';
-export type { FeedbackEvent, SendFeedback, SendFeedbackParams, UserFeedback };
+export type { FeedbackEvent, UserFeedback, SendFeedback, SendFeedbackParams };
 
 /**
  * The integration's internal `options` member where every value should be set
@@ -21,23 +21,6 @@ export interface FeedbackInternalOptions
     FeedbackThemeConfiguration,
     FeedbackTextConfiguration,
     FeedbackCallbacks {}
-
-/**
- * Partial configuration that overrides the constructor provided configuration values
- *
- * This is the config that gets passed into methods like attachTo and createWidget.
- */
-export type OverrideFeedbackConfiguration = Omit<Partial<FeedbackInternalOptions>, 'themeLight' | 'themeDark'>;
-
-/**
- * Partial configuration that overrides default configuration values
- *
- * This is the config that gets passed into the integration constructor
- */
-export interface OptionalFeedbackConfiguration extends OverrideFeedbackConfiguration {
-  themeLight?: Partial<FeedbackInternalOptions['themeLight']>;
-  themeDark?: Partial<FeedbackInternalOptions['themeLight']>;
-}
 
 type HTMLElement = unknown;
 export interface FeedbackDialog {
