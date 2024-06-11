@@ -2,7 +2,7 @@
 import type { HandlerDataFetch } from '@sentry/types';
 
 import { isError } from '../is';
-import { addNonEnumerableProperty, fill } from '../object';
+import { fill } from '../object';
 import { supportsNativeFetch } from '../supports';
 import { timestampInSeconds } from '../time';
 import { GLOBAL_OBJ } from '../worldwide';
