@@ -1,5 +1,5 @@
-import { assertEquals } from 'https://deno.land/std@0.202.0/assert/assert_equals.ts';
-import { assertSnapshot } from 'https://deno.land/std@0.202.0/testing/snapshot.ts';
+import { assertEquals } from 'jsr:@std/assert';
+import { assertSnapshot } from 'jsr:@std/testing/snapshot';
 
 import type { sentryTypes } from '../build-test/index.js';
 import { getTestClient } from './client.ts';
