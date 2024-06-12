@@ -488,7 +488,7 @@ jobs:
       - name: Set up Deno
         uses: denoland/setup-deno@v1.1.4
         with:
-          deno-version: v1.38.5
+          deno-version: v1.x
       - name: Restore caches
         uses: ./.github/actions/restore-cache
         env:
