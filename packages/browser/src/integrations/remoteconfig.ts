@@ -19,6 +19,8 @@ const _remoteConfigIntegration = (() => {
       _inst = remoteConfig({ client, storage: browserStorage() });
       // @ts-expect-error demo
       client.remoteConfig = _inst;
+
+      _inst.init();
     },
     get api() {
       return _inst;
@@ -77,13 +79,13 @@ function _getStorageKey(key: string): string {
 function browserStorage(): RemoteConfigStorage {
   return {
     get(key: string): unknown {
-      const value = WINDOW.localStorage.getItem(_getStorageKey(key));
-
-      if (value === null) {
-        return value;
-      }
-
       try {
+        const value = WINDOW.localStorage.getItem(_getStorageKey(key));
+
+        if (value === null) {
+          return value;
+        }
+
         return JSON.parse(value);
       } catch {
         return null;
