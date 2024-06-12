@@ -1,17 +1,20 @@
 import { defineIntegration, getCurrentScope, getIsolationScope, getRootSpan, spanToJSON } from '@sentry/core';
 import type { NodeClient } from '@sentry/node';
-import type { Integration, IntegrationFn, Profile, ProfileChunk, Span } from '@sentry/types';
+import type { Event, Integration, IntegrationFn, Profile, ProfileChunk, Span } from '@sentry/types';
 
 import { LRUMap, logger, timestampInSeconds, uuid4 } from '@sentry/utils';
 
+import { getGlobalScope } from '../../core/src/currentScopes';
 import { CpuProfilerBindings } from './cpu_profiler';
 import { DEBUG_BUILD } from './debug-build';
 import { NODE_MAJOR, NODE_VERSION } from './nodeVersion';
 import { MAX_PROFILE_DURATION_MS, maybeProfileSpan, stopSpanProfile } from './spanProfileUtils';
-import type { RawThreadCpuProfile } from './types';
+import type { RawChunkCpuProfile, RawThreadCpuProfile } from './types';
 import { ProfileFormat } from './types';
+import { PROFILER_THREAD_NAME } from './utils';
 
 import {
+  PROFILER_THREAD_ID_STRING,
   addProfilesToEnvelope,
   createProfilingChunkEvent,
   createProfilingEvent,
@@ -211,7 +214,9 @@ class ContinuousProfiler {
         logger.log(`[Profiling] Failed to collect profile for: ${this._chunkData?.id}, the chunk_id is missing.`);
       return;
     }
-    const profile = CpuProfilerBindings.stopProfiling(this._chunkData.id, ProfileFormat.CHUNK);
+
+    const profile = this._stopChunkProfiling(this._chunkData);
+
     if (!profile || !this._chunkData.startTimestampMS) {
       DEBUG_BUILD && logger.log(`[Profiling] _chunkiledStartTraceID to collect profile for: ${this._chunkData.id}`);
       return;
@@ -275,11 +280,21 @@ class ContinuousProfiler {
   }
 
   /**
+   * Stops the profile and clears chunk instrumentation from global scope
+   * @returns void
+   */
+  private _stopChunkProfiling(chunk: ChunkData): RawChunkCpuProfile | null {
+    this._teardownSpanChunkInstrumentation();
+    return CpuProfilerBindings.stopProfiling(chunk.id, ProfileFormat.CHUNK);
+  }
+
+  /**
    * Starts the profiler and registers the flush timer for a given chunk.
    * @param chunk
    */
   private _startChunkProfiling(chunk: ChunkData): void {
-    CpuProfilerBindings.startProfiling(chunk.id!);
+    this._setupSpanChunkInstrumentation();
+    CpuProfilerBindings.startProfiling(chunk.id);
     DEBUG_BUILD && logger.log(`[Profiling] starting profiling chunk: ${chunk.id}`);
 
     chunk.timer = global.setTimeout(() => {
@@ -294,6 +309,32 @@ class ContinuousProfiler {
   }
 
   /**
+   * Attaches profiling information to spans that were started
+   * during a profiling session.
+   */
+  private _setupSpanChunkInstrumentation(): void {
+    if (!this._client) {
+      DEBUG_BUILD &&
+        logger.log('[Profiling] Failed to collect profile, sentry client was never attached to the profiler.');
+      return;
+    }
+
+    getGlobalScope().setContext('profile', {
+      profiler_id: this._profilerId,
+    });
+
+    this._client.on('beforeSendEvent', e => this._assignThreadIdContext(e));
+  }
+
+  /**
+   * Clear profiling information from global context when a profile is not running.
+   */
+  private _teardownSpanChunkInstrumentation(): void {
+    const globalScope = getGlobalScope();
+    globalScope.setContext('profile', {});
+  }
+
+  /**
    * Initializes new profile chunk metadata
    */
   private _initializeChunk(traceId: string): void {
@@ -302,6 +343,30 @@ class ContinuousProfiler {
       startTraceID: traceId,
       startTimestampMS: timestampInSeconds(),
       timer: undefined,
+    };
+  }
+
+  /**
+   * Assigns thread_id and thread name context to a profiled event.
+   */
+  private _assignThreadIdContext(event: Event): any {
+    if (!event?.['contexts']?.['profile']) {
+      return;
+    }
+
+    if (!event.contexts) {
+      return;
+    }
+
+    // @ts-expect-error the trace fallback value is wrong, though it should never happen
+    // and in case it does, we dont want to override whatever was passed initially.
+    event.contexts['trace'] = {
+      ...(event.contexts?.['trace'] ?? {}),
+      data: {
+        ...(event.contexts?.['trace']?.['data'] ?? {}),
+        ['thread.id']: PROFILER_THREAD_ID_STRING,
+        ['thread.name']: PROFILER_THREAD_NAME,
+      },
     };
   }
 
