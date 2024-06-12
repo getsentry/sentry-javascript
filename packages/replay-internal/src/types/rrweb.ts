@@ -53,7 +53,7 @@ export interface CanvasManagerInterface {
   unlock(): void;
   snapshot(): void;
   addWindow(win: typeof globalThis & Window): void;
-  addShadowRoot(): void;
+  addShadowRoot(shadowRoot: ShadowRoot): void;
   resetShadowRoots(): void;
 }
 
