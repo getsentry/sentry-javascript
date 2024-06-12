@@ -7,6 +7,7 @@ import type {
   Integration,
   IntegrationFn,
 } from '@sentry/types';
+import type { FeedbackTheme } from '@sentry/types/build/types/feedback/theme';
 import { isBrowser, logger } from '@sentry/utils';
 import {
   ADD_SCREENSHOT_LABEL,
@@ -49,6 +50,12 @@ interface BuilderOptions {
   getScreenshotIntegration?: null | (() => IntegrationFn);
 }
 
+interface ConfigurableOpts
+  extends Pick<OverrideFeedbackConfiguration, 'triggerLabel' | 'formTitle' | 'submitButtonLabel'>,
+    Pick<FeedbackTheme, 'background' | 'foreground' | 'accentBackground' | 'accentForeground'> {}
+interface RemoteConfigIntegration extends Integration {
+  get: (key: string, value: ConfigurableOpts) => ConfigurableOpts;
+}
 export const buildFeedbackIntegration = ({
   lazyLoadIntegration,
   getModalIntegration,
@@ -272,6 +279,28 @@ export const buildFeedbackIntegration = ({
     return {
       name: 'Feedback',
       setupOnce() {
+        const client = getClient();
+        if (client) {
+          // @ts-expect-error demo
+          const rc = client.remoteConfig;
+          if (rc) {
+            const feedbackConfig = rc.get('feedback', {});
+            ['triggerLabel', 'formTitle', 'submitButtonLabel'].forEach(key => {
+              if (key in feedbackConfig && key in _options) {
+                // @ts-expect-error demo
+                _options[key] = feedbackConfig[key];
+              }
+            });
+            ['background', 'accentBackground', 'foreground', 'accentForeground'].forEach(key => {
+              if (key in feedbackConfig) {
+                // @ts-expect-error demo
+                _options.themeLight[key] = feedbackConfig[key];
+                // @ts-expect-error demo
+                _options.themeDark[key] = feedbackConfig[key];
+              }
+            });
+          }
+        }
         if (!isBrowser() || !_options.autoInject) {
           return;
         }
