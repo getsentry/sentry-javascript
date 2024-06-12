@@ -35,6 +35,12 @@ export interface Integration {
   setup?(client: Client): void;
 
   /**
+   * This hook is triggered before `setupOnce()` and `setup()` have been called for all integrations.
+   * You can use it if it is important that all other integrations have been run before.
+   */
+  beforeAllSetup?(client: Client): void;
+
+  /**
    * This hook is triggered after `setupOnce()` and `setup()` have been called for all integrations.
    * You can use it if it is important that all other integrations have been run before.
    */

@@ -53,6 +53,7 @@ import { getIsolationScope } from './currentScopes';
 import { DEBUG_BUILD } from './debug-build';
 import { createEventEnvelope, createSessionEnvelope } from './envelope';
 import type { IntegrationIndex } from './integration';
+import { beforeSetupIntegrations } from './integration';
 import { afterSetupIntegrations } from './integration';
 import { setupIntegration, setupIntegrations } from './integration';
 import type { Scope } from './scope';
@@ -551,6 +552,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   /** Setup integrations for this client. */
   protected _setupIntegrations(): void {
     const { integrations } = this._options;
+    beforeSetupIntegrations(this, integrations);
     this._integrations = setupIntegrations(this, integrations);
     afterSetupIntegrations(this, integrations);
   }

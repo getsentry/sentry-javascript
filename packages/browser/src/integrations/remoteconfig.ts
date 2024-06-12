@@ -1,5 +1,6 @@
 import { defineIntegration, getClient, remoteConfig } from '@sentry/core';
 import type { IntegrationFn, RemoteConfigStorage, RemoteOverrideableConfig } from '@sentry/types';
+import type { Client } from '@sentry/types';
 import { logger } from '@sentry/utils';
 import { DEBUG_BUILD } from '../debug-build';
 import { WINDOW } from '../helpers';
@@ -13,13 +14,11 @@ const _remoteConfigIntegration = (() => {
   let _inst: ReturnType<typeof remoteConfig> | undefined;
   return {
     name: INTEGRATION_NAME,
-    setupOnce() {
-      const client = getClient();
-      if (!client) {
-        // when can this happen?
-        return;
-      }
+    beforeAllSetup(client: Client) {
+      // Happens before normal integrations are setup
       _inst = remoteConfig({ client, storage: browserStorage() });
+      // @ts-expect-error demo
+      client.remoteConfig = _inst;
     },
     get api() {
       return _inst;
