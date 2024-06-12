@@ -31,7 +31,7 @@ export type ReplayEventWithTime = {
 
 /**
  * This is a partial copy of rrweb's recording options which only contains the properties
- * we specifically us in the SDK. Users can specify additional properties, hence we add the
+ * we specifically use in the SDK. Users can specify additional properties, hence we add the
  * Record<string, unknown> union type.
  */
 export type RrwebRecordOptions = {
@@ -52,6 +52,9 @@ export interface CanvasManagerInterface {
   lock(): void;
   unlock(): void;
   snapshot(): void;
+  addWindow(win: typeof globalThis & Window): void;
+  addShadowRoot(): void;
+  resetShadowRoots(): void;
 }
 
 export interface CanvasManagerOptions {
