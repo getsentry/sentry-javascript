@@ -48,9 +48,15 @@ function emplace<T extends LRUMap<K, V>, K extends string, V>(map: T, key: K, co
  * - node: prefixed modules are part of the runtime and cannot be resolved to a file
  * - data: skip json, wasm and inline js https://nodejs.org/api/esm.html#data-imports
  */
-const SKIP_CONTEXTLINES_REGEXP = /(^(node|data):)|(\.min\.(mjs|cjs|js$))/;
 function shouldSkipContextLinesForFile(path: string): boolean {
-  return SKIP_CONTEXTLINES_REGEXP.test(path);
+  // Test the most common prefix and extension first. These are the ones we
+  // are most likely to see in user applications and are the ones we can break out of first.
+  if (path.startsWith('node:')) return true;
+  if (path.endsWith('.min.js')) return true;
+  if (path.endsWith('.min.cjs')) return true;
+  if (path.endsWith('.min.mjs')) return true;
+  if (path.startsWith('data:')) return true;
+  return false;
 }
 /**
  * Checks if we have all the contents that we need in the cache.
@@ -142,8 +148,8 @@ function getContextLinesFromFile(path: string, ranges: ReadlineRange[], output: 
       lineNumber++;
       if (lineNumber < rangeStart) return;
 
-      // !Warning: Mutates the cache value
-      output[lineNumber] = line;
+      // !Warning: This mutates the cache by storing the snipped line into the cache.
+      output[lineNumber] = snipLine(line, 0);
 
       if (lineNumber >= rangeEnd) {
         if (currentRangeIndex === ranges.length - 1) {
@@ -287,7 +293,7 @@ export function addContextToFrame(
       return;
     }
 
-    frame.pre_context.push(snipLine(contents[i], 0));
+    frame.pre_context.push(contents[i]);
   }
 
   // We should always have the context line. If we dont, something went wrong, so we clear the context and return
