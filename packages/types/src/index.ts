@@ -46,6 +46,7 @@ export type {
   StatsdEnvelope,
   ProfileItem,
   ProfileChunkEnvelope,
+  ProfileChunkItem,
   SpanEnvelope,
   SpanItem,
 } from './envelope';
