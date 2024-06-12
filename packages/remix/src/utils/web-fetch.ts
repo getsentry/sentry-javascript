@@ -150,8 +150,8 @@ export const normalizeRemixRequest = (request: RemixRequest): Record<string, any
     query: parsedURL.query,
     href: parsedURL.href,
     method: request.method,
-    // @ts-expect-error - not sure what this supposed to do
-    headers: headers[Symbol.for('nodejs.util.inspect.custom')](),
+    // Remix now uses undici, so use standard way to create headers object
+    headers: Object.fromEntries(headers),
     insecureHTTPParser: request.insecureHTTPParser,
     agent,
 
