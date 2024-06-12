@@ -12,7 +12,6 @@ test('Sends an API route transaction', async ({ baseURL }) => {
   await fetch(`${baseURL}/test-transaction`);
 
   const transactionEvent = await pageloadTransactionEventPromise;
-  const transactionEventId = transactionEvent.event_id;
 
   expect(transactionEvent.contexts?.trace).toEqual({
     data: {
@@ -109,6 +108,87 @@ test('Sends an API route transaction', async ({ baseURL }) => {
       'otel.kind': 'INTERNAL',
     },
     description: '/test-transaction',
+    op: 'request_handler.express',
+    origin: 'auto.http.otel.express',
+    parent_span_id: expect.any(String),
+    span_id: expect.any(String),
+    start_timestamp: expect.any(Number),
+    status: 'ok',
+    timestamp: expect.any(Number),
+    trace_id: expect.any(String),
+  });
+});
+
+test('Sends an API route transaction for an errored route', async ({ baseURL }) => {
+  const transactionEventPromise = waitForTransaction('node-express', transactionEvent => {
+    return (
+      transactionEvent.contexts?.trace?.op === 'http.server' &&
+      transactionEvent.transaction === 'GET /test-exception/:id' &&
+      transactionEvent.request?.url === 'http://localhost:3030/test-exception/777'
+    );
+  });
+
+  await fetch(`${baseURL}/test-exception/777`);
+
+  const transactionEvent = await transactionEventPromise;
+
+  expect(transactionEvent.contexts?.trace?.op).toEqual('http.server');
+  expect(transactionEvent.transaction).toEqual('GET /test-exception/:id');
+  expect(transactionEvent.contexts?.trace?.status).toEqual('internal_error');
+  expect(transactionEvent.contexts?.trace?.data?.['http.status_code']).toEqual(500);
+
+  const spans = transactionEvent.spans || [];
+
+  expect(spans).toContainEqual({
+    data: {
+      'sentry.origin': 'auto.http.otel.express',
+      'sentry.op': 'middleware.express',
+      'http.route': '/',
+      'express.name': 'query',
+      'express.type': 'middleware',
+      'otel.kind': 'INTERNAL',
+    },
+    description: 'query',
+    op: 'middleware.express',
+    origin: 'auto.http.otel.express',
+    parent_span_id: expect.any(String),
+    span_id: expect.any(String),
+    start_timestamp: expect.any(Number),
+    status: 'ok',
+    timestamp: expect.any(Number),
+    trace_id: expect.any(String),
+  });
+
+  expect(spans).toContainEqual({
+    data: {
+      'sentry.origin': 'auto.http.otel.express',
+      'sentry.op': 'middleware.express',
+      'http.route': '/',
+      'express.name': 'expressInit',
+      'express.type': 'middleware',
+      'otel.kind': 'INTERNAL',
+    },
+    description: 'expressInit',
+    op: 'middleware.express',
+    origin: 'auto.http.otel.express',
+    parent_span_id: expect.any(String),
+    span_id: expect.any(String),
+    start_timestamp: expect.any(Number),
+    status: 'ok',
+    timestamp: expect.any(Number),
+    trace_id: expect.any(String),
+  });
+
+  expect(spans).toContainEqual({
+    data: {
+      'sentry.origin': 'auto.http.otel.express',
+      'sentry.op': 'request_handler.express',
+      'http.route': '/test-exception/:id',
+      'express.name': '/test-exception/:id',
+      'express.type': 'request_handler',
+      'otel.kind': 'INTERNAL',
+    },
+    description: '/test-exception/:id',
     op: 'request_handler.express',
     origin: 'auto.http.otel.express',
     parent_span_id: expect.any(String),
