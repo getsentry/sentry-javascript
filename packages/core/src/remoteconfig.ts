@@ -75,7 +75,7 @@ export function remoteConfig({
   /**
    * Initialize remote config integration
    */
-  function _initialize(): void {
+  function _init(): void {
     _initTransport();
     _initConfig();
 
@@ -85,14 +85,12 @@ export function remoteConfig({
     }
 
     if (_activeConfig && _activeConfig.options.sample_rate) {
-      console.log('setting sampleRate to: ', _activeConfig.options.sample_rate);
       // @ts-expect-error private
-      client['_options'].sampleRate = _activeConfig.options.sample_rate;
+      client._options.sampleRate = _activeConfig.options.sample_rate;
     }
     if (_activeConfig && _activeConfig.options.traces_sample_rate) {
-      console.log('setting tracesSampleRate to: ', _activeConfig.options.traces_sample_rate);
       // @ts-expect-error private
-      client['_options'].tracesSampleRate = _activeConfig.options.traces_sample_rate;
+      client._options.tracesSampleRate = _activeConfig.options.traces_sample_rate;
     }
   }
 
@@ -191,16 +189,18 @@ export function remoteConfig({
   /**
    * Async function to fetch and apply configuration.
    */
-  async function fetchAndApply(): Promise<void> {
+  async function fetchAndApply(): Promise<RemoteConfigActive | undefined> {
     await _fetch();
     applyUpdate();
+
+    return _activeConfig;
   }
 
   /**
    * Fetch configuration, but does *not* apply. Call `applyConfig` to use fetched configuration.
    */
-  function fetch(): void {
-    void _fetch();
+  function fetch(): PromiseLike<void> {
+    return _fetch();
   }
 
   /**
@@ -227,9 +227,8 @@ export function remoteConfig({
     return _activeConfig.features[key];
   }
 
-  _initialize();
-
   return {
+    init: _init,
     applyUpdate,
     fetch,
     fetchAndApply,

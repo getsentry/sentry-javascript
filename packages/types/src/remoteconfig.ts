@@ -9,7 +9,10 @@ export type RemoteOverrideableConfig = Pick<ClientOptions, 'sampleRate' | 'trace
 
 export type RemoteConfigSource = 'DEFAULT' | 'CACHED' | 'REMOTE';
 
-export interface RemoteConfigInterface {
+/**
+ * The Remote Config API that we will expose via platform-specific integrations
+ */
+export interface RemoteConfigIntegration {
   /**
    * Applies remote configuration updates to local configuration.
    *
@@ -39,6 +42,13 @@ export interface RemoteConfigInterface {
    * Returns the source type of the active configuration
    */
   getSource: () => RemoteConfigSource;
+}
+
+export interface RemoteConfigInterface extends RemoteConfigIntegration {
+  /**
+   * Initialize Remote Config
+   */
+  init: () => void;
 }
 
 export interface RemoteConfigStorage {
