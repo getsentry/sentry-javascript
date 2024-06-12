@@ -303,7 +303,8 @@ export function addContextToFrame(
     DEBUG_BUILD && logger.error(`Could not find line ${lineno} in file ${frame.filename}`);
     return;
   }
-  frame.context_line = snipLine(contents[lineno], frame.colno || 0);
+
+  frame.context_line = contents[lineno];
 
   const end = makeRangeEnd(lineno, contextLines);
   frame.post_context = [];
@@ -313,7 +314,7 @@ export function addContextToFrame(
     if (contents[i] === undefined) {
       break;
     }
-    frame.post_context.push(snipLine(contents[i], 0));
+    frame.post_context.push(contents[i]);
   }
 }
 
