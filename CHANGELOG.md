@@ -4,6 +4,10 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 8.9.2
+
+- fix(profiling): Update exports so types generate properly (#12469)
+
 ## 8.9.1
 
 ### Important changes
