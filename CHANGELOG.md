@@ -4,7 +4,44 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 8.9.2
+
+- fix(profiling): Update exports so types generate properly (#12469)
+
+## 8.9.1
+
+### Important changes
+
+- **feat(solid): Add Solid SDK**
+
+  This release adds a dedicated SDK for [Solid JS](https://www.solidjs.com/) in alpha state with instrumentation for
+  [Solid Router](https://docs.solidjs.com/solid-router) and a custom `ErrorBoundary`. See the
+  [package README](https://github.com/getsentry/sentry-javascript/blob/develop/packages/solid/README.md) for how to use
+  the SDK.
+
+### Other changes
+
+- feat(deps): bump @opentelemetry/instrumentation-express from 0.40.0 to 0.40.1 (#12438)
+- feat(deps): bump @opentelemetry/instrumentation-mongodb from 0.44.0 to 0.45.0 (#12439)
+- feat(deps): bump @opentelemetry/propagator-aws-xray from 1.24.1 to 1.25.0 (#12437)
+- feat(nextjs): Allow for suppressing warning about missing global error handler file (#12369)
+- feat(redis): Add cache logic for redis-4 (#12429)
+- feat(replay): Replay Web Vital Breadcrumbs (#12296)
+- fix: Fix types export order (#12404)
+- fix(astro): Ensure server-side exports work correctly (#12453)
+- fix(aws-serverless): Add `op` to Otel-generated lambda function root span (#12430)
+- fix(aws-serverless): Only auto-patch handler in CJS when loading `awslambda-auto` (#12392)
+- fix(aws-serverless): Only start root span in Sentry wrapper if Otel didn't wrap handler (#12407)
+- fix(browser): Fix INP span creation & transaction tagging (#12372)
+- fix(nextjs): correct types conditional export ordering (#12355)
+- fix(replay): Fix guard for exception event (#12441)
+- fix(vue): Handle span name assignment for nested routes in VueRouter (#12398)
+
 Work in this release was contributed by @soch4n. Thank you for your contribution!
+
+## 8.9.0
+
+This release failed to publish correctly, please use `8.9.1` instead.
 
 ## 8.8.0
 
