@@ -7127,22 +7127,24 @@
   dependencies:
     "@sentry-internal/rrweb-snapshot" "2.11.0"
 
-"@sentry-internal/rrdom@2.19.0":
-  version "2.19.0"
-  resolved "https://registry.yarnpkg.com/@sentry-internal/rrdom/-/rrdom-2.19.0.tgz#7a92142ab866cc48c9bac851103641a036456101"
-  integrity sha512-hy/RvR3z4aGPTaHRoRIJdEocLicb/oHnhKkuNBnn00Fccyp6Lzs89Gu1rtsUAv8WgJF//42LGkbCXqtUBonlpA==
+"@sentry-internal/rrdom@2.20.0":
+  version "2.20.0"
+  resolved "https://registry.yarnpkg.com/@sentry-internal/rrdom/-/rrdom-2.20.0.tgz#da72ded3140e1cb3d90ff8387b05b3473461bbad"
+  integrity sha512-S+3KB6B/pB5WGNprFdjaUOxE21grUqjMElcUYeC59kR01Hlc41snM+895kGv9/smW+YAUwIFqzSsGfk2koQEDQ==
   dependencies:
-    "@sentry-internal/rrweb-snapshot" "2.19.0"
+    "@sentry-internal/rrweb-snapshot" "2.20.0"
 
 "@sentry-internal/rrweb-snapshot@2.11.0":
   version "2.11.0"
   resolved "https://registry.yarnpkg.com/@sentry-internal/rrweb-snapshot/-/rrweb-snapshot-2.11.0.tgz#1af79130604afea989d325465b209ac015b27c9a"
   integrity sha512-1nP22QlplMNooSNvTh+L30NSZ+E3UcfaJyxXSMLxUjQHTGPyM1VkndxZMmxlKhyR5X+rLbxi/+RvuAcpM43VoA==
 
-"@sentry-internal/rrweb-snapshot@2.19.0":
-  version "2.19.0"
-  resolved "https://registry.yarnpkg.com/@sentry-internal/rrweb-snapshot/-/rrweb-snapshot-2.19.0.tgz#28d8d0e95bc01a3f3b436ce40f65b6bafe4768ff"
-  integrity sha512-xkBKpI7Z8r8AiF6nwKhDZW6kXcmnuaN5kSiYXYzMMH1e8USetXBuDTzr3gbDRBFXmFgQbNzwUviAevEKHK3hNA==
+"@sentry-internal/rrweb-snapshot@2.20.0":
+  version "2.20.0"
+  resolved "https://registry.yarnpkg.com/@sentry-internal/rrweb-snapshot/-/rrweb-snapshot-2.20.0.tgz#005be8b5a2da4a96f7a863dbed3eccc1c68bfd1f"
+  integrity sha512-T+KTcOWChgaYfAL0PCUv7PQuMI2k9BG+3X8IlVPgb2/NTPKvJYicHxwC7tcwRM5fCqZpf2Erohyb1R6SuLJJPA==
+  dependencies:
+    downlevel-dts "https://github.com/getsentry/downlevel-dts"
 
 "@sentry-internal/rrweb-types@2.11.0":
   version "2.11.0"
@@ -7151,12 +7153,14 @@
   dependencies:
     "@sentry-internal/rrweb-snapshot" "2.11.0"
 
-"@sentry-internal/rrweb-types@2.19.0":
-  version "2.19.0"
-  resolved "https://registry.yarnpkg.com/@sentry-internal/rrweb-types/-/rrweb-types-2.19.0.tgz#1ab4020ee17786ba752808a386a1dd1dfdc18050"
-  integrity sha512-FDlmjGxcyfpx1bYCUPkpGhrZLR8zD9CKkAtydNerM9ik/MILsXdL03R36jWTmbIlNZvtgmljw1Feuu4VShkx2w==
+"@sentry-internal/rrweb-types@2.20.0":
+  version "2.20.0"
+  resolved "https://registry.yarnpkg.com/@sentry-internal/rrweb-types/-/rrweb-types-2.20.0.tgz#4e4531edf68c537a791cf0a44daa9bc3ca1e98ae"
+  integrity sha512-0LZDglrvCjCdyk9Uc1sJPIdS9IdQEDrfB0S/vC3EaaPteUfdsp4CK4yaXn1cCatbb75Uev5tIICtPZkq9zzqkg==
   dependencies:
-    "@sentry-internal/rrweb-snapshot" "2.19.0"
+    "@sentry-internal/rrweb-snapshot" "2.20.0"
+    "@types/css-font-loading-module" "0.0.7"
+    downlevel-dts "https://github.com/getsentry/downlevel-dts"
 
 "@sentry-internal/rrweb@2.11.0":
   version "2.11.0"
@@ -7172,17 +7176,18 @@
     fflate "^0.4.4"
     mitt "^3.0.0"
 
-"@sentry-internal/rrweb@2.19.0":
-  version "2.19.0"
-  resolved "https://registry.yarnpkg.com/@sentry-internal/rrweb/-/rrweb-2.19.0.tgz#b68563bd3948f14f6b7e0bf513f93d8020594cb8"
-  integrity sha512-UxDnqALtRtPMJPRLQ2U5CA5SuqLoDoQKFgH5k2E0JuC1/jhiUfLe+3tbAWtlpweBwLaSpJcAoe8qyA0xRHhsqw==
+"@sentry-internal/rrweb@2.20.0":
+  version "2.20.0"
+  resolved "https://registry.yarnpkg.com/@sentry-internal/rrweb/-/rrweb-2.20.0.tgz#5f8034542c2562da40b875516762afd04d0d5238"
+  integrity sha512-6uMZwDDVUtBy8KTegCM9IYUc91yHNJ87o7GMdUpBImPOQqmMt9HsHJl5vur/KBnPFTiAUNeRf1Ar8iMH62auQA==
   dependencies:
-    "@sentry-internal/rrdom" "2.19.0"
-    "@sentry-internal/rrweb-snapshot" "2.19.0"
-    "@sentry-internal/rrweb-types" "2.19.0"
+    "@sentry-internal/rrdom" "2.20.0"
+    "@sentry-internal/rrweb-snapshot" "2.20.0"
+    "@sentry-internal/rrweb-types" "2.20.0"
     "@types/css-font-loading-module" "0.0.7"
     "@xstate/fsm" "^1.4.0"
     base64-arraybuffer "^1.0.1"
+    downlevel-dts "https://github.com/getsentry/downlevel-dts"
     fflate "^0.4.4"
     mitt "^3.0.0"
 
@@ -8592,6 +8597,7 @@
     "@types/unist" "*"
 
 "@types/history-4@npm:@types/history@4.7.8", "@types/history-5@npm:@types/history@4.7.8", "@types/history@*":
+  name "@types/history-4"
   version "4.7.8"
   resolved "https://registry.yarnpkg.com/@types/history/-/history-4.7.8.tgz#49348387983075705fe8f4e02fb67f7daaec4934"
   integrity sha512-S78QIYirQcUoo6UJZx9CSP0O2ix9IaeAXwQi26Rhr/+mg7qqPy8TzaxHSUut7eGjL8WmLccT7/MXf304WjqHcA==
@@ -14448,6 +14454,14 @@ dotenv@~10.0.0:
   version "10.0.0"
   resolved "https://registry.yarnpkg.com/dotenv/-/dotenv-10.0.0.tgz#3d4227b8fb95f81096cdd2b66653fb2c7085ba81"
   integrity sha512-rlBi9d8jpv9Sf1klPjNfFAuWDjKLwTIJJ/VxtoTwIR6hnZxcEOQCZg2oIL3MWBYw5GpUDKOEnND7LXTbIpQ03Q==
+
+"downlevel-dts@git+https://github.com/getsentry/downlevel-dts.git":
+  version "0.11.0"
+  resolved "git+https://github.com/getsentry/downlevel-dts.git#26342728379689259f494d79053272c6f2f0ea14"
+  dependencies:
+    semver "^7.3.2"
+    shelljs "^0.8.3"
+    typescript next
 
 downlevel-dts@~0.11.0:
   version "0.11.0"
@@ -26231,6 +26245,7 @@ react-is@^18.0.0:
     "@remix-run/router" "1.0.2"
 
 "react-router-6@npm:react-router@6.3.0", react-router@6.3.0:
+  name react-router-6
   version "6.3.0"
   resolved "https://registry.yarnpkg.com/react-router/-/react-router-6.3.0.tgz#3970cc64b4cb4eae0c1ea5203a80334fdd175557"
   integrity sha512-7Wh1DzVQ+tlFjkeo+ujvjSqSJmkt1+8JO+T5xklPlgrh70y7ogx75ODRW0ThWhY7S+6yEDks8TYrtQe/aoboBQ==
@@ -28581,6 +28596,7 @@ string-template@~0.2.1:
   integrity sha1-QpMuWYo1LQH8IuwzZ9nYTuxsmt0=
 
 "string-width-cjs@npm:string-width@^4.2.0", string-width@^4.2.0, string-width@^4.2.2, string-width@^4.2.3:
+  name string-width-cjs
   version "4.2.3"
   resolved "https://registry.yarnpkg.com/string-width/-/string-width-4.2.3.tgz#269c7117d27b05ad2e536830a8ec895ef9c6d010"
   integrity sha512-wKyQRQpjJ0sIp62ErSZdGsjMJWsap5oRNihHhu6G7JVO/9jIB6UyevL+tXuOqrng8j/cxKTWyWUwvSTriiZz/g==
@@ -31329,6 +31345,7 @@ workerpool@^6.4.0:
   integrity sha512-i3KR1mQMNwY2wx20ozq2EjISGtQWDIfV56We+yGJ5yDs8jTwQiLLaqHlkBHITlCuJnYlVRmXegxFxZg7gqI++A==
 
 "wrap-ansi-cjs@npm:wrap-ansi@^7.0.0", wrap-ansi@^7.0.0:
+  name wrap-ansi-cjs
   version "7.0.0"
   resolved "https://registry.yarnpkg.com/wrap-ansi/-/wrap-ansi-7.0.0.tgz#67e145cff510a6a6984bdf1152911d69d2eb9e43"
   integrity sha512-YVGIj2kamLSTxw6NsZjoBxfSwsn0ycdesmc4p+Q21c5zPuZ1pl+NfxVdxPtdHvmNVOQ6XSYG4AUtyt/Fi7D16Q==
