@@ -140,7 +140,8 @@ export function getRemixDefaultIntegrations(options: RemixOptions): Integration[
   return [
     ...getDefaultNodeIntegrations(options as NodeOptions).filter(integration => integration.name !== 'Http'),
     httpIntegration(),
-  ];
+    options.autoInstrumentRemix ? remixIntegration() : undefined,
+  ].filter(int => int) as Integration[];
 }
 
 /**
@@ -167,10 +168,7 @@ export function init(options: RemixOptions): void {
     return;
   }
 
-  options.defaultIntegrations = [
-    ...getRemixDefaultIntegrations(options as NodeOptions),
-    options.autoInstrumentRemix ? remixIntegration() : undefined,
-  ].filter(int => int) as Integration[];
+  options.defaultIntegrations = getRemixDefaultIntegrations(options as NodeOptions);
 
   nodeInit(options as NodeOptions);
 
