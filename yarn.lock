@@ -14455,9 +14455,9 @@ dotenv@~10.0.0:
   resolved "https://registry.yarnpkg.com/dotenv/-/dotenv-10.0.0.tgz#3d4227b8fb95f81096cdd2b66653fb2c7085ba81"
   integrity sha512-rlBi9d8jpv9Sf1klPjNfFAuWDjKLwTIJJ/VxtoTwIR6hnZxcEOQCZg2oIL3MWBYw5GpUDKOEnND7LXTbIpQ03Q==
 
-"downlevel-dts@git+https://github.com/getsentry/downlevel-dts.git":
+"downlevel-dts@https://github.com/getsentry/downlevel-dts":
   version "0.11.0"
-  resolved "git+https://github.com/getsentry/downlevel-dts.git#26342728379689259f494d79053272c6f2f0ea14"
+  resolved "https://github.com/getsentry/downlevel-dts#26342728379689259f494d79053272c6f2f0ea14"
   dependencies:
     semver "^7.3.2"
     shelljs "^0.8.3"
