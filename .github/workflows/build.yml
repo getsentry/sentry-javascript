@@ -108,6 +108,10 @@ jobs:
               - 'packages/replay-canvas/**'
               - 'packages/feedback/**'
               - 'packages/wasm/**'
+            node: &node
+              - *shared
+              - 'packages/node/**'
+              - 'packages/opentelemetry/**'
             browser_integration:
               - *shared
               - *browser
@@ -116,21 +120,21 @@ jobs:
               - *shared
               - *browser
               - 'packages/ember/**'
-            node:
+            node_integration:
               - *shared
-              - 'packages/node/**'
+              - *node
               - 'dev-packages/node-integration-tests/**'
             nextjs:
               - *shared
               - *browser
+              - *node
               - 'packages/nextjs/**'
-              - 'packages/node/**'
               - 'packages/react/**'
             remix:
               - *shared
               - *browser
+              - *node
               - 'packages/remix/**'
-              - 'packages/node/**'
               - 'packages/react/**'
             profiling_node:
               - *shared
@@ -157,6 +161,7 @@ jobs:
       changed_ember: ${{ steps.changed.outputs.ember }}
       changed_remix: ${{ steps.changed.outputs.remix }}
       changed_node: ${{ steps.changed.outputs.node }}
+      changed_node_integration: ${{ steps.changed.outputs.node_integration }}
       changed_profiling_node: ${{ steps.changed.outputs.profiling_node }}
       changed_profiling_node_bindings: ${{ steps.changed.outputs.profiling_node_bindings }}
       changed_deno: ${{ steps.changed.outputs.deno }}
@@ -862,7 +867,7 @@ jobs:
       Node (${{ matrix.node }})${{ (matrix.typescript && format(' (TS {0})', matrix.typescript)) || '' }} Integration
       Tests
     needs: [job_get_metadata, job_build]
-    if: needs.job_get_metadata.outputs.changed_node == 'true' || github.event_name != 'pull_request'
+    if: needs.job_get_metadata.outputs.changed_node_integration == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-20.04
     timeout-minutes: 15
     strategy:
