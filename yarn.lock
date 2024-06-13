@@ -24190,6 +24190,14 @@ opentelemetry-instrumentation-fetch-node@1.2.0:
     "@opentelemetry/instrumentation" "^0.43.0"
     "@opentelemetry/semantic-conventions" "^1.17.0"
 
+opentelemetry-instrumentation-remix@0.7.0:
+  version "0.7.0"
+  resolved "https://registry.yarnpkg.com/opentelemetry-instrumentation-remix/-/opentelemetry-instrumentation-remix-0.7.0.tgz#ea3ac4d6da69300de1417c938eade2d029c5cd21"
+  integrity sha512-dF7IdcLkN2xIUATaa2X4ahb/Plk/c2wPdOz90MCVgFHuQZvGtzP9DwBpxXEzs6dz4f57ZzJsHpwJvAXHCSJrbg==
+  dependencies:
+    "@opentelemetry/instrumentation" "^0.43.0"
+    "@opentelemetry/semantic-conventions" "^1.17.0"
+
 optional-require@1.0.x:
   version "1.0.3"
   resolved "https://registry.yarnpkg.com/optional-require/-/optional-require-1.0.3.tgz#275b8e9df1dc6a17ad155369c2422a440f89cb07"
@@ -25565,7 +25573,7 @@ postcss@^8.2.14, postcss@^8.4.7, postcss@^8.4.8:
     picocolors "^1.0.0"
     source-map-js "^1.1.0"
 
-postcss@^8.4.23, postcss@^8.4.36:
+postcss@^8.4.23, postcss@^8.4.36, postcss@^8.4.38:
   version "8.4.38"
   resolved "https://registry.yarnpkg.com/postcss/-/postcss-8.4.38.tgz#b387d533baf2054288e337066d81c6bee9db9e0e"
   integrity sha512-Wglpdk03BSfXkHoQa3b/oulrotAkwrlLDRSOb9D0bN86FdRyE9lppSp33aHNPgBa0JKCoB+drFLZkQoRRYae5A==
@@ -30631,6 +30639,17 @@ vite@^5.0.10:
     esbuild "^0.19.3"
     postcss "^8.4.32"
     rollup "^4.2.0"
+  optionalDependencies:
+    fsevents "~2.3.3"
+
+vite@^5.2.11:
+  version "5.2.11"
+  resolved "https://registry.yarnpkg.com/vite/-/vite-5.2.11.tgz#726ec05555431735853417c3c0bfb36003ca0cbd"
+  integrity sha512-HndV31LWW05i1BLPMUCE1B9E9GFbOu1MbenhS58FuK6owSO5qHm7GiCotrNY1YE5rMeQSFBGmT5ZaLEjFizgiQ==
+  dependencies:
+    esbuild "^0.20.1"
+    postcss "^8.4.38"
+    rollup "^4.13.0"
   optionalDependencies:
     fsevents "~2.3.3"
 

@@ -917,10 +917,8 @@ jobs:
       matrix:
         node: [18, 20, 22]
         remix: [1, 2]
-        # Remix v2 only supports Node 18+, so run Node 14, 16 tests separately
+        # Remix v2 only supports Node 18+, so run 16 tests separately
         include:
-          - node: 14
-            remix: 1
           - node: 16
             remix: 1
     steps:
@@ -1042,8 +1040,11 @@ jobs:
             'create-react-app',
             'create-next-app',
             'create-remix-app',
+            'create-remix-app-legacy',
             'create-remix-app-v2',
+            'create-remix-app-v2-legacy',
             'create-remix-app-express',
+            'create-remix-app-express-legacy',
             'create-remix-app-express-vite-dev',
             'node-express-esm-loader',
             'node-express-esm-preload',

@@ -1,15 +1,17 @@
-import { RemixTestEnv, assertSentryEvent, assertSentryTransaction } from './utils/helpers';
+import { describe, it } from 'vitest';
+import { RemixTestEnv, assertSentryEvent, assertSentryTransaction } from '../utils/helpers';
 
 const useV2 = process.env.REMIX_VERSION === '2';
 
-jest.spyOn(console, 'error').mockImplementation();
-
-// Repeat tests for each adapter
-describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', adapter => {
+describe('Remix API Actions', () => {
   it('correctly instruments a parameterized Remix API action', async () => {
-    const env = await RemixTestEnv.init(adapter);
+    const env = await RemixTestEnv.init();
     const url = `${env.url}/action-json-response/123123`;
-    const envelope = await env.getEnvelopeRequest({ url, method: 'post', envelopeType: 'transaction' });
+    const envelope = await env.getEnvelopeRequest({
+      url,
+      method: 'post',
+      envelopeType: 'transaction',
+    });
     const transaction = envelope[2];
 
     assertSentryTransaction(transaction, {
@@ -45,7 +47,7 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
   });
 
   it('reports an error thrown from the action', async () => {
-    const env = await RemixTestEnv.init(adapter);
+    const env = await RemixTestEnv.init();
     const url = `${env.url}/action-json-response/-1`;
 
     const envelopes = await env.getMultipleEnvelopeRequest({
@@ -91,7 +93,7 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
   });
 
   it('includes request data in transaction and error events', async () => {
-    const env = await RemixTestEnv.init(adapter);
+    const env = await RemixTestEnv.init();
     const url = `${env.url}/action-json-response/-1`;
 
     const envelopes = await env.getMultipleEnvelopeRequest({
@@ -140,7 +142,7 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
   });
 
   it('handles an error-throwing redirection target', async () => {
-    const env = await RemixTestEnv.init(adapter);
+    const env = await RemixTestEnv.init();
     const url = `${env.url}/action-json-response/-2`;
 
     const envelopes = await env.getMultipleEnvelopeRequest({
@@ -152,7 +154,6 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
 
     const [transaction_1, transaction_2] = envelopes.filter(envelope => envelope[1].type === 'transaction');
     const [event] = envelopes.filter(envelope => envelope[1].type === 'event');
-
     assertSentryTransaction(transaction_1[2], {
       contexts: {
         trace: {
@@ -203,7 +204,7 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
   });
 
   it('handles a thrown `json()` error response with `statusText`', async () => {
-    const env = await RemixTestEnv.init(adapter);
+    const env = await RemixTestEnv.init();
     const url = `${env.url}/action-json-response/-3`;
 
     const envelopes = await env.getMultipleEnvelopeRequest({
@@ -252,7 +253,7 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
   });
 
   it('handles a thrown `json()` error response without `statusText`', async () => {
-    const env = await RemixTestEnv.init(adapter);
+    const env = await RemixTestEnv.init();
     const url = `${env.url}/action-json-response/-4`;
 
     const envelopes = await env.getMultipleEnvelopeRequest({
@@ -301,7 +302,7 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
   });
 
   it('handles a thrown `json()` error response with string body', async () => {
-    const env = await RemixTestEnv.init(adapter);
+    const env = await RemixTestEnv.init();
     const url = `${env.url}/action-json-response/-5`;
 
     const envelopes = await env.getMultipleEnvelopeRequest({
@@ -350,7 +351,7 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
   });
 
   it('handles a thrown `json()` error response with an empty object', async () => {
-    const env = await RemixTestEnv.init(adapter);
+    const env = await RemixTestEnv.init();
     const url = `${env.url}/action-json-response/-6`;
 
     const envelopes = await env.getMultipleEnvelopeRequest({
@@ -399,7 +400,7 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
   });
 
   it('handles thrown string (primitive) from an action', async () => {
-    const env = await RemixTestEnv.init(adapter);
+    const env = await RemixTestEnv.init();
     const url = `${env.url}/server-side-unexpected-errors/-1`;
 
     const envelopes = await env.getMultipleEnvelopeRequest({
@@ -448,7 +449,7 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
   });
 
   it('handles thrown object from an action', async () => {
-    const env = await RemixTestEnv.init(adapter);
+    const env = await RemixTestEnv.init();
     const url = `${env.url}/server-side-unexpected-errors/-2`;
 
     const envelopes = await env.getMultipleEnvelopeRequest({
