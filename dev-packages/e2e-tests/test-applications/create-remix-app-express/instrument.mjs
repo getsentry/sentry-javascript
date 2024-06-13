@@ -1,5 +1,5 @@
-const Sentry = require('@sentry/remix');
-const process = require('process');
+import * as Sentry from '@sentry/remix';
+import process from 'process';
 
 Sentry.init({
   tracesSampleRate: 1.0, // Capture 100% of the transactions, reduce in production!

@@ -1,4 +1,4 @@
-import './instrument.cjs';
+import './instrument.mjs';
 
 import { createRequestHandler } from '@remix-run/express';
 import { installGlobals } from '@remix-run/node';
