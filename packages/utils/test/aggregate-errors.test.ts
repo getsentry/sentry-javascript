@@ -132,7 +132,7 @@ describe('applyAggregateErrorsToEvent()', () => {
     expect(event.exception?.values).toHaveLength(5 + 1);
 
     // Last exception in list should be the root exception
-    expect(event.exception?.values?.[event.exception?.values.length - 1]).toStrictEqual({
+    expect(event.exception?.values?.[event.exception.values.length - 1]).toStrictEqual({
       type: 'Error',
       value: 'Root Error',
       mechanism: {

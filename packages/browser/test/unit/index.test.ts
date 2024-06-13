@@ -357,10 +357,10 @@ describe('SentryBrowser initialization', () => {
 
       const sdkData = getClient()?.getOptions()._metadata?.sdk || {};
 
-      expect(sdkData?.name).toBe('sentry.javascript.browser');
-      expect(sdkData?.packages?.[0]?.name).toBe('npm:@sentry/browser');
-      expect(sdkData?.packages?.[0]?.version).toBe(SDK_VERSION);
-      expect(sdkData?.version).toBe(SDK_VERSION);
+      expect(sdkData.name).toBe('sentry.javascript.browser');
+      expect(sdkData.packages?.[0]?.name).toBe('npm:@sentry/browser');
+      expect(sdkData.packages?.[0]?.version).toBe(SDK_VERSION);
+      expect(sdkData.version).toBe(SDK_VERSION);
     });
 
     it('uses SDK source from window for package name', () => {

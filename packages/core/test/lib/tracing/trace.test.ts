@@ -995,7 +995,7 @@ describe('startInactiveSpan', () => {
     startSpan({ name: 'outer transaction' }, () => {
       startSpan({ name: 'inner span' }, () => {
         const innerTransaction = startInactiveSpan({ name: 'inner transaction', forceTransaction: true });
-        innerTransaction?.end();
+        innerTransaction.end();
       });
     });
 
@@ -1516,10 +1516,10 @@ describe('span hooks', () => {
 
         startSpanManual({ name: 'span5' }, span => {
           startInactiveSpan({ name: 'span4' });
-          span?.end();
+          span.end();
         });
 
-        span?.end();
+        span.end();
       });
     });
 
