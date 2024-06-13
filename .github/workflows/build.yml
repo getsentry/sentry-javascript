@@ -108,6 +108,10 @@ jobs:
               - 'packages/replay-canvas/**'
               - 'packages/feedback/**'
               - 'packages/wasm/**'
+            node: &node
+              - *shared
+              - 'packages/node/**'
+              - 'packages/opentelemetry/**'
             browser_integration:
               - *shared
               - *browser
@@ -116,10 +120,6 @@ jobs:
               - *shared
               - *browser
               - 'packages/ember/**'
-            node:
-              - *shared
-              - 'packages/node/**'
-              - 'packages/opentelemetry/**'
             node_integration:
               - *shared
               - *node
