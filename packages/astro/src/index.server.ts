@@ -21,6 +21,7 @@ export {
   getCurrentHub,
   getClient,
   isInitialized,
+  generateInstrumentOnce,
   getCurrentScope,
   getGlobalScope,
   getIsolationScope,

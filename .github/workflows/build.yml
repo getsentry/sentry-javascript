@@ -108,6 +108,10 @@ jobs:
               - 'packages/replay-canvas/**'
               - 'packages/feedback/**'
               - 'packages/wasm/**'
+            node: &node
+              - *shared
+              - 'packages/node/**'
+              - 'packages/opentelemetry/**'
             browser_integration:
               - *shared
               - *browser
@@ -116,21 +120,21 @@ jobs:
               - *shared
               - *browser
               - 'packages/ember/**'
-            node:
+            node_integration:
               - *shared
-              - 'packages/node/**'
+              - *node
               - 'dev-packages/node-integration-tests/**'
             nextjs:
               - *shared
               - *browser
+              - *node
               - 'packages/nextjs/**'
-              - 'packages/node/**'
               - 'packages/react/**'
             remix:
               - *shared
               - *browser
+              - *node
               - 'packages/remix/**'
-              - 'packages/node/**'
               - 'packages/react/**'
             profiling_node:
               - *shared
@@ -157,6 +161,7 @@ jobs:
       changed_ember: ${{ steps.changed.outputs.ember }}
       changed_remix: ${{ steps.changed.outputs.remix }}
       changed_node: ${{ steps.changed.outputs.node }}
+      changed_node_integration: ${{ steps.changed.outputs.node_integration }}
       changed_profiling_node: ${{ steps.changed.outputs.profiling_node }}
       changed_profiling_node_bindings: ${{ steps.changed.outputs.profiling_node_bindings }}
       changed_deno: ${{ steps.changed.outputs.deno }}
@@ -862,7 +867,7 @@ jobs:
       Node (${{ matrix.node }})${{ (matrix.typescript && format(' (TS {0})', matrix.typescript)) || '' }} Integration
       Tests
     needs: [job_get_metadata, job_build]
-    if: needs.job_get_metadata.outputs.changed_node == 'true' || github.event_name != 'pull_request'
+    if: needs.job_get_metadata.outputs.changed_node_integration == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-20.04
     timeout-minutes: 15
     strategy:
@@ -912,10 +917,8 @@ jobs:
       matrix:
         node: [18, 20, 22]
         remix: [1, 2]
-        # Remix v2 only supports Node 18+, so run Node 14, 16 tests separately
+        # Remix v2 only supports Node 18+, so run 16 tests separately
         include:
-          - node: 14
-            remix: 1
           - node: 16
             remix: 1
     steps:
@@ -1037,8 +1040,11 @@ jobs:
             'create-react-app',
             'create-next-app',
             'create-remix-app',
+            'create-remix-app-legacy',
             'create-remix-app-v2',
+            'create-remix-app-v2-legacy',
             'create-remix-app-express',
+            'create-remix-app-express-legacy',
             'create-remix-app-express-vite-dev',
             'node-express-esm-loader',
             'node-express-esm-preload',

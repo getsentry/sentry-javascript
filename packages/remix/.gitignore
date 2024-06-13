@@ -1,6 +1,6 @@
 node_modules
 
-/.cache
+test/integration/.cache
 /build
 /public/build
 .env
@@ -8,3 +8,4 @@ node_modules
 /playwright-report/
 /playwright/.cache/
 yarn.lock
+
