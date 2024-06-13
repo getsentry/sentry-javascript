@@ -12,7 +12,7 @@ describe('Remix API Actions', () => {
       method: 'post',
       envelopeType: 'transaction',
     });
-    const transaction = envelope[2];
+    const transaction = envelope[2]!;
 
     assertSentryTransaction(transaction, {
       transaction: `routes/action-json-response${useV2 ? '.' : '/'}$id`,
@@ -57,8 +57,8 @@ describe('Remix API Actions', () => {
       envelopeType: ['transaction', 'event'],
     });
 
-    const [transaction] = envelopes.filter(envelope => envelope[1].type === 'transaction');
-    const [event] = envelopes.filter(envelope => envelope[1].type === 'event');
+    const [transaction] = envelopes.filter(envelope => envelope[1]?.type === 'transaction');
+    const [event] = envelopes.filter(envelope => envelope[1]?.type === 'event');
 
     assertSentryTransaction(transaction[2], {
       contexts: {
@@ -103,8 +103,8 @@ describe('Remix API Actions', () => {
       envelopeType: ['transaction', 'event'],
     });
 
-    const [transaction] = envelopes.filter(envelope => envelope[1].type === 'transaction');
-    const [event] = envelopes.filter(envelope => envelope[1].type === 'event');
+    const [transaction] = envelopes.filter(envelope => envelope[1]?.type === 'transaction');
+    const [event] = envelopes.filter(envelope => envelope[1]?.type === 'event');
 
     assertSentryTransaction(transaction[2], {
       transaction: `routes/action-json-response${useV2 ? '.' : '/'}$id`,
@@ -152,8 +152,8 @@ describe('Remix API Actions', () => {
       envelopeType: ['transaction', 'event'],
     });
 
-    const [transaction_1, transaction_2] = envelopes.filter(envelope => envelope[1].type === 'transaction');
-    const [event] = envelopes.filter(envelope => envelope[1].type === 'event');
+    const [transaction_1, transaction_2] = envelopes.filter(envelope => envelope[1]?.type === 'transaction');
+    const [event] = envelopes.filter(envelope => envelope[1]?.type === 'event');
     assertSentryTransaction(transaction_1[2], {
       contexts: {
         trace: {
@@ -214,8 +214,8 @@ describe('Remix API Actions', () => {
       envelopeType: ['transaction', 'event'],
     });
 
-    const [transaction] = envelopes.filter(envelope => envelope[1].type === 'transaction');
-    const [event] = envelopes.filter(envelope => envelope[1].type === 'event');
+    const [transaction] = envelopes.filter(envelope => envelope[1]?.type === 'transaction');
+    const [event] = envelopes.filter(envelope => envelope[1]?.type === 'event');
 
     assertSentryTransaction(transaction[2], {
       contexts: {
@@ -263,8 +263,8 @@ describe('Remix API Actions', () => {
       envelopeType: ['transaction', 'event'],
     });
 
-    const [transaction] = envelopes.filter(envelope => envelope[1].type === 'transaction');
-    const [event] = envelopes.filter(envelope => envelope[1].type === 'event');
+    const [transaction] = envelopes.filter(envelope => envelope[1]?.type === 'transaction');
+    const [event] = envelopes.filter(envelope => envelope[1]?.type === 'event');
 
     assertSentryTransaction(transaction[2], {
       contexts: {
@@ -312,8 +312,8 @@ describe('Remix API Actions', () => {
       envelopeType: ['transaction', 'event'],
     });
 
-    const [transaction] = envelopes.filter(envelope => envelope[1].type === 'transaction');
-    const [event] = envelopes.filter(envelope => envelope[1].type === 'event');
+    const [transaction] = envelopes.filter(envelope => envelope[1]?.type === 'transaction');
+    const [event] = envelopes.filter(envelope => envelope[1]?.type === 'event');
 
     assertSentryTransaction(transaction[2], {
       contexts: {
@@ -361,8 +361,8 @@ describe('Remix API Actions', () => {
       envelopeType: ['transaction', 'event'],
     });
 
-    const [transaction] = envelopes.filter(envelope => envelope[1].type === 'transaction');
-    const [event] = envelopes.filter(envelope => envelope[1].type === 'event');
+    const [transaction] = envelopes.filter(envelope => envelope[1]?.type === 'transaction');
+    const [event] = envelopes.filter(envelope => envelope[1]?.type === 'event');
 
     assertSentryTransaction(transaction[2], {
       contexts: {
@@ -410,8 +410,8 @@ describe('Remix API Actions', () => {
       envelopeType: ['event', 'transaction'],
     });
 
-    const [transaction] = envelopes.filter(envelope => envelope[1].type === 'transaction');
-    const [event] = envelopes.filter(envelope => envelope[1].type === 'event');
+    const [transaction] = envelopes.filter(envelope => envelope[1]?.type === 'transaction');
+    const [event] = envelopes.filter(envelope => envelope[1]?.type === 'event');
 
     assertSentryTransaction(transaction[2], {
       contexts: {
@@ -459,8 +459,8 @@ describe('Remix API Actions', () => {
       envelopeType: ['event', 'transaction'],
     });
 
-    const [transaction] = envelopes.filter(envelope => envelope[1].type === 'transaction');
-    const [event] = envelopes.filter(envelope => envelope[1].type === 'event');
+    const [transaction] = envelopes.filter(envelope => envelope[1]?.type === 'transaction');
+    const [event] = envelopes.filter(envelope => envelope[1]?.type === 'event');
 
     assertSentryTransaction(transaction[2], {
       contexts: {

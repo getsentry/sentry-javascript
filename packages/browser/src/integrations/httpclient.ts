@@ -77,28 +77,8 @@ function _fetchResponseHandler(
     let requestHeaders, responseHeaders, requestCookies, responseCookies;
 
     if (_shouldSendDefaultPii()) {
-      [{ headers: requestHeaders, cookies: requestCookies }, { headers: responseHeaders, cookies: responseCookies }] = [
-        { cookieHeader: 'Cookie', obj: request },
-        { cookieHeader: 'Set-Cookie', obj: response },
-      ].map(({ cookieHeader, obj }) => {
-        const headers = _extractFetchHeaders(obj.headers);
-        let cookies;
-
-        try {
-          const cookieString = headers[cookieHeader] || headers[cookieHeader.toLowerCase()] || undefined;
-
-          if (cookieString) {
-            cookies = _parseCookieString(cookieString);
-          }
-        } catch (e) {
-          DEBUG_BUILD && logger.log(`Could not extract cookies from header ${cookieHeader}`);
-        }
-
-        return {
-          headers,
-          cookies,
-        };
-      });
+      [requestHeaders, requestCookies] = _parseCookieHeaders('Cookie', request);
+      [responseHeaders, responseCookies] = _parseCookieHeaders('Set-Cookie', response);
     }
 
     const event = _createEvent({
@@ -113,6 +93,26 @@ function _fetchResponseHandler(
 
     captureEvent(event);
   }
+}
+
+function _parseCookieHeaders(
+  cookieHeader: string,
+  obj: Request | Response,
+): [Record<string, string>, Record<string, string> | undefined] {
+  const headers = _extractFetchHeaders(obj.headers);
+  let cookies;
+
+  try {
+    const cookieString = headers[cookieHeader] || headers[cookieHeader.toLowerCase()] || undefined;
+
+    if (cookieString) {
+      cookies = _parseCookieString(cookieString);
+    }
+  } catch (e) {
+    DEBUG_BUILD && logger.log(`Could not extract cookies from header ${cookieHeader}`);
+  }
+
+  return [headers, cookies];
 }
 
 /**
@@ -192,7 +192,9 @@ function _getResponseSizeFromHeaders(headers?: Record<string, string>): number |
 function _parseCookieString(cookieString: string): Record<string, string> {
   return cookieString.split('; ').reduce((acc: Record<string, string>, cookie: string) => {
     const [key, value] = cookie.split('=');
-    acc[key] = value;
+    if (key && value) {
+      acc[key] = value;
+    }
     return acc;
   }, {});
 }
@@ -228,7 +230,9 @@ function _getXHRResponseHeaders(xhr: XMLHttpRequest): Record<string, string> {
 
   return headers.split('\r\n').reduce((acc: Record<string, string>, line: string) => {
     const [key, value] = line.split(': ');
-    acc[key] = value;
+    if (key && value) {
+      acc[key] = value;
+    }
     return acc;
   }, {});
 }

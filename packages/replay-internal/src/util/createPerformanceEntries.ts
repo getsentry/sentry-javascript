@@ -72,11 +72,12 @@ export function createPerformanceEntries(
 }
 
 function createPerformanceEntry(entry: AllPerformanceEntry): ReplayPerformanceEntry<AllPerformanceEntryData> | null {
-  if (!ENTRY_TYPES[entry.entryType]) {
+  const entryType = ENTRY_TYPES[entry.entryType];
+  if (!entryType) {
     return null;
   }
 
-  return ENTRY_TYPES[entry.entryType](entry);
+  return entryType(entry);
 }
 
 function getAbsoluteTime(time: number): number {
@@ -192,7 +193,11 @@ export function getLargestContentfulPaint(metric: Metric): ReplayPerformanceEntr
 export function getCumulativeLayoutShift(metric: Metric): ReplayPerformanceEntry<WebVitalData> {
   // get first node that shifts
   const firstEntry = metric.entries[0] as (PerformanceEntry & { sources?: LayoutShiftAttribution[] }) | undefined;
-  const node = firstEntry ? (firstEntry.sources ? firstEntry.sources[0].node : undefined) : undefined;
+  const node = firstEntry
+    ? firstEntry.sources && firstEntry.sources[0]
+      ? firstEntry.sources[0].node
+      : undefined
+    : undefined;
   return getWebVital(metric, 'cumulative-layout-shift', node);
 }
 

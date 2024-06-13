@@ -27,7 +27,7 @@ test('should correctly instrument `fetch` for performance tracing', async ({ pag
     },
   });
 
-  expect(transaction[0].spans).toEqual(
+  expect(transaction[0]?.spans).toEqual(
     expect.arrayContaining([
       expect.objectContaining({
         data: {

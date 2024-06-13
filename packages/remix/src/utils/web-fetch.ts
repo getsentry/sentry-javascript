@@ -75,8 +75,10 @@ export const normalizeRemixRequest = (request: RemixRequest): Record<string, any
     throw new Error('Could not find request headers');
   }
 
-  const parsedURL = requestInternalsSymbol ? request[requestInternalsSymbol].parsedURL : new URL(request.url);
-  const headers = requestInternalsSymbol ? new Headers(request[requestInternalsSymbol].headers) : request.headers;
+  const internalRequest = request[requestInternalsSymbol];
+
+  const parsedURL = internalRequest ? internalRequest.parsedURL : new URL(request.url);
+  const headers = internalRequest ? new Headers(internalRequest.headers) : request.headers;
 
   // Fetch step 1.3
   if (!headers.has('Accept')) {
@@ -89,8 +91,9 @@ export const normalizeRemixRequest = (request: RemixRequest): Record<string, any
     contentLengthValue = '0';
   }
 
-  if (request.body !== null && request[bodyInternalsSymbol]) {
-    const totalBytes = request[bodyInternalsSymbol].size;
+  const internalBody = request[bodyInternalsSymbol];
+  if (request.body !== null && internalBody) {
+    const totalBytes = internalBody.size;
     // Set Content-Length if totalBytes is a number (that is not NaN)
     if (typeof totalBytes === 'number' && !Number.isNaN(totalBytes)) {
       contentLengthValue = String(totalBytes);

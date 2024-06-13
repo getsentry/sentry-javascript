@@ -153,9 +153,7 @@ function getNormalizedName(
 
   let pathBuilder = '';
   if (branches) {
-    // eslint-disable-next-line @typescript-eslint/prefer-for-of
-    for (let x = 0; x < branches.length; x++) {
-      const branch = branches[x];
+    for (const branch of branches) {
       const route = branch.route;
       if (route) {
         // Early return if index route

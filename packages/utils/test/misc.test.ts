@@ -215,18 +215,18 @@ describe('addExceptionMechanism', () => {
 
     addExceptionMechanism(event);
 
-    expect(event.exception.values[0].mechanism).toEqual(defaultMechanism);
+    expect(event.exception.values[0]?.mechanism).toEqual(defaultMechanism);
   });
 
   it('prefers current values to defaults', () => {
     const event = { ...baseEvent };
 
     const nonDefaultMechanism = { type: 'instrument', handled: false };
-    event.exception.values[0].mechanism = nonDefaultMechanism;
+    event.exception.values[0]!.mechanism = nonDefaultMechanism;
 
     addExceptionMechanism(event);
 
-    expect(event.exception.values[0].mechanism).toEqual(nonDefaultMechanism);
+    expect(event.exception.values[0]?.mechanism).toEqual(nonDefaultMechanism);
   });
 
   it('prefers incoming values to current values', () => {
@@ -234,12 +234,12 @@ describe('addExceptionMechanism', () => {
 
     const currentMechanism = { type: 'instrument', handled: false };
     const newMechanism = { handled: true, synthetic: true };
-    event.exception.values[0].mechanism = currentMechanism;
+    event.exception.values[0]!.mechanism = currentMechanism;
 
     addExceptionMechanism(event, newMechanism);
 
     // the new `handled` value took precedence
-    expect(event.exception.values[0].mechanism).toEqual({ type: 'instrument', handled: true, synthetic: true });
+    expect(event.exception.values[0]?.mechanism).toEqual({ type: 'instrument', handled: true, synthetic: true });
   });
 
   it('merges data values', () => {
@@ -247,11 +247,11 @@ describe('addExceptionMechanism', () => {
 
     const currentMechanism = { ...defaultMechanism, data: { function: 'addEventListener' } };
     const newMechanism = { data: { handler: 'organizeShoes', target: 'closet' } };
-    event.exception.values[0].mechanism = currentMechanism;
+    event.exception.values[0]!.mechanism = currentMechanism;
 
     addExceptionMechanism(event, newMechanism);
 
-    expect(event.exception.values[0].mechanism.data).toEqual({
+    expect(event.exception.values[0]?.mechanism.data).toEqual({
       function: 'addEventListener',
       handler: 'organizeShoes',
       target: 'closet',

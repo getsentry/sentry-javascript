@@ -382,8 +382,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
       const key = `${reason}:${category}`;
       DEBUG_BUILD && logger.log(`Adding outcome: "${key}"`);
 
-      // The following works because undefined + 1 === NaN and NaN is falsy
-      this._outcomes[key] = this._outcomes[key] + 1 || 1;
+      this._outcomes[key] = (this._outcomes[key] || 0) + 1;
     }
   }
 
@@ -523,8 +522,9 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
 
   /** @inheritdoc */
   public emit(hook: string, ...rest: unknown[]): void {
-    if (this._hooks[hook]) {
-      this._hooks[hook].forEach(callback => callback(...rest));
+    const callbacks = this._hooks[hook];
+    if (callbacks) {
+      callbacks.forEach(callback => callback(...rest));
     }
   }
 
@@ -837,12 +837,12 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   protected _clearOutcomes(): Outcome[] {
     const outcomes = this._outcomes;
     this._outcomes = {};
-    return Object.keys(outcomes).map(key => {
+    return Object.entries(outcomes).map(([key, quantity]) => {
       const [reason, category] = key.split(':') as [EventDropReason, DataCategory];
       return {
         reason,
         category,
-        quantity: outcomes[key],
+        quantity,
       };
     });
   }

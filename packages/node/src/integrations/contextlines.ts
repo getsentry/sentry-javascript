@@ -59,7 +59,8 @@ async function addSourceContext(event: Event, contextLines: number): Promise<Eve
       // We want to iterate in reverse order as calling cache.get will bump the file in our LRU cache.
       // This ends up prioritizes source context for frames at the top of the stack instead of the bottom.
       for (let i = exception.stacktrace.frames.length - 1; i >= 0; i--) {
-        const frame = exception.stacktrace.frames[i];
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        const frame = exception.stacktrace.frames[i]!;
         // Call cache.get to bump the file to the top of the cache and ensure we have not already
         // enqueued a read operation for this filename
         if (frame.filename && !enqueuedReadSourceFileTasks[frame.filename] && !FILE_CONTENT_CACHE.get(frame.filename)) {

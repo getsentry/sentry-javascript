@@ -11,8 +11,8 @@ describe('Remix API Loaders', () => {
 
     const envelopes = await env.getMultipleEnvelopeRequest({ url, count: 2, envelopeType: ['transaction', 'event'] });
 
-    const event = envelopes[0][2].type === 'transaction' ? envelopes[1][2] : envelopes[0][2];
-    const transaction = envelopes[0][2].type === 'transaction' ? envelopes[0][2] : envelopes[1][2];
+    const event = envelopes[0][2]?.type === 'transaction' ? envelopes[1][2] : envelopes[0][2];
+    const transaction = envelopes[0][2]?.type === 'transaction' ? envelopes[0][2] : envelopes[1][2];
 
     assertSentryTransaction(transaction, {
       contexts: {
@@ -54,8 +54,8 @@ describe('Remix API Loaders', () => {
     // but otherwise this may leak into another test
     const envelopes = await env.getMultipleEnvelopeRequest({ url, count: 2, envelopeType: ['event', 'transaction'] });
 
-    const event = envelopes[0][2].type === 'transaction' ? envelopes[1][2] : envelopes[0][2];
-    const transaction = envelopes[0][2].type === 'transaction' ? envelopes[0][2] : envelopes[1][2];
+    const event = envelopes[0][2]?.type === 'transaction' ? envelopes[1][2] : envelopes[0][2];
+    const transaction = envelopes[0][2]?.type === 'transaction' ? envelopes[0][2] : envelopes[1][2];
 
     assertSentryTransaction(transaction, {
       contexts: {
@@ -93,7 +93,7 @@ describe('Remix API Loaders', () => {
     const env = await RemixTestEnv.init();
     const url = `${env.url}/loader-json-response/123123`;
     const envelope = await env.getEnvelopeRequest({ url, envelopeType: 'transaction' });
-    const transaction = envelope[2];
+    const transaction = envelope[2]!;
 
     assertSentryTransaction(transaction, {
       transaction: `routes/loader-json-response${useV2 ? '.' : '/'}$id`,
@@ -127,8 +127,8 @@ describe('Remix API Loaders', () => {
       envelopeType: ['transaction', 'event'],
     });
 
-    const [transaction_1, transaction_2] = envelopes.filter(envelope => envelope[1].type === 'transaction');
-    const [event] = envelopes.filter(envelope => envelope[1].type === 'event');
+    const [transaction_1, transaction_2] = envelopes.filter(envelope => envelope[1]?.type === 'transaction');
+    const [event] = envelopes.filter(envelope => envelope[1]?.type === 'event');
 
     assertSentryTransaction(transaction_1[2], {
       contexts: {
@@ -192,7 +192,7 @@ describe('Remix API Loaders', () => {
     await new Promise(resolve => env.server.close(resolve));
 
     envelopes.forEach(envelope => {
-      const tags = envelope[2].tags as NonNullable<Event['tags']>;
+      const tags = envelope[2]?.tags as NonNullable<Event['tags']>;
       const customTagArr = Object.keys(tags).filter(t => t.startsWith('tag'));
       expect(customTagArr).toHaveLength(1);
 
@@ -215,7 +215,7 @@ describe('Remix API Loaders', () => {
     });
     const envelope = await env.getEnvelopeRequest({ url, envelopeType: 'transaction' });
 
-    expect(envelope[0].trace).toMatchObject({
+    expect(envelope[0]?.trace).toMatchObject({
       trace_id: '12312012123120121231201212312012',
     });
 
@@ -233,7 +233,7 @@ describe('Remix API Loaders', () => {
     const env = await RemixTestEnv.init();
     const url = `${env.url}/loader-defer-response/123123`;
     const envelope = await env.getEnvelopeRequest({ url, envelopeType: 'transaction' });
-    const transaction = envelope[2];
+    const transaction = envelope[2]!;
 
     assertSentryTransaction(transaction, {
       transaction: useV2 ? 'routes/loader-defer-response.$id' : 'routes/loader-defer-response/$id',

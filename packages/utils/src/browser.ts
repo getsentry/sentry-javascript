@@ -75,11 +75,6 @@ function _htmlElementAsString(el: unknown, keyAttrs?: string[]): string {
   };
 
   const out = [];
-  let className;
-  let classes;
-  let key;
-  let attr;
-  let i;
 
   if (!elem || !elem.tagName) {
     return '';
@@ -115,22 +110,22 @@ function _htmlElementAsString(el: unknown, keyAttrs?: string[]): string {
       out.push(`#${elem.id}`);
     }
 
-    className = elem.className;
+    const className = elem.className;
     if (className && isString(className)) {
-      classes = className.split(/\s+/);
-      for (i = 0; i < classes.length; i++) {
-        out.push(`.${classes[i]}`);
+      const classes = className.split(/\s+/);
+      for (const c of classes) {
+        out.push(`.${c}`);
       }
     }
   }
   const allowedAttrs = ['aria-label', 'type', 'name', 'title', 'alt'];
-  for (i = 0; i < allowedAttrs.length; i++) {
-    key = allowedAttrs[i];
-    attr = elem.getAttribute(key);
+  for (const k of allowedAttrs) {
+    const attr = elem.getAttribute(k);
     if (attr) {
-      out.push(`[${key}="${attr}"]`);
+      out.push(`[${k}="${attr}"]`);
     }
   }
+
   return out.join('');
 }
 

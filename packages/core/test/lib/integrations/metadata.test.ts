@@ -29,7 +29,7 @@ describe('ModuleMetadata integration', () => {
       integrations: [moduleMetadataIntegration()],
       beforeSend: (event, _hint) => {
         // copy the frames since reverse in in-place
-        const lastFrame = [...(event.exception?.values?.[0].stacktrace?.frames || [])].reverse()[0];
+        const lastFrame = [...(event.exception?.values?.[0]?.stacktrace?.frames || [])].reverse()[0];
         // Ensure module_metadata is populated in beforeSend callback
         expect(lastFrame?.module_metadata).toEqual({ team: 'frontend' });
         return event;

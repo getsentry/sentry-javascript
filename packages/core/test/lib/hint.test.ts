@@ -35,7 +35,7 @@ describe('Hint', () => {
       const client = new TestClient(options);
       client.captureEvent({});
 
-      const [, hint] = sendEvent.mock.calls[0];
+      const [, hint] = sendEvent.mock.calls[0]!;
       expect(hint).toMatchObject({ attachments: [{ filename: 'another.file', data: 'more text' }] });
     });
 
@@ -53,7 +53,7 @@ describe('Hint', () => {
       const client = new TestClient(options);
       client.captureEvent({}, { attachments: [{ filename: 'some-file.txt', data: 'Hello' }] });
 
-      const [, hint] = sendEvent.mock.calls[0];
+      const [, hint] = sendEvent.mock.calls[0]!;
       expect(hint).toMatchObject({
         attachments: [
           { filename: 'some-file.txt', data: 'Hello' },
@@ -79,7 +79,7 @@ describe('Hint', () => {
         { attachments: [{ filename: 'some-file.txt', data: 'Hello' }] },
       );
 
-      const [, hint] = sendEvent.mock.calls[0];
+      const [, hint] = sendEvent.mock.calls[0]!;
       expect(hint).toMatchObject({
         attachments: [
           { filename: 'some-file.txt', data: 'Hello' },
@@ -99,7 +99,7 @@ describe('Hint', () => {
       initAndBind(TestClient, options);
       captureEvent({});
 
-      const [, hint] = sendEvent.mock.calls[0];
+      const [, hint] = sendEvent.mock.calls[0]!;
       expect(hint?.attachments).toEqual([{ filename: 'integration.file', data: 'great content!' }]);
     });
 
@@ -113,7 +113,7 @@ describe('Hint', () => {
 
       captureEvent({}, { attachments: [{ filename: 'some-file.txt', data: 'Hello' }] });
 
-      const [, hint] = sendEvent.mock.calls[0];
+      const [, hint] = sendEvent.mock.calls[0]!;
       expect(hint?.attachments).toEqual([
         { filename: 'some-file.txt', data: 'Hello' },
         { filename: 'scope.file', data: 'great content!' },

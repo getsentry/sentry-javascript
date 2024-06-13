@@ -19,6 +19,7 @@
     "sourceMap": true,
     "strict": true,
     "strictBindCallApply": false,
-    "target": "es2018"
+    "target": "es2018",
+    "noUncheckedIndexedAccess": true
   }
 }
