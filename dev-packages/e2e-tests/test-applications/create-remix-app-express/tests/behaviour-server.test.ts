@@ -136,9 +136,10 @@ test('Sends two linked transactions (server & client) to Sentry', async ({ page 
 
   const httpServerTraceId = httpServerTransaction.contexts?.trace?.trace_id;
   const httpServerSpanId = httpServerTransaction.contexts?.trace?.span_id;
-  const loaderSpanId = httpServerTransaction.spans.find(
-    span => span.data && span.data['code.function'] === 'loader',
-  )?.span_id;
+
+  const loaderSpan = httpServerTransaction?.spans?.find(span => span.data && span.data['code.function'] === 'loader');
+  const loaderSpanId = loaderSpan?.span_id;
+  const loaderParentSpanId = loaderSpan?.parent_span_id;
 
   const pageLoadTraceId = pageloadTransaction.contexts?.trace?.trace_id;
   const pageLoadSpanId = pageloadTransaction.contexts?.trace?.span_id;
@@ -150,6 +151,7 @@ test('Sends two linked transactions (server & client) to Sentry', async ({ page 
   expect(httpServerTraceId).toBeDefined();
   expect(httpServerSpanId).toBeDefined();
 
+  expect(loaderParentSpanId).toEqual(httpServerSpanId);
   expect(pageLoadTraceId).toEqual(httpServerTraceId);
   expect(pageLoadParentSpanId).toEqual(loaderSpanId);
   expect(pageLoadSpanId).not.toEqual(httpServerSpanId);
