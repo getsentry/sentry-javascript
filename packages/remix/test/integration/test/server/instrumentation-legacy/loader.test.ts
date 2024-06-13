@@ -11,10 +11,10 @@ describe('Remix API Loaders', () => {
 
     const envelopes = await env.getMultipleEnvelopeRequest({ url, count: 2, envelopeType: ['transaction', 'event'] });
 
-    const event = envelopes[0][2]?.type === 'transaction' ? envelopes[1][2] : envelopes[0][2];
-    const transaction = envelopes[0][2]?.type === 'transaction' ? envelopes[0][2] : envelopes[1][2];
+    const event = envelopes[0]?.[2]?.type === 'transaction' ? envelopes[1]?.[2] : envelopes[0]?.[2];
+    const transaction = envelopes[0]?.[2]?.type === 'transaction' ? envelopes[0]?.[2] : envelopes[1]?.[2];
 
-    assertSentryTransaction(transaction, {
+    assertSentryTransaction(transaction!, {
       contexts: {
         trace: {
           status: 'internal_error',
@@ -25,7 +25,7 @@ describe('Remix API Loaders', () => {
       },
     });
 
-    assertSentryEvent(event, {
+    assertSentryEvent(event!, {
       transaction: expect.stringMatching(/routes\/loader-json-response(\/|\.)\$id/),
       exception: {
         values: [
@@ -54,10 +54,10 @@ describe('Remix API Loaders', () => {
     // but otherwise this may leak into another test
     const envelopes = await env.getMultipleEnvelopeRequest({ url, count: 2, envelopeType: ['event', 'transaction'] });
 
-    const event = envelopes[0][2]?.type === 'transaction' ? envelopes[1][2] : envelopes[0][2];
-    const transaction = envelopes[0][2]?.type === 'transaction' ? envelopes[0][2] : envelopes[1][2];
+    const event = envelopes[0]?.[2]?.type === 'transaction' ? envelopes[1]?.[2] : envelopes[0]?.[2];
+    const transaction = envelopes[0]?.[2]?.type === 'transaction' ? envelopes[0]?.[2] : envelopes[1]?.[2];
 
-    assertSentryTransaction(transaction, {
+    assertSentryTransaction(transaction!, {
       contexts: {
         trace: {
           status: 'internal_error',
@@ -68,7 +68,7 @@ describe('Remix API Loaders', () => {
       },
     });
 
-    assertSentryEvent(event, {
+    assertSentryEvent(event!, {
       transaction: expect.stringMatching(/routes\/loader-throw-response(\/|\.)\$id/),
       exception: {
         values: [
@@ -130,7 +130,7 @@ describe('Remix API Loaders', () => {
     const [transaction_1, transaction_2] = envelopes.filter(envelope => envelope[1]?.type === 'transaction');
     const [event] = envelopes.filter(envelope => envelope[1]?.type === 'event');
 
-    assertSentryTransaction(transaction_1[2], {
+    assertSentryTransaction(transaction_1![2]!, {
       contexts: {
         trace: {
           op: 'http.server',
@@ -144,7 +144,7 @@ describe('Remix API Loaders', () => {
       transaction: `routes/loader-json-response${useV2 ? '.' : '/'}$id`,
     });
 
-    assertSentryTransaction(transaction_2[2], {
+    assertSentryTransaction(transaction_2![2]!, {
       contexts: {
         trace: {
           op: 'http.server',
@@ -158,7 +158,7 @@ describe('Remix API Loaders', () => {
       transaction: `routes/loader-json-response${useV2 ? '.' : '/'}$id`,
     });
 
-    assertSentryEvent(event[2], {
+    assertSentryEvent(event![2]!, {
       transaction: expect.stringMatching(/routes\/loader-json-response(\/|\.)\$id/),
       exception: {
         values: [
@@ -196,7 +196,7 @@ describe('Remix API Loaders', () => {
       const customTagArr = Object.keys(tags).filter(t => t.startsWith('tag'));
       expect(customTagArr).toHaveLength(1);
 
-      const key = customTagArr[0];
+      const key = customTagArr[0]!;
       const val = key[key.length - 1];
       expect(tags[key]).toEqual(val);
     });
@@ -219,7 +219,7 @@ describe('Remix API Loaders', () => {
       trace_id: '12312012123120121231201212312012',
     });
 
-    assertSentryTransaction(envelope[2], {
+    assertSentryTransaction(envelope![2]!, {
       contexts: {
         trace: {
           trace_id: '12312012123120121231201212312012',
