@@ -6,7 +6,6 @@
   "compilerOptions": {
     // package-specific options
     "esModuleInterop": true,
-    "noUncheckedIndexedAccess": false,
     "types": ["node", "jest"]
   }
 }
