@@ -896,7 +896,7 @@ jobs:
 
       - name: Overwrite typescript version
         if: matrix.typescript
-        run: node ./scripts/overwrite-typescript-version.js ${{ matrix.typescript }}
+        run: node ./scripts/use-ts-version.js ${{ matrix.typescript }}
         working-directory: dev-packages/node-integration-tests
 
       - name: Run integration tests
