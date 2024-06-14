@@ -143,7 +143,8 @@ function getRouteStringFromRoutes(routes: Route[]): string {
 
   let index = -1;
   for (let x = routesWithPaths.length - 1; x >= 0; x--) {
-    const route = routesWithPaths[x];
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const route = routesWithPaths[x]!;
     if (route.path && route.path.startsWith('/')) {
       index = x;
       break;

@@ -9,7 +9,7 @@ afterAll(() => {
 conditionalTest({ min: 16 })('middle-layer-parameterized', () => {
   test('should construct correct url with multiple parameterized routers, when param is also contain in middle layer route', done => {
     // parse node.js major version
-    const [major] = process.versions.node.split('.').map(Number);
+    const [major = 0] = process.versions.node.split('.').map(Number);
     // Split test result base on major node version because regex d flag is support from node 16+
     const EXPECTED_TRANSACTION =
       major >= 16

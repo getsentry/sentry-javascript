@@ -90,8 +90,8 @@ describe('applyZodErrorsToEvent()', () => {
       'zoderror.issues': [
         {
           ...issues[0],
-          path: issues[0].path.join('.'),
-          keys: JSON.stringify(issues[0].keys),
+          path: issues[0]?.path.join('.'),
+          keys: JSON.stringify(issues[0]?.keys),
           unionErrors: undefined,
         },
       ],

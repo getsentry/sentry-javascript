@@ -146,7 +146,7 @@ export async function devErrorSymbolicationEventProcessor(event: Event, hint: Ev
         frames.map(frame => resolveStackFrame(frame, hint.originalException as Error)),
       );
 
-      if (event.exception?.values?.[0].stacktrace?.frames) {
+      if (event.exception?.values?.[0]?.stacktrace?.frames) {
         event.exception.values[0].stacktrace.frames = event.exception.values[0].stacktrace.frames.map(
           (frame, i, frames) => {
             const resolvedFrame = resolvedFrames[frames.length - 1 - i];

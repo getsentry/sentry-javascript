@@ -125,5 +125,5 @@ function fillGrpcFunction(stub: Stub, serviceIdentifier: string, methodName: str
 /** Identifies service by its address */
 function identifyService(servicePath: string): string {
   const match = servicePath.match(SERVICE_PATH_REGEX);
-  return match ? match[1] : servicePath;
+  return match && match[1] ? match[1] : servicePath;
 }

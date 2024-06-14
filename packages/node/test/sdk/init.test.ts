@@ -61,10 +61,10 @@ describe('init()', () => {
 
     init({ dsn: PUBLIC_DSN, integrations: mockIntegrations, defaultIntegrations: mockDefaultIntegrations });
 
-    expect(mockDefaultIntegrations[0].setupOnce as jest.Mock).toHaveBeenCalledTimes(0);
-    expect(mockDefaultIntegrations[1].setupOnce as jest.Mock).toHaveBeenCalledTimes(1);
-    expect(mockIntegrations[0].setupOnce as jest.Mock).toHaveBeenCalledTimes(1);
-    expect(mockIntegrations[1].setupOnce as jest.Mock).toHaveBeenCalledTimes(1);
+    expect(mockDefaultIntegrations[0]?.setupOnce as jest.Mock).toHaveBeenCalledTimes(0);
+    expect(mockDefaultIntegrations[1]?.setupOnce as jest.Mock).toHaveBeenCalledTimes(1);
+    expect(mockIntegrations[0]?.setupOnce as jest.Mock).toHaveBeenCalledTimes(1);
+    expect(mockIntegrations[1]?.setupOnce as jest.Mock).toHaveBeenCalledTimes(1);
     expect(mockAutoPerformanceIntegrations).toHaveBeenCalledTimes(0);
   });
 
@@ -86,8 +86,8 @@ describe('init()', () => {
       },
     });
 
-    expect(mockDefaultIntegrations[0].setupOnce as jest.Mock).toHaveBeenCalledTimes(1);
-    expect(mockDefaultIntegrations[1].setupOnce as jest.Mock).toHaveBeenCalledTimes(0);
+    expect(mockDefaultIntegrations[0]?.setupOnce as jest.Mock).toHaveBeenCalledTimes(1);
+    expect(mockDefaultIntegrations[1]?.setupOnce as jest.Mock).toHaveBeenCalledTimes(0);
     expect(newIntegration.setupOnce as jest.Mock).toHaveBeenCalledTimes(1);
     expect(mockAutoPerformanceIntegrations).toHaveBeenCalledTimes(0);
   });
@@ -108,8 +108,8 @@ describe('init()', () => {
       enableTracing: true,
     });
 
-    expect(mockIntegrations[0].setupOnce as jest.Mock).toHaveBeenCalledTimes(1);
-    expect(mockIntegrations[1].setupOnce as jest.Mock).toHaveBeenCalledTimes(1);
+    expect(mockIntegrations[0]?.setupOnce as jest.Mock).toHaveBeenCalledTimes(1);
+    expect(mockIntegrations[1]?.setupOnce as jest.Mock).toHaveBeenCalledTimes(1);
     expect(autoPerformanceIntegration.setupOnce as jest.Mock).toHaveBeenCalledTimes(1);
     expect(mockAutoPerformanceIntegrations).toHaveBeenCalledTimes(1);
 

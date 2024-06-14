@@ -66,20 +66,20 @@ const chromeEvalRegex = /\((\S*)(?::(\d+))(?::(\d+))\)/;
 // See: https://github.com/getsentry/sentry-javascript/issues/6880
 const chromeStackParserFn: StackLineParserFn = line => {
   // If the stack line has no function name, we need to parse it differently
-  const noFnParts = chromeRegexNoFnName.exec(line);
+  const noFnParts = chromeRegexNoFnName.exec(line) as null | [string, string, string, string];
 
   if (noFnParts) {
     const [, filename, line, col] = noFnParts;
     return createFrame(filename, UNKNOWN_FUNCTION, +line, +col);
   }
 
-  const parts = chromeRegex.exec(line);
+  const parts = chromeRegex.exec(line) as null | [string, string, string, string, string];
 
   if (parts) {
     const isEval = parts[2] && parts[2].indexOf('eval') === 0; // start of line
 
     if (isEval) {
-      const subMatch = chromeEvalRegex.exec(parts[2]);
+      const subMatch = chromeEvalRegex.exec(parts[2]) as null | [string, string, string, string];
 
       if (subMatch) {
         // throw out eval line/column and use top-most line/column number
@@ -109,12 +109,12 @@ const geckoREgex =
 const geckoEvalRegex = /(\S+) line (\d+)(?: > eval line \d+)* > eval/i;
 
 const gecko: StackLineParserFn = line => {
-  const parts = geckoREgex.exec(line);
+  const parts = geckoREgex.exec(line) as null | [string, string, string, string, string, string];
 
   if (parts) {
     const isEval = parts[3] && parts[3].indexOf(' > eval') > -1;
     if (isEval) {
-      const subMatch = geckoEvalRegex.exec(parts[3]);
+      const subMatch = geckoEvalRegex.exec(parts[3]) as null | [string, string, string];
 
       if (subMatch) {
         // throw out eval line/column and use top-most line number
@@ -140,7 +140,7 @@ export const geckoStackLineParser: StackLineParser = [GECKO_PRIORITY, gecko];
 const winjsRegex = /^\s*at (?:((?:\[object object\])?.+) )?\(?((?:[-a-z]+):.*?):(\d+)(?::(\d+))?\)?\s*$/i;
 
 const winjs: StackLineParserFn = line => {
-  const parts = winjsRegex.exec(line);
+  const parts = winjsRegex.exec(line) as null | [string, string, string, string, string];
 
   return parts
     ? createFrame(parts[2], parts[1] || UNKNOWN_FUNCTION, +parts[3], parts[4] ? +parts[4] : undefined)
@@ -152,7 +152,7 @@ export const winjsStackLineParser: StackLineParser = [WINJS_PRIORITY, winjs];
 const opera10Regex = / line (\d+).*script (?:in )?(\S+)(?:: in function (\S+))?$/i;
 
 const opera10: StackLineParserFn = line => {
-  const parts = opera10Regex.exec(line);
+  const parts = opera10Regex.exec(line) as null | [string, string, string, string];
   return parts ? createFrame(parts[2], parts[3] || UNKNOWN_FUNCTION, +parts[1]) : undefined;
 };
 
@@ -162,7 +162,7 @@ const opera11Regex =
   / line (\d+), column (\d+)\s*(?:in (?:<anonymous function: ([^>]+)>|([^)]+))\(.*\))? in (.*):\s*$/i;
 
 const opera11: StackLineParserFn = line => {
-  const parts = opera11Regex.exec(line);
+  const parts = opera11Regex.exec(line) as null | [string, string, string, string, string, string];
   return parts ? createFrame(parts[5], parts[3] || parts[4] || UNKNOWN_FUNCTION, +parts[1], +parts[2]) : undefined;
 };
 
@@ -198,7 +198,7 @@ const extractSafariExtensionDetails = (func: string, filename: string): [string,
 
   return isSafariExtension || isSafariWebExtension
     ? [
-        func.indexOf('@') !== -1 ? func.split('@')[0] : UNKNOWN_FUNCTION,
+        func.indexOf('@') !== -1 ? (func.split('@')[0] as string) : UNKNOWN_FUNCTION,
         isSafariExtension ? `safari-extension:${filename}` : `safari-web-extension:${filename}`,
       ]
     : [func, filename];

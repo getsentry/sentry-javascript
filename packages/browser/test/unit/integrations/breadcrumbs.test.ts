@@ -19,7 +19,7 @@ describe('Breadcrumbs', () => {
     client.captureMessage('test');
     await flush(2000);
 
-    expect(addBreadcrumbSpy.mock.calls[0][0].category).toEqual('sentry.event');
-    expect(addBreadcrumbSpy.mock.calls[0][0].message).toEqual('test');
+    expect(addBreadcrumbSpy.mock.calls[0]?.[0]?.category).toEqual('sentry.event');
+    expect(addBreadcrumbSpy.mock.calls[0]?.[0]?.message).toEqual('test');
   });
 });
