@@ -178,8 +178,8 @@ describe('normalize()', () => {
         name: 'Alice',
         children: [{ name: 'Bob' }, { name: 'Eve' }],
       } as any;
-      obj.children[0].self = obj.children[0];
-      obj.children[1].self = obj.children[1];
+      obj.children[0]!.self = obj.children[0];
+      obj.children[1]!.self = obj.children[1];
       expect(normalize(obj)).toEqual({
         name: 'Alice',
         children: [
@@ -269,7 +269,7 @@ describe('normalize()', () => {
         },
         circular,
       ];
-      circular.qux = circular.bar[0].baz;
+      circular.qux = circular.bar[0]?.baz;
 
       const normalized = normalize(circular);
       expect(normalized).toEqual({
@@ -283,9 +283,9 @@ describe('normalize()', () => {
         qux: '[Circular ~]',
       });
 
-      expect(circular.bar[0].baz).toBe(circular);
+      expect(circular.bar[0]?.baz).toBe(circular);
       expect(circular.bar[1]).toBe(circular);
-      expect(circular.qux).toBe(circular.bar[0].baz);
+      expect(circular.qux).toBe(circular.bar[0]?.baz);
       expect(normalized).not.toBe(circular);
     });
 

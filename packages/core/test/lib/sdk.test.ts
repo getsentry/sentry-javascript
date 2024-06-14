@@ -32,8 +32,8 @@ describe('SDK', () => {
       ];
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, integrations });
       initAndBind(TestClient, options);
-      expect((integrations[0].setupOnce as jest.Mock).mock.calls.length).toBe(1);
-      expect((integrations[1].setupOnce as jest.Mock).mock.calls.length).toBe(1);
+      expect((integrations[0]?.setupOnce as jest.Mock).mock.calls.length).toBe(1);
+      expect((integrations[1]?.setupOnce as jest.Mock).mock.calls.length).toBe(1);
     });
 
     test('calls hooks in the correct order', () => {

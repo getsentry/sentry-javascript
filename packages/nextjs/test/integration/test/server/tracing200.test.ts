@@ -12,7 +12,7 @@ describe('Tracing 200', () => {
     });
 
     const sentryTransactionEnvelope = envelopes.find(envelope => {
-      const envelopeItem = envelope[2];
+      const envelopeItem = envelope[2]!;
       return envelopeItem.transaction === 'GET /api/users';
     });
 

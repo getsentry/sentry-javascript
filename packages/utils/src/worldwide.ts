@@ -24,7 +24,7 @@ interface SentryCarrier {
   globalScope?: Scope;
   defaultIsolationScope?: Scope;
   defaultCurrentScope?: Scope;
-  globalMetricsAggregators: WeakMap<Client, MetricsAggregator> | undefined;
+  globalMetricsAggregators?: WeakMap<Client, MetricsAggregator> | undefined;
 
   /** Overwrites TextEncoder used in `@sentry/utils`, need for `react-native@0.73` and older */
   encodePolyfill?: (input: string) => Uint8Array;

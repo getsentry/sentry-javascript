@@ -311,7 +311,7 @@ describe('makeOfflineTransport', () => {
 
       // Create an envelope with a sent_at header very far in the past
       const env: EventEnvelope = [...ERROR_ENVELOPE];
-      env[0].sent_at = new Date(2020, 1, 1).toISOString();
+      env[0]!.sent_at = new Date(2020, 1, 1).toISOString();
 
       const { getCalls, store } = createTestStore(ERROR_ENVELOPE);
       const { getSentEnvelopes, baseTransport } = createTestTransport({ statusCode: 200 });
@@ -327,8 +327,8 @@ describe('makeOfflineTransport', () => {
 
       // When it gets shifted out of the store, the sent_at header should be updated
       const envelopes = getSentEnvelopes().map(parseEnvelope) as EventEnvelope[];
-      expect(envelopes[0][0]).toBeDefined();
-      const sent_at = new Date(envelopes[0][0].sent_at);
+      expect(envelopes[0]?.[0]).toBeDefined();
+      const sent_at = new Date(envelopes[0]![0]?.sent_at);
 
       expect(sent_at.getTime()).toBeGreaterThan(testStartTime.getTime());
     },
@@ -403,9 +403,9 @@ describe('makeOfflineTransport', () => {
       const envelopes = getSentEnvelopes().map(parseEnvelope);
 
       // Ensure they're still in the correct order
-      expect((envelopes[0][1][0][1] as ErrorEvent).message).toEqual('1');
-      expect((envelopes[1][1][0][1] as ErrorEvent).message).toEqual('2');
-      expect((envelopes[2][1][0][1] as ErrorEvent).message).toEqual('3');
+      expect((envelopes[0]?.[1]?.[0]?.[1] as ErrorEvent).message).toEqual('1');
+      expect((envelopes[1]?.[1]?.[0]?.[1] as ErrorEvent).message).toEqual('2');
+      expect((envelopes[2]?.[1]?.[0]?.[1] as ErrorEvent).message).toEqual('3');
     },
     START_DELAY + 2_000,
   );

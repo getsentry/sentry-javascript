@@ -70,6 +70,8 @@ export const onCLS = (onReport: CLSReportCallback, opts: ReportOpts = {}): void 
             // session.
             if (
               sessionValue &&
+              firstSessionEntry &&
+              lastSessionEntry &&
               entry.startTime - lastSessionEntry.startTime < 1000 &&
               entry.startTime - firstSessionEntry.startTime < 5000
             ) {

@@ -82,12 +82,13 @@ export function unshift(store: Store, value: Uint8Array | string, maxQueueSize: 
 export function shift(store: Store): Promise<Uint8Array | string | undefined> {
   return store(store => {
     return keys(store).then(keys => {
-      if (keys.length === 0) {
+      const firstKey = keys[0];
+      if (firstKey == null) {
         return undefined;
       }
 
-      return promisifyRequest(store.get(keys[0])).then(value => {
-        store.delete(keys[0]);
+      return promisifyRequest(store.get(firstKey)).then(value => {
+        store.delete(firstKey);
         return promisifyRequest(store.transaction).then(() => value);
       });
     });

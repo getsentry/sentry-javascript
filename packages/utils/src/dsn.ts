@@ -45,7 +45,7 @@ export function dsnFromString(str: string): DsnComponents | undefined {
     return undefined;
   }
 
-  const [protocol, publicKey, pass = '', host, port = '', lastPath] = match.slice(1);
+  const [protocol, publicKey, pass = '', host = '', port = '', lastPath = ''] = match.slice(1);
   let path = '';
   let projectId = lastPath;
 

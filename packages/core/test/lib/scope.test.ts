@@ -827,7 +827,7 @@ describe('Scope', () => {
 
       scope.addBreadcrumb({ message: 'hello world' }, 100);
 
-      expect((scope as any)._breadcrumbs[0].message).toEqual('hello world');
+      expect((scope as any)._breadcrumbs[0]?.message).toEqual('hello world');
     });
 
     test('adds a timestamp to new breadcrumbs', () => {
@@ -835,7 +835,7 @@ describe('Scope', () => {
 
       scope.addBreadcrumb({ message: 'hello world' }, 100);
 
-      expect((scope as any)._breadcrumbs[0].timestamp).toEqual(expect.any(Number));
+      expect((scope as any)._breadcrumbs[0]?.timestamp).toEqual(expect.any(Number));
     });
 
     test('overrides the `maxBreadcrumbs` defined in client options', () => {

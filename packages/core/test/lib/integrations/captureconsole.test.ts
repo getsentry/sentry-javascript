@@ -328,7 +328,7 @@ describe('CaptureConsole setup', () => {
     expect(captureException).toHaveBeenCalledTimes(1);
     expect(mockScope.addEventProcessor).toHaveBeenCalledTimes(1);
 
-    expect(someEvent.exception?.values?.[0].mechanism).toEqual({
+    expect(someEvent.exception?.values?.[0]?.mechanism).toEqual({
       handled: false,
       type: 'console',
     });

@@ -896,15 +896,15 @@ jobs:
 
       - name: Overwrite typescript version
         if: matrix.typescript
-        run: yarn add --dev --ignore-workspace-root-check typescript@${{ matrix.typescript }}
+        run: node ./scripts/use-ts-version.js ${{ matrix.typescript }}
+        working-directory: dev-packages/node-integration-tests
 
       - name: Run integration tests
         env:
           NODE_VERSION: ${{ matrix.node }}
           TS_VERSION: ${{ matrix.typescript }}
-        run: |
-          cd dev-packages/node-integration-tests
-          yarn test
+        working-directory: dev-packages/node-integration-tests
+        run: yarn test
 
   job_remix_integration_tests:
     name: Remix v${{ matrix.remix }} (Node ${{ matrix.node }}) Tests

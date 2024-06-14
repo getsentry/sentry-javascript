@@ -14,8 +14,8 @@ describe('Stacktrace', () => {
         const frames = stripSentryFramesAndReverse(stack);
 
         expect(frames.length).toBe(2);
-        expect(frames[0].function).toBe('bar');
-        expect(frames[1].function).toBe('foo');
+        expect(frames[0]?.function).toBe('bar');
+        expect(frames[1]?.function).toBe('foo');
       });
 
       it('reserved captureMessage', () => {
@@ -29,8 +29,8 @@ describe('Stacktrace', () => {
         const frames = stripSentryFramesAndReverse(stack);
 
         expect(frames.length).toBe(2);
-        expect(frames[0].function).toBe('bar');
-        expect(frames[1].function).toBe('foo');
+        expect(frames[0]?.function).toBe('bar');
+        expect(frames[1]?.function).toBe('foo');
       });
 
       it('remove two occurences if they are present', () => {
@@ -44,8 +44,8 @@ describe('Stacktrace', () => {
         const exceptionFrames = stripSentryFramesAndReverse(exceptionStack);
 
         expect(exceptionFrames.length).toBe(2);
-        expect(exceptionFrames[0].function).toBe('bar');
-        expect(exceptionFrames[1].function).toBe('foo');
+        expect(exceptionFrames[0]?.function).toBe('bar');
+        expect(exceptionFrames[1]?.function).toBe('foo');
 
         const messageStack = [
           { colno: 1, lineno: 4, filename: 'anything.js', function: 'captureMessage' },
@@ -57,8 +57,8 @@ describe('Stacktrace', () => {
         const messageFrames = stripSentryFramesAndReverse(messageStack);
 
         expect(messageFrames.length).toBe(2);
-        expect(messageFrames[0].function).toBe('bar');
-        expect(messageFrames[1].function).toBe('foo');
+        expect(messageFrames[0]?.function).toBe('bar');
+        expect(messageFrames[1]?.function).toBe('foo');
       });
     });
 
@@ -74,8 +74,8 @@ describe('Stacktrace', () => {
         const frames = stripSentryFramesAndReverse(stack);
 
         expect(frames.length).toBe(2);
-        expect(frames[0].function).toBe('bar');
-        expect(frames[1].function).toBe('foo');
+        expect(frames[0]?.function).toBe('bar');
+        expect(frames[1]?.function).toBe('foo');
       });
     });
 
@@ -92,8 +92,8 @@ describe('Stacktrace', () => {
       const frames = stripSentryFramesAndReverse(stack);
 
       expect(frames.length).toBe(2);
-      expect(frames[0].function).toBe('bar');
-      expect(frames[1].function).toBe('foo');
+      expect(frames[0]?.function).toBe('bar');
+      expect(frames[1]?.function).toBe('foo');
     });
 
     it('applies frames limit after the stripping, not before', () => {
@@ -111,8 +111,8 @@ describe('Stacktrace', () => {
       expect(frames.length).toBe(50);
 
       // Frames are named 0-54, thus after reversal and trimming, we should have frames 54-5, 50 in total.
-      expect(frames[0].function).toBe('54');
-      expect(frames[49].function).toBe('5');
+      expect(frames[0]?.function).toBe('54');
+      expect(frames[49]?.function).toBe('5');
     });
   });
 });

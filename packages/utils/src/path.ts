@@ -183,7 +183,7 @@ export function join(...args: string[]): string {
 /** JSDoc */
 export function dirname(path: string): string {
   const result = splitPath(path);
-  const root = result[0];
+  const root = result[0] || '';
   let dir = result[1];
 
   if (!root && !dir) {
@@ -201,7 +201,7 @@ export function dirname(path: string): string {
 
 /** JSDoc */
 export function basename(path: string, ext?: string): string {
-  let f = splitPath(path)[2];
+  let f = splitPath(path)[2] || '';
   if (ext && f.slice(ext.length * -1) === ext) {
     f = f.slice(0, f.length - ext.length);
   }

@@ -45,8 +45,10 @@ function patchFrames(frames: Array<StackFrame>): boolean {
     if (!frame.filename) {
       return;
     }
-    const match = frame.filename.match(/^(.*?):wasm-function\[\d+\]:(0x[a-fA-F0-9]+)$/);
-    if (match !== null) {
+    const match = frame.filename.match(/^(.*?):wasm-function\[\d+\]:(0x[a-fA-F0-9]+)$/) as
+      | null
+      | [string, string, string];
+    if (match) {
       const index = getImage(match[1]);
       if (index >= 0) {
         frame.instruction_addr = match[2];

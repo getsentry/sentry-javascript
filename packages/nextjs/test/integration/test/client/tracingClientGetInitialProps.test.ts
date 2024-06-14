@@ -19,7 +19,7 @@ test('should instrument `getInitialProps` for performance tracing', async ({ pag
   const nextDataTag = await page.waitForSelector('#__NEXT_DATA__', { state: 'attached' });
   const nextDataTagValue = JSON.parse(await nextDataTag.evaluate(tag => (tag as HTMLElement).innerText));
 
-  const traceId = transaction[0].contexts?.trace?.trace_id;
+  const traceId = transaction[0]?.contexts?.trace?.trace_id;
 
   expect(traceId).toBeDefined();
 

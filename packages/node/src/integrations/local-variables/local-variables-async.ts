@@ -45,23 +45,26 @@ export const localVariablesAsyncIntegration = defineIntegration(((
       // Sentry frames are in reverse order
       const frameIndex = frames.length - i - 1;
 
-      // Drop out if we run out of frames to match up
-      if (!frames[frameIndex] || !cachedFrame[i]) {
+      const cachedFrameVariable = cachedFrame[i];
+      const frameVariable = frames[frameIndex];
+
+      if (!frameVariable || !cachedFrameVariable) {
+        // Drop out if we run out of frames to match up
         break;
       }
 
       if (
         // We need to have vars to add
-        cachedFrame[i].vars === undefined ||
+        cachedFrameVariable.vars === undefined ||
         // We're not interested in frames that are not in_app because the vars are not relevant
-        frames[frameIndex].in_app === false ||
+        frameVariable.in_app === false ||
         // The function names need to match
-        !functionNamesMatch(frames[frameIndex].function, cachedFrame[i].function)
+        !functionNamesMatch(frameVariable.function, cachedFrameVariable.function)
       ) {
         continue;
       }
 
-      frames[frameIndex].vars = cachedFrame[i].vars;
+      frameVariable.vars = cachedFrameVariable.vars;
     }
   }
 
