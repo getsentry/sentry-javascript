@@ -168,7 +168,7 @@ describe('Remix API Actions', () => {
       transaction: `routes/action-json-response${useV2 ? '.' : '/'}$id`,
     });
 
-    assertSentryTransaction(transaction_2![2], {
+    assertSentryTransaction(transaction_2![2]!, {
       contexts: {
         trace: {
           op: 'http.server',
