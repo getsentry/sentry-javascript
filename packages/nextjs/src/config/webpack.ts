@@ -529,7 +529,9 @@ function addFilesToWebpackEntryPoint(
     );
   }
 
-  entryProperty[entryPointName] = newEntryPoint;
+  if (newEntryPoint) {
+    entryProperty[entryPointName] = newEntryPoint;
+  }
 }
 
 /**

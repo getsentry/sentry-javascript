@@ -87,7 +87,7 @@ describe('HTTPTimings', () => {
 
     const protocols = Object.keys(nextHopToNetworkVersion);
     for (const protocol of protocols) {
-      const expected: ProtocolInfo = nextHopToNetworkVersion[protocol];
+      const expected = nextHopToNetworkVersion[protocol]!;
       expect(extractNetworkProtocol(protocol)).toMatchObject(expected);
     }
   });

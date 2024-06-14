@@ -139,7 +139,7 @@ describe('startIdleSpan', () => {
     );
 
     expect(beforeSendTransaction).toHaveBeenCalledTimes(1);
-    const transaction = transactions[0];
+    const transaction = transactions[0]!;
 
     expect(transaction.start_timestamp).toBe(baseTimeInSeconds);
     // It considers the end time of the span we added in beforeSpanEnd
@@ -206,7 +206,7 @@ describe('startIdleSpan', () => {
     expect(cancelledSpan.isRecording()).toBe(false);
 
     expect(beforeSendTransaction).toHaveBeenCalledTimes(1);
-    const transaction = transactions[0];
+    const transaction = transactions[0]!;
 
     // End time is based on idle time etc.
     const idleSpanEndTime = transaction.timestamp!;
@@ -281,7 +281,7 @@ describe('startIdleSpan', () => {
     expect(cancelledSpan.isRecording()).toBe(false);
 
     expect(beforeSendTransaction).toHaveBeenCalledTimes(1);
-    const transaction = transactions[0];
+    const transaction = transactions[0]!;
 
     // End time is based on idle time etc.
     const idleSpanEndTime = transaction.timestamp!;

@@ -182,12 +182,14 @@ export function extractExceptionKeysForMessage(exception: Record<string, unknown
   const keys = Object.keys(convertToPlainObject(exception));
   keys.sort();
 
-  if (!keys.length) {
+  const firstKey = keys[0];
+
+  if (!firstKey) {
     return '[object has no keys]';
   }
 
-  if (keys[0].length >= maxLength) {
-    return truncate(keys[0], maxLength);
+  if (firstKey.length >= maxLength) {
+    return truncate(firstKey, maxLength);
   }
 
   for (let includedKeys = keys.length; includedKeys > 0; includedKeys--) {

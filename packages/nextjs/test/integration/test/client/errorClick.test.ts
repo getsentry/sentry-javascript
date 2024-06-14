@@ -10,7 +10,7 @@ test('should capture error triggered on click', async ({ page }) => {
     getMultipleSentryEnvelopeRequests<Event>(page, 1, { envelopeType: 'event' }),
   ]);
 
-  expect(events[0].exception?.values?.[0]).toMatchObject({
+  expect(events[0]?.exception?.values?.[0]).toMatchObject({
     type: 'Error',
     value: 'Sentry Frontend Error',
   });
@@ -24,7 +24,7 @@ test('should have a non-url-encoded top frame in route with parameter', async ({
     getMultipleSentryEnvelopeRequests<Event>(page, 1, { envelopeType: 'event' }),
   ]);
 
-  const frames = events[0]?.exception?.values?.[0].stacktrace?.frames;
+  const frames = events[0]?.exception?.values?.[0]?.stacktrace?.frames;
 
   expect(frames?.[frames.length - 1].filename).toMatch(/\/\[id\]\/errorClick-[a-f0-9]+\.js$/);
 });
@@ -37,7 +37,7 @@ test('should mark nextjs internal frames as `in_app`: false', async ({ page }) =
     getMultipleSentryEnvelopeRequests<Event>(page, 1, { envelopeType: 'event' }),
   ]);
 
-  const frames = events[0]?.exception?.values?.[0].stacktrace?.frames;
+  const frames = events[0]?.exception?.values?.[0]?.stacktrace?.frames;
 
   expect(frames).toContainEqual(
     expect.objectContaining({

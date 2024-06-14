@@ -8,9 +8,9 @@ describe('Server Side Rendering', () => {
     const env = await RemixTestEnv.init();
     const url = `${env.url}/ssr-error`;
     const envelopes = await env.getMultipleEnvelopeRequest({ url, count: 2, envelopeType: ['transaction', 'event'] });
-    const [transaction] = envelopes.filter(envelope => envelope[1].type === 'transaction');
-    const [event] = envelopes.filter(envelope => envelope[1].type === 'event');
-    assertSentryTransaction(transaction[2], {
+    const [transaction] = envelopes.filter(envelope => envelope[1]?.type === 'transaction');
+    const [event] = envelopes.filter(envelope => envelope[1]?.type === 'event');
+    assertSentryTransaction(transaction![2]!, {
       contexts: {
         trace: {
           status: 'internal_error',
@@ -27,7 +27,7 @@ describe('Server Side Rendering', () => {
         : {},
     });
 
-    assertSentryEvent(event[2], {
+    assertSentryEvent(event![2]!, {
       transaction: 'routes/ssr-error',
       exception: {
         values: [
