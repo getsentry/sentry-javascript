@@ -11,7 +11,7 @@ const LRU_FILE_CONTENTS_FS_READ_FAILED = new LRUMap<string, 1>(20);
 const DEFAULT_LINES_OF_CONTEXT = 7;
 const INTEGRATION_NAME = 'ContextLines';
 // Determines the upper bound of lineno/colno that we will attempt to read. Large colno values are likely to be
-// minified code while large colno values are likely to be bundled code.
+// minified code while large lineno values are likely to be bundled code.
 // Exported for testing purposes.
 export const MAX_CONTEXTLINES_COLNO: number = 1000;
 export const MAX_CONTEXTLINES_LINENO: number = 10000;
