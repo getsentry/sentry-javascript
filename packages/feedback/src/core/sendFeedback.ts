@@ -52,7 +52,7 @@ export const sendFeedback: SendFeedback = (
         response.statusCode < 300
       ) {
         resolve(eventId);
-      } else if (response.statusCode === 0) {
+      } else if (response && typeof response.statusCode === 'number' && response.statusCode === 0) {
         return reject(
           'Unable to send Feedback. This is because of network issues, or because you are using an ad-blocker.',
         );
