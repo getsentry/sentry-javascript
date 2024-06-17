@@ -59,6 +59,9 @@ sentryTest('should capture feedback', async ({ getLocalTestUrl, page }) => {
       },
     },
     level: 'info',
+    tags: {
+      from: 'integration init',
+    },
     timestamp: expect.any(Number),
     event_id: expect.stringMatching(/\w{32}/),
     environment: 'production',

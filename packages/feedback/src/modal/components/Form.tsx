@@ -46,6 +46,7 @@ export function Form({
   screenshotInput,
 }: Props): VNode {
   const {
+    tags,
     addScreenshotButtonLabel,
     removeScreenshotButtonLabel,
     cancelButtonLabel,
@@ -122,6 +123,7 @@ export function Form({
               email: data.email,
               message: data.message,
               source: FEEDBACK_WIDGET_SOURCE,
+              tags,
             },
             { attachments: data.attachments },
           );
