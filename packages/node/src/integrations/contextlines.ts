@@ -10,6 +10,11 @@ const LRU_FILE_CONTENTS_CACHE = new LRUMap<string, Record<number, string>>(10);
 const LRU_FILE_CONTENTS_FS_READ_FAILED = new LRUMap<string, 1>(20);
 const DEFAULT_LINES_OF_CONTEXT = 7;
 const INTEGRATION_NAME = 'ContextLines';
+// Determines the upper bound of lineno/colno that we will attempt to read. Large colno values are likely to be
+// minified code while large colno values are likely to be bundled code.
+// Exported for testing purposes.
+export const MAX_CONTEXTLINES_COLNO: number = 1000;
+export const MAX_CONTEXTLINES_LINENO: number = 10000;
 
 interface ContextLinesOptions {
   /**
@@ -56,6 +61,15 @@ function shouldSkipContextLinesForFile(path: string): boolean {
   if (path.endsWith('.min.cjs')) return true;
   if (path.endsWith('.min.mjs')) return true;
   if (path.startsWith('data:')) return true;
+  return false;
+}
+
+/**
+ * Determines if we should skip contextlines based off the max lineno and colno values.
+ */
+function shouldSkipContextLinesForFrame(frame: StackFrame): boolean {
+  if (frame.lineno !== undefined && frame.lineno > MAX_CONTEXTLINES_LINENO) return true;
+  if (frame.colno !== undefined && frame.colno > MAX_CONTEXTLINES_COLNO) return true;
   return false;
 }
 /**
@@ -216,7 +230,8 @@ async function addSourceContext(event: Event, contextLines: number): Promise<Eve
           !frame ||
           typeof filename !== 'string' ||
           typeof frame.lineno !== 'number' ||
-          shouldSkipContextLinesForFile(filename)
+          shouldSkipContextLinesForFile(filename) ||
+          shouldSkipContextLinesForFrame(frame)
         ) {
           continue;
         }

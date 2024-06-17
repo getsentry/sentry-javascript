@@ -2,7 +2,7 @@ import * as fs from 'node:fs';
 import type { StackFrame } from '@sentry/types';
 import { parseStackFrames } from '@sentry/utils';
 
-import { _contextLinesIntegration, resetFileContentCache } from '../../src/integrations/contextlines';
+import { _contextLinesIntegration, resetFileContentCache, MAX_CONTEXTLINES_COLNO } from '../../src/integrations/contextlines';
 import { defaultStackParser } from '../../src/sdk/api';
 import { getError } from '../helpers/error';
 
@@ -21,6 +21,24 @@ describe('ContextLines', () => {
   afterEach(() => {
     jest.clearAllMocks();
   });
+
+  describe('limits', () => {
+    test('colno limit', async () => {
+      expect.assertions(1);
+      const frames: StackFrame[] = [
+        {
+          colno: MAX_CONTEXTLINES_COLNO + 1,
+          filename: 'file:///var/task/index.js',
+          lineno: 1,
+          function: 'fxn1',
+        },
+      ];
+
+      const readStreamSpy = jest.spyOn(fs, 'createReadStream');
+      await addContext(frames);
+      expect(readStreamSpy).not.toHaveBeenCalled();
+    })
+  })
 
   describe('lru file cache', () => {
     test('parseStack when file does not exist', async () => {
