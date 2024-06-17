@@ -134,7 +134,7 @@ function getContextLinesFromFile(path: string, ranges: ReadlineRange[], output: 
     let lineNumber = 0;
     let currentRangeIndex = 0;
     const range = ranges[currentRangeIndex];
-    if (typeof range !== 'number') {
+    if (range === undefined) {
       // We should never reach this point, but if we do, we should resolve the promise to prevent it from hanging.
       resolve();
       return;
@@ -175,7 +175,7 @@ function getContextLinesFromFile(path: string, ranges: ReadlineRange[], output: 
         }
         currentRangeIndex++;
         const range = ranges[currentRangeIndex];
-        if (typeof range !== 'number') {
+        if (range === undefined) {
           // This should never happen as it means we have a bug in the context.
           lineReaded.close();
           lineReaded.removeAllListeners();
