@@ -37,9 +37,9 @@ describe('ContextLines', () => {
       const readStreamSpy = jest.spyOn(fs, 'createReadStream');
       await addContext(frames);
 
-      expect(frames[0].pre_context).toBeUndefined();
-      expect(frames[0].post_context).toBeUndefined();
-      expect(frames[0].context_line).toBeUndefined();
+      expect(frames[0]!.pre_context).toBeUndefined();
+      expect(frames[0]!.post_context).toBeUndefined();
+      expect(frames[0]!.context_line).toBeUndefined();
       expect(readStreamSpy).toHaveBeenCalledTimes(1);
     });
     test('parseStack with same file', async () => {
@@ -101,8 +101,8 @@ describe('ContextLines', () => {
 
       await addContext(overlappingContextWithFirstError);
 
-      const innerFrame = overlappingContextWithFirstError[overlappingContextWithFirstError.length - 1];
-      const outerFrame = overlappingContextWithFirstError[overlappingContextWithFirstError.length - 2];
+      const innerFrame = overlappingContextWithFirstError[overlappingContextWithFirstError.length - 1]!;
+      const outerFrame = overlappingContextWithFirstError[overlappingContextWithFirstError.length - 2]!;
 
       expect(innerFrame.context_line).toBe("        return new Error('inner');");
       expect(innerFrame.pre_context).toHaveLength(7);

@@ -224,7 +224,7 @@ async function addSourceContext(event: Event, contextLines: number): Promise<Eve
         const filesToLinesOutput = filesToLines[filename];
         if (!filesToLinesOutput) filesToLines[filename] = [];
         // @ts-expect-error this is defined above
-        filesToLinesOutput.push(frame.lineno);
+        filesToLines[filename].push(frame.lineno);
       }
     }
   }
