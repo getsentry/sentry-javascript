@@ -95,7 +95,7 @@ describe('browserTracingReactRouterV4', () => {
 
     client.init();
 
-    expect(getCurrentScope().getScopeData()?.transactionName).toEqual('/');
+    expect(getCurrentScope().getScopeData().transactionName).toEqual('/');
   });
 
   it('starts a navigation transaction', () => {

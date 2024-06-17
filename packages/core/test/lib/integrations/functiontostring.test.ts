@@ -29,7 +29,7 @@ describe('FunctionToString', () => {
     expect(foo.bar.toString()).not.toBe(originalFunction);
 
     const fts = functionToStringIntegration();
-    getClient()?.addIntegration?.(fts);
+    getClient()?.addIntegration(fts);
 
     expect(foo.bar.toString()).toBe(originalFunction);
   });

@@ -63,7 +63,7 @@ export class TestClient extends BaseClient<TestClientOptions> {
     };
 
     const frames = this._options.stackParser(exception.stack || '', 1);
-    if (frames.length && event?.exception?.values?.[0]) {
+    if (frames.length && event.exception?.values?.[0]) {
       event.exception.values[0] = { ...event.exception.values[0], stacktrace: { frames } };
     }
 
