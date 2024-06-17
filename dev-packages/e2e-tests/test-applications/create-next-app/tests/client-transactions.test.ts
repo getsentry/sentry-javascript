@@ -17,6 +17,9 @@ test('Sends a pageload transaction to Sentry', async ({ page }) => {
       transaction_info: { source: 'route' },
       type: 'transaction',
       contexts: {
+        react: {
+          version: '18.2.0',
+        },
         trace: {
           span_id: expect.any(String),
           trace_id: expect.any(String),
@@ -60,6 +63,9 @@ test('captures a navigation transcation to Sentry', async ({ page }) => {
       transaction_info: { source: 'route' },
       type: 'transaction',
       contexts: {
+        react: {
+          version: '18.2.0',
+        },
         trace: {
           span_id: expect.any(String),
           trace_id: expect.any(String),
