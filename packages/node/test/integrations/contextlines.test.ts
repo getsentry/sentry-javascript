@@ -2,7 +2,12 @@ import * as fs from 'node:fs';
 import type { StackFrame } from '@sentry/types';
 import { parseStackFrames } from '@sentry/utils';
 
-import { _contextLinesIntegration, resetFileContentCache, MAX_CONTEXTLINES_COLNO, MAX_CONTEXTLINES_LINENO } from '../../src/integrations/contextlines';
+import {
+  MAX_CONTEXTLINES_COLNO,
+  MAX_CONTEXTLINES_LINENO,
+  _contextLinesIntegration,
+  resetFileContentCache,
+} from '../../src/integrations/contextlines';
 import { defaultStackParser } from '../../src/sdk/api';
 import { getError } from '../helpers/error';
 
@@ -37,7 +42,7 @@ describe('ContextLines', () => {
       const readStreamSpy = jest.spyOn(fs, 'createReadStream');
       await addContext(frames);
       expect(readStreamSpy).not.toHaveBeenCalled();
-    })
+    });
 
     test(`lineno above ${MAX_CONTEXTLINES_LINENO}`, async () => {
       expect.assertions(1);
@@ -53,8 +58,8 @@ describe('ContextLines', () => {
       const readStreamSpy = jest.spyOn(fs, 'createReadStream');
       await addContext(frames);
       expect(readStreamSpy).not.toHaveBeenCalled();
-    })
-  })
+    });
+  });
 
   describe('lru file cache', () => {
     test('parseStack when file does not exist', async () => {
