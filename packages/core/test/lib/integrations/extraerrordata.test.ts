@@ -2,10 +2,13 @@ import type { Event as SentryEvent, ExtendedError } from '@sentry/types';
 
 import { extraErrorDataIntegration } from '../../../src/integrations/extraerrordata';
 
+import { TestClient, getDefaultTestClientOptions } from '../../mocks/client';
+
 const extraErrorData = extraErrorDataIntegration();
 let event: SentryEvent;
 
 describe('ExtraErrorData()', () => {
+  const testClient = new TestClient(getDefaultTestClientOptions({ maxValueLength: 250 }));
   beforeEach(() => {
     event = {};
   });
@@ -20,7 +23,7 @@ describe('ExtraErrorData()', () => {
       {
         originalException: error,
       },
-      {} as any,
+      testClient,
     ) as SentryEvent;
 
     expect(enhancedEvent.contexts).toEqual({
@@ -41,13 +44,13 @@ describe('ExtraErrorData()', () => {
       {
         originalException: error,
       },
-      {} as any,
+      testClient,
     ) as SentryEvent;
 
     expect(enhancedEvent.contexts).toEqual({
       TypeError: {
         baz: 42,
-        foo: 'a'.repeat(250),
+        foo: `${'a'.repeat(250)}...`,
       },
     });
   });
@@ -61,7 +64,7 @@ describe('ExtraErrorData()', () => {
       {
         originalException: error,
       },
-      {} as any,
+      testClient,
     ) as SentryEvent;
 
     expect(enhancedEvent.contexts).toEqual({
@@ -86,7 +89,7 @@ describe('ExtraErrorData()', () => {
       {
         originalException: error,
       },
-      {} as any,
+      testClient,
     ) as SentryEvent;
 
     expect(enhancedEvent.contexts).toEqual({
@@ -114,7 +117,7 @@ describe('ExtraErrorData()', () => {
       {
         originalException: error,
       },
-      {} as any,
+      testClient,
     ) as SentryEvent;
 
     expect(enhancedEvent.contexts).toEqual({
@@ -133,14 +136,14 @@ describe('ExtraErrorData()', () => {
       {
         originalException: error,
       },
-      {} as any,
+      testClient,
     ) as SentryEvent;
 
     expect(enhancedEvent).toEqual(event);
   });
 
   it('should return event if there is no SentryEventHint', () => {
-    const enhancedEvent = extraErrorData.processEvent?.(event, {}, {} as any);
+    const enhancedEvent = extraErrorData.processEvent?.(event, {}, testClient);
 
     expect(enhancedEvent).toEqual(event);
   });
@@ -152,7 +155,7 @@ describe('ExtraErrorData()', () => {
         // @ts-expect-error Allow event to have extra properties
         notOriginalException: 'fooled you',
       },
-      {} as any,
+      testClient,
     );
 
     expect(enhancedEvent).toEqual(event);
@@ -174,7 +177,7 @@ describe('ExtraErrorData()', () => {
       {
         originalException: error,
       },
-      {} as any,
+      testClient,
     ) as SentryEvent;
 
     expect(enhancedEvent.contexts).toEqual({
@@ -201,7 +204,7 @@ describe('ExtraErrorData()', () => {
       {
         originalException: error,
       },
-      {} as any,
+      testClient,
     ) as SentryEvent;
 
     expect(enhancedEvent.contexts).toEqual({
@@ -225,7 +228,7 @@ describe('ExtraErrorData()', () => {
       {
         originalException: error,
       },
-      {} as any,
+      testClient,
     ) as SentryEvent;
 
     expect(enhancedEvent.contexts).toEqual({
@@ -253,7 +256,7 @@ describe('ExtraErrorData()', () => {
       {
         originalException: error,
       },
-      {} as any,
+      testClient,
     ) as SentryEvent;
 
     expect(enhancedEvent.contexts).toEqual({
@@ -282,7 +285,7 @@ describe('ExtraErrorData()', () => {
       {
         originalException: error,
       },
-      {} as any,
+      testClient,
     ) as SentryEvent;
 
     expect(enhancedEvent.contexts).not.toEqual({

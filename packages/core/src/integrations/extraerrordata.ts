@@ -103,7 +103,7 @@ function _extractErrorData(
         continue;
       }
       const value = error[key];
-      extraErrorInfo[key] = truncate(isError(value) ? value.toString() : value, maxValueLength);
+      extraErrorInfo[key] = isError(value) || typeof value === 'string' ? truncate(`${value}`, maxValueLength) : value;
     }
 
     // Error.cause is a standard property that is non enumerable, we therefore need to access it separately.
