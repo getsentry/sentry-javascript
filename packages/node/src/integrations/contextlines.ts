@@ -84,7 +84,13 @@ function makeLineReaderRanges(lines: number[], linecontext: number): ReadlineRan
   }
 
   let i = 0;
-  let current = makeContextRange(lines[i]!, linecontext);
+  const line = lines[0];
+
+  if (typeof line !== 'number') {
+    return [];
+  }
+
+  let current = makeContextRange(line, linecontext);
   const out: ReadlineRange[] = [];
   // eslint-disable-next-line no-constant-condition
   while (true) {
@@ -94,7 +100,10 @@ function makeLineReaderRanges(lines: number[], linecontext: number): ReadlineRan
     }
 
     // If the next line falls into the current range, extend the current range to lineno + linecontext.
-    const next = lines[i + 1]!;
+    const next = lines[i + 1];
+    if (typeof next !== 'number') {
+      break;
+    }
     if (next <= current[1]) {
       current[1] = next + linecontext;
     } else {
@@ -124,8 +133,14 @@ function getContextLinesFromFile(path: string, ranges: ReadlineRange[], output: 
     // Init at zero and increment at the start of the loop because lines are 1 indexed.
     let lineNumber = 0;
     let currentRangeIndex = 0;
-    let rangeStart = ranges[currentRangeIndex]?.[0]!;
-    let rangeEnd = ranges[currentRangeIndex]?.[1]!;
+    const range = ranges[currentRangeIndex];
+    if (typeof range !== 'number') {
+      // We should never reach this point, but if we do, we should resolve the promise to prevent it from hanging.
+      resolve();
+      return;
+    }
+    let rangeStart = range[0];
+    let rangeEnd = range[1];
 
     // We use this inside Promise.all, so we need to resolve the promise even if there is an error
     // to prevent Promise.all from short circuiting the rest.
@@ -159,13 +174,27 @@ function getContextLinesFromFile(path: string, ranges: ReadlineRange[], output: 
           return;
         }
         currentRangeIndex++;
-        rangeStart = ranges[currentRangeIndex]?.[0]!;
-        rangeEnd = ranges[currentRangeIndex]?.[1]!;
+        const range = ranges[currentRangeIndex];
+        if (typeof range !== 'number') {
+          // This should never happen as it means we have a bug in the context.
+          lineReaded.close();
+          lineReaded.removeAllListeners();
+          return;
+        }
+        rangeStart = range[0];
+        rangeEnd = range[1];
       }
     });
   });
 }
 
+/**
+ * Adds surrounding (context) lines of the line that an exception occurred on to the event.
+ * This is done by reading the file line by line and extracting the lines. The extracted lines are stored in
+ * a cache to prevent multiple reads of the same file. Failures to read a file are similarly cached to prevent multiple
+ * failing reads from happening.
+ */
+/* eslint-disable complexity */
 async function addSourceContext(event: Event, contextLines: number): Promise<Event> {
   // keep a lookup map of which files we've already enqueued to read,
   // so we don't enqueue the same file multiple times which would cause multiple i/o reads
@@ -192,8 +221,10 @@ async function addSourceContext(event: Event, contextLines: number): Promise<Eve
           continue;
         }
 
-        if (!filesToLines[filename]) filesToLines[filename] = [];
-        filesToLines[filename]!.push(frame.lineno);
+        const filesToLinesOutput = filesToLines[filename];
+        if (!filesToLinesOutput) filesToLines[filename] = [];
+        // @ts-expect-error this is defined above
+        filesToLinesOutput.push(frame.lineno);
       }
     }
   }
@@ -244,6 +275,7 @@ async function addSourceContext(event: Event, contextLines: number): Promise<Eve
 
   return event;
 }
+/* eslint-enable complexity */
 
 /** Adds context lines to frames */
 function addSourceContextToFrames(
@@ -319,7 +351,7 @@ export function addContextToFrame(
   for (let i = lineno + 1; i <= end; i++) {
     // Since we dont track when the file ends, we cant clear the context if we dont find a line as it could
     // just be that we reached the end of the file.
-    let line = contents[i];
+    const line = contents[i];
     if (line === undefined) {
       break;
     }
