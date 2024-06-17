@@ -48,17 +48,18 @@ export const sendFeedback: SendFeedback = (
       if (
         response &&
         typeof response.statusCode === 'number' &&
-        (response.statusCode < 200 || response.statusCode >= 300)
+        (response.statusCode >= 200 && response.statusCode < 300)
       ) {
-        if (response.statusCode === 0) {
-          return reject(
-            'Unable to send Feedback. This is because of network issues, or because you are using an ad-blocker.',
-          );
-        }
+        resolve(eventId)
+      }
+      else if (response.statusCode === 0) {
+        return reject(
+          'Unable to send Feedback. This is because of network issues, or because you are using an ad-blocker.',
+        );
+      }
+      else {
         return reject('Unable to send Feedback. Invalid response from server.');
       }
-
-      resolve(eventId);
     });
   });
 };

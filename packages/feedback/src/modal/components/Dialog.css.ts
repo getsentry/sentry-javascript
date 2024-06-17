@@ -101,6 +101,7 @@ const FORM = `
 
 .form__right {
   min-width: var(--form-width, 272px);
+  max-width: var(--form-width, 272px);
   display: flex;
   overflow: auto;
   flex-direction: column;
