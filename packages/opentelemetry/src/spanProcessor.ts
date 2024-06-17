@@ -65,9 +65,9 @@ function onSpanEnd(span: Span): void {
 export class SentrySpanProcessor implements SpanProcessorInterface {
   private _exporter: SentrySpanExporter;
 
-  public constructor(options?: { timeout?: number }) {
+  public constructor() {
     setIsSetup('SentrySpanProcessor');
-    this._exporter = new SentrySpanExporter(options);
+    this._exporter = new SentrySpanExporter();
   }
 
   /**
