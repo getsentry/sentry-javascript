@@ -12,6 +12,7 @@ export function captureFeedback(
 ): string {
   const { message, name, email, url, source, associatedEventId } = feedbackParams;
 
+  // See https://github.com/getsentry/sentry-javascript/blob/main/packages/core/src/feedback.md for an example feedback object
   const feedbackEvent: FeedbackEvent = {
     contexts: {
       feedback: dropUndefinedKeys({

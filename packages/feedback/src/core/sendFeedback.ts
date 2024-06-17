@@ -13,16 +13,17 @@ export const sendFeedback: SendFeedback = (
   hint: EventHint & { includeReplay?: boolean } = { includeReplay: true },
 ): Promise<string> => {
   if (!options.message) {
-    throw new Error('Unable to submit feedback with empty message');
+    return Promise.reject(new Error('Unable to submit feedback with empty message.'));
   }
 
   // We want to wait for the feedback to be sent (or not)
   const client = getClient();
 
   if (!client) {
-    throw new Error('No client setup, cannot send feedback.');
+    return Promise.reject(new Error('No client setup, cannot send feedback.'));
   }
 
+  // See https://github.com/getsentry/sentry-javascript/blob/main/packages/core/src/feedback.md for an example feedback object
   const eventId = captureFeedback(
     {
       source: FEEDBACK_API_SOURCE,
@@ -35,7 +36,10 @@ export const sendFeedback: SendFeedback = (
   // We want to wait for the feedback to be sent (or not)
   return new Promise<string>((resolve, reject) => {
     // After 5s, we want to clear anyhow
-    const timeout = setTimeout(() => reject('Unable to determine if Feedback was correctly sent.'), 5_000);
+
+    const timeout = setTimeout(() => {
+      reject(new Error('Unable to determine if Feedback was correctly sent.'));
+    }, 5_000);
 
     client.on('afterSendEvent', (event: Event, response: TransportMakeRequestResponse) => {
       if (event.event_id !== eventId) {
@@ -52,55 +56,15 @@ export const sendFeedback: SendFeedback = (
       ) {
         if (response.statusCode === 0) {
           return reject(
-            'Unable to send Feedback. This is because of network issues, or because you are using an ad-blocker.',
+            new Error(
+              'Unable to send Feedback. This is because of network issues, or because you are using an ad-blocker.',
+            ),
           );
         }
-        return reject('Unable to send Feedback. Invalid response from server.');
+        return reject(new Error('Unable to send Feedback. Invalid response from server.'));
       }
 
       resolve(eventId);
     });
   });
 };
-
-/*
- * For reference, the fully built event looks something like this:
- * {
- *     "type": "feedback",
- *     "event_id": "d2132d31b39445f1938d7e21b6bf0ec4",
- *     "timestamp": 1597977777.6189718,
- *     "dist": "1.12",
- *     "platform": "javascript",
- *     "environment": "production",
- *     "release": 42,
- *     "tags": {"transaction": "/organizations/:orgId/performance/:eventSlug/"},
- *     "sdk": {"name": "name", "version": "version"},
- *     "user": {
- *         "id": "123",
- *         "username": "user",
- *         "email": "user@site.com",
- *         "ip_address": "192.168.11.12",
- *     },
- *     "request": {
- *         "url": None,
- *         "headers": {
- *             "user-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.5 Safari/605.1.15"
- *         },
- *     },
- *     "contexts": {
- *         "feedback": {
- *             "message": "test message",
- *             "contact_email": "test@example.com",
- *             "type": "feedback",
- *         },
- *         "trace": {
- *             "trace_id": "4C79F60C11214EB38604F4AE0781BFB2",
- *             "span_id": "FA90FDEAD5F74052",
- *             "type": "trace",
- *         },
- *         "replay": {
- *             "replay_id": "e2d42047b1c5431c8cba85ee2a8ab25d",
- *         },
- *     },
- *   }
- */
