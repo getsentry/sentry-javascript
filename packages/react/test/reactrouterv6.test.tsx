@@ -137,7 +137,7 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
         </MemoryRouter>,
       );
 
-      expect(getCurrentScope().getScopeData()?.transactionName).toEqual('/');
+      expect(getCurrentScope().getScopeData().transactionName).toEqual('/');
     });
 
     it('skips pageload transaction with `instrumentPageLoad: false`', () => {
@@ -417,7 +417,7 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
         </MemoryRouter>,
       );
 
-      expect(getCurrentScope().getScopeData()?.transactionName).toBe('/about/:page');
+      expect(getCurrentScope().getScopeData().transactionName).toBe('/about/:page');
     });
   });
 
@@ -493,7 +493,7 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
         </MemoryRouter>,
       );
 
-      expect(getCurrentScope().getScopeData()?.transactionName).toEqual('/');
+      expect(getCurrentScope().getScopeData().transactionName).toEqual('/');
     });
 
     it('skips pageload transaction with `instrumentPageLoad: false`', () => {
@@ -997,7 +997,7 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
         </MemoryRouter>,
       );
 
-      expect(getCurrentScope().getScopeData()?.transactionName).toBe('/about');
+      expect(getCurrentScope().getScopeData().transactionName).toBe('/about');
     });
   });
 });

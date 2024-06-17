@@ -9,7 +9,7 @@ export class TestIntegration implements Integration {
 
   public setupOnce(): void {
     const eventProcessor: EventProcessor = (event: Event) => {
-      if (!getClient()?.getIntegrationByName?.('TestIntegration')) {
+      if (!getClient()?.getIntegrationByName('TestIntegration')) {
         return event;
       }
 

@@ -566,7 +566,7 @@ describe('trace', () => {
       startSpan({ name: 'outer transaction' }, () => {
         startSpan({ name: 'inner span' }, () => {
           const innerTransaction = startInactiveSpan({ name: 'inner transaction', forceTransaction: true });
-          innerTransaction?.end();
+          innerTransaction.end();
         });
       });
 

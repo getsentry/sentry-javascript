@@ -44,7 +44,7 @@ describe('eventFromUnknownInput', () => {
 
     const event = eventFromUnknownInput(defaultStackParser, deepObject);
 
-    expect(event?.extra?.__serialized__).toEqual({
+    expect(event.extra?.__serialized__).toEqual({
       a: {
         b: {
           c: {
