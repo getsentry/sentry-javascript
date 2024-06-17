@@ -69,6 +69,7 @@ export {
   makeMultiplexedTransport,
   moduleMetadataIntegration,
   zodErrorsIntegration,
+  thirdPartyErrorFilterIntegration,
 } from '@sentry/core';
 export type { Span } from '@sentry/types';
 export { makeBrowserOfflineTransport } from './transports/offline';
