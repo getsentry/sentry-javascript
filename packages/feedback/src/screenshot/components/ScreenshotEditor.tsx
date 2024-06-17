@@ -200,8 +200,8 @@ export function makeScreenshotEditorComponent({ imageBuffer, dialog, options }: 
           (croppingBox.height / imageBox.height) * imageBuffer.height,
           0,
           0,
-          croppingBox.width * DPI,
-          croppingBox.height * DPI,
+          cutoutCanvas.width,
+          cutoutCanvas.height,
         );
       }
 
