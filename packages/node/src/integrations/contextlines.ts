@@ -84,7 +84,7 @@ function makeLineReaderRanges(lines: number[], linecontext: number): ReadlineRan
   }
 
   let i = 0;
-  let current = makeContextRange(lines[i], linecontext);
+  let current = makeContextRange(lines[i]!, linecontext);
   const out: ReadlineRange[] = [];
   // eslint-disable-next-line no-constant-condition
   while (true) {
@@ -94,7 +94,7 @@ function makeLineReaderRanges(lines: number[], linecontext: number): ReadlineRan
     }
 
     // If the next line falls into the current range, extend the current range to lineno + linecontext.
-    const next = lines[i + 1];
+    const next = lines[i + 1]!;
     if (next <= current[1]) {
       current[1] = next + linecontext;
     } else {
@@ -124,8 +124,8 @@ function getContextLinesFromFile(path: string, ranges: ReadlineRange[], output: 
     // Init at zero and increment at the start of the loop because lines are 1 indexed.
     let lineNumber = 0;
     let currentRangeIndex = 0;
-    let rangeStart = ranges[currentRangeIndex][0];
-    let rangeEnd = ranges[currentRangeIndex][1];
+    let rangeStart = ranges[currentRangeIndex]?.[0]!;
+    let rangeEnd = ranges[currentRangeIndex]?.[1]!;
 
     // We use this inside Promise.all, so we need to resolve the promise even if there is an error
     // to prevent Promise.all from short circuiting the rest.
@@ -159,8 +159,8 @@ function getContextLinesFromFile(path: string, ranges: ReadlineRange[], output: 
           return;
         }
         currentRangeIndex++;
-        rangeStart = ranges[currentRangeIndex][0];
-        rangeEnd = ranges[currentRangeIndex][1];
+        rangeStart = ranges[currentRangeIndex]?.[0]!;
+        rangeEnd = ranges[currentRangeIndex]?.[1]!;
       }
     });
   });
@@ -180,18 +180,20 @@ async function addSourceContext(event: Event, contextLines: number): Promise<Eve
       // Maps preserve insertion order, so we iterate in reverse, starting at the
       // outermost frame and closer to where the exception has occurred (poor mans priority)
       for (let i = exception.stacktrace.frames.length - 1; i >= 0; i--) {
-        const frame = exception.stacktrace.frames[i];
+        const frame: StackFrame | undefined = exception.stacktrace.frames[i];
+        const filename = frame?.filename;
 
         if (
-          typeof frame.filename !== 'string' ||
+          !frame ||
+          typeof filename !== 'string' ||
           typeof frame.lineno !== 'number' ||
-          shouldSkipContextLinesForFile(frame.filename)
+          shouldSkipContextLinesForFile(filename)
         ) {
           continue;
         }
 
-        if (!filesToLines[frame.filename]) filesToLines[frame.filename] = [];
-        filesToLines[frame.filename].push(frame.lineno);
+        if (!filesToLines[filename]) filesToLines[filename] = [];
+        filesToLines[filename]!.push(frame.lineno);
       }
     }
   }
@@ -203,15 +205,20 @@ async function addSourceContext(event: Event, contextLines: number): Promise<Eve
 
   const readlinePromises: Promise<void>[] = [];
   for (const file of files) {
-    // If we failed to read this before, dont try again.
+    // If we failed to read this before, dont try reading it again.
     if (LRU_FILE_CONTENTS_FS_READ_FAILED.get(file)) {
       continue;
     }
 
+    const filesToLineRanges = filesToLines[file];
+    if (!filesToLineRanges) {
+      continue;
+    }
+
     // Sort ranges so that they are sorted by line increasing order and match how the file is read.
-    filesToLines[file].sort((a, b) => a - b);
+    filesToLineRanges.sort((a, b) => a - b);
     // Check if the contents are already in the cache and if we can avoid reading the file again.
-    const ranges = makeLineReaderRanges(filesToLines[file], contextLines);
+    const ranges = makeLineReaderRanges(filesToLineRanges, contextLines);
     if (ranges.every(r => rangeExistsInContentCache(file, r))) {
       continue;
     }
@@ -287,13 +294,14 @@ export function addContextToFrame(
   for (let i = makeRangeStart(lineno, contextLines); i < lineno; i++) {
     // We always expect the start context as line numbers cannot be negative. If we dont find a line, then
     // something went wrong somewhere. Clear the context and return without adding any linecontext.
-    if (contents[i] === undefined) {
+    const line = contents[i];
+    if (line === undefined) {
       clearLineContext(frame);
       DEBUG_BUILD && logger.error(`Could not find line ${i} in file ${frame.filename}`);
       return;
     }
 
-    frame.pre_context.push(contents[i]);
+    frame.pre_context.push(line);
   }
 
   // We should always have the context line. If we dont, something went wrong, so we clear the context and return
@@ -311,10 +319,11 @@ export function addContextToFrame(
   for (let i = lineno + 1; i <= end; i++) {
     // Since we dont track when the file ends, we cant clear the context if we dont find a line as it could
     // just be that we reached the end of the file.
-    if (contents[i] === undefined) {
+    let line = contents[i];
+    if (line === undefined) {
       break;
     }
-    frame.post_context.push(contents[i]);
+    frame.post_context.push(line);
   }
 }
 
