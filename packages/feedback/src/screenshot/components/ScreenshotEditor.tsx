@@ -187,8 +187,8 @@ export function makeScreenshotEditorComponent({ imageBuffer, dialog, options }: 
       const cutoutCanvas = DOCUMENT.createElement('canvas');
       const imageBox = constructRect(getContainedSize(imageBuffer));
       const croppingBox = constructRect(croppingRect);
-      cutoutCanvas.width = croppingBox.width;
-      cutoutCanvas.height = croppingBox.height;
+      cutoutCanvas.width = croppingBox.width * DPI;
+      cutoutCanvas.height = croppingBox.height * DPI;
 
       const cutoutCtx = cutoutCanvas.getContext('2d');
       if (cutoutCtx && imageBuffer) {
@@ -200,8 +200,8 @@ export function makeScreenshotEditorComponent({ imageBuffer, dialog, options }: 
           (croppingBox.height / imageBox.height) * imageBuffer.height,
           0,
           0,
-          croppingBox.width,
-          croppingBox.height,
+          cutoutCanvas.width,
+          cutoutCanvas.height,
         );
       }
 
@@ -210,8 +210,8 @@ export function makeScreenshotEditorComponent({ imageBuffer, dialog, options }: 
         ctx.clearRect(0, 0, imageBuffer.width, imageBuffer.height);
         imageBuffer.width = cutoutCanvas.width;
         imageBuffer.height = cutoutCanvas.height;
-        imageBuffer.style.width = `${cutoutCanvas.width}px`;
-        imageBuffer.style.height = `${cutoutCanvas.height}px`;
+        imageBuffer.style.width = `${croppingBox.width}px`;
+        imageBuffer.style.height = `${croppingBox.height}px`;
         ctx.drawImage(cutoutCanvas, 0, 0);
         resizeCropper();
       }

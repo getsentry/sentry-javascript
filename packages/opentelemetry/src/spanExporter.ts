@@ -33,7 +33,6 @@ import { parseSpanDescription } from './utils/parseSpanDescription';
 type SpanNodeCompleted = SpanNode & { span: ReadableSpan };
 
 const MAX_SPAN_COUNT = 1000;
-const DEFAULT_TIMEOUT = 300; // 5 min
 
 /**
  * A Sentry-specific exporter that converts OpenTelemetry Spans to Sentry Spans & Transactions.
@@ -41,11 +40,9 @@ const DEFAULT_TIMEOUT = 300; // 5 min
 export class SentrySpanExporter {
   private _flushTimeout: ReturnType<typeof setTimeout> | undefined;
   private _finishedSpans: ReadableSpan[];
-  private _timeout: number;
 
-  public constructor(options?: { timeout?: number }) {
+  public constructor() {
     this._finishedSpans = [];
-    this._timeout = options?.timeout || DEFAULT_TIMEOUT;
   }
 
   /** Export a single span. */
@@ -106,7 +103,7 @@ export class SentrySpanExporter {
    */
   private _cleanupOldSpans(spans = this._finishedSpans): void {
     this._finishedSpans = spans.filter(span => {
-      const shouldDrop = shouldCleanupSpan(span, this._timeout);
+      const shouldDrop = shouldCleanupSpan(span, 5 * 60);
       DEBUG_BUILD &&
         shouldDrop &&
         logger.log(
