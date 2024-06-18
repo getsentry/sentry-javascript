@@ -1,6 +1,7 @@
 import type { Client, DynamicSamplingContext, Span } from '@sentry/types';
 import {
   addNonEnumerableProperty,
+  baggageHeaderToDynamicSamplingContext,
   dropUndefinedKeys,
   dynamicSamplingContextToSentryBaggageHeader,
 } from '@sentry/utils';
@@ -66,15 +67,25 @@ export function getDynamicSamplingContextFromSpan(span: Span): Readonly<Partial<
   const dsc = getDynamicSamplingContextFromClient(spanToJSON(span).trace_id || '', client);
 
   const rootSpan = getRootSpan(span);
-  if (!rootSpan) {
-    return dsc;
-  }
 
+  // For core implementation, we freeze the DSC onto the span as a non-enumerable property
   const frozenDsc = (rootSpan as SpanWithMaybeDsc)[FROZEN_DSC_FIELD];
   if (frozenDsc) {
     return frozenDsc;
   }
 
+  // For OpenTelemetry, we freeze the DSC on the trace state
+  const traceState = rootSpan.spanContext().traceState;
+  const traceStateDsc = traceState && traceState.get('sentry.dsc');
+
+  // If the span has a DSC, we want it to take precedence
+  const dscOnTraceState = traceStateDsc && baggageHeaderToDynamicSamplingContext(traceStateDsc);
+
+  if (dscOnTraceState) {
+    return dscOnTraceState;
+  }
+
+  // Else, we generate it from the span
   const jsonSpan = spanToJSON(rootSpan);
   const attributes = jsonSpan.data || {};
   const maybeSampleRate = attributes[SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE];
@@ -87,8 +98,9 @@ export function getDynamicSamplingContextFromSpan(span: Span): Readonly<Partial<
   const source = attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
 
   // after JSON conversion, txn.name becomes jsonSpan.description
-  if (source && source !== 'url') {
-    dsc.transaction = jsonSpan.description;
+  const name = jsonSpan.description;
+  if (source !== 'url' && name) {
+    dsc.transaction = name;
   }
 
   dsc.sampled = String(spanIsSampled(rootSpan));
