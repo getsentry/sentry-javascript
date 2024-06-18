@@ -2,7 +2,7 @@ import { defineIntegration, getCurrentScope, getIsolationScope, getRootSpan, spa
 import type { NodeClient } from '@sentry/node';
 import type { Event, Integration, IntegrationFn, Profile, ProfileChunk, Span } from '@sentry/types';
 
-import { LRUMap, logger, timestampInSeconds, uuid4 } from '@sentry/utils';
+import { LRUMap, logger, uuid4 } from '@sentry/utils';
 
 import { getGlobalScope } from '../../core/src/currentScopes';
 import { CpuProfilerBindings } from './cpu_profiler';
@@ -225,16 +225,11 @@ class ContinuousProfiler {
     }
 
     DEBUG_BUILD && logger.log(`[Profiling] Profile chunk ${this._chunkData.id} sent to Sentry.`);
-    const chunk = createProfilingChunkEvent(
-      this._client,
-      this._client.getOptions(),
-      profile,
-      {
-        chunk_id: this._chunkData.id,
-        trace_id: this._chunkData.startTraceID,
-        profiler_id: this._profilerId,
-      },
-    );
+    const chunk = createProfilingChunkEvent(this._client, this._client.getOptions(), profile, {
+      chunk_id: this._chunkData.id,
+      trace_id: this._chunkData.startTraceID,
+      profiler_id: this._profilerId,
+    });
 
     if (!chunk) {
       DEBUG_BUILD && logger.log(`[Profiling] Failed to create profile chunk for: ${this._chunkData.id}`);
