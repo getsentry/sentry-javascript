@@ -150,3 +150,40 @@ sentryTest(
     expect(span.measurements?.inp.unit).toBe('millisecond');
   },
 );
+
+sentryTest(
+  'should use tracesSampler config when generating INP spans',
+  async ({ browserName, getLocalTestPath, page }) => {
+    const supportedBrowsers = ['chromium'];
+
+    if (shouldSkipTracingTest() || !supportedBrowsers.includes(browserName)) {
+      sentryTest.skip();
+    }
+
+    await page.route('https://dsn.ingest.sentry.io/**/*', route => {
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ id: 'test-id' }),
+      });
+    });
+
+    const url = await getLocalTestPath({ testDir: __dirname });
+
+    await page.goto(url);
+    await getFirstSentryEnvelopeRequest<SentryEvent>(page);
+
+    await page.locator('[data-test-id=normal-button]').click();
+    await page.locator('.clicked[data-test-id=normal-button]').isVisible();
+
+    await page.waitForTimeout(500);
+
+    await page.locator('[data-test-id=should-not-capture-button]').click();
+    await page.locator('.clicked[data-test-id=should-not-capture-button]').isVisible();
+
+    await page.waitForTimeout(500);
+
+    const shouldNotCapture = await page.evaluate('window.shouldNotCaptureButton');
+    expect(shouldNotCapture).toBe(true);
+  },
+);

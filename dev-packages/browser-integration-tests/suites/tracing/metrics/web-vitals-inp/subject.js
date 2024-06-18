@@ -16,3 +16,4 @@ const blockUI = (delay = 70) => e => {
 document.querySelector('[data-test-id=not-so-slow-button]').addEventListener('click', blockUI(300));
 document.querySelector('[data-test-id=slow-button]').addEventListener('click', blockUI(450));
 document.querySelector('[data-test-id=normal-button]').addEventListener('click', blockUI());
+document.querySelector('[data-test-id=should-not-capture-button]').addEventListener('click', blockUI(300));

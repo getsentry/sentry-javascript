@@ -13,6 +13,13 @@ Sentry.init({
       instrumentNavigation: false,
     }),
   ],
+  tracesSampler: (samplingContext) => {
+    if (samplingContext.attributes['sentry.origin'] === 'auto.http.browser.inp' && samplingContext.name.includes('ShouldNotCaptureButton')) {
+      window.shouldNotCaptureButton = true;
+      return 0;
+    }
+    return 1;
+  },
   tracesSampleRate: 1,
 });
 
