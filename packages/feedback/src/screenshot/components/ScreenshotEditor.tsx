@@ -1,12 +1,10 @@
-import type { FeedbackDialog, FeedbackInternalOptions } from '@sentry/types';
 /* eslint-disable max-lines */
+import type { FeedbackInternalOptions, FeedbackModalIntegration } from '@sentry/types';
 import type { ComponentType, VNode, h as hType } from 'preact';
-// biome-ignore lint: needed for preact
-import { h } from 'preact'; // eslint-disable-line @typescript-eslint/no-unused-vars
-import { useCallback, useEffect, useMemo, useRef, useState } from 'preact/hooks';
+import type * as Hooks from 'preact/hooks';
 import { DOCUMENT, WINDOW } from '../../constants';
 import { createScreenshotInputStyles } from './ScreenshotInput.css';
-import { useTakeScreenshot } from './useTakeScreenshot';
+import { useTakeScreenshotFactory } from './useTakeScreenshot';
 
 const CROP_BUTTON_SIZE = 30;
 const CROP_BUTTON_BORDER = 3;
@@ -15,8 +13,9 @@ const DPI = WINDOW.devicePixelRatio;
 
 interface FactoryParams {
   h: typeof hType;
+  hooks: typeof Hooks;
   imageBuffer: HTMLCanvasElement;
-  dialog: FeedbackDialog;
+  dialog: ReturnType<FeedbackModalIntegration['createDialog']>;
   options: FeedbackInternalOptions;
 }
 
@@ -62,17 +61,25 @@ const getContainedSize = (img: HTMLCanvasElement): Box => {
   return { startX: x, startY: y, endX: width + x, endY: height + y };
 };
 
-export function makeScreenshotEditorComponent({ imageBuffer, dialog, options }: FactoryParams): ComponentType<Props> {
+export function ScreenshotEditorFactory({
+  h, // eslint-disable-line @typescript-eslint/no-unused-vars
+  hooks,
+  imageBuffer,
+  dialog,
+  options,
+}: FactoryParams): ComponentType<Props> {
+  const useTakeScreenshot = useTakeScreenshotFactory({ hooks });
+
   return function ScreenshotEditor({ onError }: Props): VNode {
-    const styles = useMemo(() => ({ __html: createScreenshotInputStyles().innerText }), []);
+    const styles = hooks.useMemo(() => ({ __html: createScreenshotInputStyles().innerText }), []);
 
-    const canvasContainerRef = useRef<HTMLDivElement>(null);
-    const cropContainerRef = useRef<HTMLDivElement>(null);
-    const croppingRef = useRef<HTMLCanvasElement>(null);
-    const [croppingRect, setCroppingRect] = useState<Box>({ startX: 0, startY: 0, endX: 0, endY: 0 });
-    const [confirmCrop, setConfirmCrop] = useState(false);
+    const canvasContainerRef = hooks.useRef<HTMLDivElement>(null);
+    const cropContainerRef = hooks.useRef<HTMLDivElement>(null);
+    const croppingRef = hooks.useRef<HTMLCanvasElement>(null);
+    const [croppingRect, setCroppingRect] = hooks.useState<Box>({ startX: 0, startY: 0, endX: 0, endY: 0 });
+    const [confirmCrop, setConfirmCrop] = hooks.useState(false);
 
-    useEffect(() => {
+    hooks.useEffect(() => {
       WINDOW.addEventListener('resize', resizeCropper, false);
     }, []);
 
@@ -99,7 +106,7 @@ export function makeScreenshotEditorComponent({ imageBuffer, dialog, options }: 
       setCroppingRect({ startX: 0, startY: 0, endX: imageDimensions.width, endY: imageDimensions.height });
     }
 
-    useEffect(() => {
+    hooks.useEffect(() => {
       const cropper = croppingRef.current;
       if (!cropper) {
         return;
@@ -141,7 +148,7 @@ export function makeScreenshotEditorComponent({ imageBuffer, dialog, options }: 
       DOCUMENT.addEventListener('mousemove', handleMouseMove);
     }
 
-    const makeHandleMouseMove = useCallback((corner: string) => {
+    const makeHandleMouseMove = hooks.useCallback((corner: string) => {
       return function (e: MouseEvent) {
         if (!croppingRef.current) {
           return;
@@ -218,10 +225,10 @@ export function makeScreenshotEditorComponent({ imageBuffer, dialog, options }: 
     }
 
     useTakeScreenshot({
-      onBeforeScreenshot: useCallback(() => {
+      onBeforeScreenshot: hooks.useCallback(() => {
         (dialog.el as HTMLElement).style.display = 'none';
       }, []),
-      onScreenshot: useCallback(
+      onScreenshot: hooks.useCallback(
         (imageSource: HTMLVideoElement) => {
           const context = imageBuffer.getContext('2d');
           if (!context) {
@@ -235,13 +242,13 @@ export function makeScreenshotEditorComponent({ imageBuffer, dialog, options }: 
         },
         [imageBuffer],
       ),
-      onAfterScreenshot: useCallback(() => {
+      onAfterScreenshot: hooks.useCallback(() => {
         (dialog.el as HTMLElement).style.display = 'block';
         const container = canvasContainerRef.current;
         container && container.appendChild(imageBuffer);
         resizeCropper();
       }, []),
-      onError: useCallback(error => {
+      onError: hooks.useCallback(error => {
         (dialog.el as HTMLElement).style.display = 'block';
         onError(error);
       }, []),
