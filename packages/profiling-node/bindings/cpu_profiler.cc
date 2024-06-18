@@ -759,7 +759,7 @@ static napi_value TranslateMeasurementsDouble(
     } else if (format == ProfileFormat::kFormatChunk) {
       napi_value ts;
       napi_create_double(
-          env, profile_start_timestamp_ms + (timestamps_ns[i] * 1e-6), &ts);
+          env, profile_start_timestamp_ms + (timestamps_ns[i] * 1e-9), &ts);
       napi_set_named_property(env, entry, "timestamp", ts);
     }
 
@@ -818,7 +818,7 @@ TranslateMeasurements(const napi_env &env, const enum ProfileFormat format,
     case ProfileFormat::kFormatChunk: {
       napi_value ts;
       napi_create_double(
-          env, profile_start_timestamp_ms + (timestamps_ns[i] * 1e-6), &ts);
+          env, profile_start_timestamp_ms + (timestamps_ns[i] * 1e-9), &ts);
       napi_set_named_property(env, entry, "timestamp", ts);
     } break;
     default:

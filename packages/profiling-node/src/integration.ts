@@ -2,7 +2,7 @@ import { defineIntegration, getCurrentScope, getIsolationScope, getRootSpan, spa
 import type { NodeClient } from '@sentry/node';
 import type { Event, Integration, IntegrationFn, Profile, ProfileChunk, Span } from '@sentry/types';
 
-import { LRUMap, logger, timestampInSeconds, uuid4 } from '@sentry/utils';
+import { LRUMap, logger, uuid4 } from '@sentry/utils';
 
 import { getGlobalScope } from '../../core/src/currentScopes';
 import { CpuProfilerBindings } from './cpu_profiler';
@@ -149,7 +149,6 @@ function setupAutomatedSpanProfiling(client: NodeClient): void {
 interface ChunkData {
   id: string;
   timer: NodeJS.Timeout | undefined;
-  startTimestampMS: number;
   startTraceID: string;
 }
 class ContinuousProfiler {
@@ -217,7 +216,7 @@ class ContinuousProfiler {
 
     const profile = this._stopChunkProfiling(this._chunkData);
 
-    if (!profile || !this._chunkData.startTimestampMS) {
+    if (!profile) {
       DEBUG_BUILD && logger.log(`[Profiling] _chunkiledStartTraceID to collect profile for: ${this._chunkData.id}`);
       return;
     }
@@ -226,17 +225,11 @@ class ContinuousProfiler {
     }
 
     DEBUG_BUILD && logger.log(`[Profiling] Profile chunk ${this._chunkData.id} sent to Sentry.`);
-    const chunk = createProfilingChunkEvent(
-      this._chunkData.startTimestampMS,
-      this._client,
-      this._client.getOptions(),
-      profile,
-      {
-        chunk_id: this._chunkData.id,
-        trace_id: this._chunkData.startTraceID,
-        profiler_id: this._profilerId,
-      },
-    );
+    const chunk = createProfilingChunkEvent(this._client, this._client.getOptions(), profile, {
+      chunk_id: this._chunkData.id,
+      trace_id: this._chunkData.startTraceID,
+      profiler_id: this._profilerId,
+    });
 
     if (!chunk) {
       DEBUG_BUILD && logger.log(`[Profiling] Failed to create profile chunk for: ${this._chunkData.id}`);
@@ -341,7 +334,6 @@ class ContinuousProfiler {
     this._chunkData = {
       id: uuid4(),
       startTraceID: traceId,
-      startTimestampMS: timestampInSeconds(),
       timer: undefined,
     };
   }
