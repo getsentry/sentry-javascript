@@ -33,22 +33,22 @@ describe('sendFeedback', () => {
   it('fails when the message is falsey', async () => {
     mockSdk();
 
-    await expect(
+    expect(() =>
       sendFeedback({
         message: '',
       }),
-    ).rejects.toStrictEqual<Error>(new Error('Unable to submit feedback with empty message.'));
+    ).toThrowError(new Error('Unable to submit feedback with empty message.'));
   });
 
   it('fails when the client is missing', async () => {
     mockSdk();
     getCurrentScope().setClient(undefined);
 
-    await expect(
+    expect(() =>
       sendFeedback({
         message: 'mi',
       }),
-    ).rejects.toStrictEqual<Error>(new Error('No client setup, cannot send feedback.'));
+    ).toThrowError(new Error('No client setup, cannot send feedback.'));
   });
 
   it('sends feedback with minimal options', async () => {
@@ -296,7 +296,7 @@ describe('sendFeedback', () => {
         email: 're@example.org',
         message: 'mi',
       }),
-    ).rejects.toStrictEqual<Error>(new Error('Unable to send Feedback. Invalid response from server.'));
+    ).rejects.toMatch('Unable to send Feedback. Invalid response from server.');
   });
 
   it('handles 0 transport error', async () => {
@@ -311,8 +311,8 @@ describe('sendFeedback', () => {
         email: 're@example.org',
         message: 'mi',
       }),
-    ).rejects.toStrictEqual<Error>(
-      new Error('Unable to send Feedback. This is because of network issues, or because you are using an ad-blocker.'),
+    ).rejects.toMatch(
+      'Unable to send Feedback. This is because of network issues, or because you are using an ad-blocker.',
     );
   });
 
@@ -347,9 +347,7 @@ describe('sendFeedback', () => {
 
     jest.advanceTimersByTime(5_000);
 
-    await expect(promise).rejects.toStrictEqual<Error>(
-      new Error('Unable to determine if Feedback was correctly sent.'),
-    );
+    await expect(promise).rejects.toMatch('Unable to determine if Feedback was correctly sent.');
 
     jest.useRealTimers();
   });

@@ -13,14 +13,14 @@ export const sendFeedback: SendFeedback = (
   hint: EventHint & { includeReplay?: boolean } = { includeReplay: true },
 ): Promise<string> => {
   if (!options.message) {
-    return Promise.reject(new Error('Unable to submit feedback with empty message.'));
+    throw new Error('Unable to submit feedback with empty message.');
   }
 
   // We want to wait for the feedback to be sent (or not)
   const client = getClient();
 
   if (!client) {
-    return Promise.reject(new Error('No client setup, cannot send feedback.'));
+    throw new Error('No client setup, cannot send feedback.');
   }
 
   // See https://github.com/getsentry/sentry-javascript/blob/main/packages/core/src/feedback.md for an example feedback object
@@ -37,9 +37,7 @@ export const sendFeedback: SendFeedback = (
   return new Promise<string>((resolve, reject) => {
     // After 5s, we want to clear anyhow
 
-    const timeout = setTimeout(() => {
-      reject(new Error('Unable to determine if Feedback was correctly sent.'));
-    }, 5_000);
+    const timeout = setTimeout(() => reject('Unable to determine if Feedback was correctly sent.'), 5_000);
 
     client.on('afterSendEvent', (event: Event, response: TransportMakeRequestResponse) => {
       if (event.event_id !== eventId) {
@@ -56,12 +54,10 @@ export const sendFeedback: SendFeedback = (
       ) {
         if (response.statusCode === 0) {
           return reject(
-            new Error(
-              'Unable to send Feedback. This is because of network issues, or because you are using an ad-blocker.',
-            ),
+            'Unable to send Feedback. This is because of network issues, or because you are using an ad-blocker.',
           );
         }
-        return reject(new Error('Unable to send Feedback. Invalid response from server.'));
+        return reject('Unable to send Feedback. Invalid response from server.');
       }
 
       resolve(eventId);
