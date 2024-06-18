@@ -42,10 +42,10 @@ test('should send transactions with corresponding `sentry-trace` and `baggage` i
   const sentryBaggageContent = await sentryBaggageTag?.getAttribute('content');
 
   expect(sentryTraceContent).toContain(
-    `${envelope.contexts?.trace.trace_id}-${envelope.contexts?.trace.parent_span_id}-`,
+    `${envelope.contexts?.trace?.trace_id}-${envelope.contexts?.trace?.parent_span_id}-`,
   );
 
-  expect(sentryBaggageContent).toContain(envelope.contexts?.trace.trace_id);
+  expect(sentryBaggageContent).toContain(envelope.contexts?.trace?.trace_id);
 });
 
 test('should send transactions with corresponding `sentry-trace` and `baggage` inside a parameterized route', async ({
@@ -59,8 +59,8 @@ test('should send transactions with corresponding `sentry-trace` and `baggage` i
   const sentryBaggageContent = await sentryBaggageTag?.getAttribute('content');
 
   expect(sentryTraceContent).toContain(
-    `${envelope.contexts?.trace.trace_id}-${envelope.contexts?.trace.parent_span_id}-`,
+    `${envelope.contexts?.trace?.trace_id}-${envelope.contexts?.trace?.parent_span_id}-`,
   );
 
-  expect(sentryBaggageContent).toContain(envelope.contexts?.trace.trace_id);
+  expect(sentryBaggageContent).toContain(envelope.contexts?.trace?.trace_id);
 });

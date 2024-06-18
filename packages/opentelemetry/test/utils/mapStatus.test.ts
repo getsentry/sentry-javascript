@@ -91,6 +91,19 @@ describe('mapStatus', () => {
     expect(mapStatus(span)).toEqual({ code: SPAN_STATUS_ERROR, message: 'invalid_argument' });
   });
 
+  it('returns error status when span already has error status without message', () => {
+    const span = createSpan();
+    span.setStatus({ code: 2 }); // ERROR
+    expect(mapStatus(span)).toEqual({ code: SPAN_STATUS_ERROR, message: 'unknown_error' });
+  });
+
+  it('infers error status form attributes when span already has error status without message', () => {
+    const span = createSpan();
+    span.setAttribute(SEMATTRS_HTTP_STATUS_CODE, 500);
+    span.setStatus({ code: 2 }); // ERROR
+    expect(mapStatus(span)).toEqual({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+  });
+
   it('returns unknown error status when code is unknown', () => {
     const span = createSpan();
     span.setStatus({ code: -1 as 0 });

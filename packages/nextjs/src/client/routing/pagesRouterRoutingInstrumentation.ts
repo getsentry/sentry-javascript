@@ -193,7 +193,7 @@ function convertNextRouteToRegExp(route: string): RegExp {
   const routeParts = route.split('/');
 
   let optionalCatchallWildcardRegex = '';
-  if (routeParts[routeParts.length - 1].match(/^\[\[\.\.\..+\]\]$/)) {
+  if (routeParts[routeParts.length - 1]?.match(/^\[\[\.\.\..+\]\]$/)) {
     // If last route part has pattern "[[...xyz]]" we pop the latest route part to get rid of the required trailing
     // slash that would come before it if we didn't pop it.
     routeParts.pop();

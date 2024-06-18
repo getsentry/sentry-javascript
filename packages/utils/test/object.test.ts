@@ -286,7 +286,7 @@ describe('dropUndefinedKeys()', () => {
 
     // Returns new references within objects
     expect(chicken === droppedChicken.lays[0]).toBe(false);
-    expect(egg === droppedChicken.lays[0].lays).toBe(false);
+    expect(egg === droppedChicken.lays[0]?.lays).toBe(false);
 
     // Keeps circular reference
     expect(droppedChicken.lays[0] === droppedChicken).toBe(true);

@@ -44,7 +44,7 @@ conditionalTest({ min: 18 })('LocalVariables integration', () => {
       .ignore('session')
       .expect({
         event: event => {
-          for (const frame of event.exception?.values?.[0].stacktrace?.frames || []) {
+          for (const frame of event.exception?.values?.[0]?.stacktrace?.frames || []) {
             expect(frame.vars).toBeUndefined();
           }
         },

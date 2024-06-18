@@ -129,8 +129,10 @@ function _isSameStacktrace(currentEvent: Event, previousEvent: Event): boolean {
 
   // Otherwise, compare the two
   for (let i = 0; i < previousFrames.length; i++) {
-    const frameA = previousFrames[i];
-    const frameB = currentFrames[i];
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const frameA = previousFrames[i]!;
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const frameB = currentFrames[i]!;
 
     if (
       frameA.filename !== frameB.filename ||

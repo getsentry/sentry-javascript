@@ -217,7 +217,7 @@ describe('ExtraErrorData()', () => {
 
   it('captures Error causes when captureErrorCause = true (default)', () => {
     // Error.cause is only available from node 16 upwards
-    const nodeMajorVersion = parseInt(process.versions.node.split('.')[0]);
+    const nodeMajorVersion = parseInt(process.versions.node.split('.')[0]!);
     if (nodeMajorVersion < 16) {
       return;
     }
@@ -246,7 +246,7 @@ describe('ExtraErrorData()', () => {
 
   it("doesn't capture Error causes when captureErrorCause != true", () => {
     // Error.cause is only available from node 16 upwards
-    const nodeMajorVersion = parseInt(process.versions.node.split('.')[0]);
+    const nodeMajorVersion = parseInt(process.versions.node.split('.')[0]!);
     if (nodeMajorVersion < 16) {
       return;
     }

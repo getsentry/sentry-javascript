@@ -107,7 +107,8 @@ async function handlePaused(
   const frames = [];
 
   for (let i = 0; i < callFrames.length; i++) {
-    const { scopeChain, functionName, this: obj } = callFrames[i];
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const { scopeChain, functionName, this: obj } = callFrames[i]!;
 
     const localScope = scopeChain.find(scope => scope.type === 'local');
 

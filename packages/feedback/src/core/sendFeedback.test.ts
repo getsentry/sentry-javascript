@@ -367,7 +367,7 @@ describe('sendFeedback', () => {
 
     const [feedbackEnvelope] = mockTransport.mock.calls;
 
-    expect(feedbackEnvelope[0]).toEqual([
+    expect(feedbackEnvelope?.[0]).toEqual([
       {
         event_id: eventId,
         sent_at: expect.any(String),

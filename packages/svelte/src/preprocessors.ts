@@ -116,7 +116,8 @@ function shouldInjectFunction(
 
 function getBaseName(filename: string): string {
   const segments = filename.split('/');
-  return segments[segments.length - 1].replace('.svelte', '');
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+  return segments[segments.length - 1]!.replace('.svelte', '');
 }
 
 function hasScriptTag(content: string): boolean {

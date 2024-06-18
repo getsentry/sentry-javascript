@@ -68,7 +68,7 @@ describe('trace', () => {
 
       expect(getActiveSpan()).toEqual(undefined);
       expect(spans).toHaveLength(2);
-      const [outerSpan, innerSpan] = spans;
+      const [outerSpan, innerSpan] = spans as [Span, Span];
 
       expect(getSpanName(outerSpan)).toEqual('outer');
       expect(getSpanName(innerSpan)).toEqual('inner');
@@ -108,7 +108,7 @@ describe('trace', () => {
 
       expect(getActiveSpan()).toEqual(undefined);
       expect(spans).toHaveLength(2);
-      const [outerSpan, innerSpan] = spans;
+      const [outerSpan, innerSpan] = spans as [Span, Span];
 
       expect(getSpanName(outerSpan)).toEqual('outer');
       expect(getSpanName(innerSpan)).toEqual('inner');
@@ -350,7 +350,7 @@ describe('trace', () => {
 
       const outerTraceId = outerTransaction?.contexts?.trace?.trace_id;
       // The inner transaction should be a child of the last span of the outer transaction
-      const innerParentSpanId = outerTransaction?.spans?.[0].id;
+      const innerParentSpanId = outerTransaction?.spans?.[0]?.id;
       const innerSpanId = innerTransaction?.contexts?.trace?.span_id;
 
       expect(outerTraceId).toBeDefined();
@@ -566,7 +566,7 @@ describe('trace', () => {
       startSpan({ name: 'outer transaction' }, () => {
         startSpan({ name: 'inner span' }, () => {
           const innerTransaction = startInactiveSpan({ name: 'inner transaction', forceTransaction: true });
-          innerTransaction?.end();
+          innerTransaction.end();
         });
       });
 
@@ -586,7 +586,7 @@ describe('trace', () => {
 
       const outerTraceId = outerTransaction?.contexts?.trace?.trace_id;
       // The inner transaction should be a child of the last span of the outer transaction
-      const innerParentSpanId = outerTransaction?.spans?.[0].id;
+      const innerParentSpanId = outerTransaction?.spans?.[0]?.id;
       const innerSpanId = innerTransaction?.contexts?.trace?.span_id;
 
       expect(outerTraceId).toBeDefined();
@@ -857,7 +857,7 @@ describe('trace', () => {
 
       const outerTraceId = outerTransaction?.contexts?.trace?.trace_id;
       // The inner transaction should be a child of the last span of the outer transaction
-      const innerParentSpanId = outerTransaction?.spans?.[0].id;
+      const innerParentSpanId = outerTransaction?.spans?.[0]?.id;
       const innerSpanId = innerTransaction?.contexts?.trace?.span_id;
 
       expect(outerTraceId).toBeDefined();

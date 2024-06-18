@@ -115,7 +115,6 @@ export function stopSpanProfile(span: Span, profile_id: string | undefined): Raw
   }
 
   const profile = CpuProfilerBindings.stopProfiling(profile_id, 0);
-
   DEBUG_BUILD && logger.log(`[Profiling] stopped profiling of transaction: ${spanToJSON(span).description}`);
 
   // In case of an overlapping span, stopProfiling may return null and silently ignore the overlapping profile.

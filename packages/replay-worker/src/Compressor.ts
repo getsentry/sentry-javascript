@@ -90,15 +90,16 @@ function mergeUInt8Arrays(chunks: Uint8Array[]): Uint8Array {
   // calculate data length
   let len = 0;
 
-  for (let i = 0, l = chunks.length; i < l; i++) {
-    len += chunks[i].length;
+  for (const chunk of chunks) {
+    len += chunk.length;
   }
 
   // join chunks
   const result = new Uint8Array(len);
 
   for (let i = 0, pos = 0, l = chunks.length; i < l; i++) {
-    const chunk = chunks[i];
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const chunk = chunks[i]!;
     result.set(chunk, pos);
     pos += chunk.length;
   }

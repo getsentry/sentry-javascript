@@ -109,11 +109,11 @@ describe('convertJSSelfProfileToSampledFormat', () => {
       }),
     );
 
-    expect(profile.samples[0].stack_id).toBe(0);
-    expect(profile.samples[1].stack_id).toBe(1);
+    expect(profile.samples[0]?.stack_id).toBe(0);
+    expect(profile.samples[1]?.stack_id).toBe(1);
 
-    expect(profile.samples[0].elapsed_since_start_ns).toBe('0');
-    expect(profile.samples[1].elapsed_since_start_ns).toBe((1 * 1e6).toFixed(0));
+    expect(profile.samples[0]?.elapsed_since_start_ns).toBe('0');
+    expect(profile.samples[1]?.elapsed_since_start_ns).toBe((1 * 1e6).toFixed(0));
   });
 
   it('assert frames has no holes', () => {
@@ -181,7 +181,7 @@ describe('convertJSSelfProfileToSampledFormat', () => {
 
     expect(profile.stacks.length).toBe(2);
     expect(profile.samples.length).toBe(3);
-    expect(profile.samples[0].stack_id).toEqual(profile.samples[2].stack_id);
-    expect(profile.stacks[profile.samples[0].stack_id]).toEqual([]);
+    expect(profile.samples[0]?.stack_id).toEqual(profile.samples[2]?.stack_id);
+    expect(profile.stacks[profile.samples[0]!.stack_id]).toEqual([]);
   });
 });

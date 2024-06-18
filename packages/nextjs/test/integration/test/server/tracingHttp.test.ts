@@ -12,13 +12,13 @@ describe('Tracing HTTP', () => {
     });
 
     const sentryTransactionEnvelope = envelopes.find(envelope => {
-      const envelopeItem = envelope[2];
+      const envelopeItem = envelope[2]!;
       return envelopeItem.transaction === 'GET /api/http';
     });
 
     expect(sentryTransactionEnvelope).toBeDefined();
 
-    const envelopeItem = sentryTransactionEnvelope![2];
+    const envelopeItem = sentryTransactionEnvelope![2]!;
 
     expect(envelopeItem).toMatchObject({
       contexts: {

@@ -100,13 +100,13 @@ const FORM = `
 }
 
 .form__right {
+  flex: 0 0 var(--form-width, 272px);
   width: var(--form-width, 272px);
   display: flex;
   overflow: auto;
   flex-direction: column;
   justify-content: space-between;
   gap: 20px;
-  flex: 1 0 auto;
 }
 
 @media (max-width: 600px) {

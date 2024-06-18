@@ -11,6 +11,10 @@ export function mergeOptions(
   return {
     ...defaultOptions,
     ...optionOverrides,
+    tags: {
+      ...defaultOptions.tags,
+      ...optionOverrides.tags,
+    },
     onFormOpen: () => {
       optionOverrides.onFormOpen && optionOverrides.onFormOpen();
       defaultOptions.onFormOpen && defaultOptions.onFormOpen();

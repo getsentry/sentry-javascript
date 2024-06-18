@@ -18,16 +18,18 @@ export function getModuleInfo(module: WebAssembly.Module): ModuleInfo {
   let buildId = null;
   let debugFile = null;
 
-  if (buildIds.length > 0) {
-    const firstBuildId = new Uint8Array(buildIds[0]);
+  const buildId0 = buildIds[0];
+  if (buildId0) {
+    const firstBuildId = new Uint8Array(buildId0);
     buildId = Array.from(firstBuildId).reduce((acc, x) => {
       return acc + x.toString(16).padStart(2, '0');
     }, '');
   }
 
   const externalDebugInfo = WebAssembly.Module.customSections(module, 'external_debug_info');
-  if (externalDebugInfo.length > 0) {
-    const firstExternalDebugInfo = new Uint8Array(externalDebugInfo[0]);
+  const externalDebugInfo0 = externalDebugInfo[0];
+  if (externalDebugInfo0) {
+    const firstExternalDebugInfo = new Uint8Array(externalDebugInfo0);
     const decoder = new TextDecoder('utf-8');
     debugFile = decoder.decode(firstExternalDebugInfo);
   }

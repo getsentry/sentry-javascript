@@ -282,13 +282,14 @@ export function addPerformanceEntries(span: Span): void {
     _addTtfbRequestTimeToMeasurements(_measurements);
 
     ['fcp', 'fp', 'lcp'].forEach(name => {
-      if (!_measurements[name] || !transactionStartTime || timeOrigin >= transactionStartTime) {
+      const measurement = _measurements[name];
+      if (!measurement || !transactionStartTime || timeOrigin >= transactionStartTime) {
         return;
       }
       // The web vitals, fcp, fp, lcp, and ttfb, all measure relative to timeOrigin.
       // Unfortunately, timeOrigin is not captured within the span span data, so these web vitals will need
       // to be adjusted to be relative to span.startTimestamp.
-      const oldValue = _measurements[name].value;
+      const oldValue = measurement.value;
       const measurementTimestamp = timeOrigin + msToSec(oldValue);
 
       // normalizedValue should be in milliseconds
@@ -296,7 +297,7 @@ export function addPerformanceEntries(span: Span): void {
       const delta = normalizedValue - oldValue;
 
       DEBUG_BUILD && logger.log(`[Measurements] Normalized ${name} from ${oldValue} to ${normalizedValue} (${delta})`);
-      _measurements[name].value = normalizedValue;
+      measurement.value = normalizedValue;
     });
 
     const fidMark = _measurements['mark.fid'];
@@ -320,8 +321,8 @@ export function addPerformanceEntries(span: Span): void {
       delete _measurements.cls;
     }
 
-    Object.keys(_measurements).forEach(measurementName => {
-      setMeasurement(measurementName, _measurements[measurementName].value, _measurements[measurementName].unit);
+    Object.entries(_measurements).forEach(([measurementName, measurement]) => {
+      setMeasurement(measurementName, measurement.value, measurement.unit);
     });
 
     _tagMetricInfo(span);

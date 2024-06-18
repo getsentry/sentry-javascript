@@ -141,7 +141,7 @@ export function tryPatchHandler(taskRoot: string, handlerPath: string): void {
     return;
   }
 
-  const [, handlerMod, handlerName] = match;
+  const [, handlerMod = '', handlerName = ''] = match;
 
   let obj: HandlerBag;
   try {

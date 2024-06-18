@@ -89,7 +89,8 @@ function eventFromPlainObject(
     const frames = parseStackFrames(stackParser, syntheticException);
     if (frames.length) {
       // event.exception.values[0] has been set above
-      event.exception.values[0].stacktrace = { frames };
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      event.exception.values[0]!.stacktrace = { frames };
     }
   }
 

@@ -120,7 +120,7 @@ describe('Integration | session', () => {
     const initialSession = { ...replay.session } as Session;
 
     expect(mockRecord).toHaveBeenCalledTimes(1);
-    expect(initialSession?.id).toBeDefined();
+    expect(initialSession.id).toBeDefined();
     expect(replay.getContext()).toEqual(
       expect.objectContaining({
         initialUrl: 'http://localhost:3000/',
@@ -230,7 +230,7 @@ describe('Integration | session', () => {
   it('pauses and resumes a session if user has been idle for more than SESSION_IDLE_PASUE_DURATION and comes back to click their mouse', async () => {
     const initialSession = { ...replay.session } as Session;
 
-    expect(initialSession?.id).toBeDefined();
+    expect(initialSession.id).toBeDefined();
     expect(replay.getContext()).toEqual(
       expect.objectContaining({
         initialUrl: 'http://localhost:3000/',
@@ -327,7 +327,7 @@ describe('Integration | session', () => {
 
     const initialSession = { ...replay.session } as Session;
 
-    expect(initialSession?.id).toBeDefined();
+    expect(initialSession.id).toBeDefined();
     expect(replay.getContext()).toMatchObject({
       initialUrl: 'http://localhost:3000/',
       initialTimestamp: BASE_TIMESTAMP,

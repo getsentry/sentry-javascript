@@ -62,7 +62,7 @@ describe('`RequestData` integration', () => {
 
       void requestDataEventProcessor(event, {});
 
-      const passedOptions = addRequestDataToEventSpy.mock.calls[0][2];
+      const passedOptions = addRequestDataToEventSpy.mock.calls[0]?.[2];
 
       expect(passedOptions?.include).toEqual(expect.objectContaining({ ip: false, user: true }));
     });
@@ -72,7 +72,7 @@ describe('`RequestData` integration', () => {
 
       void requestDataEventProcessor(event, {});
 
-      const passedOptions = addRequestDataToEventSpy.mock.calls[0][2];
+      const passedOptions = addRequestDataToEventSpy.mock.calls[0]?.[2];
 
       expect(passedOptions?.include).toEqual(expect.objectContaining({ transaction: 'path' }));
     });
@@ -84,7 +84,7 @@ describe('`RequestData` integration', () => {
 
       void requestDataEventProcessor(event, {});
 
-      const passedOptions = addRequestDataToEventSpy.mock.calls[0][2];
+      const passedOptions = addRequestDataToEventSpy.mock.calls[0]?.[2];
 
       expect(passedOptions?.include?.request).toEqual(expect.arrayContaining(['data']));
       expect(passedOptions?.include?.request).not.toEqual(expect.arrayContaining(['cookies']));
@@ -97,7 +97,7 @@ describe('`RequestData` integration', () => {
 
       void requestDataEventProcessor(event, {});
 
-      const passedOptions = addRequestDataToEventSpy.mock.calls[0][2];
+      const passedOptions = addRequestDataToEventSpy.mock.calls[0]?.[2];
 
       expect(passedOptions?.include?.user).toEqual(expect.arrayContaining(['id']));
       expect(passedOptions?.include?.user).not.toEqual(expect.arrayContaining(['email']));

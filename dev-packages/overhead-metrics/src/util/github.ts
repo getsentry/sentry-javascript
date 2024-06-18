@@ -13,7 +13,7 @@ const octokit = new Octokit({
   // log: console,
 });
 
-const [, owner, repo] = (await Git.repository).split('/');
+const [, owner, repo] = (await Git.repository).split('/') as [string, string, string];
 const defaultArgs = { owner, repo };
 
 async function downloadArtifact(url: string, path: string): Promise<void> {
@@ -51,15 +51,10 @@ async function tryAddOrUpdateComment(commentBuilder: PrCommentBuilder): Promise<
     For example, refs/heads/feature-branch-1.
   */
   let prNumber: number | undefined;
-  if (
-    typeof process.env.GITHUB_REF == 'string' &&
-    process.env.GITHUB_REF.length > 0 &&
-    process.env.GITHUB_REF.startsWith('refs/pull/')
-  ) {
-    prNumber = parseInt(process.env.GITHUB_REF.split('/')[2]);
-    console.log(
-      `Determined PR number ${prNumber} based on GITHUB_REF environment variable: '${process.env.GITHUB_REF}'`,
-    );
+  const githubRef = process.env.GITHUB_REF;
+  if (typeof githubRef == 'string' && githubRef.length > 0 && githubRef.startsWith('refs/pull/')) {
+    prNumber = parseInt(githubRef.split('/')[2] as string);
+    console.log(`Determined PR number ${prNumber} based on GITHUB_REF environment variable: '${githubRef}'`);
   } else if (!(await Git.branchIsBase)) {
     prNumber = (
       await octokit.rest.pulls.list({
@@ -155,7 +150,9 @@ export const GitHub = {
         status: 'success',
       });
 
-      if (workflowRuns.data.total_count == 0) {
+      const firstRun = workflowRuns.data.workflow_runs[0];
+
+      if (workflowRuns.data.total_count == 0 || !firstRun) {
         console.warn(`Couldn't find any successful run for workflow '${workflow.name}'`);
         return;
       }
@@ -163,7 +160,7 @@ export const GitHub = {
       const artifact = (
         await octokit.actions.listWorkflowRunArtifacts({
           ...defaultArgs,
-          run_id: workflowRuns.data.workflow_runs[0].id,
+          run_id: firstRun.id,
         })
       ).data.artifacts.find(it => it.name == artifactName);
 

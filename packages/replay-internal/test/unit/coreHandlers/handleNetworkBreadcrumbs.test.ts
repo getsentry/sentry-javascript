@@ -37,10 +37,10 @@ function getMockResponse(contentLength?: string, body?: string, headers?: Record
   const response = {
     headers: {
       has: (prop: string) => {
-        return !!internalHeaders[prop?.toLowerCase() ?? ''];
+        return !!internalHeaders[prop.toLowerCase() ?? ''];
       },
       get: (prop: string) => {
-        return internalHeaders[prop?.toLowerCase() ?? ''];
+        return internalHeaders[prop.toLowerCase() ?? ''];
       },
     },
     clone: () => response,

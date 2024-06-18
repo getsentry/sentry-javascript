@@ -13,10 +13,11 @@ export function generateInstrumentOnce<Options = unknown>(
 ): ((options?: Options) => void) & { id: string } {
   return Object.assign(
     (options?: Options) => {
-      if (INSTRUMENTED[name]) {
+      const instrumented = INSTRUMENTED[name];
+      if (instrumented) {
         // If options are provided, ensure we update them
         if (options) {
-          INSTRUMENTED[name].setConfig(options);
+          instrumented.setConfig(options);
         }
         return;
       }

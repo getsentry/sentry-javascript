@@ -66,7 +66,7 @@ describe('Integration | Transactions', () => {
     await client.flush();
 
     expect(transactions).toHaveLength(1);
-    const transaction = transactions[0];
+    const transaction = transactions[0]!;
 
     expect(transaction.breadcrumbs).toEqual([
       { message: 'test breadcrumb 1', timestamp: 123456 },
@@ -525,7 +525,7 @@ describe('Integration | Transactions', () => {
 
     // Checking the spans here, as they are circular to the transaction...
     const runArgs = beforeSendTransaction.mock.calls[0] as unknown as [TransactionEvent, unknown];
-    const spans = runArgs[0].spans || [];
+    const spans = runArgs[0]?.spans || [];
 
     // note: Currently, spans do not have any context/span added to them
     // This is the same behavior as for the "regular" SDKs

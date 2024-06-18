@@ -15,7 +15,7 @@ interface Layer {
  * This is an object that holds a stack of scopes.
  */
 export class AsyncContextStack {
-  private readonly _stack: Layer[];
+  private readonly _stack: [Layer, ...Layer[]];
   private _isolationScope: ScopeInterface;
 
   public constructor(scope?: ScopeInterface, isolationScope?: ScopeInterface) {
@@ -101,7 +101,7 @@ export class AsyncContextStack {
    * Returns the topmost scope layer in the order domain > local > process.
    */
   public getStackTop(): Layer {
-    return this._stack[this._stack.length - 1];
+    return this._stack[this._stack.length - 1] as Layer;
   }
 
   /**

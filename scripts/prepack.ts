@@ -78,6 +78,10 @@ function rewriteConditionalExportEntryPoint(
   key: string,
 ): void {
   const exportsField = exportsObject[key];
+  if (!exportsField) {
+    return;
+  }
+
   if (typeof exportsField === 'string') {
     exportsObject[key] = exportsField.replace(`${buildDir}/`, '');
     return;
