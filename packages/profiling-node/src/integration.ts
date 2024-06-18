@@ -146,7 +146,6 @@ function setupAutomatedSpanProfiling(client: NodeClient): void {
 interface ChunkData {
   id: string;
   timer: NodeJS.Timeout | undefined;
-  startTimestampMS: number;
   startTraceID: string;
 }
 class ContinuousProfiler {
@@ -212,7 +211,7 @@ class ContinuousProfiler {
       return;
     }
     const profile = CpuProfilerBindings.stopProfiling(this._chunkData.id, ProfileFormat.CHUNK);
-    if (!profile || !this._chunkData.startTimestampMS) {
+    if (!profile) {
       DEBUG_BUILD && logger.log(`[Profiling] _chunkiledStartTraceID to collect profile for: ${this._chunkData.id}`);
       return;
     }
@@ -222,7 +221,6 @@ class ContinuousProfiler {
 
     DEBUG_BUILD && logger.log(`[Profiling] Profile chunk ${this._chunkData.id} sent to Sentry.`);
     const chunk = createProfilingChunkEvent(
-      this._chunkData.startTimestampMS,
       this._client,
       this._client.getOptions(),
       profile,
@@ -300,7 +298,6 @@ class ContinuousProfiler {
     this._chunkData = {
       id: uuid4(),
       startTraceID: traceId,
-      startTimestampMS: timestampInSeconds(),
       timer: undefined,
     };
   }
