@@ -4,9 +4,10 @@ import { parseSpanDescription } from './parseSpanDescription';
 import { spanHasName } from './spanTypes';
 
 /**
- * Setup a DSC handler on the passed client, ensuring that the transaction name is inferred from the span correctly.
+ * Setup a DSC handler on the passed client,
+ * ensuring that the transaction name is inferred from the span correctly.
  */
-export function setupDscHandler(client: Client): void {
+export function enhanceDscWithOpenTelemetryRootSpanName(client: Client): void {
   client.on('createDsc', (dsc, rootSpan) => {
     // We want to overwrite the transaction on the DSC that is created by default in core
     // The reason for this is that we want to infer the span name, not use the initial one

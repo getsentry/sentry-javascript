@@ -12,9 +12,9 @@ import {
   startSession,
 } from '@sentry/core';
 import {
+  enhanceDscWithOpenTelemetryRootSpanName,
   openTelemetrySetupCheck,
   setOpenTelemetryContextAsyncContextStrategy,
-  setupDscHandler,
   setupEventContextTrace,
 } from '@sentry/opentelemetry';
 import type { Client, Integration, Options } from '@sentry/types';
@@ -176,7 +176,7 @@ function _init(
     validateOpenTelemetrySetup();
   }
 
-  setupDscHandler(client);
+  enhanceDscWithOpenTelemetryRootSpanName(client);
   setupEventContextTrace(client);
 }
 
