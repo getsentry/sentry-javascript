@@ -44,7 +44,7 @@ boundary component in React) that users can use in their app to ensure all error
 
 ### 1c. OPTIONAL: Component Tracking
 
-Optionally, we may also track component renders and similar things. These are stretch goals, though, and do not need to
+Optionally, we may also track  the duration of component renders and similar things. These are stretch goals, though, and do not need to
 be part of an MVP.
 
 ## 2. Server SDKs
@@ -53,7 +53,7 @@ A purely server SDK generally should cover the following things:
 
 ### 2a. `http.server` spans with route information
 
-Most SDKs that build on top of `@sentry/node` should automatically have basic `http.server` spans emitted by
+Most SDKs that build on top of `@sentry/node` should automatically have basic `http.server` spans emitted for incoming requests by the
 `httpIntegration`. However, these spans do not contain any routing information (e.g. a `http.route` attribute). A server
 SDK should make sure to add route information to these spans.
 
