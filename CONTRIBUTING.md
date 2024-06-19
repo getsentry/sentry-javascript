@@ -58,11 +58,7 @@ To test local versions of SDK packages, for instance in test projects, you have 
 
 **Any nontrivial fixes/features should include tests.** You'll find a `test` folder in each package.
 
-Note that _for the `browser` package only_, if you add a new file to the
-[integration test suite](https://github.com/getsentry/sentry-javascript/tree/master/packages/browser/test/integration/suites),
-you also need to add it to
-[the list in `shell.js`](https://github.com/getsentry/sentry-javascript/blob/b74e199254147fd984e7bb1ea24193aee70afa74/packages/browser/test/integration/suites/shell.js#L25)
-as well. Adding tests to existing files will work out of the box in all packages.
+For browser related changes, you may also add tests in `dev-packages/browser-integration-tests`. Similarly, for node integration tests can be added in `dev-packages/node-integration-tests`. Finally, we also have E2E test apps in `dev-packages/e2e-tests`.
 
 ## Running Tests
 
