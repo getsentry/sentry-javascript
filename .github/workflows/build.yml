@@ -235,7 +235,7 @@ jobs:
     runs-on: ubuntu-20.04
     if: |
       github.event_name == 'pull_request'
-      && (github.action == 'opened' || github.action == 'reopened')
+      && (github.event.action == 'opened' || github.event.action == 'reopened')
       && github.event.pull_request.author_association != 'COLLABORATOR'
       && github.event.pull_request.author_association != 'MEMBER'
       && github.event.pull_request.author_association != 'OWNER'
