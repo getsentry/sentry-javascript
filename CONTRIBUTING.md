@@ -58,7 +58,9 @@ To test local versions of SDK packages, for instance in test projects, you have 
 
 **Any nontrivial fixes/features should include tests.** You'll find a `test` folder in each package.
 
-For browser related changes, you may also add tests in `dev-packages/browser-integration-tests`. Similarly, for node integration tests can be added in `dev-packages/node-integration-tests`. Finally, we also have E2E test apps in `dev-packages/e2e-tests`.
+For browser related changes, you may also add tests in `dev-packages/browser-integration-tests`. Similarly, for node
+integration tests can be added in `dev-packages/node-integration-tests`. Finally, we also have E2E test apps in
+`dev-packages/e2e-tests`.
 
 ## Running Tests
 
@@ -110,8 +112,8 @@ Note: you must run `yarn build` before `yarn lint` will work.
 
 ## External Contributors
 
-We highly appreciate external contributions to the SDK.
-If you want to contribute something, you can just open a PR against `develop`.
+We highly appreciate external contributions to the SDK. If you want to contribute something, you can just open a PR
+against `develop`.
 
 The SDK team will check out your PR shortly!
 

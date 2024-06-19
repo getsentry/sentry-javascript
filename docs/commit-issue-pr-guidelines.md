@@ -30,7 +30,8 @@ and committed as such onto master.
 - Make sure to update the commit message of the squashed branch to follow the commit guidelines - including the PR
   number
 
-Please note that we cannot _enforce_ Squash Merge due to the usage of Gitflow (see below). Github remembers the last used merge method, so you'll need to make sure to double check that you are using "Squash and Merge" correctly.
+Please note that we cannot _enforce_ Squash Merge due to the usage of Gitflow (see below). Github remembers the last
+used merge method, so you'll need to make sure to double check that you are using "Squash and Merge" correctly.
 
 ## Gitflow
 
