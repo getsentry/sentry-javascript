@@ -5,8 +5,7 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "build": "node build.mjs",
-    "start": "node index.js",
-    "test": "node index.js && node build.mjs",
+    "test": "npm run build && node dist/index.js",
     "clean": "npx rimraf node_modules",
     "test:build": "npm run typecheck && npm run build",
     "test:assert": "npm run test"
