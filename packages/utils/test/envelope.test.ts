@@ -71,7 +71,7 @@ describe('envelope', () => {
         measurements: { inp: { value: expect.any(Number), unit: expect.any(String) } },
       };
 
-      expect(spanEnvelopeItem[0].type).toBe('span');
+      expect(spanEnvelopeItem[0]?.type).toBe('span');
       expect(spanEnvelopeItem[1]).toMatchObject(expectedObj);
     });
   });
@@ -209,7 +209,7 @@ describe('envelope', () => {
       let iteration = 0;
       forEachEnvelopeItem(env, (item, type) => {
         expect(item).toBe(items[iteration]);
-        expect(type).toBe(items[iteration][0].type);
+        expect(type).toBe(items[iteration]?.[0]?.type);
         iteration = iteration + 1;
       });
     });

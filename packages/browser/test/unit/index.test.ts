@@ -214,7 +214,7 @@ describe('SentryBrowser', () => {
 
       captureMessage('event');
       await flush(2000);
-      expect(beforeSend.mock.calls[0][0].breadcrumbs).toHaveLength(2);
+      expect(beforeSend.mock.calls[0]?.[0]?.breadcrumbs).toHaveLength(2);
     });
   });
 
@@ -228,12 +228,12 @@ describe('SentryBrowser', () => {
 
       await flush(2000);
 
-      const event = beforeSend.mock.calls[0][0];
+      const event = beforeSend.mock.calls[0]?.[0];
       expect(event.exception).toBeDefined();
       expect(event.exception.values[0]).toBeDefined();
-      expect(event.exception.values[0].type).toBe('Error');
-      expect(event.exception.values[0].value).toBe('test');
-      expect(event.exception.values[0].stacktrace.frames).not.toHaveLength(0);
+      expect(event.exception.values[0]?.type).toBe('Error');
+      expect(event.exception.values[0]?.value).toBe('test');
+      expect(event.exception.values[0]?.stacktrace.frames).not.toHaveLength(0);
     });
 
     it('should capture a message', done => {
@@ -357,10 +357,10 @@ describe('SentryBrowser initialization', () => {
 
       const sdkData = getClient()?.getOptions()._metadata?.sdk || {};
 
-      expect(sdkData?.name).toBe('sentry.javascript.browser');
-      expect(sdkData?.packages?.[0].name).toBe('npm:@sentry/browser');
-      expect(sdkData?.packages?.[0].version).toBe(SDK_VERSION);
-      expect(sdkData?.version).toBe(SDK_VERSION);
+      expect(sdkData.name).toBe('sentry.javascript.browser');
+      expect(sdkData.packages?.[0]?.name).toBe('npm:@sentry/browser');
+      expect(sdkData.packages?.[0]?.version).toBe(SDK_VERSION);
+      expect(sdkData.version).toBe(SDK_VERSION);
     });
 
     it('uses SDK source from window for package name', () => {
@@ -369,7 +369,7 @@ describe('SentryBrowser initialization', () => {
 
       const sdkData = getClient()?.getOptions()._metadata?.sdk || {};
 
-      expect(sdkData.packages?.[0].name).toBe('loader:@sentry/browser');
+      expect(sdkData.packages?.[0]?.name).toBe('loader:@sentry/browser');
       delete global.SENTRY_SDK_SOURCE;
     });
 
@@ -379,7 +379,7 @@ describe('SentryBrowser initialization', () => {
 
       const sdkData = getClient()?.getOptions()._metadata?.sdk || {};
 
-      expect(sdkData.packages?.[0].name).toBe('cdn:@sentry/browser');
+      expect(sdkData.packages?.[0]?.name).toBe('cdn:@sentry/browser');
       expect(utils.getSDKSource).toBeCalledTimes(1);
       spy.mockRestore();
     });
@@ -391,8 +391,8 @@ describe('SentryBrowser initialization', () => {
       const sdkData = client.getOptions()._metadata?.sdk as any;
 
       expect(sdkData.name).toBe('sentry.javascript.browser');
-      expect(sdkData.packages[0].name).toBe('npm:@sentry/browser');
-      expect(sdkData.packages[0].version).toBe(SDK_VERSION);
+      expect(sdkData.packages[0]?.name).toBe('npm:@sentry/browser');
+      expect(sdkData.packages[0]?.version).toBe(SDK_VERSION);
       expect(sdkData.version).toBe(SDK_VERSION);
     });
 
@@ -419,8 +419,8 @@ describe('SentryBrowser initialization', () => {
       const sdkData = getClient()?.getOptions()._metadata?.sdk || {};
 
       expect(sdkData.name).toBe('sentry.javascript.angular');
-      expect(sdkData.packages?.[0].name).toBe('npm:@sentry/angular');
-      expect(sdkData.packages?.[0].version).toBe(SDK_VERSION);
+      expect(sdkData.packages?.[0]?.name).toBe('npm:@sentry/angular');
+      expect(sdkData.packages?.[0]?.version).toBe(SDK_VERSION);
       expect(sdkData.version).toBe(SDK_VERSION);
     });
   });

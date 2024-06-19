@@ -51,7 +51,7 @@ describe('Metadata', () => {
   it('is added and stripped from stack frames', () => {
     addMetadataToStackFrames(parser, event);
 
-    expect(event.exception?.values?.[0].stacktrace?.frames).toEqual([
+    expect(event.exception?.values?.[0]?.stacktrace?.frames).toEqual([
       {
         filename: '<anonymous>',
         function: 'new Promise',
@@ -75,7 +75,7 @@ describe('Metadata', () => {
 
     stripMetadataFromStackFrames(event);
 
-    expect(event.exception?.values?.[0].stacktrace?.frames).toEqual([
+    expect(event.exception?.values?.[0]?.stacktrace?.frames).toEqual([
       {
         filename: '<anonymous>',
         function: 'new Promise',

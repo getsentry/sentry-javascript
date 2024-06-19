@@ -137,9 +137,9 @@ describe('startSpan', () => {
       const spans = getSpanDescendants(_span!);
 
       expect(spans).toHaveLength(2);
-      expect(spanToJSON(spans[1]).description).toEqual('SELECT * from users');
-      expect(spanToJSON(spans[1]).parent_span_id).toEqual(_span!.spanContext().spanId);
-      expect(spanToJSON(spans[1]).status).toEqual(isError ? 'internal_error' : undefined);
+      expect(spanToJSON(spans[1]!).description).toEqual('SELECT * from users');
+      expect(spanToJSON(spans[1]!).parent_span_id).toEqual(_span!.spanContext().spanId);
+      expect(spanToJSON(spans[1]!).status).toEqual(isError ? 'internal_error' : undefined);
     });
 
     it('allows for span to be mutated', async () => {
@@ -166,7 +166,7 @@ describe('startSpan', () => {
       const spans = getSpanDescendants(_span!);
 
       expect(spans).toHaveLength(2);
-      expect(spanToJSON(spans[1]).op).toEqual('db.query');
+      expect(spanToJSON(spans[1]!).op).toEqual('db.query');
     });
 
     it('correctly sets the span origin', async () => {
@@ -315,7 +315,7 @@ describe('startSpan', () => {
 
     const outerTraceId = outerTransaction?.contexts?.trace?.trace_id;
     // The inner transaction should be a child of the last span of the outer transaction
-    const innerParentSpanId = outerTransaction?.spans?.[0].id;
+    const innerParentSpanId = outerTransaction?.spans?.[0]?.id;
     const innerSpanId = innerTransaction?.contexts?.trace?.span_id;
 
     expect(outerTraceId).toBeDefined();
@@ -717,7 +717,7 @@ describe('startSpanManual', () => {
 
     const outerTraceId = outerTransaction?.contexts?.trace?.trace_id;
     // The inner transaction should be a child of the last span of the outer transaction
-    const innerParentSpanId = outerTransaction?.spans?.[0].id;
+    const innerParentSpanId = outerTransaction?.spans?.[0]?.id;
     const innerSpanId = innerTransaction?.contexts?.trace?.span_id;
 
     expect(outerTraceId).toBeDefined();
@@ -995,7 +995,7 @@ describe('startInactiveSpan', () => {
     startSpan({ name: 'outer transaction' }, () => {
       startSpan({ name: 'inner span' }, () => {
         const innerTransaction = startInactiveSpan({ name: 'inner transaction', forceTransaction: true });
-        innerTransaction?.end();
+        innerTransaction.end();
       });
     });
 
@@ -1018,7 +1018,7 @@ describe('startInactiveSpan', () => {
 
     const outerTraceId = outerTransaction?.contexts?.trace?.trace_id;
     // The inner transaction should be a child of the last span of the outer transaction
-    const innerParentSpanId = outerTransaction?.spans?.[0].id;
+    const innerParentSpanId = outerTransaction?.spans?.[0]?.id;
     const innerSpanId = innerTransaction?.contexts?.trace?.span_id;
 
     expect(outerTraceId).toBeDefined();
@@ -1516,10 +1516,10 @@ describe('span hooks', () => {
 
         startSpanManual({ name: 'span5' }, span => {
           startInactiveSpan({ name: 'span4' });
-          span?.end();
+          span.end();
         });
 
-        span?.end();
+        span.end();
       });
     });
 

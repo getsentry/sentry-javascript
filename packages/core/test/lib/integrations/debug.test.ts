@@ -21,7 +21,7 @@ function testEventLogged(
   expect(callbacks.length).toEqual(1);
 
   if (testEvent) {
-    callbacks[0](testEvent, testEventHint);
+    callbacks[0]?.(testEvent, testEventHint);
   }
 }
 

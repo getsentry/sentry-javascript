@@ -37,12 +37,14 @@ export function createScreenshotInputStyles(): HTMLStyleElement {
   width: 100%;
   height: 100%;
   position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .editor__canvas-container canvas {
-  width: 100%;
-  height: 100%;
   object-fit: contain;
+  position: relative;
 }
 
 .editor__crop-btn-group {

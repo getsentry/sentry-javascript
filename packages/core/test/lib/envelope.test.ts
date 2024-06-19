@@ -109,7 +109,7 @@ describe('createSpanEnvelope', () => {
 
     const spanEnvelope = createSpanEnvelope([span]);
 
-    const spanItem = spanEnvelope[1][0][1];
+    const spanItem = spanEnvelope[1]?.[0]?.[1];
     expect(spanItem).toEqual({
       data: {
         'sentry.origin': 'manual',
@@ -119,7 +119,7 @@ describe('createSpanEnvelope', () => {
       is_segment: true,
       origin: 'manual',
       span_id: expect.stringMatching(/^[0-9a-f]{16}$/),
-      segment_id: spanItem.segment_id,
+      segment_id: spanItem?.segment_id,
       start_timestamp: 1,
       timestamp: 2,
       trace_id: expect.stringMatching(/^[0-9a-f]{32}$/),
@@ -200,7 +200,7 @@ describe('createSpanEnvelope', () => {
 
     expect(beforeSendSpan).toHaveBeenCalled();
 
-    const spanItem = spanEnvelope[1][0][1];
+    const spanItem = spanEnvelope[1]?.[0]?.[1];
     expect(spanItem).toEqual({
       data: {
         'sentry.origin': 'manual',
@@ -209,7 +209,7 @@ describe('createSpanEnvelope', () => {
       is_segment: true,
       origin: 'manual',
       span_id: expect.stringMatching(/^[0-9a-f]{16}$/),
-      segment_id: spanItem.segment_id,
+      segment_id: spanItem?.segment_id,
       start_timestamp: 1,
       timestamp: 2,
       trace_id: expect.stringMatching(/^[0-9a-f]{32}$/),
@@ -235,7 +235,7 @@ describe('createSpanEnvelope', () => {
 
     expect(beforeSendSpan).toHaveBeenCalled();
 
-    const spanItem = spanEnvelope[1][0][1];
+    const spanItem = spanEnvelope[1]?.[0]?.[1];
     expect(spanItem).toEqual({
       data: {
         'sentry.origin': 'manual',
@@ -244,7 +244,7 @@ describe('createSpanEnvelope', () => {
       is_segment: true,
       origin: 'manual',
       span_id: expect.stringMatching(/^[0-9a-f]{16}$/),
-      segment_id: spanItem.segment_id,
+      segment_id: spanItem?.segment_id,
       start_timestamp: 1,
       timestamp: 2,
       trace_id: expect.stringMatching(/^[0-9a-f]{32}$/),

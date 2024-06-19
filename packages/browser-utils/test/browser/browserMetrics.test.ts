@@ -221,7 +221,7 @@ describe('_addResourceSpans', () => {
       },
     ];
     for (let i = 0; i < table.length; i++) {
-      const { initiatorType, op } = table[i];
+      const { initiatorType, op } = table[i]!;
       const entry: ResourceEntry = {
         initiatorType,
       };
@@ -250,7 +250,7 @@ describe('_addResourceSpans', () => {
     _addResourceSpans(span, entry, resourceEntryName, 100, 23, 345);
 
     expect(spans).toHaveLength(1);
-    expect(spanToJSON(spans[0])).toEqual(
+    expect(spanToJSON(spans[0]!)).toEqual(
       expect.objectContaining({
         data: {
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'resource.css',
@@ -284,7 +284,7 @@ describe('_addResourceSpans', () => {
     _addResourceSpans(span, entry, resourceEntryName, 100, 23, 345);
 
     expect(spans).toHaveLength(1);
-    expect(spanToJSON(spans[0])).toEqual(
+    expect(spanToJSON(spans[0]!)).toEqual(
       expect.objectContaining({
         data: {
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'resource.css',
@@ -321,7 +321,7 @@ describe('_addResourceSpans', () => {
     _addResourceSpans(span, entry, resourceEntryName, 100, 23, 345);
 
     expect(spans).toHaveLength(1);
-    expect(spanToJSON(spans[0])).toEqual(
+    expect(spanToJSON(spans[0]!)).toEqual(
       expect.objectContaining({
         data: {
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'resource.css',

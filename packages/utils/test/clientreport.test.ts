@@ -33,7 +33,7 @@ describe('createClientReportEnvelope', () => {
 
     const items = env[1];
     expect(items).toHaveLength(1);
-    const clientReportItem = items[0];
+    const clientReportItem = items[0]!;
 
     expect(clientReportItem[0]).toEqual({ type: 'client_report' });
     expect(clientReportItem[1]).toEqual({ timestamp: expect.any(Number), discarded_events: discardedEvents });

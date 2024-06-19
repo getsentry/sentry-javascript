@@ -136,8 +136,10 @@ function getResponseHeaders(xhr: XMLHttpRequest): Record<string, string> {
   }
 
   return headers.split('\r\n').reduce((acc: Record<string, string>, line: string) => {
-    const [key, value] = line.split(': ');
-    acc[key.toLowerCase()] = value;
+    const [key, value] = line.split(': ') as [string, string | undefined];
+    if (value) {
+      acc[key.toLowerCase()] = value;
+    }
     return acc;
   }, {});
 }

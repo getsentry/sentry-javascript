@@ -42,7 +42,7 @@ describe('Integration | Scope', () => {
           scope2.setTag('tag3', 'val3');
 
           Sentry.startSpan({ name: 'outer' }, span => {
-            expect(getCapturedScopesOnSpan(span)?.scope).toBe(enableTracing ? scope2 : undefined);
+            expect(getCapturedScopesOnSpan(span).scope).toBe(enableTracing ? scope2 : undefined);
 
             spanId = span.spanContext().spanId;
             traceId = span.spanContext().traceId;

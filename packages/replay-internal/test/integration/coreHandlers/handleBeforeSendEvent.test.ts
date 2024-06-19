@@ -29,7 +29,7 @@ describe('Integration | coreHandlers | handleBeforeSendEvent', () => {
     const addBreadcrumbSpy = vi.spyOn(replay, 'throttledAddEvent');
 
     const error = Error();
-    error.exception.values[0].value =
+    error.exception.values[0]!.value =
       'Text content does not match server-rendered HTML. Warning: Text content did not match.';
     handler(error);
 
@@ -38,6 +38,7 @@ describe('Integration | coreHandlers | handleBeforeSendEvent', () => {
       data: {
         payload: {
           category: 'replay.hydrate-error',
+          data: { url: 'http://localhost:3000/' },
           timestamp: expect.any(Number),
           type: 'default',
         },
@@ -63,7 +64,7 @@ describe('Integration | coreHandlers | handleBeforeSendEvent', () => {
     const addBreadcrumbSpy = vi.spyOn(replay, 'throttledAddEvent');
 
     const error = Error();
-    error.exception.values[0].value = 'https://reactjs.org/docs/error-decoder.html?invariant=423';
+    error.exception.values[0]!.value = 'https://reactjs.org/docs/error-decoder.html?invariant=423';
     handler(error);
 
     expect(addBreadcrumbSpy).toHaveBeenCalledTimes(1);
@@ -71,6 +72,7 @@ describe('Integration | coreHandlers | handleBeforeSendEvent', () => {
       data: {
         payload: {
           category: 'replay.hydrate-error',
+          data: { url: 'http://localhost:3000/' },
           timestamp: expect.any(Number),
           type: 'default',
         },

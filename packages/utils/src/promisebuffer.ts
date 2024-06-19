@@ -26,8 +26,8 @@ export function makePromiseBuffer<T>(limit?: number): PromiseBuffer<T> {
    * @param task Can be any PromiseLike<T>
    * @returns Removed promise.
    */
-  function remove(task: PromiseLike<T>): PromiseLike<T> {
-    return buffer.splice(buffer.indexOf(task), 1)[0];
+  function remove(task: PromiseLike<T>): PromiseLike<T | void> {
+    return buffer.splice(buffer.indexOf(task), 1)[0] || Promise.resolve(undefined);
   }
 
   /**

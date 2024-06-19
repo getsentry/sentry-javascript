@@ -55,7 +55,7 @@ export function assertSentryTransactions(
   },
 ): void {
   const sentryTestEvents = getTestSentryTransactions();
-  const event = sentryTestEvents[callNumber];
+  const event = sentryTestEvents[callNumber]!;
 
   assert.ok(event, 'event exists');
   assert.ok(event.spans, 'event has spans');

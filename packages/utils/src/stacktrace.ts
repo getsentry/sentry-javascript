@@ -21,7 +21,7 @@ export function createStackParser(...parsers: StackLineParser[]): StackParser {
     const lines = stack.split('\n');
 
     for (let i = skipFirstLines; i < lines.length; i++) {
-      const line = lines[i];
+      const line = lines[i] as string;
       // Ignore lines over 1kb as they are unlikely to be stack frames.
       // Many of the regular expressions use backtracking which results in run time that increases exponentially with
       // input size. Huge strings can result in hangs/Denial of Service:
@@ -85,7 +85,7 @@ export function stripSentryFramesAndReverse(stack: ReadonlyArray<StackFrame>): S
   const localStack = Array.from(stack);
 
   // If stack starts with one of our API calls, remove it (starts, meaning it's the top of the stack - aka last call)
-  if (/sentryWrapped/.test(localStack[localStack.length - 1].function || '')) {
+  if (/sentryWrapped/.test(getLastStackFrame(localStack).function || '')) {
     localStack.pop();
   }
 
@@ -93,7 +93,7 @@ export function stripSentryFramesAndReverse(stack: ReadonlyArray<StackFrame>): S
   localStack.reverse();
 
   // If stack ends with one of our internal API calls, remove it (ends, meaning it's the bottom of the stack - aka top-most call)
-  if (STRIP_FRAME_REGEXP.test(localStack[localStack.length - 1].function || '')) {
+  if (STRIP_FRAME_REGEXP.test(getLastStackFrame(localStack).function || '')) {
     localStack.pop();
 
     // When using synthetic events, we will have a 2 levels deep stack, as `new Error('Sentry syntheticException')`
@@ -104,16 +104,20 @@ export function stripSentryFramesAndReverse(stack: ReadonlyArray<StackFrame>): S
     //
     // instead of just the top `Sentry` call itself.
     // This forces us to possibly strip an additional frame in the exact same was as above.
-    if (STRIP_FRAME_REGEXP.test(localStack[localStack.length - 1].function || '')) {
+    if (STRIP_FRAME_REGEXP.test(getLastStackFrame(localStack).function || '')) {
       localStack.pop();
     }
   }
 
   return localStack.slice(0, STACKTRACE_FRAME_LIMIT).map(frame => ({
     ...frame,
-    filename: frame.filename || localStack[localStack.length - 1].filename,
+    filename: frame.filename || getLastStackFrame(localStack).filename,
     function: frame.function || UNKNOWN_FUNCTION,
   }));
+}
+
+function getLastStackFrame(arr: StackFrame[]): StackFrame {
+  return arr[arr.length - 1] || {};
 }
 
 const defaultFunctionName = '<anonymous>';

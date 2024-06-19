@@ -28,8 +28,8 @@ import type { RawChunkCpuProfile, RawThreadCpuProfile } from './types';
 
 // We require the file because if we import it, it will be included in the bundle.
 // I guess tsc does not check file contents when it's imported.
-const THREAD_ID_STRING = String(threadId);
-const THREAD_NAME = isMainThread ? 'main' : 'worker';
+export const PROFILER_THREAD_ID_STRING = String(threadId);
+export const PROFILER_THREAD_NAME = isMainThread ? 'main' : 'worker';
 const FORMAT_VERSION = '1';
 const CONTINUOUS_FORMAT_VERSION = '2';
 
@@ -75,8 +75,8 @@ export function enrichWithThreadInformation(
     frames: profile.frames,
     stacks: profile.stacks,
     thread_metadata: {
-      [THREAD_ID_STRING]: {
-        name: THREAD_NAME,
+      [PROFILER_THREAD_ID_STRING]: {
+        name: PROFILER_THREAD_NAME,
       },
     },
   } as ThreadCpuProfile | ContinuousThreadCpuProfile;
@@ -172,7 +172,7 @@ function createProfilePayload(
       name: transaction,
       id: event_id,
       trace_id: trace_id || '',
-      active_thread_id: THREAD_ID_STRING,
+      active_thread_id: PROFILER_THREAD_ID_STRING,
     },
   };
 
@@ -191,14 +191,12 @@ function createProfileChunkPayload(
   {
     release,
     environment,
-    start_timestamp,
     trace_id,
     profiler_id,
     chunk_id,
   }: {
     release: string;
     environment: string;
-    start_timestamp: number;
     trace_id: string | undefined;
     chunk_id: string;
     profiler_id: string;
@@ -216,7 +214,6 @@ function createProfileChunkPayload(
   const profile: ProfileChunk = {
     chunk_id: chunk_id,
     profiler_id: profiler_id,
-    timestamp: new Date(start_timestamp).toISOString(),
     platform: 'node',
     version: CONTINUOUS_FORMAT_VERSION,
     release: release,
@@ -235,7 +232,6 @@ function createProfileChunkPayload(
  * Creates a profiling chunk envelope item, if the profile does not pass validation, returns null.
  */
 export function createProfilingChunkEvent(
-  start_timestamp: number,
   client: Client,
   options: { release?: string; environment?: string },
   profile: RawChunkCpuProfile,
@@ -248,7 +244,6 @@ export function createProfilingChunkEvent(
   return createProfileChunkPayload(client, profile, {
     release: options.release ?? '',
     environment: options.environment ?? '',
-    start_timestamp: start_timestamp,
     trace_id: identifiers.trace_id ?? '',
     chunk_id: identifiers.chunk_id,
     profiler_id: identifiers.profiler_id,

@@ -74,7 +74,8 @@ if (isUserAgentData(userAgentData)) {
       OS_PLATFORM_VERSION = ua.platformVersion || '';
 
       if (ua.fullVersionList && ua.fullVersionList.length > 0) {
-        const firstUa = ua.fullVersionList[ua.fullVersionList.length - 1];
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        const firstUa = ua.fullVersionList[ua.fullVersionList.length - 1]!;
         OS_BROWSER = `${firstUa.brand} ${firstUa.version}`;
       }
     })
@@ -239,12 +240,13 @@ export function convertJSSelfProfileToSampledFormat(input: JSSelfProfile): Profi
     },
   };
 
-  if (!input.samples.length) {
+  const firstSample = input.samples[0];
+  if (!firstSample) {
     return profile;
   }
 
   // We assert samples.length > 0 above and timestamp should always be present
-  const start = input.samples[0].timestamp;
+  const start = firstSample.timestamp;
   // The JS SDK might change it's time origin based on some heuristic (see See packages/utils/src/time.ts)
   // when that happens, we need to ensure we are correcting the profile timings so the two timelines stay in sync.
   // Since JS self profiling time origin is always initialized to performance.timeOrigin, we need to adjust for
@@ -253,9 +255,7 @@ export function convertJSSelfProfileToSampledFormat(input: JSSelfProfile): Profi
     typeof performance.timeOrigin === 'number' ? performance.timeOrigin : browserPerformanceTimeOrigin || 0;
   const adjustForOriginChange = origin - (browserPerformanceTimeOrigin || origin);
 
-  for (let i = 0; i < input.samples.length; i++) {
-    const jsSample = input.samples[i];
-
+  input.samples.forEach((jsSample, i) => {
     // If sample has no stack, add an empty sample
     if (jsSample.stackId === undefined) {
       if (EMPTY_STACK_ID === undefined) {
@@ -270,7 +270,7 @@ export function convertJSSelfProfileToSampledFormat(input: JSSelfProfile): Profi
         stack_id: EMPTY_STACK_ID,
         thread_id: THREAD_ID_STRING,
       };
-      continue;
+      return;
     }
 
     let stackTop: JSSelfProfileStack | undefined = input.stacks[jsSample.stackId];
@@ -285,7 +285,7 @@ export function convertJSSelfProfileToSampledFormat(input: JSSelfProfile): Profi
       const frame = input.frames[stackTop.frameId];
 
       // If our frame has not been indexed yet, index it
-      if (profile.frames[stackTop.frameId] === undefined) {
+      if (frame && profile.frames[stackTop.frameId] === undefined) {
         profile.frames[stackTop.frameId] = {
           function: frame.name,
           abs_path: typeof frame.resourceId === 'number' ? input.resources[frame.resourceId] : undefined,
@@ -307,7 +307,7 @@ export function convertJSSelfProfileToSampledFormat(input: JSSelfProfile): Profi
     profile['stacks'][STACK_ID] = stack;
     profile['samples'][i] = sample;
     STACK_ID++;
-  }
+  });
 
   return profile;
 }

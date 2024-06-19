@@ -143,10 +143,9 @@ function instrumentReactRouter(
     }
 
     const branches = matchRoutes(allRoutes, pathname, matchPath);
-    // eslint-disable-next-line @typescript-eslint/prefer-for-of
-    for (let x = 0; x < branches.length; x++) {
-      if (branches[x].match.isExact) {
-        return [branches[x].match.path, 'route'];
+    for (const branch of branches) {
+      if (branch.match.isExact) {
+        return [branch.match.path, 'route'];
       }
     }
 
@@ -199,7 +198,8 @@ function matchRoutes(
     const match = route.path
       ? matchPath(pathname, route)
       : branch.length
-        ? branch[branch.length - 1].match // use parent match
+        ? // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+          branch[branch.length - 1]!.match // use parent match
         : computeRootMatch(pathname); // use default "root" match
 
     if (match) {

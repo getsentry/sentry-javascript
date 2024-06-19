@@ -19,6 +19,9 @@ test('Sends a pageload transaction', async ({ page }) => {
       transaction_info: { source: 'url' },
       type: 'transaction',
       contexts: {
+        react: {
+          version: expect.any(String),
+        },
         trace: {
           span_id: expect.any(String),
           trace_id: expect.any(String),

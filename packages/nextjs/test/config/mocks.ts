@@ -66,7 +66,7 @@ global.console.warn = (...args: unknown[]) => {
   // `hideSourceMaps` because that would mean we couldn't test it easily and would muddy the waters of other tests. Note
   // that doing this here, as a side effect, only works because the tests which trigger this warning are the same tests
   // which need other mocks from this file.
-  if (typeof args[0] === 'string' && args[0].includes('your original code may be visible in browser devtools')) {
+  if (typeof args[0] === 'string' && args[0]?.includes('your original code may be visible in browser devtools')) {
     return;
   }
 

@@ -179,25 +179,29 @@ export function applyDebugIds(event: Event, stackParser: StackParser): void {
   }
 
   // Build a map of filename -> debug_id
-  const filenameDebugIdMap = Object.keys(debugIdMap).reduce<Record<string, string>>((acc, debugIdStackTrace) => {
-    let parsedStack: StackFrame[];
-    const cachedParsedStack = debugIdStackFramesCache.get(debugIdStackTrace);
-    if (cachedParsedStack) {
-      parsedStack = cachedParsedStack;
-    } else {
-      parsedStack = stackParser(debugIdStackTrace);
-      debugIdStackFramesCache.set(debugIdStackTrace, parsedStack);
-    }
-
-    for (let i = parsedStack.length - 1; i >= 0; i--) {
-      const stackFrame = parsedStack[i];
-      if (stackFrame.filename) {
-        acc[stackFrame.filename] = debugIdMap[debugIdStackTrace];
-        break;
+  const filenameDebugIdMap = Object.entries(debugIdMap).reduce<Record<string, string>>(
+    (acc, [debugIdStackTrace, debugIdValue]) => {
+      let parsedStack: StackFrame[];
+      const cachedParsedStack = debugIdStackFramesCache.get(debugIdStackTrace);
+      if (cachedParsedStack) {
+        parsedStack = cachedParsedStack;
+      } else {
+        parsedStack = stackParser(debugIdStackTrace);
+        debugIdStackFramesCache.set(debugIdStackTrace, parsedStack);
       }
-    }
-    return acc;
-  }, {});
+
+      for (let i = parsedStack.length - 1; i >= 0; i--) {
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        const stackFrame = parsedStack[i]!;
+        if (stackFrame.filename) {
+          acc[stackFrame.filename] = debugIdValue;
+          break;
+        }
+      }
+      return acc;
+    },
+    {},
+  );
 
   try {
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -247,11 +251,11 @@ export function applyDebugMeta(event: Event): void {
   event.debug_meta = event.debug_meta || {};
   event.debug_meta.images = event.debug_meta.images || [];
   const images = event.debug_meta.images;
-  Object.keys(filenameDebugIdMap).forEach(filename => {
+  Object.entries(filenameDebugIdMap).forEach(([filename, debug_id]) => {
     images.push({
       type: 'sourcemap',
       code_file: filename,
-      debug_id: filenameDebugIdMap[filename],
+      debug_id,
     });
   });
 }
