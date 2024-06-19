@@ -10,10 +10,10 @@ console.log('Running build using esbuild version', esbuild.version);
 
 esbuild.buildSync({
   platform: 'node',
-  entryPoints: ['./index.js'],
+  entryPoints: ['./index.ts'],
   outdir: './dist',
   target: 'esnext',
   format: 'cjs',
   bundle: true,
-  loader: { '.node': 'copy' },
+  loader: { '.node': 'empty' },
 });

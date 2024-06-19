@@ -4,8 +4,8 @@
   "private": true,
   "scripts": {
     "build": "node build.mjs",
-    "start": "node index.js",
-    "test": "node index.js && node build.mjs",
+    "start": "node dist/index.js",
+    "test": "npm run build && npm run start",
     "clean": "npx rimraf node_modules",
     "test:build": "npm run build",
     "test:assert": "npm run test"
