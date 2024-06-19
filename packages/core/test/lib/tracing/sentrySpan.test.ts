@@ -91,6 +91,39 @@ describe('SentrySpan', () => {
       expect(spanToJSON(span).timestamp).toBeGreaterThan(1);
     });
 
+    test('uses sampled config for standalone span', () => {
+      const client = new TestClient(
+        getDefaultTestClientOptions({
+          dsn: 'https://username@domain/123',
+          enableSend: true,
+        }),
+      );
+      setCurrentClient(client);
+
+      // @ts-expect-error Accessing private transport API
+      const mockSend = jest.spyOn(client._transport, 'send');
+
+      const notSampledSpan = new SentrySpan({
+        name: 'not-sampled',
+        isStandalone: true,
+        startTimestamp: 1,
+        endTimestamp: 2,
+        sampled: false,
+      });
+      notSampledSpan.end();
+      expect(mockSend).not.toHaveBeenCalled();
+
+      const sampledSpan = new SentrySpan({
+        name: 'is-sampled',
+        isStandalone: true,
+        startTimestamp: 1,
+        endTimestamp: 2,
+        sampled: true,
+      });
+      sampledSpan.end();
+      expect(mockSend).toHaveBeenCalledTimes(1);
+    });
+
     test('sends the span if `beforeSendSpan` does not modify the span ', () => {
       const beforeSendSpan = jest.fn(span => span);
       const client = new TestClient(
