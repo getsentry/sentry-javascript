@@ -105,7 +105,7 @@ export function getDynamicSamplingContextFromSpan(span: Span): Readonly<Partial<
 
   dsc.sampled = String(spanIsSampled(rootSpan));
 
-  client.emit('createDsc', dsc);
+  client.emit('createDsc', dsc, rootSpan);
 
   return dsc;
 }

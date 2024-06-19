@@ -21,6 +21,8 @@ export { getDynamicSamplingContextFromSpan } from '@sentry/core';
 
 export { isSentryRequestSpan } from './utils/isSentryRequest';
 
+export { setupDscHandler } from './utils/setupDscHandler';
+
 export { getActiveSpan } from './utils/getActiveSpan';
 export { startSpan, startSpanManual, startInactiveSpan, withActiveSpan, continueTrace } from './trace';
 
