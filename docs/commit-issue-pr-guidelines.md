@@ -22,7 +22,7 @@ be added, and the Sentry SDK team may also add further labels as needed.
 ## Pull Requests (PRs)
 
 PRs are merged via `Squash and merge`. This means that all commits on the branch will be squashed into a single commit,
-and committed as such onto master.
+and committed as such onto `develop`.
 
 - The PR name can generally follow the commit name (e.g.
   `feat(core): Set custom transaction source for event processors`)
