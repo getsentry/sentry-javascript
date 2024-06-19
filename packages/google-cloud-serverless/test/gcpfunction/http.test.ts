@@ -171,7 +171,7 @@ describe('GCPFunction', () => {
     await handleHttp(wrappedHandler);
 
     const initOptions = (mockInit as unknown as jest.SpyInstance).mock.calls[0];
-    const defaultIntegrations = initOptions[0].defaultIntegrations.map((i: Integration) => i.name);
+    const defaultIntegrations = initOptions[0]?.defaultIntegrations.map((i: Integration) => i.name);
 
     expect(defaultIntegrations).toContain('RequestData');
 

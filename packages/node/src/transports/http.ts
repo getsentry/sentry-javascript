@@ -162,7 +162,7 @@ function createRequestExecutor(
             statusCode: res.statusCode,
             headers: {
               'retry-after': retryAfterHeader,
-              'x-sentry-rate-limits': Array.isArray(rateLimitsHeader) ? rateLimitsHeader[0] : rateLimitsHeader,
+              'x-sentry-rate-limits': Array.isArray(rateLimitsHeader) ? rateLimitsHeader[0] || null : rateLimitsHeader,
             },
           });
         },

@@ -644,7 +644,7 @@ describe('BaseClient', () => {
       client.captureEvent({ message: 'message' }, undefined, scope);
 
       expect(TestClient.instance!.event!.breadcrumbs).toHaveLength(1);
-      expect(TestClient.instance!.event!.breadcrumbs![0].message).toEqual('2');
+      expect(TestClient.instance!.event!.breadcrumbs![0]?.message).toEqual('2');
     });
 
     test('adds context data', () => {

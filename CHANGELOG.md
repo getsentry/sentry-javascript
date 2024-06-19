@@ -4,7 +4,89 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 8.10.0
+
+### Important Changes
+
+- **feat(remix): Migrate to `opentelemetry-instrumentation-remix`. (#12110)**
+
+You can now simplify your remix instrumentation by opting-in like this:
+
+```js
+const Sentry = require('@sentry/remix');
+
+Sentry.init({
+  dsn: YOUR_DSN
+  // opt-in to new auto instrumentation
+  autoInstrumentRemix: true,
+});
+```
+
+With this setup, you do not need to add e.g. `wrapExpressCreateRequestHandler` anymore. Additionally, the quality of the
+captured data improves. The old way to use `@sentry/remix` continues to work, but it is encouraged to use the new setup.
+
+### Other Changes
+
+- feat(browser): Export `thirdPartyErrorFilterIntegration` from `@sentry/browser` (#12512)
+- feat(feedback): Allow passing `tags` field to any feedback config param (#12197)
+- feat(feedback): Improve screenshot quality for retina displays (#12487)
+- feat(feedback): Screenshots don't resize after cropping (#12481)
+- feat(node) add max lineno and colno limits (#12514)
+- feat(profiling) add global profile context while profiler is running (#12394)
+- feat(react): Add React version to events (#12390)
+- feat(replay): Add url to replay hydration error breadcrumb type (#12521)
+- fix(core): Ensure standalone spans respect sampled flag (#12533)
+- fix(core): Use maxValueLength in extra error data integration (#12174)
+- fix(feedback): Fix scrolling after feedback submission (#12499)
+- fix(feedback): Send feedback rejects invalid responses (#12518)
+- fix(nextjs): Update @rollup/plugin-commonjs (#12527)
+- fix(node): Ensure status is correct for http server span errors (#12477)
+- fix(node): Unify`getDynamicSamplingContextFromSpan` (#12522)
+- fix(profiling): continuous profile chunks should be in seconds (#12532)
+- fix(remix): Add nativeFetch support for accessing request headers (#12479)
+- fix(remix): Export no-op as `captureRemixServerException` from client SDK (#12497)
+- ref(node) refactor contextlines to use readline (#12221)
+
+Work in this release was contributed by @AndreyKovanov and @kiliman. Thank you for your contributions!
+
+## 8.9.2
+
+- fix(profiling): Update exports so types generate properly (#12469)
+
+## 8.9.1
+
+### Important changes
+
+- **feat(solid): Add Solid SDK**
+
+  This release adds a dedicated SDK for [Solid JS](https://www.solidjs.com/) in alpha state with instrumentation for
+  [Solid Router](https://docs.solidjs.com/solid-router) and a custom `ErrorBoundary`. See the
+  [package README](https://github.com/getsentry/sentry-javascript/blob/develop/packages/solid/README.md) for how to use
+  the SDK.
+
+### Other changes
+
+- feat(deps): bump @opentelemetry/instrumentation-express from 0.40.0 to 0.40.1 (#12438)
+- feat(deps): bump @opentelemetry/instrumentation-mongodb from 0.44.0 to 0.45.0 (#12439)
+- feat(deps): bump @opentelemetry/propagator-aws-xray from 1.24.1 to 1.25.0 (#12437)
+- feat(nextjs): Allow for suppressing warning about missing global error handler file (#12369)
+- feat(redis): Add cache logic for redis-4 (#12429)
+- feat(replay): Replay Web Vital Breadcrumbs (#12296)
+- fix: Fix types export order (#12404)
+- fix(astro): Ensure server-side exports work correctly (#12453)
+- fix(aws-serverless): Add `op` to Otel-generated lambda function root span (#12430)
+- fix(aws-serverless): Only auto-patch handler in CJS when loading `awslambda-auto` (#12392)
+- fix(aws-serverless): Only start root span in Sentry wrapper if Otel didn't wrap handler (#12407)
+- fix(browser): Fix INP span creation & transaction tagging (#12372)
+- fix(nextjs): correct types conditional export ordering (#12355)
+- fix(replay): Fix guard for exception event (#12441)
+- fix(vue): Handle span name assignment for nested routes in VueRouter (#12398)
+
 Work in this release was contributed by @soch4n. Thank you for your contribution!
+
+## 8.9.0
+
+This release failed to publish correctly, please use `8.9.1` instead.
 
 ## 8.8.0
 

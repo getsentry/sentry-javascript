@@ -95,6 +95,7 @@ sentryTest('should capture feedback', async ({ forceFlushReplay, getLocalTestUrl
       },
     },
     level: 'info',
+    tags: {},
     timestamp: expect.any(Number),
     event_id: expect.stringMatching(/\w{32}/),
     environment: 'production',

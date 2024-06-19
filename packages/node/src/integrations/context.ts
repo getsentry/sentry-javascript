@@ -247,9 +247,8 @@ export function getDeviceContext(deviceOpt: DeviceContextOptions | true): Device
 
   if (deviceOpt === true || deviceOpt.cpu) {
     const cpuInfo: os.CpuInfo[] | undefined = os.cpus();
-    if (cpuInfo && cpuInfo.length) {
-      const firstCpu = cpuInfo[0];
-
+    const firstCpu = cpuInfo && cpuInfo[0];
+    if (firstCpu) {
       device.processor_count = cpuInfo.length;
       device.cpu_description = firstCpu.model;
       device.processor_frequency = firstCpu.speed;
@@ -273,7 +272,7 @@ interface DistroFile {
   /** The file name, located in `/etc`. */
   name: string;
   /** Potential distributions to check. */
-  distros: string[];
+  distros: [string, ...string[]];
 }
 
 /** Mapping of linux release files located in /etc to distributions. */
@@ -356,7 +355,7 @@ async function getDarwinInfo(): Promise<OsContext> {
 
 /** Returns a distribution identifier to look up version callbacks. */
 function getLinuxDistroId(name: string): string {
-  return name.split(' ')[0].toLowerCase();
+  return (name.split(' ') as [string])[0].toLowerCase();
 }
 
 /** Loads the Linux operating system context. */
@@ -401,7 +400,7 @@ async function getLinuxInfo(): Promise<OsContext> {
     // number. This is different for every distribution, so several strategies
     // are computed in `LINUX_VERSIONS`.
     const id = getLinuxDistroId(linuxInfo.name);
-    linuxInfo.version = LINUX_VERSIONS[id](contents);
+    linuxInfo.version = LINUX_VERSIONS[id]?.(contents);
   } catch (e) {
     // ignore
   }

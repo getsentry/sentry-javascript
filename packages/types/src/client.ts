@@ -244,7 +244,7 @@ export interface Client<O extends ClientOptions = ClientOptions> {
   /**
    * Register a callback when a DSC (Dynamic Sampling Context) is created.
    */
-  on(hook: 'createDsc', callback: (dsc: DynamicSamplingContext) => void): void;
+  on(hook: 'createDsc', callback: (dsc: DynamicSamplingContext, rootSpan?: Span) => void): void;
 
   /**
    * Register a callback when a Feedback event has been prepared.
@@ -338,7 +338,7 @@ export interface Client<O extends ClientOptions = ClientOptions> {
   /**
    * Fire a hook for when a DSC (Dynamic Sampling Context) is created. Expects the DSC as second argument.
    */
-  emit(hook: 'createDsc', dsc: DynamicSamplingContext): void;
+  emit(hook: 'createDsc', dsc: DynamicSamplingContext, rootSpan?: Span): void;
 
   /**
    * Fire a hook event for after preparing a feedback event. Events to be given

@@ -123,7 +123,7 @@ describe('browserTracingReactRouterV3', () => {
     client.init();
     render(<Router history={history}>{routes}</Router>);
 
-    expect(getCurrentScope().getScopeData()?.transactionName).toEqual('/');
+    expect(getCurrentScope().getScopeData().transactionName).toEqual('/');
   });
 
   it('starts a navigation transaction', () => {
@@ -213,13 +213,13 @@ describe('browserTracingReactRouterV3', () => {
     client.init();
     const { container } = render(<Router history={history}>{routes}</Router>);
 
-    expect(getCurrentScope().getScopeData()?.transactionName).toEqual('/');
+    expect(getCurrentScope().getScopeData().transactionName).toEqual('/');
 
     act(() => {
       history.push('/users/123');
     });
     expect(container.innerHTML).toContain('123');
 
-    expect(getCurrentScope().getScopeData()?.transactionName).toEqual('/users/:userid');
+    expect(getCurrentScope().getScopeData().transactionName).toEqual('/users/:userid');
   });
 });

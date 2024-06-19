@@ -48,8 +48,9 @@ export function getCacheKeySafely(redisCommand: string, cmdArgs: IORedisCommandA
       }
     };
 
-    if (isInCommands(SINGLE_ARG_COMMANDS, redisCommand) && cmdArgs.length > 0) {
-      return processArg(cmdArgs[0]);
+    const firstArg = cmdArgs[0];
+    if (isInCommands(SINGLE_ARG_COMMANDS, redisCommand) && firstArg != null) {
+      return processArg(firstArg);
     }
 
     return flatten(cmdArgs.map(arg => processArg(arg)));

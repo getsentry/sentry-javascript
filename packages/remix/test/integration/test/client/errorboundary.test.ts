@@ -42,4 +42,9 @@ test('should capture React component errors.', async ({ page }) => {
   expect(errorEnvelope.transaction).toBe(
     useV2 ? 'routes/error-boundary-capture.$id' : 'routes/error-boundary-capture/$id',
   );
+
+  if (useV2) {
+    // The error boundary should be rendered
+    expect(await page.textContent('#error-header')).toBe('ErrorBoundary Error');
+  }
 });

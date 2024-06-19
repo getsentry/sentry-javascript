@@ -5,6 +5,7 @@ import { SEMATTRS_HTTP_STATUS_CODE } from '@opentelemetry/semantic-conventions';
 import {
   captureEvent,
   getCapturedScopesOnSpan,
+  getDynamicSamplingContextFromSpan,
   getMetricSummaryJsonForSpan,
   timedEventsToMeasurements,
 } from '@sentry/core';
@@ -22,7 +23,6 @@ import { SENTRY_TRACE_STATE_PARENT_SPAN_ID } from './constants';
 import { DEBUG_BUILD } from './debug-build';
 import { SEMANTIC_ATTRIBUTE_SENTRY_PARENT_IS_REMOTE } from './semanticAttributes';
 import { convertOtelTimeToSeconds } from './utils/convertOtelTimeToSeconds';
-import { getDynamicSamplingContextFromSpan } from './utils/dynamicSamplingContext';
 import { getRequestSpanData } from './utils/getRequestSpanData';
 import type { SpanNode } from './utils/groupSpansWithParents';
 import { getLocalParentId } from './utils/groupSpansWithParents';
@@ -242,7 +242,7 @@ function createTransactionForOtelSpan(span: ReadableSpan): TransactionEvent {
         capturedSpanScope: capturedSpanScopes.scope,
         capturedSpanIsolationScope: capturedSpanScopes.isolationScope,
         sampleRate,
-        dynamicSamplingContext: getDynamicSamplingContextFromSpan(span),
+        dynamicSamplingContext: getDynamicSamplingContextFromSpan(span as unknown as Span),
       }),
     },
     ...(source && {

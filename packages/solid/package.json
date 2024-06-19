@@ -1,6 +1,6 @@
 {
   "name": "@sentry/solid",
-  "version": "8.8.0",
+  "version": "8.10.0",
   "description": "Official Sentry SDK for Solid",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/solid",
@@ -42,10 +42,10 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/browser": "8.8.0",
-    "@sentry/core": "8.8.0",
-    "@sentry/types": "8.8.0",
-    "@sentry/utils": "8.8.0"
+    "@sentry/browser": "8.10.0",
+    "@sentry/core": "8.10.0",
+    "@sentry/types": "8.10.0",
+    "@sentry/utils": "8.10.0"
   },
   "peerDependencies": {
     "solid-js": "^1.8.4"
@@ -53,9 +53,9 @@
   "devDependencies": {
     "@solidjs/router": "^0.13.5",
     "@solidjs/testing-library": "0.8.5",
-    "solid-js": "^1.8.11",
     "@testing-library/jest-dom": "^6.4.5",
     "@testing-library/user-event": "^14.5.2",
+    "solid-js": "^1.8.11",
     "vite-plugin-solid": "^2.8.2"
   },
   "scripts": {

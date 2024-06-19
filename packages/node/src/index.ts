@@ -27,6 +27,8 @@ export { connectIntegration, setupConnectErrorHandler } from './integrations/tra
 export { spotlightIntegration } from './integrations/spotlight';
 
 export { SentryContextManager } from './otel/contextManager';
+export { generateInstrumentOnce } from './otel/instrument';
+
 export {
   init,
   getDefaultIntegrations,

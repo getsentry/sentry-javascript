@@ -189,11 +189,11 @@ export function buildNetworkRequestOrResponse(
 
 /** Filter a set of headers */
 export function getAllowedHeaders(headers: Record<string, string>, allowedHeaders: string[]): Record<string, string> {
-  return Object.keys(headers).reduce((filteredHeaders: Record<string, string>, key: string) => {
+  return Object.entries(headers).reduce((filteredHeaders: Record<string, string>, [key, value]) => {
     const normalizedKey = key.toLowerCase();
     // Avoid putting empty strings into the headers
     if (allowedHeaders.includes(normalizedKey) && headers[key]) {
-      filteredHeaders[normalizedKey] = headers[key];
+      filteredHeaders[normalizedKey] = value;
     }
     return filteredHeaders;
   }, {});

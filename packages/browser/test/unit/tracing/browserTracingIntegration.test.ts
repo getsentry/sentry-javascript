@@ -672,8 +672,8 @@ describe('browserTracingIntegration', () => {
         traceId: expect.stringMatching(/[a-f0-9]{32}/),
       });
 
-      expect(newIsolationScopePropCtx?.traceId).not.toEqual(oldIsolationScopePropCtx?.traceId);
-      expect(newCurrentScopePropCtx?.traceId).not.toEqual(oldCurrentScopePropCtx?.traceId);
+      expect(newIsolationScopePropCtx.traceId).not.toEqual(oldIsolationScopePropCtx.traceId);
+      expect(newCurrentScopePropCtx.traceId).not.toEqual(oldCurrentScopePropCtx.traceId);
     });
 
     it("saves the span's positive sampling decision and its DSC on the propagationContext when the span finishes", () => {
@@ -701,8 +701,8 @@ describe('browserTracingIntegration', () => {
 
       const propCtxAfterEnd = getCurrentScope().getPropagationContext();
       expect(propCtxAfterEnd).toStrictEqual({
-        spanId: propCtxBeforeEnd?.spanId,
-        traceId: propCtxBeforeEnd?.traceId,
+        spanId: propCtxBeforeEnd.spanId,
+        traceId: propCtxBeforeEnd.traceId,
         sampled: true,
         dsc: {
           environment: 'production',
@@ -710,7 +710,7 @@ describe('browserTracingIntegration', () => {
           sample_rate: '1',
           sampled: 'true',
           transaction: 'mySpan',
-          trace_id: propCtxBeforeEnd?.traceId,
+          trace_id: propCtxBeforeEnd.traceId,
         },
       });
     });
@@ -740,8 +740,8 @@ describe('browserTracingIntegration', () => {
 
       const propCtxAfterEnd = getCurrentScope().getPropagationContext();
       expect(propCtxAfterEnd).toStrictEqual({
-        spanId: propCtxBeforeEnd?.spanId,
-        traceId: propCtxBeforeEnd?.traceId,
+        spanId: propCtxBeforeEnd.spanId,
+        traceId: propCtxBeforeEnd.traceId,
         sampled: false,
         dsc: {
           environment: 'production',
@@ -749,7 +749,7 @@ describe('browserTracingIntegration', () => {
           sample_rate: '0',
           sampled: 'false',
           transaction: 'mySpan',
-          trace_id: propCtxBeforeEnd?.traceId,
+          trace_id: propCtxBeforeEnd.traceId,
         },
       });
     });
@@ -950,7 +950,7 @@ describe('browserTracingIntegration', () => {
       client.emit('idleSpanEnableAutoFinish', idleSpan!);
 
       const span = startInactiveSpan({ name: 'inner1' });
-      span?.end(); // activities = 0
+      span.end(); // activities = 0
 
       // inner1 is now ended, all good
       expect(spans).toHaveLength(1);
@@ -985,7 +985,7 @@ describe('browserTracingIntegration', () => {
       client.emit('idleSpanEnableAutoFinish', idleSpan!);
 
       const span = startInactiveSpan({ name: 'inner1' });
-      span?.end(); // activities = 0
+      span.end(); // activities = 0
 
       // inner1 is now ended, all good
       expect(spans).toHaveLength(1);

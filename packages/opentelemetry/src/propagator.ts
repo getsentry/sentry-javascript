@@ -8,7 +8,13 @@ import type { continueTrace } from '@sentry/core';
 import { hasTracingEnabled } from '@sentry/core';
 import { getRootSpan } from '@sentry/core';
 import { spanToJSON } from '@sentry/core';
-import { getClient, getCurrentScope, getDynamicSamplingContextFromClient, getIsolationScope } from '@sentry/core';
+import {
+  getClient,
+  getCurrentScope,
+  getDynamicSamplingContextFromClient,
+  getDynamicSamplingContextFromSpan,
+  getIsolationScope,
+} from '@sentry/core';
 import type { DynamicSamplingContext, Options, PropagationContext } from '@sentry/types';
 import {
   LRUMap,
@@ -32,7 +38,6 @@ import {
 } from './constants';
 import { DEBUG_BUILD } from './debug-build';
 import { getScopesFromContext, setScopesOnContext } from './utils/contextData';
-import { getDynamicSamplingContextFromSpan } from './utils/dynamicSamplingContext';
 import { getSamplingDecision } from './utils/getSamplingDecision';
 import { setIsSetup } from './utils/setupCheck';
 

@@ -1,0 +1,9 @@
+name: 'external-contributor-gh-action'
+description: 'Add external contributors to CHANGELOG.md'
+inputs:
+  name:
+    required: true
+    description: 'The name of the external contributor'
+runs:
+  using: 'node20'
+  main: 'index.mjs'

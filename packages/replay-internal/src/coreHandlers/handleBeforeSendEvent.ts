@@ -1,4 +1,5 @@
 import type { ErrorEvent, Event } from '@sentry/types';
+import { getLocationHref } from '@sentry/utils';
 
 import type { ReplayContainer } from '../types';
 import { createBreadcrumb } from '../util/createBreadcrumb';
@@ -41,6 +42,9 @@ function handleHydrationError(replay: ReplayContainer, event: ErrorEvent): void 
   ) {
     const breadcrumb = createBreadcrumb({
       category: 'replay.hydrate-error',
+      data: {
+        url: getLocationHref(),
+      },
     });
     addBreadcrumbEvent(replay, breadcrumb);
   }

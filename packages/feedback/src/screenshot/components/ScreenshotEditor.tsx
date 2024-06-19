@@ -94,8 +94,6 @@ export function makeScreenshotEditorComponent({ imageBuffer, dialog, options }: 
       if (cropButton) {
         cropButton.style.width = `${imageDimensions.width}px`;
         cropButton.style.height = `${imageDimensions.height}px`;
-        cropButton.style.left = `${imageDimensions.x}px`;
-        cropButton.style.top = `${imageDimensions.y}px`;
       }
 
       setCroppingRect({ startX: 0, startY: 0, endX: imageDimensions.width, endY: imageDimensions.height });
@@ -189,8 +187,8 @@ export function makeScreenshotEditorComponent({ imageBuffer, dialog, options }: 
       const cutoutCanvas = DOCUMENT.createElement('canvas');
       const imageBox = constructRect(getContainedSize(imageBuffer));
       const croppingBox = constructRect(croppingRect);
-      cutoutCanvas.width = croppingBox.width;
-      cutoutCanvas.height = croppingBox.height;
+      cutoutCanvas.width = croppingBox.width * DPI;
+      cutoutCanvas.height = croppingBox.height * DPI;
 
       const cutoutCtx = cutoutCanvas.getContext('2d');
       if (cutoutCtx && imageBuffer) {
@@ -202,8 +200,8 @@ export function makeScreenshotEditorComponent({ imageBuffer, dialog, options }: 
           (croppingBox.height / imageBox.height) * imageBuffer.height,
           0,
           0,
-          croppingBox.width,
-          croppingBox.height,
+          cutoutCanvas.width,
+          cutoutCanvas.height,
         );
       }
 
@@ -212,6 +210,8 @@ export function makeScreenshotEditorComponent({ imageBuffer, dialog, options }: 
         ctx.clearRect(0, 0, imageBuffer.width, imageBuffer.height);
         imageBuffer.width = cutoutCanvas.width;
         imageBuffer.height = cutoutCanvas.height;
+        imageBuffer.style.width = `${croppingBox.width}px`;
+        imageBuffer.style.height = `${croppingBox.height}px`;
         ctx.drawImage(cutoutCanvas, 0, 0);
         resizeCropper();
       }
@@ -229,6 +229,8 @@ export function makeScreenshotEditorComponent({ imageBuffer, dialog, options }: 
           }
           imageBuffer.width = imageSource.videoWidth;
           imageBuffer.height = imageSource.videoHeight;
+          imageBuffer.style.width = '100%';
+          imageBuffer.style.height = '100%';
           context.drawImage(imageSource, 0, 0);
         },
         [imageBuffer],
@@ -249,7 +251,7 @@ export function makeScreenshotEditorComponent({ imageBuffer, dialog, options }: 
       <div class="editor">
         <style dangerouslySetInnerHTML={styles} />
         <div class="editor__canvas-container" ref={canvasContainerRef}>
-          <div class="editor__crop-container" style={{ position: 'absolute' }} ref={cropContainerRef}>
+          <div class="editor__crop-container" style={{ position: 'absolute', zIndex: 1 }} ref={cropContainerRef}>
             <canvas style={{ position: 'absolute' }} ref={croppingRef}></canvas>
             <CropCorner
               left={croppingRect.startX - CROP_BUTTON_BORDER}

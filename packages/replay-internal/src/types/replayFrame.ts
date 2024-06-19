@@ -68,6 +68,14 @@ interface ReplayMutationFrame extends ReplayBaseBreadcrumbFrame {
   data: ReplayMutationFrameData;
 }
 
+interface ReplayHydrationErrorFrameData {
+  url: string;
+}
+interface ReplayHydrationErrorFrame extends ReplayBaseBreadcrumbFrame {
+  category: 'replay.hydrate-error';
+  data: ReplayHydrationErrorFrameData;
+}
+
 interface ReplayKeyboardEventFrameData extends ReplayBaseDomFrameData {
   metaKey: boolean;
   shiftKey: boolean;
@@ -146,6 +154,7 @@ export type ReplayBreadcrumbFrame =
   | ReplaySlowClickFrame
   | ReplayMultiClickFrame
   | ReplayMutationFrame
+  | ReplayHydrationErrorFrame
   | ReplayFeedbackFrame
   | ReplayBaseBreadcrumbFrame;
 
