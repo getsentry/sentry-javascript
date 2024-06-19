@@ -16,9 +16,12 @@ export {
   spanHasStatus,
 } from './utils/spanTypes';
 
-export { getDynamicSamplingContextFromSpan } from './utils/dynamicSamplingContext';
+// Re-export this for backwards compatibility (this used to be a different implementation)
+export { getDynamicSamplingContextFromSpan } from '@sentry/core';
 
 export { isSentryRequestSpan } from './utils/isSentryRequest';
+
+export { enhanceDscWithOpenTelemetryRootSpanName } from './utils/enhanceDscWithOpenTelemetryRootSpanName';
 
 export { getActiveSpan } from './utils/getActiveSpan';
 export { startSpan, startSpanManual, startInactiveSpan, withActiveSpan, continueTrace } from './trace';

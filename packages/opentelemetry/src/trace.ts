@@ -7,6 +7,7 @@ import {
   continueTrace as baseContinueTrace,
   getClient,
   getCurrentScope,
+  getDynamicSamplingContextFromSpan,
   getRootSpan,
   handleCallbackErrors,
   spanToJSON,
@@ -16,7 +17,6 @@ import { continueTraceAsRemoteSpan, makeTraceState } from './propagator';
 
 import type { OpenTelemetryClient, OpenTelemetrySpanContext } from './types';
 import { getContextFromScope, getScopesFromContext } from './utils/contextData';
-import { getDynamicSamplingContextFromSpan } from './utils/dynamicSamplingContext';
 import { getSamplingDecision } from './utils/getSamplingDecision';
 
 /**
