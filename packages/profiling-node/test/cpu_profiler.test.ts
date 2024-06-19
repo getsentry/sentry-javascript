@@ -235,8 +235,8 @@ describe('Profiler bindings', () => {
       expect(sample.timestamp).toBeDefined();
       // No older than a minute and not in the future. Timestamp is in seconds so convert to ms
       // as the constructor expectes ms.
-      expect(new Date(sample.timestamp as number * 1e3).getTime()).toBeGreaterThan(Date.now() - 60 * 1e3);
-      expect(new Date(sample.timestamp as number * 1e3).getTime()).toBeLessThanOrEqual(Date.now());
+      expect(new Date((sample.timestamp as number) * 1e3).getTime()).toBeGreaterThan(Date.now() - 60 * 1e3);
+      expect(new Date((sample.timestamp as number) * 1e3).getTime()).toBeLessThanOrEqual(Date.now());
     }
   });
 
