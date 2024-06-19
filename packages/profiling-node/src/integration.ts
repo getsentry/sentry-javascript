@@ -1,10 +1,16 @@
-import { defineIntegration, getCurrentScope, getIsolationScope, getRootSpan, spanToJSON } from '@sentry/core';
+import {
+  defineIntegration,
+  getCurrentScope,
+  getGlobalScope,
+  getIsolationScope,
+  getRootSpan,
+  spanToJSON,
+} from '@sentry/core';
 import type { NodeClient } from '@sentry/node';
 import type { Event, Integration, IntegrationFn, Profile, ProfileChunk, Span } from '@sentry/types';
 
 import { LRUMap, logger, uuid4 } from '@sentry/utils';
 
-import { getGlobalScope } from '../../core/src/currentScopes';
 import { CpuProfilerBindings } from './cpu_profiler';
 import { DEBUG_BUILD } from './debug-build';
 import { NODE_MAJOR, NODE_VERSION } from './nodeVersion';
