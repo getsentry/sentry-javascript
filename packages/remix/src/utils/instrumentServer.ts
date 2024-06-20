@@ -8,6 +8,7 @@ import {
   getRootSpan,
   hasTracingEnabled,
   setHttpStatus,
+  spanIsValid,
   spanToJSON,
   spanToTraceHeader,
   startSpan,
@@ -208,7 +209,7 @@ function getTraceAndBaggage(): {
     const span = getActiveSpan();
     const rootSpan = span && getRootSpan(span);
 
-    if (rootSpan) {
+    if (rootSpan && spanIsValid(rootSpan)) {
       const dynamicSamplingContext = getDynamicSamplingContextFromSpan(rootSpan);
 
       return {

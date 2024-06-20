@@ -77,6 +77,7 @@ export {
   getStatusMessage,
   getRootSpan,
   getActiveSpan,
+  spanIsValid,
   addChildSpanToSpan,
 } from './utils/spanUtils';
 export { parseSampleRate } from './utils/parseSampleRate';

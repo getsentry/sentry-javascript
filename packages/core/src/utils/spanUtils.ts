@@ -69,6 +69,16 @@ export function spanToTraceHeader(span: Span): string {
 }
 
 /**
+ * Spans may have an invalid trace ID/span ID, in some cases when they were not sampled.
+ */
+export function spanIsValid(span: Span): boolean {
+  return (
+    span.spanContext().spanId !== '0000000000000000' &&
+    span.spanContext().traceId !== '00000000000000000000000000000000'
+  );
+}
+
+/**
  * Convert a span time input intp a timestamp in seconds.
  */
 export function spanTimeInputToSeconds(input: SpanTimeInput | undefined): number {
