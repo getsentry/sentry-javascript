@@ -56,18 +56,18 @@ The Sentry Nuxt SDK is based on [Nuxt Modules](https://nuxt.com/docs/api/kit/mod
 1. Add `@sentry/nuxt` to the modules section of `nuxt.config.ts`:
 
 ```javascript
-   // nuxt.config.ts
-   export default defineNuxtConfig({
-      modules: ['@sentry/nuxt'],
-      runtimeConfig: {
-        public: {
-          sentry: {
-            dsn: env.DSN,
-            // Additional config    
-          },
-        },
+// nuxt.config.ts
+export default defineNuxtConfig({
+  modules: ['@sentry/nuxt'],
+  runtimeConfig: {
+    public: {
+      sentry: {
+        dsn: env.DSN,
+        // Additional config
       },
-  });
+    },
+  },
+});
 ```
 
 ### 3. Server-side Setup
