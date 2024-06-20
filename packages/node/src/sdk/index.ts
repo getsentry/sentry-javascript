@@ -178,7 +178,7 @@ function _init(
 
   enhanceDscWithOpenTelemetryRootSpanName(client);
   setupEventContextTrace(client);
-  
+
   return client;
 }
 

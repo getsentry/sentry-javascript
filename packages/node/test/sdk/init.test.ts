@@ -141,5 +141,5 @@ describe('init()', () => {
     const client = init({ dsn: PUBLIC_DSN, skipOpenTelemetrySetup: true });
 
     expect(client).toBeInstanceOf(NodeClient);
-  })
+  });
 });

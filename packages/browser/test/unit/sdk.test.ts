@@ -221,7 +221,7 @@ describe('init', () => {
       const client = init(options);
 
       expect(client).toBeUndefined();
-  
+
       consoleErrorSpy.mockRestore();
     });
   });

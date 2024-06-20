@@ -87,7 +87,7 @@ describe('SDK', () => {
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
       const client = initAndBind(TestClient, options);
       expect(client).not.toBeUndefined();
-    })
+    });
   });
 });
 

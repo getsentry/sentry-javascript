@@ -49,6 +49,6 @@ describe('Sentry server SDK', () => {
 
     it('returns client from init', () => {
       expect(init({})).not.toBeUndefined();
-    })
+    });
   });
 });

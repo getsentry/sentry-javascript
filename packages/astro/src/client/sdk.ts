@@ -17,7 +17,6 @@ declare const __SENTRY_TRACING__: boolean;
  * @param options Configuration options for the SDK.
  */
 export function init(options: BrowserOptions): Client | undefined {
-  
   const opts = {
     defaultIntegrations: getDefaultIntegrations(options),
     ...options,
