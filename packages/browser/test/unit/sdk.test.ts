@@ -209,5 +209,25 @@ describe('init', () => {
 
       consoleErrorSpy.mockRestore();
     });
+
+    it("doesn't return a client on initialization error", () => {
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+      Object.defineProperty(WINDOW, 'chrome', {
+        value: { runtime: { id: 'mock-extension-id' } },
+        writable: true,
+      });
+
+      const client = init(options);
+
+      expect(client).toBeUndefined();
+  
+      consoleErrorSpy.mockRestore();
+    });
+  });
+
+  it('returns a client from init', () => {
+    const client = init();
+    expect(client).not.toBeUndefined();
   });
 });
