@@ -237,6 +237,11 @@ export interface Client<O extends ClientOptions = ClientOptions> {
   on(hook: 'afterSendEvent', callback: (event: Event, sendResponse: TransportMakeRequestResponse) => void): void;
 
   /**
+   * Register a callback when a breadcrumb is to be added.
+   */
+  on(hook: 'preprocessAddBreadcrumb', callback: (breadcrumb: Breadcrumb, hint?: BreadcrumbHint) => void): void;
+
+  /**
    * Register a callback before a breadcrumb is added.
    */
   on(hook: 'beforeAddBreadcrumb', callback: (breadcrumb: Breadcrumb, hint?: BreadcrumbHint) => void): void;
@@ -329,6 +334,12 @@ export interface Client<O extends ClientOptions = ClientOptions> {
    * second argument.
    */
   emit(hook: 'afterSendEvent', event: Event, sendResponse: TransportMakeRequestResponse): void;
+
+  /**
+   * Fire a hook for when a breadcrumb to be added. This can be used by the SDK before user finalizes the breadcrumb
+   * in `beforeBreadcrumb` callback. This is used in SDK which require different handling of breadcrumbs like RN, Capacitor...
+   */
+  emit(hook: 'preprocessAddBreadcrumb', breadcrumb: Breadcrumb, hint?: BreadcrumbHint): void;
 
   /**
    * Fire a hook for when a breadcrumb is added. Expects the breadcrumb as second argument.

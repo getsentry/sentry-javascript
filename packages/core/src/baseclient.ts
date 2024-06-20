@@ -411,6 +411,9 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   public on(hook: 'afterSendEvent', callback: (event: Event, sendResponse: TransportMakeRequestResponse) => void): void;
 
   /** @inheritdoc */
+  public on(hook: 'preprocessAddBreadcrumb', callback: (breadcrumb: Breadcrumb, hint?: BreadcrumbHint) => void): void;
+
+  /** @inheritdoc */
   public on(hook: 'beforeAddBreadcrumb', callback: (breadcrumb: Breadcrumb, hint?: BreadcrumbHint) => void): void;
 
   /** @inheritdoc */
@@ -494,6 +497,9 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
 
   /** @inheritdoc */
   public emit(hook: 'afterSendEvent', event: Event, sendResponse: TransportMakeRequestResponse): void;
+
+  /** @inheritdoc */
+  public emit(hook: 'preprocessAddBreadcrumb', breadcrumb: Breadcrumb, hint?: BreadcrumbHint): void;
 
   /** @inheritdoc */
   public emit(hook: 'beforeAddBreadcrumb', breadcrumb: Breadcrumb, hint?: BreadcrumbHint): void;
