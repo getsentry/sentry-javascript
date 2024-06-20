@@ -54,6 +54,9 @@ export function makeBaseBundleConfig(options) {
         // Add polyfills for ES6 array/string methods at the end of the bundle
         return isEs5 ? getEs5Polyfills() : '';
       },
+      intro: () => {
+        return 'exports = window.Sentry || {};';
+      },
     },
     context: 'window',
     plugins: [rrwebBuildPlugin, markAsBrowserBuildPlugin],
