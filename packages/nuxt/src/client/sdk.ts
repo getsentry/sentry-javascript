@@ -1,5 +1,4 @@
 import { applySdkMetadata } from '@sentry/core';
-import type { Options } from '@sentry/types';
 import { init as initVue } from '@sentry/vue';
 import type { SentryVueOptions } from '../common/types';
 
@@ -13,8 +12,7 @@ export function init(options: SentryVueOptions): void {
     ...options,
   };
 
-  // Type cast to `Options` because Vue has slightly different options, but type is not highly relevant here
-  applySdkMetadata(sentryOptions as Options, 'nuxt', ['nuxt', 'vue']);
+  applySdkMetadata(sentryOptions, 'nuxt', ['nuxt', 'vue']);
 
   initVue(sentryOptions);
 }

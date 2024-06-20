@@ -1,6 +1,6 @@
 import { SDK_VERSION } from '@sentry/vue';
 import * as SentryVue from '@sentry/vue';
-import { beforeEach, describe, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { init } from '../../src/client';
 
 const vueInit = vi.spyOn(SentryVue, 'init');

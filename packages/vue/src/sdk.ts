@@ -1,5 +1,6 @@
 import { SDK_VERSION, getDefaultIntegrations, init as browserInit } from '@sentry/browser';
 
+import { applySdkMetadata } from '@sentry/core';
 import { vueIntegration } from './integration';
 import type { Options, TracingOptions } from './types';
 
@@ -25,6 +26,8 @@ export function init(
     defaultIntegrations: [...getDefaultIntegrations(config), vueIntegration()],
     ...config,
   };
+
+  applySdkMetadata(config, 'nuxt', ['nuxt', 'vue']);
 
   browserInit(options);
 }

@@ -37,7 +37,7 @@
     "@sentry/types": "8.10.0",
     "@sentry/utils": "8.10.0",
     "@sentry/vite-plugin": "2.18.0",
-    "@sentry/vue": "8.9.2",
+    "@sentry/vue": "8.10.0",
     "@nuxt/kit": "^3.12.2"
   },
   "devDependencies": {

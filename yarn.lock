@@ -7959,44 +7959,6 @@
     "@angular-devkit/schematics" "14.2.13"
     jsonc-parser "3.1.0"
 
-"@sentry-internal/browser-utils@8.9.2":
-  version "8.9.2"
-  resolved "https://registry.yarnpkg.com/@sentry-internal/browser-utils/-/browser-utils-8.9.2.tgz#36b077fcb1a4ee8f2ed67437b2d9030c4e9e7586"
-  integrity sha512-2A0A6TnfzFDvYCRWS9My3t+JKG6KlslhyaN35BTiOTlYDauEekyJP7BFFyeTJXCHm2BQgI8aRZhBKm+oR9QuYw==
-  dependencies:
-    "@sentry/core" "8.9.2"
-    "@sentry/types" "8.9.2"
-    "@sentry/utils" "8.9.2"
-
-"@sentry-internal/feedback@8.9.2":
-  version "8.9.2"
-  resolved "https://registry.yarnpkg.com/@sentry-internal/feedback/-/feedback-8.9.2.tgz#0afa4c630820b49125ad4b9ad2b38db10de81134"
-  integrity sha512-v04Q+08ohwautwmiDfK5hI+nFW2B/IYhBz7pZM9x1srkwmNA69XOFyo5u34TeVHhYOPbMM2Ubs0uNEcSWHgbbQ==
-  dependencies:
-    "@sentry/core" "8.9.2"
-    "@sentry/types" "8.9.2"
-    "@sentry/utils" "8.9.2"
-
-"@sentry-internal/replay-canvas@8.9.2":
-  version "8.9.2"
-  resolved "https://registry.yarnpkg.com/@sentry-internal/replay-canvas/-/replay-canvas-8.9.2.tgz#76ff2302f7dd6e3870a34b656e6b9b34e9275c18"
-  integrity sha512-vu9TssSjO+XbZjnoyYxMrBI4KgXG+zyqw3ThfPqG6o7O0BGa54fFwtZiMdGq/BHz017FuNiEz4fgtzuDd4gZJQ==
-  dependencies:
-    "@sentry-internal/replay" "8.9.2"
-    "@sentry/core" "8.9.2"
-    "@sentry/types" "8.9.2"
-    "@sentry/utils" "8.9.2"
-
-"@sentry-internal/replay@8.9.2":
-  version "8.9.2"
-  resolved "https://registry.yarnpkg.com/@sentry-internal/replay/-/replay-8.9.2.tgz#35460590a4be71ba050fd49de95e3f8b0f27e50f"
-  integrity sha512-YPnrnXJd6mJpJspJ8pI8hd1KTMOxw+BARP5twiDwXlij1RTotwnNoX9UGaSm+ZPTexPD++6Zyp6xQf4vKKP3yg==
-  dependencies:
-    "@sentry-internal/browser-utils" "8.9.2"
-    "@sentry/core" "8.9.2"
-    "@sentry/types" "8.9.2"
-    "@sentry/utils" "8.9.2"
-
 "@sentry-internal/rrdom@2.11.0":
   version "2.11.0"
   resolved "https://registry.yarnpkg.com/@sentry-internal/rrdom/-/rrdom-2.11.0.tgz#f7c8f54705ad84ece0e97e53f12e87c687749b32"
@@ -8072,19 +8034,6 @@
   version "2.18.0"
   resolved "https://registry.yarnpkg.com/@sentry/babel-plugin-component-annotate/-/babel-plugin-component-annotate-2.18.0.tgz#3bee98f94945643b0762ceed1f6cca60db52bdbd"
   integrity sha512-9L4RbhS3WNtc/SokIhc0dwgcvs78YSQPakZejsrIgnzLzCi8mS6PeT+BY0+QCtsXxjd1egM8hqcJeB0lukBkXA==
-
-"@sentry/browser@8.9.2":
-  version "8.9.2"
-  resolved "https://registry.yarnpkg.com/@sentry/browser/-/browser-8.9.2.tgz#4cfd63449f0038718b5435a4537f3d11123a396b"
-  integrity sha512-jI5XY4j8Sa+YteokI+4SW+A/ErZxPDnspjvV3dm5pIPWvEFhvDyXWZSepqaoqwo3L7fdkRMzXY8Bi4T7qDVMWg==
-  dependencies:
-    "@sentry-internal/browser-utils" "8.9.2"
-    "@sentry-internal/feedback" "8.9.2"
-    "@sentry-internal/replay" "8.9.2"
-    "@sentry-internal/replay-canvas" "8.9.2"
-    "@sentry/core" "8.9.2"
-    "@sentry/types" "8.9.2"
-    "@sentry/utils" "8.9.2"
 
 "@sentry/bundler-plugin-core@2.16.0":
   version "2.16.0"
@@ -8168,26 +8117,6 @@
     "@sentry/cli-win32-i686" "2.32.1"
     "@sentry/cli-win32-x64" "2.32.1"
 
-"@sentry/core@8.9.2":
-  version "8.9.2"
-  resolved "https://registry.yarnpkg.com/@sentry/core/-/core-8.9.2.tgz#af0f2ec25b88da5467cf327d2ffcd555323c30e6"
-  integrity sha512-ixm8NISFlPlEo3FjSaqmq4nnd13BRHoafwJ5MG+okCz6BKGZ1SexEggP42/QpGvDprUUHnfncG6WUMgcarr1zA==
-  dependencies:
-    "@sentry/types" "8.9.2"
-    "@sentry/utils" "8.9.2"
-
-"@sentry/types@8.9.2":
-  version "8.9.2"
-  resolved "https://registry.yarnpkg.com/@sentry/types/-/types-8.9.2.tgz#d143383fc35552d9f153042cc6d56c5ee8ec2fa6"
-  integrity sha512-+LFOyQGl+zk5SZRGZD2MEURf7i5RHgP/mt3s85Rza+vz8M211WJ0YsjkIGUJFSY842nged5QLx4JysLaBlLymg==
-
-"@sentry/utils@8.9.2":
-  version "8.9.2"
-  resolved "https://registry.yarnpkg.com/@sentry/utils/-/utils-8.9.2.tgz#58b003d9c1302f61192e7c99ea42bf1cd5cad7f7"
-  integrity sha512-A4srR9mEBFdVXwSEKjQ94msUbVkMr8JeFiEj9ouOFORw/Y/ux/WV2bWVD/ZI9wq0TcTNK8L1wBgU8UMS5lIq3A==
-  dependencies:
-    "@sentry/types" "8.9.2"
-
 "@sentry/vite-plugin@2.18.0", "@sentry/vite-plugin@^2.18.0":
   version "2.18.0"
   resolved "https://registry.yarnpkg.com/@sentry/vite-plugin/-/vite-plugin-2.18.0.tgz#f263f150b64591ac4db7f4e9a0b2cd8a03cada73"
@@ -8195,16 +8124,6 @@
   dependencies:
     "@sentry/bundler-plugin-core" "2.18.0"
     unplugin "1.0.1"
-
-"@sentry/vue@8.9.2":
-  version "8.9.2"
-  resolved "https://registry.yarnpkg.com/@sentry/vue/-/vue-8.9.2.tgz#c133d5379a7bf314aaba0338c915b51721ea12a8"
-  integrity sha512-apWKOuaahNdvGcJwIA02v3WeSS5QO8I+vkeCUPQBXwORCoyb+opRn5S2Yod85KXf4zPcVrQYjZkb8dtJaxfPBA==
-  dependencies:
-    "@sentry/browser" "8.9.2"
-    "@sentry/core" "8.9.2"
-    "@sentry/types" "8.9.2"
-    "@sentry/utils" "8.9.2"
 
 "@sentry/webpack-plugin@2.16.0":
   version "2.16.0"
@@ -9581,6 +9500,7 @@
     "@types/unist" "*"
 
 "@types/history-4@npm:@types/history@4.7.8", "@types/history-5@npm:@types/history@4.7.8", "@types/history@*":
+  name "@types/history-4"
   version "4.7.8"
   resolved "https://registry.yarnpkg.com/@types/history/-/history-4.7.8.tgz#49348387983075705fe8f4e02fb67f7daaec4934"
   integrity sha512-S78QIYirQcUoo6UJZx9CSP0O2ix9IaeAXwQi26Rhr/+mg7qqPy8TzaxHSUut7eGjL8WmLccT7/MXf304WjqHcA==
@@ -29084,6 +29004,7 @@ react-is@^18.0.0:
     "@remix-run/router" "1.0.2"
 
 "react-router-6@npm:react-router@6.3.0", react-router@6.3.0:
+  name react-router-6
   version "6.3.0"
   resolved "https://registry.yarnpkg.com/react-router/-/react-router-6.3.0.tgz#3970cc64b4cb4eae0c1ea5203a80334fdd175557"
   integrity sha512-7Wh1DzVQ+tlFjkeo+ujvjSqSJmkt1+8JO+T5xklPlgrh70y7ogx75ODRW0ThWhY7S+6yEDks8TYrtQe/aoboBQ==
@@ -31615,6 +31536,7 @@ string-template@~0.2.1:
   integrity sha1-QpMuWYo1LQH8IuwzZ9nYTuxsmt0=
 
 "string-width-cjs@npm:string-width@^4.2.0", string-width@^4.2.0, string-width@^4.2.2, string-width@^4.2.3:
+  name string-width-cjs
   version "4.2.3"
   resolved "https://registry.yarnpkg.com/string-width/-/string-width-4.2.3.tgz#269c7117d27b05ad2e536830a8ec895ef9c6d010"
   integrity sha512-wKyQRQpjJ0sIp62ErSZdGsjMJWsap5oRNihHhu6G7JVO/9jIB6UyevL+tXuOqrng8j/cxKTWyWUwvSTriiZz/g==
@@ -34850,6 +34772,7 @@ workerpool@^6.4.0:
   integrity sha512-i3KR1mQMNwY2wx20ozq2EjISGtQWDIfV56We+yGJ5yDs8jTwQiLLaqHlkBHITlCuJnYlVRmXegxFxZg7gqI++A==
 
 "wrap-ansi-cjs@npm:wrap-ansi@^7.0.0", wrap-ansi@^7.0.0:
+  name wrap-ansi-cjs
   version "7.0.0"
   resolved "https://registry.yarnpkg.com/wrap-ansi/-/wrap-ansi-7.0.0.tgz#67e145cff510a6a6984bdf1152911d69d2eb9e43"
   integrity sha512-YVGIj2kamLSTxw6NsZjoBxfSwsn0ycdesmc4p+Q21c5zPuZ1pl+NfxVdxPtdHvmNVOQ6XSYG4AUtyt/Fi7D16Q==
