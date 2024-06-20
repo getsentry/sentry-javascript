@@ -1,21 +1,23 @@
 import type { BrowserOptions } from '@sentry/browser';
 import { addEventProcessor, init as browserInit } from '@sentry/browser';
 import { applySdkMetadata } from '@sentry/core';
-import type { EventProcessor } from '@sentry/types';
+import type { Client, EventProcessor } from '@sentry/types';
 import { getDomElement } from '@sentry/utils';
 /**
  * Inits the Svelte SDK
  */
-export function init(options: BrowserOptions): void {
+export function init(options: BrowserOptions): Client | undefined {
   const opts = {
     ...options,
   };
 
   applySdkMetadata(opts, 'svelte');
 
-  browserInit(opts);
+  const client = browserInit(opts);
 
   detectAndReportSvelteKit();
+
+  return client;
 }
 
 /**
