@@ -2,8 +2,9 @@ import type { Scope } from '@sentry/types';
 import type { Client } from '@sentry/types';
 import { getGlobalSingleton } from '@sentry/utils';
 import { getAsyncContextStrategy } from './asyncContext';
-import { getMainCarrier } from './carrier';
+import { getMainCarrier, getSentryCarrier } from './carrier';
 import { Scope as ScopeClass } from './scope';
+import { GLOBAL_OBJ } from '@sentry/utils';
 
 /**
  * Get the currently active scope.
@@ -30,6 +31,27 @@ export function getIsolationScope(): Scope {
  */
 export function getGlobalScope(): Scope {
   return getGlobalSingleton('globalScope', () => new ScopeClass());
+}
+
+/**
+ * You should never call this directly. It will be called by the SDK.
+ * Get the default scope which all static `Sentry.*` functions use.
+ *
+ * @internal
+ */
+export function getStaticApiScope(): Scope {
+  return getGlobalSingleton('staticApiScope', getIsolationScope);
+}
+
+/**
+ * You should never call this directly. It will be called by the SDK.
+ * Sets the default scope which all static `Sentry.*` functions will use.
+ *
+ * @internal
+ */
+export function setStaticApiScope(scope: Scope): void {
+  const carrier = getSentryCarrier(GLOBAL_OBJ);
+  carrier.staticApiScope = scope;
 }
 
 /**

@@ -19,6 +19,7 @@ interface SentryCarrier {
   acs?: AsyncContextStrategy;
   stack?: AsyncContextStack;
 
+  staticApiScope?: Scope;
   globalScope?: Scope;
   defaultIsolationScope?: Scope;
   defaultCurrentScope?: Scope;

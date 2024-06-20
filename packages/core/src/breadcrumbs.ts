@@ -1,6 +1,6 @@
 import type { Breadcrumb, BreadcrumbHint } from '@sentry/types';
 import { consoleSandbox, dateTimestampInSeconds } from '@sentry/utils';
-import { getClient, getIsolationScope } from './currentScopes';
+import { getClient, getStaticApiScope } from './currentScopes';
 
 /**
  * Default maximum number of breadcrumbs added to an event. Can be overwritten
@@ -16,7 +16,7 @@ const DEFAULT_BREADCRUMBS = 100;
  */
 export function addBreadcrumb(breadcrumb: Breadcrumb, hint?: BreadcrumbHint): void {
   const client = getClient();
-  const isolationScope = getIsolationScope();
+  const scope = getStaticApiScope();
 
   if (!client) return;
 
@@ -36,5 +36,5 @@ export function addBreadcrumb(breadcrumb: Breadcrumb, hint?: BreadcrumbHint): vo
     client.emit('beforeAddBreadcrumb', finalBreadcrumb, hint);
   }
 
-  isolationScope.addBreadcrumb(finalBreadcrumb, maxBreadcrumbs);
+  scope.addBreadcrumb(finalBreadcrumb, maxBreadcrumbs);
 }
