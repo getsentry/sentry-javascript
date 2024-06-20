@@ -41,10 +41,8 @@
     "@nuxt/kit": "^3.12.2"
   },
   "devDependencies": {
-    "@babel/types": "7.20.7",
     "@nuxt/module-builder": "0.8.0",
-    "nuxt": "^3.12.2",
-    "vite": "^5.0.10"
+    "nuxt": "^3.12.2"
   },
   "scripts": {
     "build": "run-p build:transpile build:types",

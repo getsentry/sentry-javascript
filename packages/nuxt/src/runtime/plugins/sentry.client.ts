@@ -1,6 +1,5 @@
-import { applySdkMetadata } from '@sentry/core';
-import * as Sentry from '@sentry/vue';
 import { defineNuxtPlugin, useRuntimeConfig } from 'nuxt/app';
+import { init } from '../../client';
 
 export default defineNuxtPlugin(nuxtApp => {
   const config = useRuntimeConfig();
@@ -10,9 +9,7 @@ export default defineNuxtPlugin(nuxtApp => {
 
   const sentryConfig = config.public.sentry || {};
 
-  applySdkMetadata(sentryConfig, 'nuxt', ['nuxt', 'vue']);
-
-  Sentry.init({
+  init({
     ...sentryConfig,
     app: nuxtApp.vueApp,
   });

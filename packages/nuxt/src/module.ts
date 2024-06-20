@@ -1,7 +1,7 @@
 import { type Resolver, addPlugin, createResolver, defineNuxtModule } from '@nuxt/kit';
-import type * as Sentry from '@sentry/vue';
+import type { SentryVueOptions } from './common/types';
 
-export type ModuleOptions = Parameters<typeof Sentry.init>[0] & object;
+export type ModuleOptions = SentryVueOptions;
 
 export default defineNuxtModule<ModuleOptions>({
   meta: {
@@ -22,7 +22,7 @@ export default defineNuxtModule<ModuleOptions>({
     if (resolver) {
       // Ignore because `.resolve` is a valid method of `Resolver`, but because of ts-ignore above, `Resolver` is recognized as any
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      addPlugin(resolver.resolve('runtime/client/plugin.js'));
+      addPlugin(resolver.resolve('runtime/plugins/sentry.client.js'));
     }
   },
 });
