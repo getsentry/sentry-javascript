@@ -271,17 +271,6 @@ describe('startSpan', () => {
     expect(getActiveSpan()).toBe(undefined);
   });
 
-  it('allows to pass a parentSpan', () => {
-    const parentSpan = new SentrySpan({ spanId: 'parent-span-id', sampled: true, name: 'parent-span' });
-
-    startSpan({ name: 'GET users/[id]', parentSpan }, span => {
-      expect(getActiveSpan()).toBe(span);
-      expect(spanToJSON(span).parent_span_id).toBe('parent-span-id');
-    });
-
-    expect(getActiveSpan()).toBe(undefined);
-  });
-
   it('allows to force a transaction with forceTransaction=true', async () => {
     const options = getDefaultTestClientOptions({ tracesSampleRate: 1.0 });
     client = new TestClient(options);
@@ -664,32 +653,19 @@ describe('startSpanManual', () => {
     const parentSpan = new SentrySpan({ spanId: 'parent-span-id', sampled: true });
     _setSpanForScope(manualScope, parentSpan);
 
-    startSpanManual({ name: 'GET users/[id]', scope: manualScope }, span => {
+    startSpanManual({ name: 'GET users/[id]', scope: manualScope }, (span, finish) => {
       expect(getCurrentScope()).not.toBe(initialScope);
       expect(getCurrentScope()).toBe(manualScope);
       expect(getActiveSpan()).toBe(span);
       expect(spanToJSON(span).parent_span_id).toBe('parent-span-id');
 
-      span.end();
+      finish();
 
       // Is still the active span
       expect(getActiveSpan()).toBe(span);
     });
 
     expect(getCurrentScope()).toBe(initialScope);
-    expect(getActiveSpan()).toBe(undefined);
-  });
-
-  it('allows to pass a parentSpan', () => {
-    const parentSpan = new SentrySpan({ spanId: 'parent-span-id', sampled: true, name: 'parent-span' });
-
-    startSpanManual({ name: 'GET users/[id]', parentSpan }, span => {
-      expect(getActiveSpan()).toBe(span);
-      expect(spanToJSON(span).parent_span_id).toBe('parent-span-id');
-
-      span.end();
-    });
-
     expect(getActiveSpan()).toBe(undefined);
   });
 
@@ -995,19 +971,6 @@ describe('startInactiveSpan', () => {
     expect(span).toBeDefined();
     expect(spanToJSON(span).parent_span_id).toBe('parent-span-id');
     expect(getActiveSpan()).toBeUndefined();
-
-    span.end();
-
-    expect(getActiveSpan()).toBeUndefined();
-  });
-
-  it('allows to pass a parentSpan', () => {
-    const parentSpan = new SentrySpan({ spanId: 'parent-span-id', sampled: true, name: 'parent-span' });
-
-    const span = startInactiveSpan({ name: 'GET users/[id]', parentSpan });
-
-    expect(spanToJSON(span).parent_span_id).toBe('parent-span-id');
-    expect(getActiveSpan()).toBe(undefined);
 
     span.end();
 

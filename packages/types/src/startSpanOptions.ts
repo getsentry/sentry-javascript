@@ -1,5 +1,5 @@
 import type { Scope } from './scope';
-import type { Span, SpanAttributes, SpanTimeInput } from './span';
+import type { SpanAttributes, SpanTimeInput } from './span';
 
 export interface StartSpanOptions {
   /** A manually specified start time for the created `Span` object. */
@@ -16,12 +16,6 @@ export interface StartSpanOptions {
 
   /** An op for the span. This is a categorization for spans. */
   op?: string;
-
-  /**
-   * If provided, make the new span a child of this span.
-   * If this is not provided, the new span will be a child of the currently active span.
-   */
-  parentSpan?: Span;
 
   /**
    * If set to true, this span will be forced to be treated as a transaction in the Sentry UI, if possible and applicable.
