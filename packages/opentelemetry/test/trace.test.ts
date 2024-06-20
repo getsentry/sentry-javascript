@@ -310,6 +310,21 @@ describe('trace', () => {
       expect(getActiveSpan()).toBe(undefined);
     });
 
+    it('allows to pass a parentSpan', () => {
+      let parentSpan: Span;
+
+      startSpanManual({ name: 'detached' }, span => {
+        parentSpan = span;
+      });
+
+      startSpan({ name: 'GET users/[id]', parentSpan: parentSpan! }, span => {
+        expect(getActiveSpan()).toBe(span);
+        expect(spanToJSON(span).parent_span_id).toBe(parentSpan.spanContext().spanId);
+      });
+
+      expect(getActiveSpan()).toBe(undefined);
+    });
+
     it('allows to force a transaction with forceTransaction=true', async () => {
       const client = getClient()!;
       const transactionEvents: Event[] = [];
@@ -546,6 +561,21 @@ describe('trace', () => {
       expect(getSpanParentSpanId(span)).toBe(parentSpan.spanContext().spanId);
 
       expect(getCurrentScope()).toBe(initialScope);
+      expect(getActiveSpan()).toBe(undefined);
+    });
+
+    it('allows to pass a parentSpan', () => {
+      let parentSpan: Span;
+
+      startSpanManual({ name: 'detached' }, span => {
+        parentSpan = span;
+      });
+
+      const span = startInactiveSpan({ name: 'GET users/[id]', parentSpan: parentSpan! });
+
+      expect(getActiveSpan()).toBe(undefined);
+      expect(spanToJSON(span).parent_span_id).toBe(parentSpan!.spanContext().spanId);
+
       expect(getActiveSpan()).toBe(undefined);
     });
 
@@ -810,6 +840,23 @@ describe('trace', () => {
       });
 
       expect(getCurrentScope()).toBe(initialScope);
+      expect(getActiveSpan()).toBe(undefined);
+    });
+
+    it('allows to pass a parentSpan', () => {
+      let parentSpan: Span;
+
+      startSpanManual({ name: 'detached' }, span => {
+        parentSpan = span;
+      });
+
+      startSpanManual({ name: 'GET users/[id]', parentSpan: parentSpan! }, span => {
+        expect(getActiveSpan()).toBe(span);
+        expect(spanToJSON(span).parent_span_id).toBe(parentSpan.spanContext().spanId);
+
+        span.end();
+      });
+
       expect(getActiveSpan()).toBe(undefined);
     });
 

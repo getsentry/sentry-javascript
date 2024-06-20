@@ -546,7 +546,8 @@ CreateFrameNode(const napi_env &env, const v8::CpuProfileNode &node,
 };
 
 napi_value CreateSample(const napi_env &env, const enum ProfileFormat format,
-                        const uint32_t stack_id, const int64_t sample_timestamp,
+                        const uint32_t stack_id,
+                        const int64_t sample_timestamp_ns,
                         const double chunk_timestamp,
                         const uint32_t thread_id) {
   napi_value js_node;
@@ -564,7 +565,7 @@ napi_value CreateSample(const napi_env &env, const enum ProfileFormat format,
   switch (format) {
   case ProfileFormat::kFormatThread: {
     napi_value timestamp;
-    napi_create_int64(env, sample_timestamp, &timestamp);
+    napi_create_int64(env, sample_timestamp_ns, &timestamp);
     napi_set_named_property(env, js_node, "elapsed_since_start_ns", timestamp);
   } break;
   case ProfileFormat::kFormatChunk: {
@@ -643,7 +644,8 @@ static void GetSamples(const napi_env &env, const v8::CpuProfile *profile,
     uint64_t sample_offset_from_profile_start_ms =
         (sample_timestamp_us - profile_start_time_us) * 1e-3;
     double seconds_since_start =
-        profile_start_timestamp_ms + sample_offset_from_profile_start_ms;
+        (profile_start_timestamp_ms + sample_offset_from_profile_start_ms) *
+        1e-3;
 
     napi_value sample = nullptr;
     sample = CreateSample(env, format, stack_index, sample_timestamp_ns,
