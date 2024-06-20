@@ -4,8 +4,7 @@ import {
   linkedErrorsIntegration,
   requestDataIntegration,
 } from '@sentry/core';
-import type {
-  NodeClient} from '@sentry/node';
+import type { NodeClient } from '@sentry/node';
 import {
   consoleIntegration,
   contextLinesIntegration,
