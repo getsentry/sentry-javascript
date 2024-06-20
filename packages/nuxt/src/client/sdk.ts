@@ -1,7 +1,7 @@
 import { applySdkMetadata } from '@sentry/core';
-import {init as initVue } from '@sentry/vue';
+import type { Options } from '@sentry/types';
+import { init as initVue } from '@sentry/vue';
 import type { SentryVueOptions } from '../common/types';
-import type {Options } from '@sentry/types';
 
 /**
  * Initializes the client-side of the Nuxt SDK
