@@ -46,5 +46,9 @@ describe('Sentry server SDK', () => {
 
       expect(SentryNode.getIsolationScope().getScopeData().tags).toEqual({ runtime: 'node' });
     });
+
+    it('returns client from init', () => {
+      expect(init({})).not.toBeUndefined();
+    })
   });
 });
