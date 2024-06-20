@@ -4,6 +4,10 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.118.0
+
+- fix(v7/bundle): Ensure CDN bundles do not overwrite `window.Sentry` (#12579)
+
 ## 7.117.0
 
 - feat(browser/v7): Publish browserprofling CDN bundle (#12224)
