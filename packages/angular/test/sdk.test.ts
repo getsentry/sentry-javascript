@@ -26,4 +26,8 @@ describe('init', () => {
 
     expect(angularDefaultIntegrations).toEqual(browserDefaultIntegrationsWithoutBrowserApiErrors);
   });
+
+  it('returns client from init', () => {
+    expect(init({})).not.toBeUndefined();
+  });
 });

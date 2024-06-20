@@ -13,7 +13,7 @@ import {
   functionToStringIntegration,
   inboundFiltersIntegration,
 } from '@sentry/core';
-import type { Integration } from '@sentry/types';
+import type { Client, Integration } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
 import { IS_DEBUG_BUILD } from './flags';
@@ -44,7 +44,7 @@ export function getDefaultIntegrations(): Integration[] {
 /**
  * Inits the Angular SDK
  */
-export function init(options: BrowserOptions): void {
+export function init(options: BrowserOptions): Client | undefined {
   const opts = {
     defaultIntegrations: getDefaultIntegrations(),
     ...options,
@@ -53,7 +53,7 @@ export function init(options: BrowserOptions): void {
   applySdkMetadata(opts, 'angular');
 
   checkAndSetAngularVersion();
-  browserInit(opts);
+  return browserInit(opts);
 }
 
 function checkAndSetAngularVersion(): void {
