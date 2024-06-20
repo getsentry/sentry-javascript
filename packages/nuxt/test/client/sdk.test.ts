@@ -5,13 +5,13 @@ import { init } from '../../src/client';
 
 const vueInit = vi.spyOn(SentryVue, 'init');
 
-describe('Nuxt CLient SDK', () => {
+describe('Nuxt Client SDK', () => {
   describe('init', () => {
     beforeEach(() => {
       vi.clearAllMocks();
     });
 
-    it('adds Nuxt metadata to the SDK options', () => {
+    it('Adds Nuxt metadata to the SDK options', () => {
       expect(vueInit).not.toHaveBeenCalled();
 
       init({
