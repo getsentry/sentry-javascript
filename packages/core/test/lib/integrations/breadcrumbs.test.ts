@@ -15,6 +15,9 @@ describe('Breadcrumbs', () => {
     await flush(2000);
 
     expect(onPreprocessAddBreadcrumb).toHaveBeenCalledTimes(1);
-    expect(onPreprocessAddBreadcrumb).toBeCalledWith({ message: 'test breadcrumb' }, { data: 'test hint' });
+    expect(onPreprocessAddBreadcrumb).toBeCalledWith(
+      { message: 'test breadcrumb', timestamp: expect.any(Number) },
+      { data: 'test hint' },
+    );
   });
 });
