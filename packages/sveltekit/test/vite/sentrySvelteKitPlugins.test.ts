@@ -57,6 +57,7 @@ describe('sentrySvelteKit()', () => {
       'sentry-vite-release-injection-plugin',
       'sentry-debug-id-upload-plugin',
       'sentry-vite-debug-id-injection-plugin',
+      'sentry-file-deletion-plugin',
       // custom source maps plugin:
       'sentry-upload-sveltekit-source-maps',
     ]);
