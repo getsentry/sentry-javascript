@@ -3,7 +3,7 @@ import type { Integration } from '@sentry/types';
 import { getClient } from '../../src/';
 import * as auto from '../../src/integrations/tracing';
 import { init } from '../../src/sdk';
-import type { NodeClient } from '../../src/sdk/client';
+import { NodeClient } from '../../src/sdk/client';
 import { cleanupOtel } from '../helpers/mockSdkInit';
 
 // eslint-disable-next-line no-var
@@ -136,4 +136,10 @@ describe('init()', () => {
 
     expect(client?.traceProvider).not.toBeDefined();
   });
+
+  it('returns intiated client', () => {
+    const client = init({ dsn: PUBLIC_DSN, skipOpenTelemetrySetup: true });
+
+    expect(client).toBeInstanceOf(NodeClient);
+  })
 });
