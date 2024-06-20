@@ -2,7 +2,7 @@ import { applySdkMetadata, hasTracingEnabled, setTag } from '@sentry/core';
 import type { BrowserOptions } from '@sentry/svelte';
 import { getDefaultIntegrations as getDefaultSvelteIntegrations } from '@sentry/svelte';
 import { WINDOW, init as initSvelteSdk } from '@sentry/svelte';
-import type { Integration } from '@sentry/types';
+import type { Client, Integration } from '@sentry/types';
 
 import { browserTracingIntegration as svelteKitBrowserTracingIntegration } from './browserTracingIntegration';
 
@@ -18,7 +18,7 @@ declare const __SENTRY_TRACING__: boolean;
  *
  * @param options Configuration options for the SDK.
  */
-export function init(options: BrowserOptions): void {
+export function init(options: BrowserOptions): Client | undefined {
   const opts = {
     defaultIntegrations: getDefaultIntegrations(options),
     ...options,
@@ -30,7 +30,7 @@ export function init(options: BrowserOptions): void {
   const actualFetch = switchToFetchProxy();
 
   // 2. Initialize the SDK which will instrument our proxy
-  initSvelteSdk(opts);
+  const client = initSvelteSdk(opts);
 
   // 3. Restore the original fetch now that our proxy is instrumented
   if (actualFetch) {
@@ -38,6 +38,8 @@ export function init(options: BrowserOptions): void {
   }
 
   setTag('runtime', 'browser');
+
+  return client;
 }
 
 function getDefaultIntegrations(options: BrowserOptions): Integration[] | undefined {

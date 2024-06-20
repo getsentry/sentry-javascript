@@ -1,5 +1,5 @@
 import { applySdkMetadata, setTag } from '@sentry/core';
-import type { NodeOptions } from '@sentry/node';
+import type { NodeClient, NodeOptions } from '@sentry/node';
 import { getDefaultIntegrations as getDefaultNodeIntegrations } from '@sentry/node';
 import { init as initNodeSdk } from '@sentry/node';
 
@@ -9,7 +9,7 @@ import { rewriteFramesIntegration } from './rewriteFramesIntegration';
  *
  * @param options
  */
-export function init(options: NodeOptions): void {
+export function init(options: NodeOptions): NodeClient {
   const opts = {
     defaultIntegrations: [...getDefaultNodeIntegrations(options), rewriteFramesIntegration()],
     ...options,
@@ -17,7 +17,9 @@ export function init(options: NodeOptions): void {
 
   applySdkMetadata(opts, 'sveltekit', ['sveltekit', 'node']);
 
-  initNodeSdk(opts);
+  const client = initNodeSdk(opts);
 
   setTag('runtime', 'node');
+
+  return client;
 }
