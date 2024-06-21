@@ -2,7 +2,6 @@
   "name": "@sentry/nuxt",
   "version": "8.10.0",
   "description": "Official Sentry SDK for Nuxt (EXPERIMENTAL)",
-  "private": true,
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/nuxt",
   "author": "Sentry",
