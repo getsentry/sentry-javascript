@@ -4,6 +4,32 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 8.11.0
+
+### Important Changes
+
+- **feat(core): Add `parentSpan` option to `startSpan*` APIs (#12567)**
+
+We've made it easier to create a span as a child of a specific span via the startSpan\* APIs. This should allow you to
+explicitly manage the parent-child relationship of your spans better.
+
+```js
+Sentry.startSpan({ name: 'root' }, parent => {
+  const span = Sentry.startInactiveSpan({ name: 'xxx', parentSpan: parent });
+
+  Sentry.startSpan({ name: 'xxx', parentSpan: parent }, () => {});
+
+  Sentry.startSpanManual({ name: 'xxx', parentSpan: parent }, () => {});
+});
+```
+
+### Other Changes
+
+- feat(node): Detect release from more providers (#12529)
+- fix(profiling-node): Use correct getGlobalScope import (#12564)
+- fix(profiling-node) sample timestamps need to be in seconds (#12563)
+- ref: Align `@sentry/node` exports from framework SDKs. (#12589)
+
 ## 8.10.0
 
 ### Important Changes
