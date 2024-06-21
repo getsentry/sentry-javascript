@@ -34,5 +34,9 @@ describe('Nuxt Client SDK', () => {
       expect(vueInit).toHaveBeenCalledTimes(1);
       expect(vueInit).toHaveBeenLastCalledWith(expect.objectContaining(expectedMetadata));
     });
+
+    it('returns client from init', () => {
+      expect(init({})).not.toBeUndefined();
+    });
   });
 });
