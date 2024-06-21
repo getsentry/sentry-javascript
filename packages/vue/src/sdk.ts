@@ -1,5 +1,6 @@
 import { SDK_VERSION, getDefaultIntegrations, init as browserInit } from '@sentry/browser';
 
+import type { Client } from '@sentry/types';
 import { vueIntegration } from './integration';
 import type { Options, TracingOptions } from './types';
 
@@ -8,7 +9,7 @@ import type { Options, TracingOptions } from './types';
  */
 export function init(
   config: Partial<Omit<Options, 'tracingOptions'> & { tracingOptions: Partial<TracingOptions> }> = {},
-): void {
+): Client | undefined {
   const options = {
     _metadata: {
       sdk: {
@@ -26,5 +27,5 @@ export function init(
     ...config,
   };
 
-  browserInit(options);
+  return browserInit(options);
 }

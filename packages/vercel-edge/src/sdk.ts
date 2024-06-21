@@ -6,7 +6,7 @@ import {
   linkedErrorsIntegration,
   requestDataIntegration,
 } from '@sentry/core';
-import type { Integration, Options } from '@sentry/types';
+import type { Client, Integration, Options } from '@sentry/types';
 import { GLOBAL_OBJ, createStackParser, nodeStackLineParser, stackParserFromStackParserOptions } from '@sentry/utils';
 
 import { setAsyncLocalStorageAsyncContextStrategy } from './async';
@@ -34,7 +34,7 @@ export function getDefaultIntegrations(options: Options): Integration[] {
 }
 
 /** Inits the Sentry NextJS SDK on the Edge Runtime. */
-export function init(options: VercelEdgeOptions = {}): void {
+export function init(options: VercelEdgeOptions = {}): Client | undefined {
   setAsyncLocalStorageAsyncContextStrategy();
 
   if (options.defaultIntegrations === undefined) {
@@ -76,7 +76,7 @@ export function init(options: VercelEdgeOptions = {}): void {
     transport: options.transport || makeEdgeTransport,
   };
 
-  initAndBind(VercelEdgeClient, clientOptions);
+  return initAndBind(VercelEdgeClient, clientOptions);
 }
 
 /**
