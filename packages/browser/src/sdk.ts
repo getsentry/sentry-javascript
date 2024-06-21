@@ -9,7 +9,7 @@ import {
   lastEventId,
   startSession,
 } from '@sentry/core';
-import type { DsnLike, Integration, Options, UserFeedback } from '@sentry/types';
+import type { Client, DsnLike, Integration, Options, UserFeedback } from '@sentry/types';
 import { consoleSandbox, logger, stackParserFromStackParserOptions, supportsFetch } from '@sentry/utils';
 
 import { addHistoryInstrumentationHandler } from '@sentry-internal/browser-utils';
@@ -139,7 +139,7 @@ declare const __SENTRY_RELEASE__: string | undefined;
  *
  * @see {@link BrowserOptions} for documentation on configuration options.
  */
-export function init(browserOptions: BrowserOptions = {}): void {
+export function init(browserOptions: BrowserOptions = {}): Client | undefined {
   const options = applyDefaultOptions(browserOptions);
 
   if (shouldShowBrowserExtensionError()) {
@@ -166,11 +166,13 @@ export function init(browserOptions: BrowserOptions = {}): void {
     transport: options.transport || makeFetchTransport,
   };
 
-  initAndBind(BrowserClient, clientOptions);
+  const client = initAndBind(BrowserClient, clientOptions);
 
   if (options.autoSessionTracking) {
     startSessionTracking();
   }
+
+  return client;
 }
 
 /**

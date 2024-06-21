@@ -70,6 +70,14 @@ describe('Initialize Svelte SDk', () => {
       }),
     );
   });
+
+  it('returns client from init', () => {
+    const client = svelteInit({
+      dsn: 'https://public@dsn.ingest.sentry.io/1337',
+    });
+
+    expect(client).not.toBeUndefined();
+  });
 });
 
 describe('detectAndReportSvelteKit()', () => {

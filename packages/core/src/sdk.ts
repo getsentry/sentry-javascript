@@ -17,7 +17,7 @@ export type ClientClass<F extends Client, O extends ClientOptions> = new (option
 export function initAndBind<F extends Client, O extends ClientOptions>(
   clientClass: ClientClass<F, O>,
   options: O,
-): void {
+): Client {
   if (options.debug === true) {
     if (DEBUG_BUILD) {
       logger.enable();
@@ -35,6 +35,7 @@ export function initAndBind<F extends Client, O extends ClientOptions>(
   const client = new clientClass(options);
   setCurrentClient(client);
   client.init();
+  return client;
 }
 
 /**

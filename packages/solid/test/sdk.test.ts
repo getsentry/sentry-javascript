@@ -12,7 +12,7 @@ describe('Initialize Solid SDk', () => {
   });
 
   it('has the correct metadata', () => {
-    solidInit({
+    const client = solidInit({
       dsn: 'https://public@dsn.ingest.sentry.io/1337',
     });
 
@@ -26,6 +26,7 @@ describe('Initialize Solid SDk', () => {
       },
     };
 
+    expect(client).not.toBeUndefined();
     expect(browserInit).toHaveBeenCalledTimes(1);
     expect(browserInit).toHaveBeenLastCalledWith(expect.objectContaining(expectedMetadata));
   });
