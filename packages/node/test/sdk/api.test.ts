@@ -7,6 +7,11 @@ afterEach(() => {
   cleanupOtel();
 });
 
+// Prevent leakage between tests
+afterEach(async () => {
+  await getClient()?.flush();
+});
+
 describe('withActiveSpan()', () => {
   it('should set the active span within the callback', () => {
     mockSdkInit();
