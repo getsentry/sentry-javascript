@@ -11,4 +11,8 @@ describe('init', () => {
     expect(setContextSpy).toHaveBeenCalledTimes(1);
     expect(setContextSpy).toHaveBeenCalledWith('react', { version });
   });
+
+  it('returns client from init', () => {
+    expect(init({})).not.toBeUndefined();
+  });
 });

@@ -1,16 +1,17 @@
 import type { BrowserOptions } from '@sentry/browser';
 import { init as browserInit } from '@sentry/browser';
 import { applySdkMetadata } from '@sentry/core';
+import type { Client } from '@sentry/types';
 
 /**
  * Initializes the Solid SDK
  */
-export function init(options: BrowserOptions): void {
+export function init(options: BrowserOptions): Client | undefined {
   const opts = {
     ...options,
   };
 
   applySdkMetadata(opts, 'solid');
 
-  browserInit(opts);
+  return browserInit(opts);
 }

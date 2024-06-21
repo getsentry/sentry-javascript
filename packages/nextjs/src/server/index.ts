@@ -1,6 +1,6 @@
 import { applySdkMetadata, getClient, getGlobalScope } from '@sentry/core';
 import { getDefaultIntegrations, init as nodeInit } from '@sentry/node';
-import type { NodeOptions } from '@sentry/node';
+import type { NodeClient, NodeOptions } from '@sentry/node';
 import { GLOBAL_OBJ, logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../common/debug-build';
@@ -81,7 +81,7 @@ export function showReportDialog(): void {
 }
 
 /** Inits the Sentry NextJS SDK on node. */
-export function init(options: NodeOptions): void {
+export function init(options: NodeOptions): NodeClient | undefined {
   if (isBuild()) {
     return;
   }
@@ -127,9 +127,8 @@ export function init(options: NodeOptions): void {
 
   applySdkMetadata(opts, 'nextjs', ['nextjs', 'node']);
 
-  nodeInit(opts);
+  const client = nodeInit(opts);
 
-  const client = getClient();
   client?.on('beforeSampling', ({ spanAttributes, spanName, parentSampled, parentContext }, samplingDecision) => {
     // If we encounter a span emitted by Next.js, we do not want to sample it
     // The reason for this is that the data quality of the spans varies, it is different per version of Next,
@@ -221,6 +220,8 @@ export function init(options: NodeOptions): void {
   }
 
   DEBUG_BUILD && logger.log('SDK successfully initialized');
+
+  return client;
 }
 
 function sdkAlreadyInitialized(): boolean {

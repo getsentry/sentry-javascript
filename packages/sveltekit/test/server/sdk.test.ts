@@ -56,5 +56,9 @@ describe('Sentry server SDK', () => {
       const rewriteFramesIntegration = getClient<NodeClient>()?.getIntegrationByName('RewriteFrames');
       expect(rewriteFramesIntegration).toBeDefined();
     });
+
+    it('returns client from init', () => {
+      expect(init({})).not.toBeUndefined();
+    });
   });
 });

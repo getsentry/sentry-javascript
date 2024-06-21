@@ -2,7 +2,7 @@ import { existsSync } from 'fs';
 import { hostname } from 'os';
 import { basename, resolve } from 'path';
 import { types } from 'util';
-import type { NodeOptions } from '@sentry/node';
+import type { NodeClient, NodeOptions } from '@sentry/node';
 import {
   SDK_VERSION,
   captureException,
@@ -74,7 +74,7 @@ export function getDefaultIntegrations(_options: Options): Integration[] {
  *
  * @param options Configuration options for the SDK, @see {@link AWSLambdaOptions}.
  */
-export function init(options: NodeOptions = {}): void {
+export function init(options: NodeOptions = {}): NodeClient | undefined {
   const opts = {
     _metadata: {} as SdkMetadata,
     defaultIntegrations: getDefaultIntegrations(options),
@@ -93,7 +93,7 @@ export function init(options: NodeOptions = {}): void {
     version: SDK_VERSION,
   };
 
-  initWithoutDefaultIntegrations(opts);
+  return initWithoutDefaultIntegrations(opts);
 }
 
 /** */
