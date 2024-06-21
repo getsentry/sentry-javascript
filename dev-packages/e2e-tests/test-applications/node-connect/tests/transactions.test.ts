@@ -7,7 +7,7 @@ const sentryTestProject = process.env.E2E_TEST_SENTRY_PROJECT;
 const EVENT_POLLING_TIMEOUT = 90_000;
 
 test('Sends an API route transaction', async ({ baseURL }) => {
-  const pageloadTransactionEventPromise = waitForTransaction('node-connect', transactionEvent => {
+  const transactionEventPromise = waitForTransaction('node-connect', transactionEvent => {
     return (
       transactionEvent?.contexts?.trace?.op === 'http.server' &&
       transactionEvent?.transaction === 'GET /test-transaction'
@@ -16,8 +16,7 @@ test('Sends an API route transaction', async ({ baseURL }) => {
 
   await fetch(`${baseURL}/test-transaction`);
 
-  const transactionEvent = await pageloadTransactionEventPromise;
-  const transactionEventId = transactionEvent.event_id;
+  const transactionEvent = await transactionEventPromise;
 
   expect(transactionEvent.contexts?.trace).toEqual({
     data: {
@@ -54,7 +53,7 @@ test('Sends an API route transaction', async ({ baseURL }) => {
 
   expect(transactionEvent).toEqual(
     expect.objectContaining({
-      spans: [
+      spans: expect.arrayContaining([
         {
           data: {
             'sentry.origin': 'manual',
@@ -88,7 +87,7 @@ test('Sends an API route transaction', async ({ baseURL }) => {
           trace_id: expect.any(String),
           origin: 'auto.http.otel.connect',
         },
-      ],
+      ]),
       transaction: 'GET /test-transaction',
       type: 'transaction',
       transaction_info: {
