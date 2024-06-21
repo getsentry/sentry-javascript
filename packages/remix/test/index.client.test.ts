@@ -40,6 +40,10 @@ describe('Client init()', () => {
     );
   });
 
+  it('returns client from init', () => {
+    expect(init({})).not.toBeUndefined();
+  });
+
   it('sets runtime on scope', () => {
     expect(SentryReact.getIsolationScope().getScopeData().tags).toEqual({});
 

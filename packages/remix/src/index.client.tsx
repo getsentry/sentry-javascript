@@ -1,5 +1,6 @@
 import { applySdkMetadata, setTag } from '@sentry/core';
 import { init as reactInit } from '@sentry/react';
+import type { Client } from '@sentry/types';
 import { logger } from '@sentry/utils';
 import { DEBUG_BUILD } from './utils/debug-build';
 import type { RemixOptions } from './utils/remixOptions';
@@ -28,7 +29,7 @@ export async function captureRemixServerException(
 
 export * from '@sentry/react';
 
-export function init(options: RemixOptions): void {
+export function init(options: RemixOptions): Client | undefined {
   const opts = {
     ...options,
     environment: options.environment || process.env.NODE_ENV,
@@ -36,7 +37,9 @@ export function init(options: RemixOptions): void {
 
   applySdkMetadata(opts, 'remix', ['remix', 'react']);
 
-  reactInit(opts);
+  const client = reactInit(opts);
 
   setTag('runtime', 'browser');
+
+  return client;
 }

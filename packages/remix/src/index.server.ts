@@ -1,5 +1,5 @@
 import { applySdkMetadata } from '@sentry/core';
-import type { NodeOptions } from '@sentry/node';
+import type { NodeClient, NodeOptions } from '@sentry/node';
 import {
   getDefaultIntegrations as getDefaultNodeIntegrations,
   init as nodeInit,
@@ -179,7 +179,7 @@ export function wrapExpressCreateRequestHandler(createRequestHandlerFn: unknown)
 }
 
 /** Initializes Sentry Remix SDK on Node. */
-export function init(options: RemixOptions): void {
+export function init(options: RemixOptions): NodeClient | undefined {
   applySdkMetadata(options, 'remix', ['remix', 'node']);
 
   if (isInitialized()) {
@@ -190,9 +190,11 @@ export function init(options: RemixOptions): void {
 
   options.defaultIntegrations = getRemixDefaultIntegrations(options as NodeOptions);
 
-  nodeInit(options as NodeOptions);
+  const client = nodeInit(options as NodeOptions);
 
   instrumentServer(options);
 
   setTag('runtime', 'node');
+
+  return client;
 }

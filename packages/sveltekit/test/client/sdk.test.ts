@@ -93,5 +93,9 @@ describe('Sentry client SDK', () => {
         delete globalThis.__SENTRY_TRACING__;
       });
     });
+
+    it('returns client from init', () => {
+      expect(init({})).not.toBeUndefined();
+    });
   });
 });
