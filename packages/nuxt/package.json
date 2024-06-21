@@ -45,10 +45,9 @@
     "nuxt": "^3.12.2"
   },
   "scripts": {
-    "build": "run-p build:transpile build:types",
+    "build": "run-p build:transpile",
     "build:dev": "yarn build",
     "build:transpile": "nuxt-module-build build --outDir build",
-    "build:types": "tsc -p tsconfig.types.json",
     "build:watch": "run-p build:transpile:watch build:types:watch",
     "build:dev:watch": "yarn build:watch",
     "build:transpile:watch": "nuxt-module-build build --outDir build --watch",
@@ -65,5 +64,15 @@
   },
   "volta": {
     "extends": "../../package.json"
+  },
+  "nx": {
+    "targets": {
+      "build:transpile": {
+        "dependsOn": [
+          "^build:transpile",
+          "^build:types"
+        ]
+      }
+    }
   }
 }
