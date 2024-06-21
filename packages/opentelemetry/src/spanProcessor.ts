@@ -135,6 +135,8 @@ function sendRootSpan(span: Span & ReadableSpan): void {
     childSpans = childSpans.slice(0, MAX_SPAN_COUNT);
   }
 
+  transactionEvent.spans = childSpans;
+
   const measurements = timedEventsToMeasurements(span.events);
   if (measurements) {
     transactionEvent.measurements = measurements;
