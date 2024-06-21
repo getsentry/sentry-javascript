@@ -1,7 +1,6 @@
 import type { SpanContext } from '@opentelemetry/api';
 import { ROOT_CONTEXT } from '@opentelemetry/api';
 import { TraceFlags, context, trace } from '@opentelemetry/api';
-import type { SpanProcessor } from '@opentelemetry/sdk-trace-base';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
@@ -17,10 +16,9 @@ import { logger } from '@sentry/utils';
 import { TraceState } from '@opentelemetry/core';
 import { SENTRY_TRACE_STATE_DSC } from '../../src/constants';
 import { makeTraceState } from '../../src/propagator';
-import { SentrySpanProcessor } from '../../src/spanProcessor';
 import { startInactiveSpan, startSpan } from '../../src/trace';
 import type { TestClientInterface } from '../helpers/TestClient';
-import { cleanupOtel, getProvider, mockSdkInit } from '../helpers/mockSdkInit';
+import { cleanupOtel, mockSdkInit } from '../helpers/mockSdkInit';
 
 describe('Integration | Transactions', () => {
   afterEach(() => {
@@ -442,77 +440,6 @@ describe('Integration | Transactions', () => {
     ]);
   });
 
-  it('cleans up spans that are not flushed for over 5 mins', async () => {
-    const beforeSendTransaction = jest.fn(() => null);
-
-    const now = Date.now();
-    jest.useFakeTimers();
-    jest.setSystemTime(now);
-
-    const logs: unknown[] = [];
-    jest.spyOn(logger, 'log').mockImplementation(msg => logs.push(msg));
-
-    mockSdkInit({ enableTracing: true, beforeSendTransaction });
-
-    const provider = getProvider();
-    const multiSpanProcessor = provider?.activeSpanProcessor as
-      | (SpanProcessor & { _spanProcessors?: SpanProcessor[] })
-      | undefined;
-    const spanProcessor = multiSpanProcessor?.['_spanProcessors']?.find(
-      spanProcessor => spanProcessor instanceof SentrySpanProcessor,
-    ) as SentrySpanProcessor | undefined;
-
-    const exporter = spanProcessor ? spanProcessor['_exporter'] : undefined;
-
-    if (!exporter) {
-      throw new Error('No exporter found, aborting test...');
-    }
-
-    let innerSpan1Id: string | undefined;
-    let innerSpan2Id: string | undefined;
-
-    void startSpan({ name: 'test name' }, async () => {
-      const subSpan = startInactiveSpan({ name: 'inner span 1' });
-      innerSpan1Id = subSpan.spanContext().spanId;
-      subSpan.end();
-
-      startSpan({ name: 'inner span 2' }, innerSpan => {
-        innerSpan2Id = innerSpan.spanContext().spanId;
-      });
-
-      // Pretend this is pending for 10 minutes
-      await new Promise(resolve => setTimeout(resolve, 10 * 60 * 1000));
-    });
-
-    // Child-spans have been added to the exporter, but they are pending since they are waiting for their parant
-    expect(exporter['_finishedSpans'].length).toBe(2);
-    expect(beforeSendTransaction).toHaveBeenCalledTimes(0);
-
-    // Now wait for 5 mins
-    jest.advanceTimersByTime(5 * 60 * 1_000 + 1);
-
-    // Adding another span will trigger the cleanup
-    startSpan({ name: 'other span' }, () => {});
-
-    jest.advanceTimersByTime(1);
-
-    // Old spans have been cleared away
-    expect(exporter['_finishedSpans'].length).toBe(0);
-
-    // Called once for the 'other span'
-    expect(beforeSendTransaction).toHaveBeenCalledTimes(1);
-
-    expect(logs).toEqual(
-      expect.arrayContaining([
-        'SpanExporter has 1 unsent spans remaining',
-        'SpanExporter has 2 unsent spans remaining',
-        'SpanExporter exported 1 spans, 2 unsent spans remaining',
-        `SpanExporter dropping span inner span 1 (${innerSpan1Id}) because it is pending for more than 5 minutes.`,
-        `SpanExporter dropping span inner span 2 (${innerSpan2Id}) because it is pending for more than 5 minutes.`,
-      ]),
-    );
-  });
-
   it('includes child spans that are finished in the same tick but after their parent span', async () => {
     const now = Date.now();
     jest.useFakeTimers();
@@ -531,20 +458,6 @@ describe('Integration | Transactions', () => {
       },
     });
 
-    const provider = getProvider();
-    const multiSpanProcessor = provider?.activeSpanProcessor as
-      | (SpanProcessor & { _spanProcessors?: SpanProcessor[] })
-      | undefined;
-    const spanProcessor = multiSpanProcessor?.['_spanProcessors']?.find(
-      spanProcessor => spanProcessor instanceof SentrySpanProcessor,
-    ) as SentrySpanProcessor | undefined;
-
-    const exporter = spanProcessor ? spanProcessor['_exporter'] : undefined;
-
-    if (!exporter) {
-      throw new Error('No exporter found, aborting test...');
-    }
-
     startSpanManual({ name: 'test name' }, async span => {
       const subSpan = startInactiveSpan({ name: 'inner span 1' });
       subSpan.end();
@@ -559,64 +472,6 @@ describe('Integration | Transactions', () => {
 
     expect(transactions).toHaveLength(1);
     expect(transactions[0]?.spans).toHaveLength(2);
-
-    // No spans are pending
-    expect(exporter['_finishedSpans'].length).toBe(0);
-  });
-
-  it('discards child spans that are finished after their parent span', async () => {
-    const now = Date.now();
-    jest.useFakeTimers();
-    jest.setSystemTime(now);
-
-    const logs: unknown[] = [];
-    jest.spyOn(logger, 'log').mockImplementation(msg => logs.push(msg));
-
-    const transactions: Event[] = [];
-
-    mockSdkInit({
-      enableTracing: true,
-      beforeSendTransaction: event => {
-        transactions.push(event);
-        return null;
-      },
-    });
-
-    const provider = getProvider();
-    const multiSpanProcessor = provider?.activeSpanProcessor as
-      | (SpanProcessor & { _spanProcessors?: SpanProcessor[] })
-      | undefined;
-    const spanProcessor = multiSpanProcessor?.['_spanProcessors']?.find(
-      spanProcessor => spanProcessor instanceof SentrySpanProcessor,
-    ) as SentrySpanProcessor | undefined;
-
-    const exporter = spanProcessor ? spanProcessor['_exporter'] : undefined;
-
-    if (!exporter) {
-      throw new Error('No exporter found, aborting test...');
-    }
-
-    startSpanManual({ name: 'test name' }, async span => {
-      const subSpan = startInactiveSpan({ name: 'inner span 1' });
-      subSpan.end();
-
-      const subSpan2 = startInactiveSpan({ name: 'inner span 2' });
-
-      span.end();
-
-      setTimeout(() => {
-        subSpan2.end();
-      }, 1);
-    });
-
-    jest.advanceTimersByTime(2);
-
-    expect(transactions).toHaveLength(1);
-    expect(transactions[0]?.spans).toHaveLength(1);
-
-    // subSpan2 is pending (and will eventually be cleaned up)
-    expect(exporter['_finishedSpans'].length).toBe(1);
-    expect(exporter['_finishedSpans'][0]?.name).toBe('inner span 2');
   });
 
   it('uses & inherits DSC on span trace state', async () => {

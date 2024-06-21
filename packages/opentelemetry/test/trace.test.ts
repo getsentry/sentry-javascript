@@ -29,6 +29,7 @@ import { getActiveSpan } from '../src/utils/getActiveSpan';
 import { getSamplingDecision } from '../src/utils/getSamplingDecision';
 import { getSpanKind } from '../src/utils/getSpanKind';
 import { spanHasAttributes, spanHasName } from '../src/utils/spanTypes';
+import { TestClient, getDefaultTestClientOptions } from './helpers/TestClient';
 import { cleanupOtel, mockSdkInit } from './helpers/mockSdkInit';
 
 describe('trace', () => {
@@ -311,7 +312,11 @@ describe('trace', () => {
     });
 
     it('allows to force a transaction with forceTransaction=true', async () => {
-      const client = getClient()!;
+      const client = new TestClient(
+        getDefaultTestClientOptions({
+          dsn: 'https://username@domain/123',
+        }),
+      );
       const transactionEvents: Event[] = [];
 
       client.getOptions().beforeSendTransaction = event => {
@@ -324,11 +329,14 @@ describe('trace', () => {
         return event;
       };
 
-      startSpan({ name: 'outer transaction' }, () => {
-        startSpan({ name: 'inner span' }, () => {
-          startSpan({ name: 'inner transaction', forceTransaction: true }, () => {
-            startSpan({ name: 'inner span 2' }, () => {
-              // all good
+      withScope((scope): void => {
+        scope.setClient(client);
+        startSpan({ name: 'outer transaction' }, () => {
+          startSpan({ name: 'inner span' }, () => {
+            startSpan({ name: 'inner transaction', forceTransaction: true }, () => {
+              startSpan({ name: 'inner span 2' }, () => {
+                // all good
+              });
             });
           });
         });
@@ -336,14 +344,14 @@ describe('trace', () => {
 
       await client.flush();
 
+      expect(transactionEvents).toHaveLength(2);
+
       const normalizedTransactionEvents = transactionEvents.map(event => {
         return {
           ...event,
           spans: event.spans?.map(span => ({ name: span.description, id: span.span_id })),
         };
       });
-
-      expect(normalizedTransactionEvents).toHaveLength(2);
 
       const outerTransaction = normalizedTransactionEvents.find(event => event.transaction === 'outer transaction');
       const innerTransaction = normalizedTransactionEvents.find(event => event.transaction === 'inner transaction');
@@ -550,7 +558,11 @@ describe('trace', () => {
     });
 
     it('allows to force a transaction with forceTransaction=true', async () => {
-      const client = getClient()!;
+      const client = new TestClient(
+        getDefaultTestClientOptions({
+          dsn: 'https://username@domain/123',
+        }),
+      );
       const transactionEvents: Event[] = [];
 
       client.getOptions().beforeSendTransaction = event => {
@@ -563,10 +575,13 @@ describe('trace', () => {
         return event;
       };
 
-      startSpan({ name: 'outer transaction' }, () => {
-        startSpan({ name: 'inner span' }, () => {
-          const innerTransaction = startInactiveSpan({ name: 'inner transaction', forceTransaction: true });
-          innerTransaction.end();
+      withScope(scope => {
+        scope.setClient(client);
+        startSpan({ name: 'outer transaction' }, () => {
+          startSpan({ name: 'inner span' }, () => {
+            const innerTransaction = startInactiveSpan({ name: 'inner transaction', forceTransaction: true });
+            innerTransaction.end();
+          });
         });
       });
 
@@ -668,24 +683,30 @@ describe('trace', () => {
     it('includes the scope at the time the span was started when finished', async () => {
       const beforeSendTransaction = jest.fn(event => event);
 
-      const client = getClient()!;
+      const client = new TestClient(
+        getDefaultTestClientOptions({
+          dsn: 'https://username@domain/123',
+        }),
+      );
 
       client.getOptions().beforeSendTransaction = beforeSendTransaction;
 
       let span: Span;
 
-      const scope = getCurrentScope();
-      scope.setTag('outer', 'foo');
-
       withScope(scope => {
-        scope.setTag('scope', 1);
-        span = startInactiveSpan({ name: 'my-span' });
-        scope.setTag('scope_after_span', 2);
-      });
+        scope.setClient(client);
+        scope.setTag('outer', 'foo');
 
-      withScope(scope => {
-        scope.setTag('scope', 2);
-        span.end();
+        withScope(scope => {
+          scope.setTag('scope', 1);
+          span = startInactiveSpan({ name: 'my-span' });
+          scope.setTag('scope_after_span', 2);
+        });
+
+        withScope(scope => {
+          scope.setTag('scope', 2);
+          span.end();
+        });
       });
 
       await client.flush();
@@ -814,7 +835,12 @@ describe('trace', () => {
     });
 
     it('allows to force a transaction with forceTransaction=true', async () => {
-      const client = getClient()!;
+      const client = new TestClient(
+        getDefaultTestClientOptions({
+          dsn: 'https://username@domain/123',
+        }),
+      );
+
       const transactionEvents: Event[] = [];
 
       client.getOptions().beforeSendTransaction = event => {
@@ -827,18 +853,21 @@ describe('trace', () => {
         return event;
       };
 
-      startSpanManual({ name: 'outer transaction' }, span => {
-        startSpanManual({ name: 'inner span' }, span => {
-          startSpanManual({ name: 'inner transaction', forceTransaction: true }, span => {
-            startSpanManual({ name: 'inner span 2' }, span => {
-              // all good
+      withScope(scope => {
+        scope.setClient(client);
+        startSpanManual({ name: 'outer transaction' }, span => {
+          startSpanManual({ name: 'inner span' }, span => {
+            startSpanManual({ name: 'inner transaction', forceTransaction: true }, span => {
+              startSpanManual({ name: 'inner span 2' }, span => {
+                // all good
+                span.end();
+              });
               span.end();
             });
             span.end();
           });
           span.end();
         });
-        span.end();
       });
 
       await client.flush();
