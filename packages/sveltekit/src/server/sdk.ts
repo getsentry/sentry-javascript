@@ -9,7 +9,7 @@ import { rewriteFramesIntegration } from './rewriteFramesIntegration';
  *
  * @param options
  */
-export function init(options: NodeOptions): NodeClient {
+export function init(options: NodeOptions): NodeClient | undefined {
   const opts = {
     defaultIntegrations: [...getDefaultNodeIntegrations(options), rewriteFramesIntegration()],
     ...options,

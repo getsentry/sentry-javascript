@@ -92,7 +92,7 @@ export function getDefaultIntegrations(_options: Options): Integration[] {
  *
  * @see {@link BunOptions} for documentation on configuration options.
  */
-export function init(options: BunOptions = {}): NodeClient {
+export function init(options: BunOptions = {}): NodeClient | undefined {
   options.clientClass = BunClient;
   options.transport = options.transport || makeFetchTransport;
 

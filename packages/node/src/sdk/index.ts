@@ -98,7 +98,7 @@ function shouldAddPerformanceIntegrations(options: Options): boolean {
 /**
  * Initialize Sentry for Node.
  */
-export function init(options: NodeOptions | undefined = {}): NodeClient {
+export function init(options: NodeOptions | undefined = {}): NodeClient | undefined {
   return _init(options, getDefaultIntegrations);
 }
 

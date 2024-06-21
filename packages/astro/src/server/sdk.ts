@@ -6,7 +6,7 @@ import { init as initNodeSdk, setTag } from '@sentry/node';
  *
  * @param options
  */
-export function init(options: NodeOptions): NodeClient {
+export function init(options: NodeOptions): NodeClient | undefined {
   const opts = {
     ...options,
   };
