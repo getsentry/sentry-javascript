@@ -71,6 +71,9 @@
         "dependsOn": [
           "^build:transpile",
           "^build:types"
+        ],
+        "outputs": [
+          "{projectRoot}/build"
         ]
       }
     }
