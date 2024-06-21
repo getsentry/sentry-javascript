@@ -14,7 +14,6 @@ export default defineNuxtModule<ModuleOptions>({
   // Default configuration options of the Nuxt module
   defaults: {},
   setup(_moduleOptions, _nuxt) {
-    // @ts-expect-error - import.meta.url is okay here, but TS is complaining
     const resolver: Resolver = createResolver(import.meta.url);
 
     if (resolver) {
