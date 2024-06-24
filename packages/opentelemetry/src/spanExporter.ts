@@ -5,6 +5,7 @@ import { SEMATTRS_HTTP_STATUS_CODE } from '@opentelemetry/semantic-conventions';
 import {
   captureEvent,
   getCapturedScopesOnSpan,
+  getDynamicSamplingContextFromSpan,
   getMetricSummaryJsonForSpan,
   timedEventsToMeasurements,
 } from '@sentry/core';
@@ -22,7 +23,6 @@ import { SENTRY_TRACE_STATE_PARENT_SPAN_ID } from './constants';
 import { DEBUG_BUILD } from './debug-build';
 import { SEMANTIC_ATTRIBUTE_SENTRY_PARENT_IS_REMOTE } from './semanticAttributes';
 import { convertOtelTimeToSeconds } from './utils/convertOtelTimeToSeconds';
-import { getDynamicSamplingContextFromSpan } from './utils/dynamicSamplingContext';
 import { getRequestSpanData } from './utils/getRequestSpanData';
 import type { SpanNode } from './utils/groupSpansWithParents';
 import { getLocalParentId } from './utils/groupSpansWithParents';
@@ -33,6 +33,7 @@ import { parseSpanDescription } from './utils/parseSpanDescription';
 type SpanNodeCompleted = SpanNode & { span: ReadableSpan };
 
 const MAX_SPAN_COUNT = 1000;
+const DEFAULT_TIMEOUT = 300; // 5 min
 
 /**
  * A Sentry-specific exporter that converts OpenTelemetry Spans to Sentry Spans & Transactions.
@@ -40,9 +41,11 @@ const MAX_SPAN_COUNT = 1000;
 export class SentrySpanExporter {
   private _flushTimeout: ReturnType<typeof setTimeout> | undefined;
   private _finishedSpans: ReadableSpan[];
+  private _timeout: number;
 
-  public constructor() {
+  public constructor(options?: { timeout?: number }) {
     this._finishedSpans = [];
+    this._timeout = options?.timeout || DEFAULT_TIMEOUT;
   }
 
   /** Export a single span. */
@@ -103,7 +106,7 @@ export class SentrySpanExporter {
    */
   private _cleanupOldSpans(spans = this._finishedSpans): void {
     this._finishedSpans = spans.filter(span => {
-      const shouldDrop = shouldCleanupSpan(span, 5 * 60);
+      const shouldDrop = shouldCleanupSpan(span, this._timeout);
       DEBUG_BUILD &&
         shouldDrop &&
         logger.log(
@@ -242,7 +245,7 @@ function createTransactionForOtelSpan(span: ReadableSpan): TransactionEvent {
         capturedSpanScope: capturedSpanScopes.scope,
         capturedSpanIsolationScope: capturedSpanScopes.isolationScope,
         sampleRate,
-        dynamicSamplingContext: getDynamicSamplingContextFromSpan(span),
+        dynamicSamplingContext: getDynamicSamplingContextFromSpan(span as unknown as Span),
       }),
     },
     ...(source && {

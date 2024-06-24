@@ -1,4 +1,4 @@
-import type { TransactionSource } from '@sentry/types';
+import type { Span, SpanContextData, TransactionSource } from '@sentry/types';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
@@ -31,6 +31,27 @@ describe('getDynamicSamplingContextFromSpan', () => {
     const dynamicSamplingContext = getDynamicSamplingContextFromSpan(rootSpan);
 
     expect(dynamicSamplingContext).toStrictEqual({ environment: 'myEnv' });
+  });
+
+  test('uses frozen DSC from traceState', () => {
+    const rootSpan = {
+      spanContext() {
+        return {
+          traceId: '1234',
+          spanId: '12345',
+          traceFlags: 0,
+          traceState: {
+            get() {
+              return 'sentry-environment=myEnv2';
+            },
+          } as unknown as SpanContextData['traceState'],
+        };
+      },
+    } as Span;
+
+    const dynamicSamplingContext = getDynamicSamplingContextFromSpan(rootSpan);
+
+    expect(dynamicSamplingContext).toStrictEqual({ environment: 'myEnv2' });
   });
 
   test('returns a new DSC, if no DSC was provided during rootSpan creation (via attributes)', () => {

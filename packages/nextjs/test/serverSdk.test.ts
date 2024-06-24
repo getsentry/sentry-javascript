@@ -112,4 +112,8 @@ describe('Server init()', () => {
       expect(consoleIntegration).toBeDefined();
     });
   });
+
+  it('returns client from init', () => {
+    expect(init({})).not.toBeUndefined();
+  });
 });

@@ -7,4 +7,5 @@ Sentry.init({
   dsn: process.env.E2E_TEST_DSN,
   tunnel: 'http://localhost:3031/', // proxy server
   autoInstrumentRemix: true, // auto instrument Remix
+  integrations: [Sentry.nativeNodeFetchIntegration()],
 });

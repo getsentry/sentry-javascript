@@ -414,7 +414,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   public on(hook: 'beforeAddBreadcrumb', callback: (breadcrumb: Breadcrumb, hint?: BreadcrumbHint) => void): void;
 
   /** @inheritdoc */
-  public on(hook: 'createDsc', callback: (dsc: DynamicSamplingContext) => void): void;
+  public on(hook: 'createDsc', callback: (dsc: DynamicSamplingContext, rootSpan?: Span) => void): void;
 
   /** @inheritdoc */
   public on(
@@ -499,7 +499,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   public emit(hook: 'beforeAddBreadcrumb', breadcrumb: Breadcrumb, hint?: BreadcrumbHint): void;
 
   /** @inheritdoc */
-  public emit(hook: 'createDsc', dsc: DynamicSamplingContext): void;
+  public emit(hook: 'createDsc', dsc: DynamicSamplingContext, rootSpan?: Span): void;
 
   /** @inheritdoc */
   public emit(hook: 'beforeSendFeedback', feedback: FeedbackEvent, options?: { includeReplay: boolean }): void;

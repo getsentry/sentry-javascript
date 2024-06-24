@@ -191,14 +191,12 @@ function createProfileChunkPayload(
   {
     release,
     environment,
-    start_timestamp,
     trace_id,
     profiler_id,
     chunk_id,
   }: {
     release: string;
     environment: string;
-    start_timestamp: number;
     trace_id: string | undefined;
     chunk_id: string;
     profiler_id: string;
@@ -216,7 +214,6 @@ function createProfileChunkPayload(
   const profile: ProfileChunk = {
     chunk_id: chunk_id,
     profiler_id: profiler_id,
-    timestamp: new Date(start_timestamp).toISOString(),
     platform: 'node',
     version: CONTINUOUS_FORMAT_VERSION,
     release: release,
@@ -235,7 +232,6 @@ function createProfileChunkPayload(
  * Creates a profiling chunk envelope item, if the profile does not pass validation, returns null.
  */
 export function createProfilingChunkEvent(
-  start_timestamp: number,
   client: Client,
   options: { release?: string; environment?: string },
   profile: RawChunkCpuProfile,
@@ -248,7 +244,6 @@ export function createProfilingChunkEvent(
   return createProfileChunkPayload(client, profile, {
     release: options.release ?? '',
     environment: options.environment ?? '',
-    start_timestamp: start_timestamp,
     trace_id: identifiers.trace_id ?? '',
     chunk_id: identifiers.chunk_id,
     profiler_id: identifiers.profiler_id,

@@ -4,6 +4,77 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 8.11.0
+
+### Important Changes
+
+- **feat(core): Add `parentSpan` option to `startSpan*` APIs (#12567)**
+
+We've made it easier to create a span as a child of a specific span via the startSpan\* APIs. This should allow you to
+explicitly manage the parent-child relationship of your spans better.
+
+```js
+Sentry.startSpan({ name: 'root' }, parent => {
+  const span = Sentry.startInactiveSpan({ name: 'xxx', parentSpan: parent });
+
+  Sentry.startSpan({ name: 'xxx', parentSpan: parent }, () => {});
+
+  Sentry.startSpanManual({ name: 'xxx', parentSpan: parent }, () => {});
+});
+```
+
+### Other Changes
+
+- feat(node): Detect release from more providers (#12529)
+- fix(profiling-node): Use correct getGlobalScope import (#12564)
+- fix(profiling-node) sample timestamps need to be in seconds (#12563)
+- ref: Align `@sentry/node` exports from framework SDKs. (#12589)
+
+## 8.10.0
+
+### Important Changes
+
+- **feat(remix): Migrate to `opentelemetry-instrumentation-remix`. (#12110)**
+
+You can now simplify your remix instrumentation by opting-in like this:
+
+```js
+const Sentry = require('@sentry/remix');
+
+Sentry.init({
+  dsn: YOUR_DSN
+  // opt-in to new auto instrumentation
+  autoInstrumentRemix: true,
+});
+```
+
+With this setup, you do not need to add e.g. `wrapExpressCreateRequestHandler` anymore. Additionally, the quality of the
+captured data improves. The old way to use `@sentry/remix` continues to work, but it is encouraged to use the new setup.
+
+### Other Changes
+
+- feat(browser): Export `thirdPartyErrorFilterIntegration` from `@sentry/browser` (#12512)
+- feat(feedback): Allow passing `tags` field to any feedback config param (#12197)
+- feat(feedback): Improve screenshot quality for retina displays (#12487)
+- feat(feedback): Screenshots don't resize after cropping (#12481)
+- feat(node) add max lineno and colno limits (#12514)
+- feat(profiling) add global profile context while profiler is running (#12394)
+- feat(react): Add React version to events (#12390)
+- feat(replay): Add url to replay hydration error breadcrumb type (#12521)
+- fix(core): Ensure standalone spans respect sampled flag (#12533)
+- fix(core): Use maxValueLength in extra error data integration (#12174)
+- fix(feedback): Fix scrolling after feedback submission (#12499)
+- fix(feedback): Send feedback rejects invalid responses (#12518)
+- fix(nextjs): Update @rollup/plugin-commonjs (#12527)
+- fix(node): Ensure status is correct for http server span errors (#12477)
+- fix(node): Unify`getDynamicSamplingContextFromSpan` (#12522)
+- fix(profiling): continuous profile chunks should be in seconds (#12532)
+- fix(remix): Add nativeFetch support for accessing request headers (#12479)
+- fix(remix): Export no-op as `captureRemixServerException` from client SDK (#12497)
+- ref(node) refactor contextlines to use readline (#12221)
+
+Work in this release was contributed by @AndreyKovanov and @kiliman. Thank you for your contributions!
+
 ## 8.9.2
 
 - fix(profiling): Update exports so types generate properly (#12469)
