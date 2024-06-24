@@ -1,5 +1,5 @@
-import { SDK_VERSION } from '@sentry/utils';
 import * as SentryNode from '@sentry/node';
+import { SDK_VERSION } from '@sentry/utils';
 
 import { init as nestInit } from '../src/sdk';
 
@@ -9,7 +9,7 @@ const PUBLIC_DSN = 'https://username@domain/123';
 describe('Initialize Nest SDK', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-  })
+  });
 
   it('has the correct metadata', () => {
     nestInit({
@@ -28,5 +28,5 @@ describe('Initialize Nest SDK', () => {
 
     expect(nodeInit).toHaveBeenCalledTimes(1);
     expect(nodeInit).toHaveBeenLastCalledWith(expect.objectContaining(expectedMetadata));
-  })
-})
+  });
+});

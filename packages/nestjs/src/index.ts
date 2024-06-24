@@ -1,3 +1,3 @@
-export * from '@sentry/node'
+export * from '@sentry/node';
 
 export { init } from './sdk';
