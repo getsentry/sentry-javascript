@@ -22,7 +22,7 @@ export declare function captureRemixServerException(
   err: unknown,
   name: string,
   request: Request,
-  isRemixV2: boolean,
+  isRemixV2?: boolean,
 ): Promise<void>;
 
 // This variable is not a runtime variable but just a type to tell typescript that the methods below can either come

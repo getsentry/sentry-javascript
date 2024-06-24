@@ -172,7 +172,7 @@ export async function errorHandleDataFunction(
       // Remix v1 does not have a `handleError` function, so we capture all errors here.
       if (isRemixV2 ? isResponse(err) : true) {
         // eslint-disable-next-line @typescript-eslint/no-floating-promises
-        captureRemixServerException(err, name, args.request);
+        captureRemixServerException(err, name, args.request, true);
       }
 
       throw err;
