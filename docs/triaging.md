@@ -4,15 +4,15 @@ The term _triage_ originally comes from medicine and describes the process of qu
 to a hospital in order to decide which ones are the most seriously ill and must be treated first.
 
 By _triaging issues_, we are evaluating problems that our customers are facing and providing the appropriate level of
-support. The goal is to provide attention to all open issues, categorise them, and alert people when there are issues
-of high severity. The goal is _not_ to fix all issues or answer all the questions coming from the open source community
+support. The goal is to provide attention to all open issues, categorise them, and alert people when there are issues of
+high severity. The goal is _not_ to fix all issues or answer all the questions coming from the open source community
 immediately.
 
 ## Bug fixing 101
 
 Not every bug is equally critical or time sensitive. Some things reported as bugs aren’t even bugs. If you are unsure
-whether something needs fixing, just reach out to your colleagues and get their opinion. When you do fix a bug, it should
-always go hand-in-hand with adding new tests (or improving existing ones), so we can avoid any regressions in the
+whether something needs fixing, just reach out to your colleagues and get their opinion. When you do fix a bug, it
+should always go hand-in-hand with adding new tests (or improving existing ones), so we can avoid any regressions in the
 future.
 
 ## Triaging workflow
@@ -56,12 +56,21 @@ future.
 When you start looking into an issue, you may assign the issue to yourself. This indicates to other colleagues that
 somebody else is already looking into the issue. Generally speaking, the first person to assign themselves/answer in the
 issue is considered the owner of this triaging issue, and other colleagues will generally not look into this issue
-anymore unless prompted. Still, if you stumble upon an issue and you feel like you have something productive to add to the conversation, feel empowered to also comment on issues owned by somebody else. Make sure to follow up on issues you started to triage, and/or pull in other colleagues
-as needed.
+anymore unless prompted. Still, if you stumble upon an issue and you feel like you have something productive to add to
+the conversation, feel empowered to also comment on issues owned by somebody else. Make sure to follow up on issues you
+started to triage, and/or pull in other colleagues as needed.
 
-You can and should also move issues through the project board. You can set the status to "Backlog" (may be done at some
-point), "Todo" (should be done), "In Progress" (I am working on this), "In Review" (PR is open), or "Done". This helps
-have an overview of what is actively being worked on at any given time.
+If a team member is out of office, make sure that issues this person started to triage continue to receive attention.
+
+You can and should also move issues through the project board. You can set the status to:
+
+- `Backlog`: May be done at some point
+- `Todo`: Should be done, feel free to pick up this issue any time
+- `In Progress`: This is being worked on
+- `In Review`: PR is open
+- `Done`
+
+This helps have an overview of what is actively being worked on at any given time.
 
 ### (Sentry Employees) How much time should be spent triaging?
 
@@ -73,7 +82,8 @@ more time than this, bring this up with your manager to find ways to optimize th
 
 ### (Sentry Employees) What about "inoffical" triaging?
 
-In addition to Github issues, you may also be pulled into triaging duty in other ways, e.g. via Discord , StackOverflow, GitHub Discussions, or Slack.
+In addition to Github issues, you may also be pulled into triaging duty in other ways, e.g. via Discord , StackOverflow,
+GitHub Discussions, or Slack.
 
 Generally, if non-trivial issues are raised this way, encourage the other parties to create issues on GitHub with as
 much detail as possible, which also makes it easier for us to track the requests/issues. You should also include the
