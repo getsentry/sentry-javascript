@@ -6,7 +6,7 @@
 
 - **feat(solid): Remove need to pass router hooks to solid integration**
 
-This release introduces breaking changes to the `@sentry/solid` package.
+This release introduces breaking changes to the `@sentry/solid` package (which is currently out in alpha).
 
 We've made it easier to get started with the solid router integration by removing the need to pass **use\*** hooks
 explicitly to `solidRouterBrowserTracingIntegration`. Import `solidRouterBrowserTracingIntegration` from
