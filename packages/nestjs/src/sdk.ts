@@ -10,7 +10,7 @@ export function init(options: NodeOptions): void {
     ...options,
   };
 
-  applySdkMetadata(opts, 'nest');
+  applySdkMetadata(opts, 'nestjs');
 
   nodeInit(opts);
 }

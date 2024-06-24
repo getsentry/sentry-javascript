@@ -60,7 +60,7 @@
     "packages/gatsby",
     "packages/google-cloud-serverless",
     "packages/integration-shims",
-    "packages/nest",
+    "packages/nestjs",
     "packages/nextjs",
     "packages/node",
     "packages/nuxt",
