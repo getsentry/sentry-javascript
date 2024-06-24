@@ -17,45 +17,19 @@
     "import-hook.mjs",
     "loader-hook.mjs"
   ],
-  "main": "build/cjs/index.js",
-  "module": "build/esm/index.js",
+  "main": "build/cjs/nestjs/index.js",
+  "module": "build/esm/nestjs/index.js",
   "types": "build/types/index.d.ts",
   "exports": {
     "./package.json": "./package.json",
     ".": {
       "import": {
         "types": "./build/types/index.d.ts",
-        "default": "./build/esm/index.js"
+        "default": "./build/esm/nestjs/index.js"
       },
       "require": {
         "types": "./build/types/index.d.ts",
-        "default": "./build/cjs/index.js"
-      }
-    },
-    "./import": {
-      "import": {
-        "default": "./build/import-hook.mjs"
-      }
-    },
-    "./loader": {
-      "import": {
-        "default": "./build/loader-hook.mjs"
-      }
-    },
-    "./init": {
-      "import": {
-        "default": "./build/esm/init.js"
-      },
-      "require": {
-        "default": "./build/cjs/init.js"
-      }
-    },
-    "./preload": {
-      "import": {
-        "default": "./build/esm/preload.js"
-      },
-      "require": {
-        "default": "./build/cjs/preload.js"
+        "default": "./build/cjs/nestjs/index.js"
       }
     }
   },
