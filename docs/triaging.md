@@ -19,8 +19,8 @@ future.
 
 There are a few different ways to triage issues:
 
-1. You can look at the `#feed-web-sdk` channel in Slack. This channel will automatically receive a message every day in
-   the morning with issues that require triaging.
+1. You can look at the `#feed-web-frontend` channel in Slack. This channel will automatically receive a message every
+   day in the morning with issues that require triaging.
 2. You can look at the triage view in the GitHub Project Board: https://github.com/orgs/getsentry/projects/31/views/29
 3. (Also for external contributors) You can filter by `Waiting for: Product Owner` label:
    https://github.com/getsentry/sentry-javascript/issues?q=is%3Aopen+is%3Aissue+label%3A%22Waiting+for%3A+Product+Owner%22
@@ -37,8 +37,8 @@ If a user replies to an issue, leading to the label being re-applied, but no res
 may also remove the label manually, which will also remove it from the triage list.
 
 Working through the triage queue should have the highest priority of tasks. Especially issues that are reaching the top
-of the triage queue (which is indicated in the `#feed-web-sdk` channel through a remaining time to triage) should be
-prioritised. **This does not mean that you need to fix the issue immediately,** but that you should investigate and
+of the triage queue (which is indicated in the `#feed-web-frontend` channel through a remaining time to triage) should
+be prioritised. **This does not mean that you need to fix the issue immediately,** but that you should investigate and
 categorize the issue as soon as possible. If an issue is hard to fix, an edge case, or otherwise unclear, feel free to
 reply and put the issue in backlog. You may also encourage the user to contribute a PR themselves if we are unlikely to
 find time to resolve the issue ourselves anytime soon.
