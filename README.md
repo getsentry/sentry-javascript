@@ -121,7 +121,7 @@ For more details, please have a look at https://sentry.io/security/#vulnerabilit
 
 ## Contributors
 
-## Thanks to all the people who contributed!
+Thanks to everyone who contributed to the Sentry JavaScript SDK!
 
 <a href="https://github.com/getsentry/sentry-javascript/graphs/contributors">
   <img src="https://contributors-img.web.app/image?repo=getsentry/sentry-javascript" />
