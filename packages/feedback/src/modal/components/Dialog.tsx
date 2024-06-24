@@ -3,6 +3,7 @@ import type { FeedbackFormData, FeedbackInternalOptions } from '@sentry/types';
 import { Fragment, h } from 'preact'; // eslint-disable-line @typescript-eslint/no-unused-vars
 import type { VNode } from 'preact';
 import { useCallback, useMemo, useState } from 'preact/hooks';
+
 import { SUCCESS_MESSAGE_TIMEOUT } from '../../constants';
 import { DialogHeader } from './DialogHeader';
 import type { Props as HeaderProps } from './DialogHeader';
