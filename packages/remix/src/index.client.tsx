@@ -17,7 +17,7 @@ export async function captureRemixServerException(
   err: unknown,
   name: string,
   request: Request,
-  isRemixV2: boolean,
+  isRemixV2?: boolean,
 ): Promise<void> {
   DEBUG_BUILD &&
     logger.warn(
