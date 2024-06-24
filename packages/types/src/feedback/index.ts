@@ -27,7 +27,7 @@ type HType = unknown;
 type ShadowRoot = unknown;
 type VNode = unknown;
 
-interface FeedbackDialog {
+type FeedbackDialog = {
   /**
    * The HTMLElement that is containing all the form content
    */
@@ -54,7 +54,7 @@ interface FeedbackDialog {
    * Close/Hide the dialog & form inside it
    */
   close: () => void;
-}
+};
 
 interface FeedbackScreenshotInput {
   /**
