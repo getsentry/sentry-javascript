@@ -160,28 +160,34 @@ targets:
   # Sentry Release Registry Target
   - name: registry
     sdks:
+      'npm:@sentry/angular':
+        onlyIfPresent: /^sentry-angular-\d.*\.tgz$/
+      'npm:@sentry/astro':
+        onlyIfPresent: /^sentry-astro-\d.*\.tgz$/
+      'npm:@sentry/aws-serverless':
+        onlyIfPresent: /^sentry-aws-serverless-\d.*\.tgz$/
       'npm:@sentry/browser':
         onlyIfPresent: /^sentry-browser-\d.*\.tgz$/
         includeNames: /\.js$/
         checksums:
           - algorithm: sha384
             format: base64
+      'npm:@sentry/bun':
+        onlyIfPresent: /^sentry-bun-\d.*\.tgz$/
+      'npm:@sentry/deno':
+        onlyIfPresent: /^sentry-deno-\d.*\.tgz$/
+      'npm:@sentry/ember':
+        onlyIfPresent: /^sentry-ember-\d.*\.tgz$/
+      'npm:@sentry/gatsby':
+        onlyIfPresent: /^sentry-gatsby-\d.*\.tgz$/
+      'npm:@sentry/google-cloud-serverless':
+        onlyIfPresent: /^sentry-google-cloud-serverless-\d.*\.tgz$/
+      'npm:@sentry/nextjs':
+        onlyIfPresent: /^sentry-nextjs-\d.*\.tgz$/
       'npm:@sentry/node':
         onlyIfPresent: /^sentry-node-\d.*\.tgz$/
       'npm:@sentry/react':
         onlyIfPresent: /^sentry-react-\d.*\.tgz$/
-      'npm:@sentry/vue':
-        onlyIfPresent: /^sentry-vue-\d.*\.tgz$/
-      'npm:@sentry/gatsby':
-        onlyIfPresent: /^sentry-gatsby-\d.*\.tgz$/
-      'npm:@sentry/angular':
-        onlyIfPresent: /^sentry-angular-\d.*\.tgz$/
-      'npm:@sentry/astro':
-        onlyIfPresent: /^sentry-astro-\d.*\.tgz$/
-      'npm:@sentry/wasm':
-        onlyIfPresent: /^sentry-wasm-\d.*\.tgz$/
-      'npm:@sentry/nextjs':
-        onlyIfPresent: /^sentry-nextjs-\d.*\.tgz$/
       'npm:@sentry/remix':
         onlyIfPresent: /^sentry-remix-\d.*\.tgz$/
       'npm:@sentry/solid':
@@ -190,9 +196,9 @@ targets:
         onlyIfPresent: /^sentry-svelte-\d.*\.tgz$/
       'npm:@sentry/sveltekit':
         onlyIfPresent: /^sentry-sveltekit-\d.*\.tgz$/
-      'npm:@sentry/bun':
-        onlyIfPresent: /^sentry-bun-\d.*\.tgz$/
       'npm:@sentry/vercel-edge':
         onlyIfPresent: /^sentry-vercel-edge-\d.*\.tgz$/
-      'npm:@sentry/ember':
-        onlyIfPresent: /^sentry-ember-\d.*\.tgz$/
+      'npm:@sentry/vue':
+        onlyIfPresent: /^sentry-vue-\d.*\.tgz$/
+      'npm:@sentry/wasm':
+        onlyIfPresent: /^sentry-wasm-\d.*\.tgz$/

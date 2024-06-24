@@ -235,7 +235,7 @@ jobs:
     runs-on: ubuntu-20.04
     if: |
       github.event_name == 'pull_request'
-      && (github.action == 'opened' || github.action == 'reopened')
+      && (github.event.action == 'opened' || github.event.action == 'reopened')
       && github.event.pull_request.author_association != 'COLLABORATOR'
       && github.event.pull_request.author_association != 'MEMBER'
       && github.event.pull_request.author_association != 'OWNER'
@@ -1477,33 +1477,33 @@ jobs:
             node: 22
 
             # macos x64
-          - os: macos-11
+          - os: macos-13
             node: 16
             arch: x64
-          - os: macos-11
+          - os: macos-13
             node: 18
             arch: x64
-          - os: macos-11
+          - os: macos-13
             node: 20
             arch: x64
-          - os: macos-11
+          - os: macos-13
             node: 22
             arch: x64
 
             # macos arm64
-          - os: macos-12
+          - os: macos-13
             arch: arm64
             node: 16
             target_platform: darwin
-          - os: macos-12
+          - os: macos-13
             arch: arm64
             node: 18
             target_platform: darwin
-          - os: macos-12
+          - os: macos-13
             arch: arm64
             node: 20
             target_platform: darwin
-          - os: macos-12
+          - os: macos-13
             arch: arm64
             node: 22
             target_platform: darwin

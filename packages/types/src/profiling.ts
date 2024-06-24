@@ -50,7 +50,6 @@ export interface ContinuousThreadCpuProfile {
 }
 
 interface BaseProfile<T> {
-  timestamp: string;
   version: string;
   release: string;
   environment: string;

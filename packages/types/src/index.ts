@@ -77,7 +77,6 @@ export type {
 } from './profiling';
 export type { ReplayEvent, ReplayRecordingData, ReplayRecordingMode } from './replay';
 export type {
-  FeedbackDialog,
   FeedbackEvent,
   FeedbackFormData,
   FeedbackInternalOptions,
@@ -85,7 +84,6 @@ export type {
   FeedbackScreenshotIntegration,
   SendFeedback,
   SendFeedbackParams,
-  CreateDialogProps,
   UserFeedback,
 } from './feedback';
 export type { QueryParams, Request, SanitizedRequestData } from './request';

@@ -1,11 +1,7 @@
-import type {
-  CreateDialogProps,
-  FeedbackDialog,
-  FeedbackFormData,
-  FeedbackModalIntegration,
-  IntegrationFn,
-} from '@sentry/types';
+import type { FeedbackFormData, FeedbackModalIntegration, IntegrationFn } from '@sentry/types';
+
 import { h, render } from 'preact';
+import * as hooks from 'preact/hooks';
 import { DOCUMENT } from '../constants';
 import { Dialog } from './components/Dialog';
 import { createDialogStyles } from './components/Dialog.css';
@@ -16,7 +12,7 @@ export const feedbackModalIntegration = ((): FeedbackModalIntegration => {
     name: 'FeedbackModal',
     // eslint-disable-next-line @typescript-eslint/no-empty-function
     setupOnce() {},
-    createDialog: ({ options, screenshotIntegration, sendFeedback, shadow }: CreateDialogProps) => {
+    createDialog: ({ options, screenshotIntegration, sendFeedback, shadow }) => {
       const shadowRoot = shadow as unknown as ShadowRoot;
       const userKey = options.useSentryUser;
       const user = getUser();
@@ -25,7 +21,7 @@ export const feedbackModalIntegration = ((): FeedbackModalIntegration => {
       const style = createDialogStyles();
 
       let originalOverflow = '';
-      const dialog: FeedbackDialog = {
+      const dialog: ReturnType<FeedbackModalIntegration['createDialog']> = {
         get el() {
           return el;
         },
@@ -52,7 +48,7 @@ export const feedbackModalIntegration = ((): FeedbackModalIntegration => {
         },
       };
 
-      const screenshotInput = screenshotIntegration && screenshotIntegration.createInput(h, dialog, options);
+      const screenshotInput = screenshotIntegration && screenshotIntegration.createInput({ h, hooks, dialog, options });
 
       const renderContent = (open: boolean): void => {
         render(

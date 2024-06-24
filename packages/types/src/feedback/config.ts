@@ -1,3 +1,4 @@
+import type { Primitive } from '../misc';
 import type { FeedbackFormData } from './form';
 import type { FeedbackTheme } from './theme';
 
@@ -55,6 +56,11 @@ export interface FeedbackGeneralConfiguration {
     email: string;
     name: string;
   };
+
+  /**
+   * Set an object that will be merged sent as tags data with the event.
+   */
+  tags?: { [key: string]: Primitive };
 }
 
 /**
