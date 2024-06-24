@@ -7959,6 +7959,44 @@
     "@angular-devkit/schematics" "14.2.13"
     jsonc-parser "3.1.0"
 
+"@sentry-internal/browser-utils@8.10.0":
+  version "8.10.0"
+  resolved "https://registry.yarnpkg.com/@sentry-internal/browser-utils/-/browser-utils-8.10.0.tgz#a4a2384d14152593402bded19c068ba5d95a7a9a"
+  integrity sha512-Hdqv8KfQDCj7H92ft2walDwCiyaTxgegHnR4ZtCI8NQR0hqdU/PzIKashTwc+Ho6OAQtdy/HNqhcHEznuBNW3A==
+  dependencies:
+    "@sentry/core" "8.10.0"
+    "@sentry/types" "8.10.0"
+    "@sentry/utils" "8.10.0"
+
+"@sentry-internal/feedback@8.10.0":
+  version "8.10.0"
+  resolved "https://registry.yarnpkg.com/@sentry-internal/feedback/-/feedback-8.10.0.tgz#31afdc59be6a500eadebcc4603e0ebec7942cd16"
+  integrity sha512-pzc4s5X6wvY0BMQBFAMObQBjRKiKzoF2APD5H5eBcxkX8deIykjm8VC8mgpVpxYm6mfjytvgpZyPpZ6KgpRt9Q==
+  dependencies:
+    "@sentry/core" "8.10.0"
+    "@sentry/types" "8.10.0"
+    "@sentry/utils" "8.10.0"
+
+"@sentry-internal/replay-canvas@8.10.0":
+  version "8.10.0"
+  resolved "https://registry.yarnpkg.com/@sentry-internal/replay-canvas/-/replay-canvas-8.10.0.tgz#a1ac59d13ff12d497e7eea0727c488a572772941"
+  integrity sha512-M4yM8ZqtsW1wER7jNpGq019jmhn/RkcmdIyWksRpBSvRppZRf0yR9dbVhdO/oBL8DB3fDTbv8Qtd/oXlkj/i+Q==
+  dependencies:
+    "@sentry-internal/replay" "8.10.0"
+    "@sentry/core" "8.10.0"
+    "@sentry/types" "8.10.0"
+    "@sentry/utils" "8.10.0"
+
+"@sentry-internal/replay@8.10.0":
+  version "8.10.0"
+  resolved "https://registry.yarnpkg.com/@sentry-internal/replay/-/replay-8.10.0.tgz#05be6548ffe3e8497a9efc4bf65be2ad0ab85ff6"
+  integrity sha512-MISdD0Q0sVcQELHbYSH5SuKHlrI8RFvmU6aNcjWEoKxhd4Vzr126h98naVPoo7WOOI0e7Fd0Lrn/59wNI4AJxQ==
+  dependencies:
+    "@sentry-internal/browser-utils" "8.10.0"
+    "@sentry/core" "8.10.0"
+    "@sentry/types" "8.10.0"
+    "@sentry/utils" "8.10.0"
+
 "@sentry-internal/rrdom@2.11.0":
   version "2.11.0"
   resolved "https://registry.yarnpkg.com/@sentry-internal/rrdom/-/rrdom-2.11.0.tgz#f7c8f54705ad84ece0e97e53f12e87c687749b32"
@@ -8030,10 +8068,28 @@
   resolved "https://registry.yarnpkg.com/@sentry/babel-plugin-component-annotate/-/babel-plugin-component-annotate-2.16.0.tgz#c831713b85516fb3f9da2985836ddf444dc634e6"
   integrity sha512-+uy1qPkA5MSNgJ0L9ur/vNTydfdHwHnBX2RQ+0thsvkqf90fU788YjkkXwUiBBNuqNyI69JiOW6frixAWy7oUg==
 
+"@sentry/babel-plugin-component-annotate@2.18.0":
+  version "2.18.0"
+  resolved "https://registry.yarnpkg.com/@sentry/babel-plugin-component-annotate/-/babel-plugin-component-annotate-2.18.0.tgz#3bee98f94945643b0762ceed1f6cca60db52bdbd"
+  integrity sha512-9L4RbhS3WNtc/SokIhc0dwgcvs78YSQPakZejsrIgnzLzCi8mS6PeT+BY0+QCtsXxjd1egM8hqcJeB0lukBkXA==
+
 "@sentry/babel-plugin-component-annotate@2.19.0":
   version "2.19.0"
   resolved "https://registry.yarnpkg.com/@sentry/babel-plugin-component-annotate/-/babel-plugin-component-annotate-2.19.0.tgz#70dcccb336bcec24148e1c9cd4e37724cebf5673"
   integrity sha512-N2k8cMYu/7X6mzAH5j6bMeNcXQBJLL0lVAF63TDS57hUiT1v2uEqbeYFdH2CZBHb2LepLbMRXmvErIwy76FLTw==
+
+"@sentry/browser@8.10.0":
+  version "8.10.0"
+  resolved "https://registry.yarnpkg.com/@sentry/browser/-/browser-8.10.0.tgz#ccf42a70d72edb58cc7d1030fd4d4bcc7b2bf999"
+  integrity sha512-6yGax6vUNV28cANMJCTrLFrGTvvgC0h4k+lzjrgstCf1k+CNQmodXDyWcRzbL4im5DTH4jF74ZAYpqrptloxJw==
+  dependencies:
+    "@sentry-internal/browser-utils" "8.10.0"
+    "@sentry-internal/feedback" "8.10.0"
+    "@sentry-internal/replay" "8.10.0"
+    "@sentry-internal/replay-canvas" "8.10.0"
+    "@sentry/core" "8.10.0"
+    "@sentry/types" "8.10.0"
+    "@sentry/utils" "8.10.0"
 
 "@sentry/bundler-plugin-core@2.16.0":
   version "2.16.0"
@@ -8047,6 +8103,20 @@
     find-up "^5.0.0"
     glob "^9.3.2"
     magic-string "0.27.0"
+    unplugin "1.0.1"
+
+"@sentry/bundler-plugin-core@2.18.0":
+  version "2.18.0"
+  resolved "https://registry.yarnpkg.com/@sentry/bundler-plugin-core/-/bundler-plugin-core-2.18.0.tgz#2411cd934e9510c53a2e682497a74172485ac817"
+  integrity sha512-JvxVgsMFmDsU0Dgcx1CeFUC1scxOVSAOzOcE06qKAVm9BZzxHpI53iNfeMOXwVTUolD8LZVIfgOjkiXfwN/UPQ==
+  dependencies:
+    "@babel/core" "^7.18.5"
+    "@sentry/babel-plugin-component-annotate" "2.18.0"
+    "@sentry/cli" "^2.22.3"
+    dotenv "^16.3.1"
+    find-up "^5.0.0"
+    glob "^9.3.2"
+    magic-string "0.30.8"
     unplugin "1.0.1"
 
 "@sentry/bundler-plugin-core@2.19.0":
@@ -8117,6 +8187,78 @@
     "@sentry/cli-win32-i686" "2.32.1"
     "@sentry/cli-win32-x64" "2.32.1"
 
+"@sentry/core@8.10.0":
+  version "8.10.0"
+  resolved "https://registry.yarnpkg.com/@sentry/core/-/core-8.10.0.tgz#033661288a5ac9f4e6cd7583cf068bec4403dbe0"
+  integrity sha512-NzrFqYsEHMd4TYYYxOvf+f+Z02u0nt12cIYYN9pOM3xBLKR+ORs7jhVnN0cB/H2yqtmtBaIzSehk/M/qUXFJGw==
+  dependencies:
+    "@sentry/types" "8.10.0"
+    "@sentry/utils" "8.10.0"
+
+"@sentry/node@8.10.0":
+  version "8.10.0"
+  resolved "https://registry.yarnpkg.com/@sentry/node/-/node-8.10.0.tgz#8bee9d3270ce6054e3c271125415d6524298847a"
+  integrity sha512-cokBLwYGBFhFw4TFX5QCRat8JBkjT3U72PsptciO+ck3XUHJwQn2AipzzEk9itCvtnhQjhStRswyCK4zXHpW7w==
+  dependencies:
+    "@opentelemetry/api" "^1.9.0"
+    "@opentelemetry/context-async-hooks" "^1.25.0"
+    "@opentelemetry/core" "^1.25.0"
+    "@opentelemetry/instrumentation" "^0.52.0"
+    "@opentelemetry/instrumentation-connect" "0.37.0"
+    "@opentelemetry/instrumentation-express" "0.40.1"
+    "@opentelemetry/instrumentation-fastify" "0.37.0"
+    "@opentelemetry/instrumentation-graphql" "0.41.0"
+    "@opentelemetry/instrumentation-hapi" "0.39.0"
+    "@opentelemetry/instrumentation-http" "0.52.0"
+    "@opentelemetry/instrumentation-ioredis" "0.41.0"
+    "@opentelemetry/instrumentation-koa" "0.41.0"
+    "@opentelemetry/instrumentation-mongodb" "0.45.0"
+    "@opentelemetry/instrumentation-mongoose" "0.39.0"
+    "@opentelemetry/instrumentation-mysql" "0.39.0"
+    "@opentelemetry/instrumentation-mysql2" "0.39.0"
+    "@opentelemetry/instrumentation-nestjs-core" "0.38.0"
+    "@opentelemetry/instrumentation-pg" "0.42.0"
+    "@opentelemetry/instrumentation-redis-4" "0.40.0"
+    "@opentelemetry/resources" "^1.25.0"
+    "@opentelemetry/sdk-trace-base" "^1.25.0"
+    "@opentelemetry/semantic-conventions" "^1.25.0"
+    "@prisma/instrumentation" "5.15.0"
+    "@sentry/core" "8.10.0"
+    "@sentry/opentelemetry" "8.10.0"
+    "@sentry/types" "8.10.0"
+    "@sentry/utils" "8.10.0"
+  optionalDependencies:
+    opentelemetry-instrumentation-fetch-node "1.2.0"
+
+"@sentry/opentelemetry@8.10.0":
+  version "8.10.0"
+  resolved "https://registry.yarnpkg.com/@sentry/opentelemetry/-/opentelemetry-8.10.0.tgz#bf1488e4a1769d4e74aa07dad55ce1fb2ec7a297"
+  integrity sha512-OPdxZZWaOzOCOYbH7oGeDrz3veaxdlUMU0PMaqYYywN+iOx+0uZm+MfAiAEbInL8dmLMg0qJHde3vI9veDozgQ==
+  dependencies:
+    "@sentry/core" "8.10.0"
+    "@sentry/types" "8.10.0"
+    "@sentry/utils" "8.10.0"
+
+"@sentry/types@8.10.0":
+  version "8.10.0"
+  resolved "https://registry.yarnpkg.com/@sentry/types/-/types-8.10.0.tgz#47119cb121cba38cc3654e7b79ac9014235132a9"
+  integrity sha512-6kgh6NqgQHcnnD7dOe3THcVkzv2nor/f94x3odmPShN2AWBfPRprHZZsLTjh/3aC7l76V2nfuQ4wgRvwsddTWw==
+
+"@sentry/utils@8.10.0":
+  version "8.10.0"
+  resolved "https://registry.yarnpkg.com/@sentry/utils/-/utils-8.10.0.tgz#0947188bafdd343fffd9554de3604fdde4818ff7"
+  integrity sha512-tQPgB7lX1XqbEw2EXvWNsBQlmG+yJHVhBKKDPy5HZMjuTP3zlpVdP6NF87qwonmdtFNHxdrKbfOVRiLx71/JwA==
+  dependencies:
+    "@sentry/types" "8.10.0"
+
+"@sentry/vite-plugin@2.18.0":
+  version "2.18.0"
+  resolved "https://registry.yarnpkg.com/@sentry/vite-plugin/-/vite-plugin-2.18.0.tgz#f263f150b64591ac4db7f4e9a0b2cd8a03cada73"
+  integrity sha512-yY8QSvbMjRpG5pzN6lnW5guZhyTDSGeWwM9tDyT9ix/ShODy/eE6jErisBtlo50lFJuew7x79WXnVykvds4Ddg==
+  dependencies:
+    "@sentry/bundler-plugin-core" "2.18.0"
+    unplugin "1.0.1"
+
 "@sentry/vite-plugin@2.19.0", "@sentry/vite-plugin@^2.19.0":
   version "2.19.0"
   resolved "https://registry.yarnpkg.com/@sentry/vite-plugin/-/vite-plugin-2.19.0.tgz#c7938fb13eee15036963b87d7b12c4fc851e488b"
@@ -8124,6 +8266,16 @@
   dependencies:
     "@sentry/bundler-plugin-core" "2.19.0"
     unplugin "1.0.1"
+
+"@sentry/vue@8.10.0":
+  version "8.10.0"
+  resolved "https://registry.yarnpkg.com/@sentry/vue/-/vue-8.10.0.tgz#92dd645a91046c09727fc5de7aa8b65331bbea66"
+  integrity sha512-QVuhsPluOO8X13tbnUV2pwaM3nt759D42gF0O89bjkqbDB55U3uy+dISbDqsMGviHSGQSCtCb9Q3RQQt617OTg==
+  dependencies:
+    "@sentry/browser" "8.10.0"
+    "@sentry/core" "8.10.0"
+    "@sentry/types" "8.10.0"
+    "@sentry/utils" "8.10.0"
 
 "@sentry/webpack-plugin@2.16.0":
   version "2.16.0"
@@ -9499,8 +9651,17 @@
   dependencies:
     "@types/unist" "*"
 
-"@types/history-4@npm:@types/history@4.7.8", "@types/history-5@npm:@types/history@4.7.8", "@types/history@*":
-  name "@types/history-4"
+"@types/history-4@npm:@types/history@4.7.8":
+  version "4.7.8"
+  resolved "https://registry.yarnpkg.com/@types/history/-/history-4.7.8.tgz#49348387983075705fe8f4e02fb67f7daaec4934"
+  integrity sha512-S78QIYirQcUoo6UJZx9CSP0O2ix9IaeAXwQi26Rhr/+mg7qqPy8TzaxHSUut7eGjL8WmLccT7/MXf304WjqHcA==
+
+"@types/history-5@npm:@types/history@4.7.8":
+  version "4.7.8"
+  resolved "https://registry.yarnpkg.com/@types/history/-/history-4.7.8.tgz#49348387983075705fe8f4e02fb67f7daaec4934"
+  integrity sha512-S78QIYirQcUoo6UJZx9CSP0O2ix9IaeAXwQi26Rhr/+mg7qqPy8TzaxHSUut7eGjL8WmLccT7/MXf304WjqHcA==
+
+"@types/history@*":
   version "4.7.8"
   resolved "https://registry.yarnpkg.com/@types/history/-/history-4.7.8.tgz#49348387983075705fe8f4e02fb67f7daaec4934"
   integrity sha512-S78QIYirQcUoo6UJZx9CSP0O2ix9IaeAXwQi26Rhr/+mg7qqPy8TzaxHSUut7eGjL8WmLccT7/MXf304WjqHcA==
@@ -9859,7 +10020,15 @@
     "@types/history" "^3"
     "@types/react" "*"
 
-"@types/react-router-4@npm:@types/react-router@5.1.14", "@types/react-router-5@npm:@types/react-router@5.1.14":
+"@types/react-router-4@npm:@types/react-router@5.1.14":
+  version "5.1.14"
+  resolved "https://registry.yarnpkg.com/@types/react-router/-/react-router-5.1.14.tgz#e0442f4eb4c446541ad7435d44a97f8fe6df40da"
+  integrity sha512-LAJpqYUaCTMT2anZheoidiIymt8MuX286zoVFPM3DVb23aQBH0mAkFvzpd4LKqiolV8bBtZWT5Qp7hClCNDENw==
+  dependencies:
+    "@types/history" "*"
+    "@types/react" "*"
+
+"@types/react-router-5@npm:@types/react-router@5.1.14":
   version "5.1.14"
   resolved "https://registry.yarnpkg.com/@types/react-router/-/react-router-5.1.14.tgz#e0442f4eb4c446541ad7435d44a97f8fe6df40da"
   integrity sha512-LAJpqYUaCTMT2anZheoidiIymt8MuX286zoVFPM3DVb23aQBH0mAkFvzpd4LKqiolV8bBtZWT5Qp7hClCNDENw==
@@ -29003,8 +29172,7 @@ react-is@^18.0.0:
   dependencies:
     "@remix-run/router" "1.0.2"
 
-"react-router-6@npm:react-router@6.3.0", react-router@6.3.0:
-  name react-router-6
+"react-router-6@npm:react-router@6.3.0":
   version "6.3.0"
   resolved "https://registry.yarnpkg.com/react-router/-/react-router-6.3.0.tgz#3970cc64b4cb4eae0c1ea5203a80334fdd175557"
   integrity sha512-7Wh1DzVQ+tlFjkeo+ujvjSqSJmkt1+8JO+T5xklPlgrh70y7ogx75ODRW0ThWhY7S+6yEDks8TYrtQe/aoboBQ==
@@ -29018,6 +29186,13 @@ react-router-dom@^6.2.2:
   dependencies:
     history "^5.2.0"
     react-router "6.3.0"
+
+react-router@6.3.0:
+  version "6.3.0"
+  resolved "https://registry.yarnpkg.com/react-router/-/react-router-6.3.0.tgz#3970cc64b4cb4eae0c1ea5203a80334fdd175557"
+  integrity sha512-7Wh1DzVQ+tlFjkeo+ujvjSqSJmkt1+8JO+T5xklPlgrh70y7ogx75ODRW0ThWhY7S+6yEDks8TYrtQe/aoboBQ==
+  dependencies:
+    history "^5.2.0"
 
 react@^18.0.0:
   version "18.0.0"
@@ -31535,8 +31710,7 @@ string-template@~0.2.1:
   resolved "https://registry.yarnpkg.com/string-template/-/string-template-0.2.1.tgz#42932e598a352d01fc22ec3367d9d84eec6c9add"
   integrity sha1-QpMuWYo1LQH8IuwzZ9nYTuxsmt0=
 
-"string-width-cjs@npm:string-width@^4.2.0", string-width@^4.2.0, string-width@^4.2.2, string-width@^4.2.3:
-  name string-width-cjs
+"string-width-cjs@npm:string-width@^4.2.0":
   version "4.2.3"
   resolved "https://registry.yarnpkg.com/string-width/-/string-width-4.2.3.tgz#269c7117d27b05ad2e536830a8ec895ef9c6d010"
   integrity sha512-wKyQRQpjJ0sIp62ErSZdGsjMJWsap5oRNihHhu6G7JVO/9jIB6UyevL+tXuOqrng8j/cxKTWyWUwvSTriiZz/g==
@@ -31561,6 +31735,15 @@ string-width@^2.1.0:
   dependencies:
     is-fullwidth-code-point "^2.0.0"
     strip-ansi "^4.0.0"
+
+string-width@^4.2.0, string-width@^4.2.2, string-width@^4.2.3:
+  version "4.2.3"
+  resolved "https://registry.yarnpkg.com/string-width/-/string-width-4.2.3.tgz#269c7117d27b05ad2e536830a8ec895ef9c6d010"
+  integrity sha512-wKyQRQpjJ0sIp62ErSZdGsjMJWsap5oRNihHhu6G7JVO/9jIB6UyevL+tXuOqrng8j/cxKTWyWUwvSTriiZz/g==
+  dependencies:
+    emoji-regex "^8.0.0"
+    is-fullwidth-code-point "^3.0.0"
+    strip-ansi "^6.0.1"
 
 string-width@^5.0.1, string-width@^5.1.2:
   version "5.1.2"
@@ -31657,7 +31840,14 @@ stringify-object@^3.2.1:
     is-obj "^1.0.1"
     is-regexp "^1.0.0"
 
-"strip-ansi-cjs@npm:strip-ansi@^6.0.1", strip-ansi@6.0.1, strip-ansi@^6.0.0, strip-ansi@^6.0.1:
+"strip-ansi-cjs@npm:strip-ansi@^6.0.1":
+  version "6.0.1"
+  resolved "https://registry.yarnpkg.com/strip-ansi/-/strip-ansi-6.0.1.tgz#9e26c63d30f53443e9489495b2105d37b67a85d9"
+  integrity sha512-Y38VPSHcqkFrCpFnQ9vuSXmquuv5oXOKpGeT6aGrr3o3Gc9AlVa6JBfUSOCnbxGGZF+/0ooI7KrPuUSztUdU5A==
+  dependencies:
+    ansi-regex "^5.0.1"
+
+strip-ansi@6.0.1, strip-ansi@^6.0.0, strip-ansi@^6.0.1:
   version "6.0.1"
   resolved "https://registry.yarnpkg.com/strip-ansi/-/strip-ansi-6.0.1.tgz#9e26c63d30f53443e9489495b2105d37b67a85d9"
   integrity sha512-Y38VPSHcqkFrCpFnQ9vuSXmquuv5oXOKpGeT6aGrr3o3Gc9AlVa6JBfUSOCnbxGGZF+/0ooI7KrPuUSztUdU5A==
@@ -34771,8 +34961,7 @@ workerpool@^6.4.0:
   resolved "https://registry.yarnpkg.com/workerpool/-/workerpool-6.4.0.tgz#f8d5cfb45fde32fa3b7af72ad617c3369567a462"
   integrity sha512-i3KR1mQMNwY2wx20ozq2EjISGtQWDIfV56We+yGJ5yDs8jTwQiLLaqHlkBHITlCuJnYlVRmXegxFxZg7gqI++A==
 
-"wrap-ansi-cjs@npm:wrap-ansi@^7.0.0", wrap-ansi@^7.0.0:
-  name wrap-ansi-cjs
+"wrap-ansi-cjs@npm:wrap-ansi@^7.0.0":
   version "7.0.0"
   resolved "https://registry.yarnpkg.com/wrap-ansi/-/wrap-ansi-7.0.0.tgz#67e145cff510a6a6984bdf1152911d69d2eb9e43"
   integrity sha512-YVGIj2kamLSTxw6NsZjoBxfSwsn0ycdesmc4p+Q21c5zPuZ1pl+NfxVdxPtdHvmNVOQ6XSYG4AUtyt/Fi7D16Q==
@@ -34785,6 +34974,15 @@ wrap-ansi@^6.0.1, wrap-ansi@^6.2.0:
   version "6.2.0"
   resolved "https://registry.yarnpkg.com/wrap-ansi/-/wrap-ansi-6.2.0.tgz#e9393ba07102e6c91a3b221478f0257cd2856e53"
   integrity sha512-r6lPcBGxZXlIcymEu7InxDMhdW0KDxpLgoFLcguasxCaJ/SOIZwINatK9KY/tf+ZrlywOKU0UDj3ATXUBfxJXA==
+  dependencies:
+    ansi-styles "^4.0.0"
+    string-width "^4.1.0"
+    strip-ansi "^6.0.0"
+
+wrap-ansi@^7.0.0:
+  version "7.0.0"
+  resolved "https://registry.yarnpkg.com/wrap-ansi/-/wrap-ansi-7.0.0.tgz#67e145cff510a6a6984bdf1152911d69d2eb9e43"
+  integrity sha512-YVGIj2kamLSTxw6NsZjoBxfSwsn0ycdesmc4p+Q21c5zPuZ1pl+NfxVdxPtdHvmNVOQ6XSYG4AUtyt/Fi7D16Q==
   dependencies:
     ansi-styles "^4.0.0"
     string-width "^4.1.0"
