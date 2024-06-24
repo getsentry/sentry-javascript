@@ -1476,20 +1476,6 @@ jobs:
             container: node:22-alpine3.18
             node: 22
 
-            # macos x64
-          - os: macos-11
-            node: 16
-            arch: x64
-          - os: macos-11
-            node: 18
-            arch: x64
-          - os: macos-11
-            node: 20
-            arch: x64
-          - os: macos-11
-            node: 22
-            arch: x64
-
             # macos arm64
           - os: macos-12
             arch: arm64
