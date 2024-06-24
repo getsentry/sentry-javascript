@@ -4,6 +4,7 @@ import {
   linkedErrorsIntegration,
   requestDataIntegration,
 } from '@sentry/core';
+import type { NodeClient } from '@sentry/node';
 import {
   consoleIntegration,
   contextLinesIntegration,
@@ -91,7 +92,7 @@ export function getDefaultIntegrations(_options: Options): Integration[] {
  *
  * @see {@link BunOptions} for documentation on configuration options.
  */
-export function init(options: BunOptions = {}): void {
+export function init(options: BunOptions = {}): NodeClient | undefined {
   options.clientClass = BunClient;
   options.transport = options.transport || makeFetchTransport;
 
@@ -99,5 +100,5 @@ export function init(options: BunOptions = {}): void {
     options.defaultIntegrations = getDefaultIntegrations(options);
   }
 
-  initNode(options);
+  return initNode(options);
 }

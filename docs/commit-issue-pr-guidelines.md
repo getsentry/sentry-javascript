@@ -29,6 +29,7 @@ and committed as such onto `develop`.
 - Make sure to rebase the branch on `develop` before squashing it
 - Make sure to update the commit message of the squashed branch to follow the commit guidelines - including the PR
   number
+- If you are a Sentry employee, assign yourself to the PR
 
 Please note that we cannot _enforce_ Squash Merge due to the usage of Gitflow (see below). Github remembers the last
 used merge method, so you'll need to make sure to double check that you are using "Squash and Merge" correctly.

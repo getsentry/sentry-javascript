@@ -66,7 +66,7 @@
     "@sentry/node": "8.11.0",
     "@sentry/types": "8.11.0",
     "@sentry/utils": "8.11.0",
-    "@sentry/vite-plugin": "^2.18.0"
+    "@sentry/vite-plugin": "^2.19.0"
   },
   "devDependencies": {
     "astro": "^3.5.0",

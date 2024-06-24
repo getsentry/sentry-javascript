@@ -4,6 +4,38 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 8.12.0
+
+### Important Changes
+
+- **feat(core): Return client from init method (#12585)**
+
+`Sentry.init()` now returns a client directly, so you don't need to explicitly call `getClient()` anymore:
+
+```js
+const client = Sentry.init();
+```
+
+- **feat(nextjs): Add `deleteSourcemapsAfterUpload` option (#12457)**
+
+This adds an easy way to delete sourcemaps immediately after uploading them:
+
+```js
+module.exports = withSentryConfig(nextConfig, {
+  sourcemaps: {
+    deleteSourcemapsAfterUpload: true,
+  },
+});
+```
+
+### Other Changes
+
+- feat(feedback): Extra check for iPad in screenshot support (#12593)
+- fix(bundle): Ensure CDN bundles do not overwrite `window.Sentry` (#12580)
+- ref(node): Add error message to NodeFetch log (#12612)
+
+Work in this release was contributed by @n4bb12. Thank you for your contribution!
+
 ## 8.11.0
 
 ### Important Changes

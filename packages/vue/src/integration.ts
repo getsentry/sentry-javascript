@@ -24,7 +24,6 @@ const INTEGRATION_NAME = 'Vue';
 const _vueIntegration = ((integrationOptions: Partial<VueOptions> = {}) => {
   return {
     name: INTEGRATION_NAME,
-    // TODO v8: Remove this
     setup(client) {
       _setupIntegration(client, integrationOptions);
     },

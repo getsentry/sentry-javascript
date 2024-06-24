@@ -1,4 +1,5 @@
 import * as fs from 'fs';
+import * as path from 'path';
 import * as assert from 'assert/strict';
 
 const packageJson = require('./package.json');
@@ -19,5 +20,12 @@ assert.match(buildStdout, /● \/client-component\/parameter\/\[parameter\]/);
 assert.match(buildStdout, /(λ|ƒ) \/server-component/);
 assert.match(buildStdout, /(λ|ƒ) \/server-component\/parameter\/\[\.\.\.parameters\]/);
 assert.match(buildStdout, /(λ|ƒ) \/server-component\/parameter\/\[parameter\]/);
+
+// Read the contents of the directory
+const files = fs.readdirSync(path.join(process.cwd(), '.next', 'server'));
+const mapFiles = files.filter(file => path.extname(file) === '.map');
+if (mapFiles.length > 0) {
+  throw new Error('.map files found even though `sourcemaps.deleteSourcemapsAfterUpload` option is set!');
+}
 
 export {};

@@ -1,5 +1,6 @@
 import { createApp } from 'vue';
 
+import type { Client } from '@sentry/types';
 import type { Options } from '../../src/types';
 import * as Sentry from './../../src';
 
@@ -100,12 +101,16 @@ Update your \`Sentry.init\` call with an appropriate config option:
 
     expect(warnings).toEqual([]);
   });
+
+  it('returns client from init', () => {
+    expect(runInit({})).not.toBeUndefined();
+  });
 });
 
-function runInit(options: Partial<Options>): void {
+function runInit(options: Partial<Options>): Client | undefined {
   const integration = Sentry.vueIntegration();
 
-  Sentry.init({
+  return Sentry.init({
     dsn: PUBLIC_DSN,
     defaultIntegrations: false,
     integrations: [integration],

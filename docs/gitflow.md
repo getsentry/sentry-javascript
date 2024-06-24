@@ -12,3 +12,9 @@ We use [Gitflow](https://docs.github.com/en/get-started/quickstart/github-flow) 
 - Never merge directly into `master` (unless we want e.g. an emergency bugfix release)
 
 ![gitflow-chart](./assets/gitflow-chart.png)
+
+## Important Caveats
+
+While a release is pending, we may merge anything into develop, **except for changes to package.json files**. If we
+change the package.json files on develop, the gitflow PR master -> develop will have merge conflicts, because during the
+release the package.json files are updated on master.

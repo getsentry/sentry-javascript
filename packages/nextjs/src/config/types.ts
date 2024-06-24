@@ -153,8 +153,7 @@ export type SentryBuildOptions = {
      *
      * Defaults to `false`.
      */
-    // TODO: Add this option
-    // deleteSourcemapsAfterUpload?: boolean;
+    deleteSourcemapsAfterUpload?: boolean;
   };
 
   /**

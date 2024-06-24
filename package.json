@@ -62,6 +62,7 @@
     "packages/integration-shims",
     "packages/nextjs",
     "packages/node",
+    "packages/nuxt",
     "packages/opentelemetry",
     "packages/profiling-node",
     "packages/react",
