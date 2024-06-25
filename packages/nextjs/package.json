@@ -65,7 +65,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@opentelemetry/instrumentation-http": "0.52.0",
+    "@opentelemetry/instrumentation-http": "0.52.1",
     "@rollup/plugin-commonjs": "26.0.1",
     "@sentry/core": "8.12.0",
     "@sentry/node": "8.12.0",

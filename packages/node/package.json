@@ -79,7 +79,7 @@
     "@opentelemetry/instrumentation-fastify": "0.37.0",
     "@opentelemetry/instrumentation-graphql": "0.41.0",
     "@opentelemetry/instrumentation-hapi": "0.39.0",
-    "@opentelemetry/instrumentation-http": "0.52.0",
+    "@opentelemetry/instrumentation-http": "0.52.1",
     "@opentelemetry/instrumentation-ioredis": "0.41.0",
     "@opentelemetry/instrumentation-koa": "0.41.0",
     "@opentelemetry/instrumentation-mongodb": "0.45.0",
