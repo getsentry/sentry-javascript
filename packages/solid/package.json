@@ -25,22 +25,22 @@
     "./package.json": "./package.json",
     ".": {
       "import": {
-        "default": "./build/esm/index.js",
-        "types": "./build/index.d.ts"
+        "types": "./build/index.d.ts",
+        "default": "./build/esm/index.js"
       },
       "require": {
-        "default": "./build/cjs/index.js",
-        "types": "./build/index.d.ts"
+        "types": "./build/index.d.ts",
+        "default": "./build/cjs/index.js"
       }
     },
     "./solidrouter": {
       "import": {
-        "default": "./build/esm/solidrouter.js",
-        "types": "./build/solidrouter.d.ts"
+        "types": "./build/solidrouter.d.ts",
+        "default": "./build/esm/solidrouter.js"
       },
       "require": {
-        "default": "./build/cjs/solidrouter.js",
-        "types": "./build/solidrouter.d.ts"
+        "types": "./build/solidrouter.d.ts",
+        "default": "./build/cjs/solidrouter.js"
       }
     }
   },
