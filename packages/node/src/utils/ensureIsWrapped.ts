@@ -1,6 +1,7 @@
 import { isWrapped } from '@opentelemetry/core';
 import { getGlobalScope, hasTracingEnabled, isEnabled } from '@sentry/core';
 import { consoleSandbox } from '@sentry/utils';
+import { createMissingInstrumentationContext } from '../integrations/context';
 import { isCjs } from './commonjs';
 
 /**
@@ -25,10 +26,6 @@ export function ensureIsWrapped(
       }
     });
 
-    getGlobalScope().setContext('Instrumentation', {
-      isMissing: true,
-      package: name,
-      isCjs: isCjs(),
-    });
+    getGlobalScope().setContext('missing_instrumentation', createMissingInstrumentationContext(name));
   }
 }

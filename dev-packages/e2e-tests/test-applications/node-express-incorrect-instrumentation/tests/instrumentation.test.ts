@@ -13,9 +13,8 @@ test('Sends correct context when instrumentation was set up incorrectly', async 
   expect(errorEvent.exception?.values).toHaveLength(1);
   expect(errorEvent.exception?.values?.[0]?.value).toBe('This is an exception with id 123');
 
-  expect(errorEvent.contexts?.Instrumentation).toEqual({
-    isMissing: true,
+  expect(errorEvent.contexts?.missing_instrumentation).toEqual({
     package: 'express',
-    isCjs: true,
+    'javascript.is_cjs': true,
   });
 });
