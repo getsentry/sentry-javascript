@@ -61,7 +61,6 @@ In this case, you can increase this duration to a value that fits your expected 
 ### Other Changes
 
 - feat(feedback): Extra check for iPad in screenshot support (#12593)
-- fix(build) upgrade deprecated runners (#12624)
 - fix(bundle): Ensure CDN bundles do not overwrite `window.Sentry` (#12580)
 - fix(feedback): Inject preact from feedbackModal into feedbackScreenshot integration (#12535)
 - fix(node): Re-throw errors from koa middleware (#12609)
