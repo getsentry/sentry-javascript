@@ -6,7 +6,7 @@ import { init as nodeInit } from '@sentry/node';
  * Initializes the NestJS SDK
  */
 export function init(options: NodeOptions | undefined = {}): NodeClient | undefined {
-  const opts = {
+  const opts : NodeOptions = {
     ...options,
   };
 
