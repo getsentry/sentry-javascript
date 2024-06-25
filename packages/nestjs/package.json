@@ -47,9 +47,6 @@
     "@sentry/core": "8.11.0",
     "@sentry/node": "8.11.0"
   },
-  "optionalDependencies": {
-    "opentelemetry-instrumentation-fetch-node": "1.2.0"
-  },
   "scripts": {
     "build": "run-p build:transpile build:types",
     "build:dev": "yarn build",
