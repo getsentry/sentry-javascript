@@ -1,6 +1,5 @@
 import { getClient } from '@sentry/core';
 import type {
-  FeedbackDialog,
   FeedbackInternalOptions,
   FeedbackModalIntegration,
   FeedbackScreenshotIntegration,
@@ -56,7 +55,9 @@ export const buildFeedbackIntegration = ({
 }: BuilderOptions): IntegrationFn<
   Integration & {
     attachTo(el: Element | string, optionOverrides?: OverrideFeedbackConfiguration): Unsubscribe;
-    createForm(optionOverrides?: OverrideFeedbackConfiguration): Promise<FeedbackDialog>;
+    createForm(
+      optionOverrides?: OverrideFeedbackConfiguration,
+    ): Promise<ReturnType<FeedbackModalIntegration['createDialog']>>;
     createWidget(optionOverrides?: OverrideFeedbackConfiguration): ActorComponent;
     remove(): void;
   }
@@ -179,7 +180,9 @@ export const buildFeedbackIntegration = ({
       return integration as I;
     };
 
-    const _loadAndRenderDialog = async (options: FeedbackInternalOptions): Promise<FeedbackDialog> => {
+    const _loadAndRenderDialog = async (
+      options: FeedbackInternalOptions,
+    ): Promise<ReturnType<FeedbackModalIntegration['createDialog']>> => {
       const screenshotRequired = options.enableScreenshot && isScreenshotSupported();
       const [modalIntegration, screenshotIntegration] = await Promise.all([
         _findIntegration<FeedbackModalIntegration>('FeedbackModal', getModalIntegration, 'feedbackModalIntegration'),
@@ -223,7 +226,7 @@ export const buildFeedbackIntegration = ({
         throw new Error('Unable to attach to target element');
       }
 
-      let dialog: FeedbackDialog | null = null;
+      let dialog: ReturnType<FeedbackModalIntegration['createDialog']> | null = null;
       const handleClick = async (): Promise<void> => {
         if (!dialog) {
           dialog = await _loadAndRenderDialog({
@@ -306,7 +309,9 @@ export const buildFeedbackIntegration = ({
        * Creates a new Form which you can
        * Accepts partial options to override any options passed to constructor.
        */
-      async createForm(optionOverrides: OverrideFeedbackConfiguration = {}): Promise<FeedbackDialog> {
+      async createForm(
+        optionOverrides: OverrideFeedbackConfiguration = {},
+      ): Promise<ReturnType<FeedbackModalIntegration['createDialog']>> {
         return _loadAndRenderDialog(mergeOptions(_options, optionOverrides));
       },
 

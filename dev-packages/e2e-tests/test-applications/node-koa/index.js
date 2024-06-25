@@ -103,6 +103,12 @@ router1.get('/test-outgoing-http-external-disallowed', async ctx => {
   ctx.body = data;
 });
 
+router1.get('/test-assert/:condition', async ctx => {
+  ctx.body = 200;
+  const condition = ctx.params.condition !== 'false';
+  ctx.assert(condition, 400, 'ctx.assert failed');
+});
+
 app1.use(router1.routes()).use(router1.allowedMethods());
 
 app1.listen(port1);

@@ -7,7 +7,8 @@ import {
   getCurrentScope,
   setCurrentClient,
 } from '@sentry/core';
-import { MemoryRouter, Navigate, Route, createMemoryHistory, useBeforeLeave, useLocation } from '@solidjs/router';
+import type { MemoryHistory } from '@solidjs/router';
+import { MemoryRouter, Navigate, Route, createMemoryHistory } from '@solidjs/router';
 import { render } from '@solidjs/testing-library';
 import { vi } from 'vitest';
 
@@ -17,7 +18,7 @@ import { solidRouterBrowserTracingIntegration, withSentryRouterRouting } from '.
 // solid router uses `window.scrollTo` when navigating
 vi.spyOn(global, 'scrollTo').mockImplementation(() => {});
 
-const renderRouter = (SentryRouter, history) =>
+const renderRouter = (SentryRouter: typeof MemoryRouter, history: MemoryHistory) =>
   render(() => (
     <SentryRouter history={history}>
       <Route path="/" component={() => <div>Home</div>} />
@@ -58,7 +59,7 @@ describe('solidRouterBrowserTracingIntegration', () => {
     setCurrentClient(client);
 
     client.on('spanStart', span => spanStartMock(spanToJSON(span)));
-    client.addIntegration(solidRouterBrowserTracingIntegration({ useBeforeLeave, useLocation }));
+    client.addIntegration(solidRouterBrowserTracingIntegration());
 
     const history = createMemoryHistory();
     history.set({ value: '/' });
@@ -86,8 +87,6 @@ describe('solidRouterBrowserTracingIntegration', () => {
     client.addIntegration(
       solidRouterBrowserTracingIntegration({
         instrumentPageLoad: false,
-        useBeforeLeave,
-        useLocation,
       }),
     );
     const SentryRouter = withSentryRouterRouting(MemoryRouter);
@@ -124,7 +123,7 @@ describe('solidRouterBrowserTracingIntegration', () => {
     client.on('spanStart', span => {
       spanStartMock(spanToJSON(span));
     });
-    client.addIntegration(solidRouterBrowserTracingIntegration({ useBeforeLeave, useLocation }));
+    client.addIntegration(solidRouterBrowserTracingIntegration());
     const SentryRouter = withSentryRouterRouting(MemoryRouter);
 
     const history = createMemoryHistory();
@@ -155,8 +154,6 @@ describe('solidRouterBrowserTracingIntegration', () => {
     client.addIntegration(
       solidRouterBrowserTracingIntegration({
         instrumentNavigation: false,
-        useBeforeLeave,
-        useLocation,
       }),
     );
     const SentryRouter = withSentryRouterRouting(MemoryRouter);
@@ -188,7 +185,7 @@ describe('solidRouterBrowserTracingIntegration', () => {
     client.on('spanStart', span => {
       spanStartMock(spanToJSON(span));
     });
-    client.addIntegration(solidRouterBrowserTracingIntegration({ useBeforeLeave, useLocation }));
+    client.addIntegration(solidRouterBrowserTracingIntegration());
     const SentryRouter = withSentryRouterRouting(MemoryRouter);
 
     const history = createMemoryHistory();

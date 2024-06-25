@@ -12,54 +12,20 @@ import {
   getClient,
 } from '@sentry/core';
 import type { Client, Integration, Span } from '@sentry/types';
-import { logger } from '@sentry/utils';
+import type {
+  BeforeLeaveEventArgs,
+  HashRouter,
+  MemoryRouter,
+  RouteSectionProps,
+  Router as BaseRouter,
+  StaticRouter,
+} from '@solidjs/router';
+import { useBeforeLeave, useLocation } from '@solidjs/router';
 import { createEffect, mergeProps, splitProps } from 'solid-js';
 import type { Component, JSX, ParentProps } from 'solid-js';
 import { createComponent } from 'solid-js/web';
-import { DEBUG_BUILD } from './debug-build';
-
-// Vendored solid router types so that we don't need to depend on solid router.
-// These are not exhaustive and loose on purpose.
-interface Location {
-  pathname: string;
-}
-
-interface BeforeLeaveEventArgs {
-  from: Location;
-  to: string | number;
-}
-
-interface RouteSectionProps<T = unknown> {
-  location: Location;
-  data?: T;
-  children?: JSX.Element;
-}
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type RouteDefinition<S extends string | string[] = any, T = unknown> = {
-  path?: S;
-  children?: RouteDefinition | RouteDefinition[];
-  component?: Component<RouteSectionProps<T>>;
-};
-
-interface RouterProps {
-  base?: string;
-  root?: Component<RouteSectionProps>;
-  children?: JSX.Element | RouteDefinition | RouteDefinition[];
-}
-
-interface SolidRouterOptions {
-  useBeforeLeave: UserBeforeLeave;
-  useLocation: UseLocation;
-}
-
-type UserBeforeLeave = (listener: (e: BeforeLeaveEventArgs) => void) => void;
-type UseLocation = () => Location;
 
 const CLIENTS_WITH_INSTRUMENT_NAVIGATION = new WeakSet<Client>();
-
-let _useBeforeLeave: UserBeforeLeave;
-let _useLocation: UseLocation;
 
 function handleNavigation(location: string): void {
   const client = getClient();
@@ -98,12 +64,12 @@ function withSentryRouterRoot(Root: Component<RouteSectionProps>): Component<Rou
     // - use query params
     // - parameterize the route
 
-    _useBeforeLeave(({ to }: BeforeLeaveEventArgs) => {
+    useBeforeLeave(({ to }: BeforeLeaveEventArgs) => {
       // `to` could be `-1` if the browser back-button was used
       handleNavigation(to.toString());
     });
 
-    const location = _useLocation();
+    const location = useLocation();
     createEffect(() => {
       const name = location.pathname;
       const rootSpan = getActiveRootSpan();
@@ -130,21 +96,17 @@ function withSentryRouterRoot(Root: Component<RouteSectionProps>): Component<Rou
  * A browser tracing integration that uses Solid Router to instrument navigations.
  */
 export function solidRouterBrowserTracingIntegration(
-  options: Parameters<typeof browserTracingIntegration>[0] & SolidRouterOptions,
+  options: Parameters<typeof browserTracingIntegration>[0] = {},
 ): Integration {
   const integration = browserTracingIntegration({
     ...options,
     instrumentNavigation: false,
   });
 
-  const { instrumentNavigation = true, useBeforeLeave, useLocation } = options;
+  const { instrumentNavigation = true } = options;
 
   return {
     ...integration,
-    setup() {
-      _useBeforeLeave = useBeforeLeave;
-      _useLocation = useLocation;
-    },
     afterAllSetup(client) {
       integration.afterAllSetup(client);
 
@@ -155,19 +117,13 @@ export function solidRouterBrowserTracingIntegration(
   };
 }
 
+type RouterType = typeof BaseRouter | typeof HashRouter | typeof MemoryRouter | typeof StaticRouter;
+
 /**
  * A higher-order component to instrument Solid Router to create navigation spans.
  */
-export function withSentryRouterRouting(Router: Component<RouterProps>): Component<RouterProps> {
-  if (!_useBeforeLeave || !_useLocation) {
-    DEBUG_BUILD &&
-      logger.warn(`solidRouterBrowserTracingIntegration was unable to wrap Solid Router because of one or more missing hooks.
-      useBeforeLeave: ${_useBeforeLeave}. useLocation: ${_useLocation}.`);
-
-    return Router;
-  }
-
-  const SentryRouter = (props: RouterProps): JSX.Element => {
+export function withSentryRouterRouting(Router: RouterType): RouterType {
+  const SentryRouter = (props: Parameters<RouterType>[0]): JSX.Element => {
     const [local, others] = splitProps(props, ['root']);
     // We need to wrap root here in case the user passed in their own root
     const Root = withSentryRouterRoot(local.root ? local.root : SentryDefaultRoot);
