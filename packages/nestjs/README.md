@@ -4,7 +4,7 @@
   </a>
 </p>
 
-# Official Sentry SDK for NestJS
+# Official Sentry SDK for NestJS (EXPERIMENTAL)
 
 This SDK is considered **experimental and in an alpha state**. It may experience breaking changes. Please reach out on
 [GitHub](https://github.com/getsentry/sentry-javascript/issues/new/choose) if you have any feedback or concerns.
