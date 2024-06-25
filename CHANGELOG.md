@@ -4,7 +4,7 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
-- **feat(solid): Remove need to pass router hooks to solid integration**
+- **feat(solid): Remove need to pass router hooks to solid integration** (breaking)
 
 This release introduces breaking changes to the `@sentry/solid` package (which is currently out in alpha).
 
