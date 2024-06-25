@@ -90,7 +90,7 @@
     "@opentelemetry/instrumentation-pg": "0.42.0",
     "@opentelemetry/instrumentation-redis-4": "0.40.0",
     "@opentelemetry/resources": "^1.25.0",
-    "@opentelemetry/sdk-trace-base": "^1.25.0",
+    "@opentelemetry/sdk-trace-base": "^1.25.1",
     "@opentelemetry/semantic-conventions": "^1.25.0",
     "@prisma/instrumentation": "5.15.0",
     "@sentry/core": "8.12.0",
