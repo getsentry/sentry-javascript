@@ -1,5 +1,5 @@
 import { isWrapped } from '@opentelemetry/core';
-import { hasTracingEnabled, isEnabled } from '@sentry/core';
+import { getCurrentScope, hasTracingEnabled, isEnabled } from '@sentry/core';
 import { consoleSandbox } from '@sentry/utils';
 import { isCjs } from './commonjs';
 
@@ -23,6 +23,11 @@ export function ensureIsWrapped(
           `[Sentry] ${name} is not instrumented. Please make sure to initialize Sentry in a separate file that you \`--import\` when running node, see: https://docs.sentry.io/platforms/javascript/guides/${name}/install/esm/.`,
         );
       }
+    });
+
+    getCurrentScope().setContext('Instrumentation', {
+      isMissing: true,
+      framework: name,
     });
   }
 }
