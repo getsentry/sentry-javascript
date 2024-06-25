@@ -4,6 +4,10 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 8.12.0
+
+### Important Changes
+
 - **feat(solid): Remove need to pass router hooks to solid integration** (breaking)
 
 This release introduces breaking changes to the `@sentry/solid` package (which is currently out in alpha).
@@ -25,6 +29,46 @@ Sentry.init({
 
 const SentryRouter = withSentryRouterRouting(Router);
 ```
+
+- **feat(core): Return client from init method (#12585)**
+
+`Sentry.init()` now returns a client directly, so you don't need to explicitly call `getClient()` anymore:
+
+```js
+const client = Sentry.init();
+```
+
+- **feat(nextjs): Add `deleteSourcemapsAfterUpload` option (#12457)**
+
+This adds an easy way to delete sourcemaps immediately after uploading them:
+
+```js
+module.exports = withSentryConfig(nextConfig, {
+  sourcemaps: {
+    deleteSourcemapsAfterUpload: true,
+  },
+});
+```
+
+- **feat(node): Allow to configure `maxSpanWaitDuration` (#12610)**
+
+Adds configuration option for the max. duration in seconds that the SDK will wait for parent spans to be finished before
+discarding a span. The SDK will automatically clean up spans that have no finished parent after this duration. This is
+necessary to prevent memory leaks in case of parent spans that are never finished or otherwise dropped/missing. However,
+if you have very long-running spans in your application, a shorter duration might cause spans to be discarded too early.
+In this case, you can increase this duration to a value that fits your expected data.
+
+### Other Changes
+
+- feat(feedback): Extra check for iPad in screenshot support (#12593)
+- fix(build) upgrade deprecated runners (#12624)
+- fix(bundle): Ensure CDN bundles do not overwrite `window.Sentry` (#12580)
+- fix(feedback): Inject preact from feedbackModal into feedbackScreenshot integration (#12535)
+- fix(node): Re-throw errors from koa middleware (#12609)
+- fix(remix): Mark `isRemixV2` as optional in exposed types. (#12614)
+- ref(node): Add error message to NodeFetch log (#12612)
+
+Work in this release was contributed by @n4bb12. Thank you for your contribution!
 
 ## 8.11.0
 
