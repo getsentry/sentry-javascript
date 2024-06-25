@@ -1,16 +1,16 @@
 import { applySdkMetadata } from '@sentry/core';
-import type { NodeOptions } from '@sentry/node';
+import type { NodeClient, NodeOptions } from '@sentry/node';
 import { init as nodeInit } from '@sentry/node';
 
 /**
  * Initializes the NestJS SDK
  */
-export function init(options: NodeOptions | undefined = {}): void {
+export function init(options: NodeOptions | undefined = {}): NodeClient | undefined {
   const opts = {
     ...options,
   };
 
   applySdkMetadata(opts, 'nestjs');
 
-  nodeInit(opts);
+  return nodeInit(opts);
 }

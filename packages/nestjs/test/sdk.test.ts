@@ -12,7 +12,7 @@ describe('Initialize Nest SDK', () => {
   });
 
   it('has the correct metadata', () => {
-    nestInit({
+    const client = nestInit({
       dsn: PUBLIC_DSN,
     });
 
@@ -26,6 +26,7 @@ describe('Initialize Nest SDK', () => {
       },
     };
 
+    expect(client).not.toBeUndefined();
     expect(nodeInit).toHaveBeenCalledTimes(1);
     expect(nodeInit).toHaveBeenLastCalledWith(expect.objectContaining(expectedMetadata));
   });
