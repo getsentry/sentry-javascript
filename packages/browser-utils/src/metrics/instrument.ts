@@ -37,6 +37,12 @@ interface PerformanceEventTiming extends PerformanceEntry {
   interactionId?: number;
 }
 
+interface PerformanceScriptTiming extends PerformanceEntry {
+  sourceCharPosition: number;
+  sourceFunctionName: string;
+  sourceUrl: string;
+}
+
 interface Metric {
   /**
    * The name of the metric (in acronym form).
@@ -162,6 +168,10 @@ export function addInpInstrumentationHandler(
 export function addPerformanceInstrumentationHandler(
   type: 'event',
   callback: (data: { entries: ((PerformanceEntry & { target?: unknown | null }) | PerformanceEventTiming)[] }) => void,
+): CleanupHandlerCallback;
+export function addPerformanceInstrumentationHandler(
+  type: 'long-animation-frame',
+  callback: (data: { entries: (PerformanceEntry & {scripts?: PerformanceScriptTiming[]})[] }) => void,
 ): CleanupHandlerCallback;
 export function addPerformanceInstrumentationHandler(
   type: InstrumentHandlerTypePerformanceObserver,
