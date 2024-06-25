@@ -13,7 +13,7 @@ _These steps are only relevant to Sentry employees when preparing and publishing
 4. Open a PR with the title `meta(changelog): Update changelog for VERSION` against `master` branch.
 5. **Be cautious!** The PR against `master` should be merged via "Merge Commit"
 6. When the PR is merged, it will automatically trigger the
-   [Prepare Release](https://github.com/getsentry/sentry-javascript/actions/workflows/release.yml) on master.
+   [Auto Prepare Release](https://github.com/getsentry/sentry-javascript/actions/workflows/auto-release.yml) on master.
 7. A new issue should appear in https://github.com/getsentry/publish/issues.
 8. Wait until the CI check runs have finished successfully (there is a link to them in the issue).
 9. Once CI passes successfully, ask a member of the

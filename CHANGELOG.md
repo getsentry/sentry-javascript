@@ -8,6 +8,28 @@
 
 ### Important Changes
 
+- **feat(solid): Remove need to pass router hooks to solid integration** (breaking)
+
+This release introduces breaking changes to the `@sentry/solid` package (which is currently out in alpha).
+
+We've made it easier to get started with the solid router integration by removing the need to pass **use\*** hooks
+explicitly to `solidRouterBrowserTracingIntegration`. Import `solidRouterBrowserTracingIntegration` from
+`@sentry/solid/solidrouter` and add it to `Sentry.init`
+
+```js
+import * as Sentry from '@sentry/solid';
+import { solidRouterBrowserTracingIntegration, withSentryRouterRouting } from '@sentry/solid/solidrouter';
+import { Router } from '@solidjs/router';
+
+Sentry.init({
+  dsn: '__PUBLIC_DSN__',
+  integrations: [solidRouterBrowserTracingIntegration()],
+  tracesSampleRate: 1.0, //  Capture 100% of the transactions
+});
+
+const SentryRouter = withSentryRouterRouting(Router);
+```
+
 - **feat(core): Return client from init method (#12585)**
 
 `Sentry.init()` now returns a client directly, so you don't need to explicitly call `getClient()` anymore:
@@ -28,10 +50,21 @@ module.exports = withSentryConfig(nextConfig, {
 });
 ```
 
+- **feat(node): Allow to configure `maxSpanWaitDuration` (#12610)**
+
+Adds configuration option for the max. duration in seconds that the SDK will wait for parent spans to be finished before
+discarding a span. The SDK will automatically clean up spans that have no finished parent after this duration. This is
+necessary to prevent memory leaks in case of parent spans that are never finished or otherwise dropped/missing. However,
+if you have very long-running spans in your application, a shorter duration might cause spans to be discarded too early.
+In this case, you can increase this duration to a value that fits your expected data.
+
 ### Other Changes
 
 - feat(feedback): Extra check for iPad in screenshot support (#12593)
 - fix(bundle): Ensure CDN bundles do not overwrite `window.Sentry` (#12580)
+- fix(feedback): Inject preact from feedbackModal into feedbackScreenshot integration (#12535)
+- fix(node): Re-throw errors from koa middleware (#12609)
+- fix(remix): Mark `isRemixV2` as optional in exposed types. (#12614)
 - ref(node): Add error message to NodeFetch log (#12612)
 
 Work in this release was contributed by @n4bb12. Thank you for your contribution!
