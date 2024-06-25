@@ -63,7 +63,9 @@ export const sendFeedback: SendFeedback = (
         );
       }
 
-      return reject('Unable to send Feedback. This could be because of network issues, or because you are using an ad-blocker');
+      return reject(
+        'Unable to send Feedback. This could be because of network issues, or because you are using an ad-blocker',
+      );
     });
   });
 };
