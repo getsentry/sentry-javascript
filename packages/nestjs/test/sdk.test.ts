@@ -1,14 +1,15 @@
 import * as SentryNode from '@sentry/node';
 import { SDK_VERSION } from '@sentry/utils';
 
+import { vi } from 'vitest';
 import { init as nestInit } from '../src/sdk';
 
-const nodeInit = jest.spyOn(SentryNode, 'init');
+const nodeInit = vi.spyOn(SentryNode, 'init');
 const PUBLIC_DSN = 'https://username@domain/123';
 
 describe('Initialize Nest SDK', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('has the correct metadata', () => {
