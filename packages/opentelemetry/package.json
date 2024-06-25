@@ -48,17 +48,17 @@
   },
   "peerDependencies": {
     "@opentelemetry/api": "^1.9.0",
-    "@opentelemetry/core": "^1.25.0",
-    "@opentelemetry/instrumentation": "^0.52.0",
-    "@opentelemetry/sdk-trace-base": "^1.25.0",
-    "@opentelemetry/semantic-conventions": "^1.25.0"
+    "@opentelemetry/core": "^1.25.1",
+    "@opentelemetry/instrumentation": "^0.52.1",
+    "@opentelemetry/sdk-trace-base": "^1.25.1",
+    "@opentelemetry/semantic-conventions": "^1.25.1"
   },
   "devDependencies": {
     "@opentelemetry/api": "^1.9.0",
     "@opentelemetry/context-async-hooks": "^1.25.1",
-    "@opentelemetry/core": "^1.25.0",
-    "@opentelemetry/sdk-trace-base": "^1.25.0",
-    "@opentelemetry/semantic-conventions": "^1.25.0"
+    "@opentelemetry/core": "^1.25.1",
+    "@opentelemetry/sdk-trace-base": "^1.25.1",
+    "@opentelemetry/semantic-conventions": "^1.25.1"
   },
   "scripts": {
     "build": "run-p build:transpile build:types",

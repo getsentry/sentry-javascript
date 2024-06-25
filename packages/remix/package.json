@@ -67,7 +67,7 @@
     "@sentry/types": "8.12.0",
     "@sentry/utils": "8.12.0",
     "glob": "^10.3.4",
-    "opentelemetry-instrumentation-remix": "0.7.0",
+    "opentelemetry-instrumentation-remix": "0.7.1",
     "yargs": "^17.6.0"
   },
   "devDependencies": {
