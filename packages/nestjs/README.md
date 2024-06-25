@@ -41,4 +41,3 @@ Note that it is necessary to initialize Sentry **before you import any package t
 ## Links
 
 - [Official SDK Docs](https://docs.sentry.io/quickstart/)
-

@@ -1,6 +1,6 @@
+import type { UserConfig } from 'vitest';
 import { defineConfig } from 'vitest/config';
 import baseConfig from '../../vite/vite.config';
-import type { UserConfig } from 'vitest';
 
 export default defineConfig({
   ...baseConfig,
