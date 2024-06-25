@@ -4,6 +4,28 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+- **feat(solid): Remove need to pass router hooks to solid integration** (breaking)
+
+This release introduces breaking changes to the `@sentry/solid` package (which is currently out in alpha).
+
+We've made it easier to get started with the solid router integration by removing the need to pass **use\*** hooks
+explicitly to `solidRouterBrowserTracingIntegration`. Import `solidRouterBrowserTracingIntegration` from
+`@sentry/solid/solidrouter` and add it to `Sentry.init`
+
+```js
+import * as Sentry from '@sentry/solid';
+import { solidRouterBrowserTracingIntegration, withSentryRouterRouting } from '@sentry/solid/solidrouter';
+import { Router } from '@solidjs/router';
+
+Sentry.init({
+  dsn: '__PUBLIC_DSN__',
+  integrations: [solidRouterBrowserTracingIntegration()],
+  tracesSampleRate: 1.0, //  Capture 100% of the transactions
+});
+
+const SentryRouter = withSentryRouterRouting(Router);
+```
+
 ## 8.11.0
 
 ### Important Changes
