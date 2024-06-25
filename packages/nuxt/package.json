@@ -36,7 +36,7 @@
     "@sentry/opentelemetry": "8.12.0",
     "@sentry/types": "8.12.0",
     "@sentry/utils": "8.12.0",
-    "@sentry/vite-plugin": "2.19.0",
+    "@sentry/vite-plugin": "2.20.1",
     "@sentry/vue": "8.12.0"
   },
   "devDependencies": {
