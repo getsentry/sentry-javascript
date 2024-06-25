@@ -115,14 +115,28 @@ export async function startEventProxyServer(options: EventProxyServerOptions): P
             eventCallbackListeners.forEach(listener => {
               const rawSentryResponseBody = Buffer.concat(sentryResponseChunks).toString();
 
-              const data: SentryRequestCallbackData = {
-                envelope: parseEnvelope(proxyRequestBody),
-                rawProxyRequestBody: proxyRequestBody,
-                rawSentryResponseBody,
-                sentryResponseStatusCode: sentryResponse.statusCode,
-              };
+              try {
+                const data: SentryRequestCallbackData = {
+                  envelope: parseEnvelope(proxyRequestBody),
+                  rawProxyRequestBody: proxyRequestBody,
+                  rawSentryResponseBody,
+                  sentryResponseStatusCode: sentryResponse.statusCode,
+                };
 
-              listener(Buffer.from(JSON.stringify(data)).toString('base64'));
+                listener(Buffer.from(JSON.stringify(data)).toString('base64'));
+              } catch (error) {
+                if (`${error}`.includes('Unexpected token') && proxyRequestBody.includes('{"type":"replay_event"}')) {
+                  // eslint-disable-next-line no-console
+                  console.log('[event-proxy-server] Info: Received replay event, skipping...');
+                } else {
+                  // eslint-disable-next-line no-console
+                  console.error(
+                    '[event-proxy-server] Error: Failed to parse Sentry request envelope',
+                    error,
+                    proxyRequestBody,
+                  );
+                }
+              }
             });
             proxyResponse.end();
           });
