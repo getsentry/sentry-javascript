@@ -74,7 +74,7 @@ const _nativeNodeFetchIntegration = ((options: NodeFetchOptions = {}) => {
       } as any);
     } catch (error) {
       // Could not load instrumentation
-      DEBUG_BUILD && logger.log('Could not load NodeFetch instrumentation.');
+      DEBUG_BUILD && logger.log('Error while loading NodeFetch instrumentation: \n', error);
     }
   }
 

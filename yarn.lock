@@ -8926,10 +8926,10 @@
   resolved "https://registry.yarnpkg.com/@socket.io/component-emitter/-/component-emitter-3.1.0.tgz#96116f2a912e0c02817345b3c10751069920d553"
   integrity sha512-+9jVqKhRSpsc591z5vX+X5Yyw+he/HCB4iQ/RYxw35CEPaY1gnsNE43nf9n9AaYjAQrTiI/mOwKUKdUs9vf7Xg==
 
-"@solidjs/router@^0.13.5":
-  version "0.13.5"
-  resolved "https://registry.yarnpkg.com/@solidjs/router/-/router-0.13.5.tgz#62ee37f63d2b5f74937903d64d04ec9a2b4223cf"
-  integrity sha512-I/bR5ZHCz2Dx80qL+6uGwSdclqXRqoT49SJ5cvLbOuT3HnYysSIxSfULCTWUMLFVcgPh5GrdHV6KwEoyrbPZZA==
+"@solidjs/router@^0.13.4":
+  version "0.13.6"
+  resolved "https://registry.yarnpkg.com/@solidjs/router/-/router-0.13.6.tgz#210ca2761d4bf294f06ac0f9e25c16fafdabefac"
+  integrity sha512-CdpFsBYoiJ/FQ4wZIamj3KEFRkmrYu5sVXM6PouNkmSENta1YJamsm9wa/VjaPmkw2RsnDnO0UvZ705v6EgOXQ==
 
 "@solidjs/testing-library@0.8.5":
   version "0.8.5"

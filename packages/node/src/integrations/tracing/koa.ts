@@ -56,6 +56,7 @@ export const setupKoaErrorHandler = (app: { use: (arg0: (ctx: any, next: any) =>
       await next();
     } catch (error) {
       captureException(error);
+      throw error;
     }
   });
 

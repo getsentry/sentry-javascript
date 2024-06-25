@@ -1,6 +1,5 @@
 import type { Attachment } from '../attachment';
 import type { Integration } from '../integration';
-
 import type {
   FeedbackCallbacks,
   FeedbackGeneralConfiguration,
@@ -22,8 +21,13 @@ export interface FeedbackInternalOptions
     FeedbackTextConfiguration,
     FeedbackCallbacks {}
 
+type Hooks = unknown;
 type HTMLElement = unknown;
-export interface FeedbackDialog {
+type HType = unknown;
+type ShadowRoot = unknown;
+type VNode = unknown;
+
+type FeedbackDialog = {
   /**
    * The HTMLElement that is containing all the form content
    */
@@ -50,10 +54,21 @@ export interface FeedbackDialog {
    * Close/Hide the dialog & form inside it
    */
   close: () => void;
+};
+
+interface FeedbackScreenshotInput {
+  /**
+   * The preact component
+   */
+  input: (props: { onError: (error: Error) => void }) => VNode;
+
+  /**
+   * The image/screenshot bytes
+   */
+  value: () => Promise<Attachment | undefined>;
 }
 
-type ShadowRoot = unknown;
-export interface CreateDialogProps {
+interface CreateDialogProps {
   options: FeedbackInternalOptions;
   screenshotIntegration: FeedbackScreenshotIntegration | undefined;
   sendFeedback: SendFeedback;
@@ -63,22 +78,12 @@ export interface FeedbackModalIntegration extends Integration {
   createDialog: (props: CreateDialogProps) => FeedbackDialog;
 }
 
-type HType = unknown;
-type VNode = unknown;
+interface CreateInputProps {
+  h: HType;
+  hooks: Hooks;
+  dialog: FeedbackDialog;
+  options: FeedbackInternalOptions;
+}
 export interface FeedbackScreenshotIntegration extends Integration {
-  createInput: (
-    h: HType,
-    dialog: FeedbackDialog,
-    options: FeedbackInternalOptions,
-  ) => {
-    /**
-     * The preact component
-     */
-    input: (props: { onError: (error: Error) => void }) => VNode;
-
-    /**
-     * The image/screenshot bytes
-     */
-    value: () => Promise<Attachment | undefined>;
-  };
+  createInput: (props: CreateInputProps) => FeedbackScreenshotInput;
 }
