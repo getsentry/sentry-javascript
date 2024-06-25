@@ -10,6 +10,7 @@ import { onTTFB } from './web-vitals/onTTFB';
 
 type InstrumentHandlerTypePerformanceObserver =
   | 'longtask'
+  | 'long-animation-frame'
   | 'event'
   | 'navigation'
   | 'paint'
