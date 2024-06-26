@@ -5,6 +5,7 @@
   "include": ["**/scripts/**/*.ts", "jest/**/*.ts", "vite/**/*.ts"],
 
   "compilerOptions": {
-    "types": ["node", "jest", "vitest/globals"]
+    "types": ["node", "jest", "vitest/globals"],
+    "module": "ES2022"
   }
 }

@@ -1,4 +1,5 @@
 /* eslint-disable no-console */
+
 /*
   This script restores the build folder to a workable state after packaging.
 */
@@ -7,20 +8,8 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { sync as glob } from 'glob';
 
-const NPM_BUILD_DIR = 'build/npm';
-const BUILD_DIR = 'build';
-
-const packageWithBundles = process.argv.includes('--bundles');
-const buildDir = packageWithBundles ? NPM_BUILD_DIR : BUILD_DIR;
-
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const pkgJson = require(path.resolve('package.json')) as Record<string, string>;
-
-// check if build dir exists
-if (!fs.existsSync(path.resolve(buildDir))) {
-  console.error(`\nERROR: Directory '${buildDir}' does not exist in ${pkgJson.name}.`);
-  console.error("This script should only be executed after you've run `yarn build`.");
-  process.exit(1);
+export async function postpack(buildDir: string): Promise<void> {
+  restoreSourceMapSourcesPath(buildDir);
 }
 
 function restoreSourceMapSourcesPath(buildDir: string): void {
@@ -47,6 +36,6 @@ function restoreSourceMapSourcesPath(buildDir: string): void {
 
     fs.writeFileSync(mapFilePath, JSON.stringify(mapFileContentObj));
   });
-}
 
-restoreSourceMapSourcesPath(buildDir);
+  console.log('Restored .map files to their original state.');
+}
