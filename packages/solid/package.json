@@ -11,7 +11,9 @@
   },
   "files": [
     "/build",
-    "README.md"
+    "README.md",
+    "/*.d.ts",
+    "/*.d.ts.map"
   ],
   "main": "build/cjs/index.js",
   "module": "build/esm/index.js",
