@@ -9,15 +9,6 @@
   "engines": {
     "node": ">=14.18"
   },
-  "files": [
-    "/build/esm2020",
-    "/build/fesm2015",
-    "/build/fesm2020",
-    "/build/*.d.ts",
-    "/build/*.d.ts.map",
-    "/LICENSE",
-    "/README.md"
-  ],
   "type": "module",
   "module": "build/fesm2015/sentry-angular.mjs",
   "publishConfig": {
@@ -58,7 +49,7 @@
     "build:watch": "yarn build:transpile:watch",
     "build:dev:watch": "yarn build:watch",
     "build:transpile:watch": "ng build --configuration production --watch",
-    "build:tarball": "npm pack",
+    "build:tarball": "npm pack ./build",
     "circularDepCheck": "madge --circular src/index.ts",
     "clean": "rimraf build coverage sentry-angular-*.tgz",
     "fix": "eslint . --format stylish --fix",
