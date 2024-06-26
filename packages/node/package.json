@@ -10,12 +10,9 @@
     "node": ">=14.18"
   },
   "files": [
-    "cjs",
-    "esm",
-    "types",
-    "types-ts3.8",
-    "import-hook.mjs",
-    "loader-hook.mjs"
+    "/build",
+    "LICENCE",
+    "README.md"
   ],
   "main": "build/cjs/index.js",
   "module": "build/esm/index.js",
@@ -115,7 +112,7 @@
     "build:dev:watch": "yarn build:watch",
     "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",
     "build:types:watch": "tsc -p tsconfig.types.json --watch",
-    "build:tarball": "ts-node ../../scripts/prepack.ts && npm pack ./build",
+    "build:tarball": "npm pack",
     "circularDepCheck": "madge --circular src/index.ts",
     "clean": "rimraf build coverage sentry-node-*.tgz",
     "fix": "eslint . --format stylish --fix",
@@ -123,7 +120,7 @@
     "test": "yarn test:jest",
     "test:jest": "jest",
     "test:watch": "jest --watch",
-    "yalc:publish": "ts-node ../../scripts/prepack.ts && yalc publish build --push --sig"
+    "yalc:publish": "yalc publish --push --sig"
   },
   "volta": {
     "extends": "../../package.json"

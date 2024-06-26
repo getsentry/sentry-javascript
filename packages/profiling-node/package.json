@@ -38,16 +38,16 @@
     "access": "public"
   },
   "files": [
-    "lib",
-    "bindings",
-    "binding.gyp",
+    "/lib",
+    "/bindings",
+    "/binding.gyp",
     "LICENSE",
     "README.md",
     "package.json",
-    "scripts/binaries.js",
-    "scripts/check-build.js",
-    "scripts/copy-target.js",
-    "scripts/prune-profiler-binaries.js"
+    "/scripts/binaries.js",
+    "/scripts/check-build.js",
+    "/scripts/copy-target.js",
+    "/scripts/prune-profiler-binaries.js"
   ],
   "scripts": {
     "install": "node scripts/check-build.js",

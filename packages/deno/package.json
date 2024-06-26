@@ -21,9 +21,9 @@
     "access": "public"
   },
   "files": [
-    "index.mjs",
-    "index.mjs.map",
-    "index.d.ts"
+    "/build",
+    "LICENCE",
+    "README.md"
   ],
   "dependencies": {
     "@sentry/core": "8.12.0",
@@ -43,7 +43,7 @@
     "build:types": "run-s deno-types build:types:tsc build:types:bundle",
     "build:types:tsc": "tsc -p tsconfig.types.json",
     "build:types:bundle": "rollup -c rollup.types.config.mjs",
-    "build:tarball": "ts-node ../../scripts/prepack.ts && npm pack ./build",
+    "build:tarball": "npm pack",
     "circularDepCheck": "madge --circular src/index.ts",
     "clean": "rimraf build build-types build-test coverage",
     "prefix": "yarn deno-types",
@@ -57,7 +57,7 @@
     "test:types": "deno check ./build/index.mjs",
     "test:unit": "deno test --allow-read --allow-run",
     "test:unit:update": "deno test --allow-read --allow-write --allow-run -- --update",
-    "yalc:publish": "ts-node ../../scripts/prepack.ts && yalc publish build --push --sig"
+    "yalc:publish": "yalc publish --push --sig"
   },
   "volta": {
     "extends": "../../package.json"
