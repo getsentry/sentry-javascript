@@ -1,4 +1,4 @@
-import * as Sentry from '@sentry/node';
+import * as Sentry from '@sentry/nestjs';
 
 Sentry.init({
   environment: 'qa', // dynamic sampling bias to keep transactions
