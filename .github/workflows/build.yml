@@ -1067,7 +1067,7 @@ jobs:
             'generic-ts3.8',
             'node-fastify',
             'node-hapi',
-            'node-nestjs',
+            'nestjs',
             'node-exports-test-app',
             'node-koa',
             'node-connect',
