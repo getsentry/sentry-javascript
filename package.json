@@ -133,8 +133,15 @@
     "vitest": "^1.6.0",
     "yalc": "^1.0.0-pre.53"
   },
+  "//_resolutions_comment": [
+    "Because new versions of strip-ansi, string-width, and wrap-ansi are ESM only packages,",
+    "we need to resolve them to the CommonJS versions.",
+    "This is a temporary solution until we can upgrade to a version of lerna that supports ESM packages"
+  ],
   "resolutions": {
-    "gauge/strip-ansi": "6.0.1"
+    "gauge/strip-ansi": "6.0.1",
+    "wide-align/string-width": "4.2.3",
+    "cliui/wrap-ansi": "7.0.0"
   },
   "version": "0.0.0",
   "name": "sentry-javascript",

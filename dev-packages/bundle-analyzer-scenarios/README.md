@@ -2,7 +2,8 @@
 
 This repository contains a set of scenarios to check the SDK against webpack bundle analyzer.
 
-You can run the scenarios by running `yarn analyze` and selecting the scenario you want to run.
+You can run the scenarios by running `yarn analyze --scenario SCENARIO_NAME`. To view all avaliable scenarios, run
+`yarn analyze --list`.
 
 If you want to have more granular analysis of modules, you can build the SDK packages with with `preserveModules` set to
 `true`. You can do this via the `SENTRY_BUILD_PRESERVE_MODULES`.
