@@ -96,6 +96,9 @@ export function getWebpackPluginOptions(
     },
     _metaOptions: {
       loggerPrefixOverride: `[@sentry/nextjs - ${prefixInsert}]`,
+      telemetry: {
+        metaFramework: 'nextjs',
+      },
     },
     ...sentryBuildOptions.unstable_sentryWebpackPluginOptions,
   };
