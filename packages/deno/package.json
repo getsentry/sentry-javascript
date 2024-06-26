@@ -43,7 +43,7 @@
     "build:types": "run-s deno-types build:types:tsc build:types:bundle",
     "build:types:tsc": "tsc -p tsconfig.types.json",
     "build:types:bundle": "rollup -c rollup.types.config.mjs",
-    "build:tarball": "ts-node ../../scripts/prepack.ts && npm pack ./build",
+    "build:tarball": "ts-node ../../scripts/prepack.ts && npm pack ./build && ts-node ../../scripts/postpack.ts",
     "circularDepCheck": "madge --circular src/index.ts",
     "clean": "rimraf build build-types build-test coverage",
     "prefix": "yarn deno-types",

@@ -66,7 +66,7 @@
     "@sentry/react": "8.12.0",
     "@sentry/types": "8.12.0",
     "@sentry/utils": "8.12.0",
-    "glob": "^10.3.4",
+    "glob": "^10.4.2",
     "opentelemetry-instrumentation-remix": "0.7.1",
     "yargs": "^17.6.0"
   },
@@ -93,7 +93,7 @@
     "build:dev:watch": "yarn build:watch",
     "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",
     "build:types:watch": "tsc -p tsconfig.types.json --watch",
-    "build:tarball": "ts-node ../../scripts/prepack.ts && npm pack ./build",
+    "build:tarball": "ts-node ../../scripts/prepack.ts && npm pack ./build && ts-node ../../scripts/postpack.ts",
     "circularDepCheck": "madge --circular src/index.server.ts",
     "clean": "rimraf build coverage sentry-remix-*.tgz",
     "fix": "eslint . --format stylish --fix",

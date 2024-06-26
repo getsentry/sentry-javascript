@@ -8,6 +8,7 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
+import { sync as glob } from 'glob';
 
 const NPM_BUILD_DIR = 'build/npm';
 const BUILD_DIR = 'build';
@@ -90,6 +91,34 @@ function rewriteConditionalExportEntryPoint(
     rewriteConditionalExportEntryPoint(exportsField, subfieldKey);
   });
 }
+
+function rewriteSourceMapSourcesPath(buildDir: string): void {
+  const mapFiles = glob('**/*.map', { cwd: buildDir });
+
+  mapFiles.forEach(mapFile => {
+    const mapFilePath = path.resolve(buildDir, mapFile);
+    const mapFileContent = fs.readFileSync(mapFilePath, 'utf8');
+    const mapFileContentObj = JSON.parse(mapFileContent) as { sources?: string[]; _processed?: boolean };
+
+    // Ensure we don't double-process
+    if (mapFileContentObj._processed) {
+      return;
+    }
+
+    // Sources point to the original source files, but the relativity of the path breaks when we publish
+    // Once we publish, the original sources are one level less deep than at build time
+    if (Array.isArray(mapFileContentObj.sources)) {
+      // Replace first occurence of ../../ with just ../
+      mapFileContentObj.sources = mapFileContentObj.sources.map((source: string) => source.replace('../../', '../'));
+    }
+
+    mapFileContentObj._processed = true;
+
+    fs.writeFileSync(mapFilePath, JSON.stringify(mapFileContentObj));
+  });
+}
+
+rewriteSourceMapSourcesPath(buildDir);
 
 if (newPkgJson[EXPORT_MAP_ENTRY_POINT]) {
   Object.keys(newPkgJson[EXPORT_MAP_ENTRY_POINT]).forEach(key => {
