@@ -14,6 +14,12 @@
     "esm",
     "index.d.ts",
     "index.d.ts.map",
+    "debug-build.d.ts",
+    "debug-build.d.ts.map",
+    "errorboundary.d.ts",
+    "errorboundary.d.ts.map",
+    "sdk.d.ts",
+    "sdk.d.ts.map",
     "solidrouter.d.ts",
     "solidrouter.d.ts.map"
   ],
