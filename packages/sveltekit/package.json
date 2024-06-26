@@ -10,8 +10,7 @@
     "node": ">=16"
   },
   "files": [
-    "/build",
-    "README.md"
+    "/build"
   ],
   "main": "build/cjs/index.server.js",
   "module": "build/esm/index.server.js",

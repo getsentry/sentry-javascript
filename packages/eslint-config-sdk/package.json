@@ -15,8 +15,7 @@
     "node": ">=14.18"
   },
   "files": [
-    "/src",
-    "README.md"
+    "/src"
   ],
   "main": "src/index.js",
   "publishConfig": {

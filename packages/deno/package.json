@@ -21,8 +21,7 @@
     "access": "public"
   },
   "files": [
-    "/build",
-    "README.md"
+    "/build"
   ],
   "dependencies": {
     "@sentry/core": "8.12.0",

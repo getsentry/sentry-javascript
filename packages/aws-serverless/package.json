@@ -12,8 +12,7 @@
   "files": [
     "/build/npm",
     "/build/import-hook.mjs",
-    "/build/loader-hook.mjs",
-    "README.md"
+    "/build/loader-hook.mjs"
   ],
   "main": "build/npm/cjs/index.js",
   "types": "build/npm/types/index.d.ts",

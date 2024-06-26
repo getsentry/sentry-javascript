@@ -26,8 +26,7 @@
     }
   },
   "files": [
-    "/build/npm",
-    "README.md"
+    "/build/npm"
   ],
   "sideEffects": false,
   "scripts": {

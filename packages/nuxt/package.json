@@ -10,8 +10,7 @@
     "node": ">=16"
   },
   "files": [
-    "/build",
-    "README.md"
+    "/build"
   ],
   "main": "build/module.cjs",
   "module": "build/module.mjs",

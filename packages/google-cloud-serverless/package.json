@@ -10,8 +10,7 @@
     "node": ">=14.18"
   },
   "files": [
-    "/build",
-    "README.md"
+    "/build"
   ],
   "main": "build/cjs/index.js",
   "types": "build/types/index.d.ts",

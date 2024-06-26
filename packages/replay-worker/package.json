@@ -13,8 +13,7 @@
     }
   },
   "files": [
-    "/build",
-    "README.md"
+    "/build"
   ],
   "sideEffects": false,
   "private": true,

@@ -41,7 +41,6 @@
     "/lib",
     "/bindings",
     "/binding.gyp",
-    "README.md",
     "package.json",
     "/scripts/binaries.js",
     "/scripts/check-build.js",

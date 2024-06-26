@@ -6,8 +6,7 @@
   "module": "build/esm/index.js",
   "types": "build/types/index.d.ts",
   "files": [
-    "/build",
-    "README.md"
+    "/build"
   ],
   "exports": {
     "./package.json": "./package.json",

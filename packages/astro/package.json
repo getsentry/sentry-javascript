@@ -18,8 +18,7 @@
   },
   "type": "module",
   "files": [
-    "/build",
-    "README.md"
+    "/build"
   ],
   "main": "build/cjs/index.client.js",
   "module": "build/esm/index.server.js",

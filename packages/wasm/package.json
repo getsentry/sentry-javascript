@@ -10,8 +10,7 @@
     "node": ">=14.18"
   },
   "files": [
-    "/build/npm",
-    "README.md"
+    "/build/npm"
   ],
   "main": "build/npm/cjs/index.js",
   "module": "build/npm/esm/index.js",

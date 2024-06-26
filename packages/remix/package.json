@@ -14,8 +14,7 @@
   },
   "files": [
     "/build",
-    "/scripts",
-    "README.md"
+    "/scripts"
   ],
   "main": "build/cjs/index.server.js",
   "module": "build/esm/index.server.js",

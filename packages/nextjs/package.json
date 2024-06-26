@@ -13,8 +13,7 @@
   "module": "build/esm/index.server.js",
   "types": "build/types/index.types.d.ts",
   "files": [
-    "/build",
-    "README.md"
+    "/build"
   ],
   "exports": {
     "./package.json": "./package.json",
