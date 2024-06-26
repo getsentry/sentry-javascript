@@ -20,13 +20,13 @@ function restoreSourceMapSourcesPath(buildDir: string): void {
     const mapFileContent = fs.readFileSync(mapFilePath, 'utf8');
     const mapFileContentObj = JSON.parse(mapFileContent) as { sources?: string[]; _processed?: boolean };
 
-    // Ensure we don't double-process
+    // Ensure we don't revert unprocessed files
     if (!mapFileContentObj._processed) {
       return;
     }
 
-    // Sources point to the original source files, but the relativity of the path breaks when we publish
-    // Once we publish, the original sources are one level less deep than at build time
+    // Restore sources in .map files back to their original value
+    // Otherwise, the references are incorrect for local development
     if (Array.isArray(mapFileContentObj.sources)) {
       // Replace first occurence of ../../ with just ../
       mapFileContentObj.sources = mapFileContentObj.sources.map((source: string) => source.replace('../', '../../'));
