@@ -118,3 +118,11 @@ Our program is currently running on an invitation basis. If you're interested in
 to security@sentry.io and tell us, that you are interested in auditing this repository.
 
 For more details, please have a look at https://sentry.io/security/#vulnerability-disclosure.
+
+## Contributors
+
+Thanks to everyone who contributed to the Sentry JavaScript SDK!
+
+<a href="https://github.com/getsentry/sentry-javascript/graphs/contributors">
+  <img src="https://contributors-img.web.app/image?repo=getsentry/sentry-javascript" />
+</a>
