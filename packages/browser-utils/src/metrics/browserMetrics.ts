@@ -344,7 +344,7 @@ export function _addMeasureSpans(
 ): number {
   const navEntry = getNavigationEntry();
   const requestTime = msToSec(navEntry ? navEntry.requestStart : 0);
-  // Because performance.measure accepts arbtirary timestamps it can produce
+  // Because performance.measure accepts arbitrary timestamps it can produce
   // spans that happen before the browser even makes a request for the page.
   //
   // An example of this is the automatically generated Next.js-before-hydration
