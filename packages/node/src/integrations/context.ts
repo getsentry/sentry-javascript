@@ -13,10 +13,8 @@ import type {
   DeviceContext,
   Event,
   IntegrationFn,
-  MissingInstrumentationContext,
   OsContext,
 } from '@sentry/types';
-import { isCjs } from '../utils/commonjs';
 
 export const readFileAsync = promisify(readFile);
 export const readDirAsync = promisify(readdir);
@@ -478,8 +476,3 @@ function getCloudResourceContext(): CloudResourceContext | undefined {
     return undefined;
   }
 }
-
-export const createMissingInstrumentationContext = (pkg: string): MissingInstrumentationContext => ({
-  package: pkg,
-  'javascript.is_cjs': isCjs(),
-});
