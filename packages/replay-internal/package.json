@@ -48,7 +48,7 @@
     "build:transpile:watch": "yarn build:transpile --watch",
     "build:bundle:watch": "yarn build:bundle --watch",
     "build:types:watch": "tsc -p tsconfig.types.json --watch",
-    "build:tarball": "ts-node ../../scripts/prepack.ts --bundles && npm pack ./build/npm && ts-node ../../scripts/postpack.ts --bundles",
+    "build:tarball": "ts-node ../../scripts/pack.ts --bundles",
     "circularDepCheck": "madge --circular src/index.ts",
     "clean": "rimraf build sentry-replay-*.tgz",
     "fix": "run-s fix:biome fix:eslint",

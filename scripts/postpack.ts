@@ -4,8 +4,8 @@
   This script restores the build folder to a workable state after packaging.
 */
 
-import * as fs from 'fs';
-import * as path from 'path';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 import { sync as glob } from 'glob';
 
 export async function postpack(buildDir: string): Promise<void> {

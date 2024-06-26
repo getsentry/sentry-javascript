@@ -6,8 +6,8 @@
   the directory structure inside `build`.
 */
 
-import * as fs from 'fs';
-import * as path from 'path';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 import { sync as glob } from 'glob';
 
 const ASSETS = ['README.md', 'LICENSE', 'package.json', '.npmignore'];
