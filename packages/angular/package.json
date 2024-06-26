@@ -14,6 +14,7 @@
     "/build/fesm2015",
     "/build/fesm2020",
     "/build/*.d.ts",
+    "/build/*.d.ts.map",
     "/LICENSE",
     "/README.md"
   ],
