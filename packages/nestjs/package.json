@@ -1,13 +1,13 @@
 {
   "name": "@sentry/nestjs",
-  "version": "8.11.0",
+  "version": "8.12.0",
   "description": "Official Sentry SDK for NestJS",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/nestjs",
   "author": "Sentry",
   "license": "MIT",
   "engines": {
-    "node": ">=14.18"
+    "node": ">=16"
   },
   "files": [
     "/build",
