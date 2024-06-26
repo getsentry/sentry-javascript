@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import * as Sentry from '@sentry/node';
+import * as Sentry from '@sentry/nestjs';
 import { makeHttpRequest } from './utils';
 
 @Injectable()

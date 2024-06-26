@@ -3,7 +3,7 @@ import './instrument';
 
 // Import other modules
 import { BaseExceptionFilter, HttpAdapterHost, NestFactory } from '@nestjs/core';
-import * as Sentry from '@sentry/node';
+import * as Sentry from '@sentry/nestjs';
 import { AppModule1, AppModule2 } from './app.module';
 
 const app1Port = 3030;
