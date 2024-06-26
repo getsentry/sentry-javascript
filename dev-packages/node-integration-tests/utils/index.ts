@@ -1,7 +1,8 @@
-import * as http from 'http';
-import type { AddressInfo } from 'net';
-import * as path from 'path';
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
+import * as http from 'node:http';
+import type { AddressInfo } from 'node:net';
+import * as path from 'node:path';
 import * as Sentry from '@sentry/node';
 import type { EnvelopeItemType } from '@sentry/types';
 import { logger, parseSemver } from '@sentry/utils';
@@ -145,10 +146,10 @@ export class TestEnv {
     const defaultServerPath = path.resolve(process.cwd(), 'utils', 'defaults', 'server');
 
     const [server, url] = await new Promise<[http.Server, string]>(resolve => {
-      // eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-explicit-any
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
       const app = require(serverPath || defaultServerPath).default as any;
 
-      app.get('/test', (_req, res) => {
+      app.get('/test', (_req: any, res: any) => {
         try {
           require(scenarioPath || `${testDir}/scenario`);
         } finally {
