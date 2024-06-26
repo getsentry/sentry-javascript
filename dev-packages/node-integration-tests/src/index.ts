@@ -1,6 +1,7 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import type { AddressInfo } from 'net';
 import type { BaseTransportOptions, Envelope, Transport, TransportMakeRequestResponse } from '@sentry/types';
-import type { Express } from 'express';
 
 /**
  * Debug logging transport
@@ -21,7 +22,7 @@ export function loggingTransport(_options: BaseTransportOptions): Transport {
 /**
  * Starts an express server and sends the port to the runner
  */
-export function startExpressServerAndSendPortToRunner(app: Express): void {
+export function startExpressServerAndSendPortToRunner(app: any): void {
   const server = app.listen(0, () => {
     const address = server.address() as AddressInfo;
 

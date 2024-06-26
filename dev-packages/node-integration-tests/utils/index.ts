@@ -7,7 +7,6 @@ import type { EnvelopeItemType } from '@sentry/types';
 import { logger, parseSemver } from '@sentry/utils';
 import type { AxiosRequestConfig } from 'axios';
 import axios from 'axios';
-import type { Express } from 'express';
 import type { HttpTerminator } from 'http-terminator';
 import { createHttpTerminator } from 'http-terminator';
 import nock from 'nock';
@@ -146,8 +145,8 @@ export class TestEnv {
     const defaultServerPath = path.resolve(process.cwd(), 'utils', 'defaults', 'server');
 
     const [server, url] = await new Promise<[http.Server, string]>(resolve => {
-      // eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-unsafe-member-access
-      const app = require(serverPath || defaultServerPath).default as Express;
+      // eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-explicit-any
+      const app = require(serverPath || defaultServerPath).default as any;
 
       app.get('/test', (_req, res) => {
         try {

@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import type { AddressInfo } from 'net';
 import type { Envelope } from '@sentry/types';
 import { parseEnvelope } from '@sentry/utils';
@@ -12,7 +14,7 @@ import express from 'express';
 export function createBasicSentryServer(onEnvelope: (env: Envelope) => void): Promise<number> {
   const app = express();
   app.use(express.raw({ type: () => true, inflate: true, limit: '100mb' }));
-  app.post('/api/:id/envelope/', (req, res) => {
+  app.post('/api/:id/envelope/', (req: any, res: any) => {
     try {
       const env = parseEnvelope(req.body as Buffer);
       onEnvelope(env);
@@ -48,7 +50,7 @@ export function createTestServer(done: (error: unknown) => void) {
       const app = express();
 
       for (const [path, callback, result] of gets) {
-        app.get(path, (req, res) => {
+        app.get(path, (req: any, res: any) => {
           try {
             callback(req.headers);
           } catch (e) {
