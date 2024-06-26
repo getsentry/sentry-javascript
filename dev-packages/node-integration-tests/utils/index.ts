@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
-import * as http from 'node:http';
-import type { AddressInfo } from 'node:net';
-import * as path from 'node:path';
+import * as http from 'http';
+import type { AddressInfo } from 'net';
+import * as path from 'path';
 import * as Sentry from '@sentry/node';
 import type { EnvelopeItemType } from '@sentry/types';
 import { logger, parseSemver } from '@sentry/utils';
