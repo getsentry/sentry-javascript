@@ -10,7 +10,10 @@
     "node": ">=14.18"
   },
   "files": [
-    "/build",
+    "/build/esm2020",
+    "/build/fesm2015",
+    "/build/fesm2020",
+    "/build/*.d.ts",
     "LICENCE",
     "README.md"
   ],
