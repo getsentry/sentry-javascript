@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+
 import * as fs from 'fs';
 import path from 'path';
 import { Octokit } from '@octokit/rest';
