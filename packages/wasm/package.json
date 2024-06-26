@@ -11,7 +11,6 @@
   },
   "files": [
     "/build/npm",
-    "LICENSE",
     "README.md"
   ],
   "main": "build/npm/cjs/index.js",

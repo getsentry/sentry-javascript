@@ -22,7 +22,6 @@
   },
   "files": [
     "/build",
-    "LICENSE",
     "README.md"
   ],
   "dependencies": {

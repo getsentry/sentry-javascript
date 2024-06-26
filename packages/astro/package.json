@@ -19,7 +19,6 @@
   "type": "module",
   "files": [
     "/build",
-    "LICENSE",
     "README.md"
   ],
   "main": "build/cjs/index.client.js",

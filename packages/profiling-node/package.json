@@ -41,7 +41,6 @@
     "/lib",
     "/bindings",
     "/binding.gyp",
-    "LICENSE",
     "README.md",
     "package.json",
     "/scripts/binaries.js",

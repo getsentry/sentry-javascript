@@ -15,7 +15,6 @@
   },
   "files": [
    "/build",
-    "LICENSE",
     "README.md",
     "gatsby-node.js",
     "gatsby-node.d.ts"
