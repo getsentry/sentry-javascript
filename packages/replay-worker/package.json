@@ -14,7 +14,7 @@
   },
   "files": [
     "/build",
-    "LICENCE",
+    "LICENSE",
     "README.md"
   ],
   "sideEffects": false,

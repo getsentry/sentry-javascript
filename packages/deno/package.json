@@ -22,7 +22,7 @@
   },
   "files": [
     "/build",
-    "LICENCE",
+    "LICENSE",
     "README.md"
   ],
   "dependencies": {

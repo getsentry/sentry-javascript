@@ -27,7 +27,7 @@
   },
   "files": [
     "/build/npm",
-    "LICENCE",
+    "LICENSE",
     "README.md"
   ],
   "sideEffects": false,

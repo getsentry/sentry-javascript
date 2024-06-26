@@ -14,7 +14,7 @@
     "/build/fesm2015",
     "/build/fesm2020",
     "/build/*.d.ts",
-    "LICENCE",
+    "LICENSE",
     "README.md"
   ],
   "type": "module",
@@ -81,8 +81,8 @@
         "outputs": [
           "{projectRoot}/build/esm2015",
           "{projectRoot}/build/fesm2015",
-          "{projectRoot}/build/*.{md,json}",
-          "{projectRoot}/build/LICENCE"
+          "{projectRoot}/build/fesm2020",
+          "{projectRoot}/build/*.d.ts"
         ]
       }
     }

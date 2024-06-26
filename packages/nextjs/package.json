@@ -14,7 +14,7 @@
   "types": "build/types/index.types.d.ts",
   "files": [
     "/build",
-    "LICENCE",
+    "LICENSE",
     "README.md"
   ],
   "exports": {

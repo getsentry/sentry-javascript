@@ -7,7 +7,7 @@
   "types": "build/types/index.d.ts",
   "files": [
     "/build",
-    "LICENCE",
+    "LICENSE",
     "README.md"
   ],
   "exports": {

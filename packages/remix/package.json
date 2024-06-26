@@ -15,7 +15,7 @@
   "files": [
     "/build",
     "/scripts",
-    "LICENCE",
+    "LICENSE",
     "README.md"
   ],
   "main": "build/cjs/index.server.js",

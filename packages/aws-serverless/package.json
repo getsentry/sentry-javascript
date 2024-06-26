@@ -13,7 +13,7 @@
     "/build/npm",
     "/build/import-hook.mjs",
     "/build/loader-hook.mjs",
-    "LICENCE",
+    "LICENSE",
     "README.md"
   ],
   "main": "build/npm/cjs/index.js",

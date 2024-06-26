@@ -11,7 +11,7 @@
   },
   "files": [
     "/build",
-    "LICENCE",
+    "LICENSE",
     "README.md"
   ],
   "main": "build/module.cjs",

@@ -16,7 +16,7 @@
   },
   "files": [
     "/src",
-    "LICENCE",
+    "LICENSE",
     "README.md"
   ],
   "main": "src/index.js",
