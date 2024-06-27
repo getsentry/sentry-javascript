@@ -4,6 +4,23 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 8.13.0
+
+### Important Changes
+
+- **feat(nestjs): Add Nest SDK** This release adds a dedicated SDK for [NestJS](https://nestjs.com/) (`@sentry/nestjs`)
+  in alpha state. The SDK is a drop-in replacement for the Sentry Node SDK (`@sentry/node`) supporting the same set of
+  features. See the [docs](https://docs.sentry.io/platforms/javascript/guides/nestjs/) for how to use the SDK.
+
+### Other Changes
+
+- deps: Bump bundler plugins to `2.20.1` (#12641)
+- deps(nextjs): Remove react peer dep and allow rc (#12670)
+- feat: Update OTEL deps (#12635)
+- feat(deps): bump @prisma/instrumentation from 5.15.0 to 5.15.1 (#12627)
+- feat(node): Add context info for missing instrumentation (#12639)
+- fix(feedback): Improve feedback error message (#12647)
+
 ## 8.12.0
 
 ### Important Changes
