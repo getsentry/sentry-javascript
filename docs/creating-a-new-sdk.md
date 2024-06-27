@@ -66,8 +66,8 @@ A purely server SDK generally should cover the following things:
 ### 2a. Error Monitoring
 
 We have global error handlers out of the box. However, in many frameworks there are ways for users to capture errors
-too, which may lead to them not bubbling up to our global handlers. Generally, the goal is that all errors are captured by
-Sentry.
+too, which may lead to them not bubbling up to our global handlers. Generally, the goal is that all errors are captured
+by Sentry.
 
 Either we should use some hook (e.g. `app.on('error')`) to capture exceptions, or provide composables (e.g.
 `setupFastifyErrorHandler(app)`) that user can call.
@@ -93,8 +93,8 @@ Some of the following concepts may be relevant to your SDK:
 
 #### Middleware Tracking
 
-Additionally, Node SDKs may also do **Middleware Tracking**. If possible, we may want to instrument middlewares, and create
-spans for them. These are stretch goals, though, and do not need to be part of an MVP.
+Additionally, Node SDKs may also do **Middleware Tracking**. If possible, we may want to instrument middlewares, and
+create spans for them. These are stretch goals, though, and do not need to be part of an MVP.
 
 ### 2c. OPTIONAL: Additional features
 
