@@ -89,8 +89,7 @@
     "next": "13.2.0"
   },
   "peerDependencies": {
-    "next": "^13.2.0 || ^14.0",
-    "react": "16.x || 17.x || 18.x",
+    "next": "^13.2.0 || ^14.0 || ^15.0.0-rc.0",
     "webpack": ">= 5.0.0"
   },
   "peerDependenciesMeta": {
