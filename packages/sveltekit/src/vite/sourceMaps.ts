@@ -59,6 +59,11 @@ export async function makeCustomSentryVitePlugins(options?: CustomSentryVitePlug
     release: {
       name: releaseName,
     },
+    _metaOptions: {
+      telemetry: {
+        metaFramework: 'sveltekit',
+      },
+    },
   };
 
   const mergedOptions = {

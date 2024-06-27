@@ -60,6 +60,11 @@ describe('sentryAstro integration', () => {
       sourcemaps: {
         assets: ['out/**/*'],
       },
+      _metaOptions: {
+        telemetry: {
+          metaFramework: 'astro',
+        },
+      },
     });
   });
 
@@ -79,6 +84,11 @@ describe('sentryAstro integration', () => {
       debug: false,
       sourcemaps: {
         assets: ['dist/**/*'],
+      },
+      _metaOptions: {
+        telemetry: {
+          metaFramework: 'astro',
+        },
       },
     });
   });
@@ -106,6 +116,11 @@ describe('sentryAstro integration', () => {
       debug: false,
       sourcemaps: {
         assets: ['{.vercel,dist}/**/*'],
+      },
+      _metaOptions: {
+        telemetry: {
+          metaFramework: 'astro',
+        },
       },
     });
   });
@@ -138,6 +153,11 @@ describe('sentryAstro integration', () => {
       debug: false,
       sourcemaps: {
         assets: ['dist/server/**/*, dist/client/**/*'],
+      },
+      _metaOptions: {
+        telemetry: {
+          metaFramework: 'astro',
+        },
       },
     });
   });

@@ -10,7 +10,7 @@
     "node": ">=16"
   },
   "files": [
-    "build"
+    "/build"
   ],
   "main": "build/module.cjs",
   "module": "build/module.mjs",
@@ -36,7 +36,7 @@
     "@sentry/opentelemetry": "8.12.0",
     "@sentry/types": "8.12.0",
     "@sentry/utils": "8.12.0",
-    "@sentry/vite-plugin": "2.19.0",
+    "@sentry/vite-plugin": "2.20.1",
     "@sentry/vue": "8.12.0"
   },
   "devDependencies": {
@@ -51,7 +51,7 @@
     "build:dev:watch": "yarn build:watch",
     "build:transpile:watch": "nuxt-module-build build --outDir build --watch",
     "build:types:watch": "tsc -p tsconfig.types.json --watch",
-    "build:tarball": "ts-node ../../scripts/prepack.ts && npm pack ./build",
+    "build:tarball": "npm pack",
     "circularDepCheck": "madge --circular src/index.client.ts && madge --circular src/index.server.ts && madge --circular src/index.types.ts",
     "clean": "rimraf build coverage sentry-nuxt-*.tgz",
     "fix": "eslint . --format stylish --fix",
@@ -59,7 +59,7 @@
     "test": "yarn test:unit",
     "test:unit": "vitest run",
     "test:watch": "vitest --watch",
-    "yalc:publish": "ts-node ../../scripts/prepack.ts && yalc publish build --push --sig"
+    "yalc:publish": "yalc publish --push --sig"
   },
   "volta": {
     "extends": "../../package.json"

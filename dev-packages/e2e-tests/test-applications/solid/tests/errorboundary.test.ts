@@ -3,17 +3,24 @@ import { waitForError } from '@sentry-internal/test-utils';
 
 test('captures an exception', async ({ page }) => {
   const errorEventPromise = waitForError('solid', errorEvent => {
-    return !errorEvent.type && errorEvent.transaction === '/error-boundary-example';
+    return (
+      !errorEvent.type &&
+      errorEvent.exception?.values?.[0]?.value === 'Error 1 thrown from Sentry ErrorBoundary in Solid E2E test app'
+    );
   });
 
-  const [, errorEvent] = await Promise.all([page.goto('/error-boundary-example'), errorEventPromise]);
+  const [, , errorEvent] = await Promise.all([
+    page.goto('/'),
+    page.locator('#caughtErrorBtn').click(),
+    errorEventPromise,
+  ]);
 
   expect(errorEvent).toMatchObject({
     exception: {
       values: [
         {
-          type: 'ReferenceError',
-          value: 'NonExistentComponent is not defined',
+          type: 'Error',
+          value: 'Error 1 thrown from Sentry ErrorBoundary in Solid E2E test app',
           mechanism: {
             type: 'generic',
             handled: true,
@@ -21,23 +28,30 @@ test('captures an exception', async ({ page }) => {
         },
       ],
     },
-    transaction: '/error-boundary-example',
+    transaction: '/',
   });
 });
 
 test('captures a second exception after resetting the boundary', async ({ page }) => {
   const firstErrorEventPromise = waitForError('solid', errorEvent => {
-    return !errorEvent.type && errorEvent.transaction === '/error-boundary-example';
+    return (
+      !errorEvent.type &&
+      errorEvent.exception?.values?.[0]?.value === 'Error 1 thrown from Sentry ErrorBoundary in Solid E2E test app'
+    );
   });
 
-  const [, firstErrorEvent] = await Promise.all([page.goto('/error-boundary-example'), firstErrorEventPromise]);
+  const [, , firstErrorEvent] = await Promise.all([
+    page.goto('/'),
+    page.locator('#caughtErrorBtn').click(),
+    firstErrorEventPromise,
+  ]);
 
   expect(firstErrorEvent).toMatchObject({
     exception: {
       values: [
         {
-          type: 'ReferenceError',
-          value: 'NonExistentComponent is not defined',
+          type: 'Error',
+          value: 'Error 1 thrown from Sentry ErrorBoundary in Solid E2E test app',
           mechanism: {
             type: 'generic',
             handled: true,
@@ -45,15 +59,19 @@ test('captures a second exception after resetting the boundary', async ({ page }
         },
       ],
     },
-    transaction: '/error-boundary-example',
+    transaction: '/',
   });
 
   const secondErrorEventPromise = waitForError('solid', errorEvent => {
-    return !errorEvent.type && errorEvent.transaction === '/error-boundary-example';
+    return (
+      !errorEvent.type &&
+      errorEvent.exception?.values?.[0]?.value === 'Error 2 thrown from Sentry ErrorBoundary in Solid E2E test app'
+    );
   });
 
-  const [, secondErrorEvent] = await Promise.all([
+  const [, , secondErrorEvent] = await Promise.all([
     page.locator('#errorBoundaryResetBtn').click(),
+    page.locator('#caughtErrorBtn').click(),
     await secondErrorEventPromise,
   ]);
 
@@ -61,8 +79,8 @@ test('captures a second exception after resetting the boundary', async ({ page }
     exception: {
       values: [
         {
-          type: 'ReferenceError',
-          value: 'NonExistentComponent is not defined',
+          type: 'Error',
+          value: 'Error 2 thrown from Sentry ErrorBoundary in Solid E2E test app',
           mechanism: {
             type: 'generic',
             handled: true,
@@ -70,6 +88,6 @@ test('captures a second exception after resetting the boundary', async ({ page }
         },
       ],
     },
-    transaction: '/error-boundary-example',
+    transaction: '/',
   });
 });

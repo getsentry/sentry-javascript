@@ -1,7 +1,8 @@
 import { isWrapped } from '@opentelemetry/core';
-import { hasTracingEnabled, isEnabled } from '@sentry/core';
+import { getGlobalScope, hasTracingEnabled, isEnabled } from '@sentry/core';
 import { consoleSandbox } from '@sentry/utils';
 import { isCjs } from './commonjs';
+import { createMissingInstrumentationContext } from './createMissingInstrumentationContext';
 
 /**
  * Checks and warns if a framework isn't wrapped by opentelemetry.
@@ -24,5 +25,7 @@ export function ensureIsWrapped(
         );
       }
     });
+
+    getGlobalScope().setContext('missing_instrumentation', createMissingInstrumentationContext(name));
   }
 }

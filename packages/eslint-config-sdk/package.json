@@ -15,7 +15,7 @@
     "node": ">=14.18"
   },
   "files": [
-    "src"
+    "/src"
   ],
   "main": "src/index.js",
   "publishConfig": {

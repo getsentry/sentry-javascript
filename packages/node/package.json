@@ -10,12 +10,7 @@
     "node": ">=14.18"
   },
   "files": [
-    "cjs",
-    "esm",
-    "types",
-    "types-ts3.8",
-    "import-hook.mjs",
-    "loader-hook.mjs"
+    "/build"
   ],
   "main": "build/cjs/index.js",
   "module": "build/esm/index.js",
@@ -71,15 +66,15 @@
   },
   "dependencies": {
     "@opentelemetry/api": "^1.9.0",
-    "@opentelemetry/context-async-hooks": "^1.25.0",
-    "@opentelemetry/core": "^1.25.0",
-    "@opentelemetry/instrumentation": "^0.52.0",
+    "@opentelemetry/context-async-hooks": "^1.25.1",
+    "@opentelemetry/core": "^1.25.1",
+    "@opentelemetry/instrumentation": "^0.52.1",
     "@opentelemetry/instrumentation-connect": "0.37.0",
     "@opentelemetry/instrumentation-express": "0.40.1",
     "@opentelemetry/instrumentation-fastify": "0.37.0",
     "@opentelemetry/instrumentation-graphql": "0.41.0",
     "@opentelemetry/instrumentation-hapi": "0.39.0",
-    "@opentelemetry/instrumentation-http": "0.52.0",
+    "@opentelemetry/instrumentation-http": "0.52.1",
     "@opentelemetry/instrumentation-ioredis": "0.41.0",
     "@opentelemetry/instrumentation-koa": "0.41.0",
     "@opentelemetry/instrumentation-mongodb": "0.45.0",
@@ -89,10 +84,10 @@
     "@opentelemetry/instrumentation-nestjs-core": "0.38.0",
     "@opentelemetry/instrumentation-pg": "0.42.0",
     "@opentelemetry/instrumentation-redis-4": "0.40.0",
-    "@opentelemetry/resources": "^1.25.0",
-    "@opentelemetry/sdk-trace-base": "^1.25.0",
-    "@opentelemetry/semantic-conventions": "^1.25.0",
-    "@prisma/instrumentation": "5.15.0",
+    "@opentelemetry/resources": "^1.25.1",
+    "@opentelemetry/sdk-trace-base": "^1.25.1",
+    "@opentelemetry/semantic-conventions": "^1.25.1",
+    "@prisma/instrumentation": "5.16.0",
     "@sentry/core": "8.12.0",
     "@sentry/opentelemetry": "8.12.0",
     "@sentry/types": "8.12.0",
@@ -115,7 +110,7 @@
     "build:dev:watch": "yarn build:watch",
     "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",
     "build:types:watch": "tsc -p tsconfig.types.json --watch",
-    "build:tarball": "ts-node ../../scripts/prepack.ts && npm pack ./build",
+    "build:tarball": "npm pack",
     "circularDepCheck": "madge --circular src/index.ts",
     "clean": "rimraf build coverage sentry-node-*.tgz",
     "fix": "eslint . --format stylish --fix",
@@ -123,7 +118,7 @@
     "test": "yarn test:jest",
     "test:jest": "jest",
     "test:watch": "jest --watch",
-    "yalc:publish": "ts-node ../../scripts/prepack.ts && yalc publish build --push --sig"
+    "yalc:publish": "yalc publish --push --sig"
   },
   "volta": {
     "extends": "../../package.json"
