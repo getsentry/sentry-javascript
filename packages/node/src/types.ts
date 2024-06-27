@@ -85,6 +85,15 @@ export interface BaseNodeOptions {
    */
   maxSpanWaitDuration?: number;
 
+  /**
+   * Whether to register ESM loader hooks to automatically instrument libraries.
+   * This is necessary to auto instrument libraries that are loaded via ESM imports, but might it can cause issues
+   * with certain libraries.
+   *
+   * Defaults to `true`.
+   */
+  registerEsmLoaderHooks?: boolean;
+
   /** Callback that is executed when a fatal global error occurs. */
   onFatalError?(this: void, error: Error): void;
 }
