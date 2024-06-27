@@ -19,12 +19,17 @@ sentryTest('should add browser-related spans to pageload transaction', async ({ 
   // always inside `pageload` transaction.
   expect(browserSpans?.length).toBeGreaterThanOrEqual(4);
 
-  expect(browserSpans).toEqual([]);
-
   const requestSpan = browserSpans!.find(({ description }) => description === 'request');
   expect(requestSpan).toBeDefined();
-  const measureSpan = browserSpans!.find(({ op }) => op === 'measure');
+
+  const measureSpan = eventData.spans?.find(({ op }) => op === 'measure');
   expect(measureSpan).toBeDefined();
 
   expect(requestSpan!.start_timestamp).toBeLessThanOrEqual(measureSpan!.start_timestamp);
+  expect(measureSpan?.data).toEqual({
+    'sentry.browser.measure_happened_before_request': true,
+    'sentry.browser.measure_start_time': expect.any(Number),
+    'sentry.op': 'measure',
+    'sentry.origin': 'auto.resource.browser.metrics',
+  });
 });
