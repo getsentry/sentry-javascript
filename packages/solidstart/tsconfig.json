@@ -3,7 +3,5 @@
 
   "include": ["src/**/*"],
 
-  "compilerOptions": {
-    // package-specific options
-  }
+  "compilerOptions": {}
 }

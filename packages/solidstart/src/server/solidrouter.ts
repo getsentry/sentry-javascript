@@ -1,11 +1,5 @@
 import type { Integration } from '@sentry/types';
-import type {
-  HashRouter,
-  MemoryRouter,
-  RouteSectionProps,
-  Router as BaseRouter,
-  StaticRouter,
-} from '@solidjs/router';
+import type { HashRouter, MemoryRouter, RouteSectionProps, Router as BaseRouter, StaticRouter } from '@solidjs/router';
 import { mergeProps, splitProps } from 'solid-js';
 import type { Component, JSX, ParentProps } from 'solid-js';
 import { createComponent } from 'solid-js/web';
@@ -32,11 +26,11 @@ function withSentryRouterRoot(Root: Component<RouteSectionProps>): Component<Rou
  */
 export function solidRouterBrowserTracingIntegration(
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  options: any
+  options: any,
 ): Integration {
   return {
     name: 'solidRouterBrowserTracingIntegration',
-  }
+  };
 }
 
 type RouterType = typeof BaseRouter | typeof HashRouter | typeof MemoryRouter | typeof StaticRouter;
