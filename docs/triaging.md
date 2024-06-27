@@ -43,6 +43,17 @@ categorize the issue as soon as possible. If an issue is hard to fix, an edge ca
 reply and put the issue in backlog. You may also encourage the user to contribute a PR themselves if we are unlikely to
 find time to resolve the issue ourselves anytime soon.
 
+Additionally, triaging does not have to happen in one sitting. If you've invested a reasonable amount of time into
+triaging an issue, but have not yet found the root cause/a solution, you can always post an update in the issue about
+what you've tried so far (and what worked/didn't work), and continue looking into the issue later/on another day. This
+depends on the severity of the issue, of course — if something appears to be a critical issue potentially affecting lots
+of users, we should prioritise fixing it even if it takes longer.
+
+If a ticket is in the Web SDK triaging queue, but should be handled by another team (e.g. Replay, Feedback, Profiling),
+feel free to ping members of that team in a respective Slack channel to please take a look at the issue. You should also
+make sure to apply the correct package labels (e.g. `Package: Replay`, `Package: User Feedback`,
+`Package: profiling-node`) to indicate what an issue is about.
+
 ### (Sentry Employees) How & when should I triage issues?
 
 Ideally, you can take some time every day in the morning to look over the triage queue and identify issues that you can
