@@ -10,7 +10,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
 
-import { codecovRollupPlugin } from '@codecov/rollup-plugin';
 import json from '@rollup/plugin-json';
 import replace from '@rollup/plugin-replace';
 import cleanup from 'rollup-plugin-cleanup';
