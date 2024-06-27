@@ -1,8 +1,14 @@
-import type { HashRouter, MemoryRouter, RouteSectionProps, StaticRouter } from '@solidjs/router';
-// import { useBeforeLeave, useLocation } from '@solidjs/router';
-import type { Router as BaseRouter } from '@solidjs/router/dist/routers/Router';
+import type { Integration } from '@sentry/types';
+import type {
+  HashRouter,
+  MemoryRouter,
+  RouteSectionProps,
+  Router as BaseRouter,
+  StaticRouter,
+} from '@solidjs/router';
+import { mergeProps, splitProps } from 'solid-js';
 import type { Component, JSX, ParentProps } from 'solid-js';
-import { createComponent, mergeProps, splitProps } from 'solid-js';
+import { createComponent } from 'solid-js/web';
 
 /** Pass-through component in case user didn't specify a root **/
 function SentryDefaultRoot(props: ParentProps): JSX.Element {
@@ -15,23 +21,6 @@ function SentryDefaultRoot(props: ParentProps): JSX.Element {
  */
 function withSentryRouterRoot(Root: Component<RouteSectionProps>): Component<RouteSectionProps> {
   const SentryRouterRoot = (props: RouteSectionProps): JSX.Element => {
-    // TODO: This is a rudimentary first version of handling navigation spans
-    // It does not
-    // - use query params
-    // - parameterize the route
-
-    // useBeforeLeave(({ to }: BeforeLeaveEventArgs) => {
-    //   `to` could be `-1` if the browser back-button was used
-    //   eslint-disable-next-line no-console
-    //   console.log('[server] useBeforeLeave', to.toString());
-    // });
-
-    // const location = useLocation();
-    // createEffect(() => {
-      // eslint-disable-next-line no-console
-      // console.log('[server] useLocation', location.pathname);
-    // });
-
     return createComponent(Root, props);
   };
 
@@ -39,9 +28,16 @@ function withSentryRouterRoot(Root: Component<RouteSectionProps>): Component<Rou
 }
 
 /**
- *
+ * A browser tracing integration that uses Solid Router to instrument navigations.
  */
-export function solidRouterBrowserTracingIntegration(): void {}
+export function solidRouterBrowserTracingIntegration(
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  options: any
+): Integration {
+  return {
+    name: 'solidRouterBrowserTracingIntegration',
+  }
+}
 
 type RouterType = typeof BaseRouter | typeof HashRouter | typeof MemoryRouter | typeof StaticRouter;
 

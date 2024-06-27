@@ -9,7 +9,7 @@ import type { Integration, Options, StackParser } from '@sentry/types';
 import type * as clientSdk from './client';
 import type * as serverSdk from './server';
 
-/** Initializes Sentry SvelteKit SDK */
+/** Initializes Sentry Solid Start SDK */
 export declare function init(options: Options | clientSdk.BrowserOptions | serverSdk.NodeOptions): void;
 
 export declare const linkedErrorsIntegration: typeof clientSdk.linkedErrorsIntegration;
@@ -19,8 +19,6 @@ export declare const getDefaultIntegrations: (options: Options) => Integration[]
 export declare const defaultStackParser: StackParser;
 
 export declare const getClient: typeof clientSdk.getClient;
-// eslint-disable-next-line deprecation/deprecation
-export declare const getCurrentHub: typeof clientSdk.getCurrentHub;
 
 export declare function close(timeout?: number | undefined): PromiseLike<boolean>;
 export declare function flush(timeout?: number | undefined): PromiseLike<boolean>;
