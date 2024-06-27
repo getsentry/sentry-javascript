@@ -89,5 +89,16 @@
   "volta": {
     "extends": "../../package.json"
   },
+  "nx": {
+    "targets": {
+      "build:types": {
+        "outputs": [
+          "{projectRoot}/build/types",
+          "{projectRoot}/*.d.ts",
+          "{projectRoot}/*.d.ts.map"
+        ]
+      }
+    }
+  },
   "sideEffects": false
 }
