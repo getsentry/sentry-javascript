@@ -57,7 +57,7 @@
     "test": "yarn test:unit",
     "test:unit": "vitest run",
     "test:unit:watch": "vitest --watch",
-    "yalc:publish": "yalc publish build --push --sig"
+    "yalc:publish": "yalc publish --push --sig"
   },
   "volta": {
     "extends": "../../package.json"
@@ -73,8 +73,8 @@
         "outputs": [
           "{projectRoot}/build/esm2015",
           "{projectRoot}/build/fesm2015",
-          "{projectRoot}/build/*.{md,json}",
-          "{projectRoot}/build/LICENCE"
+          "{projectRoot}/build/fesm2020",
+          "{projectRoot}/build/*.d.ts"
         ]
       }
     }
