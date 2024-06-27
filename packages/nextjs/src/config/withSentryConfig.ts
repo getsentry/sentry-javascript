@@ -16,7 +16,6 @@ let showedExportModeTunnelWarning = false;
  * Modifies the passed in Next.js configuration with automatic build-time instrumentation and source map upload.
  *
  * @param nextConfig A Next.js configuration object, as usually exported in `next.config.js` or `next.config.mjs`.
- * @param sentryWebpackPluginOptions Options to configure the automatically included Sentry Webpack Plugin for source maps and release management in Sentry.
  * @param sentryBuildOptions Additional options to configure instrumentation and
  * @returns The modified config to be exported
  */
