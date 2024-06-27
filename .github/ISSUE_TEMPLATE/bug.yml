@@ -81,7 +81,7 @@ body:
     attributes:
       label: SDK Setup/Reproduction Example
       description:
-        How do you set up your Sentry SDK? Please show us your `Sentry.init` options.
+        How do you set up your Sentry SDK? Please show us your `Sentry.init` code.
         Or even better—share a link to a reproduction example.
       placeholder: |-
         ```javascript
