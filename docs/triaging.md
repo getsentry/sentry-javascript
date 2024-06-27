@@ -46,7 +46,7 @@ find time to resolve the issue ourselves anytime soon.
 Additionally, triaging does not have to happen in one sitting. If you've invested a reasonable amount of time into
 triaging an issue, but have not yet found the root cause/a solution, you can always post an update in the issue about
 what you've tried so far (and what worked/didn't work), and continue looking into the issue later/on another day. This
-depends on the severity of the issue, of course - if something appears to be a critical issue potentially affecting lots
+depends on the severity of the issue, of course — if something appears to be a critical issue potentially affecting lots
 of users, we should prioritise fixing it even if it takes longer.
 
 If a ticket is in the Web SDK triaging queue, but should be handled by another team (e.g. Replay, Feedback, Profiling),
