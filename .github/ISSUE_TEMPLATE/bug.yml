@@ -39,6 +39,7 @@ body:
         - '@sentry/ember'
         - '@sentry/gatsby'
         - '@sentry/google-cloud-serverless'
+        - '@sentry/nestjs'
         - '@sentry/nextjs'
         - '@sentry/node'
         - '@sentry/react'
