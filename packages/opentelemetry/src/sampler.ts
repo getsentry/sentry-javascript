@@ -1,4 +1,4 @@
-import type { Attributes, Context, Span } from '@opentelemetry/api';
+import type { Attributes, Context, Span , TraceState as TraceStateInterface} from '@opentelemetry/api';
 import { SpanKind } from '@opentelemetry/api';
 import { isSpanContextValid, trace } from '@opentelemetry/api';
 import { TraceState } from '@opentelemetry/core';
@@ -40,16 +40,8 @@ export class SentrySampler implements Sampler {
     const parentSpan = trace.getSpan(context);
     const parentContext = parentSpan?.spanContext();
 
-    let traceState = parentContext?.traceState || new TraceState();
-
-    // We always keep the URL on the trace state, so we can access it in the propagator
-    const url = spanAttributes[SEMATTRS_HTTP_URL];
-    if (url && typeof url === 'string') {
-      traceState = traceState.set(SENTRY_TRACE_STATE_URL, url);
-    }
-
     if (!hasTracingEnabled(options)) {
-      return { decision: SamplingDecision.NOT_RECORD, traceState };
+      return sentrySamplerNoDecision({ context, spanAttributes });
     }
 
     // If we have a http.client span that has no local parent, we never want to sample it
@@ -59,7 +51,7 @@ export class SentrySampler implements Sampler {
       spanAttributes[SEMATTRS_HTTP_METHOD] &&
       (!parentSpan || parentContext?.isRemote)
     ) {
-      return { decision: SamplingDecision.NOT_RECORD, traceState };
+      return sentrySamplerNoDecision({ context, spanAttributes });
     }
 
     const parentSampled = parentSpan ? getParentSampled(parentSpan, traceId, spanName) : undefined;
@@ -76,7 +68,7 @@ export class SentrySampler implements Sampler {
       mutableSamplingDecision,
     );
     if (!mutableSamplingDecision.decision) {
-      return { decision: SamplingDecision.NOT_RECORD, traceState: traceState };
+      return sentrySamplerNoDecision({ context, spanAttributes });
     }
 
     const [sampled, sampleRate] = sampleSpan(options, {
@@ -96,25 +88,22 @@ export class SentrySampler implements Sampler {
     const method = `${spanAttributes[SEMATTRS_HTTP_METHOD]}`.toUpperCase();
     if (method === 'OPTIONS' || method === 'HEAD') {
       DEBUG_BUILD && logger.log(`[Tracing] Not sampling span because HTTP method is '${method}' for ${spanName}`);
+
       return {
-        decision: SamplingDecision.NOT_RECORD,
+        ...sentrySamplerNotSampled({ context, spanAttributes }),
         attributes,
-        traceState: traceState.set(SENTRY_TRACE_STATE_SAMPLED_NOT_RECORDING, '1'),
       };
     }
 
     if (!sampled) {
       return {
-        decision: SamplingDecision.NOT_RECORD,
+        ...sentrySamplerNotSampled({ context, spanAttributes }),
         attributes,
-        traceState: traceState.set(SENTRY_TRACE_STATE_SAMPLED_NOT_RECORDING, '1'),
       };
     }
-
     return {
-      decision: SamplingDecision.RECORD_AND_SAMPLED,
+      ...sentrySamplerSampled({ context, spanAttributes }),
       attributes,
-      traceState,
     };
   }
 
@@ -151,4 +140,56 @@ function getParentSampled(parentSpan: Span, traceId: string, spanName: string): 
   }
 
   return undefined;
+}
+
+/**
+ * Returns a SamplingResult that indicates that a span was not sampled, but no definite decision was made yet.
+ * This indicates to downstream SDKs that they may make their own decision.
+ */
+export function sentrySamplerNoDecision({
+  context,
+  spanAttributes,
+}: { context: Context; spanAttributes: SpanAttributes }): SamplingResult {
+  const traceState = getBaseTraceState(context, spanAttributes);
+
+  return { decision: SamplingDecision.NOT_RECORD, traceState };
+}
+
+/**
+ * Returns a SamplingResult that indicates that a span was not sampled.
+ */
+export function sentrySamplerNotSampled({
+  context,
+  spanAttributes,
+}: { context: Context; spanAttributes: SpanAttributes }): SamplingResult {
+  const traceState = getBaseTraceState(context, spanAttributes).set(SENTRY_TRACE_STATE_SAMPLED_NOT_RECORDING, '1');
+
+  return { decision: SamplingDecision.NOT_RECORD, traceState };
+}
+
+/**
+ * Returns a SamplingResult that indicates that a span was sampled.
+ */
+export function sentrySamplerSampled({
+  context,
+  spanAttributes,
+}: { context: Context; spanAttributes: SpanAttributes }): SamplingResult {
+  const traceState = getBaseTraceState(context, spanAttributes);
+
+  return { decision: SamplingDecision.RECORD_AND_SAMPLED, traceState };
+}
+
+function getBaseTraceState(context: Context, spanAttributes: SpanAttributes): TraceStateInterface {
+  const parentSpan = trace.getSpan(context);
+  const parentContext = parentSpan?.spanContext();
+
+  let traceState = parentContext?.traceState || new TraceState();
+
+  // We always keep the URL on the trace state, so we can access it in the propagator
+  const url = spanAttributes[SEMATTRS_HTTP_URL];
+  if (url && typeof url === 'string') {
+    traceState = traceState.set(SENTRY_TRACE_STATE_URL, url);
+  }
+
+  return traceState;
 }
