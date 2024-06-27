@@ -10,9 +10,7 @@
     "node": ">=16"
   },
   "files": [
-    "/build",
-    "LICENSE",
-    "README.md"
+    "/build"
   ],
   "main": "build/cjs/nestjs/index.js",
   "module": "build/esm/nestjs/index.js",

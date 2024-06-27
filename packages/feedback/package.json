@@ -10,10 +10,7 @@
     "node": ">=14.18"
   },
   "files": [
-    "cjs",
-    "esm",
-    "types",
-    "types-ts3.8"
+    "/build/npm"
   ],
   "main": "build/npm/cjs/index.js",
   "module": "build/npm/esm/index.js",
@@ -62,14 +59,14 @@
     "build:transpile:watch": "yarn build:transpile --watch",
     "build:bundle:watch": "yarn build:bundle --watch",
     "build:types:watch": "tsc -p tsconfig.types.json --watch",
-    "build:tarball": "ts-node ../../scripts/prepack.ts --bundles && npm pack ./build/npm",
+    "build:tarball": "npm pack",
     "circularDepCheck": "madge --circular src/index.ts",
     "clean": "rimraf build sentry-internal-feedback-*.tgz",
     "fix": "eslint . --format stylish --fix",
     "lint": "eslint . --format stylish",
     "test": "jest",
     "test:watch": "jest --watch",
-    "yalc:publish": "ts-node ../../scripts/prepack.ts --bundles && yalc publish ./build/npm --push --sig"
+    "yalc:publish": "yalc publish --push --sig"
   },
   "volta": {
     "extends": "../../package.json"
