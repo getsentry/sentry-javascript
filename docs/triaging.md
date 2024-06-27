@@ -50,7 +50,9 @@ depends on the severity of the issue, of course — if something appears to be a
 of users, we should prioritise fixing it even if it takes longer.
 
 If a ticket is in the Web SDK triaging queue, but should be handled by another team (e.g. Replay, Feedback, Profiling),
-feel free to ping members of that team in a respective Slack channel to please take a look at the issue.
+feel free to ping members of that team in a respective Slack channel to please take a look at the issue. You should also
+make sure to apply the correct package labels (e.g. `Package: Replay`, `Package: User Feedback`,
+`Package: profiling-node`) to indicate what an issue is about.
 
 ### (Sentry Employees) How & when should I triage issues?
 
