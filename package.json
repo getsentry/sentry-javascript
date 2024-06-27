@@ -120,7 +120,6 @@
     "nodemon": "^2.0.16",
     "npm-run-all": "^4.1.5",
     "prettier": "^3.1.1",
-    "replace-in-file": "^4.0.0",
     "rimraf": "^3.0.2",
     "rollup": "^4.13.0",
     "rollup-plugin-cleanup": "^3.2.1",
