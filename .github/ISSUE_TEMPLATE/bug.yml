@@ -43,6 +43,7 @@ body:
         - '@sentry/node'
         - '@sentry/react'
         - '@sentry/remix'
+        - '@sentry/solid'
         - '@sentry/svelte'
         - '@sentry/sveltekit'
         - '@sentry/vue'
@@ -56,7 +57,7 @@ body:
     attributes:
       label: SDK Version
       description: What version of the SDK are you using?
-      placeholder: ex. 7.8.0
+      placeholder: ex. 8.10.0
     validations:
       required: true
   - type: input
@@ -66,7 +67,7 @@ body:
       description:
         If you're using one of our framework-specific SDKs (`@sentry/react`, for example), what version of the
         _framework_ are you using?
-      placeholder: ex. React 17.0.0
+      placeholder: ex. React 18.3.0 or Next 14.0.0
   - type: input
     id: link-to-sentry
     attributes:
@@ -78,8 +79,10 @@ body:
   - type: textarea
     id: sdk-setup
     attributes:
-      label: SDK Setup
-      description: How do you set up your Sentry SDK? Please show us your `Sentry.init` options.
+      label: SDK Setup/Reproduction Example
+      description:
+        How do you set up your Sentry SDK? Please show us your `Sentry.init` options.
+        Or even better—share a link to a reproduction example.
       placeholder: |-
         ```javascript
         Sentry.init({
