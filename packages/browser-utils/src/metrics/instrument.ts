@@ -10,7 +10,6 @@ import { onTTFB } from './web-vitals/onTTFB';
 
 type InstrumentHandlerTypePerformanceObserver =
   | 'longtask'
-  | 'long-animation-frame'
   | 'event'
   | 'navigation'
   | 'paint'
@@ -35,12 +34,6 @@ interface PerformanceEventTiming extends PerformanceEntry {
   cancelable?: boolean;
   target?: unknown | null;
   interactionId?: number;
-}
-
-interface PerformanceScriptTiming extends PerformanceEntry {
-  sourceCharPosition: number;
-  sourceFunctionName: string;
-  sourceUrl: string;
 }
 
 interface Metric {
@@ -168,10 +161,6 @@ export function addInpInstrumentationHandler(
 export function addPerformanceInstrumentationHandler(
   type: 'event',
   callback: (data: { entries: ((PerformanceEntry & { target?: unknown | null }) | PerformanceEventTiming)[] }) => void,
-): CleanupHandlerCallback;
-export function addPerformanceInstrumentationHandler(
-  type: 'long-animation-frame',
-  callback: (data: { entries: (PerformanceEntry & {scripts?: PerformanceScriptTiming[]})[] }) => void,
 ): CleanupHandlerCallback;
 export function addPerformanceInstrumentationHandler(
   type: InstrumentHandlerTypePerformanceObserver,

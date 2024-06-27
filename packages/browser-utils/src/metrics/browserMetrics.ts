@@ -124,31 +124,30 @@ export function startTrackingLongTasks(): void {
  * Start tracking long animation frames.
  */
 export function startTrackingLongAnimationFrames(): void {
-  addPerformanceInstrumentationHandler('long-animation-frame', ({ entries }) => {
-    for (const entry of entries) {
-      if (!getActiveSpan()) {
-        return;
-      }
-      const startTime = msToSec((browserPerformanceTimeOrigin as number) + entry.startTime);
-      const duration = msToSec(entry.duration);
-
-
-      const span = startInactiveSpan({
-        name: 'Main UI thread blocked',
-        op: 'ui.long-animation-frame',
-        startTime,
-        attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.browser.metrics',
-        },
-      });
-      if (span) {
-        span.end(startTime + duration);
-      }
-    }
-  });
+  // NOTE: the current web-vitals version (3.5.2) does not support long-animation-frame, so
+  // we should directly observe `long-animation-frame` events here instead of through the web-vitals
+  // `observe` helper function.
+  // addPerformanceInstrumentationHandler('long-animation-frame', ({ entries }) => {
+  //   for (const entry of entries) {
+  //     if (!getActiveSpan()) {
+  //       return;
+  //     }
+  //     const startTime = msToSec((browserPerformanceTimeOrigin as number) + entry.startTime);
+  //     const duration = msToSec(entry.duration);
+  //     const span = startInactiveSpan({
+  //       name: 'Main UI thread blocked',
+  //       op: 'ui.long-animation-frame',
+  //       startTime,
+  //       attributes: {
+  //         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.browser.metrics',
+  //       },
+  //     });
+  //     if (span) {
+  //       span.end(startTime + duration);
+  //     }
+  //   }
+  // });
 }
-
-
 
 /**
  * Start tracking interaction events.
