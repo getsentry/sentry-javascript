@@ -1,6 +1,6 @@
 import { applySdkMetadata } from '@sentry/core';
 import type { Client } from '@sentry/types';
-import { init as initVue } from '@sentry/vue';
+import { init as initBrowser } from '@sentry/browser';
 import type { SentryVueOptions } from '../common/types';
 
 /**
@@ -15,5 +15,5 @@ export function init(options: SentryVueOptions): Client | undefined {
 
   applySdkMetadata(sentryOptions, 'nuxt', ['nuxt', 'vue']);
 
-  return initVue(sentryOptions);
+  return initBrowser(sentryOptions);
 }

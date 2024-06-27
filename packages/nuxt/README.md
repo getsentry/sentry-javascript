@@ -53,20 +53,24 @@ If the setup through the wizard doesn't work for you, you can also set up the SD
 
 The Sentry Nuxt SDK is based on [Nuxt Modules](https://nuxt.com/docs/api/kit/modules).
 
-1. Add `@sentry/nuxt` to the modules section of `nuxt.config.ts`:
+1. Add `@sentry/nuxt/module` to the modules section of `nuxt.config.ts`:
 
 ```javascript
 // nuxt.config.ts
 export default defineNuxtConfig({
-  modules: ['@sentry/nuxt'],
-  runtimeConfig: {
-    public: {
-      sentry: {
-        dsn: env.DSN,
-        // Additional config
-      },
-    },
-  },
+  modules: ['@sentry/nuxt/module'],
+});
+```
+
+2. Add a `sentry.client.config.(js|ts)` file to the root of your project:
+
+```javascript
+import * as Sentry from '@sentry/nuxt';
+
+Sentry.init({
+  dsn: env.DSN,
+  replaysSessionSampleRate: 0.1,
+  replaysOnErrorSampleRate: 1.0,
 });
 ```
 
