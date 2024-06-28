@@ -16,6 +16,7 @@ import {
 import type { Client, Integration, Span, TransactionSource } from '@sentry/types';
 import hoistNonReactStatics from 'hoist-non-react-statics';
 import * as React from 'react';
+import type { ReactElement } from 'react';
 
 import type { Action, Location } from './types';
 
@@ -32,7 +33,7 @@ export type RouteConfig = {
   [propName: string]: unknown;
   path?: string | string[];
   exact?: boolean;
-  component?: JSX.Element;
+  component?: ReactElement;
   routes?: RouteConfig[];
 };
 
