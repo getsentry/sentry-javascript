@@ -410,7 +410,7 @@ export type IgnoreWarningsOption = (
   | ((
       webpackError: {
         module?: {
-          readableIdentifier: (idontfuckingknow: unknown) => string;
+          readableIdentifier: (requestShortener: unknown) => string;
         };
         message: string;
       },
