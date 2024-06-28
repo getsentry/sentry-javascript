@@ -1,16 +1,18 @@
 import * as fs from 'fs';
 import * as path from 'path';
 
-// todo: tests
 /** Returns an import snippet */
 export function buildSdkInitFileImportSnippet(filePath: string): string {
   const posixPath = filePath.split(path.sep).join(path.posix.sep);
 
-  return `import "${posixPath}";`;
+  // normalize to forward slashed for Windows-based systems
+  const normalizedPath = posixPath.replace(/\\/g, '/');
+
+  return `import '${normalizedPath}';`;
 }
 
-// todo: tests
-/** Adds an import statement right after <script setup> */
+/** Adds a top-level import statement right after <script setup>.
+ * This should happen as early as possible (e.g. in root component) */
 export function addImportStatement(filePath: string, importStatement: string): void {
   try {
     const data = fs.readFileSync(filePath, 'utf8');
