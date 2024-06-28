@@ -88,7 +88,8 @@ export interface BaseNodeOptions {
   /**
    * Whether to register ESM loader hooks to automatically instrument libraries.
    * This is necessary to auto instrument libraries that are loaded via ESM imports, but might it can cause issues
-   * with certain libraries.
+   * with certain libraries. If you run into problems running your app with this enabled,
+   * please raise an issue in https://github.com/getsentry/sentry-javascript.
    *
    * Defaults to `true`.
    */
