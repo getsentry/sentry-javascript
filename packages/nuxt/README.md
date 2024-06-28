@@ -67,11 +67,13 @@ export default defineNuxtConfig({
 ```javascript
 import * as Sentry from '@sentry/nuxt';
 
-Sentry.init({
-  dsn: env.DSN,
-  replaysSessionSampleRate: 0.1,
-  replaysOnErrorSampleRate: 1.0,
-});
+if (!import.meta.env.SSR) {
+  Sentry.init({
+    dsn: env.DSN,
+    replaysSessionSampleRate: 0.1,
+    replaysOnErrorSampleRate: 1.0,
+  });
+}
 ```
 
 ### 3. Server-side Setup
