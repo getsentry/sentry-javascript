@@ -2,13 +2,13 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { type Resolver, addPlugin, createResolver, defineNuxtModule } from '@nuxt/kit';
 import { addImportStatement, buildSdkInitFileImportSnippet } from './common/snippets';
-import type { SentryVueOptions } from './common/types';
+import type { SentryNuxtOptions } from './common/types';
 
-export type ModuleOptions = SentryVueOptions;
+export type ModuleOptions = SentryNuxtOptions;
 
 export default defineNuxtModule<ModuleOptions>({
   meta: {
-    name: '@sentry/nuxt',
+    name: '@sentry/nuxt/module',
     configKey: 'sentry',
     compatibility: {
       nuxt: '^3.0.0',
