@@ -4,11 +4,9 @@ import * as path from 'path';
 // todo: tests
 /** Returns an import snippet */
 export function buildSdkInitFileImportSnippet(filePath: string): string {
-  const pathToPosix = (originalPath: string): string => {
-    return originalPath.split(path.sep).join(path.posix.sep);
-  };
+  const posixPath = filePath.split(path.sep).join(path.posix.sep);
 
-  return `import "${pathToPosix(filePath)}";`;
+  return `import "${posixPath}";`;
 }
 
 // todo: tests
@@ -30,10 +28,10 @@ export function addImportStatement(filePath: string, importStatement: string): v
       fs.writeFileSync(filePath, output, 'utf8');
     } catch (err) {
       // eslint-disable-next-line no-console
-      console.error(`Error writing file: ${err}`);
+      console.error(`[Sentry] Error writing file to ${filePath}: ${err}`);
     }
   } catch (err) {
     // eslint-disable-next-line no-console
-    console.error(`Error reading file: ${err}`);
+    console.error(`[Sentry] Error reading file at ${filePath}: ${err}`);
   }
 }

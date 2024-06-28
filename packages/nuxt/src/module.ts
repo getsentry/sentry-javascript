@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { type Resolver, addPlugin, addServerPlugin, createResolver, defineNuxtModule } from '@nuxt/kit';
+import { type Resolver, addPlugin, createResolver, defineNuxtModule } from '@nuxt/kit';
 import { addImportStatement, buildSdkInitFileImportSnippet } from './common/snippets';
 import type { SentryVueOptions } from './common/types';
 
@@ -27,7 +27,7 @@ export default defineNuxtModule<ModuleOptions>({
             addImportStatement(nuxtApp.rootComponent, buildSdkInitFileImportSnippet(pathToClientInit));
           } catch (err) {
             // eslint-disable-next-line no-console
-            console.error(err);
+            console.error(`[Sentry] Could not add import statement to root component. ${err}`);
           }
         }
       });
@@ -35,13 +35,12 @@ export default defineNuxtModule<ModuleOptions>({
 
     if (resolver) {
       addPlugin(resolver.resolve('./runtime/plugins/sentry.client'));
-      addServerPlugin(resolver.resolve('./runtime/plugins/sentry.server'));
     }
   },
 });
 
-function findDefaultSdkInitFile(type: 'server' | 'client'): string | undefined {
-  const possibleFileExtensions = ['ts', 'js', 'mjs', 'cjs', 'mts'];
+function findDefaultSdkInitFile(type: /* 'server' | */ 'client'): string | undefined {
+  const possibleFileExtensions = ['ts', 'js', 'mjs', 'cjs', 'mts', 'cts'];
 
   const cwd = process.cwd();
   return possibleFileExtensions

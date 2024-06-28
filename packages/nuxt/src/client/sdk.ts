@@ -1,6 +1,6 @@
+import { init as initBrowser } from '@sentry/browser';
 import { applySdkMetadata } from '@sentry/core';
 import type { Client } from '@sentry/types';
-import { init as initBrowser } from '@sentry/browser';
 import type { SentryVueOptions } from '../common/types';
 
 /**
