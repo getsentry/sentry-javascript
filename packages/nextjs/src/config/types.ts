@@ -404,6 +404,22 @@ export type NextConfigFunction = (
  * Webpack config
  */
 
+// Note: The interface for `ignoreWarnings` is larger but we only need this. See https://webpack.js.org/configuration/other-options/#ignorewarnings
+export type IgnoreWarningsOption = (
+  | { module?: RegExp; message?: RegExp }
+  | ((
+      webpackError: {
+        module?: {
+          readableIdentifier: (requestShortener: unknown) => string;
+        };
+        message: string;
+      },
+      compilation: {
+        requestShortener: unknown;
+      },
+    ) => boolean)
+)[];
+
 // The two possible formats for providing custom webpack config in `next.config.js`
 export type WebpackConfigFunction = (config: WebpackConfigObject, options: BuildContext) => WebpackConfigObject;
 export type WebpackConfigObject = {
@@ -413,7 +429,7 @@ export type WebpackConfigObject = {
   output: { filename: string; path: string };
   target: string;
   context: string;
-  ignoreWarnings?: { module?: RegExp }[]; // Note: The interface for `ignoreWarnings` is larger but we only need this. See https://webpack.js.org/configuration/other-options/#ignorewarnings
+  ignoreWarnings?: IgnoreWarningsOption;
   resolve?: {
     modules?: string[];
     alias?: { [key: string]: string | boolean };
