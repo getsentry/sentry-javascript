@@ -29,7 +29,9 @@
         "require": "./build/cjs/index.client.js"
       },
       "node": "./build/cjs/index.server.js",
-      "import": "./build/esm/index.server.js"
+      "import": {
+        "default": "./build/esm/index.server.js"
+      }
     },
     "./import": {
       "import": {
