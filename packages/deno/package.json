@@ -41,7 +41,7 @@
     "build:types": "run-s deno-types build:types:tsc build:types:bundle",
     "build:types:tsc": "tsc -p tsconfig.types.json",
     "build:types:bundle": "rollup -c rollup.types.config.mjs",
-    "build:tarball": "npm pack",
+    "build:tarball": "ts-node ./scripts/prepack.ts && npm pack",
     "circularDepCheck": "madge --circular src/index.ts",
     "clean": "rimraf build build-types build-test coverage",
     "prefix": "yarn deno-types",
@@ -55,7 +55,7 @@
     "test:types": "deno check ./build/index.mjs",
     "test:unit": "deno test --allow-read --allow-run",
     "test:unit:update": "deno test --allow-read --allow-write --allow-run -- --update",
-    "yalc:publish": "yalc publish --push --sig"
+    "yalc:publish": "ts-node ./scripts/prepack.ts && yalc publish --push --sig"
   },
   "volta": {
     "extends": "../../package.json"
