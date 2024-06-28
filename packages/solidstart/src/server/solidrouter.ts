@@ -24,12 +24,9 @@ function withSentryRouterRoot(Root: Component<RouteSectionProps>): Component<Rou
 /**
  * A browser tracing integration that uses Solid Router to instrument navigations.
  */
-export function solidRouterBrowserTracingIntegration(
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  options: any,
-): Integration {
+export function solidRouterBrowserTracingIntegration(_options: unknown): Integration {
   return {
-    name: 'solidRouterBrowserTracingIntegration',
+    name: '[no-op] solidRouterBrowserTracingIntegration',
   };
 }
 

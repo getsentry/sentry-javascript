@@ -3,10 +3,10 @@ import { makeBaseNPMConfig, makeNPMConfigVariants } from '@sentry-internal/rollu
 export default makeNPMConfigVariants(
   makeBaseNPMConfig({
     entrypoints: [
-      'src/index.server.ts',
-      'src/solidrouter.server.ts',
       'src/index.client.ts',
       'src/solidrouter.client.ts',
+      'src/index.server.ts',
+      'src/solidrouter.server.ts',
       'src/client/index.ts',
       'src/client/solidrouter.ts',
       'src/server/index.ts',
@@ -16,6 +16,9 @@ export default makeNPMConfigVariants(
     // the name doesn't match an SDK dependency)
     packageSpecificConfig: {
       external: ['solid-js', '@sentry/solid', '@sentry/solid/solidrouter'],
+      output: {
+        dynamicImportInCjs: true,
+      },
     },
   }),
 );

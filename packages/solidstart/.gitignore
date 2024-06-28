@@ -1,4 +1,6 @@
-/server
-/client
+/client/*.d.ts
+/client/*.d.ts.map
+/server/*.d.ts
+/server/*.d.ts.map
 /*.d.ts
 /*.d.ts.map
