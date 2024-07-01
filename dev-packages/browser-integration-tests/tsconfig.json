@@ -6,7 +6,8 @@
     "moduleResolution": "node",
     "noEmit": true,
     "strict": true,
-    "allowSyntheticDefaultImports": true
+    "allowSyntheticDefaultImports": true,
+    "noUncheckedIndexedAccess": false
   },
   "include": ["**/*.ts"],
   "exclude": ["node_modules"]
