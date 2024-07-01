@@ -8,14 +8,14 @@
     "outDir": "./"
   },
 
-  "//": "These types are built separately because they are for a subpath export, which has problems if they are not in the root",
+  // These types are built separately because they are for a subpath export, which has problems if they are not in the root
   "include": [
     "src/solidrouter.client.ts",
     "src/client/solidrouter.ts",
     "src/solidrouter.server.ts",
     "src/server/solidrouter.ts",
-    "src/solidrouter.types.ts"
+    "src/solidrouter.types.ts",
   ],
-  "//": "Without this, we cannot output into the root dir",
+  // Without this, we cannot output into the root dir
   "exclude": []
 }

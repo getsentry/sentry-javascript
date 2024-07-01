@@ -8,7 +8,7 @@
     "outDir": "build/types"
   },
 
-  "//": "These are built separately in tsconfig.solidrouter-types.json",
+  // These are built separately in tsconfig.solidrouter-types.json
   "exclude": [
     "src/solidrouter.client.ts",
     "src/client/solidrouter.ts",
