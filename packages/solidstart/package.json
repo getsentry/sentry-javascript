@@ -20,6 +20,12 @@
   "module": "build/esm/index.server.js",
   "browser": "build/esm/index.client.js",
   "types": "build/types/index.types.d.ts",
+  "//": [
+    "For `@sentry/solidstart/solidrouter` types to resolve correctly for both `moduleResolution: bundler` and `moduleResolution: node`",
+    "- type definitions have to be exported at root level (/build won't work)",
+    "- type definitions have to match in name (i.e. `solidrouter.d.ts`)",
+    "- the `types` entry needs to be set both at the root of the export and within `browser` and `node`"
+  ],
   "exports": {
     "./package.json": "./package.json",
     ".": {
@@ -89,7 +95,7 @@
     "build:types:watch": "tsc -p tsconfig.types.json --watch",
     "build:tarball": "npm pack",
     "circularDepCheck": "madge --circular src/index.client.ts && madge --circular src/index.server.ts && madge --circular src/index.types.ts && madge --circular src/solidrouter.client.ts && madge --circular src/solidrouter.server.ts && madge --circular src/solidrouter.types.ts",
-    "clean": "rimraf build coverage sentry-solidstart-*.tgz ./*.d.ts ./*.d.ts.map ./client/*.d.ts ./client/*.d.ts.map ./server/*d.ts ./server/*d.ts.map",
+    "clean": "rimraf build coverage sentry-solidstart-*.tgz ./*.d.ts ./*.d.ts.map ./client ./server",
     "fix": "eslint . --format stylish --fix",
     "lint": "eslint . --format stylish",
     "test": "yarn test:unit",
