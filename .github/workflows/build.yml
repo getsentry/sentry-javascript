@@ -1050,6 +1050,7 @@ jobs:
             'node-express-esm-preload',
             'node-express-esm-without-loader',
             'node-express-cjs-preload',
+            'node-otel-sdk-node',
             'nextjs-app-dir',
             'nextjs-14',
             'nextjs-15',
