@@ -40,21 +40,19 @@ test('Does not send expected exception to Sentry', async ({ baseURL }) => {
   });
 
   const transactionEventPromise = waitForTransaction('nestjs', transactionEvent => {
-    return (
-      transactionEvent?.transaction === 'GET /test-expected-exception/123'
-    );
+    return transactionEvent?.transaction === 'GET /test-expected-exception/123';
   });
 
-  console.log("fetch");
+  console.log('fetch');
 
   const response = await fetch(`${baseURL}/test-expected-exception/123`);
   expect(response.status).toBe(403);
 
-  console.log("fetch done");
+  console.log('fetch done');
 
   await transactionEventPromise;
 
-  console.log("resolved promise");
+  console.log('resolved promise');
 
   expect(errorEventOccurred).toBe(false);
 });
