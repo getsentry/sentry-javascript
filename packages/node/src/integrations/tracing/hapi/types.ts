@@ -246,9 +246,9 @@ interface ServerEvents {
 
 export type Server = Record<string, any> & {
   events: ServerEvents;
+  register: any;
   ext(event: any, method: Lifecycle.Method, options?: Record<string, any>): void;
   initialize(): Promise<void>;
-  register(plugins: Plugin<any>, options?: Record<string, any>): Promise<void>;
   start(): Promise<void>;
 };
 
