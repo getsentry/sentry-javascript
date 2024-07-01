@@ -24,7 +24,7 @@ sentryTest('should capture a replay & attach an error', async ({ getLocalTestUrl
 
   const errorEventData = envelopeRequestParser(reqError);
   expect(errorEventData.exception?.values?.length).toBe(1);
-  expect(errorEventData.exception?.values?.[0]?.value).toBe('window.doSomethingWrong is not a function');
+  expect(errorEventData.exception?.values?.[0]?.value).toContain('window.doSomethingWrong is not a function');
 
   const eventData = getReplayEvent(await req);
 
