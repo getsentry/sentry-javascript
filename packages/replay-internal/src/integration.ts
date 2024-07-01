@@ -221,16 +221,7 @@ export class Replay implements Integration {
     }
 
     this._setup();
-
-    // Once upon a time, we tried to create a transaction in `setupOnce` and it would
-    // potentially create a transaction before some native SDK integrations have run
-    // and applied their own global event processor. An example is:
-    // https://github.com/getsentry/sentry-javascript/blob/b47ceafbdac7f8b99093ce6023726ad4687edc48/packages/browser/src/integrations/useragent.ts
-    //
-    // So we call `this._initialize()` in next event loop as a workaround to wait for other
-    // global event processors to finish. This is no longer needed, but keeping it
-    // here to avoid any future issues.
-    setTimeout(() => this._initialize());
+    this._initialize();
   }
 
   /**
