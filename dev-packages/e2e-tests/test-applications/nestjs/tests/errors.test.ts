@@ -11,6 +11,9 @@ test('Sends exception to Sentry', async ({ baseURL }) => {
 
   const errorEvent = await errorEventPromise;
 
+  console.log("UNEXPECTED EXCEPTION");
+  console.log(errorEvent);
+
   expect(errorEvent.exception?.values).toHaveLength(1);
   expect(errorEvent.exception?.values?.[0]?.value).toBe('This is an exception with id 123');
 
@@ -27,4 +30,20 @@ test('Sends exception to Sentry', async ({ baseURL }) => {
     trace_id: expect.any(String),
     span_id: expect.any(String),
   });
+});
+
+test('Does not send expected exception to Sentry', async ({ baseURL }) => {
+  const errorEventPromise = waitForError('nestjs', event => {
+    return !event.type && event.exception?.values?.[0]?.value === 'This is an unexpected exception with id 123';
+  });
+
+  const response = await fetch(`${baseURL}/test-expected-exception/123`);
+  expect(response.status).toBe(403);
+
+  const errorEvent = await errorEventPromise;
+
+  console.log("EXPECTED EXCEPTION");
+  console.log(errorEvent);
+
+  expect(errorEvent.exception?.values).toHaveLength(1);
 });

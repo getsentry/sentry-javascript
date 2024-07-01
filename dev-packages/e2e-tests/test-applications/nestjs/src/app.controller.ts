@@ -45,6 +45,11 @@ export class AppController1 {
     return this.appService.testException(id);
   }
 
+  @Get("test-expected-exception/:id")
+  async testExpectedException(@Param("id") id: string) {
+    return this.appService.testExpectedException(id);
+  }
+
   @Get('test-outgoing-fetch-external-allowed')
   async testOutgoingFetchExternalAllowed() {
     return this.appService.testOutgoingFetchExternalAllowed();
