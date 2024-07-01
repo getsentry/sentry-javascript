@@ -173,7 +173,7 @@ interface RequestRoute {
   };
 }
 
-interface Request extends Podium {
+export interface Request extends Podium {
   app: ApplicationState;
   readonly auth: RequestAuth;
   events: RequestEvents;
