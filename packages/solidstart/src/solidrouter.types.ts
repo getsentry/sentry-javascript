@@ -5,9 +5,6 @@
 export * from './client/solidrouter';
 export * from './server/solidrouter';
 
-import type * as clientSolidRouter from './client/solidrouter';
-import type * as serverSolidRouter from './server/solidrouter';
+import type { RouterType } from './server/solidrouter';
 
-export declare const solidRouterBrowserTracingIntegration: typeof clientSolidRouter & typeof serverSolidRouter;
-
-export declare const withSentryRouterRouting: typeof clientSolidRouter & typeof serverSolidRouter;
+export declare function withSentryRouterRouting(Router: RouterType): RouterType;

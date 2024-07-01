@@ -1,4 +1,3 @@
-import type { Integration } from '@sentry/types';
 import type { HashRouter, MemoryRouter, RouteSectionProps, Router as BaseRouter, StaticRouter } from '@solidjs/router';
 import { mergeProps, splitProps } from 'solid-js';
 import type { Component, JSX, ParentProps } from 'solid-js';
@@ -21,16 +20,7 @@ function withSentryRouterRoot(Root: Component<RouteSectionProps>): Component<Rou
   return SentryRouterRoot;
 }
 
-/**
- * A browser tracing integration that uses Solid Router to instrument navigations.
- */
-export function solidRouterBrowserTracingIntegration(_options: unknown): Integration {
-  return {
-    name: '[no-op] solidRouterBrowserTracingIntegration',
-  };
-}
-
-type RouterType = typeof BaseRouter | typeof HashRouter | typeof MemoryRouter | typeof StaticRouter;
+export type RouterType = typeof BaseRouter | typeof HashRouter | typeof MemoryRouter | typeof StaticRouter;
 
 /**
  * A higher-order component to instrument Solid Router to create navigation spans.
