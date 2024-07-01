@@ -8,10 +8,9 @@
   "license": "MIT",
   "private": true,
   "dependencies": {
-    "html-webpack-plugin": "^5.5.0",
-    "inquirer": "^8.2.0",
-    "webpack": "^5.76.0",
-    "webpack-bundle-analyzer": "^4.5.0"
+    "html-webpack-plugin": "^5.6.0",
+    "webpack": "^5.92.1",
+    "webpack-bundle-analyzer": "^4.10.2"
   },
   "scripts": {
     "analyze": "node webpack.cjs"
