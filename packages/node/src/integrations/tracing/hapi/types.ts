@@ -232,16 +232,6 @@ interface ResponseToolkit {
   readonly continue: symbol;
 }
 
-interface ServerEventCriteria<T> {
-  name: T;
-  channels?: string | string[] | undefined;
-  clone?: boolean | undefined;
-  count?: number | undefined;
-  filter?: string | string[] | { tags: string | string[]; all?: boolean | undefined } | undefined;
-  spread?: boolean | undefined;
-  tags?: boolean | undefined;
-}
-
 export interface RequestEvent {
   timestamp: string;
   tags: string[];
@@ -250,26 +240,15 @@ export interface RequestEvent {
   error: object;
 }
 
-type RequestEventHandler = (request: Request, event: RequestEvent, tags: { [key: string]: true }) => void;
 interface ServerEvents {
-  on(criteria: 'request' | ServerEventCriteria<'request'>, listener: RequestEventHandler): void;
+  on(criteria: any, listener: any): void;
 }
-
-type RouteRequestExtType =
-  | 'onPreAuth'
-  | 'onCredentials'
-  | 'onPostAuth'
-  | 'onPreHandler'
-  | 'onPostHandler'
-  | 'onPreResponse';
-
-type ServerRequestExtType = RouteRequestExtType | 'onRequest';
 
 export type Server = Record<string, any> & {
   events: ServerEvents;
-  ext(event: ServerRequestExtType, method: Lifecycle.Method, options?: Record<string, any>): void;
+  ext(event: any, method: Lifecycle.Method, options?: Record<string, any>): void;
   initialize(): Promise<void>;
-  register(plugins: Plugin<any> | Array<Plugin<any>>, options?: Record<string, any>): Promise<void>;
+  register(plugins: Plugin<any>, options?: Record<string, any>): Promise<void>;
   start(): Promise<void>;
 };
 
