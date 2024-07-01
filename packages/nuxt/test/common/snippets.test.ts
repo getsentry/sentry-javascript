@@ -3,7 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { addImportStatement, buildSdkInitFileImportSnippet } from '../../src/common/snippets';
+import { SCRIPT_TAG, addImportStatement, buildSdkInitFileImportSnippet } from '../../src/common/snippets';
 
 describe('Nuxt Code Snippets', () => {
   describe('buildSdkInitFileImportSnippet', () => {
@@ -59,7 +59,7 @@ describe('Nuxt Code Snippets', () => {
         '</template>\n' +
         '\n' +
         '<script setup>\n' +
-        `${importStatement}\n` +
+        `${importStatement}\n\n` +
         "import { provide } from 'vue'\n" +
         "import { useNuxtApp } from '../nuxt'";
 
@@ -70,6 +70,29 @@ describe('Nuxt Code Snippets', () => {
 
       expect(fs.readFileSync).toHaveBeenCalledWith(filePath, 'utf8');
       expect(fs.writeFileSync).toHaveBeenCalledWith(filePath, fileContentExpected, 'utf8');
+    });
+
+    it('should handle when SCRIPT_TAG is not found in file', () => {
+      const readFileSyncSpy = vi.spyOn(fs, 'readFileSync');
+      const writeFileSyncSpy = vi.spyOn(fs, 'writeFileSync');
+      const consoleWarnSpy = vi.spyOn(console, 'warn');
+
+      const filePath = 'testFile.ts';
+      const importStatement = 'import { test } from "./test";';
+      const fileContent = "import { provide } from 'vue'\nimport { useNuxtApp } from '../nuxt'";
+
+      // The file content does not contain SCRIPT_TAG
+      readFileSyncSpy.mockReturnValue(fileContent);
+      writeFileSyncSpy.mockImplementation(() => {});
+
+      addImportStatement(filePath, importStatement);
+
+      // The file content should remain the same as SCRIPT_TAG is not found
+      expect(fs.readFileSync).toHaveBeenCalledWith(filePath, 'utf8');
+      expect(fs.writeFileSync).not.toHaveBeenCalled();
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        `[Sentry] Sentry not initialized. Could not find ${SCRIPT_TAG} in ${filePath}`,
+      );
     });
   });
 });

@@ -49,7 +49,7 @@ If the setup through the wizard doesn't work for you, you can also set up the SD
    yarn add @sentry/nuxt
    ```
 
-### 2. Client-side Setup
+### 2. Nuxt Module Setup
 
 The Sentry Nuxt SDK is based on [Nuxt Modules](https://nuxt.com/docs/api/kit/modules).
 
