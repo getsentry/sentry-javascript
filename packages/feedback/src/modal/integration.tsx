@@ -1,23 +1,11 @@
-import { getCurrentScope, getGlobalScope, getIsolationScope } from '@sentry/core';
-import type { FeedbackFormData, FeedbackModalIntegration, IntegrationFn, User } from '@sentry/types';
+import type { FeedbackFormData, FeedbackModalIntegration, IntegrationFn } from '@sentry/types';
+
 import { h, render } from 'preact';
 import * as hooks from 'preact/hooks';
 import { DOCUMENT } from '../constants';
 import { Dialog } from './components/Dialog';
 import { createDialogStyles } from './components/Dialog.css';
-
-function getUser(): User | undefined {
-  const currentUser = getCurrentScope().getUser();
-  const isolationUser = getIsolationScope().getUser();
-  const globalUser = getGlobalScope().getUser();
-  if (currentUser && Object.keys(currentUser).length) {
-    return currentUser;
-  }
-  if (isolationUser && Object.keys(isolationUser).length) {
-    return isolationUser;
-  }
-  return globalUser;
-}
+import { getUser } from './getUser';
 
 export const feedbackModalIntegration = ((): FeedbackModalIntegration => {
   return {

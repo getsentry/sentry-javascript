@@ -30,6 +30,27 @@ describe('sendFeedback', () => {
     patchedDecoder && delete global.window.TextDecoder;
   });
 
+  it('fails when the message is falsey', async () => {
+    mockSdk();
+
+    expect(() =>
+      sendFeedback({
+        message: '',
+      }),
+    ).toThrowError(new Error('Unable to submit feedback with empty message.'));
+  });
+
+  it('fails when the client is missing', async () => {
+    mockSdk();
+    getCurrentScope().setClient(undefined);
+
+    expect(() =>
+      sendFeedback({
+        message: 'mi',
+      }),
+    ).toThrowError(new Error('No client setup, cannot send feedback.'));
+  });
+
   it('sends feedback with minimal options', async () => {
     mockSdk();
     const mockTransport = jest.spyOn(getClient()!.getTransport()!, 'send');
