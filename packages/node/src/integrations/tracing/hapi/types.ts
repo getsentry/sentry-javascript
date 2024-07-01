@@ -103,38 +103,6 @@ export interface Listener {
 
 export type Tags = { [tag: string]: boolean };
 
-type Dependencies =
-  | string
-  | string[]
-  | {
-      [key: string]: string;
-    };
-
-interface PluginNameVersion {
-  name: string;
-  version?: string | undefined;
-}
-
-interface PluginPackage {
-  pkg: any;
-}
-
-interface PluginBase<T> {
-  register: (server: Server, options: T) => void | Promise<void>;
-  multiple?: boolean | undefined;
-  dependencies?: Dependencies | undefined;
-  requirements?:
-    | {
-        node?: string | undefined;
-        hapi?: string | undefined;
-      }
-    | undefined;
-
-  once?: boolean | undefined;
-}
-
-type Plugin<T> = PluginBase<T> & (PluginNameVersion | PluginPackage);
-
 interface UserCredentials {}
 
 interface AppCredentials {}
