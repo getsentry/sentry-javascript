@@ -11,6 +11,7 @@ export default makeNPMConfigVariants(
       'src/client/solidrouter.ts',
       'src/server/index.ts',
       'src/server/solidrouter.ts',
+      'src/solidrouter.ts',
     ],
     // prevent this internal nextjs code from ending up in our built package (this doesn't happen automatially because
     // the name doesn't match an SDK dependency)

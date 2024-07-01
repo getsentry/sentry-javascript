@@ -34,12 +34,14 @@
       }
     },
     "./solidrouter": {
-      "types": "./solidrouter.types.d.ts",
+      "types": "./solidrouter.d.ts",
       "browser": {
+        "types": "./solidrouter.d.ts",
         "import": "./build/esm/solidrouter.client.js",
         "require": "./build/cjs/solidrouter.client.js"
       },
       "node": {
+        "types": "./solidrouter.d.ts",
         "import": "./build/esm/solidrouter.server.js",
         "require": "./build/cjs/solidrouter.server.js"
       }
