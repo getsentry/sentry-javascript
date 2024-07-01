@@ -11,8 +11,10 @@ export function buildSdkInitFileImportSnippet(filePath: string): string {
   return `import '${normalizedPath}';`;
 }
 
-/** Adds a top-level import statement right after <script setup>.
- * This should happen as early as possible (e.g. in root component) */
+/** 
+ * Adds a top-level import statement right after <script setup>.
+ * This should happen as early as possible (e.g. in root component)
+ */
 export function addImportStatement(filePath: string, importStatement: string): void {
   try {
     const data = fs.readFileSync(filePath, 'utf8');
