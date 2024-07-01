@@ -36,7 +36,8 @@ test('Does not send expected exception to Sentry', async ({ baseURL }) => {
     if (!event.type && event.exception?.values?.[0]?.value === 'This is an expected exception with id 123') {
       errorEventOccurred = true;
     }
-    return false;
+
+    return event?.transaction === 'GET /test-expected-exception/:id';
   });
 
   const transactionEventPromise = waitForTransaction('nestjs', transactionEvent => {
@@ -47,6 +48,8 @@ test('Does not send expected exception to Sentry', async ({ baseURL }) => {
   expect(response.status).toBe(403);
 
   await transactionEventPromise;
+
+  await new Promise((resolve) => setTimeout(resolve, 10000));
 
   expect(errorEventOccurred).toBe(false);
 });
