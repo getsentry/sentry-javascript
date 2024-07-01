@@ -21,9 +21,9 @@ export function makeFetchTransport(
     pendingBodySize += requestSize;
     pendingCount++;
 
+    const method = options.method || 'POST';
     const requestOptions: RequestInit = {
-      body: request.body,
-      method: 'POST',
+      method,
       referrerPolicy: 'origin',
       headers: options.headers,
       // Outgoing requests are usually cancelled when navigating to a different page, causing a "TypeError: Failed to
@@ -41,6 +41,10 @@ export function makeFetchTransport(
       ...options.fetchOptions,
     };
 
+    if (method === 'POST') {
+      requestOptions.body = request.body;
+    }
+
     if (!nativeFetch) {
       clearCachedImplementation('fetch');
       return rejectedSyncPromise('No fetch implementation available');
@@ -51,6 +55,7 @@ export function makeFetchTransport(
         pendingBodySize -= requestSize;
         pendingCount--;
         return {
+          response,
           statusCode: response.status,
           headers: {
             'x-sentry-rate-limits': response.headers.get('X-Sentry-Rate-Limits'),

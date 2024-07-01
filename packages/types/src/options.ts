@@ -43,6 +43,15 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
   dsn?: string;
 
   /**
+   * Blocking loading Sentry until Remote Configuration is
+   * loaded, or timeout is hit, whichever occurs first. A
+   * timeout must be specified and > 0.
+   */
+  blockForRemoteConfig?: {
+    timeout: number;
+  };
+
+  /**
    * The release identifier used when uploading respective source maps. Specify
    * this value to allow Sentry to resolve the correct source maps when
    * processing events.

@@ -30,6 +30,7 @@ export interface BaseTransportOptions extends InternalBaseTransportOptions {
   // transport does not care about dsn specific - client should take care of
   // parsing and figuring that out
   url: string;
+  method?: 'POST' | 'GET';
 }
 
 export interface Transport {
