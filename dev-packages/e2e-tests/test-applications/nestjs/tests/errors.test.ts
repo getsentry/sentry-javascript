@@ -49,7 +49,7 @@ test('Does not send expected exception to Sentry', async ({ baseURL }) => {
 
   await transactionEventPromise;
 
-  await new Promise((resolve) => setTimeout(resolve, 10000));
+  await new Promise(resolve => setTimeout(resolve, 10000));
 
   expect(errorEventOccurred).toBe(false);
 });
