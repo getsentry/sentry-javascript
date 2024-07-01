@@ -111,10 +111,8 @@
       "build:types": {
         "outputs": [
           "{projectRoot}/build/types",
-          "{projectRoot}/client/*.d.ts",
-          "{projectRoot}/client/*.d.ts.map",
-          "{projectRoot}/server/*.d.ts",
-          "{projectRoot}/server/*.d.ts.map",
+          "{projectRoot}/client",
+          "{projectRoot}/server",
           "{projectRoot}/*.d.ts",
           "{projectRoot}/*.d.ts.map"
         ]
