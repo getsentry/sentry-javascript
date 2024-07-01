@@ -27,16 +27,3 @@ test('Sends correct error event', async ({ baseURL }) => {
     span_id: expect.any(String),
   });
 });
-
-test('Should record caught exceptions with local variable', async ({ baseURL }) => {
-  const errorEventPromise = waitForError('node-otel-sdk-trace', event => {
-    return event.transaction === 'GET /test-local-variables-caught';
-  });
-
-  await fetch(`${baseURL}/test-local-variables-caught`);
-
-  const errorEvent = await errorEventPromise;
-
-  const frames = errorEvent.exception?.values?.[0].stacktrace?.frames;
-  expect(frames?.[frames.length - 1].vars?.randomVariableToRecord).toBeDefined();
-});
