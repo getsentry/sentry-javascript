@@ -11,5 +11,5 @@ export default [
       hasBundles: true,
     }),
   ),
-  ...makeOtelLoaders('./build', 'sentry-node'),
+  ...makeOtelLoaders('./build/npm', 'sentry-node', true),
 ];

@@ -151,7 +151,7 @@ export function makeNPMConfigVariants(baseConfig, options = {}) {
  * This creates a loader file at the target location as part of the rollup build.
  * This loader script can then be used in combination with various Node.js flags (like --import=...) to monkeypatch 3rd party modules.
  */
-export function makeOtelLoaders(outputFolder, hookVariant) {
+export function makeOtelLoaders(outputFolder, hookVariant, ignoreWarnings = false) {
   if (hookVariant !== 'otel' && hookVariant !== 'sentry-node') {
     throw new Error('hookVariant is neither "otel" nor "sentry-node". Pick one.');
   }
@@ -160,7 +160,7 @@ export function makeOtelLoaders(outputFolder, hookVariant) {
   const foundRegisterLoaderExport = Object.keys(packageDotJSON.exports ?? {}).some(key => {
     return packageDotJSON?.exports?.[key]?.import?.default === expectedRegisterLoaderLocation;
   });
-  if (!foundRegisterLoaderExport) {
+  if (!foundRegisterLoaderExport && !ignoreWarnings) {
     throw new Error(
       `You used the makeOtelLoaders() rollup utility without specifying the import hook inside \`exports[something].import.default\`. Please add "${expectedRegisterLoaderLocation}" as a value there (maybe check for typos - it needs to be "${expectedRegisterLoaderLocation}" exactly).`,
     );
@@ -170,7 +170,7 @@ export function makeOtelLoaders(outputFolder, hookVariant) {
   const foundHookLoaderExport = Object.keys(packageDotJSON.exports ?? {}).some(key => {
     return packageDotJSON?.exports?.[key]?.import?.default === expectedHooksLoaderLocation;
   });
-  if (!foundHookLoaderExport) {
+  if (!foundHookLoaderExport && !ignoreWarnings) {
     throw new Error(
       `You used the makeOtelLoaders() rollup utility without specifying the loader hook inside \`exports[something].import.default\`. Please add "${expectedHooksLoaderLocation}" as a value there (maybe check for typos - it needs to be "${expectedHooksLoaderLocation}" exactly).`,
     );
@@ -180,7 +180,7 @@ export function makeOtelLoaders(outputFolder, hookVariant) {
   const foundImportInTheMiddleDep = Object.keys(packageDotJSON.dependencies ?? {}).some(key => {
     return key === requiredDep;
   });
-  if (!foundImportInTheMiddleDep) {
+  if (!foundImportInTheMiddleDep && !ignoreWarnings) {
     throw new Error(
       `You used the makeOtelLoaders() rollup utility but didn't specify the "${requiredDep}" dependency in ${path.resolve(
         process.cwd(),
