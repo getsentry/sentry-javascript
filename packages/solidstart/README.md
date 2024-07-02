@@ -12,8 +12,8 @@
 
 This SDK is considered ⚠️ **experimental and in an alpha state**. It may experience breaking changes. Please reach out
 on [GitHub](https://github.com/getsentry/sentry-javascript/issues/new/choose) if you have any feedback or concerns. This
-SDK is for [Solid Start](https://start.solidjs.com/). If you're using [Solid](https://www.solidjs.com/) see our Solid
-SDK here.
+SDK is for [Solid Start](https://start.solidjs.com/). If you're using [Solid](https://www.solidjs.com/) see our
+[Solid SDK here](https://github.com/getsentry/sentry-javascript/tree/develop/packages/solid).
 
 ## Links
 
@@ -58,7 +58,7 @@ mount(() => <StartClient />, document.getElementById('app'));
 
 ### 3. Server-side Setup
 
-Create an instrumentation file named `instrument.server.mjs` and add your initialization code for the server-side SDK.
+Create an instrument file named `instrument.server.mjs` and add your initialization code for the server-side SDK.
 
 ```javascript
 import * as Sentry from '@sentry/solidstart';
@@ -76,7 +76,7 @@ Then run your app
 ```bash
 NODE_OPTIONS='--import=./instrument.server.mjs' yarn start
 # or
-NODE_OPTIONS='--require=./instrument.server.cjs' yarn start
+NODE_OPTIONS='--require=./instrument.server.js' yarn start
 ```
 
 # Solid Router
@@ -88,7 +88,7 @@ Wrap `Router`, `MemoryRouter` or `HashRouter` from `@solidjs/router` using `with
 higher order component, which will enable Sentry to reach your router context.
 
 ```js
-import { withSentryRouterRouting } from '@sentry/solid/solidrouter';
+import { withSentryRouterRouting } from '@sentry/solidstart/solidrouter';
 import { Route, Router } from '@solidjs/router';
 
 const SentryRouter = Sentry.withSentryRouterRouting(Router);
