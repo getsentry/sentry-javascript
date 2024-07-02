@@ -2,6 +2,7 @@
 import {
   addHistoryInstrumentationHandler,
   addPerformanceEntries,
+  registerInpInteractionListener,
   startTrackingINP,
   startTrackingInteractions,
   startTrackingLongTasks,
@@ -39,6 +40,11 @@ import { registerBackgroundTabDetection } from './backgroundtab';
 import { defaultRequestInstrumentationOptions, instrumentOutgoingRequests } from './request';
 
 export const BROWSER_TRACING_INTEGRATION_ID = 'BrowserTracing';
+
+interface RouteInfo {
+  name: string | undefined;
+  source: TransactionSource | undefined;
+}
 
 /** Options for Browser Tracing integration */
 export interface BrowserTracingOptions {
@@ -204,7 +210,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
     startTrackingInteractions();
   }
 
-  const latestRoute: { name: string | undefined; source: TransactionSource | undefined } = {
+  const latestRoute: RouteInfo = {
     name: undefined,
     source: undefined,
   };
@@ -375,6 +381,10 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
         registerInteractionListener(idleTimeout, finalTimeout, childSpanTimeout, latestRoute);
       }
 
+      if (enableInp) {
+        registerInpInteractionListener(latestRoute);
+      }
+
       instrumentOutgoingRequests({
         traceFetch,
         traceXHR,
@@ -439,7 +449,7 @@ function registerInteractionListener(
   idleTimeout: BrowserTracingOptions['idleTimeout'],
   finalTimeout: BrowserTracingOptions['finalTimeout'],
   childSpanTimeout: BrowserTracingOptions['childSpanTimeout'],
-  latestRoute: { name: string | undefined; source: TransactionSource | undefined },
+  latestRoute: RouteInfo,
 ): void {
   let inflightInteractionSpan: Span | undefined;
   const registerInteractionTransaction = (): void => {

@@ -14,6 +14,7 @@ import type { VercelCronsConfig } from '../common/types';
 import type {
   BuildContext,
   EntryPropertyObject,
+  IgnoreWarningsOption,
   NextConfigObject,
   SentryBuildOptions,
   WebpackConfigFunction,
@@ -72,9 +73,7 @@ export function constructWebpackConfigFunction(
     // Add a loader which will inject code that sets global values
     addValueInjectionLoader(newConfig, userNextConfig, userSentryOptions, buildContext);
 
-    if (isServer) {
-      addOtelWarningIgnoreRule(newConfig);
-    }
+    addOtelWarningIgnoreRule(newConfig);
 
     let pagesDirPath: string | undefined;
     const maybePagesDirPath = path.join(projectDir, 'pages');
@@ -291,14 +290,18 @@ export function constructWebpackConfigFunction(
         globalErrorFile => fs.existsSync(path.join(appDirPath!, globalErrorFile)),
       );
 
-      if (!hasGlobalErrorFile && !showedMissingGlobalErrorWarningMsg) {
+      if (
+        !hasGlobalErrorFile &&
+        !showedMissingGlobalErrorWarningMsg &&
+        !process.env.SENTRY_SUPPRESS_GLOBAL_ERROR_HANDLER_FILE_WARNING
+      ) {
         // eslint-disable-next-line no-console
         console.log(
           `${chalk.yellow(
             'warn',
           )}  - It seems like you don't have a global error handler set up. It is recommended that you add a ${chalk.cyan(
             'global-error.js',
-          )} file with Sentry instrumentation so that React rendering errors are reported to Sentry. Read more: https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/#react-render-errors-in-app-router`,
+          )} file with Sentry instrumentation so that React rendering errors are reported to Sentry. Read more: https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/#react-render-errors-in-app-router (you can suppress this warning by setting SENTRY_SUPPRESS_GLOBAL_ERROR_HANDLER_FILE_WARNING=1 as environment variable)`,
         );
         showedMissingGlobalErrorWarningMsg = true;
       }
@@ -525,7 +528,9 @@ function addFilesToWebpackEntryPoint(
     );
   }
 
-  entryProperty[entryPointName] = newEntryPoint;
+  if (newEntryPoint) {
+    entryProperty[entryPointName] = newEntryPoint;
+  }
 }
 
 /**
@@ -662,9 +667,28 @@ function getRequestAsyncStorageModuleLocation(
 
 function addOtelWarningIgnoreRule(newConfig: WebpackConfigObjectWithModuleRules): void {
   const ignoreRules = [
+    // Inspired by @matmannion: https://github.com/getsentry/sentry-javascript/issues/12077#issuecomment-2180307072
+    (warning, compilation) => {
+      // This is wapped in try-catch because we are vendoring types for this hook and we can't be 100% sure that we are accessing API that is there
+      try {
+        if (!warning.module) {
+          return false;
+        }
+
+        const isDependencyThatMayRaiseCriticalDependencyMessage =
+          /@opentelemetry\/instrumentation/.test(warning.module.readableIdentifier(compilation.requestShortener)) ||
+          /@prisma\/instrumentation/.test(warning.module.readableIdentifier(compilation.requestShortener));
+        const isCriticalDependencyMessage = /Critical dependency/.test(warning.message);
+
+        return isDependencyThatMayRaiseCriticalDependencyMessage && isCriticalDependencyMessage;
+      } catch {
+        return false;
+      }
+    },
+    // We provide these objects in addition to the hook above to provide redundancy in case the hook fails.
     { module: /@opentelemetry\/instrumentation/, message: /Critical dependency/ },
     { module: /@prisma\/instrumentation/, message: /Critical dependency/ },
-  ];
+  ] satisfies IgnoreWarningsOption;
 
   if (newConfig.ignoreWarnings === undefined) {
     newConfig.ignoreWarnings = ignoreRules;

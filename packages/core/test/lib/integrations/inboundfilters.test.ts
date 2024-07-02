@@ -165,6 +165,66 @@ const EXCEPTION_EVENT_WITH_LINKED_ERRORS: Event = {
   },
 };
 
+const USELESS_EXCEPTION_EVENT: Event = {
+  exception: {
+    values: [
+      {},
+      {
+        mechanism: { type: 'onunhandledrejection', handled: false },
+      },
+    ],
+  },
+};
+
+const USELESS_ERROR_EXCEPTION_EVENT: Event = {
+  exception: {
+    values: [{ type: 'Error' }, {}],
+  },
+};
+
+const EVENT_WITH_MESSAGE: Event = {
+  message: 'hello',
+};
+
+const EVENT_WITH_STACKTRACE: Event = {
+  exception: {
+    values: [
+      {},
+      {
+        stacktrace: {
+          frames: [
+            {
+              abs_path: 'hello.js',
+            },
+          ],
+        },
+      },
+    ],
+  },
+};
+
+const EVENT_WITH_TYPE: Event = {
+  exception: {
+    values: [
+      {},
+      {
+        type: 'MyCustomError',
+      },
+    ],
+  },
+};
+
+const EVENT_WITH_VALUE: Event = {
+  exception: {
+    values: [
+      {},
+      {
+        value: 'some error',
+      },
+    ],
+  },
+};
+
 const SENTRY_EVENT: Event = {
   exception: {
     values: [
@@ -509,6 +569,38 @@ describe('InboundFilters', () => {
         denyUrls: ['https://awesome-analytics.io/some/file.js'],
       });
       expect(eventProcessor(MESSAGE_EVENT_WITH_NATIVE_LAST_FRAME, {})).toBe(null);
+    });
+  });
+
+  describe('useless errors', () => {
+    it("should drop event with exceptions that don't have any message, type or stack trace", () => {
+      const eventProcessor = createInboundFiltersEventProcessor();
+      expect(eventProcessor(USELESS_EXCEPTION_EVENT, {})).toBe(null);
+    });
+
+    it('should drop event with just a generic error without stacktrace or message', () => {
+      const eventProcessor = createInboundFiltersEventProcessor();
+      expect(eventProcessor(USELESS_ERROR_EXCEPTION_EVENT, {})).toBe(null);
+    });
+
+    it('should not drop event with a message', () => {
+      const eventProcessor = createInboundFiltersEventProcessor();
+      expect(eventProcessor(EVENT_WITH_MESSAGE, {})).toBe(EVENT_WITH_MESSAGE);
+    });
+
+    it('should not drop event with an exception that has a type', () => {
+      const eventProcessor = createInboundFiltersEventProcessor();
+      expect(eventProcessor(EVENT_WITH_TYPE, {})).toBe(EVENT_WITH_TYPE);
+    });
+
+    it('should not drop event with an exception that has a stacktrace', () => {
+      const eventProcessor = createInboundFiltersEventProcessor();
+      expect(eventProcessor(EVENT_WITH_STACKTRACE, {})).toBe(EVENT_WITH_STACKTRACE);
+    });
+
+    it('should not drop event with an exception that has a value', () => {
+      const eventProcessor = createInboundFiltersEventProcessor();
+      expect(eventProcessor(EVENT_WITH_VALUE, {})).toBe(EVENT_WITH_VALUE);
     });
   });
 });

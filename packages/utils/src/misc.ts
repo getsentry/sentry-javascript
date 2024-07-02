@@ -38,7 +38,8 @@ export function uuid4(): string {
         // @see https://developer.mozilla.org/en-US/docs/Web/API/Crypto/getRandomValues#typedarray
         const typedArray = new Uint8Array(1);
         crypto.getRandomValues(typedArray);
-        return typedArray[0];
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        return typedArray[0]!;
       };
     }
   } catch (_) {
@@ -135,15 +136,19 @@ interface SemVer {
   buildmetadata?: string;
 }
 
+function _parseInt(input: string | undefined): number {
+  return parseInt(input || '', 10);
+}
+
 /**
  * Parses input into a SemVer interface
  * @param input string representation of a semver version
  */
 export function parseSemver(input: string): SemVer {
   const match = input.match(SEMVER_REGEXP) || [];
-  const major = parseInt(match[1], 10);
-  const minor = parseInt(match[2], 10);
-  const patch = parseInt(match[3], 10);
+  const major = _parseInt(match[1]);
+  const minor = _parseInt(match[2]);
+  const patch = _parseInt(match[3]);
   return {
     buildmetadata: match[5],
     major: isNaN(major) ? undefined : major,
@@ -173,7 +178,11 @@ export function addContextToFrame(lines: string[], frame: StackFrame, linesOfCon
     .slice(Math.max(0, sourceLine - linesOfContext), sourceLine)
     .map((line: string) => snipLine(line, 0));
 
-  frame.context_line = snipLine(lines[Math.min(maxLines - 1, sourceLine)], frame.colno || 0);
+  // We guard here to ensure this is not larger than the existing number of lines
+  const lineIndex = Math.min(maxLines - 1, sourceLine);
+
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+  frame.context_line = snipLine(lines[lineIndex]!, frame.colno || 0);
 
   frame.post_context = lines
     .slice(Math.min(sourceLine + 1, maxLines), sourceLine + 1 + linesOfContext)

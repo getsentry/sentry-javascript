@@ -48,6 +48,11 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
                   sourcemaps: {
                     assets: uploadOptions.assets ?? [getSourcemapsAssetsGlob(config)],
                   },
+                  _metaOptions: {
+                    telemetry: {
+                      metaFramework: 'astro',
+                    },
+                  },
                   debug: options.debug ?? false,
                 }),
               ],

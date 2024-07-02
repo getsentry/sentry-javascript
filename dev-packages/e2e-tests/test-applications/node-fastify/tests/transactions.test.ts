@@ -12,7 +12,6 @@ test('Sends an API route transaction', async ({ baseURL }) => {
   await fetch(`${baseURL}/test-transaction`);
 
   const transactionEvent = await pageloadTransactionEventPromise;
-  const transactionEventId = transactionEvent.event_id;
 
   expect(transactionEvent.contexts?.trace).toEqual({
     data: {

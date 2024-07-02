@@ -65,13 +65,18 @@ const properFullEnvelopeParser = <T extends Envelope>(request: Request | null): 
 };
 
 function getEventAndTraceHeader(envelope: EventEnvelope): EventAndTraceHeader {
-  const event = envelope[1][0][1] as Event;
-  const trace = envelope[0].trace;
+  const event = envelope[1][0]?.[1] as Event | undefined;
+  const trace = envelope[0]?.trace;
+
+  if (!event || !trace) {
+    throw new Error('Could not get event or trace from envelope');
+  }
+
   return [event, trace];
 }
 
 export const properEnvelopeRequestParser = <T = Event>(request: Request | null, envelopeIndex = 1): T => {
-  return properEnvelopeParser(request)[0][envelopeIndex] as T;
+  return properEnvelopeParser(request)[0]?.[envelopeIndex] as T;
 };
 
 export const properFullEnvelopeRequestParser = <T extends Envelope>(request: Request | null): T => {
@@ -361,7 +366,14 @@ async function getFirstSentryEnvelopeRequest<T>(
   url?: string,
   requestParser: (req: Request) => T = envelopeRequestParser as (req: Request) => T,
 ): Promise<T> {
-  return (await getMultipleSentryEnvelopeRequests<T>(page, 1, { url }, requestParser))[0];
+  const reqs = await getMultipleSentryEnvelopeRequests<T>(page, 1, { url }, requestParser);
+
+  const req = reqs[0];
+  if (!req) {
+    throw new Error('No request found');
+  }
+
+  return req;
 }
 
 export { runScriptInSandbox, getMultipleSentryEnvelopeRequests, getFirstSentryEnvelopeRequest, getSentryEvents };

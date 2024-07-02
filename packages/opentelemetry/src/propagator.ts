@@ -1,4 +1,5 @@
 import type { Baggage, Context, Span, SpanContext, TextMapGetter, TextMapSetter } from '@opentelemetry/api';
+import { INVALID_TRACEID } from '@opentelemetry/api';
 import { context } from '@opentelemetry/api';
 import { TraceFlags, propagation, trace } from '@opentelemetry/api';
 import { TraceState, W3CBaggagePropagator, isTracingSuppressed } from '@opentelemetry/core';
@@ -7,7 +8,13 @@ import type { continueTrace } from '@sentry/core';
 import { hasTracingEnabled } from '@sentry/core';
 import { getRootSpan } from '@sentry/core';
 import { spanToJSON } from '@sentry/core';
-import { getClient, getCurrentScope, getDynamicSamplingContextFromClient, getIsolationScope } from '@sentry/core';
+import {
+  getClient,
+  getCurrentScope,
+  getDynamicSamplingContextFromClient,
+  getDynamicSamplingContextFromSpan,
+  getIsolationScope,
+} from '@sentry/core';
 import type { DynamicSamplingContext, Options, PropagationContext } from '@sentry/types';
 import {
   LRUMap,
@@ -31,7 +38,6 @@ import {
 } from './constants';
 import { DEBUG_BUILD } from './debug-build';
 import { getScopesFromContext, setScopesOnContext } from './utils/contextData';
-import { getDynamicSamplingContextFromSpan } from './utils/dynamicSamplingContext';
 import { getSamplingDecision } from './utils/getSamplingDecision';
 import { setIsSetup } from './utils/setupCheck';
 
@@ -45,7 +51,7 @@ export function getPropagationContextFromSpan(span: Span): PropagationContext {
   const dscString = traceState ? traceState.get(SENTRY_TRACE_STATE_DSC) : undefined;
   const traceStateDsc = dscString ? baggageHeaderToDynamicSamplingContext(dscString) : undefined;
 
-  const parentSpanId = traceState ? traceState.get(SENTRY_TRACE_STATE_PARENT_SPAN_ID) : undefined;
+  const parentSpanId = traceState ? traceState.get(SENTRY_TRACE_STATE_PARENT_SPAN_ID) || undefined : undefined;
 
   const sampled = getSamplingDecision(spanContext);
 
@@ -127,7 +133,7 @@ export class SentryPropagator extends W3CBaggagePropagator {
     }
 
     // We also want to avoid setting the default OTEL trace ID, if we get that for whatever reason
-    if (traceId && traceId !== '00000000000000000000000000000000') {
+    if (traceId && traceId !== INVALID_TRACEID) {
       setter.set(carrier, SENTRY_TRACE_HEADER, generateSentryTraceHeader(traceId, spanId, sampled));
     }
 
@@ -196,17 +202,15 @@ export function makeTraceState({
   parentSpanId?: string;
   dsc?: Partial<DynamicSamplingContext>;
   sampled?: boolean;
-}): TraceState | undefined {
-  if (!parentSpanId && !dsc && sampled !== false) {
-    return undefined;
-  }
-
+}): TraceState {
   // We store the DSC as OTEL trace state on the span context
   const dscString = dsc ? dynamicSamplingContextToSentryBaggageHeader(dsc) : undefined;
 
-  const traceStateBase = parentSpanId
-    ? new TraceState().set(SENTRY_TRACE_STATE_PARENT_SPAN_ID, parentSpanId)
-    : new TraceState();
+  // We _always_ set the parent span ID, even if it is empty
+  // If we'd set this to 'undefined' we could not know if the trace state was set, but there was no parentSpanId,
+  // vs the trace state was not set at all (in which case we want to do fallback handling)
+  // If `''`, it should be considered "no parent"
+  const traceStateBase = new TraceState().set(SENTRY_TRACE_STATE_PARENT_SPAN_ID, parentSpanId || '');
 
   const traceStateWithDsc = dscString ? traceStateBase.set(SENTRY_TRACE_STATE_DSC, dscString) : traceStateBase;
 

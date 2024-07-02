@@ -97,9 +97,9 @@ export function parseBaggageHeader(
     // Combine all baggage headers into one object containing the baggage values so we can later read the Sentry-DSC-values from it
     return baggageHeader.reduce<Record<string, string>>((acc, curr) => {
       const currBaggageObject = baggageHeaderToObject(curr);
-      for (const key of Object.keys(currBaggageObject)) {
-        acc[key] = currBaggageObject[key];
-      }
+      Object.entries(currBaggageObject).forEach(([key, value]) => {
+        acc[key] = value;
+      });
       return acc;
     }, {});
   }
@@ -118,7 +118,9 @@ function baggageHeaderToObject(baggageHeader: string): Record<string, string> {
     .split(',')
     .map(baggageEntry => baggageEntry.split('=').map(keyOrValue => decodeURIComponent(keyOrValue.trim())))
     .reduce<Record<string, string>>((acc, [key, value]) => {
-      acc[key] = value;
+      if (key && value) {
+        acc[key] = value;
+      }
       return acc;
     }, {});
 }

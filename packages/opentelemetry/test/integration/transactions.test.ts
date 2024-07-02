@@ -16,6 +16,7 @@ import { logger } from '@sentry/utils';
 
 import { TraceState } from '@opentelemetry/core';
 import { SENTRY_TRACE_STATE_DSC } from '../../src/constants';
+import { makeTraceState } from '../../src/propagator';
 import { SentrySpanProcessor } from '../../src/spanProcessor';
 import { startInactiveSpan, startSpan } from '../../src/trace';
 import type { TestClientInterface } from '../helpers/TestClient';
@@ -80,7 +81,7 @@ describe('Integration | Transactions', () => {
     await client.flush();
 
     expect(transactions).toHaveLength(1);
-    const transaction = transactions[0];
+    const transaction = transactions[0]!;
 
     expect(transaction.breadcrumbs).toEqual([
       { message: 'test breadcrumb 1', timestamp: 123456 },
@@ -267,8 +268,6 @@ describe('Integration | Transactions', () => {
             status: 'ok',
             trace_id: expect.any(String),
             origin: 'auto.test',
-            // local span ID from propagation context
-            parent_span_id: expect.any(String),
           },
         }),
         spans: [expect.any(Object), expect.any(Object)],
@@ -308,8 +307,6 @@ describe('Integration | Transactions', () => {
             status: 'ok',
             trace_id: expect.any(String),
             origin: 'manual',
-            // local span ID from propagation context
-            parent_span_id: expect.any(String),
           },
         }),
         spans: [expect.any(Object), expect.any(Object)],
@@ -334,12 +331,18 @@ describe('Integration | Transactions', () => {
     const traceId = 'd4cda95b652f4a1592b449d5929fda1b';
     const parentSpanId = '6e0c63257de34c92';
 
-    const spanContext = {
+    const traceState = makeTraceState({
+      parentSpanId,
+      dsc: undefined,
+      sampled: true,
+    });
+
+    const spanContext: SpanContext = {
       traceId,
       spanId: parentSpanId,
-      sampled: true,
       isRemote: true,
       traceFlags: TraceFlags.SAMPLED,
+      traceState,
     };
 
     mockSdkInit({ enableTracing: true, beforeSendTransaction });
@@ -403,7 +406,7 @@ describe('Integration | Transactions', () => {
 
     // Checking the spans here, as they are circular to the transaction...
     const runArgs = beforeSendTransaction.mock.calls[0] as unknown as [TransactionEvent, unknown];
-    const spans = runArgs[0].spans || [];
+    const spans = runArgs[0]?.spans || [];
 
     // note: Currently, spans do not have any context/span added to them
     // This is the same behavior as for the "regular" SDKs
@@ -555,7 +558,7 @@ describe('Integration | Transactions', () => {
     jest.advanceTimersByTime(1);
 
     expect(transactions).toHaveLength(1);
-    expect(transactions[0].spans).toHaveLength(2);
+    expect(transactions[0]?.spans).toHaveLength(2);
 
     // No spans are pending
     expect(exporter['_finishedSpans'].length).toBe(0);
@@ -609,11 +612,11 @@ describe('Integration | Transactions', () => {
     jest.advanceTimersByTime(2);
 
     expect(transactions).toHaveLength(1);
-    expect(transactions[0].spans).toHaveLength(1);
+    expect(transactions[0]?.spans).toHaveLength(1);
 
     // subSpan2 is pending (and will eventually be cleaned up)
     expect(exporter['_finishedSpans'].length).toBe(1);
-    expect(exporter['_finishedSpans'][0].name).toBe('inner span 2');
+    expect(exporter['_finishedSpans'][0]?.name).toBe('inner span 2');
   });
 
   it('uses & inherits DSC on span trace state', async () => {

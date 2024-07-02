@@ -60,8 +60,10 @@
     "packages/gatsby",
     "packages/google-cloud-serverless",
     "packages/integration-shims",
+    "packages/nestjs",
     "packages/nextjs",
     "packages/node",
+    "packages/nuxt",
     "packages/opentelemetry",
     "packages/profiling-node",
     "packages/react",
@@ -69,7 +71,7 @@
     "packages/replay-internal",
     "packages/replay-canvas",
     "packages/replay-worker",
-    "packages/solidjs",
+    "packages/solid",
     "packages/svelte",
     "packages/sveltekit",
     "packages/types",
@@ -85,11 +87,11 @@
     "dev-packages/overhead-metrics",
     "dev-packages/test-utils",
     "dev-packages/size-limit-gh-action",
+    "dev-packages/external-contributor-gh-action",
     "dev-packages/rollup-utils"
   ],
   "devDependencies": {
     "@biomejs/biome": "^1.4.0",
-    "@codecov/rollup-plugin": "0.0.1-beta.5",
     "@rollup/plugin-commonjs": "^25.0.7",
     "@rollup/plugin-esm-shim": "^0.1.5",
     "@rollup/plugin-json": "^6.1.0",
@@ -109,7 +111,6 @@
     "codecov": "^3.6.5",
     "deepmerge": "^4.2.2",
     "downlevel-dts": "~0.11.0",
-    "es-check": "7.1.0",
     "eslint": "7.32.0",
     "jest": "^27.5.1",
     "jest-environment-node": "^27.5.1",
@@ -119,7 +120,6 @@
     "nodemon": "^2.0.16",
     "npm-run-all": "^4.1.5",
     "prettier": "^3.1.1",
-    "replace-in-file": "^4.0.0",
     "rimraf": "^3.0.2",
     "rollup": "^4.13.0",
     "rollup-plugin-cleanup": "^3.2.1",
@@ -133,8 +133,15 @@
     "vitest": "^1.6.0",
     "yalc": "^1.0.0-pre.53"
   },
+  "//_resolutions_comment": [
+    "Because new versions of strip-ansi, string-width, and wrap-ansi are ESM only packages,",
+    "we need to resolve them to the CommonJS versions.",
+    "This is a temporary solution until we can upgrade to a version of lerna that supports ESM packages"
+  ],
   "resolutions": {
-    "gauge/strip-ansi": "6.0.1"
+    "gauge/strip-ansi": "6.0.1",
+    "wide-align/string-width": "4.2.3",
+    "cliui/wrap-ansi": "7.0.0"
   },
   "version": "0.0.0",
   "name": "sentry-javascript",

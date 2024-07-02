@@ -66,7 +66,7 @@ describe('Integration | Transactions', () => {
     await client.flush();
 
     expect(transactions).toHaveLength(1);
-    const transaction = transactions[0];
+    const transaction = transactions[0]!;
 
     expect(transaction.breadcrumbs).toEqual([
       { message: 'test breadcrumb 1', timestamp: 123456 },
@@ -253,8 +253,6 @@ describe('Integration | Transactions', () => {
             status: 'ok',
             trace_id: expect.any(String),
             origin: 'auto.test',
-            // local span ID from propagation context
-            parent_span_id: expect.any(String),
           },
         }),
         spans: [expect.any(Object), expect.any(Object)],
@@ -294,8 +292,6 @@ describe('Integration | Transactions', () => {
             status: 'ok',
             trace_id: expect.any(String),
             origin: 'manual',
-            // local span ID from propagation context
-            parent_span_id: expect.any(String),
           },
         }),
         spans: [expect.any(Object), expect.any(Object)],
@@ -529,7 +525,7 @@ describe('Integration | Transactions', () => {
 
     // Checking the spans here, as they are circular to the transaction...
     const runArgs = beforeSendTransaction.mock.calls[0] as unknown as [TransactionEvent, unknown];
-    const spans = runArgs[0].spans || [];
+    const spans = runArgs[0]?.spans || [];
 
     // note: Currently, spans do not have any context/span added to them
     // This is the same behavior as for the "regular" SDKs
@@ -636,5 +632,64 @@ describe('Integration | Transactions', () => {
         `SpanExporter dropping span inner span 2 (${innerSpan2Id}) because it is pending for more than 5 minutes.`,
       ]),
     );
+  });
+
+  it('allows to configure `maxSpanWaitDuration` to capture long running spans', async () => {
+    const transactions: TransactionEvent[] = [];
+    const beforeSendTransaction = jest.fn(event => {
+      transactions.push(event);
+      return null;
+    });
+
+    const now = Date.now();
+    jest.useFakeTimers();
+    jest.setSystemTime(now);
+
+    const logs: unknown[] = [];
+    jest.spyOn(logger, 'log').mockImplementation(msg => logs.push(msg));
+
+    mockSdkInit({
+      enableTracing: true,
+      beforeSendTransaction,
+      maxSpanWaitDuration: 100 * 60,
+    });
+
+    Sentry.startSpanManual({ name: 'test name' }, rootSpan => {
+      const subSpan = Sentry.startInactiveSpan({ name: 'inner span 1' });
+      subSpan.end();
+
+      Sentry.startSpanManual({ name: 'inner span 2' }, innerSpan => {
+        // Child span ends after 10 min
+        setTimeout(
+          () => {
+            innerSpan.end();
+          },
+          10 * 60 * 1_000,
+        );
+      });
+
+      // root span ends after 99 min
+      setTimeout(
+        () => {
+          rootSpan.end();
+        },
+        99 * 10 * 1_000,
+      );
+    });
+
+    // Now wait for 100 mins
+    jest.advanceTimersByTime(100 * 60 * 1_000);
+
+    expect(beforeSendTransaction).toHaveBeenCalledTimes(1);
+    expect(transactions).toHaveLength(1);
+    const transaction = transactions[0]!;
+
+    expect(transaction.transaction).toEqual('test name');
+    const spans = transaction.spans || [];
+
+    expect(spans).toHaveLength(2);
+
+    expect(spans[0]!.description).toEqual('inner span 1');
+    expect(spans[1]!.description).toEqual('inner span 2');
   });
 });

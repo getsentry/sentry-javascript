@@ -1,4 +1,4 @@
-import type { StackFrame, StackLineParser, StackParser } from '@sentry/types';
+import type { Event, StackFrame, StackLineParser, StackParser } from '@sentry/types';
 
 const STACKTRACE_FRAME_LIMIT = 50;
 export const UNKNOWN_FUNCTION = '?';
@@ -21,7 +21,7 @@ export function createStackParser(...parsers: StackLineParser[]): StackParser {
     const lines = stack.split('\n');
 
     for (let i = skipFirstLines; i < lines.length; i++) {
-      const line = lines[i];
+      const line = lines[i] as string;
       // Ignore lines over 1kb as they are unlikely to be stack frames.
       // Many of the regular expressions use backtracking which results in run time that increases exponentially with
       // input size. Huge strings can result in hangs/Denial of Service:
@@ -85,7 +85,7 @@ export function stripSentryFramesAndReverse(stack: ReadonlyArray<StackFrame>): S
   const localStack = Array.from(stack);
 
   // If stack starts with one of our API calls, remove it (starts, meaning it's the top of the stack - aka last call)
-  if (/sentryWrapped/.test(localStack[localStack.length - 1].function || '')) {
+  if (/sentryWrapped/.test(getLastStackFrame(localStack).function || '')) {
     localStack.pop();
   }
 
@@ -93,7 +93,7 @@ export function stripSentryFramesAndReverse(stack: ReadonlyArray<StackFrame>): S
   localStack.reverse();
 
   // If stack ends with one of our internal API calls, remove it (ends, meaning it's the bottom of the stack - aka top-most call)
-  if (STRIP_FRAME_REGEXP.test(localStack[localStack.length - 1].function || '')) {
+  if (STRIP_FRAME_REGEXP.test(getLastStackFrame(localStack).function || '')) {
     localStack.pop();
 
     // When using synthetic events, we will have a 2 levels deep stack, as `new Error('Sentry syntheticException')`
@@ -104,16 +104,20 @@ export function stripSentryFramesAndReverse(stack: ReadonlyArray<StackFrame>): S
     //
     // instead of just the top `Sentry` call itself.
     // This forces us to possibly strip an additional frame in the exact same was as above.
-    if (STRIP_FRAME_REGEXP.test(localStack[localStack.length - 1].function || '')) {
+    if (STRIP_FRAME_REGEXP.test(getLastStackFrame(localStack).function || '')) {
       localStack.pop();
     }
   }
 
   return localStack.slice(0, STACKTRACE_FRAME_LIMIT).map(frame => ({
     ...frame,
-    filename: frame.filename || localStack[localStack.length - 1].filename,
+    filename: frame.filename || getLastStackFrame(localStack).filename,
     function: frame.function || UNKNOWN_FUNCTION,
   }));
+}
+
+function getLastStackFrame(arr: StackFrame[]): StackFrame {
+  return arr[arr.length - 1] || {};
 }
 
 const defaultFunctionName = '<anonymous>';
@@ -132,4 +136,29 @@ export function getFunctionName(fn: unknown): string {
     // can cause a "Permission denied" exception (see raven-js#495).
     return defaultFunctionName;
   }
+}
+
+/**
+ * Get's stack frames from an event without needing to check for undefined properties.
+ */
+export function getFramesFromEvent(event: Event): StackFrame[] | undefined {
+  const exception = event.exception;
+
+  if (exception) {
+    const frames: StackFrame[] = [];
+    try {
+      // @ts-expect-error Object could be undefined
+      exception.values.forEach(value => {
+        // @ts-expect-error Value could be undefined
+        if (value.stacktrace.frames) {
+          // @ts-expect-error Value could be undefined
+          frames.push(...value.stacktrace.frames);
+        }
+      });
+      return frames;
+    } catch (_oO) {
+      return undefined;
+    }
+  }
+  return undefined;
 }

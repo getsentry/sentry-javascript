@@ -17,12 +17,8 @@ sentryTest('should create spans for fetch requests', async ({ getLocalTestPath, 
 
   // We will wait 500ms for all envelopes to be sent. Generally, in all browsers, the last sent
   // envelope contains tracing data.
-
-  // If we are on FF or webkit:
-  // 1st envelope contains CORS error
-  // 2nd envelope contains the tracing data we want to check here
-  const envelopes = await getMultipleSentryEnvelopeRequests<Event>(page, 2, { url, timeout: 10000 });
-  const tracingEvent = envelopes[envelopes.length - 1]; // last envelope contains tracing data on all browsers
+  const envelopes = await getMultipleSentryEnvelopeRequests<Event>(page, 4, { url, timeout: 10000 });
+  const tracingEvent = envelopes.find(event => event.type === 'transaction')!; // last envelope contains tracing data on all browsers
 
   const requestSpans = tracingEvent.spans?.filter(({ op }) => op === 'http.client');
 

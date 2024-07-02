@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '@sentry-internal/test-utils';
+import { waitForEnvelopeItem, waitForTransaction } from '@sentry-internal/test-utils';
 
 test('sends a pageload transaction with a parameterized URL', async ({ page }) => {
   const transactionPromise = waitForTransaction('react-router-6', async transactionEvent => {
@@ -52,5 +52,47 @@ test('sends a navigation transaction with a parameterized URL', async ({ page })
     transaction_info: {
       source: 'route',
     },
+  });
+});
+
+test('sends an INP span', async ({ page }) => {
+  const inpSpanPromise = waitForEnvelopeItem('react-router-6', item => {
+    return item[0].type === 'span';
+  });
+
+  await page.goto(`/`);
+
+  await page.click('#exception-button');
+
+  await page.waitForTimeout(500);
+
+  // Page hide to trigger INP
+  await page.evaluate(() => {
+    window.dispatchEvent(new Event('pagehide'));
+  });
+
+  const inpSpan = await inpSpanPromise;
+
+  expect(inpSpan[1]).toEqual({
+    data: {
+      'sentry.origin': 'auto.http.browser.inp',
+      'sentry.op': 'ui.interaction.click',
+      release: 'e2e-test',
+      environment: 'qa',
+      transaction: '/',
+      'sentry.exclusive_time': expect.any(Number),
+      replay_id: expect.any(String),
+    },
+    description: 'body > div#root > input#exception-button[type="button"]',
+    op: 'ui.interaction.click',
+    parent_span_id: expect.any(String),
+    span_id: expect.any(String),
+    start_timestamp: expect.any(Number),
+    timestamp: expect.any(Number),
+    trace_id: expect.any(String),
+    origin: 'auto.http.browser.inp',
+    exclusive_time: expect.any(Number),
+    measurements: { inp: { unit: 'millisecond', value: expect.any(Number) } },
+    segment_id: expect.any(String),
   });
 });

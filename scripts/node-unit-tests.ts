@@ -15,7 +15,7 @@ const DEFAULT_SKIP_TESTS_PACKAGES = [
   '@sentry/vue',
   '@sentry/react',
   '@sentry/angular',
-  '@sentry/solidjs',
+  '@sentry/solid',
   '@sentry/svelte',
   '@sentry/profiling-node',
   '@sentry-internal/browser-utils',
@@ -30,7 +30,7 @@ const DEFAULT_SKIP_TESTS_PACKAGES = [
 
 const SKIP_TEST_PACKAGES: Record<NodeVersion, VersionConfig> = {
   '14': {
-    ignoredPackages: ['@sentry/sveltekit', '@sentry/vercel-edge', '@sentry/astro'],
+    ignoredPackages: ['@sentry/sveltekit', '@sentry/vercel-edge', '@sentry/astro', '@sentry/nuxt', '@sentry/nestjs'],
   },
   '16': {
     ignoredPackages: ['@sentry/vercel-edge', '@sentry/astro'],

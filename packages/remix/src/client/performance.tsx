@@ -93,20 +93,22 @@ export function startPageloadSpan(): void {
 }
 
 function startNavigationSpan(matches: RouteMatch<string>[]): void {
+  const lastMatch = matches[matches.length - 1];
+
+  const client = getClient<BrowserClient>();
+
+  if (!client || !lastMatch) {
+    return;
+  }
+
   const spanContext: StartSpanOptions = {
-    name: matches[matches.length - 1].id,
+    name: lastMatch.id,
     op: 'navigation',
     attributes: {
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.remix',
       [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
     },
   };
-
-  const client = getClient<BrowserClient>();
-
-  if (!client) {
-    return;
-  }
 
   startBrowserTracingNavigationSpan(client, spanContext);
 }
@@ -148,8 +150,9 @@ export function withSentry<P extends Record<string, unknown>, R extends React.Co
     const matches = _useMatches();
 
     _useEffect(() => {
-      if (matches && matches.length) {
-        const routeName = matches[matches.length - 1].id;
+      const lastMatch = matches && matches[matches.length - 1];
+      if (lastMatch) {
+        const routeName = lastMatch.id;
         getCurrentScope().setTransactionName(routeName);
 
         const activeRootSpan = getActiveSpan();

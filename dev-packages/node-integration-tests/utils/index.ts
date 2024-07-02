@@ -196,7 +196,13 @@ export class TestEnv {
    * @returns The extracted envelope.
    */
   public async getEnvelopeRequest(options?: DataCollectorOptions): Promise<Array<Record<string, unknown>>> {
-    return (await this.getMultipleEnvelopeRequest({ ...options, count: 1 }))[0];
+    const requests = await this.getMultipleEnvelopeRequest({ ...options, count: 1 });
+
+    if (!requests[0]) {
+      throw new Error('No requests found');
+    }
+
+    return requests[0];
   }
 
   /**
@@ -239,7 +245,7 @@ export class TestEnv {
         .post('/api/1337/envelope/', body => {
           const envelope = parseEnvelope(body);
 
-          if (envelopeType.includes(envelope[1].type as EnvelopeItemType)) {
+          if (envelopeType.includes(envelope[1]?.type as EnvelopeItemType)) {
             envelopes.push(envelope);
           } else {
             return false;
@@ -296,7 +302,7 @@ export class TestEnv {
         .post('/api/1337/envelope/', body => {
           const envelope = parseEnvelope(body);
 
-          if (options.envelopeType.includes(envelope[1].type as EnvelopeItemType)) {
+          if (options.envelopeType.includes(envelope[1]?.type as EnvelopeItemType)) {
             reqCount++;
             return true;
           }

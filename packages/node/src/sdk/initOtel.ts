@@ -32,7 +32,7 @@ export function initOpenTelemetry(client: NodeClient): void {
 
 /** Initialize the ESM loader. */
 export function maybeInitializeEsmLoader(): void {
-  const [nodeMajor, nodeMinor] = process.versions.node.split('.').map(Number);
+  const [nodeMajor = 0, nodeMinor = 0] = process.versions.node.split('.').map(Number);
 
   // Register hook was added in v20.6.0 and v18.19.0
   if (nodeMajor >= 22 || (nodeMajor === 20 && nodeMinor >= 6) || (nodeMajor === 18 && nodeMinor >= 19)) {
@@ -113,7 +113,11 @@ export function setupOtel(client: NodeClient): BasicTracerProvider {
     }),
     forceFlushTimeoutMillis: 500,
   });
-  provider.addSpanProcessor(new SentrySpanProcessor());
+  provider.addSpanProcessor(
+    new SentrySpanProcessor({
+      timeout: client.getOptions().maxSpanWaitDuration,
+    }),
+  );
 
   // Initialize the provider
   provider.register({

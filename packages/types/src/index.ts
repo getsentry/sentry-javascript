@@ -18,6 +18,7 @@ export type {
   CultureContext,
   TraceContext,
   CloudResourceContext,
+  MissingInstrumentationContext,
 } from './context';
 export type { DataCategory } from './datacategory';
 export type { DsnComponents, DsnLike, DsnProtocol } from './dsn';
@@ -45,6 +46,8 @@ export type {
   StatsdItem,
   StatsdEnvelope,
   ProfileItem,
+  ProfileChunkEnvelope,
+  ProfileChunkItem,
   SpanEnvelope,
   SpanItem,
 } from './envelope';
@@ -69,11 +72,12 @@ export type {
   ThreadCpuStack,
   ThreadCpuFrame,
   ThreadCpuProfile,
+  ContinuousThreadCpuProfile,
   Profile,
+  ProfileChunk,
 } from './profiling';
 export type { ReplayEvent, ReplayRecordingData, ReplayRecordingMode } from './replay';
 export type {
-  FeedbackDialog,
   FeedbackEvent,
   FeedbackFormData,
   FeedbackInternalOptions,
@@ -81,7 +85,6 @@ export type {
   FeedbackScreenshotIntegration,
   SendFeedback,
   SendFeedbackParams,
-  CreateDialogProps,
   UserFeedback,
 } from './feedback';
 export type { QueryParams, Request, SanitizedRequestData } from './request';

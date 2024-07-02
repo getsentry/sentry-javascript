@@ -115,9 +115,9 @@ function routeMatchToParamSpanAttributes(match: VendoredTanstackRouterRouteMatch
   }
 
   const paramAttributes: Record<string, string> = {};
-  for (const key of Object.keys(match.params)) {
-    paramAttributes[`url.path.params.${key}`] = match.params[key];
-  }
+  Object.entries(match.params).forEach(([key, value]) => {
+    paramAttributes[`url.path.params.${key}`] = value;
+  });
 
   return paramAttributes;
 }

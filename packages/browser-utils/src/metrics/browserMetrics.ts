@@ -157,7 +157,7 @@ export function startTrackingInteractions(): void {
   });
 }
 
-export { startTrackingINP } from './inp';
+export { startTrackingINP, registerInpInteractionListener } from './inp';
 
 /** Starts tracking the Cumulative Layout Shift on the current page. */
 function _trackCLS(): () => void {
@@ -282,13 +282,14 @@ export function addPerformanceEntries(span: Span): void {
     _addTtfbRequestTimeToMeasurements(_measurements);
 
     ['fcp', 'fp', 'lcp'].forEach(name => {
-      if (!_measurements[name] || !transactionStartTime || timeOrigin >= transactionStartTime) {
+      const measurement = _measurements[name];
+      if (!measurement || !transactionStartTime || timeOrigin >= transactionStartTime) {
         return;
       }
       // The web vitals, fcp, fp, lcp, and ttfb, all measure relative to timeOrigin.
       // Unfortunately, timeOrigin is not captured within the span span data, so these web vitals will need
       // to be adjusted to be relative to span.startTimestamp.
-      const oldValue = _measurements[name].value;
+      const oldValue = measurement.value;
       const measurementTimestamp = timeOrigin + msToSec(oldValue);
 
       // normalizedValue should be in milliseconds
@@ -296,7 +297,7 @@ export function addPerformanceEntries(span: Span): void {
       const delta = normalizedValue - oldValue;
 
       DEBUG_BUILD && logger.log(`[Measurements] Normalized ${name} from ${oldValue} to ${normalizedValue} (${delta})`);
-      _measurements[name].value = normalizedValue;
+      measurement.value = normalizedValue;
     });
 
     const fidMark = _measurements['mark.fid'];
@@ -320,8 +321,8 @@ export function addPerformanceEntries(span: Span): void {
       delete _measurements.cls;
     }
 
-    Object.keys(_measurements).forEach(measurementName => {
-      setMeasurement(measurementName, _measurements[measurementName].value, _measurements[measurementName].unit);
+    Object.entries(_measurements).forEach(([measurementName, measurement]) => {
+      setMeasurement(measurementName, measurement.value, measurement.unit);
     });
 
     _tagMetricInfo(span);
@@ -341,15 +342,34 @@ export function _addMeasureSpans(
   duration: number,
   timeOrigin: number,
 ): number {
-  const measureStartTimestamp = timeOrigin + startTime;
-  const measureEndTimestamp = measureStartTimestamp + duration;
+  const navEntry = getNavigationEntry();
+  const requestTime = msToSec(navEntry ? navEntry.requestStart : 0);
+  // Because performance.measure accepts arbitrary timestamps it can produce
+  // spans that happen before the browser even makes a request for the page.
+  //
+  // An example of this is the automatically generated Next.js-before-hydration
+  // spans created by the Next.js framework.
+  //
+  // To prevent this we will pin the start timestamp to the request start time
+  // This does make duration inaccruate, so if this does happen, we will add
+  // an attribute to the span
+  const measureStartTimestamp = timeOrigin + Math.max(startTime, requestTime);
+  const startTimeStamp = timeOrigin + startTime;
+  const measureEndTimestamp = startTimeStamp + duration;
+
+  const attributes: SpanAttributes = {
+    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.resource.browser.metrics',
+  };
+
+  if (measureStartTimestamp !== startTimeStamp) {
+    attributes['sentry.browser.measure_happened_before_request'] = true;
+    attributes['sentry.browser.measure_start_time'] = measureStartTimestamp;
+  }
 
   startAndEndSpan(span, measureStartTimestamp, measureEndTimestamp, {
     name: entry.name as string,
     op: entry.entryType as string,
-    attributes: {
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.resource.browser.metrics',
-    },
+    attributes,
   });
 
   return measureStartTimestamp;
@@ -394,36 +414,29 @@ function _addPerformanceNavigationTiming(
 /** Create request and response related spans */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function _addRequest(span: Span, entry: Record<string, any>, timeOrigin: number): void {
+  const requestStartTimestamp = timeOrigin + msToSec(entry.requestStart as number);
+  const responseEndTimestamp = timeOrigin + msToSec(entry.responseEnd as number);
+  const responseStartTimestamp = timeOrigin + msToSec(entry.responseStart as number);
   if (entry.responseEnd) {
     // It is possible that we are collecting these metrics when the page hasn't finished loading yet, for example when the HTML slowly streams in.
     // In this case, ie. when the document request hasn't finished yet, `entry.responseEnd` will be 0.
     // In order not to produce faulty spans, where the end timestamp is before the start timestamp, we will only collect
     // these spans when the responseEnd value is available. The backend (Relay) would drop the entire span if it contained faulty spans.
-    startAndEndSpan(
-      span,
-      timeOrigin + msToSec(entry.requestStart as number),
-      timeOrigin + msToSec(entry.responseEnd as number),
-      {
-        op: 'browser',
-        name: 'request',
-        attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.browser.metrics',
-        },
+    startAndEndSpan(span, requestStartTimestamp, responseEndTimestamp, {
+      op: 'browser',
+      name: 'request',
+      attributes: {
+        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.browser.metrics',
       },
-    );
+    });
 
-    startAndEndSpan(
-      span,
-      timeOrigin + msToSec(entry.responseStart as number),
-      timeOrigin + msToSec(entry.responseEnd as number),
-      {
-        op: 'browser',
-        name: 'response',
-        attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.browser.metrics',
-        },
+    startAndEndSpan(span, responseStartTimestamp, responseEndTimestamp, {
+      op: 'browser',
+      name: 'response',
+      attributes: {
+        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.browser.metrics',
       },
-    );
+    });
   }
 }
 

@@ -14,6 +14,7 @@ import {
 import type { TransactionSource } from '@sentry/types';
 import { getSanitizedUrlString, parseUrl, stripUrlQueryAndFragment } from '@sentry/utils';
 
+import { SEMANTIC_ATTRIBUTE_SENTRY_OP } from '@sentry/core';
 import type { AbstractSpan } from '../types';
 import { getSpanKind } from './getSpanKind';
 import { spanHasAttributes, spanHasName } from './spanTypes';
@@ -43,9 +44,14 @@ export function parseSpanDescription(span: AbstractSpan): SpanDescription {
     return descriptionForHttpMethod({ attributes, name, kind: getSpanKind(span) }, httpMethod);
   }
 
-  // If db.type exists then this is a database call span.
   const dbSystem = attributes[SEMATTRS_DB_SYSTEM];
-  if (dbSystem) {
+  const opIsCache =
+    typeof attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] === 'string' &&
+    attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP].startsWith('cache.');
+
+  // If db.type exists then this is a database call span
+  // If the Redis DB is used as a cache, the span description should not be changed
+  if (dbSystem && !opIsCache) {
     return descriptionForDbSystem({ attributes, name });
   }
 

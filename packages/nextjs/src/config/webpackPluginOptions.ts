@@ -74,10 +74,13 @@ export function getWebpackPluginOptions(
       },
       assets: sentryBuildOptions.sourcemaps?.assets ?? sourcemapUploadAssets,
       ignore: sentryBuildOptions.sourcemaps?.ignore ?? sourcemapUploadIgnore,
-      // TODO: Add this functionality
-      // filesToDeleteAfterUpload: sentryBuildOptions.sourcemaps?.deleteSourcemapsAfterUpload
-      //   ? path.join(distDirAbsPath, '**', '*.js.map')
-      //   : undefined,
+      filesToDeleteAfterUpload: sentryBuildOptions.sourcemaps?.deleteSourcemapsAfterUpload
+        ? [
+            path.join(distDirAbsPath, '**', '*.js.map'),
+            path.join(distDirAbsPath, '**', '*.mjs.map'),
+            path.join(distDirAbsPath, '**', '*.cjs.map'),
+          ]
+        : undefined,
       ...sentryBuildOptions.unstable_sentryWebpackPluginOptions?.sourcemaps,
     },
     release: {
@@ -93,6 +96,9 @@ export function getWebpackPluginOptions(
     },
     _metaOptions: {
       loggerPrefixOverride: `[@sentry/nextjs - ${prefixInsert}]`,
+      telemetry: {
+        metaFramework: 'nextjs',
+      },
     },
     ...sentryBuildOptions.unstable_sentryWebpackPluginOptions,
   };

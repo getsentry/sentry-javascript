@@ -46,6 +46,7 @@ export function Form({
   screenshotInput,
 }: Props): VNode {
   const {
+    tags,
     addScreenshotButtonLabel,
     removeScreenshotButtonLabel,
     cancelButtonLabel,
@@ -122,13 +123,14 @@ export function Form({
               email: data.email,
               message: data.message,
               source: FEEDBACK_WIDGET_SOURCE,
+              tags,
             },
             { attachments: data.attachments },
           );
           onSubmitSuccess(data);
         } catch (error) {
           DEBUG_BUILD && logger.error(error);
-          setError('There was a problem submitting feedback, please wait and try again.');
+          setError(error as string);
           onSubmitError(error as Error);
         }
       } catch {
@@ -228,7 +230,11 @@ function LabelText({
   label,
   isRequired,
   isRequiredLabel,
-}: { label: string; isRequired: boolean; isRequiredLabel: string }): VNode {
+}: {
+  label: string;
+  isRequired: boolean;
+  isRequiredLabel: string;
+}): VNode {
   return (
     <span class="form__label__text">
       {label}

@@ -122,5 +122,9 @@ describe('Sentry client SDK', () => {
         expect(getActiveSpan()).toBeUndefined();
       });
     });
+
+    it('returns client from init', () => {
+      expect(init({})).not.toBeUndefined();
+    });
   });
 });

@@ -46,7 +46,7 @@ describe('Sentry.trackComponent()', () => {
     const rootSpanId = transaction.contexts?.trace?.span_id;
     expect(rootSpanId).toBeDefined();
 
-    const initSpanId = transaction.spans![0].span_id;
+    const initSpanId = transaction.spans![0]?.span_id;
 
     expect(transaction.spans![0]).toEqual({
       data: {
@@ -101,7 +101,7 @@ describe('Sentry.trackComponent()', () => {
     const rootSpanId = transaction.contexts?.trace?.span_id;
     expect(rootSpanId).toBeDefined();
 
-    const initSpanId = transaction.spans![0].span_id;
+    const initSpanId = transaction.spans![0]?.span_id;
 
     expect(transaction.spans![0]).toEqual({
       data: {
@@ -162,7 +162,7 @@ describe('Sentry.trackComponent()', () => {
     const transaction = transactions[0];
     expect(transaction.spans).toHaveLength(1);
 
-    expect(transaction.spans![0].op).toEqual('ui.svelte.init');
+    expect(transaction.spans![0]?.op).toEqual('ui.svelte.init');
   });
 
   it('only creates update spans if trackInit is deactivated', async () => {
@@ -178,7 +178,7 @@ describe('Sentry.trackComponent()', () => {
     const transaction = transactions[0];
     expect(transaction.spans).toHaveLength(1);
 
-    expect(transaction.spans![0].op).toEqual('ui.svelte.update');
+    expect(transaction.spans![0]?.op).toEqual('ui.svelte.update');
   });
 
   it('creates no spans if trackInit and trackUpdates are deactivated', async () => {
@@ -210,8 +210,8 @@ describe('Sentry.trackComponent()', () => {
     const transaction = transactions[0];
     expect(transaction.spans).toHaveLength(2);
 
-    expect(transaction.spans![0].description).toEqual('<CustomComponentName>');
-    expect(transaction.spans![1].description).toEqual('<CustomComponentName>');
+    expect(transaction.spans![0]?.description).toEqual('<CustomComponentName>');
+    expect(transaction.spans![1]?.description).toEqual('<CustomComponentName>');
   });
 
   it("doesn't do anything, if there's no ongoing transaction", async () => {
@@ -243,7 +243,7 @@ describe('Sentry.trackComponent()', () => {
     // One update span is triggered by the initial rendering, but the second one is not captured
     expect(transaction.spans).toHaveLength(2);
 
-    expect(transaction.spans![0].op).toEqual('ui.svelte.init');
-    expect(transaction.spans![1].op).toEqual('ui.svelte.update');
+    expect(transaction.spans![0]?.op).toEqual('ui.svelte.init');
+    expect(transaction.spans![1]?.op).toEqual('ui.svelte.update');
   });
 });

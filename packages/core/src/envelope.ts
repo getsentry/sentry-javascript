@@ -101,7 +101,7 @@ export function createEventEnvelope(
  *
  * Takes an optional client and runs spans through `beforeSendSpan` if available.
  */
-export function createSpanEnvelope(spans: SentrySpan[], client?: Client): SpanEnvelope {
+export function createSpanEnvelope(spans: [SentrySpan, ...SentrySpan[]], client?: Client): SpanEnvelope {
   function dscHasRequiredProps(dsc: Partial<DynamicSamplingContext>): dsc is DynamicSamplingContext {
     return !!dsc.trace_id && !!dsc.public_key;
   }

@@ -40,7 +40,7 @@ function filterDuplicates(integrations: Integration[]): Integration[] {
     integrationsByName[name] = currentInstance;
   });
 
-  return Object.keys(integrationsByName).map(k => integrationsByName[k]);
+  return Object.values(integrationsByName);
 }
 
 /** Gets integrations to install */
@@ -69,9 +69,9 @@ export function getIntegrationsToSetup(options: Pick<Options, 'defaultIntegratio
   // `beforeSendTransaction`. It therefore has to run after all other integrations, so that the changes of all event
   // processors will be reflected in the printed values. For lack of a more elegant way to guarantee that, we therefore
   // locate it and, assuming it exists, pop it out of its current spot and shove it onto the end of the array.
-  const debugIndex = findIndex(finalIntegrations, integration => integration.name === 'Debug');
-  if (debugIndex !== -1) {
-    const [debugInstance] = finalIntegrations.splice(debugIndex, 1);
+  const debugIndex = finalIntegrations.findIndex(integration => integration.name === 'Debug');
+  if (debugIndex > -1) {
+    const [debugInstance] = finalIntegrations.splice(debugIndex, 1) as [Integration];
     finalIntegrations.push(debugInstance);
   }
 
@@ -156,17 +156,6 @@ export function addIntegration(integration: Integration): void {
   }
 
   client.addIntegration(integration);
-}
-
-// Polyfill for Array.findIndex(), which is not supported in ES5
-function findIndex<T>(arr: T[], callback: (item: T) => boolean): number {
-  for (let i = 0; i < arr.length; i++) {
-    if (callback(arr[i]) === true) {
-      return i;
-    }
-  }
-
-  return -1;
 }
 
 /**

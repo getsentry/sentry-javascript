@@ -12,6 +12,7 @@ import {
   getClient,
   getCurrentScope,
   getDynamicSamplingContextFromClient,
+  getDynamicSamplingContextFromSpan,
   getRootSpan,
   spanIsSampled,
   spanToJSON,
@@ -24,7 +25,6 @@ import { makeTraceState } from '../src/propagator';
 import { SEMATTRS_HTTP_METHOD } from '@opentelemetry/semantic-conventions';
 import { continueTrace, startInactiveSpan, startSpan, startSpanManual } from '../src/trace';
 import type { AbstractSpan } from '../src/types';
-import { getDynamicSamplingContextFromSpan } from '../src/utils/dynamicSamplingContext';
 import { getActiveSpan } from '../src/utils/getActiveSpan';
 import { getSamplingDecision } from '../src/utils/getSamplingDecision';
 import { getSpanKind } from '../src/utils/getSpanKind';
@@ -68,7 +68,7 @@ describe('trace', () => {
 
       expect(getActiveSpan()).toEqual(undefined);
       expect(spans).toHaveLength(2);
-      const [outerSpan, innerSpan] = spans;
+      const [outerSpan, innerSpan] = spans as [Span, Span];
 
       expect(getSpanName(outerSpan)).toEqual('outer');
       expect(getSpanName(innerSpan)).toEqual('inner');
@@ -108,7 +108,7 @@ describe('trace', () => {
 
       expect(getActiveSpan()).toEqual(undefined);
       expect(spans).toHaveLength(2);
-      const [outerSpan, innerSpan] = spans;
+      const [outerSpan, innerSpan] = spans as [Span, Span];
 
       expect(getSpanName(outerSpan)).toEqual('outer');
       expect(getSpanName(innerSpan)).toEqual('inner');
@@ -310,6 +310,21 @@ describe('trace', () => {
       expect(getActiveSpan()).toBe(undefined);
     });
 
+    it('allows to pass a parentSpan', () => {
+      let parentSpan: Span;
+
+      startSpanManual({ name: 'detached' }, span => {
+        parentSpan = span;
+      });
+
+      startSpan({ name: 'GET users/[id]', parentSpan: parentSpan! }, span => {
+        expect(getActiveSpan()).toBe(span);
+        expect(spanToJSON(span).parent_span_id).toBe(parentSpan.spanContext().spanId);
+      });
+
+      expect(getActiveSpan()).toBe(undefined);
+    });
+
     it('allows to force a transaction with forceTransaction=true', async () => {
       const client = getClient()!;
       const transactionEvents: Event[] = [];
@@ -350,7 +365,7 @@ describe('trace', () => {
 
       const outerTraceId = outerTransaction?.contexts?.trace?.trace_id;
       // The inner transaction should be a child of the last span of the outer transaction
-      const innerParentSpanId = outerTransaction?.spans?.[0].id;
+      const innerParentSpanId = outerTransaction?.spans?.[0]?.id;
       const innerSpanId = innerTransaction?.contexts?.trace?.span_id;
 
       expect(outerTraceId).toBeDefined();
@@ -549,6 +564,21 @@ describe('trace', () => {
       expect(getActiveSpan()).toBe(undefined);
     });
 
+    it('allows to pass a parentSpan', () => {
+      let parentSpan: Span;
+
+      startSpanManual({ name: 'detached' }, span => {
+        parentSpan = span;
+      });
+
+      const span = startInactiveSpan({ name: 'GET users/[id]', parentSpan: parentSpan! });
+
+      expect(getActiveSpan()).toBe(undefined);
+      expect(spanToJSON(span).parent_span_id).toBe(parentSpan!.spanContext().spanId);
+
+      expect(getActiveSpan()).toBe(undefined);
+    });
+
     it('allows to force a transaction with forceTransaction=true', async () => {
       const client = getClient()!;
       const transactionEvents: Event[] = [];
@@ -566,7 +596,7 @@ describe('trace', () => {
       startSpan({ name: 'outer transaction' }, () => {
         startSpan({ name: 'inner span' }, () => {
           const innerTransaction = startInactiveSpan({ name: 'inner transaction', forceTransaction: true });
-          innerTransaction?.end();
+          innerTransaction.end();
         });
       });
 
@@ -586,7 +616,7 @@ describe('trace', () => {
 
       const outerTraceId = outerTransaction?.contexts?.trace?.trace_id;
       // The inner transaction should be a child of the last span of the outer transaction
-      const innerParentSpanId = outerTransaction?.spans?.[0].id;
+      const innerParentSpanId = outerTransaction?.spans?.[0]?.id;
       const innerSpanId = innerTransaction?.contexts?.trace?.span_id;
 
       expect(outerTraceId).toBeDefined();
@@ -813,6 +843,23 @@ describe('trace', () => {
       expect(getActiveSpan()).toBe(undefined);
     });
 
+    it('allows to pass a parentSpan', () => {
+      let parentSpan: Span;
+
+      startSpanManual({ name: 'detached' }, span => {
+        parentSpan = span;
+      });
+
+      startSpanManual({ name: 'GET users/[id]', parentSpan: parentSpan! }, span => {
+        expect(getActiveSpan()).toBe(span);
+        expect(spanToJSON(span).parent_span_id).toBe(parentSpan.spanContext().spanId);
+
+        span.end();
+      });
+
+      expect(getActiveSpan()).toBe(undefined);
+    });
+
     it('allows to force a transaction with forceTransaction=true', async () => {
       const client = getClient()!;
       const transactionEvents: Event[] = [];
@@ -857,7 +904,7 @@ describe('trace', () => {
 
       const outerTraceId = outerTransaction?.contexts?.trace?.trace_id;
       // The inner transaction should be a child of the last span of the outer transaction
-      const innerParentSpanId = outerTransaction?.spans?.[0].id;
+      const innerParentSpanId = outerTransaction?.spans?.[0]?.id;
       const innerSpanId = innerTransaction?.contexts?.trace?.span_id;
 
       expect(outerTraceId).toBeDefined();
@@ -960,28 +1007,39 @@ describe('trace', () => {
       });
     });
 
+    it('picks up the trace context from the scope, including parentSpanId, if there is no parent', () => {
+      withScope(scope => {
+        const propagationContext = scope.getPropagationContext();
+        propagationContext.parentSpanId = '1121201211212012';
+        const span = startInactiveSpan({ name: 'test span' });
+
+        expect(span).toBeDefined();
+        expect(spanToJSON(span).trace_id).toEqual(propagationContext.traceId);
+        expect(spanToJSON(span).parent_span_id).toEqual('1121201211212012');
+
+        expect(getDynamicSamplingContextFromSpan(span)).toEqual({
+          ...getDynamicSamplingContextFromClient(propagationContext.traceId, getClient()!),
+          sample_rate: '1',
+          sampled: 'true',
+          transaction: 'test span',
+        });
+      });
+    });
+
     it('picks up the trace context from the parent without DSC', () => {
       withScope(scope => {
         const propagationContext = scope.getPropagationContext();
 
-        const ctx = trace.setSpanContext(ROOT_CONTEXT, {
-          traceId: '12312012123120121231201212312012',
-          spanId: '1121201211212012',
-          isRemote: false,
-          traceFlags: TraceFlags.SAMPLED,
-          traceState: undefined,
-        });
-
-        context.with(ctx, () => {
+        startSpan({ name: 'parent span' }, parentSpan => {
           const span = startInactiveSpan({ name: 'test span' });
 
           expect(span).toBeDefined();
-          expect(spanToJSON(span).trace_id).toEqual('12312012123120121231201212312012');
-          expect(spanToJSON(span).parent_span_id).toEqual('1121201211212012');
+          expect(spanToJSON(span).trace_id).toEqual(parentSpan.spanContext().traceId);
+          expect(spanToJSON(span).parent_span_id).toEqual(parentSpan.spanContext().spanId);
           expect(getDynamicSamplingContextFromSpan(span)).toEqual({
             ...getDynamicSamplingContextFromClient(propagationContext.traceId, getClient()!),
-            trace_id: '12312012123120121231201212312012',
-            transaction: 'test span',
+            trace_id: parentSpan.spanContext().traceId,
+            transaction: 'parent span',
             sampled: 'true',
             sample_rate: '1',
           });

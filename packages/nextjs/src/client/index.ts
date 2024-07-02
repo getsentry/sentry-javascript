@@ -1,7 +1,7 @@
 import { addEventProcessor, applySdkMetadata, hasTracingEnabled, setTag } from '@sentry/core';
 import type { BrowserOptions } from '@sentry/react';
 import { getDefaultIntegrations as getReactDefaultIntegrations, init as reactInit } from '@sentry/react';
-import type { EventProcessor, Integration } from '@sentry/types';
+import type { Client, EventProcessor, Integration } from '@sentry/types';
 import { GLOBAL_OBJ } from '@sentry/utils';
 
 import { devErrorSymbolicationEventProcessor } from '../common/devErrorSymbolicationEventProcessor';
@@ -22,7 +22,7 @@ const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
 declare const __SENTRY_TRACING__: boolean;
 
 /** Inits the Sentry NextJS SDK on the browser with the React SDK. */
-export function init(options: BrowserOptions): void {
+export function init(options: BrowserOptions): Client | undefined {
   const opts = {
     environment: getVercelEnv(true) || process.env.NODE_ENV,
     defaultIntegrations: getDefaultIntegrations(options),
@@ -32,7 +32,7 @@ export function init(options: BrowserOptions): void {
   applyTunnelRouteOption(opts);
   applySdkMetadata(opts, 'nextjs', ['nextjs', 'react']);
 
-  reactInit(opts);
+  const client = reactInit(opts);
 
   setTag('runtime', 'browser');
   const filterTransactions: EventProcessor = event =>
@@ -43,6 +43,8 @@ export function init(options: BrowserOptions): void {
   if (process.env.NODE_ENV === 'development') {
     addEventProcessor(devErrorSymbolicationEventProcessor);
   }
+
+  return client;
 }
 
 function getDefaultIntegrations(options: BrowserOptions): Integration[] {

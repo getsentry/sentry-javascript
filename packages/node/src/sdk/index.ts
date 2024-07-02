@@ -12,6 +12,7 @@ import {
   startSession,
 } from '@sentry/core';
 import {
+  enhanceDscWithOpenTelemetryRootSpanName,
   openTelemetrySetupCheck,
   setOpenTelemetryContextAsyncContextStrategy,
   setupEventContextTrace,
@@ -97,14 +98,14 @@ function shouldAddPerformanceIntegrations(options: Options): boolean {
 /**
  * Initialize Sentry for Node.
  */
-export function init(options: NodeOptions | undefined = {}): void {
+export function init(options: NodeOptions | undefined = {}): NodeClient | undefined {
   return _init(options, getDefaultIntegrations);
 }
 
 /**
  * Initialize Sentry for Node, without any integrations added by default.
  */
-export function initWithoutDefaultIntegrations(options: NodeOptions | undefined = {}): void {
+export function initWithoutDefaultIntegrations(options: NodeOptions | undefined = {}): NodeClient {
   return _init(options, () => []);
 }
 
@@ -114,7 +115,7 @@ export function initWithoutDefaultIntegrations(options: NodeOptions | undefined 
 function _init(
   options: NodeOptions | undefined = {},
   getDefaultIntegrationsImpl: (options: Options) => Integration[],
-): void {
+): NodeClient {
   const clientOptions = getClientOptions(options, getDefaultIntegrationsImpl);
 
   if (clientOptions.debug === true) {
@@ -129,7 +130,7 @@ function _init(
     }
   }
 
-  if (!isCjs()) {
+  if (!isCjs() && options.registerEsmLoaderHooks !== false) {
     maybeInitializeEsmLoader();
   }
 
@@ -175,7 +176,10 @@ function _init(
     validateOpenTelemetrySetup();
   }
 
+  enhanceDscWithOpenTelemetryRootSpanName(client);
   setupEventContextTrace(client);
+
+  return client;
 }
 
 /**

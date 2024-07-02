@@ -81,8 +81,10 @@ export function wrapApiHandlerWithSentry(apiHandler: NextApiHandler, parameteriz
                   // eslint-disable-next-line @typescript-eslint/unbound-method
                   res.end = new Proxy(res.end, {
                     apply(target, thisArg, argArray) {
-                      setHttpStatus(span, res.statusCode);
-                      span.end();
+                      if (span.isRecording()) {
+                        setHttpStatus(span, res.statusCode);
+                        span.end();
+                      }
                       vercelWaitUntil(flushSafelyWithTimeout());
                       target.apply(thisArg, argArray);
                     },
@@ -128,8 +130,10 @@ export function wrapApiHandlerWithSentry(apiHandler: NextApiHandler, parameteriz
                     res.statusCode = 500;
                     res.statusMessage = 'Internal Server Error';
 
-                    setHttpStatus(span, res.statusCode);
-                    span.end();
+                    if (span.isRecording()) {
+                      setHttpStatus(span, res.statusCode);
+                      span.end();
+                    }
 
                     vercelWaitUntil(flushSafelyWithTimeout());
 

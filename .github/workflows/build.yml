@@ -108,6 +108,10 @@ jobs:
               - 'packages/replay-canvas/**'
               - 'packages/feedback/**'
               - 'packages/wasm/**'
+            node: &node
+              - *shared
+              - 'packages/node/**'
+              - 'packages/opentelemetry/**'
             browser_integration:
               - *shared
               - *browser
@@ -116,21 +120,21 @@ jobs:
               - *shared
               - *browser
               - 'packages/ember/**'
-            node:
+            node_integration:
               - *shared
-              - 'packages/node/**'
+              - *node
               - 'dev-packages/node-integration-tests/**'
             nextjs:
               - *shared
               - *browser
+              - *node
               - 'packages/nextjs/**'
-              - 'packages/node/**'
               - 'packages/react/**'
             remix:
               - *shared
               - *browser
+              - *node
               - 'packages/remix/**'
-              - 'packages/node/**'
               - 'packages/react/**'
             profiling_node:
               - *shared
@@ -157,6 +161,7 @@ jobs:
       changed_ember: ${{ steps.changed.outputs.ember }}
       changed_remix: ${{ steps.changed.outputs.remix }}
       changed_node: ${{ steps.changed.outputs.node }}
+      changed_node_integration: ${{ steps.changed.outputs.node_integration }}
       changed_profiling_node: ${{ steps.changed.outputs.profiling_node }}
       changed_profiling_node_bindings: ${{ steps.changed.outputs.profiling_node_bindings }}
       changed_deno: ${{ steps.changed.outputs.deno }}
@@ -223,6 +228,44 @@ jobs:
         with:
           message: |
             ⚠️ This PR is opened against **master**. You probably want to open it against **develop**.
+
+  job_external_contributor:
+    name: External Contributors
+    needs: job_install_deps
+    runs-on: ubuntu-20.04
+    if: |
+      github.event_name == 'pull_request'
+      && (github.event.action == 'opened' || github.event.action == 'reopened')
+      && github.event.pull_request.author_association != 'COLLABORATOR'
+      && github.event.pull_request.author_association != 'MEMBER'
+      && github.event.pull_request.author_association != 'OWNER'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: 'package.json'
+      - name: Check dependency cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ env.CACHED_DEPENDENCY_PATHS }}
+          key: ${{ needs.job_install_deps.outputs.dependency_cache_key }}
+          fail-on-cache-miss: true
+
+      - name: Add external contributor to CHANGELOG.md
+        uses: ./dev-packages/external-contributor-gh-action
+        with:
+          name: ${{ github.event.pull_request.user.login }}
+      - name: Create PR with changes
+        uses: peter-evans/create-pull-request@v6
+        with:
+          commit-message: "ref: Add external contributor to CHANGELOG.md"
+          title: "ref: Add external contributor to CHANGELOG.md"
+          branch: 'external-contributor/patch-${{ github.event.pull_request.user.login }}'
+          delete-branch: true
+          body: This PR adds the external contributor to the CHANGELOG.md file, so that they are credited for their contribution.
 
   job_build:
     name: Build
@@ -718,6 +761,7 @@ jobs:
           - loader_debug
           - loader_tracing
           - loader_replay
+          - loader_replay_buffer
           - loader_tracing_replay
 
     steps:
@@ -824,7 +868,7 @@ jobs:
       Node (${{ matrix.node }})${{ (matrix.typescript && format(' (TS {0})', matrix.typescript)) || '' }} Integration
       Tests
     needs: [job_get_metadata, job_build]
-    if: needs.job_get_metadata.outputs.changed_node == 'true' || github.event_name != 'pull_request'
+    if: needs.job_get_metadata.outputs.changed_node_integration == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-20.04
     timeout-minutes: 15
     strategy:
@@ -853,15 +897,15 @@ jobs:
 
       - name: Overwrite typescript version
         if: matrix.typescript
-        run: yarn add --dev --ignore-workspace-root-check typescript@${{ matrix.typescript }}
+        run: node ./scripts/use-ts-version.js ${{ matrix.typescript }}
+        working-directory: dev-packages/node-integration-tests
 
       - name: Run integration tests
         env:
           NODE_VERSION: ${{ matrix.node }}
           TS_VERSION: ${{ matrix.typescript }}
-        run: |
-          cd dev-packages/node-integration-tests
-          yarn test
+        working-directory: dev-packages/node-integration-tests
+        run: yarn test
 
   job_remix_integration_tests:
     name: Remix v${{ matrix.remix }} (Node ${{ matrix.node }}) Tests
@@ -874,10 +918,8 @@ jobs:
       matrix:
         node: [18, 20, 22]
         remix: [1, 2]
-        # Remix v2 only supports Node 18+, so run Node 14, 16 tests separately
+        # Remix v2 only supports Node 18+, so run 16 tests separately
         include:
-          - node: 14
-            remix: 1
           - node: 16
             remix: 1
     steps:
@@ -993,19 +1035,23 @@ jobs:
           [
             'angular-17',
             'angular-18',
-            'aws-lambda-layer',
+            'aws-lambda-layer-cjs',
             'cloudflare-astro',
             'node-express',
             'create-react-app',
             'create-next-app',
             'create-remix-app',
+            'create-remix-app-legacy',
             'create-remix-app-v2',
+            'create-remix-app-v2-legacy',
             'create-remix-app-express',
+            'create-remix-app-express-legacy',
             'create-remix-app-express-vite-dev',
             'node-express-esm-loader',
             'node-express-esm-preload',
             'node-express-esm-without-loader',
             'node-express-cjs-preload',
+            'node-otel-sdk-node',
             'nextjs-app-dir',
             'nextjs-14',
             'nextjs-15',
@@ -1014,6 +1060,7 @@ jobs:
             'react-router-6-use-routes',
             'react-router-5',
             'react-router-6',
+            'solid',
             'svelte-5',
             'sveltekit',
             'sveltekit-2',
@@ -1022,7 +1069,7 @@ jobs:
             'generic-ts3.8',
             'node-fastify',
             'node-hapi',
-            'node-nestjs',
+            'nestjs',
             'node-exports-test-app',
             'node-koa',
             'node-connect',
@@ -1058,7 +1105,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ env.HEAD_COMMIT }}
-      - uses: pnpm/action-setup@v2
+      - uses: pnpm/action-setup@v4
         with:
           version: 8.3.1
       - name: Set up Node
@@ -1155,7 +1202,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ env.HEAD_COMMIT }}
-      - uses: pnpm/action-setup@v2
+      - uses: pnpm/action-setup@v4
         with:
           version: 8.3.1
       - name: Set up Node
@@ -1234,7 +1281,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ env.HEAD_COMMIT }}
-      - uses: pnpm/action-setup@v2
+      - uses: pnpm/action-setup@v4
         with:
           version: 8.3.1
       - name: Set up Node
@@ -1432,33 +1479,33 @@ jobs:
             node: 22
 
             # macos x64
-          - os: macos-11
+          - os: macos-13
             node: 16
             arch: x64
-          - os: macos-11
+          - os: macos-13
             node: 18
             arch: x64
-          - os: macos-11
+          - os: macos-13
             node: 20
             arch: x64
-          - os: macos-11
+          - os: macos-13
             node: 22
             arch: x64
 
             # macos arm64
-          - os: macos-12
+          - os: macos-13
             arch: arm64
             node: 16
             target_platform: darwin
-          - os: macos-12
+          - os: macos-13
             arch: arm64
             node: 18
             target_platform: darwin
-          - os: macos-12
+          - os: macos-13
             arch: arm64
             node: 20
             target_platform: darwin
-          - os: macos-12
+          - os: macos-13
             arch: arm64
             node: 22
             target_platform: darwin

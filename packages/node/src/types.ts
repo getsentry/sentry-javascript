@@ -74,6 +74,27 @@ export interface BaseNodeOptions {
    */
   skipOpenTelemetrySetup?: boolean;
 
+  /**
+   * The max. duration in seconds that the SDK will wait for parent spans to be finished before discarding a span.
+   * The SDK will automatically clean up spans that have no finished parent after this duration.
+   * This is necessary to prevent memory leaks in case of parent spans that are never finished or otherwise dropped/missing.
+   * However, if you have very long-running spans in your application, a shorter duration might cause spans to be discarded too early.
+   * In this case, you can increase this duration to a value that fits your expected data.
+   *
+   * Defaults to 300 seconds (5 minutes).
+   */
+  maxSpanWaitDuration?: number;
+
+  /**
+   * Whether to register ESM loader hooks to automatically instrument libraries.
+   * This is necessary to auto instrument libraries that are loaded via ESM imports, but might it can cause issues
+   * with certain libraries. If you run into problems running your app with this enabled,
+   * please raise an issue in https://github.com/getsentry/sentry-javascript.
+   *
+   * Defaults to `true`.
+   */
+  registerEsmLoaderHooks?: boolean;
+
   /** Callback that is executed when a fatal global error occurs. */
   onFatalError?(this: void, error: Error): void;
 }

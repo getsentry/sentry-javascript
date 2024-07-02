@@ -311,6 +311,41 @@ describe('Tracekit - Firefox Tests', () => {
     });
   });
 
+  it('should correctly parse parentheses', () => {
+    const PARENTHESIS_FRAME_EXCEPTION = {
+      message: 'aha',
+      name: 'Error',
+      stack:
+        'onClick@http://localhost:3002/_next/static/chunks/app/(group)/[route]/script.js:1:644\n' +
+        '@http://localhost:3002/_next/static/chunks/app/(group)/[route]/script.js:1:126',
+    };
+
+    const stacktrace = exceptionFromError(parser, PARENTHESIS_FRAME_EXCEPTION);
+
+    expect(stacktrace).toEqual({
+      value: 'aha',
+      type: 'Error',
+      stacktrace: {
+        frames: [
+          {
+            colno: 126,
+            filename: 'http://localhost:3002/_next/static/chunks/app/(group)/[route]/script.js',
+            function: '?',
+            in_app: true,
+            lineno: 1,
+          },
+          {
+            colno: 644,
+            filename: 'http://localhost:3002/_next/static/chunks/app/(group)/[route]/script.js',
+            function: 'onClick',
+            in_app: true,
+            lineno: 1,
+          },
+        ],
+      },
+    });
+  });
+
   it('should parse Firefox errors with `file` inside an identifier', () => {
     const FIREFOX_FILE_IN_IDENTIFIER = {
       stack:

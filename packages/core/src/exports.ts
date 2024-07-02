@@ -41,7 +41,7 @@ export function captureException(
 /**
  * Captures a message event and sends it to Sentry.
  *
- * @param message The message to capture.
+ * @param message The message to send to Sentry.
  * @param captureContext Define the level of the message or pass in additional data to attach to the message.
  * @returns the id of the captured message.
  */

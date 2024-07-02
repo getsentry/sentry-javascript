@@ -43,6 +43,14 @@ const testRoutes: Record<string, Route> = {
     path: '/accounts/4',
     query: {},
   },
+  nestedRoute: {
+    matched: [{ path: '/' }, { path: '/categories' }, { path: '/categories/:categoryId' }],
+    params: {
+      categoryId: '1',
+    },
+    path: '/categories/1',
+    query: {},
+  },
   namedRoute: {
     matched: [{ path: '/login' }],
     name: 'login-screen',
@@ -74,7 +82,7 @@ describe('instrumentVueRouter()', () => {
     // check
     expect(mockVueRouter.onError).toHaveBeenCalledTimes(1);
 
-    const onErrorCallback = mockVueRouter.onError.mock.calls[0][0];
+    const onErrorCallback = mockVueRouter.onError.mock.calls[0]![0]!;
 
     const testError = new Error();
     onErrorCallback(testError);
@@ -85,6 +93,7 @@ describe('instrumentVueRouter()', () => {
 
   it.each([
     ['normalRoute1', 'normalRoute2', '/accounts/:accountId', 'route'],
+    ['normalRoute1', 'nestedRoute', '/categories/:categoryId', 'route'],
     ['normalRoute2', 'namedRoute', 'login-screen', 'custom'],
     ['normalRoute2', 'unmatchedRoute', '/e8733846-20ac-488c-9871-a5cbcb647294', 'url'],
   ])(
@@ -99,10 +108,10 @@ describe('instrumentVueRouter()', () => {
 
       // check
       expect(mockVueRouter.beforeEach).toHaveBeenCalledTimes(1);
-      const beforeEachCallback = mockVueRouter.beforeEach.mock.calls[0][0];
+      const beforeEachCallback = mockVueRouter.beforeEach.mock.calls[0]![0]!;
 
-      const from = testRoutes[fromKey];
-      const to = testRoutes[toKey];
+      const from = testRoutes[fromKey]!;
+      const to = testRoutes[toKey]!;
       beforeEachCallback(to, from, mockNext);
 
       expect(mockStartSpan).toHaveBeenCalledTimes(1);
@@ -122,6 +131,7 @@ describe('instrumentVueRouter()', () => {
 
   it.each([
     ['initialPageloadRoute', 'normalRoute1', '/books/:bookId/chapter/:chapterId', 'route'],
+    ['initialPageloadRoute', 'nestedRoute', '/categories/:categoryId', 'route'],
     ['initialPageloadRoute', 'namedRoute', 'login-screen', 'custom'],
     ['initialPageloadRoute', 'unmatchedRoute', '/e8733846-20ac-488c-9871-a5cbcb647294', 'url'],
   ])(
@@ -148,10 +158,10 @@ describe('instrumentVueRouter()', () => {
       // no span is started for page load
       expect(mockStartSpan).not.toHaveBeenCalled();
 
-      const beforeEachCallback = mockVueRouter.beforeEach.mock.calls[0][0];
+      const beforeEachCallback = mockVueRouter.beforeEach.mock.calls[0]![0]!;
 
-      const from = testRoutes[fromKey];
-      const to = testRoutes[toKey];
+      const from = testRoutes[fromKey]!;
+      const to = testRoutes[toKey]!;
 
       beforeEachCallback(to, from, mockNext);
       expect(mockVueRouter.beforeEach).toHaveBeenCalledTimes(1);
@@ -176,10 +186,10 @@ describe('instrumentVueRouter()', () => {
     );
 
     // check
-    const beforeEachCallback = mockVueRouter.beforeEach.mock.calls[0][0];
+    const beforeEachCallback = mockVueRouter.beforeEach.mock.calls[0]![0]!;
 
-    const from = testRoutes.normalRoute1;
-    const to = testRoutes.namedRoute;
+    const from = testRoutes.normalRoute1!;
+    const to = testRoutes.namedRoute!;
     beforeEachCallback(to, from, mockNext);
 
     // first startTx call happens when the instrumentation is initialized (for pageloads)
@@ -203,10 +213,10 @@ describe('instrumentVueRouter()', () => {
     );
 
     // check
-    const beforeEachCallback = mockVueRouter.beforeEach.mock.calls[0][0];
+    const beforeEachCallback = mockVueRouter.beforeEach.mock.calls[0]![0]!;
 
-    const from = testRoutes.normalRoute1;
-    const to = testRoutes.namedRoute;
+    const from = testRoutes.normalRoute1!;
+    const to = testRoutes.namedRoute!;
     beforeEachCallback(to, from, mockNext);
 
     // first startTx call happens when the instrumentation is initialized (for pageloads)
@@ -258,10 +268,10 @@ describe('instrumentVueRouter()', () => {
       },
     });
 
-    const beforeEachCallback = mockVueRouter.beforeEach.mock.calls[0][0];
+    const beforeEachCallback = mockVueRouter.beforeEach.mock.calls[0]![0]!;
 
-    const to = testRoutes['normalRoute1'];
-    const from = testRoutes['initialPageloadRoute'];
+    const to = testRoutes['normalRoute1']!;
+    const from = testRoutes['initialPageloadRoute']!;
 
     beforeEachCallback(to, from, mockNext);
 
@@ -294,10 +304,10 @@ describe('instrumentVueRouter()', () => {
       mockStartSpan,
     );
 
-    const beforeEachCallback = mockVueRouter.beforeEach.mock.calls[0][0];
+    const beforeEachCallback = mockVueRouter.beforeEach.mock.calls[0]![0]!;
 
-    const from = testRoutes['initialPageloadRoute'];
-    const to = testRoutes['normalRoute1'];
+    const from = testRoutes['initialPageloadRoute']!;
+    const to = testRoutes['normalRoute1']!;
 
     beforeEachCallback(to, from, mockNext);
 
@@ -336,8 +346,8 @@ describe('instrumentVueRouter()', () => {
       // check
       expect(mockVueRouter.beforeEach).toHaveBeenCalledTimes(1);
 
-      const beforeEachCallback = mockVueRouter.beforeEach.mock.calls[0][0];
-      beforeEachCallback(testRoutes['normalRoute1'], testRoutes['initialPageloadRoute'], mockNext);
+      const beforeEachCallback = mockVueRouter.beforeEach.mock.calls[0]![0]!;
+      beforeEachCallback(testRoutes['normalRoute1']!, testRoutes['initialPageloadRoute']!, mockNext);
 
       expect(mockRootSpan.updateName).toHaveBeenCalledTimes(expectedCallsAmount);
       expect(mockStartSpan).not.toHaveBeenCalled();
@@ -360,8 +370,8 @@ describe('instrumentVueRouter()', () => {
       // check
       expect(mockVueRouter.beforeEach).toHaveBeenCalledTimes(1);
 
-      const beforeEachCallback = mockVueRouter.beforeEach.mock.calls[0][0];
-      beforeEachCallback(testRoutes['normalRoute2'], testRoutes['normalRoute1'], mockNext);
+      const beforeEachCallback = mockVueRouter.beforeEach.mock.calls[0]![0]!;
+      beforeEachCallback(testRoutes['normalRoute2']!, testRoutes['normalRoute1']!, mockNext);
 
       expect(mockStartSpan).toHaveBeenCalledTimes(expectedCallsAmount);
     },
@@ -375,10 +385,10 @@ describe('instrumentVueRouter()', () => {
       mockStartSpan,
     );
 
-    const beforeEachCallback = mockVueRouter.beforeEach.mock.calls[0][0];
+    const beforeEachCallback = mockVueRouter.beforeEach.mock.calls[0]![0]!;
 
-    const from = testRoutes.normalRoute1;
-    const to = testRoutes.namedRoute;
+    const from = testRoutes.normalRoute1!;
+    const to = testRoutes.namedRoute!;
     beforeEachCallback(to, from, undefined);
 
     // first startTx call happens when the instrumentation is initialized (for pageloads)

@@ -44,7 +44,7 @@ conditionalTest({ min: 18 })('LocalVariables integration', () => {
       .ignore('session')
       .expect({
         event: event => {
-          for (const frame of event.exception?.values?.[0].stacktrace?.frames || []) {
+          for (const frame of event.exception?.values?.[0]?.stacktrace?.frames || []) {
             expect(frame.vars).toBeUndefined();
           }
         },
@@ -101,8 +101,8 @@ conditionalTest({ min: 18 })('LocalVariables integration', () => {
     child.on('message', msg => {
       reportedCount++;
       const rssMb = (msg as { memUsage: { rss: number } }).memUsage.rss / 1024 / 1024;
-      // We shouldn't use more than 120MB of memory
-      expect(rssMb).toBeLessThan(120);
+      // We shouldn't use more than 135MB of memory
+      expect(rssMb).toBeLessThan(135);
     });
 
     // Wait for 20 seconds

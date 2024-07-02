@@ -212,7 +212,7 @@ export const ReplayRecordingData = [
     data: {
       tag: 'performanceSpan',
       payload: {
-        op: 'largest-contentful-paint',
+        op: 'web-vital',
         description: 'largest-contentful-paint',
         startTimestamp: expect.any(Number),
         endTimestamp: expect.any(Number),

@@ -3,7 +3,7 @@ import type { Integration } from '@sentry/types';
 import { getClient } from '../../src/';
 import * as auto from '../../src/integrations/tracing';
 import { init } from '../../src/sdk';
-import type { NodeClient } from '../../src/sdk/client';
+import { NodeClient } from '../../src/sdk/client';
 import { cleanupOtel } from '../helpers/mockSdkInit';
 
 // eslint-disable-next-line no-var
@@ -61,10 +61,10 @@ describe('init()', () => {
 
     init({ dsn: PUBLIC_DSN, integrations: mockIntegrations, defaultIntegrations: mockDefaultIntegrations });
 
-    expect(mockDefaultIntegrations[0].setupOnce as jest.Mock).toHaveBeenCalledTimes(0);
-    expect(mockDefaultIntegrations[1].setupOnce as jest.Mock).toHaveBeenCalledTimes(1);
-    expect(mockIntegrations[0].setupOnce as jest.Mock).toHaveBeenCalledTimes(1);
-    expect(mockIntegrations[1].setupOnce as jest.Mock).toHaveBeenCalledTimes(1);
+    expect(mockDefaultIntegrations[0]?.setupOnce as jest.Mock).toHaveBeenCalledTimes(0);
+    expect(mockDefaultIntegrations[1]?.setupOnce as jest.Mock).toHaveBeenCalledTimes(1);
+    expect(mockIntegrations[0]?.setupOnce as jest.Mock).toHaveBeenCalledTimes(1);
+    expect(mockIntegrations[1]?.setupOnce as jest.Mock).toHaveBeenCalledTimes(1);
     expect(mockAutoPerformanceIntegrations).toHaveBeenCalledTimes(0);
   });
 
@@ -86,8 +86,8 @@ describe('init()', () => {
       },
     });
 
-    expect(mockDefaultIntegrations[0].setupOnce as jest.Mock).toHaveBeenCalledTimes(1);
-    expect(mockDefaultIntegrations[1].setupOnce as jest.Mock).toHaveBeenCalledTimes(0);
+    expect(mockDefaultIntegrations[0]?.setupOnce as jest.Mock).toHaveBeenCalledTimes(1);
+    expect(mockDefaultIntegrations[1]?.setupOnce as jest.Mock).toHaveBeenCalledTimes(0);
     expect(newIntegration.setupOnce as jest.Mock).toHaveBeenCalledTimes(1);
     expect(mockAutoPerformanceIntegrations).toHaveBeenCalledTimes(0);
   });
@@ -108,8 +108,8 @@ describe('init()', () => {
       enableTracing: true,
     });
 
-    expect(mockIntegrations[0].setupOnce as jest.Mock).toHaveBeenCalledTimes(1);
-    expect(mockIntegrations[1].setupOnce as jest.Mock).toHaveBeenCalledTimes(1);
+    expect(mockIntegrations[0]?.setupOnce as jest.Mock).toHaveBeenCalledTimes(1);
+    expect(mockIntegrations[1]?.setupOnce as jest.Mock).toHaveBeenCalledTimes(1);
     expect(autoPerformanceIntegration.setupOnce as jest.Mock).toHaveBeenCalledTimes(1);
     expect(mockAutoPerformanceIntegrations).toHaveBeenCalledTimes(1);
 
@@ -135,5 +135,11 @@ describe('init()', () => {
     const client = getClient<NodeClient>();
 
     expect(client?.traceProvider).not.toBeDefined();
+  });
+
+  it('returns intiated client', () => {
+    const client = init({ dsn: PUBLIC_DSN, skipOpenTelemetrySetup: true });
+
+    expect(client).toBeInstanceOf(NodeClient);
   });
 });

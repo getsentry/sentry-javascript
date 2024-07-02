@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
 
 test('Should create a transaction for route handlers', async ({ request }) => {
-  const routehandlerTransactionPromise = waitForTransaction('nextjs-13-app-dir', async transactionEvent => {
+  const routehandlerTransactionPromise = waitForTransaction('nextjs-app-dir', async transactionEvent => {
     return transactionEvent?.transaction === 'GET /route-handlers/[param]';
   });
 
@@ -19,7 +19,7 @@ test('Should create a transaction for route handlers', async ({ request }) => {
 test('Should create a transaction for route handlers and correctly set span status depending on http status', async ({
   request,
 }) => {
-  const routehandlerTransactionPromise = waitForTransaction('nextjs-13-app-dir', async transactionEvent => {
+  const routehandlerTransactionPromise = waitForTransaction('nextjs-app-dir', async transactionEvent => {
     return transactionEvent?.transaction === 'POST /route-handlers/[param]';
   });
 
@@ -33,11 +33,11 @@ test('Should create a transaction for route handlers and correctly set span stat
 });
 
 test('Should record exceptions and transactions for faulty route handlers', async ({ request }) => {
-  const errorEventPromise = waitForError('nextjs-13-app-dir', errorEvent => {
+  const errorEventPromise = waitForError('nextjs-app-dir', errorEvent => {
     return errorEvent?.exception?.values?.[0]?.value === 'route-handler-error';
   });
 
-  const routehandlerTransactionPromise = waitForTransaction('nextjs-13-app-dir', async transactionEvent => {
+  const routehandlerTransactionPromise = waitForTransaction('nextjs-app-dir', async transactionEvent => {
     return transactionEvent?.transaction === 'PUT /route-handlers/[param]/error';
   });
 
@@ -65,7 +65,7 @@ test('Should record exceptions and transactions for faulty route handlers', asyn
 
 test.describe('Edge runtime', () => {
   test('should create a transaction for route handlers', async ({ request }) => {
-    const routehandlerTransactionPromise = waitForTransaction('nextjs-13-app-dir', async transactionEvent => {
+    const routehandlerTransactionPromise = waitForTransaction('nextjs-app-dir', async transactionEvent => {
       return transactionEvent?.transaction === 'PATCH /route-handlers/[param]/edge';
     });
 
@@ -79,11 +79,11 @@ test.describe('Edge runtime', () => {
   });
 
   test('should record exceptions and transactions for faulty route handlers', async ({ request }) => {
-    const errorEventPromise = waitForError('nextjs-13-app-dir', errorEvent => {
+    const errorEventPromise = waitForError('nextjs-app-dir', errorEvent => {
       return errorEvent?.exception?.values?.[0]?.value === 'route-handler-edge-error';
     });
 
-    const routehandlerTransactionPromise = waitForTransaction('nextjs-13-app-dir', async transactionEvent => {
+    const routehandlerTransactionPromise = waitForTransaction('nextjs-app-dir', async transactionEvent => {
       return transactionEvent?.transaction === 'DELETE /route-handlers/[param]/edge';
     });
 

@@ -69,8 +69,8 @@ describe('init', () => {
 
     init(options);
 
-    expect(DEFAULT_INTEGRATIONS[0].setupOnce as jest.Mock).toHaveBeenCalledTimes(1);
-    expect(DEFAULT_INTEGRATIONS[1].setupOnce as jest.Mock).toHaveBeenCalledTimes(1);
+    expect(DEFAULT_INTEGRATIONS[0]!.setupOnce as jest.Mock).toHaveBeenCalledTimes(1);
+    expect(DEFAULT_INTEGRATIONS[1]!.setupOnce as jest.Mock).toHaveBeenCalledTimes(1);
   });
 
   test("doesn't install default integrations if told not to", () => {
@@ -81,8 +81,8 @@ describe('init', () => {
     const options = getDefaultBrowserOptions({ dsn: PUBLIC_DSN, defaultIntegrations: false });
     init(options);
 
-    expect(DEFAULT_INTEGRATIONS[0].setupOnce as jest.Mock).toHaveBeenCalledTimes(0);
-    expect(DEFAULT_INTEGRATIONS[1].setupOnce as jest.Mock).toHaveBeenCalledTimes(0);
+    expect(DEFAULT_INTEGRATIONS[0]!.setupOnce as jest.Mock).toHaveBeenCalledTimes(0);
+    expect(DEFAULT_INTEGRATIONS[1]!.setupOnce as jest.Mock).toHaveBeenCalledTimes(0);
   });
 
   it('installs merged default integrations, with overrides provided through options', () => {
@@ -100,10 +100,10 @@ describe('init', () => {
 
     init(options);
     // 'MockIntegration 1' should be overridden by the one with the same name provided through options
-    expect(DEFAULT_INTEGRATIONS[0].setupOnce as jest.Mock).toHaveBeenCalledTimes(0);
-    expect(DEFAULT_INTEGRATIONS[1].setupOnce as jest.Mock).toHaveBeenCalledTimes(1);
-    expect(integrations[0].setupOnce as jest.Mock).toHaveBeenCalledTimes(1);
-    expect(integrations[1].setupOnce as jest.Mock).toHaveBeenCalledTimes(1);
+    expect(DEFAULT_INTEGRATIONS[0]!.setupOnce as jest.Mock).toHaveBeenCalledTimes(0);
+    expect(DEFAULT_INTEGRATIONS[1]!.setupOnce as jest.Mock).toHaveBeenCalledTimes(1);
+    expect(integrations[0]!.setupOnce as jest.Mock).toHaveBeenCalledTimes(1);
+    expect(integrations[1]!.setupOnce as jest.Mock).toHaveBeenCalledTimes(1);
   });
 
   it('installs integrations returned from a callback function', () => {
@@ -124,9 +124,9 @@ describe('init', () => {
 
     init(options);
 
-    expect(DEFAULT_INTEGRATIONS[0].setupOnce as jest.Mock).toHaveBeenCalledTimes(1);
+    expect(DEFAULT_INTEGRATIONS[0]!.setupOnce as jest.Mock).toHaveBeenCalledTimes(1);
     expect(newIntegration.setupOnce as jest.Mock).toHaveBeenCalledTimes(1);
-    expect(DEFAULT_INTEGRATIONS[1].setupOnce as jest.Mock).toHaveBeenCalledTimes(0);
+    expect(DEFAULT_INTEGRATIONS[1]!.setupOnce as jest.Mock).toHaveBeenCalledTimes(0);
   });
 
   describe('initialization error in browser extension', () => {
@@ -209,5 +209,25 @@ describe('init', () => {
 
       consoleErrorSpy.mockRestore();
     });
+
+    it("doesn't return a client on initialization error", () => {
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+      Object.defineProperty(WINDOW, 'chrome', {
+        value: { runtime: { id: 'mock-extension-id' } },
+        writable: true,
+      });
+
+      const client = init(options);
+
+      expect(client).toBeUndefined();
+
+      consoleErrorSpy.mockRestore();
+    });
+  });
+
+  it('returns a client from init', () => {
+    const client = init();
+    expect(client).not.toBeUndefined();
   });
 });
