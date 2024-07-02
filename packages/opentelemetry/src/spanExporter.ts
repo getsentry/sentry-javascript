@@ -15,6 +15,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   getStatusMessage,
+  spanTimeInputToSeconds,
 } from '@sentry/core';
 import type { SpanJSON, SpanOrigin, TraceContext, TransactionEvent, TransactionSource } from '@sentry/types';
 import { dropUndefinedKeys, logger } from '@sentry/utils';
@@ -22,7 +23,6 @@ import { SENTRY_TRACE_STATE_PARENT_SPAN_ID } from './constants';
 
 import { DEBUG_BUILD } from './debug-build';
 import { SEMANTIC_ATTRIBUTE_SENTRY_PARENT_IS_REMOTE } from './semanticAttributes';
-import { convertOtelTimeToSeconds } from './utils/convertOtelTimeToSeconds';
 import { getRequestSpanData } from './utils/getRequestSpanData';
 import type { SpanNode } from './utils/groupSpansWithParents';
 import { getLocalParentId } from './utils/groupSpansWithParents';
@@ -176,7 +176,7 @@ function getCompletedRootNodes(nodes: SpanNode[]): SpanNodeCompleted[] {
 
 function shouldCleanupSpan(span: ReadableSpan, maxStartTimeOffsetSeconds: number): boolean {
   const cutoff = Date.now() / 1000 - maxStartTimeOffsetSeconds;
-  return convertOtelTimeToSeconds(span.startTime) < cutoff;
+  return spanTimeInputToSeconds(span.startTime) < cutoff;
 }
 
 function parseSpan(span: ReadableSpan): { op?: string; origin?: SpanOrigin; source?: TransactionSource } {
@@ -236,8 +236,8 @@ function createTransactionForOtelSpan(span: ReadableSpan): TransactionEvent {
       },
     },
     spans: [],
-    start_timestamp: convertOtelTimeToSeconds(span.startTime),
-    timestamp: convertOtelTimeToSeconds(span.endTime),
+    start_timestamp: spanTimeInputToSeconds(span.startTime),
+    timestamp: spanTimeInputToSeconds(span.endTime),
     transaction: description,
     type: 'transaction',
     sdkProcessingMetadata: {
@@ -294,9 +294,9 @@ function createAndFinishSpanForOtelSpan(node: SpanNode, spans: SpanJSON[], remai
     data: allData,
     description,
     parent_span_id: parentSpanId,
-    start_timestamp: convertOtelTimeToSeconds(startTime),
+    start_timestamp: spanTimeInputToSeconds(startTime),
     // This is [0,0] by default in OTEL, in which case we want to interpret this as no end time
-    timestamp: convertOtelTimeToSeconds(endTime) || undefined,
+    timestamp: spanTimeInputToSeconds(endTime) || undefined,
     status: getStatusMessage(status), // As per protocol, span status is allowed to be undefined
     op,
     origin,

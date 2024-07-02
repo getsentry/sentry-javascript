@@ -69,7 +69,7 @@ export function spanToTraceHeader(span: Span): string {
 }
 
 /**
- * Convert a span time input intp a timestamp in seconds.
+ * Convert a span time input into a timestamp in seconds.
  */
 export function spanTimeInputToSeconds(input: SpanTimeInput | undefined): number {
   if (typeof input === 'number') {
