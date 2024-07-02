@@ -1,28 +1,28 @@
 /* eslint-disable @typescript-eslint/unbound-method */
-import type * as SentryBrowser from '@sentry/browser';
+import type * as SentryCore from '@sentry/core';
 import { createTransport, getCurrentScope, setCurrentClient } from '@sentry/core';
 import { render } from '@solidjs/testing-library';
 import userEvent from '@testing-library/user-event';
 import { vi } from 'vitest';
 
 import { ErrorBoundary } from 'solid-js';
-import { BrowserClient, withSentryErrorBoundary } from '../src';
+import { NodeClient, withSentryErrorBoundary } from '../../src/server';
 
 const mockCaptureException = vi.fn();
-vi.mock('@sentry/browser', async () => {
-  const actual = await vi.importActual<typeof SentryBrowser>('@sentry/browser');
+vi.mock('@sentry/core', async () => {
+  const actual = await vi.importActual<typeof SentryCore>('@sentry/core');
   return {
     ...actual,
     captureException: (...args) => mockCaptureException(...args),
-  } as typeof SentryBrowser;
+  } as typeof SentryCore;
 });
 
 const user = userEvent.setup();
 const SentryErrorBoundary = withSentryErrorBoundary(ErrorBoundary);
 
 describe('withSentryErrorBoundary', () => {
-  function createMockBrowserClient(): BrowserClient {
-    return new BrowserClient({
+  function createMockNodeClient(): NodeClient {
+    return new NodeClient({
       integrations: [],
       tracesSampleRate: 1,
       transport: () => createTransport({ recordDroppedEvent: () => undefined }, _ => Promise.resolve({})),
@@ -33,7 +33,7 @@ describe('withSentryErrorBoundary', () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
-    const client = createMockBrowserClient();
+    const client = createMockNodeClient();
     setCurrentClient(client);
   });
 
