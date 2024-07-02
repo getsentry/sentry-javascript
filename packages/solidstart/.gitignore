@@ -1,0 +1,5 @@
+# types for the solidrouter integration that get output in root
+/client
+/server
+/*.d.ts
+/*.d.ts.map

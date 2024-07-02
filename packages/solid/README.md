@@ -52,7 +52,7 @@ render(
 );
 ```
 
-# ErrorBoundary
+# Solid ErrorBoundary
 
 To automatically capture exceptions from inside a component tree and render a fallback component, wrap the native Solid
 JS `ErrorBoundary` component with `Sentry.withSentryErrorBoundary`.

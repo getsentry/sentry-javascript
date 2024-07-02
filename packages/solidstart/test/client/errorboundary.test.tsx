@@ -6,7 +6,7 @@ import userEvent from '@testing-library/user-event';
 import { vi } from 'vitest';
 
 import { ErrorBoundary } from 'solid-js';
-import { BrowserClient, withSentryErrorBoundary } from '../src';
+import { BrowserClient, withSentryErrorBoundary } from '../../src/client';
 
 const mockCaptureException = vi.fn();
 vi.mock('@sentry/browser', async () => {

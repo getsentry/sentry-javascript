@@ -78,7 +78,7 @@
     "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",
     "build:types:watch": "tsc -p tsconfig.types.json --watch",
     "build:tarball": "npm pack",
-    "circularDepCheck": "madge --circular src/index.ts",
+    "circularDepCheck": "madge --circular src/index.ts && madge --circular src/solidrouter.ts",
     "clean": "rimraf build coverage sentry-solid-*.tgz ./*.d.ts ./*.d.ts.map",
     "fix": "eslint . --format stylish --fix",
     "lint": "eslint . --format stylish",
