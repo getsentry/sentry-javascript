@@ -7,6 +7,7 @@ import {
   getIsolationScope,
   getRootSpan,
   setHttpStatus,
+  spanIsValid,
   spanToTraceHeader,
   withIsolationScope,
 } from '@sentry/core';
@@ -115,7 +116,7 @@ export function addSentryCodeToPage(options: SentryHandleOptions): NonNullable<R
   return ({ html }) => {
     const activeSpan = getActiveSpan();
     const rootSpan = activeSpan ? getRootSpan(activeSpan) : undefined;
-    if (rootSpan) {
+    if (rootSpan && spanIsValid(rootSpan)) {
       const traceparentData = spanToTraceHeader(rootSpan);
       const dynamicSamplingContext = dynamicSamplingContextToSentryBaggageHeader(
         getDynamicSamplingContextFromSpan(rootSpan),

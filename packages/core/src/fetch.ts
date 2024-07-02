@@ -17,7 +17,7 @@ import {
 } from './tracing';
 import { SentryNonRecordingSpan } from './tracing/sentryNonRecordingSpan';
 import { hasTracingEnabled } from './utils/hasTracingEnabled';
-import { getActiveSpan, spanToTraceHeader } from './utils/spanUtils';
+import { getActiveSpan, spanIsValid, spanToTraceHeader } from './utils/spanUtils';
 
 type PolymorphicRequestHeaders =
   | Record<string, string | undefined>
@@ -138,10 +138,14 @@ export function addTracingHeadersToFetchRequest(
     ...scope.getPropagationContext(),
   };
 
-  const sentryTraceHeader = span ? spanToTraceHeader(span) : generateSentryTraceHeader(traceId, spanId, sampled);
+  const sentryTraceHeader =
+    span && spanIsValid(span) ? spanToTraceHeader(span) : generateSentryTraceHeader(traceId, spanId, sampled);
 
   const sentryBaggageHeader = dynamicSamplingContextToSentryBaggageHeader(
-    dsc || (span ? getDynamicSamplingContextFromSpan(span) : getDynamicSamplingContextFromClient(traceId, client)),
+    dsc ||
+      (span && spanIsValid(span)
+        ? getDynamicSamplingContextFromSpan(span)
+        : getDynamicSamplingContextFromClient(traceId, client)),
   );
 
   const headers =

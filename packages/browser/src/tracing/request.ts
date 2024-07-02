@@ -16,6 +16,7 @@ import {
   hasTracingEnabled,
   instrumentFetchRequest,
   setHttpStatus,
+  spanIsValid,
   spanToJSON,
   spanToTraceHeader,
   startInactiveSpan,
@@ -371,10 +372,15 @@ function addTracingHeadersToXhrRequest(xhr: SentryWrappedXMLHttpRequest, client:
   };
 
   const sentryTraceHeader =
-    span && hasTracingEnabled() ? spanToTraceHeader(span) : generateSentryTraceHeader(traceId, spanId, sampled);
+    span && spanIsValid(span) && hasTracingEnabled()
+      ? spanToTraceHeader(span)
+      : generateSentryTraceHeader(traceId, spanId, sampled);
 
   const sentryBaggageHeader = dynamicSamplingContextToSentryBaggageHeader(
-    dsc || (span ? getDynamicSamplingContextFromSpan(span) : getDynamicSamplingContextFromClient(traceId, client)),
+    dsc ||
+      (span && spanIsValid(span)
+        ? getDynamicSamplingContextFromSpan(span)
+        : getDynamicSamplingContextFromClient(traceId, client)),
   );
 
   setHeaderOnXhr(xhr, sentryTraceHeader, sentryBaggageHeader);
