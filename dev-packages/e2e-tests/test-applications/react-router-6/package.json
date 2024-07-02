@@ -6,6 +6,7 @@
     "@sentry/react": "latest || *",
     "@types/react": "18.0.0",
     "@types/react-dom": "18.0.0",
+    "express": "4.19.2",
     "react": "18.2.0",
     "react-dom": "18.2.0",
     "react-router-dom": "^6.4.1",
@@ -14,7 +15,7 @@
   },
   "scripts": {
     "build": "react-scripts build",
-    "start": "serve -s build",
+    "start": "concurrently \"node server/app.js\" \"serve -s build\"",
     "test": "playwright test",
     "clean": "npx rimraf node_modules pnpm-lock.yaml",
     "test:build": "pnpm install && npx playwright install && pnpm build",
@@ -43,6 +44,7 @@
   "devDependencies": {
     "@playwright/test": "^1.44.1",
     "@sentry-internal/test-utils": "link:../../../test-utils",
+    "concurrently": "^8.2.2",
     "serve": "14.0.1"
   },
   "volta": {

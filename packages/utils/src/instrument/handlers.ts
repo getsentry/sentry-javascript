@@ -2,7 +2,15 @@ import { DEBUG_BUILD } from '../debug-build';
 import { logger } from '../logger';
 import { getFunctionName } from '../stacktrace';
 
-export type InstrumentHandlerType = 'console' | 'dom' | 'fetch' | 'history' | 'xhr' | 'error' | 'unhandledrejection';
+export type InstrumentHandlerType =
+  | 'console'
+  | 'dom'
+  | 'fetch'
+  | 'fetch-body-resolved'
+  | 'history'
+  | 'xhr'
+  | 'error'
+  | 'unhandledrejection';
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type InstrumentHandlerCallback = (data: any) => void;
 

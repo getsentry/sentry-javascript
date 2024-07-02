@@ -1,5 +1,5 @@
 import { addConsoleInstrumentationHandler } from './console';
-import { addFetchInstrumentationHandler } from './fetch';
+import { addFetchEndInstrumentationHandler, addFetchInstrumentationHandler } from './fetch';
 import { addGlobalErrorInstrumentationHandler } from './globalError';
 import { addGlobalUnhandledRejectionInstrumentationHandler } from './globalUnhandledRejection';
 import { addHandler, maybeInstrument, resetInstrumentationHandlers, triggerHandlers } from './handlers';
@@ -14,4 +14,5 @@ export {
   triggerHandlers,
   // Only exported for tests
   resetInstrumentationHandlers,
+  addFetchEndInstrumentationHandler,
 };

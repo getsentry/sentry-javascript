@@ -1,7 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { HandlerDataFetch } from '@sentry/types';
 
+import { DEBUG_BUILD } from '../debug-build';
 import { isError } from '../is';
+import { logger } from '../logger';
 import { addNonEnumerableProperty, fill } from '../object';
 import { supportsNativeFetch } from '../supports';
 import { timestampInSeconds } from '../time';
@@ -22,6 +24,20 @@ export function addFetchInstrumentationHandler(handler: (data: HandlerDataFetch)
   const type = 'fetch';
   addHandler(type, handler);
   maybeInstrument(type, instrumentFetch);
+}
+
+/**
+ * Add an instrumentation handler for long-lived fetch requests, like consuming SSE via fetch.
+ * The handler will resolve the request body and emit the actual `endTimestamp`, so that the
+ * span can be updated accordingly.
+ *
+ * Only used internally
+ * @hidden
+ */
+export function addFetchEndInstrumentationHandler(handler: (data: HandlerDataFetch) => void): void {
+  const type = 'fetch-body-resolved';
+  addHandler(type, handler);
+  maybeInstrument(type, instrumentFetchBodyReceived);
 }
 
 function instrumentFetch(): void {
@@ -91,6 +107,55 @@ function instrumentFetch(): void {
           throw error;
         },
       );
+    };
+  });
+}
+
+function instrumentFetchBodyReceived(): void {
+  if (!supportsNativeFetch()) {
+    return;
+  }
+
+  fill(GLOBAL_OBJ, 'fetch', function (originalFetch: () => void): () => void {
+    return function (...args: any[]): void {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      return originalFetch.apply(GLOBAL_OBJ, args).then(async (response: Response) => {
+        // clone response for awaiting stream
+        let clonedResponseForResolving: Response | undefined;
+        try {
+          clonedResponseForResolving = response.clone();
+        } catch (e) {
+          // noop
+          DEBUG_BUILD && logger.warn('Failed to clone response body.');
+        }
+
+        if (clonedResponseForResolving && clonedResponseForResolving.body) {
+          const responseReader = clonedResponseForResolving.body.getReader();
+
+          // eslint-disable-next-line no-inner-declarations
+          function consumeChunks({ done }: { done: boolean }): Promise<void> {
+            if (!done) {
+              return responseReader.read().then(consumeChunks);
+            } else {
+              return Promise.resolve();
+            }
+          }
+
+          responseReader
+            .read()
+            .then(consumeChunks)
+            .then(() => {
+              triggerHandlers('fetch-body-resolved', {
+                endTimestamp: timestampInSeconds() * 1000,
+                response,
+              });
+            })
+            .catch(() => {
+              // noop
+            });
+        }
+        return response;
+      });
     };
   });
 }
