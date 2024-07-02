@@ -3,15 +3,15 @@ import { getDefaultIntegrations, init as nodeInit } from '@sentry/node';
 import type { NodeClient, NodeOptions } from '@sentry/node';
 import { GLOBAL_OBJ, logger } from '@sentry/utils';
 
+import type { EventProcessor } from '@sentry/types';
 import { DEBUG_BUILD } from '../common/debug-build';
 import { devErrorSymbolicationEventProcessor } from '../common/devErrorSymbolicationEventProcessor';
 import { getVercelEnv } from '../common/getVercelEnv';
 import { isBuild } from '../common/utils/isBuild';
 import { distDirRewriteFramesIntegration } from './distDirRewriteFramesIntegration';
+import { httpIntegration } from './httpIntegration';
 
 export * from '@sentry/node';
-import type { EventProcessor } from '@sentry/types';
-import { httpIntegration } from './httpIntegration';
 
 export { httpIntegration };
 
@@ -129,11 +129,18 @@ export function init(options: NodeOptions): NodeClient | undefined {
 
   const client = nodeInit(opts);
 
+  // If we encounter a span emitted by Next.js, we do not want to sample it
+  // The reason for this is that the data quality of the spans varies, it is different per version of Next,
+  // and we need to keep our manual instrumentation around for the edge runtime anyhow.
+  // BUT we only do this if we don't have a parent span with a sampling decision yet (or if the parent is remote)
   client?.on('beforeSampling', ({ spanAttributes, spanName, parentSampled, parentContext }, samplingDecision) => {
-    // If we encounter a span emitted by Next.js, we do not want to sample it
-    // The reason for this is that the data quality of the spans varies, it is different per version of Next,
-    // and we need to keep our manual instrumentation around for the edge runtime anyhow.
-    // BUT we only do this if we don't have a parent span with a sampling decision yet (or if the parent is remote)
+    // We "whitelist" the "BaseServer.handleRequest" span, since that one is responsible for App Router requests, which are actually useful for us.
+    // HOWEVER, that span is not only responsible for App Router requests, which is why we additionally filter for certain transactions in an
+    // event processor further below.
+    if (spanAttributes['next.span_type'] === 'BaseServer.handleRequest') {
+      return;
+    }
+
     if (
       (spanAttributes['next.span_type'] || NEXTJS_SPAN_NAME_PREFIXES.some(prefix => spanName.startsWith(prefix))) &&
       (parentSampled === undefined || parentContext?.isRemote)
@@ -150,6 +157,16 @@ export function init(options: NodeOptions): NodeClient | undefined {
           // This regex matches the default path to the static assets (`_next/static`) and could potentially filter out too many transactions.
           // We match `/_next/static/` anywhere in the transaction name because its location may change with the basePath setting.
           if (event.transaction?.match(/^GET (\/.*)?\/_next\/static\//)) {
+            return null;
+          }
+
+          // 'BaseServer.handleRequest' spans are the only Next.js spans we sample. However, we only want to actually keep these spans/transactions,
+          // when they server RSCs (app router routes). We mark these transactions with a "sentry.rsc" attribute in our RSC wrappers so we can
+          // filter them here.
+          if (
+            event.contexts?.trace?.data?.['next.span_type'] === 'BaseServer.handleRequest' &&
+            event.contexts?.trace?.data?.['sentry.rsc'] !== true
+          ) {
             return null;
           }
 
