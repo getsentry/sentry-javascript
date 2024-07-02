@@ -52,6 +52,7 @@
     "packages/browser-utils",
     "packages/bun",
     "packages/core",
+    "packages/cloudflare",
     "packages/deno",
     "packages/ember",
     "packages/eslint-config-sdk",
