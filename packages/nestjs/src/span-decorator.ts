@@ -12,6 +12,7 @@ export function GetSentrySpan() {
     descriptor.value = async function (...args: any[]) {
       await startSpan(
         {
+          op: 'function',
           name: propertyKey,
         },
         async () => {
