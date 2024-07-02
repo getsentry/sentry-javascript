@@ -38,9 +38,7 @@ export { SentryPropagator } from './propagator';
 export { SentrySpanProcessor } from './spanProcessor';
 export {
   SentrySampler,
-  sentrySamplerNoDecision,
-  sentrySamplerNotSampled,
-  sentrySamplerSampled,
+  wrapSamplingDecision,
 } from './sampler';
 
 export { openTelemetrySetupCheck } from './utils/setupCheck';

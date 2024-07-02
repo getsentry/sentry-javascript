@@ -41,7 +41,7 @@ export class SentrySampler implements Sampler {
     const parentContext = parentSpan?.spanContext();
 
     if (!hasTracingEnabled(options)) {
-      return sentrySamplerNoDecision({ context, spanAttributes });
+      return wrapSamplingDecision({ decision: undefined, context, spanAttributes });
     }
 
     // If we have a http.client span that has no local parent, we never want to sample it
@@ -51,7 +51,7 @@ export class SentrySampler implements Sampler {
       spanAttributes[SEMATTRS_HTTP_METHOD] &&
       (!parentSpan || parentContext?.isRemote)
     ) {
-      return sentrySamplerNoDecision({ context, spanAttributes });
+      return wrapSamplingDecision({ decision: undefined, context, spanAttributes });
     }
 
     const parentSampled = parentSpan ? getParentSampled(parentSpan, traceId, spanName) : undefined;
@@ -68,7 +68,7 @@ export class SentrySampler implements Sampler {
       mutableSamplingDecision,
     );
     if (!mutableSamplingDecision.decision) {
-      return sentrySamplerNoDecision({ context, spanAttributes });
+      return wrapSamplingDecision({ decision: undefined, context, spanAttributes });
     }
 
     const [sampled, sampleRate] = sampleSpan(options, {
@@ -90,19 +90,19 @@ export class SentrySampler implements Sampler {
       DEBUG_BUILD && logger.log(`[Tracing] Not sampling span because HTTP method is '${method}' for ${spanName}`);
 
       return {
-        ...sentrySamplerNotSampled({ context, spanAttributes }),
+        ...wrapSamplingDecision({ decision: SamplingDecision.NOT_RECORD, context, spanAttributes }),
         attributes,
       };
     }
 
     if (!sampled) {
       return {
-        ...sentrySamplerNotSampled({ context, spanAttributes }),
+        ...wrapSamplingDecision({ decision: SamplingDecision.NOT_RECORD, context, spanAttributes }),
         attributes,
       };
     }
     return {
-      ...sentrySamplerSampled({ context, spanAttributes }),
+      ...wrapSamplingDecision({ decision: SamplingDecision.RECORD_AND_SAMPLED, context, spanAttributes }),
       attributes,
     };
   }
@@ -143,40 +143,28 @@ function getParentSampled(parentSpan: Span, traceId: string, spanName: string): 
 }
 
 /**
- * Returns a SamplingResult that indicates that a span was not sampled, but no definite decision was made yet.
- * This indicates to downstream SDKs that they may make their own decision.
+ * Wrap a sampling decision with data that Sentry needs to work properly with it.
+ * If you pass `decision: undefined`, it will be treated as `NOT_RECORDING`, but in contrast to passing `NOT_RECORDING`
+ * it will not propagate this decision to downstream Sentry SDKs.
  */
-export function sentrySamplerNoDecision({
+export function wrapSamplingDecision({
+  decision,
   context,
   spanAttributes,
-}: { context: Context; spanAttributes: SpanAttributes }): SamplingResult {
+}: { decision: SamplingDecision | undefined; context: Context; spanAttributes: SpanAttributes }): SamplingResult {
   const traceState = getBaseTraceState(context, spanAttributes);
 
-  return { decision: SamplingDecision.NOT_RECORD, traceState };
-}
+  // If the decision is undefined, we treat it as NOT_RECORDING, but we don't propagate this decision to downstream SDKs
+  // Which is done by not setting `SENTRY_TRACE_STATE_SAMPLED_NOT_RECORDING` traceState
+  if (decision == undefined) {
+    return { decision: SamplingDecision.NOT_RECORD, traceState };
+  }
 
-/**
- * Returns a SamplingResult that indicates that a span was not sampled.
- */
-export function sentrySamplerNotSampled({
-  context,
-  spanAttributes,
-}: { context: Context; spanAttributes: SpanAttributes }): SamplingResult {
-  const traceState = getBaseTraceState(context, spanAttributes).set(SENTRY_TRACE_STATE_SAMPLED_NOT_RECORDING, '1');
+  if (decision === SamplingDecision.NOT_RECORD) {
+    return { decision, traceState: traceState.set(SENTRY_TRACE_STATE_SAMPLED_NOT_RECORDING, '1') };
+  }
 
-  return { decision: SamplingDecision.NOT_RECORD, traceState };
-}
-
-/**
- * Returns a SamplingResult that indicates that a span was sampled.
- */
-export function sentrySamplerSampled({
-  context,
-  spanAttributes,
-}: { context: Context; spanAttributes: SpanAttributes }): SamplingResult {
-  const traceState = getBaseTraceState(context, spanAttributes);
-
-  return { decision: SamplingDecision.RECORD_AND_SAMPLED, traceState };
+  return { decision, traceState };
 }
 
 function getBaseTraceState(context: Context, spanAttributes: SpanAttributes): TraceStateInterface {
