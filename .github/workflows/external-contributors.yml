@@ -1,10 +1,6 @@
 name: "CI: Mention external contributors"
 on:
   pull_request:
-    types:
-      - closed
-    branches:
-      - develop
 
 env:
   NX_CACHE_RESTORE_KEYS: |
@@ -16,10 +12,6 @@ jobs:
   external_contributor:
     name: External Contributors
     runs-on: ubuntu-20.04
-    if: |
-      github.event.pull_request.author_association != 'COLLABORATOR'
-      && github.event.pull_request.author_association != 'MEMBER'
-      && github.event.pull_request.author_association != 'OWNER'
     steps:
       - uses: actions/checkout@v4
         with:
