@@ -14,6 +14,7 @@ jobs:
       github.event.pull_request.author_association != 'COLLABORATOR'
       && github.event.pull_request.author_association != 'MEMBER'
       && github.event.pull_request.author_association != 'OWNER'
+      && github.actor != 'dependabot[bot]'
     steps:
       - uses: actions/checkout@v4
         with:
@@ -32,7 +33,7 @@ jobs:
         with:
           name: ${{ github.event.pull_request.user.login }}
       - name: Create PR with changes
-        uses: peter-evans/create-pull-request@v6
+        uses: peter-evans/create-pull-request@c5a7806660adbe173f04e3e038b0ccdcd758773c
         with:
           commit-message: "ref: Add external contributor to CHANGELOG.md"
           title: "ref: Add external contributor to CHANGELOG.md"
