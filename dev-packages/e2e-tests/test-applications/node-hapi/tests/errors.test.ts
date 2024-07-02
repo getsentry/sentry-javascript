@@ -92,6 +92,18 @@ test('Only sends onPreResponse error to Sentry if JS error is thrown in route ha
     return errorEvent?.exception?.values?.[0]?.value?.includes('JS error (onPreResponse)') || false;
   });
 
+  let routeHandlerErrorOccurred = false;
+
+  waitForError('node-hapi', event => {
+    if (
+      !event.type &&
+      event.exception?.values?.[0]?.value?.includes('This is an error (another JS error in onPreResponse)')
+    ) {
+      routeHandlerErrorOccurred = true;
+    }
+    return false; // expects to return a boolean (but not relevant here)
+  });
+
   const transactionEventPromise = waitForTransaction('node-hapi', transactionEvent => {
     return transactionEvent?.transaction === 'GET /test-failure-JS-error-onPreResponse';
   });
@@ -103,6 +115,7 @@ test('Only sends onPreResponse error to Sentry if JS error is thrown in route ha
   const errorEvent = await errorEventPromise;
   const transactionEvent = await transactionEventPromise;
 
+  expect(routeHandlerErrorOccurred).toBe(false);
   expect(transactionEvent.transaction).toBe('GET /test-failure-JS-error-onPreResponse');
   expect(errorEvent.transaction).toEqual('GET /test-failure-JS-error-onPreResponse');
 });
