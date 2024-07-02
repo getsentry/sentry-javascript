@@ -2,11 +2,13 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SPAN_STATUS_ERROR,
   SPAN_STATUS_OK,
+  Scope,
   captureException,
   getActiveSpan,
   getClient,
   getRootSpan,
   handleCallbackErrors,
+  setCapturedScopesOnSpan,
   startSpanManual,
   withIsolationScope,
   withScope,
@@ -30,17 +32,21 @@ export function wrapGenerationFunctionWithSentry<F extends (...args: any[]) => a
   const { requestAsyncStorage, componentRoute, componentType, generationFunctionIdentifier } = context;
   return new Proxy(generationFunction, {
     apply: (originalFunction, thisArg, args) => {
-      const activeSpan = getActiveSpan();
-      if (activeSpan) {
-        getRootSpan(activeSpan).setAttribute('sentry.rsc', true);
-      }
-
       let headers: WebFetchHeaders | undefined = undefined;
       // We try-catch here just in case anything goes wrong with the async storage here goes wrong since it is Next.js internal API
       try {
         headers = requestAsyncStorage?.getStore()?.headers;
       } catch (e) {
         /** empty */
+      }
+
+      const isolationScope = commonObjectToIsolationScope(headers);
+
+      const activeSpan = getActiveSpan();
+      if (activeSpan) {
+        const rootSpan = getRootSpan(activeSpan);
+        rootSpan.setAttribute('sentry.rsc', true);
+        setCapturedScopesOnSpan(rootSpan, new Scope(), isolationScope);
       }
 
       let data: Record<string, unknown> | undefined = undefined;
@@ -53,8 +59,6 @@ export function wrapGenerationFunctionWithSentry<F extends (...args: any[]) => a
       }
 
       const headersDict = headers ? winterCGHeadersToDict(headers) : undefined;
-
-      const isolationScope = commonObjectToIsolationScope(headers);
 
       return withIsolationScope(isolationScope, () => {
         return withScope(scope => {

@@ -2,10 +2,12 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SPAN_STATUS_ERROR,
   SPAN_STATUS_OK,
+  Scope,
   captureException,
   getActiveSpan,
   getRootSpan,
   handleCallbackErrors,
+  setCapturedScopesOnSpan,
   startSpanManual,
   withIsolationScope,
   withScope,
@@ -33,12 +35,14 @@ export function wrapServerComponentWithSentry<F extends (...args: any[]) => any>
   // hook. 🤯
   return new Proxy(appDirComponent, {
     apply: (originalFunction, thisArg, args) => {
+      const isolationScope = commonObjectToIsolationScope(context.headers);
+
       const activeSpan = getActiveSpan();
       if (activeSpan) {
-        getRootSpan(activeSpan).setAttribute('sentry.rsc', true);
+        const rootSpan = getRootSpan(activeSpan);
+        rootSpan.setAttribute('sentry.rsc', true);
+        setCapturedScopesOnSpan(rootSpan, new Scope(), isolationScope);
       }
-
-      const isolationScope = commonObjectToIsolationScope(context.headers);
 
       const headersDict = context.headers ? winterCGHeadersToDict(context.headers) : undefined;
 
