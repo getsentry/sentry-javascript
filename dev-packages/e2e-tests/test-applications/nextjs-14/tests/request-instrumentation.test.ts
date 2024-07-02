@@ -3,7 +3,7 @@ import { waitForTransaction } from '@sentry-internal/test-utils';
 
 test('Should send a transaction with a fetch span', async ({ page }) => {
   const transactionPromise = waitForTransaction('nextjs-14', async transactionEvent => {
-    return transactionEvent?.transaction === 'Page Server Component (/request-instrumentation)';
+    return transactionEvent?.transaction === 'GET /request-instrumentation';
   });
 
   await page.goto(`/request-instrumentation`);
