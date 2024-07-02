@@ -121,6 +121,8 @@ export {
 // We can still leave this for the carrier init and type exports
 export * from '@sentry/node';
 
+export { withSentryErrorBoundary } from '@sentry/solid'
+
 // -------------------------
-// SvelteKit SDK exports:
+// Solid Start SDK exports:
 export { init } from './sdk';
