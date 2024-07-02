@@ -6,7 +6,7 @@ import { init as solidInit } from '../src/sdk';
 
 const browserInit = vi.spyOn(SentryBrowser, 'init');
 
-describe('Initialize Solid SDk', () => {
+describe('Initialize Solid SDK', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
