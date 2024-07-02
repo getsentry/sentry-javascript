@@ -1,0 +1,54 @@
+name: "CI: Mention external contributors"
+on:
+  pull_request:
+    types:
+      - closed
+    branches:
+      - develop
+
+env:
+  NX_CACHE_RESTORE_KEYS: |
+    nx-Linux-${{ github.ref }}-${{ github.sha }}
+    nx-Linux-${{ github.ref }}
+    nx-Linux
+
+jobs:
+  external_contributor:
+    name: External Contributors
+    runs-on: ubuntu-20.04
+    if: |
+      github.event.pull_request.author_association != 'COLLABORATOR'
+      && github.event.pull_request.author_association != 'MEMBER'
+      && github.event.pull_request.author_association != 'OWNER'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: 'package.json'
+          cache: 'yarn'
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+      - name: NX cache
+        uses: actions/cache/restore@v4
+        with:
+          path: .nxcache
+          key: nx-Linux-${{ github.ref }}-${{ github.sha }}
+          restore-keys: ${{ env.NX_CACHE_RESTORE_KEYS }}
+
+      - name: Add external contributor to CHANGELOG.md
+        uses: ./dev-packages/external-contributor-gh-action
+        with:
+          name: ${{ github.event.pull_request.user.login }}
+      - name: Create PR with changes
+        uses: peter-evans/create-pull-request@v6
+        with:
+          commit-message: "ref: Add external contributor to CHANGELOG.md"
+          title: "ref: Add external contributor to CHANGELOG.md"
+          branch: 'external-contributor/patch-${{ github.event.pull_request.user.login }}'
+          delete-branch: true
+          body: This PR adds the external contributor to the CHANGELOG.md file, so that they are credited for their contribution.
+
