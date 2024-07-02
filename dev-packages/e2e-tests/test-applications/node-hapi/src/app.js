@@ -10,6 +10,7 @@ Sentry.init({
 });
 
 const Hapi = require('@hapi/hapi');
+const Boom = require('@hapi/boom');
 
 const server = Hapi.server({
   port: 3030,
@@ -62,6 +63,45 @@ const init = async () => {
     handler: async function (request, h) {
       throw new Error('This is an error');
     },
+  });
+
+  server.route({
+    method: 'GET',
+    path: '/test-failure-boom-4xx',
+    handler: async function (request, h) {
+      throw new Error('This is an error (boom in onPreResponse)');
+    },
+  });
+
+  server.route({
+    method: 'GET',
+    path: '/test-failure-boom-5xx',
+    handler: async function (request, h) {
+      throw new Error('This is an error (boom in onPreResponse)');
+    },
+  });
+
+  server.route({
+    method: 'GET',
+    path: '/test-failure-JS-error-onPreResponse',
+    handler: async function (request, h) {
+      throw new Error('This is an error (another JS error in onPreResponse)');
+    },
+  });
+
+  // This runs after the route handler
+  server.ext('onPreResponse', (request, h) => {
+    const path = request.route.path;
+
+    if (path.includes('boom-4xx')) {
+      throw Boom.notFound('4xx not found (onPreResponse)');
+    } else if (path.includes('boom-5xx')) {
+      throw Boom.gatewayTimeout('5xx not implemented (onPreResponse)');
+    } else if (path.includes('JS-error-onPreResponse')) {
+      throw new Error('JS error (onPreResponse)');
+    } else {
+      return h.continue;
+    }
   });
 };
 
