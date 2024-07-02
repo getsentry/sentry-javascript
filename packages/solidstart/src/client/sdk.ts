@@ -4,9 +4,7 @@ import { init as initSolidSDK } from '@sentry/solid';
 import type { Client } from '@sentry/types';
 
 /**
- * Initialize the client side of the Sentry SvelteKit SDK.
- *
- * @param options Configuration options for the SDK.
+ * Initializes the client side of the Solid Start SDK.
  */
 export function init(options: BrowserOptions): Client | undefined {
   const opts = {

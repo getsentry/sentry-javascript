@@ -3,14 +3,18 @@ import { mergeProps, splitProps } from 'solid-js';
 import type { Component, JSX, ParentProps } from 'solid-js';
 import { createComponent } from 'solid-js/web';
 
+// We use @sentry/solid/solidrouter on the client.
+// On the server, we have to create matching components
+// in structure to avoid hydration errors.
+
 /** Pass-through component in case user didn't specify a root **/
 function SentryDefaultRoot(props: ParentProps): JSX.Element {
   return props.children;
 }
 
 /**
- * Unfortunately, we cannot use router hooks directly in the Router, so we
- * need to wrap the `root` prop to instrument navigation.
+ * On the client, router hooks are used in the router's root render prop.
+ * This creates a matching structure that's purely pass-through to avoid hydration errors.
  */
 function withSentryRouterRoot(Root: Component<RouteSectionProps>): Component<RouteSectionProps> {
   const SentryRouterRoot = (props: RouteSectionProps): JSX.Element => {
@@ -23,7 +27,8 @@ function withSentryRouterRoot(Root: Component<RouteSectionProps>): Component<Rou
 export type RouterType = typeof BaseRouter | typeof HashRouter | typeof MemoryRouter | typeof StaticRouter;
 
 /**
- * A higher-order component to instrument Solid Router to create navigation spans.
+ * On the client, router hooks are used to start navigation spans.
+ * This creates a matching structure that's purely pass-through to avoid hydration errors.
  */
 export function withSentryRouterRouting(Router: RouterType): RouterType {
   const SentryRouter = (props: Parameters<RouterType>[0]): JSX.Element => {

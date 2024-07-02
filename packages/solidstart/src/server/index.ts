@@ -121,7 +121,7 @@ export {
 // We can still leave this for the carrier init and type exports
 export * from '@sentry/node';
 
-export { withSentryErrorBoundary } from '@sentry/solid'
+export { withSentryErrorBoundary } from '@sentry/solid';
 
 // -------------------------
 // Solid Start SDK exports:

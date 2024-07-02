@@ -4,16 +4,16 @@ export default makeNPMConfigVariants(
   makeBaseNPMConfig({
     entrypoints: [
       'src/index.client.ts',
-      'src/solidrouter.client.ts',
       'src/index.server.ts',
-      'src/solidrouter.server.ts',
       'src/client/index.ts',
-      'src/client/solidrouter.ts',
       'src/server/index.ts',
-      'src/server/solidrouter.ts',
       'src/solidrouter.ts',
+      'src/solidrouter.client.ts',
+      'src/solidrouter.server.ts',
+      'src/client/solidrouter.ts',
+      'src/server/solidrouter.ts',
     ],
-    // prevent this internal nextjs code from ending up in our built package (this doesn't happen automatially because
+    // prevent this internal code from ending up in our built package (this doesn't happen automatially because
     // the name doesn't match an SDK dependency)
     packageSpecificConfig: {
       external: ['solid-js', '@sentry/solid', '@sentry/solid/solidrouter'],
