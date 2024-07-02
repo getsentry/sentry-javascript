@@ -55,6 +55,7 @@ const BUNDLE_PATHS: Record<string, Record<string, string>> = {
     loader_debug: 'build/bundles/bundle.debug.min.js',
     loader_tracing: 'build/bundles/bundle.tracing.min.js',
     loader_replay: 'build/bundles/bundle.replay.min.js',
+    loader_replay_buffer: 'build/bundles/bundle.replay.min.js',
     loader_tracing_replay: 'build/bundles/bundle.tracing.replay.debug.min.js',
   },
   integrations: {
@@ -94,6 +95,10 @@ export const LOADER_CONFIGS: Record<string, { options: Record<string, unknown>; 
   },
   loader_replay: {
     options: { replaysSessionSampleRate: 1, replaysOnErrorSampleRate: 1 },
+    lazy: false,
+  },
+  loader_replay_buffer: {
+    options: { replaysSessionSampleRate: 0, replaysOnErrorSampleRate: 1 },
     lazy: false,
   },
   loader_tracing_replay: {

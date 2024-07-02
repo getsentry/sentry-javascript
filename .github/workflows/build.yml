@@ -761,6 +761,7 @@ jobs:
           - loader_debug
           - loader_tracing
           - loader_replay
+          - loader_replay_buffer
           - loader_tracing_replay
 
     steps:

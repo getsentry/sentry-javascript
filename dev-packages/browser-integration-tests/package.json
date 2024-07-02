@@ -32,6 +32,7 @@
     "test:loader:eager": "PW_BUNDLE=loader_eager yarn test:loader",
     "test:loader:tracing": "PW_BUNDLE=loader_tracing yarn test:loader",
     "test:loader:replay": "PW_BUNDLE=loader_replay yarn test:loader",
+    "test:loader:replay_buffer": "PW_BUNDLE=loader_replay_buffer yarn test:loader",
     "test:loader:full": "PW_BUNDLE=loader_tracing_replay yarn test:loader",
     "test:loader:debug": "PW_BUNDLE=loader_debug yarn test:loader",
     "test:ci": "yarn test:all --reporter='line'",

@@ -1,13 +1,11 @@
 import { expect } from '@playwright/test';
 
 import { sentryTest } from '../../../../utils/fixtures';
+import { envelopeRequestParser, waitForErrorRequestOnUrl } from '../../../../utils/helpers';
 import { getReplayEvent, shouldSkipReplayTest, waitForReplayRequest } from '../../../../utils/replayHelpers';
 
-const bundle = process.env.PW_BUNDLE || '';
-
-sentryTest('should capture a replay', async ({ getLocalTestUrl, page }) => {
-  // When in buffer mode, there will not be a replay by default
-  if (shouldSkipReplayTest() || bundle === 'loader_replay_buffer') {
+sentryTest('should capture a replay & attach an error', async ({ getLocalTestUrl, page }) => {
+  if (shouldSkipReplayTest()) {
     sentryTest.skip();
   }
 
@@ -22,10 +20,16 @@ sentryTest('should capture a replay', async ({ getLocalTestUrl, page }) => {
   const req = waitForReplayRequest(page);
 
   const url = await getLocalTestUrl({ testDir: __dirname });
-  await page.goto(url);
+  const reqError = await waitForErrorRequestOnUrl(page, url);
+
+  const errorEventData = envelopeRequestParser(reqError);
+  expect(errorEventData.exception?.values?.length).toBe(1);
+  expect(errorEventData.exception?.values?.[0]?.value).toContain('window.doSomethingWrong is not a function');
 
   const eventData = getReplayEvent(await req);
 
   expect(eventData).toBeDefined();
   expect(eventData.segment_id).toBe(0);
+
+  expect(errorEventData.tags?.replayId).toEqual(eventData.replay_id);
 });
