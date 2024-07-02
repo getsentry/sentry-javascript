@@ -2014,4 +2014,59 @@ describe('BaseClient', () => {
       });
     });
   });
+
+  describe('hook removal with `on`', () => {
+    it('should return a cleanup function that, when executed, unregisters a hook', async () => {
+      expect.assertions(8);
+
+      const client = new TestClient(
+        getDefaultTestClientOptions({
+          dsn: PUBLIC_DSN,
+          enableSend: true,
+        }),
+      );
+
+      // @ts-expect-error Accessing private transport API
+      const mockSend = jest.spyOn(client._transport, 'send').mockImplementation(() => {
+        return Promise.resolve({ statusCode: 200 });
+      });
+
+      const errorEvent: Event = { message: 'error' };
+
+      const callback = jest.fn();
+      const removeAfterSendEventListenerFn = client.on('afterSendEvent', callback);
+
+      // @ts-expect-error Accessing private client API
+      expect(client._hooks['afterSendEvent']).toEqual([callback]);
+
+      client.sendEvent(errorEvent);
+      jest.runAllTimers();
+      // Wait for two ticks
+      // note that for whatever reason, await new Promise(resolve => setTimeout(resolve, 0)) causes the test to hang
+      await undefined;
+      await undefined;
+
+      expect(mockSend).toBeCalledTimes(1);
+      expect(callback).toBeCalledTimes(1);
+      expect(callback).toBeCalledWith(errorEvent, { statusCode: 200 });
+
+      // Should unregister `afterSendEvent` callback.
+      removeAfterSendEventListenerFn();
+      // @ts-expect-error Accessing private client API
+      expect(client._hooks['afterSendEvent']).toEqual([]);
+
+      client.sendEvent(errorEvent);
+      jest.runAllTimers();
+      // Wait for two ticks
+      // note that for whatever reason, await new Promise(resolve => setTimeout(resolve, 0)) causes the test to hang
+      await undefined;
+      await undefined;
+
+      expect(mockSend).toBeCalledTimes(2);
+      // Note that the `callback` has still been called only once and not twice,
+      // because we unregistered it.
+      expect(callback).toBeCalledTimes(1);
+      expect(callback).toBeCalledWith(errorEvent, { statusCode: 200 });
+    });
+  });
 });
