@@ -1,5 +1,6 @@
 // Disabling `no-explicit-any` for the whole file as `any` has became common requirement.
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import type { ReactElement } from 'react';
 
 export type Action = 'PUSH' | 'REPLACE' | 'POP';
 
@@ -67,7 +68,7 @@ export type UseNavigationType = () => Action;
 // react-router > 6.0.0 and >= 6.4.2.
 export type RouteObjectArrayAlias = any;
 export type RouteMatchAlias = any;
-export type CreateRoutesFromChildren = (children: JSX.Element[]) => RouteObjectArrayAlias;
+export type CreateRoutesFromChildren = (children: ReactElement[]) => RouteObjectArrayAlias;
 export type MatchRoutes = (
   routes: RouteObjectArrayAlias,
   location: Location,
