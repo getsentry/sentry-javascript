@@ -69,6 +69,11 @@ export class AppController1 {
   async testOutgoingHttpExternalDisallowed() {
     return this.appService.testOutgoingHttpExternalDisallowed();
   }
+
+  @Get('test-span-decorator')
+  async testSpanDecorator() {
+    return this.appService.testSpanDecorator();
+  }
 }
 
 @Controller()
