@@ -1,6 +1,6 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import * as Sentry from '@sentry/nestjs';
-import { GetSentrySpan } from '@sentry/nestjs';
+import { SentryTraced } from '@sentry/nestjs';
 import { makeHttpRequest } from './utils';
 
 @Injectable()
@@ -77,7 +77,7 @@ export class AppService1 {
     return makeHttpRequest('http://localhost:3040/external-disallowed');
   }
 
-  @GetSentrySpan('wait function')
+  @SentryTraced('wait function')
   async wait() {
     return new Promise(resolve => setTimeout(resolve, 500));
   }

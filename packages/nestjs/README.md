@@ -40,16 +40,16 @@ Note that it is necessary to initialize Sentry **before you import any package t
 
 ## Span Decorator
 
-Use the @GetSentrySpan() decorator to gain additional performance insights for any function within your NestJS
+Use the @SentryTraced() decorator to gain additional performance insights for any function within your NestJS
 application.
 
 ```js
 import { Injectable } from '@nestjs/common';
-import { GetSentrySpan } from '@sentry/nestjs';
+import { SentryTraced } from '@sentry/nestjs';
 
 @Injectable()
 export class ExampleService {
-  @GetSentrySpan()
+  @SentryTraced()
   async performTask() {
     // Your business logic here
   }
