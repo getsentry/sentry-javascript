@@ -19,7 +19,7 @@ interface EventProxyServerOptions {
   /** The name for the proxy server used for referencing it with listener functions */
   proxyServerName: string;
   /**
-   * Whether or not to forward the event to sentry. @default `true`
+   * Whether or not to forward the event to sentry. @default `false`
    * This is helpful when you can't register a tunnel in the SDK setup (e.g. lambda layer without Sentry.init call)
    */
   forwardToSentry?: boolean;
@@ -172,7 +172,7 @@ export async function startEventProxyServer(options: EventProxyServerOptions): P
   await startProxyServer(options, async (eventCallbackListeners, proxyRequest, proxyRequestBody, eventBuffer) => {
     const envelopeHeader: EnvelopeItem[0] = JSON.parse(proxyRequestBody.split('\n')[0] as string);
 
-    const shouldForwardEventToSentry = options.forwardToSentry != null ? options.forwardToSentry : true;
+    const shouldForwardEventToSentry = options.forwardToSentry || false;
 
     if (!envelopeHeader.dsn && shouldForwardEventToSentry) {
       // eslint-disable-next-line no-console
