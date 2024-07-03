@@ -1,3 +1,5 @@
+/* eslint-disable max-lines */
+
 import * as fs from 'fs';
 import * as http from 'http';
 import type { AddressInfo } from 'net';
@@ -30,11 +32,21 @@ interface SentryRequestCallbackData {
   sentryResponseStatusCode?: number;
 }
 
+interface EventCallbackListener {
+  (data: string): void;
+}
+
 type OnRequest = (
-  eventCallbackListeners: Set<(data: string) => void>,
+  eventCallbackListeners: Set<EventCallbackListener>,
   proxyRequest: http.IncomingMessage,
   proxyRequestBody: string,
+  eventBuffer: BufferedEvent[],
 ) => Promise<[number, string, Record<string, string> | undefined]>;
+
+interface BufferedEvent {
+  timestamp: number;
+  data: string;
+}
 
 /**
  * Start a generic proxy server.
@@ -51,7 +63,8 @@ export async function startProxyServer(
   },
   onRequest?: OnRequest,
 ): Promise<void> {
-  const eventCallbackListeners: Set<(data: string) => void> = new Set();
+  const eventBuffer: BufferedEvent[] = [];
+  const eventCallbackListeners: Set<EventCallbackListener> = new Set();
 
   const proxyServer = http.createServer((proxyRequest, proxyResponse) => {
     const proxyRequestChunks: Uint8Array[] = [];
@@ -76,7 +89,9 @@ export async function startProxyServer(
 
       const callback: OnRequest =
         onRequest ||
-        (async (eventCallbackListeners, proxyRequest, proxyRequestBody) => {
+        (async (eventCallbackListeners, proxyRequest, proxyRequestBody, eventBuffer) => {
+          eventBuffer.push({ data: proxyRequestBody, timestamp: Date.now() });
+
           eventCallbackListeners.forEach(listener => {
             listener(proxyRequestBody);
           });
@@ -84,7 +99,7 @@ export async function startProxyServer(
           return [200, '{}', {}];
         });
 
-      callback(eventCallbackListeners, proxyRequest, proxyRequestBody)
+      callback(eventCallbackListeners, proxyRequest, proxyRequestBody, eventBuffer)
         .then(([statusCode, responseBody, responseHeaders]) => {
           proxyResponse.writeHead(statusCode, responseHeaders);
           proxyResponse.write(responseBody, 'utf-8');
@@ -110,11 +125,23 @@ export async function startProxyServer(
     eventCallbackResponse.statusCode = 200;
     eventCallbackResponse.setHeader('connection', 'keep-alive');
 
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const searchParams = new URL(eventCallbackRequest.url!, 'http://justsomerandombasesothattheurlisparseable.com/')
+      .searchParams;
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const listenerTimestamp = Number(searchParams.get('timestamp')!);
+
     const callbackListener = (data: string): void => {
       eventCallbackResponse.write(data.concat('\n'), 'utf8');
     };
 
     eventCallbackListeners.add(callbackListener);
+
+    eventBuffer.forEach(bufferedEvent => {
+      if (bufferedEvent.timestamp > listenerTimestamp) {
+        callbackListener(bufferedEvent.data);
+      }
+    });
 
     eventCallbackRequest.on('close', () => {
       eventCallbackListeners.delete(callbackListener);
@@ -142,7 +169,7 @@ export async function startProxyServer(
  * option to this server (like this `tunnel: http://localhost:${port option}/`).
  */
 export async function startEventProxyServer(options: EventProxyServerOptions): Promise<void> {
-  await startProxyServer(options, async (eventCallbackListeners, proxyRequest, proxyRequestBody) => {
+  await startProxyServer(options, async (eventCallbackListeners, proxyRequest, proxyRequestBody, eventBuffer) => {
     const envelopeHeader: EnvelopeItem[0] = JSON.parse(proxyRequestBody.split('\n')[0] as string);
 
     const shouldForwardEventToSentry = options.forwardToSentry != null ? options.forwardToSentry : true;
@@ -199,8 +226,12 @@ export async function startEventProxyServer(options: EventProxyServerOptions): P
         sentryResponseStatusCode: res.status,
       };
 
+      const dataString = Buffer.from(JSON.stringify(data)).toString('base64');
+
+      eventBuffer.push({ data: dataString, timestamp: Date.now() });
+
       eventCallbackListeners.forEach(listener => {
-        listener(Buffer.from(JSON.stringify(data)).toString('base64'));
+        listener(dataString);
       });
 
       const resHeaders: Record<string, string> = {};
@@ -221,24 +252,28 @@ export async function waitForPlainRequest(
   const eventCallbackServerPort = await retrieveCallbackServerPort(proxyServerName);
 
   return new Promise((resolve, reject) => {
-    const request = http.request(`http://localhost:${eventCallbackServerPort}/`, {}, response => {
-      let eventContents = '';
+    const request = http.request(
+      `http://localhost:${eventCallbackServerPort}/?timestamp=${Date.now()}`,
+      {},
+      response => {
+        let eventContents = '';
 
-      response.on('error', err => {
-        reject(err);
-      });
+        response.on('error', err => {
+          reject(err);
+        });
 
-      response.on('data', (chunk: Buffer) => {
-        const chunkString = chunk.toString('utf8');
+        response.on('data', (chunk: Buffer) => {
+          const chunkString = chunk.toString('utf8');
 
-        eventContents = eventContents.concat(chunkString);
+          eventContents = eventContents.concat(chunkString);
 
-        if (callback(eventContents)) {
-          response.destroy();
-          return resolve(eventContents);
-        }
-      });
-    });
+          if (callback(eventContents)) {
+            response.destroy();
+            return resolve(eventContents);
+          }
+        });
+      },
+    );
 
     request.end();
   });
@@ -247,49 +282,54 @@ export async function waitForPlainRequest(
 /** Wait for a request to be sent. */
 export async function waitForRequest(
   proxyServerName: string,
+  timestamp: number,
   callback: (eventData: SentryRequestCallbackData) => Promise<boolean> | boolean,
 ): Promise<SentryRequestCallbackData> {
   const eventCallbackServerPort = await retrieveCallbackServerPort(proxyServerName);
 
   return new Promise<SentryRequestCallbackData>((resolve, reject) => {
-    const request = http.request(`http://localhost:${eventCallbackServerPort}/`, {}, response => {
-      let eventContents = '';
+    const request = http.request(
+      `http://localhost:${eventCallbackServerPort}/?timestamp=${timestamp}`,
+      {},
+      response => {
+        let eventContents = '';
 
-      response.on('error', err => {
-        reject(err);
-      });
-
-      response.on('data', (chunk: Buffer) => {
-        const chunkString = chunk.toString('utf8');
-        chunkString.split('').forEach(char => {
-          if (char === '\n') {
-            const eventCallbackData: SentryRequestCallbackData = JSON.parse(
-              Buffer.from(eventContents, 'base64').toString('utf8'),
-            );
-            const callbackResult = callback(eventCallbackData);
-            if (typeof callbackResult !== 'boolean') {
-              callbackResult.then(
-                match => {
-                  if (match) {
-                    response.destroy();
-                    resolve(eventCallbackData);
-                  }
-                },
-                err => {
-                  throw err;
-                },
-              );
-            } else if (callbackResult) {
-              response.destroy();
-              resolve(eventCallbackData);
-            }
-            eventContents = '';
-          } else {
-            eventContents = eventContents.concat(char);
-          }
+        response.on('error', err => {
+          reject(err);
         });
-      });
-    });
+
+        response.on('data', (chunk: Buffer) => {
+          const chunkString = chunk.toString('utf8');
+          chunkString.split('').forEach(char => {
+            if (char === '\n') {
+              const eventCallbackData: SentryRequestCallbackData = JSON.parse(
+                Buffer.from(eventContents, 'base64').toString('utf8'),
+              );
+              const callbackResult = callback(eventCallbackData);
+              if (typeof callbackResult !== 'boolean') {
+                callbackResult.then(
+                  match => {
+                    if (match) {
+                      response.destroy();
+                      resolve(eventCallbackData);
+                    }
+                  },
+                  err => {
+                    throw err;
+                  },
+                );
+              } else if (callbackResult) {
+                response.destroy();
+                resolve(eventCallbackData);
+              }
+              eventContents = '';
+            } else {
+              eventContents = eventContents.concat(char);
+            }
+          });
+        });
+      },
+    );
 
     request.end();
   });
@@ -298,10 +338,11 @@ export async function waitForRequest(
 /** Wait for a specific envelope item to be sent. */
 export function waitForEnvelopeItem(
   proxyServerName: string,
+  timestamp: number,
   callback: (envelopeItem: EnvelopeItem) => Promise<boolean> | boolean,
 ): Promise<EnvelopeItem> {
   return new Promise((resolve, reject) => {
-    waitForRequest(proxyServerName, async eventData => {
+    waitForRequest(proxyServerName, timestamp, async eventData => {
       const envelopeItems = eventData.envelope[1];
       for (const envelopeItem of envelopeItems) {
         if (await callback(envelopeItem)) {
@@ -319,8 +360,9 @@ export function waitForError(
   proxyServerName: string,
   callback: (transactionEvent: Event) => Promise<boolean> | boolean,
 ): Promise<Event> {
+  const timestamp = Date.now();
   return new Promise((resolve, reject) => {
-    waitForEnvelopeItem(proxyServerName, async envelopeItem => {
+    waitForEnvelopeItem(proxyServerName, timestamp, async envelopeItem => {
       const [envelopeItemHeader, envelopeItemBody] = envelopeItem;
       if (envelopeItemHeader.type === 'event' && (await callback(envelopeItemBody as Event))) {
         resolve(envelopeItemBody as Event);
@@ -336,8 +378,9 @@ export function waitForTransaction(
   proxyServerName: string,
   callback: (transactionEvent: Event) => Promise<boolean> | boolean,
 ): Promise<Event> {
+  const timestamp = Date.now();
   return new Promise((resolve, reject) => {
-    waitForEnvelopeItem(proxyServerName, async envelopeItem => {
+    waitForEnvelopeItem(proxyServerName, timestamp, async envelopeItem => {
       const [envelopeItemHeader, envelopeItemBody] = envelopeItem;
       if (envelopeItemHeader.type === 'transaction' && (await callback(envelopeItemBody as Event))) {
         resolve(envelopeItemBody as Event);
