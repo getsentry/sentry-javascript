@@ -195,7 +195,13 @@ export async function startEventProxyServer(options: EventProxyServerOptions): P
         listener(Buffer.from(JSON.stringify(data)).toString('base64'));
       });
 
-      return [200, '{}', {}];
+      return [
+        200,
+        '{}',
+        {
+          'Access-Control-Allow-Origin': '*',
+        },
+      ];
     }
 
     const { origin, pathname, host } = new URL(envelopeHeader.dsn as string);
