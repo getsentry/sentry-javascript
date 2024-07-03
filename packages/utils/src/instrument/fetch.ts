@@ -27,7 +27,7 @@ export function addFetchInstrumentationHandler(handler: (data: HandlerDataFetch)
 }
 
 /**
- * Add an instrumentation handler for long-lived fetch requests, like consuming SSE via fetch.
+ * Add an instrumentation handler for long-lived fetch requests, like consuming server-sent events (SSE) via fetch.
  * The handler will resolve the request body and emit the actual `endTimestamp`, so that the
  * span can be updated accordingly.
  *
