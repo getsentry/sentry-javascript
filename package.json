@@ -42,7 +42,7 @@
   },
   "volta": {
     "node": "18.20.3",
-    "yarn": "1.22.22"
+    "yarn": "1.22.19"
   },
   "workspaces": [
     "packages/angular",
