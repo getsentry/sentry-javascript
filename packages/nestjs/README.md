@@ -49,7 +49,7 @@ import { SentryTraced } from '@sentry/nestjs';
 
 @Injectable()
 export class ExampleService {
-  @SentryTraced()
+  @SentryTraced('example function')
   async performTask() {
     // Your business logic here
   }
