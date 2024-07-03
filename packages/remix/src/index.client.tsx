@@ -27,6 +27,7 @@ export async function captureRemixServerException(
 }
 /* eslint-enable @typescript-eslint/no-unused-vars */
 
+export { setTags, captureException } from '@sentry/react';
 export * from '@sentry/react';
 
 export function init(options: RemixOptions): Client | undefined {

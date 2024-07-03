@@ -12,17 +12,21 @@ import {
   useMatches,
   useRouteError,
 } from '@remix-run/react';
-import type { SentryMetaArgs } from '@sentry/remix';
-import { useNonce } from '@shopify/hydrogen';
-import type { CustomerAccessToken } from '@shopify/hydrogen/storefront-api-types';
-import { type LoaderArgs, defer } from '@shopify/remix-oxygen';
+import type {SentryMetaArgs} from '@sentry/remix';
+import {useNonce} from '@shopify/hydrogen';
+import type {CustomerAccessToken} from '@shopify/hydrogen/storefront-api-types';
+import {type LoaderArgs, defer} from '@shopify/remix-oxygen';
 import favicon from '../public/favicon.svg';
-import type { HydrogenSession } from '../server';
+import type {HydrogenSession} from '../server';
 
 import * as Sentry from '@sentry/remix';
 
 // This is important to avoid re-fetching root queries on sub-navigations
-export const shouldRevalidate: ShouldRevalidateFunction = ({ formMethod, currentUrl, nextUrl }) => {
+export const shouldRevalidate: ShouldRevalidateFunction = ({
+  formMethod,
+  currentUrl,
+  nextUrl,
+}) => {
   // revalidate when a mutation is performed e.g add to cart, login...
   if (formMethod && formMethod !== 'GET') {
     return true;
@@ -46,17 +50,20 @@ export function links() {
       rel: 'preconnect',
       href: 'https://shop.app',
     },
-    { rel: 'icon', type: 'image/svg+xml', href: favicon },
+    {rel: 'icon', type: 'image/svg+xml', href: favicon},
   ];
 }
 
-export async function loader({ context }: LoaderArgs) {
-  const { storefront, session, cart } = context;
+export async function loader({context}: LoaderArgs) {
+  const {storefront, session, cart} = context;
   const customerAccessToken = await session.get('customerAccessToken');
   const publicStoreDomain = context.env.PUBLIC_STORE_DOMAIN;
 
   // validate the customer access token is valid
-  const { isLoggedIn, headers } = await validateCustomerAccessToken(session, customerAccessToken);
+  const {isLoggedIn, headers} = await validateCustomerAccessToken(
+    session,
+    customerAccessToken,
+  );
 
   // defer the cart query by not awaiting it
   const cartPromise = cart.get();
@@ -88,11 +95,11 @@ export async function loader({ context }: LoaderArgs) {
         SENTRY_DSN: process.env.E2E_TEST_DSN,
       },
     },
-    { headers },
+    {headers},
   );
 }
 
-export const meta = ({ data }: SentryMetaArgs<MetaFunction<typeof loader>>) => {
+export const meta = ({data}: SentryMetaArgs<MetaFunction<typeof loader>>) => {
   return [
     {
       env: data.ENV,
@@ -110,7 +117,7 @@ export const meta = ({ data }: SentryMetaArgs<MetaFunction<typeof loader>>) => {
 
 function App() {
   const nonce = useNonce();
-  const { ENV } = useLoaderData();
+  const {ENV} = useLoaderData();
 
   return (
     <html lang="en">
@@ -135,7 +142,8 @@ function App() {
   );
 }
 
-export default Sentry.withSentry(App);
+// export default Sentry.withSentry(App);
+export default App;
 
 export function ErrorBoundary() {
   const error = useRouteError();
@@ -144,8 +152,8 @@ export function ErrorBoundary() {
   let errorMessage = 'Unknown error';
   let errorStatus = 500;
 
-  // Send the error to Sentry
-  const eventId = Sentry.captureRemixErrorBoundaryError(error);
+  // // Send the error to Sentry
+  // const eventId = Sentry.captureRemixErrorBoundaryError(error);
 
   if (isRouteErrorResponse(error)) {
     errorMessage = error?.data?.message ?? error.data;
@@ -198,11 +206,14 @@ export function ErrorBoundary() {
  *  );
  *  ```
  *  */
-async function validateCustomerAccessToken(session: HydrogenSession, customerAccessToken?: CustomerAccessToken) {
+async function validateCustomerAccessToken(
+  session: HydrogenSession,
+  customerAccessToken?: CustomerAccessToken,
+) {
   let isLoggedIn = false;
   const headers = new Headers();
   if (!customerAccessToken?.accessToken || !customerAccessToken?.expiresAt) {
-    return { isLoggedIn, headers };
+    return {isLoggedIn, headers};
   }
 
   const expiresAt = new Date(customerAccessToken.expiresAt).getTime();
@@ -216,7 +227,7 @@ async function validateCustomerAccessToken(session: HydrogenSession, customerAcc
     isLoggedIn = true;
   }
 
-  return { isLoggedIn, headers };
+  return {isLoggedIn, headers};
 }
 
 const MENU_FRAGMENT = `#graphql

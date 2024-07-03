@@ -24,7 +24,7 @@ export default defineConfig({
   ],
   build: {
     // Allow a strict Content-Security-Policy
-    // withtout inlining assets as base64:
+    // without inlining assets as base64:
     assetsInlineLimit: 0,
     minify: false,
   },
@@ -40,7 +40,7 @@ export default defineConfig({
        * Include 'example-dep' in the array below.
        * @see https://vitejs.dev/config/dep-optimization-options
        */
-      include: ['hoist-non-react-statics'],
+      include: ['hoist-non-react-statics', '@sentry/remix'],
     },
   },
 });

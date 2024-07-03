@@ -20,7 +20,7 @@
     "@sentry/remix": "latest || *",
     "@shopify/cli": "3.60.0",
     "@shopify/cli-hydrogen": "^8.1.1",
-    "@shopify/hydrogen": "2024.4.5",
+    "@shopify/hydrogen": "2024.4.7",
     "@shopify/remix-oxygen": "^2.0.4",
     "graphql": "^16.6.0",
     "graphql-tag": "^2.12.6",
@@ -53,6 +53,6 @@
     "vite-tsconfig-paths": "^4.3.1"
   },
   "volta": {
-    "node": "20.15.0"
+    "extends": "../../package.json"
   }
 }
