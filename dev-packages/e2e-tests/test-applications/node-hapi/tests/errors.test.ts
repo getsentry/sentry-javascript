@@ -88,6 +88,29 @@ test('Does not send errors to Sentry if boom throws in "onPreResponse" after JS 
   expect(transactionEvent5xx.transaction).toBe('GET /test-failure-boom-5xx');
 });
 
+test('Does not send error to Sentry if error response is overwritten with 2xx in "onPreResponse"', async ({ baseURL }) => {
+  let errorEventOccurred = false;
+
+  waitForError('node-hapi', event => {
+    if (event.exception?.values?.[0]?.value?.includes('This is a JS error (2xx override in onPreResponse)')) {
+      errorEventOccurred = true;
+    }
+    return false; // expects to return a boolean (but not relevant here)
+  });
+
+  const transactionEventPromise = waitForTransaction('node-hapi', transactionEvent => {
+    return transactionEvent?.transaction === 'GET /test-failure-2xx-override-onPreResponse';
+  });
+
+  const response = await fetch(`${baseURL}/test-failure-2xx-override-onPreResponse`);
+
+  const transactionEvent = await transactionEventPromise;
+
+  expect(response.status).toBe(200);
+  expect(errorEventOccurred).toBe(false);
+  expect(transactionEvent.transaction).toBe('GET /test-failure-2xx-override-onPreResponse');
+});
+
 test('Only sends onPreResponse error to Sentry if JS error is thrown in route handler AND onPreResponse', async ({
   baseURL,
 }) => {

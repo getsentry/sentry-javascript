@@ -89,6 +89,14 @@ const init = async () => {
     },
   });
 
+  server.route({
+    method: 'GET',
+    path: '/test-failure-2xx-override-onPreResponse',
+    handler: async function (request, h) {
+      throw new Error('This is a JS error (2xx override in onPreResponse)');
+    },
+  });
+
   // This runs after the route handler
   server.ext('onPreResponse', (request, h) => {
     const path = request.route.path;
@@ -99,6 +107,8 @@ const init = async () => {
       throw Boom.gatewayTimeout('5xx not implemented (onPreResponse)');
     } else if (path.includes('JS-error-onPreResponse')) {
       throw new Error('JS error (onPreResponse)');
+    } else if (path.includes('2xx-override-onPreResponse')) {
+      return h.response('2xx override').code(200);
     } else {
       return h.continue;
     }
