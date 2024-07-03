@@ -2026,7 +2026,7 @@ describe('BaseClient', () => {
         }),
       );
 
-      const mockSend = jest.spyOn(client['_transport'], 'send').mockImplementation(() => {
+      const mockSend = jest.spyOn(client.getTransport()!, 'send').mockImplementation(() => {
         return Promise.resolve({ statusCode: 200 });
       });
 
