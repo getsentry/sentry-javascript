@@ -1,7 +1,7 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import * as Sentry from '@sentry/nestjs';
-import { makeHttpRequest } from './utils';
 import { GetSentrySpan } from '@sentry/nestjs';
+import { makeHttpRequest } from './utils';
 
 @Injectable()
 export class AppService1 {
@@ -79,12 +79,12 @@ export class AppService1 {
 
   @GetSentrySpan('wait function')
   async wait() {
-    console.log("INSIDE WAIT");
-    return new Promise((resolve) => setTimeout(resolve, 500));
+    console.log('INSIDE WAIT');
+    return new Promise(resolve => setTimeout(resolve, 500));
   }
 
   async testSpanDecorator() {
-    console.log("INSIDE TEST SPAN DECORATOR");
+    console.log('INSIDE TEST SPAN DECORATOR');
     await this.wait();
   }
 }
