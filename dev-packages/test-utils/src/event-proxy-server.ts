@@ -282,8 +282,8 @@ export async function waitForPlainRequest(
 /** Wait for a request to be sent. */
 export async function waitForRequest(
   proxyServerName: string,
-  timestamp: number,
   callback: (eventData: SentryRequestCallbackData) => Promise<boolean> | boolean,
+  timestamp: number = Date.now(),
 ): Promise<SentryRequestCallbackData> {
   const eventCallbackServerPort = await retrieveCallbackServerPort(proxyServerName);
 
@@ -338,20 +338,24 @@ export async function waitForRequest(
 /** Wait for a specific envelope item to be sent. */
 export function waitForEnvelopeItem(
   proxyServerName: string,
-  timestamp: number,
   callback: (envelopeItem: EnvelopeItem) => Promise<boolean> | boolean,
+  timestamp: number = Date.now(),
 ): Promise<EnvelopeItem> {
   return new Promise((resolve, reject) => {
-    waitForRequest(proxyServerName, timestamp, async eventData => {
-      const envelopeItems = eventData.envelope[1];
-      for (const envelopeItem of envelopeItems) {
-        if (await callback(envelopeItem)) {
-          resolve(envelopeItem);
-          return true;
+    waitForRequest(
+      proxyServerName,
+      async eventData => {
+        const envelopeItems = eventData.envelope[1];
+        for (const envelopeItem of envelopeItems) {
+          if (await callback(envelopeItem)) {
+            resolve(envelopeItem);
+            return true;
+          }
         }
-      }
-      return false;
-    }).catch(reject);
+        return false;
+      },
+      timestamp,
+    ).catch(reject);
   });
 }
 
@@ -362,14 +366,18 @@ export function waitForError(
 ): Promise<Event> {
   const timestamp = Date.now();
   return new Promise((resolve, reject) => {
-    waitForEnvelopeItem(proxyServerName, timestamp, async envelopeItem => {
-      const [envelopeItemHeader, envelopeItemBody] = envelopeItem;
-      if (envelopeItemHeader.type === 'event' && (await callback(envelopeItemBody as Event))) {
-        resolve(envelopeItemBody as Event);
-        return true;
-      }
-      return false;
-    }).catch(reject);
+    waitForEnvelopeItem(
+      proxyServerName,
+      async envelopeItem => {
+        const [envelopeItemHeader, envelopeItemBody] = envelopeItem;
+        if (envelopeItemHeader.type === 'event' && (await callback(envelopeItemBody as Event))) {
+          resolve(envelopeItemBody as Event);
+          return true;
+        }
+        return false;
+      },
+      timestamp,
+    ).catch(reject);
   });
 }
 
@@ -380,14 +388,18 @@ export function waitForTransaction(
 ): Promise<Event> {
   const timestamp = Date.now();
   return new Promise((resolve, reject) => {
-    waitForEnvelopeItem(proxyServerName, timestamp, async envelopeItem => {
-      const [envelopeItemHeader, envelopeItemBody] = envelopeItem;
-      if (envelopeItemHeader.type === 'transaction' && (await callback(envelopeItemBody as Event))) {
-        resolve(envelopeItemBody as Event);
-        return true;
-      }
-      return false;
-    }).catch(reject);
+    waitForEnvelopeItem(
+      proxyServerName,
+      async envelopeItem => {
+        const [envelopeItemHeader, envelopeItemBody] = envelopeItem;
+        if (envelopeItemHeader.type === 'transaction' && (await callback(envelopeItemBody as Event))) {
+          resolve(envelopeItemBody as Event);
+          return true;
+        }
+        return false;
+      },
+      timestamp,
+    ).catch(reject);
   });
 }
 
