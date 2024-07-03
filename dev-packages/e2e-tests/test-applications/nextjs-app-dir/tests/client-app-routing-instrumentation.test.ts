@@ -39,7 +39,10 @@ test('Creates a navigation transaction for app router routes', async ({ page }) 
 
   const serverComponentTransactionPromise = waitForTransaction('nextjs-app-dir', async transactionEvent => {
     return (
-      transactionEvent?.transaction === 'GET /server-component/parameter/foo/bar/baz' &&
+      // Next.js 14+
+      (transactionEvent?.transaction === 'GET /server-component/parameter/foo/bar/baz' ||
+        // Next.js 13
+        transactionEvent?.transaction === 'GET /server-component/parameter/[...parameters]') &&
       (await clientNavigationTransactionPromise).contexts?.trace?.trace_id ===
         transactionEvent.contexts?.trace?.trace_id
     );
