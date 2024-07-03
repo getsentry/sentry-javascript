@@ -2026,8 +2026,7 @@ describe('BaseClient', () => {
         }),
       );
 
-      // @ts-expect-error Accessing private transport API
-      const mockSend = jest.spyOn(client._transport, 'send').mockImplementation(() => {
+      const mockSend = jest.spyOn(client['_transport'], 'send').mockImplementation(() => {
         return Promise.resolve({ statusCode: 200 });
       });
 
@@ -2036,8 +2035,7 @@ describe('BaseClient', () => {
       const callback = jest.fn();
       const removeAfterSendEventListenerFn = client.on('afterSendEvent', callback);
 
-      // @ts-expect-error Accessing private client API
-      expect(client._hooks['afterSendEvent']).toEqual([callback]);
+      expect(client['_hooks']['afterSendEvent']).toEqual([callback]);
 
       client.sendEvent(errorEvent);
       jest.runAllTimers();
@@ -2052,8 +2050,7 @@ describe('BaseClient', () => {
 
       // Should unregister `afterSendEvent` callback.
       removeAfterSendEventListenerFn();
-      // @ts-expect-error Accessing private client API
-      expect(client._hooks['afterSendEvent']).toEqual([]);
+      expect(client['_hooks']['afterSendEvent']).toEqual([]);
 
       client.sendEvent(errorEvent);
       jest.runAllTimers();
