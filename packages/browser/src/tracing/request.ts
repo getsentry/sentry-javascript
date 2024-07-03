@@ -127,7 +127,7 @@ export function instrumentOutgoingRequests(_options?: Partial<RequestInstrumenta
           event.spans.forEach(span => {
             if (span.op === 'http.client') {
               const updatedTimestamp = spanIdToEndTimestamp.get(span.span_id);
-              if (updatedTimestamp !== undefined) {
+              if (updatedTimestamp) {
                 span.timestamp = updatedTimestamp / 1000;
                 spanIdToEndTimestamp.delete(span.span_id);
               }
