@@ -79,12 +79,10 @@ export class AppService1 {
 
   @GetSentrySpan('wait function')
   async wait() {
-    console.log('INSIDE WAIT');
     return new Promise(resolve => setTimeout(resolve, 500));
   }
 
   async testSpanDecorator() {
-    console.log('INSIDE TEST SPAN DECORATOR');
     await this.wait();
   }
 }
