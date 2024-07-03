@@ -69,7 +69,7 @@ const init = async () => {
     method: 'GET',
     path: '/test-failure-boom-4xx',
     handler: async function (request, h) {
-      throw new Error('This is an error (boom in onPreResponse)');
+      throw new Error('This is a JS error (boom in onPreResponse)');
     },
   });
 

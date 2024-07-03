@@ -60,22 +60,25 @@ test('Does not send errors to Sentry if boom throws in "onPreResponse" after JS 
   let errorEventOccurred = false;
 
   waitForError('node-hapi', event => {
-    if (!event.type && event.exception?.values?.[0]?.value?.includes('This is an error (boom in onPreResponse)')) {
+    if (event.exception?.values?.[0]?.value?.includes('This is a JS error (boom in onPreResponse)')) {
       errorEventOccurred = true;
     }
     return false; // expects to return a boolean (but not relevant here)
   });
 
-  const transactionEventPromise5xx = waitForTransaction('node-hapi', transactionEvent => {
+  const transactionEventPromise4xx = waitForTransaction('node-hapi', transactionEvent => {
     return transactionEvent?.transaction === 'GET /test-failure-boom-4xx';
   });
 
-  const transactionEventPromise4xx = waitForTransaction('node-hapi', transactionEvent => {
+  const transactionEventPromise5xx = waitForTransaction('node-hapi', transactionEvent => {
     return transactionEvent?.transaction === 'GET /test-failure-boom-5xx';
   });
 
-  const response = await fetch(`${baseURL}/test-failure-boom-4xx`);
-  expect(response.status).toBe(404);
+  const response4xx = await fetch(`${baseURL}/test-failure-boom-4xx`);
+  const response5xx = await fetch(`${baseURL}/test-failure-boom-5xx`);
+
+  expect(response4xx.status).toBe(404);
+  expect(response5xx.status).toBe(504);
 
   const transactionEvent4xx = await transactionEventPromise4xx;
   const transactionEvent5xx = await transactionEventPromise5xx;

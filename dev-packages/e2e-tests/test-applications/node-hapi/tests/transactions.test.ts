@@ -77,6 +77,25 @@ test('Sends successful transaction', async ({ baseURL }) => {
       timestamp: expect.any(Number),
       trace_id: expect.any(String),
     },
+    {
+      // this comes from "onPreResponse"
+      data: {
+        'hapi.type': 'server.ext',
+        'otel.kind': 'INTERNAL',
+        'sentry.op': 'server.ext.hapi',
+        'sentry.origin': 'auto.http.otel.hapi',
+        'server.ext.type': 'onPreResponse',
+      },
+      description: 'ext - onPreResponse',
+      op: 'server.ext.hapi',
+      origin: 'auto.http.otel.hapi',
+      parent_span_id: expect.any(String),
+      span_id: expect.any(String),
+      start_timestamp: expect.any(Number),
+      status: 'ok',
+      timestamp: expect.any(Number),
+      trace_id: expect.any(String),
+    },
   ]);
 });
 
