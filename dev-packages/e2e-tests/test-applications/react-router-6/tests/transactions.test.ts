@@ -56,7 +56,7 @@ test('sends a navigation transaction with a parameterized URL', async ({ page })
 });
 
 test('sends an INP span', async ({ page }) => {
-  const inpSpanPromise = waitForEnvelopeItem('react-router-6', item => {
+  const inpSpanPromise = waitForEnvelopeItem('react-router-6', Date.now(), item => {
     return item[0].type === 'span';
   });
 
