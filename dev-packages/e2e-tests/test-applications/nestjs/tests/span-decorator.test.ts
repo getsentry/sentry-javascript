@@ -13,8 +13,6 @@ test('Transaction includes span for decorated function', async ({ baseURL }) => 
 
   const transactionEvent = await transactionEventPromise;
 
-  console.log(transactionEvent);
-
   expect(transactionEvent.spans).toEqual(
     expect.arrayContaining([
       expect.objectContaining({
