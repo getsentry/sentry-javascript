@@ -8,8 +8,10 @@ current state.
 Prerequisites: Docker
 
 - Copy `.env.example` to `.env`
-- Fill in auth information in `.env` for an example Sentry project
-- Run `yarn build:tarball` in the root of the repository
+- OPTIONAL: Fill in auth information in `.env` for an example Sentry project - you only need this to run E2E tests that
+  send data to Sentry.
+- Run `yarn build:tarball` in the root of the repository (needs to be rerun after every update in /packages for the
+  changes to have effect on the tests).
 
 To finally run all of the tests:
 
@@ -89,6 +91,8 @@ For some of our E2E tests we define a standard for test applications as to how t
 test apps enables us to reuse the same test suite over a number of different frameworks/SDKs.
 
 ### Standardized Frontend Test Apps
+
+TODO: This is not up to date.
 
 A standardized frontend test application has the following features:
 

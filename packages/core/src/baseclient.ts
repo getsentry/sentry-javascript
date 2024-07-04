@@ -390,37 +390,40 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   /* eslint-disable @typescript-eslint/unified-signatures */
 
   /** @inheritdoc */
-  public on(hook: 'spanStart', callback: (span: Span) => void): void;
+  public on(hook: 'spanStart', callback: (span: Span) => void): () => void;
 
   /** @inheritdoc */
-  public on(hook: 'spanEnd', callback: (span: Span) => void): void;
+  public on(hook: 'spanEnd', callback: (span: Span) => void): () => void;
 
   /** @inheritdoc */
-  public on(hook: 'idleSpanEnableAutoFinish', callback: (span: Span) => void): void;
+  public on(hook: 'idleSpanEnableAutoFinish', callback: (span: Span) => void): () => void;
 
   /** @inheritdoc */
-  public on(hook: 'beforeEnvelope', callback: (envelope: Envelope) => void): void;
+  public on(hook: 'beforeEnvelope', callback: (envelope: Envelope) => void): () => void;
 
   /** @inheritdoc */
-  public on(hook: 'beforeSendEvent', callback: (event: Event, hint?: EventHint) => void): void;
+  public on(hook: 'beforeSendEvent', callback: (event: Event, hint?: EventHint) => void): () => void;
 
   /** @inheritdoc */
-  public on(hook: 'preprocessEvent', callback: (event: Event, hint?: EventHint) => void): void;
+  public on(hook: 'preprocessEvent', callback: (event: Event, hint?: EventHint) => void): () => void;
 
   /** @inheritdoc */
-  public on(hook: 'afterSendEvent', callback: (event: Event, sendResponse: TransportMakeRequestResponse) => void): void;
+  public on(
+    hook: 'afterSendEvent',
+    callback: (event: Event, sendResponse: TransportMakeRequestResponse) => void,
+  ): () => void;
 
   /** @inheritdoc */
-  public on(hook: 'beforeAddBreadcrumb', callback: (breadcrumb: Breadcrumb, hint?: BreadcrumbHint) => void): void;
+  public on(hook: 'beforeAddBreadcrumb', callback: (breadcrumb: Breadcrumb, hint?: BreadcrumbHint) => void): () => void;
 
   /** @inheritdoc */
-  public on(hook: 'createDsc', callback: (dsc: DynamicSamplingContext, rootSpan?: Span) => void): void;
+  public on(hook: 'createDsc', callback: (dsc: DynamicSamplingContext, rootSpan?: Span) => void): () => void;
 
   /** @inheritdoc */
   public on(
     hook: 'beforeSendFeedback',
     callback: (feedback: FeedbackEvent, options?: { includeReplay: boolean }) => void,
-  ): void;
+  ): () => void;
 
   /** @inheritdoc */
   public on(
@@ -443,23 +446,41 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
       options: StartSpanOptions,
       traceOptions?: { sentryTrace?: string | undefined; baggage?: string | undefined },
     ) => void,
-  ): void;
+  ): () => void;
 
   /** @inheritdoc */
-  public on(hook: 'startNavigationSpan', callback: (options: StartSpanOptions) => void): void;
+  public on(hook: 'startNavigationSpan', callback: (options: StartSpanOptions) => void): () => void;
 
-  public on(hook: 'flush', callback: () => void): void;
+  public on(hook: 'flush', callback: () => void): () => void;
 
-  public on(hook: 'close', callback: () => void): void;
+  public on(hook: 'close', callback: () => void): () => void;
 
   /** @inheritdoc */
-  public on(hook: string, callback: unknown): void {
+  public on(hook: string, callback: unknown): () => void {
+    // Note that the code below, with nullish coalescing assignment,
+    // may reduce the code, so it may be switched to when Node 14 support
+    // is dropped (the `??=` operator is supported since Node 15).
+    // (this._hooks[hook] ??= []).push(callback);
     if (!this._hooks[hook]) {
       this._hooks[hook] = [];
     }
 
     // @ts-expect-error We assue the types are correct
     this._hooks[hook].push(callback);
+
+    // This function returns a callback execution handler that, when invoked,
+    // deregisters a callback. This is crucial for managing instances where callbacks
+    // need to be unregistered to prevent self-referencing in callback closures,
+    // ensuring proper garbage collection.
+    return () => {
+      const hooks = this._hooks[hook];
+
+      if (hooks) {
+        // @ts-expect-error We assue the types are correct
+        const cbIndex = hooks.indexOf(callback);
+        hooks.splice(cbIndex, 1);
+      }
+    };
   }
 
   /** @inheritdoc */
@@ -768,12 +789,18 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
           return prepared;
         }
 
-        const result = processBeforeSend(options, prepared, hint);
+        const result = processBeforeSend(this, options, prepared, hint);
         return _validateBeforeSendResult(result, beforeSendLabel);
       })
       .then(processedEvent => {
         if (processedEvent === null) {
           this.recordDroppedEvent('before_send', dataCategory, event);
+          if (isTransactionEvent(event)) {
+            const spans = event.spans || [];
+            // the transaction itself counts as one span, plus all the child spans that are added
+            const spanCount = 1 + spans.length;
+            this._outcomes['span'] = (this._outcomes['span'] || 0) + spanCount;
+          }
           throw new SentryError(`${beforeSendLabel} returned \`null\`, will not send event.`, 'log');
         }
 
@@ -893,6 +920,7 @@ function _validateBeforeSendResult(
  * Process the matching `beforeSendXXX` callback.
  */
 function processBeforeSend(
+  client: Client,
   options: ClientOptions,
   event: Event,
   hint: EventHint,
@@ -910,6 +938,8 @@ function processBeforeSend(
         const processedSpan = beforeSendSpan(span);
         if (processedSpan) {
           processedSpans.push(processedSpan);
+        } else {
+          client.recordDroppedEvent('before_send', 'span');
         }
       }
       event.spans = processedSpans;

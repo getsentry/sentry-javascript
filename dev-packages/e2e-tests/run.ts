@@ -4,8 +4,11 @@ import { resolve } from 'path';
 import * as dotenv from 'dotenv';
 import { sync as globSync } from 'glob';
 
-import { validate } from './lib/validate';
 import { registrySetup } from './registrySetup';
+
+const DEFAULT_DSN = 'https://username@domain/123';
+const DEFAULT_SENTRY_ORG_SLUG = 'sentry-javascript-sdks';
+const DEFAULT_SENTRY_PROJECT = 'sentry-javascript-e2e-tests';
 
 function asyncExec(command: string, options: { env: Record<string, string | undefined>; cwd: string }): Promise<void> {
   return new Promise((resolve, reject) => {
@@ -39,17 +42,21 @@ async function run(): Promise<void> {
   // Allow to run a single app only via `yarn test:run <app-name>`
   const appName = process.argv[2];
 
-  if (!validate()) {
-    process.exit(1);
-  }
+  const dsn = process.env.E2E_TEST_DSN || DEFAULT_DSN;
 
   const envVarsToInject = {
-    NEXT_PUBLIC_E2E_TEST_DSN: process.env.E2E_TEST_DSN,
-    PUBLIC_E2E_TEST_DSN: process.env.E2E_TEST_DSN,
-    REACT_APP_E2E_TEST_DSN: process.env.E2E_TEST_DSN,
+    E2E_TEST_DSN: dsn,
+    NEXT_PUBLIC_E2E_TEST_DSN: dsn,
+    PUBLIC_E2E_TEST_DSN: dsn,
+    REACT_APP_E2E_TEST_DSN: dsn,
+    E2E_TEST_SENTRY_ORG_SLUG: process.env.E2E_TEST_SENTRY_ORG_SLUG || DEFAULT_SENTRY_ORG_SLUG,
+    E2E_TEST_SENTRY_PROJECT: process.env.E2E_TEST_SENTRY_PROJECT || DEFAULT_SENTRY_PROJECT,
   };
 
-  const env = { ...process.env, ...envVarsToInject };
+  const env = {
+    ...process.env,
+    ...envVarsToInject,
+  };
 
   try {
     console.log('Cleaning test-applications...');

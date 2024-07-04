@@ -971,22 +971,19 @@ jobs:
 
   job_e2e_tests:
     name: E2E ${{ matrix.label || matrix.test-application }} Test
-    # We only run E2E tests for non-fork PRs because the E2E tests require secrets to work and they can't be accessed from forks
     # We need to add the `always()` check here because the previous step has this as well :(
     # See: https://github.com/actions/runner/issues/2205
-    if:
-      always() && needs.job_e2e_prepare.result == 'success' &&
-      (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+    if: always() && needs.job_e2e_prepare.result == 'success'
     needs: [job_get_metadata, job_build, job_e2e_prepare]
     runs-on: ubuntu-20.04
     timeout-minutes: 10
     env:
-      E2E_TEST_AUTH_TOKEN: ${{ secrets.E2E_TEST_AUTH_TOKEN }}
-      E2E_TEST_DSN: ${{ secrets.E2E_TEST_DSN }}
+      # We just use a dummy DSN here, only send to the tunnel anyhow
+      E2E_TEST_DSN: 'https://username@domain/123'
       # Needed because some apps expect a certain prefix
-      NEXT_PUBLIC_E2E_TEST_DSN: ${{ secrets.E2E_TEST_DSN }}
-      PUBLIC_E2E_TEST_DSN: ${{ secrets.E2E_TEST_DSN }}
-      REACT_APP_E2E_TEST_DSN: ${{ secrets.E2E_TEST_DSN }}
+      NEXT_PUBLIC_E2E_TEST_DSN: 'https://username@domain/123'
+      PUBLIC_E2E_TEST_DSN: 'https://username@domain/123'
+      REACT_APP_E2E_TEST_DSN: 'https://username@domain/123'
       E2E_TEST_SENTRY_ORG_SLUG: 'sentry-javascript-sdks'
       E2E_TEST_SENTRY_PROJECT: 'sentry-javascript-e2e-tests'
     strategy:
@@ -1015,6 +1012,8 @@ jobs:
             'node-express-esm-without-loader',
             'node-express-cjs-preload',
             'node-otel-sdk-node',
+            'ember-classic',
+            'ember-embroider',
             'nextjs-app-dir',
             'nextjs-14',
             'nextjs-15',
@@ -1070,7 +1069,7 @@ jobs:
           ref: ${{ env.HEAD_COMMIT }}
       - uses: pnpm/action-setup@v4
         with:
-          version: 8.3.1
+          version: 9.4.0
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
@@ -1107,12 +1106,12 @@ jobs:
       - name: Build E2E app
         working-directory: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
         timeout-minutes: 5
-        run: yarn ${{ matrix.build-command || 'test:build' }}
+        run: pnpm ${{ matrix.build-command || 'test:build' }}
 
       - name: Run E2E test
         working-directory: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
         timeout-minutes: 5
-        run: yarn test:assert
+        run: pnpm test:assert
 
       - name: Deploy Astro to Cloudflare
         uses: cloudflare/pages-action@v1
@@ -1147,8 +1146,6 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        is_dependabot:
-          - ${{ github.actor == 'dependabot[bot]' }}
         test-application:
           [
             'react-send-to-sentry',
@@ -1157,8 +1154,17 @@ jobs:
           ]
         build-command:
           - false
+        assert-command:
+          - false
         label:
           - false
+        include:
+          - test-application: 'create-remix-app'
+            assert-command: 'test:assert-sourcemaps'
+            label: 'create-remix-app (sourcemaps)'
+          - test-application: 'create-remix-app-legacy'
+            assert-command: 'test:assert-sourcemaps'
+            label: 'create-remix-app-legacy (sourcemaps)'
 
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
@@ -1167,7 +1173,7 @@ jobs:
           ref: ${{ env.HEAD_COMMIT }}
       - uses: pnpm/action-setup@v4
         with:
-          version: 8.3.1
+          version: 9.4.0
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
@@ -1201,12 +1207,12 @@ jobs:
       - name: Build E2E app
         working-directory: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
         timeout-minutes: 5
-        run: yarn ${{ matrix.build-command || 'test:build' }}
+        run: pnpm ${{ matrix.build-command || 'test:build' }}
 
       - name: Run E2E test
         working-directory: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
         timeout-minutes: 5
-        run: yarn test:assert
+        run: pnpm ${{ matrix.assert-command || 'test:assert' }}
 
   job_profiling_e2e_tests:
     name: E2E ${{ matrix.label || matrix.test-application }} Test

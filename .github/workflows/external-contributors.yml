@@ -17,8 +17,6 @@ jobs:
       && github.actor != 'dependabot[bot]'
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.head_ref }}
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
