@@ -61,7 +61,7 @@ export const hapiErrorPlugin = {
   register: async function (serverArg: Record<any, any>) {
     const server = serverArg as unknown as Server;
 
-    server.events.on('request', (request: Request, event: RequestEvent) => {
+    server.events.on({ name: 'request', channels: ['error'] }, (request: Request, event: RequestEvent) => {
       if (getIsolationScope() !== getDefaultIsolationScope()) {
         const route = request.route;
         if (route && route.path) {

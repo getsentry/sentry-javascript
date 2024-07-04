@@ -8,7 +8,8 @@ current state.
 Prerequisites: Docker
 
 - Copy `.env.example` to `.env`
-- Fill in auth information in `.env` for an example Sentry project
+- OPTIONAL: Fill in auth information in `.env` for an example Sentry project - you only need this to run E2E tests that
+  send data to Sentry.
 - Run `yarn build:tarball` in the root of the repository
 
 To finally run all of the tests:
