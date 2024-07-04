@@ -95,12 +95,6 @@ jobs:
           - test-application: 'react-router-6'
             build-command: 'test:build-canary'
             label: 'react-router-6 (canary)'
-          - test-application: 'ember-classic'
-            build-command: 'test:build-latest'
-            label: 'ember-classic (latest)'
-          - test-application: 'ember-embroider'
-            build-command: 'test:build-latest'
-            label: 'ember-embroider (latest)'
 
     steps:
       - name: Check out current commit
