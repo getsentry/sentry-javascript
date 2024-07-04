@@ -90,6 +90,8 @@ test apps enables us to reuse the same test suite over a number of different fra
 
 ### Standardized Frontend Test Apps
 
+TODO: This is not up to date.
+
 A standardized frontend test application has the following features:
 
 - Just for the sake of consistency we prefix the standardized frontend tests with `standard-frontend-`. For example

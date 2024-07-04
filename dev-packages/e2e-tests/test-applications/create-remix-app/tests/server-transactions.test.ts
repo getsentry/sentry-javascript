@@ -7,20 +7,12 @@ test('Sends two linked transactions (server & client) to Sentry', async ({ page 
   // We use this to identify the transactions
   const testTag = uuid4();
 
-  const httpServerTransactionPromise = waitForTransaction('create-remix-app-express-vite-dev', transactionEvent => {
-    return (
-      transactionEvent.type === 'transaction' &&
-      transactionEvent.contexts?.trace?.op === 'http.server' &&
-      transactionEvent.tags?.['sentry_test'] === testTag
-    );
+  const httpServerTransactionPromise = waitForTransaction('create-remix-app', transactionEvent => {
+    return transactionEvent.contexts?.trace?.op === 'http.server' && transactionEvent.tags?.['sentry_test'] === testTag;
   });
 
-  const pageLoadTransactionPromise = waitForTransaction('create-remix-app-express-vite-dev', transactionEvent => {
-    return (
-      transactionEvent.type === 'transaction' &&
-      transactionEvent.contexts?.trace?.op === 'pageload' &&
-      transactionEvent.tags?.['sentry_test'] === testTag
-    );
+  const pageLoadTransactionPromise = waitForTransaction('create-remix-app', transactionEvent => {
+    return transactionEvent.contexts?.trace?.op === 'pageload' && transactionEvent.tags?.['sentry_test'] === testTag;
   });
 
   page.goto(`/?tag=${testTag}`);
@@ -33,7 +25,7 @@ test('Sends two linked transactions (server & client) to Sentry', async ({ page 
 
   const httpServerTraceId = httpServerTransaction.contexts?.trace?.trace_id;
   const httpServerSpanId = httpServerTransaction.contexts?.trace?.span_id;
-  const loaderSpanId = httpServerTransaction.spans.find(
+  const loaderSpanId = httpServerTransaction?.spans?.find(
     span => span.data && span.data['code.function'] === 'loader',
   )?.span_id;
 
