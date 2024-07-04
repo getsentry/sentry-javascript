@@ -39,8 +39,7 @@ export function makeReactEsmJsxRuntimePlugin() {
     preventAssignment: false,
     sourceMap: true,
     values: {
-      "'react/jsx-runtime'": "'react/jsx-runtime.js'",
-      '"react/jsx-runtime"': '"react/jsx-runtime.js"',
+      'react/jsx-runtime': 'react/jsx-runtime.js',
     },
   });
 }
