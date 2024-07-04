@@ -28,7 +28,7 @@ test('Creates a navigation transaction for app router routes', async ({ page }) 
 
   await page.goto(`/server-component/parameter/${randomRoute}`);
   await clientPageloadTransactionPromise;
-  await page.getByText('Page (/server-component/parameter/[parameter])').isVisible();
+  await page.getByText('Page (/server-component/[parameter])').isVisible();
 
   const clientNavigationTransactionPromise = waitForTransaction('nextjs-app-dir', transactionEvent => {
     return (
@@ -38,6 +38,7 @@ test('Creates a navigation transaction for app router routes', async ({ page }) 
   });
 
   const serverComponentTransactionPromise = waitForTransaction('nextjs-app-dir', async transactionEvent => {
+    console.log({ t: transactionEvent.transaction });
     return (
       // Next.js 14+
       (transactionEvent?.transaction === 'GET /server-component/parameter/foo/bar/baz' ||
