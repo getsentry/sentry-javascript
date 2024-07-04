@@ -138,7 +138,7 @@ export async function startProxyServer(
     eventCallbackListeners.add(callbackListener);
 
     eventBuffer.forEach(bufferedEvent => {
-      if (bufferedEvent.timestamp > listenerTimestamp) {
+      if (bufferedEvent.timestamp >= listenerTimestamp) {
         callbackListener(bufferedEvent.data);
       }
     });
