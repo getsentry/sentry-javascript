@@ -18,7 +18,11 @@ test('Transaction includes span for decorated function', async ({ baseURL }) => 
       expect.objectContaining({
         span_id: expect.any(String),
         trace_id: expect.any(String),
-        data: expect.any(Object),
+        data: {
+          'sentry.origin': 'manual',
+          'sentry.op': 'wait function',
+          'otel.kind': 'INTERNAL',
+        },
         description: 'wait',
         parent_span_id: expect.any(String),
         start_timestamp: expect.any(Number),
