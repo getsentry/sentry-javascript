@@ -1160,11 +1160,9 @@ jobs:
           - false
         include:
           - test-application: 'create-remix-app'
-            build-command: 'test:build-sourcemaps'
             assert-command: 'test:assert-sourcemaps'
             label: 'create-remix-app (sourcemaps)'
           - test-application: 'create-remix-app-legacy'
-            build-command: 'test:build-sourcemaps'
             assert-command: 'test:assert-sourcemaps'
             label: 'create-remix-app-legacy (sourcemaps)'
 
