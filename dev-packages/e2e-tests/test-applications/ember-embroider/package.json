@@ -52,7 +52,7 @@
     "webpack": "^5.91.0",
     "@playwright/test": "^1.44.1",
     "@sentry/ember": "latest || *",
-    "@sentry-internal/event-proxy-server": "link:../../../event-proxy-server",
+    "@sentry-internal/test-utils": "link:../../../test-utils",
     "@tsconfig/ember": "^3.0.6",
     "@types/node": "18.18.0",
     "@tsconfig/node18": "18.2.4",
