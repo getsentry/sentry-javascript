@@ -88,7 +88,9 @@ test('Does not send errors to Sentry if boom throws in "onPreResponse" after JS 
   expect(transactionEvent5xx.transaction).toBe('GET /test-failure-boom-5xx');
 });
 
-test('Does not send error to Sentry if error response is overwritten with 2xx in "onPreResponse"', async ({ baseURL }) => {
+test('Does not send error to Sentry if error response is overwritten with 2xx in "onPreResponse"', async ({
+  baseURL,
+}) => {
   let errorEventOccurred = false;
 
   waitForError('node-hapi', event => {
