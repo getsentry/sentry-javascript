@@ -77,18 +77,19 @@ export class AppService1 {
     return makeHttpRequest('http://localhost:3040/external-disallowed');
   }
 
-  @SentryTraced('wait function')
+  @SentryTraced('wait and return a string')
   async wait() {
-    return new Promise(resolve => setTimeout(resolve, 500));
+    await new Promise(resolve => setTimeout(resolve, 500));
+    return 'test';
   }
 
   async testSpanDecoratorAsync() {
-    await this.wait();
+    return await this.wait();
   }
 
   @SentryTraced('return a string')
   getString(): string {
-    return "test";
+    return 'test';
   }
 
   async testSpanDecoratorSync() {
