@@ -71,8 +71,13 @@ export class AppController1 {
   }
 
   @Get('test-span-decorator-async')
-  async testSpanDecorator() {
+  async testSpanDecoratorAsync() {
     return this.appService.testSpanDecoratorAsync();
+  }
+
+  @Get('test-span-decorator-sync')
+  async testSpanDecoratorSync() {
+    return { "result": await this.appService.testSpanDecoratorSync() };
   }
 }
 

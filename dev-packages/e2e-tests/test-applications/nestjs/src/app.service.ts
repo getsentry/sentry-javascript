@@ -85,6 +85,15 @@ export class AppService1 {
   async testSpanDecoratorAsync() {
     await this.wait();
   }
+
+  @SentryTraced('return a string')
+  getString(): string {
+    return "test";
+  }
+
+  async testSpanDecoratorSync() {
+    return this.getString();
+  }
 }
 
 @Injectable()
