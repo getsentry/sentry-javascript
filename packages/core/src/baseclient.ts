@@ -390,37 +390,40 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   /* eslint-disable @typescript-eslint/unified-signatures */
 
   /** @inheritdoc */
-  public on(hook: 'spanStart', callback: (span: Span) => void): void;
+  public on(hook: 'spanStart', callback: (span: Span) => void): () => void;
 
   /** @inheritdoc */
-  public on(hook: 'spanEnd', callback: (span: Span) => void): void;
+  public on(hook: 'spanEnd', callback: (span: Span) => void): () => void;
 
   /** @inheritdoc */
-  public on(hook: 'idleSpanEnableAutoFinish', callback: (span: Span) => void): void;
+  public on(hook: 'idleSpanEnableAutoFinish', callback: (span: Span) => void): () => void;
 
   /** @inheritdoc */
-  public on(hook: 'beforeEnvelope', callback: (envelope: Envelope) => void): void;
+  public on(hook: 'beforeEnvelope', callback: (envelope: Envelope) => void): () => void;
 
   /** @inheritdoc */
-  public on(hook: 'beforeSendEvent', callback: (event: Event, hint?: EventHint) => void): void;
+  public on(hook: 'beforeSendEvent', callback: (event: Event, hint?: EventHint) => void): () => void;
 
   /** @inheritdoc */
-  public on(hook: 'preprocessEvent', callback: (event: Event, hint?: EventHint) => void): void;
+  public on(hook: 'preprocessEvent', callback: (event: Event, hint?: EventHint) => void): () => void;
 
   /** @inheritdoc */
-  public on(hook: 'afterSendEvent', callback: (event: Event, sendResponse: TransportMakeRequestResponse) => void): void;
+  public on(
+    hook: 'afterSendEvent',
+    callback: (event: Event, sendResponse: TransportMakeRequestResponse) => void,
+  ): () => void;
 
   /** @inheritdoc */
-  public on(hook: 'beforeAddBreadcrumb', callback: (breadcrumb: Breadcrumb, hint?: BreadcrumbHint) => void): void;
+  public on(hook: 'beforeAddBreadcrumb', callback: (breadcrumb: Breadcrumb, hint?: BreadcrumbHint) => void): () => void;
 
   /** @inheritdoc */
-  public on(hook: 'createDsc', callback: (dsc: DynamicSamplingContext, rootSpan?: Span) => void): void;
+  public on(hook: 'createDsc', callback: (dsc: DynamicSamplingContext, rootSpan?: Span) => void): () => void;
 
   /** @inheritdoc */
   public on(
     hook: 'beforeSendFeedback',
     callback: (feedback: FeedbackEvent, options?: { includeReplay: boolean }) => void,
-  ): void;
+  ): () => void;
 
   /** @inheritdoc */
   public on(
@@ -443,23 +446,41 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
       options: StartSpanOptions,
       traceOptions?: { sentryTrace?: string | undefined; baggage?: string | undefined },
     ) => void,
-  ): void;
+  ): () => void;
 
   /** @inheritdoc */
-  public on(hook: 'startNavigationSpan', callback: (options: StartSpanOptions) => void): void;
+  public on(hook: 'startNavigationSpan', callback: (options: StartSpanOptions) => void): () => void;
 
-  public on(hook: 'flush', callback: () => void): void;
+  public on(hook: 'flush', callback: () => void): () => void;
 
-  public on(hook: 'close', callback: () => void): void;
+  public on(hook: 'close', callback: () => void): () => void;
 
   /** @inheritdoc */
-  public on(hook: string, callback: unknown): void {
+  public on(hook: string, callback: unknown): () => void {
+    // Note that the code below, with nullish coalescing assignment,
+    // may reduce the code, so it may be switched to when Node 14 support
+    // is dropped (the `??=` operator is supported since Node 15).
+    // (this._hooks[hook] ??= []).push(callback);
     if (!this._hooks[hook]) {
       this._hooks[hook] = [];
     }
 
     // @ts-expect-error We assue the types are correct
     this._hooks[hook].push(callback);
+
+    // This function returns a callback execution handler that, when invoked,
+    // deregisters a callback. This is crucial for managing instances where callbacks
+    // need to be unregistered to prevent self-referencing in callback closures,
+    // ensuring proper garbage collection.
+    return () => {
+      const hooks = this._hooks[hook];
+
+      if (hooks) {
+        // @ts-expect-error We assue the types are correct
+        const cbIndex = hooks.indexOf(callback);
+        hooks.splice(cbIndex, 1);
+      }
+    };
   }
 
   /** @inheritdoc */
