@@ -25,7 +25,7 @@ import {
   registerSpanErrorInstrumentation,
 } from './tracing';
 import { _getSpanForScope } from './utils/spanOnScope';
-import { getRootSpan, spanToTraceContext } from './utils/spanUtils';
+import { getRootSpan, spanIsValid, spanToTraceContext } from './utils/spanUtils';
 
 export interface ServerRuntimeClientOptions extends ClientOptions<BaseTransportOptions> {
   platform?: string;
@@ -256,7 +256,7 @@ export class ServerRuntimeClient<
     }
 
     const span = _getSpanForScope(scope);
-    if (span) {
+    if (span && spanIsValid(span)) {
       const rootSpan = getRootSpan(span);
       const samplingContext = getDynamicSamplingContextFromSpan(rootSpan);
       return [samplingContext, spanToTraceContext(rootSpan)];

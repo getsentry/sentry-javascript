@@ -1,4 +1,10 @@
-import { getActiveSpan, getDynamicSamplingContextFromSpan, getRootSpan, spanToTraceHeader } from '@sentry/core';
+import {
+  getActiveSpan,
+  getDynamicSamplingContextFromSpan,
+  getRootSpan,
+  spanIsValid,
+  spanToTraceHeader,
+} from '@sentry/core';
 import { dynamicSamplingContextToSentryBaggageHeader } from '@sentry/utils';
 import type App from 'next/app';
 
@@ -55,7 +61,7 @@ export function wrapAppGetInitialPropsWithSentry(origAppGetInitialProps: AppGetI
           appGetInitialProps.pageProps = {};
         }
 
-        if (requestSpan) {
+        if (requestSpan && spanIsValid(requestSpan)) {
           const sentryTrace = spanToTraceHeader(requestSpan);
 
           // The Next.js serializer throws on undefined values so we need to guard for it (#12102)
