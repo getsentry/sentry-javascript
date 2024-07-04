@@ -15,12 +15,12 @@ import {
   withScope,
 } from '@sentry/core';
 import type { WebFetchHeaders } from '@sentry/types';
-import { winterCGHeadersToDict } from '@sentry/utils';
+import { propagationContextFromHeaders, uuid4, winterCGHeadersToDict } from '@sentry/utils';
 
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import type { GenerationFunctionContext } from '../common/types';
 import { isNotFoundNavigationError, isRedirectNavigationError } from './nextNavigationErrorUtils';
-import { commonObjectToIsolationScope } from './utils/tracingUtils';
+import { commonObjectToIsolationScope, commonObjectToPropagationContext } from './utils/tracingUtils';
 
 /**
  * Wraps a generation function (e.g. generateMetadata) with Sentry error and performance instrumentation.
@@ -33,6 +33,7 @@ export function wrapGenerationFunctionWithSentry<F extends (...args: any[]) => a
   const { requestAsyncStorage, componentRoute, componentType, generationFunctionIdentifier } = context;
   return new Proxy(generationFunction, {
     apply: (originalFunction, thisArg, args) => {
+      const requestTraceId = getActiveSpan()?.spanContext().traceId;
       let headers: WebFetchHeaders | undefined = undefined;
       // We try-catch here just in case anything goes wrong with the async storage here goes wrong since it is Next.js internal API
       try {
@@ -73,6 +74,17 @@ export function wrapGenerationFunctionWithSentry<F extends (...args: any[]) => a
               headers: headersDict,
             },
           });
+
+          const propagationContext = commonObjectToPropagationContext(
+            headers,
+            headersDict?.['sentry-trace']
+              ? propagationContextFromHeaders(headersDict['sentry-trace'], headersDict['baggage'])
+              : {
+                  traceId: requestTraceId || uuid4(),
+                  spanId: uuid4().substring(16),
+                },
+          );
+          scope.setPropagationContext(propagationContext);
 
           scope.setExtra('route_data', data);
 

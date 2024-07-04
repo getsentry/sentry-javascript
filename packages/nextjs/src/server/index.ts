@@ -1,4 +1,4 @@
-import { applySdkMetadata, getClient, getGlobalScope } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, applySdkMetadata, getClient, getGlobalScope } from '@sentry/core';
 import { getDefaultIntegrations, init as nodeInit } from '@sentry/node';
 import type { NodeClient, NodeOptions } from '@sentry/node';
 import { GLOBAL_OBJ, logger } from '@sentry/utils';
@@ -86,14 +86,7 @@ export function init(options: NodeOptions): NodeClient | undefined {
     return;
   }
 
-  const customDefaultIntegrations = [
-    ...getDefaultIntegrations(options).filter(
-      integration =>
-        // Next.js comes with its own Http instrumentation for OTel which would lead to double spans for route handler requests
-        integration.name !== 'Http',
-    ),
-    httpIntegration(),
-  ];
+  const customDefaultIntegrations = getDefaultIntegrations(options);
 
   // Turn off Next.js' own fetch instrumentation
   // https://github.com/lforst/nextjs-fork/blob/1994fd186defda77ad971c36dc3163db263c993f/packages/next/src/server/lib/patch-fetch.ts#L245
@@ -128,7 +121,6 @@ export function init(options: NodeOptions): NodeClient | undefined {
   applySdkMetadata(opts, 'nextjs', ['nextjs', 'node']);
 
   const client = nodeInit(opts);
-
   // If we encounter a span emitted by Next.js, we do not want to sample it
   // The reason for this is that the data quality of the spans varies, it is different per version of Next,
   // and we need to keep our manual instrumentation around for the edge runtime anyhow.
@@ -160,11 +152,10 @@ export function init(options: NodeOptions): NodeClient | undefined {
             return null;
           }
 
-          // 'BaseServer.handleRequest' spans are the only Next.js spans we sample. However, we only want to actually keep these spans/transactions,
-          // when they server RSCs (app router routes). We mark these transactions with a "sentry.rsc" attribute in our RSC wrappers so we can
-          // filter them here.
+          // We only want to use our HTTP integration/instrumentation for app router requests, which are marked with the `sentry.rsc` attribute.
           if (
-            event.contexts?.trace?.data?.['next.span_type'] === 'BaseServer.handleRequest' &&
+            (event.contexts?.trace?.data?.[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] === 'auto.http.otel.http' ||
+              event.contexts?.trace?.data?.['next.span_type'] === 'BaseServer.handleRequest') &&
             event.contexts?.trace?.data?.['sentry.rsc'] !== true
           ) {
             return null;

@@ -13,13 +13,13 @@ import {
   withIsolationScope,
   withScope,
 } from '@sentry/core';
-import { winterCGHeadersToDict } from '@sentry/utils';
+import { propagationContextFromHeaders, uuid4, winterCGHeadersToDict } from '@sentry/utils';
 
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import { isNotFoundNavigationError, isRedirectNavigationError } from '../common/nextNavigationErrorUtils';
 import type { ServerComponentContext } from '../common/types';
 import { flushSafelyWithTimeout } from './utils/responseEnd';
-import { commonObjectToIsolationScope } from './utils/tracingUtils';
+import { commonObjectToIsolationScope, commonObjectToPropagationContext } from './utils/tracingUtils';
 import { vercelWaitUntil } from './utils/vercelWaitUntil';
 
 /**
@@ -36,6 +36,7 @@ export function wrapServerComponentWithSentry<F extends (...args: any[]) => any>
   // hook. 🤯
   return new Proxy(appDirComponent, {
     apply: (originalFunction, thisArg, args) => {
+      const requestTraceId = getActiveSpan()?.spanContext().traceId;
       const isolationScope = commonObjectToIsolationScope(context.headers);
 
       const activeSpan = getActiveSpan();
@@ -59,6 +60,21 @@ export function wrapServerComponentWithSentry<F extends (...args: any[]) => any>
       return withIsolationScope(isolationScope, () => {
         return withScope(scope => {
           scope.setTransactionName(`${componentType} Server Component (${componentRoute})`);
+
+          if (process.env.NEXT_RUNTIME === 'edge') {
+            const propagationContext = commonObjectToPropagationContext(
+              context.headers,
+              headersDict?.['sentry-trace']
+                ? propagationContextFromHeaders(headersDict['sentry-trace'], headersDict['baggage'])
+                : {
+                    traceId: requestTraceId || uuid4(),
+                    spanId: uuid4().substring(16),
+                  },
+            );
+
+            scope.setPropagationContext(propagationContext);
+          }
+
           return startSpanManual(
             {
               op: 'function.nextjs',

@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
-test('all server component transactions should be attached to the pageload request span', async ({ page }) => {
+test('App router transactions should be attached to the pageload request span', async ({ page }) => {
   const serverTransactionPromise = waitForTransaction('nextjs-15', async transactionEvent => {
     return transactionEvent?.transaction === 'GET /pageload-tracing';
   });
