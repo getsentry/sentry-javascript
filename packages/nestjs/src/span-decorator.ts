@@ -1,4 +1,4 @@
-import { captureException, startSpan } from '@sentry/node';
+import { startSpan } from '@sentry/node';
 
 /**
  * A decorator usable to wrap arbitrary functions with spans.
@@ -16,11 +16,7 @@ export function SentryTraced(op: string = 'function') {
           name: propertyKey,
         },
         async () => {
-          try {
-            return await originalMethod.apply(this, args);
-          } catch (e) {
-            captureException(e);
-          }
+          return originalMethod.apply(this, args);
         },
       );
     };
