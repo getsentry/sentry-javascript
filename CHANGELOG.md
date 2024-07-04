@@ -1,5 +1,9 @@
 # Changelog
 
+> [!IMPORTANT]  
+> If you are upgrading to the `8.x` versions of the SDK from `7.x` or below, make sure you follow our
+> [migration guide](https://docs.sentry.io/platforms/javascript/migration/) first.
+
 ## Unreleased
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
