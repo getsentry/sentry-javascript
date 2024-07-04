@@ -8,6 +8,29 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 8.14.0
+
+### Important Changes
+
+- **feat(nestjs): Filter 4xx errors (#12695)**
+
+The `@sentry/nestjs` SDK no longer captures 4xx errors automatically.
+
+### Other Changes
+
+- chore(react): Remove private namespace `JSX` (#12691)
+- feat(deps): bump @opentelemetry/propagator-aws-xray from 1.25.0 to 1.25.1 (#12719)
+- feat(deps): bump @prisma/instrumentation from 5.16.0 to 5.16.1 (#12718)
+- feat(node): Add `registerEsmLoaderHooks` option (#12684)
+- feat(opentelemetry): Expose sampling helper (#12674)
+- fix(browser): Make sure measure spans have valid start timestamps (#12648)
+- fix(hapi): Widen type definitions (#12710)
+- fix(nextjs): Attempt to ignore critical dependency warnings (#12694)
+- fix(react): Fix React jsx runtime import for esm (#12740)
+- fix(replay): Start replay in `afterAllSetup` instead of next tick (#12709)
+
+Work in this release was contributed by @quisido. Thank you for your contribution!
+
 ## 8.13.0
 
 ### Important Changes
