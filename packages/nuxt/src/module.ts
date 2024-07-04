@@ -1,8 +1,6 @@
-import * as fs from 'fs';
-import * as path from 'path';
-import { type Resolver, addPlugin, createResolver, defineNuxtModule } from '@nuxt/kit';
-import { addImportStatement, buildSdkInitFileImportSnippet } from './common/snippets';
+import { addPlugin, createResolver, defineNuxtModule } from '@nuxt/kit';
 import type { SentryNuxtOptions } from './common/types';
+import { findDefaultSdkInitFile, injectSentryConfigImport } from './common/utils';
 
 export type ModuleOptions = SentryNuxtOptions;
 
@@ -16,34 +14,25 @@ export default defineNuxtModule<ModuleOptions>({
   },
   defaults: {},
   setup(_moduleOptions, nuxt) {
-    const resolver: Resolver = createResolver(import.meta.url);
+    const moduleDirResolver = createResolver(import.meta.url);
+    const buildDirResolver = createResolver(nuxt.options.buildDir);
 
-    const pathToClientInit = findDefaultSdkInitFile('client');
+    const clientConfigFile = findDefaultSdkInitFile('client');
 
-    if (pathToClientInit) {
-      nuxt.hook('app:templates', nuxtApp => {
-        if (nuxtApp.rootComponent) {
-          try {
-            addImportStatement(nuxtApp.rootComponent, buildSdkInitFileImportSnippet(pathToClientInit));
-          } catch (err) {
-            // eslint-disable-next-line no-console
-            console.error(`[Sentry] Could not add import statement to root component. ${err}`);
-          }
-        }
-      });
+    if (clientConfigFile) {
+      nuxt.options.alias['#sentry-client-config'] = buildDirResolver.resolve(`/${clientConfigFile}`);
+
+      injectSentryConfigImport('#sentry-client-config');
+
+      addPlugin(moduleDirResolver.resolve('./runtime/plugins/sentry.client'));
     }
 
-    if (resolver) {
-      addPlugin(resolver.resolve('./runtime/plugins/sentry.client'));
+    const serverConfigFile = findDefaultSdkInitFile('server');
+
+    if (serverConfigFile) {
+      nuxt.options.alias['#sentry-server-config'] = buildDirResolver.resolve(`/${serverConfigFile}`);
+
+      injectSentryConfigImport('#sentry-server-config');
     }
   },
 });
-
-function findDefaultSdkInitFile(type: /* 'server' | */ 'client'): string | undefined {
-  const possibleFileExtensions = ['ts', 'js', 'mjs', 'cjs', 'mts', 'cts'];
-
-  const cwd = process.cwd();
-  return possibleFileExtensions
-    .map(e => path.resolve(path.join(cwd, `sentry.${type}.config.${e}`)))
-    .find(filename => fs.existsSync(filename));
-}
