@@ -164,8 +164,6 @@ export function init(options: NodeOptions): NodeClient | undefined {
     }
   });
 
-  client?.on('spanEnd');
-
   getGlobalScope().addEventProcessor(
     Object.assign(
       (event => {
