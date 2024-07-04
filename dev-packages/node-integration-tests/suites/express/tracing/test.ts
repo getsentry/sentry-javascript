@@ -1,6 +1,6 @@
 import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
 
-describe('express tracing experimental', () => {
+describe('express tracing', () => {
   afterAll(() => {
     cleanupChildProcesses();
   });

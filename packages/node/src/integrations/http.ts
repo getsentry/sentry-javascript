@@ -43,6 +43,25 @@ interface HttpOptions {
    */
   ignoreIncomingRequests?: (url: string) => boolean;
 
+  /**
+   * Additional instrumentation options that are passed to the underlying HttpInstrumentation.
+   */
+  instrumentation?: {
+    requestHook?: (span: Span, req: ClientRequest | HTTPModuleRequestIncomingMessage) => void;
+    responseHook?: (span: Span, response: HTTPModuleRequestIncomingMessage | ServerResponse) => void;
+    applyCustomAttributesOnSpan?: (
+      span: Span,
+      request: ClientRequest | HTTPModuleRequestIncomingMessage,
+      response: HTTPModuleRequestIncomingMessage | ServerResponse,
+    ) => void;
+
+    /**
+     * You can pass any configuration through to the underlying instrumention.
+     * Note that there are no semver guarantees for this!
+     */
+    _experimentalConfig?: ConstructorParameters<typeof HttpInstrumentation>[0];
+  };
+
   /** Allows to pass a custom version of HttpInstrumentation. We use this for Next.js. */
   _instrumentation?: typeof HttpInstrumentation;
 }
@@ -63,6 +82,7 @@ export const instrumentHttp = Object.assign(
     const _InstrumentationClass = _httpOptions._instrumentation || HttpInstrumentation;
 
     _httpInstrumentation = new _InstrumentationClass({
+      ..._httpOptions.instrumentation?._experimentalConfig,
       ignoreOutgoingRequestHook: request => {
         const url = getRequestUrl(request);
 
@@ -107,6 +127,7 @@ export const instrumentHttp = Object.assign(
         // both, incoming requests and "client" requests made within the app trigger the requestHook
         // we only want to isolate and further annotate incoming requests (IncomingMessage)
         if (_isClientRequest(req)) {
+          _httpOptions.instrumentation?.requestHook?.(span, req);
           return;
         }
 
@@ -134,17 +155,21 @@ export const instrumentHttp = Object.assign(
         const bestEffortTransactionName = `${httpMethod} ${httpTarget}`;
 
         isolationScope.setTransactionName(bestEffortTransactionName);
+
+        _httpOptions.instrumentation?.requestHook?.(span, req);
       },
-      responseHook: () => {
+      responseHook: (span, res) => {
         const client = getClient<NodeClient>();
         if (client && client.getOptions().autoSessionTracking) {
           setImmediate(() => {
             client['_captureRequestSession']();
           });
         }
+
+        _httpOptions.instrumentation?.responseHook?.(span, res);
       },
       applyCustomAttributesOnSpan: (
-        _span: Span,
+        span: Span,
         request: ClientRequest | HTTPModuleRequestIncomingMessage,
         response: HTTPModuleRequestIncomingMessage | ServerResponse,
       ) => {
@@ -152,6 +177,8 @@ export const instrumentHttp = Object.assign(
         if (_breadcrumbs) {
           _addRequestBreadcrumb(request, response);
         }
+
+        _httpOptions.instrumentation?.applyCustomAttributesOnSpan?.(span, request, response);
       },
     });
 
