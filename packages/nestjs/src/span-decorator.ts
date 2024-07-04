@@ -9,8 +9,8 @@ export function SentryTraced(op: string = 'function') {
     const originalMethod = descriptor.value as (...args: any[]) => Promise<any>;
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    descriptor.value = async function (...args: any[]) {
-      await startSpan(
+    descriptor.value = function (...args: any[]) {
+      return startSpan(
         {
           op: op,
           name: propertyKey,
