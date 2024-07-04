@@ -768,12 +768,18 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
           return prepared;
         }
 
-        const result = processBeforeSend(options, prepared, hint);
+        const result = processBeforeSend(this, options, prepared, hint);
         return _validateBeforeSendResult(result, beforeSendLabel);
       })
       .then(processedEvent => {
         if (processedEvent === null) {
           this.recordDroppedEvent('before_send', dataCategory, event);
+          if (isTransactionEvent(event)) {
+            const spans = event.spans || [];
+            // the transaction itself counts as one span, plus all the child spans that are added
+            const spanCount = 1 + spans.length;
+            this._outcomes['span'] = (this._outcomes['span'] || 0) + spanCount;
+          }
           throw new SentryError(`${beforeSendLabel} returned \`null\`, will not send event.`, 'log');
         }
 
@@ -893,6 +899,7 @@ function _validateBeforeSendResult(
  * Process the matching `beforeSendXXX` callback.
  */
 function processBeforeSend(
+  client: Client,
   options: ClientOptions,
   event: Event,
   hint: EventHint,
@@ -910,6 +917,8 @@ function processBeforeSend(
         const processedSpan = beforeSendSpan(span);
         if (processedSpan) {
           processedSpans.push(processedSpan);
+        } else {
+          client.recordDroppedEvent('before_send', 'span');
         }
       }
       event.spans = processedSpans;
