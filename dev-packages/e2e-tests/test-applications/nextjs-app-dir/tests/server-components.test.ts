@@ -13,12 +13,18 @@ test('Sends a transaction for a request to app router', async ({ page }) => {
   expect(transactionEvent.contexts?.trace).toEqual({
     data: expect.objectContaining({
       'sentry.op': 'http.server',
-      'sentry.origin': 'manual',
+      'sentry.origin': 'auto.http.otel.http',
       'sentry.sample_rate': 1,
       'sentry.source': 'route',
+      'http.method': 'GET',
+      'http.response.status_code': 200,
+      'http.route': '/server-component/parameter/[...parameters]',
+      'http.status_code': 200,
+      'http.target': '/server-component/parameter/1337/42',
+      'otel.kind': 'SERVER',
     }),
     op: 'http.server',
-    origin: 'manual',
+    origin: 'auto.http.otel.http',
     span_id: expect.any(String),
     status: 'ok',
     trace_id: expect.any(String),
@@ -49,7 +55,9 @@ test('Should not set an error status on an app router transaction when it redire
   expect(transactionEvent.contexts?.trace?.status).not.toBe('internal_error');
 });
 
-test('Should set a "not_found" status on an app router transaction when notFound() is called', async ({ page }) => {
+test('Should set a "not_found" status on a server component span when notFound() is called and the request span should have status ok', async ({
+  page,
+}) => {
   const serverComponentTransactionPromise = waitForTransaction('nextjs-app-dir', async transactionEvent => {
     return transactionEvent?.transaction === 'GET /server-component/not-found';
   });
@@ -58,10 +66,18 @@ test('Should set a "not_found" status on an app router transaction when notFound
 
   const transactionEvent = await serverComponentTransactionPromise;
 
-  expect(transactionEvent.contexts?.trace?.status).toBe('not_found');
+  // Transaction should have status ok, because the http status is ok, but the server component span should be not_found
+  expect(transactionEvent.contexts?.trace?.status).toBe('ok');
+  expect(transactionEvent.spans).toContainEqual(
+    expect.objectContaining({
+      description: 'Page Server Component (/server-component/not-found)',
+      op: 'function.nextjs',
+      status: 'not_found',
+    }),
+  );
 });
 
-test('Should capture an error and transaction with correct status for a app router page', async ({ page }) => {
+test('Should capture an error and transaction for a app router page', async ({ page }) => {
   const transactionEventPromise = waitForTransaction('nextjs-app-dir', async transactionEvent => {
     return transactionEvent?.transaction === 'GET /server-component/faulty';
   });
@@ -75,9 +91,18 @@ test('Should capture an error and transaction with correct status for a app rout
   const transactionEvent = await transactionEventPromise;
   const errorEvent = await errorEventPromise;
 
-  expect(transactionEvent.contexts?.trace?.status).toBe('internal_error');
-
+  // Error event should have the right transaction name
   expect(errorEvent.transaction).toBe(`Page Server Component (/server-component/faulty)`);
+
+  // Transaction should have status ok, because the http status is ok, but the server component span should be internal_error
+  expect(transactionEvent.contexts?.trace?.status).toBe('ok');
+  expect(transactionEvent.spans).toContainEqual(
+    expect.objectContaining({
+      description: 'Page Server Component (/server-component/faulty)',
+      op: 'function.nextjs',
+      status: 'internal_error',
+    }),
+  );
 
   expect(errorEvent.tags?.['my-isolated-tag']).toBe(true);
   expect(errorEvent.tags?.['my-global-scope-isolated-tag']).not.toBeDefined();

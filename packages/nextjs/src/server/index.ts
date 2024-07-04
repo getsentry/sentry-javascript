@@ -1,8 +1,16 @@
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, applySdkMetadata, getClient, getGlobalScope } from '@sentry/core';
+import {
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  applySdkMetadata,
+  getClient,
+  getGlobalScope,
+  getRootSpan,
+  spanToJSON,
+} from '@sentry/core';
 import { getDefaultIntegrations, init as nodeInit } from '@sentry/node';
 import type { NodeClient, NodeOptions } from '@sentry/node';
 import { GLOBAL_OBJ, logger } from '@sentry/utils';
 
+import { SEMATTRS_HTTP_METHOD, SEMATTRS_HTTP_ROUTE } from '@opentelemetry/semantic-conventions';
 import type { EventProcessor } from '@sentry/types';
 import { DEBUG_BUILD } from '../common/debug-build';
 import { devErrorSymbolicationEventProcessor } from '../common/devErrorSymbolicationEventProcessor';
@@ -140,6 +148,23 @@ export function init(options: NodeOptions): NodeClient | undefined {
       samplingDecision.decision = false;
     }
   });
+
+  // What we do in this glorious piece of code, is hoist any information about parameterized routes from spans emitted
+  // by Next.js via the `next.route` attribure, up to the transaction by setting the http.route attribute.
+  client?.on('spanStart', span => {
+    const spanAttributes = spanToJSON(span).data;
+    if (spanAttributes?.['next.route']) {
+      const rootSpan = getRootSpan(span);
+      const rootSpanAttributes = spanToJSON(rootSpan).data;
+
+      // Only hoist the http.route attribute if the transaction doesn't already have it
+      if (rootSpanAttributes?.[SEMATTRS_HTTP_METHOD] && !rootSpanAttributes?.[SEMATTRS_HTTP_ROUTE]) {
+        rootSpan.setAttribute(SEMATTRS_HTTP_ROUTE, spanAttributes['next.route']);
+      }
+    }
+  });
+
+  client?.on('spanEnd');
 
   getGlobalScope().addEventProcessor(
     Object.assign(

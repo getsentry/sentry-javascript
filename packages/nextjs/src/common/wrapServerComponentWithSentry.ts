@@ -88,16 +88,16 @@ export function wrapServerComponentWithSentry<F extends (...args: any[]) => any>
               return handleCallbackErrors(
                 () => originalFunction.apply(thisArg, args),
                 error => {
+                  // When you read this code you might think: "Wait a minute, shouldn't we set the status on the root span too?"
+                  // The answer is: "No." - The status of the root span is determined by whatever status code Next.js decides to put on the response.
                   if (isNotFoundNavigationError(error)) {
                     // We don't want to report "not-found"s
                     span.setStatus({ code: SPAN_STATUS_ERROR, message: 'not_found' });
-                    getRootSpan(span).setStatus({ code: SPAN_STATUS_ERROR, message: 'not_found' });
                   } else if (isRedirectNavigationError(error)) {
                     // We don't want to report redirects
                     span.setStatus({ code: SPAN_STATUS_OK });
                   } else {
                     span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
-                    getRootSpan(span).setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
                     captureException(error, {
                       mechanism: {
                         handled: false,

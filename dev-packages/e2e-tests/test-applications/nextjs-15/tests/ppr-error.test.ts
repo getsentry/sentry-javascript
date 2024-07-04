@@ -15,9 +15,6 @@ test('should not capture React-internal errors for PPR rendering', async ({ page
 
   await page.goto(`/ppr-error/foobar?id=1`);
 
-  // Just to be a little bit more sure
-  await page.waitForTimeout(5000);
-
   const pageServerComponentTransaction = await pageServerComponentTransactionPromise;
   expect(pageServerComponentTransaction).toBeDefined();
 

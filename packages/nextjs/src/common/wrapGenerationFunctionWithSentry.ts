@@ -101,6 +101,8 @@ export function wrapGenerationFunctionWithSentry<F extends (...args: any[]) => a
               return handleCallbackErrors(
                 () => originalFunction.apply(thisArg, args),
                 err => {
+                  // When you read this code you might think: "Wait a minute, shouldn't we set the status on the root span too?"
+                  // The answer is: "No." - The status of the root span is determined by whatever status code Next.js decides to put on the response.
                   if (isNotFoundNavigationError(err)) {
                     // We don't want to report "not-found"s
                     span.setStatus({ code: SPAN_STATUS_ERROR, message: 'not_found' });
