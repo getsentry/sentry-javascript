@@ -130,7 +130,7 @@ function _init(
     }
   }
 
-  if (!isCjs()) {
+  if (!isCjs() && options.registerEsmLoaderHooks !== false) {
     maybeInitializeEsmLoader();
   }
 

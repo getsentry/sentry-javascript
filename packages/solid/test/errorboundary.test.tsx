@@ -44,6 +44,7 @@ describe('withSentryErrorBoundary', () => {
   it('calls `captureException` when an error occurs`', () => {
     render(() => (
       <SentryErrorBoundary fallback={<div>Ooops, an error occurred.</div>}>
+        {/* @ts-expect-error: component doesn't exist on purpose */}
         <NonExistentComponent />
       </SentryErrorBoundary>
     ));
@@ -55,6 +56,7 @@ describe('withSentryErrorBoundary', () => {
   it('renders the fallback component', async () => {
     const { findByText } = render(() => (
       <SentryErrorBoundary fallback={<div>Ooops, an error occurred.</div>}>
+        {/* @ts-expect-error: component doesn't exist on purpose */}
         <NonExistentComponent />
       </SentryErrorBoundary>
     ));
@@ -65,11 +67,12 @@ describe('withSentryErrorBoundary', () => {
   it('passes the `error` and `reset` function to the fallback component', () => {
     const mockFallback = vi.fn();
 
-    render(() => {
+    render(() => (
       <SentryErrorBoundary fallback={mockFallback}>
+        {/* @ts-expect-error: component doesn't exist on purpose */}
         <NonExistentComponent />
-      </SentryErrorBoundary>;
-    });
+      </SentryErrorBoundary>
+    ));
 
     expect(mockFallback).toHaveBeenCalledTimes(1);
     expect(mockFallback).toHaveBeenCalledWith(
@@ -81,6 +84,7 @@ describe('withSentryErrorBoundary', () => {
   it('calls `captureException` again after resetting', async () => {
     const { findByRole } = render(() => (
       <SentryErrorBoundary fallback={(_, reset) => <button onClick={reset}>Reset</button>}>
+        {/* @ts-expect-error: component doesn't exist on purpose */}
         <NonExistentComponent />
       </SentryErrorBoundary>
     ));

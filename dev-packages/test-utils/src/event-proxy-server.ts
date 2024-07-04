@@ -1,6 +1,5 @@
 import * as fs from 'fs';
 import * as http from 'http';
-import * as https from 'https';
 import type { AddressInfo } from 'net';
 import * as os from 'os';
 import * as path from 'path';
@@ -31,11 +30,27 @@ interface SentryRequestCallbackData {
   sentryResponseStatusCode?: number;
 }
 
+type OnRequest = (
+  eventCallbackListeners: Set<(data: string) => void>,
+  proxyRequest: http.IncomingMessage,
+  proxyRequestBody: string,
+) => Promise<[number, string, Record<string, string> | undefined]>;
+
 /**
- * Starts an event proxy server that will proxy events to sentry when the `tunnel` option is used. Point the `tunnel`
- * option to this server (like this `tunnel: http://localhost:${port option}/`).
+ * Start a generic proxy server.
+ * The `onRequest` callback receives the incoming request and the request body,
+ * and should return a promise that resolves to a tuple with:
+ * statusCode, responseBody, responseHeaders
  */
-export async function startEventProxyServer(options: EventProxyServerOptions): Promise<void> {
+export async function startProxyServer(
+  options: {
+    /** Port to start the event proxy server at. */
+    port: number;
+    /** The name for the proxy server used for referencing it with listener functions */
+    proxyServerName: string;
+  },
+  onRequest?: OnRequest,
+): Promise<void> {
   const eventCallbackListeners: Set<(data: string) => void> = new Set();
 
   const proxyServer = http.createServer((proxyRequest, proxyResponse) => {
@@ -59,102 +74,29 @@ export async function startEventProxyServer(options: EventProxyServerOptions): P
           ? zlib.gunzipSync(Buffer.concat(proxyRequestChunks)).toString()
           : Buffer.concat(proxyRequestChunks).toString();
 
-      const envelopeHeader: EnvelopeItem[0] = JSON.parse(proxyRequestBody.split('\n')[0] as string);
+      const callback: OnRequest =
+        onRequest ||
+        (async (eventCallbackListeners, proxyRequest, proxyRequestBody) => {
+          eventCallbackListeners.forEach(listener => {
+            listener(proxyRequestBody);
+          });
 
-      const shouldForwardEventToSentry = options.forwardToSentry != null ? options.forwardToSentry : true;
-
-      if (!envelopeHeader.dsn && shouldForwardEventToSentry) {
-        // eslint-disable-next-line no-console
-        console.log(
-          '[event-proxy-server] Warn: No dsn on envelope header. Maybe a client-report was received. Proxy request body:',
-          proxyRequestBody,
-        );
-
-        proxyResponse.writeHead(200);
-        proxyResponse.write('{}', 'utf-8');
-        proxyResponse.end();
-        return;
-      }
-
-      if (!shouldForwardEventToSentry) {
-        const data: SentryRequestCallbackData = {
-          envelope: parseEnvelope(proxyRequestBody),
-          rawProxyRequestBody: proxyRequestBody,
-          rawSentryResponseBody: '',
-          sentryResponseStatusCode: 200,
-        };
-        eventCallbackListeners.forEach(listener => {
-          listener(Buffer.from(JSON.stringify(data)).toString('base64'));
+          return [200, '{}', {}];
         });
 
-        proxyResponse.writeHead(200);
-        proxyResponse.write('{}', 'utf-8');
-        proxyResponse.end();
-        return;
-      }
-
-      const { origin, pathname, host } = new URL(envelopeHeader.dsn as string);
-
-      const projectId = pathname.substring(1);
-      const sentryIngestUrl = `${origin}/api/${projectId}/envelope/`;
-
-      proxyRequest.headers.host = host;
-
-      const sentryResponseChunks: Uint8Array[] = [];
-
-      const sentryRequest = https.request(
-        sentryIngestUrl,
-        { headers: proxyRequest.headers, method: proxyRequest.method },
-        sentryResponse => {
-          sentryResponse.addListener('data', (chunk: Buffer) => {
-            proxyResponse.write(chunk, 'binary');
-            sentryResponseChunks.push(chunk);
-          });
-
-          sentryResponse.addListener('end', () => {
-            eventCallbackListeners.forEach(listener => {
-              const rawSentryResponseBody = Buffer.concat(sentryResponseChunks).toString();
-
-              try {
-                const data: SentryRequestCallbackData = {
-                  envelope: parseEnvelope(proxyRequestBody),
-                  rawProxyRequestBody: proxyRequestBody,
-                  rawSentryResponseBody,
-                  sentryResponseStatusCode: sentryResponse.statusCode,
-                };
-
-                listener(Buffer.from(JSON.stringify(data)).toString('base64'));
-              } catch (error) {
-                if (`${error}`.includes('Unexpected token') && proxyRequestBody.includes('{"type":"replay_event"}')) {
-                  // eslint-disable-next-line no-console
-                  console.log('[event-proxy-server] Info: Received replay event, skipping...');
-                } else {
-                  // eslint-disable-next-line no-console
-                  console.error(
-                    '[event-proxy-server] Error: Failed to parse Sentry request envelope',
-                    error,
-                    proxyRequestBody,
-                  );
-                }
-              }
-            });
-            proxyResponse.end();
-          });
-
-          sentryResponse.addListener('error', err => {
-            // eslint-disable-next-line no-console
-            console.log('[event-proxy-server] Warn: Proxying to Sentry returned an error!', err);
-            proxyResponse.writeHead(500);
-            proxyResponse.write('{}', 'utf-8');
-            proxyResponse.end();
-          });
-
-          proxyResponse.writeHead(sentryResponse.statusCode || 500, sentryResponse.headers);
-        },
-      );
-
-      sentryRequest.write(Buffer.concat(proxyRequestChunks), 'binary');
-      sentryRequest.end();
+      callback(eventCallbackListeners, proxyRequest, proxyRequestBody)
+        .then(([statusCode, responseBody, responseHeaders]) => {
+          proxyResponse.writeHead(statusCode, responseHeaders);
+          proxyResponse.write(responseBody, 'utf-8');
+          proxyResponse.end();
+        })
+        .catch(error => {
+          // eslint-disable-next-line no-console
+          console.log('[event-proxy-server] Warn: Proxy server returned an error', error);
+          proxyResponse.writeHead(500);
+          proxyResponse.write('{}', 'utf-8');
+          proxyResponse.end();
+        });
     });
   });
 
@@ -193,7 +135,113 @@ export async function startEventProxyServer(options: EventProxyServerOptions): P
 
   await eventCallbackServerStartupPromise;
   await proxyServerStartupPromise;
-  return;
+}
+
+/**
+ * Starts an event proxy server that will proxy events to sentry when the `tunnel` option is used. Point the `tunnel`
+ * option to this server (like this `tunnel: http://localhost:${port option}/`).
+ */
+export async function startEventProxyServer(options: EventProxyServerOptions): Promise<void> {
+  await startProxyServer(options, async (eventCallbackListeners, proxyRequest, proxyRequestBody) => {
+    const envelopeHeader: EnvelopeItem[0] = JSON.parse(proxyRequestBody.split('\n')[0] as string);
+
+    const shouldForwardEventToSentry = options.forwardToSentry != null ? options.forwardToSentry : true;
+
+    if (!envelopeHeader.dsn && shouldForwardEventToSentry) {
+      // eslint-disable-next-line no-console
+      console.log(
+        '[event-proxy-server] Warn: No dsn on envelope header. Maybe a client-report was received. Proxy request body:',
+        proxyRequestBody,
+      );
+
+      return [200, '{}', {}];
+    }
+
+    if (!shouldForwardEventToSentry) {
+      const data: SentryRequestCallbackData = {
+        envelope: parseEnvelope(proxyRequestBody),
+        rawProxyRequestBody: proxyRequestBody,
+        rawSentryResponseBody: '',
+        sentryResponseStatusCode: 200,
+      };
+      eventCallbackListeners.forEach(listener => {
+        listener(Buffer.from(JSON.stringify(data)).toString('base64'));
+      });
+
+      return [200, '{}', {}];
+    }
+
+    const { origin, pathname, host } = new URL(envelopeHeader.dsn as string);
+
+    const projectId = pathname.substring(1);
+    const sentryIngestUrl = `${origin}/api/${projectId}/envelope/`;
+
+    proxyRequest.headers.host = host;
+
+    const reqHeaders: Record<string, string> = {};
+    for (const [key, value] of Object.entries(proxyRequest.headers)) {
+      reqHeaders[key] = value as string;
+    }
+
+    // Fetch does not like this
+    delete reqHeaders['transfer-encoding'];
+
+    return fetch(sentryIngestUrl, {
+      body: proxyRequestBody,
+      headers: reqHeaders,
+      method: proxyRequest.method,
+    }).then(async res => {
+      const rawSentryResponseBody = await res.text();
+      const data: SentryRequestCallbackData = {
+        envelope: parseEnvelope(proxyRequestBody),
+        rawProxyRequestBody: proxyRequestBody,
+        rawSentryResponseBody,
+        sentryResponseStatusCode: res.status,
+      };
+
+      eventCallbackListeners.forEach(listener => {
+        listener(Buffer.from(JSON.stringify(data)).toString('base64'));
+      });
+
+      const resHeaders: Record<string, string> = {};
+      for (const [key, value] of res.headers.entries()) {
+        resHeaders[key] = value;
+      }
+
+      return [res.status, rawSentryResponseBody, resHeaders];
+    });
+  });
+}
+
+/** Wait for any plain request being made to the proxy. */
+export async function waitForPlainRequest(
+  proxyServerName: string,
+  callback: (eventData: string) => Promise<boolean> | boolean,
+): Promise<string> {
+  const eventCallbackServerPort = await retrieveCallbackServerPort(proxyServerName);
+
+  return new Promise((resolve, reject) => {
+    const request = http.request(`http://localhost:${eventCallbackServerPort}/`, {}, response => {
+      let eventContents = '';
+
+      response.on('error', err => {
+        reject(err);
+      });
+
+      response.on('data', (chunk: Buffer) => {
+        const chunkString = chunk.toString('utf8');
+
+        eventContents = eventContents.concat(chunkString);
+
+        if (callback(eventContents)) {
+          response.destroy();
+          return resolve(eventContents);
+        }
+      });
+    });
+
+    request.end();
+  });
 }
 
 /** Wait for a request to be sent. */

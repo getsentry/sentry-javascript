@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { waitForError } from '@sentry-internal/test-utils';
+import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
 
 test('Sends exception to Sentry', async ({ baseURL }) => {
   const errorEventPromise = waitForError('nestjs', event => {
@@ -27,4 +27,29 @@ test('Sends exception to Sentry', async ({ baseURL }) => {
     trace_id: expect.any(String),
     span_id: expect.any(String),
   });
+});
+
+test('Does not send expected exception to Sentry', async ({ baseURL }) => {
+  let errorEventOccurred = false;
+
+  waitForError('nestjs', event => {
+    if (!event.type && event.exception?.values?.[0]?.value === 'This is an expected exception with id 123') {
+      errorEventOccurred = true;
+    }
+
+    return event?.transaction === 'GET /test-expected-exception/:id';
+  });
+
+  const transactionEventPromise = waitForTransaction('nestjs', transactionEvent => {
+    return transactionEvent?.transaction === 'GET /test-expected-exception/:id';
+  });
+
+  const response = await fetch(`${baseURL}/test-expected-exception/123`);
+  expect(response.status).toBe(403);
+
+  await transactionEventPromise;
+
+  await new Promise(resolve => setTimeout(resolve, 10000));
+
+  expect(errorEventOccurred).toBe(false);
 });

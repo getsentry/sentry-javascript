@@ -36,7 +36,10 @@ export { setOpenTelemetryContextAsyncContextStrategy } from './asyncContextStrat
 export { wrapContextManagerClass } from './contextManager';
 export { SentryPropagator } from './propagator';
 export { SentrySpanProcessor } from './spanProcessor';
-export { SentrySampler } from './sampler';
+export {
+  SentrySampler,
+  wrapSamplingDecision,
+} from './sampler';
 
 export { openTelemetrySetupCheck } from './utils/setupCheck';
 
