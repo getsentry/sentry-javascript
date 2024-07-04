@@ -82,7 +82,7 @@ export class AppService1 {
     return new Promise(resolve => setTimeout(resolve, 500));
   }
 
-  async testSpanDecorator() {
+  async testSpanDecoratorAsync() {
     await this.wait();
   }
 }

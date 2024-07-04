@@ -70,9 +70,9 @@ export class AppController1 {
     return this.appService.testOutgoingHttpExternalDisallowed();
   }
 
-  @Get('test-span-decorator')
+  @Get('test-span-decorator-async')
   async testSpanDecorator() {
-    return this.appService.testSpanDecorator();
+    return this.appService.testSpanDecoratorAsync();
   }
 }
 

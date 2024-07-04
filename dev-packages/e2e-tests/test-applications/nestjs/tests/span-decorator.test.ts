@@ -5,11 +5,11 @@ test('Transaction includes span for decorated function', async ({ baseURL }) => 
   const transactionEventPromise = waitForTransaction('nestjs', transactionEvent => {
     return (
       transactionEvent?.contexts?.trace?.op === 'http.server' &&
-      transactionEvent?.transaction === 'GET /test-span-decorator'
+      transactionEvent?.transaction === 'GET /test-span-decorator-async'
     );
   });
 
-  await fetch(`${baseURL}/test-span-decorator`);
+  await fetch(`${baseURL}/test-span-decorator-async`);
 
   const transactionEvent = await transactionEventPromise;
 
