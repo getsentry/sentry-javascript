@@ -2,12 +2,14 @@
   "private": true,
   "sideEffects": false,
   "scripts": {
-    "build": "remix build --sourcemap && ./upload-sourcemaps.sh",
+    "build": "remix build --sourcemap",
+    "upload-sourcemaps": "./upload-sourcemaps.sh",
     "dev": "remix dev",
     "start": "NODE_OPTIONS='--require=./instrument.server.cjs' remix-serve build",
     "typecheck": "tsc",
     "clean": "npx rimraf node_modules pnpm-lock.yaml",
     "test:build": "pnpm install && npx playwright install && pnpm build",
+    "test:build-sourcemaps": "pnpm install && npx playwright install && pnpm build && pnpm upload-sourcemaps",
     "test:assert": "pnpm playwright test"
   },
   "dependencies": {

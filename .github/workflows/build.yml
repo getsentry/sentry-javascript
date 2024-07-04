@@ -1156,6 +1156,13 @@ jobs:
           - false
         label:
           - false
+        include:
+          - test-application: 'create-remix-app'
+            build-command: 'test:build-sourcemaps'
+            label: 'create-remix-app (sourcemaps)'
+          - test-application: 'create-remix-app-legacy'
+            build-command: 'test:build-sourcemaps'
+            label: 'create-remix-app-legacy (sourcemaps)'
 
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
