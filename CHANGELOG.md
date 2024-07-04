@@ -29,6 +29,8 @@ The `@sentry/nestjs` SDK no longer captures 4xx errors automatically.
 - fix(react): Fix React jsx runtime import for esm (#12740)
 - fix(replay): Start replay in `afterAllSetup` instead of next tick (#12709)
 
+Work in this release was contributed by @quisido. Thank you for your contribution!
+
 ## 8.13.0
 
 ### Important Changes
