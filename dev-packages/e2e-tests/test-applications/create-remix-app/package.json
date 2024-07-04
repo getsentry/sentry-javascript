@@ -10,7 +10,8 @@
     "clean": "npx rimraf node_modules pnpm-lock.yaml",
     "test:build": "pnpm install && npx playwright install && pnpm build",
     "test:build-sourcemaps": "pnpm install && npx playwright install && pnpm build && pnpm upload-sourcemaps",
-    "test:assert": "pnpm playwright test"
+    "test:assert": "pnpm playwright test",
+    "test:assert-sourcemaps": "pnpm -v"
   },
   "dependencies": {
     "@sentry/remix": "latest || *",

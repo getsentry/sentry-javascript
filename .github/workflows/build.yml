@@ -1069,7 +1069,7 @@ jobs:
           ref: ${{ env.HEAD_COMMIT }}
       - uses: pnpm/action-setup@v4
         with:
-          version: 8.3.1
+          version: 9.4.0
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
@@ -1106,12 +1106,12 @@ jobs:
       - name: Build E2E app
         working-directory: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
         timeout-minutes: 5
-        run: yarn ${{ matrix.build-command || 'test:build' }}
+        run: pnpm ${{ matrix.build-command || 'test:build' }}
 
       - name: Run E2E test
         working-directory: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
         timeout-minutes: 5
-        run: yarn test:assert
+        run: pnpm test:assert
 
       - name: Deploy Astro to Cloudflare
         uses: cloudflare/pages-action@v1
@@ -1154,14 +1154,18 @@ jobs:
           ]
         build-command:
           - false
+        assert-command:
+          - false
         label:
           - false
         include:
           - test-application: 'create-remix-app'
             build-command: 'test:build-sourcemaps'
+            assert-command: 'test:assert-sourcemaps'
             label: 'create-remix-app (sourcemaps)'
           - test-application: 'create-remix-app-legacy'
             build-command: 'test:build-sourcemaps'
+            assert-command: 'test:assert-sourcemaps'
             label: 'create-remix-app-legacy (sourcemaps)'
 
     steps:
@@ -1171,7 +1175,7 @@ jobs:
           ref: ${{ env.HEAD_COMMIT }}
       - uses: pnpm/action-setup@v4
         with:
-          version: 8.3.1
+          version: 9.4.0
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
@@ -1205,12 +1209,12 @@ jobs:
       - name: Build E2E app
         working-directory: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
         timeout-minutes: 5
-        run: yarn ${{ matrix.build-command || 'test:build' }}
+        run: pnpm ${{ matrix.build-command || 'test:build' }}
 
       - name: Run E2E test
         working-directory: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
         timeout-minutes: 5
-        run: yarn test:assert
+        run: pnpm ${{ matrix.assert-command || 'test:assert' }}
 
   job_profiling_e2e_tests:
     name: E2E ${{ matrix.label || matrix.test-application }} Test
