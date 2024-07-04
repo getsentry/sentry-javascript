@@ -282,7 +282,6 @@ export async function waitForPlainRequest(
 /** Wait for a request to be sent. */
 export async function waitForRequest(
   proxyServerName: string,
-  timestamp: number,
   callback: (eventData: SentryRequestCallbackData) => Promise<boolean> | boolean,
   timestamp: number = Date.now(),
 ): Promise<SentryRequestCallbackData> {
@@ -339,7 +338,6 @@ export async function waitForRequest(
 /** Wait for a specific envelope item to be sent. */
 export function waitForEnvelopeItem(
   proxyServerName: string,
-  timestamp: number,
   callback: (envelopeItem: EnvelopeItem) => Promise<boolean> | boolean,
   timestamp: number = Date.now(),
 ): Promise<EnvelopeItem> {
