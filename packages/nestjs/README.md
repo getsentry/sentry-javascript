@@ -38,6 +38,24 @@ Sentry.init({
 
 Note that it is necessary to initialize Sentry **before you import any package that may be instrumented by us**.
 
+## Span Decorator
+
+Use the @SentryTraced() decorator to gain additional performance insights for any function within your NestJS
+application.
+
+```js
+import { Injectable } from '@nestjs/common';
+import { SentryTraced } from '@sentry/nestjs';
+
+@Injectable()
+export class ExampleService {
+  @SentryTraced('example function')
+  async performTask() {
+    // Your business logic here
+  }
+}
+```
+
 ## Links
 
 - [Official SDK Docs](https://docs.sentry.io/platforms/javascript/guides/nestjs/)
