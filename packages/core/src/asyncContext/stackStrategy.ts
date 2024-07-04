@@ -33,6 +33,7 @@ export class AsyncContextStack {
       assignedIsolationScope = isolationScope;
     }
 
+    // scope stack for domains or the process
     this._stack = [{ scope: assignedScope }];
     this._isolationScope = assignedIsolationScope;
   }
@@ -91,13 +92,6 @@ export class AsyncContextStack {
   }
 
   /**
-   * Returns the scope stack for domains or the process.
-   */
-  public getStack(): Layer[] {
-    return this._stack;
-  }
-
-  /**
    * Returns the topmost scope layer in the order domain > local > process.
    */
   public getStackTop(): Layer {
@@ -110,7 +104,7 @@ export class AsyncContextStack {
   private _pushScope(): ScopeInterface {
     // We want to clone the content of prev scope
     const scope = this.getScope().clone();
-    this.getStack().push({
+    this._stack.push({
       client: this.getClient(),
       scope,
     });
@@ -121,8 +115,8 @@ export class AsyncContextStack {
    * Pop a scope from the stack.
    */
   private _popScope(): boolean {
-    if (this.getStack().length <= 1) return false;
-    return !!this.getStack().pop();
+    if (this._stack.length <= 1) return false;
+    return !!this._stack.pop();
   }
 }
 
