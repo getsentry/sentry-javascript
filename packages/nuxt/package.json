@@ -42,7 +42,7 @@
     "nuxt": "3.x"
   },
   "dependencies": {
-    "@nuxt/kit": "^3.12.3",
+    "@nuxt/kit": "^3.12.2",
     "@sentry/browser": "8.15.0",
     "@sentry/core": "8.15.0",
     "@sentry/node": "8.15.0",
@@ -53,8 +53,8 @@
     "@sentry/vue": "8.15.0"
   },
   "devDependencies": {
-    "@nuxt/module-builder": "0.8.1",
-    "nuxt": "^3.12.3"
+    "@nuxt/module-builder": "0.8.0",
+    "nuxt": "^3.12.2"
   },
   "scripts": {
     "build": "run-p build:transpile build:types build:nuxt-module",
