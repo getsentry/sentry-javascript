@@ -8,6 +8,20 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 8.15.0
+
+- feat(core): allow unregistering callback through `on` (#11710)
+- feat(nestjs): Add function-level span decorator to nestjs (#12721)
+- feat(otel): Export & use `spanTimeInputToSeconds` for otel span exporter (#12699)
+- fix(core): Pass origin as referrer for `lazyLoadIntegration` (#12766)
+- fix(deno): Publish from build directory (#12773)
+- fix(hapi): Specify error channel to filter boom errors (#12725)
+- fix(react): Revert back to `jsxRuntime: 'classic'` to prevent breaking react 17 (#12775)
+- fix(tracing): Report dropped spans for transactions (#12751)
+- ref(scope): Delete unused public `getStack()` (#12737)
+
+Work in this release was contributed by @arturovt and @jaulz. Thank you for your contributions!
+
 ## 8.14.0
 
 ### Important Changes
