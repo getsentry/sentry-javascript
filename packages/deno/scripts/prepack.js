@@ -18,6 +18,8 @@ const ENTRY_POINTS = ['main', 'module', 'types', 'browser'];
 const EXPORT_MAP_ENTRY_POINT = 'exports';
 const TYPES_VERSIONS_ENTRY_POINT = 'typesVersions';
 
+const ASSETS = ['README.md', 'LICENSE', 'package.json', '.npmignore'];
+
 const PACKAGE_JSON = 'package.json';
 
 /**
@@ -52,11 +54,25 @@ if (!fs.existsSync(path.resolve(BUILD_DIR))) {
   process.exit(1);
 }
 
+const buildDirContents = fs.readdirSync(path.resolve(BUILD_DIR));
+
+// copy non-code assets to build dir
+ASSETS.forEach(asset => {
+  const assetPath = path.resolve(asset);
+  if (fs.existsSync(assetPath)) {
+    const destinationPath = path.resolve(BUILD_DIR, path.basename(asset));
+    console.log(`Copying ${path.basename(asset)} to ${path.relative('../..', destinationPath)}.`);
+    fs.copyFileSync(assetPath, destinationPath);
+  }
+});
+
 // package.json modifications
+const newPackageJsonPath = path.resolve(BUILD_DIR, PACKAGE_JSON);
+
 /**
  * @type {PackageJson}
  */
-const newPkgJson = { ...pkgJson };
+const newPkgJson = require(newPackageJsonPath);
 
 // modify entry points to point to correct paths (i.e. strip out the build directory)
 ENTRY_POINTS.filter(entryPoint => newPkgJson[entryPoint]).forEach(entryPoint => {
@@ -100,7 +116,7 @@ if (newPkgJson[TYPES_VERSIONS_ENTRY_POINT]) {
   });
 }
 
-const newPackageJsonPath = path.resolve(BUILD_DIR, PACKAGE_JSON);
+newPkgJson.files = buildDirContents;
 
 // write modified package.json to file (pretty-printed with 2 spaces)
 try {
