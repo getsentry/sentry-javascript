@@ -97,6 +97,9 @@ targets:
   - name: npm
     id: '@sentry/bun'
     includeNames: /^sentry-bun-\d.*\.tgz$/
+  - name: npm
+    id: '@sentry/nestjs'
+    includeNames: /^sentry-nestjs-\d.*\.tgz$/
 
   ## 6. Fullstack/Meta Frameworks (depending on Node and Browser or Framework SDKs)
   - name: npm

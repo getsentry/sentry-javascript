@@ -1,6 +1,7 @@
 import { BaseClient, createTransport, initAndBind } from '@sentry/core';
 import type {
   BrowserClientReplayOptions,
+  Client,
   ClientOptions,
   Event,
   ParameterizedString,
@@ -33,8 +34,8 @@ export class TestClient extends BaseClient<TestClientOptions> {
   }
 }
 
-export function init(options: TestClientOptions): void {
-  initAndBind(TestClient, options);
+export function init(options: TestClientOptions): Client {
+  return initAndBind(TestClient, options);
 }
 
 export function getDefaultClientOptions(options: Partial<TestClientOptions> = {}): ClientOptions {

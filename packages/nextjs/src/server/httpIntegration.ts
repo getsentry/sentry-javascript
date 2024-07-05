@@ -22,19 +22,7 @@ class CustomNextjsHttpIntegration extends HttpInstrumentation {
   }
 }
 
-interface HttpOptions {
-  /**
-   * Whether breadcrumbs should be recorded for requests.
-   * Defaults to true
-   */
-  breadcrumbs?: boolean;
-
-  /**
-   * Do not capture spans or breadcrumbs for outgoing HTTP requests to URLs where the given callback returns `true`.
-   * This controls both span & breadcrumb creation - spans will be non recording if tracing is disabled.
-   */
-  ignoreOutgoingRequests?: (url: string) => boolean;
-}
+type HttpOptions = Parameters<typeof originalHttpIntegration>[0];
 
 /**
  * The http integration instruments Node's internal http and https modules.

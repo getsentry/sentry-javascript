@@ -1,9 +1,9 @@
+import * as SentryBrowser from '@sentry/browser';
 import { SDK_VERSION } from '@sentry/vue';
-import * as SentryVue from '@sentry/vue';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { init } from '../../src/client';
 
-const vueInit = vi.spyOn(SentryVue, 'init');
+const vueInit = vi.spyOn(SentryBrowser, 'init');
 
 describe('Nuxt Client SDK', () => {
   describe('init', () => {

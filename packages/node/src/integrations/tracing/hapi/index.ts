@@ -15,7 +15,7 @@ import { logger } from '@sentry/utils';
 import { DEBUG_BUILD } from '../../../debug-build';
 import { generateInstrumentOnce } from '../../../otel/instrument';
 import { ensureIsWrapped } from '../../../utils/ensureIsWrapped';
-import type { RequestEvent, Server } from './types';
+import type { Request, RequestEvent, Server } from './types';
 
 const INTEGRATION_NAME = 'Hapi';
 
@@ -61,7 +61,7 @@ export const hapiErrorPlugin = {
   register: async function (serverArg: Record<any, any>) {
     const server = serverArg as unknown as Server;
 
-    server.events.on('request', (request, event) => {
+    server.events.on({ name: 'request', channels: ['error'] }, (request: Request, event: RequestEvent) => {
       if (getIsolationScope() !== getDefaultIsolationScope()) {
         const route = request.route;
         if (route && route.path) {

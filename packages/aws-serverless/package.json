@@ -1,6 +1,6 @@
 {
   "name": "@sentry/aws-serverless",
-  "version": "8.12.0",
+  "version": "8.15.0",
   "description": "Official Sentry SDK for AWS Lambda and AWS Serverless Environments",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/serverless",
@@ -10,12 +10,9 @@
     "node": ">=14.18"
   },
   "files": [
-    "cjs",
-    "esm",
-    "types",
-    "types-ts3.8",
-    "import-hook.mjs",
-    "loader-hook.mjs"
+    "/build/npm",
+    "/build/import-hook.mjs",
+    "/build/loader-hook.mjs"
   ],
   "main": "build/npm/cjs/index.js",
   "types": "build/npm/types/index.d.ts",
@@ -66,10 +63,10 @@
   "dependencies": {
     "@opentelemetry/instrumentation-aws-lambda": "0.42.0",
     "@opentelemetry/instrumentation-aws-sdk": "0.42.0",
-    "@sentry/core": "8.12.0",
-    "@sentry/node": "8.12.0",
-    "@sentry/types": "8.12.0",
-    "@sentry/utils": "8.12.0",
+    "@sentry/core": "8.15.0",
+    "@sentry/node": "8.15.0",
+    "@sentry/types": "8.15.0",
+    "@sentry/utils": "8.15.0",
     "@types/aws-lambda": "^8.10.62"
   },
   "devDependencies": {
@@ -88,14 +85,14 @@
     "build:dev:watch": "yarn build:watch",
     "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",
     "build:types:watch": "tsc -p tsconfig.types.json --watch",
-    "build:tarball": "ts-node ../../scripts/prepack.ts --bundles && npm pack ./build/npm",
+    "build:tarball": "npm pack",
     "circularDepCheck": "madge --circular src/index.ts",
     "clean": "rimraf build dist-awslambda-layer coverage sentry-serverless-*.tgz",
     "fix": "eslint . --format stylish --fix",
     "lint": "eslint . --format stylish",
     "test": "jest",
     "test:watch": "jest --watch",
-    "yalc:publish": "ts-node ../../scripts/prepack.ts --bundles && yalc publish ./build/npm --push --sig"
+    "yalc:publish": "yalc publish --push --sig"
   },
   "volta": {
     "extends": "../../package.json"

@@ -275,7 +275,9 @@ describe('sendFeedback', () => {
         email: 're@example.org',
         message: 'mi',
       }),
-    ).rejects.toMatch('Unable to send Feedback. Invalid response from server.');
+    ).rejects.toMatch(
+      'Unable to send Feedback. This could be because of network issues, or because you are using an ad-blocker',
+    );
   });
 
   it('handles 0 transport error', async () => {

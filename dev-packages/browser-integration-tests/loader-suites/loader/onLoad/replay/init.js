@@ -1,3 +1,5 @@
 Sentry.onLoad(function () {
-  Sentry.init({});
+  Sentry.init({
+    replaysSessionSampleRate: 1,
+  });
 });

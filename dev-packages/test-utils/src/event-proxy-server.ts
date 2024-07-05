@@ -1,6 +1,7 @@
+/* eslint-disable max-lines */
+
 import * as fs from 'fs';
 import * as http from 'http';
-import * as https from 'https';
 import type { AddressInfo } from 'net';
 import * as os from 'os';
 import * as path from 'path';
@@ -18,7 +19,7 @@ interface EventProxyServerOptions {
   /** The name for the proxy server used for referencing it with listener functions */
   proxyServerName: string;
   /**
-   * Whether or not to forward the event to sentry. @default `true`
+   * Whether or not to forward the event to sentry. @default `false`
    * This is helpful when you can't register a tunnel in the SDK setup (e.g. lambda layer without Sentry.init call)
    */
   forwardToSentry?: boolean;
@@ -31,12 +32,39 @@ interface SentryRequestCallbackData {
   sentryResponseStatusCode?: number;
 }
 
+interface EventCallbackListener {
+  (data: string): void;
+}
+
+type OnRequest = (
+  eventCallbackListeners: Set<EventCallbackListener>,
+  proxyRequest: http.IncomingMessage,
+  proxyRequestBody: string,
+  eventBuffer: BufferedEvent[],
+) => Promise<[number, string, Record<string, string> | undefined]>;
+
+interface BufferedEvent {
+  timestamp: number;
+  data: string;
+}
+
 /**
- * Starts an event proxy server that will proxy events to sentry when the `tunnel` option is used. Point the `tunnel`
- * option to this server (like this `tunnel: http://localhost:${port option}/`).
+ * Start a generic proxy server.
+ * The `onRequest` callback receives the incoming request and the request body,
+ * and should return a promise that resolves to a tuple with:
+ * statusCode, responseBody, responseHeaders
  */
-export async function startEventProxyServer(options: EventProxyServerOptions): Promise<void> {
-  const eventCallbackListeners: Set<(data: string) => void> = new Set();
+export async function startProxyServer(
+  options: {
+    /** Port to start the event proxy server at. */
+    port: number;
+    /** The name for the proxy server used for referencing it with listener functions */
+    proxyServerName: string;
+  },
+  onRequest?: OnRequest,
+): Promise<void> {
+  const eventBuffer: BufferedEvent[] = [];
+  const eventCallbackListeners: Set<EventCallbackListener> = new Set();
 
   const proxyServer = http.createServer((proxyRequest, proxyResponse) => {
     const proxyRequestChunks: Uint8Array[] = [];
@@ -59,102 +87,31 @@ export async function startEventProxyServer(options: EventProxyServerOptions): P
           ? zlib.gunzipSync(Buffer.concat(proxyRequestChunks)).toString()
           : Buffer.concat(proxyRequestChunks).toString();
 
-      const envelopeHeader: EnvelopeItem[0] = JSON.parse(proxyRequestBody.split('\n')[0] as string);
+      const callback: OnRequest =
+        onRequest ||
+        (async (eventCallbackListeners, proxyRequest, proxyRequestBody, eventBuffer) => {
+          eventBuffer.push({ data: proxyRequestBody, timestamp: Date.now() });
 
-      const shouldForwardEventToSentry = options.forwardToSentry != null ? options.forwardToSentry : true;
+          eventCallbackListeners.forEach(listener => {
+            listener(proxyRequestBody);
+          });
 
-      if (!envelopeHeader.dsn && shouldForwardEventToSentry) {
-        // eslint-disable-next-line no-console
-        console.log(
-          '[event-proxy-server] Warn: No dsn on envelope header. Maybe a client-report was received. Proxy request body:',
-          proxyRequestBody,
-        );
-
-        proxyResponse.writeHead(200);
-        proxyResponse.write('{}', 'utf-8');
-        proxyResponse.end();
-        return;
-      }
-
-      if (!shouldForwardEventToSentry) {
-        const data: SentryRequestCallbackData = {
-          envelope: parseEnvelope(proxyRequestBody),
-          rawProxyRequestBody: proxyRequestBody,
-          rawSentryResponseBody: '',
-          sentryResponseStatusCode: 200,
-        };
-        eventCallbackListeners.forEach(listener => {
-          listener(Buffer.from(JSON.stringify(data)).toString('base64'));
+          return [200, '{}', {}];
         });
 
-        proxyResponse.writeHead(200);
-        proxyResponse.write('{}', 'utf-8');
-        proxyResponse.end();
-        return;
-      }
-
-      const { origin, pathname, host } = new URL(envelopeHeader.dsn as string);
-
-      const projectId = pathname.substring(1);
-      const sentryIngestUrl = `${origin}/api/${projectId}/envelope/`;
-
-      proxyRequest.headers.host = host;
-
-      const sentryResponseChunks: Uint8Array[] = [];
-
-      const sentryRequest = https.request(
-        sentryIngestUrl,
-        { headers: proxyRequest.headers, method: proxyRequest.method },
-        sentryResponse => {
-          sentryResponse.addListener('data', (chunk: Buffer) => {
-            proxyResponse.write(chunk, 'binary');
-            sentryResponseChunks.push(chunk);
-          });
-
-          sentryResponse.addListener('end', () => {
-            eventCallbackListeners.forEach(listener => {
-              const rawSentryResponseBody = Buffer.concat(sentryResponseChunks).toString();
-
-              try {
-                const data: SentryRequestCallbackData = {
-                  envelope: parseEnvelope(proxyRequestBody),
-                  rawProxyRequestBody: proxyRequestBody,
-                  rawSentryResponseBody,
-                  sentryResponseStatusCode: sentryResponse.statusCode,
-                };
-
-                listener(Buffer.from(JSON.stringify(data)).toString('base64'));
-              } catch (error) {
-                if (`${error}`.includes('Unexpected token') && proxyRequestBody.includes('{"type":"replay_event"}')) {
-                  // eslint-disable-next-line no-console
-                  console.log('[event-proxy-server] Info: Received replay event, skipping...');
-                } else {
-                  // eslint-disable-next-line no-console
-                  console.error(
-                    '[event-proxy-server] Error: Failed to parse Sentry request envelope',
-                    error,
-                    proxyRequestBody,
-                  );
-                }
-              }
-            });
-            proxyResponse.end();
-          });
-
-          sentryResponse.addListener('error', err => {
-            // eslint-disable-next-line no-console
-            console.log('[event-proxy-server] Warn: Proxying to Sentry returned an error!', err);
-            proxyResponse.writeHead(500);
-            proxyResponse.write('{}', 'utf-8');
-            proxyResponse.end();
-          });
-
-          proxyResponse.writeHead(sentryResponse.statusCode || 500, sentryResponse.headers);
-        },
-      );
-
-      sentryRequest.write(Buffer.concat(proxyRequestChunks), 'binary');
-      sentryRequest.end();
+      callback(eventCallbackListeners, proxyRequest, proxyRequestBody, eventBuffer)
+        .then(([statusCode, responseBody, responseHeaders]) => {
+          proxyResponse.writeHead(statusCode, responseHeaders);
+          proxyResponse.write(responseBody, 'utf-8');
+          proxyResponse.end();
+        })
+        .catch(error => {
+          // eslint-disable-next-line no-console
+          console.log('[event-proxy-server] Warn: Proxy server returned an error', error);
+          proxyResponse.writeHead(500);
+          proxyResponse.write('{}', 'utf-8');
+          proxyResponse.end();
+        });
     });
   });
 
@@ -168,11 +125,23 @@ export async function startEventProxyServer(options: EventProxyServerOptions): P
     eventCallbackResponse.statusCode = 200;
     eventCallbackResponse.setHeader('connection', 'keep-alive');
 
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const searchParams = new URL(eventCallbackRequest.url!, 'http://justsomerandombasesothattheurlisparseable.com/')
+      .searchParams;
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const listenerTimestamp = Number(searchParams.get('timestamp')!);
+
     const callbackListener = (data: string): void => {
       eventCallbackResponse.write(data.concat('\n'), 'utf8');
     };
 
     eventCallbackListeners.add(callbackListener);
+
+    eventBuffer.forEach(bufferedEvent => {
+      if (bufferedEvent.timestamp >= listenerTimestamp) {
+        callbackListener(bufferedEvent.data);
+      }
+    });
 
     eventCallbackRequest.on('close', () => {
       eventCallbackListeners.delete(callbackListener);
@@ -193,55 +162,180 @@ export async function startEventProxyServer(options: EventProxyServerOptions): P
 
   await eventCallbackServerStartupPromise;
   await proxyServerStartupPromise;
-  return;
+}
+
+/**
+ * Starts an event proxy server that will proxy events to sentry when the `tunnel` option is used. Point the `tunnel`
+ * option to this server (like this `tunnel: http://localhost:${port option}/`).
+ */
+export async function startEventProxyServer(options: EventProxyServerOptions): Promise<void> {
+  await startProxyServer(options, async (eventCallbackListeners, proxyRequest, proxyRequestBody, eventBuffer) => {
+    const envelopeHeader: EnvelopeItem[0] = JSON.parse(proxyRequestBody.split('\n')[0] as string);
+
+    const shouldForwardEventToSentry = options.forwardToSentry || false;
+
+    if (!envelopeHeader.dsn && shouldForwardEventToSentry) {
+      // eslint-disable-next-line no-console
+      console.log(
+        '[event-proxy-server] Warn: No dsn on envelope header. Maybe a client-report was received. Proxy request body:',
+        proxyRequestBody,
+      );
+
+      return [200, '{}', {}];
+    }
+
+    if (!shouldForwardEventToSentry) {
+      const data: SentryRequestCallbackData = {
+        envelope: parseEnvelope(proxyRequestBody),
+        rawProxyRequestBody: proxyRequestBody,
+        rawSentryResponseBody: '',
+        sentryResponseStatusCode: 200,
+      };
+      eventCallbackListeners.forEach(listener => {
+        listener(Buffer.from(JSON.stringify(data)).toString('base64'));
+      });
+
+      return [
+        200,
+        '{}',
+        {
+          'Access-Control-Allow-Origin': '*',
+        },
+      ];
+    }
+
+    const { origin, pathname, host } = new URL(envelopeHeader.dsn as string);
+
+    const projectId = pathname.substring(1);
+    const sentryIngestUrl = `${origin}/api/${projectId}/envelope/`;
+
+    proxyRequest.headers.host = host;
+
+    const reqHeaders: Record<string, string> = {};
+    for (const [key, value] of Object.entries(proxyRequest.headers)) {
+      reqHeaders[key] = value as string;
+    }
+
+    // Fetch does not like this
+    delete reqHeaders['transfer-encoding'];
+
+    return fetch(sentryIngestUrl, {
+      body: proxyRequestBody,
+      headers: reqHeaders,
+      method: proxyRequest.method,
+    }).then(async res => {
+      const rawSentryResponseBody = await res.text();
+      const data: SentryRequestCallbackData = {
+        envelope: parseEnvelope(proxyRequestBody),
+        rawProxyRequestBody: proxyRequestBody,
+        rawSentryResponseBody,
+        sentryResponseStatusCode: res.status,
+      };
+
+      const dataString = Buffer.from(JSON.stringify(data)).toString('base64');
+
+      eventBuffer.push({ data: dataString, timestamp: Date.now() });
+
+      eventCallbackListeners.forEach(listener => {
+        listener(dataString);
+      });
+
+      const resHeaders: Record<string, string> = {};
+      for (const [key, value] of res.headers.entries()) {
+        resHeaders[key] = value;
+      }
+
+      return [res.status, rawSentryResponseBody, resHeaders];
+    });
+  });
+}
+
+/** Wait for any plain request being made to the proxy. */
+export async function waitForPlainRequest(
+  proxyServerName: string,
+  callback: (eventData: string) => Promise<boolean> | boolean,
+): Promise<string> {
+  const eventCallbackServerPort = await retrieveCallbackServerPort(proxyServerName);
+
+  return new Promise((resolve, reject) => {
+    const request = http.request(
+      `http://localhost:${eventCallbackServerPort}/?timestamp=${Date.now()}`,
+      {},
+      response => {
+        let eventContents = '';
+
+        response.on('error', err => {
+          reject(err);
+        });
+
+        response.on('data', (chunk: Buffer) => {
+          const chunkString = chunk.toString('utf8');
+
+          eventContents = eventContents.concat(chunkString);
+
+          if (callback(eventContents)) {
+            response.destroy();
+            return resolve(eventContents);
+          }
+        });
+      },
+    );
+
+    request.end();
+  });
 }
 
 /** Wait for a request to be sent. */
 export async function waitForRequest(
   proxyServerName: string,
   callback: (eventData: SentryRequestCallbackData) => Promise<boolean> | boolean,
+  timestamp: number = Date.now(),
 ): Promise<SentryRequestCallbackData> {
   const eventCallbackServerPort = await retrieveCallbackServerPort(proxyServerName);
 
   return new Promise<SentryRequestCallbackData>((resolve, reject) => {
-    const request = http.request(`http://localhost:${eventCallbackServerPort}/`, {}, response => {
-      let eventContents = '';
+    const request = http.request(
+      `http://localhost:${eventCallbackServerPort}/?timestamp=${timestamp}`,
+      {},
+      response => {
+        let eventContents = '';
 
-      response.on('error', err => {
-        reject(err);
-      });
-
-      response.on('data', (chunk: Buffer) => {
-        const chunkString = chunk.toString('utf8');
-        chunkString.split('').forEach(char => {
-          if (char === '\n') {
-            const eventCallbackData: SentryRequestCallbackData = JSON.parse(
-              Buffer.from(eventContents, 'base64').toString('utf8'),
-            );
-            const callbackResult = callback(eventCallbackData);
-            if (typeof callbackResult !== 'boolean') {
-              callbackResult.then(
-                match => {
-                  if (match) {
-                    response.destroy();
-                    resolve(eventCallbackData);
-                  }
-                },
-                err => {
-                  throw err;
-                },
-              );
-            } else if (callbackResult) {
-              response.destroy();
-              resolve(eventCallbackData);
-            }
-            eventContents = '';
-          } else {
-            eventContents = eventContents.concat(char);
-          }
+        response.on('error', err => {
+          reject(err);
         });
-      });
-    });
+
+        response.on('data', (chunk: Buffer) => {
+          const chunkString = chunk.toString('utf8');
+          chunkString.split('').forEach(char => {
+            if (char === '\n') {
+              const eventCallbackData: SentryRequestCallbackData = JSON.parse(
+                Buffer.from(eventContents, 'base64').toString('utf8'),
+              );
+              const callbackResult = callback(eventCallbackData);
+              if (typeof callbackResult !== 'boolean') {
+                callbackResult.then(
+                  match => {
+                    if (match) {
+                      response.destroy();
+                      resolve(eventCallbackData);
+                    }
+                  },
+                  err => {
+                    throw err;
+                  },
+                );
+              } else if (callbackResult) {
+                response.destroy();
+                resolve(eventCallbackData);
+              }
+              eventContents = '';
+            } else {
+              eventContents = eventContents.concat(char);
+            }
+          });
+        });
+      },
+    );
 
     request.end();
   });
@@ -251,18 +345,23 @@ export async function waitForRequest(
 export function waitForEnvelopeItem(
   proxyServerName: string,
   callback: (envelopeItem: EnvelopeItem) => Promise<boolean> | boolean,
+  timestamp: number = Date.now(),
 ): Promise<EnvelopeItem> {
   return new Promise((resolve, reject) => {
-    waitForRequest(proxyServerName, async eventData => {
-      const envelopeItems = eventData.envelope[1];
-      for (const envelopeItem of envelopeItems) {
-        if (await callback(envelopeItem)) {
-          resolve(envelopeItem);
-          return true;
+    waitForRequest(
+      proxyServerName,
+      async eventData => {
+        const envelopeItems = eventData.envelope[1];
+        for (const envelopeItem of envelopeItems) {
+          if (await callback(envelopeItem)) {
+            resolve(envelopeItem);
+            return true;
+          }
         }
-      }
-      return false;
-    }).catch(reject);
+        return false;
+      },
+      timestamp,
+    ).catch(reject);
   });
 }
 
@@ -271,15 +370,20 @@ export function waitForError(
   proxyServerName: string,
   callback: (transactionEvent: Event) => Promise<boolean> | boolean,
 ): Promise<Event> {
+  const timestamp = Date.now();
   return new Promise((resolve, reject) => {
-    waitForEnvelopeItem(proxyServerName, async envelopeItem => {
-      const [envelopeItemHeader, envelopeItemBody] = envelopeItem;
-      if (envelopeItemHeader.type === 'event' && (await callback(envelopeItemBody as Event))) {
-        resolve(envelopeItemBody as Event);
-        return true;
-      }
-      return false;
-    }).catch(reject);
+    waitForEnvelopeItem(
+      proxyServerName,
+      async envelopeItem => {
+        const [envelopeItemHeader, envelopeItemBody] = envelopeItem;
+        if (envelopeItemHeader.type === 'event' && (await callback(envelopeItemBody as Event))) {
+          resolve(envelopeItemBody as Event);
+          return true;
+        }
+        return false;
+      },
+      timestamp,
+    ).catch(reject);
   });
 }
 
@@ -288,15 +392,20 @@ export function waitForTransaction(
   proxyServerName: string,
   callback: (transactionEvent: Event) => Promise<boolean> | boolean,
 ): Promise<Event> {
+  const timestamp = Date.now();
   return new Promise((resolve, reject) => {
-    waitForEnvelopeItem(proxyServerName, async envelopeItem => {
-      const [envelopeItemHeader, envelopeItemBody] = envelopeItem;
-      if (envelopeItemHeader.type === 'transaction' && (await callback(envelopeItemBody as Event))) {
-        resolve(envelopeItemBody as Event);
-        return true;
-      }
-      return false;
-    }).catch(reject);
+    waitForEnvelopeItem(
+      proxyServerName,
+      async envelopeItem => {
+        const [envelopeItemHeader, envelopeItemBody] = envelopeItem;
+        if (envelopeItemHeader.type === 'transaction' && (await callback(envelopeItemBody as Event))) {
+          resolve(envelopeItemBody as Event);
+          return true;
+        }
+        return false;
+      },
+      timestamp,
+    ).catch(reject);
   });
 }
 

@@ -100,6 +100,13 @@ export function setupNestErrorHandler(app: MinimalNestJsApp, baseFilter: NestJsE
         const originalCatch = Reflect.get(target, prop, receiver);
 
         return (exception: unknown, host: unknown) => {
+          const status_code = (exception as { status?: number }).status;
+
+          // don't report expected errors
+          if (status_code !== undefined && status_code >= 400 && status_code < 500) {
+            return originalCatch.apply(target, [exception, host]);
+          }
+
           captureException(exception);
           return originalCatch.apply(target, [exception, host]);
         };

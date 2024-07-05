@@ -1,5 +1,5 @@
-import { getClient, parseSampleRate } from '@sentry/core';
-import type { BrowserClientReplayOptions, Integration, IntegrationFn } from '@sentry/types';
+import { parseSampleRate } from '@sentry/core';
+import type { BrowserClientReplayOptions, Client, Integration, IntegrationFn } from '@sentry/types';
 import { consoleSandbox, dropUndefinedKeys, isBrowser } from '@sentry/utils';
 
 import {
@@ -215,22 +215,13 @@ export class Replay implements Integration {
   /**
    * Setup and initialize replay container
    */
-  public setupOnce(): void {
-    if (!isBrowser()) {
+  public afterAllSetup(client: Client): void {
+    if (!isBrowser() || this._replay) {
       return;
     }
 
-    this._setup();
-
-    // Once upon a time, we tried to create a transaction in `setupOnce` and it would
-    // potentially create a transaction before some native SDK integrations have run
-    // and applied their own global event processor. An example is:
-    // https://github.com/getsentry/sentry-javascript/blob/b47ceafbdac7f8b99093ce6023726ad4687edc48/packages/browser/src/integrations/useragent.ts
-    //
-    // So we call `this._initialize()` in next event loop as a workaround to wait for other
-    // global event processors to finish. This is no longer needed, but keeping it
-    // here to avoid any future issues.
-    setTimeout(() => this._initialize());
+    this._setup(client);
+    this._initialize(client);
   }
 
   /**
@@ -301,24 +292,19 @@ export class Replay implements Integration {
   /**
    * Initializes replay.
    */
-  protected _initialize(): void {
+  protected _initialize(client: Client): void {
     if (!this._replay) {
       return;
     }
 
-    // We have to run this in _initialize, because this runs in setTimeout
-    // So when this runs all integrations have been added
-    // Before this, we cannot access integrations on the client,
-    // so we need to mutate the options here
-    this._maybeLoadFromReplayCanvasIntegration();
-
+    this._maybeLoadFromReplayCanvasIntegration(client);
     this._replay.initializeSampling();
   }
 
   /** Setup the integration. */
-  private _setup(): void {
+  private _setup(client: Client): void {
     // Client is not available in constructor, so we need to wait until setupOnce
-    const finalOptions = loadReplayOptionsFromClient(this._initialOptions);
+    const finalOptions = loadReplayOptionsFromClient(this._initialOptions, client);
 
     this._replay = new ReplayContainer({
       options: finalOptions,
@@ -327,12 +313,11 @@ export class Replay implements Integration {
   }
 
   /** Get canvas options from ReplayCanvas integration, if it is also added. */
-  private _maybeLoadFromReplayCanvasIntegration(): void {
+  private _maybeLoadFromReplayCanvasIntegration(client: Client): void {
     // To save bundle size, we skip checking for stuff here
     // and instead just try-catch everything - as generally this should all be defined
     /* eslint-disable @typescript-eslint/no-non-null-assertion */
     try {
-      const client = getClient()!;
       const canvasIntegration = client.getIntegrationByName('ReplayCanvas') as Integration & {
         getOptions(): ReplayCanvasIntegrationOptions;
       };
@@ -349,23 +334,14 @@ export class Replay implements Integration {
 }
 
 /** Parse Replay-related options from SDK options */
-function loadReplayOptionsFromClient(initialOptions: InitialReplayPluginOptions): ReplayPluginOptions {
-  const client = getClient();
-  const opt = client && (client.getOptions() as BrowserClientReplayOptions);
+function loadReplayOptionsFromClient(initialOptions: InitialReplayPluginOptions, client: Client): ReplayPluginOptions {
+  const opt = client.getOptions() as BrowserClientReplayOptions;
 
   const finalOptions: ReplayPluginOptions = {
     sessionSampleRate: 0,
     errorSampleRate: 0,
     ...dropUndefinedKeys(initialOptions),
   };
-
-  if (!opt) {
-    consoleSandbox(() => {
-      // eslint-disable-next-line no-console
-      console.warn('SDK client is not available.');
-    });
-    return finalOptions;
-  }
 
   const replaysSessionSampleRate = parseSampleRate(opt.replaysSessionSampleRate);
   const replaysOnErrorSampleRate = parseSampleRate(opt.replaysOnErrorSampleRate);

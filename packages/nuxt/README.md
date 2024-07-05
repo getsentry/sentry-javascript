@@ -49,32 +49,44 @@ If the setup through the wizard doesn't work for you, you can also set up the SD
    yarn add @sentry/nuxt
    ```
 
-### 2. Client-side Setup
+### 2. Nuxt Module Setup
 
 The Sentry Nuxt SDK is based on [Nuxt Modules](https://nuxt.com/docs/api/kit/modules).
 
-1. Add `@sentry/nuxt` to the modules section of `nuxt.config.ts`:
+1. Add `@sentry/nuxt/module` to the modules section of `nuxt.config.ts`:
 
 ```javascript
 // nuxt.config.ts
 export default defineNuxtConfig({
-  modules: ['@sentry/nuxt'],
-  runtimeConfig: {
-    public: {
-      sentry: {
-        dsn: env.DSN,
-        // Additional config
-      },
-    },
-  },
+  modules: ['@sentry/nuxt/module'],
 });
 ```
 
-### 3. Server-side Setup
+### 3. Client-side setup
 
-todo: add server-side setup
+Add a `sentry.client.config.(js|ts)` file to the root of your project:
 
-### 4. Vite Setup
+```javascript
+import * as Sentry from '@sentry/nuxt';
+
+Sentry.init({
+  dsn: env.DSN,
+});
+```
+
+### 4. Server-side setup
+
+Add a `sentry.server.config.(js|ts)` file to the root of your project:
+
+```javascript
+import * as Sentry from '@sentry/nuxt';
+
+Sentry.init({
+  dsn: env.DSN,
+});
+```
+
+### 5. Vite Setup
 
 todo: add vite setup
 

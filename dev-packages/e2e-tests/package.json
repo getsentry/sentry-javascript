@@ -1,6 +1,6 @@
 {
   "name": "@sentry-internal/e2e-tests",
-  "version": "8.12.0",
+  "version": "8.15.0",
   "license": "MIT",
   "private": true,
   "scripts": {
@@ -27,6 +27,6 @@
   },
   "volta": {
     "extends": "../../package.json",
-    "pnpm": "8.15.8"
+    "pnpm": "9.4.0"
   }
 }

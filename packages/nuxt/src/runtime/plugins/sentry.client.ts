@@ -1,12 +1,13 @@
-import { defineNuxtPlugin, useRuntimeConfig } from 'nuxt/app';
-import { init } from '../../client';
+import { getClient } from '@sentry/core';
+import { vueIntegration } from '@sentry/vue';
+import { defineNuxtPlugin } from 'nuxt/app';
 
 export default defineNuxtPlugin(nuxtApp => {
-  const config = useRuntimeConfig();
-  const sentryConfig = config.public.sentry || {};
+  nuxtApp.hook('app:created', vueApp => {
+    const sentryClient = getClient();
 
-  init({
-    ...sentryConfig,
-    app: nuxtApp.vueApp,
+    if (sentryClient) {
+      sentryClient.addIntegration(vueIntegration({ app: vueApp }));
+    }
   });
 });

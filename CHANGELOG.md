@@ -1,8 +1,66 @@
 # Changelog
 
+> [!IMPORTANT]  
+> If you are upgrading to the `8.x` versions of the SDK from `7.x` or below, make sure you follow our
+> [migration guide](https://docs.sentry.io/platforms/javascript/migration/) first.
+
 ## Unreleased
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
+
+## 8.15.0
+
+- feat(core): allow unregistering callback through `on` (#11710)
+- feat(nestjs): Add function-level span decorator to nestjs (#12721)
+- feat(otel): Export & use `spanTimeInputToSeconds` for otel span exporter (#12699)
+- fix(core): Pass origin as referrer for `lazyLoadIntegration` (#12766)
+- fix(deno): Publish from build directory (#12773)
+- fix(hapi): Specify error channel to filter boom errors (#12725)
+- fix(react): Revert back to `jsxRuntime: 'classic'` to prevent breaking react 17 (#12775)
+- fix(tracing): Report dropped spans for transactions (#12751)
+- ref(scope): Delete unused public `getStack()` (#12737)
+
+Work in this release was contributed by @arturovt and @jaulz. Thank you for your contributions!
+
+## 8.14.0
+
+### Important Changes
+
+- **feat(nestjs): Filter 4xx errors (#12695)**
+
+The `@sentry/nestjs` SDK no longer captures 4xx errors automatically.
+
+### Other Changes
+
+- chore(react): Remove private namespace `JSX` (#12691)
+- feat(deps): bump @opentelemetry/propagator-aws-xray from 1.25.0 to 1.25.1 (#12719)
+- feat(deps): bump @prisma/instrumentation from 5.16.0 to 5.16.1 (#12718)
+- feat(node): Add `registerEsmLoaderHooks` option (#12684)
+- feat(opentelemetry): Expose sampling helper (#12674)
+- fix(browser): Make sure measure spans have valid start timestamps (#12648)
+- fix(hapi): Widen type definitions (#12710)
+- fix(nextjs): Attempt to ignore critical dependency warnings (#12694)
+- fix(react): Fix React jsx runtime import for esm (#12740)
+- fix(replay): Start replay in `afterAllSetup` instead of next tick (#12709)
+
+Work in this release was contributed by @quisido. Thank you for your contribution!
+
+## 8.13.0
+
+### Important Changes
+
+- **feat(nestjs): Add Nest SDK** This release adds a dedicated SDK for [NestJS](https://nestjs.com/) (`@sentry/nestjs`)
+  in alpha state. The SDK is a drop-in replacement for the Sentry Node SDK (`@sentry/node`) supporting the same set of
+  features. See the [docs](https://docs.sentry.io/platforms/javascript/guides/nestjs/) for how to use the SDK.
+
+### Other Changes
+
+- deps: Bump bundler plugins to `2.20.1` (#12641)
+- deps(nextjs): Remove react peer dep and allow rc (#12670)
+- feat: Update OTEL deps (#12635)
+- feat(deps): bump @prisma/instrumentation from 5.15.0 to 5.15.1 (#12627)
+- feat(node): Add context info for missing instrumentation (#12639)
+- fix(feedback): Improve feedback error message (#12647)
 
 ## 8.12.0
 

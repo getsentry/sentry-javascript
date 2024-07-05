@@ -122,8 +122,8 @@ const FORM = `
 }
 
 .form__error-container {
-  color: var(--error-foreground);
-  fill: var(--error-foreground);
+  color: var(--error-color);
+  fill: var(--error-color);
 }
 
 .form__label {

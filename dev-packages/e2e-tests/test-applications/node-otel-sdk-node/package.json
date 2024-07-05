@@ -1,0 +1,32 @@
+{
+  "name": "node-otel-sdk-trace",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/app.js",
+    "test": "playwright test",
+    "clean": "npx rimraf node_modules pnpm-lock.yaml",
+    "test:build": "pnpm install && pnpm build",
+    "test:assert": "pnpm test"
+  },
+  "dependencies": {
+    "@opentelemetry/sdk-node": "0.52.1",
+    "@opentelemetry/exporter-trace-otlp-http": "0.52.1",
+    "@sentry/core": "latest || *",
+    "@sentry/node": "latest || *",
+    "@sentry/opentelemetry": "latest || *",
+    "@sentry/types": "latest || *",
+    "@types/express": "4.17.17",
+    "@types/node": "18.15.1",
+    "express": "4.19.2",
+    "typescript": "4.9.5"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.44.1",
+    "@sentry-internal/test-utils": "link:../../../test-utils"
+  },
+  "volta": {
+    "extends": "../../package.json"
+  }
+}
