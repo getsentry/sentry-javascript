@@ -5,10 +5,7 @@ import * as Sentry from '@sentry/node';
 /**
  * A decorator wrapping the native nest Cron decorator, sending check-ins to Sentry.
  */
-export const SentryCron = (
-  cronTime: string | CronExpression,
-  monitorSlug: string,
-): MethodDecorator => {
+export const SentryCron = (cronTime: string | CronExpression, monitorSlug: string): MethodDecorator => {
   return (target, propertyKey, descriptor: PropertyDescriptor) => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const originalMethod = descriptor.value as (...args: any[]) => Promise<any>;
