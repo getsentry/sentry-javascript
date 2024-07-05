@@ -40,7 +40,8 @@
   },
   "dependencies": {
     "@sentry/core": "8.15.0",
-    "@sentry/node": "8.15.0"
+    "@sentry/node": "8.15.0",
+    "@nestjs/schedule": "4.1.0"
   },
   "scripts": {
     "build": "run-p build:transpile build:types",
