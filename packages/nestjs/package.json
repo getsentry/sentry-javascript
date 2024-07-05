@@ -40,7 +40,9 @@
   },
   "dependencies": {
     "@sentry/core": "8.15.0",
-    "@sentry/node": "8.15.0",
+    "@sentry/node": "8.15.0"
+  },
+  "devDependencies": {
     "@nestjs/common": "10.3.10",
     "@nestjs/core": "10.3.10",
     "@nestjs/schedule": "4.1.0"
