@@ -5,8 +5,8 @@ import {
   registerInpInteractionListener,
   startTrackingINP,
   startTrackingInteractions,
-  startTrackingLongTasks,
   startTrackingLongAnimationFrames,
+  startTrackingLongTasks,
   startTrackingWebVitals,
 } from '@sentry-internal/browser-utils';
 import {
