@@ -10,7 +10,7 @@ import { getDefaultIntegrations, init as nodeInit } from '@sentry/node';
 import type { NodeClient, NodeOptions } from '@sentry/node';
 import { GLOBAL_OBJ, logger } from '@sentry/utils';
 
-import { SEMATTRS_HTTP_METHOD, SEMATTRS_HTTP_ROUTE } from '@opentelemetry/semantic-conventions';
+import { SEMATTRS_HTTP_METHOD, SEMATTRS_HTTP_ROUTE, SEMATTRS_HTTP_TARGET } from '@opentelemetry/semantic-conventions';
 import type { EventProcessor } from '@sentry/types';
 import { DEBUG_BUILD } from '../common/debug-build';
 import { devErrorSymbolicationEventProcessor } from '../common/devErrorSymbolicationEventProcessor';
@@ -129,10 +129,6 @@ export function init(options: NodeOptions): NodeClient | undefined {
   applySdkMetadata(opts, 'nextjs', ['nextjs', 'node']);
 
   const client = nodeInit(opts);
-  // If we encounter a span emitted by Next.js, we do not want to sample it
-  // The reason for this is that the data quality of the spans varies, it is different per version of Next,
-  // and we need to keep our manual instrumentation around for the edge runtime anyhow.
-  // BUT we only do this if we don't have a parent span with a sampling decision yet (or if the parent is remote)
   client?.on('beforeSampling', ({ spanAttributes, spanName, parentSampled, parentContext }, samplingDecision) => {
     // We "whitelist" the "BaseServer.handleRequest" span, since that one is responsible for App Router requests, which are actually useful for us.
     // HOWEVER, that span is not only responsible for App Router requests, which is why we additionally filter for certain transactions in an
@@ -141,9 +137,25 @@ export function init(options: NodeOptions): NodeClient | undefined {
       return;
     }
 
+    // If we encounter a span emitted by Next.js, we do not want to sample it
+    // The reason for this is that the data quality of the spans varies, it is different per version of Next,
+    // and we need to keep our manual instrumentation around for the edge runtime anyhow.
+    // BUT we only do this if we don't have a parent span with a sampling decision yet (or if the parent is remote)
     if (
       (spanAttributes['next.span_type'] || NEXTJS_SPAN_NAME_PREFIXES.some(prefix => spanName.startsWith(prefix))) &&
       (parentSampled === undefined || parentContext?.isRemote)
+    ) {
+      samplingDecision.decision = false;
+    }
+
+    // There are situations where the Next.js Node.js server forwards requests for the Edge Runtime server (e.g. in
+    // middleware) and this causes spans for Sentry ingest requests to be created. These are not exempt from our tracing
+    // because we didn't get the chance to do `suppressTracing`, since this happens outside of userland.
+    // We need to drop these spans.
+    if (
+      typeof spanAttributes[SEMATTRS_HTTP_TARGET] === 'string' &&
+      spanAttributes[SEMATTRS_HTTP_TARGET].includes('sentry_key') &&
+      spanAttributes[SEMATTRS_HTTP_TARGET].includes('sentry_client')
     ) {
       samplingDecision.decision = false;
     }
