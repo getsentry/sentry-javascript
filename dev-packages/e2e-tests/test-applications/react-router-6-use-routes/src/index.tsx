@@ -39,27 +39,6 @@ Sentry.init({
   tunnel: 'http://localhost:3031', // proxy server
 });
 
-Object.defineProperty(window, 'sentryReplayId', {
-  get() {
-    return replay['_replay'].session.id;
-  },
-});
-
-Sentry.addEventProcessor(event => {
-  if (
-    event.type === 'transaction' &&
-    (event.contexts?.trace?.op === 'pageload' || event.contexts?.trace?.op === 'navigation')
-  ) {
-    const eventId = event.event_id;
-    if (eventId) {
-      window.recordedTransactions = window.recordedTransactions || [];
-      window.recordedTransactions.push(eventId);
-    }
-  }
-
-  return event;
-});
-
 const useSentryRoutes = Sentry.wrapUseRoutes(useRoutes);
 
 function App() {
