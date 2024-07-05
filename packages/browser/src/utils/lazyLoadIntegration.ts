@@ -51,6 +51,7 @@ export async function lazyLoadIntegration(name: keyof typeof LazyLoadableIntegra
   const script = WINDOW.document.createElement('script');
   script.src = url;
   script.crossOrigin = 'anonymous';
+  script.referrerPolicy = 'origin';
 
   const waitForLoad = new Promise<void>((resolve, reject) => {
     script.addEventListener('load', () => resolve());
