@@ -2,10 +2,11 @@ import * as Sentry from '@sentry/react';
 // biome-ignore lint/nursery/noUnusedImports: Need React import for JSX
 import * as React from 'react';
 
-const fetchSSE = async () => {
+const fetchSSE = async ({ timeout }: { timeout: boolean }) => {
   Sentry.startSpanManual({ name: 'sse stream using fetch' }, async span => {
     const res = await Sentry.startSpan({ name: 'sse fetch call' }, async () => {
-      return await fetch('http://localhost:8080/sse');
+      const endpoint = `http://localhost:8080/${timeout ? 'sse-timeout' : 'sse'}`;
+      return await fetch(endpoint);
     });
 
     const stream = res.body;
@@ -34,9 +35,14 @@ const fetchSSE = async () => {
 
 const SSE = () => {
   return (
-    <button id="fetch-button" onClick={fetchSSE}>
-      Fetch SSE
-    </button>
+    <>
+      <button id="fetch-button" onClick={() => fetchSSE({ timeout: false })}>
+        Fetch SSE
+      </button>
+      <button id="fetch-timeout-button" onClick={() => fetchSSE({ timeout: true })}>
+        Fetch timeout SSE
+      </button>
+    </>
   );
 };
 

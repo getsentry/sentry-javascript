@@ -11,7 +11,7 @@ const wait = time => {
   });
 };
 
-async function eventsHandler(request, response) {
+async function sseHandler(request, response, timeout = false) {
   response.headers = {
     'Content-Type': 'text/event-stream',
     Connection: 'keep-alive',
@@ -30,12 +30,17 @@ async function eventsHandler(request, response) {
 
   for (let index = 0; index < 10; index++) {
     response.write(`data: ${new Date().toISOString()}\n\n`);
+    if (timeout) {
+      await wait(10000);
+    }
   }
 
   response.end();
 }
 
-app.get('/sse', eventsHandler);
+app.get('/sse', (req, res) => sseHandler(req, res));
+
+app.get('/sse-timeout', (req, res) => sseHandler(req, res, true));
 
 app.listen(PORT, () => {
   console.log(`SSE service listening at http://localhost:${PORT}`);

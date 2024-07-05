@@ -33,3 +33,37 @@ test('Waits for sse streaming when creating spans', async ({ page }) => {
   expect(resolveDuration).toBe(0);
   expect(resolveBodyDuration).toBe(2);
 });
+
+test('Aborts when stream takes longer than 5s', async ({ page }) => {
+  await page.goto('/sse');
+
+  const transactionPromise = waitForTransaction('react-router-6', async transactionEvent => {
+    return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
+  });
+
+  const fetchButton = page.locator('id=fetch-timeout-button');
+  await fetchButton.click();
+
+  const rootSpan = await transactionPromise;
+  const sseFetchCall = rootSpan.spans?.filter(span => span.description === 'sse fetch call')[0] as SpanJSON;
+  const httpGet = rootSpan.spans?.filter(
+    span => span.description === 'GET http://localhost:8080/sse-timeout',
+  )[0] as SpanJSON;
+
+  expect(sseFetchCall).not.toBeUndefined();
+  expect(httpGet).not.toBeUndefined();
+
+  expect(sseFetchCall?.timestamp).not.toBeUndefined();
+  expect(sseFetchCall?.start_timestamp).not.toBeUndefined();
+  expect(httpGet?.timestamp).not.toBeUndefined();
+  expect(httpGet?.start_timestamp).not.toBeUndefined();
+
+  // http headers get sent instantly from the server
+  const resolveDuration = Math.round((sseFetchCall.timestamp as number) - sseFetchCall.start_timestamp);
+
+  // body streams after 10s but client should abort reading after 5s
+  const resolveBodyDuration = Math.round((httpGet.timestamp as number) - httpGet.start_timestamp);
+
+  expect(resolveDuration).toBe(0);
+  expect(resolveBodyDuration).toBe(7);
+});
