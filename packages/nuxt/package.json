@@ -45,7 +45,6 @@
     "@nuxt/kit": "^3.12.3",
     "@sentry/browser": "8.15.0",
     "@sentry/core": "8.15.0",
-    "@sentry/node": "8.15.0",
     "@sentry/opentelemetry": "8.15.0",
     "@sentry/types": "8.15.0",
     "@sentry/utils": "8.15.0",

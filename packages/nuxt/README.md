@@ -74,19 +74,7 @@ Sentry.init({
 });
 ```
 
-### 4. Server-side setup
-
-Add a `sentry.server.config.(js|ts)` file to the root of your project:
-
-```javascript
-import * as Sentry from '@sentry/nuxt';
-
-Sentry.init({
-  dsn: env.DSN,
-});
-```
-
-### 5. Vite Setup
+### 4. Vite Setup
 
 todo: add vite setup
 

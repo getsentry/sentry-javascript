@@ -32,23 +32,10 @@ export default defineNuxtModule<ModuleOptions>({
 
       addPlugin({ src: moduleDirResolver.resolve('./runtime/plugins/sentry.client'), mode: 'client' });
     }
-
-    const serverConfigFile = findDefaultSdkInitFile('server');
-
-    if (serverConfigFile) {
-      // Inject the server-side Sentry config file with a side effect import
-      addPluginTemplate({
-        mode: 'server',
-        filename: 'sentry-server-config.mjs',
-        getContents: () =>
-          `import "${buildDirResolver.resolve(`/${serverConfigFile}`)}"\n` +
-          'export default defineNuxtPlugin(() => {})',
-      });
-    }
   },
 });
 
-function findDefaultSdkInitFile(type: 'server' | 'client'): string | undefined {
+function findDefaultSdkInitFile(type: /* 'server' */ 'client'): string | undefined {
   const possibleFileExtensions = ['ts', 'js', 'mjs', 'cjs', 'mts', 'cts'];
 
   const cwd = process.cwd();
