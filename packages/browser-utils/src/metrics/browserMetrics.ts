@@ -8,6 +8,7 @@ import { spanToJSON } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
 import { WINDOW } from '../types';
 import {
+  PerformanceLongAnimationFrameTiming,
   addClsInstrumentationHandler,
   addFidInstrumentationHandler,
   addLcpInstrumentationHandler,
@@ -125,28 +126,38 @@ export function startTrackingLongTasks(): void {
  */
 export function startTrackingLongAnimationFrames(): void {
   // NOTE: the current web-vitals version (3.5.2) does not support long-animation-frame, so
-  // we should directly observe `long-animation-frame` events here instead of through the web-vitals
+  // we directly observe `long-animation-frame` events instead of through the web-vitals
   // `observe` helper function.
-  // addPerformanceInstrumentationHandler('long-animation-frame', ({ entries }) => {
-  //   for (const entry of entries) {
-  //     if (!getActiveSpan()) {
-  //       return;
-  //     }
-  //     const startTime = msToSec((browserPerformanceTimeOrigin as number) + entry.startTime);
-  //     const duration = msToSec(entry.duration);
-  //     const span = startInactiveSpan({
-  //       name: 'Main UI thread blocked',
-  //       op: 'ui.long-animation-frame',
-  //       startTime,
-  //       attributes: {
-  //         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.browser.metrics',
-  //       },
-  //     });
-  //     if (span) {
-  //       span.end(startTime + duration);
-  //     }
-  //   }
-  // });
+  if (PerformanceObserver.supportedEntryTypes.includes('long-animation-frame')) {
+    const observer = new PerformanceObserver(list => {
+      for (const entry of list.getEntries() as PerformanceLongAnimationFrameTiming[]) {
+        if (!getActiveSpan()) {
+          return;
+        }
+        const startTime = msToSec((browserPerformanceTimeOrigin as number) + entry.startTime);
+        const duration = msToSec(entry.duration);
+
+        const span = startInactiveSpan({
+          name: 'Main UI thread blocked',
+          op: 'ui.long-animation-frame',
+          startTime,
+          attributes: {
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.browser.metrics',
+            'script.source_url': entry.scripts[0]?.sourceURL,
+            'script.source_function_name': entry.scripts[0]?.sourceFunctionName,
+            'script.source_char_position': entry.scripts[0]?.sourceCharPosition,
+            'script.invoker': entry.scripts[0]?.invoker,
+            'script.invoker_type': entry.scripts[0]?.invokerType,
+          },
+        });
+        if (span) {
+          span.end(startTime + duration);
+        }
+      }
+    });
+
+    observer.observe({ type: 'long-animation-frame', buffered: true });
+  }
 }
 
 /**
