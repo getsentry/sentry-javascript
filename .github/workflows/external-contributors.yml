@@ -9,6 +9,9 @@ on:
 jobs:
   external_contributor:
     name: External Contributors
+    permissions:
+      pull-requests: write
+      contents: write
     runs-on: ubuntu-20.04
     if: |
       github.event.pull_request.author_association != 'COLLABORATOR'
