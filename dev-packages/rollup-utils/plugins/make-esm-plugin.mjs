@@ -1,5 +1,4 @@
 import fs from 'node:fs';
-import replacePlugin from '@rollup/plugin-replace';
 
 /**
  * Outputs a package.json file with {type: module} in the root of the output directory so that Node
@@ -29,18 +28,4 @@ export function makePackageNodeEsm() {
       });
     },
   };
-}
-
-/**
- * Makes sure that whenever we add an `react/jsx-runtime` import, we add a `.js` to make the import esm compatible.
- */
-export function makeReactEsmJsxRuntimePlugin() {
-  return replacePlugin({
-    preventAssignment: false,
-    sourceMap: true,
-    values: {
-      "'react/jsx-runtime'": "'react/jsx-runtime.js'",
-      '"react/jsx-runtime"': '"react/jsx-runtime.js"',
-    },
-  });
 }

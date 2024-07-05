@@ -22,7 +22,7 @@ import {
   makeSetSDKSourcePlugin,
   makeSucrasePlugin,
 } from './plugins/index.mjs';
-import { makePackageNodeEsm, makeReactEsmJsxRuntimePlugin } from './plugins/make-esm-plugin.mjs';
+import { makePackageNodeEsm } from './plugins/make-esm-plugin.mjs';
 import { mergePlugins } from './utils.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -143,7 +143,7 @@ export function makeNPMConfigVariants(baseConfig, options = {}) {
       output: {
         format: 'esm',
         dir: path.join(baseConfig.output.dir, 'esm'),
-        plugins: [makePackageNodeEsm(), makeReactEsmJsxRuntimePlugin()],
+        plugins: [makePackageNodeEsm()],
       },
     });
   }
