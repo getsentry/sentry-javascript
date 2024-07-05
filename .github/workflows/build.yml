@@ -1017,6 +1017,7 @@ jobs:
             'nextjs-app-dir',
             'nextjs-14',
             'nextjs-15',
+            'react-17',
             'react-19',
             'react-create-hash-router',
             'react-router-6-use-routes',
