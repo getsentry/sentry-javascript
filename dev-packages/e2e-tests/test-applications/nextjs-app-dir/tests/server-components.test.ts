@@ -41,6 +41,14 @@ test('Sends a transaction for a request to app router', async ({ page }) => {
   );
 
   expect(Object.keys(transactionEvent.request?.headers!).length).toBeGreaterThan(0);
+
+  // The transaction should not contain any spans with the same name as the transaction
+  // e.g. "GET /server-component/parameter/[...parameters]"
+  expect(
+    transactionEvent.spans?.filter(span => {
+      return span.description === transactionEvent.transaction;
+    }),
+  ).toHaveLength(0);
 });
 
 test('Should not set an error status on an app router transaction when it redirects', async ({ page }) => {
