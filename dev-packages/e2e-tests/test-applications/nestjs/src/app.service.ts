@@ -1,15 +1,15 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
-import * as Sentry from '@sentry/nestjs';
-import { SentryTraced, SentryCron } from '@sentry/nestjs';
-import { makeHttpRequest } from './utils';
 import { Cron } from '@nestjs/schedule';
+import * as Sentry from '@sentry/nestjs';
+import { SentryCron, SentryTraced } from '@sentry/nestjs';
 import type { MonitorConfig } from '@sentry/types';
+import { makeHttpRequest } from './utils';
 
 const monitorConfig: MonitorConfig = {
   schedule: {
     type: 'crontab',
     value: '* * * * *',
-  }
+  },
 };
 
 @Injectable()

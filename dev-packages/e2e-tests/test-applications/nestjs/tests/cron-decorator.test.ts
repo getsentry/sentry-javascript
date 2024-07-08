@@ -17,13 +17,13 @@ test('Cron job triggers send of in_progress envelope', async () => {
       schedule: {
         type: 'crontab',
         value: '* * * * *',
-      }
+      },
     },
     contexts: {
       trace: {
         span_id: expect.any(String),
         trace_id: expect.any(String),
-      }
-    }
+      },
+    },
   });
 });
