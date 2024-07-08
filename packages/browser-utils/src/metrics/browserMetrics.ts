@@ -141,24 +141,27 @@ export function startTrackingLongAnimationFrames(): void {
         const startTime = msToSec((browserPerformanceTimeOrigin as number) + entry.startTime);
         const duration = msToSec(entry.duration);
 
+        const attributes: SpanAttributes = { [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.browser.metrics' };
+        if (entry.scripts[0]) {
+          attributes['browser.script.invoker'] = entry.scripts[0].invoker;
+          attributes['browser.script.invoker_type'] = entry.scripts[0].invokerType;
+
+          if (entry.scripts[0].sourceURL.length > 0) {
+            attributes['code.filepath'] = entry.scripts[0].sourceURL;
+          }
+          if (entry.scripts[0].sourceFunctionName.length > 0) {
+            attributes['code.function'] = entry.scripts[0].sourceFunctionName;
+          }
+          if (entry.scripts[0].sourceCharPosition !== -1) {
+            attributes['browser.script.source_char_position'] = entry.scripts[0].sourceCharPosition;
+          }
+        }
+
         const span = startInactiveSpan({
           name: 'Main UI thread blocked',
           op: 'ui.long-animation-frame',
           startTime,
-          attributes: {
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.browser.metrics',
-            'browser.script.invoker': entry.scripts[0].invoker,
-            'browser.script.invoker_type': entry.scripts[0].invokerType,
-            ...(entry.scripts[0].sourceURL && {
-              'code.filepath': entry.scripts[0].sourceURL,
-            }),
-            ...(entry.scripts[0].sourceFunctionName && {
-              'code.function': entry.scripts[0].sourceFunctionName,
-            }),
-            ...(entry.scripts[0].sourceCharPosition !== -1 && {
-              'browser.script.source_char_position': entry.scripts[0].sourceCharPosition,
-            }),
-          },
+          attributes,
         });
         if (span) {
           span.end(startTime + duration);
