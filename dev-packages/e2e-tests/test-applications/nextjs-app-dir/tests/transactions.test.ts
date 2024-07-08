@@ -6,6 +6,7 @@ const packageJson = require('../package.json');
 test('Sends a pageload transaction', async ({ page }) => {
   const nextjsVersion = packageJson.dependencies.next;
   const nextjsMajor = Number(nextjsVersion.split('.')[0]);
+  const isDevMode = process.env.TEST_ENV === 'development';
 
   const pageloadTransactionEventPromise = waitForTransaction('nextjs-app-dir', transactionEvent => {
     return transactionEvent?.contexts?.trace?.op === 'pageload' && transactionEvent?.transaction === '/';
@@ -26,8 +27,9 @@ test('Sends a pageload transaction', async ({ page }) => {
           version: expect.any(String),
         },
         trace: {
-          // Next.js >= 15 propagates a trace ID to the client via a meta tag.
-          parent_span_id: nextjsMajor >= 15 ? expect.any(String) : undefined,
+          // Next.js >= 15 propagates a trace ID to the client via a meta tag. Also, only dev mode emits a meta tag because
+          // the requested page is static and only in dev mode SSR is kicked off.
+          parent_span_id: nextjsMajor >= 15 && isDevMode ? expect.any(String) : undefined,
           span_id: expect.any(String),
           trace_id: expect.any(String),
           op: 'pageload',
