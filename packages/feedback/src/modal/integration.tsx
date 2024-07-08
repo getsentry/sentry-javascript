@@ -71,9 +71,9 @@ export const feedbackModalIntegration = ((): FeedbackModalIntegration => {
             showEmail={options.showEmail || options.isEmailRequired}
             defaultName={(userKey && user && user[userKey.name]) || ''}
             defaultEmail={(userKey && user && user[userKey.email]) || ''}
-            onFormClose={() => {
+            onFormClose={({ reason }) => {
               renderContent(false);
-              options.onFormClose && options.onFormClose();
+              options.onFormClose && options.onFormClose({ reason });
             }}
             onSubmit={sendFeedback}
             onSubmitSuccess={(data: FeedbackFormData) => {

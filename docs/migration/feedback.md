@@ -86,7 +86,7 @@ For example, `attachTo()` is a convenience wrapper over the lifecycle methods. Y
 function attachTo(button: HTMLElement) {
   const handleClick = () => {
     const widget = feedbackInstance.createWidget({
-      onFormClose: () => {
+      onFormClose: ({ reason }) => {
         widget.close();
       },
       onFormSubmited: () => {

@@ -231,9 +231,9 @@ export const buildFeedbackIntegration = ({
         if (!dialog) {
           dialog = await _loadAndRenderDialog({
             ...mergedOptions,
-            onFormClose: () => {
+            onFormClose: ({ reason }) => {
               dialog && dialog.close();
-              mergedOptions.onFormClose && mergedOptions.onFormClose();
+              mergedOptions.onFormClose && mergedOptions.onFormClose({ reason });
             },
             onFormSubmitted: () => {
               dialog && dialog.removeFromDom();

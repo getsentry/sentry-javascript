@@ -54,7 +54,11 @@ export function Dialog({ open, onFormSubmitted, ...props }: Props): VNode {
           </div>
         </div>
       ) : (
-        <dialog class="dialog" onClick={options.onFormClose} open={open}>
+        <dialog
+          class="dialog"
+          onClick={() => options.onFormClose && options.onFormClose({ reason: 'dialog-dismissed' })}
+          open={open}
+        >
           <div class="dialog__position">
             <div
               class="dialog__content"

@@ -17,7 +17,7 @@ export interface Props extends Pick<FeedbackInternalOptions, 'showEmail' | 'show
   options: FeedbackInternalOptions;
   defaultEmail: string;
   defaultName: string;
-  onFormClose: () => void;
+  onFormClose: (args: { reason: 'dialog-dismissed' | 'form-cancelled' }) => void;
   onSubmit: SendFeedback;
   onSubmitSuccess: (data: FeedbackFormData) => void;
   onSubmitError: (error: Error) => void;
@@ -217,7 +217,7 @@ export function Form({
           <button class="btn btn--primary" type="submit">
             {submitButtonLabel}
           </button>
-          <button class="btn btn--default" type="button" onClick={onFormClose}>
+          <button class="btn btn--default" type="button" onClick={() => onFormClose({ reason: 'form-cancelled' })}>
             {cancelButtonLabel}
           </button>
         </div>

@@ -31,7 +31,7 @@ export const feedbackScreenshotIntegration = ((): FeedbackScreenshotIntegration 
             const attachment: Attachment = {
               data,
               filename: 'screenshot.png',
-              contentType: 'application/png',
+              // contentType: 'application/png',
               // attachmentType?: string;
             };
             return attachment;
