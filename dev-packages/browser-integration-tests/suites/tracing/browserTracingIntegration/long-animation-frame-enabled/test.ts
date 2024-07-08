@@ -38,7 +38,6 @@ sentryTest(
         parent_span_id: eventData.contexts?.trace?.span_id,
         data: {
           'code.filepath': 'https://example.com/path/to/script.js',
-          'code.function': '',
           'browser.script.source_char_position': 0,
           'browser.script.invoker': 'https://example.com/path/to/script.js',
           'browser.script.invoker_type': 'classic-script',
@@ -92,9 +91,6 @@ sentryTest(
         description: 'Main UI thread blocked',
         parent_span_id: eventData.contexts?.trace?.span_id,
         data: {
-          'code.filepath': '',
-          'code.function': '',
-          'browser.script.source_char_position': -1,
           'browser.script.invoker': 'BUTTON#clickme.onclick',
           'browser.script.invoker_type': 'event-listener',
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'ui.long-animation-frame',

@@ -147,11 +147,17 @@ export function startTrackingLongAnimationFrames(): void {
           startTime,
           attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.browser.metrics',
-            'code.filepath': entry.scripts[0].sourceURL,
-            'code.function': entry.scripts[0].sourceFunctionName,
-            'browser.script.source_char_position': entry.scripts[0].sourceCharPosition,
             'browser.script.invoker': entry.scripts[0].invoker,
             'browser.script.invoker_type': entry.scripts[0].invokerType,
+            ...(entry.scripts[0].sourceURL && {
+              'code.filepath': entry.scripts[0].sourceURL,
+            }),
+            ...(entry.scripts[0].sourceFunctionName && {
+              'code.function': entry.scripts[0].sourceFunctionName,
+            }),
+            ...(entry.scripts[0].sourceCharPosition !== -1 && {
+              'browser.script.source_char_position': entry.scripts[0].sourceCharPosition,
+            }),
           },
         });
         if (span) {
