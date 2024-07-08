@@ -24,6 +24,8 @@ sentryTest(
 
     await page.goto(url);
 
+    await new Promise(resolve => setTimeout(resolve, 200));
+
     const eventData = await promise;
 
     const uiSpans = eventData.spans?.filter(({ op }) => op?.startsWith('ui.long-animation-frame'));
@@ -75,6 +77,8 @@ sentryTest(
 
     // trigger long animation frame function
     await page.getByRole('button').click();
+
+    await new Promise(resolve => setTimeout(resolve, 200));
 
     const eventData = await promise;
 
