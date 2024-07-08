@@ -36,7 +36,10 @@
     "@sentry/utils": "file:../../../utils",
     "@vanilla-extract/css": "1.13.0",
     "@vanilla-extract/integration": "6.2.4",
-    "@types/mime": "^3.0.0"
+    "@types/mime": "^3.0.0",
+    "@sentry/remix/glob": "<10.4.3",
+    "path-scurry/lru-cache": "10.2.0",
+    "jackspeak": "<3.4.1"
   },
   "engines": {
     "node": ">=14.18"
