@@ -213,13 +213,10 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
     startTrackingINP();
   }
 
-  if (enableLongTask) {
-    startTrackingLongTasks();
-  }
-
-  // At most one of long-task and long-animation-frames should be enabled, since they track the same events
-  if (!enableLongTask && enableLongAnimationFrame) {
+  if (enableLongAnimationFrame && PerformanceObserver.supportedEntryTypes.includes('long-animation-frame')) {
     startTrackingLongAnimationFrames();
+  } else if (enableLongTask) {
+    startTrackingLongTasks();
   }
 
   if (enableInteractions) {
