@@ -69,6 +69,7 @@
   },
   "dependencies": {
     "@opentelemetry/instrumentation-http": "0.52.1",
+    "@opentelemetry/semantic-conventions": "^1.25.1",
     "@rollup/plugin-commonjs": "26.0.1",
     "@sentry/core": "8.15.0",
     "@sentry/node": "8.15.0",

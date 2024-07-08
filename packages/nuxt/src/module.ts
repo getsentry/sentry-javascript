@@ -1,7 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { type Resolver, addPlugin, createResolver, defineNuxtModule } from '@nuxt/kit';
-import { addImportStatement, buildSdkInitFileImportSnippet } from './common/snippets';
+import { addPlugin, addPluginTemplate, createResolver, defineNuxtModule } from '@nuxt/kit';
 import type { SentryNuxtOptions } from './common/types';
 
 export type ModuleOptions = SentryNuxtOptions;
@@ -16,34 +15,46 @@ export default defineNuxtModule<ModuleOptions>({
   },
   defaults: {},
   setup(_moduleOptions, nuxt) {
-    const resolver: Resolver = createResolver(import.meta.url);
+    const moduleDirResolver = createResolver(import.meta.url);
+    const buildDirResolver = createResolver(nuxt.options.buildDir);
 
-    const pathToClientInit = findDefaultSdkInitFile('client');
+    const clientConfigFile = findDefaultSdkInitFile('client');
 
-    if (pathToClientInit) {
-      nuxt.hook('app:templates', nuxtApp => {
-        if (nuxtApp.rootComponent) {
-          try {
-            addImportStatement(nuxtApp.rootComponent, buildSdkInitFileImportSnippet(pathToClientInit));
-          } catch (err) {
-            // eslint-disable-next-line no-console
-            console.error(`[Sentry] Could not add import statement to root component. ${err}`);
-          }
-        }
+    if (clientConfigFile) {
+      // Inject the client-side Sentry config file with a side effect import
+      addPluginTemplate({
+        mode: 'client',
+        filename: 'sentry-client-config.mjs',
+        getContents: () =>
+          `import "${buildDirResolver.resolve(`/${clientConfigFile}`)}"\n` +
+          'export default defineNuxtPlugin(() => {})',
       });
+
+      addPlugin({ src: moduleDirResolver.resolve('./runtime/plugins/sentry.client'), mode: 'client' });
     }
 
-    if (resolver) {
-      addPlugin(resolver.resolve('./runtime/plugins/sentry.client'));
+    const serverConfigFile = findDefaultSdkInitFile('server');
+
+    if (serverConfigFile) {
+      // Inject the server-side Sentry config file with a side effect import
+      addPluginTemplate({
+        mode: 'server',
+        filename: 'sentry-server-config.mjs',
+        getContents: () =>
+          `import "${buildDirResolver.resolve(`/${serverConfigFile}`)}"\n` +
+          'export default defineNuxtPlugin(() => {})',
+      });
     }
   },
 });
 
-function findDefaultSdkInitFile(type: /* 'server' | */ 'client'): string | undefined {
+function findDefaultSdkInitFile(type: 'server' | 'client'): string | undefined {
   const possibleFileExtensions = ['ts', 'js', 'mjs', 'cjs', 'mts', 'cts'];
 
   const cwd = process.cwd();
-  return possibleFileExtensions
+  const filePath = possibleFileExtensions
     .map(e => path.resolve(path.join(cwd, `sentry.${type}.config.${e}`)))
     .find(filename => fs.existsSync(filename));
+
+  return filePath ? path.basename(filePath) : undefined;
 }

@@ -2,9 +2,13 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SPAN_STATUS_ERROR,
   SPAN_STATUS_OK,
+  Scope,
   captureException,
   getActiveSpan,
+  getCapturedScopesOnSpan,
+  getRootSpan,
   handleCallbackErrors,
+  setCapturedScopesOnSpan,
   startSpanManual,
   withIsolationScope,
   withScope,
@@ -15,11 +19,7 @@ import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import { isNotFoundNavigationError, isRedirectNavigationError } from '../common/nextNavigationErrorUtils';
 import type { ServerComponentContext } from '../common/types';
 import { flushSafelyWithTimeout } from './utils/responseEnd';
-import {
-  commonObjectToIsolationScope,
-  commonObjectToPropagationContext,
-  escapeNextjsTracing,
-} from './utils/tracingUtils';
+import { commonObjectToIsolationScope, commonObjectToPropagationContext } from './utils/tracingUtils';
 import { vercelWaitUntil } from './utils/vercelWaitUntil';
 
 /**
@@ -37,21 +37,31 @@ export function wrapServerComponentWithSentry<F extends (...args: any[]) => any>
   return new Proxy(appDirComponent, {
     apply: (originalFunction, thisArg, args) => {
       const requestTraceId = getActiveSpan()?.spanContext().traceId;
-      return escapeNextjsTracing(() => {
-        const isolationScope = commonObjectToIsolationScope(context.headers);
+      const isolationScope = commonObjectToIsolationScope(context.headers);
 
-        const headersDict = context.headers ? winterCGHeadersToDict(context.headers) : undefined;
+      const activeSpan = getActiveSpan();
+      if (activeSpan) {
+        const rootSpan = getRootSpan(activeSpan);
+        const { scope } = getCapturedScopesOnSpan(rootSpan);
+        setCapturedScopesOnSpan(rootSpan, scope ?? new Scope(), isolationScope);
 
-        isolationScope.setSDKProcessingMetadata({
-          request: {
-            headers: headersDict,
-          },
-        });
+        // We mark the root span as an app router span so we can allow-list it in our span processor that would normally filter out all Next.js transactions/spans
+        rootSpan.setAttribute('sentry.rsc', true);
+      }
 
-        return withIsolationScope(isolationScope, () => {
-          return withScope(scope => {
-            scope.setTransactionName(`${componentType} Server Component (${componentRoute})`);
+      const headersDict = context.headers ? winterCGHeadersToDict(context.headers) : undefined;
 
+      isolationScope.setSDKProcessingMetadata({
+        request: {
+          headers: headersDict,
+        },
+      });
+
+      return withIsolationScope(isolationScope, () => {
+        return withScope(scope => {
+          scope.setTransactionName(`${componentType} Server Component (${componentRoute})`);
+
+          if (process.env.NEXT_RUNTIME === 'edge') {
             const propagationContext = commonObjectToPropagationContext(
               context.headers,
               headersDict?.['sentry-trace']
@@ -63,43 +73,45 @@ export function wrapServerComponentWithSentry<F extends (...args: any[]) => any>
             );
 
             scope.setPropagationContext(propagationContext);
-            return startSpanManual(
-              {
-                op: 'function.nextjs',
-                name: `${componentType} Server Component (${componentRoute})`,
-                forceTransaction: true,
-                attributes: {
-                  [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
-                  [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nextjs',
+          }
+
+          return startSpanManual(
+            {
+              op: 'function.nextjs',
+              name: `${componentType} Server Component (${componentRoute})`,
+              attributes: {
+                [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
+                [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nextjs',
+              },
+            },
+            span => {
+              return handleCallbackErrors(
+                () => originalFunction.apply(thisArg, args),
+                error => {
+                  // When you read this code you might think: "Wait a minute, shouldn't we set the status on the root span too?"
+                  // The answer is: "No." - The status of the root span is determined by whatever status code Next.js decides to put on the response.
+                  if (isNotFoundNavigationError(error)) {
+                    // We don't want to report "not-found"s
+                    span.setStatus({ code: SPAN_STATUS_ERROR, message: 'not_found' });
+                  } else if (isRedirectNavigationError(error)) {
+                    // We don't want to report redirects
+                    span.setStatus({ code: SPAN_STATUS_OK });
+                  } else {
+                    span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+                    captureException(error, {
+                      mechanism: {
+                        handled: false,
+                      },
+                    });
+                  }
                 },
-              },
-              span => {
-                return handleCallbackErrors(
-                  () => originalFunction.apply(thisArg, args),
-                  error => {
-                    if (isNotFoundNavigationError(error)) {
-                      // We don't want to report "not-found"s
-                      span.setStatus({ code: SPAN_STATUS_ERROR, message: 'not_found' });
-                    } else if (isRedirectNavigationError(error)) {
-                      // We don't want to report redirects
-                      span.setStatus({ code: SPAN_STATUS_OK });
-                    } else {
-                      span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
-                      captureException(error, {
-                        mechanism: {
-                          handled: false,
-                        },
-                      });
-                    }
-                  },
-                  () => {
-                    span.end();
-                    vercelWaitUntil(flushSafelyWithTimeout());
-                  },
-                );
-              },
-            );
-          });
+                () => {
+                  span.end();
+                  vercelWaitUntil(flushSafelyWithTimeout());
+                },
+              );
+            },
+          );
         });
       });
     },
