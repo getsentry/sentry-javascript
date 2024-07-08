@@ -141,19 +141,22 @@ export function startTrackingLongAnimationFrames(): void {
         const startTime = msToSec((browserPerformanceTimeOrigin as number) + entry.startTime);
         const duration = msToSec(entry.duration);
 
-        const attributes: SpanAttributes = { [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.browser.metrics' };
-        if (entry.scripts[0]) {
-          attributes['browser.script.invoker'] = entry.scripts[0].invoker;
-          attributes['browser.script.invoker_type'] = entry.scripts[0].invokerType;
-
-          if (entry.scripts[0].sourceURL.length > 0) {
-            attributes['code.filepath'] = entry.scripts[0].sourceURL;
+        const attributes: SpanAttributes = {
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.browser.metrics',
+        };
+        const initialScript = entry.scripts[0];
+        if (initialScript) {
+          const { invoker, invokerType, sourceURL, sourceFunctionName, sourceCharPosition } = initialScript;
+          attributes['browser.script.invoker'] = invoker;
+          attributes['browser.script.invoker_type'] = invokerType;
+          if (sourceURL) {
+            attributes['code.filepath'] = sourceURL;
           }
-          if (entry.scripts[0].sourceFunctionName.length > 0) {
-            attributes['code.function'] = entry.scripts[0].sourceFunctionName;
+          if (sourceFunctionName) {
+            attributes['code.function'] = sourceFunctionName;
           }
-          if (entry.scripts[0].sourceCharPosition !== -1) {
-            attributes['browser.script.source_char_position'] = entry.scripts[0].sourceCharPosition;
+          if (sourceCharPosition !== -1) {
+            attributes['browser.script.source_char_position'] = sourceCharPosition;
           }
         }
 
