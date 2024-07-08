@@ -913,8 +913,7 @@ jobs:
     # - AND if the profiling node bindings were either successful or skipped
     if: |
       always() && needs.job_build.result == 'success' &&
-      (needs.job_compile_bindings_profiling_node.result == 'success' || needs.job_compile_bindings_profiling_node.result == 'skipped') &&
-      (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+      (needs.job_compile_bindings_profiling_node.result == 'success' || needs.job_compile_bindings_profiling_node.result == 'skipped')
     needs: [job_get_metadata, job_build, job_compile_bindings_profiling_node]
     runs-on: ubuntu-20.04-large-js
     timeout-minutes: 15
