@@ -455,6 +455,8 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
 
   public on(hook: 'close', callback: () => void): () => void;
 
+  public on(hook: 'applyFrameMetadata', callback: (event: Event) => void): () => void;
+
   /** @inheritdoc */
   public on(hook: string, callback: unknown): () => void {
     // Note that the code below, with nullish coalescing assignment,
@@ -540,6 +542,9 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
 
   /** @inheritdoc */
   public emit(hook: 'close'): void;
+
+  /** @inheritdoc */
+  public emit(hook: 'applyFrameMetadata', event: Event): void;
 
   /** @inheritdoc */
   public emit(hook: string, ...rest: unknown[]): void {

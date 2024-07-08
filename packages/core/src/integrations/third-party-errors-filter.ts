@@ -53,11 +53,19 @@ export const thirdPartyErrorFilterIntegration = defineIntegration((options: Opti
           }
         });
       });
-    },
-    processEvent(event, _hint, client) {
-      const stackParser = client.getOptions().stackParser;
-      addMetadataToStackFrames(stackParser, event);
 
+      client.on('applyFrameMetadata', event => {
+        // Only apply stack frame metadata to error events
+        if (event.type !== undefined) {
+          return;
+        }
+
+        const stackParser = client.getOptions().stackParser;
+        addMetadataToStackFrames(stackParser, event);
+      });
+    },
+
+    processEvent(event) {
       const frameKeys = getBundleKeysForAllFramesWithFilenames(event);
 
       if (frameKeys) {
