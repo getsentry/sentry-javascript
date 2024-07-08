@@ -113,7 +113,7 @@ export class AppService1 {
   @Cron('*/5 * * * * *')
   @SentryCron('test-cron-slug', monitorConfig)
   async testCron() {
-    await new Promise(resolve => setTimeout(resolve, 500));
+    console.log('Test cron!');
   }
 }
 
