@@ -10,13 +10,14 @@
 [![npm dm](https://img.shields.io/npm/dm/@sentry/nuxt.svg)](https://www.npmjs.com/package/@sentry/nuxt)
 [![npm dt](https://img.shields.io/npm/dt/@sentry/nuxt.svg)](https://www.npmjs.com/package/@sentry/nuxt)
 
-**This SDK is under active development and not yet published!**
+**This SDK is under active development! Feel free to already try it but expect breaking changes**
 
 ## Links
 
 todo: link official SDK docs
 
-- [Official SDK Docs](https://docs.sentry.io/platforms/javascript/)
+- [Official Browser SDK Docs](https://docs.sentry.io/platforms/javascript/)
+- [Official Node SDK Docs](https://docs.sentry.io/platforms/node/)
 
 ## Compatibility
 
@@ -37,7 +38,7 @@ Take a look at the sections below if you want to customize your SDK configuratio
 
 If the setup through the wizard doesn't work for you, you can also set up the SDK manually.
 
-### 1. Prerequesits & Installation
+### 1. Prerequisites & Installation
 
 1. Install the Sentry Nuxt SDK:
 

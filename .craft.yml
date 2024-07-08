@@ -106,6 +106,9 @@ targets:
     id: '@sentry/nextjs'
     includeNames: /^sentry-nextjs-\d.*\.tgz$/
   - name: npm
+    id: '@sentry/nuxt'
+    includeNames: /^sentry-nuxt-\d.*\.tgz$/
+  - name: npm
     id: '@sentry/remix'
     includeNames: /^sentry-remix-\d.*\.tgz$/
   - name: npm
