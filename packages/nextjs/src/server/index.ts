@@ -127,7 +127,7 @@ export function init(options: NodeOptions): NodeClient | undefined {
 
   const client = nodeInit(opts);
   client?.on('beforeSampling', ({ spanAttributes, spanName, parentSampled, parentContext }, samplingDecision) => {
-    // We "whitelist" the "BaseServer.handleRequest" span, since that one is responsible for App Router requests, which are actually useful for us.
+    // We allowlist the "BaseServer.handleRequest" span, since that one is responsible for App Router requests, which are actually useful for us.
     // HOWEVER, that span is not only responsible for App Router requests, which is why we additionally filter for certain transactions in an
     // event processor further below.
     if (spanAttributes['next.span_type'] === 'BaseServer.handleRequest') {
@@ -162,7 +162,7 @@ export function init(options: NodeOptions): NodeClient | undefined {
     const spanAttributes = spanToJSON(span).data;
 
     // What we do in this glorious piece of code, is hoist any information about parameterized routes from spans emitted
-    // by Next.js via the `next.route` attribure, up to the transaction by setting the http.route attribute.
+    // by Next.js via the `next.route` attribute, up to the transaction by setting the http.route attribute.
     if (spanAttributes?.['next.route']) {
       const rootSpan = getRootSpan(span);
       const rootSpanAttributes = spanToJSON(rootSpan).data;
