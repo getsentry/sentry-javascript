@@ -1,7 +1,16 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import * as Sentry from '@sentry/nestjs';
-import { SentryTraced } from '@sentry/nestjs';
+import { SentryTraced, SentryCron } from '@sentry/nestjs';
 import { makeHttpRequest } from './utils';
+import { Cron } from '@nestjs/schedule';
+import type { MonitorConfig } from '@sentry/types';
+
+const monitorConfig: MonitorConfig = {
+  schedule: {
+    type: 'crontab',
+    value: '* * * * *',
+  }
+};
 
 @Injectable()
 export class AppService1 {
@@ -94,6 +103,17 @@ export class AppService1 {
 
   async testSpanDecoratorSync() {
     return this.getString();
+  }
+
+  /*
+  Actual cron schedule differs from schedule defined in config because Sentry
+  only supports minute granularity, but we don't want to wait (worst case) a
+  full minute for the tests to finish.
+  */
+  @Cron('*/5 * * * * *')
+  @SentryCron('test-cron-slug', monitorConfig)
+  async testCron() {
+    await new Promise(resolve => setTimeout(resolve, 500));
   }
 }
 
