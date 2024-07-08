@@ -4,6 +4,9 @@ import { waitForTransaction } from '@sentry-internal/test-utils';
 const packageJson = require('../package.json');
 
 test('Sends a pageload transaction', async ({ page }) => {
+  const nextjsVersion = packageJson.dependencies.next;
+  const nextjsMajor = Number(nextjsVersion.split('.')[0]);
+
   const pageloadTransactionEventPromise = waitForTransaction('nextjs-app-dir', transactionEvent => {
     return transactionEvent?.contexts?.trace?.op === 'pageload' && transactionEvent?.transaction === '/';
   });
@@ -23,6 +26,8 @@ test('Sends a pageload transaction', async ({ page }) => {
           version: expect.any(String),
         },
         trace: {
+          // Next.js >= 15 propagates a trace ID to the client via a meta tag.
+          parent_span_id: nextjsMajor >= 15 ? expect.any(String) : undefined,
           span_id: expect.any(String),
           trace_id: expect.any(String),
           op: 'pageload',
