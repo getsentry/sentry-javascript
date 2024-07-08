@@ -13,7 +13,7 @@ export default defineNitroPlugin(nitroApp => {
 
     if (context) {
       captureException(error, {
-        captureContext: { extra: { nuxt: context } },
+        captureContext: { contexts: { nuxt: context } },
         mechanism: { handled: false },
       });
     } else {
