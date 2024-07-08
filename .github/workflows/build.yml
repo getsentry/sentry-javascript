@@ -995,7 +995,6 @@ jobs:
             'angular-17',
             'angular-18',
             'aws-lambda-layer-cjs',
-            'cloudflare-astro',
             'node-express',
             'create-react-app',
             'create-next-app',
@@ -1113,16 +1112,6 @@ jobs:
         timeout-minutes: 5
         run: pnpm test:assert
 
-      - name: Deploy Astro to Cloudflare
-        uses: cloudflare/pages-action@v1
-        if: matrix.test-application == 'cloudflare-astro'
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          projectName: ${{ secrets.CLOUDFLARE_PROJECT_NAME }}
-          directory: dist
-          workingDirectory: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
-
   job_optional_e2e_tests:
     name: E2E ${{ matrix.label || matrix.test-application }} Test
     # We only run E2E tests for non-fork PRs because the E2E tests require secrets to work and they can't be accessed from forks
@@ -1148,6 +1137,7 @@ jobs:
       matrix:
         test-application:
           [
+            'cloudflare-astro',
             'react-send-to-sentry',
             'node-express-send-to-sentry',
             'debug-id-sourcemaps',
@@ -1213,6 +1203,16 @@ jobs:
         working-directory: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
         timeout-minutes: 5
         run: pnpm ${{ matrix.assert-command || 'test:assert' }}
+
+      - name: Deploy Astro to Cloudflare
+        uses: cloudflare/pages-action@v1
+        if: matrix.test-application == 'cloudflare-astro'
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          projectName: ${{ secrets.CLOUDFLARE_PROJECT_NAME }}
+          directory: dist
+          workingDirectory: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
 
   job_profiling_e2e_tests:
     name: E2E ${{ matrix.label || matrix.test-application }} Test
