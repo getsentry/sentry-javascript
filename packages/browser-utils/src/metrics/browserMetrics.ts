@@ -8,7 +8,7 @@ import { spanToJSON } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
 import { WINDOW } from '../types';
 import {
-  PerformanceLongAnimationFrameTiming,
+  type PerformanceLongAnimationFrameTiming,
   addClsInstrumentationHandler,
   addFidInstrumentationHandler,
   addLcpInstrumentationHandler,
@@ -134,6 +134,10 @@ export function startTrackingLongAnimationFrames(): void {
         if (!getActiveSpan()) {
           return;
         }
+        if (!entry.scripts[0]) {
+          return;
+        }
+
         const startTime = msToSec((browserPerformanceTimeOrigin as number) + entry.startTime);
         const duration = msToSec(entry.duration);
 
@@ -143,11 +147,11 @@ export function startTrackingLongAnimationFrames(): void {
           startTime,
           attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.browser.metrics',
-            'script.source_url': entry.scripts[0]?.sourceURL,
-            'script.source_function_name': entry.scripts[0]?.sourceFunctionName,
-            'script.source_char_position': entry.scripts[0]?.sourceCharPosition,
-            'script.invoker': entry.scripts[0]?.invoker,
-            'script.invoker_type': entry.scripts[0]?.invokerType,
+            'code.filepath': entry.scripts[0].sourceURL,
+            'code.function': entry.scripts[0].sourceFunctionName,
+            'browser.script.source_char_position': entry.scripts[0].sourceCharPosition,
+            'browser.script.invoker': entry.scripts[0].invoker,
+            'browser.script.invoker_type': entry.scripts[0].invokerType,
           },
         });
         if (span) {
