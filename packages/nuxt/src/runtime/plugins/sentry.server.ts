@@ -17,7 +17,7 @@ export default defineNitroPlugin(nitroApp => {
         mechanism: { handled: false },
       });
     } else {
-      captureException(error);
+      captureException(error, { mechanism: { handled: false } });
     }
   });
 });
