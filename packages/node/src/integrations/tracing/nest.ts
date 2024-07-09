@@ -1,7 +1,5 @@
 import { NestInstrumentation } from '@opentelemetry/instrumentation-nestjs-core';
-import {
-  defineIntegration,
-} from '@sentry/core';
+import { defineIntegration } from '@sentry/core';
 import type { IntegrationFn } from '@sentry/types';
 import { generateInstrumentOnce } from '../../otel/instrument';
 
