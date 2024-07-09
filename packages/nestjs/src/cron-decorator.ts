@@ -10,12 +10,10 @@ export const SentryCron = (monitorSlug: string, monitorConfig?: MonitorConfig): 
     const originalMethod = descriptor.value as (...args: any[]) => Promise<any>;
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    descriptor.value = async function (...args: any[]) {
+    descriptor.value = function (...args: any[]) {
       return Sentry.withMonitor(
         monitorSlug,
-        async () => {
-          return originalMethod.apply(this, args);
-        },
+        () => return originalMethod.apply(this, args),
         monitorConfig,
       );
     };
