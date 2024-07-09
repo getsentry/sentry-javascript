@@ -23,7 +23,8 @@
     "esbuild": "0.20.0",
     "glob": "8.0.3",
     "ts-node": "10.9.1",
-    "yaml": "2.2.2"
+    "yaml": "2.2.2",
+    "rimraf": "^5.0.0"
   },
   "volta": {
     "extends": "../../package.json",
