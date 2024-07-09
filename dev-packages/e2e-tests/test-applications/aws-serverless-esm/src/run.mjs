@@ -8,7 +8,9 @@ child_process.execSync('node ./src/run-lambda.mjs', {
     LAMBDA_TASK_ROOT: process.cwd(),
     _HANDLER: 'src/lambda-function.handler',
 
-    NODE_OPTIONS: '--import ./src/instrument.mjs',
+    NODE_OPTIONS: '--import @sentry/aws-serverless/awslambda-auto',
+    SENTRY_DSN: 'http://public@localhost:3031/1337',
+    SENTRY_TRACES_SAMPLE_RATE: '1.0',
   },
   cwd: process.cwd(),
 });
