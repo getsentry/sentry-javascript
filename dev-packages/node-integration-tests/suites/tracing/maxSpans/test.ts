@@ -8,7 +8,6 @@ test('it limits spans to 1000', done => {
   }
 
   createRunner(__dirname, 'scenario.ts')
-    .ignore('session', 'sessions')
     .expect({
       transaction: {
         transaction: 'parent',

@@ -13,7 +13,7 @@ test("warns if using ESM on Node.js versions that don't support `register()`", a
     return;
   }
 
-  const runner = createRunner(__dirname, 'server.mjs').ignore('session', 'sessions', 'event').start();
+  const runner = createRunner(__dirname, 'server.mjs').ignore('event').start();
 
   await runner.makeRequest('get', '/test/success');
 
@@ -26,7 +26,7 @@ test('does not warn if using ESM on Node.js versions that support `register()`',
     return;
   }
 
-  const runner = createRunner(__dirname, 'server.mjs').ignore('session', 'sessions', 'event').start();
+  const runner = createRunner(__dirname, 'server.mjs').ignore('event').start();
 
   await runner.makeRequest('get', '/test/success');
 
@@ -34,7 +34,7 @@ test('does not warn if using ESM on Node.js versions that support `register()`',
 });
 
 test('does not warn if using CJS', async () => {
-  const runner = createRunner(__dirname, 'server.js').ignore('session', 'sessions', 'event').start();
+  const runner = createRunner(__dirname, 'server.js').ignore('event').start();
 
   await runner.makeRequest('get', '/test/success');
 

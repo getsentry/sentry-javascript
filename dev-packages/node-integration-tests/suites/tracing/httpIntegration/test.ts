@@ -14,7 +14,6 @@ describe('httpIntegration', () => {
     }
 
     createRunner(__dirname, 'server.js')
-      .ignore('session', 'sessions')
       .expect({
         transaction: {
           contexts: {
@@ -56,7 +55,6 @@ describe('httpIntegration', () => {
 
   test('allows to pass experimental config through to integration', done => {
     createRunner(__dirname, 'server-experimental.js')
-      .ignore('session', 'sessions')
       .expect({
         transaction: {
           contexts: {

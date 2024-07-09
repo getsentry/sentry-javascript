@@ -2,7 +2,7 @@ import { createRunner } from '../../../../utils/runner';
 
 test('envelope header for error event during active unsampled span is correct', done => {
   createRunner(__dirname, 'scenario.ts')
-    .ignore('session', 'sessions', 'transaction')
+    .ignore('transaction')
     .expectHeader({
       event: {
         trace: {

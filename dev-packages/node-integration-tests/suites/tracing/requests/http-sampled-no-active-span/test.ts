@@ -31,7 +31,6 @@ test('outgoing sampled http requests without active span are correctly instrumen
     .then(SERVER_URL => {
       createRunner(__dirname, 'scenario.ts')
         .withEnv({ SERVER_URL })
-        .ignore('session', 'sessions')
         .expect({
           event: {
             exception: {

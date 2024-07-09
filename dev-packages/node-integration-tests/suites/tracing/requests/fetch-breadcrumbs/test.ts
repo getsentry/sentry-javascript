@@ -10,7 +10,6 @@ conditionalTest({ min: 18 })('outgoing fetch', () => {
         createRunner(__dirname, 'scenario.ts')
           .withEnv({ SERVER_URL })
           .ensureNoErrorOutput()
-          .ignore('session', 'sessions')
           .expect({
             event: {
               breadcrumbs: [

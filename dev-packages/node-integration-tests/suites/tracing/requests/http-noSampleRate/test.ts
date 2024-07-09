@@ -32,7 +32,6 @@ test('outgoing http requests are correctly instrumented without tracesSampleRate
       createRunner(__dirname, 'scenario.ts')
         .withEnv({ SERVER_URL })
         .ensureNoErrorOutput()
-        .ignore('session', 'sessions')
         .expect({
           event: {
             exception: {
