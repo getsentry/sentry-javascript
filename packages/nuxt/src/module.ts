@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { addPlugin, addPluginTemplate, createResolver, defineNuxtModule } from '@nuxt/kit';
+import { addPlugin, addPluginTemplate, addServerPlugin, createResolver, defineNuxtModule } from '@nuxt/kit';
 import type { SentryNuxtOptions } from './common/types';
 
 export type ModuleOptions = SentryNuxtOptions;
@@ -44,6 +44,8 @@ export default defineNuxtModule<ModuleOptions>({
           `import "${buildDirResolver.resolve(`/${serverConfigFile}`)}"\n` +
           'export default defineNuxtPlugin(() => {})',
       });
+
+      addServerPlugin(moduleDirResolver.resolve('./runtime/plugins/sentry.server'));
     }
   },
 });
