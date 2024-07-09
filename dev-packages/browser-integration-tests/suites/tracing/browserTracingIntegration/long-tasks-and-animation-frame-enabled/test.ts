@@ -14,6 +14,8 @@ sentryTest(
       sentryTest.skip();
     }
 
+    // Long animation frame should take priority over long tasks
+
     await page.route('**/path/to/script.js', (route: Route) =>
       route.fulfill({ path: `${__dirname}/assets/script.js` }),
     );
