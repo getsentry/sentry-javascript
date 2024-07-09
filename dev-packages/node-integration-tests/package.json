@@ -33,6 +33,7 @@
     "@prisma/client": "5.9.1",
     "@sentry/node": "8.15.0",
     "@sentry/types": "8.15.0",
+    "@sentry/nestjs": "8.15.0",
     "@types/mongodb": "^3.6.20",
     "@types/mysql": "^2.15.21",
     "@types/pg": "^8.6.5",
