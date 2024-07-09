@@ -2,7 +2,6 @@ import { createRunner } from '../../../../utils/runner';
 
 test('envelope header for transaction event of route correct', done => {
   createRunner(__dirname, 'scenario.ts')
-    .ignore('session', 'sessions')
     .expectHeader({
       transaction: {
         trace: {

@@ -164,7 +164,8 @@ export function createRunner(...paths: string[]) {
   const expectedEnvelopes: Expected[] = [];
   let expectedEnvelopeHeaders: ExpectedEnvelopeHeader[] | undefined = undefined;
   const flags: string[] = [];
-  const ignored: EnvelopeItemType[] = [];
+  // By default, we ignore session & sessions
+  const ignored: EnvelopeItemType[] = ['session', 'sessions'];
   let withEnv: Record<string, string> = {};
   let withSentryServer = false;
   let dockerOptions: DockerOptions | undefined;
@@ -207,6 +208,15 @@ export function createRunner(...paths: string[]) {
     },
     ignore: function (...types: EnvelopeItemType[]) {
       ignored.push(...types);
+      return this;
+    },
+    unignore: function (...types: EnvelopeItemType[]) {
+      for (const t of types) {
+        const pos = ignored.indexOf(t);
+        if (pos > -1) {
+          ignored.splice(pos, 1);
+        }
+      }
       return this;
     },
     withDockerCompose: function (options: DockerOptions) {

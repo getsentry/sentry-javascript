@@ -2,7 +2,6 @@ import { createRunner } from '../../../../utils/runner';
 
 test('envelope header for error events is correct', done => {
   createRunner(__dirname, 'scenario.ts')
-    .ignore('session', 'sessions')
     .expectHeader({
       event: {
         trace: {

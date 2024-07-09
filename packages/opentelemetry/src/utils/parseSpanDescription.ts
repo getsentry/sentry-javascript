@@ -23,7 +23,7 @@ interface SpanDescription {
   op: string | undefined;
   description: string;
   source: TransactionSource;
-  data?: Record<string, string>;
+  data?: Record<string, string | undefined>;
 }
 
 /**
@@ -34,6 +34,19 @@ interface SpanDescription {
 export function parseSpanDescription(span: AbstractSpan): SpanDescription {
   const attributes = spanHasAttributes(span) ? span.attributes : {};
   const name = spanHasName(span) ? span.name : '<unknown>';
+
+  // This attribute is intentionally exported as a SEMATTR constant because it should stay intimite API
+  if (attributes['sentry.skip_span_data_inference']) {
+    return {
+      op: undefined,
+      description: name,
+      source: 'custom',
+      data: {
+        // Suggest to callers of `parseSpanDescription` to wipe the hint because it is unnecessary data in the end.
+        'sentry.skip_span_data_inference': undefined,
+      },
+    };
+  }
 
   // if http.method exists, this is an http request span
   //

@@ -1,9 +1,10 @@
 import { Module } from '@nestjs/common';
+import { ScheduleModule } from '@nestjs/schedule';
 import { AppController1, AppController2 } from './app.controller';
 import { AppService1, AppService2 } from './app.service';
 
 @Module({
-  imports: [],
+  imports: [ScheduleModule.forRoot()],
   controllers: [AppController1],
   providers: [AppService1],
 })

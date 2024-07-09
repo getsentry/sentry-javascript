@@ -11,7 +11,8 @@ test('should aggregate successful, crashed and erroneous sessions', async () => 
   });
 
   const runner = createRunner(__dirname, 'server.ts')
-    .ignore('transaction', 'event', 'session')
+    .ignore('transaction', 'event')
+    .unignore('sessions')
     .expectError()
     .expect({
       sessions: {

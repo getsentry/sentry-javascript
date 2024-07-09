@@ -9,9 +9,13 @@ on:
 jobs:
   external_contributor:
     name: External Contributors
+    permissions:
+      pull-requests: write
+      contents: write
     runs-on: ubuntu-20.04
     if: |
-      github.event.pull_request.author_association != 'COLLABORATOR'
+      github.event.pull_request.merged == true
+      && github.event.pull_request.author_association != 'COLLABORATOR'
       && github.event.pull_request.author_association != 'MEMBER'
       && github.event.pull_request.author_association != 'OWNER'
       && github.actor != 'dependabot[bot]'
@@ -30,6 +34,8 @@ jobs:
         uses: ./dev-packages/external-contributor-gh-action
         with:
           name: ${{ github.event.pull_request.user.login }}
+          author_association: ${{ github.event.pull_request.author_association }}
+
       - name: Create PR with changes
         uses: peter-evans/create-pull-request@c5a7806660adbe173f04e3e038b0ccdcd758773c
         with:
@@ -38,5 +44,5 @@ jobs:
           branch: 'external-contributor/patch-${{ github.event.pull_request.user.login }}'
           base: 'develop'
           delete-branch: true
-          body: This PR adds the external contributor to the CHANGELOG.md file, so that they are credited for their contribution.
+          body: "This PR adds the external contributor to the CHANGELOG.md file, so that they are credited for their contribution. See #${{ github.event.pull_request.number }}"
 
