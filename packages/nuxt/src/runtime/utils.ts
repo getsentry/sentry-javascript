@@ -13,7 +13,7 @@ export function extractErrorContext(errorContext: CapturedErrorContext): Context
     tags: undefined,
   };
 
-  if (errorContext && errorContext.event) {
+  if (errorContext) {
     if (errorContext.event) {
       structuredContext.method = errorContext.event._method || undefined;
       structuredContext.path = errorContext.event._path || undefined;

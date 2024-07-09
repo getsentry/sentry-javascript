@@ -37,7 +37,6 @@ describe('extractErrorContext', () => {
 
   it('handles errorContext.tags correctly, including when absent or of unexpected type', () => {
     const contextWithTags = {
-      event: {},
       tags: ['tag1', 'tag2'],
     };
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
