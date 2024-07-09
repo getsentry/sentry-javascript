@@ -205,10 +205,13 @@ describe('prepareEvent', () => {
 
     const options = {} as ClientOptions;
     const client = {
+      emit() {
+        // noop
+      },
       getEventProcessors() {
         return [eventProcessor];
       },
-    } as Client;
+    } as unknown as Client;
     const processedEvent = await prepareEvent(
       options,
       event,
@@ -393,10 +396,13 @@ describe('prepareEvent', () => {
 
       const options = {} as ClientOptions;
       const client = {
+        emit() {
+          // noop
+        },
         getEventProcessors() {
           return [] as EventProcessor[];
         },
-      } as Client;
+      } as unknown as Client;
 
       const processedEvent = await prepareEvent(
         options,
@@ -430,10 +436,13 @@ describe('prepareEvent', () => {
 
       const options = {} as ClientOptions;
       const client = {
+        emit() {
+          // noop
+        },
         getEventProcessors() {
           return [] as EventProcessor[];
         },
-      } as Client;
+      } as unknown as Client;
 
       const captureContext = new Scope();
       captureContext.setTags({ foo: 'bar' });
@@ -470,10 +479,13 @@ describe('prepareEvent', () => {
 
       const options = {} as ClientOptions;
       const client = {
+        emit() {
+          // noop
+        },
         getEventProcessors() {
           return [] as EventProcessor[];
         },
-      } as Client;
+      } as unknown as Client;
 
       const captureContextScope = new Scope();
       captureContextScope.setTags({ foo: 'bar' });
