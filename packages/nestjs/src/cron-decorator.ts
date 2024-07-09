@@ -13,7 +13,9 @@ export const SentryCron = (monitorSlug: string, monitorConfig?: MonitorConfig): 
     descriptor.value = function (...args: any[]) {
       return Sentry.withMonitor(
         monitorSlug,
-        () => return originalMethod.apply(this, args),
+        () => {
+          return originalMethod.apply(this, args);
+        },
         monitorConfig,
       );
     };
