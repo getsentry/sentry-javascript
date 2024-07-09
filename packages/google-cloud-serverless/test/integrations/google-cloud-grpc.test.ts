@@ -120,14 +120,14 @@ describe('GoogleCloudGrpc tracing', () => {
       process.nextTick(cb, null, []);
     });
 
-    const pubsub = new PubSub({ // trufflehog:ignore
+    const pubsub = new PubSub({
       credentials: {
         client_email: 'client@email',
         private_key:
           '-----BEGIN RSA PRIVATE KEY-----\nMIICXQIBAAKBgQDzU+jLTzW6154Joezxrd2+5pCNYP0HcaMoYqEyXfNRpkNE7wrQ\nUEG830o4Qcaae2BhqZoujwSW7RkR6h0Fkd0WTR8h5J8rSGNHv/1jJoUUjP9iZ/5S\nFAyIIyEYfDPqtnA4iF1QWO2lXWlEFSuZjwM/8jBmeGzoiw17akNThIw8NwIDAQAB\nAoGATpboVloEAY/IdFX/QGOmfhTb1T3hG3lheBa695iOkO2BRo9qT7PMN6NqxlbA\nPX7ht0lfCfCZS+HSOg4CR50/6WXHMSmwlvcjGuDIDKWjviQTTYE77MlVBQHw9WzY\nPfiRBbtouyPGQtO4rk42zkIILC6exBZ1vKpRPOmTAnxrjCECQQD+56r6hYcS6GNp\nNOWyv0eVFMBX4iNWAsRf9JVVvGDz2rVuhnkNiN73vfffDWvSXkCydL1jFmalgdQD\ngm77UZQHAkEA9F+CauU0aZsJ1SthQ6H0sDQ+eNRUgnz4itnkSC2C20fZ3DaSpCMC\n0go81CcZOhftNO730ILqiS67C3d3rqLqUQJBAP10ROHMmz4Fq7MUUcClyPtHIuk/\nhXskTTZL76DMKmrN8NDxDLSUf38+eJRkt+z4osPOp/E6eN3gdXr32nox50kCQCl8\nhXGMU+eR0IuF/88xkY7Qb8KnmWlFuhQohZ7TSyHbAttl0GNZJkNuRYFm2duI8FZK\nM3wMnbCIZGy/7WuScOECQQCV+0yrf5dL1M2GHjJfwuTb00wRKalKQEH1v/kvE5vS\nFmdN7BPK5Ra50MaecMNoYqu9rmtyWRBn93dcvKrL57nY\n-----END RSA PRIVATE KEY-----\n',
       },
       projectId: 'project-id',
-    });  // trufflehog:ignore
+    });
 
     afterEach(() => {
       dnsLookup.mockReset();
