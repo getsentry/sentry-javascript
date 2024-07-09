@@ -1,3 +1,4 @@
+// trufflehog:ignore
 jest.mock('dns');
 
 import * as dns from 'dns';

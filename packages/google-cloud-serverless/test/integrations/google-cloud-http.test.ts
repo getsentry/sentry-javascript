@@ -1,3 +1,4 @@
+// trufflehog:ignore
 import { BigQuery } from '@google-cloud/bigquery';
 import * as nock from 'nock';
 
