@@ -7,20 +7,17 @@ export default defineNitroPlugin(nitroApp => {
   nitroApp.hooks.hook('error', (error, errorContext) => {
     // Do not handle 404 and 422
     if (error instanceof H3Error) {
-      if (error.statusCode === 404 || error.statusCode === 422) {
+      // Do not report if status code is 3xx or 4xx
+      if (error.statusCode >= 300 && error.statusCode < 500) {
         return;
       }
     }
 
-    if (errorContext) {
-      const structuredContext = extractErrorContext(errorContext);
+    const structuredContext = extractErrorContext(errorContext);
 
-      captureException(error, {
-        captureContext: { contexts: { nuxt: structuredContext } },
-        mechanism: { handled: false },
-      });
-    } else {
-      captureException(error, { mechanism: { handled: false } });
-    }
+    captureException(error, {
+      captureContext: { contexts: { nuxt: structuredContext } },
+      mechanism: { handled: false },
+    });
   });
 });
