@@ -56,7 +56,7 @@ export const thirdPartyErrorFilterIntegration = defineIntegration((options: Opti
 
       client.on('applyFrameMetadata', event => {
         // Only apply stack frame metadata to error events
-        if (event.type !== undefined) {
+        if (event.type) {
           return;
         }
 

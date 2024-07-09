@@ -33,7 +33,7 @@ export const moduleMetadataIntegration = defineIntegration(() => {
 
       client.on('applyFrameMetadata', event => {
         // Only apply stack frame metadata to error events
-        if (event.type !== undefined) {
+        if (event.type) {
           return;
         }
 
