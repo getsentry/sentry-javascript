@@ -12,7 +12,6 @@
     "noErrorTruncation": true,
     "noFallthroughCasesInSwitch": true,
     "noImplicitReturns": true,
-    "noImplicitUseStrict": true,
     "noUnusedLocals": false,
     "noUnusedParameters": false,
     "preserveWatchOutput": true,

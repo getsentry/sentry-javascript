@@ -5,6 +5,7 @@
 
   "compilerOptions": {
     "lib": ["es2018"],
-    "module": "Node16"
+    "module": "Node16",
+    "moduleResolution": "Node16"
   }
 }

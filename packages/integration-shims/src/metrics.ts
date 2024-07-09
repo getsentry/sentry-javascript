@@ -18,5 +18,6 @@ export const metricsShim: Metrics = {
     if (typeof value === 'function') {
       return value();
     }
+    return;
   },
 };

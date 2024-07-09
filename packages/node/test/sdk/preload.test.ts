@@ -14,7 +14,7 @@ describe('preload', () => {
   it('works without env vars', async () => {
     const logSpy = jest.spyOn(console, 'log');
 
-    await import('../../src/preload');
+    require('../../src/preload');
 
     expect(logSpy).toHaveBeenCalledTimes(0);
   });
@@ -26,7 +26,7 @@ describe('preload', () => {
 
     process.env.SENTRY_DEBUG = '1';
 
-    await import('../../src/preload');
+    require('../../src/preload');
 
     expect(logSpy).toHaveBeenCalledWith('Sentry Logger [log]:', '[Sentry] Preloaded Http instrumentation');
     expect(logSpy).toHaveBeenCalledWith('Sentry Logger [log]:', '[Sentry] Preloaded Express instrumentation');
@@ -41,7 +41,7 @@ describe('preload', () => {
     process.env.SENTRY_DEBUG = '1';
     process.env.SENTRY_PRELOAD_INTEGRATIONS = 'Http,Express';
 
-    await import('../../src/preload');
+    require('../../src/preload');
 
     expect(logSpy).toHaveBeenCalledWith('Sentry Logger [log]:', '[Sentry] Preloaded Http instrumentation');
     expect(logSpy).toHaveBeenCalledWith('Sentry Logger [log]:', '[Sentry] Preloaded Express instrumentation');

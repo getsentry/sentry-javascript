@@ -22,7 +22,7 @@
     }
   },
   "typesVersions": {
-    "<4.9": {
+    "<5.5": {
       "lib/types/index.d.ts": [
         "lib/types-ts3.8/index.d.ts"
       ]
@@ -87,8 +87,7 @@
     "@types/node-abi": "^3.0.3",
     "clang-format": "^1.8.0",
     "cross-env": "^7.0.3",
-    "node-gyp": "^9.4.1",
-    "typescript": "^4.9.5"
+    "node-gyp": "^9.4.1"
   },
   "volta": {
     "extends": "../../package.json"
