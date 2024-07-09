@@ -113,7 +113,6 @@ export {
   setupExpressErrorHandler,
   setupHapiErrorHandler,
   setupKoaErrorHandler,
-  setupNestErrorHandler,
   setUser,
   spanToBaggageHeader,
   spanToJSON,
