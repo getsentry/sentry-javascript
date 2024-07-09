@@ -1,4 +1,4 @@
-jest.mock('dns');
+jest.mock('dns'); // trufflehog:ignore
 
 import * as dns from 'dns';
 import { EventEmitter } from 'events';
