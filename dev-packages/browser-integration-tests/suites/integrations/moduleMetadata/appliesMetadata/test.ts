@@ -2,11 +2,12 @@ import { expect } from '@playwright/test';
 import type { Event } from '@sentry/types';
 
 import { sentryTest } from '../../../../utils/fixtures';
-import { getFirstSentryEnvelopeRequest } from '../../../../utils/helpers';
+import { getMultipleSentryEnvelopeRequests } from '../../../../utils/helpers';
 
 sentryTest('should provide module_metadata on stack frames in beforeSend', async ({ getLocalTestPath, page }) => {
   const url = await getLocalTestPath({ testDir: __dirname });
 
-  const errorEvent = await getFirstSentryEnvelopeRequest<Event>(page, url);
+  const envelopes = await getMultipleSentryEnvelopeRequests<Event>(page, 3, { url, timeout: 10000 });
+  const errorEvent = envelopes.find(event => !event.type)!;
   expect(errorEvent.extra?.['module_metadata_entries']).toEqual([{ foo: 'bar' }]);
 });
