@@ -1,4 +1,4 @@
-import { BigQuery } from '@google-cloud/bigquery'; // trufflehog:ignore
+import { BigQuery } from '@google-cloud/bigquery';
 import * as nock from 'nock';
 
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
