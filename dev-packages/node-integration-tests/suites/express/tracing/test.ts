@@ -8,7 +8,6 @@ describe('express tracing', () => {
   describe('CJS', () => {
     test('should create and send transactions for Express routes and spans for middlewares.', done => {
       createRunner(__dirname, 'server.js')
-        .ignore('session', 'sessions')
         .expect({
           transaction: {
             contexts: {
@@ -51,7 +50,6 @@ describe('express tracing', () => {
 
     test('should set a correct transaction name for routes specified in RegEx', done => {
       createRunner(__dirname, 'server.js')
-        .ignore('session', 'sessions')
         .expect({
           transaction: {
             transaction: 'GET /\\/test\\/regex/',
@@ -80,7 +78,6 @@ describe('express tracing', () => {
       'should set a correct transaction name for routes consisting of arrays of routes for %p',
       ((segment: string, done: () => void) => {
         createRunner(__dirname, 'server.js')
-          .ignore('session', 'sessions')
           .expect({
             transaction: {
               transaction: 'GET /test/array1,/\\/test\\/array[2-9]/',
@@ -117,7 +114,6 @@ describe('express tracing', () => {
       ['arr/requiredPath/optionalPath/lastParam'],
     ])('should handle more complex regexes in route arrays correctly for %p', ((segment: string, done: () => void) => {
       createRunner(__dirname, 'server.js')
-        .ignore('session', 'sessions')
         .expect({
           transaction: {
             transaction: 'GET /test/arr/:id,/\\/test\\/arr[0-9]*\\/required(path)?(\\/optionalPath)?\\/(lastParam)?/',

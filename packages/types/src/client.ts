@@ -223,6 +223,12 @@ export interface Client<O extends ClientOptions = ClientOptions> {
   on(hook: 'beforeEnvelope', callback: (envelope: Envelope) => void): () => void;
 
   /**
+   * Register a callback that runs when stack frame metadata should be applied to an event.
+   * @returns A function that, when executed, removes the registered callback.
+   */
+  on(hook: 'applyFrameMetadata', callback: (event: Event) => void): () => void;
+
+  /**
    * Register a callback for before sending an event.
    * This is called right before an event is sent and should not be used to mutate the event.
    * Receives an Event & EventHint as arguments.
@@ -325,6 +331,11 @@ export interface Client<O extends ClientOptions = ClientOptions> {
    * second argument.
    */
   emit(hook: 'beforeEnvelope', envelope: Envelope): void;
+
+  /*
+   * Fire a hook indicating that stack frame metadata should be applied to the event passed to the hook.
+   */
+  emit(hook: 'applyFrameMetadata', event: Event): void;
 
   /**
    * Fire a hook event before sending an event.

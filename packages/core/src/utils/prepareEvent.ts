@@ -60,6 +60,10 @@ export function prepareEvent(
   applyClientOptions(prepared, options);
   applyIntegrationsMetadata(prepared, integrations);
 
+  if (client) {
+    client.emit('applyFrameMetadata', event);
+  }
+
   // Only put debug IDs onto frames for error events.
   if (event.type === undefined) {
     applyDebugIds(prepared, options.stackParser);
