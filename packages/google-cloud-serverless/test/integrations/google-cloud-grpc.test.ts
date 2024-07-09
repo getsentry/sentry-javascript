@@ -120,7 +120,7 @@ describe('GoogleCloudGrpc tracing', () => {
       process.nextTick(cb, null, []);
     });
 
-    const pubsub = new PubSub({
+    const pubsub = new PubSub({ // trufflehog:ignore
       credentials: {
         client_email: 'client@email',
         private_key:

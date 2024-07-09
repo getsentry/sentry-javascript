@@ -45,7 +45,7 @@ describe('GoogleCloudHttp tracing', () => {
 
   // We use google cloud bigquery as an example of http restful service for which we can trace requests.
   describe('bigquery', () => {
-    const bigquery = new BigQuery({
+    const bigquery = new BigQuery({ // trufflehog:ignore
       credentials: {
         client_email: 'client@email',
         private_key:
