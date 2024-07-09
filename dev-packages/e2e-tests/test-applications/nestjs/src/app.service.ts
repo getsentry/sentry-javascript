@@ -1,5 +1,5 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
-import { Cron } from '@nestjs/schedule';
+import { Cron, SchedulerRegistry } from '@nestjs/schedule';
 import * as Sentry from '@sentry/nestjs';
 import { SentryCron, SentryTraced } from '@sentry/nestjs';
 import type { MonitorConfig } from '@sentry/types';
@@ -14,6 +14,8 @@ const monitorConfig: MonitorConfig = {
 
 @Injectable()
 export class AppService1 {
+  constructor(private schedulerRegistry: SchedulerRegistry) {}
+
   testSuccess() {
     return { version: 'v1' };
   }
@@ -110,10 +112,14 @@ export class AppService1 {
   only supports minute granularity, but we don't want to wait (worst case) a
   full minute for the tests to finish.
   */
-  @Cron('*/5 * * * * *')
+  @Cron('*/5 * * * * *', { name: 'test-cron-job' })
   @SentryCron('test-cron-slug', monitorConfig)
   async testCron() {
     console.log('Test cron!');
+  }
+
+  async killTestCron() {
+    this.schedulerRegistry.deleteCronJob('test-cron-job');
   }
 }
 
