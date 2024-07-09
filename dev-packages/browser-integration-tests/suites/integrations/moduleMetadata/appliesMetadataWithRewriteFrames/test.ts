@@ -2,15 +2,19 @@ import { expect } from '@playwright/test';
 import type { Event } from '@sentry/types';
 
 import { sentryTest } from '../../../../utils/fixtures';
-import { getMultipleSentryEnvelopeRequests } from '../../../../utils/helpers';
+import { getFirstSentryEnvelopeRequest } from '../../../../utils/helpers';
 
 sentryTest(
   'should provide module_metadata on stack frames in beforeSend even though an event processor (rewriteFramesIntegration) modified the filename',
   async ({ getLocalTestPath, page }) => {
+    // moduleMetadataIntegration is not included in any CDN bundles
+    if (process.env.PW_BUNDLE?.startsWith('bundle')) {
+      sentryTest.skip();
+    }
+
     const url = await getLocalTestPath({ testDir: __dirname });
 
-    const envelopes = await getMultipleSentryEnvelopeRequests<Event>(page, 3, { url, timeout: 10000 });
-    const errorEvent = envelopes.find(event => !event.type)!;
-    expect(errorEvent.extra?.['module_metadata_entries']).toEqual([{ foo: 'baz' }]);
+    const errorEvent = await getFirstSentryEnvelopeRequest<Event>(page, url);
+    expect(errorEvent?.extra?.['module_metadata_entries']).toEqual([{ foo: 'baz' }]);
   },
 );
