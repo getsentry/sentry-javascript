@@ -29,7 +29,6 @@ conditionalTest({ min: 18 })('outgoing fetch', () => {
       .then(SERVER_URL => {
         createRunner(__dirname, 'scenario.ts')
           .withEnv({ SERVER_URL })
-          .ignore('session', 'sessions')
           .expect({
             event: {
               exception: {

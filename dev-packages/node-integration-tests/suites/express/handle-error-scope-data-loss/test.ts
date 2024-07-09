@@ -15,7 +15,6 @@ afterAll(() => {
  */
 test('withScope scope is NOT applied to thrown error caught by global handler', done => {
   const runner = createRunner(__dirname, 'server.ts')
-    .ignore('session', 'sessions')
     .expect({
       event: {
         exception: {
@@ -53,7 +52,6 @@ test('withScope scope is NOT applied to thrown error caught by global handler', 
  */
 test('isolation scope is applied to thrown error caught by global handler', done => {
   const runner = createRunner(__dirname, 'server.ts')
-    .ignore('session', 'sessions')
     .expect({
       event: {
         exception: {

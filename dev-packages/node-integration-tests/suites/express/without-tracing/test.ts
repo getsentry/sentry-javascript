@@ -6,7 +6,6 @@ afterAll(() => {
 
 test('correctly applies isolation scope even without tracing', done => {
   const runner = createRunner(__dirname, 'server.ts')
-    .ignore('session', 'sessions')
     .expect({
       event: {
         transaction: 'GET /test/isolationScope/1',
