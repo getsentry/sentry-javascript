@@ -5,6 +5,7 @@ import type { ComponentType, VNode, h as hType } from 'preact';
 import { h } from 'preact'; // eslint-disable-line @typescript-eslint/no-unused-vars
 import type * as Hooks from 'preact/hooks';
 import { DOCUMENT, WINDOW } from '../../constants';
+import CropCornerFactory from './CropCorner';
 import { createScreenshotInputStyles } from './ScreenshotInput.css';
 import { useTakeScreenshotFactory } from './useTakeScreenshot';
 
@@ -64,7 +65,7 @@ const getContainedSize = (img: HTMLCanvasElement): Box => {
 };
 
 export function ScreenshotEditorFactory({
-  h, // eslint-disable-line @typescript-eslint/no-unused-vars
+  h,
   hooks,
   imageBuffer,
   dialog,
@@ -74,6 +75,7 @@ export function ScreenshotEditorFactory({
 
   return function ScreenshotEditor({ onError }: Props): VNode {
     const styles = hooks.useMemo(() => ({ __html: createScreenshotInputStyles().innerText }), []);
+    const CropCorner = CropCornerFactory({ h });
 
     const canvasContainerRef = hooks.useRef<HTMLDivElement>(null);
     const cropContainerRef = hooks.useRef<HTMLDivElement>(null);
@@ -327,33 +329,4 @@ export function ScreenshotEditorFactory({
       </div>
     );
   };
-}
-
-function CropCorner({
-  top,
-  left,
-  corner,
-  onGrabButton,
-}: {
-  top: number;
-  left: number;
-  corner: string;
-  onGrabButton: (e: Event, corner: string) => void;
-}): VNode {
-  return (
-    <button
-      class={`editor__crop-corner editor__crop-corner--${corner} `}
-      style={{
-        top: top,
-        left: left,
-      }}
-      onMouseDown={e => {
-        e.preventDefault();
-        onGrabButton(e, corner);
-      }}
-      onClick={e => {
-        e.preventDefault();
-      }}
-    ></button>
-  );
 }
