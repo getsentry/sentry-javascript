@@ -356,6 +356,10 @@ function getData(span: ReadableSpan): Record<string, unknown> {
     'otel.kind': SpanKind[span.kind],
   };
 
+  if (span.kind !== SpanKind.INTERNAL) {
+    data['otel.kind'] = SpanKind[span.kind];
+  }
+
   if (attributes[SEMATTRS_HTTP_STATUS_CODE]) {
     const statusCode = attributes[SEMATTRS_HTTP_STATUS_CODE] as string;
     data['http.response.status_code'] = statusCode;

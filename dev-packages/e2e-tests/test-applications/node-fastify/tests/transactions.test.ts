@@ -63,7 +63,6 @@ test('Sends an API route transaction', async ({ baseURL }) => {
       'plugin.name': 'fastify -> sentry-fastify-error-handler',
       'fastify.type': 'middleware',
       'hook.name': 'onRequest',
-      'otel.kind': 'INTERNAL',
       'sentry.origin': 'auto.http.otel.fastify',
       'sentry.op': 'middleware.fastify',
     },
@@ -83,7 +82,6 @@ test('Sends an API route transaction', async ({ baseURL }) => {
       'plugin.name': 'fastify -> sentry-fastify-error-handler',
       'fastify.type': 'request_handler',
       'http.route': '/test-transaction',
-      'otel.kind': 'INTERNAL',
       'sentry.op': 'request_handler.fastify',
       'sentry.origin': 'auto.http.otel.fastify',
     },
@@ -100,7 +98,6 @@ test('Sends an API route transaction', async ({ baseURL }) => {
 
   expect(spans).toContainEqual({
     data: {
-      'otel.kind': 'INTERNAL',
       'sentry.origin': 'manual',
     },
     description: 'test-span',
@@ -115,7 +112,6 @@ test('Sends an API route transaction', async ({ baseURL }) => {
 
   expect(spans).toContainEqual({
     data: {
-      'otel.kind': 'INTERNAL',
       'sentry.origin': 'manual',
     },
     description: 'child-span',
