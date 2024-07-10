@@ -147,12 +147,12 @@ export function constructWebpackConfigFunction(
       );
     };
 
-    const possibleMiddlewareLocations = ['js', 'jsx', 'ts', 'tsx'].map(middlewareFileEnding => {
-      return path.join(middlewareLocationFolder, `middleware.${middlewareFileEnding}`);
-    });
     const isMiddlewareResource = (resourcePath: string): boolean => {
       const normalizedAbsoluteResourcePath = normalizeLoaderResourcePath(resourcePath);
-      return possibleMiddlewareLocations.includes(normalizedAbsoluteResourcePath);
+      return (
+        normalizedAbsoluteResourcePath.startsWith(middlewareLocationFolder) &&
+        !!normalizedAbsoluteResourcePath.match(/[\\/]middleware(\..*)?\.(js|jsx|ts|tsx)$/)
+      );
     };
 
     const isServerComponentResource = (resourcePath: string): boolean => {
@@ -163,7 +163,7 @@ export function constructWebpackConfigFunction(
       return (
         appDirPath !== undefined &&
         normalizedAbsoluteResourcePath.startsWith(appDirPath + path.sep) &&
-        !!normalizedAbsoluteResourcePath.match(/[\\/](page|layout|loading|head|not-found)\.(js|jsx|tsx)$/)
+        !!normalizedAbsoluteResourcePath.match(/[\\/](page|layout|loading|head|not-found)(?:\..*)?\.(?:js|jsx|tsx)$/)
       );
     };
 
@@ -172,7 +172,7 @@ export function constructWebpackConfigFunction(
       return (
         appDirPath !== undefined &&
         normalizedAbsoluteResourcePath.startsWith(appDirPath + path.sep) &&
-        !!normalizedAbsoluteResourcePath.match(/[\\/]route\.(js|jsx|ts|tsx)$/)
+        !!normalizedAbsoluteResourcePath.match(/[\\/]route(?:\..*)?\.(?:js|jsx|ts|tsx)$/)
       );
     };
 
@@ -285,10 +285,9 @@ export function constructWebpackConfigFunction(
     }
 
     if (appDirPath) {
-      const hasGlobalErrorFile = ['global-error.js', 'global-error.jsx', 'global-error.ts', 'global-error.tsx'].some(
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        globalErrorFile => fs.existsSync(path.join(appDirPath!, globalErrorFile)),
-      );
+      const hasGlobalErrorFile = fs
+        .readdirSync(appDirPath)
+        .some(file => file.match(/^global-error(?:\..*)?\.(?:js|ts|jsx|tsx)$/));
 
       if (
         !hasGlobalErrorFile &&

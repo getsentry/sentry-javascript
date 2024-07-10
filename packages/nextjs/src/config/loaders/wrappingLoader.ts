@@ -182,7 +182,7 @@ export default function wrappingLoader(
 
     const componentTypeMatch = path.posix
       .normalize(path.relative(appDir, this.resourcePath))
-      .match(/\/?([^/]+)\.(?:js|ts|jsx|tsx)$/);
+      .match(/\/?([^/.]+)(?:\..*)?\.(?:js|ts|jsx|tsx)$/);
 
     if (componentTypeMatch && componentTypeMatch[1]) {
       let componentType: ServerComponentContext['componentType'];

@@ -14,6 +14,7 @@ import {
 import { materializeFinalWebpackConfig } from './testUtils';
 
 const existsSyncSpy = jest.spyOn(fs, 'existsSync');
+jest.spyOn(fs, 'readdirSync').mockReturnValue([]);
 const lstatSyncSpy = jest.spyOn(fs, 'lstatSync');
 
 type MatcherResult = { pass: boolean; message: () => string };
@@ -97,6 +98,10 @@ describe('webpack loaders', () => {
         expectedWrappingTargetKind: 'page',
       },
       {
+        resourcePath: '/Users/Maisey/projects/squirrelChasingSimulator/src/pages/testPage.custom.tsx',
+        expectedWrappingTargetKind: 'page',
+      },
+      {
         resourcePath: './src/pages/testPage.tsx',
         expectedWrappingTargetKind: 'page',
       },
@@ -134,6 +139,10 @@ describe('webpack loaders', () => {
         expectedWrappingTargetKind: 'middleware',
       },
       {
+        resourcePath: '/Users/Maisey/projects/squirrelChasingSimulator/src/middleware.custom.js',
+        expectedWrappingTargetKind: 'middleware',
+      },
+      {
         resourcePath: './src/middleware.js',
         expectedWrappingTargetKind: 'middleware',
       },
@@ -163,7 +172,23 @@ describe('webpack loaders', () => {
         expectedWrappingTargetKind: 'api-route',
       },
       {
+        resourcePath: '/Users/Maisey/projects/squirrelChasingSimulator/src/pages/api/nested/testApiRoute.custom.js',
+        expectedWrappingTargetKind: 'api-route',
+      },
+      {
+        resourcePath: '/Users/Maisey/projects/squirrelChasingSimulator/src/app/nested/route.ts',
+        expectedWrappingTargetKind: 'route-handler',
+      },
+      {
+        resourcePath: '/Users/Maisey/projects/squirrelChasingSimulator/src/app/nested/route.custom.ts',
+        expectedWrappingTargetKind: 'route-handler',
+      },
+      {
         resourcePath: '/Users/Maisey/projects/squirrelChasingSimulator/src/app/page.js',
+        expectedWrappingTargetKind: 'server-component',
+      },
+      {
+        resourcePath: '/Users/Maisey/projects/squirrelChasingSimulator/src/app/page.custom.js',
         expectedWrappingTargetKind: 'server-component',
       },
       {
