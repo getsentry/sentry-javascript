@@ -63,6 +63,7 @@ function applyDefaultOptions(optionsArg: BrowserOptions = {}): BrowserOptions {
 type ExtensionProperties = {
   chrome?: Runtime;
   browser?: Runtime;
+  nw?: unknown;
 };
 type Runtime = {
   runtime?: {
@@ -85,7 +86,11 @@ function shouldShowBrowserExtensionError(): boolean {
   const isDedicatedExtensionPage =
     !!runtimeId && WINDOW === WINDOW.top && extensionProtocols.some(protocol => href.startsWith(`${protocol}//`));
 
-  return !!runtimeId && !isDedicatedExtensionPage;
+  // Running the SDK in NW.js, which appears like a browser extension but isn't, is also fine
+  // see: https://github.com/getsentry/sentry-javascript/issues/12668
+  const isNWjs = typeof windowWithMaybeExtension.nw !== 'undefined';
+
+  return !!runtimeId && !isDedicatedExtensionPage && !isNWjs;
 }
 
 /**

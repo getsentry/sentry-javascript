@@ -1,6 +1,6 @@
 {
   "name": "@sentry/aws-serverless",
-  "version": "8.16.0",
+  "version": "8.17.0",
   "description": "Official Sentry SDK for AWS Lambda and AWS Serverless Environments",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/serverless",
@@ -41,6 +41,9 @@
     "./awslambda-auto": {
       "require": {
         "default": "./build/npm/cjs/awslambda-auto.js"
+      },
+      "import": {
+        "default": "./build/npm/esm/awslambda-auto.js"
       }
     },
     "./dist/awslambda-auto": {
@@ -63,10 +66,10 @@
   "dependencies": {
     "@opentelemetry/instrumentation-aws-lambda": "0.42.0",
     "@opentelemetry/instrumentation-aws-sdk": "0.42.0",
-    "@sentry/core": "8.16.0",
-    "@sentry/node": "8.16.0",
-    "@sentry/types": "8.16.0",
-    "@sentry/utils": "8.16.0",
+    "@sentry/core": "8.17.0",
+    "@sentry/node": "8.17.0",
+    "@sentry/types": "8.17.0",
+    "@sentry/utils": "8.17.0",
     "@types/aws-lambda": "^8.10.62"
   },
   "devDependencies": {
