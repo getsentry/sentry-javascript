@@ -41,6 +41,9 @@
     "./awslambda-auto": {
       "require": {
         "default": "./build/npm/cjs/awslambda-auto.js"
+      },
+      "import": {
+        "default": "./build/npm/esm/awslambda-auto.js"
       }
     },
     "./dist/awslambda-auto": {
