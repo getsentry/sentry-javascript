@@ -31,7 +31,6 @@ test('AWS Serverless SDK sends events in ESM mode', async ({ request }) => {
       'sentry.source': 'component',
       'sentry.origin': 'auto.function.serverless',
       'sentry.op': 'function.aws.lambda',
-      'otel.kind': 'INTERNAL',
     },
     op: 'function.aws.lambda',
     origin: 'auto.function.serverless',
