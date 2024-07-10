@@ -4,6 +4,7 @@
   "include": ["test/**/*.ts", "jest.config.ts", "jest.setup.ts"],
 
   "compilerOptions": {
+    "lib": ["DOM", "ES2018"],
     "types": ["node", "jest"],
     "esModuleInterop": true,
     "allowJs": true,

@@ -8,6 +8,12 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 8.17.0
+
+- feat: Upgrade OTEL deps (#12809)
+- fix(nuxt): Add module to build:transpile script (#12843)
+- fix(browser): Allow SDK initialization in NW.js apps (#12846)
+
 ## 8.16.0
 
 ### Important Changes
