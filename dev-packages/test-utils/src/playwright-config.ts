@@ -87,6 +87,9 @@ export function getPlaywrightConfig(
       port: appPort,
       stdout: 'pipe',
       stderr: 'pipe',
+      env: {
+        PORT: appPort.toString(),
+      },
     });
   }
 
