@@ -9,9 +9,9 @@ import {
   getIsolationScope,
   spanToJSON,
 } from '@sentry/core';
+import { generateInstrumentOnce } from '@sentry/node';
 import type { IntegrationFn, Span } from '@sentry/types';
 import { logger } from '@sentry/utils';
-import { generateInstrumentOnce } from '@sentry/node';
 
 interface MinimalNestJsExecutionContext {
   getType: () => string;
@@ -86,6 +86,7 @@ export function setupNestErrorHandler(app: MinimalNestJsApp, baseFilter: NestJsE
       if (context.getType() === 'http') {
         const req = context.switchToHttp().getRequest();
         if (req.route) {
+          // eslint-disable-next-line @sentry-internal/sdk/no-optional-chaining
           getIsolationScope().setTransactionName(`${req.method?.toUpperCase() || 'GET'} ${req.route.path}`);
         }
       }
