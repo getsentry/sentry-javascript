@@ -28,6 +28,19 @@ The minimum supported version of Nuxt is `3.0.0`.
 This package is a wrapper around `@sentry/node` for the server and `@sentry/vue` for the client side, with added
 functionality related to Nuxt.
 
+What is working:
+
+- Error Reporting
+
+What is partly working:
+
+- Tracing by setting `tracesSampleRate`
+
+What is not yet(!) included:
+
+- Source Maps
+- Connected Traces
+
 ## Automatic Setup
 
 todo: add wizard instructions
