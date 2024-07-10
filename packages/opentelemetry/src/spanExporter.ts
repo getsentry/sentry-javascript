@@ -352,9 +352,7 @@ function removeSentryAttributes(data: Record<string, unknown>): Record<string, u
 
 function getData(span: ReadableSpan): Record<string, unknown> {
   const attributes = span.attributes;
-  const data: Record<string, unknown> = {
-    'otel.kind': SpanKind[span.kind],
-  };
+  const data: Record<string, unknown> = {};
 
   if (span.kind !== SpanKind.INTERNAL) {
     data['otel.kind'] = SpanKind[span.kind];
