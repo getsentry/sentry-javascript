@@ -9,9 +9,9 @@ import {
   getIsolationScope,
   spanToJSON,
 } from '@sentry/core';
-import { generateInstrumentOnce } from '@sentry/node';
 import type { IntegrationFn, Span } from '@sentry/types';
 import { logger } from '@sentry/utils';
+import { generateInstrumentOnce } from '@sentry/node';
 
 interface MinimalNestJsExecutionContext {
   getType: () => string;

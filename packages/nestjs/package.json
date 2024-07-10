@@ -41,6 +41,8 @@
   "dependencies": {
     "@sentry/core": "8.16.0",
     "@sentry/node": "8.16.0",
+    "@sentry/types": "8.16.0",
+    "@sentry/utils": "8.16.0",
     "@opentelemetry/instrumentation-nestjs-core": "0.38.0"
   },
   "scripts": {
