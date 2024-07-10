@@ -86,7 +86,7 @@ function shouldShowBrowserExtensionError(): boolean {
   const isDedicatedExtensionPage =
     !!runtimeId && WINDOW === WINDOW.top && extensionProtocols.some(protocol => href.startsWith(`${protocol}//`));
 
-  // Running in NW.js, which appears like a browser extension but isn't is also fine
+  // Running the SDK in NW.js, which appears like a browser extension but isn't, is also fine
   // see: https://github.com/getsentry/sentry-javascript/issues/12668
   const isNWjs = typeof windowWithMaybeExtension.nw !== 'undefined';
 

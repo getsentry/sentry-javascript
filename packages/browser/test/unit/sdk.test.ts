@@ -142,6 +142,7 @@ describe('init', () => {
     afterEach(() => {
       Object.defineProperty(WINDOW, 'chrome', { value: undefined, writable: true });
       Object.defineProperty(WINDOW, 'browser', { value: undefined, writable: true });
+      Object.defineProperty(WINDOW, 'nw', { value: undefined, writable: true });
     });
 
     it('logs a browser extension error if executed inside a Chrome extension', () => {
@@ -206,6 +207,18 @@ describe('init', () => {
       init(options);
 
       expect(consoleErrorSpy).toBeCalledTimes(0);
+
+      consoleErrorSpy.mockRestore();
+    });
+
+    it("doesn't log a browser extension error if executed inside an NW.js environment", () => {
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+      Object.defineProperty(WINDOW, 'nw', { value: {} });
+
+      init(options);
+
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
 
       consoleErrorSpy.mockRestore();
     });
