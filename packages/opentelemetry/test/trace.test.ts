@@ -379,7 +379,6 @@ describe('trace', () => {
           'sentry.source': 'custom',
           'sentry.sample_rate': 1,
           'sentry.origin': 'manual',
-          'otel.kind': 'INTERNAL',
         },
         span_id: expect.any(String),
         trace_id: expect.any(String),
@@ -403,7 +402,6 @@ describe('trace', () => {
         data: {
           'sentry.source': 'custom',
           'sentry.origin': 'manual',
-          'otel.kind': 'INTERNAL',
           'sentry.sample_rate': 1,
         },
         parent_span_id: innerParentSpanId,
@@ -630,7 +628,6 @@ describe('trace', () => {
           'sentry.source': 'custom',
           'sentry.sample_rate': 1,
           'sentry.origin': 'manual',
-          'otel.kind': 'INTERNAL',
         },
         span_id: expect.any(String),
         trace_id: expect.any(String),
@@ -654,7 +651,6 @@ describe('trace', () => {
         data: {
           'sentry.source': 'custom',
           'sentry.origin': 'manual',
-          'otel.kind': 'INTERNAL',
           'sentry.sample_rate': 1,
         },
         parent_span_id: innerParentSpanId,
@@ -918,7 +914,6 @@ describe('trace', () => {
           'sentry.source': 'custom',
           'sentry.sample_rate': 1,
           'sentry.origin': 'manual',
-          'otel.kind': 'INTERNAL',
         },
         span_id: expect.any(String),
         trace_id: expect.any(String),
@@ -942,7 +937,6 @@ describe('trace', () => {
         data: {
           'sentry.source': 'custom',
           'sentry.origin': 'manual',
-          'otel.kind': 'INTERNAL',
           'sentry.sample_rate': 1,
         },
         parent_span_id: innerParentSpanId,

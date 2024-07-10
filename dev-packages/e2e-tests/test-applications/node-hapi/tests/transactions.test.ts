@@ -63,7 +63,6 @@ test('Sends successful transaction', async ({ baseURL }) => {
         'hapi.type': 'router',
         'http.method': 'GET',
         'http.route': '/test-success',
-        'otel.kind': 'INTERNAL',
         'sentry.op': 'router.hapi',
         'sentry.origin': 'auto.http.otel.hapi',
       },
@@ -81,7 +80,6 @@ test('Sends successful transaction', async ({ baseURL }) => {
       // this comes from "onPreResponse"
       data: {
         'hapi.type': 'server.ext',
-        'otel.kind': 'INTERNAL',
         'sentry.op': 'server.ext.hapi',
         'sentry.origin': 'auto.http.otel.hapi',
         'server.ext.type': 'onPreResponse',

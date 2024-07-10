@@ -102,7 +102,6 @@ describe('Remix API Loaders', () => {
         {
           data: {
             'code.function': 'loader',
-            'otel.kind': 'INTERNAL',
             'sentry.op': 'loader.remix',
           },
           origin: 'manual',
@@ -110,7 +109,6 @@ describe('Remix API Loaders', () => {
         {
           data: {
             'code.function': 'loader',
-            'otel.kind': 'INTERNAL',
             'sentry.op': 'loader.remix',
           },
           origin: 'manual',
@@ -244,7 +242,6 @@ describe('Remix API Loaders', () => {
           data: {
             'code.function': 'loader',
             'sentry.op': 'loader.remix',
-            'otel.kind': 'INTERNAL',
             'match.route.id': `routes/loader-defer-response${useV2 ? '.' : '/'}$id`,
           },
         },
@@ -252,7 +249,6 @@ describe('Remix API Loaders', () => {
           data: {
             'code.function': 'loader',
             'sentry.op': 'loader.remix',
-            'otel.kind': 'INTERNAL',
             'match.route.id': 'root',
           },
         },
