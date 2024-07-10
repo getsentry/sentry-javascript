@@ -117,7 +117,7 @@ Sentry.init({
 This setup makes sure Sentry is imported on the server before any other imports. As of now, this however leads to an
 import-in-the-middle error ([related reproduction](https://github.com/getsentry/sentry-javascript-examples/pull/38)).
 
-Add a `instrument.server.(js|ts)` file to your `public` folder:
+Add an `instrument.server.mjs` file to your `public` folder:
 
 ```javascript
 import * as Sentry from '@sentry/nuxt';
