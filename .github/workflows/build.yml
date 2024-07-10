@@ -995,6 +995,7 @@ jobs:
             'angular-17',
             'angular-18',
             'aws-lambda-layer-cjs',
+            'aws-serverless-esm',
             'node-express',
             'create-react-app',
             'create-next-app',
