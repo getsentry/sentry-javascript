@@ -28,18 +28,30 @@ The minimum supported version of Nuxt is `3.0.0`.
 This package is a wrapper around `@sentry/node` for the server and `@sentry/vue` for the client side, with added
 functionality related to Nuxt.
 
-What is working:
+**What is working:**
 
 - Error Reporting
+  - Vue
+  - Node
+  - Nitro
 
-What is partly working:
+**What is partly working:**
 
 - Tracing by setting `tracesSampleRate`
+  - UI (Vue) traces
+  - HTTP (Node) traces
 
-What is not yet(!) included:
+**What is not yet(!) included:**
 
 - Source Maps
-- Connected Traces
+- Nuxt-specific traces and no connected traces
+
+**Known Issues:**
+
+- When adding `sentry.server.config.(ts/js)`, you get this error: "Failed to register ESM hook", but the application
+  will still work
+- When initializing Sentry on the server with `instrument.server.(js|ts)`, you get an `'import-in-the-middle'` error,
+  and the application won't work
 
 ## Automatic Setup
 
@@ -96,8 +108,36 @@ Add a `sentry.server.config.(js|ts)` file to the root of your project:
 import * as Sentry from '@sentry/nuxt';
 
 Sentry.init({
-  dsn: env.DSN,
+  dsn: process.env.DSN,
 });
+```
+
+**Alternative Setup (ESM-compatible)**
+
+This setup makes sure Sentry is imported on the server before any other imports. This however leads to an
+import-in-the-middle error ([related reproduction](https://github.com/getsentry/sentry-javascript-examples/pull/38)).
+
+Add a `instrument.server.(js|ts)` file to your `public` folder:
+
+```javascript
+import * as Sentry from '@sentry/nuxt';
+
+// Only run `init` when DSN is available
+if (process.env.SENTRY_DSN) {
+  Sentry.init({
+    dsn: process.env.DSN,
+  });
+}
+```
+
+Add an import flag to the node options, so the file loads before any other imports:
+
+```json
+{
+  "scripts": {
+    "preview": "NODE_OPTIONS='--import ./public/instrument.server.mjs' nuxt preview"
+  }
+}
 ```
 
 ### 5. Vite Setup
