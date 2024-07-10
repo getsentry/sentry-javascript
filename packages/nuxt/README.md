@@ -44,7 +44,7 @@ functionality related to Nuxt.
 **What is not yet(!) included:**
 
 - Source Maps
-- Nuxt-specific traces and no connected traces
+- Nuxt-specific traces and connecting frontend & backend traces
 
 **Known Issues:**
 
