@@ -54,7 +54,6 @@ test('Sends an API route transaction', async ({ baseURL }) => {
             'express.name': '/test-transaction',
             'express.type': 'request_handler',
             'http.route': '/test-transaction',
-            'otel.kind': 'INTERNAL',
             'sentry.origin': 'auto.http.otel.express',
             'sentry.op': 'request_handler.express',
           },
@@ -70,7 +69,6 @@ test('Sends an API route transaction', async ({ baseURL }) => {
         },
         {
           data: {
-            'otel.kind': 'INTERNAL',
             'sentry.origin': 'manual',
           },
           description: 'test-span',
@@ -84,7 +82,6 @@ test('Sends an API route transaction', async ({ baseURL }) => {
         },
         {
           data: {
-            'otel.kind': 'INTERNAL',
             'sentry.origin': 'manual',
           },
           description: 'child-span',
@@ -106,7 +103,6 @@ test('Sends an API route transaction', async ({ baseURL }) => {
             'nestjs.version': expect.any(String),
             'nestjs.type': 'handler',
             'nestjs.callback': 'testTransaction',
-            'otel.kind': 'INTERNAL',
           },
           description: 'testTransaction',
           parent_span_id: expect.any(String),

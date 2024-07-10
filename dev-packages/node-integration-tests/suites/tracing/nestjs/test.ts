@@ -27,7 +27,6 @@ conditionalTest({ min: 16 })('nestjs auto instrumentation', () => {
           'nestjs.callback': 'getHello',
           'nestjs.controller': 'AppController',
           'nestjs.type': 'request_context',
-          'otel.kind': 'INTERNAL',
           'sentry.op': 'http',
         }),
       }),

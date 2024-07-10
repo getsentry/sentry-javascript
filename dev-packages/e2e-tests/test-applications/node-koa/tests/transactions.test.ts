@@ -53,7 +53,6 @@ test('Sends an API route transaction', async ({ baseURL }) => {
           data: {
             'koa.name': '',
             'koa.type': 'middleware',
-            'otel.kind': 'INTERNAL',
             'sentry.origin': 'auto.http.otel.koa',
             'sentry.op': 'middleware.koa',
           },
@@ -72,7 +71,6 @@ test('Sends an API route transaction', async ({ baseURL }) => {
             'http.route': '/test-transaction',
             'koa.name': '/test-transaction',
             'koa.type': 'router',
-            'otel.kind': 'INTERNAL',
             'sentry.origin': 'auto.http.otel.koa',
             'sentry.op': 'router.koa',
           },
@@ -88,7 +86,6 @@ test('Sends an API route transaction', async ({ baseURL }) => {
         },
         {
           data: {
-            'otel.kind': 'INTERNAL',
             'sentry.origin': 'manual',
           },
           description: 'test-span',
@@ -102,7 +99,6 @@ test('Sends an API route transaction', async ({ baseURL }) => {
         },
         {
           data: {
-            'otel.kind': 'INTERNAL',
             'sentry.origin': 'manual',
           },
           description: 'child-span',
