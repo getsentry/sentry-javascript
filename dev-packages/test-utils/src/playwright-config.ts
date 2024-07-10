@@ -2,8 +2,8 @@ import type { PlaywrightTestConfig } from '@playwright/test';
 
 /** Get a playwright config to use in an E2E test app. */
 export function getPlaywrightConfig(
-  options: {
-    startCommand: string;
+  options?: {
+    startCommand?: string;
     port?: number;
     eventProxyPort?: number;
     eventProxyFile?: string;
@@ -11,10 +11,10 @@ export function getPlaywrightConfig(
   overwriteConfig?: Partial<PlaywrightTestConfig>,
 ): PlaywrightTestConfig {
   const testEnv = process.env['TEST_ENV'] || 'production';
-  const appPort = options.port || 3030;
-  const eventProxyPort = options.eventProxyPort || 3031;
-  const eventProxyFile = options.eventProxyFile || 'start-event-proxy.mjs';
-  const { startCommand } = options;
+  const appPort = options?.port || 3030;
+  const eventProxyPort = options?.eventProxyPort || 3031;
+  const eventProxyFile = options?.eventProxyFile || 'start-event-proxy.mjs';
+  const startCommand = options?.startCommand;
 
   /**
    * See https://playwright.dev/docs/test-configuration.
@@ -76,17 +76,19 @@ export function getPlaywrightConfig(
         stdout: 'pipe',
         stderr: 'pipe',
       },
-      {
-        command: startCommand,
-        port: appPort,
-        stdout: 'pipe',
-        stderr: 'pipe',
-        env: {
-          PORT: appPort.toString(),
-        },
-      },
     ],
   };
+
+  if (startCommand) {
+    // @ts-expect-error - we set `config.webserver` to an array above.
+    // TS just can't infer that and thinks it could also be undefined or an object.
+    config.webServer.push({
+      command: startCommand,
+      port: appPort,
+      stdout: 'pipe',
+      stderr: 'pipe',
+    });
+  }
 
   return {
     ...config,
