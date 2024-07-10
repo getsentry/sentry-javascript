@@ -1,0 +1,9 @@
+{
+  "extends": "./tsconfig.json",
+
+  "include": ["test/**/*"],
+
+  "compilerOptions": {
+    // other package-specific, test-specific options
+  }
+}
