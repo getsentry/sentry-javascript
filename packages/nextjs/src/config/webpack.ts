@@ -2,11 +2,11 @@
 /* eslint-disable max-lines */
 
 import * as fs from 'fs';
+import * as module from 'module';
 import * as path from 'path';
 import { getSentryRelease } from '@sentry/node';
 import { arrayify, escapeStringForRegex, loadModule, logger } from '@sentry/utils';
 import * as chalk from 'chalk';
-import { sync as resolveSync } from 'resolve';
 
 import type { VercelCronsConfig } from '../common/types';
 // Note: If you need to import a type from Webpack, do it in `types.ts` and export it from there. Otherwise, our
@@ -622,7 +622,8 @@ function addValueInjectionLoader(
 
 function resolveNextPackageDirFromDirectory(basedir: string): string | undefined {
   try {
-    return path.dirname(resolveSync('next/package.json', { basedir }));
+    const require = module.createRequire('.');
+    return require.resolve('next/package.json', { paths: [basedir] });
   } catch {
     // Should not happen in theory
     return undefined;

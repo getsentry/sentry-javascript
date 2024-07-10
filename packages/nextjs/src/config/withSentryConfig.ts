@@ -1,7 +1,7 @@
 import { isThenable, parseSemver } from '@sentry/utils';
 
 import * as fs from 'fs';
-import { sync as resolveSync } from 'resolve';
+import * as module from 'module';
 import type {
   ExportedNextConfig as NextConfig,
   NextConfigFunction,
@@ -203,7 +203,8 @@ function getNextjsVersion(): string | undefined {
 
 function resolveNextjsPackageJson(): string | undefined {
   try {
-    return resolveSync('next/package.json', { basedir: process.cwd() });
+    const require = module.createRequire('.');
+    return require.resolve('next/package.json', { paths: [process.cwd()] });
   } catch {
     return undefined;
   }
