@@ -28,7 +28,7 @@ conditionalTest({ min: 16 })('complex-router', () => {
           };
 
     createRunner(__dirname, 'server.ts')
-      .ignore('event', 'session', 'sessions')
+      .ignore('event')
       .expect({ transaction: EXPECTED_TRANSACTION as any })
       .start(done)
       .makeRequest('get', '/api/api/v1/sub-router/users/123/posts/456');
@@ -54,7 +54,7 @@ conditionalTest({ min: 16 })('complex-router', () => {
           };
 
     createRunner(__dirname, 'server.ts')
-      .ignore('event', 'session', 'sessions')
+      .ignore('event')
       .expect({ transaction: EXPECTED_TRANSACTION as any })
       .start(done)
       .makeRequest('get', '/api/api/v1/sub-router/users/123/posts/456?param=1');
@@ -80,7 +80,7 @@ conditionalTest({ min: 16 })('complex-router', () => {
           };
 
     createRunner(__dirname, 'server.ts')
-      .ignore('event', 'session', 'sessions')
+      .ignore('event')
       .expect({ transaction: EXPECTED_TRANSACTION as any })
       .start(done)
       .makeRequest('get', '/api/api/v1/sub-router/users/123/posts/456/?param=1');

@@ -113,12 +113,12 @@ export function initWithoutDefaultIntegrations(options: NodeOptions | undefined 
  * Initialize Sentry for Node, without performance instrumentation.
  */
 function _init(
-  options: NodeOptions | undefined = {},
+  _options: NodeOptions | undefined = {},
   getDefaultIntegrationsImpl: (options: Options) => Integration[],
 ): NodeClient {
-  const clientOptions = getClientOptions(options, getDefaultIntegrationsImpl);
+  const options = getClientOptions(_options, getDefaultIntegrationsImpl);
 
-  if (clientOptions.debug === true) {
+  if (options.debug === true) {
     if (DEBUG_BUILD) {
       logger.enable();
     } else {
@@ -139,7 +139,7 @@ function _init(
   const scope = getCurrentScope();
   scope.update(options.initialScope);
 
-  const client = new NodeClient(clientOptions);
+  const client = new NodeClient(options);
   // The client is on the current scope, from where it generally is inherited
   getCurrentScope().setClient(client);
 

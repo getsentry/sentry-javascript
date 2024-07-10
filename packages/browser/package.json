@@ -1,6 +1,6 @@
 {
   "name": "@sentry/browser",
-  "version": "8.14.0",
+  "version": "8.16.0",
   "description": "Official Sentry SDK for browsers",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/browser",
@@ -39,16 +39,16 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry-internal/browser-utils": "8.14.0",
-    "@sentry-internal/feedback": "8.14.0",
-    "@sentry-internal/replay": "8.14.0",
-    "@sentry-internal/replay-canvas": "8.14.0",
-    "@sentry/core": "8.14.0",
-    "@sentry/types": "8.14.0",
-    "@sentry/utils": "8.14.0"
+    "@sentry-internal/browser-utils": "8.16.0",
+    "@sentry-internal/feedback": "8.16.0",
+    "@sentry-internal/replay": "8.16.0",
+    "@sentry-internal/replay-canvas": "8.16.0",
+    "@sentry/core": "8.16.0",
+    "@sentry/types": "8.16.0",
+    "@sentry/utils": "8.16.0"
   },
   "devDependencies": {
-    "@sentry-internal/integration-shims": "8.14.0",
+    "@sentry-internal/integration-shims": "8.16.0",
     "fake-indexeddb": "^4.0.1",
     "webpack": "^4.47.0"
   },

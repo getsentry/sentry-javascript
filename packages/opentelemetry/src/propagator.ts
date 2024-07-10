@@ -155,7 +155,7 @@ export class SentryPropagator extends W3CBaggagePropagator {
 
     const propagationContext = propagationContextFromHeaders(sentryTrace, baggage);
 
-    // Add remote parent span context,
+    // Add remote parent span context
     const ctxWithSpanContext = getContextWithRemoteActiveSpan(context, { sentryTrace, baggage });
 
     // Also update the scope on the context (to be sure this is picked up everywhere)

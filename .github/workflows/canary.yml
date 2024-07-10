@@ -103,7 +103,7 @@ jobs:
           ref: ${{ env.HEAD_COMMIT }}
       - uses: pnpm/action-setup@v4
         with:
-          version: 8.3.1
+          version: 9.4.0
 
       - name: Set up Node
         uses: actions/setup-node@v4

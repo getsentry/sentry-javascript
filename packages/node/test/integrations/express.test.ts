@@ -74,7 +74,7 @@ describe('expressErrorHandler()', () => {
   });
 
   it('autoSessionTracking is enabled + requestHandler is not used -> does not set requestSession status on Crash', done => {
-    const options = getDefaultNodeClientOptions({ autoSessionTracking: false, release: '3.3' });
+    const options = getDefaultNodeClientOptions({ autoSessionTracking: true, release: '3.3' });
     client = new NodeClient(options);
     setCurrentClient(client);
 

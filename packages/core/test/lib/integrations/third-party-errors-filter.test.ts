@@ -1,12 +1,14 @@
 import type { Client, Event } from '@sentry/types';
 import { GLOBAL_OBJ, createStackParser, nodeStackLineParser } from '@sentry/utils';
 import { thirdPartyErrorFilterIntegration } from '../../../src/integrations/third-party-errors-filter';
+import { addMetadataToStackFrames } from '../../../src/metadata';
 
 function clone<T>(data: T): T {
   return JSON.parse(JSON.stringify(data));
 }
 
 const stack = new Error().stack || '';
+const stackParser = createStackParser(nodeStackLineParser());
 
 const eventWithThirdAndFirstPartyFrames: Event = {
   exception: {
@@ -90,11 +92,7 @@ const eventWithOnlyThirdPartyFrames: Event = {
 };
 
 // This only needs the stackParser
-const MOCK_CLIENT = {
-  getOptions: () => ({
-    stackParser: createStackParser(nodeStackLineParser()),
-  }),
-} as unknown as Client;
+const MOCK_CLIENT = {} as unknown as Client;
 
 describe('ThirdPartyErrorFilter', () => {
   beforeEach(() => {
@@ -103,6 +101,10 @@ describe('ThirdPartyErrorFilter', () => {
       '_sentryBundlerPluginAppKey:some-key': true,
       '_sentryBundlerPluginAppKey:some-other-key': true,
     };
+
+    addMetadataToStackFrames(stackParser, eventWithThirdAndFirstPartyFrames);
+    addMetadataToStackFrames(stackParser, eventWithOnlyFirstPartyFrames);
+    addMetadataToStackFrames(stackParser, eventWithOnlyThirdPartyFrames);
   });
 
   describe('drop-error-if-contains-third-party-frames', () => {
