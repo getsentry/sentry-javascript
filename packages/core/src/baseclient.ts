@@ -709,8 +709,6 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
           dynamicSamplingContext,
           ...evt.sdkProcessingMetadata,
         };
-
-        logger.log('xxx', JSON.stringify(evt.sdkProcessingMetadata, null, 2));
       }
       return evt;
     });

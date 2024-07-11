@@ -69,20 +69,10 @@ sentryTest('creates a new trace on each navigation', async ({ getLocalTestUrl, p
   expect(navigation1TraceContext?.trace_id).not.toEqual(navigation2TraceContext?.trace_id);
 });
 
-sentryTest.only('error after navigation has navigation traceId', async ({ getLocalTestUrl, page }) => {
+sentryTest('error after navigation has navigation traceId', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipTracingTest()) {
     sentryTest.skip();
   }
-
-  await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-    return route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ id: 'test-id' }),
-    });
-  });
-
-  page.on('console', msg => console.log(msg.text()));
 
   const url = await getLocalTestUrl({ testDir: __dirname });
 
