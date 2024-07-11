@@ -395,7 +395,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
       }
 
       if (enableInp) {
-        registerInpInteractionListener(latestRoute);
+        registerInpInteractionListener();
       }
 
       instrumentOutgoingRequests({

@@ -14,7 +14,7 @@ import {
   startBrowserTracingPageLoadSpan,
   withErrorBoundary,
 } from '@sentry/react';
-import type { StartSpanOptions } from '@sentry/types';
+import type { Client, StartSpanOptions } from '@sentry/types';
 import { isNodeEnv, logger } from '@sentry/utils';
 import * as React from 'react';
 
@@ -67,7 +67,7 @@ function isRemixV2(remixVersion: number | undefined): boolean {
   return remixVersion === 2 || getFutureFlagsBrowser()?.v2_errorBoundary || false;
 }
 
-export function startPageloadSpan(): void {
+export function startPageloadSpan(client: Client): void {
   const initPathName = getInitPathName();
 
   if (!initPathName) {
@@ -82,12 +82,6 @@ export function startPageloadSpan(): void {
       [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
     },
   };
-
-  const client = getClient<BrowserClient>();
-
-  if (!client) {
-    return;
-  }
 
   startBrowserTracingPageLoadSpan(client, spanContext);
 }
