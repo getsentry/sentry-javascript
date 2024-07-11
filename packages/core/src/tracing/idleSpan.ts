@@ -96,6 +96,8 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
 
   let _autoFinishAllowed: boolean = !options.disableAutoFinish;
 
+  const _cleanupHooks: (() => void)[] = [];
+
   const {
     idleTimeout = TRACING_DEFAULTS.idleTimeout,
     finalTimeout = TRACING_DEFAULTS.finalTimeout,
@@ -240,6 +242,8 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
     _finished = true;
     activities.clear();
 
+    _cleanupHooks.forEach(cleanup => cleanup());
+
     _setSpanForScope(scope, previousActiveSpan);
 
     const spanJSON = spanToJSON(span);
@@ -298,41 +302,47 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
     }
   }
 
-  client.on('spanStart', startedSpan => {
-    // If we already finished the idle span,
-    // or if this is the idle span itself being started,
-    // or if the started span has already been closed,
-    // we don't care about it for activity
-    if (_finished || startedSpan === span || !!spanToJSON(startedSpan).timestamp) {
-      return;
-    }
-
-    const allSpans = getSpanDescendants(span);
-
-    // If the span that was just started is a child of the idle span, we should track it
-    if (allSpans.includes(startedSpan)) {
-      _pushActivity(startedSpan.spanContext().spanId);
-    }
-  });
-
-  client.on('spanEnd', endedSpan => {
-    if (_finished) {
-      return;
-    }
-
-    _popActivity(endedSpan.spanContext().spanId);
-  });
-
-  client.on('idleSpanEnableAutoFinish', spanToAllowAutoFinish => {
-    if (spanToAllowAutoFinish === span) {
-      _autoFinishAllowed = true;
-      _restartIdleTimeout();
-
-      if (activities.size) {
-        _restartChildSpanTimeout();
+  _cleanupHooks.push(
+    client.on('spanStart', startedSpan => {
+      // If we already finished the idle span,
+      // or if this is the idle span itself being started,
+      // or if the started span has already been closed,
+      // we don't care about it for activity
+      if (_finished || startedSpan === span || !!spanToJSON(startedSpan).timestamp) {
+        return;
       }
-    }
-  });
+
+      const allSpans = getSpanDescendants(span);
+
+      // If the span that was just started is a child of the idle span, we should track it
+      if (allSpans.includes(startedSpan)) {
+        _pushActivity(startedSpan.spanContext().spanId);
+      }
+    }),
+  );
+
+  _cleanupHooks.push(
+    client.on('spanEnd', endedSpan => {
+      if (_finished) {
+        return;
+      }
+
+      _popActivity(endedSpan.spanContext().spanId);
+    }),
+  );
+
+  _cleanupHooks.push(
+    client.on('idleSpanEnableAutoFinish', spanToAllowAutoFinish => {
+      if (spanToAllowAutoFinish === span) {
+        _autoFinishAllowed = true;
+        _restartIdleTimeout();
+
+        if (activities.size) {
+          _restartChildSpanTimeout();
+        }
+      }
+    }),
+  );
 
   // We only start the initial idle timeout if we are not delaying the auto finish
   if (!options.disableAutoFinish) {
