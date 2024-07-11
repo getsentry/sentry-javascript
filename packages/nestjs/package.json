@@ -45,6 +45,14 @@
     "@sentry/utils": "8.17.0",
     "@opentelemetry/instrumentation-nestjs-core": "0.39.0"
   },
+  "devDependencies": {
+    "@nestjs/core": "^10.3.10",
+    "@nestjs/common": "^10.3.10"
+  },
+  "peerDependencies": {
+    "@nestjs/core": "^10.3.10",
+    "@nestjs/common": "^10.3.10"
+  },
   "scripts": {
     "build": "run-p build:transpile build:types",
     "build:dev": "yarn build",
