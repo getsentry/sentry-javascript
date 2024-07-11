@@ -3,7 +3,10 @@ import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
 
 test('Sends a transaction for a request to app router', async ({ page }) => {
   const serverComponentTransactionPromise = waitForTransaction('nextjs-app-dir', transactionEvent => {
-    return transactionEvent?.transaction === 'GET /server-component/parameter/[...parameters]';
+    return (
+      transactionEvent?.transaction === 'GET /server-component/parameter/[...parameters]' &&
+      transactionEvent.contexts?.trace?.data?.['http.target'].startsWith('/server-component/parameter/1337/42')
+    );
   });
 
   await page.goto('/server-component/parameter/1337/42');
