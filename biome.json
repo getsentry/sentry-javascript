@@ -43,7 +43,9 @@
       ".angular/**",
       "angular.json",
       "ember/instance-initializers/**",
-      "ember/types.d.ts"
+      "ember/types.d.ts",
+      ".output",
+      ".vinxi"
     ]
   },
   "files": {
