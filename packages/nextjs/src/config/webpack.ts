@@ -147,12 +147,12 @@ export function constructWebpackConfigFunction(
       );
     };
 
+    const possibleMiddlewareLocations = pageExtensions.map(middlewareFileEnding => {
+      return path.join(middlewareLocationFolder, `middleware.${middlewareFileEnding}`);
+    });
     const isMiddlewareResource = (resourcePath: string): boolean => {
       const normalizedAbsoluteResourcePath = normalizeLoaderResourcePath(resourcePath);
-      return (
-        normalizedAbsoluteResourcePath.startsWith(middlewareLocationFolder) &&
-        !!normalizedAbsoluteResourcePath.match(/[\\/]middleware(\..*)?\.(js|jsx|ts|tsx)$/)
-      );
+      return possibleMiddlewareLocations.includes(normalizedAbsoluteResourcePath);
     };
 
     const isServerComponentResource = (resourcePath: string): boolean => {
@@ -163,7 +163,10 @@ export function constructWebpackConfigFunction(
       return (
         appDirPath !== undefined &&
         normalizedAbsoluteResourcePath.startsWith(appDirPath + path.sep) &&
-        !!normalizedAbsoluteResourcePath.match(/[\\/](page|layout|loading|head|not-found)(?:\..*)?\.(?:js|jsx|tsx)$/)
+        !!normalizedAbsoluteResourcePath.match(
+          // eslint-disable-next-line @sentry-internal/sdk/no-regexp-constructor
+          new RegExp(`[\\\\/](page|layout|loading|head|not-found)\\.(${pageExtensionRegex})$`),
+        )
       );
     };
 
@@ -172,7 +175,10 @@ export function constructWebpackConfigFunction(
       return (
         appDirPath !== undefined &&
         normalizedAbsoluteResourcePath.startsWith(appDirPath + path.sep) &&
-        !!normalizedAbsoluteResourcePath.match(/[\\/]route(?:\..*)?\.(?:js|jsx|ts|tsx)$/)
+        !!normalizedAbsoluteResourcePath.match(
+          // eslint-disable-next-line @sentry-internal/sdk/no-regexp-constructor
+          new RegExp(`[\\\\/]route\\.(${pageExtensionRegex})$`),
+        )
       );
     };
 
@@ -285,9 +291,12 @@ export function constructWebpackConfigFunction(
     }
 
     if (appDirPath) {
-      const hasGlobalErrorFile = fs
-        .readdirSync(appDirPath)
-        .some(file => file.match(/^global-error(?:\..*)?\.(?:js|ts|jsx|tsx)$/));
+      const hasGlobalErrorFile = pageExtensions
+        .map(extension => `global-error.${extension}`)
+        .some(
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+          globalErrorFile => fs.existsSync(path.join(appDirPath!, globalErrorFile)),
+        );
 
       if (
         !hasGlobalErrorFile &&

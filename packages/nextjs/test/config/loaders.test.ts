@@ -14,7 +14,6 @@ import {
 import { materializeFinalWebpackConfig } from './testUtils';
 
 const existsSyncSpy = jest.spyOn(fs, 'existsSync');
-jest.spyOn(fs, 'readdirSync').mockReturnValue([]);
 const lstatSyncSpy = jest.spyOn(fs, 'lstatSync');
 
 type MatcherResult = { pass: boolean; message: () => string };
@@ -196,8 +195,8 @@ describe('webpack loaders', () => {
         expectedWrappingTargetKind: 'server-component',
       },
       {
-        resourcePath: '/Users/Maisey/projects/squirrelChasingSimulator/src/app/nested/page.ts', // ts is not a valid file ending for pages in the app dir
-        expectedWrappingTargetKind: undefined,
+        resourcePath: '/Users/Maisey/projects/squirrelChasingSimulator/src/app/nested/page.ts',
+        expectedWrappingTargetKind: 'server-component',
       },
       {
         resourcePath: '/Users/Maisey/projects/squirrelChasingSimulator/src/app/(group)/nested/page.tsx',
@@ -205,7 +204,7 @@ describe('webpack loaders', () => {
       },
       {
         resourcePath: '/Users/Maisey/projects/squirrelChasingSimulator/src/app/(group)/nested/loading.ts',
-        expectedWrappingTargetKind: undefined,
+        expectedWrappingTargetKind: 'server-component',
       },
       {
         resourcePath: '/Users/Maisey/projects/squirrelChasingSimulator/src/app/layout.js',

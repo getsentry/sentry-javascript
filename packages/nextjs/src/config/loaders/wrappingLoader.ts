@@ -182,7 +182,8 @@ export default function wrappingLoader(
 
     const componentTypeMatch = path.posix
       .normalize(path.relative(appDir, this.resourcePath))
-      .match(/\/?([^/.]+)(?:\..*)?\.(?:js|ts|jsx|tsx)$/);
+      // eslint-disable-next-line @sentry-internal/sdk/no-regexp-constructor
+      .match(new RegExp(`/\\/?([^/]+)\\.(?:${pageExtensionRegex})$`));
 
     if (componentTypeMatch && componentTypeMatch[1]) {
       let componentType: ServerComponentContext['componentType'];
