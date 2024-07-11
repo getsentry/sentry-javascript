@@ -22,7 +22,9 @@ import {
 import { vercelWaitUntil } from './utils/vercelWaitUntil';
 
 /**
- * Wraps a Next.js route handler with performance and error instrumentation.
+ * Wraps a Next.js App Router Route handler with Sentry error and performance instrumentation.
+ *
+ * NOTICE: This wrapper is for App Router API routes. If you are looking to wrap Pages Router API routes use `wrapApiHandlerWithSentry` instead.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function wrapRouteHandlerWithSentry<F extends (...args: any[]) => any>(
