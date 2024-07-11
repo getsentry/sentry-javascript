@@ -57,7 +57,7 @@ test('Does not send expected exception to Sentry', async ({ baseURL }) => {
 test('Does not handle expected exception if exception is thrown in module', async ({ baseURL }) => {
   const errorEventPromise = waitForError('nestjs', event => {
     return !event.type && event.exception?.values?.[0]?.value === 'Something went wrong in the test module!';
-  })
+  });
 
   const response = await fetch(`${baseURL}/test-module`);
   expect(response.status).toBe(500); // should be 400
