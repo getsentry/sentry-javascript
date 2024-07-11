@@ -2,7 +2,7 @@
 import './instrument';
 
 // Import other modules
-import { NestFactory } from '@nestjs/core';
+import { BaseExceptionFilter, HttpAdapterHost, NestFactory } from '@nestjs/core';
 import * as Sentry from '@sentry/nestjs';
 import { AppModule1, AppModule2 } from './app.module';
 
@@ -10,9 +10,10 @@ const app1Port = 3030;
 const app2Port = 3040;
 
 async function bootstrap() {
-  let app1 = await NestFactory.create(AppModule1);
+  const app1 = await NestFactory.create(AppModule1);
 
-  Sentry.setupNestErrorHandler(app1);
+  const { httpAdapter } = app1.get(HttpAdapterHost);
+  Sentry.setupNestErrorHandler(app1, new BaseExceptionFilter(httpAdapter));
 
   await app1.listen(app1Port);
 

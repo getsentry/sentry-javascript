@@ -69,8 +69,10 @@ test('Handles exception correctly and does not send to Sentry if exception is th
     return transactionEvent?.transaction === 'GET /test-module';
   });
 
+  console.log("fetch");
   const response = await fetch(`${baseURL}/test-module`);
   expect(response.status).toBe(400);
+  console.log("waiting for response");
 
   await transactionEventPromise;
 

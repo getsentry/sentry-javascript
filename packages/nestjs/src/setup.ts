@@ -81,7 +81,7 @@ export const nestIntegration = defineIntegration(_nestIntegration);
 /**
  * Setup an error handler for Nest.
  */
-export function setupNestErrorHandler(app: MinimalNestJsApp): void {
+export function setupNestErrorHandler(app: MinimalNestJsApp, baseFilter: NestJsErrorFilter): void {
   // Sadly, NestInstrumentation has no requestHook, so we need to add the attributes here
   // We register this hook in this method, because if we register it in the integration `setup`,
   // it would always run even for users that are not even using Nest.js
@@ -110,6 +110,29 @@ export function setupNestErrorHandler(app: MinimalNestJsApp): void {
       return next.handle();
     },
   });
+
+  const wrappedFilter = new Proxy(baseFilter, {
+    get(target, prop, receiver) {
+      if (prop === 'catch') {
+        const originalCatch = Reflect.get(target, prop, receiver);
+
+        return (exception: unknown, host: unknown) => {
+          const status_code = (exception as { status?: number }).status;
+
+          // don't report expected errors
+          if (status_code !== undefined && status_code >= 400 && status_code < 500) {
+            return originalCatch.apply(target, [exception, host]);
+          }
+
+          captureException(exception);
+          return originalCatch.apply(target, [exception, host]);
+        };
+      }
+      return Reflect.get(target, prop, receiver);
+    },
+  });
+
+  app.useGlobalFilters(wrappedFilter);
 
   checkinExceptionFilters(app);
 }
