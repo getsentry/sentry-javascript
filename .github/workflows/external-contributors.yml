@@ -7,6 +7,14 @@ on:
       - develop
 
 jobs:
+  is_organization_member:
+    name: Is Organization member
+    if: ${{ github.event_name == 'pull_request' }}
+    uses: JamesSingleton/is-organization-member@1.0.0
+    with:
+      organization: Sentry
+      username: ${{ github.event.pull_request.user.login }}
+      token: ${{ secrets.GITHUB_TOKEN }}
   external_contributor:
     name: External Contributors
     permissions:
@@ -19,6 +27,7 @@ jobs:
       && github.event.pull_request.author_association != 'MEMBER'
       && github.event.pull_request.author_association != 'OWNER'
       && github.actor != 'dependabot[bot]'
+      && steps.is_organization_member.outputs.result == 'false'
     steps:
       - uses: actions/checkout@v4
       - name: Set up Node
