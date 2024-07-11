@@ -36,6 +36,17 @@ interface PerformanceEventTiming extends PerformanceEntry {
   interactionId?: number;
 }
 
+interface PerformanceScriptTiming extends PerformanceEntry {
+  sourceURL: string;
+  sourceFunctionName: string;
+  sourceCharPosition: number;
+  invoker: string;
+  invokerType: string;
+}
+export interface PerformanceLongAnimationFrameTiming extends PerformanceEntry {
+  scripts: PerformanceScriptTiming[];
+}
+
 interface Metric {
   /**
    * The name of the metric (in acronym form).

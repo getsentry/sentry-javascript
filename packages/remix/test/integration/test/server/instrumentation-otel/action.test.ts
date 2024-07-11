@@ -22,7 +22,6 @@ describe('Remix API Actions', () => {
           data: {
             'code.function': 'action',
             'sentry.op': 'action.remix',
-            'otel.kind': 'INTERNAL',
             'match.route.id': `routes/action-json-response${useV2 ? '.' : '/'}$id`,
             'match.params.id': '123123',
           },
@@ -31,7 +30,6 @@ describe('Remix API Actions', () => {
           data: {
             'code.function': 'loader',
             'sentry.op': 'loader.remix',
-            'otel.kind': 'INTERNAL',
             'match.route.id': `routes/action-json-response${useV2 ? '.' : '/'}$id`,
             'match.params.id': '123123',
           },
@@ -40,7 +38,6 @@ describe('Remix API Actions', () => {
           data: {
             'code.function': 'loader',
             'sentry.op': 'loader.remix',
-            'otel.kind': 'INTERNAL',
             'match.route.id': 'root',
             'match.params.id': '123123',
           },

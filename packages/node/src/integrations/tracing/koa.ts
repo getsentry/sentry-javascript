@@ -30,7 +30,8 @@ export const instrumentKoa = generateInstrumentOnce(
         }
         const attributes = spanToJSON(span).data;
         const route = attributes && attributes[SEMATTRS_HTTP_ROUTE];
-        const method = info.context.request.method.toUpperCase() || 'GET';
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        const method: string = info?.context?.request?.method?.toUpperCase() || 'GET';
         if (route) {
           getIsolationScope().setTransactionName(`${method} ${route}`);
         }

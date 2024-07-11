@@ -102,7 +102,6 @@ describe('Integration | Transactions', () => {
 
     expect(transaction.contexts?.trace).toEqual({
       data: {
-        'otel.kind': 'INTERNAL',
         'sentry.op': 'test op',
         'sentry.origin': 'auto.test',
         'sentry.source': 'task',
@@ -148,7 +147,6 @@ describe('Integration | Transactions', () => {
     expect(spans).toEqual([
       {
         data: {
-          'otel.kind': 'INTERNAL',
           'sentry.origin': 'manual',
         },
         description: 'inner span 1',
@@ -162,7 +160,6 @@ describe('Integration | Transactions', () => {
       },
       {
         data: {
-          'otel.kind': 'INTERNAL',
           'test.inner': 'test value',
           'sentry.origin': 'manual',
         },
@@ -256,7 +253,6 @@ describe('Integration | Transactions', () => {
         contexts: expect.objectContaining({
           trace: {
             data: {
-              'otel.kind': 'INTERNAL',
               'sentry.op': 'test op',
               'sentry.origin': 'auto.test',
               'sentry.source': 'task',
@@ -295,7 +291,6 @@ describe('Integration | Transactions', () => {
         contexts: expect.objectContaining({
           trace: {
             data: {
-              'otel.kind': 'INTERNAL',
               'sentry.op': 'test op b',
               'sentry.origin': 'manual',
               'sentry.source': 'custom',
@@ -376,7 +371,6 @@ describe('Integration | Transactions', () => {
         contexts: expect.objectContaining({
           trace: {
             data: {
-              'otel.kind': 'INTERNAL',
               'sentry.op': 'test op',
               'sentry.origin': 'auto.test',
               'sentry.source': 'task',
@@ -413,7 +407,6 @@ describe('Integration | Transactions', () => {
     expect(spans).toEqual([
       {
         data: {
-          'otel.kind': 'INTERNAL',
           'sentry.origin': 'manual',
         },
         description: 'inner span 1',
@@ -427,7 +420,6 @@ describe('Integration | Transactions', () => {
       },
       {
         data: {
-          'otel.kind': 'INTERNAL',
           'sentry.origin': 'manual',
         },
         description: 'inner span 2',

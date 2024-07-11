@@ -8,6 +8,7 @@ import { spanToJSON } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
 import { WINDOW } from '../types';
 import {
+  type PerformanceLongAnimationFrameTiming,
   addClsInstrumentationHandler,
   addFidInstrumentationHandler,
   addLcpInstrumentationHandler,
@@ -118,6 +119,59 @@ export function startTrackingLongTasks(): void {
       }
     }
   });
+}
+
+/**
+ * Start tracking long animation frames.
+ */
+export function startTrackingLongAnimationFrames(): void {
+  // NOTE: the current web-vitals version (3.5.2) does not support long-animation-frame, so
+  // we directly observe `long-animation-frame` events instead of through the web-vitals
+  // `observe` helper function.
+  const observer = new PerformanceObserver(list => {
+    for (const entry of list.getEntries() as PerformanceLongAnimationFrameTiming[]) {
+      if (!getActiveSpan()) {
+        return;
+      }
+      if (!entry.scripts[0]) {
+        return;
+      }
+
+      const startTime = msToSec((browserPerformanceTimeOrigin as number) + entry.startTime);
+      const duration = msToSec(entry.duration);
+
+      const attributes: SpanAttributes = {
+        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.browser.metrics',
+      };
+      const initialScript = entry.scripts[0];
+      if (initialScript) {
+        const { invoker, invokerType, sourceURL, sourceFunctionName, sourceCharPosition } = initialScript;
+        attributes['browser.script.invoker'] = invoker;
+        attributes['browser.script.invoker_type'] = invokerType;
+        if (sourceURL) {
+          attributes['code.filepath'] = sourceURL;
+        }
+        if (sourceFunctionName) {
+          attributes['code.function'] = sourceFunctionName;
+        }
+        if (sourceCharPosition !== -1) {
+          attributes['browser.script.source_char_position'] = sourceCharPosition;
+        }
+      }
+
+      const span = startInactiveSpan({
+        name: 'Main UI thread blocked',
+        op: 'ui.long-animation-frame',
+        startTime,
+        attributes,
+      });
+      if (span) {
+        span.end(startTime + duration);
+      }
+    }
+  });
+
+  observer.observe({ type: 'long-animation-frame', buffered: true });
 }
 
 /**
