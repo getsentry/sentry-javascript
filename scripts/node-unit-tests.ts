@@ -31,6 +31,7 @@ const DEFAULT_SKIP_TESTS_PACKAGES = [
 const SKIP_TEST_PACKAGES: Record<NodeVersion, VersionConfig> = {
   '14': {
     ignoredPackages: [
+      '@sentry/cloudflare',
       '@sentry/solidstart',
       '@sentry/sveltekit',
       '@sentry/vercel-edge',
@@ -40,7 +41,7 @@ const SKIP_TEST_PACKAGES: Record<NodeVersion, VersionConfig> = {
     ],
   },
   '16': {
-    ignoredPackages: ['@sentry/vercel-edge', '@sentry/astro'],
+    ignoredPackages: ['@sentry/cloudflare', '@sentry/vercel-edge', '@sentry/astro'],
   },
   '18': {
     ignoredPackages: [],
