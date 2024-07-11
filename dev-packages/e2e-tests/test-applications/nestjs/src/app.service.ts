@@ -104,7 +104,7 @@ export class AppService1 {
   }
 
   async testSpanDecoratorSync() {
-    const returned = this.getString()
+    const returned = this.getString();
     // Will fail if getString() is async, because returned will be a Promise<>
     return returned.result;
   }
