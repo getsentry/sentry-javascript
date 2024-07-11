@@ -70,7 +70,7 @@ test('Handles exception correctly and does not send to Sentry if exception is th
   });
 
   const response = await fetch(`${baseURL}/test-module`);
-  expect(response.status).toBe(400); // should be 400
+  expect(response.status).toBe(400);
 
   await transactionEventPromise;
 
