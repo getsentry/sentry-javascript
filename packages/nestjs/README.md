@@ -58,4 +58,4 @@ export class ExampleService {
 
 ## Links
 
-- [Official SDK Docs](https://docs.sentry.io/platforms/javascript/guides/nestjs/)
+- [Official SDK Docs](https://docs.sentry.io/platforms/javascript/guides/nestjs/) 
