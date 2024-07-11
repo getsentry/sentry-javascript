@@ -147,7 +147,7 @@ function checkinExceptionFilters(app: MinimalNestJsApp): void {
 
       // don't report expected errors
       if (status_code !== undefined && status_code >= 400 && status_code < 500) {
-        return originalCatch.apply(target, [exception, host]);
+        return originalCatch.apply(this, [exception, host]);
       }
 
       captureException(exception);
