@@ -20,6 +20,7 @@ import {
   createEventEnvelopeHeaders,
   dsnToString,
   getSdkMetadataForEnvelopeHeader,
+  logger,
 } from '@sentry/utils';
 import { createSpanEnvelopeItem } from '@sentry/utils';
 import { getDynamicSamplingContextFromSpan } from './tracing/dynamicSamplingContext';
@@ -85,6 +86,9 @@ export function createEventEnvelope(
   enhanceEventWithSdkInfo(event, metadata && metadata.sdk);
 
   const envelopeHeaders = createEventEnvelopeHeaders(event, sdkInfo, tunnel, dsn);
+
+  logger.log(JSON.stringify(envelopeHeaders, null, 2));
+  logger.log(JSON.stringify(event.sdkProcessingMetadata, null, 2));
 
   // Prevent this data (which, if it exists, was used in earlier steps in the processing pipeline) from being sent to
   // sentry. (Note: Our use of this property comes and goes with whatever we might be debugging, whatever hacks we may

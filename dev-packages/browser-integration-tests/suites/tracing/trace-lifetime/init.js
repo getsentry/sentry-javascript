@@ -7,4 +7,5 @@ Sentry.init({
   integrations: [Sentry.browserTracingIntegration(), Sentry.feedbackIntegration()],
   tracePropagationTargets: ['http://example.com'],
   tracesSampleRate: 1,
+  debug: true,
 });

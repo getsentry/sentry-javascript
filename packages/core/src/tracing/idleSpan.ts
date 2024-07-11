@@ -239,10 +239,10 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
   }
 
   function onIdleSpanEnded(endTimestamp: number): void {
-    _cleanupHooks.forEach(cleanup => cleanup());
-
     _finished = true;
     activities.clear();
+
+    _cleanupHooks.forEach(cleanup => cleanup());
 
     _setSpanForScope(scope, previousActiveSpan);
 
