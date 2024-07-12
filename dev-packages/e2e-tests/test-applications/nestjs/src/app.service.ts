@@ -99,12 +99,14 @@ export class AppService1 {
   }
 
   @SentryTraced('return a string')
-  getString(): string {
-    return 'test';
+  getString(): { result: string } {
+    return { result: 'test' };
   }
 
   async testSpanDecoratorSync() {
-    return this.getString();
+    const returned = this.getString();
+    // Will fail if getString() is async, because returned will be a Promise<>
+    return returned.result;
   }
 
   /*

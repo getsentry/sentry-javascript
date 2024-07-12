@@ -41,7 +41,7 @@ Note that it is necessary to initialize Sentry **before you import any package t
 ## Span Decorator
 
 Use the @SentryTraced() decorator to gain additional performance insights for any function within your NestJS
-application.
+applications.
 
 ```js
 import { Injectable } from '@nestjs/common';

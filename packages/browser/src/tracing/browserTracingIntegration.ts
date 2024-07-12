@@ -5,6 +5,7 @@ import {
   registerInpInteractionListener,
   startTrackingINP,
   startTrackingInteractions,
+  startTrackingLongAnimationFrames,
   startTrackingLongTasks,
   startTrackingWebVitals,
 } from '@sentry-internal/browser-utils';
@@ -103,6 +104,13 @@ export interface BrowserTracingOptions {
   enableLongTask: boolean;
 
   /**
+   * If true, Sentry will capture long animation frames and add them to the corresponding transaction.
+   *
+   * Default: false
+   */
+  enableLongAnimationFrame: boolean;
+
+  /**
    * If true, Sentry will capture first input delay and add it to the corresponding transaction.
    *
    * Default: true
@@ -160,6 +168,7 @@ const DEFAULT_BROWSER_TRACING_OPTIONS: BrowserTracingOptions = {
   instrumentPageLoad: true,
   markBackgroundSpan: true,
   enableLongTask: true,
+  enableLongAnimationFrame: false,
   enableInp: true,
   _experiments: {},
   ...defaultRequestInstrumentationOptions,
@@ -180,6 +189,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
   const {
     enableInp,
     enableLongTask,
+    enableLongAnimationFrame,
     _experiments: { enableInteractions },
     beforeStartSpan,
     idleTimeout,
@@ -203,9 +213,12 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
     startTrackingINP();
   }
 
-  if (enableLongTask) {
+  if (enableLongAnimationFrame && PerformanceObserver.supportedEntryTypes.includes('long-animation-frame')) {
+    startTrackingLongAnimationFrames();
+  } else if (enableLongTask) {
     startTrackingLongTasks();
   }
+
   if (enableInteractions) {
     startTrackingInteractions();
   }
@@ -275,7 +288,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
           return;
         }
 
-        if (activeSpan) {
+        if (activeSpan && !spanToJSON(activeSpan).timestamp) {
           DEBUG_BUILD && logger.log(`[Tracing] Finishing current root span with op: ${spanToJSON(activeSpan).op}`);
           // If there's an open transaction on the scope, we need to finish it before creating an new one.
           activeSpan.end();
@@ -291,7 +304,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
           return;
         }
 
-        if (activeSpan) {
+        if (activeSpan && !spanToJSON(activeSpan).timestamp) {
           DEBUG_BUILD && logger.log(`[Tracing] Finishing current root span with op: ${spanToJSON(activeSpan).op}`);
           // If there's an open transaction on the scope, we need to finish it before creating an new one.
           activeSpan.end();
@@ -382,7 +395,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
       }
 
       if (enableInp) {
-        registerInpInteractionListener(latestRoute);
+        registerInpInteractionListener();
       }
 
       instrumentOutgoingRequests({

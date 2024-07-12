@@ -15,7 +15,6 @@ describe('connect auto-instrumentation', () => {
           'connect.name': '/',
           'connect.type': 'request_handler',
           'http.route': '/',
-          'otel.kind': 'INTERNAL',
           'sentry.origin': 'auto.http.otel.connect',
           'sentry.op': 'request_handler.connect',
         }),

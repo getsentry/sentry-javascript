@@ -13,6 +13,7 @@ export const EDGE_SDK_CONFIG_FILE = 'sentry.edge.config.js';
 /** Mock next config object */
 export const userNextConfig: NextConfigObject = {
   publicRuntimeConfig: { location: 'dogpark', activities: ['fetch', 'chasing', 'digging'] },
+  pageExtensions: ['jsx', 'js', 'tsx', 'ts', 'custom.jsx', 'custom.js', 'custom.tsx', 'custom.ts'],
   webpack: (incomingWebpackConfig: WebpackConfigObject, _options: BuildContext) => ({
     ...incomingWebpackConfig,
     mode: 'universal-sniffing',

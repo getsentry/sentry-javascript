@@ -1,6 +1,6 @@
 name: "CI: Mention external contributors"
 on:
-  pull_request:
+  pull_request_target:
     types:
       - closed
     branches:
