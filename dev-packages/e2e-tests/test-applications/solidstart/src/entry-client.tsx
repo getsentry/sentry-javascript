@@ -1,5 +1,6 @@
 // @refresh reload
 import * as Sentry from '@sentry/solidstart';
+import { solidRouterBrowserTracingIntegration } from '@sentry/solidstart/solidrouter';
 import { StartClient, mount } from '@solidjs/start/client';
 
 Sentry.init({
@@ -7,7 +8,7 @@ Sentry.init({
   // out in production builds.
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   environment: 'qa', // dynamic sampling bias to keep transactions
-  integrations: [Sentry.browserTracingIntegration()],
+  integrations: [solidRouterBrowserTracingIntegration()],
   tunnel: 'http://localhost:3031/', // proxy server
   // Performance Monitoring
   tracesSampleRate: 1.0, //  Capture 100% of the transactions

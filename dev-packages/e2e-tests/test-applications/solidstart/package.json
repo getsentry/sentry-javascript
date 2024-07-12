@@ -5,7 +5,12 @@
     "clean": "pnpx rimraf node_modules pnpm-lock.yaml .vinxi .output",
     "dev": "NODE_OPTIONS='--import ./src/instrument.server.mjs' vinxi dev",
     "build": "vinxi build",
-    "preview": "HOST=localhost PORT=3030 NODE_OPTIONS='--import ./src/instrument.server.mjs' vinxi start",
+    "//": [
+      "We are using `vinxi dev` to start the server because `vinxi start` is experimental and ",
+      "doesn't correctly resolve modules for @sentry/solidstart/solidrouter.",
+      "This is currently not an issue outside of our repo. See: https://github.com/nksaraf/vinxi/issues/177"
+    ],
+    "preview": "HOST=localhost PORT=3030 NODE_OPTIONS='--import ./src/instrument.server.mjs' vinxi dev",
     "test:prod": "TEST_ENV=production playwright test",
     "test:build": "pnpm install && npx playwright install && pnpm build",
     "test:assert": "pnpm test:prod"
