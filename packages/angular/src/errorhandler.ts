@@ -39,7 +39,8 @@ function extractHttpModuleError(error: HttpErrorResponse): string | Error {
   }
 
   // ... or an`ErrorEvent`, which can provide us with the message but no stack...
-  if (error.error instanceof ErrorEvent && error.error.message) {
+  // guarding `ErrorEvent` against `undefined` as it's not defined in Node environments
+  if (typeof ErrorEvent !== 'undefined' && error.error instanceof ErrorEvent && error.error.message) {
     return error.error.message;
   }
 

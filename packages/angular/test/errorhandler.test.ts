@@ -45,6 +45,11 @@ describe('SentryErrorHandler', () => {
   });
 
   describe('handleError method', () => {
+    const originalErrorEvent = globalThis.ErrorEvent;
+    afterEach(() => {
+      globalThis.ErrorEvent = originalErrorEvent;
+    });
+
     it('extracts `null` error', () => {
       createErrorHandler().handleError(null);
 
@@ -221,6 +226,18 @@ describe('SentryErrorHandler', () => {
 
       expect(captureExceptionSpy).toHaveBeenCalledTimes(1);
       expect(captureExceptionSpy).toHaveBeenCalledWith('Handled unknown error', captureExceptionEventHint);
+    });
+
+    it('handles ErrorEvent being undefined', () => {
+      const httpErr = new ErrorEvent('http', { message: 'sentry-http-test' });
+      const err = new HttpErrorResponse({ error: httpErr });
+
+      // @ts-expect-error - this is fine in this test
+      delete globalThis.ErrorEvent;
+
+      expect(() => {
+        createErrorHandler().handleError(err);
+      }).not.toThrow();
     });
 
     it('extracts an Error with `ngOriginalError`', () => {
