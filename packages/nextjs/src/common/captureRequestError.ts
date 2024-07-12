@@ -13,7 +13,9 @@ type ErrorContext = {
 };
 
 /**
- * Reports error for the Next.js `onRequestError` instrumentation hook.
+ * Reports errors for the Next.js `onRequestError` instrumentation hook.
+ *
+ * Notice: This function is experimental and not intended for production use. Breaking changes may be done to this funtion in any release.
  */
 export function experimental_captureRequestError(
   error: unknown,
