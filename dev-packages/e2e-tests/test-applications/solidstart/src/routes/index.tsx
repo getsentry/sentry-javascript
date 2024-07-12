@@ -11,6 +11,11 @@ export default function Home() {
         <li>
           <A href="/client-error">Client error</A>
         </li>
+        <li>
+          <A id="navLink" href="/users/5">
+            User 5
+          </A>
+        </li>
       </ul>
     </>
   );
