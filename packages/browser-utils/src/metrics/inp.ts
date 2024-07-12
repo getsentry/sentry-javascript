@@ -12,6 +12,7 @@ import {
 } from '@sentry/core';
 import type { Integration, Span, SpanAttributes } from '@sentry/types';
 import { browserPerformanceTimeOrigin, dropUndefinedKeys, htmlTreeAsString } from '@sentry/utils';
+import { WINDOW } from '../types';
 import {
   addInpInstrumentationHandler,
   addPerformanceInstrumentationHandler,
@@ -129,6 +130,9 @@ function _trackINP(): () => void {
       user: userDisplay || undefined,
       profile_id: profileId || undefined,
       replay_id: replayId || undefined,
+      // INP score calculation in the sentry backend relies on the user agent
+      // to account for different INP values being reported from different browsers
+      'user_agent.original': WINDOW.navigator && WINDOW.navigator.userAgent,
     });
 
     const span = startInactiveSpan({
