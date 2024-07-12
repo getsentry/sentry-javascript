@@ -89,9 +89,13 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
   tracesSampleRate?: number;
 
   /**
-   * If this is enabled, transactions and trace data will be generated and captured.
+   * If this is enabled, spans and trace data will be generated and captured.
    * This will set the `tracesSampleRate` to the recommended default of `1.0` if `tracesSampleRate` is undefined.
    * Note that `tracesSampleRate` and `tracesSampler` take precedence over this option.
+   *
+   * @deprecated This option is deprecated and will be removed in the next major version. If you want to enable performance monitoring, please set the `tracesSampleRate` or
+   * `tracesSampler` options instead. If you wan't to disable performance monitoring, remove the `tracesSampler` option
+   * and set the `tracesSampleRate` to `0` or `undefined`.
    */
   enableTracing?: boolean;
 
