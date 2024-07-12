@@ -107,6 +107,39 @@ export class SentrySpan implements Span {
     }
   }
 
+  /**
+   * This should generally not be used,
+   * but we need it for being comliant with the OTEL Span interface.
+   *
+   * @hidden
+   * @internal
+   */
+  public addLink(_link: unknown): this {
+    return this;
+  }
+
+  /**
+   * This should generally not be used,
+   * but we need it for being comliant with the OTEL Span interface.
+   *
+   * @hidden
+   * @internal
+   */
+  public addLinks(_links: unknown[]): this {
+    return this;
+  }
+
+  /**
+   * This should generally not be used,
+   * but we need it for being comliant with the OTEL Span interface.
+   *
+   * @hidden
+   * @internal
+   */
+  public recordException(_exception: unknown, _time?: number | undefined): void {
+    // noop
+  }
+
   /** @inheritdoc */
   public spanContext(): SpanContextData {
     const { _spanId: spanId, _traceId: traceId, _sampled: sampled } = this;
@@ -118,18 +151,21 @@ export class SentrySpan implements Span {
   }
 
   /** @inheritdoc */
-  public setAttribute(key: string, value: SpanAttributeValue | undefined): void {
+  public setAttribute(key: string, value: SpanAttributeValue | undefined): this {
     if (value === undefined) {
       // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
       delete this._attributes[key];
     } else {
       this._attributes[key] = value;
     }
+
+    return this;
   }
 
   /** @inheritdoc */
-  public setAttributes(attributes: SpanAttributes): void {
+  public setAttributes(attributes: SpanAttributes): this {
     Object.keys(attributes).forEach(key => this.setAttribute(key, attributes[key]));
+    return this;
   }
 
   /**
