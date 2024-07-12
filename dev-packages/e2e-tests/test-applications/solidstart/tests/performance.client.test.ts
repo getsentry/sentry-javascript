@@ -3,7 +3,7 @@ import { waitForTransaction } from '@sentry-internal/test-utils';
 
 test('sends a pageload transaction', async ({ page }) => {
   const transactionPromise = waitForTransaction('solidstart', async transactionEvent => {
-    return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
+    return transactionEvent?.transaction === '/' && transactionEvent.contexts?.trace?.op === 'pageload';
   });
 
   await page.goto('/');
@@ -25,7 +25,7 @@ test('sends a pageload transaction', async ({ page }) => {
 
 test('sends a navigation transaction', async ({ page }) => {
   const transactionPromise = waitForTransaction('solidstart', async transactionEvent => {
-    return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'navigation';
+    return transactionEvent?.transaction === '/users/5' && transactionEvent.contexts?.trace?.op === 'navigation';
   });
 
   await page.goto(`/`);
@@ -51,11 +51,11 @@ test('updates the transaction when using the back button', async ({ page }) => {
   // The sentry solidRouterBrowserTracingIntegration tries to update such
   // transactions with the proper name once the `useLocation` hook triggers.
   const navigationTxnPromise = waitForTransaction('solidstart', async transactionEvent => {
-    return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'navigation';
+    return transactionEvent?.transaction === '/users/6' && transactionEvent.contexts?.trace?.op === 'navigation';
   });
 
   await page.goto(`/`);
-  await page.locator('#navLink').click();
+  await page.locator('#navLinkUserBack').click();
   const navigationTxn = await navigationTxnPromise;
 
   expect(navigationTxn).toMatchObject({
@@ -65,14 +65,14 @@ test('updates the transaction when using the back button', async ({ page }) => {
         origin: 'auto.navigation.solid.solidrouter',
       },
     },
-    transaction: '/users/5',
+    transaction: '/users/6',
     transaction_info: {
       source: 'url',
     },
   });
 
   const backNavigationTxnPromise = waitForTransaction('solidstart', async transactionEvent => {
-    return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'navigation';
+    return transactionEvent?.transaction === '/' && transactionEvent.contexts?.trace?.op === 'navigation';
   });
 
   await page.goBack();
