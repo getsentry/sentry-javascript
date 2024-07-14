@@ -13,6 +13,7 @@ import { GLOBAL_OBJ, consoleSandbox, logger } from '@sentry/utils';
 
 import { getOpenTelemetryInstrumentationToPreload } from '../integrations/tracing';
 import { SentryContextManager } from '../otel/contextManager';
+import type { EsmLoaderHookOptions } from '../types';
 import { isCjs } from '../utils/commonjs';
 import type { NodeClient } from './client';
 
@@ -31,7 +32,7 @@ export function initOpenTelemetry(client: NodeClient): void {
 }
 
 /** Initialize the ESM loader. */
-export function maybeInitializeEsmLoader(): void {
+export function maybeInitializeEsmLoader(esmHookConfig?: EsmLoaderHookOptions): void {
   const [nodeMajor = 0, nodeMinor = 0] = process.versions.node.split('.').map(Number);
 
   // Register hook was added in v20.6.0 and v18.19.0
@@ -43,7 +44,7 @@ export function maybeInitializeEsmLoader(): void {
     if (!GLOBAL_OBJ._sentryEsmLoaderHookRegistered && importMetaUrl) {
       try {
         // @ts-expect-error register is available in these versions
-        moduleModule.register('@opentelemetry/instrumentation/hook.mjs', importMetaUrl);
+        moduleModule.register('import-in-the-middle/hook.mjs', importMetaUrl, { data: esmHookConfig });
         GLOBAL_OBJ._sentryEsmLoaderHookRegistered = true;
       } catch (error) {
         logger.warn('Failed to register ESM hook', error);
