@@ -1,8 +1,9 @@
-import { Inject, Logger } from '@nestjs/common';
+import { Logger } from '@nestjs/common';
 import type { DynamicModule, OnModuleInit } from '@nestjs/common';
 import { Injectable } from '@nestjs/common';
 import { Global, Module } from '@nestjs/common';
-import {BaseExceptionFilter, ModuleRef} from '@nestjs/core';
+import type { ModuleRef } from '@nestjs/core';
+import {BaseExceptionFilter} from '@nestjs/core';
 import { NestInstrumentation } from '@opentelemetry/instrumentation-nestjs-core';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
@@ -72,7 +73,6 @@ export const nestIntegration = defineIntegration(_nestIntegration);
 /**
  * Set up a nest service that provides error handling and performance tracing.
  */
-@Injectable()
 export class SentryIntegrationService implements OnModuleInit {
   // eslint-disable-next-line @sentry-internal/sdk/no-class-field-initializers
   private readonly _logger = new Logger(SentryIntegrationService.name);
@@ -146,11 +146,6 @@ export class SentryIntegrationService implements OnModuleInit {
 /**
  * Set up a root module that can be injected in nest applications.
  */
-@Global()
-@Module({
-  providers: [SentryIntegrationService],
-  exports: [SentryIntegrationService],
-})
 export class SentryIntegrationModule {
   /**
    * Called by the user to set the module as root module in a nest application.
@@ -180,3 +175,10 @@ function addNestSpanAttributes(span: Span): void {
     [SEMANTIC_ATTRIBUTE_SENTRY_OP]: `${type}.nestjs`,
   });
 }
+
+Injectable()(SentryIntegrationService);
+Global()(SentryIntegrationModule);
+Module({
+  providers: [SentryIntegrationService],
+  exports: [SentryIntegrationService],
+})(SentryIntegrationModule);
