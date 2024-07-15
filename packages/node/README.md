@@ -37,15 +37,16 @@ Sentry.init({
   // ...
 });
 ```
+
 You need to require or import the `instrument.js` file before importing any other modules in your application. This is
 necessary to ensure that Sentry can automatically instrument all modules in your application:
 
 ```js
 // Import this first!
-import "./instrument";
+import './instrument';
 
 // Now import other modules
-import http from "http";
+import http from 'http';
 
 // Your application code goes here
 ```
