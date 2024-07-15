@@ -54,7 +54,9 @@ test('Does not send expected exception to Sentry', async ({ baseURL }) => {
   expect(errorEventOccurred).toBe(false);
 });
 
-test('Handles exception correctly and does not send to Sentry if exception is thrown in module', async ({ baseURL }) => {
+test('Handles exception correctly and does not send to Sentry if exception is thrown in module', async ({
+  baseURL,
+}) => {
   let errorEventOccurred = false;
 
   waitForError('nestjs', event => {
@@ -69,10 +71,10 @@ test('Handles exception correctly and does not send to Sentry if exception is th
     return transactionEvent?.transaction === 'GET /test-module';
   });
 
-  console.log("fetch");
+  console.log('fetch');
   const response = await fetch(`${baseURL}/test-module`);
   expect(response.status).toBe(400);
-  console.log("waiting for response");
+  console.log('waiting for response');
 
   await transactionEventPromise;
 

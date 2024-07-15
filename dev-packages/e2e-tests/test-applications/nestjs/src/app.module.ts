@@ -3,9 +3,10 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { AppController1, AppController2 } from './app.controller';
 import { AppService1, AppService2 } from './app.service';
 import { TestModule } from './test-module/test.module';
+import { SentryIntegrationModule } from "@sentry/nestjs";
 
 @Module({
-  imports: [ScheduleModule.forRoot(), TestModule],
+  imports: [ScheduleModule.forRoot(), TestModule, SentryIntegrationModule.forRoot()],
   controllers: [AppController1],
   providers: [AppService1],
 })

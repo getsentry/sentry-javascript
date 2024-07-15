@@ -12,8 +12,8 @@ const app2Port = 3040;
 async function bootstrap() {
   const app1 = await NestFactory.create(AppModule1);
 
-  const { httpAdapter } = app1.get(HttpAdapterHost);
-  Sentry.setupNestErrorHandler(app1, new BaseExceptionFilter(httpAdapter));
+  // const { httpAdapter } = app1.get(HttpAdapterHost);
+  // Sentry.setupNestErrorHandler(app1, new BaseExceptionFilter(httpAdapter));
 
   await app1.listen(app1Port);
 
