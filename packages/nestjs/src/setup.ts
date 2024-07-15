@@ -38,7 +38,7 @@ const _nestIntegration = (() => {
 export const nestIntegration = defineIntegration(_nestIntegration);
 
 /**
- * 
+ *
  */
 export class SentryTracingInterceptor implements NestInterceptor {
   /**
