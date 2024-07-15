@@ -17,6 +17,7 @@ export function hasTracingEnabled(
   }
 
   const options = maybeOptions || getClientOptions();
+  // eslint-disable-next-line deprecation/deprecation
   return !!options && (options.enableTracing || 'tracesSampleRate' in options || 'tracesSampler' in options);
 }
 

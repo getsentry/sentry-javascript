@@ -8,6 +8,15 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+### Important Changes
+
+- **ref: Deprecate `enableTracing` (12897)**
+
+The `enableTracing` option has been deprecated and will be removed in the next major version. We recommend removing it
+in favor of the `tracesSampleRate` and `tracesSampler` options. If you want to enable performance monitoring, please set
+the `tracesSampleRate` to a sample rate of your choice, or provide a sampling function as `tracesSampler` option
+instead. If you wan't to disable performance monitoring, remove the `tracesSampler` and `tracesSampleRate` options.
+
 Work in this release was contributed by @GitSquared. Thank you for your contribution!
 
 ## 8.17.0
