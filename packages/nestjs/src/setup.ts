@@ -1,6 +1,7 @@
-import type {CallHandler, DynamicModule, ExecutionContext, NestInterceptor, OnModuleInit} from '@nestjs/common';
+import type { CallHandler, DynamicModule, ExecutionContext, NestInterceptor, OnModuleInit } from '@nestjs/common';
 import { Injectable } from '@nestjs/common';
 import { Global, Module } from '@nestjs/common';
+import { APP_INTERCEPTOR } from '@nestjs/core';
 import { NestInstrumentation } from '@opentelemetry/instrumentation-nestjs-core';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
@@ -15,7 +16,6 @@ import { generateInstrumentOnce } from '@sentry/node';
 import type { IntegrationFn, Span } from '@sentry/types';
 import { logger } from '@sentry/utils';
 import type { Observable } from 'rxjs';
-import {APP_INTERCEPTOR} from '@nestjs/core';
 
 const INTEGRATION_NAME = 'Nest';
 
@@ -94,8 +94,8 @@ export class SentryIntegrationModule {
         SentryIntegrationService,
         {
           provide: APP_INTERCEPTOR,
-          useClass: SentryTracingInterceptor
-        }
+          useClass: SentryTracingInterceptor,
+        },
       ],
       exports: [SentryIntegrationService],
     };
