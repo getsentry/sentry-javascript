@@ -19,6 +19,7 @@ env:
     ${{ github.workspace }}/node_modules
     ${{ github.workspace }}/packages/*/node_modules
     ${{ github.workspace }}/dev-packages/*/node_modules
+    ${{ github.workspace }}/packages/utils/build
 
 permissions:
   contents: read
