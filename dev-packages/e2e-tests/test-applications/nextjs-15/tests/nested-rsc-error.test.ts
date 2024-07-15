@@ -1,9 +1,18 @@
 import { expect, test } from '@playwright/test';
 import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
 
+const packageJson = require('../package.json');
+
 test('Should capture errors from nested server components when `Sentry.captureRequestError` is added to the `onRequestError` hook', async ({
   page,
 }) => {
+  const [, minor, patch, canary] = packageJson.dependencies.next.split('.');
+
+  test.skip(
+    minor === '0' && patch === '0' && patch.includes('canary') && Number(canary) < 63,
+    'Next.js version does not expose these errors',
+  );
+
   const errorEventPromise = waitForError('nextjs-15', errorEvent => {
     return !!errorEvent?.exception?.values?.some(value => value.value === 'I am technically uncatchable');
   });
