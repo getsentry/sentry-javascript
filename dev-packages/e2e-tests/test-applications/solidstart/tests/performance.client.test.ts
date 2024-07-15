@@ -36,7 +36,7 @@ test('sends a navigation transaction', async ({ page }) => {
     contexts: {
       trace: {
         op: 'navigation',
-        origin: 'auto.navigation.solid.solidrouter',
+        origin: 'auto.navigation.solidstart.solidrouter',
       },
     },
     transaction: '/users/5',
@@ -62,7 +62,7 @@ test('updates the transaction when using the back button', async ({ page }) => {
     contexts: {
       trace: {
         op: 'navigation',
-        origin: 'auto.navigation.solid.solidrouter',
+        origin: 'auto.navigation.solidstart.solidrouter',
       },
     },
     transaction: '/users/6',
@@ -82,7 +82,7 @@ test('updates the transaction when using the back button', async ({ page }) => {
     contexts: {
       trace: {
         op: 'navigation',
-        origin: 'auto.navigation.solid.solidrouter',
+        origin: 'auto.navigation.solidstart.solidrouter',
       },
     },
     transaction: '/',
