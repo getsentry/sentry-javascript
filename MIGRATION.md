@@ -711,6 +711,7 @@ Removed top-level exports: `enableAnrDetection`, `Anr`, `deepReadDirSync`, `runW
 - [Removal of `enableAnrDetection` and `Anr` class](./MIGRATION.md#removal-of-enableanrdetection-and-anr-class)
 - [Removal of `deepReadDirSync` method](./MIGRATION.md#removal-of-deepreaddirsync-method)
 - [Removal of `runWithAsyncContext` method](./MIGRATION.md#removal-of-runwithasynccontext-method)
+- [Removal of `Apollo` integration](./MIGRATION.md#removal-of-apollo-integration)
 
 #### Removal of `enableAnrDetection` and `Anr` class
 
@@ -735,6 +736,21 @@ Sentry.runWithAsyncContext(() => {
 Sentry.withIsolationScope(() => {
   // Your code here...
 });
+```
+
+#### Removal of Apollo integration
+
+The Apollo integration has been removed in `8.x` as `8.x` automatically adds GraphQL support via `graphqlIntegration`
+which is automatically enabled.
+
+```js
+// before (v7)
+Sentry.init({
+  integrations: [Sentry.integrations.Apollo()],
+});
+
+// after (v8)
+Sentry.init({});
 ```
 
 ### Next.js SDK

@@ -3,5 +3,12 @@ module.exports = {
     node: true,
   },
   extends: ['../../.eslintrc.js'],
-  overrides: [],
+  overrides: [
+    {
+      files: ['**/*.ts'],
+      rules: {
+        '@sentry-internal/sdk/no-optional-chaining': 'off',
+      },
+    },
+  ],
 };
