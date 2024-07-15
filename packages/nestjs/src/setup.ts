@@ -1,11 +1,21 @@
-import type { CallHandler, DynamicModule, ExecutionContext, NestInterceptor, OnModuleInit } from '@nestjs/common';
+import type {
+  ArgumentsHost,
+  CallHandler,
+  DynamicModule,
+  ExecutionContext,
+  NestInterceptor,
+  OnModuleInit,
+} from '@nestjs/common';
+import { Catch } from '@nestjs/common';
 import { Injectable } from '@nestjs/common';
 import { Global, Module } from '@nestjs/common';
+import { APP_FILTER, BaseExceptionFilter } from '@nestjs/core';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { NestInstrumentation } from '@opentelemetry/instrumentation-nestjs-core';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  captureException,
   defineIntegration,
   getClient,
   getDefaultIsolationScope,
@@ -64,6 +74,26 @@ export class SentryTracingInterceptor implements NestInterceptor {
 }
 
 /**
+ *
+ */
+export class SentryGlobalFilter extends BaseExceptionFilter {
+  /**
+   *
+   */
+  public catch(exception: unknown, host: ArgumentsHost): void {
+    const status_code = (exception as { status?: number }).status;
+
+    // don't report expected errors
+    if (status_code !== undefined && status_code >= 400 && status_code < 500) {
+      captureException(exception);
+      super.catch(exception, host);
+    }
+
+    super.catch(exception, host);
+  }
+}
+
+/**
  * Set up a nest service that provides error handling and performance tracing.
  */
 export class SentryIntegrationService implements OnModuleInit {
@@ -93,6 +123,10 @@ export class SentryIntegrationModule {
       providers: [
         SentryIntegrationService,
         {
+          provide: APP_FILTER,
+          useClass: SentryGlobalFilter,
+        },
+        {
           provide: APP_INTERCEPTOR,
           useClass: SentryTracingInterceptor,
         },
@@ -119,10 +153,21 @@ function addNestSpanAttributes(span: Span): void {
   });
 }
 
+Catch()(SentryGlobalFilter);
 Injectable()(SentryTracingInterceptor);
 Injectable()(SentryIntegrationService);
 Global()(SentryIntegrationModule);
 Module({
-  providers: [SentryIntegrationService],
+  providers: [
+    SentryIntegrationService,
+    {
+      provide: APP_FILTER,
+      useClass: SentryGlobalFilter,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: SentryTracingInterceptor,
+    },
+  ],
   exports: [SentryIntegrationService],
 })(SentryIntegrationModule);
