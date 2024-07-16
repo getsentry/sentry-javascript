@@ -54,31 +54,29 @@ test('Does not send expected exception to Sentry', async ({ baseURL }) => {
   expect(errorEventOccurred).toBe(false);
 });
 
-test('Does not handle expected exception if exception is thrown in module', async ({ baseURL }) => {
-  const errorEventPromise = waitForError('nestjs', event => {
-    return !event.type && event.exception?.values?.[0]?.value === 'Something went wrong in the test module!';
+test('Handles exception correctly and does not send to Sentry if exception is thrown in module', async ({
+  baseURL,
+}) => {
+  let errorEventOccurred = false;
+
+  waitForError('nestjs', event => {
+    if (!event.type && event.exception?.values?.[0]?.value === 'Something went wrong in the test module!') {
+      errorEventOccurred = true;
+    }
+
+    return event?.transaction === 'GET /test-module';
+  });
+
+  const transactionEventPromise = waitForTransaction('nestjs', transactionEvent => {
+    return transactionEvent?.transaction === 'GET /test-module';
   });
 
   const response = await fetch(`${baseURL}/test-module`);
-  expect(response.status).toBe(500); // should be 400
+  expect(response.status).toBe(400);
 
-  // should never arrive, but does because the exception is not handled properly
-  const errorEvent = await errorEventPromise;
+  await transactionEventPromise;
 
-  expect(errorEvent.exception?.values).toHaveLength(1);
-  expect(errorEvent.exception?.values?.[0]?.value).toBe('Something went wrong in the test module!');
+  await new Promise(resolve => setTimeout(resolve, 10000));
 
-  expect(errorEvent.request).toEqual({
-    method: 'GET',
-    cookies: {},
-    headers: expect.any(Object),
-    url: 'http://localhost:3030/test-module',
-  });
-
-  expect(errorEvent.transaction).toEqual('GET /test-module');
-
-  expect(errorEvent.contexts?.trace).toEqual({
-    trace_id: expect.any(String),
-    span_id: expect.any(String),
-  });
+  expect(errorEventOccurred).toBe(false);
 });
