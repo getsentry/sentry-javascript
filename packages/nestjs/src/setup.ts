@@ -101,6 +101,9 @@ export class SentryIntegrationService implements OnModuleInit {
    * Called when the SentryModuleIntegration gets initialized.
    */
   public onModuleInit(): void {
+    // Sadly, NestInstrumentation has no requestHook, so we need to add the attributes here
+    // We register this hook in this method, because if we register it in the integration `setup`,
+    // it would always run even for users that are not even using Nest.js
     const client = getClient();
     if (client) {
       client.on('spanStart', span => {
