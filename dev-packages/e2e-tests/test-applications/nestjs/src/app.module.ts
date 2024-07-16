@@ -6,7 +6,7 @@ import { AppService1, AppService2 } from './app.service';
 import { TestModule } from './test-module/test.module';
 
 @Module({
-  imports: [ScheduleModule.forRoot(), TestModule, SentryIntegrationModule.forRoot()],
+  imports: [SentryIntegrationModule.forRoot(), ScheduleModule.forRoot(), TestModule],
   controllers: [AppController1],
   providers: [AppService1],
 })
