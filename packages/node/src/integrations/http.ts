@@ -44,7 +44,7 @@ interface HttpOptions {
    * Do not capture spans or breadcrumbs for incoming HTTP requests to URLs where the given callback returns `true`.
    * This controls both span & breadcrumb creation - spans will be non recording if tracing is disabled.
    *
-   * The `url` param consists of the URL path and query string (if any) of the incoming request.
+   * The `urlPath` param consists of the URL path and query string (if any) of the incoming request.
    * For example: `'/users/details?id=123'`
    */
   ignoreIncomingRequests?: (urlPath: string) => boolean;
