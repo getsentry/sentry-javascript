@@ -459,27 +459,19 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
 
   /** @inheritdoc */
   public on(hook: string, callback: unknown): () => void {
-    // Note that the code below, with nullish coalescing assignment,
-    // may reduce the code, so it may be switched to when Node 14 support
-    // is dropped (the `??=` operator is supported since Node 15).
-    // (this._hooks[hook] ??= []).push(callback);
-    if (!this._hooks[hook]) {
-      this._hooks[hook] = [];
-    }
+    const hooks = (this._hooks[hook] = this._hooks[hook] || []);
 
     // @ts-expect-error We assue the types are correct
-    this._hooks[hook].push(callback);
+    hooks.push(callback);
 
     // This function returns a callback execution handler that, when invoked,
     // deregisters a callback. This is crucial for managing instances where callbacks
     // need to be unregistered to prevent self-referencing in callback closures,
     // ensuring proper garbage collection.
     return () => {
-      const hooks = this._hooks[hook];
-
-      if (hooks) {
-        // @ts-expect-error We assue the types are correct
-        const cbIndex = hooks.indexOf(callback);
+      // @ts-expect-error We assue the types are correct
+      const cbIndex = hooks.indexOf(callback);
+      if (cbIndex > -1) {
         hooks.splice(cbIndex, 1);
       }
     };

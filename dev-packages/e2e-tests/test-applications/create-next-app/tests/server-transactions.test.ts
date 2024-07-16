@@ -40,7 +40,6 @@ test('Sends server-side transactions to Sentry', async ({ baseURL }) => {
       spans: [
         {
           data: {
-            'otel.kind': 'INTERNAL',
             'sentry.origin': 'manual',
           },
           description: 'test-span',

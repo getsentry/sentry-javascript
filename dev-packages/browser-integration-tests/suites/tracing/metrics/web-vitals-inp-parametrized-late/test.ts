@@ -80,6 +80,7 @@ sentryTest(
         'sentry.sample_rate': 1,
         'sentry.source': 'custom',
         transaction: 'test-route',
+        'user_agent.original': expect.stringContaining('Chrome'),
       },
       measurements: {
         inp: {

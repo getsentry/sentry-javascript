@@ -53,7 +53,6 @@ test('Sends an API route transaction', async ({ baseURL }) => {
         {
           data: {
             'sentry.origin': 'manual',
-            'otel.kind': 'INTERNAL',
           },
           description: 'test-span',
           parent_span_id: expect.any(String),
@@ -71,7 +70,6 @@ test('Sends an API route transaction', async ({ baseURL }) => {
             'http.route': '/test-transaction',
             'connect.type': 'request_handler',
             'connect.name': '/test-transaction',
-            'otel.kind': 'INTERNAL',
           },
           op: 'request_handler.connect',
           description: '/test-transaction',

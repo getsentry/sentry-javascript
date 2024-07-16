@@ -77,6 +77,7 @@ sentryTest(
         'sentry.op': 'ui.interaction.click',
         'sentry.origin': 'auto.http.browser.inp',
         transaction: 'test-url',
+        'user_agent.original': expect.stringContaining('Chrome'),
       },
       measurements: {
         inp: {

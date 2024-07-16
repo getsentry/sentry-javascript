@@ -40,6 +40,9 @@ able to use it. From the top level of the repo, there are three commands availab
   dependencies (`utils`, `core`, `browser`, etc), and all packages which depend on it (currently `gatsby` and `nextjs`))
 - `yarn build:dev:watch`, which runs `yarn build:dev` in watch mode (recommended)
 
+Note: Due to package incompatibilities between Python versions, building native binaries currently requires a Python
+version <3.12.
+
 You can also run a production build via `yarn build`, which will build everything except for the tarballs for publishing
 to NPM. You can use this if you want to bundle Sentry yourself. The build output can be found in the packages `build/`
 folder, e.g. `packages/browser/build`. Bundled files can be found in `packages/browser/build/bundles`. Note that there

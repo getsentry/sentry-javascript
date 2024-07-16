@@ -9,7 +9,6 @@ describe('GraphQL/Apollo Tests', () => {
           data: {
             'graphql.operation.type': 'query',
             'graphql.source': '{hello}',
-            'otel.kind': 'INTERNAL',
             'sentry.origin': 'auto.graphql.otel.graphql',
           },
           description: 'query',
@@ -31,7 +30,6 @@ describe('GraphQL/Apollo Tests', () => {
             'graphql.operation.name': 'Mutation',
             'graphql.operation.type': 'mutation',
             'graphql.source': 'mutation Mutation($email: String) {\n  login(email: $email)\n}',
-            'otel.kind': 'INTERNAL',
             'sentry.origin': 'auto.graphql.otel.graphql',
           },
           description: 'mutation Mutation',

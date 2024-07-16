@@ -11,6 +11,7 @@ export {
   addPerformanceEntries,
   startTrackingInteractions,
   startTrackingLongTasks,
+  startTrackingLongAnimationFrames,
   startTrackingWebVitals,
   startTrackingINP,
   registerInpInteractionListener,

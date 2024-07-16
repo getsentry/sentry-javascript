@@ -282,6 +282,14 @@ describe('startSpan', () => {
     expect(getActiveSpan()).toBe(undefined);
   });
 
+  it('allows to pass parentSpan=null', () => {
+    startSpan({ name: 'GET users/[id]' }, () => {
+      startSpan({ name: 'GET users/[id]', parentSpan: null }, span => {
+        expect(spanToJSON(span).parent_span_id).toBe(undefined);
+      });
+    });
+  });
+
   it('allows to force a transaction with forceTransaction=true', async () => {
     const options = getDefaultTestClientOptions({ tracesSampleRate: 1.0 });
     client = new TestClient(options);
@@ -693,6 +701,15 @@ describe('startSpanManual', () => {
     expect(getActiveSpan()).toBe(undefined);
   });
 
+  it('allows to pass parentSpan=null', () => {
+    startSpan({ name: 'GET users/[id]' }, () => {
+      startSpanManual({ name: 'child', parentSpan: null }, span => {
+        expect(spanToJSON(span).parent_span_id).toBe(undefined);
+        span.end();
+      });
+    });
+  });
+
   it('allows to force a transaction with forceTransaction=true', async () => {
     const options = getDefaultTestClientOptions({ tracesSampleRate: 1.0 });
     client = new TestClient(options);
@@ -1012,6 +1029,14 @@ describe('startInactiveSpan', () => {
     span.end();
 
     expect(getActiveSpan()).toBeUndefined();
+  });
+
+  it('allows to pass parentSpan=null', () => {
+    startSpan({ name: 'outer' }, () => {
+      const span = startInactiveSpan({ name: 'GET users/[id]', parentSpan: null });
+      expect(spanToJSON(span).parent_span_id).toBe(undefined);
+      span.end();
+    });
   });
 
   it('allows to force a transaction with forceTransaction=true', async () => {

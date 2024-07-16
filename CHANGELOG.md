@@ -8,6 +8,38 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 8.18.0
+
+### Important Changes
+
+- **ref: Deprecate `enableTracing` (12897)**
+
+The `enableTracing` option has been deprecated and will be removed in the next major version. We recommend removing it
+in favor of the `tracesSampleRate` and `tracesSampler` options. If you want to enable performance monitoring, please set
+the `tracesSampleRate` to a sample rate of your choice, or provide a sampling function as `tracesSampler` option
+instead. If you want to disable performance monitoring, remove the `tracesSampler` and `tracesSampleRate` options.
+
+### Other Changes
+
+- feat(node): Expose `exclude` and `include` options for ESM loader (#12910)
+- feat(browser): Add user agent to INP standalone span attributes (#12896)
+- feat(nextjs): Add `experimental_captureRequestError` for `onRequestError` hook (#12885)
+- feat(replay): Bump `rrweb` to 2.25.0 (#12478)
+- feat(tracing): Add long animation frame tracing (#12646)
+- fix: Cleanup hooks when they are not used anymore (#12852)
+- fix(angular): Guard `ErrorEvent` check in ErrorHandler to avoid throwing in Node environments (#12892)
+- fix(inp): Ensure INP spans have correct transaction (#12871)
+- fix(nestjs): Do not make SentryTraced() decorated functions async (#12879)
+- fix(nextjs): Support automatic instrumentation for app directory with custom page extensions (#12858)
+- fix(node): Ensure correct URL is passed to `ignoreIncomingRequests` callback (#12929)
+- fix(otel): Do not add `otel.kind: INTERNAL` attribute (#12841)
+- fix(solidstart): Set proper sentry origin for solid router integration when used in solidstart sdk (#12919)
+- fix(sveltekit): Add Vite peer dep for proper type resolution (#12926)
+- fix(tracing): Ensure you can pass `null` as `parentSpan` in `startSpan*` (#12928)
+- ref(core): Small bundle size improvement (#12830)
+
+Work in this release was contributed by @GitSquared and @mcous. Thank you for your contributions!
+
 ## 8.17.0
 
 - feat: Upgrade OTEL deps (#12809)

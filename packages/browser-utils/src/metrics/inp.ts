@@ -10,8 +10,9 @@ import {
   spanToJSON,
   startInactiveSpan,
 } from '@sentry/core';
-import type { Integration, SpanAttributes } from '@sentry/types';
+import type { Integration, Span, SpanAttributes } from '@sentry/types';
 import { browserPerformanceTimeOrigin, dropUndefinedKeys, htmlTreeAsString } from '@sentry/utils';
+import { WINDOW } from '../types';
 import {
   addInpInstrumentationHandler,
   addPerformanceInstrumentationHandler,
@@ -19,13 +20,8 @@ import {
 } from './instrument';
 import { getBrowserPerformanceAPI, msToSec } from './utils';
 
-// We only care about name here
-interface PartialRouteInfo {
-  name: string | undefined;
-}
-
 const LAST_INTERACTIONS: number[] = [];
-const INTERACTIONS_ROUTE_MAP = new Map<number, string>();
+const INTERACTIONS_SPAN_MAP = new Map<number, Span>();
 
 /**
  * Start tracking INP webvital events.
@@ -97,14 +93,15 @@ function _trackINP(): () => void {
     const activeSpan = getActiveSpan();
     const rootSpan = activeSpan ? getRootSpan(activeSpan) : undefined;
 
-    // We first try to lookup the route name from our INTERACTIONS_ROUTE_MAP,
+    // We first try to lookup the span from our INTERACTIONS_SPAN_MAP,
     // where we cache the route per interactionId
-    const cachedRouteName = interactionId != null ? INTERACTIONS_ROUTE_MAP.get(interactionId) : undefined;
+    const cachedSpan = interactionId != null ? INTERACTIONS_SPAN_MAP.get(interactionId) : undefined;
+
+    const spanToUse = cachedSpan || rootSpan;
 
     // Else, we try to use the active span.
     // Finally, we fall back to look at the transactionName on the scope
-    const routeName =
-      cachedRouteName || (rootSpan ? spanToJSON(rootSpan).description : scope.getScopeData().transactionName);
+    const routeName = spanToUse ? spanToJSON(spanToUse).description : scope.getScopeData().transactionName;
 
     const user = scope.getUser();
 
@@ -133,6 +130,9 @@ function _trackINP(): () => void {
       user: userDisplay || undefined,
       profile_id: profileId || undefined,
       replay_id: replayId || undefined,
+      // INP score calculation in the sentry backend relies on the user agent
+      // to account for different INP values being reported from different browsers
+      'user_agent.original': WINDOW.navigator && WINDOW.navigator.userAgent,
     });
 
     const span = startInactiveSpan({
@@ -154,11 +154,17 @@ function _trackINP(): () => void {
   });
 }
 
-/** Register a listener to cache route information for INP interactions. */
-export function registerInpInteractionListener(latestRoute: PartialRouteInfo): void {
+/**
+ * Register a listener to cache route information for INP interactions.
+ * TODO(v9): `latestRoute` no longer needs to be passed in and will be removed in v9.
+ */
+export function registerInpInteractionListener(_latestRoute?: unknown): void {
   const handleEntries = ({ entries }: { entries: PerformanceEntry[] }): void => {
+    const activeSpan = getActiveSpan();
+    const activeRootSpan = activeSpan && getRootSpan(activeSpan);
+
     entries.forEach(entry => {
-      if (!isPerformanceEventTiming(entry) || !latestRoute.name) {
+      if (!isPerformanceEventTiming(entry) || !activeRootSpan) {
         return;
       }
 
@@ -168,21 +174,20 @@ export function registerInpInteractionListener(latestRoute: PartialRouteInfo): v
       }
 
       // If the interaction was already recorded before, nothing more to do
-      if (INTERACTIONS_ROUTE_MAP.has(interactionId)) {
+      if (INTERACTIONS_SPAN_MAP.has(interactionId)) {
         return;
       }
 
       // We keep max. 10 interactions in the list, then remove the oldest one & clean up
       if (LAST_INTERACTIONS.length > 10) {
         const last = LAST_INTERACTIONS.shift() as number;
-        INTERACTIONS_ROUTE_MAP.delete(last);
+        INTERACTIONS_SPAN_MAP.delete(last);
       }
 
       // We add the interaction to the list of recorded interactions
-      // and store the route information for this interaction
-      // (we clone the object because it is mutated when it changes)
+      // and store the span for this interaction
       LAST_INTERACTIONS.push(interactionId);
-      INTERACTIONS_ROUTE_MAP.set(interactionId, latestRoute.name);
+      INTERACTIONS_SPAN_MAP.set(interactionId, activeRootSpan);
     });
   };
 

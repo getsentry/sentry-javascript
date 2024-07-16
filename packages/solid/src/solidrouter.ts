@@ -33,11 +33,18 @@ function handleNavigation(location: string): void {
     return;
   }
 
+  // The solid router integration will be used for both solid and solid start.
+  // To avoid increasing the api surface with internal properties, we look at
+  // the sdk metadata.
+  const metaData = client.getSdkMetadata();
+  const { name } = (metaData && metaData.sdk) || {};
+  const framework = name && name.includes('solidstart') ? 'solidstart' : 'solid';
+
   startBrowserTracingNavigationSpan(client, {
     name: location,
     attributes: {
       [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.solid.solidrouter',
+      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: `auto.navigation.${framework}.solidrouter`,
       [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
     },
   });
