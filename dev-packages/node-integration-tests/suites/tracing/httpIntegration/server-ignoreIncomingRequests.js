@@ -10,7 +10,6 @@ Sentry.init({
   integrations: [
     Sentry.httpIntegration({
       ignoreIncomingRequests: url => {
-        console.log('url', url);
         return url.includes('/liveness');
       },
     }),
