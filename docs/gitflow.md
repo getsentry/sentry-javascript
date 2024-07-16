@@ -28,6 +28,6 @@ If this happen, you can resolve this as follows:
 
 - Close the automated PR that was created by the gitflow automation
 - Create a new branch on top of `master` (e.g. `manual-develop-sync`)
-- Merge `develop` into this branch, with a merge commit
+- Merge `develop` into this branch, with a merge commit (and fix any merge conflicts that come up)
 - Now create a PR against `develop` from your branch (e.g. `manual-develop-sync`)
 - Merge this PR with a merge commit
