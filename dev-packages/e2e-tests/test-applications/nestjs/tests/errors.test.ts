@@ -2,25 +2,17 @@ import { expect, test } from '@playwright/test';
 import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
 
 test('Sends exception to Sentry', async ({ baseURL }) => {
-  console.log('Start test 1');
   const errorEventPromise = waitForError('nestjs', event => {
-    console.log(event);
     return !event.type && event.exception?.values?.[0]?.value === 'This is an exception with id 123';
   });
 
   const response = await fetch(`${baseURL}/test-exception/123`);
   expect(response.status).toBe(500);
 
-  console.log('Waiting for error');
-
   const errorEvent = await errorEventPromise;
-
-  console.log('Error found');
 
   expect(errorEvent.exception?.values).toHaveLength(1);
   expect(errorEvent.exception?.values?.[0]?.value).toBe('This is an exception with id 123');
-
-  console.log('Waiting for error');
 
   expect(errorEvent.request).toEqual({
     method: 'GET',
@@ -38,7 +30,6 @@ test('Sends exception to Sentry', async ({ baseURL }) => {
 });
 
 test('Does not send expected exception to Sentry', async ({ baseURL }) => {
-  console.log('Start test 2');
   let errorEventOccurred = false;
 
   waitForError('nestjs', event => {
@@ -64,7 +55,6 @@ test('Does not send expected exception to Sentry', async ({ baseURL }) => {
 });
 
 test('Does not handle expected exception if exception is thrown in module', async ({ baseURL }) => {
-  console.log('Start test 3');
   const errorEventPromise = waitForError('nestjs', event => {
     return !event.type && event.exception?.values?.[0]?.value === 'Something went wrong in the test module!';
   });

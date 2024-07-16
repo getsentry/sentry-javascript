@@ -6,7 +6,7 @@ import { AppService1, AppService2 } from './app.service';
 import { TestModule } from './test-module/test.module';
 
 @Module({
-  imports: [SentryIntegrationModule.forRoot(), ScheduleModule.forRoot(), TestModule],
+  imports: [SentryIntegrationModule.forRoot(), ScheduleModule.forRoot(), TestModule], // TODO: check if the order of registration matters
   controllers: [AppController1],
   providers: [AppService1],
 })

@@ -81,16 +81,13 @@ export class SentryGlobalFilter extends BaseExceptionFilter {
    *
    */
   public catch(exception: unknown, host: ArgumentsHost): void {
-    console.log('Calling catch in global filter');
     const status_code = (exception as { status?: number }).status;
-    console.log('Status code: ', status_code);
 
     // don't report expected errors
     if (status_code !== undefined && status_code >= 400 && status_code < 500) {
       return super.catch(exception, host);
     }
 
-    console.log('Capture exception');
     captureException(exception);
     return super.catch(exception, host);
   }
@@ -105,7 +102,6 @@ export class SentryIntegrationService implements OnModuleInit {
    */
   public onModuleInit(): void {
     const client = getClient();
-    console.log('Module initialised');
     if (client) {
       client.on('spanStart', span => {
         addNestSpanAttributes(span);
