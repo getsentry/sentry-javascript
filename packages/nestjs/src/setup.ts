@@ -87,12 +87,12 @@ export class SentryGlobalFilter extends BaseExceptionFilter {
 
     // don't report expected errors
     if (status_code !== undefined && status_code >= 400 && status_code < 500) {
-      super.catch(exception, host);
+      return super.catch(exception, host);
     }
 
-    console.log("Capture exception");
+    console.log('Capture exception');
     captureException(exception);
-    super.catch(exception, host);
+    return super.catch(exception, host);
   }
 }
 
