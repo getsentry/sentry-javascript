@@ -1,12 +1,12 @@
 import { Controller, Get } from '@nestjs/common';
-import { TestException } from './test.exception';
+import { ExampleException } from './example.exception';
 
 @Controller('test-module')
-export class TestController {
+export class ExampleController {
   constructor() {}
 
   @Get()
   getTest(): string {
-    throw new TestException();
+    throw new ExampleException();
   }
 }
