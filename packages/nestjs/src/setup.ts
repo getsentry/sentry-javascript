@@ -11,41 +11,18 @@ import { Injectable } from '@nestjs/common';
 import { Global, Module } from '@nestjs/common';
 import { APP_FILTER, BaseExceptionFilter } from '@nestjs/core';
 import { APP_INTERCEPTOR } from '@nestjs/core';
-import { NestInstrumentation } from '@opentelemetry/instrumentation-nestjs-core';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   captureException,
-  defineIntegration,
   getClient,
   getDefaultIsolationScope,
   getIsolationScope,
   spanToJSON,
 } from '@sentry/core';
-import { generateInstrumentOnce } from '@sentry/node';
-import type { IntegrationFn, Span } from '@sentry/types';
+import type { Span } from '@sentry/types';
 import { logger } from '@sentry/utils';
 import type { Observable } from 'rxjs';
-
-const INTEGRATION_NAME = 'Nest';
-
-export const instrumentNest = generateInstrumentOnce(INTEGRATION_NAME, () => new NestInstrumentation());
-
-const _nestIntegration = (() => {
-  return {
-    name: INTEGRATION_NAME,
-    setupOnce() {
-      instrumentNest();
-    },
-  };
-}) satisfies IntegrationFn;
-
-/**
- * Nest framework integration
- *
- * Capture tracing data for nest.
- */
-export const nestIntegration = defineIntegration(_nestIntegration);
 
 /**
  *
@@ -149,9 +126,6 @@ function addNestSpanAttributes(span: Span): void {
   if (attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] || !type) {
     return;
   }
-
-  console.log('setting span attributes: ')
-  console.log(span);
 
   span.setAttributes({
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.otel.nestjs',

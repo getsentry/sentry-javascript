@@ -20,11 +20,6 @@ test('Sends an API route transaction', async ({ baseURL }) => {
   console.log('transaction spans: ');
   console.log(transactionEvent.spans);
 
-  console.log('other data:');
-  console.log(transactionEvent.transaction);
-  console.log(transactionEvent.type);
-  console.log(transactionEvent.transaction_info);
-
   expect(transactionEvent.contexts?.trace).toEqual({
     data: {
       'sentry.source': 'route',

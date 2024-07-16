@@ -42,8 +42,7 @@
     "@sentry/core": "8.17.0",
     "@sentry/node": "8.17.0",
     "@sentry/types": "8.17.0",
-    "@sentry/utils": "8.17.0",
-    "@opentelemetry/instrumentation-nestjs-core": "0.39.0"
+    "@sentry/utils": "8.17.0"
   },
   "devDependencies": {
     "@nestjs/core": "^10.3.10",
