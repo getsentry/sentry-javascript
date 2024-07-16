@@ -9,7 +9,7 @@ test('Should capture errors from nested server components when `Sentry.captureRe
   const [, minor, patch, canary] = packageJson.dependencies.next.split('.');
 
   test.skip(
-    minor === '0' && patch === '0' && patch.includes('canary') && Number(canary) < 63,
+    minor === '0' && patch === '0' && ((patch.includes('canary') && Number(canary) < 63) || patch.includes('rc')),
     'Next.js version does not expose these errors',
   );
 
