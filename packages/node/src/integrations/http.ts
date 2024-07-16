@@ -15,6 +15,7 @@ import {
 import { getClient } from '@sentry/opentelemetry';
 import type { IntegrationFn, SanitizedRequestData } from '@sentry/types';
 
+import type { RequestOptions } from 'node:https';
 import { getSanitizedUrlString, parseUrl, stripUrlQueryAndFragment } from '@sentry/utils';
 import type { NodeClient } from '../sdk/client';
 import { setIsolationScope } from '../sdk/scope';
@@ -103,7 +104,7 @@ export const instrumentHttp = Object.assign(
       },
 
       ignoreIncomingRequestHook: request => {
-        const url = getRequestUrl(request);
+        const url = request.url;
 
         const method = request.method?.toUpperCase();
         // We do not capture OPTIONS/HEAD requests as transactions
@@ -112,7 +113,7 @@ export const instrumentHttp = Object.assign(
         }
 
         const _ignoreIncomingRequests = _httpOptions.ignoreIncomingRequests;
-        if (_ignoreIncomingRequests && _ignoreIncomingRequests(url)) {
+        if (url && _ignoreIncomingRequests && _ignoreIncomingRequests(url)) {
           return true;
         }
 
