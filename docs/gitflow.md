@@ -26,7 +26,7 @@ that you get a merge conflict when trying to merge master into develop after a s
 
 If this happen, you can resolve this as follows:
 
-- Close the automated PR that was created by the gitflow automationxw
+- Close the automated PR that was created by the gitflow automation
 - Create a new branch on top of `master` (e.g. `manual-develop-sync`)
 - Merge `develop` into this branch, with a merge commit
 - Now create a PR against `develop` from your branch (e.g. `manual-develop-sync`)
