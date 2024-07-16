@@ -150,6 +150,9 @@ function addNestSpanAttributes(span: Span): void {
     return;
   }
 
+  console.log('setting span attributes: ')
+  console.log(span);
+
   span.setAttributes({
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.otel.nestjs',
     [SEMANTIC_ATTRIBUTE_SENTRY_OP]: `${type}.nestjs`,

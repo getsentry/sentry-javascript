@@ -9,9 +9,21 @@ test('Sends an API route transaction', async ({ baseURL }) => {
     );
   });
 
+  console.log('fetch');
+
   await fetch(`${baseURL}/test-transaction`);
 
+  console.log('waiting for transaction event');
+
   const transactionEvent = await pageloadTransactionEventPromise;
+
+  console.log('transaction spans: ');
+  console.log(transactionEvent.spans);
+
+  console.log('other data:');
+  console.log(transactionEvent.transaction);
+  console.log(transactionEvent.type);
+  console.log(transactionEvent.transaction_info);
 
   expect(transactionEvent.contexts?.trace).toEqual({
     data: {
@@ -45,6 +57,8 @@ test('Sends an API route transaction', async ({ baseURL }) => {
     trace_id: expect.any(String),
     origin: 'auto.http.otel.http',
   });
+
+  console.log('trace ook');
 
   expect(transactionEvent).toEqual(
     expect.objectContaining({
