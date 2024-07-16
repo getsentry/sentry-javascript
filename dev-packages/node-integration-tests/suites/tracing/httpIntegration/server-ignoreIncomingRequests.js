@@ -9,8 +9,14 @@ Sentry.init({
 
   integrations: [
     Sentry.httpIntegration({
-      ignoreIncomingRequests: url => {
-        return url.includes('/liveness');
+      ignoreIncomingRequests: (url, request) => {
+        if (url.includes('/liveness')) {
+          return true;
+        }
+        if (request.method === 'POST' && request.url.includes('readiness')) {
+          return true;
+        }
+        return false;
       },
     }),
   ],
@@ -31,6 +37,10 @@ app.get('/test', (_req, res) => {
 
 app.get('/liveness', (_req, res) => {
   res.send({ response: 'liveness' });
+});
+
+app.post('/readiness', (_req, res) => {
+  res.send({ response: 'readiness' });
 });
 
 Sentry.setupExpressErrorHandler(app);
