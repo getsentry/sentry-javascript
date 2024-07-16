@@ -157,7 +157,7 @@ export function startInactiveSpan(options: StartSpanOptions): Span {
   // If `options.parentSpan` is defined, we want to wrap the callback in `withActiveSpan`
   const wrapper = options.scope
     ? (callback: () => Span) => withScope(options.scope, callback)
-    : customParentSpan
+    : customParentSpan !== undefined
       ? (callback: () => Span) => withActiveSpan(customParentSpan, callback)
       : (callback: () => Span) => callback();
 
@@ -445,8 +445,8 @@ function getParentSpan(scope: Scope): SentrySpan | undefined {
   return span;
 }
 
-function getActiveSpanWrapper<T>(parentSpan?: Span): (callback: () => T) => T {
-  return parentSpan
+function getActiveSpanWrapper<T>(parentSpan: Span | undefined | null): (callback: () => T) => T {
+  return parentSpan !== undefined
     ? (callback: () => T) => {
         return withActiveSpan(parentSpan, callback);
       }
