@@ -18,7 +18,7 @@ jobs:
       && github.event.pull_request.author_association != 'COLLABORATOR'
       && github.event.pull_request.author_association != 'MEMBER'
       && github.event.pull_request.author_association != 'OWNER'
-      && github.actor != 'dependabot[bot]'
+      && endsWith(github.actor, '[bot]') == false
     steps:
       - uses: actions/checkout@v4
       - name: Set up Node
