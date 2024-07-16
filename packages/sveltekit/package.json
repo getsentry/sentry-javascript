@@ -31,7 +31,13 @@
     "access": "public"
   },
   "peerDependencies": {
-    "@sveltejs/kit": "1.x || 2.x"
+    "@sveltejs/kit": "1.x || 2.x",
+    "vite": "*"
+  },
+  "peerDependenciesMeta": {
+    "vite": {
+      "optional": true
+    }
   },
   "dependencies": {
     "@sentry/core": "8.17.0",
