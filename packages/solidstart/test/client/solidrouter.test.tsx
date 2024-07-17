@@ -44,6 +44,11 @@ describe('solidRouterBrowserTracingIntegration', () => {
       tracesSampleRate: 1,
       transport: () => createTransport({ recordDroppedEvent: () => undefined }, _ => Promise.resolve({})),
       stackParser: () => [],
+      _metadata: {
+        sdk: {
+          name: 'sentry.javascript.solidstart',
+        },
+      },
     });
   }
 
@@ -138,7 +143,7 @@ describe('solidRouterBrowserTracingIntegration', () => {
         data: expect.objectContaining({
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.solid.solidrouter',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.solidstart.solidrouter',
         }),
       }),
     );
@@ -170,7 +175,7 @@ describe('solidRouterBrowserTracingIntegration', () => {
         data: expect.objectContaining({
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.solid.solidrouter',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.solidstart.solidrouter',
         }),
       }),
     );

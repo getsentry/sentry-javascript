@@ -4,6 +4,11 @@ import type { ClientOptions, Options, SamplingContext, Scope, Span, TracePropaga
 
 import type { NodeTransportOptions } from './transports';
 
+export interface EsmLoaderHookOptions {
+  include?: string[];
+  exclude?: string[];
+}
+
 export interface BaseNodeOptions {
   /**
    * List of strings/regex controlling to which outgoing requests
@@ -87,13 +92,22 @@ export interface BaseNodeOptions {
 
   /**
    * Whether to register ESM loader hooks to automatically instrument libraries.
-   * This is necessary to auto instrument libraries that are loaded via ESM imports, but might it can cause issues
+   * This is necessary to auto instrument libraries that are loaded via ESM imports, but it can cause issues
    * with certain libraries. If you run into problems running your app with this enabled,
    * please raise an issue in https://github.com/getsentry/sentry-javascript.
    *
+   * You can optionally exclude specific modules or only include specific modules from being instrumented by providing
+   * an object with `include` or `exclude` properties.
+   *
+   * ```js
+   * registerEsmLoaderHooks: {
+   *   exclude: ['openai'],
+   * }
+   * ```
+   *
    * Defaults to `true`.
    */
-  registerEsmLoaderHooks?: boolean;
+  registerEsmLoaderHooks?: boolean | EsmLoaderHookOptions;
 
   /** Callback that is executed when a fatal global error occurs. */
   onFatalError?(this: void, error: Error): void;

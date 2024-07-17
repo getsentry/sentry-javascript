@@ -287,7 +287,13 @@ export function addPerformanceEntries(span: Span): void {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   performanceEntries.slice(_performanceCursor).forEach((entry: Record<string, any>) => {
     const startTime = msToSec(entry.startTime);
-    const duration = msToSec(entry.duration);
+    const duration = msToSec(
+      // Inexplicibly, Chrome sometimes emits a negative duration. We need to work around this.
+      // There is a SO post attempting to explain this, but it leaves one with open questions: https://stackoverflow.com/questions/23191918/peformance-getentries-and-negative-duration-display
+      // The way we clamp the value is probably not accurate, since we have observed this happen for things that may take a while to load, like for example the replay worker.
+      // TODO: Investigate why this happens and how to properly mitigate. For now, this is a workaround to prevent transactions being dropped due to negative duration spans.
+      Math.max(0, entry.duration),
+    );
 
     if (op === 'navigation' && transactionStartTime && timeOrigin + startTime < transactionStartTime) {
       return;

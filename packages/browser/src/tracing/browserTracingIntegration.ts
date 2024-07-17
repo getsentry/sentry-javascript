@@ -288,7 +288,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
           return;
         }
 
-        if (activeSpan) {
+        if (activeSpan && !spanToJSON(activeSpan).timestamp) {
           DEBUG_BUILD && logger.log(`[Tracing] Finishing current root span with op: ${spanToJSON(activeSpan).op}`);
           // If there's an open transaction on the scope, we need to finish it before creating an new one.
           activeSpan.end();
@@ -304,7 +304,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
           return;
         }
 
-        if (activeSpan) {
+        if (activeSpan && !spanToJSON(activeSpan).timestamp) {
           DEBUG_BUILD && logger.log(`[Tracing] Finishing current root span with op: ${spanToJSON(activeSpan).op}`);
           // If there's an open transaction on the scope, we need to finish it before creating an new one.
           activeSpan.end();
@@ -395,7 +395,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
       }
 
       if (enableInp) {
-        registerInpInteractionListener(latestRoute);
+        registerInpInteractionListener();
       }
 
       instrumentOutgoingRequests({

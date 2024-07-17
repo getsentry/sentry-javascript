@@ -140,3 +140,5 @@ export declare function wrapApiHandlerWithSentryVercelCrons<F extends (...args: 
  * Wraps a page component with Sentry error instrumentation.
  */
 export declare function wrapPageComponentWithSentry<C>(WrappingTarget: C): C;
+
+export { experimental_captureRequestError } from './common/captureRequestError';

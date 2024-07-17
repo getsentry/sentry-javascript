@@ -40,12 +40,13 @@ export const sendFeedback: SendFeedback = (
     // After 5s, we want to clear anyhow
     const timeout = setTimeout(() => reject('Unable to determine if Feedback was correctly sent.'), 5_000);
 
-    client.on('afterSendEvent', (event: Event, response: TransportMakeRequestResponse) => {
+    const cleanup = client.on('afterSendEvent', (event: Event, response: TransportMakeRequestResponse) => {
       if (event.event_id !== eventId) {
         return;
       }
 
       clearTimeout(timeout);
+      cleanup();
 
       // Require valid status codes, otherwise can assume feedback was not sent successfully
       if (
