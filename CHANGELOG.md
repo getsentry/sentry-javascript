@@ -38,7 +38,7 @@ instead. If you want to disable performance monitoring, remove the `tracesSample
 - fix(tracing): Ensure you can pass `null` as `parentSpan` in `startSpan*` (#12928)
 - ref(core): Small bundle size improvement (#12830)
 
-Work in this release was contributed by @GitSquared and @mcous. Thank you for your contributions!
+Work in this release was contributed by @GitSquared, @ziyadkhalil and @mcous. Thank you for your contributions!
 
 ## 8.17.0
 
