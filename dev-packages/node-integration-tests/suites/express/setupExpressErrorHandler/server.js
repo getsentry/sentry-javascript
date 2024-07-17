@@ -4,9 +4,6 @@ const Sentry = require('@sentry/node');
 Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   release: '1.0',
-  // disable attaching headers to /test/* endpoints
-  tracePropagationTargets: [/^(?!.*test).*$/],
-  tracesSampleRate: 1.0,
   transport: loggingTransport,
 });
 
@@ -19,11 +16,18 @@ const app = express();
 
 app.use(cors());
 
-app.get('/test/:id1/:id2', (_req, res) => {
-  Sentry.captureException(new Error('error_1'));
-  res.send('Success');
+app.get('/test1', (_req, _res) => {
+  throw new Error('error_1');
 });
 
-Sentry.setupExpressErrorHandler(app);
+app.get('/test2', (_req, _res) => {
+  throw new Error('error_2');
+});
+
+Sentry.setupExpressErrorHandler(app, {
+  shouldHandleError: error => {
+    return error.message === 'error_2';
+  },
+});
 
 startExpressServerAndSendPortToRunner(app);

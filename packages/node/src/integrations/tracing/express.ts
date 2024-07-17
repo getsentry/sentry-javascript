@@ -135,8 +135,11 @@ export function expressErrorHandler(options?: {
  * Setup an error handler for Express.
  * The error handler must be before any other middleware and after all controllers.
  */
-export function setupExpressErrorHandler(app: { use: (middleware: ExpressMiddleware) => unknown }): void {
-  app.use(expressErrorHandler());
+export function setupExpressErrorHandler(
+  app: { use: (middleware: ExpressMiddleware) => unknown },
+  options?: Parameters<typeof expressErrorHandler>[0],
+): void {
+  app.use(expressErrorHandler(options));
   ensureIsWrapped(app.use, 'express');
 }
 
