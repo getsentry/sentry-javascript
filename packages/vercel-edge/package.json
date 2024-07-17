@@ -44,8 +44,7 @@
     "@sentry/utils": "8.18.0"
   },
   "devDependencies": {
-    "@edge-runtime/jest-environment": "2.2.3",
-    "@edge-runtime/types": "2.2.3"
+    "@edge-runtime/types": "3.0.1"
   },
   "scripts": {
     "build": "run-p build:transpile build:types",
@@ -63,8 +62,8 @@
     "clean": "rimraf build coverage sentry-vercel-edge-*.tgz",
     "fix": "eslint . --format stylish --fix",
     "lint": "eslint . --format stylish",
-    "test": "jest",
-    "test:watch": "jest --watch",
+    "test": "vitest run",
+    "test:watch": "vitest --watch",
     "yalc:publish": "yalc publish --push --sig"
   },
   "volta": {
