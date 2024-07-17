@@ -37,6 +37,10 @@ export class NodeClient extends ServerRuntimeClient<NodeClientOptions> {
       // There is one mild concern here, being that if users periodically and unboundedly create new clients, we will
       // create more and more intervals, which may leak memory. In these situations, users are required to
       // call `client.close()` in order to dispose of the client resource.
+      // Users are already confronted with the same reality with the SessionFlusher at the time of writing this so the
+      // working theory is that this should be fine.
+      // Note: We have experimented with using `FinalizationRegisty` to clear the interval when the client is garbage
+      // collected, but it did not work, because the cleanup function never got called.
       this._clientReportInterval = setInterval(() => {
         DEBUG_BUILD && logger.log('Flushing client reports based on interval.');
         this._flushOutcomes();
