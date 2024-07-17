@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ScheduleModule } from '@nestjs/schedule';
-import { SentryIntegrationModule } from '@sentry/nestjs';
+import { SentryIntegrationModule } from '@sentry/nestjs/setup';
 import { AppController1, AppController2 } from './app.controller';
 import { AppService1, AppService2 } from './app.service';
 import { ExampleModule } from './example-module/example.module';

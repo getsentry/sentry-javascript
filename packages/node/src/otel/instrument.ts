@@ -1,6 +1,6 @@
 import type { Instrumentation } from '@opentelemetry/instrumentation';
 import { addOpenTelemetryInstrumentation } from '@sentry/opentelemetry';
-import {logger} from '@sentry/utils';
+import { logger } from '@sentry/utils';
 
 const INSTRUMENTED: Record<string, Instrumentation> = {};
 

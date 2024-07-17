@@ -10,7 +10,9 @@
     "node": ">=16"
   },
   "files": [
-    "/build"
+    "/build",
+    "/*.d.ts",
+    "/*.d.ts.map"
   ],
   "main": "build/cjs/nestjs/index.js",
   "module": "build/esm/nestjs/index.js",
@@ -26,13 +28,16 @@
         "types": "./build/types/index.d.ts",
         "default": "./build/cjs/index.js"
       }
-    }
-  },
-  "typesVersions": {
-    "<4.9": {
-      "build/types/index.d.ts": [
-        "build/types-ts3.8/index.d.ts"
-      ]
+    },
+    "./setup": {
+      "import": {
+        "types": "./setup.d.ts",
+        "default": "./build/esm/setup.js"
+      },
+      "require": {
+        "types": "./setup.d.ts",
+        "default": "./build/cjs/setup.js"
+      }
     }
   },
   "publishConfig": {
@@ -56,15 +61,15 @@
     "build": "run-p build:transpile build:types",
     "build:dev": "yarn build",
     "build:transpile": "rollup -c rollup.npm.config.mjs",
-    "build:types": "run-s build:types:core build:types:downlevel",
+    "build:types": "run-s build:types:core build:types:setup",
     "build:types:core": "tsc -p tsconfig.types.json",
-    "build:types:downlevel": "yarn downlevel-dts build/types build/types-ts3.8 --to ts3.8",
+    "build:types:setup": "tsc -p tsconfig.setup-types.json",
     "build:watch": "run-p build:transpile:watch build:types:watch",
     "build:dev:watch": "yarn build:watch",
     "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",
     "build:types:watch": "tsc -p tsconfig.types.json --watch",
     "build:tarball": "npm pack",
-    "circularDepCheck": "madge --circular src/index.ts",
+    "circularDepCheck": "madge --circular src/index.ts && madge --circular src/setup.ts",
     "clean": "rimraf build coverage sentry-node-*.tgz",
     "fix": "eslint . --format stylish --fix",
     "lint": "eslint . --format stylish",
