@@ -1,5 +1,6 @@
 import type { Instrumentation } from '@opentelemetry/instrumentation';
 import { addOpenTelemetryInstrumentation } from '@sentry/opentelemetry';
+import {logger} from '@sentry/utils';
 
 const INSTRUMENTED: Record<string, Instrumentation> = {};
 
@@ -11,6 +12,7 @@ export function generateInstrumentOnce<Options = unknown>(
   name: string,
   creator: (options?: Options) => Instrumentation,
 ): ((options?: Options) => void) & { id: string } {
+  logger.log('calling generateInstrumentOnce for: ', name);
   return Object.assign(
     (options?: Options) => {
       const instrumented = INSTRUMENTED[name];

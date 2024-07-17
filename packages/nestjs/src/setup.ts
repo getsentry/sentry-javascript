@@ -32,10 +32,13 @@ export class SentryTracingInterceptor implements NestInterceptor {
    *
    */
   public intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
+    logger.log('intercept');
     if (getIsolationScope() === getDefaultIsolationScope()) {
       logger.warn('Isolation scope is still the default isolation scope, skipping setting transactionName.');
       return next.handle();
     }
+
+    logger.log('intercept after scope check');
 
     if (context.getType() === 'http') {
       const req = context.switchToHttp().getRequest();
@@ -78,11 +81,15 @@ export class SentryIntegrationService implements OnModuleInit {
    * Called when the SentryModuleIntegration gets initialized.
    */
   public onModuleInit(): void {
+    logger.log('on module init');
+
     // Sadly, NestInstrumentation has no requestHook, so we need to add the attributes here
     // We register this hook in this method, because if we register it in the integration `setup`,
     // it would always run even for users that are not even using Nest.js
     const client = getClient();
+    logger.log('client: ', client);
     if (client) {
+      logger.log('set nest attributes on client');
       client.on('spanStart', span => {
         addNestSpanAttributes(span);
       });
@@ -98,6 +105,7 @@ export class SentryIntegrationModule {
    * Called by the user to set the module as root module in a nest application.
    */
   public static forRoot(): DynamicModule {
+    logger.log('for root');
     return {
       module: SentryIntegrationModule,
       providers: [
@@ -126,6 +134,9 @@ function addNestSpanAttributes(span: Span): void {
   if (attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] || !type) {
     return;
   }
+
+  logger.info('span: ');
+  logger.info(span);
 
   span.setAttributes({
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.otel.nestjs',
