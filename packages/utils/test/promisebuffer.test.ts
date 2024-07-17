@@ -1,3 +1,5 @@
+import { describe, expect, test, vi } from 'vitest';
+
 import { makePromiseBuffer } from '../src/promisebuffer';
 import { SyncPromise } from '../src/syncpromise';
 
@@ -5,7 +7,7 @@ describe('PromiseBuffer', () => {
   describe('add()', () => {
     test('no limit', () => {
       const buffer = makePromiseBuffer();
-      const p = jest.fn(() => new SyncPromise(resolve => setTimeout(resolve)));
+      const p = vi.fn(() => new SyncPromise(resolve => setTimeout(resolve)));
       void buffer.add(p);
       expect(buffer.$.length).toEqual(1);
     });
@@ -13,11 +15,11 @@ describe('PromiseBuffer', () => {
     test('with limit', () => {
       const buffer = makePromiseBuffer(1);
       let task1;
-      const producer1 = jest.fn(() => {
+      const producer1 = vi.fn(() => {
         task1 = new SyncPromise(resolve => setTimeout(resolve));
         return task1;
       });
-      const producer2 = jest.fn(() => new SyncPromise(resolve => setTimeout(resolve)));
+      const producer2 = vi.fn(() => new SyncPromise(resolve => setTimeout(resolve)));
       expect(buffer.add(producer1)).toEqual(task1);
       void expect(buffer.add(producer2)).rejects.toThrowError();
       expect(buffer.$.length).toEqual(1);

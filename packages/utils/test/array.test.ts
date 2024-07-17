@@ -1,3 +1,5 @@
+import { describe, expect, it } from 'vitest';
+
 import type { NestedArray } from '../src/array';
 import { flatten } from '../src/array';
 

@@ -1,3 +1,5 @@
+import { describe, expect, it } from 'vitest';
+
 import { generatePropagationContext } from '../src/propagationContext';
 
 describe('generatePropagationContext', () => {

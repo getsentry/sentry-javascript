@@ -1,12 +1,8 @@
-import { default as arrayFlat } from 'array.prototype.flat';
+import { describe, expect, it } from 'vitest';
 
 import { _optionalChain } from '../../src/buildPolyfills';
 import type { GenericFunction, GenericObject, Value } from '../../src/buildPolyfills/types';
 import { _optionalChain as _optionalChainOrig } from './originals';
-
-// Older versions of Node don't have `Array.prototype.flat`, which crashes these tests. On newer versions that do have
-// it, this is a no-op.
-arrayFlat.shim();
 
 type OperationType = 'access' | 'call' | 'optionalAccess' | 'optionalCall';
 type OperationExecutor =

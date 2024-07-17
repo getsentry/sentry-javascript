@@ -1,3 +1,5 @@
+import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
+
 import { JSDOM } from 'jsdom';
 
 import { getDomElement, htmlTreeAsString } from '../src/browser';

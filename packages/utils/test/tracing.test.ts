@@ -1,3 +1,5 @@
+import { describe, expect, it, test } from 'vitest';
+
 import { extractTraceparentData, propagationContextFromHeaders } from '../src/tracing';
 
 const EXAMPLE_SENTRY_TRACE = '12312012123120121231201212312012-1121201211212012-1';

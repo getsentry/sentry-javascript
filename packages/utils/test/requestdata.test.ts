@@ -1,3 +1,5 @@
+import { beforeEach, describe, expect, it, test } from 'vitest';
+
 import type * as net from 'net';
 import type { Event, PolymorphicRequest, TransactionSource, User } from '@sentry/types';
 import { addRequestDataToEvent, extractPathForTransaction, extractRequestData } from '@sentry/utils';

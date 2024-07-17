@@ -1,3 +1,5 @@
+import { describe, expect, it } from 'vitest';
+
 import type { ClientReport } from '@sentry/types';
 
 import { createClientReportEnvelope } from '../src/clientreport';

@@ -1,6 +1,4 @@
-/**
- * @jest-environment jsdom
- */
+import { describe, expect, it, test, vi } from 'vitest';
 
 import type { WrappedFunction } from '@sentry/types';
 
@@ -13,7 +11,6 @@ import {
   objectify,
   urlEncode,
 } from '../src/object';
-import { testOnlyIfNodeVersionAtLeast } from './testutils';
 
 describe('fill()', () => {
   test('wraps a method by calling a replacement function on it', () => {
@@ -23,7 +20,7 @@ describe('fill()', () => {
       },
     };
     const name = 'foo';
-    const replacement = jest.fn().mockImplementationOnce(cb => cb);
+    const replacement = vi.fn().mockImplementationOnce(cb => cb);
 
     fill(source, name, replacement);
 
@@ -36,7 +33,7 @@ describe('fill()', () => {
       foo: (): number => 42,
     };
     const name = 'foo';
-    const replacement = jest.fn().mockImplementationOnce(cb => {
+    const replacement = vi.fn().mockImplementationOnce(cb => {
       expect(cb).toBe(source.foo);
       return () => 1337;
     });
@@ -53,12 +50,12 @@ describe('fill()', () => {
       foo: (): number => 42,
     };
     const name = 'foo';
-    const replacement = jest.fn().mockImplementationOnce(cb => {
+    const replacement = vi.fn().mockImplementationOnce(cb => {
       expect(cb).toBe(source.foo);
       return () => 1337;
     });
 
-    const replacement2 = jest.fn().mockImplementationOnce(cb => {
+    const replacement2 = vi.fn().mockImplementationOnce(cb => {
       expect(cb).toBe(source.foo);
       return () => 1338;
     });
@@ -307,36 +304,17 @@ describe('objectify()', () => {
   });
 
   describe('wraps other primitives with their respective object wrapper classes', () => {
-    // TODO: There's currently a bug in Jest - if you give it the `Boolean` class, it runs `typeof received ===
-    // 'boolean'` but not `received instanceof Boolean` (the way it correctly does for other primitive wrappers, like
-    // `Number` and `String). (See https://github.com/facebook/jest/pull/11976.) Once that is fixed and we upgrade jest,
-    // we can comment the test below back in. (The tests for symbols and bigints are working only because our current
-    // version of jest is sufficiently old that they're not even considered in the relevant check and just fall to the
-    // default `instanceof` check jest uses for all unknown classes.)
-
     it.each([
       ['number', Number, 1121],
       ['string', String, 'Dogs are great!'],
-      // ["boolean", Boolean, true],
+      ['boolean', Boolean, true],
       ['symbol', Symbol, Symbol('Maisey')],
+      ['bigint', BigInt, 1231n],
     ])('%s', (_caseName, wrapperClass, primitive) => {
       const objectifiedPrimitive = objectify(primitive);
 
       expect(objectifiedPrimitive).toEqual(expect.any(wrapperClass));
       expect(objectifiedPrimitive.valueOf()).toEqual(primitive);
-    });
-
-    // `BigInt` doesn't exist in Node < 10, so we test it separately here.
-    testOnlyIfNodeVersionAtLeast(10)('bigint', () => {
-      // Hack to get around the fact that literal bigints cause a syntax error in older versions of Node, so the
-      // assignment needs to not even be parsed as code in those versions
-      let bigintPrimitive;
-      eval('bigintPrimitive = 1231n;');
-
-      const objectifiedBigInt = objectify(bigintPrimitive);
-
-      expect(objectifiedBigInt).toEqual(expect.any(BigInt));
-      expect(objectifiedBigInt.valueOf()).toEqual(bigintPrimitive);
     });
   });
 
@@ -366,7 +344,7 @@ describe('addNonEnumerableProperty', () => {
   });
 
   it('works with a function', () => {
-    const func = jest.fn();
+    const func = vi.fn();
     addNonEnumerableProperty(func as any, 'foo', 'bar');
     expect((func as any).foo).toBe('bar');
     func();
@@ -401,8 +379,8 @@ describe('addNonEnumerableProperty', () => {
 
 describe('markFunctionWrapped', () => {
   it('works with a function', () => {
-    const originalFunc = jest.fn();
-    const wrappedFunc = jest.fn();
+    const originalFunc = vi.fn();
+    const wrappedFunc = vi.fn();
     markFunctionWrapped(wrappedFunc, originalFunc);
 
     expect((wrappedFunc as WrappedFunction).__sentry_original__).toBe(originalFunc);
@@ -414,8 +392,8 @@ describe('markFunctionWrapped', () => {
   });
 
   it('works with a frozen original function', () => {
-    const originalFunc = Object.freeze(jest.fn());
-    const wrappedFunc = jest.fn();
+    const originalFunc = Object.freeze(vi.fn());
+    const wrappedFunc = vi.fn();
     markFunctionWrapped(wrappedFunc, originalFunc);
 
     expect((wrappedFunc as WrappedFunction).__sentry_original__).toBe(originalFunc);
@@ -427,8 +405,8 @@ describe('markFunctionWrapped', () => {
   });
 
   it('works with a frozen wrapped function', () => {
-    const originalFunc = Object.freeze(jest.fn());
-    const wrappedFunc = Object.freeze(jest.fn());
+    const originalFunc = Object.freeze(vi.fn());
+    const wrappedFunc = Object.freeze(vi.fn());
     markFunctionWrapped(wrappedFunc, originalFunc);
 
     // Skips adding the property, but also doesn't error

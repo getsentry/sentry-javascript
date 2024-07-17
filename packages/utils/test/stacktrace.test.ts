@@ -1,3 +1,5 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { nodeStackLineParser, stripSentryFramesAndReverse } from '../src';
 
 describe('Stacktrace', () => {
@@ -118,7 +120,7 @@ describe('Stacktrace', () => {
 });
 
 describe('node', () => {
-  const mockGetModule = jest.fn();
+  const mockGetModule = vi.fn();
   const parser = nodeStackLineParser(mockGetModule);
   const node = parser[1];
 

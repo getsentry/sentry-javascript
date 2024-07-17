@@ -1,3 +1,5 @@
+import { describe, expect } from 'vitest';
+
 import type { Event, EventHint, Exception, ExtendedError, StackParser } from '@sentry/types';
 
 import { applyAggregateErrorsToEvent, createStackParser } from '../src/index';

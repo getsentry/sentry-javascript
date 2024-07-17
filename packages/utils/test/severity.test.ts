@@ -1,3 +1,5 @@
+import { describe, expect, test } from 'vitest';
+
 import { severityLevelFromString, validSeverityLevels } from '../src/severity';
 
 describe('severityLevelFromString()', () => {

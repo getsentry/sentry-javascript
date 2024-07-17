@@ -1,3 +1,5 @@
+import { describe, expect, it, test } from 'vitest';
+
 import type { Client } from '@sentry/types';
 
 import { createStackParser, eventFromUnknownInput, nodeStackLineParser } from '../src';

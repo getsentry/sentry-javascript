@@ -1,3 +1,5 @@
+import { describe, expect, test } from 'vitest';
+
 import { isMatchingPattern, stringMatchesSomePattern, truncate } from '../src/string';
 
 describe('truncate()', () => {

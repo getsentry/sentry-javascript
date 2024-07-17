@@ -1,3 +1,5 @@
+import { expect, test } from 'vitest';
+
 import { baggageHeaderToDynamicSamplingContext, dynamicSamplingContextToSentryBaggageHeader } from '../src/baggage';
 
 test.each([

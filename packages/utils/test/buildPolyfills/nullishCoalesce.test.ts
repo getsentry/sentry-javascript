@@ -1,3 +1,5 @@
+import { describe, expect, it } from 'vitest';
+
 import { _nullishCoalesce } from '../../src/buildPolyfills';
 import type { Value } from '../../src/buildPolyfills/types';
 import { _nullishCoalesce as _nullishCoalesceOrig } from './originals';

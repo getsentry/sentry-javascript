@@ -1,3 +1,5 @@
+import { describe, expect, test } from 'vitest';
+
 import { basename, dirname } from '../src/path';
 
 describe('path', () => {

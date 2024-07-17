@@ -1,3 +1,7 @@
+import { afterEach, describe, expect, it, test, vi } from 'vitest';
+
+import * as cryptoMod from 'node:crypto';
+
 import type { Event, Mechanism, StackFrame } from '@sentry/types';
 
 import {
@@ -6,8 +10,25 @@ import {
   arrayify,
   checkOrSetAlreadyCaught,
   getEventDescription,
+  parseSemver,
   uuid4,
 } from '../src/misc';
+
+const NODE_VERSION = parseSemver(process.versions.node);
+/**
+ * Returns`describe` or `describe.skip` depending on allowed major versions of Node.
+ *
+ * @param {{ min?: number; max?: number }} allowedVersion
+ */
+export const conditionalTest = (allowedVersion: { min?: number; max?: number }) => {
+  if (!NODE_VERSION) {
+    return test.skip;
+  }
+
+  return NODE_VERSION < (allowedVersion.min || -Infinity) || NODE_VERSION > (allowedVersion.max || Infinity)
+    ? test.skip
+    : test;
+};
 
 describe('getEventDescription()', () => {
   test('message event', () => {
@@ -290,6 +311,10 @@ describe('checkOrSetAlreadyCaught()', () => {
 });
 
 describe('uuid4 generation', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
   const uuid4Regex = /^[0-9A-F]{12}[4][0-9A-F]{3}[89AB][0-9A-F]{15}$/i;
   // Jest messes with the global object, so there is no global crypto object in any node version
   // For this reason we need to create our own crypto object for each test to cover all the code paths
@@ -299,11 +324,8 @@ describe('uuid4 generation', () => {
     }
   });
 
-  it('returns valid uuid v4 ids via crypto.getRandomValues', () => {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const cryptoMod = require('crypto');
-
-    (global as any).crypto = { getRandomValues: cryptoMod.getRandomValues };
+  conditionalTest({ min: 17 })('returns valid uuid v4 ids via crypto.getRandomValues', () => {
+    vi.stubGlobal('crypto', { getRandomValues: (cryptoMod as any).getRandomValues });
 
     for (let index = 0; index < 1_000; index++) {
       expect(uuid4()).toMatch(uuid4Regex);
@@ -311,10 +333,7 @@ describe('uuid4 generation', () => {
   });
 
   it('returns valid uuid v4 ids via crypto.randomUUID', () => {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const cryptoMod = require('crypto');
-
-    (global as any).crypto = { randomUUID: cryptoMod.randomUUID };
+    vi.stubGlobal('crypto', { getRandomValues: cryptoMod.randomUUID });
 
     for (let index = 0; index < 1_000; index++) {
       expect(uuid4()).toMatch(uuid4Regex);
@@ -322,7 +341,7 @@ describe('uuid4 generation', () => {
   });
 
   it("return valid uuid v4 even if crypto doesn't exists", () => {
-    (global as any).crypto = { getRandomValues: undefined, randomUUID: undefined };
+    vi.stubGlobal('crypto', { getRandomValues: undefined, randomUUID: undefined });
 
     for (let index = 0; index < 1_000; index++) {
       expect(uuid4()).toMatch(uuid4Regex);
@@ -330,14 +349,14 @@ describe('uuid4 generation', () => {
   });
 
   it('return valid uuid v4 even if crypto invoked causes an error', () => {
-    (global as any).crypto = {
+    vi.stubGlobal('crypto', {
       getRandomValues: () => {
         throw new Error('yo');
       },
       randomUUID: () => {
         throw new Error('yo');
       },
-    };
+    });
 
     for (let index = 0; index < 1_000; index++) {
       expect(uuid4()).toMatch(uuid4Regex);
@@ -346,22 +365,22 @@ describe('uuid4 generation', () => {
 
   // Corner case related to crypto.getRandomValues being only
   // semi-implemented (e.g. Chromium 23.0.1235.0 (151422))
-  it('returns valid uuid v4 even if crypto.getRandomValues does not return a typed array', () => {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const cryptoMod = require('crypto');
+  conditionalTest({ min: 17 })(
+    'returns valid uuid v4 even if crypto.getRandomValues does not return a typed array',
+    () => {
+      const getRandomValues = (typedArray: Uint8Array) => {
+        if ((cryptoMod as any).getRandomValues) {
+          (cryptoMod as any).getRandomValues(typedArray);
+        }
+      };
 
-    const getRandomValues = (typedArray: Uint8Array) => {
-      if (cryptoMod.getRandomValues) {
-        cryptoMod.getRandomValues(typedArray);
+      vi.stubGlobal('crypto', { getRandomValues });
+
+      for (let index = 0; index < 1_000; index++) {
+        expect(uuid4()).toMatch(uuid4Regex);
       }
-    };
-
-    (global as any).crypto = { getRandomValues };
-
-    for (let index = 0; index < 1_000; index++) {
-      expect(uuid4()).toMatch(uuid4Regex);
-    }
-  });
+    },
+  );
 });
 
 describe('arrayify()', () => {

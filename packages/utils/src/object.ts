@@ -65,8 +65,9 @@ export function addNonEnumerableProperty(obj: object, name: string, value: unkno
 export function markFunctionWrapped(wrapped: WrappedFunction, original: WrappedFunction): void {
   try {
     const proto = original.prototype || {};
-    wrapped.prototype = original.prototype = proto;
+    wrapped.prototype = proto;
     addNonEnumerableProperty(wrapped, '__sentry_original__', original);
+    original.prototype = proto;
   } catch (o_O) {} // eslint-disable-line no-empty
 }
 

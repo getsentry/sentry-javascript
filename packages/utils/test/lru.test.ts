@@ -1,3 +1,5 @@
+import { describe, expect, test } from 'vitest';
+
 import { LRUMap } from '../src/lru';
 
 describe('LRUMap', () => {
