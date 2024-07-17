@@ -105,7 +105,8 @@ jobs:
               - *shared
               - 'packages/browser/**'
               - 'packages/browser-utils/**'
-              - 'packages/replay/**'
+              - 'packages/replay-internal/**'
+              - 'packages/replay-worker/**'
               - 'packages/replay-canvas/**'
               - 'packages/feedback/**'
               - 'packages/wasm/**'
@@ -131,6 +132,7 @@ jobs:
               - *node
               - 'packages/nextjs/**'
               - 'packages/react/**'
+              - 'packages/vercel-edge/**'
             remix:
               - *shared
               - *browser
@@ -147,8 +149,10 @@ jobs:
               - 'dev-packages/e2e-tests/test-applications/node-profiling/**'
             deno:
               - *shared
-              - *browser
               - 'packages/deno/**'
+            bun:
+              - *shared
+              - 'packages/bun/**'
             any_code:
               - '!**/*.md'
 
@@ -166,6 +170,7 @@ jobs:
       changed_profiling_node: ${{ steps.changed.outputs.profiling_node }}
       changed_profiling_node_bindings: ${{ steps.changed.outputs.profiling_node_bindings }}
       changed_deno: ${{ steps.changed.outputs.deno }}
+      changed_bun: ${{ steps.changed.outputs.bun }}
       changed_browser: ${{ steps.changed.outputs.browser }}
       changed_browser_integration: ${{ steps.changed.outputs.browser_integration }}
       changed_any_code: ${{ steps.changed.outputs.any_code }}
@@ -451,6 +456,7 @@ jobs:
   job_bun_unit_tests:
     name: Bun Unit Tests
     needs: [job_get_metadata, job_build]
+    if: needs.job_get_metadata.outputs.changed_bun == 'true' || github.event_name != 'pull_request'
     timeout-minutes: 10
     runs-on: ubuntu-20.04
     strategy:
