@@ -16,6 +16,7 @@ export class NodeClient extends ServerRuntimeClient<NodeClientOptions> {
   public traceProvider: BasicTracerProvider | undefined;
   private _tracer: Tracer | undefined;
   private _clientReportInterval: NodeJS.Timeout | undefined;
+  private _clientReportOnExitFlushListener: (() => undefined) | undefined;
 
   public constructor(options: NodeClientOptions) {
     const clientOptions: ServerRuntimeClientOptions = {
@@ -35,8 +36,8 @@ export class NodeClient extends ServerRuntimeClient<NodeClientOptions> {
 
     if (clientOptions.sendClientReports !== false) {
       // There is one mild concern here, being that if users periodically and unboundedly create new clients, we will
-      // create more and more intervals, which may leak memory. In these situations, users are required to
-      // call `client.close()` in order to dispose of the client resource.
+      // create more and more intervals and beforeExit listeners, which may leak memory. In these situations, users are
+      // required to call `client.close()` in order to dispose of the acquired resources.
       // Users are already confronted with the same reality with the SessionFlusher at the time of writing this so the
       // working theory is that this should be fine.
       // Note: We have experimented with using `FinalizationRegisty` to clear the interval when the client is garbage
@@ -47,6 +48,12 @@ export class NodeClient extends ServerRuntimeClient<NodeClientOptions> {
       }, CLIENT_REPORT_FLUSH_INTERVAL_MS)
         // Unref is critical, otherwise we stop the process from exiting by itself
         .unref();
+
+      this._clientReportOnExitFlushListener = () => {
+        this._flushOutcomes();
+      };
+
+      process.on('beforeExit', this._clientReportOnExitFlushListener);
     }
   }
 
@@ -84,6 +91,10 @@ export class NodeClient extends ServerRuntimeClient<NodeClientOptions> {
   public close(timeout?: number | undefined): PromiseLike<boolean> {
     if (this._clientReportInterval) {
       clearInterval(this._clientReportInterval);
+    }
+
+    if (this._clientReportOnExitFlushListener) {
+      process.off('beforeExit', this._clientReportOnExitFlushListener);
     }
 
     return super.close(timeout);
