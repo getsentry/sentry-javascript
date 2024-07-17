@@ -19,7 +19,7 @@ import {type LoaderArgs, defer} from '@shopify/remix-oxygen';
 import favicon from '../public/favicon.svg';
 import type {HydrogenSession} from '../server';
 
-import * as Sentry from '@sentry/remix';
+import {captureRemixErrorBoundaryError} from '@sentry/remix';
 
 // This is important to avoid re-fetching root queries on sub-navigations
 export const shouldRevalidate: ShouldRevalidateFunction = ({
@@ -142,8 +142,8 @@ function App() {
   );
 }
 
-// export default Sentry.withSentry(App);
 export default App;
+// export default withSentry(App);
 
 export function ErrorBoundary() {
   const error = useRouteError();
@@ -152,8 +152,8 @@ export function ErrorBoundary() {
   let errorMessage = 'Unknown error';
   let errorStatus = 500;
 
-  // // Send the error to Sentry
-  // const eventId = Sentry.captureRemixErrorBoundaryError(error);
+  // Send the error to Sentry
+  const eventId = captureRemixErrorBoundaryError(error);
 
   if (isRouteErrorResponse(error)) {
     errorMessage = error?.data?.message ?? error.data;

@@ -4,8 +4,8 @@
   "type": "module",
   "scripts": {
     "build": "shopify hydrogen build",
-    "dev": "NODE_OPTIONS='--import ./instrument.server.mjs' shopify hydrogen dev",
-    "start": "NODE_OPTIONS='--import ./instrument.server.mjs' shopify hydrogen preview --build --verbose --debug",
+    "dev": "shopify hydrogen dev",
+    "start": "shopify hydrogen preview --build --verbose",
     "lint": "eslint --no-error-on-unmatched-pattern --ext .js,.ts,.jsx,.tsx .",
     "typecheck": "tsc --noEmit",
     "codegen": "shopify hydrogen codegen",
@@ -18,6 +18,7 @@
     "@remix-run/react": "2.9.2",
     "@remix-run/server-runtime": "^2.9.2",
     "@sentry/remix": "latest || *",
+    "@sentry/cloudflare": "latest || *",
     "@shopify/cli": "3.60.0",
     "@shopify/cli-hydrogen": "^8.1.1",
     "@shopify/hydrogen": "2024.4.7",
