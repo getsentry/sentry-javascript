@@ -1,7 +1,12 @@
+/**
+ * @vitest-environment jsdom
+ */
+
 /* eslint-disable @typescript-eslint/unbound-method */
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import type { Span } from '@sentry/types';
 import { writable } from 'svelte/store';
-import { vi } from 'vitest';
 
 import { navigating, page } from '$app/stores';
 

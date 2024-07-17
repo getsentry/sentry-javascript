@@ -1,3 +1,5 @@
+import { describe, expect, it } from 'vitest';
+
 import { getGlobalValueInjectionCode } from '../../src/vite/injectGlobalValues';
 
 describe('getGlobalValueInjectionCode', () => {

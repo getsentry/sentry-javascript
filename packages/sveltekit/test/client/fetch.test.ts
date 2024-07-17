@@ -1,3 +1,9 @@
+/**
+ * @vitest-environment jsdom
+ */
+
+import { beforeEach, describe, expect, it } from 'vitest';
+
 import { init } from '../../src/client/index';
 
 describe('instruments fetch', () => {

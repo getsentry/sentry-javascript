@@ -1,9 +1,9 @@
-import { vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { SupportedSvelteKitAdapters } from '../../src/vite/detectAdapter';
 import { getAdapterOutputDir, getHooksFileName, loadSvelteConfig } from '../../src/vite/svelteConfig';
 
-let existsFile;
+let existsFile: any;
 
 describe('loadSvelteConfig', () => {
   vi.mock('fs', () => {
@@ -25,7 +25,7 @@ describe('loadSvelteConfig', () => {
   // url apparently doesn't exist in the test environment, therefore we mock it:
   vi.mock('url', () => {
     return {
-      pathToFileURL: path => {
+      pathToFileURL: (path: string) => {
         return {
           href: path,
         };
@@ -58,7 +58,7 @@ describe('loadSvelteConfig', () => {
 describe('getAdapterOutputDir', () => {
   const mockedAdapter = {
     name: 'mocked-adapter',
-    adapt(builder) {
+    adapt(builder: any) {
       builder.writeClient('customBuildDir');
     },
   };
