@@ -292,7 +292,7 @@ export function addPerformanceEntries(span: Span): void {
       // There is a SO post attempting to explain this, but it leaves one with open questions: https://stackoverflow.com/questions/23191918/peformance-getentries-and-negative-duration-display
       // The way we clamp the value is probably not accurate, since we have observed this happen for things that may take a while to load, like for example the replay worker.
       // TODO: Investigate why this happens and how to properly mitigate. For now, this is a workaround to prevent transactions being dropped due to negative duration spans.
-      entry.duration < 0 ? 0 : entry.duration,
+      Math.max(0, entry.duration),
     );
 
     if (op === 'navigation' && transactionStartTime && timeOrigin + startTime < transactionStartTime) {
