@@ -47,7 +47,6 @@ const INTEGRATION_NAME = 'Nest';
 export const instrumentNest = generateInstrumentOnce(INTEGRATION_NAME, () => new NestInstrumentation());
 
 const _nestIntegration = (() => {
-  logger.log('nest integration');
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
