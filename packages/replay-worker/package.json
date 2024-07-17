@@ -32,8 +32,8 @@
     "clean": "rimraf build",
     "fix": "eslint . --format stylish --fix",
     "lint": "eslint . --format stylish",
-    "test": "jest",
-    "test:watch": "jest --watch"
+    "test": "vitest run",
+    "test:watch": "vitest --watch"
   },
   "repository": {
     "type": "git",
