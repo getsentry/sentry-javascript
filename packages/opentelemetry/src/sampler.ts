@@ -70,10 +70,13 @@ export class SentrySampler implements Sampler {
     } = inferSpanData(spanName, spanAttributes, spanKind);
 
     const mergedAttributes = {
-      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: op,
       ...inferredAttributes,
       ...spanAttributes,
     };
+
+    if (op) {
+      mergedAttributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] = op;
+    }
 
     const mutableSamplingDecision = { decision: true };
     this._client.emit(
