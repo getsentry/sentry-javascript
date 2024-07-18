@@ -8,6 +8,13 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 8.19.0
+
+- feat(core): Align Span interface with OTEL (#12898)
+- fix(angular): Remove `afterSendEvent` listener once root injector is destroyed (#12786)
+- fix(browser): Fix bug causing unintentional dropping of transactions (#12933)
+- fix(feedback): Add a missing call of Actor.appendToDom method when DOMContentLoaded event is triggered (#12973)
+
 Work in this release was contributed by @jaspreet57 and @arturovt. Thank you for your contribution!
 
 ## 8.18.0
