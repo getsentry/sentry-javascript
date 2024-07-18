@@ -4,6 +4,7 @@
   "include": ["src/**/*"],
 
   "compilerOptions": {
-    "types": ["@cloudflare/workers-types"]
+    "module": "esnext",
+    "types": ["node", "@cloudflare/workers-types"]
   }
 }
