@@ -289,9 +289,7 @@ export function continueTrace<T>(options: Parameters<typeof baseContinueTrace>[0
 function getActiveSpanWrapper<T>(parentSpan: Span | SentrySpan | undefined | null): (callback: () => T) => T {
   return parentSpan !== undefined
     ? (callback: () => T) => {
-        // We cast this, because the OTEL Span has a few more methods than our Span interface
-        // TODO: Add these missing methods to the Span interface
-        return withActiveSpan(parentSpan as Span, callback);
+        return withActiveSpan(parentSpan, callback);
       }
     : (callback: () => T) => callback();
 }
