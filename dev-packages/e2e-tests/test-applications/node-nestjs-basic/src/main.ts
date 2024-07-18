@@ -2,9 +2,9 @@
 import './instrument';
 
 // Import other modules
-import {BaseExceptionFilter, HttpAdapterHost, NestFactory} from '@nestjs/core';
+import { BaseExceptionFilter, HttpAdapterHost, NestFactory } from '@nestjs/core';
+import * as Sentry from '@sentry/nestjs';
 import { AppModule } from './app.module';
-import * as Sentry from "@sentry/nestjs";
 
 const PORT = 3030;
 

@@ -2,10 +2,10 @@
 import './instrument';
 
 // Import other modules
-import {BaseExceptionFilter, HttpAdapterHost, NestFactory} from '@nestjs/core';
+import { BaseExceptionFilter, HttpAdapterHost, NestFactory } from '@nestjs/core';
+import * as Sentry from '@sentry/nestjs';
 import { TraceInitiatorModule } from './trace-initiator.module';
 import { TraceReceiverModule } from './trace-receiver.module';
-import * as Sentry from "@sentry/nestjs";
 
 const TRACE_INITIATOR_PORT = 3030;
 const TRACE_RECEIVER_PORT = 3040;

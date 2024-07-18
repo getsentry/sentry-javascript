@@ -1,9 +1,9 @@
 import { expect, test } from '@playwright/test';
-import {waitForError, waitForTransaction} from '@sentry-internal/test-utils';
+import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
 
 test('Handles exception correctly and does not send to Sentry if exception is thrown in module', async ({
-                                                                                                          baseURL,
-                                                                                                        }) => {
+  baseURL,
+}) => {
   let errorEventOccurred = false;
 
   waitForError('nestjs', event => {

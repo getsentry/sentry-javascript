@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
+import { SentryIntegrationModule } from '@sentry/nestjs/setup';
 import { TraceInitiatorController } from './trace-initiator.controller';
 import { TraceInitiatorService } from './trace-initiator.service';
-import {SentryIntegrationModule} from "@sentry/nestjs/setup";
 
 @Module({
   imports: [SentryIntegrationModule.forRoot()],
