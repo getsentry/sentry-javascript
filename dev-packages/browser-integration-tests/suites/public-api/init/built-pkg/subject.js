@@ -58,6 +58,5 @@ Sentry.withScope(scope => {
 
 var xhr = new XMLHttpRequest();
 xhr.onload = () => console.log('loaded'); // This throws error
-xhr.addEventListener('load', () => console.log('loaded')); // This does not throw error
 xhr.open('GET', 'https://httpbin.org/get');
 xhr.send();
