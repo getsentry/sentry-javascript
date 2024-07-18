@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { makeHttpRequest } from './utils';
 
 @Injectable()
-export class AppService1 {
+export class TraceInitiatorService {
   constructor() {}
 
   testInboundHeaders(headers: Record<string, string>, id: string) {
@@ -43,22 +43,5 @@ export class AppService1 {
 
   async testOutgoingHttpExternalDisallowed() {
     return makeHttpRequest('http://localhost:3040/external-disallowed');
-  }
-}
-
-@Injectable()
-export class AppService2 {
-  externalAllowed(headers: Record<string, string>) {
-    return {
-      headers,
-      route: 'external-allowed',
-    };
-  }
-
-  externalDisallowed(headers: Record<string, string>) {
-    return {
-      headers,
-      route: 'external-disallowed',
-    };
   }
 }

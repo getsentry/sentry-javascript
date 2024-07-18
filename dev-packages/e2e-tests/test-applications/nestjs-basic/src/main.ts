@@ -6,7 +6,7 @@ import { BaseExceptionFilter, HttpAdapterHost, NestFactory } from '@nestjs/core'
 import * as Sentry from '@sentry/nestjs';
 import { AppModule } from './app.module';
 
-const app1Port = 3030;
+const PORT = 3030;
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -14,7 +14,7 @@ async function bootstrap() {
   const { httpAdapter } = app.get(HttpAdapterHost);
   Sentry.setupNestErrorHandler(app, new BaseExceptionFilter(httpAdapter));
 
-  await app.listen(app1Port);
+  await app.listen(PORT);
 }
 
 bootstrap();
