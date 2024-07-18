@@ -1,4 +1,4 @@
-import { vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { Plugin } from 'vite';
 import { makeCustomSentryVitePlugins } from '../../src/vite/sourceMaps';

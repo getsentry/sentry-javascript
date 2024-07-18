@@ -1,7 +1,8 @@
+import { afterEach, describe, expect, it, vi } from 'vitest';
+
 import type { BrowserClient } from '@sentry/svelte';
 import * as SentrySvelte from '@sentry/svelte';
 import { SDK_VERSION, getClient, getCurrentScope, getGlobalScope, getIsolationScope } from '@sentry/svelte';
-import { vi } from 'vitest';
 
 import { init } from '../../src/client';
 

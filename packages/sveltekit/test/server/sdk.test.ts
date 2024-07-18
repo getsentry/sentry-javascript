@@ -1,8 +1,9 @@
+import { afterEach, describe, expect, it, vi } from 'vitest';
+
 import * as SentryNode from '@sentry/node';
 import type { NodeClient } from '@sentry/node';
 import { SDK_VERSION, getClient } from '@sentry/node';
 
-import { vi } from 'vitest';
 import { init } from '../../src/server/sdk';
 
 const nodeInit = vi.spyOn(SentryNode, 'init');
