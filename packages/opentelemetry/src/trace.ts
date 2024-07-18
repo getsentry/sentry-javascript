@@ -286,8 +286,8 @@ export function continueTrace<T>(options: Parameters<typeof baseContinueTrace>[0
   });
 }
 
-function getActiveSpanWrapper<T>(parentSpan?: Span | SentrySpan): (callback: () => T) => T {
-  return parentSpan
+function getActiveSpanWrapper<T>(parentSpan: Span | SentrySpan | undefined | null): (callback: () => T) => T {
+  return parentSpan !== undefined
     ? (callback: () => T) => {
         return withActiveSpan(parentSpan, callback);
       }

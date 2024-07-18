@@ -20,8 +20,9 @@ export interface StartSpanOptions {
   /**
    * If provided, make the new span a child of this span.
    * If this is not provided, the new span will be a child of the currently active span.
+   * If this is set to `null`, the new span will have no parent span.
    */
-  parentSpan?: Span;
+  parentSpan?: Span | null;
 
   /**
    * If set to true, this span will be forced to be treated as a transaction in the Sentry UI, if possible and applicable.

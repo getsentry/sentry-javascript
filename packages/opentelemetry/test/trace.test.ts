@@ -325,6 +325,16 @@ describe('trace', () => {
       expect(getActiveSpan()).toBe(undefined);
     });
 
+    it('allows to pass parentSpan=null', () => {
+      startSpan({ name: 'GET users/[id' }, () => {
+        startSpan({ name: 'child', parentSpan: null }, span => {
+          // Due to the way we propagate the scope in OTEL,
+          // the parent_span_id is not actually undefined here, but comes from the propagation context
+          expect(spanToJSON(span).parent_span_id).toBe(getCurrentScope().getPropagationContext().spanId);
+        });
+      });
+    });
+
     it('allows to force a transaction with forceTransaction=true', async () => {
       const client = getClient()!;
       const transactionEvents: Event[] = [];
@@ -575,6 +585,17 @@ describe('trace', () => {
       expect(spanToJSON(span).parent_span_id).toBe(parentSpan!.spanContext().spanId);
 
       expect(getActiveSpan()).toBe(undefined);
+    });
+
+    it('allows to pass parentSpan=null', () => {
+      startSpan({ name: 'outer' }, () => {
+        const span = startInactiveSpan({ name: 'test span', parentSpan: null });
+
+        // Due to the way we propagate the scope in OTEL,
+        // the parent_span_id is not actually undefined here, but comes from the propagation context
+        expect(spanToJSON(span).parent_span_id).toBe(getCurrentScope().getPropagationContext().spanId);
+        span.end();
+      });
     });
 
     it('allows to force a transaction with forceTransaction=true', async () => {
@@ -854,6 +875,17 @@ describe('trace', () => {
       });
 
       expect(getActiveSpan()).toBe(undefined);
+    });
+
+    it('allows to pass parentSpan=null', () => {
+      startSpan({ name: 'outer' }, () => {
+        startSpanManual({ name: 'GET users/[id]', parentSpan: null }, span => {
+          // Due to the way we propagate the scope in OTEL,
+          // the parent_span_id is not actually undefined here, but comes from the propagation context
+          expect(spanToJSON(span).parent_span_id).toBe(getCurrentScope().getPropagationContext().spanId);
+          span.end();
+        });
+      });
     });
 
     it('allows to force a transaction with forceTransaction=true', async () => {

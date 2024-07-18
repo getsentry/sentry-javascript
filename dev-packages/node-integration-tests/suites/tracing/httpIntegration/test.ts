@@ -75,4 +75,118 @@ describe('httpIntegration', () => {
       .start(done)
       .makeRequest('get', '/test');
   });
+
+  describe("doesn't create a root span for incoming requests ignored via `ignoreIncomingRequests`", () => {
+    test('via the url param', done => {
+      const runner = createRunner(__dirname, 'server-ignoreIncomingRequests.js')
+        .expect({
+          transaction: {
+            contexts: {
+              trace: {
+                span_id: expect.any(String),
+                trace_id: expect.any(String),
+                data: {
+                  url: expect.stringMatching(/\/test$/),
+                  'http.response.status_code': 200,
+                },
+                op: 'http.server',
+                status: 'ok',
+              },
+            },
+            transaction: 'GET /test',
+          },
+        })
+        .start(done);
+
+      runner.makeRequest('get', '/liveness'); // should be ignored
+      runner.makeRequest('get', '/test');
+    });
+
+    test('via the request param', done => {
+      const runner = createRunner(__dirname, 'server-ignoreIncomingRequests.js')
+        .expect({
+          transaction: {
+            contexts: {
+              trace: {
+                span_id: expect.any(String),
+                trace_id: expect.any(String),
+                data: {
+                  url: expect.stringMatching(/\/test$/),
+                  'http.response.status_code': 200,
+                },
+                op: 'http.server',
+                status: 'ok',
+              },
+            },
+            transaction: 'GET /test',
+          },
+        })
+        .start(done);
+
+      runner.makeRequest('post', '/readiness'); // should be ignored
+      runner.makeRequest('get', '/test');
+    });
+  });
+
+  describe("doesn't create child spans for outgoing requests ignored via `ignoreOutgoingRequests`", () => {
+    test('via the url param', done => {
+      const runner = createRunner(__dirname, 'server-ignoreOutgoingRequests.js')
+        .expect({
+          transaction: {
+            contexts: {
+              trace: {
+                span_id: expect.any(String),
+                trace_id: expect.any(String),
+                data: {
+                  url: expect.stringMatching(/\/test$/),
+                  'http.response.status_code': 200,
+                },
+                op: 'http.server',
+                status: 'ok',
+              },
+            },
+            transaction: 'GET /test',
+            spans: [
+              expect.objectContaining({ op: 'middleware.express', description: 'query' }),
+              expect.objectContaining({ op: 'middleware.express', description: 'expressInit' }),
+              expect.objectContaining({ op: 'middleware.express', description: 'corsMiddleware' }),
+              expect.objectContaining({ op: 'request_handler.express', description: '/test' }),
+            ],
+          },
+        })
+        .start(done);
+
+      runner.makeRequest('get', '/test');
+    });
+
+    test('via the request param', done => {
+      const runner = createRunner(__dirname, 'server-ignoreOutgoingRequests.js')
+        .expect({
+          transaction: {
+            contexts: {
+              trace: {
+                span_id: expect.any(String),
+                trace_id: expect.any(String),
+                data: {
+                  url: expect.stringMatching(/\/testPath$/),
+                  'http.response.status_code': 200,
+                },
+                op: 'http.server',
+                status: 'ok',
+              },
+            },
+            transaction: 'POST /testPath',
+            spans: [
+              expect.objectContaining({ op: 'middleware.express', description: 'query' }),
+              expect.objectContaining({ op: 'middleware.express', description: 'expressInit' }),
+              expect.objectContaining({ op: 'middleware.express', description: 'corsMiddleware' }),
+              expect.objectContaining({ op: 'request_handler.express', description: '/testPath' }),
+            ],
+          },
+        })
+        .start(done);
+
+      runner.makeRequest('post', '/testPath');
+    });
+  });
 });

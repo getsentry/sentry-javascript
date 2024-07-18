@@ -92,6 +92,7 @@ function shouldAddPerformanceIntegrations(options: Options): boolean {
   }
 
   // We want to ensure `tracesSampleRate` is not just undefined/null here
+  // eslint-disable-next-line deprecation/deprecation
   return options.enableTracing || options.tracesSampleRate != null || 'tracesSampler' in options;
 }
 
@@ -131,7 +132,7 @@ function _init(
   }
 
   if (!isCjs() && options.registerEsmLoaderHooks !== false) {
-    maybeInitializeEsmLoader();
+    maybeInitializeEsmLoader(options.registerEsmLoaderHooks === true ? undefined : options.registerEsmLoaderHooks);
   }
 
   setOpenTelemetryContextAsyncContextStrategy();

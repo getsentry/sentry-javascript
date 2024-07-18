@@ -44,6 +44,11 @@ describe('solidRouterBrowserTracingIntegration', () => {
       tracesSampleRate: 1,
       transport: () => createTransport({ recordDroppedEvent: () => undefined }, _ => Promise.resolve({})),
       stackParser: () => [],
+      _metadata: {
+        sdk: {
+          name: 'sentry.javascript.solid',
+        },
+      },
     });
   }
 

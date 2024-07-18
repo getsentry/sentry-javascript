@@ -5,18 +5,4 @@
 
 module.exports = {
   extends: ['../../.eslintrc.js'],
-  overrides: [
-    {
-      files: ['src/**/*.ts'],
-    },
-    {
-      files: ['jest.setup.ts', 'jest.config.ts'],
-      parserOptions: {
-        project: ['tsconfig.test.json'],
-      },
-      rules: {
-        'no-console': 'off',
-      },
-    },
-  ],
 };

@@ -8,7 +8,7 @@
     "test:prod": "TEST_ENV=production __NEXT_EXPERIMENTAL_INSTRUMENTATION=1 playwright test",
     "test:dev": "TEST_ENV=development __NEXT_EXPERIMENTAL_INSTRUMENTATION=1 playwright test",
     "test:build": "pnpm install && npx playwright install && pnpm build",
-    "test:build-canary": "pnpm install && pnpm add next@rc && pnpm add react@beta && pnpm add react-dom@beta && npx playwright install && pnpm build",
+    "test:build-canary": "pnpm install && pnpm add next@canary && pnpm add react@beta && pnpm add react-dom@beta && npx playwright install && pnpm build",
     "test:build-latest": "pnpm install && pnpm add next@rc && pnpm add react@beta && pnpm add react-dom@beta && npx playwright install && pnpm build",
     "test:assert": "pnpm test:prod && pnpm test:dev"
   },
