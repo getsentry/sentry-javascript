@@ -4,7 +4,12 @@ import { isSpanContextValid, trace } from '@opentelemetry/api';
 import { TraceState } from '@opentelemetry/core';
 import type { Sampler, SamplingResult } from '@opentelemetry/sdk-trace-base';
 import { SamplingDecision } from '@opentelemetry/sdk-trace-base';
-import { SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, hasTracingEnabled, sampleSpan } from '@sentry/core';
+import {
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
+  hasTracingEnabled,
+  sampleSpan,
+} from '@sentry/core';
 import type { Client, SpanAttributes } from '@sentry/types';
 import { logger } from '@sentry/utils';
 import { SENTRY_TRACE_STATE_SAMPLED_NOT_RECORDING, SENTRY_TRACE_STATE_URL } from './constants';
@@ -13,6 +18,7 @@ import { SEMATTRS_HTTP_METHOD, SEMATTRS_HTTP_URL } from '@opentelemetry/semantic
 import { DEBUG_BUILD } from './debug-build';
 import { getPropagationContextFromSpan } from './propagator';
 import { getSamplingDecision } from './utils/getSamplingDecision';
+import { inferSpanData } from './utils/parseSpanDescription';
 import { setIsSetup } from './utils/setupCheck';
 
 /**
@@ -56,12 +62,28 @@ export class SentrySampler implements Sampler {
 
     const parentSampled = parentSpan ? getParentSampled(parentSpan, traceId, spanName) : undefined;
 
+    // We want to pass the inferred name & attributes to the sampler method
+    const {
+      description: inferredSpanName,
+      data: inferredAttributes,
+      op,
+    } = inferSpanData(spanName, spanAttributes, spanKind);
+
+    const mergedAttributes = {
+      ...inferredAttributes,
+      ...spanAttributes,
+    };
+
+    if (op) {
+      mergedAttributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] = op;
+    }
+
     const mutableSamplingDecision = { decision: true };
     this._client.emit(
       'beforeSampling',
       {
-        spanAttributes: spanAttributes,
-        spanName: spanName,
+        spanAttributes: mergedAttributes,
+        spanName: inferredSpanName,
         parentSampled: parentSampled,
         parentContext: parentContext,
       },
@@ -72,10 +94,10 @@ export class SentrySampler implements Sampler {
     }
 
     const [sampled, sampleRate] = sampleSpan(options, {
-      name: spanName,
-      attributes: spanAttributes,
+      name: inferredSpanName,
+      attributes: mergedAttributes,
       transactionContext: {
-        name: spanName,
+        name: inferredSpanName,
         parentSampled,
       },
       parentSampled,

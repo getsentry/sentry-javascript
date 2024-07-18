@@ -45,8 +45,6 @@ export function startSpan<T>(options: OpenTelemetrySpanContext, callback: (span:
     const spanOptions = getSpanOptions(options);
 
     return tracer.startActiveSpan(name, spanOptions, ctx, span => {
-      _applySentryAttributesToSpan(span, options);
-
       return handleCallbackErrors(
         () => callback(span),
         () => {
@@ -90,8 +88,6 @@ export function startSpanManual<T>(
     const spanOptions = getSpanOptions(options);
 
     return tracer.startActiveSpan(name, spanOptions, ctx, span => {
-      _applySentryAttributesToSpan(span, options);
-
       return handleCallbackErrors(
         () => callback(span, () => span.end()),
         () => {
@@ -131,8 +127,6 @@ export function startInactiveSpan(options: OpenTelemetrySpanContext): Span {
 
     const span = tracer.startSpan(name, spanOptions, ctx);
 
-    _applySentryAttributesToSpan(span, options);
-
     return span;
   });
 }
@@ -156,22 +150,19 @@ function getTracer(): Tracer {
   return (client && client.tracer) || trace.getTracer('@sentry/opentelemetry', SDK_VERSION);
 }
 
-function _applySentryAttributesToSpan(span: Span, options: OpenTelemetrySpanContext): void {
-  const { op } = options;
-
-  if (op) {
-    span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, op);
-  }
-}
-
 function getSpanOptions(options: OpenTelemetrySpanContext): SpanOptions {
-  const { startTime, attributes, kind } = options;
+  const { startTime, attributes, kind, op } = options;
 
   // OTEL expects timestamps in ms, not seconds
   const fixedStartTime = typeof startTime === 'number' ? ensureTimestampInMilliseconds(startTime) : startTime;
 
   return {
-    attributes,
+    attributes: op
+      ? {
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: op,
+          ...attributes,
+        }
+      : attributes,
     kind,
     startTime: fixedStartTime,
   };
