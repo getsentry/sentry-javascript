@@ -85,7 +85,7 @@ class SentryErrorHandler implements AngularErrorHandler, OnDestroy {
   protected readonly _options: ErrorHandlerOptions;
 
   /** The cleanup function is executed when the injector is destroyed. */
-  private _removeAfterSendEventListener?: VoidFunction;
+  private _removeAfterSendEventListener?: () => void;
 
   public constructor(@Inject('errorHandlerOptions') options?: ErrorHandlerOptions) {
     this._options = {
@@ -130,7 +130,7 @@ class SentryErrorHandler implements AngularErrorHandler, OnDestroy {
         this._removeAfterSendEventListener = client.on('afterSendEvent', (event: Event) => {
           if (!event.type && event.event_id) {
             runOutsideAngular(() => {
-              Sentry.showReportDialog({ ...this._options.dialogOptions, eventId: event.event_id! });
+              Sentry.showReportDialog({ ...this._options.dialogOptions, eventId: event.event_id });
             });
           }
         });
