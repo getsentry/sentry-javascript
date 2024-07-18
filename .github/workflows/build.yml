@@ -1037,6 +1037,8 @@ jobs:
             'generic-ts3.8',
             'node-fastify',
             'node-hapi',
+            'node-nestjs-basic',
+            'node-nestjs-distributed-tracing',
             'nestjs-basic',
             'nestjs-distributed-tracing',
             'nestjs-with-submodules',
