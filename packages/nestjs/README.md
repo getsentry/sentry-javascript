@@ -38,12 +38,12 @@ Sentry.init({
 
 Note that it is necessary to initialize Sentry **before you import any package that may be instrumented by us**.
 
-## Span Decorator
+## SentryTraced
 
-Use the @SentryTraced() decorator to gain additional performance insights for any function within your NestJS
+Use the `@SentryTraced()` decorator to gain additional performance insights for any function within your NestJS
 applications.
 
-```typescript
+```js
 import { Injectable } from '@nestjs/common';
 import { SentryTraced } from '@sentry/nestjs';
 
@@ -58,10 +58,10 @@ export class ExampleService {
 
 ## SentryCron
 
-Use the @SentryCron() decorator to augment the native NestJS `@Cron` decorator to
+Use the `@SentryCron()` decorator to augment the native NestJS `@Cron` decorator to
 send check-ins to Sentry before and after each cron job run.
 
-```typescript
+```js
 import { Cron } from '@nestjs/schedule';
 import { SentryCron, MonitorConfig } from '@sentry/nestjs';
 import type { MonitorConfig } from '@sentry/types';
