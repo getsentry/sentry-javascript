@@ -1,4 +1,4 @@
-import type { ClientRequest, ServerResponse } from 'node:http';
+import type { ClientRequest, IncomingMessage, RequestOptions, ServerResponse } from 'node:http';
 import type { Span } from '@opentelemetry/api';
 import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
 import { addOpenTelemetryInstrumentation } from '@sentry/opentelemetry';
@@ -37,8 +37,11 @@ interface HttpOptions {
    *
    * The `url` param contains the entire URL, including query string (if any), protocol, host, etc. of the outgoing request.
    * For example: `'https://someService.com/users/details?id=123'`
+   *
+   * The `request` param contains the original {@type RequestOptions} object used to make the outgoing request.
+   * You can use it to filter on additional properties like method, headers, etc.
    */
-  ignoreOutgoingRequests?: (url: string) => boolean;
+  ignoreOutgoingRequests?: (url: string, request: RequestOptions) => boolean;
 
   /**
    * Do not capture spans or breadcrumbs for incoming HTTP requests to URLs where the given callback returns `true`.
@@ -46,8 +49,11 @@ interface HttpOptions {
    *
    * The `urlPath` param consists of the URL path and query string (if any) of the incoming request.
    * For example: `'/users/details?id=123'`
+   *
+   * The `request` param contains the original {@type IncomingMessage} object of the incoming request.
+   * You can use it to filter on additional properties like method, headers, etc.
    */
-  ignoreIncomingRequests?: (urlPath: string) => boolean;
+  ignoreIncomingRequests?: (urlPath: string, request: IncomingMessage) => boolean;
 
   /**
    * Additional instrumentation options that are passed to the underlying HttpInstrumentation.
@@ -101,7 +107,7 @@ export const instrumentHttp = Object.assign(
         }
 
         const _ignoreOutgoingRequests = _httpOptions.ignoreOutgoingRequests;
-        if (_ignoreOutgoingRequests && _ignoreOutgoingRequests(url)) {
+        if (_ignoreOutgoingRequests && _ignoreOutgoingRequests(url, request)) {
           return true;
         }
 
@@ -120,7 +126,7 @@ export const instrumentHttp = Object.assign(
         }
 
         const _ignoreIncomingRequests = _httpOptions.ignoreIncomingRequests;
-        if (urlPath && _ignoreIncomingRequests && _ignoreIncomingRequests(urlPath)) {
+        if (urlPath && _ignoreIncomingRequests && _ignoreIncomingRequests(urlPath, request)) {
           return true;
         }
 

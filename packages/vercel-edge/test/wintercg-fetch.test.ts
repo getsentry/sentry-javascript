@@ -1,3 +1,5 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import * as sentryCore from '@sentry/core';
 import type { HandlerDataFetch, Integration } from '@sentry/types';
 import * as sentryUtils from '@sentry/utils';
@@ -12,15 +14,15 @@ class FakeClient extends VercelEdgeClient {
   }
 }
 
-const addFetchInstrumentationHandlerSpy = jest.spyOn(sentryUtils, 'addFetchInstrumentationHandler');
-const instrumentFetchRequestSpy = jest.spyOn(sentryCore, 'instrumentFetchRequest');
-const addBreadcrumbSpy = jest.spyOn(sentryCore, 'addBreadcrumb');
+const addFetchInstrumentationHandlerSpy = vi.spyOn(sentryUtils, 'addFetchInstrumentationHandler');
+const instrumentFetchRequestSpy = vi.spyOn(sentryCore, 'instrumentFetchRequest');
+const addBreadcrumbSpy = vi.spyOn(sentryCore, 'addBreadcrumb');
 
 describe('WinterCGFetch instrumentation', () => {
   let client: FakeClient;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     client = new FakeClient({
       dsn: 'https://public@dsn.ingest.sentry.io/1337',
@@ -35,7 +37,7 @@ describe('WinterCGFetch instrumentation', () => {
       stackParser: createStackParser(),
     });
 
-    jest.spyOn(sentryCore, 'getClient').mockImplementation(() => client);
+    vi.spyOn(sentryCore, 'getClient').mockImplementation(() => client);
   });
 
   it('should call `instrumentFetchRequest` for outgoing fetch requests', () => {

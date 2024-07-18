@@ -10,8 +10,14 @@ Sentry.init({
 
   integrations: [
     Sentry.httpIntegration({
-      ignoreOutgoingRequests: url => {
-        return url.includes('example.com');
+      ignoreOutgoingRequests: (url, request) => {
+        if (url.includes('example.com')) {
+          return true;
+        }
+        if (request.method === 'POST' && request.path === '/path') {
+          return true;
+        }
+        return false;
       },
     }),
   ],
@@ -29,6 +35,17 @@ app.use(cors());
 app.get('/test', (_req, response) => {
   http
     .request('http://example.com/', res => {
+      res.on('data', () => {});
+      res.on('end', () => {
+        response.send({ response: 'done' });
+      });
+    })
+    .end();
+});
+
+app.post('/testPath', (_req, response) => {
+  http
+    .request('http://example.com/path', res => {
       res.on('data', () => {});
       res.on('end', () => {
         response.send({ response: 'done' });
