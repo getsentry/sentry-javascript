@@ -24,7 +24,7 @@ yarn add @sentry/nestjs
 
 ## Usage
 
-```js
+```typescript
 // CJS Syntax
 const Sentry = require('@sentry/nestjs');
 // ESM Syntax
@@ -38,12 +38,12 @@ Sentry.init({
 
 Note that it is necessary to initialize Sentry **before you import any package that may be instrumented by us**.
 
-## Span Decorator
+## SentryTraced
 
-Use the @SentryTraced() decorator to gain additional performance insights for any function within your NestJS
+Use the `@SentryTraced()` decorator to gain additional performance insights for any function within your NestJS
 applications.
 
-```js
+```typescript
 import { Injectable } from '@nestjs/common';
 import { SentryTraced } from '@sentry/nestjs';
 
@@ -52,6 +52,35 @@ export class ExampleService {
   @SentryTraced('example function')
   async performTask() {
     // Your business logic here
+  }
+}
+```
+
+## SentryCron
+
+Use the `@SentryCron()` decorator to augment the native NestJS `@Cron` decorator to send check-ins to Sentry before and
+after each cron job run.
+
+```typescript
+import { Cron } from '@nestjs/schedule';
+import { SentryCron, MonitorConfig } from '@sentry/nestjs';
+import type { MonitorConfig } from '@sentry/types';
+
+const monitorConfig: MonitorConfig = {
+  schedule: {
+    type: 'crontab',
+    value: '* * * * *',
+  },
+  checkinMargin: 2, // In minutes. Optional.
+  maxRuntime: 10, // In minutes. Optional.
+  timezone: 'America/Los_Angeles', // Optional.
+};
+
+export class MyCronService {
+  @Cron('* * * * *')
+  @SentryCron('my-monitor-slug', monitorConfig)
+  handleCron() {
+    // Your cron job logic here
   }
 }
 ```
