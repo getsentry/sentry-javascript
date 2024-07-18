@@ -25,11 +25,15 @@ import { logger } from '@sentry/utils';
 import type { Observable } from 'rxjs';
 
 /**
- *
+ * Note: We cannot use @ syntax to add the decorators, so we add them directly below the classes as function wrappers.
+ */
+
+/**
+ * Interceptor to add Sentry tracing capabilities to Nest.js applications.
  */
 export class SentryTracingInterceptor implements NestInterceptor {
   /**
-   *
+   * Intercepts HTTP requests to set the transaction name for Sentry tracing.
    */
   public intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
     if (getIsolationScope() === getDefaultIsolationScope()) {
@@ -49,13 +53,14 @@ export class SentryTracingInterceptor implements NestInterceptor {
     return next.handle();
   }
 }
+Injectable()(SentryTracingInterceptor);
 
 /**
- *
+ * Global filter to handle exceptions and report them to Sentry.
  */
 export class SentryGlobalFilter extends BaseExceptionFilter {
   /**
-   *
+   * Catches exceptions and reports them to Sentry unless they are expected errors.
    */
   public catch(exception: unknown, host: ArgumentsHost): void {
     const status_code = (exception as { status?: number }).status;
@@ -69,13 +74,14 @@ export class SentryGlobalFilter extends BaseExceptionFilter {
     return super.catch(exception, host);
   }
 }
+Catch()(SentryGlobalFilter);
 
 /**
- * Set up a nest service that provides error handling and performance tracing.
+ * Service to set up Sentry performance tracing for Nest.js applications.
  */
 export class SentryIntegrationService implements OnModuleInit {
   /**
-   * Called when the SentryModuleIntegration gets initialized.
+   * Initializes the Sentry integration service and registers span attributes.
    */
   public onModuleInit(): void {
     // Sadly, NestInstrumentation has no requestHook, so we need to add the attributes here
@@ -89,13 +95,14 @@ export class SentryIntegrationService implements OnModuleInit {
     }
   }
 }
+Injectable()(SentryIntegrationService);
 
 /**
  * Set up a root module that can be injected in nest applications.
  */
 export class SentryIntegrationModule {
   /**
-   * Called by the user to set the module as root module in a nest application.
+   * Configures the module as the root module in a Nest.js application.
    */
   public static forRoot(): DynamicModule {
     return {
@@ -115,6 +122,21 @@ export class SentryIntegrationModule {
     };
   }
 }
+Global()(SentryIntegrationModule);
+Module({
+  providers: [
+    SentryIntegrationService,
+    {
+      provide: APP_FILTER,
+      useClass: SentryGlobalFilter,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: SentryTracingInterceptor,
+    },
+  ],
+  exports: [SentryIntegrationService],
+})(SentryIntegrationModule);
 
 function addNestSpanAttributes(span: Span): void {
   const attributes = spanToJSON(span).data || {};
@@ -132,22 +154,3 @@ function addNestSpanAttributes(span: Span): void {
     [SEMANTIC_ATTRIBUTE_SENTRY_OP]: `${type}.nestjs`,
   });
 }
-
-Catch()(SentryGlobalFilter);
-Injectable()(SentryTracingInterceptor);
-Injectable()(SentryIntegrationService);
-Global()(SentryIntegrationModule);
-Module({
-  providers: [
-    SentryIntegrationService,
-    {
-      provide: APP_FILTER,
-      useClass: SentryGlobalFilter,
-    },
-    {
-      provide: APP_INTERCEPTOR,
-      useClass: SentryTracingInterceptor,
-    },
-  ],
-  exports: [SentryIntegrationService],
-})(SentryIntegrationModule);
