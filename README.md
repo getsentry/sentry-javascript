@@ -53,6 +53,7 @@ package. Please refer to the README and instructions of those SDKs for more deta
 - [`@sentry/vue`](https://github.com/getsentry/sentry-javascript/tree/master/packages/vue): Browser SDK for Vue
 - [`@sentry/solid`](https://github.com/getsentry/sentry-javascript/tree/master/packages/solid): Browser SDK for Solid
 - [`@sentry/gatsby`](https://github.com/getsentry/sentry-javascript/tree/master/packages/gatsby): SDK for Gatsby
+- [`@sentry/nestjs`](https://github.com/getsentry/sentry-javascript/tree/master/packages/nestjs): SDK for NestJS
 - [`@sentry/nextjs`](https://github.com/getsentry/sentry-javascript/tree/master/packages/nextjs): SDK for Next.js
 - [`@sentry/remix`](https://github.com/getsentry/sentry-javascript/tree/master/packages/remix): SDK for Remix
 - [`@sentry/aws-serverless`](https://github.com/getsentry/sentry-javascript/tree/master/packages/aws-serverless): SDK
