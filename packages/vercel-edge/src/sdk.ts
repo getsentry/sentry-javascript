@@ -1,4 +1,5 @@
 import {
+  dedupeIntegration,
   functionToStringIntegration,
   getIntegrationsToSetup,
   inboundFiltersIntegration,
@@ -25,6 +26,7 @@ const nodeStackParser = createStackParser(nodeStackLineParser());
 /** Get the default integrations for the browser SDK. */
 export function getDefaultIntegrations(options: Options): Integration[] {
   return [
+    dedupeIntegration(),
     inboundFiltersIntegration(),
     functionToStringIntegration(),
     linkedErrorsIntegration(),
