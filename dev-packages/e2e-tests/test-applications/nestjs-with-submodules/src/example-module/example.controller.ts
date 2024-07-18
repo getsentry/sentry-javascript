@@ -6,7 +6,7 @@ export class ExampleController {
   constructor() {}
 
   @Get()
-  getTest(): string {
+  getExampleException(): string {
     throw new ExampleException();
   }
 }

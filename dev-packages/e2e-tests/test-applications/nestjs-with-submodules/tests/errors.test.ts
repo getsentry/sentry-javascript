@@ -7,18 +7,18 @@ test('Handles exception correctly and does not send to Sentry if exception is th
   let errorEventOccurred = false;
 
   waitForError('nestjs', event => {
-    if (!event.type && event.exception?.values?.[0]?.value === 'Something went wrong in the test module!') {
+    if (!event.type && event.exception?.values?.[0]?.value === 'Something went wrong in the example module!') {
       errorEventOccurred = true;
     }
 
-    return event?.transaction === 'GET /test-module';
+    return event?.transaction === 'GET /example-module';
   });
 
   const transactionEventPromise = waitForTransaction('nestjs', transactionEvent => {
-    return transactionEvent?.transaction === 'GET /test-module';
+    return transactionEvent?.transaction === 'GET /example-module';
   });
 
-  const response = await fetch(`${baseURL}/test-module`);
+  const response = await fetch(`${baseURL}/example-module`);
   expect(response.status).toBe(400);
 
   await transactionEventPromise;
