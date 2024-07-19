@@ -20,7 +20,7 @@ const app = express();
 app.use(cors());
 
 app.get('/test/:id1/:id2', (_req, res) => {
-  Sentry.captureMessage(new Error('error_1'));
+  Sentry.captureException(new Error('error_1'));
   res.send('Success');
 });
 

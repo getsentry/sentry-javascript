@@ -83,16 +83,18 @@ type ExpressMiddleware = (
   next: (error: MiddlewareError) => void,
 ) => void;
 
-/**
- * An Express-compatible error handler.
- */
-export function expressErrorHandler(options?: {
+interface ExpressHandlerOptions {
   /**
    * Callback method deciding whether error should be captured and sent to Sentry
    * @param error Captured middleware error
    */
   shouldHandleError?(this: void, error: MiddlewareError): boolean;
-}): ExpressMiddleware {
+}
+
+/**
+ * An Express-compatible error handler.
+ */
+export function expressErrorHandler(options?: ExpressHandlerOptions): ExpressMiddleware {
   return function sentryErrorMiddleware(
     error: MiddlewareError,
     _req: http.IncomingMessage,
@@ -135,8 +137,11 @@ export function expressErrorHandler(options?: {
  * Setup an error handler for Express.
  * The error handler must be before any other middleware and after all controllers.
  */
-export function setupExpressErrorHandler(app: { use: (middleware: ExpressMiddleware) => unknown }): void {
-  app.use(expressErrorHandler());
+export function setupExpressErrorHandler(
+  app: { use: (middleware: ExpressMiddleware) => unknown },
+  options?: ExpressHandlerOptions,
+): void {
+  app.use(expressErrorHandler(options));
   ensureIsWrapped(app.use, 'express');
 }
 

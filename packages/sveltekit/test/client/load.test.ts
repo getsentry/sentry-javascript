@@ -1,7 +1,8 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import * as SentrySvelte from '@sentry/svelte';
 import type { Load } from '@sveltejs/kit';
 import { redirect } from '@sveltejs/kit';
-import { vi } from 'vitest';
 
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 import { wrapLoadWithSentry } from '../../src/client/load';

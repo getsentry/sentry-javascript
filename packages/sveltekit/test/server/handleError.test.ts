@@ -1,6 +1,7 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import * as SentryNode from '@sentry/node';
 import type { HandleServerError, RequestEvent } from '@sveltejs/kit';
-import { vi } from 'vitest';
 
 import { handleErrorWithSentry } from '../../src/server/handleError';
 

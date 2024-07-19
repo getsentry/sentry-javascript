@@ -1320,9 +1320,7 @@ describe('trace (sampling)', () => {
     expect(tracesSampler).toHaveBeenLastCalledWith({
       parentSampled: undefined,
       name: 'outer',
-      attributes: {
-        [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
-      },
+      attributes: {},
       transactionContext: { name: 'outer', parentSampled: undefined },
     });
 
@@ -1357,16 +1355,25 @@ describe('trace (sampling)', () => {
 
     mockSdkInit({ tracesSampler });
 
-    startSpan({ name: 'outer' }, outerSpan => {
-      expect(outerSpan).toBeDefined();
-    });
+    startSpan(
+      {
+        name: 'outer',
+        op: 'test.op',
+        attributes: { attr1: 'yes', attr2: 1 },
+      },
+      outerSpan => {
+        expect(outerSpan).toBeDefined();
+      },
+    );
 
-    expect(tracesSampler).toBeCalledTimes(1);
+    expect(tracesSampler).toHaveBeenCalledTimes(1);
     expect(tracesSampler).toHaveBeenLastCalledWith({
       parentSampled: undefined,
       name: 'outer',
       attributes: {
-        [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
+        attr1: 'yes',
+        attr2: 1,
+        'sentry.op': 'test.op',
       },
       transactionContext: { name: 'outer', parentSampled: undefined },
     });
