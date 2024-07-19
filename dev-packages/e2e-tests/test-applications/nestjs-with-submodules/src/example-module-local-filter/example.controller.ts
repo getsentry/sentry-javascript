@@ -7,8 +7,8 @@ import { LocalExampleExceptionFilter } from './example.filter';
 export class ExampleControllerLocalFilter {
   constructor() {}
 
-  @Get()
-  getExampleException() {
+  @Get('/expected-exception')
+  getCaughtException() {
     throw new LocalExampleException();
   }
 }

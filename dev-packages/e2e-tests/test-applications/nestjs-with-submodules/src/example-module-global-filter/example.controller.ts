@@ -5,8 +5,13 @@ import { ExampleException } from './example.exception';
 export class ExampleController {
   constructor() {}
 
-  @Get()
-  getExampleException(): string {
+  @Get('/expected-exception')
+  getCaughtException(): string {
     throw new ExampleException();
+  }
+
+  @Get('/unexpected-exception')
+  getUncaughtException(): string {
+    throw new Error(`This is an uncaught exception!`);
   }
 }

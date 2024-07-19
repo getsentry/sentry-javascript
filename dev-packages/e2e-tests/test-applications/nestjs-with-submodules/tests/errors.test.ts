@@ -1,6 +1,34 @@
 import { expect, test } from '@playwright/test';
 import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
 
+test('Sends unexpected exception to Sentry if thrown in module with global filter', async ({ baseURL }) => {
+  const errorEventPromise = waitForError('nestjs', event => {
+    return !event.type && event.exception?.values?.[0]?.value === 'This is an uncaught exception!';
+  });
+
+  const response = await fetch(`${baseURL}/example-module/unexpected-exception`);
+  expect(response.status).toBe(500);
+
+  const errorEvent = await errorEventPromise;
+
+  expect(errorEvent.exception?.values).toHaveLength(1);
+  expect(errorEvent.exception?.values?.[0]?.value).toBe('This is an uncaught exception!');
+
+  expect(errorEvent.request).toEqual({
+    method: 'GET',
+    cookies: {},
+    headers: expect.any(Object),
+    url: 'http://localhost:3030/example-module/unexpected-exception',
+  });
+
+  expect(errorEvent.transaction).toEqual('GET /example-module/unexpected-exception');
+
+  expect(errorEvent.contexts?.trace).toEqual({
+    trace_id: expect.any(String),
+    span_id: expect.any(String),
+  });
+});
+
 test('Custom global filter defined in module handles exception correctly', async ({ baseURL }) => {
   let errorEventOccurred = false;
 
@@ -9,14 +37,14 @@ test('Custom global filter defined in module handles exception correctly', async
       errorEventOccurred = true;
     }
 
-    return event?.transaction === 'GET /example-module';
+    return event?.transaction === 'GET /example-module/expected-exception';
   });
 
   const transactionEventPromise = waitForTransaction('nestjs', transactionEvent => {
-    return transactionEvent?.transaction === 'GET /example-module';
+    return transactionEvent?.transaction === 'GET /example-module/expected-exception';
   });
 
-  const response = await fetch(`${baseURL}/example-module`);
+  const response = await fetch(`${baseURL}/example-module/expected-exception`);
   expect(response.status).toBe(400);
 
   await transactionEventPromise;
@@ -37,14 +65,14 @@ test('Custom local filter defined in module handles exception correctly', async 
       errorEventOccurred = true;
     }
 
-    return event?.transaction === 'GET /example-module-local-filter';
+    return event?.transaction === 'GET /example-module-local-filter/expected-exception';
   });
 
   const transactionEventPromise = waitForTransaction('nestjs', transactionEvent => {
-    return transactionEvent?.transaction === 'GET /example-module-local-filter';
+    return transactionEvent?.transaction === 'GET /example-module-local-filter/expected-exception';
   });
 
-  const response = await fetch(`${baseURL}/example-module-local-filter`);
+  const response = await fetch(`${baseURL}/example-module-local-filter/expected-exception`);
   expect(response.status).toBe(400);
 
   await transactionEventPromise;
