@@ -2,14 +2,7 @@
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, getActiveSpan, startInactiveSpan } from '@sentry/core';
 import { setMeasurement } from '@sentry/core';
 import type { Measurements, Span, SpanAttributes, StartSpanOptions } from '@sentry/types';
-import {
-  browserPerformanceTimeOrigin,
-  consoleSandbox,
-  getComponentName,
-  htmlTreeAsString,
-  logger,
-  parseUrl,
-} from '@sentry/utils';
+import { browserPerformanceTimeOrigin, getComponentName, htmlTreeAsString, logger, parseUrl } from '@sentry/utils';
 
 import { spanToJSON } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
