@@ -171,6 +171,19 @@ export const expectedINPPerformanceSpan = {
   },
 };
 
+export const expectedTTFB = {
+  op: 'web-vital',
+  description: 'time-to-first-byte',
+  startTimestamp: expect.any(Number),
+  endTimestamp: expect.any(Number),
+  data: {
+    value: expect.any(Number),
+    rating: expect.any(String),
+    size: expect.any(Number),
+    nodeId: expect.any(Number),
+  },
+};
+
 export const expectedFCPPerformanceSpan = {
   op: 'paint',
   description: 'first-contentful-paint',

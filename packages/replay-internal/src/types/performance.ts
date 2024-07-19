@@ -110,7 +110,7 @@ export interface WebVitalData {
   /**
    * The recording id of the LCP node. -1 if not found
    */
-  nodeId?: number;
+  nodeId?: number | number[];
 }
 
 /**

@@ -17,6 +17,7 @@ import {
   getFirstInputDelay,
   getInteractionToNextPaint,
   getLargestContentfulPaint,
+  getTimeToFirstByte,
 } from '../../../src/util/createPerformanceEntries';
 import { PerformanceEntryNavigation } from '../../fixtures/performanceEntry/navigation';
 
@@ -141,6 +142,26 @@ describe('Unit | util | createPerformanceEntries', () => {
       expect(event).toEqual({
         type: 'web-vital',
         name: 'interaction-to-next-paint',
+        start: 1672531205.108299,
+        end: 1672531205.108299,
+        data: { value: 5108.299, size: 5108.299, rating: 'good', nodeId: undefined },
+      });
+    });
+  });
+
+  describe('getTimeToFirstByte', () => {
+    it('works with an TTFB metric', async () => {
+      const metric = {
+        value: 5108.299,
+        rating: 'good' as const,
+        entries: [],
+      };
+
+      const event = getTimeToFirstByte(metric);
+
+      expect(event).toEqual({
+        type: 'web-vital',
+        name: 'time-to-first-byte',
         start: 1672531205.108299,
         end: 1672531205.108299,
         data: { value: 5108.299, size: 5108.299, rating: 'good', nodeId: undefined },

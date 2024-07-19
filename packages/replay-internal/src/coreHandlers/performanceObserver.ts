@@ -4,6 +4,7 @@ import {
   addInpInstrumentationHandler,
   addLcpInstrumentationHandler,
   addPerformanceInstrumentationHandler,
+  addTtfbInstrumentationHandler,
 } from '@sentry-internal/browser-utils';
 import type { ReplayContainer } from '../types';
 import {
@@ -11,6 +12,7 @@ import {
   getFirstInputDelay,
   getInteractionToNextPaint,
   getLargestContentfulPaint,
+  getTimeToFirstByte,
   webVitalHandler,
 } from '../util/createPerformanceEntries';
 
@@ -41,6 +43,7 @@ export function setupPerformanceObserver(replay: ReplayContainer): () => void {
     addClsInstrumentationHandler(webVitalHandler(getCumulativeLayoutShift, replay)),
     addFidInstrumentationHandler(webVitalHandler(getFirstInputDelay, replay)),
     addInpInstrumentationHandler(webVitalHandler(getInteractionToNextPaint, replay)),
+    addTtfbInstrumentationHandler(webVitalHandler(getTimeToFirstByte, replay)),
   );
 
   // A callback to cleanup all handlers
