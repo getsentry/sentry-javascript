@@ -14,6 +14,9 @@
 - fix(angular): Remove `afterSendEvent` listener once root injector is destroyed (#12786)
 - fix(browser): Fix bug causing unintentional dropping of transactions (#12933)
 - fix(feedback): Add a missing call of Actor.appendToDom method when DOMContentLoaded event is triggered (#12973)
+- feat(vercel-edge): Add dedupe as default integration (#12957)
+- fix(node): Pass inferred name & attributes to `tracesSampler` (#12945)
+- feat(express): Allow to pass options to `setupExpressErrorHandler` (#12952)
 
 Work in this release was contributed by @jaspreet57 and @arturovt. Thank you for your contribution!
 
