@@ -1,3 +1,5 @@
+import { describe, expect, it } from 'vitest';
+
 import * as SentryClient from '../src/client';
 import * as SentryServer from '../src/server';
 

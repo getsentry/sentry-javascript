@@ -44,9 +44,10 @@
     "@sentry/utils": "8.18.0"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20240620.0",
+    "@cloudflare/workers-types": "^4.20240712.0",
+    "@types/node": "^14.18.0",
     "miniflare": "^3.20240701.0",
-    "wrangler": "^3.63.2"
+    "wrangler": "^3.64.0"
   },
   "scripts": {
     "build": "run-p build:transpile build:types",

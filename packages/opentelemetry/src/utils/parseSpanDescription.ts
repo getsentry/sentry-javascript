@@ -11,7 +11,7 @@ import {
   SEMATTRS_MESSAGING_SYSTEM,
   SEMATTRS_RPC_SERVICE,
 } from '@opentelemetry/semantic-conventions';
-import type { TransactionSource } from '@sentry/types';
+import type { SpanAttributes, TransactionSource } from '@sentry/types';
 import { getSanitizedUrlString, parseUrl, stripUrlQueryAndFragment } from '@sentry/utils';
 
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP } from '@sentry/core';
@@ -27,14 +27,9 @@ interface SpanDescription {
 }
 
 /**
- * Extract better op/description from an otel span.
- *
- * Based on https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/7422ce2a06337f68a59b552b8c5a2ac125d6bae5/exporter/sentryexporter/sentry_exporter.go#L306
+ * Infer the op & description for a set of name, attributes and kind of a span.
  */
-export function parseSpanDescription(span: AbstractSpan): SpanDescription {
-  const attributes = spanHasAttributes(span) ? span.attributes : {};
-  const name = spanHasName(span) ? span.name : '<unknown>';
-
+export function inferSpanData(name: string, attributes: SpanAttributes, kind: SpanKind): SpanDescription {
   // This attribute is intentionally exported as a SEMATTR constant because it should stay intimite API
   if (attributes['sentry.skip_span_data_inference']) {
     return {
@@ -54,7 +49,7 @@ export function parseSpanDescription(span: AbstractSpan): SpanDescription {
   // conventions export an attribute key for it.
   const httpMethod = attributes['http.request.method'] || attributes[SEMATTRS_HTTP_METHOD];
   if (httpMethod) {
-    return descriptionForHttpMethod({ attributes, name, kind: getSpanKind(span) }, httpMethod);
+    return descriptionForHttpMethod({ attributes, name, kind }, httpMethod);
   }
 
   const dbSystem = attributes[SEMATTRS_DB_SYSTEM];
@@ -95,6 +90,19 @@ export function parseSpanDescription(span: AbstractSpan): SpanDescription {
   }
 
   return { op: undefined, description: name, source: 'custom' };
+}
+
+/**
+ * Extract better op/description from an otel span.
+ *
+ * Based on https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/7422ce2a06337f68a59b552b8c5a2ac125d6bae5/exporter/sentryexporter/sentry_exporter.go#L306
+ */
+export function parseSpanDescription(span: AbstractSpan): SpanDescription {
+  const attributes = spanHasAttributes(span) ? span.attributes : {};
+  const name = spanHasName(span) ? span.name : '<unknown>';
+  const kind = getSpanKind(span);
+
+  return inferSpanData(name, attributes, kind);
 }
 
 function descriptionForDbSystem({ attributes, name }: { attributes: Attributes; name: string }): SpanDescription {

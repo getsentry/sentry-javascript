@@ -1,20 +1,3 @@
-/* eslint-disable no-console */
-const Sentry = require('../../build/npm/cjs/index.js');
-
-// Init
-Sentry.init({
-  dsn: 'https://completelyrandom@dsn.asdf/42',
-  beforeSend(_event) {
-    console.log('Got an event');
-    return null;
-  },
-  beforeBreadcrumb(crumb) {
-    console.log(`Got a breadcrumb: ${crumb.category}`);
-    return crumb;
-  },
-});
-
-// Configure
 const scope = Sentry.getCurrentScope();
 scope.setExtra('foo', 'bar');
 scope.setFingerprint('foo');
@@ -75,6 +58,5 @@ Sentry.withScope(scope => {
 
 var xhr = new XMLHttpRequest();
 xhr.onload = () => console.log('loaded'); // This throws error
-// xhr.addEventListener("load", () => console.log('loaded')); This does not throw error
 xhr.open('GET', 'https://httpbin.org/get');
 xhr.send();

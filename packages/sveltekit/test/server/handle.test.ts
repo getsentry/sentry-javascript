@@ -1,3 +1,5 @@
+import { beforeEach, describe, expect, it } from 'vitest';
+
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   getRootSpan,

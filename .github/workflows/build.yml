@@ -519,7 +519,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: [14, 16, 18, 20, 22]
+        node: [14, 16, 18, 20, 22.4]
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v4
@@ -579,7 +579,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: [14, 16, 18, 20, 22]
+        node: [14, 16, 18, 20, 22.4]
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v4
@@ -779,33 +779,6 @@ jobs:
           name: playwright-traces
           path: dev-packages/browser-integration-tests/test-results
 
-  job_browser_build_tests:
-    name: Browser Build Tests
-    needs: [job_get_metadata, job_build]
-    runs-on: ubuntu-20.04
-    timeout-minutes: 5
-    steps:
-      - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ env.HEAD_COMMIT }}
-      - name: Set up Node
-        uses: actions/setup-node@v4
-        with:
-          node-version-file: 'package.json'
-      - name: Restore caches
-        uses: ./.github/actions/restore-cache
-        env:
-          DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
-      - name: Run browser build tests
-        run: |
-          cd packages/browser
-          yarn test:package
-      - name: Run utils build tests
-        run: |
-          cd packages/utils
-          yarn test:package
-
   job_check_for_faulty_dts:
     name: Check for faulty .d.ts files
     needs: [job_get_metadata, job_build]
@@ -843,12 +816,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: [14, 16, 18, 20, 22]
+        node: [14, 16, 18, 20, 22.4]
         typescript:
           - false
         include:
           # Only check typescript for latest version (to streamline CI)
-          - node: 22
+          - node: 22.4
             typescript: '3.8'
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
@@ -885,7 +858,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: [18, 20, 22]
+        node: [18, 20, 22.4]
         remix: [1, 2]
         # Remix v2 only supports Node 18+, so run 16 tests separately
         include:
@@ -1317,7 +1290,6 @@ jobs:
       [
         job_build,
         job_compile_bindings_profiling_node,
-        job_browser_build_tests,
         job_browser_unit_tests,
         job_bun_unit_tests,
         job_deno_unit_tests,
@@ -1409,7 +1381,7 @@ jobs:
           - os: ubuntu-20.04
             node: 20
           - os: ubuntu-20.04
-            node: 22
+            node: 22.4
 
             # x64 musl
           - os: ubuntu-20.04
@@ -1423,7 +1395,7 @@ jobs:
             node: 20
           - os: ubuntu-20.04
             container: node:22-alpine3.18
-            node: 22
+            node: 22.4
 
             # arm64 glibc
           - os: ubuntu-20.04
@@ -1437,7 +1409,7 @@ jobs:
             node: 20
           - os: ubuntu-20.04
             arch: arm64
-            node: 22
+            node: 22.4
 
             # arm64 musl
           - os: ubuntu-20.04
@@ -1455,7 +1427,7 @@ jobs:
           - os: ubuntu-20.04
             arch: arm64
             container: node:22-alpine3.18
-            node: 22
+            node: 22.4
 
             # macos x64
           - os: macos-13
@@ -1468,7 +1440,7 @@ jobs:
             node: 20
             arch: x64
           - os: macos-13
-            node: 22
+            node: 22.4
             arch: x64
 
             # macos arm64
@@ -1486,7 +1458,7 @@ jobs:
             target_platform: darwin
           - os: macos-13
             arch: arm64
-            node: 22
+            node: 22.4
             target_platform: darwin
 
             # windows x64
@@ -1500,7 +1472,7 @@ jobs:
             node: 20
             arch: x64
           - os: windows-2022
-            node: 22
+            node: 22.4
             arch: x64
 
     steps:

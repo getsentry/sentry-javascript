@@ -1,4 +1,4 @@
-import { vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import type { Plugin } from 'vite';
 import * as autoInstrument from '../../src/vite/autoInstrument';
@@ -8,7 +8,6 @@ import * as sourceMaps from '../../src/vite/sourceMaps';
 vi.mock('fs', async () => {
   const actual = await vi.importActual('fs');
   return {
-    // @ts-expect-error this exists, I promise!
     ...actual,
     promises: {
       // @ts-expect-error this also exists, I promise!
