@@ -13,4 +13,4 @@ import { ExampleExceptionFilter } from './example.filter';
     },
   ],
 })
-export class ExampleModule {}
+export class ExampleModuleGlobalFilter {}
