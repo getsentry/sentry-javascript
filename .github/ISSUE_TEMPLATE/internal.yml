@@ -1,0 +1,9 @@
+name: 💡 [Internal] Blank Issue
+description: Only for Sentry Employees! Create an issue without a template.
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+    validations:
+      required: true
