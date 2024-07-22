@@ -81,13 +81,14 @@ sentryTest(
     const collectedPerformanceSpans = [...recording0.performanceSpans, ...recording1.performanceSpans];
     const collectedBreadcrumbs = [...recording0.breadcrumbs, ...recording1.breadcrumbs];
 
-    expect(collectedPerformanceSpans.length).toEqual(8);
+    expect(collectedPerformanceSpans.length).toEqual(9);
     expect(collectedPerformanceSpans).toEqual(
       expect.arrayContaining([
         expectedNavigationPerformanceSpan,
         expectedLCPPerformanceSpan,
         expectedCLSPerformanceSpan,
         expectedFIDPerformanceSpan,
+        expectedTTFBPerformanceSpan,
         expectedFPPerformanceSpan,
         expectedFCPPerformanceSpan,
         expectedMemoryPerformanceSpan, // two memory spans - once per flush
