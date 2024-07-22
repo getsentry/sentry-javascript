@@ -213,14 +213,14 @@ export const ReplayRecordingData = [
       tag: 'performanceSpan',
       payload: {
         op: 'web-vital',
-        description: 'largest-contentful-paint',
+        description: 'time-to-first-byte',
         startTimestamp: expect.any(Number),
         endTimestamp: expect.any(Number),
         data: {
           value: expect.any(Number),
           size: expect.any(Number),
           rating: expect.any(String),
-          nodeId: [16],
+          nodeId: [],
         },
       },
     },
@@ -232,14 +232,14 @@ export const ReplayRecordingData = [
       tag: 'performanceSpan',
       payload: {
         op: 'web-vital',
-        description: 'time-to-first-byte',
+        description: 'largest-contentful-paint',
         startTimestamp: expect.any(Number),
         endTimestamp: expect.any(Number),
         data: {
           value: expect.any(Number),
           size: expect.any(Number),
           rating: expect.any(String),
-          nodeId: [],
+          nodeId: [16],
         },
       },
     },

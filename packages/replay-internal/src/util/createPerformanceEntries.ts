@@ -200,7 +200,6 @@ export function getCumulativeLayoutShift(metric: Metric): ReplayPerformanceEntry
       if (source.node) {
         nodes.push(source.node);
       }
-
     }
   }
   return getWebVital(metric, 'cumulative-layout-shift', nodes);

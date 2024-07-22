@@ -8,9 +8,9 @@ import {
   expectedFIDPerformanceSpan,
   expectedFPPerformanceSpan,
   expectedLCPPerformanceSpan,
-  expectedTTFBPerformanceSpan,
   expectedMemoryPerformanceSpan,
   expectedNavigationPerformanceSpan,
+  expectedTTFBPerformanceSpan,
   getExpectedReplayEvent,
 } from '../../../utils/replayEventTemplates';
 import type { PerformanceSpan } from '../../../utils/replayHelpers';
