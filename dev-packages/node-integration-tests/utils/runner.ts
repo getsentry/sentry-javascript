@@ -3,6 +3,7 @@ import { spawn, spawnSync } from 'child_process';
 import { join } from 'path';
 import { SDK_VERSION } from '@sentry/node';
 import type {
+  ClientReport,
   Envelope,
   EnvelopeItemType,
   Event,
@@ -42,6 +43,12 @@ export function assertSentryTransaction(actual: Event, expected: Partial<Event>)
 export function assertSentryCheckIn(actual: SerializedCheckIn, expected: Partial<SerializedCheckIn>): void {
   expect(actual).toMatchObject({
     check_in_id: expect.any(String),
+    ...expected,
+  });
+}
+
+export function assertSentryClientReport(actual: ClientReport, expected: Partial<ClientReport>): void {
+  expect(actual).toMatchObject({
     ...expected,
   });
 }
@@ -148,6 +155,9 @@ type Expected =
     }
   | {
       check_in: Partial<SerializedCheckIn> | ((event: SerializedCheckIn) => void);
+    }
+  | {
+      client_report: Partial<ClientReport> | ((event: ClientReport) => void);
     };
 
 type ExpectedEnvelopeHeader =
@@ -328,6 +338,17 @@ export function createRunner(...paths: string[]) {
                 expected.check_in(checkIn);
               } else {
                 assertSentryCheckIn(checkIn, expected.check_in);
+              }
+
+              expectCallbackCalled();
+            }
+
+            if ('client_report' in expected) {
+              const clientReport = item[1] as ClientReport;
+              if (typeof expected.client_report === 'function') {
+                expected.client_report(clientReport);
+              } else {
+                assertSentryClientReport(clientReport, expected.client_report);
               }
 
               expectCallbackCalled();

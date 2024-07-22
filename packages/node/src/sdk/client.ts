@@ -9,7 +9,7 @@ import { isMainThread, threadId } from 'worker_threads';
 import { DEBUG_BUILD } from '../debug-build';
 import type { NodeClientOptions } from '../types';
 
-const CLIENT_REPORT_FLUSH_INTERVAL_MS = 60_000; // 60s was chosen arbitrarily
+const DEFAULT_CLIENT_REPORT_FLUSH_INTERVAL_MS = 60_000; // 60s was chosen arbitrarily
 
 /** A client for using Sentry with Node & OpenTelemetry. */
 export class NodeClient extends ServerRuntimeClient<NodeClientOptions> {
@@ -59,7 +59,7 @@ export class NodeClient extends ServerRuntimeClient<NodeClientOptions> {
       await spanProcessor.forceFlush();
     }
 
-    if (this.getOptions().sendClientReports !== false) {
+    if (this.getOptions().sendClientReports) {
       this._flushOutcomes();
     }
 
@@ -96,15 +96,19 @@ export class NodeClient extends ServerRuntimeClient<NodeClientOptions> {
   // Note: We have experimented with using `FinalizationRegisty` to clear the interval when the client is garbage
   // collected, but it did not work, because the cleanup function never got called.
   public startClientReportTracking(): void {
-    if (this.getOptions().sendClientReports !== false) {
+    const clientOptions = this.getOptions();
+    if (clientOptions.sendClientReports) {
       this._clientReportOnExitFlushListener = () => {
         this._flushOutcomes();
       };
 
-      this._clientReportInterval = setInterval(() => {
-        DEBUG_BUILD && logger.log('Flushing client reports based on interval.');
-        this._flushOutcomes();
-      }, CLIENT_REPORT_FLUSH_INTERVAL_MS)
+      this._clientReportInterval = setInterval(
+        () => {
+          DEBUG_BUILD && logger.log('Flushing client reports based on interval.');
+          this._flushOutcomes();
+        },
+        clientOptions.clientReportFlushInterval ?? DEFAULT_CLIENT_REPORT_FLUSH_INTERVAL_MS,
+      )
         // Unref is critical for not preventing the process from exiting because the interval is active.
         .unref();
 

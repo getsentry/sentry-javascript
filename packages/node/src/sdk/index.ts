@@ -230,6 +230,7 @@ function getClientOptions(
     transport: makeNodeTransport,
     dsn: process.env.SENTRY_DSN,
     environment: process.env.SENTRY_ENVIRONMENT,
+    sendClientReports: true,
   });
 
   const overwriteOptions = dropUndefinedKeys({
