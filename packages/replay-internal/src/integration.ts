@@ -226,7 +226,7 @@ export class Replay implements Integration {
 
   /**
    * Start a replay regardless of sampling rate. Calling this will always
-   * create a new session. Will throw an error if replay is already in progress.
+   * create a new session. Will log a message if replay is already in progress.
    *
    * Creates or loads a session, attaches listeners to varying events (DOM,
    * PerformanceObserver, Recording, Sentry SDK, etc)
@@ -235,7 +235,6 @@ export class Replay implements Integration {
     if (!this._replay) {
       return;
     }
-
     this._replay.start();
   }
 
