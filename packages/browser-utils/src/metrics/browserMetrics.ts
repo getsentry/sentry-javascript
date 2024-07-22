@@ -244,14 +244,12 @@ function _trackCLS(): () => void {
  */
 function trySetZeroClsValue(): void {
   try {
-    const canReportLayoutShift = PerformanceObserver.supportedEntryTypes.includes('layout-shift');
-    if (canReportLayoutShift) {
+    if (PerformanceObserver.supportedEntryTypes.includes('layout-shift')) {
       DEBUG_BUILD && logger.log('[Measurements] Adding CLS 0');
       _measurements['cls'] = { value: 0, unit: '' };
-      // TODO: Do we have to set _clsEntry here as well? If so, what attribution should we give it?
     }
   } catch {
-    // catching and ignoring access errors for bundle size reduction
+    // catching and ignoring access errors for bundle size minimization.
   }
 }
 
