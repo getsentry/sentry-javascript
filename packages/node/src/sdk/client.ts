@@ -59,7 +59,9 @@ export class NodeClient extends ServerRuntimeClient<NodeClientOptions> {
       await spanProcessor.forceFlush();
     }
 
-    this._flushOutcomes();
+    if (this.getOptions().sendClientReports !== false) {
+      this._flushOutcomes();
+    }
 
     return super.flush(timeout);
   }

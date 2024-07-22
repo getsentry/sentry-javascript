@@ -20,10 +20,10 @@ export function mockSdkInit(options?: Partial<NodeClientOptions>) {
   init({
     dsn: PUBLIC_DSN,
     defaultIntegrations: false,
-    ...options,
     // We are disabling client reports because we would be acquiring resources with every init call and that would leak
     // memory every time we call init in the tests
     sendClientReports: false,
+    ...options,
   });
 }
 
