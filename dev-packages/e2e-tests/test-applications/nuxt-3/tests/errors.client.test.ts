@@ -25,5 +25,6 @@ test.describe('client-side errors', async () => {
         ],
       },
     });
+    expect(error.transaction).toEqual('/client-error');
   });
 });
