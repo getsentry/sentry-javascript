@@ -173,7 +173,12 @@ interface ReplayHistoryFrame extends ReplayBaseSpanFrame {
 
 interface ReplayWebVitalFrame extends ReplayBaseSpanFrame {
   data: WebVitalData;
-  op: 'largest-contentful-paint' | 'cumulative-layout-shift' | 'first-input-delay' | 'interaction-to-next-paint' | 'time-to-first-byte';
+  op:
+    | 'largest-contentful-paint'
+    | 'cumulative-layout-shift'
+    | 'first-input-delay'
+    | 'interaction-to-next-paint'
+    | 'time-to-first-byte';
 }
 
 interface ReplayMemoryFrame extends ReplayBaseSpanFrame {

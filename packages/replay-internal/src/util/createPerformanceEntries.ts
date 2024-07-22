@@ -191,12 +191,14 @@ export function getLargestContentfulPaint(metric: Metric): ReplayPerformanceEntr
  * Add a CLS event to the replay based on a CLS metric.
  */
 export function getCumulativeLayoutShift(metric: Metric): ReplayPerformanceEntry<WebVitalData> {
-  const lastEntry = metric.entries[metric.entries.length - 1] as (PerformanceEntry & { sources?: LayoutShiftAttribution[] }) | undefined;
+  const lastEntry = metric.entries[metric.entries.length - 1] as
+    | (PerformanceEntry & { sources?: LayoutShiftAttribution[] })
+    | undefined;
   const nodes: Node[] = [];
   if (lastEntry && lastEntry.sources) {
     for (const source of lastEntry.sources) {
       if (source.node) {
-        nodes.push(source.node)
+        nodes.push(source.node);
       }
 
     }
@@ -251,7 +253,7 @@ export function getWebVital(
     }
   } else {
     if (node) {
-      nodeIds.push(record.mirror.getId(node))
+      nodeIds.push(record.mirror.getId(node));
     }
   }
 
