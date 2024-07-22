@@ -36,7 +36,9 @@ import {
   addItemToEnvelope,
   checkOrSetAlreadyCaught,
   createAttachmentEnvelopeItem,
+  createClientReportEnvelope,
   dropUndefinedKeys,
+  dsnToString,
   isParameterizedString,
   isPlainObject,
   isPrimitive,
@@ -869,6 +871,34 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
         quantity,
       };
     });
+  }
+
+  /**
+   * Sends client reports as an envelope.
+   */
+  protected _flushOutcomes(): void {
+    DEBUG_BUILD && logger.log('Flushing outcomes...');
+
+    const outcomes = this._clearOutcomes();
+
+    if (outcomes.length === 0) {
+      DEBUG_BUILD && logger.log('No outcomes to send');
+      return;
+    }
+
+    // This is really the only place where we want to check for a DSN and only send outcomes then
+    if (!this._dsn) {
+      DEBUG_BUILD && logger.log('No dsn provided, will not send outcomes');
+      return;
+    }
+
+    DEBUG_BUILD && logger.log('Sending outcomes:', outcomes);
+
+    const envelope = createClientReportEnvelope(outcomes, this._options.tunnel && dsnToString(this._dsn));
+
+    // sendEnvelope should not throw
+    // eslint-disable-next-line @typescript-eslint/no-floating-promises
+    this.sendEnvelope(envelope);
   }
 
   /**
