@@ -31,8 +31,7 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
   autoSessionTracking?: boolean;
 
   /**
-   * Send SDK Client Reports.
-   * By default, Client Reports are enabled.
+   * Send SDK Client Reports. When calling `Sentry.init()`, this option defaults to `true`.
    */
   sendClientReports?: boolean;
 

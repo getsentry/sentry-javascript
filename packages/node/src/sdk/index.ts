@@ -154,6 +154,8 @@ function _init(
     startSessionTracking();
   }
 
+  client.startClientReportTracking();
+
   updateScopeFromEnvVariables();
 
   if (options.spotlight) {
@@ -228,6 +230,7 @@ function getClientOptions(
     transport: makeNodeTransport,
     dsn: process.env.SENTRY_DSN,
     environment: process.env.SENTRY_ENVIRONMENT,
+    sendClientReports: true,
   });
 
   const overwriteOptions = dropUndefinedKeys({
