@@ -1016,6 +1016,7 @@ jobs:
             'node-exports-test-app',
             'node-koa',
             'node-connect',
+            'nuxt-3',
             'vue-3',
             'webpack-4',
             'webpack-5'
