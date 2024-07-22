@@ -63,6 +63,7 @@ export function maybeInitializeEsmLoader(esmHookConfig?: EsmLoaderHookOptions): 
 interface NodePreloadOptions {
   debug?: boolean;
   integrations?: string[];
+  registerEsmLoaderHooks?: EsmLoaderHookOptions;
 }
 
 /**
@@ -79,7 +80,7 @@ export function preloadOpenTelemetry(options: NodePreloadOptions = {}): void {
   }
 
   if (!isCjs()) {
-    maybeInitializeEsmLoader();
+    maybeInitializeEsmLoader(options.registerEsmLoaderHooks);
   }
 
   // These are all integrations that we need to pre-load to ensure they are set up before any other code runs
