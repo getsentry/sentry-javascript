@@ -16,7 +16,7 @@ export class NodeClient extends ServerRuntimeClient<NodeClientOptions> {
   public traceProvider: BasicTracerProvider | undefined;
   private _tracer: Tracer | undefined;
   private _clientReportInterval: NodeJS.Timeout | undefined;
-  private _clientReportOnExitFlushListener: (() => undefined) | undefined;
+  private _clientReportOnExitFlushListener: (() => void) | undefined;
 
   public constructor(options: NodeClientOptions) {
     const clientOptions: ServerRuntimeClientOptions = {
@@ -33,28 +33,6 @@ export class NodeClient extends ServerRuntimeClient<NodeClientOptions> {
     );
 
     super(clientOptions);
-
-    if (clientOptions.sendClientReports !== false) {
-      // There is one mild concern here, being that if users periodically and unboundedly create new clients, we will
-      // create more and more intervals and beforeExit listeners, which may leak memory. In these situations, users are
-      // required to call `client.close()` in order to dispose of the acquired resources.
-      // Users are already confronted with the same reality with the SessionFlusher at the time of writing this so the
-      // working theory is that this should be fine.
-      // Note: We have experimented with using `FinalizationRegisty` to clear the interval when the client is garbage
-      // collected, but it did not work, because the cleanup function never got called.
-      this._clientReportInterval = setInterval(() => {
-        DEBUG_BUILD && logger.log('Flushing client reports based on interval.');
-        this._flushOutcomes();
-      }, CLIENT_REPORT_FLUSH_INTERVAL_MS)
-        // Unref is critical, otherwise we stop the process from exiting by itself
-        .unref();
-
-      this._clientReportOnExitFlushListener = () => {
-        this._flushOutcomes();
-      };
-
-      process.on('beforeExit', this._clientReportOnExitFlushListener);
-    }
   }
 
   /** Get the OTEL tracer. */
@@ -98,5 +76,37 @@ export class NodeClient extends ServerRuntimeClient<NodeClientOptions> {
     }
 
     return super.close(timeout);
+  }
+
+  /**
+   * Will start tracking client reports for this client.
+   *
+   * NOTICE: This method will create an interval that is periodically called and attach a `process.on('beforeExit')`
+   * hook. To clean up these resources, call `.close()` when you no longer intend to use the client. Not doing so will
+   * result in a memory leak.
+   */
+  // The reason client reports need to be manually activated with this method instead of just enabling them in a
+  // constructor, is that if users periodically and unboundedly create new clients, we will create more and more
+  // intervals and beforeExit listeners, thus leaking memory. In these situations, users are required to call
+  // `client.close()` in order to dispose of the acquired resources.
+  // We assume that calling this method in Sentry.init() is a sensible default, because calling Sentry.init() over and
+  // over again would also result in memory leaks.
+  // Note: We have experimented with using `FinalizationRegisty` to clear the interval when the client is garbage
+  // collected, but it did not work, because the cleanup function never got called.
+  public startClientReportTracking(): void {
+    if (this.getOptions().sendClientReports !== false) {
+      this._clientReportOnExitFlushListener = () => {
+        this._flushOutcomes();
+      };
+
+      this._clientReportInterval = setInterval(() => {
+        DEBUG_BUILD && logger.log('Flushing client reports based on interval.');
+        this._flushOutcomes();
+      }, CLIENT_REPORT_FLUSH_INTERVAL_MS)
+        // Unref is critical for not preventing the process from exiting because the interval is active.
+        .unref();
+
+      process.on('beforeExit', this._clientReportOnExitFlushListener);
+    }
   }
 }

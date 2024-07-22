@@ -154,6 +154,8 @@ function _init(
     startSessionTracking();
   }
 
+  client.startClientReportTracking();
+
   updateScopeFromEnvVariables();
 
   if (options.spotlight) {

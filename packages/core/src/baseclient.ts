@@ -877,6 +877,8 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    * Sends client reports as an envelope.
    */
   protected _flushOutcomes(): void {
+    DEBUG_BUILD && logger.log('Flushing outcomes...');
+
     const outcomes = this._clearOutcomes();
 
     if (outcomes.length === 0) {
