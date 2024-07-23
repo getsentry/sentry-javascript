@@ -1,8 +1,8 @@
+import { describe, expect, it, vi } from 'vitest';
+
 import { useFakeTimers } from '../../../utils/use-fake-timers';
 
 useFakeTimers();
-
-import { vi } from 'vitest';
 
 import { _getResponseInfo } from '../../../../src/coreHandlers/util/fetchUtils';
 
