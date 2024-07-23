@@ -371,10 +371,12 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   /**
    * @inheritDoc
    */
-  public recordDroppedEvent(reason: EventDropReason, category: DataCategory, _event?: Event): void {
-    // Note: we use `event` in replay, where we overwrite this hook.
-
+  public recordDroppedEvent(reason: EventDropReason, category: DataCategory, eventOrCount?: Event | number): void {
     if (this._options.sendClientReports) {
+      // TODO v9: We do not need the `event` passed as third argument anymore, and can possibly remove this overload
+      // If event is passed as third argument, we assume this is a count of 1
+      const count = typeof eventOrCount === 'number' ? eventOrCount : 1;
+
       // We want to track each category (error, transaction, session, replay_event) separately
       // but still keep the distinction between different type of outcomes.
       // We could use nested maps, but it's much easier to read and type this way.
@@ -382,9 +384,8 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
       // would be `Partial<Record<SentryRequestType, Partial<Record<Outcome, number>>>>`
       // With typescript 4.1 we could even use template literal types
       const key = `${reason}:${category}`;
-      DEBUG_BUILD && logger.log(`Adding outcome: "${key}"`);
-
-      this._outcomes[key] = (this._outcomes[key] || 0) + 1;
+      DEBUG_BUILD && logger.log(`Recording outcome: "${key}"${count > 1 ? ` (${count} times)` : ''}`);
+      this._outcomes[key] = (this._outcomes[key] || 0) + count;
     }
   }
 
@@ -794,11 +795,11 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
       .then(processedEvent => {
         if (processedEvent === null) {
           this.recordDroppedEvent('before_send', dataCategory, event);
-          if (isTransactionEvent(event)) {
+          if (isTransaction) {
             const spans = event.spans || [];
             // the transaction itself counts as one span, plus all the child spans that are added
             const spanCount = 1 + spans.length;
-            this._outcomes['span'] = (this._outcomes['span'] || 0) + spanCount;
+            this.recordDroppedEvent('before_send', 'span', spanCount);
           }
           throw new SentryError(`${beforeSendLabel} returned \`null\`, will not send event.`, 'log');
         }
@@ -806,6 +807,18 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
         const session = currentScope && currentScope.getSession();
         if (!isTransaction && session) {
           this._updateSessionFromEvent(session, processedEvent);
+        }
+
+        if (isTransaction) {
+          const spanCountBefore =
+            (processedEvent.sdkProcessingMetadata && processedEvent.sdkProcessingMetadata.spanCountBeforeProcessing) ||
+            0;
+          const spanCountAfter = processedEvent.spans ? processedEvent.spans.length : 0;
+
+          const droppedSpanCount = spanCountBefore - spanCountAfter;
+          if (droppedSpanCount > 0) {
+            this.recordDroppedEvent('before_send', 'span', droppedSpanCount);
+          }
         }
 
         // None of the Sentry built event processor will update transaction name,
@@ -973,6 +986,13 @@ function processBeforeSend(
     }
 
     if (beforeSendTransaction) {
+      // We store the # of spans before processing in SDK metadata,
+      // so we can compare it afterwards to determine how many spans were dropped
+      const spanCountBefore = event.spans ? event.spans.length : 0;
+      event.sdkProcessingMetadata = {
+        ...event.sdkProcessingMetadata,
+        spanCountBeforeProcessing: spanCountBefore,
+      };
       return beforeSendTransaction(event, hint);
     }
   }
