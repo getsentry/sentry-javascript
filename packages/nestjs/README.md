@@ -24,7 +24,7 @@ yarn add @sentry/nestjs
 
 ## Usage
 
-Add a instrument.ts file:
+Add an `instrument.ts` file:
 
 ```typescript
 import * as Sentry from '@sentry/nestjs';
@@ -35,7 +35,7 @@ Sentry.init({
 });
 ```
 
-You need to require or import the instrument.js file before requiring any other modules in your application. This is
+You need to require or import the `instrument.ts` file before requiring any other modules in your application. This is
 necessary to ensure that Sentry can automatically instrument all modules in your application:
 
 ```typescript
