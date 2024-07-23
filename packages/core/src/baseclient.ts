@@ -986,13 +986,15 @@ function processBeforeSend(
     }
 
     if (beforeSendTransaction) {
-      // We store the # of spans before processing in SDK metadata,
-      // so we can compare it afterwards to determine how many spans were dropped
-      const spanCountBefore = event.spans ? event.spans.length : 0;
-      event.sdkProcessingMetadata = {
-        ...event.sdkProcessingMetadata,
-        spanCountBeforeProcessing: spanCountBefore,
-      };
+      if (event.spans) {
+        // We store the # of spans before processing in SDK metadata,
+        // so we can compare it afterwards to determine how many spans were dropped
+        const spanCountBefore = event.spans.length;
+        event.sdkProcessingMetadata = {
+          ...event.sdkProcessingMetadata,
+          spanCountBeforeProcessing: spanCountBefore,
+        };
+      }
       return beforeSendTransaction(event, hint);
     }
   }
