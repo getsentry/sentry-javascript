@@ -24,6 +24,8 @@ yarn add @sentry/nestjs
 
 ## Usage
 
+Add a instrument.ts file:
+
 ```typescript
 // CJS Syntax
 const Sentry = require('@sentry/nestjs');
@@ -36,7 +38,46 @@ Sentry.init({
 });
 ```
 
-Note that it is necessary to initialize Sentry **before you import any package that may be instrumented by us**.
+You need to require or import the instrument.js file before requiring any other modules in your application. This is
+necessary to ensure that Sentry can automatically instrument all modules in your application:
+
+```typescript
+// Import this first!
+import './instrument';
+
+// Now import other modules
+import * as Sentry from '@sentry/nestjs';
+import { NestFactory } from '@nestjs/core';
+import { AppModule } from './app.module';
+
+async function bootstrap() {
+  const app = await NestFactory.create(AppModule);
+  await app.listen(3000);
+}
+
+bootstrap();
+```
+
+Then you can add the SentryModule as a root module:
+
+```typescript
+import { Module } from '@nestjs/common';
+import { SentryModule } from '@sentry/nestjs/setup';
+import { AppController } from './app.controller';
+import { AppService } from './app.service';
+
+@Module({
+  imports: [
+    SentryModule.forRoot(),
+    // ...other modules
+  ],
+  controllers: [AppController],
+  providers: [AppService],
+})
+export class AppModule {}
+```
+
+The SentryModule needs registered before any module that should be instrumented by Sentry.
 
 ## SentryTraced
 
