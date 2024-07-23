@@ -18,6 +18,80 @@
 **Note: This SDK is unreleased. Please follow the
 [tracking GH issue](https://github.com/getsentry/sentry-javascript/issues/12620) for updates.**
 
-## Usage
+Below details the setup for the Cloudflare Workers. Cloudflare Pages support is in active development.
 
-TODO: Add usage instructions here.
+## Setup (Cloudflare Workers)
+
+To get started, first install the `@sentry/cloudflare` package:
+
+```bash
+npm install @sentry/cloudflare
+```
+
+Then set either the `nodejs_compat` or `nodejs_als` compatibility flags in your `wrangler.toml`:
+
+```toml
+compatibility_flags = ["nodejs_compat"]
+# compatibility_flags = ["nodejs_als"]
+```
+
+To use this SDK, wrap your handler with the `withSentry` function. This will initialize the SDK and hook into the
+environment. Note that you can turn off almost all side effects using the respective options.
+
+Currently only ESM handlers are supported.
+
+```javascript
+import * as Sentry from '@sentry/cloudflare';
+
+export default withSentry(
+	(env) => ({
+		dsn: env.SENTRY_DSN,
+		tracesSampleRate: 1.0,
+	}),
+	{
+		async fetch(request, env, ctx) {
+			return new Response('Hello World!');
+		},
+	} satisfies ExportedHandler<Env>
+);
+```
+
+### Sourcemaps (Cloudflare Workers)
+
+Configure uploading sourcemaps via the Sentry Wizard:
+
+```bash
+npx @sentry/wizard@latest -i sourcemaps
+```
+
+See more details in our [docs](https://docs.sentry.io/platforms/javascript/sourcemaps/).
+
+## Usage (Cloudflare Workers)
+
+To set context information or send manual events, use the exported functions of `@sentry/cloudflare`. Note that these
+functions will require your exported handler to be wrapped in `withSentry`.
+
+```javascript
+import * as Sentry from '@sentry/cloudflare';
+
+// Set user information, as well as tags and further extras
+Sentry.setExtra('battery', 0.7);
+Sentry.setTag('user_mode', 'admin');
+Sentry.setUser({ id: '4711' });
+
+// Add a breadcrumb for future events
+Sentry.addBreadcrumb({
+  message: 'My Breadcrumb',
+  // ...
+});
+
+// Capture exceptions, messages or manual events
+Sentry.captureMessage('Hello, world!');
+Sentry.captureException(new Error('Good bye'));
+Sentry.captureEvent({
+  message: 'Manual',
+  stacktrace: [
+    // ...
+  ],
+});
+```
