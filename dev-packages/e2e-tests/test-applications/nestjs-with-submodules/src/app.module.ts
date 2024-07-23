@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { SentryIntegrationModule } from '@sentry/nestjs/setup';
+import { SentryModule } from '@sentry/nestjs/setup';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ExampleModuleGlobalFilterWrongRegistrationOrder } from './example-module-global-filter-wrong-registration-order/example.module';
@@ -9,7 +9,7 @@ import { ExampleModuleLocalFilter } from './example-module-local-filter/example.
 @Module({
   imports: [
     ExampleModuleGlobalFilterWrongRegistrationOrder,
-    SentryIntegrationModule.forRoot(),
+    SentryModule.forRoot(),
     ExampleModuleGlobalFilter,
     ExampleModuleLocalFilter,
   ],

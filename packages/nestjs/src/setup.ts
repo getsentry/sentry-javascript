@@ -19,7 +19,6 @@ import {
   getIsolationScope,
   spanToJSON,
 } from '@sentry/core';
-import { DEBUG_BUILD } from '@sentry/node/build/types/debug-build';
 import type { Span } from '@sentry/types';
 import { logger } from '@sentry/utils';
 import type { Observable } from 'rxjs';
@@ -37,8 +36,7 @@ class SentryTracingInterceptor implements NestInterceptor {
    */
   public intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
     if (getIsolationScope() === getDefaultIsolationScope()) {
-      DEBUG_BUILD &&
-        logger.warn('Isolation scope is still the default isolation scope, skipping setting transactionName.');
+      logger.warn('Isolation scope is still the default isolation scope, skipping setting transactionName.');
       return next.handle();
     }
 
@@ -82,7 +80,7 @@ export { SentryGlobalFilter };
 /**
  * Service to set up Sentry performance tracing for Nest.js applications.
  */
-class SentryIntegrationService implements OnModuleInit {
+class SentryService implements OnModuleInit {
   /**
    * Initializes the Sentry integration service and registers span attributes.
    */
@@ -98,21 +96,21 @@ class SentryIntegrationService implements OnModuleInit {
     }
   }
 }
-Injectable()(SentryIntegrationService);
-export { SentryIntegrationService };
+Injectable()(SentryService);
+export { SentryService };
 
 /**
  * Set up a root module that can be injected in nest applications.
  */
-class SentryIntegrationModule {
+class SentryModule {
   /**
    * Configures the module as the root module in a Nest.js application.
    */
   public static forRoot(): DynamicModule {
     return {
-      module: SentryIntegrationModule,
+      module: SentryModule,
       providers: [
-        SentryIntegrationService,
+        SentryService,
         {
           provide: APP_FILTER,
           useClass: SentryGlobalFilter,
@@ -122,14 +120,14 @@ class SentryIntegrationModule {
           useClass: SentryTracingInterceptor,
         },
       ],
-      exports: [SentryIntegrationService],
+      exports: [SentryService],
     };
   }
 }
-Global()(SentryIntegrationModule);
+Global()(SentryModule);
 Module({
   providers: [
-    SentryIntegrationService,
+    SentryService,
     {
       provide: APP_FILTER,
       useClass: SentryGlobalFilter,
@@ -139,9 +137,9 @@ Module({
       useClass: SentryTracingInterceptor,
     },
   ],
-  exports: [SentryIntegrationService],
-})(SentryIntegrationModule);
-export { SentryIntegrationModule };
+  exports: [SentryService],
+})(SentryModule);
+export { SentryModule };
 
 function addNestSpanAttributes(span: Span): void {
   const attributes = spanToJSON(span).data || {};
