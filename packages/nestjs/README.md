@@ -27,9 +27,6 @@ yarn add @sentry/nestjs
 Add a instrument.ts file:
 
 ```typescript
-// CJS Syntax
-const Sentry = require('@sentry/nestjs');
-// ESM Syntax
 import * as Sentry from '@sentry/nestjs';
 
 Sentry.init({
@@ -58,7 +55,7 @@ async function bootstrap() {
 bootstrap();
 ```
 
-Then you can add the SentryModule as a root module:
+Then you can add the `SentryModule` as a root module:
 
 ```typescript
 import { Module } from '@nestjs/common';
@@ -77,7 +74,7 @@ import { AppService } from './app.service';
 export class AppModule {}
 ```
 
-The SentryModule needs registered before any module that should be instrumented by Sentry.
+The `SentryModule` needs to be registered before any module that should be instrumented by Sentry.
 
 ## SentryTraced
 
