@@ -6,5 +6,8 @@
     "declarationMap": true,
     "emitDeclarationOnly": true,
     "outDir": "build/types"
-  }
+  },
+
+  "//": "This is built separately in tsconfig.setup-types.json",
+  "exclude": ["src/setup.ts"]
 }

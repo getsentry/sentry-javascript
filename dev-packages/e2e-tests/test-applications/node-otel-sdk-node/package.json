@@ -1,5 +1,5 @@
 {
-  "name": "node-otel-sdk-trace",
+  "name": "node-otel-sdk-node",
   "version": "1.0.0",
   "private": true,
   "scripts": {

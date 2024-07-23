@@ -1,9 +1,9 @@
 import * as SentryBrowser from '@sentry/browser';
-import { SDK_VERSION } from '@sentry/vue';
+import { type BrowserClient, SDK_VERSION, getClient } from '@sentry/vue';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { init } from '../../src/client';
 
-const vueInit = vi.spyOn(SentryBrowser, 'init');
+const browserInit = vi.spyOn(SentryBrowser, 'init');
 
 describe('Nuxt Client SDK', () => {
   describe('init', () => {
@@ -12,7 +12,7 @@ describe('Nuxt Client SDK', () => {
     });
 
     it('Adds Nuxt metadata to the SDK options', () => {
-      expect(vueInit).not.toHaveBeenCalled();
+      expect(browserInit).not.toHaveBeenCalled();
 
       init({
         dsn: 'https://public@dsn.ingest.sentry.io/1337',
@@ -31,8 +31,25 @@ describe('Nuxt Client SDK', () => {
         },
       };
 
-      expect(vueInit).toHaveBeenCalledTimes(1);
-      expect(vueInit).toHaveBeenLastCalledWith(expect.objectContaining(expectedMetadata));
+      expect(browserInit).toHaveBeenCalledTimes(1);
+      expect(browserInit).toHaveBeenLastCalledWith(expect.objectContaining(expectedMetadata));
+    });
+
+    describe('Automatically adds BrowserTracing integration', () => {
+      it.each([
+        ['tracesSampleRate', { tracesSampleRate: 0 }],
+        ['tracesSampler', { tracesSampler: () => 1.0 }],
+        ['enableTracing', { enableTracing: true }],
+        ['no tracing option set', {}] /* enable "tracing without performance" by default */,
+      ])('adds a browserTracingIntegration if tracing is enabled via %s', (_, tracingOptions) => {
+        init({
+          dsn: 'https://public@dsn.ingest.sentry.io/1337',
+          ...tracingOptions,
+        });
+
+        const browserTracing = getClient<BrowserClient>()?.getIntegrationByName('BrowserTracing');
+        expect(browserTracing).toBeDefined();
+      });
     });
 
     it('returns client from init', () => {

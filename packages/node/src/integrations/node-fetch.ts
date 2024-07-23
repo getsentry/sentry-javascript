@@ -1,6 +1,12 @@
 import type { Span } from '@opentelemetry/api';
-import { addBreadcrumb, defineIntegration } from '@sentry/core';
-import { addOpenTelemetryInstrumentation } from '@sentry/opentelemetry';
+import { trace } from '@opentelemetry/api';
+import { context, propagation } from '@opentelemetry/api';
+import { addBreadcrumb, defineIntegration, getCurrentScope, hasTracingEnabled } from '@sentry/core';
+import {
+  addOpenTelemetryInstrumentation,
+  generateSpanContextForPropagationContext,
+  getPropagationContextFromSpan,
+} from '@sentry/opentelemetry';
 import type { IntegrationFn, SanitizedRequestData } from '@sentry/types';
 import { getSanitizedUrlString, logger, parseUrl } from '@sentry/utils';
 import { DEBUG_BUILD } from '../debug-build';
@@ -63,9 +69,49 @@ const _nativeNodeFetchIntegration = ((options: NodeFetchOptions = {}) => {
       }
 
       return new SentryNodeFetchInstrumentation({
-        ignoreRequestHook: (request: { origin?: string }) => {
-          const url = request.origin;
-          return _ignoreOutgoingRequests && url && _ignoreOutgoingRequests(url);
+        ignoreRequestHook: (request: FetchRequest) => {
+          const url = getAbsoluteUrl(request.origin, request.path);
+          const tracingDisabled = !hasTracingEnabled();
+          const shouldIgnore = _ignoreOutgoingRequests && url && _ignoreOutgoingRequests(url);
+
+          if (shouldIgnore) {
+            return true;
+          }
+
+          // If tracing is disabled, we still want to propagate traces
+          // So we do that manually here, matching what the instrumentation does otherwise
+          if (tracingDisabled) {
+            const ctx = context.active();
+            const addedHeaders: Record<string, string> = {};
+
+            // We generate a virtual span context from the active one,
+            // Where we attach the URL to the trace state, so the propagator can pick it up
+            const activeSpan = trace.getSpan(ctx);
+            const propagationContext = activeSpan
+              ? getPropagationContextFromSpan(activeSpan)
+              : getCurrentScope().getPropagationContext();
+
+            const spanContext = generateSpanContextForPropagationContext(propagationContext);
+            // We know that in practice we'll _always_ haven a traceState here
+            spanContext.traceState = spanContext.traceState?.set('sentry.url', url);
+            const ctxWithUrlTraceState = trace.setSpanContext(ctx, spanContext);
+
+            propagation.inject(ctxWithUrlTraceState, addedHeaders);
+
+            const requestHeaders = request.headers;
+            if (Array.isArray(requestHeaders)) {
+              Object.entries(addedHeaders).forEach(headers => requestHeaders.push(...headers));
+            } else {
+              request.headers += Object.entries(addedHeaders)
+                .map(([k, v]) => `${k}: ${v}\r\n`)
+                .join('');
+            }
+
+            // Prevent starting a span for this request
+            return true;
+          }
+
+          return false;
         },
         onRequest: ({ span }: { span: Span }) => {
           _updateSpan(span);
@@ -140,4 +186,19 @@ function getBreadcrumbData(request: FetchRequest): Partial<SanitizedRequestData>
   } catch {
     return {};
   }
+}
+
+// Matching the behavior of the base instrumentation
+function getAbsoluteUrl(origin: string, path: string = '/'): string {
+  const url = `${origin}`;
+
+  if (origin.endsWith('/') && path.startsWith('/')) {
+    return `${url}${path.slice(1)}`;
+  }
+
+  if (!origin.endsWith('/') && !path.startsWith('/')) {
+    return `${url}/${path.slice(1)}`;
+  }
+
+  return `${url}${path}`;
 }

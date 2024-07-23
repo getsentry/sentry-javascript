@@ -1,0 +1,173 @@
+import { expect, test } from '@playwright/test';
+import { waitForPlainRequest, waitForTransaction } from '@sentry-internal/test-utils';
+
+test('Sends an API route transaction to OTLP', async ({ baseURL }) => {
+  waitForTransaction('node-otel-without-tracing', transactionEvent => {
+    throw new Error('THIS SHOULD NEVER HAPPEN!');
+  });
+
+  // Ensure we send data to the OTLP endpoint
+  const otelPromise = waitForPlainRequest('node-otel-without-tracing-otel', data => {
+    const json = JSON.parse(data) as any;
+
+    const scopeSpans = json.resourceSpans?.[0]?.scopeSpans;
+
+    const httpScope = scopeSpans?.find(scopeSpan => scopeSpan.scope.name === '@opentelemetry/instrumentation-http');
+
+    return (
+      httpScope &&
+      httpScope.spans.some(span =>
+        span.attributes.some(attr => attr.key === 'http.target' && attr.value?.stringValue === '/test-transaction'),
+      )
+    );
+  });
+
+  await fetch(`${baseURL}/test-transaction`);
+
+  const otelData = await otelPromise;
+
+  expect(otelData).toBeDefined();
+
+  const json = JSON.parse(otelData);
+  expect(json.resourceSpans.length).toBe(1);
+
+  const scopeSpans = json.resourceSpans?.[0]?.scopeSpans;
+  expect(scopeSpans).toBeDefined();
+
+  // Http server span & undici client spans are emitted
+  // But our default node-fetch spans are not emitted
+  expect(scopeSpans.length).toEqual(2);
+
+  const httpScopes = scopeSpans?.filter(scopeSpan => scopeSpan.scope.name === '@opentelemetry/instrumentation-http');
+  const undiciScopes = scopeSpans?.filter(
+    scopeSpan => scopeSpan.scope.name === '@opentelemetry/instrumentation-undici',
+  );
+
+  expect(httpScopes.length).toBe(1);
+
+  // Undici spans are emitted correctly
+  expect(undiciScopes.length).toBe(1);
+  expect(undiciScopes[0].spans.length).toBe(1);
+
+  // There may be another span from another request, we can ignore that
+  const httpSpans = httpScopes[0].spans.filter(span =>
+    span.attributes.some(attr => attr.key === 'http.target' && attr.value?.stringValue === '/test-transaction'),
+  );
+
+  expect(httpSpans).toEqual([
+    {
+      traceId: expect.any(String),
+      spanId: expect.any(String),
+      name: 'GET',
+      kind: 2,
+      startTimeUnixNano: expect.any(String),
+      endTimeUnixNano: expect.any(String),
+      attributes: [
+        {
+          key: 'http.url',
+          value: {
+            stringValue: 'http://localhost:3030/test-transaction',
+          },
+        },
+        {
+          key: 'http.host',
+          value: {
+            stringValue: 'localhost:3030',
+          },
+        },
+        {
+          key: 'net.host.name',
+          value: {
+            stringValue: 'localhost',
+          },
+        },
+        {
+          key: 'http.method',
+          value: {
+            stringValue: 'GET',
+          },
+        },
+        {
+          key: 'http.scheme',
+          value: {
+            stringValue: 'http',
+          },
+        },
+        {
+          key: 'http.target',
+          value: {
+            stringValue: '/test-transaction',
+          },
+        },
+        {
+          key: 'http.user_agent',
+          value: {
+            stringValue: 'node',
+          },
+        },
+        {
+          key: 'http.flavor',
+          value: {
+            stringValue: '1.1',
+          },
+        },
+        {
+          key: 'net.transport',
+          value: {
+            stringValue: 'ip_tcp',
+          },
+        },
+        {
+          key: 'sentry.origin',
+          value: {
+            stringValue: 'auto.http.otel.http',
+          },
+        },
+        {
+          key: 'net.host.ip',
+          value: {
+            stringValue: expect.any(String),
+          },
+        },
+        {
+          key: 'net.host.port',
+          value: {
+            intValue: 3030,
+          },
+        },
+        {
+          key: 'net.peer.ip',
+          value: {
+            stringValue: expect.any(String),
+          },
+        },
+        {
+          key: 'net.peer.port',
+          value: {
+            intValue: expect.any(Number),
+          },
+        },
+        {
+          key: 'http.status_code',
+          value: {
+            intValue: 200,
+          },
+        },
+        {
+          key: 'http.status_text',
+          value: {
+            stringValue: 'OK',
+          },
+        },
+      ],
+      droppedAttributesCount: 0,
+      events: [],
+      droppedEventsCount: 0,
+      status: {
+        code: 0,
+      },
+      links: [],
+      droppedLinksCount: 0,
+    },
+  ]);
+});
