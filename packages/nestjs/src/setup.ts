@@ -19,6 +19,7 @@ import {
   getIsolationScope,
   spanToJSON,
 } from '@sentry/core';
+import { DEBUG_BUILD } from '@sentry/node/build/types/debug-build';
 import type { Span } from '@sentry/types';
 import { logger } from '@sentry/utils';
 import type { Observable } from 'rxjs';
@@ -36,7 +37,8 @@ class SentryTracingInterceptor implements NestInterceptor {
    */
   public intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
     if (getIsolationScope() === getDefaultIsolationScope()) {
-      logger.warn('Isolation scope is still the default isolation scope, skipping setting transactionName.');
+      DEBUG_BUILD &&
+        logger.warn('Isolation scope is still the default isolation scope, skipping setting transactionName.');
       return next.handle();
     }
 

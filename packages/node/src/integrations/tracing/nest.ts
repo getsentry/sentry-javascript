@@ -11,6 +11,7 @@ import {
 } from '@sentry/core';
 import type { IntegrationFn, Span } from '@sentry/types';
 import { logger } from '@sentry/utils';
+import { DEBUG_BUILD } from '../../debug-build';
 import { generateInstrumentOnce } from '../../otel/instrument';
 
 interface MinimalNestJsExecutionContext {
@@ -79,7 +80,8 @@ export function setupNestErrorHandler(app: MinimalNestJsApp, baseFilter: NestJsE
   app.useGlobalInterceptors({
     intercept(context, next) {
       if (getIsolationScope() === getDefaultIsolationScope()) {
-        logger.warn('Isolation scope is still the default isolation scope, skipping setting transactionName.');
+        DEBUG_BUILD &&
+          logger.warn('Isolation scope is still the default isolation scope, skipping setting transactionName.');
         return next.handle();
       }
 
