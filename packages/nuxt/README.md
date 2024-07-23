@@ -102,21 +102,6 @@ Sentry.init({
 
 ### 4. Server-side setup
 
-Add a `sentry.server.config.(js|ts)` file to the root of your project:
-
-```javascript
-import * as Sentry from '@sentry/nuxt';
-
-Sentry.init({
-  dsn: process.env.DSN,
-});
-```
-
-**Alternative Setup (ESM-compatible)**
-
-This setup makes sure Sentry is imported on the server before any other imports. As of now, this however leads to an
-import-in-the-middle error ([related reproduction](https://github.com/getsentry/sentry-javascript-examples/pull/38)).
-
 Add an `instrument.server.mjs` file to your `public` folder:
 
 ```javascript
@@ -130,12 +115,25 @@ if (process.env.SENTRY_DSN) {
 }
 ```
 
-Add an import flag to the node options, so the file loads before any other imports:
+Add an import flag to the `NODE_OPTIONS` of your preview script in the `package.json`, so the file loads before any
+other imports:
 
 ```json
 {
   "scripts": {
     "preview": "NODE_OPTIONS='--import ./public/instrument.server.mjs' nuxt preview"
+  }
+}
+```
+
+If you are getting an `import-in-the-middle` error message, add the package with a minimum version of `1.10.0` as a
+dependency to your `package.json`
+([issue reference](https://github.com/getsentry/sentry-javascript-examples/pull/38#issuecomment-2245259327)):
+
+```json
+{
+  "dependencies": {
+    "import-in-the-middle": "1.10.0"
   }
 }
 ```
