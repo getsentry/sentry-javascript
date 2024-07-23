@@ -260,7 +260,11 @@ export const buildFeedbackIntegration = ({
     const _createActor = (optionOverrides: OverrideFeedbackConfiguration = {}): ActorComponent => {
       const mergedOptions = mergeOptions(_options, optionOverrides);
       const shadow = _createShadow(mergedOptions);
-      const actor = Actor({ triggerLabel: mergedOptions.triggerLabel, triggerAriaLabel: mergedOptions.triggerAriaLabel, shadow });
+      const actor = Actor({
+        triggerLabel: mergedOptions.triggerLabel,
+        triggerAriaLabel: mergedOptions.triggerAriaLabel,
+        shadow,
+      });
       _attachTo(actor.el, {
         ...mergedOptions,
         onFormOpen() {

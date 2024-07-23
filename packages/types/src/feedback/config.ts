@@ -93,8 +93,8 @@ export interface FeedbackTextConfiguration {
   triggerLabel: string;
 
   /**
- * The aria label for the Feedback widget button that opens the dialog
- */
+   * The aria label for the Feedback widget button that opens the dialog
+   */
   triggerAriaLabel: string;
 
   /**

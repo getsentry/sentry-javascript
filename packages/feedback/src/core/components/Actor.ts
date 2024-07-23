@@ -28,7 +28,7 @@ export function Actor({ triggerLabel, triggerAriaLabel, shadow }: ActorProps): A
   el.type = 'button';
   el.className = 'widget__actor';
   el.ariaHidden = 'false';
-  el.ariaLabel = triggerAriaLabel || triggerLabel  || TRIGGER_LABEL;
+  el.ariaLabel = triggerAriaLabel || triggerLabel || TRIGGER_LABEL;
   el.appendChild(FeedbackIcon());
   if (triggerLabel) {
     const label = DOCUMENT.createElement('span');
