@@ -40,6 +40,7 @@ describe('Nuxt Client SDK', () => {
         ['tracesSampleRate', { tracesSampleRate: 0 }],
         ['tracesSampler', { tracesSampler: () => 1.0 }],
         ['enableTracing', { enableTracing: true }],
+        ['no tracing option set', {}] /* enable "tracing without performance" by default */,
       ])('adds a browserTracingIntegration if tracing is enabled via %s', (_, tracingOptions) => {
         init({
           dsn: 'https://public@dsn.ingest.sentry.io/1337',
@@ -48,38 +49,6 @@ describe('Nuxt Client SDK', () => {
 
         const browserTracing = getClient<BrowserClient>()?.getIntegrationByName('BrowserTracing');
         expect(browserTracing).toBeDefined();
-      });
-
-      it.each([
-        ['enableTracing', { enableTracing: false }],
-        ['no tracing option set', {}],
-      ])("doesn't add a browserTracingIntegration integration if tracing is disabled via %s", (_, tracingOptions) => {
-        init({
-          dsn: 'https://public@dsn.ingest.sentry.io/1337',
-          ...tracingOptions,
-        });
-
-        const browserTracing = getClient<BrowserClient>()?.getIntegrationByName('BrowserTracing');
-        expect(browserTracing).toBeUndefined();
-      });
-
-      it("doesn't add a browserTracingIntegration if `__SENTRY_TRACING__` is set to false", () => {
-        // This is the closest we can get to unit-testing the `__SENTRY_TRACING__` tree-shaking guard
-        // IRL, the code to add the integration would most likely be removed by the bundler.
-
-        // @ts-expect-error: Testing purposes
-        globalThis.__SENTRY_TRACING__ = false;
-
-        init({
-          dsn: 'https://public@dsn.ingest.sentry.io/1337',
-          tracesSampleRate: 0.3,
-        });
-
-        const browserTracing = getClient<BrowserClient>()?.getIntegrationByName('BrowserTracing');
-        expect(browserTracing).toBeUndefined();
-
-        // @ts-expect-error: Testing purposes
-        delete globalThis.__SENTRY_TRACING__;
       });
     });
 
