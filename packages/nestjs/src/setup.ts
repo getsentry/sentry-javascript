@@ -9,8 +9,7 @@ import type {
 import { Catch } from '@nestjs/common';
 import { Injectable } from '@nestjs/common';
 import { Global, Module } from '@nestjs/common';
-import { APP_FILTER, BaseExceptionFilter } from '@nestjs/core';
-import { APP_INTERCEPTOR } from '@nestjs/core';
+import { APP_FILTER, APP_INTERCEPTOR, BaseExceptionFilter } from '@nestjs/core';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -31,7 +30,7 @@ import type { Observable } from 'rxjs';
 /**
  * Interceptor to add Sentry tracing capabilities to Nest.js applications.
  */
-export class SentryTracingInterceptor implements NestInterceptor {
+class SentryTracingInterceptor implements NestInterceptor {
   /**
    * Intercepts HTTP requests to set the transaction name for Sentry tracing.
    */
@@ -54,11 +53,12 @@ export class SentryTracingInterceptor implements NestInterceptor {
   }
 }
 Injectable()(SentryTracingInterceptor);
+export { SentryTracingInterceptor };
 
 /**
  * Global filter to handle exceptions and report them to Sentry.
  */
-export class SentryGlobalFilter extends BaseExceptionFilter {
+class SentryGlobalFilter extends BaseExceptionFilter {
   /**
    * Catches exceptions and reports them to Sentry unless they are expected errors.
    */
@@ -75,11 +75,12 @@ export class SentryGlobalFilter extends BaseExceptionFilter {
   }
 }
 Catch()(SentryGlobalFilter);
+export { SentryGlobalFilter };
 
 /**
  * Service to set up Sentry performance tracing for Nest.js applications.
  */
-export class SentryIntegrationService implements OnModuleInit {
+class SentryIntegrationService implements OnModuleInit {
   /**
    * Initializes the Sentry integration service and registers span attributes.
    */
@@ -96,11 +97,12 @@ export class SentryIntegrationService implements OnModuleInit {
   }
 }
 Injectable()(SentryIntegrationService);
+export { SentryIntegrationService };
 
 /**
  * Set up a root module that can be injected in nest applications.
  */
-export class SentryIntegrationModule {
+class SentryIntegrationModule {
   /**
    * Configures the module as the root module in a Nest.js application.
    */
@@ -137,6 +139,7 @@ Module({
   ],
   exports: [SentryIntegrationService],
 })(SentryIntegrationModule);
+export { SentryIntegrationModule };
 
 function addNestSpanAttributes(span: Span): void {
   const attributes = spanToJSON(span).data || {};

@@ -59,7 +59,9 @@ test('Sends unexpected exception to Sentry if thrown in module that was register
   });
 });
 
-test('Does not send exception to Sentry if user-defined global exception filter already catches the exception', async ({ baseURL }) => {
+test('Does not send exception to Sentry if user-defined global exception filter already catches the exception', async ({
+  baseURL,
+}) => {
   let errorEventOccurred = false;
 
   waitForError('nestjs', event => {
@@ -84,7 +86,9 @@ test('Does not send exception to Sentry if user-defined global exception filter 
   expect(errorEventOccurred).toBe(false);
 });
 
-test('Does not send exception to Sentry if user-defined local exception filter already catches the exception', async ({ baseURL }) => {
+test('Does not send exception to Sentry if user-defined local exception filter already catches the exception', async ({
+  baseURL,
+}) => {
   let errorEventOccurred = false;
 
   waitForError('nestjs', event => {
