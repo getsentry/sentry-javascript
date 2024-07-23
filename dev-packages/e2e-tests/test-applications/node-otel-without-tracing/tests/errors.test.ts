@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { waitForError } from '@sentry-internal/test-utils';
 
 test('Sends correct error event', async ({ baseURL }) => {
-  const errorEventPromise = waitForError('node-otel-sdk-node', event => {
+  const errorEventPromise = waitForError('node-otel-without-tracing', event => {
     return !event.type && event.exception?.values?.[0]?.value === 'This is an exception with id 123';
   });
 
@@ -20,7 +20,8 @@ test('Sends correct error event', async ({ baseURL }) => {
     url: 'http://localhost:3030/test-exception/123',
   });
 
-  expect(errorEvent.transaction).toEqual('GET /test-exception/:id');
+  // This is unparametrized here because we do not have the express instrumentation
+  expect(errorEvent.transaction).toEqual('GET /test-exception/123');
 
   expect(errorEvent.contexts?.trace).toEqual({
     trace_id: expect.any(String),

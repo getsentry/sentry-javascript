@@ -13,11 +13,12 @@ import {
   spanToJSON,
 } from '@sentry/core';
 import type { Client, Scope, Span as SentrySpan } from '@sentry/types';
-import { continueTraceAsRemoteSpan, makeTraceState } from './propagator';
+import { continueTraceAsRemoteSpan } from './propagator';
 
 import type { OpenTelemetryClient, OpenTelemetrySpanContext } from './types';
 import { getContextFromScope, getScopesFromContext } from './utils/contextData';
 import { getSamplingDecision } from './utils/getSamplingDecision';
+import { makeTraceState } from './utils/makeTraceState';
 
 /**
  * Wraps a function with a transaction/span and finishes the span after the function is done.

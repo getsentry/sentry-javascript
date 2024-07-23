@@ -1,8 +1,8 @@
-import type { Baggage, Context, Span, SpanContext, TextMapGetter, TextMapSetter } from '@opentelemetry/api';
+import type { Baggage, Context, Span, TextMapGetter, TextMapSetter } from '@opentelemetry/api';
 import { INVALID_TRACEID } from '@opentelemetry/api';
 import { context } from '@opentelemetry/api';
-import { TraceFlags, propagation, trace } from '@opentelemetry/api';
-import { TraceState, W3CBaggagePropagator, isTracingSuppressed } from '@opentelemetry/core';
+import { propagation, trace } from '@opentelemetry/api';
+import { W3CBaggagePropagator, isTracingSuppressed } from '@opentelemetry/core';
 import { SEMATTRS_HTTP_URL } from '@opentelemetry/semantic-conventions';
 import type { continueTrace } from '@sentry/core';
 import { hasTracingEnabled } from '@sentry/core';
@@ -20,7 +20,6 @@ import {
   LRUMap,
   SENTRY_BAGGAGE_KEY_PREFIX,
   baggageHeaderToDynamicSamplingContext,
-  dynamicSamplingContextToSentryBaggageHeader,
   generateSentryTraceHeader,
   logger,
   parseBaggageHeader,
@@ -33,11 +32,11 @@ import {
   SENTRY_TRACE_HEADER,
   SENTRY_TRACE_STATE_DSC,
   SENTRY_TRACE_STATE_PARENT_SPAN_ID,
-  SENTRY_TRACE_STATE_SAMPLED_NOT_RECORDING,
   SENTRY_TRACE_STATE_URL,
 } from './constants';
 import { DEBUG_BUILD } from './debug-build';
 import { getScopesFromContext, setScopesOnContext } from './utils/contextData';
+import { generateSpanContextForPropagationContext } from './utils/generateSpanContextForPropagationContext';
 import { getSamplingDecision } from './utils/getSamplingDecision';
 import { setIsSetup } from './utils/setupCheck';
 
@@ -193,32 +192,6 @@ export class SentryPropagator extends W3CBaggagePropagator {
   }
 }
 
-/** Exported for tests. */
-export function makeTraceState({
-  parentSpanId,
-  dsc,
-  sampled,
-}: {
-  parentSpanId?: string;
-  dsc?: Partial<DynamicSamplingContext>;
-  sampled?: boolean;
-}): TraceState {
-  // We store the DSC as OTEL trace state on the span context
-  const dscString = dsc ? dynamicSamplingContextToSentryBaggageHeader(dsc) : undefined;
-
-  // We _always_ set the parent span ID, even if it is empty
-  // If we'd set this to 'undefined' we could not know if the trace state was set, but there was no parentSpanId,
-  // vs the trace state was not set at all (in which case we want to do fallback handling)
-  // If `''`, it should be considered "no parent"
-  const traceStateBase = new TraceState().set(SENTRY_TRACE_STATE_PARENT_SPAN_ID, parentSpanId || '');
-
-  const traceStateWithDsc = dscString ? traceStateBase.set(SENTRY_TRACE_STATE_DSC, dscString) : traceStateBase;
-
-  // We also specifically want to store if this is sampled to be not recording,
-  // or unsampled (=could be either sampled or not)
-  return sampled === false ? traceStateWithDsc.set(SENTRY_TRACE_STATE_SAMPLED_NOT_RECORDING, '1') : traceStateWithDsc;
-}
-
 function getInjectionData(context: Context): {
   dynamicSamplingContext: Partial<DynamicSamplingContext> | undefined;
   traceId: string | undefined;
@@ -281,21 +254,7 @@ function getContextWithRemoteActiveSpan(
 ): Context {
   const propagationContext = propagationContextFromHeaders(sentryTrace, baggage);
 
-  // We store the DSC as OTEL trace state on the span context
-  const traceState = makeTraceState({
-    parentSpanId: propagationContext.parentSpanId,
-    dsc: propagationContext.dsc,
-    sampled: propagationContext.sampled,
-  });
-
-  const spanContext: SpanContext = {
-    traceId: propagationContext.traceId,
-    spanId: propagationContext.parentSpanId || '',
-    isRemote: true,
-    traceFlags: propagationContext.sampled ? TraceFlags.SAMPLED : TraceFlags.NONE,
-    traceState,
-  };
-
+  const spanContext = generateSpanContextForPropagationContext(propagationContext);
   return trace.setSpanContext(ctx, spanContext);
 }
 

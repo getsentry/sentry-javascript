@@ -16,9 +16,9 @@ import { logger } from '@sentry/utils';
 
 import { TraceState } from '@opentelemetry/core';
 import { SENTRY_TRACE_STATE_DSC } from '../../src/constants';
-import { makeTraceState } from '../../src/propagator';
 import { SentrySpanProcessor } from '../../src/spanProcessor';
 import { startInactiveSpan, startSpan } from '../../src/trace';
+import { makeTraceState } from '../../src/utils/makeTraceState';
 import type { TestClientInterface } from '../helpers/TestClient';
 import { cleanupOtel, getProvider, mockSdkInit } from '../helpers/mockSdkInit';
 
