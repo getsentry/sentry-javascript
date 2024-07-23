@@ -5,8 +5,8 @@ import type { ClientOptions, Options, SamplingContext, Scope, Span, TracePropaga
 import type { NodeTransportOptions } from './transports';
 
 export interface EsmLoaderHookOptions {
-  include?: string[];
-  exclude?: string[];
+  include?: Array<string | RegExp>;
+  exclude?: Array<string | RegExp>;
 }
 
 export interface BaseNodeOptions {
