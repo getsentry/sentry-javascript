@@ -1,5 +1,5 @@
 {
-  "name": "node-otel-sdk-node",
+  "name": "node-otel-without-tracing",
   "version": "1.0.0",
   "private": true,
   "scripts": {
@@ -11,8 +11,10 @@
     "test:assert": "pnpm test"
   },
   "dependencies": {
-    "@opentelemetry/sdk-node": "0.52.1",
+    "@opentelemetry/sdk-trace-node": "1.25.1",
     "@opentelemetry/exporter-trace-otlp-http": "0.52.1",
+    "@opentelemetry/instrumentation-undici": "0.4.0",
+    "@opentelemetry/instrumentation": "0.52.1",
     "@sentry/core": "latest || *",
     "@sentry/node": "latest || *",
     "@sentry/opentelemetry": "latest || *",
