@@ -91,7 +91,8 @@
     "@sentry/core": "8.19.0",
     "@sentry/opentelemetry": "8.19.0",
     "@sentry/types": "8.19.0",
-    "@sentry/utils": "8.19.0"
+    "@sentry/utils": "8.19.0",
+    "import-in-the-middle": "^1.10.0"
   },
   "devDependencies": {
     "@types/node": "^14.18.0"
