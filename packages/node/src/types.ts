@@ -109,6 +109,11 @@ export interface BaseNodeOptions {
    */
   registerEsmLoaderHooks?: boolean | EsmLoaderHookOptions;
 
+  /**
+   * Configures in which interval client reports will be flushed. Defaults to `60_000` (milliseconds).
+   */
+  clientReportFlushInterval?: number;
+
   /** Callback that is executed when a fatal global error occurs. */
   onFatalError?(this: void, error: Error): void;
 }

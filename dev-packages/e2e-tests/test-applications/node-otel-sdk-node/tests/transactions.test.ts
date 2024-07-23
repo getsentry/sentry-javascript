@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { waitForPlainRequest, waitForTransaction } from '@sentry-internal/test-utils';
 
 test('Sends an API route transaction', async ({ baseURL }) => {
-  const pageloadTransactionEventPromise = waitForTransaction('node-otel-sdk-trace', transactionEvent => {
+  const pageloadTransactionEventPromise = waitForTransaction('node-otel-sdk-node', transactionEvent => {
     return (
       transactionEvent?.contexts?.trace?.op === 'http.server' &&
       transactionEvent?.transaction === 'GET /test-transaction'
@@ -10,7 +10,7 @@ test('Sends an API route transaction', async ({ baseURL }) => {
   });
 
   // Ensure we also send data to the OTLP endpoint
-  const otelPromise = waitForPlainRequest('node-otel-sdk-trace-otel', data => {
+  const otelPromise = waitForPlainRequest('node-otel-sdk-node-otel', data => {
     const json = JSON.parse(data) as any;
 
     return json.resourceSpans.length > 0;
@@ -129,7 +129,7 @@ test('Sends an API route transaction', async ({ baseURL }) => {
 });
 
 test('Sends an API route transaction for an errored route', async ({ baseURL }) => {
-  const transactionEventPromise = waitForTransaction('node-otel-sdk-trace', transactionEvent => {
+  const transactionEventPromise = waitForTransaction('node-otel-sdk-node', transactionEvent => {
     return (
       transactionEvent.contexts?.trace?.op === 'http.server' &&
       transactionEvent.transaction === 'GET /test-exception/:id' &&
