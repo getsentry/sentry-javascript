@@ -82,7 +82,7 @@ export { SentryGlobalFilter };
  */
 class SentryService implements OnModuleInit {
   /**
-   * Initializes the Sentry integration service and registers span attributes.
+   * Initializes the Sentry service and registers span attributes.
    */
   public onModuleInit(): void {
     // Sadly, NestInstrumentation has no requestHook, so we need to add the attributes here
