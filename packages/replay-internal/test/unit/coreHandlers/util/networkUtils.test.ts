@@ -1,3 +1,9 @@
+/**
+ * @vitest-environment jsdom
+ */
+
+import { describe, expect, it } from 'vitest';
+
 import { NETWORK_BODY_MAX_SIZE } from '../../../../src/constants';
 import {
   buildNetworkRequestOrResponse,

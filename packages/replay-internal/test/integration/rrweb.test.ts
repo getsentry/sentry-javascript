@@ -1,3 +1,9 @@
+/**
+ * @vitest-environment jsdom
+ */
+
+import { afterEach, describe, expect, it, vi } from 'vitest';
+
 import { resetSdkMock } from '../mocks/resetSdkMock';
 import { useFakeTimers } from '../utils/use-fake-timers';
 
@@ -15,7 +21,7 @@ describe('Integration | rrweb', () => {
         stickySession: false,
       },
     });
-    expect(mockRecord.mock.calls[0][0]).toMatchInlineSnapshot(`
+    expect(mockRecord.mock.calls[0]?.[0]).toMatchInlineSnapshot(`
       {
         "blockSelector": ".sentry-block,[data-sentry-block],base[href="/"],img,image,svg,video,object,picture,embed,map,audio,link[rel="icon"],link[rel="apple-touch-icon"]",
         "collectFonts": true,

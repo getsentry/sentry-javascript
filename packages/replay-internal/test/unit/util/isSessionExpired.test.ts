@@ -1,3 +1,5 @@
+import { describe, expect, it } from 'vitest';
+
 import { MAX_REPLAY_DURATION } from '../../../src/constants';
 import { makeSession } from '../../../src/session/Session';
 import { isSessionExpired } from '../../../src/util/isSessionExpired';

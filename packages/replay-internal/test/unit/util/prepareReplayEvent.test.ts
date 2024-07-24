@@ -1,4 +1,4 @@
-import { vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { getClient, getCurrentScope, setCurrentClient } from '@sentry/core';
 import type { ReplayEvent } from '@sentry/types';
