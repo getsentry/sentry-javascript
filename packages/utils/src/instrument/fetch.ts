@@ -1,9 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { HandlerDataFetch } from '@sentry/types';
 
-import { DEBUG_BUILD } from '../debug-build';
 import { isError } from '../is';
-import { logger } from '../logger';
 import { addNonEnumerableProperty, fill } from '../object';
 import { supportsNativeFetch } from '../supports';
 import { timestampInSeconds } from '../time';
@@ -82,7 +80,6 @@ function instrumentFetch(handlerType: 'fetch' | 'fetch-body-resolved'): void {
               clonedResponseForResolving = response.clone();
             } catch (e) {
               // noop
-              DEBUG_BUILD && logger.warn('Failed to clone response body.');
             }
 
             await resolveResponse(clonedResponseForResolving, () => {
