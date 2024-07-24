@@ -990,6 +990,7 @@ jobs:
             'node-express-esm-without-loader',
             'node-express-cjs-preload',
             'node-otel-sdk-node',
+            'node-otel-custom-sampler',
             'ember-classic',
             'ember-embroider',
             'nextjs-app-dir',
