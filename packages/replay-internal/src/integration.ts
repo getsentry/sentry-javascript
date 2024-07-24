@@ -226,7 +226,7 @@ export class Replay implements Integration {
 
   /**
    * Start a replay regardless of sampling rate. Calling this will always
-   * create a new session. Will throw an error if replay is already in progress.
+   * create a new session. Will log a message if replay is already in progress.
    *
    * Creates or loads a session, attaches listeners to varying events (DOM,
    * PerformanceObserver, Recording, Sentry SDK, etc)
@@ -235,7 +235,6 @@ export class Replay implements Integration {
     if (!this._replay) {
       return;
     }
-
     this._replay.start();
   }
 
@@ -265,13 +264,20 @@ export class Replay implements Integration {
 
   /**
    * If not in "session" recording mode, flush event buffer which will create a new replay.
+   * If replay is not enabled, a new session replay is started.
    * Unless `continueRecording` is false, the replay will continue to record and
    * behave as a "session"-based replay.
    *
    * Otherwise, queue up a flush.
    */
   public flush(options?: SendBufferedReplayOptions): Promise<void> {
-    if (!this._replay || !this._replay.isEnabled()) {
+    if (!this._replay) {
+      return Promise.resolve();
+    }
+
+    // assuming a session should be recorded in this case
+    if (!this._replay.isEnabled()) {
+      this._replay.start();
       return Promise.resolve();
     }
 

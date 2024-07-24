@@ -288,18 +288,20 @@ export class ReplayContainer implements ReplayContainerInterface {
 
   /**
    * Start a replay regardless of sampling rate. Calling this will always
-   * create a new session. Will throw an error if replay is already in progress.
+   * create a new session. Will log a message if replay is already in progress.
    *
    * Creates or loads a session, attaches listeners to varying events (DOM,
    * _performanceObserver, Recording, Sentry SDK, etc)
    */
   public start(): void {
     if (this._isEnabled && this.recordingMode === 'session') {
-      throw new Error('Replay recording is already in progress');
+      DEBUG_BUILD && logger.info('[Replay] Recording is already in progress');
+      return;
     }
 
     if (this._isEnabled && this.recordingMode === 'buffer') {
-      throw new Error('Replay buffering is in progress, call `flush()` to save the replay');
+      DEBUG_BUILD && logger.info('[Replay] Buffering is in progress, call `flush()` to save the replay');
+      return;
     }
 
     logInfoNextTick('[Replay] Starting replay in session mode', this._options._experiments.traceInternals);
@@ -335,7 +337,8 @@ export class ReplayContainer implements ReplayContainerInterface {
    */
   public startBuffering(): void {
     if (this._isEnabled) {
-      throw new Error('Replay recording is already in progress');
+      DEBUG_BUILD && logger.info('[Replay] Buffering is in progress, call `flush()` to save the replay');
+      return;
     }
 
     logInfoNextTick('[Replay] Starting replay in buffer mode', this._options._experiments.traceInternals);
