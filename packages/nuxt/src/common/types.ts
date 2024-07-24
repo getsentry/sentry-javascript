@@ -96,5 +96,5 @@ export type SentryNuxtModuleOptions = SourceMapsOptions & {
    * Enable debug functionality of the SDK during build-time.
    * Enabling this will give you, for example, logs about source maps.
    */
-  debug: boolean;
+  debug?: boolean;
 };
