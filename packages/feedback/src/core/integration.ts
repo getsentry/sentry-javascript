@@ -77,6 +77,7 @@ export const buildFeedbackIntegration = ({
       name: 'username',
     },
     tags,
+    parentElement,
 
     // FeedbackThemeConfiguration
     colorScheme = 'system',
@@ -119,6 +120,7 @@ export const buildFeedbackIntegration = ({
       enableScreenshot,
       useSentryUser,
       tags,
+      parentElement,
 
       colorScheme,
       themeDark,
@@ -149,19 +151,29 @@ export const buildFeedbackIntegration = ({
     };
 
     let _shadow: ShadowRoot | null = null;
+    let _shadowParentId: string = ''; // parentElement defaults to DOCUMENT.body, which has empty string id
     let _subscriptions: Unsubscribe[] = [];
 
     /**
      * Get the shadow root where we will append css
      */
     const _createShadow = (options: FeedbackInternalOptions): ShadowRoot => {
+      const parentElement = options.parentElement ?? DOCUMENT.body;
+
       if (!_shadow) {
         const host = DOCUMENT.createElement('div');
         host.id = String(options.id);
-        DOCUMENT.body.appendChild(host);
+        parentElement.appendChild(host);
+        console.log('createShadow', parentElement.nodeName, options.parentElement?.nodeName);
 
         _shadow = host.attachShadow({ mode: 'open' });
         _shadow.appendChild(createMainStyles(options));
+      }
+      // moves the host element to a different parent
+      if (parentElement?.id !== _shadowParentId) {
+        console.log('move shadow', _shadowParentId, parentElement?.id);
+        _shadowParentId = parentElement?.id;
+        parentElement.appendChild(_shadow.host);
       }
       return _shadow as ShadowRoot;
     };
@@ -286,6 +298,7 @@ export const buildFeedbackIntegration = ({
         if (!isBrowser() || !_options.autoInject) {
           return;
         }
+        console.log('setupOnce');
 
         if (DOCUMENT.readyState === 'loading') {
           DOCUMENT.addEventListener('DOMContentLoaded', () => _createActor().appendToDom());
@@ -299,13 +312,17 @@ export const buildFeedbackIntegration = ({
        *
        * The returned function can be used to remove the click listener
        */
-      attachTo: _attachTo,
+      attachTo: (el: Element | string, optionOverrides?: OverrideFeedbackConfiguration) => {
+        console.log('attachTo');
+        return _attachTo(el, optionOverrides);
+      },
 
       /**
        * Creates a new widget which is composed of a Button which triggers a Dialog.
        * Accepts partial options to override any options passed to constructor.
        */
       createWidget(optionOverrides: OverrideFeedbackConfiguration = {}): ActorComponent {
+        console.log('createWidget');
         const actor = _createActor(mergeOptions(_options, optionOverrides));
         actor.appendToDom();
         return actor;
@@ -318,6 +335,7 @@ export const buildFeedbackIntegration = ({
       async createForm(
         optionOverrides: OverrideFeedbackConfiguration = {},
       ): Promise<ReturnType<FeedbackModalIntegration['createDialog']>> {
+        console.log('createForm');
         return _loadAndRenderDialog(mergeOptions(_options, optionOverrides));
       },
 
