@@ -31,4 +31,7 @@ _These steps are only relevant to Sentry employees when preparing and publishing
    `Work in this release contributed by <list of external contributors' GitHub usernames>. Thank you for your contributions!`.
    If there's only one external PR, don't forget to remove the final `s`. If there are three or more, use an Oxford
    comma. (It's in the Sentry styleguide!)
+   - We have a GitHub Action "External Contributors" which collects all external contributors in the changelog section
+     "Unreleased". The GitHub Action creates a PR with this change every time a PR of an external contributor is merged. You
+     can safely cut and paste this line to the new release section of the changelog (but a sanity check is never wrong).
 7. Commit, push, and continue with step 4 from the previous section with the general instructions (above).
