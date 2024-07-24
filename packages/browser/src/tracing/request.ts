@@ -104,7 +104,7 @@ export const defaultRequestInstrumentationOptions: RequestInstrumentationOptions
 };
 
 /** Registers span creators for xhr and fetch requests  */
-export function instrumentOutgoingRequests(_options?: Partial<RequestInstrumentationOptions>): void {
+export function instrumentOutgoingRequests(client: Client, _options?: Partial<RequestInstrumentationOptions>): void {
   const { traceFetch, traceXHR, shouldCreateSpanForRequest, enableHTTPTimings, tracePropagationTargets } = {
     traceFetch: defaultRequestInstrumentationOptions.traceFetch,
     traceXHR: defaultRequestInstrumentationOptions.traceXHR,
@@ -117,27 +117,24 @@ export function instrumentOutgoingRequests(_options?: Partial<RequestInstrumenta
   const shouldAttachHeadersWithTargets = (url: string): boolean => shouldAttachHeaders(url, tracePropagationTargets);
 
   const spans: Record<string, Span> = {};
-  const client = getClient();
 
   if (traceFetch) {
-    if (client) {
-      // Keeping track of http requests, whose body payloads resolved later than the intial resolved request
-      // e.g. streaming using server sent events (SSE)
-      client.addEventProcessor(event => {
-        if (event.type === 'transaction' && event.spans) {
-          event.spans.forEach(span => {
-            if (span.op === 'http.client') {
-              const updatedTimestamp = spanIdToEndTimestamp.get(span.span_id);
-              if (updatedTimestamp) {
-                span.timestamp = updatedTimestamp / 1000;
-                spanIdToEndTimestamp.delete(span.span_id);
-              }
+    // Keeping track of http requests, whose body payloads resolved later than the intial resolved request
+    // e.g. streaming using server sent events (SSE)
+    client.addEventProcessor(event => {
+      if (event.type === 'transaction' && event.spans) {
+        event.spans.forEach(span => {
+          if (span.op === 'http.client') {
+            const updatedTimestamp = spanIdToEndTimestamp.get(span.span_id);
+            if (updatedTimestamp) {
+              span.timestamp = updatedTimestamp / 1000;
+              spanIdToEndTimestamp.delete(span.span_id);
             }
-          });
-        }
-        return event;
-      });
-    }
+          }
+        });
+      }
+      return event;
+    });
 
     addFetchEndInstrumentationHandler(handlerData => {
       if (handlerData.response) {

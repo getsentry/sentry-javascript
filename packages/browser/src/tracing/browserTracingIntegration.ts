@@ -398,7 +398,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
         registerInpInteractionListener();
       }
 
-      instrumentOutgoingRequests({
+      instrumentOutgoingRequests(client, {
         traceFetch,
         traceXHR,
         tracePropagationTargets: client.getOptions().tracePropagationTargets,
