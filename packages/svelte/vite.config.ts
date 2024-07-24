@@ -6,7 +6,6 @@ export default {
   plugins: [svelte({ hot: !process.env.VITEST })],
   test: {
     ...baseConfig.test,
-    environment: 'jsdom',
     alias: [{ find: /^svelte$/, replacement: 'svelte/internal' }],
   },
 };
