@@ -115,7 +115,7 @@ if (process.env.SENTRY_DSN) {
 }
 ```
 
-Add an import flag to the `NODE_OPTIONS` of your preview script in the `package.json`, so the file loads before any
+Add an import flag to the `NODE_OPTIONS` of your preview script in the `package.json` file, so the file loads before any
 other imports:
 
 ```json
