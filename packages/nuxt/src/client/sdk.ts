@@ -1,4 +1,8 @@
-import { init as initBrowser } from '@sentry/browser';
+import {
+  browserTracingIntegration,
+  getDefaultIntegrations as getBrowserDefaultIntegrations,
+  init as initBrowser,
+} from '@sentry/browser';
 import { applySdkMetadata } from '@sentry/core';
 import type { Client } from '@sentry/types';
 import type { SentryNuxtOptions } from '../common/types';
@@ -10,6 +14,7 @@ import type { SentryNuxtOptions } from '../common/types';
  */
 export function init(options: SentryNuxtOptions): Client | undefined {
   const sentryOptions = {
+    defaultIntegrations: [...getBrowserDefaultIntegrations(options), browserTracingIntegration()],
     ...options,
   };
 

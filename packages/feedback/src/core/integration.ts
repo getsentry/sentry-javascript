@@ -99,6 +99,7 @@ export const buildFeedbackIntegration = ({
     submitButtonLabel = SUBMIT_BUTTON_LABEL,
     successMessageText = SUCCESS_MESSAGE_TEXT,
     triggerLabel = TRIGGER_LABEL,
+    triggerAriaLabel = '',
 
     // FeedbackCallbacks
     onFormOpen,
@@ -124,6 +125,7 @@ export const buildFeedbackIntegration = ({
       themeLight,
 
       triggerLabel,
+      triggerAriaLabel,
       cancelButtonLabel,
       submitButtonLabel,
       confirmButtonLabel,
@@ -258,7 +260,11 @@ export const buildFeedbackIntegration = ({
     const _createActor = (optionOverrides: OverrideFeedbackConfiguration = {}): ActorComponent => {
       const mergedOptions = mergeOptions(_options, optionOverrides);
       const shadow = _createShadow(mergedOptions);
-      const actor = Actor({ triggerLabel: mergedOptions.triggerLabel, shadow });
+      const actor = Actor({
+        triggerLabel: mergedOptions.triggerLabel,
+        triggerAriaLabel: mergedOptions.triggerAriaLabel,
+        shadow,
+      });
       _attachTo(actor.el, {
         ...mergedOptions,
         onFormOpen() {
