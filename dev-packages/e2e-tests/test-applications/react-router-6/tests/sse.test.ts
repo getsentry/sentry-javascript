@@ -16,13 +16,13 @@ test('Waits for sse streaming when creating spans', async ({ page }) => {
   const sseFetchCall = rootSpan.spans?.filter(span => span.description === 'sse fetch call')[0] as SpanJSON;
   const httpGet = rootSpan.spans?.filter(span => span.description === 'GET http://localhost:8080/sse')[0] as SpanJSON;
 
-  expect(sseFetchCall).not.toBeUndefined();
-  expect(httpGet).not.toBeUndefined();
+  expect(sseFetchCall).toBeDefined();
+  expect(httpGet).toBeDefined();
 
-  expect(sseFetchCall?.timestamp).not.toBeUndefined();
-  expect(sseFetchCall?.start_timestamp).not.toBeUndefined();
-  expect(httpGet?.timestamp).not.toBeUndefined();
-  expect(httpGet?.start_timestamp).not.toBeUndefined();
+  expect(sseFetchCall?.timestamp).toBeDefined();
+  expect(sseFetchCall?.start_timestamp).toBeDefined();
+  expect(httpGet?.timestamp).toBeDefined();
+  expect(httpGet?.start_timestamp).toBeDefined();
 
   // http headers get sent instantly from the server
   const resolveDuration = Math.round((sseFetchCall.timestamp as number) - sseFetchCall.start_timestamp);
@@ -50,13 +50,13 @@ test('Aborts when stream takes longer than 5s', async ({ page }) => {
     span => span.description === 'GET http://localhost:8080/sse-timeout',
   )[0] as SpanJSON;
 
-  expect(sseFetchCall).not.toBeUndefined();
-  expect(httpGet).not.toBeUndefined();
+  expect(sseFetchCall).toBeDefined();
+  expect(httpGet).toBeDefined();
 
-  expect(sseFetchCall?.timestamp).not.toBeUndefined();
-  expect(sseFetchCall?.start_timestamp).not.toBeUndefined();
-  expect(httpGet?.timestamp).not.toBeUndefined();
-  expect(httpGet?.start_timestamp).not.toBeUndefined();
+  expect(sseFetchCall?.timestamp).toBeDefined();
+  expect(sseFetchCall?.start_timestamp).toBeDefined();
+  expect(httpGet?.timestamp).toBeDefined();
+  expect(httpGet?.start_timestamp).toBeDefined();
 
   // http headers get sent instantly from the server
   const resolveDuration = Math.round((sseFetchCall.timestamp as number) - sseFetchCall.start_timestamp);

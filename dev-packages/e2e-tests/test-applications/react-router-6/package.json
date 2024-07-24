@@ -15,7 +15,9 @@
   },
   "scripts": {
     "build": "react-scripts build",
-    "start": "concurrently \"node server/app.js\" \"serve -s build\"",
+    "start": "run-p start:client start:server",
+    "start:client": "node server/app.js",
+    "start:server": "serve -s build",
     "test": "playwright test",
     "clean": "npx rimraf node_modules pnpm-lock.yaml",
     "test:build": "pnpm install && npx playwright install && pnpm build",
@@ -44,7 +46,6 @@
   "devDependencies": {
     "@playwright/test": "^1.44.1",
     "@sentry-internal/test-utils": "link:../../../test-utils",
-    "concurrently": "^8.2.2",
     "serve": "14.0.1"
   },
   "volta": {
