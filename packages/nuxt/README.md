@@ -138,12 +138,22 @@ dependency to your `package.json`
 }
 ```
 
-### 5. Vite Setup
-
-todo: add vite setup
-
----
-
 ## Uploading Source Maps
 
-todo: add source maps instructions
+To upload source maps, you can use the `sourceMapsUploadOptions` option inside the `sentry` options of your
+`nuxt.config.ts`:
+
+```javascript
+// nuxt.config.ts
+export default defineNuxtConfig({
+  modules: ['@sentry/nuxt/module'],
+  sentry: {
+    debug: true,
+    sourceMapsUploadOptions: {
+      org: 'your-org-slug',
+      project: 'your-project-slug',
+      authToken: process.env.SENTRY_AUTH_TOKEN,
+    },
+  },
+});
+```
