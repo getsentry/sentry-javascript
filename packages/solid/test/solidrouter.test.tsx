@@ -1,3 +1,5 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { spanToJSON } from '@sentry/browser';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
@@ -10,7 +12,6 @@ import {
 import type { MemoryHistory } from '@solidjs/router';
 import { MemoryRouter, Navigate, Route, createMemoryHistory } from '@solidjs/router';
 import { render } from '@solidjs/testing-library';
-import { vi } from 'vitest';
 
 import { BrowserClient } from '../src';
 import { solidRouterBrowserTracingIntegration, withSentryRouterRouting } from '../src/solidrouter';

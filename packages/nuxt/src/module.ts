@@ -1,9 +1,10 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { addPlugin, addPluginTemplate, addServerPlugin, createResolver, defineNuxtModule } from '@nuxt/kit';
-import type { SentryNuxtOptions } from './common/types';
+import type { SentryNuxtModuleOptions } from './common/types';
+import { setupSourceMaps } from './vite/sourceMaps';
 
-export type ModuleOptions = SentryNuxtOptions;
+export type ModuleOptions = SentryNuxtModuleOptions;
 
 export default defineNuxtModule<ModuleOptions>({
   meta: {
@@ -14,7 +15,7 @@ export default defineNuxtModule<ModuleOptions>({
     },
   },
   defaults: {},
-  setup(_moduleOptions, nuxt) {
+  setup(moduleOptions, nuxt) {
     const moduleDirResolver = createResolver(import.meta.url);
     const buildDirResolver = createResolver(nuxt.options.buildDir);
 
@@ -46,6 +47,10 @@ export default defineNuxtModule<ModuleOptions>({
       });
 
       addServerPlugin(moduleDirResolver.resolve('./runtime/plugins/sentry.server'));
+    }
+
+    if (clientConfigFile || serverConfigFile) {
+      setupSourceMaps(moduleOptions, nuxt);
     }
   },
 });

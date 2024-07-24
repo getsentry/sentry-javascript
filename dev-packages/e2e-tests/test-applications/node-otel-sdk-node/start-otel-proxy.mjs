@@ -2,5 +2,5 @@ import { startProxyServer } from '@sentry-internal/test-utils';
 
 startProxyServer({
   port: 3032,
-  proxyServerName: 'node-otel-sdk-trace-otel',
+  proxyServerName: 'node-otel-sdk-node-otel',
 });

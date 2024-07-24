@@ -5,8 +5,8 @@ import type { ClientOptions, Options, SamplingContext, Scope, Span, TracePropaga
 import type { NodeTransportOptions } from './transports';
 
 export interface EsmLoaderHookOptions {
-  include?: string[];
-  exclude?: string[];
+  include?: Array<string | RegExp>;
+  exclude?: Array<string | RegExp>;
 }
 
 export interface BaseNodeOptions {
@@ -108,6 +108,11 @@ export interface BaseNodeOptions {
    * Defaults to `true`.
    */
   registerEsmLoaderHooks?: boolean | EsmLoaderHookOptions;
+
+  /**
+   * Configures in which interval client reports will be flushed. Defaults to `60_000` (milliseconds).
+   */
+  clientReportFlushInterval?: number;
 
   /** Callback that is executed when a fatal global error occurs. */
   onFatalError?(this: void, error: Error): void;
