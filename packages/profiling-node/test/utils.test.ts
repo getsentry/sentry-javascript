@@ -1,3 +1,5 @@
+import { describe, expect, it } from 'vitest';
+
 import type { Event } from '@sentry/types';
 import { addItemToEnvelope, createEnvelope, uuid4 } from '@sentry/utils';
 

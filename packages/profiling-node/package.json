@@ -70,9 +70,9 @@
     "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",
     "build:watch": "run-p build:transpile:watch build:types:watch",
     "build:tarball": "npm pack",
-    "test:watch": "cross-env SENTRY_PROFILER_BINARY_DIR=build jest --watch",
+    "test:watch": "cross-env SENTRY_PROFILER_BINARY_DIR=build vitest --watch",
     "test:bundle": "node test-binaries.esbuild.js",
-    "test": "cross-env SENTRY_PROFILER_BINARY_DIR=lib jest --config jest.config.js"
+    "test": "cross-env SENTRY_PROFILER_BINARY_DIR=lib vitest run"
   },
   "dependencies": {
     "@sentry/core": "8.19.0",

@@ -1,11 +1,19 @@
+import { expect, vi } from 'vitest';
+
 // Mock the modules before the import, so that the value is initialized before the module is loaded
-jest.mock('worker_threads', () => {
+vi.mock('worker_threads', () => {
   return {
     isMainThread: false,
     threadId: 9999,
   };
 });
-jest.setTimeout(10000);
+
+import { constructItWithTimeout } from './test-utils';
+
+// Required because we test a hypothetical long profile
+// and we cannot use advance timers as the c++ relies on
+// actual event loop ticks that we cannot advance from vitest.
+const itWithTimeout = constructItWithTimeout(10_000);
 
 import * as Sentry from '@sentry/node';
 import type { Transport } from '@sentry/types';
@@ -17,13 +25,12 @@ function makeContinuousProfilingClient(): [Sentry.NodeClient, Transport] {
     stackParser: Sentry.defaultStackParser,
     tracesSampleRate: 1,
     profilesSampleRate: undefined,
-    debug: true,
     environment: 'test-environment',
-    dsn: 'https://7fa19397baaf433f919fbe02228d5470@o1137848.ingest.sentry.io/6625302',
+    dsn: 'https://public@dsn.ingest.sentry.io/1337',
     integrations: [integration],
     transport: _opts =>
       Sentry.makeNodeTransport({
-        url: 'https://7fa19397baaf433f919fbe02228d5470@o1137848.ingest.sentry.io/6625302',
+        url: 'https://public@dsn.ingest.sentry.io/1337',
         recordDroppedEvent: () => {
           return undefined;
         },
@@ -33,12 +40,12 @@ function makeContinuousProfilingClient(): [Sentry.NodeClient, Transport] {
   return [client, client.getTransport() as Transport];
 }
 
-it('worker threads context', () => {
+itWithTimeout('worker threads context', () => {
   const [client, transport] = makeContinuousProfilingClient();
   Sentry.setCurrentClient(client);
   client.init();
 
-  const transportSpy = jest.spyOn(transport, 'send').mockReturnValue(Promise.resolve({}));
+  const transportSpy = vi.spyOn(transport, 'send').mockReturnValue(Promise.resolve({}));
 
   const nonProfiledTransaction = Sentry.startInactiveSpan({ forceTransaction: true, name: 'profile_hub' });
   nonProfiledTransaction.end();

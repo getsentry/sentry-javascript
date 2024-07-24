@@ -1,4 +1,6 @@
-import { platform } from 'os';
+import { describe, expect, it } from 'vitest';
+
+import { platform } from 'node:os';
 // Contains unit tests for some of the C++ bindings. These functions
 // are exported on the private bindings object, so we can test them and
 // they should not be used outside of this file.
@@ -22,7 +24,10 @@ const cases = [
 describe('GetFrameModule', () => {
   it.each(
     platform() === 'win32'
-      ? cases.map(([abs_path, expected]) => [abs_path ? `C:${abs_path.replace(/\//g, '\\')}` : '', expected])
+      ? (cases.map(([abs_path, expected]) => [
+          abs_path ? `C:${abs_path.replace(/\//g, '\\')}` : '',
+          expected,
+        ]) as string[][])
       : cases,
   )('%s => %s', (abs_path: string, expected: string) => {
     expect(PrivateCpuProfilerBindings.getFrameModule(abs_path)).toBe(expected);

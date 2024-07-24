@@ -1,4 +1,6 @@
-import { EventEmitter } from 'events';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+
+import { EventEmitter } from 'node:events';
 
 import type { Transport } from '@sentry/types';
 
@@ -7,7 +9,7 @@ import { _nodeProfilingIntegration } from '../src/integration';
 
 describe('ProfilingIntegration', () => {
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
   it('has a name', () => {
     expect(_nodeProfilingIntegration().name).toBe('ProfilingIntegration');
@@ -15,8 +17,8 @@ describe('ProfilingIntegration', () => {
 
   it('does not call transporter if null profile is received', () => {
     const transport: Transport = {
-      send: jest.fn().mockImplementation(() => Promise.resolve()),
-      flush: jest.fn().mockImplementation(() => Promise.resolve()),
+      send: vi.fn().mockImplementation(() => Promise.resolve()),
+      flush: vi.fn().mockImplementation(() => Promise.resolve()),
     };
     const integration = _nodeProfilingIntegration();
     const emitter = new EventEmitter();
@@ -43,14 +45,14 @@ describe('ProfilingIntegration', () => {
 
   it('binds to spanStart, spanEnd and beforeEnvelope', () => {
     const transport: Transport = {
-      send: jest.fn().mockImplementation(() => Promise.resolve()),
-      flush: jest.fn().mockImplementation(() => Promise.resolve()),
+      send: vi.fn().mockImplementation(() => Promise.resolve()),
+      flush: vi.fn().mockImplementation(() => Promise.resolve()),
     };
     const integration = _nodeProfilingIntegration();
 
     const client = {
-      on: jest.fn(),
-      emit: jest.fn(),
+      on: vi.fn(),
+      emit: vi.fn(),
       getOptions: () => {
         return {
           _metadata: {},
@@ -63,7 +65,7 @@ describe('ProfilingIntegration', () => {
       getTransport: () => transport,
     } as unknown as NodeClient;
 
-    const spy = jest.spyOn(client, 'on');
+    const spy = vi.spyOn(client, 'on');
 
     integration?.setup?.(client);
 

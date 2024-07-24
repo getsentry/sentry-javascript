@@ -30,7 +30,7 @@ import * as Sentry from '@sentry/node';
 import { nodeProfilingIntegration } from '@sentry/profiling-node';
 
 Sentry.init({
-  dsn: 'https://7fa19397baaf433f919fbe02228d5470@o1137848.ingest.sentry.io/6625302',
+  dsn: 'https://public@dsn.ingest.sentry.io/1337',
   debug: true,
   tracesSampleRate: 1,
   profilesSampleRate: 1, // Set profiling sampling rate.

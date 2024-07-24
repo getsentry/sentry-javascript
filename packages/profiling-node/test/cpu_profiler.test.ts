@@ -1,11 +1,14 @@
+import { describe, expect, it } from 'vitest';
+
 import type { ContinuousThreadCpuProfile, ThreadCpuProfile } from '@sentry/types';
 import { CpuProfilerBindings, PrivateCpuProfilerBindings } from '../src/cpu_profiler';
 import type { RawThreadCpuProfile } from '../src/types';
+import { constructItWithTimeout } from './test-utils';
 
 // Required because we test a hypothetical long profile
 // and we cannot use advance timers as the c++ relies on
-// actual event loop ticks that we cannot advance from jest.
-jest.setTimeout(60_000);
+// actual event loop ticks that we cannot advance from vitest.
+const itWithTimeout = constructItWithTimeout(60_000);
 
 function fail(message: string): never {
   throw new Error(message);
@@ -68,7 +71,7 @@ const assertValidMeasurements = (measurement: RawThreadCpuProfile['measurements'
 };
 
 describe('Private bindings', () => {
-  it('does not crash if collect resources is false', async () => {
+  itWithTimeout('does not crash if collect resources is false', async () => {
     PrivateCpuProfilerBindings.startProfiling('profiled-program');
     await wait(100);
     expect(() => {
@@ -77,7 +80,7 @@ describe('Private bindings', () => {
     }).not.toThrow();
   });
 
-  it('throws if invalid format is supplied', async () => {
+  itWithTimeout('throws if invalid format is supplied', async () => {
     PrivateCpuProfilerBindings.startProfiling('profiled-program');
     await wait(100);
     expect(() => {
@@ -86,7 +89,7 @@ describe('Private bindings', () => {
     }).toThrow('StopProfiling expects a valid format type as second argument.');
   });
 
-  it('collects resources', async () => {
+  itWithTimeout('collects resources', async () => {
     PrivateCpuProfilerBindings.startProfiling('profiled-program');
     await wait(100);
 
@@ -103,7 +106,7 @@ describe('Private bindings', () => {
     }
   });
 
-  it('does not collect resources', async () => {
+  itWithTimeout('does not collect resources', async () => {
     PrivateCpuProfilerBindings.startProfiling('profiled-program');
     await wait(100);
 
@@ -115,12 +118,12 @@ describe('Private bindings', () => {
 });
 
 describe('Profiler bindings', () => {
-  it('exports profiler binding methods', () => {
+  itWithTimeout('exports profiler binding methods', () => {
     expect(typeof CpuProfilerBindings['startProfiling']).toBe('function');
     expect(typeof CpuProfilerBindings['stopProfiling']).toBe('function');
   });
 
-  it('profiles a program', async () => {
+  itWithTimeout('profiles a program', async () => {
     const profile = await profiled('profiled-program', async () => {
       await wait(100);
     });
@@ -130,7 +133,7 @@ describe('Profiler bindings', () => {
     assertValidSamplesAndStacks(profile.stacks, profile.samples);
   });
 
-  it('adds thread_id info', async () => {
+  itWithTimeout('adds thread_id info', async () => {
     const profile = await profiled('profiled-program', async () => {
       await wait(100);
     });
@@ -146,7 +149,7 @@ describe('Profiler bindings', () => {
     }
   });
 
-  it('caps stack depth at 128', async () => {
+  itWithTimeout('caps stack depth at 128', async () => {
     const recurseToDepth = async (depth: number): Promise<number> => {
       if (depth === 0) {
         // Wait a bit to make sure stack gets sampled here
@@ -168,7 +171,7 @@ describe('Profiler bindings', () => {
     }
   });
 
-  it('does not record two profiles when titles match', () => {
+  itWithTimeout('does not record two profiles when titles match', () => {
     CpuProfilerBindings.startProfiling('same-title');
     CpuProfilerBindings.startProfiling('same-title');
 
@@ -179,7 +182,7 @@ describe('Profiler bindings', () => {
     expect(second).toBe(null);
   });
 
-  it('multiple calls with same title', () => {
+  itWithTimeout('multiple calls with same title', () => {
     CpuProfilerBindings.startProfiling('same-title');
     expect(() => {
       CpuProfilerBindings.stopProfiling('same-title', 0);
@@ -187,11 +190,11 @@ describe('Profiler bindings', () => {
     }).not.toThrow();
   });
 
-  it('does not crash if stopTransaction is called before startTransaction', () => {
+  itWithTimeout('does not crash if stopTransaction is called before startTransaction', () => {
     expect(CpuProfilerBindings.stopProfiling('does not exist', 0)).toBe(null);
   });
 
-  it('does crash if name is invalid', () => {
+  itWithTimeout('does crash if name is invalid', () => {
     expect(() => CpuProfilerBindings.stopProfiling('', 0)).toThrow();
     // @ts-expect-error test invalid input
     expect(() => CpuProfilerBindings.stopProfiling(undefined)).toThrow();
@@ -201,12 +204,12 @@ describe('Profiler bindings', () => {
     expect(() => CpuProfilerBindings.stopProfiling({})).toThrow();
   });
 
-  it('does not throw if stopTransaction is called before startTransaction', () => {
+  itWithTimeout('does not throw if stopTransaction is called before startTransaction', () => {
     expect(CpuProfilerBindings.stopProfiling('does not exist', 0)).toBe(null);
     expect(() => CpuProfilerBindings.stopProfiling('does not exist', 0)).not.toThrow();
   });
 
-  it('compiles with eager logging by default', async () => {
+  itWithTimeout('compiles with eager logging by default', async () => {
     const profile = await profiled('profiled-program', async () => {
       await wait(100);
     });
@@ -215,7 +218,7 @@ describe('Profiler bindings', () => {
     expect(profile.profiler_logging_mode).toBe('eager');
   });
 
-  it('chunk format type', async () => {
+  itWithTimeout('chunk format type', async () => {
     const profile = await profiled(
       'non nullable stack',
       async () => {
@@ -240,7 +243,7 @@ describe('Profiler bindings', () => {
     }
   });
 
-  it('stacks are not null', async () => {
+  itWithTimeout('stacks are not null', async () => {
     const profile = await profiled('non nullable stack', async () => {
       await wait(1000);
       fibonacci(36);
@@ -251,7 +254,7 @@ describe('Profiler bindings', () => {
     assertValidSamplesAndStacks(profile.stacks, profile.samples);
   });
 
-  it('samples at ~99hz', async () => {
+  itWithTimeout('samples at ~99hz', async () => {
     CpuProfilerBindings.startProfiling('profile');
     await wait(100);
     const profile = CpuProfilerBindings.stopProfiling('profile', 0);
@@ -275,7 +278,7 @@ describe('Profiler bindings', () => {
     }
   });
 
-  it('collects memory footprint', async () => {
+  itWithTimeout('collects memory footprint', async () => {
     CpuProfilerBindings.startProfiling('profile');
     await wait(1000);
     const profile = CpuProfilerBindings.stopProfiling('profile', 0);
@@ -291,7 +294,7 @@ describe('Profiler bindings', () => {
     assertValidMeasurements(profile.measurements['memory_footprint']);
   });
 
-  it('collects cpu usage', async () => {
+  itWithTimeout('collects cpu usage', async () => {
     CpuProfilerBindings.startProfiling('profile');
     await wait(1000);
     const profile = CpuProfilerBindings.stopProfiling('profile', 0);
@@ -307,7 +310,7 @@ describe('Profiler bindings', () => {
     assertValidMeasurements(profile.measurements['cpu_usage']);
   });
 
-  it('does not overflow measurement buffer if profile runs longer than 30s', async () => {
+  itWithTimeout('does not overflow measurement buffer if profile runs longer than 30s', async () => {
     CpuProfilerBindings.startProfiling('profile');
     await wait(35000);
     const profile = CpuProfilerBindings.stopProfiling('profile', 0);
@@ -316,7 +319,6 @@ describe('Profiler bindings', () => {
     expect(profile?.measurements?.['memory_footprint']?.values.length).toBeLessThanOrEqual(300);
   });
 
-  // eslint-disable-next-line jest/no-disabled-tests
   it.skip('includes deopt reason', async () => {
     // https://github.com/petkaantonov/bluebird/wiki/Optimization-killers#52-the-object-being-iterated-is-not-a-simple-enumerable
     function iterateOverLargeHashTable() {
