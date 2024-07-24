@@ -1,4 +1,3 @@
-import type { Options } from '@sentry/types';
 import type { init } from '@sentry/vue';
 
 // Omitting 'app' as the Nuxt SDK will add the app instance in the client plugin (users do not have to provide this)
@@ -51,21 +50,51 @@ type SourceMapsOptions = {
     telemetry?: boolean;
 
     /**
-     * A glob or an array of globs that specify the build artifacts and source maps that will be uploaded to Sentry.
-     *
-     * If this option is not specified, sensible defaults based on your `outDir`, `rootDir` and `adapter`
-     * config will be used. Use this option to override these defaults, for instance if you have a
-     * customized build setup that diverges from Nuxt's defaults.
-     *
-     * The globbing patterns must follow the implementation of the `glob` package.
-     * @see https://www.npmjs.com/package/glob#glob-primer
+     * Options related to sourcemaps
      */
-    assets?: string | Array<string>;
+    sourcemaps?: {
+      /**
+       * A glob or an array of globs that specify the build artifacts and source maps that will be uploaded to Sentry.
+       *
+       * If this option is not specified, sensible defaults based on your adapter and nuxt.config.js
+       * setup will be used. Use this option to override these defaults, for instance if you have a
+       * customized build setup that diverges from Nuxt's defaults.
+       *
+       * The globbing patterns must follow the implementation of the `glob` package.
+       * @see https://www.npmjs.com/package/glob#glob-primer
+       */
+      assets?: string | Array<string>;
+
+      /**
+       * A glob or an array of globs that specifies which build artifacts should not be uploaded to Sentry.
+       *
+       * @default [] - By default no files are ignored. Thus, all files matching the `assets` glob
+       * or the default value for `assets` are uploaded.
+       *
+       * The globbing patterns follow the implementation of the glob package. (https://www.npmjs.com/package/glob)
+       */
+      ignore?: string | Array<string>;
+
+      /**
+       * A glob or an array of globs that specifies the build artifacts that should be deleted after the artifact
+       * upload to Sentry has been completed.
+       *
+       * @default [] - By default no files are deleted.
+       *
+       * The globbing patterns follow the implementation of the glob package. (https://www.npmjs.com/package/glob)
+       */
+      filesToDeleteAfterUpload?: string | Array<string>;
+    };
   };
 };
 
 /**
- * The SDK options are mostly handled inside the `init` function in separate files (see type `SentryNuxtOptions`).
- * Other options, such as the source maps options are added inside the `nuxt.config.ts` to be able to access those options during build time and modify the Vite config.
+ *  Build options for the Sentry module. These options are used during build-time by the Sentry SDK.
  */
-export type SentryNuxtModuleOptions = Pick<Options, 'debug'> & SourceMapsOptions;
+export type SentryNuxtModuleOptions = SourceMapsOptions & {
+  /**
+   * Enable debug functionality of the SDK during build-time.
+   * Enabling this will give you, for example, logs about source maps.
+   */
+  debug: boolean;
+};
