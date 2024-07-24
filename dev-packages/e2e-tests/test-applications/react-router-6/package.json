@@ -46,7 +46,8 @@
   "devDependencies": {
     "@playwright/test": "^1.44.1",
     "@sentry-internal/test-utils": "link:../../../test-utils",
-    "serve": "14.0.1"
+    "serve": "14.0.1",
+    "npm-run-all2": "^6.2.0"
   },
   "volta": {
     "extends": "../../package.json"
