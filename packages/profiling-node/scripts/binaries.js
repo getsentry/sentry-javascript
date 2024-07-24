@@ -1,7 +1,6 @@
 const os = require('os');
 const path = require('path');
 
-const abi = require('node-abi');
 const libc = require('detect-libc');
 
 function getModuleName() {
@@ -10,11 +9,11 @@ function getModuleName() {
   const arch = process.env['BUILD_ARCH'] || os.arch();
 
   if (platform === 'darwin' && arch === 'arm64') {
-    const identifier = [platform, 'arm64', abi.getAbi(process.versions.node, 'node')].filter(Boolean).join('-');
+    const identifier = [platform, 'arm64'].filter(Boolean).join('-');
     return `sentry_cpu_profiler-${identifier}.node`;
   }
 
-  const identifier = [platform, arch, stdlib, abi.getAbi(process.versions.node, 'node')].filter(Boolean).join('-');
+  const identifier = [platform, arch, stdlib].filter(Boolean).join('-');
 
   return `sentry_cpu_profiler-${identifier}.node`;
 }

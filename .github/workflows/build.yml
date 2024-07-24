@@ -545,7 +545,9 @@ jobs:
   job_profiling_node_unit_tests:
     name: Node Profiling Unit Tests
     needs: [job_get_metadata, job_build]
-    if: needs.job_get_metadata.outputs.changed_node == 'true' || needs.job_get_metadata.outputs.changed_profiling_node == 'true' || github.event_name != 'pull_request'
+    if:
+      needs.job_get_metadata.outputs.changed_node == 'true' || needs.job_get_metadata.outputs.changed_profiling_node ==
+      'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -621,7 +623,8 @@ jobs:
           yarn test:integration
 
   job_browser_playwright_tests:
-    name: Playwright (${{ matrix.bundle }}${{ matrix.shard && format(' {0}/{1}', matrix.shard, matrix.shards) || ''}}) Tests
+    name:
+      Playwright (${{ matrix.bundle }}${{ matrix.shard && format(' {0}/{1}', matrix.shard, matrix.shards) || ''}}) Tests
     needs: [job_get_metadata, job_build]
     if: needs.job_get_metadata.outputs.changed_browser_integration == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-20.04-large-js
@@ -706,14 +709,15 @@ jobs:
         env:
           PW_BUNDLE: ${{ matrix.bundle }}
         working-directory: dev-packages/browser-integration-tests
-        run: yarn test:ci${{ matrix.project && format(' --project={0}', matrix.project) || '' }}${{ matrix.shard && format(' --shard={0}/{1}', matrix.shard, matrix.shards) || '' }}
+        run:
+          yarn test:ci${{ matrix.project && format(' --project={0}', matrix.project) || '' }}${{ matrix.shard &&
+          format(' --shard={0}/{1}', matrix.shard, matrix.shards) || '' }}
       - name: Upload Playwright Traces
         uses: actions/upload-artifact@v3
         if: always()
         with:
           name: playwright-traces
           path: dev-packages/browser-integration-tests/test-results
-
 
   job_browser_loader_tests:
     name: Playwright Loader (${{ matrix.bundle }}) Tests
@@ -803,7 +807,6 @@ jobs:
             echo "Found illegal TypeScript import statement."
             exit 1
           fi
-
 
   job_node_integration_tests:
     name:
@@ -1021,7 +1024,7 @@ jobs:
             'nuxt-3',
             'vue-3',
             'webpack-4',
-            'webpack-5'
+            'webpack-5',
           ]
         build-command:
           - false
@@ -1103,9 +1106,8 @@ jobs:
     # We need to add the `always()` check here because the previous step has this as well :(
     # See: https://github.com/actions/runner/issues/2205
     if:
-      always() && needs.job_e2e_prepare.result == 'success' &&
-      (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) &&
-      github.actor != 'dependabot[bot]'
+      always() && needs.job_e2e_prepare.result == 'success' && (github.event_name != 'pull_request' ||
+      github.event.pull_request.head.repo.full_name == github.repository) && github.actor != 'dependabot[bot]'
     needs: [job_get_metadata, job_build, job_e2e_prepare]
     runs-on: ubuntu-20.04
     timeout-minutes: 10
@@ -1122,12 +1124,7 @@ jobs:
       fail-fast: false
       matrix:
         test-application:
-          [
-            'cloudflare-astro',
-            'react-send-to-sentry',
-            'node-express-send-to-sentry',
-            'debug-id-sourcemaps',
-          ]
+          ['cloudflare-astro', 'react-send-to-sentry', 'node-express-send-to-sentry', 'debug-id-sourcemaps']
         build-command:
           - false
         assert-command:
@@ -1208,13 +1205,10 @@ jobs:
     # See: https://github.com/actions/runner/issues/2205
     if:
       # Only run profiling e2e tests if profiling node bindings have changed
-      always() && needs.job_e2e_prepare.result == 'success' &&
-      (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) &&
-     (
-        (needs.job_get_metadata.outputs.changed_profiling_node_bindings == 'true') ||
-        (needs.job_get_metadata.outputs.is_release == 'true') ||
-        (github.event_name != 'pull_request')
-      )
+      always() && needs.job_e2e_prepare.result == 'success' && (github.event_name != 'pull_request' ||
+      github.event.pull_request.head.repo.full_name == github.repository) && (
+      (needs.job_get_metadata.outputs.changed_profiling_node_bindings == 'true') ||
+      (needs.job_get_metadata.outputs.is_release == 'true') || (github.event_name != 'pull_request') )
     needs: [job_get_metadata, job_build, job_e2e_prepare]
     runs-on: ubuntu-20.04
     timeout-minutes: 10
@@ -1260,7 +1254,7 @@ jobs:
         with:
           path: ${{ github.workspace }}/packages/*/*.tgz
           key: ${{ env.BUILD_CACHE_TARBALL_KEY }}
-          fail-on-cache-miss : true
+          fail-on-cache-miss: true
 
       - name: Get node version
         id: versions
@@ -1361,7 +1355,10 @@ jobs:
           path: ${{ steps.process.outputs.artifactPath }}
 
   job_compile_bindings_profiling_node:
-    name: Compile & Test Profiling Bindings (v${{ matrix.node }}) ${{ matrix.target_platform || matrix.os }}, ${{ matrix.node || matrix.container }}, ${{ matrix.arch || matrix.container }}, ${{ contains(matrix.container, 'alpine') && 'musl' || 'glibc'  }}
+    name:
+      Compile & Test Profiling Bindings (v${{ matrix.node }}) ${{ matrix.target_platform || matrix.os }}, ${{
+      matrix.node || matrix.container }}, ${{ matrix.arch || matrix.container }}, ${{ contains(matrix.container,
+      'alpine') && 'musl' || 'glibc'  }}
     needs: [job_get_metadata, job_install_deps, job_build]
     # Compiling bindings can be very slow (especially on windows), so only run precompile
     # Skip precompile unless we are on a release branch as precompile slows down CI times.
@@ -1376,26 +1373,11 @@ jobs:
       fail-fast: false
       matrix:
         include:
-            # x64 glibc
-          - os: ubuntu-20.04
-            node: 16
-          - os: ubuntu-20.04
-            node: 18
-          - os: ubuntu-20.04
-            node: 20
+          # x64 glibc
           - os: ubuntu-20.04
             node: 22
 
             # x64 musl
-          - os: ubuntu-20.04
-            container: node:16-alpine3.16
-            node: 16
-          - os: ubuntu-20.04
-            container: node:18-alpine3.17
-            node: 18
-          - os: ubuntu-20.04
-            container: node:20-alpine3.17
-            node: 20
           - os: ubuntu-20.04
             container: node:22-alpine3.18
             node: 22
@@ -1403,30 +1385,9 @@ jobs:
             # arm64 glibc
           - os: ubuntu-20.04
             arch: arm64
-            node: 16
-          - os: ubuntu-20.04
-            arch: arm64
-            node: 18
-          - os: ubuntu-20.04
-            arch: arm64
-            node: 20
-          - os: ubuntu-20.04
-            arch: arm64
             node: 22
 
             # arm64 musl
-          - os: ubuntu-20.04
-            container: node:16-alpine3.16
-            arch: arm64
-            node: 16
-          - os: ubuntu-20.04
-            arch: arm64
-            container: node:18-alpine3.17
-            node: 18
-          - os: ubuntu-20.04
-            arch: arm64
-            container: node:20-alpine3.17
-            node: 20
           - os: ubuntu-20.04
             arch: arm64
             container: node:22-alpine3.18
@@ -1434,46 +1395,16 @@ jobs:
 
             # macos x64
           - os: macos-13
-            node: 16
-            arch: x64
-          - os: macos-13
-            node: 18
-            arch: x64
-          - os: macos-13
-            node: 20
-            arch: x64
-          - os: macos-13
             node: 22
             arch: x64
 
             # macos arm64
           - os: macos-13
             arch: arm64
-            node: 16
-            target_platform: darwin
-          - os: macos-13
-            arch: arm64
-            node: 18
-            target_platform: darwin
-          - os: macos-13
-            arch: arm64
-            node: 20
-            target_platform: darwin
-          - os: macos-13
-            arch: arm64
             node: 22
             target_platform: darwin
 
             # windows x64
-          - os: windows-2022
-            node: 16
-            arch: x64
-          - os: windows-2022
-            node: 18
-            arch: x64
-          - os: windows-2022
-            node: 20
-            arch: x64
           - os: windows-2022
             node: 22
             arch: x64
