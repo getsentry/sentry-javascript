@@ -30,7 +30,6 @@ interface FastifyRequestRouteInfo {
     url?: string;
     method?: string;
   };
-  routerPath?: string;
 }
 
 const INTEGRATION_NAME = 'Fastify';
@@ -79,7 +78,7 @@ export function setupFastifyErrorHandler(fastify: Fastify): void {
 
         // Taken from Otel Fastify instrumentation:
         // https://github.com/open-telemetry/opentelemetry-js-contrib/blob/main/plugins/node/opentelemetry-instrumentation-fastify/src/instrumentation.ts#L94-L96
-        const routeName = reqWithRouteInfo.routeOptions?.url || reqWithRouteInfo.routerPath;
+        const routeName = reqWithRouteInfo.routeOptions?.url;
         const method = reqWithRouteInfo.routeOptions?.method || 'GET';
 
         getIsolationScope().setTransactionName(`${method} ${routeName}`);
