@@ -1,3 +1,4 @@
+import { createRequire } from 'node:module';
 import { arch as _arch, platform as _platform } from 'node:os';
 import { join, resolve } from 'node:path';
 import { env, versions } from 'node:process';
@@ -28,6 +29,7 @@ const built_from_source_path = resolve(__dirname, '..', `./sentry_cpu_profiler-$
  */
 // eslint-disable-next-line complexity
 export function importCppBindingsModule(): PrivateV8CpuProfilerBindings {
+  const require = createRequire(import.meta.url);
   // If a binary path is specified, use that.
   if (env['SENTRY_PROFILER_BINARY_PATH']) {
     const envPath = env['SENTRY_PROFILER_BINARY_PATH'];

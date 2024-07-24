@@ -668,7 +668,6 @@ describe('continuous profiling mode', () => {
       makeClientOptions({ profilesSampler: undefined, profilesSampleRate: 0 }),
     ],
   ])('%s', async (_label, options) => {
-    logger.enable();
     const client = new Sentry.NodeClient({
       ...options,
       dsn: 'https://public@dsn.ingest.sentry.io/1337',
