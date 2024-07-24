@@ -1,3 +1,9 @@
+/**
+ * @vitest-environment jsdom
+ */
+
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { BASE_TIMESTAMP } from '..';
 import { resetSdkMock } from '../mocks/resetSdkMock';
 import { useFakeTimers } from '../utils/use-fake-timers';
