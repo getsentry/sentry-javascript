@@ -15,9 +15,6 @@
  */
 
 import { getClient } from '@sentry/core';
-import { logger } from '@sentry/utils';
-import { DEBUG_BUILD } from '../../debug-build';
-import { WINDOW } from '../../types';
 import { bindReporter } from './lib/bindReporter';
 import { initMetric } from './lib/initMetric';
 import { observe } from './lib/observe';
@@ -49,8 +46,6 @@ export const CLSThresholds: MetricRatingThresholds = [0.1, 0.25];
  * `callback` is always called when the page's visibility state changes to
  * hidden. As a result, the `callback` function might be called multiple times
  * during the same page load._
- *
- * SENTRY-SPECIFIC-CHANGE:
  */
 export const onCLS = (onReport: CLSReportCallback, opts: ReportOpts = {}): void => {
   // Start monitoring FCP so we can only report CLS if FCP is also reported.

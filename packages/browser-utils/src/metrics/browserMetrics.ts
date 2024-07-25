@@ -6,12 +6,11 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   getActiveSpan,
-  getClient,
   getCurrentScope,
   startInactiveSpan,
 } from '@sentry/core';
 import { setMeasurement } from '@sentry/core';
-import type { Integration, Measurements, Span, SpanAttributes, StartSpanOptions } from '@sentry/types';
+import type { Measurements, Span, SpanAttributes, StartSpanOptions } from '@sentry/types';
 import {
   browserPerformanceTimeOrigin,
   dropUndefinedKeys,
@@ -41,7 +40,6 @@ import {
 } from './utils';
 import { getNavigationEntry } from './web-vitals/lib/getNavigationEntry';
 import { getVisibilityWatcher } from './web-vitals/lib/getVisibilityWatcher';
-import { onFCP } from './web-vitals/onFCP';
 import type { Metric } from './web-vitals/types';
 
 interface NavigatorNetworkInformation {
@@ -89,6 +87,7 @@ let _performanceCursor: number = 0;
 let _measurements: Measurements = {};
 let _lcpEntry: LargestContentfulPaint | undefined;
 let _clsEntry: LayoutShift | undefined;
+
 interface StartTrackingWebVitalsOptions {
   recordClsStandaloneSpans: boolean;
 }
@@ -241,25 +240,15 @@ export { startTrackingINP, registerInpInteractionListener } from './inp';
 
 /** Starts tracking the Cumulative Layout Shift on the current page. */
 function _trackCLS(sendAsStandaloneSpan: boolean): () => void {
-  let _emittedFcp = false;
-  if (sendAsStandaloneSpan) {
-    onFCP(
-      () => {
-        _emittedFcp = true;
-      },
-      { reportAllChanges: true },
-    );
-  }
-
   const cleanupClsCallback = addClsInstrumentationHandler(({ metric }) => {
     const entry = metric.entries[metric.entries.length - 1] as LayoutShift | undefined;
     if (!entry) {
       return;
     }
 
-    if (sendAsStandaloneSpan && _emittedFcp) {
+    if (sendAsStandaloneSpan) {
       sendStandaloneClsSpan(metric, entry);
-      // For now, we only emit once CLS span for the initial page load.
+      // For now, we only emit one CLS span for the initial page load.
       // Once we send this, we don't need to track CLS anymore.
       setTimeout(() => {
         cleanupClsCallback();
@@ -470,6 +459,7 @@ export function addPerformanceEntries(span: Span, options: AddPerformanceEntries
 
     // If FCP is not recorded we should not record the cls value
     // according to the new definition of CLS.
+    // TODO: Check if the first condition is still necessary: `onCLS` already only fires once `onFCP` was called.
     if (!('fcp' in _measurements) || !options.recordClsOnPageloadSpan) {
       delete _measurements.cls;
     }

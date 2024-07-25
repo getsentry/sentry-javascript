@@ -226,8 +226,6 @@ function instrumentCls(): StopListening {
       });
       _previousCls = metric;
     },
-    // We want the callback to be called whenever the CLS value updates.
-    // By default, the callback is only called when the tab goes to the background.
     { reportAllChanges: false },
   );
 }

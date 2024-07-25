@@ -1,12 +1,5 @@
 import type { SentrySpan } from '@sentry/core';
-import {
-  SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME,
-  getClient,
-  getCurrentScope,
-  spanToJSON,
-  startInactiveSpan,
-  withActiveSpan,
-} from '@sentry/core';
+import { getClient, getCurrentScope, spanToJSON, startInactiveSpan, withActiveSpan } from '@sentry/core';
 import type { Integration, Span, SpanAttributes, SpanTimeInput, StartSpanOptions } from '@sentry/types';
 import { WINDOW } from '../types';
 
