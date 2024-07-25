@@ -434,10 +434,10 @@ jobs:
     timeout-minutes: 10
     runs-on: ubuntu-20.04
     steps:
-      - name: Check out head commit (${{ github.event.pull_request.head.sha }})
+      - name: Check out head commit (${{ github.event.pull_request.base.sha }})
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.head.sha }}
+          ref: ${{ github.event.pull_request.base.sha }}
 
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v4
@@ -533,10 +533,10 @@ jobs:
       matrix:
         node: [14, 16, 18, 20, 22]
     steps:
-      - name: Check out head commit (${{ github.event.pull_request.head.sha }})
+      - name: Check out head commit (${{ github.event.pull_request.base.sha }})
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.head.sha }}
+          ref: ${{ github.event.pull_request.base.sha }}
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v4
         with:
@@ -551,7 +551,7 @@ jobs:
           DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
 
       - name: Run affected tests
-        run: yarn test:pr:node --base=${{ github.event.pull_request.head.sha }}
+        run: yarn test:pr:node --base=${{ github.event.pull_request.base.sha }}
         if: github.event_name == 'pull_request'
         env:
           NODE_VERSION: ${{ matrix.node }}
