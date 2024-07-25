@@ -76,8 +76,12 @@ function runWithIgnores(skipPackages: string[] = []): void {
  * Run affected tests, ignoring the given packages
  */
 function runAffectedWithIgnores(skipPackages: string[] = []): void {
+  const additionalArgs = process.argv
+    .slice(2)
+    .filter(arg => arg !== '--affected')
+    .join(' ');
   const ignoreFlags = skipPackages.map(dep => `--exclude="${dep}"`).join(' ');
-  run(`yarn test:pr ${ignoreFlags}`);
+  run(`yarn test:pr ${ignoreFlags} ${additionalArgs}`);
 }
 
 /**

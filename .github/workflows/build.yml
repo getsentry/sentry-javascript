@@ -448,7 +448,7 @@ jobs:
           DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
 
       - name: Run affected tests
-        run: yarn test:pr:browser
+        run: yarn test:pr:browser --base=${{ github.base_ref }}
         if: github.event_name == 'pull_request'
 
       - name: Run all tests
@@ -542,7 +542,7 @@ jobs:
           DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
 
       - name: Run affected tests
-        run: yarn test:pr:node
+        run: yarn test:pr:node --base=${{ github.base_ref }}
         if: github.event_name == 'pull_request'
         env:
           NODE_VERSION: ${{ matrix.node }}
