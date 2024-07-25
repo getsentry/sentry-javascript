@@ -2,23 +2,21 @@ import {
   SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME,
   SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_UNIT,
   SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_VALUE,
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   getActiveSpan,
-  getClient,
   getCurrentScope,
   getRootSpan,
   spanToJSON,
-  startInactiveSpan,
 } from '@sentry/core';
-import type { Integration, Span, SpanAttributes } from '@sentry/types';
+import type { Span, SpanAttributes } from '@sentry/types';
 import { browserPerformanceTimeOrigin, dropUndefinedKeys, htmlTreeAsString } from '@sentry/utils';
-import { WINDOW } from '../types';
 import {
   addInpInstrumentationHandler,
   addPerformanceInstrumentationHandler,
   isPerformanceEventTiming,
 } from './instrument';
-import { getBrowserPerformanceAPI, msToSec } from './utils';
+import { getBrowserPerformanceAPI, msToSec, startStandaloneWebVitalSpan } from './utils';
 
 const LAST_INTERACTIONS: number[] = [];
 const INTERACTIONS_SPAN_MAP = new Map<number, Span>();
@@ -71,8 +69,7 @@ const INP_ENTRY_MAP: Record<string, 'click' | 'hover' | 'drag' | 'press'> = {
 /** Starts tracking the Interaction to Next Paint on the current page. */
 function _trackINP(): () => void {
   return addInpInstrumentationHandler(({ metric }) => {
-    const client = getClient();
-    if (!client || metric.value == undefined) {
+    if (metric.value == undefined) {
       return;
     }
 
@@ -85,11 +82,9 @@ function _trackINP(): () => void {
     const { interactionId } = entry;
     const interactionType = INP_ENTRY_MAP[entry.name];
 
-    const options = client.getOptions();
     /** Build the INP span, create an envelope from the span, and then send the envelope */
     const startTime = msToSec((browserPerformanceTimeOrigin as number) + entry.startTime);
     const duration = msToSec(metric.value);
-    const scope = getCurrentScope();
     const activeSpan = getActiveSpan();
     const rootSpan = activeSpan ? getRootSpan(activeSpan) : undefined;
 
@@ -101,56 +96,29 @@ function _trackINP(): () => void {
 
     // Else, we try to use the active span.
     // Finally, we fall back to look at the transactionName on the scope
-    const routeName = spanToUse ? spanToJSON(spanToUse).description : scope.getScopeData().transactionName;
-
-    const user = scope.getUser();
-
-    // We need to get the replay, user, and activeTransaction from the current scope
-    // so that we can associate replay id, profile id, and a user display to the span
-    const replay = client.getIntegrationByName<Integration & { getReplayId: () => string }>('Replay');
-
-    const replayId = replay && replay.getReplayId();
-
-    const userDisplay = user !== undefined ? user.email || user.id || user.ip_address : undefined;
-    let profileId: string | undefined = undefined;
-    try {
-      // @ts-expect-error skip optional chaining to save bundle size with try catch
-      profileId = scope.getScopeData().contexts.profile.profile_id;
-    } catch {
-      // do nothing
-    }
+    const routeName = spanToUse ? spanToJSON(spanToUse).description : getCurrentScope().getScopeData().transactionName;
 
     const name = htmlTreeAsString(entry.target);
     const attributes: SpanAttributes = dropUndefinedKeys({
-      release: options.release,
-      environment: options.environment,
-      transaction: routeName,
-      [SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME]: metric.value,
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.browser.inp',
-      user: userDisplay || undefined,
-      profile_id: profileId || undefined,
-      replay_id: replayId || undefined,
-      // INP score calculation in the sentry backend relies on the user agent
-      // to account for different INP values being reported from different browsers
-      'user_agent.original': WINDOW.navigator && WINDOW.navigator.userAgent,
+      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: `ui.interaction.${interactionType}`,
+      [SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME]: entry.duration,
     });
 
-    const span = startInactiveSpan({
+    const span = startStandaloneWebVitalSpan({
       name,
-      op: `ui.interaction.${interactionType}`,
+      transaction: routeName,
       attributes,
-      startTime: startTime,
-      experimental: {
-        standalone: true,
-      },
+      startTime,
+      duration,
     });
 
-    span.addEvent('inp', {
+    span?.addEvent('inp', {
       [SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_UNIT]: 'millisecond',
       [SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_VALUE]: metric.value,
     });
 
-    span.end(startTime + duration);
+    span?.end(startTime + duration);
   });
 }
 
