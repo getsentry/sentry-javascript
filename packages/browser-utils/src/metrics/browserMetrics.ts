@@ -552,6 +552,7 @@ export function _addResourceSpans(
     name: resourceUrl.replace(WINDOW.location.origin, ''),
     op: entry.initiatorType ? `resource.${entry.initiatorType}` : 'resource.other',
     attributes,
+    // nothing
   });
 }
 
