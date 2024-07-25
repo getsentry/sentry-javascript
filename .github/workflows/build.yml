@@ -540,10 +540,19 @@ jobs:
         uses: ./.github/actions/restore-cache
         env:
           DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
-      - name: Run tests
+
+      - name: Run affected tests
+        run: yarn test:pr:node
+        if: github.event_name == 'pull_request'
         env:
           NODE_VERSION: ${{ matrix.node }}
+
+      - name: Run all tests
         run: yarn test:ci:node
+        if: github.event_name != 'pull_request'
+        env:
+          NODE_VERSION: ${{ matrix.node }}
+
       - name: Compute test coverage
         uses: codecov/codecov-action@v4
         with:
