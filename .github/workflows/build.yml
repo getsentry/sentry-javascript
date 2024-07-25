@@ -434,6 +434,11 @@ jobs:
     timeout-minutes: 10
     runs-on: ubuntu-20.04
     steps:
+      - name: Check out head commit (${{ github.base_ref }})
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.base_ref }}
+
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v4
         with:
@@ -528,6 +533,10 @@ jobs:
       matrix:
         node: [14, 16, 18, 20, 22]
     steps:
+      - name: Check out head commit (${{ github.base_ref }})
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.base_ref }}
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v4
         with:
