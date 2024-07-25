@@ -26,6 +26,7 @@ interface Props {
   onError: (error: Error) => void;
 }
 
+// The screenshot starting size
 interface Box {
   startX: number;
   startY: number;
@@ -33,6 +34,7 @@ interface Box {
   endY: number;
 }
 
+// The current screenshot size and what is exported as attachment
 interface Rect {
   x: number;
   y: number;
@@ -76,12 +78,14 @@ export function ScreenshotEditorFactory({
   return function ScreenshotEditor({ onError }: Props): VNode {
     const styles = hooks.useMemo(() => ({ __html: createScreenshotInputStyles().innerText }), []);
     const CropCorner = CropCornerFactory({ h });
-
+    console.log('rerunning factory');
     const canvasContainerRef = hooks.useRef<HTMLDivElement>(null);
     const cropContainerRef = hooks.useRef<HTMLDivElement>(null);
     const croppingRef = hooks.useRef<HTMLCanvasElement>(null);
     const [croppingRect, setCroppingRect] = hooks.useState<Box>({ startX: 0, startY: 0, endX: 0, endY: 0 });
     const [confirmCrop, setConfirmCrop] = hooks.useState(false);
+    const [isDragging, setIsDragging] = hooks.useState(false);
+    const [isResizing, setIsResizing] = hooks.useState(false);
 
     hooks.useEffect(() => {
       WINDOW.addEventListener('resize', resizeCropper, false);
@@ -141,19 +145,24 @@ export function ScreenshotEditorFactory({
 
     function onGrabButton(e: Event, corner: string): void {
       setConfirmCrop(false);
+      setIsResizing(true);
       const handleMouseMove = makeHandleMouseMove(corner);
       const handleMouseUp = (): void => {
         DOCUMENT.removeEventListener('mousemove', handleMouseMove);
         DOCUMENT.removeEventListener('mouseup', handleMouseUp);
         setConfirmCrop(true);
+        setIsResizing(false);
       };
 
       DOCUMENT.addEventListener('mouseup', handleMouseUp);
       DOCUMENT.addEventListener('mousemove', handleMouseMove);
     }
 
+    // Handling when the mouse is moved.
+    // THIS IS WHERE DRAGGING FUNCTIONALITY SHOULD GO
     const makeHandleMouseMove = hooks.useCallback((corner: string) => {
       return function (e: MouseEvent) {
+        // If the canvas element is not found
         if (!croppingRef.current) {
           return;
         }
@@ -193,6 +202,54 @@ export function ScreenshotEditorFactory({
         }
       };
     }, []);
+
+    // DRAGGING FUNCTIONALITY
+    function onDragStart(e: MouseEvent): void {
+      if (isResizing) return;
+
+      setIsDragging(true);
+      const initialX = e.clientX;
+      const initialY = e.clientY;
+      console.log('dragging started ' + initialX, initialY);
+
+      const handleMouseMove = (moveEvent: MouseEvent) => {
+        const cropCanvas = croppingRef.current;
+        if (!cropCanvas) return;
+
+        const deltaX = (moveEvent.clientX - initialX) / DPI;
+        const deltaY = (moveEvent.clientY - initialY) / DPI;
+
+        setCroppingRect(prev => {
+          const newStartX = Math.max(
+            0,
+            Math.min(prev.startX + deltaX, cropCanvas.width / DPI - (prev.endX - prev.startX)),
+          );
+          const newStartY = Math.max(
+            0,
+            Math.min(prev.startY + deltaY, cropCanvas.height / DPI - (prev.endY - prev.startY)),
+          );
+          const newEndX = newStartX + (prev.endX - prev.startX);
+          const newEndY = newStartY + (prev.endY - prev.startY);
+
+          return {
+            startX: newStartX,
+            startY: newStartY,
+            endX: newEndX,
+            endY: newEndY,
+          };
+        });
+      };
+
+      const handleMouseUp = () => {
+        console.log('mouseup');
+        setIsDragging(false);
+        DOCUMENT.removeEventListener('mousemove', handleMouseMove);
+        DOCUMENT.removeEventListener('mouseup', handleMouseUp);
+      };
+
+      DOCUMENT.addEventListener('mousemove', handleMouseMove);
+      DOCUMENT.addEventListener('mouseup', handleMouseUp);
+    }
 
     function submit(): void {
       const cutoutCanvas = DOCUMENT.createElement('canvas');
@@ -263,7 +320,7 @@ export function ScreenshotEditorFactory({
         <style dangerouslySetInnerHTML={styles} />
         <div class="editor__canvas-container" ref={canvasContainerRef}>
           <div class="editor__crop-container" style={{ position: 'absolute', zIndex: 1 }} ref={cropContainerRef}>
-            <canvas style={{ position: 'absolute' }} ref={croppingRef}></canvas>
+            <canvas onMouseDown={onDragStart} style={{ position: 'absolute' }} ref={croppingRef}></canvas>
             <CropCorner
               left={croppingRect.startX - CROP_BUTTON_BORDER}
               top={croppingRect.startY - CROP_BUTTON_BORDER}
