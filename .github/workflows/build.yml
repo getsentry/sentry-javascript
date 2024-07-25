@@ -446,8 +446,15 @@ jobs:
         uses: ./.github/actions/restore-cache
         env:
           DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
-      - name: Run tests
-        run: yarn test-ci-browser
+
+      - name: Run affected tests
+        run: yarn test:pr:browser
+        if: github.event_name == 'pull_request'
+
+      - name: Run all tests
+        run: yarn test:ci:browser
+        if: github.event_name != 'pull_request'
+
       - name: Compute test coverage
         uses: codecov/codecov-action@v4
         with:
@@ -478,7 +485,7 @@ jobs:
           DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
       - name: Run tests
         run: |
-          yarn test-ci-bun
+          yarn test:ci:bun
 
   job_deno_unit_tests:
     name: Deno Unit Tests
@@ -536,7 +543,7 @@ jobs:
       - name: Run tests
         env:
           NODE_VERSION: ${{ matrix.node }}
-        run: yarn test-ci-node
+        run: yarn test:ci:node
       - name: Compute test coverage
         uses: codecov/codecov-action@v4
         with:

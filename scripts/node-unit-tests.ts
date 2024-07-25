@@ -8,6 +8,8 @@ interface VersionConfig {
 
 const CURRENT_NODE_VERSION = process.version.replace('v', '').split('.')[0] as NodeVersion;
 
+const RUN_AFFECTED = process.argv.includes('--affected');
+
 const DEFAULT_SKIP_TESTS_PACKAGES = [
   '@sentry-internal/eslint-plugin-sdk',
   '@sentry/ember',
@@ -71,6 +73,14 @@ function runWithIgnores(skipPackages: string[] = []): void {
 }
 
 /**
+ * Run affected tests, ignoring the given packages
+ */
+function runAffectedWithIgnores(skipPackages: string[] = []): void {
+  const ignoreFlags = skipPackages.map(dep => `--exclude="${dep}"`).join(' ');
+  run(`yarn test:pr ${ignoreFlags}`);
+}
+
+/**
  * Run the tests, accounting for compatibility problems in older versions of Node.
  */
 function runTests(): void {
@@ -83,7 +93,11 @@ function runTests(): void {
     versionConfig.ignoredPackages.forEach(dep => ignores.add(dep));
   }
 
-  runWithIgnores(Array.from(ignores));
+  if (RUN_AFFECTED) {
+    runAffectedWithIgnores(Array.from(ignores));
+  } else {
+    runWithIgnores(Array.from(ignores));
+  }
 }
 
 runTests();
