@@ -13,7 +13,8 @@ Sentry.init({
   tunnel: `http://localhost:3031/`, // proxy server
   skipOpenTelemetrySetup: true,
   // By defining _any_ sample rate, tracing intergations will be added by default
-  tracesSampleRate: 1,
+  // By defining _any_ sample rate, tracing intergations will be added by default
+  tracesSampleRate: 0,
 });
 
 const provider = new NodeTracerProvider({
