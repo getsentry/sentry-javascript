@@ -1221,6 +1221,7 @@ jobs:
       fail-fast: false
       matrix:
         test-application: ['node-profiling']
+        node: [14, 16, 18, 20, 22]
         build-command:
           - false
         label:
@@ -1236,7 +1237,7 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
-          node-version-file: 'dev-packages/e2e-tests/package.json'
+          node-version: ${{ matrix.node }}
       - name: Restore caches
         uses: ./.github/actions/restore-cache
         env:
