@@ -1,8 +1,25 @@
 /* eslint-disable max-lines */
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, getActiveSpan, startInactiveSpan } from '@sentry/core';
+import {
+  SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME,
+  SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_UNIT,
+  SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_VALUE,
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  getActiveSpan,
+  getClient,
+  getCurrentScope,
+  startInactiveSpan,
+} from '@sentry/core';
 import { setMeasurement } from '@sentry/core';
-import type { Measurements, Span, SpanAttributes, StartSpanOptions } from '@sentry/types';
-import { browserPerformanceTimeOrigin, getComponentName, htmlTreeAsString, logger, parseUrl } from '@sentry/utils';
+import type { Integration, Measurements, Span, SpanAttributes, StartSpanOptions } from '@sentry/types';
+import {
+  browserPerformanceTimeOrigin,
+  dropUndefinedKeys,
+  getComponentName,
+  htmlTreeAsString,
+  logger,
+  parseUrl,
+} from '@sentry/utils';
 
 import { spanToJSON } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
@@ -15,9 +32,17 @@ import {
   addPerformanceInstrumentationHandler,
   addTtfbInstrumentationHandler,
 } from './instrument';
-import { getBrowserPerformanceAPI, isMeasurementValue, msToSec, startAndEndSpan } from './utils';
+import {
+  getBrowserPerformanceAPI,
+  isMeasurementValue,
+  msToSec,
+  startAndEndSpan,
+  startStandaloneWebVitalSpan,
+} from './utils';
 import { getNavigationEntry } from './web-vitals/lib/getNavigationEntry';
 import { getVisibilityWatcher } from './web-vitals/lib/getVisibilityWatcher';
+import { onFCP } from './web-vitals/onFCP';
+import type { Metric } from './web-vitals/types';
 
 interface NavigatorNetworkInformation {
   readonly connection?: NetworkInformation;
@@ -64,6 +89,9 @@ let _performanceCursor: number = 0;
 let _measurements: Measurements = {};
 let _lcpEntry: LargestContentfulPaint | undefined;
 let _clsEntry: LayoutShift | undefined;
+interface StartTrackingWebVitalsOptions {
+  recordClsStandaloneSpans: boolean;
+}
 
 /**
  * Start tracking web vitals.
@@ -71,23 +99,23 @@ let _clsEntry: LayoutShift | undefined;
  *
  * @returns A function that forces web vitals collection
  */
-export function startTrackingWebVitals(): () => void {
+export function startTrackingWebVitals({ recordClsStandaloneSpans }: StartTrackingWebVitalsOptions): () => void {
   const performance = getBrowserPerformanceAPI();
   if (performance && browserPerformanceTimeOrigin) {
     // @ts-expect-error we want to make sure all of these are available, even if TS is sure they are
     if (performance.mark) {
       WINDOW.performance.mark('sentry-tracing-init');
     }
-    const fidCallback = _trackFID();
-    const clsCallback = _trackCLS();
-    const lcpCallback = _trackLCP();
-    const ttfbCallback = _trackTtfb();
+    const fidCleanupCallback = _trackFID();
+    const lcpCleanupCallback = _trackLCP();
+    const ttfbCleanupCallback = _trackTtfb();
+    const clsCleanupCallback = _trackCLS(recordClsStandaloneSpans);
 
     return (): void => {
-      fidCallback();
-      clsCallback();
-      lcpCallback();
-      ttfbCallback();
+      fidCleanupCallback();
+      lcpCleanupCallback();
+      ttfbCleanupCallback();
+      clsCleanupCallback();
     };
   }
 
@@ -212,17 +240,76 @@ export function startTrackingInteractions(): void {
 export { startTrackingINP, registerInpInteractionListener } from './inp';
 
 /** Starts tracking the Cumulative Layout Shift on the current page. */
-function _trackCLS(): () => void {
-  return addClsInstrumentationHandler(({ metric }) => {
-    const entry = metric.entries[metric.entries.length - 1];
+function _trackCLS(sendAsStandaloneSpan: boolean): () => void {
+  let _emittedFcp = false;
+  if (sendAsStandaloneSpan) {
+    onFCP(
+      () => {
+        _emittedFcp = true;
+      },
+      { reportAllChanges: true },
+    );
+  }
+
+  const cleanupClsCallback = addClsInstrumentationHandler(({ metric }) => {
+    const entry = metric.entries[metric.entries.length - 1] as LayoutShift | undefined;
     if (!entry) {
       return;
     }
 
-    DEBUG_BUILD && logger.log('[Measurements] Adding CLS');
-    _measurements['cls'] = { value: metric.value, unit: '' };
-    _clsEntry = entry as LayoutShift;
+    if (sendAsStandaloneSpan && _emittedFcp) {
+      sendStandaloneClsSpan(metric, entry);
+      // For now, we only emit once CLS span for the initial page load.
+      // Once we send this, we don't need to track CLS anymore.
+      setTimeout(() => {
+        cleanupClsCallback();
+      }, 0);
+    } else if (!sendAsStandaloneSpan) {
+      DEBUG_BUILD && logger.log(`[Measurements] Adding CLS ${metric.value}`);
+      _measurements['cls'] = { value: metric.value, unit: '' };
+      _clsEntry = entry as LayoutShift;
+    }
   }, true);
+
+  return sendAsStandaloneSpan
+    ? () => {
+        /* cleanup is already taken care of when sending a standalone span, so we just return a noop */
+      }
+    : cleanupClsCallback;
+}
+
+function sendStandaloneClsSpan(metric: Metric, entry: LayoutShift) {
+  DEBUG_BUILD && logger.log(`Sending CLS span (${metric.value})`);
+
+  const startTime = msToSec(browserPerformanceTimeOrigin as number) + entry.startTime;
+  const duration = msToSec(entry.duration);
+  const routeName = getCurrentScope().getScopeData().transactionName;
+
+  // TODO: Is this fine / does it provide any value? Alternatively, we can
+  // - send the CLS source node as an attribute
+  // - do nothing at all and ignore the source node
+  const name = htmlTreeAsString(entry.sources[0]?.node);
+
+  const attributes: SpanAttributes = dropUndefinedKeys({
+    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.browser.cls',
+    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'ui.webvital.cls',
+    [SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME]: entry.duration,
+  });
+
+  const span = startStandaloneWebVitalSpan({
+    name,
+    transaction: routeName,
+    attributes,
+    startTime,
+    duration,
+  });
+
+  span?.addEvent('cls', {
+    [SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_UNIT]: '',
+    [SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_VALUE]: metric.value,
+  });
+
+  span?.end(startTime + duration);
 }
 
 /** Starts tracking the Largest Contentful Paint on the current page. */
@@ -267,8 +354,16 @@ function _trackTtfb(): () => void {
   });
 }
 
+interface AddPerformanceEntriesOptions {
+  /**
+   * Flag to determine if CLS should be recorded as a measurement on the span or
+   * sent as a standalone span instead.
+   */
+  recordClsOnPageloadSpan: boolean;
+}
+
 /** Add performance related spans to a transaction */
-export function addPerformanceEntries(span: Span): void {
+export function addPerformanceEntries(span: Span, options: AddPerformanceEntriesOptions): void {
   const performance = getBrowserPerformanceAPI();
   if (!performance || !WINDOW.performance.getEntries || !browserPerformanceTimeOrigin) {
     // Gatekeeper if performance API not available
@@ -286,7 +381,7 @@ export function addPerformanceEntries(span: Span): void {
   performanceEntries.slice(_performanceCursor).forEach((entry: Record<string, any>) => {
     const startTime = msToSec(entry.startTime);
     const duration = msToSec(
-      // Inexplicibly, Chrome sometimes emits a negative duration. We need to work around this.
+      // Inexplicably, Chrome sometimes emits a negative duration. We need to work around this.
       // There is a SO post attempting to explain this, but it leaves one with open questions: https://stackoverflow.com/questions/23191918/peformance-getentries-and-negative-duration-display
       // The way we clamp the value is probably not accurate, since we have observed this happen for things that may take a while to load, like for example the replay worker.
       // TODO: Investigate why this happens and how to properly mitigate. For now, this is a workaround to prevent transactions being dropped due to negative duration spans.
@@ -375,7 +470,7 @@ export function addPerformanceEntries(span: Span): void {
 
     // If FCP is not recorded we should not record the cls value
     // according to the new definition of CLS.
-    if (!('fcp' in _measurements)) {
+    if (!('fcp' in _measurements) || !options.recordClsOnPageloadSpan) {
       delete _measurements.cls;
     }
 
