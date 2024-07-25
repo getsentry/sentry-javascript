@@ -41,6 +41,9 @@
   "dependencies": {
     "@sentry/types": "8.20.0"
   },
+  "devDependencies": {
+    "vitest": "^0.31.4"
+  },
   "scripts": {
     "build": "run-p build:transpile build:types",
     "build:dev": "yarn build",
