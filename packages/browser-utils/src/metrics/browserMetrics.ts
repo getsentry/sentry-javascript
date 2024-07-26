@@ -92,7 +92,7 @@ export function startTrackingWebVitals({ recordClsStandaloneSpans }: StartTracki
       fidCleanupCallback();
       lcpCleanupCallback();
       ttfbCleanupCallback();
-      clsCleanupCallback();
+      clsCleanupCallback && clsCleanupCallback();
     };
   }
 

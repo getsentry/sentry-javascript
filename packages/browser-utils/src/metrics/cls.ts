@@ -23,16 +23,12 @@ import { onHidden } from './web-vitals/lib/onHidden';
  * Once either of these events triggers, the CLS value is sent as a standalone span and we stop
  * measuring CLS.
  */
-export function trackClsAsStandaloneSpan(): () => void {
+export function trackClsAsStandaloneSpan(): void {
   let standaloneCLsValue = 0;
   let standaloneClsEntry: LayoutShift | undefined;
 
-  // Cleanup for standalone span mode is handled in this function.
-  // Returning a no-op for API compatibility with `_trackCLS` measurement mode (saves some bytes)
-  const cleanupNoop = () => undefined;
-
   if (!supportsLayoutShift()) {
-    return cleanupNoop;
+    return;
   }
 
   let sentSpan = false;
@@ -68,8 +64,6 @@ export function trackClsAsStandaloneSpan(): () => void {
       typeof unsubscribe === 'function' && unsubscribe();
     });
   }, 0);
-
-  return cleanupNoop;
 }
 
 function sendStandaloneClsSpan(clsValue: number, entry: LayoutShift | undefined) {
