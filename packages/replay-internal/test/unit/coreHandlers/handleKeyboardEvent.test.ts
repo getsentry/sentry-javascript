@@ -1,3 +1,9 @@
+/**
+ * @vitest-environment jsdom
+ */
+
+import { describe, expect, it } from 'vitest';
+
 import { getKeyboardBreadcrumb } from '../../../src/coreHandlers/handleKeyboardEvent';
 
 describe('Unit | coreHandlers | handleKeyboardEvent', () => {

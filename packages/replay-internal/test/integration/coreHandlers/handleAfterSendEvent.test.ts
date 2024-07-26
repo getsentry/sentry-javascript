@@ -1,5 +1,10 @@
-import { vi } from 'vitest';
+/**
+ * @vitest-environment jsdom
+ */
+
 import type { MockInstance } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+
 import { useFakeTimers } from '../../utils/use-fake-timers';
 
 useFakeTimers();

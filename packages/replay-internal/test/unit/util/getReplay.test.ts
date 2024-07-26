@@ -1,3 +1,5 @@
+import { beforeEach, describe, expect, it } from 'vitest';
+
 import { getCurrentScope } from '@sentry/core';
 import { replayIntegration } from '../../../src/integration';
 import { getReplay } from '../../../src/util/getReplay';

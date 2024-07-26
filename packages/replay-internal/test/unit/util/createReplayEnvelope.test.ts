@@ -1,3 +1,5 @@
+import { describe, expect, it } from 'vitest';
+
 import type { ReplayEvent } from '@sentry/types';
 import { makeDsn } from '@sentry/utils';
 

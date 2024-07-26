@@ -1,3 +1,9 @@
+/**
+ * @vitest-environment jsdom
+ */
+
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { SENTRY_XHR_DATA_KEY } from '@sentry-internal/browser-utils';
 import type {
   Breadcrumb,

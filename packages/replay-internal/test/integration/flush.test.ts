@@ -1,5 +1,9 @@
-import { vi } from 'vitest';
+/**
+ * @vitest-environment jsdom
+ */
+
 import type { MockedFunction } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { useFakeTimers } from '../utils/use-fake-timers';
 
@@ -9,6 +13,7 @@ import * as SentryBrowserUtils from '@sentry-internal/browser-utils';
 import * as SentryUtils from '@sentry/utils';
 
 import { DEFAULT_FLUSH_MIN_DELAY, MAX_REPLAY_DURATION, WINDOW } from '../../src/constants';
+import type { Replay } from '../../src/integration';
 import type { ReplayContainer } from '../../src/replay';
 import { clearSession } from '../../src/session/clearSession';
 import type { EventBuffer } from '../../src/types';
@@ -33,6 +38,7 @@ describe('Integration | flush', () => {
 
   const { record: mockRecord } = mockRrweb();
 
+  let integration: Replay;
   let replay: ReplayContainer;
   let mockSendReplay: MockSendReplay;
   let mockFlush: MockFlush;
@@ -45,7 +51,7 @@ describe('Integration | flush', () => {
       domHandler = handler;
     });
 
-    ({ replay } = await mockSdk());
+    ({ replay, integration } = await mockSdk());
 
     mockSendReplay = vi.spyOn(SendReplay, 'sendReplay');
     mockSendReplay.mockImplementation(
@@ -483,5 +489,15 @@ describe('Integration | flush', () => {
 
     // Start again for following tests
     await replay.start();
+  });
+
+  /**
+   * Assuming the user wants to record a session
+   * when calling flush() without replay being enabled
+   */
+  it('starts recording a session when replay is not enabled', () => {
+    integration.stop();
+    integration.flush();
+    expect(replay.isEnabled()).toBe(true);
   });
 });

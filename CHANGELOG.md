@@ -8,6 +8,29 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 8.20.0
+
+### Important Changes
+
+- **feat(node): Allow to pass `registerEsmLoaderHooks` to preload (#12998)**
+
+You can write your own custom preload script and configure this in the preload options. `registerEsmLoaderHooks` can be
+passed as an option to `preloadOpenTelemetry`, which allows to exclude/include packages in the preload.
+
+- **fix(node): Do not emit fetch spans when tracing is disabled (#13003)**
+
+Sentry will not emit "fetch" spans if tracing is disabled. This is relevant for user who use their own sampler.
+
+### Other Changes
+
+- feat(feedback): Trigger button aria label configuration (#13008)
+- feat(nestjs): Change nest sdk setup (#12920)
+- feat(node): Extend ESM hooks options for iitm v1.10.0 (#13016)
+- feat(node): Send client reports (#12951)
+- feat(nuxt): Automatically add BrowserTracing (#13005)
+- feat(nuxt): Setup source maps with vite config (#13018)
+- feat(replay): Improve public Replay APIs (#13000)
+
 ## 8.19.0
 
 - feat(core): Align Span interface with OTEL (#12898)
