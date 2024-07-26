@@ -1,4 +1,9 @@
-import { vi } from 'vitest';
+/**
+ * @vitest-environment jsdom
+ */
+
+import type { MockedFunction } from 'vitest';
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import * as Sentry from '@sentry/core';
 
@@ -16,7 +21,7 @@ vi.mock('@sentry/utils', async () => {
   };
 });
 
-type CaptureEventMockType = vi.MockedFunction<typeof Sentry.captureEvent>;
+type CaptureEventMockType = MockedFunction<typeof Sentry.captureEvent>;
 
 describe('Unit | session | createSession', () => {
   const captureEventMock: CaptureEventMockType = vi.fn();

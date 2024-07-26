@@ -1,4 +1,8 @@
-import { vi } from 'vitest';
+/**
+ * @vitest-environment jsdom
+ */
+
+import { afterEach, describe, expect, test, vi } from 'vitest';
 
 import { EventType } from '@sentry-internal/rrweb';
 
