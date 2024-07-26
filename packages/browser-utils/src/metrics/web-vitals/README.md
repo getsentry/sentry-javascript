@@ -17,15 +17,9 @@ Current vendored web vitals are:
 
 ## Notable Changes from web-vitals library
 
-This vendored web-vitals library is meant to be used in conjunction with the `@sentry/tracing` `BrowserTracing`
-integration. As such, we made some changes to the original implementation:
-
-- logic around `BFCache` and multiple reports were removed from the library as our web-vitals only report once per
-  pageload.
-- emission for CLS logic was changed to emit on page hide (as previously) but also, when the `_sentry_start_navigation`
-  event is emitted.
-
-Code we _added_ to the library is marged with a `// SENTRY-SPECIFIC-CHANGE` comment
+This vendored web-vitals library is meant to be used in conjunction with the `@sentry/browser`
+`browserTracingIntegration`. As such, logic around `BFCache` and multiple reports were removed from the library as our
+web-vitals only report once per pageload.
 
 ## License
 
