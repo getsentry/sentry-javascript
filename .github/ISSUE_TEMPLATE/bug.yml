@@ -80,11 +80,14 @@ body:
   - type: textarea
     id: sdk-setup
     attributes:
-      label: SDK Setup/Reproduction Example
+      label: Reproduction Example/SDK Setup
       description:
-        How do you set up your Sentry SDK? Please show us your `Sentry.init` code.
-        Or even better—share a link to a reproduction example.
+        To ensure that we can help you as fast as possible, please share a link to a reproduction example (GitHub repo or online code editor).
+        This enables us to quickly understand and address your issue.
+        If you do not post a link, kindly paste your `Sentry.init` code, so we can see how you set up Sentry.
       placeholder: |-
+        https://some-JS-online-code-editor.com/my-example
+
         ```javascript
         Sentry.init({
           dsn: __YOUR_DSN__
