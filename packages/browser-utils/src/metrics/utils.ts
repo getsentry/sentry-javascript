@@ -49,7 +49,6 @@ interface StandaloneWebVitalSpanOptions {
   transaction?: string;
   attributes: SpanAttributes;
   startTime: number;
-  duration: number;
 }
 
 /**
@@ -74,7 +73,7 @@ export function startStandaloneWebVitalSpan(options: StandaloneWebVitalSpanOptio
     return;
   }
 
-  const { name, transaction, attributes: passedAttributes, startTime, duration } = options;
+  const { name, transaction, attributes: passedAttributes, startTime } = options;
 
   const { release, environment } = client.getOptions();
   // We need to get the replay, user, and activeTransaction from the current scope

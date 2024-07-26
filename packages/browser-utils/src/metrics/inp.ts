@@ -110,7 +110,6 @@ function _trackINP(): () => void {
       transaction: routeName,
       attributes,
       startTime,
-      duration,
     });
 
     span?.addEvent('inp', {
