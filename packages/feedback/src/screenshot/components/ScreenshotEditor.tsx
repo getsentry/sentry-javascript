@@ -224,7 +224,7 @@ export function ScreenshotEditorFactory({
             0,
             Math.min(prev.startY + deltaY, cropCanvas.height / DPI - (prev.endY - prev.startY)),
           );
-          // Don't want to change size, just post
+          // Don't want to change size, just position
           const newEndX = newStartX + (prev.endX - prev.startX);
           const newEndY = newStartY + (prev.endY - prev.startY);
 
