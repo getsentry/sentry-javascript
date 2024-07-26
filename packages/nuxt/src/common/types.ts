@@ -5,7 +5,7 @@ export type SentryNuxtOptions = Omit<Parameters<typeof init>[0] & object, 'app'>
 
 type SourceMapsOptions = {
   /**
-   * If this flag is `true`, and an auth token is detected, the Sentry integration will
+   * If this flag is `true`, and an auth token is detected, the Sentry SDK will
    * automatically generate and upload source maps to Sentry during a production build.
    *
    * @default true

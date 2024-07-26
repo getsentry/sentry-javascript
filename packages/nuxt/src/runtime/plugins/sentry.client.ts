@@ -26,16 +26,25 @@ interface VueRouter {
   beforeEach: (fn: (to: Route, from: Route, next?: () => void) => void) => void;
 }
 
-export default defineNuxtPlugin(nuxtApp => {
-  const sentryClient = getClient();
+// Tree-shakable guard to remove all code related to tracing
+declare const __SENTRY_TRACING__: boolean;
 
-  if (sentryClient && '$router' in nuxtApp) {
-    sentryClient.addIntegration(
-      browserTracingIntegration({ router: nuxtApp.$router as VueRouter, routeLabel: 'path' }),
-    );
+export default defineNuxtPlugin(nuxtApp => {
+  // This evaluates to true unless __SENTRY_TRACING__ is text-replaced with "false", in which case everything inside
+  // will get tree-shaken away
+  if (typeof __SENTRY_TRACING__ === 'undefined' || __SENTRY_TRACING__) {
+    const sentryClient = getClient();
+
+    if (sentryClient && '$router' in nuxtApp) {
+      sentryClient.addIntegration(
+        browserTracingIntegration({ router: nuxtApp.$router as VueRouter, routeLabel: 'path' }),
+      );
+    }
   }
 
   nuxtApp.hook('app:created', vueApp => {
+    const sentryClient = getClient();
+
     if (sentryClient) {
       sentryClient.addIntegration(vueIntegration({ app: vueApp }));
     }
