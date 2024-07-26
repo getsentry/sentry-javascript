@@ -241,6 +241,15 @@ export class ReplayContainer implements ReplayContainerInterface {
     return this._options;
   }
 
+  /** A wrapper to conditionally capture exceptions. */
+  public handleException(error: unknown): void {
+    DEBUG_BUILD && logger.error('[Replay]', error);
+
+    if (DEBUG_BUILD && this._options._experiments && this._options._experiments.captureExceptions) {
+      captureException(error);
+    }
+  }
+
   /**
    * Initializes the plugin based on sampling configuration. Should not be
    * called outside of constructor.
@@ -264,7 +273,7 @@ export class ReplayContainer implements ReplayContainerInterface {
 
     if (!this.session) {
       // This should not happen, something wrong has occurred
-      this._handleException(new Error('Unable to initialize and create session'));
+      this.handleException(new Error('Unable to initialize and create session'));
       return;
     }
 
@@ -389,7 +398,7 @@ export class ReplayContainer implements ReplayContainerInterface {
           : {}),
       });
     } catch (err) {
-      this._handleException(err);
+      this.handleException(err);
     }
   }
 
@@ -408,7 +417,7 @@ export class ReplayContainer implements ReplayContainerInterface {
 
       return true;
     } catch (err) {
-      this._handleException(err);
+      this.handleException(err);
       return false;
     }
   }
@@ -450,7 +459,7 @@ export class ReplayContainer implements ReplayContainerInterface {
       // is started after, it will not have `previousSessionId`
       clearSession(this);
     } catch (err) {
-      this._handleException(err);
+      this.handleException(err);
     }
   }
 
@@ -777,15 +786,6 @@ export class ReplayContainer implements ReplayContainerInterface {
     this.startRecording();
   }
 
-  /** A wrapper to conditionally capture exceptions. */
-  private _handleException(error: unknown): void {
-    DEBUG_BUILD && logger.error('[Replay]', error);
-
-    if (DEBUG_BUILD && this._options._experiments && this._options._experiments.captureExceptions) {
-      captureException(error);
-    }
-  }
-
   /**
    * Loads (or refreshes) the current session.
    */
@@ -873,7 +873,7 @@ export class ReplayContainer implements ReplayContainerInterface {
         this._hasInitializedCoreListeners = true;
       }
     } catch (err) {
-      this._handleException(err);
+      this.handleException(err);
     }
 
     this._performanceCleanupCallback = setupPerformanceObserver(this);
@@ -898,7 +898,7 @@ export class ReplayContainer implements ReplayContainerInterface {
         this._performanceCleanupCallback();
       }
     } catch (err) {
-      this._handleException(err);
+      this.handleException(err);
     }
   }
 
@@ -1161,7 +1161,7 @@ export class ReplayContainer implements ReplayContainerInterface {
         timestamp,
       });
     } catch (err) {
-      this._handleException(err);
+      this.handleException(err);
 
       // This means we retried 3 times and all of them failed,
       // or we ran into a problem we don't want to retry, like rate limiting.

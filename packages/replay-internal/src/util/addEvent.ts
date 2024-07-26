@@ -83,6 +83,8 @@ async function _addEvent(
     DEBUG_BUILD && logger.error(error);
     await replay.stop({ reason });
 
+    replay.handleException(error);
+
     const client = getClient();
 
     if (client) {
