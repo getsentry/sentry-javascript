@@ -1,28 +1,13 @@
 /* eslint-disable max-lines */
-import {
-  SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME,
-  SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_UNIT,
-  SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_VALUE,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  getActiveSpan,
-  getCurrentScope,
-  startInactiveSpan,
-} from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, getActiveSpan, startInactiveSpan } from '@sentry/core';
 import { setMeasurement } from '@sentry/core';
 import type { Measurements, Span, SpanAttributes, StartSpanOptions } from '@sentry/types';
-import {
-  browserPerformanceTimeOrigin,
-  dropUndefinedKeys,
-  getComponentName,
-  htmlTreeAsString,
-  logger,
-  parseUrl,
-} from '@sentry/utils';
+import { browserPerformanceTimeOrigin, getComponentName, htmlTreeAsString, logger, parseUrl } from '@sentry/utils';
 
 import { spanToJSON } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
 import { WINDOW } from '../types';
+import { trackClsAsStandaloneSpan } from './cls';
 import {
   type PerformanceLongAnimationFrameTiming,
   addClsInstrumentationHandler,
@@ -31,17 +16,9 @@ import {
   addPerformanceInstrumentationHandler,
   addTtfbInstrumentationHandler,
 } from './instrument';
-import {
-  getBrowserPerformanceAPI,
-  isMeasurementValue,
-  msToSec,
-  startAndEndSpan,
-  startStandaloneWebVitalSpan,
-} from './utils';
-import { onCLS } from './web-vitals/getCLS';
+import { getBrowserPerformanceAPI, isMeasurementValue, msToSec, startAndEndSpan } from './utils';
 import { getNavigationEntry } from './web-vitals/lib/getNavigationEntry';
 import { getVisibilityWatcher } from './web-vitals/lib/getVisibilityWatcher';
-import type { Metric } from './web-vitals/types';
 
 interface NavigatorNetworkInformation {
   readonly connection?: NetworkInformation;
@@ -109,7 +86,7 @@ export function startTrackingWebVitals({ recordClsStandaloneSpans }: StartTracki
     const fidCleanupCallback = _trackFID();
     const lcpCleanupCallback = _trackLCP();
     const ttfbCleanupCallback = _trackTtfb();
-    const clsCleanupCallback = _trackCLS(recordClsStandaloneSpans);
+    const clsCleanupCallback = recordClsStandaloneSpans ? trackClsAsStandaloneSpan() : _trackCLS();
 
     return (): void => {
       fidCleanupCallback();
@@ -239,72 +216,20 @@ export function startTrackingInteractions(): void {
 
 export { startTrackingINP, registerInpInteractionListener } from './inp';
 
-/** Starts tracking the Cumulative Layout Shift on the current page. */
-function _trackCLS(sendAsStandaloneSpan: boolean): () => void {
-  if (sendAsStandaloneSpan) {
-    let sentSpan = false;
-    onCLS(metric => {
-      if (sentSpan) {
-        return;
-      }
-      const entry = metric.entries[metric.entries.length - 1];
-      if (!entry) {
-        return;
-      }
-      sendStandaloneClsSpan(metric, entry);
-      sentSpan = true;
-    });
-  }
-
-  const cleanupClsCallback = addClsInstrumentationHandler(({ metric }) => {
+/**
+ * Starts tracking the Cumulative Layout Shift on the current page and collects the value and last entry
+ * to the `_measurements` object which ultimately is applied to the pageload span's measurements.
+ */
+function _trackCLS(): () => void {
+  return addClsInstrumentationHandler(({ metric }) => {
     const entry = metric.entries[metric.entries.length - 1] as LayoutShift | undefined;
     if (!entry) {
       return;
     }
-
     DEBUG_BUILD && logger.log(`[Measurements] Adding CLS ${metric.value}`);
     _measurements['cls'] = { value: metric.value, unit: '' };
-    _clsEntry = entry as LayoutShift;
+    _clsEntry = entry;
   }, true);
-
-  return sendAsStandaloneSpan
-    ? () => {
-        /* Cleanup for standalone span mode is handled in this function; returning a no-op */
-      }
-    : cleanupClsCallback;
-}
-
-function sendStandaloneClsSpan(metric: Metric, entry: LayoutShift) {
-  DEBUG_BUILD && logger.log(`Sending CLS span (${metric.value})`);
-
-  const startTime = msToSec(browserPerformanceTimeOrigin as number) + entry.startTime;
-  const duration = msToSec(entry.duration);
-  const routeName = getCurrentScope().getScopeData().transactionName;
-
-  // TODO: Is this fine / does it provide any value? Alternatively, we can
-  // - send the CLS source node as an attribute
-  // - do nothing at all and ignore the source node
-  const name = htmlTreeAsString(entry.sources[0]?.node);
-
-  const attributes: SpanAttributes = dropUndefinedKeys({
-    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.browser.cls',
-    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'ui.webvital.cls',
-    [SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME]: entry.duration,
-  });
-
-  const span = startStandaloneWebVitalSpan({
-    name,
-    transaction: routeName,
-    attributes,
-    startTime,
-  });
-
-  span?.addEvent('cls', {
-    [SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_UNIT]: '',
-    [SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_VALUE]: metric.value,
-  });
-
-  span?.end(startTime + duration);
 }
 
 /** Starts tracking the Largest Contentful Paint on the current page. */
