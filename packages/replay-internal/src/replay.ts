@@ -376,7 +376,19 @@ export class ReplayContainer implements ReplayContainerInterface {
         // When running in error sampling mode, we need to overwrite `checkoutEveryNms`
         // Without this, it would record forever, until an error happens, which we don't want
         // instead, we'll always keep the last 60 seconds of replay before an error happened
-        ...(this.recordingMode === 'buffer' && { checkoutEveryNms: BUFFER_CHECKOUT_TIME }),
+        ...(this.recordingMode === 'buffer'
+          ? { checkoutEveryNms: BUFFER_CHECKOUT_TIME }
+          : // Otherwise, use experimental option w/ min checkout time of 6 minutes
+            // This is to improve playback seeking as there could potentially be
+            // less mutations to process in the worse cases.
+            //
+            // checkout by "N" events is probably ideal, but means we have less
+            // control about the number of checkouts we make (which generally
+            // increases replay size)
+            this._options._experiments.continuousCheckout && {
+              // Minimum checkout time is 6 minutes
+              checkoutEveryNms: Math.min(360_000, this._options._experiments.continuousCheckout),
+            }),
         emit: getHandleRecordingEmit(this),
         onMutation: this._onMutationHandler,
         ...(canvasOptions
@@ -388,6 +400,8 @@ export class ReplayContainer implements ReplayContainerInterface {
             }
           : {}),
       });
+
+      console.log('continuousCheckout', this._options._experiments);
     } catch (err) {
       this._handleException(err);
     }

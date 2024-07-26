@@ -59,13 +59,19 @@ export function getHandleRecordingEmit(replay: ReplayContainer): RecordingEmitCa
         return false;
       }
 
+      const session = replay.session;
+
       // Additionally, create a meta event that will capture certain SDK settings.
       // In order to handle buffer mode, this needs to either be done when we
-      // receive checkout events or at flush time.
+      // receive checkout events or at flush time. We have an experimental mode
+      // to perform multiple checkouts a session (the idea is to improve
+      // seeking during playback), so also only include if segmentId is 0.
       //
       // `isCheckout` is always true, but want to be explicit that it should
       // only be added for checkouts
-      addSettingsEvent(replay, isCheckout);
+      if (session && session.segmentId === 0) {
+        addSettingsEvent(replay, isCheckout);
+      }
 
       // If there is a previousSessionId after a full snapshot occurs, then
       // the replay session was started due to session expiration. The new session
@@ -73,13 +79,13 @@ export function getHandleRecordingEmit(replay: ReplayContainer): RecordingEmitCa
       // of the previous session. Do not immediately flush in this case
       // to avoid capturing only the checkout and instead the replay will
       // be captured if they perform any follow-up actions.
-      if (replay.session && replay.session.previousSessionId) {
+      if (session && session.previousSessionId) {
         return true;
       }
 
       // When in buffer mode, make sure we adjust the session started date to the current earliest event of the buffer
       // this should usually be the timestamp of the checkout event, but to be safe...
-      if (replay.recordingMode === 'buffer' && replay.session && replay.eventBuffer) {
+      if (replay.recordingMode === 'buffer' && session && replay.eventBuffer) {
         const earliestEvent = replay.eventBuffer.getEarliestTimestamp();
         if (earliestEvent) {
           logInfo(
@@ -87,10 +93,10 @@ export function getHandleRecordingEmit(replay: ReplayContainer): RecordingEmitCa
             replay.getOptions()._experiments.traceInternals,
           );
 
-          replay.session.started = earliestEvent;
+          session.started = earliestEvent;
 
           if (replay.getOptions().stickySession) {
-            saveSession(replay.session);
+            saveSession(session);
           }
         }
       }
