@@ -26,7 +26,6 @@ interface Props {
   onError: (error: Error) => void;
 }
 
-// The screenshot starting size
 interface Box {
   startX: number;
   startY: number;
@@ -34,7 +33,6 @@ interface Box {
   endY: number;
 }
 
-// The current screenshot size and what is exported as attachment
 interface Rect {
   x: number;
   y: number;
@@ -78,7 +76,7 @@ export function ScreenshotEditorFactory({
   return function ScreenshotEditor({ onError }: Props): VNode {
     const styles = hooks.useMemo(() => ({ __html: createScreenshotInputStyles().innerText }), []);
     const CropCorner = CropCornerFactory({ h });
-    console.log('rerunning factory');
+
     const canvasContainerRef = hooks.useRef<HTMLDivElement>(null);
     const cropContainerRef = hooks.useRef<HTMLDivElement>(null);
     const croppingRef = hooks.useRef<HTMLCanvasElement>(null);
@@ -158,11 +156,8 @@ export function ScreenshotEditorFactory({
       DOCUMENT.addEventListener('mousemove', handleMouseMove);
     }
 
-    // Handling when the mouse is moved.
-    // THIS IS WHERE DRAGGING FUNCTIONALITY SHOULD GO
     const makeHandleMouseMove = hooks.useCallback((corner: string) => {
       return function (e: MouseEvent) {
-        // If the canvas element is not found
         if (!croppingRef.current) {
           return;
         }
@@ -204,22 +199,23 @@ export function ScreenshotEditorFactory({
     }, []);
 
     // DRAGGING FUNCTIONALITY
+    const initialPositionRef = hooks.useRef({ initialX: 0, initialY: 0 });
+
     function onDragStart(e: MouseEvent): void {
       if (isResizing) return;
 
       setIsDragging(true);
-      const initialX = e.clientX;
-      const initialY = e.clientY;
-      console.log('dragging started ' + initialX, initialY);
+      initialPositionRef.current = { initialX: e.clientX, initialY: e.clientY };
 
       const handleMouseMove = (moveEvent: MouseEvent) => {
         const cropCanvas = croppingRef.current;
         if (!cropCanvas) return;
 
-        const deltaX = (moveEvent.clientX - initialX) / DPI;
-        const deltaY = (moveEvent.clientY - initialY) / DPI;
+        const deltaX = moveEvent.clientX - initialPositionRef.current.initialX;
+        const deltaY = moveEvent.clientY - initialPositionRef.current.initialY;
 
         setCroppingRect(prev => {
+          // Math.max stops it from going outside of the borders
           const newStartX = Math.max(
             0,
             Math.min(prev.startX + deltaX, cropCanvas.width / DPI - (prev.endX - prev.startX)),
@@ -228,8 +224,12 @@ export function ScreenshotEditorFactory({
             0,
             Math.min(prev.startY + deltaY, cropCanvas.height / DPI - (prev.endY - prev.startY)),
           );
+          // Don't want to change size, just post
           const newEndX = newStartX + (prev.endX - prev.startX);
           const newEndY = newStartY + (prev.endY - prev.startY);
+
+          initialPositionRef.current.initialX = moveEvent.clientX;
+          initialPositionRef.current.initialY = moveEvent.clientY;
 
           return {
             startX: newStartX,
@@ -241,7 +241,6 @@ export function ScreenshotEditorFactory({
       };
 
       const handleMouseUp = () => {
-        console.log('mouseup');
         setIsDragging(false);
         DOCUMENT.removeEventListener('mousemove', handleMouseMove);
         DOCUMENT.removeEventListener('mouseup', handleMouseUp);
