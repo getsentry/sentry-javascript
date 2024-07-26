@@ -100,3 +100,15 @@ occur while writing tests for Sentry Browser SDK.
   - If a `subject.js` is defined for the test case.
   - If either of `init.js` or `subject.js` contain non-browser code.
   - If the webpack configuration is valid.
+
+- #### Debugging Tests
+
+  To debug one or multiple test scenarios, you can use playwright's UI mode. This opens a simulated browser window with
+  console logs, a timeline of the page and how it was rendered, a list of steps within the test and filtering
+  capabilities to run the specific test. This is really helpful to understand what happened during the test or for
+  example when a timeout occurred.
+
+  To use UI mode, simply call `yarn test --ui` and filter on the test in the UI.
+
+  Note: passing [the `-g` flag](#running-tests-locally) along with the `--ui` command doesn't give you an advantage as
+  you have to filter on the test again in the UI.
