@@ -38,7 +38,6 @@ export function addFetchEndInstrumentationHandler(handler: (data: HandlerDataFet
   maybeInstrument(type, () => instrumentFetch(streamHandler));
 }
 
-// function instrumentFetch(handlerType: 'fetch' | 'fetch-body-resolved'): void {
 function instrumentFetch(onFetchResolved?: (response: Response) => void): void {
   if (!supportsNativeFetch()) {
     return;
