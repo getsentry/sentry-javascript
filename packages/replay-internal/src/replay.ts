@@ -387,7 +387,7 @@ export class ReplayContainer implements ReplayContainerInterface {
             // increases replay size)
             this._options._experiments.continuousCheckout && {
               // Minimum checkout time is 6 minutes
-              checkoutEveryNms: Math.min(360_000, this._options._experiments.continuousCheckout),
+              checkoutEveryNms: Math.max(360_000, this._options._experiments.continuousCheckout),
             }),
         emit: getHandleRecordingEmit(this),
         onMutation: this._onMutationHandler,
@@ -400,8 +400,6 @@ export class ReplayContainer implements ReplayContainerInterface {
             }
           : {}),
       });
-
-      console.log('continuousCheckout', this._options._experiments);
     } catch (err) {
       this._handleException(err);
     }
