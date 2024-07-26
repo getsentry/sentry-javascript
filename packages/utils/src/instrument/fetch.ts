@@ -21,7 +21,7 @@ type FetchResource = string | { toString(): string } | { url: string };
 export function addFetchInstrumentationHandler(handler: (data: HandlerDataFetch) => void): void {
   const type = 'fetch';
   addHandler(type, handler);
-  maybeInstrument(type, () => instrumentFetch(type));
+  maybeInstrument(type, () => instrumentFetch());
 }
 
 /**
@@ -35,10 +35,11 @@ export function addFetchInstrumentationHandler(handler: (data: HandlerDataFetch)
 export function addFetchEndInstrumentationHandler(handler: (data: HandlerDataFetch) => void): void {
   const type = 'fetch-body-resolved';
   addHandler(type, handler);
-  maybeInstrument(type, () => instrumentFetch(type));
+  maybeInstrument(type, () => instrumentFetch(streamHandler));
 }
 
-function instrumentFetch(handlerType: 'fetch' | 'fetch-body-resolved'): void {
+// function instrumentFetch(handlerType: 'fetch' | 'fetch-body-resolved'): void {
+function instrumentFetch(onFetchResolved?: (response: Response) => void): void {
   if (!supportsNativeFetch()) {
     return;
   }
@@ -55,7 +56,8 @@ function instrumentFetch(handlerType: 'fetch' | 'fetch-body-resolved'): void {
         startTimestamp: timestampInSeconds() * 1000,
       };
 
-      if (handlerType === 'fetch') {
+      // if there is no callback, fetch is instrumented
+      if (!onFetchResolved) {
         triggerHandlers('fetch', {
           ...handlerData,
         });
@@ -73,21 +75,8 @@ function instrumentFetch(handlerType: 'fetch' | 'fetch-body-resolved'): void {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       return originalFetch.apply(GLOBAL_OBJ, args).then(
         async (response: Response) => {
-          if (handlerType === 'fetch-body-resolved') {
-            // clone response for awaiting stream
-            let clonedResponseForResolving: Response | undefined;
-            try {
-              clonedResponseForResolving = response.clone();
-            } catch (e) {
-              // noop
-            }
-
-            await resolveResponse(clonedResponseForResolving, () => {
-              triggerHandlers('fetch-body-resolved', {
-                endTimestamp: timestampInSeconds() * 1000,
-                response,
-              });
-            });
+          if (onFetchResolved) {
+            onFetchResolved(response);
           } else {
             const finishedHandlerData: HandlerDataFetch = {
               ...handlerData,
@@ -100,7 +89,7 @@ function instrumentFetch(handlerType: 'fetch' | 'fetch-body-resolved'): void {
           return response;
         },
         (error: Error) => {
-          if (handlerType === 'fetch') {
+          if (!onFetchResolved) {
             const erroredHandlerData: HandlerDataFetch = {
               ...handlerData,
               endTimestamp: timestampInSeconds() * 1000,
@@ -165,6 +154,23 @@ function resolveResponse(res: Response | undefined, onFinishedResolving: () => v
         // noop
       });
   }
+}
+
+async function streamHandler(response: Response): Promise<void> {
+  // clone response for awaiting stream
+  let clonedResponseForResolving: Response | undefined;
+  try {
+    clonedResponseForResolving = response.clone();
+  } catch (e) {
+    // noop
+  }
+
+  await resolveResponse(clonedResponseForResolving, () => {
+    triggerHandlers('fetch-body-resolved', {
+      endTimestamp: timestampInSeconds() * 1000,
+      response,
+    });
+  });
 }
 
 function hasProp<T extends string>(obj: unknown, prop: T): obj is Record<string, string> {
