@@ -38,6 +38,7 @@ import {
   startAndEndSpan,
   startStandaloneWebVitalSpan,
 } from './utils';
+import { onCLS } from './web-vitals/getCLS';
 import { getNavigationEntry } from './web-vitals/lib/getNavigationEntry';
 import { getVisibilityWatcher } from './web-vitals/lib/getVisibilityWatcher';
 import type { Metric } from './web-vitals/types';
@@ -240,29 +241,35 @@ export { startTrackingINP, registerInpInteractionListener } from './inp';
 
 /** Starts tracking the Cumulative Layout Shift on the current page. */
 function _trackCLS(sendAsStandaloneSpan: boolean): () => void {
+  if (sendAsStandaloneSpan) {
+    let sentSpan = false;
+    onCLS(metric => {
+      if (sentSpan) {
+        return;
+      }
+      const entry = metric.entries[metric.entries.length - 1];
+      if (!entry) {
+        return;
+      }
+      sendStandaloneClsSpan(metric, entry);
+      sentSpan = true;
+    });
+  }
+
   const cleanupClsCallback = addClsInstrumentationHandler(({ metric }) => {
     const entry = metric.entries[metric.entries.length - 1] as LayoutShift | undefined;
     if (!entry) {
       return;
     }
 
-    if (sendAsStandaloneSpan) {
-      sendStandaloneClsSpan(metric, entry);
-      // For now, we only emit one CLS span for the initial page load.
-      // Once we send this, we don't need to track CLS anymore.
-      setTimeout(() => {
-        cleanupClsCallback();
-      }, 0);
-    } else if (!sendAsStandaloneSpan) {
-      DEBUG_BUILD && logger.log(`[Measurements] Adding CLS ${metric.value}`);
-      _measurements['cls'] = { value: metric.value, unit: '' };
-      _clsEntry = entry as LayoutShift;
-    }
+    DEBUG_BUILD && logger.log(`[Measurements] Adding CLS ${metric.value}`);
+    _measurements['cls'] = { value: metric.value, unit: '' };
+    _clsEntry = entry as LayoutShift;
   }, true);
 
   return sendAsStandaloneSpan
     ? () => {
-        /* cleanup is already taken care of when sending a standalone span, so we just return a noop */
+        /* Cleanup for standalone span mode is handled in this function; returning a no-op */
       }
     : cleanupClsCallback;
 }
