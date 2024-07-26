@@ -12,6 +12,12 @@ import {
 import type { IntegrationFn, Span } from '@sentry/types';
 import { logger } from '@sentry/utils';
 import { generateInstrumentOnce } from '../../otel/instrument';
+import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
+import {
+  InstrumentationBase,
+  InstrumentationNodeModuleDefinition, InstrumentationNodeModuleFile
+} from '@opentelemetry/instrumentation';
+import { isWrapped } from '@opentelemetry/core';
 
 interface MinimalNestJsExecutionContext {
   getType: () => string;
@@ -44,7 +50,96 @@ interface MinimalNestJsApp {
 
 const INTEGRATION_NAME = 'Nest';
 
-export const instrumentNest = generateInstrumentOnce(INTEGRATION_NAME, () => new NestInstrumentation());
+const supportedVersions = ['>=8.0.0 <11'];
+
+/**
+ *
+ */
+export class SentryNestInstrumentation extends InstrumentationBase {
+  public static readonly COMPONENT = '@nestjs/common';
+  public static readonly COMMON_ATTRIBUTES = {
+    component: SentryNestInstrumentation.COMPONENT,
+  };
+
+  public constructor(config: InstrumentationConfig = {}) {
+    super('sentry-nestjs', '1.0.0', config);
+  }
+
+  /**
+   *
+   */
+  public init(): void {
+    logger.log('init!');
+    const module = new InstrumentationNodeModuleDefinition(
+      SentryNestInstrumentation.COMPONENT,
+      supportedVersions
+    )
+
+    module.files.push(
+      this._getInjectableFileInstrumentation(supportedVersions)
+    )
+  }
+
+  /**
+   *
+   */
+  private _getInjectableFileInstrumentation(versions: string[]): InstrumentationNodeModuleFile {
+    logger.log('create instrumentation node module file');
+    return new InstrumentationNodeModuleFile(
+      '@nestjs/common/decorators/core/injectable.decorator.js',
+      versions,
+      (moduleExports: any) => {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        if (isWrapped(moduleExports.Injectable)) {
+          this._unwrap(moduleExports, 'Injectable');
+        }
+        this._wrap(moduleExports, 'Injectable', this._createWrapInjectable());
+        return moduleExports;
+      },
+      (moduleExports: any) => {
+        this._unwrap(moduleExports, 'Injectable');
+      }
+    )
+  }
+
+  /**
+   *
+   */
+  private _createWrapInjectable() {
+    return function wrapInjectable(original: any) {
+      return function wrappedInjectable(options?: any) {
+        return function (target: any) {
+          logger.log('Injectable target:', target);
+
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          if (typeof target.prototype.use === 'function') {
+            logger.log('middleware!');
+          }
+
+          return original(options)(target);
+        };
+      };
+    };
+  }
+}
+
+const instrumentNestCore = generateInstrumentOnce('Nest-Core', () => {
+  logger.log('init nest core instrumentation');
+  return new NestInstrumentation();
+});
+
+const instrumentMiddleware = generateInstrumentOnce('Nest-Middleware', () => {
+  logger.log('init nest middleware instrumentation');
+  return new SentryNestInstrumentation();
+});
+
+export const instrumentNest = Object.assign(
+  (): void => {
+    instrumentNestCore();
+    instrumentMiddleware();
+  },
+  { id: INTEGRATION_NAME },
+);
 
 const _nestIntegration = (() => {
   return {
