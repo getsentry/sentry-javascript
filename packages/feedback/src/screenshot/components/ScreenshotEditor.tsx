@@ -82,7 +82,6 @@ export function ScreenshotEditorFactory({
     const croppingRef = hooks.useRef<HTMLCanvasElement>(null);
     const [croppingRect, setCroppingRect] = hooks.useState<Box>({ startX: 0, startY: 0, endX: 0, endY: 0 });
     const [confirmCrop, setConfirmCrop] = hooks.useState(false);
-    const [isDragging, setIsDragging] = hooks.useState(false);
     const [isResizing, setIsResizing] = hooks.useState(false);
 
     hooks.useEffect(() => {
@@ -198,16 +197,15 @@ export function ScreenshotEditorFactory({
       };
     }, []);
 
-    // DRAGGING FUNCTIONALITY
+    // DRAGGING FUNCTIONALITY.
     const initialPositionRef = hooks.useRef({ initialX: 0, initialY: 0 });
 
     function onDragStart(e: MouseEvent): void {
       if (isResizing) return;
 
-      setIsDragging(true);
       initialPositionRef.current = { initialX: e.clientX, initialY: e.clientY };
 
-      const handleMouseMove = (moveEvent: MouseEvent) => {
+      const handleMouseMove = (moveEvent: MouseEvent): void => {
         const cropCanvas = croppingRef.current;
         if (!cropCanvas) return;
 
@@ -240,8 +238,7 @@ export function ScreenshotEditorFactory({
         });
       };
 
-      const handleMouseUp = () => {
-        setIsDragging(false);
+      const handleMouseUp = (): void => {
         DOCUMENT.removeEventListener('mousemove', handleMouseMove);
         DOCUMENT.removeEventListener('mouseup', handleMouseUp);
       };
@@ -319,7 +316,11 @@ export function ScreenshotEditorFactory({
         <style dangerouslySetInnerHTML={styles} />
         <div class="editor__canvas-container" ref={canvasContainerRef}>
           <div class="editor__crop-container" style={{ position: 'absolute', zIndex: 1 }} ref={cropContainerRef}>
-            <canvas onMouseDown={onDragStart} style={{ position: 'absolute' }} ref={croppingRef}></canvas>
+            <canvas
+              onMouseDown={onDragStart}
+              style={{ position: 'absolute', cursor: confirmCrop ? 'move' : 'auto' }}
+              ref={croppingRef}
+            ></canvas>
             <CropCorner
               left={croppingRect.startX - CROP_BUTTON_BORDER}
               top={croppingRect.startY - CROP_BUTTON_BORDER}
