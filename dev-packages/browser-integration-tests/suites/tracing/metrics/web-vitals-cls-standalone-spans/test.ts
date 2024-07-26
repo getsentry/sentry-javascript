@@ -235,6 +235,68 @@ sentryTest('captures a "POOR" CLS vital with its source as a standalone span.', 
 });
 
 sentryTest(
+  'captures a 0 CLS vital as a standalone span if no layout shift occurred',
+  async ({ getLocalTestPath, page }) => {
+    const spanEnvelopePromise = getMultipleSentryEnvelopeRequests<SpanEnvelope>(
+      page,
+      1,
+      { envelopeType: 'span' },
+      properFullEnvelopeRequestParser,
+    );
+
+    const url = await getLocalTestPath({ testDir: __dirname });
+    await page.goto(url);
+
+    await page.waitForTimeout(1000);
+
+    await hidePage(page);
+
+    const spanEnvelope = (await spanEnvelopePromise)[0];
+
+    const spanEnvelopeHeaders = spanEnvelope[0];
+    const spanEnvelopeItem = spanEnvelope[1][0][1];
+
+    expect(spanEnvelopeItem).toEqual({
+      data: {
+        'sentry.exclusive_time': 0,
+        'sentry.op': 'ui.webvital.cls',
+        'sentry.origin': 'auto.http.browser.cls',
+        transaction: expect.stringContaining('index.html'),
+        'user_agent.original': expect.stringContaining('Chrome'),
+      },
+      description: 'Layout shift',
+      exclusive_time: 0,
+      measurements: {
+        cls: {
+          unit: '',
+          value: 0,
+        },
+      },
+      op: 'ui.webvital.cls',
+      origin: 'auto.http.browser.cls',
+      parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
+      span_id: expect.stringMatching(/[a-f0-9]{16}/),
+      segment_id: expect.stringMatching(/[a-f0-9]{16}/),
+      start_timestamp: expect.any(Number),
+      timestamp: spanEnvelopeItem.start_timestamp,
+      trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+    });
+
+    expect(spanEnvelopeHeaders).toEqual({
+      sent_at: expect.any(String),
+      trace: {
+        environment: 'production',
+        public_key: 'public',
+        sample_rate: '1',
+        sampled: 'true',
+        trace_id: spanEnvelopeItem.trace_id,
+        // no transaction, because span source is URL
+      },
+    });
+  },
+);
+
+sentryTest(
   'captures CLS increases after the pageload span ended, when page is hidden',
   async ({ getLocalTestPath, page }) => {
     const url = await getLocalTestPath({ testDir: __dirname });
