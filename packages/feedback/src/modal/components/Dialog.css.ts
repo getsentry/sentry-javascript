@@ -111,7 +111,7 @@ const FORM = `
 
 @media (max-width: 600px) {
   .form__right {
-    width: auto;
+    --form-width: 100%;
   }
 }
 
