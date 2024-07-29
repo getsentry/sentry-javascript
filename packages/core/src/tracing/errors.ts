@@ -4,6 +4,7 @@ import {
   addGlobalErrorInstrumentationHandler,
   addGlobalUnhandledRejectionInstrumentationHandler,
   logger,
+  stringMatchesSomePattern,
 } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
@@ -67,22 +68,7 @@ function _isIgnoredError(error: any): boolean {
     return false;
   }
 
-  const errorsToIgnore = options.ignoreErrors;
-  if (!errorsToIgnore) {
-    return false;
-  }
-
-  for (const errorToIgnore of errorsToIgnore) {
-    if (typeof errorToIgnore === 'string' && errorMessage.includes(errorToIgnore)) {
-      return true;
-    }
-
-    if (errorToIgnore instanceof RegExp && errorToIgnore.test(errorMessage)) {
-      return true;
-    }
-  }
-
-  return false;
+  return stringMatchesSomePattern(errorMessage, options.ignoreErrors);
 }
 
 function _errorMessage(error: any): string {
