@@ -1,4 +1,4 @@
-// Note: These tests run the handler in Node.js, which is has some differences to the cloudflare workers runtime.
+// Note: These tests run the handler in Node.js, which has some differences to the cloudflare workers runtime.
 // Although this is not ideal, this is the best we can do until we have a better way to test cloudflare workers.
 
 import { beforeEach, describe, expect, test, vi } from 'vitest';
@@ -69,9 +69,9 @@ describe('withSentry', () => {
   });
 
   test('creates a cloudflare client and sets it on the handler', async () => {
+    const initAndBindSpy = vi.spyOn(SentryCore, 'initAndBind');
     const handler = {
       async fetch(_request, _env, _context) {
-        expect(SentryCore.getClient() instanceof CloudflareClient).toBe(true);
         return new Response('test');
       },
     } satisfies ExportedHandler;
@@ -80,7 +80,8 @@ describe('withSentry', () => {
     const wrappedHandler = withSentry(() => ({}), handler);
     await wrappedHandler.fetch(new Request('https://example.com'), MOCK_ENV, context);
 
-    expect.assertions(1);
+    expect(initAndBindSpy).toHaveBeenCalledTimes(1);
+    expect(initAndBindSpy).toHaveBeenLastCalledWith(CloudflareClient, expect.any(Object));
   });
 
   describe('scope instrumentation', () => {
@@ -180,7 +181,9 @@ describe('withSentry', () => {
         // ignore
       }
       expect(captureExceptionSpy).toHaveBeenCalledTimes(1);
-      expect(captureExceptionSpy).toHaveBeenLastCalledWith(error, { mechanism: { handled: false } });
+      expect(captureExceptionSpy).toHaveBeenLastCalledWith(error, {
+        mechanism: { handled: false, type: 'cloudflare' },
+      });
     });
 
     test('re-throws the error after capturing', async () => {
