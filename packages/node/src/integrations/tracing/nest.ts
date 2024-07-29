@@ -54,6 +54,16 @@ const INTEGRATION_NAME = 'Nest';
 const supportedVersions = ['>=8.0.0 <11'];
 
 /**
+ * Represents an injectable target class in NestJS.
+ */
+interface InjectableTarget {
+  name: string,
+  prototype: {
+    use?: (req: unknown, res: unknown, next: (error?: Error | unknown) => void) => void;
+  };
+}
+
+/**
  * Custom instrumentation for nestjs.
  *
  * This hooks into the @Injectable decorator, which is applied on class middleware, interceptors and guards.
@@ -85,15 +95,14 @@ export class SentryNestInstrumentation extends InstrumentationBase {
     return new InstrumentationNodeModuleFile(
       '@nestjs/common/decorators/core/injectable.decorator.js',
       versions,
-      (moduleExports: any) => {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      (moduleExports: { Injectable: unknown }) => {
         if (isWrapped(moduleExports.Injectable)) {
           this._unwrap(moduleExports, 'Injectable');
         }
         this._wrap(moduleExports, 'Injectable', this._createWrapInjectable());
         return moduleExports;
       },
-      (moduleExports: any) => {
+      (moduleExports: { Injectable: unknown }) => {
         this._unwrap(moduleExports, 'Injectable');
       },
     );
@@ -105,9 +114,9 @@ export class SentryNestInstrumentation extends InstrumentationBase {
    * Wraps the use method to instrument nest class middleware.
    */
   private _createWrapInjectable() {
-    return function wrapInjectable(original: any) {
-      return function wrappedInjectable(options?: any) {
-        return function (target: any) {
+    return function wrapInjectable(original: any) { // TODO: improve type here
+      return function wrappedInjectable(options?: unknown) {
+        return function (target: InjectableTarget) {
           // TODO: Check if the class was already patched à la
           // if (target[sentryPatchedSymbol]) {
           //   return original(options)(target);
@@ -115,13 +124,9 @@ export class SentryNestInstrumentation extends InstrumentationBase {
           //   addNonEnumerableProperty(target, sentryPatchedSymbol, true);
           // }
 
-          // TODO: proper typing
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
           if (typeof target.prototype.use === 'function') {
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
             const originalUse = target.prototype.use;
 
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
             target.prototype.use = function (req: any, res: any, next: any) {
               startSpanManual(
                 {
@@ -133,12 +138,11 @@ export class SentryNestInstrumentation extends InstrumentationBase {
                 },
                 (span: Span) => {
                   // patch  next to end span before next middleware is being called
-                  const wrappedNext = (error?: Error | any): void => {
+                  const wrappedNext = (error?: Error | unknown): void => {
                     span.end();
                     next(error);
                   };
 
-                  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
                   return originalUse.apply(this, [req, res, wrappedNext])
                 }
               )
