@@ -133,13 +133,12 @@ export class SentryNestInstrumentation extends InstrumentationBase {
                     span.end();
                     next(error);
                   };
-                  console.log('use!');
+
                   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
                   return originalUse.apply(this, [req, res, wrappedNext])
                 }
               )
             }
-            console.log('middleware!');
           }
 
           return original(options)(target);

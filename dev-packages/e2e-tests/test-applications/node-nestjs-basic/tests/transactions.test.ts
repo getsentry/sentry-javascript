@@ -134,7 +134,6 @@ test('API route transaction includes nest middleware span', async ({ baseURL }) 
 
   const transactionEvent = await pageloadTransactionEventPromise;
 
-  console.log(transactionEvent);
   expect(transactionEvent).toEqual(
     expect.objectContaining({
       spans: expect.arrayContaining([
