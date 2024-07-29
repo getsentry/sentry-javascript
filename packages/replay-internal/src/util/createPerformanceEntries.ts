@@ -183,7 +183,7 @@ function createResourceEntry(
  */
 export function getLargestContentfulPaint(metric: Metric): ReplayPerformanceEntry<WebVitalData> {
   const lastEntry = metric.entries[metric.entries.length - 1] as (PerformanceEntry & { element?: Node }) | undefined;
-  const node = lastEntry ? lastEntry.element : undefined;
+  const node = lastEntry && lastEntry.element ? [lastEntry.element] : undefined;
   return getWebVital(metric, 'largest-contentful-paint', node);
 }
 
@@ -210,7 +210,7 @@ export function getCumulativeLayoutShift(metric: Metric): ReplayPerformanceEntry
  */
 export function getFirstInputDelay(metric: Metric): ReplayPerformanceEntry<WebVitalData> {
   const lastEntry = metric.entries[metric.entries.length - 1] as (PerformanceEntry & { target?: Node }) | undefined;
-  const node = lastEntry ? lastEntry.target : undefined;
+  const node = lastEntry && lastEntry.target ? [lastEntry.target] : undefined;
   return getWebVital(metric, 'first-input-delay', node);
 }
 
@@ -219,33 +219,24 @@ export function getFirstInputDelay(metric: Metric): ReplayPerformanceEntry<WebVi
  */
 export function getInteractionToNextPaint(metric: Metric): ReplayPerformanceEntry<WebVitalData> {
   const lastEntry = metric.entries[metric.entries.length - 1] as (PerformanceEntry & { target?: Node }) | undefined;
-  const node = lastEntry ? lastEntry.target : undefined;
+  const node = lastEntry && lastEntry.target ? [lastEntry.target] : undefined;
   return getWebVital(metric, 'interaction-to-next-paint', node);
 }
 
 /**
  * Add an web vital event to the replay based on the web vital metric.
  */
-export function getWebVital(
+function getWebVital(
   metric: Metric,
   name: string,
-  node: Node | Node[] | undefined,
+  nodes: Node[] | undefined,
 ): ReplayPerformanceEntry<WebVitalData> {
   const value = metric.value;
   const rating = metric.rating;
 
   const end = getAbsoluteTime(value);
 
-  const nodeIds: number[] = [];
-  if (Array.isArray(node)) {
-    for (const n of node) {
-      nodeIds.push(record.mirror.getId(n));
-    }
-  } else {
-    if (node) {
-      nodeIds.push(record.mirror.getId(node));
-    }
-  }
+  const nodeIds = nodes ? nodes.map(node => record.mirror.getId(node)) : undefined;
 
   const data: ReplayPerformanceEntry<WebVitalData> = {
     type: 'web-vital',
@@ -256,7 +247,8 @@ export function getWebVital(
       value,
       size: value,
       rating,
-      nodeId: node ? nodeIds : undefined,
+      nodeId: nodeIds ? nodeIds.pop() : undefined,
+      clsNodeIds: nodeIds,
     },
   };
 

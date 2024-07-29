@@ -103,7 +103,7 @@ describe('Unit | util | createPerformanceEntries', () => {
         name: 'cumulative-layout-shift',
         start: 1672531205.108299,
         end: 1672531205.108299,
-        data: { value: 5108.299, size: 5108.299, rating: 'good', nodeId: [] },
+        data: { value: 5108.299, size: 5108.299, rating: 'good', nodeId: undefined },
       });
     });
   });
