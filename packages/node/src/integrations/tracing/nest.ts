@@ -115,6 +115,7 @@ export class SentryNestInstrumentation extends InstrumentationBase {
    * Wraps the use method to instrument nest class middleware.
    */
   private _createWrapInjectable() {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return function wrapInjectable(original: any) {
       return function wrappedInjectable(options?: unknown) {
         return function (target: InjectableTarget) {
