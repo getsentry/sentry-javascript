@@ -226,11 +226,7 @@ export function getInteractionToNextPaint(metric: Metric): ReplayPerformanceEntr
 /**
  * Add an web vital event to the replay based on the web vital metric.
  */
-function getWebVital(
-  metric: Metric,
-  name: string,
-  nodes: Node[] | undefined,
-): ReplayPerformanceEntry<WebVitalData> {
+function getWebVital( metric: Metric, name: string, nodes: Node[] | undefined): ReplayPerformanceEntry<WebVitalData> {
   const value = metric.value;
   const rating = metric.rating;
 
@@ -247,8 +243,8 @@ function getWebVital(
       value,
       size: value,
       rating,
-      nodeId: nodeIds ? nodeIds.pop() : undefined,
-      clsNodeIds: nodeIds,
+      nodeId: nodeIds ? nodeIds[0] : undefined,
+      clsNodeIds: name === 'cumulative-layout-shift' ? nodeIds : undefined,
     },
   };
 
