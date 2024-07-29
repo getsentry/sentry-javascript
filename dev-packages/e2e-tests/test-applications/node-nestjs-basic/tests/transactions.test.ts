@@ -150,7 +150,7 @@ test('API route transaction includes nest middleware span', async ({ baseURL }) 
           timestamp: expect.any(Number),
           status: 'ok',
           op: 'middleware.nestjs',
-          origin: 'auto.middleware.nestjs'
+          origin: 'auto.middleware.nestjs',
         },
       ]),
     }),

@@ -1,8 +1,8 @@
-import {MiddlewareConsumer, Module} from '@nestjs/common';
+import { MiddlewareConsumer, Module } from '@nestjs/common';
 import { ScheduleModule } from '@nestjs/schedule';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import {LoggerMiddleware} from "./logger.middleware";
+import { LoggerMiddleware } from './logger.middleware';
 
 @Module({
   imports: [ScheduleModule.forRoot()],

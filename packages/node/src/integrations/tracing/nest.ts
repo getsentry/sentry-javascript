@@ -14,7 +14,8 @@ import {
   getClient,
   getDefaultIsolationScope,
   getIsolationScope,
-  spanToJSON, startSpanManual,
+  spanToJSON,
+  startSpanManual,
 } from '@sentry/core';
 import type { IntegrationFn, Span } from '@sentry/types';
 import { logger } from '@sentry/utils';
@@ -57,7 +58,7 @@ const supportedVersions = ['>=8.0.0 <11'];
  * Represents an injectable target class in NestJS.
  */
 interface InjectableTarget {
-  name: string,
+  name: string;
   prototype: {
     use?: (req: unknown, res: unknown, next: (error?: Error | unknown) => void) => void;
   };
@@ -95,14 +96,14 @@ export class SentryNestInstrumentation extends InstrumentationBase {
     return new InstrumentationNodeModuleFile(
       '@nestjs/common/decorators/core/injectable.decorator.js',
       versions,
-      (moduleExports: { Injectable: unknown }) => {
+      (moduleExports: { Injectable: InjectableTarget }) => {
         if (isWrapped(moduleExports.Injectable)) {
           this._unwrap(moduleExports, 'Injectable');
         }
         this._wrap(moduleExports, 'Injectable', this._createWrapInjectable());
         return moduleExports;
       },
-      (moduleExports: { Injectable: unknown }) => {
+      (moduleExports: { Injectable: InjectableTarget }) => {
         this._unwrap(moduleExports, 'Injectable');
       },
     );
@@ -114,7 +115,7 @@ export class SentryNestInstrumentation extends InstrumentationBase {
    * Wraps the use method to instrument nest class middleware.
    */
   private _createWrapInjectable() {
-    return function wrapInjectable(original: any) { // TODO: improve type here
+    return function wrapInjectable(original: any) {
       return function wrappedInjectable(options?: unknown) {
         return function (target: InjectableTarget) {
           // TODO: Check if the class was already patched à la
@@ -127,14 +128,14 @@ export class SentryNestInstrumentation extends InstrumentationBase {
           if (typeof target.prototype.use === 'function') {
             const originalUse = target.prototype.use;
 
-            target.prototype.use = function (req: any, res: any, next: any) {
+            target.prototype.use = function (req: unknown, res: unknown, next: (error?: unknown) => void): void {
               startSpanManual(
                 {
                   name: target.name,
                   attributes: {
                     [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'middleware.nestjs',
-                    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.middleware.nestjs'
-                  }
+                    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.middleware.nestjs',
+                  },
                 },
                 (span: Span) => {
                   // patch  next to end span before next middleware is being called
@@ -143,10 +144,10 @@ export class SentryNestInstrumentation extends InstrumentationBase {
                     next(error);
                   };
 
-                  return originalUse.apply(this, [req, res, wrappedNext])
-                }
-              )
-            }
+                  return originalUse.apply(this, [req, res, wrappedNext]);
+                },
+              );
+            };
           }
 
           return original(options)(target);
