@@ -122,7 +122,7 @@ export class SentryNestInstrumentation extends InstrumentationBase {
               startSpanManual(
                 {
                   op: 'middleware.nestjs',
-                  name: 'middleware', // TODO: set class name as name
+                  name: target.name,
                   attributes: {
                     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.middleware.nestjs'
                   }
