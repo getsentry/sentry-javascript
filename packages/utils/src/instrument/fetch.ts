@@ -55,7 +55,7 @@ function instrumentFetch(onFetchResolved?: (response: Response) => void): void {
         startTimestamp: timestampInSeconds() * 1000,
       };
 
-      // if there is no callback, fetch is instrumented
+      // if there is no callback, fetch is instrumented directly
       if (!onFetchResolved) {
         triggerHandlers('fetch', {
           ...handlerData,
