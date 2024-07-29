@@ -79,11 +79,9 @@ async function _addEvent(
     return await replay.eventBuffer.addEvent(eventAfterPossibleCallback);
   } catch (error) {
     const reason = error && error instanceof EventBufferSizeExceededError ? 'addEventSizeExceeded' : 'addEvent';
-
-    DEBUG_BUILD && logger.error(error);
-    await replay.stop({ reason });
-
     replay.handleException(error);
+
+    await replay.stop({ reason });
 
     const client = getClient();
 
