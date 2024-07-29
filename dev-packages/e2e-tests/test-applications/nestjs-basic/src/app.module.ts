@@ -3,7 +3,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { SentryModule } from '@sentry/nestjs/setup';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { LoggerMiddleware } from './logger.middleware';
+import { ExampleMiddleware } from './example.middleware';
 
 @Module({
   imports: [SentryModule.forRoot(), ScheduleModule.forRoot()],
@@ -12,6 +12,6 @@ import { LoggerMiddleware } from './logger.middleware';
 })
 export class AppModule {
   configure(consumer: MiddlewareConsumer): void {
-    consumer.apply(LoggerMiddleware).forRoutes('test-middleware-instrumentation');
+    consumer.apply(ExampleMiddleware).forRoutes('test-middleware-instrumentation');
   }
 }

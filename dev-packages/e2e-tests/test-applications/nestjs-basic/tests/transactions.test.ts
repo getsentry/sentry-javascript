@@ -122,7 +122,9 @@ test('Sends an API route transaction', async ({ baseURL }) => {
   );
 });
 
-test('API route transaction includes nest middleware span', async ({ baseURL }) => {
+test('API route transaction includes nest middleware span. Spans created in and after middleware are nested correctly', async ({
+  baseURL,
+}) => {
   const pageloadTransactionEventPromise = waitForTransaction('nestjs', transactionEvent => {
     return (
       transactionEvent?.contexts?.trace?.op === 'http.server' &&
@@ -144,7 +146,7 @@ test('API route transaction includes nest middleware span', async ({ baseURL }) 
             'sentry.op': 'middleware.nestjs',
             'sentry.origin': 'auto.middleware.nestjs',
           },
-          description: 'LoggerMiddleware',
+          description: 'ExampleMiddleware',
           parent_span_id: expect.any(String),
           start_timestamp: expect.any(Number),
           timestamp: expect.any(Number),
@@ -155,4 +157,46 @@ test('API route transaction includes nest middleware span', async ({ baseURL }) 
       ]),
     }),
   );
+
+  const exampleMiddlewareSpan = transactionEvent.spans.find(span => span.description === 'ExampleMiddleware');
+  const exampleMiddlewareSpanId = exampleMiddlewareSpan?.span_id;
+
+  expect(transactionEvent).toEqual(
+    expect.objectContaining({
+      spans: expect.arrayContaining([
+        {
+          span_id: expect.any(String),
+          trace_id: expect.any(String),
+          data: expect.any(Object),
+          description: 'test-controller-span',
+          parent_span_id: expect.any(String),
+          start_timestamp: expect.any(Number),
+          timestamp: expect.any(Number),
+          status: 'ok',
+          origin: 'manual',
+        },
+        {
+          span_id: expect.any(String),
+          trace_id: expect.any(String),
+          data: expect.any(Object),
+          description: 'test-middleware-span',
+          parent_span_id: expect.any(String),
+          start_timestamp: expect.any(Number),
+          timestamp: expect.any(Number),
+          status: 'ok',
+          origin: 'manual',
+        },
+      ]),
+    }),
+  );
+
+  // verify correct span parent-child relationships
+  const testMiddlewareSpan = transactionEvent.spans.find(span => span.description === 'test-middleware-span');
+  const testControllerSpan = transactionEvent.spans.find(span => span.description === 'test-controller-span');
+
+  // 'ExampleMiddleware' is the parent of 'test-middleware-span'
+  expect(testMiddlewareSpan.parent_span_id).toBe(exampleMiddlewareSpanId);
+
+  // 'ExampleMiddleware' is NOT the parent of 'test-controller-span'
+  expect(testControllerSpan.parent_span_id).not.toBe(exampleMiddlewareSpanId);
 });

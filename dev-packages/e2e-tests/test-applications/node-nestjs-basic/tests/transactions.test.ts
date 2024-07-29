@@ -122,7 +122,9 @@ test('Sends an API route transaction', async ({ baseURL }) => {
   );
 });
 
-test('API route transaction includes nest middleware span', async ({ baseURL }) => {
+test('API route transaction includes nest middleware span. Spans created in and after middleware are nested correctly', async ({
+  baseURL,
+}) => {
   const pageloadTransactionEventPromise = waitForTransaction('nestjs', transactionEvent => {
     return (
       transactionEvent?.contexts?.trace?.op === 'http.server' &&
