@@ -56,11 +56,14 @@ const INTEGRATION_NAME = 'Nest';
 
 const supportedVersions = ['>=8.0.0 <11'];
 
+const sentryPatched = Symbol('sentryPatched');
+
 /**
  * Represents an injectable target class in NestJS.
  */
 interface InjectableTarget {
   name: string;
+  sentryPatched?: symbol;
   prototype: {
     use?: (req: unknown, res: unknown, next: (error?: Error | unknown) => void) => void;
   };
@@ -121,13 +124,14 @@ export class SentryNestInstrumentation extends InstrumentationBase {
     return function wrapInjectable(original: any) {
       return function wrappedInjectable(options?: unknown) {
         return function (target: InjectableTarget) {
-          // TODO: Check if the class was already patched à la
-          // if (target[sentryPatchedSymbol]) {
-          //   return original(options)(target);
-          // } else {
-          //   addNonEnumerableProperty(target, sentryPatchedSymbol, true);
-          // }
+          // ensure class has not been patched before
+          if (target.sentryPatched) {
+            return original(options)(target);
+          } else {
+            Object.defineProperty(target, sentryPatched, { value: true });
+          }
 
+          // patch middleware
           if (typeof target.prototype.use === 'function') {
             const originalUse = target.prototype.use;
 
