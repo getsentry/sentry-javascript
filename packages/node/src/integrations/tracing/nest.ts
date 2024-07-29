@@ -122,8 +122,10 @@ export class SentryNestInstrumentation extends InstrumentationBase {
               startSpanManual(
                 {
                   op: 'middleware.nestjs',
-                  name: '', // TODO: set class name as name
-                  attributes: {}
+                  name: 'middleware', // TODO: set class name as name
+                  attributes: {
+                    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.middleware.nestjs'
+                  }
                 },
                 (span: Span) => {
                   // patch  next to end span before next middleware is being called
