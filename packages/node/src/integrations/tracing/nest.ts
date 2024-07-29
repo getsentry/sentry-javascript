@@ -11,11 +11,13 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   captureException,
   defineIntegration,
+  getActiveSpan,
   getClient,
   getDefaultIsolationScope,
   getIsolationScope,
   spanToJSON,
   startSpanManual,
+  withActiveSpan,
 } from '@sentry/core';
 import type { IntegrationFn, Span } from '@sentry/types';
 import { logger } from '@sentry/utils';
@@ -130,6 +132,8 @@ export class SentryNestInstrumentation extends InstrumentationBase {
             const originalUse = target.prototype.use;
 
             target.prototype.use = function (req: unknown, res: unknown, next: (error?: unknown) => void): void {
+              const prevSpan = getActiveSpan();
+
               startSpanManual(
                 {
                   name: target.name,
@@ -142,7 +146,14 @@ export class SentryNestInstrumentation extends InstrumentationBase {
                   // patch  next to end span before next middleware is being called
                   const wrappedNext = (error?: Error | unknown): void => {
                     span.end();
-                    next(error);
+
+                    if (prevSpan) {
+                      withActiveSpan(prevSpan, () => {
+                        next(error);
+                      });
+                    } else {
+                      next(error);
+                    }
                   };
 
                   return originalUse.apply(this, [req, res, wrappedNext]);
