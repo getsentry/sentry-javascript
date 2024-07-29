@@ -14,6 +14,7 @@ export default function User() {
   return (
     <div>
       User ID: {params.id}
+      <br />
       Prefecture: {userData()?.prefecture}
     </div>
   );

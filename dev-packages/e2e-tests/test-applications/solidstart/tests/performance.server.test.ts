@@ -1,25 +1,55 @@
 import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
+import {
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+} from '@sentry/core';
 
-test('sends a server action transaction', async ({ page }) => {
+test('sends a server action transaction on pageload', async ({ page }) => {
   const transactionPromise = waitForTransaction('solidstart', transactionEvent => {
-    return transactionEvent?.transaction === 'getPrefecture';
+    return transactionEvent?.transaction === 'GET /users/6';
   });
 
   await page.goto('/users/6');
 
   const transaction = await transactionPromise;
 
-  expect(transaction).toMatchObject({
-    transaction: 'getPrefecture',
-    tags: { runtime: 'node' },
-    transaction_info: { source: 'url' },
-    type: 'transaction',
-    contexts: {
-      trace: {
-        op: 'function.server_action',
-        origin: 'manual',
-      },
-    },
+  expect(transaction.spans).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({
+        description: 'getPrefecture',
+        data: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function.server_action',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'manual',
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+        },
+      }),
+    ]),
+  );
+});
+
+test('sends a server action transaction on client navigation', async ({ page }) => {
+  const transactionPromise = waitForTransaction('solidstart', transactionEvent => {
+    return transactionEvent?.transaction === 'POST getPrefecture';
   });
+
+  await page.goto('/');
+  await page.locator('#navLink').click();
+  await page.waitForURL('/users/5');
+
+  const transaction = await transactionPromise;
+
+  expect(transaction.spans).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({
+        description: 'getPrefecture',
+        data: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function.server_action',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'manual',
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+        },
+      }),
+    ]),
+  );
 });

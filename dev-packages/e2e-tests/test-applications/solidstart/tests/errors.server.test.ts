@@ -25,7 +25,7 @@ test.describe('server-side errors', () => {
           },
         ],
       },
-      transaction: 'getPrefecture',
+      transaction: 'GET /server-error',
     });
   });
 });

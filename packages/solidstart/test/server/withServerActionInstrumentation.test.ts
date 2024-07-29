@@ -12,12 +12,11 @@ import {
 import { NodeClient } from '@sentry/node';
 import { solidRouterBrowserTracingIntegration } from '@sentry/solidstart/solidrouter';
 import { redirect } from '@solidjs/router';
-import { Headers } from 'node-fetch';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockCaptureException = vi.spyOn(SentryNode, 'captureException').mockImplementation(() => '');
 const mockFlush = vi.spyOn(SentryNode, 'flush').mockImplementation(async () => true);
-const mockContinueTrace = vi.spyOn(SentryNode, 'continueTrace');
+const mockGetActiveSpan = vi.spyOn(SentryNode, 'getActiveSpan');
 
 const mockGetRequestEvent = vi.fn();
 vi.mock('solid-js/web', async () => {
@@ -28,6 +27,7 @@ vi.mock('solid-js/web', async () => {
   };
 });
 
+import { SentrySpan } from '@sentry/core';
 import { withServerActionInstrumentation } from '../../src/server';
 
 describe('withServerActionInstrumentation', () => {
@@ -107,50 +107,10 @@ describe('withServerActionInstrumentation', () => {
         description: 'getPrefecture',
         data: expect.objectContaining({
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function.server_action',
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'manual',
         }),
       }),
-    );
-  });
-
-  it('calls `continueTrace` with the right sentry-trace and baggage', async () => {
-    const baggage =
-      'sentry-environment=qa,sentry-public_key=12345678,sentry-trace_id=4c9b164c5b5f4a0c8db3ce490b935ea8,sentry-sample_rate=1,sentry-sampled=true';
-    const sentryTrace = '4c9b164c5b5f4a0c8db3ce490b935ea8';
-    mockGetRequestEvent.mockReturnValue({
-      request: {
-        method: 'GET',
-        url: '/_server',
-        headers: new Headers([
-          ['sentry-trace', sentryTrace],
-          ['baggage', baggage],
-        ]),
-      },
-    });
-
-    await serverActionGetPrefecture();
-
-    expect(mockContinueTrace).to.toHaveBeenCalledWith(
-      expect.objectContaining({
-        sentryTrace,
-        baggage,
-      }),
-      expect.any(Function),
-    );
-  });
-
-  it('calls `continueTrace` with no sentry-trace or baggage', async () => {
-    mockGetRequestEvent.mockReturnValue({ request: {} });
-
-    await serverActionGetPrefecture();
-
-    expect(mockContinueTrace).to.toHaveBeenCalledWith(
-      expect.objectContaining({
-        sentryTrace: undefined,
-        baggage: null,
-      }),
-      expect.any(Function),
     );
   });
 
@@ -168,7 +128,12 @@ describe('withServerActionInstrumentation', () => {
     expect(mockFlush).toHaveBeenCalledTimes(1);
   });
 
-  it('sets a server action transaction name', async () => {
+  it('sets a server action name on the active span', async () => {
+    const span = new SentrySpan();
+    span.setAttribute('http.target', '/_server');
+    mockGetActiveSpan.mockReturnValue(span);
+    const mockSpanSetAttribute = vi.spyOn(span, 'setAttribute');
+
     const getPrefecture = async function load() {
       return withServerActionInstrumentation('getPrefecture', () => {
         return { prefecture: 'Kagoshima' };
@@ -177,39 +142,26 @@ describe('withServerActionInstrumentation', () => {
 
     await getPrefecture();
 
-    expect(getIsolationScope().getScopeData().transactionName).toEqual('getPrefecture');
+    expect(mockGetActiveSpan).to.toHaveBeenCalledTimes(1);
+    expect(mockSpanSetAttribute).to.toHaveBeenCalledWith('http.route', 'getPrefecture');
+    expect(mockSpanSetAttribute).to.toHaveBeenCalledWith(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
   });
 
-  it('sets request data on the isolation scope', async () => {
-    const baggage =
-      'sentry-environment=qa,sentry-public_key=12345678,sentry-trace_id=4c9b164c5b5f4a0c8db3ce490b935ea8,sentry-sample_rate=1,sentry-sampled=true';
-    const sentryTrace = '4c9b164c5b5f4a0c8db3ce490b935ea8';
-    mockGetRequestEvent.mockReturnValue({
-      request: {
-        method: 'POST',
-        url: '/_server',
-        headers: new Headers([
-          ['sentry-trace', sentryTrace],
-          ['baggage', baggage],
-        ]),
-      },
-    });
+  it('does not set a server action name if the active span had a non `/_server` target', async () => {
+    const span = new SentrySpan();
+    span.setAttribute('http.target', '/users/5');
+    mockGetActiveSpan.mockReturnValue(span);
+    const mockSpanSetAttribute = vi.spyOn(span, 'setAttribute');
 
-    await serverActionGetPrefecture();
+    const getPrefecture = async function load() {
+      return withServerActionInstrumentation('getPrefecture', () => {
+        return { prefecture: 'Kagoshima' };
+      });
+    };
 
-    expect(getIsolationScope().getScopeData()).toEqual(
-      expect.objectContaining({
-        sdkProcessingMetadata: {
-          request: {
-            method: 'POST',
-            url: '/_server',
-            headers: {
-              'sentry-trace': sentryTrace,
-              baggage,
-            },
-          },
-        },
-      }),
-    );
+    await getPrefecture();
+
+    expect(mockGetActiveSpan).to.toHaveBeenCalledTimes(1);
+    expect(mockSpanSetAttribute).not.toHaveBeenCalled();
   });
 });
