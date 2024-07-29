@@ -54,7 +54,9 @@ const INTEGRATION_NAME = 'Nest';
 const supportedVersions = ['>=8.0.0 <11'];
 
 /**
+ * Custom instrumentation for nestjs.
  *
+ * This hooks into the @Injectable decorator, which is applied on class middleware, interceptors and guards.
  */
 export class SentryNestInstrumentation extends InstrumentationBase {
   public static readonly COMPONENT = '@nestjs/common';
@@ -63,11 +65,11 @@ export class SentryNestInstrumentation extends InstrumentationBase {
   };
 
   public constructor(config: InstrumentationConfig = {}) {
-    super('sentry-nestjs', '1.0.0', config);
+    super('sentry-nestjs', '1.0.0', config); // TODO: instrumentationVersion
   }
 
   /**
-   *
+   * Initializes the instrumentation by defining the modules to be patched.
    */
   public init(): InstrumentationNodeModuleDefinition {
     const moduleDef = new InstrumentationNodeModuleDefinition(SentryNestInstrumentation.COMPONENT, supportedVersions);
@@ -77,7 +79,7 @@ export class SentryNestInstrumentation extends InstrumentationBase {
   }
 
   /**
-   *
+   * Wraps the @Injectable decorator.
    */
   private _getInjectableFileInstrumentation(versions: string[]): InstrumentationNodeModuleFile {
     return new InstrumentationNodeModuleFile(
@@ -98,7 +100,9 @@ export class SentryNestInstrumentation extends InstrumentationBase {
   }
 
   /**
+   * Creates a wrapper function for the @Injectable decorator.
    *
+   * Wraps the use method to instrument nest class middleware.
    */
   private _createWrapInjectable() {
     return function wrapInjectable(original: any) {
