@@ -1,4 +1,4 @@
-import { SPAN_STATUS_ERROR, handleCallbackErrors } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SPAN_STATUS_ERROR, handleCallbackErrors } from '@sentry/core';
 import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, captureException, getActiveSpan, spanToJSON, startSpan } from '@sentry/node';
 import { flushIfServerless, isRedirect } from './utils';
 
@@ -22,7 +22,7 @@ export async function withServerActionInstrumentation<A extends (...args: unknow
     // meaningful than overwriting it with `GET doSomeFunctionCall`).
     if (spanData && !spanData['http.route'] && spanData['http.target'] === '/_server') {
       activeSpan.setAttribute('http.route', serverActionName);
-      activeSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
+      activeSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'component');
     }
   }
 
@@ -32,7 +32,8 @@ export async function withServerActionInstrumentation<A extends (...args: unknow
         op: 'function.server_action',
         name: serverActionName,
         attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.solidstart',
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
         },
       },
       async span => {

@@ -107,8 +107,8 @@ describe('withServerActionInstrumentation', () => {
         description: 'getPrefecture',
         data: expect.objectContaining({
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function.server_action',
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'manual',
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.solidstart',
         }),
       }),
     );
@@ -144,7 +144,7 @@ describe('withServerActionInstrumentation', () => {
 
     expect(mockGetActiveSpan).to.toHaveBeenCalledTimes(1);
     expect(mockSpanSetAttribute).to.toHaveBeenCalledWith('http.route', 'getPrefecture');
-    expect(mockSpanSetAttribute).to.toHaveBeenCalledWith(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
+    expect(mockSpanSetAttribute).to.toHaveBeenCalledWith(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'component');
   });
 
   it('does not set a server action name if the active span had a non `/_server` target', async () => {
