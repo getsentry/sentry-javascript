@@ -65,7 +65,11 @@ export class BrowserClient extends BaseClient<BrowserClientOptions> {
     if (opts.sendClientReports && WINDOW.document) {
       WINDOW.document.addEventListener('visibilitychange', () => {
         if (WINDOW.document.visibilityState === 'hidden') {
-          this._flushOutcomes();
+          // Theoretically and strictly speaking this check is unnecessary use people that have old BaseClients floating
+          // around may not have the method. We guard for its existence to prevent these users from throwing here and eating up quota.
+          if (this._flushOutcomes) {
+            this._flushOutcomes();
+          }
         }
       });
     }
