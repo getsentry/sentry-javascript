@@ -121,3 +121,39 @@ test('Sends an API route transaction', async ({ baseURL }) => {
     }),
   );
 });
+
+test('API route transaction includes nest middleware span', async ({ baseURL }) => {
+  const pageloadTransactionEventPromise = waitForTransaction('nestjs', transactionEvent => {
+    return (
+      transactionEvent?.contexts?.trace?.op === 'http.server' &&
+      transactionEvent?.transaction === 'GET /test-middleware-instrumentation'
+    );
+  });
+
+  await fetch(`${baseURL}/test-middleware-instrumentation`);
+
+  const transactionEvent = await pageloadTransactionEventPromise;
+
+  console.log(transactionEvent);
+  expect(transactionEvent).toEqual(
+    expect.objectContaining({
+      spans: expect.arrayContaining([
+        {
+          span_id: expect.any(String),
+          trace_id: expect.any(String),
+          data: {
+            'sentry.op': 'middleware.nestjs',
+            'sentry.origin': 'auto.middleware.nestjs',
+          },
+          description: 'LoggerMiddleware',
+          parent_span_id: expect.any(String),
+          start_timestamp: expect.any(Number),
+          timestamp: expect.any(Number),
+          status: 'ok',
+          op: 'middleware.nestjs',
+          origin: 'auto.middleware.nestjs'
+        },
+      ]),
+    }),
+  );
+});
