@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import {
   addGlobalErrorInstrumentationHandler,
   addGlobalUnhandledRejectionInstrumentationHandler,
@@ -6,7 +8,9 @@ import {
 
 import { DEBUG_BUILD } from '../debug-build';
 import { getActiveSpan, getRootSpan } from '../utils/spanUtils';
+import { getClient } from '../currentScopes';
 import { SPAN_STATUS_ERROR } from './spanstatus';
+import { HandlerDataError } from '@sentry/types';
 
 let errorsInstrumented = false;
 
@@ -31,14 +35,58 @@ export function registerSpanErrorInstrumentation(): void {
 /**
  * If an error or unhandled promise occurs, we mark the active root span as failed
  */
-function errorCallback(): void {
+function errorCallback(error: any): void {
   const activeSpan = getActiveSpan();
   const rootSpan = activeSpan && getRootSpan(activeSpan);
   if (rootSpan) {
+    if (_isIgnoredError(error)) {
+      DEBUG_BUILD && logger.log('[Tracing] Root span: Global error occured then ignored');
+      return;
+    }
+
     const message = 'internal_error';
     DEBUG_BUILD && logger.log(`[Tracing] Root span: ${message} -> Global error occured`);
     rootSpan.setStatus({ code: SPAN_STATUS_ERROR, message });
   }
+}
+
+function _isIgnoredError(error: any): boolean {
+  if (!error) {
+    return false;
+  }
+
+  const errorMessage = _errorMessage(error);
+
+  const client = getClient();
+  if (!client) {
+    return false;
+  }
+
+  const options = client.getOptions();
+  if (!options) {
+    return false;
+  }
+
+  const errorsToIgnore = options.ignoreErrors;
+  if (!errorsToIgnore) {
+    return false;
+  }
+
+  for (const errorToIgnore of errorsToIgnore) {
+    if (typeof errorToIgnore === 'string' && errorMessage.includes(errorToIgnore)) {
+      return true;
+    }
+
+    if (errorToIgnore instanceof RegExp && errorToIgnore.test(errorMessage)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+function _errorMessage(error: any): string {
+  return String((error as HandlerDataError).msg || (error as Error).message || error);
 }
 
 // The function name will be lost when bundling but we need to be able to identify this listener later to maintain the

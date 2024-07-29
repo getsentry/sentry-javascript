@@ -29,7 +29,10 @@ describe('registerErrorHandlers()', () => {
   beforeEach(() => {
     mockAddGlobalErrorInstrumentationHandler.mockClear();
     mockAddGlobalUnhandledRejectionInstrumentationHandler.mockClear();
-    const options = getDefaultTestClientOptions({ enableTracing: true });
+    const options = getDefaultTestClientOptions({
+      enableTracing: true,
+      ignoreErrors: ['entity not found', /some error that will not happen.*/],
+    });
     const client = new TestClient(options);
     setCurrentClient(client);
     client.init();
@@ -74,6 +77,24 @@ describe('registerErrorHandlers()', () => {
     startSpan({ name: 'test' }, span => {
       mockUnhandledRejectionCallback({});
       expect(spanToJSON(span).status).toBe('internal_error');
+    });
+  });
+
+  it('does not set status for transaction on scope on an ignored error', () => {
+    registerSpanErrorInstrumentation();
+
+    startSpan({ name: 'test' }, span => {
+      mockErrorCallback({ msg: 'Database entity not found!' });
+      expect(spanToJSON(span).status).toBe(undefined);
+    });
+  });
+
+  it('does not set status for transaction on scope on unhandledrejection for an ignored error', () => {
+    registerSpanErrorInstrumentation();
+
+    startSpan({ name: 'test' }, span => {
+      mockUnhandledRejectionCallback('Database entity not found!');
+      expect(spanToJSON(span).status).toBe(undefined);
     });
   });
 });
