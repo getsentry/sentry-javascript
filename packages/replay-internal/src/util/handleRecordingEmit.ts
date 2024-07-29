@@ -65,13 +65,12 @@ export function getHandleRecordingEmit(replay: ReplayContainer): RecordingEmitCa
       // In order to handle buffer mode, this needs to either be done when we
       // receive checkout events or at flush time. We have an experimental mode
       // to perform multiple checkouts a session (the idea is to improve
-      // seeking during playback), so also only include if segmentId is 0.
+      // seeking during playback), so also only include if segmentId is 0
+      // (handled in `addSettingsEvent`).
       //
       // `isCheckout` is always true, but want to be explicit that it should
       // only be added for checkouts
-      if (session && session.segmentId === 0) {
-        addSettingsEvent(replay, isCheckout);
-      }
+      addSettingsEvent(replay, isCheckout);
 
       // If there is a previousSessionId after a full snapshot occurs, then
       // the replay session was started due to session expiration. The new session
