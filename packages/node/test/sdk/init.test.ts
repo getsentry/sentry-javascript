@@ -1,8 +1,10 @@
 import type { Integration } from '@sentry/types';
+import { logger } from '@sentry/utils';
 
+import * as SentryOpentelemetry from '@sentry/opentelemetry';
 import { getClient, getIsolationScope } from '../../src/';
 import * as auto from '../../src/integrations/tracing';
-import { init } from '../../src/sdk';
+import { init, validateOpenTelemetrySetup } from '../../src/sdk';
 import { NodeClient } from '../../src/sdk/client';
 import { cleanupOtel } from '../helpers/mockSdkInit';
 
@@ -191,5 +193,67 @@ describe('init()', () => {
       const session = getIsolationScope().getSession();
       expect(session).toBeDefined();
     });
+  });
+});
+
+describe('validateOpenTelemetrySetup', () => {
+  afterEach(() => {
+    global.__SENTRY__ = {};
+    cleanupOtel();
+    jest.clearAllMocks();
+  });
+
+  it('works with correct setup', () => {
+    const errorSpy = jest.spyOn(logger, 'error').mockImplementation(() => {});
+    const warnSpy = jest.spyOn(logger, 'warn').mockImplementation(() => {});
+
+    jest.spyOn(SentryOpentelemetry, 'openTelemetrySetupCheck').mockImplementation(() => {
+      return ['SentryContextManager', 'SentryPropagator', 'SentrySampler'];
+    });
+
+    validateOpenTelemetrySetup();
+
+    expect(errorSpy).toHaveBeenCalledTimes(0);
+    expect(warnSpy).toHaveBeenCalledTimes(0);
+  });
+
+  it('works with missing setup, without tracing', () => {
+    const errorSpy = jest.spyOn(logger, 'error').mockImplementation(() => {});
+    const warnSpy = jest.spyOn(logger, 'warn').mockImplementation(() => {});
+
+    jest.spyOn(SentryOpentelemetry, 'openTelemetrySetupCheck').mockImplementation(() => {
+      return [];
+    });
+
+    validateOpenTelemetrySetup();
+
+    // Without tracing, this is expected only twice
+    expect(errorSpy).toHaveBeenCalledTimes(2);
+    expect(warnSpy).toHaveBeenCalledTimes(1);
+
+    expect(errorSpy).toBeCalledWith(expect.stringContaining('You have to set up the SentryContextManager.'));
+    expect(errorSpy).toBeCalledWith(expect.stringContaining('You have to set up the SentryPropagator.'));
+    expect(warnSpy).toBeCalledWith(expect.stringContaining('You have to set up the SentrySampler.'));
+  });
+
+  it('works with missing setup, with tracing', () => {
+    const errorSpy = jest.spyOn(logger, 'error').mockImplementation(() => {});
+    const warnSpy = jest.spyOn(logger, 'warn').mockImplementation(() => {});
+
+    jest.spyOn(SentryOpentelemetry, 'openTelemetrySetupCheck').mockImplementation(() => {
+      return [];
+    });
+
+    init({ dsn: PUBLIC_DSN, skipOpenTelemetrySetup: true, tracesSampleRate: 1 });
+
+    validateOpenTelemetrySetup();
+
+    expect(errorSpy).toHaveBeenCalledTimes(3);
+    expect(warnSpy).toHaveBeenCalledTimes(1);
+
+    expect(errorSpy).toBeCalledWith(expect.stringContaining('You have to set up the SentryContextManager.'));
+    expect(errorSpy).toBeCalledWith(expect.stringContaining('You have to set up the SentryPropagator.'));
+    expect(errorSpy).toBeCalledWith(expect.stringContaining('You have to set up the SentrySpanProcessor.'));
+    expect(warnSpy).toBeCalledWith(expect.stringContaining('You have to set up the SentrySampler.'));
   });
 });
