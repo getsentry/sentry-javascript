@@ -14,7 +14,7 @@ import {
   getClient,
   getDefaultIsolationScope,
   getIsolationScope,
-  spanToJSON,
+  spanToJSON, startSpanManual,
 } from '@sentry/core';
 import type { IntegrationFn, Span } from '@sentry/types';
 import { logger } from '@sentry/utils';
@@ -114,7 +114,28 @@ export class SentryNestInstrumentation extends InstrumentationBase {
           // TODO: proper typing
           // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
           if (typeof target.prototype.use === 'function') {
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, no-console
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+            const originalUse = target.prototype.use;
+
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+            target.prototype.use = function (req: any, res: any, next: (error?: Error | any) => void) {
+              startSpanManual(
+                {
+                  op: 'middleware.nestjs',
+                  name: '', // TODO: set class name as name
+                  attributes: {}
+                },
+                (span: Span) => {
+                  const wrappedNext = (error?: Error | any): void => {
+                    span.end();
+                    next(error);
+                  };
+                  console.log('use!');
+                  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+                  return originalUse.apply(this, [req, res, wrappedNext])
+                }
+              )
+            }
             console.log('middleware!');
           }
 
