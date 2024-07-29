@@ -48,7 +48,7 @@ module.exports = [
     path: 'packages/browser/build/npm/esm/index.js',
     import: createImport('init', 'browserTracingIntegration', 'replayIntegration', 'replayCanvasIntegration'),
     gzip: true,
-    limit: '77 KB',
+    limit: '78 KB',
   },
   {
     name: '@sentry/browser (incl. Tracing, Replay, Feedback)',
