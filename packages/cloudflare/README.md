@@ -28,7 +28,8 @@ To get started, first install the `@sentry/cloudflare` package:
 npm install @sentry/cloudflare
 ```
 
-Then set either the `nodejs_compat` or `nodejs_als` compatibility flags in your `wrangler.toml`:
+Then set either the `nodejs_compat` or `nodejs_als` compatibility flags in your `wrangler.toml`. This is because the SDK
+needs access to the `AsyncLocalStorage` API to work correctly.
 
 ```toml
 compatibility_flags = ["nodejs_compat"]
@@ -46,6 +47,7 @@ import * as Sentry from '@sentry/cloudflare';
 export default withSentry(
 	(env) => ({
 		dsn: env.SENTRY_DSN,
+    // Set tracesSampleRate to 1.0 to capture 100% of spans for tracing.
 		tracesSampleRate: 1.0,
 	}),
 	{
