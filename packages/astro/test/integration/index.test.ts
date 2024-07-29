@@ -1,4 +1,4 @@
-import { vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { sentryAstro } from '../../src/integration';
 
@@ -294,7 +294,7 @@ describe('sentryAstro integration', () => {
 
   it.each([{ output: 'static' }, { output: undefined }])(
     "doesn't add middleware if in static mode (config %s)",
-    async config => {
+    async (config: any) => {
       const integration = sentryAstro({});
       const addMiddleware = vi.fn();
       const updateConfig = vi.fn();
