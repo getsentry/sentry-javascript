@@ -11,7 +11,6 @@ function delay(ms) {
 @Injectable()
 export class LoggerMiddleware implements NestMiddleware {
   use(req: Request, res: Response, next: NextFunction) {
-    console.log('Class middleware...');
     delay(500);
     next();
   }

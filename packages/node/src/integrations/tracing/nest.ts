@@ -121,9 +121,9 @@ export class SentryNestInstrumentation extends InstrumentationBase {
             target.prototype.use = function (req: any, res: any, next: any) {
               startSpanManual(
                 {
-                  op: 'middleware.nestjs',
                   name: target.name,
                   attributes: {
+                    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'middleware.nestjs',
                     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.middleware.nestjs'
                   }
                 },

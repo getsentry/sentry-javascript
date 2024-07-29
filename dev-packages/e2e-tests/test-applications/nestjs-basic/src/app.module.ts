@@ -12,7 +12,6 @@ import { LoggerMiddleware } from './logger.middleware';
 })
 export class AppModule {
   configure(consumer: MiddlewareConsumer): void {
-    console.log('Add class middleware.');
-    consumer.apply(LoggerMiddleware).forRoutes(AppController);
+    consumer.apply(LoggerMiddleware).forRoutes('test-middleware-instrumentation');
   }
 }
