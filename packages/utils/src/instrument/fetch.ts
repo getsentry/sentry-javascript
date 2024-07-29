@@ -18,10 +18,13 @@ type FetchResource = string | { toString(): string } | { url: string };
  * Use at your own risk, this might break without changelog notice, only used internally.
  * @hidden
  */
-export function addFetchInstrumentationHandler(handler: (data: HandlerDataFetch) => void): void {
+export function addFetchInstrumentationHandler(
+  handler: (data: HandlerDataFetch) => void,
+  skipNativeFetchCheck?: boolean,
+): void {
   const type = 'fetch';
   addHandler(type, handler);
-  maybeInstrument(type, () => instrumentFetch());
+  maybeInstrument(type, () => instrumentFetch(undefined, skipNativeFetchCheck));
 }
 
 /**
@@ -38,8 +41,8 @@ export function addFetchEndInstrumentationHandler(handler: (data: HandlerDataFet
   maybeInstrument(type, () => instrumentFetch(streamHandler));
 }
 
-function instrumentFetch(onFetchResolved?: (response: Response) => void): void {
-  if (!supportsNativeFetch()) {
+function instrumentFetch(onFetchResolved?: (response: Response) => void, skipNativeFetchCheck: boolean = false): void {
+  if (skipNativeFetchCheck && !supportsNativeFetch()) {
     return;
   }
 
