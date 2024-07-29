@@ -118,7 +118,7 @@ export class SentryNestInstrumentation extends InstrumentationBase {
             const originalUse = target.prototype.use;
 
             // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-            target.prototype.use = function (req: any, res: any, next: (error?: Error | any) => void) {
+            target.prototype.use = function (req: any, res: any, next: any) {
               startSpanManual(
                 {
                   op: 'middleware.nestjs',
@@ -126,6 +126,7 @@ export class SentryNestInstrumentation extends InstrumentationBase {
                   attributes: {}
                 },
                 (span: Span) => {
+                  // patch  next to end span before next middleware is being called
                   const wrappedNext = (error?: Error | any): void => {
                     span.end();
                     next(error);
