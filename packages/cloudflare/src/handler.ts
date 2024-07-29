@@ -101,7 +101,7 @@ export function withSentry<E extends ExportedHandler<any>>(
                     setHttpStatus(span, res.status);
                     return res;
                   } catch (e) {
-                    captureException(e, { mechanism: { handled: false } });
+                    captureException(e, { mechanism: { handled: false, type: 'cloudflare' } });
                     throw e;
                   } finally {
                     context.waitUntil(flush(2000));
