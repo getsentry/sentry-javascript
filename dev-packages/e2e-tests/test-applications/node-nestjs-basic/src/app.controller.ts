@@ -12,7 +12,7 @@ export class AppController {
 
   @Get('test-middleware-instrumentation')
   testMiddlewareInstrumentation() {
-    return {};
+    return this.appService.testMiddleware();
   }
 
   @Get('test-exception/:id')
