@@ -82,6 +82,7 @@ export function ScreenshotEditorFactory({
     const croppingRef = hooks.useRef<HTMLCanvasElement>(null);
     const [croppingRect, setCroppingRect] = hooks.useState<Box>({ startX: 0, startY: 0, endX: 0, endY: 0 });
     const [confirmCrop, setConfirmCrop] = hooks.useState(false);
+    const [isResizing, setIsResizing] = hooks.useState(false);
 
     hooks.useEffect(() => {
       WINDOW.addEventListener('resize', resizeCropper, false);
@@ -141,11 +142,13 @@ export function ScreenshotEditorFactory({
 
     function onGrabButton(e: Event, corner: string): void {
       setConfirmCrop(false);
+      setIsResizing(true);
       const handleMouseMove = makeHandleMouseMove(corner);
       const handleMouseUp = (): void => {
         DOCUMENT.removeEventListener('mousemove', handleMouseMove);
         DOCUMENT.removeEventListener('mouseup', handleMouseUp);
         setConfirmCrop(true);
+        setIsResizing(false);
       };
 
       DOCUMENT.addEventListener('mouseup', handleMouseUp);
@@ -193,6 +196,56 @@ export function ScreenshotEditorFactory({
         }
       };
     }, []);
+
+    // DRAGGING FUNCTIONALITY.
+    const initialPositionRef = hooks.useRef({ initialX: 0, initialY: 0 });
+
+    function onDragStart(e: MouseEvent): void {
+      if (isResizing) return;
+
+      initialPositionRef.current = { initialX: e.clientX, initialY: e.clientY };
+
+      const handleMouseMove = (moveEvent: MouseEvent): void => {
+        const cropCanvas = croppingRef.current;
+        if (!cropCanvas) return;
+
+        const deltaX = moveEvent.clientX - initialPositionRef.current.initialX;
+        const deltaY = moveEvent.clientY - initialPositionRef.current.initialY;
+
+        setCroppingRect(prev => {
+          // Math.max stops it from going outside of the borders
+          const newStartX = Math.max(
+            0,
+            Math.min(prev.startX + deltaX, cropCanvas.width / DPI - (prev.endX - prev.startX)),
+          );
+          const newStartY = Math.max(
+            0,
+            Math.min(prev.startY + deltaY, cropCanvas.height / DPI - (prev.endY - prev.startY)),
+          );
+          // Don't want to change size, just position
+          const newEndX = newStartX + (prev.endX - prev.startX);
+          const newEndY = newStartY + (prev.endY - prev.startY);
+
+          initialPositionRef.current.initialX = moveEvent.clientX;
+          initialPositionRef.current.initialY = moveEvent.clientY;
+
+          return {
+            startX: newStartX,
+            startY: newStartY,
+            endX: newEndX,
+            endY: newEndY,
+          };
+        });
+      };
+
+      const handleMouseUp = (): void => {
+        DOCUMENT.removeEventListener('mousemove', handleMouseMove);
+        DOCUMENT.removeEventListener('mouseup', handleMouseUp);
+      };
+
+      DOCUMENT.addEventListener('mousemove', handleMouseMove);
+      DOCUMENT.addEventListener('mouseup', handleMouseUp);
+    }
 
     function submit(): void {
       const cutoutCanvas = DOCUMENT.createElement('canvas');
@@ -263,7 +316,11 @@ export function ScreenshotEditorFactory({
         <style dangerouslySetInnerHTML={styles} />
         <div class="editor__canvas-container" ref={canvasContainerRef}>
           <div class="editor__crop-container" style={{ position: 'absolute', zIndex: 1 }} ref={cropContainerRef}>
-            <canvas style={{ position: 'absolute' }} ref={croppingRef}></canvas>
+            <canvas
+              onMouseDown={onDragStart}
+              style={{ position: 'absolute', cursor: confirmCrop ? 'move' : 'auto' }}
+              ref={croppingRef}
+            ></canvas>
             <CropCorner
               left={croppingRect.startX - CROP_BUTTON_BORDER}
               top={croppingRect.startY - CROP_BUTTON_BORDER}
