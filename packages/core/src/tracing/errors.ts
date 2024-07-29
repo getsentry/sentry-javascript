@@ -11,7 +11,7 @@ import { DEBUG_BUILD } from '../debug-build';
 import { getActiveSpan, getRootSpan } from '../utils/spanUtils';
 import { getClient } from '../currentScopes';
 import { SPAN_STATUS_ERROR } from './spanstatus';
-import { HandlerDataError } from '@sentry/types';
+import { type HandlerDataError } from '@sentry/types';
 
 let errorsInstrumented = false;
 
