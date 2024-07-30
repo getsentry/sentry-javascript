@@ -21,6 +21,11 @@ export class AppService {
     });
   }
 
+  testMiddleware() {
+    // span that should not be a child span of the middleware span
+    Sentry.startSpan({ name: 'test-controller-span' }, () => {});
+  }
+
   testException(id: string) {
     throw new Error(`This is an exception with id ${id}`);
   }

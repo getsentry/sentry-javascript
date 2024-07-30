@@ -10,6 +10,11 @@ export class AppController {
     return this.appService.testTransaction();
   }
 
+  @Get('test-middleware-instrumentation')
+  testMiddlewareInstrumentation() {
+    return this.appService.testMiddleware();
+  }
+
   @Get('test-exception/:id')
   async testException(@Param('id') id: string) {
     return this.appService.testException(id);

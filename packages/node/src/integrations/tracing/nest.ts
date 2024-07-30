@@ -1,16 +1,27 @@
+import { isWrapped } from '@opentelemetry/core';
+import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
+import {
+  InstrumentationBase,
+  InstrumentationNodeModuleDefinition,
+  InstrumentationNodeModuleFile,
+} from '@opentelemetry/instrumentation';
 import { NestInstrumentation } from '@opentelemetry/instrumentation-nestjs-core';
 import {
+  SDK_VERSION,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   captureException,
   defineIntegration,
+  getActiveSpan,
   getClient,
   getDefaultIsolationScope,
   getIsolationScope,
   spanToJSON,
+  startSpanManual,
+  withActiveSpan,
 } from '@sentry/core';
 import type { IntegrationFn, Span } from '@sentry/types';
-import { logger } from '@sentry/utils';
+import { addNonEnumerableProperty, logger } from '@sentry/utils';
 import { generateInstrumentOnce } from '../../otel/instrument';
 
 interface MinimalNestJsExecutionContext {
@@ -44,7 +55,155 @@ interface MinimalNestJsApp {
 
 const INTEGRATION_NAME = 'Nest';
 
-export const instrumentNest = generateInstrumentOnce(INTEGRATION_NAME, () => new NestInstrumentation());
+const supportedVersions = ['>=8.0.0 <11'];
+
+const sentryPatched = 'sentryPatched';
+
+/**
+ * Represents an injectable target class in NestJS.
+ */
+export interface InjectableTarget {
+  name: string;
+  sentryPatched?: boolean;
+  prototype: {
+    use?: (req: unknown, res: unknown, next: () => void) => void;
+  };
+}
+
+/**
+ * Helper checking if a concrete target class is already patched.
+ *
+ * We already guard duplicate patching with isWrapped. However, isWrapped checks whether a file has been patched, whereas we use this check for concrete target classes.
+ * This check might not be necessary, but better to play it safe.
+ */
+export function isPatched(target: InjectableTarget): boolean {
+  if (target.sentryPatched) {
+    return true;
+  }
+
+  addNonEnumerableProperty(target, sentryPatched, true);
+  return false;
+}
+
+/**
+ * Custom instrumentation for nestjs.
+ *
+ * This hooks into the @Injectable decorator, which is applied on class middleware, interceptors and guards.
+ */
+export class SentryNestInstrumentation extends InstrumentationBase {
+  public static readonly COMPONENT = '@nestjs/common';
+  public static readonly COMMON_ATTRIBUTES = {
+    component: SentryNestInstrumentation.COMPONENT,
+  };
+
+  public constructor(config: InstrumentationConfig = {}) {
+    super('sentry-nestjs', SDK_VERSION, config);
+  }
+
+  /**
+   * Initializes the instrumentation by defining the modules to be patched.
+   */
+  public init(): InstrumentationNodeModuleDefinition {
+    const moduleDef = new InstrumentationNodeModuleDefinition(SentryNestInstrumentation.COMPONENT, supportedVersions);
+
+    moduleDef.files.push(this._getInjectableFileInstrumentation(supportedVersions));
+    return moduleDef;
+  }
+
+  /**
+   * Wraps the @Injectable decorator.
+   */
+  private _getInjectableFileInstrumentation(versions: string[]): InstrumentationNodeModuleFile {
+    return new InstrumentationNodeModuleFile(
+      '@nestjs/common/decorators/core/injectable.decorator.js',
+      versions,
+      (moduleExports: { Injectable: InjectableTarget }) => {
+        if (isWrapped(moduleExports.Injectable)) {
+          this._unwrap(moduleExports, 'Injectable');
+        }
+        this._wrap(moduleExports, 'Injectable', this._createWrapInjectable());
+        return moduleExports;
+      },
+      (moduleExports: { Injectable: InjectableTarget }) => {
+        this._unwrap(moduleExports, 'Injectable');
+      },
+    );
+  }
+
+  /**
+   * Creates a wrapper function for the @Injectable decorator.
+   *
+   * Wraps the use method to instrument nest class middleware.
+   */
+  private _createWrapInjectable() {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return function wrapInjectable(original: any) {
+      return function wrappedInjectable(options?: unknown) {
+        return function (target: InjectableTarget) {
+          // patch middleware
+          if (typeof target.prototype.use === 'function') {
+            // patch only once
+            if (isPatched(target)) {
+              return original(options)(target);
+            }
+
+            target.prototype.use = new Proxy(target.prototype.use, {
+              apply: (originalUse, thisArgUse, argsUse) => {
+                const [req, res, next, ...args] = argsUse;
+                const prevSpan = getActiveSpan();
+
+                startSpanManual(
+                  {
+                    name: target.name,
+                    attributes: {
+                      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'middleware.nestjs',
+                      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.middleware.nestjs',
+                    },
+                  },
+                  (span: Span) => {
+                    const nextProxy = new Proxy(next, {
+                      apply: (originalNext, thisArgNext, argsNext) => {
+                        span.end();
+
+                        if (prevSpan) {
+                          withActiveSpan(prevSpan, () => {
+                            Reflect.apply(originalNext, thisArgNext, argsNext);
+                          });
+                        } else {
+                          Reflect.apply(originalNext, thisArgNext, argsNext);
+                        }
+                      },
+                    });
+
+                    originalUse.apply(thisArgUse, [req, res, nextProxy, args]);
+                  },
+                );
+              },
+            });
+          }
+
+          return original(options)(target);
+        };
+      };
+    };
+  }
+}
+
+const instrumentNestCore = generateInstrumentOnce('Nest-Core', () => {
+  return new NestInstrumentation();
+});
+
+const instrumentNestCommon = generateInstrumentOnce('Nest-Common', () => {
+  return new SentryNestInstrumentation();
+});
+
+export const instrumentNest = Object.assign(
+  (): void => {
+    instrumentNestCore();
+    instrumentNestCommon();
+  },
+  { id: INTEGRATION_NAME },
+);
 
 const _nestIntegration = (() => {
   return {
