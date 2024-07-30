@@ -126,18 +126,6 @@ other imports:
 }
 ```
 
-If you are getting an `import-in-the-middle` error message, add the package with a minimum version of `1.10.0` as a
-dependency to your `package.json`
-([issue reference](https://github.com/getsentry/sentry-javascript-examples/pull/38#issuecomment-2245259327)):
-
-```json
-{
-  "dependencies": {
-    "import-in-the-middle": "1.10.0"
-  }
-}
-```
-
 ## Uploading Source Maps
 
 To upload source maps, you can use the `sourceMapsUploadOptions` option inside the `sentry` options of your
