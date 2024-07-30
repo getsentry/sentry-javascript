@@ -1,7 +1,7 @@
 import type { InjectableTarget } from '../../../src/integrations/tracing/nest';
 import { isPatched } from '../../../src/integrations/tracing/nest';
 
-describe ('Nest', () => {
+describe('Nest', () => {
   describe('isPatched', () => {
     it('should return true if target is already patched', () => {
       const target = { name: 'TestTarget', sentryPatched: true, prototype: {} };
@@ -14,4 +14,4 @@ describe ('Nest', () => {
       expect(target.sentryPatched).toBe(true);
     });
   });
-})
+});

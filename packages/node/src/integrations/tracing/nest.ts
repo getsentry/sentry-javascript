@@ -7,6 +7,7 @@ import {
 } from '@opentelemetry/instrumentation';
 import { NestInstrumentation } from '@opentelemetry/instrumentation-nestjs-core';
 import {
+  SDK_VERSION,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   captureException,
@@ -96,7 +97,7 @@ export class SentryNestInstrumentation extends InstrumentationBase {
   };
 
   public constructor(config: InstrumentationConfig = {}) {
-    super('sentry-nestjs', '1.0.0', config); // TODO: instrumentationVersion
+    super('sentry-nestjs', SDK_VERSION, config);
   }
 
   /**
