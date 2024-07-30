@@ -1,3 +1,5 @@
+import { describe, expect, it } from 'vitest';
+
 import { buildClientSnippet, buildSdkInitFileImportSnippet, buildServerSnippet } from '../../src/integration/snippets';
 
 const allSdkOptions = {

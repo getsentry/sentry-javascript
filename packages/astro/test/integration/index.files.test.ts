@@ -1,12 +1,10 @@
-import { vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { sentryAstro } from '../../src/integration';
 
-vi.mock('fs', async () => {
-  const actual = await vi.importActual('fs');
+vi.mock('fs', async requireActual => {
   return {
-    // @ts-expect-error - just mocking around
-    ...actual,
+    ...(await requireActual<any>()),
     existsSync: vi.fn(p => p.endsWith('js')),
   };
 });

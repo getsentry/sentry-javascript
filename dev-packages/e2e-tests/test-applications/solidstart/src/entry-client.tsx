@@ -12,6 +12,7 @@ Sentry.init({
   tunnel: 'http://localhost:3031/', // proxy server
   // Performance Monitoring
   tracesSampleRate: 1.0, //  Capture 100% of the transactions
+  debug: !!import.meta.env.DEBUG,
 });
 
 mount(() => <StartClient />, document.getElementById('app')!);

@@ -31,11 +31,15 @@ upcoming release.
 - feat(feedback): Make cropped screenshot area draggable (#13071)
 - feat(core): Adapt spans for client-side fetch to streaming responses (#12723)
 - feat(core): Capture # of dropped spans through `beforeSendTransaction` (#13022)
-- feat(deps): bump @opentelemetry/instrumentation-aws-sdk from 0.43.0 to 0.43.1 (#13089)
-- feat(deps): bump @opentelemetry/instrumentation-express from 0.41.0 to 0.41.1 (#13090)
+- feat(deps): bump `@opentelemetry/instrumentation-aws-sdk` from 0.43.0 to 0.43.1 (#13089)
+- feat(deps): bump `@opentelemetry/instrumentation-express` from 0.41.0 to 0.41.1 (#13090)
+- feat(nestjs): Automatic instrumentation of nestjs middleware (#13065)
+- feat(node): Upgrade `import-in-the-middle` to 1.11.0 (#13107)
 - feat(nuxt): Add connected tracing meta tags (#13098)
 - feat(nuxt): Add vue-router instrumentation (#13054)
+- feat(solidstart): Add server action instrumentation helper (#13035)
 - fix(feedback): Ensure pluggable feedback CDN bundle is correctly built (#13081)
+- fix(nextjs): Only delete clientside bundle source maps with `sourcemaps.deleteFilesAfterUpload` (#13102)
 - fix(node): Improve OTEL validation logic (#13079)
 
 ## 8.20.0

@@ -1,3 +1,5 @@
+import { afterEach, describe, expect, it, vi } from 'vitest';
+
 import type { BrowserClient } from '@sentry/browser';
 import {
   browserTracingIntegration,
@@ -8,9 +10,8 @@ import {
 } from '@sentry/browser';
 import * as SentryBrowser from '@sentry/browser';
 import { SDK_VERSION, getClient } from '@sentry/browser';
-import { vi } from 'vitest';
 
-import { init } from '../../../astro/src/client/sdk';
+import { init } from '../../src/client/sdk';
 
 const browserInit = vi.spyOn(SentryBrowser, 'init');
 
@@ -66,7 +67,7 @@ describe('Sentry client SDK', () => {
           ...tracingOptions,
         });
 
-        const integrationsToInit = browserInit.mock.calls[0][0]?.defaultIntegrations;
+        const integrationsToInit = browserInit.mock.calls[0]![0]?.defaultIntegrations;
         const browserTracing = getClient<BrowserClient>()?.getIntegrationByName('BrowserTracing');
 
         expect(integrationsToInit).toContainEqual(expect.objectContaining({ name: 'BrowserTracing' }));
@@ -82,7 +83,7 @@ describe('Sentry client SDK', () => {
           ...tracingOptions,
         });
 
-        const integrationsToInit = browserInit.mock.calls[0][0]?.defaultIntegrations || [];
+        const integrationsToInit = browserInit.mock.calls[0]![0]?.defaultIntegrations || [];
         const browserTracing = getClient<BrowserClient>()?.getIntegrationByName('BrowserTracing');
 
         expect(integrationsToInit).not.toContainEqual(expect.objectContaining({ name: 'BrowserTracing' }));
@@ -90,20 +91,20 @@ describe('Sentry client SDK', () => {
       });
 
       it("doesn't add browserTracingIntegration if `__SENTRY_TRACING__` is set to false", () => {
-        globalThis.__SENTRY_TRACING__ = false;
+        (globalThis as any).__SENTRY_TRACING__ = false;
 
         init({
           dsn: 'https://public@dsn.ingest.sentry.io/1337',
           enableTracing: true,
         });
 
-        const integrationsToInit = browserInit.mock.calls[0][0]?.defaultIntegrations || [];
+        const integrationsToInit = browserInit.mock.calls[0]![0]?.defaultIntegrations || [];
         const browserTracing = getClient<BrowserClient>()?.getIntegrationByName('BrowserTracing');
 
         expect(integrationsToInit).not.toContainEqual(expect.objectContaining({ name: 'BrowserTracing' }));
         expect(browserTracing).toBeUndefined();
 
-        delete globalThis.__SENTRY_TRACING__;
+        delete (globalThis as any).__SENTRY_TRACING__;
       });
 
       it('Overrides the automatically default browserTracingIntegration instance with a a user-provided browserTracingIntegration instance', () => {
