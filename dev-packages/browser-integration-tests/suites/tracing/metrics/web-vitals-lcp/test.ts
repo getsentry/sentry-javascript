@@ -10,17 +10,20 @@ sentryTest('should capture a LCP vital with element details.', async ({ browserN
     sentryTest.skip();
   }
   const imageSrc = 'https://example.com/path/to/image.png';
+  const imageResponsePromise = page.waitForResponse(imageSrc);
   page.route('**', route => route.continue());
   page.route('**/path/to/image.png', async (route: Route) => {
     return route.fulfill({ path: `${__dirname}/assets/sentry-logo-600x179.png` });
   });
 
   const url = await getLocalTestPath({ testDir: __dirname });
-  const [eventData] = await Promise.all([
+  const [eventData, imageResponse] = await Promise.all([
     getFirstSentryEnvelopeRequest<Event>(page),
     page.goto(url),
-    page.waitForResponse(imageSrc),
+    imageResponsePromise,
   ]);
+
+  await imageResponse?.finished();
 
   // Clicking the button before image loads will result in the button being the LCP
   await page.locator('button').click();
