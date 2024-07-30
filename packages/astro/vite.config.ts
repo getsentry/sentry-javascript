@@ -4,6 +4,5 @@ export default {
   ...baseConfig,
   test: {
     ...baseConfig.test,
-    environment: 'jsdom',
   },
 };
