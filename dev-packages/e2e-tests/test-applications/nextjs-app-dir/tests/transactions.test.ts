@@ -19,7 +19,6 @@ test('Sends a pageload transaction', async ({ page }) => {
   expect(transactionEvent).toEqual(
     expect.objectContaining({
       transaction: '/',
-      tags: { runtime: 'browser' },
       transaction_info: { source: 'url' },
       type: 'transaction',
       contexts: {

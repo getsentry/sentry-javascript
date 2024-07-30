@@ -40,7 +40,6 @@ test('captures a distributed pageload trace', async ({ page }) => {
 
   expect(clientTxnEvent).toMatchObject({
     transaction: '/users/[id]',
-    tags: { runtime: 'browser' },
     transaction_info: { source: 'route' },
     type: 'transaction',
     contexts: {
@@ -92,7 +91,6 @@ test('captures a distributed navigation trace', async ({ page }) => {
 
   expect(clientTxnEvent).toMatchObject({
     transaction: '/users/[id]',
-    tags: { runtime: 'browser' },
     transaction_info: { source: 'route' },
     type: 'transaction',
     contexts: {

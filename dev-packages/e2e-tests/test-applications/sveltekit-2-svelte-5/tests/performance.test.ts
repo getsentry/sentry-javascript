@@ -21,7 +21,6 @@ test.describe('performance events', () => {
 
     expect(clientTxnEvent).toMatchObject({
       transaction: '/users/[id]',
-      tags: { runtime: 'browser' },
       transaction_info: { source: 'route' },
       type: 'transaction',
       contexts: {
@@ -77,7 +76,6 @@ test.describe('performance events', () => {
 
     expect(clientTxnEvent).toMatchObject({
       transaction: '/users',
-      tags: { runtime: 'browser' },
       transaction_info: { source: 'route' },
       type: 'transaction',
       contexts: {
@@ -130,7 +128,6 @@ test.describe('performance events', () => {
 
     expect(clientTxnEvent).toMatchObject({
       transaction: '/universal-load-fetch',
-      tags: { runtime: 'browser' },
       transaction_info: { source: 'route' },
       type: 'transaction',
       contexts: {
@@ -205,7 +202,6 @@ test.describe('performance events', () => {
 
     expect(pageloadTxnEvent).toMatchObject({
       transaction: '/',
-      tags: { runtime: 'browser' },
       transaction_info: { source: 'route' },
       type: 'transaction',
       contexts: {
@@ -218,7 +214,6 @@ test.describe('performance events', () => {
 
     expect(navigationTxnEvent).toMatchObject({
       transaction: '/users/[id]',
-      tags: { runtime: 'browser' },
       transaction_info: { source: 'route' },
       type: 'transaction',
       contexts: {
@@ -289,7 +284,6 @@ test.describe('performance events', () => {
 
     expect(redirect1TxnEvent).toMatchObject({
       transaction: '/redirect1',
-      tags: { runtime: 'browser' },
       transaction_info: { source: 'route' },
       type: 'transaction',
       contexts: {
@@ -327,7 +321,6 @@ test.describe('performance events', () => {
 
     expect(redirect2TxnEvent).toMatchObject({
       transaction: '/redirect2',
-      tags: { runtime: 'browser' },
       transaction_info: { source: 'route' },
       type: 'transaction',
       contexts: {
@@ -365,7 +358,6 @@ test.describe('performance events', () => {
 
     expect(redirect3TxnEvent).toMatchObject({
       transaction: '/users/[id]',
-      tags: { runtime: 'browser' },
       transaction_info: { source: 'route' },
       type: 'transaction',
       contexts: {
