@@ -41,7 +41,7 @@ const SKIP_TEST_PACKAGES: Record<NodeVersion, VersionConfig> = {
     ],
   },
   '16': {
-    ignoredPackages: ['@sentry/cloudflare', '@sentry/vercel-edge', '@sentry/astro'],
+    ignoredPackages: ['@sentry/cloudflare', '@sentry/vercel-edge', '@sentry/astro', '@sentry/solidstart'],
   },
   '18': {
     ignoredPackages: [],
