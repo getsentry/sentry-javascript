@@ -191,13 +191,11 @@ const instrumentNestCommon = generateInstrumentOnce('Nest-Common', () => {
   return new SentryNestInstrumentation();
 });
 
-export const instrumentNest = Object.assign(
-  (): void => {
-    instrumentNestCore();
-    instrumentNestCommon();
-  },
-  { id: INTEGRATION_NAME },
-);
+export const instrumentNest = (): void => {
+  instrumentNestCore();
+  instrumentNestCommon();
+};
+instrumentNest.id = INTEGRATION_NAME;
 
 const _nestIntegration = (() => {
   return {
