@@ -1,6 +1,5 @@
 import { flush } from '@sentry/node';
 import { logger } from '@sentry/utils';
-import type { RequestEvent } from 'solid-js/web';
 import { DEBUG_BUILD } from '../common/debug-build';
 
 /** Flush the event queue to ensure that events get sent to Sentry before the response is finished and the lambda ends */
@@ -16,22 +15,6 @@ export async function flushIfServerless(): Promise<void> {
       DEBUG_BUILD && logger.log('Error while flushing events:\n', e);
     }
   }
-}
-
-/**
- * Takes a request event and extracts traceparent and DSC data
- * from the `sentry-trace` and `baggage` DSC headers.
- */
-export function getTracePropagationData(event: RequestEvent | undefined): {
-  sentryTrace: string | undefined;
-  baggage: string | null;
-} {
-  const request = event && event.request;
-  const headers = request && request.headers;
-  const sentryTrace = (headers && headers.get('sentry-trace')) || undefined;
-  const baggage = (headers && headers.get('baggage')) || null;
-
-  return { sentryTrace, baggage };
 }
 
 /**
