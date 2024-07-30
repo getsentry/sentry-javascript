@@ -22,6 +22,7 @@ sentryTest('should capture a LCP vital with element details.', async ({ browserN
     page.waitForResponse(imageSrc),
   ]);
 
+  // Clicking the button before image loads will result in the button being the LCP
   await page.locator('button').click();
 
   expect(eventData.measurements).toBeDefined();
