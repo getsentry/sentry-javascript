@@ -108,13 +108,9 @@ export interface WebVitalData {
    */
   rating: 'good' | 'needs-improvement' | 'poor';
   /**
-   * The recording id of the web vital node. -1 if not found
+   * The recording id of the web vital nodes. -1 if not found
    */
-  nodeId?: number;
-  /**
-   * The recording id of the CLS nodes. -1 if not found
-   */
-  clsNodeIds?: number[];
+  nodeIds?: number[];
 }
 
 /**

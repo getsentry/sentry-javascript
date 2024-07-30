@@ -243,8 +243,7 @@ function getWebVital(metric: Metric, name: string, nodes: Node[] | undefined): R
       value,
       size: value,
       rating,
-      nodeId: nodeIds ? nodeIds[0] : undefined,
-      clsNodeIds: name === 'cumulative-layout-shift' ? nodeIds : undefined,
+      nodeIds,
     },
   };
 
