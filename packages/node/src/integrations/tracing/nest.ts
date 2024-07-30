@@ -20,7 +20,7 @@ import {
   withActiveSpan,
 } from '@sentry/core';
 import type { IntegrationFn, Span } from '@sentry/types';
-import { logger } from '@sentry/utils';
+import {addNonEnumerableProperty, logger} from '@sentry/utils';
 import { generateInstrumentOnce } from '../../otel/instrument';
 
 interface MinimalNestJsExecutionContext {
@@ -56,17 +56,29 @@ const INTEGRATION_NAME = 'Nest';
 
 const supportedVersions = ['>=8.0.0 <11'];
 
-const sentryPatched = Symbol('sentryPatched');
+const sentryPatched = 'sentryPatched';
 
 /**
  * Represents an injectable target class in NestJS.
  */
 interface InjectableTarget {
   name: string;
-  sentryPatched?: symbol;
+  sentryPatched?: boolean;
   prototype: {
     use?: (req: unknown, res: unknown, next: (error?: Error | unknown) => void) => void;
   };
+}
+
+/**
+ * Helper checking if a target is already patched.
+ */
+function isPatched(target: InjectableTarget): boolean {
+  if (target.sentryPatched) {
+    return true;
+  }
+
+  addNonEnumerableProperty(target, sentryPatched, true);
+  return false;
 }
 
 /**
@@ -124,15 +136,13 @@ export class SentryNestInstrumentation extends InstrumentationBase {
     return function wrapInjectable(original: any) {
       return function wrappedInjectable(options?: unknown) {
         return function (target: InjectableTarget) {
-          // ensure class has not been patched before
-          if (target.sentryPatched) {
-            return original(options)(target);
-          } else {
-            Object.defineProperty(target, sentryPatched, { value: true });
-          }
-
           // patch middleware
           if (typeof target.prototype.use === 'function') {
+            // patch only once
+            if (isPatched(target)) {
+              return original(options)(target);
+            }
+
             const originalUse = target.prototype.use;
 
             target.prototype.use = function (req: unknown, res: unknown, next: (error?: unknown) => void): void {
@@ -177,14 +187,14 @@ const instrumentNestCore = generateInstrumentOnce('Nest-Core', () => {
   return new NestInstrumentation();
 });
 
-const instrumentMiddleware = generateInstrumentOnce('Nest-Middleware', () => {
+const instrumentNestCommon = generateInstrumentOnce('Nest-Common', () => {
   return new SentryNestInstrumentation();
 });
 
 export const instrumentNest = Object.assign(
   (): void => {
     instrumentNestCore();
-    instrumentMiddleware();
+    instrumentNestCommon();
   },
   { id: INTEGRATION_NAME },
 );
