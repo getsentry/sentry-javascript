@@ -1,3 +1,9 @@
+/**
+ * @vitest-environment jsdom
+ */
+
+import { beforeEach, describe, expect, it, test, vi } from 'vitest';
+
 import { useFakeTimers } from '../../utils/use-fake-timers';
 
 useFakeTimers();

@@ -1042,6 +1042,30 @@ describe('BaseClient', () => {
       expect(TestClient.instance!.event!.transaction).toBe('/adopt/dont/shop');
     });
 
+    test('calls `beforeSendTransaction` and drops spans', () => {
+      const beforeSendTransaction = jest.fn(event => {
+        event.spans = [{ span_id: 'span5', trace_id: 'trace1', start_timestamp: 1234 }];
+        return event;
+      });
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSendTransaction });
+      const client = new TestClient(options);
+
+      client.captureEvent({
+        transaction: '/dogs/are/great',
+        type: 'transaction',
+        spans: [
+          { span_id: 'span1', trace_id: 'trace1', start_timestamp: 1234 },
+          { span_id: 'span2', trace_id: 'trace1', start_timestamp: 1234 },
+          { span_id: 'span3', trace_id: 'trace1', start_timestamp: 1234 },
+        ],
+      });
+
+      expect(beforeSendTransaction).toHaveBeenCalled();
+      expect(TestClient.instance!.event!.spans?.length).toBe(1);
+
+      expect(client['_outcomes']).toEqual({ 'before_send:span': 2 });
+    });
+
     test('calls `beforeSendSpan` and uses the modified spans', () => {
       expect.assertions(3);
 
@@ -1120,8 +1144,6 @@ describe('BaseClient', () => {
     });
 
     test('calls `beforeSendSpan` and discards the span', () => {
-      expect.assertions(2);
-
       const beforeSendSpan = jest.fn(() => null);
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSendSpan });
       const client = new TestClient(options);
@@ -1149,6 +1171,7 @@ describe('BaseClient', () => {
       expect(beforeSendSpan).toHaveBeenCalledTimes(2);
       const capturedEvent = TestClient.instance!.event!;
       expect(capturedEvent.spans).toHaveLength(0);
+      expect(client['_outcomes']).toEqual({ 'before_send:span': 2 });
     });
 
     test('calls `beforeSend` and logs info about invalid return value', () => {
@@ -2017,6 +2040,7 @@ describe('BaseClient', () => {
 
   describe('hook removal with `on`', () => {
     it('should return a cleanup function that, when executed, unregisters a hook', async () => {
+      jest.useFakeTimers();
       expect.assertions(8);
 
       const client = new TestClient(

@@ -70,7 +70,7 @@
     "@opentelemetry/core": "^1.25.1",
     "@opentelemetry/instrumentation": "^0.52.1",
     "@opentelemetry/instrumentation-connect": "0.38.0",
-    "@opentelemetry/instrumentation-express": "0.41.0",
+    "@opentelemetry/instrumentation-express": "0.41.1",
     "@opentelemetry/instrumentation-fastify": "0.38.0",
     "@opentelemetry/instrumentation-graphql": "0.42.0",
     "@opentelemetry/instrumentation-hapi": "0.40.0",

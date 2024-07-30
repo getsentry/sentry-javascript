@@ -84,6 +84,8 @@ export {
   spanToBaggageHeader,
 } from '@sentry/core';
 
+export { withSentry } from './handler';
+
 export { CloudflareClient } from './client';
 export { getDefaultIntegrations } from './sdk';
 

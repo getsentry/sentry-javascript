@@ -519,7 +519,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: [14, 16, 18, 20, 22.4]
+        node: [14, 16, 18, 20, 22]
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v4
@@ -579,7 +579,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: [14, 16, 18, 20, 22.4]
+        node: [14, 16, 18, 20, 22]
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v4
@@ -816,12 +816,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: [14, 16, 18, 20, 22.4]
+        node: [14, 16, 18, 20, 22]
         typescript:
           - false
         include:
           # Only check typescript for latest version (to streamline CI)
-          - node: 22.4
+          - node: 22
             typescript: '3.8'
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
@@ -858,7 +858,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: [18, 20, 22.4]
+        node: [18, 20, 22]
         remix: [1, 2]
         # Remix v2 only supports Node 18+, so run 16 tests separately
         include:
@@ -990,6 +990,7 @@ jobs:
             'node-express-esm-without-loader',
             'node-express-cjs-preload',
             'node-otel-sdk-node',
+            'node-otel-custom-sampler',
             'ember-classic',
             'ember-embroider',
             'nextjs-app-dir',
@@ -1384,7 +1385,7 @@ jobs:
           - os: ubuntu-20.04
             node: 20
           - os: ubuntu-20.04
-            node: 22.4
+            node: 22
 
             # x64 musl
           - os: ubuntu-20.04
@@ -1398,7 +1399,7 @@ jobs:
             node: 20
           - os: ubuntu-20.04
             container: node:22-alpine3.18
-            node: 22.4
+            node: 22
 
             # arm64 glibc
           - os: ubuntu-20.04
@@ -1412,7 +1413,7 @@ jobs:
             node: 20
           - os: ubuntu-20.04
             arch: arm64
-            node: 22.4
+            node: 22
 
             # arm64 musl
           - os: ubuntu-20.04
@@ -1430,7 +1431,7 @@ jobs:
           - os: ubuntu-20.04
             arch: arm64
             container: node:22-alpine3.18
-            node: 22.4
+            node: 22
 
             # macos x64
           - os: macos-13
@@ -1443,7 +1444,7 @@ jobs:
             node: 20
             arch: x64
           - os: macos-13
-            node: 22.4
+            node: 22
             arch: x64
 
             # macos arm64
@@ -1461,7 +1462,7 @@ jobs:
             target_platform: darwin
           - os: macos-13
             arch: arm64
-            node: 22.4
+            node: 22
             target_platform: darwin
 
             # windows x64
@@ -1475,7 +1476,7 @@ jobs:
             node: 20
             arch: x64
           - os: windows-2022
-            node: 22.4
+            node: 22
             arch: x64
 
     steps:

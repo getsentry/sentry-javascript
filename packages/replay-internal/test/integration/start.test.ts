@@ -1,4 +1,8 @@
-import { vi } from 'vitest';
+/**
+ * @vitest-environment jsdom
+ */
+
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { getClient } from '@sentry/core';
 import type { Transport } from '@sentry/types';

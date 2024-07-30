@@ -1,9 +1,15 @@
+/**
+ * @vitest-environment jsdom
+ */
+
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { act, render } from '@testing-library/svelte';
 import { getClient, getCurrentScope, getIsolationScope, init, startSpan } from '../src';
 
 import type { TransactionEvent } from '@sentry/types';
-import { vi } from 'vitest';
-// linter doesn't like Svelte component imports
+
+// @ts-expect-error svelte import
 import DummyComponent from './components/Dummy.svelte';
 
 const PUBLIC_DSN = 'https://username@domain/123';
@@ -40,7 +46,7 @@ describe('Sentry.trackComponent()', () => {
     await getClient()?.flush();
 
     expect(transactions).toHaveLength(1);
-    const transaction = transactions[0];
+    const transaction = transactions[0]!;
     expect(transaction.spans).toHaveLength(2);
 
     const rootSpanId = transaction.contexts?.trace?.span_id;
@@ -95,7 +101,7 @@ describe('Sentry.trackComponent()', () => {
     await getClient()?.flush();
 
     expect(transactions).toHaveLength(1);
-    const transaction = transactions[0];
+    const transaction = transactions[0]!;
     expect(transaction.spans).toHaveLength(3);
 
     const rootSpanId = transaction.contexts?.trace?.span_id;
@@ -159,7 +165,7 @@ describe('Sentry.trackComponent()', () => {
     await getClient()?.flush();
 
     expect(transactions).toHaveLength(1);
-    const transaction = transactions[0];
+    const transaction = transactions[0]!;
     expect(transaction.spans).toHaveLength(1);
 
     expect(transaction.spans![0]?.op).toEqual('ui.svelte.init');
@@ -175,7 +181,7 @@ describe('Sentry.trackComponent()', () => {
     await getClient()?.flush();
 
     expect(transactions).toHaveLength(1);
-    const transaction = transactions[0];
+    const transaction = transactions[0]!;
     expect(transaction.spans).toHaveLength(1);
 
     expect(transaction.spans![0]?.op).toEqual('ui.svelte.update');
@@ -191,7 +197,7 @@ describe('Sentry.trackComponent()', () => {
     await getClient()?.flush();
 
     expect(transactions).toHaveLength(1);
-    const transaction = transactions[0];
+    const transaction = transactions[0]!;
     expect(transaction.spans).toHaveLength(0);
   });
 
@@ -207,7 +213,7 @@ describe('Sentry.trackComponent()', () => {
     await getClient()?.flush();
 
     expect(transactions).toHaveLength(1);
-    const transaction = transactions[0];
+    const transaction = transactions[0]!;
     expect(transaction.spans).toHaveLength(2);
 
     expect(transaction.spans![0]?.description).toEqual('<CustomComponentName>');
@@ -238,7 +244,7 @@ describe('Sentry.trackComponent()', () => {
     await getClient()?.flush();
 
     expect(transactions).toHaveLength(1);
-    const transaction = transactions[0];
+    const transaction = transactions[0]!;
 
     // One update span is triggered by the initial rendering, but the second one is not captured
     expect(transaction.spans).toHaveLength(2);

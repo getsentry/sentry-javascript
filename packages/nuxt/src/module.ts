@@ -60,7 +60,13 @@ function findDefaultSdkInitFile(type: 'server' | 'client'): string | undefined {
 
   const cwd = process.cwd();
   const filePath = possibleFileExtensions
-    .map(e => path.resolve(path.join(cwd, `sentry.${type}.config.${e}`)))
+    .map(e =>
+      path.resolve(
+        type === 'server'
+          ? path.join(cwd, 'public', `instrument.${type}.${e}`)
+          : path.join(cwd, `sentry.${type}.config.${e}`),
+      ),
+    )
     .find(filename => fs.existsSync(filename));
 
   return filePath ? path.basename(filePath) : undefined;

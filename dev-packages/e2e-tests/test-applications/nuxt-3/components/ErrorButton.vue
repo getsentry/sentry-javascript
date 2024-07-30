@@ -1,6 +1,15 @@
 <script setup>
+import { defineProps } from 'vue';
+
+const props = defineProps({
+  errorText: {
+    type: String,
+    required: true
+  }
+})
+
 const triggerError = () => {
-  throw new Error('Error thrown from Nuxt-3 E2E test app');
+  throw new Error(props.errorText);
 };
 </script>
 

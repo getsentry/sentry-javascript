@@ -89,18 +89,12 @@ const _fetchIntegration = ((options: Partial<Options> = {}) => {
           return;
         }
 
-        instrumentFetchRequest(
-          handlerData,
-          _shouldCreateSpan,
-          _shouldAttachTraceData,
-          spans,
-          'auto.http.wintercg_fetch',
-        );
+        instrumentFetchRequest(handlerData, _shouldCreateSpan, _shouldAttachTraceData, spans, 'auto.http.fetch');
 
         if (breadcrumbs) {
           createBreadcrumb(handlerData);
         }
-      });
+      }, true);
     },
     setup(client) {
       HAS_CLIENT_MAP.set(client, true);

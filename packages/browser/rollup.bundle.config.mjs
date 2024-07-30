@@ -4,13 +4,14 @@ const builds = [];
 
 const browserPluggableIntegrationFiles = ['contextlines', 'httpclient', 'reportingobserver', 'browserprofiling'];
 
-const corePluggableIntegrationFiles = [
+const reexportedPluggableIntegrationFiles = [
   'captureconsole',
   'debug',
   'dedupe',
   'extraerrordata',
   'rewriteframes',
   'sessiontiming',
+  'feedback',
 ];
 
 browserPluggableIntegrationFiles.forEach(integrationName => {
@@ -24,7 +25,7 @@ browserPluggableIntegrationFiles.forEach(integrationName => {
   builds.push(...makeBundleConfigVariants(integrationsBundleConfig));
 });
 
-corePluggableIntegrationFiles.forEach(integrationName => {
+reexportedPluggableIntegrationFiles.forEach(integrationName => {
   const integrationsBundleConfig = makeBaseBundleConfig({
     bundleType: 'addon',
     entrypoints: [`src/integrations-bundle/index.${integrationName}.ts`],

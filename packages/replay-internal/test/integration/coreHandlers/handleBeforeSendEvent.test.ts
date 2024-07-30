@@ -1,4 +1,8 @@
-import { vi } from 'vitest';
+/**
+ * @vitest-environment jsdom
+ */
+
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { handleBeforeSendEvent } from '../../../src/coreHandlers/handleBeforeSendEvent';
 import type { ReplayContainer } from '../../../src/replay';

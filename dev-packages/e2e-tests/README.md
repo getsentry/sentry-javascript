@@ -43,7 +43,7 @@ Test applications are completely standalone applications that can be used to ver
 these commands:
 
 ```sh
-cd packages/e2e-tests
+cd dev-packages/e2e-tests
 
 # Create a new test application folder
 mkdir test-applications/my-new-test-application # Name of the new folder doesn't technically matter but choose something meaningful

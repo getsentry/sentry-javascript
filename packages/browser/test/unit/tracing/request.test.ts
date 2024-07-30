@@ -1,4 +1,5 @@
 import * as browserUtils from '@sentry-internal/browser-utils';
+import type { Client } from '@sentry/types';
 import * as utils from '@sentry/utils';
 import { WINDOW } from '../../../src/helpers';
 
@@ -10,16 +11,27 @@ beforeAll(() => {
   global.Request = {};
 });
 
+class MockClient implements Partial<Client> {
+  public addEventProcessor: () => void;
+  constructor() {
+    // Mock addEventProcessor function
+    this.addEventProcessor = jest.fn();
+  }
+}
+
 describe('instrumentOutgoingRequests', () => {
+  let client: Client;
+
   beforeEach(() => {
     jest.clearAllMocks();
+    client = new MockClient() as unknown as Client;
   });
 
   it('instruments fetch and xhr requests', () => {
     const addFetchSpy = jest.spyOn(utils, 'addFetchInstrumentationHandler');
     const addXhrSpy = jest.spyOn(browserUtils, 'addXhrInstrumentationHandler');
 
-    instrumentOutgoingRequests();
+    instrumentOutgoingRequests(client);
 
     expect(addFetchSpy).toHaveBeenCalledWith(expect.any(Function));
     expect(addXhrSpy).toHaveBeenCalledWith(expect.any(Function));
@@ -28,7 +40,7 @@ describe('instrumentOutgoingRequests', () => {
   it('does not instrument fetch requests if traceFetch is false', () => {
     const addFetchSpy = jest.spyOn(utils, 'addFetchInstrumentationHandler');
 
-    instrumentOutgoingRequests({ traceFetch: false });
+    instrumentOutgoingRequests(client, { traceFetch: false });
 
     expect(addFetchSpy).not.toHaveBeenCalled();
   });
@@ -36,7 +48,7 @@ describe('instrumentOutgoingRequests', () => {
   it('does not instrument xhr requests if traceXHR is false', () => {
     const addXhrSpy = jest.spyOn(browserUtils, 'addXhrInstrumentationHandler');
 
-    instrumentOutgoingRequests({ traceXHR: false });
+    instrumentOutgoingRequests(client, { traceXHR: false });
 
     expect(addXhrSpy).not.toHaveBeenCalled();
   });

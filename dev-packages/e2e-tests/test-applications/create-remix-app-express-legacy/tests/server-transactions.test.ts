@@ -3,6 +3,21 @@ import { uuid4 } from '@sentry/utils';
 
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
+test.describe.configure({ mode: 'serial' });
+
+test('Sends parameterized transaction name to Sentry', async ({ page }) => {
+  const transactionPromise = waitForTransaction('create-remix-app-express-legacy', transactionEvent => {
+    return transactionEvent.contexts?.trace?.op === 'http.server';
+  });
+
+  await page.goto('/user/123');
+
+  const transaction = await transactionPromise;
+
+  expect(transaction).toBeDefined();
+  expect(transaction.transaction).toBe('routes/user.$id');
+});
+
 test('Sends form data with action span to Sentry', async ({ page }) => {
   await page.goto('/action-formdata');
 

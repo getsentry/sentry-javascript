@@ -1,3 +1,5 @@
+import { describe, expect, it } from 'vitest';
+
 import { CONSOLE_ARG_MAX_SIZE } from '../../../src/constants';
 import { normalizeBreadcrumb, normalizeConsoleBreadcrumb } from '../../../src/coreHandlers/handleBreadcrumbs';
 

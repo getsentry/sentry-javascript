@@ -16,7 +16,7 @@ export class CloudflareClient extends ServerRuntimeClient<CloudflareClientOption
    * @param options Configuration options for this SDK.
    */
   public constructor(options: CloudflareClientOptions) {
-    applySdkMetadata(options, 'options');
+    applySdkMetadata(options, 'cloudflare');
     options._metadata = options._metadata || {};
 
     const clientOptions: ServerRuntimeClientOptions = {
