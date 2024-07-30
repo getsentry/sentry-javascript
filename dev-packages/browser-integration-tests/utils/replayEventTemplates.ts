@@ -140,7 +140,6 @@ export const expectedCLSPerformanceSpan = {
   endTimestamp: expect.any(Number),
   data: {
     value: expect.any(Number),
-    nodeId: expect.any(Number),
     clsNodeIds: expect.any(Array),
     rating: expect.any(String),
     size: expect.any(Number),
