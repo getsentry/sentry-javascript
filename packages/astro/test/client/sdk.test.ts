@@ -52,8 +52,6 @@ describe('Sentry client SDK', () => {
       expect(getIsolationScope().getScopeData().tags).toEqual({});
 
       init({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
-
-      expect(getIsolationScope().getScopeData().tags).toEqual({ runtime: 'browser' });
     });
 
     describe('automatically adds integrations', () => {

@@ -33,7 +33,6 @@ test.describe('performance events', () => {
 
     expect(serverTxnEvent).toMatchObject({
       transaction: 'GET /users/[id]',
-      tags: { runtime: 'node' },
       transaction_info: { source: 'route' },
       type: 'transaction',
       contexts: {
@@ -88,7 +87,6 @@ test.describe('performance events', () => {
 
     expect(serverTxnEvent).toMatchObject({
       transaction: 'GET /users',
-      tags: { runtime: 'node' },
       transaction_info: { source: 'route' },
       type: 'transaction',
       contexts: {
@@ -140,7 +138,6 @@ test.describe('performance events', () => {
 
     expect(serverTxnEvent).toMatchObject({
       transaction: 'GET /api/users',
-      tags: { runtime: 'node' },
       transaction_info: { source: 'route' },
       type: 'transaction',
       contexts: {

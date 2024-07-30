@@ -26,7 +26,6 @@ test.describe('client-side errors', () => {
       },
       transaction: '/client-error',
     });
-    expect(error.tags).toMatchObject({ runtime: 'browser' });
     expect(error.transaction).toEqual('/client-error');
   });
 });

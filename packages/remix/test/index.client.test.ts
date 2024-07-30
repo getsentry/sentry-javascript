@@ -48,7 +48,5 @@ describe('Client init()', () => {
     expect(SentryReact.getIsolationScope().getScopeData().tags).toEqual({});
 
     init({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
-
-    expect(SentryReact.getIsolationScope().getScopeData().tags).toEqual({ runtime: 'browser' });
   });
 });

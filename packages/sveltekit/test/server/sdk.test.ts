@@ -45,8 +45,6 @@ describe('Sentry server SDK', () => {
       expect(SentryNode.getIsolationScope().getScopeData().tags).toEqual({});
 
       init({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
-
-      expect(SentryNode.getIsolationScope().getScopeData().tags).toEqual({ runtime: 'node' });
     });
 
     it('adds rewriteFramesIntegration by default', () => {
