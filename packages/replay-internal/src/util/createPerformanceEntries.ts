@@ -232,8 +232,6 @@ function getWebVital(metric: Metric, name: string, nodes: Node[] | undefined): R
 
   const end = getAbsoluteTime(value);
 
-  const nodeIds = nodes ? nodes.map(node => record.mirror.getId(node)) : undefined;
-
   const data: ReplayPerformanceEntry<WebVitalData> = {
     type: 'web-vital',
     name,
@@ -243,7 +241,7 @@ function getWebVital(metric: Metric, name: string, nodes: Node[] | undefined): R
       value,
       size: value,
       rating,
-      nodeIds,
+      nodeIds: nodes ? nodes.map(node => record.mirror.getId(node)) : undefined,
     },
   };
 
