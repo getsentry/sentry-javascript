@@ -4,10 +4,9 @@ import type {
   DynamicModule,
   ExecutionContext,
   NestInterceptor,
-  OnModuleInit} from '@nestjs/common';
-import {
-  HttpException
+  OnModuleInit,
 } from '@nestjs/common';
+import { HttpException } from '@nestjs/common';
 import { Catch } from '@nestjs/common';
 import { Injectable } from '@nestjs/common';
 import { Global, Module } from '@nestjs/common';
