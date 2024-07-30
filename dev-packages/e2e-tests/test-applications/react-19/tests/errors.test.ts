@@ -7,7 +7,6 @@ test('Catches errors caught by error boundary', async ({ page }) => {
   });
 
   const errorEventPromise = waitForError('react-19', event => {
-    //ErrorEvent's type === undefined
     return !event.type && event.exception?.values?.[0]?.value === 'caught error';
   });
 
