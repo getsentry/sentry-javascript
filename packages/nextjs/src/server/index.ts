@@ -16,6 +16,7 @@ import { DEBUG_BUILD } from '../common/debug-build';
 import { devErrorSymbolicationEventProcessor } from '../common/devErrorSymbolicationEventProcessor';
 import { getVercelEnv } from '../common/getVercelEnv';
 import { isBuild } from '../common/utils/isBuild';
+import { enableCacheInstrumentation } from './cache-instrumentation';
 import { distDirRewriteFramesIntegration } from './distDirRewriteFramesIntegration';
 
 export * from '@sentry/node';
@@ -23,6 +24,7 @@ export * from '@sentry/node';
 export { captureUnderscoreErrorException } from '../common/_error';
 
 const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
+  __cacheHandlerPath__?: string;
   __rewriteFramesDistDir__?: string;
   __sentryRewritesTunnelPath__?: string;
 };
@@ -126,6 +128,11 @@ export function init(options: NodeOptions): NodeClient | undefined {
   applySdkMetadata(opts, 'nextjs', ['nextjs', 'node']);
 
   const client = nodeInit(opts);
+
+  if (globalWithInjectedValues.__cacheHandlerPath__) {
+    enableCacheInstrumentation(globalWithInjectedValues.__cacheHandlerPath__);
+  }
+
   client?.on('beforeSampling', ({ spanAttributes, spanName, parentSampled, parentContext }, samplingDecision) => {
     // We allowlist the "BaseServer.handleRequest" span, since that one is responsible for App Router requests, which are actually useful for us.
     // HOWEVER, that span is not only responsible for App Router requests, which is why we additionally filter for certain transactions in an
