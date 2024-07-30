@@ -1,6 +1,10 @@
+import { getActiveSpan, getRootSpan, spanToTraceHeader } from '@sentry/core';
+import { getDynamicSamplingContextFromSpan } from '@sentry/opentelemetry';
 import type { Context } from '@sentry/types';
 import { dropUndefinedKeys } from '@sentry/utils';
+import { dynamicSamplingContextToSentryBaggageHeader } from '@sentry/utils';
 import type { CapturedErrorContext } from 'nitropack';
+import type { NuxtRenderHTMLContext } from 'nuxt/app';
 
 /**
  *  Extracts the relevant context information from the error context (H3Event in Nitro Error)
@@ -25,4 +29,27 @@ export function extractErrorContext(errorContext: CapturedErrorContext): Context
   }
 
   return dropUndefinedKeys(structuredContext);
+}
+
+/**
+ * Adds Sentry tracing <meta> tags to the returned html page.
+ *
+ * Exported only for testing
+ */
+export function addSentryTracingMetaTags(head: NuxtRenderHTMLContext['head']): void {
+  const activeSpan = getActiveSpan();
+  const rootSpan = activeSpan ? getRootSpan(activeSpan) : undefined;
+
+  if (rootSpan) {
+    const traceParentData = spanToTraceHeader(rootSpan);
+    const dynamicSamplingContext = dynamicSamplingContextToSentryBaggageHeader(
+      getDynamicSamplingContextFromSpan(rootSpan),
+    );
+    const contentMeta = [
+      `<meta name="sentry-trace" content="${traceParentData}"/>`,
+      `<meta name="baggage" content="${dynamicSamplingContext}"/>`,
+    ];
+
+    head.push(...contentMeta);
+  }
 }
