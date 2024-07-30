@@ -70,7 +70,10 @@ interface InjectableTarget {
 }
 
 /**
- * Helper checking if a target is already patched.
+ * Helper checking if a concrete target class is already patched.
+ *
+ * We already guard duplicate patching with isWrapped. However, isWrapped checks whether a file has been patched, whereas we use this check for concrete target classes.
+ * This check might not be necessary, but better to play it safe.
  */
 function isPatched(target: InjectableTarget): boolean {
   if (target.sentryPatched) {
@@ -145,7 +148,7 @@ export class SentryNestInstrumentation extends InstrumentationBase {
 
             target.prototype.use = new Proxy(target.prototype.use, {
               apply: (originalUse, thisArgUse, argsUse) => {
-                const [req, res, next] = argsUse;
+                const [req, res, next, ...args] = argsUse;
                 const prevSpan = getActiveSpan();
 
                 startSpanManual(
@@ -171,7 +174,7 @@ export class SentryNestInstrumentation extends InstrumentationBase {
                       },
                     });
 
-                    originalUse.apply(thisArgUse, [req, res, nextProxy]);
+                    originalUse.apply(thisArgUse, [req, res, nextProxy, args]);
                   },
                 );
               },
