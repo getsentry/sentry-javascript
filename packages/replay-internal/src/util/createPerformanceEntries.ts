@@ -226,7 +226,7 @@ export function getInteractionToNextPaint(metric: Metric): ReplayPerformanceEntr
 /**
  * Add an web vital event to the replay based on the web vital metric.
  */
-function getWebVital( metric: Metric, name: string, nodes: Node[] | undefined): ReplayPerformanceEntry<WebVitalData> {
+function getWebVital(metric: Metric, name: string, nodes: Node[] | undefined): ReplayPerformanceEntry<WebVitalData> {
   const value = metric.value;
   const rating = metric.rating;
 
