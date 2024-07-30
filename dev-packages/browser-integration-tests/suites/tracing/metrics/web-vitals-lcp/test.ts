@@ -9,7 +9,7 @@ sentryTest('should capture a LCP vital with element details.', async ({ browserN
   if (shouldSkipTracingTest() || browserName !== 'chromium') {
     sentryTest.skip();
   }
-
+  const imageSrc = 'https://example.com/path/to/image.png';
   page.route('**', route => route.continue());
   page.route('**/path/to/image.png', async (route: Route) => {
     return route.fulfill({ path: `${__dirname}/assets/sentry-logo-600x179.png` });
@@ -19,6 +19,7 @@ sentryTest('should capture a LCP vital with element details.', async ({ browserN
   const [eventData] = await Promise.all([
     getFirstSentryEnvelopeRequest<Event>(page),
     page.goto(url),
+    page.waitForResponse(imageSrc),
     page.locator('button').click(),
   ]);
 
@@ -27,5 +28,5 @@ sentryTest('should capture a LCP vital with element details.', async ({ browserN
 
   expect(eventData.contexts?.trace?.data?.['lcp.element']).toBe('body > img');
   expect(eventData.contexts?.trace?.data?.['lcp.size']).toBe(107400);
-  expect(eventData.contexts?.trace?.data?.['lcp.url']).toBe('https://example.com/path/to/image.png');
+  expect(eventData.contexts?.trace?.data?.['lcp.url']).toBe(imageSrc);
 });
