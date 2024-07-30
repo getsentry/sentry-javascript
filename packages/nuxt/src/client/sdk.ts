@@ -1,5 +1,5 @@
 import { getDefaultIntegrations as getBrowserDefaultIntegrations, init as initBrowser } from '@sentry/browser';
-import { applySdkMetadata } from '@sentry/core';
+import { applySdkMetadata, setTag } from '@sentry/core';
 import type { Client } from '@sentry/types';
 import type { SentryNuxtOptions } from '../common/types';
 
@@ -16,6 +16,8 @@ export function init(options: SentryNuxtOptions): Client | undefined {
   };
 
   applySdkMetadata(sentryOptions, 'nuxt', ['nuxt', 'vue']);
+
+  setTag('runtime', 'browser');
 
   return initBrowser(sentryOptions);
 }

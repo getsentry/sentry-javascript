@@ -1,4 +1,4 @@
-import { applySdkMetadata } from '@sentry/core';
+import { applySdkMetadata, setTag } from '@sentry/core';
 import { init as initNode } from '@sentry/node';
 import type { Client } from '@sentry/types';
 import type { SentryNuxtOptions } from '../common/types';
@@ -14,6 +14,8 @@ export function init(options: SentryNuxtOptions): Client | undefined {
   };
 
   applySdkMetadata(sentryOptions, 'nuxt', ['nuxt', 'node']);
+
+  setTag('runtime', 'node');
 
   return initNode(sentryOptions);
 }
