@@ -61,7 +61,7 @@ const sentryPatched = 'sentryPatched';
 /**
  * Represents an injectable target class in NestJS.
  */
-interface InjectableTarget {
+export interface InjectableTarget {
   name: string;
   sentryPatched?: boolean;
   prototype: {
@@ -75,7 +75,7 @@ interface InjectableTarget {
  * We already guard duplicate patching with isWrapped. However, isWrapped checks whether a file has been patched, whereas we use this check for concrete target classes.
  * This check might not be necessary, but better to play it safe.
  */
-function isPatched(target: InjectableTarget): boolean {
+export function isPatched(target: InjectableTarget): boolean {
   if (target.sentryPatched) {
     return true;
   }
