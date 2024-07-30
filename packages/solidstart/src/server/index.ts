@@ -126,3 +126,5 @@ export { withSentryErrorBoundary } from '@sentry/solid';
 // -------------------------
 // Solid Start SDK exports:
 export { init } from './sdk';
+
+export * from './withServerActionInstrumentation';
