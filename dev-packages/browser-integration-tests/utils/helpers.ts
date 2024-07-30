@@ -246,15 +246,11 @@ export function shouldSkipTracingTest(): boolean {
 }
 
 /**
- * We can only test feedback tests in certain bundles/packages:
- * - NPM (ESM, CJS)
- * - CDN bundles that contain the Replay integration
- *
- * @returns `true` if we should skip the feedback test
+ * Today we always run feedback tests, but this can be used to guard this if we ever need to.
  */
 export function shouldSkipFeedbackTest(): boolean {
-  const bundle = process.env.PW_BUNDLE as string | undefined;
-  return bundle != null && !bundle.includes('feedback') && !bundle.includes('esm') && !bundle.includes('cjs');
+  // We always run these, in bundles the pluggable integration is automatically added
+  return false;
 }
 
 /**
