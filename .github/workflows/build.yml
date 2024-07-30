@@ -1046,6 +1046,8 @@ jobs:
         exclude:
           - is_dependabot: true
             test-application: 'cloudflare-astro'
+          - is_dependabot: true
+            test-application: 'cloudflare-workers'
 
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
@@ -1125,6 +1127,7 @@ jobs:
         test-application:
           [
             'cloudflare-astro',
+            'cloudflare-workers',
             'react-send-to-sentry',
             'node-express-send-to-sentry',
             'debug-id-sourcemaps',
