@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { ReplayRecordingData } from './fixtures/ReplayRecordingData';
 
-const EVENT_POLLING_TIMEOUT = 5_000;
+const EVENT_POLLING_TIMEOUT = 90_000;
 
 const authToken = process.env.E2E_TEST_AUTH_TOKEN;
 const sentryTestOrgSlug = process.env.E2E_TEST_SENTRY_ORG_SLUG;
