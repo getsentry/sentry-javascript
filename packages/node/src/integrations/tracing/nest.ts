@@ -20,7 +20,7 @@ import {
   withActiveSpan,
 } from '@sentry/core';
 import type { IntegrationFn, Span } from '@sentry/types';
-import {addNonEnumerableProperty, logger} from '@sentry/utils';
+import { addNonEnumerableProperty, logger } from '@sentry/utils';
 import { generateInstrumentOnce } from '../../otel/instrument';
 
 interface MinimalNestJsExecutionContext {
