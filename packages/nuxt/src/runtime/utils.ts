@@ -45,11 +45,8 @@ export function addSentryTracingMetaTags(head: NuxtRenderHTMLContext['head']): v
     const dynamicSamplingContext = dynamicSamplingContextToSentryBaggageHeader(
       getDynamicSamplingContextFromSpan(rootSpan),
     );
-    const contentMeta = [
-      `<meta name="sentry-trace" content="${traceParentData}"/>`,
-      `<meta name="baggage" content="${dynamicSamplingContext}"/>`,
-    ];
 
-    head.push(...contentMeta);
+    head.push(`<meta name="sentry-trace" content="${traceParentData}"/>`);
+    head.push(`<meta name="baggage" content="${dynamicSamplingContext}"/>`);
   }
 }
