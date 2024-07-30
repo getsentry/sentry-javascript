@@ -4,7 +4,9 @@ import type {
   DynamicModule,
   ExecutionContext,
   NestInterceptor,
-  OnModuleInit,
+  OnModuleInit} from '@nestjs/common';
+import {
+  HttpException
 } from '@nestjs/common';
 import { Catch } from '@nestjs/common';
 import { Injectable } from '@nestjs/common';
@@ -63,10 +65,8 @@ class SentryGlobalFilter extends BaseExceptionFilter {
    * Catches exceptions and reports them to Sentry unless they are expected errors.
    */
   public catch(exception: unknown, host: ArgumentsHost): void {
-    const status_code = (exception as { status?: number }).status;
-
     // don't report expected errors
-    if (status_code !== undefined && status_code >= 400 && status_code < 500) {
+    if (exception instanceof HttpException) {
       return super.catch(exception, host);
     }
 
