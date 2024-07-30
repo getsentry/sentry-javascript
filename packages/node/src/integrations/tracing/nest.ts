@@ -157,20 +157,21 @@ export class SentryNestInstrumentation extends InstrumentationBase {
                   },
                 },
                 (span: Span) => {
-                  // patch  next to end span before next middleware is being called
-                  const wrappedNext = (error?: Error | unknown): void => {
-                    span.end();
+                  const nextProxy = new Proxy(next, {
+                    apply: (originalFunction, thisArg, args) => {
+                      span.end();
 
-                    if (prevSpan) {
-                      withActiveSpan(prevSpan, () => {
-                        next(error);
-                      });
-                    } else {
-                      next(error);
-                    }
-                  };
+                      if (prevSpan) {
+                        withActiveSpan(prevSpan, () => {
+                          originalFunction.apply(thisArg, args);
+                        });
+                      } else {
+                        originalFunction.apply(thisArg, args);
+                      }
+                    },
+                  });
 
-                  return originalUse.apply(this, [req, res, wrappedNext]);
+                  return originalUse.apply(this, [req, res, nextProxy]);
                 },
               );
             };
