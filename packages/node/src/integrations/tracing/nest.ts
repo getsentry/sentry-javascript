@@ -65,7 +65,7 @@ interface InjectableTarget {
   name: string;
   sentryPatched?: boolean;
   prototype: {
-    use?: (req: unknown, res: unknown, next: (error?: Error | unknown) => void) => void;
+    use?: (req: unknown, res: unknown, next: () => void) => void;
   };
 }
 
@@ -143,38 +143,39 @@ export class SentryNestInstrumentation extends InstrumentationBase {
               return original(options)(target);
             }
 
-            const originalUse = target.prototype.use;
+            target.prototype.use = new Proxy(target.prototype.use, {
+              apply: (originalUse, thisArgUse, argsUse) => {
+                const [req, res, next] = argsUse;
+                const prevSpan = getActiveSpan();
 
-            target.prototype.use = function (req: unknown, res: unknown, next: (error?: unknown) => void): void {
-              const prevSpan = getActiveSpan();
-
-              startSpanManual(
-                {
-                  name: target.name,
-                  attributes: {
-                    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'middleware.nestjs',
-                    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.middleware.nestjs',
-                  },
-                },
-                (span: Span) => {
-                  const nextProxy = new Proxy(next, {
-                    apply: (originalFunction, thisArg, args) => {
-                      span.end();
-
-                      if (prevSpan) {
-                        withActiveSpan(prevSpan, () => {
-                          originalFunction.apply(thisArg, args);
-                        });
-                      } else {
-                        originalFunction.apply(thisArg, args);
-                      }
+                startSpanManual(
+                  {
+                    name: target.name,
+                    attributes: {
+                      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'middleware.nestjs',
+                      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.middleware.nestjs',
                     },
-                  });
+                  },
+                  (span: Span) => {
+                    const nextProxy = new Proxy(next, {
+                      apply: (originalNext, thisArgNext, argsNext) => {
+                        span.end();
 
-                  return originalUse.apply(this, [req, res, nextProxy]);
-                },
-              );
-            };
+                        if (prevSpan) {
+                          withActiveSpan(prevSpan, () => {
+                            Reflect.apply(originalNext, thisArgNext, argsNext);
+                          });
+                        } else {
+                          Reflect.apply(originalNext, thisArgNext, argsNext);
+                        }
+                      },
+                    });
+
+                    originalUse.apply(thisArgUse, [req, res, nextProxy]);
+                  },
+                );
+              },
+            });
           }
 
           return original(options)(target);
