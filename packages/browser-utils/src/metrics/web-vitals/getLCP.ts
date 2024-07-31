@@ -60,7 +60,6 @@ export const onLCP = (onReport: LCPReportCallback, opts: ReportOpts = {}) => {
           // clamped at 0.
           metric.value = Math.max(lastEntry.startTime - getActivationStart(), 0);
           metric.entries = [lastEntry];
-          console.log(lastEntry);
           report();
         }
       }

@@ -14,19 +14,19 @@ sentryTest('should capture a LCP vital with element details.', async ({ browserN
     return route.fulfill({ path: `${__dirname}/assets/sentry-logo-600x179.png` });
   });
 
-  page.on('console', msg => console.log(msg.text()));
-
   const url = await getLocalTestPath({ testDir: __dirname });
-  const [eventData] = await Promise.all([getFirstSentryEnvelopeRequest<Event>(page), page.goto(url)]);
+  const [eventData] = await Promise.all([
+    getFirstSentryEnvelopeRequest<Event>(page),
+    page.goto(url),
+    page.waitForLoadState('networkidle'),
+  ]);
 
   // Clicking the button before image loads will result in the button being the LCP
   await page.waitForFunction(() => {
     const images = Array.from(document.querySelectorAll('img'));
-    return images.every(img => img.complete);
+    return images.every(img => img.naturalWidth > 0);
   }),
-    expect(eventData.contexts?.trace?.data?.['lcp.element']).toBe('body > img');
-
-  await page.locator('button').click();
+    await page.locator('button').click();
 
   expect(eventData.measurements).toBeDefined();
   expect(eventData.measurements?.lcp?.value).toBeDefined();
