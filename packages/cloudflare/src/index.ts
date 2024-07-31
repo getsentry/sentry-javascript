@@ -85,6 +85,7 @@ export {
 } from '@sentry/core';
 
 export { withSentry } from './handler';
+export { sentryPagesPlugin } from './pages-plugin';
 
 export { CloudflareClient } from './client';
 export { getDefaultIntegrations } from './sdk';

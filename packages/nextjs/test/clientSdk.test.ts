@@ -73,14 +73,6 @@ describe('Client init()', () => {
     );
   });
 
-  it('sets runtime on scope', () => {
-    expect(SentryReact.getIsolationScope().getScopeData().tags).toEqual({});
-
-    init({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
-
-    expect(SentryReact.getIsolationScope().getScopeData().tags).toEqual({ runtime: 'browser' });
-  });
-
   it('adds 404 transaction filter', () => {
     init({
       dsn: 'https://dogsarebadatkeepingsecrets@squirrelchasers.ingest.sentry.io/12312012',

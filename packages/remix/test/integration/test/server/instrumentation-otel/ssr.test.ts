@@ -20,12 +20,12 @@ describe('Server Side Rendering', () => {
           },
         },
       },
-      tags: useV2
-        ? {
-            // Testing that the wrapped `handleError` correctly adds tags
-            'remix-test-tag': 'remix-test-value',
-          }
-        : {},
+      ...(useV2 && {
+        tags: {
+          // Testing that the wrapped `handleError` correctly adds tags
+          'remix-test-tag': 'remix-test-value',
+        },
+      }),
     });
 
     assertSentryEvent(event[2], {

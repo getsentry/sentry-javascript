@@ -9,6 +9,28 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## Unreleased
+
+### Important Changes
+
+- **feat(cloudflare): Add plugin for cloudflare pages (#13123)**
+
+This release adds support for Cloudflare Pages to `@sentry/cloudflare`, our SDK for the
+[Cloudflare Workers JavaScript Runtime](https://developers.cloudflare.com/workers/)! For details on how to use it,
+please see the [README](./packages/cloudflare/README.md). Any feedback/bug reports are greatly appreciated, please
+[reach out on GitHub](https://github.com/getsentry/sentry-javascript/issues/12620).
+
+```javascript
+// functions/_middleware.js
+import * as Sentry from '@sentry/cloudflare';
+
+export const onRequest = Sentry.sentryPagesPlugin({
+  dsn: __PUBLIC_DSN__,
+  // Set tracesSampleRate to 1.0 to capture 100% of spans for tracing.
+  tracesSampleRate: 1.0,
+});
+```
+
 ## 8.21.0
 
 ### Important Changes
@@ -31,11 +53,15 @@ upcoming release.
 - feat(feedback): Make cropped screenshot area draggable (#13071)
 - feat(core): Adapt spans for client-side fetch to streaming responses (#12723)
 - feat(core): Capture # of dropped spans through `beforeSendTransaction` (#13022)
-- feat(deps): bump @opentelemetry/instrumentation-aws-sdk from 0.43.0 to 0.43.1 (#13089)
-- feat(deps): bump @opentelemetry/instrumentation-express from 0.41.0 to 0.41.1 (#13090)
+- feat(deps): bump `@opentelemetry/instrumentation-aws-sdk` from 0.43.0 to 0.43.1 (#13089)
+- feat(deps): bump `@opentelemetry/instrumentation-express` from 0.41.0 to 0.41.1 (#13090)
+- feat(nestjs): Automatic instrumentation of nestjs middleware (#13065)
+- feat(node): Upgrade `import-in-the-middle` to 1.11.0 (#13107)
 - feat(nuxt): Add connected tracing meta tags (#13098)
 - feat(nuxt): Add vue-router instrumentation (#13054)
+- feat(solidstart): Add server action instrumentation helper (#13035)
 - fix(feedback): Ensure pluggable feedback CDN bundle is correctly built (#13081)
+- fix(nextjs): Only delete clientside bundle source maps with `sourcemaps.deleteFilesAfterUpload` (#13102)
 - fix(node): Improve OTEL validation logic (#13079)
 
 ## 8.20.0

@@ -4,7 +4,7 @@
   </a>
 </p>
 
-# Official Sentry SDK for Cloudflare [UNRELEASED]
+# Official Sentry SDK for Cloudflare
 
 [![npm version](https://img.shields.io/npm/v/@sentry/cloudflare.svg)](https://www.npmjs.com/package/@sentry/cloudflare)
 [![npm dm](https://img.shields.io/npm/dm/@sentry/cloudflare.svg)](https://www.npmjs.com/package/@sentry/cloudflare)
@@ -18,9 +18,7 @@
 **Note: This SDK is unreleased. Please follow the
 [tracking GH issue](https://github.com/getsentry/sentry-javascript/issues/12620) for updates.**
 
-Below details the setup for the Cloudflare Workers. Cloudflare Pages support is in active development.
-
-## Setup (Cloudflare Workers)
+## Install
 
 To get started, first install the `@sentry/cloudflare` package:
 
@@ -35,6 +33,46 @@ needs access to the `AsyncLocalStorage` API to work correctly.
 compatibility_flags = ["nodejs_compat"]
 # compatibility_flags = ["nodejs_als"]
 ```
+
+Then you can either setup up the SDK for [Cloudflare Pages](#setup-cloudflare-pages) or
+[Cloudflare Workers](#setup-cloudflare-workers).
+
+## Setup (Cloudflare Pages)
+
+To use this SDK, add the `sentryPagesPlugin` as
+[middleware to your Cloudflare Pages application](https://developers.cloudflare.com/pages/functions/middleware/).
+
+We recommend adding a `functions/_middleware.js` for the middleware setup so that Sentry is initialized for your entire
+app.
+
+```javascript
+// functions/_middleware.js
+import * as Sentry from '@sentry/cloudflare';
+
+export const onRequest = Sentry.sentryPagesPlugin({
+  dsn: process.env.SENTRY_DSN,
+  // Set tracesSampleRate to 1.0 to capture 100% of spans for tracing.
+  tracesSampleRate: 1.0,
+});
+```
+
+If you need to to chain multiple middlewares, you can do so by exporting an array of middlewares. Make sure the Sentry
+middleware is the first one in the array.
+
+```javascript
+import * as Sentry from '@sentry/cloudflare';
+
+export const onRequest = [
+  // Make sure Sentry is the first middleware
+  Sentry.sentryPagesPlugin({
+    dsn: process.env.SENTRY_DSN,
+    tracesSampleRate: 1.0,
+  }),
+  // Add more middlewares here
+];
+```
+
+## Setup (Cloudflare Workers)
 
 To use this SDK, wrap your handler with the `withSentry` function. This will initialize the SDK and hook into the
 environment. Note that you can turn off almost all side effects using the respective options.
@@ -58,7 +96,7 @@ export default withSentry(
 );
 ```
 
-### Sourcemaps (Cloudflare Workers)
+### Sourcemaps
 
 Configure uploading sourcemaps via the Sentry Wizard:
 
@@ -68,10 +106,11 @@ npx @sentry/wizard@latest -i sourcemaps
 
 See more details in our [docs](https://docs.sentry.io/platforms/javascript/sourcemaps/).
 
-## Usage (Cloudflare Workers)
+## Usage
 
 To set context information or send manual events, use the exported functions of `@sentry/cloudflare`. Note that these
-functions will require your exported handler to be wrapped in `withSentry`.
+functions will require the usage of the Sentry helpers, either `withSentry` function for Cloudflare Workers or the
+`sentryPagesPlugin` middleware for Cloudflare Pages.
 
 ```javascript
 import * as Sentry from '@sentry/cloudflare';

@@ -1,5 +1,6 @@
-import { Controller, Get, Param } from '@nestjs/common';
+import { Controller, Get, Param, UseGuards } from '@nestjs/common';
 import { AppService } from './app.service';
+import { ExampleGuard } from './example.guard';
 
 @Controller()
 export class AppController {
@@ -15,14 +16,25 @@ export class AppController {
     return this.appService.testMiddleware();
   }
 
+  @Get('test-guard-instrumentation')
+  @UseGuards(ExampleGuard)
+  testGuardInstrumentation() {
+    return {};
+  }
+
   @Get('test-exception/:id')
   async testException(@Param('id') id: string) {
     return this.appService.testException(id);
   }
 
-  @Get('test-expected-exception/:id')
-  async testExpectedException(@Param('id') id: string) {
-    return this.appService.testExpectedException(id);
+  @Get('test-expected-400-exception/:id')
+  async testExpected400Exception(@Param('id') id: string) {
+    return this.appService.testExpected400Exception(id);
+  }
+
+  @Get('test-expected-500-exception/:id')
+  async testExpected500Exception(@Param('id') id: string) {
+    return this.appService.testExpected500Exception(id);
   }
 
   @Get('test-span-decorator-async')

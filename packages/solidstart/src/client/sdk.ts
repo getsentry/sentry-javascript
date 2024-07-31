@@ -1,4 +1,4 @@
-import { applySdkMetadata, setTag } from '@sentry/core';
+import { applySdkMetadata } from '@sentry/core';
 import type { BrowserOptions } from '@sentry/solid';
 import { init as initSolidSDK } from '@sentry/solid';
 import type { Client } from '@sentry/types';
@@ -13,9 +13,5 @@ export function init(options: BrowserOptions): Client | undefined {
 
   applySdkMetadata(opts, 'solidstart', ['solidstart', 'solid']);
 
-  const client = initSolidSDK(opts);
-
-  setTag('runtime', 'browser');
-
-  return client;
+  return initSolidSDK(opts);
 }
