@@ -30,9 +30,9 @@
       }
     },
     "./module": {
-      "types": "./build/module/types.d.ts",
-      "import": "./build/module/module.mjs",
-      "require": "./build/module/module.cjs"
+      "types": "./build/types/module/index.d.ts",
+      "import": "./build/esm/module/index.js",
+      "require": "./build/cjs/module/index.js"
     }
   },
   "publishConfig": {
@@ -53,14 +53,12 @@
     "@sentry/vue": "8.21.0"
   },
   "devDependencies": {
-    "@nuxt/module-builder": "0.8.0",
     "nuxt": "^3.12.2"
   },
   "scripts": {
     "build": "run-s build:types build:transpile",
     "build:dev": "yarn build",
-    "build:nuxt-module": "nuxt-module-build build --outDir build/module",
-    "build:transpile": "rollup -c rollup.npm.config.mjs && yarn build:nuxt-module",
+    "build:transpile": "rollup -c rollup.npm.config.mjs",
     "build:types": "tsc -p tsconfig.types.json",
     "build:watch": "run-p build:transpile:watch build:types:watch",
     "build:dev:watch": "yarn build:watch",
@@ -90,7 +88,8 @@
         "outputs": [
           "{projectRoot}/build/cjs",
           "{projectRoot}/build/esm",
-          "{projectRoot}/build/module"
+          "{projectRoot}/build/cjs/module",
+          "{projectRoot}/build/esm/module"
         ]
       }
     }
