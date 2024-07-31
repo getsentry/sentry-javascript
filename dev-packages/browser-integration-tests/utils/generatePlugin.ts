@@ -272,6 +272,19 @@ class SentryScenarioGenerationPlugin {
                 fileName,
               );
 
+              if (integration === 'feedback') {
+                addStaticAssetSymlink(
+                  this.localOutPath,
+                  path.resolve(PACKAGES_DIR, 'feedback', 'build/bundles/feedback-modal.js'),
+                  'feedback-modal.bundle.js',
+                );
+                addStaticAssetSymlink(
+                  this.localOutPath,
+                  path.resolve(PACKAGES_DIR, 'feedback', 'build/bundles/feedback-screenshot.js'),
+                  'feedback-screenshot.bundle.js',
+                );
+              }
+
               const integrationObject = createHtmlTagObject('script', {
                 src: fileName,
               });

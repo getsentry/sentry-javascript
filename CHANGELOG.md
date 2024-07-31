@@ -9,6 +9,10 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 8.21.0
+
+### Important Changes
+
 - **Alpha release of Official Cloudflare SDK**
   - feat(cloudflare): Add `withSentry` method (#13025)
   - feat(cloudflare): Add cloudflare sdk scaffolding (#12953)
@@ -21,6 +25,18 @@ please see the [README](./packages/cloudflare/README.md). Any feedback/bug repor
 
 Please note that only Cloudflare Workers are tested and supported - official Cloudflare Pages support will come in an
 upcoming release.
+
+### Other Changes
+
+- feat(feedback): Make cropped screenshot area draggable (#13071)
+- feat(core): Adapt spans for client-side fetch to streaming responses (#12723)
+- feat(core): Capture # of dropped spans through `beforeSendTransaction` (#13022)
+- feat(deps): bump @opentelemetry/instrumentation-aws-sdk from 0.43.0 to 0.43.1 (#13089)
+- feat(deps): bump @opentelemetry/instrumentation-express from 0.41.0 to 0.41.1 (#13090)
+- feat(nuxt): Add connected tracing meta tags (#13098)
+- feat(nuxt): Add vue-router instrumentation (#13054)
+- fix(feedback): Ensure pluggable feedback CDN bundle is correctly built (#13081)
+- fix(node): Improve OTEL validation logic (#13079)
 
 ## 8.20.0
 
