@@ -25,6 +25,8 @@ sentryTest('should capture a LCP vital with element details.', async ({ browserN
     }),
   ]);
 
+  console.log(eventData.contexts?.trace);
+  expect(eventData.contexts?.trace?.data?.['lcp.element']).toBe('body > img');
   await page.locator('button').click();
 
   expect(eventData.measurements).toBeDefined();
