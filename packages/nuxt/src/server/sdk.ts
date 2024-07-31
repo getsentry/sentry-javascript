@@ -1,6 +1,6 @@
-import { applySdkMetadata } from '@sentry/core';
+import { applySdkMetadata, getGlobalScope } from '@sentry/core';
 import { init as initNode } from '@sentry/node';
-import type { Client } from '@sentry/types';
+import type { Client, EventProcessor } from '@sentry/types';
 import type { SentryNuxtOptions } from '../common/types';
 
 /**
@@ -15,5 +15,29 @@ export function init(options: SentryNuxtOptions): Client | undefined {
 
   applySdkMetadata(sentryOptions, 'nuxt', ['nuxt', 'node']);
 
-  return initNode(sentryOptions);
+  const client = initNode(sentryOptions);
+
+  getGlobalScope().addEventProcessor(
+    Object.assign(
+      (event => {
+        if (event.type === 'transaction') {
+          // Filter out transactions for Nuxt build assets
+          // This regex matches the default path to the nuxt-generated build assets (`_nuxt`).
+          if (event.transaction?.match(/^GET \/_nuxt\//)) {
+            options.debug &&
+              // eslint-disable-next-line no-console
+              console.log('[Sentry] NuxtLowQualityTransactionsFilter filtered transaction: ', event.transaction);
+            return null;
+          }
+
+          return event;
+        } else {
+          return event;
+        }
+      }) satisfies EventProcessor,
+      { id: 'NuxtLowQualityTransactionsFilter' },
+    ),
+  );
+
+  return client;
 }
