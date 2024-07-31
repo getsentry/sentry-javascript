@@ -35,6 +35,7 @@ export type RouteConfig = {
   exact?: boolean;
   component?: ReactElement;
   routes?: RouteConfig[];
+  // wip change...
 };
 
 export type MatchPath = (pathname: string, props: string | string[] | any, parent?: Match | null) => Match | null; // eslint-disable-line @typescript-eslint/no-explicit-any
