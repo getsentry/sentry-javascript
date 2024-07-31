@@ -20,9 +20,14 @@ export class AppController {
     return this.appService.testException(id);
   }
 
-  @Get('test-expected-exception/:id')
-  async testExpectedException(@Param('id') id: string) {
-    return this.appService.testExpectedException(id);
+  @Get('test-expected-400-exception/:id')
+  async testExpected400Exception(@Param('id') id: string) {
+    return this.appService.testExpected400Exception(id);
+  }
+
+  @Get('test-expected-500-exception/:id')
+  async testExpected500Exception(@Param('id') id: string) {
+    return this.appService.testExpected500Exception(id);
   }
 
   @Get('test-span-decorator-async')

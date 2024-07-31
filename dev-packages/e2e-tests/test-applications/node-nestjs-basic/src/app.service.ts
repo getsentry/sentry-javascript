@@ -30,8 +30,12 @@ export class AppService {
     throw new Error(`This is an exception with id ${id}`);
   }
 
-  testExpectedException(id: string) {
-    throw new HttpException(`This is an expected exception with id ${id}`, HttpStatus.FORBIDDEN);
+  testExpected400Exception(id: string) {
+    throw new HttpException(`This is an expected 400 exception with id ${id}`, HttpStatus.BAD_REQUEST);
+  }
+
+  testExpected500Exception(id: string) {
+    throw new HttpException(`This is an expected 500 exception with id ${id}`, HttpStatus.INTERNAL_SERVER_ERROR);
   }
 
   @SentryTraced('wait and return a string')
