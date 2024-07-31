@@ -17,7 +17,12 @@ webpack(
       minimize: true,
       minimizer: [new TerserPlugin()],
     },
-    plugins: [new webpack.EnvironmentPlugin(['E2E_TEST_DSN']), new HtmlWebpackPlugin()],
+    plugins: [
+      new webpack.EnvironmentPlugin(['E2E_TEST_DSN']),
+      new HtmlWebpackPlugin({
+        template: path.join(__dirname, 'public/index.html'),
+      }),
+    ],
     mode: 'production',
   },
   (err, stats) => {
