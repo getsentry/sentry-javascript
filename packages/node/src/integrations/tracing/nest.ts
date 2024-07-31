@@ -157,7 +157,7 @@ export class SentryNestInstrumentation extends InstrumentationBase {
                 const [req, res, next, ...args] = argsUse;
                 const prevSpan = getActiveSpan();
 
-                startSpanManual(
+                return startSpanManual(
                   {
                     name: target.name,
                     attributes: {
@@ -172,10 +172,10 @@ export class SentryNestInstrumentation extends InstrumentationBase {
 
                         if (prevSpan) {
                           withActiveSpan(prevSpan, () => {
-                            Reflect.apply(originalNext, thisArgNext, argsNext);
+                            return Reflect.apply(originalNext, thisArgNext, argsNext);
                           });
                         } else {
-                          Reflect.apply(originalNext, thisArgNext, argsNext);
+                          return Reflect.apply(originalNext, thisArgNext, argsNext);
                         }
                       },
                     });
@@ -196,7 +196,7 @@ export class SentryNestInstrumentation extends InstrumentationBase {
 
             target.prototype.canActivate = new Proxy(target.prototype.canActivate, {
               apply: (originalCanActivate, thisArgCanActivate, argsCanActivate) => {
-                startSpan(
+                return startSpan(
                   {
                     name: target.name,
                     attributes: {

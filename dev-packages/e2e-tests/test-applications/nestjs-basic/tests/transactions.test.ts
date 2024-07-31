@@ -132,7 +132,8 @@ test('API route transaction includes nest middleware span. Spans created in and 
     );
   });
 
-  await fetch(`${baseURL}/test-middleware-instrumentation`);
+  const response = await fetch(`${baseURL}/test-middleware-instrumentation`);
+  expect(response.status).toBe(200);
 
   const transactionEvent = await pageloadTransactionEventPromise;
 
@@ -211,7 +212,8 @@ test('API route transaction includes nest guard span and span started in guard i
     );
   });
 
-  await fetch(`${baseURL}/test-guard-instrumentation`);
+  const response = await fetch(`${baseURL}/test-guard-instrumentation`);
+  expect(response.status).toBe(200);
 
   const transactionEvent = await transactionEventPromise;
 
