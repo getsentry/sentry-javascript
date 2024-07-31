@@ -2,7 +2,7 @@ import * as Sentry from '@sentry/node';
 
 import { getMainCarrier } from '@sentry/core';
 import type { NodeClientOptions } from '@sentry/node/build/types/types';
-import type { Transport } from '@sentry/types';
+import type { ProfileChunk, Transport } from '@sentry/types';
 import { GLOBAL_OBJ, createEnvelope, logger } from '@sentry/utils';
 import { CpuProfilerBindings } from '../src/cpu_profiler';
 import { type ProfilingIntegration, _nodeProfilingIntegration } from '../src/integration';
@@ -401,6 +401,51 @@ describe('continuous profiling', () => {
     jest.runAllTimers();
     delete getMainCarrier().__SENTRY__;
   });
+
+  it('attaches sdk metadata to chunks', () => {
+    // @ts-expect-error we just mock the return type and ignore the signature
+    jest.spyOn(CpuProfilerBindings, 'stopProfiling').mockImplementation(() => {
+      return {
+        samples: [
+          {
+            stack_id: 0,
+            thread_id: '0',
+            elapsed_since_start_ns: '10',
+          },
+          {
+            stack_id: 0,
+            thread_id: '0',
+            elapsed_since_start_ns: '10',
+          },
+        ],
+        measurements: {},
+        stacks: [[0]],
+        frames: [],
+        resources: [],
+        profiler_logging_mode: 'lazy',
+      };
+    });
+
+    const [client, transport] = makeContinuousProfilingClient();
+    Sentry.setCurrentClient(client);
+    client.init();
+
+    const transportSpy = jest.spyOn(transport, 'send').mockReturnValue(Promise.resolve({}));
+
+    const integration = client.getIntegrationByName<ProfilingIntegration>('ProfilingIntegration');
+    if (!integration) {
+      throw new Error('Profiling integration not found');
+    }
+    integration._profiler.start();
+    jest.advanceTimersByTime(1000);
+    integration._profiler.stop();
+    jest.advanceTimersByTime(1000);
+
+    const profile = transportSpy.mock.calls?.[0]?.[0]?.[1]?.[0]?.[1] as ProfileChunk;
+    expect(profile.client_sdk.name).toBe('sentry.javascript.node');
+    expect(profile.client_sdk.version).toEqual(expect.stringMatching(/\d+\.\d+\.\d+/));
+  });
+
 
   it('initializes the continuous profiler and binds the sentry client', () => {
     const startProfilingSpy = jest.spyOn(CpuProfilerBindings, 'startProfiling');
