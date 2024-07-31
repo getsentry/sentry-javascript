@@ -33,7 +33,7 @@ export function initOpenTelemetry(client: NodeClient): void {
 }
 
 type ImportInTheMiddleInitData = Pick<EsmLoaderHookOptions, 'include' | 'exclude'> & {
-  addHookMessagePort?: MessagePort;
+  addHookMessagePort?: unknown;
 };
 
 interface RegisterOptions {
