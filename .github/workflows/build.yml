@@ -1610,9 +1610,12 @@ jobs:
         if: matrix.arch != 'arm64'
         run: |
           yarn lerna run test --scope @sentry/profiling-node
+      - name: Binary Key
+        id: binary-key
+        run: echo "::set-output name=binary-key::profiling-node-binaries-${{ github.sha }}-${{ matrix.node }}-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.container }} | sed's/:/-/g'"
 
       - name: Archive Binary
         uses: actions/upload-artifact@v4
         with:
-          name: profiling-node-binaries-${{ github.sha }}-${{ matrix.node }}-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.container }}
+          name: ${{ steps.binary-key.outputs.binary-key }}
           path: ${{ github.workspace }}/packages/profiling-node/lib/*.node
