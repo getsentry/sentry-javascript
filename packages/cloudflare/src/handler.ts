@@ -1,7 +1,14 @@
-import type { ExportedHandler, ExportedHandlerFetchHandler } from '@cloudflare/workers-types';
-import type { Options } from '@sentry/types';
+import type {
+  ExportedHandler,
+  ExportedHandlerFetchHandler,
+  ExportedHandlerScheduledHandler,
+} from '@cloudflare/workers-types';
+import { captureException, flush, startSpan, withIsolationScope } from '@sentry/core';
 import { setAsyncLocalStorageAsyncContextStrategy } from './async';
+import type { CloudflareOptions } from './client';
 import { wrapRequestHandler } from './request';
+import { addCloudResourceContext } from './scope-utils';
+import { init } from './sdk';
 
 /**
  * Extract environment generic from exported handler.
@@ -21,7 +28,7 @@ type ExtractEnv<P> = P extends ExportedHandler<infer Env> ? Env : never;
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function withSentry<E extends ExportedHandler<any>>(
-  optionsCallback: (env: ExtractEnv<E>) => Options,
+  optionsCallback: (env: ExtractEnv<E>) => CloudflareOptions,
   handler: E,
 ): E {
   setAsyncLocalStorageAsyncContextStrategy();
@@ -38,6 +45,51 @@ export function withSentry<E extends ExportedHandler<any>>(
 
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
     (handler.fetch as any).__SENTRY_INSTRUMENTED__ = true;
+  }
+
+  if (
+    'scheduled' in handler &&
+    typeof handler.scheduled === 'function' &&
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
+    !(handler.scheduled as any).__SENTRY_INSTRUMENTED__
+  ) {
+    handler.scheduled = new Proxy(handler.scheduled, {
+      apply(target, thisArg, args: Parameters<ExportedHandlerScheduledHandler<ExtractEnv<E>>>) {
+        const [event, env, context] = args;
+        return withIsolationScope(isolationScope => {
+          const options = optionsCallback(env);
+          const client = init(options);
+          isolationScope.setClient(client);
+
+          addCloudResourceContext(isolationScope);
+
+          return startSpan(
+            {
+              op: 'faas.cron',
+              name: `Scheduled Cron ${event.cron}`,
+              attributes: {
+                'faas.cron': event.cron,
+                'faas.time': new Date(event.scheduledTime).toISOString(),
+                'faas.trigger': 'timer',
+              },
+            },
+            async () => {
+              try {
+                return await (target.apply(thisArg, args) as ReturnType<typeof target>);
+              } catch (e) {
+                captureException(e, { mechanism: { handled: false, type: 'cloudflare' } });
+                throw e;
+              } finally {
+                context.waitUntil(flush(2000));
+              }
+            },
+          );
+        });
+      },
+    });
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
+    (handler.scheduled as any).__SENTRY_INSTRUMENTED__ = true;
   }
 
   return handler;

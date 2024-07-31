@@ -1,4 +1,4 @@
-import type { ExecutionContext, IncomingRequestCfProperties } from '@cloudflare/workers-types';
+import type { ExecutionContext, IncomingRequestCfProperties, Request, Response } from '@cloudflare/workers-types';
 
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
@@ -11,9 +11,10 @@ import {
   startSpan,
   withIsolationScope,
 } from '@sentry/core';
-import type { Scope, SpanAttributes } from '@sentry/types';
-import { stripUrlQueryAndFragment, winterCGRequestToRequestData } from '@sentry/utils';
+import type { SpanAttributes } from '@sentry/types';
+import { stripUrlQueryAndFragment } from '@sentry/utils';
 import type { CloudflareOptions } from './client';
+import { addCloudResourceContext, addCultureContext, addRequest } from './scope-utils';
 import { init } from './sdk';
 
 interface RequestHandlerWrapperOptions {
@@ -95,29 +96,4 @@ export function wrapRequestHandler(
       },
     );
   });
-}
-
-/**
- * Set cloud resource context on scope.
- */
-function addCloudResourceContext(scope: Scope): void {
-  scope.setContext('cloud_resource', {
-    'cloud.provider': 'cloudflare',
-  });
-}
-
-/**
- * Set culture context on scope
- */
-function addCultureContext(scope: Scope, cf: IncomingRequestCfProperties): void {
-  scope.setContext('culture', {
-    timezone: cf.timezone,
-  });
-}
-
-/**
- * Set request data on scope
- */
-function addRequest(scope: Scope, request: Request): void {
-  scope.setSDKProcessingMetadata({ request: winterCGRequestToRequestData(request) });
 }
