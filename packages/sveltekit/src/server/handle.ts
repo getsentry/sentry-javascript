@@ -231,3 +231,5 @@ async function instrumentHandle(
     await flushIfServerless();
   }
 }
+
+const a = '';
