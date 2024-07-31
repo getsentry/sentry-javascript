@@ -216,7 +216,7 @@ function createProfileChunkPayload(
   const profile: ProfileChunk = {
     chunk_id: chunk_id,
     client_sdk: {
-      name: sdk?.name ?? 'unknown',
+      name: sdk?.name ?? 'sentry.javascript.node',
       version: sdk?.version ?? 'unknown',
     },
     profiler_id: profiler_id,
