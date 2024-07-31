@@ -17,14 +17,15 @@ import { makeCloudflareTransport } from './transport';
 import { defaultStackParser } from './vendor/stacktrace';
 
 /** Get the default integrations for the Cloudflare SDK. */
-export function getDefaultIntegrations(_options: Options): Integration[] {
+export function getDefaultIntegrations(options: Options): Integration[] {
+  const sendDefaultPii = options.sendDefaultPii ?? false;
   return [
     dedupeIntegration(),
     inboundFiltersIntegration(),
     functionToStringIntegration(),
     linkedErrorsIntegration(),
     fetchIntegration(),
-    requestDataIntegration(),
+    requestDataIntegration(sendDefaultPii ? undefined : { include: { cookies: false } }),
   ];
 }
 

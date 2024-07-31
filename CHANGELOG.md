@@ -9,6 +9,28 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## Unreleased
+
+### Important Changes
+
+- **feat(cloudflare): Add plugin for cloudflare pages (#13123)**
+
+This release adds support for Cloudflare Pages to `@sentry/cloudflare`, our SDK for the
+[Cloudflare Workers JavaScript Runtime](https://developers.cloudflare.com/workers/)! For details on how to use it,
+please see the [README](./packages/cloudflare/README.md). Any feedback/bug reports are greatly appreciated, please
+[reach out on GitHub](https://github.com/getsentry/sentry-javascript/issues/12620).
+
+```javascript
+// functions/_middleware.js
+import * as Sentry from '@sentry/cloudflare';
+
+export const onRequest = Sentry.sentryPagesPlugin({
+  dsn: __PUBLIC_DSN__,
+  // Set tracesSampleRate to 1.0 to capture 100% of spans for tracing.
+  tracesSampleRate: 1.0,
+});
+```
+
 ## 8.21.0
 
 ### Important Changes
