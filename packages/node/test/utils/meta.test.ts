@@ -1,7 +1,7 @@
 import * as SentryCore from '@sentry/core';
 import { SentrySpan } from '@sentry/core';
 
-import { getTracingMetaTags, isValidBaggageString } from '../../src/utils/meta';
+import { getTracingMetaTagValues, isValidBaggageString } from '../../src/utils/meta';
 
 const TRACE_FLAG_SAMPLED = 1;
 
@@ -19,14 +19,14 @@ const mockedScope = {
   }),
 } as any;
 
-describe('getTracingMetaTags', () => {
+describe('getTracingMetaTagValues', () => {
   it('returns the tracing meta tags from the span, if it is provided', () => {
     {
       jest.spyOn(SentryCore, 'getDynamicSamplingContextFromSpan').mockReturnValueOnce({
         environment: 'production',
       });
 
-      const tags = getTracingMetaTags(mockedSpan, mockedScope, mockedClient);
+      const tags = getTracingMetaTagValues(mockedSpan, mockedScope, mockedClient);
 
       expect(tags).toEqual({
         'sentry-trace': '12345678901234567890123456789012-1234567890123456-1',
@@ -36,7 +36,7 @@ describe('getTracingMetaTags', () => {
   });
 
   it('returns propagationContext DSC data if no span is available', () => {
-    const tags = getTracingMetaTags(
+    const tags = getTracingMetaTagValues(
       undefined,
       {
         getPropagationContext: () => ({
@@ -65,7 +65,7 @@ describe('getTracingMetaTags', () => {
       public_key: undefined,
     });
 
-    const tags = getTracingMetaTags(
+    const tags = getTracingMetaTagValues(
       // @ts-expect-error - we don't need to provide all the properties
       {
         isRecording: () => true,
@@ -92,7 +92,7 @@ describe('getTracingMetaTags', () => {
       public_key: undefined,
     });
 
-    const tags = getTracingMetaTags(
+    const tags = getTracingMetaTagValues(
       // @ts-expect-error - we don't need to provide all the properties
       {
         isRecording: () => true,

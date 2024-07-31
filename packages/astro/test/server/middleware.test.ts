@@ -7,7 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { handleRequest, interpolateRouteFromUrlAndParams } from '../../src/server/middleware';
 
 vi.mock('../../src/server/meta', () => ({
-  getTracingMetaTags: () => ({
+  getTracingMetaTagValues: () => ({
     sentryTrace: '<meta name="sentry-trace" content="123">',
     baggage: '<meta name="baggage" content="abc">',
   }),

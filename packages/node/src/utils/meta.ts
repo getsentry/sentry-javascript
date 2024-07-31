@@ -13,19 +13,29 @@ import {
 } from '@sentry/utils';
 
 /**
- * Extracts the tracing data from the current span or from the client's scope (via transaction or propagation context)
- * and serializes the data to <meta> tag contents.
+ * Extracts trace propagation data from the current span or from the client's scope (via transaction or propagation
+ * context) and serializes it to meta tag content values.
  *
- * Use this function to obtain the tracing meta tags you can inject when rendering an HTML response to continue
- * the server-initiated trace on the client.
+ * Use this function to obtain data for the tracing meta tags you can inject when rendering an HTML response to
+ * continue the server-initiated trace on the client.
+ *
+ * Example usage:
+ *
+ * ```js
+ * // render meta tags as html
+ * const tagValues = getTracingMetaTagValues(span, scope, client);
+ * return `
+ *   <meta name="sentry-trace" content="${tagValues['sentry-trace']}"/>
+ *  ${tagValues.baggage ? `<meta name="baggage" content="${tagValues.baggage}"/>` : ''}`
+ * ```
  *
  * @param span the currently active span
  * @param client the SDK's client
  *
- * @returns an object with the two meta tags. The object keys are the name of the meta tag,
+ * @returns an object with the values of the tracing meta tags. The object keys are the name of the meta tag,
  * the respective value is the content.
  */
-export function getTracingMetaTags(
+export function getTracingMetaTagValues(
   span: Span | undefined,
   scope: Scope,
   client: Client | undefined,

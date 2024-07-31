@@ -55,7 +55,7 @@ export {
   getSentryRelease,
   getSpanDescendants,
   getSpanStatusFromHttpCode,
-  getTracingMetaTags,
+  getTracingMetaTagValues,
   graphqlIntegration,
   hapiIntegration,
   httpIntegration,
