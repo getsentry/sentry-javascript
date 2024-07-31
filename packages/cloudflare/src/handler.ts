@@ -3,7 +3,14 @@ import type {
   ExportedHandlerFetchHandler,
   ExportedHandlerScheduledHandler,
 } from '@cloudflare/workers-types';
-import { captureException, flush, startSpan, withIsolationScope } from '@sentry/core';
+import {
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  captureException,
+  flush,
+  startSpan,
+  withIsolationScope,
+} from '@sentry/core';
 import { setAsyncLocalStorageAsyncContextStrategy } from './async';
 import type { CloudflareOptions } from './client';
 import { wrapRequestHandler } from './request';
@@ -71,6 +78,8 @@ export function withSentry<E extends ExportedHandler<any>>(
                 'faas.cron': event.cron,
                 'faas.time': new Date(event.scheduledTime).toISOString(),
                 'faas.trigger': 'timer',
+                [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.faas.cloudflare',
+                [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'task',
               },
             },
             async () => {

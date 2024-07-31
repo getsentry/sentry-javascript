@@ -1,4 +1,4 @@
-import type { ExecutionContext, IncomingRequestCfProperties, Request, Response } from '@cloudflare/workers-types';
+import type { ExecutionContext, IncomingRequestCfProperties } from '@cloudflare/workers-types';
 
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
