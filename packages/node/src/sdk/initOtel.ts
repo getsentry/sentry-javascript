@@ -10,6 +10,7 @@ import {
 import { SDK_VERSION } from '@sentry/core';
 import { SentryPropagator, SentrySampler, SentrySpanProcessor } from '@sentry/opentelemetry';
 import { GLOBAL_OBJ, consoleSandbox, logger } from '@sentry/utils';
+import { createAddHookMessageChannel } from 'import-in-the-middle';
 
 import { getOpenTelemetryInstrumentationToPreload } from '../integrations/tracing';
 import { SentryContextManager } from '../otel/contextManager';
@@ -31,6 +32,31 @@ export function initOpenTelemetry(client: NodeClient): void {
   client.traceProvider = provider;
 }
 
+type ImportInTheMiddleInitData = Pick<EsmLoaderHookOptions, 'include' | 'exclude'> & {
+  addHookMessagePort?: MessagePort;
+};
+
+interface RegisterOptions {
+  data?: ImportInTheMiddleInitData;
+  transferList?: unknown[];
+}
+
+function getRegisterOptions(esmHookConfig?: EsmLoaderHookOptions): RegisterOptions {
+  // There was no specific config so empty options
+  if (!esmHookConfig) {
+    return {};
+  }
+
+  if (esmHookConfig.onlyHookedModules) {
+    const { addHookMessagePort } = createAddHookMessageChannel();
+    // If the user supplied include, we need to use that as a starting point or use an empty array to ensure no modules
+    // are wrapped if they are not hooked
+    return { data: { addHookMessagePort, include: esmHookConfig.include || [] }, transferList: [addHookMessagePort] };
+  }
+
+  return { data: esmHookConfig };
+}
+
 /** Initialize the ESM loader. */
 export function maybeInitializeEsmLoader(esmHookConfig?: EsmLoaderHookOptions): void {
   const [nodeMajor = 0, nodeMinor = 0] = process.versions.node.split('.').map(Number);
@@ -44,7 +70,7 @@ export function maybeInitializeEsmLoader(esmHookConfig?: EsmLoaderHookOptions): 
     if (!GLOBAL_OBJ._sentryEsmLoaderHookRegistered && importMetaUrl) {
       try {
         // @ts-expect-error register is available in these versions
-        moduleModule.register('import-in-the-middle/hook.mjs', importMetaUrl, { data: esmHookConfig });
+        moduleModule.register('import-in-the-middle/hook.mjs', importMetaUrl, getRegisterOptions(esmHookConfig));
         GLOBAL_OBJ._sentryEsmLoaderHookRegistered = true;
       } catch (error) {
         logger.warn('Failed to register ESM hook', error);

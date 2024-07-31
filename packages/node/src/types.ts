@@ -6,7 +6,17 @@ import type { NodeTransportOptions } from './transports';
 
 export interface EsmLoaderHookOptions {
   include?: Array<string | RegExp>;
-  exclude?: Array<string | RegExp>;
+  exclude?: Array<string | RegExp> /**
+   * When set to `true`, `import-in-the-middle` will only wrap ESM modules that are specifically hooked by OpenTelemetry
+   * instrumentations. This feature is useful to avoid issues where `import-in-the-middle` is not compatible with some
+   * of your dependencies.
+   *
+   * **Note**: This feature will only work if you `init` the SDK before the instrumented modules are loaded via the Node
+   * `--import` CLI flag or `init` is called before loading your app via async `import()`.
+   *
+   * Defaults to `false`.
+   */;
+  onlyHookedModules?: boolean;
 }
 
 export interface BaseNodeOptions {
