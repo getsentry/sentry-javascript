@@ -34,7 +34,7 @@ export const onRequest = Sentry.sentryPagesPlugin({
 ### Other Changes
 
 - feat(meta-sdks): Remove runtime tags (#13105)
-- feat(nestjs): Automatic instrumentation of nestjs guards  (#13129)
+- feat(nestjs): Automatic instrumentation of nestjs guards (#13129)
 - feat(nestjs): Filter all HttpExceptions (#13120)
 - feat(replay): Capture exception when `internal_sdk_error` client report happens (#13072)
 - fix: Use `globalThis` for code injection (#13132)
