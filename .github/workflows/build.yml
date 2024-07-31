@@ -434,7 +434,7 @@ jobs:
     timeout-minutes: 10
     runs-on: ubuntu-20.04
     steps:
-      - name: Check out head commit (${{ github.event.pull_request.base.sha }})
+      - name: Check out base commit (${{ github.event.pull_request.base.sha }})
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.base.sha }}
@@ -453,7 +453,7 @@ jobs:
           DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
 
       - name: Run affected tests
-        run: yarn test:pr:browser --base=${{ github.event.pull_request.head.sha }}
+        run: yarn test:pr:browser --base=${{ github.event.pull_request.base.sha }}
         if: github.event_name == 'pull_request'
 
       - name: Run all tests
@@ -533,7 +533,7 @@ jobs:
       matrix:
         node: [14, 16, 18, 20, 22]
     steps:
-      - name: Check out head commit (${{ github.event.pull_request.base.sha }})
+      - name: Check out base commit (${{ github.event.pull_request.base.sha }})
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.base.sha }}
