@@ -22,7 +22,7 @@ export class AppController {
     return {};
   }
 
-  @Get('test-pipe-instrumentation')
+  @Get('test-pipe-instrumentation/:id')
   testPipeInstrumentation(@Param('id', ParseIntPipe) id: number) {
     return { value: id };
   }
