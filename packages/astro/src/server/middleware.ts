@@ -189,7 +189,6 @@ function addMetaTagToHead(htmlChunk: string, scope: Scope, client: Client, span?
   if (typeof htmlChunk !== 'string') {
     return htmlChunk;
   }
-  console.log({ scope });
   const { 'sentry-trace': sentryTrace, baggage } = getTracingMetaTags(span, scope, client);
 
   const sentryTraceMeta = `<meta name="sentry-trace" content="${sentryTrace}"/>`;
