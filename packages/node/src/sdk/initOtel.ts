@@ -42,7 +42,7 @@ interface RegisterOptions {
 }
 
 function getRegisterOptions(esmHookConfig?: EsmLoaderHookOptions): RegisterOptions {
-  if (esmHookConfig?.onlyHookedModules) {
+  if (esmHookConfig?.onlyIncludeInstrumentedModules) {
     const { addHookMessagePort } = createAddHookMessageChannel();
     // If the user supplied include, we need to use that as a starting point or use an empty array to ensure no modules
     // are wrapped if they are not hooked

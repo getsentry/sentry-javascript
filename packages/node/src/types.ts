@@ -17,7 +17,7 @@ export interface EsmLoaderHookOptions {
    *
    * Defaults to `false`.
    */;
-  onlyHookedModules?: boolean;
+  onlyIncludeInstrumentedModules?: boolean;
 }
 
 export interface BaseNodeOptions {
