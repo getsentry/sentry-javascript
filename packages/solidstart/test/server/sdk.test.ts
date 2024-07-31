@@ -33,10 +33,4 @@ describe('Initialize Solid Start SDK', () => {
     expect(browserInit).toHaveBeenCalledTimes(1);
     expect(browserInit).toHaveBeenLastCalledWith(expect.objectContaining(expectedMetadata));
   });
-
-  it('sets the runtime tag on the isolation scope', () => {
-    solidStartInit({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
-
-    expect(SentryNode.getIsolationScope().getScopeData().tags).toEqual({ runtime: 'node' });
-  });
 });

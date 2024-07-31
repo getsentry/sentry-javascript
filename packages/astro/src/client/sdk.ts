@@ -3,7 +3,6 @@ import {
   browserTracingIntegration,
   getDefaultIntegrations as getBrowserDefaultIntegrations,
   init as initBrowserSdk,
-  setTag,
 } from '@sentry/browser';
 import { applySdkMetadata, hasTracingEnabled } from '@sentry/core';
 import type { Client, Integration } from '@sentry/types';
@@ -24,11 +23,7 @@ export function init(options: BrowserOptions): Client | undefined {
 
   applySdkMetadata(opts, 'astro', ['astro', 'browser']);
 
-  const client = initBrowserSdk(opts);
-
-  setTag('runtime', 'browser');
-
-  return client;
+  return initBrowserSdk(opts);
 }
 
 function getDefaultIntegrations(options: BrowserOptions): Integration[] | undefined {

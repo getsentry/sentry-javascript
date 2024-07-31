@@ -183,7 +183,7 @@ function createResourceEntry(
  */
 export function getLargestContentfulPaint(metric: Metric): ReplayPerformanceEntry<WebVitalData> {
   const lastEntry = metric.entries[metric.entries.length - 1] as (PerformanceEntry & { element?: Node }) | undefined;
-  const node = lastEntry ? lastEntry.element : undefined;
+  const node = lastEntry && lastEntry.element ? [lastEntry.element] : undefined;
   return getWebVital(metric, 'largest-contentful-paint', node);
 }
 
@@ -191,14 +191,18 @@ export function getLargestContentfulPaint(metric: Metric): ReplayPerformanceEntr
  * Add a CLS event to the replay based on a CLS metric.
  */
 export function getCumulativeLayoutShift(metric: Metric): ReplayPerformanceEntry<WebVitalData> {
-  // get first node that shifts
-  const firstEntry = metric.entries[0] as (PerformanceEntry & { sources?: LayoutShiftAttribution[] }) | undefined;
-  const node = firstEntry
-    ? firstEntry.sources && firstEntry.sources[0]
-      ? firstEntry.sources[0].node
-      : undefined
-    : undefined;
-  return getWebVital(metric, 'cumulative-layout-shift', node);
+  const lastEntry = metric.entries[metric.entries.length - 1] as
+    | (PerformanceEntry & { sources?: LayoutShiftAttribution[] })
+    | undefined;
+  const nodes: Node[] = [];
+  if (lastEntry && lastEntry.sources) {
+    for (const source of lastEntry.sources) {
+      if (source.node) {
+        nodes.push(source.node);
+      }
+    }
+  }
+  return getWebVital(metric, 'cumulative-layout-shift', nodes);
 }
 
 /**
@@ -206,7 +210,7 @@ export function getCumulativeLayoutShift(metric: Metric): ReplayPerformanceEntry
  */
 export function getFirstInputDelay(metric: Metric): ReplayPerformanceEntry<WebVitalData> {
   const lastEntry = metric.entries[metric.entries.length - 1] as (PerformanceEntry & { target?: Node }) | undefined;
-  const node = lastEntry ? lastEntry.target : undefined;
+  const node = lastEntry && lastEntry.target ? [lastEntry.target] : undefined;
   return getWebVital(metric, 'first-input-delay', node);
 }
 
@@ -215,18 +219,14 @@ export function getFirstInputDelay(metric: Metric): ReplayPerformanceEntry<WebVi
  */
 export function getInteractionToNextPaint(metric: Metric): ReplayPerformanceEntry<WebVitalData> {
   const lastEntry = metric.entries[metric.entries.length - 1] as (PerformanceEntry & { target?: Node }) | undefined;
-  const node = lastEntry ? lastEntry.target : undefined;
+  const node = lastEntry && lastEntry.target ? [lastEntry.target] : undefined;
   return getWebVital(metric, 'interaction-to-next-paint', node);
 }
 
 /**
  * Add an web vital event to the replay based on the web vital metric.
  */
-export function getWebVital(
-  metric: Metric,
-  name: string,
-  node: Node | undefined,
-): ReplayPerformanceEntry<WebVitalData> {
+function getWebVital(metric: Metric, name: string, nodes: Node[] | undefined): ReplayPerformanceEntry<WebVitalData> {
   const value = metric.value;
   const rating = metric.rating;
 
@@ -241,7 +241,7 @@ export function getWebVital(
       value,
       size: value,
       rating,
-      nodeId: node ? record.mirror.getId(node) : undefined,
+      nodeIds: nodes ? nodes.map(node => record.mirror.getId(node)) : undefined,
     },
   };
 

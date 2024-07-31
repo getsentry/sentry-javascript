@@ -18,8 +18,6 @@ test.describe('server-side errors', () => {
         in_app: true,
       }),
     );
-
-    expect(errorEvent.tags).toMatchObject({ runtime: 'node' });
   });
 
   test('captures server load error', async ({ page }) => {
@@ -38,8 +36,6 @@ test.describe('server-side errors', () => {
         in_app: true,
       }),
     );
-
-    expect(errorEvent.tags).toMatchObject({ runtime: 'node' });
   });
 
   test('captures server route (GET) error', async ({ page }) => {

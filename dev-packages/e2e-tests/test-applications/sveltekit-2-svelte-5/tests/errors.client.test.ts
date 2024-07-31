@@ -26,8 +26,6 @@ test.describe('client-side errors', () => {
       }),
     );
 
-    expect(errorEvent.tags).toMatchObject({ runtime: 'browser' });
-
     expect(errorEvent.transaction).toEqual('/client-error');
   });
 
@@ -53,7 +51,6 @@ test.describe('client-side errors', () => {
       }),
     );
 
-    expect(errorEvent.tags).toMatchObject({ runtime: 'browser' });
     expect(errorEvent.transaction).toEqual('/universal-load-error');
   });
 });

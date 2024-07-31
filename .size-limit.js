@@ -149,7 +149,7 @@ module.exports = [
     name: 'CDN Bundle (incl. Tracing, Replay)',
     path: createCDNPath('bundle.tracing.replay.min.js'),
     gzip: true,
-    limit: '72 KB',
+    limit: '73 KB',
   },
   {
     name: 'CDN Bundle (incl. Tracing, Replay, Feedback)',
