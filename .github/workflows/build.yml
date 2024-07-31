@@ -1,4 +1,4 @@
-name: 'CI: Build & Test'
+tname: 'CI: Build & Test'
 on:
   push:
     branches:
@@ -1613,7 +1613,7 @@ jobs:
 
       - name: Binary Key
         id: binary-key
-        run: echo "::set-output name=binary-key::profiling-node-binaries-${{ github.sha }}-${{ matrix.node }}-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.container }} | sed's/:/-/g'"
+        run: echo "::set-output name=binary-key::profiling-node-binaries-${{ github.sha }}-${{ matrix.node }}-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.container }} | sed 's/:/-/g'"
 
       - name: Archive Binary
         uses: actions/upload-artifact@v4
