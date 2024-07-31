@@ -180,11 +180,11 @@ test.describe('performance events', () => {
 
   test('captures a navigation transaction directly after pageload', async ({ page }) => {
     const clientPageloadTxnPromise = waitForTransaction('sveltekit-2', txnEvent => {
-      return txnEvent?.contexts?.trace?.op === 'pageload' && txnEvent?.tags?.runtime === 'browser';
+      return txnEvent?.contexts?.trace?.op === 'pageload';
     });
 
     const clientNavigationTxnPromise = waitForTransaction('sveltekit-2', txnEvent => {
-      return txnEvent?.contexts?.trace?.op === 'navigation' && txnEvent?.tags?.runtime === 'browser';
+      return txnEvent?.contexts?.trace?.op === 'navigation';
     });
 
     await waitForInitialPageload(page, { route: '/' });
@@ -245,27 +245,15 @@ test.describe('performance events', () => {
 
   test('captures one navigation transaction per redirect', async ({ page }) => {
     const clientNavigationRedirect1TxnPromise = waitForTransaction('sveltekit-2', txnEvent => {
-      return (
-        txnEvent?.contexts?.trace?.op === 'navigation' &&
-        txnEvent?.tags?.runtime === 'browser' &&
-        txnEvent?.transaction === '/redirect1'
-      );
+      return txnEvent?.contexts?.trace?.op === 'navigation' && txnEvent?.transaction === '/redirect1';
     });
 
     const clientNavigationRedirect2TxnPromise = waitForTransaction('sveltekit-2', txnEvent => {
-      return (
-        txnEvent?.contexts?.trace?.op === 'navigation' &&
-        txnEvent?.tags?.runtime === 'browser' &&
-        txnEvent?.transaction === '/redirect2'
-      );
+      return txnEvent?.contexts?.trace?.op === 'navigation' && txnEvent?.transaction === '/redirect2';
     });
 
     const clientNavigationRedirect3TxnPromise = waitForTransaction('sveltekit-2', txnEvent => {
-      return (
-        txnEvent?.contexts?.trace?.op === 'navigation' &&
-        txnEvent?.tags?.runtime === 'browser' &&
-        txnEvent?.transaction === '/users/[id]'
-      );
+      return txnEvent?.contexts?.trace?.op === 'navigation' && txnEvent?.transaction === '/users/[id]';
     });
 
     await waitForInitialPageload(page, { route: '/' });
