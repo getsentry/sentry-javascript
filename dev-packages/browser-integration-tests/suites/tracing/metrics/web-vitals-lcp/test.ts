@@ -14,6 +14,8 @@ sentryTest('should capture a LCP vital with element details.', async ({ browserN
     return route.fulfill({ path: `${__dirname}/assets/sentry-logo-600x179.png` });
   });
 
+  page.on('console', msg => console.log(msg.text()));
+
   const url = await getLocalTestPath({ testDir: __dirname });
   const [eventData] = await Promise.all([getFirstSentryEnvelopeRequest<Event>(page), page.goto(url)]);
 
