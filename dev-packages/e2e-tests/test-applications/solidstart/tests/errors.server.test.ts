@@ -11,7 +11,6 @@ test.describe('server-side errors', () => {
 
     const error = await errorEventPromise;
 
-    expect(error.tags).toMatchObject({ runtime: 'node' });
     expect(error).toMatchObject({
       exception: {
         values: [

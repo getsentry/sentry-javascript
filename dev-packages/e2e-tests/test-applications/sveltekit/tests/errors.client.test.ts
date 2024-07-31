@@ -25,8 +25,6 @@ test.describe('client-side errors', () => {
         in_app: true,
       }),
     );
-
-    expect(errorEvent.tags).toMatchObject({ runtime: 'browser' });
   });
 
   test('captures universal load error', async ({ page }) => {
@@ -49,7 +47,5 @@ test.describe('client-side errors', () => {
         in_app: true,
       }),
     );
-
-    expect(errorEvent.tags).toMatchObject({ runtime: 'browser' });
   });
 });

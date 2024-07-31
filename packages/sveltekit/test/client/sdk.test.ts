@@ -41,14 +41,6 @@ describe('Sentry client SDK', () => {
       );
     });
 
-    it('sets the runtime tag on the isolation scope', () => {
-      expect(getIsolationScope().getScopeData().tags).toEqual({});
-
-      init({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
-
-      expect(getIsolationScope().getScopeData().tags).toEqual({ runtime: 'browser' });
-    });
-
     describe('automatically added integrations', () => {
       it.each([
         ['tracesSampleRate', { tracesSampleRate: 0 }],

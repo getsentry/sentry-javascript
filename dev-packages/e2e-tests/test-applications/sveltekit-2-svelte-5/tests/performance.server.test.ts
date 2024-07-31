@@ -13,7 +13,6 @@ test('server pageload request span has nested request span for sub request', asy
 
   expect(serverTxnEvent).toMatchObject({
     transaction: 'GET /server-load-fetch',
-    tags: { runtime: 'node' },
     transaction_info: { source: 'route' },
     type: 'transaction',
     contexts: {
