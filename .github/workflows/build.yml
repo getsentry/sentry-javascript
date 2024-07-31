@@ -408,9 +408,9 @@ jobs:
           DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
 
       - name: Extract Profiling Node Prebuilt Binaries
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
-          name: profiling-node-binaries-${{ github.sha }}
+          pattern: profiling-node-binaries-${{ github.sha }}
           path: ${{ github.workspace }}/packages/profiling-node/lib/
 
       - name: Pack tarballs
@@ -1612,10 +1612,7 @@ jobs:
           yarn lerna run test --scope @sentry/profiling-node
 
       - name: Archive Binary
-        # @TODO: v4 breaks convenient merging of same name artifacts
-        # https://github.com/actions/upload-artifact/issues/478
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: profiling-node-binaries-${{ github.sha }}
-          path: |
-            ${{ github.workspace }}/packages/profiling-node/lib/*.node
+          name: profiling-node-binaries-${{ github.sha }}-${{ matrix.node }}-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.container }}
+          path: ${{ github.workspace }}/packages/profiling-node/lib/*.node
