@@ -1,7 +1,8 @@
 import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
+import * as SentryCore from '@sentry/core';
 import * as SentryNode from '@sentry/node';
 import type { Client, Span } from '@sentry/types';
-import { vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { handleRequest, interpolateRouteFromUrlAndParams } from '../../src/server/middleware';
 
@@ -28,10 +29,14 @@ describe('sentryMiddleware', () => {
         setPropagationContext: vi.fn(),
         getSpan: getSpanMock,
         setSDKProcessingMetadata: setSDKProcessingMetadataMock,
+        getPropagationContext: () => ({}),
       } as any;
     });
     vi.spyOn(SentryNode, 'getActiveSpan').mockImplementation(getSpanMock);
     vi.spyOn(SentryNode, 'getClient').mockImplementation(() => ({}) as Client);
+    vi.spyOn(SentryCore, 'getDynamicSamplingContextFromSpan').mockImplementation(() => ({
+      transaction: 'test',
+    }));
   });
 
   const nextResult = Promise.resolve(new Response(null, { status: 200, headers: new Headers() }));

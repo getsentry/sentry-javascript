@@ -14,7 +14,7 @@ import type { Client, Scope, Span, SpanAttributes } from '@sentry/types';
 import { addNonEnumerableProperty, objectify, stripUrlQueryAndFragment } from '@sentry/utils';
 import type { APIContext, MiddlewareResponseHandler } from 'astro';
 
-import { getTracingMetaTags } from './meta';
+import { getTracingMetaTags } from '@sentry/node';
 
 type MiddlewareOptions = {
   /**
@@ -189,9 +189,14 @@ function addMetaTagToHead(htmlChunk: string, scope: Scope, client: Client, span?
   if (typeof htmlChunk !== 'string') {
     return htmlChunk;
   }
+  console.log({ scope });
+  const { 'sentry-trace': sentryTrace, baggage } = getTracingMetaTags(span, scope, client);
 
-  const { sentryTrace, baggage } = getTracingMetaTags(span, scope, client);
-  const content = `<head>\n${sentryTrace}\n${baggage}\n`;
+  const sentryTraceMeta = `<meta name="sentry-trace" content="${sentryTrace}"/>`;
+  const baggageMeta = baggage && `<meta name="baggage" content="${baggage}"/>`;
+
+  const content = `<head>\n${sentryTraceMeta}`.concat(baggageMeta ? `\n${baggageMeta}` : '', '\n');
+
   return htmlChunk.replace('<head>', content);
 }
 
