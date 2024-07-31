@@ -17,11 +17,13 @@ import {
   getDefaultIsolationScope,
   getIsolationScope,
   spanToJSON,
+  startSpan,
   startSpanManual,
   withActiveSpan,
 } from '@sentry/core';
 import type { IntegrationFn, Span } from '@sentry/types';
 import { addNonEnumerableProperty, logger } from '@sentry/utils';
+import type { Observable } from 'rxjs';
 import { generateInstrumentOnce } from '../../otel/instrument';
 
 interface MinimalNestJsExecutionContext {
@@ -66,7 +68,10 @@ export interface InjectableTarget {
   name: string;
   sentryPatched?: boolean;
   prototype: {
-    use?: (req: unknown, res: unknown, next: () => void) => void;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    use?: (req: unknown, res: unknown, next: () => void, ...args: any[]) => void;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    canActivate?: (...args: any[]) => boolean | Promise<boolean> | Observable<boolean>;
   };
 }
 
@@ -175,7 +180,32 @@ export class SentryNestInstrumentation extends InstrumentationBase {
                       },
                     });
 
-                    originalUse.apply(thisArgUse, [req, res, nextProxy, args]);
+                    return originalUse.apply(thisArgUse, [req, res, nextProxy, args]);
+                  },
+                );
+              },
+            });
+          }
+
+          // patch guards
+          if (typeof target.prototype.canActivate === 'function') {
+            // patch only once
+            if (isPatched(target)) {
+              return original(options)(target);
+            }
+
+            target.prototype.canActivate = new Proxy(target.prototype.canActivate, {
+              apply: (originalCanActivate, thisArgCanActivate, argsCanActivate) => {
+                startSpan(
+                  {
+                    name: target.name,
+                    attributes: {
+                      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'middleware.nestjs',
+                      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.middleware.nestjs',
+                    },
+                  },
+                  () => {
+                    return originalCanActivate.apply(thisArgCanActivate, argsCanActivate);
                   },
                 );
               },

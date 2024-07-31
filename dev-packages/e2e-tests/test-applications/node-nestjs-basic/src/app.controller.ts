@@ -1,5 +1,6 @@
-import { Controller, Get, Param } from '@nestjs/common';
+import { Controller, Get, Param, UseGuards } from '@nestjs/common';
 import { AppService } from './app.service';
+import { ExampleGuard } from './example.guard';
 
 @Controller()
 export class AppController {
@@ -13,6 +14,12 @@ export class AppController {
   @Get('test-middleware-instrumentation')
   testMiddlewareInstrumentation() {
     return this.appService.testMiddleware();
+  }
+
+  @Get('test-guard-instrumentation')
+  @UseGuards(ExampleGuard)
+  testGuardInstrumentation() {
+    return {};
   }
 
   @Get('test-exception/:id')
