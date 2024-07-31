@@ -262,7 +262,7 @@ export function setupNestErrorHandler(app: MinimalNestJsApp, baseFilter: NestJsE
           const status_code = (exception as { status?: number }).status;
 
           // don't report expected errors
-          if (status_code !== undefined && status_code >= 400 && status_code < 500) {
+          if (status_code !== undefined) {
             return originalCatch.apply(target, [exception, host]);
           }
 
