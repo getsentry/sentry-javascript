@@ -7,6 +7,6 @@ Sentry.init({
   integrations: [Sentry.browserTracingIntegration()],
 });
 
-setTimeout(() => {
+document.getElementById('exception-button').addEventListener('click', () => {
   throw new Error('I am an error!');
-}, 2000);
+});
