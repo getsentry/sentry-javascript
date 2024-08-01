@@ -926,8 +926,6 @@ jobs:
         run: yarn lerna run build:lib --scope @sentry/profiling-node
 
       - name: Extract Profiling Node Prebuilt Binaries
-        # @TODO: v4 breaks convenient merging of same name artifacts
-        # https://github.com/actions/upload-artifact/issues/478
         if: |
           (needs.job_get_metadata.outputs.changed_profiling_node_bindings == 'true') ||
             (needs.job_get_metadata.outputs.is_release == 'true') ||
@@ -936,6 +934,9 @@ jobs:
         with:
           pattern: profiling-node-binaries-${{ github.sha }}-*
           path: ${{ github.workspace }}/packages/profiling-node/lib/
+
+      - name: Log downloaded binaries
+        run: ls -la ${{ github.workspace }}/packages/profiling-node/lib/
 
       - name: Build Profiling tarball
         run: yarn build:tarball
@@ -1254,7 +1255,7 @@ jobs:
       - name: Build Profiling Node
         run: yarn lerna run build:lib --scope @sentry/profiling-node
       - name: Extract Profiling Node Prebuilt Binaries
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           pattern: profiling-node-binaries-${{ github.sha }}*
           path: ${{ github.workspace }}/packages/profiling-node/lib/
