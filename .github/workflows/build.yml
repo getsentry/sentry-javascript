@@ -1481,7 +1481,7 @@ jobs:
             arch: arm64
             node: 18
             target_platform: darwin
-            binary: darwin-arm64-107
+            binary: darwin-arm64-108
           - os: macos-13
             arch: arm64
             node: 20
