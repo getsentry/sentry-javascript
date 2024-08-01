@@ -13,5 +13,5 @@ const moduleExports = {
 
 module.exports = withSentryConfig(moduleExports, {
   silent: true,
-  excludeServerRoutes: ['/api/excludedEndpoints/excludedWithString', /\/api\/excludedEndpoints\/excludedWithRegExp/],
+  excludeServerRoutes: ['/api/endpoint-excluded-with-string', /\/api\/endpoint-excluded-with-regex/],
 });
