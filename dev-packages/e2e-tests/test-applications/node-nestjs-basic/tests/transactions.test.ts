@@ -338,3 +338,85 @@ test('API route transaction includes nest pipe span for invalid request', async 
     }),
   );
 });
+
+test('API route transaction includes nest interceptor span. Spans created in and after interceptor are nested correctly', async ({
+  baseURL,
+}) => {
+  const pageloadTransactionEventPromise = waitForTransaction('nestjs', transactionEvent => {
+    return (
+      transactionEvent?.contexts?.trace?.op === 'http.server' &&
+      transactionEvent?.transaction === 'GET /test-interceptor-instrumentation'
+    );
+  });
+
+  const response = await fetch(`${baseURL}/test-interceptor-instrumentation`);
+  expect(response.status).toBe(200);
+
+  const transactionEvent = await pageloadTransactionEventPromise;
+
+  console.log(transactionEvent.spans);
+
+  expect(transactionEvent).toEqual(
+    expect.objectContaining({
+      spans: expect.arrayContaining([
+        {
+          span_id: expect.any(String),
+          trace_id: expect.any(String),
+          data: {
+            'sentry.op': 'middleware.nestjs',
+            'sentry.origin': 'auto.middleware.nestjs',
+          },
+          description: 'ExampleInterceptor',
+          parent_span_id: expect.any(String),
+          start_timestamp: expect.any(Number),
+          timestamp: expect.any(Number),
+          status: 'ok',
+          op: 'middleware.nestjs',
+          origin: 'auto.middleware.nestjs',
+        },
+      ]),
+    }),
+  );
+
+  const exampleInterceptorSpan = transactionEvent.spans.find(span => span.description === 'ExampleInterceptor');
+  const exampleInterceptorSpanId = exampleInterceptorSpan?.span_id;
+
+  expect(transactionEvent).toEqual(
+    expect.objectContaining({
+      spans: expect.arrayContaining([
+        {
+          span_id: expect.any(String),
+          trace_id: expect.any(String),
+          data: expect.any(Object),
+          description: 'test-controller-span',
+          parent_span_id: expect.any(String),
+          start_timestamp: expect.any(Number),
+          timestamp: expect.any(Number),
+          status: 'ok',
+          origin: 'manual',
+        },
+        {
+          span_id: expect.any(String),
+          trace_id: expect.any(String),
+          data: expect.any(Object),
+          description: 'test-interceptor-span',
+          parent_span_id: expect.any(String),
+          start_timestamp: expect.any(Number),
+          timestamp: expect.any(Number),
+          status: 'ok',
+          origin: 'manual',
+        },
+      ]),
+    }),
+  );
+
+  // verify correct span parent-child relationships
+  const testInterceptorSpan = transactionEvent.spans.find(span => span.description === 'test-interceptor-span');
+  const testControllerSpan = transactionEvent.spans.find(span => span.description === 'test-controller-span');
+
+  // 'ExampleInterceptor' is the parent of 'test-interceptor-span'
+  expect(testInterceptorSpan.parent_span_id).toBe(exampleInterceptorSpanId);
+
+  // 'ExampleInterceptor' is NOT the parent of 'test-controller-span'
+  expect(testControllerSpan.parent_span_id).not.toBe(exampleInterceptorSpanId);
+});
