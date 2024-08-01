@@ -62,11 +62,20 @@ const supportedVersions = ['>=8.0.0 <11'];
 const sentryPatched = 'sentryPatched';
 
 /**
+ * A NestJS call handler. Used in interceptors to start the route execution.
+ */
+export interface CallHandler {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  handle(...args: any[]): Observable<any>;
+}
+
+/**
  * Represents an injectable target class in NestJS.
  */
 export interface InjectableTarget {
   name: string;
   sentryPatched?: boolean;
+  __SENTRY_INTERNAL__?: boolean;
   prototype: {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     use?: (req: unknown, res: unknown, next: () => void, ...args: any[]) => void;
@@ -74,6 +83,8 @@ export interface InjectableTarget {
     canActivate?: (...args: any[]) => boolean | Promise<boolean> | Observable<boolean>;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     transform?: (...args: any[]) => any;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    intercept?: (context: unknown, next: CallHandler, ...args: any[]) => Observable<any>;
   };
 }
 
@@ -148,7 +159,7 @@ export class SentryNestInstrumentation extends InstrumentationBase {
       return function wrappedInjectable(options?: unknown) {
         return function (target: InjectableTarget) {
           // patch middleware
-          if (typeof target.prototype.use === 'function') {
+          if (typeof target.prototype.use === 'function' && !target.__SENTRY_INTERNAL__) {
             // patch only once
             if (isPatched(target)) {
               return original(options)(target);
@@ -190,7 +201,7 @@ export class SentryNestInstrumentation extends InstrumentationBase {
           }
 
           // patch guards
-          if (typeof target.prototype.canActivate === 'function') {
+          if (typeof target.prototype.canActivate === 'function' && !target.__SENTRY_INTERNAL__) {
             // patch only once
             if (isPatched(target)) {
               return original(options)(target);
@@ -215,7 +226,7 @@ export class SentryNestInstrumentation extends InstrumentationBase {
           }
 
           // patch pipes
-          if (typeof target.prototype.transform === 'function') {
+          if (typeof target.prototype.transform === 'function' && !target.__SENTRY_INTERNAL__) {
             if (isPatched(target)) {
               return original(options)(target);
             }
@@ -232,6 +243,47 @@ export class SentryNestInstrumentation extends InstrumentationBase {
                   },
                   () => {
                     return originalTransform.apply(thisArgTransform, argsTransform);
+                  },
+                );
+              },
+            });
+          }
+
+          // patch interceptors
+          if (typeof target.prototype.intercept === 'function' && !target.__SENTRY_INTERNAL__) {
+            if (isPatched(target)) {
+              return original(options)(target);
+            }
+
+            target.prototype.intercept = new Proxy(target.prototype.intercept, {
+              apply: (originalIntercept, thisArgIntercept, argsIntercept) => {
+                const [executionContext, next, args] = argsIntercept;
+
+                return startSpanManual(
+                  {
+                    name: target.name,
+                    attributes: {
+                      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'middleware.nestjs',
+                      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.middleware.nestjs',
+                    },
+                  },
+                  (span: Span) => {
+                    const nextProxy = new Proxy(next, {
+                      get: (thisArgNext, property, receiver) => {
+                        if (property === 'handle') {
+                          const originalHandle = Reflect.get(thisArgNext, property, receiver);
+                          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                          return (...args: any[]) => {
+                            span.end();
+                            return Reflect.apply(originalHandle, thisArgNext, args);
+                          };
+                        }
+
+                        return Reflect.get(target, property, receiver);
+                      },
+                    });
+
+                    return originalIntercept.apply(thisArgIntercept, [executionContext, nextProxy, args]);
                   },
                 );
               },

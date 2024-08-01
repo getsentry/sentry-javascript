@@ -32,6 +32,8 @@ import type { Observable } from 'rxjs';
  * Interceptor to add Sentry tracing capabilities to Nest.js applications.
  */
 class SentryTracingInterceptor implements NestInterceptor {
+  public static readonly __SENTRY_INTERNAL__ = true;
+
   /**
    * Intercepts HTTP requests to set the transaction name for Sentry tracing.
    */
