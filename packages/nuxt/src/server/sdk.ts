@@ -23,6 +23,7 @@ export function init(options: SentryNuxtOptions): Client | undefined {
         if (event.type === 'transaction') {
           // Filter out transactions for Nuxt build assets
           // This regex matches the default path to the nuxt-generated build assets (`_nuxt`).
+          // todo: the buildAssetDir could be changed in the nuxt config - change this to a more generic solution
           if (event.transaction?.match(/^GET \/_nuxt\//)) {
             options.debug &&
               // eslint-disable-next-line no-console
