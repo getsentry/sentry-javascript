@@ -72,7 +72,12 @@ type Runtime = {
 };
 
 function shouldShowBrowserExtensionError(): boolean {
-  const windowWithMaybeExtension = WINDOW as typeof WINDOW & ExtensionProperties;
+  const windowWithMaybeExtension =
+    typeof WINDOW.window !== 'undefined' && (WINDOW as typeof WINDOW & ExtensionProperties);
+  if (!windowWithMaybeExtension) {
+    // No need to show the error if we're not in a browser window environment (e.g. service workers)
+    return false;
+  }
 
   const extensionKey = windowWithMaybeExtension.chrome ? 'chrome' : 'browser';
   const extensionObject = windowWithMaybeExtension[extensionKey];
