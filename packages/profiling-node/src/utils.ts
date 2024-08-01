@@ -217,7 +217,7 @@ function createProfileChunkPayload(
     chunk_id: chunk_id,
     client_sdk: {
       name: sdk?.name ?? 'sentry.javascript.node',
-      version: sdk?.version ?? 'unknown',
+      version: sdk?.version ?? '0.0.0',
     },
     profiler_id: profiler_id,
     platform: 'node',
