@@ -410,7 +410,7 @@ jobs:
       - name: Extract Profiling Node Prebuilt Binaries
         uses: actions/download-artifact@v4
         with:
-          pattern: profiling-node-binaries-${{ github.sha }}-*
+          pattern: profiling-node-binaries-${{ github.sha }}
           path: ${{ github.workspace }}/packages/profiling-node/lib/
           merge-multiple: true
 
@@ -933,7 +933,7 @@ jobs:
           (github.event_name != 'pull_request')
         uses: actions/download-artifact@v4
         with:
-          pattern: profiling-node-binaries-${{ github.sha }}-*
+          pattern: profiling-node-binaries-${{ github.sha }}
           path: ${{ github.workspace }}/packages/profiling-node/lib/
           merge-multiple: true
 
@@ -1259,7 +1259,7 @@ jobs:
       - name: Extract Profiling Node Prebuilt Binaries
         uses: actions/download-artifact@v4
         with:
-          pattern: profiling-node-binaries-${{ github.sha }}*
+          pattern: profiling-node-binaries-${{ github.sha }}
           path: ${{ github.workspace }}/packages/profiling-node/lib/
 
       - name: Restore tarball cache
