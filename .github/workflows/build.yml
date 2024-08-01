@@ -412,6 +412,7 @@ jobs:
         with:
           pattern: profiling-node-binaries-${{ github.sha }}-*
           path: ${{ github.workspace }}/packages/profiling-node/lib/
+          merge-multiple: true
 
       - name: Pack tarballs
         run: yarn build:tarball
@@ -934,6 +935,7 @@ jobs:
         with:
           pattern: profiling-node-binaries-${{ github.sha }}-*
           path: ${{ github.workspace }}/packages/profiling-node/lib/
+          merge-multiple: true
 
       - name: Log downloaded binaries
         run: ls -la ${{ github.workspace }}/packages/profiling-node/lib/
@@ -1384,132 +1386,104 @@ jobs:
             # x64 glibc
           - os: ubuntu-20.04
             node: 16
-            binary-key: '16-x64-glibc'
           - os: ubuntu-20.04
             node: 18
-            binary-key: '18-x64-glibc'
           - os: ubuntu-20.04
             node: 20
-            binary-key: '20-x64-glibc'
           - os: ubuntu-20.04
             node: 22
-            binary-key: '22-x64-glibc'
 
             # x64 musl
           - os: ubuntu-20.04
             container: node:16-alpine3.16
             node: 16
-            binary-key: '16-x64-musl'
           - os: ubuntu-20.04
             container: node:18-alpine3.17
             node: 18
-            binary-key: '18-x64-musl'
           - os: ubuntu-20.04
             container: node:20-alpine3.17
             node: 20
-            binary-key: '20-x64-musl'
           - os: ubuntu-20.04
             container: node:22-alpine3.18
             node: 22
-            binary-key: '22-x64-musl'
 
             # arm64 glibc
           - os: ubuntu-20.04
             arch: arm64
             node: 16
-            binary-key: '16-arm64-glibc'
           - os: ubuntu-20.04
             arch: arm64
             node: 18
-            binary-key: '18-arm64-glibc'
           - os: ubuntu-20.04
             arch: arm64
             node: 20
-            binary-key: '20-arm64-glibc'
           - os: ubuntu-20.04
             arch: arm64
             node: 22
-            binary-key: '22-arm64-glibc'
 
             # arm64 musl
           - os: ubuntu-20.04
             container: node:16-alpine3.16
             arch: arm64
             node: 16
-            binary-key: '16-arm64-musl'
           - os: ubuntu-20.04
             arch: arm64
             container: node:18-alpine3.17
             node: 18
-            binary-key: '18-arm64-musl'
           - os: ubuntu-20.04
             arch: arm64
             container: node:20-alpine3.17
             node: 20
-            binary-key: '20-arm64-musl'
           - os: ubuntu-20.04
             arch: arm64
             container: node:22-alpine3.18
             node: 22
-            binary-key: '22-arm64-musl'
 
             # macos x64
           - os: macos-13
             node: 16
             arch: x64
-            binary-key: '16-x64-darwin'
           - os: macos-13
             node: 18
             arch: x64
-            binary-key: '18-x64-darwin'
           - os: macos-13
             node: 20
             arch: x64
-            binary-key: '20-x64-darwin'
           - os: macos-13
             node: 22
             arch: x64
-            binary-key: '22-x64-darwin'
 
             # macos arm64
           - os: macos-13
             arch: arm64
             node: 16
             target_platform: darwin
-            binary-key: '16-arm64-darwin'
           - os: macos-13
             arch: arm64
             node: 18
             target_platform: darwin
-            binary-key: '18-arm64-darwin'
           - os: macos-13
             arch: arm64
             node: 20
             target_platform: darwin
-            binary-key: '20-arm64-darwin'
           - os: macos-13
             arch: arm64
             node: 22
             target_platform: darwin
-            binary-key: '22-arm64-darwin'
 
             # windows x64
           - os: windows-2022
             node: 16
             arch: x64
-            binary-key: '16-x64-windows'
           - os: windows-2022
             node: 18
             arch: x64
-            binary-key: '18-x64-windows'
           - os: windows-2022
             node: 20
             arch: x64
-            binary-key: '20-x64-windows'
           - os: windows-2022
             node: 22
             arch: x64
-            binary-key: '22-x64-windows'
 
     steps:
       - name: Setup (alpine)
@@ -1643,5 +1617,5 @@ jobs:
       - name: Archive Binary
         uses: actions/upload-artifact@v4
         with:
-          name: profiling-node-binaries-${{ github.sha }}-${{ matrix.binary-key }}
+          name: profiling-node-binaries-${{ github.sha }}
           path: ${{ github.workspace }}/packages/profiling-node/lib/*.node
