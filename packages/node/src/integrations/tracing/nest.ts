@@ -184,7 +184,7 @@ export class SentryNestInstrumentation extends InstrumentationBase {
                         span.end();
 
                         if (prevSpan) {
-                          withActiveSpan(prevSpan, () => {
+                          return withActiveSpan(prevSpan, () => {
                             return Reflect.apply(originalNext, thisArgNext, argsNext);
                           });
                         } else {
@@ -258,6 +258,7 @@ export class SentryNestInstrumentation extends InstrumentationBase {
             target.prototype.intercept = new Proxy(target.prototype.intercept, {
               apply: (originalIntercept, thisArgIntercept, argsIntercept) => {
                 const [executionContext, next, args] = argsIntercept;
+                const prevSpan = getActiveSpan();
 
                 return startSpanManual(
                   {
@@ -275,7 +276,14 @@ export class SentryNestInstrumentation extends InstrumentationBase {
                           // eslint-disable-next-line @typescript-eslint/no-explicit-any
                           return (...args: any[]) => {
                             span.end();
-                            return Reflect.apply(originalHandle, thisArgNext, args);
+
+                            if (prevSpan) {
+                              return withActiveSpan(prevSpan, () => {
+                                return Reflect.apply(originalHandle, thisArgNext, args);
+                              });
+                            } else {
+                              return Reflect.apply(originalHandle, thisArgNext, args);
+                            }
                           };
                         }
 
