@@ -17,9 +17,6 @@ import { wrapRequestHandler } from './request';
  *  tracesSampleRate: 1.0,
  * });
  * ```
- *
- * @param _options
- * @returns
  */
 export function sentryPagesPlugin<
   Env = unknown,
