@@ -410,7 +410,7 @@ jobs:
       - name: Extract Profiling Node Prebuilt Binaries
         uses: actions/download-artifact@v4
         with:
-          pattern: profiling-node-binaries-${{ github.sha }}*
+          pattern: profiling-node-binaries-${{ github.sha }}-*
           path: ${{ github.workspace }}/packages/profiling-node/lib/
 
       - name: Pack tarballs
@@ -932,9 +932,9 @@ jobs:
           (needs.job_get_metadata.outputs.changed_profiling_node_bindings == 'true') ||
             (needs.job_get_metadata.outputs.is_release == 'true') ||
           (github.event_name != 'pull_request')
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
-          name: profiling-node-binaries-${{ github.sha }}
+          pattern: profiling-node-binaries-${{ github.sha }}-*
           path: ${{ github.workspace }}/packages/profiling-node/lib/
 
       - name: Build Profiling tarball
