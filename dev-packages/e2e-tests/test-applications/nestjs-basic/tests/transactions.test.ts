@@ -266,3 +266,75 @@ test('API route transaction includes nest guard span and span started in guard i
   // 'ExampleGuard' is the parent of 'test-guard-span'
   expect(testGuardSpan.parent_span_id).toBe(exampleGuardSpanId);
 });
+
+test('API route transaction includes nest pipe span for valid request', async ({ baseURL }) => {
+  const transactionEventPromise = waitForTransaction('nestjs', transactionEvent => {
+    return (
+      transactionEvent?.contexts?.trace?.op === 'http.server' &&
+      transactionEvent?.transaction === 'GET /test-pipe-instrumentation/:id'
+    );
+  });
+
+  const response = await fetch(`${baseURL}/test-pipe-instrumentation/123`);
+  expect(response.status).toBe(200);
+
+  const transactionEvent = await transactionEventPromise;
+
+  expect(transactionEvent).toEqual(
+    expect.objectContaining({
+      spans: expect.arrayContaining([
+        {
+          span_id: expect.any(String),
+          trace_id: expect.any(String),
+          data: {
+            'sentry.op': 'middleware.nestjs',
+            'sentry.origin': 'auto.middleware.nestjs',
+          },
+          description: 'ParseIntPipe',
+          parent_span_id: expect.any(String),
+          start_timestamp: expect.any(Number),
+          timestamp: expect.any(Number),
+          status: 'ok',
+          op: 'middleware.nestjs',
+          origin: 'auto.middleware.nestjs',
+        },
+      ]),
+    }),
+  );
+});
+
+test('API route transaction includes nest pipe span for invalid request', async ({ baseURL }) => {
+  const transactionEventPromise = waitForTransaction('nestjs', transactionEvent => {
+    return (
+      transactionEvent?.contexts?.trace?.op === 'http.server' &&
+      transactionEvent?.transaction === 'GET /test-pipe-instrumentation/:id'
+    );
+  });
+
+  const response = await fetch(`${baseURL}/test-pipe-instrumentation/abc`);
+  expect(response.status).toBe(400);
+
+  const transactionEvent = await transactionEventPromise;
+
+  expect(transactionEvent).toEqual(
+    expect.objectContaining({
+      spans: expect.arrayContaining([
+        {
+          span_id: expect.any(String),
+          trace_id: expect.any(String),
+          data: {
+            'sentry.op': 'middleware.nestjs',
+            'sentry.origin': 'auto.middleware.nestjs',
+          },
+          description: 'ParseIntPipe',
+          parent_span_id: expect.any(String),
+          start_timestamp: expect.any(Number),
+          timestamp: expect.any(Number),
+          status: 'unknown_error',
+          op: 'middleware.nestjs',
+          origin: 'auto.middleware.nestjs',
+        },
+      ]),
+    }),
+  );
+});

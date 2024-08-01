@@ -72,6 +72,8 @@ export interface InjectableTarget {
     use?: (req: unknown, res: unknown, next: () => void, ...args: any[]) => void;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     canActivate?: (...args: any[]) => boolean | Promise<boolean> | Observable<boolean>;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    transform?: (...args: any[]) => any;
   };
 }
 
@@ -206,6 +208,30 @@ export class SentryNestInstrumentation extends InstrumentationBase {
                   },
                   () => {
                     return originalCanActivate.apply(thisArgCanActivate, argsCanActivate);
+                  },
+                );
+              },
+            });
+          }
+
+          // patch pipes
+          if (typeof target.prototype.transform === 'function') {
+            if (isPatched(target)) {
+              return original(options)(target);
+            }
+
+            target.prototype.transform = new Proxy(target.prototype.transform, {
+              apply: (originalTransform, thisArgTransform, argsTransform) => {
+                return startSpan(
+                  {
+                    name: target.name,
+                    attributes: {
+                      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'middleware.nestjs',
+                      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.middleware.nestjs',
+                    },
+                  },
+                  () => {
+                    return originalTransform.apply(thisArgTransform, argsTransform);
                   },
                 );
               },
