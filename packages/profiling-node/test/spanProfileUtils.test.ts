@@ -446,7 +446,6 @@ describe('continuous profiling', () => {
     expect(profile.client_sdk.version).toEqual(expect.stringMatching(/\d+\.\d+\.\d+/));
   });
 
-
   it('initializes the continuous profiler and binds the sentry client', () => {
     const startProfilingSpy = jest.spyOn(CpuProfilerBindings, 'startProfiling');
 

@@ -231,11 +231,17 @@ class ContinuousProfiler {
     }
 
     DEBUG_BUILD && logger.log(`[Profiling] Profile chunk ${this._chunkData.id} sent to Sentry.`);
-    const chunk = createProfilingChunkEvent(this._client, this._client.getOptions(), profile, this._client.getSdkMetadata()?.sdk, {
-      chunk_id: this._chunkData.id,
-      trace_id: this._chunkData.startTraceID,
-      profiler_id: this._profilerId,
-    });
+    const chunk = createProfilingChunkEvent(
+      this._client,
+      this._client.getOptions(),
+      profile,
+      this._client.getSdkMetadata()?.sdk,
+      {
+        chunk_id: this._chunkData.id,
+        trace_id: this._chunkData.startTraceID,
+        profiler_id: this._profilerId,
+      },
+    );
 
     if (!chunk) {
       DEBUG_BUILD && logger.log(`[Profiling] Failed to create profile chunk for: ${this._chunkData.id}`);

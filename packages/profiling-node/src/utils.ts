@@ -254,7 +254,7 @@ export function createProfilingChunkEvent(
     trace_id: identifiers.trace_id ?? '',
     chunk_id: identifiers.chunk_id,
     profiler_id: identifiers.profiler_id,
-    sdk
+    sdk,
   });
 }
 
