@@ -410,9 +410,8 @@ jobs:
       - name: Extract Profiling Node Prebuilt Binaries
         uses: actions/download-artifact@v4
         with:
-          pattern: profiling-node-binaries-${{ github.sha }}
+          pattern: profiling-node-binaries-${{ github.sha }}-*
           path: ${{ github.workspace }}/packages/profiling-node/lib/
-          merge-multiple: true
 
       - name: Pack tarballs
         run: yarn build:tarball
@@ -933,9 +932,8 @@ jobs:
           (github.event_name != 'pull_request')
         uses: actions/download-artifact@v4
         with:
-          pattern: profiling-node-binaries-${{ github.sha }}
+          pattern: profiling-node-binaries-${{ github.sha }}-*
           path: ${{ github.workspace }}/packages/profiling-node/lib/
-          merge-multiple: true
 
       - name: Log downloaded binaries
         run: ls -la ${{ github.workspace }}/packages/profiling-node/lib/
@@ -1259,7 +1257,7 @@ jobs:
       - name: Extract Profiling Node Prebuilt Binaries
         uses: actions/download-artifact@v4
         with:
-          pattern: profiling-node-binaries-${{ github.sha }}
+          pattern: profiling-node-binaries-${{ github.sha }}-*
           path: ${{ github.workspace }}/packages/profiling-node/lib/
 
       - name: Restore tarball cache
@@ -1386,104 +1384,132 @@ jobs:
             # x64 glibc
           - os: ubuntu-20.04
             node: 16
+            binary: linux-x64-glibc-93
           - os: ubuntu-20.04
             node: 18
+            binary: linux-x64-glibc-108
           - os: ubuntu-20.04
             node: 20
+            binary: linux-x64-glibc-115
           - os: ubuntu-20.04
             node: 22
+            binary: linux-x64-glibc-127
 
             # x64 musl
           - os: ubuntu-20.04
             container: node:16-alpine3.16
+            binary: linux-x64-musl-93
             node: 16
           - os: ubuntu-20.04
             container: node:18-alpine3.17
             node: 18
+            binary: linux-x64-musl-108
           - os: ubuntu-20.04
             container: node:20-alpine3.17
             node: 20
+            binary: linux-x64-musl-115
           - os: ubuntu-20.04
             container: node:22-alpine3.18
             node: 22
+            binary: linux-x64-musl-127
 
             # arm64 glibc
           - os: ubuntu-20.04
             arch: arm64
             node: 16
+            binary: linux-arm64-glibc-93
           - os: ubuntu-20.04
             arch: arm64
             node: 18
+            binary: linux-arm64-glibc-108
           - os: ubuntu-20.04
             arch: arm64
             node: 20
+            binary: linux-arm64-glibc-115
           - os: ubuntu-20.04
             arch: arm64
             node: 22
+            binary: linux-arm64-glibc-127
 
             # arm64 musl
           - os: ubuntu-20.04
             container: node:16-alpine3.16
             arch: arm64
             node: 16
+            binary: linux-arm64-musl-93
           - os: ubuntu-20.04
             arch: arm64
             container: node:18-alpine3.17
             node: 18
+            binary: linux-arm64-musl-108
           - os: ubuntu-20.04
             arch: arm64
             container: node:20-alpine3.17
             node: 20
+            binary: linux-arm64-musl-115
           - os: ubuntu-20.04
             arch: arm64
             container: node:22-alpine3.18
             node: 22
+            binary: linux-arm64-musl-127
 
             # macos x64
           - os: macos-13
             node: 16
             arch: x64
+            binary: darwin-x64-93
           - os: macos-13
             node: 18
             arch: x64
+            binary: darwin-x64-108
           - os: macos-13
             node: 20
             arch: x64
+            binary: darwin-x64-115
           - os: macos-13
             node: 22
             arch: x64
+            binary: darwin-x64-127
 
             # macos arm64
           - os: macos-13
             arch: arm64
             node: 16
             target_platform: darwin
+            binary: darwin-arm64-93
           - os: macos-13
             arch: arm64
             node: 18
             target_platform: darwin
+            binary: darwin-arm64-107
           - os: macos-13
             arch: arm64
             node: 20
             target_platform: darwin
+            binary: darwin-arm64-115
           - os: macos-13
             arch: arm64
             node: 22
             target_platform: darwin
+            binary: darwin-arm64-127
 
             # windows x64
           - os: windows-2022
             node: 16
             arch: x64
+            binary: windows-win32-x64-93
           - os: windows-2022
             node: 18
             arch: x64
+            binary: windows-win32-x64-108
           - os: windows-2022
             node: 20
             arch: x64
+            binary: windows-win32-x64-115
           - os: windows-2022
             node: 22
             arch: x64
+            binary: windows-win32-x64-127
 
     steps:
       - name: Setup (alpine)
@@ -1617,5 +1643,6 @@ jobs:
       - name: Archive Binary
         uses: actions/upload-artifact@v4
         with:
-          name: profiling-node-binaries-${{ github.sha }}
+          name: profiling-node-binaries-${{ github.sha }}-${{ matrix.binary }}
           path: ${{ github.workspace }}/packages/profiling-node/lib/*.node
+          if-no-files-found: error
