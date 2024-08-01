@@ -354,8 +354,6 @@ test('API route transaction includes nest interceptor span. Spans created in and
 
   const transactionEvent = await pageloadTransactionEventPromise;
 
-  console.log(transactionEvent.spans);
-
   expect(transactionEvent).toEqual(
     expect.objectContaining({
       spans: expect.arrayContaining([

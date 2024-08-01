@@ -32,6 +32,7 @@ import type { Observable } from 'rxjs';
  * Interceptor to add Sentry tracing capabilities to Nest.js applications.
  */
 class SentryTracingInterceptor implements NestInterceptor {
+  // used to exclude this class from being auto-instrumented
   public static readonly __SENTRY_INTERNAL__ = true;
 
   /**
