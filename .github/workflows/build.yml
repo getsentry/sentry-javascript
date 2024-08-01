@@ -412,6 +412,7 @@ jobs:
         with:
           pattern: profiling-node-binaries-${{ github.sha }}-*
           path: ${{ github.workspace }}/packages/profiling-node/lib/
+          merge-multiple: true
 
       - name: Pack tarballs
         run: yarn build:tarball
@@ -934,6 +935,7 @@ jobs:
         with:
           pattern: profiling-node-binaries-${{ github.sha }}-*
           path: ${{ github.workspace }}/packages/profiling-node/lib/
+          merge-multiple: true
 
       - name: Log downloaded binaries
         run: ls -la ${{ github.workspace }}/packages/profiling-node/lib/
@@ -1497,19 +1499,19 @@ jobs:
           - os: windows-2022
             node: 16
             arch: x64
-            binary: windows-win32-x64-93
+            binary: win32-x64-93
           - os: windows-2022
             node: 18
             arch: x64
-            binary: windows-win32-x64-108
+            binary: win32-x64-108
           - os: windows-2022
             node: 20
             arch: x64
-            binary: windows-win32-x64-115
+            binary: win32-x64-115
           - os: windows-2022
             node: 22
             arch: x64
-            binary: windows-win32-x64-127
+            binary: win32-x64-127
 
     steps:
       - name: Setup (alpine)
