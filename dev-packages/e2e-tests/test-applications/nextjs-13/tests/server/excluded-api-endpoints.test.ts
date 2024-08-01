@@ -11,7 +11,7 @@ test('should not automatically create transactions for routes that were excluded
     );
   });
 
-  await (await request.get(`/api/endpoint-excluded-with-string`)).json();
+  expect(await (await request.get(`/api/endpoint-excluded-with-string`)).text()).toBe('{"success":true}');
 
   let transactionPromiseReceived = false;
   transactionPromise.then(() => {
@@ -33,7 +33,7 @@ test('should not automatically create transactions for routes that were excluded
     );
   });
 
-  await (await request.get(`/api/endpoint-excluded-with-regex`)).json();
+  expect(await (await request.get(`/api/endpoint-excluded-with-regex`)).text()).toBe('{"success":true}');
 
   let transactionPromiseReceived = false;
   transactionPromise.then(() => {

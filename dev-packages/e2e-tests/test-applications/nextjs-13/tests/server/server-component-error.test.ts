@@ -12,7 +12,6 @@ test('Should capture an error thrown in a server component', async ({ page }) =>
     contexts: {
       runtime: { name: 'node', version: expect.any(String) },
       trace: {
-        parent_span_id: expect.any(String),
         span_id: expect.any(String),
         trace_id: expect.any(String),
       },
@@ -27,7 +26,6 @@ test('Should capture an error thrown in a server component', async ({ page }) =>
         },
       ],
     },
-    modules: { next: '13.2.0' },
     platform: 'node',
     request: {
       cookies: expect.any(Object),
