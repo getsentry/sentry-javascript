@@ -1019,6 +1019,7 @@ jobs:
             'ember-classic',
             'ember-embroider',
             'nextjs-app-dir',
+            'nextjs-13',
             'nextjs-14',
             'nextjs-15',
             'react-17',
