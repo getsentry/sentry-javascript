@@ -1,7 +1,13 @@
 import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
+const packageJson = require('../../package.json');
+const nextjsVersion = packageJson.dependencies.next;
+const nextjsMajor = Number(nextjsVersion.split('.')[0]);
+
 test('should create a transaction for a CJS pages router API endpoint', async ({ request }) => {
+  test.skip(nextjsMajor > 13, 'Next.js does not like CJS routes after a certain point.');
+
   const transactionPromise = waitForTransaction('nextjs-13', async transactionEvent => {
     return (
       transactionEvent.transaction === 'GET /api/cjs-api-endpoint' &&
@@ -62,6 +68,8 @@ test('should create a transaction for a CJS pages router API endpoint', async ({
 });
 
 test('should not mess up require statements in CJS API endpoints', async ({ request }) => {
+  test.skip(nextjsMajor > 13, 'Next.js does not like CJS routes after a certain point.');
+
   const transactionPromise = waitForTransaction('nextjs-13', async transactionEvent => {
     return (
       transactionEvent.transaction === 'GET /api/cjs-api-endpoint-with-require' &&
