@@ -9,7 +9,7 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
-## Unreleased
+## 8.22.0
 
 ### Important Changes
 
@@ -30,6 +30,14 @@ export const onRequest = Sentry.sentryPagesPlugin({
   tracesSampleRate: 1.0,
 });
 ```
+
+### Other Changes
+
+- feat(meta-sdks): Remove runtime tags (#13105)
+- feat(nestjs): Automatic instrumentation of nestjs guards (#13129)
+- feat(nestjs): Filter all HttpExceptions (#13120)
+- feat(replay): Capture exception when `internal_sdk_error` client report happens (#13072)
+- fix: Use `globalThis` for code injection (#13132)
 
 ## 8.21.0
 

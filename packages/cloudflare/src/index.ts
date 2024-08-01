@@ -91,3 +91,5 @@ export { CloudflareClient } from './client';
 export { getDefaultIntegrations } from './sdk';
 
 export { fetchIntegration } from './integrations/fetch';
+
+export { instrumentD1WithSentry } from './d1';

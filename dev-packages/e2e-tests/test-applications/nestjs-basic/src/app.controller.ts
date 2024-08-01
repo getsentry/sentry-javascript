@@ -1,4 +1,4 @@
-import { Controller, Get, Param, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, ParseIntPipe, UseGuards } from '@nestjs/common';
 import { AppService } from './app.service';
 import { ExampleGuard } from './example.guard';
 
@@ -20,6 +20,11 @@ export class AppController {
   @UseGuards(ExampleGuard)
   testGuardInstrumentation() {
     return {};
+  }
+
+  @Get('test-pipe-instrumentation/:id')
+  testPipeInstrumentation(@Param('id', ParseIntPipe) id: number) {
+    return { value: id };
   }
 
   @Get('test-exception/:id')
