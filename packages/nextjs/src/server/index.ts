@@ -114,6 +114,15 @@ export function init(options: NodeOptions): NodeClient | undefined {
     autoSessionTracking: false,
   };
 
+  if (globalWithInjectedValues.__cacheHandlerPath__) {
+    enableCacheInstrumentation(globalWithInjectedValues.__cacheHandlerPath__);
+
+    // We need to force the ESM loader hooks to be registered, even if we're running in CJS mode.
+    if (opts.registerEsmLoaderHooks === undefined) {
+      opts.registerEsmLoaderHooks = true;
+    }
+  }
+
   if (DEBUG_BUILD && opts.debug) {
     logger.enable();
   }
@@ -128,10 +137,6 @@ export function init(options: NodeOptions): NodeClient | undefined {
   applySdkMetadata(opts, 'nextjs', ['nextjs', 'node']);
 
   const client = nodeInit(opts);
-
-  if (globalWithInjectedValues.__cacheHandlerPath__) {
-    enableCacheInstrumentation(globalWithInjectedValues.__cacheHandlerPath__);
-  }
 
   client?.on('beforeSampling', ({ spanAttributes, spanName, parentSampled, parentContext }, samplingDecision) => {
     // We allowlist the "BaseServer.handleRequest" span, since that one is responsible for App Router requests, which are actually useful for us.
