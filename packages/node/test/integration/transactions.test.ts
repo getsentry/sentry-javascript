@@ -156,6 +156,7 @@ describe('Integration | Transactions', () => {
         status: 'ok',
         timestamp: expect.any(Number),
         trace_id: expect.any(String),
+        type: 'span',
       },
     ]);
   });
