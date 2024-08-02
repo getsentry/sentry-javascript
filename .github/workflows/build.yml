@@ -512,7 +512,7 @@ jobs:
         with:
           node-version-file: 'package.json'
       - name: Set up Deno
-        uses: denoland/setup-deno@v1.1.4
+        uses: denoland/setup-deno@1.3.0
         with:
           deno-version: v1.38.5
       - name: Restore caches
