@@ -125,6 +125,7 @@ snapshot[`captureException 1`] = `
   },
   server_name: "{{server}}",
   timestamp: 0,
+  type: "event",
 }
 `;
 
@@ -195,6 +196,7 @@ snapshot[`captureMessage 1`] = `
   },
   server_name: "{{server}}",
   timestamp: 0,
+  type: "event",
 }
 `;
 
@@ -272,6 +274,7 @@ snapshot[`captureMessage twice 1`] = `
   },
   server_name: "{{server}}",
   timestamp: 0,
+  type: "event",
 }
 `;
 
@@ -356,5 +359,6 @@ snapshot[`captureMessage twice 2`] = `
   },
   server_name: "{{server}}",
   timestamp: 0,
+  type: "event",
 }
 `;
