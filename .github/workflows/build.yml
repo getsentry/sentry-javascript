@@ -67,12 +67,6 @@ jobs:
     permissions:
       pull-requests: read
     steps:
-      - name: Check out base commit (${{ github.event.pull_request.base.sha }})
-        uses: actions/checkout@v4
-        if: github.event_name == 'pull_request'
-        with:
-          ref: ${{ github.event.pull_request.base.sha }}
-
       - name: Check out current commit
         uses: actions/checkout@v4
         with:
@@ -80,6 +74,7 @@ jobs:
           # We need to check out not only the fake merge commit between the PR and the base branch which GH creates, but
           # also its parents, so that we can pull the commit message from the head commit of the PR
           fetch-depth: 2
+
       - name: Get metadata
         id: get_metadata
         # We need to try a number of different options for finding the head commit, because each kind of trigger event
@@ -88,14 +83,6 @@ jobs:
           COMMIT_SHA=$(git rev-parse --short ${{ github.event.pull_request.head.sha || github.event.head_commit.id || env.HEAD_COMMIT }})
           echo "COMMIT_SHA=$COMMIT_SHA" >> $GITHUB_ENV
           echo "COMMIT_MESSAGE=$(git log -n 1 --pretty=format:%s $COMMIT_SHA)" >> $GITHUB_ENV
-
-      - name: Check for Affected Nx Projects
-        uses: dkhunt27/action-nx-affected-list@v5
-        id: checkForAffected
-        if: github.event_name == 'pull_request'
-        with:
-          base: ${{  github.event.pull_request.base.sha }}
-          head: ${{ env.HEAD_COMMIT }}
 
       - name: Determine changed packages
         uses: dorny/paths-filter@v3.0.1
@@ -180,7 +167,7 @@ jobs:
       changed_ember: ${{ steps.changed.outputs.ember }}
       changed_remix: ${{ steps.changed.outputs.remix }}
       changed_node: ${{ steps.changed.outputs.node }}
-      changed_node_integration: ${{ contains(steps.checkForAffected.outputs.affected, '@sentry-internal/node-integration-tests') }}
+      changed_node_integration: ${{ steps.changed.outputs.node_integration }}
       changed_profiling_node: ${{ steps.changed.outputs.profiling_node }}
       changed_profiling_node_bindings: ${{ steps.changed.outputs.profiling_node_bindings }}
       changed_deno: ${{ steps.changed.outputs.deno }}
@@ -233,6 +220,46 @@ jobs:
         run: yarn install --ignore-engines --frozen-lockfile
     outputs:
       dependency_cache_key: ${{ steps.compute_lockfile_hash.outputs.hash }}
+
+  job_affected_packages:
+    name: Determine affected packages
+    runs-on: ubuntu-20.04
+    needs: [job_get_metadata, job_install_deps]
+    steps:
+      - name: Check out base commit (${{ github.event.pull_request.base.sha }})
+        uses: actions/checkout@v4
+        if: github.event_name == 'pull_request'
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+
+      - name: Check out current commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.HEAD_COMMIT }}
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: 'package.json'
+
+      - name: Check dependency cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ env.CACHED_DEPENDENCY_PATHS }}
+          key: ${{ needs.job_install_deps.outputs.dependency_cache_key }}
+          fail-on-cache-miss: true
+
+      - name: Check for Affected Nx Projects
+        uses: dkhunt27/action-nx-affected-list@v5
+        id: checkForAffected
+        if: github.event_name == 'pull_request'
+        with:
+          base: ${{  github.event.pull_request.base.sha }}
+          head: ${{ env.HEAD_COMMIT }}
+
+    outputs:
+      changed_node_integration: ${{ contains(steps.checkForAffected.outputs.affected, '@sentry-internal/node-integration-tests') }}
+
 
   job_check_branches:
     name: Check PR branches
@@ -800,8 +827,8 @@ jobs:
     name:
       Node (${{ matrix.node }})${{ (matrix.typescript && format(' (TS {0})', matrix.typescript)) || '' }} Integration
       Tests
-    needs: [job_get_metadata, job_build]
-    if: needs.job_get_metadata.outputs.changed_node_integration == 'true' || github.event_name != 'pull_request'
+    needs: [job_get_metadata, job_build, job_affected_packages]
+    if: needs.job_affected_packages.outputs.changed_node_integration == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-20.04
     timeout-minutes: 15
     strategy:
