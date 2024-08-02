@@ -8,9 +8,9 @@ Sentry.init({
 });
 
 import { startFastifyServerAndSendPortToRunner } from '@sentry-internal/node-integration-tests';
-import Fastify from 'fastify';
+import fastify from 'fastify';
 
-const app = Fastify();
+const app = fastify();
 
 app.get('/test/deprecated', (_req, res) => {
   // eslint-disable-next-line @typescript-eslint/no-floating-promises
