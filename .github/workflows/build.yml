@@ -84,6 +84,18 @@ jobs:
           echo "COMMIT_SHA=$COMMIT_SHA" >> $GITHUB_ENV
           echo "COMMIT_MESSAGE=$(git log -n 1 --pretty=format:%s $COMMIT_SHA)" >> $GITHUB_ENV
 
+      # Most changed packages are determined in job_build via Nx
+      # However, for profiling-node we only want to run certain things when in this specific package
+      # something changed, not in any of the dependencies (which include core, utils, ...)
+      - name: Determine changed packages
+        uses: dorny/paths-filter@v3.0.1
+        id: changed
+        with:
+          filters: |
+            profiling_node:
+              - 'packages/profiling-node/**'
+              - 'dev-packages/e2e-tests/test-applications/node-profiling/**'
+
       - name: Get PR labels
         id: pr-labels
         uses: mydea/pr-labels-action@fn/bump-node20
@@ -93,6 +105,7 @@ jobs:
       # Note: These next three have to be checked as strings ('true'/'false')!
       is_develop: ${{ github.ref == 'refs/heads/develop' }}
       is_release: ${{ startsWith(github.ref, 'refs/heads/release/') }}
+      changed_profiling_node: ${{ steps.changed.outputs.profiling_node == 'true' }}
       # When merging into master, or from master
       is_gitflow_sync: ${{ github.head_ref == 'master' || github.ref == 'refs/heads/master' }}
       has_gitflow_label:
@@ -184,10 +197,10 @@ jobs:
       changed_node_integration: ${{ contains(steps.checkForAffected.outputs.affected, '@sentry-internal/node-integration-tests') }}
       changed_remix: ${{ contains(steps.checkForAffected.outputs.affected, '@sentry/remix') }}
       changed_node: ${{ contains(steps.checkForAffected.outputs.affected, '@sentry/node') }}
-      changed_profiling_node: ${{ contains(steps.checkForAffected.outputs.affected, '@sentry/profiling-node') }}
       changed_deno: ${{ contains(steps.checkForAffected.outputs.affected, '@sentry/deno') }}
       changed_bun: ${{ contains(steps.checkForAffected.outputs.affected, '@sentry/bun') }}
       changed_browser_integration: ${{ contains(steps.checkForAffected.outputs.affected, '@sentry-internal/browser-integration-tests') }}
+      # If you are looking for changed_profiling_node, this is defined in job_get_metadata
 
   job_check_branches:
     name: Check PR branches
@@ -486,7 +499,7 @@ jobs:
   job_profiling_node_unit_tests:
     name: Node Profiling Unit Tests
     needs: [job_get_metadata, job_build]
-    if: needs.job_build.outputs.changed_node == 'true' || needs.job_build.outputs.changed_profiling_node == 'true' || github.event_name != 'pull_request'
+    if: needs.job_build.outputs.changed_node == 'true' || needs.job_get_metadata.outputs.changed_profiling_node == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -809,7 +822,7 @@ jobs:
       # Rebuild profiling by compiling TS and pull the precompiled binary artifacts
       - name: Build Profiling Node
         if: |
-          (needs.job_build.outputs.changed_profiling_node == 'true') ||
+          (needs.job_get_metadata.outputs.changed_profiling_node == 'true') ||
           (needs.job_get_metadata.outputs.is_release == 'true') ||
           (github.event_name != 'pull_request')
         run: yarn lerna run build:lib --scope @sentry/profiling-node
@@ -818,7 +831,7 @@ jobs:
         # @TODO: v4 breaks convenient merging of same name artifacts
         # https://github.com/actions/upload-artifact/issues/478
         if: |
-          (needs.job_build.outputs.changed_profiling_node == 'true') ||
+          (needs.job_get_metadata.outputs.changed_profiling_node == 'true') ||
             (needs.job_get_metadata.outputs.is_release == 'true') ||
           (github.event_name != 'pull_request')
         uses: actions/download-artifact@v3
@@ -1105,7 +1118,7 @@ jobs:
       always() && needs.job_e2e_prepare.result == 'success' &&
       (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) &&
      (
-        (needs.job_build.outputs.changed_profiling_node == 'true') ||
+        (needs.job_get_metadata.outputs.changed_profiling_node == 'true') ||
         (needs.job_get_metadata.outputs.is_release == 'true') ||
         (github.event_name != 'pull_request')
       )
@@ -1259,7 +1272,7 @@ jobs:
     # Compiling bindings can be very slow (especially on windows), so only run precompile
     # Skip precompile unless we are on a release branch as precompile slows down CI times.
     if: |
-      (needs.job_build.outputs.changed_profiling_node == 'true') ||
+      (needs.job_get_metadata.outputs.changed_profiling_node == 'true') ||
       (needs.job_get_metadata.outputs.is_release == 'true') ||
       (github.event_name != 'pull_request')
     runs-on: ${{ matrix.os }}
