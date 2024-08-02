@@ -1262,6 +1262,11 @@ jobs:
         with:
           pattern: profiling-node-binaries-${{ github.sha }}-*
           path: ${{ github.workspace }}/packages/profiling-node/lib/
+          merge-multiple: true
+
+      - name: Log downloaded binaries
+        run: |
+          ls -la ${{ github.workspace }}/packages/profiling-node/lib/
 
       - name: Restore tarball cache
         uses: actions/cache/restore@v4
