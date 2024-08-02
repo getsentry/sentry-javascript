@@ -13,6 +13,7 @@ import Fastify from 'fastify';
 const app = Fastify();
 
 app.get('/test/deprecated', (_req, res) => {
+  // eslint-disable-next-line @typescript-eslint/no-floating-promises
   res.send({});
 });
 
