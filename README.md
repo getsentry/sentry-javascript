@@ -1,8 +1,6 @@
-<p align="center">
-  <a href="https://sentry.io/?utm_source=github&utm_medium=logo" target="_blank">
-    <img src="https://sentry-brand.storage.googleapis.com/sentry-wordmark-dark-280x84.png" alt="Sentry" width="280" height="84">
-  </a>
-</p>
+<a href="https://sentry.io/?utm_source=github&utm_medium=logo" target="_blank">
+  <img src="https://github.com/user-attachments/assets/aedc2b46-9959-4b9e-8a23-6240062cefc5" alt="Sentry for JavaScript">
+</a>
 
 _Bad software is everywhere, and we're tired of it. Sentry is on a mission to help developers write better software
 faster, so we can get back to enjoying technology. If you want to join us
