@@ -83,6 +83,7 @@ export {
 export { parseSampleRate } from './utils/parseSampleRate';
 export { applySdkMetadata } from './utils/sdkMetadata';
 export { getTraceData } from './utils/traceData';
+export { getTracingMetaTags } from './utils/meta';
 export { DEFAULT_ENVIRONMENT } from './constants';
 export { addBreadcrumb } from './breadcrumbs';
 export { functionToStringIntegration } from './integrations/functiontostring';
