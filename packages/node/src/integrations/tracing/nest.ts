@@ -23,7 +23,6 @@ import {
 } from '@sentry/core';
 import type { IntegrationFn, Span } from '@sentry/types';
 import { addNonEnumerableProperty, logger } from '@sentry/utils';
-import type { Observable } from 'rxjs';
 import { generateInstrumentOnce } from '../../otel/instrument';
 
 interface MinimalNestJsExecutionContext {
@@ -60,6 +59,13 @@ const INTEGRATION_NAME = 'Nest';
 const supportedVersions = ['>=8.0.0 <11'];
 
 const sentryPatched = 'sentryPatched';
+
+/**
+ * A minimal interface for an Observable.
+ */
+export interface Observable<T> {
+  subscribe(observer: (value: T) => void): void;
+}
 
 /**
  * A NestJS call handler. Used in interceptors to start the route execution.
