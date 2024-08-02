@@ -318,7 +318,21 @@ export const buildFeedbackIntegration = ({
       async createForm(
         optionOverrides: OverrideFeedbackConfiguration = {},
       ): Promise<ReturnType<FeedbackModalIntegration['createDialog']>> {
-        return _loadAndRenderDialog(mergeOptions(_options, optionOverrides));
+        const mergedOptions = mergeOptions(_options, optionOverrides);
+
+        const dialog = await _loadAndRenderDialog({
+          ...mergedOptions,
+          onFormClose: () => {
+            dialog && dialog.close();
+            mergedOptions.onFormClose && mergedOptions.onFormClose();
+          },
+          onFormSubmitted: () => {
+            dialog && dialog.close();
+            mergedOptions.onFormSubmitted && mergedOptions.onFormSubmitted();
+          },
+        });
+
+        return dialog;
       },
 
       /**
