@@ -40,6 +40,7 @@ test('sends an INP span during pageload', async ({ page }) => {
     start_timestamp: expect.any(Number),
     timestamp: expect.any(Number),
     trace_id: expect.any(String),
+    type: 'span',
     origin: 'auto.http.browser.inp',
     exclusive_time: expect.any(Number),
     measurements: { inp: { unit: 'millisecond', value: expect.any(Number) } },
@@ -96,6 +97,7 @@ test('sends an INP span after pageload', async ({ page }) => {
     exclusive_time: expect.any(Number),
     measurements: { inp: { unit: 'millisecond', value: expect.any(Number) } },
     segment_id: expect.any(String),
+    type: 'span',
   });
 });
 
@@ -140,6 +142,7 @@ test('sends an INP span during navigation', async ({ page }) => {
     exclusive_time: expect.any(Number),
     measurements: { inp: { unit: 'millisecond', value: expect.any(Number) } },
     segment_id: expect.any(String),
+    type: 'span',
   });
 });
 
@@ -194,5 +197,6 @@ test('sends an INP span after navigation', async ({ page }) => {
     exclusive_time: expect.any(Number),
     measurements: { inp: { unit: 'millisecond', value: expect.any(Number) } },
     segment_id: expect.any(String),
+    type: 'span',
   });
 });
