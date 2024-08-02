@@ -6,6 +6,7 @@ import {
   getActiveSpan,
   getClient,
   getCurrentScope,
+  getTracingMetaTags,
   setHttpStatus,
   startSpan,
   withIsolationScope,
@@ -189,16 +190,13 @@ function addMetaTagToHead(htmlChunk: string, scope: Scope, client: Client, span?
   if (typeof htmlChunk !== 'string') {
     return htmlChunk;
   }
-  const { 'sentry-trace': sentryTrace, baggage } = getTraceData(span, scope, client);
+  const metaTags = getTracingMetaTags(span, scope, client);
 
-  if (!sentryTrace) {
+  if (!metaTags) {
     return htmlChunk;
   }
 
-  const sentryTraceMeta = `<meta name="sentry-trace" content="${sentryTrace}"/>`;
-  const baggageMeta = baggage && `<meta name="baggage" content="${baggage}"/>`;
-
-  const content = `<head>\n${sentryTraceMeta}`.concat(baggageMeta ? `\n${baggageMeta}` : '', '\n');
+  const content = `<head>${metaTags}`;
 
   return htmlChunk.replace('<head>', content);
 }

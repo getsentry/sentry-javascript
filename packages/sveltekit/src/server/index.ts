@@ -52,6 +52,7 @@ export {
   getSpanDescendants,
   getSpanStatusFromHttpCode,
   getTraceData,
+  getTracingMetaTags,
   graphqlIntegration,
   hapiIntegration,
   httpIntegration,
