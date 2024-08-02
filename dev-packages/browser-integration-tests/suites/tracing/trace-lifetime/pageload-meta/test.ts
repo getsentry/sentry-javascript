@@ -115,7 +115,7 @@ sentryTest('error after <meta> tag pageload has pageload traceId', async ({ getL
   await page.locator('#errorBtn').click();
   const [errorEvent, errorTraceHeader] = await errorEventPromise;
 
-  expect(errorEvent.type).toEqual(undefined);
+  expect(errorEvent.type).toEqual('event');
   expect(errorEvent.contexts?.trace).toEqual({
     trace_id: META_TAG_TRACE_ID,
     parent_span_id: META_TAG_PARENT_SPAN_ID,
@@ -153,7 +153,7 @@ sentryTest('error during <meta> tag pageload has pageload traceId', async ({ get
   const [pageloadEvent, pageloadTraceHeader] = envelopes.find(
     eventAndHeader => eventAndHeader[0].type === 'transaction',
   )!;
-  const [errorEvent, errorTraceHeader] = envelopes.find(eventAndHeader => !eventAndHeader[0].type)!;
+  const [errorEvent, errorTraceHeader] = envelopes.find(eventAndHeader => eventAndHeader[0].type !== 'transaction')!;
 
   expect(pageloadEvent.type).toEqual('transaction');
   expect(pageloadEvent?.contexts?.trace).toMatchObject({

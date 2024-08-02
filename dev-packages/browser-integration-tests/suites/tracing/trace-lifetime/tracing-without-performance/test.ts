@@ -28,7 +28,7 @@ sentryTest('error has new traceId after navigation', async ({ getLocalTestUrl, p
   await page.locator('#errorBtn').click();
   const [errorEvent, errorTraceHeader] = await errorEventPromise;
 
-  expect(errorEvent.type).toEqual(undefined);
+  expect(errorEvent.type).toEqual('event');
   expect(errorEvent.contexts?.trace).toEqual({
     trace_id: META_TAG_TRACE_ID,
     parent_span_id: META_TAG_PARENT_SPAN_ID,

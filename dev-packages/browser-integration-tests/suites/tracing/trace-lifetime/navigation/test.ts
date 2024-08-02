@@ -119,7 +119,7 @@ sentryTest('error after navigation has navigation traceId', async ({ getLocalTes
   await page.locator('#errorBtn').click();
   const [errorEvent, errorTraceHeader] = await errorEventPromise;
 
-  expect(errorEvent.type).toEqual(undefined);
+  expect(errorEvent.type).toEqual('event');
 
   const errorTraceContext = errorEvent.contexts?.trace;
   expect(errorTraceContext).toEqual({
@@ -157,10 +157,10 @@ sentryTest('error during navigation has new navigation traceId', async ({ getLoc
   const envelopes = await envelopeRequestsPromise;
 
   const [navigationEvent, navigationTraceHeader] = envelopes.find(envelope => envelope[0].type === 'transaction')!;
-  const [errorEvent, errorTraceHeader] = envelopes.find(envelope => !envelope[0].type)!;
+  const [errorEvent, errorTraceHeader] = envelopes.find(envelope => envelope[0].type !== 'transaction')!;
 
   expect(navigationEvent.type).toEqual('transaction');
-  expect(errorEvent.type).toEqual(undefined);
+  expect(errorEvent.type).toEqual('event');
 
   const navigationTraceContext = navigationEvent?.contexts?.trace;
   expect(navigationTraceContext).toMatchObject({

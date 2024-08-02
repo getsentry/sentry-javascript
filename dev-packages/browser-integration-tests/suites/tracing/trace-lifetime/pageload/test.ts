@@ -109,7 +109,7 @@ sentryTest('error after pageload has pageload traceId', async ({ getLocalTestUrl
   const [errorEvent, errorTraceHeader] = await errorEventPromise;
 
   const errorTraceContext = errorEvent.contexts?.trace;
-  expect(errorEvent.type).toEqual(undefined);
+  expect(errorEvent.type).toEqual('event');
 
   expect(errorTraceContext).toEqual({
     trace_id: pageloadTraceContext?.trace_id,
@@ -145,7 +145,7 @@ sentryTest('error during pageload has pageload traceId', async ({ getLocalTestUr
   const [pageloadEvent, pageloadTraceHeader] = envelopes.find(
     eventAndHeader => eventAndHeader[0].type === 'transaction',
   )!;
-  const [errorEvent, errorTraceHeader] = envelopes.find(eventAndHeader => !eventAndHeader[0].type)!;
+  const [errorEvent, errorTraceHeader] = envelopes.find(eventAndHeader => eventAndHeader[0].type !== 'transaction')!;
 
   const pageloadTraceContext = pageloadEvent?.contexts?.trace;
 
