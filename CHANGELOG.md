@@ -9,6 +9,16 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 8.23.0
+
+- feat(cloudflare): Add Cloudflare D1 instrumentation (#13142)
+- feat(nestjs): Automatic instrumentation of nestjs interceptors before route execution (#13153)
+- feat(nestjs): Automatic instrumentation of nestjs pipes (#13137)
+- feat(nuxt): Filter out Nuxt build assets (#13148)
+- feat(profiling): attach sdk info to chunks (#13145)
+- fix(browser): Avoid showing browser extension error message in non-`window` global scopes (#13156)
+- fix(nestjs): Inline Observable type to resolve missing 'rxjs' dependency (#13166)
+
 ## 8.22.0
 
 ### Important Changes
