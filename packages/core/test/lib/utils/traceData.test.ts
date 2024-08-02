@@ -113,6 +113,26 @@ describe('getTraceData', () => {
     });
     expect('baggage' in traceData).toBe(false);
   });
+
+  it('returns an empty object if the `sentry-trace` value is invalid', () => {
+    const traceData = getTraceData(
+      // @ts-expect-error - we don't need to provide all the properties
+      {
+        isRecording: () => true,
+        spanContext: () => {
+          return {
+            traceId: '1234567890123456789012345678901+',
+            spanId: '1234567890123456',
+            traceFlags: TRACE_FLAG_SAMPLED,
+          };
+        },
+      },
+      mockedScope,
+      mockedClient,
+    );
+
+    expect(traceData).toEqual({});
+  });
 });
 
 describe('isValidBaggageString', () => {

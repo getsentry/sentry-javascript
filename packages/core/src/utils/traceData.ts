@@ -9,6 +9,11 @@ import { getClient, getCurrentScope } from '../currentScopes';
 import { getDynamicSamplingContextFromClient, getDynamicSamplingContextFromSpan } from '../tracing';
 import { getActiveSpan, getRootSpan, spanToTraceHeader } from './spanUtils';
 
+type TraceData = {
+  'sentry-trace'?: string;
+  baggage?: string;
+};
+
 /**
  * Extracts trace propagation data from the current span or from the client's scope (via transaction or propagation
  * context) and serializes it to `sentry-trace` and `baggage` values to strings. These values can be used to propagate
@@ -24,11 +29,7 @@ import { getActiveSpan, getRootSpan, spanToTraceHeader } from './spanUtils';
  * @returns an object with the tracing data values. The object keys are the name of the tracing key to be used as header
  * or meta tag name.
  */
-export function getTraceData(
-  span?: Span,
-  scope?: Scope,
-  client?: Client,
-): { 'sentry-trace': string; baggage?: string } {
+export function getTraceData(span?: Span, scope?: Scope, client?: Client): TraceData {
   const clientToUse = client || getClient();
   const scopeToUse = scope || getCurrentScope();
   const spanToUse = span || getActiveSpan();
@@ -50,7 +51,8 @@ export function getTraceData(
 
   const isValidSentryTraceHeader = TRACEPARENT_REGEXP.test(sentryTrace);
   if (!isValidSentryTraceHeader) {
-    logger.warn('Invalid sentry-trace data. Returning empty "sentry-trace" value');
+    logger.warn('Invalid sentry-trace data. Cannot generate trace data');
+    return {};
   }
 
   const validBaggage = isValidBaggageString(baggage);
