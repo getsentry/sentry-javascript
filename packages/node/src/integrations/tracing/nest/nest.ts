@@ -22,103 +22,14 @@ import {
   withActiveSpan,
 } from '@sentry/core';
 import type { IntegrationFn, Span } from '@sentry/types';
-import { addNonEnumerableProperty, logger } from '@sentry/utils';
+import { logger } from '@sentry/utils';
 import { generateInstrumentOnce } from '../../../otel/instrument';
-
-interface MinimalNestJsExecutionContext {
-  getType: () => string;
-
-  switchToHttp: () => {
-    // minimal request object
-    // according to official types, all properties are required but
-    // let's play it safe and assume they're optional
-    getRequest: () => {
-      route?: {
-        path?: string;
-      };
-      method?: string;
-    };
-  };
-}
-
-interface NestJsErrorFilter {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  catch(exception: any, host: any): void;
-}
-
-interface MinimalNestJsApp {
-  useGlobalFilters: (arg0: NestJsErrorFilter) => void;
-  useGlobalInterceptors: (interceptor: {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    intercept: (context: MinimalNestJsExecutionContext, next: { handle: () => any }) => any;
-  }) => void;
-}
+import { getMiddlewareSpanOptions, isPatched } from './helpers';
+import type { InjectableTarget, MinimalNestJsApp, NestJsErrorFilter } from './types';
 
 const INTEGRATION_NAME = 'Nest';
 
 const supportedVersions = ['>=8.0.0 <11'];
-
-const sentryPatched = 'sentryPatched';
-
-/**
- * A minimal interface for an Observable.
- */
-export interface Observable<T> {
-  subscribe(observer: (value: T) => void): void;
-}
-
-/**
- * A NestJS call handler. Used in interceptors to start the route execution.
- */
-export interface CallHandler {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  handle(...args: any[]): Observable<any>;
-}
-
-/**
- * Represents an injectable target class in NestJS.
- */
-export interface InjectableTarget {
-  name: string;
-  sentryPatched?: boolean;
-  __SENTRY_INTERNAL__?: boolean;
-  prototype: {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    use?: (req: unknown, res: unknown, next: () => void, ...args: any[]) => void;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    canActivate?: (...args: any[]) => boolean | Promise<boolean> | Observable<boolean>;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    transform?: (...args: any[]) => any;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    intercept?: (context: unknown, next: CallHandler, ...args: any[]) => Observable<any>;
-  };
-}
-
-/**
- * Helper checking if a concrete target class is already patched.
- *
- * We already guard duplicate patching with isWrapped. However, isWrapped checks whether a file has been patched, whereas we use this check for concrete target classes.
- * This check might not be necessary, but better to play it safe.
- */
-export function isPatched(target: InjectableTarget): boolean {
-  if (target.sentryPatched) {
-    return true;
-  }
-
-  addNonEnumerableProperty(target, sentryPatched, true);
-  return false;
-}
-
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-function getMiddlewareSpanOptions(target: InjectableTarget) {
-  return {
-    name: target.name,
-    attributes: {
-      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'middleware.nestjs',
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.middleware.nestjs',
-    },
-  };
-}
 
 /**
  * Custom instrumentation for nestjs.
