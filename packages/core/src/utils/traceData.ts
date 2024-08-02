@@ -55,7 +55,7 @@ export function getTraceData(
 
   const validBaggage = isValidBaggageString(baggage);
   if (!validBaggage) {
-    logger.warn('Invalid baggage data. Not returning "baggage" meta tag');
+    logger.warn('Invalid baggage data. Not returning "baggage" value');
   }
 
   return {

@@ -20,7 +20,7 @@ const mockedScope = {
 } as any;
 
 describe('getTraceData', () => {
-  it('returns the tracing meta tags from the span, if it is provided', () => {
+  it('returns the tracing data from the span, if a span is available', () => {
     {
       jest.spyOn(SentryCoreTracing, 'getDynamicSamplingContextFromSpan').mockReturnValueOnce({
         environment: 'production',
@@ -59,7 +59,7 @@ describe('getTraceData', () => {
     });
   });
 
-  it('returns only the `sentry-trace` tag if no DSC is available', () => {
+  it('returns only the `sentry-trace` value if no DSC is available', () => {
     jest.spyOn(SentryCoreTracing, 'getDynamicSamplingContextFromClient').mockReturnValueOnce({
       trace_id: '',
       public_key: undefined,
