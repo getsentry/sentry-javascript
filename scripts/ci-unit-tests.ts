@@ -82,7 +82,8 @@ function runWithIgnores(skipPackages: string[] = []): void {
 function runAffectedWithIgnores(skipPackages: string[] = []): void {
   const additionalArgs = process.argv
     .slice(2)
-    .filter(arg => arg !== '--affected')
+    // We only want to forward the --base=xxx argument
+    .filter(arg => arg.startsWith('--base'))
     .join(' ');
   const ignoreFlags = skipPackages.map(dep => `--exclude="${dep}"`).join(' ');
   run(`yarn test:affected ${ignoreFlags} ${additionalArgs}`);
