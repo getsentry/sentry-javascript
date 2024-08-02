@@ -160,7 +160,7 @@ jobs:
         id: checkForAffected
         if: github.event_name == 'pull_request'
         with:
-          base: ${{  github.event.pull_request.base.sha }}
+          base: ${{ github.event.pull_request.base.sha }}
           head: ${{ env.HEAD_COMMIT }}
 
       - name: Check build cache
