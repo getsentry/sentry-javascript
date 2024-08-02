@@ -3,7 +3,7 @@ import { waitForError } from '@sentry-internal/test-utils';
 
 test('sends an error', async ({ page }) => {
   const errorPromise = waitForError('vue-3', async errorEvent => {
-    return !errorEvent.type;
+    return errorEvent.type !== 'transaction';
   });
 
   await page.goto(`/`);
@@ -31,7 +31,7 @@ test('sends an error', async ({ page }) => {
 
 test('sends an error with a parameterized transaction name', async ({ page }) => {
   const errorPromise = waitForError('vue-3', async errorEvent => {
-    return !errorEvent.type;
+    return errorEvent.type !== 'transaction';
   });
 
   await page.goto(`/users-error/456`);

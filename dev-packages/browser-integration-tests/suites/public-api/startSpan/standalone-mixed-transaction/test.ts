@@ -79,6 +79,7 @@ sentryTest(
       start_timestamp: expect.any(Number),
       timestamp: expect.any(Number),
       trace_id: traceId,
+      type: 'span',
     });
 
     expect(transactionEnvelopeItem).toEqual({

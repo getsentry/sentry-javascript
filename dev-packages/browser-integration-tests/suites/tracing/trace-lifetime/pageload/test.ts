@@ -167,7 +167,7 @@ sentryTest('error during pageload has pageload traceId', async ({ getLocalTestUr
 
   const errorTraceContext = errorEvent?.contexts?.trace;
 
-  expect(errorEvent.type).toEqual(undefined);
+  expect(errorEvent.type).toEqual('event');
   expect(errorTraceContext).toEqual({
     trace_id: pageloadTraceContext?.trace_id,
     span_id: expect.stringMatching(/^[0-9a-f]{16}$/),

@@ -173,7 +173,7 @@ sentryTest('error during <meta> tag pageload has pageload traceId', async ({ get
     trace_id: META_TAG_TRACE_ID,
   });
 
-  expect(errorEvent.type).toEqual(undefined);
+  expect(errorEvent.type).toEqual('event');
   expect(errorEvent?.contexts?.trace).toEqual({
     trace_id: META_TAG_TRACE_ID,
     parent_span_id: META_TAG_PARENT_SPAN_ID,

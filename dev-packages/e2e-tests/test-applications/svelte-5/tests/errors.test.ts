@@ -3,7 +3,7 @@ import { waitForError } from '@sentry-internal/test-utils';
 
 test('sends an error', async ({ page }) => {
   const errorPromise = waitForError('svelte-5', async errorEvent => {
-    return !errorEvent.type;
+    return errorEvent.type !== 'transaction';
   });
 
   await page.goto(`/`);

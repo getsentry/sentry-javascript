@@ -3,7 +3,7 @@ import { waitForError } from '@sentry-internal/test-utils';
 
 test('captures an exception', async ({ page }) => {
   const errorEventPromise = waitForError('solid', errorEvent => {
-    return !errorEvent.type && errorEvent.transaction === '/error-boundary-example';
+    return errorEvent.type !== 'transaction' && errorEvent.transaction === '/error-boundary-example';
   });
 
   const [, errorEvent] = await Promise.all([page.goto('/error-boundary-example'), errorEventPromise]);
@@ -27,7 +27,7 @@ test('captures an exception', async ({ page }) => {
 
 test('captures a second exception after resetting the boundary', async ({ page }) => {
   const firstErrorEventPromise = waitForError('solid', errorEvent => {
-    return !errorEvent.type && errorEvent.transaction === '/error-boundary-example';
+    return errorEvent.type !== 'transaction' && errorEvent.transaction === '/error-boundary-example';
   });
 
   const [, firstErrorEvent] = await Promise.all([page.goto('/error-boundary-example'), firstErrorEventPromise]);
@@ -49,7 +49,7 @@ test('captures a second exception after resetting the boundary', async ({ page }
   });
 
   const secondErrorEventPromise = waitForError('solid', errorEvent => {
-    return !errorEvent.type && errorEvent.transaction === '/error-boundary-example';
+    return errorEvent.type !== 'transaction' && errorEvent.transaction === '/error-boundary-example';
   });
 
   const [, secondErrorEvent] = await Promise.all([

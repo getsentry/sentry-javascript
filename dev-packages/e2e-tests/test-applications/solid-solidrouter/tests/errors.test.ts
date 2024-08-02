@@ -3,7 +3,10 @@ import { waitForError } from '@sentry-internal/test-utils';
 
 test('sends an error', async ({ page }) => {
   const errorPromise = waitForError('solid', async errorEvent => {
-    return !errorEvent.type && errorEvent.exception?.values?.[0]?.value === 'Error thrown from Solid E2E test app';
+    return (
+      errorEvent.type !== 'transaction' &&
+      errorEvent.exception?.values?.[0]?.value === 'Error thrown from Solid E2E test app'
+    );
   });
 
   await Promise.all([page.goto(`/`), page.locator('#errorBtn').click()]);

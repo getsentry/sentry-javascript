@@ -52,6 +52,7 @@ sentryTest('sends a segment span envelope', async ({ getLocalTestPath, page }) =
     start_timestamp: expect.any(Number),
     timestamp: expect.any(Number),
     trace_id: expect.stringMatching(/^[0-9a-f]{32}$/),
+    type: 'span',
     is_segment: true,
     segment_id: spanJson.span_id,
   });

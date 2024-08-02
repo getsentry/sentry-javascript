@@ -3,7 +3,7 @@ import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
 
 test('sends an error', async ({ page }) => {
   const errorPromise = waitForError('angular-17', async errorEvent => {
-    return !errorEvent.type;
+    return errorEvent.type !== 'transaction';
   });
 
   await page.goto(`/`);
@@ -35,7 +35,7 @@ test('assigns the correct transaction value after a navigation', async ({ page }
   });
 
   const errorPromise = waitForError('angular-17', async errorEvent => {
-    return !errorEvent.type;
+    return errorEvent.type !== 'transaction';
   });
 
   await page.goto(`/`);
