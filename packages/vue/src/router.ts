@@ -50,18 +50,22 @@ export function instrumentVueRouter(
   },
   startNavigationSpanFn: (context: StartSpanOptions) => void,
 ): void {
+  let IS_FIRST_PAGE_LOAD = true;
+
   router.onError(error => captureException(error, { mechanism: { handled: false } }));
 
   router.beforeEach((to, from, next) => {
     // According to docs we could use `from === VueRouter.START_LOCATION` but I couldnt get it working for Vue 2
     // https://router.vuejs.org/api/#router-start-location
     // https://next.router.vuejs.org/api/#start-location
+    // Additionally, Nuxt does not provide the possibility to check for `from.matched.length === 0` (like it was the case before).
+    // Therefore, a flag was added to track the page-load: IS_FIRST_PAGE_LOAD
 
-    // from.name:
-    // - Vue 2: null
-    // - Vue 3: undefined
-    // hence only '==' instead of '===', because `undefined == null` evaluates to `true`
-    const isPageLoadNavigation = from.name == null && from.matched.length === 0;
+    const isPageLoadNavigation = IS_FIRST_PAGE_LOAD;
+
+    if (IS_FIRST_PAGE_LOAD) {
+      IS_FIRST_PAGE_LOAD = false;
+    }
 
     const attributes: SpanAttributes = {
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.vue',
