@@ -73,6 +73,7 @@ jobs:
           # We need to check out not only the fake merge commit between the PR and the base branch which GH creates, but
           # also its parents, so that we can pull the commit message from the head commit of the PR
           fetch-depth: 2
+
       - name: Get metadata
         id: get_metadata
         # We need to try a number of different options for finding the head commit, because each kind of trigger event
@@ -82,79 +83,17 @@ jobs:
           echo "COMMIT_SHA=$COMMIT_SHA" >> $GITHUB_ENV
           echo "COMMIT_MESSAGE=$(git log -n 1 --pretty=format:%s $COMMIT_SHA)" >> $GITHUB_ENV
 
+      # Most changed packages are determined in job_build via Nx
+      # However, for profiling-node we only want to run certain things when in this specific package
+      # something changed, not in any of the dependencies (which include core, utils, ...)
       - name: Determine changed packages
         uses: dorny/paths-filter@v3.0.1
         id: changed
         with:
           filters: |
-            workflow: &workflow
-              - '.github/**'
-            shared: &shared
-              - *workflow
-              - '*.{js,ts,json,yml,lock}'
-              - 'CHANGELOG.md'
-              - 'jest/**'
-              - 'scripts/**'
-              - 'packages/core/**'
-              - 'packages/rollup-utils/**'
-              - 'packages/utils/**'
-              - 'packages/types/**'
-              - 'dev-packages/test-utils/**'
-            browser: &browser
-              - *shared
-              - 'packages/browser/**'
-              - 'packages/browser-utils/**'
-              - 'packages/replay-internal/**'
-              - 'packages/replay-worker/**'
-              - 'packages/replay-canvas/**'
-              - 'packages/feedback/**'
-              - 'packages/wasm/**'
-            node: &node
-              - *shared
-              - 'packages/node/**'
-              - 'packages/opentelemetry/**'
-            browser_integration:
-              - *shared
-              - *browser
-              - 'dev-packages/browser-integration-tests/**'
-            ember:
-              - *shared
-              - *browser
-              - 'packages/ember/**'
-            node_integration:
-              - *shared
-              - *node
-              - 'dev-packages/node-integration-tests/**'
-              - 'packages/nestjs/**'
-            nextjs:
-              - *shared
-              - *browser
-              - *node
-              - 'packages/nextjs/**'
-              - 'packages/react/**'
-              - 'packages/vercel-edge/**'
-            remix:
-              - *shared
-              - *browser
-              - *node
-              - 'packages/remix/**'
-              - 'packages/react/**'
             profiling_node:
-              - *shared
-              - 'packages/node/**'
               - 'packages/profiling-node/**'
               - 'dev-packages/e2e-tests/test-applications/node-profiling/**'
-            profiling_node_bindings:
-              - 'packages/profiling-node/**'
-              - 'dev-packages/e2e-tests/test-applications/node-profiling/**'
-            deno:
-              - *shared
-              - 'packages/deno/**'
-            bun:
-              - *shared
-              - 'packages/bun/**'
-            any_code:
-              - '!**/*.md'
 
       - name: Get PR labels
         id: pr-labels
@@ -162,21 +101,10 @@ jobs:
 
     outputs:
       commit_label: '${{ env.COMMIT_SHA }}: ${{ env.COMMIT_MESSAGE }}'
-      changed_nextjs: ${{ steps.changed.outputs.nextjs }}
-      changed_ember: ${{ steps.changed.outputs.ember }}
-      changed_remix: ${{ steps.changed.outputs.remix }}
-      changed_node: ${{ steps.changed.outputs.node }}
-      changed_node_integration: ${{ steps.changed.outputs.node_integration }}
-      changed_profiling_node: ${{ steps.changed.outputs.profiling_node }}
-      changed_profiling_node_bindings: ${{ steps.changed.outputs.profiling_node_bindings }}
-      changed_deno: ${{ steps.changed.outputs.deno }}
-      changed_bun: ${{ steps.changed.outputs.bun }}
-      changed_browser: ${{ steps.changed.outputs.browser }}
-      changed_browser_integration: ${{ steps.changed.outputs.browser_integration }}
-      changed_any_code: ${{ steps.changed.outputs.any_code }}
       # Note: These next three have to be checked as strings ('true'/'false')!
       is_develop: ${{ github.ref == 'refs/heads/develop' }}
       is_release: ${{ startsWith(github.ref, 'refs/heads/release/') }}
+      changed_profiling_node: ${{ steps.changed.outputs.profiling_node == 'true' }}
       # When merging into master, or from master
       is_gitflow_sync: ${{ github.head_ref == 'master' || github.ref == 'refs/heads/master' }}
       has_gitflow_label:
@@ -185,22 +113,31 @@ jobs:
         ${{ github.event_name == 'schedule' || (github.event_name == 'pull_request' &&
         contains(steps.pr-labels.outputs.labels, ' ci-skip-cache ')) }}
 
-  job_install_deps:
-    name: Install Dependencies
+  job_build:
+    name: Build
     needs: job_get_metadata
     runs-on: ubuntu-20.04
     timeout-minutes: 15
     if: |
       (needs.job_get_metadata.outputs.is_gitflow_sync == 'false' && needs.job_get_metadata.outputs.has_gitflow_label == 'false')
     steps:
+      - name: Check out base commit (${{ github.event.pull_request.base.sha }})
+        uses: actions/checkout@v4
+        if: github.event_name == 'pull_request'
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+
       - name: 'Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})'
         uses: actions/checkout@v4
         with:
           ref: ${{ env.HEAD_COMMIT }}
+
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
           node-version-file: 'package.json'
+          cache: 'yarn'
+
         # we use a hash of yarn.lock as our cache key, because if it hasn't changed, our dependencies haven't changed,
         # so no need to reinstall them
       - name: Compute dependency cache key
@@ -217,46 +154,14 @@ jobs:
       - name: Install dependencies
         if: steps.cache_dependencies.outputs.cache-hit != 'true'
         run: yarn install --ignore-engines --frozen-lockfile
-    outputs:
-      dependency_cache_key: ${{ steps.compute_lockfile_hash.outputs.hash }}
 
-  job_check_branches:
-    name: Check PR branches
-    needs: job_get_metadata
-    runs-on: ubuntu-20.04
-    if: github.event_name == 'pull_request'
-    permissions:
-      pull-requests: write
-    steps:
-      - name: PR is opened against master
-        uses: mshick/add-pr-comment@dd126dd8c253650d181ad9538d8b4fa218fc31e8
-        if: ${{ github.base_ref == 'master' && !startsWith(github.head_ref, 'prepare-release/') }}
+      - name: Check for Affected Nx Projects
+        uses: dkhunt27/action-nx-affected-list@v5.3
+        id: checkForAffected
+        if: github.event_name == 'pull_request'
         with:
-          message: |
-            ⚠️ This PR is opened against **master**. You probably want to open it against **develop**.
-
-  job_build:
-    name: Build
-    needs: [job_get_metadata, job_install_deps]
-    runs-on: ubuntu-20.04-large-js
-    timeout-minutes: 30
-    if: |
-      (needs.job_get_metadata.outputs.changed_any_code == 'true' || github.event_name != 'pull_request')
-    steps:
-      - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ env.HEAD_COMMIT }}
-      - name: Set up Node
-        uses: actions/setup-node@v4
-        with:
-          node-version-file: 'package.json'
-      - name: Check dependency cache
-        uses: actions/cache/restore@v4
-        with:
-          path: ${{ env.CACHED_DEPENDENCY_PATHS }}
-          key: ${{ needs.job_install_deps.outputs.dependency_cache_key }}
-          fail-on-cache-miss: true
+          base: ${{  github.event.pull_request.base.sha }}
+          head: ${{ env.HEAD_COMMIT }}
 
       - name: Check build cache
         uses: actions/cache@v4
@@ -285,10 +190,31 @@ jobs:
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
         run: yarn build
+
     outputs:
-      # this needs to be passed on, because the `needs` context only looks at direct ancestors (so steps which depend on
-      # `job_build` can't see `job_install_deps` and what it returned)
-      dependency_cache_key: ${{ needs.job_install_deps.outputs.dependency_cache_key }}
+      dependency_cache_key: ${{ steps.compute_lockfile_hash.outputs.hash }}
+      changed_node_integration: ${{ contains(steps.checkForAffected.outputs.affected, '@sentry-internal/node-integration-tests') }}
+      changed_remix: ${{ contains(steps.checkForAffected.outputs.affected, '@sentry/remix') }}
+      changed_node: ${{ contains(steps.checkForAffected.outputs.affected, '@sentry/node') }}
+      changed_deno: ${{ contains(steps.checkForAffected.outputs.affected, '@sentry/deno') }}
+      changed_bun: ${{ contains(steps.checkForAffected.outputs.affected, '@sentry/bun') }}
+      changed_browser_integration: ${{ contains(steps.checkForAffected.outputs.affected, '@sentry-internal/browser-integration-tests') }}
+      # If you are looking for changed_profiling_node, this is defined in job_get_metadata
+
+  job_check_branches:
+    name: Check PR branches
+    needs: job_get_metadata
+    runs-on: ubuntu-20.04
+    if: github.event_name == 'pull_request'
+    permissions:
+      pull-requests: write
+    steps:
+      - name: PR is opened against master
+        uses: mshick/add-pr-comment@dd126dd8c253650d181ad9538d8b4fa218fc31e8
+        if: ${{ github.base_ref == 'master' && !startsWith(github.head_ref, 'prepare-release/') }}
+        with:
+          message: |
+            ⚠️ This PR is opened against **master**. You probably want to open it against **develop**.
 
   job_size_check:
     name: Size Check
@@ -345,7 +271,7 @@ jobs:
 
   job_check_format:
     name: Check file formatting
-    needs: [job_get_metadata, job_install_deps]
+    needs: [job_get_metadata, job_build]
     timeout-minutes: 10
     runs-on: ubuntu-20.04
     steps:
@@ -361,7 +287,7 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: ${{ env.CACHED_DEPENDENCY_PATHS }}
-          key: ${{ needs.job_install_deps.outputs.dependency_cache_key }}
+          key: ${{ needs.job_build.outputs.dependency_cache_key }}
           fail-on-cache-miss: true
       - name: Check file formatting
         run: yarn lint:prettier && yarn lint:biome
@@ -437,6 +363,7 @@ jobs:
     steps:
       - name: Check out base commit (${{ github.event.pull_request.base.sha }})
         uses: actions/checkout@v4
+        if: github.event_name == 'pull_request'
         with:
           ref: ${{ github.event.pull_request.base.sha }}
 
@@ -469,7 +396,7 @@ jobs:
   job_bun_unit_tests:
     name: Bun Unit Tests
     needs: [job_get_metadata, job_build]
-    if: needs.job_get_metadata.outputs.changed_bun == 'true' || github.event_name != 'pull_request'
+    if: needs.job_build.outputs.changed_bun == 'true' || github.event_name != 'pull_request'
     timeout-minutes: 10
     runs-on: ubuntu-20.04
     strategy:
@@ -496,7 +423,7 @@ jobs:
   job_deno_unit_tests:
     name: Deno Unit Tests
     needs: [job_get_metadata, job_build]
-    if: needs.job_get_metadata.outputs.changed_deno == 'true' || github.event_name != 'pull_request'
+    if: needs.job_build.outputs.changed_deno == 'true' || github.event_name != 'pull_request'
     timeout-minutes: 10
     runs-on: ubuntu-20.04
     strategy:
@@ -536,6 +463,7 @@ jobs:
     steps:
       - name: Check out base commit (${{ github.event.pull_request.base.sha }})
         uses: actions/checkout@v4
+        if: github.event_name == 'pull_request'
         with:
           ref: ${{ github.event.pull_request.base.sha }}
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
@@ -571,7 +499,7 @@ jobs:
   job_profiling_node_unit_tests:
     name: Node Profiling Unit Tests
     needs: [job_get_metadata, job_build]
-    if: needs.job_get_metadata.outputs.changed_node == 'true' || needs.job_get_metadata.outputs.changed_profiling_node == 'true' || github.event_name != 'pull_request'
+    if: needs.job_build.outputs.changed_node == 'true' || needs.job_get_metadata.outputs.changed_profiling_node == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -599,7 +527,7 @@ jobs:
   job_browser_playwright_tests:
     name: Playwright (${{ matrix.bundle }}${{ matrix.shard && format(' {0}/{1}', matrix.shard, matrix.shards) || ''}}) Tests
     needs: [job_get_metadata, job_build]
-    if: needs.job_get_metadata.outputs.changed_browser_integration == 'true' || github.event_name != 'pull_request'
+    if: needs.job_build.outputs.changed_browser_integration == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-20.04-large-js
     timeout-minutes: 25
     strategy:
@@ -674,11 +602,10 @@ jobs:
           name: playwright-traces
           path: dev-packages/browser-integration-tests/test-results
 
-
   job_browser_loader_tests:
     name: Playwright Loader (${{ matrix.bundle }}) Tests
     needs: [job_get_metadata, job_build]
-    if: needs.job_get_metadata.outputs.changed_browser_integration == 'true' || github.event_name != 'pull_request'
+    if: needs.job_build.outputs.changed_browser_integration == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-20.04
     timeout-minutes: 15
     strategy:
@@ -748,13 +675,12 @@ jobs:
             exit 1
           fi
 
-
   job_node_integration_tests:
     name:
       Node (${{ matrix.node }})${{ (matrix.typescript && format(' (TS {0})', matrix.typescript)) || '' }} Integration
       Tests
     needs: [job_get_metadata, job_build]
-    if: needs.job_get_metadata.outputs.changed_node_integration == 'true' || github.event_name != 'pull_request'
+    if: needs.job_build.outputs.changed_node_integration == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-20.04
     timeout-minutes: 15
     strategy:
@@ -796,7 +722,7 @@ jobs:
   job_remix_integration_tests:
     name: Remix v${{ matrix.remix }} (Node ${{ matrix.node }}) Tests
     needs: [job_get_metadata, job_build]
-    if: needs.job_get_metadata.outputs.changed_remix == 'true' || github.event_name != 'pull_request'
+    if: needs.job_build.outputs.changed_remix == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-20.04
     timeout-minutes: 10
     strategy:
@@ -866,14 +792,14 @@ jobs:
       # Rebuild profiling by compiling TS and pull the precompiled binary artifacts
       - name: Build Profiling Node
         if: |
-          (needs.job_get_metadata.outputs.changed_profiling_node_bindings == 'true') ||
+          (needs.job_get_metadata.outputs.changed_profiling_node == 'true') ||
           (needs.job_get_metadata.outputs.is_release == 'true') ||
           (github.event_name != 'pull_request')
         run: yarn lerna run build:lib --scope @sentry/profiling-node
 
       - name: Extract Profiling Node Prebuilt Binaries
         if: |
-          (needs.job_get_metadata.outputs.changed_profiling_node_bindings == 'true') ||
+          (needs.job_get_metadata.outputs.changed_profiling_node == 'true') ||
             (needs.job_get_metadata.outputs.is_release == 'true') ||
           (github.event_name != 'pull_request')
         uses: actions/download-artifact@v4
@@ -1167,7 +1093,7 @@ jobs:
       always() && needs.job_e2e_prepare.result == 'success' &&
       (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) &&
      (
-        (needs.job_get_metadata.outputs.changed_profiling_node_bindings == 'true') ||
+        (needs.job_get_metadata.outputs.changed_profiling_node == 'true') ||
         (needs.job_get_metadata.outputs.is_release == 'true') ||
         (github.event_name != 'pull_request')
       )
@@ -1320,11 +1246,11 @@ jobs:
 
   job_compile_bindings_profiling_node:
     name: Compile & Test Profiling Bindings (v${{ matrix.node }}) ${{ matrix.target_platform || matrix.os }}, ${{ matrix.node || matrix.container }}, ${{ matrix.arch || matrix.container }}, ${{ contains(matrix.container, 'alpine') && 'musl' || 'glibc'  }}
-    needs: [job_get_metadata, job_install_deps, job_build]
+    needs: [job_get_metadata, job_build]
     # Compiling bindings can be very slow (especially on windows), so only run precompile
     # Skip precompile unless we are on a release branch as precompile slows down CI times.
     if: |
-      (needs.job_get_metadata.outputs.changed_profiling_node_bindings == 'true') ||
+      (needs.job_get_metadata.outputs.changed_profiling_node == 'true') ||
       (needs.job_get_metadata.outputs.is_release == 'true') ||
       (github.event_name != 'pull_request')
     runs-on: ${{ matrix.os }}
@@ -1481,7 +1407,7 @@ jobs:
         id: restore-dependencies
         with:
           path: ${{ env.CACHED_DEPENDENCY_PATHS }}
-          key: ${{ needs.job_install_deps.outputs.dependency_cache_key }}
+          key: ${{ needs.job_build.outputs.dependency_cache_key }}
           enableCrossOsArchive: true
 
       - name: Restore build cache
