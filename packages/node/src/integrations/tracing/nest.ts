@@ -62,11 +62,20 @@ const supportedVersions = ['>=8.0.0 <11'];
 const sentryPatched = 'sentryPatched';
 
 /**
+ * A NestJS call handler. Used in interceptors to start the route execution.
+ */
+export interface CallHandler {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  handle(...args: any[]): Observable<any>;
+}
+
+/**
  * Represents an injectable target class in NestJS.
  */
 export interface InjectableTarget {
   name: string;
   sentryPatched?: boolean;
+  __SENTRY_INTERNAL__?: boolean;
   prototype: {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     use?: (req: unknown, res: unknown, next: () => void, ...args: any[]) => void;
@@ -74,6 +83,8 @@ export interface InjectableTarget {
     canActivate?: (...args: any[]) => boolean | Promise<boolean> | Observable<boolean>;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     transform?: (...args: any[]) => any;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    intercept?: (context: unknown, next: CallHandler, ...args: any[]) => Observable<any>;
   };
 }
 
@@ -90,6 +101,17 @@ export function isPatched(target: InjectableTarget): boolean {
 
   addNonEnumerableProperty(target, sentryPatched, true);
   return false;
+}
+
+// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+function getMiddlewareSpanOptions(target: InjectableTarget) {
+  return {
+    name: target.name,
+    attributes: {
+      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'middleware.nestjs',
+      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.middleware.nestjs',
+    },
+  };
 }
 
 /**
@@ -148,7 +170,7 @@ export class SentryNestInstrumentation extends InstrumentationBase {
       return function wrappedInjectable(options?: unknown) {
         return function (target: InjectableTarget) {
           // patch middleware
-          if (typeof target.prototype.use === 'function') {
+          if (typeof target.prototype.use === 'function' && !target.__SENTRY_INTERNAL__) {
             // patch only once
             if (isPatched(target)) {
               return original(options)(target);
@@ -159,38 +181,29 @@ export class SentryNestInstrumentation extends InstrumentationBase {
                 const [req, res, next, ...args] = argsUse;
                 const prevSpan = getActiveSpan();
 
-                return startSpanManual(
-                  {
-                    name: target.name,
-                    attributes: {
-                      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'middleware.nestjs',
-                      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.middleware.nestjs',
-                    },
-                  },
-                  (span: Span) => {
-                    const nextProxy = new Proxy(next, {
-                      apply: (originalNext, thisArgNext, argsNext) => {
-                        span.end();
+                return startSpanManual(getMiddlewareSpanOptions(target), (span: Span) => {
+                  const nextProxy = new Proxy(next, {
+                    apply: (originalNext, thisArgNext, argsNext) => {
+                      span.end();
 
-                        if (prevSpan) {
-                          withActiveSpan(prevSpan, () => {
-                            return Reflect.apply(originalNext, thisArgNext, argsNext);
-                          });
-                        } else {
+                      if (prevSpan) {
+                        return withActiveSpan(prevSpan, () => {
                           return Reflect.apply(originalNext, thisArgNext, argsNext);
-                        }
-                      },
-                    });
+                        });
+                      } else {
+                        return Reflect.apply(originalNext, thisArgNext, argsNext);
+                      }
+                    },
+                  });
 
-                    return originalUse.apply(thisArgUse, [req, res, nextProxy, args]);
-                  },
-                );
+                  return originalUse.apply(thisArgUse, [req, res, nextProxy, args]);
+                });
               },
             });
           }
 
           // patch guards
-          if (typeof target.prototype.canActivate === 'function') {
+          if (typeof target.prototype.canActivate === 'function' && !target.__SENTRY_INTERNAL__) {
             // patch only once
             if (isPatched(target)) {
               return original(options)(target);
@@ -198,42 +211,64 @@ export class SentryNestInstrumentation extends InstrumentationBase {
 
             target.prototype.canActivate = new Proxy(target.prototype.canActivate, {
               apply: (originalCanActivate, thisArgCanActivate, argsCanActivate) => {
-                return startSpan(
-                  {
-                    name: target.name,
-                    attributes: {
-                      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'middleware.nestjs',
-                      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.middleware.nestjs',
-                    },
-                  },
-                  () => {
-                    return originalCanActivate.apply(thisArgCanActivate, argsCanActivate);
-                  },
-                );
+                return startSpan(getMiddlewareSpanOptions(target), () => {
+                  return originalCanActivate.apply(thisArgCanActivate, argsCanActivate);
+                });
               },
             });
           }
 
           // patch pipes
-          if (typeof target.prototype.transform === 'function') {
+          if (typeof target.prototype.transform === 'function' && !target.__SENTRY_INTERNAL__) {
             if (isPatched(target)) {
               return original(options)(target);
             }
 
             target.prototype.transform = new Proxy(target.prototype.transform, {
               apply: (originalTransform, thisArgTransform, argsTransform) => {
-                return startSpan(
-                  {
-                    name: target.name,
-                    attributes: {
-                      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'middleware.nestjs',
-                      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.middleware.nestjs',
+                return startSpan(getMiddlewareSpanOptions(target), () => {
+                  return originalTransform.apply(thisArgTransform, argsTransform);
+                });
+              },
+            });
+          }
+
+          // patch interceptors
+          if (typeof target.prototype.intercept === 'function' && !target.__SENTRY_INTERNAL__) {
+            if (isPatched(target)) {
+              return original(options)(target);
+            }
+
+            target.prototype.intercept = new Proxy(target.prototype.intercept, {
+              apply: (originalIntercept, thisArgIntercept, argsIntercept) => {
+                const [executionContext, next, args] = argsIntercept;
+                const prevSpan = getActiveSpan();
+
+                return startSpanManual(getMiddlewareSpanOptions(target), (span: Span) => {
+                  const nextProxy = new Proxy(next, {
+                    get: (thisArgNext, property, receiver) => {
+                      if (property === 'handle') {
+                        const originalHandle = Reflect.get(thisArgNext, property, receiver);
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        return (...args: any[]) => {
+                          span.end();
+
+                          if (prevSpan) {
+                            return withActiveSpan(prevSpan, () => {
+                              return Reflect.apply(originalHandle, thisArgNext, args);
+                            });
+                          } else {
+                            return Reflect.apply(originalHandle, thisArgNext, args);
+                          }
+                        };
+                      }
+
+                      return Reflect.get(target, property, receiver);
                     },
-                  },
-                  () => {
-                    return originalTransform.apply(thisArgTransform, argsTransform);
-                  },
-                );
+                  });
+
+                  return originalIntercept.apply(thisArgIntercept, [executionContext, nextProxy, args]);
+                });
               },
             });
           }
