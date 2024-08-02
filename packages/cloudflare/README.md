@@ -15,7 +15,7 @@
 - [Official SDK Docs](https://docs.sentry.io/quickstart/)
 - [TypeDoc](http://getsentry.github.io/sentry-javascript/)
 
-**Note: This SDK is unreleased. Please follow the
+**Note: This SDK is in an alpha state. Please follow the
 [tracking GH issue](https://github.com/getsentry/sentry-javascript/issues/12620) for updates.**
 
 ## Install
@@ -143,8 +143,50 @@ You can use the `instrumentD1WithSentry` method to instrument [Cloudflare D1](ht
 Cloudflare's serverless SQL database with Sentry.
 
 ```javascript
+import * as Sentry from '@sentry/cloudflare';
+
 // env.DB is the D1 DB binding configured in your `wrangler.toml`
-const db = instrumentD1WithSentry(env.DB);
+const db = Sentry.instrumentD1WithSentry(env.DB);
 // Now you can use the database as usual
 await db.prepare('SELECT * FROM table WHERE id = ?').bind(1).run();
+```
+
+## Cron Monitoring (Cloudflare Workers)
+
+[Sentry Crons](https://docs.sentry.io/product/crons/) allows you to monitor the uptime and performance of any scheduled,
+recurring job in your application.
+
+To instrument your cron triggers, use the `Sentry.withMonitor` API in your
+[`Scheduled` handler](https://developers.cloudflare.com/workers/runtime-apis/handlers/scheduled/).
+
+```js
+export default {
+  async scheduled(event, env, ctx) {
+    ctx.waitUntil(
+      Sentry.withMonitor('your-cron-name', () => {
+        return doSomeTaskOnASchedule();
+      }),
+    );
+  },
+};
+```
+
+You can also use supply a monitor config to upsert cron monitors with additional metadata:
+
+```js
+const monitorConfig = {
+  schedule: {
+    type: 'crontab',
+    value: '* * * * *',
+  },
+  checkinMargin: 2, // In minutes. Optional.
+  maxRuntime: 10, // In minutes. Optional.
+  timezone: 'America/Los_Angeles', // Optional.
+};
+
+export default {
+  async scheduled(event, env, ctx) {
+    Sentry.withMonitor('your-cron-name', () => doSomeTaskOnASchedule(), monitorConfig);
+  },
+};
 ```
