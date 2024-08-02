@@ -126,6 +126,7 @@ jobs:
               - *shared
               - *node
               - 'dev-packages/node-integration-tests/**'
+              - 'packages/nestjs/**'
             nextjs:
               - *shared
               - *browser
