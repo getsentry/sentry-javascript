@@ -3,24 +3,24 @@ import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 import { SpanJSON } from '@sentry/types';
 
-test('Propagates trace for outgoing http requests', async ({ baseURL }) => {
+test('Propagates trace for outgoing http requests', async ({ request }) => {
   const id = crypto.randomUUID();
 
-  const inboundTransactionPromise = waitForTransaction('nestjs', transactionEvent => {
+  const inboundTransactionPromise = waitForTransaction('nestjs-distributed-tracing', transactionEvent => {
     return (
       transactionEvent.contexts?.trace?.op === 'http.server' &&
       transactionEvent.contexts?.trace?.data?.['http.target'] === `/test-inbound-headers/${id}`
     );
   });
 
-  const outboundTransactionPromise = waitForTransaction('nestjs', transactionEvent => {
+  const outboundTransactionPromise = waitForTransaction('nestjs-distributed-tracing', transactionEvent => {
     return (
       transactionEvent.contexts?.trace?.op === 'http.server' &&
       transactionEvent.contexts?.trace?.data?.['http.target'] === `/test-outgoing-http/${id}`
     );
   });
 
-  const response = await fetch(`${baseURL}/test-outgoing-http/${id}`);
+  const response = await request.get(`/test-outgoing-http/${id}`);
   const data = await response.json();
 
   const inboundTransaction = await inboundTransactionPromise;
@@ -118,24 +118,24 @@ test('Propagates trace for outgoing http requests', async ({ baseURL }) => {
   });
 });
 
-test('Propagates trace for outgoing fetch requests', async ({ baseURL }) => {
+test('Propagates trace for outgoing fetch requests', async ({ request }) => {
   const id = crypto.randomUUID();
 
-  const inboundTransactionPromise = waitForTransaction('nestjs', transactionEvent => {
+  const inboundTransactionPromise = waitForTransaction('nestjs-distributed-tracing', transactionEvent => {
     return (
       transactionEvent?.contexts?.trace?.op === 'http.server' &&
       transactionEvent.contexts?.trace?.data?.['http.target'] === `/test-inbound-headers/${id}`
     );
   });
 
-  const outboundTransactionPromise = waitForTransaction('nestjs', transactionEvent => {
+  const outboundTransactionPromise = waitForTransaction('nestjs-distributed-tracing', transactionEvent => {
     return (
       transactionEvent?.contexts?.trace?.op === 'http.server' &&
       transactionEvent.contexts?.trace?.data?.['http.target'] === `/test-outgoing-fetch/${id}`
     );
   });
 
-  const response = await fetch(`${baseURL}/test-outgoing-fetch/${id}`);
+  const response = await request.get(`/test-outgoing-fetch/${id}`);
   const data = await response.json();
 
   const inboundTransaction = await inboundTransactionPromise;
@@ -233,15 +233,15 @@ test('Propagates trace for outgoing fetch requests', async ({ baseURL }) => {
   });
 });
 
-test('Propagates trace for outgoing external http requests', async ({ baseURL }) => {
-  const inboundTransactionPromise = waitForTransaction('nestjs', transactionEvent => {
+test('Propagates trace for outgoing external http requests', async ({ request }) => {
+  const inboundTransactionPromise = waitForTransaction('nestjs-distributed-tracing', transactionEvent => {
     return (
       transactionEvent?.contexts?.trace?.op === 'http.server' &&
       transactionEvent.contexts?.trace?.data?.['http.target'] === `/test-outgoing-http-external-allowed`
     );
   });
 
-  const response = await fetch(`${baseURL}/test-outgoing-http-external-allowed`);
+  const response = await request.get(`/test-outgoing-http-external-allowed`);
   const data = await response.json();
 
   const inboundTransaction = await inboundTransactionPromise;
@@ -270,15 +270,15 @@ test('Propagates trace for outgoing external http requests', async ({ baseURL })
   );
 });
 
-test('Does not propagate outgoing http requests not covered by tracePropagationTargets', async ({ baseURL }) => {
-  const inboundTransactionPromise = waitForTransaction('nestjs', transactionEvent => {
+test('Does not propagate outgoing http requests not covered by tracePropagationTargets', async ({ request }) => {
+  const inboundTransactionPromise = waitForTransaction('nestjs-distributed-tracing', transactionEvent => {
     return (
       transactionEvent?.contexts?.trace?.op === 'http.server' &&
       transactionEvent.contexts?.trace?.data?.['http.target'] === `/test-outgoing-http-external-disallowed`
     );
   });
 
-  const response = await fetch(`${baseURL}/test-outgoing-http-external-disallowed`);
+  const response = await request.get(`/test-outgoing-http-external-disallowed`);
   const data = await response.json();
 
   const inboundTransaction = await inboundTransactionPromise;
@@ -294,15 +294,15 @@ test('Does not propagate outgoing http requests not covered by tracePropagationT
   expect(data.headers?.baggage).toBeUndefined();
 });
 
-test('Propagates trace for outgoing external fetch requests', async ({ baseURL }) => {
-  const inboundTransactionPromise = waitForTransaction('nestjs', transactionEvent => {
+test('Propagates trace for outgoing external fetch requests', async ({ request }) => {
+  const inboundTransactionPromise = waitForTransaction('nestjs-distributed-tracing', transactionEvent => {
     return (
       transactionEvent?.contexts?.trace?.op === 'http.server' &&
       transactionEvent.contexts?.trace?.data?.['http.target'] === `/test-outgoing-fetch-external-allowed`
     );
   });
 
-  const response = await fetch(`${baseURL}/test-outgoing-fetch-external-allowed`);
+  const response = await request.get(`/test-outgoing-fetch-external-allowed`);
   const data = await response.json();
 
   const inboundTransaction = await inboundTransactionPromise;
@@ -331,15 +331,15 @@ test('Propagates trace for outgoing external fetch requests', async ({ baseURL }
   );
 });
 
-test('Does not propagate outgoing fetch requests not covered by tracePropagationTargets', async ({ baseURL }) => {
-  const inboundTransactionPromise = waitForTransaction('nestjs', transactionEvent => {
+test('Does not propagate outgoing fetch requests not covered by tracePropagationTargets', async ({ request }) => {
+  const inboundTransactionPromise = waitForTransaction('nestjs-distributed-tracing', transactionEvent => {
     return (
       transactionEvent?.contexts?.trace?.op === 'http.server' &&
       transactionEvent.contexts?.trace?.data?.['http.target'] === `/test-outgoing-fetch-external-disallowed`
     );
   });
 
-  const response = await fetch(`${baseURL}/test-outgoing-fetch-external-disallowed`);
+  const response = await request.get(`/test-outgoing-fetch-external-disallowed`);
   const data = await response.json();
 
   const inboundTransaction = await inboundTransactionPromise;

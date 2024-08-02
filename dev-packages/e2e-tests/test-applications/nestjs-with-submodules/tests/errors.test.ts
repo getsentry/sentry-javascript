@@ -1,12 +1,12 @@
 import { expect, test } from '@playwright/test';
 import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
 
-test('Sends unexpected exception to Sentry if thrown in module with global filter', async ({ baseURL }) => {
-  const errorEventPromise = waitForError('nestjs', event => {
+test('Sends unexpected exception to Sentry if thrown in module with global filter', async ({ request }) => {
+  const errorEventPromise = waitForError('nestjs-with-submodules', event => {
     return !event.type && event.exception?.values?.[0]?.value === 'This is an uncaught exception!';
   });
 
-  const response = await fetch(`${baseURL}/example-module/unexpected-exception`);
+  const response = await request.get(`/example-module/unexpected-exception`);
   expect(response.status).toBe(500);
 
   const errorEvent = await errorEventPromise;
@@ -30,13 +30,13 @@ test('Sends unexpected exception to Sentry if thrown in module with global filte
 });
 
 test('Sends unexpected exception to Sentry if thrown in module that was registered before Sentry', async ({
-  baseURL,
+  request,
 }) => {
-  const errorEventPromise = waitForError('nestjs', event => {
+  const errorEventPromise = waitForError('nestjs-with-submodules', event => {
     return !event.type && event.exception?.values?.[0]?.value === 'This is an uncaught exception!';
   });
 
-  const response = await fetch(`${baseURL}/example-module-wrong-order/unexpected-exception`);
+  const response = await request.get(`/example-module-wrong-order/unexpected-exception`);
   expect(response.status).toBe(500);
 
   const errorEvent = await errorEventPromise;
@@ -60,11 +60,11 @@ test('Sends unexpected exception to Sentry if thrown in module that was register
 });
 
 test('Does not send exception to Sentry if user-defined global exception filter already catches the exception', async ({
-  baseURL,
+  request,
 }) => {
   let errorEventOccurred = false;
 
-  waitForError('nestjs', event => {
+  waitForError('nestjs-with-submodules', event => {
     if (!event.type && event.exception?.values?.[0]?.value === 'Something went wrong in the example module!') {
       errorEventOccurred = true;
     }
@@ -72,11 +72,11 @@ test('Does not send exception to Sentry if user-defined global exception filter 
     return event?.transaction === 'GET /example-module/expected-exception';
   });
 
-  const transactionEventPromise = waitForTransaction('nestjs', transactionEvent => {
+  const transactionEventPromise = waitForTransaction('nestjs-with-submodules', transactionEvent => {
     return transactionEvent?.transaction === 'GET /example-module/expected-exception';
   });
 
-  const response = await fetch(`${baseURL}/example-module/expected-exception`);
+  const response = await request.get(`/example-module/expected-exception`);
   expect(response.status).toBe(400);
 
   await transactionEventPromise;
@@ -87,11 +87,11 @@ test('Does not send exception to Sentry if user-defined global exception filter 
 });
 
 test('Does not send exception to Sentry if user-defined local exception filter already catches the exception', async ({
-  baseURL,
+  request,
 }) => {
   let errorEventOccurred = false;
 
-  waitForError('nestjs', event => {
+  waitForError('nestjs-with-submodules', event => {
     if (
       !event.type &&
       event.exception?.values?.[0]?.value === 'Something went wrong in the example module with local filter!'
@@ -102,11 +102,11 @@ test('Does not send exception to Sentry if user-defined local exception filter a
     return event?.transaction === 'GET /example-module-local-filter/expected-exception';
   });
 
-  const transactionEventPromise = waitForTransaction('nestjs', transactionEvent => {
+  const transactionEventPromise = waitForTransaction('nestjs-with-submodules', transactionEvent => {
     return transactionEvent?.transaction === 'GET /example-module-local-filter/expected-exception';
   });
 
-  const response = await fetch(`${baseURL}/example-module-local-filter/expected-exception`);
+  const response = await request.get(`/example-module-local-filter/expected-exception`);
   expect(response.status).toBe(400);
 
   await transactionEventPromise;
@@ -117,13 +117,13 @@ test('Does not send exception to Sentry if user-defined local exception filter a
 });
 
 test('Does not handle expected exception if exception is thrown in module registered before Sentry', async ({
-  baseURL,
+  request,
 }) => {
-  const errorEventPromise = waitForError('nestjs', event => {
+  const errorEventPromise = waitForError('nestjs-with-submodules', event => {
     return !event.type && event.exception?.values?.[0]?.value === 'Something went wrong in the example module!';
   });
 
-  const response = await fetch(`${baseURL}/example-module-wrong-order/expected-exception`);
+  const response = await request.get(`/example-module-wrong-order/expected-exception`);
   expect(response.status).toBe(500); // should be 400
 
   // should never arrive, but does because the exception is not handled properly
