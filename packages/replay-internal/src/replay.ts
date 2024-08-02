@@ -212,6 +212,16 @@ export class ReplayContainer implements ReplayContainerInterface {
     if (slowClickConfig) {
       this.clickDetector = new ClickDetector(this, slowClickConfig);
     }
+
+    if (this._options._experiments.captureExceptions) {
+      // We want to disable the logger's console sandbox so that
+      // it uses the Sentry-instrumented console fns in order to
+      // capture them as breadcrumbs. This way we can debug
+      // using these logging statements in the case where
+      // replays are failing to send, but we have a Sentry
+      // error.
+      logger.disableSandbox();
+    }
   }
 
   /** Get the event context. */

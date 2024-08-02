@@ -30,6 +30,8 @@ interface Logger extends LoggerConsoleMethods {
   disable(): void;
   enable(): void;
   isEnabled(): boolean;
+  disableSandbox(): void;
+  enableSandbox(): void;
 }
 
 /**
@@ -67,6 +69,7 @@ export function consoleSandbox<T>(callback: () => T): T {
 
 function makeLogger(): Logger {
   let enabled = false;
+  let useSandbox = true;
   const logger: Partial<Logger> = {
     enable: () => {
       enabled = true;
@@ -75,16 +78,30 @@ function makeLogger(): Logger {
       enabled = false;
     },
     isEnabled: () => enabled,
+    enableSandbox: () => {
+      useSandbox = true;
+    },
+    disableSandbox: () => {
+      useSandbox = false;
+    },
   };
 
   if (DEBUG_BUILD) {
     CONSOLE_LEVELS.forEach(name => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       logger[name] = (...args: any[]) => {
-        if (enabled) {
-          consoleSandbox(() => {
-            GLOBAL_OBJ.console[name](`${PREFIX}[${name}]:`, ...args);
-          });
+        if (!enabled) {
+          return;
+        }
+
+        const _logFn = (): void => {
+          GLOBAL_OBJ.console[name](`${PREFIX}[${name}]:`, ...args);
+        };
+
+        if (!useSandbox) {
+          _logFn();
+        } else {
+          consoleSandbox(_logFn);
         }
       };
     });
