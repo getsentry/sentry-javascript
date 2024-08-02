@@ -29,6 +29,8 @@ export type {
   ReplaySpanFrameEvent,
 } from '@sentry-internal/replay';
 
+// wip change in browser
+
 export { replayCanvasIntegration } from '@sentry-internal/replay-canvas';
 
 import { feedbackAsyncIntegration } from './feedbackAsync';
