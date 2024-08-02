@@ -1,5 +1,5 @@
 import * as childProcess from 'child_process';
-import packageJson from './package.json' assert { type: 'json' };
+import * as packageJson from './../package.json';
 
 type NodeVersion = '14' | '16' | '18' | '20' | '21';
 
