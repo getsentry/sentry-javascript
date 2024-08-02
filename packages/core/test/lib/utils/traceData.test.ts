@@ -36,7 +36,7 @@ describe('getTraceData', () => {
   });
 
   it('returns propagationContext DSC data if no span is available', () => {
-    const tags = getTraceData(
+    const traceData = getTraceData(
       undefined,
       {
         getPropagationContext: () => ({
@@ -53,7 +53,7 @@ describe('getTraceData', () => {
       mockedClient,
     );
 
-    expect(tags).toEqual({
+    expect(traceData).toEqual({
       'sentry-trace': expect.stringMatching(/12345678901234567890123456789012-(.{16})-1/),
       baggage: 'sentry-environment=staging,sentry-public_key=key,sentry-trace_id=12345678901234567890123456789012',
     });
@@ -65,7 +65,7 @@ describe('getTraceData', () => {
       public_key: undefined,
     });
 
-    const tags = getTraceData(
+    const traceData = getTraceData(
       // @ts-expect-error - we don't need to provide all the properties
       {
         isRecording: () => true,
@@ -81,7 +81,7 @@ describe('getTraceData', () => {
       mockedClient,
     );
 
-    expect(tags).toEqual({
+    expect(traceData).toEqual({
       'sentry-trace': '12345678901234567890123456789012-1234567890123456-1',
     });
   });
@@ -92,7 +92,7 @@ describe('getTraceData', () => {
       public_key: undefined,
     });
 
-    const tags = getTraceData(
+    const traceData = getTraceData(
       // @ts-expect-error - we don't need to provide all the properties
       {
         isRecording: () => true,
@@ -108,10 +108,10 @@ describe('getTraceData', () => {
       undefined,
     );
 
-    expect(tags).toEqual({
+    expect(traceData).toEqual({
       'sentry-trace': '12345678901234567890123456789012-1234567890123456-1',
     });
-    expect('baggage' in tags).toBe(false);
+    expect('baggage' in traceData).toBe(false);
   });
 });
 

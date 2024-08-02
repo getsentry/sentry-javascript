@@ -25,15 +25,15 @@ import { getActiveSpan, getRootSpan, spanToTraceHeader } from './spanUtils';
  * or meta tag name.
  */
 export function getTraceData(
-  span?: Span | undefined,
+  span?: Span,
   scope?: Scope,
   client?: Client,
 ): { 'sentry-trace': string; baggage?: string } {
   const clientToUse = client || getClient();
-  const scopeToUser = scope || getCurrentScope();
+  const scopeToUse = scope || getCurrentScope();
   const spanToUse = span || getActiveSpan();
 
-  const { dsc, sampled, traceId } = scopeToUser.getPropagationContext();
+  const { dsc, sampled, traceId } = scopeToUse.getPropagationContext();
   const rootSpan = spanToUse && getRootSpan(spanToUse);
 
   const sentryTrace = spanToUse ? spanToTraceHeader(spanToUse) : generateSentryTraceHeader(traceId, undefined, sampled);
