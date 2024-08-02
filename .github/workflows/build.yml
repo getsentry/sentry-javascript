@@ -126,6 +126,7 @@ jobs:
               - *shared
               - *node
               - 'dev-packages/node-integration-tests/**'
+              - 'packages/nestjs/**'
             nextjs:
               - *shared
               - *browser
@@ -408,10 +409,11 @@ jobs:
           DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
 
       - name: Extract Profiling Node Prebuilt Binaries
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
-          name: profiling-node-binaries-${{ github.sha }}
+          pattern: profiling-node-binaries-${{ github.sha }}-*
           path: ${{ github.workspace }}/packages/profiling-node/lib/
+          merge-multiple: true
 
       - name: Pack tarballs
         run: yarn build:tarball
@@ -901,16 +903,15 @@ jobs:
         run: yarn lerna run build:lib --scope @sentry/profiling-node
 
       - name: Extract Profiling Node Prebuilt Binaries
-        # @TODO: v4 breaks convenient merging of same name artifacts
-        # https://github.com/actions/upload-artifact/issues/478
         if: |
           (needs.job_get_metadata.outputs.changed_profiling_node_bindings == 'true') ||
             (needs.job_get_metadata.outputs.is_release == 'true') ||
           (github.event_name != 'pull_request')
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
-          name: profiling-node-binaries-${{ github.sha }}
+          pattern: profiling-node-binaries-${{ github.sha }}-*
           path: ${{ github.workspace }}/packages/profiling-node/lib/
+          merge-multiple: true
 
       - name: Build Profiling tarball
         run: yarn build:tarball
@@ -1230,11 +1231,11 @@ jobs:
       - name: Build Profiling Node
         run: yarn lerna run build:lib --scope @sentry/profiling-node
       - name: Extract Profiling Node Prebuilt Binaries
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
-          name: profiling-node-binaries-${{ github.sha }}
+          pattern: profiling-node-binaries-${{ github.sha }}-*
           path: ${{ github.workspace }}/packages/profiling-node/lib/
-
+          merge-multiple: true
       - name: Restore tarball cache
         uses: actions/cache/restore@v4
         with:
@@ -1358,104 +1359,132 @@ jobs:
             # x64 glibc
           - os: ubuntu-20.04
             node: 16
+            binary: linux-x64-glibc-93
           - os: ubuntu-20.04
             node: 18
+            binary: linux-x64-glibc-108
           - os: ubuntu-20.04
             node: 20
+            binary: linux-x64-glibc-115
           - os: ubuntu-20.04
             node: 22
+            binary: linux-x64-glibc-127
 
             # x64 musl
           - os: ubuntu-20.04
             container: node:16-alpine3.16
+            binary: linux-x64-musl-93
             node: 16
           - os: ubuntu-20.04
             container: node:18-alpine3.17
             node: 18
+            binary: linux-x64-musl-108
           - os: ubuntu-20.04
             container: node:20-alpine3.17
             node: 20
+            binary: linux-x64-musl-115
           - os: ubuntu-20.04
             container: node:22-alpine3.18
             node: 22
+            binary: linux-x64-musl-127
 
             # arm64 glibc
           - os: ubuntu-20.04
             arch: arm64
             node: 16
+            binary: linux-arm64-glibc-93
           - os: ubuntu-20.04
             arch: arm64
             node: 18
+            binary: linux-arm64-glibc-108
           - os: ubuntu-20.04
             arch: arm64
             node: 20
+            binary: linux-arm64-glibc-115
           - os: ubuntu-20.04
             arch: arm64
             node: 22
+            binary: linux-arm64-glibc-127
 
             # arm64 musl
           - os: ubuntu-20.04
             container: node:16-alpine3.16
             arch: arm64
             node: 16
+            binary: linux-arm64-musl-93
           - os: ubuntu-20.04
             arch: arm64
             container: node:18-alpine3.17
             node: 18
+            binary: linux-arm64-musl-108
           - os: ubuntu-20.04
             arch: arm64
             container: node:20-alpine3.17
             node: 20
+            binary: linux-arm64-musl-115
           - os: ubuntu-20.04
             arch: arm64
             container: node:22-alpine3.18
             node: 22
+            binary: linux-arm64-musl-127
 
             # macos x64
           - os: macos-13
             node: 16
             arch: x64
+            binary: darwin-x64-93
           - os: macos-13
             node: 18
             arch: x64
+            binary: darwin-x64-108
           - os: macos-13
             node: 20
             arch: x64
+            binary: darwin-x64-115
           - os: macos-13
             node: 22
             arch: x64
+            binary: darwin-x64-127
 
             # macos arm64
           - os: macos-13
             arch: arm64
             node: 16
             target_platform: darwin
+            binary: darwin-arm64-93
           - os: macos-13
             arch: arm64
             node: 18
             target_platform: darwin
+            binary: darwin-arm64-108
           - os: macos-13
             arch: arm64
             node: 20
             target_platform: darwin
+            binary: darwin-arm64-115
           - os: macos-13
             arch: arm64
             node: 22
             target_platform: darwin
+            binary: darwin-arm64-127
 
             # windows x64
           - os: windows-2022
             node: 16
             arch: x64
+            binary: win32-x64-93
           - os: windows-2022
             node: 18
             arch: x64
+            binary: win32-x64-108
           - os: windows-2022
             node: 20
             arch: x64
+            binary: win32-x64-115
           - os: windows-2022
             node: 22
             arch: x64
+            binary: win32-x64-127
 
     steps:
       - name: Setup (alpine)
@@ -1587,10 +1616,8 @@ jobs:
           yarn lerna run test --scope @sentry/profiling-node
 
       - name: Archive Binary
-        # @TODO: v4 breaks convenient merging of same name artifacts
-        # https://github.com/actions/upload-artifact/issues/478
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: profiling-node-binaries-${{ github.sha }}
-          path: |
-            ${{ github.workspace }}/packages/profiling-node/lib/*.node
+          name: profiling-node-binaries-${{ github.sha }}-${{ matrix.binary }}
+          path: ${{ github.workspace }}/packages/profiling-node/lib/sentry_cpu_profiler-${{matrix.binary}}.node
+          if-no-files-found: error

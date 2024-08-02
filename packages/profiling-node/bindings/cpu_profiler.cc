@@ -28,6 +28,7 @@ enum ProfileFormat {
   kFormatThread = 0,
   kFormatChunk = 1,
 };
+
 // Allow users to override the default logging mode via env variable. This is
 // useful because sometimes the flow of the profiled program can be to execute
 // many sequential transaction - in that case, it may be preferable to set eager

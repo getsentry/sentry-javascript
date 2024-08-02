@@ -55,6 +55,7 @@ export {
   setMeasurement,
   getActiveSpan,
   getRootSpan,
+  getTraceData,
   startSpan,
   startInactiveSpan,
   startSpanManual,

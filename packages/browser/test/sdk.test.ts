@@ -149,6 +149,7 @@ describe('init', () => {
       Object.defineProperty(WINDOW, 'chrome', { value: undefined, writable: true });
       Object.defineProperty(WINDOW, 'browser', { value: undefined, writable: true });
       Object.defineProperty(WINDOW, 'nw', { value: undefined, writable: true });
+      Object.defineProperty(WINDOW, 'window', { value: WINDOW, writable: true });
     });
 
     it('logs a browser extension error if executed inside a Chrome extension', () => {
@@ -221,6 +222,18 @@ describe('init', () => {
       const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
       Object.defineProperty(WINDOW, 'nw', { value: {} });
+
+      init(options);
+
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+
+      consoleErrorSpy.mockRestore();
+    });
+
+    it("doesn't log a browser extension error if the `window` object isn't defined", () => {
+      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+      Object.defineProperty(WINDOW, 'window', { value: undefined });
 
       init(options);
 

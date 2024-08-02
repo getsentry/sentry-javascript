@@ -95,6 +95,7 @@ export {
   getCurrentHub,
   getCurrentScope,
   getIsolationScope,
+  getTraceData,
   withScope,
   withIsolationScope,
   captureException,

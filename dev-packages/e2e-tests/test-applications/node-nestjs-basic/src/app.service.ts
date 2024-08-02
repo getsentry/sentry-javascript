@@ -21,7 +21,7 @@ export class AppService {
     });
   }
 
-  testMiddleware() {
+  testSpan() {
     // span that should not be a child span of the middleware span
     Sentry.startSpan({ name: 'test-controller-span' }, () => {});
   }

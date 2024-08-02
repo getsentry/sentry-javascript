@@ -1,9 +1,7 @@
-import * as SentryCore from '@sentry/core';
-import { SentrySpan } from '@sentry/core';
-import type { Transaction } from '@sentry/types';
-import { vi } from 'vitest';
+import { SentrySpan, getTraceData } from '../../../src/';
+import * as SentryCoreTracing from '../../../src/tracing';
 
-import { getTracingMetaTags, isValidBaggageString } from '../../src/server/meta';
+import { isValidBaggageString } from '../../../src/utils/traceData';
 
 const TRACE_FLAG_SAMPLED = 1;
 
@@ -12,12 +10,6 @@ const mockedSpan = new SentrySpan({
   spanId: '1234567890123456',
   sampled: true,
 });
-// eslint-disable-next-line deprecation/deprecation
-mockedSpan.transaction = {
-  getDynamicSamplingContext: () => ({
-    environment: 'production',
-  }),
-} as Transaction;
 
 const mockedClient = {} as any;
 
@@ -27,24 +19,24 @@ const mockedScope = {
   }),
 } as any;
 
-describe('getTracingMetaTags', () => {
-  it('returns the tracing tags from the span, if it is provided', () => {
+describe('getTraceData', () => {
+  it('returns the tracing data from the span, if a span is available', () => {
     {
-      vi.spyOn(SentryCore, 'getDynamicSamplingContextFromSpan').mockReturnValueOnce({
+      jest.spyOn(SentryCoreTracing, 'getDynamicSamplingContextFromSpan').mockReturnValueOnce({
         environment: 'production',
       });
 
-      const tags = getTracingMetaTags(mockedSpan, mockedScope, mockedClient);
+      const tags = getTraceData(mockedSpan, mockedScope, mockedClient);
 
       expect(tags).toEqual({
-        sentryTrace: '<meta name="sentry-trace" content="12345678901234567890123456789012-1234567890123456-1"/>',
-        baggage: '<meta name="baggage" content="sentry-environment=production"/>',
+        'sentry-trace': '12345678901234567890123456789012-1234567890123456-1',
+        baggage: 'sentry-environment=production',
       });
     }
   });
 
   it('returns propagationContext DSC data if no span is available', () => {
-    const tags = getTracingMetaTags(
+    const traceData = getTraceData(
       undefined,
       {
         getPropagationContext: () => ({
@@ -61,23 +53,20 @@ describe('getTracingMetaTags', () => {
       mockedClient,
     );
 
-    expect(tags).toEqual({
-      sentryTrace: expect.stringMatching(
-        /<meta name="sentry-trace" content="12345678901234567890123456789012-(.{16})-1"\/>/,
-      ),
-      baggage:
-        '<meta name="baggage" content="sentry-environment=staging,sentry-public_key=key,sentry-trace_id=12345678901234567890123456789012"/>',
+    expect(traceData).toEqual({
+      'sentry-trace': expect.stringMatching(/12345678901234567890123456789012-(.{16})-1/),
+      baggage: 'sentry-environment=staging,sentry-public_key=key,sentry-trace_id=12345678901234567890123456789012',
     });
   });
 
-  it('returns only the `sentry-trace` tag if no DSC is available', () => {
-    vi.spyOn(SentryCore, 'getDynamicSamplingContextFromClient').mockReturnValueOnce({
+  it('returns only the `sentry-trace` value if no DSC is available', () => {
+    jest.spyOn(SentryCoreTracing, 'getDynamicSamplingContextFromClient').mockReturnValueOnce({
       trace_id: '',
       public_key: undefined,
     });
 
-    const tags = getTracingMetaTags(
-      // @ts-expect-error - only passing a partial span object
+    const traceData = getTraceData(
+      // @ts-expect-error - we don't need to provide all the properties
       {
         isRecording: () => true,
         spanContext: () => {
@@ -87,25 +76,24 @@ describe('getTracingMetaTags', () => {
             traceFlags: TRACE_FLAG_SAMPLED,
           };
         },
-        transaction: undefined,
       },
       mockedScope,
       mockedClient,
     );
 
-    expect(tags).toEqual({
-      sentryTrace: '<meta name="sentry-trace" content="12345678901234567890123456789012-1234567890123456-1"/>',
+    expect(traceData).toEqual({
+      'sentry-trace': '12345678901234567890123456789012-1234567890123456-1',
     });
   });
 
   it('returns only the `sentry-trace` tag if no DSC is available without a client', () => {
-    vi.spyOn(SentryCore, 'getDynamicSamplingContextFromClient').mockReturnValueOnce({
+    jest.spyOn(SentryCoreTracing, 'getDynamicSamplingContextFromClient').mockReturnValueOnce({
       trace_id: '',
       public_key: undefined,
     });
 
-    const tags = getTracingMetaTags(
-      // @ts-expect-error - only passing a partial span object
+    const traceData = getTraceData(
+      // @ts-expect-error - we don't need to provide all the properties
       {
         isRecording: () => true,
         spanContext: () => {
@@ -115,15 +103,35 @@ describe('getTracingMetaTags', () => {
             traceFlags: TRACE_FLAG_SAMPLED,
           };
         },
-        transaction: undefined,
       },
       mockedScope,
       undefined,
     );
 
-    expect(tags).toEqual({
-      sentryTrace: '<meta name="sentry-trace" content="12345678901234567890123456789012-1234567890123456-1"/>',
+    expect(traceData).toEqual({
+      'sentry-trace': '12345678901234567890123456789012-1234567890123456-1',
     });
+    expect('baggage' in traceData).toBe(false);
+  });
+
+  it('returns an empty object if the `sentry-trace` value is invalid', () => {
+    const traceData = getTraceData(
+      // @ts-expect-error - we don't need to provide all the properties
+      {
+        isRecording: () => true,
+        spanContext: () => {
+          return {
+            traceId: '1234567890123456789012345678901+',
+            spanId: '1234567890123456',
+            traceFlags: TRACE_FLAG_SAMPLED,
+          };
+        },
+      },
+      mockedScope,
+      mockedClient,
+    );
+
+    expect(traceData).toEqual({});
   });
 });
 

@@ -99,10 +99,10 @@ export function startTrackingWebVitals(): () => void {
  */
 export function startTrackingLongTasks(): void {
   addPerformanceInstrumentationHandler('longtask', ({ entries }) => {
+    if (!getActiveSpan()) {
+      return;
+    }
     for (const entry of entries) {
-      if (!getActiveSpan()) {
-        return;
-      }
       const startTime = msToSec((browserPerformanceTimeOrigin as number) + entry.startTime);
       const duration = msToSec(entry.duration);
 
@@ -129,12 +129,12 @@ export function startTrackingLongAnimationFrames(): void {
   // we directly observe `long-animation-frame` events instead of through the web-vitals
   // `observe` helper function.
   const observer = new PerformanceObserver(list => {
+    if (!getActiveSpan()) {
+      return;
+    }
     for (const entry of list.getEntries() as PerformanceLongAnimationFrameTiming[]) {
-      if (!getActiveSpan()) {
-        return;
-      }
       if (!entry.scripts[0]) {
-        return;
+        continue;
       }
 
       const startTime = msToSec((browserPerformanceTimeOrigin as number) + entry.startTime);
@@ -143,20 +143,19 @@ export function startTrackingLongAnimationFrames(): void {
       const attributes: SpanAttributes = {
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.browser.metrics',
       };
+
       const initialScript = entry.scripts[0];
-      if (initialScript) {
-        const { invoker, invokerType, sourceURL, sourceFunctionName, sourceCharPosition } = initialScript;
-        attributes['browser.script.invoker'] = invoker;
-        attributes['browser.script.invoker_type'] = invokerType;
-        if (sourceURL) {
-          attributes['code.filepath'] = sourceURL;
-        }
-        if (sourceFunctionName) {
-          attributes['code.function'] = sourceFunctionName;
-        }
-        if (sourceCharPosition !== -1) {
-          attributes['browser.script.source_char_position'] = sourceCharPosition;
-        }
+      const { invoker, invokerType, sourceURL, sourceFunctionName, sourceCharPosition } = initialScript;
+      attributes['browser.script.invoker'] = invoker;
+      attributes['browser.script.invoker_type'] = invokerType;
+      if (sourceURL) {
+        attributes['code.filepath'] = sourceURL;
+      }
+      if (sourceFunctionName) {
+        attributes['code.function'] = sourceFunctionName;
+      }
+      if (sourceCharPosition !== -1) {
+        attributes['browser.script.source_char_position'] = sourceCharPosition;
       }
 
       const span = startInactiveSpan({
@@ -179,11 +178,10 @@ export function startTrackingLongAnimationFrames(): void {
  */
 export function startTrackingInteractions(): void {
   addPerformanceInstrumentationHandler('event', ({ entries }) => {
+    if (!getActiveSpan()) {
+      return;
+    }
     for (const entry of entries) {
-      if (!getActiveSpan()) {
-        return;
-      }
-
       if (entry.name === 'click') {
         const startTime = msToSec((browserPerformanceTimeOrigin as number) + entry.startTime);
         const duration = msToSec(entry.duration);
