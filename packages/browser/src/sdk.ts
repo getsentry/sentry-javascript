@@ -85,7 +85,7 @@ function shouldShowBrowserExtensionError(): boolean {
   const runtimeId = extensionObject && extensionObject.runtime && extensionObject.runtime.id;
   const href = (WINDOW.location && WINDOW.location.href) || '';
 
-  const extensionProtocols = ['chrome-extension:', 'moz-extension:', 'ms-browser-extension:'];
+  const extensionProtocols = ['chrome-extension:', 'moz-extension:', 'ms-browser-extension:', 'safari-web-extension:'];
 
   // Running the SDK in a dedicated extension page and calling Sentry.init is fine; no risk of data leakage
   const isDedicatedExtensionPage =
