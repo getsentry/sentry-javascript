@@ -82,6 +82,27 @@ export const onRequest = Sentry.sentryPagesPlugin(context => ({
 }));
 ```
 
+If you do not have access to the `onRequest` middleware API, you can use the `wrapRequestHandler` API instead.
+
+Here is an example with SvelteKit:
+
+```javascript
+// hooks.server.js
+import * as Sentry from '@sentry/cloudflare';
+
+export const handle = ({ event, resolve }) => {
+  const requestHandlerOptions = {
+    options: {
+      dsn: event.platform.env.SENTRY_DSN,
+      tracesSampleRate: 1.0,
+    },
+    request: event.request,
+    context: event.platform.ctx,
+  }
+  return Sentry.wrapRequestHandler(requestHandlerOptions, () => resolve(event));
+};
+```
+
 ## Setup (Cloudflare Workers)
 
 To use this SDK, wrap your handler with the `withSentry` function. This will initialize the SDK and hook into the
