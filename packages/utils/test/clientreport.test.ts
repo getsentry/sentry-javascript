@@ -50,6 +50,7 @@ describe('createClientReportEnvelope', () => {
         { type: 'client_report' },
         {
           timestamp: 123456,
+          type: 'client_report',
           discarded_events: [
             { reason: 'before_send', category: 'error', quantity: 30 },
             { reason: 'network_error', category: 'transaction', quantity: 23 },

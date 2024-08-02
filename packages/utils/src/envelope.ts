@@ -16,9 +16,11 @@ import type {
 } from '@sentry/types';
 
 import { dsnToString } from './dsn';
+import { logger } from './logger';
 import { normalize } from './normalize';
 import { dropUndefinedKeys } from './object';
 import { GLOBAL_OBJ } from './worldwide';
+
 
 /**
  * Creates an envelope.
@@ -80,15 +82,6 @@ function encodeUTF8(input: string): Uint8Array {
 }
 
 /**
- * Decode a UTF8 array to string.
- */
-function decodeUTF8(input: Uint8Array): string {
-  return GLOBAL_OBJ.__SENTRY__ && GLOBAL_OBJ.__SENTRY__.decodePolyfill
-    ? GLOBAL_OBJ.__SENTRY__.decodePolyfill(input)
-    : new TextDecoder().decode(input);
-}
-
-/**
  * Serializes an envelope.
  */
 export function serializeEnvelope(envelope: Envelope): string | Uint8Array {
@@ -142,40 +135,63 @@ function concatBuffers(buffers: Uint8Array[]): Uint8Array {
   return merged;
 }
 
+
+function getLineEnd(data: Uint8Array): number {
+  let end = data.indexOf(0xa);
+  if (end === -1) {
+    end = data.length;
+  }
+
+  return end;
+}
+
+function parseJSONFromBuffer(data: Uint8Array): ReturnType<JSON['parse']> {
+  return JSON.parse(new TextDecoder().decode(data));
+}
+
+export type EnvelopeItem = Envelope[1][number];
+
 /**
- * Parses an envelope
+ * Implements parser for
+ * @see https://develop.sentry.dev/sdk/envelopes/#serialization-format
+ * @param rawEvent Envelope data
+ * @returns parsed envelope
  */
 export function parseEnvelope(env: string | Uint8Array): Envelope {
   let buffer = typeof env === 'string' ? encodeUTF8(env) : env;
 
-  function readBinary(length: number): Uint8Array {
-    const bin = buffer.subarray(0, length);
-    // Replace the buffer with the remaining data excluding trailing newline
-    buffer = buffer.subarray(length + 1);
-    return bin;
+  function readLine(length?: number): Uint8Array {
+    const cursor = length != null ? length : getLineEnd(buffer);
+    const line = buffer.subarray(0, cursor);
+    buffer = buffer.subarray(cursor + 1);
+    return line;
   }
 
-  function readJson<T>(): T {
-    let i = buffer.indexOf(0xa);
-    // If we couldn't find a newline, we must have found the end of the buffer
-    if (i < 0) {
-      i = buffer.length;
+  const envelopeHeader = parseJSONFromBuffer(readLine()) as BaseEnvelopeHeaders;
+
+  const items: EnvelopeItem[] = [];
+  while (buffer.length) {
+    const itemHeader = parseJSONFromBuffer(readLine()) as BaseEnvelopeItemHeaders;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    const payloadLength = itemHeader.length;
+    let itemPayload = readLine(payloadLength != null ? payloadLength : undefined);
+
+    try {
+      itemPayload = parseJSONFromBuffer(itemPayload);
+    } catch (err) {
+      logger.error(err);
     }
 
-    return JSON.parse(decodeUTF8(readBinary(i))) as T;
+    // data sanitization
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    if (itemHeader.type && typeof itemPayload === 'object') { /* eslint-disable @typescript-eslint/no-unsafe-member-access */
+      // @ts-expect-error -- Does not like assigning to `type` on random object
+      itemPayload.type = itemHeader.type;
+    }
+    items.push([itemHeader, itemPayload] as EnvelopeItem);
   }
 
-  const envelopeHeader = readJson<BaseEnvelopeHeaders>();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const items: [any, any][] = [];
-
-  while (buffer.length) {
-    const itemHeader = readJson<BaseEnvelopeItemHeaders>();
-    const binaryLength = typeof itemHeader.length === 'number' ? itemHeader.length : undefined;
-
-    items.push([itemHeader, binaryLength ? readBinary(binaryLength) : readJson()]);
-  }
-
+  // @ts-expect-error -- For some reason, older TS versions cannot deal with this union type -- works fine in Spotlight
   return [envelopeHeader, items];
 }
 

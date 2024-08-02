@@ -1,0 +1,3 @@
+{}
+{"type":"session"}
+{"started": "2020-02-07T14:16:00Z","attrs":{"release":"sentry-test@1.0.0"}}

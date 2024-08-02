@@ -1,0 +1,6 @@
+{"event_id":"9ec79c33ec9942ab8353589fcb2e04dc","dsn":"https://e12d836b15bb49d7bbf99e64295d995b:@sentry.io/42"}
+{"type":"attachment","length":10,"content_type":"text/plain","filename":"hello.txt"}
+﻿Hello
+
+{"type":"event","length":41,"content_type":"application/json","filename":"application.log"}
+{"message":"hello world","level":"error"}
