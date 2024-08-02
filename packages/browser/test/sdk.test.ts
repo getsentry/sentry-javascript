@@ -231,7 +231,7 @@ describe('init', () => {
     });
 
     it("doesn't log a browser extension error if the `window` object isn't defined", () => {
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
       Object.defineProperty(WINDOW, 'window', { value: undefined });
 
