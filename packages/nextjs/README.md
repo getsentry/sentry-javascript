@@ -46,9 +46,9 @@ Sentry.addBreadcrumb({
   // ...
 });
 
-// Capture exceptions, messages or manual events
-Sentry.captureMessage('Hello, world!');
+// Capture exceptions or messages
 Sentry.captureException(new Error('Oh no.'));
+Sentry.captureMessage('Hello, world!');
 ```
 
 ## Links
