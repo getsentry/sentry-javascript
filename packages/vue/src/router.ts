@@ -50,7 +50,7 @@ export function instrumentVueRouter(
   },
   startNavigationSpanFn: (context: StartSpanOptions) => void,
 ): void {
-  let IS_FIRST_PAGE_LOAD = true;
+  let isFirstPageLoad = true;
 
   router.onError(error => captureException(error, { mechanism: { handled: false } }));
 
@@ -64,12 +64,13 @@ export function instrumentVueRouter(
     // from.name:
     // - Vue 2: null
     // - Vue 3: undefined
-    // - Nuxt: same as to.name (always a value)
+    // - Nuxt: undefined
     // hence only '==' instead of '===', because `undefined == null` evaluates to `true`
-    const isPageLoadNavigation = (from.name == null && from.matched.length === 0) || (from.name && IS_FIRST_PAGE_LOAD);
+    const isPageLoadNavigation =
+      (from.name == null && from.matched.length === 0) || (from.name === undefined && isFirstPageLoad);
 
-    if (IS_FIRST_PAGE_LOAD) {
-      IS_FIRST_PAGE_LOAD = false;
+    if (isFirstPageLoad) {
+      isFirstPageLoad = false;
     }
 
     const attributes: SpanAttributes = {
