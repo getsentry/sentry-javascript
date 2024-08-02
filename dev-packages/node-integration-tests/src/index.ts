@@ -41,12 +41,14 @@ export function startExpressServerAndSendPortToRunner(app: Express, port: number
   * @param app Fastify app
  * @param port Port to start the app on.
  */
-export function startFastifyServerAndSendPortToRunner(app: FastifyInstance, port: number | undefined = undefined): void {
-  app.listen({port: port || 0}, (_err, address) => {
-    
+export function startFastifyServerAndSendPortToRunner(
+  app: FastifyInstance,
+  port: number | undefined = undefined,
+): void {
+  app.listen({ port: port || 0 }, (_err, address) => {
     // Fastify's address (string): http://[::1]:59752, etc.
     const addressPort = address.slice(address.lastIndexOf(':') + 1);
-    
+
     // eslint-disable-next-line no-console
     console.log(`{"port":${port || addressPort}}`);
   });
