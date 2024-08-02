@@ -27,6 +27,6 @@ sentryTest('should capture a LCP vital with element details.', async ({ browserN
 
   // XXX: This should be body > img, but it can be flakey as sometimes it will report
   // the button as LCP.
-  expect(eventData.contexts?.trace?.data?.['lcp.element']).toContainText('body >');
+  expect(eventData.contexts?.trace?.data?.['lcp.element'].startsWith('body >')).toBe(true);
   expect(eventData.contexts?.trace?.data?.['lcp.size']).toBeGreaterThan(0);
 });
