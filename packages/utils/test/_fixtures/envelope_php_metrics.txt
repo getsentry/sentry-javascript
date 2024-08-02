@@ -1,3 +1,0 @@
-{"event_id":"a1a5606d421f4f23aa316d7d67f937ba","sent_at":"2024-04-04T14:12:00Z","dsn":"https:\/\/key@o1.ingest.sentry.io\/project","sdk":{"name":"sentry.php.laravel","version":"4.4.0"},"trace":{"trace_id":"3f89a4ad500c4ec385710a7edfae7fd7","sample_rate":"1","transaction":"\/","public_key":"key","release":"1.0.0","environment":"local","sampled":"true"}}
-{"type":"statsd","length":70}
-counter:1|c|#environment:local,release:1.0.0,transaction:/|T1712239920
