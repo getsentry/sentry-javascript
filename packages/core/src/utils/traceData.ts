@@ -61,7 +61,7 @@ export function getTraceData(span?: Span, scope?: Scope, client?: Client): Trace
   }
 
   return {
-    'sentry-trace': isValidSentryTraceHeader ? sentryTrace : '',
+    'sentry-trace': sentryTrace,
     ...(validBaggage && { baggage }),
   };
 }
