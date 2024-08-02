@@ -1,5 +1,5 @@
-import type { InjectableTarget } from '../../../src/integrations/tracing/nest';
-import { isPatched } from '../../../src/integrations/tracing/nest';
+import type { InjectableTarget } from '../../../src/integrations/tracing/nest/nest';
+import { isPatched } from '../../../src/integrations/tracing/nest/nest';
 
 describe('Nest', () => {
   describe('isPatched', () => {

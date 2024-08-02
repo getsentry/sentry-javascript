@@ -23,7 +23,7 @@ import {
 } from '@sentry/core';
 import type { IntegrationFn, Span } from '@sentry/types';
 import { addNonEnumerableProperty, logger } from '@sentry/utils';
-import { generateInstrumentOnce } from '../../otel/instrument';
+import { generateInstrumentOnce } from '../../../otel/instrument';
 
 interface MinimalNestJsExecutionContext {
   getType: () => string;
