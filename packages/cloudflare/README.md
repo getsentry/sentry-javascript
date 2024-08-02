@@ -98,7 +98,7 @@ export const handle = ({ event, resolve }) => {
     },
     request: event.request,
     context: event.platform.ctx,
-  }
+  };
   return Sentry.wrapRequestHandler(requestHandlerOptions, () => resolve(event));
 };
 ```
