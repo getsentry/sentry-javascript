@@ -209,12 +209,24 @@ export const buildFeedbackIntegration = ({
           logger.error('[Feedback] Missing feedback screenshot integration. Proceeding without screenshots.');
       }
 
-      return modalIntegration.createDialog({
-        options,
+      const dialog = modalIntegration.createDialog({
+        options: {
+          ...options,
+          onFormClose: () => {
+            dialog && dialog.close();
+            options.onFormClose && options.onFormClose();
+          },
+          onFormSubmitted: () => {
+            dialog && dialog.close();
+            options.onFormSubmitted && options.onFormSubmitted();
+          },
+        },
         screenshotIntegration: screenshotRequired ? screenshotIntegration : undefined,
         sendFeedback,
         shadow: _createShadow(options),
       });
+
+      return dialog;
     };
 
     const _attachTo = (el: Element | string, optionOverrides: OverrideFeedbackConfiguration = {}): Unsubscribe => {
@@ -234,7 +246,7 @@ export const buildFeedbackIntegration = ({
           dialog = await _loadAndRenderDialog({
             ...mergedOptions,
             onFormClose: () => {
-              dialog && dialog.close();
+              dialog && dialog.removeFromDom();
               mergedOptions.onFormClose && mergedOptions.onFormClose();
             },
             onFormSubmitted: () => {
@@ -318,21 +330,7 @@ export const buildFeedbackIntegration = ({
       async createForm(
         optionOverrides: OverrideFeedbackConfiguration = {},
       ): Promise<ReturnType<FeedbackModalIntegration['createDialog']>> {
-        const mergedOptions = mergeOptions(_options, optionOverrides);
-
-        const dialog = await _loadAndRenderDialog({
-          ...mergedOptions,
-          onFormClose: () => {
-            dialog && dialog.close();
-            mergedOptions.onFormClose && mergedOptions.onFormClose();
-          },
-          onFormSubmitted: () => {
-            dialog && dialog.close();
-            mergedOptions.onFormSubmitted && mergedOptions.onFormSubmitted();
-          },
-        });
-
-        return dialog;
+        return _loadAndRenderDialog(mergeOptions(_options, optionOverrides));
       },
 
       /**
