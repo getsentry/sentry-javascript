@@ -1,5 +1,7 @@
 import type { Client, Scope, Span } from '@sentry/types';
-import { getTraceData } from './traceData'; /**
+import { getTraceData } from './traceData';
+
+/**
  * Returns a string of meta tags that represent the tracing data.
  *
  * You can use this to propagate a trace from your server-side rendered Html to the browser.
