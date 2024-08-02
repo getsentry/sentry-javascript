@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { waitForEnvelopeItem } from '@sentry-internal/test-utils';
 
-test('Cron job triggers send of in_progress envelope', async ({ request }) => {
+test('Cron job triggers send of in_progress envelope', async ({ baseURL }) => {
   const inProgressEnvelopePromise = waitForEnvelopeItem('nestjs-basic', envelope => {
     return envelope[0].type === 'check_in';
   });
@@ -30,5 +30,5 @@ test('Cron job triggers send of in_progress envelope', async ({ request }) => {
   );
 
   // kill cron so tests don't get stuck
-  await request.get('/kill-test-cron');
+  await fetch(`${baseURL}/kill-test-cron`);
 });
