@@ -7,7 +7,7 @@ import * as os from 'os';
 import * as path from 'path';
 import * as util from 'util';
 import * as zlib from 'zlib';
-import type { Envelope, EnvelopeItem, Event } from '@sentry/types';
+import type { Envelope, EnvelopeItem, Event, SerializedSession } from '@sentry/types';
 import { parseEnvelope } from '@sentry/utils';
 
 const readFile = util.promisify(fs.readFile);
@@ -368,7 +368,7 @@ export function waitForEnvelopeItem(
 /** Wait for an error to be sent. */
 export function waitForError(
   proxyServerName: string,
-  callback: (transactionEvent: Event) => Promise<boolean> | boolean,
+  callback: (errorEvent: Event) => Promise<boolean> | boolean,
 ): Promise<Event> {
   const timestamp = Date.now();
   return new Promise((resolve, reject) => {
@@ -378,6 +378,28 @@ export function waitForError(
         const [envelopeItemHeader, envelopeItemBody] = envelopeItem;
         if (envelopeItemHeader.type === 'event' && (await callback(envelopeItemBody as Event))) {
           resolve(envelopeItemBody as Event);
+          return true;
+        }
+        return false;
+      },
+      timestamp,
+    ).catch(reject);
+  });
+}
+
+/** Wait for an session to be sent. */
+export function waitForSession(
+  proxyServerName: string,
+  callback: (session: SerializedSession) => Promise<boolean> | boolean,
+): Promise<SerializedSession> {
+  const timestamp = Date.now();
+  return new Promise((resolve, reject) => {
+    waitForEnvelopeItem(
+      proxyServerName,
+      async envelopeItem => {
+        const [envelopeItemHeader, envelopeItemBody] = envelopeItem;
+        if (envelopeItemHeader.type === 'session' && (await callback(envelopeItemBody as SerializedSession))) {
+          resolve(envelopeItemBody as SerializedSession);
           return true;
         }
         return false;

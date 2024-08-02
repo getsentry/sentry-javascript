@@ -136,3 +136,15 @@ Sentry.captureEvent({
   ],
 });
 ```
+
+## Cloudflare D1 Instrumentation
+
+You can use the `instrumentD1WithSentry` method to instrument [Cloudflare D1](https://developers.cloudflare.com/d1/),
+Cloudflare's serverless SQL database with Sentry.
+
+```javascript
+// env.DB is the D1 DB binding configured in your `wrangler.toml`
+const db = instrumentD1WithSentry(env.DB);
+// Now you can use the database as usual
+await db.prepare('SELECT * FROM table WHERE id = ?').bind(1).run();
+```
