@@ -58,7 +58,7 @@ export function instrumentVueRouter(
     // According to docs we could use `from === VueRouter.START_LOCATION` but I couldnt get it working for Vue 2
     // https://router.vuejs.org/api/#router-start-location
     // https://next.router.vuejs.org/api/#start-location
-    // Additionally, Nuxt does not provide the possibility to check for `from.matched.length === 0` (like it was the case before).
+    // Additionally, Nuxt does not provide the possibility to check for `from.matched.length === 0` (this is never 0).
     // Therefore, a flag was added to track the page-load: IS_FIRST_PAGE_LOAD
 
     // from.name:
