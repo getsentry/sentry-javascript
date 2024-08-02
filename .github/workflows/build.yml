@@ -229,7 +229,7 @@ jobs:
         run: yarn install --ignore-engines --frozen-lockfile
 
       - name: Check for Affected Nx Projects
-        uses: dkhunt27/action-nx-affected-list@v5
+        uses: dkhunt27/action-nx-affected-list@v5.3
         id: checkForAffected
         if: github.event_name == 'pull_request'
         with:
