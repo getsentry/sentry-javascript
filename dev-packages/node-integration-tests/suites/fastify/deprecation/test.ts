@@ -22,9 +22,11 @@ test('suppress fastify deprecation warning when `routerPath` property is accesse
   try {
     // Axios from `makeRequest` will throw 404.
     await runner.makeRequest('get', '/test/deprecated/does-not-exist');
-  } catch (error: any) {
+  } catch (error) {
     expect(error).toBeInstanceOf(AxiosError);
-    expect(error.message).toBe('Request failed with status code 404');
-    expect(error.response.status).toBe(404);
+    if (error instanceof AxiosError) {
+      expect(error.message).toBe('Request failed with status code 404');
+      expect(error.response?.status).toBe(404);
+    }
   }
 });
