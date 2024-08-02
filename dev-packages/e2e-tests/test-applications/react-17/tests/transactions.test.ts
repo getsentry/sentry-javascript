@@ -91,6 +91,7 @@ test('sends an INP span', async ({ page }) => {
     start_timestamp: expect.any(Number),
     timestamp: expect.any(Number),
     trace_id: expect.any(String),
+    type: 'span',
     origin: 'auto.http.browser.inp',
     exclusive_time: expect.any(Number),
     measurements: { inp: { unit: 'millisecond', value: expect.any(Number) } },

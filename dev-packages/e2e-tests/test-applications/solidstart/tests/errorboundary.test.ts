@@ -4,7 +4,7 @@ import { waitForError } from '@sentry-internal/test-utils';
 test('captures an exception', async ({ page }) => {
   const errorEventPromise = waitForError('solidstart', errorEvent => {
     return (
-      !errorEvent.type &&
+      errorEvent.type !== 'transaction' &&
       errorEvent.exception?.values?.[0]?.value ===
         'Error 1 thrown from Sentry ErrorBoundary in Solid Start E2E test app'
     );
@@ -34,7 +34,7 @@ test('captures an exception', async ({ page }) => {
 test('captures a second exception after resetting the boundary', async ({ page }) => {
   const firstErrorEventPromise = waitForError('solidstart', errorEvent => {
     return (
-      !errorEvent.type &&
+      errorEvent.type !== 'transaction' &&
       errorEvent.exception?.values?.[0]?.value ===
         'Error 1 thrown from Sentry ErrorBoundary in Solid Start E2E test app'
     );
@@ -62,7 +62,7 @@ test('captures a second exception after resetting the boundary', async ({ page }
 
   const secondErrorEventPromise = waitForError('solidstart', errorEvent => {
     return (
-      !errorEvent.type &&
+      errorEvent.type !== 'transaction' &&
       errorEvent.exception?.values?.[0]?.value ===
         'Error 2 thrown from Sentry ErrorBoundary in Solid Start E2E test app'
     );
