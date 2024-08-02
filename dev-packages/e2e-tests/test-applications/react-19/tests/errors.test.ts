@@ -27,7 +27,7 @@ test('Catches errors uncaught by error boundary', async ({ page }) => {
   });
 
   const errorEventPromise = waitForError('react-19', event => {
-    return !event.type && event.exception?.values?.[0]?.value === 'uncaught error';
+    return event.type !== 'transaction' && event.exception?.values?.[0]?.value === 'uncaught error';
   });
 
   await page.goto('/');

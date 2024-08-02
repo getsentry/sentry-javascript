@@ -3,7 +3,7 @@ import { waitForError } from '@sentry-internal/test-utils';
 
 test('Returns 400 from failed assert', async ({ baseURL }) => {
   const errorEventPromise = waitForError('node-koa', event => {
-    return !event.type && event.exception?.values?.[0]?.value === 'ctx.assert failed';
+    return event.type !== 'transaction' && event.exception?.values?.[0]?.value === 'ctx.assert failed';
   });
 
   const res = await fetch(`${baseURL}/test-assert/false`);

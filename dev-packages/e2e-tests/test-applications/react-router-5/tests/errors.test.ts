@@ -3,7 +3,7 @@ import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
 
 test('Sends correct error event', async ({ page }) => {
   const errorEventPromise = waitForError('react-router-5', event => {
-    return !event.type && event.exception?.values?.[0]?.value === 'I am an error!';
+    return event.type !== 'transaction' && event.exception?.values?.[0]?.value === 'I am an error!';
   });
 
   await page.goto('/');
@@ -35,7 +35,7 @@ test('Sets correct transactionName', async ({ page }) => {
   });
 
   const errorEventPromise = waitForError('react-router-5', event => {
-    return !event.type && event.exception?.values?.[0]?.value === 'I am an error!';
+    return event.type !== 'transaction' && event.exception?.values?.[0]?.value === 'I am an error!';
   });
 
   await page.goto('/');

@@ -3,7 +3,7 @@ import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
 
 test('Sends unexpected exception to Sentry if thrown in module with global filter', async ({ baseURL }) => {
   const errorEventPromise = waitForError('nestjs', event => {
-    return !event.type && event.exception?.values?.[0]?.value === 'This is an uncaught exception!';
+    return event.type !== 'transaction' && event.exception?.values?.[0]?.value === 'This is an uncaught exception!';
   });
 
   const response = await fetch(`${baseURL}/example-module/unexpected-exception`);
@@ -33,7 +33,7 @@ test('Sends unexpected exception to Sentry if thrown in module that was register
   baseURL,
 }) => {
   const errorEventPromise = waitForError('nestjs', event => {
-    return !event.type && event.exception?.values?.[0]?.value === 'This is an uncaught exception!';
+    return event.type !== 'transaction' && event.exception?.values?.[0]?.value === 'This is an uncaught exception!';
   });
 
   const response = await fetch(`${baseURL}/example-module-wrong-order/unexpected-exception`);
@@ -120,7 +120,10 @@ test('Does not handle expected exception if exception is thrown in module regist
   baseURL,
 }) => {
   const errorEventPromise = waitForError('nestjs', event => {
-    return !event.type && event.exception?.values?.[0]?.value === 'Something went wrong in the example module!';
+    return (
+      event.type !== 'transaction' &&
+      event.exception?.values?.[0]?.value === 'Something went wrong in the example module!'
+    );
   });
 
   const response = await fetch(`${baseURL}/example-module-wrong-order/expected-exception`);

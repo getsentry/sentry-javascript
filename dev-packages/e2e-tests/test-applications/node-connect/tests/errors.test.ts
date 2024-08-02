@@ -3,7 +3,7 @@ import { waitForError } from '@sentry-internal/test-utils';
 
 test('Sends correct error event', async ({ baseURL }) => {
   const errorEventPromise = waitForError('node-connect', event => {
-    return !event.type && event.exception?.values?.[0]?.value === 'This is an exception';
+    return event.type !== 'transaction' && event.exception?.values?.[0]?.value === 'This is an exception';
   });
 
   await fetch(`${baseURL}/test-exception`);

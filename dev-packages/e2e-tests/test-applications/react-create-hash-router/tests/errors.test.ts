@@ -3,7 +3,7 @@ import { waitForError } from '@sentry-internal/test-utils';
 
 test('Captures exception correctly', async ({ page }) => {
   const errorEventPromise = waitForError('react-create-hash-router', event => {
-    return !event.type && event.exception?.values?.[0]?.value === 'I am an error!';
+    return event.type !== 'transaction' && event.exception?.values?.[0]?.value === 'I am an error!';
   });
 
   await page.goto('/');
