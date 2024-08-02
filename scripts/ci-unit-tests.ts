@@ -1,4 +1,5 @@
 import * as childProcess from 'child_process';
+import * as packageJson from './../package.json';
 
 type NodeVersion = '14' | '16' | '18' | '20' | '21';
 
@@ -6,11 +7,17 @@ interface VersionConfig {
   ignoredPackages: Array<`@${'sentry' | 'sentry-internal'}/${string}`>;
 }
 
-const CURRENT_NODE_VERSION = process.version.replace('v', '').split('.')[0] as NodeVersion;
+const CURRENT_NODE_VERSION = extractMajorFromVersion(process.version);
 
 const RUN_AFFECTED = process.argv.includes('--affected');
 
-const DEFAULT_SKIP_TESTS_PACKAGES = [
+const DEFAULT_NODE_VERSION = extractMajorFromVersion((packageJson as { volta: { node: string } }).volta.node);
+
+// These packages are tested separately on CI
+const DEFAULT_SKIP_TEST_PACKAGES = ['@sentry/bun', '@sentry/deno', '@sentry/profiling-node'];
+
+// These packages only need to be run in the default node version, not all of them
+const DEFAULT_NODE_ONLY_TEST_PACKAGES = [
   '@sentry-internal/eslint-plugin-sdk',
   '@sentry/ember',
   '@sentry/browser',
@@ -19,15 +26,12 @@ const DEFAULT_SKIP_TESTS_PACKAGES = [
   '@sentry/angular',
   '@sentry/solid',
   '@sentry/svelte',
-  '@sentry/profiling-node',
   '@sentry-internal/browser-utils',
   '@sentry-internal/replay',
   '@sentry-internal/replay-canvas',
   '@sentry-internal/replay-worker',
   '@sentry-internal/feedback',
   '@sentry/wasm',
-  '@sentry/bun',
-  '@sentry/deno',
 ];
 
 const SKIP_TEST_PACKAGES: Record<NodeVersion, VersionConfig> = {
@@ -78,19 +82,22 @@ function runWithIgnores(skipPackages: string[] = []): void {
 function runAffectedWithIgnores(skipPackages: string[] = []): void {
   const additionalArgs = process.argv
     .slice(2)
-    .filter(arg => arg !== '--affected')
+    // We only want to forward the --base=xxx argument
+    .filter(arg => arg.startsWith('--base'))
     .join(' ');
   const ignoreFlags = skipPackages.map(dep => `--exclude="${dep}"`).join(' ');
-  run(`yarn test:pr ${ignoreFlags} ${additionalArgs}`);
+  run(`yarn test:affected ${ignoreFlags} ${additionalArgs}`);
 }
 
 /**
  * Run the tests, accounting for compatibility problems in older versions of Node.
  */
 function runTests(): void {
-  const ignores = new Set<string>();
+  const ignores = new Set<string>(DEFAULT_SKIP_TEST_PACKAGES);
 
-  DEFAULT_SKIP_TESTS_PACKAGES.forEach(pkg => ignores.add(pkg));
+  if (CURRENT_NODE_VERSION !== DEFAULT_NODE_VERSION) {
+    DEFAULT_NODE_ONLY_TEST_PACKAGES.forEach(pkg => ignores.add(pkg));
+  }
 
   const versionConfig = SKIP_TEST_PACKAGES[CURRENT_NODE_VERSION];
   if (versionConfig) {
@@ -105,3 +112,7 @@ function runTests(): void {
 }
 
 runTests();
+
+function extractMajorFromVersion(version: string): NodeVersion {
+  return version.replace('v', '').split('.')[0] as NodeVersion;
+}

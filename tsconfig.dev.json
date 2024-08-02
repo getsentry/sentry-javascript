@@ -5,6 +5,7 @@
   "include": ["**/scripts/**/*.ts", "jest/**/*.ts", "vite/**/*.ts"],
 
   "compilerOptions": {
+    "resolveJsonModule": true,
     "types": ["node", "jest", "vitest/globals"]
   }
 }
