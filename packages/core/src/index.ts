@@ -110,3 +110,5 @@ export { captureFeedback } from './feedback';
 export { getCurrentHubShim, getCurrentHub } from './getCurrentHubShim';
 
 export { SDK_VERSION } from '@sentry/utils';
+
+// change in core...
