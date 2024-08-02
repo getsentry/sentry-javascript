@@ -1,7 +1,7 @@
-import * as SentryCore from '@sentry/core';
-import { SentrySpan } from '@sentry/core';
+import { SentrySpan, getTraceData } from '../../../src/';
+import * as SentryCoreTracing from '../../../src/tracing';
 
-import { getTracingMetaTagValues, isValidBaggageString } from '../../src/utils/meta';
+import { isValidBaggageString } from '../../../src/utils/traceData';
 
 const TRACE_FLAG_SAMPLED = 1;
 
@@ -19,14 +19,14 @@ const mockedScope = {
   }),
 } as any;
 
-describe('getTracingMetaTagValues', () => {
+describe('getTraceData', () => {
   it('returns the tracing meta tags from the span, if it is provided', () => {
     {
-      jest.spyOn(SentryCore, 'getDynamicSamplingContextFromSpan').mockReturnValueOnce({
+      jest.spyOn(SentryCoreTracing, 'getDynamicSamplingContextFromSpan').mockReturnValueOnce({
         environment: 'production',
       });
 
-      const tags = getTracingMetaTagValues(mockedSpan, mockedScope, mockedClient);
+      const tags = getTraceData(mockedSpan, mockedScope, mockedClient);
 
       expect(tags).toEqual({
         'sentry-trace': '12345678901234567890123456789012-1234567890123456-1',
@@ -36,7 +36,7 @@ describe('getTracingMetaTagValues', () => {
   });
 
   it('returns propagationContext DSC data if no span is available', () => {
-    const tags = getTracingMetaTagValues(
+    const tags = getTraceData(
       undefined,
       {
         getPropagationContext: () => ({
@@ -60,12 +60,12 @@ describe('getTracingMetaTagValues', () => {
   });
 
   it('returns only the `sentry-trace` tag if no DSC is available', () => {
-    jest.spyOn(SentryCore, 'getDynamicSamplingContextFromClient').mockReturnValueOnce({
+    jest.spyOn(SentryCoreTracing, 'getDynamicSamplingContextFromClient').mockReturnValueOnce({
       trace_id: '',
       public_key: undefined,
     });
 
-    const tags = getTracingMetaTagValues(
+    const tags = getTraceData(
       // @ts-expect-error - we don't need to provide all the properties
       {
         isRecording: () => true,
@@ -87,12 +87,12 @@ describe('getTracingMetaTagValues', () => {
   });
 
   it('returns only the `sentry-trace` tag if no DSC is available without a client', () => {
-    jest.spyOn(SentryCore, 'getDynamicSamplingContextFromClient').mockReturnValueOnce({
+    jest.spyOn(SentryCoreTracing, 'getDynamicSamplingContextFromClient').mockReturnValueOnce({
       trace_id: '',
       public_key: undefined,
     });
 
-    const tags = getTracingMetaTagValues(
+    const tags = getTraceData(
       // @ts-expect-error - we don't need to provide all the properties
       {
         isRecording: () => true,

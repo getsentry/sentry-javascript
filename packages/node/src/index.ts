@@ -40,7 +40,6 @@ export { initOpenTelemetry, preloadOpenTelemetry } from './sdk/initOtel';
 export { getAutoPerformanceIntegrations } from './integrations/tracing';
 export { getSentryRelease, defaultStackParser } from './sdk/api';
 export { createGetModuleFromFilename } from './utils/module';
-export { getTracingMetaTagValues } from './utils/meta';
 export { makeNodeTransport } from './transports';
 export { NodeClient } from './sdk/client';
 export { cron } from './cron';
@@ -96,6 +95,7 @@ export {
   getCurrentHub,
   getCurrentScope,
   getIsolationScope,
+  getTraceData,
   withScope,
   withIsolationScope,
   captureException,

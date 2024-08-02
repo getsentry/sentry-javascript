@@ -20,7 +20,7 @@ export {
   getCurrentScope,
   getGlobalScope,
   getIsolationScope,
-  getTracingMetaTagValues,
+  getTraceData,
   setCurrentClient,
   Scope,
   SDK_VERSION,

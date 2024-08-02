@@ -14,7 +14,7 @@ import type { Client, Scope, Span, SpanAttributes } from '@sentry/types';
 import { addNonEnumerableProperty, objectify, stripUrlQueryAndFragment } from '@sentry/utils';
 import type { APIContext, MiddlewareResponseHandler } from 'astro';
 
-import { getTracingMetaTagValues } from '@sentry/node';
+import { getTraceData } from '@sentry/node';
 
 type MiddlewareOptions = {
   /**
@@ -189,7 +189,7 @@ function addMetaTagToHead(htmlChunk: string, scope: Scope, client: Client, span?
   if (typeof htmlChunk !== 'string') {
     return htmlChunk;
   }
-  const { 'sentry-trace': sentryTrace, baggage } = getTracingMetaTagValues(span, scope, client);
+  const { 'sentry-trace': sentryTrace, baggage } = getTraceData(span, scope, client);
 
   const sentryTraceMeta = `<meta name="sentry-trace" content="${sentryTrace}"/>`;
   const baggageMeta = baggage && `<meta name="baggage" content="${baggage}"/>`;

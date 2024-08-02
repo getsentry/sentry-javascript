@@ -1,9 +1,3 @@
-import {
-  getDynamicSamplingContextFromClient,
-  getDynamicSamplingContextFromSpan,
-  getRootSpan,
-  spanToTraceHeader,
-} from '@sentry/core';
 import type { Client, Scope, Span } from '@sentry/types';
 import {
   TRACEPARENT_REGEXP,
@@ -11,53 +5,52 @@ import {
   generateSentryTraceHeader,
   logger,
 } from '@sentry/utils';
+import { getClient, getCurrentScope } from '../currentScopes';
+import { getDynamicSamplingContextFromClient, getDynamicSamplingContextFromSpan } from '../tracing';
+import { getActiveSpan, getRootSpan, spanToTraceHeader } from './spanUtils';
 
 /**
  * Extracts trace propagation data from the current span or from the client's scope (via transaction or propagation
- * context) and serializes it to meta tag content values.
+ * context) and serializes it to `sentry-trace` and `baggage` values to strings. These values can be used to propagate
+ * a trace via our tracing Http headers or Html `<meta>` tags.
  *
- * Use this function to obtain data for the tracing meta tags you can inject when rendering an HTML response to
- * continue the server-initiated trace on the client.
+ * This function also applies some validation to the generated sentry-trace and baggage values to ensure that
+ * only valid strings are returned.
  *
- * Example usage:
+ * @param span a span to take the trace data from. By default, the currently active span is used.
+ * @param scope the scope to take trace data from By default, the active current scope is used.
+ * @param client the SDK's client to take trace data from. By default, the current client is used.
  *
- * ```js
- * // render meta tags as html
- * const tagValues = getTracingMetaTagValues(span, scope, client);
- * return `
- *   <meta name="sentry-trace" content="${tagValues['sentry-trace']}"/>
- *  ${tagValues.baggage ? `<meta name="baggage" content="${tagValues.baggage}"/>` : ''}`
- * ```
- *
- * @param span the currently active span
- * @param client the SDK's client
- *
- * @returns an object with the values of the tracing meta tags. The object keys are the name of the meta tag,
- * the respective value is the content.
+ * @returns an object with the tracing data values. The object keys are the name of the tracing key to be used as header
+ * or meta tag name.
  */
-export function getTracingMetaTagValues(
-  span: Span | undefined,
-  scope: Scope,
-  client: Client | undefined,
+export function getTraceData(
+  span?: Span | undefined,
+  scope?: Scope,
+  client?: Client,
 ): { 'sentry-trace': string; baggage?: string } {
-  const { dsc, sampled, traceId } = scope.getPropagationContext();
-  const rootSpan = span && getRootSpan(span);
+  const clientToUse = client || getClient();
+  const scopeToUser = scope || getCurrentScope();
+  const spanToUse = span || getActiveSpan();
 
-  const sentryTrace = span ? spanToTraceHeader(span) : generateSentryTraceHeader(traceId, undefined, sampled);
+  const { dsc, sampled, traceId } = scopeToUser.getPropagationContext();
+  const rootSpan = spanToUse && getRootSpan(spanToUse);
+
+  const sentryTrace = spanToUse ? spanToTraceHeader(spanToUse) : generateSentryTraceHeader(traceId, undefined, sampled);
 
   const dynamicSamplingContext = rootSpan
     ? getDynamicSamplingContextFromSpan(rootSpan)
     : dsc
       ? dsc
-      : client
-        ? getDynamicSamplingContextFromClient(traceId, client)
+      : clientToUse
+        ? getDynamicSamplingContextFromClient(traceId, clientToUse)
         : undefined;
 
   const baggage = dynamicSamplingContextToSentryBaggageHeader(dynamicSamplingContext);
 
   const isValidSentryTraceHeader = TRACEPARENT_REGEXP.test(sentryTrace);
   if (!isValidSentryTraceHeader) {
-    logger.warn('Invalid sentry-trace data. Returning empty "sentry-trace" meta tag');
+    logger.warn('Invalid sentry-trace data. Returning empty "sentry-trace" value');
   }
 
   const validBaggage = isValidBaggageString(baggage);
