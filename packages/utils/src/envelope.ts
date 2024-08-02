@@ -21,7 +21,6 @@ import { normalize } from './normalize';
 import { dropUndefinedKeys } from './object';
 import { GLOBAL_OBJ } from './worldwide';
 
-
 /**
  * Creates an envelope.
  * Make sure to always explicitly provide the generic to this function
@@ -135,7 +134,6 @@ function concatBuffers(buffers: Uint8Array[]): Uint8Array {
   return merged;
 }
 
-
 function getLineEnd(data: Uint8Array): number {
   let end = data.indexOf(0xa);
   if (end === -1) {
@@ -184,7 +182,8 @@ export function parseEnvelope(env: string | Uint8Array): Envelope {
 
     // data sanitization
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    if (itemHeader.type && typeof itemPayload === 'object') { /* eslint-disable @typescript-eslint/no-unsafe-member-access */
+    if (itemHeader.type && typeof itemPayload === 'object') {
+      /* eslint-disable @typescript-eslint/no-unsafe-member-access */
       // @ts-expect-error -- Does not like assigning to `type` on random object
       itemPayload.type = itemHeader.type;
     }
