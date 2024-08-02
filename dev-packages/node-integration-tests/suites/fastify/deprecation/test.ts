@@ -8,7 +8,7 @@ afterAll(() => {
 /**
  * AxiosError throws before the deprecation warning code is invoked,
  * so mocking it would have no effect.
- * 
+ *
  * But the deprecation warning is successfully suppressed.
  * This can be verified by running the example code as in the original
  * issue (https://github.com/getsentry/sentry-javascript/issues/12844)
