@@ -54,7 +54,18 @@ const sentryTest = base.extend<TestFixtures>({
     return use(async ({ testDir, skipRouteHandler = false }) => {
       const pagePath = `${TEST_HOST}/index.html`;
 
-      await build(testDir);
+      await Promise.race([
+        build(testDir),
+        new Promise((_, reject) => {
+          setTimeout(() => {
+            reject(
+              new Error(
+                'Page took longer than 15s to build - this is an indication that the build is stuck and we should investigate why',
+              ),
+            );
+          }, 15_000);
+        }),
+      ]);
 
       // Serve all assets under
       if (!skipRouteHandler) {
