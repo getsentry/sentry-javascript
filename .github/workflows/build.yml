@@ -938,7 +938,8 @@ jobs:
           merge-multiple: true
 
       - name: Log downloaded binaries
-        run: ls -la ${{ github.workspace }}/packages/profiling-node/lib/
+        run: |
+          ls -la ${{ github.workspace }}/packages/profiling-node/lib/
 
       - name: Build Profiling tarball
         run: yarn build:tarball
@@ -1646,5 +1647,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: profiling-node-binaries-${{ github.sha }}-${{ matrix.binary }}
-          path: ${{ github.workspace }}/packages/profiling-node/lib/*.node
+          path: ${{ github.workspace }}/packages/profiling-node/lib/sentry_cpu_profiler-${{matrix.binary}}.node
           if-no-files-found: error
