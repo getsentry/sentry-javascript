@@ -23,7 +23,16 @@ export function sentryPagesPlugin<
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   Params extends string = any,
   Data extends Record<string, unknown> = Record<string, unknown>,
->(options: CloudflareOptions): PagesPluginFunction<Env, Params, Data, CloudflareOptions> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  PluginParams = any,
+>(
+  handlerOrOptions:
+    | CloudflareOptions
+    | ((context: EventPluginContext<Env, Params, Data, PluginParams>) => CloudflareOptions),
+): PagesPluginFunction<Env, Params, Data, PluginParams> {
   setAsyncLocalStorageAsyncContextStrategy();
-  return context => wrapRequestHandler({ options, request: context.request, context }, () => context.next());
+  return context => {
+    const options = typeof handlerOrOptions === 'function' ? handlerOrOptions(context) : handlerOrOptions;
+    return wrapRequestHandler({ options, request: context.request, context }, () => context.next());
+  };
 }

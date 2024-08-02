@@ -72,6 +72,16 @@ export const onRequest = [
 ];
 ```
 
+If you need to access the `context` object (for example to grab environmental variables), you can pass a function to
+`sentryPagesPlugin` that takes the `context` object as an argument and returns `init` options:
+
+```javascript
+export const onRequest = Sentry.sentryPagesPlugin(context => ({
+  dsn: context.env.SENTRY_DSN,
+  tracesSampleRate: 1.0,
+}));
+```
+
 ## Setup (Cloudflare Workers)
 
 To use this SDK, wrap your handler with the `withSentry` function. This will initialize the SDK and hook into the
