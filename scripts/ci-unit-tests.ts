@@ -13,7 +13,8 @@ const RUN_AFFECTED = process.argv.includes('--affected');
 
 const DEFAULT_NODE_VERSION = extractMajorFromVersion((packageJson as { volta: { node: string } }).volta.node);
 
-const DEFAULT_SKIP_TEST_PACKAGES = ['@sentry/bun', '@sentry/deno'];
+// These packages are tested separately on CI
+const DEFAULT_SKIP_TEST_PACKAGES = ['@sentry/bun', '@sentry/deno', '@sentry/profiling-node'];
 
 // These packages only need to be run in the default node version, not all of them
 const DEFAULT_NODE_ONLY_TEST_PACKAGES = [
@@ -25,7 +26,6 @@ const DEFAULT_NODE_ONLY_TEST_PACKAGES = [
   '@sentry/angular',
   '@sentry/solid',
   '@sentry/svelte',
-  '@sentry/profiling-node',
   '@sentry-internal/browser-utils',
   '@sentry-internal/replay',
   '@sentry-internal/replay-canvas',
