@@ -1,5 +1,3 @@
-/* eslint-disable max-lines */
-
 import * as fs from 'fs';
 import * as http from 'http';
 import type { AddressInfo } from 'net';
@@ -18,11 +16,6 @@ interface EventProxyServerOptions {
   port: number;
   /** The name for the proxy server used for referencing it with listener functions */
   proxyServerName: string;
-  /**
-   * Whether or not to forward the event to sentry. @default `false`
-   * This is helpful when you can't register a tunnel in the SDK setup (e.g. lambda layer without Sentry.init call)
-   */
-  forwardToSentry?: boolean;
 }
 
 interface SentryRequestCallbackData {
@@ -36,15 +29,18 @@ interface EventCallbackListener {
   (data: string): void;
 }
 
+type SentryResponseStatusCode = number;
+type SentryResponseBody = string;
+type SentryResponseHeaders = Record<string, string> | undefined;
+
 type OnRequest = (
   eventCallbackListeners: Set<EventCallbackListener>,
   proxyRequest: http.IncomingMessage,
   proxyRequestBody: string,
   eventBuffer: BufferedEvent[],
-) => Promise<[number, string, Record<string, string> | undefined]>;
+) => Promise<[SentryResponseStatusCode, SentryResponseBody, SentryResponseHeaders]>;
 
 interface BufferedEvent {
-  timestamp: number;
   data: string;
 }
 
@@ -90,7 +86,7 @@ export async function startProxyServer(
       const callback: OnRequest =
         onRequest ||
         (async (eventCallbackListeners, proxyRequest, proxyRequestBody, eventBuffer) => {
-          eventBuffer.push({ data: proxyRequestBody, timestamp: getNanosecondTimestamp() });
+          eventBuffer.push({ data: proxyRequestBody });
 
           eventCallbackListeners.forEach(listener => {
             listener(proxyRequestBody);
@@ -125,12 +121,6 @@ export async function startProxyServer(
     eventCallbackResponse.statusCode = 200;
     eventCallbackResponse.setHeader('connection', 'keep-alive');
 
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    const searchParams = new URL(eventCallbackRequest.url!, 'http://justsomerandombasesothattheurlisparseable.com/')
-      .searchParams;
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion, @typescript-eslint/no-unused-vars
-    const listenerTimestamp = Number(searchParams.get('timestamp')!);
-
     const callbackListener = (data: string): void => {
       eventCallbackResponse.write(data.concat('\n'), 'utf8');
     };
@@ -138,9 +128,7 @@ export async function startProxyServer(
     eventCallbackListeners.add(callbackListener);
 
     eventBuffer.forEach(bufferedEvent => {
-      // if (bufferedEvent.timestamp >= listenerTimestamp) {
       callbackListener(bufferedEvent.data);
-      // }
     });
 
     eventCallbackRequest.on('close', () => {
@@ -172,9 +160,7 @@ export async function startEventProxyServer(options: EventProxyServerOptions): P
   await startProxyServer(options, async (eventCallbackListeners, proxyRequest, proxyRequestBody, eventBuffer) => {
     const envelopeHeader: EnvelopeItem[0] = JSON.parse(proxyRequestBody.split('\n')[0] as string);
 
-    const shouldForwardEventToSentry = options.forwardToSentry || false;
-
-    if (!envelopeHeader.dsn && shouldForwardEventToSentry) {
+    if (!envelopeHeader.dsn) {
       // eslint-disable-next-line no-console
       console.log(
         '[event-proxy-server] Warn: No dsn on envelope header. Maybe a client-report was received. Proxy request body:',
@@ -184,69 +170,28 @@ export async function startEventProxyServer(options: EventProxyServerOptions): P
       return [200, '{}', {}];
     }
 
-    if (!shouldForwardEventToSentry) {
-      const data: SentryRequestCallbackData = {
-        envelope: parseEnvelope(proxyRequestBody),
-        rawProxyRequestBody: proxyRequestBody,
-        rawSentryResponseBody: '',
-        sentryResponseStatusCode: 200,
-      };
-      eventCallbackListeners.forEach(listener => {
-        listener(Buffer.from(JSON.stringify(data)).toString('base64'));
-      });
+    const data: SentryRequestCallbackData = {
+      envelope: parseEnvelope(proxyRequestBody),
+      rawProxyRequestBody: proxyRequestBody,
+      rawSentryResponseBody: '',
+      sentryResponseStatusCode: 200,
+    };
 
-      return [
-        200,
-        '{}',
-        {
-          'Access-Control-Allow-Origin': '*',
-        },
-      ];
-    }
+    const dataString = Buffer.from(JSON.stringify(data)).toString('base64');
 
-    const { origin, pathname, host } = new URL(envelopeHeader.dsn as string);
+    eventBuffer.push({ data: dataString });
 
-    const projectId = pathname.substring(1);
-    const sentryIngestUrl = `${origin}/api/${projectId}/envelope/`;
-
-    proxyRequest.headers.host = host;
-
-    const reqHeaders: Record<string, string> = {};
-    for (const [key, value] of Object.entries(proxyRequest.headers)) {
-      reqHeaders[key] = value as string;
-    }
-
-    // Fetch does not like this
-    delete reqHeaders['transfer-encoding'];
-
-    return fetch(sentryIngestUrl, {
-      body: proxyRequestBody,
-      headers: reqHeaders,
-      method: proxyRequest.method,
-    }).then(async res => {
-      const rawSentryResponseBody = await res.text();
-      const data: SentryRequestCallbackData = {
-        envelope: parseEnvelope(proxyRequestBody),
-        rawProxyRequestBody: proxyRequestBody,
-        rawSentryResponseBody,
-        sentryResponseStatusCode: res.status,
-      };
-
-      const dataString = Buffer.from(JSON.stringify(data)).toString('base64');
-
-      eventBuffer.push({ data: dataString, timestamp: getNanosecondTimestamp() });
-
-      eventCallbackListeners.forEach(listener => {
-        listener(dataString);
-      });
-
-      const resHeaders: Record<string, string> = {};
-      for (const [key, value] of res.headers.entries()) {
-        resHeaders[key] = value;
-      }
-
-      return [res.status, rawSentryResponseBody, resHeaders];
+    eventCallbackListeners.forEach(listener => {
+      listener(dataString);
     });
+
+    return [
+      200,
+      '{}',
+      {
+        'Access-Control-Allow-Origin': '*',
+      },
+    ];
   });
 }
 
@@ -258,28 +203,24 @@ export async function waitForPlainRequest(
   const eventCallbackServerPort = await retrieveCallbackServerPort(proxyServerName);
 
   return new Promise((resolve, reject) => {
-    const request = http.request(
-      `http://localhost:${eventCallbackServerPort}/?timestamp=${getNanosecondTimestamp()}`,
-      {},
-      response => {
-        let eventContents = '';
+    const request = http.request(`http://localhost:${eventCallbackServerPort}/`, {}, response => {
+      let eventContents = '';
 
-        response.on('error', err => {
-          reject(err);
-        });
+      response.on('error', err => {
+        reject(err);
+      });
 
-        response.on('data', (chunk: Buffer) => {
-          const chunkString = chunk.toString('utf8');
+      response.on('data', (chunk: Buffer) => {
+        const chunkString = chunk.toString('utf8');
 
-          eventContents = eventContents.concat(chunkString);
+        eventContents = eventContents.concat(chunkString);
 
-          if (callback(eventContents)) {
-            response.destroy();
-            return resolve(eventContents);
-          }
-        });
-      },
-    );
+        if (callback(eventContents)) {
+          response.destroy();
+          return resolve(eventContents);
+        }
+      });
+    });
 
     request.end();
   });
@@ -289,53 +230,48 @@ export async function waitForPlainRequest(
 export async function waitForRequest(
   proxyServerName: string,
   callback: (eventData: SentryRequestCallbackData) => Promise<boolean> | boolean,
-  timestamp: number = getNanosecondTimestamp(),
 ): Promise<SentryRequestCallbackData> {
   const eventCallbackServerPort = await retrieveCallbackServerPort(proxyServerName);
 
   return new Promise<SentryRequestCallbackData>((resolve, reject) => {
-    const request = http.request(
-      `http://localhost:${eventCallbackServerPort}/?timestamp=${timestamp}`,
-      {},
-      response => {
-        let eventContents = '';
+    const request = http.request(`http://localhost:${eventCallbackServerPort}/`, {}, response => {
+      let eventContents = '';
 
-        response.on('error', err => {
-          reject(err);
-        });
+      response.on('error', err => {
+        reject(err);
+      });
 
-        response.on('data', (chunk: Buffer) => {
-          const chunkString = chunk.toString('utf8');
-          chunkString.split('').forEach(char => {
-            if (char === '\n') {
-              const eventCallbackData: SentryRequestCallbackData = JSON.parse(
-                Buffer.from(eventContents, 'base64').toString('utf8'),
+      response.on('data', (chunk: Buffer) => {
+        const chunkString = chunk.toString('utf8');
+        chunkString.split('').forEach(char => {
+          if (char === '\n') {
+            const eventCallbackData: SentryRequestCallbackData = JSON.parse(
+              Buffer.from(eventContents, 'base64').toString('utf8'),
+            );
+            const callbackResult = callback(eventCallbackData);
+            if (typeof callbackResult !== 'boolean') {
+              callbackResult.then(
+                match => {
+                  if (match) {
+                    response.destroy();
+                    resolve(eventCallbackData);
+                  }
+                },
+                err => {
+                  throw err;
+                },
               );
-              const callbackResult = callback(eventCallbackData);
-              if (typeof callbackResult !== 'boolean') {
-                callbackResult.then(
-                  match => {
-                    if (match) {
-                      response.destroy();
-                      resolve(eventCallbackData);
-                    }
-                  },
-                  err => {
-                    throw err;
-                  },
-                );
-              } else if (callbackResult) {
-                response.destroy();
-                resolve(eventCallbackData);
-              }
-              eventContents = '';
-            } else {
-              eventContents = eventContents.concat(char);
+            } else if (callbackResult) {
+              response.destroy();
+              resolve(eventCallbackData);
             }
-          });
+            eventContents = '';
+          } else {
+            eventContents = eventContents.concat(char);
+          }
         });
-      },
-    );
+      });
+    });
 
     request.end();
   });
@@ -345,23 +281,18 @@ export async function waitForRequest(
 export function waitForEnvelopeItem(
   proxyServerName: string,
   callback: (envelopeItem: EnvelopeItem) => Promise<boolean> | boolean,
-  timestamp: number = getNanosecondTimestamp(),
 ): Promise<EnvelopeItem> {
   return new Promise((resolve, reject) => {
-    waitForRequest(
-      proxyServerName,
-      async eventData => {
-        const envelopeItems = eventData.envelope[1];
-        for (const envelopeItem of envelopeItems) {
-          if (await callback(envelopeItem)) {
-            resolve(envelopeItem);
-            return true;
-          }
+    waitForRequest(proxyServerName, async eventData => {
+      const envelopeItems = eventData.envelope[1];
+      for (const envelopeItem of envelopeItems) {
+        if (await callback(envelopeItem)) {
+          resolve(envelopeItem);
+          return true;
         }
-        return false;
-      },
-      timestamp,
-    ).catch(reject);
+      }
+      return false;
+    }).catch(reject);
   });
 }
 
@@ -370,20 +301,15 @@ export function waitForError(
   proxyServerName: string,
   callback: (errorEvent: Event) => Promise<boolean> | boolean,
 ): Promise<Event> {
-  const timestamp = getNanosecondTimestamp();
   return new Promise((resolve, reject) => {
-    waitForEnvelopeItem(
-      proxyServerName,
-      async envelopeItem => {
-        const [envelopeItemHeader, envelopeItemBody] = envelopeItem;
-        if (envelopeItemHeader.type === 'event' && (await callback(envelopeItemBody as Event))) {
-          resolve(envelopeItemBody as Event);
-          return true;
-        }
-        return false;
-      },
-      timestamp,
-    ).catch(reject);
+    waitForEnvelopeItem(proxyServerName, async envelopeItem => {
+      const [envelopeItemHeader, envelopeItemBody] = envelopeItem;
+      if (envelopeItemHeader.type === 'event' && (await callback(envelopeItemBody as Event))) {
+        resolve(envelopeItemBody as Event);
+        return true;
+      }
+      return false;
+    }).catch(reject);
   });
 }
 
@@ -392,20 +318,15 @@ export function waitForSession(
   proxyServerName: string,
   callback: (session: SerializedSession) => Promise<boolean> | boolean,
 ): Promise<SerializedSession> {
-  const timestamp = getNanosecondTimestamp();
   return new Promise((resolve, reject) => {
-    waitForEnvelopeItem(
-      proxyServerName,
-      async envelopeItem => {
-        const [envelopeItemHeader, envelopeItemBody] = envelopeItem;
-        if (envelopeItemHeader.type === 'session' && (await callback(envelopeItemBody as SerializedSession))) {
-          resolve(envelopeItemBody as SerializedSession);
-          return true;
-        }
-        return false;
-      },
-      timestamp,
-    ).catch(reject);
+    waitForEnvelopeItem(proxyServerName, async envelopeItem => {
+      const [envelopeItemHeader, envelopeItemBody] = envelopeItem;
+      if (envelopeItemHeader.type === 'session' && (await callback(envelopeItemBody as SerializedSession))) {
+        resolve(envelopeItemBody as SerializedSession);
+        return true;
+      }
+      return false;
+    }).catch(reject);
   });
 }
 
@@ -414,20 +335,15 @@ export function waitForTransaction(
   proxyServerName: string,
   callback: (transactionEvent: Event) => Promise<boolean> | boolean,
 ): Promise<Event> {
-  const timestamp = getNanosecondTimestamp();
   return new Promise((resolve, reject) => {
-    waitForEnvelopeItem(
-      proxyServerName,
-      async envelopeItem => {
-        const [envelopeItemHeader, envelopeItemBody] = envelopeItem;
-        if (envelopeItemHeader.type === 'transaction' && (await callback(envelopeItemBody as Event))) {
-          resolve(envelopeItemBody as Event);
-          return true;
-        }
-        return false;
-      },
-      timestamp,
-    ).catch(reject);
+    waitForEnvelopeItem(proxyServerName, async envelopeItem => {
+      const [envelopeItemHeader, envelopeItemBody] = envelopeItem;
+      if (envelopeItemHeader.type === 'transaction' && (await callback(envelopeItemBody as Event))) {
+        resolve(envelopeItemBody as Event);
+        return true;
+      }
+      return false;
+    }).catch(reject);
   });
 }
 
@@ -447,13 +363,4 @@ async function retrieveCallbackServerPort(serverName: string): Promise<string> {
     console.log('Could not read callback server port', e);
     throw e;
   }
-}
-
-/**
- * We do nanosecond checking because the waitFor* calls and the fetch requests may come very shortly after one another.
- */
-function getNanosecondTimestamp(): number {
-  const NS_PER_SEC = 1e9;
-  const [seconds, nanoseconds] = process.hrtime();
-  return seconds * NS_PER_SEC + nanoseconds;
 }
