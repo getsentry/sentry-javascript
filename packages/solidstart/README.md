@@ -87,7 +87,7 @@ export default createMiddleware({
 });
 ```
 
-And don't forget to specify `./src/middleware.ts` in your `app.config.ts`
+And don't forget to specify `./src/middleware.ts` in your `app.config.ts`:
 
 ```typescript
 import { defineConfig } from '@solidjs/start/config';
