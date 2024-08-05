@@ -183,6 +183,8 @@ targets:
             format: base64
       'npm:@sentry/bun':
         onlyIfPresent: /^sentry-bun-\d.*\.tgz$/
+      'npm:@sentry/cloudflare':
+        onlyIfPresent: /^sentry-cloudflare-\d.*\.tgz$/
       'npm:@sentry/deno':
         onlyIfPresent: /^sentry-deno-\d.*\.tgz$/
       'npm:@sentry/ember':
