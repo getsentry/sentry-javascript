@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
+import { flush } from '@sentry/core';
 
 test('Sends exception to Sentry', async ({ baseURL }) => {
   const errorEventPromise = waitForError('nestjs', event => {
@@ -65,7 +66,32 @@ test('Does not send HttpExceptions to Sentry', async ({ baseURL }) => {
   await transactionEventPromise400;
   await transactionEventPromise500;
 
-  await new Promise(resolve => setTimeout(resolve, 10000));
+  flush();
+
+  expect(errorEventOccurred).toBe(false);
+});
+
+test('Does not send RpcExceptions to Sentry', async ({ baseURL }) => {
+  let errorEventOccurred = false;
+
+  waitForError('nestjs', event => {
+    if (!event.type && event.exception?.values?.[0]?.value === 'This is an expected RPC exception with id 123') {
+      errorEventOccurred = true;
+    }
+
+    return event?.transaction === 'GET /test-expected-rpc-exception/:id';
+  });
+
+  const transactionEventPromise = waitForTransaction('nestjs', transactionEvent => {
+    return transactionEvent?.transaction === 'GET /test-expected-rpc-exception/:id';
+  });
+
+  const response = await fetch(`${baseURL}/test-expected-rpc-exception/123`);
+  expect(response.status).toBe(500);
+
+  await transactionEventPromise;
+
+  flush();
 
   expect(errorEventOccurred).toBe(false);
 });

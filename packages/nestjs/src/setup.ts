@@ -11,6 +11,7 @@ import { Catch } from '@nestjs/common';
 import { Injectable } from '@nestjs/common';
 import { Global, Module } from '@nestjs/common';
 import { APP_FILTER, APP_INTERCEPTOR, BaseExceptionFilter } from '@nestjs/core';
+import { RpcException } from '@nestjs/microservices';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -68,7 +69,7 @@ class SentryGlobalFilter extends BaseExceptionFilter {
    */
   public catch(exception: unknown, host: ArgumentsHost): void {
     // don't report expected errors
-    if (exception instanceof HttpException) {
+    if (exception instanceof HttpException || exception instanceof RpcException) {
       return super.catch(exception, host);
     }
 
