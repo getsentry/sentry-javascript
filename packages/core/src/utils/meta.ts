@@ -2,16 +2,20 @@ import type { Client, Scope, Span } from '@sentry/types';
 import { getTraceData } from './traceData';
 
 /**
- * Returns a string of meta tags that represent the tracing data.
+ * Returns a string of meta tags that represent the current trace data.
  *
  * You can use this to propagate a trace from your server-side rendered Html to the browser.
+ * This function returns up to two meta tags, `sentry-trace` and `baggage`, depending on the
+ * current trace data state.
+ *
+ * @example
  * Usage example:
  *
  * ```js
  * function renderHtml() {
  *   return `
  *     <head>
- *       ${getTracingMetaTags()}
+ *       ${getTraceMetaTags()}
  *     </head>
  *   `;
  * }
@@ -19,7 +23,7 @@ import { getTraceData } from './traceData';
  *
  * @returns
  */
-export function getTracingMetaTags(span?: Span, scope?: Scope, client?: Client): string {
+export function getTraceMetaTags(span?: Span, scope?: Scope, client?: Client): string {
   return Object.entries(getTraceData(span, scope, client))
     .map(([key, value]) => `<meta name="${key}" content="${value}"/>`)
     .join('\n');

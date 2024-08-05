@@ -1,6 +1,6 @@
 import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
 
-describe('getTracingMetaTags', () => {
+describe('getTraceMetaTags', () => {
   afterAll(() => {
     cleanupChildProcesses();
   });

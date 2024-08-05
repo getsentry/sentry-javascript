@@ -56,7 +56,7 @@ export {
   getActiveSpan,
   getRootSpan,
   getTraceData,
-  getTracingMetaTags,
+  getTraceMetaTags,
   startSpan,
   startInactiveSpan,
   startSpanManual,

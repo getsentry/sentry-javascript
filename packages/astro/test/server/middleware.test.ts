@@ -34,7 +34,7 @@ describe('sentryMiddleware', () => {
     });
     vi.spyOn(SentryNode, 'getActiveSpan').mockImplementation(getSpanMock);
     vi.spyOn(SentryNode, 'getClient').mockImplementation(() => ({}) as Client);
-    vi.spyOn(SentryNode, 'getTracingMetaTags').mockImplementation(
+    vi.spyOn(SentryNode, 'getTraceMetaTags').mockImplementation(
       () => `
     <meta name="sentry-trace" content="123">
     <meta name="baggage" content="abc">

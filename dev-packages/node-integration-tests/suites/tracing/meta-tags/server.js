@@ -18,7 +18,7 @@ app.get('/test', (_req, res) => {
     response: `
     <html>
       <head>
-        ${Sentry.getTracingMetaTags()}
+        ${Sentry.getTraceMetaTags()}
       </head>
       <body>
         Hi :)

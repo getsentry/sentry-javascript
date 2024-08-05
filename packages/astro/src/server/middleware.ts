@@ -6,7 +6,7 @@ import {
   getActiveSpan,
   getClient,
   getCurrentScope,
-  getTracingMetaTags,
+  getTraceMetaTags,
   setHttpStatus,
   startSpan,
   withIsolationScope,
@@ -14,8 +14,6 @@ import {
 import type { Client, Scope, Span, SpanAttributes } from '@sentry/types';
 import { addNonEnumerableProperty, objectify, stripUrlQueryAndFragment } from '@sentry/utils';
 import type { APIContext, MiddlewareResponseHandler } from 'astro';
-
-import { getTraceData } from '@sentry/node';
 
 type MiddlewareOptions = {
   /**
@@ -190,7 +188,7 @@ function addMetaTagToHead(htmlChunk: string, scope: Scope, client: Client, span?
   if (typeof htmlChunk !== 'string') {
     return htmlChunk;
   }
-  const metaTags = getTracingMetaTags(span, scope, client);
+  const metaTags = getTraceMetaTags(span, scope, client);
 
   if (!metaTags) {
     return htmlChunk;
