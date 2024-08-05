@@ -55,3 +55,15 @@ export interface InjectableTarget {
     intercept?: (context: unknown, next: CallHandler, ...args: any[]) => Observable<any>;
   };
 }
+
+/**
+ * Represents a target class in NestJS annotated with @Catch.
+ */
+export interface CatchTarget {
+  name: string,
+  sentryPatched?: boolean;
+  __SENTRY_INTERNAL__?: boolean;
+  prototype: {
+    catch?: (...args: any[]) => any;
+  }
+}
