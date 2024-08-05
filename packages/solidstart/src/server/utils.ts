@@ -1,4 +1,5 @@
-import { flush } from '@sentry/node';
+import { flush, getGlobalScope } from '@sentry/node';
+import type { EventProcessor, Options } from '@sentry/types';
 import { logger } from '@sentry/utils';
 import { DEBUG_BUILD } from '../common/debug-build';
 
@@ -30,4 +31,27 @@ export function isRedirect(error: unknown): boolean {
   const hasValidLocation = typeof error.headers.get('location') === 'string';
   const hasValidStatus = error.status >= 300 && error.status <= 308;
   return hasValidLocation && hasValidStatus;
+}
+
+/**
+ * Adds an event processor to filter out low quality transactions,
+ * e.g. to filter out transactions for build assets
+ */
+export function filterLowQualityTransactions(options: Options): void {
+  getGlobalScope().addEventProcessor(
+    Object.assign(
+      (event => {
+        if (event.type !== 'transaction') {
+          return event;
+        }
+        // Filter out transactions for build assets
+        if (event.transaction?.match(/^GET \/_build\//)) {
+          options.debug && logger.log('SolidStartLowQualityTransactionsFilter filtered transaction', event.transaction);
+          return null;
+        }
+        return event;
+      }) satisfies EventProcessor,
+      { id: 'SolidStartLowQualityTransactionsFilter' },
+    ),
+  );
 }
