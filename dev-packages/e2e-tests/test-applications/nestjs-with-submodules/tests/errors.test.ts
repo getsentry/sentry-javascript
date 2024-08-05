@@ -82,7 +82,7 @@ test('Does not send exception to Sentry if user-defined global exception filter 
 
   await transactionEventPromise;
 
-  flush();
+  await flush();
 
   expect(errorEventOccurred).toBe(false);
 });
@@ -112,7 +112,7 @@ test('Does not send exception to Sentry if user-defined local exception filter a
 
   await transactionEventPromise;
 
-  flush();
+  await flush();
 
   expect(errorEventOccurred).toBe(false);
 });
