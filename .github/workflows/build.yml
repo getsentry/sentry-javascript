@@ -821,6 +821,8 @@ jobs:
         uses: ./.github/actions/restore-cache
         env:
           DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
+      - name: Install Playwright
+        uses: ./.github/actions/install-playwright
       - name: Run integration tests
         env:
           NODE_VERSION: ${{ matrix.node }}
