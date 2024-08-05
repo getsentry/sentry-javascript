@@ -69,3 +69,28 @@ test('Does not send HttpExceptions to Sentry', async ({ baseURL }) => {
 
   expect(errorEventOccurred).toBe(false);
 });
+
+test('Does not send RpcExceptions to Sentry', async ({ baseURL }) => {
+  let errorEventOccurred = false;
+
+  waitForError('node-nestjs-basic', event => {
+    if (!event.type && event.exception?.values?.[0]?.value === 'This is an expected RPC exception with id 123') {
+      errorEventOccurred = true;
+    }
+
+    return event?.transaction === 'GET /test-expected-rpc-exception/:id';
+  });
+
+  const transactionEventPromise = waitForTransaction('node-nestjs-basic', transactionEvent => {
+    return transactionEvent?.transaction === 'GET /test-expected-rpc-exception/:id';
+  });
+
+  const response = await fetch(`${baseURL}/test-expected-rpc-exception/123`);
+  expect(response.status).toBe(500);
+
+  await transactionEventPromise;
+
+  await new Promise(resolve => setTimeout(resolve, 10000));
+
+  expect(errorEventOccurred).toBe(false);
+});
