@@ -21,7 +21,6 @@ import { getTraceData } from './traceData';
  * }
  * ```
  *
- * @returns
  */
 export function getTraceMetaTags(span?: Span, scope?: Scope, client?: Client): string {
   return Object.entries(getTraceData(span, scope, client))
