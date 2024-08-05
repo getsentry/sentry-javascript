@@ -168,18 +168,6 @@ export async function startProxyServer(
  */
 export async function startEventProxyServer(options: EventProxyServerOptions): Promise<void> {
   await startProxyServer(options, async (eventCallbackListeners, proxyRequest, proxyRequestBody, eventBuffer) => {
-    const envelopeHeader: EnvelopeItem[0] = JSON.parse(proxyRequestBody.split('\n')[0] as string);
-
-    if (!envelopeHeader.dsn) {
-      // eslint-disable-next-line no-console
-      console.log(
-        '[event-proxy-server] Warn: No dsn on envelope header. Maybe a client-report was received. Proxy request body:',
-        proxyRequestBody,
-      );
-
-      return [200, '{}', {}];
-    }
-
     const data: SentryRequestCallbackData = {
       envelope: parseEnvelope(proxyRequestBody),
       rawProxyRequestBody: proxyRequestBody,
