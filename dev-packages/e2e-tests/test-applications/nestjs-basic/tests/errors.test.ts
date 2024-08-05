@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
+import { flush } from '@sentry/core';
 
 test('Sends exception to Sentry', async ({ baseURL }) => {
   const errorEventPromise = waitForError('nestjs-basic', event => {
@@ -65,7 +66,7 @@ test('Does not send HttpExceptions to Sentry', async ({ baseURL }) => {
   await transactionEventPromise400;
   await transactionEventPromise500;
 
-  await new Promise(resolve => setTimeout(resolve, 10000));
+  flush();
 
   expect(errorEventOccurred).toBe(false);
 });
@@ -90,7 +91,7 @@ test('Does not send RpcExceptions to Sentry', async ({ baseURL }) => {
 
   await transactionEventPromise;
 
-  await new Promise(resolve => setTimeout(resolve, 10000));
+  flush();
 
   expect(errorEventOccurred).toBe(false);
 });

@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
+import { flush } from '@sentry/core';
 
 test('Sends unexpected exception to Sentry if thrown in module with global filter', async ({ baseURL }) => {
   const errorEventPromise = waitForError('nestjs-with-submodules', event => {
@@ -81,7 +82,7 @@ test('Does not send exception to Sentry if user-defined global exception filter 
 
   await transactionEventPromise;
 
-  await new Promise(resolve => setTimeout(resolve, 10000));
+  flush();
 
   expect(errorEventOccurred).toBe(false);
 });
@@ -111,7 +112,7 @@ test('Does not send exception to Sentry if user-defined local exception filter a
 
   await transactionEventPromise;
 
-  await new Promise(resolve => setTimeout(resolve, 10000));
+  flush();
 
   expect(errorEventOccurred).toBe(false);
 });
