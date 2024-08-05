@@ -12,6 +12,13 @@ sentryTest('should handle aborted fetch calls', async ({ getLocalTestPath, page 
 
   const transactionEventPromise = getFirstSentryEnvelopeRequest<SentryEvent>(page);
 
+  let hasPrintedFetchAborted = false;
+  page.on('console', msg => {
+    if (msg.type() === 'log' && msg.text() === 'Fetch aborted') {
+      hasPrintedFetchAborted = true;
+    }
+  });
+
   await page.goto(url);
 
   await page.locator('[data-test-id=start-button]').click();
@@ -24,10 +31,5 @@ sentryTest('should handle aborted fetch calls', async ({ getLocalTestPath, page 
     ({ category, data }) => category === 'fetch' && data === undefined,
   );
   expect(fetchBreadcrumbs).toHaveLength(0);
-
-  // assert that fetch call has been aborted
-  const abortedBreadcrumb = transactionEvent.breadcrumbs?.filter(
-    ({ category, message }) => category === 'console' && message === 'Fetch aborted',
-  );
-  expect(abortedBreadcrumb).toHaveLength(1);
+  expect(hasPrintedFetchAborted).toBe(true);
 });
