@@ -28,16 +28,6 @@ export interface MinimalNestJsApp {
 }
 
 /**
- * Interface for an expected exception in nest.
- *
- * Expected exceptions in nest are HttpExceptions (have a status property) or RpcExceptions (have an error property).
- */
-export interface ExpectedException {
-  status?: number;
-  error?: string | object;
-}
-
-/**
  * A minimal interface for an Observable.
  */
 export interface Observable<T> {

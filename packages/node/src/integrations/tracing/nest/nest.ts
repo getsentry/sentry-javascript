@@ -13,7 +13,7 @@ import type { IntegrationFn, Span } from '@sentry/types';
 import { logger } from '@sentry/utils';
 import { generateInstrumentOnce } from '../../../otel/instrument';
 import { SentryNestInstrumentation } from './sentry-nest-instrumentation';
-import type { ExpectedException, MinimalNestJsApp, NestJsErrorFilter } from './types';
+import type { MinimalNestJsApp, NestJsErrorFilter } from './types';
 
 const INTEGRATION_NAME = 'Nest';
 
@@ -87,11 +87,16 @@ export function setupNestErrorHandler(app: MinimalNestJsApp, baseFilter: NestJsE
         const originalCatch = Reflect.get(target, prop, receiver);
 
         return (exception: unknown, host: unknown) => {
-          const status_code = (exception as ExpectedException).status;
-          const error_property = (exception as ExpectedException).error;
+          const exceptionIsObject = typeof exception === 'object' && exception !== null;
+          const exceptionStatusCode = exceptionIsObject && 'status' in exception ? exception.status : null;
+          const exceptionErrorProperty = exceptionIsObject && 'error' in exception ? exception.error : null;
 
-          // don't report expected errors
-          if (status_code !== undefined || error_property !== undefined) {
+          /*
+          Don't report expected NestJS control flow errors
+          - `HttpException` errors will have a `status` property
+          - `RpcException` errors will have an `error` property
+           */
+          if (exceptionStatusCode !== null || exceptionErrorProperty !== null) {
             return originalCatch.apply(target, [exception, host]);
           }
 
