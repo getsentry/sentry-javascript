@@ -12,11 +12,12 @@ sentryTest('should handle aborted fetch calls', async ({ getLocalTestPath, page 
 
   const transactionEventPromise = getFirstSentryEnvelopeRequest<SentryEvent>(page);
 
-  let hasPrintedFetchAborted = false;
-  page.on('console', msg => {
-    if (msg.type() === 'log' && msg.text() === 'Fetch aborted') {
-      hasPrintedFetchAborted = true;
-    }
+  const hasAbortedFetchPromise = new Promise<void>(resolve => {
+    page.on('console', msg => {
+      if (msg.type() === 'log' && msg.text() === 'Fetch aborted') {
+        resolve();
+      }
+    });
   });
 
   await page.goto(url);
@@ -31,5 +32,6 @@ sentryTest('should handle aborted fetch calls', async ({ getLocalTestPath, page 
     ({ category, data }) => category === 'fetch' && data === undefined,
   );
   expect(fetchBreadcrumbs).toHaveLength(0);
-  expect(hasPrintedFetchAborted).toBe(true);
+
+  await expect(hasAbortedFetchPromise).resolves.toBeUndefined();
 });
