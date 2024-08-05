@@ -5,18 +5,15 @@ import {
   getCurrentScope,
   getDefaultIsolationScope,
   getIsolationScope,
-  getRootSpan,
+  getTraceMetaTags,
   setHttpStatus,
-  spanToTraceHeader,
   withIsolationScope,
 } from '@sentry/core';
 import { startSpan } from '@sentry/core';
 import { continueTrace } from '@sentry/node';
 import type { Span } from '@sentry/types';
-import { dynamicSamplingContextToSentryBaggageHeader, logger, winterCGRequestToRequestData } from '@sentry/utils';
+import { logger, winterCGRequestToRequestData } from '@sentry/utils';
 import type { Handle, ResolveOptions } from '@sveltejs/kit';
-
-import { getDynamicSamplingContextFromSpan } from '@sentry/opentelemetry';
 
 import { DEBUG_BUILD } from '../common/debug-build';
 import { flushIfServerless, getTracePropagationData, sendErrorToSentry } from './utils';
@@ -81,25 +78,14 @@ export function addSentryCodeToPage(options: SentryHandleOptions): NonNullable<R
   const nonce = fetchProxyScriptNonce ? `nonce="${fetchProxyScriptNonce}"` : '';
 
   return ({ html }) => {
-    const activeSpan = getActiveSpan();
-    const rootSpan = activeSpan ? getRootSpan(activeSpan) : undefined;
-    if (rootSpan) {
-      const traceparentData = spanToTraceHeader(rootSpan);
-      const dynamicSamplingContext = dynamicSamplingContextToSentryBaggageHeader(
-        getDynamicSamplingContextFromSpan(rootSpan),
-      );
-      const contentMeta = `<head>
-    <meta name="sentry-trace" content="${traceparentData}"/>
-    <meta name="baggage" content="${dynamicSamplingContext}"/>
-    `;
-      const contentScript = shouldInjectScript ? `<script ${nonce}>${FETCH_PROXY_SCRIPT}</script>` : '';
+    const metaTags = getTraceMetaTags();
+    const headWithMetaTags = metaTags ? `<head>\n${metaTags}` : '<head>';
 
-      const content = `${contentMeta}\n${contentScript}`;
+    const headWithFetchScript = shouldInjectScript ? `\n<script ${nonce}>${FETCH_PROXY_SCRIPT}</script>` : '';
 
-      return html.replace('<head>', content);
-    }
+    const modifiedHead = `${headWithMetaTags}${headWithFetchScript}`;
 
-    return html;
+    return html.replace('<head>', modifiedHead);
   };
 }
 
