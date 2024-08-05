@@ -11,21 +11,15 @@ import {
   withIsolationScope,
 } from '@sentry/core';
 import { startSpan } from '@sentry/core';
-import { captureException, continueTrace } from '@sentry/node';
+import { continueTrace } from '@sentry/node';
 import type { Span } from '@sentry/types';
-import {
-  dynamicSamplingContextToSentryBaggageHeader,
-  logger,
-  objectify,
-  winterCGRequestToRequestData,
-} from '@sentry/utils';
+import { dynamicSamplingContextToSentryBaggageHeader, logger, winterCGRequestToRequestData } from '@sentry/utils';
 import type { Handle, ResolveOptions } from '@sveltejs/kit';
 
 import { getDynamicSamplingContextFromSpan } from '@sentry/opentelemetry';
 
 import { DEBUG_BUILD } from '../common/debug-build';
-import { isHttpError, isRedirect } from '../common/utils';
-import { flushIfServerless, getTracePropagationData } from './utils';
+import { flushIfServerless, getTracePropagationData, sendErrorToSentry } from './utils';
 
 export type SentryHandleOptions = {
   /**
@@ -61,32 +55,6 @@ export type SentryHandleOptions = {
    */
   fetchProxyScriptNonce?: string;
 };
-
-function sendErrorToSentry(e: unknown): unknown {
-  // In case we have a primitive, wrap it in the equivalent wrapper class (string -> String, etc.) so that we can
-  // store a seen flag on it.
-  const objectifiedErr = objectify(e);
-
-  // similarly to the `load` function, we don't want to capture 4xx errors or redirects
-  if (
-    isRedirect(objectifiedErr) ||
-    (isHttpError(objectifiedErr) && objectifiedErr.status < 500 && objectifiedErr.status >= 400)
-  ) {
-    return objectifiedErr;
-  }
-
-  captureException(objectifiedErr, {
-    mechanism: {
-      type: 'sveltekit',
-      handled: false,
-      data: {
-        function: 'handle',
-      },
-    },
-  });
-
-  return objectifiedErr;
-}
 
 /**
  * Exported only for testing
@@ -225,7 +193,7 @@ async function instrumentHandle(
     );
     return resolveResult;
   } catch (e: unknown) {
-    sendErrorToSentry(e);
+    sendErrorToSentry(e, 'handle');
     throw e;
   } finally {
     await flushIfServerless();

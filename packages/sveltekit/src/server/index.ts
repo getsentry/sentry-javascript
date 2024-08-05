@@ -128,6 +128,7 @@ export { init } from './sdk';
 export { handleErrorWithSentry } from './handleError';
 export { wrapLoadWithSentry, wrapServerLoadWithSentry } from './load';
 export { sentryHandle } from './handle';
+export { wrapServerRouteWithSentry } from './serverRoute';
 
 /**
  * Tracks the Svelte component's initialization and mounting operation as well as
