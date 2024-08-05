@@ -3,10 +3,15 @@ import { waitForEnvelopeItem } from '@sentry-internal/test-utils';
 
 test('Cron job triggers send of in_progress envelope', async ({ baseURL }) => {
   const inProgressEnvelopePromise = waitForEnvelopeItem('nestjs', envelope => {
-    return envelope[0].type === 'check_in';
+    return envelope[0].type === 'check_in' && envelope[1]['status'] === 'in_progress';
+  });
+
+  const okEnvelopePromise = waitForEnvelopeItem('nestjs', envelope => {
+    return envelope[0].type === 'check_in' && envelope[1]['status'] === 'ok';
   });
 
   const inProgressEnvelope = await inProgressEnvelopePromise;
+  const okEnvelope = await okEnvelopePromise;
 
   expect(inProgressEnvelope[1]).toEqual(
     expect.objectContaining({
@@ -20,6 +25,22 @@ test('Cron job triggers send of in_progress envelope', async ({ baseURL }) => {
           value: '* * * * *',
         },
       },
+      contexts: {
+        trace: {
+          span_id: expect.any(String),
+          trace_id: expect.any(String),
+        },
+      },
+    }),
+  );
+
+  expect(okEnvelope[1]).toEqual(
+    expect.objectContaining({
+      check_in_id: expect.any(String),
+      monitor_slug: 'test-cron-slug',
+      status: 'ok',
+      environment: 'qa',
+      duration: expect.any(Number),
       contexts: {
         trace: {
           span_id: expect.any(String),

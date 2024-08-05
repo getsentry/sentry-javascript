@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { onRequest } from '../../../src/integration/middleware';
 
 vi.mock('../../../src/server/meta', () => ({
-  getTracingMetaTags: () => ({
+  getTracingMetaTagValues: () => ({
     sentryTrace: '<meta name="sentry-trace" content="123">',
     baggage: '<meta name="baggage" content="abc">',
   }),

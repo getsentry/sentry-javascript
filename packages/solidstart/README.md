@@ -46,10 +46,12 @@ Initialize the SDK in `entry-client.jsx`
 
 ```jsx
 import * as Sentry from '@sentry/solidstart';
+import { solidRouterBrowserTracingIntegration } from '@sentry/solidstart/solidrouter';
 import { mount, StartClient } from '@solidjs/start/client';
 
 Sentry.init({
   dsn: '__PUBLIC_DSN__',
+  integrations: [solidRouterBrowserTracingIntegration()],
   tracesSampleRate: 1.0, //  Capture 100% of the transactions
 });
 
@@ -69,7 +71,37 @@ Sentry.init({
 });
 ```
 
-### 4. Run your application
+### 4. Server instrumentation
+
+Complete the setup by adding the Sentry middlware to your `src/middleware.ts` file:
+
+```typescript
+import { sentryBeforeResponseMiddleware } from '@sentry/solidstart/middleware';
+import { createMiddleware } from '@solidjs/start/middleware';
+
+export default createMiddleware({
+  onBeforeResponse: [
+    sentryBeforeResponseMiddleware(),
+    // Add your other middleware handlers after `sentryBeforeResponseMiddleware`
+  ],
+});
+```
+
+And don't forget to specify `./src/middleware.ts` in your `app.config.ts`:
+
+```typescript
+import { defineConfig } from '@solidjs/start/config';
+
+export default defineConfig({
+  // ...
+  middleware: './src/middleware.ts',
+});
+```
+
+The Sentry middleware enhances the data collected by Sentry on the server side by enabling distributed tracing between
+the client and server.
+
+### 5. Run your application
 
 Then run your app
 
