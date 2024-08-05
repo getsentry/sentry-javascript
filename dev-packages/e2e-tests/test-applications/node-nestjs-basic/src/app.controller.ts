@@ -49,6 +49,11 @@ export class AppController {
     return this.appService.testExpected500Exception(id);
   }
 
+  @Get('test-expected-rpc-exception/:id')
+  async testExpectedRpcException(@Param('id') id: string) {
+    return this.appService.testExpectedRpcException(id);
+  }
+
   @Get('test-span-decorator-async')
   async testSpanDecoratorAsync() {
     return { result: await this.appService.testSpanDecoratorAsync() };
