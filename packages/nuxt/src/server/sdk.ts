@@ -1,6 +1,8 @@
 import { applySdkMetadata, getGlobalScope } from '@sentry/core';
 import { init as initNode } from '@sentry/node';
 import type { Client, EventProcessor } from '@sentry/types';
+import { logger } from '@sentry/utils';
+import { DEBUG_BUILD } from '../common/debug-build';
 import type { SentryNuxtOptions } from '../common/types';
 
 /**
@@ -26,8 +28,8 @@ export function init(options: SentryNuxtOptions): Client | undefined {
           // todo: the buildAssetDir could be changed in the nuxt config - change this to a more generic solution
           if (event.transaction?.match(/^GET \/_nuxt\//)) {
             options.debug &&
-              // eslint-disable-next-line no-console
-              console.log('[Sentry] NuxtLowQualityTransactionsFilter filtered transaction: ', event.transaction);
+              DEBUG_BUILD &&
+              logger.log('NuxtLowQualityTransactionsFilter filtered transaction: ', event.transaction);
             return null;
           }
 
