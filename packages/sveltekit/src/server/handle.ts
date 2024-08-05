@@ -11,7 +11,7 @@ import {
   withIsolationScope,
 } from '@sentry/core';
 import { startSpan } from '@sentry/core';
-import { captureException, continueTrace } from '@sentry/node';
+import { captureException, continueTrace, getTraceMetaTags } from '@sentry/node';
 import type { Span } from '@sentry/types';
 import {
   dynamicSamplingContextToSentryBaggageHeader,
@@ -113,25 +113,14 @@ export function addSentryCodeToPage(options: SentryHandleOptions): NonNullable<R
   const nonce = fetchProxyScriptNonce ? `nonce="${fetchProxyScriptNonce}"` : '';
 
   return ({ html }) => {
-    const activeSpan = getActiveSpan();
-    const rootSpan = activeSpan ? getRootSpan(activeSpan) : undefined;
-    if (rootSpan) {
-      const traceparentData = spanToTraceHeader(rootSpan);
-      const dynamicSamplingContext = dynamicSamplingContextToSentryBaggageHeader(
-        getDynamicSamplingContextFromSpan(rootSpan),
-      );
-      const contentMeta = `<head>
-    <meta name="sentry-trace" content="${traceparentData}"/>
-    <meta name="baggage" content="${dynamicSamplingContext}"/>
-    `;
-      const contentScript = shouldInjectScript ? `<script ${nonce}>${FETCH_PROXY_SCRIPT}</script>` : '';
+    const metaTags = getTraceMetaTags();
+    const headWithMetaTags = metaTags ? `<head>\n${metaTags}` : '<head>';
 
-      const content = `${contentMeta}\n${contentScript}`;
+    const headWithFetchScript = shouldInjectScript ? `\n<script ${nonce}>${FETCH_PROXY_SCRIPT}</script>` : '';
 
-      return html.replace('<head>', content);
-    }
+    const modifiedHead = `${headWithMetaTags}${headWithFetchScript}`;
 
-    return html;
+    return html.replace('<head>', modifiedHead);
   };
 }
 
