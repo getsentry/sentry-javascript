@@ -5,23 +5,14 @@ import {
   getCurrentScope,
   getDefaultIsolationScope,
   getIsolationScope,
-  getRootSpan,
   setHttpStatus,
-  spanToTraceHeader,
   withIsolationScope,
 } from '@sentry/core';
 import { startSpan } from '@sentry/core';
 import { captureException, continueTrace, getTraceMetaTags } from '@sentry/node';
 import type { Span } from '@sentry/types';
-import {
-  dynamicSamplingContextToSentryBaggageHeader,
-  logger,
-  objectify,
-  winterCGRequestToRequestData,
-} from '@sentry/utils';
+import { logger, objectify, winterCGRequestToRequestData } from '@sentry/utils';
 import type { Handle, ResolveOptions } from '@sveltejs/kit';
-
-import { getDynamicSamplingContextFromSpan } from '@sentry/opentelemetry';
 
 import { DEBUG_BUILD } from '../common/debug-build';
 import { isHttpError, isRedirect } from '../common/utils';
