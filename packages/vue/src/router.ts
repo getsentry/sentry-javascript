@@ -60,6 +60,7 @@ export function instrumentVueRouter(
     // https://next.router.vuejs.org/api/#start-location
     // Additionally, Nuxt does not provide the possibility to check for `from.matched.length === 0` (this is never 0).
     // Therefore, a flag was added to track the page-load: IS_FIRST_PAGE_LOAD
+    // Therefore, a flag was added to track the page-load: isFirstPageLoad
 
     // from.name:
     // - Vue 2: null
