@@ -4,18 +4,26 @@ const startFetch = e => {
   controller = new AbortController();
   const { signal } = controller;
 
-  fetch('http://localhost:7654/foo', { signal })
-    .then(response => response.json())
-    .then(data => {
-      console.log('Fetch succeeded:', data);
-    })
-    .catch(err => {
-      if (err.name === 'AbortError') {
-        console.log('Fetch aborted');
-      } else {
-        console.error('Fetch error:', err);
-      }
-    });
+  Sentry.startSpan(
+    {
+      name: 'with-abort-controller',
+      forceTransaction: true,
+    },
+    async () => {
+      await fetch('http://localhost:7654/foo', { signal })
+        .then(response => response.json())
+        .then(data => {
+          console.log('Fetch succeeded:', data);
+        })
+        .catch(err => {
+          if (err.name === 'AbortError') {
+            console.log('Fetch aborted');
+          } else {
+            console.error('Fetch error:', err);
+          }
+        });
+    },
+  );
 };
 
 const abortFetch = e => {

@@ -6,31 +6,27 @@ import { getFirstSentryEnvelopeRequest } from '../../../../../utils/helpers';
 sentryTest('should handle aborted fetch calls', async ({ getLocalTestPath, page }) => {
   const url = await getLocalTestPath({ testDir: __dirname });
 
-  await page.route('**/foo', async route => {
-    setTimeout(() => {
-      route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({ message: 'This is the server response' }),
-      });
-    }, 2000);
+  await page.route('**/foo', async () => {
+    // never fulfil this route because we abort the request as part of the test
   });
+
+  const transactionEventPromise = getFirstSentryEnvelopeRequest<SentryEvent>(page);
 
   await page.goto(url);
 
   await page.locator('[data-test-id=start-button]').click();
-  await page.waitForTimeout(500);
   await page.locator('[data-test-id=abort-button]').click();
-  const eventData = await getFirstSentryEnvelopeRequest<SentryEvent>(page);
+
+  const transactionEvent = await transactionEventPromise;
 
   // assert that fetch calls do not return undefined
-  const fetchBreadcrumbs = eventData.breadcrumbs?.filter(
+  const fetchBreadcrumbs = transactionEvent.breadcrumbs?.filter(
     ({ category, data }) => category === 'fetch' && data === undefined,
   );
   expect(fetchBreadcrumbs).toHaveLength(0);
 
   // assert that fetch call has been aborted
-  const abortedBreadcrumb = eventData.breadcrumbs?.filter(
+  const abortedBreadcrumb = transactionEvent.breadcrumbs?.filter(
     ({ category, message }) => category === 'console' && message === 'Fetch aborted',
   );
   expect(abortedBreadcrumb).toHaveLength(1);
