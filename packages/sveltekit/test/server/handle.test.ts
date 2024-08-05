@@ -429,10 +429,14 @@ describe('addSentryCodeToPage', () => {
     </body>
   </html>`;
 
-  it('does not add meta tags if no active transaction', () => {
+  it("Adds add meta tags and fetch proxy script if there's no active transaction", () => {
     const transformPageChunk = addSentryCodeToPage({});
     const transformed = transformPageChunk({ html, done: true });
-    expect(transformed).toEqual(html);
+
+    expect(transformed).toContain('<meta name="sentry-trace"');
+    expect(transformed).toContain('<meta name="baggage"');
+    expect(transformed).not.toContain('sentry-transaction=');
+    expect(transformed).toContain(`<script >${FETCH_PROXY_SCRIPT}</script>`);
   });
 
   it('adds meta tags and the fetch proxy script if there is an active transaction', () => {
@@ -442,6 +446,7 @@ describe('addSentryCodeToPage', () => {
 
       expect(transformed).toContain('<meta name="sentry-trace"');
       expect(transformed).toContain('<meta name="baggage"');
+      expect(transformed).toContain('sentry-transaction=test');
       expect(transformed).toContain(`<script >${FETCH_PROXY_SCRIPT}</script>`);
     });
   });
@@ -453,18 +458,17 @@ describe('addSentryCodeToPage', () => {
 
       expect(transformed).toContain('<meta name="sentry-trace"');
       expect(transformed).toContain('<meta name="baggage"');
+      expect(transformed).toContain('sentry-transaction=test');
       expect(transformed).toContain(`<script nonce="123abc">${FETCH_PROXY_SCRIPT}</script>`);
     });
   });
 
   it('does not add the fetch proxy script if the `injectFetchProxyScript` option is false', () => {
     const transformPageChunk = addSentryCodeToPage({ injectFetchProxyScript: false });
-    SentryNode.startSpan({ name: 'test' }, () => {
-      const transformed = transformPageChunk({ html, done: true }) as string;
+    const transformed = transformPageChunk({ html, done: true }) as string;
 
-      expect(transformed).toContain('<meta name="sentry-trace"');
-      expect(transformed).toContain('<meta name="baggage"');
-      expect(transformed).not.toContain(`<script >${FETCH_PROXY_SCRIPT}</script>`);
-    });
+    expect(transformed).toContain('<meta name="sentry-trace"');
+    expect(transformed).toContain('<meta name="baggage"');
+    expect(transformed).not.toContain(`<script >${FETCH_PROXY_SCRIPT}</script>`);
   });
 });
