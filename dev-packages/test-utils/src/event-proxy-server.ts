@@ -90,7 +90,7 @@ export async function startProxyServer(
       const callback: OnRequest =
         onRequest ||
         (async (eventCallbackListeners, proxyRequest, proxyRequestBody, eventBuffer) => {
-          eventBuffer.push({ data: proxyRequestBody, timestamp: Date.now() });
+          eventBuffer.push({ data: proxyRequestBody, timestamp: getNanosecondTimestamp() });
 
           eventCallbackListeners.forEach(listener => {
             listener(proxyRequestBody);
@@ -234,7 +234,7 @@ export async function startEventProxyServer(options: EventProxyServerOptions): P
 
       const dataString = Buffer.from(JSON.stringify(data)).toString('base64');
 
-      eventBuffer.push({ data: dataString, timestamp: Date.now() });
+      eventBuffer.push({ data: dataString, timestamp: getNanosecondTimestamp() });
 
       eventCallbackListeners.forEach(listener => {
         listener(dataString);
@@ -259,7 +259,7 @@ export async function waitForPlainRequest(
 
   return new Promise((resolve, reject) => {
     const request = http.request(
-      `http://localhost:${eventCallbackServerPort}/?timestamp=${Date.now()}`,
+      `http://localhost:${eventCallbackServerPort}/?timestamp=${getNanosecondTimestamp()}`,
       {},
       response => {
         let eventContents = '';
@@ -289,7 +289,7 @@ export async function waitForPlainRequest(
 export async function waitForRequest(
   proxyServerName: string,
   callback: (eventData: SentryRequestCallbackData) => Promise<boolean> | boolean,
-  timestamp: number = Date.now(),
+  timestamp: number = getNanosecondTimestamp(),
 ): Promise<SentryRequestCallbackData> {
   const eventCallbackServerPort = await retrieveCallbackServerPort(proxyServerName);
 
@@ -345,7 +345,7 @@ export async function waitForRequest(
 export function waitForEnvelopeItem(
   proxyServerName: string,
   callback: (envelopeItem: EnvelopeItem) => Promise<boolean> | boolean,
-  timestamp: number = Date.now(),
+  timestamp: number = getNanosecondTimestamp(),
 ): Promise<EnvelopeItem> {
   return new Promise((resolve, reject) => {
     waitForRequest(
@@ -370,7 +370,7 @@ export function waitForError(
   proxyServerName: string,
   callback: (errorEvent: Event) => Promise<boolean> | boolean,
 ): Promise<Event> {
-  const timestamp = Date.now();
+  const timestamp = getNanosecondTimestamp();
   return new Promise((resolve, reject) => {
     waitForEnvelopeItem(
       proxyServerName,
@@ -392,7 +392,7 @@ export function waitForSession(
   proxyServerName: string,
   callback: (session: SerializedSession) => Promise<boolean> | boolean,
 ): Promise<SerializedSession> {
-  const timestamp = Date.now();
+  const timestamp = getNanosecondTimestamp();
   return new Promise((resolve, reject) => {
     waitForEnvelopeItem(
       proxyServerName,
@@ -414,7 +414,7 @@ export function waitForTransaction(
   proxyServerName: string,
   callback: (transactionEvent: Event) => Promise<boolean> | boolean,
 ): Promise<Event> {
-  const timestamp = Date.now();
+  const timestamp = getNanosecondTimestamp();
   return new Promise((resolve, reject) => {
     waitForEnvelopeItem(
       proxyServerName,
@@ -447,4 +447,13 @@ async function retrieveCallbackServerPort(serverName: string): Promise<string> {
     console.log('Could not read callback server port', e);
     throw e;
   }
+}
+
+/**
+ * We do nanosecond checking because the waitFor* calls and the fetch requests may come very shortly after one another.
+ */
+function getNanosecondTimestamp(): number {
+  const NS_PER_SEC = 1e9;
+  const [seconds, nanoseconds] = process.hrtime();
+  return seconds * NS_PER_SEC + nanoseconds;
 }

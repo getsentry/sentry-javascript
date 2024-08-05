@@ -2,11 +2,11 @@ import { expect, test } from '@playwright/test';
 import { waitForEnvelopeItem } from '@sentry-internal/test-utils';
 
 test('Cron job triggers send of in_progress envelope', async ({ baseURL }) => {
-  const inProgressEnvelopePromise = waitForEnvelopeItem('nestjs', envelope => {
+  const inProgressEnvelopePromise = waitForEnvelopeItem('nestjs-basic', envelope => {
     return envelope[0].type === 'check_in' && envelope[1]['status'] === 'in_progress';
   });
 
-  const okEnvelopePromise = waitForEnvelopeItem('nestjs', envelope => {
+  const okEnvelopePromise = waitForEnvelopeItem('nestjs-basic', envelope => {
     return envelope[0].type === 'check_in' && envelope[1]['status'] === 'ok';
   });
 
