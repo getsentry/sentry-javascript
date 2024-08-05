@@ -73,7 +73,7 @@ test('Does not send HttpExceptions to Sentry', async ({ baseURL }) => {
 test('Does not send RpcExceptions to Sentry', async ({ baseURL }) => {
   let errorEventOccurred = false;
 
-  waitForError('nestjs', event => {
+  waitForError('node-nestjs-basic', event => {
     if (!event.type && event.exception?.values?.[0]?.value === 'This is an expected RPC exception with id 123') {
       errorEventOccurred = true;
     }
@@ -81,7 +81,7 @@ test('Does not send RpcExceptions to Sentry', async ({ baseURL }) => {
     return event?.transaction === 'GET /test-expected-rpc-exception/:id';
   });
 
-  const transactionEventPromise = waitForTransaction('nestjs', transactionEvent => {
+  const transactionEventPromise = waitForTransaction('node-nestjs-basic', transactionEvent => {
     return transactionEvent?.transaction === 'GET /test-expected-rpc-exception/:id';
   });
 
