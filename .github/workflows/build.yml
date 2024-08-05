@@ -91,9 +91,12 @@ jobs:
         id: changed
         with:
           filters: |
+            workflow:
+              - '.github/**'
             profiling_node:
               - 'packages/profiling-node/**'
               - 'dev-packages/e2e-tests/test-applications/node-profiling/**'
+
 
       - name: Get PR labels
         id: pr-labels
@@ -105,6 +108,7 @@ jobs:
       is_develop: ${{ github.ref == 'refs/heads/develop' }}
       is_release: ${{ startsWith(github.ref, 'refs/heads/release/') }}
       changed_profiling_node: ${{ steps.changed.outputs.profiling_node == 'true' }}
+      changed_ci: ${{ steps.changed.outputs.workflow == 'true' }}
       # When merging into master, or from master
       is_gitflow_sync: ${{ github.head_ref == 'master' || github.ref == 'refs/heads/master' }}
       has_gitflow_label:
@@ -192,12 +196,12 @@ jobs:
 
     outputs:
       dependency_cache_key: ${{ steps.compute_lockfile_hash.outputs.hash }}
-      changed_node_integration: ${{ contains(steps.checkForAffected.outputs.affected, '@sentry-internal/node-integration-tests') }}
-      changed_remix: ${{ contains(steps.checkForAffected.outputs.affected, '@sentry/remix') }}
-      changed_node: ${{ contains(steps.checkForAffected.outputs.affected, '@sentry/node') }}
-      changed_deno: ${{ contains(steps.checkForAffected.outputs.affected, '@sentry/deno') }}
-      changed_bun: ${{ contains(steps.checkForAffected.outputs.affected, '@sentry/bun') }}
-      changed_browser_integration: ${{ contains(steps.checkForAffected.outputs.affected, '@sentry-internal/browser-integration-tests') }}
+      changed_node_integration: ${{ needs.job_get_metadata.outputs.changed_ci == 'true' || contains(steps.checkForAffected.outputs.affected, '@sentry-internal/node-integration-tests') }}
+      changed_remix: ${{ needs.job_get_metadata.outputs.changed_ci == 'true' || contains(steps.checkForAffected.outputs.affected, '@sentry/remix') }}
+      changed_node: ${{ needs.job_get_metadata.outputs.changed_ci == 'true' || contains(steps.checkForAffected.outputs.affected, '@sentry/node') }}
+      changed_deno: ${{ needs.job_get_metadata.outputs.changed_ci == 'true' || contains(steps.checkForAffected.outputs.affected, '@sentry/deno') }}
+      changed_bun: ${{ needs.job_get_metadata.outputs.changed_ci == 'true' || contains(steps.checkForAffected.outputs.affected, '@sentry/bun') }}
+      changed_browser_integration: ${{ needs.job_get_metadata.outputs.changed_ci == 'true' || contains(steps.checkForAffected.outputs.affected, '@sentry-internal/browser-integration-tests') }}
       # If you are looking for changed_profiling_node, this is defined in job_get_metadata
 
   job_check_branches:
