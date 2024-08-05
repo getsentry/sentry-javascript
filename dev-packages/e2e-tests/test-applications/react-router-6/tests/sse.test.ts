@@ -34,6 +34,43 @@ test('Waits for sse streaming when creating spans', async ({ page }) => {
   expect(resolveBodyDuration).toBe(2);
 });
 
+test('Waits for sse streaming when sse has been explicitly aborted', async ({ page }) => {
+  await page.goto('/sse');
+
+  const transactionPromise = waitForTransaction('react-router-6', async transactionEvent => {
+    return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
+  });
+
+  const fetchButton = page.locator('id=fetch-sse-abort');
+  await fetchButton.click();
+
+  const rootSpan = await transactionPromise;
+  console.log(JSON.stringify(rootSpan, null, 2));
+  const sseFetchCall = rootSpan.spans?.filter(span => span.description === 'sse fetch call')[0] as SpanJSON;
+  const httpGet = rootSpan.spans?.filter(span => span.description === 'GET http://localhost:8080/sse')[0] as SpanJSON;
+
+  expect(sseFetchCall).toBeDefined();
+  expect(httpGet).toBeDefined();
+
+  expect(sseFetchCall?.timestamp).toBeDefined();
+  expect(sseFetchCall?.start_timestamp).toBeDefined();
+  expect(httpGet?.timestamp).toBeDefined();
+  expect(httpGet?.start_timestamp).toBeDefined();
+
+  // http headers get sent instantly from the server
+  const resolveDuration = Math.round((sseFetchCall.timestamp as number) - sseFetchCall.start_timestamp);
+
+  // body streams after 0s because it has been aborted
+  const resolveBodyDuration = Math.round((httpGet.timestamp as number) - httpGet.start_timestamp);
+
+  expect(resolveDuration).toBe(0);
+  expect(resolveBodyDuration).toBe(0);
+
+  // validate abort eror was thrown by inspecting console
+  const consoleBreadcrumb = rootSpan.breadcrumbs?.find(breadcrumb => breadcrumb.category === 'console');
+  expect(consoleBreadcrumb?.message).toBe('Could not fetch sse AbortError: BodyStreamBuffer was aborted');
+});
+
 test('Aborts when stream takes longer than 5s', async ({ page }) => {
   await page.goto('/sse');
 
