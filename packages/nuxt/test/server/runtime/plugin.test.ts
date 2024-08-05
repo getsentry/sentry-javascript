@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { addSentryTracingMetaTags } from '../../../src/module/utils';
+import { addSentryTracingMetaTags } from '../../../src/runtime/utils';
 
 const mockReturns = vi.hoisted(() => {
   return {

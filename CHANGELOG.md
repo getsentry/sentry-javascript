@@ -1,9 +1,10 @@
 # Changelog
 
-> [!IMPORTANT] Important
->
+<!-- prettier-ignore-start -->
+> [!IMPORTANT]
 > If you are upgrading to the `8.x` versions of the SDK from `7.x` or below, make sure you follow our
 > [migration guide](https://docs.sentry.io/platforms/javascript/migration/) first.
+<!-- prettier-ignore-end -->
 
 ## Unreleased
 
@@ -11,13 +12,39 @@
 
 ## 8.23.0
 
-- feat(cloudflare): Add Cloudflare D1 instrumentation (#13142)
+### Important Changes
+
+- **feat(cloudflare): Add Cloudflare D1 instrumentation (#13142)**
+
+This release includes support for Cloudflare D1, Cloudflare's serverless SQL database. To instrument your Cloudflare D1
+database, use the `instrumentD1WithSentry` method as follows:
+
+```ts
+// env.DB is the D1 DB binding configured in your `wrangler.toml`
+const db = instrumentD1WithSentry(env.DB);
+// Now you can use the database as usual
+await db.prepare('SELECT * FROM table WHERE id = ?').bind(1).run();
+```
+
+### Other Changes
+
+- feat(cloudflare): Allow users to pass handler to sentryPagesPlugin (#13192)
+- feat(cloudflare): Instrument scheduled handler (#13114)
+- feat(core): Add `getTraceData` function (#13134)
 - feat(nestjs): Automatic instrumentation of nestjs interceptors before route execution (#13153)
 - feat(nestjs): Automatic instrumentation of nestjs pipes (#13137)
 - feat(nuxt): Filter out Nuxt build assets (#13148)
-- feat(profiling): attach sdk info to chunks (#13145)
+- feat(profiling): Attach sdk info to chunks (#13145)
+- feat(solidstart): Add sentry `onBeforeResponse` middleware to enable distributed tracing (#13221)
+- feat(solidstart): Filter out low quality transactions for build assets (#13222)
 - fix(browser): Avoid showing browser extension error message in non-`window` global scopes (#13156)
+- fix(feedback): Call dialog.close() in dialog close callbacks in `\_loadAndRenderDialog` (#13203)
 - fix(nestjs): Inline Observable type to resolve missing 'rxjs' dependency (#13166)
+- fix(nuxt): Detect pageload by adding flag in Vue router (#13171)
+- fix(utils): Handle when requests get aborted in fetch instrumentation (#13202)
+- ref(browser): Improve browserMetrics collection (#13062)
+
+Work in this release was contributed by @horochx. Thank you for your contribution!
 
 ## 8.22.0
 
