@@ -48,8 +48,9 @@ describe('Nuxt Server SDK', () => {
       client.on('beforeSendEvent', beforeSendEvent);
 
       client.captureEvent({ type: 'transaction', transaction: 'GET /' });
-      client.captureEvent({ type: 'transaction', transaction: 'GET _nuxt/some_asset.js' });
       client.captureEvent({ type: 'transaction', transaction: 'GET /_nuxt/some_asset.js' });
+      // Although this has the name of the build asset directory (_nuxt), it should not be filtered out as it would not match the regex
+      client.captureEvent({ type: 'transaction', transaction: 'GET _nuxt/some_asset.js' });
       client.captureEvent({ type: 'transaction', transaction: 'POST /_server' });
 
       await client!.flush();
