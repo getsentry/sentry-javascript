@@ -1,9 +1,13 @@
 import { expect } from '@playwright/test';
 import type { Event as SentryEvent } from '@sentry/types';
 import { sentryTest } from '../../../../../utils/fixtures';
-import { getFirstSentryEnvelopeRequest } from '../../../../../utils/helpers';
+import { getFirstSentryEnvelopeRequest, shouldSkipTracingTest } from '../../../../../utils/helpers';
 
 sentryTest('should handle aborted fetch calls', async ({ getLocalTestPath, page }) => {
+  if (shouldSkipTracingTest()) {
+    sentryTest.skip();
+  }
+
   const url = await getLocalTestPath({ testDir: __dirname });
 
   await page.route('**/foo', async () => {
