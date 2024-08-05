@@ -128,7 +128,7 @@ export async function startProxyServer(
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const searchParams = new URL(eventCallbackRequest.url!, 'http://justsomerandombasesothattheurlisparseable.com/')
       .searchParams;
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion, @typescript-eslint/no-unused-vars
     const listenerTimestamp = Number(searchParams.get('timestamp')!);
 
     const callbackListener = (data: string): void => {
@@ -138,9 +138,9 @@ export async function startProxyServer(
     eventCallbackListeners.add(callbackListener);
 
     eventBuffer.forEach(bufferedEvent => {
-      if (bufferedEvent.timestamp >= listenerTimestamp) {
-        callbackListener(bufferedEvent.data);
-      }
+      // if (bufferedEvent.timestamp >= listenerTimestamp) {
+      callbackListener(bufferedEvent.data);
+      // }
     });
 
     eventCallbackRequest.on('close', () => {
