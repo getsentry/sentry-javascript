@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
 test('Sends an API route transaction from module', async ({ baseURL }) => {
-  const pageloadTransactionEventPromise = waitForTransaction('nestjs', transactionEvent => {
+  const pageloadTransactionEventPromise = waitForTransaction('nestjs-with-submodules', transactionEvent => {
     return (
       transactionEvent?.contexts?.trace?.op === 'http.server' &&
       transactionEvent?.transaction === 'GET /example-module/transaction'
