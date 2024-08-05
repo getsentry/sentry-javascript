@@ -9,7 +9,7 @@ import { getActiveSpan, startSpan, startSpanManual, withActiveSpan } from '@sent
 import type { Span } from '@sentry/types';
 import { SDK_VERSION } from '@sentry/utils';
 import { getMiddlewareSpanOptions, isPatched } from './helpers';
-import type {CatchTarget, InjectableTarget} from './types';
+import type { CatchTarget, InjectableTarget } from './types';
 
 const supportedVersions = ['>=8.0.0 <11'];
 
@@ -74,11 +74,9 @@ export class SentryNestInstrumentation extends InstrumentationBase {
       },
       (moduleExports: { Catch: CatchTarget }) => {
         this._unwrap(moduleExports, 'Catch');
-      }
-    )
+      },
+    );
   }
-
-
 
   /**
    * Creates a wrapper function for the @Injectable decorator.
@@ -216,14 +214,14 @@ export class SentryNestInstrumentation extends InstrumentationBase {
               apply: (originalCatch, thisArgCatch, argsCatch) => {
                 return startSpan(getMiddlewareSpanOptions(target), () => {
                   return originalCatch.apply(thisArgCatch, argsCatch);
-                })
-              }
-            })
+                });
+              },
+            });
           }
 
           return original(exceptions)(target);
-        }
-      }
-    }
+        };
+      };
+    };
   }
 }

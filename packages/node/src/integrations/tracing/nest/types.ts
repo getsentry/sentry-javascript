@@ -60,10 +60,10 @@ export interface InjectableTarget {
  * Represents a target class in NestJS annotated with @Catch.
  */
 export interface CatchTarget {
-  name: string,
+  name: string;
   sentryPatched?: boolean;
   __SENTRY_INTERNAL__?: boolean;
   prototype: {
     catch?: (...args: any[]) => any;
-  }
+  };
 }
