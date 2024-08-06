@@ -64,6 +64,8 @@ export { SentryTracingInterceptor };
  * Global filter to handle exceptions and report them to Sentry.
  */
 class SentryGlobalFilter extends BaseExceptionFilter {
+  public static readonly __SENTRY_INTERNAL__ = true;
+
   /**
    * Catches exceptions and reports them to Sentry unless they are expected errors.
    */
@@ -84,6 +86,8 @@ export { SentryGlobalFilter };
  * Service to set up Sentry performance tracing for Nest.js applications.
  */
 class SentryService implements OnModuleInit {
+  public static readonly __SENTRY_INTERNAL__ = true;
+
   /**
    * Initializes the Sentry service and registers span attributes.
    */
