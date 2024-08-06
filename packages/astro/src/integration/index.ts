@@ -48,6 +48,9 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
                   sourcemaps: {
                     assets: uploadOptions.assets ?? [getSourcemapsAssetsGlob(config)],
                   },
+                  bundleSizeOptimizations: {
+                    excludePerformanceMonitoring: options.bundleSizeOptimizations?.excludeTracing,
+                  },
                   _metaOptions: {
                     telemetry: {
                       metaFramework: 'astro',
