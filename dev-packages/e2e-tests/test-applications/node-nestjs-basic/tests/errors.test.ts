@@ -65,7 +65,7 @@ test('Does not send HttpExceptions to Sentry', async ({ baseURL }) => {
   await transactionEventPromise400;
   await transactionEventPromise500;
 
-  await new Promise(resolve => setTimeout(resolve, 10000));
+  await fetch(`${baseURL}/flush`);
 
   expect(errorEventOccurred).toBe(false);
 });
@@ -90,7 +90,7 @@ test('Does not send RpcExceptions to Sentry', async ({ baseURL }) => {
 
   await transactionEventPromise;
 
-  await new Promise(resolve => setTimeout(resolve, 10000));
+  await fetch(`${baseURL}/flush`);
 
   expect(errorEventOccurred).toBe(false);
 });
