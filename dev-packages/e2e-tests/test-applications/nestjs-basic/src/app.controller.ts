@@ -72,6 +72,6 @@ export class AppController {
 
   @Get('flush')
   async flush() {
-    flush();
+    await flush();
   }
 }
