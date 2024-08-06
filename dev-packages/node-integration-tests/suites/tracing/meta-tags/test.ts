@@ -16,7 +16,7 @@ describe('getTraceMetaTags', () => {
       baggage: 'sentry-environment=production',
     });
 
-    // @ts-expect-error - response is defined, types just don't reflect it
+    // @ts-ignore - response is defined, types just don't reflect it
     const html = response?.response as unknown as string;
 
     expect(html).toMatch(/<meta name="sentry-trace" content="cd7ee7a6fe3ebe7ab9c3271559bc203c-[a-z0-9]{16}-1"\/>/);
