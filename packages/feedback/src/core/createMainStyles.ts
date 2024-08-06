@@ -55,7 +55,7 @@ export function createMainStyles({
   colorScheme,
   themeDark,
   themeLight,
-  nonce,
+  styleNonce,
 }: FeedbackInternalOptions): HTMLStyleElement {
   const style = DOCUMENT.createElement('style');
   style.textContent = `
@@ -91,8 +91,8 @@ ${
 }
 `;
 
-  if (nonce) {
-    style.nonce = nonce;
+  if (styleNonce) {
+    style.nonce = styleNonce;
   }
 
   return style;
