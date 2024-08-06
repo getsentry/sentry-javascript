@@ -50,7 +50,12 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
                     sourcemaps: {
                       assets: uploadOptions.assets ?? [getSourcemapsAssetsGlob(config)],
                     },
-                    bundleSizeOptimizations: options.bundleSizeOptimizations,
+                    bundleSizeOptimizations: {
+                      ...options.bundleSizeOptimizations,
+                      // TODO: with a future version of the vite plugin (probably 2.22.0) this re-mapping is not needed anymore
+                      // ref: https://github.com/getsentry/sentry-javascript-bundler-plugins/pull/582
+                      excludePerformanceMonitoring: options.bundleSizeOptimizations?.excludeTracing,
+                    },
                     _metaOptions: {
                       telemetry: {
                         metaFramework: 'astro',
