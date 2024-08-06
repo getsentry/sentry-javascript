@@ -61,7 +61,6 @@ test.describe('server-side errors', () => {
 
   test('captures error() thrown in server route with `wrapServerRouteWithSentry`', async ({ page }) => {
     const errorEventPromise = waitForError('sveltekit-2', errorEvent => {
-      console.log(errorEvent?.exception?.values?.[0]?.stacktrace);
       return errorEvent?.exception?.values?.[0]?.value === "'HttpError' captured as exception with keys: body, status";
     });
 
