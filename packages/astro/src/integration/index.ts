@@ -3,6 +3,7 @@ import * as path from 'path';
 import { sentryVitePlugin } from '@sentry/vite-plugin';
 import type { AstroConfig, AstroIntegration } from 'astro';
 
+import { dropUndefinedKeys } from '@sentry/utils';
 import { buildClientSnippet, buildSdkInitFileImportSnippet, buildServerSnippet } from './snippets';
 import type { SentryOptions } from './types';
 
@@ -40,24 +41,24 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
                 sourcemap: true,
               },
               plugins: [
-                sentryVitePlugin({
-                  org: uploadOptions.org ?? env.SENTRY_ORG,
-                  project: uploadOptions.project ?? env.SENTRY_PROJECT,
-                  authToken: uploadOptions.authToken ?? env.SENTRY_AUTH_TOKEN,
-                  telemetry: uploadOptions.telemetry ?? true,
-                  sourcemaps: {
-                    assets: uploadOptions.assets ?? [getSourcemapsAssetsGlob(config)],
-                  },
-                  bundleSizeOptimizations: {
-                    excludePerformanceMonitoring: options.bundleSizeOptimizations?.excludeTracing || false,
-                  },
-                  _metaOptions: {
-                    telemetry: {
-                      metaFramework: 'astro',
+                sentryVitePlugin(
+                  dropUndefinedKeys({
+                    org: uploadOptions.org ?? env.SENTRY_ORG,
+                    project: uploadOptions.project ?? env.SENTRY_PROJECT,
+                    authToken: uploadOptions.authToken ?? env.SENTRY_AUTH_TOKEN,
+                    telemetry: uploadOptions.telemetry ?? true,
+                    sourcemaps: {
+                      assets: uploadOptions.assets ?? [getSourcemapsAssetsGlob(config)],
                     },
-                  },
-                  debug: options.debug ?? false,
-                }),
+                    bundleSizeOptimizations: options.bundleSizeOptimizations,
+                    _metaOptions: {
+                      telemetry: {
+                        metaFramework: 'astro',
+                      },
+                    },
+                    debug: options.debug ?? false,
+                  }),
+                ),
               ],
             },
           });
