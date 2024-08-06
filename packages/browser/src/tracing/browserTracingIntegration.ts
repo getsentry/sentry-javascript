@@ -168,7 +168,7 @@ const DEFAULT_BROWSER_TRACING_OPTIONS: BrowserTracingOptions = {
   instrumentPageLoad: true,
   markBackgroundSpan: true,
   enableLongTask: true,
-  enableLongAnimationFrame: false,
+  enableLongAnimationFrame: true,
   enableInp: true,
   _experiments: {},
   ...defaultRequestInstrumentationOptions,
