@@ -52,7 +52,17 @@ app.get('/test/error/:id', (req, res) => {
 
   Sentry.captureException(new Error(`This is an exception ${id}`));
 
-  res.send({});
+  setTimeout(() => {
+    // We flush to ensure we are sending exceptions in a certain order
+    Sentry.flush(3000).then(
+      () => {
+        res.send({});
+      },
+      () => {
+        res.send({});
+      },
+    );
+  }, 1000);
 });
 
 Sentry.setupExpressErrorHandler(app);
