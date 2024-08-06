@@ -1,4 +1,4 @@
-import { dropUndefinedKeys, logger, stringMatchesSomePattern } from '@sentry/utils';
+import { dropUndefinedKeys, stringMatchesSomePattern } from '@sentry/utils';
 
 import { NETWORK_BODY_MAX_SIZE, WINDOW } from '../../constants';
 import { DEBUG_BUILD } from '../../debug-build';
@@ -10,6 +10,7 @@ import type {
   ReplayNetworkRequestOrResponse,
   ReplayPerformanceEntry,
 } from '../../types';
+import { logger } from '../../util/logger';
 
 /** Get the size of a body. */
 export function getBodySize(body: RequestInit['body']): number | undefined {
@@ -77,12 +78,13 @@ export function getBodyString(body: unknown): [string | undefined, NetworkMetaWa
     if (!body) {
       return [undefined];
     }
-  } catch {
-    DEBUG_BUILD && logger.warn('[Replay] Failed to serialize body', body);
+  } catch (error) {
+    DEBUG_BUILD && logger.warn('Failed to serialize body', body);
+    DEBUG_BUILD && logger.exception(error);
     return [undefined, 'BODY_PARSE_ERROR'];
   }
 
-  DEBUG_BUILD && logger.info('[Replay] Skipping network body because of body type', body);
+  DEBUG_BUILD && logger.info('Skipping network body because of body type', body);
 
   return [undefined, 'UNPARSEABLE_BODY_TYPE'];
 }

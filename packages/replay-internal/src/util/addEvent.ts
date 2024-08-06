@@ -1,11 +1,10 @@
 import { EventType } from '@sentry-internal/rrweb';
 import { getClient } from '@sentry/core';
-import { logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
 import { EventBufferSizeExceededError } from '../eventBuffer/error';
 import type { AddEventResult, RecordingEvent, ReplayContainer, ReplayFrameEvent, ReplayPluginOptions } from '../types';
-import { logInfoNextTick } from './log';
+import { logger } from './logger';
 import { timestampToMs } from './timestamp';
 
 function isCustomEvent(event: RecordingEvent): event is ReplayFrameEvent {
@@ -109,10 +108,8 @@ export function shouldAddEvent(replay: ReplayContainer, event: RecordingEvent): 
 
   // Throw out events that are +60min from the initial timestamp
   if (timestampInMs > replay.getContext().initialTimestamp + replay.getOptions().maxReplayDuration) {
-    logInfoNextTick(
-      `[Replay] Skipping event with timestamp ${timestampInMs} because it is after maxReplayDuration`,
-      replay.getOptions()._experiments.traceInternals,
-    );
+    DEBUG_BUILD &&
+      logger.infoTick(`Skipping event with timestamp ${timestampInMs} because it is after maxReplayDuration`);
     return false;
   }
 
@@ -128,8 +125,8 @@ function maybeApplyCallback(
       return callback(event);
     }
   } catch (error) {
-    DEBUG_BUILD &&
-      logger.error('[Replay] An error occured in the `beforeAddRecordingEvent` callback, skipping the event...', error);
+    DEBUG_BUILD && logger.error('An error occured in the `beforeAddRecordingEvent` callback, skipping the event...');
+    DEBUG_BUILD && logger.exception(error);
     return null;
   }
 

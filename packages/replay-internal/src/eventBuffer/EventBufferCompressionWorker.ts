@@ -1,9 +1,9 @@
 import type { ReplayRecordingData } from '@sentry/types';
 
-import { logger } from '@sentry/utils';
 import { REPLAY_MAX_EVENT_BUFFER_SIZE } from '../constants';
 import { DEBUG_BUILD } from '../debug-build';
 import type { AddEventResult, EventBuffer, EventBufferType, RecordingEvent } from '../types';
+import { logger } from '../util/logger';
 import { timestampToMs } from '../util/timestamp';
 import { WorkerHandler } from './WorkerHandler';
 import { EventBufferSizeExceededError } from './error';
@@ -88,7 +88,8 @@ export class EventBufferCompressionWorker implements EventBuffer {
 
     // We do not wait on this, as we assume the order of messages is consistent for the worker
     this._worker.postMessage('clear').then(null, e => {
-      DEBUG_BUILD && logger.warn('[Replay] Sending "clear" message to worker failed', e);
+      DEBUG_BUILD && logger.warn('Sending "clear" message to worker failed', e);
+      DEBUG_BUILD && logger.exception(e);
     });
   }
 
