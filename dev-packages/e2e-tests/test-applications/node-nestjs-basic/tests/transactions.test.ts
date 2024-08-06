@@ -11,11 +11,7 @@ test('Sends an API route transaction', async ({ baseURL }) => {
 
   await fetch(`${baseURL}/test-transaction`);
 
-  console.log('fetch returned');
-
   const transactionEvent = await pageloadTransactionEventPromise;
-
-  console.log('transaction returned');
 
   expect(transactionEvent.contexts?.trace).toEqual({
     data: {
@@ -139,11 +135,7 @@ test('API route transaction includes nest middleware span. Spans created in and 
   const response = await fetch(`${baseURL}/test-middleware-instrumentation`);
   expect(response.status).toBe(200);
 
-  console.log('fetch returned');
-
   const transactionEvent = await transactionEventPromise;
-
-  console.log('transaction returned');
 
   expect(transactionEvent).toEqual(
     expect.objectContaining({
@@ -223,11 +215,7 @@ test('API route transaction includes nest guard span and span started in guard i
   const response = await fetch(`${baseURL}/test-guard-instrumentation`);
   expect(response.status).toBe(200);
 
-  console.log('fetch returned');
-
   const transactionEvent = await transactionEventPromise;
-
-  console.log('transaction returned');
 
   expect(transactionEvent).toEqual(
     expect.objectContaining({
@@ -290,11 +278,7 @@ test('API route transaction includes nest pipe span for valid request', async ({
   const response = await fetch(`${baseURL}/test-pipe-instrumentation/123`);
   expect(response.status).toBe(200);
 
-  console.log('fetch returned');
-
   const transactionEvent = await transactionEventPromise;
-
-  console.log('transaction returned');
 
   expect(transactionEvent).toEqual(
     expect.objectContaining({
@@ -330,11 +314,7 @@ test('API route transaction includes nest pipe span for invalid request', async 
   const response = await fetch(`${baseURL}/test-pipe-instrumentation/abc`);
   expect(response.status).toBe(400);
 
-  console.log('fetch returned');
-
   const transactionEvent = await transactionEventPromise;
-
-  console.log('transaction returned');
 
   expect(transactionEvent).toEqual(
     expect.objectContaining({
@@ -372,11 +352,7 @@ test('API route transaction includes nest interceptor span. Spans created in and
   const response = await fetch(`${baseURL}/test-interceptor-instrumentation`);
   expect(response.status).toBe(200);
 
-  console.log('fetch returned');
-
   const transactionEvent = await pageloadTransactionEventPromise;
-
-  console.log('transaction returned');
 
   expect(transactionEvent).toEqual(
     expect.objectContaining({
