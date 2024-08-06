@@ -1,4 +1,5 @@
 import { Controller, Get, Param, ParseIntPipe, UseGuards, UseInterceptors } from '@nestjs/common';
+import { flush } from '@sentry/nestjs';
 import { AppService } from './app.service';
 import { ExampleGuard } from './example.guard';
 import { ExampleInterceptor } from './example.interceptor';
@@ -67,5 +68,10 @@ export class AppController {
   @Get('kill-test-cron')
   async killTestCron() {
     this.appService.killTestCron();
+  }
+
+  @Get('flush')
+  async flush() {
+    await flush();
   }
 }
