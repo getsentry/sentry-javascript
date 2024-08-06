@@ -81,7 +81,7 @@ test('Does not send exception to Sentry if user-defined global exception filter 
 
   await transactionEventPromise;
 
-  await new Promise(resolve => setTimeout(resolve, 10000));
+  (await fetch(`${baseURL}/flush`)).text();
 
   expect(errorEventOccurred).toBe(false);
 });
@@ -111,7 +111,7 @@ test('Does not send exception to Sentry if user-defined local exception filter a
 
   await transactionEventPromise;
 
-  await new Promise(resolve => setTimeout(resolve, 10000));
+  (await fetch(`${baseURL}/flush`)).text();
 
   expect(errorEventOccurred).toBe(false);
 });
