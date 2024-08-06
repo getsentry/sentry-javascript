@@ -34,7 +34,7 @@ export class SentryNestInstrumentation extends InstrumentationBase {
   public init(): InstrumentationNodeModuleDefinition {
     const moduleDef = new InstrumentationNodeModuleDefinition(SentryNestInstrumentation.COMPONENT, supportedVersions);
 
-    moduleDef.files.push(this._getInjectableFileInstrumentation(supportedVersions));
+    moduleDef.files.push(this._getInjectableFileInstrumentation(supportedVersions), this._getCatchFileInstrumentation(supportedVersions));
     return moduleDef;
   }
 
@@ -205,6 +205,7 @@ export class SentryNestInstrumentation extends InstrumentationBase {
       return function wrappedCatch(...exceptions: unknown[]) {
         return function (target: CatchTarget) {
           if (typeof target.prototype.catch === 'function' && !target.__SENTRY_INTERNAL__) {
+            console.log('patching exception filter!');
             // patch only once
             if (isPatched(target)) {
               return original(exceptions)(target);
@@ -212,6 +213,7 @@ export class SentryNestInstrumentation extends InstrumentationBase {
 
             target.prototype.catch = new Proxy(target.prototype.catch, {
               apply: (originalCatch, thisArgCatch, argsCatch) => {
+                console.log('exception filter!');
                 return startSpan(getMiddlewareSpanOptions(target), () => {
                   return originalCatch.apply(thisArgCatch, argsCatch);
                 });
