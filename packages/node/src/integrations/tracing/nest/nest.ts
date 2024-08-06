@@ -87,10 +87,16 @@ export function setupNestErrorHandler(app: MinimalNestJsApp, baseFilter: NestJsE
         const originalCatch = Reflect.get(target, prop, receiver);
 
         return (exception: unknown, host: unknown) => {
-          const status_code = (exception as { status?: number }).status;
+          const exceptionIsObject = typeof exception === 'object' && exception !== null;
+          const exceptionStatusCode = exceptionIsObject && 'status' in exception ? exception.status : null;
+          const exceptionErrorProperty = exceptionIsObject && 'error' in exception ? exception.error : null;
 
-          // don't report expected errors
-          if (status_code !== undefined) {
+          /*
+          Don't report expected NestJS control flow errors
+          - `HttpException` errors will have a `status` property
+          - `RpcException` errors will have an `error` property
+           */
+          if (exceptionStatusCode !== null || exceptionErrorProperty !== null) {
             return originalCatch.apply(target, [exception, host]);
           }
 
