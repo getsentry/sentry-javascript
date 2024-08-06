@@ -6,5 +6,5 @@ Sentry.init({
 });
 
 window.Sentry = {
-  ...Sentry
- };
+  ...Sentry,
+};
