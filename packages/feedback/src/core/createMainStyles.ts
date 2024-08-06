@@ -51,7 +51,12 @@ function getThemedCssVariables(theme: InternalTheme): string {
 /**
  * Creates <style> element for widget actor (button that opens the dialog)
  */
-export function createMainStyles({ colorScheme, themeDark, themeLight }: FeedbackInternalOptions): HTMLStyleElement {
+export function createMainStyles({
+  colorScheme,
+  themeDark,
+  themeLight,
+  nonce,
+}: FeedbackInternalOptions): HTMLStyleElement {
   const style = DOCUMENT.createElement('style');
   style.textContent = `
 :host {
@@ -85,6 +90,10 @@ ${
 }
 }
 `;
+
+  if (nonce) {
+    style.nonce = nonce;
+  }
 
   return style;
 }

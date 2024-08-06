@@ -326,6 +326,11 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
    * @returns The breadcrumb that will be added | null.
    */
   beforeBreadcrumb?: (breadcrumb: Breadcrumb, hint?: BreadcrumbHint) => Breadcrumb | null;
+
+  /**
+   * A nonce that is passed to injected script and style tags for enforcing CSPs
+   */
+  nonce?: string;
 }
 
 /** Base configuration options for every SDK. */

@@ -77,6 +77,7 @@ export const buildFeedbackIntegration = ({
       name: 'username',
     },
     tags,
+    nonce,
 
     // FeedbackThemeConfiguration
     colorScheme = 'system',
@@ -119,6 +120,7 @@ export const buildFeedbackIntegration = ({
       enableScreenshot,
       useSentryUser,
       tags,
+      nonce,
 
       colorScheme,
       themeDark,

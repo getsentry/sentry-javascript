@@ -33,6 +33,8 @@ const WindowWithMaybeIntegration = WINDOW as {
  */
 export async function lazyLoadIntegration(name: keyof typeof LazyLoadableIntegrations): Promise<IntegrationFn> {
   const bundle = LazyLoadableIntegrations[name];
+  const client = getClient();
+  const nonce = client && client.getOptions().nonce;
 
   // `window.Sentry` is only set when using a CDN bundle, but this method can also be used via the NPM package
   const sentryOnWindow = (WindowWithMaybeIntegration.Sentry = WindowWithMaybeIntegration.Sentry || {});
@@ -52,6 +54,9 @@ export async function lazyLoadIntegration(name: keyof typeof LazyLoadableIntegra
   script.src = url;
   script.crossOrigin = 'anonymous';
   script.referrerPolicy = 'origin';
+  if (nonce) {
+    script.nonce = nonce;
+  }
 
   const waitForLoad = new Promise<void>((resolve, reject) => {
     script.addEventListener('load', () => resolve());
