@@ -16,8 +16,9 @@ describe('getTraceMetaTags', () => {
       baggage: 'sentry-environment=production',
     });
 
-    const html =
-      typeof response === 'object' && response && 'response' in response && (response?.response as unknown as string);
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
+    const html = response?.response as unknown as string;
 
     expect(html).toMatch(/<meta name="sentry-trace" content="cd7ee7a6fe3ebe7ab9c3271559bc203c-[a-z0-9]{16}-1"\/>/);
     expect(html).toContain('<meta name="baggage" content="sentry-environment=production"/>');
