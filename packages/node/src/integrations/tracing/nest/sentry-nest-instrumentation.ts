@@ -208,20 +208,20 @@ export class SentryNestInstrumentation extends InstrumentationBase {
             console.log('patching exception filter!');
             // patch only once
             if (isPatched(target)) {
-              return original(exceptions)(target);
+              return original(...exceptions)(target);
             }
 
             target.prototype.catch = new Proxy(target.prototype.catch, {
               apply: (originalCatch, thisArgCatch, argsCatch) => {
-                console.log('exception filter!');
                 return startSpan(getMiddlewareSpanOptions(target), () => {
+                  console.log('exception filter!');
                   return originalCatch.apply(thisArgCatch, argsCatch);
                 });
               },
             });
           }
 
-          return original(exceptions)(target);
+          return original(...exceptions)(target);
         };
       };
     };

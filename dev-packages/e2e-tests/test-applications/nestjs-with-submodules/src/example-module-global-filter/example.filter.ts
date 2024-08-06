@@ -6,6 +6,7 @@ import { ExampleException } from './example.exception';
 export class ExampleExceptionFilter extends BaseExceptionFilter {
   catch(exception: unknown, host: ArgumentsHost) {
     if (exception instanceof ExampleException) {
+      console.log('catch example exception!');
       return super.catch(new BadRequestException(exception.message), host);
     }
     return super.catch(exception, host);

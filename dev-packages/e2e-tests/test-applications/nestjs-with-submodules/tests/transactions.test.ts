@@ -121,3 +121,20 @@ test('Sends an API route transaction from module', async ({ baseURL }) => {
     }),
   );
 });
+
+test('API route transaction includes exception filter span', async ({ baseURL }) => {
+  const transactionEventPromise = waitForTransaction('nestjs-with-submodules', transactionEvent => {
+    return (
+      transactionEvent?.contexts?.trace?.op === 'http.server' &&
+      transactionEvent?.transaction === 'GET /expected-exception' &&
+      transactionEvent?.request?.url?.includes('/expected-exception')
+    );
+  });
+
+  const response = await fetch(`${baseURL}/example-module/expected-exception`);
+  expect(response.status).toBe(400);
+
+  const transactionEvent = await transactionEventPromise;
+
+  console.log(transactionEvent);
+});
