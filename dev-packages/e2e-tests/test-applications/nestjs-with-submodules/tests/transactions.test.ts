@@ -126,8 +126,8 @@ test('API route transaction includes exception filter span', async ({ baseURL })
   const transactionEventPromise = waitForTransaction('nestjs-with-submodules', transactionEvent => {
     return (
       transactionEvent?.contexts?.trace?.op === 'http.server' &&
-      transactionEvent?.transaction === 'GET /expected-exception' &&
-      transactionEvent?.request?.url?.includes('/expected-exception')
+      transactionEvent?.transaction === 'GET /example-module/expected-exception' &&
+      transactionEvent?.request?.url?.includes('/example-module/expected-exception')
     );
   });
 
@@ -137,4 +137,26 @@ test('API route transaction includes exception filter span', async ({ baseURL })
   const transactionEvent = await transactionEventPromise;
 
   console.log(transactionEvent);
+
+  expect(transactionEvent).toEqual(
+    expect.objectContaining({
+      spans: expect.arrayContaining([
+        {
+          span_id: expect.any(String),
+          trace_id: expect.any(String),
+          data: {
+            'sentry.op': 'middleware.nestjs',
+            'sentry.origin': 'auto.middleware.nestjs',
+          },
+          description: 'ExampleExceptionFilter',
+          parent_span_id: expect.any(String),
+          start_timestamp: expect.any(Number),
+          timestamp: expect.any(Number),
+          status: 'ok',
+          op: 'middleware.nestjs',
+          origin: 'auto.middleware.nestjs',
+        },
+      ]),
+    }),
+  );
 });
