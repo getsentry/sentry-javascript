@@ -18,20 +18,24 @@ sentryTest('mutation after threshold results in slow click', async ({ forceFlush
 
   const url = await getLocalTestUrl({ testDir: __dirname });
 
-  await Promise.all([waitForReplayRequest(page, 0), page.goto(url)]);
+  const replayRequestPromise = waitForReplayRequest(page, 0);
+
+  const segmentReqWithSlowClickBreadcrumbPromise = waitForReplayRequest(page, (event, res) => {
+    const { breadcrumbs } = getCustomRecordingEvents(res);
+
+    return breadcrumbs.some(breadcrumb => breadcrumb.category === 'ui.slowClickDetected');
+  });
+
+  await page.goto(url);
+  await replayRequestPromise;
+
   await forceFlushReplay();
 
-  const [req1] = await Promise.all([
-    waitForReplayRequest(page, (event, res) => {
-      const { breadcrumbs } = getCustomRecordingEvents(res);
+  await page.locator('#mutationButton').click();
 
-      return breadcrumbs.some(breadcrumb => breadcrumb.category === 'ui.slowClickDetected');
-    }),
+  const segmentReqWithSlowClick = await segmentReqWithSlowClickBreadcrumbPromise;
 
-    page.locator('#mutationButton').click(),
-  ]);
-
-  const { breadcrumbs } = getCustomRecordingEvents(req1);
+  const { breadcrumbs } = getCustomRecordingEvents(segmentReqWithSlowClick);
 
   const slowClickBreadcrumbs = breadcrumbs.filter(breadcrumb => breadcrumb.category === 'ui.slowClickDetected');
 
@@ -78,18 +82,21 @@ sentryTest('multiple clicks are counted', async ({ getLocalTestUrl, page }) => {
 
   const url = await getLocalTestUrl({ testDir: __dirname });
 
-  await Promise.all([waitForReplayRequest(page, 0), page.goto(url)]);
+  const replayRequestPromise = waitForReplayRequest(page, 0);
+  const segmentReqWithSlowClickBreadcrumbPromise = waitForReplayRequest(page, (event, res) => {
+    const { breadcrumbs } = getCustomRecordingEvents(res);
 
-  const [req1] = await Promise.all([
-    waitForReplayRequest(page, (event, res) => {
-      const { breadcrumbs } = getCustomRecordingEvents(res);
+    return breadcrumbs.some(breadcrumb => breadcrumb.category === 'ui.slowClickDetected');
+  });
 
-      return breadcrumbs.some(breadcrumb => breadcrumb.category === 'ui.slowClickDetected');
-    }),
-    page.locator('#mutationButton').click({ clickCount: 4 }),
-  ]);
+  await page.goto(url);
+  await replayRequestPromise;
 
-  const { breadcrumbs } = getCustomRecordingEvents(req1);
+  await page.locator('#mutationButton').click({ clickCount: 4 });
+
+  const segmentReqWithSlowClick = await segmentReqWithSlowClickBreadcrumbPromise;
+
+  const { breadcrumbs } = getCustomRecordingEvents(segmentReqWithSlowClick);
 
   const slowClickBreadcrumbs = breadcrumbs.filter(breadcrumb => breadcrumb.category === 'ui.slowClickDetected');
   const multiClickBreadcrumbs = breadcrumbs.filter(breadcrumb => breadcrumb.category === 'ui.multiClick');
@@ -138,7 +145,15 @@ sentryTest('immediate mutation does not trigger slow click', async ({ forceFlush
 
   const url = await getLocalTestUrl({ testDir: __dirname });
 
-  await Promise.all([waitForReplayRequest(page, 0), page.goto(url)]);
+  const replayRequestPromise = waitForReplayRequest(page, 0);
+  const segmentReqWithClickBreadcrumbPromise = waitForReplayRequest(page, (_event, res) => {
+    const { breadcrumbs } = getCustomRecordingEvents(res);
+
+    return breadcrumbs.some(breadcrumb => breadcrumb.category === 'ui.click');
+  });
+
+  await page.goto(url);
+  await replayRequestPromise;
   await forceFlushReplay();
 
   let slowClickCount = 0;
@@ -150,16 +165,11 @@ sentryTest('immediate mutation does not trigger slow click', async ({ forceFlush
     slowClickCount += slowClicks.length;
   });
 
-  const [req1] = await Promise.all([
-    waitForReplayRequest(page, (_event, res) => {
-      const { breadcrumbs } = getCustomRecordingEvents(res);
+  await page.locator('#mutationButtonImmediately').click();
 
-      return breadcrumbs.some(breadcrumb => breadcrumb.category === 'ui.click');
-    }),
-    page.locator('#mutationButtonImmediately').click(),
-  ]);
+  const segmentReqWithSlowClick = await segmentReqWithClickBreadcrumbPromise;
 
-  const { breadcrumbs } = getCustomRecordingEvents(req1);
+  const { breadcrumbs } = getCustomRecordingEvents(segmentReqWithSlowClick);
 
   expect(breadcrumbs).toEqual([
     {
@@ -204,19 +214,23 @@ sentryTest('inline click handler does not trigger slow click', async ({ forceFlu
 
   const url = await getLocalTestUrl({ testDir: __dirname });
 
-  await Promise.all([waitForReplayRequest(page, 0), page.goto(url)]);
+  const replayRequestPromise = waitForReplayRequest(page, 0);
+  const segmentReqWithClickBreadcrumbPromise = waitForReplayRequest(page, (event, res) => {
+    const { breadcrumbs } = getCustomRecordingEvents(res);
+
+    return breadcrumbs.some(breadcrumb => breadcrumb.category === 'ui.click');
+  });
+
+  await page.goto(url);
+  await replayRequestPromise;
+
   await forceFlushReplay();
 
-  const [req1] = await Promise.all([
-    waitForReplayRequest(page, (event, res) => {
-      const { breadcrumbs } = getCustomRecordingEvents(res);
+  await page.locator('#mutationButtonInline').click();
 
-      return breadcrumbs.some(breadcrumb => breadcrumb.category === 'ui.click');
-    }),
-    page.locator('#mutationButtonInline').click(),
-  ]);
+  const segmentReqWithClick = await segmentReqWithClickBreadcrumbPromise;
 
-  const { breadcrumbs } = getCustomRecordingEvents(req1);
+  const { breadcrumbs } = getCustomRecordingEvents(segmentReqWithClick);
 
   expect(breadcrumbs).toEqual([
     {
@@ -254,18 +268,20 @@ sentryTest('mouseDown events are considered', async ({ getLocalTestUrl, page }) 
 
   const url = await getLocalTestUrl({ testDir: __dirname });
 
-  await Promise.all([waitForReplayRequest(page, 0), page.goto(url)]);
+  const replayRequestPromise = waitForReplayRequest(page, 0);
+  const segmentReqWithClickBreadcrumbPromise = waitForReplayRequest(page, (event, res) => {
+    const { breadcrumbs } = getCustomRecordingEvents(res);
 
-  const [req1] = await Promise.all([
-    waitForReplayRequest(page, (event, res) => {
-      const { breadcrumbs } = getCustomRecordingEvents(res);
+    return breadcrumbs.some(breadcrumb => breadcrumb.category === 'ui.click');
+  });
 
-      return breadcrumbs.some(breadcrumb => breadcrumb.category === 'ui.click');
-    }),
-    page.locator('#mouseDownButton').click(),
-  ]);
+  await page.goto(url);
+  await replayRequestPromise;
 
-  const { breadcrumbs } = getCustomRecordingEvents(req1);
+  await page.locator('#mouseDownButton').click();
+  const segmentReqWithClick = await segmentReqWithClickBreadcrumbPromise;
+
+  const { breadcrumbs } = getCustomRecordingEvents(segmentReqWithClick);
 
   expect(breadcrumbs).toEqual([
     {
