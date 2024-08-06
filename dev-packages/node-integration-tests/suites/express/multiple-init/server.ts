@@ -54,9 +54,14 @@ app.get('/test/error/:id', (req, res) => {
 
   setTimeout(() => {
     // We flush to ensure we are sending exceptions in a certain order
-    Sentry.flush(3000).finally(() => {
-      res.send({});
-    });
+    Sentry.flush(3000).then(
+      () => {
+        res.send({});
+      },
+      () => {
+        res.send({});
+      },
+    );
   }, 1000);
 });
 
