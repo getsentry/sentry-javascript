@@ -30,8 +30,6 @@ interface GraphqlOptions {
    * If this is enabled, a http.server root span containing this span will automatically be renamed to include the operation name.
    * Set this to `false` if you do not want this behavior, and want to keep the default http.server span name.
    *
-   * If there are multiple operations in a single http.server request, the first one will take precedence.
-   *
    * Defaults to true.
    */
   useOperationNameForRootSpan?: boolean;
