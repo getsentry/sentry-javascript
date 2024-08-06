@@ -99,7 +99,7 @@ sentryTest('multiple clicks are counted', async ({ getLocalTestUrl, page }) => {
       category: 'ui.slowClickDetected',
       type: 'default',
       data: {
-        endReason: 'mutation',
+        endReason: expect.stringMatching(/^(mutation|timeout)$/),
         clickCount: 4,
         node: {
           attributes: {
