@@ -1,6 +1,6 @@
 import { GraphQLInstrumentation } from '@opentelemetry/instrumentation-graphql';
 import { defineIntegration, getRootSpan, spanToJSON } from '@sentry/core';
-import { parseSpanDescription } from '@sentry/opentelemetry';
+import { SEMANTIC_ATTRIBUTE_SENTRY_GRAPHQL_OPERATION } from '@sentry/opentelemetry';
 import type { IntegrationFn } from '@sentry/types';
 import { generateInstrumentOnce } from '../../otel/instrument';
 
@@ -62,20 +62,24 @@ export const instrumentGraphql = generateInstrumentOnce<GraphqlOptions>(
 
         if (options.useOperationNameForRootSpan && operationType) {
           const rootSpan = getRootSpan(span);
-          const rootSpanDescription = parseSpanDescription(rootSpan);
 
-          // We guard to only do this on http.server spans, and only if we have not already set the operation name
-          if (
-            parseSpanDescription(rootSpan).op === 'http.server' &&
-            !spanToJSON(rootSpan).data?.['sentry.skip_span_data_inference']
-          ) {
-            const rootSpanName = `${rootSpanDescription.description} (${operationType}${
-              operationName ? ` ${operationName}` : ''
-            })`;
+          // We guard to only do this on http.server spans
 
-            // Ensure the default http.server span name inferral is skipped
-            rootSpan.setAttribute('sentry.skip_span_data_inference', true);
-            rootSpan.updateName(rootSpanName);
+          const rootSpanAttributes = spanToJSON(rootSpan).data || {};
+
+          const existingOperations = rootSpanAttributes[SEMANTIC_ATTRIBUTE_SENTRY_GRAPHQL_OPERATION] || [];
+
+          const newOperation = operationName ? `${operationType} ${operationName}` : `${operationType}`;
+
+          // We keep track of each operation on the root span
+          // This can either be a string, or an array of strings (if there are multiple operations)
+          if (Array.isArray(existingOperations)) {
+            existingOperations.push(newOperation);
+            rootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_GRAPHQL_OPERATION, existingOperations);
+          } else if (existingOperations) {
+            rootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_GRAPHQL_OPERATION, [existingOperations, newOperation]);
+          } else {
+            rootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_GRAPHQL_OPERATION, newOperation);
           }
         }
       },

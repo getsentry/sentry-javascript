@@ -24,14 +24,12 @@ async function run() {
       attributes: { 'http.method': 'GET', 'http.route': '/test-graphql' },
     },
     async span => {
-      // Ref: https://www.apollographql.com/docs/apollo-server/testing/testing/#testing-using-executeoperation
-      await server.executeOperation({
-        query: 'query GetWorld {world}',
-      });
-
-      await server.executeOperation({
-        query: 'query GetHello {hello}',
-      });
+      for (let i = 1; i < 10; i++) {
+        // Ref: https://www.apollographql.com/docs/apollo-server/testing/testing/#testing-using-executeoperation
+        await server.executeOperation({
+          query: `query GetHello${i} {hello}`,
+        });
+      }
 
       setTimeout(() => {
         span.end();
