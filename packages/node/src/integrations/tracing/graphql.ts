@@ -19,7 +19,7 @@ interface GraphqlOptions {
    * If the property is not a function, it's not very interesting to trace.
    * This option can reduce noise and number of spans created.
    */
-  ignoreTrivalResolveSpans?: boolean;
+  ignoreTrivialResolveSpans?: boolean;
 
   /**
    * By default, an incoming GraphQL request will have a http.server root span,
