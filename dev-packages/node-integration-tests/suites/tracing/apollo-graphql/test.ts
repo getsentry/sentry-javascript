@@ -1,7 +1,7 @@
 import { createRunner } from '../../../utils/runner';
 
 describe('GraphQL/Apollo Tests', () => {
-  test('CJS - should instrument GraphQL queries used from Apollo Server.', done => {
+  test('should instrument GraphQL queries used from Apollo Server.', done => {
     const EXPECTED_TRANSACTION = {
       transaction: 'Test Transaction',
       spans: expect.arrayContaining([
@@ -21,7 +21,7 @@ describe('GraphQL/Apollo Tests', () => {
     createRunner(__dirname, 'scenario-query.js').expect({ transaction: EXPECTED_TRANSACTION }).start(done);
   });
 
-  test('CJS - should instrument GraphQL mutations used from Apollo Server.', done => {
+  test('should instrument GraphQL mutations used from Apollo Server.', done => {
     const EXPECTED_TRANSACTION = {
       transaction: 'Test Transaction',
       spans: expect.arrayContaining([

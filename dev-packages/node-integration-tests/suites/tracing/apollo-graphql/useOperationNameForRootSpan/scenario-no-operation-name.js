@@ -1,33 +1,32 @@
 const Sentry = require('@sentry/node');
 const { loggingTransport } = require('@sentry-internal/node-integration-tests');
 
-Sentry.init({
+const client = Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   release: '1.0',
   tracesSampleRate: 1.0,
+  integrations: [Sentry.graphqlIntegration({ useOperationNameForRootSpan: true })],
   transport: loggingTransport,
 });
+
+const tracer = client.tracer;
 
 // Stop the process from exiting before the transaction is sent
 setInterval(() => {}, 1000);
 
 async function run() {
-  const { gql } = require('apollo-server');
-
-  await Sentry.startSpan(
+  await tracer.startActiveSpan(
+    'test span name',
     {
-      name: 'Test Transaction',
-      op: 'transaction',
+      kind: 1,
+      attributes: { 'http.method': 'GET' },
     },
     async span => {
-      const server = require('./apollo-server')();
+      const server = require('../apollo-server')();
 
       // Ref: https://www.apollographql.com/docs/apollo-server/testing/testing/#testing-using-executeoperation
       await server.executeOperation({
-        query: gql`mutation Mutation($email: String){
-          login(email: $email)
-        }`,
-        variables: { email: 'test@email.com' },
+        query: 'query {hello}',
       });
 
       setTimeout(() => {
