@@ -116,7 +116,7 @@ function instrumentFetch(onFetchResolved?: (response: Response) => void, skipNat
 }
 
 async function resolveResponse(res: Response | undefined, onFinishedResolving: () => void): Promise<void> {
-  if (res && res.body) {
+  if (res && res.body && res.body.getReader) {
     const responseReader = res.body.getReader();
 
     // eslint-disable-next-line no-inner-declarations

@@ -10,6 +10,12 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 8.24.0
+
+- feat(nestjs): Filter RPC exceptions (#13227)
+- fix: Guard getReader function for other fetch implementations (#13246)
+- fix(feedback): Ensure feedback can be lazy loaded in CDN bundles (#13241)
+
 ## 8.23.0
 
 ### Important Changes
