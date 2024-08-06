@@ -15,9 +15,9 @@ const tracer = client.tracer;
 setInterval(() => {}, 1000);
 
 async function run() {
-  await tracer.startActiveSpan('test span name', async span => {
-    const server = require('../apollo-server')();
+  const server = require('../apollo-server')();
 
+  await tracer.startActiveSpan('test span name', async span => {
     // Ref: https://www.apollographql.com/docs/apollo-server/testing/testing/#testing-using-executeoperation
     await server.executeOperation({
       query: 'query GetHello {hello}',

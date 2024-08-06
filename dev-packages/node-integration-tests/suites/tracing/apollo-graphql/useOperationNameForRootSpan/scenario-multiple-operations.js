@@ -26,7 +26,11 @@ async function run() {
     async span => {
       // Ref: https://www.apollographql.com/docs/apollo-server/testing/testing/#testing-using-executeoperation
       await server.executeOperation({
-        query: 'query {hello}',
+        query: 'query GetHello {hello}',
+      });
+
+      await server.executeOperation({
+        query: 'query GetWorld {world}',
       });
 
       setTimeout(() => {

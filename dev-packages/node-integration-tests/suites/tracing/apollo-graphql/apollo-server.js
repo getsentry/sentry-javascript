@@ -1,29 +1,33 @@
 const { ApolloServer, gql } = require('apollo-server');
+const Sentry = require('@sentry/node');
 
-module.exports = () =>
-  new ApolloServer({
-    typeDefs: gql`type Query {
+module.exports = () => {
+  return Sentry.startSpan({ name: 'Test Server Start' }, () => {
+    return new ApolloServer({
+      typeDefs: gql`type Query {
     hello: String
     world: String
   }
   type Mutation {
     login(email: String): String
   }`,
-    resolvers: {
-      Query: {
-        hello: () => {
-          return 'Hello!';
+      resolvers: {
+        Query: {
+          hello: () => {
+            return 'Hello!';
+          },
+          world: () => {
+            return 'World!';
+          },
         },
-        world: () => {
-          return 'World!';
+        Mutation: {
+          login: async (_, { email }) => {
+            return `${email}--token`;
+          },
         },
       },
-      Mutation: {
-        login: async (_, { email }) => {
-          return `${email}--token`;
-        },
-      },
-    },
-    introspection: false,
-    debug: false,
+      introspection: false,
+      debug: false,
+    });
   });
+};

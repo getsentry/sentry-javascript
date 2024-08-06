@@ -16,16 +16,15 @@ setInterval(() => {}, 1000);
 
 async function run() {
   const { gql } = require('apollo-server');
+  const server = require('../apollo-server')();
 
   await tracer.startActiveSpan(
     'test span name',
     {
       kind: 1,
-      attributes: { 'http.method': 'GET' },
+      attributes: { 'http.method': 'GET', 'http.route': '/test-graphql' },
     },
     async span => {
-      const server = require('../apollo-server')();
-
       // Ref: https://www.apollographql.com/docs/apollo-server/testing/testing/#testing-using-executeoperation
       await server.executeOperation({
         query: gql`mutation TestMutation($email: String){

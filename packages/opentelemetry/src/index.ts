@@ -1,3 +1,5 @@
+export { parseSpanDescription } from './utils/parseSpanDescription';
+
 export { getRequestSpanData } from './utils/getRequestSpanData';
 
 export type { OpenTelemetryClient } from './types';

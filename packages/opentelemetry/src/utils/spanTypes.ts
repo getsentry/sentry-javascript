@@ -22,7 +22,7 @@ export function spanHasAttributes<SpanType extends AbstractSpan>(
  */
 export function spanHasKind<SpanType extends AbstractSpan>(span: SpanType): span is SpanType & { kind: SpanKind } {
   const castSpan = span as ReadableSpan;
-  return 'kind' in castSpan;
+  return typeof castSpan.kind === 'number';
 }
 
 /**

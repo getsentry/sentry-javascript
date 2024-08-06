@@ -13,6 +13,7 @@ setInterval(() => {}, 1000);
 
 async function run() {
   const { gql } = require('apollo-server');
+  const server = require('./apollo-server')();
 
   await Sentry.startSpan(
     {
@@ -20,8 +21,6 @@ async function run() {
       op: 'transaction',
     },
     async span => {
-      const server = require('./apollo-server')();
-
       // Ref: https://www.apollographql.com/docs/apollo-server/testing/testing/#testing-using-executeoperation
       await server.executeOperation({
         query: gql`mutation Mutation($email: String){
