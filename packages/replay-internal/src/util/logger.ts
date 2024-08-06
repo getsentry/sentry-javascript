@@ -1,10 +1,11 @@
 import { addBreadcrumb, captureException } from '@sentry/core';
-import type { SeverityLevel } from '@sentry/types';
+import type { ConsoleLevel, SeverityLevel } from '@sentry/types';
 import { logger as coreLogger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
 
-const CONSOLE_LEVELS = ['info', 'warn', 'error', 'log'] as const;
+type ReplayConsoleLevels = Extract<ConsoleLevel, 'info' | 'warn' | 'error' | 'log'>;
+const CONSOLE_LEVELS: readonly ReplayConsoleLevels[] = ['info', 'warn', 'error', 'log'] as const;
 
 type LoggerMethod = (...args: unknown[]) => void;
 type LoggerConsoleMethods = Record<'info' | 'warn' | 'error' | 'log', LoggerMethod>;
@@ -15,11 +16,11 @@ interface ReplayLogger extends LoggerConsoleMethods {
    * Calls `logger.info` but saves breadcrumb in the next tick due to race
    * conditions before replay is initialized.
    */
-  infoTick(...args: unknown[]): void;
+  infoTick: LoggerMethod;
   /**
    * Captures exceptions (`Error`) if "capture internal exceptions" is enabled
    */
-  exception(error: unknown): void;
+  exception: LoggerMethod;
   enableCaptureInternalExceptions(): void;
   disableCaptureInternalExceptions(): void;
   enableTraceInternals(): void;
