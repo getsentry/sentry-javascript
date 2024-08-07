@@ -18,11 +18,12 @@ esbuild.buildSync({
   loader: { '.node': 'copy' },
   banner: {
     js: `
+        import { dirname } from 'node:path';
         import { fileURLToPath } from 'node:url';
         import { createRequire } from 'node:module';
         const require = createRequire(import.meta.url);
         const __filename = fileURLToPath(import.meta.url);
-        const __dirname = path.dirname(__filename);
+        const __dirname = dirname(__filename);
         `,
   },
 });
