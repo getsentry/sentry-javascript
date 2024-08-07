@@ -206,13 +206,11 @@ export class ReplayContainer implements ReplayContainerInterface {
     }
 
     // Configure replay logger w/ experimental options
-    if (this._options._experiments.traceInternals) {
-      logger.enableTraceInternals();
-    }
-
-    if (this._options._experiments.captureExceptions) {
-      logger.enableCaptureInternalExceptions();
-    }
+    const experiments = options._experiments;
+    logger.setConfig({
+      captureExceptions: !!experiments.captureExceptions,
+      traceInternals: !!experiments.traceInternals,
+    });
   }
 
   /** Get the event context. */

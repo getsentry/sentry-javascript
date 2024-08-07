@@ -6,9 +6,15 @@ import { DEBUG_BUILD } from '../debug-build';
 
 type ReplayConsoleLevels = Extract<ConsoleLevel, 'info' | 'warn' | 'error' | 'log'>;
 const CONSOLE_LEVELS: readonly ReplayConsoleLevels[] = ['info', 'warn', 'error', 'log'] as const;
+const PREFIX = '[Replay] ';
 
 type LoggerMethod = (...args: unknown[]) => void;
-type LoggerConsoleMethods = Record<'info' | 'warn' | 'error' | 'log', LoggerMethod>;
+type LoggerConsoleMethods = Record<ReplayConsoleLevels, LoggerMethod>;
+
+interface LoggerConfig {
+  captureExceptions: boolean;
+  traceInternals: boolean;
+}
 
 /** JSDoc */
 interface ReplayLogger extends LoggerConsoleMethods {
@@ -21,13 +27,18 @@ interface ReplayLogger extends LoggerConsoleMethods {
    * Captures exceptions (`Error`) if "capture internal exceptions" is enabled
    */
   exception: LoggerMethod;
-  enableCaptureInternalExceptions(): void;
-  disableCaptureInternalExceptions(): void;
-  enableTraceInternals(): void;
-  disableTraceInternals(): void;
+  /**
+   * Configures the logger with additional debugging behavior
+   */
+  setConfig(config: LoggerConfig): void;
 }
 
-function _addBreadcrumb(message: string, level: SeverityLevel = 'info'): void {
+function _addBreadcrumb(message: unknown, level: SeverityLevel = 'info'): void {
+  // Only support strings for breadcrumbs
+  if (typeof message !== 'string') {
+    return;
+  }
+
   // Wait a tick here to avoid race conditions for some initial logs
   // which may be added before replay is initialized
   addBreadcrumb(
@@ -37,7 +48,7 @@ function _addBreadcrumb(message: string, level: SeverityLevel = 'info'): void {
         logger: 'replay',
       },
       level,
-      message: `[Replay] ${message}`,
+      message: `${PREFIX} ${message}`,
     },
     { level },
   );
@@ -50,46 +61,36 @@ function makeReplayLogger(): ReplayLogger {
   const _logger: Partial<ReplayLogger> = {
     exception: () => undefined,
     infoTick: () => undefined,
-    enableCaptureInternalExceptions: () => {
-      _capture = true;
-    },
-    disableCaptureInternalExceptions: () => {
-      _capture = false;
-    },
-    enableTraceInternals: () => {
-      _trace = true;
-    },
-    disableTraceInternals: () => {
-      _trace = false;
+    setConfig: (opts: LoggerConfig) => {
+      _capture = opts.captureExceptions;
+      _trace = opts.traceInternals;
     },
   };
 
   if (DEBUG_BUILD) {
     _logger.exception = (error: unknown) => {
-      coreLogger.error('[Replay] ', error);
+      coreLogger.error(PREFIX, error);
 
       if (_capture) {
         captureException(error);
-      }
-
-      // No need for a breadcrumb is `_capture` is enabled since it should be
-      // captured as an exception
-      if (_trace && !_capture) {
+      } else if (_trace) {
+        // No need for a breadcrumb is `_capture` is enabled since it should be
+        // captured as an exception
         _addBreadcrumb(error instanceof Error ? error.message : 'Unknown error');
       }
     };
 
     _logger.infoTick = (...args: unknown[]) => {
-      coreLogger.info('[Replay] ', ...args);
+      coreLogger.info(PREFIX, ...args);
       if (_trace) {
-        setTimeout(() => typeof args[0] === 'string' && _addBreadcrumb(args[0]), 0);
+        setTimeout(() => _addBreadcrumb(args[0]), 0);
       }
     };
 
     CONSOLE_LEVELS.forEach(name => {
       _logger[name] = (...args: unknown[]) => {
-        coreLogger[name]('[Replay] ', ...args);
-        if (_trace && typeof args[0] === 'string') {
+        coreLogger[name](PREFIX, ...args);
+        if (_trace) {
           _addBreadcrumb(args[0]);
         }
       };

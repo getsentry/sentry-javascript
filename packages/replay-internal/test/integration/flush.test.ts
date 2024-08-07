@@ -336,8 +336,7 @@ describe('Integration | flush', () => {
   });
 
   it('logs warning if flushing initial segment without checkout', async () => {
-    // replay.getOptions()._experiments.traceInternals = true;
-    logger.enableTraceInternals();
+    logger.setConfig({ traceInternals: true });
 
     sessionStorage.clear();
     clearSession(replay);
@@ -410,11 +409,11 @@ describe('Integration | flush', () => {
       },
     ]);
 
-    logger.disableTraceInternals();
+    logger.setConfig({ traceInternals: false });
   });
 
   it('logs warning if adding event that is after maxReplayDuration', async () => {
-    logger.enableTraceInternals();
+    logger.setConfig({ traceInternals: true });
 
     const spyLogger = vi.spyOn(SentryUtils.logger, 'info');
 
@@ -448,7 +447,7 @@ describe('Integration | flush', () => {
       } because it is after maxReplayDuration`,
     );
 
-    logger.disableTraceInternals();
+    logger.setConfig({ traceInternals: false });
     spyLogger.mockRestore();
   });
 
