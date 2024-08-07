@@ -215,7 +215,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
 
   if (
     enableLongAnimationFrame &&
-    PerformanceObserver &&
+    window.PerformanceObserver &&
     PerformanceObserver.supportedEntryTypes.includes('long-animation-frame')
   ) {
     startTrackingLongAnimationFrames();
