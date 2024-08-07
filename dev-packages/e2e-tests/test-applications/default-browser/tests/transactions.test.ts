@@ -11,21 +11,20 @@ test('sends a pageload transaction', async ({ page }) => {
   });
 
   await page.goto('/');
-  const transactionEvent = await transactionPromise;
 
-  const exceptionButton = page.locator('id=exception-button');
-  await exceptionButton.click();
+  const rootSpan = await transactionPromise;
 
-  const errorEvent = await errorEventPromise;
-
-  expect(errorEvent.exception?.values).toHaveLength(1);
-  expect(errorEvent.exception?.values?.[0]?.value).toBe('I am an error!');
-
-  expect(errorEvent.transaction).toEqual('/');
-
-  expect(errorEvent.contexts?.trace).toEqual({
-    trace_id: transactionEvent.contexts?.trace?.trace_id,
-    span_id: expect.not.stringContaining(transactionEvent.contexts?.trace?.span_id || ''),
+  expect(rootSpan).toMatchObject({
+    contexts: {
+      trace: {
+        op: 'pageload',
+        origin: 'auto.pageload.browser',
+      },
+    },
+    transaction: '/',
+    transaction_info: {
+      source: 'url',
+    },
   });
 });
 

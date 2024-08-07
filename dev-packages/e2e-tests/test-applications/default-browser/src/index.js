@@ -12,3 +12,7 @@ Sentry.init({
 document.getElementById('exception-button').addEventListener('click', () => {
   throw new Error('I am an error!');
 });
+
+document.getElementById('navigation-link').addEventListener('click', () => {
+  document.getElementById('navigation-target').scrollIntoView({ behavior: 'smooth' });
+});
