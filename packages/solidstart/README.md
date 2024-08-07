@@ -164,7 +164,7 @@ render(
 
 # Sourcemaps and Releases
 
-To generate and upload source maps of your Solid Start app use our vite bundler plugin.
+To generate and upload source maps of your Solid Start app use our Vite bundler plugin.
 
 1. Install the Sentry vite plugin
  
