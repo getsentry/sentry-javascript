@@ -9,7 +9,7 @@ import { getActiveSpan, startSpan, startSpanManual, withActiveSpan } from '@sent
 import type { Span } from '@sentry/types';
 import { SDK_VERSION } from '@sentry/utils';
 import { getMiddlewareSpanOptions, isPatched } from './helpers';
-import type { InjectableTarget } from './types';
+import type { InjectableTarget, InjectTarget } from './types';
 
 const supportedVersions = ['>=8.0.0 <11'];
 
@@ -34,7 +34,7 @@ export class SentryNestInstrumentation extends InstrumentationBase {
   public init(): InstrumentationNodeModuleDefinition {
     const moduleDef = new InstrumentationNodeModuleDefinition(SentryNestInstrumentation.COMPONENT, supportedVersions);
 
-    moduleDef.files.push(this._getInjectableFileInstrumentation(supportedVersions));
+    moduleDef.files.push(this._getInjectableFileInstrumentation(supportedVersions), this._getInjectFileInstrumentation(supportedVersions));
     return moduleDef;
   }
 
@@ -56,6 +56,76 @@ export class SentryNestInstrumentation extends InstrumentationBase {
         this._unwrap(moduleExports, 'Injectable');
       },
     );
+  }
+
+  /**
+   *
+   */
+  private _getInjectFileInstrumentation(versions: string[]): InstrumentationNodeModuleFile {
+    return new InstrumentationNodeModuleFile(
+      '@nestjs/common/decorators/core/inject.decorator.js',
+      versions,
+      (moduleExports: { Inject: InjectTarget }) => {
+        if (isWrapped(moduleExports.Inject)) {
+          this._unwrap(moduleExports, 'Inject');
+        }
+        this._wrap(moduleExports, 'Inject', this._createWrapInject());
+        return moduleExports;
+      },
+      (moduleExports: { Inject: InjectTarget }) => {
+        this._unwrap(moduleExports, 'Inject');
+      },
+    )
+  }
+
+  /**
+   *
+   */
+  private _createWrapInject() {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return function wrapInject(original: any) {
+      return function wrappedInject(token?: unknown) {
+        return function (target: InjectTarget) {
+          // console.log('target:', target);
+          // console.log('prototype: ', target.prototype);
+          // console.log('token: ', token);
+
+          /*
+          if (target.prototype === undefined) {
+            return original(token)(target);
+          }
+
+          if (target.prototype.set !== undefined && typeof target.prototype.set === 'function' && !target.__SENTRY_INTERNAL__) {
+            // patch only once
+            if (isPatched(target)) {
+              return original(token)(target);
+            }
+
+            console.log('patch set!')
+          }
+          if (target.prototype.set !== undefined && typeof target.prototype.get === 'function' && !target.__SENTRY_INTERNAL__) {
+            // patch only once
+            if (isPatched(target)) {
+              return original(token)(target);
+            }
+
+            console.log('patch get!')
+          }
+          if (target.prototype.set !== undefined && typeof target.prototype.del === 'function' && !target.__SENTRY_INTERNAL__) {
+            // patch only once
+            if (isPatched(target)) {
+              return original(token)(target);
+            }
+
+            console.log('patch del!')
+          }
+           */
+
+          return original(token)(target);
+
+        }
+      }
+    }
   }
 
   /**
