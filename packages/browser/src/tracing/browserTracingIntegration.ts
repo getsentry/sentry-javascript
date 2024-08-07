@@ -213,7 +213,11 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
     startTrackingINP();
   }
 
-  if (enableLongAnimationFrame && PerformanceObserver.supportedEntryTypes.includes('long-animation-frame')) {
+  if (
+    enableLongAnimationFrame &&
+    PerformanceObserver &&
+    PerformanceObserver.supportedEntryTypes.includes('long-animation-frame')
+  ) {
     startTrackingLongAnimationFrames();
   } else if (enableLongTask) {
     startTrackingLongTasks();
