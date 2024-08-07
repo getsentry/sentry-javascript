@@ -115,6 +115,9 @@ targets:
     id: '@sentry/remix'
     includeNames: /^sentry-remix-\d.*\.tgz$/
   - name: npm
+    id: '@sentry/solidstart'
+    includeNames: /^sentry-solidstart-\d.*\.tgz$/
+  - name: npm
     id: '@sentry/sveltekit'
     includeNames: /^sentry-sveltekit-\d.*\.tgz$/
   - name: npm
