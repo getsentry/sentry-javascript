@@ -21,9 +21,6 @@ const _spotlightIntegration = ((options: Partial<SpotlightConnectionOptions> = {
 
   return {
     name: INTEGRATION_NAME,
-    setupOnce: () => {
-      /* Empty function to ensure compatibility w/ JS SDK v7 >= 7.99.0 */
-    },
     setup: () => {
       DEBUG_BUILD && logger.log('Using Sidecar URL', sidecarUrl);
     },
