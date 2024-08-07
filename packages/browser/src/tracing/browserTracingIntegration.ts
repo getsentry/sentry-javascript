@@ -28,6 +28,7 @@ import {
 import type { Client, IntegrationFn, StartSpanOptions, TransactionSource } from '@sentry/types';
 import type { Span } from '@sentry/types';
 import {
+  GLOBAL_OBJ,
   browserPerformanceTimeOrigin,
   generatePropagationContext,
   getDomElement,
@@ -215,7 +216,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
 
   if (
     enableLongAnimationFrame &&
-    window.PerformanceObserver &&
+    GLOBAL_OBJ.PerformanceObserver &&
     PerformanceObserver.supportedEntryTypes.includes('long-animation-frame')
   ) {
     startTrackingLongAnimationFrames();
