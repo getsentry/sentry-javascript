@@ -163,7 +163,9 @@ export function init(browserOptions: BrowserOptions = {}): Client | undefined {
   }
 
   if (options.spotlight) {
-    logger.error('You cannot use `spotlight: true` in the browser SDKs. Please use SpotlightBrowser() integration.');
+    logger.error(
+      'You cannot use `spotlight: true` in the browser SDKs. Please use spotlightBrowserIntegration() in your Sentry.init() call.',
+    );
   }
   if (DEBUG_BUILD) {
     if (!supportsFetch()) {

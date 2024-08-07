@@ -83,7 +83,7 @@ function setupSidecarForwarding(client: Client, sidecarUrl: string): void {
  *
  * Learn more about spotlight at https://spotlightjs.com
  */
-export const spotlightBrowser = defineIntegration(_spotlightIntegration);
+export const spotlightBrowserIntegration = defineIntegration(_spotlightIntegration);
 
 /**
  * Flags if the event is a transaction created from an interaction with the spotlight UI.
