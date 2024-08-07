@@ -48,7 +48,7 @@ function _addBreadcrumb(message: unknown, level: SeverityLevel = 'info'): void {
         logger: 'replay',
       },
       level,
-      message: `${PREFIX} ${message}`,
+      message: `${PREFIX}${message}`,
     },
     { level },
   );
