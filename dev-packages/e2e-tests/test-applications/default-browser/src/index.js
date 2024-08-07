@@ -1,10 +1,12 @@
-import * as Sentry from '@sentry/react';
+import * as Sentry from '@sentry/browser';
 
 Sentry.init({
-  release: 'e2e-test',
   dsn: process.env.E2E_TEST_DSN,
-  tunnel: 'http://localhost:3031',
   integrations: [Sentry.browserTracingIntegration()],
+  tracesSampleRate: 1.0,
+  release: 'e2e-test',
+  environment: 'qa',
+  tunnel: 'http://localhost:3031',
 });
 
 document.getElementById('exception-button').addEventListener('click', () => {
