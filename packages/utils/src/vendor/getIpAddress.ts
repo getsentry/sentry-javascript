@@ -23,7 +23,21 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-import { isIP } from 'net';
+// The headers to check, in priority order
+export const ipHeaderNames = [
+  'X-Client-IP',
+  'X-Forwarded-For',
+  'Fly-Client-IP',
+  'CF-Connecting-IP',
+  'Fastly-Client-Ip',
+  'True-Client-Ip',
+  'X-Real-IP',
+  'X-Cluster-Client-IP',
+  'X-Forwarded',
+  'Forwarded-For',
+  'Forwarded',
+  'X-Vercel-Forwarded-For',
+];
 
 /**
  * Get the IP address of the client sending a request.
@@ -31,50 +45,24 @@ import { isIP } from 'net';
  * It receives a Request headers object and use it to get the
  * IP address from one of the following headers in order.
  *
- * - X-Client-IP
- * - X-Forwarded-For
- * - Fly-Client-IP
- * - CF-Connecting-IP
- * - Fastly-Client-Ip
- * - True-Client-Ip
- * - X-Real-IP
- * - X-Cluster-Client-IP
- * - X-Forwarded
- * - Forwarded-For
- * - Forwarded
- *
  * If the IP address is valid, it will be returned. Otherwise, null will be
  * returned.
  *
  * If the header values contains more than one IP address, the first valid one
  * will be returned.
  */
-export function getClientIPAddress(headers: Headers): string | null {
-  // The headers to check, in priority order
-  const headerNames = [
-    'X-Client-IP',
-    'X-Forwarded-For',
-    'Fly-Client-IP',
-    'CF-Connecting-IP',
-    'Fastly-Client-Ip',
-    'True-Client-Ip',
-    'X-Real-IP',
-    'X-Cluster-Client-IP',
-    'X-Forwarded',
-    'Forwarded-For',
-    'Forwarded',
-  ];
-
+export function getClientIPAddress(headers: { [key: string]: string | string[] | undefined }): string | null {
   // This will end up being Array<string | string[] | undefined | null> because of the various possible values a header
   // can take
-  const headerValues = headerNames.map((headerName: string) => {
-    const value = headers.get(headerName);
+  const headerValues = ipHeaderNames.map((headerName: string) => {
+    const rawValue = headers[headerName];
+    const value = Array.isArray(rawValue) ? rawValue.join(';') : rawValue;
 
     if (headerName === 'Forwarded') {
       return parseForwardedHeader(value);
     }
 
-    return value?.split(',').map((v: string) => v.trim());
+    return value && value.split(',').map((v: string) => v.trim());
   });
 
   // Flatten the array and filter out any falsy entries
@@ -92,7 +80,7 @@ export function getClientIPAddress(headers: Headers): string | null {
   return ipAddress || null;
 }
 
-function parseForwardedHeader(value: string | null): string | null {
+function parseForwardedHeader(value: string | null | undefined): string | null {
   if (!value) {
     return null;
   }
@@ -104,4 +92,32 @@ function parseForwardedHeader(value: string | null): string | null {
   }
 
   return null;
+}
+
+//
+/**
+ * Custom method instead of importing this from `net` package, as this only exists in node
+ * Accepts:
+ * 127.0.0.1
+ * 192.168.1.1
+ * 192.168.1.255
+ * 255.255.255.255
+ * 10.1.1.1
+ * 0.0.0.0
+ *
+ * Rejects:
+ * 1.1.1.01
+ * 30.168.1.255.1
+ * 127.1
+ * 192.168.1.256
+ * -1.2.3.4
+ * 1.1.1.1.
+ * 3...3
+ * 192.168.1.099
+ */
+function isIP(str: string): boolean {
+  const regex =
+    /^((?:[0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])[.]){3}(?:[0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])$/;
+
+  return regex.test(str);
 }
