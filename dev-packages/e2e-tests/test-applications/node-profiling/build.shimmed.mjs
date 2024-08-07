@@ -11,7 +11,7 @@ console.log('Running build using esbuild version', esbuild.version);
 esbuild.buildSync({
   platform: 'node',
   entryPoints: ['./index.ts'],
-  outdir: './dist',
+  outfile: './dist/index.mjs',
   target: 'esnext',
   format: 'esm',
   bundle: true,
