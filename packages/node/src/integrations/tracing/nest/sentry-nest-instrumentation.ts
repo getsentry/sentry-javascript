@@ -9,7 +9,7 @@ import { getActiveSpan, startSpan, startSpanManual, withActiveSpan } from '@sent
 import type { Span } from '@sentry/types';
 import { SDK_VERSION } from '@sentry/utils';
 import { getMiddlewareSpanOptions, isPatched } from './helpers';
-import type { InjectableTarget } from './types';
+import type {InjectableTarget, Observable} from './types';
 
 const supportedVersions = ['>=8.0.0 <11'];
 
@@ -154,9 +154,39 @@ export class SentryNestInstrumentation extends InstrumentationBase {
 
                           if (prevSpan) {
                             return withActiveSpan(prevSpan, () => {
-                              return Reflect.apply(originalHandle, thisArgNext, args);
+                              console.log('active span!');
+                              const returnedObservable: Observable<unknown> =  Reflect.apply(originalHandle, thisArgNext, args);
+
+                              return new Proxy(returnedObservable, {
+                                get(observableTarget, observableProperty, observableReceiver) {
+                                  if (observableProperty === 'subscribe') {
+                                    return new Proxy(observableTarget.subscribe, {
+                                      apply(originalSubscribe, thisArgSubscribe, argsSubscribe) {
+                                        return startSpanManual(getMiddlewareSpanOptions(target), (afterSpan: Span) => {
+                                          console.log('Observable subscribed');
+                                          const subscription = originalSubscribe.apply(thisArgSubscribe, argsSubscribe);
+
+                                          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+                                          subscription.add(() => {
+                                            console.log('Observable completed');
+                                            afterSpan.end();
+                                          })
+
+                                          return subscription;
+                                        })
+
+
+
+                                      }
+                                    });
+                                  }
+
+                                  return Reflect.get(observableTarget, observableProperty, observableReceiver);
+                                }
+                              })
                             });
                           } else {
+                            console.log('no active span!');
                             return Reflect.apply(originalHandle, thisArgNext, args);
                           }
                         };

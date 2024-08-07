@@ -27,11 +27,22 @@ export interface MinimalNestJsApp {
   }) => void;
 }
 
+export interface Observer<T> {
+  next(value: T): void;
+  error?(err: any): void;
+  complete?(): void;
+}
+
 /**
  * A minimal interface for an Observable.
  */
 export interface Observable<T> {
-  subscribe(observer: (value: T) => void): void;
+  pipe: (...args: any[]) => Observable<any>;
+  subscribe(
+    next: (value: T) => void,
+    error?: (err: any) => void,
+    complete?: () => void
+  ): any;
 }
 
 /**
