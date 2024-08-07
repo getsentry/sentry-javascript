@@ -61,7 +61,7 @@ function applyDefaultOptions(optionsArg: BrowserOptions = {}): BrowserOptions {
   // call `dropUndefinedKeys` on the entire `optionsArg`.
   // However, for this to work we need to adjust the `hasTracingEnabled()` logic
   // first as it differentiates between `undefined` and the key not being in the object.
-  if (optionsArg.defaultIntegrations === undefined) {
+  if (optionsArg.defaultIntegrations == null) {
     delete optionsArg.defaultIntegrations;
   }
 
