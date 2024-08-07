@@ -65,7 +65,8 @@ sentryTest(
       await page.waitForTimeout(1000);
       await page.locator('[data-test-id=interaction-button]').click();
       const envelope = await envelopePromise;
-      expect(envelope[0].spans).toHaveLength(1);
+      const spans = envelope[0].spans?.filter(span => !span.op?.startsWith('ui.long-animation-frame'));
+      expect(spans).toHaveLength(1);
     }
   },
 );
