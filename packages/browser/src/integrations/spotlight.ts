@@ -1,0 +1,100 @@
+import { getNativeImplementation } from '@sentry-internal/browser-utils';
+import { defineIntegration } from '@sentry/core';
+import type { Client, Envelope, Event, IntegrationFn } from '@sentry/types';
+import { logger, serializeEnvelope } from '@sentry/utils';
+import type { WINDOW } from '../helpers';
+
+import { DEBUG_BUILD } from '../debug-build';
+
+export type SpotlightConnectionOptions = {
+  /**
+   * Set this if the Spotlight Sidecar is not running on localhost:8969
+   * By default, the Url is set to http://localhost:8969/stream
+   */
+  sidecarUrl?: string;
+};
+
+export const INTEGRATION_NAME = 'SpotlightBrowser';
+
+const _spotlightIntegration = ((options: Partial<SpotlightConnectionOptions> = {}) => {
+  const sidecarUrl = options.sidecarUrl || 'http://localhost:8969/stream';
+
+  return {
+    name: INTEGRATION_NAME,
+    setupOnce: () => {
+      /* Empty function to ensure compatibility w/ JS SDK v7 >= 7.99.0 */
+    },
+    setup: () => {
+      DEBUG_BUILD && logger.log('Using Sidecar URL', sidecarUrl);
+    },
+    processEvent: event => {
+      // We don't want to send interaction transactions/root spans created from
+      // clicks within Spotlight to Sentry. Neither do we want them to be sent to
+      // spotlight.
+      if (isSpotlightInteraction(event)) {
+        return null;
+      }
+
+      if (event.type || !event.exception || !event.exception.values) {
+        return event;
+      }
+
+      return event;
+    },
+    afterAllSetup: (client: Client) => {
+      setupSidecarForwarding(client, sidecarUrl);
+    },
+  };
+}) satisfies IntegrationFn;
+
+function setupSidecarForwarding(client: Client, sidecarUrl: string): void {
+  const makeFetch: typeof WINDOW.fetch | undefined = getNativeImplementation('fetch');
+  let failCount = 0;
+
+  client.on('beforeEnvelope', (envelope: Envelope) => {
+    if (failCount > 3) {
+      logger.warn('[Spotlight] Disabled Sentry -> Spotlight integration due to too many failed requests:', failCount);
+      return;
+    }
+
+    makeFetch(sidecarUrl, {
+      method: 'POST',
+      body: serializeEnvelope(envelope),
+      headers: {
+        'Content-Type': 'application/x-sentry-envelope',
+      },
+      mode: 'cors',
+    }).then(
+      // Reset fail count on success
+      () => (failCount = 0),
+      err => {
+        failCount++;
+        logger.error(
+          "Sentry SDK can't connect to Sidecar is it running? See: https://spotlightjs.com/sidecar/npx/",
+          err,
+        );
+      },
+    );
+  });
+}
+
+/**
+ * Use this integration to send errors and transactions to Spotlight.
+ *
+ * Learn more about spotlight at https://spotlightjs.com
+ */
+export const spotlightBrowser = defineIntegration(_spotlightIntegration);
+
+/**
+ * Flags if the event is a transaction created from an interaction with the spotlight UI.
+ */
+export function isSpotlightInteraction(event: Event): boolean {
+  return Boolean(
+    event.type === 'transaction' &&
+      event.spans &&
+      event.contexts &&
+      event.contexts.trace &&
+      event.contexts.trace.op === 'ui.action.click' &&
+      event.spans.some(({ description }) => description && description.includes('#sentry-spotlight')),
+  );
+}

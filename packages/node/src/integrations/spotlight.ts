@@ -72,6 +72,8 @@ function connectToSpotlight(client: Client, options: Required<SpotlightConnectio
 
         res.on('end', () => {
           // Drain socket
+          // Reset failed requests counter on success
+          failedRequests = 0;
         });
         res.setEncoding('utf8');
       },
