@@ -23,9 +23,6 @@ function makeESMShimPlugin(shim) {
   return {
     transform(code) {
       const SHIM_REGEXP = /\/\/ #START_SENTRY_ESM_SHIM[\s\S]*?\/\/ #END_SENTRY_ESM_SHIM/;
-
-      console.log('Matched', SHIM_REGEXP.test(code));
-
       return code.replace(SHIM_REGEXP, shim);
     },
   };
@@ -42,7 +39,6 @@ const variants = makeNPMConfigVariants(
 
 for (const variant of variants) {
   if (variant.output.format === 'esm') {
-    console.log('injected plugin');
     variant.plugins.push(makeESMShimPlugin(ESMShim));
   } else {
     // Remove the ESM shim comment

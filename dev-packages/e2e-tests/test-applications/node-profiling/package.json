@@ -5,10 +5,14 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "build": "node build.mjs",
+    "build:shimmed": "node build.shimmed.mjs",
     "test": "npm run build && node dist/index.js",
-    "clean": "npx rimraf node_modules",
+    "test:shimmed": "npm run build:shimmed && node dist/index.js",
+    "clean": "npx rimraf node_modules dist",
     "test:build": "npm run typecheck && npm run build",
-    "test:assert": "npm run test"
+    "test:build:shimmed": "npm run typecheck && npm run build:shimmed",
+    "test:assert": "npm run test",
+    "test:assert:shimmed": "npm run test:shimmed"
   },
   "dependencies": {
     "@sentry/node": "latest || *",
