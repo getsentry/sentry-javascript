@@ -1,13 +1,14 @@
 import type { Client, Scope, Span } from '@sentry/types';
 import {
   TRACEPARENT_REGEXP,
+  consoleSandbox,
   dynamicSamplingContextToSentryBaggageHeader,
   generateSentryTraceHeader,
   logger,
 } from '@sentry/utils';
 import { getClient, getCurrentScope } from '../currentScopes';
 import { getDynamicSamplingContextFromClient, getDynamicSamplingContextFromSpan } from '../tracing';
-import { getActiveSpan, getRootSpan, spanToTraceHeader } from './spanUtils';
+import { getActiveSpan, getRootSpan, spanToJSON, spanToTraceHeader } from './spanUtils';
 
 type TraceData = {
   'sentry-trace'?: string;
@@ -35,17 +36,22 @@ export function getTraceData(span?: Span, scope?: Scope, client?: Client): Trace
   const spanToUse = span || getActiveSpan();
 
   const { dsc, sampled, traceId } = scopeToUse.getPropagationContext();
+
   const rootSpan = spanToUse && getRootSpan(spanToUse);
 
-  const sentryTrace = spanToUse ? spanToTraceHeader(spanToUse) : generateSentryTraceHeader(traceId, undefined, sampled);
+  const sentryTrace =
+    spanToUse && spanToUse.isRecording()
+      ? spanToTraceHeader(spanToUse)
+      : generateSentryTraceHeader(traceId, undefined, sampled);
 
-  const dynamicSamplingContext = rootSpan
-    ? getDynamicSamplingContextFromSpan(rootSpan)
-    : dsc
-      ? dsc
-      : clientToUse
-        ? getDynamicSamplingContextFromClient(traceId, clientToUse)
-        : undefined;
+  const dynamicSamplingContext =
+    rootSpan && rootSpan.isRecording()
+      ? getDynamicSamplingContextFromSpan(rootSpan)
+      : dsc
+        ? dsc
+        : clientToUse
+          ? getDynamicSamplingContextFromClient(traceId, clientToUse)
+          : undefined;
 
   const baggage = dynamicSamplingContextToSentryBaggageHeader(dynamicSamplingContext);
 
