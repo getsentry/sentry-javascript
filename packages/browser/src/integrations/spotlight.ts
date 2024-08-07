@@ -24,20 +24,10 @@ const _spotlightIntegration = ((options: Partial<SpotlightConnectionOptions> = {
     setup: () => {
       DEBUG_BUILD && logger.log('Using Sidecar URL', sidecarUrl);
     },
-    processEvent: event => {
-      // We don't want to send interaction transactions/root spans created from
-      // clicks within Spotlight to Sentry. Neither do we want them to be sent to
-      // spotlight.
-      if (isSpotlightInteraction(event)) {
-        return null;
-      }
-
-      if (event.type || !event.exception || !event.exception.values) {
-        return event;
-      }
-
-      return event;
-    },
+    // We don't want to send interaction transactions/root spans created from
+    // clicks within Spotlight to Sentry. Neither do we want them to be sent to
+    // spotlight.
+    processEvent: event => (isSpotlightInteraction(event) ? null : event),
     afterAllSetup: (client: Client) => {
       setupSidecarForwarding(client, sidecarUrl);
     },
