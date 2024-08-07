@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { waitForError } from '@sentry-internal/test-utils';
 
-test('Should send correct error event', async ({ page }) => {
+test('captures an error', async ({ page }) => {
   const errorEventPromise = waitForError('default-browser', event => {
     return !event.type && event.exception?.values?.[0]?.value === 'I am an error!';
   });
