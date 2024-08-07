@@ -96,6 +96,7 @@ export {
   getCurrentScope,
   getIsolationScope,
   getTraceData,
+  getTraceMetaTags,
   withScope,
   withIsolationScope,
   captureException,
