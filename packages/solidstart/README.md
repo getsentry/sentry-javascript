@@ -166,8 +166,8 @@ render(
 
 To generate and upload source maps of your Solid Start app use our Vite bundler plugin.
 
-1. Install the Sentry vite plugin
- 
+1. Install the Sentry Vite plugin
+
 ```bash
 # Using npm
 npm install @sentry/vite-plugin --save-dev
@@ -177,10 +177,14 @@ yarn add @sentry/vite-plugin --dev
 ```
 
 2. Configure the vite plugin
- 
-To upload source maps you have to configure an auth token. Auth tokens can be passed to the plugin explicitly with the `authToken` option, with a `SENTRY_AUTH_TOKEN` environment variable, or with an `.env.sentry-build-plugin` file in the working directory when building your project. We recommend you add the auth token to your CI/CD environment as an environment variable.
 
-Learn more about configuring the plugin in our [Sentry Vite Plugin documentation](https://www.npmjs.com/package/@sentry/vite-plugin).
+To upload source maps you have to configure an auth token. Auth tokens can be passed to the plugin explicitly with the
+`authToken` option, with a `SENTRY_AUTH_TOKEN` environment variable, or with an `.env.sentry-build-plugin` file in the
+working directory when building your project. We recommend you add the auth token to your CI/CD environment as an
+environment variable.
+
+Learn more about configuring the plugin in our
+[Sentry Vite Plugin documentation](https://www.npmjs.com/package/@sentry/vite-plugin).
 
 ```bash
 // .env.sentry-build-plugin
@@ -192,13 +196,13 @@ SENTRY_PROJECT=<your project name>
 3. Finally, add the plugin to your `app.config.ts` file.
 
 ```javascript
-import { defineConfig } from '@solidjs/start/config'
-import { sentryVitePlugin } from '@sentry/vite-plugin'
+import { defineConfig } from '@solidjs/start/config';
+import { sentryVitePlugin } from '@sentry/vite-plugin';
 
 export default defineConfig({
   // rest of your config
   // ...
-  
+
   vite: {
     build: {
       sourcemap: true,
@@ -211,5 +215,5 @@ export default defineConfig({
       }),
     ],
   },
-})
-``` 
+});
+```
