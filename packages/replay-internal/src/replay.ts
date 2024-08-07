@@ -246,7 +246,13 @@ export class ReplayContainer implements ReplayContainerInterface {
     DEBUG_BUILD && logger.error('[Replay]', error);
 
     if (DEBUG_BUILD && this._options._experiments && this._options._experiments.captureExceptions) {
-      captureException(error);
+      captureException(error, {
+        contexts: {
+          __sentry_sdk: {
+            package: 'replay',
+          },
+        },
+      });
     }
   }
 
