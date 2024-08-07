@@ -1,8 +1,8 @@
 import * as path from 'path';
 import * as url from 'url';
-import webpack from 'webpack';
 import HtmlWebpackPlugin from 'html-webpack-plugin';
 import TerserPlugin from 'terser-webpack-plugin';
+import webpack from 'webpack';
 
 const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
 

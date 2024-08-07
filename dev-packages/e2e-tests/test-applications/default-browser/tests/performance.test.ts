@@ -1,4 +1,3 @@
-import exp from 'constants';
 import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
