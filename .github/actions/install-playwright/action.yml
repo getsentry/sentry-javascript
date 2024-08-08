@@ -1,5 +1,9 @@
 name: "Install Playwright dependencies"
 description: "Installs Playwright dependencies and caches them."
+inputs:
+  browsers:
+    description: 'What browsers to install.'
+    default: 'chromium webkit firefox'
 
 runs:
   using: "composite"
@@ -17,12 +21,13 @@ runs:
             ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ steps.playwright-version.outputs.version }}
 
+      # We always install all browsers, if uncached
       - name: Install Playwright dependencies (uncached)
         run: npx playwright install chromium webkit firefox --with-deps
         if: steps.playwright-cache.outputs.cache-hit != 'true'
         shell: bash
 
       - name: Install Playwright system dependencies only (cached)
-        run: npx playwright install-deps chromium webkit firefox
+        run: npx playwright install-deps ${{ inputs.browsers || 'chromium webkit firefox' }}
         if: steps.playwright-cache.outputs.cache-hit == 'true'
         shell: bash

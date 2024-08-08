@@ -528,7 +528,7 @@ jobs:
         run: yarn lerna run test --scope @sentry/profiling-node
 
   job_browser_playwright_tests:
-    name: Playwright (${{ matrix.bundle }}${{ matrix.shard && format(' {0}/{1}', matrix.shard, matrix.shards) || ''}}) Tests
+    name: Playwright ${{ matrix.bundle }}${{ matrix.project && matrix.project != 'chromium' && format(' {0}', matrix.project) || ''}}${{ matrix.shard && format(' ({0}/{1})', matrix.shard, matrix.shards) || ''}} Tests
     needs: [job_get_metadata, job_build]
     if: needs.job_build.outputs.changed_browser_integration == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-20.04-large-js
@@ -548,31 +548,30 @@ jobs:
         project:
           - chromium
         include:
-          # Only check all projects for esm & full bundle
+          # Only check all projects for full bundle
           # We also shard the tests as they take the longest
           - bundle: bundle_tracing_replay_feedback_min
-            project: ''
-            shard: 1
-            shards: 2
+            project: 'webkit'
           - bundle: bundle_tracing_replay_feedback_min
-            project: ''
-            shard: 2
-            shards: 2
+            project: 'firefox'
           - bundle: esm
-            project: ''
+            project: chromium
             shard: 1
-            shards: 3
+            shards: 4
           - bundle: esm
+            project: chromium
             shard: 2
-            shards: 3
+            shards: 4
           - bundle: esm
-            project: ''
+            project: chromium
             shard: 3
-            shards: 3
+            shards: 4
+          - bundle: esm
+            project: chromium
+            shard: 4
+            shards: 4
         exclude:
-          # Do not run the default chromium-only tests
-          - bundle: bundle_tracing_replay_feedback_min
-            project: 'chromium'
+          # Do not run the un-sharded esm tests
           - bundle: esm
             project: 'chromium'
 
@@ -592,12 +591,15 @@ jobs:
 
       - name: Install Playwright
         uses: ./.github/actions/install-playwright
+        with:
+          browsers: ${{ matrix.project }}
 
       - name: Run Playwright tests
         env:
           PW_BUNDLE: ${{ matrix.bundle }}
         working-directory: dev-packages/browser-integration-tests
         run: yarn test:ci${{ matrix.project && format(' --project={0}', matrix.project) || '' }}${{ matrix.shard && format(' --shard={0}/{1}', matrix.shard, matrix.shards) || '' }}
+
       - name: Upload Playwright Traces
         uses: actions/upload-artifact@v3
         if: always()
@@ -606,7 +608,7 @@ jobs:
           path: dev-packages/browser-integration-tests/test-results
 
   job_browser_loader_tests:
-    name: Playwright Loader (${{ matrix.bundle }}) Tests
+    name: PW ${{ matrix.bundle }} Tests
     needs: [job_get_metadata, job_build]
     if: needs.job_build.outputs.changed_browser_integration == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-20.04
@@ -639,6 +641,8 @@ jobs:
 
       - name: Install Playwright
         uses: ./.github/actions/install-playwright
+        with:
+          browsers: chromium
 
       - name: Run Playwright Loader tests
         env:
@@ -750,8 +754,12 @@ jobs:
         uses: ./.github/actions/restore-cache
         env:
           DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
+
       - name: Install Playwright
         uses: ./.github/actions/install-playwright
+        with:
+          browsers: chromium
+
       - name: Run integration tests
         env:
           NODE_VERSION: ${{ matrix.node }}
@@ -878,6 +886,7 @@ jobs:
             'react-router-5',
             'react-router-6',
             'solid',
+            'solidstart',
             'svelte-5',
             'sveltekit',
             'sveltekit-2',
@@ -952,6 +961,8 @@ jobs:
 
       - name: Install Playwright
         uses: ./.github/actions/install-playwright
+        with:
+          browsers: chromium
 
       - name: Get node version
         id: versions
@@ -1049,6 +1060,8 @@ jobs:
 
       - name: Install Playwright
         uses: ./.github/actions/install-playwright
+        with:
+          browsers: chromium
 
       - name: Get node version
         id: versions
@@ -1149,6 +1162,8 @@ jobs:
 
       - name: Install Playwright
         uses: ./.github/actions/install-playwright
+        with:
+          browsers: chromium
 
       - name: Get node version
         id: versions
