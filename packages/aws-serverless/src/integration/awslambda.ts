@@ -7,8 +7,10 @@ import { eventContextExtractor } from '../utils';
 interface AwsLambdaOptions {
   /**
    * Disables the AWS context propagation and instead uses
-   * Sentry's context. This should usually be `true` when
-   * using Sentry to instrument Lambdas.
+   * Sentry's context. Defaults to `true`, in order for
+   * Sentry trace propagation to take precedence, but can
+   * be disabled if you want AWS propagation to take take
+   * precedence.
    */
   disableAwsContextPropagation?: boolean;
 }
