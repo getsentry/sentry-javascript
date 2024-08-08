@@ -95,13 +95,27 @@ test('Does not send RpcExceptions to Sentry', async ({ baseURL }) => {
   expect(errorEventOccurred).toBe(false);
 });
 
-test('Global exception filter registered in root module is applied', async ({ baseURL }) => {
+test('Global exception filter registered in main module is applied', async ({ baseURL }) => {
   const response = await fetch(`${baseURL}/example-exception-global-filter`);
   const responseBody = await response.json();
 
   console.log(responseBody);
 
-  // this should fail but doesn't because the bad request exception filter is not being properly applied
+  // this should fail but doesn't because the exception filter is not being properly applied
+  expect(response.status).toBe(500);
+  expect(responseBody).toEqual({
+    message: 'Internal server error',
+    statusCode: 500,
+  });
+});
+
+test('Local exception filter registered in main module is applied', async ({ baseURL }) => {
+  const response = await fetch(`${baseURL}/example-exception-global-filter`);
+  const responseBody = await response.json();
+
+  console.log(responseBody);
+
+  // this should fail but doesn't because the exception filter is not being properly applied
   expect(response.status).toBe(500);
   expect(responseBody).toEqual({
     message: 'Internal server error',
