@@ -52,8 +52,12 @@ function setupSidecarForwarding(client: Client, sidecarUrl: string): void {
       },
       mode: 'cors',
     }).then(
-      // Reset fail count on success
-      () => (failCount = 0),
+      res => {
+        if (res.status >= 200 && res.status < 400) {
+          // Reset failed requests counter on success
+          failCount = 0;
+        }
+      },
       err => {
         failCount++;
         logger.error(
