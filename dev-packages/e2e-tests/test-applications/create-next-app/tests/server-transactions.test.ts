@@ -32,10 +32,6 @@ test('Sends server-side transactions to Sentry', async ({ baseURL }) => {
           }),
           status: 'ok',
         },
-        runtime: {
-          name: 'node',
-          version: expect.any(String),
-        },
       }),
       spans: [
         {

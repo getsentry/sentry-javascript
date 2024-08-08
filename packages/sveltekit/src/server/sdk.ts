@@ -1,4 +1,4 @@
-import { applySdkMetadata, setTag } from '@sentry/core';
+import { applySdkMetadata } from '@sentry/core';
 import type { NodeClient, NodeOptions } from '@sentry/node';
 import { getDefaultIntegrations as getDefaultNodeIntegrations } from '@sentry/node';
 import { init as initNodeSdk } from '@sentry/node';
@@ -17,9 +17,5 @@ export function init(options: NodeOptions): NodeClient | undefined {
 
   applySdkMetadata(opts, 'sveltekit', ['sveltekit', 'node']);
 
-  const client = initNodeSdk(opts);
-
-  setTag('runtime', 'node');
-
-  return client;
+  return initNodeSdk(opts);
 }

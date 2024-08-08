@@ -1,4 +1,4 @@
-import { addEventProcessor, applySdkMetadata, hasTracingEnabled, setTag } from '@sentry/core';
+import { addEventProcessor, applySdkMetadata, hasTracingEnabled } from '@sentry/core';
 import type { BrowserOptions } from '@sentry/react';
 import { getDefaultIntegrations as getReactDefaultIntegrations, init as reactInit } from '@sentry/react';
 import type { Client, EventProcessor, Integration } from '@sentry/types';
@@ -34,7 +34,6 @@ export function init(options: BrowserOptions): Client | undefined {
 
   const client = reactInit(opts);
 
-  setTag('runtime', 'browser');
   const filterTransactions: EventProcessor = event =>
     event.type === 'transaction' && event.transaction === '/404' ? null : event;
   filterTransactions.id = 'NextClient404Filter';

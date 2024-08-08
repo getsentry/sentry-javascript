@@ -18,7 +18,7 @@ export { mongooseIntegration } from './integrations/tracing/mongoose';
 export { mysqlIntegration } from './integrations/tracing/mysql';
 export { mysql2Integration } from './integrations/tracing/mysql2';
 export { redisIntegration } from './integrations/tracing/redis';
-export { nestIntegration, setupNestErrorHandler } from './integrations/tracing/nest';
+export { nestIntegration, setupNestErrorHandler } from './integrations/tracing/nest/nest';
 export { postgresIntegration } from './integrations/tracing/postgres';
 export { prismaIntegration } from './integrations/tracing/prisma';
 export { hapiIntegration, setupHapiErrorHandler } from './integrations/tracing/hapi';
@@ -95,6 +95,8 @@ export {
   getCurrentHub,
   getCurrentScope,
   getIsolationScope,
+  getTraceData,
+  getTraceMetaTags,
   withScope,
   withIsolationScope,
   captureException,

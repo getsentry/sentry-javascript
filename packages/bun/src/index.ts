@@ -40,6 +40,8 @@ export {
   getCurrentScope,
   getGlobalScope,
   getIsolationScope,
+  getTraceData,
+  getTraceMetaTags,
   setCurrentClient,
   Scope,
   SDK_VERSION,

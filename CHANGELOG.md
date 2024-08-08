@@ -1,13 +1,86 @@
 # Changelog
 
-> [!IMPORTANT] Important
->
+<!-- prettier-ignore-start -->
+> [!IMPORTANT]
 > If you are upgrading to the `8.x` versions of the SDK from `7.x` or below, make sure you follow our
 > [migration guide](https://docs.sentry.io/platforms/javascript/migration/) first.
+<!-- prettier-ignore-end -->
 
 ## Unreleased
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
+
+## 8.24.0
+
+- feat(nestjs): Filter RPC exceptions (#13227)
+- fix: Guard getReader function for other fetch implementations (#13246)
+- fix(feedback): Ensure feedback can be lazy loaded in CDN bundles (#13241)
+
+## 8.23.0
+
+### Important Changes
+
+- **feat(cloudflare): Add Cloudflare D1 instrumentation (#13142)**
+
+This release includes support for Cloudflare D1, Cloudflare's serverless SQL database. To instrument your Cloudflare D1
+database, use the `instrumentD1WithSentry` method as follows:
+
+```ts
+// env.DB is the D1 DB binding configured in your `wrangler.toml`
+const db = instrumentD1WithSentry(env.DB);
+// Now you can use the database as usual
+await db.prepare('SELECT * FROM table WHERE id = ?').bind(1).run();
+```
+
+### Other Changes
+
+- feat(cloudflare): Allow users to pass handler to sentryPagesPlugin (#13192)
+- feat(cloudflare): Instrument scheduled handler (#13114)
+- feat(core): Add `getTraceData` function (#13134)
+- feat(nestjs): Automatic instrumentation of nestjs interceptors before route execution (#13153)
+- feat(nestjs): Automatic instrumentation of nestjs pipes (#13137)
+- feat(nuxt): Filter out Nuxt build assets (#13148)
+- feat(profiling): Attach sdk info to chunks (#13145)
+- feat(solidstart): Add sentry `onBeforeResponse` middleware to enable distributed tracing (#13221)
+- feat(solidstart): Filter out low quality transactions for build assets (#13222)
+- fix(browser): Avoid showing browser extension error message in non-`window` global scopes (#13156)
+- fix(feedback): Call dialog.close() in dialog close callbacks in `\_loadAndRenderDialog` (#13203)
+- fix(nestjs): Inline Observable type to resolve missing 'rxjs' dependency (#13166)
+- fix(nuxt): Detect pageload by adding flag in Vue router (#13171)
+- fix(utils): Handle when requests get aborted in fetch instrumentation (#13202)
+- ref(browser): Improve browserMetrics collection (#13062)
+
+Work in this release was contributed by @horochx. Thank you for your contribution!
+
+## 8.22.0
+
+### Important Changes
+
+- **feat(cloudflare): Add plugin for cloudflare pages (#13123)**
+
+This release adds support for Cloudflare Pages to `@sentry/cloudflare`, our SDK for the
+[Cloudflare Workers JavaScript Runtime](https://developers.cloudflare.com/workers/)! For details on how to use it,
+please see the [README](./packages/cloudflare/README.md). Any feedback/bug reports are greatly appreciated, please
+[reach out on GitHub](https://github.com/getsentry/sentry-javascript/issues/12620).
+
+```javascript
+// functions/_middleware.js
+import * as Sentry from '@sentry/cloudflare';
+
+export const onRequest = Sentry.sentryPagesPlugin({
+  dsn: __PUBLIC_DSN__,
+  // Set tracesSampleRate to 1.0 to capture 100% of spans for tracing.
+  tracesSampleRate: 1.0,
+});
+```
+
+### Other Changes
+
+- feat(meta-sdks): Remove runtime tags (#13105)
+- feat(nestjs): Automatic instrumentation of nestjs guards (#13129)
+- feat(nestjs): Filter all HttpExceptions (#13120)
+- feat(replay): Capture exception when `internal_sdk_error` client report happens (#13072)
+- fix: Use `globalThis` for code injection (#13132)
 
 ## 8.21.0
 
@@ -31,11 +104,15 @@ upcoming release.
 - feat(feedback): Make cropped screenshot area draggable (#13071)
 - feat(core): Adapt spans for client-side fetch to streaming responses (#12723)
 - feat(core): Capture # of dropped spans through `beforeSendTransaction` (#13022)
-- feat(deps): bump @opentelemetry/instrumentation-aws-sdk from 0.43.0 to 0.43.1 (#13089)
-- feat(deps): bump @opentelemetry/instrumentation-express from 0.41.0 to 0.41.1 (#13090)
+- feat(deps): bump `@opentelemetry/instrumentation-aws-sdk` from 0.43.0 to 0.43.1 (#13089)
+- feat(deps): bump `@opentelemetry/instrumentation-express` from 0.41.0 to 0.41.1 (#13090)
+- feat(nestjs): Automatic instrumentation of nestjs middleware (#13065)
+- feat(node): Upgrade `import-in-the-middle` to 1.11.0 (#13107)
 - feat(nuxt): Add connected tracing meta tags (#13098)
 - feat(nuxt): Add vue-router instrumentation (#13054)
+- feat(solidstart): Add server action instrumentation helper (#13035)
 - fix(feedback): Ensure pluggable feedback CDN bundle is correctly built (#13081)
+- fix(nextjs): Only delete clientside bundle source maps with `sourcemaps.deleteFilesAfterUpload` (#13102)
 - fix(node): Improve OTEL validation logic (#13079)
 
 ## 8.20.0

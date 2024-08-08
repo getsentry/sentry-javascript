@@ -1,4 +1,5 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { RpcException } from '@nestjs/microservices';
 import { Cron, SchedulerRegistry } from '@nestjs/schedule';
 import * as Sentry from '@sentry/nestjs';
 import { SentryCron, SentryTraced } from '@sentry/nestjs';
@@ -21,7 +22,7 @@ export class AppService {
     });
   }
 
-  testMiddleware() {
+  testSpan() {
     // span that should not be a child span of the middleware span
     Sentry.startSpan({ name: 'test-controller-span' }, () => {});
   }
@@ -30,8 +31,16 @@ export class AppService {
     throw new Error(`This is an exception with id ${id}`);
   }
 
-  testExpectedException(id: string) {
-    throw new HttpException(`This is an expected exception with id ${id}`, HttpStatus.FORBIDDEN);
+  testExpected400Exception(id: string) {
+    throw new HttpException(`This is an expected 400 exception with id ${id}`, HttpStatus.BAD_REQUEST);
+  }
+
+  testExpected500Exception(id: string) {
+    throw new HttpException(`This is an expected 500 exception with id ${id}`, HttpStatus.INTERNAL_SERVER_ERROR);
+  }
+
+  testExpectedRpcException(id: string) {
+    throw new RpcException(`This is an expected RPC exception with id ${id}`);
   }
 
   @SentryTraced('wait and return a string')

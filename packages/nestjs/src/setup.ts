@@ -6,10 +6,12 @@ import type {
   NestInterceptor,
   OnModuleInit,
 } from '@nestjs/common';
+import { HttpException } from '@nestjs/common';
 import { Catch } from '@nestjs/common';
 import { Injectable } from '@nestjs/common';
 import { Global, Module } from '@nestjs/common';
 import { APP_FILTER, APP_INTERCEPTOR, BaseExceptionFilter } from '@nestjs/core';
+import { RpcException } from '@nestjs/microservices';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -31,6 +33,9 @@ import type { Observable } from 'rxjs';
  * Interceptor to add Sentry tracing capabilities to Nest.js applications.
  */
 class SentryTracingInterceptor implements NestInterceptor {
+  // used to exclude this class from being auto-instrumented
+  public static readonly __SENTRY_INTERNAL__ = true;
+
   /**
    * Intercepts HTTP requests to set the transaction name for Sentry tracing.
    */
@@ -59,14 +64,14 @@ export { SentryTracingInterceptor };
  * Global filter to handle exceptions and report them to Sentry.
  */
 class SentryGlobalFilter extends BaseExceptionFilter {
+  public static readonly __SENTRY_INTERNAL__ = true;
+
   /**
    * Catches exceptions and reports them to Sentry unless they are expected errors.
    */
   public catch(exception: unknown, host: ArgumentsHost): void {
-    const status_code = (exception as { status?: number }).status;
-
     // don't report expected errors
-    if (status_code !== undefined && status_code >= 400 && status_code < 500) {
+    if (exception instanceof HttpException || exception instanceof RpcException) {
       return super.catch(exception, host);
     }
 
@@ -81,6 +86,8 @@ export { SentryGlobalFilter };
  * Service to set up Sentry performance tracing for Nest.js applications.
  */
 class SentryService implements OnModuleInit {
+  public static readonly __SENTRY_INTERNAL__ = true;
+
   /**
    * Initializes the Sentry service and registers span attributes.
    */

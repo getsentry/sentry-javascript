@@ -46,10 +46,12 @@ Initialize the SDK in `entry-client.jsx`
 
 ```jsx
 import * as Sentry from '@sentry/solidstart';
+import { solidRouterBrowserTracingIntegration } from '@sentry/solidstart/solidrouter';
 import { mount, StartClient } from '@solidjs/start/client';
 
 Sentry.init({
   dsn: '__PUBLIC_DSN__',
+  integrations: [solidRouterBrowserTracingIntegration()],
   tracesSampleRate: 1.0, //  Capture 100% of the transactions
 });
 
@@ -69,7 +71,37 @@ Sentry.init({
 });
 ```
 
-### 4. Run your application
+### 4. Server instrumentation
+
+Complete the setup by adding the Sentry middlware to your `src/middleware.ts` file:
+
+```typescript
+import { sentryBeforeResponseMiddleware } from '@sentry/solidstart/middleware';
+import { createMiddleware } from '@solidjs/start/middleware';
+
+export default createMiddleware({
+  onBeforeResponse: [
+    sentryBeforeResponseMiddleware(),
+    // Add your other middleware handlers after `sentryBeforeResponseMiddleware`
+  ],
+});
+```
+
+And don't forget to specify `./src/middleware.ts` in your `app.config.ts`:
+
+```typescript
+import { defineConfig } from '@solidjs/start/config';
+
+export default defineConfig({
+  // ...
+  middleware: './src/middleware.ts',
+});
+```
+
+The Sentry middleware enhances the data collected by Sentry on the server side by enabling distributed tracing between
+the client and server.
+
+### 5. Run your application
 
 Then run your app
 
@@ -128,4 +160,60 @@ render(
   ),
   document.getElementById('root'),
 );
+```
+
+# Sourcemaps and Releases
+
+To generate and upload source maps of your Solid Start app use our Vite bundler plugin.
+
+1. Install the Sentry Vite plugin
+
+```bash
+# Using npm
+npm install @sentry/vite-plugin --save-dev
+
+# Using yarn
+yarn add @sentry/vite-plugin --dev
+```
+
+2. Configure the vite plugin
+
+To upload source maps you have to configure an auth token. Auth tokens can be passed to the plugin explicitly with the
+`authToken` option, with a `SENTRY_AUTH_TOKEN` environment variable, or with an `.env.sentry-build-plugin` file in the
+working directory when building your project. We recommend you add the auth token to your CI/CD environment as an
+environment variable.
+
+Learn more about configuring the plugin in our
+[Sentry Vite Plugin documentation](https://www.npmjs.com/package/@sentry/vite-plugin).
+
+```bash
+// .env.sentry-build-plugin
+SENTRY_AUTH_TOKEN=<your auth token>
+SENTRY_ORG=<your org>
+SENTRY_PROJECT=<your project name>
+```
+
+3. Finally, add the plugin to your `app.config.ts` file.
+
+```javascript
+import { defineConfig } from '@solidjs/start/config';
+import { sentryVitePlugin } from '@sentry/vite-plugin';
+
+export default defineConfig({
+  // rest of your config
+  // ...
+
+  vite: {
+    build: {
+      sourcemap: true,
+    },
+    plugins: [
+      sentryVitePlugin({
+        org: process.env.SENTRY_ORG,
+        project: process.env.SENTRY_PROJECT,
+        authToken: process.env.SENTRY_AUTH_TOKEN,
+      }),
+    ],
+  },
+});
 ```

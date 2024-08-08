@@ -5,6 +5,7 @@ export {
   waitForError,
   waitForRequest,
   waitForTransaction,
+  waitForSession,
   waitForPlainRequest,
 } from './event-proxy-server';
 

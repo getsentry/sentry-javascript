@@ -1,4 +1,4 @@
-import { applySdkMetadata, hasTracingEnabled, setTag } from '@sentry/core';
+import { applySdkMetadata, hasTracingEnabled } from '@sentry/core';
 import type { BrowserOptions } from '@sentry/svelte';
 import { getDefaultIntegrations as getDefaultSvelteIntegrations } from '@sentry/svelte';
 import { WINDOW, init as initSvelteSdk } from '@sentry/svelte';
@@ -36,8 +36,6 @@ export function init(options: BrowserOptions): Client | undefined {
   if (actualFetch) {
     restoreFetch(actualFetch);
   }
-
-  setTag('runtime', 'browser');
 
   return client;
 }
