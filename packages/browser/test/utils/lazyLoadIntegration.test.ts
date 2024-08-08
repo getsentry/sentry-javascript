@@ -71,9 +71,11 @@ describe('lazyLoadIntegration', () => {
       httpClientIntegration: undefined,
     };
 
-    // We do not await here, as this this does not seem to work with JSDOM :(
-    // We have browser integration tests to check that this actually works
-    void lazyLoadIntegration('httpClientIntegration');
+    try {
+      await lazyLoadIntegration('httpClientIntegration');
+    } catch {
+      // skip
+    }
 
     expect(global.document.querySelectorAll('script')).toHaveLength(1);
     expect(global.document.querySelector('script')?.src).toEqual(

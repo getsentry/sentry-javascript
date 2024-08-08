@@ -11,7 +11,7 @@ import { instrumentMongo, mongoIntegration } from './mongo';
 import { instrumentMongoose, mongooseIntegration } from './mongoose';
 import { instrumentMysql, mysqlIntegration } from './mysql';
 import { instrumentMysql2, mysql2Integration } from './mysql2';
-import { instrumentNest, nestIntegration } from './nest';
+import { instrumentNest, nestIntegration } from './nest/nest';
 import { instrumentPostgres, postgresIntegration } from './postgres';
 import { instrumentRedis, redisIntegration } from './redis';
 

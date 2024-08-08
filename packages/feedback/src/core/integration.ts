@@ -209,12 +209,24 @@ export const buildFeedbackIntegration = ({
           logger.error('[Feedback] Missing feedback screenshot integration. Proceeding without screenshots.');
       }
 
-      return modalIntegration.createDialog({
-        options,
+      const dialog = modalIntegration.createDialog({
+        options: {
+          ...options,
+          onFormClose: () => {
+            dialog && dialog.close();
+            options.onFormClose && options.onFormClose();
+          },
+          onFormSubmitted: () => {
+            dialog && dialog.close();
+            options.onFormSubmitted && options.onFormSubmitted();
+          },
+        },
         screenshotIntegration: screenshotRequired ? screenshotIntegration : undefined,
         sendFeedback,
         shadow: _createShadow(options),
       });
+
+      return dialog;
     };
 
     const _attachTo = (el: Element | string, optionOverrides: OverrideFeedbackConfiguration = {}): Unsubscribe => {
@@ -233,10 +245,6 @@ export const buildFeedbackIntegration = ({
         if (!dialog) {
           dialog = await _loadAndRenderDialog({
             ...mergedOptions,
-            onFormClose: () => {
-              dialog && dialog.close();
-              mergedOptions.onFormClose && mergedOptions.onFormClose();
-            },
             onFormSubmitted: () => {
               dialog && dialog.removeFromDom();
               mergedOptions.onFormSubmitted && mergedOptions.onFormSubmitted();

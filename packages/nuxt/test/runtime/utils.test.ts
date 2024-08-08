@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { extractErrorContext } from '../../../src/runtime/utils';
+import { extractErrorContext } from '../../src/runtime/utils';
 
 describe('extractErrorContext', () => {
   it('returns empty object for undefined or empty context', () => {

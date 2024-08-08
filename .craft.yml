@@ -115,6 +115,9 @@ targets:
     id: '@sentry/remix'
     includeNames: /^sentry-remix-\d.*\.tgz$/
   - name: npm
+    id: '@sentry/solidstart'
+    includeNames: /^sentry-solidstart-\d.*\.tgz$/
+  - name: npm
     id: '@sentry/sveltekit'
     includeNames: /^sentry-sveltekit-\d.*\.tgz$/
   - name: npm
@@ -183,6 +186,8 @@ targets:
             format: base64
       'npm:@sentry/bun':
         onlyIfPresent: /^sentry-bun-\d.*\.tgz$/
+      'npm:@sentry/cloudflare':
+        onlyIfPresent: /^sentry-cloudflare-\d.*\.tgz$/
       'npm:@sentry/deno':
         onlyIfPresent: /^sentry-deno-\d.*\.tgz$/
       'npm:@sentry/ember':

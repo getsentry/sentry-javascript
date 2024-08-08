@@ -56,6 +56,7 @@ export {
   getActiveSpan,
   getRootSpan,
   getTraceData,
+  getTraceMetaTags,
   startSpan,
   startInactiveSpan,
   startSpanManual,
@@ -87,6 +88,8 @@ export {
 
 export { withSentry } from './handler';
 export { sentryPagesPlugin } from './pages-plugin';
+
+export { wrapRequestHandler } from './request';
 
 export { CloudflareClient } from './client';
 export { getDefaultIntegrations } from './sdk';

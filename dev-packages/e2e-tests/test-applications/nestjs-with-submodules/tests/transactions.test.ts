@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
 test('Sends an API route transaction from module', async ({ baseURL }) => {
-  const pageloadTransactionEventPromise = waitForTransaction('nestjs', transactionEvent => {
+  const pageloadTransactionEventPromise = waitForTransaction('nestjs-with-submodules', transactionEvent => {
     return (
       transactionEvent?.contexts?.trace?.op === 'http.server' &&
       transactionEvent?.transaction === 'GET /example-module/transaction'
@@ -118,6 +118,80 @@ test('Sends an API route transaction from module', async ({ baseURL }) => {
       transaction_info: {
         source: 'route',
       },
+    }),
+  );
+});
+
+test('API route transaction includes exception filter span for global filter', async ({ baseURL }) => {
+  const transactionEventPromise = waitForTransaction('nestjs-with-submodules', transactionEvent => {
+    return (
+      transactionEvent?.contexts?.trace?.op === 'http.server' &&
+      transactionEvent?.transaction === 'GET /example-module/expected-exception' &&
+      transactionEvent?.request?.url?.includes('/example-module/expected-exception')
+    );
+  });
+
+  const response = await fetch(`${baseURL}/example-module/expected-exception`);
+  expect(response.status).toBe(400);
+
+  const transactionEvent = await transactionEventPromise;
+
+  expect(transactionEvent).toEqual(
+    expect.objectContaining({
+      spans: expect.arrayContaining([
+        {
+          span_id: expect.any(String),
+          trace_id: expect.any(String),
+          data: {
+            'sentry.op': 'middleware.nestjs',
+            'sentry.origin': 'auto.middleware.nestjs',
+          },
+          description: 'ExampleExceptionFilter',
+          parent_span_id: expect.any(String),
+          start_timestamp: expect.any(Number),
+          timestamp: expect.any(Number),
+          status: 'ok',
+          op: 'middleware.nestjs',
+          origin: 'auto.middleware.nestjs',
+        },
+      ]),
+    }),
+  );
+});
+
+test('API route transaction includes exception filter span for local filter', async ({ baseURL }) => {
+  const transactionEventPromise = waitForTransaction('nestjs-with-submodules', transactionEvent => {
+    return (
+      transactionEvent?.contexts?.trace?.op === 'http.server' &&
+      transactionEvent?.transaction === 'GET /example-module-local-filter/expected-exception' &&
+      transactionEvent?.request?.url?.includes('/example-module-local-filter/expected-exception')
+    );
+  });
+
+  const response = await fetch(`${baseURL}/example-module-local-filter/expected-exception`);
+  expect(response.status).toBe(400);
+
+  const transactionEvent = await transactionEventPromise;
+
+  expect(transactionEvent).toEqual(
+    expect.objectContaining({
+      spans: expect.arrayContaining([
+        {
+          span_id: expect.any(String),
+          trace_id: expect.any(String),
+          data: {
+            'sentry.op': 'middleware.nestjs',
+            'sentry.origin': 'auto.middleware.nestjs',
+          },
+          description: 'LocalExampleExceptionFilter',
+          parent_span_id: expect.any(String),
+          start_timestamp: expect.any(Number),
+          timestamp: expect.any(Number),
+          status: 'ok',
+          op: 'middleware.nestjs',
+          origin: 'auto.middleware.nestjs',
+        },
+      ]),
     }),
   );
 });

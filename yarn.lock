@@ -6163,6 +6163,14 @@
     path-to-regexp "3.2.0"
     tslib "2.6.3"
 
+"@nestjs/microservices@^8.0.0 || ^9.0.0 || ^10.0.0":
+  version "10.3.10"
+  resolved "https://registry.yarnpkg.com/@nestjs/microservices/-/microservices-10.3.10.tgz#e00957e0c22b0cc8b041242a40538e2d862255fb"
+  integrity sha512-zZrilhZmXU2Ik5Usrcy4qEX262Uhvz0/9XlIdX6SRn8I39ns1EE9tAhEBmmkMwh7lsEikRFa4aaa05loi8Gsow==
+  dependencies:
+    iterare "1.2.1"
+    tslib "2.6.3"
+
 "@nestjs/platform-express@^10.3.3":
   version "10.3.3"
   resolved "https://registry.yarnpkg.com/@nestjs/platform-express/-/platform-express-10.3.3.tgz#c1484d30d1e7666c4c8d0d7cde31cfc0b9d166d7"
@@ -24509,10 +24517,10 @@ mini-css-extract-plugin@2.6.1, mini-css-extract-plugin@^2.5.2:
   dependencies:
     schema-utils "^4.0.0"
 
-miniflare@3.20240718.0, miniflare@^3.20240718.0:
-  version "3.20240718.0"
-  resolved "https://registry.yarnpkg.com/miniflare/-/miniflare-3.20240718.0.tgz#41561c6620b2b15803f5b3d2e903ed3af40f3b0b"
-  integrity sha512-TKgSeyqPBeT8TBLxbDJOKPWlq/wydoJRHjAyDdgxbw59N6wbP8JucK6AU1vXCfu21eKhrEin77ssXOpbfekzPA==
+miniflare@3.20240718.1:
+  version "3.20240718.1"
+  resolved "https://registry.yarnpkg.com/miniflare/-/miniflare-3.20240718.1.tgz#26ccb95be087cd99cd478dbf2e3a3d40f231bf45"
+  integrity sha512-mn3MjGnpgYvarCRTfz4TQyVyY8yW0zz7f8LOAPVai78IGC/lcVcyskZcuIr7Zovb2i+IERmmsJAiEPeZHIIKbA==
   dependencies:
     "@cspotcode/source-map-support" "0.8.1"
     acorn "^8.8.0"
@@ -34381,10 +34389,10 @@ workerpool@^6.4.0:
   resolved "https://registry.yarnpkg.com/workerpool/-/workerpool-6.4.0.tgz#f8d5cfb45fde32fa3b7af72ad617c3369567a462"
   integrity sha512-i3KR1mQMNwY2wx20ozq2EjISGtQWDIfV56We+yGJ5yDs8jTwQiLLaqHlkBHITlCuJnYlVRmXegxFxZg7gqI++A==
 
-wrangler@^3.65.1:
-  version "3.65.1"
-  resolved "https://registry.yarnpkg.com/wrangler/-/wrangler-3.65.1.tgz#493bd92b504f9f056cd57bbe2d430797600c914b"
-  integrity sha512-Z5NyrbpGMQCpim/6VnI1im0/Weh5+CU1sdep1JbfFxHjn/Jt9K+MeUq+kCns5ubkkdRx2EYsusB/JKyX2JdJ4w==
+wrangler@^3.67.1:
+  version "3.67.1"
+  resolved "https://registry.yarnpkg.com/wrangler/-/wrangler-3.67.1.tgz#c9bb344b70c8c2106ad33f03beaa063dd5b49526"
+  integrity sha512-lLVJxq/OZMfntvZ79WQJNC1OKfxOCs6PLfogqDBuPFEQ3L/Mwqvd9IZ0bB8ahrwUN/K3lSdDPXynk9HfcGZxVw==
   dependencies:
     "@cloudflare/kv-asset-handler" "0.3.4"
     "@esbuild-plugins/node-globals-polyfill" "^0.2.3"
@@ -34393,7 +34401,7 @@ wrangler@^3.65.1:
     chokidar "^3.5.3"
     date-fns "^3.6.0"
     esbuild "0.17.19"
-    miniflare "3.20240718.0"
+    miniflare "3.20240718.1"
     nanoid "^3.3.3"
     path-to-regexp "^6.2.0"
     resolve "^1.22.8"
@@ -34401,6 +34409,7 @@ wrangler@^3.65.1:
     selfsigned "^2.0.1"
     source-map "^0.6.1"
     unenv "npm:unenv-nightly@1.10.0-1717606461.a117952"
+    workerd "1.20240718.0"
     xxhash-wasm "^1.0.1"
   optionalDependencies:
     fsevents "~2.3.2"
