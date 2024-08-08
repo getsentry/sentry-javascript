@@ -33,12 +33,13 @@ export function wrapServerRouteWithSentry(
   return new Proxy(originalRouteHandler, {
     apply: async (wrappingTarget, thisArg, args) => {
       const event = args[0] as PatchedServerRouteEvent;
-      const routeId = event.route && event.route.id;
-      const httpMethod = event.request.method;
 
       if (event.__sentry_wrapped__) {
         return wrappingTarget.apply(thisArg, args);
       }
+
+      const routeId = event.route && event.route.id;
+      const httpMethod = event.request.method;
 
       addNonEnumerableProperty(event as unknown as Record<string, unknown>, '__sentry_wrapped__', true);
 
