@@ -8,10 +8,9 @@ export class ExampleLocalFilter implements ExceptionFilter {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
     const request = ctx.getRequest<Request>();
-    const status = exception.getStatus();
     console.log('Example local exception filter!');
 
-    response.status(status).json({
+    response.status(400).json({
       statusCode: 400,
       timestamp: new Date().toISOString(),
       path: request.url,
