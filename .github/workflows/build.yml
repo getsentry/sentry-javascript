@@ -528,7 +528,7 @@ jobs:
         run: yarn lerna run test --scope @sentry/profiling-node
 
   job_browser_playwright_tests:
-    name: Playwright (${{ matrix.bundle }}${{ matrix.shard && format(' {0}/{1}', matrix.shard, matrix.shards) || ''}}) Tests
+    name: Playwright (${{ matrix.bundle }}${{ matrix.project && matrix.project != 'chromium' && format(' {0}', matrix.project) || ''}}${{ matrix.shard && format(' {0}/{1}', matrix.shard, matrix.shards) || ''}}) Tests
     needs: [job_get_metadata, job_build]
     if: needs.job_build.outputs.changed_browser_integration == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-20.04-large-js
@@ -551,13 +551,9 @@ jobs:
           # Only check all projects for full bundle
           # We also shard the tests as they take the longest
           - bundle: bundle_tracing_replay_feedback_min
-            project: ''
-            shard: 1
-            shards: 2
+            project: 'webkit'
           - bundle: bundle_tracing_replay_feedback_min
-            project: ''
-            shard: 2
-            shards: 2
+            project: 'firefox'
           - bundle: esm
             project: chromium
             shard: 1
@@ -575,9 +571,7 @@ jobs:
             shard: 4
             shards: 4
         exclude:
-          # Do not run the default chromium-only tests
-          - bundle: bundle_tracing_replay_feedback_min
-            project: 'chromium'
+          # Do not run the un-sharded esm tests
           - bundle: esm
             project: 'chromium'
 
