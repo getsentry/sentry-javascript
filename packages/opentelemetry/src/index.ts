@@ -1,3 +1,5 @@
+export { SEMANTIC_ATTRIBUTE_SENTRY_GRAPHQL_OPERATION } from './semanticAttributes';
+
 export { getRequestSpanData } from './utils/getRequestSpanData';
 
 export type { OpenTelemetryClient } from './types';
