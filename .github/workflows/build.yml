@@ -559,15 +559,19 @@ jobs:
             shard: 2
             shards: 2
           - bundle: esm
+            project: chromium
             shard: 1
             shards: 4
           - bundle: esm
+            project: chromium
             shard: 2
             shards: 4
           - bundle: esm
+            project: chromium
             shard: 3
             shards: 4
           - bundle: esm
+            project: chromium
             shard: 4
             shards: 4
         exclude:
