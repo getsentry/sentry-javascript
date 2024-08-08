@@ -40,6 +40,10 @@ export function markEventUnhandled(scope: Scope): Scope {
 /**
  * Extracts sentry trace data from the handler `context` if available and falls
  * back to the `event`.
+ *
+ * When instrumenting the Lambda function with Sentry, the sentry trace data
+ * is placed on `context.clientContext.Custom`. Users are free to modify context
+ * tho and provide this data via `event` or `context`.
  */
 export function getAwsTraceData(event: HandlerEvent, context?: HandlerContext): TraceData {
   const headers = event.headers || {};
