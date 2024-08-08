@@ -212,13 +212,6 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
   };
 
   /**
-   * Only works for Node or backend SDKs as we need Spotlight integration separately to keep the
-   * bundle tree-shakable. Adding here so we can warn if someone sets this to `true` on the browser
-   * SDKs, we can warn them about the "right way" (through integrations)
-   */
-  spotlight?: boolean | string;
-
-  /**
    * A pattern for error URLs which should exclusively be sent to Sentry.
    * This is the opposite of {@link Options.denyUrls}.
    * By default, all errors will be sent.
