@@ -137,15 +137,15 @@ export function descriptionForHttpMethod(
     return { op: opParts.join('.'), description: name, source: 'custom' };
   }
 
-  const graphqlOperations = attributes[SEMANTIC_ATTRIBUTE_SENTRY_GRAPHQL_OPERATION];
+  const graphqlOperationsAttribute = attributes[SEMANTIC_ATTRIBUTE_SENTRY_GRAPHQL_OPERATION];
 
   // Ex. GET /api/users
   const baseDescription = `${httpMethod} ${urlPath}`;
 
   // When the http span has a graphql operation, append it to the description
   // We add these in the graphqlIntegration
-  const description = graphqlOperations
-    ? `${baseDescription} (${getGraphqlOperationNames(graphqlOperations)})`
+  const description = graphqlOperationsAttribute
+    ? `${baseDescription} (${getGraphqlOperationNamesFromAttribute(graphqlOperationsAttribute)})`
     : baseDescription;
 
   // If `httpPath` is a root path, then we can categorize the transaction source as route.
@@ -171,7 +171,7 @@ export function descriptionForHttpMethod(
   };
 }
 
-function getGraphqlOperationNames(attr: AttributeValue): string {
+function getGraphqlOperationNamesFromAttribute(attr: AttributeValue): string {
   if (Array.isArray(attr)) {
     const sorted = attr.slice().sort();
 
