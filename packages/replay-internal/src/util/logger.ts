@@ -68,7 +68,20 @@ function makeReplayLogger(): ReplayLogger {
   };
 
   if (DEBUG_BUILD) {
-    _logger.exception = (error: unknown) => {
+    CONSOLE_LEVELS.forEach(name => {
+      _logger[name] = (...args: unknown[]) => {
+        coreLogger[name](PREFIX, ...args);
+        if (_trace) {
+          _addBreadcrumb(args[0]);
+        }
+      };
+    });
+
+    _logger.exception = (error: unknown, ...message: unknown[]) => {
+      if (message && _logger.error) {
+        _logger.error(...message);
+      }
+
       coreLogger.error(PREFIX, error);
 
       if (_capture) {
@@ -86,15 +99,6 @@ function makeReplayLogger(): ReplayLogger {
         setTimeout(() => _addBreadcrumb(args[0]), 0);
       }
     };
-
-    CONSOLE_LEVELS.forEach(name => {
-      _logger[name] = (...args: unknown[]) => {
-        coreLogger[name](PREFIX, ...args);
-        if (_trace) {
-          _addBreadcrumb(args[0]);
-        }
-      };
-    });
   } else {
     CONSOLE_LEVELS.forEach(name => {
       _logger[name] = () => undefined;

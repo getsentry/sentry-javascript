@@ -39,8 +39,7 @@ export async function captureXhrBreadcrumbToReplay(
     const result = makeNetworkReplayBreadcrumb('resource.xhr', data);
     addNetworkBreadcrumb(options.replay, result);
   } catch (error) {
-    DEBUG_BUILD && logger.warn('Failed to capture xhr breadcrumb');
-    DEBUG_BUILD && logger.exception(error);
+    DEBUG_BUILD && logger.exception(error, 'Failed to capture xhr breadcrumb');
   }
 }
 
@@ -199,8 +198,7 @@ export function _parseXhrResponse(
       return [undefined];
     }
   } catch (error) {
-    DEBUG_BUILD && logger.warn('Failed to serialize body', body);
-    DEBUG_BUILD && logger.exception(error);
+    DEBUG_BUILD && logger.exception(error, 'Failed to serialize body', body);
     return [undefined, 'BODY_PARSE_ERROR'];
   }
 

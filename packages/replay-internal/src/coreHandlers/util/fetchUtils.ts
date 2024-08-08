@@ -42,8 +42,7 @@ export async function captureFetchBreadcrumbToReplay(
     const result = makeNetworkReplayBreadcrumb('resource.fetch', data);
     addNetworkBreadcrumb(options.replay, result);
   } catch (error) {
-    DEBUG_BUILD && logger.error('Failed to capture fetch breadcrumb');
-    DEBUG_BUILD && logger.exception(error);
+    DEBUG_BUILD && logger.exception(error, 'Failed to capture fetch breadcrumb');
   }
 }
 
@@ -193,8 +192,7 @@ function getResponseData(
 
     return buildNetworkRequestOrResponse(headers, size, undefined);
   } catch (error) {
-    DEBUG_BUILD && logger.warn('Failed to serialize response body');
-    DEBUG_BUILD && logger.exception(error);
+    DEBUG_BUILD && logger.exception(error, 'Failed to serialize response body');
     // fallback
     return buildNetworkRequestOrResponse(headers, responseBodySize, undefined);
   }
@@ -211,8 +209,7 @@ async function _parseFetchResponseBody(response: Response): Promise<[string | un
     const text = await _tryGetResponseText(res);
     return [text];
   } catch (error) {
-    DEBUG_BUILD && logger.warn('Failed to get text body from response');
-    DEBUG_BUILD && logger.exception(error);
+    DEBUG_BUILD && logger.exception(error, 'Failed to get text body from response');
     return [undefined, 'BODY_PARSE_ERROR'];
   }
 }
@@ -282,8 +279,7 @@ function _tryCloneResponse(response: Response): Response | void {
     return response.clone();
   } catch (error) {
     // this can throw if the response was already consumed before
-    DEBUG_BUILD && logger.warn('Failed to clone response body');
-    DEBUG_BUILD && logger.exception(error);
+    DEBUG_BUILD && logger.exception(error, 'Failed to clone response body');
   }
 }
 

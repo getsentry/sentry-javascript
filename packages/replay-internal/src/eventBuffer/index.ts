@@ -49,8 +49,7 @@ function _loadWorker(customWorkerUrl?: string): EventBufferProxy | void {
     const worker = new Worker(workerUrl);
     return new EventBufferProxy(worker);
   } catch (error) {
-    DEBUG_BUILD && logger.warn('Failed to create compression worker');
-    DEBUG_BUILD && logger.exception(error);
+    DEBUG_BUILD && logger.exception(error, 'Failed to create compression worker');
     // Fall back to use simple event buffer array
   }
 }

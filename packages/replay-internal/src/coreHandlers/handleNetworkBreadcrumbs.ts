@@ -79,8 +79,7 @@ export function beforeAddNetworkBreadcrumb(
       captureFetchBreadcrumbToReplay(breadcrumb, hint, options);
     }
   } catch (e) {
-    DEBUG_BUILD && logger.warn('Error when enriching network breadcrumb');
-    DEBUG_BUILD && logger.exception(e);
+    DEBUG_BUILD && logger.exception(e, 'Error when enriching network breadcrumb');
   }
 }
 

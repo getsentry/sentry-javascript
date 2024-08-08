@@ -89,8 +89,7 @@ export class EventBufferProxy implements EventBuffer {
     } catch (error) {
       // If the worker fails to load, we fall back to the simple buffer.
       // Nothing more to do from our side here
-      DEBUG_BUILD && logger.info('Failed to load the compression worker, falling back to simple buffer');
-      DEBUG_BUILD && logger.exception(error);
+      DEBUG_BUILD && logger.exception(error, 'Failed to load the compression worker, falling back to simple buffer');
       return;
     }
 
@@ -117,8 +116,7 @@ export class EventBufferProxy implements EventBuffer {
     try {
       await Promise.all(addEventPromises);
     } catch (error) {
-      DEBUG_BUILD && logger.error('Failed to add events when switching buffers.');
-      DEBUG_BUILD && logger.exception(error);
+      DEBUG_BUILD && logger.exception(error, 'Failed to add events when switching buffers.');
     }
   }
 }

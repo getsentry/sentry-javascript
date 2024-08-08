@@ -79,8 +79,7 @@ export function getBodyString(body: unknown): [string | undefined, NetworkMetaWa
       return [undefined];
     }
   } catch (error) {
-    DEBUG_BUILD && logger.warn('Failed to serialize body', body);
-    DEBUG_BUILD && logger.exception(error);
+    DEBUG_BUILD && logger.exception(error, 'Failed to serialize body', body);
     return [undefined, 'BODY_PARSE_ERROR'];
   }
 

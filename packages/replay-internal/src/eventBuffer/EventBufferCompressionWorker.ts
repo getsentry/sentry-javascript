@@ -88,8 +88,7 @@ export class EventBufferCompressionWorker implements EventBuffer {
 
     // We do not wait on this, as we assume the order of messages is consistent for the worker
     this._worker.postMessage('clear').then(null, e => {
-      DEBUG_BUILD && logger.warn('Sending "clear" message to worker failed', e);
-      DEBUG_BUILD && logger.exception(e);
+      DEBUG_BUILD && logger.exception(e, 'Sending "clear" message to worker failed', e);
     });
   }
 
