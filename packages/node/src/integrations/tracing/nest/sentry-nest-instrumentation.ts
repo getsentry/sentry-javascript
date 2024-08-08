@@ -9,7 +9,7 @@ import { getActiveSpan, startSpan, startSpanManual, withActiveSpan } from '@sent
 import type { Span } from '@sentry/types';
 import { SDK_VERSION } from '@sentry/utils';
 import { getMiddlewareSpanOptions, isPatched } from './helpers';
-import type {InjectableTarget, Observable} from './types';
+import type { CatchTarget, InjectableTarget, Observable } from './types';
 
 const supportedVersions = ['>=8.0.0 <11'];
 
@@ -34,7 +34,10 @@ export class SentryNestInstrumentation extends InstrumentationBase {
   public init(): InstrumentationNodeModuleDefinition {
     const moduleDef = new InstrumentationNodeModuleDefinition(SentryNestInstrumentation.COMPONENT, supportedVersions);
 
-    moduleDef.files.push(this._getInjectableFileInstrumentation(supportedVersions));
+    moduleDef.files.push(
+      this._getInjectableFileInstrumentation(supportedVersions),
+      this._getCatchFileInstrumentation(supportedVersions),
+    );
     return moduleDef;
   }
 
@@ -59,9 +62,27 @@ export class SentryNestInstrumentation extends InstrumentationBase {
   }
 
   /**
+   * Wraps the @Catch decorator.
+   */
+  private _getCatchFileInstrumentation(versions: string[]): InstrumentationNodeModuleFile {
+    return new InstrumentationNodeModuleFile(
+      '@nestjs/common/decorators/core/catch.decorator.js',
+      versions,
+      (moduleExports: { Catch: CatchTarget }) => {
+        if (isWrapped(moduleExports.Catch)) {
+          this._unwrap(moduleExports, 'Catch');
+        }
+        this._wrap(moduleExports, 'Catch', this._createWrapCatch());
+        return moduleExports;
+      },
+      (moduleExports: { Catch: CatchTarget }) => {
+        this._unwrap(moduleExports, 'Catch');
+      },
+    );
+  }
+
+  /**
    * Creates a wrapper function for the @Injectable decorator.
-   *
-   * Wraps the use method to instrument nest class middleware.
    */
   private _createWrapInjectable() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -203,6 +224,35 @@ export class SentryNestInstrumentation extends InstrumentationBase {
           }
 
           return original(options)(target);
+        };
+      };
+    };
+  }
+
+  /**
+   * Creates a wrapper function for the @Catch decorator. Used to instrument exception filters.
+   */
+  private _createWrapCatch() {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return function wrapCatch(original: any) {
+      return function wrappedCatch(...exceptions: unknown[]) {
+        return function (target: CatchTarget) {
+          if (typeof target.prototype.catch === 'function' && !target.__SENTRY_INTERNAL__) {
+            // patch only once
+            if (isPatched(target)) {
+              return original(...exceptions)(target);
+            }
+
+            target.prototype.catch = new Proxy(target.prototype.catch, {
+              apply: (originalCatch, thisArgCatch, argsCatch) => {
+                return startSpan(getMiddlewareSpanOptions(target), () => {
+                  return originalCatch.apply(thisArgCatch, argsCatch);
+                });
+              },
+            });
+          }
+
+          return original(...exceptions)(target);
         };
       };
     };
