@@ -641,6 +641,8 @@ jobs:
 
       - name: Install Playwright
         uses: ./.github/actions/install-playwright
+        with:
+          browsers: chromium
 
       - name: Run Playwright Loader tests
         env:
@@ -752,8 +754,12 @@ jobs:
         uses: ./.github/actions/restore-cache
         env:
           DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
+
       - name: Install Playwright
         uses: ./.github/actions/install-playwright
+        with:
+          browsers: chromium
+
       - name: Run integration tests
         env:
           NODE_VERSION: ${{ matrix.node }}
@@ -955,6 +961,8 @@ jobs:
 
       - name: Install Playwright
         uses: ./.github/actions/install-playwright
+        with:
+          browsers: chromium
 
       - name: Get node version
         id: versions
@@ -1052,6 +1060,8 @@ jobs:
 
       - name: Install Playwright
         uses: ./.github/actions/install-playwright
+        with:
+          browsers: chromium
 
       - name: Get node version
         id: versions
@@ -1152,6 +1162,8 @@ jobs:
 
       - name: Install Playwright
         uses: ./.github/actions/install-playwright
+        with:
+          browsers: chromium
 
       - name: Get node version
         id: versions
