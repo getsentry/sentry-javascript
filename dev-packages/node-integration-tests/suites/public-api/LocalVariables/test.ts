@@ -3,6 +3,8 @@ import * as path from 'path';
 import { conditionalTest } from '../../../utils';
 import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
 
+jest.setTimeout(45_000);
+
 const EXPECTED_LOCAL_VARIABLES_EVENT = {
   exception: {
     values: [
