@@ -1,9 +1,9 @@
 import { Controller, Get, Param, ParseIntPipe, UseGuards, UseInterceptors } from '@nestjs/common';
 import { flush } from '@sentry/nestjs';
 import { AppService } from './app.service';
-import { ExampleExceptionWithFilter } from './example-with-filter.exception';
 import { ExampleGuard } from './example.guard';
 import { ExampleInterceptor } from './example.interceptor';
+import { ExampleExceptionGlobalFilter } from "./example-global-filter.exception";
 
 @Controller()
 export class AppController {
@@ -76,8 +76,8 @@ export class AppController {
     await flush();
   }
 
-  @Get('example-exception-with-filter')
-  async exampleExceptionWithFilter() {
-    throw new ExampleExceptionWithFilter();
+  @Get('example-exception-global-filter')
+  async exampleExceptionGlobalFilter() {
+    throw new ExampleExceptionGlobalFilter();
   }
 }

@@ -96,7 +96,7 @@ test('Does not send RpcExceptions to Sentry', async ({ baseURL }) => {
 });
 
 test('Global exception filter registered in root module is applied', async ({ baseURL }) => {
-  const response = await fetch(`${baseURL}/example-exception-with-filter`);
+  const response = await fetch(`${baseURL}/example-exception-global-filter`);
   const responseBody = await response.json();
 
   console.log(responseBody);
