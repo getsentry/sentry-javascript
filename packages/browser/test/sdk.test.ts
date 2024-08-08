@@ -185,7 +185,7 @@ describe('init', () => {
       consoleErrorSpy.mockRestore();
     });
 
-    it.each(['chrome-extension', 'moz-extension', 'ms-browser-extension'])(
+    it.each(['chrome-extension', 'moz-extension', 'ms-browser-extension', 'safari-web-extension'])(
       "doesn't log a browser extension error if executed inside an extension running in a dedicated page (%s)",
       extensionProtocol => {
         const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
