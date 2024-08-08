@@ -5,11 +5,11 @@ import {
   InstrumentationNodeModuleDefinition,
   InstrumentationNodeModuleFile,
 } from '@opentelemetry/instrumentation';
-import { getActiveSpan, startSpan, startSpanManual, withActiveSpan } from '@sentry/core';
+import { getActiveSpan, startInactiveSpan, startSpan, startSpanManual, withActiveSpan } from '@sentry/core';
 import type { Span } from '@sentry/types';
 import { SDK_VERSION } from '@sentry/utils';
 import { getMiddlewareSpanOptions, isPatched } from './helpers';
-import type { CatchTarget, InjectableTarget, Observable } from './types';
+import type { CallHandler, CatchTarget, InjectableTarget, Observable, Subscription } from './types';
 
 const supportedVersions = ['>=8.0.0 <11'];
 
@@ -161,64 +161,46 @@ export class SentryNestInstrumentation extends InstrumentationBase {
 
             target.prototype.intercept = new Proxy(target.prototype.intercept, {
               apply: (originalIntercept, thisArgIntercept, argsIntercept) => {
-                const [executionContext, next, args] = argsIntercept;
+                const next: CallHandler = argsIntercept[1];
                 const prevSpan = getActiveSpan();
+                let afterSpan: Span;
 
                 return startSpanManual(getMiddlewareSpanOptions(target), (span: Span) => {
-                  const nextProxy = new Proxy(next, {
-                    get: (thisArgNext, property, receiver) => {
-                      if (property === 'handle') {
-                        const originalHandle = Reflect.get(thisArgNext, property, receiver);
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                        return (...args: any[]) => {
-                          span.end();
+                  // eslint-disable-next-line @typescript-eslint/unbound-method
+                  next.handle = new Proxy(next.handle, {
+                    apply: (originalHandle, thisArgHandle, argsHandle) => {
+                      span.end();
 
-                          if (prevSpan) {
-                            return withActiveSpan(prevSpan, () => {
-                              console.log('active span!');
-                              const returnedObservable: Observable<unknown> = Reflect.apply(
-                                originalHandle,
-                                thisArgNext,
-                                args,
-                              );
-
-                              return new Proxy(returnedObservable, {
-                                get(observableTarget, observableProperty, observableReceiver) {
-                                  if (observableProperty === 'subscribe') {
-                                    return new Proxy(observableTarget.subscribe, {
-                                      apply(originalSubscribe, thisArgSubscribe, argsSubscribe) {
-                                        return startSpanManual(getMiddlewareSpanOptions(target), (afterSpan: Span) => {
-                                          console.log('Observable subscribed');
-                                          const subscription = originalSubscribe.apply(thisArgSubscribe, argsSubscribe);
-
-                                          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-                                          subscription.add(() => {
-                                            console.log('Observable completed');
-                                            afterSpan.end();
-                                          });
-
-                                          return subscription;
-                                        });
-                                      },
-                                    });
-                                  }
-
-                                  return Reflect.get(observableTarget, observableProperty, observableReceiver);
-                                },
-                              });
-                            });
-                          } else {
-                            console.log('no active span!');
-                            return Reflect.apply(originalHandle, thisArgNext, args);
-                          }
-                        };
+                      if (prevSpan) {
+                        return withActiveSpan(prevSpan, () => {
+                          const handleReturn = Reflect.apply(originalHandle, thisArgHandle, argsHandle);
+                          afterSpan = startInactiveSpan(getMiddlewareSpanOptions(target));
+                          return handleReturn;
+                        });
+                      } else {
+                        const handleReturn = Reflect.apply(originalHandle, thisArgHandle, argsHandle);
+                        afterSpan = startInactiveSpan(getMiddlewareSpanOptions(target));
+                        return handleReturn;
                       }
-
-                      return Reflect.get(target, property, receiver);
                     },
                   });
 
-                  return originalIntercept.apply(thisArgIntercept, [executionContext, nextProxy, args]);
+                  // TODO: maybe promise<observable>
+                  const returnedObservableIntercept: Observable<unknown> = originalIntercept.apply(
+                    thisArgIntercept,
+                    argsIntercept,
+                  );
+
+                  // eslint-disable-next-line @typescript-eslint/unbound-method
+                  returnedObservableIntercept.subscribe = new Proxy(returnedObservableIntercept.subscribe, {
+                    apply: (originalSubscribe, thisArgSubscribe, argsSubscribe) => {
+                      const subscription: Subscription = originalSubscribe.apply(thisArgSubscribe, argsSubscribe);
+                      subscription.add(() => afterSpan.end());
+                      return subscription;
+                    },
+                  });
+
+                  return returnedObservableIntercept;
                 });
               },
             });
