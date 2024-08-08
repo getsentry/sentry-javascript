@@ -1,4 +1,3 @@
-/* eslint-disable complexity */
 // Based on Remix's implementation of Fetch API
 // https://github.com/remix-run/web-std-io/blob/d2a003fe92096aaf97ab2a618b74875ccaadc280/packages/fetch/
 // The MIT License (MIT)
@@ -23,10 +22,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-import { logger } from '@sentry/utils';
-
-import { DEBUG_BUILD } from './debug-build';
-import { getClientIPAddress } from './vendor/getIpAddress';
 import type { RemixRequest } from './vendor/types';
 
 /*
@@ -124,15 +119,6 @@ export const normalizeRemixRequest = (request: RemixRequest): Record<string, any
     headers.set('Connection', 'close');
   }
 
-  let ip;
-
-  // Using a try block here not to break the whole request if we can't get the IP address
-  try {
-    ip = getClientIPAddress(headers);
-  } catch (e) {
-    DEBUG_BUILD && logger.warn('Could not get client IP address', e);
-  }
-
   // HTTP-network fetch step 4.2
   // chunked encoding is handled by Node.js
   const search = getSearch(parsedURL);
@@ -156,9 +142,6 @@ export const normalizeRemixRequest = (request: RemixRequest): Record<string, any
 
     // [SENTRY] For compatibility with Sentry SDK RequestData parser, adding `originalUrl` property.
     originalUrl: parsedURL.href,
-
-    // [SENTRY] Adding `ip` property if found inside headers.
-    ip,
   };
 
   return requestOptions;
