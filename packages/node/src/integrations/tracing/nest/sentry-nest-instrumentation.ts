@@ -176,7 +176,11 @@ export class SentryNestInstrumentation extends InstrumentationBase {
                           if (prevSpan) {
                             return withActiveSpan(prevSpan, () => {
                               console.log('active span!');
-                              const returnedObservable: Observable<unknown> =  Reflect.apply(originalHandle, thisArgNext, args);
+                              const returnedObservable: Observable<unknown> = Reflect.apply(
+                                originalHandle,
+                                thisArgNext,
+                                args,
+                              );
 
                               return new Proxy(returnedObservable, {
                                 get(observableTarget, observableProperty, observableReceiver) {
@@ -191,20 +195,17 @@ export class SentryNestInstrumentation extends InstrumentationBase {
                                           subscription.add(() => {
                                             console.log('Observable completed');
                                             afterSpan.end();
-                                          })
+                                          });
 
                                           return subscription;
-                                        })
-
-
-
-                                      }
+                                        });
+                                      },
                                     });
                                   }
 
                                   return Reflect.get(observableTarget, observableProperty, observableReceiver);
-                                }
-                              })
+                                },
+                              });
                             });
                           } else {
                             console.log('no active span!');

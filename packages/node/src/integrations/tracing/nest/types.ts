@@ -38,11 +38,7 @@ export interface Observer<T> {
  */
 export interface Observable<T> {
   pipe: (...args: any[]) => Observable<any>;
-  subscribe(
-    next: (value: T) => void,
-    error?: (err: any) => void,
-    complete?: () => void
-  ): any;
+  subscribe(next: (value: T) => void, error?: (err: any) => void, complete?: () => void): any;
 }
 
 /**
