@@ -41,7 +41,7 @@ export function markEventUnhandled(scope: Scope): Scope {
  * Extracts sentry trace data from the handler `context` if available and falls
  * back to the `event`.
  */
-export function getTraceData(event: HandlerEvent, context?: HandlerContext): TraceData {
+export function getAwsTraceData(event: HandlerEvent, context?: HandlerContext): TraceData {
   const headers = event.headers || {};
 
   const traceData: TraceData = {
@@ -75,7 +75,7 @@ export function eventContextExtractor(event: HandlerEvent, context?: HandlerCont
   // there instead.
   const httpHeaders = {
     ...(event.headers || {}),
-    ...getTraceData(event, context),
+    ...getAwsTraceData(event, context),
   };
 
   return propagation.extract(otelContext.active(), httpHeaders, headerGetter);

@@ -1,4 +1,4 @@
-import { eventContextExtractor, getTraceData } from '../src/utils';
+import { eventContextExtractor, getAwsTraceData } from '../src/utils';
 
 const mockExtractContext = jest.fn();
 jest.mock('@opentelemetry/api', () => {
@@ -29,7 +29,7 @@ const mockEvent = {
 describe('getTraceData', () => {
   test('gets sentry trace data from the context', () => {
     // @ts-expect-error, a partial context object is fine here
-    const traceData = getTraceData({}, mockContext);
+    const traceData = getAwsTraceData({}, mockContext);
 
     expect(traceData['sentry-trace']).toEqual('12345678901234567890123456789012-1234567890123456-1');
     expect(traceData.baggage).toEqual('sentry-environment=production');
@@ -37,21 +37,21 @@ describe('getTraceData', () => {
 
   test('gets sentry trace data from the context even if event has data', () => {
     // @ts-expect-error, a partial context object is fine here
-    const traceData = getTraceData(mockEvent, mockContext);
+    const traceData = getAwsTraceData(mockEvent, mockContext);
 
     expect(traceData['sentry-trace']).toEqual('12345678901234567890123456789012-1234567890123456-1');
     expect(traceData.baggage).toEqual('sentry-environment=production');
   });
 
   test('gets sentry trace data from the event if no context is passed', () => {
-    const traceData = getTraceData(mockEvent);
+    const traceData = getAwsTraceData(mockEvent);
 
     expect(traceData['sentry-trace']).toEqual('12345678901234567890123456789012-1234567890123456-2');
     expect(traceData.baggage).toEqual('sentry-environment=staging');
   });
 
   test('gets sentry trace data from the event if the context sentry trace is undefined', () => {
-    const traceData = getTraceData(mockEvent, {
+    const traceData = getAwsTraceData(mockEvent, {
       // @ts-expect-error, a partial context object is fine here
       clientContext: { Custom: { 'sentry-trace': undefined, baggage: '' } },
     });
@@ -71,7 +71,7 @@ describe('eventContextExtractor', () => {
     eventContextExtractor(mockEvent, mockContext);
 
     // @ts-expect-error, a partial context object is fine here
-    const expectedTraceData = getTraceData(mockEvent, mockContext);
+    const expectedTraceData = getAwsTraceData(mockEvent, mockContext);
 
     expect(mockExtractContext).toHaveBeenCalledTimes(1);
     expect(mockExtractContext).toHaveBeenCalledWith(expect.arrayContaining([expectedTraceData]));
@@ -93,7 +93,7 @@ describe('eventContextExtractor', () => {
     const expectedHeaders = {
       'X-Custom-Header': 'Foo',
       // @ts-expect-error, a partial context object is fine here
-      ...getTraceData(mockEvent, mockContext),
+      ...getAwsTraceData(mockEvent, mockContext),
     };
 
     expect(mockExtractContext).toHaveBeenCalledTimes(1);
