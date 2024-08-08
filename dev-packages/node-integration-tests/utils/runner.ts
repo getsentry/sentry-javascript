@@ -121,7 +121,7 @@ async function runDockerCompose(options: DockerOptions): Promise<VoidFunction> {
     const timeout = setTimeout(() => {
       close();
       reject(new Error('Timed out waiting for docker-compose'));
-    }, 30_000);
+    }, 60_000);
 
     function newData(data: Buffer): void {
       const text = data.toString('utf8');
@@ -230,6 +230,8 @@ export function createRunner(...paths: string[]) {
       return this;
     },
     withDockerCompose: function (options: DockerOptions) {
+      // When running docker compose, we need a larger timeout, as this takes some time...
+      jest.setTimeout(75000);
       dockerOptions = options;
       return this;
     },
