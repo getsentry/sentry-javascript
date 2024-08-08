@@ -121,7 +121,7 @@ async function runDockerCompose(options: DockerOptions): Promise<VoidFunction> {
     const timeout = setTimeout(() => {
       close();
       reject(new Error('Timed out waiting for docker-compose'));
-    }, 15_000);
+    }, 30_000);
 
     function newData(data: Buffer): void {
       const text = data.toString('utf8');
