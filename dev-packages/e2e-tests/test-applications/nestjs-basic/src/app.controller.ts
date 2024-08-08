@@ -1,4 +1,4 @@
-import { Controller, Get, Param, ParseIntPipe, UseGuards, UseInterceptors } from '@nestjs/common';
+import {BadRequestException, Controller, Get, Param, ParseIntPipe, UseGuards, UseInterceptors} from '@nestjs/common';
 import { flush } from '@sentry/nestjs';
 import { AppService } from './app.service';
 import { ExampleGuard } from './example.guard';
@@ -73,5 +73,10 @@ export class AppController {
   @Get('flush')
   async flush() {
     await flush();
+  }
+
+  @Get('bad-request')
+  async badRequest() {
+    throw new BadRequestException('Plain bad request!');
   }
 }

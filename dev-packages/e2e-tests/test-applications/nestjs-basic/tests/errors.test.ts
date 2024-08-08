@@ -94,3 +94,19 @@ test('Does not send RpcExceptions to Sentry', async ({ baseURL }) => {
 
   expect(errorEventOccurred).toBe(false);
 });
+
+test('Global exception filter registered in root module is applied', async ({ baseURL }) => {
+  const response = await fetch(`${baseURL}/bad-request`);
+  const responseBody = await response.json();
+
+  console.log(responseBody);
+
+  expect(response.status).toBe(400);
+
+  // this should fail but doesn't because the bad request exception filter is not being properly applied
+  expect(responseBody).toEqual({
+    message: 'Plain bad request!',
+    error: 'Bad Request',
+    statusCode: 400
+  });
+})
