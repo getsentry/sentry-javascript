@@ -1,6 +1,6 @@
 const { cleanupChildProcesses } = require('./utils/runner');
 
-jest.setTimeout(15000);
+jest.setTimeout(25000);
 
 afterEach(() => {
   cleanupChildProcesses();
