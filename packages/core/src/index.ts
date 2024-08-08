@@ -5,6 +5,7 @@ export type { OfflineStore, OfflineTransportOptions } from './transports/offline
 export type { ServerRuntimeClientOptions } from './server-runtime-client';
 export type { RequestDataIntegrationOptions } from './integrations/requestdata';
 export type { IntegrationIndex } from './integration';
+export type { TraceData } from './utils/traceData';
 
 export * from './tracing';
 export * from './semanticAttributes';

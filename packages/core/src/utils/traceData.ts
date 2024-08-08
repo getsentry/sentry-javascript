@@ -5,11 +5,13 @@ import {
   generateSentryTraceHeader,
   logger,
 } from '@sentry/utils';
+import { getAsyncContextStrategy } from '../asyncContext';
+import { getMainCarrier } from '../carrier';
 import { getClient, getCurrentScope } from '../currentScopes';
 import { getDynamicSamplingContextFromClient, getDynamicSamplingContextFromSpan } from '../tracing';
 import { getActiveSpan, getRootSpan, spanToTraceHeader } from './spanUtils';
 
-type TraceData = {
+export type TraceData = {
   'sentry-trace'?: string;
   baggage?: string;
 };
@@ -30,6 +32,12 @@ type TraceData = {
  * or meta tag name.
  */
 export function getTraceData(span?: Span, scope?: Scope, client?: Client): TraceData {
+  const carrier = getMainCarrier();
+  const acs = getAsyncContextStrategy(carrier);
+  if (acs.getTraceData) {
+    return acs.getTraceData(span, scope, client);
+  }
+
   const clientToUse = client || getClient();
   const scopeToUse = scope || getCurrentScope();
   const spanToUse = span || getActiveSpan();
