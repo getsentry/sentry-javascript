@@ -548,7 +548,7 @@ jobs:
         project:
           - chromium
         include:
-          # Only check all projects for esm & full bundle
+          # Only check all projects for full bundle
           # We also shard the tests as they take the longest
           - bundle: bundle_tracing_replay_feedback_min
             project: ''
@@ -559,16 +559,17 @@ jobs:
             shard: 2
             shards: 2
           - bundle: esm
-            project: ''
             shard: 1
-            shards: 3
+            shards: 4
           - bundle: esm
             shard: 2
-            shards: 3
+            shards: 4
           - bundle: esm
-            project: ''
             shard: 3
-            shards: 3
+            shards: 4
+          - bundle: esm
+            shard: 4
+            shards: 4
         exclude:
           # Do not run the default chromium-only tests
           - bundle: bundle_tracing_replay_feedback_min
@@ -592,12 +593,15 @@ jobs:
 
       - name: Install Playwright
         uses: ./.github/actions/install-playwright
+        with:
+          browsers: ${{ matrix.project }}
 
       - name: Run Playwright tests
         env:
           PW_BUNDLE: ${{ matrix.bundle }}
         working-directory: dev-packages/browser-integration-tests
         run: yarn test:ci${{ matrix.project && format(' --project={0}', matrix.project) || '' }}${{ matrix.shard && format(' --shard={0}/{1}', matrix.shard, matrix.shards) || '' }}
+
       - name: Upload Playwright Traces
         uses: actions/upload-artifact@v3
         if: always()
