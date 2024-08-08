@@ -13,6 +13,7 @@ import { isPlainObject, isString } from './is';
 import { logger } from './logger';
 import { normalize } from './normalize';
 import { stripUrlQueryAndFragment } from './url';
+import { getClientIPAddress, ipHeaderNames } from './vendor/getIpAddress';
 
 const DEFAULT_INCLUDES = {
   ip: false,
@@ -98,7 +99,6 @@ export function extractPathForTransaction(
   return [name, source];
 }
 
-/** JSDoc */
 function extractTransaction(req: PolymorphicRequest, type: boolean | TransactionNamingScheme): string {
   switch (type) {
     case 'path': {
@@ -116,7 +116,6 @@ function extractTransaction(req: PolymorphicRequest, type: boolean | Transaction
   }
 }
 
-/** JSDoc */
 function extractUserData(
   user: {
     [key: string]: unknown;
@@ -146,17 +145,16 @@ function extractUserData(
  */
 export function extractRequestData(
   req: PolymorphicRequest,
-  options?: {
+  options: {
     include?: string[];
-  },
+  } = {},
 ): ExtractedNodeRequestData {
-  const { include = DEFAULT_REQUEST_INCLUDES } = options || {};
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const requestData: { [key: string]: any } = {};
+  const { include = DEFAULT_REQUEST_INCLUDES } = options;
+  const requestData: { [key: string]: unknown } = {};
 
   // headers:
   //   node, express, koa, nextjs: req.headers
-  const headers = (req.headers || {}) as {
+  const headers = (req.headers || {}) as typeof req.headers & {
     host?: string;
     cookie?: string;
   };
@@ -189,6 +187,14 @@ export function extractRequestData(
         // Remove the Cookie header in case cookie data should not be included in the event
         if (!include.includes('cookies')) {
           delete (requestData.headers as { cookie?: string }).cookie;
+        }
+
+        // Remove IP headers in case IP data should not be included in the event
+        if (!include.includes('ip')) {
+          ipHeaderNames.forEach(ipHeaderName => {
+            // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+            delete (requestData.headers as Record<string, unknown>)[ipHeaderName];
+          });
         }
 
         break;
@@ -264,9 +270,12 @@ export function addRequestDataToEvent(
   };
 
   if (include.request) {
-    const extractedRequestData = Array.isArray(include.request)
-      ? extractRequestData(req, { include: include.request })
-      : extractRequestData(req);
+    const includeRequest = Array.isArray(include.request) ? [...include.request] : [...DEFAULT_REQUEST_INCLUDES];
+    if (include.ip) {
+      includeRequest.push('ip');
+    }
+
+    const extractedRequestData = extractRequestData(req, { include: includeRequest });
 
     event.request = {
       ...event.request,
@@ -288,8 +297,9 @@ export function addRequestDataToEvent(
   // client ip:
   //   node, nextjs: req.socket.remoteAddress
   //   express, koa: req.ip
+  //   It may also be sent by proxies as specified in X-Forwarded-For or similar headers
   if (include.ip) {
-    const ip = req.ip || (req.socket && req.socket.remoteAddress);
+    const ip = (req.headers && getClientIPAddress(req.headers)) || req.ip || (req.socket && req.socket.remoteAddress);
     if (ip) {
       event.user = {
         ...event.user,
