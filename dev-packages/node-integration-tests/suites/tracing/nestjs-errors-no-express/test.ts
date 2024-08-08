@@ -1,8 +1,6 @@
 import { conditionalTest } from '../../../utils';
 import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
 
-jest.setTimeout(20000);
-
 const { TS_VERSION } = process.env;
 const isOldTS = TS_VERSION && TS_VERSION.startsWith('3.');
 
