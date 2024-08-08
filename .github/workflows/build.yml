@@ -590,14 +590,13 @@ jobs:
         env:
           DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
 
-      - name: Install Playwright
-        uses: ./.github/actions/install-playwright
-
       - name: Run Playwright tests
         env:
           PW_BUNDLE: ${{ matrix.bundle }}
-        working-directory: dev-packages/browser-integration-tests
-        run: yarn test:ci${{ matrix.project && format(' --project={0}', matrix.project) || '' }}${{ matrix.shard && format(' --shard={0}/{1}', matrix.shard, matrix.shards) || '' }}
+        uses: docker://mcr.microsoft.com/playwright:v1.44.1-jammy
+        with:
+          args: cd dev-packages/browser-integration-tests && yarn test:ci${{ matrix.project && format(' --project={0}', matrix.project) || '' }}${{ matrix.shard && format(' --shard={0}/{1}', matrix.shard, matrix.shards) || '' }}
+
       - name: Upload Playwright Traces
         uses: actions/upload-artifact@v3
         if: always()
