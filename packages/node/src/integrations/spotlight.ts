@@ -66,14 +66,16 @@ function connectToSpotlight(client: Client, options: Required<SpotlightConnectio
         },
       },
       res => {
+        if (res.statusCode && res.statusCode >= 200 && res.statusCode < 400) {
+          // Reset failed requests counter on success
+          failedRequests = 0;
+        }
         res.on('data', () => {
           // Drain socket
         });
 
         res.on('end', () => {
           // Drain socket
-          // Reset failed requests counter on success
-          failedRequests = 0;
         });
         res.setEncoding('utf8');
       },
