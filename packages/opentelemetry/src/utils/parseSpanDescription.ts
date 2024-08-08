@@ -176,7 +176,7 @@ function getGraphqlOperationNamesFromAttribute(attr: AttributeValue): string {
     const sorted = attr.slice().sort();
 
     // Up to 5 items, we just add all of them
-    if (sorted.length < 5) {
+    if (sorted.length <= 5) {
       return sorted.join(', ');
     } else {
       // Else, we add the first 5 and the diff of other operations
