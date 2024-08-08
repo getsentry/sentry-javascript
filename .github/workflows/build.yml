@@ -528,7 +528,7 @@ jobs:
         run: yarn lerna run test --scope @sentry/profiling-node
 
   job_browser_playwright_tests:
-    name: Playwright (${{ matrix.bundle }}${{ matrix.project && matrix.project != 'chromium' && format(' {0}', matrix.project) || ''}}${{ matrix.shard && format(' {0}/{1}', matrix.shard, matrix.shards) || ''}}) Tests
+    name: PW ${{ matrix.bundle }}${{ matrix.project && matrix.project != 'chromium' && format(' {0}', matrix.project) || ''}}${{ matrix.shard && format(' ({0}/{1})', matrix.shard, matrix.shards) || ''}} Tests
     needs: [job_get_metadata, job_build]
     if: needs.job_build.outputs.changed_browser_integration == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-20.04-large-js
@@ -608,7 +608,7 @@ jobs:
           path: dev-packages/browser-integration-tests/test-results
 
   job_browser_loader_tests:
-    name: Playwright Loader (${{ matrix.bundle }}) Tests
+    name: PW ${{ matrix.bundle }} Tests
     needs: [job_get_metadata, job_build]
     if: needs.job_build.outputs.changed_browser_integration == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-20.04
