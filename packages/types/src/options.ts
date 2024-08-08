@@ -212,18 +212,6 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
   };
 
   /**
-   * If you use Spotlight by Sentry during development, use
-   * this option to forward captured Sentry events to Spotlight.
-   *
-   * Either set it to true, or provide a specific Spotlight Sidecar URL.
-   *
-   * More details: https://spotlightjs.com/
-   *
-   * IMPORTANT: Only set this option to `true` while developing, not in production!
-   */
-  spotlight?: boolean | string;
-
-  /**
    * A pattern for error URLs which should exclusively be sent to Sentry.
    * This is the opposite of {@link Options.denyUrls}.
    * By default, all errors will be sent.
