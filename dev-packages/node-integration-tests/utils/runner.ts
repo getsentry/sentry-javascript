@@ -230,8 +230,6 @@ export function createRunner(...paths: string[]) {
       return this;
     },
     withDockerCompose: function (options: DockerOptions) {
-      // When running docker compose, we need a larger timeout, as this takes some time...
-      jest.setTimeout(75000);
       dockerOptions = options;
       return this;
     },
