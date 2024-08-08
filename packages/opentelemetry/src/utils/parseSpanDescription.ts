@@ -163,10 +163,14 @@ export function descriptionForHttpMethod(
     data['http.fragment'] = fragment;
   }
 
+  // If the span kind is neither client nor server, we use the original name
+  // this infers that somebody manually started this span, in which case we don't want to overwrite the name
+  const isClientOrServerKind = kind === SpanKind.CLIENT || kind === SpanKind.SERVER;
+
   return {
     op: opParts.join('.'),
-    description,
-    source,
+    description: isClientOrServerKind ? description : name,
+    source: isClientOrServerKind ? source : 'custom',
     data,
   };
 }

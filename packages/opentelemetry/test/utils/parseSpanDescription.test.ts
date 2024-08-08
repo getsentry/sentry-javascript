@@ -231,6 +231,25 @@ describe('descriptionForHttpMethod', () => {
         source: 'route',
       },
     ],
+    [
+      'works with basic client GET with SpanKind.INTERNAL',
+      'GET',
+      {
+        [SEMATTRS_HTTP_METHOD]: 'GET',
+        [SEMATTRS_HTTP_URL]: 'https://www.example.com/my-path',
+        [SEMATTRS_HTTP_TARGET]: '/my-path',
+      },
+      'test name',
+      SpanKind.INTERNAL,
+      {
+        op: 'http',
+        description: 'test name',
+        data: {
+          url: 'https://www.example.com/my-path',
+        },
+        source: 'custom',
+      },
+    ],
   ])('%s', (_, httpMethod, attributes, name, kind, expected) => {
     const actual = descriptionForHttpMethod({ attributes, kind, name }, httpMethod);
     expect(actual).toEqual(expected);
