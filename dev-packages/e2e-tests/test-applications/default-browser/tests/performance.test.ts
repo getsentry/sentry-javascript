@@ -2,15 +2,12 @@ import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
 test('captures a pageload transaction', async ({ page }) => {
-  // `pageload` transaction
   const transactionPromise = waitForTransaction('default-browser', async transactionEvent => {
     return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
   });
 
   await page.goto(`/`);
 
-  // `waitForTransaction` hangs here because `transaction` (or `span`) event is not emitted,
-  // so the code past this line is never executed.
   const pageLoadTransaction = await transactionPromise;
 
   expect(pageLoadTransaction).toEqual({
@@ -84,5 +81,38 @@ test('captures a pageload transaction', async ({ page }) => {
       source: 'url',
     },
     type: 'transaction',
+  });
+});
+
+test('captures a navigation transaction', async ({ page }) => {
+  page.on('console', msg => console.log(msg.text()));
+  const pageLoadTransactionPromise = waitForTransaction('default-browser', async transactionEvent => {
+    return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
+  });
+
+  const navigationTransactionPromise = waitForTransaction('default-browser', async transactionEvent => {
+    return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'navigation';
+  });
+
+  await page.goto(`/`);
+  await pageLoadTransactionPromise;
+
+  const linkElement = page.locator('id=navigation-link');
+
+  await linkElement.click();
+
+  const navigationTransaction = await navigationTransactionPromise;
+
+  expect(navigationTransaction).toMatchObject({
+    contexts: {
+      trace: {
+        op: 'navigation',
+        origin: 'auto.navigation.browser',
+      },
+    },
+    transaction: '/',
+    transaction_info: {
+      source: 'url',
+    },
   });
 });
