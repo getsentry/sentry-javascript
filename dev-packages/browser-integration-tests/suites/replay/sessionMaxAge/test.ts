@@ -18,7 +18,7 @@ const MAX_REPLAY_DURATION = 4000;
   The main difference between this and sessionExpiry test, is that here we wait for the overall time (4s)
   in multiple steps (2s, 2s) instead of waiting for the whole time at once (4s).
 */
-sentryTest('handles session that exceeds max age', async ({ forceFlushReplay, getLocalTestPath, page }) => {
+sentryTest('handles session that exceeds max age', async ({ forceFlushReplay, getLocalTestUrl, page }) => {
   if (shouldSkipReplayTest()) {
     sentryTest.skip();
   }
@@ -34,7 +34,7 @@ sentryTest('handles session that exceeds max age', async ({ forceFlushReplay, ge
     });
   });
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
 
   await page.goto(url);
 

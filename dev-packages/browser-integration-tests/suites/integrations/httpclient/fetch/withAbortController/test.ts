@@ -3,12 +3,12 @@ import type { Event as SentryEvent } from '@sentry/types';
 import { sentryTest } from '../../../../../utils/fixtures';
 import { getFirstSentryEnvelopeRequest, shouldSkipTracingTest } from '../../../../../utils/helpers';
 
-sentryTest('should handle aborted fetch calls', async ({ getLocalTestPath, page }) => {
+sentryTest('should handle aborted fetch calls', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipTracingTest()) {
     sentryTest.skip();
   }
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
 
   await page.route('**/foo', async () => {
     // never fulfil this route because we abort the request as part of the test

@@ -23,8 +23,8 @@ async function createSessionWithLatency(page: Page, latency: number) {
   return session;
 }
 
-sentryTest('should capture a `connection.rtt` metric.', async ({ getLocalTestPath, page }) => {
-  const url = await getLocalTestPath({ testDir: __dirname });
+sentryTest('should capture a `connection.rtt` metric.', async ({ getLocalTestUrl, page }) => {
+  const url = await getLocalTestUrl({ testDir: __dirname });
   const eventData = await getFirstSentryEnvelopeRequest<Event>(page, url);
 
   expect(eventData.measurements).toBeDefined();
@@ -33,10 +33,10 @@ sentryTest('should capture a `connection.rtt` metric.', async ({ getLocalTestPat
 
 sentryTest(
   'should capture a `connection.rtt` metric with emulated value 200ms on Chromium.',
-  async ({ getLocalTestPath, page }) => {
+  async ({ getLocalTestUrl, page }) => {
     const session = await createSessionWithLatency(page, 200);
 
-    const url = await getLocalTestPath({ testDir: __dirname });
+    const url = await getLocalTestUrl({ testDir: __dirname });
     const eventData = await getFirstSentryEnvelopeRequest<Event>(page, url);
 
     await session.detach();
@@ -48,10 +48,10 @@ sentryTest(
 
 sentryTest(
   'should capture a `connection.rtt` metric with emulated value 100ms on Chromium.',
-  async ({ getLocalTestPath, page }) => {
+  async ({ getLocalTestUrl, page }) => {
     const session = await createSessionWithLatency(page, 100);
 
-    const url = await getLocalTestPath({ testDir: __dirname });
+    const url = await getLocalTestUrl({ testDir: __dirname });
     const eventData = await getFirstSentryEnvelopeRequest<Event>(page, url);
 
     await session.detach();
@@ -63,10 +63,10 @@ sentryTest(
 
 sentryTest(
   'should capture a `connection.rtt` metric with emulated value 50ms on Chromium.',
-  async ({ getLocalTestPath, page }) => {
+  async ({ getLocalTestUrl, page }) => {
     const session = await createSessionWithLatency(page, 50);
 
-    const url = await getLocalTestPath({ testDir: __dirname });
+    const url = await getLocalTestUrl({ testDir: __dirname });
     const eventData = await getFirstSentryEnvelopeRequest<Event>(page, url);
 
     await session.detach();

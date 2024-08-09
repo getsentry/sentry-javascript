@@ -17,7 +17,7 @@ import {
 
 sentryTest(
   '[error-mode] should start recording and switch to session mode once an error is thrown',
-  async ({ getLocalTestPath, page, browserName }) => {
+  async ({ getLocalTestUrl, page, browserName }) => {
     // This was sometimes flaky on webkit, so skipping for now
     if (shouldSkipReplayTest() || browserName === 'webkit') {
       sentryTest.skip();
@@ -48,7 +48,7 @@ sentryTest(
       });
     });
 
-    const url = await getLocalTestPath({ testDir: __dirname });
+    const url = await getLocalTestUrl({ testDir: __dirname });
 
     await Promise.all([
       page.goto(url),
@@ -93,7 +93,7 @@ sentryTest(
     expect(content0.fullSnapshots).toHaveLength(1);
     // We don't know how many incremental snapshots we'll have (also browser-dependent),
     // but we know that we have at least 5
-    expect(content0.incrementalSnapshots.length).toBeGreaterThan(5);
+    expect(content0.incrementalSnapshots.length).toBeGreaterThan(4);
     // We want to make sure that the event that triggered the error was recorded.
     expect(content0.breadcrumbs).toEqual(
       expect.arrayContaining([

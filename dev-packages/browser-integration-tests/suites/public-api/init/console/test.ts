@@ -5,8 +5,8 @@ import { expect } from '@playwright/test';
 import { sentryTest } from '../../../../utils/fixtures';
 
 // Regression test against https://github.com/getsentry/sentry-javascript/issues/4558
-sentryTest('should not change console output', async ({ getLocalTestPath, page }) => {
-  const url = await getLocalTestPath({ testDir: __dirname });
+sentryTest('should not change console output', async ({ getLocalTestUrl, page }) => {
+  const url = await getLocalTestUrl({ testDir: __dirname });
 
   // https://playwright.dev/docs/api/class-page#page-event-console
   page.on('console', (msg: ConsoleMessage) => {

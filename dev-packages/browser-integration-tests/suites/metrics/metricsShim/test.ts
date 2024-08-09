@@ -3,7 +3,7 @@ import { expect } from '@playwright/test';
 import { sentryTest } from '../../../utils/fixtures';
 import { shouldSkipMetricsTest } from '../../../utils/helpers';
 
-sentryTest('exports shim metrics integration for non-tracing bundles', async ({ getLocalTestPath, page }) => {
+sentryTest('exports shim metrics integration for non-tracing bundles', async ({ getLocalTestUrl, page }) => {
   // Skip in tracing tests
   if (!shouldSkipMetricsTest()) {
     sentryTest.skip();
@@ -22,7 +22,7 @@ sentryTest('exports shim metrics integration for non-tracing bundles', async ({ 
     });
   });
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
 
   await page.goto(url);
 

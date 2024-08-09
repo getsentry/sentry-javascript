@@ -3,7 +3,7 @@ import { expect } from '@playwright/test';
 import { sentryTest } from '../../../utils/fixtures';
 import { getCustomRecordingEvents, shouldSkipReplayTest, waitForReplayRequest } from '../../../utils/replayHelpers';
 
-sentryTest('captures component name attribute when available', async ({ forceFlushReplay, getLocalTestPath, page }) => {
+sentryTest('captures component name attribute when available', async ({ forceFlushReplay, getLocalTestUrl, page }) => {
   if (shouldSkipReplayTest()) {
     sentryTest.skip();
   }
@@ -18,7 +18,7 @@ sentryTest('captures component name attribute when available', async ({ forceFlu
     });
   });
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
 
   await page.goto(url);
   await reqPromise0;
@@ -88,7 +88,7 @@ sentryTest('captures component name attribute when available', async ({ forceFlu
   ]);
 });
 
-sentryTest('sets element name to component name attribute', async ({ forceFlushReplay, getLocalTestPath, page }) => {
+sentryTest('sets element name to component name attribute', async ({ forceFlushReplay, getLocalTestUrl, page }) => {
   if (shouldSkipReplayTest()) {
     sentryTest.skip();
   }
@@ -103,7 +103,7 @@ sentryTest('sets element name to component name attribute', async ({ forceFlushR
     });
   });
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
 
   await page.goto(url);
   await reqPromise0;

@@ -8,7 +8,7 @@ import {
   shouldSkipReplayTest,
 } from '../../../../../utils/replayHelpers';
 
-sentryTest('captures request body size when body is sent', async ({ getLocalTestPath, page, browserName }) => {
+sentryTest('captures request body size when body is sent', async ({ getLocalTestUrl, page, browserName }) => {
   // These are a bit flaky on non-chromium browsers
   if (shouldSkipReplayTest() || browserName !== 'chromium') {
     sentryTest.skip();
@@ -33,7 +33,7 @@ sentryTest('captures request body size when body is sent', async ({ getLocalTest
     return getReplayPerformanceSpans(recordingEvents).some(span => span.op === 'resource.xhr');
   });
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
   await page.goto(url);
 
   const [, request] = await Promise.all([
@@ -100,7 +100,7 @@ sentryTest('captures request body size when body is sent', async ({ getLocalTest
   ]);
 });
 
-sentryTest('captures request size from non-text request body', async ({ getLocalTestPath, page, browserName }) => {
+sentryTest('captures request size from non-text request body', async ({ getLocalTestUrl, page, browserName }) => {
   // These are a bit flaky on non-chromium browsers
   if (shouldSkipReplayTest() || browserName !== 'chromium') {
     sentryTest.skip();
@@ -125,7 +125,7 @@ sentryTest('captures request size from non-text request body', async ({ getLocal
     return getReplayPerformanceSpans(recordingEvents).some(span => span.op === 'resource.xhr');
   });
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
   await page.goto(url);
 
   await page.evaluate(() => {

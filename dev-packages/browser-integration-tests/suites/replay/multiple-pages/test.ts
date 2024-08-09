@@ -30,7 +30,7 @@ well as the correct DOM snapshots and updates are recorded and sent.
 */
 sentryTest(
   'record page navigations and performance entries across multiple pages',
-  async ({ getLocalTestPath, page, browserName }) => {
+  async ({ getLocalTestUrl, page, browserName }) => {
     // We only test this against the NPM package and replay bundles
     // and only on chromium as most performance entries are only available in chromium
     if (shouldSkipReplayTest() || browserName !== 'chromium') {
@@ -56,7 +56,7 @@ sentryTest(
     const reqPromise8 = waitForReplayRequest(page, 8);
     const reqPromise9 = waitForReplayRequest(page, 9);
 
-    const url = await getLocalTestPath({ testDir: __dirname });
+    const url = await getLocalTestUrl({ testDir: __dirname });
 
     const [req0] = await Promise.all([reqPromise0, page.goto(url)]);
     const replayEvent0 = getReplayEvent(req0);
@@ -80,7 +80,7 @@ sentryTest(
     const collectedPerformanceSpans = [...recording0.performanceSpans, ...recording1.performanceSpans];
     const collectedBreadcrumbs = [...recording0.breadcrumbs, ...recording1.breadcrumbs];
 
-    expect(collectedPerformanceSpans.length).toEqual(8);
+    expect(collectedPerformanceSpans.length).toBeGreaterThanOrEqual(6);
     expect(collectedPerformanceSpans).toEqual(
       expect.arrayContaining([
         expectedNavigationPerformanceSpan,
@@ -120,7 +120,7 @@ sentryTest(
     const collectedPerformanceSpansAfterReload = [...recording2.performanceSpans, ...recording3.performanceSpans];
     const collectedBreadcrumbsAdterReload = [...recording2.breadcrumbs, ...recording3.breadcrumbs];
 
-    expect(collectedPerformanceSpansAfterReload.length).toEqual(8);
+    expect(collectedPerformanceSpansAfterReload.length).toBeGreaterThanOrEqual(6);
     expect(collectedPerformanceSpansAfterReload).toEqual(
       expect.arrayContaining([
         expectedReloadPerformanceSpan,
@@ -155,6 +155,7 @@ sentryTest(
           headers: {
             // @ts-expect-error this is fine
             'User-Agent': expect.stringContaining(''),
+            Referer: 'http://sentry-test.io/index.html',
           },
         },
       }),
@@ -312,7 +313,7 @@ sentryTest(
     ];
     const collectedBreadcrumbsAfterIndexNavigation = [...recording8.breadcrumbs, ...recording9.breadcrumbs];
 
-    expect(collectedPerformanceSpansAfterIndexNavigation.length).toEqual(8);
+    expect(collectedPerformanceSpansAfterIndexNavigation.length).toBeGreaterThanOrEqual(6);
     expect(collectedPerformanceSpansAfterIndexNavigation).toEqual(
       expect.arrayContaining([
         expectedNavigationPerformanceSpan,

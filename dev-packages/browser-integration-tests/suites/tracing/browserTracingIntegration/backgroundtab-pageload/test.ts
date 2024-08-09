@@ -4,11 +4,11 @@ import type { Event } from '@sentry/types';
 import { sentryTest } from '../../../../utils/fixtures';
 import { getFirstSentryEnvelopeRequest, shouldSkipTracingTest } from '../../../../utils/helpers';
 
-sentryTest('should finish pageload transaction when the page goes background', async ({ getLocalTestPath, page }) => {
+sentryTest('should finish pageload transaction when the page goes background', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipTracingTest()) {
     sentryTest.skip();
   }
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
 
   await page.goto(url);
   await page.locator('#go-background').click();

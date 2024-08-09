@@ -9,17 +9,17 @@ const bundle = process.env.PW_BUNDLE || '';
 
 sentryTest(
   'should capture metrics for LCP instrumentation handlers',
-  async ({ browserName, getLocalTestPath, page }) => {
+  async ({ browserName, getLocalTestUrl, page }) => {
     // This uses a utility that is not exported in CDN bundles
     if (shouldSkipTracingTest() || browserName !== 'chromium' || bundle.startsWith('bundle')) {
       sentryTest.skip();
     }
 
-    await page.route('**/path/to/image.png', (route: Route) =>
+    await page.route('https://example.com/path/to/image.png', (route: Route) =>
       route.fulfill({ path: `${__dirname}/assets/sentry-logo-600x179.png` }),
     );
 
-    const url = await getLocalTestPath({ testDir: __dirname });
+    const url = await getLocalTestUrl({ testDir: __dirname });
     const [eventData] = await Promise.all([
       getFirstSentryEnvelopeRequest<Event>(page),
       page.goto(url),

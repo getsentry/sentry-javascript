@@ -4,8 +4,8 @@ import type { UserFeedback } from '@sentry/types';
 import { sentryTest } from '../../../../utils/fixtures';
 import { getFirstSentryEnvelopeRequest } from '../../../../utils/helpers';
 
-sentryTest('should capture simple user feedback', async ({ getLocalTestPath, page }) => {
-  const url = await getLocalTestPath({ testDir: __dirname });
+sentryTest('should capture simple user feedback', async ({ getLocalTestUrl, page }) => {
+  const url = await getLocalTestUrl({ testDir: __dirname });
 
   const eventData = await getFirstSentryEnvelopeRequest<UserFeedback>(page, url);
 

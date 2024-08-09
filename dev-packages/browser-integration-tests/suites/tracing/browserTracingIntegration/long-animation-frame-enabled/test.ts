@@ -8,7 +8,7 @@ import { getFirstSentryEnvelopeRequest, shouldSkipTracingTest } from '../../../.
 
 sentryTest(
   'should capture long animation frame for top-level script.',
-  async ({ browserName, getLocalTestPath, page }) => {
+  async ({ browserName, getLocalTestUrl, page }) => {
     // Long animation frames only work on chrome
     if (shouldSkipTracingTest() || browserName !== 'chromium') {
       sentryTest.skip();
@@ -18,7 +18,7 @@ sentryTest(
       route.fulfill({ path: `${__dirname}/assets/script.js` }),
     );
 
-    const url = await getLocalTestPath({ testDir: __dirname });
+    const url = await getLocalTestUrl({ testDir: __dirname });
 
     const promise = getFirstSentryEnvelopeRequest<Event>(page);
 
@@ -59,7 +59,7 @@ sentryTest(
 
 sentryTest(
   'should capture long animation frame for event listener.',
-  async ({ browserName, getLocalTestPath, page }) => {
+  async ({ browserName, getLocalTestUrl, page }) => {
     // Long animation frames only work on chrome
     if (shouldSkipTracingTest() || browserName !== 'chromium') {
       sentryTest.skip();
@@ -69,7 +69,7 @@ sentryTest(
       route.fulfill({ path: `${__dirname}/assets/script.js` }),
     );
 
-    const url = await getLocalTestPath({ testDir: __dirname });
+    const url = await getLocalTestUrl({ testDir: __dirname });
 
     const promise = getFirstSentryEnvelopeRequest<Event>(page);
 

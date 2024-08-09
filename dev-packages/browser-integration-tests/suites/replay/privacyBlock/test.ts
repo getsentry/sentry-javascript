@@ -8,7 +8,7 @@ import {
   waitForReplayRequest,
 } from '../../../utils/replayHelpers';
 
-sentryTest('should allow to manually block elements', async ({ getLocalTestPath, page }) => {
+sentryTest('should allow to manually block elements', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipReplayTest()) {
     sentryTest.skip();
   }
@@ -23,7 +23,7 @@ sentryTest('should allow to manually block elements', async ({ getLocalTestPath,
     });
   });
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
 
   await page.goto(url);
   const snapshots = getFullRecordingSnapshots(await reqPromise0);

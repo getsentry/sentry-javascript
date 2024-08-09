@@ -6,13 +6,13 @@ import { getMultipleSentryEnvelopeRequests, shouldSkipTracingTest } from '../../
 
 sentryTest(
   "should capture a thrown error within an async startSpan callback that's not awaited properly",
-  async ({ getLocalTestPath, page }) => {
+  async ({ getLocalTestUrl, page }) => {
     if (shouldSkipTracingTest()) {
       sentryTest.skip();
     }
     const envelopePromise = getMultipleSentryEnvelopeRequests<Event>(page, 2);
 
-    const url = await getLocalTestPath({ testDir: __dirname });
+    const url = await getLocalTestUrl({ testDir: __dirname });
     await page.goto(url);
 
     const clickPromise = page.getByText('Button 1').click();

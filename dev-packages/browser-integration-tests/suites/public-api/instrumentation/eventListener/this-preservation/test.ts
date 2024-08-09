@@ -2,8 +2,8 @@ import { expect } from '@playwright/test';
 
 import { sentryTest } from '../../../../../utils/fixtures';
 
-sentryTest('Event listener instrumentation preserves "this" context', async ({ getLocalTestPath, page }) => {
-  const url = await getLocalTestPath({ testDir: __dirname });
+sentryTest('Event listener instrumentation preserves "this" context', async ({ getLocalTestUrl, page }) => {
+  const url = await getLocalTestUrl({ testDir: __dirname });
   await page.goto(url);
 
   let assertions = 0;

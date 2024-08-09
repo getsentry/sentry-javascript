@@ -4,8 +4,8 @@ import type { Event } from '@sentry/types';
 import { sentryTest } from '../../../../utils/fixtures';
 import { getMultipleSentryEnvelopeRequests } from '../../../../utils/helpers';
 
-sentryTest('should reject duplicate, back-to-back errors from captureException', async ({ getLocalTestPath, page }) => {
-  const url = await getLocalTestPath({ testDir: __dirname });
+sentryTest('should reject duplicate, back-to-back errors from captureException', async ({ getLocalTestUrl, page }) => {
+  const url = await getLocalTestUrl({ testDir: __dirname });
 
   const eventData = await getMultipleSentryEnvelopeRequests<Event>(page, 7, { url });
 

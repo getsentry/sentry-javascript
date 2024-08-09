@@ -11,12 +11,12 @@ type WindowWithSpan = Window & {
 
 sentryTest(
   'async spans with different durations lead to unexpected behavior in browser (no "asynchronous context tracking")',
-  async ({ getLocalTestPath, page }) => {
+  async ({ getLocalTestUrl, page }) => {
     if (shouldSkipTracingTest()) {
       sentryTest.skip();
     }
 
-    const url = await getLocalTestPath({ testDir: __dirname });
+    const url = await getLocalTestUrl({ testDir: __dirname });
     await page.goto(url);
 
     const envelope = await getFirstSentryEnvelopeRequest<Event>(page);

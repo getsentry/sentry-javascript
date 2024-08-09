@@ -7,7 +7,7 @@ import { getFirstSentryEnvelopeRequest, shouldSkipTracingTest } from '../../../.
 
 sentryTest(
   'should not capture long animation frame or long task when browser is non-chromium',
-  async ({ browserName, getLocalTestPath, page }) => {
+  async ({ browserName, getLocalTestUrl, page }) => {
     // Only test non-chromium browsers
     if (shouldSkipTracingTest() || browserName === 'chromium') {
       sentryTest.skip();
@@ -17,7 +17,7 @@ sentryTest(
       route.fulfill({ path: `${__dirname}/assets/script.js` }),
     );
 
-    const url = await getLocalTestPath({ testDir: __dirname });
+    const url = await getLocalTestUrl({ testDir: __dirname });
 
     const eventData = await getFirstSentryEnvelopeRequest<Event>(page, url);
     const uiSpans = eventData.spans?.filter(({ op }) => op?.startsWith('ui'));

@@ -5,7 +5,7 @@ import type { Event } from '@sentry/types';
 import { sentryTest } from '../../../../utils/fixtures';
 import { getFirstSentryEnvelopeRequest, shouldSkipTracingTest } from '../../../../utils/helpers';
 
-sentryTest('should capture a LCP vital with element details.', async ({ browserName, getLocalTestPath, page }) => {
+sentryTest('should capture a LCP vital with element details.', async ({ browserName, getLocalTestUrl, page }) => {
   if (shouldSkipTracingTest() || browserName !== 'chromium') {
     sentryTest.skip();
   }
@@ -15,7 +15,7 @@ sentryTest('should capture a LCP vital with element details.', async ({ browserN
     return route.fulfill({ path: `${__dirname}/assets/sentry-logo-600x179.png` });
   });
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
   const [eventData] = await Promise.all([
     getFirstSentryEnvelopeRequest<Event>(page),
     page.goto(url),

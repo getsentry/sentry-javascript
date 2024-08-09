@@ -4,8 +4,8 @@ import type { Event } from '@sentry/types';
 import { sentryTest } from '../../../../utils/fixtures';
 import { getMultipleSentryEnvelopeRequests } from '../../../../utils/helpers';
 
-sentryTest('should allow nested scoping', async ({ getLocalTestPath, page }) => {
-  const url = await getLocalTestPath({ testDir: __dirname });
+sentryTest('should allow nested scoping', async ({ getLocalTestUrl, page }) => {
+  const url = await getLocalTestUrl({ testDir: __dirname });
 
   const eventData = await getMultipleSentryEnvelopeRequests<Event>(page, 5, { url });
 

@@ -5,7 +5,7 @@ import { getReplaySnapshot, shouldSkipReplayTest } from '../../../../utils/repla
 
 sentryTest(
   '[error-mode] should handle errors that result in API error response',
-  async ({ getLocalTestPath, page, forceFlushReplay }) => {
+  async ({ getLocalTestUrl, page, forceFlushReplay }) => {
     if (shouldSkipReplayTest()) {
       sentryTest.skip();
     }
@@ -21,7 +21,7 @@ sentryTest(
       });
     });
 
-    const url = await getLocalTestPath({ testDir: __dirname });
+    const url = await getLocalTestUrl({ testDir: __dirname });
 
     await page.goto(url);
     await forceFlushReplay();

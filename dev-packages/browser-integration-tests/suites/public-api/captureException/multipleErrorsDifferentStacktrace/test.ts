@@ -4,8 +4,8 @@ import type { Event } from '@sentry/types';
 import { sentryTest } from '../../../../utils/fixtures';
 import { getMultipleSentryEnvelopeRequests } from '../../../../utils/helpers';
 
-sentryTest('should not reject back-to-back errors with different stack traces', async ({ getLocalTestPath, page }) => {
-  const url = await getLocalTestPath({ testDir: __dirname });
+sentryTest('should not reject back-to-back errors with different stack traces', async ({ getLocalTestUrl, page }) => {
+  const url = await getLocalTestUrl({ testDir: __dirname });
 
   const eventData = await getMultipleSentryEnvelopeRequests<Event>(page, 3, { url });
 
