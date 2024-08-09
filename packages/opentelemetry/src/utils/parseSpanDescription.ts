@@ -14,7 +14,7 @@ import {
 import type { SpanAttributes, TransactionSource } from '@sentry/types';
 import { getSanitizedUrlString, parseUrl, stripUrlQueryAndFragment } from '@sentry/utils';
 
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import { SEMANTIC_ATTRIBUTE_SENTRY_GRAPHQL_OPERATION } from '../semanticAttributes';
 import type { AbstractSpan } from '../types';
 import { getSpanKind } from './getSpanKind';
@@ -167,10 +167,18 @@ export function descriptionForHttpMethod(
   // this infers that somebody manually started this span, in which case we don't want to overwrite the name
   const isClientOrServerKind = kind === SpanKind.CLIENT || kind === SpanKind.SERVER;
 
+  // If the span is an auto-span (=it comes from one of our instrumentations),
+  // we always want to infer the name
+  // this is necessary because some of the auto-instrumentation we use uses kind=INTERNAL
+  const origin = attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] || 'manual';
+  const isManualSpan = !`${origin}`.startsWith('auto');
+
+  const useInferredDescription = isClientOrServerKind || !isManualSpan;
+
   return {
     op: opParts.join('.'),
-    description: isClientOrServerKind ? description : name,
-    source: isClientOrServerKind ? source : 'custom',
+    description: useInferredDescription ? description : name,
+    source: useInferredDescription ? source : 'custom',
     data,
   };
 }
