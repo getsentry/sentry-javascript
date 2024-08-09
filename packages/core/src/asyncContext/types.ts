@@ -1,5 +1,5 @@
 import type { Scope } from '@sentry/types';
-import { getTraceData } from '../utils/traceData';
+import type { getTraceData } from '../utils/traceData';
 import type {
   startInactiveSpan,
   startSpan,
