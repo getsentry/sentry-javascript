@@ -110,7 +110,10 @@ async function runDockerCompose(options: DockerOptions): Promise<VoidFunction> {
   return new Promise((resolve, reject) => {
     const cwd = join(...options.workingDirectory);
     const close = (): void => {
-      spawnSync('docker', ['compose', 'down', '--volumes'], { cwd, stdio: 'inherit' });
+      spawnSync('docker', ['compose', 'down', '--volumes'], {
+        cwd,
+        stdio: process.env.DEBUG ? 'inherit' : undefined,
+      });
     };
 
     // ensure we're starting fresh
@@ -125,6 +128,9 @@ async function runDockerCompose(options: DockerOptions): Promise<VoidFunction> {
 
     function newData(data: Buffer): void {
       const text = data.toString('utf8');
+
+      // eslint-disable-next-line no-console
+      if (process.env.DEBUG) console.log(text);
 
       for (const match of options.readyMatches) {
         if (text.includes(match)) {
