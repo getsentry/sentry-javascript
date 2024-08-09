@@ -85,20 +85,20 @@ export class SentryNestInstrumentation extends InstrumentationBase {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return function wrapInject(original: any) {
       return function wrappedInject(token?: unknown) {
-        return function (target: InjectTarget) {
-          // console.log('target:', target);
-          // console.log('prototype: ', target.prototype);
-          // console.log('token: ', token);
+        return function (target: InjectTarget, key: string | symbol | undefined, index?: number) {
+          console.log('target:', target);
+          console.log('prototype: ', target.prototype);
+          console.log('token: ', token);
+          console.log('key: ', key);
 
-          /*
           if (target.prototype === undefined) {
-            return original(token)(target);
+            return original(token)(target, key, index);
           }
 
           if (target.prototype.set !== undefined && typeof target.prototype.set === 'function' && !target.__SENTRY_INTERNAL__) {
             // patch only once
             if (isPatched(target)) {
-              return original(token)(target);
+              return original(token)(target, key, index);
             }
 
             console.log('patch set!')
@@ -106,7 +106,7 @@ export class SentryNestInstrumentation extends InstrumentationBase {
           if (target.prototype.set !== undefined && typeof target.prototype.get === 'function' && !target.__SENTRY_INTERNAL__) {
             // patch only once
             if (isPatched(target)) {
-              return original(token)(target);
+              return original(token)(target, key, index);
             }
 
             console.log('patch get!')
@@ -114,15 +114,13 @@ export class SentryNestInstrumentation extends InstrumentationBase {
           if (target.prototype.set !== undefined && typeof target.prototype.del === 'function' && !target.__SENTRY_INTERNAL__) {
             // patch only once
             if (isPatched(target)) {
-              return original(token)(target);
+              return original(token)(target, key, index);
             }
 
             console.log('patch del!')
           }
-           */
 
-          return original(token)(target);
-
+          return original(token)(target, key, index);
         }
       }
     }
