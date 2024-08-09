@@ -66,6 +66,6 @@ export interface AsyncContextStrategy {
   /** Suppress tracing in the given callback, ensuring no spans are generated inside of it.  */
   suppressTracing?: typeof suppressTracing;
 
-  /** get trace data as serialized string values for propagation via `sentry-trace` and `baggage` */
+  /** Get trace data as serialized string values for propagation via `sentry-trace` and `baggage`. */
   getTraceData?: typeof getTraceData;
 }
