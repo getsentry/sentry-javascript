@@ -140,7 +140,7 @@ function _init(
   const scope = getCurrentScope();
   scope.update(options.initialScope);
 
-  if (options.spotlight && options.integrations.some(({ name }) => name !== SPOTLIGHT_INTEGRATION_NAME)) {
+  if (options.spotlight && !options.integrations.some(({ name }) => name === SPOTLIGHT_INTEGRATION_NAME)) {
     options.integrations.push(
       spotlightIntegration({
         sidecarUrl: typeof options.spotlight === 'string' ? options.spotlight : undefined,
