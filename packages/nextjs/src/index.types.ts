@@ -40,8 +40,6 @@ export declare const metrics: typeof clientSdk.metrics & typeof serverSdk.metric
 
 export { withSentryConfig } from './config';
 
-export type { SentryBuildOptions } from './config/types';
-
 /**
  * Wraps a Next.js Pages Router API route with Sentry error and performance instrumentation.
  *
