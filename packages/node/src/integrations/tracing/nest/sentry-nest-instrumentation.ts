@@ -5,7 +5,17 @@ import {
   InstrumentationNodeModuleDefinition,
   InstrumentationNodeModuleFile,
 } from '@opentelemetry/instrumentation';
-import { getActiveSpan, startSpan, startSpanManual, withActiveSpan } from '@sentry/core';
+import {
+  getActiveSpan,
+  startSpan,
+  startSpanManual,
+  withActiveSpan,
+  startInactiveSpan,
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_CACHE_KEY,
+  SEMANTIC_ATTRIBUTE_CACHE_HIT
+} from '@sentry/core';
 import type { Span } from '@sentry/types';
 import { SDK_VERSION } from '@sentry/utils';
 import { getMiddlewareSpanOptions, isPatched } from './helpers';
@@ -103,12 +113,16 @@ export class SentryNestInstrumentation extends InstrumentationBase {
 
             target.prototype.set = new Proxy(target.prototype.set, {
               apply: (originalSet, thisArgSet, argsSet) => {
-                const [key, value, ...args] = argsSet;
+                const key = argsSet[0];
 
                 return startSpan(
                   {
                     name: target.name,
-                    op: 'cache.put'
+                    attributes: {
+                      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'cache.put',
+                      [SEMANTIC_ATTRIBUTE_CACHE_KEY]: key,
+                      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.cache.nestjs',
+                    },
                   }, () => {
                     return originalSet.apply(thisArgSet, argsSet);
                   }
@@ -126,16 +140,25 @@ export class SentryNestInstrumentation extends InstrumentationBase {
 
             target.prototype.get = new Proxy(target.prototype.get, {
               apply: (originalGet, thisArgGet, argsGet) => {
-                const [key, ...args] = argsGet;
+                const key = argsGet[0];
 
-                return startSpan(
+                const span = startInactiveSpan(
                   {
                     name: target.name,
-                    op: 'cache.get'
-                  }, () => {
-                    return originalGet.apply(thisArgGet, argsGet);
+                    attributes: {
+                      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'cache.get',
+                      [SEMANTIC_ATTRIBUTE_CACHE_KEY]: key,
+                      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.cache.nestjs',
+                    },
                   }
-                )
+                );
+
+                const returnedValue: Promise<unknown> | undefined  = originalGet.apply(thisArgGet, argsGet);
+
+                span.setAttribute(SEMANTIC_ATTRIBUTE_CACHE_HIT, returnedValue !== undefined);
+                span.end();
+
+                return returnedValue;
               }
             })
 
@@ -149,12 +172,16 @@ export class SentryNestInstrumentation extends InstrumentationBase {
 
             target.prototype.del = new Proxy(target.prototype.del, {
               apply: (originalDel, thisArgDel, argsDel) => {
-                const [key, ...args] = argsDel;
+                const key = argsDel[0];
 
                 return startSpan(
                   {
                     name: target.name,
-                    op: 'cache.remove'
+                    attributes: {
+                      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'cache.remove',
+                      [SEMANTIC_ATTRIBUTE_CACHE_KEY]: key,
+                      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.cache.nestjs',
+                    },
                   }, () => {
                     return originalDel.apply(thisArgDel, argsDel);
                   }
