@@ -61,14 +61,27 @@ const _fastifyIntegration = (() => {
  */
 export const fastifyIntegration = defineIntegration(_fastifyIntegration);
 
+interface FastifyHandlerOptions {
+  /**
+   * Callback method deciding whether error should be captured and sent to Sentry
+   * @param error Captured middleware error
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  shouldHandleError?(this: void, request: any, reply: any, error: Error): boolean;
+}
+
 /**
  * Setup an error handler for Fastify.
  */
-export function setupFastifyErrorHandler(fastify: Fastify): void {
+export function setupFastifyErrorHandler(fastify: Fastify, options?: FastifyHandlerOptions): void {
   const plugin = Object.assign(
     function (fastify: Fastify, _options: unknown, done: () => void): void {
-      fastify.addHook('onError', async (_request, _reply, error) => {
-        captureException(error);
+      const shouldHandleError = options?.shouldHandleError || defaultShouldHandleError;
+
+      fastify.addHook('onError', async (request, reply, error) => {
+        if (shouldHandleError(request, reply, error)) {
+          captureException(error, { mechanism: { type: 'middleware', handled: false } });
+        }
       });
 
       // registering `onRequest` hook here instead of using Otel `onRequest` callback b/c `onRequest` hook
@@ -130,4 +143,11 @@ function addFastifySpanAttributes(span: Span): void {
     // Also remove `fastify -> ` prefix
     span.updateName(name.replace(/^fastify -> /, ''));
   }
+}
+
+/** Returns true if response code is internal server error */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function defaultShouldHandleError(_request: any, reply: any, _error: Error): boolean {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+  return reply.statusCode >= 500;
 }
