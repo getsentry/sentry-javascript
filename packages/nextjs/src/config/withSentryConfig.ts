@@ -83,6 +83,13 @@ function getFinalConfigObject(
     ...incomingUserNextConfigObject.experimental,
   };
 
+  // We need to add `import-in-the-middle` to `serverComponentsExternalPackages` to make sure that it's not bundled so
+  // that both the ESM loader hook and runtime code use the same library.
+  incomingUserNextConfigObject.experimental.serverComponentsExternalPackages = [
+    ...(incomingUserNextConfigObject.experimental.serverComponentsExternalPackages || []),
+    'import-in-the-middle',
+  ];
+
   // Add the `clientTraceMetadata` experimental option based on Next.js version. The option got introduced in Next.js version 15.0.0 (actually 14.3.0-canary.64).
   // Adding the option on lower versions will cause Next.js to print nasty warnings we wouldn't confront our users with.
   const nextJsVersion = getNextjsVersion();

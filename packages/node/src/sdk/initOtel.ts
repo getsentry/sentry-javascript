@@ -11,6 +11,7 @@ import { SDK_VERSION } from '@sentry/core';
 import { SentryPropagator, SentrySampler, SentrySpanProcessor } from '@sentry/opentelemetry';
 import { GLOBAL_OBJ, consoleSandbox, logger } from '@sentry/utils';
 
+import { pathToFileURL } from 'url';
 import { getOpenTelemetryInstrumentationToPreload } from '../integrations/tracing';
 import { SentryContextManager } from '../otel/contextManager';
 import type { EsmLoaderHookOptions } from '../types';
@@ -32,16 +33,28 @@ export function initOpenTelemetry(client: NodeClient): void {
 }
 
 /** Initialize the ESM loader. */
-export function maybeInitializeEsmLoader(esmHookConfig?: EsmLoaderHookOptions): void {
+export function maybeInitializeEsmLoader(esmHookConfig: EsmLoaderHookOptions | boolean | undefined): void {
+  // if it's specifically disabled by being set to false
+  if (esmHookConfig === false) {
+    return;
+  }
+
+  // If we're using CJS and we're not force enabled
+  if (isCjs() && esmHookConfig === undefined) {
+    return;
+  }
+
   const [nodeMajor = 0, nodeMinor = 0] = process.versions.node.split('.').map(Number);
 
   // Register hook was added in v20.6.0 and v18.19.0
   if (nodeMajor >= 22 || (nodeMajor === 20 && nodeMinor >= 6) || (nodeMajor === 18 && nodeMinor >= 19)) {
     // We need to work around using import.meta.url directly because jest complains about it.
     const importMetaUrl =
-      typeof __IMPORT_META_URL_REPLACEMENT__ !== 'undefined' ? __IMPORT_META_URL_REPLACEMENT__ : undefined;
+      typeof __IMPORT_META_URL_REPLACEMENT__ !== 'undefined'
+        ? __IMPORT_META_URL_REPLACEMENT__
+        : pathToFileURL(__filename).href;
 
-    if (!GLOBAL_OBJ._sentryEsmLoaderHookRegistered && importMetaUrl) {
+    if (!GLOBAL_OBJ._sentryEsmLoaderHookRegistered) {
       try {
         // @ts-expect-error register is available in these versions
         moduleModule.register('import-in-the-middle/hook.mjs', importMetaUrl, { data: esmHookConfig });

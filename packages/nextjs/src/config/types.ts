@@ -47,7 +47,10 @@ export type NextConfigObject = {
   experimental?: {
     instrumentationHook?: boolean;
     clientTraceMetadata?: string[];
+    serverComponentsExternalPackages?: string[];
   };
+  // Path to the Next.js cache handler module
+  cacheHandler?: string;
   productionBrowserSourceMaps?: boolean;
 };
 
