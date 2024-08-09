@@ -1,7 +1,7 @@
 const { cleanupChildProcesses } = require('./utils/runner');
 
-// Increases test timeout from 5s to 45s
-jest.setTimeout(45000);
+// Default timeout: 15s
+jest.setTimeout(15000);
 
 afterEach(() => {
   cleanupChildProcesses();

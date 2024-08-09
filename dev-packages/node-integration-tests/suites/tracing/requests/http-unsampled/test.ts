@@ -24,7 +24,7 @@ test('outgoing http requests are correctly instrumented when not sampled', done 
       expect(headers['sentry-trace']).toBeUndefined();
     })
     .start()
-    .then(SERVER_URL => {
+    .then(([SERVER_URL, closeTestServer]) => {
       createRunner(__dirname, 'scenario.ts')
         .withEnv({ SERVER_URL })
         .expect({
@@ -39,6 +39,6 @@ test('outgoing http requests are correctly instrumented when not sampled', done 
             },
           },
         })
-        .start(done);
+        .start(closeTestServer);
     });
 });

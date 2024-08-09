@@ -54,15 +54,19 @@ app.get('/test/error/:id', (req, res) => {
 
   setTimeout(() => {
     // We flush to ensure we are sending exceptions in a certain order
-    Sentry.flush(3000).then(
+    Sentry.flush(1000).then(
       () => {
+        // We send this so we can wait for this, to know the test is ended & server can be closed
+        if (id === '3') {
+          Sentry.captureException(new Error('Final exception was captured'));
+        }
         res.send({});
       },
       () => {
         res.send({});
       },
     );
-  }, 1000);
+  }, 1);
 });
 
 Sentry.setupExpressErrorHandler(app);

@@ -45,7 +45,7 @@ class AppController {
 })
 class AppModule {}
 
-async function init(): Promise<void> {
+async function run(): Promise<void> {
   const app = await NestFactory.create(AppModule);
   const { httpAdapter } = app.get(HttpAdapterHost);
   Sentry.setupNestErrorHandler(app, new BaseExceptionFilter(httpAdapter));
@@ -54,4 +54,4 @@ async function init(): Promise<void> {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-floating-promises
-init();
+run();

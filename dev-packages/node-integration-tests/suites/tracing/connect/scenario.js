@@ -13,7 +13,7 @@ Sentry.init({
 const connect = require('connect');
 const http = require('http');
 
-const init = async () => {
+const run = async () => {
   const app = connect();
 
   app.use('/', function (req, res, next) {
@@ -34,4 +34,4 @@ const init = async () => {
   sendPortToRunner(port);
 };
 
-init();
+run();

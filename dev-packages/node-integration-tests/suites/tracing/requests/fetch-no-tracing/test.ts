@@ -26,7 +26,7 @@ conditionalTest({ min: 18 })('outgoing fetch', () => {
         expect(headers['sentry-trace']).toBeUndefined();
       })
       .start()
-      .then(SERVER_URL => {
+      .then(([SERVER_URL, closeTestServer]) => {
         createRunner(__dirname, 'scenario.ts')
           .withEnv({ SERVER_URL })
           .ensureNoErrorOutput()
@@ -42,7 +42,7 @@ conditionalTest({ min: 18 })('outgoing fetch', () => {
               },
             },
           })
-          .start(done);
+          .start(closeTestServer);
       });
   });
 });
