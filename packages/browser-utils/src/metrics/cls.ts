@@ -4,8 +4,11 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_VALUE,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  getActiveSpan,
   getClient,
   getCurrentScope,
+  getRootSpan,
+  spanToJSON,
 } from '@sentry/core';
 import type { SpanAttributes } from '@sentry/types';
 import { browserPerformanceTimeOrigin, dropUndefinedKeys, htmlTreeAsString, logger } from '@sentry/utils';
@@ -26,6 +29,7 @@ import { onHidden } from './web-vitals/lib/onHidden';
 export function trackClsAsStandaloneSpan(): void {
   let standaloneCLsValue = 0;
   let standaloneClsEntry: LayoutShift | undefined;
+  let pageloadSpanId: string | undefined;
 
   if (!supportsLayoutShift()) {
     return;
@@ -36,9 +40,11 @@ export function trackClsAsStandaloneSpan(): void {
     if (sentSpan) {
       return;
     }
-    sendStandaloneClsSpan(standaloneCLsValue, standaloneClsEntry);
-    cleanupClsHandler();
     sentSpan = true;
+    if (pageloadSpanId) {
+      sendStandaloneClsSpan(standaloneCLsValue, standaloneClsEntry, pageloadSpanId);
+    }
+    cleanupClsHandler();
   }
 
   const cleanupClsHandler = addClsInstrumentationHandler(({ metric }) => {
@@ -59,14 +65,23 @@ export function trackClsAsStandaloneSpan(): void {
   // we need to wait with subscribing to a client hook until the client is created. Therefore, we defer
   // to the next tick after the SDK setup.
   setTimeout(() => {
-    const unsubscribe = getClient()?.on('startNavigationSpan', () => {
+    const client = getClient();
+
+    const unsubscribeStartNavigation = client?.on('startNavigationSpan', () => {
       _collectClsOnce();
-      typeof unsubscribe === 'function' && unsubscribe();
+      unsubscribeStartNavigation && unsubscribeStartNavigation();
     });
+
+    const activeSpan = getActiveSpan();
+    const rootSpan = activeSpan && getRootSpan(activeSpan);
+    const spanJSON = rootSpan && spanToJSON(rootSpan);
+    if (spanJSON && spanJSON.op === 'pageload') {
+      pageloadSpanId = rootSpan.spanContext().spanId;
+    }
   }, 0);
 }
 
-function sendStandaloneClsSpan(clsValue: number, entry: LayoutShift | undefined) {
+function sendStandaloneClsSpan(clsValue: number, entry: LayoutShift | undefined, pageloadSpanId: string) {
   DEBUG_BUILD && logger.log(`Sending CLS span (${clsValue})`);
 
   const startTime = msToSec(browserPerformanceTimeOrigin as number) + (entry?.startTime || 0);
@@ -82,6 +97,8 @@ function sendStandaloneClsSpan(clsValue: number, entry: LayoutShift | undefined)
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.browser.cls',
     [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'ui.webvital.cls',
     [SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME]: entry?.duration || 0,
+    // attach the pageload span id to the CLS span so that we can link them in the UI
+    'sentry.pageload.span_id': pageloadSpanId,
   });
 
   const span = startStandaloneWebVitalSpan({
