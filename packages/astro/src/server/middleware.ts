@@ -188,7 +188,7 @@ function addMetaTagToHead(htmlChunk: string, scope: Scope, client: Client, span?
   if (typeof htmlChunk !== 'string') {
     return htmlChunk;
   }
-  const metaTags = getTraceMetaTags(span, scope, client);
+  const metaTags = getTraceMetaTags({ span, scope, client });
 
   if (!metaTags) {
     return htmlChunk;

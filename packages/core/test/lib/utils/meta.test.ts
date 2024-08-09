@@ -12,6 +12,20 @@ describe('getTraceMetaTags', () => {
 <meta name="baggage" content="sentry-environment=production"/>`);
   });
 
+  it('returns baggage and sentry-trace values to stringified Html meta tag array', () => {
+    jest.spyOn(TraceDataModule, 'getTraceData').mockReturnValueOnce({
+      'sentry-trace': '12345678901234567890123456789012-1234567890123456-1',
+      baggage: 'sentry-environment=production',
+    });
+
+    const metaTags = getTraceMetaTags({ asArray: true });
+
+    expect(metaTags).toContain('<meta name="baggage" content="sentry-environment=production"/>');
+    expect(metaTags).toContain(
+      '<meta name="sentry-trace" content="12345678901234567890123456789012-1234567890123456-1"/>',
+    );
+  });
+
   it('renders just sentry-trace values to stringified Html meta tags', () => {
     jest.spyOn(TraceDataModule, 'getTraceData').mockReturnValueOnce({
       'sentry-trace': '12345678901234567890123456789012-1234567890123456-1',
