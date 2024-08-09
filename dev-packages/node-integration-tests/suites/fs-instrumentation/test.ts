@@ -17,7 +17,7 @@ test('should create spans for fs operations that take target argument', done => 
             status: 'unknown_error',
             data: {
               fs_error: expect.stringMatching('ENOENT: no such file or directory,'),
-              path_argument: expect.stringMatching('/some-file-that-doesnt-exist.txt'),
+              path_argument: expect.stringMatching('/fixtures/some-file-that-doesnt-exist.txt'),
               [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'file',
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.file.fs',
             },
@@ -41,7 +41,7 @@ test('should create spans for fs operations that take one path', done => {
             op: 'file',
             status: 'ok',
             data: {
-              path_argument: expect.stringMatching('/some-file.txt'),
+              path_argument: expect.stringMatching('/fixtures/some-file.txt'),
               [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'file',
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.file.fs',
             },
@@ -51,7 +51,7 @@ test('should create spans for fs operations that take one path', done => {
             op: 'file',
             status: 'ok',
             data: {
-              path_argument: expect.stringMatching('/some-file-promises.txt'),
+              path_argument: expect.stringMatching('/fixtures/some-file-promises.txt'),
               [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'file',
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.file.fs',
             },
@@ -61,7 +61,7 @@ test('should create spans for fs operations that take one path', done => {
             op: 'file',
             status: 'ok',
             data: {
-              path_argument: expect.stringMatching('/some-file-promisify.txt'),
+              path_argument: expect.stringMatching('/fixtures/some-file-promisify.txt'),
               [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'file',
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.file.fs',
             },
@@ -85,8 +85,8 @@ test('should create spans for fs operations that take src and dest arguments', d
             op: 'file',
             status: 'ok',
             data: {
-              src_argument: expect.stringMatching('/some-file.txt'),
-              dest_argument: expect.stringMatching('/some-file.txt.copy'),
+              src_argument: expect.stringMatching('/fixtures/some-file.txt'),
+              dest_argument: expect.stringMatching('/fixtures/some-file.txt.copy'),
               [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'file',
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.file.fs',
             },
@@ -96,8 +96,8 @@ test('should create spans for fs operations that take src and dest arguments', d
             op: 'file',
             status: 'ok',
             data: {
-              src_argument: expect.stringMatching('/some-file-promises.txt'),
-              dest_argument: expect.stringMatching('/some-file-promises.txt.copy'),
+              src_argument: expect.stringMatching('/fixtures/some-file-promises.txt'),
+              dest_argument: expect.stringMatching('/fixtures/some-file-promises.txt.copy'),
               [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'file',
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.file.fs',
             },
@@ -107,8 +107,8 @@ test('should create spans for fs operations that take src and dest arguments', d
             op: 'file',
             status: 'ok',
             data: {
-              src_argument: expect.stringMatching('/some-file-promisify.txt'),
-              dest_argument: expect.stringMatching('/some-file-promisify.txt.copy'),
+              src_argument: expect.stringMatching('/fixtures/some-file-promisify.txt'),
+              dest_argument: expect.stringMatching('/fixtures/some-file-promisify.txt.copy'),
               [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'file',
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.file.fs',
             },
@@ -132,8 +132,8 @@ test('should create spans for fs operations that take existing path and new path
             op: 'file',
             status: 'ok',
             data: {
-              existing_path_argument: expect.stringMatching('/some-file.txt'),
-              new_path_argument: expect.stringMatching('/some-file.txt.link'),
+              existing_path_argument: expect.stringMatching('/fixtures/some-file.txt'),
+              new_path_argument: expect.stringMatching('/fixtures/some-file.txt.link'),
               [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'file',
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.file.fs',
             },
@@ -154,8 +154,8 @@ test('should create spans for fs operations that take existing path and new path
             op: 'file',
             status: 'ok',
             data: {
-              existing_path_argument: expect.stringMatching('/some-file-promisify.txt'),
-              new_path_argument: expect.stringMatching('/some-file-promisify.txt.link'),
+              existing_path_argument: expect.stringMatching('/fixtures/some-file-promisify.txt'),
+              new_path_argument: expect.stringMatching('/fixtures/some-file-promisify.txt.link'),
               [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'file',
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.file.fs',
             },
@@ -234,8 +234,8 @@ test('should create spans for fs operations that take target argument', done => 
             op: 'file',
             status: 'ok',
             data: {
-              target_argument: expect.stringMatching('/some-file-promisify.txt'),
-              path_argument: expect.stringMatching('/some-file-promisify.txt.symlink'),
+              target_argument: expect.stringMatching('/fixtures/some-file-promisify.txt'),
+              path_argument: expect.stringMatching('/fixtures/some-file-promisify.txt.symlink'),
               [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'file',
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.file.fs',
             },
@@ -245,8 +245,8 @@ test('should create spans for fs operations that take target argument', done => 
             op: 'file',
             status: 'ok',
             data: {
-              target_argument: expect.stringMatching('/some-file-promisify.txt'),
-              path_argument: expect.stringMatching('/some-file-promisify.txt.symlink'),
+              target_argument: expect.stringMatching('/fixtures/some-file-promisify.txt'),
+              path_argument: expect.stringMatching('/fixtures/some-file-promisify.txt.symlink'),
               [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'file',
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.file.fs',
             },
