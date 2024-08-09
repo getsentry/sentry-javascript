@@ -311,7 +311,15 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
 
   /** @inheritdoc */
   public init(): void {
-    if (this._isEnabled()) {
+    if (
+      this._isEnabled() ||
+      // Force integrations to be setup even if no DSN was set when we have
+      // Spotlight enabled. This is particularly important for browser as we
+      // don't support the `spotlight` option there and rely on the users
+      // adding the `spotlightBrowserIntegration()` to their integrations which
+      // wouldn't get initialized with the check below when there's no DSN set.
+      this._options.integrations.some(({ name }) => name.startsWith('Spotlight'))
+    ) {
       this._setupIntegrations();
     }
   }

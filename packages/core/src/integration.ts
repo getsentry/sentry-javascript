@@ -19,7 +19,7 @@ export type IntegrationIndex = {
 
 /**
  * Remove duplicates from the given array, preferring the last instance of any duplicate. Not guaranteed to
- * preseve the order of integrations in the array.
+ * preserve the order of integrations in the array.
  *
  * @private
  */
