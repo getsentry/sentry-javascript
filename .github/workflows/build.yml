@@ -1190,6 +1190,16 @@ jobs:
         timeout-minutes: 5
         run: yarn test:assert
 
+      - name: Build E2E app with shimmed ESM globals
+        working-directory: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
+        timeout-minutes: 5
+        run: yarn ${{ matrix.build-command || 'test:build:shimmed' }}
+
+      - name: Run E2E test with shimmed ESM globals
+        working-directory: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
+        timeout-minutes: 5
+        run: yarn test:assert:shimmed
+
   job_required_jobs_passed:
     name: All required jobs passed or were skipped
     needs:
