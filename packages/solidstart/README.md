@@ -66,7 +66,7 @@ Create an instrument file named `instrument.server.mjs` and add your initializat
 import * as Sentry from '@sentry/solidstart';
 
 Sentry.init({
-  dsn: 'https://0e67f7dd5326d51506e92d7f1eff887a@o447951.ingest.us.sentry.io/4507459091824640',
+  dsn: '__PUBLIC_DSN__',
   tracesSampleRate: 1.0, //  Capture 100% of the transactions
 });
 ```
