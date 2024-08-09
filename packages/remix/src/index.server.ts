@@ -6,7 +6,6 @@ import { logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from './utils/debug-build';
 import { instrumentServer } from './utils/instrumentServer';
-import { httpIntegration } from './utils/integrations/http';
 import { remixIntegration } from './utils/integrations/opentelemetry';
 import type { RemixOptions } from './utils/remixOptions';
 
@@ -153,8 +152,7 @@ export type { SentryMetaArgs } from './utils/types';
  */
 export function getRemixDefaultIntegrations(options: RemixOptions): Integration[] {
   return [
-    ...getDefaultNodeIntegrations(options as NodeOptions).filter(integration => integration.name !== 'Http'),
-    httpIntegration(),
+    ...getDefaultNodeIntegrations(options as NodeOptions),
     options.autoInstrumentRemix ? remixIntegration() : undefined,
   ].filter(int => int) as Integration[];
 }
