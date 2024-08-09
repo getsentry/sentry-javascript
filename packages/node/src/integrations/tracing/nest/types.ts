@@ -64,6 +64,12 @@ export interface CatchTarget {
   sentryPatched?: boolean;
   __SENTRY_INTERNAL__?: boolean;
   prototype: {
-    catch?: (...args: any[]) => any;
+    catch?: (exception: unknown, host: unknown, ...args: any[]) => any;
   };
+}
+
+export interface BaseExceptionFilter {
+  prototype: {
+    catch(exception: unknown, host: unknown): void;
+  }
 }
