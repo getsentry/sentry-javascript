@@ -86,6 +86,7 @@ export {
   connectIntegration,
   setupConnectErrorHandler,
   fastifyIntegration,
+  fsIntegration,
   graphqlIntegration,
   mongoIntegration,
   mongooseIntegration,

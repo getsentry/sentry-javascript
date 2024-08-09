@@ -77,6 +77,7 @@ export {
   nodeContextIntegration,
   localVariablesIntegration,
   requestDataIntegration,
+  fsIntegration,
   functionToStringIntegration,
   inboundFiltersIntegration,
   linkedErrorsIntegration,
