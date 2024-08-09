@@ -19,6 +19,7 @@ import { clearSession } from '../../src/session/clearSession';
 import type { EventBuffer } from '../../src/types';
 import { createPerformanceEntries } from '../../src/util/createPerformanceEntries';
 import { createPerformanceSpans } from '../../src/util/createPerformanceSpans';
+import { logger } from '../../src/util/logger';
 import * as SendReplay from '../../src/util/sendReplay';
 import { BASE_TIMESTAMP, mockRrweb, mockSdk } from '../index';
 import type { DomHandler } from '../types';
@@ -335,7 +336,7 @@ describe('Integration | flush', () => {
   });
 
   it('logs warning if flushing initial segment without checkout', async () => {
-    replay.getOptions()._experiments.traceInternals = true;
+    logger.setConfig({ traceInternals: true });
 
     sessionStorage.clear();
     clearSession(replay);
@@ -408,11 +409,11 @@ describe('Integration | flush', () => {
       },
     ]);
 
-    replay.getOptions()._experiments.traceInternals = false;
+    logger.setConfig({ traceInternals: false });
   });
 
   it('logs warning if adding event that is after maxReplayDuration', async () => {
-    replay.getOptions()._experiments.traceInternals = true;
+    logger.setConfig({ traceInternals: true });
 
     const spyLogger = vi.spyOn(SentryUtils.logger, 'info');
 
@@ -440,12 +441,13 @@ describe('Integration | flush', () => {
     expect(mockSendReplay).toHaveBeenCalledTimes(0);
 
     expect(spyLogger).toHaveBeenLastCalledWith(
-      `[Replay] Skipping event with timestamp ${
+      '[Replay] ',
+      `Skipping event with timestamp ${
         BASE_TIMESTAMP + MAX_REPLAY_DURATION + 100
       } because it is after maxReplayDuration`,
     );
 
-    replay.getOptions()._experiments.traceInternals = false;
+    logger.setConfig({ traceInternals: false });
     spyLogger.mockRestore();
   });
 
