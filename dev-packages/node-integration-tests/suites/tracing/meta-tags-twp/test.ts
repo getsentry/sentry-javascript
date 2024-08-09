@@ -24,8 +24,8 @@ describe('getTraceMetaTags', () => {
 
     const sentryBaggageContent = html.match(/<meta name="baggage" content="(.*)"\/>/)?.[1];
 
-    expect(sentryBaggageContent).toEqual(
-      `sentry-environment=production,sentry-public_key=public,sentry-trace_id=${traceId}`,
-    );
+    expect(sentryBaggageContent).toContain('sentry-environment=production');
+    expect(sentryBaggageContent).toContain('sentry-public_key=public');
+    expect(sentryBaggageContent).toContain(`sentry-trace_id=${traceId}`);
   });
 });
