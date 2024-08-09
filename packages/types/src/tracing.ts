@@ -42,3 +42,12 @@ export interface PropagationContext {
    */
   dsc?: Partial<DynamicSamplingContext>;
 }
+
+/**
+ * An object holding trace data, like span and trace ids, sampling decision, and dynamic sampling context
+ * in a serialized form. Both keys are expected to be used as Http headers or Html meta tags.
+ */
+export interface SerializedTraceData {
+  'sentry-trace'?: string;
+  baggage?: string;
+}
