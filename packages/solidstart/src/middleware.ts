@@ -1,4 +1,4 @@
-import { getTraceData } from '@sentry/core';
+import { getTraceMetaTags } from '@sentry/core';
 import { addNonEnumerableProperty } from '@sentry/utils';
 import type { ResponseMiddleware } from '@solidjs/start/middleware';
 import type { FetchEvent } from '@solidjs/start/server';
@@ -8,19 +8,13 @@ export type ResponseMiddlewareResponse = Parameters<ResponseMiddleware>[1] & {
 };
 
 function addMetaTagToHead(html: string): string {
-  const { 'sentry-trace': sentryTrace, baggage } = getTraceData();
+  const metaTags = getTraceMetaTags();
 
-  if (!sentryTrace) {
+  if (!metaTags) {
     return html;
   }
 
-  const metaTags = [`<meta name="sentry-trace" content="${sentryTrace}">`];
-
-  if (baggage) {
-    metaTags.push(`<meta name="baggage" content="${baggage}">`);
-  }
-
-  const content = `<head>\n${metaTags.join('\n')}\n`;
+  const content = `<head>\n${metaTags}\n`;
   return html.replace('<head>', content);
 }
 
