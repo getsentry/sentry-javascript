@@ -915,6 +915,7 @@ jobs:
             'sveltekit',
             'sveltekit-2',
             'sveltekit-2-svelte-5',
+            'sveltekit-2-twp',
             'tanstack-router',
             'generic-ts3.8',
             'node-fastify',
