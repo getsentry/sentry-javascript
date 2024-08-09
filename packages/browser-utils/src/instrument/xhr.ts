@@ -30,7 +30,7 @@ export function instrumentXHR(): void {
   const xhrproto = XMLHttpRequest.prototype;
 
   fill(xhrproto, 'open', function (originalOpen: () => void): () => void {
-    return function (this: XMLHttpRequest & SentryWrappedXMLHttpRequest, ...args: unknown[]): void {
+    return function open(this: XMLHttpRequest & SentryWrappedXMLHttpRequest, ...args: unknown[]): void {
       const startTimestamp = timestampInSeconds() * 1000;
 
       // open() should always be called with two or more arguments
@@ -81,7 +81,7 @@ export function instrumentXHR(): void {
 
       if ('onreadystatechange' in this && typeof this.onreadystatechange === 'function') {
         fill(this, 'onreadystatechange', function (original: WrappedFunction) {
-          return function (this: SentryWrappedXMLHttpRequest, ...readyStateArgs: unknown[]): void {
+          return function onreadystatechange(this: SentryWrappedXMLHttpRequest, ...readyStateArgs: unknown[]): void {
             onreadystatechangeHandler();
             return original.apply(this, readyStateArgs);
           };
@@ -94,7 +94,7 @@ export function instrumentXHR(): void {
       // This will only work for user/library defined headers, not for the default/browser-assigned headers.
       // Request cookies are also unavailable for XHR, as `Cookie` header can't be defined by `setRequestHeader`.
       fill(this, 'setRequestHeader', function (original: WrappedFunction) {
-        return function (this: SentryWrappedXMLHttpRequest, ...setRequestHeaderArgs: unknown[]): void {
+        return function setRequestHeader(this: SentryWrappedXMLHttpRequest, ...setRequestHeaderArgs: unknown[]): void {
           const [header, value] = setRequestHeaderArgs;
 
           const xhrInfo = this[SENTRY_XHR_DATA_KEY];
@@ -112,7 +112,7 @@ export function instrumentXHR(): void {
   });
 
   fill(xhrproto, 'send', function (originalSend: () => void): () => void {
-    return function (this: XMLHttpRequest & SentryWrappedXMLHttpRequest, ...args: unknown[]): void {
+    return function send(this: XMLHttpRequest & SentryWrappedXMLHttpRequest, ...args: unknown[]): void {
       const sentryXhrData = this[SENTRY_XHR_DATA_KEY];
 
       if (!sentryXhrData) {
