@@ -1,6 +1,6 @@
 import * as api from '@opentelemetry/api';
 import { getDefaultCurrentScope, getDefaultIsolationScope, setAsyncContextStrategy } from '@sentry/core';
-import type { getTraceData as defaultGetTraceData, withActiveSpan as defaultWithActiveSpan } from '@sentry/core';
+import type { withActiveSpan as defaultWithActiveSpan } from '@sentry/core';
 import type { Scope } from '@sentry/types';
 
 import {
@@ -104,9 +104,9 @@ export function setOpenTelemetryContextAsyncContextStrategy(): void {
     startInactiveSpan,
     getActiveSpan,
     suppressTracing,
+    getTraceData,
     // The types here don't fully align, because our own `Span` type is narrower
     // than the OTEL one - but this is OK for here, as we now we'll only have OTEL spans passed around
     withActiveSpan: withActiveSpan as typeof defaultWithActiveSpan,
-    getTraceData: getTraceData as typeof defaultGetTraceData,
   });
 }
