@@ -68,6 +68,7 @@ sentryTest('captures a "GOOD" CLS vital with its source as a standalone span', a
       'sentry.origin': 'auto.http.browser.cls',
       transaction: expect.stringContaining('index.html'),
       'user_agent.original': expect.stringContaining('Chrome'),
+      'sentry.pageload.span_id': expect.stringMatching(/[a-f0-9]{16}/),
     },
     description: expect.stringContaining('body > div#content > p'),
     exclusive_time: 0,
@@ -134,6 +135,7 @@ sentryTest('captures a "MEH" CLS vital with its source as a standalone span', as
       'sentry.origin': 'auto.http.browser.cls',
       transaction: expect.stringContaining('index.html'),
       'user_agent.original': expect.stringContaining('Chrome'),
+      'sentry.pageload.span_id': expect.stringMatching(/[a-f0-9]{16}/),
     },
     description: expect.stringContaining('body > div#content > p'),
     exclusive_time: 0,
@@ -198,6 +200,7 @@ sentryTest('captures a "POOR" CLS vital with its source as a standalone span.', 
       'sentry.origin': 'auto.http.browser.cls',
       transaction: expect.stringContaining('index.html'),
       'user_agent.original': expect.stringContaining('Chrome'),
+      'sentry.pageload.span_id': expect.stringMatching(/[a-f0-9]{16}/),
     },
     description: expect.stringContaining('body > div#content > p'),
     exclusive_time: 0,
@@ -263,6 +266,7 @@ sentryTest(
         'sentry.origin': 'auto.http.browser.cls',
         transaction: expect.stringContaining('index.html'),
         'user_agent.original': expect.stringContaining('Chrome'),
+        'sentry.pageload.span_id': expect.stringMatching(/[a-f0-9]{16}/),
       },
       description: 'Layout shift',
       exclusive_time: 0,
@@ -306,6 +310,12 @@ sentryTest(
     expect(eventData.type).toBe('transaction');
     expect(eventData.contexts?.trace?.op).toBe('pageload');
 
+    const pageloadSpanId = eventData.contexts?.trace?.span_id;
+    const pageloadTraceId = eventData.contexts?.trace?.trace_id;
+
+    expect(pageloadSpanId).toMatch(/[a-f0-9]{16}/);
+    expect(pageloadTraceId).toMatch(/[a-f0-9]{32}/);
+
     const spanEnvelopePromise = getMultipleSentryEnvelopeRequests<SpanEnvelope>(
       page,
       1,
@@ -322,6 +332,10 @@ sentryTest(
     // Flakey value dependent on timings -> we check for a range
     expect(spanEnvelopeItem.measurements?.cls?.value).toBeGreaterThan(0.05);
     expect(spanEnvelopeItem.measurements?.cls?.value).toBeLessThan(0.15);
+
+    // Ensure the CLS span is connected to the pageload span and trace
+    expect(spanEnvelopeItem.data?.['sentry.pageload.span_id']).toBe(pageloadSpanId);
+    expect(spanEnvelopeItem.trace_id).toEqual(pageloadTraceId);
   },
 );
 
@@ -349,6 +363,7 @@ sentryTest('sends CLS of the initial page when soft-navigating to a new page', a
   // Flakey value dependent on timings -> we check for a range
   expect(spanEnvelopeItem.measurements?.cls?.value).toBeGreaterThan(0.05);
   expect(spanEnvelopeItem.measurements?.cls?.value).toBeLessThan(0.15);
+  expect(spanEnvelopeItem.data?.['sentry.pageload.span_id']).toMatch(/[a-f0-9]{16}/);
 });
 
 sentryTest("doesn't send further CLS after the first navigation", async ({ getLocalTestPath, page }) => {
