@@ -1,21 +1,10 @@
-import type {
-  ArgumentsHost,
-  CallHandler,
-  DynamicModule,
-  ExecutionContext,
-  NestInterceptor,
-  OnModuleInit,
-} from '@nestjs/common';
-import { HttpException } from '@nestjs/common';
-import { Catch } from '@nestjs/common';
+import type { CallHandler, DynamicModule, ExecutionContext, NestInterceptor, OnModuleInit } from '@nestjs/common';
 import { Injectable } from '@nestjs/common';
 import { Global, Module } from '@nestjs/common';
-import { APP_FILTER, APP_INTERCEPTOR, BaseExceptionFilter } from '@nestjs/core';
-import { RpcException } from '@nestjs/microservices';
+import { APP_INTERCEPTOR } from '@nestjs/core';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  captureException,
   getClient,
   getDefaultIsolationScope,
   getIsolationScope,

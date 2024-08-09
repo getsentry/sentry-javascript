@@ -1,13 +1,13 @@
+import { isWrapped } from '@opentelemetry/core';
 import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
 import {
   InstrumentationBase,
   InstrumentationNodeModuleDefinition,
   InstrumentationNodeModuleFile,
 } from '@opentelemetry/instrumentation';
+import { captureException } from '@sentry/core';
 import { SDK_VERSION } from '@sentry/utils';
-import type {BaseExceptionFilter} from './types';
-import {isWrapped} from '@opentelemetry/core';
-import {captureException} from '@sentry/core';
+import type { BaseExceptionFilter } from './types';
 
 const supportedVersions = ['>=8.0.0 <11'];
 
@@ -28,7 +28,10 @@ export class SentryNestErrorInstrumentation extends InstrumentationBase {
    *
    */
   public init(): InstrumentationNodeModuleDefinition {
-    const moduleDef = new InstrumentationNodeModuleDefinition(SentryNestErrorInstrumentation.COMPONENT, supportedVersions);
+    const moduleDef = new InstrumentationNodeModuleDefinition(
+      SentryNestErrorInstrumentation.COMPONENT,
+      supportedVersions,
+    );
 
     moduleDef.files.push(this._getBaseExceptionFilterFileInstrumentation(supportedVersions));
 
@@ -51,7 +54,7 @@ export class SentryNestErrorInstrumentation extends InstrumentationBase {
       },
       (moduleExports: { BaseExceptionFilter: BaseExceptionFilter }) => {
         this._unwrap(moduleExports.BaseExceptionFilter.prototype, 'catch');
-      }
+      },
     );
   }
 
@@ -61,9 +64,6 @@ export class SentryNestErrorInstrumentation extends InstrumentationBase {
   private _createWrapCatch() {
     return function wrapCatch(originalCatch: (exception: unknown, host: unknown) => void) {
       return function wrappedCatch(this: BaseExceptionFilter, exception: unknown, host: unknown) {
-        console.log('patching the base exception filter!');
-
-        console.log(exception);
         const exceptionIsObject = typeof exception === 'object' && exception !== null;
         const exceptionStatusCode = exceptionIsObject && 'status' in exception ? exception.status : null;
         const exceptionErrorProperty = exceptionIsObject && 'error' in exception ? exception.error : null;
@@ -80,7 +80,7 @@ export class SentryNestErrorInstrumentation extends InstrumentationBase {
         captureException(exception);
 
         return originalCatch.apply(this, [exception, host]);
-      }
-    }
+      };
+    };
   }
 }

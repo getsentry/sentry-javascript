@@ -2,7 +2,6 @@ import { NestInstrumentation } from '@opentelemetry/instrumentation-nestjs-core'
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  captureException,
   defineIntegration,
   getClient,
   getDefaultIsolationScope,
@@ -12,9 +11,9 @@ import {
 import type { IntegrationFn, Span } from '@sentry/types';
 import { logger } from '@sentry/utils';
 import { generateInstrumentOnce } from '../../../otel/instrument';
+import { SentryNestErrorInstrumentation } from './sentry-nest-error-instrumentation';
 import { SentryNestInstrumentation } from './sentry-nest-instrumentation';
 import type { MinimalNestJsApp, NestJsErrorFilter } from './types';
-import {SentryNestErrorInstrumentation} from "./sentry-nest-error-instrumentation";
 
 const INTEGRATION_NAME = 'Nest';
 
@@ -28,7 +27,7 @@ const instrumentNestCommon = generateInstrumentOnce('Nest-Common', () => {
 
 const instrumentNestCoreErrors = generateInstrumentOnce('Nest-Core-Errors', () => {
   return new SentryNestErrorInstrumentation();
-})
+});
 
 export const instrumentNest = Object.assign(
   (): void => {
@@ -59,6 +58,10 @@ export const nestIntegration = defineIntegration(_nestIntegration);
  * Setup an error handler for Nest.
  */
 export function setupNestErrorHandler(app: MinimalNestJsApp, baseFilter: NestJsErrorFilter): void {
+  if (baseFilter) {
+    logger.warn('The base filter does not do anything anymore!'); // TODO: better message
+  }
+
   // Sadly, NestInstrumentation has no requestHook, so we need to add the attributes here
   // We register this hook in this method, because if we register it in the integration `setup`,
   // it would always run even for users that are not even using Nest.js
