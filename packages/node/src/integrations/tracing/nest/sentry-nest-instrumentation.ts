@@ -23,6 +23,8 @@ import type { InjectableTarget, InjectTarget } from './types';
 
 const supportedVersions = ['>=8.0.0 <11'];
 
+const CACHE_MANAGER = 'CACHE_MANAGER';
+
 /**
  * Custom instrumentation for nestjs.
  *
@@ -96,101 +98,25 @@ export class SentryNestInstrumentation extends InstrumentationBase {
     return function wrapInject(original: any) {
       return function wrappedInject(token?: unknown) {
         return function (target: InjectTarget, key: string | symbol | undefined, index?: number) {
-          console.log('target:', target);
-          console.log('prototype: ', target.prototype);
-          console.log('token: ', token);
-          console.log('key: ', key);
-
-          if (target.prototype === undefined) {
+          if (token !== CACHE_MANAGER || target.prototype === undefined) {
             return original(token)(target, key, index);
           }
 
-          if (target.prototype.set !== undefined && typeof target.prototype.set === 'function' && !target.__SENTRY_INTERNAL__) {
-            // patch only once
-            if (isPatched(target)) {
-              return original(token)(target, key, index);
-            }
-
-            target.prototype.set = new Proxy(target.prototype.set, {
-              apply: (originalSet, thisArgSet, argsSet) => {
-                const key = argsSet[0];
-
-                return startSpan(
-                  {
-                    name: target.name,
-                    attributes: {
-                      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'cache.put',
-                      [SEMANTIC_ATTRIBUTE_CACHE_KEY]: key,
-                      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.cache.nestjs',
-                    },
-                  }, () => {
-                    return originalSet.apply(thisArgSet, argsSet);
-                  }
-                )
-              }
-            })
-
-            console.log('patch set!')
+          if (index === undefined) {
+            return original(token)(target, key, index);
           }
-          if (target.prototype.set !== undefined && typeof target.prototype.get === 'function' && !target.__SENTRY_INTERNAL__) {
-            // patch only once
-            if (isPatched(target)) {
-              return original(token)(target, key, index);
-            }
 
-            target.prototype.get = new Proxy(target.prototype.get, {
-              apply: (originalGet, thisArgGet, argsGet) => {
-                const key = argsGet[0];
+          // target is the service that injects the cache manager
+          // TODO: retrieve cache manager so we can patch it
 
-                const span = startInactiveSpan(
-                  {
-                    name: target.name,
-                    attributes: {
-                      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'cache.get',
-                      [SEMANTIC_ATTRIBUTE_CACHE_KEY]: key,
-                      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.cache.nestjs',
-                    },
-                  }
-                );
+          console.log('bla: ', target.prototype.cacheManager);
 
-                const returnedValue: Promise<unknown> | undefined  = originalGet.apply(thisArgGet, argsGet);
-
-                span.setAttribute(SEMANTIC_ATTRIBUTE_CACHE_HIT, returnedValue !== undefined);
-                span.end();
-
-                return returnedValue;
-              }
-            })
-
-            console.log('patch get!')
-          }
-          if (target.prototype.set !== undefined && typeof target.prototype.del === 'function' && !target.__SENTRY_INTERNAL__) {
-            // patch only once
-            if (isPatched(target)) {
-              return original(token)(target, key, index);
-            }
-
-            target.prototype.del = new Proxy(target.prototype.del, {
-              apply: (originalDel, thisArgDel, argsDel) => {
-                const key = argsDel[0];
-
-                return startSpan(
-                  {
-                    name: target.name,
-                    attributes: {
-                      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'cache.remove',
-                      [SEMANTIC_ATTRIBUTE_CACHE_KEY]: key,
-                      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.cache.nestjs',
-                    },
-                  }, () => {
-                    return originalDel.apply(thisArgDel, argsDel);
-                  }
-                )
-              }
-            })
-
-            console.log('patch del!')
-          }
+          console.log('target: ', target);
+          console.log('target prototype', target.prototype);
+          console.log('property name: ', Object.getOwnPropertyNames(target.prototype));
+          console.log('token: ', token);
+          console.log('key: ', key);
+          console.log('index: ', index);
 
           return original(token)(target, key, index);
         }

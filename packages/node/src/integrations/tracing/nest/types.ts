@@ -64,5 +64,6 @@ export interface InjectTarget {
     set?: (key: string, ...args: any[]) => Promise<void> | void;
     get?: (key: string, ...args: any[]) => Promise<unknown> | undefined;
     del?: (key: string, ...args: any[]) => void | Promise<void>;
+    cacheManager?: any;
   }
 }
