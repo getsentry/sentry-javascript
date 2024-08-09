@@ -42,7 +42,7 @@ describe('addSentryTracingMetaTags', () => {
     vi.resetAllMocks();
   });
 
-  it('should add meta tags when there is an active root span', () => {
+  it('should add meta tags', () => {
     const head: string[] = [];
     addSentryTracingMetaTags(head);
 
@@ -50,7 +50,7 @@ describe('addSentryTracingMetaTags', () => {
     expect(head).toContain(`<meta name="baggage" content="${mockReturns.baggageHeader}"/>`);
   });
 
-  it('should not add meta tags when there is no active root span', () => {
+  it('should also add meta tags when there is no active root span', () => {
     vi.doMock('@sentry/core', async () => {
       const actual = await vi.importActual('@sentry/core');
 
@@ -63,6 +63,6 @@ describe('addSentryTracingMetaTags', () => {
     const head: string[] = [];
     addSentryTracingMetaTags(head);
 
-    expect(head).toHaveLength(0);
+    expect(head).toHaveLength(1);
   });
 });
