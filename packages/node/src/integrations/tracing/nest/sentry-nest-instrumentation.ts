@@ -101,6 +101,21 @@ export class SentryNestInstrumentation extends InstrumentationBase {
               return original(token)(target, key, index);
             }
 
+            target.prototype.set = new Proxy(target.prototype.set, {
+              apply: (originalSet, thisArgSet, argsSet) => {
+                const [key, value, ...args] = argsSet;
+
+                return startSpan(
+                  {
+                    name: target.name,
+                    op: 'cache.put'
+                  }, () => {
+                    return originalSet.apply(thisArgSet, argsSet);
+                  }
+                )
+              }
+            })
+
             console.log('patch set!')
           }
           if (target.prototype.set !== undefined && typeof target.prototype.get === 'function' && !target.__SENTRY_INTERNAL__) {
@@ -109,6 +124,21 @@ export class SentryNestInstrumentation extends InstrumentationBase {
               return original(token)(target, key, index);
             }
 
+            target.prototype.get = new Proxy(target.prototype.get, {
+              apply: (originalGet, thisArgGet, argsGet) => {
+                const [key, ...args] = argsGet;
+
+                return startSpan(
+                  {
+                    name: target.name,
+                    op: 'cache.get'
+                  }, () => {
+                    return originalGet.apply(thisArgGet, argsGet);
+                  }
+                )
+              }
+            })
+
             console.log('patch get!')
           }
           if (target.prototype.set !== undefined && typeof target.prototype.del === 'function' && !target.__SENTRY_INTERNAL__) {
@@ -116,6 +146,21 @@ export class SentryNestInstrumentation extends InstrumentationBase {
             if (isPatched(target)) {
               return original(token)(target, key, index);
             }
+
+            target.prototype.del = new Proxy(target.prototype.del, {
+              apply: (originalDel, thisArgDel, argsDel) => {
+                const [key, ...args] = argsDel;
+
+                return startSpan(
+                  {
+                    name: target.name,
+                    op: 'cache.remove'
+                  }, () => {
+                    return originalDel.apply(thisArgDel, argsDel);
+                  }
+                )
+              }
+            })
 
             console.log('patch del!')
           }

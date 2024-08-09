@@ -60,8 +60,8 @@ export interface InjectTarget {
   name: string;
   sentryPatched?: boolean;
   __SENTRY_INTERNAL__?: boolean;
-  prototype?: {
-    set?: (key: string, value: unknown, options?: unknown, ...args: any[]) => Promise<void> | void;
+  prototype: {
+    set?: (key: string, value: unknown, ...args: any[]) => Promise<void> | void;
     get?: (key: string, ...args: any[]) => Promise<unknown> | undefined;
     del?: (key: string, ...args: any[]) => void | Promise<void>;
   }
