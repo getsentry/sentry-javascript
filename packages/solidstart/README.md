@@ -145,11 +145,6 @@ JS `ErrorBoundary` component with `Sentry.withSentryErrorBoundary`.
 import * as Sentry from '@sentry/solidstart';
 import { ErrorBoundary } from 'solid-js';
 
-Sentry.init({
-  dsn: '__PUBLIC_DSN__',
-  tracesSampleRate: 1.0, //  Capture 100% of the transactions
-});
-
 const SentryErrorBoundary = Sentry.withSentryErrorBoundary(ErrorBoundary);
 
 render(
