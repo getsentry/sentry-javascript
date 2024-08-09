@@ -2,7 +2,6 @@ import { NestInstrumentation } from '@opentelemetry/instrumentation-nestjs-core'
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  captureException,
   defineIntegration,
   getClient,
   getDefaultIsolationScope,
@@ -12,6 +11,7 @@ import {
 import type { IntegrationFn, Span } from '@sentry/types';
 import { logger } from '@sentry/utils';
 import { generateInstrumentOnce } from '../../../otel/instrument';
+import { SentryNestErrorInstrumentation } from './sentry-nest-error-instrumentation';
 import { SentryNestInstrumentation } from './sentry-nest-instrumentation';
 import type { MinimalNestJsApp, NestJsErrorFilter } from './types';
 
@@ -25,10 +25,15 @@ const instrumentNestCommon = generateInstrumentOnce('Nest-Common', () => {
   return new SentryNestInstrumentation();
 });
 
+const instrumentNestCoreErrors = generateInstrumentOnce('Nest-Core-Errors', () => {
+  return new SentryNestErrorInstrumentation();
+});
+
 export const instrumentNest = Object.assign(
   (): void => {
     instrumentNestCore();
     instrumentNestCommon();
+    instrumentNestCoreErrors();
   },
   { id: INTEGRATION_NAME },
 );
@@ -53,6 +58,10 @@ export const nestIntegration = defineIntegration(_nestIntegration);
  * Setup an error handler for Nest.
  */
 export function setupNestErrorHandler(app: MinimalNestJsApp, baseFilter: NestJsErrorFilter): void {
+  if (baseFilter) {
+    logger.warn('The base filter does not do anything anymore!'); // TODO: better message
+  }
+
   // Sadly, NestInstrumentation has no requestHook, so we need to add the attributes here
   // We register this hook in this method, because if we register it in the integration `setup`,
   // it would always run even for users that are not even using Nest.js
@@ -80,35 +89,6 @@ export function setupNestErrorHandler(app: MinimalNestJsApp, baseFilter: NestJsE
       return next.handle();
     },
   });
-
-  const wrappedFilter = new Proxy(baseFilter, {
-    get(target, prop, receiver) {
-      if (prop === 'catch') {
-        const originalCatch = Reflect.get(target, prop, receiver);
-
-        return (exception: unknown, host: unknown) => {
-          const exceptionIsObject = typeof exception === 'object' && exception !== null;
-          const exceptionStatusCode = exceptionIsObject && 'status' in exception ? exception.status : null;
-          const exceptionErrorProperty = exceptionIsObject && 'error' in exception ? exception.error : null;
-
-          /*
-          Don't report expected NestJS control flow errors
-          - `HttpException` errors will have a `status` property
-          - `RpcException` errors will have an `error` property
-           */
-          if (exceptionStatusCode !== null || exceptionErrorProperty !== null) {
-            return originalCatch.apply(target, [exception, host]);
-          }
-
-          captureException(exception);
-          return originalCatch.apply(target, [exception, host]);
-        };
-      }
-      return Reflect.get(target, prop, receiver);
-    },
-  });
-
-  app.useGlobalFilters(wrappedFilter);
 }
 
 function addNestSpanAttributes(span: Span): void {
