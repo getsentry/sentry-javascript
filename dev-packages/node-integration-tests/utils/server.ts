@@ -9,8 +9,11 @@ import express from 'express';
  * This does no checks on the envelope, it just calls the callback if it managed to parse an envelope from the raw POST
  * body data.
  */
-export function createBasicSentryServer(onEnvelope: (env: Envelope) => void): Promise<number> {
+export function createBasicSentryServer(
+  onEnvelope: (env: Envelope) => void,
+): Promise<[port: number, close: (callback?: () => void) => void]> {
   const app = express();
+
   app.use(express.raw({ type: () => true, inflate: true, limit: '100mb' }));
   app.post('/api/:id/envelope/', (req, res) => {
     try {
@@ -27,7 +30,12 @@ export function createBasicSentryServer(onEnvelope: (env: Envelope) => void): Pr
   return new Promise(resolve => {
     const server = app.listen(0, () => {
       const address = server.address() as AddressInfo;
-      resolve(address.port);
+      resolve([
+        address.port,
+        () => {
+          server.close();
+        },
+      ]);
     });
   });
 }
@@ -36,7 +44,7 @@ type HeaderAssertCallback = (headers: Record<string, string | string[] | undefin
 
 /** Creates a test server that can be used to check headers */
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-export function createTestServer(done: (error: unknown) => void) {
+export function createTestServer(done: (error?: unknown) => void) {
   const gets: Array<[string, HeaderAssertCallback, number]> = [];
 
   return {
@@ -44,7 +52,7 @@ export function createTestServer(done: (error: unknown) => void) {
       gets.push([path, callback, result]);
       return this;
     },
-    start: async (): Promise<string> => {
+    start: async (): Promise<[url: string, close: () => void]> => {
       const app = express();
 
       for (const [path, callback, result] of gets) {
@@ -62,7 +70,13 @@ export function createTestServer(done: (error: unknown) => void) {
       return new Promise(resolve => {
         const server = app.listen(0, () => {
           const address = server.address() as AddressInfo;
-          resolve(`http://localhost:${address.port}`);
+          resolve([
+            `http://localhost:${address.port}`,
+            () => {
+              server.close();
+              done();
+            },
+          ]);
         });
       });
     },
