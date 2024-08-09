@@ -1,4 +1,4 @@
-import { captureException } from '@sentry/node';
+import * as Sentry from '@sentry/node';
 import { H3Error } from 'h3';
 import { defineNitroPlugin } from 'nitropack/runtime';
 import type { NuxtRenderHTMLContext } from 'nuxt/app';
@@ -14,9 +14,17 @@ export default defineNitroPlugin(nitroApp => {
       }
     }
 
+    const currentScope = Sentry.getCurrentScope();
+
+    const { method, path } = {
+      method: errorContext.event && errorContext.event._method ? errorContext.event._method : '',
+      path: errorContext.event && errorContext.event._path ? errorContext.event._path : 'unknown-path',
+    };
+    currentScope.setTransactionName(`${method} ${path}`);
+
     const structuredContext = extractErrorContext(errorContext);
 
-    captureException(error, {
+    Sentry.captureException(error, {
       captureContext: { contexts: { nuxt: structuredContext } },
       mechanism: { handled: false },
     });
