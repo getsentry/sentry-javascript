@@ -11,7 +11,7 @@ import express from 'express';
  */
 export function createBasicSentryServer(
   onEnvelope: (env: Envelope) => void,
-): Promise<[port: number, close: (callback?: () => void) => void]> {
+): Promise<[port: number, close: () => void]> {
   const app = express();
 
   app.use(express.raw({ type: () => true, inflate: true, limit: '100mb' }));
