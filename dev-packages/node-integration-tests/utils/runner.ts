@@ -365,7 +365,9 @@ export function createRunner(...paths: string[]) {
         }
       }
 
-      const serverStartup = withSentryServer ? createBasicSentryServer(newEnvelope) : Promise.resolve([]);
+      const serverStartup = withSentryServer
+        ? createBasicSentryServer(newEnvelope)
+        : Promise.resolve([undefined, undefined]);
 
       const dockerStartup: Promise<VoidFunction | undefined> = dockerOptions
         ? runDockerCompose(dockerOptions)
@@ -373,7 +375,6 @@ export function createRunner(...paths: string[]) {
 
       const startup = Promise.all([dockerStartup, serverStartup]);
 
-      // eslint-disable-next-line @typescript-eslint/no-floating-promises
       startup
         .then(([dockerChild, [mockServerPort, mockServerClose]]) => {
           if (mockServerClose) {
