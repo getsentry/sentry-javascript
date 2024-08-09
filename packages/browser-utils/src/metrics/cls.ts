@@ -88,9 +88,6 @@ function sendStandaloneClsSpan(clsValue: number, entry: LayoutShift | undefined,
   const duration = msToSec(entry?.duration || 0);
   const routeName = getCurrentScope().getScopeData().transactionName;
 
-  // TODO: Is this fine / does it provide any value? Alternatively, we can
-  // - send the CLS source node as an attribute
-  // - do nothing at all and ignore the source node
   const name = entry ? htmlTreeAsString(entry.sources[0]?.node) : 'Layout shift';
 
   const attributes: SpanAttributes = dropUndefinedKeys({
