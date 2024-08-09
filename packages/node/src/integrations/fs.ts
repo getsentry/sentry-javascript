@@ -39,7 +39,6 @@ export const fsIntegration = defineIntegration(
           () =>
             new FsInstrumentation({
               requireParentSpan: true,
-              // eslint-disable-next-line complexity
               endHook(functionName, { args, span, error }) {
                 span.updateName(`fs.${functionName}`);
 
@@ -49,51 +48,35 @@ export const fsIntegration = defineIntegration(
                 });
 
                 if (options.recordErrorMessagesAsSpanAttributes) {
-                  if (
-                    typeof args[0] === 'string' &&
-                    (FS_OPERATIONS_WITH_PATH_ARG.includes(functionName) ||
-                      FS_OPERATIONS_WITH_PATH_ARG_PROMISES_PREFIXED.includes(functionName) ||
-                      FS_OPERATIONS_WITH_PATH_ARG_PROMISIFY_POSTFIXED.includes(functionName))
-                  ) {
+                  if (typeof args[0] === 'string' && FS_OPERATIONS_WITH_PATH_ARG.includes(functionName)) {
                     span.setAttribute('path_argument', args[0]);
                   } else if (
                     typeof args[0] === 'string' &&
-                    (FS_OPERATIONS_WITH_TARGET_PATH.includes(functionName) ||
-                      FS_OPERATIONS_WITH_TARGET_PATH_PROMISES_PREFIXED.includes(functionName) ||
-                      FS_OPERATIONS_WITH_TARGET_PATH_PROMISIFY_POSTFIXED.includes(functionName))
+                    typeof args[1] === 'string' &&
+                    FS_OPERATIONS_WITH_TARGET_PATH.includes(functionName)
                   ) {
-                    span.setAttribute('target_path_argument', args[0]);
-                  } else if (
-                    typeof args[0] === 'string' &&
-                    (FS_OPERATIONS_WITH_PREFIX.includes(functionName) ||
-                      FS_OPERATIONS_WITH_PREFIX_PROMISES_PREFIXED.includes(functionName) ||
-                      FS_OPERATIONS_WITH_PREFIX_PROMISIFY_POSTFIXED.includes(functionName))
-                  ) {
+                    span.setAttribute('target_argument', args[0]);
+                    span.setAttribute('path_argument', args[1]);
+                  } else if (typeof args[0] === 'string' && FS_OPERATIONS_WITH_PREFIX.includes(functionName)) {
                     span.setAttribute('prefix_argument', args[0]);
                   } else if (
                     typeof args[0] === 'string' &&
                     typeof args[1] === 'string' &&
-                    (FS_OPERATIONS_WITH_EXISTING_PATH_NEW_PATH.includes(functionName) ||
-                      FS_OPERATIONS_WITH_EXISTING_PATH_NEW_PATH_PROMISES_PREFIXED.includes(functionName) ||
-                      FS_OPERATIONS_WITH_EXISTING_PATH_NEW_PATH_PROMISIFY_POSTFIXED.includes(functionName))
+                    FS_OPERATIONS_WITH_EXISTING_PATH_NEW_PATH.includes(functionName)
                   ) {
                     span.setAttribute('existing_path_argument', args[0]);
                     span.setAttribute('new_path_argument', args[1]);
                   } else if (
                     typeof args[0] === 'string' &&
                     typeof args[1] === 'string' &&
-                    (FS_OPERATIONS_WITH_SRC_DEST.includes(functionName) ||
-                      FS_OPERATIONS_WITH_SRC_DEST_PROMISES_PREFIXED.includes(functionName) ||
-                      FS_OPERATIONS_WITH_SRC_DEST_PROMISIFY_POSTFIXED.includes(functionName))
+                    FS_OPERATIONS_WITH_SRC_DEST.includes(functionName)
                   ) {
                     span.setAttribute('src_argument', args[0]);
                     span.setAttribute('dest_argument', args[1]);
                   } else if (
                     typeof args[0] === 'string' &&
                     typeof args[1] === 'string' &&
-                    (FS_OPERATIONS_WITH_OLD_PATH_NEW_PATH.includes(functionName) ||
-                      FS_OPERATIONS_WITH_OLD_PATH_NEW_PATH_PROMISES_PREFIXED.includes(functionName) ||
-                      FS_OPERATIONS_WITH_OLD_PATH_NEW_PATH_PROMISIFY_POSTFIXED.includes(functionName))
+                    FS_OPERATIONS_WITH_OLD_PATH_NEW_PATH.includes(functionName)
                   ) {
                     span.setAttribute('old_path_argument', args[0]);
                     span.setAttribute('new_path_argument', args[1]);
@@ -164,27 +147,3 @@ const FS_OPERATIONS_WITH_PATH_ARG = [
   'utimesSync',
   'writeFileSync',
 ];
-
-const FS_OPERATIONS_WITH_OLD_PATH_NEW_PATH_PROMISIFY_POSTFIXED = FS_OPERATIONS_WITH_OLD_PATH_NEW_PATH.map(
-  p => `${p}.__promisify__`,
-);
-const FS_OPERATIONS_WITH_SRC_DEST_PROMISIFY_POSTFIXED = FS_OPERATIONS_WITH_SRC_DEST.map(p => `${p}.__promisify__`);
-const FS_OPERATIONS_WITH_EXISTING_PATH_NEW_PATH_PROMISIFY_POSTFIXED = FS_OPERATIONS_WITH_EXISTING_PATH_NEW_PATH.map(
-  p => `${p}.__promisify__`,
-);
-const FS_OPERATIONS_WITH_PREFIX_PROMISIFY_POSTFIXED = FS_OPERATIONS_WITH_PREFIX.map(p => `${p}.__promisify__`);
-const FS_OPERATIONS_WITH_TARGET_PATH_PROMISIFY_POSTFIXED = FS_OPERATIONS_WITH_TARGET_PATH.map(
-  p => `${p}.__promisify__`,
-);
-const FS_OPERATIONS_WITH_PATH_ARG_PROMISIFY_POSTFIXED = FS_OPERATIONS_WITH_PATH_ARG.map(p => `${p}.__promisify__`);
-
-const FS_OPERATIONS_WITH_OLD_PATH_NEW_PATH_PROMISES_PREFIXED = FS_OPERATIONS_WITH_OLD_PATH_NEW_PATH.map(
-  p => `promises.${p}`,
-);
-const FS_OPERATIONS_WITH_SRC_DEST_PROMISES_PREFIXED = FS_OPERATIONS_WITH_SRC_DEST.map(p => `promises.${p}`);
-const FS_OPERATIONS_WITH_EXISTING_PATH_NEW_PATH_PROMISES_PREFIXED = FS_OPERATIONS_WITH_EXISTING_PATH_NEW_PATH.map(
-  p => `promises.${p}`,
-);
-const FS_OPERATIONS_WITH_PREFIX_PROMISES_PREFIXED = FS_OPERATIONS_WITH_PREFIX.map(p => `promises.${p}`);
-const FS_OPERATIONS_WITH_TARGET_PATH_PROMISES_PREFIXED = FS_OPERATIONS_WITH_TARGET_PATH.map(p => `promises.${p}`);
-const FS_OPERATIONS_WITH_PATH_ARG_PROMISES_PREFIXED = FS_OPERATIONS_WITH_PATH_ARG.map(p => `promises.${p}`);

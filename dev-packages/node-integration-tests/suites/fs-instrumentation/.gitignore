@@ -1,0 +1,11 @@
+some-file.txt.copy
+some-file-promises.txt.copy
+some-file-promisify.txt.copy
+
+some-file.txt.link
+some-file-promises.txt.link
+some-file-promisify.txt.link
+
+some-file.txt.symlink
+some-file-promises.txt.symlink
+some-file-promisify.txt.symlink
