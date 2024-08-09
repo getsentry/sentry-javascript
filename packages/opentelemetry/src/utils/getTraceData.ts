@@ -1,30 +1,20 @@
 import * as api from '@opentelemetry/api';
-import { getCurrentScope } from '@sentry/core';
 import type { SerializedTraceData } from '@sentry/types';
-import { getPropagationContextFromSpan } from '../propagator';
-import { generateSpanContextForPropagationContext } from './generateSpanContextForPropagationContext';
+import { dropUndefinedKeys } from '@sentry/utils';
 
 /**
  * Otel-specific implementation of `getTraceData`.
  * @see `@sentry/core` version of `getTraceData` for more information
  */
 export function getTraceData(): SerializedTraceData {
-  const ctx = api.context.active();
-  const spanToUse = api.trace.getSpan(ctx);
+  const context = api.context.active();
 
   // This should never happen, given we always create an ambient non-recording span if there's no active span.
-  if (!spanToUse) {
+  if (!context) {
     return {};
   }
+
   const headersObject: Record<string, string> = {};
-
-  const propagationContext = spanToUse
-    ? getPropagationContextFromSpan(spanToUse)
-    : getCurrentScope().getPropagationContext();
-
-  const spanContext = generateSpanContextForPropagationContext(propagationContext);
-
-  const context = api.trace.setSpanContext(ctx, spanContext);
 
   api.propagation.inject(context, headersObject);
 
@@ -32,8 +22,8 @@ export function getTraceData(): SerializedTraceData {
     return {};
   }
 
-  return {
+  return dropUndefinedKeys({
     'sentry-trace': headersObject['sentry-trace'],
-    baggage: headersObject['baggage'],
-  };
+    baggage: headersObject.baggage,
+  });
 }

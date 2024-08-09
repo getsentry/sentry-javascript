@@ -4,7 +4,6 @@ const Sentry = require('@sentry/node');
 Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   transport: loggingTransport,
-  debug: true,
 });
 
 // express must be required after Sentry is initialized
@@ -30,5 +29,4 @@ app.get('/test', (_req, res) => {
 
 Sentry.setupExpressErrorHandler(app);
 
-// TODO: remove port again
-startExpressServerAndSendPortToRunner(app, 3000);
+startExpressServerAndSendPortToRunner(app);

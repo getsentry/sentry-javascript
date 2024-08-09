@@ -13,9 +13,7 @@ describe('getTraceMetaTags', () => {
     // @ts-ignore - response is defined, types just don't reflect it
     const html = response?.response as unknown as string;
 
-    console.log(html);
-
-    const [_, traceId, spanId] = html.match(/<meta name="sentry-trace" content="([a-f0-9]{32})-([a-f0-9]{16})"\/>/) || [
+    const [, traceId, spanId] = html.match(/<meta name="sentry-trace" content="([a-f0-9]{32})-([a-f0-9]{16})"\/>/) || [
       undefined,
       undefined,
       undefined,
