@@ -6,7 +6,8 @@ import {
 } from '@opentelemetry/instrumentation';
 import { SDK_VERSION } from '@sentry/utils';
 import type {BaseExceptionFilter} from './types';
-import {isWrapped} from "@opentelemetry/core";
+import {isWrapped} from '@opentelemetry/core';
+import {captureException} from '@sentry/core';
 
 const supportedVersions = ['>=8.0.0 <11'];
 
@@ -42,17 +43,9 @@ export class SentryNestErrorInstrumentation extends InstrumentationBase {
       '@nestjs/core/exceptions/base-exception-filter.js',
       versions,
       (moduleExports: { BaseExceptionFilter: BaseExceptionFilter }) => {
-        console.log('exports:');
-        console.log(moduleExports);
-        console.log('prototype: ');
-        console.log(moduleExports.BaseExceptionFilter.prototype);
-        console.log('catch: ');
-        console.log(moduleExports.BaseExceptionFilter.prototype.catch);
-
         if (isWrapped(moduleExports.BaseExceptionFilter.prototype)) {
           this._unwrap(moduleExports.BaseExceptionFilter.prototype, 'catch');
         }
-        console.log('wrap');
         this._wrap(moduleExports.BaseExceptionFilter.prototype, 'catch', this._createWrapCatch());
         return moduleExports;
       },
@@ -66,22 +59,27 @@ export class SentryNestErrorInstrumentation extends InstrumentationBase {
    *
    */
   private _createWrapCatch() {
-    console.log('in wrap');
     return function wrapCatch(originalCatch: (exception: unknown, host: unknown) => void) {
-      return function wrappedCatch(this: any, exception: unknown, host: unknown) {
+      return function wrappedCatch(this: BaseExceptionFilter, exception: unknown, host: unknown) {
         console.log('patching the base exception filter!');
 
         console.log(exception);
-        return originalCatch.apply(this, [exception, host]);
-        /*
-        return new Proxy(originalCatch, {
-          apply: (originalCatch, thisArgCatch, argsCatch) => {
-            console.log('patching the base exception filter!');
-            return originalCatch.apply(thisArgCatch, argsCatch);
-          }
-        })
+        const exceptionIsObject = typeof exception === 'object' && exception !== null;
+        const exceptionStatusCode = exceptionIsObject && 'status' in exception ? exception.status : null;
+        const exceptionErrorProperty = exceptionIsObject && 'error' in exception ? exception.error : null;
 
+        /*
+        Don't report expected NestJS control flow errors
+        - `HttpException` errors will have a `status` property
+        - `RpcException` errors will have an `error` property
          */
+        if (exceptionStatusCode !== null || exceptionErrorProperty !== null) {
+          return originalCatch.apply(this, [exception, host]);
+        }
+
+        captureException(exception);
+
+        return originalCatch.apply(this, [exception, host]);
       }
     }
   }
