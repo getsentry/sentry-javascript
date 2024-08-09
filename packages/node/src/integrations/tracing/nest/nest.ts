@@ -86,35 +86,6 @@ export function setupNestErrorHandler(app: MinimalNestJsApp, baseFilter: NestJsE
       return next.handle();
     },
   });
-
-  const wrappedFilter = new Proxy(baseFilter, {
-    get(target, prop, receiver) {
-      if (prop === 'catch') {
-        const originalCatch = Reflect.get(target, prop, receiver);
-
-        return (exception: unknown, host: unknown) => {
-          const exceptionIsObject = typeof exception === 'object' && exception !== null;
-          const exceptionStatusCode = exceptionIsObject && 'status' in exception ? exception.status : null;
-          const exceptionErrorProperty = exceptionIsObject && 'error' in exception ? exception.error : null;
-
-          /*
-          Don't report expected NestJS control flow errors
-          - `HttpException` errors will have a `status` property
-          - `RpcException` errors will have an `error` property
-           */
-          if (exceptionStatusCode !== null || exceptionErrorProperty !== null) {
-            return originalCatch.apply(target, [exception, host]);
-          }
-
-          captureException(exception);
-          return originalCatch.apply(target, [exception, host]);
-        };
-      }
-      return Reflect.get(target, prop, receiver);
-    },
-  });
-
-  app.useGlobalFilters(wrappedFilter);
 }
 
 function addNestSpanAttributes(span: Span): void {

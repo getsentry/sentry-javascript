@@ -67,10 +67,21 @@ export class SentryNestErrorInstrumentation extends InstrumentationBase {
    */
   private _createWrapCatch() {
     console.log('in wrap');
-    return function wrapCatch(originalCatch: Function) {
-      return function wrappedCatch(exception: unknown, host: unknown) {
+    return function wrapCatch(originalCatch: (exception: unknown, host: unknown) => void) {
+      return function wrappedCatch(this: any, exception: unknown, host: unknown) {
         console.log('patching the base exception filter!');
-        return originalCatch.apply(exception, host);
+
+        console.log(exception);
+        return originalCatch.apply(this, [exception, host]);
+        /*
+        return new Proxy(originalCatch, {
+          apply: (originalCatch, thisArgCatch, argsCatch) => {
+            console.log('patching the base exception filter!');
+            return originalCatch.apply(thisArgCatch, argsCatch);
+          }
+        })
+
+         */
       }
     }
   }
