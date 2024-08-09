@@ -6,6 +6,7 @@ import {
 } from '@opentelemetry/instrumentation';
 import { SDK_VERSION } from '@sentry/utils';
 import type {BaseExceptionFilter} from './types';
+import {isWrapped} from "@opentelemetry/core";
 
 const supportedVersions = ['>=8.0.0 <11'];
 
@@ -48,11 +49,29 @@ export class SentryNestErrorInstrumentation extends InstrumentationBase {
         console.log('catch: ');
         console.log(moduleExports.BaseExceptionFilter.prototype.catch);
 
-
+        if (isWrapped(moduleExports.BaseExceptionFilter.prototype)) {
+          this._unwrap(moduleExports.BaseExceptionFilter.prototype, 'catch');
+        }
+        console.log('wrap');
+        this._wrap(moduleExports.BaseExceptionFilter.prototype, 'catch', this._createWrapCatch());
+        return moduleExports;
       },
-      (BaseExceptionFilterClass: any) => {
-        console.log('unpatch!');
+      (moduleExports: { BaseExceptionFilter: BaseExceptionFilter }) => {
+        this._unwrap(moduleExports.BaseExceptionFilter.prototype, 'catch');
       }
     );
+  }
+
+  /**
+   *
+   */
+  private _createWrapCatch() {
+    console.log('in wrap');
+    return function wrapCatch(originalCatch: Function) {
+      return function wrappedCatch(exception: unknown, host: unknown) {
+        console.log('patching the base exception filter!');
+        return originalCatch.apply(exception, host);
+      }
+    }
   }
 }
