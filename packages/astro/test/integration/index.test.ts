@@ -57,6 +57,7 @@ describe('sentryAstro integration', () => {
       project: 'my-project',
       telemetry: false,
       debug: false,
+      bundleSizeOptimizations: {},
       sourcemaps: {
         assets: ['out/**/*'],
       },
@@ -82,6 +83,7 @@ describe('sentryAstro integration', () => {
       project: 'my-project',
       telemetry: false,
       debug: false,
+      bundleSizeOptimizations: {},
       sourcemaps: {
         assets: ['dist/**/*'],
       },
@@ -114,6 +116,7 @@ describe('sentryAstro integration', () => {
       project: 'my-project',
       telemetry: false,
       debug: false,
+      bundleSizeOptimizations: {},
       sourcemaps: {
         assets: ['{.vercel,dist}/**/*'],
       },
@@ -151,6 +154,7 @@ describe('sentryAstro integration', () => {
       project: 'my-project',
       telemetry: true,
       debug: false,
+      bundleSizeOptimizations: {},
       sourcemaps: {
         assets: ['dist/server/**/*, dist/client/**/*'],
       },

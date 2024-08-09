@@ -10,6 +10,28 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 8.25.0
+
+### Important Changes
+
+- **Alpha release of Official Solid Start SDK**
+
+This release contains the alpha version of `@sentry/solidstart`, our SDK for [Solid Start](https://start.solidjs.com/)!
+For details on how to use it, please see the [README](./packages/solidstart/README.md). Any feedback/bug reports are
+greatly appreciated, please [reach out on GitHub](https://github.com/getsentry/sentry-javascript/issues/12538).
+
+### Other Changes
+
+- feat(astro): Add `bundleSizeOptimizations` vite options to integration (#13250)
+- feat(astro): Always add BrowserTracing (#13244)
+- feat(core): Add `getTraceMetaTags` function (#13201)
+- feat(nestjs): Automatic instrumentation of nestjs exception filters (#13230)
+- feat(node): Add `useOperationNameForRootSpan` to`graphqlIntegration` (#13248)
+- feat(sveltekit): Add `wrapServerRouteWithSentry` wrapper (#13247)
+- fix(aws-serverless): Extract sentry trace data from handler `context` over `event` (#13266)
+- fix(browser): Initialize default integration if `defaultIntegrations: undefined` (#13261)
+- fix(utils): Streamline IP capturing on incoming requests (#13272)
+
 ## 8.24.0
 
 - feat(nestjs): Filter RPC exceptions (#13227)

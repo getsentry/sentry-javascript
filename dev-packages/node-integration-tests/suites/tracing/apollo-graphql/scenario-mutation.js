@@ -12,7 +12,8 @@ Sentry.init({
 setInterval(() => {}, 1000);
 
 async function run() {
-  const { ApolloServer, gql } = require('apollo-server');
+  const { gql } = require('apollo-server');
+  const server = require('./apollo-server')();
 
   await Sentry.startSpan(
     {
@@ -20,29 +21,6 @@ async function run() {
       op: 'transaction',
     },
     async span => {
-      const server = new ApolloServer({
-        typeDefs: gql`
-          type Query {
-            hello: String
-          }
-          type Mutation {
-            login(email: String): String
-          }
-        `,
-        resolvers: {
-          Query: {
-            hello: () => {
-              return 'Hello world!';
-            },
-          },
-          Mutation: {
-            login: async (_, { email }) => {
-              return `${email}--token`;
-            },
-          },
-        },
-      });
-
       // Ref: https://www.apollographql.com/docs/apollo-server/testing/testing/#testing-using-executeoperation
       await server.executeOperation({
         query: gql`mutation Mutation($email: String){

@@ -34,10 +34,12 @@ describe('sentryMiddleware', () => {
     });
     vi.spyOn(SentryNode, 'getActiveSpan').mockImplementation(getSpanMock);
     vi.spyOn(SentryNode, 'getClient').mockImplementation(() => ({}) as Client);
-    vi.spyOn(SentryNode, 'getTraceData').mockImplementation(() => ({
-      'sentry-trace': '123',
-      baggage: 'abc',
-    }));
+    vi.spyOn(SentryNode, 'getTraceMetaTags').mockImplementation(
+      () => `
+    <meta name="sentry-trace" content="123">
+    <meta name="baggage" content="abc">
+    `,
+    );
     vi.spyOn(SentryCore, 'getDynamicSamplingContextFromSpan').mockImplementation(() => ({
       transaction: 'test',
     }));
