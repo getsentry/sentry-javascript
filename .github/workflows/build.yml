@@ -847,6 +847,7 @@ jobs:
           [
             'angular-17',
             'angular-18',
+            'astro-4',
             'aws-lambda-layer-cjs',
             'aws-serverless-esm',
             'node-express',
