@@ -36,5 +36,8 @@ export function extractErrorContext(errorContext: CapturedErrorContext): Context
  */
 export function addSentryTracingMetaTags(head: NuxtRenderHTMLContext['head']): void {
   const metaTags = getTraceMetaTags();
-  head.push(metaTags);
+
+  if (metaTags) {
+    head.push(metaTags);
+  }
 }
