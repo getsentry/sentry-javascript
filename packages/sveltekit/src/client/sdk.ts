@@ -45,9 +45,9 @@ function getDefaultIntegrations(options: BrowserOptions): Integration[] | undefi
   // in which case everything inside will get tree-shaken away
   if (typeof __SENTRY_TRACING__ === 'undefined' || __SENTRY_TRACING__) {
     return [...getDefaultSvelteIntegrations(options), svelteKitBrowserTracingIntegration()];
-  } else {
-    return getDefaultSvelteIntegrations(options);
   }
+
+  return getDefaultSvelteIntegrations(options);
 }
 
 /**
