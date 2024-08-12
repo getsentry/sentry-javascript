@@ -1,4 +1,3 @@
-import type { Client, Scope, Span } from '@sentry/types';
 import { getTraceData } from './traceData';
 
 /**
@@ -22,8 +21,8 @@ import { getTraceData } from './traceData';
  * ```
  *
  */
-export function getTraceMetaTags(span?: Span, scope?: Scope, client?: Client): string {
-  return Object.entries(getTraceData(span, scope, client))
+export function getTraceMetaTags(): string {
+  return Object.entries(getTraceData())
     .map(([key, value]) => `<meta name="${key}" content="${value}"/>`)
     .join('\n');
 }
