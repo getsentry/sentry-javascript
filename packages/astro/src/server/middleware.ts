@@ -84,19 +84,27 @@ async function instrumentRequest(
   }
   addNonEnumerableProperty(locals, '__sentry_wrapped__', true);
 
-  const { method, headers } = ctx.request;
+  const isDynamicPageRequest = checkIsDynamicPageRequest(ctx);
+
+  const { method, headers } = isDynamicPageRequest
+    ? ctx.request
+    : // headers can only be accessed in dynamic routes. Accessing `ctx.request.headers` in a static route
+      // will make the server log a warning.
+      { method: ctx.request.method, headers: undefined };
 
   return continueTrace(
     {
-      sentryTrace: headers.get('sentry-trace') || undefined,
-      baggage: headers.get('baggage'),
+      sentryTrace: headers?.get('sentry-trace') || undefined,
+      baggage: headers?.get('baggage'),
     },
     async () => {
-      // We store this on the current scope, not isolation scope,
-      // because we may have multiple requests nested inside each other
-      getCurrentScope().setSDKProcessingMetadata({ request: ctx.request });
+      getCurrentScope().setSDKProcessingMetadata({
+        // We store the request on the current scope, not isolation scope,
+        // because we may have multiple requests nested inside each other
+        request: isDynamicPageRequest ? ctx.request : { method, url: ctx.request.url },
+      });
 
-      if (options.trackClientIp) {
+      if (options.trackClientIp && isDynamicPageRequest) {
         getCurrentScope().setUser({ ip_address: ctx.clientAddress });
       }
 
@@ -275,5 +283,18 @@ function tryDecodeUrl(url: string): string | undefined {
     return decodeURI(url);
   } catch {
     return undefined;
+  }
+}
+
+/**
+ * Checks if the incoming request is a request for a dynamic (server-side rendered) page.
+ * We can check this by looking at the middleware's `clientAddress` context property because accessing
+ * this prop in a static route will throw an error which we can conveniently catch.
+ */
+function checkIsDynamicPageRequest(context: Parameters<MiddlewareResponseHandler>[0]): boolean {
+  try {
+    return context.clientAddress != null;
+  } catch {
+    return false;
   }
 }
