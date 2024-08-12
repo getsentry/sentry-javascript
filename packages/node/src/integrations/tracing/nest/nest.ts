@@ -25,7 +25,7 @@ const instrumentNestCommon = generateInstrumentOnce('Nest-Common', () => {
   return new SentryNestInstrumentation();
 });
 
-const instrumentNestCoreErrors = generateInstrumentOnce('Nest-Core-Errors', () => {
+const instrumentNestErrors = generateInstrumentOnce('Nest-Errors', () => {
   return new SentryNestErrorInstrumentation();
 });
 
@@ -33,7 +33,7 @@ export const instrumentNest = Object.assign(
   (): void => {
     instrumentNestCore();
     instrumentNestCommon();
-    instrumentNestCoreErrors();
+    instrumentNestErrors();
   },
   { id: INTEGRATION_NAME },
 );
