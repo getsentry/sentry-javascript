@@ -33,8 +33,6 @@ interface ReplayLogger extends LoggerConsoleMethods {
 }
 
 function _addBreadcrumb(message: unknown, level: SeverityLevel = 'info'): void {
-  // Wait a tick here to avoid race conditions for some initial logs
-  // which may be added before replay is initialized
   addBreadcrumb(
     {
       category: 'console',
@@ -90,6 +88,8 @@ function makeReplayLogger(): ReplayLogger {
     _logger.infoTick = (...args: unknown[]) => {
       coreLogger.info(PREFIX, ...args);
       if (_trace) {
+        // Wait a tick here to avoid race conditions for some initial logs
+        // which may be added before replay is initialized
         setTimeout(() => _addBreadcrumb(args[0]), 0);
       }
     };
