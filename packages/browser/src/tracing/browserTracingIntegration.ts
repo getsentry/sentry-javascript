@@ -28,6 +28,7 @@ import {
 import type { Client, IntegrationFn, StartSpanOptions, TransactionSource } from '@sentry/types';
 import type { Span } from '@sentry/types';
 import {
+  GLOBAL_OBJ,
   browserPerformanceTimeOrigin,
   generatePropagationContext,
   getDomElement,
@@ -168,7 +169,7 @@ const DEFAULT_BROWSER_TRACING_OPTIONS: BrowserTracingOptions = {
   instrumentPageLoad: true,
   markBackgroundSpan: true,
   enableLongTask: true,
-  enableLongAnimationFrame: false,
+  enableLongAnimationFrame: true,
   enableInp: true,
   _experiments: {},
   ...defaultRequestInstrumentationOptions,
@@ -213,7 +214,11 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
     startTrackingINP();
   }
 
-  if (enableLongAnimationFrame && PerformanceObserver.supportedEntryTypes.includes('long-animation-frame')) {
+  if (
+    enableLongAnimationFrame &&
+    GLOBAL_OBJ.PerformanceObserver &&
+    PerformanceObserver.supportedEntryTypes.includes('long-animation-frame')
+  ) {
     startTrackingLongAnimationFrames();
   } else if (enableLongTask) {
     startTrackingLongTasks();
