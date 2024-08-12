@@ -17,7 +17,7 @@ import {
   setOpenTelemetryContextAsyncContextStrategy,
   setupEventContextTrace,
 } from '@sentry/opentelemetry';
-import type { Client, Integration, Options } from '@sentry/types';
+import type { Integration, Options } from '@sentry/types';
 import {
   consoleSandbox,
   dropUndefinedKeys,
@@ -36,7 +36,7 @@ import { modulesIntegration } from '../integrations/modules';
 import { nativeNodeFetchIntegration } from '../integrations/node-fetch';
 import { onUncaughtExceptionIntegration } from '../integrations/onuncaughtexception';
 import { onUnhandledRejectionIntegration } from '../integrations/onunhandledrejection';
-import { spotlightIntegration } from '../integrations/spotlight';
+import { INTEGRATION_NAME as SPOTLIGHT_INTEGRATION_NAME, spotlightIntegration } from '../integrations/spotlight';
 import { getAutoPerformanceIntegrations } from '../integrations/tracing';
 import { makeNodeTransport } from '../transports';
 import type { NodeClientOptions, NodeOptions } from '../types';
@@ -140,13 +140,19 @@ function _init(
   const scope = getCurrentScope();
   scope.update(options.initialScope);
 
+  if (options.spotlight && !options.integrations.some(({ name }) => name === SPOTLIGHT_INTEGRATION_NAME)) {
+    options.integrations.push(
+      spotlightIntegration({
+        sidecarUrl: typeof options.spotlight === 'string' ? options.spotlight : undefined,
+      }),
+    );
+  }
+
   const client = new NodeClient(options);
   // The client is on the current scope, from where it generally is inherited
   getCurrentScope().setClient(client);
 
-  if (isEnabled(client)) {
-    client.init();
-  }
+  client.init();
 
   logger.log(`Running in ${isCjs() ? 'CommonJS' : 'ESM'} mode.`);
 
@@ -157,20 +163,6 @@ function _init(
   client.startClientReportTracking();
 
   updateScopeFromEnvVariables();
-
-  if (options.spotlight) {
-    // force integrations to be setup even if no DSN was set
-    // If they have already been added before, they will be ignored anyhow
-    const integrations = client.getOptions().integrations;
-    for (const integration of integrations) {
-      client.addIntegration(integration);
-    }
-    client.addIntegration(
-      spotlightIntegration({
-        sidecarUrl: typeof options.spotlight === 'string' ? options.spotlight : undefined,
-      }),
-    );
-  }
 
   // If users opt-out of this, they _have_ to set up OpenTelemetry themselves
   // There is no way to use this SDK without OpenTelemetry!
@@ -335,8 +327,4 @@ function startSessionTracking(): void {
       endSession();
     }
   });
-}
-
-function isEnabled(client: Client): boolean {
-  return client.getOptions().enabled !== false && client.getTransport() !== undefined;
 }
