@@ -365,7 +365,7 @@ export function createRunner(...paths: string[]) {
         }
       }
 
-      const serverStartup = withSentryServer
+      const serverStartup: Promise<[port: number | undefined, close: (() => void) | undefined]> = withSentryServer
         ? createBasicSentryServer(newEnvelope)
         : Promise.resolve([undefined, undefined]);
 
@@ -373,7 +373,8 @@ export function createRunner(...paths: string[]) {
         ? runDockerCompose(dockerOptions)
         : Promise.resolve(undefined);
 
-      const startup = Promise.all([dockerStartup, serverStartup]);
+      const startup: Promise<[VoidFunction | undefined, [port: number | undefined, close: (() => void) | undefined]]> =
+        Promise.all([dockerStartup, serverStartup]);
 
       startup
         .then(([dockerChild, [mockServerPort, mockServerClose]]) => {
