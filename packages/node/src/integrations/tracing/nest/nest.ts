@@ -2,6 +2,7 @@ import { NestInstrumentation } from '@opentelemetry/instrumentation-nestjs-core'
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  captureException,
   defineIntegration,
   getClient,
   getDefaultIsolationScope,
@@ -11,7 +12,6 @@ import {
 import type { IntegrationFn, Span } from '@sentry/types';
 import { logger } from '@sentry/utils';
 import { generateInstrumentOnce } from '../../../otel/instrument';
-import { SentryNestErrorInstrumentation } from './sentry-nest-error-instrumentation';
 import { SentryNestInstrumentation } from './sentry-nest-instrumentation';
 import type { MinimalNestJsApp, NestJsErrorFilter } from './types';
 
@@ -25,15 +25,10 @@ const instrumentNestCommon = generateInstrumentOnce('Nest-Common', () => {
   return new SentryNestInstrumentation();
 });
 
-const instrumentNestErrors = generateInstrumentOnce('Nest-Errors', () => {
-  return new SentryNestErrorInstrumentation();
-});
-
 export const instrumentNest = Object.assign(
   (): void => {
     instrumentNestCore();
     instrumentNestCommon();
-    instrumentNestErrors();
   },
   { id: INTEGRATION_NAME },
 );
@@ -55,20 +50,9 @@ const _nestIntegration = (() => {
 export const nestIntegration = defineIntegration(_nestIntegration);
 
 /**
- * Set span attributes for the nest instrumentation.
- *
- * Previously this method was used to setup an error handler reporting to Sentry, but this is no longer the case.
- * This method should be renamed in the next major.
+ * Setup an error handler for Nest.
  */
-export function setupNestErrorHandler(
-  app: MinimalNestJsApp,
-  baseFilter: NestJsErrorFilter | undefined = undefined,
-): void {
-  if (baseFilter) {
-    // No need to pass a base filter to setup the error handler anymore, since we always patch the `BaseExceptionFilter`.
-    logger.warn('baseFilter is deprecated and no longer needed.');
-  }
-
+export function setupNestErrorHandler(app: MinimalNestJsApp, baseFilter: NestJsErrorFilter): void {
   // Sadly, NestInstrumentation has no requestHook, so we need to add the attributes here
   // We register this hook in this method, because if we register it in the integration `setup`,
   // it would always run even for users that are not even using Nest.js
@@ -96,6 +80,35 @@ export function setupNestErrorHandler(
       return next.handle();
     },
   });
+
+  const wrappedFilter = new Proxy(baseFilter, {
+    get(target, prop, receiver) {
+      if (prop === 'catch') {
+        const originalCatch = Reflect.get(target, prop, receiver);
+
+        return (exception: unknown, host: unknown) => {
+          const exceptionIsObject = typeof exception === 'object' && exception !== null;
+          const exceptionStatusCode = exceptionIsObject && 'status' in exception ? exception.status : null;
+          const exceptionErrorProperty = exceptionIsObject && 'error' in exception ? exception.error : null;
+
+          /*
+          Don't report expected NestJS control flow errors
+          - `HttpException` errors will have a `status` property
+          - `RpcException` errors will have an `error` property
+           */
+          if (exceptionStatusCode !== null || exceptionErrorProperty !== null) {
+            return originalCatch.apply(target, [exception, host]);
+          }
+
+          captureException(exception);
+          return originalCatch.apply(target, [exception, host]);
+        };
+      }
+      return Reflect.get(target, prop, receiver);
+    },
+  });
+
+  app.useGlobalFilters(wrappedFilter);
 }
 
 function addNestSpanAttributes(span: Span): void {
