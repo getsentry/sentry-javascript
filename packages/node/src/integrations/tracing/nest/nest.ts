@@ -57,8 +57,12 @@ export const nestIntegration = defineIntegration(_nestIntegration);
 /**
  * Setup an error handler for Nest.
  */
-export function setupNestErrorHandler(app: MinimalNestJsApp, baseFilter: NestJsErrorFilter): void {
+export function setupNestErrorHandler(
+  app: MinimalNestJsApp,
+  baseFilter: NestJsErrorFilter | undefined = undefined,
+): void {
   if (baseFilter) {
+    // No need to pass a base filter to setup the error handler anymore, since we always patch the `BaseExceptionFilter`.
     logger.warn('baseFilter is deprecated and no longer needed.');
   }
 
