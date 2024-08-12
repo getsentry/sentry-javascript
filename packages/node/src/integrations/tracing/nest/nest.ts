@@ -55,7 +55,10 @@ const _nestIntegration = (() => {
 export const nestIntegration = defineIntegration(_nestIntegration);
 
 /**
- * Setup an error handler for Nest.
+ * Set span attributes for the nest instrumentation.
+ *
+ * Previously this method was used to setup an error handler reporting to Sentry, but this is no longer the case.
+ * This method should be renamed in the next major.
  */
 export function setupNestErrorHandler(
   app: MinimalNestJsApp,
