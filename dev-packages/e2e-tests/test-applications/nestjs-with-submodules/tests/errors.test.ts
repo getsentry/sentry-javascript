@@ -116,33 +116,29 @@ test('Does not send exception to Sentry if user-defined local exception filter a
   expect(errorEventOccurred).toBe(false);
 });
 
-test('Does not handle expected exception if exception is thrown in module registered before Sentry', async ({
+test('Does not send expected exception to Sentry if exception is thrown in module registered before Sentry', async ({
   baseURL,
 }) => {
-  const errorEventPromise = waitForError('nestjs-with-submodules', event => {
-    return !event.type && event.exception?.values?.[0]?.value === 'Something went wrong in the example module!';
+  let errorEventOccurred = false;
+
+  waitForError('nestjs-with-submodules', event => {
+    if (!event.type && event.exception?.values?.[0].value === 'Something went wrong in the example module!') {
+      errorEventOccurred = true;
+    }
+
+    return event?.transaction === 'GET /example-module-wrong-order/expected-exception';
+  });
+
+  const transactionEventPromise = waitForTransaction('nestjs-with-submodules', transactionEvent => {
+    return transactionEvent?.transaction === 'GET /example-module-wrong-order/expected-exception';
   });
 
   const response = await fetch(`${baseURL}/example-module-wrong-order/expected-exception`);
-  expect(response.status).toBe(500); // should be 400
+  expect(response.status).toBe(400);
 
-  // should never arrive, but does because the exception is not handled properly
-  const errorEvent = await errorEventPromise;
+  await transactionEventPromise;
 
-  expect(errorEvent.exception?.values).toHaveLength(1);
-  expect(errorEvent.exception?.values?.[0]?.value).toBe('Something went wrong in the example module!');
+  (await fetch(`${baseURL}/flush`)).text();
 
-  expect(errorEvent.request).toEqual({
-    method: 'GET',
-    cookies: {},
-    headers: expect.any(Object),
-    url: 'http://localhost:3030/example-module-wrong-order/expected-exception',
-  });
-
-  expect(errorEvent.transaction).toEqual('GET /example-module-wrong-order/expected-exception');
-
-  expect(errorEvent.contexts?.trace).toEqual({
-    trace_id: expect.any(String),
-    span_id: expect.any(String),
-  });
+  expect(errorEventOccurred).toBe(false);
 });

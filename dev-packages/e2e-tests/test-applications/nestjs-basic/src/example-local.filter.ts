@@ -8,7 +8,6 @@ export class ExampleLocalFilter implements ExceptionFilter {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
     const request = ctx.getRequest<Request>();
-    console.log('Example local exception filter!');
 
     response.status(400).json({
       statusCode: 400,

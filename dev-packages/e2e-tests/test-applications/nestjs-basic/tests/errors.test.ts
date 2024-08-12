@@ -99,26 +99,24 @@ test('Global exception filter registered in main module is applied', async ({ ba
   const response = await fetch(`${baseURL}/example-exception-global-filter`);
   const responseBody = await response.json();
 
-  console.log(responseBody);
-
-  // this should fail but doesn't because the exception filter is not being properly applied
-  expect(response.status).toBe(500);
+  expect(response.status).toBe(400);
   expect(responseBody).toEqual({
-    message: 'Internal server error',
-    statusCode: 500,
+    statusCode: 400,
+    timestamp: expect.any(String),
+    path: '/example-exception-global-filter',
+    message: 'Example exception was handled by global filter!',
   });
 });
 
 test('Local exception filter registered in main module is applied', async ({ baseURL }) => {
-  const response = await fetch(`${baseURL}/example-exception-global-filter`);
+  const response = await fetch(`${baseURL}/example-exception-local-filter`);
   const responseBody = await response.json();
 
-  console.log(responseBody);
-
-  // this should fail but doesn't because the exception filter is not being properly applied
-  expect(response.status).toBe(500);
+  expect(response.status).toBe(400);
   expect(responseBody).toEqual({
-    message: 'Internal server error',
-    statusCode: 500,
+    statusCode: 400,
+    timestamp: expect.any(String),
+    path: '/example-exception-local-filter',
+    message: 'Example exception was handled by local filter!',
   });
 });
