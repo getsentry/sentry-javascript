@@ -1,7 +1,7 @@
 import { RemixInstrumentation } from 'opentelemetry-instrumentation-remix';
 
-import { defineIntegration } from '@sentry/core';
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP, generateInstrumentOnce, getClient, spanToJSON } from '@sentry/node';
+import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, defineIntegration } from '@sentry/core';
+import { generateInstrumentOnce, getClient, spanToJSON } from '@sentry/node';
 import type { Client, IntegrationFn, Span } from '@sentry/types';
 import type { RemixOptions } from '../remixOptions';
 
@@ -47,13 +47,13 @@ const addRemixSpanAttributes = (span: Span): void => {
   // `requestHandler` span from `opentelemetry-instrumentation-remix` is the main server span.
   // It should be marked as the `http.server` operation.
   // The incoming requests are skipped by the custom `RemixHttpIntegration` package.
-  if (type === 'requestHandler') {
-    span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'http.server');
-    return;
-  }
-
   // All other spans are marked as `remix` operations with their specific type [loader, action]
-  span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, `${type}.remix`);
+  const op = type === 'requestHandler' ? 'http.server' : `${type}.remix`;
+
+  span.setAttributes({
+    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.otel.remix',
+    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: op,
+  });
 };
 
 /**
