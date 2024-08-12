@@ -74,8 +74,6 @@ import { AppService } from './app.service';
 export class AppModule {}
 ```
 
-The `SentryModule` needs to be registered before any module that should be instrumented by Sentry.
-
 ## SentryTraced
 
 Use the `@SentryTraced()` decorator to gain additional performance insights for any function within your NestJS
