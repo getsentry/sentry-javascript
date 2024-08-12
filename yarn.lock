@@ -8400,12 +8400,12 @@
     unplugin "1.0.1"
     uuid "^9.0.0"
 
-"@sentry/webpack-plugin@2.20.1":
-  version "2.20.1"
-  resolved "https://registry.yarnpkg.com/@sentry/webpack-plugin/-/webpack-plugin-2.20.1.tgz#285d325a0a1bd0a534126b97e0190da9486ff7f6"
-  integrity sha512-U6LzoE09Ndt0OCWROoRaZqqIHGxyMRdKpBhbqoBqyyfVwXN/zGW3I/cWZ1e8rreiKFj+2+c7+X0kOS+NGMTUrg==
+"@sentry/webpack-plugin@2.22.0":
+  version "2.22.0"
+  resolved "https://registry.yarnpkg.com/@sentry/webpack-plugin/-/webpack-plugin-2.22.0.tgz#f02e087fe9b318fefdb5441149ceadfc60407ae3"
+  integrity sha512-u2brctki0AMCoZksdAConQSYE6PokRVeZ4YYsbnJYkAi0KuaQnczsRwS9e2L0bK2CmZ7QdyYcrjaXHNlXaFDbQ==
   dependencies:
-    "@sentry/bundler-plugin-core" "2.20.1"
+    "@sentry/bundler-plugin-core" "2.22.0"
     unplugin "1.0.1"
     uuid "^9.0.0"
 

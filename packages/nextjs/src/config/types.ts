@@ -308,6 +308,53 @@ export type SentryBuildOptions = {
   };
 
   /**
+   * Options for the Sentry Webpack plugin to customize bundle size optimizations.
+   *
+   * These options are always read from the `sentryAstro` integration.
+   * Do not define them in the `sentry.client.config.(js|ts)` or `sentry.server.config.(js|ts)` files.
+   */
+  bundleSizeOptimizations?: {
+    /**
+     * If set to `true`, the plugin will attempt to tree-shake (remove) any debugging code within the Sentry SDK.
+     * Note that the success of this depends on tree shaking being enabled in your build tooling.
+     *
+     * Setting this option to `true` will disable features like the SDK's `debug` option.
+     */
+    excludeDebugStatements?: boolean;
+
+    /**
+     * If set to true, the plugin will try to tree-shake tracing statements out.
+     * Note that the success of this depends on tree shaking generally being enabled in your build.
+     * Attention: DO NOT enable this when you're using any performance monitoring-related SDK features (e.g. Sentry.startSpan()).
+     */
+    excludeTracing?: boolean;
+
+    /**
+     * If set to `true`, the plugin will attempt to tree-shake (remove) code related to the Sentry SDK's Session Replay Shadow DOM recording functionality.
+     * Note that the success of this depends on tree shaking being enabled in your build tooling.
+     *
+     * This option is safe to be used when you do not want to capture any Shadow DOM activity via Sentry Session Replay.
+     */
+    excludeReplayShadowDom?: boolean;
+
+    /**
+     * If set to `true`, the plugin will attempt to tree-shake (remove) code related to the Sentry SDK's Session Replay `iframe` recording functionality.
+     * Note that the success of this depends on tree shaking being enabled in your build tooling.
+     *
+     * You can safely do this when you do not want to capture any `iframe` activity via Sentry Session Replay.
+     */
+    excludeReplayIframe?: boolean;
+
+    /**
+     * If set to `true`, the plugin will attempt to tree-shake (remove) code related to the Sentry SDK's Session Replay's Compression Web Worker.
+     * Note that the success of this depends on tree shaking being enabled in your build tooling.
+     *
+     * **Notice:** You should only do use this option if you manually host a compression worker and configure it in your Sentry Session Replay integration config via the `workerUrl` option.
+     */
+    excludeReplayWorker?: boolean;
+  };
+
+  /**
    * Options related to react component name annotations.
    * Disabled by default, unless a value is set for this option.
    * When enabled, your app's DOM will automatically be annotated during build-time with their respective component names.
