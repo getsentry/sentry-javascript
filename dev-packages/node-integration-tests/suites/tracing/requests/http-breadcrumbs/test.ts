@@ -4,7 +4,7 @@ import { createTestServer } from '../../../../utils/server';
 test('outgoing http requests create breadcrumbs', done => {
   createTestServer(done)
     .start()
-    .then(SERVER_URL => {
+    .then(([SERVER_URL, closeTestServer]) => {
       createRunner(__dirname, 'scenario.ts')
         .withEnv({ SERVER_URL })
         .ensureNoErrorOutput()
@@ -70,6 +70,6 @@ test('outgoing http requests create breadcrumbs', done => {
             },
           },
         })
-        .start(done);
+        .start(closeTestServer);
     });
 });
