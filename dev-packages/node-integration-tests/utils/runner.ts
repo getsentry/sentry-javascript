@@ -365,18 +365,20 @@ export function createRunner(...paths: string[]) {
         }
       }
 
-      const serverStartup: Promise<[number | undefined, (() => void) | undefined]> = withSentryServer
+      // We need to properly define & pass these types around for TS 3.8,
+      // which otherwise fails to infer these correctly :(
+      type ServerStartup = [number | undefined, (() => void) | undefined];
+      type DockerStartup = VoidFunction | undefined;
+
+      const serverStartup: Promise<ServerStartup> = withSentryServer
         ? createBasicSentryServer(newEnvelope)
         : Promise.resolve([undefined, undefined]);
 
-      const dockerStartup: Promise<VoidFunction | undefined> = dockerOptions
+      const dockerStartup: Promise<DockerStartup> = dockerOptions
         ? runDockerCompose(dockerOptions)
         : Promise.resolve(undefined);
 
-      const startup: Promise<[VoidFunction | undefined, [number | undefined, (() => void) | undefined]]> = Promise.all([
-        dockerStartup,
-        serverStartup,
-      ]);
+      const startup = Promise.all([dockerStartup, serverStartup]) as Promise<[DockerStartup, ServerStartup]>;
 
       startup
         .then(([dockerChild, [mockServerPort, mockServerClose]]) => {

@@ -9,9 +9,7 @@ import express from 'express';
  * This does no checks on the envelope, it just calls the callback if it managed to parse an envelope from the raw POST
  * body data.
  */
-export function createBasicSentryServer(
-  onEnvelope: (env: Envelope) => void,
-): Promise<[port: number, close: () => void]> {
+export function createBasicSentryServer(onEnvelope: (env: Envelope) => void): Promise<[number, () => void]> {
   const app = express();
 
   app.use(express.raw({ type: () => true, inflate: true, limit: '100mb' }));
@@ -52,7 +50,7 @@ export function createTestServer(done: (error?: unknown) => void) {
       gets.push([path, callback, result]);
       return this;
     },
-    start: async (): Promise<[url: string, close: () => void]> => {
+    start: async (): Promise<[string, () => void]> => {
       const app = express();
 
       for (const [path, callback, result] of gets) {
