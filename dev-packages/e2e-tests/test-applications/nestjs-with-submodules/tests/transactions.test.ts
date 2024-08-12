@@ -122,7 +122,9 @@ test('Sends an API route transaction from module', async ({ baseURL }) => {
   );
 });
 
-test('API route transaction includes exception filter span for global filter in module registered after Sentry', async ({ baseURL }) => {
+test('API route transaction includes exception filter span for global filter in module registered after Sentry', async ({
+  baseURL,
+}) => {
   const transactionEventPromise = waitForTransaction('nestjs-with-submodules', transactionEvent => {
     return (
       transactionEvent?.contexts?.trace?.op === 'http.server' &&
@@ -159,7 +161,9 @@ test('API route transaction includes exception filter span for global filter in 
   );
 });
 
-test('API route transaction includes exception filter span for local filter in module registered after Sentry', async ({ baseURL }) => {
+test('API route transaction includes exception filter span for local filter in module registered after Sentry', async ({
+  baseURL,
+}) => {
   const transactionEventPromise = waitForTransaction('nestjs-with-submodules', transactionEvent => {
     return (
       transactionEvent?.contexts?.trace?.op === 'http.server' &&
@@ -196,7 +200,9 @@ test('API route transaction includes exception filter span for local filter in m
   );
 });
 
-test('API route transaction includes exception filter span for global filter in module registered before Sentry', async ({ baseURL }) => {
+test('API route transaction includes exception filter span for global filter in module registered before Sentry', async ({
+  baseURL,
+}) => {
   const transactionEventPromise = waitForTransaction('nestjs-with-submodules', transactionEvent => {
     return (
       transactionEvent?.contexts?.trace?.op === 'http.server' &&
