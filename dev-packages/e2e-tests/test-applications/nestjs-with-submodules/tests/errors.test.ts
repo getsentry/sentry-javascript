@@ -36,7 +36,7 @@ test('Sends unexpected exception to Sentry if thrown in module that was register
     return !event.type && event.exception?.values?.[0]?.value === 'This is an uncaught exception!';
   });
 
-  const response = await fetch(`${baseURL}/example-module-wrong-order/unexpected-exception`);
+  const response = await fetch(`${baseURL}/example-module-registered-first/unexpected-exception`);
   expect(response.status).toBe(500);
 
   const errorEvent = await errorEventPromise;
@@ -48,10 +48,10 @@ test('Sends unexpected exception to Sentry if thrown in module that was register
     method: 'GET',
     cookies: {},
     headers: expect.any(Object),
-    url: 'http://localhost:3030/example-module-wrong-order/unexpected-exception',
+    url: 'http://localhost:3030/example-module-registered-first/unexpected-exception',
   });
 
-  expect(errorEvent.transaction).toEqual('GET /example-module-wrong-order/unexpected-exception');
+  expect(errorEvent.transaction).toEqual('GET /example-module-registered-first/unexpected-exception');
 
   expect(errorEvent.contexts?.trace).toEqual({
     trace_id: expect.any(String),
@@ -126,14 +126,14 @@ test('Does not send expected exception to Sentry if exception is thrown in modul
       errorEventOccurred = true;
     }
 
-    return event?.transaction === 'GET /example-module-wrong-order/expected-exception';
+    return event?.transaction === 'GET /example-module-registered-first/expected-exception';
   });
 
   const transactionEventPromise = waitForTransaction('nestjs-with-submodules', transactionEvent => {
-    return transactionEvent?.transaction === 'GET /example-module-wrong-order/expected-exception';
+    return transactionEvent?.transaction === 'GET /example-module-registered-first/expected-exception';
   });
 
-  const response = await fetch(`${baseURL}/example-module-wrong-order/expected-exception`);
+  const response = await fetch(`${baseURL}/example-module-registered-first/expected-exception`);
   expect(response.status).toBe(400);
 
   await transactionEventPromise;
