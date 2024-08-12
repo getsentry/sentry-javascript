@@ -208,6 +208,9 @@ export function validateOpenTelemetrySetup(): void {
   }
 }
 
+const FALSY_ENV_VALUES = new Set(['0', 'false', 'no']);
+const TRUTHY_ENV_VALUES = new Set(['1', 'true', 'yes']);
+
 function getClientOptions(
   options: NodeOptions,
   getDefaultIntegrationsImpl: (options: Options) => Integration[],
@@ -220,6 +223,17 @@ function getClientOptions(
       : options.autoSessionTracking === undefined
         ? true
         : options.autoSessionTracking;
+
+  if (options.spotlight == null && process.env.SENTRY_SPOTLIGHT) {
+    const spotlightEnv = process.env.SENTRY_SPOTLIGHT.toLowerCase();
+    if (FALSY_ENV_VALUES.has(spotlightEnv)) {
+      options.spotlight = false;
+    } else if (TRUTHY_ENV_VALUES.has(spotlightEnv)) {
+      options.spotlight = true;
+    } else {
+      options.spotlight = spotlightEnv;
+    }
+  }
 
   const tracesSampleRate = getTracesSampleRate(options.tracesSampleRate);
 
