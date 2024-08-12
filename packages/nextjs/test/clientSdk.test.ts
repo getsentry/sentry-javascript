@@ -130,16 +130,9 @@ describe('Client init()', () => {
     });
 
     describe('browserTracingIntegration()', () => {
-      it.each([
-        ['tracesSampleRate', { tracesSampleRate: 0 }],
-        ['tracesSampleRate', { tracesSampleRate: 1 }],
-        ['tracesSampler', { tracesSampler: () => true }],
-        ['enableTracing', { enableTracing: true }],
-        ['no tracing option set', {}],
-      ])('adds a browserTracingIntegration if tracing is enabled via %s', (_, tracingOptions) => {
+      it('adds the browserTracingIntegration when `__SENTRY_TRACING__` is not set', () => {
         const client = init({
           dsn: TEST_DSN,
-          ...tracingOptions,
         });
 
         const browserTracingIntegration = client?.getIntegrationByName('BrowserTracing');
