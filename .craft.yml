@@ -206,6 +206,8 @@ targets:
         onlyIfPresent: /^sentry-remix-\d.*\.tgz$/
       'npm:@sentry/solid':
         onlyIfPresent: /^sentry-solid-\d.*\.tgz$/
+      'npm:@sentry/solidstart':
+        onlyIfPresent: /^sentry-solidstart-\d.*\.tgz$/
       'npm:@sentry/svelte':
         onlyIfPresent: /^sentry-svelte-\d.*\.tgz$/
       'npm:@sentry/sveltekit':

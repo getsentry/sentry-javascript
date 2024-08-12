@@ -45,11 +45,11 @@ class AppController {
 })
 class AppModule {}
 
-async function init(): Promise<void> {
+async function run(): Promise<void> {
   const app = await NestFactory.create(AppModule);
   await app.listen(port);
   sendPortToRunner(port);
 }
 
 // eslint-disable-next-line @typescript-eslint/no-floating-promises
-init();
+run();
