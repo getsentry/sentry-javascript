@@ -14,13 +14,14 @@ export default defineNitroPlugin(nitroApp => {
       }
     }
 
-    const currentScope = Sentry.getCurrentScope();
-
     const { method, path } = {
       method: errorContext.event && errorContext.event._method ? errorContext.event._method : '',
-      path: errorContext.event && errorContext.event._path ? errorContext.event._path : 'unknown-path',
+      path: errorContext.event && errorContext.event._path ? errorContext.event._path : null,
     };
-    currentScope.setTransactionName(`${method} ${path}`);
+
+    if (path) {
+      Sentry.getCurrentScope().setTransactionName(`${method} ${path}`);
+    }
 
     const structuredContext = extractErrorContext(errorContext);
 
