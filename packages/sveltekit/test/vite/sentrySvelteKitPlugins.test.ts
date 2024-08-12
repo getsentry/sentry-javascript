@@ -209,26 +209,6 @@ describe('generateVitePluginOptions', () => {
     expect(result).toEqual(expected);
   });
 
-  it('should add `excludePerformanceMonitoring` when `excludeTracing` is set', () => {
-    const options: SentrySvelteKitPluginOptions = {
-      bundleSizeOptimizations: {
-        excludeTracing: true,
-        excludeDebugStatements: false,
-        excludeReplayIframe: true,
-      },
-    };
-    const expected = {
-      bundleSizeOptimizations: {
-        excludePerformanceMonitoring: true,
-        excludeTracing: true,
-        excludeDebugStatements: false,
-        excludeReplayIframe: true,
-      },
-    };
-    const result = generateVitePluginOptions(options);
-    expect(result).toEqual(expected);
-  });
-
   it('should apply user-defined sourceMapsUploadOptions', () => {
     const options: SentrySvelteKitPluginOptions = {
       autoUploadSourceMaps: true,
@@ -353,7 +333,6 @@ describe('generateVitePluginOptions', () => {
     };
     const expected = {
       bundleSizeOptimizations: {
-        excludePerformanceMonitoring: true,
         excludeTracing: true,
         excludeReplayWorker: true,
         excludeDebugStatements: false,

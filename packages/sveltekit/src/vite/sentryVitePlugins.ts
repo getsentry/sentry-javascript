@@ -69,9 +69,6 @@ export function generateVitePluginOptions(
   if (svelteKitPluginOptions.bundleSizeOptimizations) {
     sentryVitePluginsOptions = {
       bundleSizeOptimizations: {
-        // TODO: with a future version of the vite plugin (probably 2.22.0) this re-mapping is not needed anymore
-        // ref:  https://github.com/getsentry/sentry-javascript-bundler-plugins/pull/582
-        excludePerformanceMonitoring: svelteKitPluginOptions.bundleSizeOptimizations.excludeTracing || false,
         ...svelteKitPluginOptions.bundleSizeOptimizations,
       },
     };

@@ -133,7 +133,7 @@ type BundleSizeOptimizationOptions = {
   /**
    * If set to true, the plugin will try to tree-shake performance monitoring statements out.
    * Note that the success of this depends on tree shaking generally being enabled in your build.
-   * Attention: DO NOT enable this when you're using any performance monitoring-related SDK features (e.g. Sentry.startTransaction()).
+   * Attention: DO NOT enable this when you're using any performance monitoring-related SDK features (e.g. Sentry.startSpan()).
    */
   excludeTracing?: boolean;
 
