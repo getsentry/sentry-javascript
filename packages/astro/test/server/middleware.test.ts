@@ -224,9 +224,9 @@ describe('sentryMiddleware', () => {
         request: {
           method: 'GET',
           url: '/users',
-          headers: new Headers({
+          headers: {
             'some-header': 'some-value',
-          }),
+          },
         },
       });
       expect(next).toHaveBeenCalledTimes(1);
