@@ -12,7 +12,12 @@ import {
   withIsolationScope,
 } from '@sentry/node';
 import type { Client, Scope, Span, SpanAttributes } from '@sentry/types';
-import { addNonEnumerableProperty, objectify, stripUrlQueryAndFragment } from '@sentry/utils';
+import {
+  addNonEnumerableProperty,
+  objectify,
+  stripUrlQueryAndFragment,
+  winterCGRequestToRequestData,
+} from '@sentry/utils';
 import type { APIContext, MiddlewareResponseHandler } from 'astro';
 
 type MiddlewareOptions = {
@@ -86,11 +91,13 @@ async function instrumentRequest(
 
   const isDynamicPageRequest = checkIsDynamicPageRequest(ctx);
 
+  const request = ctx.request;
+
   const { method, headers } = isDynamicPageRequest
-    ? ctx.request
-    : // headers can only be accessed in dynamic routes. Accessing `ctx.request.headers` in a static route
+    ? request
+    : // headers can only be accessed in dynamic routes. Accessing `request.headers` in a static route
       // will make the server log a warning.
-      { method: ctx.request.method, headers: undefined };
+      { method: request.method, headers: undefined };
 
   return continueTrace(
     {
@@ -101,7 +108,7 @@ async function instrumentRequest(
       getCurrentScope().setSDKProcessingMetadata({
         // We store the request on the current scope, not isolation scope,
         // because we may have multiple requests nested inside each other
-        request: isDynamicPageRequest ? ctx.request : { method, url: ctx.request.url },
+        request: isDynamicPageRequest ? winterCGRequestToRequestData(request) : { method, url: request.url },
       });
 
       if (options.trackClientIp && isDynamicPageRequest) {
