@@ -59,7 +59,7 @@ export const nestIntegration = defineIntegration(_nestIntegration);
  */
 export function setupNestErrorHandler(app: MinimalNestJsApp, baseFilter: NestJsErrorFilter): void {
   if (baseFilter) {
-    logger.warn('The base filter does not do anything anymore!'); // TODO: better message
+    logger.warn('baseFilter is deprecated and no longer needed.');
   }
 
   // Sadly, NestInstrumentation has no requestHook, so we need to add the attributes here

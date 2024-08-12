@@ -12,7 +12,9 @@ import type { BaseExceptionFilter } from './types';
 const supportedVersions = ['>=8.0.0 <11'];
 
 /**
+ * Custom error instrumentation for nestjs.
  *
+ * This patches the `BaseExceptionFilter` to report unexpected exceptions to Sentry.
  */
 export class SentryNestErrorInstrumentation extends InstrumentationBase {
   public static readonly COMPONENT = '@nestjs/core';
@@ -25,7 +27,7 @@ export class SentryNestErrorInstrumentation extends InstrumentationBase {
   }
 
   /**
-   *
+   * Initializes the instrumentation by defining the modules to be patched.
    */
   public init(): InstrumentationNodeModuleDefinition {
     const moduleDef = new InstrumentationNodeModuleDefinition(
@@ -39,7 +41,7 @@ export class SentryNestErrorInstrumentation extends InstrumentationBase {
   }
 
   /**
-   *
+   * Wraps the `BaseExceptionFilter`.
    */
   private _getBaseExceptionFilterFileInstrumentation(versions: string[]): InstrumentationNodeModuleFile {
     return new InstrumentationNodeModuleFile(
@@ -59,7 +61,10 @@ export class SentryNestErrorInstrumentation extends InstrumentationBase {
   }
 
   /**
+   * Creates a wrapper function for the `BaseExceptionFilter`.
    *
+   * Reports unexpected exceptions to Sentry and then calls the original `BaseExceptionFilter`.
+   * Expected NestJS control flow errors get filtered.
    */
   private _createWrapCatch() {
     return function wrapCatch(originalCatch: (exception: unknown, host: unknown) => void) {
