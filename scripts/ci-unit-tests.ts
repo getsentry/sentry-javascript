@@ -35,6 +35,7 @@ const BROWSER_TEST_PACKAGES = [
   '@sentry/wasm',
 ];
 
+// These are Node-version specific tests that need to be skipped because of support
 const SKIP_TEST_PACKAGES: Record<NodeVersion, VersionConfig> = {
   '14': {
     ignoredPackages: [
@@ -45,6 +46,7 @@ const SKIP_TEST_PACKAGES: Record<NodeVersion, VersionConfig> = {
       '@sentry/astro',
       '@sentry/nuxt',
       '@sentry/nestjs',
+      '@sentry-internal/eslint-plugin-sdk',
     ],
   },
   '16': {
