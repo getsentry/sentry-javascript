@@ -70,6 +70,6 @@ export interface CatchTarget {
 
 export interface BaseExceptionFilter {
   prototype: {
-    catch(exception: unknown, host: unknown): void;
+    catch(exception: unknown, host: unknown, ...args: any[]): void;
   };
 }

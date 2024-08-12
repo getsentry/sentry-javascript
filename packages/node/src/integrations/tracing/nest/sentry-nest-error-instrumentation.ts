@@ -67,8 +67,10 @@ export class SentryNestErrorInstrumentation extends InstrumentationBase {
    * Expected NestJS control flow errors get filtered.
    */
   private _createWrapCatch() {
-    return function wrapCatch(originalCatch: (exception: unknown, host: unknown) => void) {
-      return function wrappedCatch(this: BaseExceptionFilter, exception: unknown, host: unknown) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return function wrapCatch(originalCatch: (exception: unknown, host: unknown, ...args: any[]) => void) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return function wrappedCatch(this: BaseExceptionFilter, exception: unknown, host: unknown, ...args: any[]) {
         const exceptionIsObject = typeof exception === 'object' && exception !== null;
         const exceptionStatusCode = exceptionIsObject && 'status' in exception ? exception.status : null;
         const exceptionErrorProperty = exceptionIsObject && 'error' in exception ? exception.error : null;
@@ -79,12 +81,12 @@ export class SentryNestErrorInstrumentation extends InstrumentationBase {
         - `RpcException` errors will have an `error` property
          */
         if (exceptionStatusCode !== null || exceptionErrorProperty !== null) {
-          return originalCatch.apply(this, [exception, host]);
+          return originalCatch.apply(this, [exception, host, ...args]);
         }
 
         captureException(exception);
 
-        return originalCatch.apply(this, [exception, host]);
+        return originalCatch.apply(this, [exception, host, ...args]);
       };
     };
   }
