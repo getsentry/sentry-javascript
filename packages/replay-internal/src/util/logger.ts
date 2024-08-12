@@ -16,7 +16,6 @@ interface LoggerConfig {
   traceInternals: boolean;
 }
 
-/** JSDoc */
 interface ReplayLogger extends LoggerConsoleMethods {
   /**
    * Calls `logger.info` but saves breadcrumb in the next tick due to race
@@ -34,11 +33,6 @@ interface ReplayLogger extends LoggerConsoleMethods {
 }
 
 function _addBreadcrumb(message: unknown, level: SeverityLevel = 'info'): void {
-  // Only support strings for breadcrumbs
-  if (typeof message !== 'string') {
-    return;
-  }
-
   // Wait a tick here to avoid race conditions for some initial logs
   // which may be added before replay is initialized
   addBreadcrumb(
@@ -78,7 +72,7 @@ function makeReplayLogger(): ReplayLogger {
     });
 
     _logger.exception = (error: unknown, ...message: unknown[]) => {
-      if (message && _logger.error) {
+      if (_logger.error) {
         _logger.error(...message);
       }
 
@@ -89,7 +83,7 @@ function makeReplayLogger(): ReplayLogger {
       } else if (_trace) {
         // No need for a breadcrumb is `_capture` is enabled since it should be
         // captured as an exception
-        _addBreadcrumb(error instanceof Error ? error.message : 'Unknown error');
+        _addBreadcrumb(error);
       }
     };
 
