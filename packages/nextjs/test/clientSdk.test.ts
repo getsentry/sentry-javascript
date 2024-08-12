@@ -130,33 +130,20 @@ describe('Client init()', () => {
     });
 
     describe('browserTracingIntegration()', () => {
-      it('adds `browserTracingIntegration()` integration if `tracesSampleRate` is set', () => {
+      it.each([
+        ['tracesSampleRate', { tracesSampleRate: 0 }],
+        ['tracesSampleRate', { tracesSampleRate: 1 }],
+        ['tracesSampler', { tracesSampler: () => true }],
+        ['enableTracing', { enableTracing: true }],
+        ['no tracing option set', {}],
+      ])('adds a browserTracingIntegration if tracing is enabled via %s', (_, tracingOptions) => {
         const client = init({
           dsn: TEST_DSN,
-          tracesSampleRate: 1.0,
+          ...tracingOptions,
         });
 
         const browserTracingIntegration = client?.getIntegrationByName('BrowserTracing');
-        expect(browserTracingIntegration?.name).toBe('BrowserTracing');
-      });
-
-      it('adds `browserTracingIntegration()` integration if `tracesSampler` is set', () => {
-        const client = init({
-          dsn: TEST_DSN,
-          tracesSampler: () => true,
-        });
-
-        const browserTracingIntegration = client?.getIntegrationByName('BrowserTracing');
-        expect(browserTracingIntegration?.name).toBe('BrowserTracing');
-      });
-
-      it('also adds `browserTracingIntegration()` integration if tracing not enabled in SDK (only build time)', () => {
-        const client = init({
-          dsn: TEST_DSN,
-        });
-
-        const browserTracingIntegration = client?.getIntegrationByName('BrowserTracing');
-        expect(browserTracingIntegration?.name).toBe('BrowserTracing');
+        expect(browserTracingIntegration).toBeDefined();
       });
 
       it("doesn't add a browserTracingIntegration if `__SENTRY_TRACING__` is set to false", () => {
