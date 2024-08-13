@@ -386,6 +386,11 @@ async function getArtifactsForBranchAndWorkflow(octokit, { owner, repo, workflow
     // Do not allow downloading artifacts from a fork.
     const filtered = response.data.filter(workflowRun => workflowRun.head_repository.full_name === `${owner}/${repo}`);
 
+    // Sort to ensure the latest workflow run is the first
+    filtered.sort((a, b) => {
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
+
     // Store the first workflow run, to determine if this is the latest one...
     if (!latestWorkflowRun) {
       latestWorkflowRun = filtered[0];
@@ -416,6 +421,8 @@ async function getArtifactsForBranchAndWorkflow(octokit, { owner, repo, workflow
             workflowRun,
             isLatest: latestWorkflowRun.id === workflowRun.id,
           };
+        } else {
+          core.info(`No artifact found for ${artifactName}, trying next workflow run...`);
         }
       }
     }
