@@ -1,4 +1,4 @@
-import { addEventProcessor, applySdkMetadata, hasTracingEnabled } from '@sentry/core';
+import { addEventProcessor, applySdkMetadata } from '@sentry/core';
 import type { BrowserOptions } from '@sentry/react';
 import { getDefaultIntegrations as getReactDefaultIntegrations, init as reactInit } from '@sentry/react';
 import type { Client, EventProcessor, Integration } from '@sentry/types';
@@ -48,13 +48,10 @@ export function init(options: BrowserOptions): Client | undefined {
 
 function getDefaultIntegrations(options: BrowserOptions): Integration[] {
   const customDefaultIntegrations = getReactDefaultIntegrations(options);
-
-  // This evaluates to true unless __SENTRY_TRACING__ is text-replaced with "false", in which case everything inside
-  // will get treeshaken away
+  // This evaluates to true unless __SENTRY_TRACING__ is text-replaced with "false",
+  // in which case everything inside will get tree-shaken away
   if (typeof __SENTRY_TRACING__ === 'undefined' || __SENTRY_TRACING__) {
-    if (hasTracingEnabled(options)) {
-      customDefaultIntegrations.push(browserTracingIntegration());
-    }
+    customDefaultIntegrations.push(browserTracingIntegration());
   }
 
   // This value is injected at build time, based on the output directory specified in the build config. Though a default

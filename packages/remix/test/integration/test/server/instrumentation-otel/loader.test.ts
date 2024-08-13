@@ -103,15 +103,17 @@ describe('Remix API Loaders', () => {
           data: {
             'code.function': 'loader',
             'sentry.op': 'loader.remix',
+            'sentry.origin': 'auto.http.otel.remix',
           },
-          origin: 'manual',
+          origin: 'auto.http.otel.remix',
         },
         {
           data: {
             'code.function': 'loader',
             'sentry.op': 'loader.remix',
+            'sentry.origin': 'auto.http.otel.remix',
           },
-          origin: 'manual',
+          origin: 'auto.http.otel.remix',
         },
       ],
     });
