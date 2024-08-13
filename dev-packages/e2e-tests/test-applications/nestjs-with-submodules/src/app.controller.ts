@@ -1,6 +1,7 @@
 import { Controller, Get, Param } from '@nestjs/common';
 import { flush } from '@sentry/nestjs';
 import { AppService } from './app.service';
+import { ExampleExceptionSpecificFilter } from './example-specific.exception';
 
 @Controller()
 export class AppController {
@@ -19,5 +20,10 @@ export class AppController {
   @Get('flush')
   async flush() {
     await flush();
+  }
+
+  @Get('example-exception-specific-filter')
+  async exampleExceptionGlobalFilter() {
+    throw new ExampleExceptionSpecificFilter();
   }
 }
