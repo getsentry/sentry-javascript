@@ -3,7 +3,7 @@ import { captureException } from '@sentry/core';
 /**
  * A decorator usable to wrap user-defined exception filters to add sentry error reporting.
  */
-export function SentryCaptureException() {
+export function WithSentry() {
   return function (target: unknown, propertyKey: string, descriptor: PropertyDescriptor) {
     descriptor.value = new Proxy(descriptor.value, {
       apply: (originalCatch, thisArgCatch, argsCatch) => {
