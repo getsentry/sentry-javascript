@@ -1,7 +1,7 @@
 import type { Client, Envelope, Event, Span, Transaction } from '@sentry/types';
 import { SentryError, SyncPromise, dsnToString, logger } from '@sentry/utils';
 
-import { Hub, Scope, makeSession, setGlobalScope } from '../../src';
+import { Hub, Scope, Span as CoreSpan, makeSession, setGlobalScope } from '../../src';
 import * as integrationModule from '../../src/integration';
 import { TestClient, getDefaultTestClientOptions } from '../mocks/client';
 import { AdHocIntegration, TestIntegration } from '../mocks/integration';
@@ -1002,6 +1002,55 @@ describe('BaseClient', () => {
 
       expect(beforeSendTransaction).toHaveBeenCalled();
       expect(TestClient.instance!.event!.transaction).toBe('/adopt/dont/shop');
+    });
+
+    test('calls `beforeSendTransaction` and drops spans', () => {
+      const beforeSendTransaction = jest.fn(event => {
+        event.spans = [new CoreSpan({ spanId: 'span5', traceId: 'trace1', startTimestamp: 1234 })];
+        return event;
+      });
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSendTransaction });
+      const client = new TestClient(options);
+
+      client.captureEvent({
+        transaction: '/dogs/are/great',
+        type: 'transaction',
+        spans: [
+          new CoreSpan({ spanId: 'span1', traceId: 'trace1', startTimestamp: 1234 }),
+          new CoreSpan({ spanId: 'span2', traceId: 'trace1', startTimestamp: 1234 }),
+          new CoreSpan({ spanId: 'span3', traceId: 'trace1', startTimestamp: 1234 }),
+        ],
+      });
+
+      expect(beforeSendTransaction).toHaveBeenCalled();
+      expect(TestClient.instance!.event!.spans?.length).toBe(1);
+
+      expect(client['_outcomes']).toEqual({ 'before_send:span': 2 });
+    });
+
+    test('calls `beforeSendTransaction` and drops spans + 1 if tx null', () => {
+      const beforeSendTransaction = jest.fn(() => {
+        return null;
+      });
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSendTransaction });
+      const client = new TestClient(options);
+
+      client.captureEvent({
+        transaction: '/dogs/are/great',
+        type: 'transaction',
+        spans: [
+          new CoreSpan({ spanId: 'span1', traceId: 'trace1', startTimestamp: 1234 }),
+          new CoreSpan({ spanId: 'span2', traceId: 'trace1', startTimestamp: 1234 }),
+          new CoreSpan({ spanId: 'span3', traceId: 'trace1', startTimestamp: 1234 }),
+        ],
+      });
+
+      expect(beforeSendTransaction).toHaveBeenCalled();
+
+      expect(client['_outcomes']).toEqual({
+        'before_send:span': 4,
+        'before_send:transaction': 1,
+      });
     });
 
     test('calls `beforeSend` and discards the event', () => {
