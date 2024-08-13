@@ -287,12 +287,29 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ env.HEAD_COMMIT }}
+
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
           node-version-file: 'package.json'
+
+        # we use a hash of yarn.lock as our cache key, because if it hasn't changed, our dependencies haven't changed,
+        # so no need to reinstall them
+      - name: Compute dependency cache key
+        id: compute_lockfile_hash
+        run: echo "hash=${{ hashFiles('yarn.lock', '**/package.json') }}" >> "$GITHUB_OUTPUT"
+
+      - name: Check dependency cache
+        uses: actions/cache@v4
+        id: cache_dependencies
+        with:
+          path: ${{ env.CACHED_DEPENDENCY_PATHS }}
+          key: ${{ steps.compute_lockfile_hash.outputs.hash }}
+
       - name: Install dependencies
-        run: yarn install --frozen-lockfile
+        if: steps.cache_dependencies.outputs.cache-hit != 'true'
+        run: yarn install --ignore-engines --frozen-lockfile
+
       - name: Check file formatting
         run: yarn lint:prettier && yarn lint:biome
 
