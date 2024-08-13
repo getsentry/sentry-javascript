@@ -13,9 +13,22 @@ runs:
         run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> $GITHUB_OUTPUT
         shell: bash
 
+      # We only want to store the cache if we are on the develop branch
       - name: Cache playwright binaries
         uses: actions/cache@v4
         id: playwright-cache
+        if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
+        with:
+          path: |
+            ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright-version.outputs.version }}
+
+      # On non-develop branches, only restore playwright from cache, but do not store it
+      # This is done to avoid keeping too many copies of playwright in the cache from different branches
+      - name: Cache playwright binaries (restore only)
+        uses: actions/cache/restore@v4
+        id: playwright-cache-restore
+        if: github.event_name != 'push' || github.ref != 'refs/heads/develop'
         with:
           path: |
             ~/.cache/ms-playwright
@@ -24,10 +37,10 @@ runs:
       # We always install all browsers, if uncached
       - name: Install Playwright dependencies (uncached)
         run: npx playwright install chromium webkit firefox --with-deps
-        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        if: steps.playwright-cache.outputs.cache-hit != 'true' && steps.playwright-cache-restore.outputs.cache-hit =! 'true'
         shell: bash
 
       - name: Install Playwright system dependencies only (cached)
         run: npx playwright install-deps ${{ inputs.browsers || 'chromium webkit firefox' }}
-        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        if: steps.playwright-cache.outputs.cache-hit == 'true' || && steps.playwright-cache-restore.outputs.cache-hit == 'true'
         shell: bash
