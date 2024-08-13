@@ -4,7 +4,7 @@
   </a>
 </p>
 
-# Official Sentry SDK for Vercel Edge Runtime
+# Internal Sentry Utilities for Vercel Edge Runtime
 
 > **NOTICE:** It is discouraged to depend on this package directly. `@sentry/vercel-edge` is used as building block for
 > higher level Sentry SDKs like `@sentry/nextjs`. The API of this `@sentry/vercel-edge` may break with any major and
