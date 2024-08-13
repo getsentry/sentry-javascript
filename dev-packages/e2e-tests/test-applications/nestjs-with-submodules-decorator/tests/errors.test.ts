@@ -229,3 +229,38 @@ test('Global specific exception filter registered in main module is applied and 
 
   expect(errorEventOccurred).toBe(false);
 });
+
+test('Local specific exception filter registered in main module is applied and exception is not sent to Sentry', async ({
+  baseURL,
+}) => {
+  let errorEventOccurred = false;
+
+  waitForError('nestjs-with-submodules-decorator', event => {
+    if (!event.type && event.exception?.values?.[0]?.value === 'Example exception was handled by local filter!') {
+      errorEventOccurred = true;
+    }
+
+    return event?.transaction === 'GET /example-exception-local-filter';
+  });
+
+  const transactionEventPromise = waitForTransaction('nestjs-with-submodules-decorator', transactionEvent => {
+    return transactionEvent?.transaction === 'GET /example-exception-local-filter';
+  });
+
+  const response = await fetch(`${baseURL}/example-exception-local-filter`);
+  const responseBody = await response.json();
+
+  expect(response.status).toBe(400);
+  expect(responseBody).toEqual({
+    statusCode: 400,
+    timestamp: expect.any(String),
+    path: '/example-exception-local-filter',
+    message: 'Example exception was handled by local filter!',
+  });
+
+  await transactionEventPromise;
+
+  (await fetch(`${baseURL}/flush`)).text();
+
+  expect(errorEventOccurred).toBe(false);
+});

@@ -1,9 +1,12 @@
-import { Controller, Get, Param } from '@nestjs/common';
+import { Controller, Get, Param, UseFilters } from '@nestjs/common';
 import { flush } from '@sentry/nestjs';
 import { AppService } from './app.service';
+import { ExampleExceptionLocalFilter } from './example-local.exception';
+import { ExampleLocalFilter } from './example-local.filter';
 import { ExampleExceptionSpecificFilter } from './example-specific.exception';
 
 @Controller()
+@UseFilters(ExampleLocalFilter)
 export class AppController {
   constructor(private readonly appService: AppService) {}
 
@@ -25,5 +28,10 @@ export class AppController {
   @Get('example-exception-specific-filter')
   async exampleExceptionGlobalFilter() {
     throw new ExampleExceptionSpecificFilter();
+  }
+
+  @Get('example-exception-local-filter')
+  async exampleExceptionLocalFilter() {
+    throw new ExampleExceptionLocalFilter();
   }
 }
