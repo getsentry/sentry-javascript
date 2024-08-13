@@ -16,7 +16,9 @@ const supportedVersions = ['>=8.0.0 <11'];
 /**
  * Custom instrumentation for nestjs.
  *
- * This hooks into the @Injectable decorator, which is applied on class middleware, interceptors and guards.
+ * This hooks into
+ * 1. @Injectable decorator, which is applied on class middleware, interceptors and guards.
+ * 2. @Catch decorator, which is applied on exception filters.
  */
 export class SentryNestInstrumentation extends InstrumentationBase {
   public static readonly COMPONENT = '@nestjs/common';

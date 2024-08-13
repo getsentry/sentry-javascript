@@ -83,7 +83,6 @@ describe('normalizeRemixRequest', () => {
       hostname: 'example.com',
       href: 'https://example.com/api/json?id=123',
       insecureHTTPParser: undefined,
-      ip: null,
       method: 'GET',
       originalUrl: 'https://example.com/api/json?id=123',
       path: '/api/json?id=123',

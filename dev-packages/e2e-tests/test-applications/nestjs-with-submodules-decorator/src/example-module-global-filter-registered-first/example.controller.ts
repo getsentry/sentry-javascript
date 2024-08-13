@@ -1,13 +1,13 @@
 import { Controller, Get } from '@nestjs/common';
-import { ExampleExceptionWrongRegistrationOrder } from './example.exception';
+import { ExampleExceptionRegisteredFirst } from './example.exception';
 
-@Controller('example-module-wrong-order')
+@Controller('example-module-registered-first')
 export class ExampleController {
   constructor() {}
 
   @Get('/expected-exception')
   getCaughtException(): string {
-    throw new ExampleExceptionWrongRegistrationOrder();
+    throw new ExampleExceptionRegisteredFirst();
   }
 
   @Get('/unexpected-exception')
