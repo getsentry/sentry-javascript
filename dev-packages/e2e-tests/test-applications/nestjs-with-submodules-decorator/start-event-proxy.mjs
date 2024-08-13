@@ -2,5 +2,5 @@ import { startEventProxyServer } from '@sentry-internal/test-utils';
 
 startEventProxyServer({
   port: 3031,
-  proxyServerName: 'nestjs-with-submodules',
+  proxyServerName: 'nestjs-with-submodules-decorator',
 });

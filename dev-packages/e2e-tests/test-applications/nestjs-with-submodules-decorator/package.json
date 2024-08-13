@@ -1,5 +1,5 @@
 {
-  "name": "nestjs-with-submodules",
+  "name": "nestjs-with-submodules-decorator",
   "version": "0.0.1",
   "private": true,
   "scripts": {
