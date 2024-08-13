@@ -48,7 +48,7 @@ async function run() {
     const newContributors = formatter.format(users);
     const newChangelog = changelogStr.replace(
       contributorMessageRegex,
-      `Work in this release was contributed by ${newContributors}. Thank you for your contribution!`,
+      `Work in this release was contributed by ${newContributors}. Thank you for your contributions!`,
     );
 
     fs.writeFile(changelogFilePath, newChangelog);
