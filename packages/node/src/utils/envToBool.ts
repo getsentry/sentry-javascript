@@ -13,6 +13,7 @@ export type BoolCastOptions = StrictBoolCast | LooseBoolCast;
 
 export function envToBool(value: unknown, options?: LooseBoolCast): boolean;
 export function envToBool(value: unknown, options: StrictBoolCast): boolean | null;
+export function envToBool(value: unknown, options?: BoolCastOptions): boolean | null;
 /**
  * A helper function which casts an ENV variable value to `true` or `false` using the constants defined above.
  * In strict mode, it may return `null` if the value doesn't match any of the predefined values.
