@@ -56,7 +56,7 @@ export async function lazyLoadIntegration(
   script.crossOrigin = 'anonymous';
   script.referrerPolicy = 'origin';
   if (scriptNonce) {
-    script.nonce = scriptNonce;
+    script.setAttribute('nonce', scriptNonce);
   }
 
   const waitForLoad = new Promise<void>((resolve, reject) => {
