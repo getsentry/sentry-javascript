@@ -12,8 +12,8 @@
 
 This package allows you to send your OpenTelemetry trace data to Sentry via OpenTelemetry SpanProcessors.
 
-This SDK is **considered experimental and in an alpha state**. It may experience breaking changes. Please reach out on
-[GitHub](https://github.com/getsentry/sentry-javascript/issues/new/choose) if you have any feedback/concerns.
+If you are using `@sentry/node`, OpenTelemetry support is included out of the box. This package is only necessary if you
+are setting up OpenTelemetry support for Sentry yourself.
 
 ## Installation
 

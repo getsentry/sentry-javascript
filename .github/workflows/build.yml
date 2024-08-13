@@ -818,10 +818,10 @@ jobs:
           pattern: profiling-node-binaries-${{ github.sha }}-*
           path: ${{ github.workspace }}/packages/profiling-node/lib/
           merge-multiple: true
-
-      - name: Build Profiling tarball
-        run: yarn build:tarball
       # End rebuild profiling
+
+      - name: Build tarballs
+        run: yarn build:tarball
 
       - name: Stores tarballs in cache
         uses: actions/cache/save@v4
@@ -867,6 +867,7 @@ jobs:
             'create-remix-app-express',
             'create-remix-app-express-legacy',
             'create-remix-app-express-vite-dev',
+            'default-browser',
             'node-express-esm-loader',
             'node-express-esm-preload',
             'node-express-esm-without-loader',
