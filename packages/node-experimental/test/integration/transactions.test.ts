@@ -110,6 +110,7 @@ describe('Integration | Transactions', () => {
           }),
           sampleRate: 1,
           source: 'task',
+          spanCountBeforeProcessing: 2,
           spanMetadata: expect.any(Object),
           requestPath: 'test-path',
         },
