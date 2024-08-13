@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { APP_FILTER } from '@nestjs/core';
 import { ExampleController } from './example.controller';
-import { ExampleExceptionFilterWrongRegistrationOrder } from './example.filter';
+import { ExampleExceptionFilter } from './example.filter';
 
 @Module({
   imports: [],
@@ -9,8 +9,8 @@ import { ExampleExceptionFilterWrongRegistrationOrder } from './example.filter';
   providers: [
     {
       provide: APP_FILTER,
-      useClass: ExampleExceptionFilterWrongRegistrationOrder,
+      useClass: ExampleExceptionFilter,
     },
   ],
 })
-export class ExampleModuleGlobalFilterWrongRegistrationOrder {}
+export class ExampleModuleGlobalFilter {}
