@@ -33,5 +33,5 @@ export function envToBool(value: unknown, options?: BoolCastOptions): boolean | 
     return true;
   }
 
-  return options && options.strict ? null : Boolean(normalized);
+  return options && options.strict ? null : Boolean(value);
 }
