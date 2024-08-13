@@ -977,6 +977,7 @@ jobs:
         with:
           path: ${{ github.workspace }}/packages/*/*.tgz
           key: ${{ env.BUILD_CACHE_TARBALL_KEY }}
+          fail-on-cache-miss: true
 
       - name: Install Playwright
         uses: ./.github/actions/install-playwright
@@ -1076,6 +1077,7 @@ jobs:
         with:
           path: ${{ github.workspace }}/packages/*/*.tgz
           key: ${{ env.BUILD_CACHE_TARBALL_KEY }}
+          fail-on-cache-miss: true
 
       - name: Install Playwright
         uses: ./.github/actions/install-playwright
@@ -1446,6 +1448,7 @@ jobs:
           path: ${{ env.CACHED_DEPENDENCY_PATHS }}
           key: ${{ needs.job_build.outputs.dependency_cache_key }}
           enableCrossOsArchive: true
+          fail-on-cache-miss: true
 
       - name: Restore build cache
         uses: actions/cache/restore@v4
@@ -1454,6 +1457,7 @@ jobs:
           path: ${{ env.CACHED_BUILD_PATHS }}
           key: ${{ needs.job_build.outputs.dependency_cache_key }}
           enableCrossOsArchive: true
+          fail-on-cache-miss: true
 
       - name: Configure safe directory
         run: |
