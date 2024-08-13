@@ -31,15 +31,7 @@ class SizeLimit {
     return bytes.format(size, { unitSeparator: ' ' });
   }
 
-  formatTime(seconds) {
-    if (seconds >= 1) {
-      return `${Math.ceil(seconds * 10) / 10} s`;
-    }
-
-    return `${Math.ceil(seconds * 1000)} ms`;
-  }
-
-  formatChange(base = 0, current = 0) {
+  formatPercentageChange(base = 0, current = 0) {
     if (base === 0) {
       return 'added';
     }
@@ -52,14 +44,37 @@ class SizeLimit {
     const formatted = (Math.sign(value) * Math.ceil(Math.abs(value) * 100)) / 100;
 
     if (value > 0) {
-      return `+${formatted}% 🔺`;
+      return `+${formatted}%`;
     }
 
     if (value === 0) {
-      return `${formatted}%`;
+      return '-';
     }
 
-    return `${formatted}% 🔽`;
+    return `${formatted}%`;
+  }
+
+  formatChange(base = 0, current = 0) {
+    if (base === 0) {
+      return 'added';
+    }
+
+    if (current === 0) {
+      return 'removed';
+    }
+
+    const value = current - base;
+    const formatted = this.formatBytes(value);
+
+    if (value > 0) {
+      return `+${formatted} 🔺`;
+    }
+
+    if (value === 0) {
+      return '-';
+    }
+
+    return `${formatted} 🔽`;
   }
 
   formatLine(value, change) {
@@ -67,16 +82,11 @@ class SizeLimit {
   }
 
   formatSizeResult(name, base, current) {
-    return [name, this.formatLine(this.formatBytes(current.size), this.formatChange(base.size, current.size))];
-  }
-
-  formatTimeResult(name, base, current) {
     return [
       name,
-      this.formatLine(this.formatBytes(current.size), this.formatChange(base.size, current.size)),
-      this.formatLine(this.formatTime(current.loading), this.formatChange(base.loading, current.loading)),
-      this.formatLine(this.formatTime(current.running), this.formatChange(base.running, current.running)),
-      this.formatTime(current.total),
+      this.formatBytes(current.size),
+      this.formatPercentageChange(base.size, current.size),
+      this.formatChange(base.size, current.size),
     ];
   }
 
@@ -84,26 +94,12 @@ class SizeLimit {
     const results = JSON.parse(output);
 
     return results.reduce((current, result) => {
-      let time = {};
-
-      if (result.loading !== undefined && result.running !== undefined) {
-        const loading = +result.loading;
-        const running = +result.running;
-
-        time = {
-          running,
-          loading,
-          total: loading + running,
-        };
-      }
-
       return {
         // biome-ignore lint/performance/noAccumulatingSpread: <explanation>
         ...current,
         [result.name]: {
           name: result.name,
           size: +result.size,
-          ...time,
         },
       };
     }, {});
@@ -111,12 +107,6 @@ class SizeLimit {
 
   hasSizeChanges(base, current, threshold = 0) {
     const names = [...new Set([...(base ? Object.keys(base) : []), ...Object.keys(current)])];
-    const isSize = names.some(name => current[name] && current[name].total === undefined);
-
-    // Always return true if time results are present
-    if (!isSize) {
-      return true;
-    }
 
     return !!names.find(name => {
       const baseResult = base?.[name] || EmptyResult;
@@ -132,16 +122,12 @@ class SizeLimit {
 
   formatResults(base, current) {
     const names = [...new Set([...(base ? Object.keys(base) : []), ...Object.keys(current)])];
-    const isSize = names.some(name => current[name] && current[name].total === undefined);
-    const header = isSize ? SIZE_RESULTS_HEADER : TIME_RESULTS_HEADER;
+    const header = SIZE_RESULTS_HEADER;
     const fields = names.map(name => {
       const baseResult = base?.[name] || EmptyResult;
       const currentResult = current[name] || EmptyResult;
 
-      if (isSize) {
-        return this.formatSizeResult(name, baseResult, currentResult);
-      }
-      return this.formatTimeResult(name, baseResult, currentResult);
+      return this.formatSizeResult(name, baseResult, currentResult);
     });
 
     return [header, ...fields];
@@ -165,15 +151,12 @@ async function execSizeLimit() {
   return { status, output };
 }
 
-const SIZE_RESULTS_HEADER = ['Path', 'Size'];
-const TIME_RESULTS_HEADER = ['Path', 'Size', 'Loading time (3g)', 'Running time (snapdragon)', 'Total time'];
+const SIZE_RESULTS_HEADER = ['Path', 'Size', 'Change'];
 
 const EmptyResult = {
   name: '-',
   size: 0,
-  running: 0,
-  loading: 0,
-  total: 0,
+  change: 0,
 };
 
 async function run() {
