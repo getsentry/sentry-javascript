@@ -10,7 +10,7 @@ const startFetch = e => {
       forceTransaction: true,
     },
     async () => {
-      await fetch('http://localhost:7654/foo', { signal })
+      await fetch('http://sentry-test.io/foo', { signal })
         .then(response => response.json())
         .then(data => {
           console.log('Fetch succeeded:', data);
