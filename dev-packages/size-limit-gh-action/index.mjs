@@ -210,6 +210,7 @@ async function run() {
     // Else, we run size limit for the current branch, AND fetch it for the comparison branch
     let base;
     let current;
+    let baseIsNotLatest = false;
 
     try {
       const artifacts = await getArtifactsForBranchAndWorkflow(octokit, {
@@ -231,6 +232,11 @@ async function run() {
       });
 
       base = JSON.parse(await fs.readFile(resultsFilePath, { encoding: 'utf8' }));
+
+      if (!artifacts.isLatest) {
+        baseIsNotLatest = true;
+        core.info('Base artifact is not the latest one. This may lead to incorrect results.');
+      }
     } catch (error) {
       core.startGroup('Warning, unable to find base results');
       core.error(error);
@@ -254,7 +260,17 @@ async function run() {
       isNaN(thresholdNumber) || limit.hasSizeChanges(base, current, thresholdNumber) || sizeLimitComment;
 
     if (shouldComment) {
-      const body = [SIZE_LIMIT_HEADING, markdownTable(limit.formatResults(base, current))].join('\r\n');
+      const bodyParts = [SIZE_LIMIT_HEADING];
+
+      if (baseIsNotLatest) {
+        bodyParts.push(
+          '⚠️ **Warning:** Base artifact is not the latest one, because the latest workflow run is not done yet. This may lead to incorrect results.',
+        );
+      }
+
+      bodyParts.push(markdownTable(limit.formatResults(base, current)));
+
+      const body = bodyParts.join('\r\n');
 
       try {
         if (!sizeLimitComment) {
@@ -303,7 +319,7 @@ const DEFAULT_PAGE_LIMIT = 10;
  * This is a bit hacky since GitHub Actions currently does not directly
  * support downloading artifacts from other workflows
  */
-export async function getArtifactsForBranchAndWorkflow(octokit, { owner, repo, workflowName, branch, artifactName }) {
+async function getArtifactsForBranchAndWorkflow(octokit, { owner, repo, workflowName, branch, artifactName }) {
   core.startGroup(`getArtifactsForBranchAndWorkflow - workflow:"${workflowName}",  branch:"${branch}"`);
 
   let repositoryWorkflow = null;
@@ -344,14 +360,13 @@ export async function getArtifactsForBranchAndWorkflow(octokit, { owner, repo, w
   const workflow_id = repositoryWorkflow.id;
 
   let currentPage = 0;
-  const completedWorkflowRuns = [];
+  let latestWorkflowRun = null;
 
   for await (const response of octokit.paginate.iterator(octokit.rest.actions.listWorkflowRuns, {
     owner,
     repo,
     workflow_id,
     branch,
-    status: 'completed',
     per_page: DEFAULT_PAGE_LIMIT,
     event: 'push',
   })) {
@@ -364,12 +379,38 @@ export async function getArtifactsForBranchAndWorkflow(octokit, { owner, repo, w
     // Do not allow downloading artifacts from a fork.
     const filtered = response.data.filter(workflowRun => workflowRun.head_repository.full_name === `${owner}/${repo}`);
 
-    console.log(JSON.stringify(filtered, null, 2));
+    // Store the first workflow run, to determine if this is the latest one...
+    if (!latestWorkflowRun) {
+      latestWorkflowRun = filtered[0];
+    }
 
-    completedWorkflowRuns.push(...filtered);
+    // Search through workflow artifacts until we find a workflow run w/ artifact name that we are looking for
+    for (const workflowRun of filtered) {
+      core.info(`Checking artifacts for workflow run: ${workflowRun.html_url}`);
 
-    if (completedWorkflowRuns.length) {
-      break;
+      const {
+        data: { artifacts },
+      } = await octokit.rest.actions.listWorkflowRunArtifacts({
+        owner,
+        repo,
+        run_id: workflowRun.id,
+      });
+
+      if (!artifacts) {
+        core.warning(
+          `Unable to fetch artifacts for branch: ${branch}, workflow: ${workflow_id}, workflowRunId: ${workflowRun.id}`,
+        );
+      } else {
+        const foundArtifact = artifacts.find(({ name }) => name === artifactName);
+        if (foundArtifact) {
+          core.info(`Found suitable artifact: ${foundArtifact.url}`);
+          return {
+            artifact: foundArtifact,
+            workflowRun,
+            isLatest: latestWorkflowRun.id === workflowRun.id,
+          };
+        }
+      }
     }
 
     if (currentPage > DEFAULT_MAX_PAGES) {
@@ -379,34 +420,6 @@ export async function getArtifactsForBranchAndWorkflow(octokit, { owner, repo, w
     }
 
     currentPage++;
-  }
-
-  // Search through workflow artifacts until we find a workflow run w/ artifact name that we are looking for
-  for (const workflowRun of completedWorkflowRuns) {
-    core.info(`Checking artifacts for workflow run: ${workflowRun.html_url}`);
-
-    const {
-      data: { artifacts },
-    } = await octokit.rest.actions.listWorkflowRunArtifacts({
-      owner,
-      repo,
-      run_id: workflowRun.id,
-    });
-
-    if (!artifacts) {
-      core.warning(
-        `Unable to fetch artifacts for branch: ${branch}, workflow: ${workflow_id}, workflowRunId: ${workflowRun.id}`,
-      );
-    } else {
-      const foundArtifact = artifacts.find(({ name }) => name === artifactName);
-      if (foundArtifact) {
-        core.info(`Found suitable artifact: ${foundArtifact.url}`);
-        return {
-          artifact: foundArtifact,
-          workflowRun,
-        };
-      }
-    }
   }
 
   core.warning(`Artifact not found: ${artifactName}`);
