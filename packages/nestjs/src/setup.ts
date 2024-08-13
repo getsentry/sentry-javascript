@@ -6,7 +6,7 @@ import type {
   NestInterceptor,
   OnModuleInit,
 } from '@nestjs/common';
-import { Catch, Global, HttpException, Injectable, Module } from '@nestjs/common';
+import { Catch, Global, Injectable, Module } from '@nestjs/common';
 import { APP_INTERCEPTOR, BaseExceptionFilter } from '@nestjs/core';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
@@ -20,6 +20,7 @@ import {
 import type { Span } from '@sentry/types';
 import { logger } from '@sentry/utils';
 import type { Observable } from 'rxjs';
+import { isExpectedError } from './helpers';
 
 /**
  * Note: We cannot use @ syntax to add the decorators, so we add them directly below the classes as function wrappers.
@@ -66,16 +67,7 @@ class SentryGlobalFilter extends BaseExceptionFilter {
    * Catches exceptions and reports them to Sentry unless they are expected errors.
    */
   public catch(exception: unknown, host: ArgumentsHost): void {
-    const exceptionIsObject = typeof exception === 'object' && exception !== null;
-    const exceptionErrorProperty = exceptionIsObject && 'error' in exception ? exception.error : null;
-
-    /*
-    Don't report expected NestJS control flow errors
-    - `HttpException`
-    - `RpcException` errors will have an `error` property and we cannot rely directly on the `RpcException` class
-      because it is part of `@nestjs/microservices`, which is not a dependency for all nest applications
-     */
-    if (exception instanceof HttpException || exceptionErrorProperty !== null) {
+    if (isExpectedError(exception)) {
       return super.catch(exception, host);
     }
 
