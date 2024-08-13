@@ -1,5 +1,5 @@
-export const FALSY_ENV_VALUES = new Set(['false', 'n', 'no', 'off', '0']);
-export const TRUTHY_ENV_VALUES = new Set(['true', 'y', 'yes', 'on', '1']);
+export const FALSY_ENV_VALUES = new Set(['false', 'f', 'n', 'no', 'off', '0']);
+export const TRUTHY_ENV_VALUES = new Set(['true', 't', 'y', 'yes', 'on', '1']);
 
 export type StrictBoolCast = {
   strict: true;

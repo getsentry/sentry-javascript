@@ -58,6 +58,8 @@ describe('envToBool', () => {
     ['oFf', false, false],
     ['xxx', true, null],
     ['xxx', false, true],
+    [undefined, false, false],
+    [undefined, true, null],
   ])('%s becomes (strict: %s): %s', (value, strict, expected) => {
     expect(envToBool(value, { strict })).toBe(expected);
   });
