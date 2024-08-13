@@ -1,11 +1,11 @@
 import { ArgumentsHost, BadRequestException, Catch } from '@nestjs/common';
 import { BaseExceptionFilter } from '@nestjs/core';
-import { ExampleExceptionWrongRegistrationOrder } from './example.exception';
+import { ExampleExceptionRegisteredFirst } from './example.exception';
 
-@Catch(ExampleExceptionWrongRegistrationOrder)
-export class ExampleExceptionFilterWrongRegistrationOrder extends BaseExceptionFilter {
+@Catch(ExampleExceptionRegisteredFirst)
+export class ExampleExceptionFilterRegisteredFirst extends BaseExceptionFilter {
   catch(exception: unknown, host: ArgumentsHost) {
-    if (exception instanceof ExampleExceptionWrongRegistrationOrder) {
+    if (exception instanceof ExampleExceptionRegisteredFirst) {
       return super.catch(new BadRequestException(exception.message), host);
     }
     return super.catch(exception, host);

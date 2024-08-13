@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
 test('Sends an API route transaction from module', async ({ baseURL }) => {
-  const pageloadTransactionEventPromise = waitForTransaction('nestjs-with-submodules', transactionEvent => {
+  const pageloadTransactionEventPromise = waitForTransaction('nestjs-with-submodules-decorator', transactionEvent => {
     return (
       transactionEvent?.contexts?.trace?.op === 'http.server' &&
       transactionEvent?.transaction === 'GET /example-module/transaction'
@@ -125,7 +125,7 @@ test('Sends an API route transaction from module', async ({ baseURL }) => {
 test('API route transaction includes exception filter span for global filter in module registered after Sentry', async ({
   baseURL,
 }) => {
-  const transactionEventPromise = waitForTransaction('nestjs-with-submodules', transactionEvent => {
+  const transactionEventPromise = waitForTransaction('nestjs-with-submodules-decorator', transactionEvent => {
     return (
       transactionEvent?.contexts?.trace?.op === 'http.server' &&
       transactionEvent?.transaction === 'GET /example-module/expected-exception' &&
@@ -164,7 +164,7 @@ test('API route transaction includes exception filter span for global filter in 
 test('API route transaction includes exception filter span for local filter in module registered after Sentry', async ({
   baseURL,
 }) => {
-  const transactionEventPromise = waitForTransaction('nestjs-with-submodules', transactionEvent => {
+  const transactionEventPromise = waitForTransaction('nestjs-with-submodules-decorator', transactionEvent => {
     return (
       transactionEvent?.contexts?.trace?.op === 'http.server' &&
       transactionEvent?.transaction === 'GET /example-module-local-filter/expected-exception' &&
@@ -203,7 +203,7 @@ test('API route transaction includes exception filter span for local filter in m
 test('API route transaction includes exception filter span for global filter in module registered before Sentry', async ({
   baseURL,
 }) => {
-  const transactionEventPromise = waitForTransaction('nestjs-with-submodules', transactionEvent => {
+  const transactionEventPromise = waitForTransaction('nestjs-with-submodules-decorator', transactionEvent => {
     return (
       transactionEvent?.contexts?.trace?.op === 'http.server' &&
       transactionEvent?.transaction === 'GET /example-module-registered-first/expected-exception' &&
