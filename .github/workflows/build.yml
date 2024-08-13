@@ -1388,16 +1388,16 @@ jobs:
             node: 22
 
             # macos x64
-          - os: macos-11
+          - os: macos-12
             node: 16
             arch: x64
-          - os: macos-11
+          - os: macos-12
             node: 18
             arch: x64
-          - os: macos-11
+          - os: macos-12
             node: 20
             arch: x64
-          - os: macos-11
+          - os: macos-12
             node: 22
             arch: x64
 
