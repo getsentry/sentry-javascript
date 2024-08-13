@@ -6,6 +6,8 @@
 </template>
 
 <script setup lang="ts">
+import { useRoute, useFetch } from '#imports'
+
 const route = useRoute();
 const param = route.params.param;
 
