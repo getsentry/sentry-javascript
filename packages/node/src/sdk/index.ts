@@ -223,7 +223,7 @@ function getClientOptions(
         : options.autoSessionTracking;
 
   if (options.spotlight == null) {
-    const spotlightEnv = envToBool(process.env.SENTRY_SPOTLIGHT);
+    const spotlightEnv = envToBool(process.env.SENTRY_SPOTLIGHT, { strict: true });
     if (spotlightEnv == null) {
       options.spotlight = process.env.SENTRY_SPOTLIGHT;
     } else {
