@@ -11,4 +11,9 @@ export class ExampleControllerLocalFilter {
   getCaughtException() {
     throw new LocalExampleException();
   }
+
+  @Get('/unexpected-exception')
+  getUncaughtException(): string {
+    throw new Error(`This is an uncaught exception!`);
+  }
 }

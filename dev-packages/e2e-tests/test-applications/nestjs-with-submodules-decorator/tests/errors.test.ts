@@ -37,6 +37,42 @@ test('Sends unexpected exception to Sentry if thrown in module with global filte
   });
 });
 
+test('Sends unexpected exception to Sentry if thrown in module with local filter', async ({ baseURL }) => {
+  const errorEventPromise = waitForError('nestjs-with-submodules-decorator', event => {
+    return !event.type && event.exception?.values?.[0]?.value === 'This is an uncaught exception!';
+  });
+
+  const response = await fetch(`${baseURL}/example-module-local-filter/unexpected-exception`);
+  const responseBody = await response.json();
+
+  expect(response.status).toBe(501);
+  expect(responseBody).toEqual({
+    statusCode: 501,
+    timestamp: expect.any(String),
+    path: '/example-module-local-filter/unexpected-exception',
+    message: 'Example exception was handled by global filter!',
+  });
+
+  const errorEvent = await errorEventPromise;
+
+  expect(errorEvent.exception?.values).toHaveLength(1);
+  expect(errorEvent.exception?.values?.[0]?.value).toBe('This is an uncaught exception!');
+
+  expect(errorEvent.request).toEqual({
+    method: 'GET',
+    cookies: {},
+    headers: expect.any(Object),
+    url: 'http://localhost:3030/example-module-local-filter/unexpected-exception',
+  });
+
+  expect(errorEvent.transaction).toEqual('GET /example-module-local-filter/unexpected-exception');
+
+  expect(errorEvent.contexts?.trace).toEqual({
+    trace_id: expect.any(String),
+    span_id: expect.any(String),
+  });
+});
+
 test('Sends unexpected exception to Sentry if thrown in module that was registered before Sentry', async ({
   baseURL,
 }) => {

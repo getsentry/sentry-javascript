@@ -29,6 +29,34 @@ test('Sends unexpected exception to Sentry if thrown in module with global filte
   });
 });
 
+test('Sends unexpected exception to Sentry if thrown in module with local filter', async ({ baseURL }) => {
+  const errorEventPromise = waitForError('nestjs-with-submodules', event => {
+    return !event.type && event.exception?.values?.[0]?.value === 'This is an uncaught exception!';
+  });
+
+  const response = await fetch(`${baseURL}/example-module-local-filter/unexpected-exception`);
+  expect(response.status).toBe(500);
+
+  const errorEvent = await errorEventPromise;
+
+  expect(errorEvent.exception?.values).toHaveLength(1);
+  expect(errorEvent.exception?.values?.[0]?.value).toBe('This is an uncaught exception!');
+
+  expect(errorEvent.request).toEqual({
+    method: 'GET',
+    cookies: {},
+    headers: expect.any(Object),
+    url: 'http://localhost:3030/example-module-local-filter/unexpected-exception',
+  });
+
+  expect(errorEvent.transaction).toEqual('GET /example-module-local-filter/unexpected-exception');
+
+  expect(errorEvent.contexts?.trace).toEqual({
+    trace_id: expect.any(String),
+    span_id: expect.any(String),
+  });
+});
+
 test('Sends unexpected exception to Sentry if thrown in module that was registered before Sentry', async ({
   baseURL,
 }) => {
