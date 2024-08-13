@@ -41,6 +41,7 @@ import { getAutoPerformanceIntegrations } from '../integrations/tracing';
 import { makeNodeTransport } from '../transports';
 import type { NodeClientOptions, NodeOptions } from '../types';
 import { isCjs } from '../utils/commonjs';
+import { envToBool } from '../utils/envToBool';
 import { defaultStackParser, getSentryRelease } from './api';
 import { NodeClient } from './client';
 import { initOpenTelemetry, maybeInitializeEsmLoader } from './initOtel';
@@ -208,9 +209,6 @@ export function validateOpenTelemetrySetup(): void {
   }
 }
 
-const FALSY_ENV_VALUES = new Set(['0', 'false', 'no']);
-const TRUTHY_ENV_VALUES = new Set(['1', 'true', 'yes']);
-
 function getClientOptions(
   options: NodeOptions,
   getDefaultIntegrationsImpl: (options: Options) => Integration[],
@@ -224,12 +222,10 @@ function getClientOptions(
         ? true
         : options.autoSessionTracking;
 
-  if (options.spotlight == null && process.env.SENTRY_SPOTLIGHT) {
-    const spotlightEnv = process.env.SENTRY_SPOTLIGHT.toLowerCase();
-    if (FALSY_ENV_VALUES.has(spotlightEnv)) {
-      options.spotlight = false;
-    } else if (TRUTHY_ENV_VALUES.has(spotlightEnv)) {
-      options.spotlight = true;
+  if (options.spotlight == null) {
+    const spotlightEnv = envToBool(process.env.SENTRY_SPOTLIGHT);
+    if (spotlightEnv == null) {
+      options.spotlight = process.env.SENTRY_SPOTLIGHT;
     } else {
       options.spotlight = spotlightEnv;
     }
@@ -306,8 +302,7 @@ function getTracesSampleRate(tracesSampleRate: NodeOptions['tracesSampleRate']):
  * for more details.
  */
 function updateScopeFromEnvVariables(): void {
-  const sentryUseEnvironment = (process.env.SENTRY_USE_ENVIRONMENT || '').toLowerCase();
-  if (!['false', 'n', 'no', 'off', '0'].includes(sentryUseEnvironment)) {
+  if (envToBool(process.env.SENTRY_USE_ENVIRONMENT) !== false) {
     const sentryTraceEnv = process.env.SENTRY_TRACE;
     const baggageEnv = process.env.SENTRY_BAGGAGE;
     const propagationContext = propagationContextFromHeaders(sentryTraceEnv, baggageEnv);
