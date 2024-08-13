@@ -2,7 +2,7 @@ import type { init as initNode } from '@sentry/node';
 import type { init as initVue } from '@sentry/vue';
 
 // Omitting 'app' as the Nuxt SDK will add the app instance in the client plugin (users do not have to provide this)
-export type SentryNuxtOptions = Omit<Parameters<typeof initVue>[0] & object, 'app'>;
+export type SentryNuxtClientOptions = Omit<Parameters<typeof initVue>[0] & object, 'app'>;
 export type SentryNuxtServerOptions = Omit<Parameters<typeof initNode>[0] & object, 'app'>;
 
 type SourceMapsOptions = {
