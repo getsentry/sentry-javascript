@@ -151,7 +151,7 @@ async function execSizeLimit() {
   return { status, output };
 }
 
-const SIZE_RESULTS_HEADER = ['Path', 'Size', 'Change'];
+const SIZE_RESULTS_HEADER = ['Path', 'Size', '% Change', 'Change'];
 
 const EmptyResult = {
   name: '-',
