@@ -1,4 +1,3 @@
-import { HttpException } from '@nestjs/common';
 import { captureException } from '@sentry/core';
 
 /**
@@ -10,19 +9,23 @@ export function SentryCaptureException() {
       apply: (originalCatch, thisArgCatch, argsCatch) => {
         const exception = argsCatch[0];
         const exceptionIsObject = typeof exception === 'object' && exception !== null;
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        const exceptionStatusCode = exceptionIsObject && 'status' in exception ? exception.status : null;
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         const exceptionErrorProperty = exceptionIsObject && 'error' in exception ? exception.error : null;
 
         /*
         Don't report expected NestJS control flow errors
-        - `HttpException`
-        - `RpcException` errors will have an `error` property and we cannot rely directly on the `RpcException` class
-          because it is part of `@nestjs/microservices`, which is not a dependency for all nest applications
+        - `HttpException` errors will have a `status` property
+        - `RpcException` errors will have an `error` property
          */
-        if (exception instanceof HttpException || exceptionErrorProperty !== null) {
+        if (exceptionStatusCode !== null || exceptionErrorProperty !== null) {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
           return originalCatch.apply(thisArgCatch, argsCatch);
         }
 
         captureException(exception);
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         return originalCatch.apply(thisArgCatch, argsCatch);
       },
     });
