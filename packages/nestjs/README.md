@@ -55,11 +55,14 @@ async function bootstrap() {
 bootstrap();
 ```
 
-Then you can add the `SentryModule` as a root module:
+Then you can add the `SentryModule` as a root module. Also add the `SentryGlobalFilter` if you are not already using any
+global catch-all exception filters (annotated with `@Catch()` and registered in your app module providers or with
+`app.useGlobalFilters()`):
 
 ```typescript
 import { Module } from '@nestjs/common';
-import { SentryModule } from '@sentry/nestjs/setup';
+import { APP_FILTER } from '@nestjs/core';
+import { SentryGlobalFilter, SentryModule } from '@sentry/nestjs/setup';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
@@ -69,9 +72,60 @@ import { AppService } from './app.service';
     // ...other modules
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    {
+      provide: APP_FILTER,
+      useClass: SentryGlobalFilter,
+    },
+    // ..other providers
+  ],
 })
 export class AppModule {}
+```
+
+The `SentryGlobalFilter` needs to be registered before any other exception filters.
+
+If you are already using custom catch-all exception filters, do not add `SentryGlobalFilter` as a provider. Instead,
+annotate the catch method in your catch-all exception filter with `WithSentry()`:
+
+```typescript
+import { Module } from '@nestjs/common';
+import { APP_FILTER } from '@nestjs/core';
+import { SentryModule } from '@sentry/nestjs/setup';
+import { AppController } from './app.controller';
+import { AppService } from './app.service';
+import { CatchAllExceptionFilter } from './catch-all.filter';
+
+@Module({
+  imports: [
+    SentryModule.forRoot(),
+    // ...other modules
+  ],
+  controllers: [AppController],
+  providers: [
+    AppService,
+    {
+      provide: APP_FILTER,
+      useClass: CatchAllExceptionFilter,
+    },
+    // ..other providers
+  ],
+})
+export class AppModule {}
+```
+
+```typescript
+import { ArgumentsHost, Catch, ExceptionFilter } from '@nestjs/common';
+import { WithSentry } from '@sentry/nestjs';
+
+@Catch()
+export class CatchAllExceptionFilter implements ExceptionFilter {
+  @WithSentry()
+  catch(exception: BadRequestException, host: ArgumentsHost): void {
+    // your implementation here
+  }
+}
 ```
 
 ## SentryTraced
