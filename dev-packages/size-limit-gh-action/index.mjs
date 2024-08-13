@@ -156,7 +156,6 @@ const SIZE_RESULTS_HEADER = ['Path', 'Size', '% Change', 'Change'];
 const EmptyResult = {
   name: '-',
   size: 0,
-  change: 0,
 };
 
 async function run() {
@@ -219,6 +218,8 @@ async function run() {
         branch: comparisonBranch,
         workflowName: `${process.env.GITHUB_WORKFLOW || ''}`,
       });
+
+      core.info(`Artifacts: ${JSON.stringify(artifacts, null, 2)}`);
 
       if (!artifacts) {
         throw new Error('No artifacts found');
