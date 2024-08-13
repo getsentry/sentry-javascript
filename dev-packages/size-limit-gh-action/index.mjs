@@ -210,6 +210,7 @@ async function run() {
     let base;
     let current;
     let baseIsNotLatest = false;
+    let baseWorkflowRun;
 
     try {
       const artifacts = await getArtifactsForBranchAndWorkflow(octokit, {
@@ -219,11 +220,11 @@ async function run() {
         workflowName: `${process.env.GITHUB_WORKFLOW || ''}`,
       });
 
-      core.info(`Artifacts: ${JSON.stringify(artifacts, null, 2)}`);
-
       if (!artifacts) {
         throw new Error('No artifacts found');
       }
+
+      baseWorkflowRun = artifacts.workflowRun;
 
       await downloadOtherWorkflowArtifact(octokit, {
         ...repo,
@@ -270,6 +271,10 @@ async function run() {
       }
 
       bodyParts.push(markdownTable(limit.formatResults(base, current)));
+
+      if (baseWorkflowRun) {
+        bodyParts.push(`[View base workflow run](${baseWorkflowRun.html_url})`);
+      }
 
       const body = bodyParts.join('\r\n');
 
