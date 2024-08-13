@@ -2,7 +2,9 @@ import * as SentryNode from '@sentry/node';
 import type { NodeClient } from '@sentry/node';
 import { SDK_VERSION } from '@sentry/node';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { SentryNuxtServerOptions } from '../../src/common/types';
 import { init } from '../../src/server';
+import { mergeRegisterEsmLoaderHooks } from '../../src/server/sdk';
 
 const nodeInit = vi.spyOn(SentryNode, 'init');
 
@@ -80,6 +82,44 @@ describe('Nuxt Server SDK', () => {
         }),
         expect.any(Object),
       );
+    });
+  });
+
+  describe('mergeRegisterEsmLoaderHooks', () => {
+    it('merges exclude array when registerEsmLoaderHooks is an object with an exclude array', () => {
+      const options: SentryNuxtServerOptions = {
+        registerEsmLoaderHooks: { exclude: [/test/] },
+      };
+      const result = mergeRegisterEsmLoaderHooks(options);
+      expect(result).toEqual({ exclude: [/test/, /vue/] });
+    });
+
+    it('sets exclude array when registerEsmLoaderHooks is an object without an exclude array', () => {
+      const options: SentryNuxtServerOptions = {
+        registerEsmLoaderHooks: {},
+      };
+      const result = mergeRegisterEsmLoaderHooks(options);
+      expect(result).toEqual({ exclude: [/vue/] });
+    });
+
+    it('returns boolean when registerEsmLoaderHooks is a boolean', () => {
+      const options1: SentryNuxtServerOptions = {
+        registerEsmLoaderHooks: true,
+      };
+      const result1 = mergeRegisterEsmLoaderHooks(options1);
+      expect(result1).toBe(true);
+
+      const options2: SentryNuxtServerOptions = {
+        registerEsmLoaderHooks: false,
+      };
+      const result2 = mergeRegisterEsmLoaderHooks(options2);
+      expect(result2).toBe(false);
+    });
+
+    it('sets exclude array when registerEsmLoaderHooks is undefined', () => {
+      const options: SentryNuxtServerOptions = {};
+      const result = mergeRegisterEsmLoaderHooks(options);
+      expect(result).toEqual({ exclude: [/vue/] });
     });
   });
 });
