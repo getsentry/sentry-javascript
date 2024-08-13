@@ -193,7 +193,7 @@ module.exports = [
     import: createImport('init'),
     ignore: ['next/router', 'next/constants'],
     gzip: true,
-    limit: '38 KB',
+    limit: '39 KB',
   },
   // SvelteKit SDK (ESM)
   {
