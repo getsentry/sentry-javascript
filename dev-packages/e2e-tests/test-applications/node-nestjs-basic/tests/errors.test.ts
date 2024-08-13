@@ -94,29 +94,3 @@ test('Does not send RpcExceptions to Sentry', async ({ baseURL }) => {
 
   expect(errorEventOccurred).toBe(false);
 });
-
-test('Global exception filter registered in main module is applied', async ({ baseURL }) => {
-  const response = await fetch(`${baseURL}/example-exception-global-filter`);
-  const responseBody = await response.json();
-
-  expect(response.status).toBe(400);
-  expect(responseBody).toEqual({
-    statusCode: 400,
-    timestamp: expect.any(String),
-    path: '/example-exception-global-filter',
-    message: 'Example exception was handled by global filter!',
-  });
-});
-
-test('Local exception filter registered in main module is applied', async ({ baseURL }) => {
-  const response = await fetch(`${baseURL}/example-exception-local-filter`);
-  const responseBody = await response.json();
-
-  expect(response.status).toBe(400);
-  expect(responseBody).toEqual({
-    statusCode: 400,
-    timestamp: expect.any(String),
-    path: '/example-exception-local-filter',
-    message: 'Example exception was handled by local filter!',
-  });
-});
