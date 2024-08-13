@@ -11,7 +11,7 @@ import {
   startSpan,
   withIsolationScope,
 } from '@sentry/node';
-import type { Client, Scope, Span, SpanAttributes } from '@sentry/types';
+import type { Scope, SpanAttributes } from '@sentry/types';
 import {
   addNonEnumerableProperty,
   objectify,
@@ -151,7 +151,6 @@ async function instrumentRequest(
               setHttpStatus(span, originalResponse.status);
             }
 
-            const scope = getCurrentScope();
             const client = getClient();
             const contentType = originalResponse.headers.get('content-type');
 
@@ -175,7 +174,7 @@ async function instrumentRequest(
               start: async controller => {
                 for await (const chunk of originalBody) {
                   const html = typeof chunk === 'string' ? chunk : decoder.decode(chunk, { stream: true });
-                  const modifiedHtml = addMetaTagToHead(html, scope, client, span);
+                  const modifiedHtml = addMetaTagToHead(html);
                   controller.enqueue(new TextEncoder().encode(modifiedHtml));
                 }
                 controller.close();
@@ -199,11 +198,11 @@ async function instrumentRequest(
  * This function optimistically assumes that the HTML coming in chunks will not be split
  * within the <head> tag. If this still happens, we simply won't replace anything.
  */
-function addMetaTagToHead(htmlChunk: string, scope: Scope, client: Client, span?: Span): string {
+function addMetaTagToHead(htmlChunk: string): string {
   if (typeof htmlChunk !== 'string') {
     return htmlChunk;
   }
-  const metaTags = getTraceMetaTags(span, scope, client);
+  const metaTags = getTraceMetaTags();
 
   if (!metaTags) {
     return htmlChunk;
