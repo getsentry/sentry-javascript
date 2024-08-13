@@ -92,7 +92,7 @@ ${
 `;
 
   if (styleNonce) {
-    style.nonce = styleNonce;
+    style.setAttribute('nonce', styleNonce);
   }
 
   return style;

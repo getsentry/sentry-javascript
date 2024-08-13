@@ -274,6 +274,7 @@ export const buildFeedbackIntegration = ({
         triggerLabel: mergedOptions.triggerLabel,
         triggerAriaLabel: mergedOptions.triggerAriaLabel,
         shadow,
+        styleNonce,
       });
       _attachTo(actor.el, {
         ...mergedOptions,
