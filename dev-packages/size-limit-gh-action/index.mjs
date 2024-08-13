@@ -273,6 +273,7 @@ async function run() {
       bodyParts.push(markdownTable(limit.formatResults(base, current)));
 
       if (baseWorkflowRun) {
+        bodyParts.push('');
         bodyParts.push(`[View base workflow run](${baseWorkflowRun.html_url})`);
       }
 
