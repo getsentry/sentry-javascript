@@ -362,9 +362,11 @@ export async function getArtifactsForBranchAndWorkflow(octokit, { owner, repo, w
     }
 
     // Do not allow downloading artifacts from a fork.
-    completedWorkflowRuns.push(
-      ...response.data.filter(workflowRun => workflowRun.head_repository.full_name === `${owner}/${repo}`),
-    );
+    const filtered = response.data.filter(workflowRun => workflowRun.head_repository.full_name === `${owner}/${repo}`);
+
+    console.log(JSON.stringify(filtered, null, 2));
+
+    completedWorkflowRuns.push(...filtered);
 
     if (completedWorkflowRuns.length) {
       break;
