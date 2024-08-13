@@ -66,8 +66,16 @@ class SentryGlobalFilter extends BaseExceptionFilter {
    * Catches exceptions and reports them to Sentry unless they are expected errors.
    */
   public catch(exception: unknown, host: ArgumentsHost): void {
-    // don't report expected errors
-    if (exception instanceof HttpException) {
+    const exceptionIsObject = typeof exception === 'object' && exception !== null;
+    const exceptionErrorProperty = exceptionIsObject && 'error' in exception ? exception.error : null;
+
+    /*
+    Don't report expected NestJS control flow errors
+    - `HttpException`
+    - `RpcException` errors will have an `error` property and we cannot rely directly on the `RpcException` class
+      because it is part of `@nestjs/microservices`, which is not a dependency for all nest applications
+     */
+    if (exception instanceof HttpException || exceptionErrorProperty !== null) {
       return super.catch(exception, host);
     }
 
