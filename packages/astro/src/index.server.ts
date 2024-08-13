@@ -40,6 +40,7 @@ export {
   extraErrorDataIntegration,
   fastifyIntegration,
   flush,
+  fsIntegration,
   functionToStringIntegration,
   generateInstrumentOnce,
   getActiveSpan,
