@@ -66,6 +66,11 @@ export interface FeedbackGeneralConfiguration {
    * Set a nonce to be passed to the injected <style> tag for enforcing CSP
    */
   styleNonce?: string;
+
+  /**
+   * Set a nonce to be passed to the injected <script> tag for enforcing CSP
+   */
+  scriptNonce?: string;
 }
 
 /**

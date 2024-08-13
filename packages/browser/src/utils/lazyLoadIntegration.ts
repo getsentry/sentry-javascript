@@ -55,6 +55,7 @@ export async function lazyLoadIntegration(
   script.src = url;
   script.crossOrigin = 'anonymous';
   script.referrerPolicy = 'origin';
+
   if (scriptNonce) {
     script.setAttribute('nonce', scriptNonce);
   }
