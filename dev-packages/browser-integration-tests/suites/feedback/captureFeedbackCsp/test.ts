@@ -2,19 +2,11 @@ import { expect } from '@playwright/test';
 
 import { TEST_HOST, sentryTest } from '../../../utils/fixtures';
 import { envelopeRequestParser, getEnvelopeType, shouldSkipFeedbackTest } from '../../../utils/helpers';
-import {
-  collectReplayRequests,
-  getReplayBreadcrumbs,
-  shouldSkipReplayTest,
-  waitForReplayRequest,
-} from '../../../utils/replayHelpers';
 
-sentryTest('should not log CSP errors', async ({ forceFlushReplay, getLocalTestUrl, page }) => {
-  if (shouldSkipFeedbackTest() || shouldSkipReplayTest()) {
+sentryTest('should capture feedback', async ({ getLocalTestUrl, page }) => {
+  if (shouldSkipFeedbackTest()) {
     sentryTest.skip();
   }
-
-  const reqPromise0 = waitForReplayRequest(page, 0);
 
   const feedbackRequestPromise = page.waitForResponse(res => {
     const req = res.request();
@@ -41,42 +33,15 @@ sentryTest('should not log CSP errors', async ({ forceFlushReplay, getLocalTestU
 
   const url = await getLocalTestUrl({ testDir: __dirname });
 
-  await Promise.all([page.goto(url), page.getByText('Report a Bug').click(), reqPromise0]);
-
-  const replayRequestPromise = collectReplayRequests(page, recordingEvents => {
-    return getReplayBreadcrumbs(recordingEvents).some(breadcrumb => breadcrumb.category === 'sentry.feedback');
-  });
-
-  // Inputs are slow, these need to be serial
+  await page.goto(url);
+  await page.getByText('Report a Bug').click();
+  expect(await page.locator(':visible:text-is("Report a Bug")').count()).toEqual(1);
   await page.locator('[name="name"]').fill('Jane Doe');
   await page.locator('[name="email"]').fill('janedoe@example.org');
   await page.locator('[name="message"]').fill('my example feedback');
+  await page.locator('[data-sentry-feedback] .btn--primary').click();
 
-  // Force flush here, as inputs are slow and can cause click event to be in unpredictable segments
-  await Promise.all([forceFlushReplay()]);
-
-  const [, feedbackResp] = await Promise.all([
-    page.locator('[data-sentry-feedback] .btn--primary').click(),
-    feedbackRequestPromise,
-  ]);
-
-  const { replayEvents, replayRecordingSnapshots } = await replayRequestPromise;
-  const breadcrumbs = getReplayBreadcrumbs(replayRecordingSnapshots);
-
-  const replayEvent = replayEvents[0];
-  const feedbackEvent = envelopeRequestParser(feedbackResp.request());
-
-  expect(breadcrumbs).toEqual(
-    expect.arrayContaining([
-      expect.objectContaining({
-        category: 'sentry.feedback',
-        data: { feedbackId: expect.any(String) },
-        timestamp: expect.any(Number),
-        type: 'default',
-      }),
-    ]),
-  );
-
+  const feedbackEvent = envelopeRequestParser((await feedbackRequestPromise).request());
   expect(feedbackEvent).toEqual({
     type: 'feedback',
     breadcrumbs: expect.any(Array),
@@ -85,7 +50,6 @@ sentryTest('should not log CSP errors', async ({ forceFlushReplay, getLocalTestU
         contact_email: 'janedoe@example.org',
         message: 'my example feedback',
         name: 'Jane Doe',
-        replay_id: replayEvent.event_id,
         source: 'widget',
         url: `${TEST_HOST}/index.html`,
       },
@@ -95,7 +59,9 @@ sentryTest('should not log CSP errors', async ({ forceFlushReplay, getLocalTestU
       },
     },
     level: 'info',
-    tags: {},
+    tags: {
+      from: 'integration init',
+    },
     timestamp: expect.any(Number),
     event_id: expect.stringMatching(/\w{32}/),
     environment: 'production',
@@ -113,7 +79,6 @@ sentryTest('should not log CSP errors', async ({ forceFlushReplay, getLocalTestU
     },
     platform: 'javascript',
   });
-
   const cspContainer = await page.locator('#csp-violation');
   expect(cspContainer).not.toContainText('CSP Violation');
 });

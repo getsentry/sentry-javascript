@@ -6,9 +6,9 @@ window.Sentry = Sentry;
 
 Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
-  replaysOnErrorSampleRate: 1.0,
-  replaysSessionSampleRate: 1.0,
-  integrations: [Sentry.replayIntegration(), feedbackIntegration()],
+  integrations: [
+    feedbackIntegration({ tags: { from: 'integration init' }, styleNonce: 'foo1234', scriptNonce: 'foo1234' }),
+  ],
 });
 
 document.addEventListener('securitypolicyviolation', () => {
