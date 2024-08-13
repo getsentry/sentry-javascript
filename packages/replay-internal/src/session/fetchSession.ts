@@ -1,13 +1,14 @@
 import { REPLAY_SESSION_KEY, WINDOW } from '../constants';
+import { DEBUG_BUILD } from '../debug-build';
 import type { Session } from '../types';
 import { hasSessionStorage } from '../util/hasSessionStorage';
-import { logInfoNextTick } from '../util/log';
+import { logger } from '../util/logger';
 import { makeSession } from './Session';
 
 /**
  * Fetches a session from storage
  */
-export function fetchSession(traceInternals?: boolean): Session | null {
+export function fetchSession(): Session | null {
   if (!hasSessionStorage()) {
     return null;
   }
@@ -22,7 +23,7 @@ export function fetchSession(traceInternals?: boolean): Session | null {
 
     const sessionObj = JSON.parse(sessionStringFromStorage) as Session;
 
-    logInfoNextTick('[Replay] Loading existing session', traceInternals);
+    DEBUG_BUILD && logger.infoTick('Loading existing session');
 
     return makeSession(sessionObj);
   } catch {

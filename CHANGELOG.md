@@ -1,13 +1,78 @@
 # Changelog
 
-> [!IMPORTANT] Important
->
+<!-- prettier-ignore-start -->
+> [!IMPORTANT]
 > If you are upgrading to the `8.x` versions of the SDK from `7.x` or below, make sure you follow our
 > [migration guide](https://docs.sentry.io/platforms/javascript/migration/) first.
+<!-- prettier-ignore-end -->
 
 ## Unreleased
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
+
+Work in this release was contributed by @MonstraG, @undead-voron and @Zen-cronic. Thank you for your contributions!
+
+## 8.25.0
+
+### Important Changes
+
+- **Alpha release of Official Solid Start SDK**
+
+This release contains the alpha version of `@sentry/solidstart`, our SDK for [Solid Start](https://start.solidjs.com/)!
+For details on how to use it, please see the [README](./packages/solidstart/README.md). Any feedback/bug reports are
+greatly appreciated, please [reach out on GitHub](https://github.com/getsentry/sentry-javascript/issues/12538).
+
+### Other Changes
+
+- feat(astro): Add `bundleSizeOptimizations` vite options to integration (#13250)
+- feat(astro): Always add BrowserTracing (#13244)
+- feat(core): Add `getTraceMetaTags` function (#13201)
+- feat(nestjs): Automatic instrumentation of nestjs exception filters (#13230)
+- feat(node): Add `useOperationNameForRootSpan` to`graphqlIntegration` (#13248)
+- feat(sveltekit): Add `wrapServerRouteWithSentry` wrapper (#13247)
+- fix(aws-serverless): Extract sentry trace data from handler `context` over `event` (#13266)
+- fix(browser): Initialize default integration if `defaultIntegrations: undefined` (#13261)
+- fix(utils): Streamline IP capturing on incoming requests (#13272)
+
+## 8.24.0
+
+- feat(nestjs): Filter RPC exceptions (#13227)
+- fix: Guard getReader function for other fetch implementations (#13246)
+- fix(feedback): Ensure feedback can be lazy loaded in CDN bundles (#13241)
+
+## 8.23.0
+
+### Important Changes
+
+- **feat(cloudflare): Add Cloudflare D1 instrumentation (#13142)**
+
+This release includes support for Cloudflare D1, Cloudflare's serverless SQL database. To instrument your Cloudflare D1
+database, use the `instrumentD1WithSentry` method as follows:
+
+```ts
+// env.DB is the D1 DB binding configured in your `wrangler.toml`
+const db = instrumentD1WithSentry(env.DB);
+// Now you can use the database as usual
+await db.prepare('SELECT * FROM table WHERE id = ?').bind(1).run();
+```
+
+### Other Changes
+
+- feat(cloudflare): Allow users to pass handler to sentryPagesPlugin (#13192)
+- feat(cloudflare): Instrument scheduled handler (#13114)
+- feat(core): Add `getTraceData` function (#13134)
+- feat(nestjs): Automatic instrumentation of nestjs interceptors before route execution (#13153)
+- feat(nestjs): Automatic instrumentation of nestjs pipes (#13137)
+- feat(nuxt): Filter out Nuxt build assets (#13148)
+- feat(profiling): Attach sdk info to chunks (#13145)
+- feat(solidstart): Add sentry `onBeforeResponse` middleware to enable distributed tracing (#13221)
+- feat(solidstart): Filter out low quality transactions for build assets (#13222)
+- fix(browser): Avoid showing browser extension error message in non-`window` global scopes (#13156)
+- fix(feedback): Call dialog.close() in dialog close callbacks in `\_loadAndRenderDialog` (#13203)
+- fix(nestjs): Inline Observable type to resolve missing 'rxjs' dependency (#13166)
+- fix(nuxt): Detect pageload by adding flag in Vue router (#13171)
+- fix(utils): Handle when requests get aborted in fetch instrumentation (#13202)
+- ref(browser): Improve browserMetrics collection (#13062)
 
 Work in this release was contributed by @horochx. Thank you for your contribution!
 

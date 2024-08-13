@@ -28,6 +28,7 @@ export default defineNuxtModule<ModuleOptions>({
         filename: 'sentry-client-config.mjs',
         getContents: () =>
           `import "${buildDirResolver.resolve(`/${clientConfigFile}`)}"\n` +
+          'import { defineNuxtPlugin } from "#imports"\n' +
           'export default defineNuxtPlugin(() => {})',
       });
 
@@ -43,6 +44,7 @@ export default defineNuxtModule<ModuleOptions>({
         filename: 'sentry-server-config.mjs',
         getContents: () =>
           `import "${buildDirResolver.resolve(`/${serverConfigFile}`)}"\n` +
+          'import { defineNuxtPlugin } from "#imports"\n' +
           'export default defineNuxtPlugin(() => {})',
       });
 

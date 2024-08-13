@@ -46,7 +46,10 @@ export async function lazyLoadIntegration(
 
   // Bail if the integration already exists
   const existing = sentryOnWindow[name];
-  if (typeof existing === 'function') {
+  // The `feedbackIntegration` is loaded by default in the CDN bundles,
+  // so we need to differentiate between the real integration and the shim.
+  // if only the shim exists, we still want to lazy load the real integration.
+  if (typeof existing === 'function' && !('_isShim' in existing)) {
     return existing;
   }
 

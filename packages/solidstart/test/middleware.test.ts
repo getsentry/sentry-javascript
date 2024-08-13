@@ -5,10 +5,10 @@ import type { ResponseMiddlewareResponse } from '../src/middleware';
 
 describe('middleware', () => {
   describe('sentryBeforeResponseMiddleware', () => {
-    vi.spyOn(SentryCore, 'getTraceData').mockReturnValue({
-      'sentry-trace': '123',
-      baggage: 'abc',
-    });
+    vi.spyOn(SentryCore, 'getTraceMetaTags').mockReturnValue(`
+      <meta name="sentry-trace" content="123">,
+      <meta name="baggage" content="abc">
+    `);
 
     const mockFetchEvent = {
       request: {},

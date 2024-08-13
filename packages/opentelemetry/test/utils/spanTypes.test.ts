@@ -24,7 +24,9 @@ describe('spanTypes', () => {
     it.each([
       [{}, false],
       [{ kind: null }, false],
-      [{ kind: 'TEST_KIND' }, true],
+      [{ kind: 0 }, true],
+      [{ kind: 5 }, true],
+      [{ kind: 'TEST_KIND' }, false],
     ])('works with %p', (span, expected) => {
       const castSpan = span as unknown as Span;
       const actual = spanHasKind(castSpan);

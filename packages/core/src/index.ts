@@ -1,4 +1,4 @@
-export type { ClientClass } from './sdk';
+export type { ClientClass as SentryCoreCurrentScopes } from './sdk';
 export type { AsyncContextStrategy } from './asyncContext/types';
 export type { Carrier } from './carrier';
 export type { OfflineStore, OfflineTransportOptions } from './transports/offline';
@@ -83,6 +83,7 @@ export {
 export { parseSampleRate } from './utils/parseSampleRate';
 export { applySdkMetadata } from './utils/sdkMetadata';
 export { getTraceData } from './utils/traceData';
+export { getTraceMetaTags } from './utils/meta';
 export { DEFAULT_ENVIRONMENT } from './constants';
 export { addBreadcrumb } from './breadcrumbs';
 export { functionToStringIntegration } from './integrations/functiontostring';

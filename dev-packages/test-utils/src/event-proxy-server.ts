@@ -1,5 +1,4 @@
 /* eslint-disable max-lines */
-
 import * as fs from 'fs';
 import * as http from 'http';
 import type { AddressInfo } from 'net';
@@ -18,11 +17,6 @@ interface EventProxyServerOptions {
   port: number;
   /** The name for the proxy server used for referencing it with listener functions */
   proxyServerName: string;
-  /**
-   * Whether or not to forward the event to sentry. @default `false`
-   * This is helpful when you can't register a tunnel in the SDK setup (e.g. lambda layer without Sentry.init call)
-   */
-  forwardToSentry?: boolean;
 }
 
 interface SentryRequestCallbackData {
@@ -36,12 +30,16 @@ interface EventCallbackListener {
   (data: string): void;
 }
 
+type SentryResponseStatusCode = number;
+type SentryResponseBody = string;
+type SentryResponseHeaders = Record<string, string> | undefined;
+
 type OnRequest = (
   eventCallbackListeners: Set<EventCallbackListener>,
   proxyRequest: http.IncomingMessage,
   proxyRequestBody: string,
   eventBuffer: BufferedEvent[],
-) => Promise<[number, string, Record<string, string> | undefined]>;
+) => Promise<[SentryResponseStatusCode, SentryResponseBody, SentryResponseHeaders]>;
 
 interface BufferedEvent {
   timestamp: number;
@@ -170,83 +168,28 @@ export async function startProxyServer(
  */
 export async function startEventProxyServer(options: EventProxyServerOptions): Promise<void> {
   await startProxyServer(options, async (eventCallbackListeners, proxyRequest, proxyRequestBody, eventBuffer) => {
-    const envelopeHeader: EnvelopeItem[0] = JSON.parse(proxyRequestBody.split('\n')[0] as string);
+    const data: SentryRequestCallbackData = {
+      envelope: parseEnvelope(proxyRequestBody),
+      rawProxyRequestBody: proxyRequestBody,
+      rawSentryResponseBody: '',
+      sentryResponseStatusCode: 200,
+    };
 
-    const shouldForwardEventToSentry = options.forwardToSentry || false;
+    const dataString = Buffer.from(JSON.stringify(data)).toString('base64');
 
-    if (!envelopeHeader.dsn && shouldForwardEventToSentry) {
-      // eslint-disable-next-line no-console
-      console.log(
-        '[event-proxy-server] Warn: No dsn on envelope header. Maybe a client-report was received. Proxy request body:',
-        proxyRequestBody,
-      );
+    eventBuffer.push({ data: dataString, timestamp: getNanosecondTimestamp() });
 
-      return [200, '{}', {}];
-    }
-
-    if (!shouldForwardEventToSentry) {
-      const data: SentryRequestCallbackData = {
-        envelope: parseEnvelope(proxyRequestBody),
-        rawProxyRequestBody: proxyRequestBody,
-        rawSentryResponseBody: '',
-        sentryResponseStatusCode: 200,
-      };
-      eventCallbackListeners.forEach(listener => {
-        listener(Buffer.from(JSON.stringify(data)).toString('base64'));
-      });
-
-      return [
-        200,
-        '{}',
-        {
-          'Access-Control-Allow-Origin': '*',
-        },
-      ];
-    }
-
-    const { origin, pathname, host } = new URL(envelopeHeader.dsn as string);
-
-    const projectId = pathname.substring(1);
-    const sentryIngestUrl = `${origin}/api/${projectId}/envelope/`;
-
-    proxyRequest.headers.host = host;
-
-    const reqHeaders: Record<string, string> = {};
-    for (const [key, value] of Object.entries(proxyRequest.headers)) {
-      reqHeaders[key] = value as string;
-    }
-
-    // Fetch does not like this
-    delete reqHeaders['transfer-encoding'];
-
-    return fetch(sentryIngestUrl, {
-      body: proxyRequestBody,
-      headers: reqHeaders,
-      method: proxyRequest.method,
-    }).then(async res => {
-      const rawSentryResponseBody = await res.text();
-      const data: SentryRequestCallbackData = {
-        envelope: parseEnvelope(proxyRequestBody),
-        rawProxyRequestBody: proxyRequestBody,
-        rawSentryResponseBody,
-        sentryResponseStatusCode: res.status,
-      };
-
-      const dataString = Buffer.from(JSON.stringify(data)).toString('base64');
-
-      eventBuffer.push({ data: dataString, timestamp: getNanosecondTimestamp() });
-
-      eventCallbackListeners.forEach(listener => {
-        listener(dataString);
-      });
-
-      const resHeaders: Record<string, string> = {};
-      for (const [key, value] of res.headers.entries()) {
-        resHeaders[key] = value;
-      }
-
-      return [res.status, rawSentryResponseBody, resHeaders];
+    eventCallbackListeners.forEach(listener => {
+      listener(dataString);
     });
+
+    return [
+      200,
+      '{}',
+      {
+        'Access-Control-Allow-Origin': '*',
+      },
+    ];
   });
 }
 
