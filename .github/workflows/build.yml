@@ -1415,23 +1415,10 @@ jobs:
         with:
           ref: ${{ env.HEAD_COMMIT }}
 
-      - name: Restore dependency cache
-        uses: actions/cache/restore@v4
-        id: restore-dependencies
-        with:
-          path: ${{ env.CACHED_DEPENDENCY_PATHS }}
-          key: ${{ needs.job_build.outputs.dependency_cache_key }}
-          enableCrossOsArchive: true
-          fail-on-cache-miss: true
-
-      - name: Restore build cache
-        uses: actions/cache/restore@v4
-        id: restore-build
-        with:
-          path: ${{ env.CACHED_BUILD_PATHS }}
-          key: ${{ needs.job_build.outputs.dependency_cache_key }}
-          enableCrossOsArchive: true
-          fail-on-cache-miss: true
+      - name: Restore caches
+        uses: ./.github/actions/restore-cache
+        env:
+          DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
 
       - name: Configure safe directory
         run: |
