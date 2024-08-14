@@ -216,16 +216,18 @@ export class SentryNestInstrumentation extends InstrumentationBase {
                     return returnedObservableIntercept;
                   }
 
-                  // eslint-disable-next-line @typescript-eslint/unbound-method
-                  returnedObservableIntercept.subscribe = new Proxy(returnedObservableIntercept.subscribe, {
-                    apply: (originalSubscribe, thisArgSubscribe, argsSubscribe) => {
-                      return withActiveSpan(afterSpan ?? prevSpan, () => {
-                        const subscription: Subscription = originalSubscribe.apply(thisArgSubscribe, argsSubscribe);
-                        subscription.add(() => afterSpan.end());
-                        return subscription;
-                      });
-                    },
-                  });
+                  if (typeof returnedObservableIntercept.subscribe === 'function') {
+                    // eslint-disable-next-line @typescript-eslint/unbound-method
+                    returnedObservableIntercept.subscribe = new Proxy(returnedObservableIntercept.subscribe, {
+                      apply: (originalSubscribe, thisArgSubscribe, argsSubscribe) => {
+                        return withActiveSpan(afterSpan ?? prevSpan, () => {
+                          const subscription: Subscription = originalSubscribe.apply(thisArgSubscribe, argsSubscribe);
+                          subscription.add(() => afterSpan.end());
+                          return subscription;
+                        });
+                      },
+                    });
+                  }
 
                   request.AFTER_ROUTE_SPAN_KEY = true;
                   return returnedObservableIntercept;
