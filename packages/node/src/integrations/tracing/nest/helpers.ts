@@ -24,14 +24,7 @@ export function isPatched(target: InjectableTarget | CatchTarget): boolean {
  */
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 export function getMiddlewareSpanOptions(target: InjectableTarget | CatchTarget, name: string | undefined = undefined) {
-  let span_name;
-
-  // default to class name if name is not provided
-  if (name) {
-    span_name = name;
-  } else {
-    span_name = target.name;
-  }
+  const span_name = name ?? target.name; // fallback to class name if no name is provided
 
   return {
     name: span_name,
