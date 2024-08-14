@@ -42,6 +42,11 @@ function appRootFromErrorStack(error: Error): string | undefined {
 }
 
 function getCwd(): string | undefined {
+  // Deno.permissions.querySync is not available on Deno Deploy
+  if (!Deno.permissions.querySync) {
+    return undefined;
+  }
+
   // We don't want to prompt for permissions so we only get the cwd if
   // permissions are already granted
   const permission = Deno.permissions.querySync({ name: 'read', path: './' });
