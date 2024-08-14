@@ -1,6 +1,9 @@
 name: "Install yarn dependencies"
 description: "Installs yarn dependencies and caches them."
-
+inputs:
+  ignore_engines:
+    description: 'If --ignore-engines should be passed to yarn install'
+    default: 'false'
 outputs:
   cache_key:
     description: "The dependency cache key"
@@ -37,5 +40,5 @@ runs:
         key: dependencies-${{ github.ref }}-${{ steps.compute_lockfile_hash.outputs.hash }}
 
     - name: Install dependencies
-      run: yarn install --ignore-engines --frozen-lockfile
+      run: yarn install ${{inputs.ignore_engines == 'true' && '--ignore-engines' || ''}} --frozen-lockfile
       shell: bash

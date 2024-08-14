@@ -468,6 +468,8 @@ jobs:
           node-version: ${{ matrix.node }}
       - name: Restore & Install Dependencies
         uses: ./.github/actions/install-dependencies
+        with:
+          ignore_engines: ${{ matrix.node < 18 && 'true' || 'false'}}
       - name: Restore build cache
         uses: ./.github/actions/restore-build-cache
 
@@ -741,6 +743,8 @@ jobs:
           node-version: ${{ matrix.node }}
       - name: Restore & Install Dependencies
         uses: ./.github/actions/install-dependencies
+        with:
+          ignore_engines: ${{ matrix.node < 18 && 'true' || 'false'}}
       - name: Restore build cache
         uses: ./.github/actions/restore-build-cache
 
