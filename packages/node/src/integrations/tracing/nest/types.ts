@@ -28,12 +28,6 @@ export interface MinimalNestJsApp {
   }) => void;
 }
 
-export interface Observer<T> {
-  next(value: T): void;
-  error?(err: any): void;
-  complete?(): void;
-}
-
 export interface Subscription {
   add(...args: any[]): void;
 }
