@@ -13,7 +13,7 @@ runs:
       # so no need to reinstall them
     - name: Compute dependency cache key
       id: compute_lockfile_hash
-      run: echo "hash=dependencies-${{ hashFiles('yarn.lock', 'packages/*/package.json', 'dev-packages/*/package.json') }}" >> "$GITHUB_OUTPUT"
+      run: echo "hash=${{ hashFiles('yarn.lock', 'packages/*/package.json', 'dev-packages/*/package.json') }}" >> "$GITHUB_OUTPUT"
       shell: bash
 
     - name: Restore dependency cache
