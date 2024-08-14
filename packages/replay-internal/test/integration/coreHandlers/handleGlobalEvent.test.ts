@@ -1,3 +1,9 @@
+/**
+ * @vitest-environment jsdom
+ */
+
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { getClient } from '@sentry/core';
 import type { Event } from '@sentry/types';
 

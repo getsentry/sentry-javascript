@@ -6,6 +6,5 @@ export default {
   plugins: [solidPlugin({ hot: !process.env.VITEST })],
   test: {
     ...baseConfig.test,
-    environment: 'jsdom',
   },
 };

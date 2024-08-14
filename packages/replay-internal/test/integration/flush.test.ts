@@ -1,5 +1,9 @@
-import { vi } from 'vitest';
+/**
+ * @vitest-environment jsdom
+ */
+
 import type { MockedFunction } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { useFakeTimers } from '../utils/use-fake-timers';
 
@@ -9,11 +13,13 @@ import * as SentryBrowserUtils from '@sentry-internal/browser-utils';
 import * as SentryUtils from '@sentry/utils';
 
 import { DEFAULT_FLUSH_MIN_DELAY, MAX_REPLAY_DURATION, WINDOW } from '../../src/constants';
+import type { Replay } from '../../src/integration';
 import type { ReplayContainer } from '../../src/replay';
 import { clearSession } from '../../src/session/clearSession';
 import type { EventBuffer } from '../../src/types';
 import { createPerformanceEntries } from '../../src/util/createPerformanceEntries';
 import { createPerformanceSpans } from '../../src/util/createPerformanceSpans';
+import { logger } from '../../src/util/logger';
 import * as SendReplay from '../../src/util/sendReplay';
 import { BASE_TIMESTAMP, mockRrweb, mockSdk } from '../index';
 import type { DomHandler } from '../types';
@@ -33,6 +39,7 @@ describe('Integration | flush', () => {
 
   const { record: mockRecord } = mockRrweb();
 
+  let integration: Replay;
   let replay: ReplayContainer;
   let mockSendReplay: MockSendReplay;
   let mockFlush: MockFlush;
@@ -45,7 +52,7 @@ describe('Integration | flush', () => {
       domHandler = handler;
     });
 
-    ({ replay } = await mockSdk());
+    ({ replay, integration } = await mockSdk());
 
     mockSendReplay = vi.spyOn(SendReplay, 'sendReplay');
     mockSendReplay.mockImplementation(
@@ -329,7 +336,7 @@ describe('Integration | flush', () => {
   });
 
   it('logs warning if flushing initial segment without checkout', async () => {
-    replay.getOptions()._experiments.traceInternals = true;
+    logger.setConfig({ traceInternals: true });
 
     sessionStorage.clear();
     clearSession(replay);
@@ -402,11 +409,11 @@ describe('Integration | flush', () => {
       },
     ]);
 
-    replay.getOptions()._experiments.traceInternals = false;
+    logger.setConfig({ traceInternals: false });
   });
 
   it('logs warning if adding event that is after maxReplayDuration', async () => {
-    replay.getOptions()._experiments.traceInternals = true;
+    logger.setConfig({ traceInternals: true });
 
     const spyLogger = vi.spyOn(SentryUtils.logger, 'info');
 
@@ -434,12 +441,13 @@ describe('Integration | flush', () => {
     expect(mockSendReplay).toHaveBeenCalledTimes(0);
 
     expect(spyLogger).toHaveBeenLastCalledWith(
-      `[Replay] Skipping event with timestamp ${
+      '[Replay] ',
+      `Skipping event with timestamp ${
         BASE_TIMESTAMP + MAX_REPLAY_DURATION + 100
       } because it is after maxReplayDuration`,
     );
 
-    replay.getOptions()._experiments.traceInternals = false;
+    logger.setConfig({ traceInternals: false });
     spyLogger.mockRestore();
   });
 
@@ -483,5 +491,15 @@ describe('Integration | flush', () => {
 
     // Start again for following tests
     await replay.start();
+  });
+
+  /**
+   * Assuming the user wants to record a session
+   * when calling flush() without replay being enabled
+   */
+  it('starts recording a session when replay is not enabled', () => {
+    integration.stop();
+    integration.flush();
+    expect(replay.isEnabled()).toBe(true);
   });
 });

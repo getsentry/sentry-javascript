@@ -24,6 +24,9 @@ const useLoader = bundleKey.startsWith('loader');
 
 // These are imports that, when using CDN bundles, are not included in the main CDN bundle.
 // In this case, if we encounter this import, we want to add this CDN bundle file instead
+// IMPORTANT NOTE: In order for this to work, you need to import this from browser like this:
+// import { httpClientIntegration } from '@sentry/browser';
+// You cannot use e.g. Sentry.httpClientIntegration, as this will not be detected
 const IMPORTED_INTEGRATION_CDN_BUNDLE_PATHS: Record<string, string> = {
   httpClientIntegration: 'httpclient',
   captureConsoleIntegration: 'captureconsole',
@@ -34,6 +37,7 @@ const IMPORTED_INTEGRATION_CDN_BUNDLE_PATHS: Record<string, string> = {
   extraErrorDataIntegration: 'extraerrordata',
   reportingObserverIntegration: 'reportingobserver',
   sessionTimingIntegration: 'sessiontiming',
+  feedbackIntegration: 'feedback',
 };
 
 const BUNDLE_PATHS: Record<string, Record<string, string>> = {
@@ -267,6 +271,19 @@ class SentryScenarioGenerationPlugin {
                 ),
                 fileName,
               );
+
+              if (integration === 'feedback') {
+                addStaticAssetSymlink(
+                  this.localOutPath,
+                  path.resolve(PACKAGES_DIR, 'feedback', 'build/bundles/feedback-modal.js'),
+                  'feedback-modal.bundle.js',
+                );
+                addStaticAssetSymlink(
+                  this.localOutPath,
+                  path.resolve(PACKAGES_DIR, 'feedback', 'build/bundles/feedback-screenshot.js'),
+                  'feedback-screenshot.bundle.js',
+                );
+              }
 
               const integrationObject = createHtmlTagObject('script', {
                 src: fileName,

@@ -1,4 +1,4 @@
-import { applySdkMetadata, setTag } from '@sentry/core';
+import { applySdkMetadata } from '@sentry/core';
 import { init as reactInit } from '@sentry/react';
 import type { Client } from '@sentry/types';
 import { logger } from '@sentry/utils';
@@ -37,9 +37,5 @@ export function init(options: RemixOptions): Client | undefined {
 
   applySdkMetadata(opts, 'remix', ['remix', 'react']);
 
-  const client = reactInit(opts);
-
-  setTag('runtime', 'browser');
-
-  return client;
+  return reactInit(opts);
 }

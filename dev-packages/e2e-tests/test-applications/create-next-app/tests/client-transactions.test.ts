@@ -13,7 +13,6 @@ test('Sends a pageload transaction to Sentry', async ({ page }) => {
   expect(transactionEvent).toEqual(
     expect.objectContaining({
       transaction: '/',
-      tags: { runtime: 'browser' },
       transaction_info: { source: 'route' },
       type: 'transaction',
       contexts: {
@@ -59,7 +58,6 @@ test('captures a navigation transcation to Sentry', async ({ page }) => {
   expect(clientTxnEvent).toEqual(
     expect.objectContaining({
       transaction: '/user/[id]',
-      tags: { runtime: 'browser' },
       transaction_info: { source: 'route' },
       type: 'transaction',
       contexts: {

@@ -1,4 +1,11 @@
+/**
+ * @vitest-environment jsdom
+ */
+
 import 'jsdom-worker';
+
+import type { MockInstance } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { BASE_TIMESTAMP } from '../..';
 import { EventBufferProxy } from '../../../src/eventBuffer/EventBufferProxy';

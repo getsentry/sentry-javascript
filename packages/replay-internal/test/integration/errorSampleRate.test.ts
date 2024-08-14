@@ -1,5 +1,10 @@
+/**
+ * @vitest-environment jsdom
+ */
+
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { captureException, getClient } from '@sentry/core';
-import { vi } from 'vitest';
 
 import {
   BUFFER_CHECKOUT_TIME,

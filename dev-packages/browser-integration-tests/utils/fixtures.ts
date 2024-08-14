@@ -68,12 +68,18 @@ const sentryTest = base.extend<TestFixtures>({
         // Ensure feedback can be lazy loaded
         await page.route(`https://browser.sentry-cdn.com/${SDK_VERSION}/feedback-modal.min.js`, route => {
           const filePath = path.resolve(testDir, './dist/feedback-modal.bundle.js');
-          return fs.existsSync(filePath) ? route.fulfill({ path: filePath }) : route.continue();
+          if (!fs.existsSync(filePath)) {
+            throw new Error(`Feedback modal bundle (${filePath}) not found`);
+          }
+          return route.fulfill({ path: filePath });
         });
 
         await page.route(`https://browser.sentry-cdn.com/${SDK_VERSION}/feedback-screenshot.min.js`, route => {
           const filePath = path.resolve(testDir, './dist/feedback-screenshot.bundle.js');
-          return fs.existsSync(filePath) ? route.fulfill({ path: filePath }) : route.continue();
+          if (!fs.existsSync(filePath)) {
+            throw new Error(`Feedback screenshot bundle (${filePath}) not found`);
+          }
+          return route.fulfill({ path: filePath });
         });
       }
 

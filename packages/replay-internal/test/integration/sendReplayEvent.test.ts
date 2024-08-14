@@ -1,5 +1,9 @@
-import { vi } from 'vitest';
+/**
+ * @vitest-environment jsdom
+ */
+
 import type { MockInstance, MockedFunction } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import * as SentryBrowserUtils from '@sentry-internal/browser-utils';
 import * as SentryCore from '@sentry/core';

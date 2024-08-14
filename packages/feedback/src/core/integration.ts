@@ -43,7 +43,10 @@ type Unsubscribe = () => void;
 interface BuilderOptions {
   // The type here should be `keyof typeof LazyLoadableIntegrations`, but that'll cause a cicrular
   // dependency with @sentry/core
-  lazyLoadIntegration: (name: 'feedbackModalIntegration' | 'feedbackScreenshotIntegration') => Promise<IntegrationFn>;
+  lazyLoadIntegration: (
+    name: 'feedbackModalIntegration' | 'feedbackScreenshotIntegration',
+    scriptNonce?: string,
+  ) => Promise<IntegrationFn>;
   getModalIntegration?: null | (() => IntegrationFn);
   getScreenshotIntegration?: null | (() => IntegrationFn);
 }
@@ -77,6 +80,8 @@ export const buildFeedbackIntegration = ({
       name: 'username',
     },
     tags,
+    styleNonce,
+    scriptNonce,
 
     // FeedbackThemeConfiguration
     colorScheme = 'system',
@@ -99,6 +104,7 @@ export const buildFeedbackIntegration = ({
     submitButtonLabel = SUBMIT_BUTTON_LABEL,
     successMessageText = SUCCESS_MESSAGE_TEXT,
     triggerLabel = TRIGGER_LABEL,
+    triggerAriaLabel = '',
 
     // FeedbackCallbacks
     onFormOpen,
@@ -118,12 +124,15 @@ export const buildFeedbackIntegration = ({
       enableScreenshot,
       useSentryUser,
       tags,
+      styleNonce,
+      scriptNonce,
 
       colorScheme,
       themeDark,
       themeLight,
 
       triggerLabel,
+      triggerAriaLabel,
       cancelButtonLabel,
       submitButtonLabel,
       confirmButtonLabel,
@@ -174,7 +183,7 @@ export const buildFeedbackIntegration = ({
       if (existing) {
         return existing as I;
       }
-      const integrationFn = (getter && getter()) || (await lazyLoadIntegration(functionMethodName));
+      const integrationFn = (getter && getter()) || (await lazyLoadIntegration(functionMethodName, scriptNonce));
       const integration = integrationFn();
       client && client.addIntegration(integration);
       return integration as I;
@@ -207,12 +216,24 @@ export const buildFeedbackIntegration = ({
           logger.error('[Feedback] Missing feedback screenshot integration. Proceeding without screenshots.');
       }
 
-      return modalIntegration.createDialog({
-        options,
+      const dialog = modalIntegration.createDialog({
+        options: {
+          ...options,
+          onFormClose: () => {
+            dialog && dialog.close();
+            options.onFormClose && options.onFormClose();
+          },
+          onFormSubmitted: () => {
+            dialog && dialog.close();
+            options.onFormSubmitted && options.onFormSubmitted();
+          },
+        },
         screenshotIntegration: screenshotRequired ? screenshotIntegration : undefined,
         sendFeedback,
         shadow: _createShadow(options),
       });
+
+      return dialog;
     };
 
     const _attachTo = (el: Element | string, optionOverrides: OverrideFeedbackConfiguration = {}): Unsubscribe => {
@@ -231,10 +252,6 @@ export const buildFeedbackIntegration = ({
         if (!dialog) {
           dialog = await _loadAndRenderDialog({
             ...mergedOptions,
-            onFormClose: () => {
-              dialog && dialog.close();
-              mergedOptions.onFormClose && mergedOptions.onFormClose();
-            },
             onFormSubmitted: () => {
               dialog && dialog.removeFromDom();
               mergedOptions.onFormSubmitted && mergedOptions.onFormSubmitted();
@@ -258,7 +275,12 @@ export const buildFeedbackIntegration = ({
     const _createActor = (optionOverrides: OverrideFeedbackConfiguration = {}): ActorComponent => {
       const mergedOptions = mergeOptions(_options, optionOverrides);
       const shadow = _createShadow(mergedOptions);
-      const actor = Actor({ triggerLabel: mergedOptions.triggerLabel, shadow });
+      const actor = Actor({
+        triggerLabel: mergedOptions.triggerLabel,
+        triggerAriaLabel: mergedOptions.triggerAriaLabel,
+        shadow,
+        styleNonce,
+      });
       _attachTo(actor.el, {
         ...mergedOptions,
         onFormOpen() {

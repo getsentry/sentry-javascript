@@ -11,10 +11,10 @@ import type { Plugin } from 'vite';
 
 import MagicString from 'magic-string';
 import { WRAPPED_MODULE_SUFFIX } from './autoInstrument';
-import type { SupportedSvelteKitAdapters } from './detectAdapter';
 import type { GlobalSentryValues } from './injectGlobalValues';
 import { VIRTUAL_GLOBAL_VALUES_FILE, getGlobalValueInjectionCode } from './injectGlobalValues';
 import { getAdapterOutputDir, getHooksFileName, loadSvelteConfig } from './svelteConfig';
+import type { CustomSentryVitePluginOptions } from './types';
 
 // sorcery has no types, so these are some basic type definitions:
 type Chain = {
@@ -23,10 +23,6 @@ type Chain = {
 };
 type Sorcery = {
   load(filepath: string): Promise<Chain>;
-};
-
-type CustomSentryVitePluginOptions = SentryVitePluginOptions & {
-  adapter: SupportedSvelteKitAdapters;
 };
 
 // storing this in the module scope because `makeCustomSentryVitePlugin` is called multiple times
@@ -108,8 +104,8 @@ export async function makeCustomSentryVitePlugins(options?: CustomSentryVitePlug
 
     // Modify the config to generate source maps
     config: config => {
-      const sourceMapsPreviouslyEnabled = !config.build?.sourcemap;
-      if (debug && sourceMapsPreviouslyEnabled) {
+      const sourceMapsPreviouslyNotEnabled = !config.build?.sourcemap;
+      if (debug && sourceMapsPreviouslyNotEnabled) {
         // eslint-disable-next-line no-console
         console.log('[Source Maps Plugin] Enabeling source map generation');
         if (!mergedOptions.sourcemaps?.filesToDeleteAfterUpload) {

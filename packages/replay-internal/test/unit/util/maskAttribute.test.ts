@@ -1,3 +1,9 @@
+/**
+ * @vitest-environment jsdom
+ */
+
+import { describe, expect, test } from 'vitest';
+
 import { maskAttribute } from '../../../src/util/maskAttribute';
 
 describe('maskAttribute', () => {

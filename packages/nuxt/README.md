@@ -102,21 +102,6 @@ Sentry.init({
 
 ### 4. Server-side setup
 
-Add a `sentry.server.config.(js|ts)` file to the root of your project:
-
-```javascript
-import * as Sentry from '@sentry/nuxt';
-
-Sentry.init({
-  dsn: process.env.DSN,
-});
-```
-
-**Alternative Setup (ESM-compatible)**
-
-This setup makes sure Sentry is imported on the server before any other imports. As of now, this however leads to an
-import-in-the-middle error ([related reproduction](https://github.com/getsentry/sentry-javascript-examples/pull/38)).
-
 Add an `instrument.server.mjs` file to your `public` folder:
 
 ```javascript
@@ -130,7 +115,8 @@ if (process.env.SENTRY_DSN) {
 }
 ```
 
-Add an import flag to the node options, so the file loads before any other imports:
+Add an import flag to the `NODE_OPTIONS` of your preview script in the `package.json` file, so the file loads before any
+other imports:
 
 ```json
 {
@@ -140,12 +126,22 @@ Add an import flag to the node options, so the file loads before any other impor
 }
 ```
 
-### 5. Vite Setup
-
-todo: add vite setup
-
----
-
 ## Uploading Source Maps
 
-todo: add source maps instructions
+To upload source maps, you can use the `sourceMapsUploadOptions` option inside the `sentry` options of your
+`nuxt.config.ts`:
+
+```javascript
+// nuxt.config.ts
+export default defineNuxtConfig({
+  modules: ['@sentry/nuxt/module'],
+  sentry: {
+    debug: true,
+    sourceMapsUploadOptions: {
+      org: 'your-org-slug',
+      project: 'your-project-slug',
+      authToken: process.env.SENTRY_AUTH_TOKEN,
+    },
+  },
+});
+```

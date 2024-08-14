@@ -16,12 +16,8 @@ export function hasTracingEnabled(
     return false;
   }
 
-  const options = maybeOptions || getClientOptions();
+  const client = getClient();
+  const options = maybeOptions || (client && client.getOptions());
   // eslint-disable-next-line deprecation/deprecation
   return !!options && (options.enableTracing || 'tracesSampleRate' in options || 'tracesSampler' in options);
-}
-
-function getClientOptions(): Options | undefined {
-  const client = getClient();
-  return client && client.getOptions();
 }

@@ -1,3 +1,5 @@
+import { describe, expect, it } from 'vitest';
+
 import { withSentryConfig } from '../src/config';
 import { FIRST_PASS_COMPONENT_TRACKING_PREPROC_ID, componentTrackingPreprocessor } from '../src/preprocessors';
 import type { SentryPreprocessorGroup, SentrySvelteConfigOptions, SvelteConfig } from '../src/types';

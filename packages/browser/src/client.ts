@@ -12,7 +12,7 @@ import type {
   SeverityLevel,
   UserFeedback,
 } from '@sentry/types';
-import { createClientReportEnvelope, dsnToString, getSDKSource, logger } from '@sentry/utils';
+import { getSDKSource, logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from './debug-build';
 import { eventFromException, eventFromMessage } from './eventbuilder';
@@ -117,31 +117,5 @@ export class BrowserClient extends BaseClient<BrowserClientOptions> {
   protected _prepareEvent(event: Event, hint: EventHint, scope?: Scope): PromiseLike<Event | null> {
     event.platform = event.platform || 'javascript';
     return super._prepareEvent(event, hint, scope);
-  }
-
-  /**
-   * Sends client reports as an envelope.
-   */
-  private _flushOutcomes(): void {
-    const outcomes = this._clearOutcomes();
-
-    if (outcomes.length === 0) {
-      DEBUG_BUILD && logger.log('No outcomes to send');
-      return;
-    }
-
-    // This is really the only place where we want to check for a DSN and only send outcomes then
-    if (!this._dsn) {
-      DEBUG_BUILD && logger.log('No dsn provided, will not send outcomes');
-      return;
-    }
-
-    DEBUG_BUILD && logger.log('Sending outcomes:', outcomes);
-
-    const envelope = createClientReportEnvelope(outcomes, this._options.tunnel && dsnToString(this._dsn));
-
-    // sendEnvelope should not throw
-    // eslint-disable-next-line @typescript-eslint/no-floating-promises
-    this.sendEnvelope(envelope);
   }
 }

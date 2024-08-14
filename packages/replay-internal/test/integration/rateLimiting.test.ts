@@ -1,3 +1,10 @@
+/**
+ * @vitest-environment jsdom
+ */
+
+import type { MockedFunction } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { getClient } from '@sentry/core';
 import type { Transport, TransportMakeRequestResponse } from '@sentry/types';
 
@@ -14,7 +21,7 @@ async function advanceTimers(time: number) {
   await new Promise(process.nextTick);
 }
 
-type MockTransportSend = vi.MockedFunction<Transport['send']>;
+type MockTransportSend = MockedFunction<Transport['send']>;
 
 describe('Integration | rate-limiting behaviour', () => {
   let replay: ReplayContainer;

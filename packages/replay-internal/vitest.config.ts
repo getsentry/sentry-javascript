@@ -6,10 +6,7 @@ export default defineConfig({
   ...baseConfig,
   test: {
     ...baseConfig.test,
-    coverage: {},
-    globals: true,
     setupFiles: ['./test.setup.ts'],
     reporters: ['default'],
-    environment: 'jsdom',
   },
 });

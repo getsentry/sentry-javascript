@@ -60,7 +60,7 @@ describe('browserTracingIntegration', () => {
       return createdRootSpan as Span;
     });
 
-  const fakeClient = { getOptions: () => ({}), on: () => {} };
+  const fakeClient = { getOptions: () => ({}), on: () => {}, addEventProcessor: () => {} };
 
   const mockedRoutingSpan = {
     end: () => {},
