@@ -8,6 +8,10 @@ Sentry.init({
   dsn: env.PUBLIC_E2E_TEST_DSN,
   release: '1.0.0',
   tunnel: `http://localhost:3031/`, // proxy server
+  beforeSend(event) {
+    console.log('beforeSend', event.contexts?.trace?.trace_id);
+    return event;
+  },
 });
 
 const myErrorHandler = ({ error, event }: any) => {

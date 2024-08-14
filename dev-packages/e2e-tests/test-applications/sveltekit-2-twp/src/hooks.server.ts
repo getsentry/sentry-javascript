@@ -5,6 +5,10 @@ Sentry.init({
   environment: 'qa', // dynamic sampling bias to keep transactions
   dsn: E2E_TEST_DSN,
   tunnel: `http://localhost:3031/`, // proxy server
+  beforeSend(event) {
+    console.log('beforeSend', event.contexts?.trace?.trace_id);
+    return event;
+  },
 });
 
 // not logging anything to console to avoid noise in the test output
