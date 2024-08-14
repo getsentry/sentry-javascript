@@ -309,9 +309,6 @@ export type SentryBuildOptions = {
 
   /**
    * Options for the Sentry Webpack plugin to customize bundle size optimizations.
-   *
-   * These options are always read from the `sentryAstro` integration.
-   * Do not define them in the `sentry.client.config.(js|ts)` or `sentry.server.config.(js|ts)` files.
    */
   bundleSizeOptimizations?: {
     /**
