@@ -1,12 +1,9 @@
-name: "Restore dependency & build cache"
-description: "Restore the dependency & build cache."
+name: "Restore build cache"
+description: "Restore the build cache."
 
 runs:
   using: "composite"
   steps:
-      - name: Install Dependencies
-        uses: ./.github/actions/install-dependencies
-
       - name: Check build cache
         uses: actions/cache/restore@v4
         id: build-cache
@@ -19,4 +16,4 @@ runs:
         uses: actions/github-script@v6
         if: steps.build-cache.outputs.cache-hit != 'true'
         with:
-          script: core.setFailed('Dependency or build cache could not be restored - please re-run ALL jobs.')
+          script: core.setFailed('Build cache could not be restored - please re-run ALL jobs.')

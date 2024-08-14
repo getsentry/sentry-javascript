@@ -228,10 +228,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version-file: 'package.json'
-      - name: Restore caches
-        uses: ./.github/actions/restore-cache
-        env:
-          DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
+      - name: Restore & Install Dependencies
+        uses: ./.github/actions/install-dependencies
+      - name: Restore build cache
+        uses: ./.github/actions/restore-build-cache
       - name: Check bundle sizes
         uses: ./dev-packages/size-limit-gh-action
         with:
@@ -255,10 +255,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version-file: 'package.json'
-      - name: Restore caches
-        uses: ./.github/actions/restore-cache
-        env:
-          DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
+      - name: Restore & Install Dependencies
+        uses: ./.github/actions/install-dependencies
+      - name: Restore build cache
+        uses: ./.github/actions/restore-build-cache
       - name: Lint source files
         run: yarn lint:lerna
       - name: Lint C++ files
@@ -301,10 +301,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version-file: 'package.json'
-      - name: Restore caches
-        uses: ./.github/actions/restore-cache
-        env:
-          DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
+      - name: Restore & Install Dependencies
+        uses: ./.github/actions/install-dependencies
+      - name: Restore build cache
+        uses: ./.github/actions/restore-build-cache
       - name: Run madge
         run: yarn circularDepCheck
 
@@ -323,10 +323,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version-file: 'package.json'
-      - name: Restore caches
-        uses: ./.github/actions/restore-cache
-        env:
-          DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
+      - name: Restore & Install Dependencies
+        uses: ./.github/actions/install-dependencies
+      - name: Restore build cache
+        uses: ./.github/actions/restore-build-cache
 
       - name: Extract Profiling Node Prebuilt Binaries
         uses: actions/download-artifact@v4
@@ -370,10 +370,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version-file: 'package.json'
-      - name: Restore caches
-        uses: ./.github/actions/restore-cache
-        env:
-          DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
+      - name: Restore & Install Dependencies
+        uses: ./.github/actions/install-dependencies
+      - name: Restore build cache
+        uses: ./.github/actions/restore-build-cache
 
       - name: Run affected tests
         run: yarn test:pr:browser --base=${{ github.event.pull_request.base.sha }}
@@ -407,10 +407,10 @@ jobs:
           node-version-file: 'package.json'
       - name: Set up Bun
         uses: oven-sh/setup-bun@v2
-      - name: Restore caches
-        uses: ./.github/actions/restore-cache
-        env:
-          DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
+      - name: Restore & Install Dependencies
+        uses: ./.github/actions/install-dependencies
+      - name: Restore build cache
+        uses: ./.github/actions/restore-build-cache
       - name: Run tests
         run: |
           yarn test:ci:bun
@@ -436,10 +436,10 @@ jobs:
         uses: denoland/setup-deno@v1.1.4
         with:
           deno-version: v1.38.5
-      - name: Restore caches
-        uses: ./.github/actions/restore-cache
-        env:
-          DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
+      - name: Restore & Install Dependencies
+        uses: ./.github/actions/install-dependencies
+      - name: Restore build cache
+        uses: ./.github/actions/restore-build-cache
       - name: Run tests
         run: |
           cd packages/deno
@@ -469,10 +469,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
-      - name: Restore caches
-        uses: ./.github/actions/restore-cache
-        env:
-          DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
+      - name: Restore & Install Dependencies
+        uses: ./.github/actions/install-dependencies
+      - name: Restore build cache
+        uses: ./.github/actions/restore-build-cache
 
       - name: Run affected tests
         run: yarn test:pr:node --base=${{ github.event.pull_request.base.sha }}
@@ -508,10 +508,10 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11.7'
-      - name: Restore caches
-        uses: ./.github/actions/restore-cache
-        env:
-          DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
+      - name: Restore & Install Dependencies
+        uses: ./.github/actions/install-dependencies
+      - name: Restore build cache
+        uses: ./.github/actions/restore-build-cache
       - name: Build Configure node-gyp
         run: yarn lerna run build:bindings:configure --scope @sentry/profiling-node
       - name: Build Bindings for Current Environment
@@ -576,10 +576,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version-file: 'package.json'
-      - name: Restore caches
-        uses: ./.github/actions/restore-cache
-        env:
-          DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
+      - name: Restore & Install Dependencies
+        uses: ./.github/actions/install-dependencies
+      - name: Restore build cache
+        uses: ./.github/actions/restore-build-cache
 
       - name: Install Playwright
         uses: ./.github/actions/install-playwright
@@ -626,10 +626,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version-file: 'package.json'
-      - name: Restore caches
-        uses: ./.github/actions/restore-cache
-        env:
-          DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
+      - name: Restore & Install Dependencies
+        uses: ./.github/actions/install-dependencies
+      - name: Restore build cache
+        uses: ./.github/actions/restore-build-cache
 
       - name: Install Playwright
         uses: ./.github/actions/install-playwright
@@ -663,10 +663,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version-file: 'package.json'
-      - name: Restore caches
-        uses: ./.github/actions/restore-cache
-        env:
-          DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
+      - name: Restore & Install Dependencies
+        uses: ./.github/actions/install-dependencies
+      - name: Restore build cache
+        uses: ./.github/actions/restore-build-cache
       - name: Check for dts files that reference stuff in the temporary build folder
         run: |
           if grep -r --include "*.d.ts" --exclude-dir ".nxcache" 'import("@sentry(-internal)?/[^/]*/build' .; then
@@ -701,10 +701,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
-      - name: Restore caches
-        uses: ./.github/actions/restore-cache
-        env:
-          DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
+      - name: Restore & Install Dependencies
+        uses: ./.github/actions/install-dependencies
+      - name: Restore build cache
+        uses: ./.github/actions/restore-build-cache
 
       - name: Overwrite typescript version
         if: matrix.typescript
@@ -742,10 +742,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
-      - name: Restore caches
-        uses: ./.github/actions/restore-cache
-        env:
-          DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
+      - name: Restore & Install Dependencies
+        uses: ./.github/actions/install-dependencies
+      - name: Restore build cache
+        uses: ./.github/actions/restore-build-cache
 
       - name: Install Playwright
         uses: ./.github/actions/install-playwright
@@ -780,10 +780,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version-file: 'package.json'
-      - name: Restore caches
-        uses: ./.github/actions/restore-cache
-        env:
-          DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
+      - name: Restore & Install Dependencies
+        uses: ./.github/actions/install-dependencies
+      - name: Restore build cache
+        uses: ./.github/actions/restore-build-cache
       - name: NX cache
         uses: actions/cache/restore@v4
         with:
@@ -941,10 +941,10 @@ jobs:
       - name: Set up Bun
         if: matrix.test-application == 'node-exports-test-app'
         uses: oven-sh/setup-bun@v2
-      - name: Restore caches
-        uses: ./.github/actions/restore-cache
-        env:
-          DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
+      - name: Restore & Install Dependencies
+        uses: ./.github/actions/install-dependencies
+      - name: Restore build cache
+        uses: ./.github/actions/restore-build-cache
 
       - name: Restore tarball cache
         uses: actions/cache/restore@v4
@@ -1041,10 +1041,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version-file: 'dev-packages/e2e-tests/package.json'
-      - name: Restore caches
-        uses: ./.github/actions/restore-cache
-        env:
-          DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
+      - name: Restore & Install Dependencies
+        uses: ./.github/actions/install-dependencies
+      - name: Restore build cache
+        uses: ./.github/actions/restore-build-cache
 
       - name: Restore tarball cache
         uses: actions/cache/restore@v4
@@ -1136,10 +1136,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version-file: 'dev-packages/e2e-tests/package.json'
-      - name: Restore caches
-        uses: ./.github/actions/restore-cache
-        env:
-          DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
+      - name: Restore & Install Dependencies
+        uses: ./.github/actions/install-dependencies
+      - name: Restore build cache
+        uses: ./.github/actions/restore-build-cache
       - name: Build Profiling Node
         run: yarn lerna run build:lib --scope @sentry/profiling-node
       - name: Extract Profiling Node Prebuilt Binaries
@@ -1232,10 +1232,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version-file: 'package.json'
-      - name: Restore caches
-        uses: ./.github/actions/restore-cache
-        env:
-          DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
+      - name: Restore & Install Dependencies
+        uses: ./.github/actions/install-dependencies
+      - name: Restore build cache
+        uses: ./.github/actions/restore-build-cache
 
       - name: Collect
         run: yarn ci:collect
@@ -1415,10 +1415,10 @@ jobs:
         with:
           ref: ${{ env.HEAD_COMMIT }}
 
-      - name: Restore caches
-        uses: ./.github/actions/restore-cache
-        env:
-          DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
+      - name: Restore & Install Dependencies
+        uses: ./.github/actions/install-dependencies
+      - name: Restore build cache
+        uses: ./.github/actions/restore-build-cache
 
       - name: Configure safe directory
         run: |
