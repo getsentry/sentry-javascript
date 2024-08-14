@@ -54,8 +54,8 @@ test('updates the transaction when using the back button', async ({ page }) => {
     return transactionEvent?.transaction === '/users/6' && transactionEvent.contexts?.trace?.op === 'navigation';
   });
 
-  await page.goto(`/`);
-  await page.locator('#navLinkUserBack').click();
+  await page.goto(`/back-navigation`);
+  await page.locator('#navLink').click();
   const navigationTxn = await navigationTxnPromise;
 
   expect(navigationTxn).toMatchObject({
@@ -72,7 +72,9 @@ test('updates the transaction when using the back button', async ({ page }) => {
   });
 
   const backNavigationTxnPromise = waitForTransaction('solidstart', async transactionEvent => {
-    return transactionEvent?.transaction === '/' && transactionEvent.contexts?.trace?.op === 'navigation';
+    return (
+      transactionEvent?.transaction === '/back-navigation' && transactionEvent.contexts?.trace?.op === 'navigation'
+    );
   });
 
   await page.goBack();
@@ -85,7 +87,7 @@ test('updates the transaction when using the back button', async ({ page }) => {
         origin: 'auto.navigation.solidstart.solidrouter',
       },
     },
-    transaction: '/',
+    transaction: '/back-navigation',
     transaction_info: {
       source: 'url',
     },

@@ -14,7 +14,8 @@ import {
 import type { SpanAttributes, TransactionSource } from '@sentry/types';
 import { getSanitizedUrlString, parseUrl, stripUrlQueryAndFragment } from '@sentry/utils';
 
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_GRAPHQL_OPERATION } from '../semanticAttributes';
 import type { AbstractSpan } from '../types';
 import { getSpanKind } from './getSpanKind';
 import { spanHasAttributes, spanHasName } from './spanTypes';
@@ -136,8 +137,16 @@ export function descriptionForHttpMethod(
     return { op: opParts.join('.'), description: name, source: 'custom' };
   }
 
-  // Ex. description="GET /api/users".
-  const description = `${httpMethod} ${urlPath}`;
+  const graphqlOperationsAttribute = attributes[SEMANTIC_ATTRIBUTE_SENTRY_GRAPHQL_OPERATION];
+
+  // Ex. GET /api/users
+  const baseDescription = `${httpMethod} ${urlPath}`;
+
+  // When the http span has a graphql operation, append it to the description
+  // We add these in the graphqlIntegration
+  const description = graphqlOperationsAttribute
+    ? `${baseDescription} (${getGraphqlOperationNamesFromAttribute(graphqlOperationsAttribute)})`
+    : baseDescription;
 
   // If `httpPath` is a root path, then we can categorize the transaction source as route.
   const source: TransactionSource = hasRoute || urlPath === '/' ? 'route' : 'url';
@@ -154,12 +163,40 @@ export function descriptionForHttpMethod(
     data['http.fragment'] = fragment;
   }
 
+  // If the span kind is neither client nor server, we use the original name
+  // this infers that somebody manually started this span, in which case we don't want to overwrite the name
+  const isClientOrServerKind = kind === SpanKind.CLIENT || kind === SpanKind.SERVER;
+
+  // If the span is an auto-span (=it comes from one of our instrumentations),
+  // we always want to infer the name
+  // this is necessary because some of the auto-instrumentation we use uses kind=INTERNAL
+  const origin = attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] || 'manual';
+  const isManualSpan = !`${origin}`.startsWith('auto');
+
+  const useInferredDescription = isClientOrServerKind || !isManualSpan;
+
   return {
     op: opParts.join('.'),
-    description,
-    source,
+    description: useInferredDescription ? description : name,
+    source: useInferredDescription ? source : 'custom',
     data,
   };
+}
+
+function getGraphqlOperationNamesFromAttribute(attr: AttributeValue): string {
+  if (Array.isArray(attr)) {
+    const sorted = attr.slice().sort();
+
+    // Up to 5 items, we just add all of them
+    if (sorted.length <= 5) {
+      return sorted.join(', ');
+    } else {
+      // Else, we add the first 5 and the diff of other operations
+      return `${sorted.slice(0, 5).join(', ')}, +${sorted.length - 5}`;
+    }
+  }
+
+  return `${attr}`;
 }
 
 /** Exported for tests only */

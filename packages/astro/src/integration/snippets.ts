@@ -47,7 +47,7 @@ const buildCommonInitOptions = (options: SentryOptions): string => `dsn: ${
   }`;
 
 /**
- * We don't include the `BrowserTracing` integration if the tracesSampleRate is set to 0.
+ * We don't include the `BrowserTracing` integration if `bundleSizeOptimizations.excludeTracing` is falsy.
  * Likewise, we don't include the `Replay` integration if the replaysSessionSampleRate
  * and replaysOnErrorSampleRate are set to 0.
  *
@@ -56,7 +56,7 @@ const buildCommonInitOptions = (options: SentryOptions): string => `dsn: ${
 const buildClientIntegrations = (options: SentryOptions): string => {
   const integrations: string[] = [];
 
-  if (options.tracesSampleRate == null || options.tracesSampleRate) {
+  if (!options.bundleSizeOptimizations?.excludeTracing) {
     integrations.push('Sentry.browserTracingIntegration()');
   }
 

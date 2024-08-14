@@ -15,7 +15,7 @@
 - [Official SDK Docs](https://docs.sentry.io/quickstart/)
 - [TypeDoc](http://getsentry.github.io/sentry-javascript/)
 
-**Note: This SDK is unreleased. Please follow the
+**Note: This SDK is in an alpha state. Please follow the
 [tracking GH issue](https://github.com/getsentry/sentry-javascript/issues/12620) for updates.**
 
 ## Install
@@ -70,6 +70,37 @@ export const onRequest = [
   }),
   // Add more middlewares here
 ];
+```
+
+If you need to access the `context` object (for example to grab environmental variables), you can pass a function to
+`sentryPagesPlugin` that takes the `context` object as an argument and returns `init` options:
+
+```javascript
+export const onRequest = Sentry.sentryPagesPlugin(context => ({
+  dsn: context.env.SENTRY_DSN,
+  tracesSampleRate: 1.0,
+}));
+```
+
+If you do not have access to the `onRequest` middleware API, you can use the `wrapRequestHandler` API instead.
+
+Here is an example with SvelteKit:
+
+```javascript
+// hooks.server.js
+import * as Sentry from '@sentry/cloudflare';
+
+export const handle = ({ event, resolve }) => {
+  const requestHandlerOptions = {
+    options: {
+      dsn: event.platform.env.SENTRY_DSN,
+      tracesSampleRate: 1.0,
+    },
+    request: event.request,
+    context: event.platform.ctx,
+  };
+  return Sentry.wrapRequestHandler(requestHandlerOptions, () => resolve(event));
+};
 ```
 
 ## Setup (Cloudflare Workers)
@@ -135,4 +166,58 @@ Sentry.captureEvent({
     // ...
   ],
 });
+```
+
+## Cloudflare D1 Instrumentation
+
+You can use the `instrumentD1WithSentry` method to instrument [Cloudflare D1](https://developers.cloudflare.com/d1/),
+Cloudflare's serverless SQL database with Sentry.
+
+```javascript
+import * as Sentry from '@sentry/cloudflare';
+
+// env.DB is the D1 DB binding configured in your `wrangler.toml`
+const db = Sentry.instrumentD1WithSentry(env.DB);
+// Now you can use the database as usual
+await db.prepare('SELECT * FROM table WHERE id = ?').bind(1).run();
+```
+
+## Cron Monitoring (Cloudflare Workers)
+
+[Sentry Crons](https://docs.sentry.io/product/crons/) allows you to monitor the uptime and performance of any scheduled,
+recurring job in your application.
+
+To instrument your cron triggers, use the `Sentry.withMonitor` API in your
+[`Scheduled` handler](https://developers.cloudflare.com/workers/runtime-apis/handlers/scheduled/).
+
+```js
+export default {
+  async scheduled(event, env, ctx) {
+    ctx.waitUntil(
+      Sentry.withMonitor('your-cron-name', () => {
+        return doSomeTaskOnASchedule();
+      }),
+    );
+  },
+};
+```
+
+You can also use supply a monitor config to upsert cron monitors with additional metadata:
+
+```js
+const monitorConfig = {
+  schedule: {
+    type: 'crontab',
+    value: '* * * * *',
+  },
+  checkinMargin: 2, // In minutes. Optional.
+  maxRuntime: 10, // In minutes. Optional.
+  timezone: 'America/Los_Angeles', // Optional.
+};
+
+export default {
+  async scheduled(event, env, ctx) {
+    Sentry.withMonitor('your-cron-name', () => doSomeTaskOnASchedule(), monitorConfig);
+  },
+};
 ```

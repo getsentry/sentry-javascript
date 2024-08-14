@@ -20,9 +20,7 @@ export default function Home() {
           </A>
         </li>
         <li>
-          <A id="navLinkUserBack" href="/users/6">
-            User 6
-          </A>
+          <A href="/back-navigation">Test back navigation</A>
         </li>
       </ul>
     </>

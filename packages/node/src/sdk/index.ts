@@ -17,7 +17,7 @@ import {
   setOpenTelemetryContextAsyncContextStrategy,
   setupEventContextTrace,
 } from '@sentry/opentelemetry';
-import type { Client, Integration, Options } from '@sentry/types';
+import type { Integration, Options } from '@sentry/types';
 import {
   consoleSandbox,
   dropUndefinedKeys,
@@ -36,11 +36,12 @@ import { modulesIntegration } from '../integrations/modules';
 import { nativeNodeFetchIntegration } from '../integrations/node-fetch';
 import { onUncaughtExceptionIntegration } from '../integrations/onuncaughtexception';
 import { onUnhandledRejectionIntegration } from '../integrations/onunhandledrejection';
-import { spotlightIntegration } from '../integrations/spotlight';
+import { INTEGRATION_NAME as SPOTLIGHT_INTEGRATION_NAME, spotlightIntegration } from '../integrations/spotlight';
 import { getAutoPerformanceIntegrations } from '../integrations/tracing';
 import { makeNodeTransport } from '../transports';
 import type { NodeClientOptions, NodeOptions } from '../types';
 import { isCjs } from '../utils/commonjs';
+import { envToBool } from '../utils/envToBool';
 import { defaultStackParser, getSentryRelease } from './api';
 import { NodeClient } from './client';
 import { initOpenTelemetry, maybeInitializeEsmLoader } from './initOtel';
@@ -138,13 +139,19 @@ function _init(
   const scope = getCurrentScope();
   scope.update(options.initialScope);
 
+  if (options.spotlight && !options.integrations.some(({ name }) => name === SPOTLIGHT_INTEGRATION_NAME)) {
+    options.integrations.push(
+      spotlightIntegration({
+        sidecarUrl: typeof options.spotlight === 'string' ? options.spotlight : undefined,
+      }),
+    );
+  }
+
   const client = new NodeClient(options);
   // The client is on the current scope, from where it generally is inherited
   getCurrentScope().setClient(client);
 
-  if (isEnabled(client)) {
-    client.init();
-  }
+  client.init();
 
   logger.log(`Running in ${isCjs() ? 'CommonJS' : 'ESM'} mode.`);
 
@@ -155,20 +162,6 @@ function _init(
   client.startClientReportTracking();
 
   updateScopeFromEnvVariables();
-
-  if (options.spotlight) {
-    // force integrations to be setup even if no DSN was set
-    // If they have already been added before, they will be ignored anyhow
-    const integrations = client.getOptions().integrations;
-    for (const integration of integrations) {
-      client.addIntegration(integration);
-    }
-    client.addIntegration(
-      spotlightIntegration({
-        sidecarUrl: typeof options.spotlight === 'string' ? options.spotlight : undefined,
-      }),
-    );
-  }
 
   // If users opt-out of this, they _have_ to set up OpenTelemetry themselves
   // There is no way to use this SDK without OpenTelemetry!
@@ -226,6 +219,15 @@ function getClientOptions(
       : options.autoSessionTracking === undefined
         ? true
         : options.autoSessionTracking;
+
+  if (options.spotlight == null) {
+    const spotlightEnv = envToBool(process.env.SENTRY_SPOTLIGHT, { strict: true });
+    if (spotlightEnv == null) {
+      options.spotlight = process.env.SENTRY_SPOTLIGHT;
+    } else {
+      options.spotlight = spotlightEnv;
+    }
+  }
 
   const tracesSampleRate = getTracesSampleRate(options.tracesSampleRate);
 
@@ -298,8 +300,7 @@ function getTracesSampleRate(tracesSampleRate: NodeOptions['tracesSampleRate']):
  * for more details.
  */
 function updateScopeFromEnvVariables(): void {
-  const sentryUseEnvironment = (process.env.SENTRY_USE_ENVIRONMENT || '').toLowerCase();
-  if (!['false', 'n', 'no', 'off', '0'].includes(sentryUseEnvironment)) {
+  if (envToBool(process.env.SENTRY_USE_ENVIRONMENT) !== false) {
     const sentryTraceEnv = process.env.SENTRY_TRACE;
     const baggageEnv = process.env.SENTRY_BAGGAGE;
     const propagationContext = propagationContextFromHeaders(sentryTraceEnv, baggageEnv);
@@ -333,8 +334,4 @@ function startSessionTracking(): void {
       endSession();
     }
   });
-}
-
-function isEnabled(client: Client): boolean {
-  return client.getOptions().enabled !== false && client.getTransport() !== undefined;
 }

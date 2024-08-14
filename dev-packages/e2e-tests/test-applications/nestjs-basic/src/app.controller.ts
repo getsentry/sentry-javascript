@@ -1,8 +1,14 @@
-import { Controller, Get, Param, ParseIntPipe, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, ParseIntPipe, UseFilters, UseGuards, UseInterceptors } from '@nestjs/common';
+import { flush } from '@sentry/nestjs';
 import { AppService } from './app.service';
+import { ExampleExceptionGlobalFilter } from './example-global-filter.exception';
+import { ExampleExceptionLocalFilter } from './example-local-filter.exception';
+import { ExampleLocalFilter } from './example-local.filter';
 import { ExampleGuard } from './example.guard';
+import { ExampleInterceptor } from './example.interceptor';
 
 @Controller()
+@UseFilters(ExampleLocalFilter)
 export class AppController {
   constructor(private readonly appService: AppService) {}
 
@@ -13,13 +19,19 @@ export class AppController {
 
   @Get('test-middleware-instrumentation')
   testMiddlewareInstrumentation() {
-    return this.appService.testMiddleware();
+    return this.appService.testSpan();
   }
 
   @Get('test-guard-instrumentation')
   @UseGuards(ExampleGuard)
   testGuardInstrumentation() {
     return {};
+  }
+
+  @Get('test-interceptor-instrumentation')
+  @UseInterceptors(ExampleInterceptor)
+  testInterceptorInstrumentation() {
+    return this.appService.testSpan();
   }
 
   @Get('test-pipe-instrumentation/:id')
@@ -42,6 +54,11 @@ export class AppController {
     return this.appService.testExpected500Exception(id);
   }
 
+  @Get('test-expected-rpc-exception/:id')
+  async testExpectedRpcException(@Param('id') id: string) {
+    return this.appService.testExpectedRpcException(id);
+  }
+
   @Get('test-span-decorator-async')
   async testSpanDecoratorAsync() {
     return { result: await this.appService.testSpanDecoratorAsync() };
@@ -55,5 +72,20 @@ export class AppController {
   @Get('kill-test-cron')
   async killTestCron() {
     this.appService.killTestCron();
+  }
+
+  @Get('flush')
+  async flush() {
+    await flush();
+  }
+
+  @Get('example-exception-global-filter')
+  async exampleExceptionGlobalFilter() {
+    throw new ExampleExceptionGlobalFilter();
+  }
+
+  @Get('example-exception-local-filter')
+  async exampleExceptionLocalFilter() {
+    throw new ExampleExceptionLocalFilter();
   }
 }

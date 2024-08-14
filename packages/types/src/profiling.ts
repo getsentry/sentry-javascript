@@ -126,4 +126,8 @@ export interface Profile extends BaseProfile<ThreadCpuProfile> {
 export interface ProfileChunk extends BaseProfile<ContinuousThreadCpuProfile> {
   chunk_id: string;
   profiler_id: string;
+  client_sdk: {
+    name: string;
+    version: string;
+  };
 }

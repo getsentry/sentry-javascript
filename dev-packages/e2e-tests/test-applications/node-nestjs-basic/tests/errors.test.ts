@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
 
 test('Sends exception to Sentry', async ({ baseURL }) => {
-  const errorEventPromise = waitForError('nestjs', event => {
+  const errorEventPromise = waitForError('node-nestjs-basic', event => {
     return !event.type && event.exception?.values?.[0]?.value === 'This is an exception with id 123';
   });
 
@@ -32,7 +32,7 @@ test('Sends exception to Sentry', async ({ baseURL }) => {
 test('Does not send HttpExceptions to Sentry', async ({ baseURL }) => {
   let errorEventOccurred = false;
 
-  waitForError('nestjs', event => {
+  waitForError('node-nestjs-basic', event => {
     if (!event.type && event.exception?.values?.[0]?.value === 'This is an expected 400 exception with id 123') {
       errorEventOccurred = true;
     }
@@ -40,7 +40,7 @@ test('Does not send HttpExceptions to Sentry', async ({ baseURL }) => {
     return event?.transaction === 'GET /test-expected-400-exception/:id';
   });
 
-  waitForError('nestjs', event => {
+  waitForError('node-nestjs-basic', event => {
     if (!event.type && event.exception?.values?.[0]?.value === 'This is an expected 500 exception with id 123') {
       errorEventOccurred = true;
     }
@@ -48,11 +48,11 @@ test('Does not send HttpExceptions to Sentry', async ({ baseURL }) => {
     return event?.transaction === 'GET /test-expected-500-exception/:id';
   });
 
-  const transactionEventPromise400 = waitForTransaction('nestjs', transactionEvent => {
+  const transactionEventPromise400 = waitForTransaction('node-nestjs-basic', transactionEvent => {
     return transactionEvent?.transaction === 'GET /test-expected-400-exception/:id';
   });
 
-  const transactionEventPromise500 = waitForTransaction('nestjs', transactionEvent => {
+  const transactionEventPromise500 = waitForTransaction('node-nestjs-basic', transactionEvent => {
     return transactionEvent?.transaction === 'GET /test-expected-500-exception/:id';
   });
 
@@ -65,7 +65,32 @@ test('Does not send HttpExceptions to Sentry', async ({ baseURL }) => {
   await transactionEventPromise400;
   await transactionEventPromise500;
 
-  await new Promise(resolve => setTimeout(resolve, 10000));
+  (await fetch(`${baseURL}/flush`)).text();
+
+  expect(errorEventOccurred).toBe(false);
+});
+
+test('Does not send RpcExceptions to Sentry', async ({ baseURL }) => {
+  let errorEventOccurred = false;
+
+  waitForError('node-nestjs-basic', event => {
+    if (!event.type && event.exception?.values?.[0]?.value === 'This is an expected RPC exception with id 123') {
+      errorEventOccurred = true;
+    }
+
+    return event?.transaction === 'GET /test-expected-rpc-exception/:id';
+  });
+
+  const transactionEventPromise = waitForTransaction('node-nestjs-basic', transactionEvent => {
+    return transactionEvent?.transaction === 'GET /test-expected-rpc-exception/:id';
+  });
+
+  const response = await fetch(`${baseURL}/test-expected-rpc-exception/123`);
+  expect(response.status).toBe(500);
+
+  await transactionEventPromise;
+
+  (await fetch(`${baseURL}/flush`)).text();
 
   expect(errorEventOccurred).toBe(false);
 });
