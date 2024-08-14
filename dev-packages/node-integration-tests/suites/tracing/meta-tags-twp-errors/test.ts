@@ -10,8 +10,6 @@ describe('errors in Tracing without Performance mode', () => {
 
     const response = await runner.makeRequest('get', '/test');
 
-    console.log('response: ', response);
-
     const { traceData, traceMetaTags, errorTraceContext } = response as {
       traceData: Record<string, string>;
       traceMetaTags: string;
