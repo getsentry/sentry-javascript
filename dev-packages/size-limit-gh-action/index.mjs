@@ -266,7 +266,7 @@ async function run() {
 
       if (baseIsNotLatest) {
         bodyParts.push(
-          '⚠️ **Warning:** Base artifact is not the latest one, because the latest workflow run is not done yet. This may lead to incorrect results.',
+          '⚠️ **Warning:** Base artifact is not the latest one, because the latest workflow run is not done yet. This may lead to incorrect results. Try to re-run all tests to get up to date results.',
         );
       }
 
