@@ -39,6 +39,12 @@ runs:
         path: ${{ env.CACHED_DEPENDENCY_PATHS }}
         key: dependencies-${{ github.ref }}-${{ steps.compute_lockfile_hash.outputs.hash }}
 
+    - name: Install dependencies without dependencies
+      run: NOYARNPOSTINSTALL=1 yarn install --ignore-engines --frozen-lockfile
+      if: inputs.ignore_engines == 'true'
+      shell: bash
+
     - name: Install dependencies
-      run: yarn install ${{inputs.ignore_engines == 'true' && '--ignore-engines' || ''}} --frozen-lockfile
+      run: yarn install --frozen-lockfile
+      if: inputs.ignore_engines != 'true'
       shell: bash
