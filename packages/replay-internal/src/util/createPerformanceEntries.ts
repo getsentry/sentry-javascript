@@ -189,7 +189,7 @@ function createResourceEntry(
  */
 export function getLargestContentfulPaint(metric: Metric): ReplayPerformanceEntry<WebVitalData> {
   const lastEntry = metric.entries[metric.entries.length - 1] as (PerformanceEntry & { element?: Node }) | undefined;
-  const node = lastEntry && lastEntry.element ? lastEntry.element : undefined;
+  const node = lastEntry && lastEntry.element ? [lastEntry.element] : undefined;
   return getWebVital(metric, 'largest-contentful-paint', node);
 }
 
@@ -220,7 +220,7 @@ export function getCumulativeLayoutShift(metric: Metric): ReplayPerformanceEntry
  */
 export function getFirstInputDelay(metric: Metric): ReplayPerformanceEntry<WebVitalData> {
   const lastEntry = metric.entries[metric.entries.length - 1] as (PerformanceEntry & { target?: Node }) | undefined;
-  const node = lastEntry && lastEntry.target ? lastEntry.target : undefined;
+  const node = lastEntry && lastEntry.target ? [lastEntry.target] : undefined;
   return getWebVital(metric, 'first-input-delay', node);
 }
 
@@ -229,7 +229,7 @@ export function getFirstInputDelay(metric: Metric): ReplayPerformanceEntry<WebVi
  */
 export function getInteractionToNextPaint(metric: Metric): ReplayPerformanceEntry<WebVitalData> {
   const lastEntry = metric.entries[metric.entries.length - 1] as (PerformanceEntry & { target?: Node }) | undefined;
-  const node = lastEntry && lastEntry.target ? lastEntry.target : undefined;
+  const node = lastEntry && lastEntry.target ? [lastEntry.target] : undefined;
   return getWebVital(metric, 'interaction-to-next-paint', node);
 }
 
@@ -239,7 +239,7 @@ export function getInteractionToNextPaint(metric: Metric): ReplayPerformanceEntr
 function getWebVital(
   metric: Metric,
   name: string,
-  node: Node | undefined,
+  nodes: Node[] | undefined,
   layoutShift?: { value: number, sources: number[] | undefined }[],
 ): ReplayPerformanceEntry<WebVitalData> {
   const value = metric.value;
@@ -256,7 +256,7 @@ function getWebVital(
       value,
       size: value,
       rating,
-      nodeId: node ? record.mirror.getId(node) : undefined,
+      nodeIds: nodes ? nodes.map(node => record.mirror.getId(node)) : undefined,
       layoutShift,
     },
   };
