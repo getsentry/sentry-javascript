@@ -1,6 +1,4 @@
+window.__CSPVIOLATION__ = false;
 document.addEventListener('securitypolicyviolation', () => {
-  const container = document.querySelector('#csp-violation');
-  if (container) {
-    container.innerText = 'CSP Violation';
-  }
+  window.__CSPVIOLATION__ = true;
 });
