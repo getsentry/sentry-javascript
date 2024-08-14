@@ -3,7 +3,7 @@ import { DOCUMENT } from '../../constants';
 /**
  * Creates <style> element for widget dialog
  */
-export function createScreenshotInputStyles(): HTMLStyleElement {
+export function createScreenshotInputStyles(styleNonce?: string): HTMLStyleElement {
   const style = DOCUMENT.createElement('style');
 
   const surface200 = '#1A141F';
@@ -85,6 +85,10 @@ export function createScreenshotInputStyles(): HTMLStyleElement {
   border-top: none;
 }
 `;
+
+  if (styleNonce) {
+    style.setAttribute('nonce', styleNonce);
+  }
 
   return style;
 }
