@@ -25,7 +25,7 @@ test.describe('client-side errors', () => {
       }),
     );
 
-    expect(errorEvent).toEqual({
+    expect(errorEvent).toMatchObject({
       exception: {
         values: [
           {

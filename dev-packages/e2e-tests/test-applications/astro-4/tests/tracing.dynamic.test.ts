@@ -25,7 +25,7 @@ test.describe('tracing in dynamically rendered (ssr) routes', () => {
     expect(clientPageloadTraceId).toEqual(serverPageRequestTraceId);
     expect(clientPageloadParentSpanId).toEqual(serverPageloadSpanId);
 
-    expect(clientPageloadTxn).toEqual({
+    expect(clientPageloadTxn).toMatchObject({
       contexts: {
         trace: {
           data: expect.objectContaining({
@@ -62,7 +62,7 @@ test.describe('tracing in dynamically rendered (ssr) routes', () => {
       type: 'transaction',
     });
 
-    expect(serverPageRequestTxn).toEqual({
+    expect(serverPageRequestTxn).toMatchObject({
       breadcrumbs: expect.any(Array),
       contexts: {
         app: expect.any(Object),

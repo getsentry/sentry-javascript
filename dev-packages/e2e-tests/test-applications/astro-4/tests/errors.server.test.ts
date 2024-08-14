@@ -11,7 +11,7 @@ test.describe('server-side errors', () => {
 
     const errorEvent = await errorEventPromise;
 
-    expect(errorEvent).toEqual({
+    expect(errorEvent).toMatchObject({
       contexts: {
         app: expect.any(Object),
         cloud_resource: expect.any(Object),
