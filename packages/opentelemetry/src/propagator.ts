@@ -93,6 +93,8 @@ export class SentryPropagator extends W3CBaggagePropagator {
     const activeSpan = trace.getSpan(context);
     const url = activeSpan && getCurrentURL(activeSpan);
 
+    console.log('1', { activeSpan, url });
+
     const tracePropagationTargets = getClient()?.getOptions()?.tracePropagationTargets;
     if (
       typeof url === 'string' &&
@@ -104,6 +106,7 @@ export class SentryPropagator extends W3CBaggagePropagator {
           '[Tracing] Not injecting trace data for url because it does not match tracePropagationTargets:',
           url,
         );
+      console.log('2', { tracePropagationTargets });
       return;
     }
 
@@ -112,6 +115,7 @@ export class SentryPropagator extends W3CBaggagePropagator {
 
     const { dynamicSamplingContext, traceId, spanId, sampled } = getInjectionData(context);
 
+    console.log('3', { existingBaggageHeader, baggage, dynamicSamplingContext, traceId, spanId, sampled });
     if (existingBaggageHeader) {
       const baggageEntries = parseBaggageHeader(existingBaggageHeader);
 
@@ -120,6 +124,7 @@ export class SentryPropagator extends W3CBaggagePropagator {
           baggage = baggage.setEntry(key, { value });
         });
       }
+      console.log('4', { baggageEntries, baggage });
     }
 
     if (dynamicSamplingContext) {
@@ -129,14 +134,17 @@ export class SentryPropagator extends W3CBaggagePropagator {
         }
         return b;
       }, baggage);
+      console.log('5', { dynamicSamplingContext, baggage });
     }
 
     // We also want to avoid setting the default OTEL trace ID, if we get that for whatever reason
     if (traceId && traceId !== INVALID_TRACEID) {
       setter.set(carrier, SENTRY_TRACE_HEADER, generateSentryTraceHeader(traceId, spanId, sampled));
+      console.log('6', { carrier, traceId, spanId, sampled });
     }
 
     super.inject(propagation.setBaggage(context, baggage), carrier, setter);
+    console.log('7', { carrier });
   }
 
   /**
@@ -198,7 +206,7 @@ function getInjectionData(context: Context): {
   spanId: string | undefined;
   sampled: boolean | undefined;
 } {
-  const span = hasTracingEnabled() ? trace.getSpan(context) : undefined;
+  const span = trace.getSpan(context);
   const spanIsRemote = span?.spanContext().isRemote;
 
   // If we have a local span, we can just pick everything from it
