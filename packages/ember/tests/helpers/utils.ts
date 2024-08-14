@@ -64,11 +64,15 @@ export function assertSentryTransactions(
 
   // instead of checking the specific order of runloop spans (which is brittle),
   // we check (below) that _any_ runloop spans are added
-  // Also we ignore ui.long-task spans, as they are brittle and may or may not appear
+  // Also we ignore ui.long-task spans and ui.long-animation-frame, as they are brittle and may or may not appear
   const filteredSpans = spans
     .filter(span => {
       const op = span.op;
-      return !op?.startsWith('ui.ember.runloop.') && !op?.startsWith('ui.long-task');
+      return (
+        !op?.startsWith('ui.ember.runloop.') &&
+        !op?.startsWith('ui.long-task') &&
+        !op?.startsWith('ui.long-animation-frame')
+      );
     })
     .map(spanJson => {
       return `${spanJson.op} | ${spanJson.description}`;

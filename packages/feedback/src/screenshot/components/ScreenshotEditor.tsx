@@ -74,7 +74,7 @@ export function ScreenshotEditorFactory({
   const useTakeScreenshot = useTakeScreenshotFactory({ hooks });
 
   return function ScreenshotEditor({ onError }: Props): VNode {
-    const styles = hooks.useMemo(() => ({ __html: createScreenshotInputStyles().innerText }), []);
+    const styles = hooks.useMemo(() => ({ __html: createScreenshotInputStyles(options.styleNonce).innerText }), []);
     const CropCorner = CropCornerFactory({ h });
 
     const canvasContainerRef = hooks.useRef<HTMLDivElement>(null);
@@ -313,7 +313,7 @@ export function ScreenshotEditorFactory({
 
     return (
       <div class="editor">
-        <style dangerouslySetInnerHTML={styles} />
+        <style nonce={options.styleNonce} dangerouslySetInnerHTML={styles} />
         <div class="editor__canvas-container" ref={canvasContainerRef}>
           <div class="editor__crop-container" style={{ position: 'absolute', zIndex: 1 }} ref={cropContainerRef}>
             <canvas

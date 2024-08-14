@@ -1,9 +1,7 @@
-import { getActiveSpan, getDynamicSamplingContextFromSpan, getRootSpan, spanToTraceHeader } from '@sentry/core';
-import { dynamicSamplingContextToSentryBaggageHeader } from '@sentry/utils';
 import type { NextPage } from 'next';
 
 import { isBuild } from './utils/isBuild';
-import { getSpanFromRequest, withErrorInstrumentation, withTracedServerSideDataFetcher } from './utils/wrapperUtils';
+import { withErrorInstrumentation, withTracedServerSideDataFetcher } from './utils/wrapperUtils';
 
 type GetInitialProps = Required<NextPage>['getInitialProps'];
 
@@ -36,29 +34,27 @@ export function wrapGetInitialPropsWithSentry(origGetInitialProps: GetInitialPro
           dataFetchingMethodName: 'getInitialProps',
         });
 
-        const initialProps: {
-          _sentryTraceData?: string;
-          _sentryBaggage?: string;
+        const {
+          data: initialProps,
+          baggage,
+          sentryTrace,
+        }: {
+          data: {
+            _sentryTraceData?: string;
+            _sentryBaggage?: string;
+          };
+          baggage?: string;
+          sentryTrace?: string;
         } = (await tracedGetInitialProps.apply(thisArg, args)) ?? {}; // Next.js allows undefined to be returned from a getInitialPropsFunction.
 
-        const activeSpan = getActiveSpan();
-        const requestSpan = getSpanFromRequest(req) ?? (activeSpan ? getRootSpan(activeSpan) : undefined);
+        // The Next.js serializer throws on undefined values so we need to guard for it (#12102)
+        if (sentryTrace) {
+          initialProps._sentryTraceData = sentryTrace;
+        }
 
-        if (requestSpan) {
-          const sentryTrace = spanToTraceHeader(requestSpan);
-
-          // The Next.js serializer throws on undefined values so we need to guard for it (#12102)
-          if (sentryTrace) {
-            initialProps._sentryTraceData = sentryTrace;
-          }
-
-          const dynamicSamplingContext = getDynamicSamplingContextFromSpan(requestSpan);
-          const baggage = dynamicSamplingContextToSentryBaggageHeader(dynamicSamplingContext);
-
-          // The Next.js serializer throws on undefined values so we need to guard for it (#12102)
-          if (baggage) {
-            initialProps._sentryBaggage = baggage;
-          }
+        // The Next.js serializer throws on undefined values so we need to guard for it (#12102)
+        if (baggage) {
+          initialProps._sentryBaggage = baggage;
         }
 
         return initialProps;

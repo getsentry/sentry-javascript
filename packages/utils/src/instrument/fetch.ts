@@ -80,48 +80,43 @@ function instrumentFetch(onFetchResolved?: (response: Response) => void, skipNat
           if (onFetchResolved) {
             onFetchResolved(response);
           } else {
-            const finishedHandlerData: HandlerDataFetch = {
+            triggerHandlers('fetch', {
               ...handlerData,
               endTimestamp: timestampInSeconds() * 1000,
               response,
-            };
-            triggerHandlers('fetch', finishedHandlerData);
+            });
           }
 
           return response;
         },
         (error: Error) => {
-          if (!onFetchResolved) {
-            const erroredHandlerData: HandlerDataFetch = {
-              ...handlerData,
-              endTimestamp: timestampInSeconds() * 1000,
-              error,
-            };
+          triggerHandlers('fetch', {
+            ...handlerData,
+            endTimestamp: timestampInSeconds() * 1000,
+            error,
+          });
 
-            triggerHandlers('fetch', erroredHandlerData);
-
-            if (isError(error) && error.stack === undefined) {
-              // NOTE: If you are a Sentry user, and you are seeing this stack frame,
-              //       it means the error, that was caused by your fetch call did not
-              //       have a stack trace, so the SDK backfilled the stack trace so
-              //       you can see which fetch call failed.
-              error.stack = virtualStackTrace;
-              addNonEnumerableProperty(error, 'framesToPop', 1);
-            }
-
+          if (isError(error) && error.stack === undefined) {
             // NOTE: If you are a Sentry user, and you are seeing this stack frame,
-            //       it means the sentry.javascript SDK caught an error invoking your application code.
-            //       This is expected behavior and NOT indicative of a bug with sentry.javascript.
-            throw error;
+            //       it means the error, that was caused by your fetch call did not
+            //       have a stack trace, so the SDK backfilled the stack trace so
+            //       you can see which fetch call failed.
+            error.stack = virtualStackTrace;
+            addNonEnumerableProperty(error, 'framesToPop', 1);
           }
+
+          // NOTE: If you are a Sentry user, and you are seeing this stack frame,
+          //       it means the sentry.javascript SDK caught an error invoking your application code.
+          //       This is expected behavior and NOT indicative of a bug with sentry.javascript.
+          throw error;
         },
       );
     };
   });
 }
 
-function resolveResponse(res: Response | undefined, onFinishedResolving: () => void): void {
-  if (res && res.body) {
+async function resolveResponse(res: Response | undefined, onFinishedResolving: () => void): Promise<void> {
+  if (res && res.body && res.body.getReader) {
     const responseReader = res.body.getReader();
 
     // eslint-disable-next-line no-inner-declarations
@@ -146,25 +141,21 @@ function resolveResponse(res: Response | undefined, onFinishedResolving: () => v
       }
     }
 
-    responseReader
+    return responseReader
       .read()
       .then(consumeChunks)
-      .then(() => {
-        onFinishedResolving();
-      })
-      .catch(() => {
-        // noop
-      });
+      .then(onFinishedResolving)
+      .catch(() => undefined);
   }
 }
 
 async function streamHandler(response: Response): Promise<void> {
   // clone response for awaiting stream
-  let clonedResponseForResolving: Response | undefined;
+  let clonedResponseForResolving: Response;
   try {
     clonedResponseForResolving = response.clone();
-  } catch (e) {
-    // noop
+  } catch {
+    return;
   }
 
   await resolveResponse(clonedResponseForResolving, () => {

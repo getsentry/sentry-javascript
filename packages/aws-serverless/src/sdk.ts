@@ -16,7 +16,7 @@ import {
   withScope,
 } from '@sentry/node';
 import type { Integration, Options, Scope, SdkMetadata, Span } from '@sentry/types';
-import { isString, logger } from '@sentry/utils';
+import { logger } from '@sentry/utils';
 import type { Context, Handler } from 'aws-lambda';
 import { performance } from 'perf_hooks';
 
@@ -25,7 +25,7 @@ import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } fr
 import { DEBUG_BUILD } from './debug-build';
 import { awsIntegration } from './integration/aws';
 import { awsLambdaIntegration } from './integration/awslambda';
-import { markEventUnhandled } from './utils';
+import { getAwsTraceData, markEventUnhandled } from './utils';
 
 const { isPromise } = types;
 
@@ -334,15 +334,9 @@ export function wrapHandler<TEvent, TResult>(
     // Otherwise, we create two root spans (one from otel, one from our wrapper).
     // If Otel instrumentation didn't work or was filtered by users, we still want to trace the handler.
     if (options.startTrace && !isWrappedByOtel(handler)) {
-      const eventWithHeaders = event as { headers?: { [key: string]: string } };
+      const traceData = getAwsTraceData(event as { headers?: Record<string, string> }, context);
 
-      const sentryTrace =
-        eventWithHeaders.headers && isString(eventWithHeaders.headers['sentry-trace'])
-          ? eventWithHeaders.headers['sentry-trace']
-          : undefined;
-      const baggage = eventWithHeaders.headers?.baggage;
-
-      return continueTrace({ sentryTrace, baggage }, () => {
+      return continueTrace({ sentryTrace: traceData['sentry-trace'], baggage: traceData.baggage }, () => {
         return startSpanManual(
           {
             name: context.functionName,

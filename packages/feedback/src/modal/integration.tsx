@@ -30,7 +30,7 @@ export const feedbackModalIntegration = ((): FeedbackModalIntegration => {
       const user = getUser();
 
       const el = DOCUMENT.createElement('div');
-      const style = createDialogStyles();
+      const style = createDialogStyles(options.styleNonce);
 
       let originalOverflow = '';
       const dialog: ReturnType<FeedbackModalIntegration['createDialog']> = {

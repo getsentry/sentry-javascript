@@ -48,6 +48,17 @@ test('allows to call init multiple times', done => {
         },
       },
     })
+    .expect({
+      event: {
+        exception: {
+          values: [
+            {
+              value: 'Final exception was captured',
+            },
+          ],
+        },
+      },
+    })
     .start(done);
 
   runner

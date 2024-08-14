@@ -15,14 +15,9 @@ sentryTest('should start a new session on pageload.', async ({ getLocalTestPath,
   expect(session.status).toBe('ok');
 });
 
-sentryTest('should start a new session with navigation.', async ({ getLocalTestPath, page, browserName }) => {
-  // Navigations get CORS error on Firefox and WebKit as we're using `file://` protocol.
-  if (browserName !== 'chromium') {
-    sentryTest.skip();
-  }
-
-  const url = await getLocalTestPath({ testDir: __dirname });
-  await page.route('**/foo', (route: Route) => route.fulfill({ path: `${__dirname}/dist/index.html` }));
+sentryTest('should start a new session with navigation.', async ({ getLocalTestUrl, page }) => {
+  const url = await getLocalTestUrl({ testDir: __dirname });
+  await page.route('**/foo', (route: Route) => route.continue({ url }));
 
   await page.route('https://dsn.ingest.sentry.io/**/*', route => {
     return route.fulfill({

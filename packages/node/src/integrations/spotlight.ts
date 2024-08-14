@@ -11,7 +11,7 @@ type SpotlightConnectionOptions = {
   sidecarUrl?: string;
 };
 
-const INTEGRATION_NAME = 'Spotlight';
+export const INTEGRATION_NAME = 'Spotlight';
 
 const _spotlightIntegration = ((options: Partial<SpotlightConnectionOptions> = {}) => {
   const _options = {
@@ -66,6 +66,10 @@ function connectToSpotlight(client: Client, options: Required<SpotlightConnectio
         },
       },
       res => {
+        if (res.statusCode && res.statusCode >= 200 && res.statusCode < 400) {
+          // Reset failed requests counter on success
+          failedRequests = 0;
+        }
         res.on('data', () => {
           // Drain socket
         });

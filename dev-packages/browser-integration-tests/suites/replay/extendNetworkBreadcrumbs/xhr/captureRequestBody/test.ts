@@ -8,13 +8,13 @@ import {
   shouldSkipReplayTest,
 } from '../../../../../utils/replayHelpers';
 
-sentryTest('captures text request body', async ({ getLocalTestPath, page, browserName }) => {
+sentryTest('captures text request body', async ({ getLocalTestUrl, page, browserName }) => {
   // These are a bit flaky on non-chromium browsers
   if (shouldSkipReplayTest() || browserName !== 'chromium') {
     sentryTest.skip();
   }
 
-  await page.route('**/foo', route => {
+  await page.route('http://sentry-test.io/foo', route => {
     return route.fulfill({
       status: 200,
     });
@@ -33,14 +33,13 @@ sentryTest('captures text request body', async ({ getLocalTestPath, page, browse
     return getReplayPerformanceSpans(recordingEvents).some(span => span.op === 'resource.xhr');
   });
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
   await page.goto(url);
 
   void page.evaluate(() => {
-    /* eslint-disable */
     const xhr = new XMLHttpRequest();
 
-    xhr.open('POST', 'http://localhost:7654/foo');
+    xhr.open('POST', 'http://sentry-test.io/foo');
     xhr.send('input body');
 
     xhr.addEventListener('readystatechange', function () {
@@ -49,7 +48,6 @@ sentryTest('captures text request body', async ({ getLocalTestPath, page, browse
         setTimeout(() => Sentry.captureException('test error', 0));
       }
     });
-    /* eslint-enable */
   });
 
   const request = await requestPromise;
@@ -66,7 +64,7 @@ sentryTest('captures text request body', async ({ getLocalTestPath, page, browse
       method: 'POST',
       request_body_size: 10,
       status_code: 200,
-      url: 'http://localhost:7654/foo',
+      url: 'http://sentry-test.io/foo',
     },
   });
 
@@ -82,7 +80,7 @@ sentryTest('captures text request body', async ({ getLocalTestPath, page, browse
           body: 'input body',
         },
       },
-      description: 'http://localhost:7654/foo',
+      description: 'http://sentry-test.io/foo',
       endTimestamp: expect.any(Number),
       op: 'resource.xhr',
       startTimestamp: expect.any(Number),
@@ -90,13 +88,13 @@ sentryTest('captures text request body', async ({ getLocalTestPath, page, browse
   ]);
 });
 
-sentryTest('captures JSON request body', async ({ getLocalTestPath, page, browserName }) => {
+sentryTest('captures JSON request body', async ({ getLocalTestUrl, page, browserName }) => {
   // These are a bit flaky on non-chromium browsers
   if (shouldSkipReplayTest() || browserName !== 'chromium') {
     sentryTest.skip();
   }
 
-  await page.route('**/foo', route => {
+  await page.route('http://sentry-test.io/foo', route => {
     return route.fulfill({
       status: 200,
     });
@@ -115,14 +113,13 @@ sentryTest('captures JSON request body', async ({ getLocalTestPath, page, browse
     return getReplayPerformanceSpans(recordingEvents).some(span => span.op === 'resource.xhr');
   });
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
   await page.goto(url);
 
   void page.evaluate(() => {
-    /* eslint-disable */
     const xhr = new XMLHttpRequest();
 
-    xhr.open('POST', 'http://localhost:7654/foo');
+    xhr.open('POST', 'http://sentry-test.io/foo');
     xhr.send('{"foo":"bar"}');
 
     xhr.addEventListener('readystatechange', function () {
@@ -131,7 +128,6 @@ sentryTest('captures JSON request body', async ({ getLocalTestPath, page, browse
         setTimeout(() => Sentry.captureException('test error', 0));
       }
     });
-    /* eslint-enable */
   });
 
   const request = await requestPromise;
@@ -148,7 +144,7 @@ sentryTest('captures JSON request body', async ({ getLocalTestPath, page, browse
       method: 'POST',
       request_body_size: 13,
       status_code: 200,
-      url: 'http://localhost:7654/foo',
+      url: 'http://sentry-test.io/foo',
     },
   });
 
@@ -164,7 +160,7 @@ sentryTest('captures JSON request body', async ({ getLocalTestPath, page, browse
           body: { foo: 'bar' },
         },
       },
-      description: 'http://localhost:7654/foo',
+      description: 'http://sentry-test.io/foo',
       endTimestamp: expect.any(Number),
       op: 'resource.xhr',
       startTimestamp: expect.any(Number),
@@ -172,7 +168,7 @@ sentryTest('captures JSON request body', async ({ getLocalTestPath, page, browse
   ]);
 });
 
-sentryTest('captures non-text request body', async ({ getLocalTestPath, page, browserName }) => {
+sentryTest('captures non-text request body', async ({ getLocalTestUrl, page, browserName }) => {
   // These are a bit flaky on non-chromium browsers
   if (shouldSkipReplayTest() || browserName !== 'chromium') {
     sentryTest.skip();
@@ -197,18 +193,17 @@ sentryTest('captures non-text request body', async ({ getLocalTestPath, page, br
     return getReplayPerformanceSpans(recordingEvents).some(span => span.op === 'resource.xhr');
   });
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
   await page.goto(url);
 
   await page.evaluate(() => {
-    /* eslint-disable */
     const xhr = new XMLHttpRequest();
 
     const body = new URLSearchParams();
     body.append('name', 'Anne');
     body.append('age', '32');
 
-    xhr.open('POST', 'http://localhost:7654/foo');
+    xhr.open('POST', 'http://sentry-test.io/foo');
     xhr.send(body);
 
     xhr.addEventListener('readystatechange', function () {
@@ -217,7 +212,6 @@ sentryTest('captures non-text request body', async ({ getLocalTestPath, page, br
         setTimeout(() => Sentry.captureException('test error', 0));
       }
     });
-    /* eslint-enable */
   });
 
   const request = await requestPromise;
@@ -234,7 +228,7 @@ sentryTest('captures non-text request body', async ({ getLocalTestPath, page, br
       method: 'POST',
       request_body_size: 16,
       status_code: 200,
-      url: 'http://localhost:7654/foo',
+      url: 'http://sentry-test.io/foo',
     },
   });
 
@@ -250,7 +244,7 @@ sentryTest('captures non-text request body', async ({ getLocalTestPath, page, br
           body: 'name=Anne&age=32',
         },
       },
-      description: 'http://localhost:7654/foo',
+      description: 'http://sentry-test.io/foo',
       endTimestamp: expect.any(Number),
       op: 'resource.xhr',
       startTimestamp: expect.any(Number),
@@ -264,7 +258,7 @@ sentryTest('captures text request body when matching relative URL', async ({ get
     sentryTest.skip();
   }
 
-  await page.route('**/foo', route => {
+  await page.route('http://sentry-test.io/foo', route => {
     return route.fulfill({
       status: 200,
     });
@@ -287,7 +281,6 @@ sentryTest('captures text request body when matching relative URL', async ({ get
   await page.goto(url);
 
   void page.evaluate(() => {
-    /* eslint-disable */
     const xhr = new XMLHttpRequest();
 
     xhr.open('POST', '/foo');
@@ -299,7 +292,6 @@ sentryTest('captures text request body when matching relative URL', async ({ get
         setTimeout(() => Sentry.captureException('test error', 0));
       }
     });
-    /* eslint-enable */
   });
 
   const request = await requestPromise;
@@ -340,13 +332,13 @@ sentryTest('captures text request body when matching relative URL', async ({ get
   ]);
 });
 
-sentryTest('does not capture request body when URL does not match', async ({ getLocalTestPath, page, browserName }) => {
+sentryTest('does not capture request body when URL does not match', async ({ getLocalTestUrl, page, browserName }) => {
   // These are a bit flaky on non-chromium browsers
   if (shouldSkipReplayTest() || browserName !== 'chromium') {
     sentryTest.skip();
   }
 
-  await page.route('**/bar', route => {
+  await page.route('http://sentry-test.io/bar', route => {
     return route.fulfill({
       status: 200,
     });
@@ -365,14 +357,13 @@ sentryTest('does not capture request body when URL does not match', async ({ get
     return getReplayPerformanceSpans(recordingEvents).some(span => span.op === 'resource.xhr');
   });
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
   await page.goto(url);
 
   void page.evaluate(() => {
-    /* eslint-disable */
     const xhr = new XMLHttpRequest();
 
-    xhr.open('POST', 'http://localhost:7654/bar');
+    xhr.open('POST', 'http://sentry-test.io/bar');
     xhr.send('input body');
 
     xhr.addEventListener('readystatechange', function () {
@@ -381,7 +372,6 @@ sentryTest('does not capture request body when URL does not match', async ({ get
         setTimeout(() => Sentry.captureException('test error', 0));
       }
     });
-    /* eslint-enable */
   });
 
   const request = await requestPromise;
@@ -398,7 +388,7 @@ sentryTest('does not capture request body when URL does not match', async ({ get
       method: 'POST',
       request_body_size: 10,
       status_code: 200,
-      url: 'http://localhost:7654/bar',
+      url: 'http://sentry-test.io/bar',
     },
   });
 
@@ -422,7 +412,7 @@ sentryTest('does not capture request body when URL does not match', async ({ get
           },
         },
       },
-      description: 'http://localhost:7654/bar',
+      description: 'http://sentry-test.io/bar',
       endTimestamp: expect.any(Number),
       op: 'resource.xhr',
       startTimestamp: expect.any(Number),

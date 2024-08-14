@@ -1,7 +1,5 @@
 import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
 
-jest.setTimeout(20000);
-
 describe('hapi auto-instrumentation', () => {
   afterAll(async () => {
     cleanupChildProcesses();

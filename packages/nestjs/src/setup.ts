@@ -6,11 +6,8 @@ import type {
   NestInterceptor,
   OnModuleInit,
 } from '@nestjs/common';
-import { HttpException } from '@nestjs/common';
-import { Catch } from '@nestjs/common';
-import { Injectable } from '@nestjs/common';
-import { Global, Module } from '@nestjs/common';
-import { APP_FILTER, APP_INTERCEPTOR, BaseExceptionFilter } from '@nestjs/core';
+import { Catch, Global, Injectable, Module } from '@nestjs/common';
+import { APP_INTERCEPTOR, BaseExceptionFilter } from '@nestjs/core';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -23,6 +20,7 @@ import {
 import type { Span } from '@sentry/types';
 import { logger } from '@sentry/utils';
 import type { Observable } from 'rxjs';
+import { isExpectedError } from './helpers';
 
 /**
  * Note: We cannot use @ syntax to add the decorators, so we add them directly below the classes as function wrappers.
@@ -32,6 +30,9 @@ import type { Observable } from 'rxjs';
  * Interceptor to add Sentry tracing capabilities to Nest.js applications.
  */
 class SentryTracingInterceptor implements NestInterceptor {
+  // used to exclude this class from being auto-instrumented
+  public static readonly __SENTRY_INTERNAL__ = true;
+
   /**
    * Intercepts HTTP requests to set the transaction name for Sentry tracing.
    */
@@ -60,12 +61,13 @@ export { SentryTracingInterceptor };
  * Global filter to handle exceptions and report them to Sentry.
  */
 class SentryGlobalFilter extends BaseExceptionFilter {
+  public static readonly __SENTRY_INTERNAL__ = true;
+
   /**
    * Catches exceptions and reports them to Sentry unless they are expected errors.
    */
   public catch(exception: unknown, host: ArgumentsHost): void {
-    // don't report expected errors
-    if (exception instanceof HttpException) {
+    if (isExpectedError(exception)) {
       return super.catch(exception, host);
     }
 
@@ -80,6 +82,8 @@ export { SentryGlobalFilter };
  * Service to set up Sentry performance tracing for Nest.js applications.
  */
 class SentryService implements OnModuleInit {
+  public static readonly __SENTRY_INTERNAL__ = true;
+
   /**
    * Initializes the Sentry service and registers span attributes.
    */
@@ -111,10 +115,6 @@ class SentryModule {
       providers: [
         SentryService,
         {
-          provide: APP_FILTER,
-          useClass: SentryGlobalFilter,
-        },
-        {
           provide: APP_INTERCEPTOR,
           useClass: SentryTracingInterceptor,
         },
@@ -127,10 +127,6 @@ Global()(SentryModule);
 Module({
   providers: [
     SentryService,
-    {
-      provide: APP_FILTER,
-      useClass: SentryGlobalFilter,
-    },
     {
       provide: APP_INTERCEPTOR,
       useClass: SentryTracingInterceptor,

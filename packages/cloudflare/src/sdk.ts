@@ -7,9 +7,9 @@ import {
   linkedErrorsIntegration,
   requestDataIntegration,
 } from '@sentry/core';
-import type { Integration, Options } from '@sentry/types';
+import type { Integration } from '@sentry/types';
 import { stackParserFromStackParserOptions } from '@sentry/utils';
-import type { CloudflareClientOptions } from './client';
+import type { CloudflareClientOptions, CloudflareOptions } from './client';
 import { CloudflareClient } from './client';
 
 import { fetchIntegration } from './integrations/fetch';
@@ -17,7 +17,7 @@ import { makeCloudflareTransport } from './transport';
 import { defaultStackParser } from './vendor/stacktrace';
 
 /** Get the default integrations for the Cloudflare SDK. */
-export function getDefaultIntegrations(options: Options): Integration[] {
+export function getDefaultIntegrations(options: CloudflareOptions): Integration[] {
   const sendDefaultPii = options.sendDefaultPii ?? false;
   return [
     dedupeIntegration(),
@@ -32,7 +32,7 @@ export function getDefaultIntegrations(options: Options): Integration[] {
 /**
  * Initializes the cloudflare SDK.
  */
-export function init(options: Options): CloudflareClient | undefined {
+export function init(options: CloudflareOptions): CloudflareClient | undefined {
   if (options.defaultIntegrations === undefined) {
     options.defaultIntegrations = getDefaultIntegrations(options);
   }
