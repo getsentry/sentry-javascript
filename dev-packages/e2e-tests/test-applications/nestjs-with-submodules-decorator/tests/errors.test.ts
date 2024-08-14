@@ -2,12 +2,20 @@ import { expect, test } from '@playwright/test';
 import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
 
 test('Sends unexpected exception to Sentry if thrown in module with global filter', async ({ baseURL }) => {
-  const errorEventPromise = waitForError('nestjs-with-submodules', event => {
+  const errorEventPromise = waitForError('nestjs-with-submodules-decorator', event => {
     return !event.type && event.exception?.values?.[0]?.value === 'This is an uncaught exception!';
   });
 
   const response = await fetch(`${baseURL}/example-module/unexpected-exception`);
-  expect(response.status).toBe(500);
+  const responseBody = await response.json();
+
+  expect(response.status).toBe(501);
+  expect(responseBody).toEqual({
+    statusCode: 501,
+    timestamp: expect.any(String),
+    path: '/example-module/unexpected-exception',
+    message: 'Example exception was handled by global filter!',
+  });
 
   const errorEvent = await errorEventPromise;
 
@@ -30,12 +38,20 @@ test('Sends unexpected exception to Sentry if thrown in module with global filte
 });
 
 test('Sends unexpected exception to Sentry if thrown in module with local filter', async ({ baseURL }) => {
-  const errorEventPromise = waitForError('nestjs-with-submodules', event => {
+  const errorEventPromise = waitForError('nestjs-with-submodules-decorator', event => {
     return !event.type && event.exception?.values?.[0]?.value === 'This is an uncaught exception!';
   });
 
   const response = await fetch(`${baseURL}/example-module-local-filter/unexpected-exception`);
-  expect(response.status).toBe(500);
+  const responseBody = await response.json();
+
+  expect(response.status).toBe(501);
+  expect(responseBody).toEqual({
+    statusCode: 501,
+    timestamp: expect.any(String),
+    path: '/example-module-local-filter/unexpected-exception',
+    message: 'Example exception was handled by global filter!',
+  });
 
   const errorEvent = await errorEventPromise;
 
@@ -60,12 +76,20 @@ test('Sends unexpected exception to Sentry if thrown in module with local filter
 test('Sends unexpected exception to Sentry if thrown in module that was registered before Sentry', async ({
   baseURL,
 }) => {
-  const errorEventPromise = waitForError('nestjs-with-submodules', event => {
+  const errorEventPromise = waitForError('nestjs-with-submodules-decorator', event => {
     return !event.type && event.exception?.values?.[0]?.value === 'This is an uncaught exception!';
   });
 
   const response = await fetch(`${baseURL}/example-module-registered-first/unexpected-exception`);
-  expect(response.status).toBe(500);
+  const responseBody = await response.json();
+
+  expect(response.status).toBe(501);
+  expect(responseBody).toEqual({
+    statusCode: 501,
+    timestamp: expect.any(String),
+    path: '/example-module-registered-first/unexpected-exception',
+    message: 'Example exception was handled by global filter!',
+  });
 
   const errorEvent = await errorEventPromise;
 
@@ -92,7 +116,7 @@ test('Does not send exception to Sentry if user-defined global exception filter 
 }) => {
   let errorEventOccurred = false;
 
-  waitForError('nestjs-with-submodules', event => {
+  waitForError('nestjs-with-submodules-decorator', event => {
     if (!event.type && event.exception?.values?.[0]?.value === 'Something went wrong in the example module!') {
       errorEventOccurred = true;
     }
@@ -100,7 +124,7 @@ test('Does not send exception to Sentry if user-defined global exception filter 
     return event?.transaction === 'GET /example-module/expected-exception';
   });
 
-  const transactionEventPromise = waitForTransaction('nestjs-with-submodules', transactionEvent => {
+  const transactionEventPromise = waitForTransaction('nestjs-with-submodules-decorator', transactionEvent => {
     return transactionEvent?.transaction === 'GET /example-module/expected-exception';
   });
 
@@ -119,7 +143,7 @@ test('Does not send exception to Sentry if user-defined local exception filter a
 }) => {
   let errorEventOccurred = false;
 
-  waitForError('nestjs-with-submodules', event => {
+  waitForError('nestjs-with-submodules-decorator', event => {
     if (
       !event.type &&
       event.exception?.values?.[0]?.value === 'Something went wrong in the example module with local filter!'
@@ -130,7 +154,7 @@ test('Does not send exception to Sentry if user-defined local exception filter a
     return event?.transaction === 'GET /example-module-local-filter/expected-exception';
   });
 
-  const transactionEventPromise = waitForTransaction('nestjs-with-submodules', transactionEvent => {
+  const transactionEventPromise = waitForTransaction('nestjs-with-submodules-decorator', transactionEvent => {
     return transactionEvent?.transaction === 'GET /example-module-local-filter/expected-exception';
   });
 
@@ -149,7 +173,7 @@ test('Does not send expected exception to Sentry if exception is thrown in modul
 }) => {
   let errorEventOccurred = false;
 
-  waitForError('nestjs-with-submodules', event => {
+  waitForError('nestjs-with-submodules-decorator', event => {
     if (!event.type && event.exception?.values?.[0].value === 'Something went wrong in the example module!') {
       errorEventOccurred = true;
     }
@@ -157,7 +181,7 @@ test('Does not send expected exception to Sentry if exception is thrown in modul
     return event?.transaction === 'GET /example-module-registered-first/expected-exception';
   });
 
-  const transactionEventPromise = waitForTransaction('nestjs-with-submodules', transactionEvent => {
+  const transactionEventPromise = waitForTransaction('nestjs-with-submodules-decorator', transactionEvent => {
     return transactionEvent?.transaction === 'GET /example-module-registered-first/expected-exception';
   });
 
@@ -176,7 +200,7 @@ test('Global specific exception filter registered in main module is applied and 
 }) => {
   let errorEventOccurred = false;
 
-  waitForError('nestjs-with-submodules', event => {
+  waitForError('nestjs-with-submodules-decorator', event => {
     if (!event.type && event.exception?.values?.[0]?.value === 'Example exception was handled by specific filter!') {
       errorEventOccurred = true;
     }
@@ -184,7 +208,7 @@ test('Global specific exception filter registered in main module is applied and 
     return event?.transaction === 'GET /example-exception-specific-filter';
   });
 
-  const transactionEventPromise = waitForTransaction('nestjs-with-submodules', transactionEvent => {
+  const transactionEventPromise = waitForTransaction('nestjs-with-submodules-decorator', transactionEvent => {
     return transactionEvent?.transaction === 'GET /example-exception-specific-filter';
   });
 
@@ -211,7 +235,7 @@ test('Local specific exception filter registered in main module is applied and e
 }) => {
   let errorEventOccurred = false;
 
-  waitForError('nestjs-with-submodules', event => {
+  waitForError('nestjs-with-submodules-decorator', event => {
     if (!event.type && event.exception?.values?.[0]?.value === 'Example exception was handled by local filter!') {
       errorEventOccurred = true;
     }
@@ -219,7 +243,7 @@ test('Local specific exception filter registered in main module is applied and e
     return event?.transaction === 'GET /example-exception-local-filter';
   });
 
-  const transactionEventPromise = waitForTransaction('nestjs-with-submodules', transactionEvent => {
+  const transactionEventPromise = waitForTransaction('nestjs-with-submodules-decorator', transactionEvent => {
     return transactionEvent?.transaction === 'GET /example-exception-local-filter';
   });
 
