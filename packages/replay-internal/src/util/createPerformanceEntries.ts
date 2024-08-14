@@ -43,7 +43,13 @@ export interface Metric {
    * The array may also be empty if the metric value was not based on any
    * entries (e.g. a CLS value of 0 given no layout shifts).
    */
-  entries: PerformanceEntry[] | PerformanceEventTiming[];
+  entries: PerformanceEntry[] | PerformanceEventTiming[] | LayoutShift[];
+}
+
+interface LayoutShift extends PerformanceEntry {
+  value: number;
+  sources: LayoutShiftAttribution[];
+  hadRecentInput: boolean;
 }
 
 interface LayoutShiftAttribution {
@@ -183,7 +189,7 @@ function createResourceEntry(
  */
 export function getLargestContentfulPaint(metric: Metric): ReplayPerformanceEntry<WebVitalData> {
   const lastEntry = metric.entries[metric.entries.length - 1] as (PerformanceEntry & { element?: Node }) | undefined;
-  const node = lastEntry && lastEntry.element ? [lastEntry.element] : undefined;
+  const node = lastEntry && lastEntry.element ? lastEntry.element : undefined;
   return getWebVital(metric, 'largest-contentful-paint', node);
 }
 
@@ -191,18 +197,24 @@ export function getLargestContentfulPaint(metric: Metric): ReplayPerformanceEntr
  * Add a CLS event to the replay based on a CLS metric.
  */
 export function getCumulativeLayoutShift(metric: Metric): ReplayPerformanceEntry<WebVitalData> {
-  const lastEntry = metric.entries[metric.entries.length - 1] as
-    | (PerformanceEntry & { sources?: LayoutShiftAttribution[] })
-    | undefined;
-  const nodes: Node[] = [];
-  if (lastEntry && lastEntry.sources) {
-    for (const source of lastEntry.sources) {
-      if (source.node) {
-        nodes.push(source.node);
+  const layoutShifts = [];
+  for (const entry of metric.entries) {
+    const layoutShift = entry as
+    | LayoutShift
+      | undefined;
+    if (layoutShift) {
+      const sources = [];
+      for (const source of layoutShift.sources) {
+        const nodeId = record.mirror.getId(source.node);
+        if (nodeId) {
+          sources.push(nodeId);
+        }
       }
+      layoutShifts.push({value: layoutShift.value, sources: sources.length ? sources : undefined})
     }
+
   }
-  return getWebVital(metric, 'cumulative-layout-shift', nodes);
+  return getWebVital(metric, 'cumulative-layout-shift', undefined, layoutShifts);
 }
 
 /**
@@ -210,7 +222,7 @@ export function getCumulativeLayoutShift(metric: Metric): ReplayPerformanceEntry
  */
 export function getFirstInputDelay(metric: Metric): ReplayPerformanceEntry<WebVitalData> {
   const lastEntry = metric.entries[metric.entries.length - 1] as (PerformanceEntry & { target?: Node }) | undefined;
-  const node = lastEntry && lastEntry.target ? [lastEntry.target] : undefined;
+  const node = lastEntry && lastEntry.target ? lastEntry.target : undefined;
   return getWebVital(metric, 'first-input-delay', node);
 }
 
@@ -219,14 +231,14 @@ export function getFirstInputDelay(metric: Metric): ReplayPerformanceEntry<WebVi
  */
 export function getInteractionToNextPaint(metric: Metric): ReplayPerformanceEntry<WebVitalData> {
   const lastEntry = metric.entries[metric.entries.length - 1] as (PerformanceEntry & { target?: Node }) | undefined;
-  const node = lastEntry && lastEntry.target ? [lastEntry.target] : undefined;
+  const node = lastEntry && lastEntry.target ? lastEntry.target : undefined;
   return getWebVital(metric, 'interaction-to-next-paint', node);
 }
 
 /**
  * Add an web vital event to the replay based on the web vital metric.
  */
-function getWebVital(metric: Metric, name: string, nodes: Node[] | undefined): ReplayPerformanceEntry<WebVitalData> {
+function getWebVital(metric: Metric, name: string, node: Node | undefined, layoutShift?: {value: number, sources: number[] | undefined}[]): ReplayPerformanceEntry<WebVitalData> {
   const value = metric.value;
   const rating = metric.rating;
 
@@ -241,7 +253,8 @@ function getWebVital(metric: Metric, name: string, nodes: Node[] | undefined): R
       value,
       size: value,
       rating,
-      nodeIds: nodes ? nodes.map(node => record.mirror.getId(node)) : undefined,
+      nodeId: record.mirror.getId(node),
+      layoutShift,
     },
   };
 
