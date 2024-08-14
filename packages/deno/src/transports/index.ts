@@ -1,6 +1,6 @@
 import { createTransport } from '@sentry/core';
 import type { BaseTransportOptions, Transport, TransportMakeRequestResponse, TransportRequest } from '@sentry/types';
-import { consoleSandbox, rejectedSyncPromise } from '@sentry/utils';
+import { consoleSandbox, logger, rejectedSyncPromise } from '@sentry/utils';
 
 export interface DenoTransportOptions extends BaseTransportOptions {
   /** Custom headers for the transport. Used by the XHRTransport and FetchTransport */
@@ -13,13 +13,20 @@ export interface DenoTransportOptions extends BaseTransportOptions {
 export function makeFetchTransport(options: DenoTransportOptions): Transport {
   const url = new URL(options.url);
 
-  if (Deno.permissions.querySync({ name: 'net', host: url.host }).state !== 'granted') {
-    consoleSandbox(() => {
-      // eslint-disable-next-line no-console
-      console.warn(`Sentry SDK requires 'net' permission to send events.
-  Run with '--allow-net=${url.host}' to grant the requires permissions.`);
+  Deno.permissions
+    .query({ name: 'net', host: url.host })
+    .then(({ state }) => {
+      if (state !== 'granted') {
+        consoleSandbox(() => {
+          // eslint-disable-next-line no-console
+          console.warn(`Sentry SDK requires 'net' permission to send events.
+    Run with '--allow-net=${url.host}' to grant the requires permissions.`);
+        });
+      }
+    })
+    .catch(() => {
+      logger.warn('Failed to read the "net" permission.');
     });
-  }
 
   function makeRequest(request: TransportRequest): PromiseLike<TransportMakeRequestResponse> {
     const requestOptions: RequestInit = {
