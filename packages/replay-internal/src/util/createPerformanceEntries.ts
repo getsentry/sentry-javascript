@@ -210,7 +210,6 @@ export function getCumulativeLayoutShift(metric: Metric): ReplayPerformanceEntry
       }
       layoutShifts.push({ value: layoutShift.value, sources: sources.length ? sources : undefined });
     }
-
   }
   return getWebVital(metric, 'cumulative-layout-shift', undefined, layoutShifts);
 }
