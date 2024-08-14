@@ -1,8 +1,9 @@
 import { Controller, Get, Param, ParseIntPipe, UseGuards, UseInterceptors } from '@nestjs/common';
 import { flush } from '@sentry/nestjs';
 import { AppService } from './app.service';
+import { ExampleInterceptor1 } from './example-1.interceptor';
+import { ExampleInterceptor2 } from './example-2.interceptor';
 import { ExampleGuard } from './example.guard';
-import { ExampleInterceptor } from './example.interceptor';
 
 @Controller()
 export class AppController {
@@ -25,7 +26,7 @@ export class AppController {
   }
 
   @Get('test-interceptor-instrumentation')
-  @UseInterceptors(ExampleInterceptor)
+  @UseInterceptors(ExampleInterceptor1, ExampleInterceptor2)
   testInterceptorInstrumentation() {
     return this.appService.testSpan();
   }
