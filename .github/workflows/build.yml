@@ -34,8 +34,6 @@ env:
     ${{ github.workspace }}/dev-packages/*/node_modules
     ~/.cache/mongodb-binaries/
 
-  # DEPENDENCY_CACHE_KEY: can't be set here because we don't have access to yarn.lock
-
   # WARNING: this disables cross os caching as ~ and
   # github.workspace evaluate to differents paths
   # packages/utils/cjs and packages/utils/esm: Symlinks to the folders inside of `build`, needed for tests
@@ -187,7 +185,6 @@ jobs:
         run: yarn build
 
     outputs:
-      dependency_cache_key: ${{ steps.install_dependencies.outputs.cache_key }}
       changed_node_integration: ${{ needs.job_get_metadata.outputs.changed_ci == 'true' || contains(steps.checkForAffected.outputs.affected, '@sentry-internal/node-integration-tests') }}
       changed_remix: ${{ needs.job_get_metadata.outputs.changed_ci == 'true' || contains(steps.checkForAffected.outputs.affected, '@sentry/remix') }}
       changed_node: ${{ needs.job_get_metadata.outputs.changed_ci == 'true' || contains(steps.checkForAffected.outputs.affected, '@sentry/node') }}
