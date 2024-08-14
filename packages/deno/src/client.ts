@@ -4,6 +4,11 @@ import { SDK_VERSION, ServerRuntimeClient } from '@sentry/core';
 import type { DenoClientOptions } from './types';
 
 function getHostName(): string | undefined {
+  // Deno.permissions.querySync is not available on Deno Deploy
+  if (!Deno.permissions.querySync) {
+    return undefined;
+  }
+
   const result = Deno.permissions.querySync({ name: 'sys', kind: 'hostname' });
   return result.state === 'granted' ? Deno.hostname() : undefined;
 }
