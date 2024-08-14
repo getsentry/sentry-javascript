@@ -9,9 +9,18 @@ import { getActiveSpan, startInactiveSpan, startSpan, startSpanManual, withActiv
 import type { Span } from '@sentry/types';
 import { SDK_VERSION } from '@sentry/utils';
 import { getMiddlewareSpanOptions, isPatched } from './helpers';
-import type { CallHandler, CatchTarget, InjectableTarget, Observable, Subscription } from './types';
+import type {
+  CallHandler,
+  CatchTarget,
+  InjectableTarget,
+  MinimalNestJsExecutionContext,
+  Observable,
+  Subscription,
+} from './types';
 
 const supportedVersions = ['>=8.0.0 <11'];
+
+const AFTER_ROUTE_SPAN_KEY = 'AFTER_ROUTE_SPAN_KEY';
 
 /**
  * Custom instrumentation for nestjs.
@@ -163,7 +172,10 @@ export class SentryNestInstrumentation extends InstrumentationBase {
 
             target.prototype.intercept = new Proxy(target.prototype.intercept, {
               apply: (originalIntercept, thisArgIntercept, argsIntercept) => {
+                const context: MinimalNestJsExecutionContext = argsIntercept[0];
                 const next: CallHandler = argsIntercept[1];
+                const request = context.switchToHttp().getRequest();
+
                 const prevSpan = getActiveSpan();
                 let afterSpan: Span;
 
@@ -175,14 +187,25 @@ export class SentryNestInstrumentation extends InstrumentationBase {
 
                       if (prevSpan) {
                         return withActiveSpan(prevSpan, () => {
-                          const handleReturn = Reflect.apply(originalHandle, thisArgHandle, argsHandle);
-                          afterSpan = startInactiveSpan(getMiddlewareSpanOptions(target));
-                          return handleReturn;
+                          const handleReturnObservable = Reflect.apply(originalHandle, thisArgHandle, argsHandle);
+                          if (request.AFTER_ROUTE_SPAN_KEY) {
+                            return handleReturnObservable;
+                          }
+
+                          console.log('start span a!');
+                          afterSpan = startInactiveSpan(getMiddlewareSpanOptions(target, 'Interceptor - After Route'));
+                          return handleReturnObservable;
                         });
                       } else {
-                        const handleReturn = Reflect.apply(originalHandle, thisArgHandle, argsHandle);
-                        afterSpan = startInactiveSpan(getMiddlewareSpanOptions(target));
-                        return handleReturn;
+                        const handleReturnObservable = Reflect.apply(originalHandle, thisArgHandle, argsHandle);
+
+                        if (request.AFTER_ROUTE_SPAN_KEY) {
+                          return handleReturnObservable;
+                        }
+
+                        console.log('start span a!');
+                        afterSpan = startInactiveSpan(getMiddlewareSpanOptions(target, 'Interceptor - After Route'));
+                        return handleReturnObservable;
                       }
                     },
                   });
@@ -193,15 +216,26 @@ export class SentryNestInstrumentation extends InstrumentationBase {
                     argsIntercept,
                   );
 
+                  console.log(request.AFTER_ROUTE_SPAN_KEY);
+                  if (request.AFTER_ROUTE_SPAN_KEY) {
+                    return returnedObservableIntercept;
+                  }
+
                   // eslint-disable-next-line @typescript-eslint/unbound-method
                   returnedObservableIntercept.subscribe = new Proxy(returnedObservableIntercept.subscribe, {
                     apply: (originalSubscribe, thisArgSubscribe, argsSubscribe) => {
-                      const subscription: Subscription = originalSubscribe.apply(thisArgSubscribe, argsSubscribe);
-                      subscription.add(() => afterSpan.end());
-                      return subscription;
+                      return withActiveSpan(afterSpan ?? prevSpan, () => {
+                        const subscription: Subscription = originalSubscribe.apply(thisArgSubscribe, argsSubscribe);
+
+
+
+                        subscription.add(() => { afterSpan.end(); console.log('end span!'); });
+                        return subscription;
+                      });
                     },
                   });
 
+                  request.AFTER_ROUTE_SPAN_KEY = true;
                   return returnedObservableIntercept;
                 });
               },

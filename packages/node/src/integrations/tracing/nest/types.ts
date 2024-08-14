@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-interface MinimalNestJsExecutionContext {
+export interface MinimalNestJsExecutionContext {
   getType: () => string;
 
   switchToHttp: () => {
@@ -12,6 +12,7 @@ interface MinimalNestJsExecutionContext {
         path?: string;
       };
       method?: string;
+      AFTER_ROUTE_SPAN_KEY?: boolean
     };
   };
 }
@@ -41,7 +42,6 @@ export interface Subscription {
  * A minimal interface for an Observable.
  */
 export interface Observable<T> {
-  pipe: (...args: any[]) => Observable<any>;
   subscribe(next?: (value: T) => void, error?: (err: any) => void, complete?: () => void): Subscription;
 }
 
