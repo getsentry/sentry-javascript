@@ -5,21 +5,14 @@ import {
   getCurrentScope,
   getDefaultIsolationScope,
   getIsolationScope,
-<<<<<<< HEAD
   getTraceMetaTags,
-=======
->>>>>>> af5d32206 (cleanup)
   setHttpStatus,
   withIsolationScope,
 } from '@sentry/core';
 import { startSpan } from '@sentry/core';
 import { continueTrace } from '@sentry/node';
 import type { Span } from '@sentry/types';
-<<<<<<< HEAD
 import { logger, winterCGRequestToRequestData } from '@sentry/utils';
-=======
-import { logger, objectify, winterCGRequestToRequestData } from '@sentry/utils';
->>>>>>> af5d32206 (cleanup)
 import type { Handle, ResolveOptions } from '@sveltejs/kit';
 
 import { DEBUG_BUILD } from '../common/debug-build';
