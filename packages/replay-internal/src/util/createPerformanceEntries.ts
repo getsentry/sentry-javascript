@@ -199,9 +199,7 @@ export function getLargestContentfulPaint(metric: Metric): ReplayPerformanceEntr
 export function getCumulativeLayoutShift(metric: Metric): ReplayPerformanceEntry<WebVitalData> {
   const layoutShifts = [];
   for (const entry of metric.entries) {
-    const layoutShift = entry as
-    | LayoutShift
-      | undefined;
+    const layoutShift = entry as LayoutShift | undefined;
     if (layoutShift) {
       const sources = [];
       for (const source of layoutShift.sources) {
@@ -210,7 +208,7 @@ export function getCumulativeLayoutShift(metric: Metric): ReplayPerformanceEntry
           sources.push(nodeId);
         }
       }
-      layoutShifts.push({value: layoutShift.value, sources: sources.length ? sources : undefined})
+      layoutShifts.push({ value: layoutShift.value, sources: sources.length ? sources : undefined })
     }
 
   }
@@ -238,7 +236,12 @@ export function getInteractionToNextPaint(metric: Metric): ReplayPerformanceEntr
 /**
  * Add an web vital event to the replay based on the web vital metric.
  */
-function getWebVital(metric: Metric, name: string, node: Node | undefined, layoutShift?: {value: number, sources: number[] | undefined}[]): ReplayPerformanceEntry<WebVitalData> {
+function getWebVital(
+  metric: Metric,
+  name: string,
+  node: Node | undefined,
+  layoutShift?: { value: number, sources: number[] | undefined }[],
+): ReplayPerformanceEntry<WebVitalData> {
   const value = metric.value;
   const rating = metric.rating;
 
@@ -253,7 +256,7 @@ function getWebVital(metric: Metric, name: string, node: Node | undefined, layou
       value,
       size: value,
       rating,
-      nodeId: record.mirror.getId(node),
+      nodeId: node ? record.mirror.getId(node) : undefined,
       layoutShift,
     },
   };

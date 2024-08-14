@@ -111,10 +111,10 @@ export interface WebVitalData {
    * The recording id of the web vital node. -1 if not found
    */
   nodeId: number | undefined;
-    /**
+  /**
    * The layout shifts of a CLS metric
    */
-  layoutShift?: { value: number; sources?: number[]}[];
+  layoutShift?: { value: number; sources?: number[] }[];
 }
 
 /**
