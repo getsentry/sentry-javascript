@@ -52,10 +52,6 @@ describe('getWebpackPluginOptions()', () => {
           env: 'my-env',
         },
       },
-      bundleSizeOptimizations: {
-        excludeTracing: true,
-        excludeReplayShadowDom: false,
-      },
     });
 
     expect(generatedPluginOptions.authToken).toBe('my-auth-token');
@@ -109,10 +105,6 @@ describe('getWebpackPluginOptions()', () => {
       },
       telemetry: false,
       url: 'my-url',
-      bundleSizeOptimizations: {
-        excludeTracing: true,
-        excludeReplayShadowDom: false,
-      },
     });
   });
 
