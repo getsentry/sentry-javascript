@@ -20,8 +20,6 @@ import type {
 
 const supportedVersions = ['>=8.0.0 <11'];
 
-const AFTER_ROUTE_SPAN_KEY = 'AFTER_ROUTE_SPAN_KEY';
-
 /**
  * Custom instrumentation for nestjs.
  *
@@ -192,7 +190,6 @@ export class SentryNestInstrumentation extends InstrumentationBase {
                             return handleReturnObservable;
                           }
 
-                          console.log('start span a!');
                           afterSpan = startInactiveSpan(getMiddlewareSpanOptions(target, 'Interceptor - After Route'));
                           return handleReturnObservable;
                         });
@@ -203,7 +200,6 @@ export class SentryNestInstrumentation extends InstrumentationBase {
                           return handleReturnObservable;
                         }
 
-                        console.log('start span a!');
                         afterSpan = startInactiveSpan(getMiddlewareSpanOptions(target, 'Interceptor - After Route'));
                         return handleReturnObservable;
                       }
@@ -216,7 +212,6 @@ export class SentryNestInstrumentation extends InstrumentationBase {
                     argsIntercept,
                   );
 
-                  console.log(request.AFTER_ROUTE_SPAN_KEY);
                   if (request.AFTER_ROUTE_SPAN_KEY) {
                     return returnedObservableIntercept;
                   }
@@ -226,10 +221,7 @@ export class SentryNestInstrumentation extends InstrumentationBase {
                     apply: (originalSubscribe, thisArgSubscribe, argsSubscribe) => {
                       return withActiveSpan(afterSpan ?? prevSpan, () => {
                         const subscription: Subscription = originalSubscribe.apply(thisArgSubscribe, argsSubscribe);
-
-
-
-                        subscription.add(() => { afterSpan.end(); console.log('end span!'); });
+                        subscription.add(() => afterSpan.end());
                         return subscription;
                       });
                     },

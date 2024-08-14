@@ -12,7 +12,7 @@ export interface MinimalNestJsExecutionContext {
         path?: string;
       };
       method?: string;
-      AFTER_ROUTE_SPAN_KEY?: boolean
+      AFTER_ROUTE_SPAN_KEY?: boolean;
     };
   };
 }

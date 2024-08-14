@@ -1,6 +1,6 @@
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import { addNonEnumerableProperty } from '@sentry/utils';
-import type { CallHandler, CatchTarget, InjectableTarget, Observable } from './types';
+import type { CatchTarget, InjectableTarget } from './types';
 
 const sentryPatched = 'sentryPatched';
 
