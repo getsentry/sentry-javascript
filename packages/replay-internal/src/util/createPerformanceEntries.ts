@@ -208,7 +208,7 @@ export function getCumulativeLayoutShift(metric: Metric): ReplayPerformanceEntry
           sources.push(nodeId);
         }
       }
-      layoutShifts.push({ value: layoutShift.value, sources: sources.length ? sources : undefined })
+      layoutShifts.push({ value: layoutShift.value, sources: sources.length ? sources : undefined });
     }
 
   }
@@ -240,7 +240,7 @@ function getWebVital(
   metric: Metric,
   name: string,
   nodes: Node[] | undefined,
-  layoutShift?: { value: number, sources: number[] | undefined }[],
+  layoutShift?: { value: number; sources: number[] | undefined }[],
 ): ReplayPerformanceEntry<WebVitalData> {
   const value = metric.value;
   const rating = metric.rating;

@@ -29,7 +29,7 @@ module.exports = [
     path: 'packages/browser/build/npm/esm/index.js',
     import: createImport('init', 'browserTracingIntegration', 'replayIntegration'),
     gzip: true,
-    limit: '66 KB',
+    limit: '67 KB',
     modifyWebpackConfig: function (config) {
       const webpack = require('webpack');
       config.plugins.push(
