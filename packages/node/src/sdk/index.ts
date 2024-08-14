@@ -41,6 +41,7 @@ import { getAutoPerformanceIntegrations } from '../integrations/tracing';
 import { makeNodeTransport } from '../transports';
 import type { NodeClientOptions, NodeOptions } from '../types';
 import { isCjs } from '../utils/commonjs';
+import { envToBool } from '../utils/envToBool';
 import { defaultStackParser, getSentryRelease } from './api';
 import { NodeClient } from './client';
 import { initOpenTelemetry, maybeInitializeEsmLoader } from './initOtel';
@@ -221,6 +222,15 @@ function getClientOptions(
         ? true
         : options.autoSessionTracking;
 
+  if (options.spotlight == null) {
+    const spotlightEnv = envToBool(process.env.SENTRY_SPOTLIGHT, { strict: true });
+    if (spotlightEnv == null) {
+      options.spotlight = process.env.SENTRY_SPOTLIGHT;
+    } else {
+      options.spotlight = spotlightEnv;
+    }
+  }
+
   const tracesSampleRate = getTracesSampleRate(options.tracesSampleRate);
 
   const baseOptions = dropUndefinedKeys({
@@ -292,8 +302,7 @@ function getTracesSampleRate(tracesSampleRate: NodeOptions['tracesSampleRate']):
  * for more details.
  */
 function updateScopeFromEnvVariables(): void {
-  const sentryUseEnvironment = (process.env.SENTRY_USE_ENVIRONMENT || '').toLowerCase();
-  if (!['false', 'n', 'no', 'off', '0'].includes(sentryUseEnvironment)) {
+  if (envToBool(process.env.SENTRY_USE_ENVIRONMENT) !== false) {
     const sentryTraceEnv = process.env.SENTRY_TRACE;
     const baggageEnv = process.env.SENTRY_BAGGAGE;
     const propagationContext = propagationContextFromHeaders(sentryTraceEnv, baggageEnv);

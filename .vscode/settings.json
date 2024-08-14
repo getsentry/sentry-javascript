@@ -42,5 +42,5 @@
   "[typescript]": {
     "editor.defaultFormatter": "biomejs.biome"
   },
-  "cSpell.words": ["arrayify"]
+  "cSpell.words": ["arrayify", "OTEL"]
 }
