@@ -43,7 +43,10 @@ type Unsubscribe = () => void;
 interface BuilderOptions {
   // The type here should be `keyof typeof LazyLoadableIntegrations`, but that'll cause a cicrular
   // dependency with @sentry/core
-  lazyLoadIntegration: (name: 'feedbackModalIntegration' | 'feedbackScreenshotIntegration') => Promise<IntegrationFn>;
+  lazyLoadIntegration: (
+    name: 'feedbackModalIntegration' | 'feedbackScreenshotIntegration',
+    scriptNonce?: string,
+  ) => Promise<IntegrationFn>;
   getModalIntegration?: null | (() => IntegrationFn);
   getScreenshotIntegration?: null | (() => IntegrationFn);
 }
@@ -77,6 +80,8 @@ export const buildFeedbackIntegration = ({
       name: 'username',
     },
     tags,
+    styleNonce,
+    scriptNonce,
 
     // FeedbackThemeConfiguration
     colorScheme = 'system',
@@ -119,6 +124,8 @@ export const buildFeedbackIntegration = ({
       enableScreenshot,
       useSentryUser,
       tags,
+      styleNonce,
+      scriptNonce,
 
       colorScheme,
       themeDark,
@@ -176,7 +183,7 @@ export const buildFeedbackIntegration = ({
       if (existing) {
         return existing as I;
       }
-      const integrationFn = (getter && getter()) || (await lazyLoadIntegration(functionMethodName));
+      const integrationFn = (getter && getter()) || (await lazyLoadIntegration(functionMethodName, scriptNonce));
       const integration = integrationFn();
       client && client.addIntegration(integration);
       return integration as I;
@@ -272,6 +279,7 @@ export const buildFeedbackIntegration = ({
         triggerLabel: mergedOptions.triggerLabel,
         triggerAriaLabel: mergedOptions.triggerAriaLabel,
         shadow,
+        styleNonce,
       });
       _attachTo(actor.el, {
         ...mergedOptions,
