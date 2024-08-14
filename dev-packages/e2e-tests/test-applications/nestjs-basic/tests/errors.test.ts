@@ -94,3 +94,73 @@ test('Does not send RpcExceptions to Sentry', async ({ baseURL }) => {
 
   expect(errorEventOccurred).toBe(false);
 });
+
+test('Global exception filter registered in main module is applied and exception is not sent to Sentry', async ({
+  baseURL,
+}) => {
+  let errorEventOccurred = false;
+
+  waitForError('nestjs-basic', event => {
+    if (!event.type && event.exception?.values?.[0]?.value === 'Example exception was handled by global filter!') {
+      errorEventOccurred = true;
+    }
+
+    return event?.transaction === 'GET /example-exception-global-filter';
+  });
+
+  const transactionEventPromise = waitForTransaction('nestjs-basic', transactionEvent => {
+    return transactionEvent?.transaction === 'GET /example-exception-global-filter';
+  });
+
+  const response = await fetch(`${baseURL}/example-exception-global-filter`);
+  const responseBody = await response.json();
+
+  expect(response.status).toBe(400);
+  expect(responseBody).toEqual({
+    statusCode: 400,
+    timestamp: expect.any(String),
+    path: '/example-exception-global-filter',
+    message: 'Example exception was handled by global filter!',
+  });
+
+  await transactionEventPromise;
+
+  (await fetch(`${baseURL}/flush`)).text();
+
+  expect(errorEventOccurred).toBe(false);
+});
+
+test('Local exception filter registered in main module is applied and exception is not sent to Sentry', async ({
+  baseURL,
+}) => {
+  let errorEventOccurred = false;
+
+  waitForError('nestjs-basic', event => {
+    if (!event.type && event.exception?.values?.[0]?.value === 'Example exception was handled by local filter!') {
+      errorEventOccurred = true;
+    }
+
+    return event?.transaction === 'GET /example-exception-local-filter';
+  });
+
+  const transactionEventPromise = waitForTransaction('nestjs-basic', transactionEvent => {
+    return transactionEvent?.transaction === 'GET /example-exception-local-filter';
+  });
+
+  const response = await fetch(`${baseURL}/example-exception-local-filter`);
+  const responseBody = await response.json();
+
+  expect(response.status).toBe(400);
+  expect(responseBody).toEqual({
+    statusCode: 400,
+    timestamp: expect.any(String),
+    path: '/example-exception-local-filter',
+    message: 'Example exception was handled by local filter!',
+  });
+
+  await transactionEventPromise;
+
+  (await fetch(`${baseURL}/flush`)).text();
+
+  expect(errorEventOccurred).toBe(false);
+});

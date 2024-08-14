@@ -3,16 +3,17 @@ import { init as initNode } from '@sentry/node';
 import type { Client, EventProcessor } from '@sentry/types';
 import { logger } from '@sentry/utils';
 import { DEBUG_BUILD } from '../common/debug-build';
-import type { SentryNuxtOptions } from '../common/types';
+import type { SentryNuxtServerOptions } from '../common/types';
 
 /**
  * Initializes the server-side of the Nuxt SDK
  *
  * @param options Configuration options for the SDK.
  */
-export function init(options: SentryNuxtOptions): Client | undefined {
+export function init(options: SentryNuxtServerOptions): Client | undefined {
   const sentryOptions = {
     ...options,
+    registerEsmLoaderHooks: mergeRegisterEsmLoaderHooks(options),
   };
 
   applySdkMetadata(sentryOptions, 'nuxt', ['nuxt', 'node']);
@@ -43,4 +44,23 @@ export function init(options: SentryNuxtOptions): Client | undefined {
   );
 
   return client;
+}
+
+/**
+ * Adds /vue/ to the registerEsmLoaderHooks options and merges it with the old values in the array if one is defined.
+ * If the registerEsmLoaderHooks option is already a boolean, nothing is changed.
+ *
+ * Only exported for Testing purposes.
+ */
+export function mergeRegisterEsmLoaderHooks(
+  options: SentryNuxtServerOptions,
+): SentryNuxtServerOptions['registerEsmLoaderHooks'] {
+  if (typeof options.registerEsmLoaderHooks === 'object' && options.registerEsmLoaderHooks !== null) {
+    return {
+      exclude: Array.isArray(options.registerEsmLoaderHooks.exclude)
+        ? [...options.registerEsmLoaderHooks.exclude, /vue/]
+        : options.registerEsmLoaderHooks.exclude ?? [/vue/],
+    };
+  }
+  return options.registerEsmLoaderHooks ?? { exclude: [/vue/] };
 }

@@ -17,7 +17,7 @@ export function wrapGetStaticPropsWithSentry(
   parameterizedRoute: string,
 ): GetStaticProps<Props> {
   return new Proxy(origGetStaticPropsa, {
-    apply: (wrappingTarget, thisArg, args: Parameters<GetStaticProps<Props>>) => {
+    apply: async (wrappingTarget, thisArg, args: Parameters<GetStaticProps<Props>>) => {
       if (isBuild()) {
         return wrappingTarget.apply(thisArg, args);
       }
@@ -27,8 +27,6 @@ export function wrapGetStaticPropsWithSentry(
         parameterizedRoute,
         dataFetchingMethodName: 'getStaticProps',
       });
-
-      return errorWrappedGetStaticProps.apply(thisArg, args);
     },
   });
 }
