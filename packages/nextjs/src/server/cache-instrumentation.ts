@@ -44,7 +44,11 @@ export function enableCacheInstrumentation(cacheHandlerPath: string): void {
           },
           async span => {
             const value = await super.get(key);
-            span.setAttribute('cache.hit', value !== null);
+            // The nextjs docs say that null is a cache miss, but we'll also consider undefined since their example
+            // simple cache handler returns undefined for a cache miss.
+            // https://nextjs.org/docs/app/building-your-application/deploying#configuring-caching
+            const cacheHit = value !== null && value !== undefined;
+            span.setAttribute('cache.hit', cacheHit);
             return value;
           },
         );
