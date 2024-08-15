@@ -83,24 +83,31 @@ function getFinalConfigObject(
     ...incomingUserNextConfigObject.experimental,
   };
 
-  // We need to add `import-in-the-middle` to `serverComponentsExternalPackages` to make sure that it's not bundled so
-  // that both the ESM loader hook and runtime code use the same library.
-  incomingUserNextConfigObject.experimental.serverComponentsExternalPackages = [
-    ...(incomingUserNextConfigObject.experimental.serverComponentsExternalPackages || []),
-    'import-in-the-middle',
-  ];
-
   // Add the `clientTraceMetadata` experimental option based on Next.js version. The option got introduced in Next.js version 15.0.0 (actually 14.3.0-canary.64).
   // Adding the option on lower versions will cause Next.js to print nasty warnings we wouldn't confront our users with.
   const nextJsVersion = getNextjsVersion();
   if (nextJsVersion) {
-    const { major, minor } = parseSemver(nextJsVersion);
-    if (major !== undefined && minor !== undefined && (major >= 15 || (major === 14 && minor >= 3))) {
+    const { major = 0, minor = 0 } = parseSemver(nextJsVersion);
+    if (major >= 15 || (major === 14 && minor >= 3)) {
       incomingUserNextConfigObject.experimental = incomingUserNextConfigObject.experimental || {};
       incomingUserNextConfigObject.experimental.clientTraceMetadata = [
         'baggage',
         'sentry-trace',
         ...(incomingUserNextConfigObject.experimental?.clientTraceMetadata || []),
+      ];
+    }
+
+    // We need to add `import-in-the-middle` to the external server modules to make sure that it's not bundled so that
+    // both the ESM loader hook and runtime code use the same library.
+    if (major >= 15) {
+      incomingUserNextConfigObject.serverExternalPackages = [
+        ...(incomingUserNextConfigObject.serverExternalPackages || []),
+        'import-in-the-middle',
+      ];
+    } else {
+      incomingUserNextConfigObject.experimental.serverComponentsExternalPackages = [
+        ...(incomingUserNextConfigObject.experimental.serverComponentsExternalPackages || []),
+        'import-in-the-middle',
       ];
     }
   } else {

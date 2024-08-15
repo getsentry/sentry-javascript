@@ -6,7 +6,6 @@ type CacheHandlerClass = {
   new (options: unknown): CacheHandlerClass;
   get(key: string): Promise<unknown | null>;
   set(key: string, data: unknown, ctx: unknown): Promise<void>;
-  revalidateTag(tag: string): Promise<void>;
 };
 
 function looksLikeCacheHandlerClass(obj: unknown): obj is CacheHandlerClass {
