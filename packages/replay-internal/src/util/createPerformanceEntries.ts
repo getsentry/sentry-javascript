@@ -43,7 +43,7 @@ export interface Metric {
    * The array may also be empty if the metric value was not based on any
    * entries (e.g. a CLS value of 0 given no layout shifts).
    */
-  entries: PerformanceEntry[] | PerformanceEventTiming[] | LayoutShift[];
+  entries: PerformanceEntry[] | LayoutShift[];
 }
 
 interface LayoutShift extends PerformanceEntry {
@@ -193,22 +193,25 @@ export function getLargestContentfulPaint(metric: Metric): ReplayPerformanceEntr
   return getWebVital(metric, 'largest-contentful-paint', node);
 }
 
+function isLayoutShift(entry: PerformanceEntry | LayoutShift): entry is LayoutShift {
+  return (entry as LayoutShift).value !== undefined;
+}
+
 /**
  * Add a CLS event to the replay based on a CLS metric.
  */
 export function getCumulativeLayoutShift(metric: Metric): ReplayPerformanceEntry<WebVitalData> {
   const layoutShifts = [];
   for (const entry of metric.entries) {
-    const layoutShift = entry as LayoutShift | undefined;
-    if (layoutShift) {
+    if (isLayoutShift(entry)) {
       const sources = [];
-      for (const source of layoutShift.sources) {
+      for (const source of entry.sources) {
         const nodeId = record.mirror.getId(source.node);
         if (nodeId) {
           sources.push(nodeId);
         }
       }
-      layoutShifts.push({ value: layoutShift.value, sources });
+      layoutShifts.push({ value: entry.value, sources });
     }
   }
   return getWebVital(metric, 'cumulative-layout-shift', undefined, layoutShifts);
@@ -239,7 +242,7 @@ function getWebVital(
   metric: Metric,
   name: string,
   nodes: Node[] | undefined,
-  layoutShift?: { value: number; sources: number[] | undefined }[],
+  attributions?: { value: number; sources: number[] }[],
 ): ReplayPerformanceEntry<WebVitalData> {
   const value = metric.value;
   const rating = metric.rating;
@@ -256,7 +259,7 @@ function getWebVital(
       size: value,
       rating,
       nodeIds: nodes ? nodes.map(node => record.mirror.getId(node)) : undefined,
-      layoutShift,
+      attributions,
     },
   };
 

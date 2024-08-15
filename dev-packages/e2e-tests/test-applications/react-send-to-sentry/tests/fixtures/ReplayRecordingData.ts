@@ -239,7 +239,7 @@ export const ReplayRecordingData = [
           value: expect.any(Number),
           size: expect.any(Number),
           rating: expect.any(String),
-          layoutShift: expect.any(Array),
+          attributions: expect.any(Array),
         },
       },
     },
