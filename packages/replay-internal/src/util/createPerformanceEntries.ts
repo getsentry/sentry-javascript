@@ -58,6 +58,11 @@ interface LayoutShiftAttribution {
   currentRect: DOMRectReadOnly;
 }
 
+interface Attribution {
+  value: number;
+  nodeIds?: number[];
+}
+
 /**
  * Handler creater for web vitals
  */
@@ -201,17 +206,17 @@ function isLayoutShift(entry: PerformanceEntry | LayoutShift): entry is LayoutSh
  * Add a CLS event to the replay based on a CLS metric.
  */
 export function getCumulativeLayoutShift(metric: Metric): ReplayPerformanceEntry<WebVitalData> {
-  const layoutShifts = [];
+  const layoutShifts: Attribution[] = [];
   for (const entry of metric.entries) {
     if (isLayoutShift(entry)) {
-      const sources = [];
+      const nodeIds = [];
       for (const source of entry.sources) {
         const nodeId = record.mirror.getId(source.node);
         if (nodeId) {
-          sources.push(nodeId);
+          nodeIds.push(nodeId);
         }
       }
-      layoutShifts.push({ value: entry.value, sources });
+      layoutShifts.push({ value: entry.value, nodeIds });
     }
   }
   return getWebVital(metric, 'cumulative-layout-shift', undefined, layoutShifts);
@@ -242,7 +247,7 @@ function getWebVital(
   metric: Metric,
   name: string,
   nodes: Node[] | undefined,
-  attributions?: { value: number; sources: number[] }[],
+  attributions?: Attribution[],
 ): ReplayPerformanceEntry<WebVitalData> {
   const value = metric.value;
   const rating = metric.rating;
