@@ -8,9 +8,9 @@ async function run() {
   const { repo, owner } = context.repo;
 
   const githubToken = getInput('github_token');
-  const clearDevelop = getInput('clear_develop', { type: 'boolean' });
-  const clearBranches = getInput('clear_branches', { type: 'boolean', default: true });
-  const clearPending = getInput('clear_pending_prs', { type: 'boolean' });
+  const clearDevelop = inputToBoolean(getInput('clear_develop', { type: 'boolean' }));
+  const clearBranches = inputToBoolean(getInput('clear_branches', { type: 'boolean', default: true }));
+  const clearPending = inputToBoolean(getInput('clear_pending_prs', { type: 'boolean' }));
   const workflowName = getInput('workflow_name');
 
   const octokit = getOctokit(githubToken);
@@ -94,7 +94,8 @@ async function clearGithubCaches(octokit, { repo, owner, clearDevelop, clearPend
 
           core.info(`> Clearing cache because latest workflow run is ${latestWorkflowRun.conclusion}.`);
         } else {
-          core.info('> Clearing cache of PR workflow run.');
+          core.info('> Keeping cache of every PR workflow run.');
+          continue;
         }
       } else {
         // This means this is not a pull request, so check clearBranches
@@ -107,7 +108,7 @@ async function clearGithubCaches(octokit, { repo, owner, clearDevelop, clearPend
       }
 
       // DRY RUN FOR NOW!
-      core.info(`Would delete cache ${id} for ${ref}...`);
+      core.info(`> >>Would delete cache ${id} for ${ref}...`);
 
       /*   await octokit.rest.actions.deleteActionsCacheById({
         owner,
@@ -119,3 +120,15 @@ async function clearGithubCaches(octokit, { repo, owner, clearDevelop, clearPend
 }
 
 run();
+
+function inputToBoolean(input) {
+  if (typeof input === 'boolean') {
+    return input;
+  }
+
+  if (typeof input === 'string') {
+    return input === 'true';
+  }
+
+  return false;
+}
