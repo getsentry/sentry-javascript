@@ -2,15 +2,15 @@ name: "Action: Clear all GHA caches"
 on:
   workflow_dispatch:
     inputs:
-      include_pending:
+      clear_pending:
         description: Delete caches of pending workflows
         type: boolean
         default: false
-      include_develop:
+      clear_develop:
         description: Delete caches on develop branch
         type: boolean
         default: false
-      include_branches:
+      clear_branches:
         description: Delete caches on non-develop branches
         type: boolean
         default: true
@@ -36,7 +36,7 @@ jobs:
       - name: Clear caches
         uses: ./dev-packages/clear-cache-gh-action
         with:
-          include_pending: ${{ inputs.include_pending }}
-          include_develop: ${{ inputs.include_develop }}
-          include_branches: ${{ inputs.include_branches }}
+          clear_pending: ${{ inputs.clear_pending }}
+          clear_develop: ${{ inputs.clear_develop }}
+          clear_branches: ${{ inputs.clear_branches }}
           github_token: ${{ secrets.GITHUB_TOKEN }}

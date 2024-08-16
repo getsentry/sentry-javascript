@@ -43,7 +43,7 @@ async function clearGithubCaches(octokit, { repo, owner, clearDevelop, clearPend
     for (const { id, ref } of response.data) {
       core.info(`Checking cache ${id} for ${ref}...`);
       // Do not clear develop caches if clearDevelop is false.
-      if (!clearDevelop && ref === 'refs/head/develop') {
+      if (!clearDevelop && ref === 'refs/heads/develop') {
         core.info('> Keeping cache because it is on develop.');
         continue;
       }
@@ -92,7 +92,7 @@ async function clearGithubCaches(octokit, { repo, owner, clearDevelop, clearPend
             continue;
           }
 
-          core.info(`> Clearing cache because latest workflow run is ${latestWorkflowRun.status}.`);
+          core.info(`> Clearing cache because latest workflow run is ${latestWorkflowRun.conclusion}.`);
         } else {
           core.info('> Clearing cache of PR workflow run.');
         }
