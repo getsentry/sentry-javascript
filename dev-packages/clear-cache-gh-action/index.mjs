@@ -142,11 +142,11 @@ async function clearGithubCaches(octokit, { repo, owner, clearDevelop, clearPend
         deletedCaches++;
         deletedSize += size_in_bytes;
 
-        /*  await octokit.rest.actions.deleteActionsCacheById({
-        owner,
-        repo,
-        cache_id: id,
-      }); */
+        await octokit.rest.actions.deleteActionsCacheById({
+          owner,
+          repo,
+          cache_id: id,
+        });
       } else {
         remainingCaches++;
         remainingSize += size_in_bytes;
