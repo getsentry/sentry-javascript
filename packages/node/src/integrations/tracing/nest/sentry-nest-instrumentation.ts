@@ -7,7 +7,7 @@ import {
 } from '@opentelemetry/instrumentation';
 import { getActiveSpan, startInactiveSpan, startSpan, startSpanManual, withActiveSpan } from '@sentry/core';
 import type { Span } from '@sentry/types';
-import { addNonEnumerableProperty, SDK_VERSION } from '@sentry/utils';
+import { SDK_VERSION, addNonEnumerableProperty } from '@sentry/utils';
 import { getMiddlewareSpanOptions, isPatched } from './helpers';
 import type {
   CallHandler,
@@ -188,7 +188,9 @@ export class SentryNestInstrumentation extends InstrumentationBase {
                           const handleReturnObservable = Reflect.apply(originalHandle, thisArgHandle, argsHandle);
 
                           if (!request._sentryInterceptorInstrumented) {
-                            afterSpan = startInactiveSpan(getMiddlewareSpanOptions(target, 'Interceptor - After Route'));
+                            afterSpan = startInactiveSpan(
+                              getMiddlewareSpanOptions(target, 'Interceptor - After Route'),
+                            );
                           }
 
                           return handleReturnObservable;
