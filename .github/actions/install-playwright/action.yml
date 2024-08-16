@@ -13,9 +13,18 @@ runs:
         run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> $GITHUB_OUTPUT
         shell: bash
 
-      - name: Cache playwright binaries
-        uses: actions/cache@v4
+      - name: Restore cached playwright binaries
+        uses: actions/cache/restore@v4
         id: playwright-cache
+        with:
+          path: |
+            ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright-version.outputs.version }}
+
+      # Only store cache on develop branch
+      - name: Store cached playwright binaries
+        uses: actions/cache/save@v4
+        if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
         with:
           path: |
             ~/.cache/ms-playwright

@@ -31,7 +31,7 @@ sentryTest('captures Breadcrumb for POST request', async ({ getLocalTestUrl, pag
     data: {
       method: 'POST',
       status_code: 200,
-      url: 'http://localhost:7654/foo',
+      url: 'http://sentry-test.io/foo',
     },
   });
 });

@@ -31,15 +31,7 @@ class SizeLimit {
     return bytes.format(size, { unitSeparator: ' ' });
   }
 
-  formatTime(seconds) {
-    if (seconds >= 1) {
-      return `${Math.ceil(seconds * 10) / 10} s`;
-    }
-
-    return `${Math.ceil(seconds * 1000)} ms`;
-  }
-
-  formatChange(base = 0, current = 0) {
+  formatPercentageChange(base = 0, current = 0) {
     if (base === 0) {
       return 'added';
     }
@@ -52,14 +44,37 @@ class SizeLimit {
     const formatted = (Math.sign(value) * Math.ceil(Math.abs(value) * 100)) / 100;
 
     if (value > 0) {
-      return `+${formatted}% 🔺`;
+      return `+${formatted}%`;
     }
 
     if (value === 0) {
-      return `${formatted}%`;
+      return '-';
     }
 
-    return `${formatted}% 🔽`;
+    return `${formatted}%`;
+  }
+
+  formatChange(base = 0, current = 0) {
+    if (base === 0) {
+      return 'added';
+    }
+
+    if (current === 0) {
+      return 'removed';
+    }
+
+    const value = current - base;
+    const formatted = this.formatBytes(value);
+
+    if (value > 0) {
+      return `+${formatted} 🔺`;
+    }
+
+    if (value === 0) {
+      return '-';
+    }
+
+    return `${formatted} 🔽`;
   }
 
   formatLine(value, change) {
@@ -67,16 +82,11 @@ class SizeLimit {
   }
 
   formatSizeResult(name, base, current) {
-    return [name, this.formatLine(this.formatBytes(current.size), this.formatChange(base.size, current.size))];
-  }
-
-  formatTimeResult(name, base, current) {
     return [
       name,
-      this.formatLine(this.formatBytes(current.size), this.formatChange(base.size, current.size)),
-      this.formatLine(this.formatTime(current.loading), this.formatChange(base.loading, current.loading)),
-      this.formatLine(this.formatTime(current.running), this.formatChange(base.running, current.running)),
-      this.formatTime(current.total),
+      this.formatBytes(current.size),
+      this.formatPercentageChange(base.size, current.size),
+      this.formatChange(base.size, current.size),
     ];
   }
 
@@ -84,26 +94,12 @@ class SizeLimit {
     const results = JSON.parse(output);
 
     return results.reduce((current, result) => {
-      let time = {};
-
-      if (result.loading !== undefined && result.running !== undefined) {
-        const loading = +result.loading;
-        const running = +result.running;
-
-        time = {
-          running,
-          loading,
-          total: loading + running,
-        };
-      }
-
       return {
         // biome-ignore lint/performance/noAccumulatingSpread: <explanation>
         ...current,
         [result.name]: {
           name: result.name,
           size: +result.size,
-          ...time,
         },
       };
     }, {});
@@ -111,12 +107,6 @@ class SizeLimit {
 
   hasSizeChanges(base, current, threshold = 0) {
     const names = [...new Set([...(base ? Object.keys(base) : []), ...Object.keys(current)])];
-    const isSize = names.some(name => current[name] && current[name].total === undefined);
-
-    // Always return true if time results are present
-    if (!isSize) {
-      return true;
-    }
 
     return !!names.find(name => {
       const baseResult = base?.[name] || EmptyResult;
@@ -132,16 +122,12 @@ class SizeLimit {
 
   formatResults(base, current) {
     const names = [...new Set([...(base ? Object.keys(base) : []), ...Object.keys(current)])];
-    const isSize = names.some(name => current[name] && current[name].total === undefined);
-    const header = isSize ? SIZE_RESULTS_HEADER : TIME_RESULTS_HEADER;
+    const header = SIZE_RESULTS_HEADER;
     const fields = names.map(name => {
       const baseResult = base?.[name] || EmptyResult;
       const currentResult = current[name] || EmptyResult;
 
-      if (isSize) {
-        return this.formatSizeResult(name, baseResult, currentResult);
-      }
-      return this.formatTimeResult(name, baseResult, currentResult);
+      return this.formatSizeResult(name, baseResult, currentResult);
     });
 
     return [header, ...fields];
@@ -165,15 +151,11 @@ async function execSizeLimit() {
   return { status, output };
 }
 
-const SIZE_RESULTS_HEADER = ['Path', 'Size'];
-const TIME_RESULTS_HEADER = ['Path', 'Size', 'Loading time (3g)', 'Running time (snapdragon)', 'Total time'];
+const SIZE_RESULTS_HEADER = ['Path', 'Size', '% Change', 'Change'];
 
 const EmptyResult = {
   name: '-',
   size: 0,
-  running: 0,
-  loading: 0,
-  total: 0,
 };
 
 async function run() {
@@ -227,6 +209,8 @@ async function run() {
     // Else, we run size limit for the current branch, AND fetch it for the comparison branch
     let base;
     let current;
+    let baseIsNotLatest = false;
+    let baseWorkflowRun;
 
     try {
       const artifacts = await getArtifactsForBranchAndWorkflow(octokit, {
@@ -240,6 +224,8 @@ async function run() {
         throw new Error('No artifacts found');
       }
 
+      baseWorkflowRun = artifacts.workflowRun;
+
       await downloadOtherWorkflowArtifact(octokit, {
         ...repo,
         artifactName: ARTIFACT_NAME,
@@ -248,6 +234,11 @@ async function run() {
       });
 
       base = JSON.parse(await fs.readFile(resultsFilePath, { encoding: 'utf8' }));
+
+      if (!artifacts.isLatest) {
+        baseIsNotLatest = true;
+        core.info('Base artifact is not the latest one. This may lead to incorrect results.');
+      }
     } catch (error) {
       core.startGroup('Warning, unable to find base results');
       core.error(error);
@@ -271,7 +262,22 @@ async function run() {
       isNaN(thresholdNumber) || limit.hasSizeChanges(base, current, thresholdNumber) || sizeLimitComment;
 
     if (shouldComment) {
-      const body = [SIZE_LIMIT_HEADING, markdownTable(limit.formatResults(base, current))].join('\r\n');
+      const bodyParts = [SIZE_LIMIT_HEADING];
+
+      if (baseIsNotLatest) {
+        bodyParts.push(
+          '⚠️ **Warning:** Base artifact is not the latest one, because the latest workflow run is not done yet. This may lead to incorrect results. Try to re-run all tests to get up to date results.',
+        );
+      }
+
+      bodyParts.push(markdownTable(limit.formatResults(base, current)));
+
+      if (baseWorkflowRun) {
+        bodyParts.push('');
+        bodyParts.push(`[View base workflow run](${baseWorkflowRun.html_url})`);
+      }
+
+      const body = bodyParts.join('\r\n');
 
       try {
         if (!sizeLimitComment) {
@@ -320,7 +326,7 @@ const DEFAULT_PAGE_LIMIT = 10;
  * This is a bit hacky since GitHub Actions currently does not directly
  * support downloading artifacts from other workflows
  */
-export async function getArtifactsForBranchAndWorkflow(octokit, { owner, repo, workflowName, branch, artifactName }) {
+async function getArtifactsForBranchAndWorkflow(octokit, { owner, repo, workflowName, branch, artifactName }) {
   core.startGroup(`getArtifactsForBranchAndWorkflow - workflow:"${workflowName}",  branch:"${branch}"`);
 
   let repositoryWorkflow = null;
@@ -361,14 +367,13 @@ export async function getArtifactsForBranchAndWorkflow(octokit, { owner, repo, w
   const workflow_id = repositoryWorkflow.id;
 
   let currentPage = 0;
-  const completedWorkflowRuns = [];
+  let latestWorkflowRun = null;
 
   for await (const response of octokit.paginate.iterator(octokit.rest.actions.listWorkflowRuns, {
     owner,
     repo,
     workflow_id,
     branch,
-    status: 'completed',
     per_page: DEFAULT_PAGE_LIMIT,
     event: 'push',
   })) {
@@ -379,12 +384,47 @@ export async function getArtifactsForBranchAndWorkflow(octokit, { owner, repo, w
     }
 
     // Do not allow downloading artifacts from a fork.
-    completedWorkflowRuns.push(
-      ...response.data.filter(workflowRun => workflowRun.head_repository.full_name === `${owner}/${repo}`),
-    );
+    const filtered = response.data.filter(workflowRun => workflowRun.head_repository.full_name === `${owner}/${repo}`);
 
-    if (completedWorkflowRuns.length) {
-      break;
+    // Sort to ensure the latest workflow run is the first
+    filtered.sort((a, b) => {
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
+
+    // Store the first workflow run, to determine if this is the latest one...
+    if (!latestWorkflowRun) {
+      latestWorkflowRun = filtered[0];
+    }
+
+    // Search through workflow artifacts until we find a workflow run w/ artifact name that we are looking for
+    for (const workflowRun of filtered) {
+      core.info(`Checking artifacts for workflow run: ${workflowRun.html_url}`);
+
+      const {
+        data: { artifacts },
+      } = await octokit.rest.actions.listWorkflowRunArtifacts({
+        owner,
+        repo,
+        run_id: workflowRun.id,
+      });
+
+      if (!artifacts) {
+        core.warning(
+          `Unable to fetch artifacts for branch: ${branch}, workflow: ${workflow_id}, workflowRunId: ${workflowRun.id}`,
+        );
+      } else {
+        const foundArtifact = artifacts.find(({ name }) => name === artifactName);
+        if (foundArtifact) {
+          core.info(`Found suitable artifact: ${foundArtifact.url}`);
+          return {
+            artifact: foundArtifact,
+            workflowRun,
+            isLatest: latestWorkflowRun.id === workflowRun.id,
+          };
+        } else {
+          core.info(`No artifact found for ${artifactName}, trying next workflow run...`);
+        }
+      }
     }
 
     if (currentPage > DEFAULT_MAX_PAGES) {
@@ -394,34 +434,6 @@ export async function getArtifactsForBranchAndWorkflow(octokit, { owner, repo, w
     }
 
     currentPage++;
-  }
-
-  // Search through workflow artifacts until we find a workflow run w/ artifact name that we are looking for
-  for (const workflowRun of completedWorkflowRuns) {
-    core.info(`Checking artifacts for workflow run: ${workflowRun.html_url}`);
-
-    const {
-      data: { artifacts },
-    } = await octokit.rest.actions.listWorkflowRunArtifacts({
-      owner,
-      repo,
-      run_id: workflowRun.id,
-    });
-
-    if (!artifacts) {
-      core.warning(
-        `Unable to fetch artifacts for branch: ${branch}, workflow: ${workflow_id}, workflowRunId: ${workflowRun.id}`,
-      );
-    } else {
-      const foundArtifact = artifacts.find(({ name }) => name === artifactName);
-      if (foundArtifact) {
-        core.info(`Found suitable artifact: ${foundArtifact.url}`);
-        return {
-          artifact: foundArtifact,
-          workflowRun,
-        };
-      }
-    }
   }
 
   core.warning(`Artifact not found: ${artifactName}`);

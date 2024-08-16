@@ -31,6 +31,7 @@ const config: PlaywrightTestConfig = {
   ],
 
   globalSetup: require.resolve('./playwright.setup.ts'),
+  globalTeardown: require.resolve('./playwright.teardown.ts'),
 };
 
 export default config;

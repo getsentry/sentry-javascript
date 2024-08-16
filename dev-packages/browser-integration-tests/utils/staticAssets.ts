@@ -27,16 +27,7 @@ export function addStaticAssetSymlink(localOutPath: string, originalPath: string
 
   // Only copy files once
   if (!fs.existsSync(newPath)) {
-    try {
-      fs.symlinkSync(originalPath, newPath);
-    } catch (error) {
-      // There must be some race condition here as some of our tests flakey
-      // because the file already exists. Let's catch and ignore
-      // only ignore these kind of errors
-      if (!`${error}`.includes('file already exists')) {
-        throw error;
-      }
-    }
+    fs.symlinkSync(originalPath, newPath);
   }
 
   symlinkAsset(newPath, path.join(localOutPath, fileName));
@@ -49,12 +40,5 @@ function symlinkAsset(originalPath: string, targetPath: string): void {
     // ignore errors here
   }
 
-  try {
-    fs.linkSync(originalPath, targetPath);
-  } catch (error) {
-    // only ignore these kind of errors
-    if (!`${error}`.includes('file already exists')) {
-      throw error;
-    }
-  }
+  fs.linkSync(originalPath, targetPath);
 }

@@ -1,6 +1,6 @@
 const xhr = new XMLHttpRequest();
 
-xhr.open('POST', 'http://localhost:7654/foo');
+xhr.open('POST', 'http://sentry-test.io/foo');
 xhr.setRequestHeader('Accept', 'application/json');
 xhr.setRequestHeader('Content-Type', 'application/json');
 xhr.send('{"my":"body"}');
