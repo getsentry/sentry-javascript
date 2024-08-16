@@ -403,6 +403,8 @@ describe('normalize()', () => {
   describe('changes unserializeable/global values/classes to their respective string representations', () => {
     test('primitive values', () => {
       expect(normalize(NaN)).toEqual('[NaN]');
+      expect(normalize(Infinity)).toEqual('[Infinity]');
+      expect(normalize(-Infinity)).toEqual('[-Infinity]');
       expect(normalize(Symbol('dogs'))).toEqual('[Symbol(dogs)]');
       expect(normalize(BigInt(1121201212312012))).toEqual('[BigInt: 1121201212312012]');
     });
