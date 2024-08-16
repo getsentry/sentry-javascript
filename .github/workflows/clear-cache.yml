@@ -34,7 +34,7 @@ jobs:
       - name: Install dependencies
         run: yarn install --frozen-lockfile
 
-      - name: Clear caches
+      - name: Delete GHA caches
         uses: ./dev-packages/clear-cache-gh-action
         with:
           clear_pending_prs: ${{ inputs.clear_pending_prs }}
