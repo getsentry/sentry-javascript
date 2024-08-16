@@ -51,14 +51,16 @@ async function clearGithubCaches(octokit, { repo, owner, clearDevelop, clearPend
       break;
     }
 
-    for (const { id, ref, size_in_bytes } of response.data) {
-      core.info(`Checking cache ${id} for ${ref}...`);
+    /**
+     * Clear caches.
+     *
+     * @param {{ref: string}} options
+     */
+    const shouldClearCache = async ({ ref }) => {
       // Do not clear develop caches if clearDevelop is false.
       if (!clearDevelop && ref === 'refs/heads/develop') {
         core.info('> Keeping cache because it is on develop.');
-        remainingCaches++;
-        remainingSize += size_in_bytes;
-        continue;
+        return false;
       }
 
       // There are two fundamental paths here:
@@ -101,7 +103,7 @@ async function clearGithubCaches(octokit, { repo, owner, clearDevelop, clearPend
         // No relevant workflow? Clear caches!
         if (!latestWorkflowRun) {
           core.info('> Clearing cache because no relevant workflow was found.');
-          continue;
+          return true;
         }
 
         // If the latest run was not successful, keep caches
@@ -109,7 +111,7 @@ async function clearGithubCaches(octokit, { repo, owner, clearDevelop, clearPend
         // or failed - in which case we may want to re-run the workflow
         if (latestWorkflowRun.conclusion !== 'success') {
           core.info(`> Keeping cache because latest workflow is ${latestWorkflowRun.conclusion}.`);
-          continue;
+          return false;
         }
 
         core.info(`> Clearing cache because latest workflow run is ${latestWorkflowRun.conclusion}.`);
@@ -117,30 +119,38 @@ async function clearGithubCaches(octokit, { repo, owner, clearDevelop, clearPend
         // Case 2: This is a PR, but we do not want to clear pending PRs
         // In this case, this cache should never be cleared
         core.info('> Keeping cache of every PR workflow run.');
-        remainingCaches++;
-        remainingSize += size_in_bytes;
-        continue;
+        return false;
       } else if (clearBranches) {
         // Case 3: This is not a PR, and we want to clean branches
         core.info('> Clearing cache because it is not a PR.');
+        return true;
       } else {
         // Case 4: This is not a PR, and we do not want to clean branches
         core.info('> Keeping cache for non-PR workflow run.');
-        remainingCaches++;
-        remainingSize += size_in_bytes;
-        continue;
+        return false;
       }
+    };
 
-      core.info(`> Clearing cache ${id}...`);
+    for (const { id, ref, size_in_bytes } of response.data) {
+      core.info(`Checking cache ${id} for ${ref}...`);
 
-      deletedCaches++;
-      deletedSize += size_in_bytes;
+      const shouldDelete = await shouldClearCache({ ref });
 
-      /*  await octokit.rest.actions.deleteActionsCacheById({
+      if (shouldDelete) {
+        core.info(`> Clearing cache ${id}...`);
+
+        deletedCaches++;
+        deletedSize += size_in_bytes;
+
+        /*  await octokit.rest.actions.deleteActionsCacheById({
         owner,
         repo,
         cache_id: id,
       }); */
+      } else {
+        remainingCaches++;
+        remainingSize += size_in_bytes;
+      }
     }
 
     const format = new Intl.NumberFormat('en-US', {
