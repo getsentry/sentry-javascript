@@ -56,66 +56,67 @@ async function clearGithubCaches(octokit, { repo, owner, clearDevelop, clearPend
       // There are two fundamental paths here:
       // If the cache belongs to a PR, we need to check if the PR has any pending workflows.
       // Else, we assume the cache belongs to a branch, where we do not check for pending workflows
-      const pull_number = /^refs\/pull\/(\d+)\/merge$/.exec(ref)?.[1];
-      if (pull_number) {
-        if (!clearPending) {
-          const pr =
-            cachedPrs.get(pull_number) ||
-            (await octokit.rest.pulls.get({
-              owner,
-              repo,
-              pull_number,
-            }));
-          cachedPrs.set(pull_number, pr);
+      const pullNumber = /^refs\/pull\/(\d+)\/merge$/.exec(ref)?.[1];
+      const isPr = !!pullNumber;
 
-          const prBranch = pr.data.head.ref;
+      // Case 1: This is a PR, and we do not want to clear pending PRs
+      // In this case, we need to fetch all PRs and workflow runs to check them
+      if (isPr && !clearPending) {
+        const pr =
+          cachedPrs.get(pullNumber) ||
+          (await octokit.rest.pulls.get({
+            owner,
+            repo,
+            pull_number: pullNumber,
+          }));
+        cachedPrs.set(pullNumber, pr);
 
-          // Check if PR has any pending workflows
-          const workflowRuns =
-            cachedWorkflows.get(prBranch) ||
-            (await octokit.rest.actions.listWorkflowRunsForRepo({
-              repo,
-              owner,
-              branch: prBranch,
-            }));
-          cachedWorkflows.set(prBranch, workflowRuns);
+        const prBranch = pr.data.head.ref;
 
-          // We only care about the relevant workflow
-          const relevantWorkflowRuns = workflowRuns.data.workflow_runs.filter(
-            workflow => workflow.name === workflowName,
-          );
+        // Check if PR has any pending workflows
+        const workflowRuns =
+          cachedWorkflows.get(prBranch) ||
+          (await octokit.rest.actions.listWorkflowRunsForRepo({
+            repo,
+            owner,
+            branch: prBranch,
+          }));
+        cachedWorkflows.set(prBranch, workflowRuns);
 
-          const latestWorkflowRun = relevantWorkflowRuns[0];
+        // We only care about the relevant workflow
+        const relevantWorkflowRuns = workflowRuns.data.workflow_runs.filter(workflow => workflow.name === workflowName);
 
-          core.info(`> Latest relevant workflow run: ${latestWorkflowRun.html_url}`);
+        const latestWorkflowRun = relevantWorkflowRuns[0];
 
-          // No relevant workflow? Clear caches!
-          if (!latestWorkflowRun) {
-            core.info('> Clearing cache because no relevant workflow was found.');
-            continue;
-          }
+        core.info(`> Latest relevant workflow run: ${latestWorkflowRun.html_url}`);
 
-          // If the latest run was not successful, keep caches
-          // as either the run may be in progress,
-          // or failed - in which case we may want to re-run the workflow
-          if (latestWorkflowRun.conclusion !== 'success') {
-            core.info(`> Keeping cache because latest workflow is ${latestWorkflowRun.conclusion}.`);
-            continue;
-          }
-
-          core.info(`> Clearing cache because latest workflow run is ${latestWorkflowRun.conclusion}.`);
-        } else {
-          core.info('> Keeping cache of every PR workflow run.');
+        // No relevant workflow? Clear caches!
+        if (!latestWorkflowRun) {
+          core.info('> Clearing cache because no relevant workflow was found.');
           continue;
         }
+
+        // If the latest run was not successful, keep caches
+        // as either the run may be in progress,
+        // or failed - in which case we may want to re-run the workflow
+        if (latestWorkflowRun.conclusion !== 'success') {
+          core.info(`> Keeping cache because latest workflow is ${latestWorkflowRun.conclusion}.`);
+          continue;
+        }
+
+        core.info(`> Clearing cache because latest workflow run is ${latestWorkflowRun.conclusion}.`);
+      } else if (isPr) {
+        // Case 2: This is a PR, but we do not want to clear pending PRs
+        // In this case, this cache should never be cleared
+        core.info('> Keeping cache of every PR workflow run.');
+        continue;
+      } else if (clearBranches) {
+        // Case 3: This is not a PR, and we want to clean branches
+        core.info('> Clearing cache because it is not a PR.');
       } else {
-        // This means this is not a pull request, so check clearBranches
-        if (clearBranches) {
-          core.info('> Clearing cache because it is not a PR.');
-        } else {
-          core.info('> Keeping cache for non-PR workflow run.');
-          continue;
-        }
+        // Case 4: This is not a PR, and we do not want to clean branches
+        core.info('> Keeping cache for non-PR workflow run.');
+        continue;
       }
 
       core.info(`> Clearing cache ${id}...`);
