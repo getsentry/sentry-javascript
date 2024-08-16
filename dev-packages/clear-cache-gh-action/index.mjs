@@ -41,15 +41,23 @@ async function clearGithubCaches(octokit, { repo, owner, clearDevelop, clearPend
     /** @type {Map<string, ReturnType<typeof octokit.rest.actions.listWorkflowRunsForRepo>>} */
     const cachedWorkflows = new Map();
 
+    let deletedCaches = 0;
+    let remainingCaches = 0;
+
+    let deletedSize = 0;
+    let remainingSize = 0;
+
     if (!response.data.length) {
       break;
     }
 
-    for (const { id, ref } of response.data) {
+    for (const { id, ref, size_in_bytes } of response.data) {
       core.info(`Checking cache ${id} for ${ref}...`);
       // Do not clear develop caches if clearDevelop is false.
       if (!clearDevelop && ref === 'refs/heads/develop') {
         core.info('> Keeping cache because it is on develop.');
+        remainingCaches++;
+        remainingSize += size_in_bytes;
         continue;
       }
 
@@ -109,6 +117,8 @@ async function clearGithubCaches(octokit, { repo, owner, clearDevelop, clearPend
         // Case 2: This is a PR, but we do not want to clear pending PRs
         // In this case, this cache should never be cleared
         core.info('> Keeping cache of every PR workflow run.');
+        remainingCaches++;
+        remainingSize += size_in_bytes;
         continue;
       } else if (clearBranches) {
         // Case 3: This is not a PR, and we want to clean branches
@@ -116,17 +126,30 @@ async function clearGithubCaches(octokit, { repo, owner, clearDevelop, clearPend
       } else {
         // Case 4: This is not a PR, and we do not want to clean branches
         core.info('> Keeping cache for non-PR workflow run.');
+        remainingCaches++;
+        remainingSize += size_in_bytes;
         continue;
       }
 
       core.info(`> Clearing cache ${id}...`);
 
-      await octokit.rest.actions.deleteActionsCacheById({
+      deletedCaches++;
+      deletedSize += size_in_bytes;
+
+      /*  await octokit.rest.actions.deleteActionsCacheById({
         owner,
         repo,
         cache_id: id,
-      });
+      }); */
     }
+
+    const format = new Intl.NumberFormat('en-US', {
+      style: 'decimal',
+    });
+
+    core.info('Summary:');
+    core.info(`Deleted ${deletedCaches} caches, freeing up ~${format.format(deletedSize / 1000 / 1000)} mb.`);
+    core.info(`Remaining ${remainingCaches} caches, using ~${format.format(remainingSize / 1000 / 1000)} mb.`);
   }
 }
 
