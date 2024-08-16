@@ -7,7 +7,7 @@ import {
 } from '@opentelemetry/instrumentation';
 import { getActiveSpan, startInactiveSpan, startSpan, startSpanManual, withActiveSpan } from '@sentry/core';
 import type { Span } from '@sentry/types';
-import { SDK_VERSION } from '@sentry/utils';
+import { addNonEnumerableProperty, SDK_VERSION } from '@sentry/utils';
 import { getMiddlewareSpanOptions, isPatched } from './helpers';
 import type {
   CallHandler,
@@ -186,21 +186,20 @@ export class SentryNestInstrumentation extends InstrumentationBase {
                       if (prevSpan) {
                         return withActiveSpan(prevSpan, () => {
                           const handleReturnObservable = Reflect.apply(originalHandle, thisArgHandle, argsHandle);
-                          if (request.AFTER_ROUTE_SPAN_KEY) {
-                            return handleReturnObservable;
+
+                          if (!request._sentryInterceptorInstrumented) {
+                            afterSpan = startInactiveSpan(getMiddlewareSpanOptions(target, 'Interceptor - After Route'));
                           }
 
-                          afterSpan = startInactiveSpan(getMiddlewareSpanOptions(target, 'Interceptor - After Route'));
                           return handleReturnObservable;
                         });
                       } else {
                         const handleReturnObservable = Reflect.apply(originalHandle, thisArgHandle, argsHandle);
 
-                        if (request.AFTER_ROUTE_SPAN_KEY) {
-                          return handleReturnObservable;
+                        if (!request._sentryInterceptorInstrumented) {
+                          afterSpan = startInactiveSpan(getMiddlewareSpanOptions(target, 'Interceptor - After Route'));
                         }
 
-                        afterSpan = startInactiveSpan(getMiddlewareSpanOptions(target, 'Interceptor - After Route'));
                         return handleReturnObservable;
                       }
                     },
@@ -212,7 +211,7 @@ export class SentryNestInstrumentation extends InstrumentationBase {
                     argsIntercept,
                   );
 
-                  if (request.AFTER_ROUTE_SPAN_KEY) {
+                  if (request._sentryInterceptorInstrumented) {
                     return returnedObservableIntercept;
                   }
 
@@ -229,7 +228,7 @@ export class SentryNestInstrumentation extends InstrumentationBase {
                     });
                   }
 
-                  request.AFTER_ROUTE_SPAN_KEY = true;
+                  addNonEnumerableProperty(request, '_sentryInterceptorInstrumented', true);
                   return returnedObservableIntercept;
                 });
               },
