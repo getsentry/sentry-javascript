@@ -18,7 +18,7 @@ function outputDependencyCacheKey() {
 
   const workspacePackages = packageJson.workspaces || [];
 
-  // Get the (e.g. @sentry/browser) of all workspace packages
+  // Get the package name (e.g. @sentry/browser) of all workspace packages
   // we want to ignore their version numbers later
   const workspacePackageNames = getWorkspacePackageNames(workspacePackages);
 
