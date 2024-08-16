@@ -30,6 +30,7 @@ jobs:
         with:
           node-version-file: 'package.json'
 
+      # TODO: Use cached version if possible (but never store cache)
       - name: Install dependencies
         run: yarn install --frozen-lockfile
 
