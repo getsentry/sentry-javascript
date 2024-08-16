@@ -107,20 +107,25 @@ async function clearGithubCaches(octokit, { repo, owner, clearDevelop, clearPend
       }
 
       core.info(`> Clearing cache because latest workflow run is ${latestWorkflowRun.conclusion}.`);
-    } else if (isPr) {
-      // Case 2: This is a PR, but we do not want to clear pending PRs
-      // In this case, this cache should never be cleared
-      core.info('> Keeping cache of every PR workflow run.');
-      return false;
-    } else if (clearBranches) {
-      // Case 3: This is not a PR, and we want to clean branches
+      return true;
+    }
+
+    // Case 2: This is a PR, but we do want to clear pending PRs
+    // In this case, this cache should always be cleared
+    if (isPr) {
+      core.info('> Clearing cache of every PR workflow run.');
+      return true;
+    }
+
+    // Case 3: This is not a PR, and we want to clean branches
+    if (clearBranches) {
       core.info('> Clearing cache because it is not a PR.');
       return true;
-    } else {
-      // Case 4: This is not a PR, and we do not want to clean branches
-      core.info('> Keeping cache for non-PR workflow run.');
-      return false;
     }
+
+    // Case 4: This is not a PR, and we do not want to clean branches
+    core.info('> Keeping cache for non-PR workflow run.');
+    return false;
   };
 
   for await (const response of octokit.paginate.iterator(octokit.rest.actions.getActionsCacheList, {
