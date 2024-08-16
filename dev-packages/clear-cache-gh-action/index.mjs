@@ -36,6 +36,11 @@ async function clearGithubCaches(octokit, { repo, owner, clearDevelop, clearPend
     owner,
     repo,
   })) {
+    /** @type {Map<number, ReturnType<typeof octokit.rest.pulls.get>>} */
+    const cachedPrs = new Map();
+    /** @type {Map<string, ReturnType<typeof octokit.rest.actions.listWorkflowRunsForRepo>>} */
+    const cachedWorkflows = new Map();
+
     if (!response.data.length) {
       break;
     }
@@ -54,20 +59,26 @@ async function clearGithubCaches(octokit, { repo, owner, clearDevelop, clearPend
       const pull_number = /^refs\/pull\/(\d+)\/merge$/.exec(ref)?.[1];
       if (pull_number) {
         if (!clearPending) {
-          const pr = await octokit.rest.pulls.get({
-            owner,
-            repo,
-            pull_number,
-          });
+          const pr =
+            cachedPrs.get(pull_number) ||
+            (await octokit.rest.pulls.get({
+              owner,
+              repo,
+              pull_number,
+            }));
+          cachedPrs.set(pull_number, pr);
 
           const prBranch = pr.data.head.ref;
 
           // Check if PR has any pending workflows
-          const workflowRuns = await octokit.rest.actions.listWorkflowRunsForRepo({
-            repo,
-            owner,
-            branch: prBranch,
-          });
+          const workflowRuns =
+            cachedWorkflows.get(prBranch) ||
+            (await octokit.rest.actions.listWorkflowRunsForRepo({
+              repo,
+              owner,
+              branch: prBranch,
+            }));
+          cachedWorkflows.set(prBranch, workflowRuns);
 
           // We only care about the relevant workflow
           const relevantWorkflowRuns = workflowRuns.data.workflow_runs.filter(
