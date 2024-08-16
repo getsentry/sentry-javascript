@@ -120,11 +120,11 @@ async function clearGithubCaches(octokit, { repo, owner, clearDevelop, clearPend
 
       core.info(`> Clearing cache ${id}...`);
 
-      await octokit.rest.actions.deleteActionsCacheById({
+      /*  await octokit.rest.actions.deleteActionsCacheById({
         owner,
         repo,
         cache_id: id,
-      });
+      }); */
     }
   }
 }
