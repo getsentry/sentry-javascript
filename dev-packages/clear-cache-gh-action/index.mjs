@@ -99,7 +99,7 @@ async function clearGithubCaches(octokit, { repo, owner, clearDevelop, clearPend
           // as either the run may be in progress,
           // or failed - in which case we may want to re-run the workflow
           if (latestWorkflowRun.conclusion !== 'success') {
-            core.info(`> Keeping cache because latest workflow is ${latestWorkflowRun.status}.`);
+            core.info(`> Keeping cache because latest workflow is ${latestWorkflowRun.conclusion}.`);
             continue;
           }
 
