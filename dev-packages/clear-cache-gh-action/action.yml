@@ -12,10 +12,10 @@ inputs:
     required: false
     default: ""
     description: "If set, also clear caches from non-develop branches."
-  clear_pending:
+  clear_pending_prs:
     required: false
     default: ""
-    description: "If set, also clear caches from incomplete workflow runs."
+    description: "If set, also clear caches from pending PR workflow runs."
   workflow_name:
     required: false
     default: "CI: Build & Test"

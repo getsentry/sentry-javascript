@@ -10,7 +10,7 @@ async function run() {
   const githubToken = getInput('github_token');
   const clearDevelop = getInput('clear_develop', { type: 'boolean' });
   const clearBranches = getInput('clear_branches', { type: 'boolean', default: true });
-  const clearPending = getInput('clear_pending', { type: 'boolean' });
+  const clearPending = getInput('clear_pending_prs', { type: 'boolean' });
   const workflowName = getInput('workflow_name');
 
   const octokit = getOctokit(githubToken);
