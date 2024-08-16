@@ -1,11 +1,37 @@
 name: "Action: Clear all GHA caches"
 on:
   workflow_dispatch:
+    inputs:
+      include_pending:
+        description: If caches of pending workflows should be deleted
+        type: boolean
+        default: false
+      include_develop:
+        description: If caches of the develop branch should be deleted
+        type: boolean
+        default: false
+  schedule:
+    # Run every day at midnight
+    - cron: '0 0 * * *'
 
 jobs:
   clear-caches:
     name: Delete all caches
     runs-on: ubuntu-20.04
     steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: 'package.json'
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
       - name: Clear caches
-        uses: easimon/wipe-cache@v2
+        uses: ./dev-packages/clear-cache-gh-action
+        with:
+          include_pending: ${{ inputs.include_pending }}
+          include_develop: ${{ inputs.include_develop }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}

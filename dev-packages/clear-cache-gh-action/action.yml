@@ -1,0 +1,21 @@
+name: 'clear-cache-gh-action'
+description: 'Clear caches of the GitHub repository.'
+inputs:
+  github_token:
+    required: true
+    description: 'a github access token'
+  clear_develop:
+    required: false
+    default: ""
+    description: "If set, also clear caches from develop branch."
+  clear_pending:
+    required: false
+    default: ""
+    description: "If set, also clear caches from incomplete workflow runs."
+  workflow_name:
+    required: false
+    default: "CI: Build & Test"
+    description: The workflow to clear caches for.
+runs:
+  using: 'node20'
+  main: 'index.mjs'
