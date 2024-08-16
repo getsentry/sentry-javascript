@@ -8,6 +8,10 @@ inputs:
     required: false
     default: ""
     description: "If set, also clear caches from develop branch."
+  clear_branches:
+    required: false
+    default: ""
+    description: "If set, also clear caches from non-develop branches."
   clear_pending:
     required: false
     default: ""

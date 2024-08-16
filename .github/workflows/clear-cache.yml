@@ -3,13 +3,17 @@ on:
   workflow_dispatch:
     inputs:
       include_pending:
-        description: If caches of pending workflows should be deleted
+        description: Delete caches of pending workflows
         type: boolean
         default: false
       include_develop:
-        description: If caches of the develop branch should be deleted
+        description: Delete caches on develop branch
         type: boolean
         default: false
+      include_branches:
+        description: Delete caches on non-develop branches
+        type: boolean
+        default: true
   schedule:
     # Run every day at midnight
     - cron: '0 0 * * *'
@@ -34,4 +38,5 @@ jobs:
         with:
           include_pending: ${{ inputs.include_pending }}
           include_develop: ${{ inputs.include_develop }}
+          include_branches: ${{ inputs.include_branches }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
