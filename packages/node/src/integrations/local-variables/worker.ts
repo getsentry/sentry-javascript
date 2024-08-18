@@ -1,11 +1,11 @@
 import type { Debugger, InspectorNotification, Runtime } from 'node:inspector';
 import { Session } from 'node:inspector/promises';
 import { parentPort, workerData } from 'node:worker_threads';
-import type { StackParser } from '@sentry/types';
+import type { StackFrame, StackParser } from '@sentry/types';
 import { createStackParser, nodeStackLineParser } from '@sentry/utils';
 import { createGetModuleFromFilename } from '../../utils/module';
 import type { LocalVariablesWorkerArgs, PausedExceptionEvent, RateLimitIncrement, Variables } from './common';
-import { createRateLimiter, hashFromStack } from './common';
+import { createRateLimiter, functionNamesMatch, hashFromStack } from './common';
 
 const options: LocalVariablesWorkerArgs = workerData;
 
@@ -104,9 +104,24 @@ async function handlePaused(
     return;
   }
 
+  const originalErrorStackFrames: StackFrame[] = stackParser(
+    data.description,
+  ).filter((frame) => frame.function !== 'new Promise');
+
+  // Debugger frames being longer than the originalErrorStackFrames means they definitely dont match
+  // Debugger callFrames don't include anything beyond an async boundary, so they should be SHORTER or equal to the full error stack
+  // If they are longer, we are in a re-throw and we should stop to avoid overriding the error's detected vars from the original throw
+  if (callFrames.length > originalErrorStackFrames.length) {
+    return;
+  }
+
   const frames = [];
 
   for (let i = 0; i < callFrames.length; i++) {
+    // sentry frames are in reverse order
+    const originalErrorStackFramesIndex =
+      originalErrorStackFrames.length - 1 - i;
+
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const { scopeChain, functionName, this: obj } = callFrames[i]!;
 
@@ -114,6 +129,14 @@ async function handlePaused(
 
     // obj.className is undefined in ESM modules
     const fn = obj.className === 'global' || !obj.className ? functionName : `${obj.className}.${functionName}`;
+
+    if (
+      !functionNamesMatch(fn, originalErrorStackFrames[originalErrorStackFramesIndex]?.function)
+    ) {
+      // If at any point we encounter a function name that doesn't match the original error stack, we stop
+      //   this means we are in a re-throw and we don't want to override the error's detected vars from the original throw
+      return;
+    }
 
     if (localScope?.object.objectId === undefined) {
       frames[i] = { function: fn };
