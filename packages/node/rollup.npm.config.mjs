@@ -1,6 +1,6 @@
 import replace from '@rollup/plugin-replace';
 import { makeBaseNPMConfig, makeNPMConfigVariants, makeOtelLoaders } from '@sentry-internal/rollup-utils';
-import { createWorkerCodeBuilder } from './rollup.anr-worker.config.mjs';
+import { createWorkerCodeBuilder, getBase64WorkerCode } from './rollup.inspector-worker.config.mjs';
 
 const [anrWorkerConfig, getAnrBase64Code] = createWorkerCodeBuilder(
   'src/integrations/anr/worker.ts',
@@ -34,6 +34,7 @@ export default [
             values: {
               AnrWorkerScript: () => getAnrBase64Code(),
               LocalVariablesWorkerScript: () => getLocalVariablesBase64Code(),
+              TimeTravelWorkerScript: await getBase64WorkerCode('src/timetravel/worker.ts'),
             },
           }),
         ],
