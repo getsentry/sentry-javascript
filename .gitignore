@@ -10,6 +10,7 @@ build/
 # various integration test builds
 dist/
 coverage/
+reports/
 scratch/
 *.js.map
 *.pyc
