@@ -9490,6 +9490,15 @@
   resolved "https://registry.yarnpkg.com/@stryker-mutator/util/-/util-8.5.0.tgz#66bccae7aedebb96bde6738aac55cce8e81c7f09"
   integrity sha512-T1ElpGUDqESKcwuRnfEuroE7N2pEMLTqieWRLIJZsP2ubEfnoHp4aGVL6IjPRdiZr4jetZOLfjlTzddrqrbsvg==
 
+"@stryker-mutator/vitest-runner@^8.5.0":
+  version "8.5.0"
+  resolved "https://registry.yarnpkg.com/@stryker-mutator/vitest-runner/-/vitest-runner-8.5.0.tgz#e6606013f2468fb5d6f11d8cbd7d0258d30957ce"
+  integrity sha512-zOF/UWlHav7z5qU8IfJpWMz3t5I8y8QqMXrs91ArmtCn9vIf20MXby0wRv+HM4+GaRVHhyZdWK1s/xjgeQu5zg==
+  dependencies:
+    "@stryker-mutator/api" "8.5.0"
+    "@stryker-mutator/util" "8.5.0"
+    tslib "~2.6.3"
+
 "@sveltejs/kit@^2.0.2":
   version "2.0.2"
   resolved "https://registry.yarnpkg.com/@sveltejs/kit/-/kit-2.0.2.tgz#bd02523fe570ddaf89148bffb1eb2233c458054b"

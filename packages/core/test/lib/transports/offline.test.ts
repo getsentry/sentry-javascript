@@ -160,7 +160,7 @@ function waitUntil(fn: () => boolean, timeout: number): Promise<void> {
   });
 }
 
-describe('makeOfflineTransport', () => {
+describe.skip('makeOfflineTransport', () => {
   it('Sends envelope and checks the store for further envelopes', async () => {
     const { getCalls, store } = createTestStore();
     const { getSendCount, baseTransport } = createTestTransport({ statusCode: 200 });

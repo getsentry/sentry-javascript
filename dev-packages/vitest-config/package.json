@@ -1,0 +1,33 @@
+{
+  "private": true,
+  "version": "8.26.0",
+  "name": "@sentry-internal/vitest-config",
+  "author": "Sentry",
+  "license": "MIT",
+  "main": "./src/vite.config.ts",
+  "module": "./src/vite.config.ts",
+  "files": [
+    "src"
+  ],
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "import": {
+        "default": "./src/vite.config.js"
+      },
+      "require": {
+        "default": "./src/vite.config.js"
+      }
+    }
+  },
+  "dependencies": {
+    "vitest": "^1.6.0"
+  },
+  "sideEffects": false,
+  "engines": {
+    "node": ">=14.18"
+  },
+  "volta": {
+    "extends": "../../package.json"
+  }
+}

@@ -164,7 +164,9 @@ describe('ContextLines', () => {
       }
 
       expect(errorFrame.context_line).toBe("  return new Error('mock error');");
-      expect(errorFrame.pre_context).toHaveLength(2);
+      // We expect 2 lines of context before the error line however, when running the tests with stryker (for mutation
+      // testing) the test files are modified which adds two additional pre context lines.
+      expect(errorFrame.pre_context?.length).toBeGreaterThanOrEqual(2);
       expect(errorFrame.post_context).toHaveLength(1);
     });
 

@@ -96,7 +96,8 @@
     "import-in-the-middle": "^1.11.0"
   },
   "devDependencies": {
-    "@types/node": "^14.18.0"
+    "@types/node": "^14.18.0",
+    "@sentry-internal/jest-config": "8.26.0"
   },
   "optionalDependencies": {
     "opentelemetry-instrumentation-fetch-node": "1.2.3"
@@ -120,6 +121,7 @@
     "test": "yarn test:jest",
     "test:jest": "jest",
     "test:watch": "jest --watch",
+    "test:mutation": "stryker run",
     "yalc:publish": "yalc publish --push --sig"
   },
   "volta": {

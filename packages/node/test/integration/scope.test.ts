@@ -1,6 +1,6 @@
 import { getCapturedScopesOnSpan, getCurrentScope } from '@sentry/core';
 import { getClient } from '@sentry/opentelemetry';
-import { clearGlobalScope } from '../../../core/test/lib/clear-global-scope';
+import { clearGlobalScope } from './../helpers/clear-global-scope';
 
 import * as Sentry from '../../src/';
 import type { NodeClient } from '../../src/sdk/client';

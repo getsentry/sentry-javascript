@@ -18,7 +18,7 @@ module.exports = {
     },
     __DEBUG_BUILD__: true,
   },
-  testPathIgnorePatterns: ['<rootDir>/build/', '<rootDir>/node_modules/'],
+  testPathIgnorePatterns: ['<rootDir>/build/', '<rootDir>/node_modules/', '<rootDir>/.stryker-tmp/'],
 
   // On CI, we do not need the pretty CLI output, as it makes logs harder to parse
   ...(process.env.CI
