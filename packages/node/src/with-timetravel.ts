@@ -4,6 +4,24 @@ import { Worker } from 'worker_threads';
 
 const base64WorkerScript = '###TimeTravelWorkerScript###';
 
+export interface StateUpdateEvent {
+  type: 'StateUpdateEvent';
+  data: {
+    filename?: string;
+    lineno?: number;
+    pre_line?: string[];
+    line?: string;
+    post_line?: string[];
+  };
+}
+export type WorkerThreadMessage = StateUpdateEvent;
+
+interface StopEvent {
+  type: 'stop';
+}
+
+export type ParentThreadMessage = StopEvent;
+
 /**
  * Allows you to go back in time when an error happens within the callback you provide.
  *
@@ -28,8 +46,9 @@ export async function withTimetravel<F extends () => any>(timetravelableFunction
     worker.terminate();
   });
 
-  worker.on('message', () => {
-    // do shit here
+  worker.on('message', (data: WorkerThreadMessage) => {
+    console.log('worker message', data);
+    // Do more crap here
   });
 
   worker.on('error', (err: Error) => {
@@ -47,6 +66,7 @@ export async function withTimetravel<F extends () => any>(timetravelableFunction
       // noop? or write stack traces on error object
     },
     () => {
+      worker.postMessage({ type: 'stop' });
       // eslint-disable-next-line @typescript-eslint/no-floating-promises
       worker.terminate();
     },
