@@ -14,7 +14,12 @@ export interface StateUpdateEvent {
     post_line?: string[];
   };
 }
-export type WorkerThreadMessage = StateUpdateEvent;
+
+export interface PayloadEvent {
+  type: 'Payload';
+}
+
+export type WorkerThreadMessage = StateUpdateEvent | PayloadEvent;
 
 interface StopEvent {
   type: 'stop';
@@ -46,11 +51,6 @@ export async function withTimetravel<F extends () => any>(timetravelableFunction
     worker.terminate();
   });
 
-  worker.on('message', (data: WorkerThreadMessage) => {
-    console.log('worker message', data);
-    // Do more crap here
-  });
-
   worker.on('error', (err: Error) => {
     logger.error('Timetravel worker error', err);
   });
@@ -66,9 +66,17 @@ export async function withTimetravel<F extends () => any>(timetravelableFunction
       // noop? or write stack traces on error object
     },
     () => {
+      function onStopMessage(message: WorkerThreadMessage): void {
+        if (message.type === 'Payload') {
+          console.log(JSON.stringify(message));
+        }
+
+        worker.off('message', onStopMessage);
+      }
+
+      worker.on('message', onStopMessage);
+
       worker.postMessage({ type: 'stop' });
-      // eslint-disable-next-line @typescript-eslint/no-floating-promises
-      worker.terminate();
     },
   );
 }
