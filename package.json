@@ -92,7 +92,8 @@
     "dev-packages/test-utils",
     "dev-packages/size-limit-gh-action",
     "dev-packages/external-contributor-gh-action",
-    "dev-packages/rollup-utils"
+    "dev-packages/rollup-utils",
+    "dev-packages/jest-config"
   ],
   "devDependencies": {
     "@biomejs/biome": "^1.4.0",
@@ -108,6 +109,8 @@
     "@size-limit/file": "~11.1.0",
     "@size-limit/webpack": "~11.1.0",
     "@strictsoftware/typedoc-plugin-monorepo": "^0.3.1",
+    "@stryker-mutator/core": "^8.5.0",
+    "@stryker-mutator/jest-runner": "^8.5.0",
     "@types/jest": "^27.4.1",
     "@types/jsdom": "^21.1.6",
     "@types/node": "^14.18.0",

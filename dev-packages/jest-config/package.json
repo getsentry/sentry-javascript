@@ -1,0 +1,26 @@
+{
+  "private": true,
+  "version": "8.26.0",
+  "name": "@sentry-internal/jest-config",
+  "author": "Sentry",
+  "license": "MIT",
+  "main": "./src/jest.config.js",
+  "files": [
+    "src"
+  ],
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "require": {
+        "default": "./src/jest.config.js"
+      }
+    }
+  },
+  "sideEffects": false,
+  "engines": {
+    "node": ">=14.18"
+  },
+  "volta": {
+    "extends": "../../package.json"
+  }
+}

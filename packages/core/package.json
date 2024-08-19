@@ -42,6 +42,9 @@
     "@sentry/types": "8.26.0",
     "@sentry/utils": "8.26.0"
   },
+  "devDependencies": {
+    "@sentry-internal/jest-config": "8.26.0"
+  },
   "scripts": {
     "build": "run-p build:transpile build:types",
     "build:dev": "yarn build",
@@ -60,6 +63,7 @@
     "lint": "eslint . --format stylish",
     "test": "jest",
     "test:watch": "jest --watch",
+    "test:mutation": "stryker run",
     "yalc:publish": "yalc publish --push --sig"
   },
   "volta": {
