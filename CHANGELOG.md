@@ -10,6 +10,84 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+Work in this release was contributed by @charpeni. Thank you for your contribution!
+
+## 8.26.0
+
+### Important Changes
+
+- **feat(node): Add `fsInstrumentation` (#13291)**
+
+  This release adds `fsIntegration`, an integration that instruments the `fs` API to the Sentry Node SDK. The
+  integration creates spans with naming patterns of `fs.readFile`, `fs.unlink`, and so on.
+
+  This integration is not enabled by default and needs to be registered in your `Sentry.init` call. You can configure
+  via options whether to include path arguments or error messages as span attributes when an fs call fails:
+
+  ```js
+  Sentry.init({
+    integrations: [
+      Sentry.fsIntegration({
+        recordFilePaths: true,
+        recordErrorMessagesAsSpanAttributes: true,
+      }),
+    ],
+  });
+  ```
+
+  **WARNING:** This integration may add significant overhead to your application. Especially in scenarios with a lot of
+  file I/O, like for example when running a framework dev server, including this integration can massively slow down
+  your application.
+
+### Other Changes
+
+- feat(browser): Add spotlightBrowser integration (#13263)
+- feat(browser): Allow sentry in safari extension background page (#13209)
+- feat(browser): Send CLS as standalone span (experimental) (#13056)
+- feat(core): Add OpenTelemetry-specific `getTraceData` implementation (#13281)
+- feat(nextjs): Always add `browserTracingIntegration` (#13324)
+- feat(nextjs): Always transmit trace data to the client (#13337)
+- feat(nextjs): export SentryBuildOptions (#13296)
+- feat(nextjs): Update `experimental_captureRequestError` to reflect `RequestInfo.path` change in Next.js canary
+  (#13344)
+
+- feat(nuxt): Always add tracing meta tags (#13273)
+- feat(nuxt): Set transaction name for server error (#13292)
+- feat(replay): Add a replay-specific logger (#13256)
+- feat(sveltekit): Add bundle size optimizations to plugin options (#13318)
+- feat(sveltekit): Always add browserTracingIntegration (#13322)
+- feat(tracing): Make long animation frames opt-out (#13255)
+- fix(astro): Correctly extract request data (#13315)
+- fix(astro): Only track access request headers in dynamic page requests (#13306)
+- fix(nuxt): Add import line for disabled `autoImport` (#13342)
+- fix(nuxt): Add vue to excludeEsmLoaderHooks array (#13346)
+- fix(opentelemetry): Do not overwrite http span name if kind is internal (#13282)
+- fix(remix): Ensure `origin` is correctly set for remix server spans (#13305)
+
+Work in this release was contributed by @MonstraG, @undead-voron and @Zen-cronic. Thank you for your contributions!
+
+## 8.25.0
+
+### Important Changes
+
+- **Alpha release of Official Solid Start SDK**
+
+This release contains the alpha version of `@sentry/solidstart`, our SDK for [Solid Start](https://start.solidjs.com/)!
+For details on how to use it, please see the [README](./packages/solidstart/README.md). Any feedback/bug reports are
+greatly appreciated, please [reach out on GitHub](https://github.com/getsentry/sentry-javascript/issues/12538).
+
+### Other Changes
+
+- feat(astro): Add `bundleSizeOptimizations` vite options to integration (#13250)
+- feat(astro): Always add BrowserTracing (#13244)
+- feat(core): Add `getTraceMetaTags` function (#13201)
+- feat(nestjs): Automatic instrumentation of nestjs exception filters (#13230)
+- feat(node): Add `useOperationNameForRootSpan` to`graphqlIntegration` (#13248)
+- feat(sveltekit): Add `wrapServerRouteWithSentry` wrapper (#13247)
+- fix(aws-serverless): Extract sentry trace data from handler `context` over `event` (#13266)
+- fix(browser): Initialize default integration if `defaultIntegrations: undefined` (#13261)
+- fix(utils): Streamline IP capturing on incoming requests (#13272)
+
 ## 8.24.0
 
 - feat(nestjs): Filter RPC exceptions (#13227)

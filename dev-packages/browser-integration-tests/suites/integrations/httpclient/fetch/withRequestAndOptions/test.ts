@@ -42,7 +42,7 @@ sentryTest('works with a Request (without body) & options passed in', async ({ g
       ],
     },
     request: {
-      url: 'http://localhost:7654/foo',
+      url: 'http://sentry-test.io/foo',
       method: 'POST',
       headers: {
         accept: 'application/json',

@@ -6,6 +6,7 @@
 import type { Mock } from 'vitest';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import * as SentryCore from '@sentry/core';
 import { Scope, createTransport } from '@sentry/core';
 import type { Client, Integration } from '@sentry/types';
 import { resolvedSyncPromise } from '@sentry/utils';
@@ -79,6 +80,18 @@ describe('init', () => {
     expect(DEFAULT_INTEGRATIONS[1]!.setupOnce as Mock).toHaveBeenCalledTimes(1);
   });
 
+  it('installs default integrations if `defaultIntegrations: undefined`', () => {
+    // @ts-expect-error this is fine for testing
+    const initAndBindSpy = vi.spyOn(SentryCore, 'initAndBind').mockImplementationOnce(() => {});
+    const options = getDefaultBrowserOptions({ dsn: PUBLIC_DSN, defaultIntegrations: undefined });
+    init(options);
+
+    expect(initAndBindSpy).toHaveBeenCalledTimes(1);
+
+    const optionsPassed = initAndBindSpy.mock.calls[0]?.[1];
+    expect(optionsPassed?.integrations?.length).toBeGreaterThan(0);
+  });
+
   test("doesn't install default integrations if told not to", () => {
     const DEFAULT_INTEGRATIONS: Integration[] = [
       new MockIntegration('MockIntegration 0.3'),
@@ -150,6 +163,7 @@ describe('init', () => {
       Object.defineProperty(WINDOW, 'browser', { value: undefined, writable: true });
       Object.defineProperty(WINDOW, 'nw', { value: undefined, writable: true });
       Object.defineProperty(WINDOW, 'window', { value: WINDOW, writable: true });
+      vi.clearAllMocks();
     });
 
     it('logs a browser extension error if executed inside a Chrome extension', () => {
@@ -185,7 +199,7 @@ describe('init', () => {
       consoleErrorSpy.mockRestore();
     });
 
-    it.each(['chrome-extension', 'moz-extension', 'ms-browser-extension'])(
+    it.each(['chrome-extension', 'moz-extension', 'ms-browser-extension', 'safari-web-extension'])(
       "doesn't log a browser extension error if executed inside an extension running in a dedicated page (%s)",
       extensionProtocol => {
         const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});

@@ -1,9 +1,7 @@
-import { getActiveSpan, getDynamicSamplingContextFromSpan, getRootSpan, spanToTraceHeader } from '@sentry/core';
-import { dynamicSamplingContextToSentryBaggageHeader } from '@sentry/utils';
 import type App from 'next/app';
 
 import { isBuild } from './utils/isBuild';
-import { getSpanFromRequest, withErrorInstrumentation, withTracedServerSideDataFetcher } from './utils/wrapperUtils';
+import { withErrorInstrumentation, withTracedServerSideDataFetcher } from './utils/wrapperUtils';
 
 type AppGetInitialProps = (typeof App)['getInitialProps'];
 
@@ -26,6 +24,7 @@ export function wrapAppGetInitialPropsWithSentry(origAppGetInitialProps: AppGetI
       const { req, res } = context.ctx;
 
       const errorWrappedAppGetInitialProps = withErrorInstrumentation(wrappingTarget);
+
       // Generally we can assume that `req` and `res` are always defined on the server:
       // https://nextjs.org/docs/api-reference/data-fetching/get-initial-props#context-object
       // This does not seem to be the case in dev mode. Because we have no clean way of associating the the data fetcher
@@ -37,15 +36,20 @@ export function wrapAppGetInitialPropsWithSentry(origAppGetInitialProps: AppGetI
           dataFetchingMethodName: 'getInitialProps',
         });
 
-        const appGetInitialProps: {
-          pageProps: {
-            _sentryTraceData?: string;
-            _sentryBaggage?: string;
+        const {
+          data: appGetInitialProps,
+          sentryTrace,
+          baggage,
+        }: {
+          data: {
+            pageProps: {
+              _sentryTraceData?: string;
+              _sentryBaggage?: string;
+            };
           };
+          sentryTrace?: string;
+          baggage?: string;
         } = await tracedGetInitialProps.apply(thisArg, args);
-
-        const activeSpan = getActiveSpan();
-        const requestSpan = getSpanFromRequest(req) ?? (activeSpan ? getRootSpan(activeSpan) : undefined);
 
         // Per definition, `pageProps` is not optional, however an increased amount of users doesn't seem to call
         // `App.getInitialProps(appContext)` in their custom `_app` pages which is required as per
@@ -55,21 +59,14 @@ export function wrapAppGetInitialPropsWithSentry(origAppGetInitialProps: AppGetI
           appGetInitialProps.pageProps = {};
         }
 
-        if (requestSpan) {
-          const sentryTrace = spanToTraceHeader(requestSpan);
+        // The Next.js serializer throws on undefined values so we need to guard for it (#12102)
+        if (sentryTrace) {
+          appGetInitialProps.pageProps._sentryTraceData = sentryTrace;
+        }
 
-          // The Next.js serializer throws on undefined values so we need to guard for it (#12102)
-          if (sentryTrace) {
-            appGetInitialProps.pageProps._sentryTraceData = sentryTrace;
-          }
-
-          const dynamicSamplingContext = getDynamicSamplingContextFromSpan(requestSpan);
-          const baggage = dynamicSamplingContextToSentryBaggageHeader(dynamicSamplingContext);
-
-          // The Next.js serializer throws on undefined values so we need to guard for it (#12102)
-          if (baggage) {
-            appGetInitialProps.pageProps._sentryBaggage = baggage;
-          }
+        // The Next.js serializer throws on undefined values so we need to guard for it (#12102)
+        if (baggage) {
+          appGetInitialProps.pageProps._sentryBaggage = baggage;
         }
 
         return appGetInitialProps;

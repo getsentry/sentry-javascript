@@ -6,6 +6,7 @@ import {
   SPAN_STATUS_OK,
   captureException,
   continueTrace,
+  getTraceData,
   startInactiveSpan,
   startSpan,
   startSpanManual,
@@ -88,8 +89,11 @@ export function withTracedServerSideDataFetcher<F extends (...args: any[]) => Pr
     /** Name of the data fetching method - will be used for describing the data fetcher's span. */
     dataFetchingMethodName: string;
   },
-): (...params: Parameters<F>) => Promise<ReturnType<F>> {
-  return async function (this: unknown, ...args: Parameters<F>): Promise<ReturnType<F>> {
+): (...params: Parameters<F>) => Promise<{ data: ReturnType<F>; sentryTrace?: string; baggage?: string }> {
+  return async function (
+    this: unknown,
+    ...args: Parameters<F>
+  ): Promise<{ data: ReturnType<F>; sentryTrace?: string; baggage?: string }> {
     return escapeNextjsTracing(() => {
       const isolationScope = commonObjectToIsolationScope(req);
       return withIsolationScope(isolationScope, () => {
@@ -116,8 +120,13 @@ export function withTracedServerSideDataFetcher<F extends (...args: any[]) => Pr
               },
               async dataFetcherSpan => {
                 dataFetcherSpan.setStatus({ code: SPAN_STATUS_OK });
+                const { 'sentry-trace': sentryTrace, baggage } = getTraceData();
                 try {
-                  return await origDataFetcher.apply(this, args);
+                  return {
+                    sentryTrace: sentryTrace,
+                    baggage: baggage,
+                    data: await origDataFetcher.apply(this, args),
+                  };
                 } catch (e) {
                   dataFetcherSpan.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
                   requestSpan?.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });

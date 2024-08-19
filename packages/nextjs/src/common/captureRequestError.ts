@@ -1,7 +1,7 @@
 import { captureException, withScope } from '@sentry/core';
 
 type RequestInfo = {
-  url: string;
+  path: string;
   method: string;
   headers: Record<string, string | string[] | undefined>;
 };
@@ -33,7 +33,7 @@ export function experimental_captureRequestError(
     });
 
     scope.setContext('nextjs', {
-      request_path: request.url,
+      request_path: request.path,
       router_kind: errorContext.routerKind,
       router_path: errorContext.routePath,
       route_type: errorContext.routeType,
