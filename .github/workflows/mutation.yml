@@ -20,7 +20,7 @@ jobs:
   job_build:
     name: Build & Test
     runs-on: ubuntu-20.04
-    timeout-minutes: 15
+    timeout-minutes: 300
     steps:
       - name: 'Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})'
         uses: actions/checkout@v4
