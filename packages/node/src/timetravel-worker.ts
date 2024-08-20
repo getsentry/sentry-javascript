@@ -6,6 +6,8 @@ const session = new inspector.Session();
 
 let isStopped = false;
 
+const window = 3;
+
 parentPort?.on('message', (message: ParentThreadMessage) => {
   if (message.type === 'stop') {
     isStopped = true;
@@ -21,11 +23,21 @@ session.post('Debugger.enable', () => {
       { scriptId: message.params.callFrames[0]?.location.scriptId },
       (err, scriptSourceMessage) => {
         if (!isStopped) {
-          const callFrames = message.params.callFrames;
+          const topCallFrame = message.params.callFrames[0];
+          // @ts-expect-error fuck you
+          const scriptSource: string = scriptSourceMessage.scriptSource || '';
+          const lines = scriptSource.split('\n');
+
           parentPort?.postMessage({
             type: 'StateUpdateEvent',
-            // @ts-expect-error fuck you
-            data: { callFrames, scriptSource: scriptSourceMessage.scriptSource || '' },
+            data: {
+              filename: topCallFrame?.url || 'unknown',
+              lineno: topCallFrame?.functionLocation?.lineNumber || 0,
+              colno: topCallFrame?.functionLocation?.columnNumber || 0,
+              pre_lines: lines.slice(Math.max(0, (topCallFrame?.functionLocation?.lineNumber || 0) - window), topCallFrame?.functionLocation?.lineNumber || 0),
+              line: lines[topCallFrame?.functionLocation?.lineNumber || 0] || '',
+              post_lines: lines.slice((topCallFrame?.functionLocation?.lineNumber || 0) + 1, (topCallFrame?.functionLocation?.lineNumber || 0) + 1 + window),
+            },
           } satisfies StateUpdateEvent);
         }
         session.post('Debugger.stepInto');

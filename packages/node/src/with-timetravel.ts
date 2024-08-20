@@ -9,9 +9,10 @@ export interface StateUpdateEvent {
   data: {
     filename?: string;
     lineno?: number;
-    pre_line?: string[];
+    colno?: number;
+    pre_lines?: string[];
     line?: string;
-    post_line?: string[];
+    post_lines?: string[];
   };
 }
 export type WorkerThreadMessage = StateUpdateEvent;
