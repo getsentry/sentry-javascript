@@ -1,4 +1,5 @@
 import type { Event, Span, StartSpanOptions } from '@sentry/types';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -12,6 +13,7 @@ import {
   spanToJSON,
   withScope,
 } from '../../../src';
+
 import { getAsyncContextStrategy } from '../../../src/asyncContext';
 import {
   SentrySpan,
@@ -53,7 +55,7 @@ describe('startSpan', () => {
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe.each([
@@ -476,7 +478,7 @@ describe('startSpan', () => {
   });
 
   it('samples with a tracesSampler', () => {
-    const tracesSampler = jest.fn(() => {
+    const tracesSampler = vi.fn(() => {
       return true;
     });
 
@@ -503,7 +505,7 @@ describe('startSpan', () => {
   });
 
   it('includes the scope at the time the span was started when finished', async () => {
-    const beforeSendTransaction = jest.fn(event => event);
+    const beforeSendTransaction = vi.fn(event => event);
 
     const client = new TestClient(
       getDefaultTestClientOptions({
@@ -553,7 +555,7 @@ describe('startSpan', () => {
 
     const carrier = getMainCarrier();
 
-    const customFn = jest.fn((_options: StartSpanOptions, callback: (span: Span) => string) => {
+    const customFn = vi.fn((_options: StartSpanOptions, callback: (span: Span) => string) => {
       callback(staticSpan);
       return 'aha';
     }) as typeof startSpan;
@@ -929,7 +931,7 @@ describe('startSpanManual', () => {
 
     const carrier = getMainCarrier();
 
-    const customFn = jest.fn((_options: StartSpanOptions, callback: (span: Span) => string) => {
+    const customFn = vi.fn((_options: StartSpanOptions, callback: (span: Span) => string) => {
       callback(staticSpan);
       return 'aha';
     }) as unknown as typeof startSpanManual;
@@ -1238,7 +1240,7 @@ describe('startInactiveSpan', () => {
   });
 
   it('includes the scope at the time the span was started when finished', async () => {
-    const beforeSendTransaction = jest.fn(event => event);
+    const beforeSendTransaction = vi.fn(event => event);
 
     const client = new TestClient(
       getDefaultTestClientOptions({
@@ -1295,7 +1297,7 @@ describe('startInactiveSpan', () => {
 
     const carrier = getMainCarrier();
 
-    const customFn = jest.fn((_options: StartSpanOptions) => {
+    const customFn = vi.fn((_options: StartSpanOptions) => {
       return staticSpan;
     }) as unknown as typeof startInactiveSpan;
 
@@ -1458,7 +1460,7 @@ describe('getActiveSpan', () => {
 
     const carrier = getMainCarrier();
 
-    const customFn = jest.fn(() => {
+    const customFn = vi.fn(() => {
       return staticSpan;
     }) as typeof getActiveSpan;
 
@@ -1525,7 +1527,7 @@ describe('withActiveSpan()', () => {
 
     const carrier = getMainCarrier();
 
-    const customFn = jest.fn((_span: Span | null, callback: (scope: Scope) => string) => {
+    const customFn = vi.fn((_span: Span | null, callback: (scope: Scope) => string) => {
       callback(staticScope);
       return 'aha';
     }) as typeof withActiveSpan;
@@ -1557,7 +1559,7 @@ describe('span hooks', () => {
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('correctly emits span hooks', () => {
@@ -1608,7 +1610,7 @@ describe('suppressTracing', () => {
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('works for a root span', () => {

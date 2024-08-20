@@ -11,6 +11,7 @@ import type {
 import { GLOBAL_OBJ, createStackParser } from '@sentry/utils';
 import { getGlobalScope, getIsolationScope } from '../../src';
 
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Scope } from '../../src/scope';
 import {
   applyDebugIds,
@@ -197,7 +198,7 @@ describe('prepareEvent', () => {
   });
 
   it('works without any scope data', async () => {
-    const eventProcessor = jest.fn((a: unknown) => a) as EventProcessor;
+    const eventProcessor = vi.fn((a: unknown) => a) as EventProcessor;
 
     const scope = new Scope();
 
@@ -242,9 +243,9 @@ describe('prepareEvent', () => {
     const breadcrumb3 = { message: '3', timestamp: 123 } as Breadcrumb;
     const breadcrumb4 = { message: '4', timestamp: 123 } as Breadcrumb;
 
-    const eventProcessor1 = jest.fn((a: unknown) => a) as EventProcessor;
-    const eventProcessor2 = jest.fn((b: unknown) => b) as EventProcessor;
-    const eventProcessor3 = jest.fn((b: unknown) => b) as EventProcessor;
+    const eventProcessor1 = vi.fn((a: unknown) => a) as EventProcessor;
+    const eventProcessor2 = vi.fn((b: unknown) => b) as EventProcessor;
+    const eventProcessor3 = vi.fn((b: unknown) => b) as EventProcessor;
 
     const attachment1 = { filename: '1' } as Attachment;
     const attachment2 = { filename: '2' } as Attachment;
@@ -326,8 +327,8 @@ describe('prepareEvent', () => {
     const breadcrumb2 = { message: '2', timestamp: 222 } as Breadcrumb;
     const breadcrumb3 = { message: '3', timestamp: 333 } as Breadcrumb;
 
-    const eventProcessor1 = jest.fn((a: unknown) => a) as EventProcessor;
-    const eventProcessor2 = jest.fn((a: unknown) => a) as EventProcessor;
+    const eventProcessor1 = vi.fn((a: unknown) => a) as EventProcessor;
+    const eventProcessor2 = vi.fn((a: unknown) => a) as EventProcessor;
 
     const attachmentGlobal = { filename: 'global scope attachment' } as Attachment;
     const attachmentIsolation = { filename: 'isolation scope attachment' } as Attachment;
@@ -490,7 +491,7 @@ describe('prepareEvent', () => {
       const captureContextScope = new Scope();
       captureContextScope.setTags({ foo: 'bar' });
 
-      const captureContext = jest.fn(passedScope => {
+      const captureContext = vi.fn(passedScope => {
         expect(passedScope).toEqual(scope);
         return captureContextScope;
       });

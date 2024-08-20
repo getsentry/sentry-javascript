@@ -1,5 +1,6 @@
 import type { Event, EventHint } from '@sentry/types';
 
+import { describe, expect, test } from 'vitest';
 import { applyZodErrorsToEvent } from '../../../src/integrations/zoderrors';
 
 // Simplified type definition

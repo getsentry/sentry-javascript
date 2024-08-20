@@ -3,6 +3,8 @@ import { GLOBAL_OBJ, createStackParser, nodeStackLineParser } from '@sentry/util
 import { thirdPartyErrorFilterIntegration } from '../../../src/integrations/third-party-errors-filter';
 import { addMetadataToStackFrames } from '../../../src/metadata';
 
+import { beforeEach, describe, expect, it } from 'vitest';
+
 function clone<T>(data: T): T {
   return JSON.parse(JSON.stringify(data));
 }

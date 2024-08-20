@@ -1,4 +1,5 @@
 import { fill } from '@sentry/utils';
+import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 import { getClient, getCurrentScope, setCurrentClient } from '../../../src';
 import { functionToStringIntegration } from '../../../src/integrations/functiontostring';
 import { TestClient, getDefaultTestClientOptions } from '../../mocks/client';

@@ -17,6 +17,7 @@ import {
   parseEnvelope,
 } from '@sentry/utils';
 
+import { describe, expect, it } from 'vitest';
 import { createTransport } from '../../../src';
 import type { CreateOfflineStore, OfflineTransportOptions } from '../../../src/transports/offline';
 import { START_DELAY, makeOfflineTransport } from '../../../src/transports/offline';
@@ -410,7 +411,6 @@ describe('makeOfflineTransport', () => {
     START_DELAY + 2_000,
   );
 
-  // eslint-disable-next-line jest/no-disabled-tests
   it.skip(
     'Follows the Retry-After header',
     async () => {

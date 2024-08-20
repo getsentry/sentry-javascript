@@ -1,4 +1,5 @@
 import type { Span } from '@sentry/types';
+import { describe, expect, it } from 'vitest';
 import { SPAN_STATUS_ERROR } from '../../../src/tracing';
 import { SentryNonRecordingSpan } from '../../../src/tracing/sentryNonRecordingSpan';
 import { TRACE_FLAG_NONE, spanIsSampled, spanToJSON } from '../../../src/utils/spanUtils';

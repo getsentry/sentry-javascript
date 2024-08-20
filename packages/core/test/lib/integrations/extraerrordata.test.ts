@@ -2,6 +2,7 @@ import type { Event as SentryEvent, ExtendedError } from '@sentry/types';
 
 import { extraErrorDataIntegration } from '../../../src/integrations/extraerrordata';
 
+import { beforeEach, describe, expect, it } from 'vitest';
 import { TestClient, getDefaultTestClientOptions } from '../../mocks/client';
 
 const extraErrorData = extraErrorDataIntegration();

@@ -16,6 +16,8 @@ import type { OpenTelemetrySdkTraceBaseSpan } from '../../../src/utils/spanUtils
 import { getRootSpan, spanIsSampled, spanTimeInputToSeconds, spanToJSON } from '../../../src/utils/spanUtils';
 import { TestClient, getDefaultTestClientOptions } from '../../mocks/client';
 
+import { beforeEach, describe, expect, it, test } from 'vitest';
+
 describe('spanToTraceHeader', () => {
   test('simple', () => {
     const span = new SentrySpan();

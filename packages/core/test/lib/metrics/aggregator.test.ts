@@ -1,3 +1,4 @@
+import { beforeEach, describe, expect, it, test, vi } from 'vitest';
 import { MetricsAggregator } from '../../../src/metrics/aggregator';
 import { MAX_WEIGHT } from '../../../src/metrics/constants';
 import { CounterMetric } from '../../../src/metrics/instance';
@@ -10,7 +11,7 @@ describe('MetricsAggregator', () => {
   const options = getDefaultTestClientOptions({ tracesSampleRate: 0.0 });
 
   beforeEach(() => {
-    jest.useFakeTimers('legacy');
+    vi.useFakeTimers();
     testClient = new TestClient(options);
   });
 
@@ -81,12 +82,13 @@ describe('MetricsAggregator', () => {
 
   describe('close', () => {
     test('should flush immediately', () => {
-      const capture = jest.spyOn(testClient, 'sendEnvelope');
+      const clearIntervalSpy = vi.spyOn(global, 'clearInterval');
+      const capture = vi.spyOn(testClient, 'sendEnvelope');
       const aggregator = new MetricsAggregator(testClient);
       aggregator.add('c', 'requests', 1);
       aggregator.close();
       // It should clear the interval.
-      expect(clearInterval).toHaveBeenCalled();
+      expect(clearIntervalSpy).toHaveBeenCalledTimes(1);
       expect(capture).toBeCalled();
       expect(capture).toBeCalledTimes(1);
     });
@@ -94,7 +96,8 @@ describe('MetricsAggregator', () => {
 
   describe('flush', () => {
     test('should flush immediately', () => {
-      const capture = jest.spyOn(testClient, 'sendEnvelope');
+      const clearIntervalSpy = vi.spyOn(global, 'clearInterval');
+      const capture = vi.spyOn(testClient, 'sendEnvelope');
       const aggregator = new MetricsAggregator(testClient);
       aggregator.add('c', 'requests', 1);
       aggregator.flush();
@@ -104,14 +107,14 @@ describe('MetricsAggregator', () => {
       capture.mockReset();
       aggregator.close();
       // It should clear the interval.
-      expect(clearInterval).toHaveBeenCalled();
+      expect(clearIntervalSpy).toHaveBeenCalledTimes(1);
 
       // It shouldn't be called since it's been already flushed.
       expect(capture).toBeCalledTimes(0);
     });
 
     test('should not capture if empty', () => {
-      const capture = jest.spyOn(testClient, 'sendEnvelope');
+      const capture = vi.spyOn(testClient, 'sendEnvelope');
       const aggregator = new MetricsAggregator(testClient);
       aggregator.add('c', 'requests', 1);
       aggregator.flush();
@@ -124,7 +127,7 @@ describe('MetricsAggregator', () => {
 
   describe('add', () => {
     test('it should respect the max weight and flush if exceeded', () => {
-      const capture = jest.spyOn(testClient, 'sendEnvelope');
+      const capture = vi.spyOn(testClient, 'sendEnvelope');
       const aggregator = new MetricsAggregator(testClient);
 
       for (let i = 0; i < MAX_WEIGHT; i++) {

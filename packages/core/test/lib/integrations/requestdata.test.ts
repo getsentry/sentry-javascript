@@ -4,9 +4,10 @@ import * as sentryUtils from '@sentry/utils';
 import type { RequestDataIntegrationOptions } from '../../../src';
 import { requestDataIntegration, setCurrentClient } from '../../../src';
 
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { TestClient, getDefaultTestClientOptions } from '../../mocks/client';
 
-const addRequestDataToEventSpy = jest.spyOn(sentryUtils, 'addRequestDataToEvent');
+const addRequestDataToEventSpy = vi.spyOn(sentryUtils, 'addRequestDataToEvent');
 
 const headers = { ears: 'furry', nose: 'wet', tongue: 'spotted', cookie: 'favorite=zukes' };
 const method = 'wagging';
@@ -53,7 +54,7 @@ describe('`RequestData` integration', () => {
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('option conversion', () => {

@@ -1,5 +1,6 @@
 import type { SerializedCheckIn } from '@sentry/types';
 
+import { describe, expect, test } from 'vitest';
 import { createCheckInEnvelope } from '../../src/checkin';
 
 describe('createCheckInEnvelope', () => {

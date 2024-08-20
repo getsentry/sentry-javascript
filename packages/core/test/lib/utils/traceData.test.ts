@@ -3,6 +3,7 @@ import * as SentryCoreCurrentScopes from '../../../src/currentScopes';
 import * as SentryCoreTracing from '../../../src/tracing';
 import * as SentryCoreSpanUtils from '../../../src/utils/spanUtils';
 
+import { describe, expect, it, vi } from 'vitest';
 import { isValidBaggageString } from '../../../src/utils/traceData';
 
 const TRACE_FLAG_SAMPLED = 1;
@@ -24,11 +25,11 @@ const mockedScope = {
 describe('getTraceData', () => {
   it('returns the tracing data from the span, if a span is available', () => {
     {
-      jest.spyOn(SentryCoreTracing, 'getDynamicSamplingContextFromSpan').mockReturnValueOnce({
+      vi.spyOn(SentryCoreTracing, 'getDynamicSamplingContextFromSpan').mockReturnValueOnce({
         environment: 'production',
       });
-      jest.spyOn(SentryCoreSpanUtils, 'getActiveSpan').mockImplementationOnce(() => mockedSpan);
-      jest.spyOn(SentryCoreCurrentScopes, 'getCurrentScope').mockImplementationOnce(() => mockedScope);
+      vi.spyOn(SentryCoreSpanUtils, 'getActiveSpan').mockImplementationOnce(() => mockedSpan);
+      vi.spyOn(SentryCoreCurrentScopes, 'getCurrentScope').mockImplementationOnce(() => mockedScope);
 
       const data = getTraceData();
 
@@ -40,8 +41,8 @@ describe('getTraceData', () => {
   });
 
   it('returns propagationContext DSC data if no span is available', () => {
-    jest.spyOn(SentryCoreSpanUtils, 'getActiveSpan').mockImplementationOnce(() => undefined);
-    jest.spyOn(SentryCoreCurrentScopes, 'getCurrentScope').mockImplementationOnce(
+    vi.spyOn(SentryCoreSpanUtils, 'getActiveSpan').mockImplementationOnce(() => undefined);
+    vi.spyOn(SentryCoreCurrentScopes, 'getCurrentScope').mockImplementationOnce(
       () =>
         ({
           getPropagationContext: () => ({
@@ -56,7 +57,7 @@ describe('getTraceData', () => {
           }),
         }) as any,
     );
-    jest.spyOn(SentryCoreCurrentScopes, 'getClient').mockImplementationOnce(() => mockedClient);
+    vi.spyOn(SentryCoreCurrentScopes, 'getClient').mockImplementationOnce(() => mockedClient);
 
     const traceData = getTraceData();
 
@@ -67,13 +68,13 @@ describe('getTraceData', () => {
   });
 
   it('returns only the `sentry-trace` value if no DSC is available', () => {
-    jest.spyOn(SentryCoreTracing, 'getDynamicSamplingContextFromClient').mockReturnValueOnce({
+    vi.spyOn(SentryCoreTracing, 'getDynamicSamplingContextFromClient').mockReturnValueOnce({
       trace_id: '',
       public_key: undefined,
     });
 
     // @ts-expect-error - we don't need to provide all the properties
-    jest.spyOn(SentryCoreSpanUtils, 'getActiveSpan').mockImplementationOnce(() => ({
+    vi.spyOn(SentryCoreSpanUtils, 'getActiveSpan').mockImplementationOnce(() => ({
       isRecording: () => true,
       spanContext: () => {
         return {
@@ -84,8 +85,8 @@ describe('getTraceData', () => {
       },
     }));
 
-    jest.spyOn(SentryCoreCurrentScopes, 'getCurrentScope').mockImplementationOnce(() => mockedScope);
-    jest.spyOn(SentryCoreCurrentScopes, 'getClient').mockImplementationOnce(() => mockedClient);
+    vi.spyOn(SentryCoreCurrentScopes, 'getCurrentScope').mockImplementationOnce(() => mockedScope);
+    vi.spyOn(SentryCoreCurrentScopes, 'getClient').mockImplementationOnce(() => mockedClient);
 
     const traceData = getTraceData();
 
@@ -95,13 +96,13 @@ describe('getTraceData', () => {
   });
 
   it('returns only the `sentry-trace` tag if no DSC is available without a client', () => {
-    jest.spyOn(SentryCoreTracing, 'getDynamicSamplingContextFromClient').mockReturnValueOnce({
+    vi.spyOn(SentryCoreTracing, 'getDynamicSamplingContextFromClient').mockReturnValueOnce({
       trace_id: '',
       public_key: undefined,
     });
 
     // @ts-expect-error - we don't need to provide all the properties
-    jest.spyOn(SentryCoreSpanUtils, 'getActiveSpan').mockImplementationOnce(() => ({
+    vi.spyOn(SentryCoreSpanUtils, 'getActiveSpan').mockImplementationOnce(() => ({
       isRecording: () => true,
       spanContext: () => {
         return {
@@ -111,8 +112,8 @@ describe('getTraceData', () => {
         };
       },
     }));
-    jest.spyOn(SentryCoreCurrentScopes, 'getCurrentScope').mockImplementationOnce(() => mockedScope);
-    jest.spyOn(SentryCoreCurrentScopes, 'getClient').mockImplementationOnce(() => undefined);
+    vi.spyOn(SentryCoreCurrentScopes, 'getCurrentScope').mockImplementationOnce(() => mockedScope);
+    vi.spyOn(SentryCoreCurrentScopes, 'getClient').mockImplementationOnce(() => undefined);
 
     const traceData = getTraceData();
 
@@ -124,7 +125,7 @@ describe('getTraceData', () => {
 
   it('returns an empty object if the `sentry-trace` value is invalid', () => {
     // @ts-expect-error - we don't need to provide all the properties
-    jest.spyOn(SentryCoreSpanUtils, 'getActiveSpan').mockImplementationOnce(() => ({
+    vi.spyOn(SentryCoreSpanUtils, 'getActiveSpan').mockImplementationOnce(() => ({
       isRecording: () => true,
       spanContext: () => {
         return {

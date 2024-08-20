@@ -12,6 +12,8 @@ import { createClientReportEnvelope, createEnvelope, dsnFromString, parseEnvelop
 import { createTransport, getEnvelopeEndpointWithUrlEncodedAuth, makeMultiplexedTransport } from '../../../src';
 import { eventFromEnvelope } from '../../../src/transports/multiplexed';
 
+import { describe, expect, it, vi } from 'vitest';
+
 const DSN1 = 'https://1234@5678.ingest.sentry.io/4321';
 const DSN1_URL = getEnvelopeEndpointWithUrlEncodedAuth(dsnFromString(DSN1)!);
 
@@ -88,7 +90,7 @@ describe('makeMultiplexedTransport', () => {
 
   it('Falls back to options DSN when a matched DSN is invalid', async () => {
     // Hide warning logs in the test
-    jest.spyOn(console, 'error').mockImplementation(() => {});
+    vi.spyOn(console, 'error').mockImplementation(() => {});
 
     expect.assertions(1);
 
@@ -102,7 +104,7 @@ describe('makeMultiplexedTransport', () => {
     const transport = makeTransport({ url: DSN1_URL, ...transportOptions });
     await transport.send(ERROR_ENVELOPE);
 
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('DSN can be overridden via match callback', async () => {
