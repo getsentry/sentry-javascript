@@ -1,6 +1,9 @@
 import { handleCallbackErrors } from '@sentry/core';
 import { logger } from '@sentry/utils';
 import { Worker } from 'worker_threads';
+import { AsyncLocalStorage } from 'async_hooks';
+
+export const timetravelALS = new AsyncLocalStorage<Worker>();
 
 const base64WorkerScript = '###TimeTravelWorkerScript###';
 
@@ -16,15 +19,32 @@ export interface Step {
 export interface PayloadEvent {
   type: 'Payload';
   steps: Step[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  debug?: any;
 }
 
 export type WorkerThreadMessage = PayloadEvent;
 
-interface StopEvent {
-  type: 'stop';
+interface IncrRefCountEvent {
+  type: 'incrRefCount';
 }
 
-export type ParentThreadMessage = StopEvent;
+interface DecrRefCountEvent {
+  type: 'decRefCount';
+}
+
+interface RequestDataEvent {
+  type: 'requestPayload';
+}
+
+interface WaitingEvent {
+  type: 'waiting';
+}
+
+export type ParentThreadMessage = IncrRefCountEvent | DecrRefCountEvent | RequestDataEvent | WaitingEvent;
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let inspector: any;
 
 /**
  * Allows you to go back in time when an error happens within the callback you provide.
@@ -33,50 +53,61 @@ export type ParentThreadMessage = StopEvent;
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function withTimetravel<F extends () => any>(timetravelableFunction: F): Promise<ReturnType<F>> {
-  // We load inspector dynamically because on some platforms Node is built without inspector support
-  const inspector = await import('node:inspector');
+  if (!inspector) {
+    // We load inspector dynamically because on some platforms Node is built without inspector support
+    inspector = await import('inspector');
+  }
 
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
   if (!inspector.url()) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     inspector.open(0);
   }
 
-  const worker = new Worker(new URL(`data:application/javascript;base64,${base64WorkerScript}`), {
-    // We don't want any Node args to be passed to the worker
-    execArgv: [],
-  });
+  const worker =
+    timetravelALS.getStore() ??
+    (() => {
+      const worker = new Worker(new URL(`data:application/javascript;base64,${base64WorkerScript}`), {
+        // We don't want any Node args to be passed to the worker
+        execArgv: [],
+      });
 
-  worker.on('exit', () => {
-    // eslint-disable-next-line @typescript-eslint/no-floating-promises
-    worker.terminate();
-  });
+      worker.on('error', (err: Error) => {
+        logger.error('Timetravel worker error', err);
+      });
 
-  worker.on('error', (err: Error) => {
-    logger.error('Timetravel worker error', err);
-  });
+      // Ensure this thread can't block app exit
+      worker.unref();
 
-  // Ensure this thread can't block app exit
-  worker.unref();
+      return worker;
+    })();
 
-  inspector.waitForDebugger();
+  return timetravelALS.run(worker, () => {
+    return handleCallbackErrors(
+      () => {
+        worker.postMessage({ type: 'incrRefCount' } as IncrRefCountEvent);
+        worker.postMessage({ type: 'waiting' });
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        inspector.waitForDebugger();
+        return timetravelableFunction();
+      },
+      () => {
+        // noop? or write stack traces on error object
+      },
+      () => {
+        function onStopMessage(message: WorkerThreadMessage): void {
+          if (message.type === 'Payload') {
+            // Do stuff with steps
+            // console.log(JSON.stringify(message));
+          }
 
-  return handleCallbackErrors(
-    () => timetravelableFunction(),
-    () => {
-      // noop? or write stack traces on error object
-    },
-    () => {
-      function onStopMessage(message: WorkerThreadMessage): void {
-        if (message.type === 'Payload') {
-          // Do stuff with steps
-          // console.log(JSON.stringify(message.steps));
+          worker.off('message', onStopMessage);
         }
 
-        worker.off('message', onStopMessage);
-      }
+        worker.on('message', onStopMessage);
 
-      worker.on('message', onStopMessage);
-
-      worker.postMessage({ type: 'stop' });
-    },
-  );
+        worker.postMessage({ type: 'decRefCount' } as DecrRefCountEvent);
+      },
+    );
+  });
 }

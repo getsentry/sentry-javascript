@@ -45,6 +45,8 @@ import { envToBool } from '../utils/envToBool';
 import { defaultStackParser, getSentryRelease } from './api';
 import { NodeClient } from './client';
 import { initOpenTelemetry, maybeInitializeEsmLoader } from './initOtel';
+import type { WorkerThreadMessage } from '../with-timetravel';
+import { timetravelALS } from '../with-timetravel';
 
 function getCjsOnlyIntegrations(): Integration[] {
   return isCjs() ? [modulesIntegration()] : [];
@@ -174,6 +176,30 @@ function _init(
 
   enhanceDscWithOpenTelemetryRootSpanName(client);
   setupEventContextTrace(client);
+
+  client.addEventProcessor(event => {
+    if (event.type === undefined) {
+      const timetravelWorker = timetravelALS.getStore();
+      if (timetravelWorker) {
+        return new Promise(resolve => {
+          function onMessage(message: WorkerThreadMessage): void {
+            if (message.type === 'Payload') {
+              timetravelWorker?.off('message', onMessage);
+              event.contexts = event.contexts || {};
+              event.contexts['timetravel'] = { steps: message.steps.slice(-100) };
+              resolve(event);
+            }
+          }
+
+          timetravelWorker.on('message', onMessage);
+
+          timetravelWorker.postMessage({ type: 'requestPayload' });
+        });
+      }
+    }
+
+    return event;
+  });
 
   return client;
 }
