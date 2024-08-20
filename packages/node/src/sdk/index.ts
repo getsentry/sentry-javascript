@@ -19,6 +19,7 @@ import {
 } from '@sentry/opentelemetry';
 import type { Integration, Options } from '@sentry/types';
 import {
+  addNonEnumerableProperty,
   consoleSandbox,
   dropUndefinedKeys,
   logger,
@@ -187,6 +188,7 @@ function _init(
               timetravelWorker?.off('message', onMessage);
               event.contexts = event.contexts || {};
               event.contexts['timetravel'] = { steps: message.steps.slice(-100) };
+              addNonEnumerableProperty(event.contexts['timetravel'], '__sentry_override_normalization_depth__', 10);
               resolve(event);
             }
           }
