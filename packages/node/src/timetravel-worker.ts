@@ -17,42 +17,92 @@ let nextFrameIsAllowed = false;
 
 const steps: Step[] = [];
 
+function collectVariablesFromCurrentFrame(objectId: undefined | string): Promise<{ [name: string]: unknown }> {
+  if (!objectId) {
+    return Promise.resolve({});
+  }
+
+  return new Promise(resolve => {
+    session.post(
+      'Runtime.getProperties',
+      {
+        objectId,
+        ownProperties: true,
+      },
+      (err, params) => {
+        const vars: Record<string, unknown> = {};
+        for (const param of params.result) {
+          const name = param.name;
+          const value = param.value?.value;
+          vars[name] = value;
+        }
+        resolve(vars);
+      },
+    );
+  });
+}
+
+function getFileDataForCurrentFrame(
+  topCallframe: inspector.Debugger.CallFrame,
+  parsedScript: { url?: string },
+): Promise<{
+  filename?: string;
+  lineno?: number;
+  colno?: number;
+  pre_lines?: string[];
+  line?: string;
+  post_lines?: string[];
+}> {
+  return new Promise(resolve => {
+    session.post(
+      'Debugger.getScriptSource',
+      { scriptId: topCallframe.location.scriptId },
+      (err, scriptSourceMessage): void => {
+        const scriptSource: string = scriptSourceMessage.scriptSource || '';
+        const lines = scriptSource.split('\n');
+
+        resolve({
+          filename: parsedScript.url,
+          lineno: topCallframe.location.lineNumber,
+          colno: topCallframe.location.columnNumber,
+          pre_lines: lines.slice(
+            Math.max(0, topCallframe.location.lineNumber - CONTEXT_LINZE_WINDOW_SIZE),
+            topCallframe.location.lineNumber,
+          ),
+          line: lines[topCallframe.location.lineNumber] || '',
+          post_lines: lines.slice(
+            topCallframe.location.lineNumber + 1,
+            topCallframe.location.lineNumber + 1 + CONTEXT_LINZE_WINDOW_SIZE,
+          ),
+        });
+      },
+    );
+  });
+}
+
 async function onPaused(
   pausedEvent: inspector.InspectorNotification<inspector.Debugger.PausedEventDataType>,
 ): Promise<void> {
-  const topCallframe = pausedEvent.params.callFrames[0];
-  if (topCallframe) {
-    const parsedScript = parsedScripts.get(topCallframe.location.scriptId);
+  const topCallFrame = pausedEvent.params.callFrames[0];
+  if (topCallFrame) {
+    const parsedScript = parsedScripts.get(topCallFrame.location.scriptId);
     if (parsedScript) {
       if (nextFrameIsAllowed) {
-        allowedScriptIds.add(topCallframe.location.scriptId);
+        allowedScriptIds.add(topCallFrame.location.scriptId);
         nextFrameIsAllowed = false;
       }
 
-      if (allowedScriptIds.has(topCallframe.location.scriptId)) {
-        session.post(
-          'Debugger.getScriptSource',
-          { scriptId: topCallframe.location.scriptId },
-          (err, scriptSourceMessage): void => {
-            const scriptSource: string = scriptSourceMessage.scriptSource || '';
-            const lines = scriptSource.split('\n');
+      if (allowedScriptIds.has(topCallFrame.location.scriptId)) {
+        const objectId = topCallFrame.scopeChain[0]?.object.objectId;
+        const [variablesForCurrentFrame, fileDataForCurrentFrame] = await Promise.all([
+          collectVariablesFromCurrentFrame(objectId),
+          getFileDataForCurrentFrame(topCallFrame, parsedScript),
+        ]);
 
-            steps.push({
-              filename: parsedScript.url,
-              lineno: topCallframe.location.lineNumber,
-              colno: topCallframe.location.columnNumber,
-              pre_lines: lines.slice(
-                Math.max(0, topCallframe.location.lineNumber - CONTEXT_LINZE_WINDOW_SIZE),
-                topCallframe.location.lineNumber,
-              ),
-              line: lines[topCallframe.location.lineNumber] || '',
-              post_lines: lines.slice(
-                topCallframe.location.lineNumber + 1,
-                topCallframe.location.lineNumber + 1 + CONTEXT_LINZE_WINDOW_SIZE,
-              ),
-            });
-          },
-        );
+        steps.push({
+          ...fileDataForCurrentFrame,
+          vars: variablesForCurrentFrame,
+        });
       }
     }
   }

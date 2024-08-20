@@ -14,6 +14,9 @@ export interface Step {
   pre_lines?: string[];
   line?: string;
   post_lines?: string[];
+  vars?: {
+    [name: string]: unknown;
+  };
 }
 
 export interface PayloadEvent {
