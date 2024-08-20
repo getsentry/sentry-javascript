@@ -1,56 +1,81 @@
 import inspector from 'inspector';
 import { parentPort } from 'worker_threads';
-import type { ParentThreadMessage, StateUpdateEvent } from './with-timetravel';
+import type { ParentThreadMessage, PayloadEvent, Step } from './with-timetravel';
+
+const CONTEXT_LINZE_WINDOW_SIZE = 3;
 
 const session = new inspector.Session();
 
-let isStopped = false;
+const parsedScripts = new Map<
+  string, // scriptId
+  { url?: string }
+>();
 
-const window = 3;
+const steps: Step[] = [];
+
+async function onPaused(
+  pausedEvent: inspector.InspectorNotification<inspector.Debugger.PausedEventDataType>,
+): Promise<void> {
+  const topCallframe = pausedEvent.params.callFrames[0];
+  if (topCallframe) {
+    const parsedScript = parsedScripts.get(topCallframe.location.scriptId);
+    if (parsedScript) {
+      session.post(
+        'Debugger.getScriptSource',
+        { scriptId: topCallframe.location.scriptId },
+        (err, scriptSourceMessage): void => {
+          const scriptSource: string = scriptSourceMessage.scriptSource || '';
+          const lines = scriptSource.split('\n');
+
+          steps.push({
+            filename: parsedScript.url,
+            lineno: topCallframe.location.lineNumber,
+            colno: topCallframe.location.columnNumber,
+            pre_lines: lines.slice(
+              Math.max(0, topCallframe.location.lineNumber - CONTEXT_LINZE_WINDOW_SIZE),
+              topCallframe.location.lineNumber,
+            ),
+            line: lines[topCallframe.location.lineNumber] || '',
+            post_lines: lines.slice(
+              topCallframe.location.lineNumber + 1,
+              topCallframe.location.lineNumber + 1 + CONTEXT_LINZE_WINDOW_SIZE,
+            ),
+          });
+        },
+      );
+    }
+  }
+
+  session.post('Debugger.stepInto');
+}
+
+function onScriptParsed(
+  scriptParsedMessage: inspector.InspectorNotification<inspector.Debugger.ScriptParsedEventDataType>,
+): void {
+  const { scriptId, url } = scriptParsedMessage.params;
+
+  if (!url.startsWith('node:')) {
+    parsedScripts.set(scriptId, { url });
+  }
+}
 
 parentPort?.on('message', (message: ParentThreadMessage) => {
   if (message.type === 'stop') {
-    isStopped = true;
+    session.off('Debugger.paused', onPaused);
+    session.off('Debugger.scriptParsed', onScriptParsed);
+    session.post('Debugger.resume');
+    parentPort?.postMessage({ type: 'Payload', steps } satisfies PayloadEvent);
+    session.disconnect();
   }
 });
+
+session.on('Debugger.scriptParsed', onScriptParsed);
 
 session.connectToMainThread();
 
 session.post('Debugger.enable', () => {
-  session.on('Debugger.paused', message => {
-    session.post(
-      'Debugger.getScriptSource',
-      { scriptId: message.params.callFrames[0]?.location.scriptId },
-      (err, scriptSourceMessage) => {
-        if (!isStopped) {
-          const topCallFrame = message.params.callFrames[0];
-          // @ts-expect-error fuck you
-          const scriptSource: string = scriptSourceMessage.scriptSource || '';
-          const lines = scriptSource.split('\n');
-
-          parentPort?.postMessage({
-            type: 'StateUpdateEvent',
-            data: {
-              filename: topCallFrame?.url || 'unknown',
-              lineno: topCallFrame?.functionLocation?.lineNumber || 0,
-              colno: topCallFrame?.functionLocation?.columnNumber || 0,
-              pre_lines: lines.slice(Math.max(0, (topCallFrame?.functionLocation?.lineNumber || 0) - window), topCallFrame?.functionLocation?.lineNumber || 0),
-              line: lines[topCallFrame?.functionLocation?.lineNumber || 0] || '',
-              post_lines: lines.slice((topCallFrame?.functionLocation?.lineNumber || 0) + 1, (topCallFrame?.functionLocation?.lineNumber || 0) + 1 + window),
-            },
-          } satisfies StateUpdateEvent);
-        }
-        session.post('Debugger.stepInto');
-      },
-    );
-  });
-
+  session.on('Debugger.paused', onPaused);
   session.post('Debugger.pause', () => {
     session.post('Runtime.runIfWaitingForDebugger');
   });
 });
-
-// DO NOT DELETE - idk why but don't
-setInterval(() => {
-  // Stop the worker from exiting
-}, 10_000);

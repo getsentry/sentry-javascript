@@ -4,18 +4,21 @@ import { Worker } from 'worker_threads';
 
 const base64WorkerScript = '###TimeTravelWorkerScript###';
 
-export interface StateUpdateEvent {
-  type: 'StateUpdateEvent';
-  data: {
-    filename?: string;
-    lineno?: number;
-    colno?: number;
-    pre_lines?: string[];
-    line?: string;
-    post_lines?: string[];
-  };
+export interface Step {
+  filename?: string;
+  lineno?: number;
+  colno?: number;
+  pre_lines?: string[];
+  line?: string;
+  post_lines?: string[];
 }
-export type WorkerThreadMessage = StateUpdateEvent;
+
+export interface PayloadEvent {
+  type: 'Payload';
+  steps: Step[];
+}
+
+export type WorkerThreadMessage = PayloadEvent;
 
 interface StopEvent {
   type: 'stop';
@@ -47,11 +50,6 @@ export async function withTimetravel<F extends () => any>(timetravelableFunction
     worker.terminate();
   });
 
-  worker.on('message', (data: WorkerThreadMessage) => {
-    console.log('worker message', data);
-    // Do more crap here
-  });
-
   worker.on('error', (err: Error) => {
     logger.error('Timetravel worker error', err);
   });
@@ -67,9 +65,18 @@ export async function withTimetravel<F extends () => any>(timetravelableFunction
       // noop? or write stack traces on error object
     },
     () => {
+      function onStopMessage(message: WorkerThreadMessage): void {
+        if (message.type === 'Payload') {
+          // Do stuff with steps
+          // console.log(JSON.stringify(message.steps));
+        }
+
+        worker.off('message', onStopMessage);
+      }
+
+      worker.on('message', onStopMessage);
+
       worker.postMessage({ type: 'stop' });
-      // eslint-disable-next-line @typescript-eslint/no-floating-promises
-      worker.terminate();
     },
   );
 }
