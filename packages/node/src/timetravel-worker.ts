@@ -39,6 +39,35 @@ function collectVariablesFromRuntime(objectId: undefined | string): void {
   );
 }
 
+function extractDataAndSendToMainThread(topCallframe: inspector.Debugger.CallFrame, parsedScript: { url?: string }): void {
+  session.post(
+    'Debugger.getScriptSource',
+    { scriptId: topCallframe.location.scriptId },
+    (err, scriptSourceMessage): void => {
+      const scriptSource: string = scriptSourceMessage.scriptSource || '';
+      const lines = scriptSource.split('\n');
+
+      steps.push({
+        filename: parsedScript.url,
+        lineno: topCallframe.location.lineNumber,
+        colno: topCallframe.location.columnNumber,
+        pre_lines: lines.slice(
+          Math.max(0, topCallframe.location.lineNumber - CONTEXT_LINZE_WINDOW_SIZE),
+          topCallframe.location.lineNumber,
+        ),
+        line: lines[topCallframe.location.lineNumber] || '',
+        post_lines: lines.slice(
+          topCallframe.location.lineNumber + 1,
+          topCallframe.location.lineNumber + 1 + CONTEXT_LINZE_WINDOW_SIZE,
+        ),
+        vars: vars,
+      });
+
+      vars = [] as Variable[];
+    },
+  );
+}
+
 async function onPaused(
   pausedEvent: inspector.InspectorNotification<inspector.Debugger.PausedEventDataType>,
 ): Promise<void> {
@@ -54,33 +83,7 @@ async function onPaused(
       if (allowedScriptIds.has(topCallframe.location.scriptId)) {
         const objectId = topCallframe?.scopeChain[0]?.object.objectId;
         collectVariablesFromRuntime(objectId);
-
-        session.post(
-          'Debugger.getScriptSource',
-          { scriptId: topCallframe.location.scriptId },
-          (err, scriptSourceMessage): void => {
-            const scriptSource: string = scriptSourceMessage.scriptSource || '';
-            const lines = scriptSource.split('\n');
-
-            steps.push({
-              filename: parsedScript.url,
-              lineno: topCallframe.location.lineNumber,
-              colno: topCallframe.location.columnNumber,
-              pre_lines: lines.slice(
-                Math.max(0, topCallframe.location.lineNumber - CONTEXT_LINZE_WINDOW_SIZE),
-                topCallframe.location.lineNumber,
-              ),
-              line: lines[topCallframe.location.lineNumber] || '',
-              post_lines: lines.slice(
-                topCallframe.location.lineNumber + 1,
-                topCallframe.location.lineNumber + 1 + CONTEXT_LINZE_WINDOW_SIZE,
-              ),
-              vars: vars
-            });
-
-            vars = [] as Variable[];
-          },
-        );
+        extractDataAndSendToMainThread(topCallframe, parsedScript);
       }
     }
   }
