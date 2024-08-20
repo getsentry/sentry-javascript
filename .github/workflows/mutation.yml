@@ -1,0 +1,54 @@
+name: 'Mutation Testing'
+on:
+  push:
+    branches:
+      - lms/test-hackweek-mutation-testing
+  workflow_dispatch:
+    inputs:
+      commit:
+        description: If the commit you want to test isn't the head of a branch, provide its SHA here
+        required: false
+  schedule:
+    # Run every sunday at 00:00 UTC
+    - cron: '0 0 * * 0'
+
+
+env:
+  HEAD_COMMIT: ${{ github.event.inputs.commit || github.sha }}
+
+jobs:
+  job_build:
+    name: Build & Test
+    runs-on: ubuntu-20.04
+    timeout-minutes: 15
+    steps:
+      - name: 'Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})'
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.HEAD_COMMIT }}
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: 'package.json'
+
+      - name: Install Dependencies
+        uses: ./.github/actions/install-dependencies
+        id: install_dependencies
+
+      - name: Build packages
+        # Set the CODECOV_TOKEN for Bundle Analysis
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+        run: yarn build
+
+      - name: Run Mutation Testing
+        run: yarn test:mutation
+
+      - name: Upload Results
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ github.sha }}
+          path: |
+            ${{ github.workspace }}/packages/**/mutation.json
+            ${{ github.workspace }}/packages/**/mutation.html
