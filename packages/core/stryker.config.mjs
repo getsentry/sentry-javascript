@@ -2,7 +2,7 @@
 const config = {
   packageManager: 'yarn',
   reporters: ['html', 'clear-text', 'progress', 'json'],
-  testRunner: 'jest',
+  testRunner: 'vitest',
   coverageAnalysis: 'perTest',
   ignoreStatic: true,
 };

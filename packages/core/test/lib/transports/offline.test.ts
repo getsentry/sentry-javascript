@@ -17,6 +17,7 @@ import {
   parseEnvelope,
 } from '@sentry/utils';
 
+import { describe, expect, it } from 'vitest';
 import { createTransport } from '../../../src';
 import type { CreateOfflineStore, OfflineTransportOptions } from '../../../src/transports/offline';
 import { START_DELAY, makeOfflineTransport } from '../../../src/transports/offline';
@@ -160,7 +161,7 @@ function waitUntil(fn: () => boolean, timeout: number): Promise<void> {
   });
 }
 
-describe.skip('makeOfflineTransport', () => {
+describe('makeOfflineTransport', () => {
   it('Sends envelope and checks the store for further envelopes', async () => {
     const { getCalls, store } = createTestStore();
     const { getSendCount, baseTransport } = createTestTransport({ statusCode: 200 });
@@ -410,7 +411,6 @@ describe.skip('makeOfflineTransport', () => {
     START_DELAY + 2_000,
   );
 
-  // eslint-disable-next-line jest/no-disabled-tests
   it.skip(
     'Follows the Retry-After header',
     async () => {

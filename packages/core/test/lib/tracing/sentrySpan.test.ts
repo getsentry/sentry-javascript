@@ -1,4 +1,5 @@
 import { timestampInSeconds } from '@sentry/utils';
+import { describe, expect, it, test, vi } from 'vitest';
 import { setCurrentClient } from '../../../src';
 import { SentrySpan } from '../../../src/tracing/sentrySpan';
 import { SPAN_STATUS_ERROR } from '../../../src/tracing/spanstatus';
@@ -101,7 +102,7 @@ describe('SentrySpan', () => {
       setCurrentClient(client);
 
       // @ts-expect-error Accessing private transport API
-      const mockSend = jest.spyOn(client._transport, 'send');
+      const mockSend = vi.spyOn(client._transport, 'send');
 
       const notSampledSpan = new SentrySpan({
         name: 'not-sampled',
@@ -125,7 +126,7 @@ describe('SentrySpan', () => {
     });
 
     test('sends the span if `beforeSendSpan` does not modify the span ', () => {
-      const beforeSendSpan = jest.fn(span => span);
+      const beforeSendSpan = vi.fn(span => span);
       const client = new TestClient(
         getDefaultTestClientOptions({
           dsn: 'https://username@domain/123',
@@ -136,7 +137,7 @@ describe('SentrySpan', () => {
       setCurrentClient(client);
 
       // @ts-expect-error Accessing private transport API
-      const mockSend = jest.spyOn(client._transport, 'send');
+      const mockSend = vi.spyOn(client._transport, 'send');
       const span = new SentrySpan({
         name: 'test',
         isStandalone: true,
@@ -149,7 +150,7 @@ describe('SentrySpan', () => {
     });
 
     test('does not send the span if `beforeSendSpan` drops the span', () => {
-      const beforeSendSpan = jest.fn(() => null);
+      const beforeSendSpan = vi.fn(() => null);
       const client = new TestClient(
         getDefaultTestClientOptions({
           dsn: 'https://username@domain/123',
@@ -159,9 +160,9 @@ describe('SentrySpan', () => {
       );
       setCurrentClient(client);
 
-      const recordDroppedEventSpy = jest.spyOn(client, 'recordDroppedEvent');
+      const recordDroppedEventSpy = vi.spyOn(client, 'recordDroppedEvent');
       // @ts-expect-error Accessing private transport API
-      const mockSend = jest.spyOn(client._transport, 'send');
+      const mockSend = vi.spyOn(client._transport, 'send');
       const span = new SentrySpan({
         name: 'test',
         isStandalone: true,

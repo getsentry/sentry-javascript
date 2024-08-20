@@ -1,16 +1,17 @@
 import type { HandlerDataError, HandlerDataUnhandledRejection } from '@sentry/types';
 import { setCurrentClient, spanToJSON, startInactiveSpan, startSpan } from '../../../src';
 
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { _resetErrorsInstrumented, registerSpanErrorInstrumentation } from '../../../src/tracing/errors';
 import { TestClient, getDefaultTestClientOptions } from '../../mocks/client';
 
-const mockAddGlobalErrorInstrumentationHandler = jest.fn();
-const mockAddGlobalUnhandledRejectionInstrumentationHandler = jest.fn();
+const mockAddGlobalErrorInstrumentationHandler = vi.fn();
+const mockAddGlobalUnhandledRejectionInstrumentationHandler = vi.fn();
 let mockErrorCallback: (data: HandlerDataError) => void = () => {};
 let mockUnhandledRejectionCallback: (data: HandlerDataUnhandledRejection) => void = () => {};
 
-jest.mock('@sentry/utils', () => {
-  const actual = jest.requireActual('@sentry/utils');
+vi.mock('@sentry/utils', async () => {
+  const actual = await vi.importActual('@sentry/utils');
   return {
     ...actual,
     addGlobalErrorInstrumentationHandler: (callback: () => void) => {

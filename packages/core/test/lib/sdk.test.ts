@@ -1,6 +1,8 @@
 import type { Client, Integration } from '@sentry/types';
 import { captureCheckIn, getCurrentScope, setCurrentClient } from '../../src';
 
+import type { Mock } from 'vitest';
+import { beforeEach, describe, expect, it, test, vi } from 'vitest';
 import { installedIntegrations } from '../../src/integration';
 import { initAndBind } from '../../src/sdk';
 import { TestClient, getDefaultTestClientOptions } from '../mocks/client';
@@ -12,7 +14,7 @@ const PUBLIC_DSN = 'https://username@domain/123';
 
 export class MockIntegration implements Integration {
   public name: string;
-  public setupOnce: () => void = jest.fn();
+  public setupOnce: () => void = vi.fn();
   public constructor(name: string) {
     this.name = name;
   }
@@ -32,8 +34,8 @@ describe('SDK', () => {
       ];
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, integrations });
       initAndBind(TestClient, options);
-      expect((integrations[0]?.setupOnce as jest.Mock).mock.calls.length).toBe(1);
-      expect((integrations[1]?.setupOnce as jest.Mock).mock.calls.length).toBe(1);
+      expect((integrations[0]?.setupOnce as Mock).mock.calls.length).toBe(1);
+      expect((integrations[1]?.setupOnce as Mock).mock.calls.length).toBe(1);
     });
 
     test('calls hooks in the correct order', () => {
@@ -41,21 +43,21 @@ describe('SDK', () => {
 
       const integration1 = {
         name: 'integration1',
-        setupOnce: jest.fn(() => list.push('setupOnce1')),
-        afterAllSetup: jest.fn(() => list.push('afterAllSetup1')),
+        setupOnce: vi.fn(() => list.push('setupOnce1')),
+        afterAllSetup: vi.fn(() => list.push('afterAllSetup1')),
       } satisfies Integration;
 
       const integration2 = {
         name: 'integration2',
-        setupOnce: jest.fn(() => list.push('setupOnce2')),
-        setup: jest.fn(() => list.push('setup2')),
-        afterAllSetup: jest.fn(() => list.push('afterAllSetup2')),
+        setupOnce: vi.fn(() => list.push('setupOnce2')),
+        setup: vi.fn(() => list.push('setup2')),
+        afterAllSetup: vi.fn(() => list.push('afterAllSetup2')),
       } satisfies Integration;
 
       const integration3 = {
         name: 'integration3',
-        setupOnce: jest.fn(() => list.push('setupOnce3')),
-        setup: jest.fn(() => list.push('setup3')),
+        setupOnce: vi.fn(() => list.push('setupOnce3')),
+        setup: vi.fn(() => list.push('setup3')),
       } satisfies Integration;
 
       const integrations: Integration[] = [integration1, integration2, integration3];

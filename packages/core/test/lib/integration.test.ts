@@ -2,6 +2,7 @@ import type { Integration, Options } from '@sentry/types';
 import { logger } from '@sentry/utils';
 import { getCurrentScope } from '../../src/currentScopes';
 
+import { afterEach, beforeEach, describe, expect, it, test, vi } from 'vitest';
 import { addIntegration, getIntegrationsToSetup, installedIntegrations, setupIntegration } from '../../src/integration';
 import { setCurrentClient } from '../../src/sdk';
 import { TestClient, getDefaultTestClientOptions } from '../mocks/client';
@@ -339,7 +340,7 @@ describe('setupIntegration', () => {
   it('works with a minimal integration', () => {
     class CustomIntegration implements Integration {
       name = 'test';
-      setupOnce = jest.fn();
+      setupOnce = vi.fn();
     }
 
     const client = getTestClient();
@@ -355,7 +356,7 @@ describe('setupIntegration', () => {
   it('only calls setupOnce a single time', () => {
     class CustomIntegration implements Integration {
       name = 'test';
-      setupOnce = jest.fn();
+      setupOnce = vi.fn();
     }
 
     const client1 = getTestClient();
@@ -382,8 +383,8 @@ describe('setupIntegration', () => {
   it('calls setup for each client', () => {
     class CustomIntegration implements Integration {
       name = 'test';
-      setupOnce = jest.fn();
-      setup = jest.fn();
+      setupOnce = vi.fn();
+      setup = vi.fn();
     }
 
     const client1 = getTestClient();
@@ -420,8 +421,8 @@ describe('setupIntegration', () => {
   it('binds preprocessEvent for each client', () => {
     class CustomIntegration implements Integration {
       name = 'test';
-      setupOnce = jest.fn();
-      preprocessEvent = jest.fn();
+      setupOnce = vi.fn();
+      preprocessEvent = vi.fn();
     }
 
     const client1 = getTestClient();
@@ -472,8 +473,8 @@ describe('setupIntegration', () => {
   it('allows to mutate events in preprocessEvent', async () => {
     class CustomIntegration implements Integration {
       name = 'test';
-      setupOnce = jest.fn();
-      preprocessEvent = jest.fn(event => {
+      setupOnce = vi.fn();
+      preprocessEvent = vi.fn(event => {
         event.event_id = 'mutated';
       });
     }
@@ -485,7 +486,7 @@ describe('setupIntegration', () => {
 
     setupIntegration(client, integration, integrationIndex);
 
-    const sendEvent = jest.fn();
+    const sendEvent = vi.fn();
     client.sendEvent = sendEvent;
 
     client.captureEvent({ event_id: '1a' });
@@ -500,8 +501,8 @@ describe('setupIntegration', () => {
   it('binds processEvent for each client', () => {
     class CustomIntegration implements Integration {
       name = 'test';
-      setupOnce = jest.fn();
-      processEvent = jest.fn(event => {
+      setupOnce = vi.fn();
+      processEvent = vi.fn(event => {
         return event;
       });
     }
@@ -554,8 +555,8 @@ describe('setupIntegration', () => {
   it('allows to mutate events in processEvent', async () => {
     class CustomIntegration implements Integration {
       name = 'test';
-      setupOnce = jest.fn();
-      processEvent = jest.fn(_event => {
+      setupOnce = vi.fn();
+      processEvent = vi.fn(_event => {
         return { event_id: 'mutated' };
       });
     }
@@ -567,7 +568,7 @@ describe('setupIntegration', () => {
 
     setupIntegration(client, integration, integrationIndex);
 
-    const sendEvent = jest.fn();
+    const sendEvent = vi.fn();
     client.sendEvent = sendEvent;
 
     client.captureEvent({ event_id: '1a' });
@@ -582,8 +583,8 @@ describe('setupIntegration', () => {
   it('allows to drop events in processEvent', async () => {
     class CustomIntegration implements Integration {
       name = 'test';
-      setupOnce = jest.fn();
-      processEvent = jest.fn(_event => {
+      setupOnce = vi.fn();
+      processEvent = vi.fn(_event => {
         return null;
       });
     }
@@ -595,7 +596,7 @@ describe('setupIntegration', () => {
 
     setupIntegration(client, integration, integrationIndex);
 
-    const sendEvent = jest.fn();
+    const sendEvent = vi.fn();
     client.sendEvent = sendEvent;
 
     client.captureEvent({ event_id: '1a' });
@@ -612,15 +613,15 @@ describe('addIntegration', () => {
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('works with a client setup', () => {
-    const warnings = jest.spyOn(logger, 'warn');
+    const warnings = vi.spyOn(logger, 'warn');
 
     class CustomIntegration implements Integration {
       name = 'test';
-      setupOnce = jest.fn();
+      setupOnce = vi.fn();
     }
 
     const client = getTestClient();
@@ -634,10 +635,10 @@ describe('addIntegration', () => {
   });
 
   it('works without a client setup', () => {
-    const warnings = jest.spyOn(logger, 'warn');
+    const warnings = vi.spyOn(logger, 'warn');
     class CustomIntegration implements Integration {
       name = 'test';
-      setupOnce = jest.fn();
+      setupOnce = vi.fn();
     }
 
     getCurrentScope().setClient(undefined);
@@ -651,9 +652,9 @@ describe('addIntegration', () => {
   });
 
   it('triggers all hooks', () => {
-    const setup = jest.fn();
-    const setupOnce = jest.fn();
-    const setupAfterAll = jest.fn();
+    const setup = vi.fn();
+    const setupOnce = vi.fn();
+    const setupAfterAll = vi.fn();
 
     class CustomIntegration implements Integration {
       name = 'test';
@@ -675,13 +676,13 @@ describe('addIntegration', () => {
   });
 
   it('does not trigger hooks if already installed', () => {
-    const logs = jest.spyOn(logger, 'log');
+    const logs = vi.spyOn(logger, 'log');
 
     class CustomIntegration implements Integration {
       name = 'test';
-      setupOnce = jest.fn();
-      setup = jest.fn();
-      afterAllSetup = jest.fn();
+      setupOnce = vi.fn();
+      setup = vi.fn();
+      afterAllSetup = vi.fn();
     }
 
     const client = getTestClient();

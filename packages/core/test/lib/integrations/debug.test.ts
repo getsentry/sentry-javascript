@@ -1,5 +1,6 @@
 import type { Client, Event, EventHint } from '@sentry/types';
 
+import { afterAll, afterEach, describe, expect, it, vi } from 'vitest';
 import { debugIntegration } from '../../../src/integrations/debug';
 
 function testEventLogged(
@@ -26,7 +27,7 @@ function testEventLogged(
 }
 
 // Replace console log with a mock so we can check for invocations
-const mockConsoleLog = jest.fn();
+const mockConsoleLog = vi.fn();
 // eslint-disable-next-line @typescript-eslint/unbound-method
 const originalConsoleLog = global.console.log;
 global.console.log = mockConsoleLog;
@@ -38,7 +39,7 @@ describe('Debug integration setup should register an event processor that', () =
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('logs an event', () => {

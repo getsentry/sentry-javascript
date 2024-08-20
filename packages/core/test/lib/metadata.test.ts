@@ -1,6 +1,7 @@
 import type { Event } from '@sentry/types';
 import { GLOBAL_OBJ, createStackParser, nodeStackLineParser } from '@sentry/utils';
 
+import { beforeEach, describe, expect, it } from 'vitest';
 import { addMetadataToStackFrames, getMetadataForUrl, stripMetadataFromStackFrames } from '../../src/metadata';
 
 const parser = createStackParser(nodeStackLineParser());

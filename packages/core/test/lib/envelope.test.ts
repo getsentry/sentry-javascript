@@ -11,6 +11,8 @@ import {
 import { createEventEnvelope, createSpanEnvelope } from '../../src/envelope';
 import { TestClient, getDefaultTestClientOptions } from '../mocks/client';
 
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 const testDsn: DsnComponents = { protocol: 'https', projectId: 'abc', host: 'testry.io', publicKey: 'pubKey123' };
 
 describe('createEventEnvelope', () => {
@@ -185,7 +187,7 @@ describe('createSpanEnvelope', () => {
   });
 
   it('calls `beforeSendSpan` and uses original span without any changes', () => {
-    const beforeSendSpan = jest.fn(span => span);
+    const beforeSendSpan = vi.fn(span => span);
     const options = getDefaultTestClientOptions({ dsn: 'https://domain/123', beforeSendSpan });
     const client = new TestClient(options);
 
@@ -217,7 +219,7 @@ describe('createSpanEnvelope', () => {
   });
 
   it('calls `beforeSendSpan` and uses the modified span', () => {
-    const beforeSendSpan = jest.fn(span => {
+    const beforeSendSpan = vi.fn(span => {
       span.description = `mutated description: ${span.description}`;
       return span;
     });

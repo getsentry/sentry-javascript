@@ -43,7 +43,7 @@
     "@sentry/utils": "8.26.0"
   },
   "devDependencies": {
-    "@sentry-internal/jest-config": "8.26.0"
+    "@sentry-internal/vite-config": "8.26.0"
   },
   "scripts": {
     "build": "run-p build:transpile build:types",
@@ -61,8 +61,8 @@
     "clean": "rimraf build coverage sentry-core-*.tgz .stryker-tmp",
     "fix": "eslint . --format stylish --fix",
     "lint": "eslint . --format stylish",
-    "test": "jest",
-    "test:watch": "jest --watch",
+    "test": "vitest run",
+    "test:watch": "vitest --watch",
     "test:mutation": "stryker run",
     "yalc:publish": "yalc publish --push --sig"
   },

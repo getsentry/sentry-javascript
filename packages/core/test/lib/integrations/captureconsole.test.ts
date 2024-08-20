@@ -13,14 +13,17 @@ import * as SentryCore from '../../../src/exports';
 
 import { captureConsoleIntegration } from '../../../src/integrations/captureconsole';
 
-const mockConsole: { [key in ConsoleLevel]: jest.Mock<any> } = {
-  debug: jest.fn(),
-  log: jest.fn(),
-  warn: jest.fn(),
-  error: jest.fn(),
-  assert: jest.fn(),
-  info: jest.fn(),
-  trace: jest.fn(),
+import type { Mock } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+const mockConsole: { [key in ConsoleLevel]: Mock<any> } = {
+  debug: vi.fn(),
+  log: vi.fn(),
+  warn: vi.fn(),
+  error: vi.fn(),
+  assert: vi.fn(),
+  info: vi.fn(),
+  trace: vi.fn(),
 };
 
 describe('CaptureConsole setup', () => {
@@ -31,23 +34,23 @@ describe('CaptureConsole setup', () => {
   let mockClient: Client;
 
   const mockScope = {
-    setExtra: jest.fn(),
-    addEventProcessor: jest.fn(),
+    setExtra: vi.fn(),
+    addEventProcessor: vi.fn(),
   };
 
-  const captureMessage = jest.fn();
-  const captureException = jest.fn();
-  const withScope = jest.fn(callback => {
+  const captureMessage = vi.fn();
+  const captureException = vi.fn();
+  const withScope = vi.fn(callback => {
     return callback(mockScope);
   });
 
   beforeEach(() => {
     mockClient = {} as Client;
 
-    jest.spyOn(SentryCore, 'captureMessage').mockImplementation(captureMessage);
-    jest.spyOn(SentryCore, 'captureException').mockImplementation(captureException);
-    jest.spyOn(CurrentScopes, 'getClient').mockImplementation(() => mockClient);
-    jest.spyOn(CurrentScopes, 'withScope').mockImplementation(withScope);
+    vi.spyOn(SentryCore, 'captureMessage').mockImplementation(captureMessage);
+    vi.spyOn(SentryCore, 'captureException').mockImplementation(captureException);
+    vi.spyOn(CurrentScopes, 'getClient').mockImplementation(() => mockClient);
+    vi.spyOn(CurrentScopes, 'withScope').mockImplementation(withScope);
 
     CONSOLE_LEVELS.forEach(key => {
       originalConsoleMethods[key] = mockConsole[key];
@@ -55,7 +58,7 @@ describe('CaptureConsole setup', () => {
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     CONSOLE_LEVELS.forEach(key => {
       originalConsoleMethods[key] = _originalConsoleMethods[key];
@@ -135,7 +138,7 @@ describe('CaptureConsole setup', () => {
 
     expect(mockScope.addEventProcessor).toHaveBeenCalledTimes(1);
 
-    const addedEventProcessor = (mockScope.addEventProcessor as jest.Mock).mock.calls[0][0];
+    const addedEventProcessor = (mockScope.addEventProcessor as Mock).mock.calls[0][0];
     const someEvent: Event = {};
     addedEventProcessor(someEvent);
 
@@ -264,7 +267,7 @@ describe('CaptureConsole setup', () => {
   it('should call the original console function when console members are called', () => {
     // Mock console log to test if it was called
     const originalConsoleLog = GLOBAL_OBJ.console.log;
-    const mockConsoleLog = jest.fn();
+    const mockConsoleLog = vi.fn();
     GLOBAL_OBJ.console.log = mockConsoleLog;
 
     const captureConsole = captureConsoleIntegration({ levels: ['log'] });
@@ -309,7 +312,7 @@ describe('CaptureConsole setup', () => {
   });
 
   it("marks captured exception's mechanism as unhandled", () => {
-    // const addExceptionMechanismSpy = jest.spyOn(utils, 'addExceptionMechanism');
+    // const addExceptionMechanismSpy = vi.spyOn(utils, 'addExceptionMechanism');
 
     const captureConsole = captureConsoleIntegration({ levels: ['error'] });
     captureConsole.setup?.(mockClient);
@@ -317,7 +320,7 @@ describe('CaptureConsole setup', () => {
     const someError = new Error('some error');
     GLOBAL_OBJ.console.error(someError);
 
-    const addedEventProcessor = (mockScope.addEventProcessor as jest.Mock).mock.calls[0][0];
+    const addedEventProcessor = (mockScope.addEventProcessor as Mock).mock.calls[0][0];
     const someEvent: Event = {
       exception: {
         values: [{}],

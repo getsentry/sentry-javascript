@@ -1,5 +1,6 @@
 import type { Client } from '@sentry/types';
 
+import { describe, expect, it } from 'vitest';
 import { isSentryRequestUrl } from '../../../src';
 
 describe('isSentryRequestUrl', () => {

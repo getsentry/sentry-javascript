@@ -1,3 +1,4 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { getCurrentScope, getIsolationScope, setCurrentClient } from '../../../src';
 import { MetricsAggregator } from '../../../src/metrics/aggregator';
 import { metrics as metricsCore } from '../../../src/metrics/exports';
@@ -28,7 +29,7 @@ describe('metrics.timing', () => {
     const res = metricsDefault.timing('t1', 10);
     expect(res).toStrictEqual(undefined);
 
-    const sendSpy = jest.spyOn(testClient.getTransport()!, 'send');
+    const sendSpy = vi.spyOn(testClient.getTransport()!, 'send');
 
     metricsCore.getMetricsAggregatorForClient(testClient, MetricsAggregator)!.flush();
 
@@ -43,7 +44,7 @@ describe('metrics.timing', () => {
     const res = metricsDefault.timing('t1', 10, 'hour');
     expect(res).toStrictEqual(undefined);
 
-    const sendSpy = jest.spyOn(testClient.getTransport()!, 'send');
+    const sendSpy = vi.spyOn(testClient.getTransport()!, 'send');
 
     metricsCore.getMetricsAggregatorForClient(testClient, MetricsAggregator)!.flush();
 
@@ -60,7 +61,7 @@ describe('metrics.timing', () => {
     });
     expect(res).toStrictEqual(undefined);
 
-    const sendSpy = jest.spyOn(testClient.getTransport()!, 'send');
+    const sendSpy = vi.spyOn(testClient.getTransport()!, 'send');
 
     metricsCore.getMetricsAggregatorForClient(testClient, MetricsAggregator)!.flush();
 
@@ -83,7 +84,7 @@ describe('metrics.timing', () => {
     });
     expect(res).toStrictEqual('oho');
 
-    const sendSpy = jest.spyOn(testClient.getTransport()!, 'send');
+    const sendSpy = vi.spyOn(testClient.getTransport()!, 'send');
 
     metricsCore.getMetricsAggregatorForClient(testClient, MetricsAggregator)!.flush();
 
@@ -102,7 +103,7 @@ describe('metrics.timing', () => {
     expect(res).toBeInstanceOf(Promise);
     expect(await res).toStrictEqual('oho');
 
-    const sendSpy = jest.spyOn(testClient.getTransport()!, 'send');
+    const sendSpy = vi.spyOn(testClient.getTransport()!, 'send');
 
     metricsCore.getMetricsAggregatorForClient(testClient, MetricsAggregator)!.flush();
 

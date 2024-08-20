@@ -1,4 +1,5 @@
 import { SDK_VERSION } from '@sentry/utils';
+import { describe, expect, it } from 'vitest';
 import { getSentryCarrier } from '../../src/carrier';
 
 describe('getSentryCarrier', () => {

@@ -1,3 +1,4 @@
+import { describe, expect, it } from 'vitest';
 import { BrowserMetricsAggregator } from '../../../src/metrics/browser-aggregator';
 import { CounterMetric } from '../../../src/metrics/instance';
 import { serializeMetricBuckets } from '../../../src/metrics/utils';

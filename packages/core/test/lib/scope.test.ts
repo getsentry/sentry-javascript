@@ -8,6 +8,7 @@ import {
   withScope,
 } from '../../src';
 
+import { beforeEach, describe, expect, it, test, vi } from 'vitest';
 import { Scope } from '../../src/scope';
 import { TestClient, getDefaultTestClientOptions } from '../mocks/client';
 import { clearGlobalScope } from './clear-global-scope';
@@ -347,7 +348,7 @@ describe('Scope', () => {
     });
 
     test('given callback function, pass it the scope and returns original or modified scope', () => {
-      const cb = jest
+      const cb = vi
         .fn()
         .mockImplementationOnce(v => v)
         .mockImplementationOnce(v => {
@@ -365,7 +366,7 @@ describe('Scope', () => {
     });
 
     test('given callback function, when it doesnt return instanceof Scope, ignore it and return original scope', () => {
-      const cb = jest.fn().mockImplementationOnce(_v => 'wat');
+      const cb = vi.fn().mockImplementationOnce(_v => 'wat');
       const updatedScope = scope.update(cb);
       expect(cb).toHaveBeenCalledWith(scope);
       expect(updatedScope).toEqual(scope);
@@ -571,7 +572,7 @@ describe('Scope', () => {
 
   describe('.captureException()', () => {
     it('should call captureException() on client with newly generated event ID if not explicitly passed in', () => {
-      const fakeCaptureException = jest.fn(() => 'mock-event-id');
+      const fakeCaptureException = vi.fn(() => 'mock-event-id');
       const fakeClient = {
         captureException: fakeCaptureException,
       } as unknown as Client;
@@ -600,7 +601,7 @@ describe('Scope', () => {
     });
 
     it('should pass exception to captureException() on client', () => {
-      const fakeCaptureException = jest.fn(() => 'mock-event-id');
+      const fakeCaptureException = vi.fn(() => 'mock-event-id');
       const fakeClient = {
         captureException: fakeCaptureException,
       } as unknown as Client;
@@ -615,7 +616,7 @@ describe('Scope', () => {
     });
 
     it('should call captureException() on client with a synthetic exception', () => {
-      const fakeCaptureException = jest.fn(() => 'mock-event-id');
+      const fakeCaptureException = vi.fn(() => 'mock-event-id');
       const fakeClient = {
         captureException: fakeCaptureException,
       } as unknown as Client;
@@ -632,7 +633,7 @@ describe('Scope', () => {
     });
 
     it('should pass the original exception to captureException() on client', () => {
-      const fakeCaptureException = jest.fn(() => 'mock-event-id');
+      const fakeCaptureException = vi.fn(() => 'mock-event-id');
       const fakeClient = {
         captureException: fakeCaptureException,
       } as unknown as Client;
@@ -650,7 +651,7 @@ describe('Scope', () => {
     });
 
     it('should forward hint to captureException() on client', () => {
-      const fakeCaptureException = jest.fn(() => 'mock-event-id');
+      const fakeCaptureException = vi.fn(() => 'mock-event-id');
       const fakeClient = {
         captureException: fakeCaptureException,
       } as unknown as Client;
@@ -669,7 +670,7 @@ describe('Scope', () => {
 
   describe('.captureMessage()', () => {
     it('should call captureMessage() on client with newly generated event ID if not explicitly passed in', () => {
-      const fakeCaptureMessage = jest.fn(() => 'mock-event-id');
+      const fakeCaptureMessage = vi.fn(() => 'mock-event-id');
       const fakeClient = {
         captureMessage: fakeCaptureMessage,
       } as unknown as Client;
@@ -695,7 +696,7 @@ describe('Scope', () => {
     });
 
     it('should pass exception to captureMessage() on client', () => {
-      const fakeCaptureMessage = jest.fn(() => 'mock-event-id');
+      const fakeCaptureMessage = vi.fn(() => 'mock-event-id');
       const fakeClient = {
         captureMessage: fakeCaptureMessage,
       } as unknown as Client;
@@ -708,7 +709,7 @@ describe('Scope', () => {
     });
 
     it('should call captureMessage() on client with a synthetic exception', () => {
-      const fakeCaptureMessage = jest.fn(() => 'mock-event-id');
+      const fakeCaptureMessage = vi.fn(() => 'mock-event-id');
       const fakeClient = {
         captureMessage: fakeCaptureMessage,
       } as unknown as Client;
@@ -726,7 +727,7 @@ describe('Scope', () => {
     });
 
     it('should pass the original exception to captureMessage() on client', () => {
-      const fakeCaptureMessage = jest.fn(() => 'mock-event-id');
+      const fakeCaptureMessage = vi.fn(() => 'mock-event-id');
       const fakeClient = {
         captureMessage: fakeCaptureMessage,
       } as unknown as Client;
@@ -744,7 +745,7 @@ describe('Scope', () => {
     });
 
     it('should forward level and hint to captureMessage() on client', () => {
-      const fakeCaptureMessage = jest.fn(() => 'mock-event-id');
+      const fakeCaptureMessage = vi.fn(() => 'mock-event-id');
       const fakeClient = {
         captureMessage: fakeCaptureMessage,
       } as unknown as Client;
@@ -764,7 +765,7 @@ describe('Scope', () => {
 
   describe('.captureEvent()', () => {
     it('should call captureEvent() on client with newly generated event ID if not explicitly passed in', () => {
-      const fakeCaptureEvent = jest.fn(() => 'mock-event-id');
+      const fakeCaptureEvent = vi.fn(() => 'mock-event-id');
       const fakeClient = {
         captureEvent: fakeCaptureEvent,
       } as unknown as Client;
@@ -789,7 +790,7 @@ describe('Scope', () => {
     });
 
     it('should pass event to captureEvent() on client', () => {
-      const fakeCaptureEvent = jest.fn(() => 'mock-event-id');
+      const fakeCaptureEvent = vi.fn(() => 'mock-event-id');
       const fakeClient = {
         captureEvent: fakeCaptureEvent,
       } as unknown as Client;
@@ -804,7 +805,7 @@ describe('Scope', () => {
     });
 
     it('should forward hint to captureEvent() on client', () => {
-      const fakeCaptureEvent = jest.fn(() => 'mock-event-id');
+      const fakeCaptureEvent = vi.fn(() => 'mock-event-id');
       const fakeClient = {
         captureEvent: fakeCaptureEvent,
       } as unknown as Client;
@@ -861,30 +862,35 @@ describe('withScope()', () => {
     getGlobalScope().clear();
   });
 
-  it('will make the passed scope the active scope within the callback', done => {
+  it('makes the passed scope the active scope within the callback', () => {
+    expect.assertions(1);
+
     withScope(scope => {
       expect(getCurrentScope()).toBe(scope);
-      done();
     });
   });
 
-  it('will pass a scope that is different from the current active isolation scope', done => {
+  it('passes a scope that is different from the current active isolation scope', () => {
+    expect.assertions(1);
+
     withScope(scope => {
       expect(getIsolationScope()).not.toBe(scope);
-      done();
     });
   });
 
-  it('will always make the inner most passed scope the current isolation scope when nesting calls', done => {
+  it('always makes the inner most passed scope the current isolation scope when nesting calls', () => {
+    expect.assertions(1);
+
     withIsolationScope(_scope1 => {
       withIsolationScope(scope2 => {
         expect(getIsolationScope()).toBe(scope2);
-        done();
       });
     });
   });
 
-  it('forks the scope when not passing any scope', done => {
+  it('forks the scope when not passing any scope', () => {
+    expect.assertions(3);
+
     const initialScope = getCurrentScope();
     initialScope.setTag('aa', 'aa');
 
@@ -893,11 +899,12 @@ describe('withScope()', () => {
       scope.setTag('bb', 'bb');
       expect(scope).not.toBe(initialScope);
       expect(scope.getScopeData().tags).toEqual({ aa: 'aa', bb: 'bb' });
-      done();
     });
   });
 
-  it('forks the scope when passing undefined', done => {
+  it('forks the scope when passing undefined', () => {
+    expect.assertions(3);
+
     const initialScope = getCurrentScope();
     initialScope.setTag('aa', 'aa');
 
@@ -906,11 +913,12 @@ describe('withScope()', () => {
       scope.setTag('bb', 'bb');
       expect(scope).not.toBe(initialScope);
       expect(scope.getScopeData().tags).toEqual({ aa: 'aa', bb: 'bb' });
-      done();
     });
   });
 
-  it('sets the passed in scope as active scope', done => {
+  it('sets the passed in scope as active scope', () => {
+    expect.assertions(2);
+
     const initialScope = getCurrentScope();
     initialScope.setTag('aa', 'aa');
 
@@ -919,7 +927,6 @@ describe('withScope()', () => {
     withScope(customScope, scope => {
       expect(getCurrentScope()).toBe(customScope);
       expect(scope).toBe(customScope);
-      done();
     });
   });
 });
@@ -931,58 +938,64 @@ describe('withIsolationScope()', () => {
     getGlobalScope().clear();
   });
 
-  it('will make the passed isolation scope the active isolation scope within the callback', done => {
+  it('makes the passed isolation scope the active isolation scope within the callback', () => {
+    expect.assertions(1);
+
     withIsolationScope(scope => {
       expect(getIsolationScope()).toBe(scope);
-      done();
     });
   });
 
-  it('will pass an isolation scope that is different from the current active scope', done => {
+  it('passes an isolation scope that is different from the current active scope', () => {
+    expect.assertions(1);
+
     withIsolationScope(scope => {
       expect(getCurrentScope()).not.toBe(scope);
-      done();
     });
   });
 
-  it('will always make the inner most passed scope the current scope when nesting calls', done => {
+  it('always makes the inner most passed scope the current scope when nesting calls', () => {
+    expect.assertions(1);
+
     withIsolationScope(_scope1 => {
       withIsolationScope(scope2 => {
         expect(getIsolationScope()).toBe(scope2);
-        done();
       });
     });
   });
 
   // Note: This is expected! In browser, we do not actually fork this
-  it('does not fork isolation scope when not passing any isolation scope', done => {
+  it('does not fork the isolation scope when not passing any isolation scope', () => {
+    expect.assertions(2);
+
     const isolationScope = getIsolationScope();
 
     withIsolationScope(scope => {
       expect(getIsolationScope()).toBe(scope);
       expect(scope).toBe(isolationScope);
-      done();
     });
   });
 
-  it('does not fork isolation scope when passing undefined', done => {
+  it('does not fork isolation scope when passing undefined', () => {
+    expect.assertions(2);
+
     const isolationScope = getIsolationScope();
 
     withIsolationScope(undefined, scope => {
       expect(getIsolationScope()).toBe(scope);
       expect(scope).toBe(isolationScope);
-      done();
     });
   });
 
-  it('ignores passed in isolation scope', done => {
+  it('ignores passed in isolation scope', () => {
+    expect.assertions(2);
+
     const isolationScope = getIsolationScope();
     const customIsolationScope = new Scope();
 
     withIsolationScope(customIsolationScope, scope => {
       expect(getIsolationScope()).toBe(isolationScope);
       expect(scope).toBe(isolationScope);
-      done();
     });
   });
 

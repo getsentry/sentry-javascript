@@ -7,6 +7,8 @@ import {
   mergeScopeData,
 } from '../../../src/utils/applyScopeDataToEvent';
 
+import { describe, expect, it } from 'vitest';
+
 describe('mergeArray', () => {
   it.each([
     [[], [], undefined],

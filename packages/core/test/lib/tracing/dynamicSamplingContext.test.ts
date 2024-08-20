@@ -1,4 +1,5 @@
 import type { Span, SpanContextData, TransactionSource } from '@sentry/types';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
@@ -17,7 +18,7 @@ describe('getDynamicSamplingContextFromSpan', () => {
   });
 
   afterEach(() => {
-    jest.resetAllMocks();
+    vi.resetAllMocks();
   });
 
   test('uses frozen DSC from span', () => {

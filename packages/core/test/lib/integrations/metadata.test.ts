@@ -1,6 +1,7 @@
 import type { Event } from '@sentry/types';
 import { GLOBAL_OBJ, createStackParser, nodeStackLineParser, parseEnvelope } from '@sentry/utils';
 
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { captureException, createTransport, moduleMetadataIntegration, setCurrentClient } from '../../../src';
 import { TestClient, getDefaultTestClientOptions } from '../../mocks/client';
 
@@ -18,7 +19,7 @@ describe('ModuleMetadata integration', () => {
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   test('Adds and removes metadata from stack frames', done => {

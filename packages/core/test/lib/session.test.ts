@@ -3,6 +3,8 @@ import { timestampInSeconds } from '@sentry/utils';
 
 import { closeSession, makeSession, updateSession } from '../../src/session';
 
+import { describe, expect, it, test } from 'vitest';
+
 describe('Session', () => {
   it('initializes with the proper defaults', () => {
     const newSession = makeSession();
