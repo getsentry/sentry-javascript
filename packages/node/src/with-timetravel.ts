@@ -7,6 +7,11 @@ export const timetravelALS = new AsyncLocalStorage<Worker>();
 
 const base64WorkerScript = '###TimeTravelWorkerScript###';
 
+export interface Variable {
+  name?: string;
+  value?: any;
+}
+
 export interface Step {
   filename?: string;
   lineno?: number;
@@ -14,6 +19,7 @@ export interface Step {
   pre_lines?: string[];
   line?: string;
   post_lines?: string[];
+  vars?: Variable[];
 }
 
 export interface PayloadEvent {

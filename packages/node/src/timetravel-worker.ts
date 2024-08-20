@@ -1,6 +1,6 @@
 import inspector from 'inspector';
 import { parentPort } from 'worker_threads';
-import type { ParentThreadMessage, PayloadEvent, Step } from './with-timetravel';
+import type { ParentThreadMessage, PayloadEvent, Step, Variable } from './with-timetravel';
 
 let refCount = 0;
 
@@ -30,6 +30,29 @@ async function onPaused(
       }
 
       if (allowedScriptIds.has(topCallframe.location.scriptId)) {
+        const objectId = topCallframe?.scopeChain[0]?.object.objectId;
+        let vars: Variable[] = [];
+
+        if (objectId) {
+
+          session.post('Runtime.getProperties',
+            {
+              objectId,
+              ownProperties: true
+            },
+            (err, params) => {
+              for (const param of params.result) {
+                const name = param.name;
+                const value = param.value?.value;
+
+                if (value) {
+                  vars.push({ name, value } satisfies Variable);
+                }
+              }
+            })
+        }
+
+
         session.post(
           'Debugger.getScriptSource',
           { scriptId: topCallframe.location.scriptId },
@@ -50,7 +73,10 @@ async function onPaused(
                 topCallframe.location.lineNumber + 1,
                 topCallframe.location.lineNumber + 1 + CONTEXT_LINZE_WINDOW_SIZE,
               ),
+              vars: vars
             });
+
+            vars = [] as Variable[];
           },
         );
       }
