@@ -4,7 +4,7 @@ import type { ParentThreadMessage, PayloadEvent, Step } from './with-timetravel'
 
 let refCount = 0;
 
-const CONTEXT_LINZE_WINDOW_SIZE = 3;
+const CONTEXT_LINZE_WINDOW_SIZE = 6;
 
 const session = new inspector.Session();
 
@@ -50,10 +50,13 @@ function unrollObject(objectId: string | undefined): Promise<Record<string, unkn
       (err, params) => {
         const obj = params.result
           .map<[string, unknown]>(v => [v.name, v?.value?.value])
-          .reduce((acc, [key, val]) => {
-            acc[key] = val;
-            return acc;
-          }, {} as Record<string, unknown>);
+          .reduce(
+            (acc, [key, val]) => {
+              acc[key] = val;
+              return acc;
+            },
+            {} as Record<string, unknown>,
+          );
 
         resolve(obj);
       },
@@ -85,7 +88,8 @@ async function collectVariablesFromCurrentFrame(objectId: undefined | string): P
             vars[name] = await unrollArray(value.objectId);
           } else if (value?.type === 'object') {
             vars[name] = await unrollObject(value.objectId);
-          } else { // numbers, strings
+          } else {
+            // numbers, strings
             vars[name] = value?.value;
           }
         }
