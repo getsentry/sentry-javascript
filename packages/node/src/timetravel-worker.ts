@@ -71,21 +71,25 @@ function extractDataAndSendToMainThread(topCallframe: inspector.Debugger.CallFra
 async function onPaused(
   pausedEvent: inspector.InspectorNotification<inspector.Debugger.PausedEventDataType>,
 ): Promise<void> {
-  const topCallframe = pausedEvent.params.callFrames[0];
-  if (topCallframe) {
-    const parsedScript = parsedScripts.get(topCallframe.location.scriptId);
-    if (parsedScript) {
-      if (nextFrameIsAllowed) {
-        allowedScriptIds.add(topCallframe.location.scriptId);
-        nextFrameIsAllowed = false;
-      }
+  const topCallFrame = pausedEvent.params.callFrames[0];
+  if (!topCallFrame) {
+    return;
+  }
 
-      if (allowedScriptIds.has(topCallframe.location.scriptId)) {
-        const objectId = topCallframe?.scopeChain[0]?.object.objectId;
-        collectVariablesFromRuntime(objectId);
-        extractDataAndSendToMainThread(topCallframe, parsedScript);
-      }
-    }
+  const parsedScript = parsedScripts.get(topCallFrame.location.scriptId);
+  if (!parsedScript) {
+    return;
+  }
+
+  if (nextFrameIsAllowed) {
+    allowedScriptIds.add(topCallFrame.location.scriptId);
+    nextFrameIsAllowed = false;
+  }
+
+  if (allowedScriptIds.has(topCallFrame.location.scriptId)) {
+    const objectId = topCallFrame?.scopeChain[0]?.object.objectId;
+    collectVariablesFromRuntime(objectId);
+    extractDataAndSendToMainThread(topCallFrame, parsedScript);
   }
 
   session.post('Debugger.stepOver');
