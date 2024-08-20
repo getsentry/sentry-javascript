@@ -1,6 +1,8 @@
 import inspector from 'inspector';
 import { parentPort } from 'worker_threads';
-import type { ParentThreadMessage } from './with-timetravel';
+import type { ParentThreadMessage, PayloadEvent, Step } from './with-timetravel';
+
+const CONTEXT_LINZE_WINDOW_SIZE = 3;
 
 const session = new inspector.Session();
 
@@ -9,19 +11,39 @@ const parsedScripts = new Map<
   { url?: string }
 >();
 
-const steps: unknown[] = [];
+const steps: Step[] = [];
 
 async function onPaused(
   pausedEvent: inspector.InspectorNotification<inspector.Debugger.PausedEventDataType>,
 ): Promise<void> {
-  const script = parsedScripts.get(pausedEvent.params.callFrames[0]?.location.scriptId ?? 'invariant');
+  const topCallframe = pausedEvent.params.callFrames[0];
+  if (topCallframe) {
+    const parsedScript = parsedScripts.get(topCallframe.location.scriptId);
+    if (parsedScript) {
+      session.post(
+        'Debugger.getScriptSource',
+        { scriptId: topCallframe.location.scriptId },
+        (err, scriptSourceMessage): void => {
+          const scriptSource: string = scriptSourceMessage.scriptSource || '';
+          const lines = scriptSource.split('\n');
 
-  if (script) {
-    steps.push({
-      filename: script.url,
-      lineno: pausedEvent.params.callFrames[0]?.location.lineNumber,
-      colno: pausedEvent.params.callFrames[0]?.location.columnNumber,
-    });
+          steps.push({
+            filename: parsedScript.url,
+            lineno: topCallframe.location.lineNumber,
+            colno: topCallframe.location.columnNumber,
+            pre_lines: lines.slice(
+              Math.max(0, topCallframe.location.lineNumber - CONTEXT_LINZE_WINDOW_SIZE),
+              topCallframe.location.lineNumber,
+            ),
+            line: lines[topCallframe.location.lineNumber] || '',
+            post_lines: lines.slice(
+              topCallframe.location.lineNumber + 1,
+              topCallframe.location.lineNumber + 1 + CONTEXT_LINZE_WINDOW_SIZE,
+            ),
+          });
+        },
+      );
+    }
   }
 
   session.post('Debugger.stepInto');
@@ -42,7 +64,7 @@ parentPort?.on('message', (message: ParentThreadMessage) => {
     session.off('Debugger.paused', onPaused);
     session.off('Debugger.scriptParsed', onScriptParsed);
     session.post('Debugger.resume');
-    parentPort?.postMessage({ type: 'Payload', steps });
+    parentPort?.postMessage({ type: 'Payload', steps } satisfies PayloadEvent);
     session.disconnect();
   }
 });

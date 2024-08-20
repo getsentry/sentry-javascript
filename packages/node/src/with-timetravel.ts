@@ -4,22 +4,21 @@ import { Worker } from 'worker_threads';
 
 const base64WorkerScript = '###TimeTravelWorkerScript###';
 
-export interface StateUpdateEvent {
-  type: 'StateUpdateEvent';
-  data: {
-    filename?: string;
-    lineno?: number;
-    pre_line?: string[];
-    line?: string;
-    post_line?: string[];
-  };
+export interface Step {
+  filename?: string;
+  lineno?: number;
+  colno?: number;
+  pre_lines?: string[];
+  line?: string;
+  post_lines?: string[];
 }
 
 export interface PayloadEvent {
   type: 'Payload';
+  steps: Step[];
 }
 
-export type WorkerThreadMessage = StateUpdateEvent | PayloadEvent;
+export type WorkerThreadMessage = PayloadEvent;
 
 interface StopEvent {
   type: 'stop';
@@ -68,7 +67,8 @@ export async function withTimetravel<F extends () => any>(timetravelableFunction
     () => {
       function onStopMessage(message: WorkerThreadMessage): void {
         if (message.type === 'Payload') {
-          console.log(JSON.stringify(message));
+          // Do stuff with steps
+          // console.log(JSON.stringify(message.steps));
         }
 
         worker.off('message', onStopMessage);
