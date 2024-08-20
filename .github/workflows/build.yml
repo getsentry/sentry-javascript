@@ -344,7 +344,7 @@ jobs:
           name: ${{ github.sha }}
           path: |
             ${{ github.workspace }}/packages/browser/build/bundles/**
-            ${{ github.workspace }}/packages/replay/build/bundles/**
+            ${{ github.workspace }}/packages/replay-internal/build/bundles/**
             ${{ github.workspace }}/packages/replay-canvas/build/bundles/**
             ${{ github.workspace }}/packages/feedback/build/bundles/**
             ${{ github.workspace }}/packages/**/*.tgz
