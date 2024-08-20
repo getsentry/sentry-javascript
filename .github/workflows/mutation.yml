@@ -33,8 +33,7 @@ jobs:
           node-version-file: 'package.json'
 
       - name: Install Dependencies
-        uses: ./.github/actions/install-dependencies
-        id: install_dependencies
+        run: yarn install --frozen-lockfile
 
       - name: Build packages
         # Set the CODECOV_TOKEN for Bundle Analysis
