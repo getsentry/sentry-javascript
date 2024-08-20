@@ -40,7 +40,7 @@
     "test:ci:browser": "UNIT_TEST_ENV=browser ts-node ./scripts/ci-unit-tests.ts",
     "test:ci:node": "UNIT_TEST_ENV=node ts-node ./scripts/ci-unit-tests.ts",
     "test:ci:bun": "lerna run test --scope @sentry/bun",
-    "test:mutation": "lerna run test:mutation",
+    "test:mutation": "lerna run --stream --concurrency=auto test:mutation && ts-node ./scripts/stryker-results.ts",
     "yalc:publish": "lerna run yalc:publish"
   },
   "volta": {
