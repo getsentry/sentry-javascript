@@ -1,14 +1,11 @@
+import baseConfig from '@sentry-internal/stryker-config';
+
 /** @type {import('@stryker-mutator/api/core').PartialStrykerOptions} */
 const config = {
-  packageManager: 'yarn',
-  reporters: ['html', 'clear-text', 'progress', 'json', 'dashboard'],
-  testRunner: 'vitest',
-  coverageAnalysis: 'perTest',
-  ignoreStatic: true,
+  ...baseConfig,
   dashboard: {
-    project: 'github.com/Lms24/sentry-javascript-test-fork',
+    ...baseConfig.dashboard,
     module: '@sentry/browser',
-    version: 'develop',
   },
 };
 

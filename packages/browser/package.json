@@ -50,6 +50,7 @@
   "devDependencies": {
     "@sentry-internal/integration-shims": "8.26.0",
     "@sentry-internal/vitest-config": "8.26.0",
+    "@sentry-internal/stryker-config": "8.26.0",
     "fake-indexeddb": "^4.0.1"
   },
   "scripts": {

@@ -1,0 +1,25 @@
+{
+  "private": true,
+  "version": "8.26.0",
+  "name": "@sentry-internal/stryker-config",
+  "author": "Sentry",
+  "license": "MIT",
+  "files": [
+    "src"
+  ],
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "import": {
+        "default": "./src/stryker.config.mjs"
+      }
+    }
+  },
+  "sideEffects": false,
+  "engines": {
+    "node": ">=14.18"
+  },
+  "volta": {
+    "extends": "../../package.json"
+  }
+}

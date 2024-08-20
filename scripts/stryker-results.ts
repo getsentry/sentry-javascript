@@ -22,7 +22,8 @@ interface MutationTestResultAggregation {
 
 function main(): void {
   const mutationResults: schema.MutationTestResult[] = getMutationTestResults();
-  console.table(mutationResults.map(getMutationTestResultAggregation));
+  const results = mutationResults.map(getMutationTestResultAggregation).sort((a, b) => b.score - a.score);
+  console.table(results);
 }
 
 function getMutationTestResults(): schema.MutationTestResult[] {
@@ -64,6 +65,10 @@ function getMutationTestResultAggregation(mutationResults: schema.MutationTestRe
 
   return {
     package: getPackageName(mutationResults),
+    score: Math.round((detected / (total - ignored) + Number.EPSILON) * 100) / 100,
+    scoreCovered: Math.round((detected / (total - ignored - noCoverage) + Number.EPSILON) * 100) / 100,
+    detected,
+    undetected: survived + noCoverage,
     killed,
     survived,
     noCoverage,
@@ -71,10 +76,6 @@ function getMutationTestResultAggregation(mutationResults: schema.MutationTestRe
     error,
     timeout,
     total,
-    detected,
-    undetected: survived + noCoverage,
-    score: Math.fround(detected / (total - ignored)),
-    scoreCovered: Math.fround(detected / (total - ignored - noCoverage)),
   };
 }
 

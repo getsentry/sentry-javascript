@@ -43,7 +43,7 @@
     "@sentry/utils": "8.26.0"
   },
   "devDependencies": {
-    "@sentry-internal/vite-config": "8.26.0"
+    "@sentry-internal/vitest-config": "8.26.0"
   },
   "scripts": {
     "build": "run-p build:transpile build:types",
