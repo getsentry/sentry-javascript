@@ -15,9 +15,55 @@ const parsedScripts = new Map<
 >();
 let nextFrameIsAllowed = false;
 
+function unrollArray(objectId: string | undefined): Promise<unknown[]> {
+  if (!objectId) return Promise.resolve([]);
+
+  return new Promise(resolve => {
+    session.post(
+      'Runtime.getProperties',
+      {
+        objectId,
+        ownProperties: true,
+      },
+      (err, params) => {
+        const arrayProps = params.result
+          .filter(v => v.name !== 'length' && !isNaN(parseInt(v.name, 10)))
+          .sort((a, b) => parseInt(a.name, 10) - parseInt(b.name, 10))
+          .map(v => v?.value?.value);
+
+        resolve(arrayProps);
+      },
+    );
+  });
+}
+
+function unrollObject(objectId: string | undefined): Promise<Record<string, unknown>> {
+  if (!objectId) return Promise.resolve({});
+
+  return new Promise(resolve => {
+    session.post(
+      'Runtime.getProperties',
+      {
+        objectId,
+        ownProperties: true,
+      },
+      (err, params) => {
+        const obj = params.result
+          .map<[string, unknown]>(v => [v.name, v?.value?.value])
+          .reduce((acc, [key, val]) => {
+            acc[key] = val;
+            return acc;
+          }, {} as Record<string, unknown>);
+
+        resolve(obj);
+      },
+    );
+  });
+}
+
 const steps: Step[] = [];
 
-function collectVariablesFromCurrentFrame(objectId: undefined | string): Promise<{ [name: string]: unknown }> {
+async function collectVariablesFromCurrentFrame(objectId: undefined | string): Promise<{ [name: string]: unknown }> {
   if (!objectId) {
     return Promise.resolve({});
   }
@@ -29,12 +75,19 @@ function collectVariablesFromCurrentFrame(objectId: undefined | string): Promise
         objectId,
         ownProperties: true,
       },
-      (err, params) => {
+      async (err, params) => {
         const vars: Record<string, unknown> = {};
         for (const param of params.result) {
           const name = param.name;
-          const value = param.value?.value;
-          vars[name] = value;
+          const value = param.value;
+
+          if (value?.type === 'object' && value.subtype === 'array') {
+            vars[name] = await unrollArray(value.objectId);
+          } else if (value?.type === 'object') {
+            vars[name] = await unrollObject(value.objectId);
+          } else { // numbers, strings
+            vars[name] = value?.value;
+          }
         }
         resolve(vars);
       },
@@ -42,7 +95,7 @@ function collectVariablesFromCurrentFrame(objectId: undefined | string): Promise
   });
 }
 
-function getFileDataForCurrentFrame(
+async function getFileDataForCurrentFrame(
   topCallframe: inspector.Debugger.CallFrame,
   parsedScript: { url?: string },
 ): Promise<{
