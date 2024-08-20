@@ -16,6 +16,28 @@ const parsedScripts = new Map<
 let nextFrameIsAllowed = false;
 
 const steps: Step[] = [];
+let vars: Variable[] = [];
+
+function collectVariablesFromRuntime(objectId: undefined | string): void {
+  if (!objectId) return;
+
+  session.post('Runtime.getProperties',
+    {
+      objectId,
+      ownProperties: true,
+    },
+    (err, params) => {
+      for (const param of params.result) {
+        const name = param.name;
+        const value = param.value?.value;
+
+        if (value) {
+          vars.push({ name, value } satisfies Variable);
+        }
+      }
+    }
+  );
+}
 
 async function onPaused(
   pausedEvent: inspector.InspectorNotification<inspector.Debugger.PausedEventDataType>,
@@ -31,27 +53,7 @@ async function onPaused(
 
       if (allowedScriptIds.has(topCallframe.location.scriptId)) {
         const objectId = topCallframe?.scopeChain[0]?.object.objectId;
-        let vars: Variable[] = [];
-
-        if (objectId) {
-
-          session.post('Runtime.getProperties',
-            {
-              objectId,
-              ownProperties: true
-            },
-            (err, params) => {
-              for (const param of params.result) {
-                const name = param.name;
-                const value = param.value?.value;
-
-                if (value) {
-                  vars.push({ name, value } satisfies Variable);
-                }
-              }
-            })
-        }
-
+        collectVariablesFromRuntime(objectId);
 
         session.post(
           'Debugger.getScriptSource',
