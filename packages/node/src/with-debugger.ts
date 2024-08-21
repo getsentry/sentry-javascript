@@ -3,9 +3,9 @@ import { logger } from '@sentry/utils';
 import { Worker } from 'worker_threads';
 import { AsyncLocalStorage } from 'async_hooks';
 
-export const timetravelALS = new AsyncLocalStorage<Worker>();
+export const debuggerALS = new AsyncLocalStorage<Worker>();
 
-const base64WorkerScript = '###TimeTravelWorkerScript###';
+const base64WorkerScript = '###DebuggerWorkerScript###';
 
 export interface Step {
   filename?: string;
@@ -50,12 +50,12 @@ export type ParentThreadMessage = IncrRefCountEvent | DecrRefCountEvent | Reques
 let inspector: any;
 
 /**
- * Allows you to go back in time when an error happens within the callback you provide.
+ * Allows you to get debugging info in Sentry when an error happens within the callback you provide.
  *
  * @experimental
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function withTimetravel<F extends () => any>(timetravelableFunction: F): Promise<ReturnType<F>> {
+export async function withDebugger<F extends () => any>(debuggableFunction: F): Promise<ReturnType<F>> {
   if (!inspector) {
     // We load inspector dynamically because on some platforms Node is built without inspector support
     inspector = await import('inspector');
@@ -68,7 +68,7 @@ export async function withTimetravel<F extends () => any>(timetravelableFunction
   }
 
   const worker =
-    timetravelALS.getStore() ??
+    debuggerALS.getStore() ??
     (() => {
       const worker = new Worker(new URL(`data:application/javascript;base64,${base64WorkerScript}`), {
         // We don't want any Node args to be passed to the worker
@@ -76,7 +76,7 @@ export async function withTimetravel<F extends () => any>(timetravelableFunction
       });
 
       worker.on('error', (err: Error) => {
-        logger.error('Timetravel worker error', err);
+        logger.error('Debugging worker error', err);
       });
 
       // Ensure this thread can't block app exit
@@ -85,14 +85,14 @@ export async function withTimetravel<F extends () => any>(timetravelableFunction
       return worker;
     })();
 
-  return timetravelALS.run(worker, () => {
+  return debuggerALS.run(worker, () => {
     return handleCallbackErrors(
       () => {
         worker.postMessage({ type: 'incrRefCount' } as IncrRefCountEvent);
         worker.postMessage({ type: 'waiting' });
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         inspector.waitForDebugger();
-        return timetravelableFunction();
+        return debuggableFunction();
       },
       () => {
         // noop? or write stack traces on error object

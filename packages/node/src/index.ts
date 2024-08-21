@@ -11,7 +11,7 @@ export { onUncaughtExceptionIntegration } from './integrations/onuncaughtexcepti
 export { onUnhandledRejectionIntegration } from './integrations/onunhandledrejection';
 export { anrIntegration } from './integrations/anr';
 
-export { withTimetravel } from './with-timetravel';
+export { withDebugger } from './with-debugger';
 
 export { expressIntegration, expressErrorHandler, setupExpressErrorHandler } from './integrations/tracing/express';
 export { fastifyIntegration, setupFastifyErrorHandler } from './integrations/tracing/fastify';

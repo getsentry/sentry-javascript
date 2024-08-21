@@ -34,7 +34,7 @@ export default [
             values: {
               AnrWorkerScript: () => getAnrBase64Code(),
               LocalVariablesWorkerScript: () => getLocalVariablesBase64Code(),
-              TimeTravelWorkerScript: await getBase64WorkerCode('src/timetravel-worker.ts'),
+              DebuggerWorkerScript: await getBase64WorkerCode('src/debugger-worker.ts'),
             },
           }),
         ],
