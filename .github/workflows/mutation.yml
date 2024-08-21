@@ -166,6 +166,14 @@ jobs:
         env:
           DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
 
+      - name: NX cache
+        uses: actions/cache@v4
+        with:
+          path: .nxcache
+          key: nx-Linux-${{ github.ref }}-${{ env.HEAD_COMMIT || github.sha }}
+          restore-keys:
+            ${{ env.NX_CACHE_RESTORE_KEYS || 'nx-never-restore'}}
+
       - name: Run yarn again
         run: yarn
 
