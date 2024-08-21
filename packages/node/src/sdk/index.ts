@@ -46,8 +46,8 @@ import { envToBool } from '../utils/envToBool';
 import { defaultStackParser, getSentryRelease } from './api';
 import { NodeClient } from './client';
 import { initOpenTelemetry, maybeInitializeEsmLoader } from './initOtel';
-import type { WorkerThreadMessage } from '../with-timetravel';
-import { timetravelALS } from '../with-timetravel';
+import type { WorkerThreadMessage } from '../with-debugger';
+import { debuggerALS } from '../with-debugger';
 
 function getCjsOnlyIntegrations(): Integration[] {
   return isCjs() ? [modulesIntegration()] : [];
@@ -180,22 +180,22 @@ function _init(
 
   client.addEventProcessor(event => {
     if (event.type === undefined) {
-      const timetravelWorker = timetravelALS.getStore();
-      if (timetravelWorker) {
+      const debuggerWorker = debuggerALS.getStore();
+      if (debuggerWorker) {
         return new Promise(resolve => {
           function onMessage(message: WorkerThreadMessage): void {
             if (message.type === 'Payload') {
-              timetravelWorker?.off('message', onMessage);
+              debuggerWorker?.off('message', onMessage);
               event.contexts = event.contexts || {};
-              event.contexts['timetravel'] = { steps: message.steps.slice(-100) };
-              addNonEnumerableProperty(event.contexts['timetravel'], '__sentry_override_normalization_depth__', 10);
+              event.contexts['debugger'] = { steps: message.steps.slice(-100) };
+              addNonEnumerableProperty(event.contexts['debugger'], '__sentry_override_normalization_depth__', 10);
               resolve(event);
             }
           }
 
-          timetravelWorker.on('message', onMessage);
+          debuggerWorker.on('message', onMessage);
 
-          timetravelWorker.postMessage({ type: 'requestPayload' });
+          debuggerWorker.postMessage({ type: 'requestPayload' });
         });
       }
     }

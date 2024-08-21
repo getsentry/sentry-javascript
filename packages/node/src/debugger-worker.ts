@@ -1,6 +1,6 @@
 import inspector from 'inspector';
 import { parentPort } from 'worker_threads';
-import type { ParentThreadMessage, PayloadEvent, Step } from './with-timetravel';
+import type { ParentThreadMessage, PayloadEvent, Step } from './with-debugger';
 
 let refCount = 0;
 
