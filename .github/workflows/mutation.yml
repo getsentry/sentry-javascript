@@ -124,6 +124,11 @@ jobs:
         run: |
           yarn ts-node ./scripts/stryker-start-trace.ts
 
+
+      - name: Test 1
+        run: |
+          ls -la node_modules/.bin
+          ls -la ../../node_modules/.bin
     outputs:
       dependency_cache_key: ${{ steps.install_dependencies.outputs.cache_key }}
       sentry_trace: '${{ env.SENTRY_MUT_SENTRY_TRACE }}'
@@ -165,6 +170,11 @@ jobs:
         run: |
           echo "SENTRY_MUT_SENTRY_TRACE=${{ needs.job_build.outputs.sentry_trace }}" >> $GITHUB_ENV
           echo "SENTRY_MUT_BAGGAGE=${{ needs.job_build.outputs.baggage }}" >> $GITHUB_ENV
+
+      - name: Test 2
+        run: |
+          ls -la node_modules/.bin
+          ls -la ../../node_modules/.bin
 
       - name: Run mutation test
         run: yarn nx run ${{ matrix.package }}:test:mutation
