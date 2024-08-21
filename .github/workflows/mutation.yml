@@ -46,14 +46,6 @@ env:
   BUILD_CACHE_KEY: build-cache-${{ github.event.inputs.commit || github.sha }}
   BUILD_CACHE_TARBALL_KEY: tarball-${{ github.event.inputs.commit || github.sha }}
 
-  # GH will use the first restore-key it finds that matches
-  # So it will start by looking for one from the same branch, else take the newest one it can find elsewhere
-  # We want to prefer the cache from the current develop branch, if we don't find any on the current branch
-  NX_CACHE_RESTORE_KEYS: |
-    nx-Linux-${{ github.ref }}-${{ github.event.inputs.commit || github.sha }}
-    nx-Linux-${{ github.ref }}
-    nx-Linux
-
 jobs:
   job_get_metadata:
     name: Get Metadata
@@ -107,14 +99,6 @@ jobs:
         with:
           path: ${{ env.CACHED_BUILD_PATHS }}
           key: ${{ env.BUILD_CACHE_KEY }}
-
-      - name: NX cache
-        uses: actions/cache@v4
-        with:
-          path: .nxcache
-          key: nx-Linux-${{ github.ref }}-${{ env.HEAD_COMMIT || github.sha }}
-          restore-keys:
-            ${{ env.NX_CACHE_RESTORE_KEYS || 'nx-never-restore'}}
 
       - name: Build packages
         run: yarn build
