@@ -158,6 +158,9 @@ jobs:
         env:
           DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
 
+      - name: Run yarn again
+        run: yarn
+
       - name: Set trace propagation data
         run: |
           echo "SENTRY_MUT_SENTRY_TRACE=${{ needs.job_build.outputs.sentry_trace }}" >> $GITHUB_ENV
