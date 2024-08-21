@@ -64,7 +64,7 @@
     "lint": "eslint . --format stylish",
     "test": "vitest run",
     "test:watch": "vitest --watch",
-    "test:mutation": "npx stryker-runner",
+    "test:mutation": "stryker-runner",
     "yalc:publish": "yalc publish --push --sig"
   },
   "volta": {

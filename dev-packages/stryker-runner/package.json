@@ -5,12 +5,11 @@
   "author": "Sentry",
   "license": "MIT",
   "files": [
-    "src"
+    "build"
   ],
   "exports": {
     "./package.json": "./package.json"
   },
-  "sideEffects": false,
   "engines": {
     "node": ">=14.18"
   },
