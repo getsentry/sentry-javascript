@@ -28,8 +28,8 @@
     "build": "tsc",
     "build:transpile": "tsc",
     "build:watch": "tsc --watch",
-    "start": "node ./build/run.js"
+    "start": "node ./build/esm/run.js"
   },
   "type": "module",
-  "bin": "./build/run.js"
+  "bin": "./build/esm/run.js"
 }

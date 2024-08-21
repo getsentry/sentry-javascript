@@ -4,7 +4,7 @@
     "moduleResolution": "NodeNext",
     "target": "ES2022",
     "module": "NodeNext",
-    "outDir": "build"
+    "outDir": "build/esm"
   },
   "include": ["src/**/*.ts"]
 }
