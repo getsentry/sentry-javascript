@@ -1,0 +1,35 @@
+{
+  "private": true,
+  "version": "8.26.0",
+  "name": "@sentry-internal/stryker-runner",
+  "author": "Sentry",
+  "license": "MIT",
+  "files": [
+    "src"
+  ],
+  "exports": {
+    "./package.json": "./package.json"
+  },
+  "sideEffects": false,
+  "engines": {
+    "node": ">=14.18"
+  },
+  "volta": {
+    "extends": "../../package.json"
+  },
+  "dependencies": {
+    "@sentry/node": "^8.26.0",
+    "@stryker-mutator/core": "^8.5.0",
+    "typescript": "^4.9.5"
+  },
+  "devDependencies": {
+    "@stryker-mutator/api": "^8.5.0"
+  },
+  "scripts": {
+    "build": "tsc",
+    "build:watch": "tsc --watch",
+    "start": "node ./dist/run.js"
+  },
+  "type": "module",
+  "bin": "./build/run.js"
+}

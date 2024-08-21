@@ -9,18 +9,90 @@ on:
         description: If the commit you want to test isn't the head of a branch, provide its SHA here
         required: false
   schedule:
-    # Run every sunday at 00:00 UTC
+    # run every sunday at midnight:
     - cron: '0 0 * * 0'
 
+# Cancel in progress workflows on pull_requests.
+# https://docs.github.com/en/actions/using-jobs/using-concurrency#example-using-a-fallback-value
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
 
 env:
   HEAD_COMMIT: ${{ github.event.inputs.commit || github.sha }}
 
+  # WARNING: this disables cross os caching as ~ and
+  # github.workspace evaluate to differents paths
+  CACHED_DEPENDENCY_PATHS: |
+    ${{ github.workspace }}/node_modules
+    ${{ github.workspace }}/packages/*/node_modules
+    ${{ github.workspace }}/dev-packages/*/node_modules
+    ~/.cache/mongodb-binaries/
+
+  # DEPENDENCY_CACHE_KEY: can't be set here because we don't have access to yarn.lock
+
+  # WARNING: this disables cross os caching as ~ and
+  # github.workspace evaluate to differents paths
+  # packages/utils/cjs and packages/utils/esm: Symlinks to the folders inside of `build`, needed for tests
+  CACHED_BUILD_PATHS: |
+    ${{ github.workspace }}/dev-packages/*/build
+    ${{ github.workspace }}/packages/*/build
+    ${{ github.workspace }}/packages/ember/*.d.ts
+    ${{ github.workspace }}/packages/gatsby/*.d.ts
+    ${{ github.workspace }}/packages/core/src/version.ts
+    ${{ github.workspace }}/packages/utils/cjs
+    ${{ github.workspace }}/packages/utils/esm
+
+  BUILD_CACHE_KEY: build-cache-${{ github.event.inputs.commit || github.sha }}
+  BUILD_CACHE_TARBALL_KEY: tarball-${{ github.event.inputs.commit || github.sha }}
+
+  # GH will use the first restore-key it finds that matches
+  # So it will start by looking for one from the same branch, else take the newest one it can find elsewhere
+  # We want to prefer the cache from the current develop branch, if we don't find any on the current branch
+  NX_CACHE_RESTORE_KEYS: |
+    nx-Linux-${{ github.ref }}-${{ github.event.inputs.commit || github.sha }}
+    nx-Linux-${{ github.ref }}
+    nx-Linux
+
 jobs:
-  job_build:
-    name: Build & Test
+  job_get_metadata:
+    name: Get Metadata
     runs-on: ubuntu-20.04
-    timeout-minutes: 300
+    permissions:
+      pull-requests: read
+    steps:
+      - name: Check out current commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.HEAD_COMMIT }}
+          # We need to check out not only the fake merge commit between the PR and the base branch which GH creates, but
+          # also its parents, so that we can pull the commit message from the head commit of the PR
+          fetch-depth: 2
+
+      - name: Get metadata
+        id: get_metadata
+        # We need to try a number of different options for finding the head commit, because each kind of trigger event
+        # stores it in a different location
+        run: |
+          COMMIT_SHA=$(git rev-parse --short ${{ github.event.head_commit.id || env.HEAD_COMMIT }})
+          echo "COMMIT_SHA=$COMMIT_SHA" >> $GITHUB_ENV
+          echo "COMMIT_MESSAGE=$(git log -n 1 --pretty=format:%s $COMMIT_SHA)" >> $GITHUB_ENV
+
+      - name: Generate Sentry Trace
+        id: sentry_trace
+        run: |
+          yarn ts-node ./scripts/stryker-start-trace.ts
+
+    outputs:
+      commit_label: '${{ env.COMMIT_SHA }}: ${{ env.COMMIT_MESSAGE }}'
+      sentry_trace: '${{ env.SENTRY_MUT_SENTRY_TRACE }}'
+      baggage: '${{ env.SENTRY_MUT_BAGGAGE }}'
+
+  job_build:
+    name: Build
+    needs: job_get_metadata
+    runs-on: ubuntu-20.04
+    timeout-minutes: 15
     steps:
       - name: 'Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})'
         uses: actions/checkout@v4
@@ -33,21 +105,73 @@ jobs:
           node-version-file: 'package.json'
 
       - name: Install Dependencies
-        run: yarn install --frozen-lockfile
+        uses: ./.github/actions/install-dependencies
+        id: install_dependencies
+
+      - name: Check build cache
+        uses: actions/cache@v4
+        id: cache_built_packages
+        with:
+          path: ${{ env.CACHED_BUILD_PATHS }}
+          key: ${{ env.BUILD_CACHE_KEY }}
+
+      - name: NX cache
+        uses: actions/cache@v4
+        with:
+          path: .nxcache
+          key: nx-Linux-${{ github.ref }}-${{ env.HEAD_COMMIT || github.sha }}
+          restore-keys:
+            ${{ env.NX_CACHE_RESTORE_KEYS || 'nx-never-restore'}}
 
       - name: Build packages
-        # Set the CODECOV_TOKEN for Bundle Analysis
-        env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
         run: yarn build
 
-      - name: Run Mutation Testing
-        run: yarn test:mutation
+    outputs:
+      dependency_cache_key: ${{ steps.install_dependencies.outputs.cache_key }}
+
+  job_mutation_test:
+    name: Run (${{ matrix.package }}) Mutation Testing
+    needs: [job_get_metadata, job_build]
+    timeout-minutes: 180
+    runs-on: ubuntu-20.04
+    strategy:
+      fail-fast: false
+      matrix:
+        package: [
+          '@sentry/core',
+          '@sentry/browser',
+          '@sentry/node',
+          '@sentry/svelte',
+          '@sentry/sveltekit',
+        ]
+    steps:
+      - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.HEAD_COMMIT }}
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: 'package.json'
+      - name: Restore caches
+        uses: ./.github/actions/restore-cache
+        env:
+          DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
+
+      - name: Set trace propagation data
+        run: |
+          echo "SENTRY_MUT_SENTRY_TRACE=${{ needs.job_get_metadata.outputs.sentry_trace }}" >> $GITHUB_ENV
+          echo "SENTRY_MUT_BAGGAGE=${{ needs.job_get_metadata.outputs.baggage }}" >> $GITHUB_ENV
+
+      - name: Run mutation test
+        run: yarn nx run ${{ matrix.package }}:mutation-test
+        env:
+          NODE_VERSION: ${{ matrix.node }}
 
       - name: Upload Results
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ github.sha }}
+          name: ${{ matrix.package }} reports
           path: |
             ${{ github.workspace }}/packages/**/mutation.json
             ${{ github.workspace }}/packages/**/mutation.html

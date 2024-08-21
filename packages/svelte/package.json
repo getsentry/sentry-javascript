@@ -50,6 +50,7 @@
   },
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "1.4.0",
+    "@sentry-internal/stryker-runner": "8.26.0",
     "@testing-library/svelte": "^3.2.1",
     "svelte": "3.49.0"
   },
@@ -71,7 +72,7 @@
     "lint": "eslint . --format stylish",
     "test": "vitest run",
     "test:watch": "vitest --watch",
-    "test:mutation": "stryker run",
+    "test:mutation": "stryker-runner",
     "yalc:publish": "yalc publish --push --sig"
   },
   "volta": {

@@ -96,7 +96,8 @@
     "dev-packages/rollup-utils",
     "dev-packages/jest-config",
     "dev-packages/vitest-config",
-    "dev-packages/stryker-config"
+    "dev-packages/stryker-config",
+    "dev-packages/stryker-runner"
   ],
   "devDependencies": {
     "@biomejs/biome": "^1.4.0",

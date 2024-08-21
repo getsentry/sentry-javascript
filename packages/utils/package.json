@@ -42,6 +42,7 @@
     "@sentry/types": "8.26.0"
   },
   "devDependencies": {
+    "@sentry-internal/stryker-runner": "8.26.0",
     "@types/array.prototype.flat": "^1.2.1",
     "array.prototype.flat": "^1.3.0"
   },
@@ -63,6 +64,7 @@
     "lint": "eslint . --format stylish",
     "test": "jest",
     "test:watch": "jest --watch",
+    "test:mutation": "stryker-runner",
     "version": "node ../../scripts/versionbump.js src/version.ts",
     "yalc:publish": "yalc publish --push --sig"
   },

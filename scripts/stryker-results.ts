@@ -1,9 +1,26 @@
 /* eslint-disable no-console */
-/* eslint-disable @typescript-eslint/no-non-null-assertion */
+
+import * as child_process from 'node:child_process';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 
 import type { schema } from '@stryker-mutator/api/core';
+
+import * as Sentry from '@sentry/node';
+
+Sentry.init({
+  dsn: 'https://cdae3f96df86224530838d318d268f62@o447951.ingest.us.sentry.io/4507814527303680',
+  tracesSampleRate: 1.0,
+  defaultIntegrations: false,
+
+  environment: process.env.CI ? 'ci' : 'local',
+  release: child_process.execSync('git rev-parse HEAD').toString().trim(),
+
+  beforeSendTransaction(transaction) {
+    console.log('Sending transaction to Sentry:', transaction);
+    return transaction;
+  },
+});
 
 interface MutationTestResultAggregation {
   package: string;
@@ -24,6 +41,7 @@ function main(): void {
   const mutationResults: schema.MutationTestResult[] = getMutationTestResults();
   const results = mutationResults.map(getMutationTestResultAggregation).sort((a, b) => b.score - a.score);
   console.table(results);
+  sendResultsToSentry(results);
 }
 
 function getMutationTestResults(): schema.MutationTestResult[] {
@@ -77,6 +95,30 @@ function getMutationTestResultAggregation(mutationResults: schema.MutationTestRe
     timeout,
     total,
   };
+}
+
+// sentry-trace header: uuid{32}-uuid{16}-bool{1}:
+// 8e6b2b4a9e9a4b7b9e9b9e9a9e9b9e9a-8e6b2b4a9e9a4b7b-1
+
+function sendResultsToSentry(mutationResults: MutationTestResultAggregation[]): void {
+  Sentry.continueTrace(
+    {
+      sentryTrace: '8e6b2b4a9e9a4b7b9e9b9e9a9e9b9e9a-8e6b2b4a9e9a4b7b-1',
+      baggage: 'sentry-trace_id=8e6b2b4a9e9a4b7b9e9b9e9a9e9b9e9a',
+    },
+    () => {
+      mutationResults.forEach(res => {
+        Sentry.withScope(scope => {
+          Sentry.startSpanManual({ name: res.package, op: 'test' }, rootSpan => {
+            scope.setTag('mutation.score', res.score);
+            scope.setTag('mutation.package', res.package);
+            Sentry.setMeasurement('mutation.score', res.score, 'ratio');
+            rootSpan.end();
+          });
+        });
+      });
+    },
+  );
 }
 
 function getPackageName(mutationResults: schema.MutationTestResult): string {

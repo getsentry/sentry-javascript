@@ -9415,7 +9415,7 @@
   dependencies:
     highlight.js "^9.15.6"
 
-"@stryker-mutator/api@8.5.0":
+"@stryker-mutator/api@8.5.0", "@stryker-mutator/api@^8.5.0":
   version "8.5.0"
   resolved "https://registry.yarnpkg.com/@stryker-mutator/api/-/api-8.5.0.tgz#b58b0c15c4c525541a9a6bb78cf1ec469de4beb2"
   integrity sha512-dhz6BAbNr6LW96UjJFyxVnGOvJqo+7GdIBJl3Cckg3/Bakn0jL61xZ0ca9pcrbVHivy9vlzMs+dCv2pr9QV9rg==

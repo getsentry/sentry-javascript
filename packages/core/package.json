@@ -43,6 +43,7 @@
     "@sentry/utils": "8.26.0"
   },
   "devDependencies": {
+    "@sentry-internal/stryker-runner": "8.26.0",
     "@sentry-internal/vitest-config": "8.26.0"
   },
   "scripts": {
@@ -63,7 +64,7 @@
     "lint": "eslint . --format stylish",
     "test": "vitest run",
     "test:watch": "vitest --watch",
-    "test:mutation": "stryker run",
+    "test:mutation": "stryker-runner",
     "yalc:publish": "yalc publish --push --sig"
   },
   "volta": {
