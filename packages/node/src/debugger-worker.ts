@@ -25,11 +25,23 @@ function unrollArray(objectId: string | undefined): Promise<unknown[]> {
         objectId,
         ownProperties: true,
       },
-      (err, params) => {
-        const arrayProps = params.result
-          .filter(v => v.name !== 'length' && !isNaN(parseInt(v.name, 10)))
-          .sort((a, b) => parseInt(a.name, 10) - parseInt(b.name, 10))
-          .map(v => v?.value?.value);
+      async (err, params) => {
+        const arrayProps = await Promise.all(
+          params.result
+            .filter(v => v.name !== 'length' && !isNaN(parseInt(v.name, 10)))
+            .sort((a, b) => parseInt(a.name, 10) - parseInt(b.name, 10))
+            .map(async v => {
+              if (v.value?.type === 'object') {
+                if (v.value?.subtype === 'array') {
+                  return unrollArray(v?.value?.objectId);
+                } else {
+                  return unrollObject(v?.value?.objectId);
+                }
+              } else {
+                return v?.value?.value;
+              }
+            })
+        );
 
         resolve(arrayProps);
       },
@@ -47,16 +59,22 @@ function unrollObject(objectId: string | undefined): Promise<Record<string, unkn
         objectId,
         ownProperties: true,
       },
-      (err, params) => {
-        const obj = params.result
-          .map<[string, unknown]>(v => [v.name, v?.value?.value])
-          .reduce(
-            (acc, [key, val]) => {
-              acc[key] = val;
-              return acc;
-            },
-            {} as Record<string, unknown>,
-          );
+      async (err, params) => {
+        const obj = await params.result.reduce(async (accPromise, v) => {
+          const acc = await accPromise;
+
+          if (v.value?.type === 'object') {
+            if (v.value.subtype === 'array') {
+              acc[v.name] = await unrollArray(v.value.objectId);
+            } else {
+              acc[v.name] = await unrollObject(v.value.objectId);
+            }
+          } else {
+            acc[v.name] = v?.value?.value;
+          }
+
+          return acc;
+        }, Promise.resolve({} as Record<string, unknown>));
 
         resolve(obj);
       },
