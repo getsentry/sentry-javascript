@@ -164,7 +164,7 @@ jobs:
           echo "SENTRY_MUT_BAGGAGE=${{ needs.job_build.outputs.baggage }}" >> $GITHUB_ENV
 
       - name: Run mutation test
-        run: yarn nx run ${{ matrix.package }}:mutation-test
+        run: yarn nx run ${{ matrix.package }}:test:mutation
         env:
           NODE_VERSION: ${{ matrix.node }}
 
