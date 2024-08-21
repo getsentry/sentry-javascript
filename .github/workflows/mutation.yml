@@ -78,15 +78,8 @@ jobs:
           echo "COMMIT_SHA=$COMMIT_SHA" >> $GITHUB_ENV
           echo "COMMIT_MESSAGE=$(git log -n 1 --pretty=format:%s $COMMIT_SHA)" >> $GITHUB_ENV
 
-      - name: Generate Sentry Trace
-        id: sentry_trace
-        run: |
-          yarn ts-node ./scripts/stryker-start-trace.ts
-
     outputs:
       commit_label: '${{ env.COMMIT_SHA }}: ${{ env.COMMIT_MESSAGE }}'
-      sentry_trace: '${{ env.SENTRY_MUT_SENTRY_TRACE }}'
-      baggage: '${{ env.SENTRY_MUT_BAGGAGE }}'
 
   job_build:
     name: Build
@@ -126,8 +119,15 @@ jobs:
       - name: Build packages
         run: yarn build
 
+      - name: Generate Sentry Trace
+        id: sentry_trace
+        run: |
+          yarn ts-node ./scripts/stryker-start-trace.ts
+
     outputs:
       dependency_cache_key: ${{ steps.install_dependencies.outputs.cache_key }}
+      sentry_trace: '${{ env.SENTRY_MUT_SENTRY_TRACE }}'
+      baggage: '${{ env.SENTRY_MUT_BAGGAGE }}'
 
   job_mutation_test:
     name: Run (${{ matrix.package }}) Mutation Testing
@@ -160,8 +160,8 @@ jobs:
 
       - name: Set trace propagation data
         run: |
-          echo "SENTRY_MUT_SENTRY_TRACE=${{ needs.job_get_metadata.outputs.sentry_trace }}" >> $GITHUB_ENV
-          echo "SENTRY_MUT_BAGGAGE=${{ needs.job_get_metadata.outputs.baggage }}" >> $GITHUB_ENV
+          echo "SENTRY_MUT_SENTRY_TRACE=${{ needs.job_build.outputs.sentry_trace }}" >> $GITHUB_ENV
+          echo "SENTRY_MUT_BAGGAGE=${{ needs.job_build.outputs.baggage }}" >> $GITHUB_ENV
 
       - name: Run mutation test
         run: yarn nx run ${{ matrix.package }}:mutation-test
