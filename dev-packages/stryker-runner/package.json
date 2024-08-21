@@ -28,7 +28,7 @@
     "build": "tsc",
     "build:transpile": "tsc",
     "build:watch": "tsc --watch",
-    "start": "node ./dist/run.js"
+    "start": "node ./build/run.js"
   },
   "type": "module",
   "bin": "./build/run.js"

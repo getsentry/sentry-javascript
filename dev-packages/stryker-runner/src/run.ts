@@ -4,8 +4,6 @@ import * as child_process from 'node:child_process';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 
-import * as Sentry from '@sentry/node';
-
 import type { schema } from '@stryker-mutator/api/core';
 /* eslint-disable no-console */
 import type { StrykerCli } from '@stryker-mutator/core';
@@ -29,21 +27,23 @@ interface MutationTestResultAggregation {
   scoreCovered: number;
 }
 
-Sentry.init({
-  dsn: 'https://cdae3f96df86224530838d318d268f62@o447951.ingest.us.sentry.io/4507814527303680',
-  tracesSampleRate: 1.0,
-  defaultIntegrations: false,
-
-  environment: process.env.CI ? 'ci' : 'local',
-  release: child_process.execSync('git rev-parse HEAD').toString().trim(),
-});
-
 const configFile = path.join(process.cwd(), '/stryker.config.mjs');
 const pkgJson = path.join(process.cwd(), 'package.json');
 
 const packageName = (JSON.parse(fs.readFileSync(pkgJson).toString()) as PackageJson).name;
 
 async function main(): Promise<void> {
+  // @ts-expect-error - ugly but this creates a type error b/c i can't register the package as dep
+  const Sentry = await import('@sentry/node');
+  Sentry.init({
+    dsn: 'https://cdae3f96df86224530838d318d268f62@o447951.ingest.us.sentry.io/4507814527303680',
+    tracesSampleRate: 1.0,
+    defaultIntegrations: false,
+
+    environment: process.env.CI ? 'ci' : 'local',
+    release: child_process.execSync('git rev-parse HEAD').toString().trim(),
+  });
+
   await Sentry.continueTrace(
     {
       sentryTrace: process.env.SENTRY_MUT_SENTRY_TRACE || undefined,
