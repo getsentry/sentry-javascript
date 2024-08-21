@@ -40,7 +40,7 @@ function unrollArray(objectId: string | undefined): Promise<unknown[]> {
               } else {
                 return v?.value?.value;
               }
-            })
+            }),
         );
 
         resolve(arrayProps);

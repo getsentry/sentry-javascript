@@ -48,6 +48,7 @@ import { NodeClient } from './client';
 import { initOpenTelemetry, maybeInitializeEsmLoader } from './initOtel';
 import type { WorkerThreadMessage } from '../with-debugger';
 import { debuggerALS } from '../with-debugger';
+import zlib from 'zlib';
 
 function getCjsOnlyIntegrations(): Integration[] {
   return isCjs() ? [modulesIntegration()] : [];
@@ -186,10 +187,17 @@ function _init(
           function onMessage(message: WorkerThreadMessage): void {
             if (message.type === 'Payload') {
               debuggerWorker?.off('message', onMessage);
-              event.contexts = event.contexts || {};
-              event.contexts['debugger'] = { steps: message.steps.slice(-100) };
-              addNonEnumerableProperty(event.contexts['debugger'], '__sentry_override_normalization_depth__', 10);
-              resolve(event);
+
+              const payload = message.steps.slice(-100);
+              const stringifiedPayload = JSON.stringify(payload);
+
+              // create a gzipped base64 string from stringifiedPayload
+              zlib.gzip(stringifiedPayload, (err, compressedPayload) => {
+                event.contexts = event.contexts || {};
+                event.contexts['debugger'] = { steps: compressedPayload.toString('base64') };
+                addNonEnumerableProperty(event.contexts['debugger'], '__sentry_override_normalization_depth__', 10);
+                resolve(event);
+              });
             }
           }
 
