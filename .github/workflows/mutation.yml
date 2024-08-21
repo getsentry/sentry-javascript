@@ -128,7 +128,10 @@ jobs:
       - name: Test 1
         run: |
           ls -la node_modules/.bin
-          ls -la ../../node_modules/.bin
+          ls -la packages/core/node_modules/.bin
+          ls -la packages/svelte/node_modules/.bin
+          ls -la packages/browser/node_modules/.bin
+
     outputs:
       dependency_cache_key: ${{ steps.install_dependencies.outputs.cache_key }}
       sentry_trace: '${{ env.SENTRY_MUT_SENTRY_TRACE }}'
@@ -174,7 +177,9 @@ jobs:
       - name: Test 2
         run: |
           ls -la node_modules/.bin
-          ls -la ../../node_modules/.bin
+          ls -la packages/core/node_modules/.bin
+          ls -la packages/svelte/node_modules/.bin
+          ls -la packages/browser/node_modules/.bin
 
       - name: Run mutation test
         run: yarn nx run ${{ matrix.package }}:test:mutation
