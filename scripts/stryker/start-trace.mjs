@@ -1,5 +1,6 @@
 // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
 import { randomUUID } from 'node:crypto';
+import * as fs from 'node:fs';
 
 const traceId = randomUUID().replace(/-/g, '');
 const spanId = randomUUID().replace(/-/g, '').slice(0, 16);
