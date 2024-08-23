@@ -120,16 +120,16 @@ jobs:
         run: yarn build
 
       - name: Generate Sentry Trace
-        id: sentry_trace
+        id: step_sentry_trace
         run: |
           node ./scripts/stryker/start-trace.mjs
-          echo '${{ env.SENTRY_MUT_SENTRY_TRACE }}'
-          echo '${{ env.SENTRY_MUT_BAGGAGE }}'
+          echo 'sentry_trace=${{ env.SENTRY_MUT_SENTRY_TRACE }}' >> $GITHUB_OUTPUT
+          echo 'baggage=${{ env.SENTRY_MUT_BAGGAGE }}' >> $GITHUB_OUTPUT
 
     outputs:
       dependency_cache_key: ${{ steps.install_dependencies.outputs.cache_key }}
-      sentry_trace: '${{ env.SENTRY_MUT_SENTRY_TRACE }}'
-      baggage: '${{ env.SENTRY_MUT_BAGGAGE }}'
+      sentry_trace: ${{ steps.step_sentry_trace.outputs.sentry_trace }}
+      baggage: ${{ steps.step_sentry_trace.outputs.baggage }}
 
   job_mutation_test:
     name: Mutation Test (${{ matrix.package }})
