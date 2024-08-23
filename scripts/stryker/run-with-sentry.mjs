@@ -50,18 +50,20 @@ async function main() {
           Sentry.setTag('mutation.package', packageName);
           Sentry.setMeasurement('mutation.score', aggregatedResult.score, 'ratio');
           Sentry.setMeasurement('mutation.score_covered', aggregatedResult.scoreCovered, 'ratio');
-          Sentry.setMeasurement('mutation.total', aggregatedResult.total, 'number');
-          Sentry.setMeasurement('mutation.detected', aggregatedResult.detected, 'number');
-          Sentry.setMeasurement('mutation.undetected', aggregatedResult.undetected, 'number');
-          Sentry.setMeasurement('mutation.killed', aggregatedResult.killed, 'number');
-          Sentry.setMeasurement('mutation.survived', aggregatedResult.survived, 'number');
-          Sentry.setMeasurement('mutation.no_coverage', aggregatedResult.noCoverage, 'number');
-          Sentry.setMeasurement('mutation.ignored', aggregatedResult.ignored, 'number');
-          Sentry.setMeasurement('mutation.error', aggregatedResult.error, 'number');
-          Sentry.setMeasurement('mutation.timeout', aggregatedResult.timeout, 'number');
+          Sentry.setMeasurement('mutation.total', aggregatedResult.total, 'none');
+          Sentry.setMeasurement('mutation.detected', aggregatedResult.detected, 'none');
+          Sentry.setMeasurement('mutation.undetected', aggregatedResult.undetected, 'none');
+          Sentry.setMeasurement('mutation.killed', aggregatedResult.killed, 'none');
+          Sentry.setMeasurement('mutation.survived', aggregatedResult.survived, 'none');
+          Sentry.setMeasurement('mutation.no_coverage', aggregatedResult.noCoverage, 'none');
+          Sentry.setMeasurement('mutation.ignored', aggregatedResult.ignored, 'none');
+          Sentry.setMeasurement('mutation.error', aggregatedResult.error, 'none');
+          Sentry.setMeasurement('mutation.timeout', aggregatedResult.timeout, 'none');
         });
       }),
   );
+
+  await Sentry.flush(5000);
 }
 
 main().catch(console.error);
