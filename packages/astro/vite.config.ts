@@ -1,4 +1,4 @@
-import baseConfig from '../../vite/vite.config';
+import baseConfig from '@sentry-internal/vitest-config';
 
 export default {
   ...baseConfig,

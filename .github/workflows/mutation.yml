@@ -140,6 +140,7 @@ jobs:
       matrix:
         package: [
           'angular',
+          'astro',
           'core',
           'browser',
           'node',
