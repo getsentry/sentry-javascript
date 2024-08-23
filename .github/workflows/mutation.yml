@@ -190,7 +190,7 @@ jobs:
       - name: Upload Results
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.package }} reports
+          name: test-reports
           path: |
             ${{ github.workspace }}/packages/**/mutation.json
             ${{ github.workspace }}/packages/**/mutation.html
