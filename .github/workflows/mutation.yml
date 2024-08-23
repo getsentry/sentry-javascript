@@ -123,14 +123,8 @@ jobs:
         id: sentry_trace
         run: |
           node ./scripts/stryker/start-trace.mjs
-
-
-      - name: Test 1
-        run: |
-          ls -la node_modules/.bin
-          ls -la packages/core/node_modules/.bin
-          ls -la packages/svelte/node_modules/.bin
-          ls -la packages/browser/node_modules/.bin
+          echo '${{ env.SENTRY_MUT_SENTRY_TRACE }}'
+          echo '${{ env.SENTRY_MUT_BAGGAGE }}'
 
     outputs:
       dependency_cache_key: ${{ steps.install_dependencies.outputs.cache_key }}
@@ -157,10 +151,12 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ env.HEAD_COMMIT }}
+
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
           node-version-file: 'package.json'
+
       - name: Restore caches
         uses: ./.github/actions/restore-cache
         env:
@@ -173,9 +169,6 @@ jobs:
           key: nx-Linux-${{ github.ref }}-${{ env.HEAD_COMMIT || github.sha }}
           restore-keys:
             ${{ env.NX_CACHE_RESTORE_KEYS || 'nx-never-restore'}}
-
-      - name: Run yarn again
-        run: yarn
 
       - name: Set trace propagation data
         run: |

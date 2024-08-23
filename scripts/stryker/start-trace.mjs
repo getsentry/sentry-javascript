@@ -10,6 +10,10 @@ const baggage = `sentry-trace_id=${sentryTrace}`;
 process.env.SENTRY_MUT_SENTRY_TRACE = sentryTrace;
 process.env.SENTRY_MUT_BAGGAGE = baggage;
 
+console.log('Starting Trace with:');
+console.log(`- sentry-trace: ${sentryTrace}`);
+console.log(`- baggage: ${baggage}`);
+
 export default {
   sentryTrace,
   baggage,

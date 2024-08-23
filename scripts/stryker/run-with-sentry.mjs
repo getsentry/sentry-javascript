@@ -22,6 +22,10 @@ Sentry.init({
 });
 
 async function main() {
+  console.log('Continuing Trace from env variables:');
+  console.log(`- sentry-trace: ${process.env.SENTRY_MUT_SENTRY_TRACE}`);
+  console.log(`- baggage: ${process.env.SENTRY_MUT_BAGGAGE}`);
+
   await Sentry.continueTrace(
     {
       sentryTrace: process.env.SENTRY_MUT_SENTRY_TRACE || undefined,
@@ -46,6 +50,15 @@ async function main() {
           Sentry.setTag('mutation.package', packageName);
           Sentry.setMeasurement('mutation.score', aggregatedResult.score, 'ratio');
           Sentry.setMeasurement('mutation.score_covered', aggregatedResult.scoreCovered, 'ratio');
+          Sentry.setMeasurement('mutation.total', aggregatedResult.total, 'number');
+          Sentry.setMeasurement('mutation.detected', aggregatedResult.detected, 'number');
+          Sentry.setMeasurement('mutation.undetected', aggregatedResult.undetected, 'number');
+          Sentry.setMeasurement('mutation.killed', aggregatedResult.killed, 'number');
+          Sentry.setMeasurement('mutation.survived', aggregatedResult.survived, 'number');
+          Sentry.setMeasurement('mutation.no_coverage', aggregatedResult.noCoverage, 'number');
+          Sentry.setMeasurement('mutation.ignored', aggregatedResult.ignored, 'number');
+          Sentry.setMeasurement('mutation.error', aggregatedResult.error, 'number');
+          Sentry.setMeasurement('mutation.timeout', aggregatedResult.timeout, 'number');
         });
       }),
   );
