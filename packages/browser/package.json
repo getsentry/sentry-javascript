@@ -75,7 +75,7 @@
     "size:check": "cat build/bundles/bundle.min.js | gzip -9 | wc -c | awk '{$1=$1/1024; print \"ES2017: \",$1,\"kB\";}'",
     "test": "vitest run",
     "test:watch": "vitest --watch",
-    "test:mutation": "stryker-runner",
+    "test:mutation": "node ./../../scripts/stryker/run-with-sentry.mjs",
     "yalc:publish": "yalc publish --push --sig"
   },
   "volta": {

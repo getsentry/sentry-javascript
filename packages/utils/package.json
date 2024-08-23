@@ -64,7 +64,7 @@
     "lint": "eslint . --format stylish",
     "test": "jest",
     "test:watch": "jest --watch",
-    "test:mutation": "stryker-runner",
+    "test:mutation": "node ./../../scripts/stryker/run-with-sentry.mjs",
     "version": "node ../../scripts/versionbump.js src/version.ts",
     "yalc:publish": "yalc publish --push --sig"
   },
