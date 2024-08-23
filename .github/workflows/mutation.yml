@@ -122,7 +122,7 @@ jobs:
       - name: Generate Sentry Trace
         id: sentry_trace
         run: |
-          yarn ts-node ./scripts/stryker/start-trace.ts
+          node ./scripts/stryker/start-trace.mjs
 
 
       - name: Test 1
@@ -138,7 +138,7 @@ jobs:
       baggage: '${{ env.SENTRY_MUT_BAGGAGE }}'
 
   job_mutation_test:
-    name: Run (${{ matrix.package }}) Mutation Testing
+    name: Mutation Test (${{ matrix.package }})
     needs: [job_get_metadata, job_build]
     timeout-minutes: 180
     runs-on: ubuntu-20.04
