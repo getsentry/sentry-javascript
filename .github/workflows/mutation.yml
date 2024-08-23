@@ -123,10 +123,7 @@ jobs:
         id: step_sentry_trace
         run: |
           node ./scripts/stryker/start-trace.mjs
-          echo 'sentry_trace=${{ env.SENTRY_MUT_SENTRY_TRACE }}'
-          echo 'baggage=${{ env.SENTRY_MUT_BAGGAGE }}'
-          echo 'sentry_trace=${{ env.SENTRY_MUT_SENTRY_TRACE }}' >> $GITHUB_OUTPUT
-          echo 'baggage=${{ env.SENTRY_MUT_BAGGAGE }}' >> $GITHUB_OUTPUT
+          echo output=${{ env.GITHUB_OUTPUT }}
 
     outputs:
       dependency_cache_key: ${{ steps.install_dependencies.outputs.cache_key }}

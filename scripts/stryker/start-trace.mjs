@@ -10,6 +10,9 @@ const baggage = `sentry-trace_id=${traceId}`;
 process.env.SENTRY_MUT_SENTRY_TRACE = sentryTrace;
 process.env.SENTRY_MUT_BAGGAGE = baggage;
 
+fs.appendFileSync(process.env.GITHUB_OUTPUT, `sentry_trace=${sentryTrace}\n`);
+fs.appendFileSync(process.env.GITHUB_OUTPUT, `baggage=${baggage}\n`);
+
 console.log('Starting Trace with:');
 console.log(`- sentry-trace: ${sentryTrace}`);
 console.log(`- baggage: ${baggage}`);
