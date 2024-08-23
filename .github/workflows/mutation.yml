@@ -139,12 +139,12 @@ jobs:
       fail-fast: false
       matrix:
         package: [
-          '@sentry/core',
-          '@sentry/browser',
-          '@sentry/node',
-          '@sentry/svelte',
-          '@sentry/sveltekit',
-          '@sentry/utils'
+          'core',
+          'browser',
+          'node',
+          'svelte',
+          'sveltekit',
+          'utils'
         ]
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
@@ -175,22 +175,15 @@ jobs:
           echo "SENTRY_MUT_SENTRY_TRACE=${{ needs.job_build.outputs.sentry_trace }}" >> $GITHUB_ENV
           echo "SENTRY_MUT_BAGGAGE=${{ needs.job_build.outputs.baggage }}" >> $GITHUB_ENV
 
-      - name: Test 2
-        run: |
-          ls -la node_modules/.bin
-          ls -la packages/core/node_modules/.bin
-          ls -la packages/svelte/node_modules/.bin
-          ls -la packages/browser/node_modules/.bin
-
       - name: Run mutation test
-        run: yarn nx run ${{ matrix.package }}:test:mutation
+        run: yarn nx run @sentry/${{ matrix.package }}:test:mutation
         env:
           NODE_VERSION: ${{ matrix.node }}
 
       - name: Upload Results
         uses: actions/upload-artifact@v4
         with:
-          name: test-reports
+          name: test-reports ${{ matrix.package }}
           path: |
             ${{ github.workspace }}/packages/**/mutation.json
             ${{ github.workspace }}/packages/**/mutation.html
