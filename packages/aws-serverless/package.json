@@ -94,6 +94,7 @@
     "fix": "eslint . --format stylish --fix",
     "lint": "eslint . --format stylish",
     "test": "jest",
+    "test:mutation": "node ./../../scripts/stryker/run-with-sentry.mjs",
     "test:watch": "jest --watch",
     "yalc:publish": "yalc publish --push --sig"
   },

@@ -141,6 +141,7 @@ jobs:
         package: [
           'angular',
           'astro',
+          'aws-serverless',
           'core',
           'browser',
           'node',
