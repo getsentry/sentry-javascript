@@ -145,6 +145,7 @@ jobs:
           'browser',
           'core',
           'gatsby',
+          'google-cloud-serverless',
           'node',
           'svelte',
           'sveltekit',

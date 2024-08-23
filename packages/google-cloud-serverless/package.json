@@ -81,6 +81,7 @@
     "lint": "eslint . --format stylish",
     "test": "jest",
     "test:watch": "jest --watch",
+    "test:mutation": "node ./../../scripts/stryker/run-with-sentry.mjs",
     "yalc:publish": "yalc publish --push --sig"
   },
   "volta": {
