@@ -66,6 +66,7 @@ function getMutationTestResults(): schema.MutationTestResult[] {
 function getMutationTestResultAggregation(mutationResults: schema.MutationTestResult): MutationTestResultAggregation {
   const total = Object.values(mutationResults.files).reduce((acc, file) => acc + file.mutants.length, 0);
   const allMutants = Object.values(mutationResults.files).reduce(
+    // biome-ignore lint/performance/noAccumulatingSpread: <explanation>
     (acc, file) => [...acc, ...file.mutants],
     [] as schema.MutantResult[],
   );
