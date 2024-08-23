@@ -144,6 +144,7 @@ jobs:
           '@sentry/node',
           '@sentry/svelte',
           '@sentry/sveltekit',
+          '@sentry/utils'
         ]
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
