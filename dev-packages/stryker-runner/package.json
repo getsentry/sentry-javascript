@@ -25,7 +25,6 @@
   },
   "scripts": {
     "build": "tsc",
-    "build:transpile": "tsc",
     "build:watch": "tsc --watch",
     "start": "node ./build/esm/run.js"
   },
