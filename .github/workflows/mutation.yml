@@ -139,6 +139,7 @@ jobs:
       fail-fast: false
       matrix:
         package: [
+          'angular',
           'core',
           'browser',
           'node',

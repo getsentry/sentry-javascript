@@ -1,6 +1,6 @@
+import baseConfig from '@sentry-internal/vitest-config';
 import type { UserConfig } from 'vitest';
 import { defineConfig } from 'vitest/config';
-import baseConfig from '../../vite/vite.config';
 
 export default defineConfig({
   test: {

@@ -57,7 +57,8 @@
     "test": "yarn test:unit",
     "test:unit": "vitest run",
     "test:unit:watch": "vitest --watch",
-    "yalc:publish": "yalc publish --push --sig"
+    "yalc:publish": "yalc publish --push --sig",
+    "test:mutation": "node ./../../scripts/stryker/run-with-sentry.mjs"
   },
   "volta": {
     "extends": "../../package.json"
