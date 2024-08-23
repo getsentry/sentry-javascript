@@ -79,6 +79,7 @@
     "lint": "eslint . --format stylish",
     "test": "yarn ts-node scripts/pretest.ts && yarn jest",
     "test:watch": "yarn ts-node scripts/pretest.ts && yarn jest --watch",
+    "test:mutation": "node ./../../scripts/stryker/run-with-sentry.mjs",
     "yalc:publish": "yalc publish --push --sig"
   },
   "volta": {
