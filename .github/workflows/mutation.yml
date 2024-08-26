@@ -146,6 +146,7 @@ jobs:
           'core',
           'gatsby',
           'google-cloud-serverless',
+          'nextjs',
           'node',
           'svelte',
           'sveltekit',
