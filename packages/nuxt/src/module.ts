@@ -26,10 +26,15 @@ export default defineNuxtModule<ModuleOptions>({
       addPluginTemplate({
         mode: 'client',
         filename: 'sentry-client-config.mjs',
-        getContents: () =>
-          `import "${buildDirResolver.resolve(`/${clientConfigFile}`)}"\n` +
-          'import { defineNuxtPlugin } from "#imports"\n' +
-          'export default defineNuxtPlugin(() => {})',
+
+        // Dynamic import of config file to wrap it within a Nuxt context (here: defineNuxtPlugin)
+        // Makes it possible to call useRuntimeConfig() in the user-defined sentry config file
+        getContents: () => `
+          import { defineNuxtPlugin } from "#imports";
+
+          export default defineNuxtPlugin(async () => {
+            await import("${buildDirResolver.resolve(`/${clientConfigFile}`)}")
+          });`,
       });
 
       addPlugin({ src: moduleDirResolver.resolve('./runtime/plugins/sentry.client'), mode: 'client' });
