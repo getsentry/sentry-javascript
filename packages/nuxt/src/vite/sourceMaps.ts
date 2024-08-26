@@ -1,11 +1,11 @@
 import type { Nuxt } from '@nuxt/schema';
-import { sentryRollupPlugin } from '@sentry/rollup-plugin';
-import { sentryVitePlugin } from '@sentry/vite-plugin';
+import { type SentryRollupPluginOptions, sentryRollupPlugin } from '@sentry/rollup-plugin';
+import { type SentryVitePluginOptions, sentryVitePlugin } from '@sentry/vite-plugin';
 import type { NitroConfig } from 'nitropack';
 import type { SentryNuxtModuleOptions } from '../common/types';
 
 /**
- *  Setup source maps for Sentry inside the Nuxt module during build time.
+ *  Setup source maps for Sentry inside the Nuxt module during build time (in Vite for Nuxt and Rollup for Nitro).
  */
 export function setupSourceMaps(moduleOptions: SentryNuxtModuleOptions, nuxt: Nuxt): void {
   const sourceMapsUploadOptions = moduleOptions.sourceMapsUploadOptions || {};
@@ -13,11 +13,9 @@ export function setupSourceMaps(moduleOptions: SentryNuxtModuleOptions, nuxt: Nu
 
   nuxt.hook('vite:extendConfig', async (viteInlineConfig, _env) => {
     if (sourceMapsEnabled && viteInlineConfig.mode !== 'development') {
-      const sentryPlugin = sentryVitePlugin(getPluginOptions(moduleOptions));
-
       // Add Sentry plugin
       viteInlineConfig.plugins = viteInlineConfig.plugins || [];
-      viteInlineConfig.plugins.push(sentryPlugin);
+      viteInlineConfig.plugins.push(sentryVitePlugin(getPluginOptions(moduleOptions)));
 
       // Enable source maps
       viteInlineConfig.build = viteInlineConfig.build || {};
@@ -29,14 +27,13 @@ export function setupSourceMaps(moduleOptions: SentryNuxtModuleOptions, nuxt: Nu
 
   nuxt.hook('nitro:config', (nitroConfig: NitroConfig) => {
     if (sourceMapsEnabled && !nitroConfig.dev) {
-      const sentryPlugin = sentryRollupPlugin(getPluginOptions(moduleOptions));
-
       if (nitroConfig.rollupConfig) {
         // Add Sentry plugin
         if (!Array.isArray(nitroConfig.rollupConfig.plugins)) {
           nitroConfig.rollupConfig.plugins = nitroConfig.rollupConfig.plugins ? [nitroConfig.rollupConfig.plugins] : [];
         }
-        nitroConfig.rollupConfig.plugins.push(sentryPlugin);
+
+        nitroConfig.rollupConfig.plugins.push(sentryRollupPlugin(getPluginOptions(moduleOptions)));
 
         // Enable source maps
         nitroConfig.rollupConfig.output = nitroConfig?.rollupConfig?.output || {};
@@ -56,7 +53,7 @@ function normalizePath(path: string): string {
   return path.replace(/^(\.\.\/)+/, './');
 }
 
-function getPluginOptions(moduleOptions: SentryNuxtModuleOptions): object {
+function getPluginOptions(moduleOptions: SentryNuxtModuleOptions): SentryVitePluginOptions | SentryRollupPluginOptions {
   const sourceMapsUploadOptions = moduleOptions.sourceMapsUploadOptions || {};
 
   return {
