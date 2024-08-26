@@ -1,3 +1,10 @@
+/**
+ * @vitest-environment jsdom
+ */
+
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { getClient } from '@sentry/core';
 import { resetSdkMock } from '../mocks/resetSdkMock';
 import { useFakeTimers } from '../utils/use-fake-timers';
 
@@ -57,8 +64,7 @@ describe('Integration | sampling', () => {
     // @ts-expect-error private API
     const spyAddListeners = vi.spyOn(replay, '_addListeners');
 
-    // @ts-expect-error protected
-    integration._initialize();
+    integration['_initialize'](getClient()!);
 
     vi.runAllTimers();
 

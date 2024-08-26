@@ -1,5 +1,6 @@
 export { httpIntegration } from './integrations/http';
 export { nativeNodeFetchIntegration } from './integrations/node-fetch';
+export { fsIntegration } from './integrations/fs';
 
 export { consoleIntegration } from './integrations/console';
 export { nodeContextIntegration } from './integrations/context';
@@ -18,7 +19,7 @@ export { mongooseIntegration } from './integrations/tracing/mongoose';
 export { mysqlIntegration } from './integrations/tracing/mysql';
 export { mysql2Integration } from './integrations/tracing/mysql2';
 export { redisIntegration } from './integrations/tracing/redis';
-export { nestIntegration, setupNestErrorHandler } from './integrations/tracing/nest';
+export { nestIntegration, setupNestErrorHandler } from './integrations/tracing/nest/nest';
 export { postgresIntegration } from './integrations/tracing/postgres';
 export { prismaIntegration } from './integrations/tracing/prisma';
 export { hapiIntegration, setupHapiErrorHandler } from './integrations/tracing/hapi';
@@ -26,13 +27,17 @@ export { koaIntegration, setupKoaErrorHandler } from './integrations/tracing/koa
 export { connectIntegration, setupConnectErrorHandler } from './integrations/tracing/connect';
 export { spotlightIntegration } from './integrations/spotlight';
 
+export { SentryContextManager } from './otel/contextManager';
+export { generateInstrumentOnce } from './otel/instrument';
+
 export {
   init,
   getDefaultIntegrations,
   getDefaultIntegrationsWithoutPerformance,
   initWithoutDefaultIntegrations,
-} from './sdk/init';
-export { initOpenTelemetry } from './sdk/initOtel';
+  validateOpenTelemetrySetup,
+} from './sdk';
+export { initOpenTelemetry, preloadOpenTelemetry } from './sdk/initOtel';
 export { getAutoPerformanceIntegrations } from './integrations/tracing';
 export { getSentryRelease, defaultStackParser } from './sdk/api';
 export { createGetModuleFromFilename } from './utils/module';
@@ -91,6 +96,8 @@ export {
   getCurrentHub,
   getCurrentScope,
   getIsolationScope,
+  getTraceData,
+  getTraceMetaTags,
   withScope,
   withIsolationScope,
   captureException,
@@ -111,6 +118,7 @@ export {
   startSpan,
   startSpanManual,
   startInactiveSpan,
+  startNewTrace,
   getActiveSpan,
   withActiveSpan,
   getRootSpan,

@@ -1,3 +1,5 @@
+import { afterEach, describe, expect, test, vi } from 'vitest';
+
 import { setCurrentClient } from '@sentry/browser';
 
 import { attachErrorHandler } from '../src/errorhandler';
@@ -7,7 +9,7 @@ import { generateComponentTrace } from '../src/vendor/components';
 describe('attachErrorHandler', () => {
   describe('attachProps', () => {
     afterEach(() => {
-      jest.resetAllMocks();
+      vi.resetAllMocks();
     });
 
     describe("given I don't want to `attachProps`", () => {
@@ -325,13 +327,13 @@ const testHarness = ({
   enableConsole,
   vm,
 }: TestHarnessOpts) => {
-  jest.useFakeTimers();
-  const providedErrorHandlerSpy = jest.fn();
-  const warnHandlerSpy = jest.fn();
-  const consoleErrorSpy = jest.fn();
+  vi.useFakeTimers();
+  const providedErrorHandlerSpy = vi.fn();
+  const warnHandlerSpy = vi.fn();
+  const consoleErrorSpy = vi.fn();
 
   const client: any = {
-    captureException: jest.fn(async () => Promise.resolve()),
+    captureException: vi.fn(async () => Promise.resolve()),
   };
   setCurrentClient(client);
 
@@ -339,7 +341,7 @@ const testHarness = ({
     config: {
       silent: !!silent,
     },
-    mixin: jest.fn(),
+    mixin: vi.fn(),
   };
 
   if (enableErrorHandler) {
@@ -380,7 +382,7 @@ const testHarness = ({
       app.config.errorHandler(new DummyError(), vm, 'stub-lifecycle-hook');
 
       // and waits for internal timers
-      jest.runAllTimers();
+      vi.runAllTimers();
     },
     expect: {
       errorHandlerSpy: expect(providedErrorHandlerSpy),
@@ -390,7 +392,7 @@ const testHarness = ({
         const captureExceptionSpy = client.captureException;
         expect(captureExceptionSpy).toHaveBeenCalledTimes(1);
         const error = captureExceptionSpy.mock.calls[0][0];
-        const contexts = captureExceptionSpy.mock.calls[0][1].captureContext.contexts;
+        const contexts = captureExceptionSpy.mock.calls[0][1]?.captureContext.contexts;
 
         expect(error).toBeInstanceOf(DummyError);
 

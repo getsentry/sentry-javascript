@@ -2,8 +2,10 @@
 import {
   addHistoryInstrumentationHandler,
   addPerformanceEntries,
+  registerInpInteractionListener,
   startTrackingINP,
   startTrackingInteractions,
+  startTrackingLongAnimationFrames,
   startTrackingLongTasks,
   startTrackingWebVitals,
 } from '@sentry-internal/browser-utils';
@@ -26,11 +28,12 @@ import {
 import type { Client, IntegrationFn, StartSpanOptions, TransactionSource } from '@sentry/types';
 import type { Span } from '@sentry/types';
 import {
+  GLOBAL_OBJ,
   browserPerformanceTimeOrigin,
+  generatePropagationContext,
   getDomElement,
   logger,
   propagationContextFromHeaders,
-  uuid4,
 } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
@@ -39,6 +42,11 @@ import { registerBackgroundTabDetection } from './backgroundtab';
 import { defaultRequestInstrumentationOptions, instrumentOutgoingRequests } from './request';
 
 export const BROWSER_TRACING_INTEGRATION_ID = 'BrowserTracing';
+
+interface RouteInfo {
+  name: string | undefined;
+  source: TransactionSource | undefined;
+}
 
 /** Options for Browser Tracing integration */
 export interface BrowserTracingOptions {
@@ -97,6 +105,13 @@ export interface BrowserTracingOptions {
   enableLongTask: boolean;
 
   /**
+   * If true, Sentry will capture long animation frames and add them to the corresponding transaction.
+   *
+   * Default: false
+   */
+  enableLongAnimationFrame: boolean;
+
+  /**
    * If true, Sentry will capture first input delay and add it to the corresponding transaction.
    *
    * Default: true
@@ -131,6 +146,7 @@ export interface BrowserTracingOptions {
    */
   _experiments: Partial<{
     enableInteractions: boolean;
+    enableStandaloneClsSpans: boolean;
   }>;
 
   /**
@@ -154,6 +170,7 @@ const DEFAULT_BROWSER_TRACING_OPTIONS: BrowserTracingOptions = {
   instrumentPageLoad: true,
   markBackgroundSpan: true,
   enableLongTask: true,
+  enableLongAnimationFrame: true,
   enableInp: true,
   _experiments: {},
   ...defaultRequestInstrumentationOptions,
@@ -174,7 +191,8 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
   const {
     enableInp,
     enableLongTask,
-    _experiments: { enableInteractions },
+    enableLongAnimationFrame,
+    _experiments: { enableInteractions, enableStandaloneClsSpans },
     beforeStartSpan,
     idleTimeout,
     finalTimeout,
@@ -191,20 +209,27 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
     ..._options,
   };
 
-  const _collectWebVitals = startTrackingWebVitals();
+  const _collectWebVitals = startTrackingWebVitals({ recordClsStandaloneSpans: enableStandaloneClsSpans || false });
 
   if (enableInp) {
     startTrackingINP();
   }
 
-  if (enableLongTask) {
+  if (
+    enableLongAnimationFrame &&
+    GLOBAL_OBJ.PerformanceObserver &&
+    PerformanceObserver.supportedEntryTypes.includes('long-animation-frame')
+  ) {
+    startTrackingLongAnimationFrames();
+  } else if (enableLongTask) {
     startTrackingLongTasks();
   }
+
   if (enableInteractions) {
     startTrackingInteractions();
   }
 
-  const latestRoute: { name: string | undefined; source: TransactionSource | undefined } = {
+  const latestRoute: RouteInfo = {
     name: undefined,
     source: undefined,
   };
@@ -237,7 +262,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
       disableAutoFinish: isPageloadTransaction,
       beforeSpanEnd: span => {
         _collectWebVitals();
-        addPerformanceEntries(span);
+        addPerformanceEntries(span, { recordClsOnPageloadSpan: !enableStandaloneClsSpans });
       },
     });
 
@@ -269,11 +294,12 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
           return;
         }
 
-        if (activeSpan) {
+        if (activeSpan && !spanToJSON(activeSpan).timestamp) {
           DEBUG_BUILD && logger.log(`[Tracing] Finishing current root span with op: ${spanToJSON(activeSpan).op}`);
           // If there's an open transaction on the scope, we need to finish it before creating an new one.
           activeSpan.end();
         }
+
         activeSpan = _createRouteSpan(client, {
           op: 'navigation',
           ...startSpanOptions,
@@ -285,7 +311,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
           return;
         }
 
-        if (activeSpan) {
+        if (activeSpan && !spanToJSON(activeSpan).timestamp) {
           DEBUG_BUILD && logger.log(`[Tracing] Finishing current root span with op: ${spanToJSON(activeSpan).op}`);
           // If there's an open transaction on the scope, we need to finish it before creating an new one.
           activeSpan.end();
@@ -375,7 +401,11 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
         registerInteractionListener(idleTimeout, finalTimeout, childSpanTimeout, latestRoute);
       }
 
-      instrumentOutgoingRequests({
+      if (enableInp) {
+        registerInpInteractionListener();
+      }
+
+      instrumentOutgoingRequests(client, {
         traceFetch,
         traceXHR,
         tracePropagationTargets: client.getOptions().tracePropagationTargets,
@@ -412,8 +442,8 @@ export function startBrowserTracingPageLoadSpan(
  * This will only do something if a browser tracing integration has been setup.
  */
 export function startBrowserTracingNavigationSpan(client: Client, spanOptions: StartSpanOptions): Span | undefined {
-  getCurrentScope().setPropagationContext(generatePropagationContext());
   getIsolationScope().setPropagationContext(generatePropagationContext());
+  getCurrentScope().setPropagationContext(generatePropagationContext());
 
   client.emit('startNavigationSpan', spanOptions);
 
@@ -439,7 +469,7 @@ function registerInteractionListener(
   idleTimeout: BrowserTracingOptions['idleTimeout'],
   finalTimeout: BrowserTracingOptions['finalTimeout'],
   childSpanTimeout: BrowserTracingOptions['childSpanTimeout'],
-  latestRoute: { name: string | undefined; source: TransactionSource | undefined },
+  latestRoute: RouteInfo,
 ): void {
   let inflightInteractionSpan: Span | undefined;
   const registerInteractionTransaction = (): void => {
@@ -486,11 +516,4 @@ function registerInteractionListener(
   if (WINDOW.document) {
     addEventListener('click', registerInteractionTransaction, { once: false, capture: true });
   }
-}
-
-function generatePropagationContext(): { traceId: string; spanId: string } {
-  return {
-    traceId: uuid4(),
-    spanId: uuid4().substring(16),
-  };
 }

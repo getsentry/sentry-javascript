@@ -1,8 +1,7 @@
+import { getDynamicSamplingContextFromSpan, getRootSpan } from '@sentry/core';
 import type { Client } from '@sentry/types';
 import { dropUndefinedKeys } from '@sentry/utils';
-import { getDynamicSamplingContextFromSpan } from './utils/dynamicSamplingContext';
-
-import { getRootSpan } from '@sentry/core';
+import { SENTRY_TRACE_STATE_PARENT_SPAN_ID } from './constants';
 import { getActiveSpan } from './utils/getActiveSpan';
 import { spanHasParentId } from './utils/spanTypes';
 
@@ -18,12 +17,22 @@ export function setupEventContextTrace(client: Client): void {
 
     const spanContext = span.spanContext();
 
+    // If we have a parent span id from trace state, use that ('' means no parent should be used)
+    // Else, pick the one from the span
+    const parentSpanIdFromTraceState = spanContext.traceState?.get(SENTRY_TRACE_STATE_PARENT_SPAN_ID);
+    const parent_span_id =
+      typeof parentSpanIdFromTraceState === 'string'
+        ? parentSpanIdFromTraceState || undefined
+        : spanHasParentId(span)
+          ? span.parentSpanId
+          : undefined;
+
     // If event has already set `trace` context, use that one.
     event.contexts = {
       trace: dropUndefinedKeys({
         trace_id: spanContext.traceId,
         span_id: spanContext.spanId,
-        parent_span_id: spanHasParentId(span) ? span.parentSpanId : undefined,
+        parent_span_id,
       }),
       ...event.contexts,
     };

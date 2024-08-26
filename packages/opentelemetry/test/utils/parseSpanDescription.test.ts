@@ -132,6 +132,27 @@ describe('parseSpanDescription', () => {
         source: 'route',
       },
     ],
+    [
+      "should not do any data parsing when the 'sentry.skip_span_data_inference' attribute is set",
+      {
+        'sentry.skip_span_data_inference': true,
+
+        // All of these should be ignored
+        [SEMATTRS_HTTP_METHOD]: 'GET',
+        [SEMATTRS_DB_SYSTEM]: 'mysql',
+        [SEMATTRS_DB_STATEMENT]: 'SELECT * from users',
+      },
+      'test name',
+      undefined,
+      {
+        op: undefined,
+        description: 'test name',
+        source: 'custom',
+        data: {
+          'sentry.skip_span_data_inference': undefined,
+        },
+      },
+    ],
   ])('%s', (_, attributes, name, kind, expected) => {
     const actual = parseSpanDescription({ attributes, kind, name } as unknown as Span);
     expect(actual).toEqual(expected);
@@ -208,6 +229,25 @@ describe('descriptionForHttpMethod', () => {
           url: 'https://www.example.com/my-path/123',
         },
         source: 'route',
+      },
+    ],
+    [
+      'works with basic client GET with SpanKind.INTERNAL',
+      'GET',
+      {
+        [SEMATTRS_HTTP_METHOD]: 'GET',
+        [SEMATTRS_HTTP_URL]: 'https://www.example.com/my-path',
+        [SEMATTRS_HTTP_TARGET]: '/my-path',
+      },
+      'test name',
+      SpanKind.INTERNAL,
+      {
+        op: 'http',
+        description: 'test name',
+        data: {
+          url: 'https://www.example.com/my-path',
+        },
+        source: 'custom',
       },
     ],
   ])('%s', (_, httpMethod, attributes, name, kind, expected) => {

@@ -40,11 +40,7 @@ describe('Client init()', () => {
     );
   });
 
-  it('sets runtime on scope', () => {
-    expect(SentryReact.getIsolationScope().getScopeData().tags).toEqual({});
-
-    init({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
-
-    expect(SentryReact.getIsolationScope().getScopeData().tags).toEqual({ runtime: 'browser' });
+  it('returns client from init', () => {
+    expect(init({})).not.toBeUndefined();
   });
 });

@@ -1,5 +1,13 @@
 import type { Span } from '@sentry/types';
-import { addBreadcrumb, getCurrentScope, setCurrentClient, startSpan, withIsolationScope, withScope } from '../../src';
+import {
+  Scope,
+  addBreadcrumb,
+  getCurrentScope,
+  setCurrentClient,
+  startSpan,
+  withIsolationScope,
+  withScope,
+} from '../../src';
 import { captureFeedback } from '../../src/feedback';
 import { TestClient, getDefaultTestClientOptions } from '../mocks/client';
 
@@ -179,7 +187,7 @@ describe('captureFeedback', () => {
     const [feedbackEnvelope] = mockTransport.mock.calls;
 
     expect(feedbackEnvelope).toHaveLength(1);
-    expect(feedbackEnvelope[0]).toEqual([
+    expect(feedbackEnvelope![0]).toEqual([
       {
         event_id: eventId,
         sent_at: expect.any(String),
@@ -447,5 +455,46 @@ describe('captureFeedback', () => {
         ],
       ],
     ]);
+  });
+
+  test('it allows to pass a custom client', async () => {
+    const client = new TestClient(
+      getDefaultTestClientOptions({
+        dsn: 'https://dsn@ingest.f00.f00/1',
+        enableSend: true,
+      }),
+    );
+    setCurrentClient(client);
+    client.init();
+
+    const client2 = new TestClient(
+      getDefaultTestClientOptions({
+        dsn: 'https://dsn@ingest.f00.f00/1',
+        enableSend: true,
+        defaultIntegrations: false,
+      }),
+    );
+    client2.init();
+    const scope = new Scope();
+    scope.setClient(client2);
+
+    const mockTransport = jest.spyOn(client.getTransport()!, 'send');
+    const mockTransport2 = jest.spyOn(client2.getTransport()!, 'send');
+
+    const eventId = captureFeedback(
+      {
+        message: 'test',
+      },
+      {},
+      scope,
+    );
+
+    await client.flush();
+    await client2.flush();
+
+    expect(typeof eventId).toBe('string');
+
+    expect(mockTransport).not.toHaveBeenCalled();
+    expect(mockTransport2).toHaveBeenCalledTimes(1);
   });
 });

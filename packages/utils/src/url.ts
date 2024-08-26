@@ -45,8 +45,7 @@ export function parseUrl(url: string): PartialURL {
  * @returns URL or path without query string or fragment
  */
 export function stripUrlQueryAndFragment(urlPath: string): string {
-  // eslint-disable-next-line no-useless-escape
-  return urlPath.split(/[\?#]/, 1)[0];
+  return (urlPath.split(/[?#]/, 1) as [string, ...string[]])[0];
 }
 
 /**

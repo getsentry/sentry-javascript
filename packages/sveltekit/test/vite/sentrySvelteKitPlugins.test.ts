@@ -1,14 +1,14 @@
-import { vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import type { Plugin } from 'vite';
 import * as autoInstrument from '../../src/vite/autoInstrument';
-import { sentrySvelteKit } from '../../src/vite/sentryVitePlugins';
+import { generateVitePluginOptions, sentrySvelteKit } from '../../src/vite/sentryVitePlugins';
 import * as sourceMaps from '../../src/vite/sourceMaps';
+import type { CustomSentryVitePluginOptions, SentrySvelteKitPluginOptions } from '../../src/vite/types';
 
 vi.mock('fs', async () => {
   const actual = await vi.importActual('fs');
   return {
-    // @ts-expect-error this exists, I promise!
     ...actual,
     promises: {
       // @ts-expect-error this also exists, I promise!
@@ -43,7 +43,7 @@ describe('sentrySvelteKit()', () => {
 
     expect(plugins).toBeInstanceOf(Array);
     // 1 auto instrument plugin + 5 source maps plugins
-    expect(plugins).toHaveLength(6);
+    expect(plugins).toHaveLength(7);
   });
 
   it('returns the custom sentry source maps upload plugin, unmodified sourcemaps plugins and the auto-instrument plugin by default', async () => {
@@ -57,6 +57,7 @@ describe('sentrySvelteKit()', () => {
       'sentry-vite-release-injection-plugin',
       'sentry-debug-id-upload-plugin',
       'sentry-vite-debug-id-injection-plugin',
+      'sentry-file-deletion-plugin',
       // custom source maps plugin:
       'sentry-upload-sveltekit-source-maps',
     ]);
@@ -83,7 +84,7 @@ describe('sentrySvelteKit()', () => {
   it("doesn't return the auto instrument plugin if autoInstrument is `false`", async () => {
     const plugins = await getSentrySvelteKitPlugins({ autoInstrument: false });
     const pluginNames = plugins.map(plugin => plugin.name);
-    expect(plugins).toHaveLength(5);
+    expect(plugins).toHaveLength(6);
     expect(pluginNames).not.toContain('sentry-upload-source-maps');
   });
 
@@ -189,5 +190,161 @@ describe('sentrySvelteKit()', () => {
       load: true,
       serverLoad: false,
     });
+  });
+});
+
+describe('generateVitePluginOptions', () => {
+  it('should return null if no relevant options are provided', () => {
+    const options: SentrySvelteKitPluginOptions = {};
+    const result = generateVitePluginOptions(options);
+    expect(result).toBeNull();
+  });
+
+  it('should use default `debug` value if only default options are provided', () => {
+    const options: SentrySvelteKitPluginOptions = { autoUploadSourceMaps: true, autoInstrument: true, debug: false };
+    const expected: CustomSentryVitePluginOptions = {
+      debug: false,
+    };
+    const result = generateVitePluginOptions(options);
+    expect(result).toEqual(expected);
+  });
+
+  it('should apply user-defined sourceMapsUploadOptions', () => {
+    const options: SentrySvelteKitPluginOptions = {
+      autoUploadSourceMaps: true,
+      sourceMapsUploadOptions: {
+        authToken: 'token',
+        org: 'org',
+        project: 'project',
+        sourcemaps: {
+          assets: ['foo/*.js'],
+        },
+      },
+    };
+    const expected: CustomSentryVitePluginOptions = {
+      authToken: 'token',
+      org: 'org',
+      project: 'project',
+      sourcemaps: {
+        assets: ['foo/*.js'],
+      },
+    };
+    const result = generateVitePluginOptions(options);
+    expect(result).toEqual(expected);
+  });
+
+  it('should override options with unstable_sentryVitePluginOptions', () => {
+    const options: SentrySvelteKitPluginOptions = {
+      autoUploadSourceMaps: true,
+      sourceMapsUploadOptions: {
+        authToken: 'token',
+        org: 'org',
+        project: 'project',
+        sourcemaps: {
+          assets: ['foo/*.js'],
+        },
+        unstable_sentryVitePluginOptions: {
+          org: 'unstable-org',
+          sourcemaps: {
+            assets: ['unstable/*.js'],
+          },
+        },
+      },
+    };
+    const expected: CustomSentryVitePluginOptions = {
+      authToken: 'token',
+      org: 'unstable-org',
+      project: 'project',
+      sourcemaps: {
+        assets: ['unstable/*.js'],
+      },
+    };
+    const result = generateVitePluginOptions(options);
+    expect(result).toEqual(expected);
+  });
+
+  it('should merge release options correctly', () => {
+    const options: SentrySvelteKitPluginOptions = {
+      autoUploadSourceMaps: true,
+      sourceMapsUploadOptions: {
+        release: {
+          name: '1.0.0',
+        },
+        unstable_sentryVitePluginOptions: {
+          release: {
+            name: '2.0.0',
+            setCommits: {
+              auto: true,
+            },
+          },
+        },
+      },
+    };
+    const expected: CustomSentryVitePluginOptions = {
+      release: {
+        name: '2.0.0',
+        setCommits: {
+          auto: true,
+        },
+      },
+    };
+    const result = generateVitePluginOptions(options);
+    expect(result).toEqual(expected);
+  });
+
+  it('should handle adapter and debug options correctly', () => {
+    const options: SentrySvelteKitPluginOptions = {
+      autoUploadSourceMaps: true,
+      adapter: 'vercel',
+      debug: true,
+      sourceMapsUploadOptions: {
+        authToken: 'token',
+        org: 'org',
+        project: 'project',
+      },
+    };
+    const expected: CustomSentryVitePluginOptions = {
+      authToken: 'token',
+      org: 'org',
+      project: 'project',
+      adapter: 'vercel',
+      debug: true,
+    };
+    const result = generateVitePluginOptions(options);
+    expect(result).toEqual(expected);
+  });
+
+  it('should apply bundleSizeOptimizations AND sourceMapsUploadOptions when both are set', () => {
+    const options: SentrySvelteKitPluginOptions = {
+      bundleSizeOptimizations: {
+        excludeTracing: true,
+        excludeReplayWorker: true,
+        excludeDebugStatements: false,
+      },
+      autoUploadSourceMaps: true,
+      sourceMapsUploadOptions: {
+        authToken: 'token',
+        org: 'org',
+        project: 'project',
+        sourcemaps: {
+          assets: ['foo/*.js'],
+        },
+      },
+    };
+    const expected = {
+      bundleSizeOptimizations: {
+        excludeTracing: true,
+        excludeReplayWorker: true,
+        excludeDebugStatements: false,
+      },
+      authToken: 'token',
+      org: 'org',
+      project: 'project',
+      sourcemaps: {
+        assets: ['foo/*.js'],
+      },
+    };
+    const result = generateVitePluginOptions(options);
+    expect(result).toEqual(expected);
   });
 });

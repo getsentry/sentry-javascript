@@ -74,7 +74,7 @@ const processEntry = (entry: PerformanceEventTiming) => {
   if (
     existingInteraction ||
     longestInteractionList.length < MAX_INTERACTIONS_TO_CONSIDER ||
-    entry.duration > minLongestInteraction.latency
+    (minLongestInteraction && entry.duration > minLongestInteraction.latency)
   ) {
     // If the interaction already exists, update it. Otherwise create one.
     if (existingInteraction) {

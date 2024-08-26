@@ -1,6 +1,5 @@
 import { getGlobalScope, getIsolationScope } from '@sentry/core';
 import * as SentryReact from '@sentry/react';
-import type { BrowserClient } from '@sentry/react';
 import { WINDOW, getClient, getCurrentScope } from '@sentry/react';
 import type { Integration } from '@sentry/types';
 import { logger } from '@sentry/utils';
@@ -74,14 +73,6 @@ describe('Client init()', () => {
     );
   });
 
-  it('sets runtime on scope', () => {
-    expect(SentryReact.getIsolationScope().getScopeData().tags).toEqual({});
-
-    init({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
-
-    expect(SentryReact.getIsolationScope().getScopeData().tags).toEqual({ runtime: 'browser' });
-  });
-
   it('adds 404 transaction filter', () => {
     init({
       dsn: 'https://dogsarebadatkeepingsecrets@squirrelchasers.ingest.sentry.io/12312012',
@@ -105,7 +96,7 @@ describe('Client init()', () => {
     it('supports passing unrelated integrations through options', () => {
       init({ integrations: [breadcrumbsIntegration({ console: false })] });
 
-      const reactInitOptions = reactInit.mock.calls[0][0] as ModifiedInitOptionsIntegrationArray;
+      const reactInitOptions = reactInit.mock.calls[0]![0] as ModifiedInitOptionsIntegrationArray;
       const installedBreadcrumbsIntegration = findIntegrationByName(reactInitOptions.integrations, 'Breadcrumbs');
 
       expect(installedBreadcrumbsIntegration).toBeDefined();
@@ -114,67 +105,58 @@ describe('Client init()', () => {
     it('forces correct router instrumentation if user provides `browserTracingIntegration` in an array', () => {
       const providedBrowserTracingInstance = browserTracingIntegration();
 
-      init({
+      const client = init({
         dsn: TEST_DSN,
         tracesSampleRate: 1.0,
         integrations: [providedBrowserTracingInstance],
       });
 
-      const client = getClient<BrowserClient>()!;
-
-      const integration = client.getIntegrationByName('BrowserTracing');
+      const integration = client?.getIntegrationByName('BrowserTracing');
       expect(integration).toBe(providedBrowserTracingInstance);
     });
 
     it('forces correct router instrumentation if user provides `BrowserTracing` in a function', () => {
       const providedBrowserTracingInstance = browserTracingIntegration();
 
-      init({
+      const client = init({
         dsn: TEST_DSN,
         tracesSampleRate: 1.0,
         integrations: defaults => [...defaults, providedBrowserTracingInstance],
       });
 
-      const client = getClient<BrowserClient>()!;
-
-      const integration = client.getIntegrationByName('BrowserTracing');
+      const integration = client?.getIntegrationByName('BrowserTracing');
 
       expect(integration).toBe(providedBrowserTracingInstance);
     });
 
     describe('browserTracingIntegration()', () => {
-      it('adds `browserTracingIntegration()` integration if `tracesSampleRate` is set', () => {
-        init({
+      it('adds the browserTracingIntegration when `__SENTRY_TRACING__` is not set', () => {
+        const client = init({
           dsn: TEST_DSN,
-          tracesSampleRate: 1.0,
         });
 
-        const client = getClient<BrowserClient>()!;
-        const browserTracingIntegration = client.getIntegrationByName('BrowserTracing');
-        expect(browserTracingIntegration?.name).toBe('BrowserTracing');
+        const browserTracingIntegration = client?.getIntegrationByName('BrowserTracing');
+        expect(browserTracingIntegration).toBeDefined();
       });
 
-      it('adds `browserTracingIntegration()` integration if `tracesSampler` is set', () => {
-        init({
-          dsn: TEST_DSN,
-          tracesSampler: () => true,
-        });
+      it("doesn't add a browserTracingIntegration if `__SENTRY_TRACING__` is set to false", () => {
+        // @ts-expect-error Test setup for build-time flag
+        globalThis.__SENTRY_TRACING__ = false;
 
-        const client = getClient<BrowserClient>()!;
-        const browserTracingIntegration = client.getIntegrationByName('BrowserTracing');
-        expect(browserTracingIntegration?.name).toBe('BrowserTracing');
-      });
-
-      it('does not add `browserTracingIntegration()` integration if tracing not enabled in SDK', () => {
-        init({
+        const client = init({
           dsn: TEST_DSN,
         });
 
-        const client = getClient<BrowserClient>()!;
-
-        const browserTracingIntegration = client.getIntegrationByName('BrowserTracing');
+        const browserTracingIntegration = client?.getIntegrationByName('BrowserTracing');
         expect(browserTracingIntegration).toBeUndefined();
+
+        // @ts-expect-error Test setup for build-time flag
+        delete globalThis.__SENTRY_TRACING__;
       });
     });
+  });
+
+  it('returns client from init', () => {
+    expect(init({})).not.toBeUndefined();
   });
 });

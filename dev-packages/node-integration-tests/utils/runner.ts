@@ -3,6 +3,7 @@ import { spawn, spawnSync } from 'child_process';
 import { join } from 'path';
 import { SDK_VERSION } from '@sentry/node';
 import type {
+  ClientReport,
   Envelope,
   EnvelopeItemType,
   Event,
@@ -42,6 +43,12 @@ export function assertSentryTransaction(actual: Event, expected: Partial<Event>)
 export function assertSentryCheckIn(actual: SerializedCheckIn, expected: Partial<SerializedCheckIn>): void {
   expect(actual).toMatchObject({
     check_in_id: expect.any(String),
+    ...expected,
+  });
+}
+
+export function assertSentryClientReport(actual: ClientReport, expected: Partial<ClientReport>): void {
+  expect(actual).toMatchObject({
     ...expected,
   });
 }
@@ -103,7 +110,10 @@ async function runDockerCompose(options: DockerOptions): Promise<VoidFunction> {
   return new Promise((resolve, reject) => {
     const cwd = join(...options.workingDirectory);
     const close = (): void => {
-      spawnSync('docker', ['compose', 'down', '--volumes'], { cwd });
+      spawnSync('docker', ['compose', 'down', '--volumes'], {
+        cwd,
+        stdio: process.env.DEBUG ? 'inherit' : undefined,
+      });
     };
 
     // ensure we're starting fresh
@@ -118,6 +128,9 @@ async function runDockerCompose(options: DockerOptions): Promise<VoidFunction> {
 
     function newData(data: Buffer): void {
       const text = data.toString('utf8');
+
+      // eslint-disable-next-line no-console
+      if (process.env.DEBUG) console.log(text);
 
       for (const match of options.readyMatches) {
         if (text.includes(match)) {
@@ -148,6 +161,9 @@ type Expected =
     }
   | {
       check_in: Partial<SerializedCheckIn> | ((event: SerializedCheckIn) => void);
+    }
+  | {
+      client_report: Partial<ClientReport> | ((event: ClientReport) => void);
     };
 
 type ExpectedEnvelopeHeader =
@@ -164,7 +180,8 @@ export function createRunner(...paths: string[]) {
   const expectedEnvelopes: Expected[] = [];
   let expectedEnvelopeHeaders: ExpectedEnvelopeHeader[] | undefined = undefined;
   const flags: string[] = [];
-  const ignored: EnvelopeItemType[] = [];
+  // By default, we ignore session & sessions
+  const ignored: EnvelopeItemType[] = ['session', 'sessions'];
   let withEnv: Record<string, string> = {};
   let withSentryServer = false;
   let dockerOptions: DockerOptions | undefined;
@@ -207,6 +224,15 @@ export function createRunner(...paths: string[]) {
     },
     ignore: function (...types: EnvelopeItemType[]) {
       ignored.push(...types);
+      return this;
+    },
+    unignore: function (...types: EnvelopeItemType[]) {
+      for (const t of types) {
+        const pos = ignored.indexOf(t);
+        if (pos > -1) {
+          ignored.splice(pos, 1);
+        }
+      }
       return this;
     },
     withDockerCompose: function (options: DockerOptions) {
@@ -322,25 +348,46 @@ export function createRunner(...paths: string[]) {
 
               expectCallbackCalled();
             }
+
+            if ('client_report' in expected) {
+              const clientReport = item[1] as ClientReport;
+              if (typeof expected.client_report === 'function') {
+                expected.client_report(clientReport);
+              } else {
+                assertSentryClientReport(clientReport, expected.client_report);
+              }
+
+              expectCallbackCalled();
+            }
           } catch (e) {
             complete(e as Error);
           }
         }
       }
 
-      const serverStartup: Promise<number | undefined> = withSentryServer
-        ? createBasicSentryServer(newEnvelope)
-        : Promise.resolve(undefined);
+      // We need to properly define & pass these types around for TS 3.8,
+      // which otherwise fails to infer these correctly :(
+      type ServerStartup = [number | undefined, (() => void) | undefined];
+      type DockerStartup = VoidFunction | undefined;
 
-      const dockerStartup: Promise<VoidFunction | undefined> = dockerOptions
+      const serverStartup: Promise<ServerStartup> = withSentryServer
+        ? createBasicSentryServer(newEnvelope)
+        : Promise.resolve([undefined, undefined]);
+
+      const dockerStartup: Promise<DockerStartup> = dockerOptions
         ? runDockerCompose(dockerOptions)
         : Promise.resolve(undefined);
 
-      const startup = Promise.all([dockerStartup, serverStartup]);
+      const startup = Promise.all([dockerStartup, serverStartup]) as Promise<[DockerStartup, ServerStartup]>;
 
-      // eslint-disable-next-line @typescript-eslint/no-floating-promises
       startup
-        .then(([dockerChild, mockServerPort]) => {
+        .then(([dockerChild, [mockServerPort, mockServerClose]]) => {
+          if (mockServerClose) {
+            CLEANUP_STEPS.add(() => {
+              mockServerClose();
+            });
+          }
+
           if (dockerChild) {
             CLEANUP_STEPS.add(dockerChild);
           }

@@ -1,3 +1,3 @@
-fetch('http://localhost:7654/foo').then(() => {
+fetch('http://sentry-test.io/foo').then(() => {
   Sentry.captureException('test error');
 });

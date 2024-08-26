@@ -41,6 +41,8 @@ import { logSpanEnd } from './logSpans';
 import { timedEventsToMeasurements } from './measurement';
 import { getCapturedScopesOnSpan } from './utils';
 
+const MAX_SPAN_COUNT = 1000;
+
 /**
  * Span contains all data about a span
  */
@@ -105,6 +107,39 @@ export class SentrySpan implements Span {
     }
   }
 
+  /**
+   * This should generally not be used,
+   * but it is needed for being compliant with the OTEL Span interface.
+   *
+   * @hidden
+   * @internal
+   */
+  public addLink(_link: unknown): this {
+    return this;
+  }
+
+  /**
+   * This should generally not be used,
+   * but it is needed for being compliant with the OTEL Span interface.
+   *
+   * @hidden
+   * @internal
+   */
+  public addLinks(_links: unknown[]): this {
+    return this;
+  }
+
+  /**
+   * This should generally not be used,
+   * but it is needed for being compliant with the OTEL Span interface.
+   *
+   * @hidden
+   * @internal
+   */
+  public recordException(_exception: unknown, _time?: number | undefined): void {
+    // noop
+  }
+
   /** @inheritdoc */
   public spanContext(): SpanContextData {
     const { _spanId: spanId, _traceId: traceId, _sampled: sampled } = this;
@@ -116,18 +151,21 @@ export class SentrySpan implements Span {
   }
 
   /** @inheritdoc */
-  public setAttribute(key: string, value: SpanAttributeValue | undefined): void {
+  public setAttribute(key: string, value: SpanAttributeValue | undefined): this {
     if (value === undefined) {
       // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
       delete this._attributes[key];
     } else {
       this._attributes[key] = value;
     }
+
+    return this;
   }
 
   /** @inheritdoc */
-  public setAttributes(attributes: SpanAttributes): void {
+  public setAttributes(attributes: SpanAttributes): this {
     Object.keys(attributes).forEach(key => this.setAttribute(key, attributes[key]));
+    return this;
   }
 
   /**
@@ -259,7 +297,15 @@ export class SentrySpan implements Span {
 
     // if this is a standalone span, we send it immediately
     if (this._isStandaloneSpan) {
-      sendSpanEnvelope(createSpanEnvelope([this], client));
+      if (this._sampled) {
+        sendSpanEnvelope(createSpanEnvelope([this], client));
+      } else {
+        DEBUG_BUILD &&
+          logger.log('[Tracing] Discarding standalone span because its trace was not chosen to be sampled.');
+        if (client) {
+          client.recordDroppedEvent('sample_rate', 'span');
+        }
+      }
       return;
     }
 
@@ -310,7 +356,12 @@ export class SentrySpan implements Span {
       contexts: {
         trace: spanToTransactionTraceContext(this),
       },
-      spans,
+      spans:
+        // spans.sort() mutates the array, but `spans` is already a copy so we can safely do this here
+        // we do not use spans anymore after this point
+        spans.length > MAX_SPAN_COUNT
+          ? spans.sort((a, b) => a.start_timestamp - b.start_timestamp).slice(0, MAX_SPAN_COUNT)
+          : spans,
       start_timestamp: this._startTime,
       timestamp: this._endTime,
       transaction: this._name,
@@ -335,7 +386,10 @@ export class SentrySpan implements Span {
 
     if (hasMeasurements) {
       DEBUG_BUILD &&
-        logger.log('[Measurements] Adding measurements to transaction', JSON.stringify(measurements, undefined, 2));
+        logger.log(
+          '[Measurements] Adding measurements to transaction event',
+          JSON.stringify(measurements, undefined, 2),
+        );
       transaction.measurements = measurements;
     }
 

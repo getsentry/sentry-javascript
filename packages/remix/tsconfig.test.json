@@ -1,9 +1,10 @@
 {
   "extends": "./tsconfig.json",
 
-  "include": ["test/**/*"],
+  "include": ["test/**/*", "vitest.config.ts"],
 
   "compilerOptions": {
+    "lib": ["DOM", "ES2018"],
     "types": ["node", "jest"],
     "esModuleInterop": true
   }

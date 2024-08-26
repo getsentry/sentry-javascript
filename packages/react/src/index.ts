@@ -1,11 +1,13 @@
 export * from '@sentry/browser';
 
 export { init } from './sdk';
+export { reactErrorHandler } from './error';
 export { Profiler, withProfiler, useProfiler } from './profiler';
 export type { ErrorBoundaryProps, FallbackRender } from './errorboundary';
 export { ErrorBoundary, withErrorBoundary } from './errorboundary';
 export { createReduxEnhancer } from './redux';
 export { reactRouterV3BrowserTracingIntegration } from './reactrouterv3';
+export { tanstackRouterBrowserTracingIntegration } from './tanstackrouter';
 export {
   withSentryRouting,
   reactRouterV4BrowserTracingIntegration,

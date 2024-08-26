@@ -31,8 +31,8 @@ export function wrapContextManagerClass<ContextManagerInstance extends ContextMa
 
   // @ts-expect-error TS does not like this, but we know this is fine
   class SentryContextManager extends ContextManagerClass {
-    public constructor() {
-      super();
+    public constructor(...args: unknown[]) {
+      super(...args);
       setIsSetup('SentryContextManager');
     }
     /**

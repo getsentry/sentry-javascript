@@ -1,4 +1,4 @@
-export type { ClientClass } from './sdk';
+export type { ClientClass as SentryCoreCurrentScopes } from './sdk';
 export type { AsyncContextStrategy } from './asyncContext/types';
 export type { Carrier } from './carrier';
 export type { OfflineStore, OfflineTransportOptions } from './transports/offline';
@@ -56,7 +56,6 @@ export { initAndBind, setCurrentClient } from './sdk';
 export { createTransport } from './transports/base';
 export { makeOfflineTransport } from './transports/offline';
 export { makeMultiplexedTransport } from './transports/multiplexed';
-export { SDK_VERSION } from './version';
 export {
   getIntegrationsToSetup,
   addIntegration,
@@ -79,9 +78,12 @@ export {
   getRootSpan,
   getActiveSpan,
   addChildSpanToSpan,
+  spanTimeInputToSeconds,
 } from './utils/spanUtils';
 export { parseSampleRate } from './utils/parseSampleRate';
 export { applySdkMetadata } from './utils/sdkMetadata';
+export { getTraceData } from './utils/traceData';
+export { getTraceMetaTags } from './utils/meta';
 export { DEFAULT_ENVIRONMENT } from './constants';
 export { addBreadcrumb } from './breadcrumbs';
 export { functionToStringIntegration } from './integrations/functiontostring';
@@ -96,8 +98,9 @@ export { extraErrorDataIntegration } from './integrations/extraerrordata';
 export { rewriteFramesIntegration } from './integrations/rewriteframes';
 export { sessionTimingIntegration } from './integrations/sessiontiming';
 export { zodErrorsIntegration } from './integrations/zoderrors';
+export { thirdPartyErrorFilterIntegration } from './integrations/third-party-errors-filter';
 export { metrics } from './metrics/exports';
-export type { MetricData } from './metrics/exports';
+export type { MetricData } from '@sentry/types';
 export { metricsDefault } from './metrics/exports-default';
 export { BrowserMetricsAggregator } from './metrics/browser-aggregator';
 export { getMetricSummaryJsonForSpan } from './metrics/metric-summary';
@@ -107,3 +110,5 @@ export { captureFeedback } from './feedback';
 
 // eslint-disable-next-line deprecation/deprecation
 export { getCurrentHubShim, getCurrentHub } from './getCurrentHubShim';
+
+export { SDK_VERSION } from '@sentry/utils';

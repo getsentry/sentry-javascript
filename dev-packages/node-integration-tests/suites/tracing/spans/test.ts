@@ -18,7 +18,7 @@ test('should capture spans for outgoing http requests', done => {
       404,
     )
     .start()
-    .then(SERVER_URL => {
+    .then(([SERVER_URL, closeTestServer]) => {
       createRunner(__dirname, 'scenario.ts')
         .withEnv({ SERVER_URL })
         .expect({
@@ -35,7 +35,7 @@ test('should capture spans for outgoing http requests', done => {
                 description: expect.stringMatching(/GET .*\/api\/v1/),
                 op: 'http.client',
                 origin: 'auto.http.otel.http',
-                status: 'unknown_error',
+                status: 'not_found',
                 data: expect.objectContaining({
                   'http.response.status_code': 404,
                 }),
@@ -43,6 +43,6 @@ test('should capture spans for outgoing http requests', done => {
             ]),
           },
         })
-        .start(done);
+        .start(closeTestServer);
     });
 });

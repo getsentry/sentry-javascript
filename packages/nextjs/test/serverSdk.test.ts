@@ -92,7 +92,7 @@ describe('Server init()', () => {
     it('adds default integrations', () => {
       init({});
 
-      const nodeInitOptions = nodeInit.mock.calls[0][0] as ModifiedInitOptions;
+      const nodeInitOptions = nodeInit.mock.calls[0]?.[0] as ModifiedInitOptions;
       const integrationNames = nodeInitOptions.defaultIntegrations.map(integration => integration.name);
       const onUncaughtExceptionIntegration = findIntegrationByName(
         nodeInitOptions.defaultIntegrations,
@@ -106,10 +106,14 @@ describe('Server init()', () => {
     it('supports passing unrelated integrations through options', () => {
       init({ integrations: [SentryNode.consoleIntegration()] });
 
-      const nodeInitOptions = nodeInit.mock.calls[0][0] as ModifiedInitOptions;
+      const nodeInitOptions = nodeInit.mock.calls[0]?.[0] as ModifiedInitOptions;
       const consoleIntegration = findIntegrationByName(nodeInitOptions.integrations, 'Console');
 
       expect(consoleIntegration).toBeDefined();
     });
+  });
+
+  it('returns client from init', () => {
+    expect(init({})).not.toBeUndefined();
   });
 });

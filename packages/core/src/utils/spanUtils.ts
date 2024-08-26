@@ -69,7 +69,7 @@ export function spanToTraceHeader(span: Span): string {
 }
 
 /**
- * Convert a span time input intp a timestamp in seconds.
+ * Convert a span time input into a timestamp in seconds.
  */
 export function spanTimeInputToSeconds(input: SpanTimeInput | undefined): number {
   if (typeof input === 'number') {
@@ -208,7 +208,7 @@ export function addChildSpanToSpan(span: SpanWithPotentialChildren, childSpan: S
 
   // We store a list of child spans on the parent span
   // We need this for `getSpanDescendants()` to work
-  if (span[CHILD_SPANS_FIELD] && span[CHILD_SPANS_FIELD].size < 1000) {
+  if (span[CHILD_SPANS_FIELD]) {
     span[CHILD_SPANS_FIELD].add(childSpan);
   } else {
     addNonEnumerableProperty(span, CHILD_SPANS_FIELD, new Set([childSpan]));

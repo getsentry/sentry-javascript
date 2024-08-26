@@ -5,6 +5,7 @@ import { SEMATTRS_HTTP_STATUS_CODE } from '@opentelemetry/semantic-conventions';
 import {
   captureEvent,
   getCapturedScopesOnSpan,
+  getDynamicSamplingContextFromSpan,
   getMetricSummaryJsonForSpan,
   timedEventsToMeasurements,
 } from '@sentry/core';
@@ -14,14 +15,14 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   getStatusMessage,
+  spanTimeInputToSeconds,
 } from '@sentry/core';
 import type { SpanJSON, SpanOrigin, TraceContext, TransactionEvent, TransactionSource } from '@sentry/types';
 import { dropUndefinedKeys, logger } from '@sentry/utils';
+import { SENTRY_TRACE_STATE_PARENT_SPAN_ID } from './constants';
 
 import { DEBUG_BUILD } from './debug-build';
 import { SEMANTIC_ATTRIBUTE_SENTRY_PARENT_IS_REMOTE } from './semanticAttributes';
-import { convertOtelTimeToSeconds } from './utils/convertOtelTimeToSeconds';
-import { getDynamicSamplingContextFromSpan } from './utils/dynamicSamplingContext';
 import { getRequestSpanData } from './utils/getRequestSpanData';
 import type { SpanNode } from './utils/groupSpansWithParents';
 import { getLocalParentId } from './utils/groupSpansWithParents';
@@ -31,15 +32,20 @@ import { parseSpanDescription } from './utils/parseSpanDescription';
 
 type SpanNodeCompleted = SpanNode & { span: ReadableSpan };
 
+const MAX_SPAN_COUNT = 1000;
+const DEFAULT_TIMEOUT = 300; // 5 min
+
 /**
  * A Sentry-specific exporter that converts OpenTelemetry Spans to Sentry Spans & Transactions.
  */
 export class SentrySpanExporter {
   private _flushTimeout: ReturnType<typeof setTimeout> | undefined;
   private _finishedSpans: ReadableSpan[];
+  private _timeout: number;
 
-  public constructor() {
+  public constructor(options?: { timeout?: number }) {
     this._finishedSpans = [];
+    this._timeout = options?.timeout || DEFAULT_TIMEOUT;
   }
 
   /** Export a single span. */
@@ -100,7 +106,7 @@ export class SentrySpanExporter {
    */
   private _cleanupOldSpans(spans = this._finishedSpans): void {
     this._finishedSpans = spans.filter(span => {
-      const shouldDrop = shouldCleanupSpan(span, 5 * 60);
+      const shouldDrop = shouldCleanupSpan(span, this._timeout);
       DEBUG_BUILD &&
         shouldDrop &&
         logger.log(
@@ -140,7 +146,12 @@ function maybeSend(spans: ReadableSpan[]): ReadableSpan[] {
       createAndFinishSpanForOtelSpan(child, spans, remaining);
     });
 
-    transactionEvent.spans = spans;
+    // spans.sort() mutates the array, but we do not use this anymore after this point
+    // so we can safely mutate it here
+    transactionEvent.spans =
+      spans.length > MAX_SPAN_COUNT
+        ? spans.sort((a, b) => a.start_timestamp - b.start_timestamp).slice(0, MAX_SPAN_COUNT)
+        : spans;
 
     const measurements = timedEventsToMeasurements(span.events);
     if (measurements) {
@@ -165,7 +176,7 @@ function getCompletedRootNodes(nodes: SpanNode[]): SpanNodeCompleted[] {
 
 function shouldCleanupSpan(span: ReadableSpan, maxStartTimeOffsetSeconds: number): boolean {
   const cutoff = Date.now() / 1000 - maxStartTimeOffsetSeconds;
-  return convertOtelTimeToSeconds(span.startTime) < cutoff;
+  return spanTimeInputToSeconds(span.startTime) < cutoff;
 }
 
 function parseSpan(span: ReadableSpan): { op?: string; origin?: SpanOrigin; source?: TransactionSource } {
@@ -194,7 +205,16 @@ function createTransactionForOtelSpan(span: ReadableSpan): TransactionEvent {
   });
 
   const { traceId: trace_id, spanId: span_id } = span.spanContext();
-  const parent_span_id = span.parentSpanId;
+
+  const parentSpanIdFromTraceState = span.spanContext().traceState?.get(SENTRY_TRACE_STATE_PARENT_SPAN_ID);
+
+  // If parentSpanIdFromTraceState is defined at all, we want it to take presedence
+  // In that case, an empty string should be interpreted as "no parent span id",
+  // even if `span.parentSpanId` is set
+  // this is the case when we are starting a new trace, where we have a virtual span based on the propagationContext
+  // We only want to continue the traceId in this case, but ignore the parent span
+  const parent_span_id =
+    typeof parentSpanIdFromTraceState === 'string' ? parentSpanIdFromTraceState || undefined : span.parentSpanId;
 
   const status = mapStatus(span);
 
@@ -216,8 +236,8 @@ function createTransactionForOtelSpan(span: ReadableSpan): TransactionEvent {
       },
     },
     spans: [],
-    start_timestamp: convertOtelTimeToSeconds(span.startTime),
-    timestamp: convertOtelTimeToSeconds(span.endTime),
+    start_timestamp: spanTimeInputToSeconds(span.startTime),
+    timestamp: spanTimeInputToSeconds(span.endTime),
     transaction: description,
     type: 'transaction',
     sdkProcessingMetadata: {
@@ -225,7 +245,7 @@ function createTransactionForOtelSpan(span: ReadableSpan): TransactionEvent {
         capturedSpanScope: capturedSpanScopes.scope,
         capturedSpanIsolationScope: capturedSpanScopes.isolationScope,
         sampleRate,
-        dynamicSamplingContext: getDynamicSamplingContextFromSpan(span),
+        dynamicSamplingContext: getDynamicSamplingContextFromSpan(span as unknown as Span),
       }),
     },
     ...(source && {
@@ -274,9 +294,9 @@ function createAndFinishSpanForOtelSpan(node: SpanNode, spans: SpanJSON[], remai
     data: allData,
     description,
     parent_span_id: parentSpanId,
-    start_timestamp: convertOtelTimeToSeconds(startTime),
+    start_timestamp: spanTimeInputToSeconds(startTime),
     // This is [0,0] by default in OTEL, in which case we want to interpret this as no end time
-    timestamp: convertOtelTimeToSeconds(endTime) || undefined,
+    timestamp: spanTimeInputToSeconds(endTime) || undefined,
     status: getStatusMessage(status), // As per protocol, span status is allowed to be undefined
     op,
     origin,
@@ -332,9 +352,11 @@ function removeSentryAttributes(data: Record<string, unknown>): Record<string, u
 
 function getData(span: ReadableSpan): Record<string, unknown> {
   const attributes = span.attributes;
-  const data: Record<string, unknown> = {
-    'otel.kind': SpanKind[span.kind],
-  };
+  const data: Record<string, unknown> = {};
+
+  if (span.kind !== SpanKind.INTERNAL) {
+    data['otel.kind'] = SpanKind[span.kind];
+  }
 
   if (attributes[SEMATTRS_HTTP_STATUS_CODE]) {
     const statusCode = attributes[SEMATTRS_HTTP_STATUS_CODE] as string;

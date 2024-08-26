@@ -1,21 +1,27 @@
 import { MongooseInstrumentation } from '@opentelemetry/instrumentation-mongoose';
 import { defineIntegration } from '@sentry/core';
-import { addOpenTelemetryInstrumentation } from '@sentry/opentelemetry';
 import type { IntegrationFn } from '@sentry/types';
+import { generateInstrumentOnce } from '../../otel/instrument';
 
 import { addOriginToSpan } from '../../utils/addOriginToSpan';
 
+const INTEGRATION_NAME = 'Mongoose';
+
+export const instrumentMongoose = generateInstrumentOnce(
+  INTEGRATION_NAME,
+  () =>
+    new MongooseInstrumentation({
+      responseHook(span) {
+        addOriginToSpan(span, 'auto.db.otel.mongoose');
+      },
+    }),
+);
+
 const _mongooseIntegration = (() => {
   return {
-    name: 'Mongoose',
+    name: INTEGRATION_NAME,
     setupOnce() {
-      addOpenTelemetryInstrumentation(
-        new MongooseInstrumentation({
-          responseHook(span) {
-            addOriginToSpan(span, 'auto.db.otel.mongoose');
-          },
-        }),
-      );
+      instrumentMongoose();
     },
   };
 }) satisfies IntegrationFn;

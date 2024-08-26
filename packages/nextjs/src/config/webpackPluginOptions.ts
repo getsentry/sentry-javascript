@@ -74,10 +74,16 @@ export function getWebpackPluginOptions(
       },
       assets: sentryBuildOptions.sourcemaps?.assets ?? sourcemapUploadAssets,
       ignore: sentryBuildOptions.sourcemaps?.ignore ?? sourcemapUploadIgnore,
-      // TODO: Add this functionality
-      // filesToDeleteAfterUpload: sentryBuildOptions.sourcemaps?.deleteSourcemapsAfterUpload
-      //   ? path.join(distDirAbsPath, '**', '*.js.map')
-      //   : undefined,
+      filesToDeleteAfterUpload: sentryBuildOptions.sourcemaps?.deleteSourcemapsAfterUpload
+        ? [
+            // We only care to delete client bundle source maps because they would be the ones being served.
+            // Removing the server source maps crashes Vercel builds for (thus far) unknown reasons:
+            // https://github.com/getsentry/sentry-javascript/issues/13099
+            path.join(distDirAbsPath, 'static', '**', '*.js.map'),
+            path.join(distDirAbsPath, 'static', '**', '*.mjs.map'),
+            path.join(distDirAbsPath, 'static', '**', '*.cjs.map'),
+          ]
+        : undefined,
       ...sentryBuildOptions.unstable_sentryWebpackPluginOptions?.sourcemaps,
     },
     release: {
@@ -93,6 +99,9 @@ export function getWebpackPluginOptions(
     },
     _metaOptions: {
       loggerPrefixOverride: `[@sentry/nextjs - ${prefixInsert}]`,
+      telemetry: {
+        metaFramework: 'nextjs',
+      },
     },
     ...sentryBuildOptions.unstable_sentryWebpackPluginOptions,
   };

@@ -1,4 +1,5 @@
 import type { Event, EventHint } from '../event';
+import type { Primitive } from '../misc';
 import type { User } from '../user';
 
 /**
@@ -38,13 +39,14 @@ export interface SendFeedbackParams {
   url?: string;
   source?: string;
   associatedEventId?: string;
-}
 
-interface SendFeedbackOptions extends EventHint {
   /**
-   * Should include replay with the feedback?
+   * Set an object that will be merged sent as tags data with the event.
    */
-  includeReplay?: boolean;
+  tags?: { [key: string]: Primitive };
 }
 
-export type SendFeedback = (params: SendFeedbackParams, options?: SendFeedbackOptions) => Promise<string>;
+export type SendFeedback = (
+  params: SendFeedbackParams,
+  hint?: EventHint & { includeReplay?: boolean },
+) => Promise<string>;

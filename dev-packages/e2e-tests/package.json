@@ -1,6 +1,6 @@
 {
   "name": "@sentry-internal/e2e-tests",
-  "version": "8.4.0",
+  "version": "8.26.0",
   "license": "MIT",
   "private": true,
   "scripts": {
@@ -14,7 +14,7 @@
     "test:prepare": "ts-node prepare.ts",
     "test:validate": "run-s test:validate-configuration test:validate-test-app-setups",
     "clean": "rimraf tmp node_modules pnpm-lock.yaml && yarn clean:test-applications",
-    "clean:test-applications": "rimraf test-applications/**/{node_modules,dist,build,.next,.sveltekit,pnpm-lock.yaml} .last-run.json"
+    "clean:test-applications": "rimraf test-applications/**/{node_modules,dist,build,.next,.sveltekit,pnpm-lock.yaml} .last-run.json && pnpm store prune"
   },
   "devDependencies": {
     "@types/glob": "8.0.0",
@@ -22,13 +22,12 @@
     "dotenv": "16.0.3",
     "esbuild": "0.20.0",
     "glob": "8.0.3",
-    "rimraf": "^3.0.2",
+    "rimraf": "^5.0.0",
     "ts-node": "10.9.1",
     "yaml": "2.2.2"
   },
   "volta": {
-    "node": "18.20.2",
-    "yarn": "1.22.22",
-    "pnpm": "8.15.8"
+    "extends": "../../package.json",
+    "pnpm": "9.4.0"
   }
 }

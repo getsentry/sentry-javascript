@@ -1,18 +1,19 @@
 import type { Integration } from '@sentry/types';
+import { instrumentHttp } from '../http';
 
-import { connectIntegration } from './connect';
-import { expressIntegration } from './express';
-import { fastifyIntegration } from './fastify';
-import { graphqlIntegration } from './graphql';
-import { hapiIntegration } from './hapi';
-import { koaIntegration } from './koa';
-import { mongoIntegration } from './mongo';
-import { mongooseIntegration } from './mongoose';
-import { mysqlIntegration } from './mysql';
-import { mysql2Integration } from './mysql2';
-import { nestIntegration } from './nest';
-import { postgresIntegration } from './postgres';
-import { redisIntegration } from './redis';
+import { connectIntegration, instrumentConnect } from './connect';
+import { expressIntegration, instrumentExpress } from './express';
+import { fastifyIntegration, instrumentFastify } from './fastify';
+import { graphqlIntegration, instrumentGraphql } from './graphql';
+import { hapiIntegration, instrumentHapi } from './hapi';
+import { instrumentKoa, koaIntegration } from './koa';
+import { instrumentMongo, mongoIntegration } from './mongo';
+import { instrumentMongoose, mongooseIntegration } from './mongoose';
+import { instrumentMysql, mysqlIntegration } from './mysql';
+import { instrumentMysql2, mysql2Integration } from './mysql2';
+import { instrumentNest, nestIntegration } from './nest/nest';
+import { instrumentPostgres, postgresIntegration } from './postgres';
+import { instrumentRedis, redisIntegration } from './redis';
 
 /**
  * With OTEL, all performance integrations will be added, as OTEL only initializes them when the patched package is actually required.
@@ -36,5 +37,29 @@ export function getAutoPerformanceIntegrations(): Integration[] {
     hapiIntegration(),
     koaIntegration(),
     connectIntegration(),
+  ];
+}
+
+/**
+ * Get a list of methods to instrument OTEL, when preload instrumentation.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function getOpenTelemetryInstrumentationToPreload(): (((options?: any) => void) & { id: string })[] {
+  return [
+    instrumentHttp,
+    instrumentExpress,
+    instrumentConnect,
+    instrumentFastify,
+    instrumentHapi,
+    instrumentKoa,
+    instrumentNest,
+    instrumentMongo,
+    instrumentMongoose,
+    instrumentMysql,
+    instrumentMysql2,
+    instrumentPostgres,
+    instrumentHapi,
+    instrumentGraphql,
+    instrumentRedis,
   ];
 }

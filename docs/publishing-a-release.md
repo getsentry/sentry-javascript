@@ -13,7 +13,7 @@ _These steps are only relevant to Sentry employees when preparing and publishing
 4. Open a PR with the title `meta(changelog): Update changelog for VERSION` against `master` branch.
 5. **Be cautious!** The PR against `master` should be merged via "Merge Commit"
 6. When the PR is merged, it will automatically trigger the
-   [Prepare Release](https://github.com/getsentry/sentry-javascript/actions/workflows/release.yml) on master.
+   [Auto Prepare Release](https://github.com/getsentry/sentry-javascript/actions/workflows/auto-release.yml) on master.
 7. A new issue should appear in https://github.com/getsentry/publish/issues.
 8. Wait until the CI check runs have finished successfully (there is a link to them in the issue).
 9. Once CI passes successfully, ask a member of the
@@ -31,4 +31,8 @@ _These steps are only relevant to Sentry employees when preparing and publishing
    `Work in this release contributed by <list of external contributors' GitHub usernames>. Thank you for your contributions!`.
    If there's only one external PR, don't forget to remove the final `s`. If there are three or more, use an Oxford
    comma. (It's in the Sentry styleguide!)
+   - We have a GitHub Action "External Contributors" which collects all external contributors in the changelog section
+     "Unreleased". The GitHub Action creates a PR with this change every time a PR of an external contributor is merged.
+     You can safely cut and paste this line to the new release section of the changelog (but a sanity check is never
+     wrong).
 7. Commit, push, and continue with step 4 from the previous section with the general instructions (above).

@@ -1,8 +1,8 @@
 import { expect, test } from '@playwright/test';
-import { waitForError, waitForTransaction } from '@sentry-internal/event-proxy-server';
+import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
 
 test('Should create a transaction for middleware', async ({ request }) => {
-  const middlewareTransactionPromise = waitForTransaction('nextjs-13-app-dir', async transactionEvent => {
+  const middlewareTransactionPromise = waitForTransaction('nextjs-app-dir', async transactionEvent => {
     return transactionEvent?.transaction === 'middleware' && transactionEvent?.contexts?.trace?.status === 'ok';
   });
 
@@ -21,7 +21,7 @@ test('Should create a transaction for middleware', async ({ request }) => {
 });
 
 test('Should create a transaction with error status for faulty middleware', async ({ request }) => {
-  const middlewareTransactionPromise = waitForTransaction('nextjs-13-app-dir', async transactionEvent => {
+  const middlewareTransactionPromise = waitForTransaction('nextjs-app-dir', async transactionEvent => {
     return (
       transactionEvent?.transaction === 'middleware' && transactionEvent?.contexts?.trace?.status === 'internal_error'
     );
@@ -39,7 +39,7 @@ test('Should create a transaction with error status for faulty middleware', asyn
 });
 
 test('Records exceptions happening in middleware', async ({ request }) => {
-  const errorEventPromise = waitForError('nextjs-13-app-dir', errorEvent => {
+  const errorEventPromise = waitForError('nextjs-app-dir', errorEvent => {
     return errorEvent?.exception?.values?.[0]?.value === 'Middleware Error';
   });
 
@@ -56,7 +56,7 @@ test('Records exceptions happening in middleware', async ({ request }) => {
 });
 
 test('Should trace outgoing fetch requests inside middleware and create breadcrumbs for it', async ({ request }) => {
-  const middlewareTransactionPromise = waitForTransaction('nextjs-13-app-dir', async transactionEvent => {
+  const middlewareTransactionPromise = waitForTransaction('nextjs-app-dir', async transactionEvent => {
     return (
       transactionEvent?.transaction === 'middleware' &&
       !!transactionEvent.spans?.find(span => span.op === 'http.client')

@@ -1,11 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '@sentry-internal/event-proxy-server';
-import axios, { AxiosError } from 'axios';
-
-const authToken = process.env.E2E_TEST_AUTH_TOKEN;
-const sentryTestOrgSlug = process.env.E2E_TEST_SENTRY_ORG_SLUG;
-const sentryTestProject = process.env.E2E_TEST_SENTRY_TEST_PROJECT;
-const EVENT_POLLING_TIMEOUT = 90_000;
+import { waitForTransaction } from '@sentry-internal/test-utils';
 
 test('Sends an API route transaction', async ({ baseURL }) => {
   const pageloadTransactionEventPromise = waitForTransaction('node-fastify', transactionEvent => {
@@ -15,10 +9,9 @@ test('Sends an API route transaction', async ({ baseURL }) => {
     );
   });
 
-  await axios.get(`${baseURL}/test-transaction`);
+  await fetch(`${baseURL}/test-transaction`);
 
   const transactionEvent = await pageloadTransactionEventPromise;
-  const transactionEventId = transactionEvent.event_id;
 
   expect(transactionEvent.contexts?.trace).toEqual({
     data: {
@@ -35,7 +28,7 @@ test('Sends an API route transaction', async ({ baseURL }) => {
       'http.method': 'GET',
       'http.scheme': 'http',
       'http.target': '/test-transaction',
-      'http.user_agent': 'axios/1.6.7',
+      'http.user_agent': 'node',
       'http.flavor': '1.1',
       'net.transport': 'ip_tcp',
       'net.host.ip': expect.any(String),
@@ -70,7 +63,6 @@ test('Sends an API route transaction', async ({ baseURL }) => {
       'plugin.name': 'fastify -> sentry-fastify-error-handler',
       'fastify.type': 'middleware',
       'hook.name': 'onRequest',
-      'otel.kind': 'INTERNAL',
       'sentry.origin': 'auto.http.otel.fastify',
       'sentry.op': 'middleware.fastify',
     },
@@ -90,7 +82,6 @@ test('Sends an API route transaction', async ({ baseURL }) => {
       'plugin.name': 'fastify -> sentry-fastify-error-handler',
       'fastify.type': 'request_handler',
       'http.route': '/test-transaction',
-      'otel.kind': 'INTERNAL',
       'sentry.op': 'request_handler.fastify',
       'sentry.origin': 'auto.http.otel.fastify',
     },
@@ -107,7 +98,6 @@ test('Sends an API route transaction', async ({ baseURL }) => {
 
   expect(spans).toContainEqual({
     data: {
-      'otel.kind': 'INTERNAL',
       'sentry.origin': 'manual',
     },
     description: 'test-span',
@@ -122,7 +112,6 @@ test('Sends an API route transaction', async ({ baseURL }) => {
 
   expect(spans).toContainEqual({
     data: {
-      'otel.kind': 'INTERNAL',
       'sentry.origin': 'manual',
     },
     description: 'child-span',
@@ -134,32 +123,4 @@ test('Sends an API route transaction', async ({ baseURL }) => {
     trace_id: expect.any(String),
     origin: 'manual',
   });
-
-  await expect
-    .poll(
-      async () => {
-        try {
-          const response = await axios.get(
-            `https://sentry.io/api/0/projects/${sentryTestOrgSlug}/${sentryTestProject}/events/${transactionEventId}/`,
-            { headers: { Authorization: `Bearer ${authToken}` } },
-          );
-
-          return response.status;
-        } catch (e) {
-          if (e instanceof AxiosError && e.response) {
-            if (e.response.status !== 404) {
-              throw e;
-            } else {
-              return e.response.status;
-            }
-          } else {
-            throw e;
-          }
-        }
-      },
-      {
-        timeout: EVENT_POLLING_TIMEOUT,
-      },
-    )
-    .toBe(200);
 });

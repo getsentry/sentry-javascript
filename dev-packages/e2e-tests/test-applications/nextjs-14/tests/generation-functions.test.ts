@@ -1,19 +1,29 @@
 import { expect, test } from '@playwright/test';
-import { waitForError, waitForTransaction } from '@sentry-internal/event-proxy-server';
+import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
 
-test('Should send a transaction event for a generateMetadata() function invokation', async ({ page }) => {
-  const testTitle = 'foobarasdf';
+test('Should emit a span for a generateMetadata() function invokation', async ({ page }) => {
+  const testTitle = 'should-emit-span';
 
   const transactionPromise = waitForTransaction('nextjs-14', async transactionEvent => {
     return (
-      transactionEvent?.transaction === 'Page.generateMetadata (/generation-functions)' &&
-      (transactionEvent.extra?.route_data as any)?.searchParams?.metadataTitle === testTitle
+      transactionEvent.contexts?.trace?.data?.['http.target'] === `/generation-functions?metadataTitle=${testTitle}`
     );
   });
 
   await page.goto(`/generation-functions?metadataTitle=${testTitle}`);
 
-  expect(await transactionPromise).toBeDefined();
+  const transaction = await transactionPromise;
+
+  expect(transaction.spans).toContainEqual(
+    expect.objectContaining({
+      description: 'generateMetadata /generation-functions/page',
+      origin: 'manual',
+      parent_span_id: expect.any(String),
+      span_id: expect.any(String),
+      status: 'ok',
+      trace_id: expect.any(String),
+    }),
+  );
 
   const pageTitle = await page.title();
   expect(pageTitle).toBe(testTitle);
@@ -22,12 +32,12 @@ test('Should send a transaction event for a generateMetadata() function invokati
 test('Should send a transaction and an error event for a faulty generateMetadata() function invokation', async ({
   page,
 }) => {
-  const testTitle = 'foobarbaz';
+  const testTitle = 'should-emit-error';
 
   const transactionPromise = waitForTransaction('nextjs-14', async transactionEvent => {
     return (
-      transactionEvent.transaction === 'Page.generateMetadata (/generation-functions)' &&
-      (transactionEvent.extra?.route_data as any)?.searchParams?.metadataTitle === testTitle
+      transactionEvent.contexts?.trace?.data?.['http.target'] ===
+      `/generation-functions?metadataTitle=${testTitle}&shouldThrowInGenerateMetadata=1`
     );
   });
 
@@ -54,14 +64,23 @@ test('Should send a transaction event for a generateViewport() function invokati
 
   const transactionPromise = waitForTransaction('nextjs-14', async transactionEvent => {
     return (
-      transactionEvent?.transaction === 'Page.generateViewport (/generation-functions)' &&
-      (transactionEvent.extra?.route_data as any)?.searchParams?.viewportThemeColor === testTitle
+      transactionEvent.contexts?.trace?.data?.['http.target'] ===
+      `/generation-functions?viewportThemeColor=${testTitle}`
     );
   });
 
   await page.goto(`/generation-functions?viewportThemeColor=${testTitle}`);
 
-  expect(await transactionPromise).toBeDefined();
+  expect((await transactionPromise).spans).toContainEqual(
+    expect.objectContaining({
+      description: 'generateViewport /generation-functions/page',
+      origin: 'manual',
+      parent_span_id: expect.any(String),
+      span_id: expect.any(String),
+      status: 'ok',
+      trace_id: expect.any(String),
+    }),
+  );
 });
 
 test('Should send a transaction and an error event for a faulty generateViewport() function invokation', async ({
@@ -71,8 +90,8 @@ test('Should send a transaction and an error event for a faulty generateViewport
 
   const transactionPromise = waitForTransaction('nextjs-14', async transactionEvent => {
     return (
-      transactionEvent?.transaction === 'Page.generateViewport (/generation-functions)' &&
-      (transactionEvent.extra?.route_data as any)?.searchParams?.viewportThemeColor === testTitle
+      transactionEvent.contexts?.trace?.data?.['http.target'] ===
+      `/generation-functions?viewportThemeColor=${testTitle}&shouldThrowInGenerateViewport=1`
     );
   });
 
@@ -97,8 +116,8 @@ test('Should send a transaction event with correct status for a generateMetadata
 
   const transactionPromise = waitForTransaction('nextjs-14', async transactionEvent => {
     return (
-      transactionEvent?.transaction === 'Page.generateMetadata (/generation-functions/with-redirect)' &&
-      (transactionEvent.extra?.route_data as any)?.searchParams?.metadataTitle === testTitle
+      transactionEvent.contexts?.trace?.data?.['http.target'] ===
+      `/generation-functions/with-redirect?metadataTitle=${testTitle}`
     );
   });
 
@@ -114,8 +133,8 @@ test('Should send a transaction event with correct status for a generateMetadata
 
   const transactionPromise = waitForTransaction('nextjs-14', async transactionEvent => {
     return (
-      transactionEvent?.transaction === 'Page.generateMetadata (/generation-functions/with-notfound)' &&
-      (transactionEvent.extra?.route_data as any)?.searchParams?.metadataTitle === testTitle
+      transactionEvent.contexts?.trace?.data?.['http.target'] ===
+      `/generation-functions/with-notfound?metadataTitle=${testTitle}`
     );
   });
 

@@ -1,6 +1,7 @@
 import type * as net from 'net';
 import type { Event, PolymorphicRequest, TransactionSource, User } from '@sentry/types';
 import { addRequestDataToEvent, extractPathForTransaction, extractRequestData } from '@sentry/utils';
+import { getClientIPAddress } from '../src/vendor/getIpAddress';
 
 describe('addRequestDataToEvent', () => {
   let mockEvent: Event;
@@ -106,6 +107,227 @@ describe('addRequestDataToEvent', () => {
       const parsedRequest: Event = addRequestDataToEvent(mockEvent, reqWithIPInSocket, optionsWithIP);
 
       expect(parsedRequest.user!.ip_address).toEqual('321');
+    });
+
+    test.each([
+      'X-Client-IP',
+      'X-Forwarded-For',
+      'Fly-Client-IP',
+      'CF-Connecting-IP',
+      'Fastly-Client-Ip',
+      'True-Client-Ip',
+      'X-Real-IP',
+      'X-Cluster-Client-IP',
+      'X-Forwarded',
+      'Forwarded-For',
+      'X-Vercel-Forwarded-For',
+    ])('can be extracted from %s header', headerName => {
+      const reqWithIPInHeader = {
+        ...mockReq,
+        headers: {
+          [headerName]: '123.5.6.1',
+        },
+      };
+
+      const optionsWithIP = {
+        include: {
+          ip: true,
+        },
+      };
+
+      const parsedRequest: Event = addRequestDataToEvent(mockEvent, reqWithIPInHeader, optionsWithIP);
+
+      expect(parsedRequest.user!.ip_address).toEqual('123.5.6.1');
+    });
+
+    it('can be extracted from Forwarded header', () => {
+      const reqWithIPInHeader = {
+        ...mockReq,
+        headers: {
+          Forwarded: 'by=111;for=123.5.6.1;for=123.5.6.2;',
+        },
+      };
+
+      const optionsWithIP = {
+        include: {
+          ip: true,
+        },
+      };
+
+      const parsedRequest: Event = addRequestDataToEvent(mockEvent, reqWithIPInHeader, optionsWithIP);
+
+      expect(parsedRequest.user!.ip_address).toEqual('123.5.6.1');
+    });
+
+    test('it ignores invalid IP in header', () => {
+      const reqWithIPInHeader = {
+        ...mockReq,
+        headers: {
+          'X-Client-IP': 'invalid',
+        },
+      };
+
+      const optionsWithIP = {
+        include: {
+          ip: true,
+        },
+      };
+
+      const parsedRequest: Event = addRequestDataToEvent(mockEvent, reqWithIPInHeader, optionsWithIP);
+
+      expect(parsedRequest.user!.ip_address).toEqual(undefined);
+    });
+
+    test('IP from header takes presedence over socket', () => {
+      const reqWithIPInHeader = {
+        ...mockReq,
+        headers: {
+          'X-Client-IP': '123.5.6.1',
+        },
+        socket: {
+          remoteAddress: '321',
+        } as net.Socket,
+      };
+
+      const optionsWithIP = {
+        include: {
+          ip: true,
+        },
+      };
+
+      const parsedRequest: Event = addRequestDataToEvent(mockEvent, reqWithIPInHeader, optionsWithIP);
+
+      expect(parsedRequest.user!.ip_address).toEqual('123.5.6.1');
+    });
+
+    test('IP from header takes presedence over req.ip', () => {
+      const reqWithIPInHeader = {
+        ...mockReq,
+        headers: {
+          'X-Client-IP': '123.5.6.1',
+        },
+        ip: '123',
+      };
+
+      const optionsWithIP = {
+        include: {
+          ip: true,
+        },
+      };
+
+      const parsedRequest: Event = addRequestDataToEvent(mockEvent, reqWithIPInHeader, optionsWithIP);
+
+      expect(parsedRequest.user!.ip_address).toEqual('123.5.6.1');
+    });
+
+    test('does not add IP if ip=false', () => {
+      const reqWithIPInHeader = {
+        ...mockReq,
+        headers: {
+          'X-Client-IP': '123.5.6.1',
+        },
+        ip: '123',
+      };
+
+      const optionsWithoutIP = {
+        include: {
+          ip: false,
+        },
+      };
+
+      const parsedRequest: Event = addRequestDataToEvent(mockEvent, reqWithIPInHeader, optionsWithoutIP);
+
+      expect(parsedRequest.user!.ip_address).toEqual(undefined);
+    });
+
+    test('does not add IP by default', () => {
+      const reqWithIPInHeader = {
+        ...mockReq,
+        headers: {
+          'X-Client-IP': '123.5.6.1',
+        },
+        ip: '123',
+      };
+
+      const optionsWithoutIP = {};
+
+      const parsedRequest: Event = addRequestDataToEvent(mockEvent, reqWithIPInHeader, optionsWithoutIP);
+
+      expect(parsedRequest.user!.ip_address).toEqual(undefined);
+    });
+
+    test('removes IP headers if `ip` is not set in the options', () => {
+      const reqWithIPInHeader = {
+        ...mockReq,
+        headers: {
+          otherHeader: 'hello',
+          'X-Client-IP': '123',
+          'X-Forwarded-For': '123',
+          'Fly-Client-IP': '123',
+          'CF-Connecting-IP': '123',
+          'Fastly-Client-Ip': '123',
+          'True-Client-Ip': '123',
+          'X-Real-IP': '123',
+          'X-Cluster-Client-IP': '123',
+          'X-Forwarded': '123',
+          'Forwarded-For': '123',
+          Forwarded: '123',
+          'X-Vercel-Forwarded-For': '123',
+        },
+      };
+
+      const optionsWithoutIP = {
+        include: {},
+      };
+
+      const parsedRequest: Event = addRequestDataToEvent(mockEvent, reqWithIPInHeader, optionsWithoutIP);
+
+      expect(parsedRequest.request?.headers).toEqual({ otherHeader: 'hello' });
+    });
+
+    test('keeps IP headers if `ip=true`', () => {
+      const reqWithIPInHeader = {
+        ...mockReq,
+        headers: {
+          otherHeader: 'hello',
+          'X-Client-IP': '123',
+          'X-Forwarded-For': '123',
+          'Fly-Client-IP': '123',
+          'CF-Connecting-IP': '123',
+          'Fastly-Client-Ip': '123',
+          'True-Client-Ip': '123',
+          'X-Real-IP': '123',
+          'X-Cluster-Client-IP': '123',
+          'X-Forwarded': '123',
+          'Forwarded-For': '123',
+          Forwarded: '123',
+          'X-Vercel-Forwarded-For': '123',
+        },
+      };
+
+      const optionsWithoutIP = {
+        include: {
+          ip: true,
+        },
+      };
+
+      const parsedRequest: Event = addRequestDataToEvent(mockEvent, reqWithIPInHeader, optionsWithoutIP);
+
+      expect(parsedRequest.request?.headers).toEqual({
+        otherHeader: 'hello',
+        'X-Client-IP': '123',
+        'X-Forwarded-For': '123',
+        'Fly-Client-IP': '123',
+        'CF-Connecting-IP': '123',
+        'Fastly-Client-Ip': '123',
+        'True-Client-Ip': '123',
+        'X-Real-IP': '123',
+        'X-Cluster-Client-IP': '123',
+        'X-Forwarded': '123',
+        'Forwarded-For': '123',
+        Forwarded: '123',
+        'X-Vercel-Forwarded-For': '123',
+      });
     });
   });
 
@@ -267,6 +489,70 @@ describe('extractRequestData', () => {
       expect(extractRequestData(mockReq, optionsWithCookies)).toStrictEqual({
         headers: { otherHeader: 'hello', cookie: 'foo=bar' },
         cookies: { foo: 'bar' },
+      });
+    });
+
+    it('removes IP-related headers from requestdata.headers, if `ip` is not set in the options', () => {
+      const mockReq = {
+        headers: {
+          otherHeader: 'hello',
+          'X-Client-IP': '123',
+          'X-Forwarded-For': '123',
+          'Fly-Client-IP': '123',
+          'CF-Connecting-IP': '123',
+          'Fastly-Client-Ip': '123',
+          'True-Client-Ip': '123',
+          'X-Real-IP': '123',
+          'X-Cluster-Client-IP': '123',
+          'X-Forwarded': '123',
+          'Forwarded-For': '123',
+          Forwarded: '123',
+          'X-Vercel-Forwarded-For': '123',
+        },
+      };
+      const options = { include: ['headers'] };
+
+      expect(extractRequestData(mockReq, options)).toStrictEqual({
+        headers: { otherHeader: 'hello' },
+      });
+    });
+
+    it('keeps IP-related headers from requestdata.headers, if `ip` is enabled in options', () => {
+      const mockReq = {
+        headers: {
+          otherHeader: 'hello',
+          'X-Client-IP': '123',
+          'X-Forwarded-For': '123',
+          'Fly-Client-IP': '123',
+          'CF-Connecting-IP': '123',
+          'Fastly-Client-Ip': '123',
+          'True-Client-Ip': '123',
+          'X-Real-IP': '123',
+          'X-Cluster-Client-IP': '123',
+          'X-Forwarded': '123',
+          'Forwarded-For': '123',
+          Forwarded: '123',
+          'X-Vercel-Forwarded-For': '123',
+        },
+      };
+      const options = { include: ['headers', 'ip'] };
+
+      expect(extractRequestData(mockReq, options)).toStrictEqual({
+        headers: {
+          otherHeader: 'hello',
+          'X-Client-IP': '123',
+          'X-Forwarded-For': '123',
+          'Fly-Client-IP': '123',
+          'CF-Connecting-IP': '123',
+          'Fastly-Client-Ip': '123',
+          'True-Client-Ip': '123',
+          'X-Real-IP': '123',
+          'X-Cluster-Client-IP': '123',
+          'X-Forwarded': '123',
+          'Forwarded-For': '123',
+          Forwarded: '123',
+          'X-Vercel-Forwarded-For': '123',
+        },
       });
     });
   });
@@ -500,5 +786,35 @@ describe('extractPathForTransaction', () => {
 
     expect(route).toEqual('GET /other/path/:id/details');
     expect(source).toEqual('route');
+  });
+});
+
+describe('getClientIPAddress', () => {
+  it.each([
+    [
+      '2b01:cb19:8350:ed00:d0dd:fa5b:de31:8be5,2b01:cb19:8350:ed00:d0dd:fa5b:de31:8be5, 141.101.69.35',
+      '2b01:cb19:8350:ed00:d0dd:fa5b:de31:8be5',
+    ],
+    [
+      '2b01:cb19:8350:ed00:d0dd:fa5b:de31:8be5,   2b01:cb19:8350:ed00:d0dd:fa5b:de31:8be5, 141.101.69.35',
+      '2b01:cb19:8350:ed00:d0dd:fa5b:de31:8be5',
+    ],
+    [
+      '2a01:cb19:8350:ed00:d0dd:INVALID_IP_ADDR:8be5,141.101.69.35,2a01:cb19:8350:ed00:d0dd:fa5b:de31:8be5',
+      '141.101.69.35',
+    ],
+    [
+      '2b01:cb19:8350:ed00:d0dd:fa5b:nope:8be5,   2b01:cb19:NOPE:ed00:d0dd:fa5b:de31:8be5,   141.101.69.35  ',
+      '141.101.69.35',
+    ],
+    ['2b01:cb19:8350:ed00:d0 dd:fa5b:de31:8be5, 141.101.69.35', '141.101.69.35'],
+  ])('should parse the IP from the X-Forwarded-For header %s', (headerValue, expectedIP) => {
+    const headers = {
+      'X-Forwarded-For': headerValue,
+    };
+
+    const ip = getClientIPAddress(headers);
+
+    expect(ip).toEqual(expectedIP);
   });
 });

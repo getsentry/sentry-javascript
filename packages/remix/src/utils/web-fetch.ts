@@ -1,4 +1,3 @@
-/* eslint-disable complexity */
 // Based on Remix's implementation of Fetch API
 // https://github.com/remix-run/web-std-io/blob/d2a003fe92096aaf97ab2a618b74875ccaadc280/packages/fetch/
 // The MIT License (MIT)
@@ -23,10 +22,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-import { logger } from '@sentry/utils';
-
-import { DEBUG_BUILD } from './debug-build';
-import { getClientIPAddress } from './vendor/getIpAddress';
 import type { RemixRequest } from './vendor/types';
 
 /*
@@ -75,8 +70,10 @@ export const normalizeRemixRequest = (request: RemixRequest): Record<string, any
     throw new Error('Could not find request headers');
   }
 
-  const parsedURL = requestInternalsSymbol ? request[requestInternalsSymbol].parsedURL : new URL(request.url);
-  const headers = requestInternalsSymbol ? new Headers(request[requestInternalsSymbol].headers) : request.headers;
+  const internalRequest = request[requestInternalsSymbol];
+
+  const parsedURL = internalRequest ? internalRequest.parsedURL : new URL(request.url);
+  const headers = internalRequest ? new Headers(internalRequest.headers) : request.headers;
 
   // Fetch step 1.3
   if (!headers.has('Accept')) {
@@ -89,8 +86,9 @@ export const normalizeRemixRequest = (request: RemixRequest): Record<string, any
     contentLengthValue = '0';
   }
 
-  if (request.body !== null && request[bodyInternalsSymbol]) {
-    const totalBytes = request[bodyInternalsSymbol].size;
+  const internalBody = request[bodyInternalsSymbol];
+  if (request.body !== null && internalBody) {
+    const totalBytes = internalBody.size;
     // Set Content-Length if totalBytes is a number (that is not NaN)
     if (typeof totalBytes === 'number' && !Number.isNaN(totalBytes)) {
       contentLengthValue = String(totalBytes);
@@ -121,15 +119,6 @@ export const normalizeRemixRequest = (request: RemixRequest): Record<string, any
     headers.set('Connection', 'close');
   }
 
-  let ip;
-
-  // Using a try block here not to break the whole request if we can't get the IP address
-  try {
-    ip = getClientIPAddress(headers);
-  } catch (e) {
-    DEBUG_BUILD && logger.warn('Could not get client IP address', e);
-  }
-
   // HTTP-network fetch step 4.2
   // chunked encoding is handled by Node.js
   const search = getSearch(parsedURL);
@@ -147,17 +136,45 @@ export const normalizeRemixRequest = (request: RemixRequest): Record<string, any
     query: parsedURL.query,
     href: parsedURL.href,
     method: request.method,
-    // @ts-expect-error - not sure what this supposed to do
-    headers: headers[Symbol.for('nodejs.util.inspect.custom')](),
+    headers: objectFromHeaders(headers),
     insecureHTTPParser: request.insecureHTTPParser,
     agent,
 
     // [SENTRY] For compatibility with Sentry SDK RequestData parser, adding `originalUrl` property.
     originalUrl: parsedURL.href,
-
-    // [SENTRY] Adding `ip` property if found inside headers.
-    ip,
   };
 
   return requestOptions;
 };
+
+// This function is a `polyfill` for Object.fromEntries()
+function objectFromHeaders(headers: Headers): Record<string, string> {
+  const result: Record<string, string> = {};
+  let iterator: IterableIterator<[string, string]>;
+
+  if (hasIterator(headers)) {
+    iterator = getIterator(headers) as IterableIterator<[string, string]>;
+  } else {
+    return {};
+  }
+
+  for (const [key, value] of iterator) {
+    result[key] = value;
+  }
+  return result;
+}
+
+type IterableType<T> = {
+  [Symbol.iterator]: () => Iterator<T>;
+};
+
+function hasIterator<T>(obj: T): obj is T & IterableType<unknown> {
+  return obj !== null && typeof (obj as IterableType<unknown>)[Symbol.iterator] === 'function';
+}
+
+function getIterator<T>(obj: T): Iterator<unknown> {
+  if (hasIterator(obj)) {
+    return (obj as IterableType<unknown>)[Symbol.iterator]();
+  }
+  throw new Error('Object does not have an iterator');
+}

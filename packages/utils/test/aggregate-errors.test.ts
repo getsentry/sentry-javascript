@@ -132,7 +132,7 @@ describe('applyAggregateErrorsToEvent()', () => {
     expect(event.exception?.values).toHaveLength(5 + 1);
 
     // Last exception in list should be the root exception
-    expect(event.exception?.values?.[event.exception?.values.length - 1]).toStrictEqual({
+    expect(event.exception?.values?.[event.exception.values.length - 1]).toStrictEqual({
       type: 'Error',
       value: 'Root Error',
       mechanism: {
@@ -153,7 +153,7 @@ describe('applyAggregateErrorsToEvent()', () => {
     const eventHint: EventHint = { originalException: fakeAggregateError };
 
     applyAggregateErrorsToEvent(exceptionFromError, stackParser, undefined, 'cause', 100, event, eventHint);
-    expect(event.exception?.values?.[event.exception.values.length - 1].mechanism?.type).toBe('instrument');
+    expect(event.exception?.values?.[event.exception.values.length - 1]?.mechanism?.type).toBe('instrument');
   });
 
   test('should recursively walk mixed errors (Aggregate errors and based on `key`)', () => {

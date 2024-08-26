@@ -1,6 +1,7 @@
 import { captureException, withScope } from '@sentry/core';
 import type { NextPageContext } from 'next';
-import { flushQueue } from './utils/responseEnd';
+import { flushSafelyWithTimeout } from './utils/responseEnd';
+import { vercelWaitUntil } from './utils/vercelWaitUntil';
 
 type ContextOrProps = {
   req?: NextPageContext['req'];
@@ -53,7 +54,5 @@ export async function captureUnderscoreErrorException(contextOrProps: ContextOrP
     });
   });
 
-  // In case this is being run as part of a serverless function (as is the case with the server half of nextjs apps
-  // deployed to vercel), make sure the error gets sent to Sentry before the lambda exits.
-  await flushQueue();
+  vercelWaitUntil(flushSafelyWithTimeout());
 }

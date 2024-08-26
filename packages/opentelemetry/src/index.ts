@@ -1,3 +1,5 @@
+export { SEMANTIC_ATTRIBUTE_SENTRY_GRAPHQL_OPERATION } from './semanticAttributes';
+
 export { getRequestSpanData } from './utils/getRequestSpanData';
 
 export type { OpenTelemetryClient } from './types';
@@ -16,9 +18,13 @@ export {
   spanHasStatus,
 } from './utils/spanTypes';
 
-export { getDynamicSamplingContextFromSpan } from './utils/dynamicSamplingContext';
+// Re-export this for backwards compatibility (this used to be a different implementation)
+export { getDynamicSamplingContextFromSpan } from '@sentry/core';
 
 export { isSentryRequestSpan } from './utils/isSentryRequest';
+
+export { enhanceDscWithOpenTelemetryRootSpanName } from './utils/enhanceDscWithOpenTelemetryRootSpanName';
+export { generateSpanContextForPropagationContext } from './utils/generateSpanContextForPropagationContext';
 
 export { getActiveSpan } from './utils/getActiveSpan';
 export { startSpan, startSpanManual, startInactiveSpan, withActiveSpan, continueTrace } from './trace';
@@ -31,9 +37,12 @@ export { setupEventContextTrace } from './setupEventContextTrace';
 
 export { setOpenTelemetryContextAsyncContextStrategy } from './asyncContextStrategy';
 export { wrapContextManagerClass } from './contextManager';
-export { SentryPropagator } from './propagator';
+export { SentryPropagator, getPropagationContextFromSpan } from './propagator';
 export { SentrySpanProcessor } from './spanProcessor';
-export { SentrySampler } from './sampler';
+export {
+  SentrySampler,
+  wrapSamplingDecision,
+} from './sampler';
 
 export { openTelemetrySetupCheck } from './utils/setupCheck';
 

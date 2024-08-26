@@ -53,18 +53,18 @@ describe('applyDebugIds', () => {
 
     applyDebugIds(event, stackParser);
 
-    expect(event.exception?.values?.[0].stacktrace?.frames).toContainEqual({
+    expect(event.exception?.values?.[0]?.stacktrace?.frames).toContainEqual({
       filename: 'filename1.js',
       debug_id: 'aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaa',
     });
 
-    expect(event.exception?.values?.[0].stacktrace?.frames).toContainEqual({
+    expect(event.exception?.values?.[0]?.stacktrace?.frames).toContainEqual({
       filename: 'filename2.js',
       debug_id: 'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb',
     });
 
     // expect not to contain an image for the stack frame that doesn't have a corresponding debug id
-    expect(event.exception?.values?.[0].stacktrace?.frames).not.toContainEqual(
+    expect(event.exception?.values?.[0]?.stacktrace?.frames).not.toContainEqual(
       expect.objectContaining({
         filename3: 'filename3.js',
         debug_id: expect.any(String),
@@ -72,7 +72,7 @@ describe('applyDebugIds', () => {
     );
 
     // expect not to contain an image for the debug id mapping that isn't contained in the stack trace
-    expect(event.exception?.values?.[0].stacktrace?.frames).not.toContainEqual(
+    expect(event.exception?.values?.[0]?.stacktrace?.frames).not.toContainEqual(
       expect.objectContaining({
         filename3: 'filename4.js',
         debug_id: 'cccccccc-cccc-4ccc-cccc-cccccccccc',
@@ -102,7 +102,7 @@ describe('applyDebugMeta', () => {
 
     applyDebugMeta(event);
 
-    expect(event.exception?.values?.[0].stacktrace?.frames).toEqual([
+    expect(event.exception?.values?.[0]?.stacktrace?.frames).toEqual([
       { filename: 'filename1.js' },
       { filename: 'filename2.js' },
       { filename: 'filename1.js' },
@@ -205,10 +205,13 @@ describe('prepareEvent', () => {
 
     const options = {} as ClientOptions;
     const client = {
+      emit() {
+        // noop
+      },
       getEventProcessors() {
         return [eventProcessor];
       },
-    } as Client;
+    } as unknown as Client;
     const processedEvent = await prepareEvent(
       options,
       event,
@@ -393,10 +396,13 @@ describe('prepareEvent', () => {
 
       const options = {} as ClientOptions;
       const client = {
+        emit() {
+          // noop
+        },
         getEventProcessors() {
           return [] as EventProcessor[];
         },
-      } as Client;
+      } as unknown as Client;
 
       const processedEvent = await prepareEvent(
         options,
@@ -430,10 +436,13 @@ describe('prepareEvent', () => {
 
       const options = {} as ClientOptions;
       const client = {
+        emit() {
+          // noop
+        },
         getEventProcessors() {
           return [] as EventProcessor[];
         },
-      } as Client;
+      } as unknown as Client;
 
       const captureContext = new Scope();
       captureContext.setTags({ foo: 'bar' });
@@ -470,10 +479,13 @@ describe('prepareEvent', () => {
 
       const options = {} as ClientOptions;
       const client = {
+        emit() {
+          // noop
+        },
         getEventProcessors() {
           return [] as EventProcessor[];
         },
-      } as Client;
+      } as unknown as Client;
 
       const captureContextScope = new Scope();
       captureContextScope.setTags({ foo: 'bar' });

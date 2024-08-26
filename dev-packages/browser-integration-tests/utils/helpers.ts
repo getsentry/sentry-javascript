@@ -65,13 +65,18 @@ const properFullEnvelopeParser = <T extends Envelope>(request: Request | null): 
 };
 
 function getEventAndTraceHeader(envelope: EventEnvelope): EventAndTraceHeader {
-  const event = envelope[1][0][1] as Event;
-  const trace = envelope[0].trace;
+  const event = envelope[1][0]?.[1] as Event | undefined;
+  const trace = envelope[0]?.trace;
+
+  if (!event || !trace) {
+    throw new Error('Could not get event or trace from envelope');
+  }
+
   return [event, trace];
 }
 
 export const properEnvelopeRequestParser = <T = Event>(request: Request | null, envelopeIndex = 1): T => {
-  return properEnvelopeParser(request)[0][envelopeIndex] as T;
+  return properEnvelopeParser(request)[0]?.[envelopeIndex] as T;
 };
 
 export const properFullEnvelopeRequestParser = <T extends Envelope>(request: Request | null): T => {
@@ -241,15 +246,23 @@ export function shouldSkipTracingTest(): boolean {
 }
 
 /**
- * We can only test replay tests in certain bundles/packages:
- * - NPM (ESM, CJS)
- * - CDN bundles that contain the Replay integration
- *
- * @returns `true` if we should skip the feedback test
+ * Today we always run feedback tests, but this can be used to guard this if we ever need to.
  */
 export function shouldSkipFeedbackTest(): boolean {
+  // We always run these, in bundles the pluggable integration is automatically added
+  return false;
+}
+
+/**
+ * We can only test metrics tests in certain bundles/packages:
+ * - NPM (ESM, CJS)
+ * - CDN bundles that include tracing
+ *
+ * @returns `true` if we should skip the metrics test
+ */
+export function shouldSkipMetricsTest(): boolean {
   const bundle = process.env.PW_BUNDLE as string | undefined;
-  return bundle != null && !bundle.includes('feedback') && !bundle.includes('esm') && !bundle.includes('cjs');
+  return bundle != null && !bundle.includes('tracing') && !bundle.includes('esm') && !bundle.includes('cjs');
 }
 
 /**
@@ -349,7 +362,14 @@ async function getFirstSentryEnvelopeRequest<T>(
   url?: string,
   requestParser: (req: Request) => T = envelopeRequestParser as (req: Request) => T,
 ): Promise<T> {
-  return (await getMultipleSentryEnvelopeRequests<T>(page, 1, { url }, requestParser))[0];
+  const reqs = await getMultipleSentryEnvelopeRequests<T>(page, 1, { url }, requestParser);
+
+  const req = reqs[0];
+  if (!req) {
+    throw new Error('No request found');
+  }
+
+  return req;
 }
 
 export { runScriptInSandbox, getMultipleSentryEnvelopeRequests, getFirstSentryEnvelopeRequest, getSentryEvents };

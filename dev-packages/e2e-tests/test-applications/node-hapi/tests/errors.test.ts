@@ -1,83 +1,45 @@
 import { expect, test } from '@playwright/test';
-import { waitForError } from '@sentry-internal/event-proxy-server';
-import axios, { AxiosError } from 'axios';
-
-const authToken = process.env.E2E_TEST_AUTH_TOKEN;
-const sentryTestOrgSlug = process.env.E2E_TEST_SENTRY_ORG_SLUG;
-const sentryTestProject = process.env.E2E_TEST_SENTRY_TEST_PROJECT;
-const EVENT_POLLING_TIMEOUT = 90_000;
-
-test('Sends captured exception to Sentry', async ({ baseURL }) => {
-  const { data } = await axios.get(`${baseURL}/test-error`);
-  const { exceptionId } = data;
-
-  const url = `https://sentry.io/api/0/projects/${sentryTestOrgSlug}/${sentryTestProject}/events/${exceptionId}/`;
-
-  console.log(`Polling for error eventId: ${exceptionId}`);
-
-  await expect
-    .poll(
-      async () => {
-        try {
-          const response = await axios.get(url, { headers: { Authorization: `Bearer ${authToken}` } });
-
-          return response.status;
-        } catch (e) {
-          if (e instanceof AxiosError && e.response) {
-            if (e.response.status !== 404) {
-              throw e;
-            } else {
-              return e.response.status;
-            }
-          } else {
-            throw e;
-          }
-        }
-      },
-      { timeout: EVENT_POLLING_TIMEOUT },
-    )
-    .toBe(200);
-});
+import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
 
 test('Sends thrown error to Sentry', async ({ baseURL }) => {
   const errorEventPromise = waitForError('node-hapi', errorEvent => {
     return errorEvent?.exception?.values?.[0]?.value === 'This is an error';
   });
 
-  try {
-    await axios.get(`${baseURL}/test-failure`);
-  } catch (e) {}
+  const transactionEventPromise = waitForTransaction('node-hapi', transactionEvent => {
+    return transactionEvent?.transaction === 'GET /test-failure';
+  });
+
+  await fetch(`${baseURL}/test-failure`);
 
   const errorEvent = await errorEventPromise;
-  const errorEventId = errorEvent.event_id;
+  const transactionEvent = await transactionEventPromise;
 
-  await expect
-    .poll(
-      async () => {
-        try {
-          const response = await axios.get(
-            `https://sentry.io/api/0/projects/${sentryTestOrgSlug}/${sentryTestProject}/events/${errorEventId}/`,
-            { headers: { Authorization: `Bearer ${authToken}` } },
-          );
+  expect(transactionEvent.transaction).toBe('GET /test-failure');
+  expect(transactionEvent.contexts?.trace).toMatchObject({
+    trace_id: expect.any(String),
+    span_id: expect.any(String),
+  });
 
-          return response.status;
-        } catch (e) {
-          if (e instanceof AxiosError && e.response) {
-            if (e.response.status !== 404) {
-              throw e;
-            } else {
-              return e.response.status;
-            }
-          } else {
-            throw e;
-          }
-        }
-      },
-      {
-        timeout: EVENT_POLLING_TIMEOUT,
-      },
-    )
-    .toBe(200);
+  expect(errorEvent.exception?.values).toHaveLength(1);
+  expect(errorEvent.exception?.values?.[0]?.value).toBe('This is an error');
+
+  expect(errorEvent.request).toEqual({
+    method: 'GET',
+    cookies: {},
+    headers: expect.any(Object),
+    url: 'http://localhost:3030/test-failure',
+  });
+
+  expect(errorEvent.transaction).toEqual('GET /test-failure');
+
+  expect(errorEvent.contexts?.trace).toEqual({
+    trace_id: expect.any(String),
+    span_id: expect.any(String),
+  });
+
+  expect(errorEvent.contexts?.trace?.trace_id).toBe(transactionEvent.contexts?.trace?.trace_id);
+  expect(errorEvent.contexts?.trace?.span_id).toBe(transactionEvent.contexts?.trace?.span_id);
 });
 
 test('sends error with parameterized transaction name', async ({ baseURL }) => {
@@ -85,11 +47,103 @@ test('sends error with parameterized transaction name', async ({ baseURL }) => {
     return errorEvent?.exception?.values?.[0]?.value === 'This is an error with id 123';
   });
 
-  try {
-    await axios.get(`${baseURL}/test-error/123`);
-  } catch {}
+  await fetch(`${baseURL}/test-error/123`);
 
   const errorEvent = await errorEventPromise;
 
   expect(errorEvent?.transaction).toBe('GET /test-error/{id}');
+});
+
+test('Does not send errors to Sentry if boom throws in "onPreResponse" after JS error in route handler', async ({
+  baseURL,
+}) => {
+  let errorEventOccurred = false;
+
+  waitForError('node-hapi', event => {
+    if (event.exception?.values?.[0]?.value?.includes('This is a JS error (boom in onPreResponse)')) {
+      errorEventOccurred = true;
+    }
+    return false; // expects to return a boolean (but not relevant here)
+  });
+
+  const transactionEventPromise4xx = waitForTransaction('node-hapi', transactionEvent => {
+    return transactionEvent?.transaction === 'GET /test-failure-boom-4xx';
+  });
+
+  const transactionEventPromise5xx = waitForTransaction('node-hapi', transactionEvent => {
+    return transactionEvent?.transaction === 'GET /test-failure-boom-5xx';
+  });
+
+  const response4xx = await fetch(`${baseURL}/test-failure-boom-4xx`);
+  const response5xx = await fetch(`${baseURL}/test-failure-boom-5xx`);
+
+  expect(response4xx.status).toBe(404);
+  expect(response5xx.status).toBe(504);
+
+  const transactionEvent4xx = await transactionEventPromise4xx;
+  const transactionEvent5xx = await transactionEventPromise5xx;
+
+  expect(errorEventOccurred).toBe(false);
+  expect(transactionEvent4xx.transaction).toBe('GET /test-failure-boom-4xx');
+  expect(transactionEvent5xx.transaction).toBe('GET /test-failure-boom-5xx');
+});
+
+test('Does not send error to Sentry if error response is overwritten with 2xx in "onPreResponse"', async ({
+  baseURL,
+}) => {
+  let errorEventOccurred = false;
+
+  waitForError('node-hapi', event => {
+    if (event.exception?.values?.[0]?.value?.includes('This is a JS error (2xx override in onPreResponse)')) {
+      errorEventOccurred = true;
+    }
+    return false; // expects to return a boolean (but not relevant here)
+  });
+
+  const transactionEventPromise = waitForTransaction('node-hapi', transactionEvent => {
+    return transactionEvent?.transaction === 'GET /test-failure-2xx-override-onPreResponse';
+  });
+
+  const response = await fetch(`${baseURL}/test-failure-2xx-override-onPreResponse`);
+
+  const transactionEvent = await transactionEventPromise;
+
+  expect(response.status).toBe(200);
+  expect(errorEventOccurred).toBe(false);
+  expect(transactionEvent.transaction).toBe('GET /test-failure-2xx-override-onPreResponse');
+});
+
+test('Only sends onPreResponse error to Sentry if JS error is thrown in route handler AND onPreResponse', async ({
+  baseURL,
+}) => {
+  const errorEventPromise = waitForError('node-hapi', errorEvent => {
+    return errorEvent?.exception?.values?.[0]?.value?.includes('JS error (onPreResponse)') || false;
+  });
+
+  let routeHandlerErrorOccurred = false;
+
+  waitForError('node-hapi', event => {
+    if (
+      !event.type &&
+      event.exception?.values?.[0]?.value?.includes('This is an error (another JS error in onPreResponse)')
+    ) {
+      routeHandlerErrorOccurred = true;
+    }
+    return false; // expects to return a boolean (but not relevant here)
+  });
+
+  const transactionEventPromise = waitForTransaction('node-hapi', transactionEvent => {
+    return transactionEvent?.transaction === 'GET /test-failure-JS-error-onPreResponse';
+  });
+
+  const response = await fetch(`${baseURL}/test-failure-JS-error-onPreResponse`);
+
+  expect(response.status).toBe(500);
+
+  const errorEvent = await errorEventPromise;
+  const transactionEvent = await transactionEventPromise;
+
+  expect(routeHandlerErrorOccurred).toBe(false);
+  expect(transactionEvent.transaction).toBe('GET /test-failure-JS-error-onPreResponse');
+  expect(errorEvent.transaction).toEqual('GET /test-failure-JS-error-onPreResponse');
 });

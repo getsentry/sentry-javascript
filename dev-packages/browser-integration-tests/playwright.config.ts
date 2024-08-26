@@ -11,7 +11,7 @@ const config: PlaywrightTestConfig = {
   testMatch: /test.ts/,
 
   use: {
-    trace: process.env.CI ? 'retain-on-failure' : 'off',
+    trace: 'retain-on-failure',
   },
 
   projects: [
@@ -31,6 +31,7 @@ const config: PlaywrightTestConfig = {
   ],
 
   globalSetup: require.resolve('./playwright.setup.ts'),
+  globalTeardown: require.resolve('./playwright.teardown.ts'),
 };
 
 export default config;

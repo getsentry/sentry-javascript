@@ -34,7 +34,7 @@ sentryTest('should capture replays (@sentry-internal/replay export)', async ({ g
     timestamp: expect.any(Number),
     error_ids: [],
     trace_ids: [],
-    urls: [expect.stringContaining('/dist/index.html')],
+    urls: [expect.stringMatching(/\/dist\/([\w-]+)\/index\.html$/)],
     replay_id: expect.stringMatching(/\w{32}/),
     replay_start_timestamp: expect.any(Number),
     segment_id: 0,
@@ -57,7 +57,7 @@ sentryTest('should capture replays (@sentry-internal/replay export)', async ({ g
       name: 'sentry.javascript.browser',
     },
     request: {
-      url: expect.stringContaining('/dist/index.html'),
+      url: expect.stringMatching(/\/dist\/([\w-]+)\/index\.html$/),
       headers: {
         'User-Agent': expect.stringContaining(''),
       },
@@ -94,7 +94,7 @@ sentryTest('should capture replays (@sentry-internal/replay export)', async ({ g
       name: 'sentry.javascript.browser',
     },
     request: {
-      url: expect.stringContaining('/dist/index.html'),
+      url: expect.stringMatching(/\/dist\/([\w-]+)\/index\.html$/),
       headers: {
         'User-Agent': expect.stringContaining(''),
       },

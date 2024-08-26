@@ -48,6 +48,9 @@ export function makeBaseBundleConfig(options) {
     output: {
       format: 'iife',
       name: 'Sentry',
+      intro: () => {
+        return 'exports = window.Sentry || {};';
+      },
     },
     context: 'window',
     plugins: [rrwebBuildPlugin, markAsBrowserBuildPlugin],
@@ -88,11 +91,27 @@ export function makeBaseBundleConfig(options) {
   };
 
   // used by `@sentry/aws-serverless`, when creating the lambda layer
-  const nodeBundleConfig = {
+  const awsLambdaBundleConfig = {
     output: {
       format: 'cjs',
     },
-    plugins: [jsonPlugin, commonJSPlugin],
+    plugins: [
+      jsonPlugin,
+      commonJSPlugin,
+      // Temporary fix for the lambda layer SDK bundle.
+      // This is necessary to apply to our lambda layer bundle because calling `new ImportInTheMiddle()` will throw an
+      // that `ImportInTheMiddle` is not a constructor. Instead we modify the code to call `new ImportInTheMiddle.default()`
+      // TODO: Remove this plugin once the weird import-in-the-middle exports are fixed, released and we use the respective
+      // version in our SDKs. See: https://github.com/getsentry/sentry-javascript/issues/12009#issuecomment-2126211967
+      {
+        name: 'aws-serverless-lambda-layer-fix',
+        transform: code => {
+          if (code.includes('ImportInTheMiddle')) {
+            return code.replaceAll(/new\s+(ImportInTheMiddle.*)\(/gm, 'new $1.default(');
+          }
+        },
+      },
+    ],
     // Don't bundle any of Node's core modules
     external: builtinModules,
   };
@@ -124,7 +143,7 @@ export function makeBaseBundleConfig(options) {
   const bundleTypeConfigMap = {
     standalone: standAloneBundleConfig,
     addon: addOnBundleConfig,
-    node: nodeBundleConfig,
+    'aws-lambda': awsLambdaBundleConfig,
     'node-worker': workerBundleConfig,
   };
 

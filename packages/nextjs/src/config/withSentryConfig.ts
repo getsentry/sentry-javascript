@@ -16,7 +16,6 @@ let showedExportModeTunnelWarning = false;
  * Modifies the passed in Next.js configuration with automatic build-time instrumentation and source map upload.
  *
  * @param nextConfig A Next.js configuration object, as usually exported in `next.config.js` or `next.config.mjs`.
- * @param sentryWebpackPluginOptions Options to configure the automatically included Sentry Webpack Plugin for source maps and release management in Sentry.
  * @param sentryBuildOptions Additional options to configure instrumentation and
  * @returns The modified config to be exported
  */
@@ -51,7 +50,7 @@ function getFinalConfigObject(
   if ('sentry' in incomingUserNextConfigObject) {
     // eslint-disable-next-line no-console
     console.warn(
-      '[@sentry/nextjs] Setting a `sentry` property on the Next.js config is no longer supported. Please use the `sentrySDKOptions` argument of `withSentryConfig` instead.',
+      '[@sentry/nextjs] Setting a `sentry` property on the Next.js config object as a means of configuration is no longer supported. Please use the `sentryBuildOptions` argument of of the `withSentryConfig()` function instead.',
     );
 
     // Next 12.2.3+ warns about non-canonical properties on `userNextConfig`.
@@ -89,11 +88,13 @@ function getFinalConfigObject(
   const nextJsVersion = getNextjsVersion();
   if (nextJsVersion) {
     const { major, minor } = parseSemver(nextJsVersion);
-    if (major && minor && (major >= 15 || (major === 14 && minor >= 3))) {
-      incomingUserNextConfigObject.experimental = {
-        clientTraceMetadata: ['baggage', 'sentry-trace'],
-        ...incomingUserNextConfigObject.experimental,
-      };
+    if (major !== undefined && minor !== undefined && (major >= 15 || (major === 14 && minor >= 3))) {
+      incomingUserNextConfigObject.experimental = incomingUserNextConfigObject.experimental || {};
+      incomingUserNextConfigObject.experimental.clientTraceMetadata = [
+        'baggage',
+        'sentry-trace',
+        ...(incomingUserNextConfigObject.experimental?.clientTraceMetadata || []),
+      ];
     }
   } else {
     // eslint-disable-next-line no-console

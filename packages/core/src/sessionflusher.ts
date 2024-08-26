@@ -18,7 +18,7 @@ type ReleaseHealthAttributes = {
  */
 export class SessionFlusher implements SessionFlusherLike {
   public readonly flushTimeout: number;
-  private _pendingAggregates: Record<number, AggregationCounts>;
+  private _pendingAggregates: Map<number, AggregationCounts>;
   private _sessionAttrs: ReleaseHealthAttributes;
   // Cast to any so that it can use Node.js timeout
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -29,7 +29,7 @@ export class SessionFlusher implements SessionFlusherLike {
   public constructor(client: Client, attrs: ReleaseHealthAttributes) {
     this._client = client;
     this.flushTimeout = 60;
-    this._pendingAggregates = {};
+    this._pendingAggregates = new Map<number, AggregationCounts>();
     this._isEnabled = true;
 
     // Call to setInterval, so that flush is called every 60 seconds.
@@ -48,15 +48,13 @@ export class SessionFlusher implements SessionFlusherLike {
     if (sessionAggregates.aggregates.length === 0) {
       return;
     }
-    this._pendingAggregates = {};
+    this._pendingAggregates = new Map<number, AggregationCounts>();
     this._client.sendSession(sessionAggregates);
   }
 
   /** Massages the entries in `pendingAggregates` and returns aggregated sessions */
   public getSessionAggregates(): SessionAggregates {
-    const aggregates: AggregationCounts[] = Object.keys(this._pendingAggregates).map((key: string) => {
-      return this._pendingAggregates[parseInt(key)];
-    });
+    const aggregates: AggregationCounts[] = Array.from(this._pendingAggregates.values());
 
     const sessionAggregates: SessionAggregates = {
       attrs: this._sessionAttrs,
@@ -100,13 +98,13 @@ export class SessionFlusher implements SessionFlusherLike {
   private _incrementSessionStatusCount(status: RequestSessionStatus, date: Date): number {
     // Truncate minutes and seconds on Session Started attribute to have one minute bucket keys
     const sessionStartedTrunc = new Date(date).setSeconds(0, 0);
-    this._pendingAggregates[sessionStartedTrunc] = this._pendingAggregates[sessionStartedTrunc] || {};
 
     // corresponds to aggregated sessions in one specific minute bucket
     // for example, {"started":"2021-03-16T08:00:00.000Z","exited":4, "errored": 1}
-    const aggregationCounts: AggregationCounts = this._pendingAggregates[sessionStartedTrunc];
-    if (!aggregationCounts.started) {
-      aggregationCounts.started = new Date(sessionStartedTrunc).toISOString();
+    let aggregationCounts = this._pendingAggregates.get(sessionStartedTrunc);
+    if (!aggregationCounts) {
+      aggregationCounts = { started: new Date(sessionStartedTrunc).toISOString() };
+      this._pendingAggregates.set(sessionStartedTrunc, aggregationCounts);
     }
 
     switch (status) {

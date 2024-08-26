@@ -1,15 +1,8 @@
 /* eslint-disable max-lines */ // TODO: We might want to split this file up
 import { EventType, record } from '@sentry-internal/rrweb';
-import {
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  captureException,
-  getActiveSpan,
-  getClient,
-  getRootSpan,
-  spanToJSON,
-} from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, getActiveSpan, getClient, getRootSpan, spanToJSON } from '@sentry/core';
 import type { ReplayRecordingMode, Span } from '@sentry/types';
-import { logger } from '@sentry/utils';
+import { logger } from './util/logger';
 
 import {
   BUFFER_CHECKOUT_TIME,
@@ -60,7 +53,6 @@ import { debounce } from './util/debounce';
 import { getHandleRecordingEmit } from './util/handleRecordingEmit';
 import { isExpired } from './util/isExpired';
 import { isSessionExpired } from './util/isSessionExpired';
-import { logInfo, logInfoNextTick } from './util/log';
 import { sendReplay } from './util/sendReplay';
 import type { SKIPPED } from './util/throttle';
 import { THROTTLED, throttle } from './util/throttle';
@@ -99,6 +91,9 @@ export class ReplayContainer implements ReplayContainerInterface {
    * @hidden
    */
   public readonly timeouts: Timeouts;
+
+  /** The replay has to be manually started, because no sample rate (neither session or error) was provided. */
+  private _requiresManualStart: boolean;
 
   private _throttledAddEvent: (
     event: RecordingEvent,
@@ -170,6 +165,7 @@ export class ReplayContainer implements ReplayContainerInterface {
     this._lastActivity = Date.now();
     this._isEnabled = false;
     this._isPaused = false;
+    this._requiresManualStart = false;
     this._hasInitializedCoreListeners = false;
     this._context = {
       errorIds: new Set(),
@@ -208,6 +204,15 @@ export class ReplayContainer implements ReplayContainerInterface {
     if (slowClickConfig) {
       this.clickDetector = new ClickDetector(this, slowClickConfig);
     }
+
+    // Configure replay logger w/ experimental options
+    if (DEBUG_BUILD) {
+      const experiments = options._experiments;
+      logger.setConfig({
+        captureExceptions: !!experiments.captureExceptions,
+        traceInternals: !!experiments.traceInternals,
+      });
+    }
   }
 
   /** Get the event context. */
@@ -237,6 +242,11 @@ export class ReplayContainer implements ReplayContainerInterface {
     return this._options;
   }
 
+  /** A wrapper to conditionally capture exceptions. */
+  public handleException(error: unknown): void {
+    DEBUG_BUILD && logger.exception(error);
+  }
+
   /**
    * Initializes the plugin based on sampling configuration. Should not be
    * called outside of constructor.
@@ -246,7 +256,11 @@ export class ReplayContainer implements ReplayContainerInterface {
 
     // If neither sample rate is > 0, then do nothing - user will need to call one of
     // `start()` or `startBuffering` themselves.
-    if (errorSampleRate <= 0 && sessionSampleRate <= 0) {
+    const requiresManualStart = errorSampleRate <= 0 && sessionSampleRate <= 0;
+
+    this._requiresManualStart = requiresManualStart;
+
+    if (requiresManualStart) {
       return;
     }
 
@@ -256,7 +270,7 @@ export class ReplayContainer implements ReplayContainerInterface {
 
     if (!this.session) {
       // This should not happen, something wrong has occurred
-      this._handleException(new Error('Unable to initialize and create session'));
+      DEBUG_BUILD && logger.exception(new Error('Unable to initialize and create session'));
       return;
     }
 
@@ -270,31 +284,30 @@ export class ReplayContainer implements ReplayContainerInterface {
     // In this case, we still want to continue in `session` recording mode
     this.recordingMode = this.session.sampled === 'buffer' && this.session.segmentId === 0 ? 'buffer' : 'session';
 
-    logInfoNextTick(
-      `[Replay] Starting replay in ${this.recordingMode} mode`,
-      this._options._experiments.traceInternals,
-    );
+    DEBUG_BUILD && logger.infoTick(`Starting replay in ${this.recordingMode} mode`);
 
     this._initializeRecording();
   }
 
   /**
    * Start a replay regardless of sampling rate. Calling this will always
-   * create a new session. Will throw an error if replay is already in progress.
+   * create a new session. Will log a message if replay is already in progress.
    *
    * Creates or loads a session, attaches listeners to varying events (DOM,
    * _performanceObserver, Recording, Sentry SDK, etc)
    */
   public start(): void {
     if (this._isEnabled && this.recordingMode === 'session') {
-      throw new Error('Replay recording is already in progress');
+      DEBUG_BUILD && logger.info('Recording is already in progress');
+      return;
     }
 
     if (this._isEnabled && this.recordingMode === 'buffer') {
-      throw new Error('Replay buffering is in progress, call `flush()` to save the replay');
+      DEBUG_BUILD && logger.info('Buffering is in progress, call `flush()` to save the replay');
+      return;
     }
 
-    logInfoNextTick('[Replay] Starting replay in session mode', this._options._experiments.traceInternals);
+    DEBUG_BUILD && logger.infoTick('Starting replay in session mode');
 
     // Required as user activity is initially set in
     // constructor, so if `start()` is called after
@@ -306,7 +319,6 @@ export class ReplayContainer implements ReplayContainerInterface {
       {
         maxReplayDuration: this._options.maxReplayDuration,
         sessionIdleExpire: this.timeouts.sessionIdleExpire,
-        traceInternals: this._options._experiments.traceInternals,
       },
       {
         stickySession: this._options.stickySession,
@@ -327,16 +339,16 @@ export class ReplayContainer implements ReplayContainerInterface {
    */
   public startBuffering(): void {
     if (this._isEnabled) {
-      throw new Error('Replay recording is already in progress');
+      DEBUG_BUILD && logger.info('Buffering is in progress, call `flush()` to save the replay');
+      return;
     }
 
-    logInfoNextTick('[Replay] Starting replay in buffer mode', this._options._experiments.traceInternals);
+    DEBUG_BUILD && logger.infoTick('Starting replay in buffer mode');
 
     const session = loadOrCreateSession(
       {
         sessionIdleExpire: this.timeouts.sessionIdleExpire,
         maxReplayDuration: this._options.maxReplayDuration,
-        traceInternals: this._options._experiments.traceInternals,
       },
       {
         stickySession: this._options.stickySession,
@@ -378,7 +390,7 @@ export class ReplayContainer implements ReplayContainerInterface {
           : {}),
       });
     } catch (err) {
-      this._handleException(err);
+      this.handleException(err);
     }
   }
 
@@ -397,7 +409,7 @@ export class ReplayContainer implements ReplayContainerInterface {
 
       return true;
     } catch (err) {
-      this._handleException(err);
+      this.handleException(err);
       return false;
     }
   }
@@ -416,10 +428,7 @@ export class ReplayContainer implements ReplayContainerInterface {
     this._isEnabled = false;
 
     try {
-      logInfo(
-        `[Replay] Stopping Replay${reason ? ` triggered by ${reason}` : ''}`,
-        this._options._experiments.traceInternals,
-      );
+      DEBUG_BUILD && logger.info(`Stopping Replay${reason ? ` triggered by ${reason}` : ''}`);
 
       this._removeListeners();
       this.stopRecording();
@@ -439,7 +448,7 @@ export class ReplayContainer implements ReplayContainerInterface {
       // is started after, it will not have `previousSessionId`
       clearSession(this);
     } catch (err) {
-      this._handleException(err);
+      this.handleException(err);
     }
   }
 
@@ -456,7 +465,7 @@ export class ReplayContainer implements ReplayContainerInterface {
     this._isPaused = true;
     this.stopRecording();
 
-    logInfo('[Replay] Pausing replay', this._options._experiments.traceInternals);
+    DEBUG_BUILD && logger.info('Pausing replay');
   }
 
   /**
@@ -473,7 +482,7 @@ export class ReplayContainer implements ReplayContainerInterface {
     this._isPaused = false;
     this.startRecording();
 
-    logInfo('[Replay] Resuming replay', this._options._experiments.traceInternals);
+    DEBUG_BUILD && logger.info('Resuming replay');
   }
 
   /**
@@ -490,7 +499,7 @@ export class ReplayContainer implements ReplayContainerInterface {
 
     const activityTime = Date.now();
 
-    logInfo('[Replay] Converting buffer to session', this._options._experiments.traceInternals);
+    DEBUG_BUILD && logger.info('Converting buffer to session');
 
     // Allow flush to complete before resuming as a session recording, otherwise
     // the checkout from `startRecording` may be included in the payload.
@@ -766,15 +775,6 @@ export class ReplayContainer implements ReplayContainerInterface {
     this.startRecording();
   }
 
-  /** A wrapper to conditionally capture exceptions. */
-  private _handleException(error: unknown): void {
-    DEBUG_BUILD && logger.error('[Replay]', error);
-
-    if (DEBUG_BUILD && this._options._experiments && this._options._experiments.captureExceptions) {
-      captureException(error);
-    }
-  }
-
   /**
    * Loads (or refreshes) the current session.
    */
@@ -787,7 +787,6 @@ export class ReplayContainer implements ReplayContainerInterface {
       {
         sessionIdleExpire: this.timeouts.sessionIdleExpire,
         maxReplayDuration: this._options.maxReplayDuration,
-        traceInternals: this._options._experiments.traceInternals,
         previousSessionId,
       },
       {
@@ -862,7 +861,7 @@ export class ReplayContainer implements ReplayContainerInterface {
         this._hasInitializedCoreListeners = true;
       }
     } catch (err) {
-      this._handleException(err);
+      this.handleException(err);
     }
 
     this._performanceCleanupCallback = setupPerformanceObserver(this);
@@ -887,7 +886,7 @@ export class ReplayContainer implements ReplayContainerInterface {
         this._performanceCleanupCallback();
       }
     } catch (err) {
-      this._handleException(err);
+      this.handleException(err);
     }
   }
 
@@ -979,7 +978,7 @@ export class ReplayContainer implements ReplayContainerInterface {
       // If the user has come back to the page within SESSION_IDLE_PAUSE_DURATION
       // ms, we will re-use the existing session, otherwise create a new
       // session
-      logInfo('[Replay] Document has become active, but session has expired');
+      DEBUG_BUILD && logger.info('Document has become active, but session has expired');
       return;
     }
 
@@ -1049,7 +1048,9 @@ export class ReplayContainer implements ReplayContainerInterface {
   /** Update the initial timestamp based on the buffer content. */
   private _updateInitialTimestampFromEventBuffer(): void {
     const { session, eventBuffer } = this;
-    if (!session || !eventBuffer) {
+    // If replay was started manually (=no sample rate was given),
+    // We do not want to back-port the initial timestamp
+    if (!session || !eventBuffer || this._requiresManualStart) {
       return;
     }
 
@@ -1093,7 +1094,7 @@ export class ReplayContainer implements ReplayContainerInterface {
     const replayId = this.getSessionId();
 
     if (!this.session || !this.eventBuffer || !replayId) {
-      DEBUG_BUILD && logger.error('[Replay] No session or eventBuffer found to flush.');
+      DEBUG_BUILD && logger.error('No session or eventBuffer found to flush.');
       return;
     }
 
@@ -1148,7 +1149,7 @@ export class ReplayContainer implements ReplayContainerInterface {
         timestamp,
       });
     } catch (err) {
-      this._handleException(err);
+      this.handleException(err);
 
       // This means we retried 3 times and all of them failed,
       // or we ran into a problem we don't want to retry, like rate limiting.
@@ -1185,7 +1186,7 @@ export class ReplayContainer implements ReplayContainerInterface {
     }
 
     if (!this.checkAndHandleExpiredSession()) {
-      DEBUG_BUILD && logger.error('[Replay] Attempting to finish replay event after session expired.');
+      DEBUG_BUILD && logger.error('Attempting to finish replay event after session expired.');
       return;
     }
 
@@ -1206,12 +1207,12 @@ export class ReplayContainer implements ReplayContainerInterface {
     const tooShort = duration < this._options.minReplayDuration;
     const tooLong = duration > this._options.maxReplayDuration + 5_000;
     if (tooShort || tooLong) {
-      logInfo(
-        `[Replay] Session duration (${Math.floor(duration / 1000)}s) is too ${
-          tooShort ? 'short' : 'long'
-        }, not sending replay.`,
-        this._options._experiments.traceInternals,
-      );
+      DEBUG_BUILD &&
+        logger.info(
+          `Session duration (${Math.floor(duration / 1000)}s) is too ${
+            tooShort ? 'short' : 'long'
+          }, not sending replay.`,
+        );
 
       if (tooShort) {
         this._debouncedFlush();
@@ -1221,7 +1222,7 @@ export class ReplayContainer implements ReplayContainerInterface {
 
     const eventBuffer = this.eventBuffer;
     if (eventBuffer && this.session.segmentId === 0 && !eventBuffer.hasCheckout) {
-      logInfo('[Replay] Flushing initial segment without checkout.', this._options._experiments.traceInternals);
+      DEBUG_BUILD && logger.info('Flushing initial segment without checkout.');
       // TODO FN: Evaluate if we want to stop here, or remove this again?
     }
 

@@ -1,7 +1,5 @@
 import type { Context, Span, SpanContext, SpanOptions, Tracer } from '@opentelemetry/api';
-import { TraceFlags } from '@opentelemetry/api';
-import { context } from '@opentelemetry/api';
-import { SpanStatusCode, trace } from '@opentelemetry/api';
+import { INVALID_SPANID, SpanStatusCode, TraceFlags, context, trace } from '@opentelemetry/api';
 import { suppressTracing } from '@opentelemetry/core';
 import {
   SDK_VERSION,
@@ -9,17 +7,18 @@ import {
   continueTrace as baseContinueTrace,
   getClient,
   getCurrentScope,
+  getDynamicSamplingContextFromSpan,
   getRootSpan,
   handleCallbackErrors,
   spanToJSON,
 } from '@sentry/core';
-import type { Client, Scope } from '@sentry/types';
-import { continueTraceAsRemoteSpan, makeTraceState } from './propagator';
+import type { Client, Scope, Span as SentrySpan } from '@sentry/types';
+import { continueTraceAsRemoteSpan } from './propagator';
 
 import type { OpenTelemetryClient, OpenTelemetrySpanContext } from './types';
 import { getContextFromScope, getScopesFromContext } from './utils/contextData';
-import { getDynamicSamplingContextFromSpan } from './utils/dynamicSamplingContext';
 import { getSamplingDecision } from './utils/getSamplingDecision';
+import { makeTraceState } from './utils/makeTraceState';
 
 /**
  * Wraps a function with a transaction/span and finishes the span after the function is done.
@@ -34,27 +33,30 @@ import { getSamplingDecision } from './utils/getSamplingDecision';
 export function startSpan<T>(options: OpenTelemetrySpanContext, callback: (span: Span) => T): T {
   const tracer = getTracer();
 
-  const { name } = options;
+  const { name, parentSpan: customParentSpan } = options;
 
-  const activeCtx = getContext(options.scope, options.forceTransaction);
-  const shouldSkipSpan = options.onlyIfParent && !trace.getSpan(activeCtx);
-  const ctx = shouldSkipSpan ? suppressTracing(activeCtx) : activeCtx;
+  // If `options.parentSpan` is defined, we want to wrap the callback in `withActiveSpan`
+  const wrapper = getActiveSpanWrapper<T>(customParentSpan);
 
-  const spanContext = getSpanContext(options);
+  return wrapper(() => {
+    const activeCtx = getContext(options.scope, options.forceTransaction);
+    const shouldSkipSpan = options.onlyIfParent && !trace.getSpan(activeCtx);
+    const ctx = shouldSkipSpan ? suppressTracing(activeCtx) : activeCtx;
 
-  return tracer.startActiveSpan(name, spanContext, ctx, span => {
-    _applySentryAttributesToSpan(span, options);
+    const spanOptions = getSpanOptions(options);
 
-    return handleCallbackErrors(
-      () => callback(span),
-      () => {
-        // Only set the span status to ERROR when there wasn't any status set before, in order to avoid stomping useful span statuses
-        if (spanToJSON(span).status === undefined) {
-          span.setStatus({ code: SpanStatusCode.ERROR });
-        }
-      },
-      () => span.end(),
-    );
+    return tracer.startActiveSpan(name, spanOptions, ctx, span => {
+      return handleCallbackErrors(
+        () => callback(span),
+        () => {
+          // Only set the span status to ERROR when there wasn't any status set before, in order to avoid stomping useful span statuses
+          if (spanToJSON(span).status === undefined) {
+            span.setStatus({ code: SpanStatusCode.ERROR });
+          }
+        },
+        () => span.end(),
+      );
+    });
   });
 }
 
@@ -74,26 +76,29 @@ export function startSpanManual<T>(
 ): T {
   const tracer = getTracer();
 
-  const { name } = options;
+  const { name, parentSpan: customParentSpan } = options;
 
-  const activeCtx = getContext(options.scope, options.forceTransaction);
-  const shouldSkipSpan = options.onlyIfParent && !trace.getSpan(activeCtx);
-  const ctx = shouldSkipSpan ? suppressTracing(activeCtx) : activeCtx;
+  // If `options.parentSpan` is defined, we want to wrap the callback in `withActiveSpan`
+  const wrapper = getActiveSpanWrapper<T>(customParentSpan);
 
-  const spanContext = getSpanContext(options);
+  return wrapper(() => {
+    const activeCtx = getContext(options.scope, options.forceTransaction);
+    const shouldSkipSpan = options.onlyIfParent && !trace.getSpan(activeCtx);
+    const ctx = shouldSkipSpan ? suppressTracing(activeCtx) : activeCtx;
 
-  return tracer.startActiveSpan(name, spanContext, ctx, span => {
-    _applySentryAttributesToSpan(span, options);
+    const spanOptions = getSpanOptions(options);
 
-    return handleCallbackErrors(
-      () => callback(span, () => span.end()),
-      () => {
-        // Only set the span status to ERROR when there wasn't any status set before, in order to avoid stomping useful span statuses
-        if (spanToJSON(span).status === undefined) {
-          span.setStatus({ code: SpanStatusCode.ERROR });
-        }
-      },
-    );
+    return tracer.startActiveSpan(name, spanOptions, ctx, span => {
+      return handleCallbackErrors(
+        () => callback(span, () => span.end()),
+        () => {
+          // Only set the span status to ERROR when there wasn't any status set before, in order to avoid stomping useful span statuses
+          if (spanToJSON(span).status === undefined) {
+            span.setStatus({ code: SpanStatusCode.ERROR });
+          }
+        },
+      );
+    });
   });
 }
 
@@ -109,19 +114,22 @@ export function startSpanManual<T>(
 export function startInactiveSpan(options: OpenTelemetrySpanContext): Span {
   const tracer = getTracer();
 
-  const { name } = options;
+  const { name, parentSpan: customParentSpan } = options;
 
-  const activeCtx = getContext(options.scope, options.forceTransaction);
-  const shouldSkipSpan = options.onlyIfParent && !trace.getSpan(activeCtx);
-  const ctx = shouldSkipSpan ? suppressTracing(activeCtx) : activeCtx;
+  // If `options.parentSpan` is defined, we want to wrap the callback in `withActiveSpan`
+  const wrapper = getActiveSpanWrapper<Span>(customParentSpan);
 
-  const spanContext = getSpanContext(options);
+  return wrapper(() => {
+    const activeCtx = getContext(options.scope, options.forceTransaction);
+    const shouldSkipSpan = options.onlyIfParent && !trace.getSpan(activeCtx);
+    const ctx = shouldSkipSpan ? suppressTracing(activeCtx) : activeCtx;
 
-  const span = tracer.startSpan(name, spanContext, ctx);
+    const spanOptions = getSpanOptions(options);
 
-  _applySentryAttributesToSpan(span, options);
+    const span = tracer.startSpan(name, spanOptions, ctx);
 
-  return span;
+    return span;
+  });
 }
 
 /**
@@ -143,22 +151,19 @@ function getTracer(): Tracer {
   return (client && client.tracer) || trace.getTracer('@sentry/opentelemetry', SDK_VERSION);
 }
 
-function _applySentryAttributesToSpan(span: Span, options: OpenTelemetrySpanContext): void {
-  const { op } = options;
-
-  if (op) {
-    span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, op);
-  }
-}
-
-function getSpanContext(options: OpenTelemetrySpanContext): SpanOptions {
-  const { startTime, attributes, kind } = options;
+function getSpanOptions(options: OpenTelemetrySpanContext): SpanOptions {
+  const { startTime, attributes, kind, op } = options;
 
   // OTEL expects timestamps in ms, not seconds
   const fixedStartTime = typeof startTime === 'number' ? ensureTimestampInMilliseconds(startTime) : startTime;
 
   return {
-    attributes,
+    attributes: op
+      ? {
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: op,
+          ...attributes,
+        }
+      : attributes,
     kind,
     startTime: fixedStartTime,
   };
@@ -190,7 +195,7 @@ function getContext(scope: Scope | undefined, forceTransaction: boolean | undefi
         sampled: propagationContext.sampled,
       });
 
-      const spanContext: SpanContext = {
+      const spanOptions: SpanContext = {
         traceId: propagationContext.traceId,
         spanId: propagationContext.parentSpanId || propagationContext.spanId,
         isRemote: true,
@@ -199,7 +204,7 @@ function getContext(scope: Scope | undefined, forceTransaction: boolean | undefi
       };
 
       // Add remote parent span context,
-      return trace.setSpanContext(ctx, spanContext);
+      return trace.setSpanContext(ctx, spanOptions);
     }
 
     // if we have no scope or client, we just return the context as-is
@@ -228,11 +233,11 @@ function getContext(scope: Scope | undefined, forceTransaction: boolean | undefi
 
   const traceState = makeTraceState({
     dsc,
-    parentSpanId: spanId,
+    parentSpanId: spanId !== INVALID_SPANID ? spanId : undefined,
     sampled,
   });
 
-  const spanContext: SpanContext = {
+  const spanOptions: SpanContext = {
     traceId,
     spanId,
     isRemote: true,
@@ -240,7 +245,7 @@ function getContext(scope: Scope | undefined, forceTransaction: boolean | undefi
     traceState,
   };
 
-  const ctxWithSpanContext = trace.setSpanContext(ctxWithoutSpan, spanContext);
+  const ctxWithSpanContext = trace.setSpanContext(ctxWithoutSpan, spanOptions);
 
   return ctxWithSpanContext;
 }
@@ -271,4 +276,12 @@ export function continueTrace<T>(options: Parameters<typeof baseContinueTrace>[0
   return baseContinueTrace(options, () => {
     return continueTraceAsRemoteSpan(context.active(), options, callback);
   });
+}
+
+function getActiveSpanWrapper<T>(parentSpan: Span | SentrySpan | undefined | null): (callback: () => T) => T {
+  return parentSpan !== undefined
+    ? (callback: () => T) => {
+        return withActiveSpan(parentSpan, callback);
+      }
+    : (callback: () => T) => callback();
 }

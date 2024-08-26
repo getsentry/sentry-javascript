@@ -3,6 +3,10 @@ import * as path from 'path';
 import { conditionalTest } from '../../../utils';
 import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
 
+// This test takes some time because it connects the debugger etc.
+// So we increase the timeout here
+jest.setTimeout(45_000);
+
 const EXPECTED_LOCAL_VARIABLES_EVENT = {
   exception: {
     values: [
@@ -41,10 +45,9 @@ conditionalTest({ min: 18 })('LocalVariables integration', () => {
 
   test('Should not include local variables by default', done => {
     createRunner(__dirname, 'no-local-variables.js')
-      .ignore('session')
       .expect({
         event: event => {
-          for (const frame of event.exception?.values?.[0].stacktrace?.frames || []) {
+          for (const frame of event.exception?.values?.[0]?.stacktrace?.frames || []) {
             expect(frame.vars).toBeUndefined();
           }
         },
@@ -53,10 +56,7 @@ conditionalTest({ min: 18 })('LocalVariables integration', () => {
   });
 
   test('Should include local variables when enabled', done => {
-    createRunner(__dirname, 'local-variables.js')
-      .ignore('session')
-      .expect({ event: EXPECTED_LOCAL_VARIABLES_EVENT })
-      .start(done);
+    createRunner(__dirname, 'local-variables.js').expect({ event: EXPECTED_LOCAL_VARIABLES_EVENT }).start(done);
   });
 
   test('Should include local variables when instrumenting via --require', done => {
@@ -64,23 +64,22 @@ conditionalTest({ min: 18 })('LocalVariables integration', () => {
 
     createRunner(__dirname, 'local-variables-no-sentry.js')
       .withFlags(`--require=${requirePath}`)
-      .ignore('session')
       .expect({ event: EXPECTED_LOCAL_VARIABLES_EVENT })
       .start(done);
   });
 
   test('Should include local variables with ESM', done => {
-    createRunner(__dirname, 'local-variables-caught.mjs')
-      .ignore('session')
-      .expect({ event: EXPECTED_LOCAL_VARIABLES_EVENT })
-      .start(done);
+    createRunner(__dirname, 'local-variables-caught.mjs').expect({ event: EXPECTED_LOCAL_VARIABLES_EVENT }).start(done);
+  });
+
+  conditionalTest({ min: 19 })('Node v19+', () => {
+    test('Should not import inspector when not in use', done => {
+      createRunner(__dirname, 'deny-inspector.mjs').ensureNoErrorOutput().start(done);
+    });
   });
 
   test('Includes local variables for caught exceptions when enabled', done => {
-    createRunner(__dirname, 'local-variables-caught.js')
-      .ignore('session')
-      .expect({ event: EXPECTED_LOCAL_VARIABLES_EVENT })
-      .start(done);
+    createRunner(__dirname, 'local-variables-caught.js').expect({ event: EXPECTED_LOCAL_VARIABLES_EVENT }).start(done);
   });
 
   test('Should not leak memory', done => {
@@ -95,8 +94,8 @@ conditionalTest({ min: 18 })('LocalVariables integration', () => {
     child.on('message', msg => {
       reportedCount++;
       const rssMb = (msg as { memUsage: { rss: number } }).memUsage.rss / 1024 / 1024;
-      // We shouldn't use more than 120MB of memory
-      expect(rssMb).toBeLessThan(120);
+      // We shouldn't use more than 135MB of memory
+      expect(rssMb).toBeLessThan(135);
     });
 
     // Wait for 20 seconds

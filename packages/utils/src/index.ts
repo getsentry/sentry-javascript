@@ -1,4 +1,5 @@
 export * from './aggregate-errors';
+export * from './array';
 export * from './browser';
 export * from './dsn';
 export * from './error';
@@ -35,3 +36,5 @@ export * from './eventbuilder';
 export * from './anr';
 export * from './lru';
 export * from './buildPolyfills';
+export * from './propagationContext';
+export * from './version';

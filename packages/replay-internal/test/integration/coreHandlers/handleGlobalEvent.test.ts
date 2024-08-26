@@ -1,3 +1,10 @@
+/**
+ * @vitest-environment jsdom
+ */
+
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { getClient } from '@sentry/core';
 import type { Event } from '@sentry/types';
 
 import { REPLAY_EVENT_NAME, SESSION_IDLE_EXPIRE_DURATION } from '../../../src/constants';
@@ -133,8 +140,8 @@ describe('Integration | coreHandlers | handleGlobalEvent', () => {
 
   it('tags errors and transactions with replay id for session samples', async () => {
     const { replay, integration } = await resetSdkMock({});
-    // @ts-expect-error protected but ok to use for testing
-    integration._initialize();
+    integration['_initialize'](getClient()!);
+
     const transaction = Transaction();
     const error = Error();
     expect(handleGlobalEventListener(replay)(transaction, {})).toEqual(

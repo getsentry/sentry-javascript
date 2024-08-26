@@ -12,6 +12,13 @@ export interface ThreadCpuSample {
   elapsed_since_start_ns: string;
 }
 
+export interface ContinuousThreadCpuSample {
+  stack_id: StackId;
+  thread_id: ThreadId;
+  queue_address?: string;
+  timestamp: number;
+}
+
 export type ThreadCpuStack = FrameId[];
 
 export type ThreadCpuFrame = {
@@ -34,7 +41,36 @@ export interface ThreadCpuProfile {
   queue_metadata?: Record<string, { label: string }>;
 }
 
-export interface Profile {
+export interface ContinuousThreadCpuProfile {
+  samples: ContinuousThreadCpuSample[];
+  stacks: ThreadCpuStack[];
+  frames: ThreadCpuFrame[];
+  thread_metadata: Record<ThreadId, { name?: string; priority?: number }>;
+  queue_metadata?: Record<string, { label: string }>;
+}
+
+interface BaseProfile<T> {
+  version: string;
+  release: string;
+  environment: string;
+  platform: string;
+  profile: T;
+  debug_meta?: {
+    images: DebugImage[];
+  };
+  measurements?: Record<
+    string,
+    {
+      unit: MeasurementUnit;
+      values: {
+        elapsed_since_start_ns: number;
+        value: number;
+      }[];
+    }
+  >;
+}
+
+export interface Profile extends BaseProfile<ThreadCpuProfile> {
   event_id: string;
   version: string;
   os: {
@@ -85,4 +121,13 @@ export interface Profile {
       }[];
     }
   >;
+}
+
+export interface ProfileChunk extends BaseProfile<ContinuousThreadCpuProfile> {
+  chunk_id: string;
+  profiler_id: string;
+  client_sdk: {
+    name: string;
+    version: string;
+  };
 }

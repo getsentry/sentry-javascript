@@ -62,6 +62,12 @@ packages:
     unpublish: $all
     # proxy: npmjs # Don't proxy for E2E tests!
 
+  '@sentry/cloudflare':
+    access: $all
+    publish: $all
+    unpublish: $all
+    # proxy: npmjs # Don't proxy for E2E tests!
+
   '@sentry/deno':
     access: $all
     publish: $all
@@ -75,6 +81,12 @@ packages:
     # proxy: npmjs # Don't proxy for E2E tests!
 
   '@sentry/gatsby':
+    access: $all
+    publish: $all
+    unpublish: $all
+    # proxy: npmjs # Don't proxy for E2E tests!
+
+  '@sentry/nestjs':
     access: $all
     publish: $all
     unpublish: $all
@@ -128,6 +140,18 @@ packages:
     unpublish: $all
     # proxy: npmjs # Don't proxy for E2E tests!
 
+  '@sentry/solid':
+    access: $all
+    publish: $all
+    unpublish: $all
+    # proxy: npmjs # Don't proxy for E2E tests!
+
+  '@sentry/solidstart':
+    access: $all
+    publish: $all
+    unpublish: $all
+    # proxy: npmjs # Don't proxy for E2E tests!
+
   '@sentry/svelte':
     access: $all
     publish: $all
@@ -159,6 +183,12 @@ packages:
     # proxy: npmjs # Don't proxy for E2E tests!
 
   '@sentry/vue':
+    access: $all
+    publish: $all
+    unpublish: $all
+    # proxy: npmjs # Don't proxy for E2E tests!
+
+  '@sentry/nuxt':
     access: $all
     publish: $all
     unpublish: $all

@@ -44,8 +44,10 @@ export function finishSpan(span: Span, res: ServerResponse): void {
   span.end();
 }
 
-/** Flush the event queue to ensure that events get sent to Sentry before the response is finished and the lambda ends */
-export async function flushQueue(): Promise<void> {
+/**
+ * Flushes pending Sentry events with a 2 second timeout and in a way that cannot create unhandled promise rejections.
+ */
+export async function flushSafelyWithTimeout(): Promise<void> {
   try {
     DEBUG_BUILD && logger.log('Flushing events...');
     await flush(2000);

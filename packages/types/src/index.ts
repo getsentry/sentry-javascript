@@ -18,6 +18,7 @@ export type {
   CultureContext,
   TraceContext,
   CloudResourceContext,
+  MissingInstrumentationContext,
 } from './context';
 export type { DataCategory } from './datacategory';
 export type { DsnComponents, DsnLike, DsnProtocol } from './dsn';
@@ -45,6 +46,8 @@ export type {
   StatsdItem,
   StatsdEnvelope,
   ProfileItem,
+  ProfileChunkEnvelope,
+  ProfileChunkItem,
   SpanEnvelope,
   SpanItem,
 } from './envelope';
@@ -69,11 +72,12 @@ export type {
   ThreadCpuStack,
   ThreadCpuFrame,
   ThreadCpuProfile,
+  ContinuousThreadCpuProfile,
   Profile,
+  ProfileChunk,
 } from './profiling';
 export type { ReplayEvent, ReplayRecordingData, ReplayRecordingMode } from './replay';
 export type {
-  FeedbackDialog,
   FeedbackEvent,
   FeedbackFormData,
   FeedbackInternalOptions,
@@ -81,7 +85,6 @@ export type {
   FeedbackScreenshotIntegration,
   SendFeedback,
   SendFeedbackParams,
-  CreateDialogProps,
   UserFeedback,
 } from './feedback';
 export type { QueryParams, Request, SanitizedRequestData } from './request';
@@ -118,7 +121,7 @@ export type { SpanStatus } from './spanStatus';
 export type { TimedEvent } from './timedEvent';
 export type { StackFrame } from './stackframe';
 export type { Stacktrace, StackParser, StackLineParser, StackLineParserFn } from './stacktrace';
-export type { PropagationContext, TracePropagationTargets } from './tracing';
+export type { PropagationContext, TracePropagationTargets, SerializedTraceData } from './tracing';
 export type { StartSpanOptions } from './startSpanOptions';
 export type {
   TraceparentData,
@@ -164,6 +167,8 @@ export type {
   MetricsAggregator,
   MetricBucketItem,
   MetricInstance,
+  MetricData,
+  Metrics,
 } from './metrics';
 export type { ParameterizedString } from './parameterize';
 export type { ViewHierarchyData, ViewHierarchyWindow } from './view-hierarchy';

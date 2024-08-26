@@ -13,7 +13,7 @@ Sentry.init({
 });
 
 import { Controller, Get, Injectable, Module } from '@nestjs/common';
-import { NestFactory } from '@nestjs/core';
+import { BaseExceptionFilter, HttpAdapterHost, NestFactory } from '@nestjs/core';
 
 const port = 3450;
 
@@ -45,11 +45,14 @@ class AppController {
 })
 class AppModule {}
 
-async function init(): Promise<void> {
+async function run(): Promise<void> {
   const app = await NestFactory.create(AppModule);
   await app.listen(port);
+
+  const { httpAdapter } = app.get(HttpAdapterHost);
+  Sentry.setupNestErrorHandler(app, new BaseExceptionFilter(httpAdapter));
   sendPortToRunner(port);
 }
 
 // eslint-disable-next-line @typescript-eslint/no-floating-promises
-init();
+run();

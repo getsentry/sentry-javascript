@@ -1,3 +1,5 @@
+import { describe, expect, it } from 'vitest';
+
 import { buildClientSnippet, buildSdkInitFileImportSnippet, buildServerSnippet } from '../../src/integration/snippets';
 
 const allSdkOptions = {
@@ -50,7 +52,25 @@ describe('buildClientSnippet', () => {
     `);
   });
 
-  it('does not include browserTracingIntegration if tracesSampleRate is 0', () => {
+  it('does not include browserTracingIntegration if bundleSizeOptimizations.excludeTracing is true', () => {
+    const snippet = buildClientSnippet({ bundleSizeOptimizations: { excludeTracing: true } });
+    expect(snippet).toMatchInlineSnapshot(`
+      "import * as Sentry from "@sentry/astro";
+
+      Sentry.init({
+        dsn: import.meta.env.PUBLIC_SENTRY_DSN,
+        debug: false,
+        environment: import.meta.env.PUBLIC_VERCEL_ENV,
+        release: import.meta.env.PUBLIC_VERCEL_GIT_COMMIT_SHA,
+        tracesSampleRate: 1,
+        integrations: [Sentry.replayIntegration()],
+        replaysSessionSampleRate: 0.1,
+        replaysOnErrorSampleRate: 1,
+      });"
+    `);
+  });
+
+  it('still include browserTracingIntegration if tracesSampleRate is 0', () => {
     const snippet = buildClientSnippet({ tracesSampleRate: 0 });
     expect(snippet).toMatchInlineSnapshot(`
       "import * as Sentry from "@sentry/astro";
@@ -61,7 +81,7 @@ describe('buildClientSnippet', () => {
         environment: import.meta.env.PUBLIC_VERCEL_ENV,
         release: import.meta.env.PUBLIC_VERCEL_GIT_COMMIT_SHA,
         tracesSampleRate: 0,
-        integrations: [Sentry.replayIntegration()],
+        integrations: [Sentry.browserTracingIntegration(), Sentry.replayIntegration()],
         replaysSessionSampleRate: 0.1,
         replaysOnErrorSampleRate: 1,
       });"

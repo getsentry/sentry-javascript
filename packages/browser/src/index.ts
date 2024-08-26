@@ -39,6 +39,8 @@ export {
   sendFeedback,
 } from '@sentry-internal/feedback';
 
+export * from './metrics';
+
 export {
   defaultRequestInstrumentationOptions,
   instrumentOutgoingRequests,
@@ -59,6 +61,7 @@ export {
   startInactiveSpan,
   startSpanManual,
   withActiveSpan,
+  startNewTrace,
   getSpanDescendants,
   setMeasurement,
   getSpanStatusFromHttpCode,
@@ -66,6 +69,7 @@ export {
   makeMultiplexedTransport,
   moduleMetadataIntegration,
   zodErrorsIntegration,
+  thirdPartyErrorFilterIntegration,
 } from '@sentry/core';
 export type { Span } from '@sentry/types';
 export { makeBrowserOfflineTransport } from './transports/offline';

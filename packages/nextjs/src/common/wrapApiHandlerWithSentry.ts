@@ -10,9 +10,9 @@ import { consoleSandbox, isString, logger, objectify } from '@sentry/utils';
 
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import type { AugmentedNextApiRequest, AugmentedNextApiResponse, NextApiHandler } from './types';
-import { platformSupportsStreaming } from './utils/platformSupportsStreaming';
-import { flushQueue } from './utils/responseEnd';
+import { flushSafelyWithTimeout } from './utils/responseEnd';
 import { escapeNextjsTracing } from './utils/tracingUtils';
+import { vercelWaitUntil } from './utils/vercelWaitUntil';
 
 /**
  * Wrap the given API route handler for tracing and error capturing. Thin wrapper around `withSentry`, which only
@@ -81,17 +81,12 @@ export function wrapApiHandlerWithSentry(apiHandler: NextApiHandler, parameteriz
                   // eslint-disable-next-line @typescript-eslint/unbound-method
                   res.end = new Proxy(res.end, {
                     apply(target, thisArg, argArray) {
-                      setHttpStatus(span, res.statusCode);
-                      span.end();
-                      if (platformSupportsStreaming() && !wrappingTarget.__sentry_test_doesnt_support_streaming__) {
-                        target.apply(thisArg, argArray);
-                      } else {
-                        // flushQueue will not reject
-                        // eslint-disable-next-line @typescript-eslint/no-floating-promises
-                        flushQueue().then(() => {
-                          target.apply(thisArg, argArray);
-                        });
+                      if (span.isRecording()) {
+                        setHttpStatus(span, res.statusCode);
+                        span.end();
                       }
+                      vercelWaitUntil(flushSafelyWithTimeout());
+                      target.apply(thisArg, argArray);
                     },
                   });
 
@@ -135,17 +130,12 @@ export function wrapApiHandlerWithSentry(apiHandler: NextApiHandler, parameteriz
                     res.statusCode = 500;
                     res.statusMessage = 'Internal Server Error';
 
-                    setHttpStatus(span, res.statusCode);
-                    span.end();
-
-                    // Make sure we have a chance to finish the transaction and flush events to Sentry before the handler errors
-                    // out. (Apps which are deployed on Vercel run their API routes in lambdas, and those lambdas will shut down the
-                    // moment they detect an error, so it's important to get this done before rethrowing the error. Apps not
-                    // deployed serverlessly will run into this cleanup code again in `res.end(), but the transaction will already
-                    // be finished and the queue will already be empty, so effectively it'll just no-op.)
-                    if (platformSupportsStreaming() && !wrappingTarget.__sentry_test_doesnt_support_streaming__) {
-                      await flushQueue();
+                    if (span.isRecording()) {
+                      setHttpStatus(span, res.statusCode);
+                      span.end();
                     }
+
+                    vercelWaitUntil(flushSafelyWithTimeout());
 
                     // We rethrow here so that nextjs can do with the error whatever it would normally do. (Sometimes "whatever it
                     // would normally do" is to allow the error to bubble up to the global handlers - another reason we need to mark

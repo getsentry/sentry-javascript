@@ -1,3 +1,10 @@
+/**
+ * @vitest-environment jsdom
+ */
+
+import type { MockInstance } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { getClient } from '@sentry/core';
 
 import { WINDOW } from '../../src/constants';

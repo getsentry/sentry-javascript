@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { waitForError, waitForTransaction } from '@sentry-internal/event-proxy-server';
+import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
 
 test('Should record exceptions captured inside handlers', async ({ request }) => {
   const errorEventPromise = waitForError('node-express-esm-loader', errorEvent => {
@@ -66,7 +66,6 @@ test('Should record a transaction for route with parameters', async ({ request }
       'express.name': 'query',
       'express.type': 'middleware',
       'http.route': '/',
-      'otel.kind': 'INTERNAL',
       'sentry.origin': 'auto.http.otel.express',
       'sentry.op': 'middleware.express',
     },
@@ -86,7 +85,6 @@ test('Should record a transaction for route with parameters', async ({ request }
       'express.name': 'expressInit',
       'express.type': 'middleware',
       'http.route': '/',
-      'otel.kind': 'INTERNAL',
       'sentry.origin': 'auto.http.otel.express',
       'sentry.op': 'middleware.express',
     },
@@ -106,7 +104,6 @@ test('Should record a transaction for route with parameters', async ({ request }
       'express.name': '/test-transaction/:param',
       'express.type': 'request_handler',
       'http.route': '/test-transaction/:param',
-      'otel.kind': 'INTERNAL',
       'sentry.origin': 'auto.http.otel.express',
       'sentry.op': 'request_handler.express',
     },

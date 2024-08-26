@@ -152,7 +152,7 @@ describe('reactRouterV6BrowserTracingIntegration (v6.4)', () => {
       // @ts-expect-error router is fine
       render(<RouterProvider router={router} />);
 
-      expect(getCurrentScope().getScopeData()?.transactionName).toEqual('/');
+      expect(getCurrentScope().getScopeData().transactionName).toEqual('/');
     });
 
     it('starts a navigation transaction', () => {
@@ -658,7 +658,7 @@ describe('reactRouterV6BrowserTracingIntegration (v6.4)', () => {
       // @ts-expect-error router is fine
       render(<RouterProvider router={router} />);
 
-      expect(getCurrentScope().getScopeData()?.transactionName).toEqual('/about');
+      expect(getCurrentScope().getScopeData().transactionName).toEqual('/about');
     });
   });
 });

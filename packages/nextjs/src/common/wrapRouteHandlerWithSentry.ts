@@ -13,16 +13,18 @@ import {
 import { propagationContextFromHeaders, winterCGHeadersToDict } from '@sentry/utils';
 import { isNotFoundNavigationError, isRedirectNavigationError } from './nextNavigationErrorUtils';
 import type { RouteHandlerContext } from './types';
-import { platformSupportsStreaming } from './utils/platformSupportsStreaming';
-import { flushQueue } from './utils/responseEnd';
+import { flushSafelyWithTimeout } from './utils/responseEnd';
 import {
   commonObjectToIsolationScope,
   commonObjectToPropagationContext,
   escapeNextjsTracing,
 } from './utils/tracingUtils';
+import { vercelWaitUntil } from './utils/vercelWaitUntil';
 
 /**
- * Wraps a Next.js route handler with performance and error instrumentation.
+ * Wraps a Next.js App Router Route handler with Sentry error and performance instrumentation.
+ *
+ * NOTICE: This wrapper is for App Router API routes. If you are looking to wrap Pages Router API routes use `wrapApiHandlerWithSentry` instead.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function wrapRouteHandlerWithSentry<F extends (...args: any[]) => any>(
@@ -97,11 +99,7 @@ export function wrapRouteHandlerWithSentry<F extends (...args: any[]) => any>(
                 },
               );
             } finally {
-              if (!platformSupportsStreaming() || process.env.NEXT_RUNTIME === 'edge') {
-                // 1. Edge transport requires manual flushing
-                // 2. Lambdas require manual flushing to prevent execution freeze before the event is sent
-                await flushQueue();
-              }
+              vercelWaitUntil(flushSafelyWithTimeout());
             }
           });
         });

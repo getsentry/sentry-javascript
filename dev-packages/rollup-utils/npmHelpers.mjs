@@ -140,7 +140,11 @@ export function makeNPMConfigVariants(baseConfig, options = {}) {
 
   if (emitEsm) {
     variantSpecificConfigs.push({
-      output: { format: 'esm', dir: path.join(baseConfig.output.dir, 'esm'), plugins: [makePackageNodeEsm()] },
+      output: {
+        format: 'esm',
+        dir: path.join(baseConfig.output.dir, 'esm'),
+        plugins: [makePackageNodeEsm()],
+      },
     });
   }
 

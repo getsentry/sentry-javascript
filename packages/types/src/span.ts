@@ -219,13 +219,13 @@ export interface Span {
    * Set a single attribute on the span.
    * Set it to `undefined` to remove the attribute.
    */
-  setAttribute(key: string, value: SpanAttributeValue | undefined): void;
+  setAttribute(key: string, value: SpanAttributeValue | undefined): this;
 
   /**
    * Set multiple attributes on the span.
    * Any attribute set to `undefined` will be removed.
    */
-  setAttributes(attributes: SpanAttributes): void;
+  setAttributes(attributes: SpanAttributes): this;
 
   /**
    * Sets the status attribute on the current span.
@@ -247,4 +247,19 @@ export interface Span {
    * Adds an event to the Span.
    */
   addEvent(name: string, attributesOrStartTime?: SpanAttributes | SpanTimeInput, startTime?: SpanTimeInput): this;
+
+  /**
+   * NOT USED IN SENTRY, only added for compliance with OTEL Span interface
+   */
+  addLink(link: unknown): this;
+
+  /**
+   * NOT USED IN SENTRY, only added for compliance with OTEL Span interface
+   */
+  addLinks(links: unknown): this;
+
+  /**
+   * NOT USED IN SENTRY, only added for compliance with OTEL Span interface
+   */
+  recordException(exception: unknown, time?: number): void;
 }

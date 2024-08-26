@@ -31,7 +31,10 @@ const WindowWithMaybeIntegration = WINDOW as {
  * Lazy load an integration from the CDN.
  * Rejects if the integration cannot be loaded.
  */
-export async function lazyLoadIntegration(name: keyof typeof LazyLoadableIntegrations): Promise<IntegrationFn> {
+export async function lazyLoadIntegration(
+  name: keyof typeof LazyLoadableIntegrations,
+  scriptNonce?: string,
+): Promise<IntegrationFn> {
   const bundle = LazyLoadableIntegrations[name];
 
   // `window.Sentry` is only set when using a CDN bundle, but this method can also be used via the NPM package
@@ -43,7 +46,10 @@ export async function lazyLoadIntegration(name: keyof typeof LazyLoadableIntegra
 
   // Bail if the integration already exists
   const existing = sentryOnWindow[name];
-  if (typeof existing === 'function') {
+  // The `feedbackIntegration` is loaded by default in the CDN bundles,
+  // so we need to differentiate between the real integration and the shim.
+  // if only the shim exists, we still want to lazy load the real integration.
+  if (typeof existing === 'function' && !('_isShim' in existing)) {
     return existing;
   }
 
@@ -51,6 +57,11 @@ export async function lazyLoadIntegration(name: keyof typeof LazyLoadableIntegra
   const script = WINDOW.document.createElement('script');
   script.src = url;
   script.crossOrigin = 'anonymous';
+  script.referrerPolicy = 'origin';
+
+  if (scriptNonce) {
+    script.setAttribute('nonce', scriptNonce);
+  }
 
   const waitForLoad = new Promise<void>((resolve, reject) => {
     script.addEventListener('load', () => resolve());

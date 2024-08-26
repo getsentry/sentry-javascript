@@ -11,9 +11,10 @@ import { suppressTracing } from '@opentelemetry/core';
 import { getCurrentScope, withScope } from '@sentry/core';
 
 import { SENTRY_BAGGAGE_HEADER, SENTRY_SCOPES_CONTEXT_KEY, SENTRY_TRACE_HEADER } from '../src/constants';
-import { SentryPropagator, makeTraceState } from '../src/propagator';
+import { SentryPropagator } from '../src/propagator';
 import { getScopesFromContext } from '../src/utils/contextData';
 import { getSamplingDecision } from '../src/utils/getSamplingDecision';
+import { makeTraceState } from '../src/utils/makeTraceState';
 import { cleanupOtel, mockSdkInit } from './helpers/mockSdkInit';
 
 describe('SentryPropagator', () => {
@@ -616,6 +617,7 @@ describe('SentryPropagator', () => {
         spanId: expect.any(String),
         traceFlags: TraceFlags.NONE,
         traceId: expect.any(String),
+        traceState: makeTraceState({}),
       });
       expect(getSamplingDecision(trace.getSpanContext(context)!)).toBe(undefined);
     });
@@ -681,6 +683,7 @@ describe('SentryPropagator', () => {
         spanId: expect.any(String),
         traceFlags: TraceFlags.NONE,
         traceId: expect.any(String),
+        traceState: makeTraceState({}),
       });
       expect(getSamplingDecision(trace.getSpanContext(context)!)).toBe(undefined);
     });
@@ -693,6 +696,7 @@ describe('SentryPropagator', () => {
         spanId: expect.any(String),
         traceFlags: TraceFlags.NONE,
         traceId: expect.any(String),
+        traceState: makeTraceState({}),
       });
     });
   });

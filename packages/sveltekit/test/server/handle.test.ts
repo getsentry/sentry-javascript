@@ -1,3 +1,5 @@
+import { beforeEach, describe, expect, it } from 'vitest';
+
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   getRootSpan,
@@ -43,6 +45,8 @@ function mockEvent(override: Record<string, unknown> = {}): Parameters<Handle>[0
 
     ...override,
   };
+
+  event.request.clone = () => event.request;
 
   return event;
 }

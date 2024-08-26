@@ -1,50 +1,21 @@
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '@sentry-internal/event-proxy-server';
+import { waitForTransaction } from '@sentry-internal/test-utils';
 
-test('Will capture a connected trace for all server components and generation functions when visiting a page', async ({
+test('Will create a transaction with spans for every server component and metadata generation functions when visiting a page', async ({
   page,
 }) => {
-  const someConnectedEvent = waitForTransaction('nextjs-13-app-dir', async transactionEvent => {
-    return (
-      transactionEvent?.transaction === 'Layout Server Component (/(nested-layout)/nested-layout)' ||
-      transactionEvent?.transaction === 'Layout Server Component (/(nested-layout))' ||
-      transactionEvent?.transaction === 'Page Server Component (/(nested-layout)/nested-layout)' ||
-      transactionEvent?.transaction === 'Page.generateMetadata (/(nested-layout)/nested-layout)'
-    );
-  });
-
-  const layout1Transaction = waitForTransaction('nextjs-13-app-dir', async transactionEvent => {
-    return (
-      transactionEvent?.transaction === 'Layout Server Component (/(nested-layout)/nested-layout)' &&
-      (await someConnectedEvent).contexts?.trace?.trace_id === transactionEvent.contexts?.trace?.trace_id
-    );
-  });
-
-  const layout2Transaction = waitForTransaction('nextjs-13-app-dir', async transactionEvent => {
-    return (
-      transactionEvent?.transaction === 'Layout Server Component (/(nested-layout))' &&
-      (await someConnectedEvent).contexts?.trace?.trace_id === transactionEvent.contexts?.trace?.trace_id
-    );
-  });
-
-  const pageTransaction = waitForTransaction('nextjs-13-app-dir', async transactionEvent => {
-    return (
-      transactionEvent?.transaction === 'Page Server Component (/(nested-layout)/nested-layout)' &&
-      (await someConnectedEvent).contexts?.trace?.trace_id === transactionEvent.contexts?.trace?.trace_id
-    );
-  });
-
-  const generateMetadataTransaction = waitForTransaction('nextjs-13-app-dir', async transactionEvent => {
-    return (
-      transactionEvent?.transaction === 'Page.generateMetadata (/(nested-layout)/nested-layout)' &&
-      (await someConnectedEvent).contexts?.trace?.trace_id === transactionEvent.contexts?.trace?.trace_id
-    );
+  const serverTransactionEventPromise = waitForTransaction('nextjs-app-dir', async transactionEvent => {
+    return transactionEvent?.transaction === 'GET /nested-layout';
   });
 
   await page.goto('/nested-layout');
 
-  expect(await layout1Transaction).toBeDefined();
-  expect(await layout2Transaction).toBeDefined();
-  expect(await pageTransaction).toBeDefined();
-  expect(await generateMetadataTransaction).toBeDefined();
+  const spanDescriptions = (await serverTransactionEventPromise).spans?.map(span => {
+    return span.description;
+  });
+
+  expect(spanDescriptions).toContainEqual('Layout Server Component (/(nested-layout)/nested-layout)');
+  expect(spanDescriptions).toContainEqual('Layout Server Component (/(nested-layout))');
+  expect(spanDescriptions).toContainEqual('Page Server Component (/(nested-layout)/nested-layout)');
+  expect(spanDescriptions).toContainEqual('Page.generateMetadata (/(nested-layout)/nested-layout)');
 });

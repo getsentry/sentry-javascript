@@ -72,13 +72,13 @@ describe('startIdleSpan', () => {
     startSpanManual({ name: 'inner1' }, span => {
       const childSpan = startInactiveSpan({ name: 'inner2' });
 
-      span?.end();
+      span.end();
       jest.advanceTimersByTime(TRACING_DEFAULTS.idleTimeout + 1);
 
       // Idle span is still recording
       expect(idleSpan.isRecording()).toBe(true);
 
-      childSpan?.end();
+      childSpan.end();
       jest.advanceTimersByTime(TRACING_DEFAULTS.idleTimeout + 1);
 
       // Now it is finished!
@@ -122,9 +122,9 @@ describe('startIdleSpan', () => {
       span.setAttribute('foo', 'bar');
       // Try adding a child here - we do this in browser tracing...
       const inner = startInactiveSpan({ name: 'from beforeSpanEnd', startTime: baseTimeInSeconds });
-      inner?.end(baseTimeInSeconds);
+      inner.end(baseTimeInSeconds + 1);
     });
-    const idleSpan = startIdleSpan({ name: 'idle span 2', startTime: baseTimeInSeconds }, { beforeSpanEnd });
+    const idleSpan = startIdleSpan({ name: 'idle span', startTime: baseTimeInSeconds }, { beforeSpanEnd });
     expect(idleSpan).toBeDefined();
 
     expect(beforeSpanEnd).not.toHaveBeenCalled();
@@ -139,7 +139,11 @@ describe('startIdleSpan', () => {
     );
 
     expect(beforeSendTransaction).toHaveBeenCalledTimes(1);
-    const transaction = transactions[0];
+    const transaction = transactions[0]!;
+
+    expect(transaction.start_timestamp).toBe(baseTimeInSeconds);
+    // It considers the end time of the span we added in beforeSpanEnd
+    expect(transaction.timestamp).toBe(baseTimeInSeconds + 1);
 
     expect(transaction.contexts?.trace?.data).toEqual(
       expect.objectContaining({
@@ -178,9 +182,9 @@ describe('startIdleSpan', () => {
     });
 
     // discardedSpan - startTimestamp is too large
-    const discardedSpan = startInactiveSpan({ name: 'discarded span', startTime: baseTimeInSeconds + 99 });
+    const discardedSpan = startInactiveSpan({ name: 'discarded span 1', startTime: baseTimeInSeconds + 99 });
     // discardedSpan2 - endTime is too large
-    const discardedSpan2 = startInactiveSpan({ name: 'discarded span', startTime: baseTimeInSeconds + 3 });
+    const discardedSpan2 = startInactiveSpan({ name: 'discarded span 2', startTime: baseTimeInSeconds + 3 });
     discardedSpan2.end(baseTimeInSeconds + 99)!;
 
     // Should be cancelled - will not finish
@@ -202,7 +206,7 @@ describe('startIdleSpan', () => {
     expect(cancelledSpan.isRecording()).toBe(false);
 
     expect(beforeSendTransaction).toHaveBeenCalledTimes(1);
-    const transaction = transactions[0];
+    const transaction = transactions[0]!;
 
     // End time is based on idle time etc.
     const idleSpanEndTime = transaction.timestamp!;
@@ -277,7 +281,7 @@ describe('startIdleSpan', () => {
     expect(cancelledSpan.isRecording()).toBe(false);
 
     expect(beforeSendTransaction).toHaveBeenCalledTimes(1);
-    const transaction = transactions[0];
+    const transaction = transactions[0]!;
 
     // End time is based on idle time etc.
     const idleSpanEndTime = transaction.timestamp!;
@@ -344,7 +348,7 @@ describe('startIdleSpan', () => {
     const idleSpan = startIdleSpan({ name: 'idle span' });
     expect(idleSpan).toBeDefined();
 
-    idleSpan?.end();
+    idleSpan.end();
 
     expect(recordDroppedEventSpy).toHaveBeenCalledWith('sample_rate', 'transaction');
   });
@@ -645,13 +649,13 @@ describe('startIdleSpan', () => {
       expect(idleSpan).toBeDefined();
 
       const span1 = startInactiveSpan({ name: 'span1', startTime: 1001 });
-      span1?.end(1005);
+      span1.end(1005);
 
       const span2 = startInactiveSpan({ name: 'span2', startTime: 1002 });
-      span2?.end(1100);
+      span2.end(1100);
 
       const span3 = startInactiveSpan({ name: 'span1', startTime: 1050 });
-      span3?.end(1060);
+      span3.end(1060);
 
       expect(getActiveSpan()).toBe(idleSpan);
 
@@ -665,13 +669,13 @@ describe('startIdleSpan', () => {
       expect(idleSpan).toBeDefined();
 
       const span1 = startInactiveSpan({ name: 'span1', startTime: 1001 });
-      span1?.end(1005);
+      span1.end(1005);
 
       const span2 = startInactiveSpan({ name: 'span2', startTime: 1002 });
-      span2?.end(1100);
+      span2.end(1100);
 
       const span3 = startInactiveSpan({ name: 'span1', startTime: 1050 });
-      span3?.end(1060);
+      span3.end(1060);
 
       expect(getActiveSpan()).toBe(idleSpan);
 
@@ -685,13 +689,13 @@ describe('startIdleSpan', () => {
       expect(idleSpan).toBeDefined();
 
       const span1 = startInactiveSpan({ name: 'span1', startTime: 999_999_999 });
-      span1?.end(1005);
+      span1.end(1005);
 
       const span2 = startInactiveSpan({ name: 'span2', startTime: 1002 });
-      span2?.end(1100);
+      span2.end(1100);
 
       const span3 = startInactiveSpan({ name: 'span1', startTime: 1050 });
-      span3?.end(1060);
+      span3.end(1060);
 
       expect(getActiveSpan()).toBe(idleSpan);
 

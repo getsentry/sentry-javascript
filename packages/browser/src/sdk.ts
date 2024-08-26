@@ -9,7 +9,7 @@ import {
   lastEventId,
   startSession,
 } from '@sentry/core';
-import type { DsnLike, Integration, Options, UserFeedback } from '@sentry/types';
+import type { Client, DsnLike, Integration, Options, UserFeedback } from '@sentry/types';
 import { consoleSandbox, logger, stackParserFromStackParserOptions, supportsFetch } from '@sentry/utils';
 
 import { addHistoryInstrumentationHandler } from '@sentry-internal/browser-utils';
@@ -57,25 +57,53 @@ function applyDefaultOptions(optionsArg: BrowserOptions = {}): BrowserOptions {
     sendClientReports: true,
   };
 
+  // TODO: Instead of dropping just `defaultIntegrations`, we should simply
+  // call `dropUndefinedKeys` on the entire `optionsArg`.
+  // However, for this to work we need to adjust the `hasTracingEnabled()` logic
+  // first as it differentiates between `undefined` and the key not being in the object.
+  if (optionsArg.defaultIntegrations == null) {
+    delete optionsArg.defaultIntegrations;
+  }
+
   return { ...defaultOptions, ...optionsArg };
 }
 
+type ExtensionProperties = {
+  chrome?: Runtime;
+  browser?: Runtime;
+  nw?: unknown;
+};
+type Runtime = {
+  runtime?: {
+    id?: string;
+  };
+};
+
 function shouldShowBrowserExtensionError(): boolean {
-  const windowWithMaybeChrome = WINDOW as typeof WINDOW & { chrome?: { runtime?: { id?: string } } };
-  const isInsideChromeExtension =
-    windowWithMaybeChrome &&
-    windowWithMaybeChrome.chrome &&
-    windowWithMaybeChrome.chrome.runtime &&
-    windowWithMaybeChrome.chrome.runtime.id;
+  const windowWithMaybeExtension =
+    typeof WINDOW.window !== 'undefined' && (WINDOW as typeof WINDOW & ExtensionProperties);
+  if (!windowWithMaybeExtension) {
+    // No need to show the error if we're not in a browser window environment (e.g. service workers)
+    return false;
+  }
 
-  const windowWithMaybeBrowser = WINDOW as typeof WINDOW & { browser?: { runtime?: { id?: string } } };
-  const isInsideBrowserExtension =
-    windowWithMaybeBrowser &&
-    windowWithMaybeBrowser.browser &&
-    windowWithMaybeBrowser.browser.runtime &&
-    windowWithMaybeBrowser.browser.runtime.id;
+  const extensionKey = windowWithMaybeExtension.chrome ? 'chrome' : 'browser';
+  const extensionObject = windowWithMaybeExtension[extensionKey];
 
-  return !!isInsideBrowserExtension || !!isInsideChromeExtension;
+  const runtimeId = extensionObject && extensionObject.runtime && extensionObject.runtime.id;
+  const href = (WINDOW.location && WINDOW.location.href) || '';
+
+  const extensionProtocols = ['chrome-extension:', 'moz-extension:', 'ms-browser-extension:', 'safari-web-extension:'];
+
+  // Running the SDK in a dedicated extension page and calling Sentry.init is fine; no risk of data leakage
+  const isDedicatedExtensionPage =
+    !!runtimeId && WINDOW === WINDOW.top && extensionProtocols.some(protocol => href.startsWith(`${protocol}//`));
+
+  // Running the SDK in NW.js, which appears like a browser extension but isn't, is also fine
+  // see: https://github.com/getsentry/sentry-javascript/issues/12668
+  const isNWjs = typeof windowWithMaybeExtension.nw !== 'undefined';
+
+  return !!runtimeId && !isDedicatedExtensionPage && !isNWjs;
 }
 
 /**
@@ -129,7 +157,7 @@ declare const __SENTRY_RELEASE__: string | undefined;
  *
  * @see {@link BrowserOptions} for documentation on configuration options.
  */
-export function init(browserOptions: BrowserOptions = {}): void {
+export function init(browserOptions: BrowserOptions = {}): Client | undefined {
   const options = applyDefaultOptions(browserOptions);
 
   if (shouldShowBrowserExtensionError()) {
@@ -156,11 +184,13 @@ export function init(browserOptions: BrowserOptions = {}): void {
     transport: options.transport || makeFetchTransport,
   };
 
-  initAndBind(BrowserClient, clientOptions);
+  const client = initAndBind(BrowserClient, clientOptions);
 
   if (options.autoSessionTracking) {
     startSessionTracking();
   }
+
+  return client;
 }
 
 /**

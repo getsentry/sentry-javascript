@@ -103,38 +103,6 @@ export interface Listener {
 
 export type Tags = { [tag: string]: boolean };
 
-type Dependencies =
-  | string
-  | string[]
-  | {
-      [key: string]: string;
-    };
-
-interface PluginNameVersion {
-  name: string;
-  version?: string | undefined;
-}
-
-interface PluginPackage {
-  pkg: any;
-}
-
-interface PluginBase<T> {
-  register: (server: Server, options: T) => void | Promise<void>;
-  multiple?: boolean | undefined;
-  dependencies?: Dependencies | undefined;
-  requirements?:
-    | {
-        node?: string | undefined;
-        hapi?: string | undefined;
-      }
-    | undefined;
-
-  once?: boolean | undefined;
-}
-
-type Plugin<T> = PluginBase<T> & (PluginNameVersion | PluginPackage);
-
 interface UserCredentials {}
 
 interface AppCredentials {}
@@ -205,7 +173,7 @@ interface RequestRoute {
   };
 }
 
-interface Request extends Podium {
+export interface Request extends Podium {
   app: ApplicationState;
   readonly auth: RequestAuth;
   events: RequestEvents;
@@ -232,16 +200,6 @@ interface ResponseToolkit {
   readonly continue: symbol;
 }
 
-interface ServerEventCriteria<T> {
-  name: T;
-  channels?: string | string[] | undefined;
-  clone?: boolean | undefined;
-  count?: number | undefined;
-  filter?: string | string[] | { tags: string | string[]; all?: boolean | undefined } | undefined;
-  spread?: boolean | undefined;
-  tags?: boolean | undefined;
-}
-
 export interface RequestEvent {
   timestamp: string;
   tags: string[];
@@ -250,26 +208,15 @@ export interface RequestEvent {
   error: object;
 }
 
-type RequestEventHandler = (request: Request, event: RequestEvent, tags: { [key: string]: true }) => void;
 interface ServerEvents {
-  on(criteria: 'request' | ServerEventCriteria<'request'>, listener: RequestEventHandler): void;
+  on(criteria: any, listener: any): void;
 }
-
-type RouteRequestExtType =
-  | 'onPreAuth'
-  | 'onCredentials'
-  | 'onPostAuth'
-  | 'onPreHandler'
-  | 'onPostHandler'
-  | 'onPreResponse';
-
-type ServerRequestExtType = RouteRequestExtType | 'onRequest';
 
 export type Server = Record<string, any> & {
   events: ServerEvents;
-  ext(event: ServerRequestExtType, method: Lifecycle.Method, options?: Record<string, any>): void;
+  register: any;
+  ext(event: any, method: Lifecycle.Method, options?: Record<string, any>): void;
   initialize(): Promise<void>;
-  register(plugins: Plugin<any> | Array<Plugin<any>>, options?: Record<string, any>): Promise<void>;
   start(): Promise<void>;
 };
 

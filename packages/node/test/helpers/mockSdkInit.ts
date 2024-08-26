@@ -3,7 +3,7 @@ import { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
 import { getClient, getCurrentScope, getGlobalScope, getIsolationScope } from '@sentry/core';
 import type { NodeClient } from '../../src';
 
-import { init } from '../../src/sdk/init';
+import { init } from '../../src/sdk';
 import type { NodeClientOptions } from '../../src/types';
 
 const PUBLIC_DSN = 'https://username@domain/123';
@@ -17,7 +17,14 @@ export function resetGlobals(): void {
 
 export function mockSdkInit(options?: Partial<NodeClientOptions>) {
   resetGlobals();
-  init({ dsn: PUBLIC_DSN, defaultIntegrations: false, ...options });
+  init({
+    dsn: PUBLIC_DSN,
+    defaultIntegrations: false,
+    // We are disabling client reports because we would be acquiring resources with every init call and that would leak
+    // memory every time we call init in the tests
+    sendClientReports: false,
+    ...options,
+  });
 }
 
 export function cleanupOtel(_provider?: BasicTracerProvider): void {

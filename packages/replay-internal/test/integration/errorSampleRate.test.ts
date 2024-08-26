@@ -1,5 +1,10 @@
+/**
+ * @vitest-environment jsdom
+ */
+
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { captureException, getClient } from '@sentry/core';
-import { vi } from 'vitest';
 
 import {
   BUFFER_CHECKOUT_TIME,
@@ -866,7 +871,7 @@ describe('Integration | errorSampleRate', () => {
       },
       autoStart: false,
     });
-    integration['_initialize']();
+    integration['_initialize'](getClient()!);
 
     expect(replay.recordingMode).toBe('session');
     const sessionId = replay.getSessionId();
@@ -899,7 +904,7 @@ describe('Integration | errorSampleRate', () => {
       },
       autoStart: false,
     });
-    integration['_initialize']();
+    integration['_initialize'](getClient()!);
 
     vi.runAllTimers();
 
@@ -943,7 +948,7 @@ describe('Integration | errorSampleRate', () => {
       },
       autoStart: false,
     });
-    integration['_initialize']();
+    integration['_initialize'](getClient()!);
     const optionsEvent = createOptionsEvent(replay);
 
     const TEST_EVENT = getTestEventIncremental({ timestamp: BASE_TIMESTAMP });

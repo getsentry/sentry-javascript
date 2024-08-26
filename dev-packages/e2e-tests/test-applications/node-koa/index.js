@@ -4,7 +4,7 @@ Sentry.init({
   environment: 'qa', // dynamic sampling bias to keep transactions
   dsn: process.env.E2E_TEST_DSN,
   includeLocalVariables: true,
-  debug: true,
+  debug: !!process.env.DEBUG,
   tunnel: `http://localhost:3031/`, // proxy server
   tracesSampleRate: 1,
   tracePropagationTargets: ['http://localhost:3030', 'external-allowed'],
@@ -101,6 +101,12 @@ router1.get('/test-outgoing-http-external-allowed', async ctx => {
 router1.get('/test-outgoing-http-external-disallowed', async ctx => {
   const data = await makeHttpRequest(`http://localhost:${port2}/external-disallowed`);
   ctx.body = data;
+});
+
+router1.get('/test-assert/:condition', async ctx => {
+  ctx.body = 200;
+  const condition = ctx.params.condition !== 'false';
+  ctx.assert(condition, 400, 'ctx.assert failed');
 });
 
 app1.use(router1.routes()).use(router1.allowedMethods());

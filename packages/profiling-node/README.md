@@ -56,6 +56,8 @@ there is a fairly good chance this will work out of the box. The required packag
 
 **Windows:** If you are building on windows, you may need to install windows-build-tools
 
+**_Python:_** Python 3.12 is not supported yet so you will need a version of python that is lower than 3.12
+
 ```bash
 
 # using yarn package manager
@@ -63,6 +65,22 @@ yarn global add windows-build-tools
 # or npm package manager
 npm i -g windows-build-tools
 ```
+
+After you have installed the toolchain, you should be able to build the binaries from source
+
+```bash
+# configure node-gyp using yarn
+yarn build:bindings:configure
+# or using npm
+npm run build:bindings:configure
+
+# compile the binaries using yarn
+yarn build:bindings
+# or using npm
+npm run build:bindings
+```
+
+After the binaries are built, you should see them inside the profiling-node/lib folder.
 
 ### Prebuilt binaries
 

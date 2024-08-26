@@ -41,7 +41,9 @@ export declare const metrics: typeof clientSdk.metrics & typeof serverSdk.metric
 export { withSentryConfig } from './config';
 
 /**
- * Wraps a Next.js API handler with Sentry error and performance instrumentation.
+ * Wraps a Next.js Pages Router API route with Sentry error and performance instrumentation.
+ *
+ * NOTICE: This wrapper is for Pages Router API routes. If you are looking to wrap App Router API routes use `wrapRouteHandlerWithSentry` instead.
  *
  * @param handler The handler exported from the API route file.
  * @param parameterizedRoute The page's parameterized route.
@@ -138,3 +140,5 @@ export declare function wrapApiHandlerWithSentryVercelCrons<F extends (...args: 
  * Wraps a page component with Sentry error instrumentation.
  */
 export declare function wrapPageComponentWithSentry<C>(WrappingTarget: C): C;
+
+export { experimental_captureRequestError } from './common/captureRequestError';

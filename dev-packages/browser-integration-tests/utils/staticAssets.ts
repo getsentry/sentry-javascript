@@ -40,12 +40,5 @@ function symlinkAsset(originalPath: string, targetPath: string): void {
     // ignore errors here
   }
 
-  try {
-    fs.linkSync(originalPath, targetPath);
-  } catch (error) {
-    // only ignore these kind of errors
-    if (!`${error}`.includes('file already exists')) {
-      throw error;
-    }
-  }
+  fs.linkSync(originalPath, targetPath);
 }

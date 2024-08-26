@@ -10,13 +10,13 @@ import {
 
 sentryTest(
   'captures response size from Content-Length header if available',
-  async ({ getLocalTestPath, page, browserName }) => {
+  async ({ getLocalTestUrl, page, browserName }) => {
     // These are a bit flaky on non-chromium browsers
     if (shouldSkipReplayTest() || browserName !== 'chromium') {
       sentryTest.skip();
     }
 
-    await page.route('**/foo', route => {
+    await page.route('http://sentry-test.io/foo', route => {
       return route.fulfill({
         status: 200,
         headers: {
@@ -38,14 +38,13 @@ sentryTest(
       return getReplayPerformanceSpans(recordingEvents).some(span => span.op === 'resource.xhr');
     });
 
-    const url = await getLocalTestPath({ testDir: __dirname });
+    const url = await getLocalTestUrl({ testDir: __dirname });
     await page.goto(url);
 
     await page.evaluate(() => {
-      /* eslint-disable */
       const xhr = new XMLHttpRequest();
 
-      xhr.open('GET', 'http://localhost:7654/foo');
+      xhr.open('GET', 'http://sentry-test.io/foo');
       xhr.send();
 
       xhr.addEventListener('readystatechange', function () {
@@ -54,7 +53,6 @@ sentryTest(
           setTimeout(() => Sentry.captureException('test error', 0));
         }
       });
-      /* eslint-enable */
     });
 
     const request = await requestPromise;
@@ -71,7 +69,7 @@ sentryTest(
         method: 'GET',
         response_body_size: 789,
         status_code: 200,
-        url: 'http://localhost:7654/foo',
+        url: 'http://sentry-test.io/foo',
       },
     });
 
@@ -95,7 +93,7 @@ sentryTest(
             },
           },
         },
-        description: 'http://localhost:7654/foo',
+        description: 'http://sentry-test.io/foo',
         endTimestamp: expect.any(Number),
         op: 'resource.xhr',
         startTimestamp: expect.any(Number),
@@ -104,13 +102,13 @@ sentryTest(
   },
 );
 
-sentryTest('captures response size without Content-Length header', async ({ getLocalTestPath, page, browserName }) => {
+sentryTest('captures response size without Content-Length header', async ({ getLocalTestUrl, page, browserName }) => {
   // These are a bit flaky on non-chromium browsers
   if (shouldSkipReplayTest() || browserName !== 'chromium') {
     sentryTest.skip();
   }
 
-  await page.route('**/foo', route => {
+  await page.route('http://sentry-test.io/foo', route => {
     return route.fulfill({
       status: 200,
       body: JSON.stringify({
@@ -135,14 +133,13 @@ sentryTest('captures response size without Content-Length header', async ({ getL
     return getReplayPerformanceSpans(recordingEvents).some(span => span.op === 'resource.xhr');
   });
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
   await page.goto(url);
 
   await page.evaluate(() => {
-    /* eslint-disable */
     const xhr = new XMLHttpRequest();
 
-    xhr.open('GET', 'http://localhost:7654/foo');
+    xhr.open('GET', 'http://sentry-test.io/foo');
     xhr.send();
 
     xhr.addEventListener('readystatechange', function () {
@@ -151,7 +148,6 @@ sentryTest('captures response size without Content-Length header', async ({ getL
         setTimeout(() => Sentry.captureException('test error', 0));
       }
     });
-    /* eslint-enable */
   });
 
   const request = await requestPromise;
@@ -159,8 +155,8 @@ sentryTest('captures response size without Content-Length header', async ({ getL
 
   expect(eventData.exception?.values).toHaveLength(1);
 
-  expect(eventData?.breadcrumbs?.length).toBe(1);
-  expect(eventData!.breadcrumbs![0]).toEqual({
+  expect(eventData.breadcrumbs?.length).toBe(1);
+  expect(eventData.breadcrumbs![0]).toEqual({
     timestamp: expect.any(Number),
     category: 'xhr',
     type: 'http',
@@ -168,7 +164,7 @@ sentryTest('captures response size without Content-Length header', async ({ getL
       method: 'GET',
       response_body_size: 29,
       status_code: 200,
-      url: 'http://localhost:7654/foo',
+      url: 'http://sentry-test.io/foo',
     },
   });
 
@@ -192,7 +188,7 @@ sentryTest('captures response size without Content-Length header', async ({ getL
           },
         },
       },
-      description: 'http://localhost:7654/foo',
+      description: 'http://sentry-test.io/foo',
       endTimestamp: expect.any(Number),
       op: 'resource.xhr',
       startTimestamp: expect.any(Number),
@@ -200,13 +196,13 @@ sentryTest('captures response size without Content-Length header', async ({ getL
   ]);
 });
 
-sentryTest('captures response size for non-string bodies', async ({ getLocalTestPath, page, browserName }) => {
+sentryTest('captures response size for non-string bodies', async ({ getLocalTestUrl, page, browserName }) => {
   // These are a bit flaky on non-chromium browsers
   if (shouldSkipReplayTest() || browserName !== 'chromium') {
     sentryTest.skip();
   }
 
-  await page.route('**/foo', async route => {
+  await page.route('http://sentry-test.io/foo', async route => {
     return route.fulfill({
       status: 200,
       body: Buffer.from('<html>Hello world</html>'),
@@ -229,14 +225,13 @@ sentryTest('captures response size for non-string bodies', async ({ getLocalTest
     return getReplayPerformanceSpans(recordingEvents).some(span => span.op === 'resource.xhr');
   });
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
   await page.goto(url);
 
   await page.evaluate(() => {
-    /* eslint-disable */
     const xhr = new XMLHttpRequest();
 
-    xhr.open('POST', 'http://localhost:7654/foo');
+    xhr.open('POST', 'http://sentry-test.io/foo');
     xhr.send();
 
     xhr.addEventListener('readystatechange', function () {
@@ -245,7 +240,6 @@ sentryTest('captures response size for non-string bodies', async ({ getLocalTest
         setTimeout(() => Sentry.captureException('test error', 0));
       }
     });
-    /* eslint-enable */
   });
 
   const request = await requestPromise;
@@ -262,7 +256,7 @@ sentryTest('captures response size for non-string bodies', async ({ getLocalTest
       method: 'POST',
       response_body_size: 24,
       status_code: 200,
-      url: 'http://localhost:7654/foo',
+      url: 'http://sentry-test.io/foo',
     },
   });
 
@@ -286,7 +280,7 @@ sentryTest('captures response size for non-string bodies', async ({ getLocalTest
           },
         },
       },
-      description: 'http://localhost:7654/foo',
+      description: 'http://sentry-test.io/foo',
       endTimestamp: expect.any(Number),
       op: 'resource.xhr',
       startTimestamp: expect.any(Number),

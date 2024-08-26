@@ -30,7 +30,7 @@ describe('eventFromUnknownInput', () => {
 
   test('object with name prop', () => {
     const event = eventFromUnknownInput(fakeClient, stackParser, { foo: { bar: 'baz' }, name: 'BadType' });
-    expect(event.exception?.values?.[0].value).toBe("'BadType' captured as exception");
+    expect(event.exception?.values?.[0]?.value).toBe("'BadType' captured as exception");
 
     expect(event.exception?.values?.[0]).toEqual(
       expect.objectContaining({
@@ -46,7 +46,7 @@ describe('eventFromUnknownInput', () => {
 
   test('object with name and message props', () => {
     const event = eventFromUnknownInput(fakeClient, stackParser, { message: 'went wrong', name: 'BadType' });
-    expect(event.exception?.values?.[0].value).toBe("'BadType' captured as exception with message 'went wrong'");
+    expect(event.exception?.values?.[0]?.value).toBe("'BadType' captured as exception with message 'went wrong'");
 
     expect(event.exception?.values?.[0]).toEqual(
       expect.objectContaining({
@@ -150,6 +150,6 @@ describe('eventFromUnknownInput', () => {
 
   test('passing client directly', () => {
     const event = eventFromUnknownInput(fakeClient, stackParser, { foo: { bar: 'baz' }, prop: 1 });
-    expect(event.exception?.values?.[0].value).toBe('Object captured as exception with keys: foo, prop');
+    expect(event.exception?.values?.[0]?.value).toBe('Object captured as exception with keys: foo, prop');
   });
 });

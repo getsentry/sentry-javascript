@@ -6,12 +6,11 @@ import { getClient, getCurrentScope } from './currentScopes';
  * Send user feedback to Sentry.
  */
 export function captureFeedback(
-  feedbackParams: SendFeedbackParams,
+  params: SendFeedbackParams,
   hint: EventHint & { includeReplay?: boolean } = {},
+  scope = getCurrentScope(),
 ): string {
-  const { message, name, email, url, source, associatedEventId } = feedbackParams;
-
-  const client = getClient();
+  const { message, name, email, url, source, associatedEventId, tags } = params;
 
   const feedbackEvent: FeedbackEvent = {
     contexts: {
@@ -26,13 +25,16 @@ export function captureFeedback(
     },
     type: 'feedback',
     level: 'info',
+    tags,
   };
+
+  const client = (scope && scope.getClient()) || getClient();
 
   if (client) {
     client.emit('beforeSendFeedback', feedbackEvent, hint);
   }
 
-  const eventId = getCurrentScope().captureEvent(feedbackEvent, hint);
+  const eventId = scope.captureEvent(feedbackEvent, hint);
 
   return eventId;
 }

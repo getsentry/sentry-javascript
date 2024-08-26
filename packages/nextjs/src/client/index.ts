@@ -1,7 +1,7 @@
-import { addEventProcessor, applySdkMetadata, hasTracingEnabled, setTag } from '@sentry/core';
+import { addEventProcessor, applySdkMetadata } from '@sentry/core';
 import type { BrowserOptions } from '@sentry/react';
 import { getDefaultIntegrations as getReactDefaultIntegrations, init as reactInit } from '@sentry/react';
-import type { EventProcessor, Integration } from '@sentry/types';
+import type { Client, EventProcessor, Integration } from '@sentry/types';
 import { GLOBAL_OBJ } from '@sentry/utils';
 
 import { devErrorSymbolicationEventProcessor } from '../common/devErrorSymbolicationEventProcessor';
@@ -22,7 +22,7 @@ const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
 declare const __SENTRY_TRACING__: boolean;
 
 /** Inits the Sentry NextJS SDK on the browser with the React SDK. */
-export function init(options: BrowserOptions): void {
+export function init(options: BrowserOptions): Client | undefined {
   const opts = {
     environment: getVercelEnv(true) || process.env.NODE_ENV,
     defaultIntegrations: getDefaultIntegrations(options),
@@ -32,9 +32,8 @@ export function init(options: BrowserOptions): void {
   applyTunnelRouteOption(opts);
   applySdkMetadata(opts, 'nextjs', ['nextjs', 'react']);
 
-  reactInit(opts);
+  const client = reactInit(opts);
 
-  setTag('runtime', 'browser');
   const filterTransactions: EventProcessor = event =>
     event.type === 'transaction' && event.transaction === '/404' ? null : event;
   filterTransactions.id = 'NextClient404Filter';
@@ -43,17 +42,16 @@ export function init(options: BrowserOptions): void {
   if (process.env.NODE_ENV === 'development') {
     addEventProcessor(devErrorSymbolicationEventProcessor);
   }
+
+  return client;
 }
 
 function getDefaultIntegrations(options: BrowserOptions): Integration[] {
   const customDefaultIntegrations = getReactDefaultIntegrations(options);
-
-  // This evaluates to true unless __SENTRY_TRACING__ is text-replaced with "false", in which case everything inside
-  // will get treeshaken away
+  // This evaluates to true unless __SENTRY_TRACING__ is text-replaced with "false",
+  // in which case everything inside will get tree-shaken away
   if (typeof __SENTRY_TRACING__ === 'undefined' || __SENTRY_TRACING__) {
-    if (hasTracingEnabled(options)) {
-      customDefaultIntegrations.push(browserTracingIntegration());
-    }
+    customDefaultIntegrations.push(browserTracingIntegration());
   }
 
   // This value is injected at build time, based on the output directory specified in the build config. Though a default

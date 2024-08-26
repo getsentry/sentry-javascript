@@ -14,6 +14,7 @@ import type { VercelCronsConfig } from '../common/types';
 import type {
   BuildContext,
   EntryPropertyObject,
+  IgnoreWarningsOption,
   NextConfigObject,
   SentryBuildOptions,
   WebpackConfigFunction,
@@ -72,9 +73,7 @@ export function constructWebpackConfigFunction(
     // Add a loader which will inject code that sets global values
     addValueInjectionLoader(newConfig, userNextConfig, userSentryOptions, buildContext);
 
-    if (isServer) {
-      addOtelWarningIgnoreRule(newConfig);
-    }
+    addOtelWarningIgnoreRule(newConfig);
 
     let pagesDirPath: string | undefined;
     const maybePagesDirPath = path.join(projectDir, 'pages');
@@ -148,7 +147,7 @@ export function constructWebpackConfigFunction(
       );
     };
 
-    const possibleMiddlewareLocations = ['js', 'jsx', 'ts', 'tsx'].map(middlewareFileEnding => {
+    const possibleMiddlewareLocations = pageExtensions.map(middlewareFileEnding => {
       return path.join(middlewareLocationFolder, `middleware.${middlewareFileEnding}`);
     });
     const isMiddlewareResource = (resourcePath: string): boolean => {
@@ -164,7 +163,10 @@ export function constructWebpackConfigFunction(
       return (
         appDirPath !== undefined &&
         normalizedAbsoluteResourcePath.startsWith(appDirPath + path.sep) &&
-        !!normalizedAbsoluteResourcePath.match(/[\\/](page|layout|loading|head|not-found)\.(js|jsx|tsx)$/)
+        !!normalizedAbsoluteResourcePath.match(
+          // eslint-disable-next-line @sentry-internal/sdk/no-regexp-constructor
+          new RegExp(`[\\\\/](page|layout|loading|head|not-found)\\.(${pageExtensionRegex})$`),
+        )
       );
     };
 
@@ -173,7 +175,10 @@ export function constructWebpackConfigFunction(
       return (
         appDirPath !== undefined &&
         normalizedAbsoluteResourcePath.startsWith(appDirPath + path.sep) &&
-        !!normalizedAbsoluteResourcePath.match(/[\\/]route\.(js|jsx|ts|tsx)$/)
+        !!normalizedAbsoluteResourcePath.match(
+          // eslint-disable-next-line @sentry-internal/sdk/no-regexp-constructor
+          new RegExp(`[\\\\/]route\\.(${pageExtensionRegex})$`),
+        )
       );
     };
 
@@ -286,19 +291,25 @@ export function constructWebpackConfigFunction(
     }
 
     if (appDirPath) {
-      const hasGlobalErrorFile = ['global-error.js', 'global-error.jsx', 'global-error.ts', 'global-error.tsx'].some(
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        globalErrorFile => fs.existsSync(path.join(appDirPath!, globalErrorFile)),
-      );
+      const hasGlobalErrorFile = pageExtensions
+        .map(extension => `global-error.${extension}`)
+        .some(
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+          globalErrorFile => fs.existsSync(path.join(appDirPath!, globalErrorFile)),
+        );
 
-      if (!hasGlobalErrorFile && !showedMissingGlobalErrorWarningMsg) {
+      if (
+        !hasGlobalErrorFile &&
+        !showedMissingGlobalErrorWarningMsg &&
+        !process.env.SENTRY_SUPPRESS_GLOBAL_ERROR_HANDLER_FILE_WARNING
+      ) {
         // eslint-disable-next-line no-console
         console.log(
           `${chalk.yellow(
             'warn',
           )}  - It seems like you don't have a global error handler set up. It is recommended that you add a ${chalk.cyan(
             'global-error.js',
-          )} file with Sentry instrumentation so that React rendering errors are reported to Sentry. Read more: https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/#react-render-errors-in-app-router`,
+          )} file with Sentry instrumentation so that React rendering errors are reported to Sentry. Read more: https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/#react-render-errors-in-app-router (you can suppress this warning by setting SENTRY_SUPPRESS_GLOBAL_ERROR_HANDLER_FILE_WARNING=1 as environment variable)`,
         );
         showedMissingGlobalErrorWarningMsg = true;
       }
@@ -329,7 +340,8 @@ export function constructWebpackConfigFunction(
           // the browser won't look for them and throw errors into the console when it can't find them. Because this is a
           // front-end-only problem, and because `sentry-cli` handles sourcemaps more reliably with the comment than
           // without, the option to use `hidden-source-map` only applies to the client-side build.
-          newConfig.devtool = !isServer ? 'hidden-source-map' : 'source-map';
+          newConfig.devtool =
+            isServer || userNextConfig.productionBrowserSourceMaps ? 'source-map' : 'hidden-source-map';
         }
 
         newConfig.plugins = newConfig.plugins || [];
@@ -524,7 +536,9 @@ function addFilesToWebpackEntryPoint(
     );
   }
 
-  entryProperty[entryPointName] = newEntryPoint;
+  if (newEntryPoint) {
+    entryProperty[entryPointName] = newEntryPoint;
+  }
 }
 
 /**
@@ -661,9 +675,28 @@ function getRequestAsyncStorageModuleLocation(
 
 function addOtelWarningIgnoreRule(newConfig: WebpackConfigObjectWithModuleRules): void {
   const ignoreRules = [
+    // Inspired by @matmannion: https://github.com/getsentry/sentry-javascript/issues/12077#issuecomment-2180307072
+    (warning, compilation) => {
+      // This is wapped in try-catch because we are vendoring types for this hook and we can't be 100% sure that we are accessing API that is there
+      try {
+        if (!warning.module) {
+          return false;
+        }
+
+        const isDependencyThatMayRaiseCriticalDependencyMessage =
+          /@opentelemetry\/instrumentation/.test(warning.module.readableIdentifier(compilation.requestShortener)) ||
+          /@prisma\/instrumentation/.test(warning.module.readableIdentifier(compilation.requestShortener));
+        const isCriticalDependencyMessage = /Critical dependency/.test(warning.message);
+
+        return isDependencyThatMayRaiseCriticalDependencyMessage && isCriticalDependencyMessage;
+      } catch {
+        return false;
+      }
+    },
+    // We provide these objects in addition to the hook above to provide redundancy in case the hook fails.
     { module: /@opentelemetry\/instrumentation/, message: /Critical dependency/ },
     { module: /@prisma\/instrumentation/, message: /Critical dependency/ },
-  ];
+  ] satisfies IgnoreWarningsOption;
 
   if (newConfig.ignoreWarnings === undefined) {
     newConfig.ignoreWarnings = ignoreRules;

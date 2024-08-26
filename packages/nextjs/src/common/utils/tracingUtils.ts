@@ -1,6 +1,6 @@
-import { Scope, getCurrentScope, withActiveSpan } from '@sentry/core';
+import { Scope, startNewTrace } from '@sentry/core';
 import type { PropagationContext } from '@sentry/types';
-import { GLOBAL_OBJ, logger, uuid4 } from '@sentry/utils';
+import { GLOBAL_OBJ, logger } from '@sentry/utils';
 import { DEBUG_BUILD } from '../debug-build';
 
 const commonPropagationContextMap = new WeakMap<object, PropagationContext>();
@@ -85,11 +85,7 @@ export function escapeNextjsTracing<T>(cb: () => T): T {
   if (nextjsEscapedAsyncStorage.getStore()) {
     return cb();
   } else {
-    return withActiveSpan(null, () => {
-      getCurrentScope().setPropagationContext({
-        traceId: uuid4(),
-        spanId: uuid4().substring(16),
-      });
+    return startNewTrace(() => {
       return nextjsEscapedAsyncStorage.run(true, () => {
         return cb();
       });

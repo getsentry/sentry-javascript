@@ -11,7 +11,7 @@ const config = defineConfig([
     input: ['./src/index.ts'],
     treeshake: 'smallest',
     output: {
-      dir: './build/npm/esm',
+      dir: './build/esm',
       format: 'esm',
     },
     external: ['./worker'],
@@ -27,7 +27,7 @@ const config = defineConfig([
   {
     input: ['./src/_worker.ts'],
     output: {
-      file: './build/npm/esm/worker.ts',
+      file: './build/esm/worker.ts',
       format: 'esm',
     },
     treeshake: 'smallest',

@@ -15,7 +15,7 @@ interface Layer {
  * This is an object that holds a stack of scopes.
  */
 export class AsyncContextStack {
-  private readonly _stack: Layer[];
+  private readonly _stack: [Layer, ...Layer[]];
   private _isolationScope: ScopeInterface;
 
   public constructor(scope?: ScopeInterface, isolationScope?: ScopeInterface) {
@@ -33,6 +33,7 @@ export class AsyncContextStack {
       assignedIsolationScope = isolationScope;
     }
 
+    // scope stack for domains or the process
     this._stack = [{ scope: assignedScope }];
     this._isolationScope = assignedIsolationScope;
   }
@@ -91,17 +92,10 @@ export class AsyncContextStack {
   }
 
   /**
-   * Returns the scope stack for domains or the process.
-   */
-  public getStack(): Layer[] {
-    return this._stack;
-  }
-
-  /**
    * Returns the topmost scope layer in the order domain > local > process.
    */
   public getStackTop(): Layer {
-    return this._stack[this._stack.length - 1];
+    return this._stack[this._stack.length - 1] as Layer;
   }
 
   /**
@@ -110,7 +104,7 @@ export class AsyncContextStack {
   private _pushScope(): ScopeInterface {
     // We want to clone the content of prev scope
     const scope = this.getScope().clone();
-    this.getStack().push({
+    this._stack.push({
       client: this.getClient(),
       scope,
     });
@@ -121,8 +115,8 @@ export class AsyncContextStack {
    * Pop a scope from the stack.
    */
   private _popScope(): boolean {
-    if (this.getStack().length <= 1) return false;
-    return !!this.getStack().pop();
+    if (this._stack.length <= 1) return false;
+    return !!this._stack.pop();
   }
 }
 
@@ -132,19 +126,9 @@ export class AsyncContextStack {
  */
 function getAsyncContextStack(): AsyncContextStack {
   const registry = getMainCarrier();
+  const sentry = getSentryCarrier(registry);
 
-  // For now we continue to keep this as `hub` on the ACS,
-  // as e.g. the Loader Script relies on this.
-  // Eventually we may change this if/when we update the loader to not require this field anymore
-  // Related, we also write to `hub` in {@link ./../sdk.ts registerClientOnGlobalHub}
-  const sentry = getSentryCarrier(registry) as { hub?: AsyncContextStack };
-
-  if (sentry.hub) {
-    return sentry.hub;
-  }
-
-  sentry.hub = new AsyncContextStack(getDefaultCurrentScope(), getDefaultIsolationScope());
-  return sentry.hub;
+  return (sentry.stack = sentry.stack || new AsyncContextStack(getDefaultCurrentScope(), getDefaultIsolationScope()));
 }
 
 function withScope<T>(callback: (scope: ScopeInterface) => T): T {
@@ -152,9 +136,9 @@ function withScope<T>(callback: (scope: ScopeInterface) => T): T {
 }
 
 function withSetScope<T>(scope: ScopeInterface, callback: (scope: ScopeInterface) => T): T {
-  const hub = getAsyncContextStack() as AsyncContextStack;
-  return hub.withScope(() => {
-    hub.getStackTop().scope = scope;
+  const stack = getAsyncContextStack() as AsyncContextStack;
+  return stack.withScope(() => {
+    stack.getStackTop().scope = scope;
     return callback(scope);
   });
 }

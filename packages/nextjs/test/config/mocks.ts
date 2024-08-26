@@ -4,7 +4,6 @@
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-import * as rimraf from 'rimraf';
 
 import { CLIENT_SDK_CONFIG_FILE, EDGE_SDK_CONFIG_FILE, SERVER_SDK_CONFIG_FILE } from './fixtures';
 
@@ -41,13 +40,13 @@ jest.spyOn(os, 'tmpdir').mockReturnValue(TEMP_DIR_PATH);
 // In theory, we should always land in the `else` here, but this saves the cases where the prior run got interrupted and
 // the `afterAll` below didn't happen.
 if (fs.existsSync(TEMP_DIR_PATH)) {
-  rimraf.sync(path.join(TEMP_DIR_PATH, '*'));
-} else {
-  fs.mkdirSync(TEMP_DIR_PATH);
+  fs.rmSync(TEMP_DIR_PATH, { recursive: true, force: true });
 }
 
+fs.mkdirSync(TEMP_DIR_PATH);
+
 afterAll(() => {
-  rimraf.sync(TEMP_DIR_PATH);
+  fs.rmSync(TEMP_DIR_PATH, { recursive: true, force: true });
 });
 
 // In order to know what to expect in the webpack config `entry` property, we need to know the path of the temporary
@@ -67,7 +66,7 @@ global.console.warn = (...args: unknown[]) => {
   // `hideSourceMaps` because that would mean we couldn't test it easily and would muddy the waters of other tests. Note
   // that doing this here, as a side effect, only works because the tests which trigger this warning are the same tests
   // which need other mocks from this file.
-  if (typeof args[0] === 'string' && args[0].includes('your original code may be visible in browser devtools')) {
+  if (typeof args[0] === 'string' && args[0]?.includes('your original code may be visible in browser devtools')) {
     return;
   }
 

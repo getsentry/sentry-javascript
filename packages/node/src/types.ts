@@ -4,6 +4,11 @@ import type { ClientOptions, Options, SamplingContext, Scope, Span, TracePropaga
 
 import type { NodeTransportOptions } from './transports';
 
+export interface EsmLoaderHookOptions {
+  include?: Array<string | RegExp>;
+  exclude?: Array<string | RegExp>;
+}
+
 export interface BaseNodeOptions {
   /**
    * List of strings/regex controlling to which outgoing requests
@@ -73,6 +78,41 @@ export interface BaseNodeOptions {
    * * The `SentrySampler`
    */
   skipOpenTelemetrySetup?: boolean;
+
+  /**
+   * The max. duration in seconds that the SDK will wait for parent spans to be finished before discarding a span.
+   * The SDK will automatically clean up spans that have no finished parent after this duration.
+   * This is necessary to prevent memory leaks in case of parent spans that are never finished or otherwise dropped/missing.
+   * However, if you have very long-running spans in your application, a shorter duration might cause spans to be discarded too early.
+   * In this case, you can increase this duration to a value that fits your expected data.
+   *
+   * Defaults to 300 seconds (5 minutes).
+   */
+  maxSpanWaitDuration?: number;
+
+  /**
+   * Whether to register ESM loader hooks to automatically instrument libraries.
+   * This is necessary to auto instrument libraries that are loaded via ESM imports, but it can cause issues
+   * with certain libraries. If you run into problems running your app with this enabled,
+   * please raise an issue in https://github.com/getsentry/sentry-javascript.
+   *
+   * You can optionally exclude specific modules or only include specific modules from being instrumented by providing
+   * an object with `include` or `exclude` properties.
+   *
+   * ```js
+   * registerEsmLoaderHooks: {
+   *   exclude: ['openai'],
+   * }
+   * ```
+   *
+   * Defaults to `true`.
+   */
+  registerEsmLoaderHooks?: boolean | EsmLoaderHookOptions;
+
+  /**
+   * Configures in which interval client reports will be flushed. Defaults to `60_000` (milliseconds).
+   */
+  clientReportFlushInterval?: number;
 
   /** Callback that is executed when a fatal global error occurs. */
   onFatalError?(this: void, error: Error): void;
