@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
 /* eslint-disable no-empty-pattern */
@@ -11,16 +12,19 @@ export const TEST_HOST = 'http://sentry-test.io';
 const getAsset = (assetDir: string, asset: string): string => {
   const assetPath = `${assetDir}/${asset}`;
 
+  // Try to find the asset in the same directory
   if (fs.existsSync(assetPath)) {
     return assetPath;
   }
 
+  // Else, try to find it in the parent directory
   const parentDirAssetPath = `${path.dirname(assetDir)}/${asset}`;
 
   if (fs.existsSync(parentDirAssetPath)) {
     return parentDirAssetPath;
   }
 
+  // Else use a static asset
   return `utils/defaults/${asset}`;
 };
 
@@ -54,34 +58,39 @@ const sentryTest = base.extend<TestFixtures>({
     return use(async ({ testDir, skipRouteHandler = false }) => {
       const pagePath = `${TEST_HOST}/index.html`;
 
-      await build(testDir);
+      const tmpDir = path.join(testDir, 'dist', crypto.randomUUID());
 
-      // Serve all assets under
-      if (!skipRouteHandler) {
-        await page.route(`${TEST_HOST}/*.*`, route => {
-          const file = route.request().url().split('/').pop();
-          const filePath = path.resolve(testDir, `./dist/${file}`);
+      await build(testDir, tmpDir);
 
-          return fs.existsSync(filePath) ? route.fulfill({ path: filePath }) : route.continue();
-        });
-
-        // Ensure feedback can be lazy loaded
-        await page.route(`https://browser.sentry-cdn.com/${SDK_VERSION}/feedback-modal.min.js`, route => {
-          const filePath = path.resolve(testDir, './dist/feedback-modal.bundle.js');
-          if (!fs.existsSync(filePath)) {
-            throw new Error(`Feedback modal bundle (${filePath}) not found`);
-          }
-          return route.fulfill({ path: filePath });
-        });
-
-        await page.route(`https://browser.sentry-cdn.com/${SDK_VERSION}/feedback-screenshot.min.js`, route => {
-          const filePath = path.resolve(testDir, './dist/feedback-screenshot.bundle.js');
-          if (!fs.existsSync(filePath)) {
-            throw new Error(`Feedback screenshot bundle (${filePath}) not found`);
-          }
-          return route.fulfill({ path: filePath });
-        });
+      // If skipping route handlers we return the tmp dir instead of adding the handler
+      // This way, this can be handled by the caller manually
+      if (skipRouteHandler) {
+        return tmpDir;
       }
+
+      await page.route(`${TEST_HOST}/*.*`, route => {
+        const file = route.request().url().split('/').pop();
+        const filePath = path.resolve(tmpDir, `./${file}`);
+
+        return fs.existsSync(filePath) ? route.fulfill({ path: filePath }) : route.continue();
+      });
+
+      // Ensure feedback can be lazy loaded
+      await page.route(`https://browser.sentry-cdn.com/${SDK_VERSION}/feedback-modal.min.js`, route => {
+        const filePath = path.resolve(tmpDir, './feedback-modal.bundle.js');
+        if (!fs.existsSync(filePath)) {
+          throw new Error(`Feedback modal bundle (${filePath}) not found`);
+        }
+        return route.fulfill({ path: filePath });
+      });
+
+      await page.route(`https://browser.sentry-cdn.com/${SDK_VERSION}/feedback-screenshot.min.js`, route => {
+        const filePath = path.resolve(tmpDir, './feedback-screenshot.bundle.js');
+        if (!fs.existsSync(filePath)) {
+          throw new Error(`Feedback screenshot bundle (${filePath}) not found`);
+        }
+        return route.fulfill({ path: filePath });
+      });
 
       return pagePath;
     });
@@ -89,9 +98,10 @@ const sentryTest = base.extend<TestFixtures>({
 
   getLocalTestPath: ({}, use) => {
     return use(async ({ testDir }) => {
-      const pagePath = `file:///${path.resolve(testDir, './dist/index.html')}`;
+      const tmpDir = path.join(testDir, 'dist', crypto.randomUUID());
+      const pagePath = `file:///${path.resolve(tmpDir, './index.html')}`;
 
-      await build(testDir);
+      await build(testDir, tmpDir);
 
       return pagePath;
     });
@@ -139,12 +149,12 @@ const sentryTest = base.extend<TestFixtures>({
 
 export { sentryTest };
 
-async function build(testDir: string): Promise<void> {
+async function build(testDir: string, tmpDir: string): Promise<void> {
   const subject = getAsset(testDir, 'subject.js');
   const template = getAsset(testDir, 'template.html');
   const init = getAsset(testDir, 'init.js');
 
-  await generatePage(init, subject, template, testDir);
+  await generatePage(init, subject, template, tmpDir);
 
   const additionalPages = fs
     .readdirSync(testDir)
@@ -155,6 +165,6 @@ async function build(testDir: string): Promise<void> {
     const subject = getAsset(testDir, 'subject.js');
     const pageFile = getAsset(testDir, pageFilename);
     const init = getAsset(testDir, 'init.js');
-    await generatePage(init, subject, pageFile, testDir, pageFilename);
+    await generatePage(init, subject, pageFile, tmpDir, pageFilename);
   }
 }

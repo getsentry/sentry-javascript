@@ -6,6 +6,7 @@ export interface ActorProps {
   triggerLabel: string;
   triggerAriaLabel: string;
   shadow: ShadowRoot;
+  styleNonce?: string;
 }
 
 export interface ActorComponent {
@@ -23,7 +24,7 @@ export interface ActorComponent {
 /**
  * The sentry-provided button to open the feedback modal
  */
-export function Actor({ triggerLabel, triggerAriaLabel, shadow }: ActorProps): ActorComponent {
+export function Actor({ triggerLabel, triggerAriaLabel, shadow, styleNonce }: ActorProps): ActorComponent {
   const el = DOCUMENT.createElement('button');
   el.type = 'button';
   el.className = 'widget__actor';
@@ -36,7 +37,7 @@ export function Actor({ triggerLabel, triggerAriaLabel, shadow }: ActorProps): A
     el.appendChild(label);
   }
 
-  const style = createActorStyles();
+  const style = createActorStyles(styleNonce);
 
   return {
     el,

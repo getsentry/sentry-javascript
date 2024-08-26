@@ -1,0 +1,27 @@
+{
+  "name": "astro-hybrid-with-static-routes",
+  "type": "module",
+  "version": "0.0.1",
+  "scripts": {
+    "dev": "astro dev --force",
+    "start": "astro dev",
+    "build": "astro check && astro build",
+    "preview": "astro preview",
+    "astro": "astro",
+    "test:build": "pnpm install && npx playwright install && pnpm build",
+    "test:assert": "TEST_ENV=production playwright test"
+  },
+  "dependencies": {
+    "@astrojs/check": "^0.9.2",
+    "@astrojs/node": "^8.3.2",
+    "@playwright/test": "^1.46.0",
+    "@sentry/astro": "* || latest",
+    "@sentry-internal/test-utils": "link:../../../test-utils",
+    "@spotlightjs/astro": "^2.1.6",
+    "astro": "^4.13.3",
+    "typescript": "^5.5.4"
+  },
+  "devDependencies": {
+    "@astrojs/internal-helpers": "^0.4.1"
+  }
+}

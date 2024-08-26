@@ -42,7 +42,7 @@ sentryTest('works with httpClientIntegration', async ({ getLocalTestPath, page }
       ],
     },
     request: {
-      url: 'http://localhost:7654/foo',
+      url: 'http://sentry-test.io/foo',
       method: 'GET',
       headers: {
         accept: 'application/json',
