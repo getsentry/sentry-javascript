@@ -17,9 +17,9 @@
 - **fix(nestjs): Exception filters in main app module are not being executed (#13278)**
 
   With this release nestjs error monitoring is no longer automatically set up after adding the `SentryModule` to your
-  application, which led to issues in certain scenarios. You will now have to either add the `SentryGlobalFilter` to your
-  main module providers or decorate the `catch()` method in your existing global exception filters with the newly 
-  released `@WithSentry()` decorator. See the [docs](https://docs.sentry.io/platforms/javascript/guides/nestjs/) for 
+  application, which led to issues in certain scenarios. You will now have to either add the `SentryGlobalFilter` to
+  your main module providers or decorate the `catch()` method in your existing global exception filters with the newly
+  released `@WithSentry()` decorator. See the [docs](https://docs.sentry.io/platforms/javascript/guides/nestjs/) for
   more details.
 
 ### Other Changes
