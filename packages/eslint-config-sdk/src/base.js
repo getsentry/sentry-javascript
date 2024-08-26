@@ -184,6 +184,8 @@ module.exports = {
         '@sentry-internal/sdk/no-optional-chaining': 'off',
         '@sentry-internal/sdk/no-nullish-coalescing': 'off',
         '@typescript-eslint/no-floating-promises': 'off',
+        '@sentry-internal/sdk/no-focused-tests': 'error',
+        '@sentry-internal/sdk/no-skipped-tests': 'error',
       },
     },
     {
