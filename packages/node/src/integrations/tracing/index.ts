@@ -14,6 +14,7 @@ import { instrumentMysql2, mysql2Integration } from './mysql2';
 import { instrumentNest, nestIntegration } from './nest/nest';
 import { instrumentPostgres, postgresIntegration } from './postgres';
 import { instrumentRedis, redisIntegration } from './redis';
+import { instrumentGenericPool, genericPoolIntegration } from './genericPool'
 
 /**
  * With OTEL, all performance integrations will be added, as OTEL only initializes them when the patched package is actually required.
@@ -37,6 +38,7 @@ export function getAutoPerformanceIntegrations(): Integration[] {
     hapiIntegration(),
     koaIntegration(),
     connectIntegration(),
+    genericPoolIntegration(),
   ];
 }
 
@@ -61,5 +63,6 @@ export function getOpenTelemetryInstrumentationToPreload(): (((options?: any) =>
     instrumentHapi,
     instrumentGraphql,
     instrumentRedis,
+    instrumentGenericPool,
   ];
 }
