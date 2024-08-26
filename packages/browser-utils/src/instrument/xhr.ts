@@ -82,7 +82,7 @@ export function instrumentXHR(): void {
 
       if ('onreadystatechange' in xhrOpenThisArg && typeof xhrOpenThisArg.onreadystatechange === 'function') {
         xhrOpenThisArg.onreadystatechange = new Proxy(xhrOpenThisArg.onreadystatechange, {
-          apply(originalOnreadystatechange, onreadystatechangeThisArg, onreadystatechangeArgArray) {
+          apply(originalOnreadystatechange, onreadystatechangeThisArg, onreadystatechangeArgArray: unknown[]) {
             onreadystatechangeHandler();
             return originalOnreadystatechange.apply(onreadystatechangeThisArg, onreadystatechangeArgArray);
           },
@@ -94,25 +94,23 @@ export function instrumentXHR(): void {
       // Intercepting `setRequestHeader` to access the request headers of XHR instance.
       // This will only work for user/library defined headers, not for the default/browser-assigned headers.
       // Request cookies are also unavailable for XHR, as `Cookie` header can't be defined by `setRequestHeader`.
-      if ('setRequestHeader' in xhrOpenThisArg && typeof xhrOpenThisArg.onreadystatechange === 'function') {
-        xhrOpenThisArg.setRequestHeader = new Proxy(xhrOpenThisArg.setRequestHeader, {
-          apply(
-            originalSetRequestHeader,
-            setRequestHeaderThisArg: SentryWrappedXMLHttpRequest,
-            setRequestHeaderArgArray,
-          ) {
-            const [header, value] = setRequestHeaderArgArray;
+      xhrOpenThisArg.setRequestHeader = new Proxy(xhrOpenThisArg.setRequestHeader, {
+        apply(
+          originalSetRequestHeader,
+          setRequestHeaderThisArg: SentryWrappedXMLHttpRequest,
+          setRequestHeaderArgArray: unknown[],
+        ) {
+          const [header, value] = setRequestHeaderArgArray;
 
-            const xhrInfo = setRequestHeaderThisArg[SENTRY_XHR_DATA_KEY];
+          const xhrInfo = setRequestHeaderThisArg[SENTRY_XHR_DATA_KEY];
 
-            if (xhrInfo && isString(header) && isString(value)) {
-              xhrInfo.request_headers[header.toLowerCase()] = value;
-            }
+          if (xhrInfo && isString(header) && isString(value)) {
+            xhrInfo.request_headers[header.toLowerCase()] = value;
+          }
 
-            return originalSetRequestHeader.apply(setRequestHeaderThisArg, setRequestHeaderArgArray);
-          },
-        });
-      }
+          return originalSetRequestHeader.apply(setRequestHeaderThisArg, setRequestHeaderArgArray);
+        },
+      });
 
       return originalOpen.apply(xhrOpenThisArg, xhrOpenArgArray);
     },
