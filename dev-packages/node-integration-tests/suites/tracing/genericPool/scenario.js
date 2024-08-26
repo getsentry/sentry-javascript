@@ -24,6 +24,7 @@ const factory = {
   destroy: function (client) {
     client.end(err => {
       if (err) {
+        // eslint-disable-next-line no-console
         console.error('Error while disconnecting MySQL:', err);
       }
     });
@@ -31,70 +32,40 @@ const factory = {
 };
 
 const opts = {
-  max: 10, // maximum size of the pool
-  min: 2, // minimum size of the pool
+  max: 10,
+  min: 2,
 };
 
 const myPool = genericPool.createPool(factory, opts);
 
-// const connection = mysql.createConnection({
-//   user: 'root',
-//   password: 'docker',
-// });
+async function run() {
+  await Sentry.startSpan(
+    {
+      op: 'transaction',
+      name: 'Test Transaction',
+    },
+    async () => {
+      try {
+        const client1 = await myPool.acquire();
+        const client2 = await myPool.acquire();
 
-// connection.connect(function (err) {
-//   if (err) {
-//     return;
-//   }
-// });
-
-// mysql 2
-// mysql
-//   .createConnection({
-//     user: 'root',
-//     password: 'password',
-//     host: 'localhost',
-//     port: 3306,
-//   })
-//   .then(connection => {
-//     return Sentry.startSpan(
-//       {
-//         op: 'transaction',
-//         name: 'Test Transaction',
-//       },
-//       async _ => {
-//         await connection.query('SELECT 1 + 1 AS solution');
-//         await connection.query('SELECT NOW()', ['1', '2']);
-//       },
-//     );
-//   });
-
-Sentry.startSpan(
-  {
-    op: 'transaction',
-    name: 'Test Transaction',
-  },
-  span => {
-    // connection.query('SELECT 1 + 1 AS solution', function () {
-    //   connection.query('SELECT NOW()', ['1', '2'], () => {
-    //     span.end();
-    //     connection.end();
-    //   });
-    // });
-    const resourcePromise = myPool.acquire();
-    // span.end();
-
-    resourcePromise
-      .then(function (client) {
-        client.query('SELECT NOW()', function () {
-          span.end();
-          // client.query('SELECT 1 + 1 AS solution');
-
-          myPool.release(client);
+        client1.query('SELECT NOW()', function () {
+          myPool.release(client1);
         });
-      })
-      .catch(function (err) {
+
+        client2.query('SELECT 1 + 1 AS solution', function () {
+          myPool.release(client2);
+        });
+      } catch (err) {
+        // eslint-disable-next-line no-console
         console.error('Error while pooling MySQL:', err);
-      });
-  },
-);
+      } finally {
+        await myPool.drain();
+        await myPool.clear();
+      }
+    },
+  );
+}
+
+// eslint-disable-next-line @typescript-eslint/no-floating-promises
+run();

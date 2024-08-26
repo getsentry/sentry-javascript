@@ -17,7 +17,7 @@ const _genericPoolIntegration = (() => {
     setup(client) {
       client.on('spanStart', span => {
         const spanJSON = spanToJSON(span);
-        if (spanJSON.description === 'generic-pool.acquire') {
+        if (spanJSON.description === 'generic-pool.aquire') {
           span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, 'auto.db.otel.generic-pool');
         }
       });

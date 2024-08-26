@@ -1,20 +1,30 @@
 import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
 
-describe('mysql auto instrumentation', () => {
+describe('genericPool auto instrumentation', () => {
   afterAll(() => {
     cleanupChildProcesses();
   });
 
-  test('should auto-instrument `genericPool` package when using pool.require()', done => {
+  test('should auto-instrument `genericPool` package when calling pool.require()', done => {
     const EXPECTED_TRANSACTION = {
       transaction: 'Test Transaction',
       spans: expect.arrayContaining([
         expect.objectContaining({
-          // op: 'transaction',
-          data: expect.objectContaining({
-            description: 'generic-pool.aquire',
-            origin: 'manual',
-          }),
+          description: 'generic-pool.aquire',
+          origin: 'auto.db.otel.generic-pool',
+          data: {
+            'sentry.origin': 'auto.db.otel.generic-pool',
+          },
+          status: 'ok',
+        }),
+
+        expect.objectContaining({
+          description: 'generic-pool.aquire',
+          origin: 'auto.db.otel.generic-pool',
+          data: {
+            'sentry.origin': 'auto.db.otel.generic-pool',
+          },
+          status: 'ok',
         }),
       ]),
     };
