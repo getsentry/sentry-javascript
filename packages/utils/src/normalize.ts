@@ -225,12 +225,8 @@ function stringifyValue(
       return '[NaN]';
     }
 
-    if (typeof value === 'number' && value === Infinity) {
-      return '[Infinity]';
-    }
-
-    if (typeof value === 'number' && value === -Infinity) {
-      return '[-Infinity]';
+    if (typeof value === 'number' && !Number.isFinite(value)) {
+      return `[${value}]`;
     }
 
     if (typeof value === 'function') {
