@@ -15,6 +15,7 @@ import {
   makeLicensePlugin,
   makeNodeResolvePlugin,
   makeRrwebBuildPlugin,
+  makeSetSDKSourcePlugin,
   makeSucrasePlugin,
   makeTerserPlugin,
 } from './plugins/index.mjs';
@@ -50,7 +51,6 @@ export function makeBaseBundleConfig(options) {
       intro: () => {
         return 'exports = window.Sentry || {};';
       },
-      banner: 'window.SENTRY_SDK_SOURCE = window.SENTRY_SDK_SOURCE || "cdn";',
     },
     context: 'window',
     plugins: [rrwebBuildPlugin, markAsBrowserBuildPlugin],
@@ -168,6 +168,7 @@ export function makeBundleConfigVariants(baseConfig, options = {}) {
   const includeDebuggingPlugin = makeIsDebugBuildPlugin(true);
   const stripDebuggingPlugin = makeIsDebugBuildPlugin(false);
   const terserPlugin = makeTerserPlugin();
+  const setSdkSourcePlugin = makeSetSDKSourcePlugin('cdn');
 
   // The additional options to use for each variant we're going to create.
   const variantSpecificConfigMap = {
@@ -175,21 +176,21 @@ export function makeBundleConfigVariants(baseConfig, options = {}) {
       output: {
         entryFileNames: chunkInfo => `${baseConfig.output.entryFileNames(chunkInfo)}.js`,
       },
-      plugins: [includeDebuggingPlugin],
+      plugins: [includeDebuggingPlugin, setSdkSourcePlugin],
     },
 
     '.min.js': {
       output: {
         entryFileNames: chunkInfo => `${baseConfig.output.entryFileNames(chunkInfo)}.min.js`,
       },
-      plugins: [stripDebuggingPlugin, terserPlugin],
+      plugins: [stripDebuggingPlugin, setSdkSourcePlugin, terserPlugin],
     },
 
     '.debug.min.js': {
       output: {
         entryFileNames: chunkInfo => `${baseConfig.output.entryFileNames(chunkInfo)}.debug.min.js`,
       },
-      plugins: [includeDebuggingPlugin, terserPlugin],
+      plugins: [includeDebuggingPlugin, setSdkSourcePlugin, terserPlugin],
     },
   };
 

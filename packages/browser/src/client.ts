@@ -12,7 +12,7 @@ import type {
   SeverityLevel,
   UserFeedback,
 } from '@sentry/types';
-import { logger } from '@sentry/utils';
+import { getSDKSource, logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from './debug-build';
 import { eventFromException, eventFromMessage } from './eventbuilder';
@@ -57,7 +57,7 @@ export class BrowserClient extends BaseClient<BrowserClientOptions> {
       parentSpanIsAlwaysRootSpan: true,
       ...options,
     };
-    const sdkSource = WINDOW.SENTRY_SDK_SOURCE || 'npm';
+    const sdkSource = WINDOW.SENTRY_SDK_SOURCE || getSDKSource();
     applySdkMetadata(opts, 'browser', ['browser'], sdkSource);
 
     super(opts);
