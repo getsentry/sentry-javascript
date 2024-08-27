@@ -1434,20 +1434,6 @@ jobs:
         run: yarn install --ignore-engines --frozen-lockfile
         shell: bash
 
-      - name: Restore build cache
-        uses: actions/cache/restore@v4
-        id: restore-build
-        with:
-          path: ${{ env.CACHED_BUILD_PATHS }}
-          key: ${{ needs.job_build.outputs.dependency_cache_key }}
-          enableCrossOsArchive: true
-
-      - name: Build packages
-        env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-        if: steps.restore-build.outputs.cache-hit != 'true'
-        run: yarn build
-
       - name: Configure safe directory
         run: |
           git config --global --add safe.directory "*"
