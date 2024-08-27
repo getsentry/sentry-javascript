@@ -15,8 +15,6 @@
 
 declare const __SENTRY_BROWSER_BUNDLE__: boolean | undefined;
 
-declare const __SENTRY_SDK_SOURCE__: SdkSource | undefined;
-
 export type SdkSource = 'npm' | 'cdn' | 'loader';
 
 /**
@@ -32,5 +30,6 @@ export function isBrowserBundle(): boolean {
  * Get source of SDK.
  */
 export function getSDKSource(): SdkSource {
-  return typeof __SENTRY_SDK_SOURCE__ !== 'undefined' ? __SENTRY_SDK_SOURCE__ : 'npm';
+  // This comment is used to identify this line in the CDN bundle build step and replace this with "return 'cdn';"
+  /* ref:__SENTRY_SDK_SOURCE__ */ return 'npm';
 }
