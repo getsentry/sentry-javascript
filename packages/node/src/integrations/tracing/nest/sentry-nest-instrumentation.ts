@@ -165,6 +165,11 @@ export class SentryNestInstrumentation extends InstrumentationBase {
               apply: (originalIntercept, thisArgIntercept, argsIntercept) => {
                 const context: MinimalNestJsExecutionContext = argsIntercept[0];
                 const next: CallHandler = argsIntercept[1];
+
+                if (context.getType() != 'http') {
+                  return originalIntercept.apply(thisArgIntercept, argsIntercept);
+                }
+
                 const request = context.switchToHttp().getRequest();
 
                 const parentSpan = getActiveSpan();
