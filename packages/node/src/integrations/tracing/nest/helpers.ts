@@ -1,6 +1,7 @@
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, withActiveSpan } from '@sentry/core';
+import type { Span } from '@sentry/types';
 import { addNonEnumerableProperty } from '@sentry/utils';
-import type { CatchTarget, InjectableTarget } from './types';
+import type { CatchTarget, InjectableTarget, Observable, Subscription } from './types';
 
 const sentryPatched = 'sentryPatched';
 
@@ -33,4 +34,22 @@ export function getMiddlewareSpanOptions(target: InjectableTarget | CatchTarget,
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.middleware.nestjs',
     },
   };
+}
+
+/**
+ * Adds instrumentation to a js observable and attaches the span to an active parent span.
+ */
+export function instrumentObservable(observable: Observable<unknown>, activeSpan: Span | undefined): void {
+  if (activeSpan) {
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    observable.subscribe = new Proxy(observable.subscribe, {
+      apply: (originalSubscribe, thisArgSubscribe, argsSubscribe) => {
+        return withActiveSpan(activeSpan, () => {
+          const subscription: Subscription = originalSubscribe.apply(thisArgSubscribe, argsSubscribe);
+          subscription.add(() => activeSpan.end());
+          return subscription;
+        });
+      },
+    });
+  }
 }

@@ -7,16 +7,9 @@ import {
 } from '@opentelemetry/instrumentation';
 import { getActiveSpan, startInactiveSpan, startSpan, startSpanManual, withActiveSpan } from '@sentry/core';
 import type { Span } from '@sentry/types';
-import { SDK_VERSION, addNonEnumerableProperty } from '@sentry/utils';
-import { getMiddlewareSpanOptions, isPatched } from './helpers';
-import type {
-  CallHandler,
-  CatchTarget,
-  InjectableTarget,
-  MinimalNestJsExecutionContext,
-  Observable,
-  Subscription,
-} from './types';
+import { SDK_VERSION, addNonEnumerableProperty, isThenable } from '@sentry/utils';
+import { getMiddlewareSpanOptions, instrumentObservable, isPatched } from './helpers';
+import type { CallHandler, CatchTarget, InjectableTarget, MinimalNestJsExecutionContext, Observable } from './types';
 
 const supportedVersions = ['>=8.0.0 <11'];
 
@@ -174,17 +167,17 @@ export class SentryNestInstrumentation extends InstrumentationBase {
                 const next: CallHandler = argsIntercept[1];
                 const request = context.switchToHttp().getRequest();
 
-                const prevSpan = getActiveSpan();
+                const parentSpan = getActiveSpan();
                 let afterSpan: Span;
 
-                return startSpanManual(getMiddlewareSpanOptions(target), (span: Span) => {
+                return startSpanManual(getMiddlewareSpanOptions(target), (beforeSpan: Span) => {
                   // eslint-disable-next-line @typescript-eslint/unbound-method
                   next.handle = new Proxy(next.handle, {
                     apply: (originalHandle, thisArgHandle, argsHandle) => {
-                      span.end();
+                      beforeSpan.end();
 
-                      if (prevSpan) {
-                        return withActiveSpan(prevSpan, () => {
+                      if (parentSpan) {
+                        return withActiveSpan(parentSpan, () => {
                           const handleReturnObservable = Reflect.apply(originalHandle, thisArgHandle, argsHandle);
 
                           if (!request._sentryInterceptorInstrumented) {
@@ -207,31 +200,47 @@ export class SentryNestInstrumentation extends InstrumentationBase {
                     },
                   });
 
-                  // TODO: maybe promise<observable>
-                  const returnedObservableIntercept: Observable<unknown> = originalIntercept.apply(
-                    thisArgIntercept,
-                    argsIntercept,
-                  );
+                  let returnedObservableInterceptMaybePromise: Observable<unknown> | Promise<Observable<unknown>>;
 
-                  if (request._sentryInterceptorInstrumented) {
-                    return returnedObservableIntercept;
+                  try {
+                    returnedObservableInterceptMaybePromise = originalIntercept.apply(thisArgIntercept, argsIntercept);
+                  } catch (e) {
+                    if (!request._sentryInterceptorInstrumented) {
+                      if (beforeSpan) beforeSpan.end();
+                      if (afterSpan) afterSpan.end();
+                      addNonEnumerableProperty(request, '_sentryInterceptorInstrumented', true);
+                    }
+
+                    throw e;
                   }
 
-                  if (typeof returnedObservableIntercept.subscribe === 'function') {
-                    // eslint-disable-next-line @typescript-eslint/unbound-method
-                    returnedObservableIntercept.subscribe = new Proxy(returnedObservableIntercept.subscribe, {
-                      apply: (originalSubscribe, thisArgSubscribe, argsSubscribe) => {
-                        return withActiveSpan(afterSpan ?? prevSpan, () => {
-                          const subscription: Subscription = originalSubscribe.apply(thisArgSubscribe, argsSubscribe);
-                          subscription.add(() => afterSpan.end());
-                          return subscription;
-                        });
+                  if (request._sentryInterceptorInstrumented) {
+                    return returnedObservableInterceptMaybePromise;
+                  }
+
+                  // handle async interceptor
+                  if (isThenable(returnedObservableInterceptMaybePromise)) {
+                    return Promise.resolve(returnedObservableInterceptMaybePromise).then(
+                      observable => {
+                        instrumentObservable(observable, afterSpan ?? parentSpan);
+                        return observable;
                       },
-                    });
+                      e => {
+                        if (beforeSpan) beforeSpan.end();
+                        if (afterSpan) afterSpan.end();
+                        addNonEnumerableProperty(request, '_sentryInterceptorInstrumented', true);
+                        throw e;
+                      },
+                    );
+                  }
+
+                  // handle sync interceptor
+                  if (typeof returnedObservableInterceptMaybePromise.subscribe === 'function') {
+                    instrumentObservable(returnedObservableInterceptMaybePromise, afterSpan ?? parentSpan);
                   }
 
                   addNonEnumerableProperty(request, '_sentryInterceptorInstrumented', true);
-                  return returnedObservableIntercept;
+                  return returnedObservableInterceptMaybePromise;
                 });
               },
             });
