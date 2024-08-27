@@ -483,7 +483,7 @@ test('API route transaction includes exactly one nest interceptor span after rou
             'sentry.op': 'middleware.nestjs',
             'sentry.origin': 'auto.middleware.nestjs',
           },
-          description: 'Interceptor - After Route',
+          description: 'Interceptors - After Route',
           parent_span_id: expect.any(String),
           start_timestamp: expect.any(Number),
           timestamp: expect.any(Number),
@@ -497,13 +497,13 @@ test('API route transaction includes exactly one nest interceptor span after rou
 
   // check that exactly one after route span is sent
   const allInterceptorSpansAfterRoute = transactionEvent.spans.filter(
-    span => span.description === 'Interceptor - After Route',
+    span => span.description === 'Interceptors - After Route',
   );
   expect(allInterceptorSpansAfterRoute.length).toBe(1);
 
   // get interceptor span
   const exampleInterceptorSpanAfterRoute = transactionEvent.spans.find(
-    span => span.description === 'Interceptor - After Route',
+    span => span.description === 'Interceptors - After Route',
   );
   const exampleInterceptorSpanAfterRouteId = exampleInterceptorSpanAfterRoute?.span_id;
 
@@ -650,7 +650,7 @@ test('API route transaction includes exactly one nest async interceptor span aft
             'sentry.op': 'middleware.nestjs',
             'sentry.origin': 'auto.middleware.nestjs',
           },
-          description: 'Interceptor - After Route',
+          description: 'Interceptors - After Route',
           parent_span_id: expect.any(String),
           start_timestamp: expect.any(Number),
           timestamp: expect.any(Number),
@@ -664,13 +664,13 @@ test('API route transaction includes exactly one nest async interceptor span aft
 
   // check that exactly one after route span is sent
   const allInterceptorSpansAfterRoute = transactionEvent.spans.filter(
-    span => span.description === 'Interceptor - After Route',
+    span => span.description === 'Interceptors - After Route',
   );
   expect(allInterceptorSpansAfterRoute.length).toBe(1);
 
   // get interceptor span
   const exampleInterceptorSpanAfterRoute = transactionEvent.spans.find(
-    span => span.description === 'Interceptor - After Route',
+    span => span.description === 'Interceptors - After Route',
   );
   const exampleInterceptorSpanAfterRouteId = exampleInterceptorSpanAfterRoute?.span_id;
 

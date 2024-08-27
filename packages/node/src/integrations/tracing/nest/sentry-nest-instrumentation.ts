@@ -186,6 +186,7 @@ export class SentryNestInstrumentation extends InstrumentationBase {
                           const handleReturnObservable = Reflect.apply(originalHandle, thisArgHandle, argsHandle);
 
                           if (!request._sentryInterceptorInstrumented) {
+                            addNonEnumerableProperty(request, '_sentryInterceptorInstrumented', true);
                             afterSpan = startInactiveSpan(
                               getMiddlewareSpanOptions(target, 'Interceptors - After Route'),
                             );
@@ -197,6 +198,7 @@ export class SentryNestInstrumentation extends InstrumentationBase {
                         const handleReturnObservable = Reflect.apply(originalHandle, thisArgHandle, argsHandle);
 
                         if (!request._sentryInterceptorInstrumented) {
+                          addNonEnumerableProperty(request, '_sentryInterceptorInstrumented', true);
                           afterSpan = startInactiveSpan(getMiddlewareSpanOptions(target, 'Interceptors - After Route'));
                         }
 
@@ -210,16 +212,12 @@ export class SentryNestInstrumentation extends InstrumentationBase {
                   try {
                     returnedObservableInterceptMaybePromise = originalIntercept.apply(thisArgIntercept, argsIntercept);
                   } catch (e) {
-                    if (!request._sentryInterceptorInstrumented) {
-                      beforeSpan?.end();
-                      afterSpan?.end();
-                      addNonEnumerableProperty(request, '_sentryInterceptorInstrumented', true);
-                    }
-
+                    beforeSpan?.end();
+                    afterSpan?.end();
                     throw e;
                   }
 
-                  if (request._sentryInterceptorInstrumented) {
+                  if (!afterSpan) {
                     return returnedObservableInterceptMaybePromise;
                   }
 
@@ -233,7 +231,6 @@ export class SentryNestInstrumentation extends InstrumentationBase {
                       e => {
                         beforeSpan?.end();
                         afterSpan?.end();
-                        addNonEnumerableProperty(request, '_sentryInterceptorInstrumented', true);
                         throw e;
                       },
                     );
@@ -244,7 +241,6 @@ export class SentryNestInstrumentation extends InstrumentationBase {
                     instrumentObservable(returnedObservableInterceptMaybePromise, afterSpan ?? parentSpan);
                   }
 
-                  addNonEnumerableProperty(request, '_sentryInterceptorInstrumented', true);
                   return returnedObservableInterceptMaybePromise;
                 });
               },
