@@ -1430,6 +1430,8 @@ jobs:
           enableCrossOsArchive: true
 
       - name: Install dependencies
+        env:
+          NO_PLAYWRIGHT_BROWSERS: "1"
         if: steps.restore-dependencies.outputs.cache-hit != 'true'
         run: yarn install --ignore-engines --frozen-lockfile
 
