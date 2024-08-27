@@ -187,7 +187,7 @@ export class SentryNestInstrumentation extends InstrumentationBase {
 
                           if (!request._sentryInterceptorInstrumented) {
                             afterSpan = startInactiveSpan(
-                              getMiddlewareSpanOptions(target, 'Interceptor - After Route'),
+                              getMiddlewareSpanOptions(target, 'Interceptors - After Route'),
                             );
                           }
 
@@ -197,7 +197,7 @@ export class SentryNestInstrumentation extends InstrumentationBase {
                         const handleReturnObservable = Reflect.apply(originalHandle, thisArgHandle, argsHandle);
 
                         if (!request._sentryInterceptorInstrumented) {
-                          afterSpan = startInactiveSpan(getMiddlewareSpanOptions(target, 'Interceptor - After Route'));
+                          afterSpan = startInactiveSpan(getMiddlewareSpanOptions(target, 'Interceptors - After Route'));
                         }
 
                         return handleReturnObservable;
@@ -211,8 +211,8 @@ export class SentryNestInstrumentation extends InstrumentationBase {
                     returnedObservableInterceptMaybePromise = originalIntercept.apply(thisArgIntercept, argsIntercept);
                   } catch (e) {
                     if (!request._sentryInterceptorInstrumented) {
-                      if (beforeSpan) beforeSpan.end();
-                      if (afterSpan) afterSpan.end();
+                      beforeSpan?.end();
+                      afterSpan?.end();
                       addNonEnumerableProperty(request, '_sentryInterceptorInstrumented', true);
                     }
 
@@ -225,14 +225,14 @@ export class SentryNestInstrumentation extends InstrumentationBase {
 
                   // handle async interceptor
                   if (isThenable(returnedObservableInterceptMaybePromise)) {
-                    return Promise.resolve(returnedObservableInterceptMaybePromise).then(
+                    return returnedObservableInterceptMaybePromise.then(
                       observable => {
                         instrumentObservable(observable, afterSpan ?? parentSpan);
                         return observable;
                       },
                       e => {
-                        if (beforeSpan) beforeSpan.end();
-                        if (afterSpan) afterSpan.end();
+                        beforeSpan?.end();
+                        afterSpan?.end();
                         addNonEnumerableProperty(request, '_sentryInterceptorInstrumented', true);
                         throw e;
                       },
