@@ -13,7 +13,6 @@ import {
   inboundFiltersIntegration,
   lastEventId,
 } from '@sentry/core';
-import * as utils from '@sentry/utils';
 
 import { setCurrentClient } from '../src';
 import {
@@ -380,17 +379,6 @@ describe('SentryBrowser initialization', () => {
 
       expect(sdkData.packages?.[0]?.name).toBe('loader:@sentry/browser');
       delete global.SENTRY_SDK_SOURCE;
-    });
-
-    it('uses SDK source from global for package name', () => {
-      const spy = vi.spyOn(utils, 'getSDKSource').mockReturnValue('cdn');
-      init({ dsn });
-
-      const sdkData = getClient()?.getOptions()._metadata?.sdk || {};
-
-      expect(sdkData.packages?.[0]?.name).toBe('cdn:@sentry/browser');
-      expect(utils.getSDKSource).toBeCalledTimes(1);
-      spy.mockRestore();
     });
 
     it('should set SDK data when instantiating a client directly', () => {

@@ -60,15 +60,6 @@ export function makeIsDebugBuildPlugin(includeDebugging) {
   });
 }
 
-export function makeSetSDKSourcePlugin(sdkSource) {
-  return replace({
-    preventAssignment: false,
-    values: {
-      __SENTRY_SDK_SOURCE__: JSON.stringify(sdkSource),
-    },
-  });
-}
-
 /**
  * Create a plugin to set the value of the `__SENTRY_BROWSER_BUNDLE__` magic string.
  *
