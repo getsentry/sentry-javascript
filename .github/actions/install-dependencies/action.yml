@@ -9,11 +9,9 @@ outputs:
 runs:
   using: "composite"
   steps:
-      # we use a hash of yarn.lock as our cache key, because if it hasn't changed, our dependencies haven't changed,
-      # so no need to reinstall them
     - name: Compute dependency cache key
       id: compute_lockfile_hash
-      run: echo "hash=dependencies-${{ hashFiles('yarn.lock', 'packages/*/package.json', 'dev-packages/*/package.json') }}" >> "$GITHUB_OUTPUT"
+      run: node ./scripts/dependency-hash-key.js >> "$GITHUB_OUTPUT"
       shell: bash
 
     - name: Check dependency cache
