@@ -157,58 +157,36 @@ render(
 );
 ```
 
-# Sourcemaps and Releases
+## Uploading Source Maps
 
-To generate and upload source maps of your Solid Start app use our Vite bundler plugin.
-
-1. Install the Sentry Vite plugin
-
-```bash
-# Using npm
-npm install @sentry/vite-plugin --save-dev
-
-# Using yarn
-yarn add @sentry/vite-plugin --dev
-```
-
-2. Configure the vite plugin
-
-To upload source maps you have to configure an auth token. Auth tokens can be passed to the plugin explicitly with the
-`authToken` option, with a `SENTRY_AUTH_TOKEN` environment variable, or with an `.env.sentry-build-plugin` file in the
-working directory when building your project. We recommend you add the auth token to your CI/CD environment as an
-environment variable.
+To upload source maps, add the `sentrySolidStartVite` plugin from `@sentry/solidstart` to your `app.config.ts` and configure
+an auth token. Auth tokens can be passed to the plugin explicitly with the `authToken` option, with a
+`SENTRY_AUTH_TOKEN` environment variable, or with an `.env.sentry-build-plugin` file in the working directory when
+building your project. We recommend you add the auth token to your CI/CD environment as an environment variable.
 
 Learn more about configuring the plugin in our
 [Sentry Vite Plugin documentation](https://www.npmjs.com/package/@sentry/vite-plugin).
 
-```bash
-// .env.sentry-build-plugin
-SENTRY_AUTH_TOKEN=<your auth token>
-SENTRY_ORG=<your org>
-SENTRY_PROJECT=<your project name>
-```
-
-3. Finally, add the plugin to your `app.config.ts` file.
-
-```javascript
+```typescript
+// app.config.ts
 import { defineConfig } from '@solidjs/start/config';
-import { sentryVitePlugin } from '@sentry/vite-plugin';
+import { sentrySolidStartVite } from '@sentry/solidstart';
 
 export default defineConfig({
-  // rest of your config
   // ...
 
   vite: {
-    build: {
-      sourcemap: true,
-    },
     plugins: [
-      sentryVitePlugin({
-        org: process.env.SENTRY_ORG,
-        project: process.env.SENTRY_PROJECT,
-        authToken: process.env.SENTRY_AUTH_TOKEN,
+      sentrySolidStartVite({
+        sourceMapsUploadOptions: {
+          org: process.env.SENTRY_ORG,
+          project: process.env.SENTRY_PROJECT,
+          authToken: process.env.SENTRY_AUTH_TOKEN,
+        },
+        debug: true,
       }),
     ],
   },
+  // ...
 });
 ```
