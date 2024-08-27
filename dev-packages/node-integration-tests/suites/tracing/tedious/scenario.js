@@ -6,74 +6,60 @@ Sentry.init({
   release: '1.0',
   tracesSampleRate: 1.0,
   transport: loggingTransport,
-  debug: true,
 });
 
 const { Connection, Request } = require('tedious');
 
 const config = {
-  server: 'localhost',
+  server: '127.0.0.1',
   authentication: {
     type: 'default',
     options: {
-      userName: 'test',
-      password: 'test',
+      userName: 'sa',
+      password: 'TESTing123',
     },
   },
   options: {
-    port: 1433, // Default Port
+    port: 1433,
+    encrypt: false,
   },
 };
 
 const connection = new Connection(config);
 
-function executeStatement() {
-  const request = new Request('SELECT GETDATE()', (err, rowCount) => {
+function executeAllStatements(span) {
+  executeStatement('SELECT 1 + 1 AS solution', () => {
+    executeStatement('SELECT GETDATE()', () => {
+      span.end();
+      connection.close();
+    });
+  });
+}
+
+function executeStatement(query, callback) {
+  const request = new Request(query, err => {
     if (err) {
       throw err;
     }
-
-    console.log('DONE!');
-    connection.close();
+    callback();
   });
 
-  // Emits a 'DoneInProc' event when completed.
-  request.on('row', columns => {
-    columns.forEach(column => {
-      if (column.value === null) {
-        console.log('NULL');
-      } else {
-        console.log(column.value);
-      }
-    });
-  });
-
-  request.on('done', rowCount => {
-    console.log('Done is called!');
-  });
-
-  request.on('doneInProc', (rowCount, more) => {
-    console.log(rowCount + ' rows returned');
-  });
-
-  // In SQL Server 2000 you may need: connection.execSqlBatch(request);
-  connection.execSqlBatch(request);
+  connection.execSql(request);
 }
 
-Sentry.startSpan(
-  {
-    op: 'transaction',
-    name: 'Test Transaction',
-  },
-  span => {
-    connection.connect(err => {
-      if (err) {
-        console.log('Connection Failed');
-        throw err;
-      }
+connection.connect(err => {
+  if (err) {
+    throw err;
+  }
 
-      executeStatement();
-      span.end()
-    });
-  },
-);
+  Sentry.startSpanManual(
+    {
+      op: 'transaction',
+      name: 'Test Transaction',
+    },
+    span => {
+      // span must be ended manually after all queries
+      executeAllStatements(span);
+    },
+  );
+});

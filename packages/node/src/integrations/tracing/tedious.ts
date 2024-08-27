@@ -2,7 +2,6 @@ import { TediousInstrumentation } from '@opentelemetry/instrumentation-tedious';
 import { defineIntegration, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, spanToJSON } from '@sentry/core';
 import type { IntegrationFn } from '@sentry/types';
 import { generateInstrumentOnce } from '../../otel/instrument';
-import { logger } from '@sentry/utils';
 
 const INTEGRATION_NAME = 'Tedious';
 
@@ -19,13 +18,11 @@ const _tediousIntegration = (() => {
       client.on('spanStart', span => {
         const spanJSON = spanToJSON(span);
 
-        const PATCHED_METHODS = ['callProcedure', 'execSql', 'execSqlBatch', 'execBulkLoad', 'prepare', 'execute'];
+        const spanMethods = ['callProcedure', 'execSql', 'execSqlBatch', 'execBulkLoad', 'prepare', 'execute'];
 
         const spanDescription = spanJSON?.description;
 
-        // logger.warn(`[Tedious] span description: ${spanDescription}`);
-
-        if (PATCHED_METHODS.some(method => spanDescription === method)) {
+        if (spanMethods.some(method => spanDescription?.startsWith(method))) {
           span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, 'auto.db.otel.tedious');
         }
       });
