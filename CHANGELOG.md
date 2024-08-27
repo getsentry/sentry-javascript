@@ -27,7 +27,9 @@
 - feat: Add options for passing nonces to feedback integration (#13347)
 - feat: Add support for SENTRY_SPOTLIGHT env var in Node (#13325)
 - feat(deps): bump @prisma/instrumentation from 5.17.0 to 5.18.0 (#13327)
+- feat(feedback): Improve error message for 403 errors (#13441)
 - fix(deno): Don't rely on `Deno.permissions.querySync` (#13378)
+- fix(replay): Ensure we publish replay CDN bundles (#13437)
 
 Work in this release was contributed by @charpeni. Thank you for your contribution!
 
