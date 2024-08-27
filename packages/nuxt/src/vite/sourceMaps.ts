@@ -86,8 +86,7 @@ function logDebugInfo(moduleOptions: SentryNuxtModuleOptions, sourceMapsPrevious
     if (!sourceMapsUploadOptions.sourcemaps?.filesToDeleteAfterUpload) {
       // eslint-disable-next-line no-console
       console.warn(
-        `[Sentry] We recommend setting the \`sourceMapsUploadOptions.sourcemaps.filesToDeleteAfterUpload\` option to clean up source maps after uploading.
-[Sentry] Otherwise, source maps might be deployed to production, depending on your configuration`,
+        '[Sentry] We recommend setting the `sourceMapsUploadOptions.sourcemaps.filesToDeleteAfterUpload` option to clean up source maps after uploading. Otherwise, source maps might be deployed to production, depending on your configuration',
       );
     }
   }
