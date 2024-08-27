@@ -32,8 +32,11 @@ export default defineNuxtModule<ModuleOptions>({
         getContents: () => `
           import { defineNuxtPlugin } from "#imports";
 
-          export default defineNuxtPlugin(async () => {
-            await import("${buildDirResolver.resolve(`/${clientConfigFile}`)}")
+          export default defineNuxtPlugin({
+            name: 'sentry-client-config',
+            async setup() {
+              await import("${buildDirResolver.resolve(`/${clientConfigFile}`)}")
+            }
           });`,
       });
 
