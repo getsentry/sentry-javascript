@@ -15,6 +15,8 @@
 
 declare const __SENTRY_BROWSER_BUNDLE__: boolean | undefined;
 
+declare const __SENTRY_SDK_SOURCE__: SdkSource | undefined;
+
 export type SdkSource = 'npm' | 'cdn' | 'loader';
 
 /**
@@ -30,6 +32,5 @@ export function isBrowserBundle(): boolean {
  * Get source of SDK.
  */
 export function getSDKSource(): SdkSource {
-  // @ts-expect-error __SENTRY_SDK_SOURCE__ is injected by rollup during build process
-  return __SENTRY_SDK_SOURCE__;
+  return typeof __SENTRY_SDK_SOURCE__ !== 'undefined' ? __SENTRY_SDK_SOURCE__ : 'npm';
 }
