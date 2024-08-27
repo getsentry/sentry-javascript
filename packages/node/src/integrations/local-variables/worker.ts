@@ -104,9 +104,9 @@ async function handlePaused(
     return;
   }
 
-  const originalErrorStackFrames: StackFrame[] = stackParser(
-    data.description,
-  ).filter((frame) => frame.function !== 'new Promise');
+  const originalErrorStackFrames: StackFrame[] = stackParser(data.description).filter(
+    frame => frame.function !== 'new Promise',
+  );
 
   // Debugger frames being longer than the originalErrorStackFrames means they definitely dont match
   // Debugger callFrames don't include anything beyond an async boundary, so they should be SHORTER or equal to the full error stack
@@ -119,8 +119,7 @@ async function handlePaused(
 
   for (let i = 0; i < callFrames.length; i++) {
     // sentry frames are in reverse order
-    const originalErrorStackFramesIndex =
-      originalErrorStackFrames.length - 1 - i;
+    const originalErrorStackFramesIndex = originalErrorStackFrames.length - 1 - i;
 
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const { scopeChain, functionName, this: obj } = callFrames[i]!;
@@ -130,9 +129,7 @@ async function handlePaused(
     // obj.className is undefined in ESM modules
     const fn = obj.className === 'global' || !obj.className ? functionName : `${obj.className}.${functionName}`;
 
-    if (
-      !functionNamesMatch(fn, originalErrorStackFrames[originalErrorStackFramesIndex]?.function)
-    ) {
+    if (!functionNamesMatch(fn, originalErrorStackFrames[originalErrorStackFramesIndex]?.function)) {
       // If at any point we encounter a function name that doesn't match the original error stack, we stop
       //   this means we are in a re-throw and we don't want to override the error's detected vars from the original throw
       return;
