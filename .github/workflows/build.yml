@@ -127,7 +127,9 @@ jobs:
     runs-on: ubuntu-20.04
     timeout-minutes: 15
     if: |
-      needs.job_get_metadata.outputs.changed_any_code == 'true' &&
+      needs.job_get_metadata.outputs.changed_any_code == 'true' ||
+      needs.job_get_metadata.outputs.is_develop == 'true' ||
+      needs.job_get_metadata.outputs.is_release == 'true' ||
       (needs.job_get_metadata.outputs.is_gitflow_sync == 'false' && needs.job_get_metadata.outputs.has_gitflow_label == 'false')
     steps:
       - name: Check out base commit (${{ github.event.pull_request.base.sha }})
@@ -344,7 +346,7 @@ jobs:
           name: ${{ github.sha }}
           path: |
             ${{ github.workspace }}/packages/browser/build/bundles/**
-            ${{ github.workspace }}/packages/replay/build/bundles/**
+            ${{ github.workspace }}/packages/replay-internal/build/bundles/**
             ${{ github.workspace }}/packages/replay-canvas/build/bundles/**
             ${{ github.workspace }}/packages/feedback/build/bundles/**
             ${{ github.workspace }}/packages/**/*.tgz
@@ -1416,6 +1418,11 @@ jobs:
         with:
           ref: ${{ env.HEAD_COMMIT }}
 
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+
       - name: Restore dependency cache
         uses: actions/cache/restore@v4
         id: restore-dependencies
@@ -1423,23 +1430,16 @@ jobs:
           path: ${{ env.CACHED_DEPENDENCY_PATHS }}
           key: ${{ needs.job_build.outputs.dependency_cache_key }}
           enableCrossOsArchive: true
-          fail-on-cache-miss: true
 
-      - name: Restore build cache
-        uses: actions/cache/restore@v4
-        id: restore-build
-        with:
-          path: ${{ env.CACHED_BUILD_PATHS }}
-          key: ${{ needs.job_build.outputs.dependency_cache_key }}
-          enableCrossOsArchive: true
-          fail-on-cache-miss: true
+      - name: Install dependencies
+        env:
+          SKIP_PLAYWRIGHT_BROWSER_INSTALL: "1"
+        if: steps.restore-dependencies.outputs.cache-hit != 'true'
+        run: yarn install --ignore-engines --frozen-lockfile
 
       - name: Configure safe directory
         run: |
           git config --global --add safe.directory "*"
-
-      - name: Install yarn
-        run: npm i -g yarn@1.22.19 --force
 
       - name: Increase yarn network timeout on Windows
         if: contains(matrix.os, 'windows')
@@ -1451,15 +1451,6 @@ jobs:
         id: python-setup
         with:
           python-version: '3.8.10'
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ matrix.node }}
-
-      - name: Install Dependencies
-        if: steps.restore-dependencies.outputs.cache-hit != 'true'
-        run: yarn install --frozen-lockfile --ignore-engines --ignore-scripts
 
       - name: Setup (arm64| ${{ contains(matrix.container, 'alpine') && 'musl' || 'glibc'  }})
         if: matrix.arch == 'arm64' && !contains(matrix.container, 'alpine') && matrix.target_platform != 'darwin'
