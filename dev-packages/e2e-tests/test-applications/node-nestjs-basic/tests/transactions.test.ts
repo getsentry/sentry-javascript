@@ -538,3 +538,170 @@ test('API route transaction includes exactly one nest interceptor span after rou
   // 'Interceptor - After Route' is NOT the parent of 'test-controller-span'
   expect(testControllerSpan.parent_span_id).not.toBe(exampleInterceptorSpanAfterRouteId);
 });
+
+test('API route transaction includes nest async interceptor spans before route execution. Spans created in and after async interceptor are nested correctly', async ({
+  baseURL,
+}) => {
+  const pageloadTransactionEventPromise = waitForTransaction('node-nestjs-basic', transactionEvent => {
+    return (
+      transactionEvent?.contexts?.trace?.op === 'http.server' &&
+      transactionEvent?.transaction === 'GET /test-async-interceptor-instrumentation'
+    );
+  });
+
+  const response = await fetch(`${baseURL}/test-async-interceptor-instrumentation`);
+  expect(response.status).toBe(200);
+
+  const transactionEvent = await pageloadTransactionEventPromise;
+
+  // check if interceptor spans before route execution exist
+  expect(transactionEvent).toEqual(
+    expect.objectContaining({
+      spans: expect.arrayContaining([
+        {
+          span_id: expect.any(String),
+          trace_id: expect.any(String),
+          data: {
+            'sentry.op': 'middleware.nestjs',
+            'sentry.origin': 'auto.middleware.nestjs',
+          },
+          description: 'AsyncInterceptor',
+          parent_span_id: expect.any(String),
+          start_timestamp: expect.any(Number),
+          timestamp: expect.any(Number),
+          status: 'ok',
+          op: 'middleware.nestjs',
+          origin: 'auto.middleware.nestjs',
+        },
+      ]),
+    }),
+  );
+
+  // get interceptor spans
+  const exampleAsyncInterceptor = transactionEvent.spans.find(span => span.description === 'AsyncInterceptor');
+  const exampleAsyncInterceptorSpanId = exampleAsyncInterceptor?.span_id;
+
+  // check if manually started spans exist
+  expect(transactionEvent).toEqual(
+    expect.objectContaining({
+      spans: expect.arrayContaining([
+        {
+          span_id: expect.any(String),
+          trace_id: expect.any(String),
+          data: expect.any(Object),
+          description: 'test-controller-span',
+          parent_span_id: expect.any(String),
+          start_timestamp: expect.any(Number),
+          timestamp: expect.any(Number),
+          status: 'ok',
+          origin: 'manual',
+        },
+        {
+          span_id: expect.any(String),
+          trace_id: expect.any(String),
+          data: expect.any(Object),
+          description: 'test-async-interceptor-span',
+          parent_span_id: expect.any(String),
+          start_timestamp: expect.any(Number),
+          timestamp: expect.any(Number),
+          status: 'ok',
+          origin: 'manual',
+        },
+      ]),
+    }),
+  );
+
+  // verify correct span parent-child relationships
+  const testAsyncInterceptorSpan = transactionEvent.spans.find(
+    span => span.description === 'test-async-interceptor-span',
+  );
+  const testControllerSpan = transactionEvent.spans.find(span => span.description === 'test-controller-span');
+
+  // 'AsyncInterceptor' is the parent of 'test-async-interceptor-span'
+  expect(testAsyncInterceptorSpan.parent_span_id).toBe(exampleAsyncInterceptorSpanId);
+
+  // 'AsyncInterceptor' is NOT the parent of 'test-controller-span'
+  expect(testControllerSpan.parent_span_id).not.toBe(exampleAsyncInterceptorSpanId);
+});
+
+test('API route transaction includes exactly one nest async interceptor span after route execution. Spans created in controller and in async interceptor are nested correctly', async ({
+  baseURL,
+}) => {
+  const pageloadTransactionEventPromise = waitForTransaction('node-nestjs-basic', transactionEvent => {
+    return (
+      transactionEvent?.contexts?.trace?.op === 'http.server' &&
+      transactionEvent?.transaction === 'GET /test-async-interceptor-instrumentation'
+    );
+  });
+
+  const response = await fetch(`${baseURL}/test-async-interceptor-instrumentation`);
+  expect(response.status).toBe(200);
+
+  const transactionEvent = await pageloadTransactionEventPromise;
+
+  // check if interceptor spans after route execution exist
+  expect(transactionEvent).toEqual(
+    expect.objectContaining({
+      spans: expect.arrayContaining([
+        {
+          span_id: expect.any(String),
+          trace_id: expect.any(String),
+          data: {
+            'sentry.op': 'middleware.nestjs',
+            'sentry.origin': 'auto.middleware.nestjs',
+          },
+          description: 'Interceptor - After Route',
+          parent_span_id: expect.any(String),
+          start_timestamp: expect.any(Number),
+          timestamp: expect.any(Number),
+          status: 'ok',
+          op: 'middleware.nestjs',
+          origin: 'auto.middleware.nestjs',
+        },
+      ]),
+    }),
+  );
+
+  // check that exactly one after route span is sent
+  const allInterceptorSpansAfterRoute = transactionEvent.spans.filter(
+    span => span.description === 'Interceptor - After Route',
+  );
+  expect(allInterceptorSpansAfterRoute.length).toBe(1);
+
+  // get interceptor span
+  const exampleInterceptorSpanAfterRoute = transactionEvent.spans.find(
+    span => span.description === 'Interceptor - After Route',
+  );
+  const exampleInterceptorSpanAfterRouteId = exampleInterceptorSpanAfterRoute?.span_id;
+
+  // check if manually started span in interceptor after route exists
+  expect(transactionEvent).toEqual(
+    expect.objectContaining({
+      spans: expect.arrayContaining([
+        {
+          span_id: expect.any(String),
+          trace_id: expect.any(String),
+          data: expect.any(Object),
+          description: 'test-async-interceptor-span-after-route',
+          parent_span_id: expect.any(String),
+          start_timestamp: expect.any(Number),
+          timestamp: expect.any(Number),
+          status: 'ok',
+          origin: 'manual',
+        },
+      ]),
+    }),
+  );
+
+  // verify correct span parent-child relationships
+  const testInterceptorSpanAfterRoute = transactionEvent.spans.find(
+    span => span.description === 'test-async-interceptor-span-after-route',
+  );
+  const testControllerSpan = transactionEvent.spans.find(span => span.description === 'test-controller-span');
+
+  // 'Interceptor - After Route' is the parent of 'test-interceptor-span-after-route'
+  expect(testInterceptorSpanAfterRoute.parent_span_id).toBe(exampleInterceptorSpanAfterRouteId);
+
+  // 'Interceptor - After Route' is NOT the parent of 'test-controller-span'
+  expect(testControllerSpan.parent_span_id).not.toBe(exampleInterceptorSpanAfterRouteId);
+});
