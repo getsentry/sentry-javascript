@@ -22,6 +22,7 @@ export type ViewModel = {
     propsData?: { [key: string]: any };
     _componentTag?: string;
     __file?: string;
+    __name?: string;
   };
 };
 
