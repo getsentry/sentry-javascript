@@ -34,21 +34,6 @@ env:
     ${{ github.workspace }}/dev-packages/*/node_modules
     ~/.cache/mongodb-binaries/
 
-  # DEPENDENCY_CACHE_KEY: can't be set here because we don't have access to yarn.lock
-
-  # WARNING: this disables cross os caching as ~ and
-  # github.workspace evaluate to differents paths
-  # packages/utils/cjs and packages/utils/esm: Symlinks to the folders inside of `build`, needed for tests
-  CACHED_BUILD_PATHS: |
-    ${{ github.workspace }}/dev-packages/*/build
-    ${{ github.workspace }}/packages/*/build
-    ${{ github.workspace }}/packages/ember/*.d.ts
-    ${{ github.workspace }}/packages/gatsby/*.d.ts
-    ${{ github.workspace }}/packages/core/src/version.ts
-    ${{ github.workspace }}/packages/utils/cjs
-    ${{ github.workspace }}/packages/utils/esm
-
-  BUILD_CACHE_KEY: build-cache-${{ github.event.inputs.commit || github.sha }}
   BUILD_CACHE_TARBALL_KEY: tarball-${{ github.event.inputs.commit || github.sha }}
 
   # GH will use the first restore-key it finds that matches
@@ -58,6 +43,7 @@ env:
     nx-Linux-${{ github.ref }}-${{ github.event.inputs.commit || github.sha }}
     nx-Linux-${{ github.ref }}
     nx-Linux
+  NX_CACHE_SAVE_KEY: nx-Linux-${{ github.ref }}-${{ github.event.inputs.commit || github.sha }}
 
 jobs:
   job_get_metadata:
@@ -83,7 +69,7 @@ jobs:
           echo "COMMIT_SHA=$COMMIT_SHA" >> $GITHUB_ENV
           echo "COMMIT_MESSAGE=$(git log -n 1 --pretty=format:%s $COMMIT_SHA)" >> $GITHUB_ENV
 
-      # Most changed packages are determined in job_build via Nx
+      # Most changed packages are determined in job_check_for_affected_packages via Nx
       # However, for profiling-node we only want to run certain things when in this specific package
       # something changed, not in any of the dependencies (which include core, utils, ...)
       - name: Determine changed packages
@@ -111,47 +97,32 @@ jobs:
       is_release: ${{ startsWith(github.ref, 'refs/heads/release/') }}
       changed_profiling_node: ${{ steps.changed.outputs.profiling_node == 'true' }}
       changed_ci: ${{ steps.changed.outputs.workflow == 'true' }}
-      changed_any_code: ${{ steps.changed.outputs.any_code == 'true' }}
+      allowed_to_use_cache:
+        ${{ (github.event_name != 'pull_request' || contains(steps.pr-labels.outputs.labels, ' ci-skip-cache ')) }} &&
+        ${{ github.ref != 'refs/heads/develop' }} &&
+        ${{ !startsWith(github.ref, 'refs/heads/release/') }}
 
-      # When merging into master, or from master
-      is_gitflow_sync: ${{ github.head_ref == 'master' || github.ref == 'refs/heads/master' }}
-      has_gitflow_label:
-        ${{ github.event_name == 'pull_request' && contains(steps.pr-labels.outputs.labels, ' Gitflow ') }}
-      force_skip_cache:
-        ${{ github.event_name == 'schedule' || (github.event_name == 'pull_request' &&
-        contains(steps.pr-labels.outputs.labels, ' ci-skip-cache ')) }}
-
-  job_build:
-    name: Build
-    needs: job_get_metadata
+  job_check_for_affected_packages:
+    name: Determine Affected Packages
+    needs: [job_get_metadata]
     runs-on: ubuntu-20.04
-    timeout-minutes: 15
-    if: |
-      needs.job_get_metadata.outputs.changed_any_code == 'true' ||
-      needs.job_get_metadata.outputs.is_develop == 'true' ||
-      needs.job_get_metadata.outputs.is_release == 'true' ||
-      (needs.job_get_metadata.outputs.is_gitflow_sync == 'false' && needs.job_get_metadata.outputs.has_gitflow_label == 'false')
     steps:
       - name: Check out base commit (${{ github.event.pull_request.base.sha }})
         uses: actions/checkout@v4
         if: github.event_name == 'pull_request'
         with:
           ref: ${{ github.event.pull_request.base.sha }}
-
       - name: 'Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})'
         uses: actions/checkout@v4
         with:
           ref: ${{ env.HEAD_COMMIT }}
-
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
           node-version-file: 'package.json'
-
       - name: Install Dependencies
         uses: ./.github/actions/install-dependencies
         id: install_dependencies
-
       - name: Check for Affected Nx Projects
         uses: dkhunt27/action-nx-affected-list@v5.3
         id: checkForAffected
@@ -159,35 +130,6 @@ jobs:
         with:
           base: ${{ github.event.pull_request.base.sha }}
           head: ${{ env.HEAD_COMMIT }}
-
-      - name: Check build cache
-        uses: actions/cache@v4
-        id: cache_built_packages
-        with:
-          path: ${{ env.CACHED_BUILD_PATHS }}
-          key: ${{ env.BUILD_CACHE_KEY }}
-
-      - name: NX cache
-        uses: actions/cache@v4
-        # Disable cache when:
-        # - on release branches
-        # - when PR has `ci-skip-cache` label or on nightly builds
-        if: |
-          needs.job_get_metadata.outputs.is_release == 'false' &&
-          needs.job_get_metadata.outputs.force_skip_cache == 'false'
-        with:
-          path: .nxcache
-          key: nx-Linux-${{ github.ref }}-${{ env.HEAD_COMMIT || github.sha }}
-          # On develop branch, we want to _store_ the cache (so it can be used by other branches), but never _restore_ from it
-          restore-keys:
-            ${{needs.job_get_metadata.outputs.is_develop == 'false' && env.NX_CACHE_RESTORE_KEYS || 'nx-never-restore'}}
-
-      - name: Build packages
-        # Set the CODECOV_TOKEN for Bundle Analysis
-        env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-        run: yarn build
-
     outputs:
       dependency_cache_key: ${{ steps.install_dependencies.outputs.cache_key }}
       changed_node_integration: ${{ needs.job_get_metadata.outputs.changed_ci == 'true' || contains(steps.checkForAffected.outputs.affected, '@sentry-internal/node-integration-tests') }}
@@ -230,10 +172,8 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version-file: 'package.json'
-      - name: Restore caches
-        uses: ./.github/actions/restore-cache
-        env:
-          DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
+      - name: Install Dependencies
+        uses: ./.github/actions/install-dependencies
       - name: Check bundle sizes
         uses: ./dev-packages/size-limit-gh-action
         with:
@@ -257,10 +197,13 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version-file: 'package.json'
-      - name: Restore caches
-        uses: ./.github/actions/restore-cache
-        env:
-          DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
+      - name: Install Dependencies
+        uses: ./.github/actions/install-dependencies
+      - name: Restore NX Cache
+        uses: actions/cache/restore@v4
+        with:
+          path: .nxcache
+          restore-keys: ${{ env.NX_CACHE_RESTORE_KEYS }}
       - name: Lint source files
         run: yarn lint:lerna
       - name: Lint C++ files
@@ -276,16 +219,12 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ env.HEAD_COMMIT }}
-
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
           node-version-file: 'package.json'
-
       - name: Install Dependencies
         uses: ./.github/actions/install-dependencies
-        id: install_dependencies
-
       - name: Check file formatting
         run: yarn lint:prettier && yarn lint:biome
 
@@ -303,10 +242,8 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version-file: 'package.json'
-      - name: Restore caches
-        uses: ./.github/actions/restore-cache
-        env:
-          DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
+      - name: Install Dependencies
+        uses: ./.github/actions/install-dependencies
       - name: Run madge
         run: yarn circularDepCheck
 
@@ -325,21 +262,16 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version-file: 'package.json'
-      - name: Restore caches
-        uses: ./.github/actions/restore-cache
-        env:
-          DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
-
+      - name: Install Dependencies
+        uses: ./.github/actions/install-dependencies
       - name: Extract Profiling Node Prebuilt Binaries
         uses: actions/download-artifact@v4
         with:
           pattern: profiling-node-binaries-${{ github.sha }}-*
           path: ${{ github.workspace }}/packages/profiling-node/lib/
           merge-multiple: true
-
       - name: Pack tarballs
         run: yarn build:tarball
-
       - name: Archive artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -363,7 +295,6 @@ jobs:
         if: github.event_name == 'pull_request'
         with:
           ref: ${{ github.event.pull_request.base.sha }}
-
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v4
         with:
@@ -372,19 +303,18 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version-file: 'package.json'
-      - name: Restore caches
-        uses: ./.github/actions/restore-cache
-        env:
-          DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
-
+      - name: Install Dependencies
+        uses: ./.github/actions/install-dependencies
+      - name: Build Packages
+        uses: ./.github/actions/build-monorepo
+        with:
+          skip-cache-restore: ${{ needs.job_get_metadata.outputs.changed_ci == 'true' }}
       - name: Run affected tests
         run: yarn test:pr:browser --base=${{ github.event.pull_request.base.sha }}
         if: github.event_name == 'pull_request'
-
       - name: Run all tests
         run: yarn test:ci:browser
         if: github.event_name != 'pull_request'
-
       - name: Compute test coverage
         uses: codecov/codecov-action@v4
         with:
@@ -392,8 +322,8 @@ jobs:
 
   job_bun_unit_tests:
     name: Bun Unit Tests
-    needs: [job_get_metadata, job_build]
-    if: needs.job_build.outputs.changed_bun == 'true' || github.event_name != 'pull_request'
+    needs: [job_get_metadata, job_build, job_check_for_affected_packages]
+    if: needs.job_check_for_affected_packages.outputs.changed_bun == 'true' || github.event_name != 'pull_request'
     timeout-minutes: 10
     runs-on: ubuntu-20.04
     strategy:
@@ -409,18 +339,20 @@ jobs:
           node-version-file: 'package.json'
       - name: Set up Bun
         uses: oven-sh/setup-bun@v2
-      - name: Restore caches
-        uses: ./.github/actions/restore-cache
-        env:
-          DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
+      - name: Install Dependencies
+        uses: ./.github/actions/install-dependencies
+      - name: Build Packages
+        uses: ./.github/actions/build-monorepo
+        with:
+          skip-cache-restore: ${{ needs.job_get_metadata.outputs.changed_ci == 'true' }}
       - name: Run tests
         run: |
           yarn test:ci:bun
 
   job_deno_unit_tests:
     name: Deno Unit Tests
-    needs: [job_get_metadata, job_build]
-    if: needs.job_build.outputs.changed_deno == 'true' || github.event_name != 'pull_request'
+    needs: [job_get_metadata, job_build, job_check_for_affected_packages]
+    if: needs.job_check_for_affected_packages.changed_deno == 'true' || github.event_name != 'pull_request'
     timeout-minutes: 10
     runs-on: ubuntu-20.04
     strategy:
@@ -438,10 +370,12 @@ jobs:
         uses: denoland/setup-deno@v1.1.4
         with:
           deno-version: v1.38.5
-      - name: Restore caches
-        uses: ./.github/actions/restore-cache
-        env:
-          DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
+      - name: Install Dependencies
+        uses: ./.github/actions/install-dependencies
+      - name: Build Packages
+        uses: ./.github/actions/build-monorepo
+        with:
+          skip-cache-restore: ${{ needs.job_get_metadata.outputs.changed_ci == 'true' }}
       - name: Run tests
         run: |
           cd packages/deno
@@ -471,23 +405,22 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
-      - name: Restore caches
-        uses: ./.github/actions/restore-cache
-        env:
-          DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
-
+      - name: Install Dependencies
+        uses: ./.github/actions/install-dependencies
+      - name: Build Packages
+        uses: ./.github/actions/build-monorepo
+        with:
+          skip-cache-restore: ${{ needs.job_get_metadata.outputs.changed_ci == 'true' }}
       - name: Run affected tests
         run: yarn test:pr:node --base=${{ github.event.pull_request.base.sha }}
         if: github.event_name == 'pull_request'
         env:
           NODE_VERSION: ${{ matrix.node }}
-
       - name: Run all tests
         run: yarn test:ci:node
         if: github.event_name != 'pull_request'
         env:
           NODE_VERSION: ${{ matrix.node }}
-
       - name: Compute test coverage
         uses: codecov/codecov-action@v4
         with:
@@ -495,8 +428,8 @@ jobs:
 
   job_profiling_node_unit_tests:
     name: Node Profiling Unit Tests
-    needs: [job_get_metadata, job_build]
-    if: needs.job_build.outputs.changed_node == 'true' || needs.job_get_metadata.outputs.changed_profiling_node == 'true' || github.event_name != 'pull_request'
+    needs: [job_get_metadata, job_build, job_check_for_affected_packages]
+    if: needs.job_check_for_affected_packages.outputs.changed_node == 'true' || needs.job_get_metadata.outputs.changed_profiling_node == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -510,10 +443,12 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11.7'
-      - name: Restore caches
-        uses: ./.github/actions/restore-cache
-        env:
-          DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
+      - name: Install Dependencies
+        uses: ./.github/actions/install-dependencies
+      - name: Build Packages
+        uses: ./.github/actions/build-monorepo
+        with:
+          skip-cache-restore: ${{ needs.job_get_metadata.outputs.changed_ci == 'true' }}
       - name: Build Configure node-gyp
         run: yarn lerna run build:bindings:configure --scope @sentry/profiling-node
       - name: Build Bindings for Current Environment
@@ -523,8 +458,8 @@ jobs:
 
   job_browser_playwright_tests:
     name: Playwright ${{ matrix.bundle }}${{ matrix.project && matrix.project != 'chromium' && format(' {0}', matrix.project) || ''}}${{ matrix.shard && format(' ({0}/{1})', matrix.shard, matrix.shards) || ''}} Tests
-    needs: [job_get_metadata, job_build]
-    if: needs.job_build.outputs.changed_browser_integration == 'true' || github.event_name != 'pull_request'
+    needs: [job_get_metadata, job_build, job_check_for_affected_packages]
+    if: needs.job_check_for_affected_packages.outputs.changed_browser_integration == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-20.04-large-js
     timeout-minutes: 25
     strategy:
@@ -578,22 +513,21 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version-file: 'package.json'
-      - name: Restore caches
-        uses: ./.github/actions/restore-cache
-        env:
-          DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
-
+      - name: Install Dependencies
+        uses: ./.github/actions/install-dependencies
       - name: Install Playwright
         uses: ./.github/actions/install-playwright
         with:
           browsers: ${{ matrix.project }}
-
+      - name: Build Packages
+        uses: ./.github/actions/build-monorepo
+        with:
+          skip-cache-restore: ${{ needs.job_get_metadata.outputs.changed_ci == 'true' }}
       - name: Run Playwright tests
         env:
           PW_BUNDLE: ${{ matrix.bundle }}
         working-directory: dev-packages/browser-integration-tests
         run: yarn test:ci${{ matrix.project && format(' --project={0}', matrix.project) || '' }}${{ matrix.shard && format(' --shard={0}/{1}', matrix.shard, matrix.shards) || '' }}
-
       - name: Upload Playwright Traces
         uses: actions/upload-artifact@v3
         if: always()
@@ -603,8 +537,8 @@ jobs:
 
   job_browser_loader_tests:
     name: PW ${{ matrix.bundle }} Tests
-    needs: [job_get_metadata, job_build]
-    if: needs.job_build.outputs.changed_browser_integration == 'true' || github.event_name != 'pull_request'
+    needs: [job_get_metadata, job_build, job_check_for_affected_packages]
+    if: needs.job_check_for_affected_packages.outputs.changed_browser_integration == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-20.04
     timeout-minutes: 15
     strategy:
@@ -618,7 +552,6 @@ jobs:
           - loader_replay
           - loader_replay_buffer
           - loader_tracing_replay
-
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v4
@@ -628,16 +561,16 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version-file: 'package.json'
-      - name: Restore caches
-        uses: ./.github/actions/restore-cache
-        env:
-          DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
-
+      - name: Install Dependencies
+        uses: ./.github/actions/install-dependencies
       - name: Install Playwright
         uses: ./.github/actions/install-playwright
         with:
           browsers: chromium
-
+      - name: Build Packages
+        uses: ./.github/actions/build-monorepo
+        with:
+          skip-cache-restore: ${{ needs.job_get_metadata.outputs.changed_ci == 'true' }}
       - name: Run Playwright Loader tests
         env:
           PW_BUNDLE: ${{ matrix.bundle }}
@@ -665,10 +598,12 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version-file: 'package.json'
-      - name: Restore caches
-        uses: ./.github/actions/restore-cache
-        env:
-          DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
+      - name: Install Dependencies
+        uses: ./.github/actions/install-dependencies
+      - name: Build Packages
+        uses: ./.github/actions/build-monorepo
+        with:
+          skip-cache-restore: ${{ needs.job_get_metadata.outputs.changed_ci == 'true' }}
       - name: Check for dts files that reference stuff in the temporary build folder
         run: |
           if grep -r --include "*.d.ts" --exclude-dir ".nxcache" 'import("@sentry(-internal)?/[^/]*/build' .; then
@@ -680,8 +615,8 @@ jobs:
     name:
       Node (${{ matrix.node }})${{ (matrix.typescript && format(' (TS {0})', matrix.typescript)) || '' }} Integration
       Tests
-    needs: [job_get_metadata, job_build]
-    if: needs.job_build.outputs.changed_node_integration == 'true' || github.event_name != 'pull_request'
+    needs: [job_get_metadata, job_build, job_check_for_affected_packages]
+    if: needs.job_check_for_affected_packages.outputs.changed_node_integration == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-20.04
     timeout-minutes: 15
     strategy:
@@ -703,16 +638,16 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
-      - name: Restore caches
-        uses: ./.github/actions/restore-cache
-        env:
-          DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
-
+      - name: Install Dependencies
+        uses: ./.github/actions/install-dependencies
       - name: Overwrite typescript version
         if: matrix.typescript
         run: node ./scripts/use-ts-version.js ${{ matrix.typescript }}
         working-directory: dev-packages/node-integration-tests
-
+      - name: Build Packages
+        uses: ./.github/actions/build-monorepo
+        with:
+          skip-cache-restore: ${{ needs.job_get_metadata.outputs.changed_ci == 'true' }}
       - name: Run integration tests
         env:
           NODE_VERSION: ${{ matrix.node }}
@@ -722,8 +657,8 @@ jobs:
 
   job_remix_integration_tests:
     name: Remix v${{ matrix.remix }} (Node ${{ matrix.node }}) Tests
-    needs: [job_get_metadata, job_build]
-    if: needs.job_build.outputs.changed_remix == 'true' || github.event_name != 'pull_request'
+    needs: [job_get_metadata, job_build, job_check_for_affected_packages]
+    if: needs.job_check_for_affected_packages.outputs.changed_remix == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-20.04
     timeout-minutes: 10
     strategy:
@@ -744,16 +679,16 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
-      - name: Restore caches
-        uses: ./.github/actions/restore-cache
-        env:
-          DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
-
+      - name: Install Dependencies
+        uses: ./.github/actions/install-dependencies
       - name: Install Playwright
         uses: ./.github/actions/install-playwright
         with:
           browsers: chromium
-
+      - name: Build Packages
+        uses: ./.github/actions/build-monorepo
+        with:
+          skip-cache-restore: ${{ needs.job_get_metadata.outputs.changed_ci == 'true' }}
       - name: Run integration tests
         env:
           NODE_VERSION: ${{ matrix.node }}
@@ -782,26 +717,18 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version-file: 'package.json'
-      - name: Restore caches
-        uses: ./.github/actions/restore-cache
-        env:
-          DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
-      - name: NX cache
-        uses: actions/cache/restore@v4
+      - name: Install Dependencies
+        uses: ./.github/actions/install-dependencies
+      - name: Build Packages
+        uses: ./.github/actions/build-monorepo
         with:
-          path: .nxcache
-          key: nx-Linux-${{ github.ref }}-${{ env.HEAD_COMMIT }}
-          # On develop branch, we want to _store_ the cache (so it can be used by other branches), but never _restore_ from it
-          restore-keys: ${{ env.NX_CACHE_RESTORE_KEYS }}
-
-      # Rebuild profiling by compiling TS and pull the precompiled binary artifacts
+          skip-cache-restore: ${{ needs.job_get_metadata.outputs.changed_ci == 'true' }}
       - name: Build Profiling Node
         if: |
           (needs.job_get_metadata.outputs.changed_profiling_node == 'true') ||
           (needs.job_get_metadata.outputs.is_release == 'true') ||
           (github.event_name != 'pull_request')
         run: yarn lerna run build:lib --scope @sentry/profiling-node
-
       - name: Extract Profiling Node Prebuilt Binaries
         if: |
           (needs.job_get_metadata.outputs.changed_profiling_node == 'true') ||
@@ -812,11 +739,8 @@ jobs:
           pattern: profiling-node-binaries-${{ github.sha }}-*
           path: ${{ github.workspace }}/packages/profiling-node/lib/
           merge-multiple: true
-      # End rebuild profiling
-
       - name: Build tarballs
         run: yarn build:tarball
-
       - name: Stores tarballs in cache
         uses: actions/cache/save@v4
         with:
@@ -944,43 +868,38 @@ jobs:
       - name: Set up Bun
         if: matrix.test-application == 'node-exports-test-app'
         uses: oven-sh/setup-bun@v2
-      - name: Restore caches
-        uses: ./.github/actions/restore-cache
-        env:
-          DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
-
+      - name: Install Dependencies
+        uses: ./.github/actions/install-dependencies
+      - name: Build Packages
+        uses: ./.github/actions/build-monorepo
+        with:
+          skip-cache-restore: ${{ needs.job_get_metadata.outputs.changed_ci == 'true' }}
       - name: Restore tarball cache
         uses: actions/cache/restore@v4
         with:
           path: ${{ github.workspace }}/packages/*/*.tgz
           key: ${{ env.BUILD_CACHE_TARBALL_KEY }}
           fail-on-cache-miss: true
-
       - name: Install Playwright
         uses: ./.github/actions/install-playwright
         with:
           browsers: chromium
-
       - name: Get node version
         id: versions
         run: |
           echo "echo node=$(jq -r '.volta.node' dev-packages/e2e-tests/package.json)" >> $GITHUB_OUTPUT
-
       - name: Validate Verdaccio
         run: yarn test:validate
         working-directory: dev-packages/e2e-tests
-
       - name: Prepare Verdaccio
         run: yarn test:prepare
         working-directory: dev-packages/e2e-tests
         env:
           E2E_TEST_PUBLISH_SCRIPT_NODE_VERSION: ${{ steps.versions.outputs.node }}
-
       - name: Build E2E app
         working-directory: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
         timeout-minutes: 5
         run: pnpm ${{ matrix.build-command || 'test:build' }}
-
       - name: Run E2E test
         working-directory: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
         timeout-minutes: 5
@@ -1044,48 +963,42 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version-file: 'dev-packages/e2e-tests/package.json'
-      - name: Restore caches
-        uses: ./.github/actions/restore-cache
-        env:
-          DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
-
+      - name: Install Dependencies
+        uses: ./.github/actions/install-dependencies
+      - name: Build Packages
+        uses: ./.github/actions/build-monorepo
+        with:
+          skip-cache-restore: ${{ needs.job_get_metadata.outputs.changed_ci == 'true' }}
       - name: Restore tarball cache
         uses: actions/cache/restore@v4
         with:
           path: ${{ github.workspace }}/packages/*/*.tgz
           key: ${{ env.BUILD_CACHE_TARBALL_KEY }}
           fail-on-cache-miss: true
-
       - name: Install Playwright
         uses: ./.github/actions/install-playwright
         with:
           browsers: chromium
-
       - name: Get node version
         id: versions
         run: |
           echo "echo node=$(jq -r '.volta.node' dev-packages/e2e-tests/package.json)" >> $GITHUB_OUTPUT
-
       - name: Validate Verdaccio
         run: yarn test:validate
         working-directory: dev-packages/e2e-tests
-
       - name: Prepare Verdaccio
         run: yarn test:prepare
         working-directory: dev-packages/e2e-tests
         env:
           E2E_TEST_PUBLISH_SCRIPT_NODE_VERSION: ${{ steps.versions.outputs.node }}
-
       - name: Build E2E app
         working-directory: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
         timeout-minutes: 5
         run: pnpm ${{ matrix.build-command || 'test:build' }}
-
       - name: Run E2E test
         working-directory: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
         timeout-minutes: 5
         run: pnpm ${{ matrix.assert-command || 'test:assert' }}
-
       - name: Deploy Astro to Cloudflare
         uses: cloudflare/pages-action@v1
         if: matrix.test-application == 'cloudflare-astro'
@@ -1139,10 +1052,12 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version-file: 'dev-packages/e2e-tests/package.json'
-      - name: Restore caches
-        uses: ./.github/actions/restore-cache
-        env:
-          DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
+      - name: Install Dependencies
+        uses: ./.github/actions/install-dependencies
+      - name: Build Packages
+        uses: ./.github/actions/build-monorepo
+        with:
+          skip-cache-restore: ${{ needs.job_get_metadata.outputs.changed_ci == 'true' }}
       - name: Build Profiling Node
         run: yarn lerna run build:lib --scope @sentry/profiling-node
       - name: Extract Profiling Node Prebuilt Binaries
@@ -1235,15 +1150,15 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version-file: 'package.json'
-      - name: Restore caches
-        uses: ./.github/actions/restore-cache
-        env:
-          DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
-
+      - name: Install Dependencies
+        uses: ./.github/actions/install-dependencies
+      - name: Build Packages
+        uses: ./.github/actions/build-monorepo
+        with:
+          skip-cache-restore: ${{ needs.job_get_metadata.outputs.changed_ci == 'true' }}
       - name: Collect
         run: yarn ci:collect
         working-directory: dev-packages/overhead-metrics
-
       - name: Process
         id: process
         run: yarn ci:process
@@ -1252,7 +1167,6 @@ jobs:
         if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
         env:
           GITHUB_TOKEN: ${{ github.token }}
-
       - name: Upload results
         uses: actions/upload-artifact@v4
         if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
@@ -1423,19 +1337,10 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
 
-      - name: Restore dependency cache
-        uses: actions/cache/restore@v4
-        id: restore-dependencies
-        with:
-          path: ${{ env.CACHED_DEPENDENCY_PATHS }}
-          key: ${{ needs.job_build.outputs.dependency_cache_key }}
-          enableCrossOsArchive: true
-
-      - name: Install dependencies
+      - name: Install Dependencies
         env:
           SKIP_PLAYWRIGHT_BROWSER_INSTALL: "1"
-        if: steps.restore-dependencies.outputs.cache-hit != 'true'
-        run: yarn install --ignore-engines --frozen-lockfile
+        uses: ./.github/actions/install-dependencies
 
       - name: Configure safe directory
         run: |
