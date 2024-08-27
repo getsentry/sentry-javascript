@@ -2,7 +2,7 @@ import { conditionalTest } from '../../../../utils';
 import { createRunner } from '../../../../utils/runner';
 import { createTestServer } from '../../../../utils/server';
 
-conditionalTest({ min: 18 })('outgoing fetch', () => {
+conditionalTest({ min: 16 })('outgoing fetch', () => {
   test('outgoing fetch requests are correctly instrumented when not sampled', done => {
     expect.assertions(11);
 

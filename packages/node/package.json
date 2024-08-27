@@ -79,12 +79,13 @@
     "@opentelemetry/instrumentation-ioredis": "0.42.0",
     "@opentelemetry/instrumentation-koa": "0.42.0",
     "@opentelemetry/instrumentation-mongodb": "0.46.0",
-    "@opentelemetry/instrumentation-mongoose": "0.40.0",
+    "@opentelemetry/instrumentation-mongoose": "0.41.0",
     "@opentelemetry/instrumentation-mysql": "0.40.0",
     "@opentelemetry/instrumentation-mysql2": "0.40.0",
     "@opentelemetry/instrumentation-nestjs-core": "0.39.0",
     "@opentelemetry/instrumentation-pg": "0.43.0",
     "@opentelemetry/instrumentation-redis-4": "0.41.0",
+    "@opentelemetry/instrumentation-undici": "0.5.0",
     "@opentelemetry/resources": "^1.25.1",
     "@opentelemetry/sdk-trace-base": "^1.25.1",
     "@opentelemetry/semantic-conventions": "^1.25.1",
@@ -97,9 +98,6 @@
   },
   "devDependencies": {
     "@types/node": "^14.18.0"
-  },
-  "optionalDependencies": {
-    "opentelemetry-instrumentation-fetch-node": "1.2.3"
   },
   "scripts": {
     "build": "run-p build:transpile build:types",
