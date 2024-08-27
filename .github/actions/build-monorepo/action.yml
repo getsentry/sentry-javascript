@@ -1,0 +1,34 @@
+name: "Build"
+description: "Builds the monorepo."
+
+inputs:
+  skip-cache-restore:
+    description: 'Whether to skip restoring the cache.'
+    default: 'false'
+
+runs:
+  using: "composite"
+  steps:
+    - name: Restore NX cache
+      uses: actions/cache/restore@v4
+      # Disable cache when:
+      # - on develop
+      # - on release branches
+      # - when PR has `ci-skip-cache`
+      if: ${{ inputs.skip-cache-restore }} == 'false'
+      with:
+        path: .nxcache
+        # On develop branch, we want to _store_ the cache (so it can be used by other branches), but never _restore_ from it
+        restore-keys: ${{ env.NX_CACHE_RESTORE_KEYS }}
+
+    - name: Build packages
+      # Set the CODECOV_TOKEN for Bundle Analysis
+      env:
+        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+      run: yarn build
+
+    - name: Save NX cache
+      uses: actions/cache/save@v4
+      with:
+        path: .nxcache
+        key: ${{ env.NX_CACHE_SAVE_KEY }}
