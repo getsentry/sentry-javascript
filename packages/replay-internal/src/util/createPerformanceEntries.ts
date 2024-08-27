@@ -207,19 +207,21 @@ function isLayoutShift(entry: PerformanceEntry | LayoutShift): entry is LayoutSh
  */
 export function getCumulativeLayoutShift(metric: Metric): ReplayPerformanceEntry<WebVitalData> {
   const layoutShifts: Attribution[] = [];
+  const allNodes: Node[] = [];
   for (const entry of metric.entries) {
     if (isLayoutShift(entry)) {
       const nodeIds = [];
       for (const source of entry.sources) {
         const nodeId = record.mirror.getId(source.node);
-        if (nodeId) {
+        if (source.node && nodeId) {
           nodeIds.push(nodeId);
+          allNodes.push(source.node);
         }
       }
       layoutShifts.push({ value: entry.value, nodeIds });
     }
   }
-  return getWebVital(metric, 'cumulative-layout-shift', undefined, layoutShifts);
+  return getWebVital(metric, 'cumulative-layout-shift', allNodes, layoutShifts);
 }
 
 /**
