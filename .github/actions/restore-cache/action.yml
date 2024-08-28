@@ -6,7 +6,7 @@ inputs:
     description: "The dependency cache key"
     required: true
   node_version:
-    description: "If set, temporarily set node version to 18 before installing, then revert to this version after."
+    description: "If set, temporarily set node version to default one before installing, then revert to this version after."
     required: false
 
 runs:
@@ -26,7 +26,7 @@ runs:
           name: build-output
 
       - name: Set node version
-        if: inputs.node_version
+        if: inputs.node_version && steps.dep-cache.outputs.cache-hit != 'true'
         uses: actions/setup-node@v4
         with:
           node-version-file: 'package.json'
@@ -37,7 +37,7 @@ runs:
         shell: bash
 
       - name: Revert node version
-        if: inputs.node_version
+        if: inputs.node_version && steps.dep-cache.outputs.cache-hit != 'true'
         uses: actions/setup-node@v4
         with:
           node-version: ${{ inputs.node_version }}
