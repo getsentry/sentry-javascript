@@ -96,7 +96,7 @@ Add a `sentry.client.config.(js|ts)` file to the root of your project:
 import * as Sentry from '@sentry/nuxt';
 
 Sentry.init({
-  dsn: env.DSN,
+  dsn: process.env.DSN,
 });
 ```
 
