@@ -47,18 +47,17 @@ export function makeFetchTransport(
     }
 
     try {
-      return suppressTracing(() => {
-        return nativeFetch(options.url, requestOptions).then(response => {
-          pendingBodySize -= requestSize;
-          pendingCount--;
-          return {
-            statusCode: response.status,
-            headers: {
-              'x-sentry-rate-limits': response.headers.get('X-Sentry-Rate-Limits'),
-              'retry-after': response.headers.get('Retry-After'),
-            },
-          };
-        });
+      // TODO: This may need a `suppresTracing` call in the future when we switch the browser SDK to OTEL
+      return nativeFetch(options.url, requestOptions).then(response => {
+        pendingBodySize -= requestSize;
+        pendingCount--;
+        return {
+          statusCode: response.status,
+          headers: {
+            'x-sentry-rate-limits': response.headers.get('X-Sentry-Rate-Limits'),
+            'retry-after': response.headers.get('Retry-After'),
+          },
+        };
       });
     } catch (e) {
       clearCachedImplementation('fetch');
