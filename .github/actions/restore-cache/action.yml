@@ -1,6 +1,11 @@
 name: "Restore dependency & build cache"
 description: "Restore the dependency & build cache."
 
+inputs:
+  dependency_cache_key:
+    description: "The dependency cache key"
+    required: true
+
 runs:
   using: "composite"
   steps:
@@ -10,7 +15,7 @@ runs:
         if: true == false
         with:
           path: ${{ env.CACHED_DEPENDENCY_PATHS }}
-          key: ${{ env.DEPENDENCY_CACHE_KEY }}
+          key: ${{ inputs.dependency_cache_key }}
 
       - name: Restore build artifacts
         uses: actions/download-artifact@v4
