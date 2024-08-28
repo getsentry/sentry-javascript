@@ -11,15 +11,13 @@ runs:
           path: ${{ env.CACHED_DEPENDENCY_PATHS }}
           key: ${{ env.DEPENDENCY_CACHE_KEY }}
 
-      - name: Check build cache
-        uses: actions/cache/restore@v4
-        id: build-cache
+      - name: Restore build artifacts
+        uses: actions/download-artifact@v4
         with:
-          path: ${{ env.CACHED_BUILD_PATHS }}
-          key: ${{ env.BUILD_CACHE_KEY }}
+          name: build-output
 
       - name: Check if caches are restored
         uses: actions/github-script@v6
-        if: steps.dep-cache.outputs.cache-hit != 'true' || steps.build-cache.outputs.cache-hit != 'true'
+        if: steps.dep-cache.outputs.cache-hit != 'true'
         with:
-          script: core.setFailed('Dependency or build cache could not be restored - please re-run ALL jobs.')
+          script: core.setFailed('Dependency cache could not be restored - please re-run ALL jobs.')

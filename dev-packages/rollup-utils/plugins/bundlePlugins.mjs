@@ -116,6 +116,8 @@ export function makeTerserPlugin() {
           '_integrations',
           // _meta is used to store metadata of replay network events
           '_meta',
+          // We store SDK metadata in the options
+          '_metadata',
           // Object we inject debug IDs into with bundler plugins
           '_sentryDebugIds',
           // These are used by instrument.ts in utils for identifying HTML elements & events
