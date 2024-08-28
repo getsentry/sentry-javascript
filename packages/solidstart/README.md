@@ -159,8 +159,8 @@ render(
 
 ## Uploading Source Maps
 
-To upload source maps, add the `sentrySolidStartVite` plugin from `@sentry/solidstart` to your `app.config.ts` and configure
-an auth token. Auth tokens can be passed to the plugin explicitly with the `authToken` option, with a
+To upload source maps, add the `sentrySolidStartVite` plugin from `@sentry/solidstart` to your `app.config.ts` and
+configure an auth token. Auth tokens can be passed to the plugin explicitly with the `authToken` option, with a
 `SENTRY_AUTH_TOKEN` environment variable, or with an `.env.sentry-build-plugin` file in the working directory when
 building your project. We recommend you add the auth token to your CI/CD environment as an environment variable.
 
