@@ -20,6 +20,10 @@ declare module 'node:inspector/promises' {
       method: 'Runtime.getProperties',
       params: Runtime.GetPropertiesParameterType,
     ): Promise<Runtime.GetPropertiesReturnType>;
+    public post(
+      method: 'Runtime.callFunctionOn',
+      params: Runtime.CallFunctionOnParameterType,
+    ): Promise<Runtime.CallFunctionOnReturnType>;
 
     public on(
       event: 'Debugger.paused',

@@ -1,15 +1,11 @@
 import type { Debugger, InspectorNotification, Runtime } from 'node:inspector';
 import { Session } from 'node:inspector/promises';
 import { parentPort, workerData } from 'node:worker_threads';
-import type { StackParser } from '@sentry/types';
-import { createStackParser, nodeStackLineParser } from '@sentry/utils';
-import { createGetModuleFromFilename } from '../../utils/module';
 import type { LocalVariablesWorkerArgs, PausedExceptionEvent, RateLimitIncrement, Variables } from './common';
-import { createRateLimiter, hashFromStack } from './common';
+import { LOCAL_VARIABLES_KEY } from './common';
+import { createRateLimiter } from './common';
 
 const options: LocalVariablesWorkerArgs = workerData;
-
-const stackParser = createStackParser(nodeStackLineParser(createGetModuleFromFilename(options.basePath)));
 
 function log(...args: unknown[]): void {
   if (options.debug) {
@@ -86,11 +82,7 @@ async function getLocalVariables(session: Session, objectId: string): Promise<Va
 
 let rateLimiter: RateLimitIncrement | undefined;
 
-async function handlePaused(
-  session: Session,
-  stackParser: StackParser,
-  { reason, data, callFrames }: PausedExceptionEvent,
-): Promise<void> {
+async function handlePaused(session: Session, { reason, data, callFrames }: PausedExceptionEvent): Promise<void> {
   if (reason !== 'exception' && reason !== 'promiseRejection') {
     return;
   }
@@ -98,9 +90,9 @@ async function handlePaused(
   rateLimiter?.();
 
   // data.description contains the original error.stack
-  const exceptionHash = hashFromStack(stackParser, data?.description);
+  const objectId = data?.objectId;
 
-  if (exceptionHash == undefined) {
+  if (objectId == undefined) {
     return;
   }
 
@@ -123,7 +115,12 @@ async function handlePaused(
     }
   }
 
-  parentPort?.postMessage({ exceptionHash, frames });
+  await session.post('Runtime.callFunctionOn', {
+    functionDeclaration: `function() { this.${LOCAL_VARIABLES_KEY} = ${JSON.stringify(frames)}; }`,
+    objectId,
+  });
+
+  parentPort?.postMessage({ objectId, frames });
 }
 
 async function startDebugger(): Promise<void> {
@@ -141,7 +138,7 @@ async function startDebugger(): Promise<void> {
   session.on('Debugger.paused', (event: InspectorNotification<Debugger.PausedEventDataType>) => {
     isPaused = true;
 
-    handlePaused(session, stackParser, event.params as PausedExceptionEvent).then(
+    handlePaused(session, event.params as PausedExceptionEvent).then(
       () => {
         // After the pause work is complete, resume execution!
         return isPaused ? session.post('Debugger.resume') : Promise.resolve();
