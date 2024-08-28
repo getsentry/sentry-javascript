@@ -7,6 +7,7 @@ runs:
       - name: Check dependency cache
         id: dep-cache
         uses: actions/cache/restore@v4
+        if: true == false
         with:
           path: ${{ env.CACHED_DEPENDENCY_PATHS }}
           key: ${{ env.DEPENDENCY_CACHE_KEY }}
@@ -16,8 +17,7 @@ runs:
         with:
           name: build-output
 
-      - name: Check if caches are restored
-        uses: actions/github-script@v6
+      - name: Install dependencies
         if: steps.dep-cache.outputs.cache-hit != 'true'
-        with:
-          script: core.setFailed('Dependency cache could not be restored - please re-run ALL jobs.')
+        run: yarn install --ignore-engines --frozen-lockfile
+        shell: bash
