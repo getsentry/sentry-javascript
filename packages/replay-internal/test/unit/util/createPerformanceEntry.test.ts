@@ -83,7 +83,7 @@ describe('Unit | util | createPerformanceEntries', () => {
         name: 'largest-contentful-paint',
         start: 1672531205.108299,
         end: 1672531205.108299,
-        data: { value: 5108.299, rating: 'good', size: 5108.299, nodeIds: undefined },
+        data: { value: 5108.299, rating: 'good', size: 5108.299, nodeIds: undefined, attributions: undefined },
       });
     });
   });
@@ -103,7 +103,7 @@ describe('Unit | util | createPerformanceEntries', () => {
         name: 'cumulative-layout-shift',
         start: 1672531205.108299,
         end: 1672531205.108299,
-        data: { value: 5108.299, size: 5108.299, rating: 'good', nodeIds: [] },
+        data: { value: 5108.299, size: 5108.299, rating: 'good', nodeIds: [], attributions: [] },
       });
     });
   });
@@ -123,7 +123,7 @@ describe('Unit | util | createPerformanceEntries', () => {
         name: 'first-input-delay',
         start: 1672531205.108299,
         end: 1672531205.108299,
-        data: { value: 5108.299, size: 5108.299, rating: 'good', nodeIds: undefined },
+        data: { value: 5108.299, size: 5108.299, rating: 'good', nodeIds: undefined, attributions: undefined },
       });
     });
   });
@@ -143,7 +143,7 @@ describe('Unit | util | createPerformanceEntries', () => {
         name: 'interaction-to-next-paint',
         start: 1672531205.108299,
         end: 1672531205.108299,
-        data: { value: 5108.299, size: 5108.299, rating: 'good', nodeIds: undefined },
+        data: { value: 5108.299, size: 5108.299, rating: 'good', nodeIds: undefined, attributions: undefined },
       });
     });
   });
