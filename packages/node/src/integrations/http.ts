@@ -9,7 +9,6 @@ import {
   getCapturedScopesOnSpan,
   getCurrentScope,
   getIsolationScope,
-  isSentryRequestUrl,
   setCapturedScopesOnSpan,
 } from '@sentry/core';
 import { getClient } from '@sentry/opentelemetry';
@@ -100,10 +99,6 @@ export const instrumentHttp = Object.assign(
 
         if (!url) {
           return false;
-        }
-
-        if (isSentryRequestUrl(url, getClient())) {
-          return true;
         }
 
         const _ignoreOutgoingRequests = _httpOptions.ignoreOutgoingRequests;
