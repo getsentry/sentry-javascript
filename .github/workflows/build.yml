@@ -599,7 +599,7 @@ jobs:
 
       - name: Upload Playwright Traces
         uses: actions/upload-artifact@v4
-        if: always()
+        if: failure()
         with:
           name: playwright-traces-job_browser_playwright_tests-${{ matrix.bundle}}-${{matrix.project}}-${{matrix.shard || '0'}}
           path: dev-packages/browser-integration-tests/test-results
@@ -651,7 +651,7 @@ jobs:
           yarn test:loader
       - name: Upload Playwright Traces
         uses: actions/upload-artifact@v4
-        if: always()
+        if: failure()
         with:
           name: playwright-traces-job_browser_loader_tests-${{ matrix.bundle}}
           path: dev-packages/browser-integration-tests/test-results
