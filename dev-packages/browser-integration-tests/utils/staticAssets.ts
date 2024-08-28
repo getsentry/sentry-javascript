@@ -23,5 +23,10 @@ export function addStaticAsset(localOutPath: string, fileName: string, cb: () =>
 }
 
 export function symlinkAsset(originalPath: string, targetPath: string): void {
-  fs.linkSync(originalPath, targetPath);
+  try {
+    fs.linkSync(originalPath, targetPath);
+  } catch {
+    // ignore errors here, probably means the file already exists
+    // Since we always build into a new directory for each test, we can safely ignore this
+  }
 }
