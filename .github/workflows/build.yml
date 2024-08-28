@@ -600,7 +600,7 @@ jobs:
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: playwright-traces
+          name: playwright-traces-job_browser_playwright_tests
           path: dev-packages/browser-integration-tests/test-results
           overwrite: true
 
@@ -651,7 +651,7 @@ jobs:
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: playwright-traces
+          name: playwright-traces-job_browser_loader_tests
           path: dev-packages/browser-integration-tests/test-results
           overwrite: true
 
