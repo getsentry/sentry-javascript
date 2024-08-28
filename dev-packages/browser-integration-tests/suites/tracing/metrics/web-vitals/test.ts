@@ -58,3 +58,24 @@ sentryTest('paint web vitals values are greater than TTFB', async ({ browserName
   expect(fcpValue).toBeGreaterThanOrEqual(ttfbValue!);
   expect(fpValue).toBeGreaterThanOrEqual(ttfbValue!);
 });
+
+sentryTest('captures time origin as span attribute', async ({ getLocalTestPath, page }) => {
+  // Only run in chromium to ensure all vitals are present
+  if (shouldSkipTracingTest()) {
+    sentryTest.skip();
+  }
+
+  const url = await getLocalTestPath({ testDir: __dirname });
+  const [eventData] = await Promise.all([getFirstSentryEnvelopeRequest<Event>(page), page.goto(url)]);
+
+  const timeOriginAttribute = eventData.contexts?.trace?.data?.['performance.timeOrigin'];
+  const transactionStartTimestamp = eventData.start_timestamp;
+
+  expect(timeOriginAttribute).toBeDefined();
+  expect(transactionStartTimestamp).toBeDefined();
+
+  const delta = Math.abs(transactionStartTimestamp! - timeOriginAttribute);
+
+  // The delta should be less than 1ms if this flakes, we should increase the threshold
+  expect(delta).toBeLessThanOrEqual(1);
+});

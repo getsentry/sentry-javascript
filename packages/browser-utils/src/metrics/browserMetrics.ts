@@ -381,7 +381,7 @@ export function addPerformanceEntries(span: Span, options: AddPerformanceEntries
     });
 
     // Set timeOrigin which denotes the timestamp which to base the LCP/FCP/FP/TTFB measurements on
-    span.setAttribute('web-vitals.timeOrigin', timeOrigin);
+    span.setAttribute('performance.timeOrigin', timeOrigin);
 
     _setWebVitalAttributes(span);
   }
