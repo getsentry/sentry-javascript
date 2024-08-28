@@ -18,10 +18,10 @@ export function makeSourceMapsVitePlugin(options: SourceMapsOptions): Plugin[] {
         if (options.debug && sourceMapsPreviouslyNotEnabled) {
           // eslint-disable-next-line no-console
           console.log('[Sentry SolidStart Plugin] Enabling source map generation');
-          if (!options.sourcemaps?.filesToDeleteAfterUpload) {
+          if (!options.filesToDeleteAfterUpload) {
             // eslint-disable-next-line no-console
             console.warn(
-              `[Sentry SolidStart PLugin] We recommend setting the \`sourceMapsUploadOptions.sourcemaps.filesToDeleteAfterUpload\` option to clean up source maps after uploading.
+              `[Sentry SolidStart PLugin] We recommend setting the \`sourceMapsUploadOptions.filesToDeleteAfterUpload\` option to clean up source maps after uploading.
 [Sentry SolidStart Plugin] Otherwise, source maps might be deployed to production, depending on your configuration`,
             );
           }
@@ -41,9 +41,7 @@ export function makeSourceMapsVitePlugin(options: SourceMapsOptions): Plugin[] {
       authToken: options.authToken ?? process.env.SENTRY_AUTH_TOKEN,
       telemetry: options.telemetry ?? true,
       sourcemaps: {
-        assets: options.sourcemaps?.assets ?? undefined,
-        ignore: options.sourcemaps?.ignore ?? undefined,
-        filesToDeleteAfterUpload: options.sourcemaps?.filesToDeleteAfterUpload ?? undefined,
+        filesToDeleteAfterUpload: options.filesToDeleteAfterUpload ?? undefined,
         ...options.unstable_sentryVitePluginOptions?.sourcemaps,
       },
       _metaOptions: {

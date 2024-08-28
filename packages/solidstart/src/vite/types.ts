@@ -40,37 +40,14 @@ export type SourceMapsOptions = {
   telemetry?: boolean;
 
   /**
-   * Options related to sourcemaps
+   * A glob or an array of globs that specifies the build artifacts that should be deleted after the artifact
+   * upload to Sentry has been completed.
+   *
+   * @default [] - By default no files are deleted.
+   *
+   * The globbing patterns follow the implementation of the glob package. (https://www.npmjs.com/package/glob)
    */
-  sourcemaps?: {
-    /**
-     * A glob or an array of globs that specify the build artifacts and source maps that will be uploaded to Sentry.
-     *
-     * The globbing patterns must follow the implementation of the `glob` package.
-     * @see https://www.npmjs.com/package/glob#glob-primer
-     */
-    assets?: string | Array<string>;
-
-    /**
-     * A glob or an array of globs that specifies which build artifacts should not be uploaded to Sentry.
-     *
-     * @default [] - By default no files are ignored. Thus, all files matching the `assets` glob
-     * or the default value for `assets` are uploaded.
-     *
-     * The globbing patterns follow the implementation of the glob package. (https://www.npmjs.com/package/glob)
-     */
-    ignore?: string | Array<string>;
-
-    /**
-     * A glob or an array of globs that specifies the build artifacts that should be deleted after the artifact
-     * upload to Sentry has been completed.
-     *
-     * @default [] - By default no files are deleted.
-     *
-     * The globbing patterns follow the implementation of the glob package. (https://www.npmjs.com/package/glob)
-     */
-    filesToDeleteAfterUpload?: string | Array<string>;
-  };
+  filesToDeleteAfterUpload?: string | Array<string>;
 
   /**
    * Options to further customize the Sentry Vite Plugin (@sentry/vite-plugin) behavior directly.
