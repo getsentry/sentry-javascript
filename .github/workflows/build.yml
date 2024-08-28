@@ -390,7 +390,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: [14, 16, 18, 20, 22]
+        #TODO: unpin 22 once Node bug is fixed
+        node: [14, 16, 18, 20, '22.6.0']
     steps:
       - name: Check out base commit (${{ github.event.pull_request.base.sha }})
         uses: actions/checkout@v4
