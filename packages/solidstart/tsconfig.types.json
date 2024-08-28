@@ -15,6 +15,5 @@
     "src/solidrouter.server.ts",
     "src/server/solidrouter.ts",
     "src/solidrouter.ts",
-    "src/middleware.ts",
   ]
 }

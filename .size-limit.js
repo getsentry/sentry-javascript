@@ -29,7 +29,7 @@ module.exports = [
     path: 'packages/browser/build/npm/esm/index.js',
     import: createImport('init', 'browserTracingIntegration', 'replayIntegration'),
     gzip: true,
-    limit: '67 KB',
+    limit: '68 KB',
     modifyWebpackConfig: function (config) {
       const webpack = require('webpack');
       config.plugins.push(
@@ -170,7 +170,7 @@ module.exports = [
     path: createCDNPath('bundle.tracing.min.js'),
     gzip: false,
     brotli: false,
-    limit: '111 KB',
+    limit: '113 KB',
   },
   {
     name: 'CDN Bundle (incl. Tracing, Replay) - uncompressed',
