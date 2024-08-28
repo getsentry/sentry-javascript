@@ -39,17 +39,6 @@
         "require": "./build/cjs/index.server.js"
       }
     },
-    "./middleware": {
-      "types": "./middleware.d.ts",
-      "import": {
-        "types": "./middleware.d.ts",
-        "default": "./build/esm/middleware.js"
-      },
-      "require": {
-        "types": "./middleware.d.ts",
-        "default": "./build/cjs/middleware.js"
-      }
-    },
     "./solidrouter": {
       "types": "./solidrouter.d.ts",
       "browser": {
