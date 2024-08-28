@@ -597,11 +597,12 @@ jobs:
         run: yarn test:ci${{ matrix.project && format(' --project={0}', matrix.project) || '' }}${{ matrix.shard && format(' --shard={0}/{1}', matrix.shard, matrix.shards) || '' }}
 
       - name: Upload Playwright Traces
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: always()
         with:
           name: playwright-traces
           path: dev-packages/browser-integration-tests/test-results
+          overwrite: true
 
   job_browser_loader_tests:
     name: PW ${{ matrix.bundle }} Tests
@@ -647,11 +648,12 @@ jobs:
           cd dev-packages/browser-integration-tests
           yarn test:loader
       - name: Upload Playwright Traces
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: always()
         with:
           name: playwright-traces
           path: dev-packages/browser-integration-tests/test-results
+          overwrite: true
 
   job_check_for_faulty_dts:
     name: Check for faulty .d.ts files
