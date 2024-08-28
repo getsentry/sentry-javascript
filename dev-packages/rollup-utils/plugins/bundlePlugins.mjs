@@ -65,7 +65,7 @@ export function makeSetSDKSourcePlugin(sdkSource) {
     preventAssignment: false,
     delimiters: ['', ''],
     values: {
-      "/* ref:__SENTRY_SDK_SOURCE__ */": `return ${JSON.stringify(sdkSource)};`,
+      '/* ref:__SENTRY_SDK_SOURCE__ */': `return ${JSON.stringify(sdkSource)};`,
     },
   });
 }
