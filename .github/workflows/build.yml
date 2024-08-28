@@ -48,7 +48,6 @@ env:
     ${{ github.workspace }}/packages/utils/cjs
     ${{ github.workspace }}/packages/utils/esm
 
-  BUILD_CACHE_KEY: build-cache-${{ github.event.inputs.commit || github.sha }}
   BUILD_CACHE_TARBALL_KEY: tarball-${{ github.event.inputs.commit || github.sha }}
 
   # GH will use the first restore-key it finds that matches
@@ -160,12 +159,6 @@ jobs:
           base: ${{ github.event.pull_request.base.sha }}
           head: ${{ env.HEAD_COMMIT }}
 
-      - name: Check build cache
-        uses: actions/cache@v4
-        with:
-          path: ${{ env.CACHED_BUILD_PATHS }}
-          key: ${{ env.BUILD_CACHE_KEY }}
-
       - name: NX cache
         uses: actions/cache@v4
         # Disable cache when:
@@ -192,7 +185,9 @@ jobs:
         with:
           name: build-output
           path: ${{ env.CACHED_BUILD_PATHS }}
-          retention-days: 2
+          retention-days: 7
+          compression-level: 6
+          overwrite: true
 
     outputs:
       dependency_cache_key: ${{ steps.install_dependencies.outputs.cache_key }}
