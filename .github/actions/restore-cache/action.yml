@@ -24,7 +24,7 @@ runs:
         with:
           name: build-output
 
-      - name: Set node version
+      - name: Use default node version for install
         if: inputs.node_version && steps.dep-cache.outputs.cache-hit != 'true'
         uses: actions/setup-node@v4
         with:
@@ -35,7 +35,7 @@ runs:
         run: yarn install --ignore-engines --frozen-lockfile
         shell: bash
 
-      - name: Revert node version
+      - name: Revert node version to ${{ inputs.node_version }}
         if: inputs.node_version && steps.dep-cache.outputs.cache-hit != 'true'
         uses: actions/setup-node@v4
         with:
