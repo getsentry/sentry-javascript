@@ -114,16 +114,16 @@ Currently only ESM handlers are supported.
 import * as Sentry from '@sentry/cloudflare';
 
 export default withSentry(
-	(env) => ({
-		dsn: env.SENTRY_DSN,
+  env => ({
+    dsn: env.SENTRY_DSN,
     // Set tracesSampleRate to 1.0 to capture 100% of spans for tracing.
-		tracesSampleRate: 1.0,
-	}),
-	{
-		async fetch(request, env, ctx) {
-			return new Response('Hello World!');
-		},
-	} satisfies ExportedHandler<Env>
+    tracesSampleRate: 1.0,
+  }),
+  {
+    async fetch(request, env, ctx) {
+      return new Response('Hello World!');
+    },
+  } satisfies ExportedHandler<Env>,
 );
 ```
 
