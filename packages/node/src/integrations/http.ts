@@ -9,7 +9,6 @@ import {
   getCapturedScopesOnSpan,
   getCurrentScope,
   getIsolationScope,
-  isSentryRequestUrl,
   setCapturedScopesOnSpan,
 } from '@sentry/core';
 import { getClient } from '@sentry/opentelemetry';
