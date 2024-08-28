@@ -10,7 +10,7 @@ describe('genericPool auto instrumentation', () => {
       transaction: 'Test Transaction',
       spans: expect.arrayContaining([
         expect.objectContaining({
-          description: 'generic-pool.aquire',
+          description: expect.stringMatching(/^generic-pool\.ac?quire/),
           origin: 'auto.db.otel.generic-pool',
           data: {
             'sentry.origin': 'auto.db.otel.generic-pool',
@@ -19,7 +19,7 @@ describe('genericPool auto instrumentation', () => {
         }),
 
         expect.objectContaining({
-          description: 'generic-pool.aquire',
+          description: expect.stringMatching(/^generic-pool\.ac?quire/),
           origin: 'auto.db.otel.generic-pool',
           data: {
             'sentry.origin': 'auto.db.otel.generic-pool',
