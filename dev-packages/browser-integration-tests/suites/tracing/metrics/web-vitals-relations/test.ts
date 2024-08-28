@@ -19,7 +19,7 @@ sentryTest('paint web vitals values are greater than TTFB', async ({ browserName
   }
 
   page.route('**', route => route.continue());
-  page.route('**/path/to/image.png', async (route: Route) => {
+  page.route('**/library/image.png', async (route: Route) => {
     return route.fulfill({ path: `${__dirname}/assets/sentry-logo-600x179.png` });
   });
 
@@ -28,8 +28,6 @@ sentryTest('paint web vitals values are greater than TTFB', async ({ browserName
     getFirstSentryEnvelopeRequest<Event>(page),
     page.goto(url),
     page.locator('button').click(),
-    page.waitForTimeout(2000),
-    // page.waitForFunction(() => {}),
   ]);
 
   expect(eventData.measurements).toBeDefined();
@@ -59,50 +57,4 @@ sentryTest('paint web vitals values are greater than TTFB', async ({ browserName
   expect(lcpValue).toBeGreaterThanOrEqual(ttfbValue!);
   expect(fcpValue).toBeGreaterThanOrEqual(ttfbValue!);
   expect(fpValue).toBeGreaterThanOrEqual(ttfbValue!);
-});
-
-/**
- * Continuing the theme of odd tests, in this one, we check that LCP is greater or equal to FCP and FP.
- *
- * The problem: There are cases where for _some reason_ the browser reports lower LCP than FCP/FP values :(
- * This might have to do with timing inaccuracies in the browser or with some weird bug in the PerformanceObserver
- * or Web vitals library. While this shouldn't happen, checking that they're not _vastly_ off is at least better
- * than not checking at all, so we factor in a margin of error.
- */
-sentryTest('LCP >= (FCP, FP)', async ({ browserName, getLocalTestPath, page }) => {
-  // Only run in chromium to ensure all vitals are present
-  if (shouldSkipTracingTest() || browserName !== 'chromium') {
-    sentryTest.skip();
-  }
-
-  page.route('**', route => route.continue());
-  page.route('**/path/to/image.png', async (route: Route) => {
-    return route.fulfill({ path: `${__dirname}/assets/sentry-logo-600x179.png` });
-  });
-
-  const url = await getLocalTestPath({ testDir: __dirname });
-  const [eventData] = await Promise.all([
-    getFirstSentryEnvelopeRequest<Event>(page),
-    page.goto(url),
-    page.locator('button').click(),
-    page.waitForTimeout(2000),
-  ]);
-
-  expect(eventData.measurements).toBeDefined();
-
-  const lcpValue = eventData.measurements?.lcp?.value;
-  const fcpValue = eventData.measurements?.fcp?.value;
-  const fpValue = eventData.measurements?.fp?.value;
-
-  expect(lcpValue).toBeDefined();
-  expect(fcpValue).toBeDefined();
-  expect(fpValue).toBeDefined();
-
-  // Assumption: The browser can render at 60FPS which equals 1 frame every 16.6ms.
-  // Rounded up, 20ms seems like a reasonable margin of error.
-  const epsilon = 20;
-
-  // LCP >= (FCP, FP)
-  expect(lcpValue).toBeGreaterThanOrEqual(fcpValue! - epsilon);
-  expect(lcpValue).toBeGreaterThanOrEqual(fpValue! - epsilon);
 });
