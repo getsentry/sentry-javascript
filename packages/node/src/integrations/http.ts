@@ -102,10 +102,6 @@ export const instrumentHttp = Object.assign(
           return false;
         }
 
-        if (isSentryRequestUrl(url, getClient())) {
-          return true;
-        }
-
         const _ignoreOutgoingRequests = _httpOptions.ignoreOutgoingRequests;
         if (_ignoreOutgoingRequests && _ignoreOutgoingRequests(url, request)) {
           return true;
