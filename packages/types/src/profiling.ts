@@ -1,5 +1,22 @@
 import type { DebugImage } from './debugMeta';
 import type { MeasurementUnit } from './measurement';
+import type { Integration } from './integration';
+import { Client } from './client';
+
+export interface ContinuousProfiler<T extends Client> {
+  initialize(client: T): void;
+  start(): void;
+  stop(): void;
+}
+
+export interface ProfilingIntegration<T extends Client> extends Integration {
+  _profiler: ContinuousProfiler<T>;
+}
+
+export interface Profiler {
+  startProfiler(): void;
+  stopProfiler(): void;
+}
 
 export type ThreadId = string;
 export type FrameId = number;

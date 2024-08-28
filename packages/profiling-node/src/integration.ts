@@ -9,7 +9,7 @@ import {
   spanToJSON,
 } from '@sentry/core';
 import type { NodeClient } from '@sentry/node';
-import type { Event, Integration, IntegrationFn, Profile, ProfileChunk, Span } from '@sentry/types';
+import type { Event, ProfilingIntegration, IntegrationFn, Profile, ProfileChunk, Span } from '@sentry/types';
 
 import { LRUMap, logger, uuid4 } from '@sentry/utils';
 
@@ -159,6 +159,7 @@ interface ChunkData {
   timer: NodeJS.Timeout | undefined;
   startTraceID: string;
 }
+
 class ContinuousProfiler {
   private _profilerId = uuid4();
   private _client: NodeClient | undefined = undefined;
@@ -384,12 +385,8 @@ class ContinuousProfiler {
   }
 }
 
-export interface ProfilingIntegration extends Integration {
-  _profiler: ContinuousProfiler;
-}
-
 /** Exported only for tests. */
-export const _nodeProfilingIntegration = ((): ProfilingIntegration => {
+export const _nodeProfilingIntegration = ((): ProfilingIntegration<NodeClient> => {
   if (DEBUG_BUILD && ![16, 18, 20, 22].includes(NODE_MAJOR)) {
     logger.warn(
       `[Profiling] You are using a Node.js version that does not have prebuilt binaries (${NODE_VERSION}).`,
