@@ -162,7 +162,6 @@ jobs:
 
       - name: Check build cache
         uses: actions/cache@v4
-        id: cache_built_packages
         with:
           path: ${{ env.CACHED_BUILD_PATHS }}
           key: ${{ env.BUILD_CACHE_KEY }}
@@ -187,6 +186,13 @@ jobs:
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
         run: yarn build
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-output
+          path: ${{ env.CACHED_BUILD_PATHS }}
+          retention-days: 2
 
     outputs:
       dependency_cache_key: ${{ steps.install_dependencies.outputs.cache_key }}
