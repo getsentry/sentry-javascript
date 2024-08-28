@@ -5,6 +5,9 @@ inputs:
   dependency_cache_key:
     description: "The dependency cache key"
     required: true
+  node_version:
+    description: "If set, temporarily set node version to 18 before installing, then revert to this version after."
+    required: false
 
 runs:
   using: "composite"
@@ -22,7 +25,19 @@ runs:
         with:
           name: build-output
 
+      - name: Set node version
+        if: inputs.node_version
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: 'package.json'
+
       - name: Install dependencies
         if: steps.dep-cache.outputs.cache-hit != 'true'
         run: yarn install --ignore-engines --frozen-lockfile
         shell: bash
+
+      - name: Revert node version
+        if: inputs.node_version
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node_version }}

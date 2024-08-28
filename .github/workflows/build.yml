@@ -477,6 +477,7 @@ jobs:
         uses: ./.github/actions/restore-cache
         with:
           dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
+          node_version: ${{ matrix.node == 14 && '14' || '' }}
 
       - name: Run affected tests
         run: yarn test:pr:node --base=${{ github.event.pull_request.base.sha }}
@@ -709,6 +710,7 @@ jobs:
         uses: ./.github/actions/restore-cache
         with:
           dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
+          node_version: ${{ matrix.node == 14 && '14' || '' }}
 
       - name: Overwrite typescript version
         if: matrix.typescript
