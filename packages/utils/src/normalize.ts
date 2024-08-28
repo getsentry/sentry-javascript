@@ -221,10 +221,6 @@ function stringifyValue(
       return '[SyntheticEvent]';
     }
 
-    if (typeof value === 'number' && value !== value) {
-      return '[NaN]';
-    }
-
     if (typeof value === 'number' && !Number.isFinite(value)) {
       return `[${value}]`;
     }
