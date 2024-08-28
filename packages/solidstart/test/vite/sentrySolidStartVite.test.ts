@@ -31,8 +31,8 @@ describe('sentrySolidStartVite()', () => {
       'sentry-vite-release-injection-plugin',
       'sentry-debug-id-upload-plugin',
       'sentry-vite-debug-id-injection-plugin',
-      'sentry-file-deletion-plugin',
       'sentry-vite-debug-id-upload-plugin',
+      'sentry-file-deletion-plugin',
     ]);
   });
 
