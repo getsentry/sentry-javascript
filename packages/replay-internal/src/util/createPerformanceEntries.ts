@@ -199,7 +199,7 @@ export function getLargestContentfulPaint(metric: Metric): ReplayPerformanceEntr
 }
 
 function isLayoutShift(entry: PerformanceEntry | LayoutShift): entry is LayoutShift {
-  return (entry as LayoutShift).value !== undefined;
+  return (entry as LayoutShift).sources !== undefined;
 }
 
 /**
