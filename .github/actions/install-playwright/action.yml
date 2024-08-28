@@ -21,15 +21,6 @@ runs:
             ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ steps.playwright-version.outputs.version }}
 
-      # Only store cache on develop branch
-      - name: Store cached playwright binaries
-        uses: actions/cache/save@v4
-        if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
-        with:
-          path: |
-            ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ steps.playwright-version.outputs.version }}
-
       # We always install all browsers, if uncached
       - name: Install Playwright dependencies (uncached)
         run: npx playwright install chromium webkit firefox --with-deps
@@ -40,3 +31,12 @@ runs:
         run: npx playwright install-deps ${{ inputs.browsers || 'chromium webkit firefox' }}
         if: steps.playwright-cache.outputs.cache-hit == 'true'
         shell: bash
+
+      # Only store cache on develop branch
+      - name: Store cached playwright binaries
+        uses: actions/cache/save@v4
+        if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
+        with:
+          path: |
+            ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright-version.outputs.version }}
