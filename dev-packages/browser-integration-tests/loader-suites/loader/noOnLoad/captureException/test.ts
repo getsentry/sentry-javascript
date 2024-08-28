@@ -13,7 +13,7 @@ sentryTest('captureException works', async ({ getLocalTestUrl, page }) => {
   expect(eventData.message).toBe('Test exception');
 });
 
-sentryTest('should capture a correct SDK metadata', async ({ getLocalTestUrl, page }) => {
+sentryTest('should capture correct SDK metadata', async ({ getLocalTestUrl, page }) => {
   const url = await getLocalTestUrl({ testDir: __dirname });
   const req = await waitForErrorRequestOnUrl(page, url);
 

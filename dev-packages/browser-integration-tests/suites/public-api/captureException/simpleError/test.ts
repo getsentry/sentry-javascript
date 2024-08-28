@@ -23,7 +23,7 @@ sentryTest('should capture a simple error with message', async ({ getLocalTestUr
   });
 });
 
-sentryTest('should capture a correct SDK metadata', async ({ getLocalTestUrl, page }) => {
+sentryTest('should capture correct SDK metadata', async ({ getLocalTestUrl, page }) => {
   const isCdn = (process.env.PW_BUNDLE || '').startsWith('bundle');
 
   const url = await getLocalTestUrl({ testDir: __dirname });
