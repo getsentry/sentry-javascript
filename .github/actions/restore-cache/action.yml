@@ -15,7 +15,6 @@ runs:
       - name: Check dependency cache
         id: dep-cache
         uses: actions/cache/restore@v4
-        if: true == false
         with:
           path: ${{ env.CACHED_DEPENDENCY_PATHS }}
           key: ${{ inputs.dependency_cache_key }}
