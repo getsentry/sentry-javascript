@@ -955,10 +955,14 @@ jobs:
 
       - name: Restore tarball cache
         uses: actions/cache/restore@v4
+        id: restore-tarball-cache
         with:
           path: ${{ github.workspace }}/packages/*/*.tgz
           key: ${{ env.BUILD_CACHE_TARBALL_KEY }}
-          fail-on-cache-miss: true
+
+      - name: Build tarballs if not cached
+        if: steps.restore-tarball-cache.outputs.cache-hit != 'true'
+        run: yarn build:tarball
 
       - name: Install Playwright
         uses: ./.github/actions/install-playwright
@@ -1055,10 +1059,14 @@ jobs:
 
       - name: Restore tarball cache
         uses: actions/cache/restore@v4
+        id: restore-tarball-cache
         with:
           path: ${{ github.workspace }}/packages/*/*.tgz
           key: ${{ env.BUILD_CACHE_TARBALL_KEY }}
-          fail-on-cache-miss: true
+
+      - name: Build tarballs if not cached
+        if: steps.restore-tarball-cache.outputs.cache-hit != 'true'
+        run: yarn build:tarball
 
       - name: Install Playwright
         uses: ./.github/actions/install-playwright
@@ -1155,12 +1163,17 @@ jobs:
           pattern: profiling-node-binaries-${{ github.sha }}-*
           path: ${{ github.workspace }}/packages/profiling-node/lib/
           merge-multiple: true
+
       - name: Restore tarball cache
         uses: actions/cache/restore@v4
+        id: restore-tarball-cache
         with:
           path: ${{ github.workspace }}/packages/*/*.tgz
           key: ${{ env.BUILD_CACHE_TARBALL_KEY }}
-          fail-on-cache-miss : true
+
+      - name: Build tarballs if not cached
+        if: steps.restore-tarball-cache.outputs.cache-hit != 'true'
+        run: yarn build:tarball
 
       - name: Install Playwright
         uses: ./.github/actions/install-playwright
