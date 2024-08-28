@@ -24,6 +24,10 @@ declare module 'node:inspector/promises' {
       method: 'Runtime.callFunctionOn',
       params: Runtime.CallFunctionOnParameterType,
     ): Promise<Runtime.CallFunctionOnReturnType>;
+    public post(
+      method: 'Runtime.releaseObject',
+      params: Runtime.ReleaseObjectParameterType,
+    ): Promise<Runtime.ReleaseObjectReturnType>;
 
     public on(
       event: 'Debugger.paused',

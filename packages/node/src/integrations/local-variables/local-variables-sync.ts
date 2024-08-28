@@ -134,6 +134,7 @@ class AsyncSession implements DebugSession {
   public setLocalVarsOnError(objectId: string, localVariables: FrameVariables[]): void {
     this._session.post('Runtime.callFunctionOn', {
       functionDeclaration: `function() { this.${LOCAL_VARIABLES_KEY} = ${JSON.stringify(localVariables)}; }`,
+      silent: true,
       objectId,
     });
   }
@@ -264,6 +265,8 @@ const _localVariablesSyncIntegration = ((
       for (const exception of event.exception?.values || []) {
         addLocalVariablesToException(exception, hint.originalException[LOCAL_VARIABLES_KEY]);
       }
+
+      hint.originalException[LOCAL_VARIABLES_KEY] = undefined;
     }
 
     return event;

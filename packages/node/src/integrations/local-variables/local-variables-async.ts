@@ -63,6 +63,8 @@ export const localVariablesAsyncIntegration = defineIntegration(((
       for (const exception of event.exception?.values || []) {
         addLocalVariablesToException(exception, hint.originalException[LOCAL_VARIABLES_KEY]);
       }
+
+      hint.originalException[LOCAL_VARIABLES_KEY] = undefined;
     }
 
     return event;
