@@ -42,5 +42,6 @@
   "[typescript]": {
     "editor.defaultFormatter": "biomejs.biome"
   },
-  "cSpell.words": ["arrayify", "OTEL"]
+  "cSpell.words": ["arrayify", "OTEL"],
+  "dev.containers.defaultExtensions": ["mutantdino.resourcemonitor"]
 }

@@ -1,0 +1,21 @@
+{
+  "name": "sentry-javascript",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "esbenp.prettier-vscode",
+        "biomejs.biome",
+        "dbaeumer.vscode-eslint",
+        "augustocdias.tasks-shell-input",
+        "denoland.vscode-deno",
+        "orta.vscode-jest",
+        "ms-azuretools.vscode-docker"
+      ]
+    }
+  },
+  "mounts": ["source=${localWorkspaceFolder}/,target=/workspace,type=bind,consistency=cached"],
+  "postStartCommand": "git config --global --add safe.directory ${containerWorkspaceFolder} && yarn config set cache-folder /workspace/.yarncache"
+}

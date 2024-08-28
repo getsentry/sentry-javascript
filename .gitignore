@@ -58,3 +58,6 @@ packages/deno/lib.deno.d.ts
 
 # gatsby
 packages/gatsby/gatsby-node.d.ts
+
+# devcontainer-yarn-cache
+.yarncache
