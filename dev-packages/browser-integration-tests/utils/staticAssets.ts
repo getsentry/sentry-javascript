@@ -22,23 +22,6 @@ export function addStaticAsset(localOutPath: string, fileName: string, cb: () =>
   symlinkAsset(newPath, path.join(localOutPath, fileName));
 }
 
-export function addStaticAssetSymlink(localOutPath: string, originalPath: string, fileName: string): void {
-  const newPath = path.join(STATIC_DIR, fileName);
-
-  // Only copy files once
-  if (!fs.existsSync(newPath)) {
-    fs.symlinkSync(originalPath, newPath);
-  }
-
-  symlinkAsset(newPath, path.join(localOutPath, fileName));
-}
-
-function symlinkAsset(originalPath: string, targetPath: string): void {
-  try {
-    fs.unlinkSync(targetPath);
-  } catch {
-    // ignore errors here
-  }
-
+export function symlinkAsset(originalPath: string, targetPath: string): void {
   fs.linkSync(originalPath, targetPath);
 }
