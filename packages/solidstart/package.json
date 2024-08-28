@@ -78,12 +78,12 @@
   },
   "dependencies": {
     "@opentelemetry/instrumentation": "^0.52.1",
-    "@sentry/core": "8.26.0",
-    "@sentry/node": "8.26.0",
-    "@sentry/opentelemetry": "8.26.0",
-    "@sentry/solid": "8.26.0",
-    "@sentry/types": "8.26.0",
-    "@sentry/utils": "8.26.0",
+    "@sentry/core": "8.27.0",
+    "@sentry/node": "8.27.0",
+    "@sentry/opentelemetry": "8.27.0",
+    "@sentry/solid": "8.27.0",
+    "@sentry/types": "8.27.0",
+    "@sentry/utils": "8.27.0",
     "@sentry/vite-plugin": "2.22.3"
   },
   "devDependencies": {
