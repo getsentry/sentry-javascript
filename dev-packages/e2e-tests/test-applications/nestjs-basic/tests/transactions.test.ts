@@ -641,8 +641,6 @@ test('API route transaction includes exactly one nest async interceptor span aft
 
   const transactionEvent = await pageloadTransactionEventPromise;
 
-  console.log(transactionEvent);
-
   // check if interceptor spans after route execution exist
   expect(transactionEvent).toEqual(
     expect.objectContaining({

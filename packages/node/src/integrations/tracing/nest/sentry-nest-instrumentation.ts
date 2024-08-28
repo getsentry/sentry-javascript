@@ -166,12 +166,6 @@ export class SentryNestInstrumentation extends InstrumentationBase {
                 const context: MinimalNestJsExecutionContext = argsIntercept[0];
                 const next: CallHandler = argsIntercept[1];
 
-                if (context.getType() != 'http') {
-                  return originalIntercept.apply(thisArgIntercept, argsIntercept);
-                }
-
-                const request = context.switchToHttp().getRequest();
-
                 const parentSpan = getActiveSpan();
                 let afterSpan: Span;
 
@@ -185,8 +179,8 @@ export class SentryNestInstrumentation extends InstrumentationBase {
                         return withActiveSpan(parentSpan, () => {
                           const handleReturnObservable = Reflect.apply(originalHandle, thisArgHandle, argsHandle);
 
-                          if (!request._sentryInterceptorInstrumented) {
-                            addNonEnumerableProperty(request, '_sentryInterceptorInstrumented', true);
+                          if (!context._sentryInterceptorInstrumented) {
+                            addNonEnumerableProperty(context, '_sentryInterceptorInstrumented', true);
                             afterSpan = startInactiveSpan(
                               getMiddlewareSpanOptions(target, 'Interceptors - After Route'),
                             );
@@ -197,8 +191,8 @@ export class SentryNestInstrumentation extends InstrumentationBase {
                       } else {
                         const handleReturnObservable = Reflect.apply(originalHandle, thisArgHandle, argsHandle);
 
-                        if (!request._sentryInterceptorInstrumented) {
-                          addNonEnumerableProperty(request, '_sentryInterceptorInstrumented', true);
+                        if (!context._sentryInterceptorInstrumented) {
+                          addNonEnumerableProperty(context, '_sentryInterceptorInstrumented', true);
                           afterSpan = startInactiveSpan(getMiddlewareSpanOptions(target, 'Interceptors - After Route'));
                         }
 

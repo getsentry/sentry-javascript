@@ -12,9 +12,10 @@ export interface MinimalNestJsExecutionContext {
         path?: string;
       };
       method?: string;
-      _sentryInterceptorInstrumented?: boolean;
     };
   };
+
+  _sentryInterceptorInstrumented?: boolean;
 }
 
 export interface NestJsErrorFilter {
