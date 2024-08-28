@@ -1,18 +1,20 @@
+import { SentryVitePluginOptions } from '@sentry/vite-plugin';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { makeSourceMapsVitePlugin } from '../../src/vite/sourceMaps';
-import * as sourceMaps from '../../src/vite/sourceMaps';
 
 const mockedSentryVitePlugin = {
   name: 'sentry-vite-debug-id-upload-plugin',
   writeBundle: vi.fn(),
 };
 
+const sentryVitePluginSpy = vi.fn((_options: SentryVitePluginOptions) => [mockedSentryVitePlugin]);
+
 vi.mock('@sentry/vite-plugin', async () => {
   const original = (await vi.importActual('@sentry/vite-plugin')) as any;
 
   return {
     ...original,
-    sentryVitePlugin: () => [mockedSentryVitePlugin],
+    sentryVitePlugin: (options: SentryVitePluginOptions) => sentryVitePluginSpy(options),
   };
 });
 
@@ -21,7 +23,7 @@ beforeEach(() => {
 });
 
 describe('makeSourceMapsVitePlugin()', () => {
-  it('returns a plugin to set `sourcemaps` to `true`', async () => {
+  it('returns a plugin to set `sourcemaps` to `true`', () => {
     const [sourceMapsConfigPlugin, sentryVitePlugin] = makeSourceMapsVitePlugin({});
 
     expect(sourceMapsConfigPlugin?.name).toEqual('sentry-solidstart-source-maps');
@@ -32,9 +34,7 @@ describe('makeSourceMapsVitePlugin()', () => {
     expect(sentryVitePlugin).toEqual(mockedSentryVitePlugin);
   });
 
-  it('passes user-specified vite plugin options to vite plugin plugin', async () => {
-    const makePluginSpy = vi.spyOn(sourceMaps, 'makeSourceMapsVitePlugin');
-
+  it('passes user-specified vite plugin options to vite plugin plugin', () => {
     makeSourceMapsVitePlugin({
       org: 'my-org',
       authToken: 'my-token',
@@ -45,14 +45,42 @@ describe('makeSourceMapsVitePlugin()', () => {
       },
     });
 
-    expect(makePluginSpy).toHaveBeenCalledWith({
+    expect(sentryVitePluginSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        org: 'my-org',
+        authToken: 'my-token',
+        sourcemaps: {
+          assets: ['foo/*.js'],
+          ignore: ['bar/*.js'],
+          filesToDeleteAfterUpload: ['baz/*.js'],
+        },
+      }),
+    );
+  });
+
+  it('should override options with unstable_sentryVitePluginOptions', () => {
+    makeSourceMapsVitePlugin({
       org: 'my-org',
       authToken: 'my-token',
       sourcemaps: {
         assets: ['foo/*.js'],
-        ignore: ['bar/*.js'],
-        filesToDeleteAfterUpload: ['baz/*.js'],
+      },
+      unstable_sentryVitePluginOptions: {
+        org: 'unstable-org',
+        sourcemaps: {
+          assets: ['unstable/*.js'],
+        },
       },
     });
+
+    expect(sentryVitePluginSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        org: 'unstable-org',
+        authToken: 'my-token',
+        sourcemaps: {
+          assets: ['unstable/*.js'],
+        },
+      }),
+    );
   });
 });

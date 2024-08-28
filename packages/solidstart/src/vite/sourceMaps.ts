@@ -44,6 +44,7 @@ export function makeSourceMapsVitePlugin(options: SourceMapsOptions): Plugin[] {
         assets: options.sourcemaps?.assets ?? undefined,
         ignore: options.sourcemaps?.ignore ?? undefined,
         filesToDeleteAfterUpload: options.sourcemaps?.filesToDeleteAfterUpload ?? undefined,
+        ...options.unstable_sentryVitePluginOptions?.sourcemaps,
       },
       _metaOptions: {
         telemetry: {
@@ -51,6 +52,7 @@ export function makeSourceMapsVitePlugin(options: SourceMapsOptions): Plugin[] {
         },
       },
       debug: options.debug ?? false,
+      ...options.unstable_sentryVitePluginOptions,
     }),
   ];
 }

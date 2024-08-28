@@ -1,3 +1,5 @@
+import type { SentryVitePluginOptions } from '@sentry/vite-plugin';
+
 export type SourceMapsOptions = {
   /**
    * If this flag is `true`, and an auth token is detected, the Sentry SDK will
@@ -69,6 +71,21 @@ export type SourceMapsOptions = {
      */
     filesToDeleteAfterUpload?: string | Array<string>;
   };
+
+  /**
+   * Options to further customize the Sentry Vite Plugin (@sentry/vite-plugin) behavior directly.
+   * Options specified in this object take precedence over the options specified in
+   * the `sourcemaps` and `release` objects.
+   *
+   * @see https://www.npmjs.com/package/@sentry/vite-plugin/v/2.22.2#options which lists all available options.
+   *
+   * Warning: Options within this object are subject to change at any time.
+   * We DO NOT guarantee semantic versioning for these options, meaning breaking
+   * changes can occur at any time within a major SDK version.
+   *
+   * Furthermore, some options are untested with SvelteKit specifically. Use with caution.
+   */
+  unstable_sentryVitePluginOptions?: Partial<SentryVitePluginOptions>;
 
   /**
    * Enable debug functionality of the SDK during build-time.
