@@ -21,7 +21,7 @@ sentryTest('should add browser-related spans to pageload transaction', async ({ 
 
   const requestSpan = browserSpans!.find(({ op }) => op === 'browser.request');
   expect(requestSpan).toBeDefined();
-  expect(requestSpan?.description).toBe('test');
+  expect(requestSpan?.description).toBe(page.url());
 
   const measureSpan = eventData.spans?.find(({ op }) => op === 'measure');
   expect(measureSpan).toBeDefined();

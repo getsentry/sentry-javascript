@@ -21,7 +21,8 @@ sentryTest('should add browser-related spans to pageload transaction', async ({ 
   ['loadEvent', 'request', 'response'].forEach(eventDesc =>
     expect(browserSpans).toContainEqual(
       expect.objectContaining({
-        description: eventDesc,
+        op: `browser.${eventDesc}`,
+        description: page.url(),
         parent_span_id: eventData.contexts?.trace?.span_id,
       }),
     ),
