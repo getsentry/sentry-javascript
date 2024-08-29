@@ -6,6 +6,7 @@ import { expressIntegration, instrumentExpress } from './express';
 import { fastifyIntegration, instrumentFastify } from './fastify';
 import { graphqlIntegration, instrumentGraphql } from './graphql';
 import { hapiIntegration, instrumentHapi } from './hapi';
+import { instrumentKnex, knexIntegration } from './knex';
 import { instrumentKoa, koaIntegration } from './koa';
 import { instrumentMongo, mongoIntegration } from './mongo';
 import { instrumentMongoose, mongooseIntegration } from './mongoose';
@@ -37,6 +38,7 @@ export function getAutoPerformanceIntegrations(): Integration[] {
     hapiIntegration(),
     koaIntegration(),
     connectIntegration(),
+    knexIntegration(),
   ];
 }
 
@@ -61,5 +63,6 @@ export function getOpenTelemetryInstrumentationToPreload(): (((options?: any) =>
     instrumentHapi,
     instrumentGraphql,
     instrumentRedis,
+    instrumentKnex,
   ];
 }
