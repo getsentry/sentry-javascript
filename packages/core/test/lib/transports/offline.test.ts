@@ -410,7 +410,7 @@ describe('makeOfflineTransport', () => {
     START_DELAY + 2_000,
   );
 
-  // eslint-disable-next-line jest/no-disabled-tests
+  // eslint-disable-next-line @sentry-internal/sdk/no-skipped-tests
   it.skip(
     'Follows the Retry-After header',
     async () => {
