@@ -1,8 +1,8 @@
+import { Profiler, ProfilingIntegration } from '@sentry/types';
 import { logger } from '@sentry/utils';
-import { ProfilingIntegration, Profiler } from '@sentry/types';
 
-import { DEBUG_BUILD } from "./debug-build";
-import { getClient } from "./currentScopes";
+import { getClient } from './currentScopes';
+import { DEBUG_BUILD } from './debug-build';
 
 /**
  * Starts the Sentry continuous profiler.
@@ -10,7 +10,7 @@ import { getClient } from "./currentScopes";
  * In continuous profiling mode, the profiler will keep reporting profile chunks to Sentry until it is stopped, which allows for continuous profiling of the application.
  */
 function startProfiler() {
-  const client = getClient()
+  const client = getClient();
   if (!client) {
     DEBUG_BUILD && logger.warn('No Sentry client available, profiling is not started');
     return;
@@ -19,7 +19,7 @@ function startProfiler() {
   const integration = client.getIntegrationByName<ProfilingIntegration<any>>('ProfilingIntegration');
   if (!integration) {
     DEBUG_BUILD && logger.warn('ProfilingIntegration is not available');
-    return
+    return;
   }
   integration._profiler.start();
 }
@@ -29,7 +29,7 @@ function startProfiler() {
  * Calls to stop will stop the profiler and flush the currently collected profile data to Sentry.
  */
 function stopProfiler() {
-  const client = getClient()
+  const client = getClient();
   if (!client) {
     DEBUG_BUILD && logger.warn('No Sentry client available, profiling is not started');
     return;
@@ -38,12 +38,12 @@ function stopProfiler() {
   const integration = client.getIntegrationByName<ProfilingIntegration<any>>('ProfilingIntegration');
   if (!integration) {
     DEBUG_BUILD && logger.warn('ProfilingIntegration is not available');
-    return
+    return;
   }
   integration._profiler.stop();
 }
 
 export const profiler: Profiler = {
   startProfiler,
-  stopProfiler
-}
+  stopProfiler,
+};

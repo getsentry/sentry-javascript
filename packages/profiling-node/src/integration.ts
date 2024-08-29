@@ -9,7 +9,7 @@ import {
   spanToJSON,
 } from '@sentry/core';
 import type { NodeClient } from '@sentry/node';
-import type { Event, ProfilingIntegration, IntegrationFn, Profile, ProfileChunk, Span } from '@sentry/types';
+import type { Event, IntegrationFn, Profile, ProfileChunk, ProfilingIntegration, Span } from '@sentry/types';
 
 import { LRUMap, logger, uuid4 } from '@sentry/utils';
 

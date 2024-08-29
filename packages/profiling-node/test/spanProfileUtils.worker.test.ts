@@ -10,7 +10,7 @@ jest.setTimeout(10000);
 import * as Sentry from '@sentry/node';
 import type { Transport } from '@sentry/types';
 import { type ProfilingIntegration } from '@sentry/types';
-import {  _nodeProfilingIntegration } from '../src/integration';
+import { _nodeProfilingIntegration } from '../src/integration';
 
 function makeContinuousProfilingClient(): [Sentry.NodeClient, Transport] {
   const integration = _nodeProfilingIntegration();
