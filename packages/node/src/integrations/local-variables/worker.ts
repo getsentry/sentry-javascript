@@ -84,18 +84,15 @@ let rateLimiter: RateLimitIncrement | undefined;
 
 async function handlePaused(
   session: Session,
-  { reason, data, callFrames }: PausedExceptionEvent,
-): Promise<string | undefined> {
+  { reason, data: { objectId: errorObjectId }, callFrames }: PausedExceptionEvent,
+): Promise<void> {
   if (reason !== 'exception' && reason !== 'promiseRejection') {
     return;
   }
 
   rateLimiter?.();
 
-  // data.description contains the original error.stack
-  const objectId = data?.objectId;
-
-  if (objectId == undefined) {
+  if (errorObjectId == undefined) {
     return;
   }
 
@@ -118,13 +115,20 @@ async function handlePaused(
     }
   }
 
+  // We write the local variables to a property on the error object. These can be read by the integration as the error
+  // event pass through the SDK event pipeline
   await session.post('Runtime.callFunctionOn', {
     functionDeclaration: `function() { this.${LOCAL_VARIABLES_KEY} = ${JSON.stringify(frames)}; }`,
     silent: true,
-    objectId,
+    objectId: errorObjectId,
   });
 
-  return objectId;
+  // We need to cleanup this object but we need to leave enough time for our changes to be picked up in the main app
+  // context
+  setTimeout(() => {
+    // eslint-disable-next-line @typescript-eslint/no-floating-promises
+    session.post('Runtime.releaseObject', { objectId: errorObjectId });
+  }, 10_000);
 }
 
 async function startDebugger(): Promise<void> {
@@ -143,14 +147,10 @@ async function startDebugger(): Promise<void> {
     isPaused = true;
 
     handlePaused(session, event.params as PausedExceptionEvent).then(
-      async objectId => {
+      async () => {
         // After the pause work is complete, resume execution!
         if (isPaused) {
           await session.post('Debugger.resume');
-        }
-
-        if (objectId) {
-          return session.post('Runtime.releaseObject', { objectId });
         }
       },
       _ => {
