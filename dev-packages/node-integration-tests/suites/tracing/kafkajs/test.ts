@@ -1,5 +1,8 @@
 import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
 
+// When running docker compose, we need a larger timeout, as this takes some time...
+jest.setTimeout(60_000);
+
 describe('kafkajs', () => {
   afterAll(() => {
     cleanupChildProcesses();
