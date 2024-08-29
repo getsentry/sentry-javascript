@@ -26,7 +26,7 @@ export { hapiIntegration, setupHapiErrorHandler } from './integrations/tracing/h
 export { koaIntegration, setupKoaErrorHandler } from './integrations/tracing/koa';
 export { connectIntegration, setupConnectErrorHandler } from './integrations/tracing/connect';
 export { spotlightIntegration } from './integrations/spotlight';
-export { tediousIntegration } from './integrations/tracing/tedious'
+export { tediousIntegration } from './integrations/tracing/tedious';
 
 export { SentryContextManager } from './otel/contextManager';
 export { generateInstrumentOnce } from './otel/instrument';

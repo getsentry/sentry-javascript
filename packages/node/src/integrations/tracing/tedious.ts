@@ -1,5 +1,5 @@
 import { TediousInstrumentation } from '@opentelemetry/instrumentation-tedious';
-import { defineIntegration, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, spanToJSON } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, defineIntegration, spanToJSON } from '@sentry/core';
 import type { IntegrationFn } from '@sentry/types';
 import { generateInstrumentOnce } from '../../otel/instrument';
 
