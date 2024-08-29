@@ -11,12 +11,9 @@ vi.spyOn(console, 'warn').mockImplementation(() => {
 
 function getSentrySolidStartVitePlugins(options?: Parameters<typeof sentrySolidStartVite>[0]): Plugin[] {
   return sentrySolidStartVite({
-    sourceMapsUploadOptions: {
-      authToken: 'token',
-      org: 'org',
-      project: 'project',
-      ...options?.sourceMapsUploadOptions,
-    },
+    project: 'project',
+    org: 'org',
+    authToken: 'token',
     ...options,
   });
 }

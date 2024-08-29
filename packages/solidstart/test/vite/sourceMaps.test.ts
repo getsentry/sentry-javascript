@@ -38,7 +38,9 @@ describe('makeSourceMapsVitePlugin()', () => {
     makeSourceMapsVitePlugin({
       org: 'my-org',
       authToken: 'my-token',
-      filesToDeleteAfterUpload: ['baz/*.js'],
+      sourceMapsUploadOptions: {
+        filesToDeleteAfterUpload: ['baz/*.js'],
+      },
     });
 
     expect(sentryVitePluginSpy).toHaveBeenCalledWith(
@@ -56,10 +58,12 @@ describe('makeSourceMapsVitePlugin()', () => {
     makeSourceMapsVitePlugin({
       org: 'my-org',
       authToken: 'my-token',
-      unstable_sentryVitePluginOptions: {
-        org: 'unstable-org',
-        sourcemaps: {
-          assets: ['unstable/*.js'],
+      sourceMapsUploadOptions: {
+        unstable_sentryVitePluginOptions: {
+          org: 'unstable-org',
+          sourcemaps: {
+            assets: ['unstable/*.js'],
+          },
         },
       },
     });

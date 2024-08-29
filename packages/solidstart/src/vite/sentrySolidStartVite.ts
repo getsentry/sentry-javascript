@@ -10,7 +10,7 @@ export const sentrySolidStartVite = (options: SentrySolidStartPluginOptions): Pl
 
   if (process.env.NODE_ENV !== 'development') {
     if (options.sourceMapsUploadOptions?.enabled ?? true) {
-      sentryPlugins.push(...makeSourceMapsVitePlugin({ ...options.sourceMapsUploadOptions, debug: options.debug }));
+      sentryPlugins.push(...makeSourceMapsVitePlugin(options));
     }
   }
 

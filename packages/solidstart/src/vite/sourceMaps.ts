@@ -1,13 +1,14 @@
 import { sentryVitePlugin } from '@sentry/vite-plugin';
 import type { Plugin } from 'vite';
-import type { SourceMapsOptions } from './types';
+import type { SentrySolidStartPluginOptions } from './types';
 
 /**
  * A Sentry plugin for SolidStart to enable source maps and use
  * @sentry/vite-plugin to automatically upload source maps to Sentry.
  * @param {SourceMapsOptions} options
  */
-export function makeSourceMapsVitePlugin(options: SourceMapsOptions): Plugin[] {
+export function makeSourceMapsVitePlugin(options: SentrySolidStartPluginOptions): Plugin[] {
+  const { authToken, debug, org, project, sourceMapsUploadOptions } = options;
   return [
     {
       name: 'sentry-solidstart-source-maps',
@@ -15,10 +16,10 @@ export function makeSourceMapsVitePlugin(options: SourceMapsOptions): Plugin[] {
       enforce: 'post',
       config(config) {
         const sourceMapsPreviouslyNotEnabled = !config.build?.sourcemap;
-        if (options.debug && sourceMapsPreviouslyNotEnabled) {
+        if (debug && sourceMapsPreviouslyNotEnabled) {
           // eslint-disable-next-line no-console
           console.log('[Sentry SolidStart Plugin] Enabling source map generation');
-          if (!options.filesToDeleteAfterUpload) {
+          if (!sourceMapsUploadOptions?.filesToDeleteAfterUpload) {
             // eslint-disable-next-line no-console
             console.warn(
               `[Sentry SolidStart PLugin] We recommend setting the \`sourceMapsUploadOptions.filesToDeleteAfterUpload\` option to clean up source maps after uploading.
@@ -36,21 +37,21 @@ export function makeSourceMapsVitePlugin(options: SourceMapsOptions): Plugin[] {
       },
     },
     ...sentryVitePlugin({
-      org: options.org ?? process.env.SENTRY_ORG,
-      project: options.project ?? process.env.SENTRY_PROJECT,
-      authToken: options.authToken ?? process.env.SENTRY_AUTH_TOKEN,
-      telemetry: options.telemetry ?? true,
+      org: org ?? process.env.SENTRY_ORG,
+      project: project ?? process.env.SENTRY_PROJECT,
+      authToken: authToken ?? process.env.SENTRY_AUTH_TOKEN,
+      telemetry: sourceMapsUploadOptions?.telemetry ?? true,
       sourcemaps: {
-        filesToDeleteAfterUpload: options.filesToDeleteAfterUpload ?? undefined,
-        ...options.unstable_sentryVitePluginOptions?.sourcemaps,
+        filesToDeleteAfterUpload: sourceMapsUploadOptions?.filesToDeleteAfterUpload ?? undefined,
+        ...sourceMapsUploadOptions?.unstable_sentryVitePluginOptions?.sourcemaps,
       },
       _metaOptions: {
         telemetry: {
           metaFramework: 'solidstart',
         },
       },
-      debug: options.debug ?? false,
-      ...options.unstable_sentryVitePluginOptions,
+      debug: debug ?? false,
+      ...sourceMapsUploadOptions?.unstable_sentryVitePluginOptions,
     }),
   ];
 }

@@ -10,28 +10,6 @@ export type SourceMapsOptions = {
   enabled?: boolean;
 
   /**
-   * The auth token to use when uploading source maps to Sentry.
-   *
-   * Instead of specifying this option, you can also set the `SENTRY_AUTH_TOKEN` environment variable.
-   *
-   * To create an auth token, follow this guide:
-   * @see https://docs.sentry.io/product/accounts/auth-tokens/#organization-auth-tokens
-   */
-  authToken?: string;
-
-  /**
-   * The organization slug of your Sentry organization.
-   * Instead of specifying this option, you can also set the `SENTRY_ORG` environment variable.
-   */
-  org?: string;
-
-  /**
-   * The project slug of your Sentry project.
-   * Instead of specifying this option, you can also set the `SENTRY_PROJECT` environment variable.
-   */
-  project?: string;
-
-  /**
    * If this flag is `true`, the Sentry plugin will collect some telemetry data and send it to Sentry.
    * It will not collect any sensitive or user-specific data.
    *
@@ -63,18 +41,34 @@ export type SourceMapsOptions = {
    * Furthermore, some options are untested with SvelteKit specifically. Use with caution.
    */
   unstable_sentryVitePluginOptions?: Partial<SentryVitePluginOptions>;
-
-  /**
-   * Enable debug functionality of the SDK during build-time.
-   * Enabling this will give you logs about source maps.
-   */
-  debug?: boolean;
 };
 
 /**
  *  Build options for the Sentry module. These options are used during build-time by the Sentry SDK.
  */
 export type SentrySolidStartPluginOptions = {
+  /**
+   * The auth token to use when uploading source maps to Sentry.
+   *
+   * Instead of specifying this option, you can also set the `SENTRY_AUTH_TOKEN` environment variable.
+   *
+   * To create an auth token, follow this guide:
+   * @see https://docs.sentry.io/product/accounts/auth-tokens/#organization-auth-tokens
+   */
+  authToken?: string;
+
+  /**
+   * The organization slug of your Sentry organization.
+   * Instead of specifying this option, you can also set the `SENTRY_ORG` environment variable.
+   */
+  org?: string;
+
+  /**
+   * The project slug of your Sentry project.
+   * Instead of specifying this option, you can also set the `SENTRY_PROJECT` environment variable.
+   */
+  project?: string;
+
   /**
    * Options for the Sentry Vite plugin to customize the source maps upload process.
    */
