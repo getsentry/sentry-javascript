@@ -110,6 +110,7 @@ export {
   setupConnectErrorHandler,
   genericPoolIntegration,
   graphqlIntegration,
+  kafkaIntegration,
   mongoIntegration,
   mongooseIntegration,
   mysqlIntegration,
