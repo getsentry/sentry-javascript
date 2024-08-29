@@ -497,16 +497,16 @@ function _addRequest(span: Span, entry: Record<string, any>, timeOrigin: number)
     // In order not to produce faulty spans, where the end timestamp is before the start timestamp, we will only collect
     // these spans when the responseEnd value is available. The backend (Relay) would drop the entire span if it contained faulty spans.
     startAndEndSpan(span, requestStartTimestamp, responseEndTimestamp, {
-      op: 'browser',
-      name: 'request',
+      op: 'browser.request',
+      name: entry.name,
       attributes: {
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.browser.metrics',
       },
     });
 
     startAndEndSpan(span, responseStartTimestamp, responseEndTimestamp, {
-      op: 'browser',
-      name: 'response',
+      op: 'browser.response',
+      name: entry.name,
       attributes: {
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.browser.metrics',
       },
