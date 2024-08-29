@@ -477,8 +477,8 @@ function _addPerformanceNavigationTiming(
     return;
   }
   startAndEndSpan(span, timeOrigin + msToSec(start), timeOrigin + msToSec(end), {
-    op: 'browser',
-    name: name || event,
+    op: `browser.${name || event}`,
+    name: entry.name,
     attributes: {
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.browser.metrics',
     },
