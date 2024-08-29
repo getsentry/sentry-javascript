@@ -1,7 +1,7 @@
 import * as Sentry from '@sentry/node';
 
 import { getMainCarrier } from '@sentry/core';
-import { ProfilingIntegration } from '@sentry/types';
+import type { ProfilingIntegration } from '@sentry/types';
 import type { NodeClientOptions } from '@sentry/node/build/types/types';
 import type { ProfileChunk, Transport } from '@sentry/types';
 import { GLOBAL_OBJ, createEnvelope, logger } from '@sentry/utils';
@@ -703,6 +703,10 @@ describe('span profiling mode', () => {
   });
 });
 describe('continuous profiling mode', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
   it.each([
     ['profilesSampleRate=0', makeClientOptions({ profilesSampleRate: 0 })],
     ['profilesSampleRate=undefined', makeClientOptions({ profilesSampleRate: undefined })],
@@ -776,5 +780,5 @@ describe('continuous profiling mode', () => {
     expect(startProfilingSpy).toHaveBeenCalledTimes(1);
     Sentry.profiler.stopProfiler();
     expect(stopProfilingSpy).toHaveBeenCalledTimes(1);
-  })
+  });
 });

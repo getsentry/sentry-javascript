@@ -404,7 +404,10 @@ export const _nodeProfilingIntegration = ((): ProfilingIntegration<NodeClient> =
       const options = client.getOptions();
 
       const mode =
-        (options.profilesSampleRate === undefined || options.profilesSampleRate === 0) && !options.profilesSampler
+        (options.profilesSampleRate === undefined ||
+          options.profilesSampleRate === null ||
+          options.profilesSampleRate === 0) &&
+        !options.profilesSampler
           ? 'continuous'
           : 'span';
       switch (mode) {
