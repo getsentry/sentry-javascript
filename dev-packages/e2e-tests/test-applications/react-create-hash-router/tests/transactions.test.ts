@@ -42,7 +42,7 @@ test('Captures a pageload transaction', async ({ page }) => {
   expect(transactionEvent.spans).toContainEqual({
     data: {
       'sentry.origin': 'auto.ui.browser.metrics',
-      'sentry.op': 'browser',
+      'sentry.op': 'browser.domContentLoadedEvent',
     },
     description: page.url(),
     op: 'browser.domContentLoadedEvent',
@@ -56,7 +56,7 @@ test('Captures a pageload transaction', async ({ page }) => {
   expect(transactionEvent.spans).toContainEqual({
     data: {
       'sentry.origin': 'auto.ui.browser.metrics',
-      'sentry.op': 'browser',
+      'sentry.op': 'browser.connect',
     },
     description: page.url(),
     op: 'browser.connect',
@@ -70,7 +70,7 @@ test('Captures a pageload transaction', async ({ page }) => {
   expect(transactionEvent.spans).toContainEqual({
     data: {
       'sentry.origin': 'auto.ui.browser.metrics',
-      'sentry.op': 'browser',
+      'sentry.op': 'browser.request',
     },
     description: page.url(),
     op: 'browser.request',
@@ -84,7 +84,7 @@ test('Captures a pageload transaction', async ({ page }) => {
   expect(transactionEvent.spans).toContainEqual({
     data: {
       'sentry.origin': 'auto.ui.browser.metrics',
-      'sentry.op': 'browser',
+      'sentry.op': 'browser.response',
     },
     description: page.url(),
     op: 'browser.response',
