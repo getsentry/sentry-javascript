@@ -12,7 +12,7 @@ sentryTest('should add browser-related spans to pageload transaction', async ({ 
   const url = await getLocalTestPath({ testDir: __dirname });
 
   const eventData = await getFirstSentryEnvelopeRequest<Event>(page, url);
-  const browserSpans = eventData.spans?.filter(({ op }) => op === 'browser');
+  const browserSpans = eventData.spans?.filter(({ op }) => op?.startsWith('browser'));
 
   // Spans `domContentLoadedEvent`, `connect`, `cache` and `DNS` are not
   // always inside `pageload` transaction.
