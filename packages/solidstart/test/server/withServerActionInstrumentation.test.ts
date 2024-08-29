@@ -12,7 +12,6 @@ import {
 import { NodeClient } from '@sentry/node';
 import { redirect } from '@solidjs/router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { solidRouterBrowserTracingIntegration } from '../../src/client/solidrouter';
 
 const mockCaptureException = vi.spyOn(SentryNode, 'captureException').mockImplementation(() => '');
 const mockFlush = vi.spyOn(SentryNode, 'flush').mockImplementation(async () => true);
@@ -98,7 +97,6 @@ describe('withServerActionInstrumentation', () => {
     setCurrentClient(client);
 
     client.on('spanStart', span => spanStartMock(spanToJSON(span)));
-    client.addIntegration(solidRouterBrowserTracingIntegration());
 
     await serverActionGetPrefecture();
     expect(spanStartMock).toHaveBeenCalledWith(
