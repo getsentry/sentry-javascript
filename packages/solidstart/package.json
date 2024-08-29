@@ -84,7 +84,7 @@
     "@sentry/solid": "8.26.0",
     "@sentry/types": "8.26.0",
     "@sentry/utils": "8.26.0",
-    "@sentry/vite-plugin": "2.19.0"
+    "@sentry/vite-plugin": "2.22.3"
   },
   "devDependencies": {
     "@solidjs/router": "^0.13.4",
