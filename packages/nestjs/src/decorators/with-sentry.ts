@@ -1,5 +1,5 @@
 import { captureException } from '@sentry/core';
-import { isExpectedError } from './helpers';
+import { isExpectedError } from '../helpers';
 
 /**
  * A decorator to wrap user-defined exception filters and add Sentry error reporting.
