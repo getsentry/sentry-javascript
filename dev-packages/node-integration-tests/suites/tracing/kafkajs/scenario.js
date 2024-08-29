@@ -30,7 +30,7 @@ async function run() {
   });
 
   const consumer = kafka.consumer({
-    groupId: 'test-group'
+    groupId: 'test-group',
   });
 
   await consumer.connect();
@@ -38,6 +38,7 @@ async function run() {
 
   consumer.run({
     eachMessage: async ({ message }) => {
+      // eslint-disable-next-line no-console
       console.debug('Received message', message.value.toString());
     },
   });
@@ -47,9 +48,11 @@ async function run() {
 
   await producer.send({
     topic: 'test-topic',
-    messages: [{
-      value: 'TEST_MESSAGE',
-    }],
+    messages: [
+      {
+        value: 'TEST_MESSAGE',
+      },
+    ],
   });
 
   // Wait for the message to be received
