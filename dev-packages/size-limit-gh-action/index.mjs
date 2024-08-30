@@ -16,6 +16,11 @@ const SIZE_LIMIT_HEADING = '## size-limit report 📦 ';
 const ARTIFACT_NAME = 'size-limit-action';
 const RESULTS_FILE = 'size-limit-results.json';
 
+function getResultsFilePath() {
+  const __dirname = path.dirname(fileURLToPath(import.meta.url));
+  return path.resolve(__dirname, RESULTS_FILE);
+}
+
 const { getInput, setFailed } = core;
 
 async function fetchPreviousComment(octokit, repo, pr) {
@@ -46,7 +51,7 @@ async function execSizeLimit() {
 }
 
 async function run() {
-  const resultsFilePath = path.resolve(__dirname, RESULTS_FILE);
+  const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
   try {
     const { payload, repo } = context;
@@ -62,7 +67,7 @@ async function run() {
 
     const octokit = getOctokit(githubToken);
     const limit = new SizeLimit();
-    const __dirname = path.dirname(fileURLToPath(import.meta.url));
+    const resultsFilePath = getResultsFilePath();
 
     // If we have no comparison branch, we just run size limit & store the result as artifact
     if (!comparisonBranch) {
@@ -178,7 +183,7 @@ async function run() {
 }
 
 async function runSizeLimitOnComparisonBranch() {
-  const resultsFilePath = path.resolve(__dirname, RESULTS_FILE);
+  const resultsFilePath = getResultsFilePath();
 
   const limit = new SizeLimit();
   const artifactClient = artifact.create();
