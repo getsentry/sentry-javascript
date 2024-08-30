@@ -16,8 +16,6 @@ const SIZE_LIMIT_HEADING = '## size-limit report 📦 ';
 const ARTIFACT_NAME = 'size-limit-action';
 const RESULTS_FILE = 'size-limit-results.json';
 
-const RESULTS_FILE_PATH = path.resolve(__dirname, RESULTS_FILE);
-
 const { getInput, setFailed } = core;
 
 async function fetchPreviousComment(octokit, repo, pr) {
@@ -48,6 +46,8 @@ async function execSizeLimit() {
 }
 
 async function run() {
+  const resultsFilePath = path.resolve(__dirname, RESULTS_FILE);
+
   try {
     const { payload, repo } = context;
     const pr = payload.pull_request;
@@ -96,7 +96,7 @@ async function run() {
         downloadPath: __dirname,
       });
 
-      base = JSON.parse(await fs.readFile(RESULTS_FILE_PATH, { encoding: 'utf8' }));
+      base = JSON.parse(await fs.readFile(resultsFilePath, { encoding: 'utf8' }));
 
       if (!artifacts.isLatest) {
         baseIsNotLatest = true;
@@ -178,6 +178,8 @@ async function run() {
 }
 
 async function runSizeLimitOnComparisonBranch() {
+  const resultsFilePath = path.resolve(__dirname, RESULTS_FILE);
+
   const limit = new SizeLimit();
   const artifactClient = artifact.create();
 
@@ -185,13 +187,13 @@ async function runSizeLimitOnComparisonBranch() {
 
   try {
     const base = limit.parseResults(baseOutput);
-    await fs.writeFile(RESULTS_FILE_PATH, JSON.stringify(base), 'utf8');
+    await fs.writeFile(resultsFilePath, JSON.stringify(base), 'utf8');
   } catch (error) {
     core.error('Error parsing size-limit output. The output should be a json.');
     throw error;
   }
 
-  const globber = await glob.create(RESULTS_FILE_PATH, {
+  const globber = await glob.create(resultsFilePath, {
     followSymbolicLinks: false,
   });
   const files = await globber.glob();
