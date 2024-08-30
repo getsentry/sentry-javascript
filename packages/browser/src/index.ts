@@ -41,6 +41,21 @@ export {
 
 export * from './metrics';
 
+export const testThing =
+  'just adding some stuff here to ensure this is larger, so size limit is triggered, yes yes yes. ';
+
+/** test */
+export class MyTestClass {
+  /** test */
+  // eslint-disable-next-line @sentry-internal/sdk/no-class-field-initializers
+  public aha = 'why is this even here? I DO NOT UNDERSTAND!!';
+
+  /** test */
+  public doSomething(): string {
+    return 'this does not even make any sense...';
+  }
+}
+
 export {
   defaultRequestInstrumentationOptions,
   instrumentOutgoingRequests,
