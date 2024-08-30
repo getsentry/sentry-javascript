@@ -27,12 +27,16 @@ async function fetchPreviousComment(octokit, repo, pr) {
 }
 
 class SizeLimit {
-  formatBytes(size, sizeLimit, passed) {
+  formatBytes(size) {
+    return bytes.format(size, { unitSeparator: ' ' });
+  }
+
+  formatSizeLimitResult(size, sizeLimit, passed) {
     if (passed) {
-      return bytes.format(size, { unitSeparator: ' ' });
+      return this.formatBytes(size);
     }
 
-    return `⛔️ ${bytes.format(size, { unitSeparator: ' ' })} (max: ${bytes.format(sizeLimit, { unitSeparator: ' ' })})`;
+    return `⛔️ ${this.formatBytes(size)} (max: ${this.formatBytes(sizeLimit)})`;
   }
 
   formatPercentageChange(base = 0, current = 0) {
@@ -88,7 +92,7 @@ class SizeLimit {
   formatSizeResult(name, base, current) {
     return [
       name,
-      this.formatBytes(current.size, current.sizeLimit, current.passed),
+      this.formatSizeLimitResult(current.size, current.sizeLimit, current.passed),
       this.formatPercentageChange(base.size, current.size),
       this.formatChange(base.size, current.size),
     ];
