@@ -57,6 +57,7 @@ export {
   inboundFiltersIntegration,
   initOpenTelemetry,
   isInitialized,
+  knexIntegration,
   koaIntegration,
   lastEventId,
   linkedErrorsIntegration,
