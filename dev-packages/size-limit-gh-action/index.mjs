@@ -279,8 +279,12 @@ async function run() {
           '⚠️ **Warning:** Base artifact is not the latest one, because the latest workflow run is not done yet. This may lead to incorrect results. Try to re-run all tests to get up to date results.',
         );
       }
-
-      bodyParts.push(markdownTable(limit.formatResults(base, current)));
+      try {
+        bodyParts.push(markdownTable(limit.formatResults(base, current)));
+      } catch (error) {
+        core.error('Error generating markdown table');
+        core.error(error);
+      }
 
       if (baseWorkflowRun) {
         bodyParts.push('');
