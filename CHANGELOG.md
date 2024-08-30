@@ -10,6 +10,17 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+### Important Changes
+
+- **fix(browser): Remove faulty LCP, FCP and FP normalization logic (#13502)**
+
+This release fixes a bug in the `@sentry/browser` package and all SDKs depending on this package (e.g. `@sentry/react`
+or `@sentry/nextjs`) that caused the SDK to send incorrect web vital values for the LCP, FCP and FP vitals. The SDK
+previously incorrectly processed the original values as they were reported from the browser. When updating your SDK to
+this version, you might experience an increase in LCP, FCP and FP values, which potentially leads to a decrease in your
+performance score in the Web Vitals Insights module in Sentry. This is because the previously reported values were
+smaller than the actually measured values. We apologize for the inconvenience!
+
 Work in this release was contributed by @leopoldkristjansson and @filips123. Thank you for your contributions!
 
 ## 8.27.0
