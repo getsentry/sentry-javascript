@@ -180,7 +180,7 @@ async function run() {
         );
       }
     } else {
-      core.debug('Skipping comment because there are no changed.');
+      core.debug('Skipping comment because there are no changes.');
     }
 
     if (status > 0) {
