@@ -114,6 +114,7 @@ export {
   mysqlIntegration,
   mysql2Integration,
   redisIntegration,
+  tediousIntegration,
   nestIntegration,
   setupNestErrorHandler,
   postgresIntegration,
