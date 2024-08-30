@@ -46,6 +46,20 @@ function finishRootSpan(vm: VueSentry, timestamp: number, timeout: number): void
   }, timeout);
 }
 
+// Find if the current component exists in the provided `TracingOptions.trackComponents` array option.
+function findTrackComponent(trackComponents: string[], formattedName: string): boolean {
+  const isMatched = trackComponents.some(compo => {
+    let currentCompo = compo;
+
+    if (!(currentCompo.startsWith('<') && currentCompo.endsWith('>'))) {
+      currentCompo = `<${currentCompo}>`;
+    }
+    return formattedName === currentCompo;
+  });
+
+  return isMatched;
+}
+
 export const createTracingMixins = (options: TracingOptions): Mixins => {
   const hooks = (options.hooks || [])
     .concat(DEFAULT_HOOKS)
@@ -85,7 +99,7 @@ export const createTracingMixins = (options: TracingOptions): Mixins => {
         // Skip components that we don't want to track to minimize the noise and give a more granular control to the user
         const name = formatComponentName(this, false);
         const shouldTrack = Array.isArray(options.trackComponents)
-          ? options.trackComponents.indexOf(name) > -1
+          ? findTrackComponent(options.trackComponents, name)
           : options.trackComponents;
 
         // We always want to track root component
