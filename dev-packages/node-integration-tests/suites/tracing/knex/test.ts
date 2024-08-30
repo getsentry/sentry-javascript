@@ -11,19 +11,6 @@ describe('knex auto instrumentation', () => {
           data: expect.objectContaining({
             'db.system': 'knex',
             'db.name': 'tests',
-            'sentry.origin': 'auto.db.otel.knex',
-            'sentry.op': 'db',
-            'net.peer.name': 'localhost',
-            'net.peer.port': 5445,
-          }),
-          status: 'ok',
-          description: 'pg.connect',
-          origin: 'auto.db.otel.knex',
-        }),
-        expect.objectContaining({
-          data: expect.objectContaining({
-            'db.system': 'knex',
-            'db.name': 'tests',
             'db.statement':
               'create table "User" ("id" serial primary key, "createdAt" timestamptz(3) not null default CURRENT_TIMESTAMP(3), "email" text not null, "name" text not null)',
             'sentry.origin': 'auto.db.otel.knex',

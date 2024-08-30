@@ -1,11 +1,14 @@
 import { KnexInstrumentation } from '@opentelemetry/instrumentation-knex';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, defineIntegration } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, defineIntegration, spanToJSON } from '@sentry/core';
 import type { IntegrationFn } from '@sentry/types';
 import { generateInstrumentOnce } from '../../otel/instrument';
 
 const INTEGRATION_NAME = 'Knex';
 
-export const instrumentKnex = generateInstrumentOnce(INTEGRATION_NAME, () => new KnexInstrumentation({}));
+export const instrumentKnex = generateInstrumentOnce(
+  INTEGRATION_NAME,
+  () => new KnexInstrumentation({ requireParentSpan: true }),
+);
 
 const _knexIntegration = (() => {
   return {
@@ -16,8 +19,13 @@ const _knexIntegration = (() => {
 
     setup(client) {
       client.on('spanStart', span => {
-        span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, 'auto.db.otel.knex');
-        span.setAttribute('db.system', 'knex');
+        const spanJSON = spanToJSON(span);
+        const spanData = spanJSON.data;
+
+        if (spanData && 'knex.version' in spanData) {
+          span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, 'auto.db.otel.knex');
+          span.setAttribute('db.system', 'knex');
+        }
       });
     },
   };
