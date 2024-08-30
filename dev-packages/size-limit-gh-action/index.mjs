@@ -129,6 +129,10 @@ async function run() {
 
     const sizeLimitComment = await fetchPreviousComment(octokit, repo, pr);
 
+    if (sizeLimitComment) {
+      core.debug('Found existing size limit comment, udpating it instead of creating a new one...');
+    }
+
     const shouldComment =
       isNaN(thresholdNumber) || limit.hasSizeChanges(base, current, thresholdNumber) || sizeLimitComment;
 
@@ -175,6 +179,8 @@ async function run() {
           "Error updating comment. This can happen for PR's originating from a fork without write permissions.",
         );
       }
+    } else {
+      core.debug('Skipping comment because there are no changed.');
     }
 
     if (status > 0) {
