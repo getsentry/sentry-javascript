@@ -88,6 +88,7 @@ export {
   fastifyIntegration,
   fsIntegration,
   graphqlIntegration,
+  knexIntegration,
   mongoIntegration,
   mongooseIntegration,
   mysqlIntegration,

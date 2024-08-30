@@ -88,6 +88,7 @@ export {
   setupConnectErrorHandler,
   fastifyIntegration,
   graphqlIntegration,
+  knexIntegration,
   mongoIntegration,
   mongooseIntegration,
   mysqlIntegration,

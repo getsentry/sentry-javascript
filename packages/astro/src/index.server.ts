@@ -65,6 +65,7 @@ export {
   initOpenTelemetry,
   isInitialized,
   koaIntegration,
+  knexIntegration,
   lastEventId,
   linkedErrorsIntegration,
   localVariablesIntegration,

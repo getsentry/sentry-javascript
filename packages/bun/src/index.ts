@@ -109,6 +109,7 @@ export {
   connectIntegration,
   setupConnectErrorHandler,
   graphqlIntegration,
+  knexIntegration,
   mongoIntegration,
   mongooseIntegration,
   mysqlIntegration,
