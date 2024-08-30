@@ -312,7 +312,7 @@ async function getArtifactsForBranchAndWorkflow(octokit, { owner, repo, workflow
       } else {
         const foundArtifact = artifacts.find(({ name }) => name === artifactName);
         if (foundArtifact) {
-          core.info(`Found suitable artifact: ${foundArtifact.url}`);
+          core.info(`Found suitable artifact XXX: ${foundArtifact.url}`);
           return {
             artifact: foundArtifact,
             workflowRun,
