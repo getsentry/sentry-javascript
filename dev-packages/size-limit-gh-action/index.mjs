@@ -82,12 +82,15 @@ async function run() {
     let baseWorkflowRun;
 
     try {
+      const workflowName = `${process.env.GITHUB_WORKFLOW || ''}`;
+      core.startGroup(`getArtifactsForBranchAndWorkflow - workflow:"${workflowName}",  branch:"${comparisonBranch}"`);
       const artifacts = await getArtifactsForBranchAndWorkflow(octokit, {
         ...repo,
         artifactName: ARTIFACT_NAME,
         branch: comparisonBranch,
-        workflowName: `${process.env.GITHUB_WORKFLOW || ''}`,
+        workflowName
       });
+      core.endGroup();
 
       if (!artifacts) {
         throw new Error('No artifacts found');

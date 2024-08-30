@@ -18,8 +18,6 @@ const DEFAULT_PAGE_LIMIT = 10;
  * support downloading artifacts from other workflows
  */
 export async function getArtifactsForBranchAndWorkflow(octokit, { owner, repo, workflowName, branch, artifactName }) {
-  core.startGroup(`getArtifactsForBranchAndWorkflow - workflow:"${workflowName}",  branch:"${branch}"`);
-
   let repositoryWorkflow = null;
 
   // For debugging
@@ -51,7 +49,6 @@ export async function getArtifactsForBranchAndWorkflow(octokit, { owner, repo, w
         ', ',
       )}`,
     );
-    core.endGroup();
     return null;
   }
 
@@ -70,7 +67,6 @@ export async function getArtifactsForBranchAndWorkflow(octokit, { owner, repo, w
   })) {
     if (!response.data.length) {
       core.warning(`Workflow ${workflow_id} not found in branch ${branch}`);
-      core.endGroup();
       return null;
     }
 
@@ -107,7 +103,6 @@ export async function getArtifactsForBranchAndWorkflow(octokit, { owner, repo, w
         const foundArtifact = artifacts.find(({ name }) => name === artifactName);
         if (foundArtifact) {
           core.info(`Found suitable artifact: ${foundArtifact.url}`);
-          core.endGroup();
           return {
             artifact: foundArtifact,
             workflowRun,
@@ -121,7 +116,6 @@ export async function getArtifactsForBranchAndWorkflow(octokit, { owner, repo, w
 
     if (currentPage > DEFAULT_MAX_PAGES) {
       core.warning(`Workflow ${workflow_id} not found in branch: ${branch}`);
-      core.endGroup();
       return null;
     }
 
