@@ -28,11 +28,11 @@ test('Sends form data with action span to Sentry', async ({ page }) => {
     buffer: Buffer.from('this is test'),
   });
 
-  await page.locator('button[type=submit]').click();
-
   const formdataActionTransaction = waitForTransaction('create-remix-app-express-legacy', transactionEvent => {
     return transactionEvent?.spans?.some(span => span.op === 'function.remix.action');
   });
+
+  await page.locator('button[type=submit]').click();
 
   const actionSpan = (await formdataActionTransaction).spans.find(span => span.op === 'function.remix.action');
 

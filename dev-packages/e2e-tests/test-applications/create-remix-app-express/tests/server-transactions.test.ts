@@ -28,11 +28,11 @@ test('Sends form data with action span', async ({ page }) => {
     buffer: Buffer.from('this is test'),
   });
 
-  await page.locator('button[type=submit]').click();
-
   const formdataActionTransaction = waitForTransaction('create-remix-app-express', transactionEvent => {
     return transactionEvent?.spans?.some(span => span.data && span.data['code.function'] === 'action');
   });
+
+  await page.locator('button[type=submit]').click();
 
   const actionSpan = (await formdataActionTransaction).spans.find(
     span => span.data && span.data['code.function'] === 'action',
