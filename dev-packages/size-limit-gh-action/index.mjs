@@ -10,7 +10,7 @@ import * as glob from '@actions/glob';
 import * as io from '@actions/io';
 import { markdownTable } from 'markdown-table';
 
-import { SizeLimit } from './utils/SizeLimitFormatter.mjs';
+import { SizeLimitFormatter } from './utils/SizeLimitFormatter.mjs';
 import { getArtifactsForBranchAndWorkflow } from './utils/getArtifactsForBranchAndWorkflow.mjs';
 
 const SIZE_LIMIT_HEADING = '## size-limit report 📦 ';
@@ -67,7 +67,7 @@ async function run() {
     }
 
     const octokit = getOctokit(githubToken);
-    const limit = new SizeLimit();
+    const limit = new SizeLimitFormatter();
     const resultsFilePath = getResultsFilePath();
 
     // If we have no comparison branch, we just run size limit & store the result as artifact
@@ -88,7 +88,7 @@ async function run() {
         ...repo,
         artifactName: ARTIFACT_NAME,
         branch: comparisonBranch,
-        workflowName
+        workflowName,
       });
       core.endGroup();
 
@@ -189,7 +189,7 @@ async function run() {
 async function runSizeLimitOnComparisonBranch() {
   const resultsFilePath = getResultsFilePath();
 
-  const limit = new SizeLimit();
+  const limit = new SizeLimitFormatter();
   const artifactClient = artifact.create();
 
   const { output: baseOutput } = await execSizeLimit();
