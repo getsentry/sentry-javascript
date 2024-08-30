@@ -503,7 +503,7 @@ jobs:
     if: |
       needs.job_build.outputs.changed_node == 'true' ||
       needs.job_get_metadata.outputs.changed_profiling_node == 'true' ||
-      needs.job_get_metadata.outputs.is_release == 'true'
+      github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
