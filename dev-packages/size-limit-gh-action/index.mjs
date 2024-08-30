@@ -1,4 +1,3 @@
-/* eslint-disable max-lines */
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -9,12 +8,17 @@ import { exec } from '@actions/exec';
 import { context, getOctokit } from '@actions/github';
 import * as glob from '@actions/glob';
 import * as io from '@actions/io';
-import bytes from 'bytes';
 import { markdownTable } from 'markdown-table';
+
+import { SizeLimit } from './utils/size-limit-formatter.mjs';
 
 const SIZE_LIMIT_HEADING = '## size-limit report 📦 ';
 const ARTIFACT_NAME = 'size-limit-action';
 const RESULTS_FILE = 'size-limit-results.json';
+
+const RESULTS_FILE_PATH = path.resolve(__dirname, RESULTS_FILE);
+
+const { getInput, setFailed } = core;
 
 async function fetchPreviousComment(octokit, repo, pr) {
   const { data: commentList } = await octokit.rest.issues.listComments({
@@ -24,124 +28,6 @@ async function fetchPreviousComment(octokit, repo, pr) {
 
   const sizeLimitComment = commentList.find(comment => comment.body.startsWith(SIZE_LIMIT_HEADING));
   return !sizeLimitComment ? null : sizeLimitComment;
-}
-
-class SizeLimit {
-  formatBytes(size) {
-    return bytes.format(size, { unitSeparator: ' ' });
-  }
-
-  formatSizeLimitResult(size, sizeLimit, passed) {
-    if (passed) {
-      return this.formatBytes(size);
-    }
-
-    return `⛔️ ${this.formatBytes(size)} (max: ${this.formatBytes(sizeLimit)})`;
-  }
-
-  formatPercentageChange(base = 0, current = 0) {
-    if (base === 0) {
-      return 'added';
-    }
-
-    if (current === 0) {
-      return 'removed';
-    }
-
-    const value = ((current - base) / base) * 100;
-    const formatted = (Math.sign(value) * Math.ceil(Math.abs(value) * 100)) / 100;
-
-    if (value > 0) {
-      return `+${formatted}%`;
-    }
-
-    if (value === 0) {
-      return '-';
-    }
-
-    return `${formatted}%`;
-  }
-
-  formatChange(base = 0, current = 0) {
-    if (base === 0) {
-      return 'added';
-    }
-
-    if (current === 0) {
-      return 'removed';
-    }
-
-    const value = current - base;
-    const formatted = this.formatBytes(value);
-
-    if (value > 0) {
-      return `+${formatted} 🔺`;
-    }
-
-    if (value === 0) {
-      return '-';
-    }
-
-    return `${formatted} 🔽`;
-  }
-
-  formatLine(value, change) {
-    return `${value} (${change})`;
-  }
-
-  formatSizeResult(name, base, current) {
-    return [
-      name,
-      this.formatSizeLimitResult(current.size, current.sizeLimit, current.passed),
-      this.formatPercentageChange(base.size, current.size),
-      this.formatChange(base.size, current.size),
-    ];
-  }
-
-  parseResults(output) {
-    const results = JSON.parse(output);
-
-    return results.reduce((current, result) => {
-      return {
-        // biome-ignore lint/performance/noAccumulatingSpread: <explanation>
-        ...current,
-        [result.name]: {
-          name: result.name,
-          size: +result.size,
-          sizeLimit: +result.sizeLimit,
-          passed: result.passed || false,
-        },
-      };
-    }, {});
-  }
-
-  hasSizeChanges(base, current, threshold = 0) {
-    const names = [...new Set([...(base ? Object.keys(base) : []), ...Object.keys(current)])];
-
-    return !!names.find(name => {
-      const baseResult = base?.[name] || EmptyResult;
-      const currentResult = current[name] || EmptyResult;
-
-      if (baseResult.size === 0 && currentResult.size === 0) {
-        return true;
-      }
-
-      return Math.abs((currentResult.size - baseResult.size) / baseResult.size) * 100 > threshold;
-    });
-  }
-
-  formatResults(base, current) {
-    const names = [...new Set([...(base ? Object.keys(base) : []), ...Object.keys(current)])];
-    const header = SIZE_RESULTS_HEADER;
-    const fields = names.map(name => {
-      const baseResult = base?.[name] || EmptyResult;
-      const currentResult = current[name] || EmptyResult;
-
-      return this.formatSizeResult(name, baseResult, currentResult);
-    });
-
-    return [header, ...fields];
-  }
 }
 
 async function execSizeLimit() {
@@ -161,16 +47,7 @@ async function execSizeLimit() {
   return { status, output };
 }
 
-const SIZE_RESULTS_HEADER = ['Path', 'Size', '% Change', 'Change'];
-
-const EmptyResult = {
-  name: '-',
-  size: 0,
-};
-
 async function run() {
-  const { getInput, setFailed } = core;
-
   try {
     const { payload, repo } = context;
     const pr = payload.pull_request;
@@ -185,35 +62,11 @@ async function run() {
 
     const octokit = getOctokit(githubToken);
     const limit = new SizeLimit();
-    const artifactClient = artifact.create();
     const __dirname = path.dirname(fileURLToPath(import.meta.url));
-    const resultsFilePath = path.resolve(__dirname, RESULTS_FILE);
 
     // If we have no comparison branch, we just run size limit & store the result as artifact
     if (!comparisonBranch) {
-      let base;
-      const { output: baseOutput } = await execSizeLimit();
-
-      try {
-        base = limit.parseResults(baseOutput);
-      } catch (error) {
-        core.error('Error parsing size-limit output. The output should be a json.');
-        throw error;
-      }
-
-      try {
-        await fs.writeFile(resultsFilePath, JSON.stringify(base), 'utf8');
-      } catch (err) {
-        core.error(err);
-      }
-      const globber = await glob.create(resultsFilePath, {
-        followSymbolicLinks: false,
-      });
-      const files = await globber.glob();
-
-      await artifactClient.uploadArtifact(ARTIFACT_NAME, files, __dirname);
-
-      return;
+      return runSizeLimitOnComparisonBranch();
     }
 
     // Else, we run size limit for the current branch, AND fetch it for the comparison branch
@@ -243,7 +96,7 @@ async function run() {
         downloadPath: __dirname,
       });
 
-      base = JSON.parse(await fs.readFile(resultsFilePath, { encoding: 'utf8' }));
+      base = JSON.parse(await fs.readFile(RESULTS_FILE_PATH, { encoding: 'utf8' }));
 
       if (!artifacts.isLatest) {
         baseIsNotLatest = true;
@@ -265,7 +118,6 @@ async function run() {
 
     const thresholdNumber = Number(threshold);
 
-    // @ts-ignore
     const sizeLimitComment = await fetchPreviousComment(octokit, repo, pr);
 
     const shouldComment =
@@ -292,6 +144,8 @@ async function run() {
       }
 
       const body = bodyParts.join('\r\n');
+
+      core.debug(`Posting PR comment: \n\n${body}`);
 
       try {
         if (!sizeLimitComment) {
@@ -321,6 +175,28 @@ async function run() {
     core.error(error);
     setFailed(error.message);
   }
+}
+
+async function runSizeLimitOnComparisonBranch() {
+  const limit = new SizeLimit();
+  const artifactClient = artifact.create();
+
+  const { output: baseOutput } = await execSizeLimit();
+
+  try {
+    const base = limit.parseResults(baseOutput);
+    await fs.writeFile(RESULTS_FILE_PATH, JSON.stringify(base), 'utf8');
+  } catch (error) {
+    core.error('Error parsing size-limit output. The output should be a json.');
+    throw error;
+  }
+
+  const globber = await glob.create(RESULTS_FILE_PATH, {
+    followSymbolicLinks: false,
+  });
+  const files = await globber.glob();
+
+  await artifactClient.uploadArtifact(ARTIFACT_NAME, files, __dirname);
 }
 
 // max pages of workflows to pagination through
