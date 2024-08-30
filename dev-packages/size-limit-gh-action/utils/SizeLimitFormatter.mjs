@@ -7,7 +7,7 @@ const EmptyResult = {
   size: 0,
 };
 
-export class SizeLimit {
+export class SizeLimitFormatter {
   formatBytes(size) {
     return bytes.format(size, { unitSeparator: ' ' });
   }
