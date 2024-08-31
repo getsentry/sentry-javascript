@@ -53,3 +53,23 @@ export function instrumentObservable(observable: Observable<unknown>, activeSpan
     });
   }
 }
+
+/**
+ *
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/explicit-function-return-type
+export function getNextProxy(next: any, span: Span, prevSpan: undefined | Span) {
+  return new Proxy(next, {
+    apply: (originalNext, thisArgNext, argsNext) => {
+      span.end();
+
+      if (prevSpan) {
+        return withActiveSpan(prevSpan, () => {
+          return Reflect.apply(originalNext, thisArgNext, argsNext);
+        });
+      } else {
+        return Reflect.apply(originalNext, thisArgNext, argsNext);
+      }
+    },
+  });
+}

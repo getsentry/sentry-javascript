@@ -8,8 +8,15 @@ import {
 import { getActiveSpan, startInactiveSpan, startSpan, startSpanManual, withActiveSpan } from '@sentry/core';
 import type { Span } from '@sentry/types';
 import { SDK_VERSION, addNonEnumerableProperty, isThenable } from '@sentry/utils';
-import { getMiddlewareSpanOptions, instrumentObservable, isPatched } from './helpers';
-import type { CallHandler, CatchTarget, InjectableTarget, MinimalNestJsExecutionContext, Observable } from './types';
+import { getMiddlewareSpanOptions, getNextProxy, instrumentObservable, isPatched } from './helpers';
+import type {
+  CallHandler,
+  CatchTarget,
+  InjectableTarget,
+  MinimalNestJsExecutionContext,
+  NextFunction,
+  Observable,
+} from './types';
 
 const supportedVersions = ['>=8.0.0 <11'];
 
@@ -103,21 +110,15 @@ export class SentryNestInstrumentation extends InstrumentationBase {
                 const [req, res, next, ...args] = argsUse;
                 const prevSpan = getActiveSpan();
 
+                // Only proxy actual middleware.
+                // Without this guard instrumentation will fail if a function called use on a service decorated
+                // with @Injectable is called.
+                if (!(next satisfies NextFunction)) {
+                  return originalUse.apply(thisArgUse, argsUse);
+                }
+
                 return startSpanManual(getMiddlewareSpanOptions(target), (span: Span) => {
-                  const nextProxy = new Proxy(next, {
-                    apply: (originalNext, thisArgNext, argsNext) => {
-                      span.end();
-
-                      if (prevSpan) {
-                        return withActiveSpan(prevSpan, () => {
-                          return Reflect.apply(originalNext, thisArgNext, argsNext);
-                        });
-                      } else {
-                        return Reflect.apply(originalNext, thisArgNext, argsNext);
-                      }
-                    },
-                  });
-
+                  const nextProxy = getNextProxy(next, span, prevSpan);
                   return originalUse.apply(thisArgUse, [req, res, nextProxy, args]);
                 });
               },
