@@ -9,6 +9,6 @@ export class AppResolver {
 
   @Query(() => String)
   error(): string {
-    throw new Error();
+    throw new Error('This is an exception!');
   }
 }

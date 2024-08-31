@@ -78,6 +78,26 @@ class SentryGlobalFilter extends BaseExceptionFilter {
 Catch()(SentryGlobalFilter);
 export { SentryGlobalFilter };
 
+// TODO: add comments why we need this
+/**
+ *
+ */
+class SentryGlobalGraphQLFilter {
+  public static readonly __SENTRY_INTERNAL__ = true;
+
+  /**
+   * Catches exceptions and reports them to Sentry unless they are expected errors.
+   */
+  public catch(exception: unknown, host: ArgumentsHost): void {
+    console.log('capture exception!');
+    captureException(exception);
+    console.log('rethrow!');
+    throw exception;
+  }
+}
+Catch()(SentryGlobalGraphQLFilter);
+export { SentryGlobalGraphQLFilter };
+
 /**
  * Service to set up Sentry performance tracing for Nest.js applications.
  */
