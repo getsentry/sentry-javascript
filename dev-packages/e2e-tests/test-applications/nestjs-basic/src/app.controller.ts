@@ -96,4 +96,24 @@ export class AppController {
   async exampleExceptionLocalFilter() {
     throw new ExampleExceptionLocalFilter();
   }
+
+  @Get('test-service-use')
+  testServiceWithUseMethod() {
+    return this.appService.use();
+  }
+
+  @Get('test-service-transform')
+  testServiceWithTransform() {
+    return this.appService.transform();
+  }
+
+  @Get('test-service-intercept')
+  testServiceWithIntercept() {
+    return this.appService.intercept();
+  }
+
+  @Get('test-service-canActivate')
+  testServiceWithCanActivate() {
+    return this.appService.canActivate();
+  }
 }
