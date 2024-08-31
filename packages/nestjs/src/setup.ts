@@ -78,20 +78,24 @@ class SentryGlobalFilter extends BaseExceptionFilter {
 Catch()(SentryGlobalFilter);
 export { SentryGlobalFilter };
 
-// TODO: add comments why we need this
 /**
+ * Global filter to handle exceptions and report them to Sentry.
  *
+ * The BaseExceptionFilter does not work well in GraphQL applications.
+ * By default, Nest GraphQL applications use the ExternalExceptionFilter, which just rethrows the error:
+ * https://github.com/nestjs/nest/blob/master/packages/core/exceptions/external-exception-filter.ts
+ *
+ * The ExternalExceptinFilter is not exported, so we reimplement this filter here.
  */
 class SentryGlobalGraphQLFilter {
   public static readonly __SENTRY_INTERNAL__ = true;
 
   /**
-   * Catches exceptions and reports them to Sentry unless they are expected errors.
+   * Catches exceptions and reports them to Sentry.
    */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   public catch(exception: unknown, host: ArgumentsHost): void {
-    console.log('capture exception!');
     captureException(exception);
-    console.log('rethrow!');
     throw exception;
   }
 }
