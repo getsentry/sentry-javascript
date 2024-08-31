@@ -1,5 +1,4 @@
-import { expect, test } from '@playwright/test';
-import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
+import { test } from '@playwright/test';
 
 test('Sends exception to Sentry', async ({ baseURL }) => {
   const response = await fetch(`${baseURL}/graphql`, {
