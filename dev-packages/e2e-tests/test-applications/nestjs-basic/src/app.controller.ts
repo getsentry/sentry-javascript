@@ -1,11 +1,13 @@
 import { Controller, Get, Param, ParseIntPipe, UseFilters, UseGuards, UseInterceptors } from '@nestjs/common';
 import { flush } from '@sentry/nestjs';
 import { AppService } from './app.service';
+import { AsyncInterceptor } from './async-example.interceptor';
+import { ExampleInterceptor1 } from './example-1.interceptor';
+import { ExampleInterceptor2 } from './example-2.interceptor';
 import { ExampleExceptionGlobalFilter } from './example-global-filter.exception';
 import { ExampleExceptionLocalFilter } from './example-local-filter.exception';
 import { ExampleLocalFilter } from './example-local.filter';
 import { ExampleGuard } from './example.guard';
-import { ExampleInterceptor } from './example.interceptor';
 
 @Controller()
 @UseFilters(ExampleLocalFilter)
@@ -29,8 +31,14 @@ export class AppController {
   }
 
   @Get('test-interceptor-instrumentation')
-  @UseInterceptors(ExampleInterceptor)
+  @UseInterceptors(ExampleInterceptor1, ExampleInterceptor2)
   testInterceptorInstrumentation() {
+    return this.appService.testSpan();
+  }
+
+  @Get('test-async-interceptor-instrumentation')
+  @UseInterceptors(AsyncInterceptor)
+  testAsyncInterceptorInstrumentation() {
     return this.appService.testSpan();
   }
 

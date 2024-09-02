@@ -128,3 +128,4 @@ export { withSentryErrorBoundary } from '@sentry/solid';
 export { init } from './sdk';
 
 export * from './withServerActionInstrumentation';
+export * from './middleware';

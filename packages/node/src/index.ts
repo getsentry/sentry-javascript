@@ -127,6 +127,7 @@ export {
   spanToBaggageHeader,
   trpcMiddleware,
   zodErrorsIntegration,
+  profiler,
 } from '@sentry/core';
 
 export type {

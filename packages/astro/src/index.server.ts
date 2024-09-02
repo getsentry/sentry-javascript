@@ -123,6 +123,7 @@ export {
   withMonitor,
   withScope,
   zodErrorsIntegration,
+  profiler,
 } from '@sentry/node';
 
 export { init } from './server/sdk';
