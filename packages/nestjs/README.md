@@ -109,6 +109,8 @@ import { SentryGlobalFilter } from '@sentry/nestjs/setup';
 export class AppModule {}
 ```
 
+**Note:** In NestJS + GraphQL applications replace the `SentryGlobalFilter` with the `SentryGlobalGraphQLFilter`.
+
 ## SentryTraced
 
 Use the `@SentryTraced()` decorator to gain additional performance insights for any function within your NestJS
