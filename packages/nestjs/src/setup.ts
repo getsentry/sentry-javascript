@@ -109,7 +109,11 @@ class SentryGlobalGraphQLFilter {
    */
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   public catch(exception: unknown, host: ArgumentsHost): void {
-    if (exception instanceof Error && !(exception instanceof HttpException)) {
+    // neither report nor log HttpExceptions
+    if (exception instanceof HttpException) {
+      throw exception;
+    }
+    if (exception instanceof Error) {
       SentryGlobalGraphQLFilter._logger.error(exception.message, exception.stack);
     }
     captureException(exception);
