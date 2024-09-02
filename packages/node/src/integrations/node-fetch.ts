@@ -2,6 +2,7 @@ import { trace } from '@opentelemetry/api';
 import { context, propagation } from '@opentelemetry/api';
 import type { UndiciRequest, UndiciResponse } from '@opentelemetry/instrumentation-undici';
 import { UndiciInstrumentation } from '@opentelemetry/instrumentation-undici';
+import { SEMATTRS_HTTP_URL } from '@opentelemetry/semantic-conventions';
 import { addBreadcrumb, defineIntegration, getCurrentScope, hasTracingEnabled } from '@sentry/core';
 import {
   addOpenTelemetryInstrumentation,
@@ -77,8 +78,11 @@ const _nativeNodeFetchIntegration = ((options: NodeFetchOptions = {}) => {
 
           return false;
         },
-        startSpanHook: () => {
+        startSpanHook: request => {
+          const url = getAbsoluteUrl(request.origin, request.path);
+
           return {
+            [SEMATTRS_HTTP_URL]: url,
             SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN: 'auto.http.otel.node_fetch',
           };
         },
