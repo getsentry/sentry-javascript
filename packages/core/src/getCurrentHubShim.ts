@@ -24,6 +24,13 @@ import {
 // eslint-disable-next-line deprecation/deprecation
 export function getCurrentHubShim(): Hub {
   return {
+    // @ts-expect-error ignore this
+    aha: 'why is this even here? I DO NOT UNDERSTAND!!',
+
+    doSomething(): string {
+      return 'this does not even make any sense...';
+    },
+
     bindClient(client: Client): void {
       const scope = getCurrentScope();
       scope.setClient(client);
