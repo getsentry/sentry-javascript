@@ -31,7 +31,11 @@ import { isExpectedError } from './helpers';
  */
 class SentryTracingInterceptor implements NestInterceptor {
   // used to exclude this class from being auto-instrumented
-  public static readonly __SENTRY_INTERNAL__ = true;
+  public readonly __SENTRY_INTERNAL__: boolean;
+
+  public constructor() {
+    this.__SENTRY_INTERNAL__ = true;
+  }
 
   /**
    * Intercepts HTTP requests to set the transaction name for Sentry tracing.
@@ -61,7 +65,12 @@ export { SentryTracingInterceptor };
  * Global filter to handle exceptions and report them to Sentry.
  */
 class SentryGlobalFilter extends BaseExceptionFilter {
-  public static readonly __SENTRY_INTERNAL__ = true;
+  public readonly __SENTRY_INTERNAL__: boolean;
+
+  public constructor() {
+    super();
+    this.__SENTRY_INTERNAL__ = true;
+  }
 
   /**
    * Catches exceptions and reports them to Sentry unless they are expected errors.
@@ -88,7 +97,11 @@ export { SentryGlobalFilter };
  * The ExternalExceptinFilter is not exported, so we reimplement this filter here.
  */
 class SentryGlobalGraphQLFilter {
-  public static readonly __SENTRY_INTERNAL__ = true;
+  public readonly __SENTRY_INTERNAL__: boolean;
+
+  public constructor() {
+    this.__SENTRY_INTERNAL__ = true;
+  }
 
   /**
    * Catches exceptions and reports them to Sentry.
@@ -106,7 +119,11 @@ export { SentryGlobalGraphQLFilter };
  * Service to set up Sentry performance tracing for Nest.js applications.
  */
 class SentryService implements OnModuleInit {
-  public static readonly __SENTRY_INTERNAL__ = true;
+  public readonly __SENTRY_INTERNAL__: boolean;
+
+  public constructor() {
+    this.__SENTRY_INTERNAL__ = true;
+  }
 
   /**
    * Initializes the Sentry service and registers span attributes.
