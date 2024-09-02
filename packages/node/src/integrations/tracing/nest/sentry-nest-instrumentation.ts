@@ -9,14 +9,7 @@ import { getActiveSpan, startInactiveSpan, startSpan, startSpanManual, withActiv
 import type { Span } from '@sentry/types';
 import { SDK_VERSION, addNonEnumerableProperty, isThenable } from '@sentry/utils';
 import { getMiddlewareSpanOptions, getNextProxy, instrumentObservable, isPatched } from './helpers';
-import type {
-  CallHandler,
-  CatchTarget,
-  InjectableTarget,
-  MinimalNestJsExecutionContext,
-  NextFunction,
-  Observable,
-} from './types';
+import type { CallHandler, CatchTarget, InjectableTarget, MinimalNestJsExecutionContext, Observable } from './types';
 
 const supportedVersions = ['>=8.0.0 <11'];
 
@@ -107,13 +100,18 @@ export class SentryNestInstrumentation extends InstrumentationBase {
 
             target.prototype.use = new Proxy(target.prototype.use, {
               apply: (originalUse, thisArgUse, argsUse) => {
+                // Middlewares have a request, response and next argument.
+                if (argsUse.length < 3) {
+                  return originalUse.apply(thisArgUse, argsUse);
+                }
+
                 const [req, res, next, ...args] = argsUse;
                 const prevSpan = getActiveSpan();
 
                 // Check that we can reasonably assume that the target is a middleware.
-                // Without this guard, instrumentation will fail if a function named 'use' on a service, which is
+                // Without these guards, instrumentation will fail if a function named 'use' on a service, which is
                 // decorated with @Injectable, is called.
-                if (!(next satisfies NextFunction)) {
+                if (!req || !res || !next || !(typeof next === 'function')) {
                   return originalUse.apply(thisArgUse, argsUse);
                 }
 
@@ -135,6 +133,17 @@ export class SentryNestInstrumentation extends InstrumentationBase {
 
             target.prototype.canActivate = new Proxy(target.prototype.canActivate, {
               apply: (originalCanActivate, thisArgCanActivate, argsCanActivate) => {
+                // Guards have a context argument.
+                if (argsCanActivate.length == 0) {
+                  return originalCanActivate.apply(thisArgCanActivate, argsCanActivate);
+                }
+
+                const context: MinimalNestJsExecutionContext = argsCanActivate[0];
+
+                if (!context) {
+                  return originalCanActivate.apply(thisArgCanActivate, argsCanActivate);
+                }
+
                 return startSpan(getMiddlewareSpanOptions(target), () => {
                   return originalCanActivate.apply(thisArgCanActivate, argsCanActivate);
                 });
@@ -150,6 +159,18 @@ export class SentryNestInstrumentation extends InstrumentationBase {
 
             target.prototype.transform = new Proxy(target.prototype.transform, {
               apply: (originalTransform, thisArgTransform, argsTransform) => {
+                // Pipes have a value and metadata argument.
+                if (argsTransform.length < 2) {
+                  return originalTransform.apply(thisArgTransform, argsTransform);
+                }
+
+                const value = argsTransform[0];
+                const metadata = argsTransform[1];
+
+                if (!value || !metadata) {
+                  return originalTransform.apply(thisArgTransform, argsTransform);
+                }
+
                 return startSpan(getMiddlewareSpanOptions(target), () => {
                   return originalTransform.apply(thisArgTransform, argsTransform);
                 });
@@ -165,11 +186,21 @@ export class SentryNestInstrumentation extends InstrumentationBase {
 
             target.prototype.intercept = new Proxy(target.prototype.intercept, {
               apply: (originalIntercept, thisArgIntercept, argsIntercept) => {
+                // Interceptors have a context and next argument.
+                if (argsIntercept.length < 2) {
+                  return originalIntercept.apply(thisArgIntercept, argsIntercept);
+                }
+
                 const context: MinimalNestJsExecutionContext = argsIntercept[0];
                 const next: CallHandler = argsIntercept[1];
 
                 const parentSpan = getActiveSpan();
                 let afterSpan: Span;
+
+                // Check that we can reasonably assume that the target is an interceptor.
+                if (!context || !next || !(typeof next.handle === 'function')) {
+                  return originalIntercept.apply(thisArgIntercept, argsIntercept);
+                }
 
                 return startSpanManual(getMiddlewareSpanOptions(target), (beforeSpan: Span) => {
                   // eslint-disable-next-line @typescript-eslint/unbound-method
@@ -265,6 +296,17 @@ export class SentryNestInstrumentation extends InstrumentationBase {
 
             target.prototype.catch = new Proxy(target.prototype.catch, {
               apply: (originalCatch, thisArgCatch, argsCatch) => {
+                if (argsCatch.length < 2) {
+                  return originalCatch.apply(thisArgCatch, argsCatch);
+                }
+
+                const exception = argsCatch[0];
+                const host = argsCatch[1];
+
+                if (!exception || !host) {
+                  return originalCatch.apply(thisArgCatch, argsCatch);
+                }
+
                 return startSpan(getMiddlewareSpanOptions(target), () => {
                   return originalCatch.apply(thisArgCatch, argsCatch);
                 });
