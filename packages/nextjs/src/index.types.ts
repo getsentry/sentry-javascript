@@ -141,4 +141,5 @@ export declare function wrapApiHandlerWithSentryVercelCrons<F extends (...args: 
  */
 export declare function wrapPageComponentWithSentry<C>(WrappingTarget: C): C;
 
-export { experimental_captureRequestError } from './common/captureRequestError';
+// eslint-disable-next-line deprecation/deprecation
+export { experimental_captureRequestError, captureRequestError } from './common/captureRequestError';
