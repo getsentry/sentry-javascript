@@ -1,7 +1,7 @@
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, withActiveSpan } from '@sentry/core';
 import type { Span } from '@sentry/types';
 import { addNonEnumerableProperty } from '@sentry/utils';
-import type { CatchTarget, InjectableTarget, Observable, Subscription } from './types';
+import type { CatchTarget, InjectableTarget, NextFunction, Observable, Subscription } from './types';
 
 const sentryPatched = 'sentryPatched';
 
@@ -52,4 +52,23 @@ export function instrumentObservable(observable: Observable<unknown>, activeSpan
       },
     });
   }
+}
+
+/**
+ * Proxies the next() call in a nestjs middleware to end the span when it is called.
+ */
+export function getNextProxy(next: NextFunction, span: Span, prevSpan: undefined | Span): NextFunction {
+  return new Proxy(next, {
+    apply: (originalNext, thisArgNext, argsNext) => {
+      span.end();
+
+      if (prevSpan) {
+        return withActiveSpan(prevSpan, () => {
+          return Reflect.apply(originalNext, thisArgNext, argsNext);
+        });
+      } else {
+        return Reflect.apply(originalNext, thisArgNext, argsNext);
+      }
+    },
+  });
 }
