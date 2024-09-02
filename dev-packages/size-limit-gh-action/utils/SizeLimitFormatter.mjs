@@ -12,12 +12,12 @@ export class SizeLimitFormatter {
     return bytes.format(size, { unitSeparator: ' ' });
   }
 
-  formatSizeLimitResult(size, sizeLimit, passed) {
+  formatName(name, sizeLimit, passed) {
     if (passed) {
-      return this.formatBytes(size);
+      return name;
     }
 
-    return `⛔️ ${this.formatBytes(size)}\n(max: ${this.formatBytes(sizeLimit)})`;
+    return `⛔️ ${name} (max: ${this.formatBytes(sizeLimit)})`;
   }
 
   formatPercentageChange(base = 0, current = 0) {
@@ -72,8 +72,8 @@ export class SizeLimitFormatter {
 
   formatSizeResult(name, base, current) {
     return [
-      name,
-      this.formatSizeLimitResult(current.size, current.sizeLimit, current.passed),
+      this.formatName(name, current.sizeLimit, current.passed),
+      this.formatBytes(current.size),
       this.formatPercentageChange(base.size, current.size),
       this.formatChange(base.size, current.size),
     ];
