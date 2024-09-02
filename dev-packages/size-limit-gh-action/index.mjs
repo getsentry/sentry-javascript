@@ -158,8 +158,6 @@ async function run() {
 
       const body = bodyParts.join('\r\n');
 
-      core.debug(`Posting PR comment: \n\n${body}`);
-
       try {
         if (!sizeLimitComment) {
           await octokit.rest.issues.createComment({
@@ -181,7 +179,6 @@ async function run() {
       }
     } else {
       core.debug('Skipping comment because there are no changes.');
-      core.debug(`Base result:\n\n${JSON.stringify(base, null, 2)}`);
     }
 
     if (status > 0) {

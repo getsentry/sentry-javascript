@@ -1,4 +1,3 @@
-import * as core from '@actions/core';
 import bytes from 'bytes';
 
 const SIZE_RESULTS_HEADER = ['Path', 'Size', '% Change', 'Change'];
@@ -18,7 +17,7 @@ export class SizeLimitFormatter {
       return this.formatBytes(size);
     }
 
-    return `⛔️ ${this.formatBytes(size)} (max: ${this.formatBytes(sizeLimit)})`;
+    return `⛔️ ${this.formatBytes(size)}\n(max: ${this.formatBytes(sizeLimit)})`;
   }
 
   formatPercentageChange(base = 0, current = 0) {
@@ -104,18 +103,9 @@ export class SizeLimitFormatter {
 
     const names = [...new Set([...Object.keys(base), ...Object.keys(current)])];
 
-    core.debug('hasSizeChanges....', names);
-
     return names.some(name => {
       const baseResult = base[name] || EmptyResult;
       const currentResult = current[name] || EmptyResult;
-
-      // DEBUGGING?!
-      core.debug(
-        `comparing ${name} - ${baseResult.size} vs ${currentResult.size} - ${
-          Math.abs((currentResult.size - baseResult.size) / baseResult.size) * 100
-        }`,
-      );
 
       if (!baseResult.size || !currentResult.size) {
         return true;
