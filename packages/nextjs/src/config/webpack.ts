@@ -37,7 +37,7 @@ let showedMissingGlobalErrorWarningMsg = false;
  *   - `plugins`, to add SentryWebpackPlugin
  *
  * @param userNextConfig The user's existing nextjs config, as passed to `withSentryConfig`
- * @param userSentryWebpackPluginOptions The user's SentryWebpackPlugin config, as passed to `withSentryConfig`
+ * @param userSentryOptions The user's SentryWebpackPlugin config, as passed to `withSentryConfig`
  * @returns The function to set as the nextjs config's `webpack` value
  */
 export function constructWebpackConfigFunction(

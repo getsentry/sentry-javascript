@@ -97,6 +97,9 @@ export function getWebpackPluginOptions(
       deploy: sentryBuildOptions.release?.deploy,
       ...sentryBuildOptions.unstable_sentryWebpackPluginOptions?.release,
     },
+    bundleSizeOptimizations: {
+      ...sentryBuildOptions.bundleSizeOptimizations,
+    },
     _metaOptions: {
       loggerPrefixOverride: `[@sentry/nextjs - ${prefixInsert}]`,
       telemetry: {
