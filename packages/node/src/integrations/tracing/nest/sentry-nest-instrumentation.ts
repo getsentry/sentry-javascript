@@ -110,14 +110,15 @@ export class SentryNestInstrumentation extends InstrumentationBase {
                 const [req, res, next, ...args] = argsUse;
                 const prevSpan = getActiveSpan();
 
-                // Only proxy actual middleware.
-                // Without this guard instrumentation will fail if a function called use on a service decorated
-                // with @Injectable is called.
+                // Check that we can reasonably assume that the target is a middleware.
+                // Without this guard, instrumentation will fail if a function named 'use' on a service, which is
+                // decorated with @Injectable, is called.
                 if (!(next satisfies NextFunction)) {
                   return originalUse.apply(thisArgUse, argsUse);
                 }
 
                 return startSpanManual(getMiddlewareSpanOptions(target), (span: Span) => {
+                  // proxy next to end span on call
                   const nextProxy = getNextProxy(next, span, prevSpan);
                   return originalUse.apply(thisArgUse, [req, res, nextProxy, args]);
                 });
