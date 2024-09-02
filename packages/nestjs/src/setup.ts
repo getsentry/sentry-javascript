@@ -105,7 +105,7 @@ class SentryGlobalGraphQLFilter {
   }
 
   /**
-   * Catches exceptions and reports them to Sentry.
+   * Catches exceptions and reports them to Sentry unless they are HttpExceptions.
    */
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   public catch(exception: unknown, host: ArgumentsHost): void {
