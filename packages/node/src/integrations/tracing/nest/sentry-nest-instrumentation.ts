@@ -111,7 +111,7 @@ export class SentryNestInstrumentation extends InstrumentationBase {
                 // Check that we can reasonably assume that the target is a middleware.
                 // Without these guards, instrumentation will fail if a function named 'use' on a service, which is
                 // decorated with @Injectable, is called.
-                if (!req || !res || !next || !(typeof next === 'function')) {
+                if (!req || !res || !next || typeof next !== 'function') {
                   return originalUse.apply(thisArgUse, argsUse);
                 }
 
@@ -198,7 +198,7 @@ export class SentryNestInstrumentation extends InstrumentationBase {
                 let afterSpan: Span;
 
                 // Check that we can reasonably assume that the target is an interceptor.
-                if (!context || !next || !(typeof next.handle === 'function')) {
+                if (!context || !next || typeof next.handle !== 'function') {
                   return originalIntercept.apply(thisArgIntercept, argsIntercept);
                 }
 
