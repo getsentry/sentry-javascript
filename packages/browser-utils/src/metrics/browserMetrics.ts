@@ -354,25 +354,6 @@ export function addPerformanceEntries(span: Span, options: AddPerformanceEntries
   if (op === 'pageload') {
     _addTtfbRequestTimeToMeasurements(_measurements);
 
-    ['fcp', 'fp', 'lcp'].forEach(name => {
-      const measurement = _measurements[name];
-      if (!measurement || !transactionStartTime || timeOrigin >= transactionStartTime) {
-        return;
-      }
-      // The web vitals, fcp, fp, lcp, and ttfb, all measure relative to timeOrigin.
-      // Unfortunately, timeOrigin is not captured within the span span data, so these web vitals will need
-      // to be adjusted to be relative to span.startTimestamp.
-      const oldValue = measurement.value;
-      const measurementTimestamp = timeOrigin + msToSec(oldValue);
-
-      // normalizedValue should be in milliseconds
-      const normalizedValue = Math.abs((measurementTimestamp - transactionStartTime) * 1000);
-      const delta = normalizedValue - oldValue;
-
-      DEBUG_BUILD && logger.log(`[Measurements] Normalized ${name} from ${oldValue} to ${normalizedValue} (${delta})`);
-      measurement.value = normalizedValue;
-    });
-
     const fidMark = _measurements['mark.fid'];
     if (fidMark && _measurements['fid']) {
       // create span for FID
@@ -399,7 +380,10 @@ export function addPerformanceEntries(span: Span, options: AddPerformanceEntries
       setMeasurement(measurementName, measurement.value, measurement.unit);
     });
 
-    _tagMetricInfo(span);
+    // Set timeOrigin which denotes the timestamp which to base the LCP/FCP/FP/TTFB measurements on
+    span.setAttribute('performance.timeOrigin', timeOrigin);
+
+    _setWebVitalAttributes(span);
   }
 
   _lcpEntry = undefined;
@@ -604,7 +588,7 @@ function _trackNavigator(span: Span): void {
 }
 
 /** Add LCP / CLS data to span to allow debugging */
-function _tagMetricInfo(span: Span): void {
+function _setWebVitalAttributes(span: Span): void {
   if (_lcpEntry) {
     DEBUG_BUILD && logger.log('[Measurements] Adding LCP Data');
 

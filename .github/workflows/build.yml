@@ -48,7 +48,6 @@ env:
     ${{ github.workspace }}/packages/utils/cjs
     ${{ github.workspace }}/packages/utils/esm
 
-  BUILD_CACHE_KEY: build-cache-${{ github.event.inputs.commit || github.sha }}
   BUILD_CACHE_TARBALL_KEY: tarball-${{ github.event.inputs.commit || github.sha }}
 
   # GH will use the first restore-key it finds that matches
@@ -160,13 +159,6 @@ jobs:
           base: ${{ github.event.pull_request.base.sha }}
           head: ${{ env.HEAD_COMMIT }}
 
-      - name: Check build cache
-        uses: actions/cache@v4
-        id: cache_built_packages
-        with:
-          path: ${{ env.CACHED_BUILD_PATHS }}
-          key: ${{ env.BUILD_CACHE_KEY }}
-
       - name: NX cache
         uses: actions/cache@v4
         # Disable cache when:
@@ -187,6 +179,15 @@ jobs:
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
         run: yarn build
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-output
+          path: ${{ env.CACHED_BUILD_PATHS }}
+          retention-days: 4
+          compression-level: 6
+          overwrite: true
 
     outputs:
       dependency_cache_key: ${{ steps.install_dependencies.outputs.cache_key }}
@@ -232,8 +233,8 @@ jobs:
           node-version-file: 'package.json'
       - name: Restore caches
         uses: ./.github/actions/restore-cache
-        env:
-          DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
+        with:
+          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
       - name: Check bundle sizes
         uses: ./dev-packages/size-limit-gh-action
         with:
@@ -259,8 +260,8 @@ jobs:
           node-version-file: 'package.json'
       - name: Restore caches
         uses: ./.github/actions/restore-cache
-        env:
-          DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
+        with:
+          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
       - name: Lint source files
         run: yarn lint:lerna
       - name: Lint C++ files
@@ -305,8 +306,8 @@ jobs:
           node-version-file: 'package.json'
       - name: Restore caches
         uses: ./.github/actions/restore-cache
-        env:
-          DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
+        with:
+          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
       - name: Run madge
         run: yarn circularDepCheck
 
@@ -327,8 +328,8 @@ jobs:
           node-version-file: 'package.json'
       - name: Restore caches
         uses: ./.github/actions/restore-cache
-        env:
-          DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
+        with:
+          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
 
       - name: Extract Profiling Node Prebuilt Binaries
         uses: actions/download-artifact@v4
@@ -344,6 +345,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ${{ github.sha }}
+          retention-days: 90
           path: |
             ${{ github.workspace }}/packages/browser/build/bundles/**
             ${{ github.workspace }}/packages/replay-internal/build/bundles/**
@@ -374,8 +376,8 @@ jobs:
           node-version-file: 'package.json'
       - name: Restore caches
         uses: ./.github/actions/restore-cache
-        env:
-          DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
+        with:
+          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
 
       - name: Run affected tests
         run: yarn test:pr:browser --base=${{ github.event.pull_request.base.sha }}
@@ -411,8 +413,8 @@ jobs:
         uses: oven-sh/setup-bun@v2
       - name: Restore caches
         uses: ./.github/actions/restore-cache
-        env:
-          DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
+        with:
+          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
       - name: Run tests
         run: |
           yarn test:ci:bun
@@ -435,13 +437,13 @@ jobs:
         with:
           node-version-file: 'package.json'
       - name: Set up Deno
-        uses: denoland/setup-deno@v1.1.4
+        uses: denoland/setup-deno@1.4.0
         with:
           deno-version: v1.38.5
       - name: Restore caches
         uses: ./.github/actions/restore-cache
-        env:
-          DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
+        with:
+          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
       - name: Run tests
         run: |
           cd packages/deno
@@ -456,7 +458,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        #TODO: unpin 22 once Node bug is fixed
+        # TODO(lforst): Unpin Node.js version 22 when https://github.com/protobufjs/protobuf.js/issues/2025 is resolved which broke the nodejs tests
         node: [14, 16, 18, 20, '22.6.0']
     steps:
       - name: Check out base commit (${{ github.event.pull_request.base.sha }})
@@ -474,8 +476,9 @@ jobs:
           node-version: ${{ matrix.node }}
       - name: Restore caches
         uses: ./.github/actions/restore-cache
-        env:
-          DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
+        with:
+          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
+          node_version: ${{ matrix.node == 14 && '14' || '' }}
 
       - name: Run affected tests
         run: yarn test:pr:node --base=${{ github.event.pull_request.base.sha }}
@@ -497,7 +500,10 @@ jobs:
   job_profiling_node_unit_tests:
     name: Node Profiling Unit Tests
     needs: [job_get_metadata, job_build]
-    if: needs.job_build.outputs.changed_node == 'true' || needs.job_get_metadata.outputs.changed_profiling_node == 'true' || github.event_name != 'pull_request'
+    if: |
+      needs.job_build.outputs.changed_node == 'true' ||
+      needs.job_get_metadata.outputs.changed_profiling_node == 'true' ||
+      github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -513,8 +519,8 @@ jobs:
           python-version: '3.11.7'
       - name: Restore caches
         uses: ./.github/actions/restore-cache
-        env:
-          DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
+        with:
+          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
       - name: Build Configure node-gyp
         run: yarn lerna run build:bindings:configure --scope @sentry/profiling-node
       - name: Build Bindings for Current Environment
@@ -581,8 +587,8 @@ jobs:
           node-version-file: 'package.json'
       - name: Restore caches
         uses: ./.github/actions/restore-cache
-        env:
-          DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
+        with:
+          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
 
       - name: Install Playwright
         uses: ./.github/actions/install-playwright
@@ -596,11 +602,13 @@ jobs:
         run: yarn test:ci${{ matrix.project && format(' --project={0}', matrix.project) || '' }}${{ matrix.shard && format(' --shard={0}/{1}', matrix.shard, matrix.shards) || '' }}
 
       - name: Upload Playwright Traces
-        uses: actions/upload-artifact@v3
-        if: always()
+        uses: actions/upload-artifact@v4
+        if: failure()
         with:
-          name: playwright-traces
+          name: playwright-traces-job_browser_playwright_tests-${{ matrix.bundle}}-${{matrix.project}}-${{matrix.shard || '0'}}
           path: dev-packages/browser-integration-tests/test-results
+          overwrite: true
+          retention-days: 7
 
   job_browser_loader_tests:
     name: PW ${{ matrix.bundle }} Tests
@@ -631,8 +639,8 @@ jobs:
           node-version-file: 'package.json'
       - name: Restore caches
         uses: ./.github/actions/restore-cache
-        env:
-          DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
+        with:
+          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
 
       - name: Install Playwright
         uses: ./.github/actions/install-playwright
@@ -646,11 +654,13 @@ jobs:
           cd dev-packages/browser-integration-tests
           yarn test:loader
       - name: Upload Playwright Traces
-        uses: actions/upload-artifact@v3
-        if: always()
+        uses: actions/upload-artifact@v4
+        if: failure()
         with:
-          name: playwright-traces
+          name: playwright-traces-job_browser_loader_tests-${{ matrix.bundle}}
           path: dev-packages/browser-integration-tests/test-results
+          overwrite: true
+          retention-days: 7
 
   job_check_for_faulty_dts:
     name: Check for faulty .d.ts files
@@ -668,8 +678,8 @@ jobs:
           node-version-file: 'package.json'
       - name: Restore caches
         uses: ./.github/actions/restore-cache
-        env:
-          DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
+        with:
+          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
       - name: Check for dts files that reference stuff in the temporary build folder
         run: |
           if grep -r --include "*.d.ts" --exclude-dir ".nxcache" 'import("@sentry(-internal)?/[^/]*/build' .; then
@@ -706,8 +716,9 @@ jobs:
           node-version: ${{ matrix.node }}
       - name: Restore caches
         uses: ./.github/actions/restore-cache
-        env:
-          DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
+        with:
+          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
+          node_version: ${{ matrix.node == 14 && '14' || '' }}
 
       - name: Overwrite typescript version
         if: matrix.typescript
@@ -747,8 +758,8 @@ jobs:
           node-version: ${{ matrix.node }}
       - name: Restore caches
         uses: ./.github/actions/restore-cache
-        env:
-          DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
+        with:
+          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
 
       - name: Install Playwright
         uses: ./.github/actions/install-playwright
@@ -785,8 +796,8 @@ jobs:
           node-version-file: 'package.json'
       - name: Restore caches
         uses: ./.github/actions/restore-cache
-        env:
-          DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
+        with:
+          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
       - name: NX cache
         uses: actions/cache/restore@v4
         with:
@@ -897,6 +908,7 @@ jobs:
             'nestjs-basic',
             'nestjs-distributed-tracing',
             'nestjs-with-submodules',
+            'nestjs-graphql',
             'node-exports-test-app',
             'node-koa',
             'node-connect',
@@ -947,15 +959,19 @@ jobs:
         uses: oven-sh/setup-bun@v2
       - name: Restore caches
         uses: ./.github/actions/restore-cache
-        env:
-          DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
+        with:
+          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
 
       - name: Restore tarball cache
         uses: actions/cache/restore@v4
+        id: restore-tarball-cache
         with:
           path: ${{ github.workspace }}/packages/*/*.tgz
           key: ${{ env.BUILD_CACHE_TARBALL_KEY }}
-          fail-on-cache-miss: true
+
+      - name: Build tarballs if not cached
+        if: steps.restore-tarball-cache.outputs.cache-hit != 'true'
+        run: yarn build:tarball
 
       - name: Install Playwright
         uses: ./.github/actions/install-playwright
@@ -1047,15 +1063,19 @@ jobs:
           node-version-file: 'dev-packages/e2e-tests/package.json'
       - name: Restore caches
         uses: ./.github/actions/restore-cache
-        env:
-          DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
+        with:
+          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
 
       - name: Restore tarball cache
         uses: actions/cache/restore@v4
+        id: restore-tarball-cache
         with:
           path: ${{ github.workspace }}/packages/*/*.tgz
           key: ${{ env.BUILD_CACHE_TARBALL_KEY }}
-          fail-on-cache-miss: true
+
+      - name: Build tarballs if not cached
+        if: steps.restore-tarball-cache.outputs.cache-hit != 'true'
+        run: yarn build:tarball
 
       - name: Install Playwright
         uses: ./.github/actions/install-playwright
@@ -1109,8 +1129,7 @@ jobs:
       (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) &&
      (
         (needs.job_get_metadata.outputs.changed_profiling_node == 'true') ||
-        (needs.job_get_metadata.outputs.is_release == 'true') ||
-        (github.event_name != 'pull_request')
+        (needs.job_get_metadata.outputs.is_release == 'true')
       )
     needs: [job_get_metadata, job_build, job_e2e_prepare]
     runs-on: ubuntu-20.04
@@ -1142,8 +1161,8 @@ jobs:
           node-version-file: 'dev-packages/e2e-tests/package.json'
       - name: Restore caches
         uses: ./.github/actions/restore-cache
-        env:
-          DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
+        with:
+          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
       - name: Build Profiling Node
         run: yarn lerna run build:lib --scope @sentry/profiling-node
       - name: Extract Profiling Node Prebuilt Binaries
@@ -1152,12 +1171,17 @@ jobs:
           pattern: profiling-node-binaries-${{ github.sha }}-*
           path: ${{ github.workspace }}/packages/profiling-node/lib/
           merge-multiple: true
+
       - name: Restore tarball cache
         uses: actions/cache/restore@v4
+        id: restore-tarball-cache
         with:
           path: ${{ github.workspace }}/packages/*/*.tgz
           key: ${{ env.BUILD_CACHE_TARBALL_KEY }}
-          fail-on-cache-miss : true
+
+      - name: Build tarballs if not cached
+        if: steps.restore-tarball-cache.outputs.cache-hit != 'true'
+        run: yarn build:tarball
 
       - name: Install Playwright
         uses: ./.github/actions/install-playwright
@@ -1238,8 +1262,8 @@ jobs:
           node-version-file: 'package.json'
       - name: Restore caches
         uses: ./.github/actions/restore-cache
-        env:
-          DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
+        with:
+          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
 
       - name: Collect
         run: yarn ci:collect
@@ -1260,6 +1284,7 @@ jobs:
         with:
           name: ${{ steps.process.outputs.artifactName }}
           path: ${{ steps.process.outputs.artifactPath }}
+          retention-days: 7
 
   job_compile_bindings_profiling_node:
     name: Compile & Test Profiling Bindings (v${{ matrix.node }}) ${{ matrix.target_platform || matrix.os }}, ${{ matrix.node || matrix.container }}, ${{ matrix.arch || matrix.container }}, ${{ contains(matrix.container, 'alpine') && 'musl' || 'glibc'  }}
@@ -1268,8 +1293,7 @@ jobs:
     # Skip precompile unless we are on a release branch as precompile slows down CI times.
     if: |
       (needs.job_get_metadata.outputs.changed_profiling_node == 'true') ||
-      (needs.job_get_metadata.outputs.is_release == 'true') ||
-      (github.event_name != 'pull_request')
+      (needs.job_get_metadata.outputs.is_release == 'true')
     runs-on: ${{ matrix.os }}
     container: ${{ matrix.container }}
     timeout-minutes: 30
