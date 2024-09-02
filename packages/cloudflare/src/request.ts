@@ -89,7 +89,7 @@ export function wrapRequestHandler(
               captureException(e, { mechanism: { handled: false, type: 'cloudflare' } });
               throw e;
             } finally {
-              context.waitUntil(flush(2000));
+              context?.waitUntil(flush(2000));
             }
           },
         );
