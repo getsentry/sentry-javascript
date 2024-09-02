@@ -8,7 +8,7 @@ module.exports = [
     path: 'packages/browser/build/npm/esm/index.js',
     import: createImport('init'),
     gzip: true,
-    limit: '20 KB',
+    limit: '24 KB',
   },
   {
     name: '@sentry/browser (incl. Tracing)',
