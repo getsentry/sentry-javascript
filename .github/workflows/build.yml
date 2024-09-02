@@ -908,7 +908,7 @@ jobs:
             'nestjs-basic',
             'nestjs-distributed-tracing',
             'nestjs-with-submodules',
-            'nestjs-graphql'
+            'nestjs-graphql',
             'node-exports-test-app',
             'node-koa',
             'node-connect',
