@@ -6,7 +6,7 @@ import type {
   NestInterceptor,
   OnModuleInit,
 } from '@nestjs/common';
-import { Catch, Global, Injectable, Module } from '@nestjs/common';
+import { Catch, Global, HttpException, Injectable, Logger, Module } from '@nestjs/common';
 import { APP_INTERCEPTOR, BaseExceptionFilter } from '@nestjs/core';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
@@ -97,6 +97,7 @@ export { SentryGlobalFilter };
  * The ExternalExceptinFilter is not exported, so we reimplement this filter here.
  */
 class SentryGlobalGraphQLFilter {
+  private static readonly _logger = new Logger('ExceptionsHandler');
   public readonly __SENTRY_INTERNAL__: boolean;
 
   public constructor() {
@@ -108,6 +109,9 @@ class SentryGlobalGraphQLFilter {
    */
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   public catch(exception: unknown, host: ArgumentsHost): void {
+    if (exception instanceof Error && !(exception instanceof HttpException)) {
+      SentryGlobalGraphQLFilter._logger.error(exception.message, exception.stack);
+    }
     captureException(exception);
     throw exception;
   }
