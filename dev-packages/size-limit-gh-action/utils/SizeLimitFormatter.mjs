@@ -97,13 +97,17 @@ export class SizeLimitFormatter {
   }
 
   hasSizeChanges(base, current, threshold = 0) {
-    const names = [...new Set([...(base ? Object.keys(base) : []), ...Object.keys(current)])];
+    if(!base || !current) {
+      return true;
+    }
 
-    return !!names.find(name => {
-      const baseResult = base?.[name] || EmptyResult;
+    const names = [...new Set([...(Object.keys(base)), ...Object.keys(current)])];
+
+    return names.some(name => {
+      const baseResult = base[name] || EmptyResult;
       const currentResult = current[name] || EmptyResult;
 
-      if (baseResult.size === 0 && currentResult.size === 0) {
+      if (baseResult.size === 0 || currentResult.size === 0) {
         return true;
       }
 

@@ -181,6 +181,7 @@ async function run() {
       }
     } else {
       core.debug('Skipping comment because there are no changes.');
+      core.debug(`Base result:\n\n${base}`);
     }
 
     if (status > 0) {
