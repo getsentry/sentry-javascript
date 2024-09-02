@@ -1,3 +1,4 @@
+import * as core from '@actions/core';
 import bytes from 'bytes';
 
 const SIZE_RESULTS_HEADER = ['Path', 'Size', '% Change', 'Change'];
@@ -97,17 +98,28 @@ export class SizeLimitFormatter {
   }
 
   hasSizeChanges(base, current, threshold = 0) {
-    if(!base || !current) {
+    if (!base || !current) {
       return true;
     }
 
-    const names = [...new Set([...(Object.keys(base)), ...Object.keys(current)])];
+    const names = [...new Set([...Object.keys(base), ...Object.keys(current)])];
+
+    core.debug('hasSizeChanges....', names);
 
     return names.some(name => {
       const baseResult = base[name] || EmptyResult;
       const currentResult = current[name] || EmptyResult;
 
-      if (baseResult.size === 0 || currentResult.size === 0) {
+      // DEBUGGING?!
+      core.debug(
+        'comparing...',
+        name,
+        baseResult.size,
+        currentResult.size,
+        Math.abs((currentResult.size - baseResult.size) / baseResult.size) * 100 > threshold,
+      );
+
+      if (!baseResult.size || !currentResult.size) {
         return true;
       }
 
