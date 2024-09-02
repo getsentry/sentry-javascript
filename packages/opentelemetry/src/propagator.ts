@@ -292,7 +292,8 @@ function getExistingBaggage(carrier: unknown): string | undefined {
  * 2. Else, if the active span has no URL attribute (e.g. it is unsampled), we check a special trace state (which we set in our sampler).
  */
 function getCurrentURL(span: Span): string | undefined {
-  const urlAttribute = spanToJSON(span).data?.[SEMATTRS_HTTP_URL];
+  const spanData = spanToJSON(span).data;
+  const urlAttribute = spanData?.[SEMATTRS_HTTP_URL] || spanData?.['url.full'];
   if (urlAttribute) {
     return urlAttribute;
   }

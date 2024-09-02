@@ -78,13 +78,8 @@ const _nativeNodeFetchIntegration = ((options: NodeFetchOptions = {}) => {
 
           return false;
         },
-        startSpanHook: request => {
-          const url = getAbsoluteUrl(request.origin, request.path);
-
+        startSpanHook: () => {
           return {
-            // We manually set 'http.url' because the instrumentation doesn't set this and we use it when determining
-            // whether to propagate W3C baggage headers
-            [SEMATTRS_HTTP_URL]: url,
             SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN: 'auto.http.otel.node_fetch',
           };
         },
