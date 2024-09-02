@@ -1,4 +1,4 @@
-import { test } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 import { waitForError } from '@sentry-internal/test-utils';
 
 test('Sends exception to Sentry', async ({ baseURL }) => {
@@ -16,13 +16,34 @@ test('Sends exception to Sentry', async ({ baseURL }) => {
     }),
   });
 
-  const data = await response.json();
-
-  console.log(data['errors'][0]);
-
+  const json_response = await response.json();
   const errorEvent = await errorEventPromise;
 
-  console.log(errorEvent);
+  expect(json_response?.errors[0]).toEqual({
+    message: 'This is an exception!',
+    locations: expect.any(Array),
+    path: ['error'],
+    extensions: {
+      code: 'INTERNAL_SERVER_ERROR',
+      stacktrace: expect.any(Array),
+    },
+  });
 
-  // TODO: improve test
+  expect(errorEvent.exception?.values).toHaveLength(1);
+  expect(errorEvent.exception?.values?.[0]?.value).toBe('This is an exception!');
+
+  expect(errorEvent.request).toEqual({
+    method: 'POST',
+    cookies: {},
+    data: '{"query":"query { error }"}',
+    headers: expect.any(Object),
+    url: 'http://localhost:3030/graphql',
+  });
+
+  expect(errorEvent.transaction).toEqual('POST /graphql');
+
+  expect(errorEvent.contexts?.trace).toEqual({
+    trace_id: expect.any(String),
+    span_id: expect.any(String),
+  });
 });
