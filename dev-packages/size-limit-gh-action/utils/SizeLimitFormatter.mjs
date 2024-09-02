@@ -112,11 +112,9 @@ export class SizeLimitFormatter {
 
       // DEBUGGING?!
       core.debug(
-        'comparing...',
-        name,
-        baseResult.size,
-        currentResult.size,
-        Math.abs((currentResult.size - baseResult.size) / baseResult.size) * 100 > threshold,
+        `comparing ${name} - ${baseResult.size} vs ${currentResult.size} - ${
+          Math.abs((currentResult.size - baseResult.size) / baseResult.size) * 100
+        }`,
       );
 
       if (!baseResult.size || !currentResult.size) {
