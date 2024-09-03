@@ -198,7 +198,7 @@ export function getLargestContentfulPaint(metric: Metric): ReplayPerformanceEntr
   return getWebVital(metric, 'largest-contentful-paint', node);
 }
 
-function isLayoutShift(entry: PerformanceEntry | LayoutShift): entry is LayoutShift {
+function isLayoutShift(entry: PerformanceEntry): entry is LayoutShift {
   return (entry as LayoutShift).sources !== undefined;
 }
 
