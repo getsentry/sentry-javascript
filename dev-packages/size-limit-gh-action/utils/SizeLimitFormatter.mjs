@@ -1,3 +1,4 @@
+import * as core from '@actions/core';
 import bytes from 'bytes';
 
 const SIZE_RESULTS_HEADER = ['Path', 'Size', '% Change', 'Change'];
@@ -71,6 +72,12 @@ export class SizeLimitFormatter {
   }
 
   formatSizeResult(name, base, current) {
+    if (!current.passed) {
+      core.debug(
+        `Size limit exceeded for ${name} - ${this.formatBytes(current.size)} > ${this.formatBytes(current.sizeLimit)}`,
+      );
+    }
+
     return [
       this.formatName(name, current.sizeLimit, current.passed),
       this.formatBytes(current.size),
