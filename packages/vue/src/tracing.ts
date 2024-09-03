@@ -114,6 +114,8 @@ export const createTracingMixins = (options: TracingOptions): Mixins => {
               attributes: {
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.vue',
               },
+              // UI spans should only be created if there is an active root span (transaction)
+              onlyIfParent: true,
             });
           }
         } else {
