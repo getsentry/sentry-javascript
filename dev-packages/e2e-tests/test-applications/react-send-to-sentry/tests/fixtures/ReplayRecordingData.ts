@@ -240,6 +240,7 @@ export const ReplayRecordingData = [
           size: expect.any(Number),
           rating: expect.any(String),
           nodeIds: expect.any(Array),
+          attributions: expect.any(Array),
         },
       },
     },

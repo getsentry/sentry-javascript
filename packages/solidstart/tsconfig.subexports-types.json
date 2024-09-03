@@ -15,7 +15,6 @@
     "src/solidrouter.server.ts",
     "src/server/solidrouter.ts",
     "src/solidrouter.ts",
-    "src/middleware.ts",
   ],
   // Without this, we cannot output into the root dir
   "exclude": []

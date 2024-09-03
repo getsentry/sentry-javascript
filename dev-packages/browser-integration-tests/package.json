@@ -1,6 +1,6 @@
 {
   "name": "@sentry-internal/browser-integration-tests",
-  "version": "8.26.0",
+  "version": "8.27.0",
   "main": "index.js",
   "license": "MIT",
   "engines": {
@@ -9,7 +9,7 @@
   "private": true,
   "scripts": {
     "clean": "rimraf -g suites/**/dist loader-suites/**/dist tmp",
-    "install-browsers": "[[ -z \"$SKIP_PLAYWRIGHT_BROWSER_INSTALL\" ]] && yarn install-browsers || echo 'Skipping browser installation'",
+    "install-browsers": "[[ -z \"$SKIP_PLAYWRIGHT_BROWSER_INSTALL\" ]] && yarn npx playwright install --with-deps || echo 'Skipping browser installation'",
     "lint": "eslint . --format stylish",
     "fix": "eslint . --format stylish --fix",
     "type-check": "tsc",
@@ -43,7 +43,7 @@
     "@babel/preset-typescript": "^7.16.7",
     "@playwright/test": "^1.44.1",
     "@sentry-internal/rrweb": "2.11.0",
-    "@sentry/browser": "8.26.0",
+    "@sentry/browser": "8.27.0",
     "axios": "1.6.7",
     "babel-loader": "^8.2.2",
     "html-webpack-plugin": "^5.5.0",

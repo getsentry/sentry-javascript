@@ -15,6 +15,9 @@ updates:
     allow:
       - dependency-name: "@sentry/cli"
       - dependency-name: "@sentry/vite-plugin"
+      - dependency-name: "@sentry/webpack-plugin"
+      - dependency-name: "@sentry/rollup-plugin"
+      - dependency-name: "@sentry/esbuild-plugin"
       - dependency-name: "@opentelemetry/*"
       - dependency-name: "@prisma/instrumentation"
       - dependency-name: "opentelemetry-instrumentation-fetch-node"
