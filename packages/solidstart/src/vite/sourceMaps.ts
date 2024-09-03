@@ -1,5 +1,5 @@
 import { sentryVitePlugin } from '@sentry/vite-plugin';
-// import type { Plugin } from 'vite';
+import type { Plugin } from 'vite';
 import type { SentrySolidStartPluginOptions } from './types';
 
 /**
@@ -7,14 +7,14 @@ import type { SentrySolidStartPluginOptions } from './types';
  * @sentry/vite-plugin to automatically upload source maps to Sentry.
  * @param {SourceMapsOptions} options
  */
-export function makeSourceMapsVitePlugin(options: SentrySolidStartPluginOptions): any[] {
+export function makeSourceMapsVitePlugin(options: SentrySolidStartPluginOptions): Plugin[] {
   const { authToken, debug, org, project, sourceMapsUploadOptions } = options;
   return [
     {
       name: 'sentry-solidstart-source-maps',
       apply: 'build',
       enforce: 'post',
-      config(config: any) {
+      config(config) {
         const sourceMapsPreviouslyNotEnabled = !config.build?.sourcemap;
         if (debug && sourceMapsPreviouslyNotEnabled) {
           // eslint-disable-next-line no-console
