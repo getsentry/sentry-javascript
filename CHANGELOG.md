@@ -42,6 +42,7 @@ smaller than the actually measured values. We apologize for the inconvenience!
 - fix(cdn): Do not mangle \_metadata (#13426)
 - fix(cdn): Fix SDK source for CDN bundles (#13475)
 - fix(nestjs): Check arguments before instrumenting with `@Injectable` (#13544)
+- fix(nestjs): Ensure exception and host are correctly passed on when using @WithSentry (#13564)
 - fix(node): Suppress tracing for transport request execution rather than transport creation (#13491)
 - fix(replay): Consider more things as DOM mutations for dead clicks (#13518)
 - fix(vue): Correctly obtain component name (#13484)
