@@ -4,7 +4,8 @@ import { sentryTest } from '../../../utils/fixtures';
 import { shouldSkipReplayTest, waitForReplayRequest } from '../../../utils/replayHelpers';
 
 sentryTest('should output logger messages', async ({ getLocalTestPath, page }) => {
-  if (shouldSkipReplayTest()) {
+  // In minified bundles we do not have logger messages, so we skip the test
+  if (shouldSkipReplayTest() || (process.env.PW_BUNDLE || '').includes('_min')) {
     sentryTest.skip();
   }
 

@@ -8,7 +8,8 @@ import { shouldSkipFeedbackTest } from '../../../utils/helpers';
  * Even if feedback is included via the CDN, this test ensures that the logger is working correctly.
  */
 sentryTest('should log error correctly', async ({ getLocalTestUrl, page }) => {
-  if (shouldSkipFeedbackTest()) {
+  // In minified bundles we do not have logger messages, so we skip the test
+  if (shouldSkipFeedbackTest() || (process.env.PW_BUNDLE || '').includes('_min')) {
     sentryTest.skip();
   }
 
