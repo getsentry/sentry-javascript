@@ -101,13 +101,4 @@ function makeLogger(): Logger {
  * This is a logger singleton which either logs things or no-ops if logging is not enabled.
  * The logger is a singleton on the carrier, to ensure that a consistent logger is used throughout the SDK.
  */
-export const logger: Logger = new Proxy(
-  {},
-  {
-    get: (_target, prop: ConsoleLevel) => {
-      const logger = getGlobalSingleton('logger', makeLogger);
-
-      return logger[prop];
-    },
-  },
-) as Logger;
+export const logger = getGlobalSingleton('logger', makeLogger);
