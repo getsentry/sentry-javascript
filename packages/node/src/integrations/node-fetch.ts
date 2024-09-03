@@ -2,7 +2,6 @@ import { trace } from '@opentelemetry/api';
 import { context, propagation } from '@opentelemetry/api';
 import type { UndiciRequest, UndiciResponse } from '@opentelemetry/instrumentation-undici';
 import { UndiciInstrumentation } from '@opentelemetry/instrumentation-undici';
-import { SEMATTRS_HTTP_URL } from '@opentelemetry/semantic-conventions';
 import { addBreadcrumb, defineIntegration, getCurrentScope, hasTracingEnabled } from '@sentry/core';
 import {
   addOpenTelemetryInstrumentation,
