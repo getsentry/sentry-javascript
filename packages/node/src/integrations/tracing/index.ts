@@ -4,6 +4,7 @@ import { instrumentHttp } from '../http';
 import { connectIntegration, instrumentConnect } from './connect';
 import { expressIntegration, instrumentExpress } from './express';
 import { fastifyIntegration, instrumentFastify } from './fastify';
+import { genericPoolIntegration, instrumentGenericPool } from './genericPool';
 import { graphqlIntegration, instrumentGraphql } from './graphql';
 import { hapiIntegration, instrumentHapi } from './hapi';
 import { instrumentKoa, koaIntegration } from './koa';
@@ -37,6 +38,7 @@ export function getAutoPerformanceIntegrations(): Integration[] {
     hapiIntegration(),
     koaIntegration(),
     connectIntegration(),
+    genericPoolIntegration(),
   ];
 }
 
@@ -61,5 +63,6 @@ export function getOpenTelemetryInstrumentationToPreload(): (((options?: any) =>
     instrumentHapi,
     instrumentGraphql,
     instrumentRedis,
+    instrumentGenericPool,
   ];
 }
