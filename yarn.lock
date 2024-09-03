@@ -7004,6 +7004,13 @@
   dependencies:
     "@opentelemetry/api" "^1.0.0"
 
+"@opentelemetry/api-logs@0.53.0":
+  version "0.53.0"
+  resolved "https://registry.yarnpkg.com/@opentelemetry/api-logs/-/api-logs-0.53.0.tgz#c478cbd8120ec2547b64edfa03a552cfe42170be"
+  integrity sha512-8HArjKx+RaAI8uEIgcORbZIPklyh1YLjPSBus8hjRmvLi6DeFzgOcdZ7KwPabKj8mXF8dX0hyfAyGfycz0DbFw==
+  dependencies:
+    "@opentelemetry/api" "^1.0.0"
+
 "@opentelemetry/api@^0.12.0":
   version "0.12.0"
   resolved "https://registry.yarnpkg.com/@opentelemetry/api/-/api-0.12.0.tgz#0359c3926e8f16fdcd8c78f196bd1e9fc4e66777"
@@ -7096,14 +7103,14 @@
     "@opentelemetry/instrumentation" "^0.52.0"
     "@opentelemetry/semantic-conventions" "^1.22.0"
 
-"@opentelemetry/instrumentation-fastify@0.38.0":
-  version "0.38.0"
-  resolved "https://registry.yarnpkg.com/@opentelemetry/instrumentation-fastify/-/instrumentation-fastify-0.38.0.tgz#0cb02ee1156197075e8a90e4fd18a6b6c94221ba"
-  integrity sha512-HBVLpTSYpkQZ87/Df3N0gAw7VzYZV3n28THIBrJWfuqw3Or7UqdhnjeuMIPQ04BKk3aZc0cWn2naSQObbh5vXw==
+"@opentelemetry/instrumentation-fastify@0.39.0":
+  version "0.39.0"
+  resolved "https://registry.yarnpkg.com/@opentelemetry/instrumentation-fastify/-/instrumentation-fastify-0.39.0.tgz#96a040e4944daf77c53a8fe5a128bc3b2568e4aa"
+  integrity sha512-SS9uSlKcsWZabhBp2szErkeuuBDgxOUlllwkS92dVaWRnMmwysPhcEgHKB8rUe3BHg/GnZC1eo1hbTZv4YhfoA==
   dependencies:
     "@opentelemetry/core" "^1.8.0"
-    "@opentelemetry/instrumentation" "^0.52.0"
-    "@opentelemetry/semantic-conventions" "^1.22.0"
+    "@opentelemetry/instrumentation" "^0.53.0"
+    "@opentelemetry/semantic-conventions" "^1.27.0"
 
 "@opentelemetry/instrumentation-fs@0.14.0":
   version "0.14.0"
@@ -7262,6 +7269,18 @@
     semver "^7.5.2"
     shimmer "^1.2.1"
 
+"@opentelemetry/instrumentation@^0.53.0":
+  version "0.53.0"
+  resolved "https://registry.yarnpkg.com/@opentelemetry/instrumentation/-/instrumentation-0.53.0.tgz#e6369e4015eb5112468a4d45d38dcada7dad892d"
+  integrity sha512-DMwg0hy4wzf7K73JJtl95m/e0boSoWhH07rfvHvYzQtBD3Bmv0Wc1x733vyZBqmFm8OjJD0/pfiUg1W3JjFX0A==
+  dependencies:
+    "@opentelemetry/api-logs" "0.53.0"
+    "@types/shimmer" "^1.2.0"
+    import-in-the-middle "^1.8.1"
+    require-in-the-middle "^7.1.1"
+    semver "^7.5.2"
+    shimmer "^1.2.1"
+
 "@opentelemetry/otlp-transformer@^0.50.0":
   version "0.50.0"
   resolved "https://registry.yarnpkg.com/@opentelemetry/otlp-transformer/-/otlp-transformer-0.50.0.tgz#211fe512fcce9d76042680f955336dbde3be03ef"
@@ -7377,7 +7396,7 @@
   resolved "https://registry.yarnpkg.com/@opentelemetry/semantic-conventions/-/semantic-conventions-1.25.0.tgz#390eb4d42a29c66bdc30066af9035645e9bb7270"
   integrity sha512-M+kkXKRAIAiAP6qYyesfrC5TOmDpDVtsxuGfPcqd9B/iBrac+E14jYwrgm0yZBUIbIP2OnqC3j+UgkXLm1vxUQ==
 
-"@opentelemetry/semantic-conventions@1.25.1", "@opentelemetry/semantic-conventions@^1.17.0", "@opentelemetry/semantic-conventions@^1.22.0", "@opentelemetry/semantic-conventions@^1.23.0", "@opentelemetry/semantic-conventions@^1.25.1":
+"@opentelemetry/semantic-conventions@1.25.1":
   version "1.25.1"
   resolved "https://registry.yarnpkg.com/@opentelemetry/semantic-conventions/-/semantic-conventions-1.25.1.tgz#0deecb386197c5e9c2c28f2f89f51fb8ae9f145e"
   integrity sha512-ZDjMJJQRlyk8A1KZFCc+bCbsyrn1wTwdNt56F7twdfUfnHUZUq77/WfONCj8p72NZOyP7pNTdUWSTYC3GTbuuQ==
@@ -7386,6 +7405,11 @@
   version "0.12.0"
   resolved "https://registry.yarnpkg.com/@opentelemetry/semantic-conventions/-/semantic-conventions-0.12.0.tgz#7e392aecdbdbd5d737d3995998b120dc17589ab0"
   integrity sha512-BuCcDW0uLNYYTns0/LwXkJ8lp8aDm7kpS+WunEmPAPRSCe6ciOYRvzn5reqJfX93rf+6A3U2SgrBnCTH+0qoQQ==
+
+"@opentelemetry/semantic-conventions@^1.17.0", "@opentelemetry/semantic-conventions@^1.22.0", "@opentelemetry/semantic-conventions@^1.23.0", "@opentelemetry/semantic-conventions@^1.25.1", "@opentelemetry/semantic-conventions@^1.27.0":
+  version "1.27.0"
+  resolved "https://registry.yarnpkg.com/@opentelemetry/semantic-conventions/-/semantic-conventions-1.27.0.tgz#1a857dcc95a5ab30122e04417148211e6f945e6c"
+  integrity sha512-sAay1RrB+ONOem0OZanAR1ZI/k7yDpnOQSQmTMuGImUQb2y8EbSaCJ94FQluM74xoU03vlb2d2U90hZluL6nQg==
 
 "@opentelemetry/sql-common@^0.40.1":
   version "0.40.1"
@@ -10130,6 +10154,11 @@
   version "1.0.2"
   resolved "https://registry.yarnpkg.com/@types/shimmer/-/shimmer-1.0.2.tgz#93eb2c243c351f3f17d5c580c7467ae5d686b65f"
   integrity sha512-dKkr1bTxbEsFlh2ARpKzcaAmsYixqt9UyCdoEZk8rHyE4iQYcDCyvSjDSf7JUWJHlJiTtbIoQjxKh6ViywqDAg==
+
+"@types/shimmer@^1.2.0":
+  version "1.2.0"
+  resolved "https://registry.yarnpkg.com/@types/shimmer/-/shimmer-1.2.0.tgz#9b706af96fa06416828842397a70dfbbf1c14ded"
+  integrity sha512-UE7oxhQLLd9gub6JKIAhDq06T0F6FnztwMNRvYgjeQSBeMc1ZG/tA47EwfduvkuQS8apbkM/lpLpWsaCeYsXVg==
 
 "@types/sinon@^10.0.13":
   version "10.0.16"
