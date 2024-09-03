@@ -108,6 +108,23 @@ describe('getWebpackPluginOptions()', () => {
     });
   });
 
+  it('forwards bundleSizeOptimization options', () => {
+    const buildContext = generateBuildContext({ isServer: false });
+    const generatedPluginOptions = getWebpackPluginOptions(buildContext, {
+      bundleSizeOptimizations: {
+        excludeTracing: true,
+        excludeReplayShadowDom: false,
+      },
+    });
+
+    expect(generatedPluginOptions).toMatchObject({
+      bundleSizeOptimizations: {
+        excludeTracing: true,
+        excludeReplayShadowDom: false,
+      },
+    });
+  });
+
   it('returns the right `assets` and `ignore` values during the server build', () => {
     const buildContext = generateBuildContext({ isServer: true });
     const generatedPluginOptions = getWebpackPluginOptions(buildContext, {});

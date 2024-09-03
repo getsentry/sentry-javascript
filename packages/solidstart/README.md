@@ -73,10 +73,10 @@ Sentry.init({
 
 ### 4. Server instrumentation
 
-Complete the setup by adding the Sentry middlware to your `src/middleware.ts` file:
+Complete the setup by adding the Sentry middleware to your `src/middleware.ts` file:
 
 ```typescript
-import { sentryBeforeResponseMiddleware } from '@sentry/solidstart/middleware';
+import { sentryBeforeResponseMiddleware } from '@sentry/solidstart';
 import { createMiddleware } from '@solidjs/start/middleware';
 
 export default createMiddleware({
