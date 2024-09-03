@@ -108,7 +108,9 @@ function getFinalConfigObject(
     console.warn(
       `[@sentry/nextjs] WARNING: You are using the Sentry SDK with \`next ${
         process.env.NODE_ENV === 'development' ? 'dev' : 'build'
-      } --turbo\`. The Sentry SDK doesn't yet fully support Turbopack. The SDK will not be loaded in the browser, and serverside instrumentation will be inaccurate or incomplete. Production builds will still fully work. If you are just trying out Sentry or attempting to configure the SDK, we recommend temporarily removing the \`--turbo\` flag while you are developing locally. Follow this issue for progress on Sentry + Turbopack: https://github.com/getsentry/sentry-javascript/issues/8105. (You can suppress this warning by setting SENTRY_SUPPRESS_TURBOPACK_WARNING=1 as environment variable)`,
+      } --turbo\`. The Sentry SDK doesn't yet fully support Turbopack. The SDK will not be loaded in the browser, and serverside instrumentation will be inaccurate or incomplete. ${
+        process.env.NODE_ENV === 'development' ? 'Production builds without `--turbo` will still fully work. ' : ''
+      }If you are just trying out Sentry or attempting to configure the SDK, we recommend temporarily removing the \`--turbo\` flag while you are developing locally. Follow this issue for progress on Sentry + Turbopack: https://github.com/getsentry/sentry-javascript/issues/8105. (You can suppress this warning by setting SENTRY_SUPPRESS_TURBOPACK_WARNING=1 as environment variable)`,
     );
   }
 
