@@ -9,13 +9,10 @@ const feedback = feedbackIntegration({
 window.Sentry = Sentry;
 window.feedback = feedback;
 
-
 Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   debug: true,
-  integrations: [
-    feedback,
-  ],
+  integrations: [feedback],
 });
 
 // This should log an error!

@@ -9,12 +9,9 @@ const feedback = feedbackIntegration({
 window.Sentry = Sentry;
 window.feedback = feedback;
 
-
 Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
-  integrations: [
-    feedback,
-  ],
+  integrations: [feedback],
 });
 
 feedback.attachTo('#custom-feedback-buttom');
