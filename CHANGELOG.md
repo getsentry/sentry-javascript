@@ -10,9 +10,15 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
-Work in this release was contributed by @leopoldkristjansson and @mhuggins. Thank you for your contributions!
+## 8.28.0
 
 ### Important Changes
+
+- **Beta release of official NestJS SDK**
+
+This release contains the beta version of `@sentry/nestjs`! For details on how to use it, check out the
+[README](https://github.com/getsentry/sentry-javascript/blob/master/packages/nestjs/README.md). Any feedback/bug reports
+are greatly appreciated, please reach out on GitHub.
 
 - **fix(browser): Remove faulty LCP, FCP and FP normalization logic (#13502)**
 
@@ -23,7 +29,26 @@ this version, you might experience an increase in LCP, FCP and FP values, which 
 performance score in the Web Vitals Insights module in Sentry. This is because the previously reported values were
 smaller than the actually measured values. We apologize for the inconvenience!
 
-Work in this release was contributed by @leopoldkristjansson and @filips123. Thank you for your contributions!
+### Other Changes
+
+- feat(nestjs): Add `SentryGlobalGraphQLFilter` (#13545)
+- feat(nestjs): Automatic instrumentation of nestjs interceptors after route execution (#13264)
+- feat(nextjs): Add `bundleSizeOptimizations` to build options (#13323)
+- feat(nextjs): Stabilize `captureRequestError` (#13550)
+- feat(nuxt): Wrap config in nuxt context (#13457)
+- feat(profiling): Expose profiler as top level primitive (#13512)
+- feat(replay): Add layout shift to CLS replay data (#13386)
+- feat(replay): Upgrade rrweb packages to 2.26.0 (#13483)
+- fix(cdn): Do not mangle \_metadata (#13426)
+- fix(cdn): Fix SDK source for CDN bundles (#13475)
+- fix(nestjs): Check arguments before instrumenting with `@Injectable` (#13544)
+- fix(nestjs): Ensure exception and host are correctly passed on when using @WithSentry (#13564)
+- fix(node): Suppress tracing for transport request execution rather than transport creation (#13491)
+- fix(replay): Consider more things as DOM mutations for dead clicks (#13518)
+- fix(vue): Correctly obtain component name (#13484)
+
+Work in this release was contributed by @leopoldkristjansson, @mhuggins and @filips123. Thank you for your
+contributions!
 
 ## 8.27.0
 
