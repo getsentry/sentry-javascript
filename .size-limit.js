@@ -11,25 +11,6 @@ module.exports = [
     limit: '24 KB',
   },
   {
-    name: '@sentry/browser - with treeshaking flags',
-    path: 'packages/browser/build/npm/esm/index.js',
-    import: createImport('init'),
-    gzip: true,
-    limit: '24 KB',
-    modifyWebpackConfig: function (config) {
-      const webpack = require('webpack');
-      config.plugins.push(
-        new webpack.DefinePlugin({
-          __SENTRY_DEBUG__: false,
-          __RRWEB_EXCLUDE_SHADOW_DOM__: true,
-          __RRWEB_EXCLUDE_IFRAME__: true,
-          __SENTRY_EXCLUDE_REPLAY_WORKER__: true,
-        }),
-      );
-      return config;
-    },
-  },
-  {
     name: '@sentry/browser (incl. Tracing)',
     path: 'packages/browser/build/npm/esm/index.js',
     import: createImport('init', 'browserTracingIntegration'),
