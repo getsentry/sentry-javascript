@@ -213,7 +213,7 @@ export function getSanitizedUrl(
   // This is the relative path of the URL, e.g. /sub
   const httpTarget = attributes[SEMATTRS_HTTP_TARGET];
   // This is the full URL, including host & query params etc., e.g. https://example.com/sub?foo=bar
-  const httpUrl = attributes[SEMATTRS_HTTP_URL];
+  const httpUrl = attributes[SEMATTRS_HTTP_URL] || attributes['url.full'];
   // This is the normalized route name - may not always be available!
   const httpRoute = attributes[SEMATTRS_HTTP_ROUTE];
 

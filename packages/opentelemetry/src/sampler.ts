@@ -196,7 +196,7 @@ function getBaseTraceState(context: Context, spanAttributes: SpanAttributes): Tr
   let traceState = parentContext?.traceState || new TraceState();
 
   // We always keep the URL on the trace state, so we can access it in the propagator
-  const url = spanAttributes[SEMATTRS_HTTP_URL];
+  const url = spanAttributes[SEMATTRS_HTTP_URL] || spanAttributes['url.full'];
   if (url && typeof url === 'string') {
     traceState = traceState.set(SENTRY_TRACE_STATE_URL, url);
   }

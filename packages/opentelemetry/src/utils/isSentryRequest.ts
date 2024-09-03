@@ -16,7 +16,7 @@ export function isSentryRequestSpan(span: AbstractSpan): boolean {
 
   const { attributes } = span;
 
-  const httpUrl = attributes[SEMATTRS_HTTP_URL];
+  const httpUrl = attributes[SEMATTRS_HTTP_URL] || attributes['url.full'];
 
   if (!httpUrl) {
     return false;
