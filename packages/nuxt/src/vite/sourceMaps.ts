@@ -2,13 +2,7 @@ import type { Nuxt } from '@nuxt/schema';
 import { type SentryRollupPluginOptions, sentryRollupPlugin } from '@sentry/rollup-plugin';
 import { type SentryVitePluginOptions, sentryVitePlugin } from '@sentry/vite-plugin';
 import type { NitroConfig } from 'nitropack';
-import type { NullValue } from 'rollup';
 import type { SentryNuxtModuleOptions } from '../common/types';
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function isNullValue(value: any): value is NullValue {
-  return value === null || value === undefined;
-}
 
 /**
  *  Setup source maps for Sentry inside the Nuxt module during build time (in Vite for Nuxt and Rollup for Nitro).
@@ -37,9 +31,10 @@ export function setupSourceMaps(moduleOptions: SentryNuxtModuleOptions, nuxt: Nu
         nitroConfig.rollupConfig = {};
       }
 
-      if (isNullValue(nitroConfig.rollupConfig.plugins)) {
+      if (nitroConfig.rollupConfig.plugins === null || nitroConfig.rollupConfig.plugins === undefined) {
         nitroConfig.rollupConfig.plugins = [];
       } else if (!Array.isArray(nitroConfig.rollupConfig.plugins)) {
+        // `rollupConfig.plugins` can be a single plugin, so we want to put it into an array so that we can push our own plugin
         nitroConfig.rollupConfig.plugins = [nitroConfig.rollupConfig.plugins];
       }
 
