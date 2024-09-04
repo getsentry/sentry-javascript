@@ -1,6 +1,5 @@
 import type { ConsoleLevel } from '@sentry/types';
 
-import { DEBUG_BUILD } from './debug-build';
 import { GLOBAL_OBJ, getGlobalSingleton } from './worldwide';
 
 /** Prefix for logging strings */
@@ -65,36 +64,55 @@ export function consoleSandbox<T>(callback: () => T): T {
   }
 }
 
-function makeLogger(): Logger {
-  let enabled = false;
-  const logger: Partial<Logger> = {
-    enable: () => {
-      enabled = true;
-    },
-    disable: () => {
-      enabled = false;
-    },
-    isEnabled: () => enabled,
-  };
-
-  if (DEBUG_BUILD) {
-    CONSOLE_LEVELS.forEach(name => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      logger[name] = (...args: any[]) => {
-        if (enabled) {
-          consoleSandbox(() => {
-            GLOBAL_OBJ.console[name](`${PREFIX}[${name}]:`, ...args);
-          });
-        }
-      };
-    });
-  } else {
-    CONSOLE_LEVELS.forEach(name => {
-      logger[name] = () => undefined;
-    });
+class NoopLogger implements Logger {
+  private _enabled: boolean;
+  public constructor() {
+    this._enabled = false;
   }
 
-  return logger as Logger;
+  public enable(): void {
+    this._enabled = true;
+  }
+
+  public disable(): void {
+    this._enabled = false;
+  }
+
+  public isEnabled(): boolean {
+    return this._enabled;
+  }
+
+  /* eslint-disable @typescript-eslint/no-empty-function */
+  public debug(): void {}
+  public info(): void {}
+  public warn(): void {}
+  public error(): void {}
+  public log(): void {}
+  public assert(): void {}
+  public trace(): void {}
+  /* eslint-enable @typescript-eslint/no-empty-function */
+}
+
+/**
+ * Enable the logger, and ensure it does not noop but actually logs messages out.
+ */
+export function enableLogger(): void {
+  logger.enable();
+
+  CONSOLE_LEVELS.forEach(name => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    logger[name] = (...args: any[]) => {
+      if (logger.isEnabled()) {
+        consoleSandbox(() => {
+          GLOBAL_OBJ.console[name](`${PREFIX}[${name}]:`, ...args);
+        });
+      }
+    };
+  });
+}
+
+function makeLogger(): Logger {
+  return new NoopLogger();
 }
 
 /**

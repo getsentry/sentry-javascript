@@ -8,7 +8,7 @@ import {
 } from '@sentry/core';
 import { getDefaultIntegrations, init as nodeInit } from '@sentry/node';
 import type { NodeClient, NodeOptions } from '@sentry/node';
-import { GLOBAL_OBJ, logger } from '@sentry/utils';
+import { GLOBAL_OBJ, enableLogger, logger } from '@sentry/utils';
 
 import { SEMATTRS_HTTP_METHOD, SEMATTRS_HTTP_ROUTE, SEMATTRS_HTTP_TARGET } from '@opentelemetry/semantic-conventions';
 import type { EventProcessor } from '@sentry/types';
@@ -113,7 +113,7 @@ export function init(options: NodeOptions): NodeClient | undefined {
   };
 
   if (DEBUG_BUILD && opts.debug) {
-    logger.enable();
+    enableLogger();
   }
 
   DEBUG_BUILD && logger.log('Initializing SDK...');

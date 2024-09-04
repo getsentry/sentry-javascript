@@ -21,6 +21,7 @@ import type { Integration, Options } from '@sentry/types';
 import {
   consoleSandbox,
   dropUndefinedKeys,
+  enableLogger,
   logger,
   propagationContextFromHeaders,
   stackParserFromStackParserOptions,
@@ -122,7 +123,7 @@ function _init(
 
   if (options.debug === true) {
     if (DEBUG_BUILD) {
-      logger.enable();
+      enableLogger();
     } else {
       // use `console.warn` rather than `logger.warn` since by non-debug bundles have all `logger.x` statements stripped
       consoleSandbox(() => {

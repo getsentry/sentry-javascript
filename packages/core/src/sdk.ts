@@ -1,5 +1,5 @@
 import type { Client, ClientOptions } from '@sentry/types';
-import { consoleSandbox, logger } from '@sentry/utils';
+import { consoleSandbox, enableLogger } from '@sentry/utils';
 import { getCurrentScope } from './currentScopes';
 
 import { DEBUG_BUILD } from './debug-build';
@@ -20,7 +20,7 @@ export function initAndBind<F extends Client, O extends ClientOptions>(
 ): Client {
   if (options.debug === true) {
     if (DEBUG_BUILD) {
-      logger.enable();
+      enableLogger();
     } else {
       // use `console.warn` rather than `logger.warn` since by non-debug bundles have all `logger.x` statements stripped
       consoleSandbox(() => {

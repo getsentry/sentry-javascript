@@ -9,7 +9,7 @@ import {
 } from '@opentelemetry/semantic-conventions';
 import { SDK_VERSION } from '@sentry/core';
 import { SentryPropagator, SentrySampler, SentrySpanProcessor } from '@sentry/opentelemetry';
-import { GLOBAL_OBJ, consoleSandbox, logger } from '@sentry/utils';
+import { GLOBAL_OBJ, consoleSandbox, enableLogger, logger } from '@sentry/utils';
 
 import { getOpenTelemetryInstrumentationToPreload } from '../integrations/tracing';
 import { SentryContextManager } from '../otel/contextManager';
@@ -75,7 +75,7 @@ export function preloadOpenTelemetry(options: NodePreloadOptions = {}): void {
   const { debug } = options;
 
   if (debug) {
-    logger.enable();
+    enableLogger();
     setupOpenTelemetryLogger();
   }
 
