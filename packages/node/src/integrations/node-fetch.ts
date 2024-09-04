@@ -192,11 +192,11 @@ function getBreadcrumbData(request: FetchRequest): Partial<SanitizedRequestData>
 function getAbsoluteUrl(origin: string, path: string = '/'): string {
   const url = `${origin}`;
 
-  if (origin.endsWith('/') && path.startsWith('/')) {
+  if (url.endsWith('/') && path.startsWith('/')) {
     return `${url}${path.slice(1)}`;
   }
 
-  if (!origin.endsWith('/') && !path.startsWith('/')) {
+  if (!url.endsWith('/') && !path.startsWith('/')) {
     return `${url}/${path.slice(1)}`;
   }
 
