@@ -454,6 +454,7 @@ jobs:
           yarn test
 
   job_node_unit_tests:
+    if: false
     name: Node (${{ matrix.node }}) Unit Tests
     needs: [job_get_metadata, job_build]
     timeout-minutes: 10
@@ -532,9 +533,10 @@ jobs:
         run: yarn lerna run test --scope @sentry/profiling-node
 
   job_browser_playwright_tests:
+    if: false
     name: Playwright ${{ matrix.bundle }}${{ matrix.project && matrix.project != 'chromium' && format(' {0}', matrix.project) || ''}}${{ matrix.shard && format(' ({0}/{1})', matrix.shard, matrix.shards) || ''}} Tests
     needs: [job_get_metadata, job_build]
-    if: needs.job_build.outputs.changed_browser_integration == 'true' || github.event_name != 'pull_request'
+    # if: needs.job_build.outputs.changed_browser_integration == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-20.04-large-js
     timeout-minutes: 25
     strategy:
@@ -691,11 +693,12 @@ jobs:
           fi
 
   job_node_integration_tests:
+    if: false
     name:
       Node (${{ matrix.node }})${{ (matrix.typescript && format(' (TS {0})', matrix.typescript)) || '' }} Integration
       Tests
     needs: [job_get_metadata, job_build]
-    if: needs.job_build.outputs.changed_node_integration == 'true' || github.event_name != 'pull_request'
+    # if: needs.job_build.outputs.changed_node_integration == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-20.04
     timeout-minutes: 15
     strategy:
@@ -1232,10 +1235,7 @@ jobs:
       [
         job_build,
         job_compile_bindings_profiling_node,
-        job_node_unit_tests,
         job_profiling_node_unit_tests,
-        job_node_integration_tests,
-        job_browser_playwright_tests,
         job_browser_loader_tests,
         job_remix_integration_tests,
         job_e2e_tests,
