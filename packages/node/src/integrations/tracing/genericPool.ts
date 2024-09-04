@@ -25,7 +25,7 @@ const _genericPoolIntegration = (() => {
           spanDescription === 'generic-pool.aquire' || spanDescription === 'generic-pool.acquire';
 
         if (isGenericPoolSpan) {
-          span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, 'auto.db.otel.generic-pool');
+          span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, 'auto.db.otel.generic_pool');
         }
       });
     },
