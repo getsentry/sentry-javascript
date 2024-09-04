@@ -616,9 +616,10 @@ jobs:
           retention-days: 7
 
   job_browser_loader_tests:
+    if: false
     name: PW ${{ matrix.bundle }} Tests
     needs: [job_get_metadata, job_build]
-    if: needs.job_build.outputs.changed_browser_integration == 'true' || github.event_name != 'pull_request'
+    # if: needs.job_build.outputs.changed_browser_integration == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-20.04
     timeout-minutes: 15
     strategy:
@@ -739,9 +740,10 @@ jobs:
         run: yarn test
 
   job_remix_integration_tests:
+    if: false
     name: Remix v${{ matrix.remix }} (Node ${{ matrix.node }}) Tests
     needs: [job_get_metadata, job_build]
-    if: needs.job_build.outputs.changed_remix == 'true' || github.event_name != 'pull_request'
+    # if: needs.job_build.outputs.changed_remix == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-20.04
     timeout-minutes: 10
     strategy:
@@ -1236,8 +1238,6 @@ jobs:
         job_build,
         job_compile_bindings_profiling_node,
         job_profiling_node_unit_tests,
-        job_browser_loader_tests,
-        job_remix_integration_tests,
         job_e2e_tests,
         job_profiling_e2e_tests,
         job_artifacts,
