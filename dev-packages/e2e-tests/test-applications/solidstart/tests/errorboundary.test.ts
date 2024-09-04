@@ -10,7 +10,7 @@ test('captures an exception', async ({ page }) => {
     );
   });
 
-  await page.goto('/client-error');
+  await page.goto('/client-error', { waitUntil: 'networkidle' });
   await page.locator('#caughtErrorBtn').click();
   const errorEvent = await errorEventPromise;
 
