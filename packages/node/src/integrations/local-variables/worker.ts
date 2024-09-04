@@ -149,11 +149,11 @@ async function startDebugger(): Promise<void> {
         }
 
         if (objectId) {
-          // setImmediate ensures that the debugger has resumed before we release the error object.
-          // Without this, we get a memory leak
-          setImmediate(async () => {
+          // The object must be released after the debugger has resumed or we get a memory leak.
+          // For node v20, setImmediate is enough here but for v22 a longer delay is required
+          setTimeout(async () => {
             await session.post('Runtime.releaseObject', { objectId });
-          });
+          }, 1_000);
         }
       },
       _ => {
