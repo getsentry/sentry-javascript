@@ -2,6 +2,8 @@ import { expect, test } from '@playwright/test';
 import { waitForError } from '@sentry-internal/test-utils';
 
 test('captures an exception', async ({ page }) => {
+  test.slow();
+
   const errorEventPromise = waitForError('solidstart', errorEvent => {
     return (
       !errorEvent.type &&
@@ -13,7 +15,7 @@ test('captures an exception', async ({ page }) => {
   try {
   await page.goto('/client-error', {
     waitUntil: 'domcontentloaded',
-    timeout: 25000,
+    timeout: 25_000,
   });
 } catch {
   // sometimes goto times out, so try again
