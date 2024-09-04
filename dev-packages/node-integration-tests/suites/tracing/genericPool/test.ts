@@ -11,18 +11,18 @@ describe('genericPool auto instrumentation', () => {
       spans: expect.arrayContaining([
         expect.objectContaining({
           description: expect.stringMatching(/^generic-pool\.ac?quire/),
-          origin: 'auto.db.otel.generic-pool',
+          origin: 'auto.db.otel.generic_pool',
           data: {
-            'sentry.origin': 'auto.db.otel.generic-pool',
+            'sentry.origin': 'auto.db.otel.generic_pool',
           },
           status: 'ok',
         }),
 
         expect.objectContaining({
           description: expect.stringMatching(/^generic-pool\.ac?quire/),
-          origin: 'auto.db.otel.generic-pool',
+          origin: 'auto.db.otel.generic_pool',
           data: {
-            'sentry.origin': 'auto.db.otel.generic-pool',
+            'sentry.origin': 'auto.db.otel.generic_pool',
           },
           status: 'ok',
         }),
