@@ -43,6 +43,7 @@ export {
   fsIntegration,
   functionToStringIntegration,
   generateInstrumentOnce,
+  genericPoolIntegration,
   getActiveSpan,
   getAutoPerformanceIntegrations,
   getClient,
@@ -123,6 +124,7 @@ export {
   withMonitor,
   withScope,
   zodErrorsIntegration,
+  profiler,
 } from '@sentry/node';
 
 export { init } from './server/sdk';

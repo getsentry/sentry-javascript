@@ -79,11 +79,8 @@ export function makeNodeTransport(options: NodeTransportOptions): Transport {
     ? (new HttpsProxyAgent(proxy) as http.Agent)
     : new nativeHttpModule.Agent({ keepAlive, maxSockets: 30, timeout: 2000 });
 
-  // This ensures we do not generate any spans in OpenTelemetry for the transport
-  return suppressTracing(() => {
-    const requestExecutor = createRequestExecutor(options, options.httpModule ?? nativeHttpModule, agent);
-    return createTransport(options, requestExecutor);
-  });
+  const requestExecutor = createRequestExecutor(options, options.httpModule ?? nativeHttpModule, agent);
+  return createTransport(options, requestExecutor);
 }
 
 /**
@@ -122,54 +119,59 @@ function createRequestExecutor(
   const { hostname, pathname, port, protocol, search } = new URL(options.url);
   return function makeRequest(request: TransportRequest): Promise<TransportMakeRequestResponse> {
     return new Promise((resolve, reject) => {
-      let body = streamFromBody(request.body);
+      // This ensures we do not generate any spans in OpenTelemetry for the transport
+      suppressTracing(() => {
+        let body = streamFromBody(request.body);
 
-      const headers: Record<string, string> = { ...options.headers };
+        const headers: Record<string, string> = { ...options.headers };
 
-      if (request.body.length > GZIP_THRESHOLD) {
-        headers['content-encoding'] = 'gzip';
-        body = body.pipe(createGzip());
-      }
+        if (request.body.length > GZIP_THRESHOLD) {
+          headers['content-encoding'] = 'gzip';
+          body = body.pipe(createGzip());
+        }
 
-      const req = httpModule.request(
-        {
-          method: 'POST',
-          agent,
-          headers,
-          hostname,
-          path: `${pathname}${search}`,
-          port,
-          protocol,
-          ca: options.caCerts,
-        },
-        res => {
-          res.on('data', () => {
-            // Drain socket
-          });
+        const req = httpModule.request(
+          {
+            method: 'POST',
+            agent,
+            headers,
+            hostname,
+            path: `${pathname}${search}`,
+            port,
+            protocol,
+            ca: options.caCerts,
+          },
+          res => {
+            res.on('data', () => {
+              // Drain socket
+            });
 
-          res.on('end', () => {
-            // Drain socket
-          });
+            res.on('end', () => {
+              // Drain socket
+            });
 
-          res.setEncoding('utf8');
+            res.setEncoding('utf8');
 
-          // "Key-value pairs of header names and values. Header names are lower-cased."
-          // https://nodejs.org/api/http.html#http_message_headers
-          const retryAfterHeader = res.headers['retry-after'] ?? null;
-          const rateLimitsHeader = res.headers['x-sentry-rate-limits'] ?? null;
+            // "Key-value pairs of header names and values. Header names are lower-cased."
+            // https://nodejs.org/api/http.html#http_message_headers
+            const retryAfterHeader = res.headers['retry-after'] ?? null;
+            const rateLimitsHeader = res.headers['x-sentry-rate-limits'] ?? null;
 
-          resolve({
-            statusCode: res.statusCode,
-            headers: {
-              'retry-after': retryAfterHeader,
-              'x-sentry-rate-limits': Array.isArray(rateLimitsHeader) ? rateLimitsHeader[0] || null : rateLimitsHeader,
-            },
-          });
-        },
-      );
+            resolve({
+              statusCode: res.statusCode,
+              headers: {
+                'retry-after': retryAfterHeader,
+                'x-sentry-rate-limits': Array.isArray(rateLimitsHeader)
+                  ? rateLimitsHeader[0] || null
+                  : rateLimitsHeader,
+              },
+            });
+          },
+        );
 
-      req.on('error', reject);
-      body.pipe(req);
+        req.on('error', reject);
+        body.pipe(req);
+      });
     });
   };
 }

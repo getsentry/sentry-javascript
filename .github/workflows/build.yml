@@ -437,7 +437,7 @@ jobs:
         with:
           node-version-file: 'package.json'
       - name: Set up Deno
-        uses: denoland/setup-deno@v1.1.4
+        uses: denoland/setup-deno@1.4.0
         with:
           deno-version: v1.38.5
       - name: Restore caches
@@ -500,7 +500,10 @@ jobs:
   job_profiling_node_unit_tests:
     name: Node Profiling Unit Tests
     needs: [job_get_metadata, job_build]
-    if: needs.job_build.outputs.changed_node == 'true' || needs.job_get_metadata.outputs.changed_profiling_node == 'true' || github.event_name != 'pull_request'
+    if: |
+      needs.job_build.outputs.changed_node == 'true' ||
+      needs.job_get_metadata.outputs.changed_profiling_node == 'true' ||
+      github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -905,6 +908,8 @@ jobs:
             'nestjs-basic',
             'nestjs-distributed-tracing',
             'nestjs-with-submodules',
+            'nestjs-with-submodules-decorator',
+            'nestjs-graphql',
             'node-exports-test-app',
             'node-koa',
             'node-connect',
@@ -998,6 +1003,15 @@ jobs:
         working-directory: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
         timeout-minutes: 5
         run: pnpm test:assert
+        
+      - name: Upload Playwright Traces
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-traces-job_e2e_playwright_tests-${{ matrix.test-application}}
+          path: dev-packages/e2e-tests/test-applications/${{ matrix.test-application}}/test-results
+          overwrite: true
+          retention-days: 7
 
   job_optional_e2e_tests:
     name: E2E ${{ matrix.label || matrix.test-application }} Test
@@ -1125,8 +1139,7 @@ jobs:
       (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) &&
      (
         (needs.job_get_metadata.outputs.changed_profiling_node == 'true') ||
-        (needs.job_get_metadata.outputs.is_release == 'true') ||
-        (github.event_name != 'pull_request')
+        (needs.job_get_metadata.outputs.is_release == 'true')
       )
     needs: [job_get_metadata, job_build, job_e2e_prepare]
     runs-on: ubuntu-20.04
@@ -1290,8 +1303,7 @@ jobs:
     # Skip precompile unless we are on a release branch as precompile slows down CI times.
     if: |
       (needs.job_get_metadata.outputs.changed_profiling_node == 'true') ||
-      (needs.job_get_metadata.outputs.is_release == 'true') ||
-      (github.event_name != 'pull_request')
+      (needs.job_get_metadata.outputs.is_release == 'true')
     runs-on: ${{ matrix.os }}
     container: ${{ matrix.container }}
     timeout-minutes: 30
