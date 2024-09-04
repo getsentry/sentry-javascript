@@ -2,6 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { addPlugin, addPluginTemplate, addServerPlugin, createResolver, defineNuxtModule } from '@nuxt/kit';
 import type { SentryNuxtModuleOptions } from './common/types';
+import { addServerConfig } from './vite/addServerConfig';
 import { setupSourceMaps } from './vite/sourceMaps';
 
 export type ModuleOptions = SentryNuxtModuleOptions;
@@ -61,6 +62,9 @@ export default defineNuxtModule<ModuleOptions>({
 
     if (clientConfigFile || serverConfigFile) {
       setupSourceMaps(moduleOptions, nuxt);
+    }
+    if (serverConfigFile) {
+      addServerConfig(moduleOptions, nuxt, serverConfigFile);
     }
   },
 });
