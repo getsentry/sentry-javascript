@@ -3,7 +3,7 @@
 // exports in this file - which we do below.
 export * from './client';
 export * from './server';
-export * from './vite/types';
+export * from './vite';
 
 import type { Integration, Options, StackParser } from '@sentry/types';
 

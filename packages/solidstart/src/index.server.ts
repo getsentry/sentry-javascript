@@ -1,2 +1,2 @@
 export * from './server';
-export * from './vite/sentrySolidStartVite';
+export * from './vite';
