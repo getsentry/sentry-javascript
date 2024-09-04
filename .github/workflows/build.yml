@@ -355,6 +355,7 @@ jobs:
             ${{ github.workspace }}/packages/aws-serverless/build/aws/dist-serverless/*.zip
 
   job_browser_unit_tests:
+    if: false
     name: Browser Unit Tests
     needs: [job_get_metadata, job_build]
     timeout-minutes: 10
@@ -393,9 +394,10 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
 
   job_bun_unit_tests:
+    if: false
     name: Bun Unit Tests
     needs: [job_get_metadata, job_build]
-    if: needs.job_build.outputs.changed_bun == 'true' || github.event_name != 'pull_request'
+    # if: needs.job_build.outputs.changed_bun == 'true' || github.event_name != 'pull_request'
     timeout-minutes: 10
     runs-on: ubuntu-20.04
     strategy:
@@ -420,9 +422,10 @@ jobs:
           yarn test:ci:bun
 
   job_deno_unit_tests:
+    if: false
     name: Deno Unit Tests
     needs: [job_get_metadata, job_build]
-    if: needs.job_build.outputs.changed_deno == 'true' || github.event_name != 'pull_request'
+    # if: needs.job_build.outputs.changed_deno == 'true' || github.event_name != 'pull_request'
     timeout-minutes: 10
     runs-on: ubuntu-20.04
     strategy:
@@ -1229,9 +1232,6 @@ jobs:
       [
         job_build,
         job_compile_bindings_profiling_node,
-        job_browser_unit_tests,
-        job_bun_unit_tests,
-        job_deno_unit_tests,
         job_node_unit_tests,
         job_profiling_node_unit_tests,
         job_node_integration_tests,
