@@ -4,10 +4,5 @@ import { defineConfig } from '@solidjs/start/config';
 export default defineConfig({
   vite: {
     plugins: [sentrySolidStartVite()],
-    build: {
-      rollupOptions: {
-        external: ['@sentry/vite-plugin']
-      }
-    },
   },
 });

@@ -10,7 +10,20 @@ test('captures an exception', async ({ page }) => {
     );
   });
 
-  await page.goto('/client-error');
+  try {
+  await page.goto('/client-error', {
+    waitUntil: 'domcontentloaded',
+    timeout: 25000,
+  });
+} catch {
+  // sometimes goto times out, so try again
+  console.log('page.goto timed out, trying again');
+  await page.goto('/client-error', {
+    waitUntil: 'domcontentloaded',
+  });
+}
+
+  // await page.goto('/client-error');
   await page.locator('#caughtErrorBtn').click();
   const errorEvent = await errorEventPromise;
 
