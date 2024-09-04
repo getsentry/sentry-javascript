@@ -1,7 +1,7 @@
 import type { Debugger, InspectorNotification, Runtime, Session } from 'node:inspector';
 import { defineIntegration, getClient } from '@sentry/core';
-import type { Event, EventHint, Exception, IntegrationFn } from '@sentry/types';
-import { logger } from '@sentry/utils';
+import type { Event, Exception, IntegrationFn, StackFrame, StackParser } from '@sentry/types';
+import { LRUMap, logger } from '@sentry/utils';
 
 import { NODE_MAJOR } from '../../nodeVersion';
 import type { NodeClient } from '../../sdk/client';
@@ -12,8 +12,29 @@ import type {
   RateLimitIncrement,
   Variables,
 } from './common';
-import { LOCAL_VARIABLES_KEY } from './common';
 import { createRateLimiter, functionNamesMatch } from './common';
+
+/** Creates a unique hash from stack frames */
+export function hashFrames(frames: StackFrame[] | undefined): string | undefined {
+  if (frames === undefined) {
+    return;
+  }
+
+  // Only hash the 10 most recent frames (ie. the last 10)
+  return frames.slice(-10).reduce((acc, frame) => `${acc},${frame.function},${frame.lineno},${frame.colno}`, '');
+}
+
+/**
+ * We use the stack parser to create a unique hash from the exception stack trace
+ * This is used to lookup vars when the exception passes through the event processor
+ */
+export function hashFromStack(stackParser: StackParser, stack: string | undefined): string | undefined {
+  if (stack === undefined) {
+    return undefined;
+  }
+
+  return hashFrames(stackParser(stack, 1));
+}
 
 type OnPauseEvent = InspectorNotification<Debugger.PausedEventDataType>;
 export interface DebugSession {
@@ -23,8 +44,6 @@ export interface DebugSession {
   setPauseOnExceptions(captureAll: boolean): void;
   /** Gets local variables for an objectId */
   getLocalVariables(objectId: string, callback: (vars: Variables) => void): void;
-  /** Sets the local variables on the error object for later retrieval */
-  setLocalVarsOnError(objectId: string, localVariables: FrameVariables[]): void;
 }
 
 type Next<T> = (result: T) => void;
@@ -131,14 +150,6 @@ class AsyncSession implements DebugSession {
     });
   }
 
-  public setLocalVarsOnError(objectId: string, localVariables: FrameVariables[]): void {
-    this._session.post('Runtime.callFunctionOn', {
-      functionDeclaration: `function() { this.${LOCAL_VARIABLES_KEY} = ${JSON.stringify(localVariables)}; }`,
-      silent: true,
-      objectId,
-    });
-  }
-
   /**
    * Gets all the PropertyDescriptors of an object
    */
@@ -220,10 +231,25 @@ const _localVariablesSyncIntegration = ((
   options: LocalVariablesIntegrationOptions = {},
   sessionOverride?: DebugSession,
 ) => {
+  const cachedFrames: LRUMap<string, FrameVariables[]> = new LRUMap(20);
   let rateLimiter: RateLimitIncrement | undefined;
   let shouldProcessEvent = false;
 
-  function addLocalVariablesToException(exception: Exception, localVariables: FrameVariables[]): void {
+  function addLocalVariablesToException(exception: Exception): void {
+    const hash = hashFrames(exception?.stacktrace?.frames);
+
+    if (hash === undefined) {
+      return;
+    }
+
+    // Check if we have local variables for an exception that matches the hash
+    // remove is identical to get but also removes the entry from the cache
+    const cachedFrame = cachedFrames.remove(hash);
+
+    if (cachedFrame === undefined) {
+      return;
+    }
+
     // Filter out frames where the function name is `new Promise` since these are in the error.stack frames
     // but do not appear in the debugger call frames
     const frames = (exception.stacktrace?.frames || []).filter(frame => frame.function !== 'new Promise');
@@ -232,41 +258,32 @@ const _localVariablesSyncIntegration = ((
       // Sentry frames are in reverse order
       const frameIndex = frames.length - i - 1;
 
-      const frameLocalVariables = localVariables[i];
-      const frame = frames[frameIndex];
+      const cachedFrameVariable = cachedFrame[i];
+      const frameVariable = frames[frameIndex];
 
       // Drop out if we run out of frames to match up
-      if (!frame || !frameLocalVariables) {
+      if (!frameVariable || !cachedFrameVariable) {
         break;
       }
 
       if (
         // We need to have vars to add
-        frameLocalVariables.vars === undefined ||
+        cachedFrameVariable.vars === undefined ||
         // We're not interested in frames that are not in_app because the vars are not relevant
-        frame.in_app === false ||
+        frameVariable.in_app === false ||
         // The function names need to match
-        !functionNamesMatch(frame.function, frameLocalVariables.function)
+        !functionNamesMatch(frameVariable.function, cachedFrameVariable.function)
       ) {
         continue;
       }
 
-      frame.vars = frameLocalVariables.vars;
+      frameVariable.vars = cachedFrameVariable.vars;
     }
   }
 
-  function addLocalVariablesToEvent(event: Event, hint: EventHint): Event {
-    if (
-      hint.originalException &&
-      typeof hint.originalException === 'object' &&
-      LOCAL_VARIABLES_KEY in hint.originalException &&
-      Array.isArray(hint.originalException[LOCAL_VARIABLES_KEY])
-    ) {
-      for (const exception of event.exception?.values || []) {
-        addLocalVariablesToException(exception, hint.originalException[LOCAL_VARIABLES_KEY]);
-      }
-
-      hint.originalException[LOCAL_VARIABLES_KEY] = undefined;
+  function addLocalVariablesToEvent(event: Event): Event {
+    for (const exception of event?.exception?.values || []) {
+      addLocalVariablesToException(exception);
     }
 
     return event;
@@ -294,6 +311,7 @@ const _localVariablesSyncIntegration = ((
       AsyncSession.create(sessionOverride).then(
         session => {
           function handlePaused(
+            stackParser: StackParser,
             { params: { reason, data, callFrames } }: InspectorNotification<PausedExceptionEvent>,
             complete: () => void,
           ): void {
@@ -304,15 +322,16 @@ const _localVariablesSyncIntegration = ((
 
             rateLimiter?.();
 
-            const objectId = data?.objectId;
+            // data.description contains the original error.stack
+            const exceptionHash = hashFromStack(stackParser, data?.description);
 
-            if (objectId == undefined) {
+            if (exceptionHash == undefined) {
               complete();
               return;
             }
 
             const { add, next } = createCallbackList<FrameVariables[]>(frames => {
-              session.setLocalVarsOnError(objectId, frames);
+              cachedFrames.set(exceptionHash, frames);
               complete();
             });
 
@@ -350,7 +369,8 @@ const _localVariablesSyncIntegration = ((
           const captureAll = options.captureAllExceptions !== false;
 
           session.configureAndConnect(
-            (ev, complete) => handlePaused(ev as InspectorNotification<PausedExceptionEvent>, complete),
+            (ev, complete) =>
+              handlePaused(clientOptions.stackParser, ev as InspectorNotification<PausedExceptionEvent>, complete),
             captureAll,
           );
 
@@ -379,12 +399,19 @@ const _localVariablesSyncIntegration = ((
         },
       );
     },
-    processEvent(event: Event, hint: EventHint): Event {
+    processEvent(event: Event): Event {
       if (shouldProcessEvent) {
-        return addLocalVariablesToEvent(event, hint);
+        return addLocalVariablesToEvent(event);
       }
 
       return event;
+    },
+    // These are entirely for testing
+    _getCachedFramesCount(): number {
+      return cachedFrames.size;
+    },
+    _getFirstCachedFrame(): FrameVariables[] | undefined {
+      return cachedFrames.values()[0];
     },
   };
 }) satisfies IntegrationFn;
