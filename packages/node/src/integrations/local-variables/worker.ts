@@ -84,15 +84,15 @@ let rateLimiter: RateLimitIncrement | undefined;
 
 async function handlePaused(
   session: Session,
-  { reason, data: { objectId: errorObjectId }, callFrames }: PausedExceptionEvent,
-): Promise<void> {
+  { reason, data: { objectId }, callFrames }: PausedExceptionEvent,
+): Promise<string | undefined> {
   if (reason !== 'exception' && reason !== 'promiseRejection') {
     return;
   }
 
   rateLimiter?.();
 
-  if (errorObjectId == undefined) {
+  if (objectId == undefined) {
     return;
   }
 
@@ -120,15 +120,10 @@ async function handlePaused(
   await session.post('Runtime.callFunctionOn', {
     functionDeclaration: `function() { this.${LOCAL_VARIABLES_KEY} = ${JSON.stringify(frames)}; }`,
     silent: true,
-    objectId: errorObjectId,
+    objectId,
   });
 
-  // We need to cleanup this object but we need to leave enough time for our changes to be picked up in the main app
-  // context
-  setTimeout(() => {
-    // eslint-disable-next-line @typescript-eslint/no-floating-promises
-    session.post('Runtime.releaseObject', { objectId: errorObjectId });
-  }, 10_000);
+  return objectId;
 }
 
 async function startDebugger(): Promise<void> {
@@ -147,14 +142,22 @@ async function startDebugger(): Promise<void> {
     isPaused = true;
 
     handlePaused(session, event.params as PausedExceptionEvent).then(
-      async () => {
+      async objectId => {
         // After the pause work is complete, resume execution!
         if (isPaused) {
           await session.post('Debugger.resume');
         }
+
+        if (objectId) {
+          // setImmediate ensures that the debugger has resumed before we release the error object.
+          // Without this, we get a memory leak
+          setImmediate(async () => {
+            await session.post('Runtime.releaseObject', { objectId });
+          });
+        }
       },
       _ => {
-        // ignore
+        // ignore any errors
       },
     );
   });
