@@ -18,7 +18,6 @@ test.describe('client-side errors', () => {
             type: 'Error',
             value: 'Uncaught error thrown from Solid Start E2E test app',
             mechanism: {
-              type: 'instrument',
               handled: false,
             },
           },
