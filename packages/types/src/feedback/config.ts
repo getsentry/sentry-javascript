@@ -61,6 +61,16 @@ export interface FeedbackGeneralConfiguration {
    * Set an object that will be merged sent as tags data with the event.
    */
   tags?: { [key: string]: Primitive };
+
+  /**
+   * Set a nonce to be passed to the injected <style> tag for enforcing CSP
+   */
+  styleNonce?: string;
+
+  /**
+   * Set a nonce to be passed to the injected <script> tag for enforcing CSP
+   */
+  scriptNonce?: string;
 }
 
 /**

@@ -40,8 +40,10 @@ export {
   extraErrorDataIntegration,
   fastifyIntegration,
   flush,
+  fsIntegration,
   functionToStringIntegration,
   generateInstrumentOnce,
+  genericPoolIntegration,
   getActiveSpan,
   getAutoPerformanceIntegrations,
   getClient,
@@ -55,6 +57,8 @@ export {
   getSentryRelease,
   getSpanDescendants,
   getSpanStatusFromHttpCode,
+  getTraceData,
+  getTraceMetaTags,
   graphqlIntegration,
   hapiIntegration,
   httpIntegration,
@@ -120,6 +124,7 @@ export {
   withMonitor,
   withScope,
   zodErrorsIntegration,
+  profiler,
 } from '@sentry/node';
 
 export { init } from './server/sdk';

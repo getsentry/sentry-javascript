@@ -22,7 +22,7 @@ export function getPlaywrightConfig(
   const config: PlaywrightTestConfig = {
     testDir: './tests',
     /* Maximum time one test can run for. */
-    timeout: 150_000,
+    timeout: 30_000,
     expect: {
       /**
        * Maximum time expect() should wait for the condition to be met.
@@ -46,7 +46,7 @@ export function getPlaywrightConfig(
       baseURL: `http://localhost:${appPort}`,
 
       /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
-      trace: 'on-first-retry',
+      trace: 'retain-on-failure',
     },
 
     /* Configure projects for major browsers */

@@ -1,13 +1,231 @@
 # Changelog
 
-> [!IMPORTANT] Important
->
+<!-- prettier-ignore-start -->
+> [!IMPORTANT]
 > If you are upgrading to the `8.x` versions of the SDK from `7.x` or below, make sure you follow our
 > [migration guide](https://docs.sentry.io/platforms/javascript/migration/) first.
+<!-- prettier-ignore-end -->
 
 ## Unreleased
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
+
+Work in this release was contributed by @Zen-cronic. Thank you for your contribution!
+
+## 8.28.0
+
+### Important Changes
+
+- **Beta release of official NestJS SDK**
+
+This release contains the beta version of `@sentry/nestjs`! For details on how to use it, check out the
+[README](https://github.com/getsentry/sentry-javascript/blob/master/packages/nestjs/README.md). Any feedback/bug reports
+are greatly appreciated, please reach out on GitHub.
+
+- **fix(browser): Remove faulty LCP, FCP and FP normalization logic (#13502)**
+
+This release fixes a bug in the `@sentry/browser` package and all SDKs depending on this package (e.g. `@sentry/react`
+or `@sentry/nextjs`) that caused the SDK to send incorrect web vital values for the LCP, FCP and FP vitals. The SDK
+previously incorrectly processed the original values as they were reported from the browser. When updating your SDK to
+this version, you might experience an increase in LCP, FCP and FP values, which potentially leads to a decrease in your
+performance score in the Web Vitals Insights module in Sentry. This is because the previously reported values were
+smaller than the actually measured values. We apologize for the inconvenience!
+
+### Other Changes
+
+- feat(nestjs): Add `SentryGlobalGraphQLFilter` (#13545)
+- feat(nestjs): Automatic instrumentation of nestjs interceptors after route execution (#13264)
+- feat(nextjs): Add `bundleSizeOptimizations` to build options (#13323)
+- feat(nextjs): Stabilize `captureRequestError` (#13550)
+- feat(nuxt): Wrap config in nuxt context (#13457)
+- feat(profiling): Expose profiler as top level primitive (#13512)
+- feat(replay): Add layout shift to CLS replay data (#13386)
+- feat(replay): Upgrade rrweb packages to 2.26.0 (#13483)
+- fix(cdn): Do not mangle \_metadata (#13426)
+- fix(cdn): Fix SDK source for CDN bundles (#13475)
+- fix(nestjs): Check arguments before instrumenting with `@Injectable` (#13544)
+- fix(nestjs): Ensure exception and host are correctly passed on when using @WithSentry (#13564)
+- fix(node): Suppress tracing for transport request execution rather than transport creation (#13491)
+- fix(replay): Consider more things as DOM mutations for dead clicks (#13518)
+- fix(vue): Correctly obtain component name (#13484)
+
+Work in this release was contributed by @leopoldkristjansson, @mhuggins and @filips123. Thank you for your
+contributions!
+
+## 8.27.0
+
+### Important Changes
+
+- **fix(nestjs): Exception filters in main app module are not being executed (#13278)**
+
+  With this release nestjs error monitoring is no longer automatically set up after adding the `SentryModule` to your
+  application, which led to issues in certain scenarios. You will now have to either add the `SentryGlobalFilter` to
+  your main module providers or decorate the `catch()` method in your existing global exception filters with the newly
+  released `@WithSentry()` decorator. See the [docs](https://docs.sentry.io/platforms/javascript/guides/nestjs/) for
+  more details.
+
+### Other Changes
+
+- feat: Add options for passing nonces to feedback integration (#13347)
+- feat: Add support for SENTRY_SPOTLIGHT env var in Node (#13325)
+- feat(deps): bump @prisma/instrumentation from 5.17.0 to 5.18.0 (#13327)
+- feat(feedback): Improve error message for 403 errors (#13441)
+- fix(deno): Don't rely on `Deno.permissions.querySync` (#13378)
+- fix(replay): Ensure we publish replay CDN bundles (#13437)
+
+Work in this release was contributed by @charpeni. Thank you for your contribution!
+
+## 8.26.0
+
+### Important Changes
+
+- **feat(node): Add `fsInstrumentation` (#13291)**
+
+  This release adds `fsIntegration`, an integration that instruments the `fs` API to the Sentry Node SDK. The
+  integration creates spans with naming patterns of `fs.readFile`, `fs.unlink`, and so on.
+
+  This integration is not enabled by default and needs to be registered in your `Sentry.init` call. You can configure
+  via options whether to include path arguments or error messages as span attributes when an fs call fails:
+
+  ```js
+  Sentry.init({
+    integrations: [
+      Sentry.fsIntegration({
+        recordFilePaths: true,
+        recordErrorMessagesAsSpanAttributes: true,
+      }),
+    ],
+  });
+  ```
+
+  **WARNING:** This integration may add significant overhead to your application. Especially in scenarios with a lot of
+  file I/O, like for example when running a framework dev server, including this integration can massively slow down
+  your application.
+
+### Other Changes
+
+- feat(browser): Add spotlightBrowser integration (#13263)
+- feat(browser): Allow sentry in safari extension background page (#13209)
+- feat(browser): Send CLS as standalone span (experimental) (#13056)
+- feat(core): Add OpenTelemetry-specific `getTraceData` implementation (#13281)
+- feat(nextjs): Always add `browserTracingIntegration` (#13324)
+- feat(nextjs): Always transmit trace data to the client (#13337)
+- feat(nextjs): export SentryBuildOptions (#13296)
+- feat(nextjs): Update `experimental_captureRequestError` to reflect `RequestInfo.path` change in Next.js canary
+  (#13344)
+
+- feat(nuxt): Always add tracing meta tags (#13273)
+- feat(nuxt): Set transaction name for server error (#13292)
+- feat(replay): Add a replay-specific logger (#13256)
+- feat(sveltekit): Add bundle size optimizations to plugin options (#13318)
+- feat(sveltekit): Always add browserTracingIntegration (#13322)
+- feat(tracing): Make long animation frames opt-out (#13255)
+- fix(astro): Correctly extract request data (#13315)
+- fix(astro): Only track access request headers in dynamic page requests (#13306)
+- fix(nuxt): Add import line for disabled `autoImport` (#13342)
+- fix(nuxt): Add vue to excludeEsmLoaderHooks array (#13346)
+- fix(opentelemetry): Do not overwrite http span name if kind is internal (#13282)
+- fix(remix): Ensure `origin` is correctly set for remix server spans (#13305)
+
+Work in this release was contributed by @MonstraG, @undead-voron and @Zen-cronic. Thank you for your contributions!
+
+## 8.25.0
+
+### Important Changes
+
+- **Alpha release of Official Solid Start SDK**
+
+This release contains the alpha version of `@sentry/solidstart`, our SDK for [Solid Start](https://start.solidjs.com/)!
+For details on how to use it, please see the [README](./packages/solidstart/README.md). Any feedback/bug reports are
+greatly appreciated, please [reach out on GitHub](https://github.com/getsentry/sentry-javascript/issues/12538).
+
+### Other Changes
+
+- feat(astro): Add `bundleSizeOptimizations` vite options to integration (#13250)
+- feat(astro): Always add BrowserTracing (#13244)
+- feat(core): Add `getTraceMetaTags` function (#13201)
+- feat(nestjs): Automatic instrumentation of nestjs exception filters (#13230)
+- feat(node): Add `useOperationNameForRootSpan` to`graphqlIntegration` (#13248)
+- feat(sveltekit): Add `wrapServerRouteWithSentry` wrapper (#13247)
+- fix(aws-serverless): Extract sentry trace data from handler `context` over `event` (#13266)
+- fix(browser): Initialize default integration if `defaultIntegrations: undefined` (#13261)
+- fix(utils): Streamline IP capturing on incoming requests (#13272)
+
+## 8.24.0
+
+- feat(nestjs): Filter RPC exceptions (#13227)
+- fix: Guard getReader function for other fetch implementations (#13246)
+- fix(feedback): Ensure feedback can be lazy loaded in CDN bundles (#13241)
+
+## 8.23.0
+
+### Important Changes
+
+- **feat(cloudflare): Add Cloudflare D1 instrumentation (#13142)**
+
+This release includes support for Cloudflare D1, Cloudflare's serverless SQL database. To instrument your Cloudflare D1
+database, use the `instrumentD1WithSentry` method as follows:
+
+```ts
+// env.DB is the D1 DB binding configured in your `wrangler.toml`
+const db = instrumentD1WithSentry(env.DB);
+// Now you can use the database as usual
+await db.prepare('SELECT * FROM table WHERE id = ?').bind(1).run();
+```
+
+### Other Changes
+
+- feat(cloudflare): Allow users to pass handler to sentryPagesPlugin (#13192)
+- feat(cloudflare): Instrument scheduled handler (#13114)
+- feat(core): Add `getTraceData` function (#13134)
+- feat(nestjs): Automatic instrumentation of nestjs interceptors before route execution (#13153)
+- feat(nestjs): Automatic instrumentation of nestjs pipes (#13137)
+- feat(nuxt): Filter out Nuxt build assets (#13148)
+- feat(profiling): Attach sdk info to chunks (#13145)
+- feat(solidstart): Add sentry `onBeforeResponse` middleware to enable distributed tracing (#13221)
+- feat(solidstart): Filter out low quality transactions for build assets (#13222)
+- fix(browser): Avoid showing browser extension error message in non-`window` global scopes (#13156)
+- fix(feedback): Call dialog.close() in dialog close callbacks in `\_loadAndRenderDialog` (#13203)
+- fix(nestjs): Inline Observable type to resolve missing 'rxjs' dependency (#13166)
+- fix(nuxt): Detect pageload by adding flag in Vue router (#13171)
+- fix(utils): Handle when requests get aborted in fetch instrumentation (#13202)
+- ref(browser): Improve browserMetrics collection (#13062)
+
+Work in this release was contributed by @horochx. Thank you for your contribution!
+
+## 8.22.0
+
+### Important Changes
+
+- **feat(cloudflare): Add plugin for cloudflare pages (#13123)**
+
+This release adds support for Cloudflare Pages to `@sentry/cloudflare`, our SDK for the
+[Cloudflare Workers JavaScript Runtime](https://developers.cloudflare.com/workers/)! For details on how to use it,
+please see the [README](./packages/cloudflare/README.md). Any feedback/bug reports are greatly appreciated, please
+[reach out on GitHub](https://github.com/getsentry/sentry-javascript/issues/12620).
+
+```javascript
+// functions/_middleware.js
+import * as Sentry from '@sentry/cloudflare';
+
+export const onRequest = Sentry.sentryPagesPlugin({
+  dsn: __PUBLIC_DSN__,
+  // Set tracesSampleRate to 1.0 to capture 100% of spans for tracing.
+  tracesSampleRate: 1.0,
+});
+```
+
+### Other Changes
+
+- feat(meta-sdks): Remove runtime tags (#13105)
+- feat(nestjs): Automatic instrumentation of nestjs guards (#13129)
+- feat(nestjs): Filter all HttpExceptions (#13120)
+- feat(replay): Capture exception when `internal_sdk_error` client report happens (#13072)
+- fix: Use `globalThis` for code injection (#13132)
+
+## 8.21.0
+
+### Important Changes
 
 - **Alpha release of Official Cloudflare SDK**
   - feat(cloudflare): Add `withSentry` method (#13025)
@@ -21,6 +239,22 @@ please see the [README](./packages/cloudflare/README.md). Any feedback/bug repor
 
 Please note that only Cloudflare Workers are tested and supported - official Cloudflare Pages support will come in an
 upcoming release.
+
+### Other Changes
+
+- feat(feedback): Make cropped screenshot area draggable (#13071)
+- feat(core): Adapt spans for client-side fetch to streaming responses (#12723)
+- feat(core): Capture # of dropped spans through `beforeSendTransaction` (#13022)
+- feat(deps): bump `@opentelemetry/instrumentation-aws-sdk` from 0.43.0 to 0.43.1 (#13089)
+- feat(deps): bump `@opentelemetry/instrumentation-express` from 0.41.0 to 0.41.1 (#13090)
+- feat(nestjs): Automatic instrumentation of nestjs middleware (#13065)
+- feat(node): Upgrade `import-in-the-middle` to 1.11.0 (#13107)
+- feat(nuxt): Add connected tracing meta tags (#13098)
+- feat(nuxt): Add vue-router instrumentation (#13054)
+- feat(solidstart): Add server action instrumentation helper (#13035)
+- fix(feedback): Ensure pluggable feedback CDN bundle is correctly built (#13081)
+- fix(nextjs): Only delete clientside bundle source maps with `sourcemaps.deleteFilesAfterUpload` (#13102)
+- fix(node): Improve OTEL validation logic (#13079)
 
 ## 8.20.0
 

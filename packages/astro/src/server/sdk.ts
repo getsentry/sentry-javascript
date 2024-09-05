@@ -1,6 +1,6 @@
 import { applySdkMetadata } from '@sentry/core';
 import type { NodeClient, NodeOptions } from '@sentry/node';
-import { init as initNodeSdk, setTag } from '@sentry/node';
+import { init as initNodeSdk } from '@sentry/node';
 
 /**
  *
@@ -13,9 +13,5 @@ export function init(options: NodeOptions): NodeClient | undefined {
 
   applySdkMetadata(opts, 'astro', ['astro', 'node']);
 
-  const client = initNodeSdk(opts);
-
-  setTag('runtime', 'node');
-
-  return client;
+  return initNodeSdk(opts);
 }

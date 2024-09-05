@@ -8,14 +8,14 @@ import {
   shouldSkipReplayTest,
 } from '../../../../../utils/replayHelpers';
 
-sentryTest('handles empty/missing request headers', async ({ getLocalTestPath, page, browserName }) => {
+sentryTest('handles empty/missing request headers', async ({ getLocalTestUrl, page, browserName }) => {
   if (shouldSkipReplayTest()) {
     sentryTest.skip();
   }
 
   const additionalHeaders = browserName === 'webkit' ? { 'content-type': 'text/plain' } : undefined;
 
-  await page.route('**/foo', route => {
+  await page.route('http://sentry-test.io/foo', route => {
     return route.fulfill({
       status: 200,
     });
@@ -32,19 +32,17 @@ sentryTest('handles empty/missing request headers', async ({ getLocalTestPath, p
     return getReplayPerformanceSpans(recordingEvents).some(span => span.op === 'resource.fetch');
   });
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
   await page.goto(url);
 
   const [, request, { replayRecordingSnapshots }] = await Promise.all([
     page.evaluate(() => {
-      /* eslint-disable */
-      fetch('http://localhost:7654/foo', {
+      fetch('http://sentry-test.io/foo', {
         method: 'POST',
       }).then(() => {
         // @ts-expect-error Sentry is a global
         Sentry.captureException('test error');
       });
-      /* eslint-enable */
     }),
     requestPromise,
     replayRequestPromise,
@@ -62,7 +60,7 @@ sentryTest('handles empty/missing request headers', async ({ getLocalTestPath, p
     data: {
       method: 'POST',
       status_code: 200,
-      url: 'http://localhost:7654/foo',
+      url: 'http://sentry-test.io/foo',
     },
   });
 
@@ -73,7 +71,7 @@ sentryTest('handles empty/missing request headers', async ({ getLocalTestPath, p
         statusCode: 200,
         response: additionalHeaders ? { headers: additionalHeaders } : undefined,
       },
-      description: 'http://localhost:7654/foo',
+      description: 'http://sentry-test.io/foo',
       endTimestamp: expect.any(Number),
       op: 'resource.fetch',
       startTimestamp: expect.any(Number),
@@ -81,14 +79,14 @@ sentryTest('handles empty/missing request headers', async ({ getLocalTestPath, p
   ]);
 });
 
-sentryTest('captures request headers as POJO', async ({ getLocalTestPath, page, browserName }) => {
+sentryTest('captures request headers as POJO', async ({ getLocalTestUrl, page, browserName }) => {
   if (shouldSkipReplayTest()) {
     sentryTest.skip();
   }
 
   const additionalHeaders = browserName === 'webkit' ? { 'content-type': 'text/plain' } : undefined;
 
-  await page.route('**/foo', route => {
+  await page.route('http://sentry-test.io/foo', route => {
     return route.fulfill({
       status: 200,
     });
@@ -107,13 +105,12 @@ sentryTest('captures request headers as POJO', async ({ getLocalTestPath, page, 
     return getReplayPerformanceSpans(recordingEvents).some(span => span.op === 'resource.fetch');
   });
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
   await page.goto(url);
 
   const [, request, { replayRecordingSnapshots }] = await Promise.all([
     page.evaluate(() => {
-      /* eslint-disable */
-      fetch('http://localhost:7654/foo', {
+      fetch('http://sentry-test.io/foo', {
         method: 'POST',
         headers: {
           Accept: 'application/json',
@@ -126,7 +123,6 @@ sentryTest('captures request headers as POJO', async ({ getLocalTestPath, page, 
         // @ts-expect-error Sentry is a global
         Sentry.captureException('test error');
       });
-      /* eslint-enable */
     }),
     requestPromise,
     replayRequestPromise,
@@ -144,7 +140,7 @@ sentryTest('captures request headers as POJO', async ({ getLocalTestPath, page, 
     data: {
       method: 'POST',
       status_code: 200,
-      url: 'http://localhost:7654/foo',
+      url: 'http://sentry-test.io/foo',
     },
   });
 
@@ -162,7 +158,7 @@ sentryTest('captures request headers as POJO', async ({ getLocalTestPath, page, 
         },
         response: additionalHeaders ? { headers: additionalHeaders } : undefined,
       },
-      description: 'http://localhost:7654/foo',
+      description: 'http://sentry-test.io/foo',
       endTimestamp: expect.any(Number),
       op: 'resource.fetch',
       startTimestamp: expect.any(Number),
@@ -170,14 +166,14 @@ sentryTest('captures request headers as POJO', async ({ getLocalTestPath, page, 
   ]);
 });
 
-sentryTest('captures request headers on Request', async ({ getLocalTestPath, page, browserName }) => {
+sentryTest('captures request headers on Request', async ({ getLocalTestUrl, page, browserName }) => {
   if (shouldSkipReplayTest()) {
     sentryTest.skip();
   }
 
   const additionalHeaders = browserName === 'webkit' ? { 'content-type': 'text/plain' } : undefined;
 
-  await page.route('**/foo', route => {
+  await page.route('http://sentry-test.io/foo', route => {
     return route.fulfill({
       status: 200,
     });
@@ -194,12 +190,12 @@ sentryTest('captures request headers on Request', async ({ getLocalTestPath, pag
     return getReplayPerformanceSpans(recordingEvents).some(span => span.op === 'resource.fetch');
   });
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
   await page.goto(url);
 
   const [, request, { replayRecordingSnapshots }] = await Promise.all([
     page.evaluate(() => {
-      const request = new Request('http://localhost:7654/foo', {
+      const request = new Request('http://sentry-test.io/foo', {
         method: 'POST',
         headers: {
           Accept: 'application/json',
@@ -208,12 +204,11 @@ sentryTest('captures request headers on Request', async ({ getLocalTestPath, pag
           'X-Custom-Header': 'foo',
         },
       });
-      /* eslint-disable */
+
       fetch(request).then(() => {
         // @ts-expect-error Sentry is a global
         Sentry.captureException('test error');
       });
-      /* eslint-enable */
     }),
     requestPromise,
     replayRequestPromise,
@@ -231,7 +226,7 @@ sentryTest('captures request headers on Request', async ({ getLocalTestPath, pag
     data: {
       method: 'POST',
       status_code: 200,
-      url: 'http://localhost:7654/foo',
+      url: 'http://sentry-test.io/foo',
     },
   });
 
@@ -248,7 +243,7 @@ sentryTest('captures request headers on Request', async ({ getLocalTestPath, pag
         },
         response: additionalHeaders ? { headers: additionalHeaders } : undefined,
       },
-      description: 'http://localhost:7654/foo',
+      description: 'http://sentry-test.io/foo',
       endTimestamp: expect.any(Number),
       op: 'resource.fetch',
       startTimestamp: expect.any(Number),
@@ -256,14 +251,14 @@ sentryTest('captures request headers on Request', async ({ getLocalTestPath, pag
   ]);
 });
 
-sentryTest('captures request headers as Headers instance', async ({ getLocalTestPath, page, browserName }) => {
+sentryTest('captures request headers as Headers instance', async ({ getLocalTestUrl, page, browserName }) => {
   if (shouldSkipReplayTest()) {
     sentryTest.skip();
   }
 
   const additionalHeaders = browserName === 'webkit' ? { 'content-type': 'text/plain' } : undefined;
 
-  await page.route('**/foo', route => {
+  await page.route('http://sentry-test.io/foo', route => {
     return route.fulfill({
       status: 200,
     });
@@ -280,7 +275,7 @@ sentryTest('captures request headers as Headers instance', async ({ getLocalTest
     return getReplayPerformanceSpans(recordingEvents).some(span => span.op === 'resource.fetch');
   });
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
 
   await page.goto(url);
 
@@ -292,15 +287,13 @@ sentryTest('captures request headers as Headers instance', async ({ getLocalTest
       headers.append('Cache', 'no-cache');
       headers.append('X-Custom-Header', 'foo');
 
-      /* eslint-disable */
-      fetch('http://localhost:7654/foo', {
+      fetch('http://sentry-test.io/foo', {
         method: 'POST',
         headers,
       }).then(() => {
         // @ts-expect-error Sentry is a global
         Sentry.captureException('test error');
       });
-      /* eslint-enable */
     }),
     requestPromise,
     replayRequestPromise,
@@ -318,7 +311,7 @@ sentryTest('captures request headers as Headers instance', async ({ getLocalTest
     data: {
       method: 'POST',
       status_code: 200,
-      url: 'http://localhost:7654/foo',
+      url: 'http://sentry-test.io/foo',
     },
   });
 
@@ -335,7 +328,7 @@ sentryTest('captures request headers as Headers instance', async ({ getLocalTest
         },
         response: additionalHeaders ? { headers: additionalHeaders } : undefined,
       },
-      description: 'http://localhost:7654/foo',
+      description: 'http://sentry-test.io/foo',
       endTimestamp: expect.any(Number),
       op: 'resource.fetch',
       startTimestamp: expect.any(Number),
@@ -343,12 +336,12 @@ sentryTest('captures request headers as Headers instance', async ({ getLocalTest
   ]);
 });
 
-sentryTest('does not captures request headers if URL does not match', async ({ getLocalTestPath, page }) => {
+sentryTest('does not captures request headers if URL does not match', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipReplayTest()) {
     sentryTest.skip();
   }
 
-  await page.route('**/bar', route => {
+  await page.route('http://sentry-test.io/bar', route => {
     return route.fulfill({
       status: 200,
     });
@@ -367,13 +360,12 @@ sentryTest('does not captures request headers if URL does not match', async ({ g
     return getReplayPerformanceSpans(recordingEvents).some(span => span.op === 'resource.fetch');
   });
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
   await page.goto(url);
 
   const [, request, { replayRecordingSnapshots }] = await Promise.all([
     page.evaluate(() => {
-      /* eslint-disable */
-      fetch('http://localhost:7654/bar', {
+      fetch('http://sentry-test.io/bar', {
         method: 'POST',
         headers: {
           Accept: 'application/json',
@@ -386,7 +378,6 @@ sentryTest('does not captures request headers if URL does not match', async ({ g
         // @ts-expect-error Sentry is a global
         Sentry.captureException('test error');
       });
-      /* eslint-enable */
     }),
     requestPromise,
     replayRequestPromise,
@@ -404,7 +395,7 @@ sentryTest('does not captures request headers if URL does not match', async ({ g
     data: {
       method: 'POST',
       status_code: 200,
-      url: 'http://localhost:7654/bar',
+      url: 'http://sentry-test.io/bar',
     },
   });
 
@@ -426,7 +417,7 @@ sentryTest('does not captures request headers if URL does not match', async ({ g
           },
         },
       },
-      description: 'http://localhost:7654/bar',
+      description: 'http://sentry-test.io/bar',
       endTimestamp: expect.any(Number),
       op: 'resource.fetch',
       startTimestamp: expect.any(Number),

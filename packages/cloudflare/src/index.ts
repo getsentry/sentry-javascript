@@ -55,6 +55,8 @@ export {
   setMeasurement,
   getActiveSpan,
   getRootSpan,
+  getTraceData,
+  getTraceMetaTags,
   startSpan,
   startInactiveSpan,
   startSpanManual,
@@ -85,8 +87,13 @@ export {
 } from '@sentry/core';
 
 export { withSentry } from './handler';
+export { sentryPagesPlugin } from './pages-plugin';
+
+export { wrapRequestHandler } from './request';
 
 export { CloudflareClient } from './client';
 export { getDefaultIntegrations } from './sdk';
 
 export { fetchIntegration } from './integrations/fetch';
+
+export { instrumentD1WithSentry } from './d1';

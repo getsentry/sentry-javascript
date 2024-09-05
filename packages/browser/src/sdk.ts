@@ -57,6 +57,14 @@ function applyDefaultOptions(optionsArg: BrowserOptions = {}): BrowserOptions {
     sendClientReports: true,
   };
 
+  // TODO: Instead of dropping just `defaultIntegrations`, we should simply
+  // call `dropUndefinedKeys` on the entire `optionsArg`.
+  // However, for this to work we need to adjust the `hasTracingEnabled()` logic
+  // first as it differentiates between `undefined` and the key not being in the object.
+  if (optionsArg.defaultIntegrations == null) {
+    delete optionsArg.defaultIntegrations;
+  }
+
   return { ...defaultOptions, ...optionsArg };
 }
 
@@ -72,7 +80,12 @@ type Runtime = {
 };
 
 function shouldShowBrowserExtensionError(): boolean {
-  const windowWithMaybeExtension = WINDOW as typeof WINDOW & ExtensionProperties;
+  const windowWithMaybeExtension =
+    typeof WINDOW.window !== 'undefined' && (WINDOW as typeof WINDOW & ExtensionProperties);
+  if (!windowWithMaybeExtension) {
+    // No need to show the error if we're not in a browser window environment (e.g. service workers)
+    return false;
+  }
 
   const extensionKey = windowWithMaybeExtension.chrome ? 'chrome' : 'browser';
   const extensionObject = windowWithMaybeExtension[extensionKey];
@@ -80,7 +93,7 @@ function shouldShowBrowserExtensionError(): boolean {
   const runtimeId = extensionObject && extensionObject.runtime && extensionObject.runtime.id;
   const href = (WINDOW.location && WINDOW.location.href) || '';
 
-  const extensionProtocols = ['chrome-extension:', 'moz-extension:', 'ms-browser-extension:'];
+  const extensionProtocols = ['chrome-extension:', 'moz-extension:', 'ms-browser-extension:', 'safari-web-extension:'];
 
   // Running the SDK in a dedicated extension page and calling Sentry.init is fine; no risk of data leakage
   const isDedicatedExtensionPage =

@@ -38,6 +38,7 @@ export {
   flush,
   functionToStringIntegration,
   generateInstrumentOnce,
+  genericPoolIntegration,
   getActiveSpan,
   getAutoPerformanceIntegrations,
   getClient,
@@ -126,3 +127,6 @@ export { withSentryErrorBoundary } from '@sentry/solid';
 // -------------------------
 // Solid Start SDK exports:
 export { init } from './sdk';
+
+export * from './withServerActionInstrumentation';
+export * from './middleware';

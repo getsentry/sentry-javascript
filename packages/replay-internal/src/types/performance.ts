@@ -108,9 +108,13 @@ export interface WebVitalData {
    */
   rating: 'good' | 'needs-improvement' | 'poor';
   /**
-   * The recording id of the LCP node. -1 if not found
+   * The recording id of the web vital nodes. -1 if not found
    */
-  nodeId?: number;
+  nodeIds?: number[];
+  /**
+   * The layout shifts of a CLS metric
+   */
+  attributions?: { value: number; nodeIds?: number[] }[];
 }
 
 /**

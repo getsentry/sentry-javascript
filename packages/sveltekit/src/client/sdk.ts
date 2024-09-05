@@ -1,4 +1,4 @@
-import { applySdkMetadata, hasTracingEnabled, setTag } from '@sentry/core';
+import { applySdkMetadata } from '@sentry/core';
 import type { BrowserOptions } from '@sentry/svelte';
 import { getDefaultIntegrations as getDefaultSvelteIntegrations } from '@sentry/svelte';
 import { WINDOW, init as initSvelteSdk } from '@sentry/svelte';
@@ -37,21 +37,17 @@ export function init(options: BrowserOptions): Client | undefined {
     restoreFetch(actualFetch);
   }
 
-  setTag('runtime', 'browser');
-
   return client;
 }
 
 function getDefaultIntegrations(options: BrowserOptions): Integration[] | undefined {
-  // This evaluates to true unless __SENTRY_TRACING__ is text-replaced with "false", in which case everything inside
-  // will get treeshaken away
+  // This evaluates to true unless __SENTRY_TRACING__ is text-replaced with "false",
+  // in which case everything inside will get tree-shaken away
   if (typeof __SENTRY_TRACING__ === 'undefined' || __SENTRY_TRACING__) {
-    if (hasTracingEnabled(options)) {
-      return [...getDefaultSvelteIntegrations(options), svelteKitBrowserTracingIntegration()];
-    }
+    return [...getDefaultSvelteIntegrations(options), svelteKitBrowserTracingIntegration()];
   }
 
-  return undefined;
+  return getDefaultSvelteIntegrations(options);
 }
 
 /**

@@ -19,8 +19,6 @@ test.describe('server-side errors', () => {
       }),
     );
 
-    expect(errorEvent.tags).toMatchObject({ runtime: 'node' });
-
     expect(errorEvent.request).toEqual({
       cookies: {},
       headers: expect.objectContaining({
@@ -48,8 +46,6 @@ test.describe('server-side errors', () => {
         in_app: true,
       }),
     );
-
-    expect(errorEvent.tags).toMatchObject({ runtime: 'node' });
 
     expect(errorEvent.request).toEqual({
       cookies: {},

@@ -40,6 +40,17 @@ type IncrementalMouseInteractionRecordingEvent = IncrementalRecordingEvent & {
   data: { type: MouseInteractions; id: number };
 };
 
+/** Any IncrementalSource for rrweb that we interpret as a kind of mutation. */
+const IncrementalMutationSources = new Set([
+  IncrementalSource.Mutation,
+  IncrementalSource.StyleSheetRule,
+  IncrementalSource.StyleDeclaration,
+  IncrementalSource.AdoptedStyleSheet,
+  IncrementalSource.CanvasMutation,
+  IncrementalSource.Selection,
+  IncrementalSource.MediaInteraction,
+]);
+
 /** Handle a click. */
 export function handleClick(clickDetector: ReplayClickDetector, clickBreadcrumb: Breadcrumb, node: HTMLElement): void {
   clickDetector.handleClick(clickBreadcrumb, node);
@@ -324,7 +335,7 @@ export function updateClickDetectorForRecordingEvent(clickDetector: ReplayClickD
     }
 
     const { source } = event.data;
-    if (source === IncrementalSource.Mutation) {
+    if (IncrementalMutationSources.has(source)) {
       clickDetector.registerMutation(event.timestamp);
     }
 

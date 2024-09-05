@@ -20,6 +20,8 @@ export {
   getCurrentScope,
   getGlobalScope,
   getIsolationScope,
+  getTraceData,
+  getTraceMetaTags,
   setCurrentClient,
   Scope,
   SDK_VERSION,
@@ -84,6 +86,8 @@ export {
   connectIntegration,
   setupConnectErrorHandler,
   fastifyIntegration,
+  fsIntegration,
+  genericPoolIntegration,
   graphqlIntegration,
   mongoIntegration,
   mongooseIntegration,
@@ -104,6 +108,7 @@ export {
   trpcMiddleware,
   addOpenTelemetryInstrumentation,
   zodErrorsIntegration,
+  profiler,
 } from '@sentry/node';
 
 export {

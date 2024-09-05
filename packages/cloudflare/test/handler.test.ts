@@ -3,6 +3,7 @@
 
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
+import type { ScheduledController } from '@cloudflare/workers-types';
 import * as SentryCore from '@sentry/core';
 import type { Event } from '@sentry/types';
 import { CloudflareClient } from '../src/client';
@@ -17,279 +18,204 @@ describe('withSentry', () => {
     vi.clearAllMocks();
   });
 
-  test('gets env from handler', async () => {
-    const handler = {
-      fetch(_request, _env, _context) {
-        return new Response('test');
-      },
-    } satisfies ExportedHandler;
-
-    const optionsCallback = vi.fn().mockReturnValue({});
-
-    const wrappedHandler = withSentry(optionsCallback, handler);
-    await wrappedHandler.fetch(new Request('https://example.com'), MOCK_ENV, createMockExecutionContext());
-
-    expect(optionsCallback).toHaveBeenCalledTimes(1);
-    expect(optionsCallback).toHaveBeenLastCalledWith(MOCK_ENV);
-  });
-
-  test('passes through the response from the handler', async () => {
-    const response = new Response('test');
-    const handler = {
-      async fetch(_request, _env, _context) {
-        return response;
-      },
-    } satisfies ExportedHandler;
-
-    const wrappedHandler = withSentry(() => ({}), handler);
-    const result = await wrappedHandler.fetch(
-      new Request('https://example.com'),
-      MOCK_ENV,
-      createMockExecutionContext(),
-    );
-
-    expect(result).toBe(response);
-  });
-
-  test('flushes the event after the handler is done using the cloudflare context.waitUntil', async () => {
-    const handler = {
-      async fetch(_request, _env, _context) {
-        return new Response('test');
-      },
-    } satisfies ExportedHandler;
-
-    const context = createMockExecutionContext();
-    const wrappedHandler = withSentry(() => ({}), handler);
-    await wrappedHandler.fetch(new Request('https://example.com'), MOCK_ENV, context);
-
-    // eslint-disable-next-line @typescript-eslint/unbound-method
-    expect(context.waitUntil).toHaveBeenCalledTimes(1);
-    // eslint-disable-next-line @typescript-eslint/unbound-method
-    expect(context.waitUntil).toHaveBeenLastCalledWith(expect.any(Promise));
-  });
-
-  test('creates a cloudflare client and sets it on the handler', async () => {
-    const initAndBindSpy = vi.spyOn(SentryCore, 'initAndBind');
-    const handler = {
-      async fetch(_request, _env, _context) {
-        return new Response('test');
-      },
-    } satisfies ExportedHandler;
-
-    const context = createMockExecutionContext();
-    const wrappedHandler = withSentry(() => ({}), handler);
-    await wrappedHandler.fetch(new Request('https://example.com'), MOCK_ENV, context);
-
-    expect(initAndBindSpy).toHaveBeenCalledTimes(1);
-    expect(initAndBindSpy).toHaveBeenLastCalledWith(CloudflareClient, expect.any(Object));
-  });
-
-  describe('scope instrumentation', () => {
-    test('adds cloud resource context', async () => {
+  describe('fetch handler', () => {
+    test('executes options callback with env', async () => {
       const handler = {
-        async fetch(_request, _env, _context) {
-          SentryCore.captureMessage('test');
+        fetch(_request, _env, _context) {
           return new Response('test');
         },
-      } satisfies ExportedHandler;
+      } satisfies ExportedHandler<typeof MOCK_ENV>;
 
-      let sentryEvent: Event = {};
-      const wrappedHandler = withSentry(
-        (env: any) => ({
-          dsn: env.MOCK_DSN,
-          beforeSend(event) {
-            sentryEvent = event;
-            return null;
-          },
-        }),
-        handler,
-      );
+      const optionsCallback = vi.fn().mockReturnValue({});
+
+      const wrappedHandler = withSentry(optionsCallback, handler);
       await wrappedHandler.fetch(new Request('https://example.com'), MOCK_ENV, createMockExecutionContext());
-      expect(sentryEvent.contexts?.cloud_resource).toEqual({ 'cloud.provider': 'cloudflare' });
+
+      expect(optionsCallback).toHaveBeenCalledTimes(1);
+      expect(optionsCallback).toHaveBeenLastCalledWith(MOCK_ENV);
     });
 
-    test('adds request information', async () => {
+    test('passes through the handler response', async () => {
+      const response = new Response('test');
       const handler = {
         async fetch(_request, _env, _context) {
-          SentryCore.captureMessage('test');
-          return new Response('test');
+          return response;
         },
-      } satisfies ExportedHandler;
+      } satisfies ExportedHandler<typeof MOCK_ENV>;
 
-      let sentryEvent: Event = {};
-      const wrappedHandler = withSentry(
-        (env: any) => ({
-          dsn: env.MOCK_DSN,
-          beforeSend(event) {
-            sentryEvent = event;
-            return null;
-          },
-        }),
-        handler,
+      const wrappedHandler = withSentry(env => ({ dsn: env.SENTRY_DSN }), handler);
+      const result = await wrappedHandler.fetch(
+        new Request('https://example.com'),
+        MOCK_ENV,
+        createMockExecutionContext(),
       );
-      await wrappedHandler.fetch(new Request('https://example.com'), MOCK_ENV, createMockExecutionContext());
-      expect(sentryEvent.sdkProcessingMetadata?.request).toEqual({
-        headers: {},
-        url: 'https://example.com/',
-        method: 'GET',
-      });
-    });
 
-    test('adds culture context', async () => {
-      const handler = {
-        async fetch(_request, _env, _context) {
-          SentryCore.captureMessage('test');
-          return new Response('test');
-        },
-      } satisfies ExportedHandler;
-
-      let sentryEvent: Event = {};
-      const wrappedHandler = withSentry(
-        (env: any) => ({
-          dsn: env.MOCK_DSN,
-          beforeSend(event) {
-            sentryEvent = event;
-            return null;
-          },
-        }),
-        handler,
-      );
-      const mockRequest = new Request('https://example.com') as any;
-      mockRequest.cf = {
-        timezone: 'UTC',
-      };
-      await wrappedHandler.fetch(mockRequest, { ...MOCK_ENV }, createMockExecutionContext());
-      expect(sentryEvent.contexts?.culture).toEqual({ timezone: 'UTC' });
+      expect(result).toBe(response);
     });
   });
 
-  describe('error instrumentation', () => {
-    test('captures errors thrown by the handler', async () => {
-      const captureExceptionSpy = vi.spyOn(SentryCore, 'captureException');
-      const error = new Error('test');
+  describe('scheduled handler', () => {
+    test('executes options callback with env', async () => {
       const handler = {
-        async fetch(_request, _env, _context) {
-          throw error;
+        scheduled(_controller, _env, _context) {
+          return;
         },
-      } satisfies ExportedHandler;
+      } satisfies ExportedHandler<typeof MOCK_ENV>;
 
-      const wrappedHandler = withSentry(() => ({}), handler);
-      expect(captureExceptionSpy).not.toHaveBeenCalled();
-      try {
-        await wrappedHandler.fetch(new Request('https://example.com'), MOCK_ENV, createMockExecutionContext());
-      } catch {
-        // ignore
-      }
-      expect(captureExceptionSpy).toHaveBeenCalledTimes(1);
-      expect(captureExceptionSpy).toHaveBeenLastCalledWith(error, {
-        mechanism: { handled: false, type: 'cloudflare' },
+      const optionsCallback = vi.fn().mockReturnValue({});
+
+      const wrappedHandler = withSentry(optionsCallback, handler);
+      await wrappedHandler.scheduled(createMockScheduledController(), MOCK_ENV, createMockExecutionContext());
+
+      expect(optionsCallback).toHaveBeenCalledTimes(1);
+      expect(optionsCallback).toHaveBeenLastCalledWith(MOCK_ENV);
+    });
+
+    test('flushes the event after the handler is done using the cloudflare context.waitUntil', async () => {
+      const handler = {
+        scheduled(_controller, _env, _context) {
+          return;
+        },
+      } satisfies ExportedHandler<typeof MOCK_ENV>;
+
+      const context = createMockExecutionContext();
+      const wrappedHandler = withSentry(env => ({ dsn: env.SENTRY_DSN }), handler);
+      await wrappedHandler.scheduled(createMockScheduledController(), MOCK_ENV, context);
+
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(context.waitUntil).toHaveBeenCalledTimes(1);
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(context.waitUntil).toHaveBeenLastCalledWith(expect.any(Promise));
+    });
+
+    test('creates a cloudflare client and sets it on the handler', async () => {
+      const initAndBindSpy = vi.spyOn(SentryCore, 'initAndBind');
+      const handler = {
+        scheduled(_controller, _env, _context) {
+          return;
+        },
+      } satisfies ExportedHandler<typeof MOCK_ENV>;
+
+      const wrappedHandler = withSentry(env => ({ dsn: env.SENTRY_DSN }), handler);
+      await wrappedHandler.scheduled(createMockScheduledController(), MOCK_ENV, createMockExecutionContext());
+
+      expect(initAndBindSpy).toHaveBeenCalledTimes(1);
+      expect(initAndBindSpy).toHaveBeenLastCalledWith(CloudflareClient, expect.any(Object));
+    });
+
+    describe('scope instrumentation', () => {
+      test('adds cloud resource context', async () => {
+        const handler = {
+          scheduled(_controller, _env, _context) {
+            SentryCore.captureMessage('cloud_resource');
+            return;
+          },
+        } satisfies ExportedHandler<typeof MOCK_ENV>;
+
+        let sentryEvent: Event = {};
+        const wrappedHandler = withSentry(
+          env => ({
+            dsn: env.SENTRY_DSN,
+            beforeSend(event) {
+              sentryEvent = event;
+              return null;
+            },
+          }),
+          handler,
+        );
+        await wrappedHandler.scheduled(createMockScheduledController(), MOCK_ENV, createMockExecutionContext());
+
+        expect(sentryEvent.contexts?.cloud_resource).toEqual({ 'cloud.provider': 'cloudflare' });
       });
     });
 
-    test('re-throws the error after capturing', async () => {
-      const error = new Error('test');
-      const handler = {
-        async fetch(_request, _env, _context) {
-          throw error;
-        },
-      } satisfies ExportedHandler;
+    describe('error instrumentation', () => {
+      test('captures errors thrown by the handler', async () => {
+        const captureExceptionSpy = vi.spyOn(SentryCore, 'captureException');
+        const error = new Error('test');
 
-      const wrappedHandler = withSentry(() => ({}), handler);
-      let thrownError: Error | undefined;
-      try {
-        await wrappedHandler.fetch(new Request('https://example.com'), MOCK_ENV, createMockExecutionContext());
-      } catch (e: any) {
-        thrownError = e;
-      }
+        expect(captureExceptionSpy).not.toHaveBeenCalled();
 
-      expect(thrownError).toBe(error);
-    });
-  });
-
-  describe('tracing instrumentation', () => {
-    test('continues trace with sentry trace and baggage', async () => {
-      const handler = {
-        async fetch(_request, _env, _context) {
-          SentryCore.captureMessage('test');
-          return new Response('test');
-        },
-      } satisfies ExportedHandler;
-
-      let sentryEvent: Event = {};
-      const wrappedHandler = withSentry(
-        (env: any) => ({
-          dsn: env.MOCK_DSN,
-          tracesSampleRate: 0,
-          beforeSend(event) {
-            sentryEvent = event;
-            return null;
+        const handler = {
+          scheduled(_controller, _env, _context) {
+            throw error;
           },
-        }),
-        handler,
-      );
+        } satisfies ExportedHandler<typeof MOCK_ENV>;
 
-      const request = new Request('https://example.com') as any;
-      request.headers.set('sentry-trace', '12312012123120121231201212312012-1121201211212012-1');
-      request.headers.set(
-        'baggage',
-        'sentry-release=2.1.12,sentry-public_key=public,sentry-trace_id=12312012123120121231201212312012,sentry-sample_rate=0.3232',
-      );
-      await wrappedHandler.fetch(request, MOCK_ENV, createMockExecutionContext());
-      expect(sentryEvent.contexts?.trace).toEqual({
-        parent_span_id: '1121201211212012',
-        span_id: expect.any(String),
-        trace_id: '12312012123120121231201212312012',
+        const wrappedHandler = withSentry(env => ({ dsn: env.SENTRY_DSN }), handler);
+        try {
+          await wrappedHandler.scheduled(createMockScheduledController(), MOCK_ENV, createMockExecutionContext());
+        } catch {
+          // ignore
+        }
+
+        expect(captureExceptionSpy).toHaveBeenCalledTimes(1);
+        expect(captureExceptionSpy).toHaveBeenLastCalledWith(error, {
+          mechanism: { handled: false, type: 'cloudflare' },
+        });
+      });
+
+      test('re-throws the error after capturing', async () => {
+        const error = new Error('test');
+        const handler = {
+          scheduled(_controller, _env, _context) {
+            throw error;
+          },
+        } satisfies ExportedHandler<typeof MOCK_ENV>;
+
+        const wrappedHandler = withSentry(env => ({ dsn: env.SENTRY_DSN }), handler);
+
+        let thrownError: Error | undefined;
+        try {
+          await wrappedHandler.scheduled(createMockScheduledController(), MOCK_ENV, createMockExecutionContext());
+        } catch (e: any) {
+          thrownError = e;
+        }
+
+        expect(thrownError).toBe(error);
       });
     });
 
-    test('creates a span that wraps fetch handler', async () => {
-      const handler = {
-        async fetch(_request, _env, _context) {
-          return new Response('test');
-        },
-      } satisfies ExportedHandler;
-
-      let sentryEvent: Event = {};
-      const wrappedHandler = withSentry(
-        (env: any) => ({
-          dsn: env.MOCK_DSN,
-          tracesSampleRate: 1,
-          beforeSendTransaction(event) {
-            sentryEvent = event;
-            return null;
+    describe('tracing instrumentation', () => {
+      test('creates a span that wraps scheduled invocation', async () => {
+        const handler = {
+          scheduled(_controller, _env, _context) {
+            return;
           },
-        }),
-        handler,
-      );
+        } satisfies ExportedHandler<typeof MOCK_ENV>;
 
-      const request = new Request('https://example.com') as any;
-      request.cf = {
-        httpProtocol: 'HTTP/1.1',
-      };
-      request.headers.set('content-length', '10');
+        let sentryEvent: Event = {};
+        const wrappedHandler = withSentry(
+          env => ({
+            dsn: env.SENTRY_DSN,
+            tracesSampleRate: 1,
+            beforeSendTransaction(event) {
+              sentryEvent = event;
+              return null;
+            },
+          }),
+          handler,
+        );
 
-      await wrappedHandler.fetch(request, MOCK_ENV, createMockExecutionContext());
-      expect(sentryEvent.transaction).toEqual('GET /');
-      expect(sentryEvent.spans).toHaveLength(0);
-      expect(sentryEvent.contexts?.trace).toEqual({
-        data: {
-          'sentry.origin': 'auto.http.cloudflare-worker',
-          'sentry.op': 'http.server',
-          'sentry.source': 'url',
-          'http.request.method': 'GET',
-          'url.full': 'https://example.com/',
-          'server.address': 'example.com',
-          'network.protocol.name': 'HTTP/1.1',
-          'url.scheme': 'https',
-          'sentry.sample_rate': 1,
-          'http.response.status_code': 200,
-          'http.request.body.size': 10,
-        },
-        op: 'http.server',
-        origin: 'auto.http.cloudflare-worker',
-        span_id: expect.any(String),
-        status: 'ok',
-        trace_id: expect.any(String),
+        await wrappedHandler.scheduled(createMockScheduledController(), MOCK_ENV, createMockExecutionContext());
+
+        expect(sentryEvent.transaction).toEqual('Scheduled Cron 0 0 0 * * *');
+        expect(sentryEvent.spans).toHaveLength(0);
+        expect(sentryEvent.contexts?.trace).toEqual({
+          data: {
+            'sentry.origin': 'auto.faas.cloudflare',
+            'sentry.op': 'faas.cron',
+            'faas.cron': '0 0 0 * * *',
+            'faas.time': expect.any(String),
+            'faas.trigger': 'timer',
+            'sentry.sample_rate': 1,
+            'sentry.source': 'task',
+          },
+          op: 'faas.cron',
+          origin: 'auto.faas.cloudflare',
+          span_id: expect.any(String),
+          trace_id: expect.any(String),
+        });
       });
     });
   });
@@ -299,5 +225,13 @@ function createMockExecutionContext(): ExecutionContext {
   return {
     waitUntil: vi.fn(),
     passThroughOnException: vi.fn(),
+  };
+}
+
+function createMockScheduledController(): ScheduledController {
+  return {
+    scheduledTime: 123,
+    cron: '0 0 0 * * *',
+    noRetry: vi.fn(),
   };
 }

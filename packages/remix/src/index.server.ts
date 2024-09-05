@@ -1,11 +1,6 @@
 import { applySdkMetadata } from '@sentry/core';
 import type { NodeClient, NodeOptions } from '@sentry/node';
-import {
-  getDefaultIntegrations as getDefaultNodeIntegrations,
-  init as nodeInit,
-  isInitialized,
-  setTag,
-} from '@sentry/node';
+import { getDefaultIntegrations as getDefaultNodeIntegrations, init as nodeInit, isInitialized } from '@sentry/node';
 import type { Integration } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
@@ -52,6 +47,7 @@ export {
   flush,
   functionToStringIntegration,
   generateInstrumentOnce,
+  genericPoolIntegration,
   getActiveSpan,
   getAutoPerformanceIntegrations,
   getClient,
@@ -193,8 +189,6 @@ export function init(options: RemixOptions): NodeClient | undefined {
   const client = nodeInit(options as NodeOptions);
 
   instrumentServer(options);
-
-  setTag('runtime', 'node');
 
   return client;
 }

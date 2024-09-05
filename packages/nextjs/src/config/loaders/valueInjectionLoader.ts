@@ -18,13 +18,9 @@ export default function valueInjectionLoader(this: LoaderThis<LoaderOptions>, us
   // We do not want to cache injected values across builds
   this.cacheable(false);
 
-  // Define some global proxy that works on server and on the browser.
-  let injectedCode =
-    'var _sentryCollisionFreeGlobalObject = typeof window != "undefined" ? window : typeof global != "undefined" ? global : typeof self != "undefined" ? self : {};\n';
-
-  Object.entries(values).forEach(([key, value]) => {
-    injectedCode += `_sentryCollisionFreeGlobalObject["${key}"] = ${JSON.stringify(value)};\n`;
-  });
+  const injectedCode = Object.entries(values)
+    .map(([key, value]) => `globalThis["${key}"] = ${JSON.stringify(value)};`)
+    .join('\n');
 
   return `${injectedCode}\n${userCode}`;
 }

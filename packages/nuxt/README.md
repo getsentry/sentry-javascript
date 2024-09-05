@@ -96,7 +96,7 @@ Add a `sentry.client.config.(js|ts)` file to the root of your project:
 import * as Sentry from '@sentry/nuxt';
 
 Sentry.init({
-  dsn: env.DSN,
+  dsn: process.env.SENTRY_DSN,
 });
 ```
 
@@ -107,10 +107,10 @@ Add an `instrument.server.mjs` file to your `public` folder:
 ```javascript
 import * as Sentry from '@sentry/nuxt';
 
-// Only run `init` when DSN is available
+// Only run `init` when process.env.SENTRY_DSN is available.
 if (process.env.SENTRY_DSN) {
   Sentry.init({
-    dsn: process.env.DSN,
+    dsn: process.env.SENTRY_DSN,
   });
 }
 ```
@@ -122,18 +122,6 @@ other imports:
 {
   "scripts": {
     "preview": "NODE_OPTIONS='--import ./public/instrument.server.mjs' nuxt preview"
-  }
-}
-```
-
-If you are getting an `import-in-the-middle` error message, add the package with a minimum version of `1.10.0` as a
-dependency to your `package.json`
-([issue reference](https://github.com/getsentry/sentry-javascript-examples/pull/38#issuecomment-2245259327)):
-
-```json
-{
-  "dependencies": {
-    "import-in-the-middle": "1.10.0"
   }
 }
 ```

@@ -194,12 +194,14 @@ function createProfileChunkPayload(
     trace_id,
     profiler_id,
     chunk_id,
+    sdk,
   }: {
     release: string;
     environment: string;
     trace_id: string | undefined;
     chunk_id: string;
     profiler_id: string;
+    sdk: SdkInfo | undefined;
   },
 ): ProfileChunk {
   // Log a warning if the profile has an invalid traceId (should be uuidv4).
@@ -213,6 +215,10 @@ function createProfileChunkPayload(
 
   const profile: ProfileChunk = {
     chunk_id: chunk_id,
+    client_sdk: {
+      name: sdk?.name ?? 'sentry.javascript.node',
+      version: sdk?.version ?? '0.0.0',
+    },
     profiler_id: profiler_id,
     platform: 'node',
     version: CONTINUOUS_FORMAT_VERSION,
@@ -235,6 +241,7 @@ export function createProfilingChunkEvent(
   client: Client,
   options: { release?: string; environment?: string },
   profile: RawChunkCpuProfile,
+  sdk: SdkInfo | undefined,
   identifiers: { trace_id: string | undefined; chunk_id: string; profiler_id: string },
 ): ProfileChunk | null {
   if (!isValidProfileChunk(profile)) {
@@ -247,6 +254,7 @@ export function createProfilingChunkEvent(
     trace_id: identifiers.trace_id ?? '',
     chunk_id: identifiers.chunk_id,
     profiler_id: identifiers.profiler_id,
+    sdk,
   });
 }
 

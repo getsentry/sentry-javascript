@@ -4,7 +4,7 @@ import type { Package } from '@sentry/types';
 import HtmlWebpackPlugin, { createHtmlTagObject } from 'html-webpack-plugin';
 import type { Compiler } from 'webpack';
 
-import { addStaticAsset, addStaticAssetSymlink } from './staticAssets';
+import { addStaticAsset, symlinkAsset } from './staticAssets';
 
 const LOADER_TEMPLATE = fs.readFileSync(path.join(__dirname, '../fixtures/loader.js'), 'utf-8');
 const PACKAGES_DIR = path.join(__dirname, '..', '..', '..', 'packages');
@@ -24,16 +24,19 @@ const useLoader = bundleKey.startsWith('loader');
 
 // These are imports that, when using CDN bundles, are not included in the main CDN bundle.
 // In this case, if we encounter this import, we want to add this CDN bundle file instead
+// IMPORTANT NOTE: In order for this to work, you need to import this from browser like this:
+// import { httpClientIntegration } from '@sentry/browser';
+// You cannot use e.g. Sentry.httpClientIntegration, as this will not be detected
 const IMPORTED_INTEGRATION_CDN_BUNDLE_PATHS: Record<string, string> = {
   httpClientIntegration: 'httpclient',
   captureConsoleIntegration: 'captureconsole',
-  CaptureConsole: 'captureconsole',
   debugIntegration: 'debug',
   rewriteFramesIntegration: 'rewriteframes',
   contextLinesIntegration: 'contextlines',
   extraErrorDataIntegration: 'extraerrordata',
   reportingObserverIntegration: 'reportingobserver',
   sessionTimingIntegration: 'sessiontiming',
+  feedbackIntegration: 'feedback',
 };
 
 const BUNDLE_PATHS: Record<string, Record<string, string>> = {
@@ -210,7 +213,10 @@ class SentryScenarioGenerationPlugin {
                 src: 'cdn.bundle.js',
               });
 
-          addStaticAssetSymlink(this.localOutPath, path.resolve(PACKAGES_DIR, bundleName, bundlePath), 'cdn.bundle.js');
+          symlinkAsset(
+            path.resolve(PACKAGES_DIR, bundleName, bundlePath),
+            path.join(this.localOutPath, 'cdn.bundle.js'),
+          );
 
           if (useLoader) {
             const loaderConfig = LOADER_CONFIGS[bundleKey];
@@ -241,14 +247,13 @@ class SentryScenarioGenerationPlugin {
               const fileName = `${integration}.bundle.js`;
 
               // We add the files, but not a script tag - they are lazy-loaded
-              addStaticAssetSymlink(
-                this.localOutPath,
+              symlinkAsset(
                 path.resolve(
                   PACKAGES_DIR,
                   'feedback',
                   BUNDLE_PATHS['feedback']?.[integrationBundleKey]?.replace('[INTEGRATION_NAME]', integration) || '',
                 ),
-                fileName,
+                path.join(this.localOutPath, fileName),
               );
             });
           }
@@ -258,15 +263,25 @@ class SentryScenarioGenerationPlugin {
           if (baseIntegrationFileName) {
             this.requiredIntegrations.forEach(integration => {
               const fileName = `${integration}.bundle.js`;
-              addStaticAssetSymlink(
-                this.localOutPath,
+              symlinkAsset(
                 path.resolve(
                   PACKAGES_DIR,
                   'browser',
                   baseIntegrationFileName.replace('[INTEGRATION_NAME]', integration),
                 ),
-                fileName,
+                path.join(this.localOutPath, fileName),
               );
+
+              if (integration === 'feedback') {
+                symlinkAsset(
+                  path.resolve(PACKAGES_DIR, 'feedback', 'build/bundles/feedback-modal.js'),
+                  path.join(this.localOutPath, 'feedback-modal.bundle.js'),
+                );
+                symlinkAsset(
+                  path.resolve(PACKAGES_DIR, 'feedback', 'build/bundles/feedback-screenshot.js'),
+                  path.join(this.localOutPath, 'feedback-screenshot.bundle.js'),
+                );
+              }
 
               const integrationObject = createHtmlTagObject('script', {
                 src: fileName,
@@ -278,10 +293,9 @@ class SentryScenarioGenerationPlugin {
 
           const baseWasmFileName = BUNDLE_PATHS['wasm']?.[integrationBundleKey];
           if (this.requiresWASMIntegration && baseWasmFileName) {
-            addStaticAssetSymlink(
-              this.localOutPath,
+            symlinkAsset(
               path.resolve(PACKAGES_DIR, 'wasm', baseWasmFileName),
-              'wasm.bundle.js',
+              path.join(this.localOutPath, 'wasm.bundle.js'),
             );
 
             const wasmObject = createHtmlTagObject('script', {

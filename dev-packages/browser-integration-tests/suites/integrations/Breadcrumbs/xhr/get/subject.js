@@ -1,6 +1,6 @@
 const xhr = new XMLHttpRequest();
 
-xhr.open('GET', 'http://localhost:7654/foo');
+xhr.open('GET', 'http://sentry-test.io/foo');
 xhr.send();
 
 xhr.addEventListener('readystatechange', function () {

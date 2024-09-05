@@ -1,4 +1,4 @@
-const request = new Request('http://localhost:7654/foo', {
+const request = new Request('http://sentry-test.io/foo', {
   method: 'POST',
   credentials: 'include',
   headers: {

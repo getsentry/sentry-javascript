@@ -1,6 +1,8 @@
+import { getTraceMetaTags } from '@sentry/core';
 import type { Context } from '@sentry/types';
 import { dropUndefinedKeys } from '@sentry/utils';
 import type { CapturedErrorContext } from 'nitropack';
+import type { NuxtRenderHTMLContext } from 'nuxt/app';
 
 /**
  *  Extracts the relevant context information from the error context (H3Event in Nitro Error)
@@ -25,4 +27,17 @@ export function extractErrorContext(errorContext: CapturedErrorContext): Context
   }
 
   return dropUndefinedKeys(structuredContext);
+}
+
+/**
+ * Adds Sentry tracing <meta> tags to the returned html page.
+ *
+ * Exported only for testing
+ */
+export function addSentryTracingMetaTags(head: NuxtRenderHTMLContext['head']): void {
+  const metaTags = getTraceMetaTags();
+
+  if (metaTags) {
+    head.push(metaTags);
+  }
 }

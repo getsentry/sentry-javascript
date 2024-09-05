@@ -18,8 +18,6 @@ test.describe('server-side errors', () => {
         in_app: true,
       }),
     );
-
-    expect(errorEvent.tags).toMatchObject({ runtime: 'node' });
   });
 
   test('captures server load error', async ({ page }) => {
@@ -38,8 +36,6 @@ test.describe('server-side errors', () => {
         in_app: true,
       }),
     );
-
-    expect(errorEvent.tags).toMatchObject({ runtime: 'node' });
   });
 
   test('captures server route (GET) error', async ({ page }) => {
@@ -61,5 +57,38 @@ test.describe('server-side errors', () => {
     );
 
     expect(errorEvent.transaction).toEqual('GET /server-route-error');
+  });
+
+  test('captures error() thrown in server route with `wrapServerRouteWithSentry`', async ({ page }) => {
+    const errorEventPromise = waitForError('sveltekit-2', errorEvent => {
+      return errorEvent?.exception?.values?.[0]?.value === "'HttpError' captured as exception with keys: body, status";
+    });
+
+    await page.goto('/wrap-server-route');
+
+    expect(await errorEventPromise).toMatchObject({
+      exception: {
+        values: [
+          {
+            value: "'HttpError' captured as exception with keys: body, status",
+            mechanism: {
+              handled: false,
+              data: {
+                function: 'serverRoute',
+              },
+            },
+            stacktrace: { frames: expect.any(Array) },
+          },
+        ],
+      },
+      extra: {
+        __serialized__: {
+          body: {
+            message: 'error() error',
+          },
+          status: 500,
+        },
+      },
+    });
   });
 });

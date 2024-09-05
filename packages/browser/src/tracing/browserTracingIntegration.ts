@@ -28,6 +28,7 @@ import {
 import type { Client, IntegrationFn, StartSpanOptions, TransactionSource } from '@sentry/types';
 import type { Span } from '@sentry/types';
 import {
+  GLOBAL_OBJ,
   browserPerformanceTimeOrigin,
   generatePropagationContext,
   getDomElement,
@@ -145,6 +146,7 @@ export interface BrowserTracingOptions {
    */
   _experiments: Partial<{
     enableInteractions: boolean;
+    enableStandaloneClsSpans: boolean;
   }>;
 
   /**
@@ -168,7 +170,7 @@ const DEFAULT_BROWSER_TRACING_OPTIONS: BrowserTracingOptions = {
   instrumentPageLoad: true,
   markBackgroundSpan: true,
   enableLongTask: true,
-  enableLongAnimationFrame: false,
+  enableLongAnimationFrame: true,
   enableInp: true,
   _experiments: {},
   ...defaultRequestInstrumentationOptions,
@@ -190,7 +192,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
     enableInp,
     enableLongTask,
     enableLongAnimationFrame,
-    _experiments: { enableInteractions },
+    _experiments: { enableInteractions, enableStandaloneClsSpans },
     beforeStartSpan,
     idleTimeout,
     finalTimeout,
@@ -207,13 +209,17 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
     ..._options,
   };
 
-  const _collectWebVitals = startTrackingWebVitals();
+  const _collectWebVitals = startTrackingWebVitals({ recordClsStandaloneSpans: enableStandaloneClsSpans || false });
 
   if (enableInp) {
     startTrackingINP();
   }
 
-  if (enableLongAnimationFrame && PerformanceObserver.supportedEntryTypes.includes('long-animation-frame')) {
+  if (
+    enableLongAnimationFrame &&
+    GLOBAL_OBJ.PerformanceObserver &&
+    PerformanceObserver.supportedEntryTypes.includes('long-animation-frame')
+  ) {
     startTrackingLongAnimationFrames();
   } else if (enableLongTask) {
     startTrackingLongTasks();
@@ -256,7 +262,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
       disableAutoFinish: isPageloadTransaction,
       beforeSpanEnd: span => {
         _collectWebVitals();
-        addPerformanceEntries(span);
+        addPerformanceEntries(span, { recordClsOnPageloadSpan: !enableStandaloneClsSpans });
       },
     });
 
@@ -293,6 +299,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
           // If there's an open transaction on the scope, we need to finish it before creating an new one.
           activeSpan.end();
         }
+
         activeSpan = _createRouteSpan(client, {
           op: 'navigation',
           ...startSpanOptions,
