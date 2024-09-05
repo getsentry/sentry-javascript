@@ -15,6 +15,7 @@ import type { SpanAttributes, TransactionSource } from '@sentry/types';
 import { getSanitizedUrlString, parseUrl, stripUrlQueryAndFragment } from '@sentry/utils';
 
 import {
+  SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_URL_FULL,
@@ -49,10 +50,7 @@ export function inferSpanData(name: string, attributes: SpanAttributes, kind: Sp
   }
 
   // if http.method exists, this is an http request span
-  //
-  // TODO: Referencing `http.request.method` is a temporary workaround until the semantic
-  // conventions export an attribute key for it.
-  const httpMethod = attributes['http.request.method'] || attributes[SEMATTRS_HTTP_METHOD];
+  const httpMethod = attributes[SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD] || attributes[SEMATTRS_HTTP_METHOD];
   if (httpMethod) {
     return descriptionForHttpMethod({ attributes, name, kind }, httpMethod);
   }
