@@ -5,6 +5,7 @@ import { propagation, trace } from '@opentelemetry/api';
 import { W3CBaggagePropagator, isTracingSuppressed } from '@opentelemetry/core';
 import { SEMATTRS_HTTP_URL } from '@opentelemetry/semantic-conventions';
 import type { continueTrace } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_URL_FULL } from '@sentry/core';
 import { hasTracingEnabled } from '@sentry/core';
 import { getRootSpan } from '@sentry/core';
 import { spanToJSON } from '@sentry/core';
@@ -293,7 +294,7 @@ function getExistingBaggage(carrier: unknown): string | undefined {
  */
 function getCurrentURL(span: Span): string | undefined {
   const spanData = spanToJSON(span).data;
-  const urlAttribute = spanData?.[SEMATTRS_HTTP_URL] || spanData?.['url.full'];
+  const urlAttribute = spanData?.[SEMATTRS_HTTP_URL] || spanData?.[SEMANTIC_ATTRIBUTE_URL_FULL];
   if (urlAttribute) {
     return urlAttribute;
   }

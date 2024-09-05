@@ -4,6 +4,8 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD,
+  SEMANTIC_ATTRIBUTE_URL_FULL,
   captureException,
   continueTrace,
   flush,
@@ -45,8 +47,8 @@ export function wrapRequestHandler(
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.cloudflare',
       [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
       [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
-      ['http.request.method']: request.method,
-      ['url.full']: request.url,
+      [SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD]: request.method,
+      [SEMANTIC_ATTRIBUTE_URL_FULL]: request.url,
     };
 
     const contentLength = request.headers.get('content-length');

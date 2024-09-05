@@ -14,7 +14,11 @@ import {
 import type { SpanAttributes, TransactionSource } from '@sentry/types';
 import { getSanitizedUrlString, parseUrl, stripUrlQueryAndFragment } from '@sentry/utils';
 
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
+import {
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_URL_FULL,
+} from '@sentry/core';
 import { SEMANTIC_ATTRIBUTE_SENTRY_GRAPHQL_OPERATION } from '../semanticAttributes';
 import type { AbstractSpan } from '../types';
 import { getSpanKind } from './getSpanKind';
@@ -213,7 +217,7 @@ export function getSanitizedUrl(
   // This is the relative path of the URL, e.g. /sub
   const httpTarget = attributes[SEMATTRS_HTTP_TARGET];
   // This is the full URL, including host & query params etc., e.g. https://example.com/sub?foo=bar
-  const httpUrl = attributes[SEMATTRS_HTTP_URL] || attributes['url.full'];
+  const httpUrl = attributes[SEMATTRS_HTTP_URL] || attributes[SEMANTIC_ATTRIBUTE_URL_FULL];
   // This is the normalized route name - may not always be available!
   const httpRoute = attributes[SEMATTRS_HTTP_ROUTE];
 

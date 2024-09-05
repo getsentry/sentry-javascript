@@ -39,9 +39,9 @@ const _nativeNodeFetchIntegration = ((options: NodeFetchOptions = {}) => {
     name: 'NodeFetch',
     setupOnce() {
       const instrumentation = new UndiciInstrumentation({
+        requireParentforSpans: false,
         ignoreRequestHook: request => {
           const url = getAbsoluteUrl(request.origin, request.path);
-          const tracingDisabled = !hasTracingEnabled();
           const shouldIgnore = _ignoreOutgoingRequests && url && _ignoreOutgoingRequests(url);
 
           if (shouldIgnore) {
@@ -50,7 +50,7 @@ const _nativeNodeFetchIntegration = ((options: NodeFetchOptions = {}) => {
 
           // If tracing is disabled, we still want to propagate traces
           // So we do that manually here, matching what the instrumentation does otherwise
-          if (tracingDisabled) {
+          if (!hasTracingEnabled()) {
             const ctx = context.active();
             const addedHeaders: Record<string, string> = {};
 
