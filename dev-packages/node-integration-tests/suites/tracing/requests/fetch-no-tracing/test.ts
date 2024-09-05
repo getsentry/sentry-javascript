@@ -2,7 +2,7 @@ import { conditionalTest } from '../../../../utils';
 import { createRunner } from '../../../../utils/runner';
 import { createTestServer } from '../../../../utils/server';
 
-conditionalTest({ min: 16 })('outgoing fetch', () => {
+conditionalTest({ min: 18 })('outgoing fetch', () => {
   test('outgoing fetch requests are correctly instrumented with tracing disabled', done => {
     expect.assertions(11);
 
