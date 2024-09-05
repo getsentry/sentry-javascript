@@ -1003,7 +1003,7 @@ jobs:
         working-directory: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
         timeout-minutes: 5
         run: pnpm test:assert
-        
+
       - name: Upload Playwright Traces
         uses: actions/upload-artifact@v4
         if: failure()

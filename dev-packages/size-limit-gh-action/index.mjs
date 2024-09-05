@@ -191,6 +191,7 @@ async function run() {
 }
 
 async function runSizeLimitOnComparisonBranch() {
+  const __dirname = path.dirname(fileURLToPath(import.meta.url));
   const resultsFilePath = getResultsFilePath();
 
   const limit = new SizeLimitFormatter();
