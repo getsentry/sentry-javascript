@@ -5,7 +5,7 @@ import type { SentrySolidStartPluginOptions } from './types';
 /**
  * Various Sentry vite plugins to be used for SolidStart.
  */
-export const sentrySolidStartVite = (options: SentrySolidStartPluginOptions): Plugin[] => {
+export const sentrySolidStartVite = (options: SentrySolidStartPluginOptions = {}): Plugin[] => {
   const sentryPlugins: Plugin[] = [];
 
   if (process.env.NODE_ENV !== 'development') {
