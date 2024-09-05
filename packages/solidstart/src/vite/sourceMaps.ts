@@ -37,20 +37,21 @@ export function makeSourceMapsVitePlugin(options: SentrySolidStartPluginOptions)
       },
     },
     ...sentryVitePlugin({
+      authToken: authToken ?? process.env.SENTRY_AUTH_TOKEN,
+      bundleSizeOptimizations: options.bundleSizeOptimizations,
+      debug: debug ?? false,
       org: org ?? process.env.SENTRY_ORG,
       project: project ?? process.env.SENTRY_PROJECT,
-      authToken: authToken ?? process.env.SENTRY_AUTH_TOKEN,
-      telemetry: sourceMapsUploadOptions?.telemetry ?? true,
       sourcemaps: {
         filesToDeleteAfterUpload: sourceMapsUploadOptions?.filesToDeleteAfterUpload ?? undefined,
         ...sourceMapsUploadOptions?.unstable_sentryVitePluginOptions?.sourcemaps,
       },
+      telemetry: sourceMapsUploadOptions?.telemetry ?? true,
       _metaOptions: {
         telemetry: {
           metaFramework: 'solidstart',
         },
       },
-      debug: debug ?? false,
       ...sourceMapsUploadOptions?.unstable_sentryVitePluginOptions,
     }),
   ];

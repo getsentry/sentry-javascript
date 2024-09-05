@@ -41,6 +41,9 @@ describe('makeSourceMapsVitePlugin()', () => {
       sourceMapsUploadOptions: {
         filesToDeleteAfterUpload: ['baz/*.js'],
       },
+      bundleSizeOptimizations: {
+        excludeTracing: true,
+      },
     });
 
     expect(sentryVitePluginSpy).toHaveBeenCalledWith(
@@ -50,6 +53,9 @@ describe('makeSourceMapsVitePlugin()', () => {
         sourcemaps: {
           filesToDeleteAfterUpload: ['baz/*.js'],
         },
+        bundleSizeOptimizations: {
+          excludeTracing: true,
+        },
       }),
     );
   });
@@ -58,11 +64,17 @@ describe('makeSourceMapsVitePlugin()', () => {
     makeSourceMapsVitePlugin({
       org: 'my-org',
       authToken: 'my-token',
+      bundleSizeOptimizations: {
+        excludeTracing: true,
+      },
       sourceMapsUploadOptions: {
         unstable_sentryVitePluginOptions: {
           org: 'unstable-org',
           sourcemaps: {
             assets: ['unstable/*.js'],
+          },
+          bundleSizeOptimizations: {
+            excludeTracing: false,
           },
         },
       },
@@ -72,6 +84,9 @@ describe('makeSourceMapsVitePlugin()', () => {
       expect.objectContaining({
         org: 'unstable-org',
         authToken: 'my-token',
+        bundleSizeOptimizations: {
+          excludeTracing: false,
+        },
         sourcemaps: {
           assets: ['unstable/*.js'],
         },
