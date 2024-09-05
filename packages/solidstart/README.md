@@ -4,15 +4,15 @@
   </a>
 </p>
 
-# Official Sentry SDK for Solid Start (EXPERIMENTAL)
+# Official Sentry SDK for SolidStart
 
 [![npm version](https://img.shields.io/npm/v/@sentry/solidstart.svg)](https://www.npmjs.com/package/@sentry/solidstart)
 [![npm dm](https://img.shields.io/npm/dm/@sentry/solidstart.svg)](https://www.npmjs.com/package/@sentry/solidstart)
 [![npm dt](https://img.shields.io/npm/dt/@sentry/solidstart.svg)](https://www.npmjs.com/package/@sentry/solidstart)
 
-This SDK is considered ⚠️ **experimental and in an alpha state**. It may experience breaking changes. Please reach out
-on [GitHub](https://github.com/getsentry/sentry-javascript/issues/new/choose) if you have any feedback or concerns. This
-SDK is for [Solid Start](https://start.solidjs.com/). If you're using [Solid](https://www.solidjs.com/) see our
+This SDK is in **Beta**. The API is stable but updates may include minor changes in behavior. Please reach out on
+[GitHub](https://github.com/getsentry/sentry-javascript/issues/new/choose) if you have any feedback or concerns. This
+SDK is for [SolidStart](https://start.solidjs.com/). If you're using [Solid](https://www.solidjs.com/) see our
 [Solid SDK here](https://github.com/getsentry/sentry-javascript/tree/develop/packages/solid).
 
 ## Links
@@ -22,7 +22,7 @@ SDK is for [Solid Start](https://start.solidjs.com/). If you're using [Solid](ht
 ## General
 
 This package is a wrapper around `@sentry/node` for the server and `@sentry/solid` for the client side, with added
-functionality related to Solid Start.
+functionality related to SolidStart.
 
 ## Manual Setup
 
@@ -30,7 +30,7 @@ If the setup through the wizard doesn't work for you, you can also set up the SD
 
 ### 1. Prerequesits & Installation
 
-Install the Sentry Solid Start SDK:
+Install the Sentry SolidStart SDK:
 
 ```bash
 # Using npm
