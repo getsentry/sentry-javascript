@@ -259,7 +259,7 @@ function getWebVital(
 
   const end = getAbsoluteTime(value);
 
- return {
+  return {
     type: 'web-vital',
     name,
     start: end,
