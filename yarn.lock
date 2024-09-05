@@ -8306,6 +8306,14 @@
     "@sentry/cli-win32-i686" "2.33.1"
     "@sentry/cli-win32-x64" "2.33.1"
 
+"@sentry/rollup-plugin@2.22.3":
+  version "2.22.3"
+  resolved "https://registry.yarnpkg.com/@sentry/rollup-plugin/-/rollup-plugin-2.22.3.tgz#18ab4b7903ee723bee4cf789b38bb3febb05faae"
+  integrity sha512-I1UsnYzZm5W7/Pyah2yxuMRxmzgf5iDKoptFfMaerpRO5oBhFO3tMnKSLAlYMvuXKRoYkInNv6ckkUcSOF6jig==
+  dependencies:
+    "@sentry/bundler-plugin-core" "2.22.3"
+    unplugin "1.0.1"
+
 "@sentry/vite-plugin@2.22.3", "@sentry/vite-plugin@^2.22.3":
   version "2.22.3"
   resolved "https://registry.yarnpkg.com/@sentry/vite-plugin/-/vite-plugin-2.22.3.tgz#b52802412b6f3d8e3e56742afc9624d9babae5b6"

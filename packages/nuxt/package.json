@@ -47,6 +47,7 @@
     "@sentry/core": "8.28.0",
     "@sentry/node": "8.28.0",
     "@sentry/opentelemetry": "8.28.0",
+    "@sentry/rollup-plugin": "2.22.3",
     "@sentry/types": "8.28.0",
     "@sentry/utils": "8.28.0",
     "@sentry/vite-plugin": "2.22.3",
