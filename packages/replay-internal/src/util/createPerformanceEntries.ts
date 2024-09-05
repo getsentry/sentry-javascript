@@ -60,7 +60,7 @@ interface LayoutShiftAttribution {
 
 interface Attribution {
   value: number;
-  nodeIds?: number[];
+  nodeIds: number[] | undefined;
 }
 
 /**
@@ -220,9 +220,10 @@ export function getCumulativeLayoutShift(metric: Metric): ReplayPerformanceEntry
           }
         }
       }
-      layoutShifts.push({ value: entry.value, nodeIds });
+      layoutShifts.push({ value: entry.value, nodeIds: nodeIds.length ? nodeIds : undefined });
     }
   }
+
   return getWebVital(metric, 'cumulative-layout-shift', nodes, layoutShifts);
 }
 
@@ -258,7 +259,7 @@ function getWebVital(
 
   const end = getAbsoluteTime(value);
 
-  const data: ReplayPerformanceEntry<WebVitalData> = {
+ return {
     type: 'web-vital',
     name,
     start: end,
@@ -271,6 +272,4 @@ function getWebVital(
       attributions,
     },
   };
-
-  return data;
 }
