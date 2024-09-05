@@ -52,7 +52,7 @@ export class SentrySampler implements Sampler {
       return wrapSamplingDecision({ decision: undefined, context, spanAttributes });
     }
 
-    // If we have a http.client or undici span that has no local parent, we never want to sample it
+    // If we have a http.client span that has no local parent, we never want to sample it
     // but we want to leave downstream sampling decisions up to the server
     if (
       spanKind === SpanKind.CLIENT &&
