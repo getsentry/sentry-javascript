@@ -110,11 +110,11 @@ export interface WebVitalData {
   /**
    * The recording id of the web vital nodes. -1 if not found
    */
-  nodeIds: number[] | undefined;
+  nodeIds?: number[];
   /**
    * The layout shifts of a CLS metric
    */
-  attributions: { value: number; nodeIds: number[] | undefined }[] | undefined;
+  attributions?: { value: number; nodeIds: number[] | undefined }[];
 }
 
 /**
