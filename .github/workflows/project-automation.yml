@@ -20,6 +20,7 @@ jobs:
         uses: peter-evans/create-or-update-project-card@v3
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+          project-location: getsentry
           project-number: 31
           column-name: "🏗 In Progress"
           issue-number: ${{ github.event.number }}
@@ -36,6 +37,7 @@ jobs:
         uses: peter-evans/create-or-update-project-card@v3
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+          project-location: getsentry
           project-number: 31
           column-name: "👀 In Review"
           issue-number: ${{ github.event.number }}
@@ -53,6 +55,7 @@ jobs:
         uses: peter-evans/create-or-update-project-card@v3
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+          project-location: getsentry
           project-number: 31
           column-name: "✅ Done"
           issue-number: ${{ github.event.number }}
