@@ -123,12 +123,12 @@ test('sends a pageload transaction with a route name as transaction name if avai
   });
 });
 
-test('sends a lifecycle span for the tracked HomeView component - with `<>`', async ({ page }) => {
+test('sends a lifecycle span for each tracked components', async ({ page }) => {
   const transactionPromise = waitForTransaction('vue-3', async transactionEvent => {
     return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
   });
 
-  await page.goto(`/`);
+  await page.goto(`/components`);
 
   const rootSpan = await transactionPromise;
 
@@ -165,56 +165,41 @@ test('sends a lifecycle span for the tracked HomeView component - with `<>`', as
         op: 'ui.vue.mount',
         origin: 'auto.ui.vue',
       }),
+
+      // without `<>`
       expect.objectContaining({
         data: {
           'sentry.op': 'ui.vue.mount',
           'sentry.origin': 'auto.ui.vue',
         },
-        description: 'Vue <HomeView>',
+        description: 'Vue <ComponentMainView>',
         op: 'ui.vue.mount',
         origin: 'auto.ui.vue',
       }),
-    ]),
-    transaction: '/',
-    transaction_info: {
-      source: 'route',
-    },
-  });
-});
 
-test('sends a lifecycle span for the tracked UserIdErrorView component - without `<>`', async ({ page }) => {
-  const transactionPromise = waitForTransaction('vue-3', async transactionEvent => {
-    return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
-  });
-
-  await page.goto(`/users-error/123`);
-
-  const rootSpan = await transactionPromise;
-
-  expect(rootSpan).toMatchObject({
-    contexts: {
-      trace: {
-        data: {
-          'sentry.source': 'route',
-          'sentry.origin': 'auto.pageload.vue',
-          'sentry.op': 'pageload',
-        },
-        op: 'pageload',
-        origin: 'auto.pageload.vue',
-      },
-    },
-    spans: expect.arrayContaining([
+      // with `<>`
       expect.objectContaining({
         data: {
           'sentry.op': 'ui.vue.mount',
           'sentry.origin': 'auto.ui.vue',
         },
-        description: 'Vue <UserIdErrorView>',
+        description: 'Vue <ComponentOneView>',
+        op: 'ui.vue.mount',
+        origin: 'auto.ui.vue',
+      }),
+
+      // not tracked
+      expect.not.objectContaining({
+        data: {
+          'sentry.op': 'ui.vue.mount',
+          'sentry.origin': 'auto.ui.vue',
+        },
+        description: 'Vue <ComponentTwoView>',
         op: 'ui.vue.mount',
         origin: 'auto.ui.vue',
       }),
     ]),
-    transaction: '/users-error/:id',
+    transaction: '/components',
     transaction_info: {
       source: 'route',
     },

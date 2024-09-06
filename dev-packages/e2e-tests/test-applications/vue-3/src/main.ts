@@ -19,7 +19,7 @@ Sentry.init({
     }),
   ],
   tunnel: `http://localhost:3031/`, // proxy server
-  trackComponents: ['<HomeView>', 'UserIdErrorView'],
+  trackComponents: ['ComponentMainView', '<ComponentOneView>'],
 });
 
 app.use(router);
