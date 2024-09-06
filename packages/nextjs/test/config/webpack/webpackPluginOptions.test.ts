@@ -2,6 +2,7 @@ import type { BuildContext, NextConfigObject } from '../../../src/config/types';
 import { getWebpackPluginOptions } from '../../../src/config/webpackPluginOptions';
 
 function generateBuildContext(overrides: {
+  dir?: string;
   isServer: boolean;
   nextjsConfig?: NextConfigObject;
 }): BuildContext {
@@ -9,7 +10,7 @@ function generateBuildContext(overrides: {
     dev: false, // The plugin is not included in dev mode
     isServer: overrides.isServer,
     buildId: 'test-build-id',
-    dir: '/my/project/dir',
+    dir: overrides.dir ?? '/my/project/dir',
     config: overrides.nextjsConfig ?? {},
     totalPages: 2,
     defaultLoaders: true,
@@ -171,4 +172,19 @@ describe('getWebpackPluginOptions()', () => {
       assets: [],
     });
   });
+
+  it('passes posix paths to the plugin', () => {
+    const buildContext = generateBuildContext({ dir: 'C:\\my\\windows\\project\\dir', isServer: false });
+    const generatedPluginOptions = getWebpackPluginOptions(buildContext, { widenClientFileUpload: true });
+    expect(generatedPluginOptions.sourcemaps).toMatchObject({
+      assets: ['C:/my/windows/project/dir/.next/static/chunks/**'],
+      ignore: [
+        'C:/my/windows/project/dir/.next/static/chunks/framework-*',
+        'C:/my/windows/project/dir/.next/static/chunks/framework.*',
+        'C:/my/windows/project/dir/.next/static/chunks/main-*',
+        'C:/my/windows/project/dir/.next/static/chunks/polyfills-*',
+        'C:/my/windows/project/dir/.next/static/chunks/webpack-*',
+      ],
+    });
+  })
 });
