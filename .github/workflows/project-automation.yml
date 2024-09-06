@@ -19,7 +19,7 @@ jobs:
         id: update_status
         uses: peter-evans/create-or-update-project-card@v3
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.GH_PROJECT_AUTOMATION }}
           project-location: getsentry
           project-number: 31
           column-name: "🏗 In Progress"
@@ -36,7 +36,7 @@ jobs:
         id: update_status
         uses: peter-evans/create-or-update-project-card@v3
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.GH_PROJECT_AUTOMATION }}
           project-location: getsentry
           project-number: 31
           column-name: "👀 In Review"
@@ -54,7 +54,7 @@ jobs:
         id: update_status
         uses: peter-evans/create-or-update-project-card@v3
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.GH_PROJECT_AUTOMATION }}
           project-location: getsentry
           project-number: 31
           column-name: "✅ Done"
