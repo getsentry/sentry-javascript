@@ -16,14 +16,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Update status to in_progress
-        id: update_status
-        uses: peter-evans/create-or-update-project-card@v3
+        uses: github/update-project-action@v3
         with:
-          token: ${{ secrets.GH_PROJECT_AUTOMATION }}
-          project-location: getsentry
-          project-number: 31
-          column-name: "🏗 In Progress"
-          issue-number: ${{ github.event.number }}
+          github_token: ${{ secrets.GH_PROJECT_AUTOMATION }}
+          organization: getsentry
+          project_number: 31
+          content_id: ${{ github.event.pull_request.node_id }}
+          field: Status
+          value: "🏗 In Progress"
 
   # When a PR is not a draft, it should go into "In Review"
   mark_as_in_review:
@@ -52,10 +52,12 @@ jobs:
     steps:
       - name: Update status to done
         id: update_status
-        uses: peter-evans/create-or-update-project-card@v3
+        uses: github/update-project-action@v3
         with:
-          token: ${{ secrets.GH_PROJECT_AUTOMATION }}
-          project-location: getsentry
-          project-number: 31
-          column-name: "✅ Done"
-          issue-number: ${{ github.event.number }}
+          github_token: ${{ secrets.GH_PROJECT_AUTOMATION }}
+          organization: getsentry
+          project_number: 31
+          content_id: ${{ github.event.pull_request.node_id }}
+          field: Status
+          value: "✅ Done"
+
