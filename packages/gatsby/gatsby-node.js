@@ -14,7 +14,7 @@ exports.onCreateWebpackConfig = ({ getConfig, actions }, options) => {
             // Only include files from the build output directory
             assets: ['./public/**'],
             // Delete source files after uploading
-            filesToDeleteAfterUpload: options.filesToDeleteAfterUpload,
+            filesToDeleteAfterUpload: options.sourceMapFilesToDeleteAfterUpload,
             // Ignore files that aren't users' source code related
             ignore: [
               'polyfill-*', // related to polyfills

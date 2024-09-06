@@ -48,7 +48,7 @@ describe('onCreateWebpackConfig', () => {
     expect(actions.setWebpackConfig).toHaveBeenCalledTimes(0);
   });
 
-  it('sets filesToDeleteAfterUpload when provided in options', () => {
+  it('sets sourceMapFilesToDeleteAfterUpload when provided in options', () => {
     const actions = {
       setWebpackConfig: jest.fn(),
     };
@@ -56,7 +56,7 @@ describe('onCreateWebpackConfig', () => {
     const getConfig = jest.fn();
 
     const filesToDelete = ['file1.js', 'file2.js'];
-    onCreateWebpackConfig({ actions, getConfig }, { filesToDeleteAfterUpload: filesToDelete });
+    onCreateWebpackConfig({ actions, getConfig }, { sourceMapFilesToDeleteAfterUpload: filesToDelete });
 
     expect(actions.setWebpackConfig).toHaveBeenCalledTimes(1);
 
