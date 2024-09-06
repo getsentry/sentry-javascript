@@ -1,9 +1,8 @@
-import * as fs from 'fs';
-import * as path from 'path';
 import { addPlugin, addPluginTemplate, addServerPlugin, createResolver, defineNuxtModule } from '@nuxt/kit';
 import type { SentryNuxtModuleOptions } from './common/types';
-import { addServerConfig } from './vite/addServerConfig';
+import { addServerConfigToBuild } from './vite/addServerConfig';
 import { setupSourceMaps } from './vite/sourceMaps';
+import { findDefaultSdkInitFile } from './vite/utils';
 
 export type ModuleOptions = SentryNuxtModuleOptions;
 
@@ -63,25 +62,8 @@ export default defineNuxtModule<ModuleOptions>({
     if (clientConfigFile || serverConfigFile) {
       setupSourceMaps(moduleOptions, nuxt);
     }
-    if (serverConfigFile) {
-      addServerConfig(moduleOptions, nuxt, serverConfigFile);
+    if (serverConfigFile && serverConfigFile.includes('.server.config')) {
+      addServerConfigToBuild(moduleOptions, nuxt, serverConfigFile);
     }
   },
 });
-
-function findDefaultSdkInitFile(type: 'server' | 'client'): string | undefined {
-  const possibleFileExtensions = ['ts', 'js', 'mjs', 'cjs', 'mts', 'cts'];
-
-  const cwd = process.cwd();
-  const filePath = possibleFileExtensions
-    .map(e =>
-      path.resolve(
-        type === 'server'
-          ? path.join(cwd, 'public', `instrument.${type}.${e}`)
-          : path.join(cwd, `sentry.${type}.config.${e}`),
-      ),
-    )
-    .find(filename => fs.existsSync(filename));
-
-  return filePath ? path.basename(filePath) : undefined;
-}
