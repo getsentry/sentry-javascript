@@ -123,7 +123,7 @@ export const createTracingMixins = (options: TracingOptions): Mixins => {
             }
 
             this.$_sentrySpans[operation] = startInactiveSpan({
-              name: `Vue <${name}>`,
+              name: `Vue ${name}`,
               op: `${VUE_OP}.${operation}`,
               attributes: {
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.vue',
