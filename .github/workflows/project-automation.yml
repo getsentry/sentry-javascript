@@ -34,14 +34,14 @@ jobs:
     steps:
       - name: Update status to in_review
         id: update_status
-        uses: peter-evans/create-or-update-project-card@v3
+        uses: github/update-project-action@v3
         with:
-          token: ${{ secrets.GH_PROJECT_AUTOMATION }}
-          project-location: getsentry
-          project-number: 31
-          column-name: "👀 In Review"
-          issue-number: ${{ github.event.number }}
-
+          github_token: ${{ secrets.GH_PROJECT_AUTOMATION }}
+          organization: getsentry
+          project_number: 31
+          content_id: ${{ github.event.number }}
+          field: Status
+          value: "👀 In Review"
 
   # By default, closed PRs go into "Ready for Release"
   # But if they are closed without merging, they should go into "Done"
