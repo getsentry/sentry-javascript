@@ -244,11 +244,9 @@ export function init(options: NodeOptions): NodeClient | undefined {
           ) {
             event.contexts.trace.op = 'http.server.prefetch';
           }
-
-          return event;
-        } else {
-          return event;
         }
+
+        return event;
       }) satisfies EventProcessor,
       { id: 'NextTransactionEnhancer' },
     ),
