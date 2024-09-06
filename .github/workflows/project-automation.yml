@@ -39,7 +39,7 @@ jobs:
           github_token: ${{ secrets.GH_PROJECT_AUTOMATION }}
           organization: getsentry
           project_number: 31
-          content_id: ${{ github.event.number }}
+          content_id: ${{ github.event.pull_request.id }}
           field: Status
           value: "👀 In Review"
 
