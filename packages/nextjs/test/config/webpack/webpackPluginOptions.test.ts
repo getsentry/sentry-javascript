@@ -174,17 +174,21 @@ describe('getWebpackPluginOptions()', () => {
   });
 
   it('passes posix paths to the plugin', () => {
-    const buildContext = generateBuildContext({ dir: 'C:\\my\\windows\\project\\dir', isServer: false });
+    const buildContext = generateBuildContext({
+      dir: 'C:\\my\\windows\\project\\dir',
+      nextjsConfig: { distDir: '.dist\\v1' },
+      isServer: false,
+    });
     const generatedPluginOptions = getWebpackPluginOptions(buildContext, { widenClientFileUpload: true });
     expect(generatedPluginOptions.sourcemaps).toMatchObject({
-      assets: ['C:/my/windows/project/dir/.next/static/chunks/**'],
+      assets: ['C:/my/windows/project/dir/.dist/v1/static/chunks/**'],
       ignore: [
-        'C:/my/windows/project/dir/.next/static/chunks/framework-*',
-        'C:/my/windows/project/dir/.next/static/chunks/framework.*',
-        'C:/my/windows/project/dir/.next/static/chunks/main-*',
-        'C:/my/windows/project/dir/.next/static/chunks/polyfills-*',
-        'C:/my/windows/project/dir/.next/static/chunks/webpack-*',
+        'C:/my/windows/project/dir/.dist/v1/static/chunks/framework-*',
+        'C:/my/windows/project/dir/.dist/v1/static/chunks/framework.*',
+        'C:/my/windows/project/dir/.dist/v1/static/chunks/main-*',
+        'C:/my/windows/project/dir/.dist/v1/static/chunks/polyfills-*',
+        'C:/my/windows/project/dir/.dist/v1/static/chunks/webpack-*',
       ],
     });
-  })
+  });
 });
