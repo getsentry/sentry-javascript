@@ -46,14 +46,8 @@ function finishRootSpan(vm: VueSentry, timestamp: number, timeout: number): void
   }, timeout);
 }
 
-// Find if the current component exists in the provided `TracingOptions.trackComponents` array option.
-/**
- *
- */
+/** Find if the current component exists in the provided `TracingOptions.trackComponents` array option. */
 export function findTrackComponent(trackComponents: string[], formattedName: string): boolean {
-  /**
-   *
-   */
   function extractComponentName(name: string): string {
     return name.replace(/^<([^\s]*)>(?: at [^\s]*)?$/, '$1');
   }

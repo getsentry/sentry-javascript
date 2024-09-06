@@ -122,3 +122,101 @@ test('sends a pageload transaction with a route name as transaction name if avai
     },
   });
 });
+
+test('sends a lifecycle span for the tracked HomeView component - with `<>`', async ({ page }) => {
+  const transactionPromise = waitForTransaction('vue-3', async transactionEvent => {
+    return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
+  });
+
+  await page.goto(`/`);
+
+  const rootSpan = await transactionPromise;
+
+  expect(rootSpan).toMatchObject({
+    contexts: {
+      trace: {
+        data: {
+          'sentry.source': 'route',
+          'sentry.origin': 'auto.pageload.vue',
+          'sentry.op': 'pageload',
+        },
+        op: 'pageload',
+        origin: 'auto.pageload.vue',
+      },
+    },
+    spans: expect.arrayContaining([
+      // enabled by default
+      expect.objectContaining({
+        data: {
+          'sentry.op': 'ui.vue.render',
+          'sentry.origin': 'auto.ui.vue',
+        },
+        description: 'Application Render',
+        op: 'ui.vue.render',
+        origin: 'auto.ui.vue',
+      }),
+      // enabled by default
+      expect.objectContaining({
+        data: {
+          'sentry.op': 'ui.vue.mount',
+          'sentry.origin': 'auto.ui.vue',
+        },
+        description: 'Vue <<Root>>',
+        op: 'ui.vue.mount',
+        origin: 'auto.ui.vue',
+      }),
+      expect.objectContaining({
+        data: {
+          'sentry.op': 'ui.vue.mount',
+          'sentry.origin': 'auto.ui.vue',
+        },
+        description: 'Vue <<HomeView>>',
+        op: 'ui.vue.mount',
+        origin: 'auto.ui.vue',
+      }),
+    ]),
+    transaction: '/',
+    transaction_info: {
+      source: 'route',
+    },
+  });
+});
+
+test('sends a lifecycle span for the tracked UserIdErrorView component - without `<>`', async ({ page }) => {
+  const transactionPromise = waitForTransaction('vue-3', async transactionEvent => {
+    return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
+  });
+
+  await page.goto(`/users-error/123`);
+
+  const rootSpan = await transactionPromise;
+
+  expect(rootSpan).toMatchObject({
+    contexts: {
+      trace: {
+        data: {
+          'sentry.source': 'route',
+          'sentry.origin': 'auto.pageload.vue',
+          'sentry.op': 'pageload',
+        },
+        op: 'pageload',
+        origin: 'auto.pageload.vue',
+      },
+    },
+    spans: expect.arrayContaining([
+      expect.objectContaining({
+        data: {
+          'sentry.op': 'ui.vue.mount',
+          'sentry.origin': 'auto.ui.vue',
+        },
+        description: 'Vue <<UserIdErrorView>>',
+        op: 'ui.vue.mount',
+        origin: 'auto.ui.vue',
+      }),
+    ]),
+    transaction: '/users-error/:id',
+    transaction_info: {
+      source: 'route',
+    },
+  });
+});
