@@ -11,6 +11,12 @@ import {
 import { defaultStackParser } from '../../src/sdk/api';
 import { getError } from '../helpers/error';
 
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+
+vi.mock('node:fs', async () => {
+  return { __esModule: true, ...(await import('node:fs')) };
+});
+
 describe('ContextLines', () => {
   let contextLines: ReturnType<typeof _contextLinesIntegration>;
 
@@ -24,7 +30,7 @@ describe('ContextLines', () => {
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('limits', () => {
@@ -39,7 +45,7 @@ describe('ContextLines', () => {
         },
       ];
 
-      const readStreamSpy = jest.spyOn(fs, 'createReadStream');
+      const readStreamSpy = vi.spyOn(fs, 'createReadStream');
       await addContext(frames);
       expect(readStreamSpy).not.toHaveBeenCalled();
     });
@@ -55,7 +61,7 @@ describe('ContextLines', () => {
         },
       ];
 
-      const readStreamSpy = jest.spyOn(fs, 'createReadStream');
+      const readStreamSpy = vi.spyOn(fs, 'createReadStream');
       await addContext(frames);
       expect(readStreamSpy).not.toHaveBeenCalled();
     });
@@ -73,7 +79,7 @@ describe('ContextLines', () => {
         },
       ];
 
-      const readStreamSpy = jest.spyOn(fs, 'createReadStream');
+      const readStreamSpy = vi.spyOn(fs, 'createReadStream');
       await addContext(frames);
 
       expect(frames[0]!.pre_context).toBeUndefined();
@@ -85,7 +91,7 @@ describe('ContextLines', () => {
       expect.assertions(1);
 
       const frames = parseStackFrames(defaultStackParser, new Error('test'));
-      const readStreamSpy = jest.spyOn(fs, 'createReadStream');
+      const readStreamSpy = vi.spyOn(fs, 'createReadStream');
 
       await addContext(frames);
       const numCalls = readStreamSpy.mock.calls.length;
@@ -99,7 +105,7 @@ describe('ContextLines', () => {
     test('parseStack with ESM module names', async () => {
       expect.assertions(1);
 
-      const readStreamSpy = jest.spyOn(fs, 'createReadStream');
+      const readStreamSpy = vi.spyOn(fs, 'createReadStream');
       const framesWithFilePath: StackFrame[] = [
         {
           colno: 1,
@@ -116,7 +122,7 @@ describe('ContextLines', () => {
     test('parseStack with adding different file', async () => {
       expect.assertions(1);
       const frames = parseStackFrames(defaultStackParser, new Error('test'));
-      const readStreamSpy = jest.spyOn(fs, 'createReadStream');
+      const readStreamSpy = vi.spyOn(fs, 'createReadStream');
 
       await addContext(frames);
 
@@ -170,7 +176,7 @@ describe('ContextLines', () => {
 
     test('parseStack with duplicate files', async () => {
       expect.assertions(1);
-      const readStreamSpy = jest.spyOn(fs, 'createReadStream');
+      const readStreamSpy = vi.spyOn(fs, 'createReadStream');
       const framesWithDuplicateFiles: StackFrame[] = [
         {
           colno: 1,
@@ -198,7 +204,7 @@ describe('ContextLines', () => {
 
     test('stack errors without lineno', async () => {
       expect.assertions(1);
-      const readStreamSpy = jest.spyOn(fs, 'createReadStream');
+      const readStreamSpy = vi.spyOn(fs, 'createReadStream');
       const framesWithDuplicateFiles: StackFrame[] = [
         {
           colno: 1,
@@ -215,7 +221,7 @@ describe('ContextLines', () => {
     test('parseStack with no context', async () => {
       expect.assertions(1);
       contextLines = _contextLinesIntegration({ frameContextLines: 0 });
-      const readStreamSpy = jest.spyOn(fs, 'createReadStream');
+      const readStreamSpy = vi.spyOn(fs, 'createReadStream');
 
       const frames = parseStackFrames(defaultStackParser, new Error('test'));
 

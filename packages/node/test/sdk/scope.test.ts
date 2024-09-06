@@ -3,8 +3,10 @@ import type { Attachment, Breadcrumb, Client, ClientOptions, EventProcessor } fr
 import { getIsolationScope } from '../../src';
 import { mockSdkInit } from '../helpers/mockSdkInit';
 
+import { describe, expect, test, vi } from 'vitest';
+
 describe('Unit | Scope', () => {
-  it('allows to create & update a scope', () => {
+  test('allows to create & update a scope', () => {
     const scope = new Scope();
 
     expect(scope.getScopeData()).toEqual({
@@ -51,7 +53,7 @@ describe('Unit | Scope', () => {
     });
   });
 
-  it('allows to clone a scope', () => {
+  test('allows to clone a scope', () => {
     const scope = new Scope();
 
     scope.update({
@@ -85,7 +87,7 @@ describe('Unit | Scope', () => {
     });
   });
 
-  it('allows to set & get a client', () => {
+  test('allows to set & get a client', () => {
     const scope = new Scope();
     expect(scope.getClient()).toBeUndefined();
     const client = {
@@ -98,10 +100,10 @@ describe('Unit | Scope', () => {
   });
 
   describe('prepareEvent', () => {
-    it('works without any scope data', async () => {
+    test('works without any scope data', async () => {
       mockSdkInit();
 
-      const eventProcessor = jest.fn((a: unknown) => a) as EventProcessor;
+      const eventProcessor = vi.fn((a: unknown) => a) as EventProcessor;
 
       const scope = new Scope();
 
@@ -140,7 +142,7 @@ describe('Unit | Scope', () => {
       });
     });
 
-    it('merges scope data', async () => {
+    test('merges scope data', async () => {
       mockSdkInit();
 
       const breadcrumb1 = { message: '1', timestamp: 111 } as Breadcrumb;
@@ -148,9 +150,9 @@ describe('Unit | Scope', () => {
       const breadcrumb3 = { message: '3', timestamp: 123 } as Breadcrumb;
       const breadcrumb4 = { message: '4', timestamp: 333 } as Breadcrumb;
 
-      const eventProcessor1 = jest.fn((a: unknown) => a) as EventProcessor;
-      const eventProcessor2 = jest.fn((b: unknown) => b) as EventProcessor;
-      const eventProcessor3 = jest.fn((c: unknown) => c) as EventProcessor;
+      const eventProcessor1 = vi.fn((a: unknown) => a) as EventProcessor;
+      const eventProcessor2 = vi.fn((b: unknown) => b) as EventProcessor;
+      const eventProcessor3 = vi.fn((c: unknown) => c) as EventProcessor;
 
       const attachment1 = { filename: '1' } as Attachment;
       const attachment2 = { filename: '2' } as Attachment;

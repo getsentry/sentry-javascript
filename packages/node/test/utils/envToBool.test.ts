@@ -1,7 +1,9 @@
 import { envToBool } from '../../src/utils/envToBool';
 
+import { describe, expect, test } from 'vitest';
+
 describe('envToBool', () => {
-  it.each([
+  test.each([
     ['', true, null],
     ['', false, false],
     ['t', true, true],

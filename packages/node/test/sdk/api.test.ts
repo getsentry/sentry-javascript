@@ -2,13 +2,15 @@ import type { Event } from '@sentry/types';
 import { getActiveSpan, getClient, startInactiveSpan, startSpan, withActiveSpan } from '../../src';
 import { cleanupOtel, mockSdkInit } from '../helpers/mockSdkInit';
 
+import { afterEach, describe, expect, test, vi } from 'vitest';
+
 afterEach(() => {
-  jest.restoreAllMocks();
+  vi.restoreAllMocks();
   cleanupOtel();
 });
 
 describe('withActiveSpan()', () => {
-  it('should set the active span within the callback', () => {
+  test('should set the active span within the callback', () => {
     mockSdkInit();
 
     const inactiveSpan = startInactiveSpan({ name: 'inactive-span' });
@@ -20,8 +22,8 @@ describe('withActiveSpan()', () => {
     });
   });
 
-  it('should create child spans when calling startSpan within the callback', async () => {
-    const beforeSendTransaction = jest.fn(() => null);
+  test('should create child spans when calling startSpan within the callback', async () => {
+    const beforeSendTransaction = vi.fn(() => null);
     mockSdkInit({ enableTracing: true, beforeSendTransaction });
     const client = getClient();
 
@@ -55,7 +57,7 @@ describe('withActiveSpan()', () => {
     );
   });
 
-  it('when `null` is passed, no span should be active within the callback', () => {
+  test('when `null` is passed, no span should be active within the callback', () => {
     expect.assertions(1);
     startSpan({ name: 'parent-span' }, () => {
       withActiveSpan(null, () => {
@@ -64,9 +66,9 @@ describe('withActiveSpan()', () => {
     });
   });
 
-  it('when `null` is passed, should start a new trace for new spans', async () => {
+  test('when `null` is passed, should start a new trace for new spans', async () => {
     const transactions: Event[] = [];
-    const beforeSendTransaction = jest.fn((event: Event) => {
+    const beforeSendTransaction = vi.fn((event: Event) => {
       transactions.push(event);
       return null;
     });

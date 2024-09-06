@@ -6,11 +6,19 @@ import { addItemToEnvelope, createAttachmentEnvelopeItem, createEnvelope, serial
 
 import { makeNodeTransport } from '../../src/transports';
 
-jest.mock('@sentry/core', () => {
-  const actualCore = jest.requireActual('@sentry/core');
+import type { Mock } from 'vitest';
+import { afterEach, describe, expect, test, vi } from 'vitest';
+
+vi.mock('node:http', async () => {
+  return { __esModule: true, ...(await import('node:http')) };
+});
+
+vi.mock('@sentry/core', async () => {
+  // eslint-disable-next-line @typescript-eslint/consistent-type-imports
+  const actualCore = (await vi.importActual('@sentry/core')) as typeof import('@sentry/core');
   return {
     ...actualCore,
-    createTransport: jest.fn().mockImplementation(actualCore.createTransport),
+    createTransport: vi.fn().mockImplementation(actualCore.createTransport),
   };
 });
 
@@ -78,21 +86,24 @@ const defaultOptions = {
 };
 
 // empty function to keep test output clean
-const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
-afterEach(done => {
-  jest.clearAllMocks();
+afterEach(
+  () =>
+    new Promise<void>(done => {
+      vi.clearAllMocks();
 
-  if (testServer && testServer.listening) {
-    testServer.close(done);
-  } else {
-    done();
-  }
-});
+      if (testServer && testServer.listening) {
+        testServer.close(() => done());
+      } else {
+        done();
+      }
+    }),
+);
 
 describe('makeNewHttpTransport()', () => {
   describe('.send()', () => {
-    it('should correctly send envelope to server', async () => {
+    test('should correctly send envelope to server', async () => {
       await setupTestServer({ statusCode: SUCCESS }, (req, body) => {
         expect(req.method).toBe('POST');
         expect(body).toBe(SERIALIZED_EVENT_ENVELOPE);
@@ -102,7 +113,7 @@ describe('makeNewHttpTransport()', () => {
       await transport.send(EVENT_ENVELOPE);
     });
 
-    it('allows overriding keepAlive', async () => {
+    test('allows overriding keepAlive', async () => {
       await setupTestServer({ statusCode: SUCCESS }, req => {
         expect(req.headers).toEqual(
           expect.objectContaining({
@@ -116,7 +127,7 @@ describe('makeNewHttpTransport()', () => {
       await transport.send(EVENT_ENVELOPE);
     });
 
-    it('should correctly send user-provided headers to server', async () => {
+    test('should correctly send user-provided headers to server', async () => {
       await setupTestServer({ statusCode: SUCCESS }, req => {
         expect(req.headers).toEqual(
           expect.objectContaining({
@@ -138,7 +149,7 @@ describe('makeNewHttpTransport()', () => {
       await transport.send(EVENT_ENVELOPE);
     });
 
-    it.each([RATE_LIMIT, INVALID, FAILED])(
+    test.each([RATE_LIMIT, INVALID, FAILED])(
       'should resolve on bad server response (status %i)',
       async serverStatusCode => {
         await setupTestServer({ statusCode: serverStatusCode });
@@ -151,7 +162,7 @@ describe('makeNewHttpTransport()', () => {
       },
     );
 
-    it('should resolve when server responds with rate limit header and status code 200', async () => {
+    test('should resolve when server responds with rate limit header and status code 200', async () => {
       await setupTestServer({
         statusCode: SUCCESS,
         responseHeaders: {
@@ -172,7 +183,7 @@ describe('makeNewHttpTransport()', () => {
   });
 
   describe('compression', () => {
-    it('small envelopes should not be compressed', async () => {
+    test('small envelopes should not be compressed', async () => {
       await setupTestServer(
         {
           statusCode: SUCCESS,
@@ -188,7 +199,7 @@ describe('makeNewHttpTransport()', () => {
       await transport.send(EVENT_ENVELOPE);
     });
 
-    it('large envelopes should be compressed', async () => {
+    test('large envelopes should be compressed', async () => {
       await setupTestServer(
         {
           statusCode: SUCCESS,
@@ -206,12 +217,12 @@ describe('makeNewHttpTransport()', () => {
   });
 
   describe('proxy', () => {
-    const proxyAgentSpy = jest
+    const proxyAgentSpy = vi
       .spyOn(httpProxyAgent, 'HttpsProxyAgent')
       // @ts-expect-error using http agent as https proxy agent
       .mockImplementation(() => new http.Agent({ keepAlive: false, maxSockets: 30, timeout: 2000 }));
 
-    it('can be configured through option', () => {
+    test('can be configured through option', () => {
       makeNodeTransport({
         ...defaultOptions,
         url: 'http://9e9fd4523d784609a5fc0ebb1080592f@sentry.io:8989/mysubpath/50622',
@@ -222,7 +233,7 @@ describe('makeNewHttpTransport()', () => {
       expect(proxyAgentSpy).toHaveBeenCalledWith('http://example.com');
     });
 
-    it('can be configured through env variables option', () => {
+    test('can be configured through env variables option', () => {
       process.env.http_proxy = 'http://example.com';
       makeNodeTransport({
         ...defaultOptions,
@@ -234,7 +245,7 @@ describe('makeNewHttpTransport()', () => {
       delete process.env.http_proxy;
     });
 
-    it('client options have priority over env variables', () => {
+    test('client options have priority over env variables', () => {
       process.env.http_proxy = 'http://foo.com';
       makeNodeTransport({
         ...defaultOptions,
@@ -247,7 +258,7 @@ describe('makeNewHttpTransport()', () => {
       delete process.env.http_proxy;
     });
 
-    it('no_proxy allows for skipping specific hosts', () => {
+    test('no_proxy allows for skipping specific hosts', () => {
       process.env.no_proxy = 'sentry.io';
       makeNodeTransport({
         ...defaultOptions,
@@ -260,7 +271,7 @@ describe('makeNewHttpTransport()', () => {
       delete process.env.no_proxy;
     });
 
-    it('no_proxy works with a port', () => {
+    test('no_proxy works with a port', () => {
       process.env.http_proxy = 'http://example.com:8080';
       process.env.no_proxy = 'sentry.io:8989';
 
@@ -275,7 +286,7 @@ describe('makeNewHttpTransport()', () => {
       delete process.env.http_proxy;
     });
 
-    it('no_proxy works with multiple comma-separated hosts', () => {
+    test('no_proxy works with multiple comma-separated hosts', () => {
       process.env.http_proxy = 'http://example.com:8080';
       process.env.no_proxy = 'example.com,sentry.io,wat.com:1337';
 
@@ -292,14 +303,14 @@ describe('makeNewHttpTransport()', () => {
   });
 
   describe('should register TransportRequestExecutor that returns the correct object from server response', () => {
-    it('rate limit', async () => {
+    test('rate limit', async () => {
       await setupTestServer({
         statusCode: RATE_LIMIT,
         responseHeaders: {},
       });
 
       makeNodeTransport(defaultOptions);
-      const registeredRequestExecutor = (createTransport as jest.Mock).mock.calls[0][1];
+      const registeredRequestExecutor = (createTransport as Mock).mock.calls[0][1];
 
       const executorResult = registeredRequestExecutor({
         body: serializeEnvelope(EVENT_ENVELOPE),
@@ -313,13 +324,13 @@ describe('makeNewHttpTransport()', () => {
       );
     });
 
-    it('OK', async () => {
+    test('OK', async () => {
       await setupTestServer({
         statusCode: SUCCESS,
       });
 
       makeNodeTransport(defaultOptions);
-      const registeredRequestExecutor = (createTransport as jest.Mock).mock.calls[0][1];
+      const registeredRequestExecutor = (createTransport as Mock).mock.calls[0][1];
 
       const executorResult = registeredRequestExecutor({
         body: serializeEnvelope(EVENT_ENVELOPE),
@@ -337,7 +348,7 @@ describe('makeNewHttpTransport()', () => {
       );
     });
 
-    it('OK with rate-limit headers', async () => {
+    test('OK with rate-limit headers', async () => {
       await setupTestServer({
         statusCode: SUCCESS,
         responseHeaders: {
@@ -347,7 +358,7 @@ describe('makeNewHttpTransport()', () => {
       });
 
       makeNodeTransport(defaultOptions);
-      const registeredRequestExecutor = (createTransport as jest.Mock).mock.calls[0][1];
+      const registeredRequestExecutor = (createTransport as Mock).mock.calls[0][1];
 
       const executorResult = registeredRequestExecutor({
         body: serializeEnvelope(EVENT_ENVELOPE),
@@ -365,7 +376,7 @@ describe('makeNewHttpTransport()', () => {
       );
     });
 
-    it('NOK with rate-limit headers', async () => {
+    test('NOK with rate-limit headers', async () => {
       await setupTestServer({
         statusCode: RATE_LIMIT,
         responseHeaders: {
@@ -375,7 +386,7 @@ describe('makeNewHttpTransport()', () => {
       });
 
       makeNodeTransport(defaultOptions);
-      const registeredRequestExecutor = (createTransport as jest.Mock).mock.calls[0][1];
+      const registeredRequestExecutor = (createTransport as Mock).mock.calls[0][1];
 
       const executorResult = registeredRequestExecutor({
         body: serializeEnvelope(EVENT_ENVELOPE),
@@ -394,14 +405,14 @@ describe('makeNewHttpTransport()', () => {
     });
   });
 
-  it('should create a noop transport if an invalid url is passed', async () => {
-    const requestSpy = jest.spyOn(http, 'request');
+  test('should create a noop transport if an invalid url is passed', async () => {
+    const requestSpy = vi.spyOn(http, 'request');
     const transport = makeNodeTransport({ ...defaultOptions, url: 'foo' });
     await transport.send(EVENT_ENVELOPE);
     expect(requestSpy).not.toHaveBeenCalled();
   });
 
-  it('should warn if an invalid url is passed', async () => {
+  test('should warn if an invalid url is passed', async () => {
     const transport = makeNodeTransport({ ...defaultOptions, url: 'invalid url' });
     await transport.send(EVENT_ENVELOPE);
     expect(consoleWarnSpy).toHaveBeenCalledWith(

@@ -6,6 +6,8 @@ import * as Sentry from '../../src/';
 import type { NodeClient } from '../../src/sdk/client';
 import { cleanupOtel, mockSdkInit, resetGlobals } from '../helpers/mockSdkInit';
 
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+
 describe('Integration | Scope', () => {
   afterEach(() => {
     cleanupOtel();
@@ -15,9 +17,9 @@ describe('Integration | Scope', () => {
     ['with tracing', true],
     ['without tracing', false],
   ])('%s', (_name, enableTracing) => {
-    it('correctly syncs OTEL context & Sentry hub/scope', async () => {
-      const beforeSend = jest.fn(() => null);
-      const beforeSendTransaction = jest.fn(() => null);
+    test('correctly syncs OTEL context & Sentry hub/scope', async () => {
+      const beforeSend = vi.fn(() => null);
+      const beforeSendTransaction = vi.fn(() => null);
 
       mockSdkInit({ enableTracing, beforeSend, beforeSendTransaction });
 
@@ -129,9 +131,9 @@ describe('Integration | Scope', () => {
       }
     });
 
-    it('isolates parallel root scopes', async () => {
-      const beforeSend = jest.fn(() => null);
-      const beforeSendTransaction = jest.fn(() => null);
+    test('isolates parallel root scopes', async () => {
+      const beforeSend = vi.fn(() => null);
+      const beforeSendTransaction = vi.fn(() => null);
 
       mockSdkInit({ enableTracing, beforeSend, beforeSendTransaction });
 
@@ -243,7 +245,7 @@ describe('Integration | Scope', () => {
       clearGlobalScope();
     });
 
-    it('works before calling init', () => {
+    test('works before calling init', () => {
       const globalScope = Sentry.getGlobalScope();
       expect(globalScope).toBeDefined();
       // No client attached
@@ -264,8 +266,8 @@ describe('Integration | Scope', () => {
       expect(globalScope.getScopeData().tags).toEqual({ tag1: 'val1', tag2: 'val2' });
     });
 
-    it('is applied to events', async () => {
-      const beforeSend = jest.fn();
+    test('is applied to events', async () => {
+      const beforeSend = vi.fn();
       mockSdkInit({ beforeSend });
       const client = Sentry.getClient();
 
@@ -300,7 +302,7 @@ describe('Integration | Scope', () => {
       resetGlobals();
     });
 
-    it('works before calling init', () => {
+    test('works before calling init', () => {
       const isolationScope = Sentry.getIsolationScope();
       expect(isolationScope).toBeDefined();
       // No client attached
@@ -322,8 +324,8 @@ describe('Integration | Scope', () => {
       expect(isolationScope.getScopeData().tags).toEqual({ tag1: 'val1', tag2: 'val2' });
     });
 
-    it('is applied to events', async () => {
-      const beforeSend = jest.fn();
+    test('is applied to events', async () => {
+      const beforeSend = vi.fn();
       mockSdkInit({ beforeSend });
       const client = Sentry.getClient();
 
@@ -352,8 +354,8 @@ describe('Integration | Scope', () => {
       );
     });
 
-    it('withIsolationScope works', async () => {
-      const beforeSend = jest.fn();
+    test('withIsolationScope works', async () => {
+      const beforeSend = vi.fn();
       mockSdkInit({ beforeSend });
       const client = Sentry.getClient();
 
@@ -402,8 +404,8 @@ describe('Integration | Scope', () => {
       );
     });
 
-    it('can be deeply nested', async () => {
-      const beforeSend = jest.fn();
+    test('can be deeply nested', async () => {
+      const beforeSend = vi.fn();
       mockSdkInit({ beforeSend });
       const client = Sentry.getClient();
 
@@ -451,7 +453,7 @@ describe('Integration | Scope', () => {
       resetGlobals();
     });
 
-    it('works before calling init', () => {
+    test('works before calling init', () => {
       const currentScope = Sentry.getCurrentScope();
       expect(currentScope).toBeDefined();
       // No client attached
@@ -474,8 +476,8 @@ describe('Integration | Scope', () => {
       expect(currentScope.getScopeData().tags).toEqual({ tag1: 'val1', tag2: 'val2' });
     });
 
-    it('is applied to events', async () => {
-      const beforeSend = jest.fn();
+    test('is applied to events', async () => {
+      const beforeSend = vi.fn();
       mockSdkInit({ beforeSend });
       const client = Sentry.getClient();
 
@@ -504,8 +506,8 @@ describe('Integration | Scope', () => {
       );
     });
 
-    it('withScope works', async () => {
-      const beforeSend = jest.fn();
+    test('withScope works', async () => {
+      const beforeSend = vi.fn();
       mockSdkInit({ beforeSend });
       const client = Sentry.getClient();
 
@@ -553,8 +555,8 @@ describe('Integration | Scope', () => {
       );
     });
 
-    it('can be deeply nested', async () => {
-      const beforeSend = jest.fn();
+    test('can be deeply nested', async () => {
+      const beforeSend = vi.fn();
       mockSdkInit({ beforeSend });
       const client = Sentry.getClient();
 
@@ -599,8 +601,8 @@ describe('Integration | Scope', () => {
       );
     });
 
-    it('automatically forks with OTEL context', async () => {
-      const beforeSend = jest.fn();
+    test('automatically forks with OTEL context', async () => {
+      const beforeSend = vi.fn();
       mockSdkInit({ beforeSend });
       const client = Sentry.getClient();
 
@@ -648,8 +650,8 @@ describe('Integration | Scope', () => {
       resetGlobals();
     });
 
-    it('merges data from global, isolation and current scope', async () => {
-      const beforeSend = jest.fn();
+    test('merges data from global, isolation and current scope', async () => {
+      const beforeSend = vi.fn();
       mockSdkInit({ beforeSend });
       const client = Sentry.getClient();
 

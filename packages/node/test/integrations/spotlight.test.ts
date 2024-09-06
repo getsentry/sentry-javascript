@@ -6,26 +6,32 @@ import { spotlightIntegration } from '../../src/integrations/spotlight';
 import { NodeClient } from '../../src/sdk/client';
 import { getDefaultNodeClientOptions } from '../helpers/getDefaultNodeClientOptions';
 
+import { afterEach, describe, expect, test, vi } from 'vitest';
+
+vi.mock('node:http', async () => {
+  return { __esModule: true, ...(await import('node:http')) };
+});
+
 describe('Spotlight', () => {
-  const loggerSpy = jest.spyOn(logger, 'warn');
+  const loggerSpy = vi.spyOn(logger, 'warn');
 
   afterEach(() => {
     loggerSpy.mockClear();
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   const options = getDefaultNodeClientOptions();
   const client = new NodeClient(options);
 
-  it('has a name', () => {
+  test('has a name', () => {
     const integration = spotlightIntegration();
     expect(integration.name).toEqual('Spotlight');
   });
 
-  it('registers a callback on the `beforeEnvelope` hook', () => {
+  test('registers a callback on the `beforeEnvelope` hook', () => {
     const clientWithSpy = {
       ...client,
-      on: jest.fn(),
+      on: vi.fn(),
     };
     const integration = spotlightIntegration();
     // @ts-expect-error - this is fine in tests
@@ -33,19 +39,19 @@ describe('Spotlight', () => {
     expect(clientWithSpy.on).toHaveBeenCalledWith('beforeEnvelope', expect.any(Function));
   });
 
-  it('sends an envelope POST request to the sidecar url', () => {
-    const httpSpy = jest.spyOn(http, 'request').mockImplementationOnce(() => {
+  test('sends an envelope POST request to the sidecar url', () => {
+    const httpSpy = vi.spyOn(http, 'request').mockImplementationOnce(() => {
       return {
-        on: jest.fn(),
-        write: jest.fn(),
-        end: jest.fn(),
+        on: vi.fn(),
+        write: vi.fn(),
+        end: vi.fn(),
       } as any;
     });
 
     let callback: (envelope: Envelope) => void = () => {};
     const clientWithSpy = {
       ...client,
-      on: jest.fn().mockImplementationOnce((_, cb) => (callback = cb)),
+      on: vi.fn().mockImplementationOnce((_, cb) => (callback = cb)),
     };
 
     const integration = spotlightIntegration();
@@ -72,19 +78,19 @@ describe('Spotlight', () => {
     );
   });
 
-  it('sends an envelope POST request to a custom sidecar url', () => {
-    const httpSpy = jest.spyOn(http, 'request').mockImplementationOnce(() => {
+  test('sends an envelope POST request to a custom sidecar url', () => {
+    const httpSpy = vi.spyOn(http, 'request').mockImplementationOnce(() => {
       return {
-        on: jest.fn(),
-        write: jest.fn(),
-        end: jest.fn(),
+        on: vi.fn(),
+        write: vi.fn(),
+        end: vi.fn(),
       } as any;
     });
 
     let callback: (envelope: Envelope) => void = () => {};
     const clientWithSpy = {
       ...client,
-      on: jest.fn().mockImplementationOnce((_, cb) => (callback = cb)),
+      on: vi.fn().mockImplementationOnce((_, cb) => (callback = cb)),
     };
 
     const integration = spotlightIntegration({ sidecarUrl: 'http://mylocalhost:8888/abcd' });
@@ -112,14 +118,14 @@ describe('Spotlight', () => {
   });
 
   describe('no-ops if', () => {
-    it('an invalid URL is passed', () => {
+    test('an invalid URL is passed', () => {
       const integration = spotlightIntegration({ sidecarUrl: 'invalid-url' });
       integration.setup!(client);
       expect(loggerSpy).toHaveBeenCalledWith(expect.stringContaining('Invalid sidecar URL: invalid-url'));
     });
   });
 
-  it('warns if the NODE_ENV variable doesn\'t equal "development"', () => {
+  test('warns if the NODE_ENV variable doesn\'t equal "development"', () => {
     const oldEnvValue = process.env.NODE_ENV;
     process.env.NODE_ENV = 'production';
 
@@ -133,7 +139,7 @@ describe('Spotlight', () => {
     process.env.NODE_ENV = oldEnvValue;
   });
 
-  it('doesn\'t warn if the NODE_ENV variable equals "development"', () => {
+  test('doesn\'t warn if the NODE_ENV variable equals "development"', () => {
     const oldEnvValue = process.env.NODE_ENV;
     process.env.NODE_ENV = 'development';
 
@@ -147,7 +153,7 @@ describe('Spotlight', () => {
     process.env.NODE_ENV = oldEnvValue;
   });
 
-  it('handles `process` not being available', () => {
+  test('handles `process` not being available', () => {
     const originalProcess = process;
 
     // @ts-expect-error - TS complains but we explicitly wanna test this
@@ -163,7 +169,7 @@ describe('Spotlight', () => {
     global.process = originalProcess;
   });
 
-  it('handles `process.env` not being available', () => {
+  test('handles `process.env` not being available', () => {
     const originalEnv = process.env;
 
     // @ts-expect-error - TS complains but we explicitly wanna test this

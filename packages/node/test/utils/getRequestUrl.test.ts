@@ -2,8 +2,10 @@ import type { RequestOptions } from 'http';
 
 import { getRequestUrl } from '../../src/utils/getRequestUrl';
 
+import { describe, expect, test } from 'vitest';
+
 describe('getRequestUrl', () => {
-  it.each([
+  test.each([
     [{ protocol: 'http:', hostname: 'localhost', port: 80 }, 'http://localhost/'],
     [{ protocol: 'http:', hostname: 'localhost', host: 'localhost:80', port: 80 }, 'http://localhost/'],
     [{ protocol: 'http:', hostname: 'localhost', port: 3000 }, 'http://localhost:3000/'],

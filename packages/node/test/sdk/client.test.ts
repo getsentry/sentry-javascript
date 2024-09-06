@@ -17,6 +17,8 @@ import { NodeClient, initOpenTelemetry } from '../../src';
 import { getDefaultNodeClientOptions } from '../helpers/getDefaultNodeClientOptions';
 import { cleanupOtel } from '../helpers/mockSdkInit';
 
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+
 describe('NodeClient', () => {
   beforeEach(() => {
     getIsolationScope().clear();
@@ -27,11 +29,11 @@ describe('NodeClient', () => {
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
     cleanupOtel();
   });
 
-  it('sets correct metadata', () => {
+  test('sets correct metadata', () => {
     const options = getDefaultNodeClientOptions();
     const client = new NodeClient(options);
 
@@ -59,7 +61,7 @@ describe('NodeClient', () => {
     });
   });
 
-  it('exposes a tracer', () => {
+  test('exposes a tracer', () => {
     const client = new NodeClient(getDefaultNodeClientOptions());
 
     const tracer = client.tracer;
@@ -153,31 +155,32 @@ describe('NodeClient', () => {
       });
     });
 
-    test('when autoSessionTracking is enabled + error occurs outside of request bounds -> requestStatus should not be set to Errored', done => {
-      const options = getDefaultNodeClientOptions({ autoSessionTracking: true, release: '1.4' });
-      const client = new NodeClient(options);
-      setCurrentClient(client);
-      client.init();
-      initOpenTelemetry(client);
+    test('when autoSessionTracking is enabled + error occurs outside of request bounds -> requestStatus should not be set to Errored', () =>
+      new Promise<void>(done => {
+        const options = getDefaultNodeClientOptions({ autoSessionTracking: true, release: '1.4' });
+        const client = new NodeClient(options);
+        setCurrentClient(client);
+        client.init();
+        initOpenTelemetry(client);
 
-      // It is required to initialise SessionFlusher to capture Session Aggregates (it is usually initialised
-      // by the`requestHandler`)
-      client.initSessionFlusher();
+        // It is required to initialise SessionFlusher to capture Session Aggregates (it is usually initialised
+        // by the`requestHandler`)
+        client.initSessionFlusher();
 
-      let isolationScope: Scope;
-      withIsolationScope(_isolationScope => {
-        _isolationScope.setRequestSession({ status: 'ok' });
-        isolationScope = _isolationScope;
-      });
+        let isolationScope: Scope;
+        withIsolationScope(_isolationScope => {
+          _isolationScope.setRequestSession({ status: 'ok' });
+          isolationScope = _isolationScope;
+        });
 
-      client.captureException(new Error('test exception'));
+        client.captureException(new Error('test exception'));
 
-      setImmediate(() => {
-        const requestSession = isolationScope.getRequestSession();
-        expect(requestSession).toEqual({ status: 'ok' });
-        done();
-      });
-    });
+        setImmediate(() => {
+          const requestSession = isolationScope.getRequestSession();
+          expect(requestSession).toEqual({ status: 'ok' });
+          done();
+        });
+      }));
   });
 
   describe('captureEvent()', () => {
@@ -384,7 +387,7 @@ describe('NodeClient', () => {
   });
 
   describe('captureCheckIn', () => {
-    it('sends a checkIn envelope', () => {
+    test('sends a checkIn envelope', () => {
       const options = getDefaultNodeClientOptions({
         serverName: 'bar',
         release: '1.0.0',
@@ -392,7 +395,7 @@ describe('NodeClient', () => {
       });
       const client = new NodeClient(options);
 
-      const sendEnvelopeSpy = jest.spyOn(client, 'sendEnvelope');
+      const sendEnvelopeSpy = vi.spyOn(client, 'sendEnvelope');
 
       const id = client.captureCheckIn(
         { monitorSlug: 'foo', status: 'in_progress' },
@@ -454,7 +457,7 @@ describe('NodeClient', () => {
       ]);
     });
 
-    it('sends a checkIn envelope for heartbeat checkIns', () => {
+    test('sends a checkIn envelope for heartbeat checkIns', () => {
       const options = getDefaultNodeClientOptions({
         serverName: 'server',
         release: '1.0.0',
@@ -462,7 +465,7 @@ describe('NodeClient', () => {
       });
       const client = new NodeClient(options);
 
-      const sendEnvelopeSpy = jest.spyOn(client, 'sendEnvelope');
+      const sendEnvelopeSpy = vi.spyOn(client, 'sendEnvelope');
 
       const id = client.captureCheckIn({ monitorSlug: 'heartbeat-monitor', status: 'ok' });
 
@@ -484,11 +487,11 @@ describe('NodeClient', () => {
       ]);
     });
 
-    it('does not send a checkIn envelope if disabled', () => {
+    test('does not send a checkIn envelope if disabled', () => {
       const options = getDefaultNodeClientOptions({ serverName: 'bar', enabled: false });
       const client = new NodeClient(options);
 
-      const sendEnvelopeSpy = jest.spyOn(client, 'sendEnvelope');
+      const sendEnvelopeSpy = vi.spyOn(client, 'sendEnvelope');
 
       client.captureCheckIn({ monitorSlug: 'foo', status: 'in_progress' });
 
@@ -499,7 +502,7 @@ describe('NodeClient', () => {
 
 describe('flush/close', () => {
   test('client close function disables _sessionFlusher', async () => {
-    jest.useRealTimers();
+    vi.useRealTimers();
 
     const options = getDefaultNodeClientOptions({
       autoSessionTracking: true,
@@ -511,7 +514,7 @@ describe('flush/close', () => {
     // not due to the interval running every 60s
     clearInterval(client['_sessionFlusher']!['_intervalId']);
 
-    const sessionFlusherFlushFunc = jest.spyOn(SessionFlusher.prototype, 'flush');
+    const sessionFlusherFlushFunc = vi.spyOn(SessionFlusher.prototype, 'flush');
 
     const delay = 1;
     await client.close(delay);
