@@ -8,8 +8,7 @@ import { getActiveSpan, getRootSpan } from '../utils/spanUtils';
 /**
  * Adds a measurement to the current active transaction.
  */
-export function setMeasurement(name: string, value: number, unit: MeasurementUnit): void {
-  const activeSpan = getActiveSpan();
+export function setMeasurement(name: string, value: number, unit: MeasurementUnit, activeSpan = getActiveSpan()): void {
   const rootSpan = activeSpan && getRootSpan(activeSpan);
 
   if (rootSpan) {
