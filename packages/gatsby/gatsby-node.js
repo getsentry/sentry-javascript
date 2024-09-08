@@ -12,7 +12,7 @@ exports.onCreateWebpackConfig = ({ getConfig, actions }, options) => {
         sentryWebpackPlugin({
           sourcemaps: {
             // Only include files from the build output directory
-            assets: ['public'],
+            assets: ['./public/**'],
             // Ignore files that aren't users' source code related
             ignore: [
               'polyfill-*', // related to polyfills
