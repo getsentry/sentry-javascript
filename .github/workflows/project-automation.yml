@@ -25,7 +25,7 @@ jobs:
         field: Status
         operation: read
 
-    - name: PR is in project
+    - name: If project field is read, set is_in_project to 1
       if: steps.check_project.outputs.field_read_value
       id: is_in_project
       run: echo "is_in_project=1" >> "$GITHUB_OUTPUT"
