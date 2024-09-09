@@ -133,6 +133,11 @@ export function descriptionForHttpMethod(
       break;
   }
 
+  // Spans for HTTP requests we have determined to be prefetch requests will have a `.prefetch` postfix in the op
+  if (attributes['sentry.http.prefetch']) {
+    opParts.push('prefetch');
+  }
+
   const { urlPath, url, query, fragment, hasRoute } = getSanitizedUrl(attributes, kind);
 
   if (!urlPath) {

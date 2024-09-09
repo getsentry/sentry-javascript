@@ -49,11 +49,6 @@ export function wrapServerComponentWithSentry<F extends (...args: any[]) => any>
 
         // We mark the root span as an app router span so we can allow-list it in our span processor that would normally filter out all Next.js transactions/spans
         rootSpan.setAttribute('sentry.rsc', true);
-
-        if (headersDict?.['Next-Router-Prefetch']) {
-          // We mark the root span as a prefetch request
-          rootSpan.setAttribute('sentry.next.prefetch', true);
-        }
       }
 
       isolationScope.setSDKProcessingMetadata({
