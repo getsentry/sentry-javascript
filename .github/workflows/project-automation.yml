@@ -25,16 +25,13 @@ jobs:
         field: Status
         operation: read
 
-    - name: PR is not in project
-      if: failure()
-      run: echo "is_in_project=0" >> "$GITHUB_OUTPUT"
-
     - name: PR is in project
-      if: success()
+      if: steps.check_project.outputs.field_read_value
+      id: is_in_project
       run: echo "is_in_project=1" >> "$GITHUB_OUTPUT"
 
     outputs:
-      is_in_project: '${{ steps.check_project.outputs.is_in_project }}'
+      is_in_project: ${{ steps.is_in_project.outputs.is_in_project || '0' }}
 
   # When a PR is a draft, it should go into "In Progress"
   mark_as_in_progress:
