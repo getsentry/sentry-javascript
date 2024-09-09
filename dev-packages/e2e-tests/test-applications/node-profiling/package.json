@@ -4,15 +4,11 @@
   "private": true,
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "build": "node build.mjs",
-    "build:shimmed": "node build.shimmed.mjs",
-    "test": "npm run build && node dist/index.js",
-    "test:shimmed": "npm run build:shimmed && node dist/index.mjs",
+    "build": "node build.mjs && npm run build:shimmed",
+    "test": "node dist/index.js && node dist/index.shimmed.mjs",
     "clean": "npx rimraf node_modules dist",
     "test:build": "npm run typecheck && npm run build",
-    "test:build:shimmed": "npm run typecheck && npm run build:shimmed",
-    "test:assert": "npm run test",
-    "test:assert:shimmed": "npm run test:shimmed"
+    "test:assert": "npm run test"
   },
   "dependencies": {
     "@sentry/node": "latest || *",
