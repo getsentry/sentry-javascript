@@ -39,8 +39,6 @@ export function wrapServerComponentWithSentry<F extends (...args: any[]) => any>
       const requestTraceId = getActiveSpan()?.spanContext().traceId;
       const isolationScope = commonObjectToIsolationScope(context.headers);
 
-      const headersDict = context.headers ? winterCGHeadersToDict(context.headers) : undefined;
-
       const activeSpan = getActiveSpan();
       if (activeSpan) {
         const rootSpan = getRootSpan(activeSpan);
@@ -50,6 +48,8 @@ export function wrapServerComponentWithSentry<F extends (...args: any[]) => any>
         // We mark the root span as an app router span so we can allow-list it in our span processor that would normally filter out all Next.js transactions/spans
         rootSpan.setAttribute('sentry.rsc', true);
       }
+
+      const headersDict = context.headers ? winterCGHeadersToDict(context.headers) : undefined;
 
       isolationScope.setSDKProcessingMetadata({
         request: {
