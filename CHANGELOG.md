@@ -34,7 +34,7 @@ import * as Sentry from '@sentry/node';
 
 Sentry.init({
   dsn: '__PUBLIC_DSN__',
-  registerEsmLoaderHooks: { onlyHookedModules: true },
+  registerEsmLoaderHooks: { onlyIncludeInstrumentedModules: true },
 });
 ```
 
