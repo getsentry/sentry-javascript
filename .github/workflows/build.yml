@@ -437,7 +437,7 @@ jobs:
         with:
           node-version-file: 'package.json'
       - name: Set up Deno
-        uses: denoland/setup-deno@1.4.0
+        uses: denoland/setup-deno@v1.4.1
         with:
           deno-version: v1.38.5
       - name: Restore caches
