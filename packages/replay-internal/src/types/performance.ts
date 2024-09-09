@@ -114,7 +114,7 @@ export interface WebVitalData {
   /**
    * The layout shifts of a CLS metric
    */
-  attributions?: { value: number; sources?: number[] }[];
+  attributions?: { value: number; nodeIds: number[] | undefined }[];
 }
 
 /**

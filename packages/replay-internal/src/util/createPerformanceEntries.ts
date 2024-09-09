@@ -58,11 +58,6 @@ interface LayoutShiftAttribution {
   currentRect: DOMRectReadOnly;
 }
 
-interface Attribution {
-  value: number;
-  nodeIds?: number[];
-}
-
 /**
  * Handler creater for web vitals
  */
@@ -198,7 +193,7 @@ export function getLargestContentfulPaint(metric: Metric): ReplayPerformanceEntr
   return getWebVital(metric, 'largest-contentful-paint', node);
 }
 
-function isLayoutShift(entry: PerformanceEntry | LayoutShift): entry is LayoutShift {
+function isLayoutShift(entry: PerformanceEntry): entry is LayoutShift {
   return (entry as LayoutShift).sources !== undefined;
 }
 
@@ -206,7 +201,7 @@ function isLayoutShift(entry: PerformanceEntry | LayoutShift): entry is LayoutSh
  * Add a CLS event to the replay based on a CLS metric.
  */
 export function getCumulativeLayoutShift(metric: Metric): ReplayPerformanceEntry<WebVitalData> {
-  const layoutShifts: Attribution[] = [];
+  const layoutShifts: WebVitalData['attributions'] = [];
   const nodes: Node[] = [];
   for (const entry of metric.entries) {
     if (isLayoutShift(entry)) {
@@ -220,9 +215,10 @@ export function getCumulativeLayoutShift(metric: Metric): ReplayPerformanceEntry
           }
         }
       }
-      layoutShifts.push({ value: entry.value, nodeIds });
+      layoutShifts.push({ value: entry.value, nodeIds: nodeIds.length ? nodeIds : undefined });
     }
   }
+
   return getWebVital(metric, 'cumulative-layout-shift', nodes, layoutShifts);
 }
 
@@ -251,14 +247,14 @@ function getWebVital(
   metric: Metric,
   name: string,
   nodes: Node[] | undefined,
-  attributions?: Attribution[],
+  attributions?: WebVitalData['attributions'],
 ): ReplayPerformanceEntry<WebVitalData> {
   const value = metric.value;
   const rating = metric.rating;
 
   const end = getAbsoluteTime(value);
 
-  const data: ReplayPerformanceEntry<WebVitalData> = {
+  return {
     type: 'web-vital',
     name,
     start: end,
@@ -271,6 +267,4 @@ function getWebVital(
       attributions,
     },
   };
-
-  return data;
 }

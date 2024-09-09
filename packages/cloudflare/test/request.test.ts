@@ -45,6 +45,15 @@ describe('withSentry', () => {
     expect(context.waitUntil).toHaveBeenLastCalledWith(expect.any(Promise));
   });
 
+  test("doesn't error if context is undefined", () => {
+    expect(() =>
+      wrapRequestHandler(
+        { options: MOCK_OPTIONS, request: new Request('https://example.com'), context: undefined as any },
+        () => new Response('test'),
+      ),
+    ).not.toThrow();
+  });
+
   test('creates a cloudflare client and sets it on the handler', async () => {
     const initAndBindSpy = vi.spyOn(SentryCore, 'initAndBind');
     await wrapRequestHandler(

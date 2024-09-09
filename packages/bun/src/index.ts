@@ -108,6 +108,7 @@ export {
   setupKoaErrorHandler,
   connectIntegration,
   setupConnectErrorHandler,
+  genericPoolIntegration,
   graphqlIntegration,
   mongoIntegration,
   mongooseIntegration,

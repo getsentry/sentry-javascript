@@ -31,7 +31,13 @@ export function wrapRequestHandler(
   handler: (...args: unknown[]) => Response | Promise<Response>,
 ): Promise<Response> {
   return withIsolationScope(async isolationScope => {
-    const { options, request, context } = wrapperOptions;
+    const { options, request } = wrapperOptions;
+
+    // In certain situations, the passed context can become undefined.
+    // For example, for Astro while prerendering pages at build time.
+    // see: https://github.com/getsentry/sentry-javascript/issues/13217
+    const context = wrapperOptions.context as ExecutionContext | undefined;
+
     const client = init(options);
     isolationScope.setClient(client);
 
@@ -89,7 +95,7 @@ export function wrapRequestHandler(
               captureException(e, { mechanism: { handled: false, type: 'cloudflare' } });
               throw e;
             } finally {
-              context.waitUntil(flush(2000));
+              context?.waitUntil(flush(2000));
             }
           },
         );
