@@ -36,7 +36,7 @@ jobs:
           author_association: ${{ github.event.pull_request.author_association }}
 
       - name: Create PR with changes
-        uses: peter-evans/create-pull-request@c5a7806660adbe173f04e3e038b0ccdcd758773c
+        uses: peter-evans/create-pull-request@8867c4aba1b742c39f8d0ba35429c2dfa4b6cb20
         with:
           commit-message: "ref: Add external contributor to CHANGELOG.md"
           title: "ref: Add external contributor to CHANGELOG.md"
