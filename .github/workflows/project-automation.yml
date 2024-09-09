@@ -11,6 +11,7 @@ on:
 jobs:
   # Check if PR is in project
   check_project:
+    name: Check if PR is in project
     runs-on: ubuntu-latest
     steps:
     - name: Check if PR is in project
@@ -35,6 +36,7 @@ jobs:
 
   # When a PR is a draft, it should go into "In Progress"
   mark_as_in_progress:
+    name: "Mark as In Progress"
     needs: check_project
     if: |
       needs.check_project.outputs.is_in_project == '1'
@@ -54,6 +56,7 @@ jobs:
 
   # When a PR is not a draft, it should go into "In Review"
   mark_as_in_review:
+    name: "Mark as In Review"
     needs: check_project
     if: |
       needs.check_project.outputs.is_in_project == '1'
@@ -75,6 +78,7 @@ jobs:
   # By default, closed PRs go into "Ready for Release"
   # But if they are closed without merging, they should go into "Done"
   mark_as_done:
+    name: "Mark as Done"
     needs: check_project
     if: |
       needs.check_project.outputs.is_in_project == '1'
