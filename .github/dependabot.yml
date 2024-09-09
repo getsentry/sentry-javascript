@@ -20,7 +20,6 @@ updates:
       - dependency-name: "@sentry/esbuild-plugin"
       - dependency-name: "@opentelemetry/*"
       - dependency-name: "@prisma/instrumentation"
-      - dependency-name: "opentelemetry-instrumentation-fetch-node"
     versioning-strategy: increase
     commit-message:
       prefix: feat

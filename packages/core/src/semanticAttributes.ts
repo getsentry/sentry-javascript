@@ -41,3 +41,7 @@ export const SEMANTIC_ATTRIBUTE_CACHE_HIT = 'cache.hit';
 export const SEMANTIC_ATTRIBUTE_CACHE_KEY = 'cache.key';
 
 export const SEMANTIC_ATTRIBUTE_CACHE_ITEM_SIZE = 'cache.item_size';
+
+/** TODO: Remove these once we update to latest semantic conventions */
+export const SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD = 'http.request.method';
+export const SEMANTIC_ATTRIBUTE_URL_FULL = 'url.full';

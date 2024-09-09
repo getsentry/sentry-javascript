@@ -10,7 +10,6 @@ import {
   spanToJSON,
 } from '@sentry/node';
 import { NodeClient } from '@sentry/node';
-import { solidRouterBrowserTracingIntegration } from '@sentry/solidstart/solidrouter';
 import { redirect } from '@solidjs/router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -98,7 +97,6 @@ describe('withServerActionInstrumentation', () => {
     setCurrentClient(client);
 
     client.on('spanStart', span => spanStartMock(spanToJSON(span)));
-    client.addIntegration(solidRouterBrowserTracingIntegration());
 
     await serverActionGetPrefecture();
     expect(spanStartMock).toHaveBeenCalledWith(
