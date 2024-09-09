@@ -6,7 +6,8 @@ import {
 import { getActiveSpan, getRootSpan } from '../utils/spanUtils';
 
 /**
- * Adds a measurement to the current active transaction.
+ * Adds a measurement to the active transaction on the current global scope. You can optionally pass in a different span
+ * as the 4th parameter.
  */
 export function setMeasurement(name: string, value: number, unit: MeasurementUnit, activeSpan = getActiveSpan()): void {
   const rootSpan = activeSpan && getRootSpan(activeSpan);
