@@ -6,12 +6,13 @@ on:
       - opened
       - reopened
       - ready_for_review
+      - converted_to_draft
 
 jobs:
   # When a PR is a draft, it should go into "In Progress"
   mark_as_in_progress:
     if: |
-      (github.event.action == 'opened' || github.event.action == 'reopened')
+      (github.event.action == 'opened' || github.event.action == 'reopened' || github.event.action == 'converted_to_draft')
       && github.event.pull_request.draft == true
     runs-on: ubuntu-latest
     steps:
