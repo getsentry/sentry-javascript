@@ -219,8 +219,13 @@ export function init(options: NodeOptions): NodeClient | undefined {
             return null;
           }
 
-          // Filter out /404 transactions for pages-router which seem to be created excessively
-          if (event.transaction === '/404') {
+          // Filter out /404 transactions which seem to be created excessively
+          if (
+            // Pages router
+            event.transaction === '/404' ||
+            // App router (could be "GET /404", "POST /404", ...)
+            event.transaction?.match(/^(GET|HEAD|POST|PUT|DELETE|CONNECT|OPTIONS|TRACE|PATCH) \/404$/)
+          ) {
             return null;
           }
 
