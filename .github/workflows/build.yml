@@ -1168,7 +1168,7 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
-          node-version-file: 'dev-packages/e2e-tests/package.json'
+          node-version: 22
       - name: Restore caches
         uses: ./.github/actions/restore-cache
         with:
