@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Update status to in_progress
-        uses: github/update-project-action@v3
+        uses: github/update-project-action@main
         with:
           github_token: ${{ secrets.GH_PROJECT_AUTOMATION }}
           organization: getsentry
@@ -34,7 +34,7 @@ jobs:
     steps:
       - name: Update status to in_review
         id: update_status
-        uses: github/update-project-action@v3
+        uses: github/update-project-action@main
         with:
           github_token: ${{ secrets.GH_PROJECT_AUTOMATION }}
           organization: getsentry
@@ -52,7 +52,7 @@ jobs:
     steps:
       - name: Update status to done
         id: update_status
-        uses: github/update-project-action@v3
+        uses: github/update-project-action@main
         with:
           github_token: ${{ secrets.GH_PROJECT_AUTOMATION }}
           organization: getsentry
