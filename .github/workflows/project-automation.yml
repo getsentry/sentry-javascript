@@ -9,10 +9,38 @@ on:
       - converted_to_draft
 
 jobs:
+  # Check if PR is in project
+  check_project:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Check if PR is in project
+      id: check_project
+      uses: github/update-project-action@main
+      with:
+        github_token: ${{ secrets.GH_PROJECT_AUTOMATION }}
+        organization: getsentry
+        project_number: 31
+        content_id: ${{ github.event.pull_request.node_id }}
+        field: Status
+        operation: read
+
+    - name: PR is not in project
+      if: failure()
+      run: echo "is_in_project=0" >> "$GITHUB_OUTPUT"
+
+    - name: PR is in project
+      if: success()
+      run: echo "is_in_project=1" >> "$GITHUB_OUTPUT"
+
+    outputs:
+      is_in_project: '${{ steps.check_project.outputs.is_in_project }}'
+
   # When a PR is a draft, it should go into "In Progress"
   mark_as_in_progress:
+    needs: check_project
     if: |
-      (github.event.action == 'opened' || github.event.action == 'reopened' || github.event.action == 'converted_to_draft')
+      needs.check_project.outputs.is_in_project == '1'
+      && (github.event.action == 'opened' || github.event.action == 'reopened' || github.event.action == 'converted_to_draft')
       && github.event.pull_request.draft == true
     runs-on: ubuntu-latest
     steps:
@@ -28,8 +56,10 @@ jobs:
 
   # When a PR is not a draft, it should go into "In Review"
   mark_as_in_review:
+    needs: check_project
     if: |
-      (github.event.action == 'opened' || github.event.action == 'reopened' || github.event.action == 'ready_for_review')
+      needs.check_project.outputs.is_in_project == '1'
+      && (github.event.action == 'opened' || github.event.action == 'reopened' || github.event.action == 'ready_for_review')
       && github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     steps:
@@ -47,8 +77,10 @@ jobs:
   # By default, closed PRs go into "Ready for Release"
   # But if they are closed without merging, they should go into "Done"
   mark_as_done:
+    needs: check_project
     if: |
-      github.event.action == 'closed' && github.event.pull_request.merged == false
+      needs.check_project.outputs.is_in_project == '1'
+      && github.event.action == 'closed' && github.event.pull_request.merged == false
     runs-on: ubuntu-latest
     steps:
       - name: Update status to done
