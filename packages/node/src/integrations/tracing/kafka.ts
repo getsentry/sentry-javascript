@@ -7,7 +7,6 @@ import { addOriginToSpan } from '../../utils/addOriginToSpan';
 
 const INTEGRATION_NAME = 'Kafka';
 
-// Todo: Check if we can use the hooks
 export const instrumentKafka = generateInstrumentOnce(
   INTEGRATION_NAME,
   () =>
