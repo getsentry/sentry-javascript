@@ -235,25 +235,6 @@ export function init(options: NodeOptions): NodeClient | undefined {
 
   getGlobalScope().addEventProcessor(
     Object.assign(
-      (event => {
-        if (event.type === 'transaction') {
-          // We set the op for transactions that we have identified as prefetch request to `http.server.prefetch`
-          if (
-            event.contexts?.trace?.data?.['sentry.next.prefetch'] === true &&
-            event.contexts.trace.op === 'http.server'
-          ) {
-            event.contexts.trace.op = 'http.server.prefetch';
-          }
-        }
-
-        return event;
-      }) satisfies EventProcessor,
-      { id: 'NextTransactionEnhancer' },
-    ),
-  );
-
-  getGlobalScope().addEventProcessor(
-    Object.assign(
       ((event, hint) => {
         if (event.type !== undefined) {
           return event;
