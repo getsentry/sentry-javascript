@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "build": "node build.mjs && npm run build:shimmed",
+    "build": "node build.mjs && node build.shimmed.mjs",
     "test": "node dist/index.js && node dist/index.shimmed.mjs",
     "clean": "npx rimraf node_modules dist",
     "test:build": "npm run typecheck && npm run build",
