@@ -86,6 +86,7 @@
     "@opentelemetry/instrumentation-nestjs-core": "0.40.0",
     "@opentelemetry/instrumentation-pg": "0.44.0",
     "@opentelemetry/instrumentation-redis-4": "0.42.0",
+    "@opentelemetry/instrumentation-undici": "0.5.0",
     "@opentelemetry/resources": "^1.25.1",
     "@opentelemetry/sdk-trace-base": "^1.25.1",
     "@opentelemetry/semantic-conventions": "^1.25.1",
@@ -98,9 +99,6 @@
   },
   "devDependencies": {
     "@types/node": "^14.18.0"
-  },
-  "optionalDependencies": {
-    "opentelemetry-instrumentation-fetch-node": "1.2.3"
   },
   "scripts": {
     "build": "run-p build:transpile build:types",
