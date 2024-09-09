@@ -5,8 +5,10 @@ import { TraceState } from '@opentelemetry/core';
 import type { Sampler, SamplingResult } from '@opentelemetry/sdk-trace-base';
 import { SamplingDecision } from '@opentelemetry/sdk-trace-base';
 import {
+  SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
+  SEMANTIC_ATTRIBUTE_URL_FULL,
   hasTracingEnabled,
   sampleSpan,
 } from '@sentry/core';
@@ -54,7 +56,7 @@ export class SentrySampler implements Sampler {
     // but we want to leave downstream sampling decisions up to the server
     if (
       spanKind === SpanKind.CLIENT &&
-      spanAttributes[SEMATTRS_HTTP_METHOD] &&
+      (spanAttributes[SEMATTRS_HTTP_METHOD] || spanAttributes[SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD]) &&
       (!parentSpan || parentContext?.isRemote)
     ) {
       return wrapSamplingDecision({ decision: undefined, context, spanAttributes });
@@ -196,7 +198,7 @@ function getBaseTraceState(context: Context, spanAttributes: SpanAttributes): Tr
   let traceState = parentContext?.traceState || new TraceState();
 
   // We always keep the URL on the trace state, so we can access it in the propagator
-  const url = spanAttributes[SEMATTRS_HTTP_URL];
+  const url = spanAttributes[SEMATTRS_HTTP_URL] || spanAttributes[SEMANTIC_ATTRIBUTE_URL_FULL];
   if (url && typeof url === 'string') {
     traceState = traceState.set(SENTRY_TRACE_STATE_URL, url);
   }
