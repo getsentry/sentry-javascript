@@ -3,9 +3,8 @@ import { INVALID_TRACEID } from '@opentelemetry/api';
 import { context } from '@opentelemetry/api';
 import { propagation, trace } from '@opentelemetry/api';
 import { W3CBaggagePropagator, isTracingSuppressed } from '@opentelemetry/core';
-import { SEMATTRS_HTTP_URL } from '@opentelemetry/semantic-conventions';
+import { ATTR_URL_FULL, SEMATTRS_HTTP_URL } from '@opentelemetry/semantic-conventions';
 import type { continueTrace } from '@sentry/core';
-import { SEMANTIC_ATTRIBUTE_URL_FULL } from '@sentry/core';
 import { hasTracingEnabled } from '@sentry/core';
 import { getRootSpan } from '@sentry/core';
 import { spanToJSON } from '@sentry/core';
@@ -294,7 +293,9 @@ function getExistingBaggage(carrier: unknown): string | undefined {
  */
 function getCurrentURL(span: Span): string | undefined {
   const spanData = spanToJSON(span).data;
-  const urlAttribute = spanData?.[SEMATTRS_HTTP_URL] || spanData?.[SEMANTIC_ATTRIBUTE_URL_FULL];
+  // `ATTR_URL_FULL` is the new attribute, but we still support the old one, `SEMATTRS_HTTP_URL`, for now.
+  // eslint-disable-next-line deprecation/deprecation
+  const urlAttribute = spanData?.[SEMATTRS_HTTP_URL] || spanData?.[ATTR_URL_FULL];
   if (urlAttribute) {
     return urlAttribute;
   }
