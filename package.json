@@ -91,6 +91,7 @@
     "dev-packages/overhead-metrics",
     "dev-packages/test-utils",
     "dev-packages/size-limit-gh-action",
+    "dev-packages/clear-cache-gh-action",
     "dev-packages/external-contributor-gh-action",
     "dev-packages/rollup-utils"
   ],

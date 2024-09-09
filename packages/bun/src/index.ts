@@ -108,6 +108,7 @@ export {
   setupKoaErrorHandler,
   connectIntegration,
   setupConnectErrorHandler,
+  genericPoolIntegration,
   graphqlIntegration,
   mongoIntegration,
   mongooseIntegration,
@@ -128,6 +129,7 @@ export {
   trpcMiddleware,
   addOpenTelemetryInstrumentation,
   zodErrorsIntegration,
+  profiler,
 } from '@sentry/node';
 
 export {

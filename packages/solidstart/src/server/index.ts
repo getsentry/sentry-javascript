@@ -38,6 +38,7 @@ export {
   flush,
   functionToStringIntegration,
   generateInstrumentOnce,
+  genericPoolIntegration,
   getActiveSpan,
   getAutoPerformanceIntegrations,
   getClient,
@@ -128,3 +129,4 @@ export { withSentryErrorBoundary } from '@sentry/solid';
 export { init } from './sdk';
 
 export * from './withServerActionInstrumentation';
+export * from './middleware';

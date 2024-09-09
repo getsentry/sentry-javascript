@@ -10,7 +10,7 @@ test('captures an exception', async ({ page }) => {
     );
   });
 
-  await page.goto('/client-error');
+  await page.goto('/error-boundary');
   await page.locator('#caughtErrorBtn').click();
   const errorEvent = await errorEventPromise;
 
@@ -27,7 +27,7 @@ test('captures an exception', async ({ page }) => {
         },
       ],
     },
-    transaction: '/client-error',
+    transaction: '/error-boundary',
   });
 });
 
@@ -40,7 +40,7 @@ test('captures a second exception after resetting the boundary', async ({ page }
     );
   });
 
-  await page.goto('/client-error');
+  await page.goto('/error-boundary');
   await page.locator('#caughtErrorBtn').click();
   const firstErrorEvent = await firstErrorEventPromise;
 
@@ -57,7 +57,7 @@ test('captures a second exception after resetting the boundary', async ({ page }
         },
       ],
     },
-    transaction: '/client-error',
+    transaction: '/error-boundary',
   });
 
   const secondErrorEventPromise = waitForError('solidstart', errorEvent => {
@@ -85,6 +85,6 @@ test('captures a second exception after resetting the boundary', async ({ page }
         },
       ],
     },
-    transaction: '/client-error',
+    transaction: '/error-boundary',
   });
 });

@@ -1,9 +1,11 @@
 import type { ExecutionContext, IncomingRequestCfProperties } from '@cloudflare/workers-types';
 
 import {
+  SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  SEMANTIC_ATTRIBUTE_URL_FULL,
   captureException,
   continueTrace,
   flush,
@@ -31,7 +33,13 @@ export function wrapRequestHandler(
   handler: (...args: unknown[]) => Response | Promise<Response>,
 ): Promise<Response> {
   return withIsolationScope(async isolationScope => {
-    const { options, request, context } = wrapperOptions;
+    const { options, request } = wrapperOptions;
+
+    // In certain situations, the passed context can become undefined.
+    // For example, for Astro while prerendering pages at build time.
+    // see: https://github.com/getsentry/sentry-javascript/issues/13217
+    const context = wrapperOptions.context as ExecutionContext | undefined;
+
     const client = init(options);
     isolationScope.setClient(client);
 
@@ -39,8 +47,8 @@ export function wrapRequestHandler(
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.cloudflare',
       [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
       [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
-      ['http.request.method']: request.method,
-      ['url.full']: request.url,
+      [SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD]: request.method,
+      [SEMANTIC_ATTRIBUTE_URL_FULL]: request.url,
     };
 
     const contentLength = request.headers.get('content-length');
@@ -89,7 +97,7 @@ export function wrapRequestHandler(
               captureException(e, { mechanism: { handled: false, type: 'cloudflare' } });
               throw e;
             } finally {
-              context.waitUntil(flush(2000));
+              context?.waitUntil(flush(2000));
             }
           },
         );

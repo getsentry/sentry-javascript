@@ -96,7 +96,7 @@ Add a `sentry.client.config.(js|ts)` file to the root of your project:
 import * as Sentry from '@sentry/nuxt';
 
 Sentry.init({
-  dsn: env.DSN,
+  dsn: process.env.SENTRY_DSN,
 });
 ```
 
@@ -107,10 +107,10 @@ Add an `instrument.server.mjs` file to your `public` folder:
 ```javascript
 import * as Sentry from '@sentry/nuxt';
 
-// Only run `init` when DSN is available
+// Only run `init` when process.env.SENTRY_DSN is available.
 if (process.env.SENTRY_DSN) {
   Sentry.init({
-    dsn: process.env.DSN,
+    dsn: process.env.SENTRY_DSN,
   });
 }
 ```
