@@ -63,6 +63,13 @@ export default defineNuxtModule<ModuleOptions>({
       setupSourceMaps(moduleOptions, nuxt);
     }
     if (serverConfigFile && serverConfigFile.includes('.server.config')) {
+      if (moduleOptions.debug) {
+        // eslint-disable-next-line no-console
+        console.log(
+          `[Sentry] Using your ${serverConfigFile} file for the server-side Sentry configuration. In case you have a \`public/instrument.server\` file, the \`public/instrument.server\` file will be ignored. Make sure the file path in your node \`--import\` option matches your Sentry server config file.`,
+        );
+      }
+
       addServerConfigToBuild(moduleOptions, nuxt, serverConfigFile);
     }
   },

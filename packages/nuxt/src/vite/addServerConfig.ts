@@ -15,13 +15,6 @@ export function addServerConfigToBuild(
   nuxt: Nuxt,
   serverConfigFile: string,
 ): void {
-  if (moduleOptions.debug) {
-    // eslint-disable-next-line no-console
-    console.log(
-      '[Sentry] Using your `sentry.server.config` file for the server-side Sentry configuration. In case you have a `public/instrument.server` file, it will be ignored.',
-    );
-  }
-
   nuxt.hook('vite:extendConfig', async (viteInlineConfig, _env) => {
     if (
       typeof viteInlineConfig?.build?.rollupOptions?.input === 'object' &&
@@ -46,15 +39,13 @@ export function addServerConfigToBuild(
 
         if (moduleOptions.debug) {
           // eslint-disable-next-line no-console
-          console.log(
-            '[Sentry] Successfully added the content of the `sentry.server.config` file as `instrument-sentry.mjs` to the `.output/server` directory',
-          );
+          console.log(`[Sentry] Successfully added the content of the ${serverConfigFile} file to \`${destination}\``);
         }
       } catch (error) {
         if (moduleOptions.debug) {
           // eslint-disable-next-line no-console
           console.warn(
-            '[Sentry] An error occurred when trying to add the `sentry.server.config` file to the `.output` directory',
+            `[Sentry] An error occurred when trying to add the ${serverConfigFile} file to the \`.output\` directory`,
             error,
           );
         }
