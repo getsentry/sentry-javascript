@@ -66,7 +66,7 @@ export default defineNuxtModule<ModuleOptions>({
     if (serverConfigFile && serverConfigFile.includes('.server.config')) {
       addServerConfigToBuild(moduleOptions, nuxt, serverConfigFile);
 
-      if (moduleOptions.simplifiedDeployment) {
+      if (moduleOptions.experimental_basicServerTracing) {
         addSentryTopImport(moduleOptions, nuxt);
       } else {
         if (moduleOptions.debug) {
