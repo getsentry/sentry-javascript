@@ -78,6 +78,14 @@ conditionalTest({ min: 18 })('LocalVariables integration', () => {
     });
   });
 
+  conditionalTest({ min: 20 })('Node v20+', () => {
+    test('Should retain original local variables when error is re-thrown', done => {
+      createRunner(__dirname, 'local-variables-rethrow.js')
+        .expect({ event: EXPECTED_LOCAL_VARIABLES_EVENT })
+        .start(done);
+    });
+  });
+
   test('Includes local variables for caught exceptions when enabled', done => {
     createRunner(__dirname, 'local-variables-caught.js').expect({ event: EXPECTED_LOCAL_VARIABLES_EVENT }).start(done);
   });
