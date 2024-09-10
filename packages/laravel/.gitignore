@@ -1,0 +1,14 @@
+# IDE
+.idea
+
+# Composer
+/vendor
+composer.lock
+
+# phpunit/phpunit
+coverage.xml
+.phpunit.result.cache
+
+# friendsofphp/php-cs-fixer
+/.php_cs.cache
+/.php-cs-fixer.cache

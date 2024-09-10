@@ -1,0 +1,10 @@
+minVersion: 0.23.1
+changelogPolicy: simple
+preReleaseCommand: bash scripts/craft-pre-release.sh
+artifactProvider:
+  name: none
+targets:
+  - name: github
+  - name: registry
+    sdks:
+      composer:sentry/sentry-laravel:

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+         backupGlobals="true"
+         colors="true"
+         bootstrap="test/bootstrap.php"
+         cacheResult="false"
+         beStrictAboutOutputDuringTests="true"
+>
+    <testsuites>
+        <testsuite name="Sentry Laravel Test Suite">
+            <directory>./test/Sentry/</directory>
+        </testsuite>
+    </testsuites>
+</phpunit>

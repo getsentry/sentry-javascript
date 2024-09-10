@@ -1,5 +1,0 @@
-{
-  "extends": "../tsconfig.test.json",
-
-  "include": ["./**/*", "../playwright.config.ts"]
-}

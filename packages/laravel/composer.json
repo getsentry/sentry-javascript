@@ -1,0 +1,79 @@
+{
+    "name": "sentry/sentry-laravel",
+    "type": "library",
+    "description": "Laravel SDK for Sentry (https://sentry.io)",
+    "keywords": [
+        "sentry",
+        "laravel",
+        "log",
+        "logging",
+        "error-monitoring",
+        "error-handler",
+        "crash-reporting",
+        "crash-reports",
+        "profiling",
+        "tracing"
+    ],
+    "homepage": "https://sentry.io",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Sentry",
+            "email": "accounts@sentry.io"
+        }
+    ],
+    "require": {
+        "php": "^7.2 | ^8.0",
+        "illuminate/support": "^6.0 | ^7.0 | ^8.0 | ^9.0 | ^10.0 | ^11.0",
+        "sentry/sentry": "^4.9",
+        "symfony/psr-http-message-bridge": "^1.0 | ^2.0 | ^6.0 | ^7.0",
+        "nyholm/psr7": "^1.0"
+    },
+    "autoload": {
+        "psr-0": {
+            "Sentry\\Laravel\\": "src/"
+        }
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^8.4 | ^9.3 | ^10.4",
+        "laravel/framework": "^6.0 | ^7.0 | ^8.0 | ^9.0 | ^10.0 | ^11.0",
+        "livewire/livewire": "^2.0 | ^3.0",
+        "orchestra/testbench": "^4.7 | ^5.1 | ^6.0 | ^7.0 | ^8.0 | ^9.0",
+        "friendsofphp/php-cs-fixer": "^3.11",
+        "mockery/mockery": "^1.3",
+        "phpstan/phpstan": "^1.10",
+        "laravel/folio": "^1.1",
+        "guzzlehttp/guzzle": "^7.2"
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Sentry\\Laravel\\Tests\\": "test/Sentry/"
+        }
+    },
+    "scripts": {
+        "check": [
+            "@cs-check",
+            "@phpstan",
+            "@tests"
+        ],
+        "tests": "vendor/bin/phpunit",
+        "cs-check": "vendor/bin/php-cs-fixer fix --verbose --diff --dry-run",
+        "cs-fix": "vendor/bin/php-cs-fixer fix --verbose --diff",
+        "phpstan": "vendor/bin/phpstan analyse"
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Sentry\\Laravel\\ServiceProvider",
+                "Sentry\\Laravel\\Tracing\\ServiceProvider"
+            ],
+            "aliases": {
+                "Sentry": "Sentry\\Laravel\\Facade"
+            }
+        }
+    },
+    "config": {
+        "sort-packages": true
+    },
+    "prefer-stable": true
+}
