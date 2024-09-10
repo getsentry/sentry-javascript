@@ -13,8 +13,6 @@ Sentry.init({
 async function run(): Promise<void> {
   // Wrap in span that is not sampled
   await Sentry.startSpan({ name: 'outer' }, async () => {
-    // Since fetch is lazy loaded, we need to wait a bit until it's fully instrumented
-    await new Promise(resolve => setTimeout(resolve, 100));
     await fetch(`${process.env.SERVER_URL}/api/v0`).then(res => res.text());
     await fetch(`${process.env.SERVER_URL}/api/v1`).then(res => res.text());
     await fetch(`${process.env.SERVER_URL}/api/v2`).then(res => res.text());
