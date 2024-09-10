@@ -10,6 +10,69 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+Work in this release was contributed by @Zen-cronic. Thank you for your contribution!
+
+## 8.28.0
+
+### Important Changes
+
+- **Beta release of official NestJS SDK**
+
+This release contains the beta version of `@sentry/nestjs`! For details on how to use it, check out the
+[README](https://github.com/getsentry/sentry-javascript/blob/master/packages/nestjs/README.md). Any feedback/bug reports
+are greatly appreciated, please reach out on GitHub.
+
+- **fix(browser): Remove faulty LCP, FCP and FP normalization logic (#13502)**
+
+This release fixes a bug in the `@sentry/browser` package and all SDKs depending on this package (e.g. `@sentry/react`
+or `@sentry/nextjs`) that caused the SDK to send incorrect web vital values for the LCP, FCP and FP vitals. The SDK
+previously incorrectly processed the original values as they were reported from the browser. When updating your SDK to
+this version, you might experience an increase in LCP, FCP and FP values, which potentially leads to a decrease in your
+performance score in the Web Vitals Insights module in Sentry. This is because the previously reported values were
+smaller than the actually measured values. We apologize for the inconvenience!
+
+### Other Changes
+
+- feat(nestjs): Add `SentryGlobalGraphQLFilter` (#13545)
+- feat(nestjs): Automatic instrumentation of nestjs interceptors after route execution (#13264)
+- feat(nextjs): Add `bundleSizeOptimizations` to build options (#13323)
+- feat(nextjs): Stabilize `captureRequestError` (#13550)
+- feat(nuxt): Wrap config in nuxt context (#13457)
+- feat(profiling): Expose profiler as top level primitive (#13512)
+- feat(replay): Add layout shift to CLS replay data (#13386)
+- feat(replay): Upgrade rrweb packages to 2.26.0 (#13483)
+- fix(cdn): Do not mangle \_metadata (#13426)
+- fix(cdn): Fix SDK source for CDN bundles (#13475)
+- fix(nestjs): Check arguments before instrumenting with `@Injectable` (#13544)
+- fix(nestjs): Ensure exception and host are correctly passed on when using @WithSentry (#13564)
+- fix(node): Suppress tracing for transport request execution rather than transport creation (#13491)
+- fix(replay): Consider more things as DOM mutations for dead clicks (#13518)
+- fix(vue): Correctly obtain component name (#13484)
+
+Work in this release was contributed by @leopoldkristjansson, @mhuggins and @filips123. Thank you for your
+contributions!
+
+## 8.27.0
+
+### Important Changes
+
+- **fix(nestjs): Exception filters in main app module are not being executed (#13278)**
+
+  With this release nestjs error monitoring is no longer automatically set up after adding the `SentryModule` to your
+  application, which led to issues in certain scenarios. You will now have to either add the `SentryGlobalFilter` to
+  your main module providers or decorate the `catch()` method in your existing global exception filters with the newly
+  released `@WithSentry()` decorator. See the [docs](https://docs.sentry.io/platforms/javascript/guides/nestjs/) for
+  more details.
+
+### Other Changes
+
+- feat: Add options for passing nonces to feedback integration (#13347)
+- feat: Add support for SENTRY_SPOTLIGHT env var in Node (#13325)
+- feat(deps): bump @prisma/instrumentation from 5.17.0 to 5.18.0 (#13327)
+- feat(feedback): Improve error message for 403 errors (#13441)
+- fix(deno): Don't rely on `Deno.permissions.querySync` (#13378)
+- fix(replay): Ensure we publish replay CDN bundles (#13437)
+
 Work in this release was contributed by @charpeni. Thank you for your contribution!
 
 ## 8.26.0

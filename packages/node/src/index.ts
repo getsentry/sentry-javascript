@@ -26,6 +26,7 @@ export { hapiIntegration, setupHapiErrorHandler } from './integrations/tracing/h
 export { koaIntegration, setupKoaErrorHandler } from './integrations/tracing/koa';
 export { connectIntegration, setupConnectErrorHandler } from './integrations/tracing/connect';
 export { spotlightIntegration } from './integrations/spotlight';
+export { genericPoolIntegration } from './integrations/tracing/genericPool';
 
 export { SentryContextManager } from './otel/contextManager';
 export { generateInstrumentOnce } from './otel/instrument';
@@ -127,6 +128,7 @@ export {
   spanToBaggageHeader,
   trpcMiddleware,
   zodErrorsIntegration,
+  profiler,
 } from '@sentry/core';
 
 export type {

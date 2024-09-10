@@ -11,7 +11,7 @@ sentryTest('should capture a LCP vital with element details.', async ({ browserN
   }
 
   page.route('**', route => route.continue());
-  page.route('**/path/to/image.png', async (route: Route) => {
+  page.route('**/my/image.png', async (route: Route) => {
     return route.fulfill({ path: `${__dirname}/assets/sentry-logo-600x179.png` });
   });
 

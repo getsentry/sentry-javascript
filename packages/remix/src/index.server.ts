@@ -47,6 +47,7 @@ export {
   flush,
   functionToStringIntegration,
   generateInstrumentOnce,
+  genericPoolIntegration,
   getActiveSpan,
   getAutoPerformanceIntegrations,
   getClient,
