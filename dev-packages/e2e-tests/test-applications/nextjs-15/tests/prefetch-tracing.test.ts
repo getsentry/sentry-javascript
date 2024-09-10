@@ -2,8 +2,7 @@ import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
 test('Should capture transactions with `http.server.prefetch` op for prefetch traces', async ({ page }) => {
-  const serverPrefetchTransactionPromise = waitForTransaction('nextjs-13', async transactionEvent => {
-    console.log('t', transactionEvent.transaction);
+  const serverPrefetchTransactionPromise = waitForTransaction('nextjs-15', async transactionEvent => {
     return transactionEvent?.transaction === 'GET /prefetchable-page';
   });
 
