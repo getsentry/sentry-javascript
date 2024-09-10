@@ -17,7 +17,7 @@ jobs:
     - name: Check if PR is in project
       continue-on-error: true
       id: check_project
-      uses: github/update-project-action@main
+      uses: github/update-project-action@f980378bc179626af5b4e20ec05ec39c7f7a6f6d
       with:
         github_token: ${{ secrets.GH_PROJECT_AUTOMATION }}
         organization: getsentry
@@ -45,7 +45,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Update status to in_progress
-        uses: github/update-project-action@main
+        uses: github/update-project-action@f980378bc179626af5b4e20ec05ec39c7f7a6f6d
         with:
           github_token: ${{ secrets.GH_PROJECT_AUTOMATION }}
           organization: getsentry
@@ -66,7 +66,7 @@ jobs:
     steps:
       - name: Update status to in_review
         id: update_status
-        uses: github/update-project-action@main
+        uses: github/update-project-action@f980378bc179626af5b4e20ec05ec39c7f7a6f6d
         with:
           github_token: ${{ secrets.GH_PROJECT_AUTOMATION }}
           organization: getsentry
@@ -87,7 +87,7 @@ jobs:
     steps:
       - name: Update status to done
         id: update_status
-        uses: github/update-project-action@main
+        uses: github/update-project-action@f980378bc179626af5b4e20ec05ec39c7f7a6f6d
         with:
           github_token: ${{ secrets.GH_PROJECT_AUTOMATION }}
           organization: getsentry
