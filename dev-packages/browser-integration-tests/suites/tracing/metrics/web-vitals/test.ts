@@ -83,7 +83,6 @@ sentryTest(
     // The delta should be less than 1ms if this flakes, we should increase the threshold
     expect(delta).toBeLessThanOrEqual(1);
 
-    expect(activationStart).toBeDefined();
     expect(activationStart).toBeGreaterThanOrEqual(0);
   },
 );
