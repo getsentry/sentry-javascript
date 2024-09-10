@@ -1,15 +1,11 @@
 import type { Debugger, InspectorNotification, Runtime } from 'node:inspector';
 import { Session } from 'node:inspector/promises';
-import { parentPort, workerData } from 'node:worker_threads';
-import type { StackParser } from '@sentry/types';
-import { createStackParser, nodeStackLineParser } from '@sentry/utils';
-import { createGetModuleFromFilename } from '../../utils/module';
+import { workerData } from 'node:worker_threads';
 import type { LocalVariablesWorkerArgs, PausedExceptionEvent, RateLimitIncrement, Variables } from './common';
-import { createRateLimiter, hashFromStack } from './common';
+import { LOCAL_VARIABLES_KEY } from './common';
+import { createRateLimiter } from './common';
 
 const options: LocalVariablesWorkerArgs = workerData;
-
-const stackParser = createStackParser(nodeStackLineParser(createGetModuleFromFilename(options.basePath)));
 
 function log(...args: unknown[]): void {
   if (options.debug) {
@@ -88,19 +84,15 @@ let rateLimiter: RateLimitIncrement | undefined;
 
 async function handlePaused(
   session: Session,
-  stackParser: StackParser,
-  { reason, data, callFrames }: PausedExceptionEvent,
-): Promise<void> {
+  { reason, data: { objectId }, callFrames }: PausedExceptionEvent,
+): Promise<string | undefined> {
   if (reason !== 'exception' && reason !== 'promiseRejection') {
     return;
   }
 
   rateLimiter?.();
 
-  // data.description contains the original error.stack
-  const exceptionHash = hashFromStack(stackParser, data?.description);
-
-  if (exceptionHash == undefined) {
+  if (objectId == undefined) {
     return;
   }
 
@@ -123,7 +115,15 @@ async function handlePaused(
     }
   }
 
-  parentPort?.postMessage({ exceptionHash, frames });
+  // We write the local variables to a property on the error object. These can be read by the integration as the error
+  // event pass through the SDK event pipeline
+  await session.post('Runtime.callFunctionOn', {
+    functionDeclaration: `function() { this.${LOCAL_VARIABLES_KEY} = ${JSON.stringify(frames)}; }`,
+    silent: true,
+    objectId,
+  });
+
+  return objectId;
 }
 
 async function startDebugger(): Promise<void> {
@@ -141,13 +141,23 @@ async function startDebugger(): Promise<void> {
   session.on('Debugger.paused', (event: InspectorNotification<Debugger.PausedEventDataType>) => {
     isPaused = true;
 
-    handlePaused(session, stackParser, event.params as PausedExceptionEvent).then(
-      () => {
+    handlePaused(session, event.params as PausedExceptionEvent).then(
+      async objectId => {
         // After the pause work is complete, resume execution!
-        return isPaused ? session.post('Debugger.resume') : Promise.resolve();
+        if (isPaused) {
+          await session.post('Debugger.resume');
+        }
+
+        if (objectId) {
+          // The object must be released after the debugger has resumed or we get a memory leak.
+          // For node v20, setImmediate is enough here but for v22 a longer delay is required
+          setTimeout(async () => {
+            await session.post('Runtime.releaseObject', { objectId });
+          }, 1_000);
+        }
       },
       _ => {
-        // ignore
+        // ignore any errors
       },
     );
   });
