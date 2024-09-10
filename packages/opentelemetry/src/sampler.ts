@@ -14,7 +14,12 @@ import type { Client, SpanAttributes } from '@sentry/types';
 import { logger } from '@sentry/utils';
 import { SENTRY_TRACE_STATE_SAMPLED_NOT_RECORDING, SENTRY_TRACE_STATE_URL } from './constants';
 
-import { SEMATTRS_HTTP_METHOD, SEMATTRS_HTTP_URL } from '@opentelemetry/semantic-conventions';
+import {
+  ATTR_HTTP_REQUEST_METHOD,
+  ATTR_URL_FULL,
+  SEMATTRS_HTTP_METHOD,
+  SEMATTRS_HTTP_URL,
+} from '@opentelemetry/semantic-conventions';
 import { DEBUG_BUILD } from './debug-build';
 import { getPropagationContextFromSpan } from './propagator';
 import { getSamplingDecision } from './utils/getSamplingDecision';
@@ -50,13 +55,13 @@ export class SentrySampler implements Sampler {
       return wrapSamplingDecision({ decision: undefined, context, spanAttributes });
     }
 
+    // `ATTR_HTTP_REQUEST_METHOD` is the new attribute, but we still support the old one, `SEMATTRS_HTTP_METHOD`, for now.
+    // eslint-disable-next-line deprecation/deprecation
+    const maybeSpanHttpMethod = spanAttributes[SEMATTRS_HTTP_METHOD] || spanAttributes[ATTR_HTTP_REQUEST_METHOD];
+
     // If we have a http.client span that has no local parent, we never want to sample it
     // but we want to leave downstream sampling decisions up to the server
-    if (
-      spanKind === SpanKind.CLIENT &&
-      spanAttributes[SEMATTRS_HTTP_METHOD] &&
-      (!parentSpan || parentContext?.isRemote)
-    ) {
+    if (spanKind === SpanKind.CLIENT && maybeSpanHttpMethod && (!parentSpan || parentContext?.isRemote)) {
       return wrapSamplingDecision({ decision: undefined, context, spanAttributes });
     }
 
@@ -107,7 +112,7 @@ export class SentrySampler implements Sampler {
       [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: sampleRate,
     };
 
-    const method = `${spanAttributes[SEMATTRS_HTTP_METHOD]}`.toUpperCase();
+    const method = `${maybeSpanHttpMethod}`.toUpperCase();
     if (method === 'OPTIONS' || method === 'HEAD') {
       DEBUG_BUILD && logger.log(`[Tracing] Not sampling span because HTTP method is '${method}' for ${spanName}`);
 
@@ -196,7 +201,9 @@ function getBaseTraceState(context: Context, spanAttributes: SpanAttributes): Tr
   let traceState = parentContext?.traceState || new TraceState();
 
   // We always keep the URL on the trace state, so we can access it in the propagator
-  const url = spanAttributes[SEMATTRS_HTTP_URL];
+  // `ATTR_URL_FULL` is the new attribute, but we still support the old one, `ATTR_HTTP_URL`, for now.
+  // eslint-disable-next-line deprecation/deprecation
+  const url = spanAttributes[SEMATTRS_HTTP_URL] || spanAttributes[ATTR_URL_FULL];
   if (url && typeof url === 'string') {
     traceState = traceState.set(SENTRY_TRACE_STATE_URL, url);
   }

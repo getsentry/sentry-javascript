@@ -89,6 +89,7 @@ export {
   fsIntegration,
   genericPoolIntegration,
   graphqlIntegration,
+  kafkaIntegration,
   mongoIntegration,
   mongooseIntegration,
   mysqlIntegration,

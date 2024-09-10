@@ -1,7 +1,7 @@
 import type { Span } from '@opentelemetry/api';
 import { SpanKind } from '@opentelemetry/api';
 import type { ReadableSpan } from '@opentelemetry/sdk-trace-base';
-import { SEMATTRS_HTTP_STATUS_CODE } from '@opentelemetry/semantic-conventions';
+import { ATTR_HTTP_RESPONSE_STATUS_CODE, SEMATTRS_HTTP_STATUS_CODE } from '@opentelemetry/semantic-conventions';
 import {
   captureEvent,
   getCapturedScopesOnSpan,
@@ -358,9 +358,10 @@ function getData(span: ReadableSpan): Record<string, unknown> {
     data['otel.kind'] = SpanKind[span.kind];
   }
 
-  if (attributes[SEMATTRS_HTTP_STATUS_CODE]) {
-    const statusCode = attributes[SEMATTRS_HTTP_STATUS_CODE] as string;
-    data['http.response.status_code'] = statusCode;
+  // eslint-disable-next-line deprecation/deprecation
+  const maybeHttpStatusCodeAttribute = attributes[SEMATTRS_HTTP_STATUS_CODE];
+  if (maybeHttpStatusCodeAttribute) {
+    data[ATTR_HTTP_RESPONSE_STATUS_CODE] = maybeHttpStatusCodeAttribute as string;
   }
 
   const requestData = getRequestSpanData(span);

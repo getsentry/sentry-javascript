@@ -86,7 +86,7 @@ export function startStandaloneWebVitalSpan(options: StandaloneWebVitalSpanOptio
   const user = scope.getUser();
   const userDisplay = user !== undefined ? user.email || user.id || user.ip_address : undefined;
 
-  let profileId: string | undefined = undefined;
+  let profileId: string | undefined;
   try {
     // @ts-expect-error skip optional chaining to save bundle size with try catch
     profileId = scope.getScopeData().contexts.profile.profile_id;
