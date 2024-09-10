@@ -111,15 +111,9 @@ public:
 
   size_t listener_count();
 
-  ~MeasurementsTicker() {
+  void Cleanup() {
     uv_timer_stop(&timer);
-
-    auto handle = reinterpret_cast<uv_handle_t *>(&timer);
-
-    // Calling uv_close on an inactive handle will cause a segfault.
-    if (uv_is_active(handle)) {
-      uv_close(handle, nullptr);
-    }
+    uv_close(reinterpret_cast<uv_handle_t *>(&timer), nullptr);
   }
 };
 
@@ -1155,6 +1149,7 @@ void FreeAddonData(napi_env env, void *data, void *hint) {
     profiler->cpu_profiler = nullptr;
   }
 
+  profiler->measurements_ticker.Cleanup();
   delete profiler;
 }
 
