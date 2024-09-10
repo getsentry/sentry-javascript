@@ -81,8 +81,8 @@ function visit(
   // Get the simple cases out of the way first
   if (
     value == null || // this matches null and undefined -> eqeq not eqeqeq
-    (['boolean', 'string'].includes(typeof value) ||
-    (typeof value === 'number' && Number.isFinite(value)))
+    ['boolean', 'string'].includes(typeof value) ||
+    (typeof value === 'number' && Number.isFinite(value))
   ) {
     return value as Primitive;
   }
