@@ -1226,27 +1226,29 @@ export class ReplayContainer implements ReplayContainerInterface {
       // TODO FN: Evaluate if we want to stop here, or remove this again?
     }
 
-    // this._flushLock acts as a lock so that future calls to `_flush()`
-    // will be blocked until this promise resolves
+    const _flushInProgress = !!this._flushLock;
+
+    // this._flushLock acts as a lock so that future calls to `_flush()` will
+    // be blocked until current flush is finished (i.e. this promise resolves)
     if (!this._flushLock) {
       this._flushLock = this._runFlush();
-      await this._flushLock;
-      this._flushLock = undefined;
-      return;
     }
-
-    // Wait for previous flush to finish, then call the debounced `_flush()`.
-    // It's possible there are other flush requests queued and waiting for it
-    // to resolve. We want to reduce all outstanding requests (as well as any
-    // new flush requests that occur within a second of the locked flush
-    // completing) into a single flush.
 
     try {
       await this._flushLock;
     } catch (err) {
-      DEBUG_BUILD && logger.error(err);
+      this.handleException(err);
     } finally {
-      this._debouncedFlush();
+      this._flushLock = undefined;
+
+      if (_flushInProgress) {
+        // Wait for previous flush to finish, then call the debounced
+        // `_flush()`. It's possible there are other flush requests queued and
+        // waiting for it to resolve. We want to reduce all outstanding
+        // requests (as well as any new flush requests that occur within a
+        // second of the locked flush completing) into a single flush.
+        this._debouncedFlush();
+      }
     }
   };
 
