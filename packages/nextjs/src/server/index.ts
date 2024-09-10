@@ -10,7 +10,12 @@ import { getDefaultIntegrations, init as nodeInit } from '@sentry/node';
 import type { NodeClient, NodeOptions } from '@sentry/node';
 import { GLOBAL_OBJ, logger } from '@sentry/utils';
 
-import { SEMATTRS_HTTP_METHOD, SEMATTRS_HTTP_ROUTE, SEMATTRS_HTTP_TARGET } from '@opentelemetry/semantic-conventions';
+import {
+  ATTR_HTTP_REQUEST_METHOD,
+  ATTR_HTTP_ROUTE,
+  SEMATTRS_HTTP_METHOD,
+  SEMATTRS_HTTP_TARGET,
+} from '@opentelemetry/semantic-conventions';
 import type { EventProcessor } from '@sentry/types';
 import { DEBUG_BUILD } from '../common/debug-build';
 import { devErrorSymbolicationEventProcessor } from '../common/devErrorSymbolicationEventProcessor';
@@ -150,8 +155,11 @@ export function init(options: NodeOptions): NodeClient | undefined {
     // because we didn't get the chance to do `suppressTracing`, since this happens outside of userland.
     // We need to drop these spans.
     if (
+      // eslint-disable-next-line deprecation/deprecation
       typeof spanAttributes[SEMATTRS_HTTP_TARGET] === 'string' &&
+      // eslint-disable-next-line deprecation/deprecation
       spanAttributes[SEMATTRS_HTTP_TARGET].includes('sentry_key') &&
+      // eslint-disable-next-line deprecation/deprecation
       spanAttributes[SEMATTRS_HTTP_TARGET].includes('sentry_client')
     ) {
       samplingDecision.decision = false;
@@ -168,8 +176,12 @@ export function init(options: NodeOptions): NodeClient | undefined {
       const rootSpanAttributes = spanToJSON(rootSpan).data;
 
       // Only hoist the http.route attribute if the transaction doesn't already have it
-      if (rootSpanAttributes?.[SEMATTRS_HTTP_METHOD] && !rootSpanAttributes?.[SEMATTRS_HTTP_ROUTE]) {
-        rootSpan.setAttribute(SEMATTRS_HTTP_ROUTE, spanAttributes['next.route']);
+      if (
+        // eslint-disable-next-line deprecation/deprecation
+        (rootSpanAttributes?.[ATTR_HTTP_REQUEST_METHOD] || rootSpanAttributes?.[SEMATTRS_HTTP_METHOD]) &&
+        !rootSpanAttributes?.[ATTR_HTTP_ROUTE]
+      ) {
+        rootSpan.setAttribute(ATTR_HTTP_ROUTE, spanAttributes['next.route']);
       }
     }
 
