@@ -89,6 +89,7 @@ export {
   fastifyIntegration,
   genericPoolIntegration,
   graphqlIntegration,
+  kafkaIntegration,
   mongoIntegration,
   mongooseIntegration,
   mysqlIntegration,
