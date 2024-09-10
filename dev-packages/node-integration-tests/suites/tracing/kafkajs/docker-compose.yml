@@ -1,0 +1,7 @@
+services:
+  db:
+    image: apache/kafka:latest
+    restart: always
+    container_name: integration-tests-kafka
+    ports:
+      - '9092:9092'

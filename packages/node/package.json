@@ -78,6 +78,7 @@
     "@opentelemetry/instrumentation-hapi": "0.41.0",
     "@opentelemetry/instrumentation-http": "0.53.0",
     "@opentelemetry/instrumentation-ioredis": "0.43.0",
+    "@opentelemetry/instrumentation-kafkajs": "0.3.0",
     "@opentelemetry/instrumentation-koa": "0.43.0",
     "@opentelemetry/instrumentation-mongodb": "0.47.0",
     "@opentelemetry/instrumentation-mongoose": "0.42.0",
