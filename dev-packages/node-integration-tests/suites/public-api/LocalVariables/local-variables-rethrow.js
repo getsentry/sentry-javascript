@@ -32,7 +32,7 @@ function one(name) {
 }
 
 setTimeout(() => {
-  try{
+  try {
     try {
       one('some name');
     } catch (e) {
