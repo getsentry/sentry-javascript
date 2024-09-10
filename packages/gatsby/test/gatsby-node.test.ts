@@ -55,15 +55,14 @@ describe('onCreateWebpackConfig', () => {
 
     const getConfig = jest.fn();
 
-    const filesToDelete = ['file1.js', 'file2.js'];
-    onCreateWebpackConfig({ actions, getConfig }, { sourceMapFilesToDeleteAfterUpload: filesToDelete });
+    onCreateWebpackConfig({ actions, getConfig }, { deleteSourcemapsAfterUpload: true });
 
     expect(actions.setWebpackConfig).toHaveBeenCalledTimes(1);
 
     expect(sentryWebpackPlugin).toHaveBeenCalledWith(
       expect.objectContaining({
         sourcemaps: expect.objectContaining({
-          filesToDeleteAfterUpload: filesToDelete,
+          filesToDeleteAfterUpload: ["./public/**/*.map"],
         }),
       })
     );

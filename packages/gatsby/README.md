@@ -50,8 +50,6 @@ Sentry.init({
 The Gatsby SDK also automatically sets up sourcemaps uploading for you. To disable this functionality, set the
 `enableClientWebpackPlugin` option to be `false`.
 
-Additionally, you can delete source map files after they have been  uploaded by setting the `sourceMapFilesToDeleteAfterUpload` option. Check [here](https://www.npmjs.com/package/@sentry/vite-plugin#sourcemapsfilestodeleteafterupload) to learn how to use it.
-
 ```javascript
 module.exports = {
   // ...
@@ -60,13 +58,27 @@ module.exports = {
       resolve: '@sentry/gatsby',
       options: {
         enableClientWebpackPlugin: false,
-        sourceMapFilesToDeleteAfterUpload: "./public/**/*.map"
       },
     },
     // ...
   ],
 };
 ```
+Additionally, you can delete source map files after they have been  uploaded by setting the `deleteSourcemapsAfterUpload` option to be `true`.
+
+```javascript
+module.exports = {
+  // ...
+  plugins: [
+    {
+      resolve: '@sentry/gatsby',
+      options: {
+        deleteSourcemapsAfterUpload: true,
+      },
+    },
+    // ...
+  ],
+};
 
 ## Links
 

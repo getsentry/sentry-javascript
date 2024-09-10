@@ -7,6 +7,7 @@ const SENTRY_USER_CONFIG = ['./sentry.config.js', './sentry.config.ts'];
 exports.onCreateWebpackConfig = ({ getConfig, actions }, options) => {
   const enableClientWebpackPlugin = options.enableClientWebpackPlugin !== false;
   if (process.env.NODE_ENV === 'production' && enableClientWebpackPlugin) {
+    const deleteSourcemapsAfterUpload = options.deleteSourcemapsAfterUpload === true;
     actions.setWebpackConfig({
       plugins: [
         sentryWebpackPlugin({
@@ -14,7 +15,7 @@ exports.onCreateWebpackConfig = ({ getConfig, actions }, options) => {
             // Only include files from the build output directory
             assets: ['./public/**'],
             // Delete source files after uploading
-            filesToDeleteAfterUpload: options.sourceMapFilesToDeleteAfterUpload,
+            filesToDeleteAfterUpload: deleteSourcemapsAfterUpload ? ['./public/**/*.map'] : undefined,
             // Ignore files that aren't users' source code related
             ignore: [
               'polyfill-*', // related to polyfills
