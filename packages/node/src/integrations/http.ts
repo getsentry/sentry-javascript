@@ -285,5 +285,5 @@ function _isClientRequest(req: ClientRequest | HTTPModuleRequestIncomingMessage)
  */
 function isKnownPrefetchRequest(req: HTTPModuleRequestIncomingMessage): boolean {
   // Currently only handles Next.js prefetch requests but may check other frameworks in the future.
-  return !!req.headers['next-router-prefetch'];
+  return req.headers['next-router-prefetch'] === '1';
 }
