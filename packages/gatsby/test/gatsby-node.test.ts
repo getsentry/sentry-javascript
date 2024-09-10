@@ -62,7 +62,7 @@ describe('onCreateWebpackConfig', () => {
     expect(sentryWebpackPlugin).toHaveBeenCalledWith(
       expect.objectContaining({
         sourcemaps: expect.objectContaining({
-          filesToDeleteAfterUpload: ["./public/**/*.map"],
+          filesToDeleteAfterUpload: ['./public/**/*.map'],
         }),
       })
     );
