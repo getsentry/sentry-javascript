@@ -39,11 +39,11 @@ test('sends component tracking spans when `trackComponents` is enabled', async (
   await page.goto(`/client-error`);
 
   const rootSpan = await transactionPromise;
-  const errorButtonSpan = rootSpan.spans.find((span: Span) => span.description === 'Vue <<ErrorButton>>');
+  const errorButtonSpan = rootSpan.spans.find((span: Span) => span.description === 'Vue <ErrorButton>');
 
   const expected = {
     data: { 'sentry.origin': 'auto.ui.vue', 'sentry.op': 'ui.vue.mount' },
-    description: 'Vue <<ErrorButton>>',
+    description: 'Vue <ErrorButton>',
     op: 'ui.vue.mount',
     parent_span_id: expect.any(String),
     span_id: expect.any(String),
