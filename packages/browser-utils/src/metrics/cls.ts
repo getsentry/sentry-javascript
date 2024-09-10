@@ -109,7 +109,7 @@ function sendStandaloneClsSpan(clsValue: number, entry: LayoutShift | undefined,
     [SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_VALUE]: clsValue,
   });
 
-  // LayoutShift performance entries always have a duration of 0, so we don't need to add `enntry.duration` here
+  // LayoutShift performance entries always have a duration of 0, so we don't need to add `entry.duration` here
   // see: https://developer.mozilla.org/en-US/docs/Web/API/PerformanceEntry/duration
   span?.end(startTime);
 }
