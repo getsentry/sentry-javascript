@@ -99,4 +99,14 @@ export type SentryNuxtModuleOptions = {
    * Enabling this will give you, for example, logs about source maps.
    */
   debug?: boolean;
+
+  /**
+   * Enabling simplified deployment can be used for environments where modifying the node option `--import` is not possible.
+   * If this flag is `true`, the Sentry SDK will import the server config at the top of the server entry file to load the SDK on the server.
+   *
+   * Note that enabling this option only supports limited tracing instrumentation. Only http traces will be collected.
+   *
+   * @default false
+   */
+  simplifiedDeployment?: boolean;
 };
