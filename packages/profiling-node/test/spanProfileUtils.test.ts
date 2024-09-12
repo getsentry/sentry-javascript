@@ -54,7 +54,8 @@ function makeContinuousProfilingClient(): [Sentry.NodeClient, Transport] {
 
 function getProfilerId(): string {
   // @ts-expect-error accessing a pvt field
-  return Sentry.getClient()?.getIntegrationByName<ProfilingIntegration<Sentry.NodeClient>>('ProfilingIntegration')?._profiler?._profilerId
+  return Sentry.getClient()?.getIntegrationByName<ProfilingIntegration<Sentry.NodeClient>>('ProfilingIntegration')
+    ?._profiler?._profilerId;
 }
 
 function makeClientOptions(
@@ -536,7 +537,7 @@ describe('continuous profiling', () => {
     Sentry.profiler.stopProfiler();
     Sentry.profiler.startProfiler();
 
-    expect(getProfilerId()).toEqual(expect.any(String))
+    expect(getProfilerId()).toEqual(expect.any(String));
     expect(getProfilerId()).not.toBe(profilerId);
   });
 
@@ -706,7 +707,9 @@ describe('continuous profiling does not start in span profiling mode', () => {
     }
 
     integration._profiler.start();
-    expect(logSpy).toHaveBeenLastCalledWith('[Profiling] Failed to start, sentry client was never attached to the profiler.');
+    expect(logSpy).toHaveBeenLastCalledWith(
+      '[Profiling] Failed to start, sentry client was never attached to the profiler.',
+    );
   });
 });
 describe('continuous profiling mode', () => {
