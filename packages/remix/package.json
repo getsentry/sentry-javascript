@@ -1,6 +1,6 @@
 {
   "name": "@sentry/remix",
-  "version": "8.28.0",
+  "version": "8.30.0",
   "description": "Official Sentry SDK for Remix",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/remix",
@@ -54,13 +54,13 @@
   "dependencies": {
     "@opentelemetry/instrumentation-http": "0.53.0",
     "@remix-run/router": "1.x",
-    "@sentry/cli": "^2.33.0",
-    "@sentry/core": "8.28.0",
-    "@sentry/node": "8.28.0",
-    "@sentry/opentelemetry": "8.28.0",
-    "@sentry/react": "8.28.0",
-    "@sentry/types": "8.28.0",
-    "@sentry/utils": "8.28.0",
+    "@sentry/cli": "^2.35.0",
+    "@sentry/core": "8.30.0",
+    "@sentry/node": "8.30.0",
+    "@sentry/opentelemetry": "8.30.0",
+    "@sentry/react": "8.30.0",
+    "@sentry/types": "8.30.0",
+    "@sentry/utils": "8.30.0",
     "glob": "^10.3.4",
     "opentelemetry-instrumentation-remix": "0.7.1",
     "yargs": "^17.6.0"

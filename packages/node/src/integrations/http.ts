@@ -165,6 +165,10 @@ export const instrumentHttp = Object.assign(
 
         isolationScope.setTransactionName(bestEffortTransactionName);
 
+        if (isKnownPrefetchRequest(req)) {
+          span.setAttribute('sentry.http.prefetch', true);
+        }
+
         _httpOptions.instrumentation?.requestHook?.(span, req);
       },
       responseHook: (span, res) => {
@@ -274,4 +278,12 @@ function getBreadcrumbData(request: ClientRequest): Partial<SanitizedRequestData
  */
 function _isClientRequest(req: ClientRequest | HTTPModuleRequestIncomingMessage): req is ClientRequest {
   return 'outputData' in req && 'outputSize' in req && !('client' in req) && !('statusCode' in req);
+}
+
+/**
+ * Detects if an incoming request is a prefetch request.
+ */
+function isKnownPrefetchRequest(req: HTTPModuleRequestIncomingMessage): boolean {
+  // Currently only handles Next.js prefetch requests but may check other frameworks in the future.
+  return req.headers['next-router-prefetch'] === '1';
 }
