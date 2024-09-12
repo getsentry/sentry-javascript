@@ -8,6 +8,7 @@ import type {
 } from '@nestjs/common';
 import { Catch, Global, HttpException, Injectable, Logger, Module } from '@nestjs/common';
 import { APP_INTERCEPTOR, BaseExceptionFilter } from '@nestjs/core';
+import type { HttpServer } from '@nestjs/common';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -67,8 +68,8 @@ export { SentryTracingInterceptor };
 class SentryGlobalFilter extends BaseExceptionFilter {
   public readonly __SENTRY_INTERNAL__: boolean;
 
-  public constructor() {
-    super();
+  public constructor(applicationRef?: HttpServer) {
+    super(applicationRef);
     this.__SENTRY_INTERNAL__ = true;
   }
 
@@ -122,6 +123,36 @@ class SentryGlobalGraphQLFilter {
 }
 Catch()(SentryGlobalGraphQLFilter);
 export { SentryGlobalGraphQLFilter };
+
+/**
+ * Global filter to handle exceptions and report them to Sentry.
+ *
+ * This filter is a generic filter that can handle both HTTP and GraphQL exceptions.
+ */
+class SentryGlobalGenericFilter {
+  public readonly __SENTRY_INTERNAL__: boolean;
+  private readonly _httpFilter: SentryGlobalFilter;
+  private readonly _graphqlFilter: SentryGlobalGraphQLFilter;
+
+  public constructor(applicationRef?: HttpServer) {
+    this.__SENTRY_INTERNAL__ = true;
+    this._httpFilter = new SentryGlobalFilter(applicationRef);
+    this._graphqlFilter = new SentryGlobalGraphQLFilter();
+  }
+
+  /**
+   * Catches exceptions and reports them to Sentry unless they are HttpExceptions.
+   */
+  public catch(exception: unknown, host: ArgumentsHost): void {
+    if (host.getType<'graphql'>() === 'graphql') {
+      return this._graphqlFilter.catch(exception, host);
+    }
+
+    this._httpFilter.catch(exception, host);
+  }
+}
+Catch()(SentryGlobalGenericFilter);
+export { SentryGlobalGenericFilter };
 
 /**
  * Service to set up Sentry performance tracing for Nest.js applications.
