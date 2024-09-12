@@ -394,7 +394,7 @@ describe('continuous profiling', () => {
     const integration = client?.getIntegrationByName<ProfilingIntegration<Sentry.NodeClient>>('ProfilingIntegration');
 
     if (integration) {
-      integration._profiler.stop();
+      Sentry.profiler.stopProfiler();
     }
 
     jest.clearAllMocks();
@@ -432,14 +432,9 @@ describe('continuous profiling', () => {
     client.init();
 
     const transportSpy = jest.spyOn(transport, 'send').mockReturnValue(Promise.resolve({}));
-
-    const integration = client.getIntegrationByName<ProfilingIntegration<Sentry.NodeClient>>('ProfilingIntegration');
-    if (!integration) {
-      throw new Error('Profiling integration not found');
-    }
-    integration._profiler.start();
+    Sentry.profiler.startProfiler();
     jest.advanceTimersByTime(1000);
-    integration._profiler.stop();
+    Sentry.profiler.stopProfiler();
     jest.advanceTimersByTime(1000);
 
     const profile = transportSpy.mock.calls?.[0]?.[0]?.[1]?.[0]?.[1] as ProfileChunk;
@@ -455,14 +450,10 @@ describe('continuous profiling', () => {
     client.init();
 
     expect(startProfilingSpy).not.toHaveBeenCalledTimes(1);
+    Sentry.profiler.startProfiler();
 
     const integration = client.getIntegrationByName<ProfilingIntegration<Sentry.NodeClient>>('ProfilingIntegration');
-    if (!integration) {
-      throw new Error('Profiling integration not found');
-    }
-    integration._profiler.start();
-
-    expect(integration._profiler).toBeDefined();
+    expect(integration?._profiler).toBeDefined();
   });
 
   it('starts a continuous profile', () => {
@@ -473,11 +464,7 @@ describe('continuous profiling', () => {
     client.init();
 
     expect(startProfilingSpy).not.toHaveBeenCalledTimes(1);
-    const integration = client.getIntegrationByName<ProfilingIntegration<Sentry.NodeClient>>('ProfilingIntegration');
-    if (!integration) {
-      throw new Error('Profiling integration not found');
-    }
-    integration._profiler.start();
+    Sentry.profiler.startProfiler();
     expect(startProfilingSpy).toHaveBeenCalledTimes(1);
   });
 
@@ -490,12 +477,9 @@ describe('continuous profiling', () => {
     client.init();
 
     expect(startProfilingSpy).not.toHaveBeenCalledTimes(1);
-    const integration = client.getIntegrationByName<ProfilingIntegration<Sentry.NodeClient>>('ProfilingIntegration');
-    if (!integration) {
-      throw new Error('Profiling integration not found');
-    }
-    integration._profiler.start();
-    integration._profiler.start();
+    Sentry.profiler.startProfiler();
+    Sentry.profiler.startProfiler();
+
     expect(startProfilingSpy).toHaveBeenCalledTimes(2);
     expect(stopProfilingSpy).toHaveBeenCalledTimes(1);
   });
@@ -509,11 +493,7 @@ describe('continuous profiling', () => {
     client.init();
 
     expect(startProfilingSpy).not.toHaveBeenCalledTimes(1);
-    const integration = client.getIntegrationByName<ProfilingIntegration<Sentry.NodeClient>>('ProfilingIntegration');
-    if (!integration) {
-      throw new Error('Profiling integration not found');
-    }
-    integration._profiler.start();
+    Sentry.profiler.startProfiler();
 
     jest.advanceTimersByTime(5001);
     expect(stopProfilingSpy).toHaveBeenCalledTimes(1);
@@ -529,11 +509,7 @@ describe('continuous profiling', () => {
     client.init();
 
     expect(startProfilingSpy).not.toHaveBeenCalledTimes(1);
-    const integration = client.getIntegrationByName<ProfilingIntegration<Sentry.NodeClient>>('ProfilingIntegration');
-    if (!integration) {
-      throw new Error('Profiling integration not found');
-    }
-    integration._profiler.start();
+    Sentry.profiler.startProfiler();
 
     jest.advanceTimersByTime(5001);
     expect(stopProfilingSpy).toHaveBeenCalledTimes(1);
@@ -548,15 +524,11 @@ describe('continuous profiling', () => {
     client.init();
 
     expect(startProfilingSpy).not.toHaveBeenCalledTimes(1);
-    const integration = client.getIntegrationByName<ProfilingIntegration<Sentry.NodeClient>>('ProfilingIntegration');
-    if (!integration) {
-      throw new Error('Profiling integration not found');
-    }
-    integration._profiler.start();
+    Sentry.profiler.startProfiler();
 
     jest.advanceTimersByTime(1000);
 
-    integration._profiler.stop();
+    Sentry.profiler.stopProfiler();
     expect(stopProfilingSpy).toHaveBeenCalledTimes(1);
 
     jest.advanceTimersByTime(1000);
@@ -603,14 +575,9 @@ describe('continuous profiling', () => {
     client.init();
 
     const transportSpy = jest.spyOn(transport, 'send').mockReturnValue(Promise.resolve({}));
-
-    const integration = client.getIntegrationByName<ProfilingIntegration<Sentry.NodeClient>>('ProfilingIntegration');
-    if (!integration) {
-      throw new Error('Profiling integration not found');
-    }
-    integration._profiler.start();
+    Sentry.profiler.startProfiler();
     jest.advanceTimersByTime(1000);
-    integration._profiler.stop();
+    Sentry.profiler.stopProfiler();
     jest.advanceTimersByTime(1000);
 
     expect(transportSpy.mock.calls?.[0]?.[0]?.[1]?.[0]?.[0]?.type).toBe('profile_chunk');
@@ -640,7 +607,7 @@ describe('continuous profiling', () => {
     integration._profiler.start();
     const profiledTransaction = Sentry.startInactiveSpan({ forceTransaction: true, name: 'profile_hub' });
     profiledTransaction.end();
-    integration._profiler.stop();
+    Sentry.profiler.stopProfiler();
 
     expect(transportSpy.mock.calls?.[1]?.[0]?.[1]?.[0]?.[1]).toMatchObject({
       contexts: {
@@ -658,7 +625,7 @@ describe('continuous profiling', () => {
   });
 });
 
-describe('span profiling mode', () => {
+describe('continuous profiling does not start in span profiling mode', () => {
   it.each([
     ['profilesSampleRate=1', makeClientOptions({ profilesSampleRate: 1 })],
     ['profilesSampler is defined', makeClientOptions({ profilesSampler: () => 1 })],
@@ -699,7 +666,7 @@ describe('span profiling mode', () => {
     }
 
     integration._profiler.start();
-    expect(logSpy).toHaveBeenLastCalledWith('[Profiling] Profiler was never attached to the client.');
+    expect(logSpy).toHaveBeenLastCalledWith('[Profiling] Failed to start, sentry client was never attached to the profiler.');
   });
 });
 describe('continuous profiling mode', () => {
@@ -742,12 +709,7 @@ describe('continuous profiling mode', () => {
     }
 
     jest.spyOn(transport, 'send').mockReturnValue(Promise.resolve({}));
-
-    const integration = client.getIntegrationByName<ProfilingIntegration<Sentry.NodeClient>>('ProfilingIntegration');
-    if (!integration) {
-      throw new Error('Profiling integration not found');
-    }
-    integration._profiler.start();
+    Sentry.profiler.startProfiler();
     const callCount = startProfilingSpy.mock.calls.length;
     expect(startProfilingSpy).toHaveBeenCalled();
 

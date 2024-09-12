@@ -188,14 +188,10 @@ class ContinuousProfiler {
       return;
     }
 
-    if (this._profilerId) {
-      DEBUG_BUILD &&
-        logger.log(
-          '[Profiling] Profiler session is already in progress, please ensure you call stop before starting a new profile.',
-        );
-      return;
-    }
+    // Flush any existing chunks before starting a new one.
+    this._chunkStop();
 
+    // Restart the profiler session
     this._setupSpanChunkInstrumentation();
     this._chunkStart();
   }
