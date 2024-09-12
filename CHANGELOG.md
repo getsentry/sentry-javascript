@@ -10,6 +10,38 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 8.30.0
+
+### Important Changes
+
+- _feat(node): Add `kafkajs` integration (#13528)_
+
+This release adds a new integration that instruments `kafkajs` library with spans and traces. This integration is
+automatically enabled by default, but can be included with the `Sentry.kafkaIntegration()` import.
+
+```js
+Sentry.init({
+  integrations: [Sentry.kafkaIntegration()],
+});
+```
+
+### Other Changes
+
+- feat(core): Allow adding measurements without global client (#13612)
+- feat(deps): Bump @opentelemetry/instrumentation-undici from 0.5.0 to 0.6.0 (#13622)
+- feat(deps): Bump @sentry/cli from 2.33.0 to 2.35.0 (#13624)
+- feat(node): Use `@opentelemetry/instrumentation-undici` for fetch tracing (#13485)
+- feat(nuxt): Add server config to root folder (#13583)
+- feat(otel): Upgrade @opentelemetry/semantic-conventions to 1.26.0 (#13631)
+- fix(browser): check supportedEntryTypes before caling the function (#13541)
+- fix(browser): Ensure Standalone CLS span timestamps are correct (#13649)
+- fix(nextjs): Widen removal of 404 transactions (#13628)
+- fix(node): Remove ambiguity and race conditions when matching local variables to exceptions (#13501)
+- fix(node): Update OpenTelemetry instrumentation package for solidstart and opentelemetry (#13640)
+- fix(node): Update OpenTelemetry instrumentation package for solidstart and opentelemetry (#13642)
+- fix(vue): Ensure Vue `trackComponents` list matches components with or without `<>` (#13543)
+- ref(profiling): Conditionally shim cjs globals (#13267)
+
 Work in this release was contributed by @Zen-cronic and @odanado. Thank you for your contributions!
 
 ## 8.29.0
