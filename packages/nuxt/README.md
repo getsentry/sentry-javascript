@@ -45,7 +45,10 @@ functionality related to Nuxt.
 
 **Known Issues:**
 
-- When adding `sentry.server.config.(ts/js)`, you get an error like this: "`Failed to register ESM hook (import-in-the-middle/hook.mjs)`". You can add a resolution for `@vercel/nft` to fix this. This will add the `hook.mjs` file to your build output ([issue here](https://github.com/unjs/nitro/issues/2703)). 
+- When adding `sentry.server.config.(ts/js)`, you get an error like this:
+  "`Failed to register ESM hook (import-in-the-middle/hook.mjs)`". You can add a resolution for `@vercel/nft` to fix
+  this. This will add the `hook.mjs` file to your build output
+  ([issue here](https://github.com/unjs/nitro/issues/2703)).
   ```json
     "resolutions": {
       "@vercel/nft": "^0.27.4"
@@ -92,7 +95,7 @@ export default defineNuxtConfig({
 Add a `sentry.client.config.(js|ts)` file to the root of your project:
 
 ```javascript
-import { useRuntimeConfig } from "#imports";
+import { useRuntimeConfig } from '#imports';
 import * as Sentry from '@sentry/nuxt';
 
 Sentry.init({
@@ -111,13 +114,13 @@ import * as Sentry from '@sentry/nuxt';
 // Only run `init` when process.env.SENTRY_DSN is available.
 if (process.env.SENTRY_DSN) {
   Sentry.init({
-    dsn: "your-dsn",
+    dsn: 'your-dsn',
   });
 }
 ```
 
-The Nuxt runtime config does not work in the Sentry server to technical reasons (it has to be loaded before Nuxt is loaded). 
-To be able to use `process.env` you either have to add `--env-file=.env` to your node command
+The Nuxt runtime config does not work in the Sentry server to technical reasons (it has to be loaded before Nuxt is
+loaded). To be able to use `process.env` you either have to add `--env-file=.env` to your node command
 
 ```bash
 node --env-file=.env --import ./.output/server/sentry.server.config.mjs .output/server/index.mjs
@@ -126,7 +129,7 @@ node --env-file=.env --import ./.output/server/sentry.server.config.mjs .output/
 or use the `dotenv` package:
 
 ```javascript
-import dotenv from "dotenv";
+import dotenv from 'dotenv';
 import * as Sentry from '@sentry/nuxt';
 
 dotenv.config();
@@ -136,8 +139,8 @@ Sentry.init({
 });
 ```
 
-Add an import flag to the Node options of your `node` command (not `nuxt preview`), so the file loads before any
-other imports (keep in mind the `.mjs` file ending):
+Add an import flag to the Node options of your `node` command (not `nuxt preview`), so the file loads before any other
+imports (keep in mind the `.mjs` file ending):
 
 ```json
 {
