@@ -525,7 +525,6 @@ describe('continuous profiling', () => {
 
   it('explicit calls to stop clear profilerId', async () => {
     const startProfilingSpy = jest.spyOn(CpuProfilerBindings, 'startProfiling');
-    const stopProfilingSpy = jest.spyOn(CpuProfilerBindings, 'stopProfiling');
 
     const [client] = makeContinuousProfilingClient();
     Sentry.setCurrentClient(client);
