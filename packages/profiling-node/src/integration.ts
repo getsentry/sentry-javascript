@@ -172,6 +172,10 @@ class ContinuousProfiler {
    */
   public initialize(client: NodeClient): void {
     this._client = client;
+
+    // There is no off method to disable this, so we need to ensure to add the listener only once. This adds overhead
+    // to the event processing, but it is minimal as we short circuit if there is no profilerId active and return early.
+    this._client.on('beforeSendEvent', this._onBeforeSendThreadContextAssignment.bind(this));
   }
 
   /**
@@ -179,6 +183,11 @@ class ContinuousProfiler {
    * @returns void
    */
   public start(): void {
+    if (!this._client) {
+      DEBUG_BUILD && logger.log('[Profiling] Failed to start, sentry client was never attached to the profiler.');
+      return;
+    }
+
     if (this._profilerId) {
       DEBUG_BUILD &&
         logger.log(
@@ -192,10 +201,22 @@ class ContinuousProfiler {
   }
 
   /**
-   * Stop profiler and initializes profiling of the next chunk, this method should only be called from
-   * the chunk timer callback.
+   * Stops the current chunk and flushes the profile to Sentry.
+   * @returns void
    */
-  public _chunkStart(): void {
+  public stop(): void {
+    if (!this._client) {
+      DEBUG_BUILD && logger.log('[Profiling] Failed to stop, sentry client was never attached to the profiler.');
+      return;
+    }
+    this._chunkStop();
+    this._teardownSpanChunkInstrumentation();
+  }
+
+  /**
+   * Stop profiler and initializes profiling of the next chunk
+   */
+  private _chunkStart(): void {
     if (!this._client) {
       // The client is not attached to the profiler if the user has not enabled continuous profiling.
       // In this case, calling start() and stop() is a noop action.The reason this exists is because
@@ -211,25 +232,13 @@ class ContinuousProfiler {
       this._chunkStop();
     }
 
-    const traceId =
-      getCurrentScope().getPropagationContext().traceId || getIsolationScope().getPropagationContext().traceId;
-    this._initializeChunk(traceId);
-    this._startChunkProfiling(this._chunkData!);
-  }
-
-  /**
-   * Stops the current chunk and flushes the profile to Sentry.
-   * @returns void
-   */
-  public stop(): void {
-    this._chunkStop();
-    this._teardownSpanChunkInstrumentation();
+    this._startChunkProfiling();
   }
 
   /**
    * Stops profiling of the current chunks and flushes the profile to Sentry
    */
-  public _chunkStop(): void {
+  private _chunkStop(): void {
     if (this._chunkData?.timer) {
       global.clearTimeout(this._chunkData.timer);
       this._chunkData.timer = undefined;
@@ -276,7 +285,7 @@ class ContinuousProfiler {
 
     if (!chunk) {
       DEBUG_BUILD && logger.log(`[Profiling] Failed to create profile chunk for: ${this._chunkData.id}`);
-      this._reset();
+      this._resetChunkData();
       return;
     }
 
@@ -285,7 +294,7 @@ class ContinuousProfiler {
     // the format may negatively impact the performance of the application. To avoid
     // blocking for too long, enqueue the next chunk start inside the next macrotask.
     // clear current chunk
-    this._reset();
+    this._resetChunkData();
   }
 
   /**
@@ -319,7 +328,11 @@ class ContinuousProfiler {
    * Starts the profiler and registers the flush timer for a given chunk.
    * @param chunk
    */
-  private _startChunkProfiling(chunk: ChunkData): void {
+  private _startChunkProfiling(): void {
+    const traceId =
+      getCurrentScope().getPropagationContext().traceId || getIsolationScope().getPropagationContext().traceId;
+    const chunk = this._initializeChunk(traceId);
+
     CpuProfilerBindings.startProfiling(chunk.id);
     DEBUG_BUILD && logger.log(`[Profiling] starting profiling chunk: ${chunk.id}`);
 
@@ -341,7 +354,9 @@ class ContinuousProfiler {
   private _setupSpanChunkInstrumentation(): void {
     if (!this._client) {
       DEBUG_BUILD &&
-        logger.log('[Profiling] Failed to collect profile, sentry client was never attached to the profiler.');
+        logger.log(
+          '[Profiling] Failed to initialize span profiling, sentry client was never attached to the profiler.',
+        );
       return;
     }
 
@@ -349,8 +364,14 @@ class ContinuousProfiler {
     getGlobalScope().setContext('profile', {
       profiler_id: this._profilerId,
     });
+  }
 
-    this._client.on('beforeSendEvent', e => this._assignThreadIdContext(e));
+  /**
+   * Assigns thread_id and thread name context to a profiled event if there is an active profiler session
+   */
+  private _onBeforeSendThreadContextAssignment(event: Event): void {
+    if (!this._client || !this._profilerId) return;
+    this._assignThreadIdContext(event);
   }
 
   /**
@@ -365,18 +386,19 @@ class ContinuousProfiler {
   /**
    * Initializes new profile chunk metadata
    */
-  private _initializeChunk(traceId: string): void {
+  private _initializeChunk(traceId: string): ChunkData {
     this._chunkData = {
       id: uuid4(),
       startTraceID: traceId,
       timer: undefined,
     };
+    return this._chunkData;
   }
 
   /**
    * Assigns thread_id and thread name context to a profiled event.
    */
-  private _assignThreadIdContext(event: Event): any {
+  private _assignThreadIdContext(event: Event): void {
     if (!event?.['contexts']?.['profile']) {
       return;
     }
@@ -400,7 +422,7 @@ class ContinuousProfiler {
   /**
    * Resets the current chunk state.
    */
-  private _reset(): void {
+  private _resetChunkData(): void {
     this._chunkData = undefined;
   }
 }
