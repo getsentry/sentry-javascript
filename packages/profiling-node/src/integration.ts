@@ -17,7 +17,7 @@ import { CpuProfilerBindings } from './cpu_profiler';
 import { DEBUG_BUILD } from './debug-build';
 import { NODE_MAJOR, NODE_VERSION } from './nodeVersion';
 import { MAX_PROFILE_DURATION_MS, maybeProfileSpan, stopSpanProfile } from './spanProfileUtils';
-import type { RawChunkCpuProfile, RawThreadCpuProfile } from './types';
+import type { RawThreadCpuProfile } from './types';
 import { ProfileFormat } from './types';
 import { PROFILER_THREAD_NAME } from './utils';
 
@@ -161,7 +161,7 @@ interface ChunkData {
 }
 
 class ContinuousProfiler {
-  private _profilerId = uuid4();
+  private _profilerId: string | undefined;
   private _client: NodeClient | undefined = undefined;
   private _chunkData: ChunkData | undefined = undefined;
 
@@ -175,12 +175,27 @@ class ContinuousProfiler {
   }
 
   /**
-   * Recursively schedules chunk profiling to start and stop at a set interval.
-   * Once the user calls stop(), the current chunk will be stopped and flushed to Sentry and no new chunks will
-   * will be started. To restart continuous mode after calling stop(), the user must call start() again.
+   * Initializes a new profilerId session and schedules chunk profiling.
    * @returns void
    */
   public start(): void {
+    if (this._profilerId) {
+      DEBUG_BUILD &&
+        logger.log(
+          '[Profiling] Profiler session is already in progress, please ensure you call stop before starting a new profile.',
+        );
+      return;
+    }
+
+    this._setupSpanChunkInstrumentation();
+    this._chunkStart();
+  }
+
+  /**
+   * Stop profiler and initializes profiling of the next chunk, this method should only be called from
+   * the chunk timer callback.
+   */
+  public _chunkStart(): void {
     if (!this._client) {
       // The client is not attached to the profiler if the user has not enabled continuous profiling.
       // In this case, calling start() and stop() is a noop action.The reason this exists is because
@@ -193,7 +208,7 @@ class ContinuousProfiler {
         logger.log(
           `[Profiling] Chunk with chunk_id ${this._chunkData.id} is still running, current chunk will be stopped a new chunk will be started.`,
         );
-      this.stop();
+      this._chunkStop();
     }
 
     const traceId =
@@ -207,6 +222,14 @@ class ContinuousProfiler {
    * @returns void
    */
   public stop(): void {
+    this._chunkStop();
+    this._teardownSpanChunkInstrumentation();
+  }
+
+  /**
+   * Stops profiling of the current chunks and flushes the profile to Sentry
+   */
+  public _chunkStop(): void {
     if (this._chunkData?.timer) {
       global.clearTimeout(this._chunkData.timer);
       this._chunkData.timer = undefined;
@@ -223,10 +246,15 @@ class ContinuousProfiler {
       return;
     }
 
-    const profile = this._stopChunkProfiling(this._chunkData);
+    const profile = CpuProfilerBindings.stopProfiling(this._chunkData.id, ProfileFormat.CHUNK);
 
     if (!profile) {
       DEBUG_BUILD && logger.log(`[Profiling] _chunkiledStartTraceID to collect profile for: ${this._chunkData.id}`);
+      return;
+    }
+    if (!this._profilerId) {
+      DEBUG_BUILD &&
+        logger.log('[Profiling] Profile chunk does not contain a valid profiler_id, this is a bug in the SDK');
       return;
     }
     if (profile) {
@@ -288,28 +316,18 @@ class ContinuousProfiler {
   }
 
   /**
-   * Stops the profile and clears chunk instrumentation from global scope
-   * @returns void
-   */
-  private _stopChunkProfiling(chunk: ChunkData): RawChunkCpuProfile | null {
-    this._teardownSpanChunkInstrumentation();
-    return CpuProfilerBindings.stopProfiling(chunk.id, ProfileFormat.CHUNK);
-  }
-
-  /**
    * Starts the profiler and registers the flush timer for a given chunk.
    * @param chunk
    */
   private _startChunkProfiling(chunk: ChunkData): void {
-    this._setupSpanChunkInstrumentation();
     CpuProfilerBindings.startProfiling(chunk.id);
     DEBUG_BUILD && logger.log(`[Profiling] starting profiling chunk: ${chunk.id}`);
 
     chunk.timer = global.setTimeout(() => {
       DEBUG_BUILD && logger.log(`[Profiling] Stopping profiling chunk: ${chunk.id}`);
-      this.stop();
+      this._chunkStop();
       DEBUG_BUILD && logger.log('[Profiling] Starting new profiling chunk.');
-      setImmediate(this.start.bind(this));
+      setImmediate(this._chunkStart.bind(this));
     }, CHUNK_INTERVAL_MS);
 
     // Unref timeout so it doesn't keep the process alive.
@@ -327,6 +345,7 @@ class ContinuousProfiler {
       return;
     }
 
+    this._profilerId = uuid4();
     getGlobalScope().setContext('profile', {
       profiler_id: this._profilerId,
     });
@@ -338,6 +357,7 @@ class ContinuousProfiler {
    * Clear profiling information from global context when a profile is not running.
    */
   private _teardownSpanChunkInstrumentation(): void {
+    this._profilerId = undefined;
     const globalScope = getGlobalScope();
     globalScope.setContext('profile', {});
   }
