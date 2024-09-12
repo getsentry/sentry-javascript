@@ -52,6 +52,11 @@ function makeContinuousProfilingClient(): [Sentry.NodeClient, Transport] {
   return [client, client.getTransport() as Transport];
 }
 
+function getProfilerId(): string {
+  // @ts-expect-error accessing a pvt field
+  return Sentry.getClient()?.getIntegrationByName<ProfilingIntegration<Sentry.NodeClient>>('ProfilingIntegration')?._profiler?._profilerId
+}
+
 function makeClientOptions(
   options: Omit<NodeClientOptions, 'stackParser' | 'integrations' | 'transport'>,
 ): NodeClientOptions {
@@ -498,6 +503,42 @@ describe('continuous profiling', () => {
     jest.advanceTimersByTime(5001);
     expect(stopProfilingSpy).toHaveBeenCalledTimes(1);
     expect(startProfilingSpy).toHaveBeenCalledTimes(2);
+  });
+
+  it('chunks share the same profilerId', async () => {
+    const startProfilingSpy = jest.spyOn(CpuProfilerBindings, 'startProfiling');
+    const stopProfilingSpy = jest.spyOn(CpuProfilerBindings, 'stopProfiling');
+
+    const [client] = makeContinuousProfilingClient();
+    Sentry.setCurrentClient(client);
+    client.init();
+
+    expect(startProfilingSpy).not.toHaveBeenCalledTimes(1);
+    Sentry.profiler.startProfiler();
+    const profilerId = getProfilerId();
+
+    jest.advanceTimersByTime(5001);
+    expect(stopProfilingSpy).toHaveBeenCalledTimes(1);
+    expect(startProfilingSpy).toHaveBeenCalledTimes(2);
+    expect(getProfilerId()).toBe(profilerId);
+  });
+
+  it('explicit calls to stop clear profilerId', async () => {
+    const startProfilingSpy = jest.spyOn(CpuProfilerBindings, 'startProfiling');
+    const stopProfilingSpy = jest.spyOn(CpuProfilerBindings, 'stopProfiling');
+
+    const [client] = makeContinuousProfilingClient();
+    Sentry.setCurrentClient(client);
+    client.init();
+
+    expect(startProfilingSpy).not.toHaveBeenCalledTimes(1);
+    Sentry.profiler.startProfiler();
+    const profilerId = getProfilerId();
+    Sentry.profiler.stopProfiler();
+    Sentry.profiler.startProfiler();
+
+    expect(getProfilerId()).toEqual(expect.any(String))
+    expect(getProfilerId()).not.toBe(profilerId);
   });
 
   it('stops a continuous profile after interval', async () => {
