@@ -20,6 +20,10 @@ export function SentryTraced(op: string = 'function') {
         },
       );
     };
+
+    // preserve the original name on the decorated function
+    Object.defineProperty(descriptor.value, 'name', { value: originalMethod.name, configurable: true });
+
     return descriptor;
   };
 }

@@ -58,6 +58,11 @@ export class AppService {
     return { result: 'test' };
   }
 
+  @SentryTraced('return the function name')
+  getFunctionName(): { result: string } {
+    return { result: this.getFunctionName.name };
+  }
+
   async testSpanDecoratorSync() {
     const returned = this.getString();
     // Will fail if getString() is async, because returned will be a Promise<>

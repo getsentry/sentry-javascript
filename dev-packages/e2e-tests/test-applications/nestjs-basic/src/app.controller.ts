@@ -116,4 +116,9 @@ export class AppController {
   testServiceWithCanActivate() {
     return this.appService.canActivate();
   }
+
+  @Get('test-function-name')
+  testFunctionName() {
+    return this.appService.getFunctionName();
+  }
 }
