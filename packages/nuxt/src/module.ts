@@ -1,4 +1,5 @@
 import { addPlugin, addPluginTemplate, addServerPlugin, createResolver, defineNuxtModule } from '@nuxt/kit';
+import { consoleSandbox } from '@sentry/utils';
 import type { SentryNuxtModuleOptions } from './common/types';
 import { addSentryTopImport, addServerConfigToBuild } from './vite/addServerConfig';
 import { setupSourceMaps } from './vite/sourceMaps';
@@ -70,10 +71,12 @@ export default defineNuxtModule<ModuleOptions>({
         addSentryTopImport(moduleOptions, nuxt);
       } else {
         if (moduleOptions.debug) {
-          // eslint-disable-next-line no-console
-          console.log(
-            `[Sentry] Using your \`${serverConfigFile}\` file for the server-side Sentry configuration. In case you have a \`public/instrument.server\` file, the \`public/instrument.server\` file will be ignored. Make sure the file path in your node \`--import\` option matches the Sentry server config file in your \`.output\` folder and has a \`.mjs\` extension.`,
-          );
+          consoleSandbox(() => {
+            // eslint-disable-next-line no-console
+            console.log(
+              `[Sentry] Using your \`${serverConfigFile}\` file for the server-side Sentry configuration. In case you have a \`public/instrument.server\` file, the \`public/instrument.server\` file will be ignored. Make sure the file path in your node \`--import\` option matches the Sentry server config file in your \`.output\` folder and has a \`.mjs\` extension.`,
+            );
+          });
         }
       }
     }

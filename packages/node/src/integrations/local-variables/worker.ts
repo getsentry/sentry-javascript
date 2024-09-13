@@ -1,6 +1,7 @@
 import type { Debugger, InspectorNotification, Runtime } from 'node:inspector';
 import { Session } from 'node:inspector/promises';
 import { workerData } from 'node:worker_threads';
+import { consoleSandbox } from '@sentry/utils';
 import type { LocalVariablesWorkerArgs, PausedExceptionEvent, RateLimitIncrement, Variables } from './common';
 import { LOCAL_VARIABLES_KEY } from './common';
 import { createRateLimiter } from './common';
@@ -10,7 +11,7 @@ const options: LocalVariablesWorkerArgs = workerData;
 function log(...args: unknown[]): void {
   if (options.debug) {
     // eslint-disable-next-line no-console
-    console.log('[LocalVariables Worker]', ...args);
+    consoleSandbox(() => console.log('[LocalVariables Worker]', ...args));
   }
 }
 

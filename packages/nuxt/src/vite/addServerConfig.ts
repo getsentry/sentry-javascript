@@ -1,6 +1,7 @@
 import * as fs from 'fs';
 import { createResolver } from '@nuxt/kit';
 import type { Nuxt } from '@nuxt/schema';
+import { consoleSandbox } from '@sentry/utils';
 import type { SentryNuxtModuleOptions } from '../common/types';
 
 /**
@@ -38,18 +39,22 @@ export function addServerConfigToBuild(
         await fs.promises.copyFile(source, destination);
 
         if (moduleOptions.debug) {
-          // eslint-disable-next-line no-console
-          console.log(
-            `[Sentry] Successfully added the content of the \`${serverConfigFile}\` file to \`${destination}\``,
-          );
+          consoleSandbox(() => {
+            // eslint-disable-next-line no-console
+            console.log(
+              `[Sentry] Successfully added the content of the \`${serverConfigFile}\` file to \`${destination}\``,
+            );
+          });
         }
       } catch (error) {
         if (moduleOptions.debug) {
-          // eslint-disable-next-line no-console
-          console.warn(
-            `[Sentry] An error occurred when trying to add the \`${serverConfigFile}\` file to the \`.output\` directory`,
-            error,
-          );
+          consoleSandbox(() => {
+            // eslint-disable-next-line no-console
+            console.warn(
+              `[Sentry] An error occurred when trying to add the \`${serverConfigFile}\` file to the \`.output\` directory`,
+              error,
+            );
+          });
         }
       }
     });
@@ -72,20 +77,24 @@ export function addSentryTopImport(moduleOptions: SentryNuxtModuleOptions, nuxt:
 
         fs.writeFile(entryFilePath, updatedContent, 'utf8', () => {
           if (moduleOptions.debug) {
-            // eslint-disable-next-line no-console
-            console.log(
-              `[Sentry] Successfully added the Sentry import to the server entry file "\`${entryFilePath}\`"`,
-            );
+            consoleSandbox(() => {
+              // eslint-disable-next-line no-console
+              console.log(
+                `[Sentry] Successfully added the Sentry import to the server entry file "\`${entryFilePath}\`"`,
+              );
+            });
           }
         });
       });
     } catch (err) {
       if (moduleOptions.debug) {
-        // eslint-disable-next-line no-console
-        console.warn(
-          `[Sentry] An error occurred when trying to add the Sentry import to the server entry file "\`${entryFilePath}\`":`,
-          err,
-        );
+        consoleSandbox(() => {
+          // eslint-disable-next-line no-console
+          console.warn(
+            `[Sentry] An error occurred when trying to add the Sentry import to the server entry file "\`${entryFilePath}\`":`,
+            err,
+          );
+        });
       }
     }
   });
