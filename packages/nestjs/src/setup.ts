@@ -7,8 +7,8 @@ import type {
   OnModuleInit,
 } from '@nestjs/common';
 import { Catch, Global, HttpException, Injectable, Logger, Module } from '@nestjs/common';
-import { APP_INTERCEPTOR, BaseExceptionFilter } from '@nestjs/core';
 import type { HttpServer } from '@nestjs/common';
+import { APP_INTERCEPTOR, BaseExceptionFilter } from '@nestjs/core';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,

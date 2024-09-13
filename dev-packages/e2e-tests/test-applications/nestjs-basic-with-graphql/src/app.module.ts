@@ -3,8 +3,8 @@ import { Logger, Module } from '@nestjs/common';
 import { APP_FILTER } from '@nestjs/core';
 import { GraphQLModule } from '@nestjs/graphql';
 import { SentryGlobalGenericFilter, SentryModule } from '@sentry/nestjs/setup';
-import { AppResolver } from './app.resolver';
 import { AppController } from './app.controller';
+import { AppResolver } from './app.resolver';
 
 @Module({
   imports: [
