@@ -4,8 +4,8 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '@sentry/core';
 import { WINDOW, startBrowserTracingNavigationSpan, startBrowserTracingPageLoadSpan } from '@sentry/react';
-import type { Client } from '@sentry/types';
-import { addFetchInstrumentationHandler, browserPerformanceTimeOrigin } from '@sentry/utils';
+import type { Client, Span } from '@sentry/types';
+import { GLOBAL_OBJ, browserPerformanceTimeOrigin } from '@sentry/utils';
 
 /** Instruments the Next.js app router for pageloads. */
 export function appRouterInstrumentPageLoad(client: Client): void {
@@ -21,70 +21,88 @@ export function appRouterInstrumentPageLoad(client: Client): void {
   });
 }
 
+const GLOBAL_OBJ_WITH_NEXT_ROUTER = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
+  nd?: {
+    router?: {
+      back: () => void;
+      forward: () => void;
+      push: (target: string) => void;
+      replace: (target: string) => void;
+    };
+  };
+};
+
 /** Instruments the Next.js app router for navigation. */
 export function appRouterInstrumentNavigation(client: Client): void {
-  addFetchInstrumentationHandler(handlerData => {
-    // The instrumentation handler is invoked twice - once for starting a request and once when the req finishes
-    // We can use the existence of the end-timestamp to filter out "finishing"-events.
-    if (handlerData.endTimestamp !== undefined) {
-      return;
+  let currentNavigationSpan: Span | undefined = undefined;
+
+  WINDOW.addEventListener('popstate', () => {
+    console.log({ currentNavigationSpan, r: currentNavigationSpan?.isRecording() });
+
+    if (currentNavigationSpan && currentNavigationSpan.isRecording()) {
+      currentNavigationSpan.updateName(WINDOW.location.pathname);
+    } else {
+      currentNavigationSpan = startBrowserTracingNavigationSpan(client, {
+        name: WINDOW.location.pathname,
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation.popstate',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.nextjs.app_router_instrumentation',
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+        },
+      });
     }
-
-    // Only GET requests can be navigating RSC requests
-    if (handlerData.fetchData.method !== 'GET') {
-      return;
-    }
-
-    const parsedNavigatingRscFetchArgs = parseNavigatingRscFetchArgs(handlerData.args);
-
-    if (parsedNavigatingRscFetchArgs === null) {
-      return;
-    }
-
-    const newPathname = parsedNavigatingRscFetchArgs.targetPathname;
-
-    startBrowserTracingNavigationSpan(client, {
-      name: newPathname,
-      attributes: {
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.nextjs.app_router_instrumentation',
-        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
-      },
-    });
   });
+
+  setTimeout(
+    () => {
+      (['back', 'forward', 'push', 'replace'] as const).forEach(routerFunctionName => {
+        if (GLOBAL_OBJ_WITH_NEXT_ROUTER?.nd?.router?.[routerFunctionName]) {
+          // @ts-expect-error TODO
+          GLOBAL_OBJ_WITH_NEXT_ROUTER.nd.router[routerFunctionName] = new Proxy(
+            GLOBAL_OBJ_WITH_NEXT_ROUTER.nd.router[routerFunctionName],
+            {
+              apply(target, thisArg, argArray) {
+                let targetPathName: string;
+                const opParts = ['navigation'];
+
+                if (routerFunctionName === 'push') {
+                  targetPathName = transactionNameifyRouterArgument(argArray[0]);
+                } else if (routerFunctionName === 'replace') {
+                  targetPathName = transactionNameifyRouterArgument(argArray[0]);
+                } else if (routerFunctionName === 'back') {
+                  targetPathName = 'TOOD'; // TODO - figure out how to filter txns with this name
+                  opParts.push('router', 'back');
+                } else if (routerFunctionName === 'forward') {
+                  targetPathName = 'TOOD'; // TODO - figure out how to filter txns with this name
+                  opParts.push('router', 'forward');
+                }
+
+                currentNavigationSpan = startBrowserTracingNavigationSpan(client, {
+                  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                  name: targetPathName!,
+                  attributes: {
+                    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: opParts.join('.'),
+                    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.nextjs.app_router_instrumentation',
+                    [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+                  },
+                });
+
+                return target.apply(thisArg, argArray);
+              },
+            },
+          );
+        }
+      });
+    },
+    // Some arbitrary amount of time that is enough for Next.js to populate `window.next.router`
+    300,
+  );
 }
 
-function parseNavigatingRscFetchArgs(fetchArgs: unknown[]): null | {
-  targetPathname: string;
-} {
-  // Make sure the first arg is a URL object
-  if (!fetchArgs[0] || typeof fetchArgs[0] !== 'object' || (fetchArgs[0] as URL).searchParams === undefined) {
-    return null;
-  }
-
-  // Make sure the second argument is some kind of fetch config obj that contains headers
-  if (!fetchArgs[1] || typeof fetchArgs[1] !== 'object' || !('headers' in fetchArgs[1])) {
-    return null;
-  }
-
+function transactionNameifyRouterArgument(target: string): string {
   try {
-    const url = fetchArgs[0] as URL;
-    const headers = fetchArgs[1].headers as Record<string, string>;
-
-    // Not an RSC request
-    if (headers['RSC'] !== '1') {
-      return null;
-    }
-
-    // Prefetch requests are not navigating RSC requests
-    if (headers['Next-Router-Prefetch'] === '1') {
-      return null;
-    }
-
-    return {
-      targetPathname: url.pathname,
-    };
+    return new URL(target, 'http://some-random-base.com/').pathname;
   } catch {
-    return null;
+    return '/';
   }
 }

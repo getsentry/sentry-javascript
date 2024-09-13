@@ -71,6 +71,7 @@
     "@opentelemetry/instrumentation-http": "0.53.0",
     "@opentelemetry/semantic-conventions": "^1.27.0",
     "@rollup/plugin-commonjs": "26.0.1",
+    "@sentry-internal/browser-utils": "8.29.0",
     "@sentry/core": "8.29.0",
     "@sentry/node": "8.29.0",
     "@sentry/opentelemetry": "8.29.0",
