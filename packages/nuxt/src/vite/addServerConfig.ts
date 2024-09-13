@@ -1,5 +1,4 @@
 import * as fs from 'fs';
-import * as path from 'path';
 import { createResolver } from '@nuxt/kit';
 import type { Nuxt } from '@nuxt/schema';
 import type { SentryNuxtModuleOptions } from '../common/types';
@@ -30,8 +29,9 @@ export function addServerConfigToBuild(
      * This is necessary because we need to reference this file path in the node --import option.
      */
     nuxt.hook('close', async () => {
-      const source = path.resolve('.nuxt/dist/server/sentry.server.config.mjs');
-      const destination = path.resolve('.output/server/sentry.server.config.mjs');
+      const rootDirResolver = createResolver(nuxt.options.rootDir);
+      const source = rootDirResolver.resolve('.nuxt/dist/server/sentry.server.config.mjs');
+      const destination = rootDirResolver.resolve('.output/server/sentry.server.config.mjs');
 
       try {
         await fs.promises.access(source, fs.constants.F_OK);
@@ -53,5 +53,40 @@ export function addServerConfigToBuild(
         }
       }
     });
+  });
+}
+
+/**
+ *  Adds the Sentry server config import at the top of the server entry file to load the SDK on the server.
+ *  This is necessary for environments where modifying the node option `--import` is not possible.
+ *  However, only limited tracing instrumentation is supported when doing this.
+ */
+export function addSentryTopImport(moduleOptions: SentryNuxtModuleOptions, nuxt: Nuxt): void {
+  nuxt.hook('close', async () => {
+    const rootDirResolver = createResolver(nuxt.options.rootDir);
+    const entryFilePath = rootDirResolver.resolve('.output/server/index.mjs');
+
+    try {
+      fs.readFile(entryFilePath, 'utf8', (err, data) => {
+        const updatedContent = `import './sentry.server.config.mjs';\n${data}`;
+
+        fs.writeFile(entryFilePath, updatedContent, 'utf8', () => {
+          if (moduleOptions.debug) {
+            // eslint-disable-next-line no-console
+            console.log(
+              `[Sentry] Successfully added the Sentry import to the server entry file "\`${entryFilePath}\`"`,
+            );
+          }
+        });
+      });
+    } catch (err) {
+      if (moduleOptions.debug) {
+        // eslint-disable-next-line no-console
+        console.warn(
+          `[Sentry] An error occurred when trying to add the Sentry import to the server entry file "\`${entryFilePath}\`":`,
+          err,
+        );
+      }
+    }
   });
 }
