@@ -118,7 +118,9 @@ async function handlePaused(
   // We write the local variables to a property on the error object. These can be read by the integration as the error
   // event pass through the SDK event pipeline
   await session.post('Runtime.callFunctionOn', {
-    functionDeclaration: `function() { this.${LOCAL_VARIABLES_KEY} = ${JSON.stringify(frames)}; }`,
+    functionDeclaration: `function() { this.${LOCAL_VARIABLES_KEY} = this.${LOCAL_VARIABLES_KEY} || ${JSON.stringify(
+      frames,
+    )}; }`,
     silent: true,
     objectId,
   });
@@ -156,8 +158,10 @@ async function startDebugger(): Promise<void> {
           }, 1_000);
         }
       },
-      _ => {
-        // ignore any errors
+      async _ => {
+        if (isPaused) {
+          await session.post('Debugger.resume');
+        }
       },
     );
   });
