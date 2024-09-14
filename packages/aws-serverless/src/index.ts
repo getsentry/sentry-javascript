@@ -101,6 +101,7 @@ export {
   prismaIntegration,
   hapiIntegration,
   setupHapiErrorHandler,
+  socketIoIntegration,
   spotlightIntegration,
   initOpenTelemetry,
   spanToJSON,

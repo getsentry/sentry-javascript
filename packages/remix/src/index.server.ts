@@ -112,6 +112,7 @@ export {
   setupKoaErrorHandler,
   setupNestErrorHandler,
   setUser,
+  socketIoIntegration,
   spanToBaggageHeader,
   spanToJSON,
   spanToTraceHeader,
