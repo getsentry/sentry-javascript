@@ -26,6 +26,7 @@ export { prismaIntegration } from './integrations/tracing/prisma';
 export { hapiIntegration, setupHapiErrorHandler } from './integrations/tracing/hapi';
 export { koaIntegration, setupKoaErrorHandler } from './integrations/tracing/koa';
 export { connectIntegration, setupConnectErrorHandler } from './integrations/tracing/connect';
+export { socketIoIntegration } from './integrations/tracing/socket.io';
 export { spotlightIntegration } from './integrations/spotlight';
 export { genericPoolIntegration } from './integrations/tracing/genericPool';
 
