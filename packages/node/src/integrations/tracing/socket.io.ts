@@ -11,10 +11,10 @@ export const instrumentSocketIo = generateInstrumentOnce(
   () =>
     new SocketIoInstrumentation({
       emitHook(span) {
-        addOriginToSpan(span, 'auto.socket.otel.socket_io');
+        addOriginToSpan(span, 'auto.socket.otel.producer');
       },
       onHook(span) {
-        addOriginToSpan(span, 'auto.socket.otel.socket_io');
+        addOriginToSpan(span, 'auto.socket.otel.consumer');
       },
       traceReserved: true,
     }),

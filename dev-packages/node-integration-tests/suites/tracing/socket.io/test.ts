@@ -5,14 +5,13 @@ describe('socket.io auto instrumentation', () => {
     cleanupChildProcesses();
   });
 
-  test('should auto-instrument `socket.io` package', done => {
+  test('should auto-instrument `socket.io` package with express server', done => {
     const SERVER_TRANSACTION = {
       transaction: 'GET /',
       spans: expect.arrayContaining([
         expect.objectContaining({
-          origin: 'auto.socket.otel.socket_io',
           data: {
-            'sentry.origin': 'auto.socket.otel.socket_io',
+            'sentry.origin': 'auto.socket.otel.producer',
             'messaging.destination': '/',
             'messaging.destination_kind': 'topic',
             'messaging.socket.io.event_name': 'test',
@@ -21,6 +20,7 @@ describe('socket.io auto instrumentation', () => {
             'otel.kind': 'PRODUCER',
             'sentry.op': 'message',
           },
+          origin: 'auto.socket.otel.producer',
           description: '/ send',
           op: 'message',
           status: 'ok',
@@ -36,14 +36,14 @@ describe('socket.io auto instrumentation', () => {
           trace_id: expect.any(String),
           data: expect.objectContaining({
             'sentry.op': 'message',
-            'sentry.origin': 'auto.socket.otel.socket_io',
+            'sentry.origin': 'auto.socket.otel.consumer',
             'otel.kind': 'CONSUMER',
             'messaging.system': 'socket.io',
             'messaging.destination': '/',
             'messaging.operation': 'receive',
             'messaging.socket.io.event_name': 'test_reply',
           }),
-          origin: 'auto.socket.otel.socket_io',
+          origin: 'auto.socket.otel.consumer',
           op: 'message',
           status: 'ok',
         }),
