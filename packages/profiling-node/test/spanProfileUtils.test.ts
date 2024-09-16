@@ -54,10 +54,8 @@ function makeContinuousProfilingClient(): [Sentry.NodeClient, Transport] {
 
 function getProfilerId(): string {
   return (
-    // @ts-expect-error accessing a pvt field
-    Sentry.getClient()?.getIntegrationByName<ProfilingIntegration<Sentry.NodeClient>>('ProfilingIntegration')?._profiler
-      ?._profilerId
-  );
+    Sentry.getClient()?.getIntegrationByName<ProfilingIntegration<Sentry.NodeClient>>('ProfilingIntegration') as any
+  )?._profiler?._profilerId;
 }
 
 function makeClientOptions(
