@@ -173,8 +173,9 @@ class ContinuousProfiler {
   public initialize(client: NodeClient): void {
     this._client = client;
 
-    // There is no off method to disable this, so we need to ensure to add the listener only once. This adds overhead
-    // to the event processing, but it is minimal as we short circuit if there is no profilerId active and return early.
+    // Attaches a listener to beforeSend which will add the threadId data to the event being sent.
+    // This adds a constant overhead to all events being sent which could be improved to only attach
+    // and detach the listener during a profiler session
     this._client.on('beforeSendEvent', this._onBeforeSendThreadContextAssignment.bind(this));
   }
 
