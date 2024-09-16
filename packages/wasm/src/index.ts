@@ -13,17 +13,18 @@ const _wasmIntegration = (() => {
       patchWebAssembly();
     },
     processEvent(event: Event): Event {
-      let haveWasm = false;
+      let hasAtLeastOneWasmFrameWithImage = false;
 
       if (event.exception && event.exception.values) {
         event.exception.values.forEach(exception => {
           if (exception.stacktrace && exception.stacktrace.frames) {
-            haveWasm = haveWasm || patchFrames(exception.stacktrace.frames);
+            hasAtLeastOneWasmFrameWithImage =
+              hasAtLeastOneWasmFrameWithImage || patchFrames(exception.stacktrace.frames);
           }
         });
       }
 
-      if (haveWasm) {
+      if (hasAtLeastOneWasmFrameWithImage) {
         event.debug_meta = event.debug_meta || {};
         event.debug_meta.images = [...(event.debug_meta.images || []), ...getImages()];
       }
@@ -37,10 +38,11 @@ export const wasmIntegration = defineIntegration(_wasmIntegration);
 
 /**
  * Patches a list of stackframes with wasm data needed for server-side symbolication
- * if applicable. Returns true if any frames were patched.
+ * if applicable. Returns true if the provided list of stack frames had at least one
+ * matching registered image.
  */
 function patchFrames(frames: Array<StackFrame>): boolean {
-  let haveWasm = false;
+  let hasAtLeastOneWasmFrameWithImage = false;
   frames.forEach(frame => {
     if (!frame.filename) {
       return;
@@ -50,14 +52,15 @@ function patchFrames(frames: Array<StackFrame>): boolean {
       | [string, string, string];
     if (match) {
       const index = getImage(match[1]);
+      frame.instruction_addr = match[2];
+      frame.filename = match[1];
+      frame.platform = 'native';
+
       if (index >= 0) {
-        frame.instruction_addr = match[2];
         frame.addr_mode = `rel:${index}`;
-        frame.filename = match[1];
-        frame.platform = 'native';
-        haveWasm = true;
+        hasAtLeastOneWasmFrameWithImage = true;
       }
     }
   });
-  return haveWasm;
+  return hasAtLeastOneWasmFrameWithImage;
 }

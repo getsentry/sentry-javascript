@@ -17,6 +17,7 @@ import {
   addTtfbInstrumentationHandler,
 } from './instrument';
 import { getBrowserPerformanceAPI, isMeasurementValue, msToSec, startAndEndSpan } from './utils';
+import { getActivationStart } from './web-vitals/lib/getActivationStart';
 import { getNavigationEntry } from './web-vitals/lib/getNavigationEntry';
 import { getVisibilityWatcher } from './web-vitals/lib/getVisibilityWatcher';
 
@@ -382,6 +383,14 @@ export function addPerformanceEntries(span: Span, options: AddPerformanceEntries
 
     // Set timeOrigin which denotes the timestamp which to base the LCP/FCP/FP/TTFB measurements on
     span.setAttribute('performance.timeOrigin', timeOrigin);
+
+    // In prerendering scenarios, where a page might be prefetched and pre-rendered before the user clicks the link,
+    // the navigation starts earlier than when the user clicks it. Web Vitals should always be based on the
+    // user-perceived time, so they are not reported from the actual start of the navigation, but rather from the
+    // time where the user actively started the navigation, for example by clicking a link.
+    // This is user action is called "activation" and the time between navigation and activation is stored in
+    // the `activationStart` attribute of the "navigation" PerformanceEntry.
+    span.setAttribute('performance.activationStart', getActivationStart());
 
     _setWebVitalAttributes(span);
   }
