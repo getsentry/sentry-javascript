@@ -16,8 +16,8 @@ function getOSName(): string {
   }
 }
 
-function getOSRelease(): string | undefined {
-  return Deno.permissions.querySync({ name: 'sys', kind: 'osRelease' }).state === 'granted'
+async function getOSRelease(): Promise<string | undefined> {
+  return (await Deno.permissions.query({ name: 'sys', kind: 'osRelease' })).state === 'granted'
     ? Deno.osRelease()
     : undefined;
 }
@@ -35,7 +35,7 @@ async function addDenoRuntimeContext(event: Event): Promise<Event> {
       },
       os: {
         name: getOSName(),
-        version: getOSRelease(),
+        version: await getOSRelease(),
       },
       v8: {
         name: 'v8',

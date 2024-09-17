@@ -76,6 +76,9 @@ targets:
     id: '@sentry/vercel-edge'
     includeNames: /^sentry-vercel-edge-\d.*\.tgz$/
   - name: npm
+    id: '@sentry/cloudflare'
+    includeNames: /^sentry-cloudflare-\d.*\.tgz$/
+  - name: npm
     id: '@sentry/deno'
     includeNames: /^sentry-deno-\d.*\.tgz$/
   - name: commit-on-git-repository
@@ -111,6 +114,9 @@ targets:
   - name: npm
     id: '@sentry/remix'
     includeNames: /^sentry-remix-\d.*\.tgz$/
+  - name: npm
+    id: '@sentry/solidstart'
+    includeNames: /^sentry-solidstart-\d.*\.tgz$/
   - name: npm
     id: '@sentry/sveltekit'
     includeNames: /^sentry-sveltekit-\d.*\.tgz$/
@@ -180,6 +186,8 @@ targets:
             format: base64
       'npm:@sentry/bun':
         onlyIfPresent: /^sentry-bun-\d.*\.tgz$/
+      'npm:@sentry/cloudflare':
+        onlyIfPresent: /^sentry-cloudflare-\d.*\.tgz$/
       'npm:@sentry/deno':
         onlyIfPresent: /^sentry-deno-\d.*\.tgz$/
       'npm:@sentry/ember':
@@ -198,6 +206,8 @@ targets:
         onlyIfPresent: /^sentry-remix-\d.*\.tgz$/
       'npm:@sentry/solid':
         onlyIfPresent: /^sentry-solid-\d.*\.tgz$/
+      'npm:@sentry/solidstart':
+        onlyIfPresent: /^sentry-solidstart-\d.*\.tgz$/
       'npm:@sentry/svelte':
         onlyIfPresent: /^sentry-svelte-\d.*\.tgz$/
       'npm:@sentry/sveltekit':

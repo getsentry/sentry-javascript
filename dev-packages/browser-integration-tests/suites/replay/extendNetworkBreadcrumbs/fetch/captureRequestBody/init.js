@@ -6,7 +6,7 @@ window.Replay = Sentry.replayIntegration({
   flushMaxDelay: 200,
   minReplayDuration: 0,
 
-  networkDetailAllowUrls: ['http://localhost:7654/foo', 'http://sentry-test.io/foo'],
+  networkDetailAllowUrls: ['http://sentry-test.io/foo'],
   networkCaptureBodies: true,
 });
 

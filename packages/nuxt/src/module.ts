@@ -1,8 +1,9 @@
-import * as fs from 'fs';
-import * as path from 'path';
 import { addPlugin, addPluginTemplate, addServerPlugin, createResolver, defineNuxtModule } from '@nuxt/kit';
+import { consoleSandbox } from '@sentry/utils';
 import type { SentryNuxtModuleOptions } from './common/types';
+import { addSentryTopImport, addServerConfigToBuild } from './vite/addServerConfig';
 import { setupSourceMaps } from './vite/sourceMaps';
+import { findDefaultSdkInitFile } from './vite/utils';
 
 export type ModuleOptions = SentryNuxtModuleOptions;
 
@@ -26,9 +27,18 @@ export default defineNuxtModule<ModuleOptions>({
       addPluginTemplate({
         mode: 'client',
         filename: 'sentry-client-config.mjs',
-        getContents: () =>
-          `import "${buildDirResolver.resolve(`/${clientConfigFile}`)}"\n` +
-          'export default defineNuxtPlugin(() => {})',
+
+        // Dynamic import of config file to wrap it within a Nuxt context (here: defineNuxtPlugin)
+        // Makes it possible to call useRuntimeConfig() in the user-defined sentry config file
+        getContents: () => `
+          import { defineNuxtPlugin } from "#imports";
+
+          export default defineNuxtPlugin({
+            name: 'sentry-client-config',
+            async setup() {
+              await import("${buildDirResolver.resolve(`/${clientConfigFile}`)}")
+            }
+          });`,
       });
 
       addPlugin({ src: moduleDirResolver.resolve('./runtime/plugins/sentry.client'), mode: 'client' });
@@ -43,6 +53,7 @@ export default defineNuxtModule<ModuleOptions>({
         filename: 'sentry-server-config.mjs',
         getContents: () =>
           `import "${buildDirResolver.resolve(`/${serverConfigFile}`)}"\n` +
+          'import { defineNuxtPlugin } from "#imports"\n' +
           'export default defineNuxtPlugin(() => {})',
       });
 
@@ -52,16 +63,22 @@ export default defineNuxtModule<ModuleOptions>({
     if (clientConfigFile || serverConfigFile) {
       setupSourceMaps(moduleOptions, nuxt);
     }
+
+    if (serverConfigFile && serverConfigFile.includes('.server.config')) {
+      addServerConfigToBuild(moduleOptions, nuxt, serverConfigFile);
+
+      if (moduleOptions.experimental_basicServerTracing) {
+        addSentryTopImport(moduleOptions, nuxt);
+      } else {
+        if (moduleOptions.debug) {
+          consoleSandbox(() => {
+            // eslint-disable-next-line no-console
+            console.log(
+              `[Sentry] Using your \`${serverConfigFile}\` file for the server-side Sentry configuration. In case you have a \`public/instrument.server\` file, the \`public/instrument.server\` file will be ignored. Make sure the file path in your node \`--import\` option matches the Sentry server config file in your \`.output\` folder and has a \`.mjs\` extension.`,
+            );
+          });
+        }
+      }
+    }
   },
 });
-
-function findDefaultSdkInitFile(type: 'server' | 'client'): string | undefined {
-  const possibleFileExtensions = ['ts', 'js', 'mjs', 'cjs', 'mts', 'cts'];
-
-  const cwd = process.cwd();
-  const filePath = possibleFileExtensions
-    .map(e => path.resolve(path.join(cwd, `sentry.${type}.config.${e}`)))
-    .find(filename => fs.existsSync(filename));
-
-  return filePath ? path.basename(filePath) : undefined;
-}

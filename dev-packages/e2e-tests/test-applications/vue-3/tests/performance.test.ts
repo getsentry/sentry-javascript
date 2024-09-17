@@ -122,3 +122,86 @@ test('sends a pageload transaction with a route name as transaction name if avai
     },
   });
 });
+
+test('sends a lifecycle span for each tracked components', async ({ page }) => {
+  const transactionPromise = waitForTransaction('vue-3', async transactionEvent => {
+    return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
+  });
+
+  await page.goto(`/components`);
+
+  const rootSpan = await transactionPromise;
+
+  expect(rootSpan).toMatchObject({
+    contexts: {
+      trace: {
+        data: {
+          'sentry.source': 'route',
+          'sentry.origin': 'auto.pageload.vue',
+          'sentry.op': 'pageload',
+        },
+        op: 'pageload',
+        origin: 'auto.pageload.vue',
+      },
+    },
+    spans: expect.arrayContaining([
+      // enabled by default
+      expect.objectContaining({
+        data: {
+          'sentry.op': 'ui.vue.render',
+          'sentry.origin': 'auto.ui.vue',
+        },
+        description: 'Application Render',
+        op: 'ui.vue.render',
+        origin: 'auto.ui.vue',
+      }),
+      // enabled by default
+      expect.objectContaining({
+        data: {
+          'sentry.op': 'ui.vue.mount',
+          'sentry.origin': 'auto.ui.vue',
+        },
+        description: 'Vue <Root>',
+        op: 'ui.vue.mount',
+        origin: 'auto.ui.vue',
+      }),
+
+      // without `<>`
+      expect.objectContaining({
+        data: {
+          'sentry.op': 'ui.vue.mount',
+          'sentry.origin': 'auto.ui.vue',
+        },
+        description: 'Vue <ComponentMainView>',
+        op: 'ui.vue.mount',
+        origin: 'auto.ui.vue',
+      }),
+
+      // with `<>`
+      expect.objectContaining({
+        data: {
+          'sentry.op': 'ui.vue.mount',
+          'sentry.origin': 'auto.ui.vue',
+        },
+        description: 'Vue <ComponentOneView>',
+        op: 'ui.vue.mount',
+        origin: 'auto.ui.vue',
+      }),
+
+      // not tracked
+      expect.not.objectContaining({
+        data: {
+          'sentry.op': 'ui.vue.mount',
+          'sentry.origin': 'auto.ui.vue',
+        },
+        description: 'Vue <ComponentTwoView>',
+        op: 'ui.vue.mount',
+        origin: 'auto.ui.vue',
+      }),
+    ]),
+    transaction: '/components',
+    transaction_info: {
+      source: 'route',
+    },
+  });
+});

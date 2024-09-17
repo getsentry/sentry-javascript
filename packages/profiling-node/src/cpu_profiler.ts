@@ -15,6 +15,12 @@ import type {
 } from './types';
 import type { ProfileFormat } from './types';
 
+// #START_SENTRY_ESM_SHIM
+// When building for ESM, we shim require to use createRequire and __dirname.
+// We need to do this because .node extensions in esm are not supported.
+// The comment below this line exists as a placeholder for where to insert the shim.
+// #END_SENTRY_ESM_SHIM
+
 const stdlib = familySync();
 const platform = process.env['BUILD_PLATFORM'] || _platform();
 const arch = process.env['BUILD_ARCH'] || _arch();

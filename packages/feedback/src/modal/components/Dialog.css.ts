@@ -273,7 +273,7 @@ const SUCCESS = `
 /**
  * Creates <style> element for widget dialog
  */
-export function createDialogStyles(): HTMLStyleElement {
+export function createDialogStyles(styleNonce?: string): HTMLStyleElement {
   const style = DOCUMENT.createElement('style');
 
   style.textContent = `
@@ -287,6 +287,10 @@ ${FORM}
 ${BUTTON}
 ${SUCCESS}
 `;
+
+  if (styleNonce) {
+    style.setAttribute('nonce', styleNonce);
+  }
 
   return style;
 }

@@ -1,7 +1,7 @@
 import type { ConsoleLevel } from '@sentry/types';
 
 import { DEBUG_BUILD } from './debug-build';
-import { GLOBAL_OBJ } from './worldwide';
+import { GLOBAL_OBJ, getGlobalSingleton } from './worldwide';
 
 /** Prefix for logging strings */
 const PREFIX = 'Sentry Logger ';
@@ -97,4 +97,8 @@ function makeLogger(): Logger {
   return logger as Logger;
 }
 
-export const logger = makeLogger();
+/**
+ * This is a logger singleton which either logs things or no-ops if logging is not enabled.
+ * The logger is a singleton on the carrier, to ensure that a consistent logger is used throughout the SDK.
+ */
+export const logger = getGlobalSingleton('logger', makeLogger);

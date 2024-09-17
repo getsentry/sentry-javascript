@@ -1,5 +1,5 @@
 import { KoaInstrumentation } from '@opentelemetry/instrumentation-koa';
-import { SEMATTRS_HTTP_ROUTE } from '@opentelemetry/semantic-conventions';
+import { ATTR_HTTP_ROUTE } from '@opentelemetry/semantic-conventions';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -29,7 +29,7 @@ export const instrumentKoa = generateInstrumentOnce(
           return;
         }
         const attributes = spanToJSON(span).data;
-        const route = attributes && attributes[SEMATTRS_HTTP_ROUTE];
+        const route = attributes && attributes[ATTR_HTTP_ROUTE];
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         const method: string = info?.context?.request?.method?.toUpperCase() || 'GET';
         if (route) {

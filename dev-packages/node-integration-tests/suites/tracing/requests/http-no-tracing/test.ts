@@ -24,7 +24,7 @@ test('outgoing http requests are correctly instrumented with tracing disabled', 
       expect(headers['sentry-trace']).toBeUndefined();
     })
     .start()
-    .then(SERVER_URL => {
+    .then(([SERVER_URL, closeTestServer]) => {
       createRunner(__dirname, 'scenario.ts')
         .withEnv({ SERVER_URL })
         .ensureNoErrorOutput()
@@ -40,6 +40,6 @@ test('outgoing http requests are correctly instrumented with tracing disabled', 
             },
           },
         })
-        .start(done);
+        .start(closeTestServer);
     });
 });

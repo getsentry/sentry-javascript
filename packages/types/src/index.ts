@@ -121,7 +121,7 @@ export type { SpanStatus } from './spanStatus';
 export type { TimedEvent } from './timedEvent';
 export type { StackFrame } from './stackframe';
 export type { Stacktrace, StackParser, StackLineParser, StackLineParserFn } from './stacktrace';
-export type { PropagationContext, TracePropagationTargets } from './tracing';
+export type { PropagationContext, TracePropagationTargets, SerializedTraceData } from './tracing';
 export type { StartSpanOptions } from './startSpanOptions';
 export type {
   TraceparentData,
@@ -171,4 +171,5 @@ export type {
   Metrics,
 } from './metrics';
 export type { ParameterizedString } from './parameterize';
+export type { ContinuousProfiler, ProfilingIntegration, Profiler } from './profiling';
 export type { ViewHierarchyData, ViewHierarchyWindow } from './view-hierarchy';

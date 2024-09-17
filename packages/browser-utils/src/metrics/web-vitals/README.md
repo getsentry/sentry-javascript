@@ -17,9 +17,9 @@ Current vendored web vitals are:
 
 ## Notable Changes from web-vitals library
 
-This vendored web-vitals library is meant to be used in conjunction with the `@sentry/tracing` `BrowserTracing`
-integration. As such, logic around `BFCache` and multiple reports were removed from the library as our web-vitals only
-report once per pageload.
+This vendored web-vitals library is meant to be used in conjunction with the `@sentry/browser`
+`browserTracingIntegration`. As such, logic around `BFCache` and multiple reports were removed from the library as our
+web-vitals only report once per pageload.
 
 ## License
 

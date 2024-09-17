@@ -6,7 +6,7 @@ conditionalTest({ min: 18 })('outgoing fetch', () => {
   test('outgoing fetch requests create breadcrumbs', done => {
     createTestServer(done)
       .start()
-      .then(SERVER_URL => {
+      .then(([SERVER_URL, closeTestServer]) => {
         createRunner(__dirname, 'scenario.ts')
           .withEnv({ SERVER_URL })
           .ensureNoErrorOutput()
@@ -72,7 +72,7 @@ conditionalTest({ min: 18 })('outgoing fetch', () => {
               },
             },
           })
-          .start(done);
+          .start(closeTestServer);
       });
   });
 });

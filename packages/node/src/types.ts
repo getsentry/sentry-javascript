@@ -6,7 +6,18 @@ import type { NodeTransportOptions } from './transports';
 
 export interface EsmLoaderHookOptions {
   include?: Array<string | RegExp>;
-  exclude?: Array<string | RegExp>;
+  exclude?: Array<string | RegExp> /**
+   * When set to `true`, `import-in-the-middle` will only wrap ESM modules that are specifically instrumented by
+   * OpenTelemetry plugins. This is useful to avoid issues where `import-in-the-middle` is not compatible with some of
+   * your dependencies.
+   *
+   * **Note**: This feature will only work if you `Sentry.init()` the SDK before the instrumented modules are loaded.
+   * This can be achieved via the Node `--import` CLI flag or by loading your app via async `import()` after calling
+   * `Sentry.init()`.
+   *
+   * Defaults to `false`.
+   */;
+  onlyIncludeInstrumentedModules?: boolean;
 }
 
 export interface BaseNodeOptions {

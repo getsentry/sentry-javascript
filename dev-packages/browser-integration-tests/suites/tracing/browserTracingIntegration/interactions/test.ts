@@ -33,9 +33,11 @@ sentryTest('should capture interaction transaction. @firefox', async ({ browserN
   expect(eventData.contexts).toMatchObject({ trace: { op: 'ui.action.click' } });
   expect(eventData.platform).toBe('javascript');
   expect(eventData.type).toBe('transaction');
-  expect(eventData.spans).toHaveLength(1);
 
-  const interactionSpan = eventData.spans![0];
+  const spans = eventData.spans?.filter(span => !span.op?.startsWith('ui.long-animation-frame'));
+  expect(spans).toHaveLength(1);
+
+  const interactionSpan = spans![0];
   expect(interactionSpan.op).toBe('ui.interaction.click');
   expect(interactionSpan.description).toBe('body > button.clicked');
   expect(interactionSpan.timestamp).toBeDefined();
@@ -63,7 +65,8 @@ sentryTest(
       await page.waitForTimeout(1000);
       await page.locator('[data-test-id=interaction-button]').click();
       const envelope = await envelopePromise;
-      expect(envelope[0].spans).toHaveLength(1);
+      const spans = envelope[0].spans?.filter(span => !span.op?.startsWith('ui.long-animation-frame'));
+      expect(spans).toHaveLength(1);
     }
   },
 );
@@ -89,10 +92,10 @@ sentryTest(
     const envelopes = await envelopePromise;
     expect(envelopes).toHaveLength(1);
     const eventData = envelopes[0];
+    const spans = eventData.spans?.filter(span => !span.op?.startsWith('ui.long-animation-frame'));
+    expect(spans).toHaveLength(1);
 
-    expect(eventData.spans).toHaveLength(1);
-
-    const interactionSpan = eventData.spans![0];
+    const interactionSpan = spans![0];
     expect(interactionSpan.op).toBe('ui.interaction.click');
     expect(interactionSpan.description).toBe('body > AnnotatedButton');
   },
@@ -120,9 +123,10 @@ sentryTest(
     expect(envelopes).toHaveLength(1);
 
     const eventData = envelopes[0];
-    expect(eventData.spans).toHaveLength(1);
+    const spans = eventData.spans?.filter(span => !span.op?.startsWith('ui.long-animation-frame'));
+    expect(spans).toHaveLength(1);
 
-    const interactionSpan = eventData.spans![0];
+    const interactionSpan = spans![0];
     expect(interactionSpan.op).toBe('ui.interaction.click');
     expect(interactionSpan.description).toBe('body > StyledButton');
   },

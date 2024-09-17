@@ -1,6 +1,6 @@
 {
   "name": "@sentry/solidstart",
-  "version": "8.20.0",
+  "version": "8.30.0",
   "description": "Official Sentry SDK for Solid Start",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/solidstart",
@@ -66,13 +66,14 @@
     }
   },
   "dependencies": {
-    "@sentry/core": "8.20.0",
-    "@sentry/node": "8.20.0",
-    "@sentry/opentelemetry": "8.20.0",
-    "@sentry/solid": "8.20.0",
-    "@sentry/types": "8.20.0",
-    "@sentry/utils": "8.20.0",
-    "@sentry/vite-plugin": "2.19.0"
+    "@opentelemetry/instrumentation": "^0.53.0",
+    "@sentry/core": "8.30.0",
+    "@sentry/node": "8.30.0",
+    "@sentry/opentelemetry": "8.30.0",
+    "@sentry/solid": "8.30.0",
+    "@sentry/types": "8.30.0",
+    "@sentry/utils": "8.30.0",
+    "@sentry/vite-plugin": "2.22.3"
   },
   "devDependencies": {
     "@solidjs/router": "^0.13.4",
@@ -86,9 +87,9 @@
     "build": "run-p build:transpile build:types",
     "build:dev": "yarn build",
     "build:transpile": "rollup -c rollup.npm.config.mjs",
-    "build:types": "run-s build:types:core build:types:solidrouter",
+    "build:types": "run-s build:types:core build:types:subexports",
     "build:types:core": "tsc -p tsconfig.types.json",
-    "build:types:solidrouter": "tsc -p tsconfig.solidrouter-types.json",
+    "build:types:subexports": "tsc -p tsconfig.subexports-types.json",
     "build:watch": "run-p build:transpile:watch build:types:watch",
     "build:dev:watch": "yarn build:watch",
     "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",

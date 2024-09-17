@@ -232,6 +232,7 @@ export interface ReplayPluginOptions extends ReplayNetworkOptions {
   _experiments: Partial<{
     captureExceptions: boolean;
     traceInternals: boolean;
+    continuousCheckout: number;
   }>;
 }
 
@@ -485,6 +486,7 @@ export interface ReplayContainer {
   checkAndHandleExpiredSession(): boolean | void;
   setInitialState(): void;
   getCurrentRoute(): string | undefined;
+  handleException(err: unknown): void;
 }
 
 type RequestBody = null | Blob | BufferSource | FormData | URLSearchParams | string;

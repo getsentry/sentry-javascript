@@ -1,7 +1,8 @@
-import { captureException } from '@sentry/node';
+import * as Sentry from '@sentry/node';
 import { H3Error } from 'h3';
 import { defineNitroPlugin } from 'nitropack/runtime';
-import { extractErrorContext } from '../utils';
+import type { NuxtRenderHTMLContext } from 'nuxt/app';
+import { addSentryTracingMetaTags, extractErrorContext } from '../utils';
 
 export default defineNitroPlugin(nitroApp => {
   nitroApp.hooks.hook('error', (error, errorContext) => {
@@ -13,11 +14,25 @@ export default defineNitroPlugin(nitroApp => {
       }
     }
 
+    const { method, path } = {
+      method: errorContext.event && errorContext.event._method ? errorContext.event._method : '',
+      path: errorContext.event && errorContext.event._path ? errorContext.event._path : null,
+    };
+
+    if (path) {
+      Sentry.getCurrentScope().setTransactionName(`${method} ${path}`);
+    }
+
     const structuredContext = extractErrorContext(errorContext);
 
-    captureException(error, {
+    Sentry.captureException(error, {
       captureContext: { contexts: { nuxt: structuredContext } },
       mechanism: { handled: false },
     });
+  });
+
+  // @ts-expect-error - 'render:html' is a valid hook name in the Nuxt context
+  nitroApp.hooks.hook('render:html', (html: NuxtRenderHTMLContext) => {
+    addSentryTracingMetaTags(html.head);
   });
 });

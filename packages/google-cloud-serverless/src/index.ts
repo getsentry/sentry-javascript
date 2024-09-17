@@ -20,6 +20,8 @@ export {
   getCurrentScope,
   getGlobalScope,
   getIsolationScope,
+  getTraceData,
+  getTraceMetaTags,
   setCurrentClient,
   Scope,
   SDK_VERSION,
@@ -55,6 +57,7 @@ export {
   nodeContextIntegration,
   localVariablesIntegration,
   requestDataIntegration,
+  fsIntegration,
   functionToStringIntegration,
   inboundFiltersIntegration,
   linkedErrorsIntegration,
@@ -84,7 +87,9 @@ export {
   connectIntegration,
   setupConnectErrorHandler,
   fastifyIntegration,
+  genericPoolIntegration,
   graphqlIntegration,
+  kafkaIntegration,
   mongoIntegration,
   mongooseIntegration,
   mysqlIntegration,
@@ -104,6 +109,7 @@ export {
   trpcMiddleware,
   addOpenTelemetryInstrumentation,
   zodErrorsIntegration,
+  profiler,
 } from '@sentry/node';
 
 export {

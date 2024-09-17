@@ -1,6 +1,6 @@
 {
   "name": "@sentry/browser",
-  "version": "8.20.0",
+  "version": "8.30.0",
   "description": "Official Sentry SDK for browsers",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/browser",
@@ -39,16 +39,16 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry-internal/browser-utils": "8.20.0",
-    "@sentry-internal/feedback": "8.20.0",
-    "@sentry-internal/replay": "8.20.0",
-    "@sentry-internal/replay-canvas": "8.20.0",
-    "@sentry/core": "8.20.0",
-    "@sentry/types": "8.20.0",
-    "@sentry/utils": "8.20.0"
+    "@sentry-internal/browser-utils": "8.30.0",
+    "@sentry-internal/feedback": "8.30.0",
+    "@sentry-internal/replay": "8.30.0",
+    "@sentry-internal/replay-canvas": "8.30.0",
+    "@sentry/core": "8.30.0",
+    "@sentry/types": "8.30.0",
+    "@sentry/utils": "8.30.0"
   },
   "devDependencies": {
-    "@sentry-internal/integration-shims": "8.20.0",
+    "@sentry-internal/integration-shims": "8.30.0",
     "fake-indexeddb": "^4.0.1"
   },
   "scripts": {
@@ -70,9 +70,8 @@
     "fix": "eslint . --format stylish --fix",
     "lint": "eslint . --format stylish",
     "size:check": "cat build/bundles/bundle.min.js | gzip -9 | wc -c | awk '{$1=$1/1024; print \"ES2017: \",$1,\"kB\";}'",
-    "test": "yarn test:unit",
-    "test:unit": "jest",
-    "test:unit:watch": "jest --watch",
+    "test": "vitest run",
+    "test:watch": "vitest --watch",
     "yalc:publish": "yalc publish --push --sig"
   },
   "volta": {

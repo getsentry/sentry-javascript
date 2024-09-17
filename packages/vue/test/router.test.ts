@@ -114,6 +114,7 @@ describe('instrumentVueRouter()', () => {
 
       const from = testRoutes[fromKey]!;
       const to = testRoutes[toKey]!;
+      beforeEachCallback(to, testRoutes['initialPageloadRoute']!, mockNext); // fake initial pageload
       beforeEachCallback(to, from, mockNext);
 
       expect(mockStartSpan).toHaveBeenCalledTimes(1);
@@ -127,7 +128,7 @@ describe('instrumentVueRouter()', () => {
         op: 'navigation',
       });
 
-      expect(mockNext).toHaveBeenCalledTimes(1);
+      expect(mockNext).toHaveBeenCalledTimes(2);
     },
   );
 
@@ -192,6 +193,7 @@ describe('instrumentVueRouter()', () => {
 
     const from = testRoutes.normalRoute1!;
     const to = testRoutes.namedRoute!;
+    beforeEachCallback(to, testRoutes['initialPageloadRoute']!, mockNext); // fake initial pageload
     beforeEachCallback(to, from, mockNext);
 
     // first startTx call happens when the instrumentation is initialized (for pageloads)
@@ -219,6 +221,7 @@ describe('instrumentVueRouter()', () => {
 
     const from = testRoutes.normalRoute1!;
     const to = testRoutes.namedRoute!;
+    beforeEachCallback(to, testRoutes['initialPageloadRoute']!, mockNext); // fake initial pageload
     beforeEachCallback(to, from, mockNext);
 
     // first startTx call happens when the instrumentation is initialized (for pageloads)
@@ -373,6 +376,7 @@ describe('instrumentVueRouter()', () => {
       expect(mockVueRouter.beforeEach).toHaveBeenCalledTimes(1);
 
       const beforeEachCallback = mockVueRouter.beforeEach.mock.calls[0]![0]!;
+      beforeEachCallback(testRoutes['normalRoute1']!, testRoutes['initialPageloadRoute']!, mockNext); // fake initial pageload
       beforeEachCallback(testRoutes['normalRoute2']!, testRoutes['normalRoute1']!, mockNext);
 
       expect(mockStartSpan).toHaveBeenCalledTimes(expectedCallsAmount);
@@ -391,6 +395,7 @@ describe('instrumentVueRouter()', () => {
 
     const from = testRoutes.normalRoute1!;
     const to = testRoutes.namedRoute!;
+    beforeEachCallback(to, testRoutes['initialPageloadRoute']!, mockNext); // fake initial pageload
     beforeEachCallback(to, from, undefined);
 
     // first startTx call happens when the instrumentation is initialized (for pageloads)

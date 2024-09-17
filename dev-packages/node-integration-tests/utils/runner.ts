@@ -110,7 +110,10 @@ async function runDockerCompose(options: DockerOptions): Promise<VoidFunction> {
   return new Promise((resolve, reject) => {
     const cwd = join(...options.workingDirectory);
     const close = (): void => {
-      spawnSync('docker', ['compose', 'down', '--volumes'], { cwd });
+      spawnSync('docker', ['compose', 'down', '--volumes'], {
+        cwd,
+        stdio: process.env.DEBUG ? 'inherit' : undefined,
+      });
     };
 
     // ensure we're starting fresh
@@ -121,10 +124,13 @@ async function runDockerCompose(options: DockerOptions): Promise<VoidFunction> {
     const timeout = setTimeout(() => {
       close();
       reject(new Error('Timed out waiting for docker-compose'));
-    }, 60_000);
+    }, 75_000);
 
     function newData(data: Buffer): void {
       const text = data.toString('utf8');
+
+      // eslint-disable-next-line no-console
+      if (process.env.DEBUG) console.log(text);
 
       for (const match of options.readyMatches) {
         if (text.includes(match)) {
@@ -359,19 +365,29 @@ export function createRunner(...paths: string[]) {
         }
       }
 
-      const serverStartup: Promise<number | undefined> = withSentryServer
-        ? createBasicSentryServer(newEnvelope)
-        : Promise.resolve(undefined);
+      // We need to properly define & pass these types around for TS 3.8,
+      // which otherwise fails to infer these correctly :(
+      type ServerStartup = [number | undefined, (() => void) | undefined];
+      type DockerStartup = VoidFunction | undefined;
 
-      const dockerStartup: Promise<VoidFunction | undefined> = dockerOptions
+      const serverStartup: Promise<ServerStartup> = withSentryServer
+        ? createBasicSentryServer(newEnvelope)
+        : Promise.resolve([undefined, undefined]);
+
+      const dockerStartup: Promise<DockerStartup> = dockerOptions
         ? runDockerCompose(dockerOptions)
         : Promise.resolve(undefined);
 
-      const startup = Promise.all([dockerStartup, serverStartup]);
+      const startup = Promise.all([dockerStartup, serverStartup]) as Promise<[DockerStartup, ServerStartup]>;
 
-      // eslint-disable-next-line @typescript-eslint/no-floating-promises
       startup
-        .then(([dockerChild, mockServerPort]) => {
+        .then(([dockerChild, [mockServerPort, mockServerClose]]) => {
+          if (mockServerClose) {
+            CLEANUP_STEPS.add(() => {
+              mockServerClose();
+            });
+          }
+
           if (dockerChild) {
             CLEANUP_STEPS.add(dockerChild);
           }

@@ -15,6 +15,10 @@ faster, so we can get back to enjoying technology. If you want to join us
 
 # Official Sentry SDKs for JavaScript
 
+<a href="https://docs.sentry.io/platforms/javascript/" target="_blank">
+  <img src="https://github.com/user-attachments/assets/aedc2b46-9959-4b9e-8a23-6240062cefc5" alt="Sentry for JavaScript">
+</a>
+
 This is the next line of Sentry JavaScript SDKs, comprised in the `@sentry/` namespace. It will provide a more
 convenient interface and improved consistency between various JavaScript environments.
 
@@ -67,6 +71,8 @@ package. Please refer to the README and instructions of those SDKs for more deta
   for native crashes
 - [`@sentry/bun`](https://github.com/getsentry/sentry-javascript/tree/master/packages/bun): SDK for Bun
 - [`@sentry/deno`](https://github.com/getsentry/sentry-javascript/tree/master/packages/deno): SDK for Deno
+- [`@sentry/cloudflare`](https://github.com/getsentry/sentry-javascript/tree/master/packages/cloudflare): SDK for
+  Cloudflare
 
 ## Version Support Policy
 

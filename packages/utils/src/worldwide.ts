@@ -15,6 +15,7 @@
 import type { Client, MetricsAggregator, Scope } from '@sentry/types';
 
 import type { SdkSource } from './env';
+import type { logger } from './logger';
 import { SDK_VERSION } from './version';
 
 interface SentryCarrier {
@@ -25,6 +26,7 @@ interface SentryCarrier {
   defaultIsolationScope?: Scope;
   defaultCurrentScope?: Scope;
   globalMetricsAggregators?: WeakMap<Client, MetricsAggregator> | undefined;
+  logger?: typeof logger;
 
   /** Overwrites TextEncoder used in `@sentry/utils`, need for `react-native@0.73` and older */
   encodePolyfill?: (input: string) => Uint8Array;
@@ -49,6 +51,7 @@ type BackwardsCompatibleSentryCarrier = SentryCarrier & {
 export type InternalGlobal = {
   navigator?: { userAgent?: string };
   console: Console;
+  PerformanceObserver?: any;
   Sentry?: any;
   onerror?: {
     (event: object | string, source?: string, lineno?: number, colno?: number, error?: Error): any;

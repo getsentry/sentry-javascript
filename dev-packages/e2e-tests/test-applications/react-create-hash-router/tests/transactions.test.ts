@@ -22,6 +22,8 @@ test('Captures a pageload transaction', async ({ page }) => {
       'sentry.origin': 'auto.pageload.react.reactrouter_v6',
       'sentry.sample_rate': 1,
       'sentry.source': 'route',
+      'performance.timeOrigin': expect.any(Number),
+      'performance.activationStart': expect.any(Number),
     },
     op: 'pageload',
     span_id: expect.any(String),

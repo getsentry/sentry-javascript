@@ -1,4 +1,4 @@
-export type { ClientClass } from './sdk';
+export type { ClientClass as SentryCoreCurrentScopes } from './sdk';
 export type { AsyncContextStrategy } from './asyncContext/types';
 export type { Carrier } from './carrier';
 export type { OfflineStore, OfflineTransportOptions } from './transports/offline';
@@ -82,6 +82,8 @@ export {
 } from './utils/spanUtils';
 export { parseSampleRate } from './utils/parseSampleRate';
 export { applySdkMetadata } from './utils/sdkMetadata';
+export { getTraceData } from './utils/traceData';
+export { getTraceMetaTags } from './utils/meta';
 export { DEFAULT_ENVIRONMENT } from './constants';
 export { addBreadcrumb } from './breadcrumbs';
 export { functionToStringIntegration } from './integrations/functiontostring';
@@ -98,6 +100,7 @@ export { sessionTimingIntegration } from './integrations/sessiontiming';
 export { zodErrorsIntegration } from './integrations/zoderrors';
 export { thirdPartyErrorFilterIntegration } from './integrations/third-party-errors-filter';
 export { metrics } from './metrics/exports';
+export { profiler } from './profiling';
 export type { MetricData } from '@sentry/types';
 export { metricsDefault } from './metrics/exports-default';
 export { BrowserMetricsAggregator } from './metrics/browser-aggregator';

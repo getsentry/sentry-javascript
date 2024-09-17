@@ -4,14 +4,16 @@ import { instrumentHttp } from '../http';
 import { connectIntegration, instrumentConnect } from './connect';
 import { expressIntegration, instrumentExpress } from './express';
 import { fastifyIntegration, instrumentFastify } from './fastify';
+import { genericPoolIntegration, instrumentGenericPool } from './genericPool';
 import { graphqlIntegration, instrumentGraphql } from './graphql';
 import { hapiIntegration, instrumentHapi } from './hapi';
+import { instrumentKafka, kafkaIntegration } from './kafka';
 import { instrumentKoa, koaIntegration } from './koa';
 import { instrumentMongo, mongoIntegration } from './mongo';
 import { instrumentMongoose, mongooseIntegration } from './mongoose';
 import { instrumentMysql, mysqlIntegration } from './mysql';
 import { instrumentMysql2, mysql2Integration } from './mysql2';
-import { instrumentNest, nestIntegration } from './nest';
+import { instrumentNest, nestIntegration } from './nest/nest';
 import { instrumentPostgres, postgresIntegration } from './postgres';
 import { instrumentRedis, redisIntegration } from './redis';
 
@@ -37,6 +39,8 @@ export function getAutoPerformanceIntegrations(): Integration[] {
     hapiIntegration(),
     koaIntegration(),
     connectIntegration(),
+    genericPoolIntegration(),
+    kafkaIntegration(),
   ];
 }
 
@@ -51,6 +55,7 @@ export function getOpenTelemetryInstrumentationToPreload(): (((options?: any) =>
     instrumentConnect,
     instrumentFastify,
     instrumentHapi,
+    instrumentKafka,
     instrumentKoa,
     instrumentNest,
     instrumentMongo,
@@ -61,5 +66,6 @@ export function getOpenTelemetryInstrumentationToPreload(): (((options?: any) =>
     instrumentHapi,
     instrumentGraphql,
     instrumentRedis,
+    instrumentGenericPool,
   ];
 }

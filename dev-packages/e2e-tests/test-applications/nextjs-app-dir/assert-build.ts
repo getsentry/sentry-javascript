@@ -22,10 +22,10 @@ assert.match(buildStdout, /(λ|ƒ) \/server-component\/parameter\/\[\.\.\.parame
 assert.match(buildStdout, /(λ|ƒ) \/server-component\/parameter\/\[parameter\]/);
 
 // Read the contents of the directory
-const files = fs.readdirSync(path.join(process.cwd(), '.next', 'server'));
+const files = fs.readdirSync(path.join(process.cwd(), '.next', 'static'));
 const mapFiles = files.filter(file => path.extname(file) === '.map');
 if (mapFiles.length > 0) {
-  throw new Error('.map files found even though `sourcemaps.deleteSourcemapsAfterUpload` option is set!');
+  throw new Error('Client bundle .map files found even though `sourcemaps.deleteSourcemapsAfterUpload` option is set!');
 }
 
 export {};

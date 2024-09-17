@@ -1,6 +1,6 @@
 import type { Debugger, InspectorNotification, Runtime, Session } from 'node:inspector';
 import { defineIntegration, getClient } from '@sentry/core';
-import type { Event, Exception, IntegrationFn, StackParser } from '@sentry/types';
+import type { Event, Exception, IntegrationFn, StackFrame, StackParser } from '@sentry/types';
 import { LRUMap, logger } from '@sentry/utils';
 
 import { NODE_MAJOR } from '../../nodeVersion';
@@ -12,7 +12,29 @@ import type {
   RateLimitIncrement,
   Variables,
 } from './common';
-import { createRateLimiter, functionNamesMatch, hashFrames, hashFromStack } from './common';
+import { createRateLimiter, functionNamesMatch } from './common';
+
+/** Creates a unique hash from stack frames */
+export function hashFrames(frames: StackFrame[] | undefined): string | undefined {
+  if (frames === undefined) {
+    return;
+  }
+
+  // Only hash the 10 most recent frames (ie. the last 10)
+  return frames.slice(-10).reduce((acc, frame) => `${acc},${frame.function},${frame.lineno},${frame.colno}`, '');
+}
+
+/**
+ * We use the stack parser to create a unique hash from the exception stack trace
+ * This is used to lookup vars when the exception passes through the event processor
+ */
+export function hashFromStack(stackParser: StackParser, stack: string | undefined): string | undefined {
+  if (stack === undefined) {
+    return undefined;
+  }
+
+  return hashFrames(stackParser(stack, 1));
+}
 
 type OnPauseEvent = InspectorNotification<Debugger.PausedEventDataType>;
 export interface DebugSession {

@@ -4,15 +4,15 @@
   </a>
 </p>
 
-# Official Sentry SDK for Solid Start (EXPERIMENTAL)
+# Official Sentry SDK for SolidStart
 
 [![npm version](https://img.shields.io/npm/v/@sentry/solidstart.svg)](https://www.npmjs.com/package/@sentry/solidstart)
 [![npm dm](https://img.shields.io/npm/dm/@sentry/solidstart.svg)](https://www.npmjs.com/package/@sentry/solidstart)
 [![npm dt](https://img.shields.io/npm/dt/@sentry/solidstart.svg)](https://www.npmjs.com/package/@sentry/solidstart)
 
-This SDK is considered ⚠️ **experimental and in an alpha state**. It may experience breaking changes. Please reach out
-on [GitHub](https://github.com/getsentry/sentry-javascript/issues/new/choose) if you have any feedback or concerns. This
-SDK is for [Solid Start](https://start.solidjs.com/). If you're using [Solid](https://www.solidjs.com/) see our
+This SDK is in **Beta**. The API is stable but updates may include minor changes in behavior. Please reach out on
+[GitHub](https://github.com/getsentry/sentry-javascript/issues/new/choose) if you have any feedback or concerns. This
+SDK is for [SolidStart](https://start.solidjs.com/). If you're using [Solid](https://www.solidjs.com/) see our
 [Solid SDK here](https://github.com/getsentry/sentry-javascript/tree/develop/packages/solid).
 
 ## Links
@@ -22,7 +22,7 @@ SDK is for [Solid Start](https://start.solidjs.com/). If you're using [Solid](ht
 ## General
 
 This package is a wrapper around `@sentry/node` for the server and `@sentry/solid` for the client side, with added
-functionality related to Solid Start.
+functionality related to SolidStart.
 
 ## Manual Setup
 
@@ -30,7 +30,7 @@ If the setup through the wizard doesn't work for you, you can also set up the SD
 
 ### 1. Prerequesits & Installation
 
-Install the Sentry Solid Start SDK:
+Install the Sentry SolidStart SDK:
 
 ```bash
 # Using npm
@@ -46,10 +46,12 @@ Initialize the SDK in `entry-client.jsx`
 
 ```jsx
 import * as Sentry from '@sentry/solidstart';
+import { solidRouterBrowserTracingIntegration } from '@sentry/solidstart/solidrouter';
 import { mount, StartClient } from '@solidjs/start/client';
 
 Sentry.init({
   dsn: '__PUBLIC_DSN__',
+  integrations: [solidRouterBrowserTracingIntegration()],
   tracesSampleRate: 1.0, //  Capture 100% of the transactions
 });
 
@@ -64,12 +66,42 @@ Create an instrument file named `instrument.server.mjs` and add your initializat
 import * as Sentry from '@sentry/solidstart';
 
 Sentry.init({
-  dsn: 'https://0e67f7dd5326d51506e92d7f1eff887a@o447951.ingest.us.sentry.io/4507459091824640',
+  dsn: '__PUBLIC_DSN__',
   tracesSampleRate: 1.0, //  Capture 100% of the transactions
 });
 ```
 
-### 4. Run your application
+### 4. Server instrumentation
+
+Complete the setup by adding the Sentry middleware to your `src/middleware.ts` file:
+
+```typescript
+import { sentryBeforeResponseMiddleware } from '@sentry/solidstart';
+import { createMiddleware } from '@solidjs/start/middleware';
+
+export default createMiddleware({
+  onBeforeResponse: [
+    sentryBeforeResponseMiddleware(),
+    // Add your other middleware handlers after `sentryBeforeResponseMiddleware`
+  ],
+});
+```
+
+And don't forget to specify `./src/middleware.ts` in your `app.config.ts`:
+
+```typescript
+import { defineConfig } from '@solidjs/start/config';
+
+export default defineConfig({
+  // ...
+  middleware: './src/middleware.ts',
+});
+```
+
+The Sentry middleware enhances the data collected by Sentry on the server side by enabling distributed tracing between
+the client and server.
+
+### 5. Run your application
 
 Then run your app
 
@@ -113,11 +145,6 @@ JS `ErrorBoundary` component with `Sentry.withSentryErrorBoundary`.
 import * as Sentry from '@sentry/solidstart';
 import { ErrorBoundary } from 'solid-js';
 
-Sentry.init({
-  dsn: '__PUBLIC_DSN__',
-  tracesSampleRate: 1.0, //  Capture 100% of the transactions
-});
-
 const SentryErrorBoundary = Sentry.withSentryErrorBoundary(ErrorBoundary);
 
 render(
@@ -128,4 +155,36 @@ render(
   ),
   document.getElementById('root'),
 );
+```
+
+## Uploading Source Maps
+
+To upload source maps, add the `sentrySolidStartVite` plugin from `@sentry/solidstart` to your `app.config.ts` and
+configure an auth token. Auth tokens can be passed to the plugin explicitly with the `authToken` option, with a
+`SENTRY_AUTH_TOKEN` environment variable, or with an `.env.sentry-build-plugin` file in the working directory when
+building your project. We recommend you add the auth token to your CI/CD environment as an environment variable.
+
+Learn more about configuring the plugin in our
+[Sentry Vite Plugin documentation](https://www.npmjs.com/package/@sentry/vite-plugin).
+
+```typescript
+// app.config.ts
+import { defineConfig } from '@solidjs/start/config';
+import { sentrySolidStartVite } from '@sentry/solidstart';
+
+export default defineConfig({
+  // ...
+
+  vite: {
+    plugins: [
+      sentrySolidStartVite({
+        org: process.env.SENTRY_ORG,
+        project: process.env.SENTRY_PROJECT,
+        authToken: process.env.SENTRY_AUTH_TOKEN,
+        debug: true,
+      }),
+    ],
+  },
+  // ...
+});
 ```

@@ -1,7 +1,9 @@
-import type { init } from '@sentry/vue';
+import type { init as initNode } from '@sentry/node';
+import type { init as initVue } from '@sentry/vue';
 
 // Omitting 'app' as the Nuxt SDK will add the app instance in the client plugin (users do not have to provide this)
-export type SentryNuxtOptions = Omit<Parameters<typeof init>[0] & object, 'app'>;
+export type SentryNuxtClientOptions = Omit<Parameters<typeof initVue>[0] & object, 'app'>;
+export type SentryNuxtServerOptions = Omit<Parameters<typeof initNode>[0] & object, 'app'>;
 
 type SourceMapsOptions = {
   /**
@@ -97,4 +99,16 @@ export type SentryNuxtModuleOptions = {
    * Enabling this will give you, for example, logs about source maps.
    */
   debug?: boolean;
+
+  /**
+   * Enabling basic server tracing can be used for environments where modifying the node option `--import` is not possible.
+   * However, enabling this option only supports limited tracing instrumentation. Only http traces will be collected (but no database-specific traces etc.).
+   *
+   * If this option is `true`, the Sentry SDK will import the Sentry server config at the top of the server entry file to load the SDK on the server.
+   *
+   * **DO NOT** enable this option if you've already added the node option `--import` in your node start script. This would initialize Sentry twice on the server-side and leads to unexpected issues.
+   *
+   * @default false
+   */
+  experimental_basicServerTracing?: boolean;
 };

@@ -1,5 +1,6 @@
 export { httpIntegration } from './integrations/http';
 export { nativeNodeFetchIntegration } from './integrations/node-fetch';
+export { fsIntegration } from './integrations/fs';
 
 export { consoleIntegration } from './integrations/console';
 export { nodeContextIntegration } from './integrations/context';
@@ -13,18 +14,20 @@ export { anrIntegration } from './integrations/anr';
 export { expressIntegration, expressErrorHandler, setupExpressErrorHandler } from './integrations/tracing/express';
 export { fastifyIntegration, setupFastifyErrorHandler } from './integrations/tracing/fastify';
 export { graphqlIntegration } from './integrations/tracing/graphql';
+export { kafkaIntegration } from './integrations/tracing/kafka';
 export { mongoIntegration } from './integrations/tracing/mongo';
 export { mongooseIntegration } from './integrations/tracing/mongoose';
 export { mysqlIntegration } from './integrations/tracing/mysql';
 export { mysql2Integration } from './integrations/tracing/mysql2';
 export { redisIntegration } from './integrations/tracing/redis';
-export { nestIntegration, setupNestErrorHandler } from './integrations/tracing/nest';
+export { nestIntegration, setupNestErrorHandler } from './integrations/tracing/nest/nest';
 export { postgresIntegration } from './integrations/tracing/postgres';
 export { prismaIntegration } from './integrations/tracing/prisma';
 export { hapiIntegration, setupHapiErrorHandler } from './integrations/tracing/hapi';
 export { koaIntegration, setupKoaErrorHandler } from './integrations/tracing/koa';
 export { connectIntegration, setupConnectErrorHandler } from './integrations/tracing/connect';
 export { spotlightIntegration } from './integrations/spotlight';
+export { genericPoolIntegration } from './integrations/tracing/genericPool';
 
 export { SentryContextManager } from './otel/contextManager';
 export { generateInstrumentOnce } from './otel/instrument';
@@ -95,6 +98,8 @@ export {
   getCurrentHub,
   getCurrentScope,
   getIsolationScope,
+  getTraceData,
+  getTraceMetaTags,
   withScope,
   withIsolationScope,
   captureException,
@@ -124,6 +129,7 @@ export {
   spanToBaggageHeader,
   trpcMiddleware,
   zodErrorsIntegration,
+  profiler,
 } from '@sentry/core';
 
 export type {

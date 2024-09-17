@@ -43,7 +43,13 @@ export interface Metric {
    * The array may also be empty if the metric value was not based on any
    * entries (e.g. a CLS value of 0 given no layout shifts).
    */
-  entries: PerformanceEntry[] | PerformanceEventTiming[];
+  entries: PerformanceEntry[] | LayoutShift[];
+}
+
+interface LayoutShift extends PerformanceEntry {
+  value: number;
+  sources: LayoutShiftAttribution[];
+  hadRecentInput: boolean;
 }
 
 interface LayoutShiftAttribution {
@@ -183,22 +189,37 @@ function createResourceEntry(
  */
 export function getLargestContentfulPaint(metric: Metric): ReplayPerformanceEntry<WebVitalData> {
   const lastEntry = metric.entries[metric.entries.length - 1] as (PerformanceEntry & { element?: Node }) | undefined;
-  const node = lastEntry ? lastEntry.element : undefined;
+  const node = lastEntry && lastEntry.element ? [lastEntry.element] : undefined;
   return getWebVital(metric, 'largest-contentful-paint', node);
+}
+
+function isLayoutShift(entry: PerformanceEntry): entry is LayoutShift {
+  return (entry as LayoutShift).sources !== undefined;
 }
 
 /**
  * Add a CLS event to the replay based on a CLS metric.
  */
 export function getCumulativeLayoutShift(metric: Metric): ReplayPerformanceEntry<WebVitalData> {
-  // get first node that shifts
-  const firstEntry = metric.entries[0] as (PerformanceEntry & { sources?: LayoutShiftAttribution[] }) | undefined;
-  const node = firstEntry
-    ? firstEntry.sources && firstEntry.sources[0]
-      ? firstEntry.sources[0].node
-      : undefined
-    : undefined;
-  return getWebVital(metric, 'cumulative-layout-shift', node);
+  const layoutShifts: WebVitalData['attributions'] = [];
+  const nodes: Node[] = [];
+  for (const entry of metric.entries) {
+    if (isLayoutShift(entry)) {
+      const nodeIds = [];
+      for (const source of entry.sources) {
+        if (source.node) {
+          nodes.push(source.node);
+          const nodeId = record.mirror.getId(source.node);
+          if (nodeId) {
+            nodeIds.push(nodeId);
+          }
+        }
+      }
+      layoutShifts.push({ value: entry.value, nodeIds: nodeIds.length ? nodeIds : undefined });
+    }
+  }
+
+  return getWebVital(metric, 'cumulative-layout-shift', nodes, layoutShifts);
 }
 
 /**
@@ -206,7 +227,7 @@ export function getCumulativeLayoutShift(metric: Metric): ReplayPerformanceEntry
  */
 export function getFirstInputDelay(metric: Metric): ReplayPerformanceEntry<WebVitalData> {
   const lastEntry = metric.entries[metric.entries.length - 1] as (PerformanceEntry & { target?: Node }) | undefined;
-  const node = lastEntry ? lastEntry.target : undefined;
+  const node = lastEntry && lastEntry.target ? [lastEntry.target] : undefined;
   return getWebVital(metric, 'first-input-delay', node);
 }
 
@@ -215,24 +236,25 @@ export function getFirstInputDelay(metric: Metric): ReplayPerformanceEntry<WebVi
  */
 export function getInteractionToNextPaint(metric: Metric): ReplayPerformanceEntry<WebVitalData> {
   const lastEntry = metric.entries[metric.entries.length - 1] as (PerformanceEntry & { target?: Node }) | undefined;
-  const node = lastEntry ? lastEntry.target : undefined;
+  const node = lastEntry && lastEntry.target ? [lastEntry.target] : undefined;
   return getWebVital(metric, 'interaction-to-next-paint', node);
 }
 
 /**
  * Add an web vital event to the replay based on the web vital metric.
  */
-export function getWebVital(
+function getWebVital(
   metric: Metric,
   name: string,
-  node: Node | undefined,
+  nodes: Node[] | undefined,
+  attributions?: WebVitalData['attributions'],
 ): ReplayPerformanceEntry<WebVitalData> {
   const value = metric.value;
   const rating = metric.rating;
 
   const end = getAbsoluteTime(value);
 
-  const data: ReplayPerformanceEntry<WebVitalData> = {
+  return {
     type: 'web-vital',
     name,
     start: end,
@@ -241,9 +263,8 @@ export function getWebVital(
       value,
       size: value,
       rating,
-      nodeId: node ? record.mirror.getId(node) : undefined,
+      nodeIds: nodes ? nodes.map(node => record.mirror.getId(node)) : undefined,
+      attributions,
     },
   };
-
-  return data;
 }

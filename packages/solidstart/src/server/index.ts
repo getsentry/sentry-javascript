@@ -38,6 +38,7 @@ export {
   flush,
   functionToStringIntegration,
   generateInstrumentOnce,
+  genericPoolIntegration,
   getActiveSpan,
   getAutoPerformanceIntegrations,
   getClient,
@@ -57,6 +58,7 @@ export {
   inboundFiltersIntegration,
   initOpenTelemetry,
   isInitialized,
+  kafkaIntegration,
   koaIntegration,
   lastEventId,
   linkedErrorsIntegration,
@@ -126,3 +128,6 @@ export { withSentryErrorBoundary } from '@sentry/solid';
 // -------------------------
 // Solid Start SDK exports:
 export { init } from './sdk';
+
+export * from './withServerActionInstrumentation';
+export * from './middleware';
