@@ -1,54 +1,52 @@
 import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
 
-describe('errors in Tracing without Performance mode', () => {
-  console.log('-1');
-
+describe('errors in TwP mode have same trace in trace context and getTraceData()', () => {
   afterAll(() => {
     cleanupChildProcesses();
   });
 
-  test('error has the same traceId as obtained via getTraceData()/getTraceMetaTags()', async () => {
-    console.log('0');
-    const runner = createRunner(__dirname, 'server.js').start();
+  test('in incoming request', async () => {
+    const runner = createRunner(__dirname, 'server.js')
+      .expect({
+        event: event => {
+          const { contexts } = event;
+          const { trace_id, span_id } = contexts?.trace || {};
+          expect(trace_id).toMatch(/^[a-f0-9]{32}$/);
+          expect(span_id).toMatch(/^[a-f0-9]{16}$/);
 
-    console.log('1', runner.getLogs());
+          const traceData = contexts?.traceData || {};
 
-    const response = await runner.makeRequest('get', '/test');
+          expect(traceData['sentry-trace']).toEqual(`${trace_id}-${span_id}`);
+          expect(traceData.baggage).toContain(`sentry-trace_id=${trace_id}`);
 
-    console.log('2', runner.getLogs());
+          expect(traceData.metaTags).toContain(`<meta name="sentry-trace" content="${trace_id}-${span_id}"/>`);
+          expect(traceData.metaTags).toContain(`sentr y-trace_id=${trace_id}`);
+          expect(traceData.metaTags).not.toContain('sentry-sampled=');
+        },
+      })
+      .start()
+      .makeRequest('get', '/test');
+  });
 
-    console.log('yy res', response);
+  test('outside of a request handler', done => {
+    createRunner(__dirname, 'no-server.js')
+      .expect({
+        event: event => {
+          const { contexts } = event;
+          const { trace_id, span_id } = contexts?.trace || {};
+          expect(trace_id).toMatch(/^[a-f0-9]{32}$/);
+          expect(span_id).toMatch(/^[a-f0-9]{16}$/);
 
-    const { traceData, traceMetaTags, errorTraceContext } = response as {
-      traceData: Record<string, string>;
-      traceMetaTags: string;
-      errorTraceContext: {
-        trace_id: string;
-        span_id: string;
-      };
-    };
+          const traceData = contexts?.traceData || {};
 
-    console.log('3', runner.getLogs());
+          expect(traceData['sentry-trace']).toEqual(`${trace_id}-${span_id}`);
+          expect(traceData.baggage).toContain(`sentry-trace_id=${trace_id}`);
 
-    const traceId = errorTraceContext?.trace_id;
-    const spanId = errorTraceContext?.span_id;
-
-    expect(traceId).toMatch(/^[a-f0-9]{32}$/);
-    expect(spanId).toMatch(/^[a-f0-9]{16}$/);
-
-    expect(errorTraceContext).toEqual({
-      trace_id: traceId,
-      span_id: spanId,
-    });
-
-    expect(traceData).toEqual({
-      'sentry-trace': `${traceId}-${spanId}`,
-      baggage: expect.stringContaining(`sentry-trace_id=${traceId}`),
-    });
-
-    expect(traceMetaTags).toContain(`content="${traceId}-${spanId}"/>\n`);
-    expect(traceMetaTags).toContain(`sentry-trace_id=${traceId}`);
-
-    console.log(runner.getLogs());
+          expect(traceData.metaTags).toContain(`<meta name="sentry-trace" content="${trace_id}-${span_id}"/>`);
+          expect(traceData.metaTags).toContain(`sentry-trace_id=${trace_id}`);
+          expect(traceData.metaTags).not.toContain('sentry-sampled=');
+        },
+      })
+      .start(done);
   });
 });
