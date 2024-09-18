@@ -1,11 +1,14 @@
 import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
 
 describe('errors in Tracing without Performance mode', () => {
+  console.log('-1');
+
   afterAll(() => {
     cleanupChildProcesses();
   });
 
   test('error has the same traceId as obtained via getTraceData()/getTraceMetaTags()', async () => {
+    console.log('0');
     const runner = createRunner(__dirname, 'server.js').start();
 
     console.log('1', runner.getLogs());
