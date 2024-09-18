@@ -17,7 +17,7 @@ console.log('X0');
 
 app.get('/test', (_req, res) => {
   console.log('X1');
-  // Sentry.captureException(new Error('This is a test error'));
+  Sentry.captureException('This is a test error');
   console.log('X2');
   // Sentry.getClient().on('beforeEnvelope', envelope => {
   //   console.log('X3');
