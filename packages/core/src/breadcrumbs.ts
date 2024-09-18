@@ -1,6 +1,7 @@
 import type { Breadcrumb, BreadcrumbHint } from '@sentry/types';
 import { consoleSandbox, dateTimestampInSeconds } from '@sentry/utils';
 import { getClient, getIsolationScope } from './currentScopes';
+import { assignBreadcrumbLogLevel } from './utils/breadcrumbsUtils';
 
 /**
  * Default maximum number of breadcrumbs added to an event. Can be overwritten
@@ -25,7 +26,7 @@ export function addBreadcrumb(breadcrumb: Breadcrumb, hint?: BreadcrumbHint): vo
   if (maxBreadcrumbs <= 0) return;
 
   const timestamp = dateTimestampInSeconds();
-  const mergedBreadcrumb = { timestamp, ...breadcrumb };
+  const mergedBreadcrumb = { timestamp, ...assignBreadcrumbLogLevel(breadcrumb) };
   const finalBreadcrumb = beforeBreadcrumb
     ? (consoleSandbox(() => beforeBreadcrumb(mergedBreadcrumb, hint)) as Breadcrumb | null)
     : mergedBreadcrumb;
