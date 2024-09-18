@@ -54,9 +54,9 @@ import { getHandleRecordingEmit } from './util/handleRecordingEmit';
 import { isExpired } from './util/isExpired';
 import { isSessionExpired } from './util/isSessionExpired';
 import { sendReplay } from './util/sendReplay';
+import { RateLimitError } from './util/sendReplayRequest';
 import type { SKIPPED } from './util/throttle';
 import { THROTTLED, throttle } from './util/throttle';
-import { RateLimitError } from './util/sendReplayRequest';
 
 /**
  * The main replay container class, which holds all the state and methods for recording and sending replays.
