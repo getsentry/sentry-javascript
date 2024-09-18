@@ -1,5 +1,6 @@
 import type { ClientRequest, IncomingMessage, RequestOptions, ServerResponse } from 'node:http';
-import type { Span } from '@opentelemetry/api';
+import type { Span} from '@opentelemetry/api';
+import { diag } from '@opentelemetry/api';
 import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
 import { addOpenTelemetryInstrumentation } from '@sentry/opentelemetry';
 
@@ -22,6 +23,8 @@ import { addOriginToSpan } from '../utils/addOriginToSpan';
 import { getRequestUrl } from '../utils/getRequestUrl';
 
 const INTEGRATION_NAME = 'Http';
+
+const INSTRUMENTATION_NAME = '@opentelemetry/instrumentation-http-sentry';
 
 interface HttpOptions {
   /**
@@ -195,6 +198,17 @@ export const instrumentHttp = Object.assign(
       },
     });
 
+    // We want to update the logger namespace so we can better identify what is happening here
+    try {
+      _httpInstrumentation['_diag'] = diag.createComponentLogger({
+        namespace: INSTRUMENTATION_NAME,
+      });
+
+      // @ts-expect-error This is marked as read-only, but we overwrite it anyhow
+      _httpInstrumentation.instrumentationName = INSTRUMENTATION_NAME;
+    } catch {
+      // ignore errors here...
+    }
     addOpenTelemetryInstrumentation(_httpInstrumentation);
   },
   {
