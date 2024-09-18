@@ -33,5 +33,6 @@ sentryTest('captures Breadcrumb for basic GET request', async ({ getLocalTestUrl
       status_code: 200,
       url: 'http://sentry-test.io/foo',
     },
+    level: 'info',
   });
 });
