@@ -1,5 +1,5 @@
 import type { ClientRequest, IncomingMessage, RequestOptions, ServerResponse } from 'node:http';
-import type { Span} from '@opentelemetry/api';
+import type { Span } from '@opentelemetry/api';
 import { diag } from '@opentelemetry/api';
 import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
 import { addOpenTelemetryInstrumentation } from '@sentry/opentelemetry';
