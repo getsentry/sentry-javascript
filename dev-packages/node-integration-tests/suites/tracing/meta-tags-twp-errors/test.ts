@@ -8,7 +8,11 @@ describe('errors in Tracing without Performance mode', () => {
   test('error has the same traceId as obtained via getTraceData()/getTraceMetaTags()', async () => {
     const runner = createRunner(__dirname, 'server.js').start();
 
+    console.log('1', runner.getLogs());
+
     const response = await runner.makeRequest('get', '/test');
+
+    console.log('2', runner.getLogs());
 
     console.log('yy res', response);
 
@@ -20,6 +24,8 @@ describe('errors in Tracing without Performance mode', () => {
         span_id: string;
       };
     };
+
+    console.log('3', runner.getLogs());
 
     const traceId = errorTraceContext?.trace_id;
     const spanId = errorTraceContext?.span_id;
