@@ -21,7 +21,7 @@ const express = require('express');
 
 const app = express();
 
-app.get('/test', (_req, res) => {
+app.get('/test', () => {
   throw new Error('test error');
 });
 

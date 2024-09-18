@@ -6,7 +6,7 @@ describe('errors in TwP mode have same trace in trace context and getTraceData()
   });
 
   test('in incoming request', async () => {
-    const runner = createRunner(__dirname, 'server.js')
+    createRunner(__dirname, 'server.js')
       .expect({
         event: event => {
           const { contexts } = event;
