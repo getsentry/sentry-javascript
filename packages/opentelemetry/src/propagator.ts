@@ -5,7 +5,6 @@ import { propagation, trace } from '@opentelemetry/api';
 import { W3CBaggagePropagator, isTracingSuppressed } from '@opentelemetry/core';
 import { ATTR_URL_FULL, SEMATTRS_HTTP_URL } from '@opentelemetry/semantic-conventions';
 import type { continueTrace } from '@sentry/core';
-import { hasTracingEnabled } from '@sentry/core';
 import { getRootSpan } from '@sentry/core';
 import { spanToJSON } from '@sentry/core';
 import {
@@ -198,7 +197,7 @@ function getInjectionData(context: Context): {
   spanId: string | undefined;
   sampled: boolean | undefined;
 } {
-  const span = hasTracingEnabled() ? trace.getSpan(context) : undefined;
+  const span = trace.getSpan(context);
   const spanIsRemote = span?.spanContext().isRemote;
 
   // If we have a local span, we can just pick everything from it
