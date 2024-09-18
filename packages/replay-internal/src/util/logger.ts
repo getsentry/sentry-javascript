@@ -70,7 +70,7 @@ function makeReplayLogger(): ReplayLogger {
     });
 
     _logger.exception = (error: unknown, ...message: unknown[]) => {
-      if (_logger.error) {
+      if (message && _logger.error) {
         _logger.error(...message);
       }
 
@@ -79,7 +79,7 @@ function makeReplayLogger(): ReplayLogger {
       if (_capture) {
         captureException(error);
       } else if (_trace) {
-        // No need for a breadcrumb is `_capture` is enabled since it should be
+        // No need for a breadcrumb if `_capture` is enabled since it should be
         // captured as an exception
         _addBreadcrumb(error);
       }
