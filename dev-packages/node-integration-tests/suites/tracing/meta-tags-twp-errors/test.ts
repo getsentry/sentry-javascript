@@ -10,6 +10,8 @@ describe('errors in Tracing without Performance mode', () => {
 
     const response = await runner.makeRequest('get', '/test');
 
+    console.log('yy res', response);
+
     const { traceData, traceMetaTags, errorTraceContext } = response as {
       traceData: Record<string, string>;
       traceMetaTags: string;
@@ -37,5 +39,7 @@ describe('errors in Tracing without Performance mode', () => {
 
     expect(traceMetaTags).toContain(`content="${traceId}-${spanId}"/>\n`);
     expect(traceMetaTags).toContain(`sentry-trace_id=${traceId}`);
+
+    console.log(runner.getLogs());
   });
 });
