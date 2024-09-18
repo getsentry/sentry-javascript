@@ -1,6 +1,5 @@
 import { SDK_VERSION, getClient } from '@sentry/core';
 import type { IntegrationFn } from '@sentry/types';
-import { logger } from '@sentry/utils';
 import type { BrowserClient } from '../client';
 import { WINDOW } from '../helpers';
 
