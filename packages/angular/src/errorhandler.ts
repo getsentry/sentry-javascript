@@ -4,7 +4,7 @@ import { Inject, Injectable } from '@angular/core';
 import * as Sentry from '@sentry/browser';
 import type { ReportDialogOptions } from '@sentry/browser';
 import type { Event } from '@sentry/types';
-import { isString } from '@sentry/utils';
+import { consoleSandbox, isString } from '@sentry/utils';
 
 import { runOutsideAngular } from './zone';
 
@@ -119,7 +119,7 @@ class SentryErrorHandler implements AngularErrorHandler, OnDestroy {
     // When in development mode, log the error to console for immediate feedback.
     if (this._options.logErrors) {
       // eslint-disable-next-line no-console
-      console.error(extractedError);
+      consoleSandbox(() => console.error(extractedError));
     }
 
     // Optionally show user dialog to provide details on what happened.
