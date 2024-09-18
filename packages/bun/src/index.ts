@@ -131,6 +131,7 @@ export {
   addOpenTelemetryInstrumentation,
   zodErrorsIntegration,
   profiler,
+  amqplibIntegration,
 } from '@sentry/node';
 
 export {
