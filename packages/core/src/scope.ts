@@ -412,7 +412,7 @@ class ScopeClass implements ScopeInterface {
 
     const mergedBreadcrumb = {
       timestamp: dateTimestampInSeconds(),
-      breadcrumb,
+      ...breadcrumb,
     };
 
     const breadcrumbs = this._breadcrumbs;

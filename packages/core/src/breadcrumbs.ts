@@ -25,7 +25,7 @@ export function addBreadcrumb(breadcrumb: Breadcrumb, hint?: BreadcrumbHint): vo
   if (maxBreadcrumbs <= 0) return;
 
   const timestamp = dateTimestampInSeconds();
-  const mergedBreadcrumb = { timestamp, breadcrumb };
+  const mergedBreadcrumb = { timestamp, ...breadcrumb };
   const finalBreadcrumb = beforeBreadcrumb
     ? (consoleSandbox(() => beforeBreadcrumb(mergedBreadcrumb, hint)) as Breadcrumb | null)
     : mergedBreadcrumb;
