@@ -24,7 +24,7 @@ import { getRequestUrl } from '../utils/getRequestUrl';
 
 const INTEGRATION_NAME = 'Http';
 
-const INSTRUMENTATION_NAME = '@opentelemetry/instrumentation-http-sentry';
+const INSTRUMENTATION_NAME = '@opentelemetry_sentry-patched/instrumentation-http';
 
 interface HttpOptions {
   /**
