@@ -17,10 +17,14 @@ app.get('/test', (_req, res) => {
   Sentry.getClient().on('beforeEnvelope', envelope => {
     const event = envelope[1][0][1];
     if (event.exception.values[0].value === 'This is a test error') {
+      const { trace_id, span_id } = event.contexts.trace;
       res.send({
         traceData: Sentry.getTraceData(),
         traceMetaTags: Sentry.getTraceMetaTags(),
-        errorTraceContext: event.contexts.trace,
+        errorTraceContext: {
+          trace_id,
+          span_id,
+        },
       });
     }
   });
