@@ -24,7 +24,6 @@ import type {
 import { dateTimestampInSeconds, generatePropagationContext, isPlainObject, logger, uuid4 } from '@sentry/utils';
 
 import { updateSession } from './session';
-import { assignBreadcrumbLogLevel } from './utils/breadcrumbsUtils';
 import { _getSpanForScope, _setSpanForScope } from './utils/spanOnScope';
 
 /**
@@ -413,7 +412,7 @@ class ScopeClass implements ScopeInterface {
 
     const mergedBreadcrumb = {
       timestamp: dateTimestampInSeconds(),
-      ...assignBreadcrumbLogLevel(breadcrumb),
+      breadcrumb,
     };
 
     const breadcrumbs = this._breadcrumbs;

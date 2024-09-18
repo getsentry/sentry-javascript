@@ -1,20 +1,17 @@
-import type { Breadcrumb } from '@sentry/types';
+import type { SeverityLevel } from '@sentry/types';
 
 /**
- * Set a Fetch/XHR breadcrumb's log level based on the returned status code
- * @param breadcrumb
+ * Determine a breadcrumb's log level based on the response status code
+ * @param statusCode
  */
-export function assignBreadcrumbLogLevel(breadcrumb: Breadcrumb): Breadcrumb {
-  const statusCode = breadcrumb.data?.status_code;
-  if (typeof statusCode !== 'number') {
-    return breadcrumb;
-  }
-
-  if (statusCode >= 400 && statusCode < 500) {
-    breadcrumb.level = 'warning';
+export function getBreadcrumbLogLevel(statusCode: number | undefined): SeverityLevel {
+  if (statusCode === undefined) {
+    return 'info';
+  } else if (statusCode >= 400 && statusCode < 500) {
+    return 'warning';
   } else if (statusCode >= 500) {
-    breadcrumb.level = 'error';
+    return 'error';
+  } else {
+    return 'info';
   }
-
-  return breadcrumb;
 }
