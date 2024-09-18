@@ -6,6 +6,7 @@ import { addOpenTelemetryInstrumentation } from '@sentry/opentelemetry';
 import {
   addBreadcrumb,
   defineIntegration,
+  getBreadcrumbLogLevel,
   getCapturedScopesOnSpan,
   getCurrentScope,
   getIsolationScope,
@@ -229,14 +230,18 @@ function _addRequestBreadcrumb(
   }
 
   const data = getBreadcrumbData(request);
+  const statusCode = response.statusCode;
+  const level = getBreadcrumbLogLevel(statusCode);
+
   addBreadcrumb(
     {
       category: 'http',
       data: {
-        status_code: response.statusCode,
+        status_code: statusCode,
         ...data,
       },
       type: 'http',
+      level,
     },
     {
       event: 'response',

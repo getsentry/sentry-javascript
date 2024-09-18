@@ -1,4 +1,11 @@
-import { addBreadcrumb, defineIntegration, getClient, instrumentFetchRequest, isSentryRequestUrl } from '@sentry/core';
+import {
+  addBreadcrumb,
+  defineIntegration,
+  getBreadcrumbLogLevel,
+  getClient,
+  instrumentFetchRequest,
+  isSentryRequestUrl,
+} from '@sentry/core';
 import type {
   Client,
   FetchBreadcrumbData,
@@ -150,11 +157,14 @@ function createBreadcrumb(handlerData: HandlerDataFetch): void {
       startTimestamp,
       endTimestamp,
     };
+    const level = getBreadcrumbLogLevel(data.status_code);
+
     addBreadcrumb(
       {
         category: 'fetch',
         data,
         type: 'http',
+        level,
       },
       hint,
     );
