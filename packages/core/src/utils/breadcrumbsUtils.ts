@@ -5,7 +5,7 @@ import type { Breadcrumb } from '@sentry/types';
  * @param breadcrumb
  */
 export function assignBreadcrumbLogLevel(breadcrumb: Breadcrumb): Breadcrumb {
-  const statusCode = breadcrumb?.data?.status_code;
+  const statusCode = breadcrumb.data?.status_code;
   if (typeof statusCode !== 'number') {
     return breadcrumb;
   }
