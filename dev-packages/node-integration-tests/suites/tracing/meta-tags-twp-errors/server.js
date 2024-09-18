@@ -1,4 +1,4 @@
-const { loggingTransport } = require('@sentry-internal/node-integration-tests');
+const { loggingTransport, startExpressServerAndSendPortToRunner } = require('@sentry-internal/node-integration-tests');
 const Sentry = require('@sentry/node');
 console.log('X-4');
 
@@ -11,15 +11,13 @@ console.log('X-3');
 // express must be required after Sentry is initialized
 const express = require('express');
 console.log('X-2');
-const { startExpressServerAndSendPortToRunner } = require('@sentry-internal/node-integration-tests');
-console.log('X-1');
 
 const app = express();
 console.log('X0');
 
 app.get('/test', (_req, res) => {
   console.log('X1');
-  Sentry.captureException(new Error('This is a test error'));
+  // Sentry.captureException(new Error('This is a test error'));
   console.log('X2');
   // Sentry.getClient().on('beforeEnvelope', envelope => {
   //   console.log('X3');
