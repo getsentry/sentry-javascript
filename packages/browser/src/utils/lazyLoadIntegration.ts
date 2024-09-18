@@ -1,5 +1,6 @@
 import { SDK_VERSION, getClient } from '@sentry/core';
 import type { IntegrationFn } from '@sentry/types';
+import { logger } from '@sentry/utils';
 import type { BrowserClient } from '../client';
 import { WINDOW } from '../helpers';
 
@@ -68,7 +69,14 @@ export async function lazyLoadIntegration(
     script.addEventListener('error', reject);
   });
 
-  WINDOW.document.body.appendChild(script);
+  const currentScript = WINDOW.document.currentScript;
+  const parent = (currentScript && currentScript.parentElement) || WINDOW.document.body || WINDOW.document.head;
+
+  if (!parent) {
+    throw new Error(`Could not find parent element to insert lazy-loaded ${name} script`);
+  }
+
+  parent.appendChild(script);
 
   try {
     await waitForLoad;
