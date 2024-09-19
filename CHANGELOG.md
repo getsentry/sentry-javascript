@@ -12,6 +12,12 @@
 
 Work in this release was contributed by @KyGuy2002, @artzhookov, and @julianCast. Thank you for your contributions!
 
+## 8.31.0-beta.0
+
+### Important Changes
+
+* Upgrades rrweb library to version 2.28.0
+
 ## 8.30.0
 
 ### Important Changes
