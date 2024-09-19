@@ -76,7 +76,7 @@ export default defineNuxtModule<ModuleOptions>({
             const serverConfigPath = serverDirResolver.resolve('sentry.server.config.mjs');
 
             // For the default nitro node-preset build output this relative path would be: ./.output/server/sentry.server.config.mjs
-            const serverConfigRelativePath = `./${path.relative(nitro.options.rootDir, serverConfigPath)}`;
+            const serverConfigRelativePath = `.${path.sep}${path.relative(nitro.options.rootDir, serverConfigPath)}`;
 
             consoleSandbox(() => {
               // eslint-disable-next-line no-console
