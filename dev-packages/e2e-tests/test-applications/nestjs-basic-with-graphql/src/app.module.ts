@@ -5,6 +5,7 @@ import { GraphQLModule } from '@nestjs/graphql';
 import { SentryGlobalGenericFilter, SentryModule } from '@sentry/nestjs/setup';
 import { AppController } from './app.controller';
 import { AppResolver } from './app.resolver';
+import { AppService } from './app.service';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { AppResolver } from './app.resolver';
   ],
   controllers: [AppController],
   providers: [
+    AppService,
     AppResolver,
     {
       provide: APP_FILTER,
