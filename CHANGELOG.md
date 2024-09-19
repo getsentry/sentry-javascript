@@ -16,7 +16,7 @@ Work in this release was contributed by @KyGuy2002, @artzhookov, and @julianCast
 
 ### Important Changes
 
-* Upgrades rrweb library to version 2.28.0
+- Upgrades rrweb library to version 2.28.0
 
 ## 8.30.0
 
