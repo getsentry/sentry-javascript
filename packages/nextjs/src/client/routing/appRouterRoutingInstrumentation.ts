@@ -7,6 +7,8 @@ import { WINDOW, startBrowserTracingNavigationSpan, startBrowserTracingPageLoadS
 import type { Client, Span } from '@sentry/types';
 import { GLOBAL_OBJ, browserPerformanceTimeOrigin } from '@sentry/utils';
 
+export const INCOMPLETE_APP_ROUTER_INSTRUMENTATION_TRANSACTION_NAME = 'incomplete-app-router-transaction';
+
 /** Instruments the Next.js app router for pageloads. */
 export function appRouterInstrumentPageLoad(client: Client): void {
   startBrowserTracingPageLoadSpan(client, {
@@ -21,14 +23,20 @@ export function appRouterInstrumentPageLoad(client: Client): void {
   });
 }
 
+interface NextRouter {
+  back: () => void;
+  forward: () => void;
+  push: (target: string) => void;
+  replace: (target: string) => void;
+} // Yes, yes, I know we shouldn't depend on these internals. But that's where we are at. We write the ugly code, so you don't have to.
 const GLOBAL_OBJ_WITH_NEXT_ROUTER = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
+  // Available until 13.4.4-canary.3 - https://github.com/vercel/next.js/pull/50210
   nd?: {
-    router?: {
-      back: () => void;
-      forward: () => void;
-      push: (target: string) => void;
-      replace: (target: string) => void;
-    };
+    router?: NextRouter;
+  };
+  // Avalable from 13.4.4-canary.4 - https://github.com/vercel/next.js/pull/50210
+  next?: {
+    router?: NextRouter;
   };
 };
 
@@ -40,8 +48,8 @@ const GLOBAL_OBJ_WITH_NEXT_ROUTER = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
  *  - router.back()
  *  - router.forward()
  * - Browser operations:
- *  - native Browser-back
- *  - native Browser-forward
+ *  - native Browser-back / popstate event (implicitly called by router.back())
+ *  - native Browser-forward / popstate event (implicitly called by router.forward())
  */
 
 /** Instruments the Next.js app router for navigation. */
@@ -66,41 +74,38 @@ export function appRouterInstrumentNavigation(client: Client): void {
   setTimeout(
     () => {
       (['back', 'forward', 'push', 'replace'] as const).forEach(routerFunctionName => {
-        if (GLOBAL_OBJ_WITH_NEXT_ROUTER?.nd?.router?.[routerFunctionName]) {
+        const router = GLOBAL_OBJ_WITH_NEXT_ROUTER?.next?.router ?? GLOBAL_OBJ_WITH_NEXT_ROUTER?.nd?.router;
+
+        if (router?.[routerFunctionName]) {
           // @ts-expect-error TODO
-          GLOBAL_OBJ_WITH_NEXT_ROUTER.nd.router[routerFunctionName] = new Proxy(
-            GLOBAL_OBJ_WITH_NEXT_ROUTER.nd.router[routerFunctionName],
-            {
-              apply(target, thisArg, argArray) {
-                let targetPathName: string;
-                const opParts = ['navigation'];
+          router[routerFunctionName] = new Proxy(router[routerFunctionName], {
+            apply(target, thisArg, argArray) {
+              const span = startBrowserTracingNavigationSpan(client, {
+                name: INCOMPLETE_APP_ROUTER_INSTRUMENTATION_TRANSACTION_NAME,
+                attributes: {
+                  [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
+                  [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.nextjs.app_router_instrumentation',
+                  [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+                },
+              });
 
-                if (routerFunctionName === 'push') {
-                  targetPathName = transactionNameifyRouterArgument(argArray[0]);
-                } else if (routerFunctionName === 'replace') {
-                  targetPathName = transactionNameifyRouterArgument(argArray[0]);
-                } else if (routerFunctionName === 'back') {
-                  targetPathName = 'TOOD'; // TODO - figure out how to filter txns with this name
-                  opParts.push('router', 'back');
-                } else if (routerFunctionName === 'forward') {
-                  targetPathName = 'TOOD'; // TODO - figure out how to filter txns with this name
-                  opParts.push('router', 'forward');
-                }
+              currentNavigationSpan = span;
 
-                currentNavigationSpan = startBrowserTracingNavigationSpan(client, {
-                  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                  name: targetPathName!,
-                  attributes: {
-                    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: opParts.join('.'),
-                    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.nextjs.app_router_instrumentation',
-                    [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
-                  },
-                });
+              if (routerFunctionName === 'push') {
+                span?.updateName(transactionNameifyRouterArgument(argArray[0]));
+                span?.setAttribute('navigation.type', 'navigation.router.push');
+              } else if (routerFunctionName === 'replace') {
+                span?.updateName(transactionNameifyRouterArgument(argArray[0]));
+                span?.setAttribute('navigation.type', 'navigation.router.replace');
+              } else if (routerFunctionName === 'back') {
+                span?.setAttribute('navigation.type', 'navigation.router.back');
+              } else if (routerFunctionName === 'forward') {
+                span?.setAttribute('navigation.type', 'navigation.router.forward');
+              }
 
-                return target.apply(thisArg, argArray);
-              },
+              return target.apply(thisArg, argArray);
             },
-          );
+          });
         }
       });
     },
