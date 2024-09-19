@@ -1,9 +1,10 @@
+import * as path from 'path';
 import { addPlugin, addPluginTemplate, addServerPlugin, createResolver, defineNuxtModule } from '@nuxt/kit';
 import { consoleSandbox } from '@sentry/utils';
 import type { SentryNuxtModuleOptions } from './common/types';
 import { addSentryTopImport, addServerConfigToBuild } from './vite/addServerConfig';
 import { setupSourceMaps } from './vite/sourceMaps';
-import { findDefaultSdkInitFile, getStringSuffixDiff } from './vite/utils';
+import { findDefaultSdkInitFile } from './vite/utils';
 
 export type ModuleOptions = SentryNuxtModuleOptions;
 
@@ -74,7 +75,8 @@ export default defineNuxtModule<ModuleOptions>({
             const serverDirResolver = createResolver(nitro.options.output.serverDir);
             const serverConfigPath = serverDirResolver.resolve('sentry.server.config.mjs');
 
-            const serverConfigRelativePath = `.${getStringSuffixDiff(serverConfigPath, nitro.options.rootDir)}`;
+            // For the default nitro node-preset build output this relative path would be: ./.output/server/sentry.server.config.mjs
+            const serverConfigRelativePath = `./${path.relative(nitro.options.rootDir, serverConfigPath)}`;
 
             consoleSandbox(() => {
               // eslint-disable-next-line no-console

@@ -26,13 +26,3 @@ export function findDefaultSdkInitFile(type: 'server' | 'client'): string | unde
 
   return filePath ? path.basename(filePath) : undefined;
 }
-
-/**
- *  Get the diff suffix part between two strings.
- *
- *  Example: getStringDiff('abcdef', 'abc') => 'def'
- */
-export function getStringSuffixDiff(longerStr: string, shorterStr: string): string {
-  const commonPrefixLength = [...longerStr].findIndex((char, index) => char !== shorterStr[index]);
-  return commonPrefixLength === -1 ? '' : longerStr.slice(commonPrefixLength);
-}
