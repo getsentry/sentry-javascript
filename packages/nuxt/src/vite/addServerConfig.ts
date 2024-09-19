@@ -32,9 +32,9 @@ export function addServerConfigToBuild(
      * This is necessary because we need to reference this file path in the node --import option.
      */
     nitro.hooks.hook('close', async () => {
-      const rootDirResolver = createResolver(nitro.options.rootDir);
+      const buildDirResolver = createResolver(nitro.options.buildDir);
       const serverDirResolver = createResolver(nitro.options.output.serverDir);
-      const source = rootDirResolver.resolve('.nuxt/dist/server/sentry.server.config.mjs');
+      const source = buildDirResolver.resolve('dist/server/sentry.server.config.mjs');
       const destination = serverDirResolver.resolve('sentry.server.config.mjs');
 
       try {
