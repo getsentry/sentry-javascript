@@ -28,7 +28,9 @@ interface NextRouter {
   forward: () => void;
   push: (target: string) => void;
   replace: (target: string) => void;
-} // Yes, yes, I know we shouldn't depend on these internals. But that's where we are at. We write the ugly code, so you don't have to.
+}
+
+// Yes, yes, I know we shouldn't depend on these internals. But that's where we are at. We write the ugly code, so you don't have to.
 const GLOBAL_OBJ_WITH_NEXT_ROUTER = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
   // Available until 13.4.4-canary.3 - https://github.com/vercel/next.js/pull/50210
   nd?: {
@@ -40,7 +42,7 @@ const GLOBAL_OBJ_WITH_NEXT_ROUTER = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
   };
 };
 
-/**
+/*
  * The routing instrumentation needs to handle a few cases:
  * - Router operations:
  *  - router.push() (either explicitly called or implicitly through <Link /> tags)
