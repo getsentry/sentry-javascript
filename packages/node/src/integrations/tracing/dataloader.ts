@@ -10,7 +10,13 @@ import { generateInstrumentOnce } from '../../otel/instrument';
 
 const INTEGRATION_NAME = 'Dataloader';
 
-export const instrumentDataloader = generateInstrumentOnce(INTEGRATION_NAME, () => new DataloaderInstrumentation({}));
+export const instrumentDataloader = generateInstrumentOnce(
+  INTEGRATION_NAME,
+  () =>
+    new DataloaderInstrumentation({
+      requireParentSpan: true,
+    }),
+);
 
 const _dataloaderIntegration = (() => {
   return {
