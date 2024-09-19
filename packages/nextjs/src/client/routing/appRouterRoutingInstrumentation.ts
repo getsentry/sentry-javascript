@@ -1,3 +1,4 @@
+import { setInterval } from 'timers';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -74,11 +75,20 @@ export function appRouterInstrumentNavigation(client: Client): void {
     }
   });
 
-  setTimeout(
-    () => {
-      (['back', 'forward', 'push', 'replace'] as const).forEach(routerFunctionName => {
-        const router = GLOBAL_OBJ_WITH_NEXT_ROUTER?.next?.router ?? GLOBAL_OBJ_WITH_NEXT_ROUTER?.nd?.router;
+  let routerPatched = false;
+  let triesToFindRouter = 0;
+  const MAX_TRIES_TO_FIND_ROUTER = 500;
+  const ROUTER_AVAILABILITY_CHECK_INTERVAL_MS = 20;
+  const checkForRouterAvailabilityInterval = setInterval(() => {
+    triesToFindRouter++;
+    const router = GLOBAL_OBJ_WITH_NEXT_ROUTER?.next?.router ?? GLOBAL_OBJ_WITH_NEXT_ROUTER?.nd?.router;
 
+    if (routerPatched || triesToFindRouter > MAX_TRIES_TO_FIND_ROUTER) {
+      clearInterval(checkForRouterAvailabilityInterval);
+    } else if (router) {
+      clearInterval(checkForRouterAvailabilityInterval);
+      routerPatched = true;
+      (['back', 'forward', 'push', 'replace'] as const).forEach(routerFunctionName => {
         if (router?.[routerFunctionName]) {
           // @ts-expect-error TODO
           router[routerFunctionName] = new Proxy(router[routerFunctionName], {
@@ -111,10 +121,8 @@ export function appRouterInstrumentNavigation(client: Client): void {
           });
         }
       });
-    },
-    // Some arbitrary amount of time that is enough for Next.js to populate `window.next.router`
-    50,
-  );
+    }
+  }, ROUTER_AVAILABILITY_CHECK_INTERVAL_MS);
 }
 
 function transactionNameifyRouterArgument(target: string): string {

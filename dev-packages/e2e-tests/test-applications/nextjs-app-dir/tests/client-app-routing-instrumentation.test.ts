@@ -64,6 +64,7 @@ test('Creates a navigation transaction for `router.push()`', async ({ page }) =>
   });
 
   await page.goto('/navigation');
+  await page.waitForTimeout(3000);
   await page.getByText('router.push()').click();
 
   expect(await navigationTransactionPromise).toBeDefined();
@@ -79,6 +80,7 @@ test('Creates a navigation transaction for `router.replace()`', async ({ page })
   });
 
   await page.goto('/navigation');
+  await page.waitForTimeout(3000);
   await page.getByText('router.replace()').click();
 
   expect(await navigationTransactionPromise).toBeDefined();
@@ -93,7 +95,9 @@ test('Creates a navigation transaction for `router.back()`', async ({ page }) =>
   });
 
   await page.goto('/navigation/1337/router-back');
+  await page.waitForTimeout(3000);
   await page.getByText('Go back home').click();
+  await page.waitForTimeout(3000);
   await page.getByText('router.back()').click();
 
   expect(await navigationTransactionPromise).toMatchObject({
@@ -117,8 +121,11 @@ test('Creates a navigation transaction for `router.forward()`', async ({ page })
   });
 
   await page.goto('/navigation');
+  await page.waitForTimeout(3000);
   await page.getByText('router.push()').click();
+  await page.waitForTimeout(3000);
   await page.goBack();
+  await page.waitForTimeout(3000);
   await page.getByText('router.forward()').click();
 
   expect(await navigationTransactionPromise).toBeDefined();
@@ -149,6 +156,7 @@ test('Creates a navigation transaction for `<Link replace />`', async ({ page })
   });
 
   await page.goto('/navigation');
+  await page.waitForTimeout(3000);
   await page.getByText('Link Replace').click();
 
   expect(await navigationTransactionPromise).toBeDefined();
@@ -164,6 +172,7 @@ test('Creates a navigation transaction for browser-back', async ({ page }) => {
   });
 
   await page.goto('/navigation/42/browser-back');
+  await page.waitForTimeout(3000);
   await page.getByText('Go back home').click();
   await page.waitForTimeout(3000);
   await page.goBack();
