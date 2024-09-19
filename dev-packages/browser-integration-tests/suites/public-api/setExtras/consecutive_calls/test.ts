@@ -10,5 +10,10 @@ sentryTest('should set extras from multiple consecutive calls', async ({ getLoca
   const eventData = await getFirstSentryEnvelopeRequest<Event>(page, url);
 
   expect(eventData.message).toBe('consecutive_calls');
-  expect(eventData.extra).toMatchObject({ extra: [], Infinity: 2, null: null, obj: { foo: ['bar', 'baz', 1] } });
+  expect(eventData.extra).toMatchObject({
+    extra: [],
+    Infinity: 2,
+    null: '[Infinity]',
+    obj: { foo: ['bar', 'baz', 1] },
+  });
 });

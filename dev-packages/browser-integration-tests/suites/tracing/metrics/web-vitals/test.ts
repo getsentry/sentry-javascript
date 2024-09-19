@@ -59,23 +59,30 @@ sentryTest('paint web vitals values are greater than TTFB', async ({ browserName
   expect(fpValue).toBeGreaterThanOrEqual(ttfbValue!);
 });
 
-sentryTest('captures time origin as span attribute', async ({ getLocalTestPath, page }) => {
-  // Only run in chromium to ensure all vitals are present
-  if (shouldSkipTracingTest()) {
-    sentryTest.skip();
-  }
+sentryTest(
+  'captures time origin and navigation activationStart as span attributes',
+  async ({ getLocalTestPath, page }) => {
+    // Only run in chromium to ensure all vitals are present
+    if (shouldSkipTracingTest()) {
+      sentryTest.skip();
+    }
 
-  const url = await getLocalTestPath({ testDir: __dirname });
-  const [eventData] = await Promise.all([getFirstSentryEnvelopeRequest<Event>(page), page.goto(url)]);
+    const url = await getLocalTestPath({ testDir: __dirname });
+    const [eventData] = await Promise.all([getFirstSentryEnvelopeRequest<Event>(page), page.goto(url)]);
 
-  const timeOriginAttribute = eventData.contexts?.trace?.data?.['performance.timeOrigin'];
-  const transactionStartTimestamp = eventData.start_timestamp;
+    const timeOriginAttribute = eventData.contexts?.trace?.data?.['performance.timeOrigin'];
+    const activationStart = eventData.contexts?.trace?.data?.['performance.activationStart'];
 
-  expect(timeOriginAttribute).toBeDefined();
-  expect(transactionStartTimestamp).toBeDefined();
+    const transactionStartTimestamp = eventData.start_timestamp;
 
-  const delta = Math.abs(transactionStartTimestamp! - timeOriginAttribute);
+    expect(timeOriginAttribute).toBeDefined();
+    expect(transactionStartTimestamp).toBeDefined();
 
-  // The delta should be less than 1ms if this flakes, we should increase the threshold
-  expect(delta).toBeLessThanOrEqual(1);
-});
+    const delta = Math.abs(transactionStartTimestamp! - timeOriginAttribute);
+
+    // The delta should be less than 1ms if this flakes, we should increase the threshold
+    expect(delta).toBeLessThanOrEqual(1);
+
+    expect(activationStart).toBeGreaterThanOrEqual(0);
+  },
+);

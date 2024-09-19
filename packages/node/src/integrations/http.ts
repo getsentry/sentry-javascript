@@ -1,5 +1,6 @@
 import type { ClientRequest, IncomingMessage, RequestOptions, ServerResponse } from 'node:http';
 import type { Span } from '@opentelemetry/api';
+import { diag } from '@opentelemetry/api';
 import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
 import { addOpenTelemetryInstrumentation } from '@sentry/opentelemetry';
 
@@ -22,6 +23,8 @@ import { addOriginToSpan } from '../utils/addOriginToSpan';
 import { getRequestUrl } from '../utils/getRequestUrl';
 
 const INTEGRATION_NAME = 'Http';
+
+const INSTRUMENTATION_NAME = '@opentelemetry_sentry-patched/instrumentation-http';
 
 interface HttpOptions {
   /**
@@ -165,6 +168,10 @@ export const instrumentHttp = Object.assign(
 
         isolationScope.setTransactionName(bestEffortTransactionName);
 
+        if (isKnownPrefetchRequest(req)) {
+          span.setAttribute('sentry.http.prefetch', true);
+        }
+
         _httpOptions.instrumentation?.requestHook?.(span, req);
       },
       responseHook: (span, res) => {
@@ -191,6 +198,17 @@ export const instrumentHttp = Object.assign(
       },
     });
 
+    // We want to update the logger namespace so we can better identify what is happening here
+    try {
+      _httpInstrumentation['_diag'] = diag.createComponentLogger({
+        namespace: INSTRUMENTATION_NAME,
+      });
+
+      // @ts-expect-error This is marked as read-only, but we overwrite it anyhow
+      _httpInstrumentation.instrumentationName = INSTRUMENTATION_NAME;
+    } catch {
+      // ignore errors here...
+    }
     addOpenTelemetryInstrumentation(_httpInstrumentation);
   },
   {
@@ -274,4 +292,12 @@ function getBreadcrumbData(request: ClientRequest): Partial<SanitizedRequestData
  */
 function _isClientRequest(req: ClientRequest | HTTPModuleRequestIncomingMessage): req is ClientRequest {
   return 'outputData' in req && 'outputSize' in req && !('client' in req) && !('statusCode' in req);
+}
+
+/**
+ * Detects if an incoming request is a prefetch request.
+ */
+function isKnownPrefetchRequest(req: HTTPModuleRequestIncomingMessage): boolean {
+  // Currently only handles Next.js prefetch requests but may check other frameworks in the future.
+  return req.headers['next-router-prefetch'] === '1';
 }

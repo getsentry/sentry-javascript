@@ -1,6 +1,7 @@
 import type { Debugger, InspectorNotification, Runtime } from 'node:inspector';
 import { Session } from 'node:inspector/promises';
 import { workerData } from 'node:worker_threads';
+import { consoleSandbox } from '@sentry/utils';
 import type { LocalVariablesWorkerArgs, PausedExceptionEvent, RateLimitIncrement, Variables } from './common';
 import { LOCAL_VARIABLES_KEY } from './common';
 import { createRateLimiter } from './common';
@@ -10,7 +11,7 @@ const options: LocalVariablesWorkerArgs = workerData;
 function log(...args: unknown[]): void {
   if (options.debug) {
     // eslint-disable-next-line no-console
-    console.log('[LocalVariables Worker]', ...args);
+    consoleSandbox(() => console.log('[LocalVariables Worker]', ...args));
   }
 }
 
@@ -118,7 +119,9 @@ async function handlePaused(
   // We write the local variables to a property on the error object. These can be read by the integration as the error
   // event pass through the SDK event pipeline
   await session.post('Runtime.callFunctionOn', {
-    functionDeclaration: `function() { this.${LOCAL_VARIABLES_KEY} = ${JSON.stringify(frames)}; }`,
+    functionDeclaration: `function() { this.${LOCAL_VARIABLES_KEY} = this.${LOCAL_VARIABLES_KEY} || ${JSON.stringify(
+      frames,
+    )}; }`,
     silent: true,
     objectId,
   });
@@ -156,8 +159,10 @@ async function startDebugger(): Promise<void> {
           }, 1_000);
         }
       },
-      _ => {
-        // ignore any errors
+      async _ => {
+        if (isPaused) {
+          await session.post('Debugger.resume');
+        }
       },
     );
   });
