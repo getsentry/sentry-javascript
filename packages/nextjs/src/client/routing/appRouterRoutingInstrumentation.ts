@@ -65,9 +65,10 @@ export function appRouterInstrumentNavigation(client: Client): void {
       currentNavigationSpan = startBrowserTracingNavigationSpan(client, {
         name: WINDOW.location.pathname,
         attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation.popstate',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.nextjs.app_router_instrumentation',
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+          'navigation.type': 'browser.popstate',
         },
       });
     }
@@ -95,14 +96,14 @@ export function appRouterInstrumentNavigation(client: Client): void {
 
               if (routerFunctionName === 'push') {
                 span?.updateName(transactionNameifyRouterArgument(argArray[0]));
-                span?.setAttribute('navigation.type', 'navigation.router.push');
+                span?.setAttribute('navigation.type', 'router.push');
               } else if (routerFunctionName === 'replace') {
                 span?.updateName(transactionNameifyRouterArgument(argArray[0]));
-                span?.setAttribute('navigation.type', 'navigation.router.replace');
+                span?.setAttribute('navigation.type', 'router.replace');
               } else if (routerFunctionName === 'back') {
-                span?.setAttribute('navigation.type', 'navigation.router.back');
+                span?.setAttribute('navigation.type', 'router.back');
               } else if (routerFunctionName === 'forward') {
-                span?.setAttribute('navigation.type', 'navigation.router.forward');
+                span?.setAttribute('navigation.type', 'router.forward');
               }
 
               return target.apply(thisArg, argArray);
