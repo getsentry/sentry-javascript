@@ -29,6 +29,7 @@ export {
   createGetModuleFromFilename,
   createTransport,
   cron,
+  dataloaderIntegration,
   debugIntegration,
   dedupeIntegration,
   DEFAULT_USER_INCLUDES,
