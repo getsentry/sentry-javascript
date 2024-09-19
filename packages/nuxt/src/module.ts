@@ -64,12 +64,13 @@ export default defineNuxtModule<ModuleOptions>({
     if (clientConfigFile || serverConfigFile) {
       setupSourceMaps(moduleOptions, nuxt);
     }
+
     nuxt.hooks.hook('nitro:init', nitro => {
       if (serverConfigFile && serverConfigFile.includes('.server.config')) {
-        addServerConfigToBuild(moduleOptions, nuxt, serverConfigFile);
+        addServerConfigToBuild(moduleOptions, nuxt, nitro, serverConfigFile);
 
         if (moduleOptions.experimental_basicServerTracing) {
-          addSentryTopImport(moduleOptions, nuxt);
+          addSentryTopImport(moduleOptions, nitro);
         } else {
           if (moduleOptions.debug) {
             const serverDirResolver = createResolver(nitro.options.output.serverDir);

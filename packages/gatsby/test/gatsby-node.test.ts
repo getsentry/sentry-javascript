@@ -1,4 +1,11 @@
+import { sentryWebpackPlugin } from '@sentry/webpack-plugin';
 import { onCreateWebpackConfig } from '../gatsby-node';
+
+jest.mock('@sentry/webpack-plugin', () => ({
+  sentryWebpackPlugin: jest.fn().mockReturnValue({
+    apply: jest.fn(),
+  }),
+}));
 
 describe('onCreateWebpackConfig', () => {
   let originalNodeEnv: string | undefined;
@@ -10,6 +17,10 @@ describe('onCreateWebpackConfig', () => {
 
   afterAll(() => {
     process.env.NODE_ENV = originalNodeEnv;
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
   });
 
   it('sets a webpack config', () => {
@@ -35,5 +46,25 @@ describe('onCreateWebpackConfig', () => {
     onCreateWebpackConfig({ actions, getConfig }, { enableClientWebpackPlugin: false });
 
     expect(actions.setWebpackConfig).toHaveBeenCalledTimes(0);
+  });
+
+  it('sets sourceMapFilesToDeleteAfterUpload when provided in options', () => {
+    const actions = {
+      setWebpackConfig: jest.fn(),
+    };
+
+    const getConfig = jest.fn();
+
+    onCreateWebpackConfig({ actions, getConfig }, { deleteSourcemapsAfterUpload: true });
+
+    expect(actions.setWebpackConfig).toHaveBeenCalledTimes(1);
+
+    expect(sentryWebpackPlugin).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sourcemaps: expect.objectContaining({
+          filesToDeleteAfterUpload: ['./public/**/*.map'],
+        }),
+      }),
+    );
   });
 });
