@@ -1,5 +1,5 @@
-import { onCreateWebpackConfig } from '../gatsby-node';
 import { sentryWebpackPlugin } from '@sentry/webpack-plugin';
+import { onCreateWebpackConfig } from '../gatsby-node';
 
 jest.mock('@sentry/webpack-plugin', () => ({
   sentryWebpackPlugin: jest.fn().mockReturnValue({
@@ -64,7 +64,7 @@ describe('onCreateWebpackConfig', () => {
         sourcemaps: expect.objectContaining({
           filesToDeleteAfterUpload: ['./public/**/*.map'],
         }),
-      })
+      }),
     );
   });
 });

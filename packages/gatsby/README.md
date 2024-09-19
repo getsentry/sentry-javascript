@@ -64,6 +64,7 @@ module.exports = {
   ],
 };
 ```
+
 Additionally, you can delete source map files after they have been uploaded by setting the `deleteSourcemapsAfterUpload`
 option to be `true`.
 
