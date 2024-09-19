@@ -89,7 +89,7 @@ export function appRouterInstrumentNavigation(client: Client): void {
       routerPatched = true;
       (['back', 'forward', 'push', 'replace'] as const).forEach(routerFunctionName => {
         if (router?.[routerFunctionName]) {
-          // @ts-expect-error TODO
+          // @ts-expect-error Weird type error related to not knowing how to associate return values with the individual functions - we can just ignore
           router[routerFunctionName] = new Proxy(router[routerFunctionName], {
             apply(target, thisArg, argArray) {
               const span = startBrowserTracingNavigationSpan(client, {
