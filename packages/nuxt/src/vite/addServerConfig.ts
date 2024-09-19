@@ -2,6 +2,7 @@ import * as fs from 'fs';
 import { createResolver } from '@nuxt/kit';
 import type { Nuxt } from '@nuxt/schema';
 import { consoleSandbox } from '@sentry/utils';
+import type { Nitro } from 'nitropack';
 import type { SentryNuxtModuleOptions } from '../common/types';
 
 /**
@@ -13,6 +14,7 @@ import type { SentryNuxtModuleOptions } from '../common/types';
 export function addServerConfigToBuild(
   moduleOptions: SentryNuxtModuleOptions,
   nuxt: Nuxt,
+  nitro: Nitro,
   serverConfigFile: string,
 ): void {
   nuxt.hook('vite:extendConfig', async (viteInlineConfig, _env) => {
@@ -29,10 +31,11 @@ export function addServerConfigToBuild(
      * When the build process is finished, copy the `sentry.server.config` file to the `.output` directory.
      * This is necessary because we need to reference this file path in the node --import option.
      */
-    nuxt.hook('close', async () => {
-      const rootDirResolver = createResolver(nuxt.options.rootDir);
+    nitro.hooks.hook('close', async () => {
+      const rootDirResolver = createResolver(nitro.options.rootDir);
+      const serverDirResolver = createResolver(nitro.options.output.serverDir);
       const source = rootDirResolver.resolve('.nuxt/dist/server/sentry.server.config.mjs');
-      const destination = rootDirResolver.resolve('.output/server/sentry.server.config.mjs');
+      const destination = serverDirResolver.resolve('sentry.server.config.mjs');
 
       try {
         await fs.promises.access(source, fs.constants.F_OK);
@@ -66,10 +69,19 @@ export function addServerConfigToBuild(
  *  This is necessary for environments where modifying the node option `--import` is not possible.
  *  However, only limited tracing instrumentation is supported when doing this.
  */
-export function addSentryTopImport(moduleOptions: SentryNuxtModuleOptions, nuxt: Nuxt): void {
-  nuxt.hook('close', async () => {
-    const rootDirResolver = createResolver(nuxt.options.rootDir);
-    const entryFilePath = rootDirResolver.resolve('.output/server/index.mjs');
+export function addSentryTopImport(moduleOptions: SentryNuxtModuleOptions, nitro: Nitro): void {
+  nitro.hooks.hook('close', () => {
+    // other presets ('node-server' or 'vercel') have an index.mjs
+    const presetsWithServerFile = ['netlify'];
+    const entryFileName =
+      typeof nitro.options.rollupConfig?.output.entryFileNames === 'string'
+        ? nitro.options.rollupConfig?.output.entryFileNames
+        : presetsWithServerFile.includes(nitro.options.preset)
+          ? 'server.mjs'
+          : 'index.mjs';
+
+    const serverDirResolver = createResolver(nitro.options.output.serverDir);
+    const entryFilePath = serverDirResolver.resolve(entryFileName);
 
     try {
       fs.readFile(entryFilePath, 'utf8', (err, data) => {

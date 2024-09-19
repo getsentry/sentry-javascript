@@ -64,21 +64,23 @@ export default defineNuxtModule<ModuleOptions>({
       setupSourceMaps(moduleOptions, nuxt);
     }
 
-    if (serverConfigFile && serverConfigFile.includes('.server.config')) {
-      addServerConfigToBuild(moduleOptions, nuxt, serverConfigFile);
+    nuxt.hooks.hook('nitro:init', nitro => {
+      if (serverConfigFile && serverConfigFile.includes('.server.config')) {
+        addServerConfigToBuild(moduleOptions, nuxt, nitro, serverConfigFile);
 
-      if (moduleOptions.experimental_basicServerTracing) {
-        addSentryTopImport(moduleOptions, nuxt);
-      } else {
-        if (moduleOptions.debug) {
-          consoleSandbox(() => {
-            // eslint-disable-next-line no-console
-            console.log(
-              `[Sentry] Using your \`${serverConfigFile}\` file for the server-side Sentry configuration. In case you have a \`public/instrument.server\` file, the \`public/instrument.server\` file will be ignored. Make sure the file path in your node \`--import\` option matches the Sentry server config file in your \`.output\` folder and has a \`.mjs\` extension.`,
-            );
-          });
+        if (moduleOptions.experimental_basicServerTracing) {
+          addSentryTopImport(moduleOptions, nitro);
+        } else {
+          if (moduleOptions.debug) {
+            consoleSandbox(() => {
+              // eslint-disable-next-line no-console
+              console.log(
+                `[Sentry] Using your \`${serverConfigFile}\` file for the server-side Sentry configuration. In case you have a \`public/instrument.server\` file, the \`public/instrument.server\` file will be ignored. Make sure the file path in your node \`--import\` option matches the Sentry server config file in your \`.output\` folder and has a \`.mjs\` extension.`,
+              );
+            });
+          }
         }
       }
-    }
+    });
   },
 });
