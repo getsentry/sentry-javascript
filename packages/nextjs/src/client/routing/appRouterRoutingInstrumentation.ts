@@ -32,13 +32,23 @@ const GLOBAL_OBJ_WITH_NEXT_ROUTER = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
   };
 };
 
+/**
+ * The routing instrumentation needs to handle a few cases:
+ * - Router operations:
+ *  - router.push() (either explicitly called or implicitly through <Link /> tags)
+ *  - router.replace() (either explicitly called or implicitly through <Link replace /> tags)
+ *  - router.back()
+ *  - router.forward()
+ * - Browser operations:
+ *  - native Browser-back
+ *  - native Browser-forward
+ */
+
 /** Instruments the Next.js app router for navigation. */
 export function appRouterInstrumentNavigation(client: Client): void {
   let currentNavigationSpan: Span | undefined = undefined;
 
   WINDOW.addEventListener('popstate', () => {
-    console.log({ currentNavigationSpan, r: currentNavigationSpan?.isRecording() });
-
     if (currentNavigationSpan && currentNavigationSpan.isRecording()) {
       currentNavigationSpan.updateName(WINDOW.location.pathname);
     } else {
@@ -95,7 +105,7 @@ export function appRouterInstrumentNavigation(client: Client): void {
       });
     },
     // Some arbitrary amount of time that is enough for Next.js to populate `window.next.router`
-    300,
+    50,
   );
 }
 
