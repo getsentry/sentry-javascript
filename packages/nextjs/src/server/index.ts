@@ -14,6 +14,7 @@ import { GLOBAL_OBJ, logger } from '@sentry/utils';
 import {
   ATTR_HTTP_REQUEST_METHOD,
   ATTR_HTTP_ROUTE,
+  ATTR_URL_QUERY,
   SEMATTRS_HTTP_METHOD,
   SEMATTRS_HTTP_TARGET,
 } from '@opentelemetry/semantic-conventions';
@@ -157,11 +158,14 @@ export function init(options: NodeOptions): NodeClient | undefined {
     // We need to drop these spans.
     if (
       // eslint-disable-next-line deprecation/deprecation
-      typeof spanAttributes[SEMATTRS_HTTP_TARGET] === 'string' &&
-      // eslint-disable-next-line deprecation/deprecation
-      spanAttributes[SEMATTRS_HTTP_TARGET].includes('sentry_key') &&
-      // eslint-disable-next-line deprecation/deprecation
-      spanAttributes[SEMATTRS_HTTP_TARGET].includes('sentry_client')
+      (typeof spanAttributes[SEMATTRS_HTTP_TARGET] === 'string' &&
+        // eslint-disable-next-line deprecation/deprecation
+        spanAttributes[SEMATTRS_HTTP_TARGET].includes('sentry_key') &&
+        // eslint-disable-next-line deprecation/deprecation
+        spanAttributes[SEMATTRS_HTTP_TARGET].includes('sentry_client')) ||
+      (typeof spanAttributes[ATTR_URL_QUERY] === 'string' &&
+        spanAttributes[ATTR_URL_QUERY].includes('sentry_key') &&
+        spanAttributes[ATTR_URL_QUERY].includes('sentry_client'))
     ) {
       samplingDecision.decision = false;
     }
@@ -211,11 +215,14 @@ export function init(options: NodeOptions): NodeClient | undefined {
             return null;
           }
 
-          // We only want to use our HTTP integration/instrumentation for app router requests, which are marked with the `sentry.rsc` attribute.
+          // We only want to use our HTTP integration/instrumentation for
+          // - app router requests, which are marked with the `sentry.rsc` attribute.
+          // - pages router requests, which are marked with the `sentry.datafetcher` attribute.
           if (
             (event.contexts?.trace?.data?.[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] === 'auto.http.otel.http' ||
               event.contexts?.trace?.data?.['next.span_type'] === 'BaseServer.handleRequest') &&
-            event.contexts?.trace?.data?.['sentry.rsc'] !== true
+            event.contexts?.trace?.data?.['sentry.rsc'] !== true &&
+            event.contexts?.trace?.data?.['sentry.datafetcher'] !== true
           ) {
             return null;
           }

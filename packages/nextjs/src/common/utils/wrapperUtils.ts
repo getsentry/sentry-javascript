@@ -6,6 +6,8 @@ import {
   SPAN_STATUS_OK,
   captureException,
   continueTrace,
+  getActiveSpan,
+  getRootSpan,
   getTraceData,
   startInactiveSpan,
   startSpan,
@@ -17,7 +19,7 @@ import type { Span } from '@sentry/types';
 import { isString } from '@sentry/utils';
 
 import { autoEndSpanOnResponseEnd, flushSafelyWithTimeout } from './responseEnd';
-import { commonObjectToIsolationScope, escapeNextjsTracing } from './tracingUtils';
+import { commonObjectToIsolationScope } from './tracingUtils';
 import { vercelWaitUntil } from './vercelWaitUntil';
 
 declare module 'http' {
@@ -94,49 +96,49 @@ export function withTracedServerSideDataFetcher<F extends (...args: any[]) => Pr
     this: unknown,
     ...args: Parameters<F>
   ): Promise<{ data: ReturnType<F>; sentryTrace?: string; baggage?: string }> {
-    return escapeNextjsTracing(() => {
-      const isolationScope = commonObjectToIsolationScope(req);
-      return withIsolationScope(isolationScope, () => {
-        isolationScope.setTransactionName(`${options.dataFetchingMethodName} (${options.dataFetcherRouteName})`);
-        isolationScope.setSDKProcessingMetadata({
-          request: req,
-        });
+    const isolationScope = commonObjectToIsolationScope(req);
+    return withIsolationScope(isolationScope, () => {
+      isolationScope.setTransactionName(`${options.dataFetchingMethodName} (${options.dataFetcherRouteName})`);
+      isolationScope.setSDKProcessingMetadata({
+        request: req,
+      });
 
-        const sentryTrace =
-          req.headers && isString(req.headers['sentry-trace']) ? req.headers['sentry-trace'] : undefined;
-        const baggage = req.headers?.baggage;
+      const sentryTrace =
+        req.headers && isString(req.headers['sentry-trace']) ? req.headers['sentry-trace'] : undefined;
+      const baggage = req.headers?.baggage;
 
-        return continueTrace({ sentryTrace, baggage }, () => {
-          const requestSpan = getOrStartRequestSpan(req, res, options.requestedRouteName);
-          return withActiveSpan(requestSpan, () => {
-            return startSpanManual(
-              {
-                op: 'function.nextjs',
-                name: `${options.dataFetchingMethodName} (${options.dataFetcherRouteName})`,
-                attributes: {
-                  [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nextjs',
-                  [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
-                },
+      return continueTrace({ sentryTrace, baggage }, () => {
+        const overarchingSpan = getOrStartOverarchingSpan(req, res, options.requestedRouteName);
+        getRootSpan(overarchingSpan).setAttribute('sentry.datafetcher', true);
+
+        return withActiveSpan(overarchingSpan, () => {
+          return startSpanManual(
+            {
+              op: 'function.nextjs',
+              name: `${options.dataFetchingMethodName} (${options.dataFetcherRouteName})`,
+              attributes: {
+                [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nextjs',
+                [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
               },
-              async dataFetcherSpan => {
-                dataFetcherSpan.setStatus({ code: SPAN_STATUS_OK });
-                const { 'sentry-trace': sentryTrace, baggage } = getTraceData();
-                try {
-                  return {
-                    sentryTrace: sentryTrace,
-                    baggage: baggage,
-                    data: await origDataFetcher.apply(this, args),
-                  };
-                } catch (e) {
-                  dataFetcherSpan.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
-                  requestSpan?.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
-                  throw e;
-                } finally {
-                  dataFetcherSpan.end();
-                }
-              },
-            );
-          });
+            },
+            async dataFetcherSpan => {
+              dataFetcherSpan.setStatus({ code: SPAN_STATUS_OK });
+              const { 'sentry-trace': sentryTrace, baggage } = getTraceData();
+              try {
+                return {
+                  sentryTrace: sentryTrace,
+                  baggage: baggage,
+                  data: await origDataFetcher.apply(this, args),
+                };
+              } catch (e) {
+                dataFetcherSpan.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+                overarchingSpan?.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+                throw e;
+              } finally {
+                dataFetcherSpan.end();
+              }
+            },
+          );
         });
       });
     }).finally(() => {
@@ -145,14 +147,22 @@ export function withTracedServerSideDataFetcher<F extends (...args: any[]) => Pr
   };
 }
 
-function getOrStartRequestSpan(req: IncomingMessage, res: ServerResponse, name: string): Span {
+/**
+ * TODO
+ */
+function getOrStartOverarchingSpan(req: IncomingMessage, res: ServerResponse, routeName: string): Span {
+  const activeSpan = getActiveSpan();
+  if (activeSpan) {
+    return activeSpan;
+  }
+
   const existingSpan = getSpanFromRequest(req);
   if (existingSpan) {
     return existingSpan;
   }
 
   const requestSpan = startInactiveSpan({
-    name,
+    name: req.method ? `${req.method} ${routeName}` : routeName,
     forceTransaction: true,
     op: 'http.server',
     attributes: {
