@@ -16,13 +16,18 @@ const loggerLogSpy = jest.spyOn(logger, 'log');
 const dom = new JSDOM(undefined, { url: 'https://example.com/' });
 Object.defineProperty(global, 'document', { value: dom.window.document, writable: true });
 Object.defineProperty(global, 'location', { value: dom.window.document.location, writable: true });
+Object.defineProperty(global, 'addEventListener', { value: () => undefined, writable: true });
 
 const originalGlobalDocument = WINDOW.document;
 const originalGlobalLocation = WINDOW.location;
+// eslint-disable-next-line @typescript-eslint/unbound-method
+const originalGlobalAddEventListener = WINDOW.addEventListener;
+
 afterAll(() => {
   // Clean up JSDom
   Object.defineProperty(WINDOW, 'document', { value: originalGlobalDocument });
   Object.defineProperty(WINDOW, 'location', { value: originalGlobalLocation });
+  Object.defineProperty(WINDOW, 'addEventListener', { value: originalGlobalAddEventListener });
 });
 
 function findIntegrationByName(integrations: Integration[] = [], name: string): Integration | undefined {
