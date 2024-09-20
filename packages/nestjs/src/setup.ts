@@ -129,14 +129,13 @@ export { SentryGlobalGraphQLFilter };
  *
  * This filter is a generic filter that can handle both HTTP and GraphQL exceptions.
  */
-class SentryGlobalGenericFilter {
+class SentryGlobalGenericFilter extends SentryGlobalFilter {
   public readonly __SENTRY_INTERNAL__: boolean;
-  private readonly _globalFilter : SentryGlobalFilter;
   private readonly _graphqlFilter: SentryGlobalGraphQLFilter;
 
   public constructor(applicationRef?: HttpServer) {
+    super(applicationRef);
     this.__SENTRY_INTERNAL__ = true;
-    this._globalFilter  = new SentryGlobalFilter(applicationRef);
     this._graphqlFilter = new SentryGlobalGraphQLFilter();
   }
 
@@ -148,7 +147,7 @@ class SentryGlobalGenericFilter {
       return this._graphqlFilter.catch(exception, host);
     }
 
-    this._globalFilter .catch(exception, host);
+    super.catch(exception, host);
   }
 }
 Catch()(SentryGlobalGenericFilter);
