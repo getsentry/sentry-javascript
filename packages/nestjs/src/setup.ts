@@ -131,24 +131,24 @@ export { SentryGlobalGraphQLFilter };
  */
 class SentryGlobalGenericFilter {
   public readonly __SENTRY_INTERNAL__: boolean;
-  private readonly _httpFilter: SentryGlobalFilter;
+  private readonly _globalFilter : SentryGlobalFilter;
   private readonly _graphqlFilter: SentryGlobalGraphQLFilter;
 
   public constructor(applicationRef?: HttpServer) {
     this.__SENTRY_INTERNAL__ = true;
-    this._httpFilter = new SentryGlobalFilter(applicationRef);
+    this._globalFilter  = new SentryGlobalFilter(applicationRef);
     this._graphqlFilter = new SentryGlobalGraphQLFilter();
   }
 
   /**
-   * Catches exceptions and reports them to Sentry unless they are HttpExceptions.
+   * Catches exceptions and forwards them to the according error filter.
    */
   public catch(exception: unknown, host: ArgumentsHost): void {
     if (host.getType<'graphql'>() === 'graphql') {
       return this._graphqlFilter.catch(exception, host);
     }
 
-    this._httpFilter.catch(exception, host);
+    this._globalFilter .catch(exception, host);
   }
 }
 Catch()(SentryGlobalGenericFilter);
