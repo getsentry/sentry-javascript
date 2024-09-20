@@ -81,7 +81,8 @@ function visit(
   // Get the simple cases out of the way first
   if (
     value == null || // this matches null and undefined -> eqeq not eqeqeq
-    (['number', 'boolean', 'string'].includes(typeof value) && !Number.isNaN(value))
+    ['boolean', 'string'].includes(typeof value) ||
+    (typeof value === 'number' && Number.isFinite(value))
   ) {
     return value as Primitive;
   }
@@ -220,8 +221,8 @@ function stringifyValue(
       return '[SyntheticEvent]';
     }
 
-    if (typeof value === 'number' && value !== value) {
-      return '[NaN]';
+    if (typeof value === 'number' && !Number.isFinite(value)) {
+      return `[${value}]`;
     }
 
     if (typeof value === 'function') {

@@ -10,11 +10,52 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 8.31.0
+
+### Important Changes
+
+- **feat(node): Add `dataloader` integration (#13664)**
+
+This release adds a new integration for the [`dataloader` package](https://www.npmjs.com/package/dataloader). The Node
+SDK (and all SDKs that depend on it) will now automatically instrument `dataloader` instances. You can also add it
+manually:
+
+```js
+Sentry.init({
+  integrations: [Sentry.dataloaderIntegration()],
+});
+```
+
+### Other Changes
+
+- feat(browser): Add navigation `activationStart` timestamp to pageload span (#13658)
+- feat(gatsby): Add optional `deleteSourcemapsAfterUpload` (#13610)
+- feat(nextjs): Give app router prefetch requests a `http.server.prefetch` op (#13600)
+- feat(nextjs): Improve Next.js serverside span data quality (#13652)
+- feat(node): Add `disableInstrumentationWarnings` option (#13693)
+- feat(nuxt): Adding `experimental_basicServerTracing` option to Nuxt module (#13643)
+- feat(nuxt): Improve logs about adding Node option 'import' (#13726)
+- feat(replay): Add `onError` callback + other small improvements to debugging (#13721)
+- feat(replay): Add experimental option to allow for a checkout every 6 minutes (#13069)
+- feat(wasm): Unconditionally parse instruction addresses (#13655)
+- fix: Ensure all logs are wrapped with `consoleSandbox` (#13690)
+- fix(browser): Try multiple options for `lazyLoadIntegration` script parent element lookup (#13717)
+- fix(feedback): Actor color applies to feedback icon (#13702)
+- fix(feedback): Fix form width on mobile devices (#13068)
+- fix(nestjs): Preserve original function name on `SentryTraced` functions (#13684)
+- fix(node): Don't overwrite local variables for re-thrown errors (#13644)
+- fix(normalize): Treat Infinity as NaN both are non-serializable numbers (#13406)
+- fix(nuxt): Use correct server output file path (#13725)
+- fix(opentelemetry): Always use active span in `Propagator.inject` (#13381)
+- fix(replay): Fixes potential out-of-order segments (#13609)
+
+Work in this release was contributed by @KyGuy2002, @artzhookov, and @julianCast. Thank you for your contributions!
+
 ## 8.30.0
 
 ### Important Changes
 
-- _feat(node): Add `kafkajs` integration (#13528)_
+- **feat(node): Add `kafkajs` integration (#13528)**
 
 This release adds a new integration that instruments `kafkajs` library with spans and traces. This integration is
 automatically enabled by default, but can be included with the `Sentry.kafkaIntegration()` import.
