@@ -26,7 +26,7 @@ export interface SendReplayData {
   eventContext: PopEventContext;
   timestamp: number;
   session: Session;
-  options: ReplayPluginOptions;
+  onError?: (err: unknown) => void;
 }
 
 export interface Timeouts {
@@ -221,6 +221,12 @@ export interface ReplayPluginOptions extends ReplayNetworkOptions {
    * Use this to filter out groups of errors that should def. not be sampled.
    */
   beforeErrorSampling?: (event: ErrorEvent) => boolean;
+
+  /**
+   * Callback when an internal SDK error occurs. This can be used to debug SDK
+   * issues.
+   */
+  onError?: (err: unknown) => void;
 
   /**
    * _experiments allows users to enable experimental or internal features.

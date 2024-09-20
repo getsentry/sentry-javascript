@@ -1,3 +1,4 @@
+import * as path from 'path';
 import { addPlugin, addPluginTemplate, addServerPlugin, createResolver, defineNuxtModule } from '@nuxt/kit';
 import { consoleSandbox } from '@sentry/utils';
 import type { SentryNuxtModuleOptions } from './common/types';
@@ -64,21 +65,29 @@ export default defineNuxtModule<ModuleOptions>({
       setupSourceMaps(moduleOptions, nuxt);
     }
 
-    if (serverConfigFile && serverConfigFile.includes('.server.config')) {
-      addServerConfigToBuild(moduleOptions, nuxt, serverConfigFile);
+    nuxt.hooks.hook('nitro:init', nitro => {
+      if (serverConfigFile && serverConfigFile.includes('.server.config')) {
+        addServerConfigToBuild(moduleOptions, nuxt, nitro, serverConfigFile);
 
-      if (moduleOptions.experimental_basicServerTracing) {
-        addSentryTopImport(moduleOptions, nuxt);
-      } else {
-        if (moduleOptions.debug) {
-          consoleSandbox(() => {
-            // eslint-disable-next-line no-console
-            console.log(
-              `[Sentry] Using your \`${serverConfigFile}\` file for the server-side Sentry configuration. In case you have a \`public/instrument.server\` file, the \`public/instrument.server\` file will be ignored. Make sure the file path in your node \`--import\` option matches the Sentry server config file in your \`.output\` folder and has a \`.mjs\` extension.`,
-            );
-          });
+        if (moduleOptions.experimental_basicServerTracing) {
+          addSentryTopImport(moduleOptions, nitro);
+        } else {
+          if (moduleOptions.debug) {
+            const serverDirResolver = createResolver(nitro.options.output.serverDir);
+            const serverConfigPath = serverDirResolver.resolve('sentry.server.config.mjs');
+
+            // For the default nitro node-preset build output this relative path would be: ./.output/server/sentry.server.config.mjs
+            const serverConfigRelativePath = `.${path.sep}${path.relative(nitro.options.rootDir, serverConfigPath)}`;
+
+            consoleSandbox(() => {
+              // eslint-disable-next-line no-console
+              console.log(
+                `[Sentry] Using your \`${serverConfigFile}\` file for the server-side Sentry configuration. Make sure to add the Node option \`import\` to the Node command where you deploy and/or run your application. This preloads the Sentry configuration at server startup. You can do this via a command-line flag (\`node --import ${serverConfigRelativePath} [...]\`) or via an environment variable (\`NODE_OPTIONS='--import ${serverConfigRelativePath}' node [...]\`).`,
+              );
+            });
+          }
         }
       }
-    }
+    });
   },
 });

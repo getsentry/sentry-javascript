@@ -458,8 +458,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # TODO(lforst): Unpin Node.js version 22 when https://github.com/protobufjs/protobuf.js/issues/2025 is resolved which broke the nodejs tests
-        node: [14, 16, 18, 20, '22.6.0']
+        node: [14, 16, 18, 20, 22]
     steps:
       - name: Check out base commit (${{ github.event.pull_request.base.sha }})
         uses: actions/checkout@v4

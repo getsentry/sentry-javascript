@@ -8,6 +8,7 @@ import { devErrorSymbolicationEventProcessor } from '../common/devErrorSymbolica
 import { getVercelEnv } from '../common/getVercelEnv';
 import { browserTracingIntegration } from './browserTracingIntegration';
 import { nextjsClientStackFrameNormalizationIntegration } from './clientNormalizationIntegration';
+import { INCOMPLETE_APP_ROUTER_INSTRUMENTATION_TRANSACTION_NAME } from './routing/appRouterRoutingInstrumentation';
 import { applyTunnelRouteOption } from './tunnelRoute';
 
 export * from '@sentry/react';
@@ -38,6 +39,13 @@ export function init(options: BrowserOptions): Client | undefined {
     event.type === 'transaction' && event.transaction === '/404' ? null : event;
   filterTransactions.id = 'NextClient404Filter';
   addEventProcessor(filterTransactions);
+
+  const filterIncompleteNavigationTransactions: EventProcessor = event =>
+    event.type === 'transaction' && event.transaction === INCOMPLETE_APP_ROUTER_INSTRUMENTATION_TRANSACTION_NAME
+      ? null
+      : event;
+  filterIncompleteNavigationTransactions.id = 'IncompleteTransactionFilter';
+  addEventProcessor(filterIncompleteNavigationTransactions);
 
   if (process.env.NODE_ENV === 'development') {
     addEventProcessor(devErrorSymbolicationEventProcessor);

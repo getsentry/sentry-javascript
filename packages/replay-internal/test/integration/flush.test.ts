@@ -188,8 +188,8 @@ describe('Integration | flush', () => {
       segmentId: 0,
       eventContext: expect.anything(),
       session: expect.any(Object),
-      options: expect.any(Object),
       timestamp: expect.any(Number),
+      onError: expect.any(Function),
     });
 
     // Add this to test that segment ID increases
@@ -238,7 +238,7 @@ describe('Integration | flush', () => {
       segmentId: 1,
       eventContext: expect.anything(),
       session: expect.any(Object),
-      options: expect.any(Object),
+      onError: expect.any(Function),
       timestamp: expect.any(Number),
     });
 
