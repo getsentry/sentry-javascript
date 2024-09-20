@@ -39,7 +39,13 @@
     "access": "public"
   },
   "dependencies": {
+    "@opentelemetry/api": "^1.9.0",
+    "@opentelemetry/core": "^1.25.1",
+    "@opentelemetry/resources": "^1.26.0",
+    "@opentelemetry/sdk-trace-base": "^1.26.0",
+    "@opentelemetry/semantic-conventions": "^1.27.0",
     "@sentry/core": "8.30.0",
+    "@sentry/opentelemetry": "8.30.0",
     "@sentry/types": "8.30.0",
     "@sentry/utils": "8.30.0"
   },
