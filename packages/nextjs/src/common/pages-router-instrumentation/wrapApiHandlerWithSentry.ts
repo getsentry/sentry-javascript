@@ -9,10 +9,10 @@ import {
 import { consoleSandbox, isString, logger, objectify } from '@sentry/utils';
 
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
-import type { AugmentedNextApiRequest, AugmentedNextApiResponse, NextApiHandler } from './types';
-import { flushSafelyWithTimeout } from './utils/responseEnd';
-import { escapeNextjsTracing } from './utils/tracingUtils';
-import { vercelWaitUntil } from './utils/vercelWaitUntil';
+import type { AugmentedNextApiRequest, AugmentedNextApiResponse, NextApiHandler } from '../types';
+import { flushSafelyWithTimeout } from '../utils/responseEnd';
+import { escapeNextjsTracing } from '../utils/tracingUtils';
+import { vercelWaitUntil } from '../utils/vercelWaitUntil';
 
 /**
  * Wrap the given API route handler for tracing and error capturing. Thin wrapper around `withSentry`, which only

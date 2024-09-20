@@ -26,7 +26,7 @@ import { distDirRewriteFramesIntegration } from './distDirRewriteFramesIntegrati
 
 export * from '@sentry/node';
 
-export { captureUnderscoreErrorException } from '../common/_error';
+export { captureUnderscoreErrorException } from '../common/pages-router-instrumentation/_error';
 
 const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
   __rewriteFramesDistDir__?: string;
@@ -325,4 +325,4 @@ function sdkAlreadyInitialized(): boolean {
 
 export * from '../common';
 
-export { wrapApiHandlerWithSentry } from '../common/wrapApiHandlerWithSentry';
+export { wrapApiHandlerWithSentry } from '../common/pages-router-instrumentation/wrapApiHandlerWithSentry';

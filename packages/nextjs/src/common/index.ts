@@ -1,15 +1,15 @@
-export { wrapGetStaticPropsWithSentry } from './wrapGetStaticPropsWithSentry';
-export { wrapGetInitialPropsWithSentry } from './wrapGetInitialPropsWithSentry';
-export { wrapAppGetInitialPropsWithSentry } from './wrapAppGetInitialPropsWithSentry';
-export { wrapDocumentGetInitialPropsWithSentry } from './wrapDocumentGetInitialPropsWithSentry';
-export { wrapErrorGetInitialPropsWithSentry } from './wrapErrorGetInitialPropsWithSentry';
-export { wrapGetServerSidePropsWithSentry } from './wrapGetServerSidePropsWithSentry';
-export { wrapServerComponentWithSentry } from './wrapServerComponentWithSentry';
-export { wrapRouteHandlerWithSentry } from './wrapRouteHandlerWithSentry';
-export { wrapApiHandlerWithSentryVercelCrons } from './wrapApiHandlerWithSentryVercelCrons';
-export { wrapMiddlewareWithSentry } from './wrapMiddlewareWithSentry';
-export { wrapPageComponentWithSentry } from './wrapPageComponentWithSentry';
-export { wrapGenerationFunctionWithSentry } from './wrapGenerationFunctionWithSentry';
+export { wrapApiHandlerWithSentryVercelCrons } from './pages-router-instrumentation/wrapApiHandlerWithSentryVercelCrons';
+export { wrapAppGetInitialPropsWithSentry } from './pages-router-instrumentation/wrapAppGetInitialPropsWithSentry';
+export { wrapDocumentGetInitialPropsWithSentry } from './pages-router-instrumentation/wrapDocumentGetInitialPropsWithSentry';
+export { wrapErrorGetInitialPropsWithSentry } from './pages-router-instrumentation/wrapErrorGetInitialPropsWithSentry';
+export { wrapGetInitialPropsWithSentry } from './pages-router-instrumentation/wrapGetInitialPropsWithSentry';
+export { wrapGetServerSidePropsWithSentry } from './pages-router-instrumentation/wrapGetServerSidePropsWithSentry';
+export { wrapGetStaticPropsWithSentry } from './pages-router-instrumentation/wrapGetStaticPropsWithSentry';
+export { wrapPageComponentWithSentry } from './pages-router-instrumentation/wrapPageComponentWithSentry';
 export { withServerActionInstrumentation } from './withServerActionInstrumentation';
+export { wrapGenerationFunctionWithSentry } from './wrapGenerationFunctionWithSentry';
+export { wrapMiddlewareWithSentry } from './wrapMiddlewareWithSentry';
+export { wrapRouteHandlerWithSentry } from './wrapRouteHandlerWithSentry';
+export { wrapServerComponentWithSentry } from './wrapServerComponentWithSentry';
 // eslint-disable-next-line deprecation/deprecation
-export { experimental_captureRequestError, captureRequestError } from './captureRequestError';
+export { captureRequestError, experimental_captureRequestError } from './captureRequestError';
