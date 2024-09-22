@@ -72,7 +72,7 @@ function addRequestBreadcrumb(request: UndiciRequest, response: UndiciResponse):
         ...data,
       },
       type: 'http',
-      level,
+      ...level,
     },
     {
       event: 'response',

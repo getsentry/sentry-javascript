@@ -185,7 +185,7 @@ function _getFetchBreadcrumbHandler(client: Client): (handlerData: HandlerDataFe
           category: 'fetch',
           data,
           type: 'http',
-          level,
+          ...level,
         },
         hint,
       );

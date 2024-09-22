@@ -254,7 +254,7 @@ function _getXhrBreadcrumbHandler(client: Client): (handlerData: HandlerDataXhr)
         category: 'xhr',
         data,
         type: 'http',
-        level,
+        ...level,
       },
       hint,
     );
@@ -319,7 +319,7 @@ function _getFetchBreadcrumbHandler(client: Client): (handlerData: HandlerDataFe
           category: 'fetch',
           data,
           type: 'http',
-          level,
+          ...level,
         },
         hint,
       );

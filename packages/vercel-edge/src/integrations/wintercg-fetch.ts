@@ -164,7 +164,7 @@ function createBreadcrumb(handlerData: HandlerDataFetch): void {
         category: 'fetch',
         data,
         type: 'http',
-        level,
+        ...level,
       },
       hint,
     );

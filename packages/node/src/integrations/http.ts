@@ -241,7 +241,7 @@ function _addRequestBreadcrumb(
         ...data,
       },
       type: 'http',
-      level,
+      ...level,
     },
     {
       event: 'response',
