@@ -1,6 +1,7 @@
 import type { Integration } from '@sentry/types';
 import { instrumentHttp } from '../http';
 
+import { amqplibIntegration, instrumentAmqplib } from './amqplib';
 import { connectIntegration, instrumentConnect } from './connect';
 import { dataloaderIntegration, instrumentDataloader } from './dataloader';
 import { expressIntegration, instrumentExpress } from './express';
@@ -43,6 +44,7 @@ export function getAutoPerformanceIntegrations(): Integration[] {
     genericPoolIntegration(),
     kafkaIntegration(),
     dataloaderIntegration(),
+    amqplibIntegration(),
   ];
 }
 
@@ -70,5 +72,6 @@ export function getOpenTelemetryInstrumentationToPreload(): (((options?: any) =>
     instrumentRedis,
     instrumentGenericPool,
     instrumentDataloader,
+    instrumentAmqplib,
   ];
 }
