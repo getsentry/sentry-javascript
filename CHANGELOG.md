@@ -9,6 +9,8 @@
 ## Unreleased
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
+
+Work in this release was contributed by @0Calories. Thank you for your contribution!
 - Moved description of `browser` spans into the operation, e.g. `browser - cache` -> `browser.cache` and set the URL as
   the description
 
