@@ -5,13 +5,15 @@ Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   transport: loggingTransport,
   beforeSend(event) {
-    event.contexts = {
-      ...event.contexts,
-      traceData: {
-        ...Sentry.getTraceData(),
-        metaTags: Sentry.getTraceMetaTags(),
-      },
-    };
+    if (!event.contexts.traceData) {
+      event.contexts = {
+        ...event.contexts,
+        traceData: {
+          ...Sentry.getTraceData(),
+          metaTags: Sentry.getTraceMetaTags(),
+        },
+      };
+    }
     return event;
   },
 });
@@ -21,8 +23,20 @@ const express = require('express');
 
 const app = express();
 
-app.get('/test', () => {
-  throw new Error('test error');
+app.get('/test', (_req, res) => {
+  Sentry.captureException(new Error('test error'));
+  res.status(200).send();
+});
+
+app.get('/test-scope', (_req, res) => {
+  Sentry.withScope(scope => {
+    scope.setContext('traceData', {
+      ...Sentry.getTraceData(),
+      metaTags: Sentry.getTraceMetaTags(),
+    });
+    Sentry.captureException(new Error('test error 2'));
+  });
+  res.status(200).send();
 });
 
 Sentry.setupExpressErrorHandler(app);
