@@ -1,5 +1,6 @@
 import type { IntegrationFn } from '@sentry/types';
 import type { AddRequestDataToEventOptions, TransactionNamingScheme } from '@sentry/utils';
+import { addNormalizedRequestDataToEvent } from '@sentry/utils';
 import { addRequestDataToEvent } from '@sentry/utils';
 import { defineIntegration } from '../integration';
 
@@ -73,15 +74,24 @@ const _requestDataIntegration = ((options: RequestDataIntegrationOptions = {}) =
       // that's happened, it will be easier to add this logic in without worrying about unexpected side effects.)
 
       const { sdkProcessingMetadata = {} } = event;
-      const req = sdkProcessingMetadata.request;
-
-      if (!req) {
-        return event;
-      }
+      const { request, normalizedRequest } = sdkProcessingMetadata;
 
       const addRequestDataOptions = convertReqDataIntegrationOptsToAddReqDataOpts(_options);
 
-      return addRequestDataToEvent(event, req, addRequestDataOptions);
+      // If this is set, it takes precedence over the plain request object
+      if (normalizedRequest) {
+        // Some other data is not available in standard HTTP requests, but can sometimes be augmented by e.g. Express or Next.js
+        const ipAddress = request ? request.ip || (request.socket && request.socket.remoteAddress) : undefined;
+        const user = request ? request.user : undefined;
+
+        return addNormalizedRequestDataToEvent(event, normalizedRequest, { ipAddress, user }, addRequestDataOptions);
+      }
+
+      if (!request) {
+        return event;
+      }
+
+      return addRequestDataToEvent(event, request, addRequestDataOptions);
     },
   };
 }) satisfies IntegrationFn;
