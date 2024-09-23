@@ -1,5 +1,6 @@
 export * from './aggregate-errors';
 export * from './array';
+export * from './breadcrumb-log-level';
 export * from './browser';
 export * from './dsn';
 export * from './error';

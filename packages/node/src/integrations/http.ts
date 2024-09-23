@@ -6,7 +6,6 @@ import { addOpenTelemetryInstrumentation } from '@sentry/opentelemetry';
 import {
   addBreadcrumb,
   defineIntegration,
-  getBreadcrumbLogLevel,
   getCapturedScopesOnSpan,
   getCurrentScope,
   getIsolationScope,
@@ -15,7 +14,12 @@ import {
 import { getClient } from '@sentry/opentelemetry';
 import type { IntegrationFn, SanitizedRequestData } from '@sentry/types';
 
-import { getSanitizedUrlString, parseUrl, stripUrlQueryAndFragment } from '@sentry/utils';
+import {
+  getBreadcrumbLogLevelFromHttpStatusCode,
+  getSanitizedUrlString,
+  parseUrl,
+  stripUrlQueryAndFragment,
+} from '@sentry/utils';
 import type { NodeClient } from '../sdk/client';
 import { setIsolationScope } from '../sdk/scope';
 import type { HTTPModuleRequestIncomingMessage } from '../transports/http-module';
@@ -231,7 +235,7 @@ function _addRequestBreadcrumb(
 
   const data = getBreadcrumbData(request);
   const statusCode = response.statusCode;
-  const level = getBreadcrumbLogLevel(statusCode);
+  const level = getBreadcrumbLogLevelFromHttpStatusCode(statusCode);
 
   addBreadcrumb(
     {
@@ -241,7 +245,7 @@ function _addRequestBreadcrumb(
         ...data,
       },
       type: 'http',
-      ...level,
+      level,
     },
     {
       event: 'response',

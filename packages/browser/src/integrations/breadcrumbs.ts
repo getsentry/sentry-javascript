@@ -4,7 +4,7 @@ import {
   addHistoryInstrumentationHandler,
   addXhrInstrumentationHandler,
 } from '@sentry-internal/browser-utils';
-import { addBreadcrumb, defineIntegration, getBreadcrumbLogLevel, getClient } from '@sentry/core';
+import { addBreadcrumb, defineIntegration, getClient } from '@sentry/core';
 import type {
   Breadcrumb,
   Client,
@@ -23,6 +23,7 @@ import type {
 import {
   addConsoleInstrumentationHandler,
   addFetchInstrumentationHandler,
+  getBreadcrumbLogLevelFromHttpStatusCode,
   getComponentName,
   getEventDescription,
   htmlTreeAsString,
@@ -247,14 +248,14 @@ function _getXhrBreadcrumbHandler(client: Client): (handlerData: HandlerDataXhr)
       endTimestamp,
     };
 
-    const level = getBreadcrumbLogLevel(status_code);
+    const level = getBreadcrumbLogLevelFromHttpStatusCode(status_code);
 
     addBreadcrumb(
       {
         category: 'xhr',
         data,
         type: 'http',
-        ...level,
+        level,
       },
       hint,
     );
@@ -312,14 +313,14 @@ function _getFetchBreadcrumbHandler(client: Client): (handlerData: HandlerDataFe
         startTimestamp,
         endTimestamp,
       };
-      const level = getBreadcrumbLogLevel(data.status_code);
+      const level = getBreadcrumbLogLevelFromHttpStatusCode(data.status_code);
 
       addBreadcrumb(
         {
           category: 'fetch',
           data,
           type: 'http',
-          ...level,
+          level,
         },
         hint,
       );

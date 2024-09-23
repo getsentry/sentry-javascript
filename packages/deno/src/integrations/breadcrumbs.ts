@@ -1,4 +1,4 @@
-import { addBreadcrumb, defineIntegration, getBreadcrumbLogLevel, getClient } from '@sentry/core';
+import { addBreadcrumb, defineIntegration, getClient } from '@sentry/core';
 import type {
   Client,
   Event as SentryEvent,
@@ -11,6 +11,7 @@ import type {
 import {
   addConsoleInstrumentationHandler,
   addFetchInstrumentationHandler,
+  getBreadcrumbLogLevelFromHttpStatusCode,
   getEventDescription,
   safeJoin,
   severityLevelFromString,
@@ -178,14 +179,14 @@ function _getFetchBreadcrumbHandler(client: Client): (handlerData: HandlerDataFe
         startTimestamp,
         endTimestamp,
       };
-      const level = getBreadcrumbLogLevel(data.status_code);
+      const level = getBreadcrumbLogLevelFromHttpStatusCode(data.status_code);
 
       addBreadcrumb(
         {
           category: 'fetch',
           data,
           type: 'http',
-          ...level,
+          level,
         },
         hint,
       );
