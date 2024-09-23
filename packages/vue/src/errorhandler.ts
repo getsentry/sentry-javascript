@@ -7,7 +7,7 @@ import { formatComponentName, generateComponentTrace } from './vendor/components
 type UnknownFunc = (...args: unknown[]) => void;
 
 export const attachErrorHandler = (app: Vue, options: VueOptions): void => {
-  const { errorHandler, warnHandler, silent } = app.config;
+  const { errorHandler: originalErrorHandler, warnHandler, silent } = app.config;
 
   app.config.errorHandler = (error: Error, vm: ViewModel, lifecycleHook: string): void => {
     const componentName = formatComponentName(vm, false);
@@ -36,8 +36,9 @@ export const attachErrorHandler = (app: Vue, options: VueOptions): void => {
       });
     });
 
-    if (typeof errorHandler === 'function') {
-      (errorHandler as UnknownFunc).call(app, error, vm, lifecycleHook);
+    // Check if the current `app.config.errorHandler` is explicitly set by the user before calling it.
+    if (typeof originalErrorHandler === 'function' && app.config.errorHandler) {
+      (originalErrorHandler as UnknownFunc).call(app, error, vm, lifecycleHook);
     }
 
     if (options.logErrors) {
