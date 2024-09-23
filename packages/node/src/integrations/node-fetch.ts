@@ -3,7 +3,7 @@ import { UndiciInstrumentation } from '@opentelemetry/instrumentation-undici';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, addBreadcrumb, defineIntegration } from '@sentry/core';
 import { addOpenTelemetryInstrumentation } from '@sentry/opentelemetry';
 import type { IntegrationFn, SanitizedRequestData } from '@sentry/types';
-import { getSanitizedUrlString, parseUrl } from '@sentry/utils';
+import { getBreadcrumbLogLevelFromHttpStatusCode, getSanitizedUrlString, parseUrl } from '@sentry/utils';
 
 interface NodeFetchOptions {
   /**
@@ -56,15 +56,18 @@ export const nativeNodeFetchIntegration = defineIntegration(_nativeNodeFetchInte
 /** Add a breadcrumb for outgoing requests. */
 function addRequestBreadcrumb(request: UndiciRequest, response: UndiciResponse): void {
   const data = getBreadcrumbData(request);
+  const statusCode = response.statusCode;
+  const level = getBreadcrumbLogLevelFromHttpStatusCode(statusCode);
 
   addBreadcrumb(
     {
       category: 'http',
       data: {
-        status_code: response.statusCode,
+        status_code: statusCode,
         ...data,
       },
       type: 'http',
+      level,
     },
     {
       event: 'response',

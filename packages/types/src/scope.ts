@@ -189,8 +189,8 @@ export interface Scope {
   clear(): this;
 
   /**
-   * Sets the breadcrumbs in the scope
-   * @param breadcrumbs Breadcrumb
+   * Adds a breadcrumb to the scope
+   * @param breadcrumb Breadcrumb
    * @param maxBreadcrumbs number of max breadcrumbs to merged into event.
    */
   addBreadcrumb(breadcrumb: Breadcrumb, maxBreadcrumbs?: number): this;
@@ -201,7 +201,7 @@ export interface Scope {
   getLastBreadcrumb(): Breadcrumb | undefined;
 
   /**
-   * Clears all currently set Breadcrumbs.
+   * Clears all breadcrumbs from the scope.
    */
   clearBreadcrumbs(): this;
 
