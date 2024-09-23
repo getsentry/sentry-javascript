@@ -25,7 +25,7 @@ import {
   ATTR_SERVICE_NAME,
   ATTR_SERVICE_VERSION,
   SEMRESATTRS_SERVICE_NAMESPACE,
-} from '@opentelemetry/semantic-conventions/*';
+} from '@opentelemetry/semantic-conventions';
 import {
   SentryPropagator,
   SentrySampler,
