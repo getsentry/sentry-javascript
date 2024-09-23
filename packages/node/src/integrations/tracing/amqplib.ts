@@ -11,7 +11,7 @@ const config: AmqplibInstrumentationConfig = {
   consumeEndHook: (span: Span) => {
     addOriginToSpan(span, 'auto.amqplib.otel.consumer');
   },
-  publishConfirmHook: (span: Span) => {
+  publishHook: (span: Span) => {
     addOriginToSpan(span, 'auto.amqplib.otel.publisher');
   },
 };

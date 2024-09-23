@@ -9,6 +9,7 @@ const EXPECTED_MESSAGE_SPAN_PRODUCER = expect.objectContaining({
     'messaging.system': 'rabbitmq',
     'otel.kind': 'PRODUCER',
     'sentry.op': 'message',
+    'sentry.origin': 'auto.amqplib.otel.publisher',
   }),
   status: 'ok',
 });
