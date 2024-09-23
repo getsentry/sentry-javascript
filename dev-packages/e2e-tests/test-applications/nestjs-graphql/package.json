@@ -21,7 +21,8 @@
     "@nestjs/core": "^10.3.10",
     "@nestjs/graphql": "^12.2.0",
     "@nestjs/platform-express": "^10.3.10",
-    "@sentry/nestjs": "^8.21.0",
+    "@sentry/nestjs": "latest || *",
+    "@sentry/types": "latest || *",
     "graphql": "^16.9.0",
     "reflect-metadata": "^0.1.13",
     "rxjs": "^7.8.1"
