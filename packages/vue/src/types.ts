@@ -52,7 +52,7 @@ export interface VueOptions extends TracingOptions {
    *  When `attachErrorHandler` is set to `false`, automatic error reporting is disabled.
    *
    *  Usually, this option should stay enabled, unless you want to set up Sentry error reporting yourself.
-   *  For example, the Sentry Nuxt SDK does not attach an error handler as it has its using the error hooks provided by Nuxt.
+   *  For example, the Sentry Nuxt SDK does not attach an error handler as it's using the error hooks provided by Nuxt.
    *
    *  @default true
    */
