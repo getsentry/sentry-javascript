@@ -54,6 +54,7 @@ import { getHandleRecordingEmit } from './util/handleRecordingEmit';
 import { isExpired } from './util/isExpired';
 import { isSessionExpired } from './util/isSessionExpired';
 import { sendReplay } from './util/sendReplay';
+import { RateLimitError } from './util/sendReplayRequest';
 import type { SKIPPED } from './util/throttle';
 import { THROTTLED, throttle } from './util/throttle';
 
@@ -245,6 +246,9 @@ export class ReplayContainer implements ReplayContainerInterface {
   /** A wrapper to conditionally capture exceptions. */
   public handleException(error: unknown): void {
     DEBUG_BUILD && logger.exception(error);
+    if (this._options.onError) {
+      this._options.onError(error);
+    }
   }
 
   /**
@@ -1157,8 +1161,8 @@ export class ReplayContainer implements ReplayContainerInterface {
         segmentId,
         eventContext,
         session: this.session,
-        options: this.getOptions(),
         timestamp,
+        onError: err => this.handleException(err),
       });
     } catch (err) {
       this.handleException(err);
@@ -1173,7 +1177,8 @@ export class ReplayContainer implements ReplayContainerInterface {
       const client = getClient();
 
       if (client) {
-        client.recordDroppedEvent('send_error', 'replay');
+        const dropReason = err instanceof RateLimitError ? 'ratelimit_backoff' : 'send_error';
+        client.recordDroppedEvent(dropReason, 'replay');
       }
     }
   }

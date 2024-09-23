@@ -1,6 +1,6 @@
 import { addBreadcrumb, captureException } from '@sentry/core';
 import type { ConsoleLevel, SeverityLevel } from '@sentry/types';
-import { logger as coreLogger } from '@sentry/utils';
+import { logger as coreLogger, severityLevelFromString } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
 
@@ -64,13 +64,13 @@ function makeReplayLogger(): ReplayLogger {
       _logger[name] = (...args: unknown[]) => {
         coreLogger[name](PREFIX, ...args);
         if (_trace) {
-          _addBreadcrumb(args[0]);
+          _addBreadcrumb(args.join(''), severityLevelFromString(name));
         }
       };
     });
 
     _logger.exception = (error: unknown, ...message: unknown[]) => {
-      if (_logger.error) {
+      if (message.length && _logger.error) {
         _logger.error(...message);
       }
 
@@ -79,9 +79,9 @@ function makeReplayLogger(): ReplayLogger {
       if (_capture) {
         captureException(error);
       } else if (_trace) {
-        // No need for a breadcrumb is `_capture` is enabled since it should be
+        // No need for a breadcrumb if `_capture` is enabled since it should be
         // captured as an exception
-        _addBreadcrumb(error);
+        _addBreadcrumb(error, 'error');
       }
     };
 

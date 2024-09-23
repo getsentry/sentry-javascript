@@ -1,8 +1,7 @@
 import { setTimeout } from '@sentry-internal/browser-utils';
-import { captureException, setContext } from '@sentry/core';
+import { setContext } from '@sentry/core';
 
 import { RETRY_BASE_INTERVAL, RETRY_MAX_COUNT, UNABLE_TO_SEND_REPLAY } from '../constants';
-import { DEBUG_BUILD } from '../debug-build';
 import type { SendReplayData } from '../types';
 import { RateLimitError, TransportStatusCodeError, sendReplayRequest } from './sendReplayRequest';
 
@@ -16,7 +15,7 @@ export async function sendReplay(
     interval: RETRY_BASE_INTERVAL,
   },
 ): Promise<unknown> {
-  const { recordingData, options } = replayData;
+  const { recordingData, onError } = replayData;
 
   // short circuit if there's no events to upload (this shouldn't happen as _runFlush makes this check)
   if (!recordingData.length) {
@@ -36,8 +35,8 @@ export async function sendReplay(
       _retryCount: retryConfig.count,
     });
 
-    if (DEBUG_BUILD && options._experiments && options._experiments.captureExceptions) {
-      captureException(err);
+    if (onError) {
+      onError(err);
     }
 
     // If an error happened here, it's likely that uploading the attachment

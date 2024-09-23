@@ -125,6 +125,12 @@ export interface BaseNodeOptions {
    */
   clientReportFlushInterval?: number;
 
+  /**
+   * By default, the SDK will try to identify problems with your instrumentation setup and warn you about it.
+   * If you want to disable these warnings, set this to `true`.
+   */
+  disableInstrumentationWarnings?: boolean;
+
   /** Callback that is executed when a fatal global error occurs. */
   onFatalError?(this: void, error: Error): void;
 }

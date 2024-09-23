@@ -2,6 +2,7 @@ import type { Integration } from '@sentry/types';
 import { instrumentHttp } from '../http';
 
 import { connectIntegration, instrumentConnect } from './connect';
+import { dataloaderIntegration, instrumentDataloader } from './dataloader';
 import { expressIntegration, instrumentExpress } from './express';
 import { fastifyIntegration, instrumentFastify } from './fastify';
 import { genericPoolIntegration, instrumentGenericPool } from './genericPool';
@@ -41,6 +42,7 @@ export function getAutoPerformanceIntegrations(): Integration[] {
     connectIntegration(),
     genericPoolIntegration(),
     kafkaIntegration(),
+    dataloaderIntegration(),
   ];
 }
 
@@ -67,5 +69,6 @@ export function getOpenTelemetryInstrumentationToPreload(): (((options?: any) =>
     instrumentGraphql,
     instrumentRedis,
     instrumentGenericPool,
+    instrumentDataloader,
   ];
 }
