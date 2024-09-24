@@ -88,28 +88,34 @@ const instrumentSentryHttp = generateInstrumentOnce<{ breadcrumbs?: boolean }>(
   },
 );
 
-const instrumentOtelHttp = generateInstrumentOnce<HttpInstrumentationConfig>(`${INTEGRATION_NAME}.otel`, config => {
-  const instrumentation = new HttpInstrumentation(config);
+/**
+ * We only preload this one.
+ * If we preload both this and `instrumentSentryHttp`, it leads to weird issues with instrumentation.
+ */
+export const instrumentOtelHttp = generateInstrumentOnce<HttpInstrumentationConfig>(
+  `${INTEGRATION_NAME}.otel`,
+  config => {
+    const instrumentation = new HttpInstrumentation(config);
 
-  // We want to update the logger namespace so we can better identify what is happening here
-  try {
-    instrumentation['_diag'] = diag.createComponentLogger({
-      namespace: INSTRUMENTATION_NAME,
-    });
-    // @ts-expect-error We are writing a read-only property here...
-    instrumentation.instrumentationName = INSTRUMENTATION_NAME;
-  } catch {
-    // ignore errors here...
-  }
+    // We want to update the logger namespace so we can better identify what is happening here
+    try {
+      instrumentation['_diag'] = diag.createComponentLogger({
+        namespace: INSTRUMENTATION_NAME,
+      });
+      // @ts-expect-error We are writing a read-only property here...
+      instrumentation.instrumentationName = INSTRUMENTATION_NAME;
+    } catch {
+      // ignore errors here...
+    }
 
-  return instrumentation;
-});
+    return instrumentation;
+  },
+);
 
 /**
  * Instrument the HTTP module.
- * This can only be instrumented once! If this called again later, we just update the options.
  */
-export const instrumentHttp = Object.assign(
+const instrumentHttp = Object.assign(
   function (options: HttpOptions = {}) {
     // This is the "regular" OTEL instrumentation that emits spans
     if (options.spans !== false) {
