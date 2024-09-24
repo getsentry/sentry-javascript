@@ -1,11 +1,9 @@
 import type * as http from 'node:http';
 import type * as https from 'node:https';
-import { context } from '@opentelemetry/api';
 import { VERSION } from '@opentelemetry/core';
 import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
 import { InstrumentationBase, InstrumentationNodeModuleDefinition } from '@opentelemetry/instrumentation';
-import { addBreadcrumb, getClient, getCurrentScope, getIsolationScope } from '@sentry/core';
-import { setScopesOnContext } from '@sentry/opentelemetry';
+import { addBreadcrumb, getClient, getIsolationScope } from '@sentry/core';
 import type { SanitizedRequestData } from '@sentry/types';
 import {
   getBreadcrumbLogLevelFromHttpStatusCode,
@@ -13,6 +11,7 @@ import {
   parseUrl,
   stripUrlQueryAndFragment,
 } from '@sentry/utils';
+import { withIsolationScope } from '../..';
 import type { NodeClient } from '../../sdk/client';
 
 type Http = typeof http;
@@ -129,13 +128,7 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
 
         isolationScope.setTransactionName(bestEffortTransactionName);
 
-        const parentContext = context.active();
-        const requestContext = setScopesOnContext(parentContext, {
-          scope: getCurrentScope(),
-          isolationScope,
-        });
-
-        return context.with(requestContext, () => {
+        return withIsolationScope(isolationScope, () => {
           return original.apply(this, [event, ...args]);
         });
       };
