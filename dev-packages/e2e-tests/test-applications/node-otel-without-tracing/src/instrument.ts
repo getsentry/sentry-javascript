@@ -1,7 +1,8 @@
+const { HttpInstrumentation } = require('@opentelemetry/instrumentation-http');
 const { NodeTracerProvider, BatchSpanProcessor } = require('@opentelemetry/sdk-trace-node');
 const { OTLPTraceExporter } = require('@opentelemetry/exporter-trace-otlp-http');
 const Sentry = require('@sentry/node');
-const { SentrySpanProcessor, SentryPropagator } = require('@sentry/opentelemetry');
+const { SentryPropagator } = require('@sentry/opentelemetry');
 const { UndiciInstrumentation } = require('@opentelemetry/instrumentation-undici');
 const { registerInstrumentations } = require('@opentelemetry/instrumentation');
 
@@ -14,6 +15,8 @@ Sentry.init({
   debug: !!process.env.DEBUG,
   tunnel: `http://localhost:3031/`, // proxy server
   // Tracing is completely disabled
+
+  integrations: [Sentry.httpIntegration({ spans: true })],
 
   // Custom OTEL setup
   skipOpenTelemetrySetup: true,
@@ -37,5 +40,5 @@ provider.register({
 });
 
 registerInstrumentations({
-  instrumentations: [new UndiciInstrumentation()],
+  instrumentations: [new UndiciInstrumentation(), new HttpInstrumentation()],
 });
