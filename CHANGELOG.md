@@ -12,7 +12,7 @@
 - Moved description of `browser` spans into the operation, e.g. `browser - cache` -> `browser.cache` and set the URL as
   the description
 
-Work in this release was contributed by @Zen-cronic. Thank you for your contribution!
+Work in this release was contributed by @Zen-cronic and @Sjoertjuh. Thank you for your contributions!
 
 ## 8.31.0
 
