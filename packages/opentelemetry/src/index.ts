@@ -7,7 +7,7 @@ export { wrapClientClass } from './custom/client';
 
 export { getSpanKind } from './utils/getSpanKind';
 
-export { getScopesFromContext } from './utils/contextData';
+export { getScopesFromContext, setScopesOnContext } from './utils/contextData';
 
 export {
   spanHasAttributes,
