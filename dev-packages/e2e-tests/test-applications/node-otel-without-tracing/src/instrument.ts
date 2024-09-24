@@ -5,7 +5,7 @@ const { SentrySpanProcessor, SentryPropagator } = require('@sentry/opentelemetry
 const { UndiciInstrumentation } = require('@opentelemetry/instrumentation-undici');
 const { registerInstrumentations } = require('@opentelemetry/instrumentation');
 
-const sentryClient = Sentry.init({
+Sentry.init({
   environment: 'qa', // dynamic sampling bias to keep transactions
   dsn:
     process.env.E2E_TEST_DSN ||
