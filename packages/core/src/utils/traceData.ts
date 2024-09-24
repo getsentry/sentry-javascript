@@ -8,6 +8,7 @@ import {
 import { getAsyncContextStrategy } from '../asyncContext';
 import { getMainCarrier } from '../carrier';
 import { getClient, getCurrentScope } from '../currentScopes';
+import { isEnabled } from '../exports';
 import { getDynamicSamplingContextFromClient, getDynamicSamplingContextFromSpan } from '../tracing';
 import { getActiveSpan, getRootSpan, spanToTraceHeader } from './spanUtils';
 
@@ -23,6 +24,10 @@ import { getActiveSpan, getRootSpan, spanToTraceHeader } from './spanUtils';
  * or meta tag name.
  */
 export function getTraceData(): SerializedTraceData {
+  if (!isEnabled()) {
+    return {};
+  }
+
   const carrier = getMainCarrier();
   const acs = getAsyncContextStrategy(carrier);
   if (acs.getTraceData) {
