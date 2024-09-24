@@ -125,4 +125,12 @@ export type SentrySolidStartPluginOptions = {
    * Enabling this will give you, for example logs about source maps.
    */
   debug?: boolean;
+
+  /**
+   * The path to your `instrumentation.server.ts|js` file.
+   * e.g. './src/instrumentation.server.ts`
+   *
+   * Defaults to: `./src/instrumentation.server.ts`
+   */
+  instrumentation?: string;
 };

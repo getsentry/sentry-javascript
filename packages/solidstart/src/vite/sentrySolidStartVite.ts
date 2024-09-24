@@ -1,4 +1,5 @@
 import type { Plugin } from 'vite';
+import { makeBuildInstrumentationFilePlugin } from './buildInstrumentationFile';
 import { makeSourceMapsVitePlugin } from './sourceMaps';
 import type { SentrySolidStartPluginOptions } from './types';
 
@@ -7,6 +8,8 @@ import type { SentrySolidStartPluginOptions } from './types';
  */
 export const sentrySolidStartVite = (options: SentrySolidStartPluginOptions = {}): Plugin[] => {
   const sentryPlugins: Plugin[] = [];
+
+  sentryPlugins.push(makeBuildInstrumentationFilePlugin(options.instrumentation));
 
   if (process.env.NODE_ENV !== 'development') {
     if (options.sourceMapsUploadOptions?.enabled ?? true) {
