@@ -15,7 +15,12 @@ import {
 import { getClient } from '@sentry/opentelemetry';
 import type { IntegrationFn, SanitizedRequestData } from '@sentry/types';
 
-import { getSanitizedUrlString, parseUrl, stripUrlQueryAndFragment } from '@sentry/utils';
+import {
+  getBreadcrumbLogLevelFromHttpStatusCode,
+  getSanitizedUrlString,
+  parseUrl,
+  stripUrlQueryAndFragment,
+} from '@sentry/utils';
 import type { NodeClient } from '../sdk/client';
 import { setIsolationScope } from '../sdk/scope';
 import type { HTTPModuleRequestIncomingMessage } from '../transports/http-module';
@@ -243,14 +248,18 @@ function _addRequestBreadcrumb(
   }
 
   const data = getBreadcrumbData(request);
+  const statusCode = response.statusCode;
+  const level = getBreadcrumbLogLevelFromHttpStatusCode(statusCode);
+
   addBreadcrumb(
     {
       category: 'http',
       data: {
-        status_code: response.statusCode,
+        status_code: statusCode,
         ...data,
       },
       type: 'http',
+      level,
     },
     {
       event: 'response',

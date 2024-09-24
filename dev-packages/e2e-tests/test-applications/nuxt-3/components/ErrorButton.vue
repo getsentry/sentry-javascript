@@ -5,6 +5,10 @@ const props = defineProps({
   errorText: {
     type: String,
     required: true
+  },
+  id: {
+    type: String,
+    required: true
   }
 })
 
@@ -14,5 +18,5 @@ const triggerError = () => {
 </script>
 
 <template>
-  <button id="errorBtn" @click="triggerError">Trigger Error</button>
+  <button :id="props.id" @click="triggerError">Trigger Error</button>
 </template>

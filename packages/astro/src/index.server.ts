@@ -13,6 +13,7 @@ export {
   addIntegration,
   addOpenTelemetryInstrumentation,
   addRequestDataToEvent,
+  amqplibIntegration,
   anrIntegration,
   captureCheckIn,
   captureConsoleIntegration,

@@ -1,7 +1,7 @@
 <template>
   <p>{{ $route.params.param }} - {{ $route.params.param }}</p>
 
-  <ErrorButton errorText="Error thrown from Param Route Button"  />
+  <ErrorButton id="errorBtn" errorText="Error thrown from Param Route Button"  />
   <button @click="fetchData">Fetch Server Data</button>
 </template>
 
