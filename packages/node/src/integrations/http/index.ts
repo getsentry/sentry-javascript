@@ -1,12 +1,12 @@
 import type { ClientRequest, IncomingMessage, RequestOptions, ServerResponse } from 'node:http';
 import { diag } from '@opentelemetry/api';
-import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
-import { addOpenTelemetryInstrumentation } from '@sentry/opentelemetry';
+import { HttpInstrumentation, HttpInstrumentationConfig } from '@opentelemetry/instrumentation-http';
 
 import { defineIntegration } from '@sentry/core';
 import { getClient } from '@sentry/opentelemetry';
 import type { IntegrationFn, Span } from '@sentry/types';
 
+import { generateInstrumentOnce } from '../../otel/instrument';
 import type { NodeClient } from '../../sdk/client';
 import type { HTTPModuleRequestIncomingMessage } from '../../transports/http-module';
 import { addOriginToSpan } from '../../utils/addOriginToSpan';
@@ -56,6 +56,12 @@ interface HttpOptions {
   ignoreIncomingRequests?: (urlPath: string, request: IncomingMessage) => boolean;
 
   /**
+   * If true, do not generate spans for incoming requests at all.
+   * This is used by Remix to avoid generating spans for incoming requests, as it generates its own spans.
+   */
+  disableIncomingRequestSpans?: boolean;
+
+  /**
    * Additional instrumentation options that are passed to the underlying HttpInstrumentation.
    */
   instrumentation?: {
@@ -73,27 +79,45 @@ interface HttpOptions {
      */
     _experimentalConfig?: ConstructorParameters<typeof HttpInstrumentation>[0];
   };
-
-  /** Allows to pass a custom version of HttpInstrumentation. We use this for Next.js. */
-  _instrumentation?: typeof HttpInstrumentation;
 }
 
-let _httpOptions: HttpOptions = {};
-let _sentryHttpInstrumentation: SentryHttpInstrumentation | undefined;
-let _httpInstrumentation: HttpInstrumentation | undefined;
+const instrumentSentryHttp = generateInstrumentOnce<{ breadcrumbs?: boolean }>(
+  `${INTEGRATION_NAME}.sentry`,
+  options => {
+    return new SentryHttpInstrumentation({ breadcrumbs: options?.breadcrumbs });
+  },
+);
+
+const instrumentOtelHttp = generateInstrumentOnce<HttpInstrumentationConfig>(`${INTEGRATION_NAME}.otel`, config => {
+  const instrumentation = new HttpInstrumentation(config);
+
+  // We want to update the logger namespace so we can better identify what is happening here
+  try {
+    instrumentation['_diag'] = diag.createComponentLogger({
+      namespace: INSTRUMENTATION_NAME,
+    });
+    // @ts-expect-error We are writing a read-only property here...
+    instrumentation.instrumentationName = INSTRUMENTATION_NAME;
+  } catch {
+    // ignore errors here...
+  }
+
+  return instrumentation;
+});
 
 /**
  * Instrument the HTTP module.
  * This can only be instrumented once! If this called again later, we just update the options.
  */
 export const instrumentHttp = Object.assign(
-  function (): void {
+  function (options: HttpOptions = {}) {
     // This is the "regular" OTEL instrumentation that emits spans
-    if (_httpOptions.spans !== false && !_httpInstrumentation) {
-      const _InstrumentationClass = _httpOptions._instrumentation || HttpInstrumentation;
+    if (options.spans !== false) {
+      const instrumentationConfig = {
+        ...options.instrumentation?._experimentalConfig,
 
-      _httpInstrumentation = new _InstrumentationClass({
-        ..._httpOptions.instrumentation?._experimentalConfig,
+        disableIncomingRequestInstrumentation: options.disableIncomingRequestSpans,
+
         ignoreOutgoingRequestHook: request => {
           const url = getRequestUrl(request);
 
@@ -101,7 +125,7 @@ export const instrumentHttp = Object.assign(
             return false;
           }
 
-          const _ignoreOutgoingRequests = _httpOptions.ignoreOutgoingRequests;
+          const _ignoreOutgoingRequests = options.ignoreOutgoingRequests;
           if (_ignoreOutgoingRequests && _ignoreOutgoingRequests(url, request)) {
             return true;
           }
@@ -120,7 +144,7 @@ export const instrumentHttp = Object.assign(
             return true;
           }
 
-          const _ignoreIncomingRequests = _httpOptions.ignoreIncomingRequests;
+          const _ignoreIncomingRequests = options.ignoreIncomingRequests;
           if (urlPath && _ignoreIncomingRequests && _ignoreIncomingRequests(urlPath, request)) {
             return true;
           }
@@ -136,7 +160,7 @@ export const instrumentHttp = Object.assign(
             span.setAttribute('sentry.http.prefetch', true);
           }
 
-          _httpOptions.instrumentation?.requestHook?.(span, req);
+          options.instrumentation?.requestHook?.(span, req);
         },
         responseHook: (span, res) => {
           const client = getClient<NodeClient>();
@@ -146,42 +170,21 @@ export const instrumentHttp = Object.assign(
             });
           }
 
-          _httpOptions.instrumentation?.responseHook?.(span, res);
+          options.instrumentation?.responseHook?.(span, res);
         },
         applyCustomAttributesOnSpan: (
           span: Span,
           request: ClientRequest | HTTPModuleRequestIncomingMessage,
           response: HTTPModuleRequestIncomingMessage | ServerResponse,
         ) => {
-          _httpOptions.instrumentation?.applyCustomAttributesOnSpan?.(span, request, response);
+          options.instrumentation?.applyCustomAttributesOnSpan?.(span, request, response);
         },
-      });
+      } satisfies HttpInstrumentationConfig;
 
-      // We want to update the logger namespace so we can better identify what is happening here
-      try {
-        _httpInstrumentation['_diag'] = diag.createComponentLogger({
-          namespace: INSTRUMENTATION_NAME,
-        });
-        // @ts-expect-error We are writing a read-only property here...
-        _httpInstrumentation.instrumentationName = INSTRUMENTATION_NAME;
-      } catch {
-        // ignore errors here...
-      }
-
-      addOpenTelemetryInstrumentation(_httpInstrumentation);
-    } else if (_httpOptions.spans === false && _httpInstrumentation) {
-      _httpInstrumentation.disable();
+      instrumentOtelHttp(instrumentationConfig);
     }
 
-    // This is our custom instrumentation that is responsible for request isolation etc.
-    // We have to add it after the OTEL instrumentation to ensure that we wrap the already wrapped http module
-    // Otherwise, the isolation scope does not encompass the OTEL spans
-    if (!_sentryHttpInstrumentation) {
-      _sentryHttpInstrumentation = new SentryHttpInstrumentation({ breadcrumbs: _httpOptions.breadcrumbs });
-      addOpenTelemetryInstrumentation(_sentryHttpInstrumentation);
-    } else {
-      _sentryHttpInstrumentation.setConfig({ breadcrumbs: _httpOptions.breadcrumbs });
-    }
+    instrumentSentryHttp(options);
   },
   {
     id: INTEGRATION_NAME,
@@ -192,8 +195,7 @@ const _httpIntegration = ((options: HttpOptions = {}) => {
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
-      _httpOptions = options;
-      instrumentHttp();
+      instrumentHttp(options);
     },
   };
 }) satisfies IntegrationFn;
