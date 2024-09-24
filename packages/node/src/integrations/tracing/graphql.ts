@@ -40,6 +40,8 @@ const INTEGRATION_NAME = 'Graphql';
 export const instrumentGraphql = generateInstrumentOnce<GraphqlOptions>(
   INTEGRATION_NAME,
   (_options: GraphqlOptions = {}) => {
+    // We set default values here, which are used in the case that this is preloaded
+    // In that case, no options are passed in, and we want to use the defaults
     const options = {
       ignoreResolveSpans: true,
       ignoreTrivialResolveSpans: true,
@@ -85,10 +87,20 @@ export const instrumentGraphql = generateInstrumentOnce<GraphqlOptions>(
   },
 );
 
-const _graphqlIntegration = ((options: GraphqlOptions = {}) => {
+const _graphqlIntegration = ((_options: GraphqlOptions = {}) => {
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
+      // We set defaults here, too, because otherwise we'd update the instrumentation config
+      // to the config without defaults, as `generateInstrumentOnce` automatically calls `setConfig(options)`
+      // when being called the second time
+      const options = {
+        ignoreResolveSpans: true,
+        ignoreTrivialResolveSpans: true,
+        useOperationNameForRootSpan: true,
+        ..._options,
+      };
+
       instrumentGraphql(options);
     },
   };
