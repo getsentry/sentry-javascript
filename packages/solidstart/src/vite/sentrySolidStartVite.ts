@@ -9,7 +9,7 @@ import type { SentrySolidStartPluginOptions } from './types';
 export const sentrySolidStartVite = (options: SentrySolidStartPluginOptions = {}): Plugin[] => {
   const sentryPlugins: Plugin[] = [];
 
-  sentryPlugins.push(makeBuildInstrumentationFilePlugin(options.instrumentation));
+  sentryPlugins.push(makeBuildInstrumentationFilePlugin(options));
 
   if (process.env.NODE_ENV !== 'development') {
     if (options.sourceMapsUploadOptions?.enabled ?? true) {

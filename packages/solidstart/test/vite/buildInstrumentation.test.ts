@@ -47,18 +47,26 @@ describe('makeBuildInstrumentationFilePlugin()', () => {
 
   it('adds the instrumentation file for server builds', async () => {
     const buildInstrumentationFilePlugin = makeBuildInstrumentationFilePlugin();
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore - this is always defined and always a function
     const config = await buildInstrumentationFilePlugin.config(viteConfig, { command: 'build' });
     expect(config.build.rollupOptions.input).toContain('/some/project/path/src/instrument.server.ts');
   });
 
   it('adds the correct instrumentation file', async () => {
-    const buildInstrumentationFilePlugin = makeBuildInstrumentationFilePlugin('./src/myapp/instrument.server.ts');
+    const buildInstrumentationFilePlugin = makeBuildInstrumentationFilePlugin({
+      instrumentation: './src/myapp/instrument.server.ts',
+    });
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore - this is always defined and always a function
     const config = await buildInstrumentationFilePlugin.config(viteConfig, { command: 'build' });
     expect(config.build.rollupOptions.input).toContain('/some/project/path/src/myapp/instrument.server.ts');
   });
 
   it("doesn't add the instrumentation file for server function builds", async () => {
     const buildInstrumentationFilePlugin = makeBuildInstrumentationFilePlugin();
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore - this is always defined and always a function
     const config = await buildInstrumentationFilePlugin.config(
       {
         ...viteConfig,
@@ -74,6 +82,8 @@ describe('makeBuildInstrumentationFilePlugin()', () => {
 
   it("doesn't add the instrumentation file for client builds", async () => {
     const buildInstrumentationFilePlugin = makeBuildInstrumentationFilePlugin();
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore - this is always defined and always a function
     const config = await buildInstrumentationFilePlugin.config(
       {
         ...viteConfig,
@@ -89,6 +99,8 @@ describe('makeBuildInstrumentationFilePlugin()', () => {
 
   it("doesn't add the instrumentation file when serving", async () => {
     const buildInstrumentationFilePlugin = makeBuildInstrumentationFilePlugin();
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore - this is always defined and always a function
     const config = await buildInstrumentationFilePlugin.config(viteConfig, { command: 'serve' });
     expect(config.build.rollupOptions.input).not.toContain('/some/project/path/src/instrument.server.ts');
   });
@@ -96,6 +108,8 @@ describe('makeBuildInstrumentationFilePlugin()', () => {
   it("doesn't modify the config if the instrumentation file doesn't exist", async () => {
     fsAccessMock.mockRejectedValueOnce(undefined);
     const buildInstrumentationFilePlugin = makeBuildInstrumentationFilePlugin();
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore - this is always defined and always a function
     const config = await buildInstrumentationFilePlugin.config(viteConfig, { command: 'build' });
     expect(config).toEqual(viteConfig);
   });
@@ -104,6 +118,8 @@ describe('makeBuildInstrumentationFilePlugin()', () => {
     const error = new Error("File doesn't exist.");
     fsAccessMock.mockRejectedValueOnce(error);
     const buildInstrumentationFilePlugin = makeBuildInstrumentationFilePlugin();
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore - this is always defined and always a function
     const config = await buildInstrumentationFilePlugin.config(viteConfig, { command: 'build' });
     expect(config).toEqual(viteConfig);
     expect(consoleWarnSpy).toHaveBeenCalledWith(
