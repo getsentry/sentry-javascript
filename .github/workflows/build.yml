@@ -923,6 +923,7 @@ jobs:
             'nestjs-distributed-tracing',
             'nestjs-with-submodules',
             'nestjs-with-submodules-decorator',
+            'nestjs-basic-with-graphql',
             'nestjs-graphql',
             'node-exports-test-app',
             'node-koa',
