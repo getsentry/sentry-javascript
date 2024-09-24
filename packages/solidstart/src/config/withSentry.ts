@@ -2,13 +2,18 @@ import {
   addInstrumentationFileToBuild,
   experimental_addInstrumentationFileTopLevelImportToServerEntry,
 } from './addInstrumentation';
-import type { SentrySolidStartConfigOptions, SolidStartInlineConfig } from './types';
+import type {
+  Nitro,
+  SentrySolidStartConfigOptions,
+  SolidStartInlineConfig,
+  SolidStartInlineConfigNitroHooks,
+} from './types';
 
 export const withSentry = (
   solidStartConfig: SolidStartInlineConfig = {},
   sentrySolidStartConfigOptions: SentrySolidStartConfigOptions = {},
 ): SolidStartInlineConfig => {
-  const server = solidStartConfig.server || {};
+  const server = (solidStartConfig.server || {}) as SolidStartInlineConfigNitroHooks;
   const hooks = server.hooks || {};
 
   let serverDir: string;
@@ -30,7 +35,7 @@ export const withSentry = (
             hooks.close();
           }
         },
-        async 'rollup:before'(nitro) {
+        async 'rollup:before'(nitro: Nitro) {
           serverDir = nitro.options.output.serverDir;
           buildPreset = nitro.options.preset;
 

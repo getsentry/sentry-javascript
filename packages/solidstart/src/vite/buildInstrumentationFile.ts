@@ -2,19 +2,19 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { consoleSandbox } from '@sentry/utils';
 import type { Plugin, UserConfig } from 'vite';
+import type { SentrySolidStartPluginOptions } from './types';
 
 /**
  * A Sentry plugin for SolidStart to build the server
  * `instrument.server.ts` file.
  */
-export function makeBuildInstrumentationFilePlugin(
-  instrumentationFilePath: string = './src/instrument.server.ts',
-): Plugin {
+export function makeBuildInstrumentationFilePlugin(options: SentrySolidStartPluginOptions = {}): Plugin {
   return {
     name: 'sentry-solidstart-build-instrumentation-file',
     apply: 'build',
     enforce: 'post',
     async config(config: UserConfig, { command }) {
+      const instrumentationFilePath = options.instrumentation || './src/instrument.server.ts';
       const router = (config as UserConfig & { router: { target: string; name: string; root: string } }).router;
       const build = config.build || {};
       const rollupOptions = build.rollupOptions || {};
@@ -38,7 +38,7 @@ export function makeBuildInstrumentationFilePlugin(
         return config;
       }
 
-      input.push(path.join(router.root, instrumentationFilePath));
+      input.push(path.resolve(router.root, instrumentationFilePath));
 
       return {
         ...config,
