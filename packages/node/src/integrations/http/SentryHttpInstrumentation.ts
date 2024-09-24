@@ -3,7 +3,7 @@ import type * as https from 'node:https';
 import { VERSION } from '@opentelemetry/core';
 import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
 import { InstrumentationBase, InstrumentationNodeModuleDefinition } from '@opentelemetry/instrumentation';
-import { addBreadcrumb, getClient, getIsolationScope } from '@sentry/core';
+import { addBreadcrumb, getClient, getIsolationScope, withIsolationScope } from '@sentry/core';
 import type { SanitizedRequestData } from '@sentry/types';
 import {
   getBreadcrumbLogLevelFromHttpStatusCode,
@@ -11,7 +11,6 @@ import {
   parseUrl,
   stripUrlQueryAndFragment,
 } from '@sentry/utils';
-import { withIsolationScope } from '../..';
 import type { NodeClient } from '../../sdk/client';
 
 type Http = typeof http;
