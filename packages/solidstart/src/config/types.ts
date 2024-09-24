@@ -1,3 +1,4 @@
+import type { defineConfig } from '@solidjs/start/config';
 // Types to avoid pulling in extra dependencies
 // These are non-exhaustive
 export type Nitro = {
@@ -11,12 +12,12 @@ export type Nitro = {
   };
 };
 
-export type SolidStartInlineConfig = {
-  server?: {
-    hooks?: {
-      close?: () => unknown;
-      'rollup:before'?: (nitro: Nitro) => unknown;
-    };
+export type SolidStartInlineConfig = Parameters<typeof defineConfig>[0];
+
+export type SolidStartInlineConfigNitroHooks = {
+  hooks?: {
+    close?: () => unknown;
+    'rollup:before'?: (nitro: Nitro) => unknown;
   };
 };
 
