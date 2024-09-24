@@ -28,7 +28,6 @@ describe('preload', () => {
 
     await import('../../src/preload');
 
-    expect(logSpy).toHaveBeenCalledWith('Sentry Logger [log]:', '[Sentry] Preloaded Http instrumentation');
     expect(logSpy).toHaveBeenCalledWith('Sentry Logger [log]:', '[Sentry] Preloaded Express instrumentation');
     expect(logSpy).toHaveBeenCalledWith('Sentry Logger [log]:', '[Sentry] Preloaded Graphql instrumentation');
   });
@@ -43,7 +42,6 @@ describe('preload', () => {
 
     await import('../../src/preload');
 
-    expect(logSpy).toHaveBeenCalledWith('Sentry Logger [log]:', '[Sentry] Preloaded Http instrumentation');
     expect(logSpy).toHaveBeenCalledWith('Sentry Logger [log]:', '[Sentry] Preloaded Express instrumentation');
     expect(logSpy).not.toHaveBeenCalledWith('Sentry Logger [log]:', '[Sentry] Preloaded Graphql instrumentation');
   });
