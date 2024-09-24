@@ -1,6 +1,7 @@
 import type { ClientRequest, IncomingMessage, RequestOptions, ServerResponse } from 'node:http';
 import { diag } from '@opentelemetry/api';
-import { HttpInstrumentation, HttpInstrumentationConfig } from '@opentelemetry/instrumentation-http';
+import type { HttpInstrumentationConfig } from '@opentelemetry/instrumentation-http';
+import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
 
 import { defineIntegration } from '@sentry/core';
 import { getClient } from '@sentry/opentelemetry';
@@ -92,110 +93,102 @@ const instrumentSentryHttp = generateInstrumentOnce<{ breadcrumbs?: boolean }>(
  * We only preload this one.
  * If we preload both this and `instrumentSentryHttp`, it leads to weird issues with instrumentation.
  */
-export const instrumentOtelHttp = generateInstrumentOnce<HttpInstrumentationConfig>(
-  `${INTEGRATION_NAME}.otel`,
-  config => {
-    const instrumentation = new HttpInstrumentation(config);
+export const instrumentOtelHttp = generateInstrumentOnce<HttpInstrumentationConfig>(INTEGRATION_NAME, config => {
+  const instrumentation = new HttpInstrumentation(config);
 
-    // We want to update the logger namespace so we can better identify what is happening here
-    try {
-      instrumentation['_diag'] = diag.createComponentLogger({
-        namespace: INSTRUMENTATION_NAME,
-      });
-      // @ts-expect-error We are writing a read-only property here...
-      instrumentation.instrumentationName = INSTRUMENTATION_NAME;
-    } catch {
-      // ignore errors here...
-    }
+  // We want to update the logger namespace so we can better identify what is happening here
+  try {
+    instrumentation['_diag'] = diag.createComponentLogger({
+      namespace: INSTRUMENTATION_NAME,
+    });
+    // @ts-expect-error We are writing a read-only property here...
+    instrumentation.instrumentationName = INSTRUMENTATION_NAME;
+  } catch {
+    // ignore errors here...
+  }
 
-    return instrumentation;
-  },
-);
+  return instrumentation;
+});
 
 /**
  * Instrument the HTTP module.
  */
-const instrumentHttp = Object.assign(
-  function (options: HttpOptions = {}) {
-    // This is the "regular" OTEL instrumentation that emits spans
-    if (options.spans !== false) {
-      const instrumentationConfig = {
-        ...options.instrumentation?._experimentalConfig,
+const instrumentHttp = (options: HttpOptions = {}): void => {
+  // This is the "regular" OTEL instrumentation that emits spans
+  if (options.spans !== false) {
+    const instrumentationConfig = {
+      ...options.instrumentation?._experimentalConfig,
 
-        disableIncomingRequestInstrumentation: options.disableIncomingRequestSpans,
+      disableIncomingRequestInstrumentation: options.disableIncomingRequestSpans,
 
-        ignoreOutgoingRequestHook: request => {
-          const url = getRequestUrl(request);
+      ignoreOutgoingRequestHook: request => {
+        const url = getRequestUrl(request);
 
-          if (!url) {
-            return false;
-          }
-
-          const _ignoreOutgoingRequests = options.ignoreOutgoingRequests;
-          if (_ignoreOutgoingRequests && _ignoreOutgoingRequests(url, request)) {
-            return true;
-          }
-
+        if (!url) {
           return false;
-        },
+        }
 
-        ignoreIncomingRequestHook: request => {
-          // request.url is the only property that holds any information about the url
-          // it only consists of the URL path and query string (if any)
-          const urlPath = request.url;
+        const _ignoreOutgoingRequests = options.ignoreOutgoingRequests;
+        if (_ignoreOutgoingRequests && _ignoreOutgoingRequests(url, request)) {
+          return true;
+        }
 
-          const method = request.method?.toUpperCase();
-          // We do not capture OPTIONS/HEAD requests as transactions
-          if (method === 'OPTIONS' || method === 'HEAD') {
-            return true;
-          }
+        return false;
+      },
 
-          const _ignoreIncomingRequests = options.ignoreIncomingRequests;
-          if (urlPath && _ignoreIncomingRequests && _ignoreIncomingRequests(urlPath, request)) {
-            return true;
-          }
+      ignoreIncomingRequestHook: request => {
+        // request.url is the only property that holds any information about the url
+        // it only consists of the URL path and query string (if any)
+        const urlPath = request.url;
 
-          return false;
-        },
+        const method = request.method?.toUpperCase();
+        // We do not capture OPTIONS/HEAD requests as transactions
+        if (method === 'OPTIONS' || method === 'HEAD') {
+          return true;
+        }
 
-        requireParentforOutgoingSpans: false,
-        requireParentforIncomingSpans: false,
-        requestHook: (span, req) => {
-          addOriginToSpan(span, 'auto.http.otel.http');
-          if (!_isClientRequest(req) && isKnownPrefetchRequest(req)) {
-            span.setAttribute('sentry.http.prefetch', true);
-          }
+        const _ignoreIncomingRequests = options.ignoreIncomingRequests;
+        if (urlPath && _ignoreIncomingRequests && _ignoreIncomingRequests(urlPath, request)) {
+          return true;
+        }
 
-          options.instrumentation?.requestHook?.(span, req);
-        },
-        responseHook: (span, res) => {
-          const client = getClient<NodeClient>();
-          if (client && client.getOptions().autoSessionTracking) {
-            setImmediate(() => {
-              client['_captureRequestSession']();
-            });
-          }
+        return false;
+      },
 
-          options.instrumentation?.responseHook?.(span, res);
-        },
-        applyCustomAttributesOnSpan: (
-          span: Span,
-          request: ClientRequest | HTTPModuleRequestIncomingMessage,
-          response: HTTPModuleRequestIncomingMessage | ServerResponse,
-        ) => {
-          options.instrumentation?.applyCustomAttributesOnSpan?.(span, request, response);
-        },
-      } satisfies HttpInstrumentationConfig;
+      requireParentforOutgoingSpans: false,
+      requireParentforIncomingSpans: false,
+      requestHook: (span, req) => {
+        addOriginToSpan(span, 'auto.http.otel.http');
+        if (!_isClientRequest(req) && isKnownPrefetchRequest(req)) {
+          span.setAttribute('sentry.http.prefetch', true);
+        }
 
-      instrumentOtelHttp(instrumentationConfig);
-    }
+        options.instrumentation?.requestHook?.(span, req);
+      },
+      responseHook: (span, res) => {
+        const client = getClient<NodeClient>();
+        if (client && client.getOptions().autoSessionTracking) {
+          setImmediate(() => {
+            client['_captureRequestSession']();
+          });
+        }
 
-    instrumentSentryHttp(options);
-  },
-  {
-    id: INTEGRATION_NAME,
-  },
-);
+        options.instrumentation?.responseHook?.(span, res);
+      },
+      applyCustomAttributesOnSpan: (
+        span: Span,
+        request: ClientRequest | HTTPModuleRequestIncomingMessage,
+        response: HTTPModuleRequestIncomingMessage | ServerResponse,
+      ) => {
+        options.instrumentation?.applyCustomAttributesOnSpan?.(span, request, response);
+      },
+    } satisfies HttpInstrumentationConfig;
+
+    instrumentOtelHttp(instrumentationConfig);
+  }
+
+  instrumentSentryHttp(options);
+};
 
 const _httpIntegration = ((options: HttpOptions = {}) => {
   return {
