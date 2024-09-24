@@ -24,9 +24,13 @@ const mockedScope = {
 
 describe('getTraceData', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
     jest.spyOn(SentryCoreExports, 'isEnabled').mockReturnValue(true);
   });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
   it('returns the tracing data from the span, if a span is available', () => {
     {
       jest.spyOn(SentryCoreTracing, 'getDynamicSamplingContextFromSpan').mockReturnValueOnce({
