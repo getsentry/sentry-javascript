@@ -43,6 +43,7 @@ local.log
 .rpt2_cache
 
 lint-results.json
+trace.zip
 
 # legacy
 tmp.js

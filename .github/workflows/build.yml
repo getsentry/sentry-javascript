@@ -895,6 +895,7 @@ jobs:
             'node-express-cjs-preload',
             'node-otel-sdk-node',
             'node-otel-custom-sampler',
+            'node-otel-without-tracing',
             'ember-classic',
             'ember-embroider',
             'nextjs-app-dir',
