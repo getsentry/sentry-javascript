@@ -13,7 +13,7 @@ import * as http from 'http';
 
 async function run(): Promise<void> {
   await makeHttpRequest(`${process.env.SERVER_URL}/api/v0`);
-  await makeHttpRequest(`${process.env.SERVER_URL}/api/v1`);
+  await makeHttpGet(`${process.env.SERVER_URL}/api/v1`);
   await makeHttpRequest(`${process.env.SERVER_URL}/api/v2`);
   await makeHttpRequest(`${process.env.SERVER_URL}/api/v3`);
 
@@ -35,5 +35,18 @@ function makeHttpRequest(url: string): Promise<void> {
         });
       })
       .end();
+  });
+}
+
+function makeHttpGet(url: string): Promise<void> {
+  return new Promise<void>(resolve => {
+    http.get(url, httpRes => {
+      httpRes.on('data', () => {
+        // we don't care about data
+      });
+      httpRes.on('end', () => {
+        resolve();
+      });
+    });
   });
 }
