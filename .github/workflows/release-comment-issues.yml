@@ -28,7 +28,7 @@ jobs:
         shell: bash
 
       - name: Check dependency cache
-        uses: actions/cache/restore@v4
+        uses: actions/cache@v4
         id: cache_dependencies
         with:
           path: |
