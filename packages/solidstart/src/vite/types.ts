@@ -127,10 +127,10 @@ export type SentrySolidStartPluginOptions = {
   debug?: boolean;
 
   /**
-   * The path to your `instrumentation.server.ts|js` file.
-   * e.g. './src/instrumentation.server.ts`
+   * The path to your `instrument.server.ts|js` file.
+   * e.g. `./src/instrument.server.ts`
    *
-   * Defaults to: `./src/instrumentation.server.ts`
+   * Defaults to: `./src/instrument.server.ts`
    */
   instrumentation?: string;
 };
