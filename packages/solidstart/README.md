@@ -60,7 +60,7 @@ mount(() => <StartClient />, document.getElementById('app'));
 
 ### 3. Server-side Setup
 
-Create an instrument file named `instrument.server.mjs` and add your initialization code for the server-side SDK.
+Create an instrument file named `src/instrument.server.ts` and add your initialization code for the server-side SDK.
 
 ```javascript
 import * as Sentry from '@sentry/solidstart';
@@ -110,24 +110,30 @@ For Sentry to work properly, SolidStart's `app.config.ts` has to be modified.
 Add `withSentry` from `@sentry/solidstart` and wrap SolidStart's config inside `app.config.ts`.
 
 ```typescript
-import { defineConfig } from '@solidjs/start/config'
-import { withSentry } from "@sentry/solidstart";
+import { defineConfig } from '@solidjs/start/config';
+import { withSentry } from '@sentry/solidstart';
 
-export default defineConfig(withSentry({
-  // ...
-  middleware: './src/middleware.ts',
-}))
-
+export default defineConfig(
+  withSentry({
+    // ...
+    middleware: './src/middleware.ts',
+  }),
+);
 ```
 
 #### 5.2 Generate source maps and build `instrument.server.ts`
 
-Sentry relies on running `instrument.server.ts` as early as possible. Add the `sentrySolidStartVite` plugin
-from `@sentry/solidstart` to your `app.config.ts`. This takes care of building `instrument.server.ts` and placing it alongside the server entry file.
+Sentry relies on running `instrument.server.ts` as early as possible. Add the `sentrySolidStartVite` plugin from
+`@sentry/solidstart` to your `app.config.ts`. This takes care of building `instrument.server.ts` and placing it
+alongside the server entry file.
 
-To upload source maps, configure an auth token. Auth tokens can be passed to the plugin explicitly with the `authToken` option, with a
-`SENTRY_AUTH_TOKEN` environment variable, or with an `.env.sentry-build-plugin` file in the working directory when
-building your project. We recommend you add the auth token to your CI/CD environment as an environment variable.
+If your `instrument.server.ts` file is not located in the `src` folder, you can specify the path via the
+`sentrySolidStartVite` plugin.
+
+To upload source maps, configure an auth token. Auth tokens can be passed to the plugin explicitly with the `authToken`
+option, with a `SENTRY_AUTH_TOKEN` environment variable, or with an `.env.sentry-build-plugin` file in the working
+directory when building your project. We recommend you add the auth token to your CI/CD environment as an environment
+variable.
 
 Learn more about configuring the plugin in our
 [Sentry Vite Plugin documentation](https://www.npmjs.com/package/@sentry/vite-plugin).
@@ -137,21 +143,25 @@ Learn more about configuring the plugin in our
 import { defineConfig } from '@solidjs/start/config';
 import { sentrySolidStartVite, withSentry } from '@sentry/solidstart';
 
-export default defineConfig(withSentry({
-  // ...
-  middleware: './src/middleware.ts',
-  vite: {
-    plugins: [
-      sentrySolidStartVite({
-        org: process.env.SENTRY_ORG,
-        project: process.env.SENTRY_PROJECT,
-        authToken: process.env.SENTRY_AUTH_TOKEN,
-        debug: true,
-      }),
-    ],
-  },
-  // ...
-}));
+export default defineConfig(
+  withSentry({
+    // ...
+    middleware: './src/middleware.ts',
+    vite: {
+      plugins: [
+        sentrySolidStartVite({
+          org: process.env.SENTRY_ORG,
+          project: process.env.SENTRY_PROJECT,
+          authToken: process.env.SENTRY_AUTH_TOKEN,
+          debug: true,
+          // optional: if your `instrument.server.ts` file is not located inside `src`
+          instrumentation: './mypath/instrument.server.ts',
+        }),
+      ],
+    },
+    // ...
+  }),
+);
 ```
 
 ### 6. Run your application
@@ -163,46 +173,49 @@ NODE_OPTIONS='--import=./.output/server/instrument.server.mjs' yarn start
 ```
 
 ⚠️ **Note build presets** ⚠️  
-Depending on [build preset](https://nitro.unjs.io/deploy), the location of `instrument.server.mjs` differs.
-To find out where `instrument.server.mjs` is located, monitor the build log output for
+Depending on [build preset](https://nitro.unjs.io/deploy), the location of `instrument.server.mjs` differs. To find out
+where `instrument.server.mjs` is located, monitor the build log output for
 
 ```bash
 [Sentry SolidStart withSentry] Successfully created /my/project/path/.output/server/instrument.server.mjs.
 ```
 
-
 ⚠️ **Note for platforms without the ability to modify `NODE_OPTIONS` or use `--import`** ⚠️  
-Depending on where the application is deployed to, it might not be possible to modify or use `NODE_OPTIONS` to
-import `instrument.server.mjs`.
+Depending on where the application is deployed to, it might not be possible to modify or use `NODE_OPTIONS` to import
+`instrument.server.mjs`.
 
-For such platforms, we offer the `experimental_basicServerTracing` flag to add a top 
-level import of `instrument.server.mjs` to the server entry file.
+For such platforms, we offer the `experimental_basicServerTracing` flag to add a top level import of
+`instrument.server.mjs` to the server entry file.
 
 ```typescript
 // app.config.ts
 import { defineConfig } from '@solidjs/start/config';
 import { sentrySolidStartVite, withSentry } from '@sentry/solidstart';
 
-export default defineConfig(withSentry({
-  // ...
-  middleware: './src/middleware.ts',
-  vite: {
-    plugins: [
-      sentrySolidStartVite({
-        org: process.env.SENTRY_ORG,
-        project: process.env.SENTRY_PROJECT,
-        authToken: process.env.SENTRY_AUTH_TOKEN,
-        debug: true,
-      }),
-    ],
-  },
-  // ...
-}, { experimental_basicServerTracing: true }));
+export default defineConfig(
+  withSentry(
+    {
+      // ...
+      middleware: './src/middleware.ts',
+      vite: {
+        plugins: [
+          sentrySolidStartVite({
+            org: process.env.SENTRY_ORG,
+            project: process.env.SENTRY_PROJECT,
+            authToken: process.env.SENTRY_AUTH_TOKEN,
+            debug: true,
+          }),
+        ],
+      },
+      // ...
+    },
+    { experimental_basicServerTracing: true },
+  ),
+);
 ```
 
-This has a **fundamental restriction**: It only supports limited performance instrumentation. 
-**Only basic http instrumentation** will work, and no DB or framework-specific instrumentation will be available.
-
+This has a **fundamental restriction**: It only supports limited performance instrumentation. **Only basic http
+instrumentation** will work, and no DB or framework-specific instrumentation will be available.
 
 # Solid Router
 

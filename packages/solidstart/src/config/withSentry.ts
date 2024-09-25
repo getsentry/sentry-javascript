@@ -6,7 +6,7 @@ import type {
   Nitro,
   SentrySolidStartConfigOptions,
   SolidStartInlineConfig,
-  SolidStartInlineConfigNitroHooks,
+  SolidStartInlineServerConfig,
 } from './types';
 
 /**
@@ -22,7 +22,7 @@ export const withSentry = (
   solidStartConfig: SolidStartInlineConfig = {},
   sentrySolidStartConfigOptions: SentrySolidStartConfigOptions = {},
 ): SolidStartInlineConfig => {
-  const server = (solidStartConfig.server || {}) as SolidStartInlineConfigNitroHooks;
+  const server = (solidStartConfig.server || {}) as SolidStartInlineServerConfig;
   const hooks = server.hooks || {};
 
   let serverDir: string;
