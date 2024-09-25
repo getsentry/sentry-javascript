@@ -60,7 +60,7 @@ function normalizePath(path: string): string {
 
 function getPluginOptions(
   moduleOptions: SentryNuxtModuleOptions,
-  isNitro = false,
+  _isNitro = false,
 ): SentryVitePluginOptions | SentryRollupPluginOptions {
   const sourceMapsUploadOptions = moduleOptions.sourceMapsUploadOptions || {};
 
@@ -70,8 +70,10 @@ function getPluginOptions(
     authToken: sourceMapsUploadOptions.authToken ?? process.env.SENTRY_AUTH_TOKEN,
     telemetry: sourceMapsUploadOptions.telemetry ?? true,
     sourcemaps: {
-      assets:
-        sourceMapsUploadOptions.sourcemaps?.assets ?? isNitro ? ['./.output/server/**/*'] : ['./.output/public/**/*'],
+      // The server/client files are in different places depending on the nitro preset (e.g. '.output/server' or '.netlify/functions-internal/server'
+      // We cannot determine automatically how the build folder looks like (depends on the preset), so we have to accept that sourcemaps are generated multiple times (with Vite for Nuxt and Rollup for Nitro).
+      // If we could know where the server/client assets are located, we could do something like this (based on the Nitro preset): isNitro ? ['./.output/server/**/*'] : ['./.output/public/**/*'],
+      assets: sourceMapsUploadOptions.sourcemaps?.assets ?? undefined,
       ignore: sourceMapsUploadOptions.sourcemaps?.ignore ?? undefined,
       filesToDeleteAfterUpload: sourceMapsUploadOptions.sourcemaps?.filesToDeleteAfterUpload ?? undefined,
       rewriteSources: (source: string) => normalizePath(source),
