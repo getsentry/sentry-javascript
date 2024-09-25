@@ -12,8 +12,7 @@ async function run() {
     return;
   }
 
-  const {  repo } = context;
-  const {owner} = repo;
+  const {owner, repo} = context.repo;
 
   const octokit = getOctokit(githubToken);
 
