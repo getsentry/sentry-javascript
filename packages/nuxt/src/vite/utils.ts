@@ -24,5 +24,5 @@ export function findDefaultSdkInitFile(type: 'server' | 'client'): string | unde
 
   const filePath = filePaths.find(filename => fs.existsSync(filename));
 
-  return filePath ? path.basename(filePath) : undefined;
+  return filePath ? filePath : undefined;
 }
