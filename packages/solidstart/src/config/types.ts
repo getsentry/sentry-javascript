@@ -13,7 +13,7 @@ export type Nitro = {
 
 export type SolidStartInlineConfig = Parameters<typeof defineConfig>[0];
 
-export type SolidStartInlineConfigNitroHooks = {
+export type SolidStartInlineServerConfig = {
   hooks?: {
     close?: () => unknown;
     'rollup:before'?: (nitro: Nitro) => unknown;
