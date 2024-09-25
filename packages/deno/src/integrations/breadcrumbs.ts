@@ -11,6 +11,7 @@ import type {
 import {
   addConsoleInstrumentationHandler,
   addFetchInstrumentationHandler,
+  getBreadcrumbLogLevelFromHttpStatusCode,
   getEventDescription,
   safeJoin,
   severityLevelFromString,
@@ -178,11 +179,14 @@ function _getFetchBreadcrumbHandler(client: Client): (handlerData: HandlerDataFe
         startTimestamp,
         endTimestamp,
       };
+      const level = getBreadcrumbLogLevelFromHttpStatusCode(data.status_code);
+
       addBreadcrumb(
         {
           category: 'fetch',
           data,
           type: 'http',
+          level,
         },
         hint,
       );

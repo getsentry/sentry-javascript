@@ -15,9 +15,6 @@
 - [Official SDK Docs](https://docs.sentry.io/quickstart/)
 - [TypeDoc](http://getsentry.github.io/sentry-javascript/)
 
-**Note: This SDK is in an alpha state. Please follow the
-[tracking GH issue](https://github.com/getsentry/sentry-javascript/issues/12620) for updates.**
-
 ## Install
 
 To get started, first install the `@sentry/cloudflare` package:

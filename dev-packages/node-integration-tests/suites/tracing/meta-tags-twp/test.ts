@@ -27,5 +27,6 @@ describe('getTraceMetaTags', () => {
     expect(sentryBaggageContent).toContain('sentry-environment=production');
     expect(sentryBaggageContent).toContain('sentry-public_key=public');
     expect(sentryBaggageContent).toContain(`sentry-trace_id=${traceId}`);
+    expect(sentryBaggageContent).not.toContain('sentry-sampled=');
   });
 });

@@ -23,6 +23,7 @@ import type {
 import {
   addConsoleInstrumentationHandler,
   addFetchInstrumentationHandler,
+  getBreadcrumbLogLevelFromHttpStatusCode,
   getComponentName,
   getEventDescription,
   htmlTreeAsString,
@@ -247,11 +248,14 @@ function _getXhrBreadcrumbHandler(client: Client): (handlerData: HandlerDataXhr)
       endTimestamp,
     };
 
+    const level = getBreadcrumbLogLevelFromHttpStatusCode(status_code);
+
     addBreadcrumb(
       {
         category: 'xhr',
         data,
         type: 'http',
+        level,
       },
       hint,
     );
@@ -309,11 +313,14 @@ function _getFetchBreadcrumbHandler(client: Client): (handlerData: HandlerDataFe
         startTimestamp,
         endTimestamp,
       };
+      const level = getBreadcrumbLogLevelFromHttpStatusCode(data.status_code);
+
       addBreadcrumb(
         {
           category: 'fetch',
           data,
           type: 'http',
+          level,
         },
         hint,
       );

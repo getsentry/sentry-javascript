@@ -12,7 +12,9 @@ test('Sends an API route transaction to OTLP', async ({ baseURL }) => {
 
     const scopeSpans = json.resourceSpans?.[0]?.scopeSpans;
 
-    const httpScope = scopeSpans?.find(scopeSpan => scopeSpan.scope.name === '@opentelemetry/instrumentation-http');
+    const httpScope = scopeSpans?.find(
+      scopeSpan => scopeSpan.scope.name === '@opentelemetry_sentry-patched/instrumentation-http',
+    );
 
     return (
       httpScope &&
@@ -22,7 +24,7 @@ test('Sends an API route transaction to OTLP', async ({ baseURL }) => {
     );
   });
 
-  await fetch(`${baseURL}/test-transaction`);
+  fetch(`${baseURL}/test-transaction`);
 
   const otelData = await otelPromise;
 
@@ -38,7 +40,9 @@ test('Sends an API route transaction to OTLP', async ({ baseURL }) => {
   // But our default node-fetch spans are not emitted
   expect(scopeSpans.length).toEqual(2);
 
-  const httpScopes = scopeSpans?.filter(scopeSpan => scopeSpan.scope.name === '@opentelemetry/instrumentation-http');
+  const httpScopes = scopeSpans?.filter(
+    scopeSpan => scopeSpan.scope.name === '@opentelemetry_sentry-patched/instrumentation-http',
+  );
   const undiciScopes = scopeSpans?.filter(
     scopeSpan => scopeSpan.scope.name === '@opentelemetry/instrumentation-undici',
   );
@@ -48,6 +52,38 @@ test('Sends an API route transaction to OTLP', async ({ baseURL }) => {
   // Undici spans are emitted correctly
   expect(undiciScopes.length).toBe(1);
   expect(undiciScopes[0].spans.length).toBe(1);
+
+  expect(undiciScopes[0].spans).toEqual([
+    {
+      traceId: expect.any(String),
+      spanId: expect.any(String),
+      name: 'GET',
+      kind: 3,
+      startTimeUnixNano: expect.any(String),
+      endTimeUnixNano: expect.any(String),
+      attributes: expect.arrayContaining([
+        { key: 'http.request.method', value: { stringValue: 'GET' } },
+        { key: 'http.request.method_original', value: { stringValue: 'GET' } },
+        { key: 'url.full', value: { stringValue: 'http://localhost:3030/test-success' } },
+        { key: 'url.path', value: { stringValue: '/test-success' } },
+        { key: 'url.query', value: { stringValue: '' } },
+        { key: 'url.scheme', value: { stringValue: 'http' } },
+        { key: 'server.address', value: { stringValue: 'localhost' } },
+        { key: 'server.port', value: { intValue: 3030 } },
+        { key: 'user_agent.original', value: { stringValue: 'node' } },
+        { key: 'network.peer.address', value: { stringValue: expect.any(String) } },
+        { key: 'network.peer.port', value: { intValue: 3030 } },
+        { key: 'http.response.status_code', value: { intValue: 200 } },
+        { key: 'http.response.header.content-length', value: { intValue: 16 } },
+      ]),
+      droppedAttributesCount: 0,
+      events: [],
+      droppedEventsCount: 0,
+      status: { code: 0 },
+      links: [],
+      droppedLinksCount: 0,
+    },
+  ]);
 
   // There may be another span from another request, we can ignore that
   const httpSpans = httpScopes[0].spans.filter(span =>
@@ -62,104 +98,24 @@ test('Sends an API route transaction to OTLP', async ({ baseURL }) => {
       kind: 2,
       startTimeUnixNano: expect.any(String),
       endTimeUnixNano: expect.any(String),
-      attributes: [
-        {
-          key: 'http.url',
-          value: {
-            stringValue: 'http://localhost:3030/test-transaction',
-          },
-        },
-        {
-          key: 'http.host',
-          value: {
-            stringValue: 'localhost:3030',
-          },
-        },
-        {
-          key: 'net.host.name',
-          value: {
-            stringValue: 'localhost',
-          },
-        },
-        {
-          key: 'http.method',
-          value: {
-            stringValue: 'GET',
-          },
-        },
-        {
-          key: 'http.scheme',
-          value: {
-            stringValue: 'http',
-          },
-        },
-        {
-          key: 'http.target',
-          value: {
-            stringValue: '/test-transaction',
-          },
-        },
-        {
-          key: 'http.user_agent',
-          value: {
-            stringValue: 'node',
-          },
-        },
-        {
-          key: 'http.flavor',
-          value: {
-            stringValue: '1.1',
-          },
-        },
-        {
-          key: 'net.transport',
-          value: {
-            stringValue: 'ip_tcp',
-          },
-        },
-        {
-          key: 'sentry.origin',
-          value: {
-            stringValue: 'auto.http.otel.http',
-          },
-        },
-        {
-          key: 'net.host.ip',
-          value: {
-            stringValue: expect.any(String),
-          },
-        },
-        {
-          key: 'net.host.port',
-          value: {
-            intValue: 3030,
-          },
-        },
-        {
-          key: 'net.peer.ip',
-          value: {
-            stringValue: expect.any(String),
-          },
-        },
-        {
-          key: 'net.peer.port',
-          value: {
-            intValue: expect.any(Number),
-          },
-        },
-        {
-          key: 'http.status_code',
-          value: {
-            intValue: 200,
-          },
-        },
-        {
-          key: 'http.status_text',
-          value: {
-            stringValue: 'OK',
-          },
-        },
-      ],
+      attributes: expect.arrayContaining([
+        { key: 'http.url', value: { stringValue: 'http://localhost:3030/test-transaction' } },
+        { key: 'http.host', value: { stringValue: 'localhost:3030' } },
+        { key: 'net.host.name', value: { stringValue: 'localhost' } },
+        { key: 'http.method', value: { stringValue: 'GET' } },
+        { key: 'http.scheme', value: { stringValue: 'http' } },
+        { key: 'http.target', value: { stringValue: '/test-transaction' } },
+        { key: 'http.user_agent', value: { stringValue: 'node' } },
+        { key: 'http.flavor', value: { stringValue: '1.1' } },
+        { key: 'net.transport', value: { stringValue: 'ip_tcp' } },
+        { key: 'net.host.ip', value: { stringValue: expect.any(String) } },
+        { key: 'net.host.port', value: { intValue: 3030 } },
+        { key: 'net.peer.ip', value: { stringValue: expect.any(String) } },
+        { key: 'net.peer.port', value: { intValue: expect.any(Number) } },
+        { key: 'http.status_code', value: { intValue: 200 } },
+        { key: 'http.status_text', value: { stringValue: 'OK' } },
+        { key: 'sentry.origin', value: { stringValue: 'auto.http.otel.http' } },
+      ]),
       droppedAttributesCount: 0,
       events: [],
       droppedEventsCount: 0,
