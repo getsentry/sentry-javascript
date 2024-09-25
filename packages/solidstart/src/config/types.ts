@@ -5,7 +5,6 @@ export type Nitro = {
   options: {
     buildDir: string;
     output: {
-      buildDir: string;
       serverDir: string;
     };
     preset: string;

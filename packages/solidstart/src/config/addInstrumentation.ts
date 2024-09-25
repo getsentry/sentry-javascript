@@ -3,6 +3,11 @@ import * as path from 'path';
 import { consoleSandbox } from '@sentry/utils';
 import type { Nitro } from './types';
 
+// Nitro presets for hosts that only host static files
+export const staticHostPresets = ['github_pages'];
+// Nitro presets for hosts that use `server.mjs` as opposed to `index.mjs`
+export const serverFilePresets = ['netlify'];
+
 /**
  * Adds the built `instrument.server.js` file to the output directory.
  *
@@ -11,13 +16,17 @@ import type { Nitro } from './types';
  * added to `app.config.ts` to enable building the instrumentation file.
  */
 export async function addInstrumentationFileToBuild(nitro: Nitro): Promise<void> {
+  // Static file hosts have no server component so there's nothing to do
+  if (staticHostPresets.includes(nitro.options.preset)) {
+    return;
+  }
+
   const buildDir = nitro.options.buildDir;
   const serverDir = nitro.options.output.serverDir;
   const source = path.resolve(buildDir, 'build', 'ssr', 'instrument.server.js');
   const destination = path.resolve(serverDir, 'instrument.server.mjs');
 
   try {
-    await fs.promises.access(source, fs.constants.F_OK);
     await fs.promises.copyFile(source, destination);
 
     consoleSandbox(() => {
@@ -43,10 +52,13 @@ export async function experimental_addInstrumentationFileTopLevelImportToServerE
   serverDir: string,
   preset: string,
 ): Promise<void> {
-  // other presets ('node-server' or 'vercel') have an index.mjs
-  const presetsWithServerFile = ['netlify'];
+  // Static file hosts have no server component so there's nothing to do
+  if (staticHostPresets.includes(preset)) {
+    return;
+  }
+
   const instrumentationFile = path.resolve(serverDir, 'instrument.server.mjs');
-  const serverEntryFileName = presetsWithServerFile.includes(preset) ? 'server.mjs' : 'index.mjs';
+  const serverEntryFileName = serverFilePresets.includes(preset) ? 'server.mjs' : 'index.mjs';
   const serverEntryFile = path.resolve(serverDir, serverEntryFileName);
 
   try {
@@ -55,7 +67,7 @@ export async function experimental_addInstrumentationFileTopLevelImportToServerE
     consoleSandbox(() => {
       // eslint-disable-next-line no-console
       console.warn(
-        `[Sentry SolidStart withSentry] Tried to add \`${instrumentationFile}\` as top level import to \`${serverEntryFile}\`.`,
+        `[Sentry SolidStart withSentry] Failed to add \`${instrumentationFile}\` as top level import to \`${serverEntryFile}\`.`,
         error,
       );
     });
