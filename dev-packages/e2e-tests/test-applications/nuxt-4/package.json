@@ -1,0 +1,26 @@
+{
+  "name": "nuxt-4",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "nuxt build",
+    "dev": "nuxt dev",
+    "generate": "nuxt generate",
+    "preview": "NODE_OPTIONS='--import ./public/instrument.server.mjs' nuxt preview",
+    "clean": "npx nuxi cleanup",
+    "test": "playwright test",
+    "test:build": "pnpm install && npx playwright install && pnpm build",
+    "test:assert": "pnpm test"
+  },
+  "dependencies": {
+    "@sentry/nuxt": "latest || *",
+    "nuxt": "^3.13.2",
+    "vue": "latest",
+    "vue-router": "latest"
+  },
+  "devDependencies": {
+    "@nuxt/test-utils": "^3.14.1",
+    "@playwright/test": "^1.44.1",
+    "@sentry-internal/test-utils": "link:../../../test-utils"
+  }
+}
