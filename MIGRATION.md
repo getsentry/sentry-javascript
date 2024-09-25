@@ -25,8 +25,10 @@ applies to `@sentry/node` and all of our node-based server-side sdks (`@sentry/n
 no longer test against Node 8, 10, or 12 and cannot guarantee that the SDK will work as expected on these versions.
 
 **Browser**: Our browser SDKs (`@sentry/browser`, `@sentry/react`, `@sentry/vue`, etc.) now require ES2018+
-compatibility plus support for `globalThis`. This means that we no longer support IE11 (end of an era). This also means
-that the Browser SDK requires the fetch API to be available in the environment.
+compatibility plus support for
+[`globalThis`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/globalThis). This  means
+that we no longer support IE11 (end of an era). This also means that the Browser SDK requires the fetch API to be
+available in the environment.
 
 New minimum supported browsers:
 
