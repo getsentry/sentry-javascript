@@ -39,7 +39,7 @@ export function setupSourceMaps(moduleOptions: SentryNuxtModuleOptions, nuxt: Nu
       }
 
       // Add Sentry plugin
-      nitroConfig.rollupConfig.plugins.push(sentryRollupPlugin(getPluginOptions(moduleOptions, true)));
+      nitroConfig.rollupConfig.plugins.push(sentryRollupPlugin(getPluginOptions(moduleOptions)));
 
       // Enable source maps
       nitroConfig.rollupConfig.output = nitroConfig?.rollupConfig?.output || {};
@@ -58,10 +58,7 @@ function normalizePath(path: string): string {
   return path.replace(/^(\.\.\/)+/, './');
 }
 
-function getPluginOptions(
-  moduleOptions: SentryNuxtModuleOptions,
-  isNitro = false,
-): SentryVitePluginOptions | SentryRollupPluginOptions {
+function getPluginOptions(moduleOptions: SentryNuxtModuleOptions): SentryVitePluginOptions | SentryRollupPluginOptions {
   const sourceMapsUploadOptions = moduleOptions.sourceMapsUploadOptions || {};
 
   return {
@@ -70,8 +67,10 @@ function getPluginOptions(
     authToken: sourceMapsUploadOptions.authToken ?? process.env.SENTRY_AUTH_TOKEN,
     telemetry: sourceMapsUploadOptions.telemetry ?? true,
     sourcemaps: {
-      assets:
-        sourceMapsUploadOptions.sourcemaps?.assets ?? isNitro ? ['./.output/server/**/*'] : ['./.output/public/**/*'],
+      // The server/client files are in different places depending on the nitro preset (e.g. '.output/server' or '.netlify/functions-internal/server')
+      // We cannot determine automatically how the build folder looks like (depends on the preset), so we have to accept that sourcemaps are uploaded multiple times (with the vitePlugin for Nuxt and the rollupPlugin for Nitro).
+      // If we could know where the server/client assets are located, we could do something like this (based on the Nitro preset): isNitro ? ['./.output/server/**/*'] : ['./.output/public/**/*'],
+      assets: sourceMapsUploadOptions.sourcemaps?.assets ?? undefined,
       ignore: sourceMapsUploadOptions.sourcemaps?.ignore ?? undefined,
       filesToDeleteAfterUpload: sourceMapsUploadOptions.sourcemaps?.filesToDeleteAfterUpload ?? undefined,
       rewriteSources: (source: string) => normalizePath(source),
