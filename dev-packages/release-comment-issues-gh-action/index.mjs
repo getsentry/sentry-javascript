@@ -27,7 +27,7 @@ async function run() {
     },
   });
 
-  const prNumbers = extractPrsFromReleaseBody(release.data.body);
+  const prNumbers = extractPrsFromReleaseBody(release.data.body, { repo, owner });
 
   if (!prNumbers.length) {
     core.debug('No PRs found in release body.');
@@ -71,10 +71,11 @@ async function run() {
 /**
  *
  * @param {string} body
+ * @param {{ repo: string, owner: string}} options
  * @returns {number[]}
  */
-function extractPrsFromReleaseBody(body) {
-  const regex = /\[#(\d+)\]\(https:\/\/github\.com\/getsentry\/sentry-javascript\/pull\/(?:\d+)\)/gm;
+function extractPrsFromReleaseBody(body, { repo, owner }) {
+  const regex = new RegExp(`\\[#(\\d+)\\]\\(https:\\/\\/github\\.com\\/${owner}\\/${repo}\\/pull\\/(?:\\d+)\\)`, 'gm');
   const prNumbers = Array.from(new Set([...body.matchAll(regex)].map(match => parseInt(match[1]))));
 
   return prNumbers.filter(number => !!number && !Number.isNaN(number));
