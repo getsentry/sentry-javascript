@@ -9,9 +9,6 @@ on:
         description: Which version to notify issues for
         required: false
 
-  # WIP just for debugging this...
-  push:
-
 # This workflow is triggered when a release is published
 jobs:
   release-comment-issues:
@@ -45,7 +42,7 @@ jobs:
 
       - name: Get version
         id: get_version
-        run: echo "version=${{ github.event.inputs.version || github.event.release.tag_name || '8.32.0' }}" >> $GITHUB_OUTPUT
+        run: echo "version=${{ github.event.inputs.version || github.event.release.tag_name }}" >> $GITHUB_OUTPUT
 
       - name: Comment on linked issues that are mentioned in release
         if: steps.get_version.outputs.version != ''
