@@ -119,33 +119,27 @@ async function resolveResponse(res: Response | undefined, onFinishedResolving: (
   if (res && res.body && res.body.getReader) {
     const responseReader = res.body.getReader();
 
-    // eslint-disable-next-line no-inner-declarations
-    async function consumeChunks({ done }: { done: boolean }): Promise<void> {
-      if (!done) {
-        try {
-          // abort reading if read op takes more than 5s
-          const result = await Promise.race([
-            responseReader.read(),
-            new Promise<{ done: boolean }>(res => {
-              setTimeout(() => {
-                res({ done: true });
-              }, 5000);
-            }),
-          ]);
-          await consumeChunks(result);
-        } catch (error) {
-          // handle error if needed
-        }
-      } else {
-        return Promise.resolve();
+    // NOTE: Still looking for a better solution to handle endless streams (e.g., CCTV).
+    //       Currently, this implementation does not trigger onFinishedResolving
+    //       for streams that never end, as the 'done' condition is never met.
+    let reading = true
+    while (reading) {
+      try {
+        // abort reading if read op takes more than 5s
+        const { done } = await Promise.race([
+          responseReader.read(),
+          new Promise<{ done: boolean }>((resolve) => setTimeout(() => resolve({ done: true }), 5000)),
+        ]);
+
+        if (done) reading = false;
+      } catch (error) {
+        // handle error if needed
+        reading = false;
       }
     }
 
-    return responseReader
-      .read()
-      .then(consumeChunks)
-      .then(onFinishedResolving)
-      .catch(() => undefined);
+    responseReader.releaseLock();
+    onFinishedResolving();
   }
 }
 
