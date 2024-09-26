@@ -27,7 +27,7 @@ jobs:
 
       - name: Comment on linked issues that are mentioned in release
         if: steps.get_version.outputs.version != ''
-        uses: ./dev-packages/release-comment-issues-gh-action
+        uses: getsentry/release-comment-issues-gh-action@v1
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           version: ${{ steps.get_version.outputs.version }}
