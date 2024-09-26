@@ -15,12 +15,6 @@ jobs:
     runs-on: ubuntu-20.04
     name: 'Notify issues'
     steps:
-      - name: Check out code
-        uses: actions/checkout@v4
-
-      - name: Install dependencies
-        run: yarn install --frozen-lockfile
-
       - name: Get version
         id: get_version
         run: echo "version=${{ github.event.inputs.version || github.event.release.tag_name }}" >> $GITHUB_OUTPUT
