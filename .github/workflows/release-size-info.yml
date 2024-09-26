@@ -23,7 +23,7 @@ jobs:
 
       - name: Update Github Release
         if: steps.get_version.outputs.version != ''
-        uses: getsentry/size-limit-release@v1
+        uses: getsentry/size-limit-release@v2
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           version: ${{ steps.get_version.outputs.version }}

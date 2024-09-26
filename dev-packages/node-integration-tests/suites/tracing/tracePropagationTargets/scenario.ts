@@ -12,9 +12,25 @@ Sentry.init({
 
 import * as http from 'http';
 
-Sentry.startSpan({ name: 'test_span' }, () => {
-  http.get(`${process.env.SERVER_URL}/api/v0`);
-  http.get(`${process.env.SERVER_URL}/api/v1`);
-  http.get(`${process.env.SERVER_URL}/api/v2`);
-  http.get(`${process.env.SERVER_URL}/api/v3`);
+// eslint-disable-next-line @typescript-eslint/no-floating-promises
+Sentry.startSpan({ name: 'test_span' }, async () => {
+  await makeHttpRequest(`${process.env.SERVER_URL}/api/v0`);
+  await makeHttpRequest(`${process.env.SERVER_URL}/api/v1`);
+  await makeHttpRequest(`${process.env.SERVER_URL}/api/v2`);
+  await makeHttpRequest(`${process.env.SERVER_URL}/api/v3`);
 });
+
+function makeHttpRequest(url: string): Promise<void> {
+  return new Promise<void>(resolve => {
+    http
+      .request(url, httpRes => {
+        httpRes.on('data', () => {
+          // we don't care about data
+        });
+        httpRes.on('end', () => {
+          resolve();
+        });
+      })
+      .end();
+  });
+}
