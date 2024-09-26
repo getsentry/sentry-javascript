@@ -370,12 +370,12 @@ export function xhrCallback(
     return undefined;
   }
 
-  const requestBody = JSON.parse(sentryXhrData.body as string);
-
   const fullUrl = getFullURL(sentryXhrData.url);
   const host = fullUrl ? parseUrl(fullUrl).host : undefined;
 
   const hasParent = !!getActiveSpan();
+
+  const graphqlRequest = getGraphQLRequestPayload(sentryXhrData.body as string);
 
   const span =
     shouldCreateSpanResult && hasParent
@@ -389,7 +389,7 @@ export function xhrCallback(
             'server.address': host,
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.browser',
             [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.client',
-            body: requestBody,
+            body: graphqlRequest,
           },
         })
       : new SentryNonRecordingSpan();

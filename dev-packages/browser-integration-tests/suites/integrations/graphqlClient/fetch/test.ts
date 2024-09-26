@@ -4,7 +4,7 @@ import type { Event } from '@sentry/types';
 import { sentryTest } from '../../../../utils/fixtures';
 import { getFirstSentryEnvelopeRequest, shouldSkipTracingTest } from '../../../../utils/helpers';
 
-sentryTest.only('should create spans for GraphQL XHR requests', async ({ getLocalTestPath, page }) => {
+sentryTest.only('should create spans for GraphQL Fetch requests', async ({ getLocalTestPath, page }) => {
   if (shouldSkipTracingTest()) {
     sentryTest.skip();
   }
@@ -39,8 +39,8 @@ sentryTest.only('should create spans for GraphQL XHR requests', async ({ getLoca
     timestamp: expect.any(Number),
     trace_id: eventData.contexts?.trace?.trace_id,
     status: 'ok',
-    data: {
-      type: 'xhr',
+    data: expect.objectContaining({
+      type: 'fetch',
       'http.method': 'POST',
       'http.url': 'http://sentry-test.io/foo',
       url: 'http://sentry-test.io/foo',
@@ -50,6 +50,6 @@ sentryTest.only('should create spans for GraphQL XHR requests', async ({ getLoca
       body: {
         query: expect.any(String),
       },
-    },
+    }),
   });
 });
