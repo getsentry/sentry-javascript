@@ -16,7 +16,7 @@ const fetchData = async () => {
 <template>
   <p>Param: {{ $route.params.param }}</p>
 
-  <ErrorButton id="errorBtn" errorText="Error thrown from Param Route Button"  />
+  <ErrorButton id="errorBtn" errorText="Error thrown from Param Route Button" />
   <button @click="fetchData">Fetch Server Data</button>
   <button @click="fetchError">Fetch Server Error</button>
 </template>
