@@ -9,8 +9,39 @@
 ## Unreleased
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
-- Moved description of `browser` spans into the operation, e.g. `browser - cache` -> `browser.cache` and set the URL as
-  the description
+
+## 8.32.0
+
+### Important Changes
+
+- **ref(browser): Move navigation span descriptions into op
+  ([#13527](https://github.com/getsentry/sentry-javascript/pull/13527))**
+
+Moves the description of navigation related browser spans into the op, e.g. browser - cache -> browser.cache and sets
+the description to the performanceEntry objects' names (in this context it is the URL of the page).
+
+- **feat(node): Add amqplibIntegration ([#13714](https://github.com/getsentry/sentry-javascript/pull/13714))**
+
+- **feat(nestjs): Add `SentryGlobalGenericFilter` and allow specifying application ref in global filter
+  ([#13673](https://github.com/getsentry/sentry-javascript/pull/13673))**
+
+Adds a `SentryGlobalGenericFilter` that filters both graphql and http exceptions depending on the context.
+
+- **feat: Set log level for Fetch/XHR breadcrumbs based on status code
+  ([#13711](https://github.com/getsentry/sentry-javascript/pull/13711))**
+
+Sets log levels in breadcrumbs for 5xx to error and 4xx to warning.
+
+### Other Changes
+
+- chore(nextjs): Bump rollup to 3.29.5 ([#13761](https://github.com/getsentry/sentry-javascript/pull/13761))
+- fix(core): Remove `sampled` flag from dynamic sampling context in Tracing without Performance mode
+  ([#13753](https://github.com/getsentry/sentry-javascript/pull/13753))
+- fix(node): Ensure node-fetch does not emit spans without tracing
+  ([#13765](https://github.com/getsentry/sentry-javascript/pull/13765))
+- fix(nuxt): Use Nuxt error hooks instead of errorHandler to prevent 500
+  ([#13748](https://github.com/getsentry/sentry-javascript/pull/13748))
+- fix(test): Unflake LCP test ([#13741](https://github.com/getsentry/sentry-javascript/pull/13741))
 
 Work in this release was contributed by @Zen-cronic and @Sjoertjuh. Thank you for your contributions!
 
