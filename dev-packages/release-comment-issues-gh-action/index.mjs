@@ -25,7 +25,90 @@ async function run() {
     }
   });
 
-  console.log(release);
+
+  const prNumbers = extractPrsFromReleaseBody(release.data.body);
+
+  if(!prNumbers.length) {
+    core.debug('No PRs found in release body.');
+    return;
+  }
+
+  core.debug(`Found PRs in release body: ${prNumbers.join(', ')}`);
+
+
+  const res = await octokit.graphql(`
+    {
+      query issuesForPr($owner: String!, $repo: String!, $prNumber: Int!) {
+        repository(owner: $owner, name: $repo) {
+          pullRequest(number: $prNumber) {
+            id
+            closingIssuesReferences (first: 50) {
+              edges {
+                node {
+                  id
+                  number
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  `, {
+    prNumber: prNumbers[0],
+    owner,
+    repo
+  });
+
+  const linkedIssues = Promise.all(prNumbers.map((prNumber) => getLinkedIssuesForPr(octokit, { repo, owner, prNumber })));
+
+  console.log(linkedIssues);
+}
+
+/**
+ *
+ * @param {string} body
+ * @returns {number[]}
+ */
+function extractPrsFromReleaseBody(body) {
+  const regex = /\[#(\d+)\]\(https:\/\/github\.com\/getsentry\/sentry-javascript\/pull\/(?:\d+)\)/gm;
+ const prNumbers = Array.from(new Set([...body.matchAll(regex)].map((match) => parseInt(match[1]))));
+
+ return prNumbers.filter(number => !!number && !Number.isNaN(number));
+}
+
+/**
+ *
+ * @param {ReturnType<import('@actions/github').getOctokit>} octokit
+ * @param {{ repo: string, owner: string, prNumber: number}} options
+ * @returns {Promise<{id: string, number: number}[]>}
+ */
+async function getLinkedIssuesForPr(octokit, { repo, owner, prNumber }) {
+  const res = await octokit.graphql(`
+    {
+      query issuesForPr($owner: String!, $repo: String!, $prNumber: Int!) {
+        repository(owner: $owner, name: $repo) {
+          pullRequest(number: $prNumber) {
+            id
+            closingIssuesReferences (first: 50) {
+              edges {
+                node {
+                  id
+                  number
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  `, {
+    prNumber,
+    owner,
+    repo
+  });
+
+  return res.data.repository?.pullRequest?.closingIssuesReferences.edges.map(edge => edge.node);
 }
 
 run();
