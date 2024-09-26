@@ -57,14 +57,13 @@ async function run() {
       const body = `${RELEASE_COMMENT_HEADING}\n\nThis issue was closed by PR #${pr.prNumber}, which was included in the [${version} release](https://github.com/${owner}/${repo}/releases/tag/${version}).`;
 
       core.debug(`Creating comment for issue #${issue.number}`);
-      core.debug(body);
 
-      /* await octokit.rest.issues.createComment({
+      await octokit.rest.issues.createComment({
         repo,
         owner,
         issue_number: issue.number,
         body,
-      }); */
+      });
     }
   }
 }
