@@ -35,7 +35,7 @@ async function run() {
 
   core.debug(`Found PRs in release body: ${prNumbers.join(', ')}`);
 
-  const linkedIssues = Promise.all(prNumbers.map((prNumber) => getLinkedIssuesForPr(octokit, { repo, owner, prNumber })));
+  const linkedIssues = await Promise.all(prNumbers.map((prNumber) => getLinkedIssuesForPr(octokit, { repo, owner, prNumber })));
 
   console.log(linkedIssues);
 
