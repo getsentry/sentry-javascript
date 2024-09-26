@@ -4,7 +4,7 @@ import { waitForError } from '@sentry-internal/test-utils';
 test.describe('client-side errors', async () => {
   test('captures error thrown on click', async ({ page }) => {
     const errorPromise = waitForError('nuxt-4', async errorEvent => {
-      return errorEvent?.exception?.values?.[0]?.value === 'Error thrown from nuxt-4 E2E test app';
+      return errorEvent?.exception?.values?.[0]?.value === 'Error thrown from Nuxt-4 E2E test app';
     });
 
     await page.goto(`/client-error`);
@@ -18,7 +18,7 @@ test.describe('client-side errors', async () => {
         values: [
           {
             type: 'Error',
-            value: 'Error thrown from nuxt-4 E2E test app',
+            value: 'Error thrown from Nuxt-4 E2E test app',
             mechanism: {
               handled: false,
             },
@@ -58,7 +58,7 @@ test.describe('client-side errors', async () => {
 
   test('page is still interactive after client error', async ({ page }) => {
     const error1Promise = waitForError('nuxt-4', async errorEvent => {
-      return errorEvent?.exception?.values?.[0]?.value === 'Error thrown from nuxt-4 E2E test app';
+      return errorEvent?.exception?.values?.[0]?.value === 'Error thrown from Nuxt-4 E2E test app';
     });
 
     await page.goto(`/client-error`);
@@ -67,7 +67,7 @@ test.describe('client-side errors', async () => {
     const error1 = await error1Promise;
 
     const error2Promise = waitForError('nuxt-4', async errorEvent => {
-      return errorEvent?.exception?.values?.[0]?.value === 'Another Error thrown from nuxt-4 E2E test app';
+      return errorEvent?.exception?.values?.[0]?.value === 'Another Error thrown from Nuxt-4 E2E test app';
     });
 
     await page.locator('#errorBtn2').click();
@@ -79,7 +79,7 @@ test.describe('client-side errors', async () => {
         values: [
           {
             type: 'Error',
-            value: 'Error thrown from nuxt-4 E2E test app',
+            value: 'Error thrown from Nuxt-4 E2E test app',
             mechanism: {
               handled: false,
             },
@@ -93,7 +93,7 @@ test.describe('client-side errors', async () => {
         values: [
           {
             type: 'Error',
-            value: 'Another Error thrown from nuxt-4 E2E test app',
+            value: 'Another Error thrown from Nuxt-4 E2E test app',
             mechanism: {
               handled: false,
             },

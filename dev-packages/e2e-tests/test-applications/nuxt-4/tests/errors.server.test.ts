@@ -4,11 +4,11 @@ import { waitForError } from '@sentry-internal/test-utils';
 test.describe('server-side errors', async () => {
   test('captures api fetch error (fetched on click)', async ({ page }) => {
     const errorPromise = waitForError('nuxt-4', async errorEvent => {
-      return errorEvent?.exception?.values?.[0]?.value === 'Nuxt 3 Server error';
+      return errorEvent?.exception?.values?.[0]?.value === 'Nuxt 4 Server error';
     });
 
     await page.goto(`/fetch-server-error`);
-    await page.getByText('Fetch Server Data').click();
+    await page.getByText('Fetch Server Data', { exact: true }).click();
 
     const error = await errorPromise;
 
@@ -16,17 +16,17 @@ test.describe('server-side errors', async () => {
 
     const exception = error.exception.values[0];
     expect(exception.type).toEqual('Error');
-    expect(exception.value).toEqual('Nuxt 3 Server error');
+    expect(exception.value).toEqual('Nuxt 4 Server error');
     expect(exception.mechanism.handled).toBe(false);
   });
 
   test('captures api fetch error (fetched on click) with parametrized route', async ({ page }) => {
     const errorPromise = waitForError('nuxt-4', async errorEvent => {
-      return errorEvent?.exception?.values?.[0]?.value === 'Nuxt 3 Param Server error';
+      return errorEvent?.exception?.values?.[0]?.value === 'Nuxt 4 Param Server error';
     });
 
     await page.goto(`/test-param/1234`);
-    await page.getByText('Fetch Server Data').click();
+    await page.getByRole('button', { name: 'Fetch Server Error', exact: true }).click();
 
     const error = await errorPromise;
 
@@ -34,7 +34,7 @@ test.describe('server-side errors', async () => {
 
     const exception = error.exception.values[0];
     expect(exception.type).toEqual('Error');
-    expect(exception.value).toEqual('Nuxt 3 Param Server error');
+    expect(exception.value).toEqual('Nuxt 4 Param Server error');
     expect(exception.mechanism.handled).toBe(false);
   });
 });
