@@ -35,34 +35,20 @@ async function run() {
 
   core.debug(`Found PRs in release body: ${prNumbers.join(', ')}`);
 
-
-  const res = await octokit.graphql(`
-    {
-      query issuesForPr($owner: String!, $repo: String!, $prNumber: Int!) {
-        repository(owner: $owner, name: $repo) {
-          pullRequest(number: $prNumber) {
-            id
-            closingIssuesReferences (first: 50) {
-              edges {
-                node {
-                  id
-                  number
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-  `, {
-    prNumber: prNumbers[0],
-    owner,
-    repo
-  });
-
   const linkedIssues = Promise.all(prNumbers.map((prNumber) => getLinkedIssuesForPr(octokit, { repo, owner, prNumber })));
 
   console.log(linkedIssues);
+
+  for(const pr of linkedIssues) {
+    if(!pr.issues.length) {
+      core.debug(`No linked issues found for PR #${pr.prNumber}`);
+      continue;
+    }
+
+    core.debug(`Linked issues for PR #${pr.prNumber}: ${pr.issues.map(issue => issue.number).join(',')}`);
+  }
+
+
 }
 
 /**
@@ -75,16 +61,15 @@ function extractPrsFromReleaseBody(body) {
  const prNumbers = Array.from(new Set([...body.matchAll(regex)].map((match) => parseInt(match[1]))));
 
  return prNumbers.filter(number => !!number && !Number.isNaN(number));
-}
-
-/**
+}/**
  *
  * @param {ReturnType<import('@actions/github').getOctokit>} octokit
  * @param {{ repo: string, owner: string, prNumber: number}} options
- * @returns {Promise<{id: string, number: number}[]>}
+ * @returns {Promise<{ prNumber: number, issues: {id: string, number: number}[] }>}
  */
 async function getLinkedIssuesForPr(octokit, { repo, owner, prNumber }) {
-  const res = await octokit.graphql(`
+  const res = await octokit.graphql(
+    `
 query issuesForPr($owner: String!, $repo: String!, $prNumber: Int!) {
   repository(owner: $owner, name: $repo) {
     pullRequest(number: $prNumber) {
@@ -99,13 +84,21 @@ query issuesForPr($owner: String!, $repo: String!, $prNumber: Int!) {
       }
     }
   }
-}`, {
-    prNumber,
-    owner,
-    repo
-  });
+}`,
+    {
+      prNumber,
+      owner,
+      repo,
+    },
+  );
 
-  return res.data.repository?.pullRequest?.closingIssuesReferences.edges.map(edge => edge.node);
+  console.log(res);
+
+  const issues = res.data.repository?.pullRequest?.closingIssuesReferences.edges.map(edge => edge.node);
+  return {
+    prNumber,
+    issues
+  };
 }
 
 run();
