@@ -2,13 +2,9 @@ import { expect } from '@playwright/test';
 import type { Event } from '@sentry/types';
 
 import { sentryTest } from '../../../../utils/fixtures';
-import { getFirstSentryEnvelopeRequest, shouldSkipTracingTest } from '../../../../utils/helpers';
+import { getFirstSentryEnvelopeRequest } from '../../../../utils/helpers';
 
-sentryTest.only('should create spans for GraphQL XHR requests', async ({ getLocalTestPath, page }) => {
-  if (shouldSkipTracingTest()) {
-    sentryTest.skip();
-  }
-
+sentryTest('should create spans for GraphQL XHR requests', async ({ getLocalTestPath, page }) => {
   const url = await getLocalTestPath({ testDir: __dirname });
 
   await page.route('**/foo', route => {
