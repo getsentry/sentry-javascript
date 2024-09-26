@@ -122,13 +122,13 @@ async function resolveResponse(res: Response | undefined, onFinishedResolving: (
     // NOTE: Still looking for a better solution to handle endless streams (e.g., CCTV).
     //       Currently, this implementation does not trigger onFinishedResolving
     //       for streams that never end, as the 'done' condition is never met.
-    let reading = true
+    let reading = true;
     while (reading) {
       try {
         // abort reading if read op takes more than 5s
         const { done } = await Promise.race([
           responseReader.read(),
-          new Promise<{ done: boolean }>((resolve) => setTimeout(() => resolve({ done: true }), 5000)),
+          new Promise<{ done: boolean }>(resolve => setTimeout(() => resolve({ done: true }), 5000)),
         ]);
 
         if (done) reading = false;
