@@ -94,7 +94,7 @@ query issuesForPr($owner: String!, $repo: String!, $prNumber: Int!) {
 
   console.log(res);
 
-  const issues = res.data.repository?.pullRequest?.closingIssuesReferences.edges.map(edge => edge.node);
+  const issues = res.repository?.pullRequest?.closingIssuesReferences.edges.map(edge => edge.node);
   return {
     prNumber,
     issues
