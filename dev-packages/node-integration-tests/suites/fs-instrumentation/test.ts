@@ -8,6 +8,21 @@ afterAll(() => {
 test('should create spans for fs operations that take target argument', done => {
   const runner = createRunner(__dirname, 'server.ts')
     .expect({
+      event: {
+        breadcrumbs: expect.arrayContaining([
+          expect.objectContaining({
+            timestamp: expect.any(Number),
+            message: 'fs.readFile',
+            level: 'error',
+            data: {
+              path_argument: expect.stringContaining('some-file-that-doesnt-exist.txt'),
+              fs_error: expect.stringContaining('ENOENT: no such file or directory'),
+            },
+          }),
+        ]),
+      },
+    })
+    .expect({
       transaction: {
         transaction: 'GET /readFile-error',
         spans: expect.arrayContaining([
@@ -20,21 +35,6 @@ test('should create spans for fs operations that take target argument', done => 
               path_argument: expect.stringMatching('/fixtures/some-file-that-doesnt-exist.txt'),
               [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'file',
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.file.fs',
-            },
-          }),
-        ]),
-      },
-    })
-    .expect({
-      event: {
-        breadcrumbs: expect.arrayContaining([
-          expect.objectContaining({
-            timestamp: expect.any(Number),
-            message: 'fs.readFile',
-            level: 'error',
-            data: {
-              path_argument: expect.stringContaining('some-file-that-doesnt-exist.txt'),
-              fs_error: expect.stringContaining('ENOENT: no such file or directory'),
             },
           }),
         ]),
