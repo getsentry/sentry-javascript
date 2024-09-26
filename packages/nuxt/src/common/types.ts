@@ -111,4 +111,12 @@ export type SentryNuxtModuleOptions = {
    * @default false
    */
   experimental_basicServerTracing?: boolean;
+
+  /**
+   * Options to be passed directly to the Sentry Rollup Plugin (`@sentry/rollup-plugin`) and Sentry Vite Plugin (`@sentry/vite-plugin`) that ship with the Sentry Nuxt SDK.
+   * You can use this option to override any options the SDK passes to the Vite (for Nuxt) and Rollup (for Nitro) plugin.
+   *
+   * Please note that this option is unstable and may change in a breaking way in any release.
+   */
+  unstable_sentryBundlerPluginOptions?: SentryBundlerPluginOptions;
 };
