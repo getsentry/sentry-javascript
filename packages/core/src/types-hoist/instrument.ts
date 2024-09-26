@@ -6,6 +6,8 @@ import type { WebFetchHeaders } from './webfetchapi';
 // Make sure to cast it where needed!
 type XHRSendInput = unknown;
 
+type FetchInput = unknown;
+
 export type ConsoleLevel = 'debug' | 'info' | 'warn' | 'error' | 'log' | 'assert' | 'trace';
 
 export interface SentryWrappedXMLHttpRequest {
@@ -40,6 +42,7 @@ export interface HandlerDataXhr {
 interface SentryFetchData {
   method: string;
   url: string;
+  body?: FetchInput;
   request_body_size?: number;
   response_body_size?: number;
   // span_id for the fetch request

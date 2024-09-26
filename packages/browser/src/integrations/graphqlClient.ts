@@ -1,4 +1,10 @@
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP, defineIntegration, spanToJSON } from '@sentry/core';
+import {
+  SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD,
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_URL_FULL,
+  defineIntegration,
+  spanToJSON,
+} from '@sentry/core';
 import type { IntegrationFn } from '@sentry/types';
 import { parseGraphQLQuery } from '@sentry/utils';
 
@@ -13,6 +19,10 @@ const _graphqlClientIntegration = ((options: GraphQLClientOptions) => {
     name: INTEGRATION_NAME,
     setup(client) {
       client.on('spanStart', span => {
+        client.emit('outgoingRequestSpanStart', span);
+      });
+
+      client.on('outgoingRequestSpanStart', span => {
         const spanJSON = spanToJSON(span);
 
         const spanAttributes = spanJSON.data || {};
@@ -21,17 +31,21 @@ const _graphqlClientIntegration = ((options: GraphQLClientOptions) => {
         const isHttpClientSpan = spanOp === 'http.client';
 
         if (isHttpClientSpan) {
-          const httpUrl = spanAttributes['http.url'];
+          const httpUrl = spanAttributes[SEMANTIC_ATTRIBUTE_URL_FULL] || spanAttributes['http.url'];
 
           const { endpoints } = options;
 
           const isTracedGraphqlEndpoint = endpoints.includes(httpUrl);
 
           if (isTracedGraphqlEndpoint) {
-            const httpMethod = spanAttributes['http.method'];
-            const graphqlQuery = spanAttributes['body']?.query as string;
+            const httpMethod = spanAttributes[SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD] || spanAttributes['http.method'];
+            const graphqlBody = spanAttributes['body'];
 
-            const { operationName, operationType } = parseGraphQLQuery(graphqlQuery);
+            // Standard graphql request shape: https://graphql.org/learn/serving-over-http/#post-request
+            const graphqlQuery = graphqlBody && (graphqlBody['query'] as string);
+            const graphqlOperationName = graphqlBody && (graphqlBody['operationName'] as string);
+
+            const { operationName = graphqlOperationName, operationType } = parseGraphQLQuery(graphqlQuery);
             const newOperation = operationName ? `${operationType} ${operationName}` : `${operationType}`;
 
             span.updateName(`${httpMethod} ${httpUrl} (${newOperation})`);
