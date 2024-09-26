@@ -27,7 +27,10 @@ app.get('/readFile-error', async (_, res) => {
   try {
     await fs.promises.readFile(path.join(__dirname, 'fixtures', 'some-file-that-doesnt-exist.txt'), 'utf-8');
   } catch (e) {
-    Sentry.captureException(e);
+    // delay so the event is always after the transaction
+    setTimeout(() => {
+      Sentry.captureException(e);
+    }, 1000);
   }
   res.send('done');
 });
