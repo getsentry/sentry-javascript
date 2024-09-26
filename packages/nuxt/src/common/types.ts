@@ -1,3 +1,4 @@
+import type { Options as SentryBundlerPluginOptions } from '@sentry/bundler-plugin-core';
 import type { init as initNode } from '@sentry/node';
 import type { init as initVue } from '@sentry/vue';
 
