@@ -85,24 +85,21 @@ function extractPrsFromReleaseBody(body) {
  */
 async function getLinkedIssuesForPr(octokit, { repo, owner, prNumber }) {
   const res = await octokit.graphql(`
-    {
-      query issuesForPr($owner: String!, $repo: String!, $prNumber: Int!) {
-        repository(owner: $owner, name: $repo) {
-          pullRequest(number: $prNumber) {
+query issuesForPr($owner: String!, $repo: String!, $prNumber: Int!) {
+  repository(owner: $owner, name: $repo) {
+    pullRequest(number: $prNumber) {
+      id
+      closingIssuesReferences (first: 50) {
+        edges {
+          node {
             id
-            closingIssuesReferences (first: 50) {
-              edges {
-                node {
-                  id
-                  number
-                }
-              }
-            }
+            number
           }
         }
       }
     }
-  `, {
+  }
+}`, {
     prNumber,
     owner,
     repo
