@@ -27,12 +27,16 @@ export function parseGraphQLQuery(query: string): GraphQLOperation {
 /**
  * Extract the payload of a request ONLY if it's GraphQL.
  * @param payload - A valid JSON string
+ * @returns A POJO or undefined
  */
 export function getGraphQLRequestPayload(payload: string): any | undefined {
   let graphqlBody = undefined;
   try {
     const requestBody = JSON.parse(payload);
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     const isGraphQLRequest = !!requestBody['query'];
+
     if (isGraphQLRequest) {
       graphqlBody = requestBody;
     }

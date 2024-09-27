@@ -34,7 +34,6 @@ const _graphqlClientIntegration = ((options: GraphQLClientOptions) => {
           const httpUrl = spanAttributes[SEMANTIC_ATTRIBUTE_URL_FULL] || spanAttributes['http.url'];
 
           const { endpoints } = options;
-
           const isTracedGraphqlEndpoint = endpoints.includes(httpUrl);
 
           if (isTracedGraphqlEndpoint) {
@@ -42,7 +41,10 @@ const _graphqlClientIntegration = ((options: GraphQLClientOptions) => {
             const graphqlBody = spanAttributes['body'];
 
             // Standard graphql request shape: https://graphql.org/learn/serving-over-http/#post-request
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
             const graphqlQuery = graphqlBody && (graphqlBody['query'] as string);
+
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
             const graphqlOperationName = graphqlBody && (graphqlBody['operationName'] as string);
 
             const { operationName = graphqlOperationName, operationType } = parseGraphQLQuery(graphqlQuery);
