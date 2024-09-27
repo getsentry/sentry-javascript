@@ -41,6 +41,8 @@ const IMPORTED_INTEGRATION_CDN_BUNDLE_PATHS: Record<string, string> = {
   ReportingObserver: 'reportingobserver',
   sessionTimingIntegration: 'sessiontiming',
   SessionTiming: 'sessiontiming',
+  moduleMetadataIntegration: 'modulemetadata',
+  ModuleMetadata: 'modulemetadata',
 };
 
 const BUNDLE_PATHS: Record<string, Record<string, string>> = {
