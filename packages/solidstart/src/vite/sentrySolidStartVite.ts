@@ -1,4 +1,4 @@
-import type { Plugin } from 'vite';
+import type { Plugin, UserConfig } from 'vite';
 import { makeBuildInstrumentationFilePlugin } from './buildInstrumentationFile';
 import { makeSourceMapsVitePlugin } from './sourceMaps';
 import type { SentrySolidStartPluginOptions } from './types';
@@ -24,4 +24,17 @@ export const sentrySolidStartVite = (options: SentrySolidStartPluginOptions = {}
   sentryPlugins.push(makeBuildInstrumentationFilePlugin(options));
 
   return sentryPlugins;
+};
+
+/**
+ * Helper to add the Sentry SolidStart vite plugin to a vite config.
+ */
+export const addSentryPluginToVite = (config: UserConfig = {}, options: SentrySolidStartPluginOptions): UserConfig => {
+  const plugins = Array.isArray(config.plugins) ? [...config.plugins] : [];
+  plugins.unshift(sentrySolidStartVite(options));
+
+  return {
+    ...config,
+    plugins,
+  };
 };
