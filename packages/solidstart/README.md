@@ -103,64 +103,39 @@ the client and server.
 
 ### 5. Configure your application
 
-For Sentry to work properly, SolidStart's `app.config.ts` has to be modified.
+For Sentry to work properly, SolidStart's `app.config.ts` has to be modified. Wrap your config with `withSentry` and
+configure it to upload source maps.
 
-#### 5.1 Wrapping the config with `withSentry`
+If your `instrument.server.ts` file is not located in the `src` folder, you can specify the path via the
+`instrumentation` option to `withSentry`.
 
-Add `withSentry` from `@sentry/solidstart` and wrap SolidStart's config inside `app.config.ts`.
+To upload source maps, configure an auth token. Auth tokens can be passed explicitly with the `authToken` option, with a
+`SENTRY_AUTH_TOKEN` environment variable, or with an `.env.sentry-build-plugin` file in the working directory when
+building your project. We recommend adding the auth token to your CI/CD environment as an environment variable.
+
+Learn more about configuring the plugin in our
+[Sentry Vite Plugin documentation](https://www.npmjs.com/package/@sentry/vite-plugin).
 
 ```typescript
 import { defineConfig } from '@solidjs/start/config';
 import { withSentry } from '@sentry/solidstart';
 
 export default defineConfig(
-  withSentry({
-    // ...
-    middleware: './src/middleware.ts',
-  }),
-);
-```
-
-#### 5.2 Generate source maps and build `instrument.server.ts`
-
-Sentry relies on running `instrument.server.ts` as early as possible. Add the `sentrySolidStartVite` plugin from
-`@sentry/solidstart` to your `app.config.ts`. This takes care of building `instrument.server.ts` and placing it
-alongside the server entry file.
-
-If your `instrument.server.ts` file is not located in the `src` folder, you can specify the path via the
-`sentrySolidStartVite` plugin.
-
-To upload source maps, configure an auth token. Auth tokens can be passed to the plugin explicitly with the `authToken`
-option, with a `SENTRY_AUTH_TOKEN` environment variable, or with an `.env.sentry-build-plugin` file in the working
-directory when building your project. We recommend you add the auth token to your CI/CD environment as an environment
-variable.
-
-Learn more about configuring the plugin in our
-[Sentry Vite Plugin documentation](https://www.npmjs.com/package/@sentry/vite-plugin).
-
-```typescript
-// app.config.ts
-import { defineConfig } from '@solidjs/start/config';
-import { sentrySolidStartVite, withSentry } from '@sentry/solidstart';
-
-export default defineConfig(
-  withSentry({
-    // ...
-    middleware: './src/middleware.ts',
-    vite: {
-      plugins: [
-        sentrySolidStartVite({
-          org: process.env.SENTRY_ORG,
-          project: process.env.SENTRY_PROJECT,
-          authToken: process.env.SENTRY_AUTH_TOKEN,
-          debug: true,
-          // optional: if your `instrument.server.ts` file is not located inside `src`
-          instrumentation: './mypath/instrument.server.ts',
-        }),
-      ],
+  withSentry(
+    {
+      // SolidStart config
+      middleware: './src/middleware.ts',
     },
-    // ...
-  }),
+    {
+      // Sentry `withSentry` options
+      org: process.env.SENTRY_ORG,
+      project: process.env.SENTRY_PROJECT,
+      authToken: process.env.SENTRY_AUTH_TOKEN,
+      debug: true,
+      // optional: if your `instrument.server.ts` file is not located inside `src`
+      instrumentation: './mypath/instrument.server.ts',
+    },
+  ),
 );
 ```
 
@@ -188,28 +163,25 @@ For such platforms, we offer the `experimental_basicServerTracing` flag to add a
 `instrument.server.mjs` to the server entry file.
 
 ```typescript
-// app.config.ts
 import { defineConfig } from '@solidjs/start/config';
-import { sentrySolidStartVite, withSentry } from '@sentry/solidstart';
+import { withSentry } from '@sentry/solidstart';
 
 export default defineConfig(
   withSentry(
     {
       // ...
       middleware: './src/middleware.ts',
-      vite: {
-        plugins: [
-          sentrySolidStartVite({
-            org: process.env.SENTRY_ORG,
-            project: process.env.SENTRY_PROJECT,
-            authToken: process.env.SENTRY_AUTH_TOKEN,
-            debug: true,
-          }),
-        ],
-      },
-      // ...
     },
-    { experimental_basicServerTracing: true },
+    {
+      org: process.env.SENTRY_ORG,
+      project: process.env.SENTRY_PROJECT,
+      authToken: process.env.SENTRY_AUTH_TOKEN,
+      debug: true,
+      // optional: if your `instrument.server.ts` file is not located inside `src`
+      instrumentation: './mypath/instrument.server.ts',
+      // optional: if NODE_OPTIONS or --import is not avaiable
+      experimental_basicServerTracing: true,
+    },
   ),
 );
 ```
