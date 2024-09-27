@@ -92,7 +92,7 @@
   },
   "peerDependencies": {
     "next": "^13.2.0 || ^14.0 || ^15.0.0-rc.0",
-    "webpack": "5.94.0"
+    "webpack": "^5.94.0"
   },
   "peerDependenciesMeta": {
     "webpack": {
