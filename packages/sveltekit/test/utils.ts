@@ -4,6 +4,7 @@ import { resolvedSyncPromise } from '@sentry/utils';
 
 export function getDefaultNodeClientOptions(options: Partial<ClientOptions> = {}): ClientOptions {
   return {
+    dsn: 'http://examplePublicKey@localhost/0',
     integrations: [],
     transport: () => createTransport({ recordDroppedEvent: () => undefined }, _ => resolvedSyncPromise({})),
     stackParser: () => [],
