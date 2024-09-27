@@ -11,6 +11,8 @@ test('captures an exception', async ({ page }) => {
   });
 
   await page.goto('/error-boundary');
+  // The first page load causes a hydration error on the dev server sometimes - a reload works around this
+  await page.reload();
   await page.locator('#caughtErrorBtn').click();
   const errorEvent = await errorEventPromise;
 
