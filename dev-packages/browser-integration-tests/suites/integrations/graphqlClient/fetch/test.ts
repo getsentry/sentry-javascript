@@ -4,6 +4,15 @@ import type { Event } from '@sentry/types';
 import { sentryTest } from '../../../../utils/fixtures';
 import { getFirstSentryEnvelopeRequest } from '../../../../utils/helpers';
 
+// Duplicate from subject.js
+const query = `query Test{
+  people {
+    name
+    pet
+  }
+}`;
+const queryPayload = JSON.stringify({ query });
+
 sentryTest('should create spans for GraphQL Fetch requests', async ({ getLocalTestPath, page }) => {
   const url = await getLocalTestPath({ testDir: __dirname });
 
@@ -43,9 +52,7 @@ sentryTest('should create spans for GraphQL Fetch requests', async ({ getLocalTe
       'server.address': 'sentry-test.io',
       'sentry.op': 'http.client',
       'sentry.origin': 'auto.http.browser',
-      body: {
-        query: expect.any(String),
-      },
+      body: queryPayload,
     }),
   });
 });

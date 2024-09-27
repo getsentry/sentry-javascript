@@ -57,8 +57,6 @@ export function instrumentFetchRequest(
 
   const hasParent = !!getActiveSpan();
 
-  const graphqlRequest = getGraphQLRequestPayload(body as string);
-
   const span =
     shouldCreateSpanResult && hasParent
       ? startInactiveSpan({
@@ -71,7 +69,6 @@ export function instrumentFetchRequest(
             'server.address': host,
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: spanOrigin,
             [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.client',
-            body: graphqlRequest,
           },
         })
       : new SentryNonRecordingSpan();
@@ -97,6 +94,10 @@ export function instrumentFetchRequest(
       handlerData.args[1] = options;
       options.headers = headers;
     }
+  }
+
+  if (client) {
+    client.emit('outgoingRequestSpanStart', span, { body: getGraphQLRequestPayload(body as string) });
   }
 
   return span;

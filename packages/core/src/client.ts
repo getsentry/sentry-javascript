@@ -579,10 +579,9 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
    */
   public on(hook: 'startNavigationSpan', callback: (options: StartSpanOptions) => void): () => void;
 
-  /**
-   * A hook that is called when the client is flushing
-   * @returns {() => void} A function that, when executed, removes the registered callback.
-   */
+  /** @inheritdoc */
+  public on(hook: 'outgoingRequestSpanStart', callback: (span: Span, { body }: { body: unknown }) => void): () => void;
+
   public on(hook: 'flush', callback: () => void): () => void;
 
   /**
@@ -709,9 +708,10 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
    */
   public emit(hook: 'startNavigationSpan', options: StartSpanOptions): void;
 
-  /**
-   * Emit a hook event for client flush
-   */
+  /** @inheritdoc */
+  public emit(hook: 'outgoingRequestSpanStart', span: Span, { body }: { body: unknown }): void;
+
+  /** @inheritdoc */
   public emit(hook: 'flush'): void;
 
   /**

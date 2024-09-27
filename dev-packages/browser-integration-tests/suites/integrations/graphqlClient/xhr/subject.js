@@ -5,11 +5,10 @@ xhr.setRequestHeader('Accept', 'application/json');
 xhr.setRequestHeader('Content-Type', 'application/json');
 
 const query = `query Test{
-
-    people {
-      name
-      pet
-    }
+  people {
+    name
+    pet
+  }
 }`;
 
 const requestBody = JSON.stringify({ query });
