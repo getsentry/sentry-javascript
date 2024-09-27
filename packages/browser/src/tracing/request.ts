@@ -375,8 +375,6 @@ export function xhrCallback(
 
   const hasParent = !!getActiveSpan();
 
-  const graphqlRequest = getGraphQLRequestPayload(sentryXhrData.body as string);
-
   const span =
     shouldCreateSpanResult && hasParent
       ? startInactiveSpan({
@@ -389,7 +387,6 @@ export function xhrCallback(
             'server.address': host,
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.browser',
             [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.client',
-            body: graphqlRequest,
           },
         })
       : new SentryNonRecordingSpan();
@@ -405,6 +402,10 @@ export function xhrCallback(
       // which means that the headers will be generated from the scope and the sampling decision is deferred
       hasTracingEnabled() && hasParent ? span : undefined,
     );
+  }
+
+  if (client) {
+    client.emit('outgoingRequestSpanStart', span, { body: getGraphQLRequestPayload(sentryXhrData.body as string) });
   }
 
   return span;

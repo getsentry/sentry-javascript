@@ -12,17 +12,19 @@ interface GraphQLClientOptions {
   endpoints: Array<string>;
 }
 
+interface GraphQLRequestPayload {
+  query: string;
+  operationName?: string;
+  variables?: Record<string, any>;
+}
+
 const INTEGRATION_NAME = 'GraphQLClient';
 
 const _graphqlClientIntegration = ((options: GraphQLClientOptions) => {
   return {
     name: INTEGRATION_NAME,
     setup(client) {
-      client.on('spanStart', span => {
-        client.emit('outgoingRequestSpanStart', span);
-      });
-
-      client.on('outgoingRequestSpanStart', span => {
+      client.on('outgoingRequestSpanStart', (span, { body }) => {
         const spanJSON = spanToJSON(span);
 
         const spanAttributes = spanJSON.data || {};
@@ -38,19 +40,17 @@ const _graphqlClientIntegration = ((options: GraphQLClientOptions) => {
 
           if (isTracedGraphqlEndpoint) {
             const httpMethod = spanAttributes[SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD] || spanAttributes['http.method'];
-            const graphqlBody = spanAttributes['body'];
+            const graphqlBody = body as GraphQLRequestPayload;
 
             // Standard graphql request shape: https://graphql.org/learn/serving-over-http/#post-request
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-            const graphqlQuery = graphqlBody && (graphqlBody['query'] as string);
-
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-            const graphqlOperationName = graphqlBody && (graphqlBody['operationName'] as string);
+            const graphqlQuery = graphqlBody.query;
+            const graphqlOperationName = graphqlBody.operationName;
 
             const { operationName = graphqlOperationName, operationType } = parseGraphQLQuery(graphqlQuery);
             const newOperation = operationName ? `${operationType} ${operationName}` : `${operationType}`;
 
             span.updateName(`${httpMethod} ${httpUrl} (${newOperation})`);
+            span.setAttribute('body', JSON.stringify(graphqlBody));
           }
         }
       });
