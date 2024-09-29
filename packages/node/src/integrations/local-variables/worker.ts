@@ -155,7 +155,11 @@ async function startDebugger(): Promise<void> {
           // The object must be released after the debugger has resumed or we get a memory leak.
           // For node v20, setImmediate is enough here but for v22 a longer delay is required
           setTimeout(async () => {
-            await session.post('Runtime.releaseObject', { objectId });
+            try {
+              await session.post('Runtime.releaseObject', { objectId });
+            } catch (_) {
+              //
+            }
           }, 1_000);
         }
       },
