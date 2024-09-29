@@ -582,6 +582,12 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
   /** @inheritdoc */
   public on(hook: 'outgoingRequestSpanStart', callback: (span: Span, { body }: { body: unknown }) => void): () => void;
 
+  /** @inheritdoc */
+  public on(
+    hook: 'outgoingRequestBreadcrumbStart',
+    callback: (breadcrumb: Breadcrumb, { body }: { body: unknown }) => void,
+  ): () => void;
+
   public on(hook: 'flush', callback: () => void): () => void;
 
   /**
@@ -710,6 +716,9 @@ export abstract class Client<O extends ClientOptions = ClientOptions> {
 
   /** @inheritdoc */
   public emit(hook: 'outgoingRequestSpanStart', span: Span, { body }: { body: unknown }): void;
+
+  /** @inheritdoc */
+  public emit(hook: 'outgoingRequestBreadcrumbStart', breadcrumb: Breadcrumb, { body }: { body: unknown }): void;
 
   /** @inheritdoc */
   public emit(hook: 'flush'): void;

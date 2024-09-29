@@ -13,7 +13,7 @@ const query = `query Test{
 }`;
 const queryPayload = JSON.stringify({ query });
 
-sentryTest('should create spans for GraphQL XHR requests', async ({ getLocalTestPath, page }) => {
+sentryTest('should update spans for GraphQL XHR requests', async ({ getLocalTestPath, page }) => {
   const url = await getLocalTestPath({ testDir: __dirname });
 
   await page.route('**/foo', route => {
@@ -53,6 +53,44 @@ sentryTest('should create spans for GraphQL XHR requests', async ({ getLocalTest
       'sentry.op': 'http.client',
       'sentry.origin': 'auto.http.browser',
       body: queryPayload,
+    },
+  });
+});
+
+sentryTest('should update breadcrumbs for GraphQL XHR requests', async ({ getLocalTestPath, page }) => {
+  const url = await getLocalTestPath({ testDir: __dirname });
+
+  await page.route('**/foo', route => {
+    return route.fulfill({
+      status: 200,
+      body: JSON.stringify({
+        people: [
+          { name: 'Amy', pet: 'dog' },
+          { name: 'Jay', pet: 'cat' },
+        ],
+      }),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+  });
+
+  const eventData = await getFirstSentryEnvelopeRequest<Event>(page, url);
+
+  expect(eventData?.breadcrumbs?.length).toBe(1);
+
+  expect(eventData!.breadcrumbs![0]).toEqual({
+    timestamp: expect.any(Number),
+    category: 'xhr',
+    type: 'http',
+    data: {
+      method: 'POST',
+      status_code: 200,
+      url: 'http://sentry-test.io/foo',
+      graphql: {
+        query: query,
+        operationName: 'query Test',
+      },
     },
   });
 });
