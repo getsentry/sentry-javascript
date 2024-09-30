@@ -3,7 +3,7 @@ import { ClientErrorDebugTools } from '../../../../components/client-error-debug
 
 export const dynamic = 'force-dynamic';
 
-export default function Page({ params }: { params: { parameter: string } | Promise<{ parameter: string }> }) {
+export default function Page({ params }: any) {
   // We need to dynamically check for this because Next.js made the API async for Next.js 15 and we use this test in canary tests
   const normalizedParams = 'then' in params ? use(params) : params;
 

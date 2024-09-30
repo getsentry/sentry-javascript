@@ -3,7 +3,7 @@ import * as Sentry from '@sentry/nextjs';
 export default async function Page({
   searchParams,
 }: {
-  searchParams: { id?: string } | Promise<{ id?: string }>;
+  searchParams: any;
 }) {
   // We need to dynamically check for this because Next.js made the API async for Next.js 15 and we use this test in canary tests
   const normalizedSearchParams = await searchParams;

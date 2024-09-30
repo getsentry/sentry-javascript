@@ -1,7 +1,7 @@
 import { use } from 'react';
 import { ClientErrorDebugTools } from '../../../../components/client-error-debug-tools';
 
-export default function Page({ params }: { params: { parameters: string[] } | Promise<{ parameters: string[] }> }) {
+export default function Page({ params }: any }) {
   // We need to dynamically check for this because Next.js made the API async for Next.js 15 and we use this test in canary tests
   const normalizedParams = 'then' in params ? use(params) : params;
 

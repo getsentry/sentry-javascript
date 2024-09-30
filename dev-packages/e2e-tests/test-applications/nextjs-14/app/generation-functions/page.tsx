@@ -10,9 +10,7 @@ export default function Page() {
 export async function generateMetadata({
   searchParams,
 }: {
-  searchParams:
-    | { shouldThrowInGenerateMetadata?: string; metadataTitle?: string }
-    | Promise<{ shouldThrowInGenerateMetadata?: string; metadataTitle?: string }>;
+  searchParams: any;
 }) {
   // We need to dynamically check for this because Next.js made the API async for Next.js 15 and we use this test in canary tests
   const normalizedSearchParams = await searchParams;
