@@ -7,11 +7,7 @@ export default function Page() {
   return <p>Hello World!</p>;
 }
 
-export async function generateMetadata({
-  searchParams,
-}: {
-  searchParams: any;
-}) {
+export async function generateMetadata({ searchParams }: { searchParams: any }) {
   // We need to dynamically check for this because Next.js made the API async for Next.js 15 and we use this test in canary tests
   const normalizedSearchParams = await searchParams;
 
@@ -27,13 +23,7 @@ export async function generateMetadata({
   };
 }
 
-export async function generateViewport({
-  searchParams,
-}: {
-  searchParams:
-    | { viewportThemeColor?: string; shouldThrowInGenerateViewport?: string }
-    | Promise<{ viewportThemeColor?: string; shouldThrowInGenerateViewport?: string }>;
-}) {
+export async function generateViewport({ searchParams }: { searchParams: any }) {
   // We need to dynamically check for this because Next.js made the API async for Next.js 15 and we use this test in canary tests
   const normalizedSearchParams = await searchParams;
 
