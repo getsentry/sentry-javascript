@@ -15,6 +15,7 @@ export interface SentryTrpcMiddlewareArguments<T> {
   type?: unknown;
   next: () => T;
   rawInput?: unknown;
+  getRawInput?: () => Promise<unknown>;
 }
 
 const trpcCaptureContext = { mechanism: { handled: false, data: { function: 'trpcMiddleware' } } };
@@ -24,7 +25,8 @@ const trpcCaptureContext = { mechanism: { handled: false, data: { function: 'trp
  */
 export function trpcMiddleware(options: SentryTrpcMiddlewareOptions = {}) {
   return function <T>(opts: SentryTrpcMiddlewareArguments<T>): T {
-    const { path, type, next, rawInput } = opts;
+    const { path, type, next, rawInput, getRawInput } = opts;
+
     const client = getClient();
     const clientOptions = client && client.getOptions();
 
@@ -33,10 +35,23 @@ export function trpcMiddleware(options: SentryTrpcMiddlewareOptions = {}) {
     };
 
     if (options.attachRpcInput !== undefined ? options.attachRpcInput : clientOptions && clientOptions.sendDefaultPii) {
-      trpcContext.input = normalize(rawInput);
-    }
+      if (rawInput !== undefined) {
+        trpcContext.input = normalize(rawInput);
+        setContext('trpc', trpcContext);
+      }
 
-    setContext('trpc', trpcContext);
+      if (getRawInput !== undefined && typeof getRawInput === 'function') {
+        getRawInput().then(
+          rawRes => {
+            trpcContext.input = normalize(rawRes);
+            setContext('trpc', trpcContext);
+          },
+          _e => {
+            // noop
+          },
+        );
+      }
+    }
 
     function captureIfError(nextResult: unknown): void {
       // TODO: Set span status based on what TRPCError was encountered
