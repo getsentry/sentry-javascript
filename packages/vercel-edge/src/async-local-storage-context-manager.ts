@@ -18,7 +18,7 @@
 // - https://github.com/open-telemetry/opentelemetry-js/blob/6515ed8098333646a63a74a8c0150cc2daf520db/packages/opentelemetry-context-async-hooks/src/AbstractAsyncHooksContextManager.ts
 // - https://github.com/open-telemetry/opentelemetry-js/blob/6515ed8098333646a63a74a8c0150cc2daf520db/packages/opentelemetry-context-async-hooks/src/AsyncLocalStorageContextManager.ts
 
-import { EventEmitter } from 'events';
+import type { EventEmitter } from 'events';
 import { ROOT_CONTEXT } from '@opentelemetry/api';
 import type { Context, ContextManager } from '@opentelemetry/api';
 import { logger } from '@sentry/utils';
@@ -61,8 +61,8 @@ abstract class AbstractAsyncHooksContextManager implements ContextManager {
    *  the provided context will be used as the active context for the duration of the call.
    */
   public bind<T>(context: Context, target: T): T {
-    if (target instanceof EventEmitter) {
-      return this._bindEventEmitter(context, target);
+    if (typeof target === 'object' && target !== null && 'on' in target) {
+      return this._bindEventEmitter(context, target as unknown as EventEmitter) as T;
     }
 
     if (typeof target === 'function') {
