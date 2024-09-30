@@ -1,4 +1,4 @@
-import { isThenable, normalize } from '@sentry/utils';
+import { normalize } from '@sentry/utils';
 
 import { getClient } from './currentScopes';
 import { captureException, setContext } from './exports';
@@ -74,30 +74,15 @@ export function trpcMiddleware(options: SentryTrpcMiddlewareOptions = {}) {
         },
       },
       async span => {
-        let maybePromiseResult;
         try {
-          maybePromiseResult = next();
+          const nextResult = await next();
+          captureIfError(nextResult);
+          span.end();
+          return nextResult;
         } catch (e) {
           captureException(e, trpcCaptureContext);
           span.end();
           throw e;
-        }
-
-        if (isThenable(maybePromiseResult)) {
-          try {
-            const nextResult = await maybePromiseResult;
-            captureIfError(nextResult);
-            span.end();
-            return nextResult;
-          } catch (e) {
-            captureException(e, trpcCaptureContext);
-            span.end();
-            throw e;
-          }
-        } else {
-          captureIfError(maybePromiseResult);
-          span.end();
-          return maybePromiseResult;
         }
       },
     );
