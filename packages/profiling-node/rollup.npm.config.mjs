@@ -7,15 +7,15 @@ import cjsPath from 'node:path';
 import cjsModule from 'node:module';
 
 if(typeof __filename === 'undefined'){
-  globalThis.__filename = cjsUrl.fileURLToPath(import.meta.url);
+  const __filename = cjsUrl.fileURLToPath(import.meta.url);
 }
 
 if(typeof __dirname === 'undefined'){
-  globalThis.__dirname = cjsPath.dirname(__filename);
+  const __dirname = cjsPath.dirname(__filename);
 }
 
 if(typeof require === 'undefined'){
-  globalThis.require = cjsModule.createRequire(import.meta.url);
+  const require = cjsModule.createRequire(import.meta.url);
 }
 `;
 
