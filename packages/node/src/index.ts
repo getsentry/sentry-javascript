@@ -15,6 +15,7 @@ export { expressIntegration, expressErrorHandler, setupExpressErrorHandler } fro
 export { fastifyIntegration, setupFastifyErrorHandler } from './integrations/tracing/fastify';
 export { graphqlIntegration } from './integrations/tracing/graphql';
 export { kafkaIntegration } from './integrations/tracing/kafka';
+export { lruMemoizerIntegration } from './integrations/tracing/lrumemoizer';
 export { mongoIntegration } from './integrations/tracing/mongo';
 export { mongooseIntegration } from './integrations/tracing/mongoose';
 export { mysqlIntegration } from './integrations/tracing/mysql';
@@ -29,6 +30,7 @@ export { connectIntegration, setupConnectErrorHandler } from './integrations/tra
 export { spotlightIntegration } from './integrations/spotlight';
 export { genericPoolIntegration } from './integrations/tracing/genericPool';
 export { dataloaderIntegration } from './integrations/tracing/dataloader';
+export { amqplibIntegration } from './integrations/tracing/amqplib';
 
 export { SentryContextManager } from './otel/contextManager';
 export { generateInstrumentOnce } from './otel/instrument';

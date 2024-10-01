@@ -1,5 +1,7 @@
-import { describe, expect, it } from 'vitest';
-import { extractErrorContext } from '../../src/runtime/utils';
+import { captureException, getClient } from '@sentry/core';
+import { type Mock, afterEach, beforeEach, describe, expect, it, test, vi } from 'vitest';
+import type { ComponentPublicInstance } from 'vue';
+import { extractErrorContext, reportNuxtError } from '../../src/runtime/utils';
 
 describe('extractErrorContext', () => {
   it('returns empty object for undefined or empty context', () => {
@@ -75,5 +77,75 @@ describe('extractErrorContext', () => {
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore
     expect(() => extractErrorContext(weirdContext3)).not.toThrow();
+  });
+});
+
+describe('reportNuxtError', () => {
+  vi.mock('@sentry/core', () => ({
+    captureException: vi.fn(),
+    getClient: vi.fn(),
+  }));
+
+  const mockError = new Error('Test error');
+
+  const mockInstance: ComponentPublicInstance = {
+    $props: { foo: 'bar' },
+  } as any;
+
+  const mockClient = {
+    getOptions: vi.fn().mockReturnValue({ attachProps: true }),
+  };
+
+  beforeEach(() => {
+    // Using fake timers as setTimeout is used in `reportNuxtError`
+    vi.useFakeTimers();
+    vi.clearAllMocks();
+    (getClient as Mock).mockReturnValue(mockClient);
+  });
+
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
+  test('captures exception with correct error and metadata', () => {
+    reportNuxtError({ error: mockError });
+    vi.runAllTimers();
+
+    expect(captureException).toHaveBeenCalledWith(mockError, {
+      captureContext: { contexts: { nuxt: { info: undefined } } },
+      mechanism: { handled: false },
+    });
+  });
+
+  test('includes instance props if attachProps is not explicitly defined', () => {
+    reportNuxtError({ error: mockError, instance: mockInstance });
+    vi.runAllTimers();
+
+    expect(captureException).toHaveBeenCalledWith(mockError, {
+      captureContext: { contexts: { nuxt: { info: undefined, propsData: { foo: 'bar' } } } },
+      mechanism: { handled: false },
+    });
+  });
+
+  test('does not include instance props if attachProps is disabled', () => {
+    mockClient.getOptions.mockReturnValue({ attachProps: false });
+
+    reportNuxtError({ error: mockError, instance: mockInstance });
+    vi.runAllTimers();
+
+    expect(captureException).toHaveBeenCalledWith(mockError, {
+      captureContext: { contexts: { nuxt: { info: undefined } } },
+      mechanism: { handled: false },
+    });
+  });
+
+  test('handles absence of instance correctly', () => {
+    reportNuxtError({ error: mockError, info: 'Some info' });
+    vi.runAllTimers();
+
+    expect(captureException).toHaveBeenCalledWith(mockError, {
+      captureContext: { contexts: { nuxt: { info: 'Some info' } } },
+      mechanism: { handled: false },
+    });
   });
 });

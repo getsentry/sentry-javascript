@@ -1,6 +1,7 @@
 import type { Integration } from '@sentry/types';
 import { instrumentHttp } from '../http';
 
+import { amqplibIntegration, instrumentAmqplib } from './amqplib';
 import { connectIntegration, instrumentConnect } from './connect';
 import { dataloaderIntegration, instrumentDataloader } from './dataloader';
 import { expressIntegration, instrumentExpress } from './express';
@@ -10,6 +11,7 @@ import { graphqlIntegration, instrumentGraphql } from './graphql';
 import { hapiIntegration, instrumentHapi } from './hapi';
 import { instrumentKafka, kafkaIntegration } from './kafka';
 import { instrumentKoa, koaIntegration } from './koa';
+import { instrumentLruMemoizer, lruMemoizerIntegration } from './lrumemoizer';
 import { instrumentMongo, mongoIntegration } from './mongo';
 import { instrumentMongoose, mongooseIntegration } from './mongoose';
 import { instrumentMysql, mysqlIntegration } from './mysql';
@@ -43,6 +45,8 @@ export function getAutoPerformanceIntegrations(): Integration[] {
     genericPoolIntegration(),
     kafkaIntegration(),
     dataloaderIntegration(),
+    amqplibIntegration(),
+    lruMemoizerIntegration(),
   ];
 }
 
@@ -59,6 +63,7 @@ export function getOpenTelemetryInstrumentationToPreload(): (((options?: any) =>
     instrumentHapi,
     instrumentKafka,
     instrumentKoa,
+    instrumentLruMemoizer,
     instrumentNest,
     instrumentMongo,
     instrumentMongoose,
@@ -70,5 +75,6 @@ export function getOpenTelemetryInstrumentationToPreload(): (((options?: any) =>
     instrumentRedis,
     instrumentGenericPool,
     instrumentDataloader,
+    instrumentAmqplib,
   ];
 }

@@ -10,13 +10,87 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 8.32.0
+
+### Important Changes
+
+- **ref(browser): Move navigation span descriptions into op
+  ([#13527](https://github.com/getsentry/sentry-javascript/pull/13527))**
+
+Moves the description of navigation related browser spans into the op, e.g. browser - cache -> browser.cache and sets
+the description to the performanceEntry objects' names (in this context it is the URL of the page).
+
+- **feat(node): Add amqplibIntegration ([#13714](https://github.com/getsentry/sentry-javascript/pull/13714))**
+
+- **feat(nestjs): Add `SentryGlobalGenericFilter` and allow specifying application ref in global filter
+  ([#13673](https://github.com/getsentry/sentry-javascript/pull/13673))**
+
+Adds a `SentryGlobalGenericFilter` that filters both graphql and http exceptions depending on the context.
+
+- **feat: Set log level for Fetch/XHR breadcrumbs based on status code
+  ([#13711](https://github.com/getsentry/sentry-javascript/pull/13711))**
+
+Sets log levels in breadcrumbs for 5xx to error and 4xx to warning.
+
+### Other Changes
+
+- chore(nextjs): Bump rollup to 3.29.5 ([#13761](https://github.com/getsentry/sentry-javascript/pull/13761))
+- fix(core): Remove `sampled` flag from dynamic sampling context in Tracing without Performance mode
+  ([#13753](https://github.com/getsentry/sentry-javascript/pull/13753))
+- fix(node): Ensure node-fetch does not emit spans without tracing
+  ([#13765](https://github.com/getsentry/sentry-javascript/pull/13765))
+- fix(nuxt): Use Nuxt error hooks instead of errorHandler to prevent 500
+  ([#13748](https://github.com/getsentry/sentry-javascript/pull/13748))
+- fix(test): Unflake LCP test ([#13741](https://github.com/getsentry/sentry-javascript/pull/13741))
+
+Work in this release was contributed by @Zen-cronic and @Sjoertjuh. Thank you for your contributions!
+
+## 8.31.0
+
+### Important Changes
+
+- **feat(node): Add `dataloader` integration (#13664)**
+
+This release adds a new integration for the [`dataloader` package](https://www.npmjs.com/package/dataloader). The Node
+SDK (and all SDKs that depend on it) will now automatically instrument `dataloader` instances. You can also add it
+manually:
+
+```js
+Sentry.init({
+  integrations: [Sentry.dataloaderIntegration()],
+});
+```
+
+### Other Changes
+
+- feat(browser): Add navigation `activationStart` timestamp to pageload span (#13658)
+- feat(gatsby): Add optional `deleteSourcemapsAfterUpload` (#13610)
+- feat(nextjs): Give app router prefetch requests a `http.server.prefetch` op (#13600)
+- feat(nextjs): Improve Next.js serverside span data quality (#13652)
+- feat(node): Add `disableInstrumentationWarnings` option (#13693)
+- feat(nuxt): Adding `experimental_basicServerTracing` option to Nuxt module (#13643)
+- feat(nuxt): Improve logs about adding Node option 'import' (#13726)
+- feat(replay): Add `onError` callback + other small improvements to debugging (#13721)
+- feat(replay): Add experimental option to allow for a checkout every 6 minutes (#13069)
+- feat(wasm): Unconditionally parse instruction addresses (#13655)
+- fix: Ensure all logs are wrapped with `consoleSandbox` (#13690)
+- fix(browser): Try multiple options for `lazyLoadIntegration` script parent element lookup (#13717)
+- fix(feedback): Actor color applies to feedback icon (#13702)
+- fix(feedback): Fix form width on mobile devices (#13068)
+- fix(nestjs): Preserve original function name on `SentryTraced` functions (#13684)
+- fix(node): Don't overwrite local variables for re-thrown errors (#13644)
+- fix(normalize): Treat Infinity as NaN both are non-serializable numbers (#13406)
+- fix(nuxt): Use correct server output file path (#13725)
+- fix(opentelemetry): Always use active span in `Propagator.inject` (#13381)
+- fix(replay): Fixes potential out-of-order segments (#13609)
+
 Work in this release was contributed by @KyGuy2002, @artzhookov, and @julianCast. Thank you for your contributions!
 
 ## 8.30.0
 
 ### Important Changes
 
-- _feat(node): Add `kafkajs` integration (#13528)_
+- **feat(node): Add `kafkajs` integration (#13528)**
 
 This release adds a new integration that instruments `kafkajs` library with spans and traces. This integration is
 automatically enabled by default, but can be included with the `Sentry.kafkaIntegration()` import.

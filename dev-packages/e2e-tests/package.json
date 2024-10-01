@@ -1,6 +1,6 @@
 {
   "name": "@sentry-internal/e2e-tests",
-  "version": "8.30.0",
+  "version": "8.32.0",
   "license": "MIT",
   "private": true,
   "scripts": {

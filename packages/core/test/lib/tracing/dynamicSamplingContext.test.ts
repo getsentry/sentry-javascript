@@ -2,6 +2,7 @@ import type { Span, SpanContextData, TransactionSource } from '@sentry/types';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  getClient,
   setCurrentClient,
 } from '../../../src';
 import { SentrySpan, getDynamicSamplingContextFromSpan, startInactiveSpan } from '../../../src/tracing';
@@ -68,7 +69,7 @@ describe('getDynamicSamplingContextFromSpan', () => {
       environment: 'production',
       sampled: 'true',
       sample_rate: '0.56',
-      trace_id: expect.any(String),
+      trace_id: expect.stringMatching(/^[a-f0-9]{32}$/),
       transaction: 'tx',
     });
   });
@@ -85,7 +86,7 @@ describe('getDynamicSamplingContextFromSpan', () => {
       environment: 'production',
       sampled: 'true',
       sample_rate: '1',
-      trace_id: expect.any(String),
+      trace_id: expect.stringMatching(/^[a-f0-9]{32}$/),
       transaction: 'tx',
     });
   });
@@ -107,7 +108,7 @@ describe('getDynamicSamplingContextFromSpan', () => {
       environment: 'production',
       sampled: 'true',
       sample_rate: '0.56',
-      trace_id: expect.any(String),
+      trace_id: expect.stringMatching(/^[a-f0-9]{32}$/),
       transaction: 'tx',
     });
   });
@@ -142,6 +143,25 @@ describe('getDynamicSamplingContextFromSpan', () => {
       const dsc = getDynamicSamplingContextFromSpan(rootSpan);
 
       expect(dsc.transaction).toEqual('tx');
+    });
+  });
+
+  it("doesn't return the sampled flag in the DSC if in Tracing without Performance mode", () => {
+    const rootSpan = new SentrySpan({
+      name: 'tx',
+      sampled: undefined,
+    });
+
+    // Simulate TwP mode by deleting the tracesSampleRate option set in beforeEach
+    delete getClient()?.getOptions().tracesSampleRate;
+
+    const dynamicSamplingContext = getDynamicSamplingContextFromSpan(rootSpan);
+
+    expect(dynamicSamplingContext).toStrictEqual({
+      release: '1.0.1',
+      environment: 'production',
+      trace_id: expect.stringMatching(/^[a-f0-9]{32}$/),
+      transaction: 'tx',
     });
   });
 });

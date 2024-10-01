@@ -1,6 +1,6 @@
 {
   "name": "@sentry-internal/node-integration-tests",
-  "version": "8.30.0",
+  "version": "8.32.0",
   "license": "MIT",
   "engines": {
     "node": ">=14.18"
@@ -31,13 +31,14 @@
     "@nestjs/core": "^10.3.3",
     "@nestjs/platform-express": "^10.3.3",
     "@prisma/client": "5.9.1",
-    "@sentry/aws-serverless": "8.30.0",
-    "@sentry/node": "8.30.0",
-    "@sentry/types": "8.30.0",
-    "@sentry/utils": "8.30.0",
+    "@sentry/aws-serverless": "8.32.0",
+    "@sentry/node": "8.32.0",
+    "@sentry/types": "8.32.0",
+    "@sentry/utils": "8.32.0",
     "@types/mongodb": "^3.6.20",
     "@types/mysql": "^2.15.21",
     "@types/pg": "^8.6.5",
+    "amqplib": "^0.10.4",
     "apollo-server": "^3.11.1",
     "axios": "^1.6.7",
     "connect": "^3.7.0",
@@ -50,6 +51,7 @@
     "http-terminator": "^3.2.0",
     "ioredis": "^5.4.1",
     "kafkajs": "2.2.4",
+    "lru-memoizer": "2.3.0",
     "mongodb": "^3.7.3",
     "mongodb-memory-server-global": "^7.6.3",
     "mongoose": "^5.13.22",
@@ -66,6 +68,7 @@
     "yargs": "^16.2.0"
   },
   "devDependencies": {
+    "@types/amqplib": "^0.10.5",
     "@types/node-cron": "^3.0.11",
     "@types/node-schedule": "^2.1.7",
     "globby": "11"

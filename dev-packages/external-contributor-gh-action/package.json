@@ -1,7 +1,7 @@
 {
   "name": "@sentry-internal/external-contributor-gh-action",
   "description": "An internal Github Action to add external contributors to the CHANGELOG.md file.",
-  "version": "8.30.0",
+  "version": "8.32.0",
   "license": "MIT",
   "engines": {
     "node": ">=18"
