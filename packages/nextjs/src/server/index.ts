@@ -1,6 +1,7 @@
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   applySdkMetadata,
   getClient,
   getGlobalScope,
@@ -211,15 +212,6 @@ export function init(options: NodeOptions): NodeClient | undefined {
             return null;
           }
 
-          // We only want to use our HTTP integration/instrumentation for app router requests, which are marked with the `sentry.rsc` attribute.
-          if (
-            (event.contexts?.trace?.data?.[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] === 'auto.http.otel.http' ||
-              event.contexts?.trace?.data?.['next.span_type'] === 'BaseServer.handleRequest') &&
-            event.contexts?.trace?.data?.['sentry.rsc'] !== true
-          ) {
-            return null;
-          }
-
           // Filter out transactions for requests to the tunnel route
           if (
             globalWithInjectedValues.__sentryRewritesTunnelPath__ &&
@@ -238,8 +230,7 @@ export function init(options: NodeOptions): NodeClient | undefined {
             // Pages router
             event.transaction === '/404' ||
             // App router (could be "GET /404", "POST /404", ...)
-            event.transaction?.match(/^(GET|HEAD|POST|PUT|DELETE|CONNECT|OPTIONS|TRACE|PATCH) \/404$/) ||
-            event.transaction === 'GET /_not-found'
+            event.transaction?.match(/^(GET|HEAD|POST|PUT|DELETE|CONNECT|OPTIONS|TRACE|PATCH) \/(404|_not-found)$/)
           ) {
             return null;
           }
@@ -295,13 +286,17 @@ export function init(options: NodeOptions): NodeClient | undefined {
         // Next.js that are actually more or less correct server HTTP spans, so we are backfilling the op here.
         if (
           event.type === 'transaction' &&
-          event.transaction?.match(/^(RSC )?GET /) &&
-          event.contexts?.trace?.data?.['sentry.rsc'] === true &&
-          !event.contexts.trace.op
+          !!event.contexts?.trace?.data?.['http.method'] &&
+          !!event.contexts?.trace?.data?.['next.span_type'] &&
+          event.transaction?.match(/^(RSC )?(GET|HEAD|POST|PUT|DELETE|PATCH|OPTIONS|CONNECT|TRACE)/)
         ) {
           event.contexts.trace.data = event.contexts.trace.data || {};
+
           event.contexts.trace.data[SEMANTIC_ATTRIBUTE_SENTRY_OP] = 'http.server';
           event.contexts.trace.op = 'http.server';
+
+          event.contexts.trace.data[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] = 'auto.http.server.nextjs';
+          event.contexts.trace.data[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] = 'route';
         }
 
         return event;

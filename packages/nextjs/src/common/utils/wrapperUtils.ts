@@ -5,40 +5,20 @@ import {
   SPAN_STATUS_ERROR,
   SPAN_STATUS_OK,
   captureException,
-  continueTrace,
   getTraceData,
-  startInactiveSpan,
   startSpan,
-  startSpanManual,
-  withActiveSpan,
   withIsolationScope,
 } from '@sentry/core';
 import type { Span } from '@sentry/types';
-import { isString } from '@sentry/utils';
 
-import { autoEndSpanOnResponseEnd, flushSafelyWithTimeout } from './responseEnd';
-import { commonObjectToIsolationScope, escapeNextjsTracing } from './tracingUtils';
+import { flushSafelyWithTimeout } from './responseEnd';
+import { commonObjectToIsolationScope } from './tracingUtils';
 import { vercelWaitUntil } from './vercelWaitUntil';
 
 declare module 'http' {
   interface IncomingMessage {
     _sentrySpan?: Span;
   }
-}
-
-/**
- * Grabs a span off a Next.js datafetcher request object, if it was previously put there via
- * `setSpanOnRequest`.
- *
- * @param req The Next.js datafetcher request object
- * @returns the span on the request object if there is one, or `undefined` if the request object didn't have one.
- */
-export function getSpanFromRequest(req: IncomingMessage): Span | undefined {
-  return req._sentrySpan;
-}
-
-function setSpanOnRequest(span: Span, req: IncomingMessage): void {
-  req._sentrySpan = span;
 }
 
 /**
@@ -80,7 +60,10 @@ export function withErrorInstrumentation<F extends (...args: any[]) => any>(
 export function withTracedServerSideDataFetcher<F extends (...args: any[]) => Promise<any> | any>(
   origDataFetcher: F,
   req: IncomingMessage,
+  // TODO(v9): Remove these unused arguments
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   res: ServerResponse,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   options: {
     /** Parameterized route of the request - will be used for naming the transaction. */
     requestedRouteName: string;
@@ -94,78 +77,23 @@ export function withTracedServerSideDataFetcher<F extends (...args: any[]) => Pr
     this: unknown,
     ...args: Parameters<F>
   ): Promise<{ data: ReturnType<F>; sentryTrace?: string; baggage?: string }> {
-    return escapeNextjsTracing(() => {
-      const isolationScope = commonObjectToIsolationScope(req);
-      return withIsolationScope(isolationScope, () => {
-        isolationScope.setTransactionName(`${options.dataFetchingMethodName} (${options.dataFetcherRouteName})`);
-        isolationScope.setSDKProcessingMetadata({
-          request: req,
-        });
-
-        const sentryTrace =
-          req.headers && isString(req.headers['sentry-trace']) ? req.headers['sentry-trace'] : undefined;
-        const baggage = req.headers?.baggage;
-
-        return continueTrace({ sentryTrace, baggage }, () => {
-          const requestSpan = getOrStartRequestSpan(req, res, options.requestedRouteName);
-          return withActiveSpan(requestSpan, () => {
-            return startSpanManual(
-              {
-                op: 'function.nextjs',
-                name: `${options.dataFetchingMethodName} (${options.dataFetcherRouteName})`,
-                attributes: {
-                  [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nextjs',
-                  [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
-                },
-              },
-              async dataFetcherSpan => {
-                dataFetcherSpan.setStatus({ code: SPAN_STATUS_OK });
-                const { 'sentry-trace': sentryTrace, baggage } = getTraceData();
-                try {
-                  return {
-                    sentryTrace: sentryTrace,
-                    baggage: baggage,
-                    data: await origDataFetcher.apply(this, args),
-                  };
-                } catch (e) {
-                  dataFetcherSpan.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
-                  requestSpan?.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
-                  throw e;
-                } finally {
-                  dataFetcherSpan.end();
-                }
-              },
-            );
-          });
-        });
+    const isolationScope = commonObjectToIsolationScope(req);
+    // TODO(lforst): Get rid of this with
+    return withIsolationScope(isolationScope, async () => {
+      isolationScope.setSDKProcessingMetadata({
+        request: req,
       });
+
+      const { 'sentry-trace': sentryTrace, baggage } = getTraceData();
+      return {
+        sentryTrace: sentryTrace,
+        baggage: baggage,
+        data: await origDataFetcher.apply(this, args),
+      };
     }).finally(() => {
       vercelWaitUntil(flushSafelyWithTimeout());
     });
   };
-}
-
-function getOrStartRequestSpan(req: IncomingMessage, res: ServerResponse, name: string): Span {
-  const existingSpan = getSpanFromRequest(req);
-  if (existingSpan) {
-    return existingSpan;
-  }
-
-  const requestSpan = startInactiveSpan({
-    name,
-    forceTransaction: true,
-    op: 'http.server',
-    attributes: {
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nextjs',
-      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
-    },
-  });
-
-  requestSpan.setStatus({ code: SPAN_STATUS_OK });
-  setSpanOnRequest(requestSpan, req);
-  autoEndSpanOnResponseEnd(requestSpan, res);
-
-  return requestSpan;
 }
 
 /**
