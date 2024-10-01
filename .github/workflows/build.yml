@@ -902,6 +902,7 @@ jobs:
             'nextjs-13',
             'nextjs-14',
             'nextjs-15',
+            'nextjs-t3',
             'react-17',
             'react-19',
             'react-create-hash-router',
