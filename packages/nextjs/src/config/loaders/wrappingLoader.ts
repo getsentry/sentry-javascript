@@ -45,6 +45,7 @@ export type WrappingLoaderOptions = {
   wrappingTargetKind: 'page' | 'api-route' | 'middleware' | 'server-component' | 'route-handler';
   vercelCronsConfig?: VercelCronsConfig;
   nextjsRequestAsyncStorageModulePath?: string;
+  runtime: 'server' | 'edge' | 'client';
 };
 
 /**
@@ -68,21 +69,27 @@ export default function wrappingLoader(
     wrappingTargetKind,
     vercelCronsConfig,
     nextjsRequestAsyncStorageModulePath,
+    runtime,
   } = 'getOptions' in this ? this.getOptions() : this.query;
 
   this.async();
 
   let templateCode: string;
 
-  if (wrappingTargetKind === 'page' || wrappingTargetKind === 'api-route') {
+  const noop = (): void => {
+    this.callback(null, userCode, userModuleSourceMap);
+  };
+
+  if (wrappingTargetKind === 'page' && runtime === 'server') {
+    return noop();
+  } else if (wrappingTargetKind === 'page' || wrappingTargetKind === 'api-route') {
     if (pagesDir === undefined) {
-      this.callback(null, userCode, userModuleSourceMap);
-      return;
+      return noop();
     }
 
     // Get the parameterized route name from this page's filepath
     const parameterizedPagesRoute = path
-      // Get the path of the file insde of the pages directory
+      // Get the path of the file inside of the pages directory
       .relative(pagesDir, this.resourcePath)
       // Replace all backslashes with forward slashes (windows)
       .replace(/\\/g, '/')
@@ -100,8 +107,7 @@ export default function wrappingLoader(
 
     // Skip explicitly-ignored pages
     if (stringMatchesSomePattern(parameterizedPagesRoute, excludeServerRoutes, true)) {
-      this.callback(null, userCode, userModuleSourceMap);
-      return;
+      return noop();
     }
 
     if (wrappingTargetKind === 'page') {
@@ -118,13 +124,12 @@ export default function wrappingLoader(
     templateCode = templateCode.replace(/__ROUTE__/g, parameterizedPagesRoute.replace(/\\/g, '\\\\'));
   } else if (wrappingTargetKind === 'server-component' || wrappingTargetKind === 'route-handler') {
     if (appDir === undefined) {
-      this.callback(null, userCode, userModuleSourceMap);
-      return;
+      return noop();
     }
 
     // Get the parameterized route name from this page's filepath
     const parameterizedPagesRoute = path
-      // Get the path of the file insde of the app directory
+      // Get the path of the file inside of the app directory
       .relative(appDir, this.resourcePath)
       // Replace all backslashes with forward slashes (windows)
       .replace(/\\/g, '/')
@@ -138,8 +143,7 @@ export default function wrappingLoader(
 
     // Skip explicitly-ignored pages
     if (stringMatchesSomePattern(parameterizedPagesRoute, excludeServerRoutes, true)) {
-      this.callback(null, userCode, userModuleSourceMap);
-      return;
+      return noop();
     }
 
     // The following string is what Next.js injects in order to mark client components:
@@ -147,8 +151,7 @@ export default function wrappingLoader(
     // https://github.com/vercel/next.js/blob/a1c15d84d906a8adf1667332a3f0732be615afa0/packages/next-swc/crates/core/src/react_server_components.rs#L247
     // We do not want to wrap client components
     if (userCode.includes('__next_internal_client_entry_do_not_use__')) {
-      this.callback(null, userCode, userModuleSourceMap);
-      return;
+      return noop();
     }
 
     if (wrappingTargetKind === 'server-component') {
@@ -279,7 +282,7 @@ async function wrapUserCode(
             } else if (id === WRAPPING_TARGET_MODULE_NAME) {
               return {
                 code: userModuleCode,
-                map: userModuleSourceMap, // give rollup acces to original user module source map
+                map: userModuleSourceMap, // give rollup access to original user module source map
               };
             } else {
               return null;
@@ -340,7 +343,7 @@ async function wrapUserCode(
   // This is why we want to avoid unnecessarily creating default exports, even if they're just `undefined`.
   // For this reason we try to bundle/wrap the user code once including a re-export of `default`.
   // If the user code didn't have a default export, rollup will throw.
-  // We then try bundling/wrapping agian, but without including a re-export of `default`.
+  // We then try bundling/wrapping again, but without including a re-export of `default`.
   let rollupBuild;
   try {
     rollupBuild = await wrap(true);
@@ -354,7 +357,7 @@ async function wrapUserCode(
 
   const finalBundle = await rollupBuild.generate({
     format: 'esm',
-    sourcemap: 'hidden', // put source map data in the bundle but don't generate a source map commment in the output
+    sourcemap: 'hidden', // put source map data in the bundle but don't generate a source map comment in the output
   });
 
   // The module at index 0 is always the entrypoint, which in this case is the proxy module.
