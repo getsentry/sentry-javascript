@@ -1,19 +1,27 @@
 import commonjs from '@rollup/plugin-commonjs';
 import { makeBaseNPMConfig, makeNPMConfigVariants } from '@sentry-internal/rollup-utils';
 
-export const ESMShim = `
-import cjsUrl from 'node:url';
+export const ESMImportShim = `
+import { createRequire } from 'module';
+`;
 
-if(typeof require === 'undefined'){
-  globalThis.require = cjsModule.createRequire(import.meta.url);
+export const ESMRequireShim = `
+let require = globalThis.require;
+
+if(require === undefined){
+  require = createRequire(import.meta.url);
 }
 `;
 
-function makeESMShimPlugin(shim) {
+function makeESMShimPlugin() {
   return {
     transform(code) {
       const SHIM_REGEXP = /\/\/ #START_SENTRY_ESM_SHIM[\s\S]*?\/\/ #END_SENTRY_ESM_SHIM/;
-      return code.replace(SHIM_REGEXP, shim);
+
+      const withImportShimmed = code.replace(SHIM_REGEXP, ESMImportShim);
+      const withRequireShimmed = withImportShimmed.replace(SHIM_REGEXP, ESMRequireShim);
+
+      return withRequireShimmed;
     },
   };
 }
@@ -29,10 +37,7 @@ const variants = makeNPMConfigVariants(
 
 for (const variant of variants) {
   if (variant.output.format === 'esm') {
-    variant.plugins.push(makeESMShimPlugin(ESMShim));
-  } else {
-    // Remove the ESM shim comment
-    variant.plugins.push(makeESMShimPlugin(''));
+    variant.plugins.push(makeESMShimPlugin());
   }
 }
 
