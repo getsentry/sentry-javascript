@@ -14,9 +14,13 @@ import type {
   V8CpuProfilerBindings,
 } from './types';
 import type { ProfileFormat } from './types';
-import { createRequire } from 'node:module';
 
-const __sentry_require = typeof require === 'undefined' ? createRequire(import.meta.url) : require;
+// #START_SENTRY_ESM_SHIM
+// When building for ESM, we shim require to use createRequire and __dirname.
+// We need to do this because .node extensions in esm are not supported.
+// The comment below this line exists as a placeholder for where to insert the shim
+const __sentry_require = require;
+// #END_SENTRY_ESM_SHIM  // If a binary path is specified, use that.
 
 const stdlib = familySync();
 const platform = process.env['BUILD_PLATFORM'] || _platform();
