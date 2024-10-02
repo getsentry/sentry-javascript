@@ -1,6 +1,6 @@
+import { createRequire } from 'module';
 import * as Sentry from '@sentry/node';
 import { nodeProfilingIntegration } from '@sentry/profiling-node';
-import { createRequire } from 'module';
 
 const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
 
