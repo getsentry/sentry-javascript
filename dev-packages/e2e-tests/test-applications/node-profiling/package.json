@@ -4,8 +4,8 @@
   "private": true,
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "build": "node build.mjs && node build.shimmed.mjs",
-    "test": "node dist/index.js && node --experimental-require-module dist/index.js && node dist/index.shimmed.mjs",
+    "build": "node build.mjs && node build.shimmed.mjs && node build.unshimmed.mjs",
+    "test": "node dist/index.js && node --experimental-require-module dist/index.js && node dist/index.shimmed.mjs && node dist/index.unshimmed.mjs",
     "clean": "npx rimraf node_modules dist",
     "test:build": "npm run typecheck && npm run build",
     "test:assert": "npm run test"
