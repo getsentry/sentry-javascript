@@ -33,7 +33,7 @@ export function exceptionFromError(stackParser: StackParser, ex: Error): Excepti
   const frames = parseStackFrames(stackParser, ex);
 
   const exception: Exception = {
-    type: ex && ex.name,
+    type: extractName(ex),
     value: extractMessage(ex),
   };
 
@@ -160,17 +160,36 @@ function getPopFirstTopFrames(ex: Error & { framesToPop?: unknown }): number {
 }
 
 /**
+ * There are cases where error is an WebAssembly.Exception object
+ * https://github.com/getsentry/sentry-javascript/issues/13787
+ * In this specific case we try to extract name(type) from WebAssembly.Exception.message
+ */
+function extractName(ex) {
+  const name = ex && ex.name;
+  if (!name && ex instanceof WebAssembly.Exception) {
+    // Emscripten sets array[type, message] to the "message" property on the WebAssembly.Exception object
+    const hasTypeInMessage = ex.message && Array.isArray(ex.message) && ex.message.length == 2;
+    return hasTypeInMessage ? ex.message[0] : 'WebAssembly.Exception';
+  }
+  return name; // May return undefined value
+}
+
+/**
  * There are cases where stacktrace.message is an Event object
  * https://github.com/getsentry/sentry-javascript/issues/1949
  * In this specific case we try to extract stacktrace.message.error.message
  */
-function extractMessage(ex: Error & { message: { error?: Error } }): string {
+function extractMessage(ex) {
   const message = ex && ex.message;
   if (!message) {
     return 'No error message';
   }
   if (message.error && typeof message.error.message === 'string') {
     return message.error.message;
+  }
+  if (ex instanceof WebAssembly.Exception && Array.isArray(ex.message) && ex.message.length == 2) {
+    // Emscripten sets array[type, message] to the "message" property on the WebAssembly.Exception object
+    return ex.message[1];
   }
   return message;
 }
