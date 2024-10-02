@@ -116,34 +116,56 @@ function instrumentFetch(onFetchResolved?: (response: Response) => void, skipNat
 }
 
 async function resolveResponse(res: Response | undefined, onFinishedResolving: () => void): Promise<void> {
-  if (res && res.body && res.body.getReader) {
-    const responseReader = res.body.getReader();
+  if (res && res.body) {
+    const body = res.body;
+    const responseReader = body.getReader();
 
-    // NOTE: Still looking for a better solution to handle endless streams (e.g., CCTV).
-    //       Currently, this implementation does not trigger onFinishedResolving
-    //       for streams that never end, as the 'done' condition is never met.
-    let reading = true;
-    while (reading) {
+    // Define a maximum duration after which we just cancel
+    const maxFetchDurationTimeout = setTimeout(
+      () => {
+        body.cancel().then(null, () => {
+          // noop
+        });
+      },
+      90 * 1000, // 90s
+    );
+
+    let readingActive = true;
+    while (readingActive) {
+      let chunkTimeout;
       try {
         // abort reading if read op takes more than 5s
-        const { done } = await Promise.race([
-          responseReader.read(),
-          new Promise<{ done: boolean }>(resolve => setTimeout(() => resolve({ done: true }), 5000)),
-        ]);
+        chunkTimeout = setTimeout(() => {
+          body.cancel().then(null, () => {
+            // noop on error
+          });
+        }, 5000);
 
-        if (done) reading = false;
+        const { done } = await responseReader.read();
+
+        clearTimeout(chunkTimeout);
+
+        if (done) {
+          onFinishedResolving();
+          readingActive = false;
+        }
       } catch (error) {
-        // handle error if needed
-        reading = false;
+        readingActive = false;
+      } finally {
+        clearTimeout(chunkTimeout);
       }
     }
 
+    clearTimeout(maxFetchDurationTimeout);
+
     responseReader.releaseLock();
-    onFinishedResolving();
+    responseReader.cancel().then(null, () => {
+      // noop on error
+    });
   }
 }
 
-async function streamHandler(response: Response): Promise<void> {
+function streamHandler(response: Response): void {
   // clone response for awaiting stream
   let clonedResponseForResolving: Response;
   try {
@@ -152,7 +174,8 @@ async function streamHandler(response: Response): Promise<void> {
     return;
   }
 
-  await resolveResponse(clonedResponseForResolving, () => {
+  // eslint-disable-next-line @typescript-eslint/no-floating-promises
+  resolveResponse(clonedResponseForResolving, () => {
     triggerHandlers('fetch-body-resolved', {
       endTimestamp: timestampInSeconds() * 1000,
       response,
