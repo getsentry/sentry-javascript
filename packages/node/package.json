@@ -82,6 +82,7 @@
     "@opentelemetry/instrumentation-ioredis": "0.43.0",
     "@opentelemetry/instrumentation-kafkajs": "0.3.0",
     "@opentelemetry/instrumentation-koa": "0.43.0",
+    "@opentelemetry/instrumentation-lru-memoizer": "0.40.0",
     "@opentelemetry/instrumentation-mongodb": "0.47.0",
     "@opentelemetry/instrumentation-mongoose": "0.42.0",
     "@opentelemetry/instrumentation-mysql": "0.41.0",

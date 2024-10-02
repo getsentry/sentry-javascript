@@ -902,6 +902,7 @@ jobs:
             'nextjs-13',
             'nextjs-14',
             'nextjs-15',
+            'nextjs-t3',
             'react-17',
             'react-19',
             'react-create-hash-router',
@@ -1067,6 +1068,10 @@ jobs:
             'react-send-to-sentry',
             'node-express-send-to-sentry',
             'debug-id-sourcemaps',
+            'nextjs-app-dir',
+            'nextjs-13',
+            'nextjs-14',
+            'nextjs-15',
           ]
         build-command:
           - false
@@ -1081,6 +1086,30 @@ jobs:
           - test-application: 'create-remix-app-legacy'
             assert-command: 'test:assert-sourcemaps'
             label: 'create-remix-app-legacy (sourcemaps)'
+          - test-application: 'nextjs-app-dir'
+            build-command: 'test:build-canary'
+            label: 'nextjs-app-dir (canary)'
+          - test-application: 'nextjs-app-dir'
+            build-command: 'test:build-latest'
+            label: 'nextjs-app-dir (latest)'
+          - test-application: 'nextjs-13'
+            build-command: 'test:build-canary'
+            label: 'nextjs-13 (canary)'
+          - test-application: 'nextjs-13'
+            build-command: 'test:build-latest'
+            label: 'nextjs-13 (latest)'
+          - test-application: 'nextjs-14'
+            build-command: 'test:build-canary'
+            label: 'nextjs-14 (canary)'
+          - test-application: 'nextjs-14'
+            build-command: 'test:build-latest'
+            label: 'nextjs-14 (latest)'
+          - test-application: 'nextjs-15'
+            build-command: 'test:build-canary'
+            label: 'nextjs-15 (canary)'
+          - test-application: 'nextjs-15'
+            build-command: 'test:build-latest'
+            label: 'nextjs-15 (latest)'
 
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})

@@ -72,6 +72,7 @@ export {
   lastEventId,
   linkedErrorsIntegration,
   localVariablesIntegration,
+  lruMemoizerIntegration,
   makeNodeTransport,
   metrics,
   modulesIntegration,

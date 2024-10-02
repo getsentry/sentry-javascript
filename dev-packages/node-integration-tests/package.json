@@ -51,6 +51,7 @@
     "http-terminator": "^3.2.0",
     "ioredis": "^5.4.1",
     "kafkajs": "2.2.4",
+    "lru-memoizer": "2.3.0",
     "mongodb": "^3.7.3",
     "mongodb-memory-server-global": "^7.6.3",
     "mongoose": "^5.13.22",

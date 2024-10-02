@@ -39,7 +39,7 @@ export function setupSourceMaps(moduleOptions: SentryNuxtModuleOptions, nuxt: Nu
       }
 
       // Add Sentry plugin
-      nitroConfig.rollupConfig.plugins.push(sentryRollupPlugin(getPluginOptions(moduleOptions, true)));
+      nitroConfig.rollupConfig.plugins.push(sentryRollupPlugin(getPluginOptions(moduleOptions)));
 
       // Enable source maps
       nitroConfig.rollupConfig.output = nitroConfig?.rollupConfig?.output || {};
@@ -58,9 +58,13 @@ function normalizePath(path: string): string {
   return path.replace(/^(\.\.\/)+/, './');
 }
 
-function getPluginOptions(
+/**
+ *  Generates source maps upload options for the Sentry Vite and Rollup plugin.
+ *
+ *  Only exported for Testing purposes.
+ */
+export function getPluginOptions(
   moduleOptions: SentryNuxtModuleOptions,
-  isNitro = false,
 ): SentryVitePluginOptions | SentryRollupPluginOptions {
   const sourceMapsUploadOptions = moduleOptions.sourceMapsUploadOptions || {};
 
@@ -69,19 +73,24 @@ function getPluginOptions(
     project: sourceMapsUploadOptions.project ?? process.env.SENTRY_PROJECT,
     authToken: sourceMapsUploadOptions.authToken ?? process.env.SENTRY_AUTH_TOKEN,
     telemetry: sourceMapsUploadOptions.telemetry ?? true,
-    sourcemaps: {
-      assets:
-        sourceMapsUploadOptions.sourcemaps?.assets ?? isNitro ? ['./.output/server/**/*'] : ['./.output/public/**/*'],
-      ignore: sourceMapsUploadOptions.sourcemaps?.ignore ?? undefined,
-      filesToDeleteAfterUpload: sourceMapsUploadOptions.sourcemaps?.filesToDeleteAfterUpload ?? undefined,
-      rewriteSources: (source: string) => normalizePath(source),
-    },
+    debug: moduleOptions.debug ?? false,
     _metaOptions: {
       telemetry: {
         metaFramework: 'nuxt',
       },
     },
-    debug: moduleOptions.debug ?? false,
+    ...moduleOptions?.unstable_sentryBundlerPluginOptions,
+
+    sourcemaps: {
+      // The server/client files are in different places depending on the nitro preset (e.g. '.output/server' or '.netlify/functions-internal/server')
+      // We cannot determine automatically how the build folder looks like (depends on the preset), so we have to accept that sourcemaps are uploaded multiple times (with the vitePlugin for Nuxt and the rollupPlugin for Nitro).
+      // If we could know where the server/client assets are located, we could do something like this (based on the Nitro preset): isNitro ? ['./.output/server/**/*'] : ['./.output/public/**/*'],
+      assets: sourceMapsUploadOptions.sourcemaps?.assets ?? undefined,
+      ignore: sourceMapsUploadOptions.sourcemaps?.ignore ?? undefined,
+      filesToDeleteAfterUpload: sourceMapsUploadOptions.sourcemaps?.filesToDeleteAfterUpload ?? undefined,
+      rewriteSources: (source: string) => normalizePath(source),
+      ...moduleOptions?.unstable_sentryBundlerPluginOptions?.sourcemaps,
+    },
   };
 }
 

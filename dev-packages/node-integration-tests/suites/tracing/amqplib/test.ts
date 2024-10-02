@@ -1,7 +1,8 @@
 import type { TransactionEvent } from '@sentry/types';
 import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
 
-jest.setTimeout(30_000);
+// When running docker compose, we need a larger timeout, as this takes some time.
+jest.setTimeout(90_000);
 
 const EXPECTED_MESSAGE_SPAN_PRODUCER = expect.objectContaining({
   op: 'message',
