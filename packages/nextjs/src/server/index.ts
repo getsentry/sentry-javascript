@@ -3,22 +3,28 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   applySdkMetadata,
+  getCapturedScopesOnSpan,
   getClient,
+  getCurrentScope,
   getGlobalScope,
+  getIsolationScope,
   getRootSpan,
+  setCapturedScopesOnSpan,
   spanToJSON,
 } from '@sentry/core';
 import { getDefaultIntegrations, init as nodeInit } from '@sentry/node';
 import type { NodeClient, NodeOptions } from '@sentry/node';
 import { GLOBAL_OBJ, logger } from '@sentry/utils';
 
+import { context } from '@opentelemetry/api';
 import {
   ATTR_HTTP_REQUEST_METHOD,
   ATTR_HTTP_ROUTE,
   SEMATTRS_HTTP_METHOD,
   SEMATTRS_HTTP_TARGET,
 } from '@opentelemetry/semantic-conventions';
-import type { EventProcessor } from '@sentry/types';
+import { getScopesFromContext } from '@sentry/opentelemetry';
+import type { EventProcessor, Scope } from '@sentry/types';
 import { DEBUG_BUILD } from '../common/debug-build';
 import { devErrorSymbolicationEventProcessor } from '../common/devErrorSymbolicationEventProcessor';
 import { getVercelEnv } from '../common/getVercelEnv';
@@ -197,6 +203,22 @@ export function init(options: NodeOptions): NodeClient | undefined {
     // We want to rename these spans because they look like "GET /path/to/route" and we already emit spans that look
     // like this with our own http instrumentation.
     if (spanAttributes?.['next.span_type'] === 'BaseServer.handleRequest') {
+      const isRootSpan = span === getRootSpan(span);
+      if (isRootSpan) {
+        // TODO(lforst): Verify if this is actually working and add tests
+        const scopes = getCapturedScopesOnSpan(span);
+
+        const isolationScope = (scopes.isolationScope || getIsolationScope()).clone();
+        const scope = scopes.scope || getCurrentScope();
+
+        const client = getClient<NodeClient>();
+        if (client && client.getOptions().autoSessionTracking) {
+          isolationScope.setRequestSession({ status: 'ok' });
+        }
+        setIsolationScope(isolationScope);
+        setCapturedScopesOnSpan(span, scope, isolationScope);
+      }
+    } else {
       span.updateName('next server handler'); // This is all lowercase because the spans that Next.js emits by itself generally look like this.
     }
   });
@@ -327,3 +349,14 @@ function sdkAlreadyInitialized(): boolean {
 export * from '../common';
 
 export { wrapApiHandlerWithSentry } from '../common/wrapApiHandlerWithSentry';
+
+/*
+ * Update the active isolation scope.
+ * Should be used with caution!
+ */
+function setIsolationScope(isolationScope: Scope): void {
+  const scopes = getScopesFromContext(context.active());
+  if (scopes) {
+    scopes.isolationScope = isolationScope;
+  }
+}
