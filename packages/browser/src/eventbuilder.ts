@@ -162,9 +162,9 @@ function getPopFirstTopFrames(ex: Error & { framesToPop?: unknown }): number {
 /**
  * There are cases where error is an WebAssembly.Exception object
  * https://github.com/getsentry/sentry-javascript/issues/13787
- * In this specific case we try to extract name(type) from WebAssembly.Exception.message
+ * In this specific case we try to extract name/type from .message in WebAssembly.Exception
  */
-function extractName(ex) {
+function extractName(ex: Error & { message: { error?: Error } }): string {
   const name = ex && ex.name;
   if (!name && ex instanceof WebAssembly.Exception) {
     // Emscripten sets array[type, message] to the "message" property on the WebAssembly.Exception object
@@ -179,7 +179,7 @@ function extractName(ex) {
  * https://github.com/getsentry/sentry-javascript/issues/1949
  * In this specific case we try to extract stacktrace.message.error.message
  */
-function extractMessage(ex) {
+function extractMessage(ex: Error & { message: { error?: Error } }): string {
   const message = ex && ex.message;
   if (!message) {
     return 'No error message';
