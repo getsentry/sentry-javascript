@@ -15,8 +15,7 @@ Sentry.startSpan({ name: 'Precompile test' }, async () => {
   await wait(500);
 });
 
-globalThis.require = createRequire(import.meta.url);
-
+// assert that we dont override require
 if (globalThis.require !== undefined) {
   throw new Error('globalThis.require should not be defined, check that profiling integration is not defining it');
 }
