@@ -3,14 +3,15 @@ import { makeBaseNPMConfig, makeNPMConfigVariants } from '@sentry-internal/rollu
 
 export const ESMImportShim = `
 import { createRequire } from 'module';
-`;
 
-export const ESMRequireShim = `
 let require = globalThis.require;
 
 if(require === undefined){
   require = createRequire(import.meta.url);
 }
+`;
+
+export const ESMRequireShim = `
 `;
 
 function makeESMShimPlugin() {
@@ -19,9 +20,7 @@ function makeESMShimPlugin() {
       const SHIM_REGEXP = /\/\/ #START_SENTRY_ESM_SHIM[\s\S]*?\/\/ #END_SENTRY_ESM_SHIM/;
 
       const withImportShimmed = code.replace(SHIM_REGEXP, ESMImportShim);
-      const withRequireShimmed = withImportShimmed.replace(SHIM_REGEXP, ESMRequireShim);
-
-      return withRequireShimmed;
+      return withImportShimmed;
     },
   };
 }

@@ -32,13 +32,6 @@ const built_from_source_path = resolve(__dirname, '..', `./sentry_cpu_profiler-$
  */
 // eslint-disable-next-line complexity
 export function importCppBindingsModule(): PrivateV8CpuProfilerBindings {
-  // #START_SENTRY_ESM_SHIM
-  // When building for ESM, we shim require to use createRequire and __dirname.
-  // We need to do this because .node extensions in esm are not supported.
-  // The comment below this line exists as a placeholder for where to insert the shim
-  const require = globalThis.require;
-  // #END_SENTRY_ESM_SHIM  // If a binary path is specified, use that.
-
   if (env['SENTRY_PROFILER_BINARY_PATH']) {
     const envPath = env['SENTRY_PROFILER_BINARY_PATH'];
     return require(envPath);
