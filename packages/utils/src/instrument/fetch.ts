@@ -141,6 +141,7 @@ async function resolveResponse(res: Response | undefined, onFinishedResolving: (
           });
         }, 5000);
 
+        // This .read() call will reject/throw when we abort due to timeouts through `body.cancel()`
         const { done } = await responseReader.read();
 
         clearTimeout(chunkTimeout);
@@ -159,7 +160,7 @@ async function resolveResponse(res: Response | undefined, onFinishedResolving: (
     clearTimeout(maxFetchDurationTimeout);
 
     responseReader.releaseLock();
-    responseReader.cancel().then(null, () => {
+    body.cancel().then(null, () => {
       // noop on error
     });
   }
