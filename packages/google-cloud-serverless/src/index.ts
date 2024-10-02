@@ -91,6 +91,7 @@ export {
   genericPoolIntegration,
   graphqlIntegration,
   kafkaIntegration,
+  lruMemoizerIntegration,
   mongoIntegration,
   mongooseIntegration,
   mysqlIntegration,

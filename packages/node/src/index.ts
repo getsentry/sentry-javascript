@@ -15,6 +15,7 @@ export { expressIntegration, expressErrorHandler, setupExpressErrorHandler } fro
 export { fastifyIntegration, setupFastifyErrorHandler } from './integrations/tracing/fastify';
 export { graphqlIntegration } from './integrations/tracing/graphql';
 export { kafkaIntegration } from './integrations/tracing/kafka';
+export { lruMemoizerIntegration } from './integrations/tracing/lrumemoizer';
 export { mongoIntegration } from './integrations/tracing/mongo';
 export { mongooseIntegration } from './integrations/tracing/mongoose';
 export { mysqlIntegration } from './integrations/tracing/mysql';
