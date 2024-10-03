@@ -70,8 +70,8 @@ export const createCallerFactory = t.createCallerFactory;
  */
 export const createTRPCRouter = t.router;
 
-const sentryMiddleware = Sentry.trpcMiddleware({
-  attachRpcInput: true,
-});
-
-export const publicProcedure = t.procedure.use(async opts => sentryMiddleware(opts));
+export const publicProcedure = t.procedure.use(
+  Sentry.trpcMiddleware({
+    attachRpcInput: true,
+  }),
+);
