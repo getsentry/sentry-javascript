@@ -159,14 +159,21 @@ function getPopFirstTopFrames(ex: Error & { framesToPop?: unknown }): number {
   return 0;
 }
 
+// https://developer.mozilla.org/en-US/docs/WebAssembly/JavaScript_interface/Exception
+// @ts-expect-error - WebAssembly.Exception is a valid class
+function isWebAssemblyException(exception: unknown): exception is WebAssembly.Exception {
+  // @ts-expect-error - WebAssembly.Exception is a valid class
+  return exception instanceof WebAssembly.Exception;
+}
+
 /**
  * There are cases where error is an WebAssembly.Exception object
  * https://github.com/getsentry/sentry-javascript/issues/13787
  * In this specific case we try to extract name/type from .message in WebAssembly.Exception
  */
-function extractName(ex: Error & { message: { error?: Error } }): string {
+function extractName(ex: Error & { message: { error?: Error } }): string | undefined {
   const name = ex && ex.name;
-  if (!name && ex instanceof WebAssembly.Exception) {
+  if (!name && isWebAssemblyException(ex)) {
     // Emscripten sets array[type, message] to the "message" property on the WebAssembly.Exception object
     const hasTypeInMessage = ex.message && Array.isArray(ex.message) && ex.message.length == 2;
     return hasTypeInMessage ? ex.message[0] : 'WebAssembly.Exception';
@@ -187,7 +194,7 @@ function extractMessage(ex: Error & { message: { error?: Error } }): string {
   if (message.error && typeof message.error.message === 'string') {
     return message.error.message;
   }
-  if (ex instanceof WebAssembly.Exception && Array.isArray(ex.message) && ex.message.length == 2) {
+  if (isWebAssemblyException(ex) && Array.isArray(ex.message) && ex.message.length == 2) {
     // Emscripten sets array[type, message] to the "message" property on the WebAssembly.Exception object
     return ex.message[1];
   }

@@ -46,6 +46,11 @@ describe('isError()', () => {
     expect(isError(new Error())).toEqual(true);
     expect(isError(new ReferenceError())).toEqual(true);
     expect(isError(new SentryError('message'))).toEqual(true);
+    // https://developer.mozilla.org/en-US/docs/WebAssembly/JavaScript_interface/Exception/Exception#examples
+    // @ts-expect-error - WebAssembly.Tag is a valid constructor
+    const tag = new WebAssembly.Tag({ parameters: ['i32', 'f32'] });
+    // @ts-expect-error - WebAssembly.Exception is a valid constructor
+    expect(isError(new WebAssembly.Exception(tag, [42, 42.3]))).toBe(true);
     expect(isError({})).toEqual(false);
     expect(
       isError({
