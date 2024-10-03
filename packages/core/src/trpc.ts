@@ -37,7 +37,9 @@ function captureIfError(nextResult: unknown): void {
  * Sentry tRPC middleware that captures errors and creates spans for tRPC procedures.
  */
 export function trpcMiddleware(options: SentryTrpcMiddlewareOptions = {}) {
-  return async function <T>(opts: SentryTrpcMiddlewareArguments<T>): Promise<T> {
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore
+  return async function <T>(opts: SentryTrpcMiddlewareArguments<T>): T extends Promise<unknown> ? Promise<T> : T {
     const { path, type, next, rawInput, getRawInput } = opts;
 
     const client = getClient();
@@ -85,6 +87,6 @@ export function trpcMiddleware(options: SentryTrpcMiddlewareOptions = {}) {
           throw e;
         }
       },
-    );
+    ) as T extends Promise<unknown> ? Promise<T> : T;
   };
 }
