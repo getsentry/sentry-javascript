@@ -10,6 +10,14 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 8.33.1
+
+- fix(core): Update trpc middleware types ([#13859](https://github.com/getsentry/sentry-javascript/pull/13859))
+- fix(fetch): Fix memory leak when handling endless streaming
+  ([#13809](https://github.com/getsentry/sentry-javascript/pull/13809))
+
+Work in this release was contributed by @soapproject. Thank you for your contribution!
+
 ## 8.33.0
 
 ### Important Changes
