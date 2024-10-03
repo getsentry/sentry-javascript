@@ -116,40 +116,57 @@ function instrumentFetch(onFetchResolved?: (response: Response) => void, skipNat
 }
 
 async function resolveResponse(res: Response | undefined, onFinishedResolving: () => void): Promise<void> {
-  if (res && res.body && res.body.getReader) {
-    const responseReader = res.body.getReader();
+  if (res && res.body) {
+    const body = res.body;
+    const responseReader = body.getReader();
 
-    // eslint-disable-next-line no-inner-declarations
-    async function consumeChunks({ done }: { done: boolean }): Promise<void> {
-      if (!done) {
-        try {
-          // abort reading if read op takes more than 5s
-          const result = await Promise.race([
-            responseReader.read(),
-            new Promise<{ done: boolean }>(res => {
-              setTimeout(() => {
-                res({ done: true });
-              }, 5000);
-            }),
-          ]);
-          await consumeChunks(result);
-        } catch (error) {
-          // handle error if needed
+    // Define a maximum duration after which we just cancel
+    const maxFetchDurationTimeout = setTimeout(
+      () => {
+        body.cancel().then(null, () => {
+          // noop
+        });
+      },
+      90 * 1000, // 90s
+    );
+
+    let readingActive = true;
+    while (readingActive) {
+      let chunkTimeout;
+      try {
+        // abort reading if read op takes more than 5s
+        chunkTimeout = setTimeout(() => {
+          body.cancel().then(null, () => {
+            // noop on error
+          });
+        }, 5000);
+
+        // This .read() call will reject/throw when we abort due to timeouts through `body.cancel()`
+        const { done } = await responseReader.read();
+
+        clearTimeout(chunkTimeout);
+
+        if (done) {
+          onFinishedResolving();
+          readingActive = false;
         }
-      } else {
-        return Promise.resolve();
+      } catch (error) {
+        readingActive = false;
+      } finally {
+        clearTimeout(chunkTimeout);
       }
     }
 
-    return responseReader
-      .read()
-      .then(consumeChunks)
-      .then(onFinishedResolving)
-      .catch(() => undefined);
+    clearTimeout(maxFetchDurationTimeout);
+
+    responseReader.releaseLock();
+    body.cancel().then(null, () => {
+      // noop on error
+    });
   }
 }
 
-async function streamHandler(response: Response): Promise<void> {
+function streamHandler(response: Response): void {
   // clone response for awaiting stream
   let clonedResponseForResolving: Response;
   try {
@@ -158,7 +175,8 @@ async function streamHandler(response: Response): Promise<void> {
     return;
   }
 
-  await resolveResponse(clonedResponseForResolving, () => {
+  // eslint-disable-next-line @typescript-eslint/no-floating-promises
+  resolveResponse(clonedResponseForResolving, () => {
     triggerHandlers('fetch-body-resolved', {
       endTimestamp: timestampInSeconds() * 1000,
       response,
