@@ -4,6 +4,7 @@ import { addNonEnumerableProperty } from '@sentry/utils';
 // Inline PiniaPlugin type
 type PiniaPlugin = (context: {
   store: {
+    $id: string;
     $state: unknown;
     $onAction: (callback: (context: { name: string; after: (callback: () => void) => void }) => void) => void;
   };
@@ -26,10 +27,14 @@ export const createSentryPiniaPlugin: (options?: SentryPiniaPluginOptions) => Pi
     options.attachPiniaState &&
       getGlobalScope().addEventProcessor((event, hint) => {
         try {
+          // Get current timestamp in hh:mm:ss
+          const timestamp = new Date().toTimeString().split(' ')[0];
+          const filename = `pinia_state_${store.$id}_${timestamp}.json`;
+
           hint.attachments = [
             ...(hint.attachments || []),
             {
-              filename: 'pinia_state.json',
+              filename,
               data: JSON.stringify(store.$state),
             },
           ];
