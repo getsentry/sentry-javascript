@@ -27,7 +27,7 @@ test('Should create a transaction with error status for faulty edge routes', asy
   const edgerouteTransactionPromise = waitForTransaction('nextjs-app-dir', async transactionEvent => {
     return (
       transactionEvent?.transaction === 'GET /api/error-edge-endpoint' &&
-      transactionEvent?.contexts?.trace?.status === 'internal_error'
+      transactionEvent?.contexts?.trace?.status === 'unknown_error'
     );
   });
 
@@ -37,7 +37,7 @@ test('Should create a transaction with error status for faulty edge routes', asy
 
   const edgerouteTransaction = await edgerouteTransactionPromise;
 
-  expect(edgerouteTransaction.contexts?.trace?.status).toBe('internal_error');
+  expect(edgerouteTransaction.contexts?.trace?.status).toBe('unknown_error');
   expect(edgerouteTransaction.contexts?.trace?.op).toBe('http.server');
   expect(edgerouteTransaction.contexts?.runtime?.name).toBe('vercel-edge');
 
