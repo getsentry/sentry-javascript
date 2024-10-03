@@ -105,9 +105,7 @@ Sentry.addEventProcessor(event => {
 
 export const t = initTRPC.context<Context>().create();
 
-const sentryMiddleware = Sentry.trpcMiddleware({ attachRpcInput: true });
-
-const procedure = t.procedure.use(async opts => sentryMiddleware(opts));
+const procedure = t.procedure.use(Sentry.trpcMiddleware({ attachRpcInput: true }));
 
 export const appRouter = t.router({
   getSomething: procedure.input(z.string()).query(opts => {
