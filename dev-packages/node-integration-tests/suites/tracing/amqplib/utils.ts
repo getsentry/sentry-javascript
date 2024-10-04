@@ -22,15 +22,22 @@ export function sendMessageToQueue(queueName: string, channel: Channel, message:
 }
 
 async function consumer(queueName: string, channel: Channel): Promise<void> {
-  await channel.consume(
-    queueName,
-    message => {
-      if (message) {
-        channel.ack(message);
-      }
-    },
-    ACKNOWLEDGEMENT,
-  );
+  return new Promise((resolve, reject) => {
+    channel
+      .consume(
+        queueName,
+        message => {
+          if (message) {
+            channel.ack(message);
+            resolve();
+          } else {
+            reject(new Error('No message received'));
+          }
+        },
+        ACKNOWLEDGEMENT,
+      )
+      .catch(reject);
+  });
 }
 
 export async function consumeMessageFromQueue(queueName: string, channel: Channel): Promise<void> {
