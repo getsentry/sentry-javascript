@@ -12,8 +12,8 @@ type PiniaPlugin = (context: {
 
 type SentryPiniaPluginOptions = {
   attachPiniaState?: boolean;
-  actionTransformer: (action: any) => any;
-  stateTransformer: (state: any) => any;
+  actionTransformer?: (action: any) => any;
+  stateTransformer?: (state: any) => any;
 };
 
 export const createSentryPiniaPlugin: (options?: SentryPiniaPluginOptions) => PiniaPlugin = (
@@ -24,7 +24,7 @@ export const createSentryPiniaPlugin: (options?: SentryPiniaPluginOptions) => Pi
   },
 ) => {
   const plugin: PiniaPlugin = ({ store }) => {
-    options.attachPiniaState &&
+    options.attachPiniaState !== false &&
       getGlobalScope().addEventProcessor((event, hint) => {
         try {
           // Get current timestamp in hh:mm:ss
@@ -47,18 +47,20 @@ export const createSentryPiniaPlugin: (options?: SentryPiniaPluginOptions) => Pi
 
     store.$onAction(context => {
       context.after(() => {
-        const transformedAction = options.actionTransformer(context.name);
+        const transformedActionName = options.actionTransformer
+          ? options.actionTransformer(context.name) || ''
+          : context.name;
 
-        if (typeof transformedAction !== 'undefined' && transformedAction !== null) {
+        if (typeof transformedActionName !== 'undefined' && transformedActionName !== null) {
           addBreadcrumb({
             category: 'action',
-            message: transformedAction,
+            message: transformedActionName,
             level: 'info',
           });
         }
 
         /* Set latest state to scope */
-        const transformedState = options.stateTransformer(store.$state);
+        const transformedState = options.stateTransformer ? options.stateTransformer(store.$state) : store.$state;
         const scope = getCurrentScope();
 
         if (typeof transformedState !== 'undefined' && transformedState !== null) {
