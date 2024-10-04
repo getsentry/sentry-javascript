@@ -21,7 +21,7 @@
 import type { EventEmitter } from 'events';
 import { ROOT_CONTEXT } from '@opentelemetry/api';
 import type { Context, ContextManager } from '@opentelemetry/api';
-import { logger } from '@sentry/utils';
+import { GLOBAL_OBJ, logger } from '@sentry/utils';
 import { DEBUG_BUILD } from './debug-build';
 
 interface AsyncLocalStorage<T> {
@@ -262,9 +262,8 @@ export class AsyncLocalStorageContextManager extends AbstractAsyncHooksContextMa
 
   public constructor() {
     super();
-
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
-    const MaybeGlobalAsyncLocalStorage = (globalThis as any).AsyncLocalStorage;
+    const MaybeGlobalAsyncLocalStorage = (GLOBAL_OBJ as any).AsyncLocalStorage;
 
     if (!MaybeGlobalAsyncLocalStorage) {
       DEBUG_BUILD &&

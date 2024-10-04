@@ -1,8 +1,11 @@
 import { Scope, getCurrentScope, getGlobalScope, getIsolationScope, withIsolationScope, withScope } from '@sentry/core';
+import { setOpenTelemetryContextAsyncContextStrategy } from '@sentry/opentelemetry';
 import { GLOBAL_OBJ } from '@sentry/utils';
 import { AsyncLocalStorage } from 'async_hooks';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { setAsyncLocalStorageAsyncContextStrategy } from '../src/async';
+import { VercelEdgeClient } from '../src';
+import { setupOtel } from '../src/sdk';
+import { makeEdgeTransport } from '../src/transports';
 
 describe('withScope()', () => {
   beforeEach(() => {
@@ -11,7 +14,16 @@ describe('withScope()', () => {
     getGlobalScope().clear();
 
     (GLOBAL_OBJ as any).AsyncLocalStorage = AsyncLocalStorage;
-    setAsyncLocalStorageAsyncContextStrategy();
+
+    const client = new VercelEdgeClient({
+      stackParser: () => [],
+      integrations: [],
+      transport: makeEdgeTransport,
+    });
+
+    setupOtel(client);
+
+    setOpenTelemetryContextAsyncContextStrategy();
   });
 
   it('will make the passed scope the active scope within the callback', () =>
@@ -90,7 +102,7 @@ describe('withIsolationScope()', () => {
     getGlobalScope().clear();
     (GLOBAL_OBJ as any).AsyncLocalStorage = AsyncLocalStorage;
 
-    setAsyncLocalStorageAsyncContextStrategy();
+    setOpenTelemetryContextAsyncContextStrategy();
   });
 
   it('will make the passed isolation scope the active isolation scope within the callback', () =>

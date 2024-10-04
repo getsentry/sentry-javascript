@@ -115,7 +115,7 @@ export function init(options: VercelEdgeOptions = {}): Client | undefined {
   // If users opt-out of this, they _have_ to set up OpenTelemetry themselves
   // There is no way to use this SDK without OpenTelemetry!
   if (!options.skipOpenTelemetrySetup) {
-    initOpenTelemetry(client);
+    setupOtel(client);
     validateOpenTelemetrySetup();
   }
 
@@ -153,7 +153,9 @@ function validateOpenTelemetrySetup(): void {
   }
 }
 
-function initOpenTelemetry(client: VercelEdgeClient): void {
+// exported for tests
+// eslint-disable-next-line jsdoc/require-jsdoc
+export function setupOtel(client: VercelEdgeClient): void {
   if (client.getOptions().debug) {
     setupOpenTelemetryLogger();
   }
