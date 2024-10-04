@@ -4,6 +4,12 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.119.1
+
+- fix(browser/v7): Ensure wrap() only returns functions (#13838 backport)
+
+Work in this release contributed by @legobeat. Thank you for your contribution!
+
 ## 7.119.0
 
 - backport(tracing): Report dropped spans for transactions (#13343)
