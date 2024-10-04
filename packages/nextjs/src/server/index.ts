@@ -215,7 +215,8 @@ export function init(options: NodeOptions): NodeClient | undefined {
           if (
             (event.contexts?.trace?.data?.[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] === 'auto.http.otel.http' ||
               event.contexts?.trace?.data?.['next.span_type'] === 'BaseServer.handleRequest') &&
-            event.contexts?.trace?.data?.['sentry.rsc'] !== true
+            event.contexts?.trace?.data?.['sentry.rsc'] !== true &&
+            event.contexts?.trace?.data?.['sentry.route_handler'] !== true
           ) {
             return null;
           }
@@ -295,9 +296,11 @@ export function init(options: NodeOptions): NodeClient | undefined {
         // Next.js that are actually more or less correct server HTTP spans, so we are backfilling the op here.
         if (
           event.type === 'transaction' &&
-          event.transaction?.match(/^(RSC )?GET /) &&
-          event.contexts?.trace?.data?.['sentry.rsc'] === true &&
-          !event.contexts.trace.op
+          (event.transaction?.match(/^(RSC )?GET /) ||
+            event.transaction?.match(/^(GET|HEAD|POST|PUT|DELETE|CONNECT|OPTIONS|TRACE|PATCH) \/api$/)) &&
+          (event.contexts?.trace?.data?.['sentry.rsc'] === true ||
+            event.contexts?.trace?.data?.['sentry.route_handler'] === true) &&
+          !event.contexts?.trace?.op
         ) {
           event.contexts.trace.data = event.contexts.trace.data || {};
           event.contexts.trace.data[SEMANTIC_ATTRIBUTE_SENTRY_OP] = 'http.server';

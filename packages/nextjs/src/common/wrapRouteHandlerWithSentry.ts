@@ -3,8 +3,13 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SPAN_STATUS_ERROR,
+  Scope,
   captureException,
+  getActiveSpan,
+  getCapturedScopesOnSpan,
+  getRootSpan,
   handleCallbackErrors,
+  setCapturedScopesOnSpan,
   setHttpStatus,
   startSpan,
   withIsolationScope,
@@ -35,75 +40,85 @@ export function wrapRouteHandlerWithSentry<F extends (...args: any[]) => any>(
 
   return new Proxy(routeHandler, {
     apply: (originalFunction, thisArg, args) => {
-      return escapeNextjsTracing(() => {
-        const isolationScope = commonObjectToIsolationScope(headers);
+      const isolationScope = commonObjectToIsolationScope(headers);
 
-        const completeHeadersDict: Record<string, string> = headers ? winterCGHeadersToDict(headers) : {};
+      const activeSpan = getActiveSpan();
+      if (activeSpan) {
+        const rootSpan = getRootSpan(activeSpan);
+        const { scope } = getCapturedScopesOnSpan(rootSpan);
+        setCapturedScopesOnSpan(rootSpan, scope ?? new Scope(), isolationScope);
 
-        isolationScope.setSDKProcessingMetadata({
-          request: {
-            headers: completeHeadersDict,
-          },
-        });
+        // We mark the root span as an app route handler span so we can allow-list it in our span processor that would normally filter out all Next.js transactions/spans
+        rootSpan.setAttribute('sentry.route_handler', true);
+      }
 
-        const incomingPropagationContext = propagationContextFromHeaders(
-          completeHeadersDict['sentry-trace'],
-          completeHeadersDict['baggage'],
-        );
+      return originalFunction.apply(thisArg, args);
 
-        const propagationContext = commonObjectToPropagationContext(headers, incomingPropagationContext);
+      // const completeHeadersDict: Record<string, string> = headers ? winterCGHeadersToDict(headers) : {};
 
-        return withIsolationScope(isolationScope, () => {
-          return withScope(async scope => {
-            scope.setTransactionName(`${method} ${parameterizedRoute}`);
-            scope.setPropagationContext(propagationContext);
-            try {
-              return startSpan(
-                {
-                  name: `${method} ${parameterizedRoute}`,
-                  attributes: {
-                    [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
-                    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
-                    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nextjs',
-                  },
-                  forceTransaction: true,
-                },
-                async span => {
-                  const response: Response = await handleCallbackErrors(
-                    () => originalFunction.apply(thisArg, args),
-                    error => {
-                      // Next.js throws errors when calling `redirect()`. We don't wanna report these.
-                      if (isRedirectNavigationError(error)) {
-                        // Don't do anything
-                      } else if (isNotFoundNavigationError(error) && span) {
-                        span.setStatus({ code: SPAN_STATUS_ERROR, message: 'not_found' });
-                      } else {
-                        captureException(error, {
-                          mechanism: {
-                            handled: false,
-                          },
-                        });
-                      }
-                    },
-                  );
+      // isolationScope.setSDKProcessingMetadata({
+      //   request: {
+      //     headers: completeHeadersDict,
+      //   },
+      // });
 
-                  try {
-                    if (span && response.status) {
-                      setHttpStatus(span, response.status);
-                    }
-                  } catch {
-                    // best effort - response may be undefined?
-                  }
+      // const incomingPropagationContext = propagationContextFromHeaders(
+      //   completeHeadersDict['sentry-trace'],
+      //   completeHeadersDict['baggage'],
+      // );
 
-                  return response;
-                },
-              );
-            } finally {
-              vercelWaitUntil(flushSafelyWithTimeout());
-            }
-          });
-        });
-      });
+      // const propagationContext = commonObjectToPropagationContext(headers, incomingPropagationContext);
+
+      // return withIsolationScope(isolationScope, () => {
+      //   return withScope(async scope => {
+      //     scope.setTransactionName(`${method} ${parameterizedRoute}`);
+      //     scope.setPropagationContext(propagationContext);
+      //     try {
+      //       return startSpan(
+      //         {
+      //           name: `${method} ${parameterizedRoute}`,
+      //           attributes: {
+      //             [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+      //             [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
+      //             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nextjs',
+      //           },
+      //           forceTransaction: true,
+      //         },
+      //         async span => {
+      //           const response: Response = await handleCallbackErrors(
+      //             () => originalFunction.apply(thisArg, args),
+      //             error => {
+      //               // Next.js throws errors when calling `redirect()`. We don't wanna report these.
+      //               if (isRedirectNavigationError(error)) {
+      //                 // Don't do anything
+      //               } else if (isNotFoundNavigationError(error) && span) {
+      //                 span.setStatus({ code: SPAN_STATUS_ERROR, message: 'not_found' });
+      //               } else {
+      //                 captureException(error, {
+      //                   mechanism: {
+      //                     handled: false,
+      //                   },
+      //                 });
+      //               }
+      //             },
+      //           );
+
+      //           try {
+      //             if (span && response.status) {
+      //               setHttpStatus(span, response.status);
+      //             }
+      //           } catch {
+      //             // best effort - response may be undefined?
+      //           }
+
+      //           return response;
+      //         },
+      //       );
+      //     } finally {
+      //       vercelWaitUntil(flushSafelyWithTimeout());
+      //     }
+      //   });
+      // });
     },
   });
 }
