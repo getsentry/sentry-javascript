@@ -14,7 +14,8 @@ Sentry.startSpan({ name: 'Precompile test' }, async () => {
   await wait(500);
 });
 
-// assert that we dont override require
+// Test that globalThis.require is not defined by any side effects of the profiling
+// https://github.com/getsentry/sentry-javascript/issues/13662
 if (globalThis.require !== undefined) {
   throw new Error('globalThis.require should not be defined, check that profiling integration is not defining it');
 }
