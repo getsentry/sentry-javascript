@@ -61,6 +61,7 @@ export {
   startInactiveSpan,
   startSpanManual,
   startNewTrace,
+  suppressTracing,
   metricsDefault as metrics,
   inboundFiltersIntegration,
   linkedErrorsIntegration,
