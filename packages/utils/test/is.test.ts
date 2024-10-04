@@ -58,15 +58,13 @@ describe('isError()', () => {
     expect(isError(true)).toEqual(false);
   });
 
-  if (testOnlyIfNodeVersionAtLeast(18)) {
-    test('should detect WebAssembly.Exceptions', () => {
-      // https://developer.mozilla.org/en-US/docs/WebAssembly/JavaScript_interface/Exception/Exception#examples
-      // @ts-expect-error - WebAssembly.Tag is a valid constructor
-      const tag = new WebAssembly.Tag({ parameters: ['i32', 'f32'] });
-      // @ts-expect-error - WebAssembly.Exception is a valid constructor
-      expect(isError(new WebAssembly.Exception(tag, [42, 42.3]))).toBe(true);
-    });
-  }
+  testOnlyIfNodeVersionAtLeast(18)('should detect WebAssembly.Exceptions', () => {
+    // https://developer.mozilla.org/en-US/docs/WebAssembly/JavaScript_interface/Exception/Exception#examples
+    // @ts-expect-error - WebAssembly.Tag is a valid constructor
+    const tag = new WebAssembly.Tag({ parameters: ['i32', 'f32'] });
+    // @ts-expect-error - WebAssembly.Exception is a valid constructor
+    expect(isError(new WebAssembly.Exception(tag, [42, 42.3]))).toBe(true);
+  });
 });
 
 if (supportsErrorEvent()) {
