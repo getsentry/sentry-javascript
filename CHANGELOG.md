@@ -8,6 +8,8 @@
 
 - fix(browser/v7): Ensure wrap() only returns functions (#13838 backport)
 
+Work in this release contributed by @legobeat. Thank you for your contribution!
+
 ## 7.119.0
 
 - backport(tracing): Report dropped spans for transactions (#13343)
