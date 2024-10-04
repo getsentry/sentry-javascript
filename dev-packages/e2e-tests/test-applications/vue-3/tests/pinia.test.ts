@@ -21,12 +21,15 @@ test('sends pinia action breadcrumbs and state context', async ({ page }) => {
   const actionBreadcrumb = error.breadcrumbs?.find(breadcrumb => breadcrumb.category === 'action');
 
   expect(actionBreadcrumb).toBeDefined();
-  expect(actionBreadcrumb?.message).toBe('addItem');
+  expect(actionBreadcrumb?.message).toBe('Transformed: addItem');
   expect(actionBreadcrumb?.level).toBe('info');
 
   const stateContext = error.contexts?.state?.state;
 
   expect(stateContext).toBeDefined();
   expect(stateContext?.type).toBe('pinia');
-  expect(stateContext?.value).toEqual({ rawItems: ['item'] });
+  expect(stateContext?.value).toEqual({
+    transformed: true,
+    rawItems: ['item'],
+  });
 });

@@ -25,7 +25,15 @@ Sentry.init({
   trackComponents: ['ComponentMainView', '<ComponentOneView>'],
 });
 
-pinia.use(Sentry.createSentryPiniaPlugin());
+pinia.use(
+  Sentry.createSentryPiniaPlugin({
+    actionTransformer: action => `Transformed: ${action}`,
+    stateTransformer: state => ({
+      transformed: true,
+      ...state,
+    }),
+  }),
+);
 
 app.use(pinia);
 app.use(router);
