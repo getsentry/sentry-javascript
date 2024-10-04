@@ -67,24 +67,32 @@ export const createSentryPiniaPlugin: (options?: SentryPiniaPluginOptions) => Pi
         /* Set latest state to scope */
         const transformedState = options.stateTransformer ? options.stateTransformer(store.$state) : store.$state;
         const scope = getCurrentScope();
+        const currentState = scope.getScopeData().contexts.state;
 
         if (typeof transformedState !== 'undefined' && transformedState !== null) {
           const client = getClient();
           const options = client && client.getOptions();
           const normalizationDepth = (options && options.normalizeDepth) || 3; // default state normalization depth to 3
+          const piniaStateContext = { type: 'pinia', value: transformedState };
 
-          const newStateContext = { state: { type: 'pinia', value: transformedState } };
+          const newState = {
+            ...(currentState || {}),
+            state: piniaStateContext,
+          };
 
           addNonEnumerableProperty(
-            newStateContext,
+            newState,
             '__sentry_override_normalization_depth__',
             3 + // 3 layers for `state.value.transformedState
               normalizationDepth, // rest for the actual state
           );
 
-          scope.setContext('state', newStateContext);
+          scope.setContext('state', newState);
         } else {
-          scope.setContext('state', null);
+          scope.setContext('state', {
+            ...(currentState || {}),
+            state: { type: 'pinia', value: 'undefined' },
+          });
         }
       });
     });
