@@ -12,6 +12,7 @@ type PiniaPlugin = (context: {
 
 type SentryPiniaPluginOptions = {
   attachPiniaState?: boolean;
+  addBreadcrumbs?: boolean;
   actionTransformer?: (action: any) => any;
   stateTransformer?: (state: any) => any;
 };
@@ -48,10 +49,14 @@ export const createSentryPiniaPlugin: (options?: SentryPiniaPluginOptions) => Pi
     store.$onAction(context => {
       context.after(() => {
         const transformedActionName = options.actionTransformer
-          ? options.actionTransformer(context.name) || ''
+          ? options.actionTransformer(context.name)
           : context.name;
 
-        if (typeof transformedActionName !== 'undefined' && transformedActionName !== null) {
+        if (
+          typeof transformedActionName !== 'undefined' &&
+          transformedActionName !== null &&
+          options.addBreadcrumbs !== false
+        ) {
           addBreadcrumb({
             category: 'action',
             message: transformedActionName,
