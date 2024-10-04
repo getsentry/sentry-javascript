@@ -20,6 +20,7 @@ type SentryPiniaPluginOptions = {
 export const createSentryPiniaPlugin: (options?: SentryPiniaPluginOptions) => PiniaPlugin = (
   options: SentryPiniaPluginOptions = {
     attachPiniaState: true,
+    addBreadcrumbs: true,
     actionTransformer: action => action,
     stateTransformer: state => state,
   },
