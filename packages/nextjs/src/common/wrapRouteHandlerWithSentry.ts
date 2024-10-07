@@ -10,7 +10,7 @@ import {
   withIsolationScope,
   withScope,
 } from '@sentry/core';
-import { propagationContextFromHeaders, winterCGHeadersToDict } from '@sentry/utils';
+import { propagationContextFromHeaders, vercelWaitUntil, winterCGHeadersToDict } from '@sentry/utils';
 import { isNotFoundNavigationError, isRedirectNavigationError } from './nextNavigationErrorUtils';
 import type { RouteHandlerContext } from './types';
 import { flushSafelyWithTimeout } from './utils/responseEnd';
@@ -19,7 +19,6 @@ import {
   commonObjectToPropagationContext,
   escapeNextjsTracing,
 } from './utils/tracingUtils';
-import { vercelWaitUntil } from './utils/vercelWaitUntil';
 
 /**
  * Wraps a Next.js App Router Route handler with Sentry error and performance instrumentation.
