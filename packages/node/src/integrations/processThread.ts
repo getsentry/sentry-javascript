@@ -43,6 +43,7 @@ export const processThreadBreadcrumbIntegration = defineIntegration(_processThre
 
 function captureChildProcessEvents(child: ChildProcess, options: Options): void {
   let hasExited = false;
+  let data: Record<string, unknown> | undefined;
 
   child.on('spawn', () => {
     // This is Sentry getting macOS OS context
@@ -51,7 +52,7 @@ function captureChildProcessEvents(child: ChildProcess, options: Options): void 
       return;
     }
 
-    const data: Record<string, unknown> = { spawnfile: child.spawnfile };
+    data = { spawnfile: child.spawnfile };
     if (options.includeChildProcessArgs) {
       data.spawnargs = child.spawnargs;
     }
