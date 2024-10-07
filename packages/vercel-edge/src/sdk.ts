@@ -36,13 +36,13 @@ import {
   setupEventContextTrace,
   wrapContextManagerClass,
 } from '@sentry/opentelemetry';
-import { AsyncLocalStorageContextManager } from './async-local-storage-context-manager';
 import { VercelEdgeClient } from './client';
 import { DEBUG_BUILD } from './debug-build';
 import { winterCGFetchIntegration } from './integrations/wintercg-fetch';
 import { makeEdgeTransport } from './transports';
 import type { VercelEdgeOptions } from './types';
 import { getVercelEnv } from './utils/vercel';
+import { AsyncLocalStorageContextManager } from './vendored/async-local-storage-context-manager';
 
 declare const process: {
   env: Record<string, string>;

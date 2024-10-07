@@ -12,24 +12,27 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * NOTICE from the Sentry authors:
+ * - Code vendored from: https://github.com/open-telemetry/opentelemetry-js/blob/6515ed8098333646a63a74a8c0150cc2daf520db/packages/opentelemetry-context-async-hooks/src/AbstractAsyncHooksContextManager.ts
+ * - Modifications:
+ *   - Added lint rules
+ *   - Modified bind() method not to rely on Node.js specific APIs
  */
 
-// Taken from:
-// - https://github.com/open-telemetry/opentelemetry-js/blob/6515ed8098333646a63a74a8c0150cc2daf520db/packages/opentelemetry-context-async-hooks/src/AbstractAsyncHooksContextManager.ts
-// - https://github.com/open-telemetry/opentelemetry-js/blob/6515ed8098333646a63a74a8c0150cc2daf520db/packages/opentelemetry-context-async-hooks/src/AsyncLocalStorageContextManager.ts
+/* eslint-disable @typescript-eslint/explicit-member-accessibility */
+/* eslint-disable @typescript-eslint/member-ordering */
+/* eslint-disable jsdoc/require-jsdoc */
+/* eslint-disable @typescript-eslint/ban-types */
+/* eslint-disable @typescript-eslint/explicit-function-return-type */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable prefer-rest-params */
+/* eslint-disable @typescript-eslint/no-dynamic-delete */
+/* eslint-disable @typescript-eslint/unbound-method */
+/* eslint-disable @typescript-eslint/no-this-alias */
 
 import type { EventEmitter } from 'events';
-import { ROOT_CONTEXT } from '@opentelemetry/api';
 import type { Context, ContextManager } from '@opentelemetry/api';
-import { GLOBAL_OBJ, logger } from '@sentry/utils';
-import { DEBUG_BUILD } from './debug-build';
-
-interface AsyncLocalStorage<T> {
-  getStore(): T | undefined;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  run<R, TArgs extends any[]>(store: T, callback: (...args: TArgs) => R, ...args: TArgs): R;
-  disable(): void;
-}
 
 type Func<T> = (...args: unknown[]) => T;
 
@@ -50,9 +53,19 @@ const ADD_LISTENER_METHODS = [
   'prependOnceListener' as const,
 ];
 
-abstract class AbstractAsyncHooksContextManager implements ContextManager {
-  private readonly _kOtListeners = Symbol('OtListeners');
-  private _wrapped = false;
+export abstract class AbstractAsyncHooksContextManager implements ContextManager {
+  abstract active(): Context;
+
+  abstract with<A extends unknown[], F extends (...args: A) => ReturnType<F>>(
+    context: Context,
+    fn: F,
+    thisArg?: ThisParameterType<F>,
+    ...args: A
+  ): ReturnType<F>;
+
+  abstract enable(): this;
+
+  abstract disable(): this;
 
   /**
    * Binds a the certain context or the active one to the target function and then returns the target
@@ -60,16 +73,34 @@ abstract class AbstractAsyncHooksContextManager implements ContextManager {
    * @param target a function or event emitter. When target or one of its callbacks is called,
    *  the provided context will be used as the active context for the duration of the call.
    */
-  public bind<T>(context: Context, target: T): T {
+  bind<T>(context: Context, target: T): T {
     if (typeof target === 'object' && target !== null && 'on' in target) {
       return this._bindEventEmitter(context, target as unknown as EventEmitter) as T;
     }
 
     if (typeof target === 'function') {
-      // @ts-expect-error This is vendored
       return this._bindFunction(context, target);
     }
     return target;
+  }
+
+  private _bindFunction<T extends Function>(context: Context, target: T): T {
+    const manager = this;
+    const contextWrapper = function (this: never, ...args: unknown[]) {
+      return manager.with(context, () => target.apply(this, args));
+    };
+    Object.defineProperty(contextWrapper, 'length', {
+      enumerable: false,
+      configurable: true,
+      writable: false,
+      value: target.length,
+    });
+    /**
+     * It isn't possible to tell Typescript that contextWrapper is the same as T
+     * so we forced to cast as any here.
+     */
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return contextWrapper as any;
   }
 
   /**
@@ -91,16 +122,13 @@ abstract class AbstractAsyncHooksContextManager implements ContextManager {
     });
     // patch methods that remove a listener
     if (typeof ee.removeListener === 'function') {
-      // eslint-disable-next-line @typescript-eslint/unbound-method
       ee.removeListener = this._patchRemoveListener(ee, ee.removeListener);
     }
     if (typeof ee.off === 'function') {
-      // eslint-disable-next-line @typescript-eslint/unbound-method
       ee.off = this._patchRemoveListener(ee, ee.off);
     }
     // patch method that remove all listeners
     if (typeof ee.removeAllListeners === 'function') {
-      // eslint-disable-next-line @typescript-eslint/unbound-method
       ee.removeAllListeners = this._patchRemoveAllListeners(ee, ee.removeAllListeners);
     }
     return ee;
@@ -112,9 +140,7 @@ abstract class AbstractAsyncHooksContextManager implements ContextManager {
    * @param ee EventEmitter instance
    * @param original reference to the patched method
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private _patchRemoveListener(ee: EventEmitter, original: (...args: any[]) => any): any {
-    // eslint-disable-next-line @typescript-eslint/no-this-alias
+  private _patchRemoveListener(ee: EventEmitter, original: Function) {
     const contextManager = this;
     return function (this: never, event: string, listener: Func<void>) {
       const events = contextManager._getPatchMap(ee)?.[event];
@@ -132,9 +158,7 @@ abstract class AbstractAsyncHooksContextManager implements ContextManager {
    * @param ee EventEmitter instance
    * @param original reference to the patched method
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private _patchRemoveAllListeners(ee: EventEmitter, original: (...args: any[]) => any): any {
-    // eslint-disable-next-line @typescript-eslint/no-this-alias
+  private _patchRemoveAllListeners(ee: EventEmitter, original: Function) {
     const contextManager = this;
     return function (this: never, event: string) {
       const map = contextManager._getPatchMap(ee);
@@ -142,11 +166,9 @@ abstract class AbstractAsyncHooksContextManager implements ContextManager {
         if (arguments.length === 0) {
           contextManager._createPatchMap(ee);
         } else if (map[event] !== undefined) {
-          // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
           delete map[event];
         }
       }
-      // eslint-disable-next-line prefer-rest-params
       return original.apply(this, arguments);
     };
   }
@@ -158,9 +180,7 @@ abstract class AbstractAsyncHooksContextManager implements ContextManager {
    * @param original reference to the patched method
    * @param [context] context to propagate when calling listeners
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private _patchAddListener(ee: EventEmitter, original: (...args: any[]) => any, context: Context): any {
-    // eslint-disable-next-line @typescript-eslint/no-this-alias
+  private _patchAddListener(ee: EventEmitter, original: Function, context: Context) {
     const contextManager = this;
     return function (this: never, event: string, listener: Func<void>) {
       /**
@@ -199,125 +219,16 @@ abstract class AbstractAsyncHooksContextManager implements ContextManager {
     };
   }
 
-  /**
-   *
-   */
   private _createPatchMap(ee: EventEmitter): PatchMap {
     const map = Object.create(null);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (ee as any)[this._kOtListeners] = map;
     return map;
   }
-  /**
-   *
-   */
   private _getPatchMap(ee: EventEmitter): PatchMap | undefined {
     return (ee as never)[this._kOtListeners];
   }
 
-  /**
-   *
-   */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private _bindFunction<T extends (...args: any[]) => any>(context: Context, target: T): T {
-    // eslint-disable-next-line @typescript-eslint/no-this-alias
-    const manager = this;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const contextWrapper = function (this: never, ...args: unknown[]): any {
-      return manager.with(context, () => target.apply(this, args));
-    };
-    Object.defineProperty(contextWrapper, 'length', {
-      enumerable: false,
-      configurable: true,
-      writable: false,
-      value: target.length,
-    });
-    /**
-     * It isn't possible to tell Typescript that contextWrapper is the same as T
-     * so we forced to cast as any here.
-     */
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return contextWrapper as any;
-  }
-
-  public abstract active(): Context;
-
-  public abstract with<A extends unknown[], F extends (...args: A) => ReturnType<F>>(
-    context: Context,
-    fn: F,
-    thisArg?: ThisParameterType<F>,
-    ...args: A
-  ): ReturnType<F>;
-
-  public abstract enable(): this;
-
-  public abstract disable(): this;
-}
-
-/**
- *
- */
-export class AsyncLocalStorageContextManager extends AbstractAsyncHooksContextManager {
-  private _asyncLocalStorage: AsyncLocalStorage<Context>;
-
-  public constructor() {
-    super();
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
-    const MaybeGlobalAsyncLocalStorage = (GLOBAL_OBJ as any).AsyncLocalStorage;
-
-    if (!MaybeGlobalAsyncLocalStorage) {
-      DEBUG_BUILD &&
-        logger.warn(
-          "Tried to register AsyncLocalStorage async context strategy in a runtime that doesn't support AsyncLocalStorage.",
-        );
-      this._asyncLocalStorage = {
-        getStore() {
-          return undefined;
-        },
-        run(_store, callback, ...args) {
-          return callback.apply(this, args);
-        },
-        disable() {
-          // noop
-        },
-      };
-    } else {
-      this._asyncLocalStorage = new MaybeGlobalAsyncLocalStorage();
-    }
-  }
-
-  /**
-   *
-   */
-  public active(): Context {
-    return this._asyncLocalStorage.getStore() ?? ROOT_CONTEXT;
-  }
-
-  /**
-   *
-   */
-  public with<A extends unknown[], F extends (...args: A) => ReturnType<F>>(
-    context: Context,
-    fn: F,
-    thisArg?: ThisParameterType<F>,
-    ...args: A
-  ): ReturnType<F> {
-    const cb = thisArg == null ? fn : fn.bind(thisArg);
-    return this._asyncLocalStorage.run(context, cb as never, ...args);
-  }
-
-  /**
-   *
-   */
-  public enable(): this {
-    return this;
-  }
-
-  /**
-   *
-   */
-  public disable(): this {
-    this._asyncLocalStorage.disable();
-    return this;
-  }
+  private readonly _kOtListeners = Symbol('OtListeners');
+  private _wrapped = false;
 }
