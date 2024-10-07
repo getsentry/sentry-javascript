@@ -1,6 +1,6 @@
-import { captureException, getClient, getTraceMetaTags } from '@sentry/core';
+import { captureException, flush, getClient, getTraceMetaTags } from '@sentry/core';
 import type { ClientOptions, Context } from '@sentry/types';
-import { dropUndefinedKeys } from '@sentry/utils';
+import { dropUndefinedKeys, logger, vercelWaitUntil } from '@sentry/utils';
 import type { VueOptions } from '@sentry/vue/src/types';
 import type { CapturedErrorContext } from 'nitropack';
 import type { NuxtRenderHTMLContext } from 'nuxt/app';
@@ -79,4 +79,32 @@ export function reportNuxtError(options: {
       mechanism: { handled: false },
     });
   });
+}
+
+/**
+ * Flushes pending Sentry events with a 2 seconds timeout and in a way that cannot create unhandled promise rejections.
+ *
+ */
+export async function flushSafelyWithTimeout(isDebug: boolean): Promise<void> {
+  try {
+    isDebug && logger.log('Flushing events...');
+    await flush(2000);
+    isDebug && logger.log('Done flushing events');
+  } catch (e) {
+    isDebug && logger.log('Error while flushing events:\n', e);
+  }
+}
+
+/**
+ *  Utility function for the Nuxt module runtime function as we always have to get the client instance to get
+ *  the `debug` option (we cannot access BUILD_DEBUG in the module runtime).
+ *
+ *  This function should be called when Nitro ends a request (so Vercel can wait).
+ */
+export function vercelWaitUntilAndFlush(): void {
+  const sentryClient = getClient();
+
+  if (sentryClient) {
+    vercelWaitUntil(flushSafelyWithTimeout(sentryClient.getOptions().debug || false));
+  }
 }
