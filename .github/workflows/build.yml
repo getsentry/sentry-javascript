@@ -152,7 +152,7 @@ jobs:
         id: install_dependencies
 
       - name: Check for Affected Nx Projects
-        uses: dkhunt27/action-nx-affected-list@v5.3
+        uses: dkhunt27/action-nx-affected-list@v6.1
         id: checkForAffected
         if: github.event_name == 'pull_request'
         with:
@@ -437,7 +437,7 @@ jobs:
         with:
           node-version-file: 'package.json'
       - name: Set up Deno
-        uses: denoland/setup-deno@v1.4.1
+        uses: denoland/setup-deno@v1.5.1
         with:
           deno-version: v1.38.5
       - name: Restore caches
@@ -931,6 +931,7 @@ jobs:
             'node-koa',
             'node-connect',
             'nuxt-3',
+            'nuxt-4',
             'vue-3',
             'webpack-4',
             'webpack-5'
