@@ -22,4 +22,4 @@ await new Promise(resolve => {
   worker.on('exit', resolve);
 });
 
-throw new Error('This is a test error')
+throw new Error('This is a test error');
