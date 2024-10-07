@@ -1,6 +1,6 @@
 import { captureException, getCurrentScope, withIsolationScope } from '@sentry/core';
 import { extractTraceparentData } from '@sentry/utils';
-import { escapeNextjsTracing } from './utils/tracingUtils';
+import { escapeNextjsTracing } from '../utils/tracingUtils';
 
 interface FunctionComponent {
   (...args: unknown[]): unknown;
