@@ -1,5 +1,13 @@
-/*! Sentry Replay Worker 7.77.0 (cce7d5ecf) | https://github.com/getsentry/sentry-javascript */
+/*! Sentry Replay Worker 8.33.1 (c992b3fad) | https://github.com/getsentry/sentry-javascript */
 // DEFLATE is a complex format; to read this code, you should probably check the RFC first:
+// https://tools.ietf.org/html/rfc1951
+// You may also wish to take a look at the guide I made about this program:
+// https://gist.github.com/101arrowz/253f31eb5abc3d9275ab943003ffecad
+// Some of the following code is similar to that of UZIP.js:
+// https://github.com/photopea/UZIP.js
+// However, the vast majority of the codebase has diverged from UZIP.js to increase performance and reduce bundle size.
+// Sometimes 0 will appear where -1 would be more appropriate. This is because using a uint
+// is better for memory in most engines (I *think*).
 
 // aliases for shorter compressed code (most minifers don't do this)
 var u8 = Uint8Array,
@@ -849,12 +857,13 @@ function compress(data) {
 function mergeUInt8Arrays(chunks) {
   // calculate data length
   let len = 0;
-  for (let i = 0, l = chunks.length; i < l; i++) {
-    len += chunks[i].length;
+  for (const chunk of chunks) {
+    len += chunk.length;
   }
   // join chunks
   const result = new Uint8Array(len);
   for (let i = 0, pos = 0, l = chunks.length; i < l; i++) {
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const chunk = chunks[i];
     result.set(chunk, pos);
     pos += chunk.length;
