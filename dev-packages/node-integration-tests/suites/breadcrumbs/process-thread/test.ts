@@ -52,7 +52,7 @@ const EVENT = {
   ],
 };
 
-conditionalTest({ min: 16 })('should capture process and thread breadcrumbs', () => {
+conditionalTest({ min: 20 })('should capture process and thread breadcrumbs', () => {
   afterAll(() => {
     cleanupChildProcesses();
   });
