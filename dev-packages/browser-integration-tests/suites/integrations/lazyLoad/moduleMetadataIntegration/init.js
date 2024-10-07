@@ -7,4 +7,6 @@ Sentry.init({
 
 window.Sentry = {
   ...Sentry,
+  // Ensure this is _not_ set
+  moduleMetadataIntegration: undefined,
 };
