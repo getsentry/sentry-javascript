@@ -2,7 +2,7 @@ import { Scope, getCurrentScope, getGlobalScope, getIsolationScope, withIsolatio
 import { setOpenTelemetryContextAsyncContextStrategy } from '@sentry/opentelemetry';
 import { GLOBAL_OBJ } from '@sentry/utils';
 import { AsyncLocalStorage } from 'async_hooks';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { VercelEdgeClient } from '../src';
 import { setupOtel } from '../src/sdk';
 import { makeEdgeTransport } from '../src/transports';
