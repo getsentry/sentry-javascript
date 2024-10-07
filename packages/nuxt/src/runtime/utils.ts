@@ -96,7 +96,7 @@ export async function flushSafelyWithTimeout(isDebug: boolean): Promise<void> {
 }
 
 /**
- *  Utility function for the Nuxt module runtime function as we always have to get the client instance to get
+ *  Utility function for the Nuxt module runtime as we always have to get the client instance to get
  *  the `debug` option (we cannot access BUILD_DEBUG in the module runtime).
  *
  *  This function should be called when Nitro ends a request (so Vercel can wait).
