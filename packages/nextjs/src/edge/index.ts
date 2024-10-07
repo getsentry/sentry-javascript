@@ -6,7 +6,7 @@ import { getDefaultIntegrations, init as vercelEdgeInit } from '@sentry/vercel-e
 import { isBuild } from '../common/utils/isBuild';
 import { distDirRewriteFramesIntegration } from './distDirRewriteFramesIntegration';
 
-export { captureUnderscoreErrorException } from '../common/_error';
+export { captureUnderscoreErrorException } from '../common/pages-router-instrumentation/_error';
 
 export type EdgeOptions = VercelEdgeOptions;
 

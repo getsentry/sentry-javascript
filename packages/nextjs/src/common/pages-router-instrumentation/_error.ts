@@ -1,7 +1,7 @@
 import { captureException, withScope } from '@sentry/core';
 import type { NextPageContext } from 'next';
-import { flushSafelyWithTimeout } from './utils/responseEnd';
-import { vercelWaitUntil } from './utils/vercelWaitUntil';
+import { flushSafelyWithTimeout } from '../utils/responseEnd';
+import { vercelWaitUntil } from '../utils/vercelWaitUntil';
 
 type ContextOrProps = {
   req?: NextPageContext['req'];
