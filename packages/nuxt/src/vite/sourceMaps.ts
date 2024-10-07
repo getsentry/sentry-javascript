@@ -58,7 +58,14 @@ function normalizePath(path: string): string {
   return path.replace(/^(\.\.\/)+/, './');
 }
 
-function getPluginOptions(moduleOptions: SentryNuxtModuleOptions): SentryVitePluginOptions | SentryRollupPluginOptions {
+/**
+ *  Generates source maps upload options for the Sentry Vite and Rollup plugin.
+ *
+ *  Only exported for Testing purposes.
+ */
+export function getPluginOptions(
+  moduleOptions: SentryNuxtModuleOptions,
+): SentryVitePluginOptions | SentryRollupPluginOptions {
   const sourceMapsUploadOptions = moduleOptions.sourceMapsUploadOptions || {};
 
   return {
@@ -66,6 +73,14 @@ function getPluginOptions(moduleOptions: SentryNuxtModuleOptions): SentryVitePlu
     project: sourceMapsUploadOptions.project ?? process.env.SENTRY_PROJECT,
     authToken: sourceMapsUploadOptions.authToken ?? process.env.SENTRY_AUTH_TOKEN,
     telemetry: sourceMapsUploadOptions.telemetry ?? true,
+    debug: moduleOptions.debug ?? false,
+    _metaOptions: {
+      telemetry: {
+        metaFramework: 'nuxt',
+      },
+    },
+    ...moduleOptions?.unstable_sentryBundlerPluginOptions,
+
     sourcemaps: {
       // The server/client files are in different places depending on the nitro preset (e.g. '.output/server' or '.netlify/functions-internal/server')
       // We cannot determine automatically how the build folder looks like (depends on the preset), so we have to accept that sourcemaps are uploaded multiple times (with the vitePlugin for Nuxt and the rollupPlugin for Nitro).
@@ -74,13 +89,8 @@ function getPluginOptions(moduleOptions: SentryNuxtModuleOptions): SentryVitePlu
       ignore: sourceMapsUploadOptions.sourcemaps?.ignore ?? undefined,
       filesToDeleteAfterUpload: sourceMapsUploadOptions.sourcemaps?.filesToDeleteAfterUpload ?? undefined,
       rewriteSources: (source: string) => normalizePath(source),
+      ...moduleOptions?.unstable_sentryBundlerPluginOptions?.sourcemaps,
     },
-    _metaOptions: {
-      telemetry: {
-        metaFramework: 'nuxt',
-      },
-    },
-    debug: moduleOptions.debug ?? false,
   };
 }
 

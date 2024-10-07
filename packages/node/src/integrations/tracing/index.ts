@@ -3,7 +3,6 @@ import { instrumentHttp } from '../http';
 
 import { amqplibIntegration, instrumentAmqplib } from './amqplib';
 import { connectIntegration, instrumentConnect } from './connect';
-import { dataloaderIntegration, instrumentDataloader } from './dataloader';
 import { expressIntegration, instrumentExpress } from './express';
 import { fastifyIntegration, instrumentFastify } from './fastify';
 import { genericPoolIntegration, instrumentGenericPool } from './genericPool';
@@ -44,7 +43,6 @@ export function getAutoPerformanceIntegrations(): Integration[] {
     connectIntegration(),
     genericPoolIntegration(),
     kafkaIntegration(),
-    dataloaderIntegration(),
     amqplibIntegration(),
     lruMemoizerIntegration(),
   ];
@@ -74,7 +72,6 @@ export function getOpenTelemetryInstrumentationToPreload(): (((options?: any) =>
     instrumentGraphql,
     instrumentRedis,
     instrumentGenericPool,
-    instrumentDataloader,
     instrumentAmqplib,
   ];
 }

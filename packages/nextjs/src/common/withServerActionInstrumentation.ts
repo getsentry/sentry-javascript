@@ -5,17 +5,27 @@ import {
   withIsolationScope,
 } from '@sentry/core';
 import { captureException, continueTrace, getClient, handleCallbackErrors, startSpan } from '@sentry/core';
-import { logger } from '@sentry/utils';
+import { logger, vercelWaitUntil } from '@sentry/utils';
 
 import { DEBUG_BUILD } from './debug-build';
 import { isNotFoundNavigationError, isRedirectNavigationError } from './nextNavigationErrorUtils';
 import { flushSafelyWithTimeout } from './utils/responseEnd';
 import { escapeNextjsTracing } from './utils/tracingUtils';
-import { vercelWaitUntil } from './utils/vercelWaitUntil';
 
 interface Options {
   formData?: FormData;
-  headers?: Headers;
+
+  /**
+   * Headers as returned from `headers()`.
+   *
+   * Currently accepts both a plain `Headers` object and `Promise<ReadonlyHeaders>` to be compatible with async APIs introduced in Next.js 15: https://github.com/vercel/next.js/pull/68812
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  headers?: Headers | Promise<any>;
+
+  /**
+   * Whether the server action response should be included in any events captured within the server action.
+   */
   recordResponse?: boolean;
 }
 
@@ -55,16 +65,17 @@ async function withServerActionInstrumentationImplementation<A extends (...args:
   callback: A,
 ): Promise<ReturnType<A>> {
   return escapeNextjsTracing(() => {
-    return withIsolationScope(isolationScope => {
+    return withIsolationScope(async isolationScope => {
       const sendDefaultPii = getClient()?.getOptions().sendDefaultPii;
 
       let sentryTraceHeader;
       let baggageHeader;
       const fullHeadersObject: Record<string, string> = {};
       try {
-        sentryTraceHeader = options.headers?.get('sentry-trace') ?? undefined;
-        baggageHeader = options.headers?.get('baggage');
-        options.headers?.forEach((value, key) => {
+        const awaitedHeaders: Headers = await options.headers;
+        sentryTraceHeader = awaitedHeaders?.get('sentry-trace') ?? undefined;
+        baggageHeader = awaitedHeaders?.get('baggage');
+        awaitedHeaders?.forEach((value, key) => {
           fullHeadersObject[key] = value;
         });
       } catch (e) {

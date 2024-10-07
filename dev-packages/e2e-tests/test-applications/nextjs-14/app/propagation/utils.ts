@@ -26,8 +26,8 @@ export function makeHttpRequest(url: string) {
   });
 }
 
-export function checkHandler() {
-  const headerList = headers();
+export async function checkHandler() {
+  const headerList = await headers();
 
   const headerObj: Record<string, unknown> = {};
   headerList.forEach((value, key) => {

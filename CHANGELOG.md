@@ -10,6 +10,56 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+Work in this release was contributed by @trzeciak and @lizhiyao. Thank you for your contributions!
+
+## 8.33.1
+
+- fix(core): Update trpc middleware types ([#13859](https://github.com/getsentry/sentry-javascript/pull/13859))
+- fix(fetch): Fix memory leak when handling endless streaming
+  ([#13809](https://github.com/getsentry/sentry-javascript/pull/13809))
+
+Work in this release was contributed by @soapproject. Thank you for your contribution!
+
+## 8.33.0
+
+### Important Changes
+
+- **feat(nextjs): Support new async APIs (`headers()`, `params`, `searchParams`)
+  ([#13828](https://github.com/getsentry/sentry-javascript/pull/13828))**
+
+Adds support for [new dynamic Next.js APIs](https://github.com/vercel/next.js/pull/68812).
+
+- **feat(node): Add `lru-memoizer` instrumentation
+  ([#13796](https://github.com/getsentry/sentry-javascript/pull/13796))**
+
+Adds integration for lru-memoizer using @opentelemetry/instrumentation-lru-memoizer.
+
+- **feat(nuxt): Add `unstable_sentryBundlerPluginOptions` to module options
+  ([#13811](https://github.com/getsentry/sentry-javascript/pull/13811))**
+
+Allows passing other options from the bundler plugins (vite and rollup) to Nuxt module options.
+
+### Other Changes
+
+- fix(browser): Ensure `wrap()` only returns functions
+  ([#13838](https://github.com/getsentry/sentry-javascript/pull/13838))
+- fix(core): Adapt trpc middleware input attachment
+  ([#13831](https://github.com/getsentry/sentry-javascript/pull/13831))
+- fix(core): Don't return trace data in `getTraceData` and `getTraceMetaTags` if SDK is disabled
+  ([#13760](https://github.com/getsentry/sentry-javascript/pull/13760))
+- fix(nuxt): Don't restrict source map assets upload
+  ([#13800](https://github.com/getsentry/sentry-javascript/pull/13800))
+- fix(nuxt): Use absolute path for client config ([#13798](https://github.com/getsentry/sentry-javascript/pull/13798))
+- fix(replay): Stop global event handling for paused replays
+  ([#13815](https://github.com/getsentry/sentry-javascript/pull/13815))
+- fix(sveltekit): add url param to source map upload options
+  ([#13812](https://github.com/getsentry/sentry-javascript/pull/13812))
+- fix(types): Add jsdocs to cron types ([#13776](https://github.com/getsentry/sentry-javascript/pull/13776))
+- fix(nextjs): Loosen @sentry/nextjs webpack peer dependency
+  ([#13826](https://github.com/getsentry/sentry-javascript/pull/13826))
+
+Work in this release was contributed by @joshuajaco. Thank you for your contribution!
+
 ## 8.32.0
 
 ### Important Changes
@@ -1110,12 +1160,12 @@ with full support for ESM-based node apps using **Node.js 18.19.0 or higher**.
 [**ES2018+**](https://caniuse.com/?feats=mdn-javascript_builtins_regexp_dotall,js-regexp-lookbehind,mdn-javascript_builtins_regexp_named_capture_groups,mdn-javascript_builtins_regexp_property_escapes,mdn-javascript_builtins_symbol_asynciterator,mdn-javascript_functions_method_definitions_async_generator_methods,mdn-javascript_grammar_template_literals_template_literal_revision,mdn-javascript_operators_destructuring_rest_in_objects,mdn-javascript_operators_destructuring_rest_in_arrays,promise-finally)
 compatible browsers. New minimum browser versions:
 
-- Chrome 63
+- Chrome 71
 - Edge 79
-- Safari/iOS Safari 12
-- Firefox 58
-- Opera 50
-- Samsung Internet 8.2
+- Safari 12.1, iOS Safari 12.2
+- Firefox 65
+- Opera 58
+- Samsung Internet 10
 
 For more details, please see the
 [version support section in our migration guide](./MIGRATION.md#1-version-support-changes).
