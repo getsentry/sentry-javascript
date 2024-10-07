@@ -38,6 +38,7 @@
     "@types/mongodb": "^3.6.20",
     "@types/mysql": "^2.15.21",
     "@types/pg": "^8.6.5",
+    "ai": "^4.0.6",
     "amqplib": "^0.10.4",
     "apollo-server": "^3.11.1",
     "axios": "^1.7.7",
