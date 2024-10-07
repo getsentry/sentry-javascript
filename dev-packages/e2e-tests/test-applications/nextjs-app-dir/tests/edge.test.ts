@@ -22,7 +22,6 @@ test('Should record exceptions for faulty edge server components', async ({ page
 // TODO(lforst): This test skip cannot make it into production - make sure to fix this test before merging into develop branch
 test.skip('Should record transaction for edge server components', async ({ page }) => {
   const serverComponentTransactionPromise = waitForTransaction('nextjs-app-dir', async transactionEvent => {
-    console.log('t', transactionEvent.transaction);
     return transactionEvent?.transaction === 'GET /edge-server-components';
   });
 

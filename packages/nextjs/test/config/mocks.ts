@@ -61,8 +61,7 @@ afterEach(() => {
 // eslint-disable-next-line @typescript-eslint/unbound-method
 const realConsoleWarn = global.console.warn;
 global.console.warn = (...args: unknown[]) => {
-  // Suppress the v7 -> v8 migration warning
-  //
+  // Suppress the v7 -> v8 migration warning which would get spammed for the unit tests otherwise
   if (typeof args[0] === 'string' && args[0]?.includes('Learn more about setting up an instrumentation hook')) {
     return;
   }
