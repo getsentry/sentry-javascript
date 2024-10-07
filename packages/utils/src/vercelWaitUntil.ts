@@ -1,4 +1,4 @@
-import { GLOBAL_OBJ } from '@sentry/utils';
+import { GLOBAL_OBJ } from './worldwide';
 
 interface VercelRequestContextGlobal {
   get?(): {
@@ -16,6 +16,12 @@ export function vercelWaitUntil(task: Promise<unknown>): void {
     // @ts-expect-error This is not typed
     GLOBAL_OBJ[Symbol.for('@vercel/request-context')];
 
-  const ctx = vercelRequestContextGlobal?.get?.() ?? {};
-  ctx.waitUntil?.(task);
+  const ctx =
+    vercelRequestContextGlobal && vercelRequestContextGlobal.get && vercelRequestContextGlobal.get()
+      ? vercelRequestContextGlobal.get()
+      : {};
+
+  if (ctx && ctx.waitUntil) {
+    ctx.waitUntil(task);
+  }
 }
