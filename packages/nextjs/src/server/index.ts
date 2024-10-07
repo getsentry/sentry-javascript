@@ -309,7 +309,7 @@ export function init(options: NodeOptions): NodeClient | undefined {
         // Enhance route handler transactions
         if (
           event.type === 'transaction' &&
-          event.transaction?.match(/^(GET|HEAD|POST|PUT|DELETE|CONNECT|OPTIONS|TRACE|PATCH) \/api/) &&
+          event.transaction?.match(/^(GET|HEAD|POST|PUT|DELETE|CONNECT|OPTIONS|TRACE|PATCH) .*\/route\.(ts|js)$/) &&
           event.contexts?.trace?.data?.['sentry.route_handler'] === true &&
           !event.contexts.trace.op
         ) {
