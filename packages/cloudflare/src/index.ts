@@ -61,6 +61,7 @@ export {
   startInactiveSpan,
   startSpanManual,
   startNewTrace,
+  suppressTracing,
   withActiveSpan,
   getSpanDescendants,
   continueTrace,

@@ -112,6 +112,7 @@ export {
   spotlightIntegration,
   startInactiveSpan,
   startNewTrace,
+  suppressTracing,
   startSession,
   startSpan,
   startSpanManual,
