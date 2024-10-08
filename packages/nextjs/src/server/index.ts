@@ -14,6 +14,7 @@ import { GLOBAL_OBJ, logger } from '@sentry/utils';
 import {
   ATTR_HTTP_REQUEST_METHOD,
   ATTR_HTTP_ROUTE,
+  ATTR_URL_QUERY,
   SEMATTRS_HTTP_METHOD,
   SEMATTRS_HTTP_TARGET,
 } from '@opentelemetry/semantic-conventions';
@@ -157,11 +158,14 @@ export function init(options: NodeOptions): NodeClient | undefined {
     // We need to drop these spans.
     if (
       // eslint-disable-next-line deprecation/deprecation
-      typeof spanAttributes[SEMATTRS_HTTP_TARGET] === 'string' &&
-      // eslint-disable-next-line deprecation/deprecation
-      spanAttributes[SEMATTRS_HTTP_TARGET].includes('sentry_key') &&
-      // eslint-disable-next-line deprecation/deprecation
-      spanAttributes[SEMATTRS_HTTP_TARGET].includes('sentry_client')
+      (typeof spanAttributes[SEMATTRS_HTTP_TARGET] === 'string' &&
+        // eslint-disable-next-line deprecation/deprecation
+        spanAttributes[SEMATTRS_HTTP_TARGET].includes('sentry_key') &&
+        // eslint-disable-next-line deprecation/deprecation
+        spanAttributes[SEMATTRS_HTTP_TARGET].includes('sentry_client')) ||
+      (typeof spanAttributes[ATTR_URL_QUERY] === 'string' &&
+        spanAttributes[ATTR_URL_QUERY].includes('sentry_key') &&
+        spanAttributes[ATTR_URL_QUERY].includes('sentry_client'))
     ) {
       samplingDecision.decision = false;
     }
