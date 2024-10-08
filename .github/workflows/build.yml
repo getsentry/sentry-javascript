@@ -152,7 +152,7 @@ jobs:
         id: install_dependencies
 
       - name: Check for Affected Nx Projects
-        uses: dkhunt27/action-nx-affected-list@v5.3
+        uses: dkhunt27/action-nx-affected-list@v6.1
         id: checkForAffected
         if: github.event_name == 'pull_request'
         with:

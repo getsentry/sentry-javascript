@@ -13,14 +13,13 @@ import {
   withIsolationScope,
   withScope,
 } from '@sentry/core';
-import { propagationContextFromHeaders, uuid4, winterCGHeadersToDict } from '@sentry/utils';
+import { propagationContextFromHeaders, uuid4, vercelWaitUntil, winterCGHeadersToDict } from '@sentry/utils';
 
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import { isNotFoundNavigationError, isRedirectNavigationError } from '../common/nextNavigationErrorUtils';
 import type { ServerComponentContext } from '../common/types';
 import { flushSafelyWithTimeout } from './utils/responseEnd';
 import { commonObjectToIsolationScope, commonObjectToPropagationContext } from './utils/tracingUtils';
-import { vercelWaitUntil } from './utils/vercelWaitUntil';
 
 /**
  * Wraps an `app` directory server component with Sentry error instrumentation.

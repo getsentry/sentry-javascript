@@ -11,13 +11,12 @@ import {
   startSpan,
   withIsolationScope,
 } from '@sentry/core';
-import { winterCGRequestToRequestData } from '@sentry/utils';
+import { vercelWaitUntil, winterCGRequestToRequestData } from '@sentry/utils';
 
 import type { EdgeRouteHandler } from '../../edge/types';
 import { TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION } from '../span-attributes-with-logic-attached';
 import { flushSafelyWithTimeout } from './responseEnd';
 import { commonObjectToIsolationScope, escapeNextjsTracing } from './tracingUtils';
-import { vercelWaitUntil } from './vercelWaitUntil';
 
 /**
  * Wraps a function on the edge runtime with error and performance monitoring.

@@ -7,14 +7,13 @@ import {
   withIsolationScope,
 } from '@sentry/core';
 import { captureException, continueTrace, getClient, handleCallbackErrors, startSpan } from '@sentry/core';
-import { logger } from '@sentry/utils';
+import { logger, vercelWaitUntil } from '@sentry/utils';
 
 import { DEBUG_BUILD } from './debug-build';
 import { isNotFoundNavigationError, isRedirectNavigationError } from './nextNavigationErrorUtils';
 import { TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION } from './span-attributes-with-logic-attached';
 import { flushSafelyWithTimeout } from './utils/responseEnd';
 import { escapeNextjsTracing } from './utils/tracingUtils';
-import { vercelWaitUntil } from './utils/vercelWaitUntil';
 
 interface Options {
   formData?: FormData;
