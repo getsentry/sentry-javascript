@@ -1,5 +1,5 @@
 import type { Integration } from '@sentry/types';
-import { instrumentOtelHttp, instrumentSentryHttp } from '../http';
+import { instrumentOtelHttp } from '../http';
 
 import { amqplibIntegration, instrumentAmqplib } from './amqplib';
 import { connectIntegration, instrumentConnect } from './connect';
