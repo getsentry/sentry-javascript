@@ -268,6 +268,7 @@ export function extractRequestData(
 
 /**
  * Add already normalized request data to an event.
+ * This mutates the passed in event.
  */
 export function addNormalizedRequestDataToEvent(
   event: Event,
@@ -275,7 +276,7 @@ export function addNormalizedRequestDataToEvent(
   // This is non-standard data that is not part of the regular HTTP request
   additionalData: { ipAddress?: string; user?: Record<string, unknown> },
   options: AddRequestDataToEventOptions,
-): Event {
+): void {
   const include = {
     ...DEFAULT_INCLUDES,
     ...(options && options.include),
@@ -318,8 +319,6 @@ export function addNormalizedRequestDataToEvent(
       };
     }
   }
-
-  return event;
 }
 
 /**

@@ -84,7 +84,8 @@ const _requestDataIntegration = ((options: RequestDataIntegrationOptions = {}) =
         const ipAddress = request ? request.ip || (request.socket && request.socket.remoteAddress) : undefined;
         const user = request ? request.user : undefined;
 
-        return addNormalizedRequestDataToEvent(event, normalizedRequest, { ipAddress, user }, addRequestDataOptions);
+        addNormalizedRequestDataToEvent(event, normalizedRequest, { ipAddress, user }, addRequestDataOptions);
+        return event;
       }
 
       if (!request) {
