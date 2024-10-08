@@ -227,6 +227,8 @@ sentryTest('should add replay_id to error DSC while replay is active', async ({ 
     sentryTest.skip();
   }
 
+  const hasTracing = !shouldSkipTracingTest();
+
   await page.route('https://dsn.ingest.sentry.io/**/*', route => {
     return route.fulfill({
       status: 200,
@@ -242,7 +244,7 @@ sentryTest('should add replay_id to error DSC while replay is active', async ({ 
   const error2Req = waitForErrorRequest(page, event => event.exception?.values?.[0].value === 'This is error #2');
 
   // We want to wait for the transaction to be done, to ensure we have a consistent test
-  const transactionReq = shouldSkipTracingTest() ? Promise.resolve() : waitForTransactionRequest(page);
+  const transactionReq = hasTracing ? waitForTransactionRequest(page) : Promise.resolve();
 
   // Wait for this to be available
   await page.waitForFunction('!!window.Replay');
@@ -262,11 +264,15 @@ sentryTest('should add replay_id to error DSC while replay is active', async ({ 
   expect(error1Header.trace).toBeDefined();
   expect(error1Header.trace).toEqual({
     environment: 'production',
-    sample_rate: '1',
     trace_id: expect.any(String),
     public_key: 'public',
     replay_id: replay.session?.id,
-    sampled: 'true',
+    ...(hasTracing
+      ? {
+          sample_rate: '1',
+          sampled: 'true',
+        }
+      : {}),
   });
 
   // Now end replay and trigger another error, it should not have a replay_id in DSC anymore
