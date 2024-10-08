@@ -196,7 +196,10 @@ export function init(options: NodeOptions): NodeClient | undefined {
     // We want to rename these spans because they look like "GET /path/to/route" and we already emit spans that look
     // like this with our own http instrumentation.
     if (spanAttributes?.['next.span_type'] === 'BaseServer.handleRequest') {
-      span.updateName('next server handler'); // This is all lowercase because the spans that Next.js emits by itself generally look like this.
+      const rootSpan = getRootSpan(span);
+      if (span !== rootSpan) {
+        span.updateName('next server handler'); // This is all lowercase because the spans that Next.js emits by itself generally look like this.
+      }
     }
   });
 
@@ -307,16 +310,16 @@ export function init(options: NodeOptions): NodeClient | undefined {
         }
 
         // Enhance route handler transactions
-        if (
-          event.type === 'transaction' &&
-          event.transaction?.match(/^(GET|HEAD|POST|PUT|DELETE|CONNECT|OPTIONS|TRACE|PATCH) .*\/route$/) &&
-          event.contexts?.trace?.data?.['sentry.route_handler'] === true &&
-          !event.contexts.trace.op
-        ) {
+        if (event.type === 'transaction' && event.contexts?.trace?.data?.['sentry.route_handler'] === true) {
           event.contexts.trace.data = event.contexts.trace.data || {};
           event.contexts.trace.data[SEMANTIC_ATTRIBUTE_SENTRY_OP] = 'http.server';
           event.contexts.trace.op = 'http.server';
-          event.transaction = event.transaction.replace(/\/route$/, '');
+          if (typeof event.contexts.trace.data[ATTR_HTTP_ROUTE] === 'string') {
+            // eslint-disable-next-line deprecation/deprecation
+            event.transaction = `${event.contexts.trace.data[SEMATTRS_HTTP_METHOD]} ${event.contexts.trace.data[
+              ATTR_HTTP_ROUTE
+            ].replace(/\/route$/, '')}`;
+          }
         }
 
         return event;
