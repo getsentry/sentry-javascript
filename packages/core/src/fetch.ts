@@ -153,7 +153,7 @@ export function addTracingHeadersToFetchRequest(
   } else if (typeof Headers !== 'undefined' && isInstanceOf(headers, Headers)) {
     const newHeaders = new Headers(headers as Headers);
 
-    newHeaders.append('sentry-trace', sentryTraceHeader);
+    newHeaders.set('sentry-trace', sentryTraceHeader);
 
     if (sentryBaggageHeader) {
       // If the same header is appended multiple times the browser will merge the values into a single request header.
