@@ -4,6 +4,8 @@ import {
   SPAN_STATUS_OK,
   captureException,
   continueTrace,
+  getActiveSpan,
+  getRootSpan,
   handleCallbackErrors,
   setHttpStatus,
   startSpan,
@@ -12,6 +14,7 @@ import {
 import { winterCGRequestToRequestData } from '@sentry/utils';
 
 import type { EdgeRouteHandler } from '../../edge/types';
+import { TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION } from '../span-attributes-with-logic-attached';
 import { flushSafelyWithTimeout } from './responseEnd';
 import { commonObjectToIsolationScope, escapeNextjsTracing } from './tracingUtils';
 import { vercelWaitUntil } from './vercelWaitUntil';
@@ -24,6 +27,15 @@ export function withEdgeWrapping<H extends EdgeRouteHandler>(
   options: { spanDescription: string; spanOp: string; mechanismFunctionName: string },
 ): (...params: Parameters<H>) => Promise<ReturnType<H>> {
   return async function (this: unknown, ...args) {
+    // Since the spans emitted by Next.js are super buggy with completely wrong timestamps
+    // (fix pending at the time of writing this: https://github.com/vercel/next.js/pull/70908) we want to intentionally
+    // drop them. In the future, when Next.js' OTEL instrumentation is in a high-quality place we can potentially think
+    // about keeping them.
+    const nextJsOwnedSpan = getActiveSpan();
+    if (nextJsOwnedSpan) {
+      getRootSpan(nextJsOwnedSpan)?.setAttribute(TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION, true);
+    }
+
     return escapeNextjsTracing(() => {
       const req: unknown = args[0];
       return withIsolationScope(commonObjectToIsolationScope(req), isolationScope => {

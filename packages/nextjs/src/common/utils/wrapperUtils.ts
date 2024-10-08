@@ -6,6 +6,8 @@ import {
   SPAN_STATUS_OK,
   captureException,
   continueTrace,
+  getActiveSpan,
+  getRootSpan,
   getTraceData,
   startInactiveSpan,
   startSpan,
@@ -16,6 +18,7 @@ import {
 import type { Span } from '@sentry/types';
 import { isString } from '@sentry/utils';
 
+import { TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION } from '../span-attributes-with-logic-attached';
 import { autoEndSpanOnResponseEnd, flushSafelyWithTimeout } from './responseEnd';
 import { commonObjectToIsolationScope, escapeNextjsTracing } from './tracingUtils';
 import { vercelWaitUntil } from './vercelWaitUntil';
@@ -94,6 +97,15 @@ export function withTracedServerSideDataFetcher<F extends (...args: any[]) => Pr
     this: unknown,
     ...args: Parameters<F>
   ): Promise<{ data: ReturnType<F>; sentryTrace?: string; baggage?: string }> {
+    // Since the spans emitted by Next.js are super buggy with completely wrong timestamps
+    // (fix pending at the time of writing this: https://github.com/vercel/next.js/pull/70908) we want to intentionally
+    // drop them. In the future, when Next.js' OTEL instrumentation is in a high-quality place we can potentially think
+    // about keeping them.
+    const nextJsOwnedSpan = getActiveSpan();
+    if (nextJsOwnedSpan) {
+      getRootSpan(nextJsOwnedSpan)?.setAttribute(TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION, true);
+    }
+
     return escapeNextjsTracing(() => {
       const isolationScope = commonObjectToIsolationScope(req);
       return withIsolationScope(isolationScope, () => {

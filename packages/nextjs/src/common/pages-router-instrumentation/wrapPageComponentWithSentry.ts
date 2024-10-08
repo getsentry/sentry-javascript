@@ -1,5 +1,6 @@
-import { captureException, getCurrentScope, withIsolationScope } from '@sentry/core';
+import { captureException, getActiveSpan, getCurrentScope, getRootSpan, withIsolationScope } from '@sentry/core';
 import { extractTraceparentData } from '@sentry/utils';
+import { TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION } from '../span-attributes-with-logic-attached';
 import { escapeNextjsTracing } from '../utils/tracingUtils';
 
 interface FunctionComponent {
@@ -25,6 +26,15 @@ export function wrapPageComponentWithSentry(pageComponent: FunctionComponent | C
   if (isReactClassComponent(pageComponent)) {
     return class SentryWrappedPageComponent extends pageComponent {
       public render(...args: unknown[]): unknown {
+        // Since the spans emitted by Next.js are super buggy with completely wrong timestamps
+        // (fix pending at the time of writing this: https://github.com/vercel/next.js/pull/70908) we want to intentionally
+        // drop them. In the future, when Next.js' OTEL instrumentation is in a high-quality place we can potentially think
+        // about keeping them.
+        const nextJsOwnedSpan = getActiveSpan();
+        if (nextJsOwnedSpan) {
+          getRootSpan(nextJsOwnedSpan)?.setAttribute(TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION, true);
+        }
+
         return escapeNextjsTracing(() => {
           return withIsolationScope(() => {
             const scope = getCurrentScope();
@@ -62,6 +72,15 @@ export function wrapPageComponentWithSentry(pageComponent: FunctionComponent | C
   } else if (typeof pageComponent === 'function') {
     return new Proxy(pageComponent, {
       apply(target, thisArg, argArray: [{ _sentryTraceData?: string } | undefined]) {
+        // Since the spans emitted by Next.js are super buggy with completely wrong timestamps
+        // (fix pending at the time of writing this: https://github.com/vercel/next.js/pull/70908) we want to intentionally
+        // drop them. In the future, when Next.js' OTEL instrumentation is in a high-quality place we can potentially think
+        // about keeping them.
+        const nextJsOwnedSpan = getActiveSpan();
+        if (nextJsOwnedSpan) {
+          getRootSpan(nextJsOwnedSpan)?.setAttribute(TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION, true);
+        }
+
         return escapeNextjsTracing(() => {
           return withIsolationScope(() => {
             const scope = getCurrentScope();
