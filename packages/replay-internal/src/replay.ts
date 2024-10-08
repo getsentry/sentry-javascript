@@ -53,6 +53,7 @@ import { debounce } from './util/debounce';
 import { getHandleRecordingEmit } from './util/handleRecordingEmit';
 import { isExpired } from './util/isExpired';
 import { isSessionExpired } from './util/isSessionExpired';
+import { resetReplayIdOnDynamicSamplingContext } from './util/resetReplayIdOnDynamicSamplingContext';
 import { sendReplay } from './util/sendReplay';
 import { RateLimitError } from './util/sendReplayRequest';
 import type { SKIPPED } from './util/throttle';
@@ -445,6 +446,8 @@ export class ReplayContainer implements ReplayContainerInterface {
 
     try {
       DEBUG_BUILD && logger.info(`Stopping Replay${reason ? ` triggered by ${reason}` : ''}`);
+
+      resetReplayIdOnDynamicSamplingContext();
 
       this._removeListeners();
       this.stopRecording();
