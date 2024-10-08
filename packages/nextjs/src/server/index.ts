@@ -238,8 +238,7 @@ export function init(options: NodeOptions): NodeClient | undefined {
             // Pages router
             event.transaction === '/404' ||
             // App router (could be "GET /404", "POST /404", ...)
-            event.transaction?.match(/^(GET|HEAD|POST|PUT|DELETE|CONNECT|OPTIONS|TRACE|PATCH) \/404$/) ||
-            event.transaction === 'GET /_not-found'
+            event.transaction?.match(/^(GET|HEAD|POST|PUT|DELETE|CONNECT|OPTIONS|TRACE|PATCH) \/(404|_not-found)$/)
           ) {
             return null;
           }
