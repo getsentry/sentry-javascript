@@ -8,6 +8,13 @@
 
 ## Unreleased
 
+### Important Changes
+
+- **ref(nextjs): Remove dead code ([#13828](https://github.com/getsentry/sentry-javascript/pull/13903))**
+
+Relevant for users of the `@sentry/nextjs` package: If you have previously configured a
+`SENTRY_IGNORE_API_RESOLUTION_ERROR` environment variable, it is now safe to unset it.
+
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
 Work in this release was contributed by @trzeciak and @lizhiyao. Thank you for your contributions!
