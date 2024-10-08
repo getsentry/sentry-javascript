@@ -2,6 +2,8 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   captureException,
   continueTrace,
+  getActiveSpan,
+  getRootSpan,
   setHttpStatus,
   startSpanManual,
   withIsolationScope,
@@ -9,6 +11,7 @@ import {
 import { consoleSandbox, isString, logger, objectify } from '@sentry/utils';
 
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
+import { TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION } from '../span-attributes-with-logic-attached';
 import type { AugmentedNextApiRequest, AugmentedNextApiResponse, NextApiHandler } from '../types';
 import { flushSafelyWithTimeout } from '../utils/responseEnd';
 import { escapeNextjsTracing } from '../utils/tracingUtils';
@@ -24,6 +27,15 @@ import { vercelWaitUntil } from '../utils/vercelWaitUntil';
  * @returns The wrapped handler
  */
 export function wrapApiHandlerWithSentry(apiHandler: NextApiHandler, parameterizedRoute: string): NextApiHandler {
+  // Since the API route handler spans emitted by Next.js are super buggy with completely wrong timestamps
+  // (fix pending at the time of writing this: https://github.com/vercel/next.js/pull/70908) we want to intentionally
+  // drop them. In the future, when Next.js' OTEL instrumentation is in a high-quality place we can potentially think
+  // about keeping them.
+  const nextJsOwnedSpan = getActiveSpan();
+  if (nextJsOwnedSpan) {
+    getRootSpan(nextJsOwnedSpan)?.setAttribute(TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION, true);
+  }
+
   return new Proxy(apiHandler, {
     apply: (
       wrappingTarget,
