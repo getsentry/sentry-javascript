@@ -165,12 +165,14 @@ export function addTracingHeadersToFetchRequest(
           .filter(baggageEntry => !baggageEntry.split('=')[0]!.startsWith(SENTRY_BAGGAGE_KEY_PREFIX))
           .join(',');
 
-        const mergedHeaders = [sentryBaggageHeader];
-        if (prevHeaderStrippedFromSentryBaggage) {
-          mergedHeaders.unshift(prevHeaderStrippedFromSentryBaggage);
-        }
-
-        newHeaders.set(BAGGAGE_HEADER_NAME, mergedHeaders.join(','));
+        newHeaders.set(
+          BAGGAGE_HEADER_NAME,
+          // If there are non-sentry entries (i.e. if the stripped string is non-empty/truthy) combine the stripped header and sentry baggage header
+          // otherwise just set the sentry baggage header
+          prevHeaderStrippedFromSentryBaggage
+            ? `${prevHeaderStrippedFromSentryBaggage},${sentryBaggageHeader}`
+            : sentryBaggageHeader,
+        );
       } else {
         newHeaders.set(BAGGAGE_HEADER_NAME, sentryBaggageHeader);
       }
