@@ -2,11 +2,9 @@ import type { Client, HandlerDataFetch, Scope, Span, SpanOrigin } from '@sentry/
 import {
   BAGGAGE_HEADER_NAME,
   SENTRY_BAGGAGE_KEY_PREFIX,
-  SENTRY_BAGGAGE_KEY_PREFIX_REGEX,
   dynamicSamplingContextToSentryBaggageHeader,
   generateSentryTraceHeader,
   isInstanceOf,
-  parseBaggageHeader,
   parseUrl,
 } from '@sentry/utils';
 import { getClient, getCurrentScope, getIsolationScope } from './currentScopes';
