@@ -123,7 +123,7 @@ export function addTracingHeadersToFetchRequest(
   request: string | unknown, // unknown is actually type Request but we can't export DOM types from this package,
   client: Client,
   scope: Scope,
-  options: {
+  fetchOptionsObj: {
     headers?:
       | {
           [key: string]: string[] | string | undefined;
@@ -146,7 +146,7 @@ export function addTracingHeadersToFetchRequest(
   );
 
   const headers =
-    options.headers ||
+    fetchOptionsObj.headers ||
     (typeof Request !== 'undefined' && isInstanceOf(request, Request) ? (request as Request).headers : undefined);
 
   if (!headers) {
