@@ -285,9 +285,13 @@ sentryTest('should add replay_id to error DSC while replay is active', async ({ 
   expect(error2Header.trace).toBeDefined();
   expect(error2Header.trace).toEqual({
     environment: 'production',
-    sample_rate: '1',
     trace_id: expect.any(String),
     public_key: 'public',
-    sampled: 'true',
+    ...(hasTracing
+      ? {
+          sample_rate: '1',
+          sampled: 'true',
+        }
+      : {}),
   });
 });
