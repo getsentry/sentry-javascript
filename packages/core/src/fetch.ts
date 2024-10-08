@@ -1,9 +1,12 @@
 import type { Client, HandlerDataFetch, Scope, Span, SpanOrigin } from '@sentry/types';
 import {
   BAGGAGE_HEADER_NAME,
+  SENTRY_BAGGAGE_KEY_PREFIX,
+  SENTRY_BAGGAGE_KEY_PREFIX_REGEX,
   dynamicSamplingContextToSentryBaggageHeader,
   generateSentryTraceHeader,
   isInstanceOf,
+  parseBaggageHeader,
   parseUrl,
 } from '@sentry/utils';
 import { getClient, getCurrentScope, getIsolationScope } from './currentScopes';
@@ -156,9 +159,23 @@ export function addTracingHeadersToFetchRequest(
     newHeaders.set('sentry-trace', sentryTraceHeader);
 
     if (sentryBaggageHeader) {
-      // If the same header is appended multiple times the browser will merge the values into a single request header.
-      // Its therefore safe to simply push a "baggage" entry, even though there might already be another baggage header.
-      newHeaders.append(BAGGAGE_HEADER_NAME, sentryBaggageHeader);
+      const prevBaggageHeader = newHeaders.get(BAGGAGE_HEADER_NAME);
+      if (prevBaggageHeader) {
+        const prevHeaderStrippedFromSentryBaggage = sentryBaggageHeader
+          .split(',')
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+          .filter(baggageEntry => !baggageEntry.split('=')[0]!.startsWith(SENTRY_BAGGAGE_KEY_PREFIX))
+          .join(',');
+
+        const mergedHeaders = [sentryBaggageHeader];
+        if (prevHeaderStrippedFromSentryBaggage) {
+          mergedHeaders.unshift(prevHeaderStrippedFromSentryBaggage);
+        }
+
+        newHeaders.set(BAGGAGE_HEADER_NAME, mergedHeaders.join(','));
+      } else {
+        newHeaders.set(BAGGAGE_HEADER_NAME, sentryBaggageHeader);
+      }
     }
 
     return newHeaders as PolymorphicRequestHeaders;
