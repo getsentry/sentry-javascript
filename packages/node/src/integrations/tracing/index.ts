@@ -55,7 +55,6 @@ export function getAutoPerformanceIntegrations(): Integration[] {
 export function getOpenTelemetryInstrumentationToPreload(): (((options?: any) => void) & { id: string })[] {
   return [
     instrumentOtelHttp,
-    instrumentSentryHttp,
     instrumentExpress,
     instrumentConnect,
     instrumentFastify,
