@@ -199,7 +199,7 @@ export async function waitForTransactionRequestOnUrl(page: Page, url: string): P
   return req;
 }
 
-export function waitForErrorRequest(page: Page): Promise<Request> {
+export function waitForErrorRequest(page: Page, callback?: (event: Event) => boolean): Promise<Request> {
   return page.waitForRequest(req => {
     const postData = req.postData();
     if (!postData) {
@@ -209,7 +209,15 @@ export function waitForErrorRequest(page: Page): Promise<Request> {
     try {
       const event = envelopeRequestParser(req);
 
-      return !event.type;
+      if (event.type) {
+        return false;
+      }
+
+      if (callback) {
+        return callback(event);
+      }
+
+      return true;
     } catch {
       return false;
     }
