@@ -55,11 +55,6 @@ export type WrappedNextApiHandler = {
   __sentry_route__?: string;
   __sentry_wrapped__?: boolean;
 };
-
-export type AugmentedNextApiRequest = NextApiRequest & {
-  __withSentry_applied__?: boolean;
-};
-
 export type AugmentedNextApiResponse = NextApiResponse & {
   __sentryTransaction?: SentrySpan;
 };
