@@ -1,8 +1,19 @@
-import { applySdkMetadata, registerSpanErrorInstrumentation } from '@sentry/core';
+import { context } from '@opentelemetry/api';
+import {
+  applySdkMetadata,
+  getCapturedScopesOnSpan,
+  getCurrentScope,
+  getIsolationScope,
+  getRootSpan,
+  registerSpanErrorInstrumentation,
+  setCapturedScopesOnSpan,
+} from '@sentry/core';
+
 import { GLOBAL_OBJ } from '@sentry/utils';
 import type { VercelEdgeOptions } from '@sentry/vercel-edge';
 import { getDefaultIntegrations, init as vercelEdgeInit } from '@sentry/vercel-edge';
 
+import { getScopesFromContext } from '@sentry/opentelemetry';
 import { isBuild } from '../common/utils/isBuild';
 import { distDirRewriteFramesIntegration } from './distDirRewriteFramesIntegration';
 
@@ -39,7 +50,24 @@ export function init(options: VercelEdgeOptions = {}): void {
 
   applySdkMetadata(opts, 'nextjs');
 
-  vercelEdgeInit(opts);
+  const client = vercelEdgeInit(opts);
+
+  // Create/fork an isolation whenever we create root spans. This is ok because in Next.js we only create root spans on the edge for incoming requests.
+  client?.on('spanStart', span => {
+    if (span === getRootSpan(span)) {
+      const scopes = getCapturedScopesOnSpan(span);
+
+      const isolationScope = (scopes.isolationScope || getIsolationScope()).clone();
+      const scope = scopes.scope || getCurrentScope();
+
+      const currentScopesPointer = getScopesFromContext(context.active());
+      if (currentScopesPointer) {
+        currentScopesPointer.isolationScope = isolationScope;
+      }
+
+      setCapturedScopesOnSpan(span, scope, isolationScope);
+    }
+  });
 }
 
 /**
