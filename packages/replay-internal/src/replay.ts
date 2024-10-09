@@ -5,8 +5,8 @@ import {
   getActiveSpan,
   getClient,
   getRootSpan,
-  spanToJSON,
   setTag,
+  spanToJSON,
 } from '@sentry/core';
 import type { ReplayRecordingMode, Span } from '@sentry/types';
 import { logger } from './util/logger';
