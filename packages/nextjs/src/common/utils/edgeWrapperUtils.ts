@@ -13,7 +13,7 @@ import { vercelWaitUntil, winterCGRequestToRequestData } from '@sentry/utils';
 
 import type { EdgeRouteHandler } from '../../edge/types';
 import { flushSafelyWithTimeout } from './responseEnd';
-import { commonObjectToIsolationScope, escapeNextjsTracing } from './tracingUtils';
+import { commonObjectToIsolationScope, dropNextjsRootContext, escapeNextjsTracing } from './tracingUtils';
 
 /**
  * Wraps a function on the edge runtime with error and performance monitoring.
@@ -23,6 +23,7 @@ export function withEdgeWrapping<H extends EdgeRouteHandler>(
   options: { spanDescription: string; spanOp: string; mechanismFunctionName: string },
 ): (...params: Parameters<H>) => Promise<ReturnType<H>> {
   return async function (this: unknown, ...args) {
+    dropNextjsRootContext();
     return escapeNextjsTracing(() => {
       const req: unknown = args[0];
       return withIsolationScope(commonObjectToIsolationScope(req), isolationScope => {
