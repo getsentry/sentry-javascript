@@ -8,9 +8,9 @@ import {
   getRootSpan,
   spanToJSON,
 } from '@sentry/core';
-import { getDefaultIntegrations, httpIntegration, init as nodeInit } from '@sentry/node';
 import type { NodeClient, NodeOptions } from '@sentry/node';
-import { GLOBAL_OBJ, logger, stripUrlQueryAndFragment } from '@sentry/utils';
+import { getDefaultIntegrations, httpIntegration, init as nodeInit } from '@sentry/node';
+import { GLOBAL_OBJ, extractTraceparentData, logger, stripUrlQueryAndFragment } from '@sentry/utils';
 
 import {
   ATTR_HTTP_REQUEST_METHOD,
@@ -23,7 +23,10 @@ import type { EventProcessor } from '@sentry/types';
 import { DEBUG_BUILD } from '../common/debug-build';
 import { devErrorSymbolicationEventProcessor } from '../common/devErrorSymbolicationEventProcessor';
 import { getVercelEnv } from '../common/getVercelEnv';
-import { TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION } from '../common/span-attributes-with-logic-attached';
+import {
+  TRANSACTION_ATTR_SENTRY_TRACE_BACKFILL,
+  TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION,
+} from '../common/span-attributes-with-logic-attached';
 import { isBuild } from '../common/utils/isBuild';
 import { distDirRewriteFramesIntegration } from './distDirRewriteFramesIntegration';
 
@@ -283,6 +286,28 @@ export function init(options: NodeOptions): NodeClient | undefined {
           if (typeof method === 'string' && typeof route === 'string') {
             event.transaction = `${method} ${route.replace(/\/route$/, '')}`;
             event.contexts.trace.data[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] = 'route';
+          }
+        }
+
+        // Next.js 13 is not correctly picking up tracing data for trace propagation so we use a back-fill strategy
+        if (
+          event.type === 'transaction' &&
+          typeof event.contexts?.trace?.data?.[TRANSACTION_ATTR_SENTRY_TRACE_BACKFILL] === 'string'
+        ) {
+          const traceparentData = extractTraceparentData(
+            event.contexts.trace.data[TRANSACTION_ATTR_SENTRY_TRACE_BACKFILL],
+          );
+
+          if (traceparentData?.parentSampled === false) {
+            return null;
+          }
+
+          if (traceparentData?.traceId) {
+            event.contexts.trace.trace_id = traceparentData.traceId;
+          }
+
+          if (traceparentData?.parentSpanId) {
+            event.contexts.trace.parent_span_id = traceparentData.parentSpanId;
           }
         }
 
