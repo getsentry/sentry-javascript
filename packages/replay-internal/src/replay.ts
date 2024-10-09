@@ -1249,9 +1249,7 @@ export class ReplayContainer implements ReplayContainerInterface {
       if (this.recordingMode !== 'buffer') {
         return;
       } else {
-        if (tooShort) {
-          setTag(`replay.${tooShort ? 'tooShort' : 'tooLong'}`, true);
-        }
+        setTag(`replay.${tooShort ? 'tooShort' : 'tooLong'}`, true);
       }
     }
 
