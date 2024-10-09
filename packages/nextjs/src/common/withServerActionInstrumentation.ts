@@ -1,19 +1,20 @@
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SPAN_STATUS_ERROR,
-  getActiveSpan,
+  captureException,
+  continueTrace,
+  getClient,
   getIsolationScope,
-  getRootSpan,
+  handleCallbackErrors,
+  startSpan,
   withIsolationScope,
 } from '@sentry/core';
-import { captureException, continueTrace, getClient, handleCallbackErrors, startSpan } from '@sentry/core';
 import { logger, vercelWaitUntil } from '@sentry/utils';
 
 import { DEBUG_BUILD } from './debug-build';
 import { isNotFoundNavigationError, isRedirectNavigationError } from './nextNavigationErrorUtils';
-import { TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION } from './span-attributes-with-logic-attached';
 import { flushSafelyWithTimeout } from './utils/responseEnd';
-import { escapeNextjsTracing } from './utils/tracingUtils';
+import { dropNextjsRootContext, escapeNextjsTracing } from './utils/tracingUtils';
 
 interface Options {
   formData?: FormData;
@@ -67,15 +68,7 @@ async function withServerActionInstrumentationImplementation<A extends (...args:
   options: Options,
   callback: A,
 ): Promise<ReturnType<A>> {
-  // Since the spans emitted by Next.js are super buggy with completely wrong timestamps
-  // (fix pending at the time of writing this: https://github.com/vercel/next.js/pull/70908) we want to intentionally
-  // drop them. In the future, when Next.js' OTEL instrumentation is in a high-quality place we can potentially think
-  // about keeping them.
-  const nextJsOwnedSpan = getActiveSpan();
-  if (nextJsOwnedSpan) {
-    getRootSpan(nextJsOwnedSpan)?.setAttribute(TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION, true);
-  }
-
+  dropNextjsRootContext();
   return escapeNextjsTracing(() => {
     return withIsolationScope(async isolationScope => {
       const sendDefaultPii = getClient()?.getOptions().sendDefaultPii;
