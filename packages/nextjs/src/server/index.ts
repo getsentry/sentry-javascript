@@ -36,22 +36,6 @@ const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
   __sentryRewritesTunnelPath__?: string;
 };
 
-// https://github.com/lforst/nextjs-fork/blob/9051bc44d969a6e0ab65a955a2fc0af522a83911/packages/next/src/server/lib/trace/constants.ts#L11
-const NEXTJS_SPAN_NAME_PREFIXES = [
-  'BaseServer.',
-  'LoadComponents.',
-  'NextServer.',
-  'createServer.',
-  'startServer.',
-  'NextNodeServer.',
-  'Render.',
-  'AppRender.',
-  'Router.',
-  'Node.',
-  'AppRouteRouteHandlers.',
-  'ResolveMetadata.',
-];
-
 /**
  * A passthrough error boundary for the server that doesn't depend on any react. Error boundaries don't catch SSR errors
  * so they should simply be a passthrough.
@@ -135,25 +119,7 @@ export function init(options: NodeOptions): NodeClient | undefined {
   applySdkMetadata(opts, 'nextjs', ['nextjs', 'node']);
 
   const client = nodeInit(opts);
-  client?.on('beforeSampling', ({ spanAttributes, spanName, parentSampled, parentContext }, samplingDecision) => {
-    // We allowlist the "BaseServer.handleRequest" span, since that one is responsible for App Router requests, which are actually useful for us.
-    // HOWEVER, that span is not only responsible for App Router requests, which is why we additionally filter for certain transactions in an
-    // event processor further below.
-    if (spanAttributes['next.span_type'] === 'BaseServer.handleRequest') {
-      return;
-    }
-
-    // If we encounter a span emitted by Next.js, we do not want to sample it
-    // The reason for this is that the data quality of the spans varies, it is different per version of Next,
-    // and we need to keep our manual instrumentation around for the edge runtime anyhow.
-    // BUT we only do this if we don't have a parent span with a sampling decision yet (or if the parent is remote)
-    if (
-      (spanAttributes['next.span_type'] || NEXTJS_SPAN_NAME_PREFIXES.some(prefix => spanName.startsWith(prefix))) &&
-      (parentSampled === undefined || parentContext?.isRemote)
-    ) {
-      samplingDecision.decision = false;
-    }
-
+  client?.on('beforeSampling', ({ spanAttributes }, samplingDecision) => {
     // There are situations where the Next.js Node.js server forwards requests for the Edge Runtime server (e.g. in
     // middleware) and this causes spans for Sentry ingest requests to be created. These are not exempt from our tracing
     // because we didn't get the chance to do `suppressTracing`, since this happens outside of userland.
@@ -178,7 +144,7 @@ export function init(options: NodeOptions): NodeClient | undefined {
 
     // What we do in this glorious piece of code, is hoist any information about parameterized routes from spans emitted
     // by Next.js via the `next.route` attribute, up to the transaction by setting the http.route attribute.
-    if (spanAttributes?.['next.route']) {
+    if (typeof spanAttributes?.['next.route'] === 'string') {
       const rootSpan = getRootSpan(span);
       const rootSpanAttributes = spanToJSON(rootSpan).data;
 
@@ -188,7 +154,9 @@ export function init(options: NodeOptions): NodeClient | undefined {
         (rootSpanAttributes?.[ATTR_HTTP_REQUEST_METHOD] || rootSpanAttributes?.[SEMATTRS_HTTP_METHOD]) &&
         !rootSpanAttributes?.[ATTR_HTTP_ROUTE]
       ) {
-        rootSpan.setAttribute(ATTR_HTTP_ROUTE, spanAttributes['next.route']);
+        const route = spanAttributes['next.route'].replace(/\/route$/, '');
+        rootSpan.updateName(route);
+        rootSpan.setAttribute(ATTR_HTTP_ROUTE, route);
       }
     }
 
