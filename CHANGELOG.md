@@ -62,6 +62,10 @@ Relevant for users of the `@sentry/nextjs` package: If you have previously confi
 Work in this release was contributed by @trzeciak, @gurpreetatwal, @ykzts and @lizhiyao. Thank you for your
 contributions!
 
+## 8.34.0-internal.0
+
+- feat(replay): Allow capture of replays that are "too long" in order to help debug errors occuring outside of normal replay duration window
+
 ## 8.33.1
 
 - fix(core): Update trpc middleware types ([#13859](https://github.com/getsentry/sentry-javascript/pull/13859))
