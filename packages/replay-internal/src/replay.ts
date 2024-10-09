@@ -1237,7 +1237,11 @@ export class ReplayContainer implements ReplayContainerInterface {
       if (tooShort) {
         this._debouncedFlush();
       }
-      return;
+
+      // XXX: disregard durations for buffer mode for debug purposes
+      if (this.recordingMode !== 'buffer') {
+        return;
+      }
     }
 
     const eventBuffer = this.eventBuffer;
