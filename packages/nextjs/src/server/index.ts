@@ -1,15 +1,16 @@
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   applySdkMetadata,
   getClient,
   getGlobalScope,
   getRootSpan,
   spanToJSON,
 } from '@sentry/core';
-import { getDefaultIntegrations, init as nodeInit } from '@sentry/node';
+import { getDefaultIntegrations, httpIntegration, init as nodeInit } from '@sentry/node';
 import type { NodeClient, NodeOptions } from '@sentry/node';
-import { GLOBAL_OBJ, logger } from '@sentry/utils';
+import { GLOBAL_OBJ, logger, stripUrlQueryAndFragment } from '@sentry/utils';
 
 import {
   ATTR_HTTP_REQUEST_METHOD,
@@ -99,7 +100,18 @@ export function init(options: NodeOptions): NodeClient | undefined {
     return;
   }
 
-  const customDefaultIntegrations = getDefaultIntegrations(options);
+  const customDefaultIntegrations = getDefaultIntegrations(options)
+    .filter(integration => integration.name !== 'Http')
+    .concat(
+      // We are using the HTTP integration without instrumenting incoming HTTP requests because Next.js does that by itself.
+      httpIntegration({
+        instrumentation: {
+          _experimentalConfig: {
+            disableIncomingRequestInstrumentation: true,
+          },
+        },
+      }),
+    );
 
   // Turn off Next.js' own fetch instrumentation
   // https://github.com/lforst/nextjs-fork/blob/1994fd186defda77ad971c36dc3163db263c993f/packages/next/src/server/lib/patch-fetch.ts#L245
@@ -319,15 +331,25 @@ export function init(options: NodeOptions): NodeClient | undefined {
         }
 
         // Enhance route handler transactions
-        if (event.type === 'transaction' && event.contexts?.trace?.data?.['sentry.route_handler'] === true) {
+        if (
+          event.type === 'transaction' &&
+          (event.contexts?.trace?.data?.['sentry.route_handler'] === true ||
+            event.contexts?.trace?.data?.['sentry.rsc'] === true)
+        ) {
           event.contexts.trace.data = event.contexts.trace.data || {};
           event.contexts.trace.data[SEMANTIC_ATTRIBUTE_SENTRY_OP] = 'http.server';
           event.contexts.trace.op = 'http.server';
+
+          if (event.transaction) {
+            event.transaction = stripUrlQueryAndFragment(event.transaction);
+          }
+
           if (typeof event.contexts.trace.data[ATTR_HTTP_ROUTE] === 'string') {
             // eslint-disable-next-line deprecation/deprecation
             event.transaction = `${event.contexts.trace.data[SEMATTRS_HTTP_METHOD]} ${event.contexts.trace.data[
               ATTR_HTTP_ROUTE
             ].replace(/\/route$/, '')}`;
+            event.contexts.trace.data[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] = 'route';
           }
         }
 
