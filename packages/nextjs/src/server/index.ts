@@ -3,15 +3,20 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   applySdkMetadata,
+  getCapturedScopesOnSpan,
   getClient,
+  getCurrentScope,
   getGlobalScope,
+  getIsolationScope,
   getRootSpan,
+  setCapturedScopesOnSpan,
   spanToJSON,
 } from '@sentry/core';
 import { getDefaultIntegrations, httpIntegration, init as nodeInit } from '@sentry/node';
 import type { NodeClient, NodeOptions } from '@sentry/node';
 import { GLOBAL_OBJ, extractTraceparentData, logger, stripUrlQueryAndFragment } from '@sentry/utils';
 
+import { context } from '@opentelemetry/api';
 import {
   ATTR_HTTP_REQUEST_METHOD,
   ATTR_HTTP_ROUTE,
@@ -19,6 +24,7 @@ import {
   SEMATTRS_HTTP_METHOD,
   SEMATTRS_HTTP_TARGET,
 } from '@opentelemetry/semantic-conventions';
+import { getScopesFromContext } from '@sentry/opentelemetry';
 import type { EventProcessor } from '@sentry/types';
 import { DEBUG_BUILD } from '../common/debug-build';
 import { devErrorSymbolicationEventProcessor } from '../common/devErrorSymbolicationEventProcessor';
@@ -220,6 +226,21 @@ export function init(options: NodeOptions): NodeClient | undefined {
       if (span !== rootSpan) {
         span.updateName('next server handler'); // This is all lowercase because the spans that Next.js emits by itself generally look like this.
       }
+    }
+
+    // We want to fork the isolation scope for incoming requests
+    if (spanAttributes?.['next.span_type'] === 'BaseServer.handleRequest' && span === getRootSpan(span)) {
+      const scopes = getCapturedScopesOnSpan(span);
+
+      const isolationScope = (scopes.isolationScope || getIsolationScope()).clone();
+      const scope = scopes.scope || getCurrentScope();
+
+      const currentScopesPointer = getScopesFromContext(context.active());
+      if (currentScopesPointer) {
+        currentScopesPointer.isolationScope = isolationScope;
+      }
+
+      setCapturedScopesOnSpan(span, scope, isolationScope);
     }
   });
 
