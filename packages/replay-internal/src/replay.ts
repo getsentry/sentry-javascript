@@ -1,6 +1,13 @@
 /* eslint-disable max-lines */ // TODO: We might want to split this file up
 import { EventType, record } from '@sentry-internal/rrweb';
-import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, getActiveSpan, getClient, getRootSpan, spanToJSON } from '@sentry/core';
+import {
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  getActiveSpan,
+  getClient,
+  getRootSpan,
+  spanToJSON,
+  setTag,
+} from '@sentry/core';
 import type { ReplayRecordingMode, Span } from '@sentry/types';
 import { logger } from './util/logger';
 
@@ -1241,6 +1248,10 @@ export class ReplayContainer implements ReplayContainerInterface {
       // XXX: disregard durations for buffer mode for debug purposes
       if (this.recordingMode !== 'buffer') {
         return;
+      } else {
+        if (tooShort) {
+          setTag(`replay.${tooShort ? 'tooShort' : 'tooLong'}`, true);
+        }
       }
     }
 
