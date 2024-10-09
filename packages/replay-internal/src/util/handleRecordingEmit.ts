@@ -43,6 +43,7 @@ export function getHandleRecordingEmit(replay: ReplayContainer): RecordingEmitCa
       // dependent on this reset.
       if (replay.recordingMode === 'buffer' && isCheckout) {
         replay.setInitialState();
+        DEBUG_BUILD && logger.info(`Adding checkout event while in buffer mode (${JSON.stringify(event).length})`);
       }
 
       // If the event is not added (e.g. due to being paused, disabled, or out of the max replay duration),
@@ -73,8 +74,13 @@ export function getHandleRecordingEmit(replay: ReplayContainer): RecordingEmitCa
 
       // When in buffer mode, make sure we adjust the session started date to the current earliest event of the buffer
       // this should usually be the timestamp of the checkout event, but to be safe...
-      if (replay.recordingMode === 'buffer' && session && replay.eventBuffer) {
-        const earliestEvent = replay.eventBuffer.getEarliestTimestamp();
+      if (replay.recordingMode === 'buffer' && session) {
+        DEBUG_BUILD &&
+          replay.eventBuffer &&
+          logger.info('Attempting to fetch earliest event from event buffer type: ', replay.eventBuffer.type);
+
+        const earliestEvent = replay.eventBuffer && replay.eventBuffer.getEarliestTimestamp();
+
         if (earliestEvent) {
           DEBUG_BUILD &&
             logger.info(`Updating session start time to earliest event in buffer to ${new Date(earliestEvent)}`);
@@ -84,6 +90,9 @@ export function getHandleRecordingEmit(replay: ReplayContainer): RecordingEmitCa
           if (replay.getOptions().stickySession) {
             saveSession(session);
           }
+        } else {
+          // XXX(billy): debugging
+          DEBUG_BUILD && logger.warn('Unable to find earliest event in event buffer');
         }
       }
 
