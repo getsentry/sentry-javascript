@@ -909,6 +909,7 @@ jobs:
             'react-router-6-use-routes',
             'react-router-5',
             'react-router-6',
+            'remix-hydrogen',
             'solid',
             'solidstart',
             'svelte-5',

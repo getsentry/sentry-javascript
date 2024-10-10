@@ -26,11 +26,9 @@ installGlobals();
 
 const ABORT_DELAY = 5_000;
 
-const handleErrorImpl = () => {
+export const handleError = Sentry.wrapHandleErrorWithSentry(() => {
   Sentry.setTag('remix-test-tag', 'remix-test-value');
-};
-
-export const handleError = Sentry.wrapHandleErrorWithSentry(handleErrorImpl);
+});
 
 export default function handleRequest(
   request: Request,
