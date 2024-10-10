@@ -4,6 +4,10 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.119.2
+
+- chore(nextjs/v7): Bump rollup to 2.79.2
+
 ## 7.119.1
 
 - fix(browser/v7): Ensure wrap() only returns functions (#13838 backport)
