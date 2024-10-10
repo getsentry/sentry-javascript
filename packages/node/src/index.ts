@@ -1,4 +1,4 @@
-export { httpIntegration } from './integrations/http';
+export { httpIntegration, getHttpInstrumentationOptions } from './integrations/http';
 export { nativeNodeFetchIntegration } from './integrations/node-fetch';
 export { fsIntegration } from './integrations/fs';
 
