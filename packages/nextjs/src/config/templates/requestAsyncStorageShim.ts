@@ -7,3 +7,5 @@ export interface RequestAsyncStorage {
       }
     | undefined;
 }
+
+export {};

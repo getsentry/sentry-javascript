@@ -46,6 +46,14 @@
       "node": "./build/cjs/index.server.js",
       "import": "./build/esm/index.server.js"
     },
+    "./async-storage-shim": {
+      "import": {
+        "default": "./build/esm/config/templates/requestAsyncStorageShim.js"
+      },
+      "require": {
+        "default": "./build/cjs/config/templates/requestAsyncStorageShim.js"
+      }
+    },
     "./import": {
       "import": {
         "default": "./build/import-hook.mjs"
