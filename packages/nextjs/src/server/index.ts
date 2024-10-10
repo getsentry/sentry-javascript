@@ -332,6 +332,11 @@ export function init(options: NodeOptions): NodeClient | undefined {
           }
         }
 
+        // Next.js 13 sometimes names the root transactions like this containing useless tracing.
+        if (event.type === 'transaction' && event.transaction === 'NextServer.getRequestHandler') {
+          return null;
+        }
+
         return event;
       }) satisfies EventProcessor,
       { id: 'NextjsTransactionEnhancer' },
