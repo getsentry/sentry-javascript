@@ -10,7 +10,8 @@ export type HTTPModuleRequestOptions = HTTPRequestOptions | HTTPSRequestOptions 
 export interface HTTPModuleRequestIncomingMessage {
   headers: IncomingHttpHeaders;
   statusCode?: number;
-  on(event: 'data' | 'end', listener: () => void): void;
+  on(event: 'data' | 'end', listener: (chunk: Buffer) => void): void;
+  off(event: 'data' | 'end', listener: (chunk: Buffer) => void): void;
   setEncoding(encoding: string): void;
 }
 

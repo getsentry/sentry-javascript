@@ -41,6 +41,7 @@
     "amqplib": "^0.10.4",
     "apollo-server": "^3.11.1",
     "axios": "^1.6.7",
+    "body-parser": "^1.20.3",
     "connect": "^3.7.0",
     "cors": "^2.8.5",
     "cron": "^3.1.6",

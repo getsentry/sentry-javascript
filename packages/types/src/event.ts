@@ -2,13 +2,15 @@ import type { Attachment } from './attachment';
 import type { Breadcrumb } from './breadcrumb';
 import type { Contexts } from './context';
 import type { DebugMeta } from './debugMeta';
+import type { DynamicSamplingContext } from './envelope';
 import type { Exception } from './exception';
 import type { Extras } from './extra';
 import type { Measurements } from './measurement';
 import type { Mechanism } from './mechanism';
 import type { Primitive } from './misc';
+import type { PolymorphicRequest } from './polymorphics';
 import type { Request } from './request';
-import type { CaptureContext } from './scope';
+import type { CaptureContext, Scope } from './scope';
 import type { SdkInfo } from './sdkinfo';
 import type { SeverityLevel } from './severity';
 import type { MetricSummary, SpanJSON } from './span';
@@ -51,7 +53,15 @@ export interface Event {
   measurements?: Measurements;
   debug_meta?: DebugMeta;
   // A place to stash data which is needed at some point in the SDK's event processing pipeline but which shouldn't get sent to Sentry
-  sdkProcessingMetadata?: { [key: string]: any };
+  // Note: This is considered internal and is subject to change in minors
+  sdkProcessingMetadata?: { [key: string]: unknown } & {
+    request?: PolymorphicRequest;
+    normalizedRequest?: Request;
+    dynamicSamplingContext?: Partial<DynamicSamplingContext>;
+    capturedSpanScope?: Scope;
+    capturedSpanIsolationScope?: Scope;
+    spanCountBeforeProcessing?: number;
+  };
   transaction_info?: {
     source: TransactionSource;
   };

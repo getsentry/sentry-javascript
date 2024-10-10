@@ -13,14 +13,16 @@ import {
   setCapturedScopesOnSpan,
 } from '@sentry/core';
 import { getClient } from '@sentry/opentelemetry';
-import type { IntegrationFn, SanitizedRequestData } from '@sentry/types';
+import type { IntegrationFn, PolymorphicRequest, Request, SanitizedRequestData } from '@sentry/types';
 
 import {
   getBreadcrumbLogLevelFromHttpStatusCode,
   getSanitizedUrlString,
+  logger,
   parseUrl,
   stripUrlQueryAndFragment,
 } from '@sentry/utils';
+import { DEBUG_BUILD } from '../debug-build';
 import type { NodeClient } from '../sdk/client';
 import { setIsolationScope } from '../sdk/scope';
 import type { HTTPModuleRequestIncomingMessage } from '../transports/http-module';
@@ -153,8 +155,27 @@ export const instrumentHttp = Object.assign(
         const isolationScope = (scopes.isolationScope || getIsolationScope()).clone();
         const scope = scopes.scope || getCurrentScope();
 
+        const headers = req.headers;
+        const host = headers.host || '<no host>';
+        const protocol = req.socket && (req.socket as { encrypted?: boolean }).encrypted ? 'https' : 'http';
+        const originalUrl = req.url || '';
+        const absoluteUrl = originalUrl.startsWith(protocol) ? originalUrl : `${protocol}://${host}${originalUrl}`;
+
+        // This is non-standard, but may be set on e.g. Next.js or Express requests
+        const cookies = (req as PolymorphicRequest).cookies;
+
+        const normalizedRequest: Request = {
+          url: absoluteUrl,
+          method: req.method,
+          query_string: extractQueryParams(req),
+          headers: headersToDict(req.headers),
+          cookies,
+        };
+
+        patchRequestToCaptureBody(req, normalizedRequest);
+
         // Update the isolation scope, isolate this request
-        isolationScope.setSDKProcessingMetadata({ request: req });
+        isolationScope.setSDKProcessingMetadata({ request: req, normalizedRequest });
 
         const client = getClient<NodeClient>();
         if (client && client.getOptions().autoSessionTracking) {
@@ -309,4 +330,129 @@ function _isClientRequest(req: ClientRequest | HTTPModuleRequestIncomingMessage)
 function isKnownPrefetchRequest(req: HTTPModuleRequestIncomingMessage): boolean {
   // Currently only handles Next.js prefetch requests but may check other frameworks in the future.
   return req.headers['next-router-prefetch'] === '1';
+}
+
+/**
+ * This method patches the request object to capture the body.
+ * Instead of actually consuming the streamed body ourselves, which has potential side effects,
+ * we monkey patch `req.on('data')` to intercept the body chunks.
+ * This way, we only read the body if the user also consumes the body, ensuring we do not change any behavior in unexpected ways.
+ */
+function patchRequestToCaptureBody(req: HTTPModuleRequestIncomingMessage, normalizedRequest: Request): void {
+  const chunks: Buffer[] = [];
+
+  /**
+   * We need to keep track of the original callbacks, in order to be able to remove listeners again.
+   * Since `off` depends on having the exact same function reference passed in, we need to be able to map
+   * original listeners to our wrapped ones.
+   */
+  const callbackMap = new WeakMap();
+
+  try {
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    req.on = new Proxy(req.on, {
+      apply: (target, thisArg, args: Parameters<typeof req.on>) => {
+        const [event, listener, ...restArgs] = args;
+
+        if (event === 'data') {
+          const callback = new Proxy(listener, {
+            apply: (target, thisArg, args: Parameters<typeof listener>) => {
+              const chunk = args[0];
+              chunks.push(chunk);
+              return Reflect.apply(target, thisArg, args);
+            },
+          });
+
+          callbackMap.set(listener, callback);
+
+          return Reflect.apply(target, thisArg, [event, callback, ...restArgs]);
+        }
+
+        if (event === 'end') {
+          const callback = new Proxy(listener, {
+            apply: (target, thisArg, args) => {
+              try {
+                const body = Buffer.concat(chunks).toString('utf-8');
+
+                // We mutate the passed in normalizedRequest and add the body to it
+                if (body) {
+                  normalizedRequest.data = body;
+                }
+              } catch {
+                // ignore errors here
+              }
+
+              return Reflect.apply(target, thisArg, args);
+            },
+          });
+
+          callbackMap.set(listener, callback);
+
+          return Reflect.apply(target, thisArg, [event, callback, ...restArgs]);
+        }
+
+        return Reflect.apply(target, thisArg, args);
+      },
+    });
+
+    // Ensure we also remove callbacks correctly
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    req.off = new Proxy(req.off, {
+      apply: (target, thisArg, args: Parameters<typeof req.off>) => {
+        const [, listener] = args;
+
+        const callback = callbackMap.get(listener);
+        if (callback) {
+          callbackMap.delete(listener);
+
+          const modifiedArgs = args.slice();
+          modifiedArgs[1] = callback;
+          return Reflect.apply(target, thisArg, modifiedArgs);
+        }
+
+        return Reflect.apply(target, thisArg, args);
+      },
+    });
+  } catch {
+    // ignore errors if we can't patch stuff
+  }
+}
+
+function extractQueryParams(req: IncomingMessage): string | undefined {
+  // url (including path and query string):
+  let originalUrl = req.url || '';
+
+  if (!originalUrl) {
+    return;
+  }
+
+  // The `URL` constructor can't handle internal URLs of the form `/some/path/here`, so stick a dummy protocol and
+  // hostname on the beginning. Since the point here is just to grab the query string, it doesn't matter what we use.
+  if (originalUrl.startsWith('/')) {
+    originalUrl = `http://dogs.are.great${originalUrl}`;
+  }
+
+  try {
+    const queryParams = new URL(originalUrl).search.slice(1);
+    return queryParams.length ? queryParams : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function headersToDict(reqHeaders: Record<string, string | string[] | undefined>): Record<string, string> {
+  const headers: Record<string, string> = {};
+
+  try {
+    Object.entries(reqHeaders).forEach(([key, value]) => {
+      if (typeof value === 'string') {
+        headers[key] = value;
+      }
+    });
+  } catch (e) {
+    DEBUG_BUILD &&
+      logger.warn('Sentry failed extracting headers from a request object. If you see this, please file an issue.');
+  }
+
+  return headers;
 }

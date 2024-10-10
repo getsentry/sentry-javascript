@@ -484,7 +484,7 @@ export function createRunner(...paths: string[]) {
           method: 'get' | 'post',
           path: string,
           headers: Record<string, string> = {},
-          data?: any, // axios accept any as data
+          data?: unknown,
         ): Promise<T | undefined> {
           try {
             await waitFor(() => scenarioServerPort !== undefined);

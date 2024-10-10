@@ -101,7 +101,7 @@ export type ProfileItem = BaseEnvelopeItem<ProfileItemHeaders, Profile>;
 export type ProfileChunkItem = BaseEnvelopeItem<ProfileChunkItemHeaders, ProfileChunk>;
 export type SpanItem = BaseEnvelopeItem<SpanItemHeaders, Partial<SpanJSON>>;
 
-export type EventEnvelopeHeaders = { event_id: string; sent_at: string; trace?: DynamicSamplingContext };
+export type EventEnvelopeHeaders = { event_id: string; sent_at: string; trace?: Partial<DynamicSamplingContext> };
 type SessionEnvelopeHeaders = { sent_at: string };
 type CheckInEnvelopeHeaders = { trace?: DynamicSamplingContext };
 type ClientReportEnvelopeHeaders = BaseEnvelopeHeaders;
