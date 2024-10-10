@@ -8,7 +8,16 @@
 
 ## Unreleased
 
+### Important Changes
+
+- **ref(nextjs): Remove dead code ([#13828](https://github.com/getsentry/sentry-javascript/pull/13903))**
+
+Relevant for users of the `@sentry/nextjs` package: If you have previously configured a
+`SENTRY_IGNORE_API_RESOLUTION_ERROR` environment variable, it is now safe to unset it.
+
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
+
+Work in this release was contributed by @trzeciak and @lizhiyao. Thank you for your contributions!
 
 ## 8.33.1
 
@@ -1158,12 +1167,12 @@ with full support for ESM-based node apps using **Node.js 18.19.0 or higher**.
 [**ES2018+**](https://caniuse.com/?feats=mdn-javascript_builtins_regexp_dotall,js-regexp-lookbehind,mdn-javascript_builtins_regexp_named_capture_groups,mdn-javascript_builtins_regexp_property_escapes,mdn-javascript_builtins_symbol_asynciterator,mdn-javascript_functions_method_definitions_async_generator_methods,mdn-javascript_grammar_template_literals_template_literal_revision,mdn-javascript_operators_destructuring_rest_in_objects,mdn-javascript_operators_destructuring_rest_in_arrays,promise-finally)
 compatible browsers. New minimum browser versions:
 
-- Chrome 63
+- Chrome 71
 - Edge 79
-- Safari/iOS Safari 12
-- Firefox 58
-- Opera 50
-- Samsung Internet 8.2
+- Safari 12.1, iOS Safari 12.2
+- Firefox 65
+- Opera 58
+- Samsung Internet 10
 
 For more details, please see the
 [version support section in our migration guide](./MIGRATION.md#1-version-support-changes).

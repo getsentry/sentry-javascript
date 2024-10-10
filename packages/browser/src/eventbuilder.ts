@@ -33,7 +33,7 @@ export function exceptionFromError(stackParser: StackParser, ex: Error): Excepti
   const frames = parseStackFrames(stackParser, ex);
 
   const exception: Exception = {
-    type: ex && ex.name,
+    type: extractType(ex),
     value: extractMessage(ex),
   };
 
@@ -159,19 +159,59 @@ function getPopFirstTopFrames(ex: Error & { framesToPop?: unknown }): number {
   return 0;
 }
 
+// https://developer.mozilla.org/en-US/docs/WebAssembly/JavaScript_interface/Exception
+// @ts-expect-error - WebAssembly.Exception is a valid class
+function isWebAssemblyException(exception: unknown): exception is WebAssembly.Exception {
+  // Check for support
+  // @ts-expect-error - WebAssembly.Exception is a valid class
+  if (typeof WebAssembly !== 'undefined' && typeof WebAssembly.Exception !== 'undefined') {
+    // @ts-expect-error - WebAssembly.Exception is a valid class
+    return exception instanceof WebAssembly.Exception;
+  } else {
+    return false;
+  }
+}
+
+/**
+ * Extracts from errors what we use as the exception `type` in error events.
+ *
+ * Usually, this is the `name` property on Error objects but WASM errors need to be treated differently.
+ */
+export function extractType(ex: Error & { message: { error?: Error } }): string | undefined {
+  const name = ex && ex.name;
+
+  // The name for WebAssembly.Exception Errors needs to be extracted differently.
+  // Context: https://github.com/getsentry/sentry-javascript/issues/13787
+  if (!name && isWebAssemblyException(ex)) {
+    // Emscripten sets array[type, message] to the "message" property on the WebAssembly.Exception object
+    const hasTypeInMessage = ex.message && Array.isArray(ex.message) && ex.message.length == 2;
+    return hasTypeInMessage ? ex.message[0] : 'WebAssembly.Exception';
+  }
+
+  return name;
+}
+
 /**
  * There are cases where stacktrace.message is an Event object
  * https://github.com/getsentry/sentry-javascript/issues/1949
  * In this specific case we try to extract stacktrace.message.error.message
  */
-function extractMessage(ex: Error & { message: { error?: Error } }): string {
+export function extractMessage(ex: Error & { message: { error?: Error } }): string {
   const message = ex && ex.message;
+
   if (!message) {
     return 'No error message';
   }
+
   if (message.error && typeof message.error.message === 'string') {
     return message.error.message;
   }
+
+  // Emscripten sets array[type, message] to the "message" property on the WebAssembly.Exception object
+  if (isWebAssemblyException(ex) && Array.isArray(ex.message) && ex.message.length == 2) {
+    return ex.message[1];
+  }
+
   return message;
 }
 

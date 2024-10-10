@@ -2,11 +2,28 @@ import * as Sentry from '@sentry/nextjs';
 import type { WebFetchHeaders } from '@sentry/types';
 // @ts-expect-error Because we cannot be sure if the RequestAsyncStorage module exists (it is not part of the Next.js public
 // API) we use a shim if it doesn't exist. The logic for this is in the wrapping loader.
-import { requestAsyncStorage } from '__SENTRY_NEXTJS_REQUEST_ASYNC_STORAGE_SHIM__';
+import * as origModule from '__SENTRY_NEXTJS_REQUEST_ASYNC_STORAGE_SHIM__';
 // @ts-expect-error See above
 import * as routeModule from '__SENTRY_WRAPPING_TARGET_FILE__';
 
 import type { RequestAsyncStorage } from './requestAsyncStorageShim';
+
+type NextAsyncStorageModule =
+  | {
+      workUnitAsyncStorage: RequestAsyncStorage;
+    }
+  | {
+      requestAsyncStorage: RequestAsyncStorage;
+    };
+
+const asyncStorageModule = { ...origModule } as NextAsyncStorageModule;
+
+const requestAsyncStorage: RequestAsyncStorage | undefined =
+  'workUnitAsyncStorage' in asyncStorageModule
+    ? asyncStorageModule.workUnitAsyncStorage
+    : 'requestAsyncStorage' in asyncStorageModule
+      ? asyncStorageModule.requestAsyncStorage
+      : undefined;
 
 function wrapHandler<T>(handler: T, method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'HEAD' | 'OPTIONS'): T {
   // Running the instrumentation code during the build phase will mark any function as "dynamic" because we're accessing
@@ -28,7 +45,7 @@ function wrapHandler<T>(handler: T, method: 'GET' | 'POST' | 'PUT' | 'PATCH' | '
       // We try-catch here just in case the API around `requestAsyncStorage` changes unexpectedly since it is not public API
       try {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        const requestAsyncStore = requestAsyncStorage.getStore() as ReturnType<RequestAsyncStorage['getStore']>;
+        const requestAsyncStore = requestAsyncStorage?.getStore() as ReturnType<RequestAsyncStorage['getStore']>;
         sentryTraceHeader = requestAsyncStore?.headers.get('sentry-trace') ?? undefined;
         baggageHeader = requestAsyncStore?.headers.get('baggage') ?? undefined;
         headers = requestAsyncStore?.headers;
@@ -53,8 +70,6 @@ export * from '__SENTRY_WRAPPING_TARGET_FILE__';
 
 // @ts-expect-error This is the file we're wrapping
 export { default } from '__SENTRY_WRAPPING_TARGET_FILE__';
-
-declare const requestAsyncStorage: RequestAsyncStorage;
 
 type RouteHandler = (...args: unknown[]) => unknown;
 
