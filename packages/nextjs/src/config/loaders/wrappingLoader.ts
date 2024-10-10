@@ -174,7 +174,7 @@ export default function wrappingLoader(
       }
       templateCode = templateCode.replace(
         /__SENTRY_NEXTJS_REQUEST_ASYNC_STORAGE_SHIM__/g,
-        '@sentry/nextjs/esm/config/templates/requestAsyncStorageShim.js',
+        '@sentry/nextjs/build/esm/config/templates/requestAsyncStorageShim.js',
       );
     }
 

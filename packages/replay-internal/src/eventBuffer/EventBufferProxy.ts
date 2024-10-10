@@ -115,6 +115,9 @@ export class EventBufferProxy implements EventBuffer {
     // Wait for original events to be re-added before resolving
     try {
       await Promise.all(addEventPromises);
+
+      // Can now clear fallback buffer as it's no longer necessary
+      this._fallback.clear();
     } catch (error) {
       DEBUG_BUILD && logger.exception(error, 'Failed to add events when switching buffers.');
     }
