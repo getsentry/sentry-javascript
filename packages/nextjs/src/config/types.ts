@@ -409,12 +409,15 @@ export type SentryBuildOptions = {
   autoInstrumentAppDirectory?: boolean;
 
   /**
-   * Exclude certain serverside API routes or pages from being instrumented with Sentry. This option takes an array of
-   * strings or regular expressions. This options also affects pages in the `app` directory.
+   * Exclude certain serverside API routes or pages from being instrumented with Sentry during build-time. This option
+   * takes an array of strings or regular expressions. This options also affects pages in the `app` directory.
    *
    * NOTE: Pages should be specified as routes (`/animals` or `/api/animals/[animalType]/habitat`), not filepaths
    * (`pages/animals/index.js` or `.\src\pages\api\animals\[animalType]\habitat.tsx`), and strings must be be a full,
    * exact match.
+   *
+   * Notice: If you build Next.js with turbopack, the Sentry SDK will no longer apply build-time instrumentation and
+   * purely rely on Next.js telemetry features, meaning that this option will effectively no-op.
    */
   excludeServerRoutes?: Array<RegExp | string>;
 

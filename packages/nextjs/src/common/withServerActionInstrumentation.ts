@@ -1,16 +1,20 @@
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SPAN_STATUS_ERROR,
+  captureException,
+  continueTrace,
+  getClient,
   getIsolationScope,
+  handleCallbackErrors,
+  startSpan,
   withIsolationScope,
 } from '@sentry/core';
-import { captureException, continueTrace, getClient, handleCallbackErrors, startSpan } from '@sentry/core';
 import { logger, vercelWaitUntil } from '@sentry/utils';
 
 import { DEBUG_BUILD } from './debug-build';
 import { isNotFoundNavigationError, isRedirectNavigationError } from './nextNavigationErrorUtils';
 import { flushSafelyWithTimeout } from './utils/responseEnd';
-import { escapeNextjsTracing } from './utils/tracingUtils';
+import { dropNextjsRootContext, escapeNextjsTracing } from './utils/tracingUtils';
 
 interface Options {
   formData?: FormData;
@@ -64,6 +68,7 @@ async function withServerActionInstrumentationImplementation<A extends (...args:
   options: Options,
   callback: A,
 ): Promise<ReturnType<A>> {
+  dropNextjsRootContext();
   return escapeNextjsTracing(() => {
     return withIsolationScope(async isolationScope => {
       const sendDefaultPii = getClient()?.getOptions().sendDefaultPii;

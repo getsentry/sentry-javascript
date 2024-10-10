@@ -44,9 +44,6 @@ export function wrapServerComponentWithSentry<F extends (...args: any[]) => any>
         const rootSpan = getRootSpan(activeSpan);
         const { scope } = getCapturedScopesOnSpan(rootSpan);
         setCapturedScopesOnSpan(rootSpan, scope ?? new Scope(), isolationScope);
-
-        // We mark the root span as an app router span so we can allow-list it in our span processor that would normally filter out all Next.js transactions/spans
-        rootSpan.setAttribute('sentry.rsc', true);
       }
 
       const headersDict = context.headers ? winterCGHeadersToDict(context.headers) : undefined;

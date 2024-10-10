@@ -1,6 +1,6 @@
 import { captureException, getCurrentScope, withIsolationScope } from '@sentry/core';
 import { extractTraceparentData } from '@sentry/utils';
-import { escapeNextjsTracing } from '../utils/tracingUtils';
+import { dropNextjsRootContext, escapeNextjsTracing } from '../utils/tracingUtils';
 
 interface FunctionComponent {
   (...args: unknown[]): unknown;
@@ -25,6 +25,7 @@ export function wrapPageComponentWithSentry(pageComponent: FunctionComponent | C
   if (isReactClassComponent(pageComponent)) {
     return class SentryWrappedPageComponent extends pageComponent {
       public render(...args: unknown[]): unknown {
+        dropNextjsRootContext();
         return escapeNextjsTracing(() => {
           return withIsolationScope(() => {
             const scope = getCurrentScope();
@@ -62,6 +63,7 @@ export function wrapPageComponentWithSentry(pageComponent: FunctionComponent | C
   } else if (typeof pageComponent === 'function') {
     return new Proxy(pageComponent, {
       apply(target, thisArg, argArray: [{ _sentryTraceData?: string } | undefined]) {
+        dropNextjsRootContext();
         return escapeNextjsTracing(() => {
           return withIsolationScope(() => {
             const scope = getCurrentScope();

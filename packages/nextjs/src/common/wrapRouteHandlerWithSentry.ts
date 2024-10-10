@@ -51,7 +51,6 @@ export function wrapRouteHandlerWithSentry<F extends (...args: any[]) => any>(
       const activeSpan = getActiveSpan();
       if (activeSpan) {
         const rootSpan = getRootSpan(activeSpan);
-        rootSpan.setAttribute('sentry.route_handler', true);
         const { scope } = getCapturedScopesOnSpan(rootSpan);
         setCapturedScopesOnSpan(rootSpan, scope ?? new Scope(), isolationScope);
       }

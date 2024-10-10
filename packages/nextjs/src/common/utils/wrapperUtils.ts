@@ -17,7 +17,7 @@ import type { Span } from '@sentry/types';
 import { isString, vercelWaitUntil } from '@sentry/utils';
 
 import { autoEndSpanOnResponseEnd, flushSafelyWithTimeout } from './responseEnd';
-import { commonObjectToIsolationScope, escapeNextjsTracing } from './tracingUtils';
+import { commonObjectToIsolationScope, dropNextjsRootContext, escapeNextjsTracing } from './tracingUtils';
 
 declare module 'http' {
   interface IncomingMessage {
@@ -93,6 +93,7 @@ export function withTracedServerSideDataFetcher<F extends (...args: any[]) => Pr
     this: unknown,
     ...args: Parameters<F>
   ): Promise<{ data: ReturnType<F>; sentryTrace?: string; baggage?: string }> {
+    dropNextjsRootContext();
     return escapeNextjsTracing(() => {
       const isolationScope = commonObjectToIsolationScope(req);
       return withIsolationScope(isolationScope, () => {
