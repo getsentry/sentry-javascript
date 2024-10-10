@@ -28,6 +28,7 @@ import {
   browserPerformanceTimeOrigin,
   dynamicSamplingContextToSentryBaggageHeader,
   generateSentryTraceHeader,
+  getGraphQLRequestPayload,
   parseUrl,
   stringMatchesSomePattern,
 } from '@sentry/utils';
@@ -392,6 +393,10 @@ export function xhrCallback(
       // which means that the headers will be generated from the scope and the sampling decision is deferred
       hasTracingEnabled() && hasParent ? span : undefined,
     );
+  }
+
+  if (client) {
+    client.emit('outgoingRequestSpanStart', span, { body: getGraphQLRequestPayload(sentryXhrData.body as string) });
   }
 
   return span;

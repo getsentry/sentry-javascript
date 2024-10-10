@@ -3,6 +3,7 @@ import {
   BAGGAGE_HEADER_NAME,
   dynamicSamplingContextToSentryBaggageHeader,
   generateSentryTraceHeader,
+  getGraphQLRequestPayload,
   isInstanceOf,
   parseUrl,
 } from '@sentry/utils';
@@ -65,7 +66,7 @@ export function instrumentFetchRequest(
   const scope = getCurrentScope();
   const client = getClient();
 
-  const { method, url } = handlerData.fetchData;
+  const { method, url, body } = handlerData.fetchData;
 
   const fullUrl = getFullURL(url);
   const host = fullUrl ? parseUrl(fullUrl).host : undefined;
@@ -110,6 +111,10 @@ export function instrumentFetchRequest(
       // which means that the headers will be generated from the scope and the sampling decision is deferred
       hasTracingEnabled() && hasParent ? span : undefined,
     );
+  }
+
+  if (client) {
+    client.emit('outgoingRequestSpanStart', span, { body: getGraphQLRequestPayload(body as string) });
   }
 
   return span;

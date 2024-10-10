@@ -3,6 +3,7 @@ export * from './exports';
 export { reportingObserverIntegration } from './integrations/reportingobserver';
 export { httpClientIntegration } from './integrations/httpclient';
 export { contextLinesIntegration } from './integrations/contextlines';
+export { graphqlClientIntegration } from './integrations/graphqlClient';
 
 export {
   captureConsoleIntegration,
@@ -13,10 +14,7 @@ export {
   captureFeedback,
 } from '@sentry/core';
 
-export {
-  replayIntegration,
-  getReplay,
-} from '@sentry-internal/replay';
+export { replayIntegration, getReplay } from '@sentry-internal/replay';
 export type {
   ReplayEventType,
   ReplayEventWithTime,
@@ -34,17 +32,11 @@ export { replayCanvasIntegration } from '@sentry-internal/replay-canvas';
 import { feedbackAsyncIntegration } from './feedbackAsync';
 import { feedbackSyncIntegration } from './feedbackSync';
 export { feedbackAsyncIntegration, feedbackSyncIntegration, feedbackSyncIntegration as feedbackIntegration };
-export {
-  getFeedback,
-  sendFeedback,
-} from '@sentry-internal/feedback';
+export { getFeedback, sendFeedback } from '@sentry-internal/feedback';
 
 export * from './metrics';
 
-export {
-  defaultRequestInstrumentationOptions,
-  instrumentOutgoingRequests,
-} from './tracing/request';
+export { defaultRequestInstrumentationOptions, instrumentOutgoingRequests } from './tracing/request';
 export {
   browserTracingIntegration,
   startBrowserTracingNavigationSpan,
