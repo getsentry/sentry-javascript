@@ -28,7 +28,7 @@ function wrapHandler<T>(handler: T, method: 'GET' | 'POST' | 'PUT' | 'PATCH' | '
       // We try-catch here just in case the API around `requestAsyncStorage` changes unexpectedly since it is not public API
       try {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        const requestAsyncStore = requestAsyncStorage.getStore() as ReturnType<RequestAsyncStorage['getStore']>;
+        const requestAsyncStore = requestAsyncStorage?.getStore() as ReturnType<RequestAsyncStorage['getStore']>;
         sentryTraceHeader = requestAsyncStore?.headers.get('sentry-trace') ?? undefined;
         baggageHeader = requestAsyncStore?.headers.get('baggage') ?? undefined;
         headers = requestAsyncStore?.headers;
