@@ -1,6 +1,7 @@
 import type { Client, HandlerDataFetch, Scope, Span, SpanOrigin } from '@sentry/types';
 import {
   BAGGAGE_HEADER_NAME,
+  SENTRY_BAGGAGE_KEY_PREFIX,
   dynamicSamplingContextToSentryBaggageHeader,
   generateSentryTraceHeader,
   isInstanceOf,
@@ -122,7 +123,7 @@ export function addTracingHeadersToFetchRequest(
   request: string | unknown, // unknown is actually type Request but we can't export DOM types from this package,
   client: Client,
   scope: Scope,
-  options: {
+  fetchOptionsObj: {
     headers?:
       | {
           [key: string]: string[] | string | undefined;
@@ -145,7 +146,7 @@ export function addTracingHeadersToFetchRequest(
   );
 
   const headers =
-    options.headers ||
+    fetchOptionsObj.headers ||
     (typeof Request !== 'undefined' && isInstanceOf(request, Request) ? (request as Request).headers : undefined);
 
   if (!headers) {
@@ -153,17 +154,46 @@ export function addTracingHeadersToFetchRequest(
   } else if (typeof Headers !== 'undefined' && isInstanceOf(headers, Headers)) {
     const newHeaders = new Headers(headers as Headers);
 
-    newHeaders.append('sentry-trace', sentryTraceHeader);
+    newHeaders.set('sentry-trace', sentryTraceHeader);
 
     if (sentryBaggageHeader) {
-      // If the same header is appended multiple times the browser will merge the values into a single request header.
-      // Its therefore safe to simply push a "baggage" entry, even though there might already be another baggage header.
-      newHeaders.append(BAGGAGE_HEADER_NAME, sentryBaggageHeader);
+      const prevBaggageHeader = newHeaders.get(BAGGAGE_HEADER_NAME);
+      if (prevBaggageHeader) {
+        const prevHeaderStrippedFromSentryBaggage = stripBaggageHeaderOfSentryBaggageValues(prevBaggageHeader);
+        newHeaders.set(
+          BAGGAGE_HEADER_NAME,
+          // If there are non-sentry entries (i.e. if the stripped string is non-empty/truthy) combine the stripped header and sentry baggage header
+          // otherwise just set the sentry baggage header
+          prevHeaderStrippedFromSentryBaggage
+            ? `${prevHeaderStrippedFromSentryBaggage},${sentryBaggageHeader}`
+            : sentryBaggageHeader,
+        );
+      } else {
+        newHeaders.set(BAGGAGE_HEADER_NAME, sentryBaggageHeader);
+      }
     }
 
     return newHeaders as PolymorphicRequestHeaders;
   } else if (Array.isArray(headers)) {
-    const newHeaders = [...headers, ['sentry-trace', sentryTraceHeader]];
+    const newHeaders = headers
+      .filter(header => {
+        // Remove any existing sentry-trace headers
+        return !(Array.isArray(header) && header[0] === 'sentry-trace');
+      })
+      .map(header => {
+        if (Array.isArray(header) && header[0] === BAGGAGE_HEADER_NAME) {
+          return [
+            BAGGAGE_HEADER_NAME,
+            ...header.map(headerValue =>
+              typeof headerValue === 'string' ? stripBaggageHeaderOfSentryBaggageValues(headerValue) : headerValue,
+            ),
+          ];
+        } else {
+          return header;
+        }
+      })
+      // Attach the new sentry-trace header
+      .concat(['sentry-trace', sentryTraceHeader]);
 
     if (sentryBaggageHeader) {
       // If there are multiple entries with the same key, the browser will merge the values into a single request header.
@@ -174,12 +204,16 @@ export function addTracingHeadersToFetchRequest(
     return newHeaders as PolymorphicRequestHeaders;
   } else {
     const existingBaggageHeader = 'baggage' in headers ? headers.baggage : undefined;
-    const newBaggageHeaders: string[] = [];
+    let newBaggageHeaders: string[] = [];
 
     if (Array.isArray(existingBaggageHeader)) {
-      newBaggageHeaders.push(...existingBaggageHeader);
+      newBaggageHeaders = existingBaggageHeader
+        .map(headerItem =>
+          typeof headerItem === 'string' ? stripBaggageHeaderOfSentryBaggageValues(headerItem) : headerItem,
+        )
+        .filter(headerItem => headerItem === '');
     } else if (existingBaggageHeader) {
-      newBaggageHeaders.push(existingBaggageHeader);
+      newBaggageHeaders.push(stripBaggageHeaderOfSentryBaggageValues(existingBaggageHeader));
     }
 
     if (sentryBaggageHeader) {
@@ -220,4 +254,14 @@ function endSpan(span: Span, handlerData: HandlerDataFetch): void {
     span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
   }
   span.end();
+}
+
+function stripBaggageHeaderOfSentryBaggageValues(baggageHeader: string): string {
+  return (
+    baggageHeader
+      .split(',')
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      .filter(baggageEntry => !baggageEntry.split('=')[0]!.startsWith(SENTRY_BAGGAGE_KEY_PREFIX))
+      .join(',')
+  );
 }
