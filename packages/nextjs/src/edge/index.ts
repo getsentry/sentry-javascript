@@ -1,5 +1,6 @@
 import { context } from '@opentelemetry/api';
 import {
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   applySdkMetadata,
   getCapturedScopesOnSpan,
   getCurrentScope,
@@ -7,6 +8,7 @@ import {
   getRootSpan,
   registerSpanErrorInstrumentation,
   setCapturedScopesOnSpan,
+  spanToJSON,
 } from '@sentry/core';
 
 import { GLOBAL_OBJ } from '@sentry/utils';
@@ -52,8 +54,15 @@ export function init(options: VercelEdgeOptions = {}): void {
 
   const client = vercelEdgeInit(opts);
 
-  // Create/fork an isolation whenever we create root spans. This is ok because in Next.js we only create root spans on the edge for incoming requests.
   client?.on('spanStart', span => {
+    const spanAttributes = spanToJSON(span).data;
+
+    // Make sure middleware spans get the right op
+    if (spanAttributes?.['next.span_type'] === 'Middleware.execute') {
+      span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'http.server.middleware');
+    }
+
+    // Create/fork an isolation whenever we create root spans. This is ok because in Next.js we only create root spans on the edge for incoming requests.
     if (span === getRootSpan(span)) {
       const scopes = getCapturedScopesOnSpan(span);
 
