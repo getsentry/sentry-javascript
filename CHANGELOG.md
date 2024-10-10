@@ -10,6 +10,56 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 8.34.0
+
+### Important Changes
+
+- **ref(nextjs): Remove dead code ([#13828](https://github.com/getsentry/sentry-javascript/pull/13903))**
+
+Relevant for users of the `@sentry/nextjs` package: If you have previously configured a
+`SENTRY_IGNORE_API_RESOLUTION_ERROR` environment variable, it is now safe to unset it.
+
+### Other Changes
+
+- feat(cdn): Export `getReplay` in replay CDN bundles
+  ([#13881](https://github.com/getsentry/sentry-javascript/pull/13881))
+- feat(replay): Clear fallback buffer when switching buffers
+  ([#13914](https://github.com/getsentry/sentry-javascript/pull/13914))
+- feat(replay): Upgrade rrweb packages to 2.28.0 ([#13732](https://github.com/getsentry/sentry-javascript/pull/13732))
+- fix(docs): Correct supported browsers due to `globalThis`
+  ([#13788](https://github.com/getsentry/sentry-javascript/pull/13788))
+- fix(nextjs): Adjust path to `requestAsyncStorageShim.js` template file
+  ([#13928](https://github.com/getsentry/sentry-javascript/pull/13928))
+- fix(nextjs): Detect new locations for request async storage to support Next.js v15.0.0-canary.180 and higher
+  ([#13920](https://github.com/getsentry/sentry-javascript/pull/13920))
+- fix(nextjs): Drop `_not-found` spans for all HTTP methods
+  ([#13906](https://github.com/getsentry/sentry-javascript/pull/13906))
+- fix(nextjs): Fix resolution of request storage shim fallback
+  ([#13929](https://github.com/getsentry/sentry-javascript/pull/13929))
+- fix(node): Ensure graphql options are correct when preloading
+  ([#13769](https://github.com/getsentry/sentry-javascript/pull/13769))
+- fix(node): Local variables handle error ([#13827](https://github.com/getsentry/sentry-javascript/pull/13827))
+- fix(node): Remove `dataloader` instrumentation from default integrations
+  ([#13873](https://github.com/getsentry/sentry-javascript/pull/13873))
+- fix(nuxt): Create declaration files for Nuxt module
+  ([#13909](https://github.com/getsentry/sentry-javascript/pull/13909))
+- fix(replay): Ensure `replay_id` is removed from frozen DSC when stopped
+  ([#13893](https://github.com/getsentry/sentry-javascript/pull/13893))
+- fix(replay): Try/catch `sendBufferedReplayOrFlush` to prevent cycles
+  ([#13900](https://github.com/getsentry/sentry-javascript/pull/13900))
+- fix(sveltekit): Ensure trace meta tags are always injected
+  ([#13231](https://github.com/getsentry/sentry-javascript/pull/13231))
+- fix(sveltekit): Update `wrapServerRouteWithSentry` to respect ParamMatchers
+  ([#13390](https://github.com/getsentry/sentry-javascript/pull/13390))
+- fix(wasm): Integration wasm uncaught WebAssembly.Exception
+  ([#13787](https://github.com/getsentry/sentry-javascript/pull/13787)) (#13854)
+- ref(nextjs): Ignore sentry spans based on query param attribute
+  ([#13905](https://github.com/getsentry/sentry-javascript/pull/13905))
+- ref(utils): Move `vercelWaitUntil` to utils ([#13891](https://github.com/getsentry/sentry-javascript/pull/13891))
+
+Work in this release was contributed by @trzeciak, @gurpreetatwal, @ykzts and @lizhiyao. Thank you for your
+contributions!
+
 ## 8.33.1
 
 - fix(core): Update trpc middleware types ([#13859](https://github.com/getsentry/sentry-javascript/pull/13859))
@@ -1158,12 +1208,12 @@ with full support for ESM-based node apps using **Node.js 18.19.0 or higher**.
 [**ES2018+**](https://caniuse.com/?feats=mdn-javascript_builtins_regexp_dotall,js-regexp-lookbehind,mdn-javascript_builtins_regexp_named_capture_groups,mdn-javascript_builtins_regexp_property_escapes,mdn-javascript_builtins_symbol_asynciterator,mdn-javascript_functions_method_definitions_async_generator_methods,mdn-javascript_grammar_template_literals_template_literal_revision,mdn-javascript_operators_destructuring_rest_in_objects,mdn-javascript_operators_destructuring_rest_in_arrays,promise-finally)
 compatible browsers. New minimum browser versions:
 
-- Chrome 63
+- Chrome 71
 - Edge 79
-- Safari/iOS Safari 12
-- Firefox 58
-- Opera 50
-- Samsung Internet 8.2
+- Safari 12.1, iOS Safari 12.2
+- Firefox 65
+- Opera 58
+- Samsung Internet 10
 
 For more details, please see the
 [version support section in our migration guide](./MIGRATION.md#1-version-support-changes).
