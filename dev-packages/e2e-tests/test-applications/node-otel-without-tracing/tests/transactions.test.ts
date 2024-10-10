@@ -12,9 +12,7 @@ test('Sends an API route transaction to OTLP', async ({ baseURL }) => {
 
     const scopeSpans = json.resourceSpans?.[0]?.scopeSpans;
 
-    const httpScope = scopeSpans?.find(
-      scopeSpan => scopeSpan.scope.name === '@opentelemetry_sentry-patched/instrumentation-http',
-    );
+    const httpScope = scopeSpans?.find(scopeSpan => scopeSpan.scope.name === '@opentelemetry/instrumentation-http');
 
     return (
       httpScope &&
@@ -40,9 +38,7 @@ test('Sends an API route transaction to OTLP', async ({ baseURL }) => {
   // But our default node-fetch spans are not emitted
   expect(scopeSpans.length).toEqual(2);
 
-  const httpScopes = scopeSpans?.filter(
-    scopeSpan => scopeSpan.scope.name === '@opentelemetry_sentry-patched/instrumentation-http',
-  );
+  const httpScopes = scopeSpans?.filter(scopeSpan => scopeSpan.scope.name === '@opentelemetry/instrumentation-http');
   const undiciScopes = scopeSpans?.filter(
     scopeSpan => scopeSpan.scope.name === '@opentelemetry/instrumentation-undici',
   );
@@ -114,7 +110,6 @@ test('Sends an API route transaction to OTLP', async ({ baseURL }) => {
         { key: 'net.peer.port', value: { intValue: expect.any(Number) } },
         { key: 'http.status_code', value: { intValue: 200 } },
         { key: 'http.status_text', value: { stringValue: 'OK' } },
-        { key: 'sentry.origin', value: { stringValue: 'auto.http.otel.http' } },
       ]),
       droppedAttributesCount: 0,
       events: [],

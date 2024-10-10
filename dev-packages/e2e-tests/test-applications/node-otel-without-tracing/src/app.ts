@@ -7,6 +7,8 @@ import express from 'express';
 const app = express();
 const port = 3030;
 
+Sentry.setTag('root-level-tag', 'yes');
+
 app.get('/test-success', function (req, res) {
   res.send({ version: 'v1' });
 });
@@ -23,8 +25,6 @@ app.get('/test-transaction', function (req, res) {
 
     await fetch('http://localhost:3030/test-success');
 
-    await Sentry.flush();
-
     res.send({});
   });
 });
@@ -38,7 +38,10 @@ app.get('/test-error', async function (req, res) {
 });
 
 app.get('/test-exception/:id', function (req, _res) {
-  throw new Error(`This is an exception with id ${req.params.id}`);
+  const id = req.params.id;
+  Sentry.setTag(`param-${id}`, id);
+
+  throw new Error(`This is an exception with id ${id}`);
 });
 
 Sentry.setupExpressErrorHandler(app);

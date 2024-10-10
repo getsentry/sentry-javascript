@@ -18,7 +18,7 @@ test('AWS Serverless SDK sends events in ESM mode', async ({ request }) => {
   );
 
   child_process.execSync('pnpm start', {
-    stdio: 'ignore',
+    stdio: 'inherit',
   });
 
   const transactionEvent = await transactionEventPromise;
