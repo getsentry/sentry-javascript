@@ -27,7 +27,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               <Link href="/server-component/parameter/42">/server-component/parameter/42</Link>
             </li>
             <li>
-              <Link href="/server-component/parameter/foo/bar/baz">/server-component/parameter/foo/bar/baz</Link>
+              <Link href="/server-component/parameter/foo/bar/baz" prefetch={false}>
+                /server-component/parameter/foo/bar/baz
+              </Link>
             </li>
             <li>
               <Link href="/not-found">/not-found</Link>
