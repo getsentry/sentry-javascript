@@ -12,6 +12,11 @@
 
 Work in this release was contributed by @ZakrepaShe. Thank you for your contribution!
 
+## 8.35.0-alpha.0
+
+- feat(replay): Allow capture of replays that are "too long" in order to help debug errors occuring outside of normal
+  replay duration window
+
 ## 8.34.0
 
 ### Important Changes
@@ -61,11 +66,6 @@ Relevant for users of the `@sentry/nextjs` package: If you have previously confi
 
 Work in this release was contributed by @trzeciak, @gurpreetatwal, @ykzts and @lizhiyao. Thank you for your
 contributions!
-
-## 8.35.0-alpha.0
-
-- feat(replay): Allow capture of replays that are "too long" in order to help debug errors occuring outside of normal
-  replay duration window
 
 ## 8.33.1
 
