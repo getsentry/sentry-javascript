@@ -12,8 +12,8 @@
 
 - feat(core): Make stream instrumentation opt-in ([#13951](https://github.com/getsentry/sentry-javascript/pull/13951))
 
-This change adds a new option `traceStreams` to the browser tracing integration. Only when set to `true`, Sentry will
-instrument streams via fetch.
+This change adds a new option `trackFetchStreamPerformance` to the browser tracing integration. Only when set to `true`,
+Sentry will instrument streams via fetch.
 
 ## 8.34.0
 

@@ -35,13 +35,10 @@ export function addFetchInstrumentationHandler(
  * Only used internally
  * @hidden
  */
-export function addFetchEndInstrumentationHandler(
-  handler: (data: HandlerDataFetch) => void,
-  trackFetchStreamPerformance?: boolean,
-): void {
+export function addFetchEndInstrumentationHandler(handler: (data: HandlerDataFetch) => void): void {
   const type = 'fetch-body-resolved';
   addHandler(type, handler);
-  maybeInstrument(type, () => instrumentFetch(trackFetchStreamPerformance ? streamHandler : undefined));
+  maybeInstrument(type, () => instrumentFetch(streamHandler));
 }
 
 function instrumentFetch(onFetchResolved?: (response: Response) => void, skipNativeFetchCheck: boolean = false): void {

@@ -1,3 +1,4 @@
+/* eslint-disable max-lines */
 import {
   SENTRY_XHR_DATA_KEY,
   addPerformanceInstrumentationHandler,
@@ -152,14 +153,16 @@ export function instrumentOutgoingRequests(client: Client, _options?: Partial<Re
       return event;
     });
 
-    addFetchEndInstrumentationHandler(handlerData => {
-      if (handlerData.response) {
-        const span = responseToSpanId.get(handlerData.response);
-        if (span && handlerData.endTimestamp) {
-          spanIdToEndTimestamp.set(span, handlerData.endTimestamp);
+    if (trackFetchStreamPerformance) {
+      addFetchEndInstrumentationHandler(handlerData => {
+        if (handlerData.response) {
+          const span = responseToSpanId.get(handlerData.response);
+          if (span && handlerData.endTimestamp) {
+            spanIdToEndTimestamp.set(span, handlerData.endTimestamp);
+          }
         }
-      }
-    }, trackFetchStreamPerformance);
+      });
+    }
 
     addFetchInstrumentationHandler(handlerData => {
       const createdSpan = instrumentFetchRequest(handlerData, shouldCreateSpan, shouldAttachHeadersWithTargets, spans);
