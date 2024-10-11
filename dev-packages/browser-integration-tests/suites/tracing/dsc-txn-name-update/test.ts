@@ -166,6 +166,7 @@ async function makeRequestAndGetBaggageItems(page: Page): Promise<string[]> {
   const request = await requestPromise;
 
   const baggage = await request.headerValue('baggage');
+
   return baggage?.split(',').sort() ?? [];
 }
 
