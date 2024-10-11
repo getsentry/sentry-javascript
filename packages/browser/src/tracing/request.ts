@@ -79,6 +79,13 @@ export interface RequestInstrumentationOptions {
   traceXHR: boolean;
 
   /**
+   * Flag to disable tracing of long-lived streams, like server-sent events (SSE) via fetch.
+   *
+   * Default: false
+   */
+  traceStreams: boolean;
+
+  /**
    * If true, Sentry will capture http timings and add them to the corresponding http spans.
    *
    * Default: true
@@ -101,15 +108,18 @@ export const defaultRequestInstrumentationOptions: RequestInstrumentationOptions
   traceFetch: true,
   traceXHR: true,
   enableHTTPTimings: true,
+  traceStreams: false,
 };
 
 /** Registers span creators for xhr and fetch requests  */
 export function instrumentOutgoingRequests(client: Client, _options?: Partial<RequestInstrumentationOptions>): void {
-  const { traceFetch, traceXHR, shouldCreateSpanForRequest, enableHTTPTimings, tracePropagationTargets } = {
-    traceFetch: defaultRequestInstrumentationOptions.traceFetch,
-    traceXHR: defaultRequestInstrumentationOptions.traceXHR,
-    ..._options,
-  };
+  const { traceFetch, traceXHR, traceStreams, shouldCreateSpanForRequest, enableHTTPTimings, tracePropagationTargets } =
+    {
+      traceFetch: defaultRequestInstrumentationOptions.traceFetch,
+      traceXHR: defaultRequestInstrumentationOptions.traceXHR,
+      traceStreams: defaultRequestInstrumentationOptions.traceStreams,
+      ..._options,
+    };
 
   const shouldCreateSpan =
     typeof shouldCreateSpanForRequest === 'function' ? shouldCreateSpanForRequest : (_: string) => true;
@@ -143,7 +153,7 @@ export function instrumentOutgoingRequests(client: Client, _options?: Partial<Re
           spanIdToEndTimestamp.set(span, handlerData.endTimestamp);
         }
       }
-    });
+    }, traceStreams);
 
     addFetchInstrumentationHandler(handlerData => {
       const createdSpan = instrumentFetchRequest(handlerData, shouldCreateSpan, shouldAttachHeadersWithTargets, spans);
@@ -167,7 +177,7 @@ export function instrumentOutgoingRequests(client: Client, _options?: Partial<Re
       if (enableHTTPTimings && createdSpan) {
         addHTTPTimings(createdSpan);
       }
-    });
+    }, traceStreams);
   }
 
   if (traceXHR) {

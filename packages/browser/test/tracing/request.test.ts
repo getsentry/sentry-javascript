@@ -35,7 +35,7 @@ describe('instrumentOutgoingRequests', () => {
 
     instrumentOutgoingRequests(client);
 
-    expect(addFetchSpy).toHaveBeenCalledWith(expect.any(Function));
+    expect(addFetchSpy).toHaveBeenCalledWith(expect.any(Function), false);
     expect(addXhrSpy).toHaveBeenCalledWith(expect.any(Function));
   });
 
@@ -53,6 +53,14 @@ describe('instrumentOutgoingRequests', () => {
     instrumentOutgoingRequests(client, { traceXHR: false });
 
     expect(addXhrSpy).not.toHaveBeenCalled();
+  });
+
+  it('does instrument streaming requests if traceStream is true', () => {
+    const addFetchSpy = vi.spyOn(utils, 'addFetchInstrumentationHandler');
+
+    instrumentOutgoingRequests(client, { traceStreams: true });
+
+    expect(addFetchSpy).toHaveBeenCalledWith(expect.any(Function), true);
   });
 });
 
