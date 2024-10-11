@@ -307,6 +307,12 @@ export function init(options: NodeOptions): NodeClient | undefined {
           if (typeof method === 'string' && typeof route === 'string') {
             event.transaction = `${method} ${route.replace(/\/route$/, '')}`;
             event.contexts.trace.data[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] = 'route';
+          } else {
+            // If we cannot hoist the route (or rather parameterize the transaction) for BaseServer.handleRequest spans,
+            // we drop it because the chance that it is a low-quality transaction we don't want is pretty high.
+            // This is important in the case of edge-runtime where Next.js will also create unnecessary Node.js root
+            // spans, that are not parameterized.
+            return null;
           }
         }
 
