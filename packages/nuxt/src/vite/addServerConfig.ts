@@ -75,54 +75,6 @@ export function addServerConfigToBuild(
 }
 
 /**
- *  Adds the Sentry server config import at the top of the server entry file to load the SDK on the server.
- *  This is necessary for environments where modifying the node option `--import` is not possible.
- *  However, only limited tracing instrumentation is supported when doing this.
- */
-export function addSentryTopImport(moduleOptions: SentryNuxtModuleOptions, nitro: Nitro): void {
-  nitro.hooks.hook('close', () => {
-    // other presets ('node-server' or 'vercel') have an index.mjs
-    const presetsWithServerFile = ['netlify'];
-    const entryFileName =
-      typeof nitro.options.rollupConfig?.output.entryFileNames === 'string'
-        ? nitro.options.rollupConfig?.output.entryFileNames
-        : presetsWithServerFile.includes(nitro.options.preset)
-          ? 'server.mjs'
-          : 'index.mjs';
-
-    const serverDirResolver = createResolver(nitro.options.output.serverDir);
-    const entryFilePath = serverDirResolver.resolve(entryFileName);
-
-    try {
-      fs.readFile(entryFilePath, 'utf8', (err, data) => {
-        const updatedContent = `import './${SERVER_CONFIG_FILENAME}.mjs';\n${data}`;
-
-        fs.writeFile(entryFilePath, updatedContent, 'utf8', () => {
-          if (moduleOptions.debug) {
-            consoleSandbox(() => {
-              // eslint-disable-next-line no-console
-              console.log(
-                `[Sentry] Successfully added the Sentry import to the server entry file "\`${entryFilePath}\`"`,
-              );
-            });
-          }
-        });
-      });
-    } catch (err) {
-      if (moduleOptions.debug) {
-        consoleSandbox(() => {
-          // eslint-disable-next-line no-console
-          console.warn(
-            `[Sentry] An error occurred when trying to add the Sentry import to the server entry file "\`${entryFilePath}\`":`,
-            err,
-          );
-        });
-      }
-    }
-  });
-}
-
-/**
  * This function modifies the Rollup configuration to include a plugin that wraps the entry file with a dynamic import (`import()`)
  * and adds the Sentry server config with the static `import` declaration.
  *
