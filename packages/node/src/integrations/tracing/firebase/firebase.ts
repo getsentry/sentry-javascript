@@ -19,8 +19,6 @@ const _firebaseIntegration = (() => {
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
-      // eslint-disable-next-line no-console
-      console.log('setting firebase instrumentation');
       instrumentFirebase();
     },
   };
