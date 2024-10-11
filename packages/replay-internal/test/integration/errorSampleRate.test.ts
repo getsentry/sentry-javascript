@@ -148,6 +148,90 @@ describe('Integration | errorSampleRate', () => {
       });
     });
 
+    it('loads an old session with a previousSessionId set and can send buffered replay', async () => {
+      vi.mock('../../src/session/fetchSession', () => ({
+        fetchSession: () => ({
+          id: 'newreplayid',
+          started: BASE_TIMESTAMP,
+          lastActivity: BASE_TIMESTAMP,
+          segmentId: 0,
+          sampled: 'buffer',
+          previousSessionId: 'previoussessionid',
+        }),
+      }));
+
+      const ADVANCED_TIME = 86400000;
+      const optionsEvent = createOptionsEvent(replay);
+
+      expect(replay.session.started).toBe(BASE_TIMESTAMP);
+
+      // advance time to make sure replay duration is invalid
+      vi.advanceTimersByTime(ADVANCED_TIME);
+
+      // full snapshot should update session start time
+      mockRecord.takeFullSnapshot(true);
+      expect(replay.session.started).toBe(BASE_TIMESTAMP + ADVANCED_TIME);
+      expect(replay.recordingMode).toBe('buffer');
+
+      // advance so we can flush
+      vi.advanceTimersByTime(DEFAULT_FLUSH_MIN_DELAY);
+
+      captureException(new Error('testing'));
+      await vi.advanceTimersToNextTimerAsync();
+
+      // Converts to session mode
+      expect(replay.recordingMode).toBe('session');
+      expect(replay).toHaveLastSentReplay({
+        recordingPayloadHeader: { segment_id: 0 },
+        replayEventPayload: expect.objectContaining({
+          replay_type: 'buffer',
+        }),
+        recordingData: JSON.stringify([
+          { data: { isCheckout: true }, timestamp: BASE_TIMESTAMP + ADVANCED_TIME, type: 2 },
+          { ...optionsEvent, timestamp: BASE_TIMESTAMP + ADVANCED_TIME },
+        ]),
+      });
+
+      // capture next event
+      domHandler({
+        name: 'click',
+        event: new Event('click'),
+      });
+
+      vi.advanceTimersByTime(DEFAULT_FLUSH_MIN_DELAY);
+      await vi.advanceTimersToNextTimerAsync();
+
+      expect(replay).toHaveLastSentReplay({
+        recordingPayloadHeader: { segment_id: 1 },
+        replayEventPayload: expect.objectContaining({
+          // We don't change replay_type as it starts in buffer mode and that's
+          // what we're interested in, even though recordingMode changes to
+          // 'session'
+          replay_type: 'buffer',
+        }),
+        recordingData: JSON.stringify([
+          // There's a new checkout because we convert to session mode
+          { data: { isCheckout: true }, timestamp: BASE_TIMESTAMP + ADVANCED_TIME + DEFAULT_FLUSH_MIN_DELAY, type: 2 },
+          {
+            type: 5,
+            timestamp: BASE_TIMESTAMP + ADVANCED_TIME + DEFAULT_FLUSH_MIN_DELAY,
+            data: {
+              tag: 'breadcrumb',
+              payload: {
+                timestamp: (BASE_TIMESTAMP + ADVANCED_TIME + DEFAULT_FLUSH_MIN_DELAY) / 1000,
+                type: 'default',
+                category: 'ui.click',
+                message: '<unknown>',
+                data: {},
+              },
+            },
+          },
+        ]),
+      });
+      vi.clearAllMocks();
+      await waitForFlush();
+    });
+
     it('manually flushes replay and does not continue to record', async () => {
       const TEST_EVENT = getTestEventIncremental({ timestamp: BASE_TIMESTAMP });
       mockRecord._emitter(TEST_EVENT);
