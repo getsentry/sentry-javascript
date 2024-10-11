@@ -228,7 +228,7 @@ describe('Integration | errorSampleRate', () => {
           },
         ]),
       });
-      vi.clearAllMocks();
+      vi.unmock('../../src/session/fetchSession');
       await waitForFlush();
     });
 
