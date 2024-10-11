@@ -30,6 +30,8 @@ sentryTest('updates the DSC when the txn name is updated and high-quality', asyn
   8. Make request and check that baggage has updated HQ txn name
   9. Capture error and check that envelope trace header has updated HQ txn name
   10. End span and check that envelope trace header has updated HQ txn name
+  11. Make another request and check that there's no span information in baggage
+  12. Capture an error and check that envelope trace header has no span information
   */
 
   // 1
@@ -138,6 +140,24 @@ sentryTest('updates the DSC when the txn name is updated and high-quality', asyn
   });
 
   expect(txnEvent.transaction).toEqual('updated-root-span-2');
+
+  // 11
+  const baggageItemsAfterEnd = await makeRequestAndGetBaggageItems(page);
+  expect(baggageItemsAfterEnd).toEqual([
+    'sentry-environment=production',
+    'sentry-public_key=public',
+    'sentry-release=1.1.1',
+    `sentry-trace_id=${traceId}`,
+  ]);
+
+  // 12
+  const errorEnvelopeTraceHeaderAfterEnd = await captureErrorAndGetEnvelopeTraceHeader(page);
+  expect(errorEnvelopeTraceHeaderAfterEnd).toEqual({
+    environment: 'production',
+    public_key: 'public',
+    release: '1.1.1',
+    trace_id: traceId,
+  });
 });
 
 async function makeRequestAndGetBaggageItems(page: Page): Promise<string[]> {
