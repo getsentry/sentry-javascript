@@ -134,6 +134,7 @@ export interface BrowserTracingOptions {
 
   /**
    * Flag to disable tracking of long-lived streams, like server-sent events (SSE) via fetch.
+   * Do not enable this in case you have live streams or very long running streams.
    *
    * Default: false
    */
