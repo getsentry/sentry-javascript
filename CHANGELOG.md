@@ -10,6 +10,11 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+- feat(core): Make stream instrumentation opt-in ([#13951](https://github.com/getsentry/sentry-javascript/pull/13951))
+
+This change adds a new option `traceStreams` to the browser tracing integration. Only when set to `true`, Sentry will
+instrument streams via fetch.
+
 ## 8.34.0
 
 ### Important Changes
