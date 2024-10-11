@@ -79,11 +79,11 @@ export interface RequestInstrumentationOptions {
   traceXHR: boolean;
 
   /**
-   * Flag to disable tracing of long-lived streams, like server-sent events (SSE) via fetch.
+   * Flag to disable tracking of long-lived streams, like server-sent events (SSE) via fetch.
    *
    * Default: false
    */
-  traceStreams: boolean;
+  trackFetchStreamPerformance: boolean;
 
   /**
    * If true, Sentry will capture http timings and add them to the corresponding http spans.
@@ -108,18 +108,24 @@ export const defaultRequestInstrumentationOptions: RequestInstrumentationOptions
   traceFetch: true,
   traceXHR: true,
   enableHTTPTimings: true,
-  traceStreams: false,
+  trackFetchStreamPerformance: false,
 };
 
 /** Registers span creators for xhr and fetch requests  */
 export function instrumentOutgoingRequests(client: Client, _options?: Partial<RequestInstrumentationOptions>): void {
-  const { traceFetch, traceXHR, traceStreams, shouldCreateSpanForRequest, enableHTTPTimings, tracePropagationTargets } =
-    {
-      traceFetch: defaultRequestInstrumentationOptions.traceFetch,
-      traceXHR: defaultRequestInstrumentationOptions.traceXHR,
-      traceStreams: defaultRequestInstrumentationOptions.traceStreams,
-      ..._options,
-    };
+  const {
+    traceFetch,
+    traceXHR,
+    trackFetchStreamPerformance,
+    shouldCreateSpanForRequest,
+    enableHTTPTimings,
+    tracePropagationTargets,
+  } = {
+    traceFetch: defaultRequestInstrumentationOptions.traceFetch,
+    traceXHR: defaultRequestInstrumentationOptions.traceXHR,
+    trackFetchStreamPerformance: defaultRequestInstrumentationOptions.trackFetchStreamPerformance,
+    ..._options,
+  };
 
   const shouldCreateSpan =
     typeof shouldCreateSpanForRequest === 'function' ? shouldCreateSpanForRequest : (_: string) => true;
@@ -153,7 +159,7 @@ export function instrumentOutgoingRequests(client: Client, _options?: Partial<Re
           spanIdToEndTimestamp.set(span, handlerData.endTimestamp);
         }
       }
-    }, traceStreams);
+    }, trackFetchStreamPerformance);
 
     addFetchInstrumentationHandler(handlerData => {
       const createdSpan = instrumentFetchRequest(handlerData, shouldCreateSpan, shouldAttachHeadersWithTargets, spans);
@@ -177,7 +183,7 @@ export function instrumentOutgoingRequests(client: Client, _options?: Partial<Re
       if (enableHTTPTimings && createdSpan) {
         addHTTPTimings(createdSpan);
       }
-    }, traceStreams);
+    });
   }
 
   if (traceXHR) {

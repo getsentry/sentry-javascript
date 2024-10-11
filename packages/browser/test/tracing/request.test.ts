@@ -55,10 +55,10 @@ describe('instrumentOutgoingRequests', () => {
     expect(addXhrSpy).not.toHaveBeenCalled();
   });
 
-  it('does instrument streaming requests if traceStream is true', () => {
+  it('does instrument streaming requests if trackFetchStreamPerformance is true', () => {
     const addFetchSpy = vi.spyOn(utils, 'addFetchInstrumentationHandler');
 
-    instrumentOutgoingRequests(client, { traceStreams: true });
+    instrumentOutgoingRequests(client, { trackFetchStreamPerformance: true });
 
     expect(addFetchSpy).toHaveBeenCalledWith(expect.any(Function), true);
   });
