@@ -1,0 +1,58 @@
+services:
+  emulator:
+    container_name: sentry-firebase
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - FIREBASE_VERSION=13.19.0
+    stop_grace_period: 1m
+    environment:
+      FIREBASE_AUTH_EMULATOR_HOST: "localhost:5507"
+      FIRESTORE_EMULATOR_HOST: "localhost:5504"
+      PUBSUB_EMULATOR_HOST: "localhost:5505"
+      FUNCTIONS_EMULATOR_HOST: "localhost:5503"
+      FIREBASE_PROJECT: "sentry-15d85"
+      GCLOUD_PROJECT: "sentry-15d85"
+      FORCE_COLOR: 'true'
+      DATA_DIRECTORY: "data"
+      CHOKIDAR_USEPOLLING: 'true'
+    ports:
+      - "5500:4001" # ui
+      - "5501:4401" # hub
+      - "5502:4601" # logging
+      - "5503:5002" # functions
+      - "5504:8081" # firestore
+      - "5505:8086" # pubsub
+      - "5506:9001" # database
+      - "5507:9100" # auth
+      - "5508:9200" # Storage
+      - "5509:6001" # Hosting
+      - '5510:9081' # firestore (grpc)
+      - '5511:9230' # cloud_functions_debug
+      - '9005:9005' # to be able to authenticate using gmail and docker
+    volumes:
+      - type: bind
+        source: ./firebase
+        target: /srv/firebase
+        bind:
+          create_host_path: true
+      - type: bind
+        source: ./cache
+        target: /root/.cache
+        bind:
+          create_host_path: true
+      - type: bind
+        source: .config
+        target: /root/.config
+        bind:
+          create_host_path: true
+      - type: bind
+        source: ./firebase/data
+        target: /srv/firebase/data
+        bind:
+          create_host_path: true
+
+networks:
+  default:
+    driver: bridge
