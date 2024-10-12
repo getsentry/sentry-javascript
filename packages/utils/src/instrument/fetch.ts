@@ -115,55 +115,75 @@ function instrumentFetch(onFetchResolved?: (response: Response) => void, skipNat
   });
 }
 
-async function resolveResponse(res: Response | undefined, onFinishedResolving: () => void): Promise<void> {
-  if (res && res.body) {
-    const body = res.body;
-    const responseReader = body.getReader();
+async function resloveReader(reader: ReadableStreamDefaultReader, onFinishedResolving: () => void) {
+  let running = true;
+  while (running) {
+    try {
+      // This .read() call will reject/throw when `reader.cancel()`
+      const { done } = await reader.read();
 
-    // Define a maximum duration after which we just cancel
-    const maxFetchDurationTimeout = setTimeout(
-      () => {
-        body.cancel().then(null, () => {
-          // noop
-        });
-      },
-      90 * 1000, // 90s
-    );
+      running = !done;
 
-    let readingActive = true;
-    while (readingActive) {
-      let chunkTimeout;
-      try {
-        // abort reading if read op takes more than 5s
-        chunkTimeout = setTimeout(() => {
-          body.cancel().then(null, () => {
-            // noop on error
-          });
-        }, 5000);
-
-        // This .read() call will reject/throw when we abort due to timeouts through `body.cancel()`
-        const { done } = await responseReader.read();
-
-        clearTimeout(chunkTimeout);
-
-        if (done) {
-          onFinishedResolving();
-          readingActive = false;
-        }
-      } catch (error) {
-        readingActive = false;
-      } finally {
-        clearTimeout(chunkTimeout);
+      if (done) {
+        onFinishedResolving();
       }
+    } catch (_) {
+      running = false;
+    }
+  }
+}
+
+export function resolveResponse(res: Response, parentRes: Response, onFinishedResolving: () => void) {
+  if (!res.body || !parentRes.body) {
+    if (res.body) {
+      res.body.cancel();
     }
 
-    clearTimeout(maxFetchDurationTimeout);
-
-    responseReader.releaseLock();
-    body.cancel().then(null, () => {
-      // noop on error
-    });
+    return;
   }
+
+  const body = res.body;
+  const parentBody = parentRes.body;
+  const responseReader = body.getReader();
+
+  const originalCancel = parentBody.cancel;
+
+  // Override cancel method on parent response's body
+  parentBody.cancel = async (reason?: any) => {
+    responseReader.cancel("Cancelled by parent stream").catch((err) => {
+      console.error('Error during responseReader cancellation:', err);
+    });
+
+    await originalCancel.call(parentBody, reason);
+  }
+
+  const originalGetReader = parentRes.body.getReader;
+
+  // Override getReader on parent response's body
+  parentBody.getReader = ((opts?: any) => {
+    const reader = originalGetReader.call(parentBody, opts);
+
+    const originalReaderCancel = reader.cancel;
+
+    reader.cancel = async (reason?: any) => {
+      responseReader.cancel("Cancelled by parent reader").catch((err) => {
+        console.error('Error during responseReader cancellation:', err);
+      });
+
+      await originalReaderCancel.call(reader, reason);
+    }
+
+    return reader;
+  }) as any
+
+  resloveReader(responseReader, onFinishedResolving).finally(() => {
+    try {
+      responseReader.releaseLock();
+      body.cancel().catch(() => { });
+    } catch (_) {
+      // noop on error
+    }
+  });
 }
 
 function streamHandler(response: Response): void {
@@ -175,8 +195,7 @@ function streamHandler(response: Response): void {
     return;
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-floating-promises
-  resolveResponse(clonedResponseForResolving, () => {
+  resolveResponse(clonedResponseForResolving, response, () => {
     triggerHandlers('fetch-body-resolved', {
       endTimestamp: timestampInSeconds() * 1000,
       response,
