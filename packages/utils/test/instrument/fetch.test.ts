@@ -1,11 +1,11 @@
 import { parseFetchArgs, resolveResponse } from '../../src/instrument/fetch';
 
 async function delay(ms: number) {
-  await new Promise((res) => {
+  await new Promise(res => {
     setTimeout(() => {
       res(true);
     }, ms);
-  })
+  });
 }
 
 describe('instrument > parseFetchArgs', () => {
@@ -57,7 +57,7 @@ describe('instrument > fetch > resolveResponse', () => {
       body: {
         getReader: jest.fn(() => mockReader),
         cancel: jest.fn(),
-      } as unknown as ReadableStream<any>
+      } as unknown as ReadableStream<any>,
     } as jest.Mocked<Response>;
 
     mockParentReader = {
@@ -70,15 +70,16 @@ describe('instrument > fetch > resolveResponse', () => {
       body: {
         cancel: jest.fn().mockResolvedValue(undefined),
         getReader: jest.fn(() => mockParentReader),
-      } as unknown as ReadableStream<any>
+      } as unknown as ReadableStream<any>,
     } as jest.Mocked<Response>;
 
     onFinishedResolving = jest.fn();
   });
 
   test('should call onFinishedResolving when the stream is fully read', async () => {
-    mockReader.read.mockResolvedValueOnce({ done: false, value: 'chunk' })
-                  .mockResolvedValueOnce({ done: true, value: null });
+    mockReader.read
+      .mockResolvedValueOnce({ done: false, value: 'chunk' })
+      .mockResolvedValueOnce({ done: true, value: null });
 
     resolveResponse(mockResponse, mockParentResponse, onFinishedResolving);
 
@@ -102,7 +103,8 @@ describe('instrument > fetch > resolveResponse', () => {
   });
 
   test('should cancel reader and gracefully exit when parent response is cancelled', async () => {
-    mockReader.read.mockResolvedValueOnce({ done: false, value: 'chunk1' })
+    mockReader.read
+      .mockResolvedValueOnce({ done: false, value: 'chunk1' })
       .mockResolvedValueOnce({ done: false, value: 'chunk2' });
 
     resolveResponse(mockResponse, mockParentResponse, onFinishedResolving);
@@ -118,7 +120,8 @@ describe('instrument > fetch > resolveResponse', () => {
   });
 
   test('should cancel reader and gracefully exit when parent reader is cancelled', async () => {
-    mockReader.read.mockResolvedValueOnce({ done: false, value: 'chunk1' })
+    mockReader.read
+      .mockResolvedValueOnce({ done: false, value: 'chunk1' })
       .mockResolvedValueOnce({ done: false, value: 'chunk2' });
 
     resolveResponse(mockResponse, mockParentResponse, onFinishedResolving);

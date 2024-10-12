@@ -150,12 +150,12 @@ export function resolveResponse(res: Response, parentRes: Response, onFinishedRe
 
   // Override cancel method on parent response's body
   parentBody.cancel = async (reason?: any) => {
-    responseReader.cancel("Cancelled by parent stream").catch((err) => {
+    responseReader.cancel('Cancelled by parent stream').catch(err => {
       console.error('Error during responseReader cancellation:', err);
     });
 
     await originalCancel.call(parentBody, reason);
-  }
+  };
 
   const originalGetReader = parentRes.body.getReader;
 
@@ -166,20 +166,20 @@ export function resolveResponse(res: Response, parentRes: Response, onFinishedRe
     const originalReaderCancel = reader.cancel;
 
     reader.cancel = async (reason?: any) => {
-      responseReader.cancel("Cancelled by parent reader").catch((err) => {
+      responseReader.cancel('Cancelled by parent reader').catch(err => {
         console.error('Error during responseReader cancellation:', err);
       });
 
       await originalReaderCancel.call(reader, reason);
-    }
+    };
 
     return reader;
-  }) as any
+  }) as any;
 
   resloveReader(responseReader, onFinishedResolving).finally(() => {
     try {
       responseReader.releaseLock();
-      body.cancel().catch(() => { });
+      body.cancel().catch(() => {});
     } catch (_) {
       // noop on error
     }
