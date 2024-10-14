@@ -139,11 +139,8 @@ function wrapEntryWithDynamicImport(resolvedSentryConfigPath: string): InputPlug
           : resolution.id
               // Concatenates the query params to mark the file (also attaches names of re-exports - this is needed for serverless functions to re-export the handler)
               .concat(SENTRY_WRAPPED_ENTRY)
-              .concat(
-                exportedFunctions?.length
-                  ? SENTRY_FUNCTIONS_REEXPORT.concat(exportedFunctions.join(',')).concat(QUERY_END_INDICATOR)
-                  : '',
-              );
+              .concat(exportedFunctions?.length ? SENTRY_FUNCTIONS_REEXPORT.concat(exportedFunctions.join(',')) : '')
+              .concat(QUERY_END_INDICATOR);
       }
       return null;
     },
@@ -163,7 +160,7 @@ function wrapEntryWithDynamicImport(resolvedSentryConfigPath: string): InputPlug
           // `import()` can be used for any code that should be run after the hooks are registered (https://nodejs.org/api/module.html#enabling)
           `import(${JSON.stringify(entryId)});\n` +
           // By importing "import-in-the-middle/hook.mjs", we can make sure this file wil be included, as not all node builders are including files imported with `module.register()`.
-          "import 'import-in-the-middle/hook.mjs'\n" +
+          "import 'import-in-the-middle/hook.mjs';\n" +
           `${reExportedFunctions}\n`
         );
       }

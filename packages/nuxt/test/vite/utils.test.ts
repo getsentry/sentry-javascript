@@ -71,8 +71,11 @@ describe('findDefaultSdkInitFile', () => {
 describe('removeSentryQueryFromPath', () => {
   it('strips the Sentry query part from the path', () => {
     const url = `/example/path${SENTRY_WRAPPED_ENTRY}${SENTRY_FUNCTIONS_REEXPORT}foo,${QUERY_END_INDICATOR}`;
+    const url2 = `/example/path${SENTRY_WRAPPED_ENTRY}${QUERY_END_INDICATOR}`;
     const result = removeSentryQueryFromPath(url);
+    const result2 = removeSentryQueryFromPath(url2);
     expect(result).toBe('/example/path');
+    expect(result2).toBe('/example/path');
   });
 
   it('returns the same path if the specific query part is not present', () => {

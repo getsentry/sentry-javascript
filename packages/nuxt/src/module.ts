@@ -17,7 +17,12 @@ export default defineNuxtModule<ModuleOptions>({
     },
   },
   defaults: {},
-  setup(moduleOptions, nuxt) {
+  setup(moduleOptionsParam, nuxt) {
+    const moduleOptions = {
+      ...moduleOptionsParam,
+      dynamicImportWrapping: moduleOptionsParam.dynamicImportWrapping !== false, // default: true
+    };
+
     const moduleDirResolver = createResolver(import.meta.url);
     const buildDirResolver = createResolver(nuxt.options.buildDir);
 
@@ -48,7 +53,7 @@ export default defineNuxtModule<ModuleOptions>({
     const serverConfigFile = findDefaultSdkInitFile('server');
 
     if (serverConfigFile) {
-      if (moduleOptions.disableDynamicImportWrapping) {
+      if (moduleOptions.dynamicImportWrapping === false) {
         // Inject the server-side Sentry config file with a side effect import
         addPluginTemplate({
           mode: 'server',
@@ -69,7 +74,7 @@ export default defineNuxtModule<ModuleOptions>({
 
     nuxt.hooks.hook('nitro:init', nitro => {
       if (serverConfigFile && serverConfigFile.includes('.server.config')) {
-        if (moduleOptions.disableDynamicImportWrapping) {
+        if (moduleOptions.dynamicImportWrapping === false) {
           addServerConfigToBuild(moduleOptions, nuxt, nitro, serverConfigFile);
 
           if (moduleOptions.debug) {

@@ -103,16 +103,19 @@ export type SentryNuxtModuleOptions = {
   debug?: boolean;
 
   /**
-   * If this option is `false`, the Sentry SDK won't wrap the server entry file with `import()`. Not wrapping the
-   * server entry file will disable Sentry on the server-side. When you set this option to `true`, make sure
-   * to add the sentry server config with the node `--import` CLI flag to enable Sentry on the server-side.
+   * Wraps the server entry file with a dynamic `import()`. This will make it possible to preload Sentry and register
+   * necessary hooks before other code runs. (Node docs: https://nodejs.org/api/module.html#enabling)
    *
-   * **DO NOT** add the node CLI flag `--import` in your node start script, when `disableDynamicImportWrapping` is set to `false`.
+   * If this option is `false`, the Sentry SDK won't wrap the server entry file with `import()`. Not wrapping the
+   * server entry file will disable Sentry on the server-side. When you set this option to `false`, make sure
+   * to add the Sentry server config with the node `--import` CLI flag to enable Sentry on the server-side.
+   *
+   * **DO NOT** add the node CLI flag `--import` in your node start script, when `dynamicImportWrapping` is set to `true` (default).
    * This would initialize Sentry twice on the server-side and this leads to unexpected issues.
    *
-   * @default false
+   * @default true
    */
-  disableDynamicImportWrapping?: boolean;
+  dynamicImportWrapping?: boolean;
 
   /**
    * Options to be passed directly to the Sentry Rollup Plugin (`@sentry/rollup-plugin`) and Sentry Vite Plugin (`@sentry/vite-plugin`) that ship with the Sentry Nuxt SDK.
