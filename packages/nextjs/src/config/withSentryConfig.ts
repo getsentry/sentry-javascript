@@ -96,6 +96,7 @@ function getFinalConfigObject(
         'import-in-the-middle',
       ];
     } else {
+      incomingUserNextConfigObject.experimental = incomingUserNextConfigObject.experimental || {};
       incomingUserNextConfigObject.experimental.serverComponentsExternalPackages = [
         ...(incomingUserNextConfigObject.experimental.serverComponentsExternalPackages || []),
         'import-in-the-middle',
