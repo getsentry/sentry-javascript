@@ -1046,10 +1046,22 @@ export class ReplayContainer implements ReplayContainerInterface {
    * are included in the replay event before it is finished and sent to Sentry.
    */
   private _addPerformanceEntries(): Promise<Array<AddEventResult | null>> {
-    const performanceEntries = createPerformanceEntries(this.performanceEntries).concat(this.replayPerformanceEntries);
+    let performanceEntries = createPerformanceEntries(this.performanceEntries).concat(this.replayPerformanceEntries);
 
     this.performanceEntries = [];
     this.replayPerformanceEntries = [];
+
+    // If we are manually starting, we want to ensure we only include performance entries
+    // that are after the initial timestamp, with 1s wiggle room.
+    // The reason for this is that we may have performance entries from the page load, but may decide to start
+    // the replay later on, in which case we do not want to include these entries.
+    // without this, manually started replays can have events long before the actual replay recording starts,
+    // which messes with the timeline etc.
+    if (this._requiresManualStart) {
+      // We leave 1s wiggle room to accomodate timing differences for "immedidate" manual starts
+      const initialTimestampInSeconds = this._context.initialTimestamp / 1000 - 1;
+      performanceEntries = performanceEntries.filter(entry => entry.start >= initialTimestampInSeconds);
+    }
 
     return Promise.all(createPerformanceSpans(this, performanceEntries));
   }
