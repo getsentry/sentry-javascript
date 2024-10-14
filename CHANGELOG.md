@@ -16,7 +16,7 @@
 This change adds a new option `trackFetchStreamPerformance` to the browser tracing integration. Only when set to `true`,
 Sentry will instrument streams via fetch.
 
-Work in this release was contributed by @ZakrepaShe. Thank you for your contribution!
+Work in this release was contributed by @ZakrepaShe and @zhiyan114. Thank you for your contributions!
 
 ## 8.34.0
 
