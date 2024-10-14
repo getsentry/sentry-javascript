@@ -11,12 +11,13 @@ import {
   spanToJSON,
 } from '@sentry/core';
 
-import { GLOBAL_OBJ } from '@sentry/utils';
+import { GLOBAL_OBJ, vercelWaitUntil } from '@sentry/utils';
 import type { VercelEdgeOptions } from '@sentry/vercel-edge';
 import { getDefaultIntegrations, init as vercelEdgeInit } from '@sentry/vercel-edge';
 
 import { getScopesFromContext } from '@sentry/opentelemetry';
 import { isBuild } from '../common/utils/isBuild';
+import { flushSafelyWithTimeout } from '../common/utils/responseEnd';
 import { distDirRewriteFramesIntegration } from './distDirRewriteFramesIntegration';
 
 export { captureUnderscoreErrorException } from '../common/pages-router-instrumentation/_error';
@@ -75,6 +76,12 @@ export function init(options: VercelEdgeOptions = {}): void {
       }
 
       setCapturedScopesOnSpan(span, scope, isolationScope);
+    }
+  });
+
+  client?.on('spanEnd', span => {
+    if (span === getRootSpan(span)) {
+      vercelWaitUntil(flushSafelyWithTimeout());
     }
   });
 }

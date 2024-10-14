@@ -1,10 +1,12 @@
 import {
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   captureException,
   getActiveSpan,
   getCurrentScope,
   getIsolationScope,
+  getRootSpan,
   handleCallbackErrors,
   startSpan,
 } from '@sentry/core';
@@ -37,45 +39,53 @@ export function wrapApiHandlerWithSentry<H extends EdgeRouteHandler>(
 
       // If there is an active span, it likely means that the automatic Next.js OTEL instrumentation worked and we can
       // rely on that for parameterization.
-      if (getActiveSpan()) {
+      const activeSpan = getActiveSpan();
+      if (activeSpan) {
         spanName = `handler (${parameterizedRoute})`;
         op = undefined;
+
+        const rootSpan = getRootSpan(activeSpan);
+        if (rootSpan) {
+          rootSpan.updateName(
+            req instanceof Request ? `${req.method} ${parameterizedRoute}` : `handler ${parameterizedRoute}`,
+          );
+          rootSpan.setAttributes({
+            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
+            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          });
+        }
       } else if (req instanceof Request) {
         spanName = `${req.method} ${parameterizedRoute}`;
       } else {
         spanName = `handler ${parameterizedRoute}`;
       }
 
-      let handlerResult;
-      try {
-        handlerResult = await startSpan(
-          {
-            name: spanName,
-            op: op,
-            attributes: {
-              [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
-              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nextjs.wrapApiHandlerWithSentry',
+      return startSpan(
+        {
+          name: spanName,
+          op: op,
+          attributes: {
+            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nextjs.wrapApiHandlerWithSentry',
+          },
+        },
+        () => {
+          return handleCallbackErrors(
+            () => wrappingTarget.apply(thisArg, args),
+            error => {
+              captureException(error, {
+                mechanism: {
+                  type: 'instrument',
+                  handled: false,
+                },
+              });
             },
-          },
-          () => {
-            return handleCallbackErrors(
-              () => wrappingTarget.apply(thisArg, args),
-              error => {
-                captureException(error, {
-                  mechanism: {
-                    type: 'instrument',
-                    handled: false,
-                  },
-                });
-              },
-            );
-          },
-        );
-      } finally {
-        vercelWaitUntil(flushSafelyWithTimeout());
-      }
-
-      return handlerResult;
+            () => {
+              vercelWaitUntil(flushSafelyWithTimeout());
+            },
+          );
+        },
+      );
     },
   });
 }
