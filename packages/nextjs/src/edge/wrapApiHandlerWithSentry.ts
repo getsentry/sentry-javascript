@@ -46,31 +46,34 @@ export function wrapApiHandlerWithSentry<H extends EdgeRouteHandler>(
         spanName = `handler ${parameterizedRoute}`;
       }
 
-      const handlerResult = await startSpan(
-        {
-          name: spanName,
-          op: op,
-          attributes: {
-            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nextjs.wrapApiHandlerWithSentry',
-          },
-        },
-        () => {
-          return handleCallbackErrors(
-            () => wrappingTarget.apply(thisArg, args),
-            error => {
-              captureException(error, {
-                mechanism: {
-                  type: 'instrument',
-                  handled: false,
-                },
-              });
+      let handlerResult;
+      try {
+        handlerResult = await startSpan(
+          {
+            name: spanName,
+            op: op,
+            attributes: {
+              [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nextjs.wrapApiHandlerWithSentry',
             },
-          );
-        },
-      );
-
-      vercelWaitUntil(flushSafelyWithTimeout());
+          },
+          () => {
+            return handleCallbackErrors(
+              () => wrappingTarget.apply(thisArg, args),
+              error => {
+                captureException(error, {
+                  mechanism: {
+                    type: 'instrument',
+                    handled: false,
+                  },
+                });
+              },
+            );
+          },
+        );
+      } finally {
+        vercelWaitUntil(flushSafelyWithTimeout());
+      }
 
       return handlerResult;
     },

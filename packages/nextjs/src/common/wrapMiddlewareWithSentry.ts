@@ -49,31 +49,34 @@ export function wrapMiddlewareWithSentry<H extends EdgeRouteHandler>(
         spanOrigin = 'component';
       }
 
-      const middlewareResult = await startSpan(
-        {
-          name: spanName,
-          op: 'http.server.middleware',
-          attributes: {
-            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: spanOrigin,
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nextjs.wrapMiddlewareWithSentry',
-          },
-        },
-        () => {
-          return handleCallbackErrors(
-            () => wrappingTarget.apply(thisArg, args),
-            error => {
-              captureException(error, {
-                mechanism: {
-                  type: 'instrument',
-                  handled: false,
-                },
-              });
+      let middlewareResult;
+      try {
+        middlewareResult = await startSpan(
+          {
+            name: spanName,
+            op: 'http.server.middleware',
+            attributes: {
+              [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: spanOrigin,
+              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nextjs.wrapMiddlewareWithSentry',
             },
-          );
-        },
-      );
-
-      vercelWaitUntil(flushSafelyWithTimeout());
+          },
+          () => {
+            return handleCallbackErrors(
+              () => wrappingTarget.apply(thisArg, args),
+              error => {
+                captureException(error, {
+                  mechanism: {
+                    type: 'instrument',
+                    handled: false,
+                  },
+                });
+              },
+            );
+          },
+        );
+      } finally {
+        vercelWaitUntil(flushSafelyWithTimeout());
+      }
 
       return middlewareResult;
     },
