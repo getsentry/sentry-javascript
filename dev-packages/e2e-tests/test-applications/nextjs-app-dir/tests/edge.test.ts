@@ -28,7 +28,6 @@ test('Should record transaction for edge server components', async ({ page }) =>
 
   const serverComponentTransaction = await serverComponentTransactionPromise;
 
-  expect(serverComponentTransaction).toBe(1);
   expect(serverComponentTransaction).toBeDefined();
   expect(serverComponentTransaction.request?.headers).toBeDefined();
 
