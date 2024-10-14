@@ -11,7 +11,6 @@ Sentry.init({
   integrations: [
     Sentry.httpIntegration({
       ignoreOutgoingRequests: (url, request) => {
-        console.log('ignoreOutgoingRequests', url, request);
         if (url === 'http://example.com/blockUrl') {
           return true;
         }
