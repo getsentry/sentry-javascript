@@ -63,8 +63,7 @@ test('Should record exceptions and transactions for faulty route handlers', asyn
   expect(routehandlerError.transaction).toBe('PUT /route-handlers/[param]/error');
 });
 
-// TODO(lforst): This cannot make it into production - Make sure to fix this test
-test.describe.skip('Edge runtime', () => {
+test.describe('Edge runtime', () => {
   test('should create a transaction for route handlers', async ({ request }) => {
     const routehandlerTransactionPromise = waitForTransaction('nextjs-app-dir', async transactionEvent => {
       return transactionEvent?.transaction === 'PATCH /route-handlers/[param]/edge';
@@ -101,7 +100,7 @@ test.describe.skip('Edge runtime', () => {
     expect(routehandlerError.tags?.['my-isolated-tag']).toBe(true);
     expect(routehandlerError.tags?.['my-global-scope-isolated-tag']).not.toBeDefined();
 
-    expect(routehandlerTransaction.contexts?.trace?.status).toBe('internal_error');
+    expect(routehandlerTransaction.contexts?.trace?.status).toBe('unknown_error');
     expect(routehandlerTransaction.contexts?.trace?.op).toBe('http.server');
     expect(routehandlerTransaction.contexts?.runtime?.name).toBe('vercel-edge');
 
