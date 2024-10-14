@@ -115,7 +115,7 @@ function instrumentFetch(onFetchResolved?: (response: Response) => void, skipNat
   });
 }
 
-async function resloveReader(reader: ReadableStreamDefaultReader, onFinishedResolving: () => void) {
+async function resloveReader(reader: ReadableStreamDefaultReader, onFinishedResolving: () => void): Promise<void> {
   let running = true;
   while (running) {
     try {
@@ -133,10 +133,23 @@ async function resloveReader(reader: ReadableStreamDefaultReader, onFinishedReso
   }
 }
 
-export function resolveResponse(res: Response, parentRes: Response, onFinishedResolving: () => void) {
+/**
+ * Resolves the body stream of a `Response` object and links its cancellation to a parent `Response` body.
+ *
+ * This function attaches a custom `cancel` behavior to both the parent `Response` body and its `getReader()` method.
+ * When the parent stream or its reader is canceled, it triggers the cancellation of the child stream as well.
+ * The function also monitors the resolution of the child's body stream using `resloveReader` and performs cleanup.
+ *
+ * @param {Response} res - The `Response` object whose body stream will be resolved.
+ * @param {Response} parentRes - The parent `Response` object whose body stream is linked to the cancellation of `res`.
+ * @param {() => void} onFinishedResolving - A callback function to be invoked when the body stream of `res` is fully resolved.
+ */
+export function resolveResponse(res: Response, parentRes: Response, onFinishedResolving: () => void): void {
   if (!res.body || !parentRes.body) {
     if (res.body) {
-      res.body.cancel();
+      res.body.cancel().catch(_ => {
+        // noop on error
+      });
     }
 
     return;
@@ -146,31 +159,32 @@ export function resolveResponse(res: Response, parentRes: Response, onFinishedRe
   const parentBody = parentRes.body;
   const responseReader = body.getReader();
 
-  const originalCancel = parentBody.cancel;
+  const originalCancel = parentBody.cancel.bind(parentBody) as (reason?: any) => Promise<any>;
 
   // Override cancel method on parent response's body
   parentBody.cancel = async (reason?: any) => {
-    responseReader.cancel('Cancelled by parent stream').catch(err => {
-      console.error('Error during responseReader cancellation:', err);
+    responseReader.cancel('Cancelled by parent stream').catch(_ => {
+      // noop on error
     });
 
-    await originalCancel.call(parentBody, reason);
+    await originalCancel(reason);
   };
 
-  const originalGetReader = parentRes.body.getReader;
+  const originalGetReader = parentRes.body.getReader.bind(parentBody) as
+    (options: ReadableStreamGetReaderOptions) => ReadableStreamDefaultReader;
 
   // Override getReader on parent response's body
   parentBody.getReader = ((opts?: any) => {
-    const reader = originalGetReader.call(parentBody, opts);
+    const reader = originalGetReader(opts) as ReadableStreamDefaultReader;
 
-    const originalReaderCancel = reader.cancel;
+    const originalReaderCancel = reader.cancel.bind(reader) as (reason?: any) => Promise<any>;
 
     reader.cancel = async (reason?: any) => {
-      responseReader.cancel('Cancelled by parent reader').catch(err => {
-        console.error('Error during responseReader cancellation:', err);
+      responseReader.cancel('Cancelled by parent reader').catch(_ => {
+        // noop on error
       });
 
-      await originalReaderCancel.call(reader, reason);
+      await originalReaderCancel(reason);
     };
 
     return reader;
@@ -179,7 +193,9 @@ export function resolveResponse(res: Response, parentRes: Response, onFinishedRe
   resloveReader(responseReader, onFinishedResolving).finally(() => {
     try {
       responseReader.releaseLock();
-      body.cancel().catch(() => {});
+      body.cancel().catch(() => {
+        // noop on error
+      });
     } catch (_) {
       // noop on error
     }

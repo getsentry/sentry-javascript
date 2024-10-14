@@ -86,6 +86,7 @@ describe('instrument > fetch > resolveResponse', () => {
     // wait 100ms so all promise can be resolved/rejected
     await delay(100);
 
+    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mockReader.read).toHaveBeenCalledTimes(2);
     expect(onFinishedResolving).toHaveBeenCalled();
   });
@@ -98,7 +99,9 @@ describe('instrument > fetch > resolveResponse', () => {
     await delay(100);
 
     expect(onFinishedResolving).not.toHaveBeenCalled();
+    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mockReader.releaseLock).toHaveBeenCalled();
+    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mockResponse.body?.cancel).toHaveBeenCalled();
   });
 
@@ -114,8 +117,11 @@ describe('instrument > fetch > resolveResponse', () => {
     await delay(100);
 
     expect(onFinishedResolving).not.toHaveBeenCalled();
+    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mockReader.releaseLock).toHaveBeenCalled();
+    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mockReader.cancel).toHaveBeenCalled();
+    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mockResponse.body?.cancel).toHaveBeenCalled();
   });
 
@@ -133,8 +139,11 @@ describe('instrument > fetch > resolveResponse', () => {
     await delay(100);
 
     expect(onFinishedResolving).not.toHaveBeenCalled();
+    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mockReader.releaseLock).toHaveBeenCalled();
+    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mockReader.cancel).toHaveBeenCalled();
+    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mockResponse.body?.cancel).toHaveBeenCalled();
   });
 });
