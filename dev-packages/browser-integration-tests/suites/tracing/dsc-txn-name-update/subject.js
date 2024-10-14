@@ -8,13 +8,11 @@ btnStartSpan.addEventListener('click', () => {
   Sentry.startSpanManual(
     { name: 'test-root-span', attributes: { [Sentry.SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url' } },
     async span => {
-      console.log('Root span started');
       window.__traceId = span.spanContext().traceId;
       await new Promise(resolve => {
         btnEndSpan.addEventListener('click', resolve);
       });
       span.end();
-      console.log('Root span ended');
     },
   );
 });
