@@ -10,7 +10,7 @@ import {
   SENTRY_FUNCTIONS_REEXPORT,
   SENTRY_WRAPPED_ENTRY,
   constructFunctionReExport,
-  stripQueryPart,
+  removeSentryQueryFromPath,
 } from './utils';
 
 const SERVER_CONFIG_FILENAME = 'sentry.server.config';
@@ -147,11 +147,12 @@ export function addDynamicImportEntryFileWrapper(nitro: Nitro, serverConfigFile:
   );
 }
 
+/**
+ * A Rollup plugin which wraps the server entry with a dynamic `import()`. This makes it possible to initialize Sentry first
+ * by using a regular `import` and load the server after that.
+ * This also works with serverless `handler` functions, as it re-exports the `handler`.
+ */
 function wrapEntryWithDynamicImport(resolvedSentryConfigPath: string): InputPluginOption {
-  const containsSuffix = (sourcePath: string): boolean => {
-    return sourcePath.includes(`.mjs${SENTRY_WRAPPED_ENTRY}`) || sourcePath.includes(SENTRY_FUNCTIONS_REEXPORT);
-  };
-
   return {
     name: 'sentry-wrap-entry-with-dynamic-import',
     async resolveId(source, importer, options) {
@@ -160,27 +161,31 @@ function wrapEntryWithDynamicImport(resolvedSentryConfigPath: string): InputPlug
       }
 
       if (source === 'import-in-the-middle/hook.mjs') {
+        // We are importing "import-in-the-middle" in the returned code of the `load()` function below
+        // By setting `moduleSideEffects` to `true`, the import is added to the bundle, although nothing is imported from it
+        // By importing "import-in-the-middle/hook.mjs", we can make sure this file is included, as not all node builders are including files imported with `module.register()`.
+        // Prevents the error "Failed to register ESM hook Error: Cannot find module 'import-in-the-middle/hook.mjs'"
         return { id: source, moduleSideEffects: true, external: true };
       }
 
-      if (options.isEntry && !source.includes(SENTRY_WRAPPED_ENTRY)) {
+      if (options.isEntry && !source.includes(`.mjs${SENTRY_WRAPPED_ENTRY}`)) {
         const resolution = await this.resolve(source, importer, options);
 
-        // If it cannot be resolved or is external, just return it
-        // so that Rollup can display an error
+        // If it cannot be resolved or is external, just return it so that Rollup can display an error
         if (!resolution || resolution?.external) return resolution;
 
         const moduleInfo = await this.load(resolution);
 
         moduleInfo.moduleSideEffects = true;
 
+        // The key `.` in `exportedBindings` refer to the exports within the file
         const exportedFunctions = moduleInfo.exportedBindings?.['.'];
 
-        // checks are needed to prevent multiple attachment of the suffix
-        return containsSuffix(source) || containsSuffix(resolution.id)
+        // The enclosing `if` already checks for the suffix in `source`, but a check in `resolution.id` is needed as well to prevent multiple attachment of the suffix
+        return resolution.id.includes(`.mjs${SENTRY_WRAPPED_ENTRY}`)
           ? resolution.id
           : resolution.id
-              // concat the query params to mark the file (also attaches names of exports - this is needed for serverless functions to re-export the handler)
+              // Concatenates the query params to mark the file (also attaches names of re-exports - this is needed for serverless functions to re-export the handler)
               .concat(SENTRY_WRAPPED_ENTRY)
               .concat(
                 exportedFunctions?.length
@@ -192,18 +197,21 @@ function wrapEntryWithDynamicImport(resolvedSentryConfigPath: string): InputPlug
     },
     load(id: string) {
       if (id.includes(`.mjs${SENTRY_WRAPPED_ENTRY}`)) {
-        const entryId = stripQueryPart(id);
+        const entryId = removeSentryQueryFromPath(id);
 
+        // Mostly useful for serverless `handler` functions
         const reExportedFunctions = id.includes(SENTRY_FUNCTIONS_REEXPORT)
           ? constructFunctionReExport(id, entryId)
           : '';
 
         return (
-          // Import the Sentry server config
+          // Regular `import` of the Sentry config
           `import ${JSON.stringify(resolvedSentryConfigPath)};\n` +
-          // Dynamic import for the previous, actual entry point.
-          // import() can be used for any code that should be run after the hooks are registered (https://nodejs.org/api/module.html#enabling)
+          // Dynamic `import()` for the previous, actual entry point.
+          // `import()` can be used for any code that should be run after the hooks are registered (https://nodejs.org/api/module.html#enabling)
           `import(${JSON.stringify(entryId)});\n` +
+          // By importing "import-in-the-middle/hook.mjs", we can make sure this file wil be included, as not all node builders are including files imported with `module.register()`.
+          "import 'import-in-the-middle/hook.mjs'\n" +
           `${reExportedFunctions}\n`
         );
       }

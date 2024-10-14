@@ -7,7 +7,7 @@ import {
   constructFunctionReExport,
   extractFunctionReexportQueryParameters,
   findDefaultSdkInitFile,
-  stripQueryPart,
+  removeSentryQueryFromPath,
 } from '../../src/vite/utils';
 
 vi.mock('fs');
@@ -68,16 +68,16 @@ describe('findDefaultSdkInitFile', () => {
   });
 });
 
-describe('stripQueryPart', () => {
-  it('strips the specific query part from the URL', () => {
+describe('removeSentryQueryFromPath', () => {
+  it('strips the Sentry query part from the path', () => {
     const url = `/example/path${SENTRY_WRAPPED_ENTRY}${SENTRY_FUNCTIONS_REEXPORT}foo,${QUERY_END_INDICATOR}`;
-    const result = stripQueryPart(url);
+    const result = removeSentryQueryFromPath(url);
     expect(result).toBe('/example/path');
   });
 
-  it('returns the same URL if the specific query part is not present', () => {
+  it('returns the same path if the specific query part is not present', () => {
     const url = '/example/path?other-query=param';
-    const result = stripQueryPart(url);
+    const result = removeSentryQueryFromPath(url);
     expect(result).toBe(url);
   });
 });
@@ -108,11 +108,13 @@ describe('constructFunctionReExport', () => {
     const result2 = constructFunctionReExport(query2, entryId);
 
     const expected = `
-export function foo(...args) {
-  return import("./module").then((res) => res.foo(...args));
+export async function foo(...args) {
+  const res = await import("./module");
+  return res.foo.call(this, ...args);
 }
-export function bar(...args) {
-  return import("./module").then((res) => res.bar(...args));
+export async function bar(...args) {
+  const res = await import("./module");
+  return res.bar.call(this, ...args);
 }`;
     expect(result.trim()).toBe(expected.trim());
     expect(result2.trim()).toBe(expected.trim());

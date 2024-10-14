@@ -30,18 +30,21 @@ export const SENTRY_FUNCTIONS_REEXPORT = '?sentry-query-functions-reexport=';
 export const QUERY_END_INDICATOR = 'SENTRY-QUERY-END';
 
 /**
- * Strips a specific query part from a URL.
+ * Strips the Sentry query part from a path.
+ * Example: example/path?sentry-query-wrapped-entry?sentry-query-functions-reexport=foo,SENTRY-QUERY-END -> /example/path
  *
  * Only exported for testing.
  */
-export function stripQueryPart(url: string): string {
+export function removeSentryQueryFromPath(url: string): string {
   // eslint-disable-next-line @sentry-internal/sdk/no-regexp-constructor
   const regex = new RegExp(`\\${SENTRY_WRAPPED_ENTRY}.*?\\${QUERY_END_INDICATOR}`);
   return url.replace(regex, '');
 }
 
 /**
- * Extracts and sanitizes function reexport query parameters from a query string.
+ * Extracts and sanitizes function re-export query parameters from a query string.
+ * If it is a default export, it is not considered for re-exporting. This function is mostly relevant for re-exporting
+ * serverless `handler` functions.
  *
  * Only exported for testing.
  */
@@ -55,7 +58,7 @@ export function extractFunctionReexportQueryParameters(query: string): string[] 
     ? match[1]
         .split(',')
         .filter(param => param !== '' && param !== 'default')
-        // sanitize
+        // Sanitize, as code could be injected with another rollup plugin
         .map((str: string) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
     : [];
 }
@@ -69,8 +72,9 @@ export function constructFunctionReExport(pathWithQuery: string, entryId: string
   return functionNames.reduce(
     (functionsCode, currFunctionName) =>
       functionsCode.concat(
-        `export function ${currFunctionName}(...args) {\n` +
-          `  return import(${JSON.stringify(entryId)}).then((res) => res.${currFunctionName}(...args));\n` +
+        `export async function ${currFunctionName}(...args) {\n` +
+          `  const res = await import(${JSON.stringify(entryId)});\n` +
+          `  return res.${currFunctionName}.call(this, ...args);\n` +
           '}\n',
       ),
     '',
