@@ -11,10 +11,12 @@ Sentry.init({
   integrations: [
     Sentry.httpIntegration({
       ignoreOutgoingRequests: (url, request) => {
-        if (url.includes('example.com')) {
+        console.log('ignoreOutgoingRequests', url, request);
+        if (url === 'http://example.com/blockUrl') {
           return true;
         }
-        if (request.method === 'POST' && request.path === '/path') {
+
+        if (request.hostname === 'example.com' && request.path === '/blockRequest') {
           return true;
         }
         return false;
@@ -32,28 +34,37 @@ const app = express();
 
 app.use(cors());
 
-app.get('/test', (_req, response) => {
-  http
-    .request('http://example.com/', res => {
-      res.on('data', () => {});
-      res.on('end', () => {
-        response.send({ response: 'done' });
-      });
-    })
-    .end();
+app.get('/testUrl', (_req, response) => {
+  makeHttpRequest('http://example.com/blockUrl').then(() => {
+    makeHttpRequest('http://example.com/pass').then(() => {
+      response.send({ response: 'done' });
+    });
+  });
 });
 
-app.post('/testPath', (_req, response) => {
-  http
-    .request('http://example.com/path', res => {
-      res.on('data', () => {});
-      res.on('end', () => {
-        response.send({ response: 'done' });
-      });
-    })
-    .end();
+app.get('/testRequest', (_req, response) => {
+  makeHttpRequest('http://example.com/blockRequest').then(() => {
+    makeHttpRequest('http://example.com/pass').then(() => {
+      response.send({ response: 'done' });
+    });
+  });
 });
 
 Sentry.setupExpressErrorHandler(app);
 
 startExpressServerAndSendPortToRunner(app);
+
+function makeHttpRequest(url) {
+  return new Promise((resolve, reject) => {
+    http
+      .get(url, res => {
+        res.on('data', () => {});
+        res.on('end', () => {
+          resolve();
+        });
+      })
+      .on('error', error => {
+        reject(error);
+      });
+  });
+}
