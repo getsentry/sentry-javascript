@@ -147,7 +147,7 @@ async function instrumentRequest(
           async span => {
             const originalResponse = await next();
 
-            if (span && originalResponse.status) {
+            if (originalResponse.status) {
               setHttpStatus(span, originalResponse.status);
             }
 

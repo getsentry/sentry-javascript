@@ -43,6 +43,7 @@ local.log
 .rpt2_cache
 
 lint-results.json
+trace.zip
 
 # legacy
 tmp.js
@@ -58,3 +59,6 @@ packages/deno/lib.deno.d.ts
 
 # gatsby
 packages/gatsby/gatsby-node.d.ts
+
+# intellij
+*.iml

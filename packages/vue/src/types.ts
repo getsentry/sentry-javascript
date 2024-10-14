@@ -22,6 +22,7 @@ export type ViewModel = {
     propsData?: { [key: string]: any };
     _componentTag?: string;
     __file?: string;
+    __name?: string;
   };
 };
 
@@ -45,6 +46,17 @@ export interface VueOptions extends TracingOptions {
    * https://github.com/vuejs/vue/blob/c2b1cfe9ccd08835f2d99f6ce60f67b4de55187f/src/core/util/error.js#L38-L48
    */
   logErrors: boolean;
+
+  /**
+   *  By default, Sentry attaches an error handler to capture exceptions and report them to Sentry.
+   *  When `attachErrorHandler` is set to `false`, automatic error reporting is disabled.
+   *
+   *  Usually, this option should stay enabled, unless you want to set up Sentry error reporting yourself.
+   *  For example, the Sentry Nuxt SDK does not attach an error handler as it's using the error hooks provided by Nuxt.
+   *
+   *  @default true
+   */
+  attachErrorHandler: boolean;
 
   /** {@link TracingOptions} */
   tracingOptions?: Partial<TracingOptions>;

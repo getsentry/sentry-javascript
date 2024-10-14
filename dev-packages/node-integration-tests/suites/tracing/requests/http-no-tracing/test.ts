@@ -38,6 +38,56 @@ test('outgoing http requests are correctly instrumented with tracing disabled', 
                 },
               ],
             },
+            breadcrumbs: [
+              {
+                message: 'manual breadcrumb',
+                timestamp: expect.any(Number),
+              },
+              {
+                category: 'http',
+                data: {
+                  'http.method': 'GET',
+                  url: `${SERVER_URL}/api/v0`,
+                  status_code: 404,
+                  ADDED_PATH: '/api/v0',
+                },
+                timestamp: expect.any(Number),
+                type: 'http',
+              },
+              {
+                category: 'http',
+                data: {
+                  'http.method': 'GET',
+                  url: `${SERVER_URL}/api/v1`,
+                  status_code: 404,
+                  ADDED_PATH: '/api/v1',
+                },
+                timestamp: expect.any(Number),
+                type: 'http',
+              },
+              {
+                category: 'http',
+                data: {
+                  'http.method': 'GET',
+                  url: `${SERVER_URL}/api/v2`,
+                  status_code: 404,
+                  ADDED_PATH: '/api/v2',
+                },
+                timestamp: expect.any(Number),
+                type: 'http',
+              },
+              {
+                category: 'http',
+                data: {
+                  'http.method': 'GET',
+                  url: `${SERVER_URL}/api/v3`,
+                  status_code: 404,
+                  ADDED_PATH: '/api/v3',
+                },
+                timestamp: expect.any(Number),
+                type: 'http',
+              },
+            ],
           },
         })
         .start(closeTestServer);

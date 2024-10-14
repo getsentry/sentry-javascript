@@ -14,6 +14,8 @@ export { anrIntegration } from './integrations/anr';
 export { expressIntegration, expressErrorHandler, setupExpressErrorHandler } from './integrations/tracing/express';
 export { fastifyIntegration, setupFastifyErrorHandler } from './integrations/tracing/fastify';
 export { graphqlIntegration } from './integrations/tracing/graphql';
+export { kafkaIntegration } from './integrations/tracing/kafka';
+export { lruMemoizerIntegration } from './integrations/tracing/lrumemoizer';
 export { mongoIntegration } from './integrations/tracing/mongo';
 export { mongooseIntegration } from './integrations/tracing/mongoose';
 export { mysqlIntegration } from './integrations/tracing/mysql';
@@ -26,6 +28,9 @@ export { hapiIntegration, setupHapiErrorHandler } from './integrations/tracing/h
 export { koaIntegration, setupKoaErrorHandler } from './integrations/tracing/koa';
 export { connectIntegration, setupConnectErrorHandler } from './integrations/tracing/connect';
 export { spotlightIntegration } from './integrations/spotlight';
+export { genericPoolIntegration } from './integrations/tracing/genericPool';
+export { dataloaderIntegration } from './integrations/tracing/dataloader';
+export { amqplibIntegration } from './integrations/tracing/amqplib';
 
 export { SentryContextManager } from './otel/contextManager';
 export { generateInstrumentOnce } from './otel/instrument';
@@ -119,6 +124,7 @@ export {
   startSpanManual,
   startInactiveSpan,
   startNewTrace,
+  suppressTracing,
   getActiveSpan,
   withActiveSpan,
   getRootSpan,
@@ -127,6 +133,7 @@ export {
   spanToBaggageHeader,
   trpcMiddleware,
   zodErrorsIntegration,
+  profiler,
 } from '@sentry/core';
 
 export type {

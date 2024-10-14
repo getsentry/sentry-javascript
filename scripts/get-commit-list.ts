@@ -24,8 +24,11 @@ function run(): void {
 
   newCommits.sort((a, b) => a.localeCompare(b));
 
+  const issueUrl = 'https://github.com/getsentry/sentry-javascript/pull/';
+  const newCommitsWithLink = newCommits.map(commit => commit.replace(/#(\d+)/, `[#$1](${issueUrl}$1)`));
+
   // eslint-disable-next-line no-console
-  console.log(newCommits.join('\n'));
+  console.log(newCommitsWithLink.join('\n'));
 }
 
 run();

@@ -1,3 +1,4 @@
+/* eslint-disable deprecation/deprecation */
 import type { Span, TimeInput } from '@opentelemetry/api';
 import { ROOT_CONTEXT } from '@opentelemetry/api';
 import { SpanKind } from '@opentelemetry/api';

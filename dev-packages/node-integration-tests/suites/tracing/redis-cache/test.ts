@@ -1,7 +1,7 @@
 import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
 
 // When running docker compose, we need a larger timeout, as this takes some time...
-jest.setTimeout(75000);
+jest.setTimeout(90000);
 
 describe('redis cache auto instrumentation', () => {
   afterAll(() => {

@@ -17,7 +17,7 @@
     "clean:build": "lerna run clean",
     "clean:caches": "yarn rimraf eslintcache .nxcache && yarn jest --clearCache",
     "clean:deps": "lerna clean --yes && rm -rf node_modules && yarn",
-    "clean:tarballs": "rimraf **/*.tgz",
+    "clean:tarballs": "rimraf -g **/*.tgz",
     "clean:all": "run-s clean:build clean:tarballs clean:caches clean:deps",
     "fix": "run-s fix:biome fix:prettier fix:lerna",
     "fix:lerna": "lerna run fix",
@@ -91,6 +91,7 @@
     "dev-packages/overhead-metrics",
     "dev-packages/test-utils",
     "dev-packages/size-limit-gh-action",
+    "dev-packages/clear-cache-gh-action",
     "dev-packages/external-contributor-gh-action",
     "dev-packages/rollup-utils"
   ],

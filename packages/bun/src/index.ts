@@ -87,6 +87,7 @@ export {
   startInactiveSpan,
   startSpanManual,
   startNewTrace,
+  suppressTracing,
   withActiveSpan,
   getRootSpan,
   getSpanDescendants,
@@ -99,6 +100,7 @@ export {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
+  dataloaderIntegration,
   expressIntegration,
   expressErrorHandler,
   setupExpressErrorHandler,
@@ -108,7 +110,10 @@ export {
   setupKoaErrorHandler,
   connectIntegration,
   setupConnectErrorHandler,
+  genericPoolIntegration,
   graphqlIntegration,
+  kafkaIntegration,
+  lruMemoizerIntegration,
   mongoIntegration,
   mongooseIntegration,
   mysqlIntegration,
@@ -128,6 +133,8 @@ export {
   trpcMiddleware,
   addOpenTelemetryInstrumentation,
   zodErrorsIntegration,
+  profiler,
+  amqplibIntegration,
 } from '@sentry/node';
 
 export {

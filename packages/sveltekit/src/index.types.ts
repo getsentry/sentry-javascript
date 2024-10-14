@@ -5,14 +5,14 @@ export * from './client';
 export * from './vite';
 export * from './server';
 
-import type { Integration, Options, StackParser } from '@sentry/types';
+import type { Client, Integration, Options, StackParser } from '@sentry/types';
 import type { HandleClientError, HandleServerError } from '@sveltejs/kit';
 
 import type * as clientSdk from './client';
 import type * as serverSdk from './server';
 
 /** Initializes Sentry SvelteKit SDK */
-export declare function init(options: Options | clientSdk.BrowserOptions | serverSdk.NodeOptions): void;
+export declare function init(options: Options | clientSdk.BrowserOptions | serverSdk.NodeOptions): Client | undefined;
 
 export declare function handleErrorWithSentry<T extends HandleClientError | HandleServerError>(handleError?: T): T;
 

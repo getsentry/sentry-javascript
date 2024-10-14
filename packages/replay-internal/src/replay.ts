@@ -53,7 +53,9 @@ import { debounce } from './util/debounce';
 import { getHandleRecordingEmit } from './util/handleRecordingEmit';
 import { isExpired } from './util/isExpired';
 import { isSessionExpired } from './util/isSessionExpired';
+import { resetReplayIdOnDynamicSamplingContext } from './util/resetReplayIdOnDynamicSamplingContext';
 import { sendReplay } from './util/sendReplay';
+import { RateLimitError } from './util/sendReplayRequest';
 import type { SKIPPED } from './util/throttle';
 import { THROTTLED, throttle } from './util/throttle';
 
@@ -245,6 +247,9 @@ export class ReplayContainer implements ReplayContainerInterface {
   /** A wrapper to conditionally capture exceptions. */
   public handleException(error: unknown): void {
     DEBUG_BUILD && logger.exception(error);
+    if (this._options.onError) {
+      this._options.onError(error);
+    }
   }
 
   /**
@@ -377,7 +382,19 @@ export class ReplayContainer implements ReplayContainerInterface {
         // When running in error sampling mode, we need to overwrite `checkoutEveryNms`
         // Without this, it would record forever, until an error happens, which we don't want
         // instead, we'll always keep the last 60 seconds of replay before an error happened
-        ...(this.recordingMode === 'buffer' && { checkoutEveryNms: BUFFER_CHECKOUT_TIME }),
+        ...(this.recordingMode === 'buffer'
+          ? { checkoutEveryNms: BUFFER_CHECKOUT_TIME }
+          : // Otherwise, use experimental option w/ min checkout time of 6 minutes
+            // This is to improve playback seeking as there could potentially be
+            // less mutations to process in the worse cases.
+            //
+            // checkout by "N" events is probably ideal, but means we have less
+            // control about the number of checkouts we make (which generally
+            // increases replay size)
+            this._options._experiments.continuousCheckout && {
+              // Minimum checkout time is 6 minutes
+              checkoutEveryNms: Math.max(360_000, this._options._experiments.continuousCheckout),
+            }),
         emit: getHandleRecordingEmit(this),
         onMutation: this._onMutationHandler,
         ...(canvasOptions
@@ -429,6 +446,8 @@ export class ReplayContainer implements ReplayContainerInterface {
 
     try {
       DEBUG_BUILD && logger.info(`Stopping Replay${reason ? ` triggered by ${reason}` : ''}`);
+
+      resetReplayIdOnDynamicSamplingContext();
 
       this._removeListeners();
       this.stopRecording();
@@ -1145,8 +1164,8 @@ export class ReplayContainer implements ReplayContainerInterface {
         segmentId,
         eventContext,
         session: this.session,
-        options: this.getOptions(),
         timestamp,
+        onError: err => this.handleException(err),
       });
     } catch (err) {
       this.handleException(err);
@@ -1161,7 +1180,8 @@ export class ReplayContainer implements ReplayContainerInterface {
       const client = getClient();
 
       if (client) {
-        client.recordDroppedEvent('send_error', 'replay');
+        const dropReason = err instanceof RateLimitError ? 'ratelimit_backoff' : 'send_error';
+        client.recordDroppedEvent(dropReason, 'replay');
       }
     }
   }
@@ -1226,27 +1246,29 @@ export class ReplayContainer implements ReplayContainerInterface {
       // TODO FN: Evaluate if we want to stop here, or remove this again?
     }
 
-    // this._flushLock acts as a lock so that future calls to `_flush()`
-    // will be blocked until this promise resolves
+    const _flushInProgress = !!this._flushLock;
+
+    // this._flushLock acts as a lock so that future calls to `_flush()` will
+    // be blocked until current flush is finished (i.e. this promise resolves)
     if (!this._flushLock) {
       this._flushLock = this._runFlush();
-      await this._flushLock;
-      this._flushLock = undefined;
-      return;
     }
-
-    // Wait for previous flush to finish, then call the debounced `_flush()`.
-    // It's possible there are other flush requests queued and waiting for it
-    // to resolve. We want to reduce all outstanding requests (as well as any
-    // new flush requests that occur within a second of the locked flush
-    // completing) into a single flush.
 
     try {
       await this._flushLock;
     } catch (err) {
-      DEBUG_BUILD && logger.error(err);
+      this.handleException(err);
     } finally {
-      this._debouncedFlush();
+      this._flushLock = undefined;
+
+      if (_flushInProgress) {
+        // Wait for previous flush to finish, then call the debounced
+        // `_flush()`. It's possible there are other flush requests queued and
+        // waiting for it to resolve. We want to reduce all outstanding
+        // requests (as well as any new flush requests that occur within a
+        // second of the locked flush completing) into a single flush.
+        this._debouncedFlush();
+      }
     }
   };
 

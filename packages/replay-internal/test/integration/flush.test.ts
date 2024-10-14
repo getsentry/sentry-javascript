@@ -188,8 +188,8 @@ describe('Integration | flush', () => {
       segmentId: 0,
       eventContext: expect.anything(),
       session: expect.any(Object),
-      options: expect.any(Object),
       timestamp: expect.any(Number),
+      onError: expect.any(Function),
     });
 
     // Add this to test that segment ID increases
@@ -238,7 +238,7 @@ describe('Integration | flush', () => {
       segmentId: 1,
       eventContext: expect.anything(),
       session: expect.any(Object),
-      options: expect.any(Object),
+      onError: expect.any(Function),
       timestamp: expect.any(Number),
     });
 
@@ -491,6 +491,64 @@ describe('Integration | flush', () => {
 
     // Start again for following tests
     await replay.start();
+  });
+
+  it('resets flush lock if runFlush rejects/throws', async () => {
+    mockRunFlush.mockImplementation(
+      () =>
+        new Promise((resolve, reject) => {
+          reject(new Error('runFlush'));
+        }),
+    );
+    try {
+      await replay['_flush']();
+    } catch {
+      // do nothing
+    }
+    expect(replay['_flushLock']).toBeUndefined();
+  });
+
+  it('resets flush lock when flush is called multiple times before it resolves', async () => {
+    let _resolve;
+    mockRunFlush.mockImplementation(
+      () =>
+        new Promise(resolve => {
+          _resolve = resolve;
+        }),
+    );
+    const mockDebouncedFlush: MockedFunction<ReplayContainer['_debouncedFlush']> = vi.spyOn(replay, '_debouncedFlush');
+    mockDebouncedFlush.mockImplementation(vi.fn);
+    mockDebouncedFlush.cancel = vi.fn();
+
+    const results = [replay['_flush'](), replay['_flush']()];
+    expect(replay['_flushLock']).not.toBeUndefined();
+
+    _resolve && _resolve();
+    await Promise.all(results);
+    expect(replay['_flushLock']).toBeUndefined();
+    mockDebouncedFlush.mockRestore();
+  });
+
+  it('resets flush lock when flush is called multiple times before it rejects', async () => {
+    let _reject;
+    mockRunFlush.mockImplementation(
+      () =>
+        new Promise((_, reject) => {
+          _reject = reject;
+        }),
+    );
+    const mockDebouncedFlush: MockedFunction<ReplayContainer['_debouncedFlush']> = vi.spyOn(replay, '_debouncedFlush');
+    mockDebouncedFlush.mockImplementation(vi.fn);
+    mockDebouncedFlush.cancel = vi.fn();
+    expect(replay['_flushLock']).toBeUndefined();
+    replay['_flush']();
+    const result = replay['_flush']();
+    expect(replay['_flushLock']).not.toBeUndefined();
+
+    _reject && _reject(new Error('Throw runFlush'));
+    await result;
+    expect(replay['_flushLock']).toBeUndefined();
+    mockDebouncedFlush.mockRestore();
   });
 
   /**

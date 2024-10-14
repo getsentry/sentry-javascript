@@ -78,4 +78,20 @@ export class AppService {
   async killTestCron() {
     this.schedulerRegistry.deleteCronJob('test-cron-job');
   }
+
+  use() {
+    console.log('Test use!');
+  }
+
+  transform() {
+    console.log('Test transform!');
+  }
+
+  intercept() {
+    console.log('Test intercept!');
+  }
+
+  canActivate() {
+    console.log('Test canActivate!');
+  }
 }

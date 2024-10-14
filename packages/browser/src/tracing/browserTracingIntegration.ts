@@ -133,6 +133,14 @@ export interface BrowserTracingOptions {
   traceXHR: boolean;
 
   /**
+   * Flag to disable tracking of long-lived streams, like server-sent events (SSE) via fetch.
+   * Do not enable this in case you have live streams or very long running streams.
+   *
+   * Default: false
+   */
+  trackFetchStreamPerformance: boolean;
+
+  /**
    * If true, Sentry will capture http timings and add them to the corresponding http spans.
    *
    * Default: true
@@ -200,6 +208,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
     markBackgroundSpan,
     traceFetch,
     traceXHR,
+    trackFetchStreamPerformance,
     shouldCreateSpanForRequest,
     enableHTTPTimings,
     instrumentPageLoad,
@@ -218,6 +227,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
   if (
     enableLongAnimationFrame &&
     GLOBAL_OBJ.PerformanceObserver &&
+    PerformanceObserver.supportedEntryTypes &&
     PerformanceObserver.supportedEntryTypes.includes('long-animation-frame')
   ) {
     startTrackingLongAnimationFrames();
@@ -408,6 +418,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
       instrumentOutgoingRequests(client, {
         traceFetch,
         traceXHR,
+        trackFetchStreamPerformance,
         tracePropagationTargets: client.getOptions().tracePropagationTargets,
         shouldCreateSpanForRequest,
         enableHTTPTimings,

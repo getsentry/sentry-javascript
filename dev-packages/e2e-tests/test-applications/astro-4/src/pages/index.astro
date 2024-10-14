@@ -1,0 +1,36 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="Welcome to Astro.">
+	<main>
+		<h1>Astro E2E Test App</h1>
+		<ul role="list" style="display: flex; flex-direction: column;">
+			<a href="/ssr-error">SSR Error</a>
+			<a href="/endpoint-error">Endpoint Error</a>
+			<a href="/client-error">Cliennt Error</a>
+			<a href="/test-ssr">SSR page</a>
+			<a href="/test-static" title="static page">Static Page</a>
+		</ul>
+	</main>
+</Layout>
+
+<style>
+	main {
+		margin: auto;
+		padding: 1rem;
+		width: 800px;
+		max-width: calc(100% - 2rem);
+		color: white;
+		font-size: 20px;
+		line-height: 1.6;
+	}
+
+	h1 {
+		font-size: 4rem;
+		font-weight: 700;
+		line-height: 1;
+		text-align: center;
+		margin-bottom: 1em;
+	}
+</style>

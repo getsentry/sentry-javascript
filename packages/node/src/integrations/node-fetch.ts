@@ -1,32 +1,20 @@
-import type { Span } from '@opentelemetry/api';
-import { trace } from '@opentelemetry/api';
-import { context, propagation } from '@opentelemetry/api';
-import { addBreadcrumb, defineIntegration, getCurrentScope, hasTracingEnabled } from '@sentry/core';
+import { context, propagation, trace } from '@opentelemetry/api';
+import type { UndiciRequest, UndiciResponse } from '@opentelemetry/instrumentation-undici';
+import { UndiciInstrumentation } from '@opentelemetry/instrumentation-undici';
+import {
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  addBreadcrumb,
+  defineIntegration,
+  getCurrentScope,
+  hasTracingEnabled,
+} from '@sentry/core';
 import {
   addOpenTelemetryInstrumentation,
   generateSpanContextForPropagationContext,
   getPropagationContextFromSpan,
 } from '@sentry/opentelemetry';
 import type { IntegrationFn, SanitizedRequestData } from '@sentry/types';
-import { getSanitizedUrlString, logger, parseUrl } from '@sentry/utils';
-import { DEBUG_BUILD } from '../debug-build';
-import { NODE_MAJOR } from '../nodeVersion';
-
-import type { FetchInstrumentation } from 'opentelemetry-instrumentation-fetch-node';
-
-import { addOriginToSpan } from '../utils/addOriginToSpan';
-
-interface FetchRequest {
-  method: string;
-  origin: string;
-  path: string;
-  headers: string | string[];
-}
-
-interface FetchResponse {
-  headers: Buffer[];
-  statusCode: number;
-}
+import { getBreadcrumbLogLevelFromHttpStatusCode, getSanitizedUrlString, parseUrl } from '@sentry/utils';
 
 interface NodeFetchOptions {
   /**
@@ -46,32 +34,13 @@ const _nativeNodeFetchIntegration = ((options: NodeFetchOptions = {}) => {
   const _breadcrumbs = typeof options.breadcrumbs === 'undefined' ? true : options.breadcrumbs;
   const _ignoreOutgoingRequests = options.ignoreOutgoingRequests;
 
-  async function getInstrumentation(): Promise<FetchInstrumentation | void> {
-    // Only add NodeFetch if Node >= 18, as previous versions do not support it
-    if (NODE_MAJOR < 18) {
-      DEBUG_BUILD && logger.log('NodeFetch is not supported on Node < 18, skipping instrumentation...');
-      return;
-    }
-
-    try {
-      const pkg = await import('opentelemetry-instrumentation-fetch-node');
-      const { FetchInstrumentation } = pkg;
-
-      class SentryNodeFetchInstrumentation extends FetchInstrumentation {
-        // We extend this method so we have access to request _and_ response for the breadcrumb
-        public onHeaders({ request, response }: { request: FetchRequest; response: FetchResponse }): void {
-          if (_breadcrumbs) {
-            _addRequestBreadcrumb(request, response);
-          }
-
-          return super.onHeaders({ request, response });
-        }
-      }
-
-      return new SentryNodeFetchInstrumentation({
-        ignoreRequestHook: (request: FetchRequest) => {
+  return {
+    name: 'NodeFetch',
+    setupOnce() {
+      const instrumentation = new UndiciInstrumentation({
+        requireParentforSpans: false,
+        ignoreRequestHook: request => {
           const url = getAbsoluteUrl(request.origin, request.path);
-          const tracingDisabled = !hasTracingEnabled();
           const shouldIgnore = _ignoreOutgoingRequests && url && _ignoreOutgoingRequests(url);
 
           if (shouldIgnore) {
@@ -80,7 +49,7 @@ const _nativeNodeFetchIntegration = ((options: NodeFetchOptions = {}) => {
 
           // If tracing is disabled, we still want to propagate traces
           // So we do that manually here, matching what the instrumentation does otherwise
-          if (tracingDisabled) {
+          if (!hasTracingEnabled()) {
             const ctx = context.active();
             const addedHeaders: Record<string, string> = {};
 
@@ -113,49 +82,40 @@ const _nativeNodeFetchIntegration = ((options: NodeFetchOptions = {}) => {
 
           return false;
         },
-        onRequest: ({ span }: { span: Span }) => {
-          _updateSpan(span);
+        startSpanHook: () => {
+          return {
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.otel.node_fetch',
+          };
         },
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } as any);
-    } catch (error) {
-      // Could not load instrumentation
-      DEBUG_BUILD && logger.log('Error while loading NodeFetch instrumentation: \n', error);
-    }
-  }
-
-  return {
-    name: 'NodeFetch',
-    setupOnce() {
-      // eslint-disable-next-line @typescript-eslint/no-floating-promises
-      getInstrumentation().then(instrumentation => {
-        if (instrumentation) {
-          addOpenTelemetryInstrumentation(instrumentation);
-        }
+        responseHook: (_, { request, response }) => {
+          if (_breadcrumbs) {
+            addRequestBreadcrumb(request, response);
+          }
+        },
       });
+
+      addOpenTelemetryInstrumentation(instrumentation);
     },
   };
 }) satisfies IntegrationFn;
 
 export const nativeNodeFetchIntegration = defineIntegration(_nativeNodeFetchIntegration);
 
-/** Update the span with data we need. */
-function _updateSpan(span: Span): void {
-  addOriginToSpan(span, 'auto.http.otel.node_fetch');
-}
-
 /** Add a breadcrumb for outgoing requests. */
-function _addRequestBreadcrumb(request: FetchRequest, response: FetchResponse): void {
+function addRequestBreadcrumb(request: UndiciRequest, response: UndiciResponse): void {
   const data = getBreadcrumbData(request);
+  const statusCode = response.statusCode;
+  const level = getBreadcrumbLogLevelFromHttpStatusCode(statusCode);
 
   addBreadcrumb(
     {
       category: 'http',
       data: {
-        status_code: response.statusCode,
+        status_code: statusCode,
         ...data,
       },
       type: 'http',
+      level,
     },
     {
       event: 'response',
@@ -165,7 +125,7 @@ function _addRequestBreadcrumb(request: FetchRequest, response: FetchResponse): 
   );
 }
 
-function getBreadcrumbData(request: FetchRequest): Partial<SanitizedRequestData> {
+function getBreadcrumbData(request: UndiciRequest): Partial<SanitizedRequestData> {
   try {
     const url = new URL(request.path, request.origin);
     const parsedUrl = parseUrl(url.toString());
@@ -192,11 +152,11 @@ function getBreadcrumbData(request: FetchRequest): Partial<SanitizedRequestData>
 function getAbsoluteUrl(origin: string, path: string = '/'): string {
   const url = `${origin}`;
 
-  if (origin.endsWith('/') && path.startsWith('/')) {
+  if (url.endsWith('/') && path.startsWith('/')) {
     return `${url}${path.slice(1)}`;
   }
 
-  if (!origin.endsWith('/') && !path.startsWith('/')) {
+  if (!url.endsWith('/') && !path.startsWith('/')) {
     return `${url}/${path.slice(1)}`;
   }
 

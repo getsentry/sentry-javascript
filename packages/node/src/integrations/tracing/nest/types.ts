@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-interface MinimalNestJsExecutionContext {
+export interface MinimalNestJsExecutionContext {
   getType: () => string;
 
   switchToHttp: () => {
@@ -14,6 +14,8 @@ interface MinimalNestJsExecutionContext {
       method?: string;
     };
   };
+
+  _sentryInterceptorInstrumented?: boolean;
 }
 
 export interface NestJsErrorFilter {
@@ -27,11 +29,15 @@ export interface MinimalNestJsApp {
   }) => void;
 }
 
+export interface Subscription {
+  add(...args: any[]): void;
+}
+
 /**
  * A minimal interface for an Observable.
  */
 export interface Observable<T> {
-  subscribe(observer: (value: T) => void): void;
+  subscribe(next?: (value: T) => void, error?: (err: any) => void, complete?: () => void): Subscription;
 }
 
 /**
@@ -67,3 +73,8 @@ export interface CatchTarget {
     catch?: (...args: any[]) => any;
   };
 }
+
+/**
+ * Represents an express NextFunction.
+ */
+export type NextFunction = (err?: any) => void;

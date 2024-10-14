@@ -1,4 +1,4 @@
-import { createTransport } from '@sentry/core';
+import { createTransport, suppressTracing } from '@sentry/core';
 import type { BaseTransportOptions, Transport, TransportMakeRequestResponse, TransportRequest } from '@sentry/types';
 import { SentryError } from '@sentry/utils';
 
@@ -89,14 +89,16 @@ export function makeCloudflareTransport(options: CloudflareTransportOptions): Tr
       ...options.fetchOptions,
     };
 
-    return fetch(options.url, requestOptions).then(response => {
-      return {
-        statusCode: response.status,
-        headers: {
-          'x-sentry-rate-limits': response.headers.get('X-Sentry-Rate-Limits'),
-          'retry-after': response.headers.get('Retry-After'),
-        },
-      };
+    return suppressTracing(() => {
+      return fetch(options.url, requestOptions).then(response => {
+        return {
+          statusCode: response.status,
+          headers: {
+            'x-sentry-rate-limits': response.headers.get('X-Sentry-Rate-Limits'),
+            'retry-after': response.headers.get('Retry-After'),
+          },
+        };
+      });
     });
   }
 

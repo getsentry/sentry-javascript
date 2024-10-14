@@ -1,4 +1,5 @@
 import {
+  SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   captureException,
@@ -65,7 +66,7 @@ function instrumentBunServeOptions(serveOptions: Parameters<typeof Bun.serve>[0]
         const parsedUrl = parseUrl(request.url);
         const attributes: SpanAttributes = {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.bun.serve',
-          'http.request.method': request.method || 'GET',
+          [SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD]: request.method || 'GET',
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
         };
         if (parsedUrl.search) {

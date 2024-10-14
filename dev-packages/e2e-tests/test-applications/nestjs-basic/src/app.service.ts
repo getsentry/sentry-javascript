@@ -58,6 +58,11 @@ export class AppService {
     return { result: 'test' };
   }
 
+  @SentryTraced('return the function name')
+  getFunctionName(): { result: string } {
+    return { result: this.getFunctionName.name };
+  }
+
   async testSpanDecoratorSync() {
     const returned = this.getString();
     // Will fail if getString() is async, because returned will be a Promise<>
@@ -77,5 +82,21 @@ export class AppService {
 
   async killTestCron() {
     this.schedulerRegistry.deleteCronJob('test-cron-job');
+  }
+
+  use() {
+    console.log('Test use!');
+  }
+
+  transform() {
+    console.log('Test transform!');
+  }
+
+  intercept() {
+    console.log('Test intercept!');
+  }
+
+  canActivate() {
+    console.log('Test canActivate!');
   }
 }

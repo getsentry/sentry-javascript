@@ -10,4 +10,4 @@ export async function register() {
   }
 }
 
-export const onRequestError = Sentry.experimental_captureRequestError;
+export const onRequestError = Sentry.captureRequestError;

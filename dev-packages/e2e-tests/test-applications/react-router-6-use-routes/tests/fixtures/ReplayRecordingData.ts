@@ -219,7 +219,7 @@ export const ReplayRecordingData = [
         data: {
           value: expect.any(Number),
           size: expect.any(Number),
-          nodeId: 16,
+          nodeIds: [16],
         },
       },
     },

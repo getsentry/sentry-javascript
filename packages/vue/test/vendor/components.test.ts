@@ -80,6 +80,19 @@ describe('formatComponentName', () => {
         });
       });
 
+      describe('when the options have a __name', () => {
+        it('returns the __name', () => {
+          // arrange
+          vm.$options.__name = 'my-component-name';
+
+          // act
+          const formattedName = formatComponentName(vm);
+
+          // assert
+          expect(formattedName).toEqual('<MyComponentName>');
+        });
+      });
+
       describe('when the options have a __file', () => {
         describe('and we do not wish to include the filename', () => {
           it.each([

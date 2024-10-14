@@ -4,7 +4,7 @@ import type { Package } from '@sentry/types';
 import HtmlWebpackPlugin, { createHtmlTagObject } from 'html-webpack-plugin';
 import type { Compiler } from 'webpack';
 
-import { addStaticAsset, addStaticAssetSymlink } from './staticAssets';
+import { addStaticAsset, symlinkAsset } from './staticAssets';
 
 const LOADER_TEMPLATE = fs.readFileSync(path.join(__dirname, '../fixtures/loader.js'), 'utf-8');
 const PACKAGES_DIR = path.join(__dirname, '..', '..', '..', 'packages');
@@ -30,7 +30,6 @@ const useLoader = bundleKey.startsWith('loader');
 const IMPORTED_INTEGRATION_CDN_BUNDLE_PATHS: Record<string, string> = {
   httpClientIntegration: 'httpclient',
   captureConsoleIntegration: 'captureconsole',
-  CaptureConsole: 'captureconsole',
   debugIntegration: 'debug',
   rewriteFramesIntegration: 'rewriteframes',
   contextLinesIntegration: 'contextlines',
@@ -214,7 +213,10 @@ class SentryScenarioGenerationPlugin {
                 src: 'cdn.bundle.js',
               });
 
-          addStaticAssetSymlink(this.localOutPath, path.resolve(PACKAGES_DIR, bundleName, bundlePath), 'cdn.bundle.js');
+          symlinkAsset(
+            path.resolve(PACKAGES_DIR, bundleName, bundlePath),
+            path.join(this.localOutPath, 'cdn.bundle.js'),
+          );
 
           if (useLoader) {
             const loaderConfig = LOADER_CONFIGS[bundleKey];
@@ -245,14 +247,13 @@ class SentryScenarioGenerationPlugin {
               const fileName = `${integration}.bundle.js`;
 
               // We add the files, but not a script tag - they are lazy-loaded
-              addStaticAssetSymlink(
-                this.localOutPath,
+              symlinkAsset(
                 path.resolve(
                   PACKAGES_DIR,
                   'feedback',
                   BUNDLE_PATHS['feedback']?.[integrationBundleKey]?.replace('[INTEGRATION_NAME]', integration) || '',
                 ),
-                fileName,
+                path.join(this.localOutPath, fileName),
               );
             });
           }
@@ -262,26 +263,23 @@ class SentryScenarioGenerationPlugin {
           if (baseIntegrationFileName) {
             this.requiredIntegrations.forEach(integration => {
               const fileName = `${integration}.bundle.js`;
-              addStaticAssetSymlink(
-                this.localOutPath,
+              symlinkAsset(
                 path.resolve(
                   PACKAGES_DIR,
                   'browser',
                   baseIntegrationFileName.replace('[INTEGRATION_NAME]', integration),
                 ),
-                fileName,
+                path.join(this.localOutPath, fileName),
               );
 
               if (integration === 'feedback') {
-                addStaticAssetSymlink(
-                  this.localOutPath,
+                symlinkAsset(
                   path.resolve(PACKAGES_DIR, 'feedback', 'build/bundles/feedback-modal.js'),
-                  'feedback-modal.bundle.js',
+                  path.join(this.localOutPath, 'feedback-modal.bundle.js'),
                 );
-                addStaticAssetSymlink(
-                  this.localOutPath,
+                symlinkAsset(
                   path.resolve(PACKAGES_DIR, 'feedback', 'build/bundles/feedback-screenshot.js'),
-                  'feedback-screenshot.bundle.js',
+                  path.join(this.localOutPath, 'feedback-screenshot.bundle.js'),
                 );
               }
 
@@ -295,10 +293,9 @@ class SentryScenarioGenerationPlugin {
 
           const baseWasmFileName = BUNDLE_PATHS['wasm']?.[integrationBundleKey];
           if (this.requiresWASMIntegration && baseWasmFileName) {
-            addStaticAssetSymlink(
-              this.localOutPath,
+            symlinkAsset(
               path.resolve(PACKAGES_DIR, 'wasm', baseWasmFileName),
-              'wasm.bundle.js',
+              path.join(this.localOutPath, 'wasm.bundle.js'),
             );
 
             const wasmObject = createHtmlTagObject('script', {

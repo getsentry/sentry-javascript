@@ -79,6 +79,6 @@ sentryTest('should capture feedback', async ({ getLocalTestUrl, page }) => {
     },
     platform: 'javascript',
   });
-  const cspContainer = await page.locator('#csp-violation');
-  expect(cspContainer).not.toContainText('CSP Violation');
+  const cspViolation = await page.evaluate<boolean>('window.__CSPVIOLATION__');
+  expect(cspViolation).toBe(false);
 });

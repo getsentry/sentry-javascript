@@ -1,6 +1,6 @@
 {
   "name": "@sentry/nuxt",
-  "version": "8.26.0",
+  "version": "8.34.0",
   "description": "Official Sentry SDK for Nuxt (EXPERIMENTAL)",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/nuxt",
@@ -42,19 +42,20 @@
     "nuxt": "3.x"
   },
   "dependencies": {
-    "@nuxt/kit": "^3.12.2",
-    "@sentry/browser": "8.26.0",
-    "@sentry/core": "8.26.0",
-    "@sentry/node": "8.26.0",
-    "@sentry/opentelemetry": "8.26.0",
-    "@sentry/types": "8.26.0",
-    "@sentry/utils": "8.26.0",
-    "@sentry/vite-plugin": "2.20.1",
-    "@sentry/vue": "8.26.0"
+    "@nuxt/kit": "^3.13.2",
+    "@sentry/browser": "8.34.0",
+    "@sentry/core": "8.34.0",
+    "@sentry/node": "8.34.0",
+    "@sentry/opentelemetry": "8.34.0",
+    "@sentry/rollup-plugin": "2.22.3",
+    "@sentry/types": "8.34.0",
+    "@sentry/utils": "8.34.0",
+    "@sentry/vite-plugin": "2.22.3",
+    "@sentry/vue": "8.34.0"
   },
   "devDependencies": {
-    "@nuxt/module-builder": "0.8.1",
-    "nuxt": "^3.12.2"
+    "@nuxt/module-builder": "^0.8.4",
+    "nuxt": "^3.13.2"
   },
   "scripts": {
     "build": "run-s build:types build:transpile",

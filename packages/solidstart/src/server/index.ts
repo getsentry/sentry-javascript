@@ -9,6 +9,7 @@ export {
   addIntegration,
   addOpenTelemetryInstrumentation,
   addRequestDataToEvent,
+  amqplibIntegration,
   anrIntegration,
   captureCheckIn,
   captureConsoleIntegration,
@@ -38,6 +39,7 @@ export {
   flush,
   functionToStringIntegration,
   generateInstrumentOnce,
+  genericPoolIntegration,
   getActiveSpan,
   getAutoPerformanceIntegrations,
   getClient,
@@ -57,6 +59,7 @@ export {
   inboundFiltersIntegration,
   initOpenTelemetry,
   isInitialized,
+  kafkaIntegration,
   koaIntegration,
   lastEventId,
   linkedErrorsIntegration,
@@ -107,6 +110,7 @@ export {
   spotlightIntegration,
   startInactiveSpan,
   startNewTrace,
+  suppressTracing,
   startSession,
   startSpan,
   startSpanManual,
@@ -128,3 +132,4 @@ export { withSentryErrorBoundary } from '@sentry/solid';
 export { init } from './sdk';
 
 export * from './withServerActionInstrumentation';
+export * from './middleware';

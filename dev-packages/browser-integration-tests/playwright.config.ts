@@ -30,6 +30,8 @@ const config: PlaywrightTestConfig = {
     },
   ],
 
+  reporter: process.env.CI ? [['line'], ['junit', { outputFile: 'results.junit.xml' }]] : 'list',
+
   globalSetup: require.resolve('./playwright.setup.ts'),
   globalTeardown: require.resolve('./playwright.teardown.ts'),
 };

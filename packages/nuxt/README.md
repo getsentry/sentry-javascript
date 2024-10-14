@@ -37,21 +37,23 @@ functionality related to Nuxt.
 
 **What is partly working:**
 
+- Source Maps
+- Connected Tracing (Frontend & Backend)
 - Tracing by setting `tracesSampleRate`
   - UI (Vue) traces
   - HTTP (Node) traces
 
-**What is not yet(!) included:**
-
-- Source Maps
-- Nuxt-specific traces and connecting frontend & backend traces
-
 **Known Issues:**
 
-- When adding `sentry.server.config.(ts/js)`, you get this error: "Failed to register ESM hook", but the application
-  will still work
-- When initializing Sentry on the server with `instrument.server.(js|ts)`, you get an `'import-in-the-middle'` error,
-  and the application won't work
+- When adding `sentry.server.config.(ts/js)`, you get an error like this:
+  "`Failed to register ESM hook (import-in-the-middle/hook.mjs)`". You can add a resolution for `@vercel/nft` to fix
+  this. This will add the `hook.mjs` file to your build output
+  ([issue here](https://github.com/unjs/nitro/issues/2703)).
+  ```json
+    "resolutions": {
+      "@vercel/nft": "^0.27.4"
+    }
+  ```
 
 ## Automatic Setup
 
@@ -93,35 +95,57 @@ export default defineNuxtConfig({
 Add a `sentry.client.config.(js|ts)` file to the root of your project:
 
 ```javascript
+import { useRuntimeConfig } from '#imports';
 import * as Sentry from '@sentry/nuxt';
 
 Sentry.init({
-  dsn: env.DSN,
+  // If set up, you can use your runtime config here
+  dsn: useRuntimeConfig().public.sentry.dsn,
 });
 ```
 
 ### 4. Server-side setup
 
-Add an `instrument.server.mjs` file to your `public` folder:
+Add an `sentry.client.config.(js|ts)` file to the root of your project:
 
 ```javascript
 import * as Sentry from '@sentry/nuxt';
 
-// Only run `init` when DSN is available
+// Only run `init` when process.env.SENTRY_DSN is available.
 if (process.env.SENTRY_DSN) {
   Sentry.init({
-    dsn: process.env.DSN,
+    dsn: 'your-dsn',
   });
 }
 ```
 
-Add an import flag to the `NODE_OPTIONS` of your preview script in the `package.json` file, so the file loads before any
-other imports:
+The Nuxt runtime config does not work in the Sentry server to technical reasons (it has to be loaded before Nuxt is
+loaded). To be able to use `process.env` you either have to add `--env-file=.env` to your node command
+
+```bash
+node --env-file=.env --import ./.output/server/sentry.server.config.mjs .output/server/index.mjs
+```
+
+or use the `dotenv` package:
+
+```javascript
+import dotenv from 'dotenv';
+import * as Sentry from '@sentry/nuxt';
+
+dotenv.config();
+
+Sentry.init({
+  dsn: process.env.SENTRY_DSN,
+});
+```
+
+Add an import flag to the Node options of your `node` command (not `nuxt preview`), so the file loads before any other
+imports (keep in mind the `.mjs` file ending):
 
 ```json
 {
   "scripts": {
-    "preview": "NODE_OPTIONS='--import ./public/instrument.server.mjs' nuxt preview"
+    "start": "node --import ./.output/server/sentry.server.config.mjs .output/server/index.mjs"
   }
 }
 ```

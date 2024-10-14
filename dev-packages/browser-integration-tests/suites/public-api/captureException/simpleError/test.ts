@@ -1,13 +1,13 @@
 import { expect } from '@playwright/test';
-import type { Event } from '@sentry/types';
+import { SDK_VERSION } from '@sentry/browser';
 
 import { sentryTest } from '../../../../utils/fixtures';
-import { getFirstSentryEnvelopeRequest } from '../../../../utils/helpers';
+import { envelopeRequestParser, waitForErrorRequestOnUrl } from '../../../../utils/helpers';
 
-sentryTest('should capture a simple error with message', async ({ getLocalTestPath, page }) => {
-  const url = await getLocalTestPath({ testDir: __dirname });
-
-  const eventData = await getFirstSentryEnvelopeRequest<Event>(page, url);
+sentryTest('should capture a simple error with message', async ({ getLocalTestUrl, page }) => {
+  const url = await getLocalTestUrl({ testDir: __dirname });
+  const req = await waitForErrorRequestOnUrl(page, url);
+  const eventData = envelopeRequestParser(req);
 
   expect(eventData.exception?.values).toHaveLength(1);
   expect(eventData.exception?.values?.[0]).toMatchObject({
@@ -20,5 +20,25 @@ sentryTest('should capture a simple error with message', async ({ getLocalTestPa
     stacktrace: {
       frames: expect.any(Array),
     },
+  });
+});
+
+sentryTest('should capture correct SDK metadata', async ({ getLocalTestUrl, page }) => {
+  const isCdn = (process.env.PW_BUNDLE || '').startsWith('bundle');
+
+  const url = await getLocalTestUrl({ testDir: __dirname });
+  const req = await waitForErrorRequestOnUrl(page, url);
+  const eventData = envelopeRequestParser(req);
+
+  expect(eventData.sdk).toEqual({
+    name: 'sentry.javascript.browser',
+    version: SDK_VERSION,
+    integrations: expect.any(Object),
+    packages: [
+      {
+        name: `${isCdn ? 'cdn' : 'npm'}:@sentry/browser`,
+        version: SDK_VERSION,
+      },
+    ],
   });
 });

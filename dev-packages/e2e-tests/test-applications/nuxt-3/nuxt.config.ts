@@ -4,4 +4,11 @@ export default defineNuxtConfig({
   imports: {
     autoImport: false,
   },
+  runtimeConfig: {
+    public: {
+      sentry: {
+        dsn: 'https://public@dsn.ingest.sentry.io/1337',
+      },
+    },
+  },
 });

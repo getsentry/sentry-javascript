@@ -141,6 +141,7 @@ export const expectedCLSPerformanceSpan = {
   data: {
     value: expect.any(Number),
     nodeIds: expect.any(Array),
+    attributions: expect.any(Array),
     rating: expect.any(String),
     size: expect.any(Number),
   },

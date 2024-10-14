@@ -316,7 +316,7 @@ describe('Profiler bindings', () => {
     expect(profile?.measurements?.['memory_footprint']?.values.length).toBeLessThanOrEqual(300);
   });
 
-  // eslint-disable-next-line jest/no-disabled-tests
+  // eslint-disable-next-line @sentry-internal/sdk/no-skipped-tests
   it.skip('includes deopt reason', async () => {
     // https://github.com/petkaantonov/bluebird/wiki/Optimization-killers#52-the-object-being-iterated-is-not-a-simple-enumerable
     function iterateOverLargeHashTable() {

@@ -11,6 +11,31 @@ module.exports = [
     limit: '24 KB',
   },
   {
+    name: '@sentry/browser - with treeshaking flags',
+    path: 'packages/browser/build/npm/esm/index.js',
+    import: createImport('init'),
+    gzip: true,
+    limit: '24 KB',
+    modifyWebpackConfig: function (config) {
+      const webpack = require('webpack');
+      const TerserPlugin = require('terser-webpack-plugin');
+
+      config.plugins.push(
+        new webpack.DefinePlugin({
+          __SENTRY_DEBUG__: false,
+          __RRWEB_EXCLUDE_SHADOW_DOM__: true,
+          __RRWEB_EXCLUDE_IFRAME__: true,
+          __SENTRY_EXCLUDE_REPLAY_WORKER__: true,
+        }),
+      );
+
+      config.optimization.minimize = true;
+      config.optimization.minimizer = [new TerserPlugin()];
+
+      return config;
+    },
+  },
+  {
     name: '@sentry/browser (incl. Tracing)',
     path: 'packages/browser/build/npm/esm/index.js',
     import: createImport('init', 'browserTracingIntegration'),
@@ -22,16 +47,18 @@ module.exports = [
     path: 'packages/browser/build/npm/esm/index.js',
     import: createImport('init', 'browserTracingIntegration', 'replayIntegration'),
     gzip: true,
-    limit: '73 KB',
+    limit: '75 KB',
   },
   {
     name: '@sentry/browser (incl. Tracing, Replay) - with treeshaking flags',
     path: 'packages/browser/build/npm/esm/index.js',
     import: createImport('init', 'browserTracingIntegration', 'replayIntegration'),
     gzip: true,
-    limit: '66 KB',
+    limit: '68 KB',
     modifyWebpackConfig: function (config) {
       const webpack = require('webpack');
+      const TerserPlugin = require('terser-webpack-plugin');
+
       config.plugins.push(
         new webpack.DefinePlugin({
           __SENTRY_DEBUG__: false,
@@ -40,6 +67,10 @@ module.exports = [
           __SENTRY_EXCLUDE_REPLAY_WORKER__: true,
         }),
       );
+
+      config.optimization.minimize = true;
+      config.optimization.minimizer = [new TerserPlugin()];
+
       return config;
     },
   },
@@ -149,7 +180,7 @@ module.exports = [
     name: 'CDN Bundle (incl. Tracing, Replay)',
     path: createCDNPath('bundle.tracing.replay.min.js'),
     gzip: true,
-    limit: '73 KB',
+    limit: '74 KB',
   },
   {
     name: 'CDN Bundle (incl. Tracing, Replay, Feedback)',
@@ -170,7 +201,7 @@ module.exports = [
     path: createCDNPath('bundle.tracing.min.js'),
     gzip: false,
     brotli: false,
-    limit: '111 KB',
+    limit: '113 KB',
   },
   {
     name: 'CDN Bundle (incl. Tracing, Replay) - uncompressed',
@@ -222,11 +253,17 @@ module.exports = [
     ignore: [...builtinModules, ...nodePrefixedBuiltinModules],
     modifyWebpackConfig: function (config) {
       const webpack = require('webpack');
+      const TerserPlugin = require('terser-webpack-plugin');
+
       config.plugins.push(
         new webpack.DefinePlugin({
           __SENTRY_TRACING__: false,
         }),
       );
+
+      config.optimization.minimize = true;
+      config.optimization.minimizer = [new TerserPlugin()];
+
       return config;
     },
   },

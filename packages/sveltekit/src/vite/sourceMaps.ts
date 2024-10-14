@@ -5,8 +5,6 @@ import { getSentryRelease } from '@sentry/node';
 import { escapeStringForRegex, uuid4 } from '@sentry/utils';
 import type { SentryVitePluginOptions } from '@sentry/vite-plugin';
 import { sentryVitePlugin } from '@sentry/vite-plugin';
-// @ts-expect-error -sorcery has no types :(
-import * as sorcery from 'sorcery';
 import type { Plugin } from 'vite';
 
 import MagicString from 'magic-string';
@@ -186,6 +184,9 @@ export async function makeCustomSentryVitePlugins(options?: CustomSentryVitePlug
       const jsFiles = getFiles(outDir).filter(file => file.endsWith('.js'));
       // eslint-disable-next-line no-console
       debug && console.log('[Source Maps Plugin] Flattening source maps');
+
+      // @ts-expect-error - we're using dynamic import here and TS complains about that. It works though.
+      const sorcery = await import('sorcery');
 
       for (const file of jsFiles) {
         try {

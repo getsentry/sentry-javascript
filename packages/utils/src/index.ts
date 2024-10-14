@@ -1,5 +1,6 @@
 export * from './aggregate-errors';
 export * from './array';
+export * from './breadcrumb-log-level';
 export * from './browser';
 export * from './dsn';
 export * from './error';
@@ -37,4 +38,5 @@ export * from './anr';
 export * from './lru';
 export * from './buildPolyfills';
 export * from './propagationContext';
+export * from './vercelWaitUntil';
 export * from './version';

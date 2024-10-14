@@ -1,0 +1,27 @@
+name: "Automation: Notify issues for release"
+on:
+  release:
+    types:
+      - published
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Which version to notify issues for
+        required: false
+
+# This workflow is triggered when a release is published
+jobs:
+  release-comment-issues:
+    runs-on: ubuntu-20.04
+    name: 'Notify issues'
+    steps:
+      - name: Get version
+        id: get_version
+        run: echo "version=${{ github.event.inputs.version || github.event.release.tag_name }}" >> $GITHUB_OUTPUT
+
+      - name: Comment on linked issues that are mentioned in release
+        if: steps.get_version.outputs.version != ''
+        uses: getsentry/release-comment-issues-gh-action@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          version: ${{ steps.get_version.outputs.version }}

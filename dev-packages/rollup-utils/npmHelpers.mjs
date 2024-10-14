@@ -19,7 +19,6 @@ import {
   makeImportMetaUrlReplacePlugin,
   makeNodeResolvePlugin,
   makeRrwebBuildPlugin,
-  makeSetSDKSourcePlugin,
   makeSucrasePlugin,
 } from './plugins/index.mjs';
 import { makePackageNodeEsm } from './plugins/make-esm-plugin.mjs';
@@ -45,7 +44,6 @@ export function makeBaseNPMConfig(options = {}) {
   const importMetaUrlReplacePlugin = makeImportMetaUrlReplacePlugin();
   const cleanupPlugin = makeCleanupPlugin();
   const extractPolyfillsPlugin = makeExtractPolyfillsPlugin();
-  const setSdkSourcePlugin = makeSetSDKSourcePlugin('npm');
   const rrwebBuildPlugin = makeRrwebBuildPlugin({
     excludeShadowDom: undefined,
     excludeIframe: undefined,
@@ -106,7 +104,6 @@ export function makeBaseNPMConfig(options = {}) {
 
     plugins: [
       nodeResolvePlugin,
-      setSdkSourcePlugin,
       sucrasePlugin,
       debugBuildStatementReplacePlugin,
       importMetaUrlReplacePlugin,

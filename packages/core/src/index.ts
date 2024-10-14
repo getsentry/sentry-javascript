@@ -100,6 +100,7 @@ export { sessionTimingIntegration } from './integrations/sessiontiming';
 export { zodErrorsIntegration } from './integrations/zoderrors';
 export { thirdPartyErrorFilterIntegration } from './integrations/third-party-errors-filter';
 export { metrics } from './metrics/exports';
+export { profiler } from './profiling';
 export type { MetricData } from '@sentry/types';
 export { metricsDefault } from './metrics/exports-default';
 export { BrowserMetricsAggregator } from './metrics/browser-aggregator';

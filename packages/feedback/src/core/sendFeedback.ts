@@ -64,6 +64,12 @@ export const sendFeedback: SendFeedback = (
         );
       }
 
+      if (response && typeof response.statusCode === 'number' && response.statusCode === 403) {
+        return reject(
+          'Unable to send Feedback. This could be because this domain is not in your list of allowed domains.',
+        );
+      }
+
       return reject(
         'Unable to send Feedback. This could be because of network issues, or because you are using an ad-blocker',
       );

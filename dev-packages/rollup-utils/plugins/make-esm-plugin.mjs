@@ -15,9 +15,12 @@ export function makePackageNodeEsm() {
 
       const packageJSON = JSON.parse(fs.readFileSync(packageJSONPath, 'utf-8'));
       const sideEffects = packageJSON.sideEffects;
+      // For module federation we need to keep the version of the package
+      const version = packageJSON.version;
 
       const newPackageJSON = {
         type: 'module',
+        version,
         sideEffects,
       };
 

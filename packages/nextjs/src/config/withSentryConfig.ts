@@ -1,3 +1,4 @@
+/* eslint-disable complexity */
 import { isThenable, parseSemver } from '@sentry/utils';
 
 import * as fs from 'fs';
@@ -47,6 +48,7 @@ function getFinalConfigObject(
   incomingUserNextConfigObject: NextConfigObject,
   userSentryOptions: SentryBuildOptions,
 ): NextConfigObject {
+  // TODO(v9): Remove this check for the Sentry property
   if ('sentry' in incomingUserNextConfigObject) {
     // eslint-disable-next-line no-console
     console.warn(
@@ -71,21 +73,10 @@ function getFinalConfigObject(
     }
   }
 
-  // We need to enable `instrumentation.ts` for users because we tell them to put their `Sentry.init()` calls inside of it.
-  if (incomingUserNextConfigObject.experimental?.instrumentationHook === false) {
-    // eslint-disable-next-line no-console
-    console.warn(
-      '[@sentry/nextjs] You turned off the `instrumentationHook` option. Note that Sentry will not be initialized if you did not set it up inside `instrumentation.ts`.',
-    );
-  }
-  incomingUserNextConfigObject.experimental = {
-    instrumentationHook: true,
-    ...incomingUserNextConfigObject.experimental,
-  };
+  const nextJsVersion = getNextjsVersion();
 
   // Add the `clientTraceMetadata` experimental option based on Next.js version. The option got introduced in Next.js version 15.0.0 (actually 14.3.0-canary.64).
   // Adding the option on lower versions will cause Next.js to print nasty warnings we wouldn't confront our users with.
-  const nextJsVersion = getNextjsVersion();
   if (nextJsVersion) {
     const { major = 0, minor = 0 } = parseSemver(nextJsVersion);
     if (major >= 15 || (major === 14 && minor >= 3)) {
@@ -113,7 +104,84 @@ function getFinalConfigObject(
   } else {
     // eslint-disable-next-line no-console
     console.log(
-      "[@sentry/nextjs] The Sentry SDK was not able to determine your Next.js version. If you are using Next.js 15 or greater, please add `experimental.clientTraceMetadata: ['sentry-trace', 'baggage']` to your Next.js config to enable pageload tracing for App Router.",
+      "[@sentry/nextjs] The Sentry SDK was not able to determine your Next.js version. If you are using Next.js version 15 or greater, please add `experimental.clientTraceMetadata: ['sentry-trace', 'baggage']` to your Next.js config to enable pageload tracing for App Router.",
+    );
+  }
+
+  // From Next.js version (15.0.0-canary.124) onwards, Next.js does no longer require the `experimental.instrumentationHook` option and will
+  // print a warning when it is set, so we need to conditionally provide it for lower versions.
+  if (nextJsVersion) {
+    const { major, minor, patch, prerelease } = parseSemver(nextJsVersion);
+    const isFullySupportedRelease =
+      major !== undefined &&
+      minor !== undefined &&
+      patch !== undefined &&
+      major >= 15 &&
+      ((minor === 0 && patch === 0 && prerelease === undefined) || minor > 0 || patch > 0);
+    const isSupportedV15Rc =
+      major !== undefined &&
+      minor !== undefined &&
+      patch !== undefined &&
+      prerelease !== undefined &&
+      major === 15 &&
+      minor === 0 &&
+      patch === 0 &&
+      prerelease.startsWith('rc.') &&
+      parseInt(prerelease.split('.')[1] || '', 10) > 0;
+    const isSupportedCanary =
+      minor !== undefined &&
+      patch !== undefined &&
+      prerelease !== undefined &&
+      major === 15 &&
+      minor === 0 &&
+      patch === 0 &&
+      prerelease.startsWith('canary.') &&
+      parseInt(prerelease.split('.')[1] || '', 10) >= 124;
+
+    if (!isFullySupportedRelease && !isSupportedV15Rc && !isSupportedCanary) {
+      if (incomingUserNextConfigObject.experimental?.instrumentationHook === false) {
+        // eslint-disable-next-line no-console
+        console.warn(
+          '[@sentry/nextjs] You turned off the `experimental.instrumentationHook` option. Note that Sentry will not be initialized if you did not set it up inside `instrumentation.(js|ts)`.',
+        );
+      }
+      incomingUserNextConfigObject.experimental = {
+        instrumentationHook: true,
+        ...incomingUserNextConfigObject.experimental,
+      };
+    }
+  } else {
+    // If we cannot detect a Next.js version for whatever reason, the sensible default is to set the `experimental.instrumentationHook`, even though it may create a warning.
+    if (
+      incomingUserNextConfigObject.experimental &&
+      'instrumentationHook' in incomingUserNextConfigObject.experimental
+    ) {
+      if (incomingUserNextConfigObject.experimental.instrumentationHook === false) {
+        // eslint-disable-next-line no-console
+        console.warn(
+          '[@sentry/nextjs] You set `experimental.instrumentationHook` to `false`. If you are using Next.js version 15 or greater, you can remove that option. If you are using Next.js version 14 or lower, you need to set `experimental.instrumentationHook` in your `next.config.(js|mjs)` to `true` for the SDK to be properly initialized in combination with `instrumentation.(js|ts)`.',
+        );
+      }
+    } else {
+      // eslint-disable-next-line no-console
+      console.log(
+        "[@sentry/nextjs] The Sentry SDK was not able to determine your Next.js version. If you are using Next.js version 15 or greater, Next.js will probably show you a warning about the `experimental.instrumentationHook` being set. To silence Next.js' warning, explicitly set the `experimental.instrumentationHook` option in your `next.config.(js|mjs|ts)` to `undefined`. If you are on Next.js version 14 or lower, you can silence this particular warning by explicitly setting the `experimental.instrumentationHook` option in your `next.config.(js|mjs)` to `true`.",
+      );
+      incomingUserNextConfigObject.experimental = {
+        instrumentationHook: true,
+        ...incomingUserNextConfigObject.experimental,
+      };
+    }
+  }
+
+  if (process.env.TURBOPACK && !process.env.SENTRY_SUPPRESS_TURBOPACK_WARNING) {
+    // eslint-disable-next-line no-console
+    console.warn(
+      `[@sentry/nextjs] WARNING: You are using the Sentry SDK with \`next ${
+        process.env.NODE_ENV === 'development' ? 'dev' : 'build'
+      } --turbo\`. The Sentry SDK doesn't yet fully support Turbopack. The SDK will not be loaded in the browser, and serverside instrumentation will be inaccurate or incomplete. ${
+        process.env.NODE_ENV === 'development' ? 'Production builds without `--turbo` will still fully work. ' : ''
+      }If you are just trying out Sentry or attempting to configure the SDK, we recommend temporarily removing the \`--turbo\` flag while you are developing locally. Follow this issue for progress on Sentry + Turbopack: https://github.com/getsentry/sentry-javascript/issues/8105. (You can suppress this warning by setting SENTRY_SUPPRESS_TURBOPACK_WARNING=1 as environment variable)`,
     );
   }
 

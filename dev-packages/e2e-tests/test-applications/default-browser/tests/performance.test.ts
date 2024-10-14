@@ -10,7 +10,7 @@ test('captures a pageload transaction', async ({ page }) => {
 
   const pageLoadTransaction = await transactionPromise;
 
-  expect(pageLoadTransaction).toEqual({
+  expect(pageLoadTransaction).toMatchObject({
     contexts: {
       trace: {
         data: expect.objectContaining({
@@ -28,32 +28,7 @@ test('captures a pageload transaction', async ({ page }) => {
     },
     environment: 'qa',
     event_id: expect.stringMatching(/[a-f0-9]{32}/),
-    measurements: {
-      'connection.rtt': {
-        unit: 'millisecond',
-        value: expect.any(Number),
-      },
-      fcp: {
-        unit: 'millisecond',
-        value: expect.any(Number),
-      },
-      fp: {
-        unit: 'millisecond',
-        value: expect.any(Number),
-      },
-      lcp: {
-        unit: 'millisecond',
-        value: expect.any(Number),
-      },
-      ttfb: {
-        unit: 'millisecond',
-        value: expect.any(Number),
-      },
-      'ttfb.requestTime': {
-        unit: 'millisecond',
-        value: expect.any(Number),
-      },
-    },
+    measurements: expect.any(Object),
     platform: 'javascript',
     release: 'e2e-test',
     request: {

@@ -3,13 +3,14 @@ import { DiagLogLevel, diag } from '@opentelemetry/api';
 import { Resource } from '@opentelemetry/resources';
 import { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
 import {
-  SEMRESATTRS_SERVICE_NAME,
+  ATTR_SERVICE_NAME,
+  ATTR_SERVICE_VERSION,
   SEMRESATTRS_SERVICE_NAMESPACE,
-  SEMRESATTRS_SERVICE_VERSION,
 } from '@opentelemetry/semantic-conventions';
 import { SDK_VERSION } from '@sentry/core';
 import { SentryPropagator, SentrySampler, SentrySpanProcessor } from '@sentry/opentelemetry';
 import { GLOBAL_OBJ, consoleSandbox, logger } from '@sentry/utils';
+import { createAddHookMessageChannel } from 'import-in-the-middle';
 
 import { pathToFileURL } from 'url';
 import { getOpenTelemetryInstrumentationToPreload } from '../integrations/tracing';
@@ -30,6 +31,26 @@ export function initOpenTelemetry(client: NodeClient): void {
 
   const provider = setupOtel(client);
   client.traceProvider = provider;
+}
+
+type ImportInTheMiddleInitData = Pick<EsmLoaderHookOptions, 'include' | 'exclude'> & {
+  addHookMessagePort?: unknown;
+};
+
+interface RegisterOptions {
+  data?: ImportInTheMiddleInitData;
+  transferList?: unknown[];
+}
+
+function getRegisterOptions(esmHookConfig?: EsmLoaderHookOptions): RegisterOptions {
+  if (esmHookConfig?.onlyIncludeInstrumentedModules) {
+    const { addHookMessagePort } = createAddHookMessageChannel();
+    // If the user supplied include, we need to use that as a starting point or use an empty array to ensure no modules
+    // are wrapped if they are not hooked
+    return { data: { addHookMessagePort, include: esmHookConfig.include || [] }, transferList: [addHookMessagePort] };
+  }
+
+  return { data: esmHookConfig };
 }
 
 /** Initialize the ESM loader. */
@@ -57,7 +78,7 @@ export function maybeInitializeEsmLoader(esmHookConfig: EsmLoaderHookOptions | b
     if (!GLOBAL_OBJ._sentryEsmLoaderHookRegistered) {
       try {
         // @ts-expect-error register is available in these versions
-        moduleModule.register('import-in-the-middle/hook.mjs', importMetaUrl, { data: esmHookConfig });
+        moduleModule.register('import-in-the-middle/hook.mjs', importMetaUrl, getRegisterOptions(esmHookConfig));
         GLOBAL_OBJ._sentryEsmLoaderHookRegistered = true;
       } catch (error) {
         logger.warn('Failed to register ESM hook', error);
@@ -122,9 +143,10 @@ export function setupOtel(client: NodeClient): BasicTracerProvider {
   const provider = new BasicTracerProvider({
     sampler: new SentrySampler(client),
     resource: new Resource({
-      [SEMRESATTRS_SERVICE_NAME]: 'node',
+      [ATTR_SERVICE_NAME]: 'node',
+      // eslint-disable-next-line deprecation/deprecation
       [SEMRESATTRS_SERVICE_NAMESPACE]: 'sentry',
-      [SEMRESATTRS_SERVICE_VERSION]: SDK_VERSION,
+      [ATTR_SERVICE_VERSION]: SDK_VERSION,
     }),
     forceFlushTimeoutMillis: 500,
   });

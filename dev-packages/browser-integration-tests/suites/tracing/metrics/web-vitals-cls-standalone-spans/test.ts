@@ -453,3 +453,44 @@ sentryTest("doesn't send further CLS after the first page hide", async ({ getLoc
   // a timeout or something similar.
   await navigationTxnPromise;
 });
+
+sentryTest('CLS span timestamps are set correctly', async ({ getLocalTestPath, page }) => {
+  const url = await getLocalTestPath({ testDir: __dirname });
+
+  const eventData = await getFirstSentryEnvelopeRequest<SentryEvent>(page, url);
+
+  expect(eventData.type).toBe('transaction');
+  expect(eventData.contexts?.trace?.op).toBe('pageload');
+  expect(eventData.timestamp).toBeDefined();
+
+  const pageloadEndTimestamp = eventData.timestamp!;
+
+  const spanEnvelopePromise = getMultipleSentryEnvelopeRequests<SpanEnvelope>(
+    page,
+    1,
+    { envelopeType: 'span' },
+    properFullEnvelopeRequestParser,
+  );
+
+  await triggerAndWaitForLayoutShift(page);
+
+  await hidePage(page);
+
+  const spanEnvelope = (await spanEnvelopePromise)[0];
+  const spanEnvelopeItem = spanEnvelope[1][0][1];
+
+  expect(spanEnvelopeItem.start_timestamp).toBeDefined();
+  expect(spanEnvelopeItem.timestamp).toBeDefined();
+
+  const clsSpanStartTimestamp = spanEnvelopeItem.start_timestamp!;
+  const clsSpanEndTimestamp = spanEnvelopeItem.timestamp!;
+
+  // CLS performance entries have no duration ==> start and end timestamp should be the same
+  expect(clsSpanStartTimestamp).toEqual(clsSpanEndTimestamp);
+
+  // We don't really care that they are very close together but rather about the order of magnitude
+  // Previously, we had a bug where the timestamps would be significantly off (by multiple hours)
+  // so we only ensure that this bug is fixed. 60 seconds should be more than enough.
+  expect(clsSpanStartTimestamp - pageloadEndTimestamp).toBeLessThan(60);
+  expect(clsSpanStartTimestamp).toBeGreaterThan(pageloadEndTimestamp);
+});

@@ -6,22 +6,24 @@ import {
   startSpanManual,
   withIsolationScope,
 } from '@sentry/core';
-import { consoleSandbox, isString, logger, objectify } from '@sentry/utils';
-
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
-import type { AugmentedNextApiRequest, AugmentedNextApiResponse, NextApiHandler } from './types';
+import { isString, logger, objectify, vercelWaitUntil } from '@sentry/utils';
+import type { NextApiRequest } from 'next';
+import type { AugmentedNextApiResponse, NextApiHandler } from './types';
 import { flushSafelyWithTimeout } from './utils/responseEnd';
 import { escapeNextjsTracing } from './utils/tracingUtils';
-import { vercelWaitUntil } from './utils/vercelWaitUntil';
+
+export type AugmentedNextApiRequest = NextApiRequest & {
+  __withSentry_applied__?: boolean;
+};
 
 /**
- * Wrap the given API route handler for tracing and error capturing. Thin wrapper around `withSentry`, which only
- * applies it if it hasn't already been applied.
+ * Wrap the given API route handler with error nad performance monitoring.
  *
  * @param apiHandler The handler exported from the user's API page route file, which may or may not already be
  * wrapped with `withSentry`
  * @param parameterizedRoute The page's parameterized route.
- * @returns The wrapped handler
+ * @returns The wrapped handler which will always return a Promise.
  */
 export function wrapApiHandlerWithSentry(apiHandler: NextApiHandler, parameterizedRoute: string): NextApiHandler {
   return new Proxy(apiHandler, {
@@ -45,9 +47,7 @@ export function wrapApiHandlerWithSentry(apiHandler: NextApiHandler, parameteriz
           return wrappingTarget.apply(thisArg, args);
         }
 
-        // We're now auto-wrapping API route handlers using `wrapApiHandlerWithSentry` (which uses `withSentry` under the hood), but
-        // users still may have their routes manually wrapped with `withSentry`. This check makes `sentryWrappedHandler`
-        // idempotent so that those cases don't break anything.
+        // Prevent double wrapping of the same request.
         if (req.__withSentry_applied__) {
           return wrappingTarget.apply(thisArg, args);
         }
@@ -56,7 +56,6 @@ export function wrapApiHandlerWithSentry(apiHandler: NextApiHandler, parameteriz
         return withIsolationScope(isolationScope => {
           return continueTrace(
             {
-              // TODO(v8): Make it so that continue trace will allow null as sentryTrace value and remove this fallback here
               sentryTrace:
                 req.headers && isString(req.headers['sentry-trace']) ? req.headers['sentry-trace'] : undefined,
               baggage: req.headers?.baggage,
@@ -81,31 +80,15 @@ export function wrapApiHandlerWithSentry(apiHandler: NextApiHandler, parameteriz
                   // eslint-disable-next-line @typescript-eslint/unbound-method
                   res.end = new Proxy(res.end, {
                     apply(target, thisArg, argArray) {
-                      if (span.isRecording()) {
-                        setHttpStatus(span, res.statusCode);
-                        span.end();
-                      }
+                      setHttpStatus(span, res.statusCode);
+                      span.end();
                       vercelWaitUntil(flushSafelyWithTimeout());
-                      target.apply(thisArg, argArray);
+                      return target.apply(thisArg, argArray);
                     },
                   });
 
                   try {
-                    const handlerResult = await wrappingTarget.apply(thisArg, args);
-                    if (
-                      process.env.NODE_ENV === 'development' &&
-                      !process.env.SENTRY_IGNORE_API_RESOLUTION_ERROR &&
-                      !res.writableEnded
-                    ) {
-                      consoleSandbox(() => {
-                        // eslint-disable-next-line no-console
-                        console.warn(
-                          '[sentry] If Next.js logs a warning "API resolved without sending a response", it\'s a false positive, which may happen when you use `wrapApiHandlerWithSentry` manually to wrap your routes. To suppress this warning, set `SENTRY_IGNORE_API_RESOLUTION_ERROR` to 1 in your env. To suppress the nextjs warning, use the `externalResolver` API route option (see https://nextjs.org/docs/api-routes/api-middlewares#custom-config for details).',
-                        );
-                      });
-                    }
-
-                    return handlerResult;
+                    return await wrappingTarget.apply(thisArg, args);
                   } catch (e) {
                     // In case we have a primitive, wrap it in the equivalent wrapper class (string -> String, etc.) so that we can
                     // store a seen flag on it. (Because of the one-way-on-Vercel-one-way-off-of-Vercel approach we've been forced
@@ -124,16 +107,8 @@ export function wrapApiHandlerWithSentry(apiHandler: NextApiHandler, parameteriz
                       },
                     });
 
-                    // Because we're going to finish and send the transaction before passing the error onto nextjs, it won't yet
-                    // have had a chance to set the status to 500, so unless we do it ourselves now, we'll incorrectly report that
-                    // the transaction was error-free
-                    res.statusCode = 500;
-                    res.statusMessage = 'Internal Server Error';
-
-                    if (span.isRecording()) {
-                      setHttpStatus(span, res.statusCode);
-                      span.end();
-                    }
+                    setHttpStatus(span, 500);
+                    span.end();
 
                     vercelWaitUntil(flushSafelyWithTimeout());
 

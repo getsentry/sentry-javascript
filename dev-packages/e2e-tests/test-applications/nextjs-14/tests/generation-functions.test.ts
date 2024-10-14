@@ -17,7 +17,7 @@ test('Should emit a span for a generateMetadata() function invokation', async ({
   expect(transaction.spans).toContainEqual(
     expect.objectContaining({
       description: 'generateMetadata /generation-functions/page',
-      origin: 'manual',
+      origin: 'auto',
       parent_span_id: expect.any(String),
       span_id: expect.any(String),
       status: 'ok',
@@ -74,7 +74,7 @@ test('Should send a transaction event for a generateViewport() function invokati
   expect((await transactionPromise).spans).toContainEqual(
     expect.objectContaining({
       description: 'generateViewport /generation-functions/page',
-      origin: 'manual',
+      origin: 'auto',
       parent_span_id: expect.any(String),
       span_id: expect.any(String),
       status: 'ok',

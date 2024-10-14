@@ -10,6 +10,336 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+- **feat(core): Make stream instrumentation opt-in
+  ([#13951](https://github.com/getsentry/sentry-javascript/pull/13951))**
+
+This change adds a new option `trackFetchStreamPerformance` to the browser tracing integration. Only when set to `true`,
+Sentry will instrument streams via fetch.
+
+Work in this release was contributed by @ZakrepaShe and @zhiyan114. Thank you for your contributions!
+
+## 8.34.0
+
+### Important Changes
+
+- **ref(nextjs): Remove dead code ([#13828](https://github.com/getsentry/sentry-javascript/pull/13903))**
+
+Relevant for users of the `@sentry/nextjs` package: If you have previously configured a
+`SENTRY_IGNORE_API_RESOLUTION_ERROR` environment variable, it is now safe to unset it.
+
+### Other Changes
+
+- feat(cdn): Export `getReplay` in replay CDN bundles
+  ([#13881](https://github.com/getsentry/sentry-javascript/pull/13881))
+- feat(replay): Clear fallback buffer when switching buffers
+  ([#13914](https://github.com/getsentry/sentry-javascript/pull/13914))
+- feat(replay): Upgrade rrweb packages to 2.28.0 ([#13732](https://github.com/getsentry/sentry-javascript/pull/13732))
+- fix(docs): Correct supported browsers due to `globalThis`
+  ([#13788](https://github.com/getsentry/sentry-javascript/pull/13788))
+- fix(nextjs): Adjust path to `requestAsyncStorageShim.js` template file
+  ([#13928](https://github.com/getsentry/sentry-javascript/pull/13928))
+- fix(nextjs): Detect new locations for request async storage to support Next.js v15.0.0-canary.180 and higher
+  ([#13920](https://github.com/getsentry/sentry-javascript/pull/13920))
+- fix(nextjs): Drop `_not-found` spans for all HTTP methods
+  ([#13906](https://github.com/getsentry/sentry-javascript/pull/13906))
+- fix(nextjs): Fix resolution of request storage shim fallback
+  ([#13929](https://github.com/getsentry/sentry-javascript/pull/13929))
+- fix(node): Ensure graphql options are correct when preloading
+  ([#13769](https://github.com/getsentry/sentry-javascript/pull/13769))
+- fix(node): Local variables handle error ([#13827](https://github.com/getsentry/sentry-javascript/pull/13827))
+- fix(node): Remove `dataloader` instrumentation from default integrations
+  ([#13873](https://github.com/getsentry/sentry-javascript/pull/13873))
+- fix(nuxt): Create declaration files for Nuxt module
+  ([#13909](https://github.com/getsentry/sentry-javascript/pull/13909))
+- fix(replay): Ensure `replay_id` is removed from frozen DSC when stopped
+  ([#13893](https://github.com/getsentry/sentry-javascript/pull/13893))
+- fix(replay): Try/catch `sendBufferedReplayOrFlush` to prevent cycles
+  ([#13900](https://github.com/getsentry/sentry-javascript/pull/13900))
+- fix(sveltekit): Ensure trace meta tags are always injected
+  ([#13231](https://github.com/getsentry/sentry-javascript/pull/13231))
+- fix(sveltekit): Update `wrapServerRouteWithSentry` to respect ParamMatchers
+  ([#13390](https://github.com/getsentry/sentry-javascript/pull/13390))
+- fix(wasm): Integration wasm uncaught WebAssembly.Exception
+  ([#13787](https://github.com/getsentry/sentry-javascript/pull/13787)) (#13854)
+- ref(nextjs): Ignore sentry spans based on query param attribute
+  ([#13905](https://github.com/getsentry/sentry-javascript/pull/13905))
+- ref(utils): Move `vercelWaitUntil` to utils ([#13891](https://github.com/getsentry/sentry-javascript/pull/13891))
+
+Work in this release was contributed by @trzeciak, @gurpreetatwal, @ykzts and @lizhiyao. Thank you for your
+contributions!
+
+## 8.33.1
+
+- fix(core): Update trpc middleware types ([#13859](https://github.com/getsentry/sentry-javascript/pull/13859))
+- fix(fetch): Fix memory leak when handling endless streaming
+  ([#13809](https://github.com/getsentry/sentry-javascript/pull/13809))
+
+Work in this release was contributed by @soapproject. Thank you for your contribution!
+
+## 8.33.0
+
+### Important Changes
+
+- **feat(nextjs): Support new async APIs (`headers()`, `params`, `searchParams`)
+  ([#13828](https://github.com/getsentry/sentry-javascript/pull/13828))**
+
+Adds support for [new dynamic Next.js APIs](https://github.com/vercel/next.js/pull/68812).
+
+- **feat(node): Add `lru-memoizer` instrumentation
+  ([#13796](https://github.com/getsentry/sentry-javascript/pull/13796))**
+
+Adds integration for lru-memoizer using @opentelemetry/instrumentation-lru-memoizer.
+
+- **feat(nuxt): Add `unstable_sentryBundlerPluginOptions` to module options
+  ([#13811](https://github.com/getsentry/sentry-javascript/pull/13811))**
+
+Allows passing other options from the bundler plugins (vite and rollup) to Nuxt module options.
+
+### Other Changes
+
+- fix(browser): Ensure `wrap()` only returns functions
+  ([#13838](https://github.com/getsentry/sentry-javascript/pull/13838))
+- fix(core): Adapt trpc middleware input attachment
+  ([#13831](https://github.com/getsentry/sentry-javascript/pull/13831))
+- fix(core): Don't return trace data in `getTraceData` and `getTraceMetaTags` if SDK is disabled
+  ([#13760](https://github.com/getsentry/sentry-javascript/pull/13760))
+- fix(nuxt): Don't restrict source map assets upload
+  ([#13800](https://github.com/getsentry/sentry-javascript/pull/13800))
+- fix(nuxt): Use absolute path for client config ([#13798](https://github.com/getsentry/sentry-javascript/pull/13798))
+- fix(replay): Stop global event handling for paused replays
+  ([#13815](https://github.com/getsentry/sentry-javascript/pull/13815))
+- fix(sveltekit): add url param to source map upload options
+  ([#13812](https://github.com/getsentry/sentry-javascript/pull/13812))
+- fix(types): Add jsdocs to cron types ([#13776](https://github.com/getsentry/sentry-javascript/pull/13776))
+- fix(nextjs): Loosen @sentry/nextjs webpack peer dependency
+  ([#13826](https://github.com/getsentry/sentry-javascript/pull/13826))
+
+Work in this release was contributed by @joshuajaco. Thank you for your contribution!
+
+## 8.32.0
+
+### Important Changes
+
+- **ref(browser): Move navigation span descriptions into op
+  ([#13527](https://github.com/getsentry/sentry-javascript/pull/13527))**
+
+Moves the description of navigation related browser spans into the op, e.g. browser - cache -> browser.cache and sets
+the description to the performanceEntry objects' names (in this context it is the URL of the page).
+
+- **feat(node): Add amqplibIntegration ([#13714](https://github.com/getsentry/sentry-javascript/pull/13714))**
+
+- **feat(nestjs): Add `SentryGlobalGenericFilter` and allow specifying application ref in global filter
+  ([#13673](https://github.com/getsentry/sentry-javascript/pull/13673))**
+
+Adds a `SentryGlobalGenericFilter` that filters both graphql and http exceptions depending on the context.
+
+- **feat: Set log level for Fetch/XHR breadcrumbs based on status code
+  ([#13711](https://github.com/getsentry/sentry-javascript/pull/13711))**
+
+Sets log levels in breadcrumbs for 5xx to error and 4xx to warning.
+
+### Other Changes
+
+- chore(nextjs): Bump rollup to 3.29.5 ([#13761](https://github.com/getsentry/sentry-javascript/pull/13761))
+- fix(core): Remove `sampled` flag from dynamic sampling context in Tracing without Performance mode
+  ([#13753](https://github.com/getsentry/sentry-javascript/pull/13753))
+- fix(node): Ensure node-fetch does not emit spans without tracing
+  ([#13765](https://github.com/getsentry/sentry-javascript/pull/13765))
+- fix(nuxt): Use Nuxt error hooks instead of errorHandler to prevent 500
+  ([#13748](https://github.com/getsentry/sentry-javascript/pull/13748))
+- fix(test): Unflake LCP test ([#13741](https://github.com/getsentry/sentry-javascript/pull/13741))
+
+Work in this release was contributed by @Zen-cronic and @Sjoertjuh. Thank you for your contributions!
+
+## 8.31.0
+
+### Important Changes
+
+- **feat(node): Add `dataloader` integration (#13664)**
+
+This release adds a new integration for the [`dataloader` package](https://www.npmjs.com/package/dataloader). The Node
+SDK (and all SDKs that depend on it) will now automatically instrument `dataloader` instances. You can also add it
+manually:
+
+```js
+Sentry.init({
+  integrations: [Sentry.dataloaderIntegration()],
+});
+```
+
+### Other Changes
+
+- feat(browser): Add navigation `activationStart` timestamp to pageload span (#13658)
+- feat(gatsby): Add optional `deleteSourcemapsAfterUpload` (#13610)
+- feat(nextjs): Give app router prefetch requests a `http.server.prefetch` op (#13600)
+- feat(nextjs): Improve Next.js serverside span data quality (#13652)
+- feat(node): Add `disableInstrumentationWarnings` option (#13693)
+- feat(nuxt): Adding `experimental_basicServerTracing` option to Nuxt module (#13643)
+- feat(nuxt): Improve logs about adding Node option 'import' (#13726)
+- feat(replay): Add `onError` callback + other small improvements to debugging (#13721)
+- feat(replay): Add experimental option to allow for a checkout every 6 minutes (#13069)
+- feat(wasm): Unconditionally parse instruction addresses (#13655)
+- fix: Ensure all logs are wrapped with `consoleSandbox` (#13690)
+- fix(browser): Try multiple options for `lazyLoadIntegration` script parent element lookup (#13717)
+- fix(feedback): Actor color applies to feedback icon (#13702)
+- fix(feedback): Fix form width on mobile devices (#13068)
+- fix(nestjs): Preserve original function name on `SentryTraced` functions (#13684)
+- fix(node): Don't overwrite local variables for re-thrown errors (#13644)
+- fix(normalize): Treat Infinity as NaN both are non-serializable numbers (#13406)
+- fix(nuxt): Use correct server output file path (#13725)
+- fix(opentelemetry): Always use active span in `Propagator.inject` (#13381)
+- fix(replay): Fixes potential out-of-order segments (#13609)
+
+Work in this release was contributed by @KyGuy2002, @artzhookov, and @julianCast. Thank you for your contributions!
+
+## 8.30.0
+
+### Important Changes
+
+- **feat(node): Add `kafkajs` integration (#13528)**
+
+This release adds a new integration that instruments `kafkajs` library with spans and traces. This integration is
+automatically enabled by default, but can be included with the `Sentry.kafkaIntegration()` import.
+
+```js
+Sentry.init({
+  integrations: [Sentry.kafkaIntegration()],
+});
+```
+
+### Other Changes
+
+- feat(core): Allow adding measurements without global client (#13612)
+- feat(deps): Bump @opentelemetry/instrumentation-undici from 0.5.0 to 0.6.0 (#13622)
+- feat(deps): Bump @sentry/cli from 2.33.0 to 2.35.0 (#13624)
+- feat(node): Use `@opentelemetry/instrumentation-undici` for fetch tracing (#13485)
+- feat(nuxt): Add server config to root folder (#13583)
+- feat(otel): Upgrade @opentelemetry/semantic-conventions to 1.26.0 (#13631)
+- fix(browser): check supportedEntryTypes before caling the function (#13541)
+- fix(browser): Ensure Standalone CLS span timestamps are correct (#13649)
+- fix(nextjs): Widen removal of 404 transactions (#13628)
+- fix(node): Remove ambiguity and race conditions when matching local variables to exceptions (#13501)
+- fix(node): Update OpenTelemetry instrumentation package for solidstart and opentelemetry (#13640)
+- fix(node): Update OpenTelemetry instrumentation package for solidstart and opentelemetry (#13642)
+- fix(vue): Ensure Vue `trackComponents` list matches components with or without `<>` (#13543)
+- ref(profiling): Conditionally shim cjs globals (#13267)
+
+Work in this release was contributed by @Zen-cronic and @odanado. Thank you for your contributions!
+
+## 8.29.0
+
+### Important Changes
+
+- **Beta releases of official Solid and SolidStart Sentry SDKs**
+
+This release marks the beta releases of the `@sentry/solid` and `@sentry/solidstart` Sentry SDKs. For details on how to
+use them, check out the
+[Sentry Solid SDK README](https://github.com/getsentry/sentry-javascript/tree/develop/packages/solid) and the
+[Sentry SolidStart SDK README](https://github.com/getsentry/sentry-javascript/tree/develop/packages/solidstart)
+respectively. Please reach out on [GitHub](https://github.com/getsentry/sentry-javascript/issues/new/choose) if you have
+any feedback or concerns.
+
+- **feat(node): Option to only wrap instrumented modules (#13139)**
+
+Adds the SDK option to only wrap ES modules with `import-in-the-middle` that specifically need to be instrumented.
+
+```javascript
+import * as Sentry from '@sentry/node';
+
+Sentry.init({
+  dsn: '__PUBLIC_DSN__',
+  registerEsmLoaderHooks: { onlyIncludeInstrumentedModules: true },
+});
+```
+
+- **feat(node): Update OpenTelemetry packages to instrumentation v0.53.0 (#13587)**
+
+All internal OpenTelemetry instrumentation was updated to their latest version. This adds support for Mongoose v7 and v8
+and fixes various bugs related to ESM mode.
+
+### Other Changes
+
+- feat(nextjs): Emit warning when using turbopack (#13566)
+- feat(nextjs): Future-proof Next.js config options overriding (#13586)
+- feat(node): Add `generic-pool` integration (#13465)
+- feat(nuxt): Upload sourcemaps generated by Nitro (#13382)
+- feat(solidstart): Add `browserTracingIntegration` by default (#13561)
+- feat(solidstart): Add `sentrySolidStartVite` plugin to simplify source maps upload (#13493)
+- feat(vue): Only start UI spans if parent is available (#13568)
+- fix(cloudflare): Guard `context.waitUntil` call in request handler (#13549)
+- fix(gatsby): Fix assets path for sourcemaps upload (#13592)
+- fix(nextjs): Use posix paths for sourcemap uploads (#13603)
+- fix(node-fetch): Use stringified origin url (#13581)
+- fix(node): Replace dashes in `generic-pool` span origins with underscores (#13579)
+- fix(replay): Fix types in WebVitalData (#13573)
+- fix(replay): Improve replay web vital types (#13602)
+- fix(utils): Keep logger on carrier (#13570)
+
+Work in this release was contributed by @Zen-cronic. Thank you for your contribution!
+
+## 8.28.0
+
+### Important Changes
+
+- **Beta release of official NestJS SDK**
+
+This release contains the beta version of `@sentry/nestjs`! For details on how to use it, check out the
+[README](https://github.com/getsentry/sentry-javascript/blob/master/packages/nestjs/README.md). Any feedback/bug reports
+are greatly appreciated, please reach out on GitHub.
+
+- **fix(browser): Remove faulty LCP, FCP and FP normalization logic (#13502)**
+
+This release fixes a bug in the `@sentry/browser` package and all SDKs depending on this package (e.g. `@sentry/react`
+or `@sentry/nextjs`) that caused the SDK to send incorrect web vital values for the LCP, FCP and FP vitals. The SDK
+previously incorrectly processed the original values as they were reported from the browser. When updating your SDK to
+this version, you might experience an increase in LCP, FCP and FP values, which potentially leads to a decrease in your
+performance score in the Web Vitals Insights module in Sentry. This is because the previously reported values were
+smaller than the actually measured values. We apologize for the inconvenience!
+
+### Other Changes
+
+- feat(nestjs): Add `SentryGlobalGraphQLFilter` (#13545)
+- feat(nestjs): Automatic instrumentation of nestjs interceptors after route execution (#13264)
+- feat(nextjs): Add `bundleSizeOptimizations` to build options (#13323)
+- feat(nextjs): Stabilize `captureRequestError` (#13550)
+- feat(nuxt): Wrap config in nuxt context (#13457)
+- feat(profiling): Expose profiler as top level primitive (#13512)
+- feat(replay): Add layout shift to CLS replay data (#13386)
+- feat(replay): Upgrade rrweb packages to 2.26.0 (#13483)
+- fix(cdn): Do not mangle \_metadata (#13426)
+- fix(cdn): Fix SDK source for CDN bundles (#13475)
+- fix(nestjs): Check arguments before instrumenting with `@Injectable` (#13544)
+- fix(nestjs): Ensure exception and host are correctly passed on when using @WithSentry (#13564)
+- fix(node): Suppress tracing for transport request execution rather than transport creation (#13491)
+- fix(replay): Consider more things as DOM mutations for dead clicks (#13518)
+- fix(vue): Correctly obtain component name (#13484)
+
+Work in this release was contributed by @leopoldkristjansson, @mhuggins and @filips123. Thank you for your
+contributions!
+
+## 8.27.0
+
+### Important Changes
+
+- **fix(nestjs): Exception filters in main app module are not being executed (#13278)**
+
+  With this release nestjs error monitoring is no longer automatically set up after adding the `SentryModule` to your
+  application, which led to issues in certain scenarios. You will now have to either add the `SentryGlobalFilter` to
+  your main module providers or decorate the `catch()` method in your existing global exception filters with the newly
+  released `@WithSentry()` decorator. See the [docs](https://docs.sentry.io/platforms/javascript/guides/nestjs/) for
+  more details.
+
+### Other Changes
+
+- feat: Add options for passing nonces to feedback integration (#13347)
+- feat: Add support for SENTRY_SPOTLIGHT env var in Node (#13325)
+- feat(deps): bump @prisma/instrumentation from 5.17.0 to 5.18.0 (#13327)
+- feat(feedback): Improve error message for 403 errors (#13441)
+- fix(deno): Don't rely on `Deno.permissions.querySync` (#13378)
+- fix(replay): Ensure we publish replay CDN bundles (#13437)
+
+Work in this release was contributed by @charpeni. Thank you for your contribution!
+
 ## 8.26.0
 
 ### Important Changes
@@ -886,12 +1216,12 @@ with full support for ESM-based node apps using **Node.js 18.19.0 or higher**.
 [**ES2018+**](https://caniuse.com/?feats=mdn-javascript_builtins_regexp_dotall,js-regexp-lookbehind,mdn-javascript_builtins_regexp_named_capture_groups,mdn-javascript_builtins_regexp_property_escapes,mdn-javascript_builtins_symbol_asynciterator,mdn-javascript_functions_method_definitions_async_generator_methods,mdn-javascript_grammar_template_literals_template_literal_revision,mdn-javascript_operators_destructuring_rest_in_objects,mdn-javascript_operators_destructuring_rest_in_arrays,promise-finally)
 compatible browsers. New minimum browser versions:
 
-- Chrome 63
+- Chrome 71
 - Edge 79
-- Safari/iOS Safari 12
-- Firefox 58
-- Opera 50
-- Samsung Internet 8.2
+- Safari 12.1, iOS Safari 12.2
+- Firefox 65
+- Opera 58
+- Samsung Internet 10
 
 For more details, please see the
 [version support section in our migration guide](./MIGRATION.md#1-version-support-changes).

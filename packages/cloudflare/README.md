@@ -15,9 +15,6 @@
 - [Official SDK Docs](https://docs.sentry.io/quickstart/)
 - [TypeDoc](http://getsentry.github.io/sentry-javascript/)
 
-**Note: This SDK is in an alpha state. Please follow the
-[tracking GH issue](https://github.com/getsentry/sentry-javascript/issues/12620) for updates.**
-
 ## Install
 
 To get started, first install the `@sentry/cloudflare` package:
@@ -114,16 +111,16 @@ Currently only ESM handlers are supported.
 import * as Sentry from '@sentry/cloudflare';
 
 export default withSentry(
-	(env) => ({
-		dsn: env.SENTRY_DSN,
+  env => ({
+    dsn: env.SENTRY_DSN,
     // Set tracesSampleRate to 1.0 to capture 100% of spans for tracing.
-		tracesSampleRate: 1.0,
-	}),
-	{
-		async fetch(request, env, ctx) {
-			return new Response('Hello World!');
-		},
-	} satisfies ExportedHandler<Env>
+    tracesSampleRate: 1.0,
+  }),
+  {
+    async fetch(request, env, ctx) {
+      return new Response('Hello World!');
+    },
+  } satisfies ExportedHandler<Env>,
 );
 ```
 

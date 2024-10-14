@@ -43,7 +43,13 @@ export interface Metric {
    * The array may also be empty if the metric value was not based on any
    * entries (e.g. a CLS value of 0 given no layout shifts).
    */
-  entries: PerformanceEntry[] | PerformanceEventTiming[];
+  entries: PerformanceEntry[] | LayoutShift[];
+}
+
+interface LayoutShift extends PerformanceEntry {
+  value: number;
+  sources: LayoutShiftAttribution[];
+  hadRecentInput: boolean;
 }
 
 interface LayoutShiftAttribution {
@@ -187,22 +193,33 @@ export function getLargestContentfulPaint(metric: Metric): ReplayPerformanceEntr
   return getWebVital(metric, 'largest-contentful-paint', node);
 }
 
+function isLayoutShift(entry: PerformanceEntry): entry is LayoutShift {
+  return (entry as LayoutShift).sources !== undefined;
+}
+
 /**
  * Add a CLS event to the replay based on a CLS metric.
  */
 export function getCumulativeLayoutShift(metric: Metric): ReplayPerformanceEntry<WebVitalData> {
-  const lastEntry = metric.entries[metric.entries.length - 1] as
-    | (PerformanceEntry & { sources?: LayoutShiftAttribution[] })
-    | undefined;
+  const layoutShifts: WebVitalData['attributions'] = [];
   const nodes: Node[] = [];
-  if (lastEntry && lastEntry.sources) {
-    for (const source of lastEntry.sources) {
-      if (source.node) {
-        nodes.push(source.node);
+  for (const entry of metric.entries) {
+    if (isLayoutShift(entry)) {
+      const nodeIds = [];
+      for (const source of entry.sources) {
+        if (source.node) {
+          nodes.push(source.node);
+          const nodeId = record.mirror.getId(source.node);
+          if (nodeId) {
+            nodeIds.push(nodeId);
+          }
+        }
       }
+      layoutShifts.push({ value: entry.value, nodeIds: nodeIds.length ? nodeIds : undefined });
     }
   }
-  return getWebVital(metric, 'cumulative-layout-shift', nodes);
+
+  return getWebVital(metric, 'cumulative-layout-shift', nodes, layoutShifts);
 }
 
 /**
@@ -226,13 +243,18 @@ export function getInteractionToNextPaint(metric: Metric): ReplayPerformanceEntr
 /**
  * Add an web vital event to the replay based on the web vital metric.
  */
-function getWebVital(metric: Metric, name: string, nodes: Node[] | undefined): ReplayPerformanceEntry<WebVitalData> {
+function getWebVital(
+  metric: Metric,
+  name: string,
+  nodes: Node[] | undefined,
+  attributions?: WebVitalData['attributions'],
+): ReplayPerformanceEntry<WebVitalData> {
   const value = metric.value;
   const rating = metric.rating;
 
   const end = getAbsoluteTime(value);
 
-  const data: ReplayPerformanceEntry<WebVitalData> = {
+  return {
     type: 'web-vital',
     name,
     start: end,
@@ -242,8 +264,7 @@ function getWebVital(metric: Metric, name: string, nodes: Node[] | undefined): R
       size: value,
       rating,
       nodeIds: nodes ? nodes.map(node => record.mirror.getId(node)) : undefined,
+      attributions,
     },
   };
-
-  return data;
 }

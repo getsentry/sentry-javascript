@@ -5,11 +5,11 @@ import {
   InstrumentationNodeModuleDefinition,
   InstrumentationNodeModuleFile,
 } from '@opentelemetry/instrumentation';
-import { getActiveSpan, startSpan, startSpanManual, withActiveSpan } from '@sentry/core';
+import { getActiveSpan, startInactiveSpan, startSpan, startSpanManual, withActiveSpan } from '@sentry/core';
 import type { Span } from '@sentry/types';
-import { SDK_VERSION } from '@sentry/utils';
-import { getMiddlewareSpanOptions, isPatched } from './helpers';
-import type { CatchTarget, InjectableTarget } from './types';
+import { SDK_VERSION, addNonEnumerableProperty, isThenable } from '@sentry/utils';
+import { getMiddlewareSpanOptions, getNextProxy, instrumentObservable, isPatched } from './helpers';
+import type { CallHandler, CatchTarget, InjectableTarget, MinimalNestJsExecutionContext, Observable } from './types';
 
 const supportedVersions = ['>=8.0.0 <11'];
 
@@ -101,23 +101,19 @@ export class SentryNestInstrumentation extends InstrumentationBase {
             target.prototype.use = new Proxy(target.prototype.use, {
               apply: (originalUse, thisArgUse, argsUse) => {
                 const [req, res, next, ...args] = argsUse;
+
+                // Check that we can reasonably assume that the target is a middleware.
+                // Without these guards, instrumentation will fail if a function named 'use' on a service, which is
+                // decorated with @Injectable, is called.
+                if (!req || !res || !next || typeof next !== 'function') {
+                  return originalUse.apply(thisArgUse, argsUse);
+                }
+
                 const prevSpan = getActiveSpan();
 
                 return startSpanManual(getMiddlewareSpanOptions(target), (span: Span) => {
-                  const nextProxy = new Proxy(next, {
-                    apply: (originalNext, thisArgNext, argsNext) => {
-                      span.end();
-
-                      if (prevSpan) {
-                        return withActiveSpan(prevSpan, () => {
-                          return Reflect.apply(originalNext, thisArgNext, argsNext);
-                        });
-                      } else {
-                        return Reflect.apply(originalNext, thisArgNext, argsNext);
-                      }
-                    },
-                  });
-
+                  // proxy next to end span on call
+                  const nextProxy = getNextProxy(next, span, prevSpan);
                   return originalUse.apply(thisArgUse, [req, res, nextProxy, args]);
                 });
               },
@@ -133,6 +129,12 @@ export class SentryNestInstrumentation extends InstrumentationBase {
 
             target.prototype.canActivate = new Proxy(target.prototype.canActivate, {
               apply: (originalCanActivate, thisArgCanActivate, argsCanActivate) => {
+                const context: MinimalNestJsExecutionContext = argsCanActivate[0];
+
+                if (!context) {
+                  return originalCanActivate.apply(thisArgCanActivate, argsCanActivate);
+                }
+
                 return startSpan(getMiddlewareSpanOptions(target), () => {
                   return originalCanActivate.apply(thisArgCanActivate, argsCanActivate);
                 });
@@ -148,6 +150,13 @@ export class SentryNestInstrumentation extends InstrumentationBase {
 
             target.prototype.transform = new Proxy(target.prototype.transform, {
               apply: (originalTransform, thisArgTransform, argsTransform) => {
+                const value = argsTransform[0];
+                const metadata = argsTransform[1];
+
+                if (!value || !metadata) {
+                  return originalTransform.apply(thisArgTransform, argsTransform);
+                }
+
                 return startSpan(getMiddlewareSpanOptions(target), () => {
                   return originalTransform.apply(thisArgTransform, argsTransform);
                 });
@@ -163,33 +172,84 @@ export class SentryNestInstrumentation extends InstrumentationBase {
 
             target.prototype.intercept = new Proxy(target.prototype.intercept, {
               apply: (originalIntercept, thisArgIntercept, argsIntercept) => {
-                const [executionContext, next, args] = argsIntercept;
-                const prevSpan = getActiveSpan();
+                const context: MinimalNestJsExecutionContext = argsIntercept[0];
+                const next: CallHandler = argsIntercept[1];
 
-                return startSpanManual(getMiddlewareSpanOptions(target), (span: Span) => {
-                  const nextProxy = new Proxy(next, {
-                    get: (thisArgNext, property, receiver) => {
-                      if (property === 'handle') {
-                        const originalHandle = Reflect.get(thisArgNext, property, receiver);
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                        return (...args: any[]) => {
-                          span.end();
+                const parentSpan = getActiveSpan();
+                let afterSpan: Span;
 
-                          if (prevSpan) {
-                            return withActiveSpan(prevSpan, () => {
-                              return Reflect.apply(originalHandle, thisArgNext, args);
-                            });
-                          } else {
-                            return Reflect.apply(originalHandle, thisArgNext, args);
+                // Check that we can reasonably assume that the target is an interceptor.
+                if (!context || !next || typeof next.handle !== 'function') {
+                  return originalIntercept.apply(thisArgIntercept, argsIntercept);
+                }
+
+                return startSpanManual(getMiddlewareSpanOptions(target), (beforeSpan: Span) => {
+                  // eslint-disable-next-line @typescript-eslint/unbound-method
+                  next.handle = new Proxy(next.handle, {
+                    apply: (originalHandle, thisArgHandle, argsHandle) => {
+                      beforeSpan.end();
+
+                      if (parentSpan) {
+                        return withActiveSpan(parentSpan, () => {
+                          const handleReturnObservable = Reflect.apply(originalHandle, thisArgHandle, argsHandle);
+
+                          if (!context._sentryInterceptorInstrumented) {
+                            addNonEnumerableProperty(context, '_sentryInterceptorInstrumented', true);
+                            afterSpan = startInactiveSpan(
+                              getMiddlewareSpanOptions(target, 'Interceptors - After Route'),
+                            );
                           }
-                        };
-                      }
 
-                      return Reflect.get(target, property, receiver);
+                          return handleReturnObservable;
+                        });
+                      } else {
+                        const handleReturnObservable = Reflect.apply(originalHandle, thisArgHandle, argsHandle);
+
+                        if (!context._sentryInterceptorInstrumented) {
+                          addNonEnumerableProperty(context, '_sentryInterceptorInstrumented', true);
+                          afterSpan = startInactiveSpan(getMiddlewareSpanOptions(target, 'Interceptors - After Route'));
+                        }
+
+                        return handleReturnObservable;
+                      }
                     },
                   });
 
-                  return originalIntercept.apply(thisArgIntercept, [executionContext, nextProxy, args]);
+                  let returnedObservableInterceptMaybePromise: Observable<unknown> | Promise<Observable<unknown>>;
+
+                  try {
+                    returnedObservableInterceptMaybePromise = originalIntercept.apply(thisArgIntercept, argsIntercept);
+                  } catch (e) {
+                    beforeSpan?.end();
+                    afterSpan?.end();
+                    throw e;
+                  }
+
+                  if (!afterSpan) {
+                    return returnedObservableInterceptMaybePromise;
+                  }
+
+                  // handle async interceptor
+                  if (isThenable(returnedObservableInterceptMaybePromise)) {
+                    return returnedObservableInterceptMaybePromise.then(
+                      observable => {
+                        instrumentObservable(observable, afterSpan ?? parentSpan);
+                        return observable;
+                      },
+                      e => {
+                        beforeSpan?.end();
+                        afterSpan?.end();
+                        throw e;
+                      },
+                    );
+                  }
+
+                  // handle sync interceptor
+                  if (typeof returnedObservableInterceptMaybePromise.subscribe === 'function') {
+                    instrumentObservable(returnedObservableInterceptMaybePromise, afterSpan ?? parentSpan);
+                  }
+
+                  return returnedObservableInterceptMaybePromise;
                 });
               },
             });
@@ -217,6 +277,13 @@ export class SentryNestInstrumentation extends InstrumentationBase {
 
             target.prototype.catch = new Proxy(target.prototype.catch, {
               apply: (originalCatch, thisArgCatch, argsCatch) => {
+                const exception = argsCatch[0];
+                const host = argsCatch[1];
+
+                if (!exception || !host) {
+                  return originalCatch.apply(thisArgCatch, argsCatch);
+                }
+
                 return startSpan(getMiddlewareSpanOptions(target), () => {
                   return originalCatch.apply(thisArgCatch, argsCatch);
                 });

@@ -1,3 +1,8 @@
+import { sentrySolidStartVite } from '@sentry/solidstart';
 import { defineConfig } from '@solidjs/start/config';
 
-export default defineConfig({});
+export default defineConfig({
+  vite: {
+    plugins: [sentrySolidStartVite()],
+  },
+});

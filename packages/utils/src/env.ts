@@ -30,6 +30,6 @@ export function isBrowserBundle(): boolean {
  * Get source of SDK.
  */
 export function getSDKSource(): SdkSource {
-  // @ts-expect-error __SENTRY_SDK_SOURCE__ is injected by rollup during build process
-  return __SENTRY_SDK_SOURCE__;
+  // This comment is used to identify this line in the CDN bundle build step and replace this with "return 'cdn';"
+  /* __SENTRY_SDK_SOURCE__ */ return 'npm';
 }

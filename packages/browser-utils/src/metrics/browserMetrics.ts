@@ -17,6 +17,7 @@ import {
   addTtfbInstrumentationHandler,
 } from './instrument';
 import { getBrowserPerformanceAPI, isMeasurementValue, msToSec, startAndEndSpan } from './utils';
+import { getActivationStart } from './web-vitals/lib/getActivationStart';
 import { getNavigationEntry } from './web-vitals/lib/getNavigationEntry';
 import { getVisibilityWatcher } from './web-vitals/lib/getVisibilityWatcher';
 
@@ -354,25 +355,6 @@ export function addPerformanceEntries(span: Span, options: AddPerformanceEntries
   if (op === 'pageload') {
     _addTtfbRequestTimeToMeasurements(_measurements);
 
-    ['fcp', 'fp', 'lcp'].forEach(name => {
-      const measurement = _measurements[name];
-      if (!measurement || !transactionStartTime || timeOrigin >= transactionStartTime) {
-        return;
-      }
-      // The web vitals, fcp, fp, lcp, and ttfb, all measure relative to timeOrigin.
-      // Unfortunately, timeOrigin is not captured within the span span data, so these web vitals will need
-      // to be adjusted to be relative to span.startTimestamp.
-      const oldValue = measurement.value;
-      const measurementTimestamp = timeOrigin + msToSec(oldValue);
-
-      // normalizedValue should be in milliseconds
-      const normalizedValue = Math.abs((measurementTimestamp - transactionStartTime) * 1000);
-      const delta = normalizedValue - oldValue;
-
-      DEBUG_BUILD && logger.log(`[Measurements] Normalized ${name} from ${oldValue} to ${normalizedValue} (${delta})`);
-      measurement.value = normalizedValue;
-    });
-
     const fidMark = _measurements['mark.fid'];
     if (fidMark && _measurements['fid']) {
       // create span for FID
@@ -399,7 +381,18 @@ export function addPerformanceEntries(span: Span, options: AddPerformanceEntries
       setMeasurement(measurementName, measurement.value, measurement.unit);
     });
 
-    _tagMetricInfo(span);
+    // Set timeOrigin which denotes the timestamp which to base the LCP/FCP/FP/TTFB measurements on
+    span.setAttribute('performance.timeOrigin', timeOrigin);
+
+    // In prerendering scenarios, where a page might be prefetched and pre-rendered before the user clicks the link,
+    // the navigation starts earlier than when the user clicks it. Web Vitals should always be based on the
+    // user-perceived time, so they are not reported from the actual start of the navigation, but rather from the
+    // time where the user actively started the navigation, for example by clicking a link.
+    // This is user action is called "activation" and the time between navigation and activation is stored in
+    // the `activationStart` attribute of the "navigation" PerformanceEntry.
+    span.setAttribute('performance.activationStart', getActivationStart());
+
+    _setWebVitalAttributes(span);
   }
 
   _lcpEntry = undefined;
@@ -477,8 +470,8 @@ function _addPerformanceNavigationTiming(
     return;
   }
   startAndEndSpan(span, timeOrigin + msToSec(start), timeOrigin + msToSec(end), {
-    op: 'browser',
-    name: name || event,
+    op: `browser.${name || event}`,
+    name: entry.name,
     attributes: {
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.browser.metrics',
     },
@@ -497,16 +490,16 @@ function _addRequest(span: Span, entry: Record<string, any>, timeOrigin: number)
     // In order not to produce faulty spans, where the end timestamp is before the start timestamp, we will only collect
     // these spans when the responseEnd value is available. The backend (Relay) would drop the entire span if it contained faulty spans.
     startAndEndSpan(span, requestStartTimestamp, responseEndTimestamp, {
-      op: 'browser',
-      name: 'request',
+      op: 'browser.request',
+      name: entry.name,
       attributes: {
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.browser.metrics',
       },
     });
 
     startAndEndSpan(span, responseStartTimestamp, responseEndTimestamp, {
-      op: 'browser',
-      name: 'response',
+      op: 'browser.response',
+      name: entry.name,
       attributes: {
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.browser.metrics',
       },
@@ -604,7 +597,7 @@ function _trackNavigator(span: Span): void {
 }
 
 /** Add LCP / CLS data to span to allow debugging */
-function _tagMetricInfo(span: Span): void {
+function _setWebVitalAttributes(span: Span): void {
   if (_lcpEntry) {
     DEBUG_BUILD && logger.log('[Measurements] Adding LCP Data');
 

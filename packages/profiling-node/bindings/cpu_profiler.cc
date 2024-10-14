@@ -73,7 +73,7 @@ enum class ProfileStatus {
 
 class MeasurementsTicker {
 private:
-  uv_timer_t timer;
+  uv_timer_t *timer;
   uint64_t period_ms;
   std::unordered_map<std::string,
                      const std::function<bool(uint64_t, v8::HeapStatistics &)>>
@@ -87,9 +87,10 @@ private:
 public:
   MeasurementsTicker(uv_loop_t *loop)
       : period_ms(100), isolate(v8::Isolate::GetCurrent()) {
-    uv_timer_init(loop, &timer);
-    uv_handle_set_data(reinterpret_cast<uv_handle_t *>(&timer), this);
-    uv_unref(reinterpret_cast<uv_handle_t *>(&timer));
+    timer = new uv_timer_t;
+    uv_timer_init(loop, timer);
+    uv_handle_set_data((uv_handle_t *)timer, this);
+    uv_ref((uv_handle_t *)timer);
   }
 
   static void ticker(uv_timer_t *);
@@ -112,13 +113,13 @@ public:
   size_t listener_count();
 
   ~MeasurementsTicker() {
-    uv_timer_stop(&timer);
+    uv_handle_t *handle = (uv_handle_t *)timer;
 
-    auto handle = reinterpret_cast<uv_handle_t *>(&timer);
+    uv_timer_stop(timer);
+    uv_unref(handle);
 
-    // Calling uv_close on an inactive handle will cause a segfault.
-    if (uv_is_active(handle)) {
-      uv_close(handle, nullptr);
+    if (!uv_is_closing(handle)) {
+      uv_close(handle, [](uv_handle_t *handle) { delete handle; });
     }
   }
 };
@@ -143,8 +144,8 @@ void MeasurementsTicker::add_heap_listener(
   heap_listeners.emplace(profile_id, cb);
 
   if (listener_count() == 1) {
-    uv_timer_set_repeat(&timer, period_ms);
-    uv_timer_start(&timer, ticker, 0, period_ms);
+    uv_timer_set_repeat(timer, period_ms);
+    uv_timer_start(timer, ticker, 0, period_ms);
   }
 }
 
@@ -154,7 +155,7 @@ void MeasurementsTicker::remove_heap_listener(
   heap_listeners.erase(profile_id);
 
   if (listener_count() == 0) {
-    uv_timer_stop(&timer);
+    uv_timer_stop(timer);
   }
 };
 
@@ -223,8 +224,8 @@ void MeasurementsTicker::add_cpu_listener(
   cpu_listeners.emplace(profile_id, cb);
 
   if (listener_count() == 1) {
-    uv_timer_set_repeat(&timer, period_ms);
-    uv_timer_start(&timer, ticker, 0, period_ms);
+    uv_timer_set_repeat(timer, period_ms);
+    uv_timer_start(timer, ticker, 0, period_ms);
   }
 }
 
@@ -233,7 +234,7 @@ void MeasurementsTicker::remove_cpu_listener(
   cpu_listeners.erase(profile_id);
 
   if (listener_count() == 0) {
-    uv_timer_stop(&timer);
+    uv_timer_stop(timer);
   }
 };
 
