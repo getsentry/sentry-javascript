@@ -303,10 +303,19 @@ export function init(options: NodeOptions): NodeClient | undefined {
 
           // eslint-disable-next-line deprecation/deprecation
           const method = event.contexts.trace.data[SEMATTRS_HTTP_METHOD];
+          // eslint-disable-next-line deprecation/deprecation
+          const target = event.contexts?.trace?.data?.[SEMATTRS_HTTP_TARGET];
           const route = event.contexts.trace.data[ATTR_HTTP_ROUTE];
+
           if (typeof method === 'string' && typeof route === 'string') {
             event.transaction = `${method} ${route.replace(/\/route$/, '')}`;
             event.contexts.trace.data[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] = 'route';
+          }
+
+          // Next.js overrides transaction names for page loads that throw an error
+          // but we want to keep the original target name
+          if (event.transaction === 'GET /_error' && target) {
+            event.transaction = `${method ? `${method} ` : ''}${target}`;
           }
         }
 
