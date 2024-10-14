@@ -234,7 +234,7 @@ function _dropUndefinedKeys<T>(inputValue: T, memoizationMap: Map<unknown, unkno
     // Store the mapping of this value in case we visit it again, in case of circular data
     memoizationMap.set(inputValue, returnValue);
 
-    for (const key of Object.keys(inputValue)) {
+    for (const key of Object.getOwnPropertyNames(inputValue)) {
       if (typeof inputValue[key] !== 'undefined') {
         returnValue[key] = _dropUndefinedKeys(inputValue[key], memoizationMap);
       }

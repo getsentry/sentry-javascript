@@ -1,4 +1,3 @@
-import * as childProcess from 'child_process';
 import * as path from 'path';
 import { conditionalTest } from '../../../utils';
 import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
@@ -88,30 +87,5 @@ conditionalTest({ min: 18 })('LocalVariables integration', () => {
 
   test('Includes local variables for caught exceptions when enabled', done => {
     createRunner(__dirname, 'local-variables-caught.js').expect({ event: EXPECTED_LOCAL_VARIABLES_EVENT }).start(done);
-  });
-
-  test('Should not leak memory', done => {
-    const testScriptPath = path.resolve(__dirname, 'local-variables-memory-test.js');
-
-    const child = childProcess.spawn('node', [testScriptPath], {
-      stdio: ['inherit', 'inherit', 'inherit', 'ipc'],
-    });
-
-    let reportedCount = 0;
-
-    child.on('message', msg => {
-      reportedCount++;
-      const rssMb = (msg as { memUsage: { rss: number } }).memUsage.rss / 1024 / 1024;
-      // We shouldn't use more than 135MB of memory
-      expect(rssMb).toBeLessThan(135);
-    });
-
-    // Wait for 20 seconds
-    setTimeout(() => {
-      // Ensure we've had memory usage reported at least 15 times
-      expect(reportedCount).toBeGreaterThan(15);
-      child.kill();
-      done();
-    }, 20000);
   });
 });

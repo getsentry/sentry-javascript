@@ -40,12 +40,7 @@ const INTEGRATION_NAME = 'Graphql';
 export const instrumentGraphql = generateInstrumentOnce<GraphqlOptions>(
   INTEGRATION_NAME,
   (_options: GraphqlOptions = {}) => {
-    const options = {
-      ignoreResolveSpans: true,
-      ignoreTrivialResolveSpans: true,
-      useOperationNameForRootSpan: true,
-      ..._options,
-    };
+    const options = getOptionsWithDefaults(_options);
 
     return new GraphQLInstrumentation({
       ...options,
@@ -89,7 +84,10 @@ const _graphqlIntegration = ((options: GraphqlOptions = {}) => {
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
-      instrumentGraphql(options);
+      // We set defaults here, too, because otherwise we'd update the instrumentation config
+      // to the config without defaults, as `generateInstrumentOnce` automatically calls `setConfig(options)`
+      // when being called the second time
+      instrumentGraphql(getOptionsWithDefaults(options));
     },
   };
 }) satisfies IntegrationFn;
@@ -100,3 +98,12 @@ const _graphqlIntegration = ((options: GraphqlOptions = {}) => {
  * Capture tracing data for GraphQL.
  */
 export const graphqlIntegration = defineIntegration(_graphqlIntegration);
+
+function getOptionsWithDefaults(options?: GraphqlOptions): GraphqlOptions {
+  return {
+    ignoreResolveSpans: true,
+    ignoreTrivialResolveSpans: true,
+    useOperationNameForRootSpan: true,
+    ...options,
+  };
+}

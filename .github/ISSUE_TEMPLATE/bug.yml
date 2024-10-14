@@ -78,7 +78,7 @@ body:
       label: Link to Sentry event
       description:
         If applicable, please provide a link to the affected event from your Sentry account. The event will only be
-        viewable by Sentry staff.
+        viewable by Sentry staff; however, the event URL will still appear on your public GitHub issue.
       placeholder: https://sentry.io/organizations/<org-slug>/issues/<issue-id>/events/<event-id>/?project=<project-id>
   - type: textarea
     id: sdk-setup

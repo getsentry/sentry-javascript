@@ -10,26 +10,26 @@ describe('findDefaultSdkInitFile', () => {
   });
 
   it.each(['ts', 'js', 'mjs', 'cjs', 'mts', 'cts'])(
-    'should return the server file with .%s extension if it exists',
+    'should return the server file path with .%s extension if it exists',
     ext => {
       vi.spyOn(fs, 'existsSync').mockImplementation(filePath => {
         return !(filePath instanceof URL) && filePath.includes(`sentry.server.config.${ext}`);
       });
 
       const result = findDefaultSdkInitFile('server');
-      expect(result).toBe(`sentry.server.config.${ext}`);
+      expect(result).toMatch(`packages/nuxt/sentry.server.config.${ext}`);
     },
   );
 
   it.each(['ts', 'js', 'mjs', 'cjs', 'mts', 'cts'])(
-    'should return the client file with .%s extension if it exists',
+    'should return the client file path with .%s extension if it exists',
     ext => {
       vi.spyOn(fs, 'existsSync').mockImplementation(filePath => {
         return !(filePath instanceof URL) && filePath.includes(`sentry.client.config.${ext}`);
       });
 
       const result = findDefaultSdkInitFile('client');
-      expect(result).toBe(`sentry.client.config.${ext}`);
+      expect(result).toMatch(`packages/nuxt/sentry.client.config.${ext}`);
     },
   );
 
@@ -47,7 +47,7 @@ describe('findDefaultSdkInitFile', () => {
     expect(result).toBeUndefined();
   });
 
-  it('should return the server config file if server.config and instrument exist', () => {
+  it('should return the server config file path if server.config and instrument exist', () => {
     vi.spyOn(fs, 'existsSync').mockImplementation(filePath => {
       return (
         !(filePath instanceof URL) &&
@@ -56,6 +56,6 @@ describe('findDefaultSdkInitFile', () => {
     });
 
     const result = findDefaultSdkInitFile('server');
-    expect(result).toBe('sentry.server.config.js');
+    expect(result).toMatch('packages/nuxt/sentry.server.config.js');
   });
 });

@@ -11,6 +11,7 @@ test('captures an exception', async ({ page }) => {
   });
 
   await page.goto('/error-boundary');
+  await page.goto('/error-boundary');
   await page.locator('#caughtErrorBtn').click();
   const errorEvent = await errorEventPromise;
 
@@ -40,6 +41,7 @@ test('captures a second exception after resetting the boundary', async ({ page }
     );
   });
 
+  await page.goto('/error-boundary');
   await page.goto('/error-boundary');
   await page.locator('#caughtErrorBtn').click();
   const firstErrorEvent = await firstErrorEventPromise;

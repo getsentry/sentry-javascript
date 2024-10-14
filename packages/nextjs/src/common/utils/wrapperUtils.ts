@@ -14,11 +14,10 @@ import {
   withIsolationScope,
 } from '@sentry/core';
 import type { Span } from '@sentry/types';
-import { isString } from '@sentry/utils';
+import { isString, vercelWaitUntil } from '@sentry/utils';
 
 import { autoEndSpanOnResponseEnd, flushSafelyWithTimeout } from './responseEnd';
 import { commonObjectToIsolationScope, escapeNextjsTracing } from './tracingUtils';
-import { vercelWaitUntil } from './vercelWaitUntil';
 
 declare module 'http' {
   interface IncomingMessage {

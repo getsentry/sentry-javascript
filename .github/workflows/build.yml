@@ -152,7 +152,7 @@ jobs:
         id: install_dependencies
 
       - name: Check for Affected Nx Projects
-        uses: dkhunt27/action-nx-affected-list@v5.3
+        uses: dkhunt27/action-nx-affected-list@v6.1
         id: checkForAffected
         if: github.event_name == 'pull_request'
         with:
@@ -437,7 +437,7 @@ jobs:
         with:
           node-version-file: 'package.json'
       - name: Set up Deno
-        uses: denoland/setup-deno@v1.4.1
+        uses: denoland/setup-deno@v1.5.1
         with:
           deno-version: v1.38.5
       - name: Restore caches
@@ -611,6 +611,7 @@ jobs:
 
       - name: Upload test results to Codecov
         if: cancelled() == false
+        continue-on-error: true
         uses: codecov/test-results-action@v1
         with:
           directory: dev-packages/browser-integration-tests
@@ -671,6 +672,7 @@ jobs:
 
       - name: Upload test results to Codecov
         if: cancelled() == false
+        continue-on-error: true
         uses: codecov/test-results-action@v1
         with:
           directory: dev-packages/browser-integration-tests
@@ -902,6 +904,7 @@ jobs:
             'nextjs-13',
             'nextjs-14',
             'nextjs-15',
+            'nextjs-t3',
             'react-17',
             'react-19',
             'react-create-hash-router',
@@ -914,6 +917,7 @@ jobs:
             'sveltekit',
             'sveltekit-2',
             'sveltekit-2-svelte-5',
+            'sveltekit-2-twp',
             'tanstack-router',
             'generic-ts3.8',
             'node-fastify',
@@ -930,6 +934,7 @@ jobs:
             'node-koa',
             'node-connect',
             'nuxt-3',
+            'nuxt-4',
             'vue-3',
             'webpack-4',
             'webpack-5'
@@ -1031,6 +1036,7 @@ jobs:
 
       - name: Upload test results to Codecov
         if: cancelled() == false
+        continue-on-error: true
         uses: codecov/test-results-action@v1
         with:
           directory: dev-packages/e2e-tests
@@ -1067,6 +1073,10 @@ jobs:
             'react-send-to-sentry',
             'node-express-send-to-sentry',
             'debug-id-sourcemaps',
+            'nextjs-app-dir',
+            'nextjs-13',
+            'nextjs-14',
+            'nextjs-15',
           ]
         build-command:
           - false
@@ -1081,6 +1091,30 @@ jobs:
           - test-application: 'create-remix-app-legacy'
             assert-command: 'test:assert-sourcemaps'
             label: 'create-remix-app-legacy (sourcemaps)'
+          - test-application: 'nextjs-app-dir'
+            build-command: 'test:build-canary'
+            label: 'nextjs-app-dir (canary)'
+          - test-application: 'nextjs-app-dir'
+            build-command: 'test:build-latest'
+            label: 'nextjs-app-dir (latest)'
+          - test-application: 'nextjs-13'
+            build-command: 'test:build-canary'
+            label: 'nextjs-13 (canary)'
+          - test-application: 'nextjs-13'
+            build-command: 'test:build-latest'
+            label: 'nextjs-13 (latest)'
+          - test-application: 'nextjs-14'
+            build-command: 'test:build-canary'
+            label: 'nextjs-14 (canary)'
+          - test-application: 'nextjs-14'
+            build-command: 'test:build-latest'
+            label: 'nextjs-14 (latest)'
+          - test-application: 'nextjs-15'
+            build-command: 'test:build-canary'
+            label: 'nextjs-15 (canary)'
+          - test-application: 'nextjs-15'
+            build-command: 'test:build-latest'
+            label: 'nextjs-15 (latest)'
 
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
