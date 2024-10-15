@@ -111,16 +111,34 @@ describe('constructFunctionReExport', () => {
     const result2 = constructFunctionReExport(query2, entryId);
 
     const expected = `
-export async function foo(...args) {
+async function reExport(...args) {
   const res = await import("./module");
   return res.foo.call(this, ...args);
 }
-export async function bar(...args) {
+export { reExport as foo };
+async function reExport(...args) {
   const res = await import("./module");
   return res.bar.call(this, ...args);
-}`;
+}
+export { reExport as bar };
+`;
     expect(result.trim()).toBe(expected.trim());
     expect(result2.trim()).toBe(expected.trim());
+  });
+
+  it('constructs re-export code for a "default" query parameters and entry ID', () => {
+    const query = `${SENTRY_FUNCTIONS_REEXPORT}default${QUERY_END_INDICATOR}}`;
+    const entryId = './index';
+    const result = constructFunctionReExport(query, entryId);
+
+    const expected = `
+async function reExport(...args) {
+  const res = await import("./index");
+  return res.default.call(this, ...args);
+}
+export { reExport as default };
+`;
+    expect(result.trim()).toBe(expected.trim());
   });
 
   it('returns an empty string if the query string is empty', () => {
