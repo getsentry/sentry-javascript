@@ -3,7 +3,10 @@ import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
 
 test('Should create a transaction for edge routes', async ({ request }) => {
   const edgerouteTransactionPromise = waitForTransaction('nextjs-app-dir', async transactionEvent => {
-    return transactionEvent?.transaction === 'GET /api/edge-endpoint';
+    return (
+      transactionEvent?.transaction === 'GET /api/edge-endpoint' &&
+      transactionEvent.contexts?.runtime?.name === 'vercel-edge'
+    );
   });
 
   const response = await request.get('/api/edge-endpoint', {
@@ -17,7 +20,6 @@ test('Should create a transaction for edge routes', async ({ request }) => {
 
   expect(edgerouteTransaction.contexts?.trace?.status).toBe('ok');
   expect(edgerouteTransaction.contexts?.trace?.op).toBe('http.server');
-  expect(edgerouteTransaction.contexts?.runtime?.name).toBe('vercel-edge');
   expect(edgerouteTransaction.request?.headers?.['x-yeet']).toBe('test-value');
 });
 
