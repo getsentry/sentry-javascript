@@ -46,7 +46,7 @@ test('Faulty middlewares', async ({ request }) => {
     // Assert that isolation scope works properly
     expect(errorEvent.tags?.['my-isolated-tag']).toBe(true);
     expect(errorEvent.tags?.['my-global-scope-isolated-tag']).not.toBeDefined();
-    expect(errorEvent.transaction).toBe('middleware');
+    expect(errorEvent.transaction).toBe('middleware GET /api/endpoint-behind-faulty-middleware');
   });
 });
 

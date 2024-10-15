@@ -23,7 +23,7 @@ export function wrapApiHandlerWithSentry<H extends EdgeRouteHandler>(
 ): (...params: Parameters<H>) => Promise<ReturnType<H>> {
   return new Proxy(handler, {
     apply: async (wrappingTarget, thisArg, args: Parameters<H>) => {
-      withIsolationScope(isolationScope => {
+      return withIsolationScope(isolationScope => {
         const req: unknown = args[0];
 
         if (req instanceof Request) {

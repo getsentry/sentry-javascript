@@ -24,7 +24,7 @@ export function wrapMiddlewareWithSentry<H extends EdgeRouteHandler>(
 ): (...params: Parameters<H>) => Promise<ReturnType<H>> {
   return new Proxy(middleware, {
     apply: async (wrappingTarget, thisArg, args: Parameters<H>) => {
-      withIsolationScope(isolationScope => {
+      return withIsolationScope(isolationScope => {
         const req: unknown = args[0];
 
         let spanName: string;
