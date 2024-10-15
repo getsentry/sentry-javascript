@@ -10,6 +10,10 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 8.35.0-beta.0
+
+### Important Changes
+
 - **feat(core): Make stream instrumentation opt-in
   ([#13951](https://github.com/getsentry/sentry-javascript/pull/13951))**
 
@@ -17,6 +21,25 @@ This change adds a new option `trackFetchStreamPerformance` to the browser traci
 Sentry will instrument streams via fetch.
 
 Work in this release was contributed by @ZakrepaShe and @zhiyan114. Thank you for your contributions!
+
+### Other Changes
+
+- chore(node): Bump `@opentelemetry/instrumentation-express` to `0.43.0` ([#13948](https://github.com/getsentry/sentry-javascript/pull/13948))
+- ci: Ensure we check correctly for bot users ([#13955](https://github.com/getsentry/sentry-javascript/pull/13955))
+- dev(e2e): Fix nestjs version constraint ([#13964](https://github.com/getsentry/sentry-javascript/pull/13964))
+- feat(node): Expose `suppressTracing` API ([#13875](https://github.com/getsentry/sentry-javascript/pull/13875))
+- feat(node): Implement Sentry-specific http instrumentation ([#13763](https://github.com/getsentry/sentry-javascript/pull/13763))
+- feat(nuxt): Add Rollup plugin to wrap server entry with `import()` ([#13945](https://github.com/getsentry/sentry-javascript/pull/13945))
+- feat(replay): Do not log "timeout while trying to read resp body" as exception ([#13965](https://github.com/getsentry/sentry-javascript/pull/13965))
+- feat(vue): Add Pinia plugin ([#13841](https://github.com/getsentry/sentry-javascript/pull/13841))
+- fix: Ensure type for `init` is correct in meta frameworks ([#13938](https://github.com/getsentry/sentry-javascript/pull/13938))
+- fix(module): keep version for node ESM package ([#13922](https://github.com/getsentry/sentry-javascript/pull/13922))
+- fix(replay): Fix onError sampling when loading an expired buffered session ([#13962](https://github.com/getsentry/sentry-javascript/pull/13962))
+- ref: Add external contributor to CHANGELOG.md ([#13956](https://github.com/getsentry/sentry-javascript/pull/13956))
+- ref: Add external contributor to CHANGELOG.md ([#13959](https://github.com/getsentry/sentry-javascript/pull/13959))
+- test(browser): Add test for current DSC transaction name updating behavior ([#13953](https://github.com/getsentry/sentry-javascript/pull/13953))
+- test(loader): Update Loader Script & test error in `sentryOnLoad` ([#13952](https://github.com/getsentry/sentry-javascript/pull/13952))
+- test(node): Add tests for current DSC transaction name updating behavior ([#13961](https://github.com/getsentry/sentry-javascript/pull/13961))
 
 ## 8.34.0
 
