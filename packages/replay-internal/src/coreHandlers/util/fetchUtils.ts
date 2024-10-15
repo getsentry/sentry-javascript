@@ -288,23 +288,40 @@ function _tryCloneResponse(response: Response): Response | void {
  * Fetch can return a streaming body, that may not resolve (or not for a long time).
  * If that happens, we rather abort after a short time than keep waiting for this.
  */
-function _tryGetResponseText(response: Response): Promise<string | undefined> {
-  return new Promise((resolve, reject) => {
-    const timeout = setTimeout(() => reject(new Error('Timeout while trying to read response body')), 500);
+async function _tryGetResponseText(response: Response): Promise<string | undefined> {
+  if (!response.body) {
+    throw new Error('Response has no body');
+  }
 
-    _getResponseText(response)
-      .then(
-        txt => resolve(txt),
-        reason => reject(reason),
-      )
-      .finally(() => clearTimeout(timeout));
-  });
+  const reader = response.body.getReader();
 
-  return _getResponseText(response);
-}
+  const decoder = new TextDecoder();
+  let result = '';
+  let running = true;
 
-async function _getResponseText(response: Response): Promise<string> {
-  // Force this to be a promise, just to be safe
-  // eslint-disable-next-line no-return-await
-  return await response.text();
+  const timeout = setTimeout(() => {
+    if (running) {
+      reader.cancel('Timeout while trying to read response body').catch(_ => {
+        // This block is only triggered when stream has already been released,
+        // so it's safe to ignore.
+      });
+    }
+  }, 500);
+
+  try {
+    while (running) {
+      const { value, done } = await reader.read();
+
+      running = !done;
+
+      if (value) {
+        result += decoder.decode(value, { stream: !done });
+      }
+    }
+  } finally {
+    clearTimeout(timeout);
+    reader.releaseLock();
+  }
+
+  return result;
 }
