@@ -88,7 +88,7 @@ describe('removeSentryQueryFromPath', () => {
 describe('extractFunctionReexportQueryParameters', () => {
   it.each([
     [`${SENTRY_FUNCTIONS_REEXPORT}foo,bar,${QUERY_END_INDICATOR}`, ['foo', 'bar']],
-    [`${SENTRY_FUNCTIONS_REEXPORT}foo,bar,default${QUERY_END_INDICATOR}`, ['foo', 'bar']],
+    [`${SENTRY_FUNCTIONS_REEXPORT}foo,bar,default${QUERY_END_INDICATOR}`, ['foo', 'bar', 'default']],
     [
       `${SENTRY_FUNCTIONS_REEXPORT}foo,a.b*c?d[e]f(g)h|i\\\\j(){hello},${QUERY_END_INDICATOR}`,
       ['foo', 'a\\.b\\*c\\?d\\[e\\]f\\(g\\)h\\|i\\\\\\\\j\\(\\)\\{hello\\}'],
