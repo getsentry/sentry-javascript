@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <script>
+      window.sentryOnLoad = function () {
+        Sentry.init({
+          tracesSampleRate: 0.123,
+        });
+
+        throw new Error('sentryOnLoad error');
+      };
+    </script>
+  </head>
+  <body></body>
+</html>
