@@ -38,7 +38,7 @@ export default defineNitroPlugin(nitroApp => {
     addSentryTracingMetaTags(html.head);
   });
 
-  nitroApp.hooks.hook('request', () => {
+  nitroApp.hooks.hook('afterResponse', () => {
     vercelWaitUntilAndFlush();
   });
 });
