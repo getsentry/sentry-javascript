@@ -175,25 +175,24 @@ export function addTracingHeadersToFetchRequest(
 
     return newHeaders as PolymorphicRequestHeaders;
   } else if (Array.isArray(headers)) {
-    const newHeaders = headers
-      .filter(header => {
+    const newHeaders = [
+      ...headers
         // Remove any existing sentry-trace headers
-        return !(Array.isArray(header) && header[0] === 'sentry-trace');
-      })
-      .map(header => {
-        if (Array.isArray(header) && header[0] === BAGGAGE_HEADER_NAME) {
-          return [
-            BAGGAGE_HEADER_NAME,
-            ...header.map(headerValue =>
-              typeof headerValue === 'string' ? stripBaggageHeaderOfSentryBaggageValues(headerValue) : headerValue,
-            ),
-          ];
-        } else {
-          return header;
-        }
-      })
+        .filter(header => {
+          return !(Array.isArray(header) && header[0] === 'sentry-trace');
+        })
+        // Get rid of previous sentry baggage values in baggage header
+        .map(header => {
+          if (Array.isArray(header) && header[0] === BAGGAGE_HEADER_NAME && typeof header[1] === 'string') {
+            const [headerName, headerValue, ...rest] = header;
+            return [headerName, stripBaggageHeaderOfSentryBaggageValues(headerValue), ...rest];
+          } else {
+            return header;
+          }
+        }),
       // Attach the new sentry-trace header
-      .concat(['sentry-trace', sentryTraceHeader]);
+      ['sentry-trace', sentryTraceHeader],
+    ];
 
     if (sentryBaggageHeader) {
       // If there are multiple entries with the same key, the browser will merge the values into a single request header.
