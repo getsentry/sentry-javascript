@@ -294,6 +294,149 @@ sentryTest(
   },
 );
 
+// sentryTest(
+//   'outgoing fetch request after pageload has pageload traceId in headers',
+//   async ({ getLocalTestUrl, page }) => {
+//     if (shouldSkipTracingTest()) {
+//       sentryTest.skip();
+//     }
+
+//     const url = await getLocalTestUrl({ testDir: __dirname });
+
+//     await page.route('http://example.com/**', route => {
+//       return route.fulfill({
+//         status: 200,
+//         contentType: 'application/json',
+//         body: JSON.stringify({}),
+//       });
+//     });
+
+//     const pageloadEventPromise = getFirstSentryEnvelopeRequest<EventAndTraceHeader>(
+//       page,
+//       undefined,
+//       eventAndTraceHeaderRequestParser,
+//     );
+//     await page.goto(url);
+//     const [pageloadEvent, pageloadTraceHeader] = await pageloadEventPromise;
+
+//     const pageloadTraceContext = pageloadEvent.contexts?.trace;
+//     const pageloadTraceId = pageloadTraceContext?.trace_id;
+
+//     expect(pageloadEvent.type).toEqual('transaction');
+//     expect(pageloadTraceContext).toMatchObject({
+//       op: 'pageload',
+//       trace_id: expect.stringMatching(/^[0-9a-f]{32}$/),
+//       span_id: expect.stringMatching(/^[0-9a-f]{16}$/),
+//     });
+//     expect(pageloadTraceContext).not.toHaveProperty('parent_span_id');
+
+//     expect(pageloadTraceHeader).toEqual({
+//       environment: 'production',
+//       public_key: 'public',
+//       sample_rate: '1',
+//       sampled: 'true',
+//       trace_id: pageloadTraceId,
+//     });
+
+//     const requestPromise = page.waitForRequest('http://example.com/*');
+//     await page.locator('#xhrBtn').click();
+//     const request = await requestPromise;
+
+//     const headers = request.headers();
+
+//     // sampling decision is propagated from active span sampling decision
+//     expect(headers['sentry-trace']).toMatch(new RegExp(`^${pageloadTraceId}-[0-9a-f]{16}-1$`));
+//     expect(headers['baggage']).toEqual(
+//       `sentry-environment=production,sentry-public_key=public,sentry-trace_id=${pageloadTraceId},sentry-sample_rate=1,sentry-sampled=true`,
+//     );
+//   },
+// )
+
+// sentryTest(
+//   'custom span and request headers after pageload have pageload traceId ',
+//   async ({ getLocalTestUrl, page }) => {
+//     if (shouldSkipTracingTest()) {
+//       sentryTest.skip();
+//     }
+
+//     const url = await getLocalTestUrl({ testDir: __dirname });
+
+//     await page.route('http://example.com/**', route => {
+//       return route.fulfill({
+//         status: 200,
+//         contentType: 'application/json',
+//         body: JSON.stringify({}),
+//       });
+//     });
+
+//     const pageloadEventPromise = getFirstSentryEnvelopeRequest<EventAndTraceHeader>(
+//       page,
+//       undefined,
+//       eventAndTraceHeaderRequestParser,
+//     );
+
+//     await page.goto(url);
+
+//     const [pageloadEvent, pageloadTraceHeader] = await pageloadEventPromise;
+
+//     const pageloadTraceContext = pageloadEvent.contexts?.trace;
+//     const pageloadTraceId = pageloadTraceContext?.trace_id;
+
+//     expect(pageloadEvent.type).toEqual('transaction');
+//     expect(pageloadTraceContext).toMatchObject({
+//       op: 'pageload',
+//       trace_id: expect.stringMatching(/^[0-9a-f]{32}$/),
+//       span_id: expect.stringMatching(/^[0-9a-f]{16}$/),
+//     });
+//     expect(pageloadTraceContext).not.toHaveProperty('parent_span_id');
+
+//     expect(pageloadTraceHeader).toEqual({
+//       environment: 'production',
+//       public_key: 'public',
+//       sample_rate: '1',
+//       sampled: 'true',
+//       trace_id: pageloadTraceId,
+//     });
+
+//     const requestPromise = page.waitForRequest('http://example.com/**');
+//     const customTransactionEventPromise = getFirstSentryEnvelopeRequest<EventAndTraceHeader>(
+//       page,
+//       undefined,
+//       eventAndTraceHeaderRequestParser,
+//     );
+
+//     await page.locator('#spanAndFetchBtn').click();
+
+//     const [[customTransactionEvent, customTransactionTraceHeader], request] = await Promise.all([
+//       customTransactionEventPromise,
+//       requestPromise,
+//     ]);
+
+//     const customTransactionTraceContext = customTransactionEvent.contexts?.trace;
+
+//     expect(customTransactionEvent.type).toEqual('transaction');
+//     expect(customTransactionTraceContext).toMatchObject({
+//       trace_id: pageloadTraceId,
+//     });
+
+//     expect(customTransactionTraceHeader).toEqual({
+//       environment: 'production',
+//       public_key: 'public',
+//       sample_rate: '1',
+//       sampled: 'true',
+//       trace_id: pageloadTraceId,
+//     });
+
+//     const headers = request.headers();
+
+//     // sampling decision is propagated from active span sampling decision
+//     expect(headers['sentry-trace']).toMatch(new RegExp(`^${pageloadTraceId}-[0-9a-f]{16}-1$`));
+//     expect(headers['baggage']).toEqual(
+//       `sentry-environment=production,sentry-public_key=public,sentry-trace_id=${pageloadTraceId},sentry-sample_rate=1,sentry-sampled=true`,
+//     );
+//   },
+// );
+
 sentryTest('user feedback event after pageload has pageload traceId in headers', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipTracingTest() || shouldSkipFeedbackTest()) {
     sentryTest.skip();
