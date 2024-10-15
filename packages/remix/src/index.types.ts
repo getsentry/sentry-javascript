@@ -3,14 +3,14 @@
 export * from './index.client';
 export * from './index.server';
 
-import type { Integration, Options, StackParser } from '@sentry/types';
+import type { Client, Integration, Options, StackParser } from '@sentry/types';
 
 import * as clientSdk from './index.client';
 import * as serverSdk from './index.server';
 import type { RemixOptions } from './utils/remixOptions';
 
 /** Initializes Sentry Remix SDK */
-export declare function init(options: RemixOptions): void;
+export declare function init(options: RemixOptions): Client | undefined;
 
 export declare const linkedErrorsIntegration: typeof clientSdk.linkedErrorsIntegration;
 export declare const contextLinesIntegration: typeof clientSdk.contextLinesIntegration;

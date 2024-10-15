@@ -1,6 +1,6 @@
 {
   "private": true,
-  "version": "8.33.1",
+  "version": "8.34.0",
   "name": "@sentry-internal/test-utils",
   "author": "Sentry",
   "license": "MIT",
@@ -45,8 +45,8 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.44.1",
-    "@sentry/types": "8.33.1",
-    "@sentry/utils": "8.33.1"
+    "@sentry/types": "8.34.0",
+    "@sentry/utils": "8.34.0"
   },
   "volta": {
     "extends": "../../package.json"

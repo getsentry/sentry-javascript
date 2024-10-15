@@ -7,3 +7,6 @@ export interface RequestAsyncStorage {
       }
     | undefined;
 }
+
+export const requestAsyncStorage = undefined;
+export const workUnitAsyncStorage = undefined;
