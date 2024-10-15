@@ -18,7 +18,7 @@ jobs:
       && github.event.pull_request.author_association != 'COLLABORATOR'
       && github.event.pull_request.author_association != 'MEMBER'
       && github.event.pull_request.author_association != 'OWNER'
-      && endsWith(github.actor, '[bot]') == false
+      && endsWith(github.event.pull_request.user.login, '[bot]') == false
     steps:
       - uses: actions/checkout@v4
       - name: Set up Node
@@ -36,7 +36,7 @@ jobs:
           author_association: ${{ github.event.pull_request.author_association }}
 
       - name: Create PR with changes
-        uses: peter-evans/create-pull-request@c5a7806660adbe173f04e3e038b0ccdcd758773c
+        uses: peter-evans/create-pull-request@5e914681df9dc83aa4e4905692ca88beb2f9e91f
         with:
           # This token is scoped to Daniel Griesser
           # If we used the default GITHUB_TOKEN, the resulting PR would not trigger CI :(

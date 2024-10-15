@@ -1,6 +1,14 @@
 import * as fs from 'fs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { findDefaultSdkInitFile } from '../../src/vite/utils';
+import {
+  QUERY_END_INDICATOR,
+  SENTRY_FUNCTIONS_REEXPORT,
+  SENTRY_WRAPPED_ENTRY,
+  constructFunctionReExport,
+  extractFunctionReexportQueryParameters,
+  findDefaultSdkInitFile,
+  removeSentryQueryFromPath,
+} from '../../src/vite/utils';
 
 vi.mock('fs');
 
@@ -57,5 +65,65 @@ describe('findDefaultSdkInitFile', () => {
 
     const result = findDefaultSdkInitFile('server');
     expect(result).toMatch('packages/nuxt/sentry.server.config.js');
+  });
+});
+
+describe('removeSentryQueryFromPath', () => {
+  it('strips the Sentry query part from the path', () => {
+    const url = `/example/path${SENTRY_WRAPPED_ENTRY}${SENTRY_FUNCTIONS_REEXPORT}foo,${QUERY_END_INDICATOR}`;
+    const result = removeSentryQueryFromPath(url);
+    expect(result).toBe('/example/path');
+  });
+
+  it('returns the same path if the specific query part is not present', () => {
+    const url = '/example/path?other-query=param';
+    const result = removeSentryQueryFromPath(url);
+    expect(result).toBe(url);
+  });
+});
+
+describe('extractFunctionReexportQueryParameters', () => {
+  it.each([
+    [`${SENTRY_FUNCTIONS_REEXPORT}foo,bar,${QUERY_END_INDICATOR}`, ['foo', 'bar']],
+    [`${SENTRY_FUNCTIONS_REEXPORT}foo,bar,default${QUERY_END_INDICATOR}`, ['foo', 'bar']],
+    [
+      `${SENTRY_FUNCTIONS_REEXPORT}foo,a.b*c?d[e]f(g)h|i\\\\j(){hello},${QUERY_END_INDICATOR}`,
+      ['foo', 'a\\.b\\*c\\?d\\[e\\]f\\(g\\)h\\|i\\\\\\\\j\\(\\)\\{hello\\}'],
+    ],
+    [`/example/path/${SENTRY_FUNCTIONS_REEXPORT}foo,bar${QUERY_END_INDICATOR}`, ['foo', 'bar']],
+    [`${SENTRY_FUNCTIONS_REEXPORT}${QUERY_END_INDICATOR}`, []],
+    ['?other-query=param', []],
+  ])('extracts parameters from the query string: %s', (query, expected) => {
+    const result = extractFunctionReexportQueryParameters(query);
+    expect(result).toEqual(expected);
+  });
+});
+
+describe('constructFunctionReExport', () => {
+  it('constructs re-export code for given query parameters and entry ID', () => {
+    const query = `${SENTRY_FUNCTIONS_REEXPORT}foo,bar,${QUERY_END_INDICATOR}}`;
+    const query2 = `${SENTRY_FUNCTIONS_REEXPORT}foo,bar${QUERY_END_INDICATOR}}`;
+    const entryId = './module';
+    const result = constructFunctionReExport(query, entryId);
+    const result2 = constructFunctionReExport(query2, entryId);
+
+    const expected = `
+export async function foo(...args) {
+  const res = await import("./module");
+  return res.foo.call(this, ...args);
+}
+export async function bar(...args) {
+  const res = await import("./module");
+  return res.bar.call(this, ...args);
+}`;
+    expect(result.trim()).toBe(expected.trim());
+    expect(result2.trim()).toBe(expected.trim());
+  });
+
+  it('returns an empty string if the query string is empty', () => {
+    const query = '';
+    const entryId = './module';
+    const result = constructFunctionReExport(query, entryId);
+    expect(result).toBe('');
   });
 });
