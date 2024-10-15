@@ -24,6 +24,7 @@ export function wrapMiddlewareWithSentry<H extends EdgeRouteHandler>(
 ): (...params: Parameters<H>) => Promise<ReturnType<H>> {
   return new Proxy(middleware, {
     apply: async (wrappingTarget, thisArg, args: Parameters<H>) => {
+      // TODO: We still should add central isolation scope creation for when our build-time instrumentation does not work anymore with turbopack.
       return withIsolationScope(isolationScope => {
         const req: unknown = args[0];
 
