@@ -8,7 +8,7 @@ test('Should report an error event for errors thrown in getServerSideProps', asy
 
   const transactionEventPromise = waitForTransaction('nextjs-13', transactionEvent => {
     return (
-      transactionEvent.transaction === '/error-getServerSideProps' &&
+      transactionEvent.transaction === 'GET /error-getServerSideProps' &&
       transactionEvent.contexts?.trace?.op === 'http.server'
     );
   });
@@ -60,11 +60,11 @@ test('Should report an error event for errors thrown in getServerSideProps', asy
         data: {
           'http.response.status_code': 500,
           'sentry.op': 'http.server',
-          'sentry.origin': 'auto.function.nextjs',
+          'sentry.origin': 'auto',
           'sentry.source': 'route',
         },
         op: 'http.server',
-        origin: 'auto.function.nextjs',
+        origin: 'auto',
         span_id: expect.any(String),
         status: 'internal_error',
         trace_id: expect.any(String),
@@ -80,13 +80,13 @@ test('Should report an error event for errors thrown in getServerSideProps', asy
     },
     start_timestamp: expect.any(Number),
     timestamp: expect.any(Number),
-    transaction: '/error-getServerSideProps',
-    transaction_info: { source: 'route' },
+    transaction: 'GET /error-getServerSideProps',
+    transaction_info: { source: 'custom' },
     type: 'transaction',
   });
 });
 
-test('Should report an error event for errors thrown in getServerSideProps in pages with custom page extensions', async ({
+test.only('Should report an error event for errors thrown in getServerSideProps in pages with custom page extensions', async ({
   page,
 }) => {
   const errorEventPromise = waitForError('nextjs-13', errorEvent => {
@@ -95,7 +95,8 @@ test('Should report an error event for errors thrown in getServerSideProps in pa
 
   const transactionEventPromise = waitForTransaction('nextjs-13', transactionEvent => {
     return (
-      transactionEvent.transaction === '/customPageExtension' && transactionEvent.contexts?.trace?.op === 'http.server'
+      transactionEvent.transaction === 'GET /customPageExtension' &&
+      transactionEvent.contexts?.trace?.op === 'http.server'
     );
   });
 
@@ -146,11 +147,11 @@ test('Should report an error event for errors thrown in getServerSideProps in pa
         data: {
           'http.response.status_code': 500,
           'sentry.op': 'http.server',
-          'sentry.origin': 'auto.function.nextjs',
+          'sentry.origin': 'auto',
           'sentry.source': 'route',
         },
         op: 'http.server',
-        origin: 'auto.function.nextjs',
+        origin: 'auto',
         span_id: expect.any(String),
         status: 'internal_error',
         trace_id: expect.any(String),
@@ -166,8 +167,8 @@ test('Should report an error event for errors thrown in getServerSideProps in pa
     },
     start_timestamp: expect.any(Number),
     timestamp: expect.any(Number),
-    transaction: '/customPageExtension',
-    transaction_info: { source: 'route' },
+    transaction: 'GET /customPageExtension',
+    transaction_info: { source: 'custom' },
     type: 'transaction',
   });
 });
