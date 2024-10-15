@@ -238,7 +238,6 @@ export function init(options: NodeOptions): NodeClient | undefined {
 
           // Filter transactions that we explicitly want to drop.
           if (event.contexts?.trace?.data?.[TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION]) {
-            console.log('Dropping transaction:', event.transaction, event.contexts.trace);
             return null;
           }
 
