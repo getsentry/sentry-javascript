@@ -611,6 +611,7 @@ jobs:
 
       - name: Upload test results to Codecov
         if: cancelled() == false
+        continue-on-error: true
         uses: codecov/test-results-action@v1
         with:
           directory: dev-packages/browser-integration-tests
@@ -671,6 +672,7 @@ jobs:
 
       - name: Upload test results to Codecov
         if: cancelled() == false
+        continue-on-error: true
         uses: codecov/test-results-action@v1
         with:
           directory: dev-packages/browser-integration-tests
@@ -915,6 +917,7 @@ jobs:
             'sveltekit',
             'sveltekit-2',
             'sveltekit-2-svelte-5',
+            'sveltekit-2-twp',
             'tanstack-router',
             'generic-ts3.8',
             'node-fastify',
@@ -1033,6 +1036,7 @@ jobs:
 
       - name: Upload test results to Codecov
         if: cancelled() == false
+        continue-on-error: true
         uses: codecov/test-results-action@v1
         with:
           directory: dev-packages/e2e-tests

@@ -27,9 +27,9 @@ type PatchedServerRouteEvent = RequestEvent & { __sentry_wrapped__?: boolean };
  *
  * @returns a wrapped version of your server route handler
  */
-export function wrapServerRouteWithSentry(
-  originalRouteHandler: (request: RequestEvent) => Promise<Response>,
-): (requestEvent: RequestEvent) => Promise<Response> {
+export function wrapServerRouteWithSentry<T extends RequestEvent>(
+  originalRouteHandler: (request: T) => Promise<Response>,
+): (requestEvent: T) => Promise<Response> {
   return new Proxy(originalRouteHandler, {
     apply: async (wrappingTarget, thisArg, args) => {
       const event = args[0] as PatchedServerRouteEvent;

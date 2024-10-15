@@ -8,6 +8,18 @@
 
 ## Unreleased
 
+- "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
+
+- **feat(core): Make stream instrumentation opt-in
+  ([#13951](https://github.com/getsentry/sentry-javascript/pull/13951))**
+
+This change adds a new option `trackFetchStreamPerformance` to the browser tracing integration. Only when set to `true`,
+Sentry will instrument streams via fetch.
+
+Work in this release was contributed by @ZakrepaShe and @zhiyan114. Thank you for your contributions!
+
+## 8.34.0
+
 ### Important Changes
 
 - **ref(nextjs): Remove dead code ([#13828](https://github.com/getsentry/sentry-javascript/pull/13903))**
@@ -15,9 +27,46 @@
 Relevant for users of the `@sentry/nextjs` package: If you have previously configured a
 `SENTRY_IGNORE_API_RESOLUTION_ERROR` environment variable, it is now safe to unset it.
 
-- "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
+### Other Changes
 
-Work in this release was contributed by @trzeciak and @lizhiyao. Thank you for your contributions!
+- feat(cdn): Export `getReplay` in replay CDN bundles
+  ([#13881](https://github.com/getsentry/sentry-javascript/pull/13881))
+- feat(replay): Clear fallback buffer when switching buffers
+  ([#13914](https://github.com/getsentry/sentry-javascript/pull/13914))
+- feat(replay): Upgrade rrweb packages to 2.28.0 ([#13732](https://github.com/getsentry/sentry-javascript/pull/13732))
+- fix(docs): Correct supported browsers due to `globalThis`
+  ([#13788](https://github.com/getsentry/sentry-javascript/pull/13788))
+- fix(nextjs): Adjust path to `requestAsyncStorageShim.js` template file
+  ([#13928](https://github.com/getsentry/sentry-javascript/pull/13928))
+- fix(nextjs): Detect new locations for request async storage to support Next.js v15.0.0-canary.180 and higher
+  ([#13920](https://github.com/getsentry/sentry-javascript/pull/13920))
+- fix(nextjs): Drop `_not-found` spans for all HTTP methods
+  ([#13906](https://github.com/getsentry/sentry-javascript/pull/13906))
+- fix(nextjs): Fix resolution of request storage shim fallback
+  ([#13929](https://github.com/getsentry/sentry-javascript/pull/13929))
+- fix(node): Ensure graphql options are correct when preloading
+  ([#13769](https://github.com/getsentry/sentry-javascript/pull/13769))
+- fix(node): Local variables handle error ([#13827](https://github.com/getsentry/sentry-javascript/pull/13827))
+- fix(node): Remove `dataloader` instrumentation from default integrations
+  ([#13873](https://github.com/getsentry/sentry-javascript/pull/13873))
+- fix(nuxt): Create declaration files for Nuxt module
+  ([#13909](https://github.com/getsentry/sentry-javascript/pull/13909))
+- fix(replay): Ensure `replay_id` is removed from frozen DSC when stopped
+  ([#13893](https://github.com/getsentry/sentry-javascript/pull/13893))
+- fix(replay): Try/catch `sendBufferedReplayOrFlush` to prevent cycles
+  ([#13900](https://github.com/getsentry/sentry-javascript/pull/13900))
+- fix(sveltekit): Ensure trace meta tags are always injected
+  ([#13231](https://github.com/getsentry/sentry-javascript/pull/13231))
+- fix(sveltekit): Update `wrapServerRouteWithSentry` to respect ParamMatchers
+  ([#13390](https://github.com/getsentry/sentry-javascript/pull/13390))
+- fix(wasm): Integration wasm uncaught WebAssembly.Exception
+  ([#13787](https://github.com/getsentry/sentry-javascript/pull/13787)) (#13854)
+- ref(nextjs): Ignore sentry spans based on query param attribute
+  ([#13905](https://github.com/getsentry/sentry-javascript/pull/13905))
+- ref(utils): Move `vercelWaitUntil` to utils ([#13891](https://github.com/getsentry/sentry-javascript/pull/13891))
+
+Work in this release was contributed by @trzeciak, @gurpreetatwal, @ykzts and @lizhiyao. Thank you for your
+contributions!
 
 ## 8.33.1
 
