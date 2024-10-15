@@ -21,7 +21,10 @@ test('Should record exceptions for faulty edge server components', async ({ page
 
 test('Should record transaction for edge server components', async ({ page }) => {
   const serverComponentTransactionPromise = waitForTransaction('nextjs-app-dir', async transactionEvent => {
-    return transactionEvent?.transaction === 'GET /edge-server-components';
+    return (
+      transactionEvent?.transaction === 'GET /edge-server-components' &&
+      transactionEvent.contexts?.runtime?.name === 'vercel-edge'
+    );
   });
 
   await page.goto('/edge-server-components');
