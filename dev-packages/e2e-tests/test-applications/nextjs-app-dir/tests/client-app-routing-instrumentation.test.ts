@@ -38,7 +38,6 @@ test('Creates a navigation transaction for app router routes', async ({ page }) 
   });
 
   const serverComponentTransactionPromise = waitForTransaction('nextjs-app-dir', async transactionEvent => {
-    console.log('t', transactionEvent.transaction, transactionEvent.contexts?.trace);
     return (
       // It seems to differ between Next.js versions whether the route is parameterized or not
       (transactionEvent?.transaction === 'GET /server-component/parameter/foo/bar/baz' ||
