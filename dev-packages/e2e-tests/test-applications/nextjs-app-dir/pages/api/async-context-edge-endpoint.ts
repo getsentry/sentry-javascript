@@ -11,13 +11,18 @@ export default async function handler() {
     return new Promise<void>(resolve => setTimeout(resolve, 300));
   });
 
-  setTimeout(() => {
-    return Sentry.startSpan({ name: 'inner-span' }, () => {
-      return new Promise<void>(resolve => setTimeout(resolve, 100));
-    });
-  }, 100);
+  const innerSpanPromise = new Promise<void>(resolve => {
+    setTimeout(() => {
+      Sentry.startSpan({ name: 'inner-span' }, () => {
+        return new Promise<void>(resolve => setTimeout(resolve, 100));
+      }).then(() => {
+        resolve();
+      });
+    }, 100);
+  });
 
   await outerSpanPromise;
+  await innerSpanPromise;
 
   return new Response('ok', { status: 200 });
 }
