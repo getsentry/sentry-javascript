@@ -14,7 +14,7 @@ type Props = { [key: string]: unknown };
  */
 export function wrapGetStaticPropsWithSentry(
   origGetStaticPropsa: GetStaticProps<Props>,
-  parameterizedRoute: string,
+  _parameterizedRoute: string,
 ): GetStaticProps<Props> {
   return new Proxy(origGetStaticPropsa, {
     apply: async (wrappingTarget, thisArg, args: Parameters<GetStaticProps<Props>>) => {
@@ -23,10 +23,7 @@ export function wrapGetStaticPropsWithSentry(
       }
 
       const errorWrappedGetStaticProps = withErrorInstrumentation(wrappingTarget);
-      return callDataFetcherTraced(errorWrappedGetStaticProps, args, {
-        parameterizedRoute,
-        dataFetchingMethodName: 'getStaticProps',
-      });
+      return callDataFetcherTraced(errorWrappedGetStaticProps, args);
     },
   });
 }

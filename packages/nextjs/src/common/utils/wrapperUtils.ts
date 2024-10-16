@@ -1,19 +1,5 @@
 import type { IncomingMessage, ServerResponse } from 'http';
-import {
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  SPAN_STATUS_ERROR,
-  SPAN_STATUS_OK,
-  captureException,
-  getCurrentScope,
-  getIsolationScope,
-  getTraceData,
-  startSpan,
-  startSpanManual,
-} from '@sentry/core';
-import { vercelWaitUntil } from '@sentry/utils';
-
-import { flushSafelyWithTimeout } from './responseEnd';
+import { captureException, getCurrentScope, getIsolationScope, getTraceData } from '@sentry/core';
 
 /**
  * Wraps a function that potentially throws. If it does, the error is passed to `captureException` and rethrown.
@@ -30,7 +16,6 @@ export function withErrorInstrumentation<F extends (...args: any[]) => any>(
     } catch (e) {
       // TODO: Extract error logic from `withSentry` in here or create a new wrapper with said logic or something like that.
       captureException(e, { mechanism: { handled: false } });
-
       throw e;
     }
   };
@@ -73,34 +58,13 @@ export function withTracedServerSideDataFetcher<F extends (...args: any[]) => Pr
       request: req,
     });
 
-    return startSpanManual(
-      {
-        op: 'function.nextjs',
-        name: `${options.dataFetchingMethodName} (${options.dataFetcherRouteName})`,
-        attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nextjs',
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
-        },
-      },
-      async dataFetcherSpan => {
-        dataFetcherSpan.setStatus({ code: SPAN_STATUS_OK });
-        const { 'sentry-trace': sentryTrace, baggage } = getTraceData();
-        try {
-          return {
-            sentryTrace: sentryTrace,
-            baggage: baggage,
-            data: await origDataFetcher.apply(this, args),
-          };
-        } catch (e) {
-          dataFetcherSpan.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
-          throw e;
-        } finally {
-          dataFetcherSpan.end();
-        }
-      },
-    ).finally(() => {
-      vercelWaitUntil(flushSafelyWithTimeout());
-    });
+    const { 'sentry-trace': sentryTrace, baggage } = getTraceData();
+
+    return {
+      sentryTrace: sentryTrace,
+      baggage: baggage,
+      data: await origDataFetcher.apply(this, args),
+    };
   };
 }
 
@@ -114,37 +78,11 @@ export function withTracedServerSideDataFetcher<F extends (...args: any[]) => Pr
 export async function callDataFetcherTraced<F extends (...args: any[]) => Promise<any> | any>(
   origFunction: F,
   origFunctionArgs: Parameters<F>,
-  options: {
-    parameterizedRoute: string;
-    dataFetchingMethodName: string;
-  },
 ): Promise<ReturnType<F>> {
-  const { parameterizedRoute, dataFetchingMethodName } = options;
-
-  return startSpan(
-    {
-      op: 'function.nextjs',
-      name: `${dataFetchingMethodName} (${parameterizedRoute})`,
-      onlyIfParent: true,
-      attributes: {
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nextjs',
-        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
-      },
-    },
-    async dataFetcherSpan => {
-      dataFetcherSpan.setStatus({ code: SPAN_STATUS_OK });
-
-      try {
-        return await origFunction(...origFunctionArgs);
-      } catch (e) {
-        dataFetcherSpan.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
-        captureException(e, { mechanism: { handled: false } });
-        throw e;
-      } finally {
-        dataFetcherSpan.end();
-      }
-    },
-  ).finally(() => {
-    vercelWaitUntil(flushSafelyWithTimeout());
-  });
+  try {
+    return await origFunction(...origFunctionArgs);
+  } catch (e) {
+    captureException(e, { mechanism: { handled: false } });
+    throw e;
+  }
 }
