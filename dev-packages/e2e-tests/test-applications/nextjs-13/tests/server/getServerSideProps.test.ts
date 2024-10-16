@@ -86,7 +86,7 @@ test('Should report an error event for errors thrown in getServerSideProps', asy
   });
 });
 
-test.only('Should report an error event for errors thrown in getServerSideProps in pages with custom page extensions', async ({
+test('Should report an error event for errors thrown in getServerSideProps in pages with custom page extensions', async ({
   page,
 }) => {
   const errorEventPromise = waitForError('nextjs-13', errorEvent => {
