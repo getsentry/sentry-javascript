@@ -20,7 +20,21 @@ export default defineNuxtModule<ModuleOptions>({
   setup(moduleOptions, nuxt) {
     const moduleDirResolver = createResolver(import.meta.url);
     const buildDirResolver = createResolver(nuxt.options.buildDir);
+    const findDefaultSdkInitFile = (type: 'server' | 'client'): string | undefined => {
+      const possibleFileExtensions = ['ts', 'js', 'mjs', 'cjs', 'mts', 'cts'];
 
+      const filePath = possibleFileExtensions
+        .map(e =>
+          path.resolve(
+            type === 'server'
+              ? buildDirResolver.resolve('public', `instrument.${type}.${e}`)
+              : buildDirResolver.resolve(`sentry.${type}.config.${e}`),
+          ),
+        )
+        .find(filename => fs.existsSync(filename));
+
+      return filePath ? path.basename(filePath) : undefined;
+    };
     const clientConfigFile = findDefaultSdkInitFile('client');
 
     if (clientConfigFile) {
