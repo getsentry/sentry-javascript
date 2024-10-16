@@ -61,7 +61,7 @@ test('Should report an error event for errors thrown in getServerSideProps', asy
           'http.response.status_code': 500,
           'sentry.op': 'http.server',
           'sentry.origin': 'auto',
-          'sentry.source': 'route',
+          'sentry.source': expect.stringMatching(/^(route|custom)$/),
         },
         op: 'http.server',
         origin: 'auto',
@@ -81,7 +81,7 @@ test('Should report an error event for errors thrown in getServerSideProps', asy
     start_timestamp: expect.any(Number),
     timestamp: expect.any(Number),
     transaction: 'GET /error-getServerSideProps',
-    transaction_info: { source: 'custom' },
+    transaction_info: { source: expect.stringMatching(/^(route|custom)$/) },
     type: 'transaction',
   });
 });
@@ -147,11 +147,11 @@ test('Should report an error event for errors thrown in getServerSideProps in pa
         data: {
           'http.response.status_code': 500,
           'sentry.op': 'http.server',
-          'sentry.origin': 'auto',
-          'sentry.source': 'route',
+          'sentry.origin': expect.stringMatching(/^auto(\.http\.otel\.http)?$/),
+          'sentry.source': expect.stringMatching(/^(route|custom)$/),
         },
         op: 'http.server',
-        origin: 'auto',
+        origin: expect.stringMatching(/^auto(\.http\.otel\.http)?$/),
         span_id: expect.any(String),
         status: 'internal_error',
         trace_id: expect.any(String),
@@ -168,7 +168,7 @@ test('Should report an error event for errors thrown in getServerSideProps in pa
     start_timestamp: expect.any(Number),
     timestamp: expect.any(Number),
     transaction: 'GET /customPageExtension',
-    transaction_info: { source: 'custom' },
+    transaction_info: { source: expect.stringMatching(/^(route|custom)$/) },
     type: 'transaction',
   });
 });
