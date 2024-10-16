@@ -4,10 +4,13 @@ import { createApp } from 'vue';
 import App from './App.vue';
 import router from './router';
 
+import { createPinia } from 'pinia';
+
 import * as Sentry from '@sentry/vue';
 import { browserTracingIntegration } from '@sentry/vue';
 
 const app = createApp(App);
+const pinia = createPinia();
 
 Sentry.init({
   app,
@@ -22,5 +25,16 @@ Sentry.init({
   trackComponents: ['ComponentMainView', '<ComponentOneView>'],
 });
 
+pinia.use(
+  Sentry.createSentryPiniaPlugin({
+    actionTransformer: action => `Transformed: ${action}`,
+    stateTransformer: state => ({
+      transformed: true,
+      ...state,
+    }),
+  }),
+);
+
+app.use(pinia);
 app.use(router);
 app.mount('#app');
