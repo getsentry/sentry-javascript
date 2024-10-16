@@ -30,6 +30,7 @@ import { DEBUG_BUILD } from '../common/debug-build';
 import { devErrorSymbolicationEventProcessor } from '../common/devErrorSymbolicationEventProcessor';
 import { getVercelEnv } from '../common/getVercelEnv';
 import {
+  TRANSACTION_ATTR_SENTRY_ROUTE_BACKFILL,
   TRANSACTION_ATTR_SENTRY_TRACE_BACKFILL,
   TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION,
 } from '../common/span-attributes-with-logic-attached';
@@ -310,6 +311,11 @@ export function init(options: NodeOptions): NodeClient | undefined {
           if (typeof method === 'string' && typeof route === 'string') {
             event.transaction = `${method} ${route.replace(/\/route$/, '')}`;
             event.contexts.trace.data[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] = 'route';
+          }
+
+          // backfill transaction name for pages that would otherwise contain unparameterized routes
+          if (event.contexts.trace.data['sentry.route_backfill'] && event.transaction !== 'GET /_app') {
+            event.transaction = `${method} ${event.contexts.trace.data[TRANSACTION_ATTR_SENTRY_ROUTE_BACKFILL]}`;
           }
 
           // Next.js overrides transaction names for page loads that throw an error

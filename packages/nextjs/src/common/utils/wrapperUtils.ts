@@ -1,5 +1,13 @@
 import type { IncomingMessage, ServerResponse } from 'http';
-import { captureException, getCurrentScope, getIsolationScope, getTraceData } from '@sentry/core';
+import {
+  captureException,
+  getActiveSpan,
+  getCurrentScope,
+  getIsolationScope,
+  getRootSpan,
+  getTraceData,
+} from '@sentry/core';
+import { TRANSACTION_ATTR_SENTRY_ROUTE_BACKFILL } from '../span-attributes-with-logic-attached';
 
 /**
  * Wraps a function that potentially throws. If it does, the error is passed to `captureException` and rethrown.
@@ -57,6 +65,14 @@ export function withTracedServerSideDataFetcher<F extends (...args: any[]) => Pr
     getIsolationScope().setSDKProcessingMetadata({
       request: req,
     });
+
+    const span = getActiveSpan();
+
+    // Only set the route backfill if the span is not for /_error
+    if (span && options.requestedRouteName !== '/_error') {
+      const root = getRootSpan(span);
+      root.setAttribute(TRANSACTION_ATTR_SENTRY_ROUTE_BACKFILL, options.requestedRouteName);
+    }
 
     const { 'sentry-trace': sentryTrace, baggage } = getTraceData();
 
