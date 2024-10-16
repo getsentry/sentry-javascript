@@ -6,7 +6,7 @@
     "build": "nuxt build && node ./copyIITM.mjs",
     "dev": "nuxt dev",
     "generate": "nuxt generate",
-    "preview": "NODE_OPTIONS='--import ./public/instrument.server.mjs' nuxt preview",
+    "preview": "nuxt preview",
     "clean": "npx nuxi cleanup",
     "test": "playwright test",
     "test:build": "pnpm install && npx playwright install && pnpm build",
