@@ -69,6 +69,17 @@ export default defineNuxtModule<ModuleOptions>({
       if (serverConfigFile && serverConfigFile.includes('.server.config')) {
         addServerConfigToBuild(moduleOptions, nuxt, nitro, serverConfigFile);
 
+        consoleSandbox(() => {
+          const serverDir = nitro.options.output.serverDir;
+
+          if (serverDir.includes('.netlify')) {
+            // eslint-disable-next-line no-console
+            console.warn(
+              '[Sentry] Warning: The Sentry SDK discovered a Netlify build. The server-side Sentry support with ESM is experimental and may not work as expected. Please check out the docs for how to use Sentry on different deployment providers: https://docs.sentry.io/platforms/javascript/guides/nuxt/deployment-provider-setup/',
+            );
+          }
+        });
+
         if (moduleOptions.experimental_basicServerTracing) {
           addSentryTopImport(moduleOptions, nitro);
         } else {
