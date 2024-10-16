@@ -4,7 +4,9 @@ import {
   captureException,
   getActiveSpan,
   getCurrentScope,
+  getRootSpan,
   handleCallbackErrors,
+  setCapturedScopesOnSpan,
   startSpan,
   withIsolationScope,
 } from '@sentry/core';
@@ -27,6 +29,7 @@ export function wrapMiddlewareWithSentry<H extends EdgeRouteHandler>(
       // TODO: We still should add central isolation scope creation for when our build-time instrumentation does not work anymore with turbopack.
       return withIsolationScope(isolationScope => {
         const req: unknown = args[0];
+        const currentScope = getCurrentScope();
 
         let spanName: string;
         let spanOrigin: TransactionSource;
@@ -42,13 +45,20 @@ export function wrapMiddlewareWithSentry<H extends EdgeRouteHandler>(
           spanOrigin = 'component';
         }
 
-        getCurrentScope().setTransactionName(spanName);
+        currentScope.setTransactionName(spanName);
 
-        // If there is an active span, it likely means that the automatic Next.js OTEL instrumentation worked and we can
-        // rely on that for parameterization.
-        if (getActiveSpan()) {
+        const activeSpan = getActiveSpan();
+
+        if (activeSpan) {
+          // If there is an active span, it likely means that the automatic Next.js OTEL instrumentation worked and we can
+          // rely on that for parameterization.
           spanName = 'middleware';
           spanOrigin = 'component';
+
+          const rootSpan = getRootSpan(activeSpan);
+          if (rootSpan) {
+            setCapturedScopesOnSpan(rootSpan, currentScope, isolationScope);
+          }
         }
 
         return startSpan(

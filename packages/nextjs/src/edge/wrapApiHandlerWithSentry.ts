@@ -7,6 +7,7 @@ import {
   getCurrentScope,
   getRootSpan,
   handleCallbackErrors,
+  setCapturedScopesOnSpan,
   startSpan,
   withIsolationScope,
 } from '@sentry/core';
@@ -27,14 +28,15 @@ export function wrapApiHandlerWithSentry<H extends EdgeRouteHandler>(
 
       return withIsolationScope(isolationScope => {
         const req: unknown = args[0];
+        const currentScope = getCurrentScope();
 
         if (req instanceof Request) {
           isolationScope.setSDKProcessingMetadata({
             request: winterCGRequestToRequestData(req),
           });
-          getCurrentScope().setTransactionName(`${req.method} ${parameterizedRoute}`);
+          currentScope.setTransactionName(`${req.method} ${parameterizedRoute}`);
         } else {
-          getCurrentScope().setTransactionName(`handler (${parameterizedRoute})`);
+          currentScope.setTransactionName(`handler (${parameterizedRoute})`);
         }
 
         let spanName: string;
@@ -56,6 +58,7 @@ export function wrapApiHandlerWithSentry<H extends EdgeRouteHandler>(
               [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
               [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
             });
+            setCapturedScopesOnSpan(rootSpan, currentScope, isolationScope);
           }
         } else if (req instanceof Request) {
           spanName = `${req.method} ${parameterizedRoute}`;
