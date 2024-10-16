@@ -49,7 +49,7 @@
     "@opentelemetry/core": "^1.25.1",
     "@opentelemetry/resources": "^1.26.0",
     "@opentelemetry/sdk-trace-base": "^1.26.0",
-    "@sentry/opentelemetry": "8.33.1",
+    "@sentry/opentelemetry": "8.34.0",
     "@edge-runtime/types": "3.0.1"
   },
   "scripts": {
