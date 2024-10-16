@@ -1,8 +1,10 @@
 import type * as http from 'node:http';
+import type { RequestOptions } from 'node:http';
 import type * as https from 'node:https';
 import { VERSION } from '@opentelemetry/core';
 import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
 import { InstrumentationBase, InstrumentationNodeModuleDefinition } from '@opentelemetry/instrumentation';
+import { getRequestInfo } from '@opentelemetry/instrumentation-http';
 import { addBreadcrumb, getClient, getIsolationScope, withIsolationScope } from '@sentry/core';
 import type { SanitizedRequestData } from '@sentry/types';
 import {
@@ -12,12 +14,29 @@ import {
   stripUrlQueryAndFragment,
 } from '@sentry/utils';
 import type { NodeClient } from '../../sdk/client';
+import { getRequestUrl } from '../../utils/getRequestUrl';
 
 type Http = typeof http;
 type Https = typeof https;
 
 type SentryHttpInstrumentationOptions = InstrumentationConfig & {
+  /**
+   * Whether breadcrumbs should be recorded for requests.
+   *
+   * @default `true`
+   */
   breadcrumbs?: boolean;
+
+  /**
+   * Do not capture breadcrumbs for outgoing HTTP requests to URLs where the given callback returns `true`.
+   * For the scope of this instrumentation, this callback only controls breadcrumb creation.
+   * The same option can be passed to the top-level httpIntegration where it controls both, breadcrumb and
+   * span creation.
+   *
+   * @param url Contains the entire URL, including query string (if any), protocol, host, etc. of the outgoing request.
+   * @param request Contains the {@type RequestOptions} object used to make the outgoing request.
+   */
+  ignoreOutgoingRequests?: (url: string, request: RequestOptions) => boolean;
 };
 
 /**
@@ -140,7 +159,7 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
   private _getPatchOutgoingRequestFunction(): (
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     original: (...args: any[]) => http.ClientRequest,
-  ) => (...args: unknown[]) => http.ClientRequest {
+  ) => (options: URL | http.RequestOptions | string, ...args: unknown[]) => http.ClientRequest {
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const instrumentation = this;
 
@@ -148,12 +167,34 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
       return function outgoingRequest(this: unknown, ...args: unknown[]): http.ClientRequest {
         instrumentation._diag.debug('http instrumentation for outgoing requests');
 
+        // Making a copy to avoid mutating the original args array
+        // We need to access and reconstruct the request options object passed to `ignoreOutgoingRequests`
+        // so that it matches what Otel instrumentation passes to `ignoreOutgoingRequestHook`.
+        // @see https://github.com/open-telemetry/opentelemetry-js/blob/7293e69c1e55ca62e15d0724d22605e61bd58952/experimental/packages/opentelemetry-instrumentation-http/src/http.ts#L756-L789
+        const argsCopy = [...args];
+
+        const options = argsCopy.shift() as URL | http.RequestOptions | string;
+
+        const extraOptions =
+          typeof argsCopy[0] === 'object' && (typeof options === 'string' || options instanceof URL)
+            ? (argsCopy.shift() as http.RequestOptions)
+            : undefined;
+
+        const { optionsParsed } = getRequestInfo(options, extraOptions);
+
         const request = original.apply(this, args) as ReturnType<typeof http.request>;
 
         request.prependListener('response', (response: http.IncomingMessage) => {
-          const breadcrumbs = instrumentation.getConfig().breadcrumbs;
-          const _breadcrumbs = typeof breadcrumbs === 'undefined' ? true : breadcrumbs;
-          if (_breadcrumbs) {
+          const _breadcrumbs = instrumentation.getConfig().breadcrumbs;
+          const breadCrumbsEnabled = typeof _breadcrumbs === 'undefined' ? true : _breadcrumbs;
+
+          const _ignoreOutgoingRequests = instrumentation.getConfig().ignoreOutgoingRequests;
+          const shouldCreateBreadcrumb =
+            typeof _ignoreOutgoingRequests === 'function'
+              ? !_ignoreOutgoingRequests(getRequestUrl(request), optionsParsed)
+              : true;
+
+          if (breadCrumbsEnabled && shouldCreateBreadcrumb) {
             addRequestBreadcrumb(request, response);
           }
         });

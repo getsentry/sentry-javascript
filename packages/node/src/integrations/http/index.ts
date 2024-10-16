@@ -20,7 +20,7 @@ const INSTRUMENTATION_NAME = '@opentelemetry_sentry-patched/instrumentation-http
 
 interface HttpOptions {
   /**
-   * Whether breadcrumbs should be recorded for requests.
+   * Whether breadcrumbs should be recorded for outgoing requests.
    * Defaults to true
    */
   breadcrumbs?: boolean;
@@ -45,8 +45,8 @@ interface HttpOptions {
   ignoreOutgoingRequests?: (url: string, request: RequestOptions) => boolean;
 
   /**
-   * Do not capture spans or breadcrumbs for incoming HTTP requests to URLs where the given callback returns `true`.
-   * This controls both span & breadcrumb creation - spans will be non recording if tracing is disabled.
+   * Do not capture spans for incoming HTTP requests to URLs where the given callback returns `true`.
+   * Spans will be non recording if tracing is disabled.
    *
    * The `urlPath` param consists of the URL path and query string (if any) of the incoming request.
    * For example: `'/users/details?id=123'`
@@ -82,12 +82,15 @@ interface HttpOptions {
   };
 }
 
-export const instrumentSentryHttp = generateInstrumentOnce<{ breadcrumbs?: boolean }>(
-  `${INTEGRATION_NAME}.sentry`,
-  options => {
-    return new SentryHttpInstrumentation({ breadcrumbs: options?.breadcrumbs });
-  },
-);
+export const instrumentSentryHttp = generateInstrumentOnce<{
+  breadcrumbs?: HttpOptions['breadcrumbs'];
+  ignoreOutgoingRequests?: HttpOptions['ignoreOutgoingRequests'];
+}>(`${INTEGRATION_NAME}.sentry`, options => {
+  return new SentryHttpInstrumentation({
+    breadcrumbs: options?.breadcrumbs,
+    ignoreOutgoingRequests: options?.ignoreOutgoingRequests,
+  });
+});
 
 export const instrumentOtelHttp = generateInstrumentOnce<HttpInstrumentationConfig>(INTEGRATION_NAME, config => {
   const instrumentation = new HttpInstrumentation(config);
