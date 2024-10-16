@@ -95,12 +95,12 @@ test('Should report an error event for errors thrown in getServerSideProps in pa
 
   const transactionEventPromise = waitForTransaction('nextjs-13', transactionEvent => {
     return (
-      transactionEvent.transaction === 'GET /customPageExtension' &&
+      transactionEvent.transaction === 'GET /[param]/customPageExtension' &&
       transactionEvent.contexts?.trace?.op === 'http.server'
     );
   });
 
-  await page.goto('/customPageExtension');
+  await page.goto('/123/customPageExtension');
 
   expect(await errorEventPromise).toMatchObject({
     contexts: {
@@ -127,7 +127,7 @@ test('Should report an error event for errors thrown in getServerSideProps in pa
       url: expect.stringMatching(/^http.*\/customPageExtension/),
     },
     timestamp: expect.any(Number),
-    transaction: 'getServerSideProps (/customPageExtension)',
+    transaction: 'getServerSideProps (/[param]/customPageExtension)',
   });
 
   expect(await transactionEventPromise).toMatchObject({
@@ -148,7 +148,7 @@ test('Should report an error event for errors thrown in getServerSideProps in pa
           'http.response.status_code': 500,
           'sentry.op': 'http.server',
           'sentry.origin': expect.stringMatching(/^auto(\.http\.otel\.http)?$/),
-          'sentry.source': expect.stringMatching(/^(route|custom)$/),
+          'sentry.source': 'route',
         },
         op: 'http.server',
         origin: expect.stringMatching(/^auto(\.http\.otel\.http)?$/),
@@ -167,8 +167,8 @@ test('Should report an error event for errors thrown in getServerSideProps in pa
     },
     start_timestamp: expect.any(Number),
     timestamp: expect.any(Number),
-    transaction: 'GET /customPageExtension',
-    transaction_info: { source: expect.stringMatching(/^(route|custom)$/) },
+    transaction: 'GET /[param]/customPageExtension',
+    transaction_info: { source: 'custom' },
     type: 'transaction',
   });
 });
