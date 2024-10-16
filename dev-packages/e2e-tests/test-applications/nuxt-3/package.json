@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "nuxt build",
+    "build": "nuxt build && node ./copyIITM.mjs",
     "dev": "nuxt dev",
     "generate": "nuxt generate",
     "preview": "NODE_OPTIONS='--import ./public/instrument.server.mjs' nuxt preview",
@@ -20,5 +20,8 @@
     "@nuxt/test-utils": "^3.14.1",
     "@playwright/test": "^1.44.1",
     "@sentry-internal/test-utils": "link:../../../test-utils"
+  },
+  "overrides": {
+    "@vercel/nft": "0.27.4"
   }
 }
