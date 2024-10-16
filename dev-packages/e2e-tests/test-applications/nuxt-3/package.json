@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "nuxt build && node ./copyIITM.mjs",
+    "build": "nuxt build && bash ./copyIITM.bash",
     "dev": "nuxt dev",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
