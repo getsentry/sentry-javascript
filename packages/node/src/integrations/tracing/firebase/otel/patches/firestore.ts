@@ -1,4 +1,5 @@
 import type { FirebaseApp, FirebaseOptions } from '@firebase/app';
+import type { FirestoreSettings } from '@firebase/firestore';
 import type {
   CollectionReference,
   DocumentData,
@@ -13,8 +14,19 @@ import type {
   setDoc,
 } from '@firebase/firestore';
 import type { Span, Tracer } from '@opentelemetry/api';
-import { diag } from '@opentelemetry/api';
+import { SpanKind, context, diag, trace } from '@opentelemetry/api';
+import {
+  ATTR_SERVER_ADDRESS,
+  ATTR_SERVER_PORT
+} from '@opentelemetry/semantic-conventions';
+import type { SpanAttributes } from '@sentry/types';
 import type { unwrap as shimmerUnwrap, wrap as shimmerWrap } from 'shimmer';
+import {
+  ATTR_DB_COLLECTION_NAME,
+  ATTR_DB_NAMESPACE,
+  ATTR_DB_OPERATION_NAME,
+  ATTR_DB_SYSTEM,
+} from '../otelMissingSemanticConventions';
 import type {
   AddDocType,
   DeleteDocType,
@@ -24,7 +36,6 @@ import type {
   SetDocType,
 } from '../types';
 
-import { SpanKind, context, trace } from '@opentelemetry/api';
 import {
   InstrumentationNodeModuleDefinition,
   InstrumentationNodeModuleFile,
@@ -102,6 +113,7 @@ function wrapMethods(
   unwrap: typeof shimmerUnwrap,
   tracer: Tracer,
   firestoreSpanCreationHook: FirestoreSpanCreationHook,
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): any {
   unwrapMethods(moduleExports, unwrap);
 
@@ -117,6 +129,7 @@ function unwrapMethods(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   moduleExports: any,
   unwrap: typeof shimmerUnwrap,
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): any {
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
   if (isWrapped(moduleExports.addDoc)) {
@@ -248,8 +261,9 @@ function startSpan<AppModelType, DbModelType extends DocumentData>(
   spanName: string,
   reference: CollectionReference<AppModelType, DbModelType> | DocumentReference<AppModelType, DbModelType>,
 ): Span {
-  const span = tracer.startSpan(spanName, { kind: SpanKind.CLIENT });
+  const span = tracer.startSpan(`${spanName} ${reference.path}`, { kind: SpanKind.CLIENT });
   addAttributes(span, reference);
+  span.setAttribute(ATTR_DB_OPERATION_NAME, spanName);
   return span;
 }
 
@@ -259,14 +273,27 @@ function addAttributes<AppModelType, DbModelType extends DocumentData>(
 ): void {
   const firestoreApp: FirebaseApp = reference.firestore.app;
   const firestoreOptions: FirebaseOptions = firestoreApp.options;
+  const json: { settings?: FirestoreSettings } = reference.firestore.toJSON() || {};
+  const settings: FirestoreSettings = json.settings || {};
 
-  span.setAttributes({
-    'firebase.firestore.table': reference.path,
+  const attributes: SpanAttributes = {
+    [ATTR_DB_COLLECTION_NAME]: reference.path,
+    [ATTR_DB_NAMESPACE]: firestoreApp.name,
+    [ATTR_DB_SYSTEM]: 'firebase.firestore',
     'firebase.firestore.type': reference.type,
-    'firebase.firestore.app.name': firestoreApp.name,
     'firebase.firestore.options.projectId': firestoreOptions.projectId,
     'firebase.firestore.options.appId': firestoreOptions.appId,
     'firebase.firestore.options.messagingSenderId': firestoreOptions.messagingSenderId,
     'firebase.firestore.options.storageBucket': firestoreOptions.storageBucket,
-  });
+  };
+
+  if (typeof settings.host === 'string') {
+    const arr = settings.host.split(':');
+    if (arr.length === 2) {
+      attributes[ATTR_SERVER_ADDRESS] = arr[0];
+      attributes[ATTR_SERVER_PORT] = arr[1];
+    }
+  }
+
+  span.setAttributes(attributes);
 }

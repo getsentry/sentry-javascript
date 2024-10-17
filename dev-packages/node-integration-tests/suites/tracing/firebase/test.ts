@@ -1,50 +1,76 @@
 import type { TransactionEvent } from '@sentry/types';
 import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
 
+jest.setTimeout(600_000);
+
 const spanAddDoc = expect.objectContaining({
-  description: 'addDoc',
+  description: 'addDoc cities',
   data: expect.objectContaining({
-    'firebase.firestore.table': 'cities',
+    'db.collection.name': 'cities',
+    'db.namespace': '[DEFAULT]',
+    'db.operation.name': 'addDoc',
+    'db.system': 'firebase.firestore',
+    'firebase.firestore.options.projectId': 'sentry-15d85',
     'firebase.firestore.type': 'collection',
-    'firebase.firestore.app.name': '[DEFAULT]',
-    'sentry.origin': 'auto.firebase.otel.firestore',
     'otel.kind': 'CLIENT',
+    'server.address': '127.0.0.1',
+    'server.port': '5504',
+    'sentry.origin': 'auto.firebase.otel.firestore',
+    'sentry.op': 'addDoc',
   }),
   status: 'ok',
 });
 
 const spanSetDocs = expect.objectContaining({
-  description: 'setDocs',
+  description: 'setDocs cities',
   data: expect.objectContaining({
-    'firebase.firestore.table': 'cities',
+    'db.collection.name': 'cities',
+    'db.namespace': '[DEFAULT]',
+    'db.operation.name': 'setDocs',
+    'db.system': 'firebase.firestore',
+    'firebase.firestore.options.projectId': 'sentry-15d85',
     'firebase.firestore.type': 'collection',
-    'firebase.firestore.app.name': '[DEFAULT]',
-    'sentry.origin': 'auto.firebase.otel.firestore',
     'otel.kind': 'CLIENT',
+    'server.address': '127.0.0.1',
+    'server.port': '5504',
+    'sentry.origin': 'auto.firebase.otel.firestore',
+    'sentry.op': 'setDocs',
   }),
   status: 'ok',
 });
 
 const spanGetDocs = expect.objectContaining({
-  description: 'getDocs',
+  description: 'getDocs cities',
   data: expect.objectContaining({
-    'firebase.firestore.table': 'cities',
+    'db.collection.name': 'cities',
+    'db.namespace': '[DEFAULT]',
+    'db.operation.name': 'getDocs',
+    'db.system': 'firebase.firestore',
+    'firebase.firestore.options.projectId': 'sentry-15d85',
     'firebase.firestore.type': 'collection',
-    'firebase.firestore.app.name': '[DEFAULT]',
-    'sentry.origin': 'auto.firebase.otel.firestore',
     'otel.kind': 'CLIENT',
+    'server.address': '127.0.0.1',
+    'server.port': '5504',
+    'sentry.origin': 'auto.firebase.otel.firestore',
+    'sentry.op': 'getDocs',
   }),
   status: 'ok',
 });
 
 const spanDeleteDoc = expect.objectContaining({
-  description: 'deleteDoc',
+  description: 'deleteDoc cities',
   data: expect.objectContaining({
-    'firebase.firestore.table': 'cities',
+    'db.collection.name': 'cities',
+    'db.namespace': '[DEFAULT]',
+    'db.operation.name': 'deleteDoc',
+    'db.system': 'firebase.firestore',
+    'firebase.firestore.options.projectId': 'sentry-15d85',
     'firebase.firestore.type': 'collection',
-    'firebase.firestore.app.name': '[DEFAULT]',
-    'sentry.origin': 'auto.firebase.otel.firestore',
     'otel.kind': 'CLIENT',
+    'server.address': '127.0.0.1',
+    'server.port': '5504',
+    'sentry.origin': 'auto.firebase.otel.firestore',
+    'sentry.op': 'deleteDoc',
   }),
   status: 'ok',
 });

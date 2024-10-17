@@ -14,9 +14,9 @@ services:
       FUNCTIONS_EMULATOR_HOST: "localhost:5503"
       FIREBASE_PROJECT: "sentry-15d85"
       GCLOUD_PROJECT: "sentry-15d85"
-      FORCE_COLOR: 'true'
+      FORCE_COLOR: "true"
       DATA_DIRECTORY: "data"
-      CHOKIDAR_USEPOLLING: 'true'
+      CHOKIDAR_USEPOLLING: "true"
     ports:
       - "5500:4001" # ui
       - "5501:4401" # hub
