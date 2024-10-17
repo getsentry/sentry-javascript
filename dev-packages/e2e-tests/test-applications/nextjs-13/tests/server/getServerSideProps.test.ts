@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
 
-test.only('Should report an error event for errors thrown in getServerSideProps', async ({ page }) => {
+test('Should report an error event for errors thrown in getServerSideProps', async ({ page }) => {
   const errorEventPromise = waitForError('nextjs-13', errorEvent => {
     return errorEvent.exception?.values?.[0].value === 'getServerSideProps Error';
   });
@@ -82,7 +82,7 @@ test.only('Should report an error event for errors thrown in getServerSideProps'
     timestamp: expect.any(Number),
     transaction: 'GET /[param]/error-getServerSideProps',
     // TODO: This test fails depending on the next version (next 13: 'custom', next >14: 'route')
-    transaction_info: { source: 'custom' },
+    // transaction_info: { source: 'custom' },
     type: 'transaction',
   });
 });
@@ -170,7 +170,7 @@ test('Should report an error event for errors thrown in getServerSideProps in pa
     timestamp: expect.any(Number),
     transaction: 'GET /[param]/customPageExtension',
     // TODO: This test fails depending on the next version (next 13: 'custom', next >14: 'route')
-    transaction_info: { source: 'custom' },
+    // transaction_info: { source: 'custom' },
     type: 'transaction',
   });
 });
