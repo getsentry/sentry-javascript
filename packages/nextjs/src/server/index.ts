@@ -241,6 +241,22 @@ export function init(options: NodeOptions): NodeClient | undefined {
             return null;
           }
 
+          // Next.js 13 sometimes names the root transactions like this containing useless tracing.
+          if (event.transaction === 'NextServer.getRequestHandler') {
+            return null;
+          }
+
+          // Next.js 13 is not correctly picking up tracing data for trace propagation so we use a back-fill strategy
+          if (typeof event.contexts?.trace?.data?.[TRANSACTION_ATTR_SENTRY_TRACE_BACKFILL] === 'string') {
+            const traceparentData = extractTraceparentData(
+              event.contexts.trace.data[TRANSACTION_ATTR_SENTRY_TRACE_BACKFILL],
+            );
+
+            if (traceparentData?.parentSampled === false) {
+              return null;
+            }
+          }
+
           return event;
         } else {
           return event;
@@ -285,63 +301,45 @@ export function init(options: NodeOptions): NodeClient | undefined {
     ),
   );
 
-  getGlobalScope().addEventProcessor(
-    Object.assign(
-      (event => {
-        // Enhance route handler transactions
-        if (
-          event.type === 'transaction' &&
-          event.contexts?.trace?.data?.['next.span_type'] === 'BaseServer.handleRequest'
-        ) {
-          event.contexts.trace.data = event.contexts.trace.data || {};
-          event.contexts.trace.data[SEMANTIC_ATTRIBUTE_SENTRY_OP] = 'http.server';
-          event.contexts.trace.op = 'http.server';
+  client?.on('preprocessEvent', event => {
+    // Enhance route handler transactions
+    if (
+      event.type === 'transaction' &&
+      event.contexts?.trace?.data?.['next.span_type'] === 'BaseServer.handleRequest'
+    ) {
+      event.contexts.trace.data = event.contexts.trace.data || {};
+      event.contexts.trace.data[SEMANTIC_ATTRIBUTE_SENTRY_OP] = 'http.server';
+      event.contexts.trace.op = 'http.server';
 
-          if (event.transaction) {
-            event.transaction = stripUrlQueryAndFragment(event.transaction);
-          }
+      if (event.transaction) {
+        event.transaction = stripUrlQueryAndFragment(event.transaction);
+      }
 
-          // eslint-disable-next-line deprecation/deprecation
-          const method = event.contexts.trace.data[SEMATTRS_HTTP_METHOD];
-          const route = event.contexts.trace.data[ATTR_HTTP_ROUTE];
-          if (typeof method === 'string' && typeof route === 'string') {
-            event.transaction = `${method} ${route.replace(/\/route$/, '')}`;
-            event.contexts.trace.data[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] = 'route';
-          }
-        }
+      // eslint-disable-next-line deprecation/deprecation
+      const method = event.contexts.trace.data[SEMATTRS_HTTP_METHOD];
+      const route = event.contexts.trace.data[ATTR_HTTP_ROUTE];
+      if (typeof method === 'string' && typeof route === 'string') {
+        event.transaction = `${method} ${route.replace(/\/route$/, '')}`;
+        event.contexts.trace.data[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] = 'route';
+      }
+    }
 
-        // Next.js 13 is not correctly picking up tracing data for trace propagation so we use a back-fill strategy
-        if (
-          event.type === 'transaction' &&
-          typeof event.contexts?.trace?.data?.[TRANSACTION_ATTR_SENTRY_TRACE_BACKFILL] === 'string'
-        ) {
-          const traceparentData = extractTraceparentData(
-            event.contexts.trace.data[TRANSACTION_ATTR_SENTRY_TRACE_BACKFILL],
-          );
+    // Next.js 13 is not correctly picking up tracing data for trace propagation so we use a back-fill strategy
+    if (
+      event.type === 'transaction' &&
+      typeof event.contexts?.trace?.data?.[TRANSACTION_ATTR_SENTRY_TRACE_BACKFILL] === 'string'
+    ) {
+      const traceparentData = extractTraceparentData(event.contexts.trace.data[TRANSACTION_ATTR_SENTRY_TRACE_BACKFILL]);
 
-          if (traceparentData?.parentSampled === false) {
-            return null;
-          }
+      if (traceparentData?.traceId) {
+        event.contexts.trace.trace_id = traceparentData.traceId;
+      }
 
-          if (traceparentData?.traceId) {
-            event.contexts.trace.trace_id = traceparentData.traceId;
-          }
-
-          if (traceparentData?.parentSpanId) {
-            event.contexts.trace.parent_span_id = traceparentData.parentSpanId;
-          }
-        }
-
-        // Next.js 13 sometimes names the root transactions like this containing useless tracing.
-        if (event.type === 'transaction' && event.transaction === 'NextServer.getRequestHandler') {
-          return null;
-        }
-
-        return event;
-      }) satisfies EventProcessor,
-      { id: 'NextjsTransactionEnhancer' },
-    ),
-  );
+      if (traceparentData?.parentSpanId) {
+        event.contexts.trace.parent_span_id = traceparentData.parentSpanId;
+      }
+    }
+  });
 
   if (process.env.NODE_ENV === 'development') {
     getGlobalScope().addEventProcessor(devErrorSymbolicationEventProcessor);
