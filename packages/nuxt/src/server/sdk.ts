@@ -1,6 +1,7 @@
 import { applySdkMetadata, flush, getGlobalScope } from '@sentry/core';
-import { httpIntegration, init as initNode } from '@sentry/node';
-import type { Client, EventProcessor } from '@sentry/types';
+import { type NodeOptions, httpIntegration, init as initNode } from '@sentry/node';
+import { getDefaultIntegrations as getDefaultNodeIntegrations } from '@sentry/node/build/types/sdk';
+import type { Client, EventProcessor, Integration } from '@sentry/types';
 import { logger, vercelWaitUntil } from '@sentry/utils';
 import { DEBUG_BUILD } from '../common/debug-build';
 import type { SentryNuxtServerOptions } from '../common/types';
@@ -14,17 +15,7 @@ export function init(options: SentryNuxtServerOptions): Client | undefined {
   const sentryOptions = {
     ...options,
     registerEsmLoaderHooks: mergeRegisterEsmLoaderHooks(options),
-    integrations: [
-      httpIntegration({
-        instrumentation: {
-          responseHook: () => {
-            // Makes it possible to end the tracing span before closing the Vercel lambda (https://vercel.com/docs/functions/functions-api-reference#waituntil)
-            vercelWaitUntil(flushSafelyWithTimeout());
-          },
-        },
-      }),
-      ...(Array.isArray(options.integrations) ? options.integrations : []),
-    ],
+    defaultIntegrations: getNuxtDefaultIntegrations(options),
   };
 
   applySdkMetadata(sentryOptions, 'nuxt', ['nuxt', 'node']);
@@ -55,6 +46,21 @@ export function init(options: SentryNuxtServerOptions): Client | undefined {
   );
 
   return client;
+}
+
+function getNuxtDefaultIntegrations(options: NodeOptions): Integration[] {
+  return [
+    ...getDefaultNodeIntegrations(options).filter(integration => integration.name !== 'Http'),
+    // The httpIntegration is added as defaultIntegration, so users can still overwrite it
+    httpIntegration({
+      instrumentation: {
+        responseHook: () => {
+          // Makes it possible to end the tracing span before closing the Vercel lambda (https://vercel.com/docs/functions/functions-api-reference#waituntil)
+          vercelWaitUntil(flushSafelyWithTimeout());
+        },
+      },
+    }),
+  ];
 }
 
 /**
