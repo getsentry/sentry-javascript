@@ -301,6 +301,9 @@ export function init(options: NodeOptions): NodeClient | undefined {
     ),
   );
 
+  // Use the preprocessEvent hook instead of an event processor, so that the users event processors receive the most
+  // up-to-date value, but also so that the logic that detects changes to the transaction names to set the source to
+  // "custom", doesn't trigger.
   client?.on('preprocessEvent', event => {
     // Enhance route handler transactions
     if (
