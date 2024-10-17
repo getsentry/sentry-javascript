@@ -2,7 +2,7 @@ import * as path from 'path';
 import { addPlugin, addPluginTemplate, addServerPlugin, createResolver, defineNuxtModule } from '@nuxt/kit';
 import { consoleSandbox } from '@sentry/utils';
 import type { SentryNuxtModuleOptions } from './common/types';
-import { addSentryTopImport, addServerConfigToBuild } from './vite/addServerConfig';
+import { addDynamicImportEntryFileWrapper, addServerConfigToBuild } from './vite/addServerConfig';
 import { setupSourceMaps } from './vite/sourceMaps';
 import { findDefaultSdkInitFile } from './vite/utils';
 
@@ -17,7 +17,12 @@ export default defineNuxtModule<ModuleOptions>({
     },
   },
   defaults: {},
-  setup(moduleOptions, nuxt) {
+  setup(moduleOptionsParam, nuxt) {
+    const moduleOptions = {
+      ...moduleOptionsParam,
+      dynamicImportForServerEntry: moduleOptionsParam.dynamicImportForServerEntry !== false, // default: true
+    };
+
     const moduleDirResolver = createResolver(import.meta.url);
     const buildDirResolver = createResolver(nuxt.options.buildDir);
 
@@ -48,15 +53,17 @@ export default defineNuxtModule<ModuleOptions>({
     const serverConfigFile = findDefaultSdkInitFile('server');
 
     if (serverConfigFile) {
-      // Inject the server-side Sentry config file with a side effect import
-      addPluginTemplate({
-        mode: 'server',
-        filename: 'sentry-server-config.mjs',
-        getContents: () =>
-          `import "${buildDirResolver.resolve(`/${serverConfigFile}`)}"\n` +
-          'import { defineNuxtPlugin } from "#imports"\n' +
-          'export default defineNuxtPlugin(() => {})',
-      });
+      if (moduleOptions.dynamicImportForServerEntry === false) {
+        // Inject the server-side Sentry config file with a side effect import
+        addPluginTemplate({
+          mode: 'server',
+          filename: 'sentry-server-config.mjs',
+          getContents: () =>
+            `import "${buildDirResolver.resolve(`/${serverConfigFile}`)}"\n` +
+            'import { defineNuxtPlugin } from "#imports"\n' +
+            'export default defineNuxtPlugin(() => {})',
+        });
+      }
 
       addServerPlugin(moduleDirResolver.resolve('./runtime/plugins/sentry.server'));
     }
@@ -67,11 +74,9 @@ export default defineNuxtModule<ModuleOptions>({
 
     nuxt.hooks.hook('nitro:init', nitro => {
       if (serverConfigFile && serverConfigFile.includes('.server.config')) {
-        addServerConfigToBuild(moduleOptions, nuxt, nitro, serverConfigFile);
+        if (moduleOptions.dynamicImportForServerEntry === false) {
+          addServerConfigToBuild(moduleOptions, nuxt, nitro, serverConfigFile);
 
-        if (moduleOptions.experimental_basicServerTracing) {
-          addSentryTopImport(moduleOptions, nitro);
-        } else {
           if (moduleOptions.debug) {
             const serverDirResolver = createResolver(nitro.options.output.serverDir);
             const serverConfigPath = serverDirResolver.resolve('sentry.server.config.mjs');
@@ -83,6 +88,17 @@ export default defineNuxtModule<ModuleOptions>({
               // eslint-disable-next-line no-console
               console.log(
                 `[Sentry] Using your \`${serverConfigFile}\` file for the server-side Sentry configuration. Make sure to add the Node option \`import\` to the Node command where you deploy and/or run your application. This preloads the Sentry configuration at server startup. You can do this via a command-line flag (\`node --import ${serverConfigRelativePath} [...]\`) or via an environment variable (\`NODE_OPTIONS='--import ${serverConfigRelativePath}' node [...]\`).`,
+              );
+            });
+          }
+        } else {
+          addDynamicImportEntryFileWrapper(nitro, serverConfigFile);
+
+          if (moduleOptions.debug) {
+            consoleSandbox(() => {
+              // eslint-disable-next-line no-console
+              console.log(
+                '[Sentry] Wrapping the server entry file with a dynamic `import()`, so Sentry can be preloaded before the server initializes.',
               );
             });
           }

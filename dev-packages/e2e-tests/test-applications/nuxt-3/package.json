@@ -7,7 +7,7 @@
     "dev": "nuxt dev",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
-    "start": "node --import ./.output/server/sentry.server.config.mjs .output/server/index.mjs",
+    "start": "node .output/server/index.mjs",
     "clean": "npx nuxi cleanup",
     "test": "playwright test",
     "test:build": "pnpm install && npx playwright install && pnpm build",
