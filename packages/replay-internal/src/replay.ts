@@ -1052,14 +1052,13 @@ export class ReplayContainer implements ReplayContainerInterface {
     this.replayPerformanceEntries = [];
 
     // If we are manually starting, we want to ensure we only include performance entries
-    // that are after the initial timestamp, with 1s wiggle room.
+    // that are after the initial timestamp
     // The reason for this is that we may have performance entries from the page load, but may decide to start
     // the replay later on, in which case we do not want to include these entries.
     // without this, manually started replays can have events long before the actual replay recording starts,
     // which messes with the timeline etc.
     if (this._requiresManualStart) {
-      // We leave 1s wiggle room to accomodate timing differences for "immedidate" manual starts
-      const initialTimestampInSeconds = this._context.initialTimestamp / 1000 - 1;
+      const initialTimestampInSeconds = this._context.initialTimestamp / 1000;
       performanceEntries = performanceEntries.filter(entry => entry.start >= initialTimestampInSeconds);
     }
 

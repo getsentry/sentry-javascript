@@ -350,7 +350,7 @@ sentryTest(
 );
 
 sentryTest(
-  '[buffer-mode] manually starting replay includes performance entries with 1s wiggle room',
+  '[buffer-mode] manually starting replay ignores earlier performance entries when starting immediately',
   async ({ getLocalTestUrl, page, browserName }) => {
     // This was sometimes flaky on webkit, so skipping for now
     if (shouldSkipReplayTest() || browserName === 'webkit') {
@@ -388,8 +388,21 @@ sentryTest(
 
     const { performanceSpans } = content0;
 
-    // web vitals etc. are included with 1s wiggle room, to accomodate "immediate" start
-    expect(performanceSpans.length).toBeGreaterThan(1);
+    expect(performanceSpans).toEqual([
+      {
+        op: 'memory',
+        description: 'memory',
+        startTimestamp: expect.any(Number),
+        endTimestamp: expect.any(Number),
+        data: {
+          memory: {
+            jsHeapSizeLimit: expect.any(Number),
+            totalJSHeapSize: expect.any(Number),
+            usedJSHeapSize: expect.any(Number),
+          },
+        },
+      },
+    ]);
   },
 );
 
