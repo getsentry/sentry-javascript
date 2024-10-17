@@ -12,6 +12,7 @@ export function register() {
         // We are doing a lot of events at once in this test app
         bufferSize: 1000,
       },
+      debug: false,
     });
   }
 }

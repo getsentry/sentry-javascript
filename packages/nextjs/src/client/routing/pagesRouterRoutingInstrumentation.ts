@@ -6,7 +6,7 @@ import {
 } from '@sentry/core';
 import { WINDOW, startBrowserTracingNavigationSpan, startBrowserTracingPageLoadSpan } from '@sentry/react';
 import type { Client, TransactionSource } from '@sentry/types';
-import { browserPerformanceTimeOrigin, logger, stripUrlQueryAndFragment } from '@sentry/utils';
+import { browserPerformanceTimeOrigin, logger, parseBaggageHeader, stripUrlQueryAndFragment } from '@sentry/utils';
 
 import type { NEXT_DATA } from 'next/dist/shared/lib/utils';
 import RouterImport from 'next/router';
@@ -106,7 +106,15 @@ function extractNextDataTagInformation(): NextDataTagInfo {
  */
 export function pagesRouterInstrumentPageLoad(client: Client): void {
   const { route, params, sentryTrace, baggage } = extractNextDataTagInformation();
-  const name = route || globalObject.location.pathname;
+  const parsedBaggage = parseBaggageHeader(baggage);
+  let name = route || globalObject.location.pathname;
+
+  // /_error is the fallback page for all errors. If there is a transaction name for /_error, use that instead
+  if (parsedBaggage && parsedBaggage['sentry-transaction'] && name === '/_error') {
+    name = parsedBaggage['sentry-transaction'];
+    // Strip any HTTP method from the span name
+    name = name.replace(/^(GET|POST|PUT|DELETE|PATCH|HEAD|OPTIONS|TRACE|CONNECT)\s+/i, '');
+  }
 
   startBrowserTracingPageLoadSpan(
     client,
