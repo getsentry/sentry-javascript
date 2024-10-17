@@ -286,6 +286,7 @@ export function init(options: NodeOptions): NodeClient | undefined {
     ),
   );
 
+  // TODO: move this into pre-processing hook
   getGlobalScope().addEventProcessor(
     Object.assign(
       (event => {
