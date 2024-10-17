@@ -67,6 +67,12 @@ export class EventBufferCompressionWorker implements EventBuffer {
     this._totalSize += data.length;
 
     if (this._totalSize > REPLAY_MAX_EVENT_BUFFER_SIZE) {
+      DEBUG_BUILD &&
+        logger.info(
+          `Cannot add new event with raw size of ${data.length} to existing buffer of size ${
+            this._totalSize - data.length
+          }`,
+        );
       return Promise.reject(new EventBufferSizeExceededError());
     }
 
@@ -82,14 +88,20 @@ export class EventBufferCompressionWorker implements EventBuffer {
 
   /** @inheritdoc */
   public clear(): void {
+    DEBUG_BUILD && logger.info(`Clearing event buffer (${this._totalSize})`);
     this._earliestTimestamp = null;
     this._totalSize = 0;
     this.hasCheckout = false;
 
     // We do not wait on this, as we assume the order of messages is consistent for the worker
-    this._worker.postMessage('clear').then(null, e => {
-      DEBUG_BUILD && logger.exception(e, 'Sending "clear" message to worker failed', e);
-    });
+    this._worker.postMessage('clear').then(
+      () => {
+        DEBUG_BUILD && logger.info('Event buffer cleared within worker');
+      },
+      e => {
+        DEBUG_BUILD && logger.exception(e, 'Sending "clear" message to worker failed', e);
+      },
+    );
   }
 
   /** @inheritdoc */

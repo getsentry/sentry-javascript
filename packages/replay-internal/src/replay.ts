@@ -1,6 +1,13 @@
 /* eslint-disable max-lines */ // TODO: We might want to split this file up
 import { EventType, record } from '@sentry-internal/rrweb';
-import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, getActiveSpan, getClient, getRootSpan, spanToJSON } from '@sentry/core';
+import {
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  getActiveSpan,
+  getClient,
+  getRootSpan,
+  setTag,
+  spanToJSON,
+} from '@sentry/core';
 import type { ReplayRecordingMode, Span } from '@sentry/types';
 import { logger } from './util/logger';
 
@@ -1215,28 +1222,14 @@ export class ReplayContainer implements ReplayContainerInterface {
       return;
     }
 
-    const start = this.session.started;
-    const now = Date.now();
-    const duration = now - start;
-
     // A flush is about to happen, cancel any queued flushes
     this._debouncedFlush.cancel();
 
-    // If session is too short, or too long (allow some wiggle room over maxReplayDuration), do not send it
-    // This _should_ not happen, but it may happen if flush is triggered due to a page activity change or similar
-    const tooShort = duration < this._options.minReplayDuration;
-    const tooLong = duration > this._options.maxReplayDuration + 5_000;
-    if (tooShort || tooLong) {
-      DEBUG_BUILD &&
-        logger.info(
-          `Session duration (${Math.floor(duration / 1000)}s) is too ${
-            tooShort ? 'short' : 'long'
-          }, not sending replay.`,
-        );
+    const isValidDuration = this._checkReplayDurationDuringFlush();
 
-      if (tooShort) {
-        this._debouncedFlush();
-      }
+    // XXX: disregard durations for buffer mode for debug purposes
+    if (!isValidDuration && this.recordingMode !== 'buffer') {
+      DEBUG_BUILD && logger.info('Invalid duration while buffering');
       return;
     }
 
@@ -1271,6 +1264,47 @@ export class ReplayContainer implements ReplayContainerInterface {
       }
     }
   };
+
+  /**
+   * Checks to see if replay duration is within bounds during a flush. If it is
+   * too short, will queue up a new flush to prevent short replays.
+   *
+   * Returns true if duration is ok, false otherwise
+   */
+  private _checkReplayDurationDuringFlush(): boolean {
+    if (!this.session) {
+      return false;
+    }
+
+    const start = this.session.started;
+    const now = Date.now();
+    const duration = now - start;
+
+    // If session is too short, or too long (allow some wiggle room over maxReplayDuration), do not send it
+    // This _should_ not happen, but it may happen if flush is triggered due to a page activity change or similar
+    const tooShort = duration < this._options.minReplayDuration;
+    const tooLong = duration > this._options.maxReplayDuration + 5_000;
+    if (tooShort || tooLong) {
+      DEBUG_BUILD &&
+        logger.info(
+          `Session duration (${Math.floor(duration / 1000)}s) is too ${
+            tooShort ? 'short' : 'long'
+          }, not sending replay.`,
+        );
+
+      if (tooShort) {
+        this._debouncedFlush();
+      }
+
+      // XXX: disregard durations for buffer mode for debug purposes
+      if (this.recordingMode === 'buffer') {
+        setTag(`replay.${tooShort ? 'tooShort' : 'tooLong'}`, true);
+      }
+      return false;
+    }
+
+    return true;
+  }
 
   /** Save the session, if it is sticky */
   private _maybeSaveSession(): void {

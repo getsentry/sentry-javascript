@@ -115,6 +115,7 @@ export class EventBufferProxy implements EventBuffer {
     // Wait for original events to be re-added before resolving
     try {
       await Promise.all(addEventPromises);
+      DEBUG_BUILD && logger.info('Finished switching to compression worker');
 
       // Can now clear fallback buffer as it's no longer necessary
       this._fallback.clear();
