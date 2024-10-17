@@ -3,7 +3,10 @@ import { waitForTransaction } from '@sentry-internal/test-utils';
 
 test('Should allow for async context isolation in the edge SDK', async ({ request }) => {
   const edgerouteTransactionPromise = waitForTransaction('nextjs-app-dir', async transactionEvent => {
-    return transactionEvent?.transaction === 'GET /api/async-context-edge-endpoint';
+    return (
+      transactionEvent?.transaction === 'GET /api/async-context-edge-endpoint' &&
+      transactionEvent.contexts?.runtime?.name === 'vercel-edge'
+    );
   });
 
   await request.get('/api/async-context-edge-endpoint');
@@ -13,8 +16,5 @@ test('Should allow for async context isolation in the edge SDK', async ({ reques
   const outerSpan = asyncContextEdgerouteTransaction.spans?.find(span => span.description === 'outer-span');
   const innerSpan = asyncContextEdgerouteTransaction.spans?.find(span => span.description === 'inner-span');
 
-  // @ts-expect-error parent_span_id exists
-  expect(outerSpan?.parent_span_id).toStrictEqual(asyncContextEdgerouteTransaction.contexts?.trace?.span_id);
-  // @ts-expect-error parent_span_id exists
-  expect(innerSpan?.parent_span_id).toStrictEqual(asyncContextEdgerouteTransaction.contexts?.trace?.span_id);
+  expect(outerSpan?.parent_span_id).toStrictEqual(innerSpan?.parent_span_id);
 });

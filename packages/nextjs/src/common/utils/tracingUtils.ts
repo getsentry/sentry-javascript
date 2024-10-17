@@ -1,7 +1,8 @@
-import { Scope, startNewTrace } from '@sentry/core';
+import { Scope, getActiveSpan, getRootSpan, spanToJSON, startNewTrace } from '@sentry/core';
 import type { PropagationContext } from '@sentry/types';
 import { GLOBAL_OBJ, logger } from '@sentry/utils';
 import { DEBUG_BUILD } from '../debug-build';
+import { TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION } from '../span-attributes-with-logic-attached';
 
 const commonPropagationContextMap = new WeakMap<object, PropagationContext>();
 
@@ -90,5 +91,21 @@ export function escapeNextjsTracing<T>(cb: () => T): T {
         return cb();
       });
     });
+  }
+}
+
+/**
+ * Ideally this function never lands in the develop branch.
+ *
+ * Drops the entire span tree this function was called in, if it was a span tree created by Next.js.
+ */
+export function dropNextjsRootContext(): void {
+  const nextJsOwnedSpan = getActiveSpan();
+  if (nextJsOwnedSpan) {
+    const rootSpan = getRootSpan(nextJsOwnedSpan);
+    const rootSpanAttributes = spanToJSON(rootSpan).data;
+    if (rootSpanAttributes?.['next.span_type']) {
+      getRootSpan(nextJsOwnedSpan)?.setAttribute(TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION, true);
+    }
   }
 }
