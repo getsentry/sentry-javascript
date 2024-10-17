@@ -114,6 +114,7 @@ export class Replay implements Integration {
 
     beforeAddRecordingEvent,
     beforeErrorSampling,
+    onError,
   }: ReplayConfiguration = {}) {
     this.name = Replay.id;
 
@@ -183,6 +184,7 @@ export class Replay implements Integration {
       networkResponseHeaders: _getMergedNetworkHeaders(networkResponseHeaders),
       beforeAddRecordingEvent,
       beforeErrorSampling,
+      onError,
 
       _experiments,
     };
