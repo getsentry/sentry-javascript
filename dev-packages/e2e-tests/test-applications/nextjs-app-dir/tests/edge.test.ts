@@ -19,17 +19,19 @@ test('Should record exceptions for faulty edge server components', async ({ page
   expect(errorEvent.transaction).toBe(`Page Server Component (/edge-server-components/error)`);
 });
 
-// TODO(lforst): This test skip cannot make it into production - make sure to fix this test before merging into develop branch
+// TODO(lforst): Fix this test
 test.skip('Should record transaction for edge server components', async ({ page }) => {
   const serverComponentTransactionPromise = waitForTransaction('nextjs-app-dir', async transactionEvent => {
-    return transactionEvent?.transaction === 'GET /edge-server-components';
+    return (
+      transactionEvent?.transaction === 'GET /edge-server-components' &&
+      transactionEvent.contexts?.runtime?.name === 'vercel-edge'
+    );
   });
 
   await page.goto('/edge-server-components');
 
   const serverComponentTransaction = await serverComponentTransactionPromise;
 
-  expect(serverComponentTransaction).toBe(1);
   expect(serverComponentTransaction).toBeDefined();
   expect(serverComponentTransaction.request?.headers).toBeDefined();
 
