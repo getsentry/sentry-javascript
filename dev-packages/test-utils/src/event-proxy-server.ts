@@ -169,6 +169,10 @@ export async function startProxyServer(
  * option to this server (like this `tunnel: http://localhost:${port option}/`).
  */
 export async function startEventProxyServer(options: EventProxyServerOptions): Promise<void> {
+  if (options.envelopeDumpPath) {
+    await fs.promises.mkdir(path.dirname(path.resolve(options.envelopeDumpPath)), { recursive: true });
+  }
+
   await startProxyServer(options, async (eventCallbackListeners, proxyRequest, proxyRequestBody, eventBuffer) => {
     const data: SentryRequestCallbackData = {
       envelope: parseEnvelope(proxyRequestBody),

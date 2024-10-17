@@ -21,6 +21,7 @@ module.exports = {
     'examples/**',
     'test/manual/**',
     'types/**',
+    'scripts/*.js',
   ],
   reportUnusedDisableDirectives: true,
   overrides: [
