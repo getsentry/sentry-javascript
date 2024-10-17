@@ -1,6 +1,10 @@
 import { applySdkMetadata, flush, getGlobalScope } from '@sentry/core';
-import { type NodeOptions, httpIntegration, init as initNode } from '@sentry/node';
-import { getDefaultIntegrations as getDefaultNodeIntegrations } from '@sentry/node/build/types/sdk';
+import {
+  type NodeOptions,
+  getDefaultIntegrations as getDefaultNodeIntegrations,
+  httpIntegration,
+  init as initNode,
+} from '@sentry/node';
 import type { Client, EventProcessor, Integration } from '@sentry/types';
 import { logger, vercelWaitUntil } from '@sentry/utils';
 import { DEBUG_BUILD } from '../common/debug-build';
