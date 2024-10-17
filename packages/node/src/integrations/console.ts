@@ -5,6 +5,9 @@ import { addConsoleInstrumentationHandler, severityLevelFromString } from '@sent
 
 const INTEGRATION_NAME = 'Console';
 
+const TRUNCATION_MSG = ' (breadcrumb truncated)';
+const MAX_BREADCRUMB_MSG_LENGTH = 2048; // 2 KB
+
 const _consoleIntegration = (() => {
   return {
     name: INTEGRATION_NAME,
@@ -14,11 +17,17 @@ const _consoleIntegration = (() => {
           return;
         }
 
+        // Truncate the breadcrumb length to max 2KB including the truncated snippet
+        let formattedMessage: string = util.format.apply(undefined, args);
+        if (formattedMessage.length > MAX_BREADCRUMB_MSG_LENGTH) {
+          formattedMessage = formattedMessage.slice(MAX_BREADCRUMB_MSG_LENGTH - TRUNCATION_MSG.length) + TRUNCATION_MSG;
+        }
+
         addBreadcrumb(
           {
             category: 'console',
             level: severityLevelFromString(level),
-            message: util.format.apply(undefined, args),
+            message: formattedMessage,
           },
           {
             input: [...args],
