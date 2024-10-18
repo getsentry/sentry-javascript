@@ -1,7 +1,7 @@
 {
   "extends": "../../tsconfig.json",
 
-  "include": ["src/**/*"],
+  "include": ["src/**/*", "./src/integrations/diagnostic_channel.d.ts"],
 
   "compilerOptions": {
     "lib": ["es2018"],
