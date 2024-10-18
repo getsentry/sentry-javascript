@@ -111,15 +111,16 @@ Sentry.init({
 
 ## Uploading Source Maps
 
-To upload source maps, you can use the `sourceMapsUploadOptions` option inside the `sentry` options of your
-`nuxt.config.ts`:
+To upload source maps, you have to enable client source maps in your `nuxt.config.ts`. Then, you add your project
+settings to the `sentry.sourceMapsUploadOptions` of your `nuxt.config.ts`:
 
 ```javascript
 // nuxt.config.ts
 export default defineNuxtConfig({
+  sourcemap: { client: true },
+
   modules: ['@sentry/nuxt/module'],
   sentry: {
-    debug: true,
     sourceMapsUploadOptions: {
       org: 'your-org-slug',
       project: 'your-project-slug',
@@ -132,8 +133,8 @@ export default defineNuxtConfig({
 ## Troubleshooting
 
 When adding `sentry.server.config.ts`, you might get an error like this:
-"`Failed to register ESM hook (import-in-the-middle/hook.mjs)`". You can add an override (npm/pnpm) or a resolution
-(yarn) for `@vercel/nft` to fix this. This will add the `hook.mjs` file to your build output
+"`Failed to register ESM hook import-in-the-middle/hook.mjs`". You can add an override (npm/pnpm) or a resolution (yarn)
+for `@vercel/nft` to fix this. This will add the `hook.mjs` file to your build output
 ([Nitro issue here](https://github.com/unjs/nitro/issues/2703)).
 
 ```json
@@ -142,10 +143,10 @@ When adding `sentry.server.config.ts`, you might get an error like this:
 }
 ```
 
-or
+or in `yarn`:
 
 ```json
-  "resolutions": {
-    "@vercel/nft": "^0.27.4"
-  }
+"resolutions": {
+  "@vercel/nft": "^0.27.4"
+}
 ```
