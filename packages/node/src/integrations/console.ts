@@ -1,11 +1,13 @@
 import * as util from 'node:util';
 import { addBreadcrumb, defineIntegration, getClient } from '@sentry/core';
-import type { IntegrationFn } from '@sentry/types';
 import { addConsoleInstrumentationHandler, severityLevelFromString, truncate } from '@sentry/utils';
 
 const INTEGRATION_NAME = 'Console';
 
-const _consoleIntegration = (() => {
+/**
+ * Capture console logs as breadcrumbs.
+ */
+export const consoleIntegration = defineIntegration(() => {
   return {
     name: INTEGRATION_NAME,
     setup(client) {
@@ -28,9 +30,4 @@ const _consoleIntegration = (() => {
       });
     },
   };
-}) satisfies IntegrationFn;
-
-/**
- * Capture console logs as breadcrumbs.
- */
-export const consoleIntegration = defineIntegration(_consoleIntegration);
+});
