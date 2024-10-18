@@ -30,6 +30,7 @@ import { consoleIntegration } from '../integrations/console';
 import { nodeContextIntegration } from '../integrations/context';
 import { contextLinesIntegration } from '../integrations/contextlines';
 
+import { fetchBreadcrumbsIntegration } from '../integrations/fetch-breadcrumbs';
 import { httpIntegration } from '../integrations/http';
 import { localVariablesIntegration } from '../integrations/local-variables';
 import { modulesIntegration } from '../integrations/modules';
@@ -71,6 +72,7 @@ export function getDefaultIntegrationsWithoutPerformance(): Integration[] {
     contextLinesIntegration(),
     localVariablesIntegration(),
     nodeContextIntegration(),
+    fetchBreadcrumbsIntegration(),
     ...getCjsOnlyIntegrations(),
   ];
 }

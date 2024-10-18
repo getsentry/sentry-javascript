@@ -74,6 +74,7 @@ export {
   mysql2Integration,
   mysqlIntegration,
   nativeNodeFetchIntegration,
+  fetchBreadcrumbsIntegration,
   nestIntegration,
   NodeClient,
   nodeContextIntegration,
