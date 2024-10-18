@@ -58,15 +58,11 @@ afterEach(() => {
   mkdtempSyncSpy.mockClear();
 });
 
-// TODO (v8): This shouldn't be necessary once `hideSourceMaps` gets a default value, even for the updated error message
 // eslint-disable-next-line @typescript-eslint/unbound-method
 const realConsoleWarn = global.console.warn;
 global.console.warn = (...args: unknown[]) => {
-  // Suppress the warning message about the `hideSourceMaps` option. This is better than forcing a value for
-  // `hideSourceMaps` because that would mean we couldn't test it easily and would muddy the waters of other tests. Note
-  // that doing this here, as a side effect, only works because the tests which trigger this warning are the same tests
-  // which need other mocks from this file.
-  if (typeof args[0] === 'string' && args[0]?.includes('your original code may be visible in browser devtools')) {
+  // Suppress the v7 -> v8 migration warning which would get spammed for the unit tests otherwise
+  if (typeof args[0] === 'string' && args[0]?.includes('Learn more about setting up an instrumentation hook')) {
     return;
   }
 

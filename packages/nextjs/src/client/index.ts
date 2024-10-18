@@ -13,7 +13,7 @@ import { applyTunnelRouteOption } from './tunnelRoute';
 
 export * from '@sentry/react';
 
-export { captureUnderscoreErrorException } from '../common/_error';
+export { captureUnderscoreErrorException } from '../common/pages-router-instrumentation/_error';
 
 const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
   __rewriteFramesAssetPrefixPath__: string;

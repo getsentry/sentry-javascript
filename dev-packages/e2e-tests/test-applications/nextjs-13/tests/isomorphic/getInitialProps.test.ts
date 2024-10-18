@@ -11,7 +11,7 @@ test('should propagate serverside `getInitialProps` trace to client', async ({ p
 
   const serverTransactionPromise = waitForTransaction('nextjs-13', async transactionEvent => {
     return (
-      transactionEvent.transaction === '/[param]/withInitialProps' &&
+      transactionEvent.transaction === 'GET /[param]/withInitialProps' &&
       transactionEvent.contexts?.trace?.op === 'http.server'
     );
   });
@@ -47,7 +47,7 @@ test('should propagate serverside `getInitialProps` trace to client', async ({ p
           status: 'ok',
         },
       },
-      transaction: '/[param]/withInitialProps',
+      transaction: 'GET /[param]/withInitialProps',
       transaction_info: {
         source: 'route',
       },
