@@ -268,7 +268,7 @@ export function extractNetworkProtocol(nextHopProtocol: string): { name: string;
 }
 
 function getAbsoluteTime(time: number = 0): number {
-  return ((browserPerformanceTimeOrigin || performance.timeOrigin) + time) / 1000;
+  return ((browserPerformanceTimeOrigin() || performance.timeOrigin) + time) / 1000;
 }
 
 function resourceTimingEntryToSpanData(resourceTiming: PerformanceResourceTiming): [string, string | number][] {
@@ -278,7 +278,7 @@ function resourceTimingEntryToSpanData(resourceTiming: PerformanceResourceTiming
 
   timingSpanData.push(['network.protocol.version', version], ['network.protocol.name', name]);
 
-  if (!browserPerformanceTimeOrigin) {
+  if (!browserPerformanceTimeOrigin()) {
     return timingSpanData;
   }
   return [

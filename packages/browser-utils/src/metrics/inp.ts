@@ -26,7 +26,7 @@ const INTERACTIONS_SPAN_MAP = new Map<number, Span>();
  */
 export function startTrackingINP(): () => void {
   const performance = getBrowserPerformanceAPI();
-  if (performance && browserPerformanceTimeOrigin) {
+  if (performance && browserPerformanceTimeOrigin()) {
     const inpCallback = _trackINP();
 
     return (): void => {
@@ -83,7 +83,7 @@ function _trackINP(): () => void {
     const interactionType = INP_ENTRY_MAP[entry.name];
 
     /** Build the INP span, create an envelope from the span, and then send the envelope */
-    const startTime = msToSec((browserPerformanceTimeOrigin as number) + entry.startTime);
+    const startTime = msToSec((browserPerformanceTimeOrigin() as number) + entry.startTime);
     const duration = msToSec(metric.value);
     const activeSpan = getActiveSpan();
     const rootSpan = activeSpan ? getRootSpan(activeSpan) : undefined;

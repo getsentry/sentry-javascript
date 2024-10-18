@@ -251,9 +251,9 @@ export function convertJSSelfProfileToSampledFormat(input: JSSelfProfile): Profi
   // when that happens, we need to ensure we are correcting the profile timings so the two timelines stay in sync.
   // Since JS self profiling time origin is always initialized to performance.timeOrigin, we need to adjust for
   // the drift between the SDK selected value and our profile time origin.
-  const origin =
-    typeof performance.timeOrigin === 'number' ? performance.timeOrigin : browserPerformanceTimeOrigin || 0;
-  const adjustForOriginChange = origin - (browserPerformanceTimeOrigin || origin);
+  const perfOrigin = browserPerformanceTimeOrigin();
+  const origin = typeof performance.timeOrigin === 'number' ? performance.timeOrigin : perfOrigin || 0;
+  const adjustForOriginChange = origin - (perfOrigin || origin);
 
   input.samples.forEach((jsSample, i) => {
     // If sample has no stack, add an empty sample
