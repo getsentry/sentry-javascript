@@ -14,6 +14,7 @@
     "@opentelemetry/sdk-trace-node": "1.26.0",
     "@opentelemetry/exporter-trace-otlp-http": "0.53.0",
     "@opentelemetry/instrumentation-undici": "0.6.0",
+    "@opentelemetry/instrumentation-http": "0.53.0",
     "@opentelemetry/instrumentation": "0.53.0",
     "@sentry/core": "latest || *",
     "@sentry/node": "latest || *",

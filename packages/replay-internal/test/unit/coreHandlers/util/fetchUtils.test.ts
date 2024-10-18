@@ -132,7 +132,7 @@ describe('Unit | coreHandlers | util | fetchUtils', () => {
       ]);
 
       expect(res).toEqual({
-        _meta: { warnings: ['BODY_PARSE_ERROR'] },
+        _meta: { warnings: ['BODY_PARSE_TIMEOUT'] },
         headers: {},
         size: undefined,
       });

@@ -14,3 +14,10 @@ xhrBtn.addEventListener('click', () => {
   xhr.open('GET', 'http://example.com');
   xhr.send();
 });
+
+const spanAndFetchBtn = document.getElementById('spanAndFetchBtn');
+spanAndFetchBtn.addEventListener('click', () => {
+  Sentry.startSpan({ name: 'custom-root-span' }, async () => {
+    await fetch('http://example.com');
+  });
+});

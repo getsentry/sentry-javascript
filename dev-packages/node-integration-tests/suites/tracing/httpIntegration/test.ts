@@ -128,65 +128,45 @@ describe('httpIntegration', () => {
     });
   });
 
-  describe("doesn't create child spans for outgoing requests ignored via `ignoreOutgoingRequests`", () => {
+  describe("doesn't create child spans or breadcrumbs for outgoing requests ignored via `ignoreOutgoingRequests`", () => {
     test('via the url param', done => {
       const runner = createRunner(__dirname, 'server-ignoreOutgoingRequests.js')
         .expect({
-          transaction: {
-            contexts: {
-              trace: {
-                span_id: expect.any(String),
-                trace_id: expect.any(String),
-                data: {
-                  url: expect.stringMatching(/\/test$/),
-                  'http.response.status_code': 200,
-                },
-                op: 'http.server',
-                status: 'ok',
-              },
-            },
-            transaction: 'GET /test',
-            spans: [
-              expect.objectContaining({ op: 'middleware.express', description: 'query' }),
-              expect.objectContaining({ op: 'middleware.express', description: 'expressInit' }),
-              expect.objectContaining({ op: 'middleware.express', description: 'corsMiddleware' }),
-              expect.objectContaining({ op: 'request_handler.express', description: '/test' }),
-            ],
+          transaction: event => {
+            expect(event.transaction).toBe('GET /testUrl');
+
+            const requestSpans = event.spans?.filter(span => span.op === 'http.client');
+            expect(requestSpans).toHaveLength(1);
+            expect(requestSpans![0]?.description).toBe('GET http://example.com/pass');
+
+            const breadcrumbs = event.breadcrumbs?.filter(b => b.category === 'http');
+            expect(breadcrumbs).toHaveLength(1);
+            expect(breadcrumbs![0]?.data?.url).toEqual('http://example.com/pass');
           },
         })
         .start(done);
 
-      runner.makeRequest('get', '/test');
+      runner.makeRequest('get', '/testUrl');
     });
 
     test('via the request param', done => {
       const runner = createRunner(__dirname, 'server-ignoreOutgoingRequests.js')
         .expect({
-          transaction: {
-            contexts: {
-              trace: {
-                span_id: expect.any(String),
-                trace_id: expect.any(String),
-                data: {
-                  url: expect.stringMatching(/\/testPath$/),
-                  'http.response.status_code': 200,
-                },
-                op: 'http.server',
-                status: 'ok',
-              },
-            },
-            transaction: 'POST /testPath',
-            spans: [
-              expect.objectContaining({ op: 'middleware.express', description: 'query' }),
-              expect.objectContaining({ op: 'middleware.express', description: 'expressInit' }),
-              expect.objectContaining({ op: 'middleware.express', description: 'corsMiddleware' }),
-              expect.objectContaining({ op: 'request_handler.express', description: '/testPath' }),
-            ],
+          transaction: event => {
+            expect(event.transaction).toBe('GET /testRequest');
+
+            const requestSpans = event.spans?.filter(span => span.op === 'http.client');
+            expect(requestSpans).toHaveLength(1);
+            expect(requestSpans![0]?.description).toBe('GET http://example.com/pass');
+
+            const breadcrumbs = event.breadcrumbs?.filter(b => b.category === 'http');
+            expect(breadcrumbs).toHaveLength(1);
+            expect(breadcrumbs![0]?.data?.url).toEqual('http://example.com/pass');
           },
         })
         .start(done);
 
-      runner.makeRequest('post', '/testPath');
+      runner.makeRequest('get', '/testRequest');
     });
   });
 });

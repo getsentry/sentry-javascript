@@ -54,6 +54,14 @@ describe('instrumentOutgoingRequests', () => {
 
     expect(addXhrSpy).not.toHaveBeenCalled();
   });
+
+  it('does instrument streaming requests if trackFetchStreamPerformance is true', () => {
+    const addFetchEndSpy = vi.spyOn(utils, 'addFetchEndInstrumentationHandler');
+
+    instrumentOutgoingRequests(client, { trackFetchStreamPerformance: true });
+
+    expect(addFetchEndSpy).toHaveBeenCalledWith(expect.any(Function));
+  });
 });
 
 interface ProtocolInfo {

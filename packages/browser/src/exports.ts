@@ -40,6 +40,7 @@ export {
   setCurrentClient,
   Scope,
   continueTrace,
+  suppressTracing,
   SDK_VERSION,
   setContext,
   setExtra,

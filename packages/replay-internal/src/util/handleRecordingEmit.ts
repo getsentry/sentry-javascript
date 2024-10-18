@@ -71,16 +71,6 @@ export function getHandleRecordingEmit(replay: ReplayContainer): RecordingEmitCa
       // only be added for checkouts
       addSettingsEvent(replay, isCheckout);
 
-      // If there is a previousSessionId after a full snapshot occurs, then
-      // the replay session was started due to session expiration. The new session
-      // is started before triggering a new checkout and contains the id
-      // of the previous session. Do not immediately flush in this case
-      // to avoid capturing only the checkout and instead the replay will
-      // be captured if they perform any follow-up actions.
-      if (session && session.previousSessionId) {
-        return true;
-      }
-
       // When in buffer mode, make sure we adjust the session started date to the current earliest event of the buffer
       // this should usually be the timestamp of the checkout event, but to be safe...
       if (replay.recordingMode === 'buffer' && session && replay.eventBuffer) {
@@ -95,6 +85,16 @@ export function getHandleRecordingEmit(replay: ReplayContainer): RecordingEmitCa
             saveSession(session);
           }
         }
+      }
+
+      // If there is a previousSessionId after a full snapshot occurs, then
+      // the replay session was started due to session expiration. The new session
+      // is started before triggering a new checkout and contains the id
+      // of the previous session. Do not immediately flush in this case
+      // to avoid capturing only the checkout and instead the replay will
+      // be captured if they perform any follow-up actions.
+      if (session && session.previousSessionId) {
+        return true;
       }
 
       if (replay.recordingMode === 'session') {

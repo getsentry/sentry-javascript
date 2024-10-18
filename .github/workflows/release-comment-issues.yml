@@ -20,7 +20,12 @@ jobs:
         run: echo "version=${{ github.event.inputs.version || github.event.release.tag_name }}" >> $GITHUB_OUTPUT
 
       - name: Comment on linked issues that are mentioned in release
-        if: steps.get_version.outputs.version != ''
+        if: |
+          steps.get_version.outputs.version != ''
+          && !contains(steps.get_version.outputs.version, '-beta.')
+          && !contains(steps.get_version.outputs.version, '-alpha.')
+          && !contains(steps.get_version.outputs.version, '-rc.')
+
         uses: getsentry/release-comment-issues-gh-action@v1
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}

@@ -921,6 +921,7 @@ jobs:
             'tanstack-router',
             'generic-ts3.8',
             'node-fastify',
+            'node-fastify-5',
             'node-hapi',
             'node-nestjs-basic',
             'node-nestjs-distributed-tracing',

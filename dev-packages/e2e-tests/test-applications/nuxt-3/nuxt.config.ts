@@ -11,4 +11,10 @@ export default defineNuxtConfig({
       },
     },
   },
+  nitro: {
+    rollupConfig: {
+      // @sentry/... is set external to prevent bundling all of Sentry into the `runtime.mjs` file in the build output
+      external: [/@sentry\/.*/],
+    },
+  },
 });
