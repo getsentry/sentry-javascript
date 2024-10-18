@@ -17,6 +17,7 @@ import type {
   HandlerDataHistory,
   HandlerDataXhr,
   IntegrationFn,
+  SeverityLevel,
   XhrBreadcrumbData,
   XhrBreadcrumbHint,
 } from '@sentry/types';
@@ -26,6 +27,7 @@ import {
   getBreadcrumbLogLevelFromHttpStatusCode,
   getComponentName,
   getEventDescription,
+  getGraphQLRequestPayload,
   htmlTreeAsString,
   logger,
   parseUrl,
@@ -248,17 +250,16 @@ function _getXhrBreadcrumbHandler(client: Client): (handlerData: HandlerDataXhr)
       endTimestamp,
     };
 
-    const level = getBreadcrumbLogLevelFromHttpStatusCode(status_code);
+    const breadcrumb = {
+      category: 'xhr',
+      data,
+      type: 'http',
+      level: getBreadcrumbLogLevelFromHttpStatusCode(status_code),
+    };
 
-    addBreadcrumb(
-      {
-        category: 'xhr',
-        data,
-        type: 'http',
-        level,
-      },
-      hint,
-    );
+    client.emit('outgoingRequestBreadcrumbStart', breadcrumb, { body: getGraphQLRequestPayload(body as string) });
+
+    addBreadcrumb(breadcrumb, hint);
   };
 }
 
@@ -292,15 +293,18 @@ function _getFetchBreadcrumbHandler(client: Client): (handlerData: HandlerDataFe
         endTimestamp,
       };
 
-      addBreadcrumb(
-        {
-          category: 'fetch',
-          data,
-          level: 'error',
-          type: 'http',
-        },
-        hint,
-      );
+      const breadcrumb = {
+        category: 'fetch',
+        data,
+        level: 'error' as SeverityLevel,
+        type: 'http',
+      };
+
+      client.emit('outgoingRequestBreadcrumbStart', breadcrumb, {
+        body: getGraphQLRequestPayload(handlerData.fetchData.body as string),
+      });
+
+      addBreadcrumb(breadcrumb, hint);
     } else {
       const response = handlerData.response as Response | undefined;
       const data: FetchBreadcrumbData = {
@@ -313,17 +317,19 @@ function _getFetchBreadcrumbHandler(client: Client): (handlerData: HandlerDataFe
         startTimestamp,
         endTimestamp,
       };
-      const level = getBreadcrumbLogLevelFromHttpStatusCode(data.status_code);
 
-      addBreadcrumb(
-        {
-          category: 'fetch',
-          data,
-          type: 'http',
-          level,
-        },
-        hint,
-      );
+      const breadcrumb = {
+        category: 'fetch',
+        data,
+        type: 'http',
+        level: getBreadcrumbLogLevelFromHttpStatusCode(data.status_code),
+      };
+
+      client.emit('outgoingRequestBreadcrumbStart', breadcrumb, {
+        body: getGraphQLRequestPayload(handlerData.fetchData.body as string),
+      });
+
+      addBreadcrumb(breadcrumb, hint);
     }
   };
 }
