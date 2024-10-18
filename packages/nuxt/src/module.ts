@@ -74,6 +74,15 @@ export default defineNuxtModule<ModuleOptions>({
 
     nuxt.hooks.hook('nitro:init', nitro => {
       if (serverConfigFile && serverConfigFile.includes('.server.config')) {
+        if (nitro.options.dev) {
+          consoleSandbox(() => {
+            // eslint-disable-next-line no-console
+            console.log(
+              '[Sentry] Your application is running in development mode. Note: @sentry/nuxt is in beta and may not work as expected on the server-side (Nitro). Errors are reported, but tracing does not work.',
+            );
+          });
+        }
+
         if (moduleOptions.dynamicImportForServerEntry === false) {
           addServerConfigToBuild(moduleOptions, nuxt, nitro, serverConfigFile);
 
