@@ -1,11 +1,11 @@
 import type { Nuxt } from '@nuxt/schema';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { SentryNuxtModuleOptions } from '../../src/common/types';
-import type { UserSourcemapSetting } from '../../src/vite/sourceMaps';
+import type { UserSourceMapSetting } from '../../src/vite/sourceMaps';
 import {
-  changeNuxtSourcemapSettings,
-  changeRollupSourcemapSettings,
-  changeViteSourcemapSettings,
+  changeNuxtSourceMapSettings,
+  changeRollupSourceMapSettings,
+  changeViteSourceMapSettings,
   getPluginOptions,
 } from '../../src/vite/sourceMaps';
 
@@ -159,7 +159,7 @@ describe('change sourcemap settings', () => {
       const cases: {
         sourcemap?: boolean | 'hidden' | 'inline';
         expectedSourcemap: boolean | string;
-        expectedReturn: UserSourcemapSetting;
+        expectedReturn: UserSourceMapSetting;
       }[] = [
         { sourcemap: false, expectedSourcemap: false, expectedReturn: 'disabled' },
         { sourcemap: 'hidden', expectedSourcemap: 'hidden', expectedReturn: 'enabled' },
@@ -170,7 +170,7 @@ describe('change sourcemap settings', () => {
 
       cases.forEach(({ sourcemap, expectedSourcemap, expectedReturn }) => {
         viteConfig.build = { sourcemap };
-        const previousUserSourcemapSetting = changeViteSourcemapSettings(viteConfig, sentryModuleOptions);
+        const previousUserSourcemapSetting = changeViteSourceMapSettings(viteConfig, sentryModuleOptions);
         expect(viteConfig.build.sourcemap).toBe(expectedSourcemap);
         expect(previousUserSourcemapSetting).toBe(expectedReturn);
       });
@@ -192,7 +192,7 @@ describe('change sourcemap settings', () => {
       const cases: {
         output?: { sourcemap?: boolean | 'hidden' | 'inline' };
         expectedSourcemap: boolean | string;
-        expectedReturn: UserSourcemapSetting;
+        expectedReturn: UserSourceMapSetting;
       }[] = [
         { output: { sourcemap: false }, expectedSourcemap: false, expectedReturn: 'disabled' },
         { output: { sourcemap: 'hidden' }, expectedSourcemap: 'hidden', expectedReturn: 'enabled' },
@@ -204,7 +204,7 @@ describe('change sourcemap settings', () => {
 
       cases.forEach(({ output, expectedSourcemap, expectedReturn }) => {
         nitroConfig.rollupConfig = { output };
-        const previousUserSourceMapSetting = changeRollupSourcemapSettings(nitroConfig, sentryModuleOptions);
+        const previousUserSourceMapSetting = changeRollupSourceMapSettings(nitroConfig, sentryModuleOptions);
         expect(nitroConfig.rollupConfig?.output?.sourcemap).toBe(expectedSourcemap);
         expect(previousUserSourceMapSetting).toBe(expectedReturn);
         expect(nitroConfig.rollupConfig?.output?.sourcemapExcludeSources).toBe(false);
@@ -233,7 +233,7 @@ describe('change sourcemap settings', () => {
       cases.forEach(({ clientSourcemap, expectedSourcemap, expectedReturn }) => {
         // @ts-expect-error - Nuxt types don't accept `undefined` but we want to test this case
         nuxt.options.sourcemap.client = clientSourcemap;
-        const previousUserSourcemapSetting = changeNuxtSourcemapSettings(nuxt as Nuxt, sentryModuleOptions);
+        const previousUserSourcemapSetting = changeNuxtSourceMapSettings(nuxt as Nuxt, sentryModuleOptions);
         expect(nuxt.options.sourcemap.client).toBe(expectedSourcemap);
         expect(previousUserSourcemapSetting.client).toBe(expectedReturn);
       });
@@ -250,7 +250,7 @@ describe('change sourcemap settings', () => {
       cases.forEach(({ serverSourcemap, expectedSourcemap, expectedReturn }) => {
         // @ts-expect-error server available
         nuxt.options.sourcemap.server = serverSourcemap;
-        const previousUserSourcemapSetting = changeNuxtSourcemapSettings(nuxt as Nuxt, sentryModuleOptions);
+        const previousUserSourcemapSetting = changeNuxtSourceMapSettings(nuxt as Nuxt, sentryModuleOptions);
         expect(nuxt.options.sourcemap.server).toBe(expectedSourcemap);
         expect(previousUserSourcemapSetting.server).toBe(expectedReturn);
       });
@@ -267,7 +267,7 @@ describe('change sourcemap settings', () => {
         cases.forEach(({ sourcemap, expectedSourcemap, expectedReturn }) => {
           // @ts-expect-error string type is possible in Nuxt (but type says differently)
           nuxt.options.sourcemap = sourcemap;
-          const previousUserSourcemapSetting = changeNuxtSourcemapSettings(nuxt as Nuxt, sentryModuleOptions);
+          const previousUserSourcemapSetting = changeNuxtSourceMapSettings(nuxt as Nuxt, sentryModuleOptions);
           expect(nuxt.options.sourcemap).toBe(expectedSourcemap);
           expect(previousUserSourcemapSetting.client).toBe(expectedReturn);
           expect(previousUserSourcemapSetting.server).toBe(expectedReturn);
@@ -277,7 +277,7 @@ describe('change sourcemap settings', () => {
       it("sets client and server to 'hidden' if nuxt.options.sourcemap not set", () => {
         // @ts-expect-error - Nuxt types don't accept `undefined` but we want to test this case
         nuxt.options.sourcemap = undefined;
-        const previousUserSourcemapSetting = changeNuxtSourcemapSettings(nuxt as Nuxt, sentryModuleOptions);
+        const previousUserSourcemapSetting = changeNuxtSourceMapSettings(nuxt as Nuxt, sentryModuleOptions);
         expect(nuxt.options.sourcemap.client).toBe('hidden');
         expect(nuxt.options.sourcemap.server).toBe('hidden');
         expect(previousUserSourcemapSetting.client).toBe('unset');
