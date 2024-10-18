@@ -170,8 +170,9 @@ export function resolveResponse(res: Response, parentRes: Response, onFinishedRe
     await originalCancel(reason);
   };
 
-  const originalGetReader = parentRes.body.getReader.bind(parentBody) as
-    (options: ReadableStreamGetReaderOptions) => ReadableStreamDefaultReader;
+  const originalGetReader = parentRes.body.getReader.bind(parentBody) as (
+    options: ReadableStreamGetReaderOptions,
+  ) => ReadableStreamDefaultReader;
 
   // Override getReader on parent response's body
   parentBody.getReader = ((opts?: any) => {
