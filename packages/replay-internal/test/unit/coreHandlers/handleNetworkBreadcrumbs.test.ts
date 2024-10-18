@@ -40,6 +40,8 @@ function getMockResponse(contentLength?: string, body?: string, headers?: Record
     ...headers,
   };
 
+  const encoder = new TextEncoder();
+
   const response = {
     headers: {
       has: (prop: string) => {
@@ -47,6 +49,24 @@ function getMockResponse(contentLength?: string, body?: string, headers?: Record
       },
       get: (prop: string) => {
         return internalHeaders[prop.toLowerCase() ?? ''];
+      },
+    },
+    body: {
+      getReader: () => {
+        return {
+          read: () => {
+            return Promise.resolve({
+              done: true,
+              value: encoder.encode(body),
+            });
+          },
+          cancel: async () => {
+            // noop
+          },
+          releaseLock: async () => {
+            // noop
+          },
+        };
       },
     },
     clone: () => response,
@@ -741,6 +761,7 @@ other-header: test`;
       options.networkCaptureBodies = true;
 
       const largeBody = JSON.stringify({ a: LARGE_BODY });
+      const encoder = new TextEncoder();
 
       const breadcrumb: Breadcrumb = {
         category: 'fetch',
@@ -756,6 +777,24 @@ other-header: test`;
           get: () => '',
         },
         clone: () => mockResponse,
+        body: {
+          getReader: () => {
+            return {
+              read: () => {
+                return Promise.resolve({
+                  done: true,
+                  value: encoder.encode(largeBody),
+                });
+              },
+              cancel: async () => {
+                // noop
+              },
+              releaseLock: async () => {
+                // noop
+              },
+            };
+          },
+        },
         text: () => Promise.resolve(largeBody),
       } as unknown as Response;
 
