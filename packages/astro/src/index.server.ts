@@ -14,6 +14,7 @@ export {
   addOpenTelemetryInstrumentation,
   addRequestDataToEvent,
   amqplibIntegration,
+  firebaseIntegration,
   anrIntegration,
   captureCheckIn,
   captureConsoleIntegration,
