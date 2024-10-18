@@ -7,7 +7,7 @@ import {
   withIsolationScope,
 } from '@sentry/core';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
-import { isString, logger, objectify } from '@sentry/utils';
+import { isString, logger, objectify, vercelWaitUntil } from '@sentry/utils';
 import type { NextApiRequest } from 'next';
 import type { AugmentedNextApiResponse, NextApiHandler } from './types';
 import { flushSafelyWithTimeout } from './utils/responseEnd';
@@ -77,6 +77,15 @@ export function wrapApiHandlerWithSentry(apiHandler: NextApiHandler, parameteriz
                   },
                 },
                 async span => {
+                  // eslint-disable-next-line @typescript-eslint/unbound-method
+                  res.end = new Proxy(res.end, {
+                    apply(target, thisArg, argArray) {
+                      setHttpStatus(span, res.statusCode);
+                      span.end();
+                      vercelWaitUntil(flushSafelyWithTimeout());
+                      return target.apply(thisArg, argArray);
+                    },
+                  });
                   try {
                     return await wrappingTarget.apply(thisArg, args);
                   } catch (e) {
