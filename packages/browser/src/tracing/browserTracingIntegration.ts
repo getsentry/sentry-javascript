@@ -362,7 +362,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
 
       if (WINDOW.location) {
         if (instrumentPageLoad) {
-          let origin = browserPerformanceTimeOrigin();
+          const origin = browserPerformanceTimeOrigin();
           startBrowserTracingPageLoadSpan(client, {
             name: WINDOW.location.pathname,
             // pageload should always start at timeOrigin (and needs to be in s, not ms)
