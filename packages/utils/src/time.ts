@@ -73,16 +73,9 @@ export const timestampInSeconds = createUnixTimestampInSecondsFunc();
  */
 export let _browserPerformanceTimeOriginMode: string;
 
-let cachedbrowserPerformanceTimeOrigin: { value: number | undefined } | undefined;
+let cachedTimeOrigin: { v: number | undefined } | undefined;
 
-/**
- * The number of milliseconds since the UNIX epoch. This value is only usable in a browser, and only when the
- * performance API is available.
- */
-export function browserPerformanceTimeOrigin(): number | undefined {
-  if (cachedbrowserPerformanceTimeOrigin) {
-    return cachedbrowserPerformanceTimeOrigin.value;
-  }
+function getBrowserTimeOrigin(): number | undefined {
   // Unfortunately browsers may report an inaccurate time origin data, through either performance.timeOrigin or
   // performance.timing.navigationStart, which results in poor results in performance data. We only treat time origin
   // data as reliable if they are within a reasonable threshold of the current time.
@@ -129,7 +122,17 @@ export function browserPerformanceTimeOrigin(): number | undefined {
   // Either both timeOrigin and navigationStart are skewed or neither is available, fallback to Date.
   _browserPerformanceTimeOriginMode = 'dateNow';
 
-  cachedbrowserPerformanceTimeOrigin = { value: dateNow };
-
   return dateNow;
+}
+
+/**
+ * The number of milliseconds since the UNIX epoch. This value is only usable in a browser, and only when the
+ * performance API is available.
+ */
+export function browserPerformanceTimeOrigin(): number | undefined {
+  if (!cachedTimeOrigin) {
+    cachedTimeOrigin = { v: getBrowserTimeOrigin() };
+  }
+
+  return cachedTimeOrigin.v;
 }
