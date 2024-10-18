@@ -75,54 +75,6 @@ export function addServerConfigToBuild(
 }
 
 /**
- *  Adds the Sentry server config import at the top of the server entry file to load the SDK on the server.
- *  This is necessary for environments where modifying the node option `--import` is not possible.
- *  However, only limited tracing instrumentation is supported when doing this.
- */
-export function addSentryTopImport(moduleOptions: SentryNuxtModuleOptions, nitro: Nitro): void {
-  nitro.hooks.hook('close', () => {
-    // other presets ('node-server' or 'vercel') have an index.mjs
-    const presetsWithServerFile = ['netlify'];
-    const entryFileName =
-      typeof nitro.options.rollupConfig?.output.entryFileNames === 'string'
-        ? nitro.options.rollupConfig?.output.entryFileNames
-        : presetsWithServerFile.includes(nitro.options.preset)
-          ? 'server.mjs'
-          : 'index.mjs';
-
-    const serverDirResolver = createResolver(nitro.options.output.serverDir);
-    const entryFilePath = serverDirResolver.resolve(entryFileName);
-
-    try {
-      fs.readFile(entryFilePath, 'utf8', (err, data) => {
-        const updatedContent = `import './${SERVER_CONFIG_FILENAME}.mjs';\n${data}`;
-
-        fs.writeFile(entryFilePath, updatedContent, 'utf8', () => {
-          if (moduleOptions.debug) {
-            consoleSandbox(() => {
-              // eslint-disable-next-line no-console
-              console.log(
-                `[Sentry] Successfully added the Sentry import to the server entry file "\`${entryFilePath}\`"`,
-              );
-            });
-          }
-        });
-      });
-    } catch (err) {
-      if (moduleOptions.debug) {
-        consoleSandbox(() => {
-          // eslint-disable-next-line no-console
-          console.warn(
-            `[Sentry] An error occurred when trying to add the Sentry import to the server entry file "\`${entryFilePath}\`":`,
-            err,
-          );
-        });
-      }
-    }
-  });
-}
-
-/**
  * This function modifies the Rollup configuration to include a plugin that wraps the entry file with a dynamic import (`import()`)
  * and adds the Sentry server config with the static `import` declaration.
  *
@@ -187,11 +139,8 @@ function wrapEntryWithDynamicImport(resolvedSentryConfigPath: string): InputPlug
           : resolution.id
               // Concatenates the query params to mark the file (also attaches names of re-exports - this is needed for serverless functions to re-export the handler)
               .concat(SENTRY_WRAPPED_ENTRY)
-              .concat(
-                exportedFunctions?.length
-                  ? SENTRY_FUNCTIONS_REEXPORT.concat(exportedFunctions.join(',')).concat(QUERY_END_INDICATOR)
-                  : '',
-              );
+              .concat(exportedFunctions?.length ? SENTRY_FUNCTIONS_REEXPORT.concat(exportedFunctions.join(',')) : '')
+              .concat(QUERY_END_INDICATOR);
       }
       return null;
     },
@@ -211,7 +160,7 @@ function wrapEntryWithDynamicImport(resolvedSentryConfigPath: string): InputPlug
           // `import()` can be used for any code that should be run after the hooks are registered (https://nodejs.org/api/module.html#enabling)
           `import(${JSON.stringify(entryId)});\n` +
           // By importing "import-in-the-middle/hook.mjs", we can make sure this file wil be included, as not all node builders are including files imported with `module.register()`.
-          "import 'import-in-the-middle/hook.mjs'\n" +
+          "import 'import-in-the-middle/hook.mjs';\n" +
           `${reExportedFunctions}\n`
         );
       }
