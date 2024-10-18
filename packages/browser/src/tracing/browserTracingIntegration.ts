@@ -362,10 +362,11 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
 
       if (WINDOW.location) {
         if (instrumentPageLoad) {
+          let origin = browserPerformanceTimeOrigin();
           startBrowserTracingPageLoadSpan(client, {
             name: WINDOW.location.pathname,
             // pageload should always start at timeOrigin (and needs to be in s, not ms)
-            startTime: browserPerformanceTimeOrigin ? browserPerformanceTimeOrigin / 1000 : undefined,
+            startTime: origin ? origin / 1000 : undefined,
             attributes: {
               [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.browser',

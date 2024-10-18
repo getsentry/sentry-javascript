@@ -79,7 +79,7 @@ interface StartTrackingWebVitalsOptions {
  */
 export function startTrackingWebVitals({ recordClsStandaloneSpans }: StartTrackingWebVitalsOptions): () => void {
   const performance = getBrowserPerformanceAPI();
-  if (performance && browserPerformanceTimeOrigin) {
+  if (performance && browserPerformanceTimeOrigin()) {
     // @ts-expect-error we want to make sure all of these are available, even if TS is sure they are
     if (performance.mark) {
       WINDOW.performance.mark('sentry-tracing-init');
@@ -109,7 +109,7 @@ export function startTrackingLongTasks(): void {
       return;
     }
     for (const entry of entries) {
-      const startTime = msToSec((browserPerformanceTimeOrigin as number) + entry.startTime);
+      const startTime = msToSec((browserPerformanceTimeOrigin() as number) + entry.startTime);
       const duration = msToSec(entry.duration);
 
       const span = startInactiveSpan({
@@ -143,7 +143,7 @@ export function startTrackingLongAnimationFrames(): void {
         continue;
       }
 
-      const startTime = msToSec((browserPerformanceTimeOrigin as number) + entry.startTime);
+      const startTime = msToSec((browserPerformanceTimeOrigin() as number) + entry.startTime);
       const duration = msToSec(entry.duration);
 
       const attributes: SpanAttributes = {
@@ -189,7 +189,7 @@ export function startTrackingInteractions(): void {
     }
     for (const entry of entries) {
       if (entry.name === 'click') {
-        const startTime = msToSec((browserPerformanceTimeOrigin as number) + entry.startTime);
+        const startTime = msToSec((browserPerformanceTimeOrigin() as number) + entry.startTime);
         const duration = msToSec(entry.duration);
 
         const spanOptions: StartSpanOptions & Required<Pick<StartSpanOptions, 'attributes'>> = {
@@ -255,7 +255,7 @@ function _trackFID(): () => void {
       return;
     }
 
-    const timeOrigin = msToSec(browserPerformanceTimeOrigin as number);
+    const timeOrigin = msToSec(browserPerformanceTimeOrigin() as number);
     const startTime = msToSec(entry.startTime);
     DEBUG_BUILD && logger.log('[Measurements] Adding FID');
     _measurements['fid'] = { value: metric.value, unit: 'millisecond' };
@@ -286,13 +286,14 @@ interface AddPerformanceEntriesOptions {
 /** Add performance related spans to a transaction */
 export function addPerformanceEntries(span: Span, options: AddPerformanceEntriesOptions): void {
   const performance = getBrowserPerformanceAPI();
-  if (!performance || !WINDOW.performance.getEntries || !browserPerformanceTimeOrigin) {
+  const origin = browserPerformanceTimeOrigin();
+  if (!performance || !WINDOW.performance.getEntries || !origin) {
     // Gatekeeper if performance API not available
     return;
   }
 
   DEBUG_BUILD && logger.log('[Tracing] Adding & adjusting spans using Performance API');
-  const timeOrigin = msToSec(browserPerformanceTimeOrigin);
+  const timeOrigin = msToSec(origin);
 
   const performanceEntries = performance.getEntries();
 
