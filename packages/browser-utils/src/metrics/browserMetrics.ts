@@ -222,6 +222,8 @@ export { startTrackingINP, registerInpInteractionListener } from './inp';
  * to the `_measurements` object which ultimately is applied to the pageload span's measurements.
  */
 function _trackCLS(): () => void {
+  trySetZeroClsValue();
+
   return addClsInstrumentationHandler(({ metric }) => {
     const entry = metric.entries[metric.entries.length - 1] as LayoutShift | undefined;
     if (!entry) {
@@ -231,6 +233,30 @@ function _trackCLS(): () => void {
     _measurements['cls'] = { value: metric.value, unit: '' };
     _clsEntry = entry;
   }, true);
+}
+
+/**
+ * Why does this function exist? A very good question!
+ *
+ * The `PerformanceObserver` emits `LayoutShift` entries whenever a layout shift occurs.
+ * If none occurs (which is great!), the observer will never emit any entries. Makes sense so far!
+ *
+ * This is problematic for the Sentry product though. We can't differentiate between a CLS of 0 and not having received
+ * CLS data at all. So in both cases, we'd show users that the CLS score simply is not available. When in fact, it can
+ * be 0, which is a very good score. This function is a workaround to emit a CLS of 0 right at the start of
+ * listening to CLS events. This way, we can differentiate between a CLS of 0 and no CLS at all. If a layout shift
+ * occurs later, the real CLS value will be emitted and the 0 value will be ignored.
+ * We also only send this artificial 0 value if the browser supports reporting the `layout-shift` entry type.
+ */
+function trySetZeroClsValue(): void {
+  try {
+    if (PerformanceObserver.supportedEntryTypes.includes('layout-shift')) {
+      DEBUG_BUILD && logger.log('[Measurements] Adding CLS 0');
+      _measurements['cls'] = { value: 0, unit: '' };
+    }
+  } catch {
+    // catching and ignoring access errors for bundle size minimization.
+  }
 }
 
 /** Starts tracking the Largest Contentful Paint on the current page. */
