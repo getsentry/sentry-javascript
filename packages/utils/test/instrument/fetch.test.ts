@@ -1,4 +1,4 @@
-import type { WebFetchResponse } from '@sentry/types';
+import type { WebFetchResponse, WebReadableStream } from '@sentry/types';
 
 import { parseFetchArgs, resolveResponse } from '../../src/instrument/fetch';
 
@@ -59,7 +59,7 @@ describe('instrument > fetch > resolveResponse', () => {
       body: {
         getReader: jest.fn(() => mockReader),
         cancel: jest.fn(),
-      } as unknown as ReadableStream<any>,
+      } as unknown as WebReadableStream<any>,
     } as jest.Mocked<WebFetchResponse>;
 
     mockParentReader = {
@@ -72,7 +72,7 @@ describe('instrument > fetch > resolveResponse', () => {
       body: {
         cancel: jest.fn().mockResolvedValue(undefined),
         getReader: jest.fn(() => mockParentReader),
-      } as unknown as ReadableStream<any>,
+      } as unknown as WebReadableStream<any>,
     } as jest.Mocked<WebFetchResponse>;
 
     onFinishedResolving = jest.fn();
