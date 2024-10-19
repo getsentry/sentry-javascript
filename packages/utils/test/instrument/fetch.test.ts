@@ -1,3 +1,5 @@
+import type { WebFetchResponse } from '@sentry/types';
+
 import { parseFetchArgs, resolveResponse } from '../../src/instrument/fetch';
 
 async function delay(ms: number) {
@@ -38,8 +40,8 @@ describe('instrument > parseFetchArgs', () => {
 
 describe('instrument > fetch > resolveResponse', () => {
   let mockReader: jest.Mocked<ReadableStreamDefaultReader<any>>;
-  let mockResponse: jest.Mocked<Response>;
-  let mockParentResponse: jest.Mocked<Response>;
+  let mockResponse: jest.Mocked<WebFetchResponse>;
+  let mockParentResponse: jest.Mocked<WebFetchResponse>;
   let mockParentReader: jest.Mocked<ReadableStreamDefaultReader<any>>;
   let onFinishedResolving: jest.Mock;
 
@@ -58,7 +60,7 @@ describe('instrument > fetch > resolveResponse', () => {
         getReader: jest.fn(() => mockReader),
         cancel: jest.fn(),
       } as unknown as ReadableStream<any>,
-    } as jest.Mocked<Response>;
+    } as jest.Mocked<WebFetchResponse>;
 
     mockParentReader = {
       read: jest.fn(),
@@ -71,7 +73,7 @@ describe('instrument > fetch > resolveResponse', () => {
         cancel: jest.fn().mockResolvedValue(undefined),
         getReader: jest.fn(() => mockParentReader),
       } as unknown as ReadableStream<any>,
-    } as jest.Mocked<Response>;
+    } as jest.Mocked<WebFetchResponse>;
 
     onFinishedResolving = jest.fn();
   });

@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import type { HandlerDataFetch } from '@sentry/types';
+import type { HandlerDataFetch, WebFetchResponse, WebReadableStreamDefaultReader } from '@sentry/types';
 
 import { isError } from '../is';
 import { addNonEnumerableProperty, fill } from '../object';
@@ -115,7 +115,7 @@ function instrumentFetch(onFetchResolved?: (response: Response) => void, skipNat
   });
 }
 
-async function resloveReader(reader: ReadableStreamDefaultReader, onFinishedResolving: () => void): Promise<void> {
+async function resloveReader(reader: WebReadableStreamDefaultReader, onFinishedResolving: () => void): Promise<void> {
   let running = true;
   while (running) {
     try {
@@ -143,8 +143,14 @@ async function resloveReader(reader: ReadableStreamDefaultReader, onFinishedReso
  * @param {Response} res - The `Response` object whose body stream will be resolved.
  * @param {Response} parentRes - The parent `Response` object whose body stream is linked to the cancellation of `res`.
  * @param {() => void} onFinishedResolving - A callback function to be invoked when the body stream of `res` is fully resolved.
+ *
+ * Export For Test Only
  */
-export function resolveResponse(res: Response, parentRes: Response, onFinishedResolving: () => void): void {
+export function resolveResponse(
+  res: WebFetchResponse,
+  parentRes: WebFetchResponse,
+  onFinishedResolving: () => void,
+): void {
   if (!res.body || !parentRes.body) {
     if (res.body) {
       res.body.cancel().catch(_ => {
@@ -157,6 +163,10 @@ export function resolveResponse(res: Response, parentRes: Response, onFinishedRe
 
   const body = res.body;
   const parentBody = parentRes.body;
+  // According to the WHATWG Streams API specification, when a stream is locked by calling `getReader()`,
+  // invoking `stream.cancel()` will result in a TypeError.
+  // To cancel while the stream is locked, must use `reader.cancel()`
+  // @seealso: https://streams.spec.whatwg.org
   const responseReader = body.getReader();
 
   const originalCancel = parentBody.cancel.bind(parentBody) as (reason?: any) => Promise<any>;
@@ -212,7 +222,7 @@ function streamHandler(response: Response): void {
     return;
   }
 
-  resolveResponse(clonedResponseForResolving, response, () => {
+  resolveResponse(clonedResponseForResolving as WebFetchResponse, response as WebFetchResponse, () => {
     triggerHandlers('fetch-body-resolved', {
       endTimestamp: timestampInSeconds() * 1000,
       response,
