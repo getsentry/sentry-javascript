@@ -21,7 +21,7 @@ import type { ProfileFormat } from './types';
 // The comment below this line exists as a placeholder for where to insert the shim
 const __sentry_require = require;
 const __sentry_dirname = __dirname;
-// #END_SENTRY_ESM_SHIM  // If a binary path is specified, use that.
+// #END_SENTRY_ESM_SHIM
 
 const stdlib = familySync();
 const platform = process.env['BUILD_PLATFORM'] || _platform();
