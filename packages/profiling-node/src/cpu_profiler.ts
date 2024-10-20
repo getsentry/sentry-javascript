@@ -19,6 +19,7 @@ import type { ProfileFormat } from './types';
 // When building for ESM, we shim require to use createRequire and __dirname.
 // We need to do this because .node extensions in esm are not supported.
 // The comment below this line exists as a placeholder for where to insert the shim
+const __sentry_require = require;
 // #END_SENTRY_ESM_SHIM  // If a binary path is specified, use that.
 
 const stdlib = familySync();
@@ -36,45 +37,45 @@ const built_from_source_path = resolve(__dirname, '..', `./sentry_cpu_profiler-$
 export function importCppBindingsModule(): PrivateV8CpuProfilerBindings {
   if (env['SENTRY_PROFILER_BINARY_PATH']) {
     const envPath = env['SENTRY_PROFILER_BINARY_PATH'];
-    return require(envPath);
+    return __sentry_require(envPath);
   }
 
   // If a user specifies a different binary dir, they are in control of the binaries being moved there
   if (env['SENTRY_PROFILER_BINARY_DIR']) {
     const binaryPath = join(resolve(env['SENTRY_PROFILER_BINARY_DIR']), `sentry_cpu_profiler-${identifier}`);
-    return require(`${binaryPath}.node`);
+    return __sentry_require(`${binaryPath}.node`);
   }
 
-  // We need the fallthrough so that in the end, we can fallback to the require dynamice require.
+  // We need the fallthrough so that in the end, we can fallback to the __sentry_require dynamice require.
   // This is for cases where precompiled binaries were not provided, but may have been compiled from source.
   if (platform === 'darwin') {
     if (arch === 'x64') {
       if (abi === '93') {
-        return require('../sentry_cpu_profiler-darwin-x64-93.node');
+        return __sentry_require('../sentry_cpu_profiler-darwin-x64-93.node');
       }
       if (abi === '108') {
-        return require('../sentry_cpu_profiler-darwin-x64-108.node');
+        return __sentry_require('../sentry_cpu_profiler-darwin-x64-108.node');
       }
       if (abi === '115') {
-        return require('../sentry_cpu_profiler-darwin-x64-115.node');
+        return __sentry_require('../sentry_cpu_profiler-darwin-x64-115.node');
       }
       if (abi === '127') {
-        return require('../sentry_cpu_profiler-darwin-x64-127.node');
+        return __sentry_require('../sentry_cpu_profiler-darwin-x64-127.node');
       }
     }
 
     if (arch === 'arm64') {
       if (abi === '93') {
-        return require('../sentry_cpu_profiler-darwin-arm64-93.node');
+        return __sentry_require('../sentry_cpu_profiler-darwin-arm64-93.node');
       }
       if (abi === '108') {
-        return require('../sentry_cpu_profiler-darwin-arm64-108.node');
+        return __sentry_require('../sentry_cpu_profiler-darwin-arm64-108.node');
       }
       if (abi === '115') {
-        return require('../sentry_cpu_profiler-darwin-arm64-115.node');
+        return __sentry_require('../sentry_cpu_profiler-darwin-arm64-115.node');
       }
       if (abi === '127') {
-        return require('../sentry_cpu_profiler-darwin-arm64-127.node');
+        return __sentry_require('../sentry_cpu_profiler-darwin-arm64-127.node');
       }
     }
   }
@@ -82,16 +83,16 @@ export function importCppBindingsModule(): PrivateV8CpuProfilerBindings {
   if (platform === 'win32') {
     if (arch === 'x64') {
       if (abi === '93') {
-        return require('../sentry_cpu_profiler-win32-x64-93.node');
+        return __sentry_require('../sentry_cpu_profiler-win32-x64-93.node');
       }
       if (abi === '108') {
-        return require('../sentry_cpu_profiler-win32-x64-108.node');
+        return __sentry_require('../sentry_cpu_profiler-win32-x64-108.node');
       }
       if (abi === '115') {
-        return require('../sentry_cpu_profiler-win32-x64-115.node');
+        return __sentry_require('../sentry_cpu_profiler-win32-x64-115.node');
       }
       if (abi === '127') {
-        return require('../sentry_cpu_profiler-win32-x64-127.node');
+        return __sentry_require('../sentry_cpu_profiler-win32-x64-127.node');
       }
     }
   }
@@ -100,65 +101,65 @@ export function importCppBindingsModule(): PrivateV8CpuProfilerBindings {
     if (arch === 'x64') {
       if (stdlib === 'musl') {
         if (abi === '93') {
-          return require('../sentry_cpu_profiler-linux-x64-musl-93.node');
+          return __sentry_require('../sentry_cpu_profiler-linux-x64-musl-93.node');
         }
         if (abi === '108') {
-          return require('../sentry_cpu_profiler-linux-x64-musl-108.node');
+          return __sentry_require('../sentry_cpu_profiler-linux-x64-musl-108.node');
         }
         if (abi === '115') {
-          return require('../sentry_cpu_profiler-linux-x64-musl-115.node');
+          return __sentry_require('../sentry_cpu_profiler-linux-x64-musl-115.node');
         }
         if (abi === '127') {
-          return require('../sentry_cpu_profiler-linux-x64-musl-127.node');
+          return __sentry_require('../sentry_cpu_profiler-linux-x64-musl-127.node');
         }
       }
       if (stdlib === 'glibc') {
         if (abi === '93') {
-          return require('../sentry_cpu_profiler-linux-x64-glibc-93.node');
+          return __sentry_require('../sentry_cpu_profiler-linux-x64-glibc-93.node');
         }
         if (abi === '108') {
-          return require('../sentry_cpu_profiler-linux-x64-glibc-108.node');
+          return __sentry_require('../sentry_cpu_profiler-linux-x64-glibc-108.node');
         }
         if (abi === '115') {
-          return require('../sentry_cpu_profiler-linux-x64-glibc-115.node');
+          return __sentry_require('../sentry_cpu_profiler-linux-x64-glibc-115.node');
         }
         if (abi === '127') {
-          return require('../sentry_cpu_profiler-linux-x64-glibc-127.node');
+          return __sentry_require('../sentry_cpu_profiler-linux-x64-glibc-127.node');
         }
       }
     }
     if (arch === 'arm64') {
       if (stdlib === 'musl') {
         if (abi === '93') {
-          return require('../sentry_cpu_profiler-linux-arm64-musl-93.node');
+          return __sentry_require('../sentry_cpu_profiler-linux-arm64-musl-93.node');
         }
         if (abi === '108') {
-          return require('../sentry_cpu_profiler-linux-arm64-musl-108.node');
+          return __sentry_require('../sentry_cpu_profiler-linux-arm64-musl-108.node');
         }
         if (abi === '115') {
-          return require('../sentry_cpu_profiler-linux-arm64-musl-115.node');
+          return __sentry_require('../sentry_cpu_profiler-linux-arm64-musl-115.node');
         }
         if (abi === '127') {
-          return require('../sentry_cpu_profiler-linux-arm64-musl-127.node');
+          return __sentry_require('../sentry_cpu_profiler-linux-arm64-musl-127.node');
         }
       }
       if (stdlib === 'glibc') {
         if (abi === '93') {
-          return require('../sentry_cpu_profiler-linux-arm64-glibc-93.node');
+          return __sentry_require('../sentry_cpu_profiler-linux-arm64-glibc-93.node');
         }
         if (abi === '108') {
-          return require('../sentry_cpu_profiler-linux-arm64-glibc-108.node');
+          return __sentry_require('../sentry_cpu_profiler-linux-arm64-glibc-108.node');
         }
         if (abi === '115') {
-          return require('../sentry_cpu_profiler-linux-arm64-glibc-115.node');
+          return __sentry_require('../sentry_cpu_profiler-linux-arm64-glibc-115.node');
         }
         if (abi === '127') {
-          return require('../sentry_cpu_profiler-linux-arm64-glibc-127.node');
+          return __sentry_require('../sentry_cpu_profiler-linux-arm64-glibc-127.node');
         }
       }
     }
   }
-  return require(`${built_from_source_path}.node`);
+  return __sentry_require(`${built_from_source_path}.node`);
 }
 
 const PrivateCpuProfilerBindings: PrivateV8CpuProfilerBindings = importCppBindingsModule();

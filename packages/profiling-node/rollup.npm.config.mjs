@@ -3,7 +3,7 @@ import { makeBaseNPMConfig, makeNPMConfigVariants } from '@sentry-internal/rollu
 
 export const ESMImportShim = `
 import { createRequire } from 'node:module';
-const require = createRequire(import.meta.url);
+const __sentry_require = createRequire(import.meta.url);
 `;
 
 export const ESMRequireShim = `
