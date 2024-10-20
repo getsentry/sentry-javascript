@@ -3,11 +3,13 @@ import { makeBaseNPMConfig, makeNPMConfigVariants } from '@sentry-internal/rollu
 
 export const ESMImportShim = `
 import { createRequire } from 'node:module';
+import { fileURLToPath } from 'node:url';
 const __sentry_require = createRequire(import.meta.url);
+const __sentry_filename = fileURLToPath(import.meta.url);
+const __sentry_dirname = dirname(__sentry_filename);
 `;
 
-export const ESMRequireShim = `
-`;
+export const ESMRequireShim = '';
 
 function makeESMShimPlugin() {
   return {

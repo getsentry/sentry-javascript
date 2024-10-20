@@ -20,6 +20,7 @@ import type { ProfileFormat } from './types';
 // We need to do this because .node extensions in esm are not supported.
 // The comment below this line exists as a placeholder for where to insert the shim
 const __sentry_require = require;
+const __sentry_dirname = __dirname;
 // #END_SENTRY_ESM_SHIM  // If a binary path is specified, use that.
 
 const stdlib = familySync();
@@ -28,7 +29,7 @@ const arch = process.env['BUILD_ARCH'] || _arch();
 const abi = getAbi(versions.node, 'node');
 const identifier = [platform, arch, stdlib, abi].filter(c => c !== undefined && c !== null).join('-');
 
-const built_from_source_path = resolve(__dirname, '..', `./sentry_cpu_profiler-${identifier}`);
+const built_from_source_path = resolve(__sentry_dirname, '..', `./sentry_cpu_profiler-${identifier}`);
 
 /**
  *  Imports cpp bindings based on the current platform and architecture.
