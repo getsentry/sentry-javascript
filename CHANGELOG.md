@@ -10,6 +10,19 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 8.36.0-alpha.0
+
+This is considered an internal release and the following commit will never be released to production tag:
+
+- **debug(replay): Add debugging statements around event buffer**
+  ([#14014](https://github.com/getsentry/sentry-javascript/pull/14014))
+
+Also includes the following unreleased changes:
+
+- fix(nextjs): Await flush in api handlers ([#14023](https://github.com/getsentry/sentry-javascript/pull/14023))
+- fix(solidstart): Use production server for e2e tests
+  ([#14033](https://github.com/getsentry/sentry-javascript/pull/14033))
+
 ## 8.35.0
 
 ### Beta release of the official Nuxt Sentry SDK
