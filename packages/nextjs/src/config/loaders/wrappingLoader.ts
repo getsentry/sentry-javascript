@@ -185,7 +185,7 @@ export default function wrappingLoader(
       // Replace all backslashes with forward slashes (windows)
       .replace(/\\/g, '/')
       // eslint-disable-next-line @sentry-internal/sdk/no-regexp-constructor
-      .match(new RegExp(`(^|/)?([^/]+)\\.(?:${pageExtensionRegex})$`));
+      .match(new RegExp(`(?:^|/)?([^/]+)\\.(?:${pageExtensionRegex})$`));
 
     if (componentTypeMatch && componentTypeMatch[1]) {
       let componentType: ServerComponentContext['componentType'];
