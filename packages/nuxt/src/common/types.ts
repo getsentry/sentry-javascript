@@ -103,16 +103,19 @@ export type SentryNuxtModuleOptions = {
   debug?: boolean;
 
   /**
-   * Enabling basic server tracing can be used for environments where modifying the node option `--import` is not possible.
-   * However, enabling this option only supports limited tracing instrumentation. Only http traces will be collected (but no database-specific traces etc.).
+   * Wraps the server entry file with a dynamic `import()`. This will make it possible to preload Sentry and register
+   * necessary hooks before other code runs. (Node docs: https://nodejs.org/api/module.html#enabling)
    *
-   * If this option is `true`, the Sentry SDK will import the Sentry server config at the top of the server entry file to load the SDK on the server.
+   * If this option is `false`, the Sentry SDK won't wrap the server entry file with `import()`. Not wrapping the
+   * server entry file will disable Sentry on the server-side. When you set this option to `false`, make sure
+   * to add the Sentry server config with the node `--import` CLI flag to enable Sentry on the server-side.
    *
-   * **DO NOT** enable this option if you've already added the node option `--import` in your node start script. This would initialize Sentry twice on the server-side and leads to unexpected issues.
+   * **DO NOT** add the node CLI flag `--import` in your node start script, when `dynamicImportForServerEntry` is set to `true` (default).
+   * This would initialize Sentry twice on the server-side and this leads to unexpected issues.
    *
-   * @default false
+   * @default true
    */
-  experimental_basicServerTracing?: boolean;
+  dynamicImportForServerEntry?: boolean;
 
   /**
    * Options to be passed directly to the Sentry Rollup Plugin (`@sentry/rollup-plugin`) and Sentry Vite Plugin (`@sentry/vite-plugin`) that ship with the Sentry Nuxt SDK.

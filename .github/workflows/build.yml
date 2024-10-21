@@ -921,6 +921,7 @@ jobs:
             'tanstack-router',
             'generic-ts3.8',
             'node-fastify',
+            'node-fastify-5',
             'node-hapi',
             'node-nestjs-basic',
             'node-nestjs-distributed-tracing',
@@ -1031,6 +1032,15 @@ jobs:
         with:
           name: playwright-traces-job_e2e_playwright_tests-${{ matrix.test-application}}
           path: dev-packages/e2e-tests/test-applications/${{ matrix.test-application}}/test-results
+          overwrite: true
+          retention-days: 7
+
+      - name: Upload E2E Test Event Dumps
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-event-dumps-job_e2e_playwright_tests-${{ matrix.test-application }}
+          path: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}/event-dumps
           overwrite: true
           retention-days: 7
 
