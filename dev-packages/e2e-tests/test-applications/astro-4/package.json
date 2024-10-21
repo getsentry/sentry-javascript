@@ -19,9 +19,6 @@
     "@sentry-internal/test-utils": "link:../../../test-utils",
     "@spotlightjs/astro": "2.1.6",
     "astro": "4.13.3",
-    "typescript": "5.5.4"
-  },
-  "devDependencies": {
-    "@astrojs/internal-helpers": "0.4.1"
+    "typescript": "^5.5.4"
   }
 }
