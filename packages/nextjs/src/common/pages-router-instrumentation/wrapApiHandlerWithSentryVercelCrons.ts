@@ -1,7 +1,7 @@
 import { captureCheckIn } from '@sentry/core';
 import type { NextApiRequest } from 'next';
 
-import type { VercelCronsConfig } from './types';
+import type { VercelCronsConfig } from '../types';
 
 type EdgeRequest = {
   nextUrl: URL;
@@ -9,7 +9,7 @@ type EdgeRequest = {
 };
 
 /**
- * Wraps a function with Sentry crons instrumentation by automaticaly sending check-ins for the given Vercel crons config.
+ * Wraps a function with Sentry crons instrumentation by automatically sending check-ins for the given Vercel crons config.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function wrapApiHandlerWithSentryVercelCrons<F extends (...args: any[]) => any>(

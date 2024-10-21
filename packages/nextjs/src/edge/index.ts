@@ -1,10 +1,20 @@
-import { applySdkMetadata, registerSpanErrorInstrumentation } from '@sentry/core';
-import { GLOBAL_OBJ } from '@sentry/utils';
+import {
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  applySdkMetadata,
+  getRootSpan,
+  registerSpanErrorInstrumentation,
+  spanToJSON,
+} from '@sentry/core';
+
+import { GLOBAL_OBJ, vercelWaitUntil } from '@sentry/utils';
 import type { VercelEdgeOptions } from '@sentry/vercel-edge';
 import { getDefaultIntegrations, init as vercelEdgeInit } from '@sentry/vercel-edge';
 
 import { isBuild } from '../common/utils/isBuild';
+import { flushSafelyWithTimeout } from '../common/utils/responseEnd';
 import { distDirRewriteFramesIntegration } from './distDirRewriteFramesIntegration';
+
+export { captureUnderscoreErrorException } from '../common/pages-router-instrumentation/_error';
 
 export type EdgeOptions = VercelEdgeOptions;
 
@@ -37,7 +47,22 @@ export function init(options: VercelEdgeOptions = {}): void {
 
   applySdkMetadata(opts, 'nextjs');
 
-  vercelEdgeInit(opts);
+  const client = vercelEdgeInit(opts);
+
+  client?.on('spanStart', span => {
+    const spanAttributes = spanToJSON(span).data;
+
+    // Make sure middleware spans get the right op
+    if (spanAttributes?.['next.span_type'] === 'Middleware.execute') {
+      span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'http.server.middleware');
+    }
+  });
+
+  client?.on('spanEnd', span => {
+    if (span === getRootSpan(span)) {
+      vercelWaitUntil(flushSafelyWithTimeout());
+    }
+  });
 }
 
 /**
