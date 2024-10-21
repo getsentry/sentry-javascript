@@ -1,7 +1,7 @@
 // This should be: null | Blob | BufferSource | FormData | URLSearchParams | string
 // But since not all of those are available in node, we just export `unknown` here for now
 
-import type { WebFetchHeaders } from './webfetchapi';
+import type { WebFetchResponse } from './whatwg';
 
 // Make sure to cast it where needed!
 type XHRSendInput = unknown;
@@ -48,13 +48,7 @@ export interface HandlerDataFetch {
   fetchData: SentryFetchData; // This data is among other things dumped directly onto the fetch breadcrumb data
   startTimestamp: number;
   endTimestamp?: number;
-  // This is actually `Response` - Note: this type is not complete. Add to it if necessary.
-  response?: {
-    readonly ok: boolean;
-    readonly status: number;
-    readonly url: string;
-    headers: WebFetchHeaders;
-  };
+  response?: WebFetchResponse;
   error?: unknown;
 }
 
