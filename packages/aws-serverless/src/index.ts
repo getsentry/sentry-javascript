@@ -102,6 +102,7 @@ export {
   setupNestErrorHandler,
   postgresIntegration,
   prismaIntegration,
+  processThreadBreadcrumbIntegration,
   hapiIntegration,
   setupHapiErrorHandler,
   spotlightIntegration,
