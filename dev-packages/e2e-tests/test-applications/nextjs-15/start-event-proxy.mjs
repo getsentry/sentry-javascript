@@ -9,6 +9,6 @@ startEventProxyServer({
   proxyServerName: 'nextjs-15',
   envelopeDumpPath: path.join(
     process.cwd(),
-    `event-dumps/next-${packageJson.dependencies.next}-${process.env.TEST_ENV}.dump`,
+    `event-dumps/next-15-v${packageJson.dependencies.next}-${process.env.TEST_ENV}.dump`,
   ),
 });
