@@ -57,7 +57,7 @@ export function extractFunctionReexportQueryParameters(query: string): string[] 
   return match && match[1]
     ? match[1]
         .split(',')
-        .filter(param => param !== '' && param !== 'default')
+        .filter(param => param !== '')
         // Sanitize, as code could be injected with another rollup plugin
         .map((str: string) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
     : [];
@@ -72,10 +72,11 @@ export function constructFunctionReExport(pathWithQuery: string, entryId: string
   return functionNames.reduce(
     (functionsCode, currFunctionName) =>
       functionsCode.concat(
-        `export async function ${currFunctionName}(...args) {\n` +
+        'async function reExport(...args) {\n' +
           `  const res = await import(${JSON.stringify(entryId)});\n` +
           `  return res.${currFunctionName}.call(this, ...args);\n` +
-          '}\n',
+          '}\n' +
+          `export { reExport as ${currFunctionName} };\n`,
       ),
     '',
   );
