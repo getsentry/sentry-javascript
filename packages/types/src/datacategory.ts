@@ -30,5 +30,7 @@ export type DataCategory =
   | 'metric_bucket'
   // Span
   | 'span'
+  // Security report
+  | 'security'
   // Unknown data category
   | 'unknown';
