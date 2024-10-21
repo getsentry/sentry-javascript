@@ -28,6 +28,7 @@ describe('Integration | sendReplayEvent', () => {
   let mockTransportSend: MockTransportSend;
   let mockSendReplayRequest: MockInstance<any>;
   let domHandler: DomHandler;
+  const onError: () => void = vi.fn();
   const { record: mockRecord } = mockRrweb();
 
   beforeAll(async () => {
@@ -44,6 +45,7 @@ describe('Integration | sendReplayEvent', () => {
         _experiments: {
           captureExceptions: true,
         },
+        onError,
       },
     }));
 
@@ -54,6 +56,7 @@ describe('Integration | sendReplayEvent', () => {
   });
 
   beforeEach(() => {
+    vi.clearAllMocks();
     vi.setSystemTime(new Date(BASE_TIMESTAMP));
     mockRecord.takeFullSnapshot.mockClear();
     mockTransportSend.mockClear();
@@ -357,8 +360,9 @@ describe('Integration | sendReplayEvent', () => {
     expect(replay).not.toHaveLastSentReplay();
   });
 
-  it('fails to upload data and hits retry max and stops', async () => {
+  it('fails to upload data, hits retry max, stops, and calls `onError` with the error', async () => {
     const TEST_EVENT = getTestEventIncremental({ timestamp: BASE_TIMESTAMP });
+    const ERROR = new Error('Something bad happened');
 
     const spyHandleException = vi.spyOn(SentryCore, 'captureException');
 
@@ -369,7 +373,7 @@ describe('Integration | sendReplayEvent', () => {
 
     // fail all requests
     mockSendReplayRequest.mockImplementation(async () => {
-      throw new Error('Something bad happened');
+      throw ERROR;
     });
     mockRecord._emitter(TEST_EVENT);
 
@@ -406,6 +410,8 @@ describe('Integration | sendReplayEvent', () => {
     // Replay has stopped, no session should exist
     expect(replay.session).toBe(undefined);
     expect(replay.isEnabled()).toBe(false);
+    expect(onError).toHaveBeenCalledTimes(5);
+    expect(onError).toHaveBeenCalledWith(ERROR);
 
     // Events are ignored now, because we stopped
     mockRecord._emitter(TEST_EVENT);
