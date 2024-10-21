@@ -84,7 +84,7 @@ export function trackClsAsStandaloneSpan(): void {
 function sendStandaloneClsSpan(clsValue: number, entry: LayoutShift | undefined, pageloadSpanId: string) {
   DEBUG_BUILD && logger.log(`Sending CLS span (${clsValue})`);
 
-  const startTime = msToSec((browserPerformanceTimeOrigin || 0) + (entry?.startTime || 0));
+  const startTime = msToSec((browserPerformanceTimeOrigin() || 0) + (entry?.startTime || 0));
   const routeName = getCurrentScope().getScopeData().transactionName;
 
   const name = entry ? htmlTreeAsString(entry.sources[0]?.node) : 'Layout shift';

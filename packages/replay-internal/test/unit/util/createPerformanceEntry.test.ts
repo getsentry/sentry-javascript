@@ -7,7 +7,7 @@ vi.setSystemTime(new Date('2023-01-01'));
 
 vi.mock('@sentry/utils', async () => ({
   ...(await vi.importActual('@sentry/utils')),
-  browserPerformanceTimeOrigin: new Date('2023-01-01').getTime(),
+  browserPerformanceTimeOrigin: () => new Date('2023-01-01').getTime(),
 }));
 
 import { WINDOW } from '../../../src/constants';
