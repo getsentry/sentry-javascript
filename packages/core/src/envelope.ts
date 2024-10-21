@@ -1,10 +1,15 @@
 import type {
+  CSPReport,
+  CSPReportPayload,
   Client,
+  DeprecatedCSPReport,
   DsnComponents,
   DynamicSamplingContext,
   Event,
   EventEnvelope,
   EventItem,
+  RawSecurityEnvelope,
+  RawSecurityItem,
   SdkInfo,
   SdkMetadata,
   Session,
@@ -18,8 +23,10 @@ import type {
 import {
   createEnvelope,
   createEventEnvelopeHeaders,
+  dropUndefinedKeys,
   dsnToString,
   getSdkMetadataForEnvelopeHeader,
+  uuid4,
 } from '@sentry/utils';
 import { createSpanEnvelopeItem } from '@sentry/utils';
 import { getDynamicSamplingContextFromSpan } from './tracing/dynamicSamplingContext';
@@ -134,4 +141,46 @@ export function createSpanEnvelope(spans: [SentrySpan, ...SentrySpan[]], client?
   }
 
   return createEnvelope<SpanEnvelope>(headers, items);
+}
+
+function convertToDeprecatedPayload(report: CSPReportPayload): DeprecatedCSPReport {
+  return {
+    'csp-report': {
+      'document-uri': report.documentURI,
+      referrer: report.referrer,
+      'blocked-uri': report.blockedURI,
+      'effective-directive': report.effectiveDirective,
+      'violated-directive': report.effectiveDirective,
+      'original-policy': report.originalPolicy,
+      disposition: report.disposition,
+      'status-code': report.statusCode,
+      status: report.statusCode.toString(),
+      'script-sample': report.sourceFile,
+      sample: report.sample,
+    },
+  };
+}
+
+/**
+ * Create an Envelope from a CSP report.
+ */
+export function createRawSecurityEnvelope(
+  report: CSPReport,
+  dsn: DsnComponents,
+  tunnel?: string,
+  release?: string,
+  environment?: string,
+): RawSecurityEnvelope {
+  const envelopeHeaders = {
+    event_id: uuid4(),
+    ...(!!tunnel && dsn && { dsn: dsnToString(dsn) }),
+    ...(report.user_agent && { user_agent: report.user_agent }),
+  };
+
+  const eventItem: RawSecurityItem = [
+    { type: 'raw_security', sentry_release: release, sentry_environment: environment },
+    dropUndefinedKeys(convertToDeprecatedPayload(report.body)),
+  ];
+
+  return createEnvelope<RawSecurityEnvelope>(envelopeHeaders, [eventItem]);
 }

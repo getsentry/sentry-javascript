@@ -48,6 +48,8 @@ export type {
   ProfileItem,
   ProfileChunkEnvelope,
   ProfileChunkItem,
+  RawSecurityEnvelope,
+  RawSecurityItem,
   SpanEnvelope,
   SpanItem,
 } from './envelope';
@@ -173,3 +175,4 @@ export type {
 export type { ParameterizedString } from './parameterize';
 export type { ContinuousProfiler, ProfilingIntegration, Profiler } from './profiling';
 export type { ViewHierarchyData, ViewHierarchyWindow } from './view-hierarchy';
+export type { Report, CSPReport, CSPReportPayload, DeprecatedCSPReport } from './reporting';
