@@ -426,7 +426,7 @@ class ContinuousProfiler {
 
 /** Exported only for tests. */
 export const _nodeProfilingIntegration = ((): ProfilingIntegration<NodeClient> => {
-  if (DEBUG_BUILD && ![16, 18, 20, 22].includes(NODE_MAJOR)) {
+  if (![16, 18, 20, 22].includes(NODE_MAJOR)) {
     logger.warn(
       `[Profiling] You are using a Node.js version that does not have prebuilt binaries (${NODE_VERSION}).`,
       'The @sentry/profiling-node package only has prebuilt support for the following LTS versions of Node.js: 16, 18, 20, 22.',
