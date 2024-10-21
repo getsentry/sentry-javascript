@@ -7,6 +7,7 @@ Sentry.init({
   tracePropagationTargets: [/\/v0/, 'v1'],
   integrations: [],
   transport: loggingTransport,
+  tracesSampleRate: 0.0,
   // Ensure this gets a correct hint
   beforeBreadcrumb(breadcrumb, hint) {
     breadcrumb.data = breadcrumb.data || {};
