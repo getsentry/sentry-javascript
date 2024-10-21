@@ -1,5 +1,4 @@
-import type { Event, Report, StackParser, Stacktrace } from '@sentry/types';
-import { uuid4 } from '@sentry/utils';
+import type { Event, Report, StackParser } from '@sentry/types';
 import { getClient } from './currentScopes';
 import { createRawSecurityEnvelope } from './envelope';
 
