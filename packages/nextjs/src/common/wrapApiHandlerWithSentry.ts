@@ -86,7 +86,6 @@ export function wrapApiHandlerWithSentry(apiHandler: NextApiHandler, parameteriz
                       return target.apply(thisArg, argArray);
                     },
                   });
-
                   try {
                     return await wrappingTarget.apply(thisArg, args);
                   } catch (e) {
@@ -110,7 +109,9 @@ export function wrapApiHandlerWithSentry(apiHandler: NextApiHandler, parameteriz
                     setHttpStatus(span, 500);
                     span.end();
 
-                    vercelWaitUntil(flushSafelyWithTimeout());
+                    // we need to await the flush here to ensure that the error is captured
+                    // as the runtime freezes as soon as the error is thrown below
+                    await flushSafelyWithTimeout();
 
                     // We rethrow here so that nextjs can do with the error whatever it would normally do. (Sometimes "whatever it
                     // would normally do" is to allow the error to bubble up to the global handlers - another reason we need to mark
