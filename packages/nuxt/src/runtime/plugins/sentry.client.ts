@@ -51,6 +51,7 @@ export default defineNuxtPlugin({
     if (clientOptions && 'trackPinia' in clientOptions && clientOptions.trackPinia) {
       if ('$pinia' in nuxtApp) {
         (nuxtApp.$pinia as { use: (plugin: unknown) => void }).use(
+          // `trackPinia` is an object with custom options or `true` (pass `undefined` to use default options)
           createSentryPiniaPlugin(clientOptions.trackPinia === true ? undefined : clientOptions.trackPinia),
         );
       } else {
@@ -58,7 +59,7 @@ export default defineNuxtPlugin({
           consoleSandbox(() => {
             // eslint-disable-next-line no-console
             console.warn(
-              '[Sentry] You set `trackPinia`, but the Pinia was not found. Make sure to add `"@pinia/nuxt"` to your modules array.',
+              '[Sentry] You set `trackPinia`, but the Pinia module was not found. Make sure to add `"@pinia/nuxt"` to your modules array.',
             );
           });
       }
