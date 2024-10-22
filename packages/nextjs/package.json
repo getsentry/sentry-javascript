@@ -89,6 +89,7 @@
     "@sentry/vercel-edge": "8.35.0",
     "@sentry/webpack-plugin": "2.22.6",
     "chalk": "3.0.0",
+    "import-in-the-middle": "^1.11.0",
     "resolve": "1.22.8",
     "rollup": "3.29.5",
     "stacktrace-parser": "^0.1.10"

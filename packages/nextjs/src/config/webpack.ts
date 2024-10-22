@@ -586,6 +586,7 @@ function addValueInjectionLoader(
 
   const serverValues = {
     ...isomorphicValues,
+    __cacheHandlerPath__: userNextConfig.cacheHandler,
     // Make sure that if we have a windows path, the backslashes are interpreted as such (rather than as escape
     // characters)
     __rewriteFramesDistDir__: userNextConfig.distDir?.replace(/\\/g, '\\\\') || '.next',
