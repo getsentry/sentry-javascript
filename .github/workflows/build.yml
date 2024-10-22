@@ -1088,7 +1088,6 @@ jobs:
             'nextjs-13',
             'nextjs-14',
             'nextjs-15',
-            'nextjs-turbo',
           ]
         build-command:
           - false
