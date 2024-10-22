@@ -1035,6 +1035,10 @@ jobs:
           overwrite: true
           retention-days: 7
 
+      - name: Pre-process E2E Test Dumps
+        run: |
+          node ./scripts/normalize-e2e-test-dump-transaction-events.js
+
       - name: Upload E2E Test Event Dumps
         uses: actions/upload-artifact@v4
         if: always()
