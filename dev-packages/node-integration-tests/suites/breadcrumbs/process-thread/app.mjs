@@ -13,12 +13,14 @@ Sentry.init({
 });
 
 await new Promise(resolve => {
-  const child = spawn('sleep', ['1']);
+  const child = spawn('sleep', ['a']);
+  child.on('error', resolve);
   child.on('exit', resolve);
 });
 
 await new Promise(resolve => {
   const worker = new Worker(join(__dirname, 'worker.mjs'));
+  worker.on('error', resolve);
   worker.on('exit', resolve);
 });
 

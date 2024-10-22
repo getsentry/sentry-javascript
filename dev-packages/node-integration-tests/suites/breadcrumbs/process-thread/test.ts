@@ -16,17 +16,8 @@ const EVENT = {
     {
       timestamp: expect.any(Number),
       category: 'child_process',
-      message: 'Child process spawned',
-      level: 'info',
-      data: {
-        spawnfile: 'sleep',
-      },
-    },
-    {
-      timestamp: expect.any(Number),
-      category: 'child_process',
-      message: "Child process exited with code '0'",
-      level: 'info',
+      message: "Child process exited with code '1'",
+      level: 'warning',
       data: {
         spawnfile: 'sleep',
       },
@@ -34,17 +25,8 @@ const EVENT = {
     {
       timestamp: expect.any(Number),
       category: 'worker_thread',
-      message: 'Worker thread online',
-      level: 'info',
-      data: {
-        threadId: expect.any(Number),
-      },
-    },
-    {
-      timestamp: expect.any(Number),
-      category: 'worker_thread',
-      message: "Worker thread exited with code '0'",
-      level: 'info',
+      message: "Worker thread errored with 'Worker error'",
+      level: 'error',
       data: {
         threadId: expect.any(Number),
       },

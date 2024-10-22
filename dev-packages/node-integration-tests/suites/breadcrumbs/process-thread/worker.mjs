@@ -1,3 +1,1 @@
-setTimeout(() => {
-  // do nothing and then exit
-}, 1000);
+throw new Error('Worker error');
