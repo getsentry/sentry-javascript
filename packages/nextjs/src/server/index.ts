@@ -99,11 +99,7 @@ export function init(options: NodeOptions): NodeClient | undefined {
     .concat(
       // We are using the HTTP integration without instrumenting incoming HTTP requests because Next.js does that by itself.
       httpIntegration({
-        instrumentation: {
-          _experimentalConfig: {
-            disableIncomingRequestInstrumentation: true,
-          },
-        },
+        disableIncomingRequestSpans: true,
       }),
     );
 
@@ -331,7 +327,7 @@ export function init(options: NodeOptions): NodeClient | undefined {
       }
 
       // backfill transaction name for pages that would otherwise contain unparameterized routes
-      if (event.contexts.trace.data['sentry.route_backfill'] && event.transaction !== 'GET /_app') {
+      if (event.contexts.trace.data[TRANSACTION_ATTR_SENTRY_ROUTE_BACKFILL] && event.transaction !== 'GET /_app') {
         event.transaction = `${method} ${event.contexts.trace.data[TRANSACTION_ATTR_SENTRY_ROUTE_BACKFILL]}`;
       }
 
