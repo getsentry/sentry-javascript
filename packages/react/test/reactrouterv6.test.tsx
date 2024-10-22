@@ -250,7 +250,7 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
         <MemoryRouter initialEntries={['/']}>
           <SentryRoutes>
             <Route path="/about" element={<div>About</div>}>
-              <Route path="/about/us" element={<div>us</div>} />
+              <Route path="us" element={<div>us</div>} />
             </Route>
             <Route path="/" element={<Navigate to="/about/us" />} />
           </SentryRoutes>
@@ -287,7 +287,7 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
         <MemoryRouter initialEntries={['/']}>
           <SentryRoutes>
             <Route path="/about" element={<div>About</div>}>
-              <Route path="/about/:page" element={<div>page</div>} />
+              <Route path=":page" element={<div>page</div>} />
             </Route>
             <Route path="/" element={<Navigate to="/about/us" />} />
           </SentryRoutes>
@@ -324,8 +324,8 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
         <MemoryRouter initialEntries={['/']}>
           <SentryRoutes>
             <Route path="/stores" element={<div>Stores</div>}>
-              <Route path="/stores/:storeId" element={<div>Store</div>}>
-                <Route path="/stores/:storeId/products/:productId" element={<div>Product</div>} />
+              <Route path=":storeId" element={<div>Store</div>}>
+                <Route path="products/:productId" element={<div>Product</div>} />
               </Route>
             </Route>
             <Route path="/" element={<Navigate to="/stores/foo/products/234" />} />
@@ -391,6 +391,55 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
       });
     });
 
+    it('works with wildcard routes', () => {
+      const client = createMockBrowserClient();
+      setCurrentClient(client);
+
+      client.addIntegration(
+        reactRouterV6BrowserTracingIntegration({
+          useEffect: React.useEffect,
+          useLocation,
+          useNavigationType,
+          createRoutesFromChildren,
+          matchRoutes,
+        }),
+      );
+      const SentryRoutes = withSentryReactRouterV6Routing(Routes);
+
+      render(
+        <MemoryRouter initialEntries={['/']}>
+          <SentryRoutes>
+            <Route path="*" element={<Outlet />}>
+              <Route index element={<Navigate to="/projects/123/views/234" />} />
+              <Route path="account" element={<div>Account Page</div>} />
+              <Route path="projects">
+                <Route path="*" element={<Outlet />}>
+                  <Route path=":projectId" element={<div>Project Page</div>}>
+                    <Route index element={<div>Project Page Root</div>} />
+                    <Route element={<div>Editor</div>}>
+                      <Route path="views/:viewId" element={<div>View Canvas</div>} />
+                      <Route path="spaces/:spaceId" element={<div>Space Canvas</div>} />
+                    </Route>
+                  </Route>
+                </Route>
+              </Route>
+              <Route path="*" element={<div>No Match Page</div>} />
+            </Route>
+          </SentryRoutes>
+        </MemoryRouter>,
+      );
+
+      expect(mockStartBrowserTracingNavigationSpan).toHaveBeenCalledTimes(1);
+      expect(mockStartBrowserTracingNavigationSpan).toHaveBeenLastCalledWith(expect.any(BrowserClient), {
+        name: '/projects/:projectId/views/:viewId',
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
+        },
+      });
+    });
+
     it("updates the scope's `transactionName` on a navigation", () => {
       const client = createMockBrowserClient();
       setCurrentClient(client);
@@ -410,7 +459,7 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
         <MemoryRouter initialEntries={['/']}>
           <SentryRoutes>
             <Route path="/about" element={<div>About</div>}>
-              <Route path="/about/:page" element={<div>page</div>} />
+              <Route path=":page" element={<div>page</div>} />
             </Route>
             <Route path="/" element={<Navigate to="/about/us" />} />
           </SentryRoutes>
@@ -639,7 +688,7 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
             element: <div>About</div>,
             children: [
               {
-                path: '/about/us',
+                path: 'us',
                 element: <div>us</div>,
               },
             ],
@@ -689,7 +738,7 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
             element: <div>About</div>,
             children: [
               {
-                path: '/about/:page',
+                path: ':page',
                 element: <div>page</div>,
               },
             ],
@@ -739,11 +788,11 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
             element: <div>Stores</div>,
             children: [
               {
-                path: '/stores/:storeId',
+                path: ':storeId',
                 element: <div>Store</div>,
                 children: [
                   {
-                    path: '/stores/:storeId/products/:productId',
+                    path: 'products/:productId',
                     element: <div>Product</div>,
                   },
                 ],

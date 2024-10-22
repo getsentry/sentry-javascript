@@ -18,7 +18,7 @@ import {
   spanToJSON,
 } from '@sentry/core';
 import type { Client, Integration, Span, TransactionSource } from '@sentry/types';
-import { getNumberOfUrlSegments, logger } from '@sentry/utils';
+import { logger } from '@sentry/utils';
 import hoistNonReactStatics from 'hoist-non-react-statics';
 import * as React from 'react';
 
@@ -141,6 +141,14 @@ function stripBasenameFromPathname(pathname: string, basename: string): string {
   return pathname.slice(startIndex) || '/';
 }
 
+function sendIndexPath(pathBuilder: string, pathname: string, basename: string): void | string[] {
+  const p1 = pathBuilder || stripBasenameFromPathname(pathname, basename);
+  const p2 = pathBuilder || pathname;
+  const p3 = _stripBasename ? p1 : p2;
+  const formattedPath = p3[p3.length - 1] === '/' ? p3.slice(0, -1) : p3[p3.length - 1] === '/*' ? p3.slice(0, -1) : p3;
+  if (formattedPath) return [formattedPath, 'route'];
+}
+
 function getNormalizedName(
   routes: RouteObject[],
   location: Location,
@@ -157,27 +165,22 @@ function getNormalizedName(
       const route = branch.route;
       if (route) {
         // Early return if index route
-        if (route.index) {
-          return [_stripBasename ? stripBasenameFromPathname(branch.pathname, basename) : branch.pathname, 'route'];
-        }
+        if (route.index) sendIndexPath(pathBuilder, branch.pathname, basename);
 
         const path = route.path;
         if (path) {
-          const newPath = path[0] === '/' || pathBuilder[pathBuilder.length - 1] === '/' ? path : `/${path}`;
-          pathBuilder += newPath;
-
-          if (basename + branch.pathname === location.pathname) {
-            if (
-              // If the route defined on the element is something like
-              // <Route path="/stores/:storeId/products/:productId" element={<div>Product</div>} />
-              // We should check against the branch.pathname for the number of / seperators
-              getNumberOfUrlSegments(pathBuilder) !== getNumberOfUrlSegments(branch.pathname) &&
-              // We should not count wildcard operators in the url segments calculation
-              pathBuilder.slice(-2) !== '/*'
-            ) {
-              return [(_stripBasename ? '' : basename) + newPath, 'route'];
+          // If path is not a wildcard and has no child routes, append the path
+          if (!(path === '*' && branch.route.children && branch.route.children.length > 0)) {
+            const newPath = path[0] === '/' || pathBuilder[pathBuilder.length - 1] === '/' ? path : `/${path}`;
+            pathBuilder += newPath;
+            if (basename + branch.pathname === location.pathname) {
+              // if the last character of the pathbuilder is a wilcard and there are children, remove the wildcard
+              if (pathBuilder[pathBuilder.length - 1] === '*' && branch.route.children && branch.route.children.length > 0) {
+                pathBuilder = pathBuilder.slice(0, -1);
+              } else {
+                return [(_stripBasename ? '' : basename) + pathBuilder, 'route'];
+              }
             }
-            return [(_stripBasename ? '' : basename) + pathBuilder, 'route'];
           }
         }
       }
