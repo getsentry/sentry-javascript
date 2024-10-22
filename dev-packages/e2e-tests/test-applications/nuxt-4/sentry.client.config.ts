@@ -7,4 +7,11 @@ Sentry.init({
   tunnel: `http://localhost:3031/`, // proxy server
   tracesSampleRate: 1.0,
   trackComponents: true,
+  trackPinia: {
+    actionTransformer: action => `Transformed: ${action}`,
+    stateTransformer: state => ({
+      transformed: true,
+      ...state,
+    }),
+  },
 });
