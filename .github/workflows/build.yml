@@ -1043,7 +1043,7 @@ jobs:
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: e2e-test-event-dumps
+          name: E2E Test Dump ${{ matrix.label || matrix.test-application }}
           path: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}/event-dumps
           overwrite: true
           retention-days: 7
