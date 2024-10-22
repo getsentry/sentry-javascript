@@ -1043,6 +1043,7 @@ jobs:
           path: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}/event-dumps
           overwrite: true
           retention-days: 7
+          if-no-files-found: ignore
 
       - name: Upload test results to Codecov
         if: cancelled() == false
