@@ -3,20 +3,9 @@
   "version": "0.0.0",
   "scripts": {
     "clean": "pnpx rimraf node_modules pnpm-lock.yaml .vinxi .output",
-    "clean:build": "pnpx rimraf .vinxi .output",
     "dev": "NODE_OPTIONS='--import ./src/instrument.server.mjs' vinxi dev",
-    "build": "vinxi build",
-    "//": [
-      "We are using `vinxi dev` to start the server because `vinxi start` is experimental and ",
-      "doesn't correctly resolve modules for @sentry/solidstart/solidrouter.",
-      "This is currently not an issue outside of our repo. See: https://github.com/nksaraf/vinxi/issues/177",
-      "We run the build command to ensure building succeeds. However, keeping",
-      "build output around slows down the vite dev server when using `@sentry/vite-plugin` so we clear it out",
-      "before actually running the tests.",
-      "Cleaning the build output should be removed once we can use `vinxi start`."
-    ],
-    "preview": "pnpm clean:build && HOST=localhost PORT=3030 NODE_OPTIONS='--import ./src/instrument.server.mjs' vinxi dev",
-    "start": "HOST=localhost PORT=3030 NODE_OPTIONS='--import ./src/instrument.server.mjs' vinxi start",
+    "build": "vinxi build && sh ./post_build.sh",
+    "preview": "HOST=localhost PORT=3030 NODE_OPTIONS='--import ./src/instrument.server.mjs' vinxi start",
     "test:prod": "TEST_ENV=production playwright test",
     "test:build": "pnpm install && npx playwright install && pnpm build",
     "test:assert": "pnpm test:prod"
@@ -41,5 +30,8 @@
     "vite": "^5.2.8",
     "vite-plugin-solid": "^2.10.2",
     "vitest": "^1.5.0"
+  },
+  "overrides": {
+    "@vercel/nft": "0.27.4"
   }
 }

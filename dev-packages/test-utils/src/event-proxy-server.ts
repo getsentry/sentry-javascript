@@ -17,6 +17,8 @@ interface EventProxyServerOptions {
   port: number;
   /** The name for the proxy server used for referencing it with listener functions */
   proxyServerName: string;
+  /** A path to optionally output all Envelopes to. Can be used to compare event payloads before and after changes. */
+  envelopeDumpPath?: string;
 }
 
 interface SentryRequestCallbackData {
@@ -167,6 +169,10 @@ export async function startProxyServer(
  * option to this server (like this `tunnel: http://localhost:${port option}/`).
  */
 export async function startEventProxyServer(options: EventProxyServerOptions): Promise<void> {
+  if (options.envelopeDumpPath) {
+    await fs.promises.mkdir(path.dirname(path.resolve(options.envelopeDumpPath)), { recursive: true });
+  }
+
   await startProxyServer(options, async (eventCallbackListeners, proxyRequest, proxyRequestBody, eventBuffer) => {
     const data: SentryRequestCallbackData = {
       envelope: parseEnvelope(proxyRequestBody),
@@ -182,6 +188,10 @@ export async function startEventProxyServer(options: EventProxyServerOptions): P
     eventCallbackListeners.forEach(listener => {
       listener(dataString);
     });
+
+    if (options.envelopeDumpPath) {
+      fs.appendFileSync(path.resolve(options.envelopeDumpPath), `${JSON.stringify(data.envelope)}\n`, 'utf-8');
+    }
 
     return [
       200,

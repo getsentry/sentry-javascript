@@ -10,11 +10,101 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 8.35.0
+
+### Beta release of the official Nuxt Sentry SDK
+
+This release marks the beta release of the `@sentry/nuxt` Sentry SDK. For details on how to use it, check out the
+[Sentry Nuxt SDK README](https://github.com/getsentry/sentry-javascript/tree/develop/packages/nuxt). Please reach out on
+[GitHub](https://github.com/getsentry/sentry-javascript/issues/new/choose) if you have any feedback or concerns.
+
+- **feat(nuxt): Make dynamic import() wrapping default
+  ([#13958](https://github.com/getsentry/sentry-javascript/pull/13958))** (BREAKING)
+- **feat(nuxt): Add Rollup plugin to wrap server entry with `import()`
+  ([#13945](https://github.com/getsentry/sentry-javascript/pull/13945))**
+
+**It is no longer required to add a Node `--import` flag. Please update your start command to avoid initializing Sentry
+twice (BREAKING CHANGE).** The SDK will now apply modifications during the build of your application to allow for
+patching of libraries during runtime. If run into issues with this change, you can disable this behavior in your
+`nuxt.config.ts` and use the `--import` flag instead:
+
+```js
+sentry: {
+  dynamicImportForServerEntry: false;
+}
+```
+
+- **feat(nuxt): Respect user-provided source map generation settings
+  ([#14020](https://github.com/getsentry/sentry-javascript/pull/14020))**
+
+We now require you to explicitly enable sourcemaps for the clientside so that Sentry can un-minify your errors. We made
+this change so source maps aren't accidentally leaked to the public. Enable source maps on the client as follows:
+
+```js
+export default defineNuxtConfig({
+  sourcemap: {
+    client: true,
+  },
+});
+```
+
+- feat(nuxt): Log server instrumentation might not work in dev
+  ([#14021](https://github.com/getsentry/sentry-javascript/pull/14021))
+- feat(nuxt): Add Http `responseHook` with `waitUntil`
+  ([#13986](https://github.com/getsentry/sentry-javascript/pull/13986))
+
+### Important Changes
+
+- **feat(vue): Add Pinia plugin ([#13841](https://github.com/getsentry/sentry-javascript/pull/13841))**
+
+Support for [Pinia](https://pinia.vuejs.org/) is added in this release for `@sentry/vue`. To capture Pinia state data,
+add `createSentryPiniaPlugin()` to your Pinia store:
+
+```javascript
+import { createPinia } from 'pinia';
+import { createSentryPiniaPlugin } from '@sentry/vue';
+
+const pinia = createPinia();
+
+pinia.use(createSentryPiniaPlugin());
+```
+
+- **feat(node): Implement Sentry-specific http instrumentation
+  ([#13763](https://github.com/getsentry/sentry-javascript/pull/13763))**
+
+This change introduces a new `SentryHttpInstrumentation` to handle non-span related HTTP instrumentation, allowing it to
+run side-by-side with OTel's `HttpInstrumentation`. This improves support for custom OTel setups and avoids conflicts
+with Sentry's instrumentation. Additionally, the `spans: false` option is reintroduced for `httpIntegration` to disable
+span emission while still allowing custom `HttpInstrumentation` instances (`httpIntegration({ spans: false })`).
+
 - **feat(core): Make stream instrumentation opt-in
   ([#13951](https://github.com/getsentry/sentry-javascript/pull/13951))**
 
 This change adds a new option `trackFetchStreamPerformance` to the browser tracing integration. Only when set to `true`,
 Sentry will instrument streams via fetch.
+
+### Other Changes
+
+- feat(node): Expose `suppressTracing` API ([#13875](https://github.com/getsentry/sentry-javascript/pull/13875))
+- feat(replay): Do not log "timeout while trying to read resp body" as exception
+  ([#13965](https://github.com/getsentry/sentry-javascript/pull/13965))
+- chore(node): Bump `@opentelemetry/instrumentation-express` to `0.43.0`
+  ([#13948](https://github.com/getsentry/sentry-javascript/pull/13948))
+- chore(node): Bump `@opentelemetry/instrumentation-fastify` to `0.40.0`
+  ([#13983](https://github.com/getsentry/sentry-javascript/pull/13983))
+- fix: Ensure type for `init` is correct in meta frameworks
+  ([#13938](https://github.com/getsentry/sentry-javascript/pull/13938))
+- fix(core): `.set` the `sentry-trace` header instead of `.append`ing in fetch instrumentation
+  ([#13907](https://github.com/getsentry/sentry-javascript/pull/13907))
+- fix(module): keep version for node ESM package ([#13922](https://github.com/getsentry/sentry-javascript/pull/13922))
+- fix(node): Ensure `ignoreOutgoingRequests` of `httpIntegration` applies to breadcrumbs
+  ([#13970](https://github.com/getsentry/sentry-javascript/pull/13970))
+- fix(replay): Fix onError sampling when loading an expired buffered session
+  ([#13962](https://github.com/getsentry/sentry-javascript/pull/13962))
+- fix(replay): Ignore older performance entries when starting manually
+  ([#13969](https://github.com/getsentry/sentry-javascript/pull/13969))
+- perf(node): Truncate breadcrumb messages created by console integration
+  ([#14006](https://github.com/getsentry/sentry-javascript/pull/14006))
 
 Work in this release was contributed by @ZakrepaShe and @zhiyan114. Thank you for your contributions!
 
