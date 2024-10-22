@@ -21,6 +21,7 @@ const LazyLoadableIntegrations = {
   rewriteFramesIntegration: 'rewriteframes',
   sessionTimingIntegration: 'sessiontiming',
   browserProfilingIntegration: 'browserprofiling',
+  moduleMetadataIntegration: 'modulemetadata',
 } as const;
 
 const WindowWithMaybeIntegration = WINDOW as {
