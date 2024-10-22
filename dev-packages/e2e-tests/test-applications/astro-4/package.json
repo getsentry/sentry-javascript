@@ -18,7 +18,7 @@
     "@sentry/astro": "* || latest",
     "@sentry-internal/test-utils": "link:../../../test-utils",
     "@spotlightjs/astro": "2.1.6",
-    "astro": "4.13.3",
+    "astro": "4.16.1",
     "typescript": "^5.5.4"
   },
   "devDependencies": {
