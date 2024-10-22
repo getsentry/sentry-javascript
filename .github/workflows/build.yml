@@ -1035,14 +1035,19 @@ jobs:
           overwrite: true
           retention-days: 7
 
+      - name: Pre-process E2E Test Dumps
+        run: |
+          node ./scripts/normalize-e2e-test-dump-transaction-events.js
+
       - name: Upload E2E Test Event Dumps
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: e2e-test-event-dumps
+          name: E2E Test Dump (${{ matrix.label || matrix.test-application }})
           path: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}/event-dumps
           overwrite: true
           retention-days: 7
+          if-no-files-found: ignore
 
       - name: Upload test results to Codecov
         if: cancelled() == false
@@ -1083,10 +1088,6 @@ jobs:
             'react-send-to-sentry',
             'node-express-send-to-sentry',
             'debug-id-sourcemaps',
-            'nextjs-app-dir',
-            'nextjs-13',
-            'nextjs-14',
-            'nextjs-15',
           ]
         build-command:
           - false
@@ -1183,6 +1184,20 @@ jobs:
         working-directory: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
         timeout-minutes: 10
         run: pnpm ${{ matrix.assert-command || 'test:assert' }}
+
+      - name: Pre-process E2E Test Dumps
+        run: |
+          node ./scripts/normalize-e2e-test-dump-transaction-events.js
+
+      - name: Upload E2E Test Event Dumps
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: E2E Test Dump (${{ matrix.label || matrix.test-application }})
+          path: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}/event-dumps
+          overwrite: true
+          retention-days: 7
+          if-no-files-found: ignore
 
       - name: Deploy Astro to Cloudflare
         uses: cloudflare/pages-action@v1
