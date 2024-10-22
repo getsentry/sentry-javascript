@@ -3,7 +3,9 @@
  * you must either a) use `console.log` rather than the logger, or b) put your function elsewhere.
  */
 
+import { DEBUG_BUILD } from './debug-build';
 import { isBrowserBundle } from './env';
+import { logger } from './logger';
 
 /**
  * Checks whether we're in the Node.js or Browser environment
@@ -26,8 +28,9 @@ export function isNodeEnv(): boolean {
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function dynamicRequire(mod: any, request: string): any {
+  const resolvedPath = require.resolve(request);
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-  return mod.require(request);
+  return mod.require(resolvedPath);
 }
 
 /**
@@ -49,14 +52,7 @@ export function loadModule<T>(moduleName: string): T | undefined {
   try {
     mod = dynamicRequire(module, moduleName);
   } catch (e) {
-    // no-empty
-  }
-
-  try {
-    const { cwd } = dynamicRequire(module, 'process');
-    mod = dynamicRequire(module, `${cwd()}/node_modules/${moduleName}`) as T;
-  } catch (e) {
-    // no-empty
+    DEBUG_BUILD && logger.error(`Unable to dynamically require ${moduleName}`);
   }
 
   return mod;
