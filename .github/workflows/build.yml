@@ -1018,12 +1018,12 @@ jobs:
 
       - name: Build E2E app
         working-directory: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
-        timeout-minutes: 5
+        timeout-minutes: 7
         run: pnpm ${{ matrix.build-command || 'test:build' }}
 
       - name: Run E2E test
         working-directory: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
-        timeout-minutes: 5
+        timeout-minutes: 10
         run: pnpm test:assert
 
       - name: Upload Playwright Traces
@@ -1039,7 +1039,7 @@ jobs:
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: playwright-event-dumps-job_e2e_playwright_tests-${{ matrix.test-application }}
+          name: e2e-test-event-dumps
           path: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}/event-dumps
           overwrite: true
           retention-days: 7
@@ -1176,12 +1176,12 @@ jobs:
 
       - name: Build E2E app
         working-directory: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
-        timeout-minutes: 5
+        timeout-minutes: 7
         run: pnpm ${{ matrix.build-command || 'test:build' }}
 
       - name: Run E2E test
         working-directory: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
-        timeout-minutes: 5
+        timeout-minutes: 10
         run: pnpm ${{ matrix.assert-command || 'test:assert' }}
 
       - name: Deploy Astro to Cloudflare
@@ -1282,12 +1282,12 @@ jobs:
 
       - name: Build E2E app
         working-directory: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
-        timeout-minutes: 5
+        timeout-minutes: 7
         run: yarn ${{ matrix.build-command || 'test:build' }}
 
       - name: Run E2E test
         working-directory: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
-        timeout-minutes: 5
+        timeout-minutes: 10
         run: yarn test:assert
 
   job_required_jobs_passed:

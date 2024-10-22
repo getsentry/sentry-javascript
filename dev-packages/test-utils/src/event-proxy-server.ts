@@ -171,6 +171,11 @@ export async function startProxyServer(
 export async function startEventProxyServer(options: EventProxyServerOptions): Promise<void> {
   if (options.envelopeDumpPath) {
     await fs.promises.mkdir(path.dirname(path.resolve(options.envelopeDumpPath)), { recursive: true });
+    try {
+      await fs.promises.unlink(path.resolve(options.envelopeDumpPath));
+    } catch {
+      // noop
+    }
   }
 
   await startProxyServer(options, async (eventCallbackListeners, proxyRequest, proxyRequestBody, eventBuffer) => {
