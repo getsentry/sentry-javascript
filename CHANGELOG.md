@@ -10,6 +10,12 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 8.36.0-beta.0
+
+This is a beta release to fully switch the Next.js and Cloudflare SDKs to OpenTelemetry tracing.
+
+See https://github.com/getsentry/sentry-javascript/pull/13889 for more information.
+
 ## 8.35.0
 
 ### Beta release of the official Nuxt Sentry SDK
