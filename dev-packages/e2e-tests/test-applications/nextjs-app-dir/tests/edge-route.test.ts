@@ -25,11 +25,17 @@ test('Should create a transaction for edge routes', async ({ request }) => {
 
 test('Faulty edge routes', async ({ request }) => {
   const edgerouteTransactionPromise = waitForTransaction('nextjs-app-dir', async transactionEvent => {
-    return transactionEvent?.transaction === 'GET /api/error-edge-endpoint';
+    return (
+      transactionEvent?.transaction === 'GET /api/error-edge-endpoint' &&
+      transactionEvent.contexts?.runtime?.name === 'vercel-edge'
+    );
   });
 
   const errorEventPromise = waitForError('nextjs-app-dir', errorEvent => {
-    return errorEvent?.exception?.values?.[0]?.value === 'Edge Route Error';
+    return (
+      errorEvent?.exception?.values?.[0]?.value === 'Edge Route Error' &&
+      errorEvent.contexts?.runtime?.name === 'vercel-edge'
+    );
   });
 
   request.get('/api/error-edge-endpoint').catch(() => {
@@ -44,7 +50,6 @@ test('Faulty edge routes', async ({ request }) => {
   test.step('should create transactions with the right fields', () => {
     expect(edgerouteTransaction.contexts?.trace?.status).toBe('unknown_error');
     expect(edgerouteTransaction.contexts?.trace?.op).toBe('http.server');
-    expect(edgerouteTransaction.contexts?.runtime?.name).toBe('vercel-edge');
   });
 
   test.step('should have scope isolation', () => {

@@ -60,11 +60,11 @@ test('Should report an error event for errors thrown in getServerSideProps', asy
         data: {
           'http.response.status_code': 500,
           'sentry.op': 'http.server',
-          'sentry.origin': expect.stringMatching(/^(auto|auto\.http\.otel\.http)$/),
+          'sentry.origin': 'auto',
           'sentry.source': 'route',
         },
         op: 'http.server',
-        origin: expect.stringMatching(/^(auto|auto\.http\.otel\.http)$/),
+        origin: 'auto',
         span_id: expect.any(String),
         status: 'internal_error',
         trace_id: expect.any(String),
@@ -81,8 +81,7 @@ test('Should report an error event for errors thrown in getServerSideProps', asy
     start_timestamp: expect.any(Number),
     timestamp: expect.any(Number),
     transaction: 'GET /[param]/error-getServerSideProps',
-    // TODO: This test fails depending on the next version (next 13: 'custom', next >14: 'route')
-    // transaction_info: { source: 'custom' },
+    transaction_info: { source: 'route' },
     type: 'transaction',
   });
 });
@@ -148,11 +147,11 @@ test('Should report an error event for errors thrown in getServerSideProps in pa
         data: {
           'http.response.status_code': 500,
           'sentry.op': 'http.server',
-          'sentry.origin': expect.stringMatching(/^auto(\.http\.otel\.http)?$/),
+          'sentry.origin': 'auto',
           'sentry.source': 'route',
         },
         op: 'http.server',
-        origin: expect.stringMatching(/^auto(\.http\.otel\.http)?$/),
+        origin: 'auto',
         span_id: expect.any(String),
         status: 'internal_error',
         trace_id: expect.any(String),
@@ -169,8 +168,7 @@ test('Should report an error event for errors thrown in getServerSideProps in pa
     start_timestamp: expect.any(Number),
     timestamp: expect.any(Number),
     transaction: 'GET /[param]/customPageExtension',
-    // TODO: This test fails depending on the next version (next 13: 'custom', next >14: 'route')
-    // transaction_info: { source: 'custom' },
+    transaction_info: { source: 'route' },
     type: 'transaction',
   });
 });
