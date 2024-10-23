@@ -1,6 +1,6 @@
 {
   "name": "@sentry/vercel-edge",
-  "version": "8.35.0",
+  "version": "8.36.0-beta.0",
   "description": "Offical Sentry SDK for the Vercel Edge Runtime",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/vercel-edge",
@@ -40,17 +40,17 @@
   },
   "dependencies": {
     "@opentelemetry/api": "^1.9.0",
-    "@sentry/core": "8.35.0",
-    "@sentry/types": "8.35.0",
-    "@sentry/utils": "8.35.0"
+    "@sentry/core": "8.36.0-beta.0",
+    "@sentry/types": "8.36.0-beta.0",
+    "@sentry/utils": "8.36.0-beta.0"
   },
   "devDependencies": {
-    "@opentelemetry/semantic-conventions": "^1.27.0",
+    "@edge-runtime/types": "3.0.1",
     "@opentelemetry/core": "^1.25.1",
     "@opentelemetry/resources": "^1.26.0",
     "@opentelemetry/sdk-trace-base": "^1.26.0",
-    "@sentry/opentelemetry": "8.35.0",
-    "@edge-runtime/types": "3.0.1"
+    "@opentelemetry/semantic-conventions": "^1.27.0",
+    "@sentry/opentelemetry": "8.36.0-beta.0"
   },
   "scripts": {
     "build": "run-p build:transpile build:types",

@@ -1,6 +1,6 @@
 {
   "name": "@sentry-internal/rollup-utils",
-  "version": "8.35.0",
+  "version": "8.36.0-beta.0",
   "description": "Rollup utilities used at Sentry for the Sentry JavaScript SDK",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/rollup-utils",
