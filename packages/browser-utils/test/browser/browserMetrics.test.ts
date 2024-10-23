@@ -338,13 +338,34 @@ describe('_addResourceSpans', () => {
       }),
     );
   });
-});
 
-// resource delivery types: https://developer.mozilla.org/en-US/docs/Web/API/PerformanceResourceTiming/deliveryType
-// i.e. better but not yet widely supported way to check for browser cache hit
-it.each(['', 'cache', 'navigational-prefetch'])(
-  'attaches delivery type to resource spans if available',
-  deliveryType => {
+  // resource delivery types: https://developer.mozilla.org/en-US/docs/Web/API/PerformanceResourceTiming/deliveryType
+  // i.e. better but not yet widely supported way to check for browser cache hit
+  it.each(['cache', 'navigational-prefetch'])(
+    'attaches delivery type ("%s") to resource spans if available',
+    deliveryType => {
+      const spans: Span[] = [];
+
+      getClient()?.on('spanEnd', span => {
+        spans.push(span);
+      });
+
+      const entry: ResourceEntry = {
+        initiatorType: 'css',
+        transferSize: 0,
+        encodedBodySize: 0,
+        decodedBodySize: 0,
+        deliveryType,
+      };
+
+      _addResourceSpans(span, entry, resourceEntryName, 100, 23, 345);
+
+      expect(spans).toHaveLength(1);
+      expect(spanToJSON(spans[0]!).data).toMatchObject({ 'http.response_delivery_type': deliveryType });
+    },
+  );
+
+  it('attaches "default" as delivery if the empty string ("") default value is set', () => {
     const spans: Span[] = [];
 
     getClient()?.on('spanEnd', span => {
@@ -356,15 +377,15 @@ it.each(['', 'cache', 'navigational-prefetch'])(
       transferSize: 0,
       encodedBodySize: 0,
       decodedBodySize: 0,
-      deliveryType,
+      deliveryType: '',
     };
 
     _addResourceSpans(span, entry, resourceEntryName, 100, 23, 345);
 
     expect(spans).toHaveLength(1);
-    expect(spanToJSON(spans[0]!)).toEqual(expect.objectContaining({ 'http.response_delivery_type': deliveryType }));
-  },
-);
+    expect(spanToJSON(spans[0]!).data).toMatchObject({ 'http.response_delivery_type': 'default' });
+  });
+});
 
 const setGlobalLocation = (location: Location) => {
   // @ts-expect-error need to delete this in order to set to new value
