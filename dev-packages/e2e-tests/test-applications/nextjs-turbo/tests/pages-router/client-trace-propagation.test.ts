@@ -3,7 +3,7 @@ import { waitForTransaction } from '@sentry-internal/test-utils';
 import { extractTraceparentData } from '@sentry/utils';
 
 test('Should propagate traces from server to client in pages router', async ({ page }) => {
-  const serverTransactionPromise = waitForTransaction('nextjs-15', async transactionEvent => {
+  const serverTransactionPromise = waitForTransaction('nextjs-turbo', async transactionEvent => {
     return transactionEvent?.transaction === 'GET /[param]/client-trace-propagation';
   });
 
