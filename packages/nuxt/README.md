@@ -75,7 +75,7 @@ Sentry.init({
 
 ### 4. Server-side setup
 
-Add an `sentry.client.config.ts` file to the root of your project:
+Add a `sentry.server.config.ts` file to the root of your project:
 
 ```javascript
 import * as Sentry from '@sentry/nuxt';
@@ -137,16 +137,28 @@ When adding `sentry.server.config.ts`, you might get an error like this:
 for `@vercel/nft` to fix this. This will add the `hook.mjs` file to your build output
 ([Nitro issue here](https://github.com/unjs/nitro/issues/2703)).
 
+For `npm`:
+
 ```json
 "overrides": {
   "@vercel/nft": "^0.27.4"
 }
 ```
 
-or in `yarn`:
+for `yarn`:
 
 ```json
 "resolutions": {
   "@vercel/nft": "^0.27.4"
+}
+```
+
+or for `pnpm`:
+
+```json
+"pnpm": {
+  "overrides": {
+    "@vercel/nft": "^0.27.4"
+  }
 }
 ```

@@ -14,6 +14,7 @@
     "test:assert": "pnpm test"
   },
   "dependencies": {
+    "@pinia/nuxt": "^0.5.5",
     "@sentry/nuxt": "latest || *",
     "nuxt": "^3.13.2"
   },

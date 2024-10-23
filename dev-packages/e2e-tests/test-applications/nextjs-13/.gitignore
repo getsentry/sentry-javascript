@@ -38,5 +38,6 @@ next-env.d.ts
 !*.d.ts
 
 test-results
+event-dumps
 
 .vscode
