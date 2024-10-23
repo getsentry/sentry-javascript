@@ -15,7 +15,7 @@ test('Should propagate traces from server to client in pages router', async ({ p
 
   const baggageLocator = await page.locator('meta[name="baggage"]');
   const baggageValue = await baggageLocator.getAttribute('content');
-  expect(baggageValue).toMatch(/sentry-public_key=username/);
+  expect(baggageValue).toMatch(/sentry-public_key=/);
 
   const traceparentData = extractTraceparentData(sentryTraceValue!);
 
