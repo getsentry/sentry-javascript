@@ -1,5 +1,6 @@
 import { getClient } from '@sentry/core';
-import { browserTracingIntegration, vueIntegration } from '@sentry/vue';
+import { consoleSandbox } from '@sentry/utils';
+import { browserTracingIntegration, createSentryPiniaPlugin, vueIntegration } from '@sentry/vue';
 import { defineNuxtPlugin } from 'nuxt/app';
 import { reportNuxtError } from '../utils';
 
@@ -34,15 +35,33 @@ export default defineNuxtPlugin({
   name: 'sentry-client-integrations',
   dependsOn: ['sentry-client-config'],
   async setup(nuxtApp) {
+    const sentryClient = getClient();
+    const clientOptions = sentryClient && sentryClient.getOptions();
+
     // This evaluates to true unless __SENTRY_TRACING__ is text-replaced with "false", in which case everything inside
     // will get tree-shaken away
     if (typeof __SENTRY_TRACING__ === 'undefined' || __SENTRY_TRACING__) {
-      const sentryClient = getClient();
-
       if (sentryClient && '$router' in nuxtApp) {
         sentryClient.addIntegration(
           browserTracingIntegration({ router: nuxtApp.$router as VueRouter, routeLabel: 'path' }),
         );
+      }
+    }
+
+    if (clientOptions && 'trackPinia' in clientOptions && clientOptions.trackPinia) {
+      if ('$pinia' in nuxtApp) {
+        (nuxtApp.$pinia as { use: (plugin: unknown) => void }).use(
+          // `trackPinia` is an object with custom options or `true` (pass `undefined` to use default options)
+          createSentryPiniaPlugin(clientOptions.trackPinia === true ? undefined : clientOptions.trackPinia),
+        );
+      } else {
+        clientOptions.debug &&
+          consoleSandbox(() => {
+            // eslint-disable-next-line no-console
+            console.warn(
+              '[Sentry] You set `trackPinia`, but the Pinia module was not found. Make sure to add `"@pinia/nuxt"` to your modules array.',
+            );
+          });
       }
     }
 
