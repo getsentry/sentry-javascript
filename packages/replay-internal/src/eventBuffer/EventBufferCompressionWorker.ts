@@ -67,12 +67,6 @@ export class EventBufferCompressionWorker implements EventBuffer {
     this._totalSize += data.length;
 
     if (this._totalSize > REPLAY_MAX_EVENT_BUFFER_SIZE) {
-      DEBUG_BUILD &&
-        logger.info(
-          `Cannot add new event with raw size of ${data.length} to existing buffer of size ${
-            this._totalSize - data.length
-          }`,
-        );
       return Promise.reject(new EventBufferSizeExceededError());
     }
 
