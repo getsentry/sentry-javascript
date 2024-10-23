@@ -33,15 +33,14 @@ function _scrubStatement(value: unknown): unknown {
 
   if (isCommandObj(value)) {
     const initial: Record<string, unknown> = {};
-    return Object.entries(value).map(([key, element]) => [
-      key,
-      _scrubStatement(element),
-    ]).reduce((prev, current) => {
-      if (isCommandEntry(current)) {
-        prev[current[0]] = current[1];
-      }
-      return prev;
-    }, initial);
+    return Object.entries(value)
+      .map(([key, element]) => [key, _scrubStatement(element)])
+      .reduce((prev, current) => {
+        if (isCommandEntry(current)) {
+          prev[current[0]] = current[1];
+        }
+        return prev;
+      }, initial);
   }
 
   // A value like string or number, possible contains PII, scrub it
@@ -60,7 +59,7 @@ function isBuffer(value: unknown): boolean {
   return isBuffer;
 }
 
-function isCommandEntry(value:  [string, unknown]  | unknown): value is [string, unknown] {
+function isCommandEntry(value: [string, unknown] | unknown): value is [string, unknown] {
   return Array.isArray(value);
 }
 
