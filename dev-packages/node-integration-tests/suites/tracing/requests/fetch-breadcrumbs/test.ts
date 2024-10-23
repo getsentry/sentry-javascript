@@ -75,4 +75,62 @@ conditionalTest({ min: 18 })('outgoing fetch', () => {
           .start(closeTestServer);
       });
   });
+
+  test('outgoing fetch requests should not create breadcrumbs when disabled', done => {
+    createTestServer(done)
+      .start()
+      .then(([SERVER_URL, closeTestServer]) => {
+        createRunner(__dirname, 'scenario-disabled.ts')
+          .withEnv({ SERVER_URL })
+          .ensureNoErrorOutput()
+          .expect({
+            event: {
+              breadcrumbs: [
+                {
+                  message: 'manual breadcrumb',
+                  timestamp: expect.any(Number),
+                },
+              ],
+              exception: {
+                values: [
+                  {
+                    type: 'Error',
+                    value: 'foo',
+                  },
+                ],
+              },
+            },
+          })
+          .start(closeTestServer);
+      });
+  });
+
+  test('outgoing fetch requests should not create breadcrumbs when legacy disabled', done => {
+    createTestServer(done)
+      .start()
+      .then(([SERVER_URL, closeTestServer]) => {
+        createRunner(__dirname, 'scenario-disabled-legacy.ts')
+          .withEnv({ SERVER_URL })
+          .ensureNoErrorOutput()
+          .expect({
+            event: {
+              breadcrumbs: [
+                {
+                  message: 'manual breadcrumb',
+                  timestamp: expect.any(Number),
+                },
+              ],
+              exception: {
+                values: [
+                  {
+                    type: 'Error',
+                    value: 'foo',
+                  },
+                ],
+              },
+            },
+          })
+          .start(closeTestServer);
+      });
+  });
 });

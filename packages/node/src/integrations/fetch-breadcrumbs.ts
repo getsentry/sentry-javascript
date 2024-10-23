@@ -36,15 +36,18 @@ const _fetchBreadcrumbsIntegration = ((options: NodeFetchOptions = {}) => {
         return;
       }
 
-      const oldIntegration = client.getIntegrationByName<OldIntegration>('NodeFetch');
-      if (oldIntegration?.breadcrumbsDisabled) {
-        return;
-      }
+      // We need to ensure all other integrations have been setup first
+      setImmediate(() => {
+        const oldIntegration = client.getIntegrationByName<OldIntegration>('NodeFetch');
+        if (oldIntegration?.breadcrumbsDisabled) {
+          return;
+        }
 
-      diagnosticsChannel
-        .channel('undici:request:headers')
-        // eslint-disable-next-line deprecation/deprecation
-        .subscribe(onRequestHeaders as diagnosticsChannel.ChannelListener);
+        diagnosticsChannel
+          .channel('undici:request:headers')
+          // eslint-disable-next-line deprecation/deprecation
+          .subscribe(onRequestHeaders as diagnosticsChannel.ChannelListener);
+      });
     },
   };
 }) satisfies IntegrationFn;
