@@ -452,7 +452,9 @@ export class ReplayContainer implements ReplayContainerInterface {
     this._isEnabled = false;
 
     try {
-      DEBUG_BUILD && logger.info(`Stopping Replay${reason ? ` triggered by ${reason}` : ''}`);
+      DEBUG_BUILD &&
+        reason !== 'addEventSizeExceeded' &&
+        logger.info(`Stopping Replay${reason ? ` triggered by ${reason}` : ''}`);
 
       resetReplayIdOnDynamicSamplingContext();
 
