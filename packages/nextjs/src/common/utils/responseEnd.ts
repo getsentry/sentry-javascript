@@ -1,9 +1,7 @@
 import type { ServerResponse } from 'http';
-import { flush, setHttpStatus } from '@sentry/core';
+import { setHttpStatus } from '@sentry/core';
 import type { Span } from '@sentry/types';
-import { fill, logger } from '@sentry/utils';
-
-import { DEBUG_BUILD } from '../debug-build';
+import { fill } from '@sentry/utils';
 import type { ResponseEndMethod, WrappedResponseEndMethod } from '../types';
 
 /**
@@ -42,17 +40,4 @@ export function autoEndSpanOnResponseEnd(span: Span, res: ServerResponse): void 
 export function finishSpan(span: Span, res: ServerResponse): void {
   setHttpStatus(span, res.statusCode);
   span.end();
-}
-
-/**
- * Flushes pending Sentry events with a 2 second timeout and in a way that cannot create unhandled promise rejections.
- */
-export async function flushSafelyWithTimeout(): Promise<void> {
-  try {
-    DEBUG_BUILD && logger.log('Flushing events...');
-    await flush(2000);
-    DEBUG_BUILD && logger.log('Done flushing events');
-  } catch (e) {
-    DEBUG_BUILD && logger.log('Error while flushing events:\n', e);
-  }
 }

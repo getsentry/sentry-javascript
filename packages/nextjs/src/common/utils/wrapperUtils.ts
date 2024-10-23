@@ -14,9 +14,9 @@ import {
   withIsolationScope,
 } from '@sentry/core';
 import type { Span } from '@sentry/types';
-import { isString, vercelWaitUntil } from '@sentry/utils';
+import { flushSafelyWithTimeout, isString, vercelWaitUntil } from '@sentry/utils';
 
-import { autoEndSpanOnResponseEnd, flushSafelyWithTimeout } from './responseEnd';
+import { autoEndSpanOnResponseEnd } from './responseEnd';
 import { commonObjectToIsolationScope, escapeNextjsTracing } from './tracingUtils';
 
 declare module 'http' {

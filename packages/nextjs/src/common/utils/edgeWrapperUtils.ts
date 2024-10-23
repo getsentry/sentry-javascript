@@ -9,10 +9,9 @@ import {
   startSpan,
   withIsolationScope,
 } from '@sentry/core';
-import { vercelWaitUntil, winterCGRequestToRequestData } from '@sentry/utils';
+import { flushSafelyWithTimeout, vercelWaitUntil, winterCGRequestToRequestData } from '@sentry/utils';
 
 import type { EdgeRouteHandler } from '../../edge/types';
-import { flushSafelyWithTimeout } from './responseEnd';
 import { commonObjectToIsolationScope, escapeNextjsTracing } from './tracingUtils';
 
 /**

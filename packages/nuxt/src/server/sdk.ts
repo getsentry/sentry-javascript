@@ -1,4 +1,4 @@
-import { applySdkMetadata, flush, getGlobalScope } from '@sentry/core';
+import { applySdkMetadata, getGlobalScope } from '@sentry/core';
 import {
   type NodeOptions,
   getDefaultIntegrations as getDefaultNodeIntegrations,
@@ -6,7 +6,7 @@ import {
   init as initNode,
 } from '@sentry/node';
 import type { Client, EventProcessor, Integration } from '@sentry/types';
-import { logger, vercelWaitUntil } from '@sentry/utils';
+import { flushSafelyWithTimeout, logger, vercelWaitUntil } from '@sentry/utils';
 import { DEBUG_BUILD } from '../common/debug-build';
 import type { SentryNuxtServerOptions } from '../common/types';
 
@@ -84,17 +84,4 @@ export function mergeRegisterEsmLoaderHooks(
     };
   }
   return options.registerEsmLoaderHooks ?? { exclude: [/vue/] };
-}
-
-/**
- * Flushes pending Sentry events with a 2-second timeout and in a way that cannot create unhandled promise rejections.
- */
-export async function flushSafelyWithTimeout(): Promise<void> {
-  try {
-    DEBUG_BUILD && logger.log('Flushing events...');
-    await flush(2000);
-    DEBUG_BUILD && logger.log('Done flushing events');
-  } catch (e) {
-    DEBUG_BUILD && logger.log('Error while flushing events:\n', e);
-  }
 }

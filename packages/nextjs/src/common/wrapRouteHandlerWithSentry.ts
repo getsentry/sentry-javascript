@@ -10,10 +10,14 @@ import {
   withIsolationScope,
   withScope,
 } from '@sentry/core';
-import { propagationContextFromHeaders, vercelWaitUntil, winterCGHeadersToDict } from '@sentry/utils';
+import {
+  flushSafelyWithTimeout,
+  propagationContextFromHeaders,
+  vercelWaitUntil,
+  winterCGHeadersToDict,
+} from '@sentry/utils';
 import { isNotFoundNavigationError, isRedirectNavigationError } from './nextNavigationErrorUtils';
 import type { RouteHandlerContext } from './types';
-import { flushSafelyWithTimeout } from './utils/responseEnd';
 import {
   commonObjectToIsolationScope,
   commonObjectToPropagationContext,

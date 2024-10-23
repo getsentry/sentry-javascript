@@ -1,8 +1,7 @@
-import { captureException, flush } from '@sentry/node';
-import { logger, objectify } from '@sentry/utils';
+import { captureException } from '@sentry/node';
+import { flushSafelyWithTimeout, objectify } from '@sentry/utils';
 import type { RequestEvent } from '@sveltejs/kit';
 
-import { DEBUG_BUILD } from '../common/debug-build';
 import { isHttpError, isRedirect } from '../common/utils';
 
 /**
@@ -23,13 +22,7 @@ export async function flushIfServerless(): Promise<void> {
   const platformSupportsStreaming = !process.env.LAMBDA_TASK_ROOT && !process.env.VERCEL;
 
   if (!platformSupportsStreaming) {
-    try {
-      DEBUG_BUILD && logger.log('Flushing events...');
-      await flush(2000);
-      DEBUG_BUILD && logger.log('Done flushing events');
-    } catch (e) {
-      DEBUG_BUILD && logger.log('Error while flushing events:\n', e);
-    }
+    await flushSafelyWithTimeout();
   }
 }
 

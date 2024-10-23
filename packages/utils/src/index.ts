@@ -4,6 +4,7 @@ export * from './breadcrumb-log-level';
 export * from './browser';
 export * from './dsn';
 export * from './error';
+export * from './flush-safely';
 export * from './worldwide';
 export * from './instrument';
 export * from './is';
