@@ -1,4 +1,6 @@
 import {
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   Scope,
   captureException,
   getActiveSpan,
@@ -6,6 +8,7 @@ import {
   getRootSpan,
   handleCallbackErrors,
   setCapturedScopesOnSpan,
+  setHttpStatus,
   withIsolationScope,
   withScope,
 } from '@sentry/core';
@@ -14,7 +17,7 @@ import type { RouteHandlerContext } from './types';
 
 import { propagationContextFromHeaders, winterCGHeadersToDict } from '@sentry/utils';
 
-import { isRedirectNavigationError } from './nextNavigationErrorUtils';
+import { isNotFoundNavigationError, isRedirectNavigationError } from './nextNavigationErrorUtils';
 import { commonObjectToIsolationScope, commonObjectToPropagationContext } from './utils/tracingUtils';
 
 /**
@@ -49,22 +52,36 @@ export function wrapRouteHandlerWithSentry<F extends (...args: any[]) => any>(
       const propagationContext = commonObjectToPropagationContext(headers, incomingPropagationContext);
 
       const activeSpan = getActiveSpan();
-      if (activeSpan) {
-        const rootSpan = getRootSpan(activeSpan);
+      const rootSpan = activeSpan ? getRootSpan(activeSpan) : undefined;
+      if (rootSpan) {
         const { scope } = getCapturedScopesOnSpan(rootSpan);
         setCapturedScopesOnSpan(rootSpan, scope ?? new Scope(), isolationScope);
+
+        if (process.env.NEXT_RUNTIME === 'edge') {
+          rootSpan.updateName(`${method} ${parameterizedRoute}`);
+          rootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
+          rootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'http.server');
+        }
       }
 
       return withIsolationScope(isolationScope, () => {
-        return withScope(scope => {
+        return withScope(async scope => {
           scope.setTransactionName(`${method} ${parameterizedRoute}`);
           scope.setPropagationContext(propagationContext);
-          return handleCallbackErrors(
+
+          const response: Response = await handleCallbackErrors(
             () => originalFunction.apply(thisArg, args),
             error => {
               // Next.js throws errors when calling `redirect()`. We don't wanna report these.
               if (isRedirectNavigationError(error)) {
                 // Don't do anything
+              } else if (isNotFoundNavigationError(error)) {
+                if (activeSpan) {
+                  setHttpStatus(activeSpan, 404);
+                }
+                if (rootSpan) {
+                  setHttpStatus(rootSpan, 404);
+                }
               } else {
                 captureException(error, {
                   mechanism: {
@@ -74,6 +91,21 @@ export function wrapRouteHandlerWithSentry<F extends (...args: any[]) => any>(
               }
             },
           );
+
+          try {
+            if (response.status) {
+              if (activeSpan) {
+                setHttpStatus(activeSpan, response.status);
+              }
+              if (rootSpan) {
+                setHttpStatus(rootSpan, response.status);
+              }
+            }
+          } catch {
+            // best effort - response may be undefined?
+          }
+
+          return response;
         });
       });
     },
