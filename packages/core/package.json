@@ -1,6 +1,6 @@
 {
   "name": "@sentry/core",
-  "version": "8.36.0-alpha.0",
+  "version": "8.36.0-alpha.1",
   "description": "Base implementation for all Sentry JavaScript SDKs",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/core",
@@ -39,8 +39,8 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/types": "8.36.0-alpha.0",
-    "@sentry/utils": "8.36.0-alpha.0"
+    "@sentry/types": "8.36.0-alpha.1",
+    "@sentry/utils": "8.36.0-alpha.1"
   },
   "scripts": {
     "build": "run-p build:transpile build:types",
