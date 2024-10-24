@@ -46,6 +46,7 @@
     "cron": "^3.1.6",
     "dataloader": "2.2.2",
     "express": "^4.17.3",
+    "firebase": "^10.13.2",
     "generic-pool": "^3.9.0",
     "graphql": "^16.3.0",
     "http-terminator": "^3.2.0",
@@ -71,6 +72,7 @@
     "@types/amqplib": "^0.10.5",
     "@types/node-cron": "^3.0.11",
     "@types/node-schedule": "^2.1.7",
+    "@types/firebase": "^3.2.1",
     "globby": "11"
   },
   "config": {
