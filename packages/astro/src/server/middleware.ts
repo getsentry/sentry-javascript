@@ -193,7 +193,18 @@ async function instrumentRequest(
         sendErrorToSentry(e);
         throw e;
       } finally {
-        vercelWaitUntil(flushSafelyWithTimeout());
+        vercelWaitUntil(
+          (async () => {
+            // Flushes pending Sentry events with a 2-second timeout and in a way that cannot create unhandled promise rejections.
+            try {
+              DEBUG_BUILD && logger.log('Flushing events...');
+              await flush(2000);
+              DEBUG_BUILD && logger.log('Done flushing events');
+            } catch (e) {
+              DEBUG_BUILD && logger.log('Error while flushing events:\n', e);
+            }
+          })(),
+        );
       }
       // TODO: flush if serverless (first extract function)
     },
@@ -217,19 +228,6 @@ function addMetaTagToHead(htmlChunk: string): string {
   const content = `<head>${metaTags}`;
 
   return htmlChunk.replace('<head>', content);
-}
-
-/**
- * Flushes pending Sentry events with a 2-second timeout and in a way that cannot create unhandled promise rejections.
- */
-export async function flushSafelyWithTimeout(): Promise<void> {
-  try {
-    DEBUG_BUILD && logger.log('Flushing events...');
-    await flush(2000);
-    DEBUG_BUILD && logger.log('Done flushing events');
-  } catch (e) {
-    DEBUG_BUILD && logger.log('Error while flushing events:\n', e);
-  }
 }
 
 /**
