@@ -3,6 +3,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   captureException,
   continueTrace,
+  flush,
   getActiveSpan,
   getClient,
   getCurrentScope,
@@ -14,11 +15,14 @@ import {
 import type { Scope, SpanAttributes } from '@sentry/types';
 import {
   addNonEnumerableProperty,
+  logger,
   objectify,
   stripUrlQueryAndFragment,
+  vercelWaitUntil,
   winterCGRequestToRequestData,
 } from '@sentry/utils';
 import type { APIContext, MiddlewareResponseHandler } from 'astro';
+import { DEBUG_BUILD } from '../../debug-build';
 
 type MiddlewareOptions = {
   /**
@@ -188,6 +192,8 @@ async function instrumentRequest(
       } catch (e) {
         sendErrorToSentry(e);
         throw e;
+      } finally {
+        vercelWaitUntil(flushSafelyWithTimeout());
       }
       // TODO: flush if serverless (first extract function)
     },
@@ -211,6 +217,19 @@ function addMetaTagToHead(htmlChunk: string): string {
   const content = `<head>${metaTags}`;
 
   return htmlChunk.replace('<head>', content);
+}
+
+/**
+ * Flushes pending Sentry events with a 2-second timeout and in a way that cannot create unhandled promise rejections.
+ */
+export async function flushSafelyWithTimeout(): Promise<void> {
+  try {
+    DEBUG_BUILD && logger.log('Flushing events...');
+    await flush(2000);
+    DEBUG_BUILD && logger.log('Done flushing events');
+  } catch (e) {
+    DEBUG_BUILD && logger.log('Error while flushing events:\n', e);
+  }
 }
 
 /**
