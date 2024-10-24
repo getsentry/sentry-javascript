@@ -28,3 +28,24 @@ test('Sends correct error event', async ({ baseURL }) => {
     span_id: expect.any(String),
   });
 });
+
+test('Isolates requests correctly', async ({ baseURL }) => {
+  const errorEventPromise1 = waitForError('node-otel-without-tracing', event => {
+    return !event.type && event.exception?.values?.[0]?.value === 'This is an exception with id 555-a';
+  });
+  const errorEventPromise2 = waitForError('node-otel-without-tracing', event => {
+    return !event.type && event.exception?.values?.[0]?.value === 'This is an exception with id 555-b';
+  });
+
+  fetch(`${baseURL}/test-exception/555-a`);
+  fetch(`${baseURL}/test-exception/555-b`);
+
+  const errorEvent1 = await errorEventPromise1;
+  const errorEvent2 = await errorEventPromise2;
+
+  expect(errorEvent1.transaction).toEqual('GET /test-exception/555-a');
+  expect(errorEvent1.tags).toEqual({ 'root-level-tag': 'yes', 'param-555-a': '555-a' });
+
+  expect(errorEvent2.transaction).toEqual('GET /test-exception/555-b');
+  expect(errorEvent2.tags).toEqual({ 'root-level-tag': 'yes', 'param-555-b': '555-b' });
+});

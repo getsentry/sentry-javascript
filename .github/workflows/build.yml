@@ -905,6 +905,7 @@ jobs:
             'nextjs-13',
             'nextjs-14',
             'nextjs-15',
+            'nextjs-turbo',
             'nextjs-t3',
             'react-17',
             'react-19',
@@ -922,6 +923,7 @@ jobs:
             'tanstack-router',
             'generic-ts3.8',
             'node-fastify',
+            'node-fastify-5',
             'node-hapi',
             'node-nestjs-basic',
             'node-nestjs-distributed-tracing',
@@ -1018,12 +1020,12 @@ jobs:
 
       - name: Build E2E app
         working-directory: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
-        timeout-minutes: 5
+        timeout-minutes: 7
         run: pnpm ${{ matrix.build-command || 'test:build' }}
 
       - name: Run E2E test
         working-directory: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
-        timeout-minutes: 5
+        timeout-minutes: 10
         run: pnpm test:assert
 
       - name: Upload Playwright Traces
@@ -1034,6 +1036,21 @@ jobs:
           path: dev-packages/e2e-tests/test-applications/${{ matrix.test-application}}/test-results
           overwrite: true
           retention-days: 7
+
+      - name: Pre-process E2E Test Dumps
+        if: always()
+        run: |
+          node ./scripts/normalize-e2e-test-dump-transaction-events.js
+
+      - name: Upload E2E Test Event Dumps
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: E2E Test Dump (${{ matrix.label || matrix.test-application }})
+          path: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}/event-dumps
+          overwrite: true
+          retention-days: 7
+          if-no-files-found: ignore
 
       - name: Upload test results to Codecov
         if: cancelled() == false
@@ -1074,10 +1091,6 @@ jobs:
             'react-send-to-sentry',
             'node-express-send-to-sentry',
             'debug-id-sourcemaps',
-            'nextjs-app-dir',
-            'nextjs-13',
-            'nextjs-14',
-            'nextjs-15',
           ]
         build-command:
           - false
@@ -1116,6 +1129,12 @@ jobs:
           - test-application: 'nextjs-15'
             build-command: 'test:build-latest'
             label: 'nextjs-15 (latest)'
+          - test-application: 'nextjs-turbo'
+            build-command: 'test:build-canary'
+            label: 'nextjs-turbo (canary)'
+          - test-application: 'nextjs-turbo'
+            build-command: 'test:build-latest'
+            label: 'nextjs-turbo (latest)'
 
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
@@ -1167,13 +1186,28 @@ jobs:
 
       - name: Build E2E app
         working-directory: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
-        timeout-minutes: 5
+        timeout-minutes: 7
         run: pnpm ${{ matrix.build-command || 'test:build' }}
 
       - name: Run E2E test
         working-directory: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
-        timeout-minutes: 5
+        timeout-minutes: 10
         run: pnpm ${{ matrix.assert-command || 'test:assert' }}
+
+      - name: Pre-process E2E Test Dumps
+        if: always()
+        run: |
+          node ./scripts/normalize-e2e-test-dump-transaction-events.js
+
+      - name: Upload E2E Test Event Dumps
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: E2E Test Dump (${{ matrix.label || matrix.test-application }})
+          path: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}/event-dumps
+          overwrite: true
+          retention-days: 7
+          if-no-files-found: ignore
 
       - name: Deploy Astro to Cloudflare
         uses: cloudflare/pages-action@v1
@@ -1273,12 +1307,12 @@ jobs:
 
       - name: Build E2E app
         working-directory: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
-        timeout-minutes: 5
+        timeout-minutes: 7
         run: yarn ${{ matrix.build-command || 'test:build' }}
 
       - name: Run E2E test
         working-directory: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
-        timeout-minutes: 5
+        timeout-minutes: 10
         run: yarn test:assert
 
   job_required_jobs_passed:

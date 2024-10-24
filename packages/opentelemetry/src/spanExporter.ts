@@ -345,7 +345,6 @@ function removeSentryAttributes(data: Record<string, unknown>): Record<string, u
   /* eslint-disable @typescript-eslint/no-dynamic-delete */
   delete cleanedData[SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE];
   delete cleanedData[SEMANTIC_ATTRIBUTE_SENTRY_PARENT_IS_REMOTE];
-  delete cleanedData['sentry.skip_span_data_inference'];
   /* eslint-enable @typescript-eslint/no-dynamic-delete */
 
   return cleanedData;

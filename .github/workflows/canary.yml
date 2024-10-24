@@ -96,6 +96,12 @@ jobs:
           - test-application: 'nextjs-15'
             build-command: 'test:build-latest'
             label: 'nextjs-15 (latest)'
+          - test-application: 'nextjs-turbo'
+            build-command: 'test:build-canary'
+            label: 'nextjs-turbo (canary)'
+          - test-application: 'nextjs-turbo'
+            build-command: 'test:build-latest'
+            label: 'nextjs-turbo (latest)'
           - test-application: 'react-create-hash-router'
             build-command: 'test:build-canary'
             label: 'react-create-hash-router (canary)'
@@ -140,7 +146,7 @@ jobs:
 
       - name: Build E2E app
         working-directory: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
-        timeout-minutes: 5
+        timeout-minutes: 7
         run: yarn ${{ matrix.build-command }}
 
       - name: Run E2E test
