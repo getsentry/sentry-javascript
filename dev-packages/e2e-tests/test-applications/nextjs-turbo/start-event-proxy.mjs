@@ -6,9 +6,9 @@ const packageJson = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'package
 
 startEventProxyServer({
   port: 3031,
-  proxyServerName: 'nextjs-14',
+  proxyServerName: 'nextjs-turbo',
   envelopeDumpPath: path.join(
     process.cwd(),
-    `event-dumps/next-14-v${packageJson.dependencies.next}-${process.env.TEST_ENV}.dump`,
+    `event-dumps/nextjs-turbo-${packageJson.dependencies.next}-${process.env.TEST_ENV}.dump`,
   ),
 });
