@@ -71,12 +71,10 @@ describe('MongoDB experimental Test', () => {
           'db.connection_string': expect.any(String),
           'net.peer.name': expect.any(String),
           'net.peer.port': expect.any(Number),
-          'db.statement':
-            '{"title":"?","_id":{"_bsontype":"?","id":"?"}}',
+          'db.statement': '{"title":"?","_id":{"_bsontype":"?","id":"?"}}',
           'otel.kind': 'CLIENT',
         },
-        description:
-          '{"title":"?","_id":{"_bsontype":"?","id":"?"}}',
+        description: '{"title":"?","_id":{"_bsontype":"?","id":"?"}}',
         op: 'db',
         origin: 'auto.db.otel.mongo',
       }),
@@ -162,12 +160,10 @@ describe('MongoDB experimental Test', () => {
           'db.connection_string': expect.any(String),
           'net.peer.name': expect.any(String),
           'net.peer.port': expect.any(Number),
-          'db.statement':
-            '{"endSessions":[{"id":{"_bsontype":"?","sub_type":"?","position":"?","buffer":"?"}}]}',
+          'db.statement': '{"endSessions":[{"id":{"_bsontype":"?","sub_type":"?","position":"?","buffer":"?"}}]}',
           'otel.kind': 'CLIENT',
         },
-        description:
-          '{"endSessions":[{"id":{"_bsontype":"?","sub_type":"?","position":"?","buffer":"?"}}]}',
+        description: '{"endSessions":[{"id":{"_bsontype":"?","sub_type":"?","position":"?","buffer":"?"}}]}',
         op: 'db',
         origin: 'auto.db.otel.mongo',
       }),
