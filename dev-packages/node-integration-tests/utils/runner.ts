@@ -107,7 +107,7 @@ interface DockerOptions {
  *
  * Returns a function that can be called to docker compose down
  */
-async function runDockerCompose(options: DockerOptions): Promise<VoidFunction> {
+export async function runDockerCompose(options: DockerOptions): Promise<VoidFunction> {
   return new Promise((resolve, reject) => {
     const cwd = join(...options.workingDirectory);
     const close = (): void => {

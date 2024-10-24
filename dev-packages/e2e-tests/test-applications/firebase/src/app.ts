@@ -1,6 +1,6 @@
 import * as Sentry from '@sentry/node';
 import './init';
-
+import express from 'express';
 import type { FirebaseOptions } from '@firebase/app';
 import { initializeApp } from 'firebase/app';
 import {
@@ -13,7 +13,6 @@ import {
   getFirestore,
   setDoc,
 } from 'firebase/firestore/lite'; // seems like "firebase/firestore" is trying to use grpc for connection and it
-// does not work with simulator
 
 const options: FirebaseOptions = {
   projectId: 'sentry-15d85',
@@ -53,12 +52,21 @@ async function setCity(): Promise<void> {
   });
 }
 
-// eslint-disable-next-line @typescript-eslint/no-floating-promises
-(async () => {
+const expressApp = express();
+const port = 3030;
+
+expressApp.get('/test', async function (req, res) {
   await Sentry.startSpan({ name: 'root span' }, async () => {
     await addCity();
     await setCity();
     await getCities();
     await deleteCity();
   });
-})();
+  await Sentry.flush();
+  res.send({ version: 'v1' });
+  // res.send({ foo: 'bar' });
+});
+
+expressApp.listen(port, () => {
+  console.log(`Example app listening on port ${port}`);
+});

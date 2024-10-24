@@ -1,7 +1,6 @@
-import type { TransactionEvent } from '@sentry/types';
-import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
-
-jest.setTimeout(600_000);
+import { expect, test } from '@playwright/test';
+import { waitForTransaction } from '@sentry-internal/test-utils';
+import { runDockerCompose } from '../../../../node-integration-tests/utils/runner';
 
 const spanAddDoc = expect.objectContaining({
   description: 'addDoc cities',
@@ -75,31 +74,37 @@ const spanDeleteDoc = expect.objectContaining({
   status: 'ok',
 });
 
-describe('firebase auto-instrumentation', () => {
-  afterAll(async () => {
-    cleanupChildProcesses();
+let dockerChild;
+
+test.beforeAll(async () => {
+  console.log('creating firebase docker');
+  dockerChild = await runDockerCompose({
+    workingDirectory: [__dirname, '../docker'],
+    readyMatches: ['Emulator Hub running at'],
+  });
+  console.log('firebase docker created');
+});
+
+test.afterAll(() => {
+  dockerChild();
+  console.log('firebase docker closed');
+});
+
+test('should add, set, get and delete document', async ({ baseURL, page }) => {
+  const pageloadTransactionEventPromise = waitForTransaction('firebase', transactionEvent => {
+    return true;
   });
 
-  describe('firestore', () => {
-    test('should add, set, get and delete document', done => {
-      createRunner(__dirname, 'scenario.ts')
-        .withDockerCompose({
-          workingDirectory: [__dirname, 'docker'],
-          readyMatches: ['Emulator Hub running at'],
-        })
-        .expect({
-          transaction: (transaction: TransactionEvent) => {
-            expect(transaction.transaction).toEqual('root span');
+  await fetch(`${baseURL}/test`);
 
-            expect(transaction.spans?.length).toEqual(4);
+  const transactionEvent = await pageloadTransactionEventPromise;
 
-            expect(transaction.spans![0]).toMatchObject(spanAddDoc);
-            expect(transaction.spans![1]).toMatchObject(spanSetDocs);
-            expect(transaction.spans![2]).toMatchObject(spanGetDocs);
-            expect(transaction.spans![3]).toMatchObject(spanDeleteDoc);
-          },
-        })
-        .start(done);
-    });
-  });
+  expect(transactionEvent.transaction).toEqual('root span');
+
+  expect(transactionEvent.spans?.length).toEqual(4);
+
+  expect(transactionEvent.spans![0]).toMatchObject(spanAddDoc);
+  expect(transactionEvent.spans![1]).toMatchObject(spanSetDocs);
+  expect(transactionEvent.spans![2]).toMatchObject(spanGetDocs);
+  expect(transactionEvent.spans![3]).toMatchObject(spanDeleteDoc);
 });

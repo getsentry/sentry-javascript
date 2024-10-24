@@ -891,6 +891,7 @@ jobs:
             'create-remix-app-express-legacy',
             'create-remix-app-express-vite-dev',
             'default-browser',
+            'firebase',
             'node-express-esm-loader',
             'node-express-esm-preload',
             'node-express-esm-without-loader',

@@ -20,6 +20,16 @@ for dir in "${dirs[@]}"; do
   fi
 done
 
+if [[ -z "${CONFIG_FIREBASE_TOOLS}" ]];then
+  echo "CONFIG_FIREBASE_TOOLS environment variable missing"
+fi
+if [[ -z "${CONFIG_UPDATE_NOTIFIER_FIREBASE_TOOLS}" ]];then
+  echo "CONFIG_UPDATE_NOTIFIER_FIREBASE_TOOLS environment variable missing"
+fi
+
+node createOrUpdateConfigIfPossible.js
+sleep 1
+
 # Start Firebase emulators
 emulator_cmd="firebase emulators:start --project=${FIREBASE_PROJECT}"
 [[ -n "${DATA_DIRECTORY}" ]] && emulator_cmd+=" --import=./${DATA_DIRECTORY}/export --export-on-exit"
