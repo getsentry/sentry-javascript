@@ -32,17 +32,17 @@ export function wrapMiddlewareWithSentry<H extends EdgeRouteHandler>(
         const currentScope = getCurrentScope();
 
         let spanName: string;
-        let spanOrigin: TransactionSource;
+        let spanSource: TransactionSource;
 
         if (req instanceof Request) {
           isolationScope.setSDKProcessingMetadata({
             request: winterCGRequestToRequestData(req),
           });
           spanName = `middleware ${req.method} ${new URL(req.url).pathname}`;
-          spanOrigin = 'url';
+          spanSource = 'url';
         } else {
           spanName = 'middleware';
-          spanOrigin = 'component';
+          spanSource = 'component';
         }
 
         currentScope.setTransactionName(spanName);
@@ -53,7 +53,7 @@ export function wrapMiddlewareWithSentry<H extends EdgeRouteHandler>(
           // If there is an active span, it likely means that the automatic Next.js OTEL instrumentation worked and we can
           // rely on that for parameterization.
           spanName = 'middleware';
-          spanOrigin = 'component';
+          spanSource = 'component';
 
           const rootSpan = getRootSpan(activeSpan);
           if (rootSpan) {
@@ -66,7 +66,7 @@ export function wrapMiddlewareWithSentry<H extends EdgeRouteHandler>(
             name: spanName,
             op: 'http.server.middleware',
             attributes: {
-              [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: spanOrigin,
+              [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: spanSource,
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nextjs.wrapMiddlewareWithSentry',
             },
           },
