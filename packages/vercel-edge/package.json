@@ -39,11 +39,17 @@
     "access": "public"
   },
   "dependencies": {
+    "@opentelemetry/api": "^1.9.0",
     "@sentry/core": "8.35.0",
     "@sentry/types": "8.35.0",
     "@sentry/utils": "8.35.0"
   },
   "devDependencies": {
+    "@opentelemetry/semantic-conventions": "^1.27.0",
+    "@opentelemetry/core": "^1.25.1",
+    "@opentelemetry/resources": "^1.26.0",
+    "@opentelemetry/sdk-trace-base": "^1.26.0",
+    "@sentry/opentelemetry": "8.35.0",
     "@edge-runtime/types": "3.0.1"
   },
   "scripts": {
