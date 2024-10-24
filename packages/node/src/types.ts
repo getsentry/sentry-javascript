@@ -62,6 +62,13 @@ export interface BaseNodeOptions {
   serverName?: string;
 
   /**
+   * Whether breadcrumbs should be recorded for fetch and undici requests.
+   *
+   * Defaults to `true`.
+   */
+  fetchBreadcrumbs?: boolean;
+
+  /**
    * Include local variables with stack traces.
    *
    * Requires the `LocalVariables` integration.

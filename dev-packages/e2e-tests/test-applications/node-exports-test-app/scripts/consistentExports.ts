@@ -50,6 +50,8 @@ const DEPENDENTS: Dependent[] = [
     ignoreExports: [
       // not supported in bun:
       'NodeClient',
+      // Doesn't have these events
+      'fetchBreadcrumbsIntegration',
     ],
   },
   {
