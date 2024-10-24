@@ -1,44 +1,13 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import {
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  SPAN_STATUS_ERROR,
-  SPAN_STATUS_OK,
   captureException,
-  continueTrace,
+  getActiveSpan,
+  getCurrentScope,
+  getIsolationScope,
+  getRootSpan,
   getTraceData,
-  startInactiveSpan,
-  startSpan,
-  startSpanManual,
-  withActiveSpan,
-  withIsolationScope,
 } from '@sentry/core';
-import type { Span } from '@sentry/types';
-import { isString, vercelWaitUntil } from '@sentry/utils';
-
-import { autoEndSpanOnResponseEnd, flushSafelyWithTimeout } from './responseEnd';
-import { commonObjectToIsolationScope, escapeNextjsTracing } from './tracingUtils';
-
-declare module 'http' {
-  interface IncomingMessage {
-    _sentrySpan?: Span;
-  }
-}
-
-/**
- * Grabs a span off a Next.js datafetcher request object, if it was previously put there via
- * `setSpanOnRequest`.
- *
- * @param req The Next.js datafetcher request object
- * @returns the span on the request object if there is one, or `undefined` if the request object didn't have one.
- */
-export function getSpanFromRequest(req: IncomingMessage): Span | undefined {
-  return req._sentrySpan;
-}
-
-function setSpanOnRequest(span: Span, req: IncomingMessage): void {
-  req._sentrySpan = span;
-}
+import { TRANSACTION_ATTR_SENTRY_ROUTE_BACKFILL } from '../span-attributes-with-logic-attached';
 
 /**
  * Wraps a function that potentially throws. If it does, the error is passed to `captureException` and rethrown.
@@ -55,7 +24,6 @@ export function withErrorInstrumentation<F extends (...args: any[]) => any>(
     } catch (e) {
       // TODO: Extract error logic from `withSentry` in here or create a new wrapper with said logic or something like that.
       captureException(e, { mechanism: { handled: false } });
-
       throw e;
     }
   };
@@ -93,78 +61,27 @@ export function withTracedServerSideDataFetcher<F extends (...args: any[]) => Pr
     this: unknown,
     ...args: Parameters<F>
   ): Promise<{ data: ReturnType<F>; sentryTrace?: string; baggage?: string }> {
-    return escapeNextjsTracing(() => {
-      const isolationScope = commonObjectToIsolationScope(req);
-      return withIsolationScope(isolationScope, () => {
-        isolationScope.setTransactionName(`${options.dataFetchingMethodName} (${options.dataFetcherRouteName})`);
-        isolationScope.setSDKProcessingMetadata({
-          request: req,
-        });
-
-        const sentryTrace =
-          req.headers && isString(req.headers['sentry-trace']) ? req.headers['sentry-trace'] : undefined;
-        const baggage = req.headers?.baggage;
-
-        return continueTrace({ sentryTrace, baggage }, () => {
-          const requestSpan = getOrStartRequestSpan(req, res, options.requestedRouteName);
-          return withActiveSpan(requestSpan, () => {
-            return startSpanManual(
-              {
-                op: 'function.nextjs',
-                name: `${options.dataFetchingMethodName} (${options.dataFetcherRouteName})`,
-                attributes: {
-                  [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nextjs',
-                  [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
-                },
-              },
-              async dataFetcherSpan => {
-                dataFetcherSpan.setStatus({ code: SPAN_STATUS_OK });
-                const { 'sentry-trace': sentryTrace, baggage } = getTraceData();
-                try {
-                  return {
-                    sentryTrace: sentryTrace,
-                    baggage: baggage,
-                    data: await origDataFetcher.apply(this, args),
-                  };
-                } catch (e) {
-                  dataFetcherSpan.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
-                  requestSpan?.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
-                  throw e;
-                } finally {
-                  dataFetcherSpan.end();
-                }
-              },
-            );
-          });
-        });
-      });
-    }).finally(() => {
-      vercelWaitUntil(flushSafelyWithTimeout());
+    getCurrentScope().setTransactionName(`${options.dataFetchingMethodName} (${options.dataFetcherRouteName})`);
+    getIsolationScope().setSDKProcessingMetadata({
+      request: req,
     });
+
+    const span = getActiveSpan();
+
+    // Only set the route backfill if the span is not for /_error
+    if (span && options.requestedRouteName !== '/_error') {
+      const root = getRootSpan(span);
+      root.setAttribute(TRANSACTION_ATTR_SENTRY_ROUTE_BACKFILL, options.requestedRouteName);
+    }
+
+    const { 'sentry-trace': sentryTrace, baggage } = getTraceData();
+
+    return {
+      sentryTrace: sentryTrace,
+      baggage: baggage,
+      data: await origDataFetcher.apply(this, args),
+    };
   };
-}
-
-function getOrStartRequestSpan(req: IncomingMessage, res: ServerResponse, name: string): Span {
-  const existingSpan = getSpanFromRequest(req);
-  if (existingSpan) {
-    return existingSpan;
-  }
-
-  const requestSpan = startInactiveSpan({
-    name,
-    forceTransaction: true,
-    op: 'http.server',
-    attributes: {
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nextjs',
-      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
-    },
-  });
-
-  requestSpan.setStatus({ code: SPAN_STATUS_OK });
-  setSpanOnRequest(requestSpan, req);
-  autoEndSpanOnResponseEnd(requestSpan, res);
-
-  return requestSpan;
 }
 
 /**
@@ -177,37 +94,11 @@ function getOrStartRequestSpan(req: IncomingMessage, res: ServerResponse, name: 
 export async function callDataFetcherTraced<F extends (...args: any[]) => Promise<any> | any>(
   origFunction: F,
   origFunctionArgs: Parameters<F>,
-  options: {
-    parameterizedRoute: string;
-    dataFetchingMethodName: string;
-  },
 ): Promise<ReturnType<F>> {
-  const { parameterizedRoute, dataFetchingMethodName } = options;
-
-  return startSpan(
-    {
-      op: 'function.nextjs',
-      name: `${dataFetchingMethodName} (${parameterizedRoute})`,
-      onlyIfParent: true,
-      attributes: {
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nextjs',
-        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
-      },
-    },
-    async dataFetcherSpan => {
-      dataFetcherSpan.setStatus({ code: SPAN_STATUS_OK });
-
-      try {
-        return await origFunction(...origFunctionArgs);
-      } catch (e) {
-        dataFetcherSpan.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
-        captureException(e, { mechanism: { handled: false } });
-        throw e;
-      } finally {
-        dataFetcherSpan.end();
-      }
-    },
-  ).finally(() => {
-    vercelWaitUntil(flushSafelyWithTimeout());
-  });
+  try {
+    return await origFunction(...origFunctionArgs);
+  } catch (e) {
+    captureException(e, { mechanism: { handled: false } });
+    throw e;
+  }
 }

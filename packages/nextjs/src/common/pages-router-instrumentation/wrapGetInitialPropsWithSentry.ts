@@ -1,24 +1,20 @@
-import type { NextPageContext } from 'next';
-import type { ErrorProps } from 'next/error';
+import type { NextPage } from 'next';
 
-import { isBuild } from './utils/isBuild';
-import { withErrorInstrumentation, withTracedServerSideDataFetcher } from './utils/wrapperUtils';
+import { isBuild } from '../utils/isBuild';
+import { withErrorInstrumentation, withTracedServerSideDataFetcher } from '../utils/wrapperUtils';
 
-type ErrorGetInitialProps = (context: NextPageContext) => Promise<ErrorProps>;
+type GetInitialProps = Required<NextPage>['getInitialProps'];
 
 /**
- * Create a wrapped version of the user's exported `getInitialProps` function in
- * a custom error page ("_error.js").
+ * Create a wrapped version of the user's exported `getInitialProps` function
  *
- * @param origErrorGetInitialProps The user's `getInitialProps` function
+ * @param origGetInitialProps The user's `getInitialProps` function
  * @param parameterizedRoute The page's parameterized route
  * @returns A wrapped version of the function
  */
-export function wrapErrorGetInitialPropsWithSentry(
-  origErrorGetInitialProps: ErrorGetInitialProps,
-): ErrorGetInitialProps {
-  return new Proxy(origErrorGetInitialProps, {
-    apply: async (wrappingTarget, thisArg, args: Parameters<ErrorGetInitialProps>) => {
+export function wrapGetInitialPropsWithSentry(origGetInitialProps: GetInitialProps): GetInitialProps {
+  return new Proxy(origGetInitialProps, {
+    apply: async (wrappingTarget, thisArg, args: Parameters<GetInitialProps>) => {
       if (isBuild()) {
         return wrappingTarget.apply(thisArg, args);
       }
@@ -33,35 +29,35 @@ export function wrapErrorGetInitialPropsWithSentry(
       // span with each other when there are no req or res objects, we simply do not trace them at all here.
       if (req && res) {
         const tracedGetInitialProps = withTracedServerSideDataFetcher(errorWrappedGetInitialProps, req, res, {
-          dataFetcherRouteName: '/_error',
+          dataFetcherRouteName: context.pathname,
           requestedRouteName: context.pathname,
           dataFetchingMethodName: 'getInitialProps',
         });
 
         const {
-          data: errorGetInitialProps,
+          data: initialProps,
           baggage,
           sentryTrace,
         }: {
-          data: ErrorProps & {
+          data: {
             _sentryTraceData?: string;
             _sentryBaggage?: string;
           };
           baggage?: string;
           sentryTrace?: string;
-        } = await tracedGetInitialProps.apply(thisArg, args);
+        } = (await tracedGetInitialProps.apply(thisArg, args)) ?? {}; // Next.js allows undefined to be returned from a getInitialPropsFunction.
 
         // The Next.js serializer throws on undefined values so we need to guard for it (#12102)
         if (sentryTrace) {
-          errorGetInitialProps._sentryTraceData = sentryTrace;
+          initialProps._sentryTraceData = sentryTrace;
         }
 
         // The Next.js serializer throws on undefined values so we need to guard for it (#12102)
         if (baggage) {
-          errorGetInitialProps._sentryBaggage = baggage;
+          initialProps._sentryBaggage = baggage;
         }
 
-        return errorGetInitialProps;
+        return initialProps;
       } else {
         return errorWrappedGetInitialProps.apply(thisArg, args);
       }

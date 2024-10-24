@@ -70,9 +70,9 @@ export function createTestServer(done: (error?: unknown) => void) {
           const address = server.address() as AddressInfo;
           resolve([
             `http://localhost:${address.port}`,
-            () => {
+            (error?: unknown) => {
               server.close();
-              done();
+              done(error);
             },
           ]);
         });
