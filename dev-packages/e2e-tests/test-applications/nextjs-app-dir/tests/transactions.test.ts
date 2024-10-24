@@ -76,6 +76,34 @@ test('Should send a transaction for instrumented server actions', async ({ page 
   expect(Object.keys(transactionEvent.request?.headers || {}).length).toBeGreaterThan(0);
 });
 
+test('Should send a wrapped server action as a child of a nextjs transaction', async ({ page }) => {
+  const nextjsVersion = packageJson.dependencies.next;
+  const nextjsMajor = Number(nextjsVersion.split('.')[0]);
+  test.skip(!isNaN(nextjsMajor) && nextjsMajor < 14, 'only applies to nextjs apps >= version 14');
+  test.skip(process.env.TEST_ENV === 'development', 'this magically only works in production');
+
+  const nextjsPostTransactionPromise = waitForTransaction('nextjs-app-dir', async transactionEvent => {
+    return (
+      transactionEvent?.transaction === 'POST /server-action' && transactionEvent.contexts?.trace?.origin === 'auto'
+    );
+  });
+
+  const serverActionTransactionPromise = waitForTransaction('nextjs-app-dir', async transactionEvent => {
+    return transactionEvent?.transaction === 'serverAction/myServerAction';
+  });
+
+  await page.goto('/server-action');
+  await page.getByText('Run Action').click();
+
+  const nextjsTransaction = await nextjsPostTransactionPromise;
+  const serverActionTransaction = await serverActionTransactionPromise;
+
+  expect(nextjsTransaction).toBeDefined();
+  expect(serverActionTransaction).toBeDefined();
+
+  expect(nextjsTransaction.contexts?.trace?.span_id).toBe(serverActionTransaction.contexts?.trace?.parent_span_id);
+});
+
 test('Should set not_found status for server actions calling notFound()', async ({ page }) => {
   const nextjsVersion = packageJson.dependencies.next;
   const nextjsMajor = Number(nextjsVersion.split('.')[0]);

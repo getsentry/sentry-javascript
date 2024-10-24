@@ -1,7 +1,7 @@
 import type { GetServerSideProps } from 'next';
 
-import { isBuild } from './utils/isBuild';
-import { withErrorInstrumentation, withTracedServerSideDataFetcher } from './utils/wrapperUtils';
+import { isBuild } from '../utils/isBuild';
+import { withErrorInstrumentation, withTracedServerSideDataFetcher } from '../utils/wrapperUtils';
 
 /**
  * Create a wrapped version of the user's exported `getServerSideProps` function

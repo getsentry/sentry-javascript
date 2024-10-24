@@ -3,7 +3,7 @@ import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
 
 test('Should create a transaction for middleware', async ({ request }) => {
   const middlewareTransactionPromise = waitForTransaction('nextjs-app-dir', async transactionEvent => {
-    return transactionEvent?.transaction === 'middleware' && transactionEvent?.contexts?.trace?.status === 'ok';
+    return transactionEvent?.transaction === 'middleware GET /api/endpoint-behind-middleware';
   });
 
   const response = await request.get('/api/endpoint-behind-middleware');
@@ -12,53 +12,50 @@ test('Should create a transaction for middleware', async ({ request }) => {
   const middlewareTransaction = await middlewareTransactionPromise;
 
   expect(middlewareTransaction.contexts?.trace?.status).toBe('ok');
-  expect(middlewareTransaction.contexts?.trace?.op).toBe('middleware.nextjs');
+  expect(middlewareTransaction.contexts?.trace?.op).toBe('http.server.middleware');
   expect(middlewareTransaction.contexts?.runtime?.name).toBe('vercel-edge');
+  expect(middlewareTransaction.transaction_info?.source).toBe('url');
 
   // Assert that isolation scope works properly
   expect(middlewareTransaction.tags?.['my-isolated-tag']).toBe(true);
   expect(middlewareTransaction.tags?.['my-global-scope-isolated-tag']).not.toBeDefined();
 });
 
-test('Should create a transaction with error status for faulty middleware', async ({ request }) => {
+test('Faulty middlewares', async ({ request }) => {
   const middlewareTransactionPromise = waitForTransaction('nextjs-app-dir', async transactionEvent => {
-    return (
-      transactionEvent?.transaction === 'middleware' && transactionEvent?.contexts?.trace?.status === 'internal_error'
-    );
+    return transactionEvent?.transaction === 'middleware GET /api/endpoint-behind-faulty-middleware';
   });
 
-  request.get('/api/endpoint-behind-middleware', { headers: { 'x-should-throw': '1' } }).catch(() => {
-    // Noop
-  });
-
-  const middlewareTransaction = await middlewareTransactionPromise;
-
-  expect(middlewareTransaction.contexts?.trace?.status).toBe('internal_error');
-  expect(middlewareTransaction.contexts?.trace?.op).toBe('middleware.nextjs');
-  expect(middlewareTransaction.contexts?.runtime?.name).toBe('vercel-edge');
-});
-
-test('Records exceptions happening in middleware', async ({ request }) => {
   const errorEventPromise = waitForError('nextjs-app-dir', errorEvent => {
     return errorEvent?.exception?.values?.[0]?.value === 'Middleware Error';
   });
 
-  request.get('/api/endpoint-behind-middleware', { headers: { 'x-should-throw': '1' } }).catch(() => {
+  request.get('/api/endpoint-behind-faulty-middleware', { headers: { 'x-should-throw': '1' } }).catch(() => {
     // Noop
   });
 
-  const errorEvent = await errorEventPromise;
+  await test.step('should record transactions', async () => {
+    const middlewareTransaction = await middlewareTransactionPromise;
+    expect(middlewareTransaction.contexts?.trace?.status).toBe('unknown_error');
+    expect(middlewareTransaction.contexts?.trace?.op).toBe('http.server.middleware');
+    expect(middlewareTransaction.contexts?.runtime?.name).toBe('vercel-edge');
+    expect(middlewareTransaction.transaction_info?.source).toBe('url');
+  });
 
-  // Assert that isolation scope works properly
-  expect(errorEvent.tags?.['my-isolated-tag']).toBe(true);
-  expect(errorEvent.tags?.['my-global-scope-isolated-tag']).not.toBeDefined();
-  expect(errorEvent.transaction).toBe('middleware');
+  await test.step('should record exceptions', async () => {
+    const errorEvent = await errorEventPromise;
+
+    // Assert that isolation scope works properly
+    expect(errorEvent.tags?.['my-isolated-tag']).toBe(true);
+    expect(errorEvent.tags?.['my-global-scope-isolated-tag']).not.toBeDefined();
+    expect(errorEvent.transaction).toBe('middleware GET /api/endpoint-behind-faulty-middleware');
+  });
 });
 
 test('Should trace outgoing fetch requests inside middleware and create breadcrumbs for it', async ({ request }) => {
   const middlewareTransactionPromise = waitForTransaction('nextjs-app-dir', async transactionEvent => {
     return (
-      transactionEvent?.transaction === 'middleware' &&
+      transactionEvent?.transaction === 'middleware GET /api/endpoint-behind-middleware' &&
       !!transactionEvent.spans?.find(span => span.op === 'http.client')
     );
   });

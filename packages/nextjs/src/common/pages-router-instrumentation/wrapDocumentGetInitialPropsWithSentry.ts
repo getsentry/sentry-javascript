@@ -1,7 +1,7 @@
 import type Document from 'next/document';
 
-import { isBuild } from './utils/isBuild';
-import { withErrorInstrumentation, withTracedServerSideDataFetcher } from './utils/wrapperUtils';
+import { isBuild } from '../utils/isBuild';
+import { withErrorInstrumentation, withTracedServerSideDataFetcher } from '../utils/wrapperUtils';
 
 type DocumentGetInitialProps = typeof Document.getInitialProps;
 

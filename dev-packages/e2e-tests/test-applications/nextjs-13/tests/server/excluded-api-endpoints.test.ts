@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
 
-test('should not automatically create transactions for routes that were excluded from auto wrapping (string)', async ({
+test('should not apply build-time instrumentation for routes that were excluded from auto wrapping (string)', async ({
   request,
 }) => {
   const transactionPromise = waitForTransaction('nextjs-13', async transactionEvent => {
@@ -13,17 +13,13 @@ test('should not automatically create transactions for routes that were excluded
 
   expect(await (await request.get(`/api/endpoint-excluded-with-string`)).text()).toBe('{"success":true}');
 
-  let transactionPromiseReceived = false;
-  transactionPromise.then(() => {
-    transactionPromiseReceived = true;
-  });
+  const transaction = await transactionPromise;
 
-  await new Promise(resolve => setTimeout(resolve, 5_000));
-
-  expect(transactionPromiseReceived).toBe(false);
+  expect(transaction.contexts?.trace?.data?.['sentry.origin']).toBeDefined();
+  expect(transaction.contexts?.trace?.data?.['sentry.origin']).not.toBe('auto.http.nextjs'); // This is the origin set by the build time instrumentation
 });
 
-test('should not automatically create transactions for routes that were excluded from auto wrapping (regex)', async ({
+test('should not apply build-time instrumentation for routes that were excluded from auto wrapping (regex)', async ({
   request,
 }) => {
   const transactionPromise = waitForTransaction('nextjs-13', async transactionEvent => {
@@ -35,12 +31,8 @@ test('should not automatically create transactions for routes that were excluded
 
   expect(await (await request.get(`/api/endpoint-excluded-with-regex`)).text()).toBe('{"success":true}');
 
-  let transactionPromiseReceived = false;
-  transactionPromise.then(() => {
-    transactionPromiseReceived = true;
-  });
+  const transaction = await transactionPromise;
 
-  await new Promise(resolve => setTimeout(resolve, 5_000));
-
-  expect(transactionPromiseReceived).toBe(false);
+  expect(transaction.contexts?.trace?.data?.['sentry.origin']).toBeDefined();
+  expect(transaction.contexts?.trace?.data?.['sentry.origin']).not.toBe('auto.http.nextjs'); // This is the origin set by the build time instrumentation
 });

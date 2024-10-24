@@ -1037,6 +1037,7 @@ jobs:
           retention-days: 7
 
       - name: Pre-process E2E Test Dumps
+        if: always()
         run: |
           node ./scripts/normalize-e2e-test-dump-transaction-events.js
 
@@ -1193,6 +1194,7 @@ jobs:
         run: pnpm ${{ matrix.assert-command || 'test:assert' }}
 
       - name: Pre-process E2E Test Dumps
+        if: always()
         run: |
           node ./scripts/normalize-e2e-test-dump-transaction-events.js
 

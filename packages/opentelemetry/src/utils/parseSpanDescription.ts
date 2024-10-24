@@ -33,19 +33,6 @@ interface SpanDescription {
  * Infer the op & description for a set of name, attributes and kind of a span.
  */
 export function inferSpanData(name: string, attributes: SpanAttributes, kind: SpanKind): SpanDescription {
-  // This attribute is intentionally exported as a SEMATTR constant because it should stay intimite API
-  if (attributes['sentry.skip_span_data_inference']) {
-    return {
-      op: undefined,
-      description: name,
-      source: 'custom',
-      data: {
-        // Suggest to callers of `parseSpanDescription` to wipe the hint because it is unnecessary data in the end.
-        'sentry.skip_span_data_inference': undefined,
-      },
-    };
-  }
-
   // if http.method exists, this is an http request span
   // eslint-disable-next-line deprecation/deprecation
   const httpMethod = attributes[ATTR_HTTP_REQUEST_METHOD] || attributes[SEMATTRS_HTTP_METHOD];

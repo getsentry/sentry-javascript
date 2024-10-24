@@ -46,3 +46,38 @@ test('should create a pageload transaction when the `pages` directory is used', 
     type: 'transaction',
   });
 });
+
+test('should create a pageload transaction with correct name when an error occurs in getServerSideProps', async ({
+  page,
+}) => {
+  const transactionPromise = waitForTransaction('nextjs-13', async transactionEvent => {
+    return (
+      transactionEvent.transaction === '/[param]/error-getServerSideProps' &&
+      transactionEvent.contexts?.trace?.op === 'pageload'
+    );
+  });
+
+  await page.goto(`/something/error-getServerSideProps`, { waitUntil: 'networkidle' });
+
+  const transaction = await transactionPromise;
+
+  expect(transaction).toMatchObject({
+    contexts: {
+      trace: {
+        data: {
+          'sentry.op': 'pageload',
+          'sentry.origin': 'auto.pageload.nextjs.pages_router_instrumentation',
+          'sentry.source': 'route',
+        },
+        op: 'pageload',
+        origin: 'auto.pageload.nextjs.pages_router_instrumentation',
+      },
+    },
+    transaction: '/[param]/error-getServerSideProps',
+    transaction_info: { source: 'route' },
+    type: 'transaction',
+  });
+
+  // Ensure the transaction name is not '/_error'
+  expect(transaction.transaction).not.toBe('/_error');
+});
