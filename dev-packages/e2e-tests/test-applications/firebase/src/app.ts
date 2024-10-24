@@ -64,7 +64,6 @@ expressApp.get('/test', async function (req, res) {
   });
   await Sentry.flush();
   res.send({ version: 'v1' });
-  // res.send({ foo: 'bar' });
 });
 
 expressApp.listen(port, () => {
