@@ -10,6 +10,13 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 8.36.0-alpha.1
+
+This is considered an internal release and the following commit will never be released to production tag:
+
+- debug(replay): Remove noisy log that is causing event buffer overflow as well
+  ([#14069](https://github.com/getsentry/sentry-javascript/pull/14069))
+
 ## 8.36.0-alpha.0
 
 This is considered an internal release and the following commit will never be released to production tag:
