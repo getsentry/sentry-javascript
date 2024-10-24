@@ -72,11 +72,11 @@ describe('MongoDB experimental Test', () => {
           'net.peer.name': expect.any(String),
           'net.peer.port': expect.any(Number),
           'db.statement':
-            '{"title":"?","_id":{"_bsontype":"?","id":{"0":"?","1":"?","2":"?","3":"?","4":"?","5":"?","6":"?","7":"?","8":"?","9":"?","10":"?","11":"?"}}}',
+            '{"title":"?","_id":{"_bsontype":"?","id":"?"}}',
           'otel.kind': 'CLIENT',
         },
         description:
-          '{"title":"?","_id":{"_bsontype":"?","id":{"0":"?","1":"?","2":"?","3":"?","4":"?","5":"?","6":"?","7":"?","8":"?","9":"?","10":"?","11":"?"}}}',
+          '{"title":"?","_id":{"_bsontype":"?","id":"?"}}',
         op: 'db',
         origin: 'auto.db.otel.mongo',
       }),
@@ -163,11 +163,11 @@ describe('MongoDB experimental Test', () => {
           'net.peer.name': expect.any(String),
           'net.peer.port': expect.any(Number),
           'db.statement':
-            '{"endSessions":[{"id":{"_bsontype":"?","sub_type":"?","position":"?","buffer":{"0":"?","1":"?","2":"?","3":"?","4":"?","5":"?","6":"?","7":"?","8":"?","9":"?","10":"?","11":"?","12":"?","13":"?","14":"?","15":"?"}}}]}',
+            '{"endSessions":[{"id":{"_bsontype":"?","sub_type":"?","position":"?","buffer":"?"}}]}',
           'otel.kind': 'CLIENT',
         },
         description:
-          '{"endSessions":[{"id":{"_bsontype":"?","sub_type":"?","position":"?","buffer":{"0":"?","1":"?","2":"?","3":"?","4":"?","5":"?","6":"?","7":"?","8":"?","9":"?","10":"?","11":"?","12":"?","13":"?","14":"?","15":"?"}}}]}',
+          '{"endSessions":[{"id":{"_bsontype":"?","sub_type":"?","position":"?","buffer":"?"}}]}',
         op: 'db',
         origin: 'auto.db.otel.mongo',
       }),
