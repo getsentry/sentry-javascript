@@ -33,7 +33,6 @@ exit
 9. Switch back to previous tab, stop the docker container (ctrl+c).
 10. You should now be able to run the test, as you have correctly authenticated the firebase emulator
 
-
 ### Preparing data for CLI
 
 1. Please authorize the docker first - see the previous section
@@ -45,15 +44,21 @@ npm run createEnvFromConfig
 
 3. It will create a new file called ".env" inside folder "docker"
 4. View the file. There will be 2 params CONFIG_FIREBASE_TOOLS and CONFIG_UPDATE_NOTIFIER_FIREBASE_TOOLS.
-5. Now inside the CLI create a new variable under the name CONFIG_FIREBASE_TOOLS and CONFIG_UPDATE_NOTIFIER_FIREBASE_TOOLS - take values from mentioned .env file
-6. File .env is ignored to avoid situation when developer after authorizing firebase with private account will accidently push the tokens to github.
-7. But if we want the users to still have some default to be used for authorisation (on their local development) it will be enough to commit this file, we just have to authorize it with some "special" account.
+5. Now inside the CLI create a new variable under the name CONFIG_FIREBASE_TOOLS and
+   CONFIG_UPDATE_NOTIFIER_FIREBASE_TOOLS - take values from mentioned .env file
+6. File .env is ignored to avoid situation when developer after authorizing firebase with private account will
+   accidently push the tokens to github.
+7. But if we want the users to still have some default to be used for authorisation (on their local development) it will
+   be enough to commit this file, we just have to authorize it with some "special" account.
 
-**Some explanation towards environment settings, the environment variable defined directly in "environments" takes precedence over .env file, that means it will be safe to define it in CLI and still keeps the .env file.**
+**Some explanation towards environment settings, the environment variable defined directly in "environments" takes
+precedence over .env file, that means it will be safe to define it in CLI and still keeps the .env file.**
 
 ### Scripts - helpers
 
-* createEnvFromConfig - it will use the firebase docker authentication and create .env file which will be used then by docker whenever you run emulator
-* createConfigFromEnv - it will use '.env' file in docker folder to create .config for the firebase to be used to authenticate whenever you run docker, Docker by default loads .env file itself
+- createEnvFromConfig - it will use the firebase docker authentication and create .env file which will be used then by
+  docker whenever you run emulator
+- createConfigFromEnv - it will use '.env' file in docker folder to create .config for the firebase to be used to
+  authenticate whenever you run docker, Docker by default loads .env file itself
 
 Use these scripts when testing and updating the environment settings on CLI
