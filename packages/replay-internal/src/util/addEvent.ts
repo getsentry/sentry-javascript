@@ -54,12 +54,14 @@ async function _addEvent(
   event: RecordingEvent,
   isCheckout?: boolean,
 ): Promise<AddEventResult | null> {
-  if (!replay.eventBuffer) {
+  if (!replay.eventBuffer || replay.eventBuffer.waitForCheckout) {
     return null;
   }
 
+  const isBufferMode = replay.recordingMode === 'buffer';
+
   try {
-    if (isCheckout && replay.recordingMode === 'buffer') {
+    if (isCheckout && isBufferMode) {
       replay.eventBuffer.clear();
     }
 
@@ -77,7 +79,17 @@ async function _addEvent(
 
     return await replay.eventBuffer.addEvent(eventAfterPossibleCallback);
   } catch (error) {
-    const reason = error && error instanceof EventBufferSizeExceededError ? 'addEventSizeExceeded' : 'addEvent';
+    const isExceeded = error && error instanceof EventBufferSizeExceededError;
+    const reason = isExceeded ? 'addEventSizeExceeded' : 'addEvent';
+
+    if (isExceeded && isBufferMode) {
+      // Clear buffer and wait for next checkout
+      replay.eventBuffer.clear();
+      replay.eventBuffer.waitForCheckout = true;
+
+      return null;
+    }
+
     replay.handleException(error);
 
     await replay.stop({ reason });
