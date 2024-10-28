@@ -143,7 +143,7 @@ describe('GoogleCloudGrpc tracing', () => {
       mockHttp2Session().mockUnaryRequest(Buffer.from('00000000120a1031363337303834313536363233383630', 'hex'));
       const resp = await pubsub.topic('nicetopic').publish(Buffer.from('data'));
       expect(resp).toEqual('1637084156623860');
-      expect(mockStartInactiveSpan).toBeCalledWith({
+      expect(mockStartInactiveSpan).toHaveBeenCalledWith({
         op: 'grpc.pubsub',
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.grpc.serverless',

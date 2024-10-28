@@ -79,7 +79,7 @@ describe('GCPFunction', () => {
       const wrappedHandler = wrapHttpFunction(handler, { flushTimeout: 1337 });
 
       await handleHttp(wrappedHandler);
-      expect(mockFlush).toBeCalledWith(1337);
+      expect(mockFlush).toHaveBeenCalledWith(1337);
     });
   });
 
@@ -101,9 +101,9 @@ describe('GCPFunction', () => {
         },
       };
 
-      expect(mockStartSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
-      expect(mockSpan.end).toBeCalled();
-      expect(mockFlush).toBeCalledWith(2000);
+      expect(mockStartSpanManual).toHaveBeenCalledWith(fakeTransactionContext, expect.any(Function));
+      expect(mockSpan.end).toHaveBeenCalled();
+      expect(mockFlush).toHaveBeenCalledWith(2000);
     });
 
     test('capture error', async () => {
@@ -124,10 +124,10 @@ describe('GCPFunction', () => {
         },
       };
 
-      expect(mockStartSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
-      expect(mockCaptureException).toBeCalledWith(error, expect.any(Function));
-      expect(mockSpan.end).toBeCalled();
-      expect(mockFlush).toBeCalled();
+      expect(mockStartSpanManual).toHaveBeenCalledWith(fakeTransactionContext, expect.any(Function));
+      expect(mockCaptureException).toHaveBeenCalledWith(error, expect.any(Function));
+      expect(mockSpan.end).toHaveBeenCalled();
+      expect(mockFlush).toHaveBeenCalled();
     });
 
     test('should not throw when flush rejects', async () => {

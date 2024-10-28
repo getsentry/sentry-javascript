@@ -231,9 +231,9 @@ describe('validateOpenTelemetrySetup', () => {
     expect(errorSpy).toHaveBeenCalledTimes(2);
     expect(warnSpy).toHaveBeenCalledTimes(1);
 
-    expect(errorSpy).toBeCalledWith(expect.stringContaining('You have to set up the SentryContextManager.'));
-    expect(errorSpy).toBeCalledWith(expect.stringContaining('You have to set up the SentryPropagator.'));
-    expect(warnSpy).toBeCalledWith(expect.stringContaining('You have to set up the SentrySampler.'));
+    expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('You have to set up the SentryContextManager.'));
+    expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('You have to set up the SentryPropagator.'));
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('You have to set up the SentrySampler.'));
   });
 
   it('works with missing setup, with tracing', () => {
@@ -251,9 +251,9 @@ describe('validateOpenTelemetrySetup', () => {
     expect(errorSpy).toHaveBeenCalledTimes(3);
     expect(warnSpy).toHaveBeenCalledTimes(1);
 
-    expect(errorSpy).toBeCalledWith(expect.stringContaining('You have to set up the SentryContextManager.'));
-    expect(errorSpy).toBeCalledWith(expect.stringContaining('You have to set up the SentryPropagator.'));
-    expect(errorSpy).toBeCalledWith(expect.stringContaining('You have to set up the SentrySpanProcessor.'));
-    expect(warnSpy).toBeCalledWith(expect.stringContaining('You have to set up the SentrySampler.'));
+    expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('You have to set up the SentryContextManager.'));
+    expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('You have to set up the SentryPropagator.'));
+    expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('You have to set up the SentrySpanProcessor.'));
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('You have to set up the SentrySampler.'));
   });
 });

@@ -339,8 +339,8 @@ describe('sentryHandle', () => {
       try {
         await sentryHandle()({ event: mockEvent(), resolve: resolve(type, isError) });
       } catch (e) {
-        expect(mockCaptureException).toBeCalledTimes(1);
-        expect(mockCaptureException).toBeCalledWith(expect.any(Error), {
+        expect(mockCaptureException).toHaveBeenCalledTimes(1);
+        expect(mockCaptureException).toHaveBeenCalledWith(expect.any(Error), {
           mechanism: { handled: false, type: 'sveltekit', data: { function: 'handle' } },
         });
       }
@@ -350,7 +350,7 @@ describe('sentryHandle', () => {
       try {
         await sentryHandle()({ event: mockEvent(), resolve: resolve(type, false, 'redirect') });
       } catch (e) {
-        expect(mockCaptureException).toBeCalledTimes(0);
+        expect(mockCaptureException).toHaveBeenCalledTimes(0);
       }
     });
 
@@ -358,7 +358,7 @@ describe('sentryHandle', () => {
       try {
         await sentryHandle()({ event: mockEvent(), resolve: resolve(type, false, 'http') });
       } catch (e) {
-        expect(mockCaptureException).toBeCalledTimes(0);
+        expect(mockCaptureException).toHaveBeenCalledTimes(0);
       }
     });
 

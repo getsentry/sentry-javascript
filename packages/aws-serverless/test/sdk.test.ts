@@ -81,18 +81,18 @@ const fakeCallback: Callback = (err, result) => {
 };
 
 function expectScopeSettings() {
-  expect(mockScope.addEventProcessor).toBeCalledTimes(1);
+  expect(mockScope.addEventProcessor).toHaveBeenCalledTimes(1);
   // Test than an event processor to add `transaction` is registered for the scope
   const eventProcessor = mockScope.addEventProcessor.mock.calls[0][0];
   const event: Event = {};
   eventProcessor(event);
   expect(event).toEqual({ transaction: 'functionName' });
 
-  expect(mockScope.setTag).toBeCalledWith('server_name', expect.anything());
+  expect(mockScope.setTag).toHaveBeenCalledWith('server_name', expect.anything());
 
-  expect(mockScope.setTag).toBeCalledWith('url', 'awslambda:///functionName');
+  expect(mockScope.setTag).toHaveBeenCalledWith('url', 'awslambda:///functionName');
 
-  expect(mockScope.setContext).toBeCalledWith(
+  expect(mockScope.setContext).toHaveBeenCalledWith(
     'aws.lambda',
     expect.objectContaining({
       aws_request_id: 'awsRequestId',
@@ -103,7 +103,7 @@ function expectScopeSettings() {
     }),
   );
 
-  expect(mockScope.setContext).toBeCalledWith(
+  expect(mockScope.setContext).toHaveBeenCalledWith(
     'aws.cloudwatch.logs',
     expect.objectContaining({
       log_group: 'logGroupName',
@@ -129,7 +129,7 @@ describe('AWSLambda', () => {
       const wrappedHandler = wrapHandler(handler, { flushTimeout: 1337 });
 
       await wrappedHandler(fakeEvent, fakeContext, fakeCallback);
-      expect(mockFlush).toBeCalledWith(1337);
+      expect(mockFlush).toHaveBeenCalledWith(1337);
     });
 
     test('captureTimeoutWarning enabled (default)', async () => {
@@ -141,9 +141,9 @@ describe('AWSLambda', () => {
       const wrappedHandler = wrapHandler(handler);
       await wrappedHandler(fakeEvent, fakeContext, fakeCallback);
 
-      expect(mockWithScope).toBeCalledTimes(1);
-      expect(mockCaptureMessage).toBeCalled();
-      expect(mockScope.setTag).toBeCalledWith('timeout', '1s');
+      expect(mockWithScope).toHaveBeenCalledTimes(1);
+      expect(mockCaptureMessage).toHaveBeenCalled();
+      expect(mockScope.setTag).toHaveBeenCalledWith('timeout', '1s');
     });
 
     test('captureTimeoutWarning disabled', async () => {
@@ -157,9 +157,9 @@ describe('AWSLambda', () => {
       });
       await wrappedHandler(fakeEvent, fakeContext, fakeCallback);
 
-      expect(mockWithScope).toBeCalledTimes(0);
-      expect(mockCaptureMessage).not.toBeCalled();
-      expect(mockScope.setTag).not.toBeCalledWith('timeout', '1s');
+      expect(mockWithScope).toHaveBeenCalledTimes(0);
+      expect(mockCaptureMessage).not.toHaveBeenCalled();
+      expect(mockScope.setTag).not.toHaveBeenCalledWith('timeout', '1s');
     });
 
     test('captureTimeoutWarning with configured timeoutWarningLimit', async () => {
@@ -188,15 +188,15 @@ describe('AWSLambda', () => {
         fakeCallback,
       );
 
-      expect(mockCaptureMessage).toBeCalled();
-      expect(mockScope.setTag).toBeCalledWith('timeout', '1m40s');
+      expect(mockCaptureMessage).toHaveBeenCalled();
+      expect(mockScope.setTag).toHaveBeenCalledWith('timeout', '1m40s');
     });
 
     test('captureAllSettledReasons disabled (default)', async () => {
       const handler = () => Promise.resolve([{ status: 'rejected', reason: new Error() }]);
       const wrappedHandler = wrapHandler(handler, { flushTimeout: 1337 });
       await wrappedHandler(fakeEvent, fakeContext, fakeCallback);
-      expect(mockCaptureException).toBeCalledTimes(0);
+      expect(mockCaptureException).toHaveBeenCalledTimes(0);
     });
 
     test('captureAllSettledReasons enable', async () => {
@@ -212,7 +212,7 @@ describe('AWSLambda', () => {
       await wrappedHandler(fakeEvent, fakeContext, fakeCallback);
       expect(mockCaptureException).toHaveBeenNthCalledWith(1, error, expect.any(Function));
       expect(mockCaptureException).toHaveBeenNthCalledWith(2, error2, expect.any(Function));
-      expect(mockCaptureException).toBeCalledTimes(2);
+      expect(mockCaptureException).toHaveBeenCalledTimes(2);
     });
 
     // "wrapHandler() ... successful execution" tests the default of startTrace enabled
@@ -223,10 +223,10 @@ describe('AWSLambda', () => {
       const wrappedHandler = wrapHandler(handler, { startTrace: false });
       await wrappedHandler(fakeEvent, fakeContext, fakeCallback);
 
-      expect(mockScope.addEventProcessor).toBeCalledTimes(0);
+      expect(mockScope.addEventProcessor).toHaveBeenCalledTimes(0);
 
-      expect(mockScope.setTag).toBeCalledTimes(0);
-      expect(mockStartSpanManual).toBeCalledTimes(0);
+      expect(mockScope.setTag).toHaveBeenCalledTimes(0);
+      expect(mockStartSpanManual).toHaveBeenCalledTimes(0);
     });
   });
 
@@ -250,11 +250,11 @@ describe('AWSLambda', () => {
       };
 
       expect(rv).toStrictEqual(42);
-      expect(mockStartSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
+      expect(mockStartSpanManual).toHaveBeenCalledWith(fakeTransactionContext, expect.any(Function));
       expectScopeSettings();
 
-      expect(mockSpanEnd).toBeCalled();
-      expect(mockFlush).toBeCalledWith(2000);
+      expect(mockSpanEnd).toHaveBeenCalled();
+      expect(mockFlush).toHaveBeenCalledWith(2000);
     });
 
     test('unsuccessful execution', async () => {
@@ -278,12 +278,12 @@ describe('AWSLambda', () => {
           },
         };
 
-        expect(mockStartSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
+        expect(mockStartSpanManual).toHaveBeenCalledWith(fakeTransactionContext, expect.any(Function));
         expectScopeSettings();
-        expect(mockCaptureException).toBeCalledWith(error, expect.any(Function));
+        expect(mockCaptureException).toHaveBeenCalledWith(error, expect.any(Function));
 
-        expect(mockSpanEnd).toBeCalled();
-        expect(mockFlush).toBeCalledWith(2000);
+        expect(mockSpanEnd).toHaveBeenCalled();
+        expect(mockFlush).toHaveBeenCalledWith(2000);
       }
     });
 
@@ -320,12 +320,12 @@ describe('AWSLambda', () => {
           },
         };
 
-        expect(mockStartSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
+        expect(mockStartSpanManual).toHaveBeenCalledWith(fakeTransactionContext, expect.any(Function));
         expectScopeSettings();
-        expect(mockCaptureException).toBeCalledWith(e, expect.any(Function));
+        expect(mockCaptureException).toHaveBeenCalledWith(e, expect.any(Function));
 
-        expect(mockSpanEnd).toBeCalled();
-        expect(mockFlush).toBeCalled();
+        expect(mockSpanEnd).toHaveBeenCalled();
+        expect(mockFlush).toHaveBeenCalled();
       }
     });
   });
@@ -350,11 +350,11 @@ describe('AWSLambda', () => {
       };
 
       expect(rv).toStrictEqual(42);
-      expect(mockStartSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
+      expect(mockStartSpanManual).toHaveBeenCalledWith(fakeTransactionContext, expect.any(Function));
       expectScopeSettings();
 
-      expect(mockSpanEnd).toBeCalled();
-      expect(mockFlush).toBeCalled();
+      expect(mockSpanEnd).toHaveBeenCalled();
+      expect(mockFlush).toHaveBeenCalled();
     });
 
     test('event and context are correctly passed to the original handler', async () => {
@@ -389,12 +389,12 @@ describe('AWSLambda', () => {
           },
         };
 
-        expect(mockStartSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
+        expect(mockStartSpanManual).toHaveBeenCalledWith(fakeTransactionContext, expect.any(Function));
         expectScopeSettings();
-        expect(mockCaptureException).toBeCalledWith(error, expect.any(Function));
+        expect(mockCaptureException).toHaveBeenCalledWith(error, expect.any(Function));
 
-        expect(mockSpanEnd).toBeCalled();
-        expect(mockFlush).toBeCalled();
+        expect(mockSpanEnd).toHaveBeenCalled();
+        expect(mockFlush).toHaveBeenCalled();
       }
     });
 
@@ -432,11 +432,11 @@ describe('AWSLambda', () => {
       };
 
       expect(rv).toStrictEqual(42);
-      expect(mockStartSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
+      expect(mockStartSpanManual).toHaveBeenCalledWith(fakeTransactionContext, expect.any(Function));
       expectScopeSettings();
 
-      expect(mockSpanEnd).toBeCalled();
-      expect(mockFlush).toBeCalled();
+      expect(mockSpanEnd).toHaveBeenCalled();
+      expect(mockFlush).toHaveBeenCalled();
     });
 
     test('event and context are correctly passed to the original handler', async () => {
@@ -471,12 +471,12 @@ describe('AWSLambda', () => {
           },
         };
 
-        expect(mockStartSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
+        expect(mockStartSpanManual).toHaveBeenCalledWith(fakeTransactionContext, expect.any(Function));
         expectScopeSettings();
-        expect(mockCaptureException).toBeCalledWith(error, expect.any(Function));
+        expect(mockCaptureException).toHaveBeenCalledWith(error, expect.any(Function));
 
-        expect(mockSpanEnd).toBeCalled();
-        expect(mockFlush).toBeCalled();
+        expect(mockSpanEnd).toHaveBeenCalled();
+        expect(mockFlush).toHaveBeenCalled();
       }
     });
   });
@@ -493,7 +493,7 @@ describe('AWSLambda', () => {
     try {
       await wrappedHandler(fakeEvent, fakeContext, fakeCallback);
     } catch (e) {
-      expect(mockCaptureException).toBeCalledWith(error, expect.any(Function));
+      expect(mockCaptureException).toHaveBeenCalledWith(error, expect.any(Function));
 
       const scopeFunction = mockCaptureException.mock.calls[0][1];
       const event: Event = { exception: { values: [{}] } };
@@ -513,7 +513,7 @@ describe('AWSLambda', () => {
     test('calls Sentry.init with correct sdk info metadata', () => {
       init({});
 
-      expect(mockInit).toBeCalledWith(
+      expect(mockInit).toHaveBeenCalledWith(
         expect.objectContaining({
           _metadata: {
             sdk: {

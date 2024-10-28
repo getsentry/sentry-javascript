@@ -20,7 +20,7 @@ describe('init()', () => {
   test('calls Sentry.init with correct sdk info metadata', () => {
     init({});
 
-    expect(mockInit).toBeCalledWith(
+    expect(mockInit).toHaveBeenCalledWith(
       expect.objectContaining({
         _metadata: {
           sdk: {

@@ -176,7 +176,7 @@ describe('init', () => {
 
       init(options);
 
-      expect(consoleErrorSpy).toBeCalledTimes(1);
+      expect(consoleErrorSpy).toHaveBeenCalledTimes(1);
       expect(consoleErrorSpy).toHaveBeenCalledWith(
         '[Sentry] You cannot run Sentry this way in a browser extension, check: https://docs.sentry.io/platforms/javascript/best-practices/browser-extensions/',
       );
@@ -191,7 +191,7 @@ describe('init', () => {
 
       init(options);
 
-      expect(consoleErrorSpy).toBeCalledTimes(1);
+      expect(consoleErrorSpy).toHaveBeenCalledTimes(1);
       expect(consoleErrorSpy).toHaveBeenCalledWith(
         '[Sentry] You cannot run Sentry this way in a browser extension, check: https://docs.sentry.io/platforms/javascript/best-practices/browser-extensions/',
       );
@@ -215,7 +215,7 @@ describe('init', () => {
 
         init(options);
 
-        expect(consoleErrorSpy).toBeCalledTimes(0);
+        expect(consoleErrorSpy).toHaveBeenCalledTimes(0);
 
         consoleErrorSpy.mockRestore();
         WINDOW.location = originalLocation;
@@ -227,7 +227,7 @@ describe('init', () => {
 
       init(options);
 
-      expect(consoleErrorSpy).toBeCalledTimes(0);
+      expect(consoleErrorSpy).toHaveBeenCalledTimes(0);
 
       consoleErrorSpy.mockRestore();
     });

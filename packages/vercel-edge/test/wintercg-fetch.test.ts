@@ -164,7 +164,7 @@ describe('WinterCGFetch instrumentation', () => {
     };
     fetchInstrumentationHandlerCallback(startHandlerData);
 
-    expect(addBreadcrumbSpy).toBeCalledWith(
+    expect(addBreadcrumbSpy).toHaveBeenCalledWith(
       {
         category: 'fetch',
         data: {

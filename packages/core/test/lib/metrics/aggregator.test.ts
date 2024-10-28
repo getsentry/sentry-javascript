@@ -87,8 +87,8 @@ describe('MetricsAggregator', () => {
       aggregator.close();
       // It should clear the interval.
       expect(clearInterval).toHaveBeenCalled();
-      expect(capture).toBeCalled();
-      expect(capture).toBeCalledTimes(1);
+      expect(capture).toHaveBeenCalled();
+      expect(capture).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -98,8 +98,8 @@ describe('MetricsAggregator', () => {
       const aggregator = new MetricsAggregator(testClient);
       aggregator.add('c', 'requests', 1);
       aggregator.flush();
-      expect(capture).toBeCalled();
-      expect(capture).toBeCalledTimes(1);
+      expect(capture).toHaveBeenCalled();
+      expect(capture).toHaveBeenCalledTimes(1);
 
       capture.mockReset();
       aggregator.close();
@@ -107,7 +107,7 @@ describe('MetricsAggregator', () => {
       expect(clearInterval).toHaveBeenCalled();
 
       // It shouldn't be called since it's been already flushed.
-      expect(capture).toBeCalledTimes(0);
+      expect(capture).toHaveBeenCalledTimes(0);
     });
 
     test('should not capture if empty', () => {
@@ -115,10 +115,10 @@ describe('MetricsAggregator', () => {
       const aggregator = new MetricsAggregator(testClient);
       aggregator.add('c', 'requests', 1);
       aggregator.flush();
-      expect(capture).toBeCalledTimes(1);
+      expect(capture).toHaveBeenCalledTimes(1);
       capture.mockReset();
       aggregator.close();
-      expect(capture).toBeCalledTimes(0);
+      expect(capture).toHaveBeenCalledTimes(0);
     });
   });
 
@@ -131,7 +131,7 @@ describe('MetricsAggregator', () => {
         aggregator.add('c', 'requests', 1);
       }
 
-      expect(capture).toBeCalledTimes(1);
+      expect(capture).toHaveBeenCalledTimes(1);
       aggregator.close();
     });
   });

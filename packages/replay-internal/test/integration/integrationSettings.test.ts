@@ -36,14 +36,14 @@ describe('Integration | integrationSettings', () => {
       const { replay } = await mockSdk({ sentryOptions: { replaysSessionSampleRate: 0.5 }, replayOptions: {} });
 
       expect(replay.getOptions().sessionSampleRate).toBe(0.5);
-      expect(mockConsole).toBeCalledTimes(0);
+      expect(mockConsole).toHaveBeenCalledTimes(0);
     });
 
     it('works with defining 0 in SDK', async () => {
       const { replay } = await mockSdk({ sentryOptions: { replaysSessionSampleRate: 0 }, replayOptions: {} });
 
       expect(replay.getOptions().sessionSampleRate).toBe(0);
-      expect(mockConsole).toBeCalledTimes(0);
+      expect(mockConsole).toHaveBeenCalledTimes(0);
     });
 
     it('works with defining a string rate in SDK', async () => {
@@ -56,7 +56,7 @@ describe('Integration | integrationSettings', () => {
       });
 
       expect(replay.getOptions().sessionSampleRate).toStrictEqual(0.5);
-      expect(mockConsole).toBeCalledTimes(0);
+      expect(mockConsole).toHaveBeenCalledTimes(0);
     });
   });
 
@@ -75,14 +75,14 @@ describe('Integration | integrationSettings', () => {
       const { replay } = await mockSdk({ sentryOptions: { replaysOnErrorSampleRate: 0.5 }, replayOptions: {} });
 
       expect(replay.getOptions().errorSampleRate).toBe(0.5);
-      expect(mockConsole).toBeCalledTimes(0);
+      expect(mockConsole).toHaveBeenCalledTimes(0);
     });
 
     it('works with defining 0 in SDK', async () => {
       const { replay } = await mockSdk({ sentryOptions: { replaysOnErrorSampleRate: 0 }, replayOptions: {} });
 
       expect(replay.getOptions().errorSampleRate).toBe(0);
-      expect(mockConsole).toBeCalledTimes(0);
+      expect(mockConsole).toHaveBeenCalledTimes(0);
     });
 
     it('works with defining a string rate in SDK', async () => {
@@ -95,7 +95,7 @@ describe('Integration | integrationSettings', () => {
       });
 
       expect(replay.getOptions().errorSampleRate).toStrictEqual(0.5);
-      expect(mockConsole).toBeCalledTimes(0);
+      expect(mockConsole).toHaveBeenCalledTimes(0);
     });
   });
 
@@ -118,7 +118,7 @@ describe('Integration | integrationSettings', () => {
 
       expect(replay.getOptions().sessionSampleRate).toBe(0);
       expect(replay.getOptions().errorSampleRate).toBe(0);
-      expect(mockConsole).toBeCalledTimes(1);
+      expect(mockConsole).toHaveBeenCalledTimes(1);
     });
   });
 

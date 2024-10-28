@@ -72,7 +72,7 @@ describe('GoogleCloudHttp tracing', () => {
         );
       const resp = await bigquery.query('SELECT true AS foo');
       expect(resp).toEqual([[{ foo: true }]]);
-      expect(mockStartInactiveSpan).toBeCalledWith({
+      expect(mockStartInactiveSpan).toHaveBeenCalledWith({
         op: 'http.client.bigquery',
         name: 'POST /jobs',
         onlyIfParent: true,
@@ -80,7 +80,7 @@ describe('GoogleCloudHttp tracing', () => {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.serverless',
         },
       });
-      expect(mockStartInactiveSpan).toBeCalledWith({
+      expect(mockStartInactiveSpan).toHaveBeenCalledWith({
         op: 'http.client.bigquery',
         name: expect.stringMatching(/^GET \/queries\/.+/),
         onlyIfParent: true,

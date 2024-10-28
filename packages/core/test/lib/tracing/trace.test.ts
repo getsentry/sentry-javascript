@@ -489,7 +489,7 @@ describe('startSpan', () => {
       expect(outerSpan).toBeDefined();
     });
 
-    expect(tracesSampler).toBeCalledTimes(1);
+    expect(tracesSampler).toHaveBeenCalledTimes(1);
     expect(tracesSampler).toHaveBeenLastCalledWith({
       parentSampled: undefined,
       name: 'outer',

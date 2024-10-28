@@ -81,9 +81,9 @@ describe('wrapEventFunction', () => {
         },
       };
 
-      expect(mockStartSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
-      expect(mockSpan.end).toBeCalled();
-      expect(mockFlush).toBeCalledWith(2000);
+      expect(mockStartSpanManual).toHaveBeenCalledWith(fakeTransactionContext, expect.any(Function));
+      expect(mockSpan.end).toHaveBeenCalled();
+      expect(mockFlush).toHaveBeenCalledWith(2000);
     });
 
     test('capture error', async () => {
@@ -103,10 +103,10 @@ describe('wrapEventFunction', () => {
         },
       };
 
-      expect(mockStartSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
-      expect(mockCaptureException).toBeCalledWith(error, expect.any(Function));
-      expect(mockSpan.end).toBeCalled();
-      expect(mockFlush).toBeCalled();
+      expect(mockStartSpanManual).toHaveBeenCalledWith(fakeTransactionContext, expect.any(Function));
+      expect(mockCaptureException).toHaveBeenCalledWith(error, expect.any(Function));
+      expect(mockSpan.end).toHaveBeenCalled();
+      expect(mockFlush).toHaveBeenCalled();
     });
   });
 
@@ -130,9 +130,9 @@ describe('wrapEventFunction', () => {
         },
       };
 
-      expect(mockStartSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
-      expect(mockSpan.end).toBeCalled();
-      expect(mockFlush).toBeCalledWith(2000);
+      expect(mockStartSpanManual).toHaveBeenCalledWith(fakeTransactionContext, expect.any(Function));
+      expect(mockSpan.end).toHaveBeenCalled();
+      expect(mockFlush).toHaveBeenCalledWith(2000);
     });
 
     test('capture error', async () => {
@@ -156,10 +156,10 @@ describe('wrapEventFunction', () => {
         },
       };
 
-      expect(mockStartSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
-      expect(mockCaptureException).toBeCalledWith(error, expect.any(Function));
-      expect(mockSpan.end).toBeCalled();
-      expect(mockFlush).toBeCalled();
+      expect(mockStartSpanManual).toHaveBeenCalledWith(fakeTransactionContext, expect.any(Function));
+      expect(mockCaptureException).toHaveBeenCalledWith(error, expect.any(Function));
+      expect(mockSpan.end).toHaveBeenCalled();
+      expect(mockFlush).toHaveBeenCalled();
     });
   });
 
@@ -180,9 +180,9 @@ describe('wrapEventFunction', () => {
         },
       };
 
-      expect(mockStartSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
-      expect(mockSpan.end).toBeCalled();
-      expect(mockFlush).toBeCalledWith(2000);
+      expect(mockStartSpanManual).toHaveBeenCalledWith(fakeTransactionContext, expect.any(Function));
+      expect(mockSpan.end).toHaveBeenCalled();
+      expect(mockFlush).toHaveBeenCalledWith(2000);
     });
 
     test('capture error', async () => {
@@ -202,10 +202,10 @@ describe('wrapEventFunction', () => {
         },
       };
 
-      expect(mockStartSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
-      expect(mockCaptureException).toBeCalledWith(error, expect.any(Function));
-      expect(mockSpan.end).toBeCalled();
-      expect(mockFlush).toBeCalled();
+      expect(mockStartSpanManual).toHaveBeenCalledWith(fakeTransactionContext, expect.any(Function));
+      expect(mockCaptureException).toHaveBeenCalledWith(error, expect.any(Function));
+      expect(mockSpan.end).toHaveBeenCalled();
+      expect(mockFlush).toHaveBeenCalled();
     });
 
     test('capture exception', async () => {
@@ -225,8 +225,8 @@ describe('wrapEventFunction', () => {
         },
       };
 
-      expect(mockStartSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
-      expect(mockCaptureException).toBeCalledWith(error, expect.any(Function));
+      expect(mockStartSpanManual).toHaveBeenCalledWith(fakeTransactionContext, expect.any(Function));
+      expect(mockCaptureException).toHaveBeenCalledWith(error, expect.any(Function));
     });
   });
 
@@ -238,7 +238,7 @@ describe('wrapEventFunction', () => {
     const wrappedHandler = wrapEventFunction(handler);
     await expect(handleEvent(wrappedHandler)).rejects.toThrowError(error);
 
-    expect(mockCaptureException).toBeCalledWith(error, expect.any(Function));
+    expect(mockCaptureException).toHaveBeenCalledWith(error, expect.any(Function));
 
     const scopeFunction = mockCaptureException.mock.calls[0][1];
     const event: Event = { exception: { values: [{}] } };
@@ -257,7 +257,7 @@ describe('wrapEventFunction', () => {
     const handler: EventFunction = (_data, _context) => 42;
     const wrappedHandler = wrapEventFunction(handler);
     await handleEvent(wrappedHandler);
-    expect(mockScope.setContext).toBeCalledWith('gcp.function.context', {
+    expect(mockScope.setContext).toHaveBeenCalledWith('gcp.function.context', {
       eventType: 'event.type',
       resource: 'some.resource',
     });
