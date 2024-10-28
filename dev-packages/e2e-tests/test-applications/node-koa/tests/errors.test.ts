@@ -15,6 +15,7 @@ test('Sends correct error event', async ({ baseURL }) => {
 
   expect(errorEvent.request).toEqual({
     method: 'GET',
+    cookies: {},
     headers: expect.any(Object),
     url: 'http://localhost:3030/test-exception/123',
   });
