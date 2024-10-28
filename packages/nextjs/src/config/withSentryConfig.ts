@@ -2,6 +2,7 @@
 import { isThenable, parseSemver } from '@sentry/utils';
 
 import * as fs from 'fs';
+import { getSentryRelease } from '@sentry/node';
 import { sync as resolveSync } from 'resolve';
 import type {
   ExportedNextConfig as NextConfig,
@@ -72,6 +73,8 @@ function getFinalConfigObject(
       setUpTunnelRewriteRules(incomingUserNextConfigObject, userSentryOptions.tunnelRoute);
     }
   }
+
+  setUpBuildTimeVariables(incomingUserNextConfigObject);
 
   const nextJsVersion = getNextjsVersion();
 
@@ -251,6 +254,37 @@ function setUpTunnelRewriteRules(userNextConfig: NextConfigObject, tunnelPath: s
       };
     }
   };
+}
+
+function setUpBuildTimeVariables(userNextConfig: NextConfigObject, userSentryOptions: SentryBuildOptions): void {
+  const assetPrefix = userNextConfig.assetPrefix || userNextConfig.basePath || '';
+
+  const buildTimeVariables = {
+    // `rewritesTunnel` set by the user in Next.js config
+    __sentryRewritesTunnelPath:
+      userSentryOptions.tunnelRoute !== undefined && userNextConfig.output !== 'export'
+        ? `${userNextConfig.basePath ?? ''}${userSentryOptions.tunnelRoute}`
+        : undefined,
+    SENTRY_RELEASE:
+      process.env.NODE_ENV === 'production'
+        ? undefined
+        : { id: userSentryOptions.release?.name ?? getSentryRelease('TODO') },
+    __sentryBasePath: userNextConfig.basePath,
+    // Make sure that if we have a windows path, the backslashes are interpreted as such (rather than as escape
+    // characters)
+    __sentryRewriteFramesDistDir: userNextConfig.distDir?.replace(/\\/g, '\\\\') || '.next',
+    // Get the path part of `assetPrefix`, minus any trailing slash. (We use a placeholder for the origin if
+    // `assetPrefix` doesn't include one. Since we only care about the path, it doesn't matter what it is.)
+    __sentryRewriteFramesAssetPrefixPath: assetPrefix
+      ? new URL(assetPrefix, 'http://dogs.are.great').pathname.replace(/\/$/, '')
+      : '',
+  };
+
+  if (typeof userNextConfig.env === 'object') {
+    userNextConfig.env = { ...buildTimeVariables, ...userNextConfig.env };
+  } else if (userNextConfig.env === undefined) {
+    userNextConfig.env = buildTimeVariables;
+  }
 }
 
 function getNextjsVersion(): string | undefined {

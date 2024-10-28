@@ -2,7 +2,6 @@ import { addEventProcessor, applySdkMetadata } from '@sentry/core';
 import type { BrowserOptions } from '@sentry/react';
 import { getDefaultIntegrations as getReactDefaultIntegrations, init as reactInit } from '@sentry/react';
 import type { Client, EventProcessor, Integration } from '@sentry/types';
-import { GLOBAL_OBJ } from '@sentry/utils';
 
 import { devErrorSymbolicationEventProcessor } from '../common/devErrorSymbolicationEventProcessor';
 import { getVercelEnv } from '../common/getVercelEnv';
@@ -14,10 +13,6 @@ import { applyTunnelRouteOption } from './tunnelRoute';
 export * from '@sentry/react';
 
 export { captureUnderscoreErrorException } from '../common/pages-router-instrumentation/_error';
-
-const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
-  __rewriteFramesAssetPrefixPath__: string;
-};
 
 // Treeshakable guard to remove all code related to tracing
 declare const __SENTRY_TRACING__: boolean;
@@ -64,7 +59,7 @@ function getDefaultIntegrations(options: BrowserOptions): Integration[] {
 
   // This value is injected at build time, based on the output directory specified in the build config. Though a default
   // is set there, we set it here as well, just in case something has gone wrong with the injection.
-  const assetPrefixPath = globalWithInjectedValues.__rewriteFramesAssetPrefixPath__ || '';
+  const assetPrefixPath = process.env.__sentryRewriteFramesAssetPrefixPath || '';
   customDefaultIntegrations.push(nextjsClientStackFrameNormalizationIntegration({ assetPrefixPath }));
 
   return customDefaultIntegrations;

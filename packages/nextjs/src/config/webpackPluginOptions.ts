@@ -11,7 +11,7 @@ export function getWebpackPluginOptions(
   buildContext: BuildContext,
   sentryBuildOptions: SentryBuildOptions,
 ): SentryWebpackPluginOptions {
-  const { buildId, isServer, config: userNextConfig, dir, nextRuntime } = buildContext;
+  const { isServer, config: userNextConfig, dir, nextRuntime } = buildContext;
 
   const prefixInsert = !isServer ? 'Client' : nextRuntime === 'edge' ? 'Edge' : 'Node.js';
 
@@ -93,8 +93,8 @@ export function getWebpackPluginOptions(
       ...sentryBuildOptions.unstable_sentryWebpackPluginOptions?.sourcemaps,
     },
     release: {
-      inject: false, // The webpack plugin's release injection breaks the `app` directory - we inject the release manually with the value injection loader instead.
-      name: sentryBuildOptions.release?.name ?? getSentryRelease(buildId),
+      inject: false, // The webpack plugin's release injection breaks the `app` directory - we inject with nextConfig.env instead
+      name: sentryBuildOptions.release?.name ?? getSentryRelease('TODO'),
       create: sentryBuildOptions.release?.create,
       finalize: sentryBuildOptions.release?.finalize,
       dist: sentryBuildOptions.release?.dist,

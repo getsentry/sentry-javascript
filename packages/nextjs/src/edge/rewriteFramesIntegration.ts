@@ -1,10 +1,6 @@
 import { defineIntegration, rewriteFramesIntegration as originalRewriteFramesIntegration } from '@sentry/core';
 import type { IntegrationFn, StackFrame } from '@sentry/types';
-import { GLOBAL_OBJ, escapeStringForRegex } from '@sentry/utils';
-
-const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
-  __rewriteFramesDistDir__?: string;
-};
+import { escapeStringForRegex } from '@sentry/utils';
 
 type StackFrameIteratee = (frame: StackFrame) => StackFrame;
 interface RewriteFramesOptions {
@@ -14,9 +10,8 @@ interface RewriteFramesOptions {
 }
 
 export const customRewriteFramesIntegration = ((options?: RewriteFramesOptions) => {
-  // This value is injected at build time, based on the output directory specified in the build config. Though a default
-  // is set there, we set it here as well, just in case something has gone wrong with the injection.
-  const distDirName = globalWithInjectedValues.__rewriteFramesDistDir__;
+  // This value is injected at build time, based on the output directory specified in the build config.
+  const distDirName = process.env.__sentryRewriteFramesDistDir;
 
   if (distDirName) {
     const distDirAbsPath = distDirName.replace(/(\/|\\)$/, ''); // We strip trailing slashes because "app:///_next" also doesn't have one

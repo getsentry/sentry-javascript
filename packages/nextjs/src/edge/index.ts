@@ -21,7 +21,7 @@ export { captureUnderscoreErrorException } from '../common/pages-router-instrume
 export type EdgeOptions = VercelEdgeOptions;
 
 const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
-  __rewriteFramesDistDir__?: string;
+  __sentryRewriteFramesDistDir?: string;
 };
 
 /** Inits the Sentry NextJS SDK on the Edge Runtime. */
@@ -36,7 +36,7 @@ export function init(options: VercelEdgeOptions = {}): void {
 
   // This value is injected at build time, based on the output directory specified in the build config. Though a default
   // is set there, we set it here as well, just in case something has gone wrong with the injection.
-  const distDirName = globalWithInjectedValues.__rewriteFramesDistDir__;
+  const distDirName = globalWithInjectedValues.__sentryRewriteFramesDistDir;
 
   if (distDirName) {
     customDefaultIntegrations.push(distDirRewriteFramesIntegration({ distDirName }));

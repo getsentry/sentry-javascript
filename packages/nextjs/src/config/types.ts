@@ -49,6 +49,7 @@ export type NextConfigObject = {
     clientTraceMetadata?: string[];
   };
   productionBrowserSourceMaps?: boolean;
+  env?: Record<string, string>;
 };
 
 export type SentryBuildOptions = {
@@ -550,7 +551,7 @@ export type ModuleRuleUseProperty = {
  * Global with values we add when we inject code into people's pages, for use at runtime.
  */
 export type EnhancedGlobal = typeof GLOBAL_OBJ & {
-  __rewriteFramesDistDir__?: string;
+  __sentryRewriteFramesDistDir?: string;
   SENTRY_RELEASE?: { id: string };
   SENTRY_RELEASES?: { [key: string]: { id: string } };
 };

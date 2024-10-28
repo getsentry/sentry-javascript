@@ -1,6 +1,5 @@
 import { suppressTracing } from '@sentry/core';
 import type { Event, EventHint } from '@sentry/types';
-import { GLOBAL_OBJ } from '@sentry/utils';
 import type { StackFrame } from 'stacktrace-parser';
 import * as stackTraceParser from 'stacktrace-parser';
 
@@ -8,10 +7,6 @@ type OriginalStackFrameResponse = {
   originalStackFrame: StackFrame;
   originalCodeFrame: string | null;
   sourcePackage?: string;
-};
-
-const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
-  __sentryBasePath?: string;
 };
 
 async function resolveStackFrame(
@@ -32,7 +27,7 @@ async function resolveStackFrame(
       params.append(key, (frame[key as keyof typeof frame] ?? '').toString());
     });
 
-    let basePath = globalWithInjectedValues.__sentryBasePath ?? '';
+    let basePath = process.env.__sentryBasePath ?? '';
 
     // Prefix the basepath with a slash if it doesn't have one
     if (basePath !== '' && !basePath.match(/^\//)) {
