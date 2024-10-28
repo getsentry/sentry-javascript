@@ -1,4 +1,7 @@
-/** Request data included in an event as sent to Sentry */
+/**
+ * Request data included in an event as sent to Sentry.
+ * TODO(v9): Rename this to avoid confusion, because Request is also a native type.
+ */
 export interface Request {
   url?: string;
   method?: string;
