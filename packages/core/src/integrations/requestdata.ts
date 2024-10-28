@@ -88,6 +88,7 @@ const _requestDataIntegration = ((options: RequestDataIntegrationOptions = {}) =
         return event;
       }
 
+      // TODO(v9): Eventually we can remove this fallback branch and only rely on the normalizedRequest above
       if (!request) {
         return event;
       }
