@@ -68,6 +68,14 @@ const sentryTest = base.extend<TestFixtures>({
         return tmpDir;
       }
 
+      await page.route('https://dsn.ingest.sentry.io/**/*', route => {
+        return route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ id: 'test-id' }),
+        });
+      });
+
       await page.route(`${TEST_HOST}/*.*`, route => {
         const file = route.request().url().split('/').pop();
         const filePath = path.resolve(tmpDir, `./${file}`);
@@ -96,12 +104,20 @@ const sentryTest = base.extend<TestFixtures>({
     });
   },
 
-  getLocalTestPath: ({}, use) => {
+  getLocalTestPath: ({ page }, use) => {
     return use(async ({ testDir }) => {
       const tmpDir = path.join(testDir, 'dist', crypto.randomUUID());
       const pagePath = `file:///${path.resolve(tmpDir, './index.html')}`;
 
       await build(testDir, tmpDir);
+
+      await page.route('https://dsn.ingest.sentry.io/**/*', route => {
+        return route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ id: 'test-id' }),
+        });
+      });
 
       return pagePath;
     });
