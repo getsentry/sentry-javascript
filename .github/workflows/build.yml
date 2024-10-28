@@ -858,7 +858,7 @@ jobs:
     if: always() && needs.job_e2e_prepare.result == 'success'
     needs: [job_get_metadata, job_build, job_e2e_prepare]
     runs-on: ubuntu-20.04
-    timeout-minutes: 10
+    timeout-minutes: 15
     env:
       # We just use a dummy DSN here, only send to the tunnel anyhow
       E2E_TEST_DSN: 'https://username@domain/123'
@@ -1070,7 +1070,7 @@ jobs:
       github.actor != 'dependabot[bot]'
     needs: [job_get_metadata, job_build, job_e2e_prepare]
     runs-on: ubuntu-20.04
-    timeout-minutes: 10
+    timeout-minutes: 15
     env:
       E2E_TEST_AUTH_TOKEN: ${{ secrets.E2E_TEST_AUTH_TOKEN }}
       E2E_TEST_DSN: ${{ secrets.E2E_TEST_DSN }}
@@ -1234,7 +1234,7 @@ jobs:
       )
     needs: [job_get_metadata, job_build, job_e2e_prepare]
     runs-on: ubuntu-20.04
-    timeout-minutes: 10
+    timeout-minutes: 15
     env:
       E2E_TEST_AUTH_TOKEN: ${{ secrets.E2E_TEST_AUTH_TOKEN }}
       E2E_TEST_DSN: ${{ secrets.E2E_TEST_DSN }}
