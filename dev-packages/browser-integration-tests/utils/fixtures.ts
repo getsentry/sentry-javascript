@@ -31,8 +31,12 @@ const getAsset = (assetDir: string, asset: string): string => {
 export type TestFixtures = {
   _autoSnapshotSuffix: void;
   testDir: string;
-  getLocalTestPath: (options: { testDir: string }) => Promise<string>;
-  getLocalTestUrl: (options: { testDir: string; skipRouteHandler?: boolean }) => Promise<string>;
+  getLocalTestPath: (options: { testDir: string; skipDsnRouteHandler?: boolean }) => Promise<string>;
+  getLocalTestUrl: (options: {
+    testDir: string;
+    skipRouteHandler?: boolean;
+    skipDsnRouteHandler?: boolean;
+  }) => Promise<string>;
   forceFlushReplay: () => Promise<string>;
   enableConsole: () => void;
   runInChromium: (fn: (...args: unknown[]) => unknown, args?: unknown[]) => unknown;
@@ -55,7 +59,7 @@ const sentryTest = base.extend<TestFixtures>({
   ],
 
   getLocalTestUrl: ({ page }, use) => {
-    return use(async ({ testDir, skipRouteHandler = false }) => {
+    return use(async ({ testDir, skipRouteHandler = false, skipDsnRouteHandler = false }) => {
       const pagePath = `${TEST_HOST}/index.html`;
 
       const tmpDir = path.join(testDir, 'dist', crypto.randomUUID());
@@ -68,13 +72,15 @@ const sentryTest = base.extend<TestFixtures>({
         return tmpDir;
       }
 
-      await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-        return route.fulfill({
-          status: 200,
-          contentType: 'application/json',
-          body: JSON.stringify({ id: 'test-id' }),
+      if (!skipDsnRouteHandler) {
+        await page.route('https://dsn.ingest.sentry.io/**/*', route => {
+          return route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify({ id: 'test-id' }),
+          });
         });
-      });
+      }
 
       await page.route(`${TEST_HOST}/*.*`, route => {
         const file = route.request().url().split('/').pop();
@@ -105,19 +111,21 @@ const sentryTest = base.extend<TestFixtures>({
   },
 
   getLocalTestPath: ({ page }, use) => {
-    return use(async ({ testDir }) => {
+    return use(async ({ testDir, skipDsnRouteHandler }) => {
       const tmpDir = path.join(testDir, 'dist', crypto.randomUUID());
       const pagePath = `file:///${path.resolve(tmpDir, './index.html')}`;
 
       await build(testDir, tmpDir);
 
-      await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-        return route.fulfill({
-          status: 200,
-          contentType: 'application/json',
-          body: JSON.stringify({ id: 'test-id' }),
+      if (!skipDsnRouteHandler) {
+        await page.route('https://dsn.ingest.sentry.io/**/*', route => {
+          return route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify({ id: 'test-id' }),
+          });
         });
-      });
+      }
 
       return pagePath;
     });

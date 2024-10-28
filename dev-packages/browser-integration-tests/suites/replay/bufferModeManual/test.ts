@@ -45,7 +45,7 @@ sentryTest(
       });
     });
 
-    const url = await getLocalTestPath({ testDir: __dirname });
+    const url = await getLocalTestPath({ testDir: __dirname, skipDsnRouteHandler: true });
 
     await page.goto(url);
     await page.locator('#go-background').click();
@@ -190,7 +190,7 @@ sentryTest(
       });
     });
 
-    const url = await getLocalTestPath({ testDir: __dirname });
+    const url = await getLocalTestPath({ testDir: __dirname, skipDsnRouteHandler: true });
 
     await page.goto(url);
     await page.locator('#go-background').click();
@@ -424,7 +424,7 @@ sentryTest(
       });
     });
 
-    const url = await getLocalTestPath({ testDir: __dirname });
+    const url = await getLocalTestPath({ testDir: __dirname, skipDsnRouteHandler: true });
 
     await page.goto(url);
     // Start buffering and assert that it is enabled
