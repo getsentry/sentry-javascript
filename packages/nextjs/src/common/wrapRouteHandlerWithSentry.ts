@@ -40,6 +40,8 @@ export function wrapRouteHandlerWithSentry<F extends (...args: any[]) => any>(
 
       isolationScope.setSDKProcessingMetadata({
         request: {
+          url: parameterizedRoute,
+          method,
           headers: completeHeadersDict,
         },
       });
