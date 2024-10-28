@@ -157,6 +157,7 @@ test('Captures request metadata', async ({ baseURL }) => {
   const transactionEvent = await transactionEventPromise;
 
   expect(transactionEvent.request).toEqual({
+    cookies: {},
     url: expect.stringMatching(/^http:\/\/localhost:(\d+)\/test-post$/),
     method: 'POST',
     headers: expect.objectContaining({
