@@ -119,7 +119,7 @@ describe('wrapCloudEventFunction', () => {
           });
 
         const wrappedHandler = wrapCloudEventFunction(handler);
-        await expect(handleCloudEvent(wrappedHandler)).rejects.toThrowError(error);
+        await expect(handleCloudEvent(wrappedHandler)).rejects.toThrow(error);
 
         const fakeTransactionContext = {
           name: 'event.type',
@@ -143,7 +143,7 @@ describe('wrapCloudEventFunction', () => {
         throw error;
       };
       const wrappedHandler = wrapCloudEventFunction(handler);
-      await expect(handleCloudEvent(wrappedHandler)).rejects.toThrowError(error);
+      await expect(handleCloudEvent(wrappedHandler)).rejects.toThrow(error);
 
       const fakeTransactionContext = {
         name: 'event.type',
@@ -189,7 +189,7 @@ describe('wrapCloudEventFunction', () => {
         cb(error);
       };
       const wrappedHandler = wrapCloudEventFunction(handler);
-      await expect(handleCloudEvent(wrappedHandler)).rejects.toThrowError(error);
+      await expect(handleCloudEvent(wrappedHandler)).rejects.toThrow(error);
 
       const fakeTransactionContext = {
         name: 'event.type',
@@ -212,7 +212,7 @@ describe('wrapCloudEventFunction', () => {
         throw error;
       };
       const wrappedHandler = wrapCloudEventFunction(handler);
-      await expect(handleCloudEvent(wrappedHandler)).rejects.toThrowError(error);
+      await expect(handleCloudEvent(wrappedHandler)).rejects.toThrow(error);
 
       const fakeTransactionContext = {
         name: 'event.type',

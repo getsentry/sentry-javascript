@@ -19,7 +19,7 @@ describe('PromiseBuffer', () => {
       });
       const producer2 = jest.fn(() => new SyncPromise(resolve => setTimeout(resolve)));
       expect(buffer.add(producer1)).toEqual(task1);
-      void expect(buffer.add(producer2)).rejects.toThrowError();
+      void expect(buffer.add(producer2)).rejects.toThrow();
       expect(buffer.$.length).toEqual(1);
       expect(producer1).toHaveBeenCalled();
       expect(producer2).not.toHaveBeenCalled();

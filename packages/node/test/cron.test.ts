@@ -103,7 +103,7 @@ describe('cron check-ins', () => {
             //
           },
         });
-      }).toThrowError("A job named 'my-cron-job' has already been scheduled");
+      }).toThrow("A job named 'my-cron-job' has already been scheduled");
     });
   });
 
@@ -149,7 +149,7 @@ describe('cron check-ins', () => {
         cronWithCheckIn.schedule('* * * * *', () => {
           //
         });
-      }).toThrowError('Missing "name" for scheduled job. A name is required for Sentry check-in monitoring.');
+      }).toThrow('Missing "name" for scheduled job. A name is required for Sentry check-in monitoring.');
     });
   });
 
@@ -194,7 +194,7 @@ describe('cron check-ins', () => {
         scheduleWithCheckIn.scheduleJob('my-cron-job', new Date(), () => {
           //
         });
-      }).toThrowError(
+      }).toThrow(
         "Automatic instrumentation of 'node-schedule' requires the first parameter of 'scheduleJob' to be a job name string and the second parameter to be a crontab string",
       );
     });
@@ -212,7 +212,7 @@ describe('cron check-ins', () => {
         scheduleWithCheckIn.scheduleJob('* * * * *', () => {
           //
         });
-      }).toThrowError(
+      }).toThrow(
         "Automatic instrumentation of 'node-schedule' requires the first parameter of 'scheduleJob' to be a job name string and the second parameter to be a crontab string",
       );
     });

@@ -92,7 +92,7 @@ describe('wrapEventFunction', () => {
         throw error;
       };
       const wrappedHandler = wrapEventFunction(handler);
-      await expect(handleEvent(wrappedHandler)).rejects.toThrowError(error);
+      await expect(handleEvent(wrappedHandler)).rejects.toThrow(error);
 
       const fakeTransactionContext = {
         name: 'event.type',
@@ -145,7 +145,7 @@ describe('wrapEventFunction', () => {
         });
 
       const wrappedHandler = wrapEventFunction(handler);
-      await expect(handleEvent(wrappedHandler)).rejects.toThrowError(error);
+      await expect(handleEvent(wrappedHandler)).rejects.toThrow(error);
 
       const fakeTransactionContext = {
         name: 'event.type',
@@ -191,7 +191,7 @@ describe('wrapEventFunction', () => {
         cb(error);
       };
       const wrappedHandler = wrapEventFunction(handler);
-      await expect(handleEvent(wrappedHandler)).rejects.toThrowError(error);
+      await expect(handleEvent(wrappedHandler)).rejects.toThrow(error);
 
       const fakeTransactionContext = {
         name: 'event.type',
@@ -214,7 +214,7 @@ describe('wrapEventFunction', () => {
         throw error;
       };
       const wrappedHandler = wrapEventFunction(handler);
-      await expect(handleEvent(wrappedHandler)).rejects.toThrowError(error);
+      await expect(handleEvent(wrappedHandler)).rejects.toThrow(error);
 
       const fakeTransactionContext = {
         name: 'event.type',
@@ -236,7 +236,7 @@ describe('wrapEventFunction', () => {
       throw error;
     };
     const wrappedHandler = wrapEventFunction(handler);
-    await expect(handleEvent(wrappedHandler)).rejects.toThrowError(error);
+    await expect(handleEvent(wrappedHandler)).rejects.toThrow(error);
 
     expect(mockCaptureException).toHaveBeenCalledWith(error, expect.any(Function));
 

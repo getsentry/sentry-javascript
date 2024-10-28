@@ -142,7 +142,7 @@ describe('sentryMiddleware', () => {
     });
 
     // @ts-expect-error, a partial ctx object is fine here
-    await expect(async () => middleware(ctx, next)).rejects.toThrowError();
+    await expect(async () => middleware(ctx, next)).rejects.toThrow();
 
     expect(captureExceptionSpy).toHaveBeenCalledWith(error, {
       mechanism: { handled: false, type: 'astro', data: { function: 'astroMiddleware' } },

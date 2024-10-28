@@ -82,7 +82,7 @@ describe('wrapServerRouteWithSentry', () => {
 
       await expect(async () => {
         await wrappedRouteHandler(getRequestEventMock() as RequestEvent);
-      }).rejects.toThrowError('Server Route Error');
+      }).rejects.toThrow('Server Route Error');
 
       expect(captureExceptionSpy).toHaveBeenCalledWith(error, {
         mechanism: { type: 'sveltekit', handled: false, data: { function: 'serverRoute' } },
