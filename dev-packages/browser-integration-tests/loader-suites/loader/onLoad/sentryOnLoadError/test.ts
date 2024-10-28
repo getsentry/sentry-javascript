@@ -8,6 +8,14 @@ sentryTest(
   async ({ getLocalTestUrl, page }) => {
     const errors: string[] = [];
 
+    await page.route('https://dsn.ingest.sentry.io/**/*', route => {
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ id: 'test-id' }),
+      });
+    });
+
     page.on('console', msg => {
       if (msg.type() === 'error') {
         errors.push(msg.text());
