@@ -1,3 +1,6 @@
+// Rollup doesn't like if we put the directive regex as a literal (?). No idea why.
+/* eslint-disable @sentry-internal/sdk/no-regexp-constructor */
+
 import type { LoaderThis } from './types';
 
 type LoaderOptions = {
@@ -9,8 +12,7 @@ type LoaderOptions = {
 // This regex is shamelessly stolen from: https://github.com/getsentry/sentry-javascript-bundler-plugins/blob/7f984482c73e4284e8b12a08dfedf23b5a82f0af/packages/bundler-plugin-core/src/index.ts#L535-L539
 const SKIP_COMMENT_AND_DIRECTIVE_REGEX =
   // Note: CodeQL complains that this regex potentially has n^2 runtime. This likely won't affect realistic files.
-  // Rollup doesn't like if we put this regex as a literal (?). No idea why.
-  // eslint-disable-next-line @sentry-internal/sdk/no-regexp-constructor
+  // biome-ignore lint/nursery/useRegexLiterals: No user input
   new RegExp('^(?:\\s*|/\\*(?:.|\\r|\\n)*?\\*/|//.*[\\n\\r])*(?:"[^"]*";|\'[^\']*\';)?');
 
 /**
