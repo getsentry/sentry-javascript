@@ -16,6 +16,7 @@ test('Returns 400 from failed assert', async ({ baseURL }) => {
 
   expect(errorEvent.request).toEqual({
     method: 'GET',
+    cookies: {},
     headers: expect.any(Object),
     url: 'http://localhost:3030/test-assert/false',
   });
