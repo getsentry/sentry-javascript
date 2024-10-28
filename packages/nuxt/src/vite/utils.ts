@@ -70,13 +70,13 @@ export function constructFunctionReExport(pathWithQuery: string, entryId: string
   const functionNames = extractFunctionReexportQueryParameters(pathWithQuery);
 
   return functionNames.reduce(
-    (functionsCode, currFunctionName) =>
+    (functionsCode, currFunctionName, idx) =>
       functionsCode.concat(
-        'async function reExport(...args) {\n' +
+        `async function reExport${idx}(...args) {\n` +
           `  const res = await import(${JSON.stringify(entryId)});\n` +
           `  return res.${currFunctionName}.call(this, ...args);\n` +
           '}\n' +
-          `export { reExport as ${currFunctionName} };\n`,
+          `export { reExport${idx} as ${currFunctionName} };\n`,
       ),
     '',
   );

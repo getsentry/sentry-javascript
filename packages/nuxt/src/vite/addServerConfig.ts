@@ -81,7 +81,12 @@ export function addServerConfigToBuild(
  * With this, the Sentry server config can be loaded before all other modules of the application (which is needed for import-in-the-middle).
  * See: https://nodejs.org/api/module.html#enabling
  */
-export function addDynamicImportEntryFileWrapper(nitro: Nitro, serverConfigFile: string): void {
+export function addDynamicImportEntryFileWrapper(
+  nitro: Nitro,
+  serverConfigFile: string,
+  moduleOptions: Omit<SentryNuxtModuleOptions, 'asyncFunctionReExports'> &
+    Required<Pick<SentryNuxtModuleOptions, 'asyncFunctionReExports'>>,
+): void {
   if (!nitro.options.rollupConfig) {
     nitro.options.rollupConfig = { output: {} };
   }
@@ -94,7 +99,10 @@ export function addDynamicImportEntryFileWrapper(nitro: Nitro, serverConfigFile:
   }
 
   nitro.options.rollupConfig.plugins.push(
-    wrapEntryWithDynamicImport(createResolver(nitro.options.srcDir).resolve(`/${serverConfigFile}`)),
+    wrapEntryWithDynamicImport({
+      resolvedSentryConfigPath: createResolver(nitro.options.srcDir).resolve(`/${serverConfigFile}`),
+      asyncFunctionReExports: moduleOptions.asyncFunctionReExports,
+    }),
   );
 }
 
@@ -103,7 +111,11 @@ export function addDynamicImportEntryFileWrapper(nitro: Nitro, serverConfigFile:
  * by using a regular `import` and load the server after that.
  * This also works with serverless `handler` functions, as it re-exports the `handler`.
  */
-function wrapEntryWithDynamicImport(resolvedSentryConfigPath: string): InputPluginOption {
+function wrapEntryWithDynamicImport({
+  resolvedSentryConfigPath,
+  asyncFunctionReExports,
+  debug,
+}: { resolvedSentryConfigPath: string; asyncFunctionReExports: string[]; debug?: boolean }): InputPluginOption {
   return {
     name: 'sentry-wrap-entry-with-dynamic-import',
     async resolveId(source, importer, options) {
@@ -129,9 +141,20 @@ function wrapEntryWithDynamicImport(resolvedSentryConfigPath: string): InputPlug
 
         moduleInfo.moduleSideEffects = true;
 
-        // `exportedBindings` can look like this:  `{ '.': [ 'handler' ], './firebase-gen-1.mjs': [ 'server' ] }`
+        // `exportedBindings` can look like this:  `{ '.': [ 'handler' ] }` or `{ '.': [], './firebase-gen-1.mjs': [ 'server' ] }`
         // The key `.` refers to exports within the current file, while other keys show from where exports were imported first.
-        const exportedFunctions = flatten(Object.values(moduleInfo.exportedBindings || {}));
+        const functionsToExport = flatten(Object.values(moduleInfo.exportedBindings || {})).filter(functionName =>
+          asyncFunctionReExports.includes(functionName),
+        );
+
+        if (debug && functionsToExport.length === 0) {
+          consoleSandbox(() =>
+            // eslint-disable-next-line no-console
+            console.warn(
+              "[Sentry] No functions found for re-export. In case your server needs to export async functions other than `handler` or  `server`, consider adding the name(s) to Sentry's build options `sentry.asyncFunctionReExports` in your `nuxt.config.ts`.",
+            ),
+          );
+        }
 
         // The enclosing `if` already checks for the suffix in `source`, but a check in `resolution.id` is needed as well to prevent multiple attachment of the suffix
         return resolution.id.includes(`.mjs${SENTRY_WRAPPED_ENTRY}`)
@@ -139,7 +162,7 @@ function wrapEntryWithDynamicImport(resolvedSentryConfigPath: string): InputPlug
           : resolution.id
               // Concatenates the query params to mark the file (also attaches names of re-exports - this is needed for serverless functions to re-export the handler)
               .concat(SENTRY_WRAPPED_ENTRY)
-              .concat(exportedFunctions?.length ? SENTRY_FUNCTIONS_REEXPORT.concat(exportedFunctions.join(',')) : '')
+              .concat(functionsToExport?.length ? SENTRY_FUNCTIONS_REEXPORT.concat(functionsToExport.join(',')) : '')
               .concat(QUERY_END_INDICATOR);
       }
       return null;
@@ -149,7 +172,7 @@ function wrapEntryWithDynamicImport(resolvedSentryConfigPath: string): InputPlug
         const entryId = removeSentryQueryFromPath(id);
 
         // Mostly useful for serverless `handler` functions
-        const reExportedFunctions = id.includes(SENTRY_FUNCTIONS_REEXPORT)
+        const reExportedAsyncFunctions = id.includes(SENTRY_FUNCTIONS_REEXPORT)
           ? constructFunctionReExport(id, entryId)
           : '';
 
@@ -161,7 +184,7 @@ function wrapEntryWithDynamicImport(resolvedSentryConfigPath: string): InputPlug
           `import(${JSON.stringify(entryId)});\n` +
           // By importing "import-in-the-middle/hook.mjs", we can make sure this file wil be included, as not all node builders are including files imported with `module.register()`.
           "import 'import-in-the-middle/hook.mjs';\n" +
-          `${reExportedFunctions}\n`
+          `${reExportedAsyncFunctions}\n`
         );
       }
 

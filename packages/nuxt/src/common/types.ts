@@ -118,6 +118,17 @@ export type SentryNuxtModuleOptions = {
   dynamicImportForServerEntry?: boolean;
 
   /**
+   * The `asyncFunctionReExports` option is only relevant when `dynamicImportForServerEntry: true` (default value).
+   *
+   * As the server entry file is wrapped with a dynamic `import()`, previous async function exports need to be re-exported.
+   * The SDK detects and re-exports those exports (mostly serverless functions). This is why they are re-exported as async functions.
+   * In case you have a custom setup and your server exports other async functions, you can override the default array with this option.
+   *
+   * @default ['default', 'handler', 'server']
+   */
+  asyncFunctionReExports?: string[];
+
+  /**
    * Options to be passed directly to the Sentry Rollup Plugin (`@sentry/rollup-plugin`) and Sentry Vite Plugin (`@sentry/vite-plugin`) that ship with the Sentry Nuxt SDK.
    * You can use this option to override any options the SDK passes to the Vite (for Nuxt) and Rollup (for Nitro) plugin.
    *

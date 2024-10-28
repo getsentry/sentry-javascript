@@ -111,16 +111,16 @@ describe('constructFunctionReExport', () => {
     const result2 = constructFunctionReExport(query2, entryId);
 
     const expected = `
-async function reExport(...args) {
+async function reExport0(...args) {
   const res = await import("./module");
   return res.foo.call(this, ...args);
 }
-export { reExport as foo };
-async function reExport(...args) {
+export { reExport0 as foo };
+async function reExport1(...args) {
   const res = await import("./module");
   return res.bar.call(this, ...args);
 }
-export { reExport as bar };
+export { reExport1 as bar };
 `;
     expect(result.trim()).toBe(expected.trim());
     expect(result2.trim()).toBe(expected.trim());
@@ -132,11 +132,11 @@ export { reExport as bar };
     const result = constructFunctionReExport(query, entryId);
 
     const expected = `
-async function reExport(...args) {
+async function reExport0(...args) {
   const res = await import("./index");
   return res.default.call(this, ...args);
 }
-export { reExport as default };
+export { reExport0 as default };
 `;
     expect(result.trim()).toBe(expected.trim());
   });
