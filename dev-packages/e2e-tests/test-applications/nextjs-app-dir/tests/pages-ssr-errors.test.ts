@@ -8,7 +8,7 @@ test('Will capture error for SSR rendering error with a connected trace (Class C
 
   const serverComponentTransaction = waitForTransaction('nextjs-app-dir', async transactionEvent => {
     return (
-      transactionEvent?.transaction === '/pages-router/ssr-error-class' &&
+      transactionEvent?.transaction === 'GET /pages-router/ssr-error-class' &&
       (await errorEventPromise).contexts?.trace?.trace_id === transactionEvent.contexts?.trace?.trace_id
     );
   });
@@ -26,7 +26,7 @@ test('Will capture error for SSR rendering error with a connected trace (Functio
 
   const ssrTransactionPromise = waitForTransaction('nextjs-app-dir', async transactionEvent => {
     return (
-      transactionEvent?.transaction === '/pages-router/ssr-error-fc' &&
+      transactionEvent?.transaction === 'GET /pages-router/ssr-error-fc' &&
       (await errorEventPromise).contexts?.trace?.trace_id === transactionEvent.contexts?.trace?.trace_id
     );
   });
