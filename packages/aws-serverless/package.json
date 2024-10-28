@@ -64,7 +64,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@opentelemetry/instrumentation-aws-lambda": "0.44.0",
+    "@opentelemetry/instrumentation-aws-lambda": "0.46.0",
     "@opentelemetry/instrumentation-aws-sdk": "0.45.0",
     "@sentry/core": "8.35.0",
     "@sentry/node": "8.35.0",
