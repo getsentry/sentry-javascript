@@ -11,7 +11,7 @@ test('Should record performance for getServerSideProps', async ({ page }) => {
 
   const serverTransactionPromise = waitForTransaction('nextjs-13', async transactionEvent => {
     return (
-      transactionEvent.transaction === '/[param]/withServerSideProps' &&
+      transactionEvent.transaction === 'GET /[param]/withServerSideProps' &&
       transactionEvent.contexts?.trace?.op === 'http.server'
     );
   });
@@ -47,7 +47,7 @@ test('Should record performance for getServerSideProps', async ({ page }) => {
           status: 'ok',
         },
       },
-      transaction: '/[param]/withServerSideProps',
+      transaction: 'GET /[param]/withServerSideProps',
       transaction_info: {
         source: 'route',
       },

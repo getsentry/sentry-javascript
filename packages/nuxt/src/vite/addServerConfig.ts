@@ -120,7 +120,7 @@ function wrapEntryWithDynamicImport(resolvedSentryConfigPath: string): InputPlug
         return { id: source, moduleSideEffects: true, external: true };
       }
 
-      if (options.isEntry && !source.includes(`.mjs${SENTRY_WRAPPED_ENTRY}`)) {
+      if (options.isEntry && source.includes('.mjs') && !source.includes(`.mjs${SENTRY_WRAPPED_ENTRY}`)) {
         const resolution = await this.resolve(source, importer, options);
 
         // If it cannot be resolved or is external, just return it so that Rollup can display an error

@@ -1,4 +1,5 @@
 import {
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   captureException,
   continueTrace,
@@ -6,12 +7,13 @@ import {
   startSpanManual,
   withIsolationScope,
 } from '@sentry/core';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
-import { isString, logger, objectify, vercelWaitUntil } from '@sentry/utils';
+import { isString, logger, objectify } from '@sentry/utils';
+
+import { vercelWaitUntil } from '@sentry/utils';
 import type { NextApiRequest } from 'next';
-import type { AugmentedNextApiResponse, NextApiHandler } from './types';
-import { flushSafelyWithTimeout } from './utils/responseEnd';
-import { escapeNextjsTracing } from './utils/tracingUtils';
+import type { AugmentedNextApiResponse, NextApiHandler } from '../types';
+import { flushSafelyWithTimeout } from '../utils/responseEnd';
+import { dropNextjsRootContext, escapeNextjsTracing } from '../utils/tracingUtils';
 
 export type AugmentedNextApiRequest = NextApiRequest & {
   __withSentry_applied__?: boolean;
@@ -32,6 +34,7 @@ export function wrapApiHandlerWithSentry(apiHandler: NextApiHandler, parameteriz
       thisArg,
       args: [AugmentedNextApiRequest | undefined, AugmentedNextApiResponse | undefined],
     ) => {
+      dropNextjsRootContext();
       return escapeNextjsTracing(() => {
         const [req, res] = args;
 
@@ -86,7 +89,6 @@ export function wrapApiHandlerWithSentry(apiHandler: NextApiHandler, parameteriz
                       return target.apply(thisArg, argArray);
                     },
                   });
-
                   try {
                     return await wrappingTarget.apply(thisArg, args);
                   } catch (e) {
@@ -110,7 +112,9 @@ export function wrapApiHandlerWithSentry(apiHandler: NextApiHandler, parameteriz
                     setHttpStatus(span, 500);
                     span.end();
 
-                    vercelWaitUntil(flushSafelyWithTimeout());
+                    // we need to await the flush here to ensure that the error is captured
+                    // as the runtime freezes as soon as the error is thrown below
+                    await flushSafelyWithTimeout();
 
                     // We rethrow here so that nextjs can do with the error whatever it would normally do. (Sometimes "whatever it
                     // would normally do" is to allow the error to bubble up to the global handlers - another reason we need to mark
