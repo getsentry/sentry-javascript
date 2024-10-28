@@ -3,7 +3,7 @@
 
 import type { LoaderThis } from './types';
 
-type LoaderOptions = {
+export type ValueInjectionLoaderOptions = {
   values: Record<string, unknown>;
 };
 
@@ -13,7 +13,7 @@ type LoaderOptions = {
 const SKIP_COMMENT_AND_DIRECTIVE_REGEX =
   // Note: CodeQL complains that this regex potentially has n^2 runtime. This likely won't affect realistic files.
   // biome-ignore lint/nursery/useRegexLiterals: No user input
-  new RegExp('^(?:\\s*|/\\*(?:.|\\r|\\n)*?\\*/|//.*[\\n\\r])*(?:"[^"]*";|\'[^\']*\';)?');
+  new RegExp('^(?:\\s*|/\\*(?:.|\\r|\\n)*?\\*/|//.*[\\n\\r])*(?:"[^"]*";?|\'[^\']*\';?)?');
 
 /**
  * Set values on the global/window object at the start of a module.
@@ -22,16 +22,20 @@ const SKIP_COMMENT_AND_DIRECTIVE_REGEX =
  *   - `values`: An object where the keys correspond to the keys of the global values to set and the values
  *        correspond to the values of the values on the global object. Values must be JSON serializable.
  */
-export default function valueInjectionLoader(this: LoaderThis<LoaderOptions>, userCode: string): string {
+export default function valueInjectionLoader(this: LoaderThis<ValueInjectionLoaderOptions>, userCode: string): string {
   // We know one or the other will be defined, depending on the version of webpack being used
   const { values } = 'getOptions' in this ? this.getOptions() : this.query;
 
   // We do not want to cache injected values across builds
   this.cacheable(false);
 
-  const injectedCode = Object.entries(values)
-    .map(([key, value]) => `globalThis["${key}"] = ${JSON.stringify(value)};`)
-    .join('\n');
+  // Not putting any newlines in the generated code will decrease the likelihood of sourcemaps breaking
+  const injectedCode =
+    // eslint-disable-next-line prefer-template
+    ';' +
+    Object.entries(values)
+      .map(([key, value]) => `globalThis["${key}"] = ${JSON.stringify(value)};`)
+      .join('');
 
   return userCode.replace(SKIP_COMMENT_AND_DIRECTIVE_REGEX, match => {
     return match + injectedCode;
