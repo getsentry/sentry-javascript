@@ -480,7 +480,7 @@ function extractNormalizedRequestData(normalizedRequest: Request, { include }: {
 
   if (includeKeys.includes('cookies')) {
     const cookies = normalizedRequest.cookies || (headers && headers.cookie ? parseCookie(headers.cookie) : undefined);
-    requestData.cookies = cookies;
+    requestData.cookies = cookies || {};
   }
 
   if (includeKeys.includes('query_string')) {
