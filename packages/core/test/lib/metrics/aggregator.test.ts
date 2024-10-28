@@ -10,7 +10,7 @@ describe('MetricsAggregator', () => {
   const options = getDefaultTestClientOptions({ tracesSampleRate: 0.0 });
 
   beforeEach(() => {
-    jest.useFakeTimers('legacy');
+    jest.useFakeTimers({ legacyFakeTimers: true });
     testClient = new TestClient(options);
   });
 
