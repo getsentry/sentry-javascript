@@ -4,7 +4,12 @@ module.exports = {
   ...baseConfig,
   testEnvironment: 'jsdom',
   transform: {
-    '^.+\\.js$': 'ts-jest',
+    '^.+\\.js$': [
+      'ts-jest',
+      {
+        tsconfig: '<rootDir>/tsconfig.test.json',
+      },
+    ],
     ...baseConfig.transform,
   },
 };

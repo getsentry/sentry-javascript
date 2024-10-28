@@ -3,8 +3,18 @@ module.exports = {
   rootDir: process.cwd(),
   collectCoverage: true,
   transform: {
-    '^.+\\.ts$': 'ts-jest',
-    '^.+\\.tsx$': 'ts-jest',
+    '^.+\\.ts$': [
+      'ts-jest',
+      {
+        tsconfig: '<rootDir>/tsconfig.test.json',
+      },
+    ],
+    '^.+\\.tsx$': [
+      'ts-jest',
+      {
+        tsconfig: '<rootDir>/tsconfig.test.json',
+      },
+    ],
   },
   coverageDirectory: '<rootDir>/coverage',
   moduleFileExtensions: ['js', 'ts', 'tsx'],
@@ -13,9 +23,6 @@ module.exports = {
     '^axios$': require.resolve('axios'),
   },
   globals: {
-    'ts-jest': {
-      tsconfig: '<rootDir>/tsconfig.test.json',
-    },
     __DEBUG_BUILD__: true,
   },
   testPathIgnorePatterns: ['<rootDir>/build/', '<rootDir>/node_modules/'],

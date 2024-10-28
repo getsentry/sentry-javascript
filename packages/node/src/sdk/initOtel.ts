@@ -1,4 +1,4 @@
-import moduleModule from 'module';
+import * as moduleModule from 'node:module';
 import { DiagLogLevel, diag } from '@opentelemetry/api';
 import { Resource } from '@opentelemetry/resources';
 import { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
