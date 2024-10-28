@@ -74,7 +74,7 @@ function getFinalConfigObject(
     }
   }
 
-  setUpBuildTimeVariables(incomingUserNextConfigObject);
+  setUpBuildTimeVariables(incomingUserNextConfigObject, userSentryOptions);
 
   const nextJsVersion = getNextjsVersion();
 

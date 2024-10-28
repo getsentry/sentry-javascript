@@ -17,7 +17,7 @@ interface RewriteFramesOptions {
 export const customRewriteFramesIntegration = ((options?: RewriteFramesOptions) => {
   // This value is injected at build time, based on the output directory specified in the build config. Though a default
   // is set there, we set it here as well, just in case something has gone wrong with the injection.
-  const distDirName = globalWithInjectedValues.__sentryRewriteFramesDistDir;
+  const distDirName = process.env.__sentryRewriteFramesDistDir || globalWithInjectedValues.__sentryRewriteFramesDistDir;
 
   if (distDirName) {
     // nextjs always puts the build directory at the project root level, which is also where you run `next start` from, so
