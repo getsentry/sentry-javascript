@@ -29,7 +29,7 @@
     "@hapi/hapi": "^21.3.10",
     "@nestjs/common": "^10.3.7",
     "@nestjs/core": "^10.3.3",
-    "@nestjs/platform-express": "^10.3.3",
+    "@nestjs/platform-express": "^10.4.6",
     "@prisma/client": "5.9.1",
     "@sentry/aws-serverless": "8.35.0",
     "@sentry/node": "8.35.0",
