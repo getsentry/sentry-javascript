@@ -92,10 +92,10 @@ export function patchFirestore(
     '@firebase/firestore/dist/lite/index.cjs.js',
   ];
 
-  for (let i = 0, j = files.length; i < j; i++) {
+  for (const file of files) {
     moduleFirestoreCJS.files.push(
       new InstrumentationNodeModuleFile(
-        files[i] as string,
+        file,
         firestoreSupportedVersions,
         moduleExports => wrapMethods(moduleExports, wrap, unwrap, tracer, firestoreSpanCreationHook),
         moduleExports => unwrapMethods(moduleExports, unwrap),

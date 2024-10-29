@@ -91,13 +91,13 @@ test.afterAll(() => {
 });
 
 test('should add, set, get and delete document', async ({ baseURL, page }) => {
-  const pageloadTransactionEventPromise = waitForTransaction('firebase', transactionEvent => {
+  const serverTransactionPromise = waitForTransaction('firebase', () => {
     return true;
   });
 
   await fetch(`${baseURL}/test`);
 
-  const transactionEvent = await pageloadTransactionEventPromise;
+  const transactionEvent = await serverTransactionPromise;
 
   expect(transactionEvent.transaction).toEqual('root span');
 

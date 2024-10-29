@@ -9,24 +9,18 @@
     "dev": "tsc --build --watch",
     "docker": "cd docker && docker compose up --build",
     "proxy": "node start-event-proxy.mjs",
-    "start": "ts-node src/app.ts",
+    "start": "node ./dist/app.js",
     "test": "playwright test",
     "clean": "npx rimraf node_modules pnpm-lock.yaml",
     "test:build": "pnpm install && pnpm build",
     "test:assert": "pnpm test"
   },
-  "dependencies": {
-    "@sentry/core": "latest || *",
-    "@sentry/node": "latest || *",
-    "@sentry/types": "latest || *",
-    "typescript": "4.9.5"
-  },
   "devDependencies": {
     "@playwright/test": "^1.44.1",
     "@sentry-internal/test-utils": "link:../../../test-utils",
     "dotenv": "^16.4.5",
-    "ts-loader": "^9.5.1",
-    "tsconfig-paths": "^4.2.0"
+    "tsconfig-paths": "^4.2.0",
+    "typescript": "4.9.5"
   },
   "volta": {
     "extends": "../../package.json"

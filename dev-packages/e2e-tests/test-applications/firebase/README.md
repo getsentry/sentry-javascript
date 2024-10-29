@@ -5,10 +5,10 @@
 1. Run the docker
 
 ```bash
-npm run docker
+pnpm docker
 ```
 
-2In new tab, enter the docker container by simply running
+2. In new tab, enter the docker container by simply running
 
 ```bash
 docker exec -it sentry-firebase bash
