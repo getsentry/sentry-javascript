@@ -9,7 +9,6 @@ import type {
   Span,
   XhrBreadcrumbHint,
 } from '@sentry/types';
-import type { EventBufferProxy } from '../eventBuffer/EventBufferProxy';
 
 import type { SKIPPED, THROTTLED } from '../util/throttle';
 import type { AllPerformanceEntry, AllPerformanceEntryData, ReplayPerformanceEntry } from './performance';
@@ -402,6 +401,12 @@ export interface EventBuffer {
   hasCheckout: boolean;
 
   /**
+   * If the event buffer needs to wait for a checkout event before it
+   * starts buffering events.
+   */
+  waitForCheckout: boolean;
+
+  /**
    * Destroy the event buffer.
    */
   destroy(): void;
@@ -450,7 +455,7 @@ export interface ReplayClickDetector {
 }
 
 export interface ReplayContainer {
-  eventBuffer: EventBufferProxy | null;
+  eventBuffer: EventBuffer | null;
   clickDetector: ReplayClickDetector | undefined;
   /**
    * List of PerformanceEntry from PerformanceObservers.

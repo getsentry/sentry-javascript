@@ -1,5 +1,6 @@
 import { getWorkerURL } from '@sentry-internal/replay-worker';
 
+import type { EventBuffer } from '../types';
 import { DEBUG_BUILD } from '../debug-build';
 import { logger } from '../util/logger';
 import { EventBufferArray } from './EventBufferArray';
@@ -19,7 +20,7 @@ declare const __SENTRY_EXCLUDE_REPLAY_WORKER__: boolean;
 export function createEventBuffer({
   useCompression,
   workerUrl: customWorkerUrl,
-}: CreateEventBufferParams): EventBufferProxy {
+}: CreateEventBufferParams): EventBuffer {
   if (
     useCompression &&
     // eslint-disable-next-line no-restricted-globals
