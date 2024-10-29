@@ -1,5 +1,5 @@
 {
-  "name": "solidstart-e2e-testapp",
+  "name": "solidstart-spa-e2e-testapp",
   "version": "0.0.0",
   "scripts": {
     "clean": "pnpx rimraf node_modules pnpm-lock.yaml .vinxi .output",

@@ -914,6 +914,7 @@ jobs:
             'react-router-6',
             'solid',
             'solidstart',
+            'solidstart-spa',
             'svelte-5',
             'sveltekit',
             'sveltekit-2',
