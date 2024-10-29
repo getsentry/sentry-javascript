@@ -63,6 +63,12 @@ export function wrapRouteHandlerWithSentry<F extends (...args: any[]) => any>(
                 completeHeadersDict['baggage'],
               );
               scope.setPropagationContext(incomingPropagationContext);
+              scope.setSDKProcessingMetadata({
+                request: {
+                  method,
+                  headers: completeHeadersDict,
+                },
+              });
             }
 
             const response: Response = await handleCallbackErrors(
