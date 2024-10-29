@@ -1,6 +1,5 @@
 import { loggingTransport, startExpressServerAndSendPortToRunner } from '@sentry-internal/node-integration-tests';
-import { defaultStackParser as browserStackParser } from '@sentry/browser';
-import { handleReportingApi } from '@sentry/core';
+import { captureReportingApi } from '@sentry/core';
 import * as Sentry from '@sentry/node';
 
 Sentry.init({
@@ -16,7 +15,7 @@ const app = express();
 app.use(express.json({ type: 'application/reports+json' }));
 
 app.post('/reporting-api', async (req, res) => {
-  await handleReportingApi(req.body, browserStackParser);
+  await captureReportingApi(req.body);
   res.sendStatus(200);
 });
 

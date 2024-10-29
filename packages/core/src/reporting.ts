@@ -1,13 +1,11 @@
-import type { Event, Report, StackParser } from '@sentry/types';
+import type { Client, Event, Report } from '@sentry/types';
 import { getClient } from './currentScopes';
 import { createRawSecurityEnvelope } from './envelope';
 
-/** Handles Reports from the Reporting API */
-export async function handleReportingApi(
-  reports: Report[],
-  browserStackParser?: StackParser,
-  client = getClient(),
-): Promise<void> {
+/** Captures reports from the Reporting API */
+export async function captureReportingApi(reports: Report[], options?: { client?: Client }): Promise<void> {
+  const client = options?.client || getClient();
+
   if (!client) {
     // eslint-disable-next-line no-console
     console.warn('[Reporting API] No client available');
@@ -36,20 +34,6 @@ export async function handleReportingApi(
         event.message = 'Crashed: Out of memory';
       } else if (report.body.reason === 'unresponsive') {
         event.message = 'Crashed: Unresponsive';
-      }
-
-      if (report.body.stack && browserStackParser) {
-        event.exception = {
-          values: [
-            {
-              type: 'Crashed',
-              value: event.message,
-              stacktrace: { frames: browserStackParser(report.body.stack) },
-            },
-          ],
-        };
-
-        delete event.message;
       }
 
       client.captureEvent(event);
