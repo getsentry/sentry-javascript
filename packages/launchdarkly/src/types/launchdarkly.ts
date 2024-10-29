@@ -1,4 +1,7 @@
-// Integration options
+// TODO: could we just put everything in a types.ts file?
 
-// Integration interface?
+import type { LDClient } from 'launchdarkly-js-client-sdk';
 
+export type LaunchDarklyOptions = {
+  ldClient: LDClient;
+};
