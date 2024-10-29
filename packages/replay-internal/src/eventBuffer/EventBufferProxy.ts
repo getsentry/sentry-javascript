@@ -59,7 +59,6 @@ export class EventBufferProxy implements EventBuffer {
 
   /** @inheritdoc */
   public clear(): void {
-    this.waitForCheckout = true;
     return this._used.clear();
   }
 
