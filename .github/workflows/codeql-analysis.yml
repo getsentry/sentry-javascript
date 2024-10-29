@@ -33,6 +33,8 @@ jobs:
   analyze:
     name: Analyze
     runs-on: ubuntu-latest
+    # Skip for pushes from dependabot, which is not supported
+    if: github.event_name == 'pull_request' || github.actor != 'dependabot[bot]'
 
     strategy:
       fail-fast: false
