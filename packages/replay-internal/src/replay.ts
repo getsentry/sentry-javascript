@@ -27,7 +27,6 @@ import type {
   AddUpdateCallback,
   AllPerformanceEntry,
   AllPerformanceEntryData,
-  EventBuffer,
   InternalEventContext,
   PopEventContext,
   RecordingEvent,
@@ -58,12 +57,13 @@ import { sendReplay } from './util/sendReplay';
 import { RateLimitError } from './util/sendReplayRequest';
 import type { SKIPPED } from './util/throttle';
 import { THROTTLED, throttle } from './util/throttle';
+import type { EventBufferProxy } from './eventBuffer/EventBufferProxy';
 
 /**
  * The main replay container class, which holds all the state and methods for recording and sending replays.
  */
 export class ReplayContainer implements ReplayContainerInterface {
-  public eventBuffer: EventBuffer | null;
+  public eventBuffer: EventBufferProxy | null;
 
   public performanceEntries: AllPerformanceEntry[];
 
