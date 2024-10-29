@@ -11,7 +11,7 @@ import {
 import type { NodeClient } from '@sentry/node';
 import type { Event, IntegrationFn, Profile, ProfileChunk, ProfilingIntegration, Span } from '@sentry/types';
 
-import { LRUMap, logger, uuid4 } from '@sentry/utils';
+import { LRUMap, consoleSandbox, logger, uuid4 } from '@sentry/utils';
 
 import { CpuProfilerBindings } from './cpu_profiler';
 import { DEBUG_BUILD } from './debug-build';
@@ -426,13 +426,16 @@ class ContinuousProfiler {
 
 /** Exported only for tests. */
 export const _nodeProfilingIntegration = ((): ProfilingIntegration<NodeClient> => {
-  if (DEBUG_BUILD && ![16, 18, 20, 22].includes(NODE_MAJOR)) {
-    logger.warn(
-      `[Profiling] You are using a Node.js version that does not have prebuilt binaries (${NODE_VERSION}).`,
-      'The @sentry/profiling-node package only has prebuilt support for the following LTS versions of Node.js: 16, 18, 20, 22.',
-      'To use the @sentry/profiling-node package with this version of Node.js, you will need to compile the native addon from source.',
-      'See: https://github.com/getsentry/sentry-javascript/tree/develop/packages/profiling-node#building-the-package-from-source',
-    );
+  if (![16, 18, 20, 22].includes(NODE_MAJOR)) {
+    consoleSandbox(() => {
+      // eslint-disable-next-line no-console
+      console.warn(
+        `[Sentry Profiling] You are using a Node.js version that does not have prebuilt binaries (${NODE_VERSION}).`,
+        'The @sentry/profiling-node package only has prebuilt support for the following LTS versions of Node.js: 16, 18, 20, 22.',
+        'To use the @sentry/profiling-node package with this version of Node.js, you will need to compile the native addon from source.',
+        'See: https://github.com/getsentry/sentry-javascript/tree/develop/packages/profiling-node#building-the-package-from-source',
+      );
+    });
   }
 
   return {

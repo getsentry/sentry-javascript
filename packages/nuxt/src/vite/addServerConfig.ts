@@ -94,7 +94,6 @@ export function addDynamicImportEntryFileWrapper(nitro: Nitro, serverConfigFile:
   }
 
   nitro.options.rollupConfig.plugins.push(
-    // @ts-expect-error - This is the correct type, but it shows an error because of two different definitions
     wrapEntryWithDynamicImport(createResolver(nitro.options.srcDir).resolve(`/${serverConfigFile}`)),
   );
 }
