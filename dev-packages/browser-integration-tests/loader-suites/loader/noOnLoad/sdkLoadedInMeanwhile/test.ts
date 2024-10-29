@@ -28,7 +28,7 @@ sentryTest('it does not download the SDK if the SDK was loaded in the meanwhile'
     });
   });
 
-  const tmpDir = await getLocalTestUrl({ testDir: __dirname, skipRouteHandler: true });
+  const tmpDir = await getLocalTestUrl({ testDir: __dirname, skipRouteHandler: true, skipDsnRouteHandler: true });
 
   await page.route(`${TEST_HOST}/*.*`, route => {
     const file = route.request().url().split('/').pop();

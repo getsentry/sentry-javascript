@@ -8,14 +8,6 @@ sentryTest('should capture a replay', async ({ getLocalTestUrl, page }) => {
     sentryTest.skip();
   }
 
-  await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-    return route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ id: 'test-id' }),
-    });
-  });
-
   const req = waitForReplayRequest(page);
 
   const url = await getLocalTestUrl({ testDir: __dirname });

@@ -8,14 +8,6 @@ sentryTest('mutation after threshold results in slow click', async ({ forceFlush
     sentryTest.skip();
   }
 
-  await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-    return route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ id: 'test-id' }),
-    });
-  });
-
   const url = await getLocalTestUrl({ testDir: __dirname });
 
   const replayRequestPromise = waitForReplayRequest(page, 0);
@@ -70,14 +62,6 @@ sentryTest('multiple clicks are counted', async ({ getLocalTestUrl, page }) => {
     sentryTest.skip();
   }
 
-  await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-    return route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ id: 'test-id' }),
-    });
-  });
-
   const url = await getLocalTestUrl({ testDir: __dirname });
 
   const replayRequestPromise = waitForReplayRequest(page, 0);
@@ -130,14 +114,6 @@ sentryTest('immediate mutation does not trigger slow click', async ({ forceFlush
   if (shouldSkipReplayTest()) {
     sentryTest.skip();
   }
-
-  await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-    return route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ id: 'test-id' }),
-    });
-  });
 
   const url = await getLocalTestUrl({ testDir: __dirname });
 
@@ -198,14 +174,6 @@ sentryTest('inline click handler does not trigger slow click', async ({ forceFlu
     sentryTest.skip();
   }
 
-  await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-    return route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ id: 'test-id' }),
-    });
-  });
-
   const url = await getLocalTestUrl({ testDir: __dirname });
 
   const replayRequestPromise = waitForReplayRequest(page, 0);
@@ -249,14 +217,6 @@ sentryTest('mouseDown events are considered', async ({ getLocalTestUrl, page }) 
   if (shouldSkipReplayTest()) {
     sentryTest.skip();
   }
-
-  await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-    return route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ id: 'test-id' }),
-    });
-  });
 
   const url = await getLocalTestUrl({ testDir: __dirname });
 

@@ -48,7 +48,7 @@ sentryTest(
       });
     });
 
-    const url = await getLocalTestPath({ testDir: __dirname });
+    const url = await getLocalTestPath({ testDir: __dirname, skipDsnRouteHandler: true });
 
     await Promise.all([
       page.goto(url),

@@ -45,7 +45,7 @@ sentryTest(
       });
     });
 
-    const url = await getLocalTestPath({ testDir: __dirname });
+    const url = await getLocalTestPath({ testDir: __dirname, skipDsnRouteHandler: true });
 
     await page.goto(url);
     await page.locator('#go-background').click();
@@ -190,7 +190,7 @@ sentryTest(
       });
     });
 
-    const url = await getLocalTestPath({ testDir: __dirname });
+    const url = await getLocalTestPath({ testDir: __dirname, skipDsnRouteHandler: true });
 
     await page.goto(url);
     await page.locator('#go-background').click();
@@ -297,14 +297,6 @@ sentryTest(
 
     const reqPromise0 = waitForReplayRequest(page, 0);
 
-    await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-      return route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({ id: 'test-id' }),
-      });
-    });
-
     const url = await getLocalTestUrl({ testDir: __dirname });
 
     await page.goto(url);
@@ -358,14 +350,6 @@ sentryTest(
     }
 
     const reqPromise0 = waitForReplayRequest(page, 0);
-
-    await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-      return route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({ id: 'test-id' }),
-      });
-    });
 
     const url = await getLocalTestUrl({ testDir: __dirname });
 
@@ -440,7 +424,7 @@ sentryTest(
       });
     });
 
-    const url = await getLocalTestPath({ testDir: __dirname });
+    const url = await getLocalTestPath({ testDir: __dirname, skipDsnRouteHandler: true });
 
     await page.goto(url);
     // Start buffering and assert that it is enabled

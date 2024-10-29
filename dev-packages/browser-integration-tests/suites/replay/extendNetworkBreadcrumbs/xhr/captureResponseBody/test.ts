@@ -24,14 +24,6 @@ sentryTest('captures text response body', async ({ getLocalTestUrl, page, browse
     });
   });
 
-  await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-    return route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ id: 'test-id' }),
-    });
-  });
-
   const requestPromise = waitForErrorRequest(page);
   const replayRequestPromise = collectReplayRequests(page, recordingEvents => {
     return getReplayPerformanceSpans(recordingEvents).some(span => span.op === 'resource.xhr');
@@ -108,14 +100,6 @@ sentryTest('captures JSON response body', async ({ getLocalTestUrl, page, browse
     });
   });
 
-  await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-    return route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ id: 'test-id' }),
-    });
-  });
-
   const requestPromise = waitForErrorRequest(page);
   const replayRequestPromise = collectReplayRequests(page, recordingEvents => {
     return getReplayPerformanceSpans(recordingEvents).some(span => span.op === 'resource.xhr');
@@ -189,14 +173,6 @@ sentryTest('captures JSON response body when responseType=json', async ({ getLoc
       headers: {
         'Content-Length': '',
       },
-    });
-  });
-
-  await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-    return route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ id: 'test-id' }),
     });
   });
 
@@ -278,14 +254,6 @@ sentryTest('captures non-text response body', async ({ getLocalTestUrl, page, br
     });
   });
 
-  await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-    return route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ id: 'test-id' }),
-    });
-  });
-
   const requestPromise = waitForErrorRequest(page);
   const replayRequestPromise = collectReplayRequests(page, recordingEvents => {
     return getReplayPerformanceSpans(recordingEvents).some(span => span.op === 'resource.xhr');
@@ -359,14 +327,6 @@ sentryTest('does not capture response body when URL does not match', async ({ ge
       headers: {
         'Content-Length': '',
       },
-    });
-  });
-
-  await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-    return route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ id: 'test-id' }),
     });
   });
 

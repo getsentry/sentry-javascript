@@ -22,7 +22,7 @@ sentryTest('exports shim metrics integration for non-tracing bundles', async ({ 
     });
   });
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestPath({ testDir: __dirname, skipDsnRouteHandler: true });
 
   await page.goto(url);
 
