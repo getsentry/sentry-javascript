@@ -48,7 +48,7 @@
     "babel-loader": "^8.2.2",
     "html-webpack-plugin": "^5.5.0",
     "pako": "^2.1.0",
-    "webpack": "^5.94.0"
+    "webpack": "^5.95.0"
   },
   "devDependencies": {
     "@types/glob": "8.0.0",
