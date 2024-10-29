@@ -1,10 +1,12 @@
+import type { Nitro } from 'nitropack';
 import { addSentryPluginToVite } from '../vite';
 import type { SentrySolidStartPluginOptions } from '../vite/types';
-import {
-  addInstrumentationFileToBuild,
-  experimental_addInstrumentationFileTopLevelImportToServerEntry,
-} from './addInstrumentation';
-import type { Nitro, SolidStartInlineConfig, SolidStartInlineServerConfig } from './types';
+import { addAutoInstrumentation, addInstrumentationFileToBuild } from './addInstrumentation';
+import type { RollupConfig, SolidStartInlineConfig, SolidStartInlineServerConfig } from './types';
+
+const defaultSentrySolidStartPluginOptions: SentrySolidStartPluginOptions = {
+  autoInstrument: true,
+};
 
 /**
  * Modifies the passed in Solid Start configuration with build-time enhancements such as
@@ -17,7 +19,7 @@ import type { Nitro, SolidStartInlineConfig, SolidStartInlineServerConfig } from
  */
 export const withSentry = (
   solidStartConfig: SolidStartInlineConfig = {},
-  sentrySolidStartPluginOptions: SentrySolidStartPluginOptions = {},
+  sentrySolidStartPluginOptions: SentrySolidStartPluginOptions = defaultSentrySolidStartPluginOptions,
 ): SolidStartInlineConfig => {
   const server = (solidStartConfig.server || {}) as SolidStartInlineServerConfig;
   const hooks = server.hooks || {};
@@ -26,9 +28,6 @@ export const withSentry = (
       ? (...args: unknown[]) => addSentryPluginToVite(solidStartConfig.vite(...args), sentrySolidStartPluginOptions)
       : addSentryPluginToVite(solidStartConfig.vite, sentrySolidStartPluginOptions);
 
-  let serverDir: string;
-  let buildPreset: string;
-
   return {
     ...solidStartConfig,
     vite,
@@ -36,21 +35,12 @@ export const withSentry = (
       ...server,
       hooks: {
         ...hooks,
-        async close() {
-          if (sentrySolidStartPluginOptions.experimental_basicServerTracing) {
-            await experimental_addInstrumentationFileTopLevelImportToServerEntry(serverDir, buildPreset);
+        async 'rollup:before'(nitro: Nitro, config: RollupConfig) {
+          if (sentrySolidStartPluginOptions.autoInstrument) {
+            await addAutoInstrumentation(nitro, config);
+          } else {
+            await addInstrumentationFileToBuild(nitro);
           }
-
-          // Run user provided hook
-          if (hooks.close) {
-            hooks.close();
-          }
-        },
-        async 'rollup:before'(nitro: Nitro) {
-          serverDir = nitro.options.output.serverDir;
-          buildPreset = nitro.options.preset;
-
-          await addInstrumentationFileToBuild(nitro);
 
           // Run user provided hook
           if (hooks['rollup:before']) {

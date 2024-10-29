@@ -1,9 +1,9 @@
+import type { RollupConfig } from 'vite';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Nitro } from '../../build/types/config/types';
 import {
+  addAutoInstrumentation,
   addInstrumentationFileToBuild,
-  experimental_addInstrumentationFileTopLevelImportToServerEntry,
-  serverFilePresets,
   staticHostPresets,
 } from '../../src/config/addInstrumentation';
 
@@ -82,54 +82,23 @@ describe('addInstrumentationFileToBuild()', () => {
   });
 });
 
-describe('experimental_addInstrumentationFileTopLevelImportToServerEntry()', () => {
-  it('adds a top level import of `instrument.server.mjs` to the index.mjs entry file', async () => {
-    fsAccessMock.mockResolvedValueOnce(true);
-    fsReadFile.mockResolvedValueOnce("import process from 'node:process';");
-    fsWriteFileMock.mockResolvedValueOnce(true);
-    await experimental_addInstrumentationFileTopLevelImportToServerEntry('/path/to/serverDir', 'node_server');
-    expect(fsWriteFileMock).toHaveBeenCalledWith(
-      '/path/to/serverDir/index.mjs',
-      "import './instrument.server.mjs';\nimport process from 'node:process';",
-    );
-    expect(consoleLogSpy).toHaveBeenCalledWith(
-      '[Sentry SolidStart withSentry] Added `/path/to/serverDir/instrument.server.mjs` as top level import to `/path/to/serverDir/index.mjs`.',
-    );
-  });
-
-  it.each([serverFilePresets])(
-    'adds a top level import of `instrument.server.mjs` to the server.mjs entry file for preset `%s`',
-    async preset => {
-      fsAccessMock.mockResolvedValueOnce(true);
-      fsReadFile.mockResolvedValueOnce("import process from 'node:process';");
-      fsWriteFileMock.mockResolvedValueOnce(true);
-      await experimental_addInstrumentationFileTopLevelImportToServerEntry('/path/to/serverDir', preset);
-      expect(fsWriteFileMock).toHaveBeenCalledWith(
-        '/path/to/serverDir/server.mjs',
-        "import './instrument.server.mjs';\nimport process from 'node:process';",
-      );
-      expect(consoleLogSpy).toHaveBeenCalledWith(
-        '[Sentry SolidStart withSentry] Added `/path/to/serverDir/instrument.server.mjs` as top level import to `/path/to/serverDir/server.mjs`.',
-      );
+describe('addAutoInstrumentation()', () => {
+  const nitroOptions: Nitro = {
+    options: {
+      buildDir: '/path/to/buildDir',
+      output: {
+        serverDir: '/path/to/serverDir',
+      },
+      preset: 'vercel',
     },
-  );
+  };
 
-  it("doesn't modify the sever entry file if `instrumentation.server.mjs` is not found", async () => {
-    const error = new Error('File not found.');
-    fsAccessMock.mockRejectedValueOnce(error);
-    await experimental_addInstrumentationFileTopLevelImportToServerEntry('/path/to/serverDir', 'node_server');
-    expect(consoleWarnSpy).toHaveBeenCalledWith(
-      '[Sentry SolidStart withSentry] Failed to add `/path/to/serverDir/instrument.server.mjs` as top level import to `/path/to/serverDir/index.mjs`.',
-      error,
-    );
+  it('adds the `sentry-solidstart-auto-instrument` rollup plugin to the rollup config', async () => {
+    const rollupConfig: RollupConfig = {
+      plugins: [],
+    };
+
+    await addAutoInstrumentation(nitroOptions, rollupConfig);
+    expect(rollupConfig.plugins.find(plugin => plugin.name === 'sentry-solidstart-auto-instrument')).toBeTruthy();
   });
-
-  it.each([staticHostPresets])(
-    "doesn't import `instrument.server.mjs` as top level import for host `%s`",
-    async preset => {
-      fsAccessMock.mockResolvedValueOnce(true);
-      await experimental_addInstrumentationFileTopLevelImportToServerEntry('/path/to/serverDir', preset);
-      expect(fsWriteFileMock).not.toHaveBeenCalled();
-    },
-  );
 });
