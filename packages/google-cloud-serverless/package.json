@@ -61,7 +61,7 @@
     "@google-cloud/pubsub": "^2.5.0",
     "@types/node": "^14.18.0",
     "google-gax": "^2.9.0",
-    "nock": "^13.0.4"
+    "nock": "^13.5.5"
   },
   "scripts": {
     "build": "run-p build:transpile build:types",
