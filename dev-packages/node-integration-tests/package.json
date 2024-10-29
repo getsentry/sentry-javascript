@@ -45,7 +45,7 @@
     "cors": "^2.8.5",
     "cron": "^3.1.6",
     "dataloader": "2.2.2",
-    "express": "^4.17.3",
+    "express": "^4.21.1",
     "generic-pool": "^3.9.0",
     "graphql": "^16.3.0",
     "http-terminator": "^3.2.0",
