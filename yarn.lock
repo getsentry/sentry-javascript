@@ -9404,15 +9404,6 @@
   dependencies:
     "@types/node" "*"
 
-"@types/ember-qunit@~3.4.9":
-  version "3.4.14"
-  resolved "https://registry.yarnpkg.com/@types/ember-qunit/-/ember-qunit-3.4.14.tgz#4c10ce71e1eb6618ef7c680616beff8358e9c486"
-  integrity sha512-gVjul0Gei69Ftstd8gOPbKvIs9ywmtdBkvOTxq1uXsFU2EiVUWBtIzP9bMT9CrD39nKnB/rFdRXAwFcSnPUNJg==
-  dependencies:
-    "@types/ember" "*"
-    "@types/ember-test-helpers" "*"
-    "@types/qunit" "*"
-
 "@types/ember-resolver@5.0.13":
   version "5.0.13"
   resolved "https://registry.yarnpkg.com/@types/ember-resolver/-/ember-resolver-5.0.13.tgz#db66678076ca625ed80b629c09619ae85c1c1f7a"
@@ -9421,17 +9412,7 @@
     "@types/ember__object" "*"
     "@types/ember__owner" "*"
 
-"@types/ember-test-helpers@*":
-  version "1.0.9"
-  resolved "https://registry.yarnpkg.com/@types/ember-test-helpers/-/ember-test-helpers-1.0.9.tgz#4279c5f3b390f25fbfb3f9f210785d36a336b8a7"
-  integrity sha512-IJyyoUxMnK2fGCSSyvuZP9d7+wirJ0elH/joCPHzWQQyAq413oMJdWhxEMdIxLY+0Z0OsfuvTHIEcUSqjs0m0A==
-  dependencies:
-    "@types/ember" "*"
-    "@types/htmlbars-inline-precompile" "*"
-    "@types/jquery" "*"
-    "@types/rsvp" "*"
-
-"@types/ember@*", "@types/ember@~3.16.5":
+"@types/ember@~3.16.5":
   version "3.16.5"
   resolved "https://registry.yarnpkg.com/@types/ember/-/ember-3.16.5.tgz#c2d6b0f178761c0c2fbc6fc39b4b6958c256d0ac"
   integrity sha512-8BzT1g8r7xQsN2p7qIUZ0AXWEVpJ5LmaRWP3iT79PLyIQfTAYvHSueUl14lrB8renETjwr4+ZvVPKurn9TKxNA==
@@ -10045,11 +10026,6 @@
   version "6.9.6"
   resolved "https://registry.yarnpkg.com/@types/qs/-/qs-6.9.6.tgz#df9c3c8b31a247ec315e6996566be3171df4b3b1"
   integrity sha512-0/HnwIfW4ki2D8L8c9GVcG5I72s9jP5GSLVF0VIXDW00kmIpA6O33G7a8n59Tmh7Nz0WUC3rSb7PTY/sdW2JzA==
-
-"@types/qunit@*":
-  version "2.11.1"
-  resolved "https://registry.yarnpkg.com/@types/qunit/-/qunit-2.11.1.tgz#3496d430d2bb0fa4761f00a27511f46020c6b410"
-  integrity sha512-vcM5+9O8LZuu5DYseaV4J7ehkYrhkv+aMIuxnF/OqMYlVEdv+odpCH1/5OVztiqxbCqTpQKWuELkMvG7OPycUQ==
 
 "@types/qunit@~2.19.11":
   version "2.19.11"

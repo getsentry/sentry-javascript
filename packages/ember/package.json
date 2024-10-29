@@ -48,7 +48,6 @@
     "@glimmer/component": "~1.1.2",
     "@glimmer/tracking": "~1.1.2",
     "@types/ember": "~3.16.5",
-    "@types/ember-qunit": "~3.4.9",
     "@types/ember-resolver": "5.0.13",
     "@types/ember__debug": "^3.16.5",
     "@types/qunit": "~2.19.11",
