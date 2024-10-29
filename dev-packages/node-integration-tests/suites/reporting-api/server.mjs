@@ -12,9 +12,7 @@ import express from 'express';
 
 const app = express();
 
-app.use(express.json({ type: 'application/reports+json' }));
-
-app.post('/reporting-api', async (req, res) => {
+app.post('/reporting-api', express.json({ type: 'application/reports+json' }), async (req, res) => {
   await captureReportingApi(req.body);
   res.sendStatus(200);
 });
