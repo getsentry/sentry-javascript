@@ -168,6 +168,12 @@ export function tryPatchHandler(taskRoot: string, handlerPath: string): void {
     return;
   }
 
+  // Check for prototype pollution
+  if (functionName === '__proto__' || functionName === 'constructor' || functionName === 'prototype') {
+    DEBUG_BUILD && logger.error(`Invalid handler name: ${functionName}`);
+    return;
+  }
+
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   (mod as HandlerModule)[functionName!] = wrapHandler(obj);
 }
