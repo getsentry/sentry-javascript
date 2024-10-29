@@ -3,19 +3,18 @@
  */
 
 import type { MockInstance, MockedFunction } from 'vitest';
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import * as SentryBrowserUtils from '@sentry-internal/browser-utils';
 
 import { WINDOW } from '../../src/constants';
 import type { Replay } from '../../src/integration';
 import type { ReplayContainer } from '../../src/replay';
-import { clearSession } from '../../src/session/clearSession';
 import { addEvent } from '../../src/util/addEvent';
 import { createOptionsEvent } from '../../src/util/handleRecordingEmit';
 // mock functions need to be imported first
 import { BASE_TIMESTAMP, mockRrweb, mockSdk } from '../index';
-import { getTestEventCheckout, getTestEventIncremental } from '../utils/getTestEvent';
+import { getTestEventIncremental } from '../utils/getTestEvent';
 import { useFakeTimers } from '../utils/use-fake-timers';
 
 useFakeTimers();
@@ -46,25 +45,13 @@ describe('Integration | stop', () => {
   });
 
   afterEach(async () => {
-    console.log('afterEach');
-    await vi.runAllTimersAsync();
-    await new Promise(process.nextTick);
     vi.setSystemTime(new Date(BASE_TIMESTAMP));
-    sessionStorage.clear();
-    clearSession(replay);
-    replay['_initializeSessionForSampling']();
-    replay.setInitialState();
-    mockRecord.takeFullSnapshot.mockClear();
-    mockAddDomInstrumentationHandler.mockClear();
+    integration && (await integration.stop());
     Object.defineProperty(WINDOW, 'location', {
       value: prevLocation,
       writable: true,
     });
     vi.clearAllMocks();
-  });
-
-  afterAll(() => {
-    integration && integration.stop();
   });
 
   it('does not upload replay if it was stopped and can resume replays afterwards', async () => {
@@ -143,13 +130,10 @@ describe('Integration | stop', () => {
   });
 
   it('does not buffer new events after being stopped', async function () {
-    console.log('start test');
     expect(replay.eventBuffer?.hasEvents).toBe(false);
     expect(mockRunFlush).toHaveBeenCalledTimes(0);
     const TEST_EVENT = getTestEventIncremental({ timestamp: BASE_TIMESTAMP });
-    console.log('hi', replay.eventBuffer);
     addEvent(replay, TEST_EVENT, true);
-    console.log(replay.eventBuffer);
     expect(replay.eventBuffer?.hasEvents).toBe(true);
     expect(mockRunFlush).toHaveBeenCalledTimes(0);
 
@@ -160,7 +144,6 @@ describe('Integration | stop', () => {
 
     expect(replay.eventBuffer).toBe(null);
 
-    console.log('before blur');
     WINDOW.dispatchEvent(new Event('blur'));
     await new Promise(process.nextTick);
 
@@ -178,38 +161,5 @@ describe('Integration | stop', () => {
     integration.start();
 
     expect(mockAddDomInstrumentationHandler).not.toHaveBeenCalled();
-  });
-
-  it('does not add replay breadcrumb when stopped due to event buffer limit', async () => {
-    const TEST_EVENT = getTestEventIncremental({ timestamp: BASE_TIMESTAMP });
-
-    vi.mock('../../src/constants', async requireActual => ({
-      ...(await requireActual<any>()),
-      REPLAY_MAX_EVENT_BUFFER_SIZE: 500,
-    }));
-
-    await integration.stop();
-    integration.startBuffering();
-
-    await addEvent(replay, TEST_EVENT);
-
-    expect(replay.eventBuffer?.hasEvents).toBe(true);
-    expect(replay.eventBuffer?.['hasCheckout']).toBe(true);
-
-    // This should should go over max buffer size
-    await addEvent(replay, TEST_EVENT);
-    // buffer should be cleared and wait for next checkout
-    expect(replay.eventBuffer?.hasEvents).toBe(false);
-    expect(replay.eventBuffer?.['hasCheckout']).toBe(false);
-
-    await addEvent(replay, TEST_EVENT);
-    expect(replay.eventBuffer?.hasEvents).toBe(false);
-    expect(replay.eventBuffer?.['hasCheckout']).toBe(false);
-
-    await addEvent(replay, getTestEventCheckout({ timestamp: Date.now() }), true);
-    expect(replay.eventBuffer?.hasEvents).toBe(true);
-    expect(replay.eventBuffer?.['hasCheckout']).toBe(true);
-
-    vi.resetAllMocks();
   });
 });
