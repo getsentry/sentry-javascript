@@ -100,13 +100,7 @@
     "next": "13.2.0"
   },
   "peerDependencies": {
-    "next": "^13.2.0 || ^14.0 || ^15.0.0-rc.0",
-    "webpack": ">=5.0.0"
-  },
-  "peerDependenciesMeta": {
-    "webpack": {
-      "optional": true
-    }
+    "next": "^13.2.0 || ^14.0 || ^15.0.0-rc.0"
   },
   "scripts": {
     "build": "run-p build:transpile build:types",
