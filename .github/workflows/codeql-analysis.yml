@@ -14,9 +14,6 @@ name: 'CI: CodeQL'
 on:
   push:
     branches: [develop]
-    branches-ignore:
-      # Ignore dependabot branches
-      - "dependabot/**"
   pull_request:
     # The branches below must be a subset of the branches above
     branches: [develop]
@@ -36,6 +33,8 @@ jobs:
   analyze:
     name: Analyze
     runs-on: ubuntu-latest
+    # Skip for pushes from dependabot, which is not supported
+    if: github.event_name == 'pull_request' || github.actor != 'dependabot[bot]'
 
     strategy:
       fail-fast: false
