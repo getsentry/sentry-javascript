@@ -1,7 +1,7 @@
 import { getWorkerURL } from '@sentry-internal/replay-worker';
 
-import type { EventBuffer } from '../types';
 import { DEBUG_BUILD } from '../debug-build';
+import type { EventBuffer } from '../types';
 import { logger } from '../util/logger';
 import { EventBufferArray } from './EventBufferArray';
 import { EventBufferProxy } from './EventBufferProxy';
