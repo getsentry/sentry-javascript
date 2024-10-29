@@ -153,6 +153,12 @@
     "printWidth": 120,
     "proseWrap": "always",
     "singleQuote": true,
-    "trailingComma": "all"
+    "trailingComma": "all",
+    "overrides": [{
+      "files": "CHANGELOG.md",
+      "options": {
+        "proseWrap": "preserve"
+      }
+    }]
   }
 }
