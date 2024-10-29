@@ -2,24 +2,6 @@ import type { Event, Report, StackParser } from '@sentry/types';
 import { getClient } from './currentScopes';
 import { createRawSecurityEnvelope } from './envelope';
 
-/** Handles Requests from the Reporting API */
-export async function handlerReportingApiRequest(
-  request: Request,
-  browserStackParser?: StackParser,
-  client = getClient(),
-): Promise<Response> {
-  if (request.method !== 'POST') {
-    return new Response('Expected POST', { status: 405 });
-  }
-
-  if (request.headers.get('Content-Type') !== 'application/reports+json') {
-    return new Response('Expected "application/reports+json" Content-Type', { status: 415 });
-  }
-  const reports = await request.json();
-  await handleReportingApi(reports, browserStackParser, client);
-  return new Response(undefined, { status: 200 });
-}
-
 /** Handles Reports from the Reporting API */
 export async function handleReportingApi(
   reports: Report[],
@@ -56,18 +38,17 @@ export async function handleReportingApi(
         event.message = 'Crashed: Unresponsive';
       }
 
-      if (report.body.stack) {
+      if (report.body.stack && browserStackParser) {
         event.exception = {
           values: [
             {
               type: 'Crashed',
               value: event.message,
-              stacktrace: {
-                ...(browserStackParser && report.body.stack && { frames: browserStackParser(report.body.stack) }),
-              },
+              stacktrace: { frames: browserStackParser(report.body.stack) },
             },
           ],
         };
+
         delete event.message;
       }
 

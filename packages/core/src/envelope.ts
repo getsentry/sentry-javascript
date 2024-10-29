@@ -146,11 +146,10 @@ export function createSpanEnvelope(spans: [SentrySpan, ...SentrySpan[]], client?
 function convertToDeprecatedPayload(report: CSPReportPayload): DeprecatedCSPReport {
   return {
     'csp-report': {
-      'document-uri': report.documentURI,
+      'document-uri': report.documentURI || report.documentURL,
       referrer: report.referrer,
-      'blocked-uri': report.blockedURI,
+      'blocked-uri': report.blockedURI || report.blockedURL,
       'effective-directive': report.effectiveDirective,
-      'violated-directive': report.effectiveDirective,
       'original-policy': report.originalPolicy,
       disposition: report.disposition,
       'status-code': report.statusCode,

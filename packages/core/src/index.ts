@@ -114,4 +114,4 @@ export { getCurrentHubShim, getCurrentHub } from './getCurrentHubShim';
 
 export { SDK_VERSION } from '@sentry/utils';
 
-export { handleReportingApi, handlerReportingApiRequest } from './reporting';
+export { handleReportingApi } from './reporting';
