@@ -10,6 +10,56 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 8.36.0
+
+### Important Changes
+
+- **feat(nuxt): Add Sentry Pinia plugin ([#14047](https://github.com/getsentry/sentry-javascript/pull/14047))**
+
+The Nuxt SDK now allows you to track Pinia state for captured errors. To enable the Pinia plugin, set the `trackPinia` option to `true` in your client config:
+
+```ts
+// sentry.client.config.ts
+
+Sentry.init({
+  trackPinia: true,
+});
+```
+
+Read more about the Pinia plugin in the [Sentry Pinia Documentation](https://docs.sentry.io/platforms/javascript/guides/nuxt/features/pinia/).
+
+- **feat(nextjs/vercel-edge/cloudflare): Switch to OTEL for performance monitoring ([#13889](https://github.com/getsentry/sentry-javascript/pull/13889))**
+
+With this release, the Sentry Next.js, and Cloudflare SDKs will now capture performance data based on OpenTelemetry.
+Some exceptions apply in cases where Next.js captures inaccurate data itself.
+
+NOTE: You may experience minor differences in transaction names in Sentry.
+Most importantly transactions for serverside pages router invocations will now be named `GET /[param]/my/route` instead of `/[param]/my/route`.
+This means that those transactions are now better aligned with the OpenTelemetry semantic conventions.
+
+### Other Changes
+
+- deps: Bump bundler plugins and CLI to 2.22.6 and 2.37.0 respectively ([#14050](https://github.com/getsentry/sentry-javascript/pull/14050))
+- feat(deps): bump @opentelemetry/instrumentation-aws-sdk from 0.44.0 to 0.45.0 ([#14099](https://github.com/getsentry/sentry-javascript/pull/14099))
+- feat(deps): bump @opentelemetry/instrumentation-connect from 0.39.0 to 0.40.0 ([#14101](https://github.com/getsentry/sentry-javascript/pull/14101))
+- feat(deps): bump @opentelemetry/instrumentation-express from 0.43.0 to 0.44.0 ([#14102](https://github.com/getsentry/sentry-javascript/pull/14102))
+- feat(deps): bump @opentelemetry/instrumentation-fs from 0.15.0 to 0.16.0 ([#14098](https://github.com/getsentry/sentry-javascript/pull/14098))
+- feat(deps): bump @opentelemetry/instrumentation-kafkajs from 0.3.0 to 0.4.0 ([#14100](https://github.com/getsentry/sentry-javascript/pull/14100))
+- feat(nextjs): Add method and url to route handler request data ([#14084](https://github.com/getsentry/sentry-javascript/pull/14084))
+- feat(node): Add breadcrumbs for `child_process` and `worker_thread` ([#13896](https://github.com/getsentry/sentry-javascript/pull/13896))
+- fix(core): Ensure standalone spans are not sent if SDK is disabled ([#14088](https://github.com/getsentry/sentry-javascript/pull/14088))
+- fix(nextjs): Await flush in api handlers ([#14023](https://github.com/getsentry/sentry-javascript/pull/14023))
+- fix(nextjs): Don't leak webpack types into exports ([#14116](https://github.com/getsentry/sentry-javascript/pull/14116))
+- fix(nextjs): Fix matching logic for file convention type for root level components ([#14038](https://github.com/getsentry/sentry-javascript/pull/14038))
+- fix(nextjs): Respect directives in value injection loader ([#14083](https://github.com/getsentry/sentry-javascript/pull/14083))
+- fix(nuxt): Only wrap `.mjs` entry files in rollup ([#14060](https://github.com/getsentry/sentry-javascript/pull/14060))
+- fix(nuxt): Re-export all exported bindings ([#14086](https://github.com/getsentry/sentry-javascript/pull/14086))
+- fix(nuxt): Server-side setup in readme ([#14049](https://github.com/getsentry/sentry-javascript/pull/14049))
+- fix(profiling-node): Always warn when running on incompatible major version of Node.js ([#14043](https://github.com/getsentry/sentry-javascript/pull/14043))
+- fix(replay): Fix `onError` callback ([#14002](https://github.com/getsentry/sentry-javascript/pull/14002))
+- perf(otel): Only calculate current timestamp once ([#14094](https://github.com/getsentry/sentry-javascript/pull/14094))
+- test(browser-integration): Add sentry DSN route handler by default ([#14095](https://github.com/getsentry/sentry-javascript/pull/14095))
+
 ## 8.35.0
 
 ### Beta release of the official Nuxt Sentry SDK

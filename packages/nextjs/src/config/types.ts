@@ -1,12 +1,5 @@
 import type { GLOBAL_OBJ } from '@sentry/utils';
 import type { SentryWebpackPluginOptions } from '@sentry/webpack-plugin';
-import type { DefinePlugin, WebpackPluginInstance } from 'webpack';
-
-// Export this from here because importing something from Webpack (the library) in `webpack.ts` confuses the heck out of
-// madge, which we use for circular dependency checking. We've manually excluded this file from the check (which is
-// safe, since it only includes types), so we can import it here without causing madge to fail. See
-// https://github.com/pahen/madge/issues/306.
-export type { WebpackPluginInstance };
 
 // The first argument to `withSentryConfig` (which is the user's next config).
 export type ExportedNextConfig = NextConfigObject | NextConfigFunction;
@@ -16,6 +9,11 @@ type NextRewrite = {
   source: string;
   destination: string;
 };
+
+interface WebpackPluginInstance {
+  [index: string]: any;
+  apply: (compiler: any) => void;
+}
 
 export type NextConfigObject = {
   // Custom webpack options
@@ -409,12 +407,15 @@ export type SentryBuildOptions = {
   autoInstrumentAppDirectory?: boolean;
 
   /**
-   * Exclude certain serverside API routes or pages from being instrumented with Sentry. This option takes an array of
-   * strings or regular expressions. This options also affects pages in the `app` directory.
+   * Exclude certain serverside API routes or pages from being instrumented with Sentry during build-time. This option
+   * takes an array of strings or regular expressions. This options also affects pages in the `app` directory.
    *
    * NOTE: Pages should be specified as routes (`/animals` or `/api/animals/[animalType]/habitat`), not filepaths
    * (`pages/animals/index.js` or `.\src\pages\api\animals\[animalType]\habitat.tsx`), and strings must be be a full,
    * exact match.
+   *
+   * Notice: If you build Next.js with turbopack, the Sentry SDK will no longer apply build-time instrumentation and
+   * purely rely on Next.js telemetry features, meaning that this option will effectively no-op.
    */
   excludeServerRoutes?: Array<RegExp | string>;
 
@@ -499,7 +500,7 @@ export type BuildContext = {
   config: any;
   webpack: {
     version: string;
-    DefinePlugin: typeof DefinePlugin;
+    DefinePlugin: new (values: Record<string, string | boolean>) => WebpackPluginInstance;
   };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   defaultLoaders: any; // needed for type tests (test:types)

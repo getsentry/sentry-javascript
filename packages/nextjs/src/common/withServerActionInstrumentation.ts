@@ -1,16 +1,19 @@
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SPAN_STATUS_ERROR,
+  captureException,
+  continueTrace,
+  getClient,
   getIsolationScope,
+  handleCallbackErrors,
+  startSpan,
   withIsolationScope,
 } from '@sentry/core';
-import { captureException, continueTrace, getClient, handleCallbackErrors, startSpan } from '@sentry/core';
 import { logger, vercelWaitUntil } from '@sentry/utils';
 
 import { DEBUG_BUILD } from './debug-build';
 import { isNotFoundNavigationError, isRedirectNavigationError } from './nextNavigationErrorUtils';
 import { flushSafelyWithTimeout } from './utils/responseEnd';
-import { escapeNextjsTracing } from './utils/tracingUtils';
 
 interface Options {
   formData?: FormData;
@@ -64,88 +67,86 @@ async function withServerActionInstrumentationImplementation<A extends (...args:
   options: Options,
   callback: A,
 ): Promise<ReturnType<A>> {
-  return escapeNextjsTracing(() => {
-    return withIsolationScope(async isolationScope => {
-      const sendDefaultPii = getClient()?.getOptions().sendDefaultPii;
+  return withIsolationScope(async isolationScope => {
+    const sendDefaultPii = getClient()?.getOptions().sendDefaultPii;
 
-      let sentryTraceHeader;
-      let baggageHeader;
-      const fullHeadersObject: Record<string, string> = {};
-      try {
-        const awaitedHeaders: Headers = await options.headers;
-        sentryTraceHeader = awaitedHeaders?.get('sentry-trace') ?? undefined;
-        baggageHeader = awaitedHeaders?.get('baggage');
-        awaitedHeaders?.forEach((value, key) => {
-          fullHeadersObject[key] = value;
-        });
-      } catch (e) {
-        DEBUG_BUILD &&
-          logger.warn(
-            "Sentry wasn't able to extract the tracing headers for a server action. Will not trace this request.",
-          );
-      }
-
-      isolationScope.setTransactionName(`serverAction/${serverActionName}`);
-      isolationScope.setSDKProcessingMetadata({
-        request: {
-          headers: fullHeadersObject,
-        },
+    let sentryTraceHeader;
+    let baggageHeader;
+    const fullHeadersObject: Record<string, string> = {};
+    try {
+      const awaitedHeaders: Headers = await options.headers;
+      sentryTraceHeader = awaitedHeaders?.get('sentry-trace') ?? undefined;
+      baggageHeader = awaitedHeaders?.get('baggage');
+      awaitedHeaders?.forEach((value, key) => {
+        fullHeadersObject[key] = value;
       });
+    } catch (e) {
+      DEBUG_BUILD &&
+        logger.warn(
+          "Sentry wasn't able to extract the tracing headers for a server action. Will not trace this request.",
+        );
+    }
 
-      return continueTrace(
-        {
-          sentryTrace: sentryTraceHeader,
-          baggage: baggageHeader,
-        },
-        async () => {
-          try {
-            return await startSpan(
-              {
-                op: 'function.server_action',
-                name: `serverAction/${serverActionName}`,
-                forceTransaction: true,
-                attributes: {
-                  [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
-                },
+    isolationScope.setTransactionName(`serverAction/${serverActionName}`);
+    isolationScope.setSDKProcessingMetadata({
+      request: {
+        headers: fullHeadersObject,
+      },
+    });
+
+    return continueTrace(
+      {
+        sentryTrace: sentryTraceHeader,
+        baggage: baggageHeader,
+      },
+      async () => {
+        try {
+          return await startSpan(
+            {
+              op: 'function.server_action',
+              name: `serverAction/${serverActionName}`,
+              forceTransaction: true,
+              attributes: {
+                [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
               },
-              async span => {
-                const result = await handleCallbackErrors(callback, error => {
-                  if (isNotFoundNavigationError(error)) {
-                    // We don't want to report "not-found"s
-                    span.setStatus({ code: SPAN_STATUS_ERROR, message: 'not_found' });
-                  } else if (isRedirectNavigationError(error)) {
-                    // Don't do anything for redirects
-                  } else {
-                    span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
-                    captureException(error, {
-                      mechanism: {
-                        handled: false,
-                      },
-                    });
-                  }
-                });
-
-                if (options.recordResponse !== undefined ? options.recordResponse : sendDefaultPii) {
-                  getIsolationScope().setExtra('server_action_result', result);
-                }
-
-                if (options.formData) {
-                  options.formData.forEach((value, key) => {
-                    getIsolationScope().setExtra(
-                      `server_action_form_data.${key}`,
-                      typeof value === 'string' ? value : '[non-string value]',
-                    );
+            },
+            async span => {
+              const result = await handleCallbackErrors(callback, error => {
+                if (isNotFoundNavigationError(error)) {
+                  // We don't want to report "not-found"s
+                  span.setStatus({ code: SPAN_STATUS_ERROR, message: 'not_found' });
+                } else if (isRedirectNavigationError(error)) {
+                  // Don't do anything for redirects
+                } else {
+                  span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+                  captureException(error, {
+                    mechanism: {
+                      handled: false,
+                    },
                   });
                 }
+              });
 
-                return result;
-              },
-            );
-          } finally {
-            vercelWaitUntil(flushSafelyWithTimeout());
-          }
-        },
-      );
-    });
+              if (options.recordResponse !== undefined ? options.recordResponse : sendDefaultPii) {
+                getIsolationScope().setExtra('server_action_result', result);
+              }
+
+              if (options.formData) {
+                options.formData.forEach((value, key) => {
+                  getIsolationScope().setExtra(
+                    `server_action_form_data.${key}`,
+                    typeof value === 'string' ? value : '[non-string value]',
+                  );
+                });
+              }
+
+              return result;
+            },
+          );
+        } finally {
+          vercelWaitUntil(flushSafelyWithTimeout());
+        }
+      },
+    );
   });
 }

@@ -15,14 +15,6 @@ sentryTest('should output logger messages', async ({ getLocalTestPath, page }) =
     messages.push(message.text());
   });
 
-  await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-    return route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ id: 'test-id' }),
-    });
-  });
-
   const reqPromise0 = waitForReplayRequest(page, 0);
 
   const url = await getLocalTestPath({ testDir: __dirname });

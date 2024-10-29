@@ -8,7 +8,7 @@ const config: PlaywrightTestConfig = {
   },
   // Run tests inside of a single file in parallel
   fullyParallel: true,
-  reporter: process.env.CI ? [['line'], ['junit', { outputFile: 'results.junit.xml' }]] : 'list',
+  reporter: process.env.CI ? [['list'], ['junit', { outputFile: 'results.junit.xml' }]] : 'list',
   // Use 3 workers on CI, else use defaults (based on available CPU cores)
   // Note that 3 is a random number selected to work well with our CI setup
   workers: process.env.CI ? 3 : undefined,

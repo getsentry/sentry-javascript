@@ -1,24 +1,24 @@
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  SPAN_STATUS_ERROR,
+  Scope,
   captureException,
+  getActiveSpan,
+  getCapturedScopesOnSpan,
+  getIsolationScope,
+  getRootSpan,
   handleCallbackErrors,
+  setCapturedScopesOnSpan,
   setHttpStatus,
-  startSpan,
   withIsolationScope,
   withScope,
 } from '@sentry/core';
-import { propagationContextFromHeaders, vercelWaitUntil, winterCGHeadersToDict } from '@sentry/utils';
-import { isNotFoundNavigationError, isRedirectNavigationError } from './nextNavigationErrorUtils';
+
 import type { RouteHandlerContext } from './types';
-import { flushSafelyWithTimeout } from './utils/responseEnd';
-import {
-  commonObjectToIsolationScope,
-  commonObjectToPropagationContext,
-  escapeNextjsTracing,
-} from './utils/tracingUtils';
+
+import { propagationContextFromHeaders, winterCGHeadersToDict } from '@sentry/utils';
+import { isNotFoundNavigationError, isRedirectNavigationError } from './nextNavigationErrorUtils';
+import { commonObjectToIsolationScope } from './utils/tracingUtils';
 
 /**
  * Wraps a Next.js App Router Route handler with Sentry error and performance instrumentation.
@@ -33,76 +33,84 @@ export function wrapRouteHandlerWithSentry<F extends (...args: any[]) => any>(
   const { method, parameterizedRoute, headers } = context;
 
   return new Proxy(routeHandler, {
-    apply: (originalFunction, thisArg, args) => {
-      return escapeNextjsTracing(() => {
+    apply: async (originalFunction, thisArg, args) => {
+      const activeSpan = getActiveSpan();
+      const rootSpan = activeSpan ? getRootSpan(activeSpan) : undefined;
+
+      let edgeRuntimeIsolationScopeOverride: Scope | undefined;
+      if (rootSpan && process.env.NEXT_RUNTIME === 'edge') {
         const isolationScope = commonObjectToIsolationScope(headers);
+        const { scope } = getCapturedScopesOnSpan(rootSpan);
+        setCapturedScopesOnSpan(rootSpan, scope ?? new Scope(), isolationScope);
 
-        const completeHeadersDict: Record<string, string> = headers ? winterCGHeadersToDict(headers) : {};
+        edgeRuntimeIsolationScopeOverride = isolationScope;
 
-        isolationScope.setSDKProcessingMetadata({
-          request: {
-            headers: completeHeadersDict,
-          },
-        });
+        rootSpan.updateName(`${method} ${parameterizedRoute}`);
+        rootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
+        rootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'http.server');
+      }
 
-        const incomingPropagationContext = propagationContextFromHeaders(
-          completeHeadersDict['sentry-trace'],
-          completeHeadersDict['baggage'],
-        );
-
-        const propagationContext = commonObjectToPropagationContext(headers, incomingPropagationContext);
-
-        return withIsolationScope(isolationScope, () => {
+      return withIsolationScope(
+        process.env.NEXT_RUNTIME === 'edge' ? edgeRuntimeIsolationScopeOverride : getIsolationScope(),
+        () => {
           return withScope(async scope => {
             scope.setTransactionName(`${method} ${parameterizedRoute}`);
-            scope.setPropagationContext(propagationContext);
-            try {
-              return startSpan(
-                {
-                  name: `${method} ${parameterizedRoute}`,
-                  attributes: {
-                    [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
-                    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
-                    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nextjs',
-                  },
-                  forceTransaction: true,
-                },
-                async span => {
-                  const response: Response = await handleCallbackErrors(
-                    () => originalFunction.apply(thisArg, args),
-                    error => {
-                      // Next.js throws errors when calling `redirect()`. We don't wanna report these.
-                      if (isRedirectNavigationError(error)) {
-                        // Don't do anything
-                      } else if (isNotFoundNavigationError(error) && span) {
-                        span.setStatus({ code: SPAN_STATUS_ERROR, message: 'not_found' });
-                      } else {
-                        captureException(error, {
-                          mechanism: {
-                            handled: false,
-                          },
-                        });
-                      }
-                    },
-                  );
 
-                  try {
-                    if (span && response.status) {
-                      setHttpStatus(span, response.status);
-                    }
-                  } catch {
-                    // best effort - response may be undefined?
-                  }
-
-                  return response;
-                },
+            if (process.env.NEXT_RUNTIME === 'edge') {
+              const completeHeadersDict: Record<string, string> = headers ? winterCGHeadersToDict(headers) : {};
+              const incomingPropagationContext = propagationContextFromHeaders(
+                completeHeadersDict['sentry-trace'],
+                completeHeadersDict['baggage'],
               );
-            } finally {
-              vercelWaitUntil(flushSafelyWithTimeout());
+              scope.setPropagationContext(incomingPropagationContext);
+              scope.setSDKProcessingMetadata({
+                request: {
+                  method,
+                  headers: completeHeadersDict,
+                },
+              });
             }
+
+            const response: Response = await handleCallbackErrors(
+              () => originalFunction.apply(thisArg, args),
+              error => {
+                // Next.js throws errors when calling `redirect()`. We don't wanna report these.
+                if (isRedirectNavigationError(error)) {
+                  // Don't do anything
+                } else if (isNotFoundNavigationError(error)) {
+                  if (activeSpan) {
+                    setHttpStatus(activeSpan, 404);
+                  }
+                  if (rootSpan) {
+                    setHttpStatus(rootSpan, 404);
+                  }
+                } else {
+                  captureException(error, {
+                    mechanism: {
+                      handled: false,
+                    },
+                  });
+                }
+              },
+            );
+
+            try {
+              if (response.status) {
+                if (activeSpan) {
+                  setHttpStatus(activeSpan, response.status);
+                }
+                if (rootSpan) {
+                  setHttpStatus(rootSpan, response.status);
+                }
+              }
+            } catch {
+              // best effort - response may be undefined?
+            }
+
+            return response;
           });
-        });
-      });
+        },
+      );
     },
   });
 }

@@ -19,12 +19,6 @@ sentryTest(
       sentryTest.skip();
     }
 
-    await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-      return route.fulfill({
-        status: 200,
-      });
-    });
-
     const url = await getLocalTestPath({ testDir: __dirname });
     await page.goto(url);
 

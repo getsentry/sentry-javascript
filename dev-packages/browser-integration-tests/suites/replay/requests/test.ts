@@ -10,14 +10,6 @@ sentryTest('replay recording should contain fetch request span', async ({ getLoc
     sentryTest.skip();
   }
 
-  await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-    return route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ id: 'test-id' }),
-    });
-  });
-
   await page.route('https://example.com', route => {
     return route.fulfill({
       status: 200,
@@ -47,14 +39,6 @@ sentryTest('replay recording should contain XHR request span', async ({ getLocal
   if (shouldSkipReplayTest() || browserName === 'webkit') {
     sentryTest.skip();
   }
-
-  await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-    return route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ id: 'test-id' }),
-    });
-  });
 
   await page.route('https://example.com', route => {
     return route.fulfill({
