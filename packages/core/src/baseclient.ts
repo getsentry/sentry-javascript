@@ -565,7 +565,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
 
     if (this._isEnabled() && this._transport) {
       return this._transport.send(envelope).then(null, reason => {
-        DEBUG_BUILD && logger.error('Error while sending event:', reason);
+        DEBUG_BUILD && logger.error('Error while sending envelope:', reason);
         return reason;
       });
     }
