@@ -4,6 +4,7 @@ import { isThenable, parseSemver } from '@sentry/utils';
 import * as fs from 'fs';
 import { getSentryRelease } from '@sentry/node';
 import { sync as resolveSync } from 'resolve';
+import { getGitRevision } from './git-revision';
 import type {
   ExportedNextConfig as NextConfig,
   NextConfigFunction,
@@ -258,18 +259,17 @@ function setUpTunnelRewriteRules(userNextConfig: NextConfigObject, tunnelPath: s
 
 function setUpBuildTimeVariables(userNextConfig: NextConfigObject, userSentryOptions: SentryBuildOptions): void {
   const assetPrefix = userNextConfig.assetPrefix || userNextConfig.basePath || '';
+  const release =
+    process.env.NODE_ENV === 'production'
+      ? userSentryOptions.release?.name ?? getSentryRelease(getGitRevision())
+      : undefined;
+  const rewritesTunnelPath =
+    userSentryOptions.tunnelRoute !== undefined && userNextConfig.output !== 'export'
+      ? `${userNextConfig.basePath ?? ''}${userSentryOptions.tunnelRoute}`
+      : undefined;
+  const basePath = userNextConfig.basePath;
 
-  const buildTimeVariables = {
-    // `rewritesTunnel` set by the user in Next.js config
-    __sentryRewritesTunnelPath:
-      userSentryOptions.tunnelRoute !== undefined && userNextConfig.output !== 'export'
-        ? `${userNextConfig.basePath ?? ''}${userSentryOptions.tunnelRoute}`
-        : undefined,
-    SENTRY_RELEASE:
-      process.env.NODE_ENV === 'production'
-        ? undefined
-        : { id: userSentryOptions.release?.name ?? getSentryRelease('TODO') },
-    __sentryBasePath: userNextConfig.basePath,
+  const buildTimeVariables: Record<string, string> = {
     // Make sure that if we have a windows path, the backslashes are interpreted as such (rather than as escape
     // characters)
     __sentryRewriteFramesDistDir: userNextConfig.distDir?.replace(/\\/g, '\\\\') || '.next',
@@ -279,6 +279,19 @@ function setUpBuildTimeVariables(userNextConfig: NextConfigObject, userSentryOpt
       ? new URL(assetPrefix, 'http://dogs.are.great').pathname.replace(/\/$/, '')
       : '',
   };
+
+  if (release) {
+    // SENTRY_RELEASE will turn into `process.env.SENTRY_RELEASE` which the SDK will pick up.
+    buildTimeVariables.SENTRY_RELEASE = release;
+  }
+
+  if (rewritesTunnelPath) {
+    buildTimeVariables.__sentryRewritesTunnelPath = rewritesTunnelPath;
+  }
+
+  if (basePath) {
+    buildTimeVariables.__sentryBasePath = basePath;
+  }
 
   if (typeof userNextConfig.env === 'object') {
     userNextConfig.env = { ...buildTimeVariables, ...userNextConfig.env };

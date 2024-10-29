@@ -1,6 +1,7 @@
 import * as path from 'path';
 import { getSentryRelease } from '@sentry/node';
 import type { SentryWebpackPluginOptions } from '@sentry/webpack-plugin';
+import { getGitRevision } from './git-revision';
 import type { BuildContext, NextConfigObject, SentryBuildOptions } from './types';
 
 /**
@@ -94,7 +95,7 @@ export function getWebpackPluginOptions(
     },
     release: {
       inject: false, // The webpack plugin's release injection breaks the `app` directory - we inject with nextConfig.env instead
-      name: sentryBuildOptions.release?.name ?? getSentryRelease('TODO'),
+      name: sentryBuildOptions.release?.name ?? getSentryRelease(getGitRevision()),
       create: sentryBuildOptions.release?.create,
       finalize: sentryBuildOptions.release?.finalize,
       dist: sentryBuildOptions.release?.dist,
