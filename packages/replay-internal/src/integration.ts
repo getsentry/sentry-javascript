@@ -1,5 +1,11 @@
 import { parseSampleRate } from '@sentry/core';
-import type { BrowserClientReplayOptions, Client, Integration, IntegrationFn } from '@sentry/types';
+import type {
+  BrowserClientReplayOptions,
+  Client,
+  Integration,
+  IntegrationFn,
+  ReplayRecordingMode,
+} from '@sentry/types';
 import { consoleSandbox, dropUndefinedKeys, isBrowser } from '@sentry/utils';
 
 import {
@@ -114,6 +120,7 @@ export class Replay implements Integration {
 
     beforeAddRecordingEvent,
     beforeErrorSampling,
+    onError,
   }: ReplayConfiguration = {}) {
     this.name = Replay.id;
 
@@ -183,6 +190,7 @@ export class Replay implements Integration {
       networkResponseHeaders: _getMergedNetworkHeaders(networkResponseHeaders),
       beforeAddRecordingEvent,
       beforeErrorSampling,
+      onError,
 
       _experiments,
     };
@@ -293,6 +301,22 @@ export class Replay implements Integration {
     }
 
     return this._replay.getSessionId();
+  }
+
+  /**
+   * Get the current recording mode. This can be either `session` or `buffer`.
+   *
+   * `session`: Recording the whole session, sending it continuously
+   * `buffer`: Always keeping the last 60s of recording, requires:
+   *   - having replaysOnErrorSampleRate > 0 to capture replay when an error occurs
+   *   - or calling `flush()` to send the replay
+   */
+  public getRecordingMode(): ReplayRecordingMode | undefined {
+    if (!this._replay || !this._replay.isEnabled()) {
+      return;
+    }
+
+    return this._replay.recordingMode;
   }
 
   /**

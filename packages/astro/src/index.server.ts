@@ -90,6 +90,7 @@ export {
   parameterize,
   postgresIntegration,
   prismaIntegration,
+  processThreadBreadcrumbIntegration,
   redisIntegration,
   requestDataIntegration,
   rewriteFramesIntegration,

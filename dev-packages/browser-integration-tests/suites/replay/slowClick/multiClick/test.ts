@@ -13,14 +13,6 @@ sentryTest('captures multi click when not detecting slow click', async ({ getLoc
     sentryTest.skip();
   }
 
-  await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-    return route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ id: 'test-id' }),
-    });
-  });
-
   const url = await getLocalTestUrl({ testDir: __dirname });
 
   await Promise.all([waitForReplayRequest(page, 0), page.goto(url)]);
@@ -104,14 +96,6 @@ sentryTest('captures multiple multi clicks', async ({ getLocalTestUrl, page, for
   if (shouldSkipReplayTest() || browserName === 'webkit') {
     sentryTest.skip();
   }
-
-  await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-    return route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ id: 'test-id' }),
-    });
-  });
 
   const url = await getLocalTestUrl({ testDir: __dirname });
 

@@ -437,7 +437,7 @@ jobs:
         with:
           node-version-file: 'package.json'
       - name: Set up Deno
-        uses: denoland/setup-deno@v1.5.1
+        uses: denoland/setup-deno@v2.0.1
         with:
           deno-version: v1.38.5
       - name: Restore caches
@@ -858,7 +858,7 @@ jobs:
     if: always() && needs.job_e2e_prepare.result == 'success'
     needs: [job_get_metadata, job_build, job_e2e_prepare]
     runs-on: ubuntu-20.04
-    timeout-minutes: 10
+    timeout-minutes: 15
     env:
       # We just use a dummy DSN here, only send to the tunnel anyhow
       E2E_TEST_DSN: 'https://username@domain/123'
@@ -1071,7 +1071,7 @@ jobs:
       github.actor != 'dependabot[bot]'
     needs: [job_get_metadata, job_build, job_e2e_prepare]
     runs-on: ubuntu-20.04
-    timeout-minutes: 10
+    timeout-minutes: 15
     env:
       E2E_TEST_AUTH_TOKEN: ${{ secrets.E2E_TEST_AUTH_TOKEN }}
       E2E_TEST_DSN: ${{ secrets.E2E_TEST_DSN }}
@@ -1235,7 +1235,7 @@ jobs:
       )
     needs: [job_get_metadata, job_build, job_e2e_prepare]
     runs-on: ubuntu-20.04
-    timeout-minutes: 10
+    timeout-minutes: 15
     env:
       E2E_TEST_AUTH_TOKEN: ${{ secrets.E2E_TEST_AUTH_TOKEN }}
       E2E_TEST_DSN: ${{ secrets.E2E_TEST_DSN }}
@@ -1345,48 +1345,6 @@ jobs:
         if: contains(needs.*.result, 'failure')
         run: |
           echo "One of the dependent jobs have failed. You may need to re-run it." && exit 1
-
-  overhead_metrics:
-    name: Overhead metrics
-    needs: [job_get_metadata, job_build]
-    runs-on: ubuntu-20.04
-    timeout-minutes: 30
-    if: |
-      contains(github.event.pull_request.labels.*.name, 'ci-overhead-measurements')
-    steps:
-      - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ env.HEAD_COMMIT }}
-      - name: Set up Node
-        uses: actions/setup-node@v4
-        with:
-          node-version-file: 'package.json'
-      - name: Restore caches
-        uses: ./.github/actions/restore-cache
-        with:
-          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
-
-      - name: Collect
-        run: yarn ci:collect
-        working-directory: dev-packages/overhead-metrics
-
-      - name: Process
-        id: process
-        run: yarn ci:process
-        working-directory: dev-packages/overhead-metrics
-        # Don't run on forks - the PR comment cannot be added.
-        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-
-      - name: Upload results
-        uses: actions/upload-artifact@v4
-        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
-        with:
-          name: ${{ steps.process.outputs.artifactName }}
-          path: ${{ steps.process.outputs.artifactPath }}
-          retention-days: 7
 
   job_compile_bindings_profiling_node:
     name: Compile & Test Profiling Bindings (v${{ matrix.node }}) ${{ matrix.target_platform || matrix.os }}, ${{ matrix.node || matrix.container }}, ${{ matrix.arch || matrix.container }}, ${{ contains(matrix.container, 'alpine') && 'musl' || 'glibc'  }}

@@ -60,6 +60,9 @@ test('Should record exceptions and transactions for faulty route handlers', asyn
 
   expect(routehandlerError.exception?.values?.[0].value).toBe('route-handler-error');
 
+  expect(routehandlerError.request?.method).toBe('PUT');
+  expect(routehandlerError.request?.url).toContain('/route-handlers/baz/error');
+
   expect(routehandlerError.transaction).toBe('PUT /route-handlers/[param]/error');
 });
 

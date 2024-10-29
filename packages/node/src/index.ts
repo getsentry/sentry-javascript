@@ -31,6 +31,7 @@ export { spotlightIntegration } from './integrations/spotlight';
 export { genericPoolIntegration } from './integrations/tracing/genericPool';
 export { dataloaderIntegration } from './integrations/tracing/dataloader';
 export { amqplibIntegration } from './integrations/tracing/amqplib';
+export { processThreadBreadcrumbIntegration } from './integrations/processThread';
 export { firebaseIntegration } from './integrations/tracing/firebase';
 
 export { SentryContextManager } from './otel/contextManager';
