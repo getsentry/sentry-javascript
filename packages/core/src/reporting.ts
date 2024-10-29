@@ -4,7 +4,7 @@ import { createRawSecurityEnvelope } from './envelope';
 
 /** Captures reports from the Reporting API */
 export async function captureReportingApi(reports: Report[], options?: { client?: Client }): Promise<void> {
-  const client = options?.client || getClient();
+  const client = options ? options.client : getClient();
 
   if (!client) {
     // eslint-disable-next-line no-console
