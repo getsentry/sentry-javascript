@@ -114,6 +114,7 @@ export {
   zodErrorsIntegration,
   profiler,
   amqplibIntegration,
+  processThreadBreadcrumbIntegration,
 } from '@sentry/node';
 
 export {
