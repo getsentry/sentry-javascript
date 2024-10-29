@@ -80,7 +80,7 @@
     "qunit": "~2.19.2",
     "qunit-dom": "~2.0.0",
     "sinon": "15.2.0",
-    "webpack": "~5.94.0"
+    "webpack": "~5.95.0"
   },
   "engines": {
     "node": ">=14.18"

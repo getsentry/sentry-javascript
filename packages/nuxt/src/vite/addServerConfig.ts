@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import { createResolver } from '@nuxt/kit';
 import type { Nuxt } from '@nuxt/schema';
-import { consoleSandbox } from '@sentry/utils';
+import { consoleSandbox, flatten } from '@sentry/utils';
 import type { Nitro } from 'nitropack';
 import type { InputPluginOption } from 'rollup';
 import type { SentryNuxtModuleOptions } from '../common/types';
@@ -94,7 +94,6 @@ export function addDynamicImportEntryFileWrapper(nitro: Nitro, serverConfigFile:
   }
 
   nitro.options.rollupConfig.plugins.push(
-    // @ts-expect-error - This is the correct type, but it shows an error because of two different definitions
     wrapEntryWithDynamicImport(createResolver(nitro.options.srcDir).resolve(`/${serverConfigFile}`)),
   );
 }
@@ -120,7 +119,7 @@ function wrapEntryWithDynamicImport(resolvedSentryConfigPath: string): InputPlug
         return { id: source, moduleSideEffects: true, external: true };
       }
 
-      if (options.isEntry && !source.includes(`.mjs${SENTRY_WRAPPED_ENTRY}`)) {
+      if (options.isEntry && source.includes('.mjs') && !source.includes(`.mjs${SENTRY_WRAPPED_ENTRY}`)) {
         const resolution = await this.resolve(source, importer, options);
 
         // If it cannot be resolved or is external, just return it so that Rollup can display an error
@@ -130,8 +129,9 @@ function wrapEntryWithDynamicImport(resolvedSentryConfigPath: string): InputPlug
 
         moduleInfo.moduleSideEffects = true;
 
-        // The key `.` in `exportedBindings` refer to the exports within the file
-        const exportedFunctions = moduleInfo.exportedBindings?.['.'];
+        // `exportedBindings` can look like this:  `{ '.': [ 'handler' ], './firebase-gen-1.mjs': [ 'server' ] }`
+        // The key `.` refers to exports within the current file, while other keys show from where exports were imported first.
+        const exportedFunctions = flatten(Object.values(moduleInfo.exportedBindings || {}));
 
         // The enclosing `if` already checks for the suffix in `source`, but a check in `resolution.id` is needed as well to prevent multiple attachment of the suffix
         return resolution.id.includes(`.mjs${SENTRY_WRAPPED_ENTRY}`)

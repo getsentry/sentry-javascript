@@ -1,21 +1,48 @@
 import {
   dedupeIntegration,
   functionToStringIntegration,
+  getCurrentScope,
   getIntegrationsToSetup,
+  hasTracingEnabled,
   inboundFiltersIntegration,
-  initAndBind,
   linkedErrorsIntegration,
   requestDataIntegration,
 } from '@sentry/core';
 import type { Client, Integration, Options } from '@sentry/types';
-import { GLOBAL_OBJ, createStackParser, nodeStackLineParser, stackParserFromStackParserOptions } from '@sentry/utils';
+import {
+  GLOBAL_OBJ,
+  SDK_VERSION,
+  createStackParser,
+  logger,
+  nodeStackLineParser,
+  stackParserFromStackParserOptions,
+} from '@sentry/utils';
 
-import { setAsyncLocalStorageAsyncContextStrategy } from './async';
+import { DiagLogLevel, diag } from '@opentelemetry/api';
+import { Resource } from '@opentelemetry/resources';
+import { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
+import {
+  ATTR_SERVICE_NAME,
+  ATTR_SERVICE_VERSION,
+  SEMRESATTRS_SERVICE_NAMESPACE,
+} from '@opentelemetry/semantic-conventions';
+import {
+  SentryPropagator,
+  SentrySampler,
+  SentrySpanProcessor,
+  enhanceDscWithOpenTelemetryRootSpanName,
+  openTelemetrySetupCheck,
+  setOpenTelemetryContextAsyncContextStrategy,
+  setupEventContextTrace,
+  wrapContextManagerClass,
+} from '@sentry/opentelemetry';
 import { VercelEdgeClient } from './client';
+import { DEBUG_BUILD } from './debug-build';
 import { winterCGFetchIntegration } from './integrations/wintercg-fetch';
 import { makeEdgeTransport } from './transports';
-import type { VercelEdgeClientOptions, VercelEdgeOptions } from './types';
+import type { VercelEdgeOptions } from './types';
 import { getVercelEnv } from './utils/vercel';
+import { AsyncLocalStorageContextManager } from './vendored/async-local-storage-context-manager';
 
 declare const process: {
   env: Record<string, string>;
@@ -37,7 +64,10 @@ export function getDefaultIntegrations(options: Options): Integration[] {
 
 /** Inits the Sentry NextJS SDK on the Edge Runtime. */
 export function init(options: VercelEdgeOptions = {}): Client | undefined {
-  setAsyncLocalStorageAsyncContextStrategy();
+  setOpenTelemetryContextAsyncContextStrategy();
+
+  const scope = getCurrentScope();
+  scope.update(options.initialScope);
 
   if (options.defaultIntegrations === undefined) {
     options.defaultIntegrations = getDefaultIntegrations(options);
@@ -71,14 +101,108 @@ export function init(options: VercelEdgeOptions = {}): Client | undefined {
     options.autoSessionTracking = true;
   }
 
-  const clientOptions: VercelEdgeClientOptions = {
+  const client = new VercelEdgeClient({
     ...options,
     stackParser: stackParserFromStackParserOptions(options.stackParser || nodeStackParser),
     integrations: getIntegrationsToSetup(options),
     transport: options.transport || makeEdgeTransport,
-  };
+  });
+  // The client is on the current scope, from where it generally is inherited
+  getCurrentScope().setClient(client);
 
-  return initAndBind(VercelEdgeClient, clientOptions);
+  client.init();
+
+  // If users opt-out of this, they _have_ to set up OpenTelemetry themselves
+  // There is no way to use this SDK without OpenTelemetry!
+  if (!options.skipOpenTelemetrySetup) {
+    setupOtel(client);
+    validateOpenTelemetrySetup();
+  }
+
+  enhanceDscWithOpenTelemetryRootSpanName(client);
+  setupEventContextTrace(client);
+
+  return client;
+}
+
+function validateOpenTelemetrySetup(): void {
+  if (!DEBUG_BUILD) {
+    return;
+  }
+
+  const setup = openTelemetrySetupCheck();
+
+  const required: ReturnType<typeof openTelemetrySetupCheck> = ['SentryContextManager', 'SentryPropagator'];
+
+  if (hasTracingEnabled()) {
+    required.push('SentrySpanProcessor');
+  }
+
+  for (const k of required) {
+    if (!setup.includes(k)) {
+      logger.error(
+        `You have to set up the ${k}. Without this, the OpenTelemetry & Sentry integration will not work properly.`,
+      );
+    }
+  }
+
+  if (!setup.includes('SentrySampler')) {
+    logger.warn(
+      'You have to set up the SentrySampler. Without this, the OpenTelemetry & Sentry integration may still work, but sample rates set for the Sentry SDK will not be respected. If you use a custom sampler, make sure to use `wrapSamplingDecision`.',
+    );
+  }
+}
+
+// exported for tests
+// eslint-disable-next-line jsdoc/require-jsdoc
+export function setupOtel(client: VercelEdgeClient): void {
+  if (client.getOptions().debug) {
+    setupOpenTelemetryLogger();
+  }
+
+  // Create and configure NodeTracerProvider
+  const provider = new BasicTracerProvider({
+    sampler: new SentrySampler(client),
+    resource: new Resource({
+      [ATTR_SERVICE_NAME]: 'edge',
+      // eslint-disable-next-line deprecation/deprecation
+      [SEMRESATTRS_SERVICE_NAMESPACE]: 'sentry',
+      [ATTR_SERVICE_VERSION]: SDK_VERSION,
+    }),
+    forceFlushTimeoutMillis: 500,
+  });
+
+  provider.addSpanProcessor(
+    new SentrySpanProcessor({
+      timeout: client.getOptions().maxSpanWaitDuration,
+    }),
+  );
+
+  const SentryContextManager = wrapContextManagerClass(AsyncLocalStorageContextManager);
+
+  // Initialize the provider
+  provider.register({
+    propagator: new SentryPropagator(),
+    contextManager: new SentryContextManager(),
+  });
+
+  client.traceProvider = provider;
+}
+
+/**
+ * Setup the OTEL logger to use our own logger.
+ */
+function setupOpenTelemetryLogger(): void {
+  const otelLogger = new Proxy(logger as typeof logger & { verbose: (typeof logger)['debug'] }, {
+    get(target, prop, receiver) {
+      const actualProp = prop === 'verbose' ? 'debug' : prop;
+      return Reflect.get(target, actualProp, receiver);
+    },
+  });
+
+  // Disable diag, to ensure this works even if called multiple times
+  diag.disable();
+  diag.setLogger(otelLogger, DiagLogLevel.DEBUG);
 }
 
 /**

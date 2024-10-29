@@ -20,14 +20,6 @@ sentryTest('captures request headers', async ({ getLocalTestUrl, page, browserNa
     });
   });
 
-  await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-    return route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ id: 'test-id' }),
-    });
-  });
-
   const requestPromise = waitForErrorRequest(page);
   const replayRequestPromise = collectReplayRequests(page, recordingEvents => {
     return getReplayPerformanceSpans(recordingEvents).some(span => span.op === 'resource.xhr');
@@ -102,14 +94,6 @@ sentryTest('does not capture request headers if URL does not match', async ({ ge
   await page.route('http://sentry-test.io/bar', route => {
     return route.fulfill({
       status: 200,
-    });
-  });
-
-  await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-    return route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ id: 'test-id' }),
     });
   });
 
