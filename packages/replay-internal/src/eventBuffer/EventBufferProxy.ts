@@ -12,7 +12,12 @@ import { EventBufferCompressionWorker } from './EventBufferCompressionWorker';
  * Exported only for testing.
  */
 export class EventBufferProxy implements EventBuffer {
+  /**
+   * If the event buffer needs to wait for a checkout event before it
+   * starts buffering events.
+   */
   public waitForCheckout: boolean;
+
   private _fallback: EventBufferArray;
   private _compression: EventBufferCompressionWorker;
   private _used: EventBuffer;

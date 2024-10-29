@@ -9,6 +9,7 @@ import type {
   Span,
   XhrBreadcrumbHint,
 } from '@sentry/types';
+import type { EventBufferProxy } from '../eventBuffer/EventBufferProxy';
 
 import type { SKIPPED, THROTTLED } from '../util/throttle';
 import type { AllPerformanceEntry, AllPerformanceEntryData, ReplayPerformanceEntry } from './performance';
@@ -449,7 +450,7 @@ export interface ReplayClickDetector {
 }
 
 export interface ReplayContainer {
-  eventBuffer: EventBuffer | null;
+  eventBuffer: EventBufferProxy | null;
   clickDetector: ReplayClickDetector | undefined;
   /**
    * List of PerformanceEntry from PerformanceObservers.
