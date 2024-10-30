@@ -46,7 +46,13 @@
     "hoist-non-react-statics": "^3.3.2"
   },
   "peerDependencies": {
-    "react": "^16.14.0 || 17.x || 18.x || 19.x"
+    "react": "^16.14.0 || 17.x || 18.x || 19.x",
+    "webpack": ">=5.85.1"
+  },
+  "peerDependenciesMeta": {
+    "webpack": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@testing-library/react": "^13.0.0",
