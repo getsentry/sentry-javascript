@@ -74,7 +74,7 @@ export class ReplayContainer implements ReplayContainerInterface {
   public clickDetector: ClickDetector | undefined;
 
   /**
-   * Recording can happen in one of three modes:
+   * Recording can happen in one of two modes:
    *   - session: Record the whole session, sending it continuously
    *   - buffer: Always keep the last 60s of recording, requires:
    *     - having replaysOnErrorSampleRate > 0 to capture replay when an error occurs
