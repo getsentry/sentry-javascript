@@ -4,7 +4,7 @@ import { setupTest } from 'ember-qunit';
 import { module, test } from 'qunit';
 import sinon from 'sinon';
 
-import type { SentryTestContext} from '../helpers/setup-sentry';
+import type { SentryTestContext } from '../helpers/setup-sentry';
 import { setupSentryTest } from '../helpers/setup-sentry';
 
 module('Unit | Utility | instrument-route-performance', function (hooks) {
