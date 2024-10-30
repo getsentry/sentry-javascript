@@ -19378,7 +19378,7 @@ findup-sync@^4.0.0:
     micromatch "^4.0.2"
     resolve-dir "^1.0.1"
 
-firebase@*:
+firebase@*, firebase@11.0.1:
   version "11.0.1"
   resolved "https://registry.yarnpkg.com/firebase/-/firebase-11.0.1.tgz#e1c879f3473892adb88a467cf98c3b8cb9eeaea0"
   integrity sha512-qsFb8dMcQINEDhJteG7RP+GqwgSRvfyiexQqHd5JToDdm87i9I2rGC4XQsGawKGxzKwZ/ISdgwNWxXAFYdCC6A==

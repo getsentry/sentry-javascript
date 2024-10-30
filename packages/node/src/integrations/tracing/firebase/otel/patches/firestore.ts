@@ -1,9 +1,9 @@
 import type { FirebaseApp, FirebaseOptions } from '@firebase/app';
-import type { FirestoreSettings } from '@firebase/firestore';
 import type {
   CollectionReference,
   DocumentData,
   DocumentReference,
+  FirestoreSettings,
   PartialWithFieldValue,
   QuerySnapshot,
   SetOptions,

@@ -19,6 +19,7 @@
     "@playwright/test": "^1.44.1",
     "@sentry-internal/test-utils": "link:../../../test-utils",
     "dotenv": "^16.4.5",
+    "firebase": "^11.0.1",
     "tsconfig-paths": "^4.2.0",
     "typescript": "4.9.5"
   },
