@@ -5,6 +5,7 @@ import type { Context, Contexts } from './context';
 import type { Event, EventHint } from './event';
 import type { EventProcessor } from './eventprocessor';
 import type { Extra, Extras } from './extra';
+import type { FeatureFlag } from './flags';
 import type { Primitive } from './misc';
 import type { RequestSession, Session } from './session';
 import type { SeverityLevel } from './severity';
@@ -230,6 +231,16 @@ export interface Scope {
    * Get propagation context from the scope, used for distributed tracing
    */
   getPropagationContext(): PropagationContext;
+
+  /**
+   * TODO: michelle
+   */
+  getFlags(): FeatureFlag[];
+
+  /**
+   * TODO: michelle
+   */
+  insertFlag(name: string, value: boolean): void;
 
   /**
    * Capture an exception for this scope.

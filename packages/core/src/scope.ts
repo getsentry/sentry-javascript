@@ -11,6 +11,7 @@ import type {
   EventProcessor,
   Extra,
   Extras,
+  FeatureFlag,
   Primitive,
   PropagationContext,
   RequestSession,
@@ -97,6 +98,12 @@ class ScopeClass implements ScopeInterface {
   /** Contains the last event id of a captured event.  */
   protected _lastEventId?: string;
 
+  /** LRU cache of flags last evaluated by a feature flag provider. Used by FF integrations. */
+  protected _flagBuffer: FeatureFlag[];
+
+  /** Max size of the flagBuffer */
+  protected _flagBufferSize: number; // TODO: make const?
+
   // NOTE: Any field which gets added here should get added not only to the constructor but also to the `clone` method.
 
   public constructor() {
@@ -111,6 +118,9 @@ class ScopeClass implements ScopeInterface {
     this._contexts = {};
     this._sdkProcessingMetadata = {};
     this._propagationContext = generatePropagationContext();
+
+    this._flagBuffer = [];
+    this._flagBufferSize = 100;
   }
 
   /**
@@ -497,6 +507,36 @@ class ScopeClass implements ScopeInterface {
    */
   public getPropagationContext(): PropagationContext {
     return this._propagationContext;
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public getFlags(): FeatureFlag[] {
+    return this._flagBuffer || [];
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public insertFlag(name: string, value: boolean): void {
+    // Check if the flag is already in the buffer
+    const index = this._flagBuffer.findIndex(f => f.flag === name);
+
+    if (index !== -1) {
+      // Delete flag if it is in the buffer
+      this._flagBuffer.splice(index, 1);
+    } else if (this._flagBuffer.length === this._flagBufferSize) {
+      // If at capacity, we need to remove the earliest flag (pop from front)
+      // This will only happen if not a duplicate flag
+      this._flagBuffer.shift();
+    }
+
+    // Push the flag to the end of the queue
+    this._flagBuffer.push({
+      flag: name,
+      result: value,
+    });
   }
 
   /**

@@ -5,9 +5,6 @@ import type { Client as SentryClient, Event, EventHint, IntegrationFn } from '@s
 import type { LDContext, LDEvaluationDetail, LDInspectionFlagUsedHandler } from 'launchdarkly-js-client-sdk';
 import type { LaunchDarklyOptions } from './types';
 
-// import type { Client } from '/client';
-// import type { Event, EventHint } from './event';
-
 /**
  * Sentry integration for capturing feature flags from LaunchDarkly.
  *
@@ -16,6 +13,7 @@ import type { LaunchDarklyOptions } from './types';
  * @example
  *
  * ```
+ * TODO:
  * Sentry.init({
  *   dsn: '__DSN__',
  *   integrations: [Sentry.replayIntegration()],
@@ -29,14 +27,15 @@ export const launchDarklyIntegration = ((_options?: LaunchDarklyOptions) => {
   return {
     name: 'launchdarkly',
 
-    processEvent(event: Event, hint: EventHint, client: SentryClient): Event | null | PromiseLike<Event | null> {
+    processEvent(event: Event, _hint: EventHint, _client: SentryClient): Event {
       const scope = Sentry.getCurrentScope(); // client doesn't have getCurrentScope
-      const flagData = { values: scope.flags.get() };
+      const flagContext = { values: scope.getFlags() };
       if (event.contexts) {
-        event.contexts.flags = flagData;
+        event.contexts.flags = flagContext;
       } else {
-        event.contexts = { flags: flagData };
+        event.contexts = { flags: flagContext };
       }
+      return event;
     },
   };
 }) satisfies IntegrationFn;
@@ -46,7 +45,7 @@ export const launchDarklyIntegration = ((_options?: LaunchDarklyOptions) => {
  * TODO: docstring
  */
 export class SentryInspector implements LDInspectionFlagUsedHandler {
-  public name = 'sentry-feature-flag-monitor';
+  public name = 'sentry-flag-used-handler';
 
   public synchronous = true; // TODO: T or F?
 
@@ -57,8 +56,7 @@ export class SentryInspector implements LDInspectionFlagUsedHandler {
    */
   public method(flagKey: string, flagDetail: LDEvaluationDetail, _context: LDContext): void {
     if (typeof flagDetail.value === 'boolean') {
-      const flags = Sentry.getCurrentScope().flags;
-      flags.set(flagKey, flagDetail.value);
+      Sentry.getCurrentScope().insertFlag(flagKey, flagDetail.value);
     }
     return;
   }
