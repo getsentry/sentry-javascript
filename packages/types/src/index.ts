@@ -56,6 +56,7 @@ export type { Event, EventHint, EventType, ErrorEvent, TransactionEvent } from '
 export type { EventProcessor } from './eventprocessor';
 export type { Exception } from './exception';
 export type { Extra, Extras } from './extra';
+export type { FeatureFlag } from './flags';
 // eslint-disable-next-line deprecation/deprecation
 export type { Hub } from './hub';
 export type { Integration, IntegrationClass, IntegrationFn } from './integration';
