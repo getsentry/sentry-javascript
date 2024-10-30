@@ -1,3 +1,4 @@
+
 import type { Attachment } from './attachment';
 import type { Breadcrumb } from './breadcrumb';
 import type { Client } from './client';
@@ -233,12 +234,13 @@ export interface Scope {
   getPropagationContext(): PropagationContext;
 
   /**
-   * TODO: michelle
+   * Return the list of recently accessed feature flags.
    */
   getFlags(): FeatureFlag[];
 
   /**
-   * TODO: michelle
+   * When an integration sends data that a flag name and its value have been evaluated,
+   * add it to the list of recently accessed feature flags.
    */
   insertFlag(name: string, value: boolean): void;
 
