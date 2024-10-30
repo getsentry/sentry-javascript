@@ -4,7 +4,7 @@
   </a>
 </p>
 
-# Sentry Integration for Feedback
+# Sentry Integration for LaunchDarkly
 
 This SDK is **considered experimental and in a beta state**. It may experience breaking changes, and may be discontinued
 at any time. Please reach out on [GitHub](https://github.com/getsentry/sentry-javascript/issues/new/choose) if you have
