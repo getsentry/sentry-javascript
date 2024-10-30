@@ -1,4 +1,4 @@
-import type { FirebaseApp, FirebaseOptions } from '@firebase/app';
+import type { FirebaseApp, FirebaseOptions } from 'firebase/app';
 import type {
   CollectionReference,
   DocumentData,
@@ -12,7 +12,7 @@ import type {
   deleteDoc,
   getDocs,
   setDoc,
-} from '@firebase/firestore';
+} from 'firebase/firestore';
 import type { Span, Tracer } from '@opentelemetry/api';
 import { SpanKind, context, diag, trace } from '@opentelemetry/api';
 import {
