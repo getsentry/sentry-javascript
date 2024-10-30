@@ -23,7 +23,10 @@ app.post('/tunnel', express.raw(), async (req, res) => {
 });
 
 startExpressServerAndSendPortToRunner(app, undefined, port => {
-  const child = fork(join(__dirname, 'child.mjs'), { stdio: 'inherit', env: { ...process.env, PORT: port.toString() } });
+  const child = fork(join(__dirname, 'child.mjs'), {
+    stdio: 'inherit',
+    env: { ...process.env, PORT: port.toString() },
+  });
   child.on('exit', code => {
     console.log('Child process exited with code', code);
     process.exit(code);

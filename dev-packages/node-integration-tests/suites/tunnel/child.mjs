@@ -9,10 +9,10 @@ Sentry.init({
   autoSessionTracking: false,
   transportOptions: {
     // I'm sure express.raw() can be made to work without this, but probably not worth trying to figure out how
-    headers:{
-      "Content-Type": "application/octet-stream",
-    }
-  }
+    headers: {
+      'Content-Type': 'application/octet-stream',
+    },
+  },
 });
 
 throw new Error('Test error in child process');
