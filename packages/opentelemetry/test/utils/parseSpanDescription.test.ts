@@ -142,7 +142,7 @@ describe('parseSpanDescription', () => {
 describe('descriptionForHttpMethod', () => {
   it.each([
     [
-      'works withhout attributes',
+      'works without attributes',
       'GET',
       {},
       'test name',

@@ -13,7 +13,7 @@ const POLYFILL_NAMES = new Set([
 ]);
 
 /**
- * Create a plugin which will replace function definitions of any of the above funcions with an `import` or `require`
+ * Create a plugin which will replace function definitions of any of the above functions with an `import` or `require`
  * statement pulling them in from a central source. Mimics tsc's `importHelpers` option.
  */
 export function makeExtractPolyfillsPlugin() {
@@ -40,7 +40,7 @@ export function makeExtractPolyfillsPlugin() {
         return null;
       }
 
-      // The index.js file of the tuils package will include identifiers named after polyfills so we would inject the
+      // The index.js file of the utils package will include identifiers named after polyfills so we would inject the
       // polyfills, however that would override the exports so we should just skip that file.
       const isUtilsPackage = process.cwd().endsWith(`packages${path.sep}utils`);
       if (isUtilsPackage && sourceFile === 'index.js') {

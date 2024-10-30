@@ -364,7 +364,7 @@ export function findProfiledTransactionsFromEnvelope(envelope: Envelope): Event[
       const event = item[j];
 
       if (!event) {
-        // Shouldnt happen, but lets be safe
+        // Shouldn't happen, but lets be safe
         continue;
       }
 

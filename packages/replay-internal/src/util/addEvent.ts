@@ -126,7 +126,7 @@ function maybeApplyCallback(
     }
   } catch (error) {
     DEBUG_BUILD &&
-      logger.exception(error, 'An error occured in the `beforeAddRecordingEvent` callback, skipping the event...');
+      logger.exception(error, 'An error occurred in the `beforeAddRecordingEvent` callback, skipping the event...');
     return null;
   }
 

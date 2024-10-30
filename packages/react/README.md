@@ -75,7 +75,7 @@ import React from 'react';
 import * as Sentry from '@sentry/react';
 
 function FallbackComponent() {
-  return <div>An error has occured</div>;
+  return <div>An error has occurred</div>;
 }
 
 class App extends React.Component {

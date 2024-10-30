@@ -107,7 +107,7 @@ Sentry.init({
 
 const client = Sentry.getClient<BrowserClient>();
 
-// Add replay integration, will start recoring
+// Add replay integration, will start recording
 client?.addIntegration(replay);
 
 // Stop recording

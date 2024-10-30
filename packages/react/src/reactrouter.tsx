@@ -20,7 +20,7 @@ import type { ReactElement } from 'react';
 
 import type { Action, Location } from './types';
 
-// We need to disable eslint no-explict-any because any is required for the
+// We need to disable eslint no-explicit-any because any is required for the
 // react-router typings.
 type Match = { path: string; url: string; params: Record<string, any>; isExact: boolean }; // eslint-disable-line @typescript-eslint/no-explicit-any
 

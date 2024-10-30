@@ -36,7 +36,7 @@ function errorCallback(): void {
   const rootSpan = activeSpan && getRootSpan(activeSpan);
   if (rootSpan) {
     const message = 'internal_error';
-    DEBUG_BUILD && logger.log(`[Tracing] Root span: ${message} -> Global error occured`);
+    DEBUG_BUILD && logger.log(`[Tracing] Root span: ${message} -> Global error occurred`);
     rootSpan.setStatus({ code: SPAN_STATUS_ERROR, message });
   }
 }

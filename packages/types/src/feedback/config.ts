@@ -168,7 +168,7 @@ export interface FeedbackTextConfiguration {
   isRequiredLabel: string;
 
   /**
-   * The label for the button that adds a screeshot and renders the image editor
+   * The label for the button that adds a screenshot and renders the image editor
    */
   addScreenshotButtonLabel: string;
 

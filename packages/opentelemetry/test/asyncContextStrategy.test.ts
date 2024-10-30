@@ -85,7 +85,7 @@ describe('asyncContextStrategy', () => {
     const initialScope = getCurrentScope();
     const initialIsolationScope = getIsolationScope();
 
-    async function asycnSetExtra(scope: Scope, key: string, value: string): Promise<void> {
+    async function asyncSetExtra(scope: Scope, key: string, value: string): Promise<void> {
       await new Promise(resolve => setTimeout(resolve, 1));
       scope.setExtra(key, value);
     }
@@ -103,8 +103,8 @@ describe('asyncContextStrategy', () => {
       expect(scope1.getScopeData()).toEqual(initialScope.getScopeData());
       expect(isolationScope1.getScopeData()).toEqual(initialIsolationScope.getScopeData());
 
-      await asycnSetExtra(scope1, 'b', 'b');
-      await asycnSetExtra(isolationScope1, 'bb', 'bb');
+      await asyncSetExtra(scope1, 'b', 'b');
+      await asyncSetExtra(isolationScope1, 'bb', 'bb');
 
       await withScope(async () => {
         const scope2 = getCurrentScope();
@@ -115,7 +115,7 @@ describe('asyncContextStrategy', () => {
 
         expect(scope2.getScopeData()).toEqual(scope1.getScopeData());
 
-        await asycnSetExtra(scope2, 'c', 'c');
+        await asyncSetExtra(scope2, 'c', 'c');
 
         expect(scope2.getScopeData().extra).toEqual({
           a: 'a',
@@ -217,7 +217,7 @@ describe('asyncContextStrategy', () => {
     const initialScope = getCurrentScope();
     const initialIsolationScope = getIsolationScope();
 
-    async function asycnSetExtra(scope: Scope, key: string, value: string): Promise<void> {
+    async function asyncSetExtra(scope: Scope, key: string, value: string): Promise<void> {
       await new Promise(resolve => setTimeout(resolve, 1));
       scope.setExtra(key, value);
     }
@@ -235,8 +235,8 @@ describe('asyncContextStrategy', () => {
       expect(scope1.getScopeData()).toEqual(initialScope.getScopeData());
       expect(isolationScope1.getScopeData()).toEqual(initialIsolationScope.getScopeData());
 
-      await asycnSetExtra(scope1, 'b', 'b');
-      await asycnSetExtra(isolationScope1, 'bb', 'bb');
+      await asyncSetExtra(scope1, 'b', 'b');
+      await asyncSetExtra(isolationScope1, 'bb', 'bb');
 
       await withScope(async () => {
         const scope2 = getCurrentScope();
@@ -247,7 +247,7 @@ describe('asyncContextStrategy', () => {
 
         expect(scope2.getScopeData()).toEqual(scope1.getScopeData());
 
-        await asycnSetExtra(scope2, 'c', 'c');
+        await asyncSetExtra(scope2, 'c', 'c');
 
         expect(scope2.getScopeData().extra).toEqual({
           a: 'a',

@@ -45,7 +45,7 @@ function sendErrorToSentry(e: unknown): unknown {
  *
  * - catch errors happening during the execution of `load`
  * - create a load span if performance monitoring is enabled
- * - attach tracing Http headers to `fech` requests if performance monitoring is enabled to get connected traces.
+ * - attach tracing Http headers to `fetch` requests if performance monitoring is enabled to get connected traces.
  * - add a fetch breadcrumb for every `fetch` request
  *
  * Note that tracing Http headers are only attached if the url matches the specified `tracePropagationTargets`

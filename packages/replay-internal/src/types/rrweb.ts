@@ -20,7 +20,7 @@ export type ReplayEventType =
 
 /**
  * This is a partial copy of rrweb's eventWithTime type which only contains the properties
- * we specifcally need in the SDK.
+ * we specifically need in the SDK.
  */
 export type ReplayEventWithTime = {
   type: ReplayEventType;
