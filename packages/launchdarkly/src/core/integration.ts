@@ -21,9 +21,6 @@ import type { LaunchDarklyOptions } from './types';
  * ```
  */
 export const launchDarklyIntegration = ((_options?: LaunchDarklyOptions) => {
-  // const { _ldClient } = options;
-  // const ldClient = _ldClient as LDClient; // for type hint
-
   return {
     name: 'launchdarkly',
 
@@ -41,7 +38,6 @@ export const launchDarklyIntegration = ((_options?: LaunchDarklyOptions) => {
 }) satisfies IntegrationFn;
 
 /**
- * https://launchdarkly.github.io/js-client-sdk/interfaces/LDInspectionFlagUsedHandler.html //TODO: rm this link
  * TODO: docstring
  */
 export class SentryInspector implements LDInspectionFlagUsedHandler {
@@ -61,13 +57,3 @@ export class SentryInspector implements LDInspectionFlagUsedHandler {
     return;
   }
 }
-
-/*
-
-import SentryInspector from @sentry/ld
-
-client = LDClient.init(..., SentryInspector)
-
-sentry.init(integrations: [LDIntegration])
-
-*/
