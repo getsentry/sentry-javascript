@@ -1,5 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import { consoleSandbox, flatten } from '@sentry/utils';
 
 /**
  *  Find the default SDK init file for the given type (client or server).
@@ -64,19 +65,46 @@ export function extractFunctionReexportQueryParameters(query: string): string[] 
 }
 
 /**
+ *  Constructs a comma-separated string with all functions that need to be re-exported later from the server entry.
+ *  It uses Rollup's `exportedBindings` to determine the functions to re-export
+ */
+export function constructFunctionsReExportQuery(
+  exportedBindings: Record<string, string[]> | null,
+  asyncFunctionReExports: string[],
+  debug?: boolean,
+): string {
+  // `exportedBindings` can look like this:  `{ '.': [ 'handler' ] }` or `{ '.': [], './firebase-gen-1.mjs': [ 'server' ] }`
+  // The key `.` refers to exports within the current file, while other keys show from where exports were imported first.
+  const functionsToExport = flatten(Object.values(exportedBindings || {})).filter(functionName =>
+    asyncFunctionReExports.includes(functionName),
+  );
+
+  if (debug && functionsToExport.length === 0) {
+    consoleSandbox(() =>
+      // eslint-disable-next-line no-console
+      console.warn(
+        "[Sentry] No functions found for re-export. In case your server needs to export async functions other than `handler` or  `server`, consider adding the name(s) to Sentry's build options `sentry.asyncFunctionReExports` in your `nuxt.config.ts`.",
+      ),
+    );
+  }
+
+  return functionsToExport?.length ? SENTRY_FUNCTIONS_REEXPORT.concat(functionsToExport.join(',')) : '';
+}
+
+/**
  * Constructs a code snippet with function reexports (can be used in Rollup plugins)
  */
 export function constructFunctionReExport(pathWithQuery: string, entryId: string): string {
   const functionNames = extractFunctionReexportQueryParameters(pathWithQuery);
 
   return functionNames.reduce(
-    (functionsCode, currFunctionName, idx) =>
+    (functionsCode, currFunctionName) =>
       functionsCode.concat(
-        `async function reExport${idx}(...args) {\n` +
+        `async function reExport${currFunctionName.toUpperCase()}(...args) {\n` +
           `  const res = await import(${JSON.stringify(entryId)});\n` +
           `  return res.${currFunctionName}.call(this, ...args);\n` +
           '}\n' +
-          `export { reExport${idx} as ${currFunctionName} };\n`,
+          `export { reExport${currFunctionName.toUpperCase()} as ${currFunctionName} };\n`,
       ),
     '',
   );

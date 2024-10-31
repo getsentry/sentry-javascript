@@ -118,11 +118,12 @@ export type SentryNuxtModuleOptions = {
   dynamicImportForServerEntry?: boolean;
 
   /**
-   * The `asyncFunctionReExports` option is only relevant when `dynamicImportForServerEntry: true` (default value).
+   * By default—unless you configure `dynamicImportForServerEntry: false`—the SDK will try to wrap your application entrypoint
+   * with a dynamic `import()` to ensure all dependencies can be properly instrumented.
    *
-   * As the server entry file is wrapped with a dynamic `import()`, previous async function exports need to be re-exported.
-   * The SDK detects and re-exports those exports (mostly serverless functions). This is why they are re-exported as async functions.
-   * In case you have a custom setup and your server exports other async functions, you can override the default array with this option.
+   * By default, the SDK will wrap the default export as well as a `handler` or `server` export from the entrypoint.
+   * If your application has a different main export that is used to run the application, you can overwrite this by providing an array of export names to wrap.
+   * Any wrapped export is expected to be an async function.
    *
    * @default ['default', 'handler', 'server']
    */

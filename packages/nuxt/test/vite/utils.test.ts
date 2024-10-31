@@ -5,6 +5,7 @@ import {
   SENTRY_FUNCTIONS_REEXPORT,
   SENTRY_WRAPPED_ENTRY,
   constructFunctionReExport,
+  constructFunctionsReExportQuery,
   extractFunctionReexportQueryParameters,
   findDefaultSdkInitFile,
   removeSentryQueryFromPath,
@@ -102,6 +103,38 @@ describe('extractFunctionReexportQueryParameters', () => {
   });
 });
 
+describe('constructFunctionsReExportQuery', () => {
+  it.each([
+    [{ '.': ['handler'] }, ['handler'], '?sentry-query-functions-reexport=handler'],
+    [{ '.': ['handler'], './module': ['server'] }, [], ''],
+    [{ '.': ['handler'], './module': ['server'] }, ['server'], '?sentry-query-functions-reexport=server'],
+    [{ '.': ['handler', 'otherFunction'] }, ['handler'], '?sentry-query-functions-reexport=handler'],
+    [{ '.': ['handler', 'otherFn'] }, ['handler', 'otherFn'], '?sentry-query-functions-reexport=handler,otherFn'],
+    [{ '.': ['bar'], './module': ['foo'] }, ['bar', 'foo'], '?sentry-query-functions-reexport=bar,foo'],
+  ])(
+    'constructs re-export query for exportedBindings: %j and asyncFunctionReExports: %j',
+    (exportedBindings, asyncFunctionReExports, expected) => {
+      const result = constructFunctionsReExportQuery(exportedBindings, asyncFunctionReExports);
+      expect(result).toBe(expected);
+    },
+  );
+
+  it('logs a warning if no functions are found for re-export and debug is true', () => {
+    const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const exportedBindings = { '.': ['handler'] };
+    const asyncFunctionReExports = ['nonExistentFunction'];
+    const debug = true;
+
+    const result = constructFunctionsReExportQuery(exportedBindings, asyncFunctionReExports, debug);
+    expect(result).toBe('');
+    expect(consoleWarnSpy).toHaveBeenCalledWith(
+      "[Sentry] No functions found for re-export. In case your server needs to export async functions other than `handler` or  `server`, consider adding the name(s) to Sentry's build options `sentry.asyncFunctionReExports` in your `nuxt.config.ts`.",
+    );
+
+    consoleWarnSpy.mockRestore();
+  });
+});
+
 describe('constructFunctionReExport', () => {
   it('constructs re-export code for given query parameters and entry ID', () => {
     const query = `${SENTRY_FUNCTIONS_REEXPORT}foo,bar,${QUERY_END_INDICATOR}}`;
@@ -111,16 +144,16 @@ describe('constructFunctionReExport', () => {
     const result2 = constructFunctionReExport(query2, entryId);
 
     const expected = `
-async function reExport0(...args) {
+async function reExportFOO(...args) {
   const res = await import("./module");
   return res.foo.call(this, ...args);
 }
-export { reExport0 as foo };
-async function reExport1(...args) {
+export { reExportFOO as foo };
+async function reExportBAR(...args) {
   const res = await import("./module");
   return res.bar.call(this, ...args);
 }
-export { reExport1 as bar };
+export { reExportBAR as bar };
 `;
     expect(result.trim()).toBe(expected.trim());
     expect(result2.trim()).toBe(expected.trim());
@@ -132,11 +165,26 @@ export { reExport1 as bar };
     const result = constructFunctionReExport(query, entryId);
 
     const expected = `
-async function reExport0(...args) {
+async function reExportDEFAULT(...args) {
   const res = await import("./index");
   return res.default.call(this, ...args);
 }
-export { reExport0 as default };
+export { reExportDEFAULT as default };
+`;
+    expect(result.trim()).toBe(expected.trim());
+  });
+
+  it('constructs re-export code for a "default" query parameters and entry ID', () => {
+    const query = `${SENTRY_FUNCTIONS_REEXPORT}default${QUERY_END_INDICATOR}}`;
+    const entryId = './index';
+    const result = constructFunctionReExport(query, entryId);
+
+    const expected = `
+async function reExportDEFAULT(...args) {
+  const res = await import("./index");
+  return res.default.call(this, ...args);
+}
+export { reExportDEFAULT as default };
 `;
     expect(result.trim()).toBe(expected.trim());
   });

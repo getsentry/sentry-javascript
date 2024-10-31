@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import { createResolver } from '@nuxt/kit';
 import type { Nuxt } from '@nuxt/schema';
-import { consoleSandbox, flatten } from '@sentry/utils';
+import { consoleSandbox } from '@sentry/utils';
 import type { Nitro } from 'nitropack';
 import type { InputPluginOption } from 'rollup';
 import type { SentryNuxtModuleOptions } from '../common/types';
@@ -10,6 +10,7 @@ import {
   SENTRY_FUNCTIONS_REEXPORT,
   SENTRY_WRAPPED_ENTRY,
   constructFunctionReExport,
+  constructFunctionsReExportQuery,
   removeSentryQueryFromPath,
 } from './utils';
 
@@ -141,28 +142,13 @@ function wrapEntryWithDynamicImport({
 
         moduleInfo.moduleSideEffects = true;
 
-        // `exportedBindings` can look like this:  `{ '.': [ 'handler' ] }` or `{ '.': [], './firebase-gen-1.mjs': [ 'server' ] }`
-        // The key `.` refers to exports within the current file, while other keys show from where exports were imported first.
-        const functionsToExport = flatten(Object.values(moduleInfo.exportedBindings || {})).filter(functionName =>
-          asyncFunctionReExports.includes(functionName),
-        );
-
-        if (debug && functionsToExport.length === 0) {
-          consoleSandbox(() =>
-            // eslint-disable-next-line no-console
-            console.warn(
-              "[Sentry] No functions found for re-export. In case your server needs to export async functions other than `handler` or  `server`, consider adding the name(s) to Sentry's build options `sentry.asyncFunctionReExports` in your `nuxt.config.ts`.",
-            ),
-          );
-        }
-
         // The enclosing `if` already checks for the suffix in `source`, but a check in `resolution.id` is needed as well to prevent multiple attachment of the suffix
         return resolution.id.includes(`.mjs${SENTRY_WRAPPED_ENTRY}`)
           ? resolution.id
           : resolution.id
               // Concatenates the query params to mark the file (also attaches names of re-exports - this is needed for serverless functions to re-export the handler)
               .concat(SENTRY_WRAPPED_ENTRY)
-              .concat(functionsToExport?.length ? SENTRY_FUNCTIONS_REEXPORT.concat(functionsToExport.join(',')) : '')
+              .concat(constructFunctionsReExportQuery(moduleInfo.exportedBindings, asyncFunctionReExports, debug))
               .concat(QUERY_END_INDICATOR);
       }
       return null;

@@ -21,9 +21,7 @@ export default defineNuxtModule<ModuleOptions>({
     const moduleOptions = {
       ...moduleOptionsParam,
       dynamicImportForServerEntry: moduleOptionsParam.dynamicImportForServerEntry !== false, // default: true
-      asyncFunctionReExports: moduleOptionsParam.asyncFunctionReExports
-        ? moduleOptionsParam.asyncFunctionReExports
-        : ['default', 'handler', 'server'],
+      asyncFunctionReExports: moduleOptionsParam.asyncFunctionReExports || ['default', 'handler', 'server'],
     };
 
     const moduleDirResolver = createResolver(import.meta.url);
