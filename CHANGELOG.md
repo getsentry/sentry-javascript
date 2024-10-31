@@ -10,7 +10,7 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
-- **feat(nuxt): Add Sentry Pinia plugin ([#14138](https://github.com/getsentry/sentry-javascript/pull/14138))**
+- **feat(nuxt): Add `piniaIntegration` ([#14138](https://github.com/getsentry/sentry-javascript/pull/14138))**
 
 The Nuxt SDK now allows you to track Pinia state for captured errors. To enable the Pinia plugin, add the `piniaIntegration` to your client config:
 
