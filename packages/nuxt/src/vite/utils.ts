@@ -44,9 +44,8 @@ export function removeSentryQueryFromPath(url: string): string {
 }
 
 /**
- * Extracts and sanitizes function re-export query parameters from a query string.
- * If it is a default export, it is not considered for re-exporting. This function is mostly relevant for re-exporting
- * serverless `handler` functions.
+ * Extracts and sanitizes function re-export and function wrap query parameters from a query string.
+ * If it is a default export, it is not considered for re-exporting.
  *
  * Only exported for testing.
  */
@@ -83,7 +82,8 @@ export function extractFunctionReexportQueryParameters(query: string): { wrap: s
 
 /**
  *  Constructs a comma-separated string with all functions that need to be re-exported later from the server entry.
- *  It uses Rollup's `exportedBindings` to determine the functions to re-export
+ *  It uses Rollup's `exportedBindings` to determine the functions to re-export. Functions which should be wrapped
+ *  (e.g. serverless handlers) are wrapped by Sentry.
  */
 export function constructWrappedFunctionExportQuery(
   exportedBindings: Record<string, string[]> | null,
