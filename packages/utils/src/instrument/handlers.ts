@@ -37,9 +37,9 @@ export function resetInstrumentationHandlers(): void {
 /** Maybe run an instrumentation function, unless it was already called. */
 export function maybeInstrument(type: InstrumentHandlerType, instrumentFn: () => void): void {
   if (!instrumented[type]) {
+    instrumented[type] = true;
     try {
       instrumentFn();
-      instrumented[type] = true;
     } catch (e) {
       DEBUG_BUILD && logger.error(`Error while instrumenting ${type}`, e);
     }
