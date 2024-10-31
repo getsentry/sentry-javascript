@@ -30,8 +30,8 @@ export type BrowserOptions = Options<BrowserTransportOptions> &
     /**
      * Important: Only set this option if you know what you are doing!
      *
-     * By default, the SDK will check if it is initialized in a browser extension
-     * if you call `Sentry.init`. In case it is, it will stop initialization
+     * By default, the SDK will check if `Sentry.init` is called in a browser extension.
+     * In case it is, it will stop initialization and log a warning
      * because browser extensions require a different Sentry initialization process:
      * https://docs.sentry.io/platforms/javascript/best-practices/shared-environments/
      *
