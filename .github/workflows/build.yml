@@ -928,6 +928,7 @@ jobs:
             'node-nestjs-basic',
             'node-nestjs-distributed-tracing',
             'nestjs-basic',
+            'nestjs-8',
             'nestjs-distributed-tracing',
             'nestjs-with-submodules',
             'nestjs-with-submodules-decorator',
