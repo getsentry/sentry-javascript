@@ -7,10 +7,11 @@ import type { InputPluginOption } from 'rollup';
 import type { SentryNuxtModuleOptions } from '../common/types';
 import {
   QUERY_END_INDICATOR,
-  SENTRY_FUNCTIONS_REEXPORT,
+  SENTRY_REEXPORTED_FUNCTIONS,
   SENTRY_WRAPPED_ENTRY,
+  SENTRY_WRAPPED_FUNCTIONS,
   constructFunctionReExport,
-  constructFunctionsReExportQuery,
+  constructWrappedFunctionExportQuery,
   removeSentryQueryFromPath,
 } from './utils';
 
@@ -85,8 +86,8 @@ export function addServerConfigToBuild(
 export function addDynamicImportEntryFileWrapper(
   nitro: Nitro,
   serverConfigFile: string,
-  moduleOptions: Omit<SentryNuxtModuleOptions, 'asyncFunctionReExports'> &
-    Required<Pick<SentryNuxtModuleOptions, 'asyncFunctionReExports'>>,
+  moduleOptions: Omit<SentryNuxtModuleOptions, 'entrypointWrappedFunctions'> &
+    Required<Pick<SentryNuxtModuleOptions, 'entrypointWrappedFunctions'>>,
 ): void {
   if (!nitro.options.rollupConfig) {
     nitro.options.rollupConfig = { output: {} };
@@ -102,7 +103,7 @@ export function addDynamicImportEntryFileWrapper(
   nitro.options.rollupConfig.plugins.push(
     wrapEntryWithDynamicImport({
       resolvedSentryConfigPath: createResolver(nitro.options.srcDir).resolve(`/${serverConfigFile}`),
-      asyncFunctionReExports: moduleOptions.asyncFunctionReExports,
+      entrypointWrappedFunctions: moduleOptions.entrypointWrappedFunctions,
     }),
   );
 }
@@ -114,9 +115,9 @@ export function addDynamicImportEntryFileWrapper(
  */
 function wrapEntryWithDynamicImport({
   resolvedSentryConfigPath,
-  asyncFunctionReExports,
+  entrypointWrappedFunctions,
   debug,
-}: { resolvedSentryConfigPath: string; asyncFunctionReExports: string[]; debug?: boolean }): InputPluginOption {
+}: { resolvedSentryConfigPath: string; entrypointWrappedFunctions: string[]; debug?: boolean }): InputPluginOption {
   return {
     name: 'sentry-wrap-entry-with-dynamic-import',
     async resolveId(source, importer, options) {
@@ -148,7 +149,9 @@ function wrapEntryWithDynamicImport({
           : resolution.id
               // Concatenates the query params to mark the file (also attaches names of re-exports - this is needed for serverless functions to re-export the handler)
               .concat(SENTRY_WRAPPED_ENTRY)
-              .concat(constructFunctionsReExportQuery(moduleInfo.exportedBindings, asyncFunctionReExports, debug))
+              .concat(
+                constructWrappedFunctionExportQuery(moduleInfo.exportedBindings, entrypointWrappedFunctions, debug),
+              )
               .concat(QUERY_END_INDICATOR);
       }
       return null;
@@ -158,9 +161,10 @@ function wrapEntryWithDynamicImport({
         const entryId = removeSentryQueryFromPath(id);
 
         // Mostly useful for serverless `handler` functions
-        const reExportedAsyncFunctions = id.includes(SENTRY_FUNCTIONS_REEXPORT)
-          ? constructFunctionReExport(id, entryId)
-          : '';
+        const reExportedFunctions =
+          id.includes(SENTRY_WRAPPED_FUNCTIONS) || id.includes(SENTRY_REEXPORTED_FUNCTIONS)
+            ? constructFunctionReExport(id, entryId)
+            : '';
 
         return (
           // Regular `import` of the Sentry config
@@ -170,7 +174,7 @@ function wrapEntryWithDynamicImport({
           `import(${JSON.stringify(entryId)});\n` +
           // By importing "import-in-the-middle/hook.mjs", we can make sure this file wil be included, as not all node builders are including files imported with `module.register()`.
           "import 'import-in-the-middle/hook.mjs';\n" +
-          `${reExportedAsyncFunctions}\n`
+          `${reExportedFunctions}\n`
         );
       }
 
