@@ -541,10 +541,7 @@ export function _addResourceSpans(
   setResourceEntrySizeData(attributes, entry, 'decodedBodySize', 'http.decoded_response_content_length');
 
   if (entry.deliveryType != null) {
-    // Falling back to 'default' as attributes with empty string are dropped by our backend.
-    // The empty string is the default value for the deliveryType attribute, indicating that
-    // the browser actually sent a request (as opposed to retrieved the response from its cache).
-    attributes['http.response_delivery_type'] = entry.deliveryType || 'default';
+    attributes['http.response_delivery_type'] = entry.deliveryType;
   }
 
   if ('renderBlockingStatus' in entry) {
