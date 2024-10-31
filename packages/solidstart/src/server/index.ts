@@ -36,6 +36,7 @@ export {
   extractRequestData,
   extraErrorDataIntegration,
   fastifyIntegration,
+  firebaseIntegration,
   flush,
   functionToStringIntegration,
   generateInstrumentOnce,

@@ -5,6 +5,7 @@ import { amqplibIntegration, instrumentAmqplib } from './amqplib';
 import { connectIntegration, instrumentConnect } from './connect';
 import { expressIntegration, instrumentExpress } from './express';
 import { fastifyIntegration, instrumentFastify } from './fastify';
+import { firebaseIntegration, instrumentFirebase } from './firebase';
 import { genericPoolIntegration, instrumentGenericPool } from './genericPool';
 import { graphqlIntegration, instrumentGraphql } from './graphql';
 import { hapiIntegration, instrumentHapi } from './hapi';
@@ -45,6 +46,7 @@ export function getAutoPerformanceIntegrations(): Integration[] {
     kafkaIntegration(),
     amqplibIntegration(),
     lruMemoizerIntegration(),
+    firebaseIntegration(),
   ];
 }
 
@@ -73,5 +75,6 @@ export function getOpenTelemetryInstrumentationToPreload(): (((options?: any) =>
     instrumentRedis,
     instrumentGenericPool,
     instrumentAmqplib,
+    instrumentFirebase,
   ];
 }

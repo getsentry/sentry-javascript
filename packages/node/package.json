@@ -102,7 +102,8 @@
     "import-in-the-middle": "^1.11.2"
   },
   "devDependencies": {
-    "@types/node": "^14.18.0"
+    "@types/node": "^14.18.0",
+    "firebase": "11.0.1"
   },
   "scripts": {
     "build": "run-p build:transpile build:types",
