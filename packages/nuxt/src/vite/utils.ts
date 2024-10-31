@@ -66,6 +66,7 @@ export function extractFunctionReexportQueryParameters(query: string): { wrap: s
       ? wrapMatch[1]
           .split(',')
           .filter(param => param !== '')
+          // Sanitize, as code could be injected with another rollup plugin
           .map((str: string) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
       : [];
 
@@ -74,6 +75,7 @@ export function extractFunctionReexportQueryParameters(query: string): { wrap: s
       ? reexportMatch[1]
           .split(',')
           .filter(param => param !== '' && param !== 'default')
+          // Sanitize, as code could be injected with another rollup plugin
           .map((str: string) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
       : [];
 
@@ -108,7 +110,7 @@ export function constructWrappedFunctionExportQuery(
     consoleSandbox(() =>
       // eslint-disable-next-line no-console
       console.warn(
-        "[Sentry] No functions found to wrap. In case your server needs to export async functions other than `handler` or  `server`, consider adding the name(s) to Sentry's build options `sentry.entrypointWrappedFunctions` in your `nuxt.config.ts`.",
+        "[Sentry] No functions found to wrap. In case the server needs to export async functions other than `handler` or  `server`, consider adding the name(s) to Sentry's build options `sentry.entrypointWrappedFunctions` in `nuxt.config.ts`.",
       ),
     );
   }
@@ -120,7 +122,7 @@ export function constructWrappedFunctionExportQuery(
     ? `${SENTRY_REEXPORTED_FUNCTIONS}${functionsToExport.reexport.join(',')}`
     : '';
 
-  return [wrapQuery, reexportQuery].filter(Boolean).join('');
+  return [wrapQuery, reexportQuery].join('');
 }
 
 /**

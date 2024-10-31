@@ -118,12 +118,12 @@ export type SentryNuxtModuleOptions = {
   dynamicImportForServerEntry?: boolean;
 
   /**
-   * By default—unless you configure `dynamicImportForServerEntry: false`—the SDK will try to wrap your application entrypoint
+   * By default—unless you configure `dynamicImportForServerEntry: false`—the SDK will try to wrap your Nitro server entrypoint
    * with a dynamic `import()` to ensure all dependencies can be properly instrumented. Any previous exports from the entrypoint are still exported.
    * Most exports of the server entrypoint are serverless functions and those are wrapped by Sentry. Other exports stay as-is.
    *
    * By default, the SDK will wrap the default export as well as a `handler` or `server` export from the entrypoint.
-   * If your application has a different main export that is used to run the application, you can overwrite this by providing an array of export names to wrap.
+   * If your server has a different main export that is used to run the server, you can overwrite this by providing an array of export names to wrap.
    * Any wrapped export is expected to be an async function.
    *
    * @default ['default', 'handler', 'server']
