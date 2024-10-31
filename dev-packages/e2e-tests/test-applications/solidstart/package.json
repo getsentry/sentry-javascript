@@ -1,5 +1,5 @@
 {
-  "name": "example-with-vitest",
+  "name": "solidstart-e2e-testapp",
   "version": "0.0.0",
   "scripts": {
     "clean": "pnpx rimraf node_modules pnpm-lock.yaml .vinxi .output",
@@ -27,7 +27,7 @@
     "solid-js": "1.8.17",
     "typescript": "^5.4.5",
     "vinxi": "^0.4.0",
-    "vite": "^5.2.8",
+    "vite": "^5.4.10",
     "vite-plugin-solid": "^2.10.2",
     "vitest": "^1.5.0"
   },

@@ -31,20 +31,6 @@ Sentry.init({
 
 ### Important Changes
 
-- **feat(nuxt): Add Sentry Pinia plugin ([#14047](https://github.com/getsentry/sentry-javascript/pull/14047))**
-
-The Nuxt SDK now allows you to track Pinia state for captured errors. To enable the Pinia plugin, set the `trackPinia` option to `true` in your client config:
-
-```ts
-// sentry.client.config.ts
-
-Sentry.init({
-  trackPinia: true,
-});
-```
-
-Read more about the Pinia plugin in the [Sentry Pinia Documentation](https://docs.sentry.io/platforms/javascript/guides/nuxt/features/pinia/).
-
 - **feat(nextjs/vercel-edge/cloudflare): Switch to OTEL for performance monitoring ([#13889](https://github.com/getsentry/sentry-javascript/pull/13889))**
 
 With this release, the Sentry Next.js, and Cloudflare SDKs will now capture performance data based on OpenTelemetry.
