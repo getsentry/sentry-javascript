@@ -160,7 +160,7 @@ declare const __SENTRY_RELEASE__: string | undefined;
 export function init(browserOptions: BrowserOptions = {}): Client | undefined {
   const options = applyDefaultOptions(browserOptions);
 
-  if (shouldShowBrowserExtensionError()) {
+  if (!options.skipBrowserExtensionCheck && shouldShowBrowserExtensionError()) {
     consoleSandbox(() => {
       // eslint-disable-next-line no-console
       console.error(
