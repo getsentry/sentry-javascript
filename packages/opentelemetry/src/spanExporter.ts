@@ -44,6 +44,7 @@ export class SentrySpanExporter {
   private _timeout: number;
 
   public constructor(options?: { timeout?: number }) {
+    this._lastCleanupAt = Date.now();
     this._finishedSpans = [];
     this._timeout = options?.timeout || DEFAULT_TIMEOUT;
   }
@@ -83,7 +84,8 @@ export class SentrySpanExporter {
     DEBUG_BUILD &&
       logger.log(`SpanExporter exported ${sentSpanCount} spans, ${remainingOpenSpanCount} unsent spans remaining`);
 
-    this._cleanupOldSpans(remainingSpans);
+    this._finishedSpans = remainingSpans;
+    this._cleanupOldSpans();
   }
 
   /** Clear the exporter. */
@@ -104,19 +106,23 @@ export class SentrySpanExporter {
    * Remove any span that is older than 5min.
    * We do this to avoid leaking memory.
    */
-  private _cleanupOldSpans(spans = this._finishedSpans): void {
+  private _cleanupOldSpans(): void {
+    const spans = this._finishedSpans;
     const currentTimeSeconds = Date.now() / 1000;
-    this._finishedSpans = spans.filter(span => {
+    if (this._lastCleanupAt < Date.now() - this._timeout * 1000) {
+      this._lastCleanupAt = Date.now();
+      this._finishedSpans = spans.filter(span => {
       const shouldDrop = shouldCleanupSpan(span, currentTimeSeconds, this._timeout);
-      DEBUG_BUILD &&
+        DEBUG_BUILD &&
         shouldDrop &&
         logger.log(
           `SpanExporter dropping span ${span.name} (${
             span.spanContext().spanId
           }) because it is pending for more than 5 minutes.`,
         );
-      return !shouldDrop;
-    });
+        return !shouldDrop;
+      });
+    }
   }
 }
 
