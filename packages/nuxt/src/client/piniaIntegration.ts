@@ -20,7 +20,7 @@ const _piniaIntegration = ((
         consoleSandbox(() => {
           // eslint-disable-next-line no-console
           console.warn(
-            '[Sentry] You added the Pinia integration, but the passed parameter `pinia` has the wrong value. Make sure to enable Pinia by adding `"@pinia/nuxt"` to your Nuxt modules array and pass pinia to Sentry with `piniaIntegration(usePinia())`. Current value of `pinia`: ',
+            '[Sentry] The Pinia integration was added, but the passed parameter `pinia` has the wrong value. Make sure to enable Pinia by adding `"@pinia/nuxt"` to the Nuxt modules array and pass pinia to Sentry with `piniaIntegration(usePinia())`. Current value of `pinia`:',
             pinia,
           );
         });
