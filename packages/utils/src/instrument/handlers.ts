@@ -41,7 +41,7 @@ export function maybeInstrument(type: InstrumentHandlerType, instrumentFn: () =>
       instrumentFn();
       instrumented[type] = true;
     } catch (e) {
-      DEBUG_BUILD && logger.error('Error while instrumenting', e);
+      DEBUG_BUILD && logger.error(`Error while instrumenting ${type}`, e);
     }
   }
 }
