@@ -64,7 +64,7 @@
     "@sentry/vite-plugin": "^2.22.6"
   },
   "devDependencies": {
-    "astro": "^3.5.0",
+    "astro": "^4.16.8",
     "vite": "^5.4.10"
   },
   "scripts": {
