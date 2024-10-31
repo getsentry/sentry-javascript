@@ -3,7 +3,7 @@
 import * as Sentry from '@sentry/browser';
 import type { Client as SentryClient, Event, EventHint, IntegrationFn } from '@sentry/types';
 import type { LDContext, LDEvaluationDetail, LDInspectionFlagUsedHandler } from 'launchdarkly-js-client-sdk';
-import type { LaunchDarklyOptions } from './types';
+import type { LaunchDarklyOptions } from '../types';
 
 /**
  * Sentry integration for capturing feature flags from LaunchDarkly.

@@ -41,7 +41,7 @@
   "dependencies": {
     "@sentry/browser": "^8.35.0",
     "@sentry/core": "8.35.0",
-    "@sentry/types": "8.35.0",
+    "@sentry/types": "file:.yalc/@sentry/types",
     "@sentry/utils": "8.35.0",
     "launchdarkly-js-client-sdk": "^3.5.0"
   },

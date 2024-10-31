@@ -22,7 +22,14 @@ import type {
   SeverityLevel,
   User,
 } from '@sentry/types';
-import { dateTimestampInSeconds, generatePropagationContext, isPlainObject, logger, uuid4 } from '@sentry/utils';
+import {
+  LRUMap,
+  dateTimestampInSeconds,
+  generatePropagationContext,
+  isPlainObject,
+  logger,
+  uuid4,
+} from '@sentry/utils';
 
 import { updateSession } from './session';
 import { _getSpanForScope, _setSpanForScope } from './utils/spanOnScope';
@@ -99,7 +106,7 @@ class ScopeClass implements ScopeInterface {
   protected _lastEventId?: string;
 
   /** LRU cache of flags last evaluated by a feature flag provider. Used by FF integrations. */
-  protected _flagBuffer: FeatureFlag[];
+  protected _flagBuffer: LRUMap<FeatureFlag['flag'], FeatureFlag['result']>;
 
   /** Max size of the flagBuffer */
   protected _flagBufferSize: number; // TODO: make const?
@@ -119,8 +126,8 @@ class ScopeClass implements ScopeInterface {
     this._sdkProcessingMetadata = {};
     this._propagationContext = generatePropagationContext();
 
-    this._flagBuffer = [];
     this._flagBufferSize = 100;
+    this._flagBuffer = new LRUMap<FeatureFlag['flag'], FeatureFlag['result']>(this._flagBufferSize);
   }
 
   /**
@@ -513,30 +520,18 @@ class ScopeClass implements ScopeInterface {
    * @inheritDoc
    */
   public getFlags(): FeatureFlag[] {
-    return this._flagBuffer || [];
+    const flags: FeatureFlag[] = [];
+    this._flagBuffer.keys().forEach(key => {
+      flags.push({ flag: key, result: this._flagBuffer.get(key) as boolean });
+    });
+    return flags;
   }
 
   /**
    * @inheritDoc
    */
   public insertFlag(name: string, value: boolean): void {
-    // Check if the flag is already in the buffer
-    const index = this._flagBuffer.findIndex(f => f.flag === name);
-
-    if (index !== -1) {
-      // Delete flag if it is in the buffer
-      this._flagBuffer.splice(index, 1);
-    } else if (this._flagBuffer.length === this._flagBufferSize) {
-      // If at capacity, we need to remove the earliest flag (pop from front)
-      // This will only happen if not a duplicate flag
-      this._flagBuffer.shift();
-    }
-
-    // Push the flag to the end of the queue
-    this._flagBuffer.push({
-      flag: name,
-      result: value,
-    });
+    this._flagBuffer.set(name, value);
   }
 
   /**

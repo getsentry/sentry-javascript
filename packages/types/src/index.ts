@@ -174,4 +174,3 @@ export type {
 export type { ParameterizedString } from './parameterize';
 export type { ContinuousProfiler, ProfilingIntegration, Profiler } from './profiling';
 export type { ViewHierarchyData, ViewHierarchyWindow } from './view-hierarchy';
-export type { FeatureFlag } from './flags';

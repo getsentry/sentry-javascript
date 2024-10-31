@@ -63,6 +63,7 @@
     "packages/gatsby",
     "packages/google-cloud-serverless",
     "packages/integration-shims",
+    "packages/launchdarkly",
     "packages/nestjs",
     "packages/nextjs",
     "packages/node",
