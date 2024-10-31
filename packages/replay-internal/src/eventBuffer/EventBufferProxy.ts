@@ -31,11 +31,6 @@ export class EventBufferProxy implements EventBuffer {
   }
 
   /** @inheritdoc */
-  public set waitForCheckout(value: boolean) {
-    this._used.waitForCheckout = value;
-  }
-
-  /** @inheritdoc */
   public get type(): EventBufferType {
     return this._used.type;
   }
@@ -52,6 +47,11 @@ export class EventBufferProxy implements EventBuffer {
   /** @inheritdoc */
   public set hasCheckout(value: boolean) {
     this._used.hasCheckout = value;
+  }
+
+  /** @inheritdoc */
+  public set waitForCheckout(value: boolean) {
+    this._used.waitForCheckout = value;
   }
 
   /** @inheritDoc */
