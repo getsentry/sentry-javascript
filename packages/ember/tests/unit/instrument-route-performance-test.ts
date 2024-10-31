@@ -4,13 +4,14 @@ import { setupTest } from 'ember-qunit';
 import { module, test } from 'qunit';
 import sinon from 'sinon';
 
+import type { SentryTestContext } from '../helpers/setup-sentry';
 import { setupSentryTest } from '../helpers/setup-sentry';
 
 module('Unit | Utility | instrument-route-performance', function (hooks) {
   setupTest(hooks);
   setupSentryTest(hooks);
 
-  test('wrapped Route hooks maintain the current context', function (assert) {
+  test('wrapped Route hooks maintain the current context', function (this: SentryTestContext, assert) {
     const beforeModel = sinon.spy();
     const model = sinon.spy();
     const afterModel = sinon.spy();
