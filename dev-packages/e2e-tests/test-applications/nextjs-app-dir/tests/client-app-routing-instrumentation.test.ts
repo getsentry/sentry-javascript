@@ -42,9 +42,7 @@ test('Creates a navigation transaction for app router routes', async ({ page }) 
       // It seems to differ between Next.js versions whether the route is parameterized or not
       (transactionEvent?.transaction === 'GET /server-component/parameter/foo/bar/baz' ||
         transactionEvent?.transaction === 'GET /server-component/parameter/[...parameters]') &&
-      transactionEvent.contexts?.trace?.data?.['http.target'].startsWith('/server-component/parameter/foo/bar/baz') &&
-      (await clientNavigationTransactionPromise).contexts?.trace?.trace_id ===
-        transactionEvent.contexts?.trace?.trace_id
+      transactionEvent.contexts?.trace?.data?.['http.target'].startsWith('/server-component/parameter/foo/bar/baz')
     );
   });
 
@@ -52,6 +50,10 @@ test('Creates a navigation transaction for app router routes', async ({ page }) 
 
   expect(await clientNavigationTransactionPromise).toBeDefined();
   expect(await serverComponentTransactionPromise).toBeDefined();
+
+  expect((await serverComponentTransactionPromise).contexts?.trace?.trace_id).toBe(
+    (await clientNavigationTransactionPromise).contexts?.trace?.trace_id,
+  );
 });
 
 test('Creates a navigation transaction for `router.push()`', async ({ page }) => {

@@ -36,6 +36,7 @@ export function makeBaseNPMConfig(options = {}) {
     packageSpecificConfig = {},
     addPolyfills = true,
     sucrase = {},
+    bundledBuiltins = [],
   } = options;
 
   const nodeResolvePlugin = makeNodeResolvePlugin();
@@ -113,7 +114,7 @@ export function makeBaseNPMConfig(options = {}) {
 
     // don't include imported modules from outside the package in the final output
     external: [
-      ...builtinModules,
+      ...builtinModules.filter(m => !bundledBuiltins.includes(m)),
       ...Object.keys(packageDotJSON.dependencies || {}),
       ...Object.keys(packageDotJSON.peerDependencies || {}),
       ...Object.keys(packageDotJSON.optionalDependencies || {}),

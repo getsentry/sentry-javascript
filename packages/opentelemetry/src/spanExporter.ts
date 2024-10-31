@@ -105,8 +105,9 @@ export class SentrySpanExporter {
    * We do this to avoid leaking memory.
    */
   private _cleanupOldSpans(spans = this._finishedSpans): void {
+    const currentTimeSeconds = Date.now() / 1000;
     this._finishedSpans = spans.filter(span => {
-      const shouldDrop = shouldCleanupSpan(span, this._timeout);
+      const shouldDrop = shouldCleanupSpan(span, currentTimeSeconds, this._timeout);
       DEBUG_BUILD &&
         shouldDrop &&
         logger.log(
@@ -174,8 +175,8 @@ function getCompletedRootNodes(nodes: SpanNode[]): SpanNodeCompleted[] {
   return nodes.filter(nodeIsCompletedRootNode);
 }
 
-function shouldCleanupSpan(span: ReadableSpan, maxStartTimeOffsetSeconds: number): boolean {
-  const cutoff = Date.now() / 1000 - maxStartTimeOffsetSeconds;
+function shouldCleanupSpan(span: ReadableSpan, currentTimeSeconds: number, maxStartTimeOffsetSeconds: number): boolean {
+  const cutoff = currentTimeSeconds - maxStartTimeOffsetSeconds;
   return spanTimeInputToSeconds(span.startTime) < cutoff;
 }
 
@@ -345,7 +346,6 @@ function removeSentryAttributes(data: Record<string, unknown>): Record<string, u
   /* eslint-disable @typescript-eslint/no-dynamic-delete */
   delete cleanedData[SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE];
   delete cleanedData[SEMANTIC_ATTRIBUTE_SENTRY_PARENT_IS_REMOTE];
-  delete cleanedData['sentry.skip_span_data_inference'];
   /* eslint-enable @typescript-eslint/no-dynamic-delete */
 
   return cleanedData;

@@ -1,21 +1,10 @@
 import type { init as initNode } from '@sentry/node';
 import type { SentryRollupPluginOptions } from '@sentry/rollup-plugin';
 import type { SentryVitePluginOptions } from '@sentry/vite-plugin';
-import type { createSentryPiniaPlugin, init as initVue } from '@sentry/vue';
+import type { init as initVue } from '@sentry/vue';
 
 // Omitting 'app' as the Nuxt SDK will add the app instance in the client plugin (users do not have to provide this)
-export type SentryNuxtClientOptions = Omit<Parameters<typeof initVue>[0] & object, 'app'> & {
-  /**
-   * Control if an existing Pinia store should be monitored.
-   * Set this to `true` to track with default options or provide your custom Pinia plugin options.
-   *
-   * This only works if "@pinia/nuxt" is added to the `modules` array.
-   *
-   * @default false
-   */
-  trackPinia?: true | Parameters<typeof createSentryPiniaPlugin>[0];
-};
-
+export type SentryNuxtClientOptions = Omit<Parameters<typeof initVue>[0] & object, 'app'>;
 export type SentryNuxtServerOptions = Omit<Parameters<typeof initNode>[0] & object, 'app'>;
 
 type SourceMapsOptions = {

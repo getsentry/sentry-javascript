@@ -26,14 +26,6 @@ sentryTest('captures response size from Content-Length header if available', asy
     });
   });
 
-  await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-    return route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ id: 'test-id' }),
-    });
-  });
-
   const requestPromise = waitForErrorRequest(page);
 
   const replayRequestPromise = collectReplayRequests(page, recordingEvents => {
@@ -116,14 +108,6 @@ sentryTest('captures response size without Content-Length header', async ({ getL
     });
   });
 
-  await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-    return route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ id: 'test-id' }),
-    });
-  });
-
   const requestPromise = waitForErrorRequest(page);
 
   const replayRequestPromise = collectReplayRequests(page, recordingEvents => {
@@ -200,14 +184,6 @@ sentryTest('captures response size from non-text response body', async ({ getLoc
       headers: {
         'Content-Length': '',
       },
-    });
-  });
-
-  await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-    return route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ id: 'test-id' }),
     });
   });
 

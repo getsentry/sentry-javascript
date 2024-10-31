@@ -35,14 +35,6 @@ import { getCustomRecordingEvents, shouldSkipReplayTest, waitForReplayRequest } 
         sentryTest.skip();
       }
 
-      await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-        return route.fulfill({
-          status: 200,
-          contentType: 'application/json',
-          body: JSON.stringify({ id: 'test-id' }),
-        });
-      });
-
       const url = await getLocalTestUrl({ testDir: __dirname });
 
       await Promise.all([waitForReplayRequest(page, 0), page.goto(url)]);
@@ -90,14 +82,6 @@ import { getCustomRecordingEvents, shouldSkipReplayTest, waitForReplayRequest } 
       if (shouldSkipReplayTest()) {
         sentryTest.skip();
       }
-
-      await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-        return route.fulfill({
-          status: 200,
-          contentType: 'application/json',
-          body: JSON.stringify({ id: 'test-id' }),
-        });
-      });
 
       const url = await getLocalTestUrl({ testDir: __dirname });
 
