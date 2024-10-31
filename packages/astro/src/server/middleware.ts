@@ -22,7 +22,6 @@ import {
   winterCGRequestToRequestData,
 } from '@sentry/utils';
 import type { APIContext, MiddlewareResponseHandler } from 'astro';
-import { DEBUG_BUILD } from '../../debug-build';
 
 type MiddlewareOptions = {
   /**
@@ -197,11 +196,9 @@ async function instrumentRequest(
           (async () => {
             // Flushes pending Sentry events with a 2-second timeout and in a way that cannot create unhandled promise rejections.
             try {
-              DEBUG_BUILD && logger.log('Flushing events...');
               await flush(2000);
-              DEBUG_BUILD && logger.log('Done flushing events');
             } catch (e) {
-              DEBUG_BUILD && logger.log('Error while flushing events:\n', e);
+              logger.log('Error while flushing events:\n', e);
             }
           })(),
         );
