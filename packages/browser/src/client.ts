@@ -28,6 +28,8 @@ export type BrowserOptions = Options<BrowserTransportOptions> &
   BrowserClientReplayOptions &
   BrowserClientProfilingOptions & {
     /**
+     * Important: Only set this option if you know what you are doing!
+     *
      * By default, the SDK will check if it is initialized in a browser extension
      * if you call `Sentry.init`. In case it is, it will stop initialization
      * because browser extensions require a different Sentry initialization process:
@@ -35,8 +37,6 @@ export type BrowserOptions = Options<BrowserTransportOptions> &
      *
      * If this check wrongfully flags your setup as a browser extension, you can set this
      * option to `true` to skip the check.
-     *
-     * Important: Only set this option if you know what you are doing!
      *
      * Setting up the SDK in a browser extension with global error monitoring is not recommended
      * and will likely flood you with errors from other web sites or extensions.
