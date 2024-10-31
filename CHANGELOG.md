@@ -21,7 +21,7 @@ import { usePinia } from '#imports';
 Sentry.init({
   integrations: [
     Sentry.piniaIntegration(usePinia(), {
-      /* optinal Pinia plugin options */
+      /* optional Pinia plugin options */
     }),
   ],
 });
