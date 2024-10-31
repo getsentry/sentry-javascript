@@ -104,7 +104,7 @@ export class EventBufferProxy implements EventBuffer {
 
   /** Switch the used buffer to the compression worker. */
   private async _switchToCompressionWorker(): Promise<void> {
-    const { events, hasCheckout } = this._fallback;
+    const { events, hasCheckout, waitForCheckout } = this._fallback;
 
     const addEventPromises: Promise<void>[] = [];
     for (const event of events) {
@@ -112,6 +112,7 @@ export class EventBufferProxy implements EventBuffer {
     }
 
     this._compression.hasCheckout = hasCheckout;
+    this._compression.waitForCheckout = waitForCheckout;
 
     // We switch over to the new buffer immediately - any further events will be added
     // after the previously buffered ones
