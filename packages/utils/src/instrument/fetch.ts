@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { HandlerDataFetch } from '@sentry/types';
 
+import { getGraphQLRequestPayload } from '../graphql';
 import { isError } from '../is';
 import { addNonEnumerableProperty, fill } from '../object';
 import { supportsNativeFetch } from '../supports';
@@ -57,6 +58,15 @@ function instrumentFetch(onFetchResolved?: (response: Response) => void, skipNat
         },
         startTimestamp: timestampInSeconds() * 1000,
       };
+
+      const body = parseFetchPayload(args);
+
+      if (body) {
+        const graphqlRequest = getGraphQLRequestPayload(body);
+        if (graphqlRequest) {
+          handlerData.fetchData.body = body;
+        }
+      }
 
       // if there is no callback, fetch is instrumented directly
       if (!onFetchResolved) {
@@ -231,4 +241,18 @@ export function parseFetchArgs(fetchArgs: unknown[]): { method: string; url: str
     url: getUrlFromResource(arg as FetchResource),
     method: hasProp(arg, 'method') ? String(arg.method).toUpperCase() : 'GET',
   };
+}
+
+/**
+ * Parses the fetch arguments to extract the request payload.
+ * Exported for tests only.
+ */
+export function parseFetchPayload(fetchArgs: unknown[]): string | undefined {
+  if (fetchArgs.length === 2) {
+    const options = fetchArgs[1];
+    return hasProp(options, 'body') ? String(options.body) : undefined;
+  }
+
+  const arg = fetchArgs[0];
+  return hasProp(arg, 'body') ? String(arg.body) : undefined;
 }
