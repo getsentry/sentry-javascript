@@ -36,6 +36,7 @@ export declare const createReduxEnhancer: typeof clientSdk.createReduxEnhancer;
 export declare const showReportDialog: typeof clientSdk.showReportDialog;
 export declare const withErrorBoundary: typeof clientSdk.withErrorBoundary;
 
+// eslint-disable-next-line deprecation/deprecation
 export declare const metrics: typeof clientSdk.metrics & typeof serverSdk.metrics;
 
 export { withSentryConfig } from './config';
