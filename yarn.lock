@@ -7573,11 +7573,11 @@
   integrity sha512-bgab3q/4dYUutUpQCEaSDa+mLoQJG3vJKeSiGuhM4iZaSpkz8ov0fs1MGil5PfxCo6Hhw3bB3bFYhUtnsfT/Pg==
 
 "@opentelemetry/propagator-aws-xray@^1.3.1":
-  version "1.25.1"
-  resolved "https://registry.yarnpkg.com/@opentelemetry/propagator-aws-xray/-/propagator-aws-xray-1.25.1.tgz#8bfc812308c0b94c2d80203863b53572cd9f1f72"
-  integrity sha512-soZQdO9EAROMwa9bL2C0VLadbrfRjSA9t7g6X8sL0X1B8V59pzOayYMyTW9qTECn9uuJV98A7qOnJm6KH6yk8w==
+  version "1.26.0"
+  resolved "https://registry.yarnpkg.com/@opentelemetry/propagator-aws-xray/-/propagator-aws-xray-1.26.0.tgz#becd2b9208eb554cc606529f68e58dfd03a20f4d"
+  integrity sha512-Sex+JyEZ/xX328TArBqQjh1NZSfNyw5NdASUIi9hnPsnMBMSBaDe7B9JRnXv0swz7niNyAnXa6MY7yOCV76EvA==
   dependencies:
-    "@opentelemetry/core" "1.25.1"
+    "@opentelemetry/core" "1.26.0"
 
 "@opentelemetry/redis-common@^0.36.2":
   version "0.36.2"
