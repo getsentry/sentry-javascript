@@ -1225,14 +1225,15 @@ jobs:
     # Dependabot specifically also has access to secrets
     # We need to add the `always()` check here because the previous step has this as well :(
     # See: https://github.com/actions/runner/issues/2205
-#    if:
+    if:
       # Only run profiling e2e tests if profiling node bindings have changed
-#      always() && needs.job_e2e_prepare.result == 'success' &&
-#      (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) &&
-#     (
-#        (needs.job_get_metadata.outputs.changed_profiling_node == 'true') ||
-#        (needs.job_get_metadata.outputs.is_release == 'true')
-#      )
+      always() && needs.job_e2e_prepare.result == 'success' &&
+      (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+   #   &&
+   #  (
+   #     (needs.job_get_metadata.outputs.changed_profiling_node == 'true') ||
+   #     (needs.job_get_metadata.outputs.is_release == 'true')
+   #   )
     needs: [job_get_metadata, job_build, job_e2e_prepare]
     runs-on: ubuntu-20.04
     timeout-minutes: 15
