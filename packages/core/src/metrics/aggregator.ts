@@ -40,6 +40,7 @@ export class MetricsAggregator implements MetricsAggregatorBase {
     this._buckets = new Map();
     this._bucketsTotalWeight = 0;
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     this._interval = setInterval(() => this._flush(), DEFAULT_FLUSH_INTERVAL) as any;
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     if (this._interval.unref) {
