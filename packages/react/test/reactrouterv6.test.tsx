@@ -268,7 +268,7 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
       });
     });
 
-    it('works with paramaterized paths', () => {
+    it('works with parameterized paths', () => {
       const client = createMockBrowserClient();
       setCurrentClient(client);
 
@@ -663,7 +663,7 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
       });
     });
 
-    it('works with paramaterized paths', () => {
+    it('works with parameterized paths', () => {
       const client = createMockBrowserClient();
       setCurrentClient(client);
 

@@ -28,7 +28,7 @@ functionality related to SolidStart.
 
 If the setup through the wizard doesn't work for you, you can also set up the SDK manually.
 
-### 1. Prerequesits & Installation
+### 1. Prerequisites & Installation
 
 Install the Sentry SolidStart SDK:
 

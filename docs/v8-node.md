@@ -136,7 +136,7 @@ const { SentrySpanProcessor, SentryPropagator, SentryContextManager, SentrySampl
 // We need a custom span processor
 provider.addSpanProcessor(new SentrySpanProcessor());
 // We need a custom propagator and context manager
-provier.register({
+provider.register({
   propagator: new SentryPropagator(),
   contextManager: new SentryContextManager(),
 });

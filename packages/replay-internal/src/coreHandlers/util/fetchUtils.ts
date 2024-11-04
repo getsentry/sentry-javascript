@@ -26,7 +26,7 @@ import {
 
 /**
  * Capture a fetch breadcrumb to a replay.
- * This adds additional data (where approriate).
+ * This adds additional data (where appropriate).
  */
 export async function captureFetchBreadcrumbToReplay(
   breadcrumb: Breadcrumb & { data: FetchBreadcrumbData },

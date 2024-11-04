@@ -78,7 +78,7 @@ export function makeAutoInstrumentationPlugin(options: AutoInstrumentPluginOptio
 /**
  * We only want to apply our wrapper to files that
  *
- *  - Have no Sentry code yet in them. This is to avoid double-wrapping or interferance with custom
+ *  - Have no Sentry code yet in them. This is to avoid double-wrapping or interfering with custom
  *    Sentry calls.
  *  - Actually declare a `load` function. The second check of course is not 100% accurate, but it's good enough.
  *    Injecting our wrapper into files that don't declare a `load` function would result in a build-time warning

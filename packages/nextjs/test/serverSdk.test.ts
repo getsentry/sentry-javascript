@@ -54,7 +54,7 @@ describe('Server init()', () => {
         // Integrations are tested separately, and we can't be more specific here without depending on the order in
         // which integrations appear in the array, which we can't guarantee.
         //
-        // TODO: If we upgrde to Jest 28+, we can follow Jest's example matcher and create an
+        // TODO: If we upgrade to Jest 28+, we can follow Jest's example matcher and create an
         // `expect.ArrayContainingInAnyOrder`. See
         // https://github.com/facebook/jest/blob/main/examples/expect-extend/toBeWithinRange.ts.
         defaultIntegrations: expect.any(Array),

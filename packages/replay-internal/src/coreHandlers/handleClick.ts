@@ -66,7 +66,7 @@ export class ClickDetector implements ReplayClickDetector {
   private _teardown: undefined | (() => void);
 
   private _threshold: number;
-  private _scollTimeout: number;
+  private _scrollTimeout: number;
   private _timeout: number;
   private _ignoreSelector: string;
 
@@ -87,7 +87,7 @@ export class ClickDetector implements ReplayClickDetector {
     // We want everything in s, but options are in ms
     this._timeout = slowClickConfig.timeout / 1000;
     this._threshold = slowClickConfig.threshold / 1000;
-    this._scollTimeout = slowClickConfig.scrollTimeout / 1000;
+    this._scrollTimeout = slowClickConfig.scrollTimeout / 1000;
     this._replay = replay;
     this._ignoreSelector = slowClickConfig.ignoreSelector;
     this._addBreadcrumbEvent = _addBreadcrumbEvent;
@@ -216,7 +216,7 @@ export class ClickDetector implements ReplayClickDetector {
   /** Generate matching breadcrumb(s) for the click. */
   private _generateBreadcrumbs(click: Click): void {
     const replay = this._replay;
-    const hadScroll = click.scrollAfter && click.scrollAfter <= this._scollTimeout;
+    const hadScroll = click.scrollAfter && click.scrollAfter <= this._scrollTimeout;
     const hadMutation = click.mutationAfter && click.mutationAfter <= this._threshold;
 
     const isSlowClick = !hadScroll && !hadMutation;

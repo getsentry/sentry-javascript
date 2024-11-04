@@ -303,7 +303,7 @@ export interface Client<O extends ClientOptions = ClientOptions> {
    */
   on(hook: 'close', callback: () => void): () => void;
 
-  /** Fire a hook whener a span starts. */
+  /** Fire a hook whenever a span starts. */
   emit(hook: 'spanStart', span: Span): void;
 
   /** A hook that is called every time before a span is sampled. */
@@ -318,7 +318,7 @@ export interface Client<O extends ClientOptions = ClientOptions> {
     samplingDecision: { decision: boolean },
   ): void;
 
-  /** Fire a hook whener a span ends. */
+  /** Fire a hook whenever a span ends. */
   emit(hook: 'spanEnd', span: Span): void;
 
   /**

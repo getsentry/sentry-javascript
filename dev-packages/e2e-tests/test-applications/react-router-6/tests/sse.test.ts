@@ -65,7 +65,7 @@ test('Waits for sse streaming when sse has been explicitly aborted', async ({ pa
   expect(resolveDuration).toBe(0);
   expect(resolveBodyDuration).toBe(0);
 
-  // validate abort eror was thrown by inspecting console
+  // validate abort error was thrown by inspecting console
   const consoleBreadcrumb = rootSpan.breadcrumbs?.find(breadcrumb => breadcrumb.category === 'console');
   expect(consoleBreadcrumb?.message).toBe('Could not fetch sse AbortError: BodyStreamBuffer was aborted');
 });

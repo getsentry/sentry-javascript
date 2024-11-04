@@ -93,7 +93,7 @@ export function instrumentDOM(): void {
             handlerForType.refCount++;
           } catch (e) {
             // Accessing dom properties is always fragile.
-            // Also allows us to skip `addEventListenrs` calls with no proper `this` context.
+            // Also allows us to skip `addEventListeners` calls with no proper `this` context.
           }
         }
 
@@ -133,7 +133,7 @@ export function instrumentDOM(): void {
               }
             } catch (e) {
               // Accessing dom properties is always fragile.
-              // Also allows us to skip `addEventListenrs` calls with no proper `this` context.
+              // Also allows us to skip `addEventListeners` calls with no proper `this` context.
             }
           }
 

@@ -77,7 +77,7 @@ export const onRequest = sequence(
 
 The Sentry middleware enhances the data collected by Sentry on the server side by:
 
-- Enabeling distributed tracing between client and server
+- Enabling distributed tracing between client and server
 - Collecting performance spans for incoming requests
 - Enhancing captured errors with additional information
 

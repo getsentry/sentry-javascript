@@ -683,7 +683,7 @@ function addOtelWarningIgnoreRule(newConfig: WebpackConfigObjectWithModuleRules)
   const ignoreRules = [
     // Inspired by @matmannion: https://github.com/getsentry/sentry-javascript/issues/12077#issuecomment-2180307072
     (warning, compilation) => {
-      // This is wapped in try-catch because we are vendoring types for this hook and we can't be 100% sure that we are accessing API that is there
+      // This is wrapped in try-catch because we are vendoring types for this hook and we can't be 100% sure that we are accessing API that is there
       try {
         if (!warning.module) {
           return false;

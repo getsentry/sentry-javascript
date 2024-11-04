@@ -61,7 +61,7 @@ export function Form({
     submitButtonLabel,
     isRequiredLabel,
   } = options;
-  // TODO: set a ref on the form, and whenever an input changes call proceessForm() and setError()
+  // TODO: set a ref on the form, and whenever an input changes call processForm() and setError()
   const [error, setError] = useState<null | string>(null);
 
   const [showScreenshotInput, setShowScreenshotInput] = useState(false);

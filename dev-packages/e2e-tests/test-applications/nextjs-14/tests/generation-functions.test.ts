@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
 
-test('Should emit a span for a generateMetadata() function invokation', async ({ page }) => {
+test('Should emit a span for a generateMetadata() function invocation', async ({ page }) => {
   const testTitle = 'should-emit-span';
 
   const transactionPromise = waitForTransaction('nextjs-14', async transactionEvent => {
@@ -29,7 +29,7 @@ test('Should emit a span for a generateMetadata() function invokation', async ({
   expect(pageTitle).toBe(testTitle);
 });
 
-test('Should send a transaction and an error event for a faulty generateMetadata() function invokation', async ({
+test('Should send a transaction and an error event for a faulty generateMetadata() function invocation', async ({
   page,
 }) => {
   const testTitle = 'should-emit-error';
@@ -59,7 +59,7 @@ test('Should send a transaction and an error event for a faulty generateMetadata
   expect(transactionEvent.tags?.['my-global-scope-isolated-tag']).not.toBeDefined();
 });
 
-test('Should send a transaction event for a generateViewport() function invokation', async ({ page }) => {
+test('Should send a transaction event for a generateViewport() function invocation', async ({ page }) => {
   const testTitle = 'floob';
 
   const transactionPromise = waitForTransaction('nextjs-14', async transactionEvent => {
@@ -83,7 +83,7 @@ test('Should send a transaction event for a generateViewport() function invokati
   );
 });
 
-test('Should send a transaction and an error event for a faulty generateViewport() function invokation', async ({
+test('Should send a transaction and an error event for a faulty generateViewport() function invocation', async ({
   page,
 }) => {
   const testTitle = 'blargh';
@@ -109,7 +109,7 @@ test('Should send a transaction and an error event for a faulty generateViewport
   expect(errorEvent.transaction).toBe('Page.generateViewport (/generation-functions)');
 });
 
-test('Should send a transaction event with correct status for a generateMetadata() function invokation with redirect()', async ({
+test('Should send a transaction event with correct status for a generateMetadata() function invocation with redirect()', async ({
   page,
 }) => {
   const testTitle = 'redirect-foobar';
@@ -126,7 +126,7 @@ test('Should send a transaction event with correct status for a generateMetadata
   expect((await transactionPromise).contexts?.trace?.status).toBe('ok');
 });
 
-test('Should send a transaction event with correct status for a generateMetadata() function invokation with notfound()', async ({
+test('Should send a transaction event with correct status for a generateMetadata() function invocation with notfound()', async ({
   page,
 }) => {
   const testTitle = 'notfound-foobar';

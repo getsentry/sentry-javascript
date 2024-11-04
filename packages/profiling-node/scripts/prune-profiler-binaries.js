@@ -1,6 +1,6 @@
 #! /usr/bin/env node
 
-// This is a build scripts, so some logging is desireable as it allows
+// This is a build script, so some logging is desirable as it allows
 // us to follow the code path that triggered the error.
 /* eslint-disable no-console */
 const fs = require('fs');
@@ -88,7 +88,7 @@ if (!SOURCE_DIR) {
 
 if (!PLATFORM && !ARCH && !STDLIB) {
   ARGV_ERRORS.push(
-    `❌ Sentry: Missing argument values, pruning requires either --target_platform, --target_arch or --targer_stdlib to be passed as argument values.\n Example: sentry-prune-profiler-binaries --target_platform=linux --target_arch=x64 --target_stdlib=glibc\n
+    `❌ Sentry: Missing argument values, pruning requires either --target_platform, --target_arch or --target_stdlib to be passed as argument values.\n Example: sentry-prune-profiler-binaries --target_platform=linux --target_arch=x64 --target_stdlib=glibc\n
 If you are unsure about the execution environment, you can opt to skip some values, but at least one value must be passed.`,
   );
 }
