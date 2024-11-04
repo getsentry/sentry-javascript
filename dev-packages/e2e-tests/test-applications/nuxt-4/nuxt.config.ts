@@ -4,7 +4,7 @@ export default defineNuxtConfig({
   compatibilityDate: '2024-04-03',
   imports: { autoImport: false },
 
-  modules: ['@sentry/nuxt/module'],
+  modules: ['@pinia/nuxt', '@sentry/nuxt/module'],
 
   runtimeConfig: {
     public: {
