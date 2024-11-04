@@ -46,14 +46,6 @@ sentryTest(
       );
     });
 
-    await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-      return route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({ id: 'test-id' }),
-      });
-    });
-
     const url = await getLocalTestPath({ testDir: __dirname });
 
     await page.goto(url);
@@ -108,14 +100,6 @@ sentryTest(
         firstInputMutationSegmentId < event.segment_id &&
         getIncrementalRecordingSnapshots(res).some(isInputMutation)
       );
-    });
-
-    await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-      return route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({ id: 'test-id' }),
-      });
     });
 
     const url = await getLocalTestPath({ testDir: __dirname });

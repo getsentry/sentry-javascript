@@ -11,6 +11,7 @@ import type {
   SerializedCheckIn,
   SerializedSession,
   SessionAggregates,
+  TransactionEvent,
 } from '@sentry/types';
 import axios from 'axios';
 import { createBasicSentryServer } from './server';
@@ -151,7 +152,7 @@ type Expected =
       event: Partial<Event> | ((event: Event) => void);
     }
   | {
-      transaction: Partial<Event> | ((event: Event) => void);
+      transaction: Partial<TransactionEvent> | ((event: TransactionEvent) => void);
     }
   | {
       session: Partial<SerializedSession> | ((event: SerializedSession) => void);
@@ -317,7 +318,7 @@ export function createRunner(...paths: string[]) {
             }
 
             if ('transaction' in expected) {
-              const event = item[1] as Event;
+              const event = item[1] as TransactionEvent;
               if (typeof expected.transaction === 'function') {
                 expected.transaction(event);
               } else {
@@ -483,6 +484,7 @@ export function createRunner(...paths: string[]) {
           method: 'get' | 'post',
           path: string,
           headers: Record<string, string> = {},
+          data?: any, // axios accept any as data
         ): Promise<T | undefined> {
           try {
             await waitFor(() => scenarioServerPort !== undefined);
@@ -497,7 +499,7 @@ export function createRunner(...paths: string[]) {
               if (method === 'get') {
                 await axios.get(url, { headers });
               } else {
-                await axios.post(url, { headers });
+                await axios.post(url, data, { headers });
               }
             } catch (e) {
               return;
@@ -506,7 +508,7 @@ export function createRunner(...paths: string[]) {
           } else if (method === 'get') {
             return (await axios.get(url, { headers })).data;
           } else {
-            return (await axios.post(url, { headers })).data;
+            return (await axios.post(url, data, { headers })).data;
           }
         },
       };

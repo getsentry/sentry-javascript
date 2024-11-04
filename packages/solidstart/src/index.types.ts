@@ -5,13 +5,13 @@ export * from './client';
 export * from './server';
 export * from './vite';
 
-import type { Integration, Options, StackParser } from '@sentry/types';
+import type { Client, Integration, Options, StackParser } from '@sentry/types';
 
 import type * as clientSdk from './client';
 import type * as serverSdk from './server';
 
 /** Initializes Sentry Solid Start SDK */
-export declare function init(options: Options | clientSdk.BrowserOptions | serverSdk.NodeOptions): void;
+export declare function init(options: Options | clientSdk.BrowserOptions | serverSdk.NodeOptions): Client | undefined;
 
 export declare const linkedErrorsIntegration: typeof clientSdk.linkedErrorsIntegration;
 export declare const contextLinesIntegration: typeof clientSdk.contextLinesIntegration;

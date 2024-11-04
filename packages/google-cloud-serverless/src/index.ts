@@ -67,6 +67,7 @@ export {
   startInactiveSpan,
   startSpanManual,
   startNewTrace,
+  suppressTracing,
   withActiveSpan,
   getRootSpan,
   getSpanDescendants,
@@ -91,6 +92,7 @@ export {
   genericPoolIntegration,
   graphqlIntegration,
   kafkaIntegration,
+  lruMemoizerIntegration,
   mongoIntegration,
   mongooseIntegration,
   mysqlIntegration,
@@ -111,6 +113,8 @@ export {
   addOpenTelemetryInstrumentation,
   zodErrorsIntegration,
   profiler,
+  amqplibIntegration,
+  processThreadBreadcrumbIntegration,
 } from '@sentry/node';
 
 export {

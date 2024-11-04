@@ -645,6 +645,12 @@ const POTENTIAL_REQUEST_ASYNC_STORAGE_LOCATIONS = [
   // Introduced in Next.js 13.4.20
   // https://github.com/vercel/next.js/blob/e1bc270830f2fc2df3542d4ef4c61b916c802df3/packages/next/src/client/components/request-async-storage.external.ts
   'next/dist/client/components/request-async-storage.external.js',
+  // Introduced in Next.js 15.0.0-canary.180
+  // https://github.com/vercel/next.js/blob/541167b9b0fed6af9f36472e632863ffec41f18c/packages/next/src/server/app-render/work-unit-async-storage.external.ts
+  'next/dist/server/app-render/work-unit-async-storage.external.js',
+  // Introduced in Next.js 15.0.0-canary.182
+  // https://github.com/vercel/next.js/blob/f35159e5e80138ca7373f57b47edcaae3bcf1728/packages/next/src/client/components/work-unit-async-storage.external.ts
+  'next/dist/client/components/work-unit-async-storage.external.js',
 ];
 
 function getRequestAsyncStorageModuleLocation(

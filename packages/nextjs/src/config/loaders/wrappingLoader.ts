@@ -174,7 +174,7 @@ export default function wrappingLoader(
       }
       templateCode = templateCode.replace(
         /__SENTRY_NEXTJS_REQUEST_ASYNC_STORAGE_SHIM__/g,
-        '@sentry/nextjs/esm/config/templates/requestAsyncStorageShim.js',
+        '@sentry/nextjs/async-storage-shim',
       );
     }
 
@@ -182,8 +182,10 @@ export default function wrappingLoader(
 
     const componentTypeMatch = path.posix
       .normalize(path.relative(appDir, this.resourcePath))
+      // Replace all backslashes with forward slashes (windows)
+      .replace(/\\/g, '/')
       // eslint-disable-next-line @sentry-internal/sdk/no-regexp-constructor
-      .match(new RegExp(`/\\/?([^/]+)\\.(?:${pageExtensionRegex})$`));
+      .match(new RegExp(`(?:^|/)?([^/]+)\\.(?:${pageExtensionRegex})$`));
 
     if (componentTypeMatch && componentTypeMatch[1]) {
       let componentType: ServerComponentContext['componentType'];

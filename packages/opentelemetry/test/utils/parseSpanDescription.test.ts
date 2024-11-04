@@ -133,27 +133,6 @@ describe('parseSpanDescription', () => {
         source: 'route',
       },
     ],
-    [
-      "should not do any data parsing when the 'sentry.skip_span_data_inference' attribute is set",
-      {
-        'sentry.skip_span_data_inference': true,
-
-        // All of these should be ignored
-        [SEMATTRS_HTTP_METHOD]: 'GET',
-        [SEMATTRS_DB_SYSTEM]: 'mysql',
-        [SEMATTRS_DB_STATEMENT]: 'SELECT * from users',
-      },
-      'test name',
-      undefined,
-      {
-        op: undefined,
-        description: 'test name',
-        source: 'custom',
-        data: {
-          'sentry.skip_span_data_inference': undefined,
-        },
-      },
-    ],
   ])('%s', (_, attributes, name, kind, expected) => {
     const actual = parseSpanDescription({ attributes, kind, name } as unknown as Span);
     expect(actual).toEqual(expected);

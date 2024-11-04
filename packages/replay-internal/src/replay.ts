@@ -53,6 +53,7 @@ import { debounce } from './util/debounce';
 import { getHandleRecordingEmit } from './util/handleRecordingEmit';
 import { isExpired } from './util/isExpired';
 import { isSessionExpired } from './util/isSessionExpired';
+import { resetReplayIdOnDynamicSamplingContext } from './util/resetReplayIdOnDynamicSamplingContext';
 import { sendReplay } from './util/sendReplay';
 import { RateLimitError } from './util/sendReplayRequest';
 import type { SKIPPED } from './util/throttle';
@@ -73,7 +74,7 @@ export class ReplayContainer implements ReplayContainerInterface {
   public clickDetector: ClickDetector | undefined;
 
   /**
-   * Recording can happen in one of three modes:
+   * Recording can happen in one of two modes:
    *   - session: Record the whole session, sending it continuously
    *   - buffer: Always keep the last 60s of recording, requires:
    *     - having replaysOnErrorSampleRate > 0 to capture replay when an error occurs
@@ -445,6 +446,8 @@ export class ReplayContainer implements ReplayContainerInterface {
 
     try {
       DEBUG_BUILD && logger.info(`Stopping Replay${reason ? ` triggered by ${reason}` : ''}`);
+
+      resetReplayIdOnDynamicSamplingContext();
 
       this._removeListeners();
       this.stopRecording();
@@ -1043,10 +1046,21 @@ export class ReplayContainer implements ReplayContainerInterface {
    * are included in the replay event before it is finished and sent to Sentry.
    */
   private _addPerformanceEntries(): Promise<Array<AddEventResult | null>> {
-    const performanceEntries = createPerformanceEntries(this.performanceEntries).concat(this.replayPerformanceEntries);
+    let performanceEntries = createPerformanceEntries(this.performanceEntries).concat(this.replayPerformanceEntries);
 
     this.performanceEntries = [];
     this.replayPerformanceEntries = [];
+
+    // If we are manually starting, we want to ensure we only include performance entries
+    // that are after the initial timestamp
+    // The reason for this is that we may have performance entries from the page load, but may decide to start
+    // the replay later on, in which case we do not want to include these entries.
+    // without this, manually started replays can have events long before the actual replay recording starts,
+    // which messes with the timeline etc.
+    if (this._requiresManualStart) {
+      const initialTimestampInSeconds = this._context.initialTimestamp / 1000;
+      performanceEntries = performanceEntries.filter(entry => entry.start >= initialTimestampInSeconds);
+    }
 
     return Promise.all(createPerformanceSpans(this, performanceEntries));
   }

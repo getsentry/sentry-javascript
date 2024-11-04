@@ -105,6 +105,12 @@ type SourceMapsUploadOptions = {
      */
     inject?: boolean;
   };
+
+  /**
+   * The URL of the Sentry instance to upload the source maps to.
+   */
+  url?: string;
+
   /**
    * Options to further customize the Sentry Vite Plugin (@sentry/vite-plugin) behavior directly.
    * Options specified in this object take precedence over the options specified in

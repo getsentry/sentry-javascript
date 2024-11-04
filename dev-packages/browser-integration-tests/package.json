@@ -1,6 +1,6 @@
 {
   "name": "@sentry-internal/browser-integration-tests",
-  "version": "8.31.0",
+  "version": "8.36.0",
   "main": "index.js",
   "license": "MIT",
   "engines": {
@@ -43,12 +43,12 @@
     "@babel/preset-typescript": "^7.16.7",
     "@playwright/test": "^1.44.1",
     "@sentry-internal/rrweb": "2.11.0",
-    "@sentry/browser": "8.31.0",
-    "axios": "1.6.7",
+    "@sentry/browser": "8.36.0",
+    "axios": "1.7.7",
     "babel-loader": "^8.2.2",
     "html-webpack-plugin": "^5.5.0",
     "pako": "^2.1.0",
-    "webpack": "^5.94.0"
+    "webpack": "^5.95.0"
   },
   "devDependencies": {
     "@types/glob": "8.0.0",

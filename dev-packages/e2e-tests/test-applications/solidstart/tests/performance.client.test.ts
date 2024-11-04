@@ -46,9 +46,7 @@ test('sends a navigation transaction', async ({ page }) => {
   });
 });
 
-// TODO: This test is flaky as of now, so disabling it.
-// It often just times out on CI
-test.skip('updates the transaction when using the back button', async ({ page }) => {
+test('updates the transaction when using the back button', async ({ page }) => {
   // Solid Router sends a `-1` navigation when using the back button.
   // The sentry solidRouterBrowserTracingIntegration tries to update such
   // transactions with the proper name once the `useLocation` hook triggers.

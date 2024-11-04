@@ -338,6 +338,32 @@ describe('_addResourceSpans', () => {
       }),
     );
   });
+
+  // resource delivery types: https://developer.mozilla.org/en-US/docs/Web/API/PerformanceResourceTiming/deliveryType
+  // i.e. better but not yet widely supported way to check for browser cache hit
+  it.each(['cache', 'navigational-prefetch', ''])(
+    'attaches delivery type ("%s") to resource spans if available',
+    deliveryType => {
+      const spans: Span[] = [];
+
+      getClient()?.on('spanEnd', span => {
+        spans.push(span);
+      });
+
+      const entry: ResourceEntry = {
+        initiatorType: 'css',
+        transferSize: 0,
+        encodedBodySize: 0,
+        decodedBodySize: 0,
+        deliveryType,
+      };
+
+      _addResourceSpans(span, entry, resourceEntryName, 100, 23, 345);
+
+      expect(spans).toHaveLength(1);
+      expect(spanToJSON(spans[0]!).data).toMatchObject({ 'http.response_delivery_type': deliveryType });
+    },
+  );
 });
 
 const setGlobalLocation = (location: Location) => {

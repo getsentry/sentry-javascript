@@ -13,9 +13,9 @@
     "@sentry/node": "latest || *"
   },
   "devDependencies": {
-    "rollup": "^4.0.2",
+    "rollup": "^4.24.2",
     "vitest": "^0.34.6",
-    "@sentry/rollup-plugin": "2.22.3"
+    "@sentry/rollup-plugin": "2.22.6"
   },
   "volta": {
     "extends": "../../package.json"

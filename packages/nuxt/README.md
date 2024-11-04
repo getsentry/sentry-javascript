@@ -4,20 +4,20 @@
   </a>
 </p>
 
-# Official Sentry SDK for Nuxt (EXPERIMENTAL)
+# Official Sentry SDK for Nuxt (BETA)
 
 [![npm version](https://img.shields.io/npm/v/@sentry/nuxt.svg)](https://www.npmjs.com/package/@sentry/nuxt)
 [![npm dm](https://img.shields.io/npm/dm/@sentry/nuxt.svg)](https://www.npmjs.com/package/@sentry/nuxt)
 [![npm dt](https://img.shields.io/npm/dt/@sentry/nuxt.svg)](https://www.npmjs.com/package/@sentry/nuxt)
 
-**This SDK is under active development! Feel free to already try it but expect breaking changes**
+This SDK is in **Beta**. The API is stable but updates may include minor changes in behavior. Please reach out on
+[GitHub](https://github.com/getsentry/sentry-javascript/issues/new/choose) if you have any feedback or concerns. This
+SDK is for [Nuxt](https://nuxt.com/). If you're using [Vue](https://vuejs.org/) see our
+[Vue SDK here](https://github.com/getsentry/sentry-javascript/tree/develop/packages/vue).
 
 ## Links
 
-todo: link official SDK docs
-
-- [Official Browser SDK Docs](https://docs.sentry.io/platforms/javascript/)
-- [Official Node SDK Docs](https://docs.sentry.io/platforms/node/)
+- [Official Nuxt SDK Docs](https://docs.sentry.io/platforms/javascript/guides/nuxt/)
 
 ## Compatibility
 
@@ -28,42 +28,11 @@ The minimum supported version of Nuxt is `3.0.0`.
 This package is a wrapper around `@sentry/node` for the server and `@sentry/vue` for the client side, with added
 functionality related to Nuxt.
 
-**What is working:**
+**Limitations:**
 
-- Error Reporting
-  - Vue
-  - Node
-  - Nitro
-
-**What is partly working:**
-
-- Source Maps
-- Connected Tracing (Frontend & Backend)
-- Tracing by setting `tracesSampleRate`
-  - UI (Vue) traces
-  - HTTP (Node) traces
-
-**Known Issues:**
-
-- When adding `sentry.server.config.(ts/js)`, you get an error like this:
-  "`Failed to register ESM hook (import-in-the-middle/hook.mjs)`". You can add a resolution for `@vercel/nft` to fix
-  this. This will add the `hook.mjs` file to your build output
-  ([issue here](https://github.com/unjs/nitro/issues/2703)).
-  ```json
-    "resolutions": {
-      "@vercel/nft": "^0.27.4"
-    }
-  ```
-
-## Automatic Setup
-
-todo: add wizard instructions
-
-Take a look at the sections below if you want to customize your SDK configuration.
+- Server monitoring is not available during development mode (`nuxt dev`)
 
 ## Manual Setup
-
-If the setup through the wizard doesn't work for you, you can also set up the SDK manually.
 
 ### 1. Prerequisites & Installation
 
@@ -92,7 +61,7 @@ export default defineNuxtConfig({
 
 ### 3. Client-side setup
 
-Add a `sentry.client.config.(js|ts)` file to the root of your project:
+Add a `sentry.client.config.ts` file to the root of your project:
 
 ```javascript
 import { useRuntimeConfig } from '#imports';
@@ -106,7 +75,7 @@ Sentry.init({
 
 ### 4. Server-side setup
 
-Add an `sentry.client.config.(js|ts)` file to the root of your project:
+Add a `sentry.server.config.ts` file to the root of your project:
 
 ```javascript
 import * as Sentry from '@sentry/nuxt';
@@ -119,11 +88,12 @@ if (process.env.SENTRY_DSN) {
 }
 ```
 
-The Nuxt runtime config does not work in the Sentry server to technical reasons (it has to be loaded before Nuxt is
-loaded). To be able to use `process.env` you either have to add `--env-file=.env` to your node command
+Using `useRuntimeConfig` does not work in the Sentry server config file due to technical reasons (the file has to be
+loaded before Nuxt is loaded). To be able to use `process.env` you either have to add `--env-file=.env` to your node
+command
 
 ```bash
-node --env-file=.env --import ./.output/server/sentry.server.config.mjs .output/server/index.mjs
+node --env-file=.env .output/server/index.mjs
 ```
 
 or use the `dotenv` package:
@@ -139,28 +109,18 @@ Sentry.init({
 });
 ```
 
-Add an import flag to the Node options of your `node` command (not `nuxt preview`), so the file loads before any other
-imports (keep in mind the `.mjs` file ending):
-
-```json
-{
-  "scripts": {
-    "start": "node --import ./.output/server/sentry.server.config.mjs .output/server/index.mjs"
-  }
-}
-```
-
 ## Uploading Source Maps
 
-To upload source maps, you can use the `sourceMapsUploadOptions` option inside the `sentry` options of your
-`nuxt.config.ts`:
+To upload source maps, you have to enable client source maps in your `nuxt.config.ts`. Then, you add your project
+settings to the `sentry.sourceMapsUploadOptions` of your `nuxt.config.ts`:
 
 ```javascript
 // nuxt.config.ts
 export default defineNuxtConfig({
+  sourcemap: { client: true },
+
   modules: ['@sentry/nuxt/module'],
   sentry: {
-    debug: true,
     sourceMapsUploadOptions: {
       org: 'your-org-slug',
       project: 'your-project-slug',
@@ -168,4 +128,37 @@ export default defineNuxtConfig({
     },
   },
 });
+```
+
+## Troubleshooting
+
+When adding `sentry.server.config.ts`, you might get an error like this:
+"`Failed to register ESM hook import-in-the-middle/hook.mjs`". You can add an override (npm/pnpm) or a resolution (yarn)
+for `@vercel/nft` to fix this. This will add the `hook.mjs` file to your build output
+([Nitro issue here](https://github.com/unjs/nitro/issues/2703)).
+
+For `npm`:
+
+```json
+"overrides": {
+  "@vercel/nft": "^0.27.4"
+}
+```
+
+for `yarn`:
+
+```json
+"resolutions": {
+  "@vercel/nft": "^0.27.4"
+}
+```
+
+or for `pnpm`:
+
+```json
+"pnpm": {
+  "overrides": {
+    "@vercel/nft": "^0.27.4"
+  }
+}
 ```

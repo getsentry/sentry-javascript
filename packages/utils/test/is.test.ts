@@ -11,6 +11,7 @@ import {
 } from '../src/is';
 import { supportsDOMError, supportsDOMException, supportsErrorEvent } from '../src/supports';
 import { resolvedSyncPromise } from '../src/syncpromise';
+import { testOnlyIfNodeVersionAtLeast } from './testutils';
 
 class SentryError extends Error {
   public name: string;
@@ -55,6 +56,14 @@ describe('isError()', () => {
     ).toEqual(false);
     expect(isError('')).toEqual(false);
     expect(isError(true)).toEqual(false);
+  });
+
+  testOnlyIfNodeVersionAtLeast(18)('should detect WebAssembly.Exceptions', () => {
+    // https://developer.mozilla.org/en-US/docs/WebAssembly/JavaScript_interface/Exception/Exception#examples
+    // @ts-expect-error - WebAssembly.Tag is a valid constructor
+    const tag = new WebAssembly.Tag({ parameters: ['i32', 'f32'] });
+    // @ts-expect-error - WebAssembly.Exception is a valid constructor
+    expect(isError(new WebAssembly.Exception(tag, [42, 42.3]))).toBe(true);
   });
 });
 

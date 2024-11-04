@@ -13,14 +13,6 @@ sentryTest('allows to wrap sync methods with a timing metric', async ({ getLocal
     sentryTest.skip();
   }
 
-  await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-    return route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ id: 'test-id' }),
-    });
-  });
-
   const url = await getLocalTestUrl({ testDir: __dirname });
 
   const beforeTime = Math.floor(Date.now() / 1000);
@@ -95,14 +87,6 @@ sentryTest('allows to wrap async methods with a timing metric', async ({ getLoca
   if (shouldSkipTracingTest()) {
     sentryTest.skip();
   }
-
-  await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-    return route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ id: 'test-id' }),
-    });
-  });
 
   const url = await getLocalTestUrl({ testDir: __dirname });
 

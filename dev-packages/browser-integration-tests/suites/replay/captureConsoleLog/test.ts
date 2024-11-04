@@ -8,14 +8,6 @@ sentryTest('should capture console messages in replay', async ({ getLocalTestPat
     sentryTest.skip();
   }
 
-  await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-    return route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ id: 'test-id' }),
-    });
-  });
-
   const reqPromise0 = waitForReplayRequest(page, 0);
 
   const url = await getLocalTestPath({ testDir: __dirname });
@@ -58,14 +50,6 @@ sentryTest('should capture very large console logs', async ({ getLocalTestPath, 
   if (shouldSkipReplayTest()) {
     sentryTest.skip();
   }
-
-  await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-    return route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ id: 'test-id' }),
-    });
-  });
 
   const reqPromise0 = waitForReplayRequest(page, 0);
 

@@ -86,7 +86,7 @@ let rateLimiter: RateLimitIncrement | undefined;
 async function handlePaused(
   session: Session,
   { reason, data: { objectId }, callFrames }: PausedExceptionEvent,
-): Promise<string | undefined> {
+): Promise<void> {
   if (reason !== 'exception' && reason !== 'promiseRejection') {
     return;
   }
@@ -126,7 +126,7 @@ async function handlePaused(
     objectId,
   });
 
-  return objectId;
+  await session.post('Runtime.releaseObject', { objectId });
 }
 
 async function startDebugger(): Promise<void> {
@@ -145,18 +145,10 @@ async function startDebugger(): Promise<void> {
     isPaused = true;
 
     handlePaused(session, event.params as PausedExceptionEvent).then(
-      async objectId => {
+      async () => {
         // After the pause work is complete, resume execution!
         if (isPaused) {
           await session.post('Debugger.resume');
-        }
-
-        if (objectId) {
-          // The object must be released after the debugger has resumed or we get a memory leak.
-          // For node v20, setImmediate is enough here but for v22 a longer delay is required
-          setTimeout(async () => {
-            await session.post('Runtime.releaseObject', { objectId });
-          }, 1_000);
         }
       },
       async _ => {
