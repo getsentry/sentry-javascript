@@ -65,6 +65,7 @@
     "packages/integration-shims",
     "packages/nestjs",
     "packages/nextjs",
+    "packages/nitro-utils",
     "packages/node",
     "packages/nuxt",
     "packages/opentelemetry",
