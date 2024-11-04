@@ -1,11 +1,5 @@
 {
-  "editor.formatOnType": true,
-  "editor.formatOnPaste": false,
-  "editor.formatOnSave": true,
-  "editor.rulers": [120],
   "editor.tabSize": 2,
-  "files.autoSave": "onWindowChange",
-  "files.trimTrailingWhitespace": true,
   "files.insertFinalNewline": true,
   "search.exclude": {
     "**/node_modules/": true,
@@ -41,6 +35,5 @@
   "editor.defaultFormatter": "biomejs.biome",
   "[typescript]": {
     "editor.defaultFormatter": "biomejs.biome"
-  },
-  "cSpell.words": ["arrayify", "OTEL"]
+  }
 }
