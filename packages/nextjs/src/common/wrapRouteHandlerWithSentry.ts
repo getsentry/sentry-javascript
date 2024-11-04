@@ -5,6 +5,7 @@ import {
   captureException,
   getActiveSpan,
   getCapturedScopesOnSpan,
+  getIsolationScope,
   getRootSpan,
   handleCallbackErrors,
   setCapturedScopesOnSpan,
@@ -16,9 +17,8 @@ import {
 import type { RouteHandlerContext } from './types';
 
 import { propagationContextFromHeaders, winterCGHeadersToDict } from '@sentry/utils';
-
 import { isNotFoundNavigationError, isRedirectNavigationError } from './nextNavigationErrorUtils';
-import { commonObjectToIsolationScope, commonObjectToPropagationContext } from './utils/tracingUtils';
+import { commonObjectToIsolationScope } from './utils/tracingUtils';
 
 /**
  * Wraps a Next.js App Router Route handler with Sentry error and performance instrumentation.
@@ -34,80 +34,83 @@ export function wrapRouteHandlerWithSentry<F extends (...args: any[]) => any>(
 
   return new Proxy(routeHandler, {
     apply: async (originalFunction, thisArg, args) => {
-      const isolationScope = commonObjectToIsolationScope(headers);
-
-      const completeHeadersDict: Record<string, string> = headers ? winterCGHeadersToDict(headers) : {};
-
-      isolationScope.setSDKProcessingMetadata({
-        request: {
-          headers: completeHeadersDict,
-        },
-      });
-
-      const incomingPropagationContext = propagationContextFromHeaders(
-        completeHeadersDict['sentry-trace'],
-        completeHeadersDict['baggage'],
-      );
-
-      const propagationContext = commonObjectToPropagationContext(headers, incomingPropagationContext);
-
       const activeSpan = getActiveSpan();
       const rootSpan = activeSpan ? getRootSpan(activeSpan) : undefined;
-      if (rootSpan) {
+
+      let edgeRuntimeIsolationScopeOverride: Scope | undefined;
+      if (rootSpan && process.env.NEXT_RUNTIME === 'edge') {
+        const isolationScope = commonObjectToIsolationScope(headers);
         const { scope } = getCapturedScopesOnSpan(rootSpan);
         setCapturedScopesOnSpan(rootSpan, scope ?? new Scope(), isolationScope);
 
-        if (process.env.NEXT_RUNTIME === 'edge') {
-          rootSpan.updateName(`${method} ${parameterizedRoute}`);
-          rootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
-          rootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'http.server');
-        }
+        edgeRuntimeIsolationScopeOverride = isolationScope;
+
+        rootSpan.updateName(`${method} ${parameterizedRoute}`);
+        rootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
+        rootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'http.server');
       }
 
-      return withIsolationScope(isolationScope, () => {
-        return withScope(async scope => {
-          scope.setTransactionName(`${method} ${parameterizedRoute}`);
-          scope.setPropagationContext(propagationContext);
+      return withIsolationScope(
+        process.env.NEXT_RUNTIME === 'edge' ? edgeRuntimeIsolationScopeOverride : getIsolationScope(),
+        () => {
+          return withScope(async scope => {
+            scope.setTransactionName(`${method} ${parameterizedRoute}`);
 
-          const response: Response = await handleCallbackErrors(
-            () => originalFunction.apply(thisArg, args),
-            error => {
-              // Next.js throws errors when calling `redirect()`. We don't wanna report these.
-              if (isRedirectNavigationError(error)) {
-                // Don't do anything
-              } else if (isNotFoundNavigationError(error)) {
+            if (process.env.NEXT_RUNTIME === 'edge') {
+              const completeHeadersDict: Record<string, string> = headers ? winterCGHeadersToDict(headers) : {};
+              const incomingPropagationContext = propagationContextFromHeaders(
+                completeHeadersDict['sentry-trace'],
+                completeHeadersDict['baggage'],
+              );
+              scope.setPropagationContext(incomingPropagationContext);
+              scope.setSDKProcessingMetadata({
+                request: {
+                  method,
+                  headers: completeHeadersDict,
+                },
+              });
+            }
+
+            const response: Response = await handleCallbackErrors(
+              () => originalFunction.apply(thisArg, args),
+              error => {
+                // Next.js throws errors when calling `redirect()`. We don't wanna report these.
+                if (isRedirectNavigationError(error)) {
+                  // Don't do anything
+                } else if (isNotFoundNavigationError(error)) {
+                  if (activeSpan) {
+                    setHttpStatus(activeSpan, 404);
+                  }
+                  if (rootSpan) {
+                    setHttpStatus(rootSpan, 404);
+                  }
+                } else {
+                  captureException(error, {
+                    mechanism: {
+                      handled: false,
+                    },
+                  });
+                }
+              },
+            );
+
+            try {
+              if (response.status) {
                 if (activeSpan) {
-                  setHttpStatus(activeSpan, 404);
+                  setHttpStatus(activeSpan, response.status);
                 }
                 if (rootSpan) {
-                  setHttpStatus(rootSpan, 404);
+                  setHttpStatus(rootSpan, response.status);
                 }
-              } else {
-                captureException(error, {
-                  mechanism: {
-                    handled: false,
-                  },
-                });
               }
-            },
-          );
-
-          try {
-            if (response.status) {
-              if (activeSpan) {
-                setHttpStatus(activeSpan, response.status);
-              }
-              if (rootSpan) {
-                setHttpStatus(rootSpan, response.status);
-              }
+            } catch {
+              // best effort - response may be undefined?
             }
-          } catch {
-            // best effort - response may be undefined?
-          }
 
-          return response;
-        });
-      });
+            return response;
+          });
+        },
+      );
     },
   });
 }

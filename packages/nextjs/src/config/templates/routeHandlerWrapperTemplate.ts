@@ -38,27 +38,20 @@ function wrapHandler<T>(handler: T, method: 'GET' | 'POST' | 'PUT' | 'PATCH' | '
 
   return new Proxy(handler, {
     apply: (originalFunction, thisArg, args) => {
-      let sentryTraceHeader: string | undefined | null = undefined;
-      let baggageHeader: string | undefined | null = undefined;
       let headers: WebFetchHeaders | undefined = undefined;
 
       // We try-catch here just in case the API around `requestAsyncStorage` changes unexpectedly since it is not public API
       try {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         const requestAsyncStore = requestAsyncStorage?.getStore() as ReturnType<RequestAsyncStorage['getStore']>;
-        sentryTraceHeader = requestAsyncStore?.headers.get('sentry-trace') ?? undefined;
-        baggageHeader = requestAsyncStore?.headers.get('baggage') ?? undefined;
         headers = requestAsyncStore?.headers;
       } catch (e) {
         /** empty */
       }
 
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return Sentry.wrapRouteHandlerWithSentry(originalFunction as any, {
         method,
         parameterizedRoute: '__ROUTE__',
-        sentryTraceHeader,
-        baggageHeader,
         headers,
       }).apply(thisArg, args);
     },

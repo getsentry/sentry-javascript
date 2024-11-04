@@ -34,7 +34,7 @@ sentryTest('captures correct timestamps', async ({ getLocalTestUrl, page, browse
     return getReplayPerformanceSpans(recordingEvents).some(span => span.op === 'resource.xhr');
   });
 
-  const url = await getLocalTestUrl({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname, skipDsnRouteHandler: true });
   await page.goto(url);
 
   void page.evaluate(() => {

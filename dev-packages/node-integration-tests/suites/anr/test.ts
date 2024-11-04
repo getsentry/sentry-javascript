@@ -56,12 +56,12 @@ const ANR_EVENT_WITH_SCOPE = {
   user: {
     email: 'person@home.com',
   },
-  breadcrumbs: [
+  breadcrumbs: expect.arrayContaining([
     {
       timestamp: expect.any(Number),
       message: 'important message!',
     },
-  ],
+  ]),
 };
 
 conditionalTest({ min: 16 })('should report ANR when event loop blocked', () => {

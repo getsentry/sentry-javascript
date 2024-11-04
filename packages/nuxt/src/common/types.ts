@@ -1,21 +1,10 @@
 import type { init as initNode } from '@sentry/node';
 import type { SentryRollupPluginOptions } from '@sentry/rollup-plugin';
 import type { SentryVitePluginOptions } from '@sentry/vite-plugin';
-import type { createSentryPiniaPlugin, init as initVue } from '@sentry/vue';
+import type { init as initVue } from '@sentry/vue';
 
 // Omitting 'app' as the Nuxt SDK will add the app instance in the client plugin (users do not have to provide this)
-export type SentryNuxtClientOptions = Omit<Parameters<typeof initVue>[0] & object, 'app'> & {
-  /**
-   * Control if an existing Pinia store should be monitored.
-   * Set this to `true` to track with default options or provide your custom Pinia plugin options.
-   *
-   * This only works if "@pinia/nuxt" is added to the `modules` array.
-   *
-   * @default false
-   */
-  trackPinia?: true | Parameters<typeof createSentryPiniaPlugin>[0];
-};
-
+export type SentryNuxtClientOptions = Omit<Parameters<typeof initVue>[0] & object, 'app'>;
 export type SentryNuxtServerOptions = Omit<Parameters<typeof initNode>[0] & object, 'app'>;
 
 type SourceMapsOptions = {
@@ -127,6 +116,19 @@ export type SentryNuxtModuleOptions = {
    * @default true
    */
   dynamicImportForServerEntry?: boolean;
+
+  /**
+   * By default—unless you configure `dynamicImportForServerEntry: false`—the SDK will try to wrap your Nitro server entrypoint
+   * with a dynamic `import()` to ensure all dependencies can be properly instrumented. Any previous exports from the entrypoint are still exported.
+   * Most exports of the server entrypoint are serverless functions and those are wrapped by Sentry. Other exports stay as-is.
+   *
+   * By default, the SDK will wrap the default export as well as a `handler` or `server` export from the entrypoint.
+   * If your server has a different main export that is used to run the server, you can overwrite this by providing an array of export names to wrap.
+   * Any wrapped export is expected to be an async function.
+   *
+   * @default ['default', 'handler', 'server']
+   */
+  entrypointWrappedFunctions?: string[];
 
   /**
    * Options to be passed directly to the Sentry Rollup Plugin (`@sentry/rollup-plugin`) and Sentry Vite Plugin (`@sentry/vite-plugin`) that ship with the Sentry Nuxt SDK.
