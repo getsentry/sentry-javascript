@@ -332,7 +332,8 @@ export function constructWebpackConfigFunction(
     // Symbolication for dev-mode errors is done elsewhere.
     if (!isDev) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { sentryWebpackPlugin } = loadModule('@sentry/webpack-plugin') as any;
+      const { sentryWebpackPlugin } = loadModule<{ sentryWebpackPlugin: any }>('@sentry/webpack-plugin') ?? {};
+
       if (sentryWebpackPlugin) {
         if (!userSentryOptions.sourcemaps?.disable) {
           // `hidden-source-map` produces the same sourcemaps as `source-map`, but doesn't include the `sourceMappingURL`
