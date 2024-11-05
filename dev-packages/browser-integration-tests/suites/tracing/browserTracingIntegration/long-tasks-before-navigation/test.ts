@@ -1,5 +1,5 @@
-import type { Event } from '@sentry/types';
 import { expect } from '@playwright/test';
+import type { Event } from '@sentry/types';
 
 import { sentryTest } from '../../../../utils/fixtures';
 import { getFirstSentryEnvelopeRequest, shouldSkipTracingTest } from '../../../../utils/helpers';
