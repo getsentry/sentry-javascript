@@ -192,7 +192,8 @@ export function startTrackingLongAnimationFrames(): void {
  */
 export function startTrackingInteractions(): void {
   addPerformanceInstrumentationHandler('event', ({ entries }) => {
-    if (!getActiveSpan()) {
+    const parent = getActiveSpan();
+    if (!parent) {
       return;
     }
     for (const entry of entries) {
@@ -218,6 +219,8 @@ export function startTrackingInteractions(): void {
         if (span) {
           span.end(startTime + duration);
         }
+
+        startAndEndSpan(parent, startTime, startTime + duration, spanOptions);
       }
     }
   });
