@@ -215,11 +215,6 @@ export function startTrackingInteractions(): void {
           spanOptions.attributes['ui.component_name'] = componentName;
         }
 
-        const span = startInactiveSpan(spanOptions);
-        if (span) {
-          span.end(startTime + duration);
-        }
-
         startAndEndSpan(parent, startTime, startTime + duration, spanOptions);
       }
     }
