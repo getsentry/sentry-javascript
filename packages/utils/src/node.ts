@@ -28,9 +28,8 @@ export function isNodeEnv(): boolean {
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function dynamicRequire(mod: any, request: string): any {
-  const resolvedPath = require.resolve(request);
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-  return mod.require(resolvedPath);
+  return mod.require(request);
 }
 
 /**
@@ -52,7 +51,16 @@ export function loadModule<T>(moduleName: string): T | undefined {
   try {
     mod = dynamicRequire(module, moduleName);
   } catch (e) {
-    DEBUG_BUILD && logger.error(`Unable to dynamically require ${moduleName}`);
+    // no-empty
+  }
+
+  if (!mod) {
+    try {
+      const { cwd } = dynamicRequire(module, 'process');
+      mod = dynamicRequire(module, `${cwd()}/node_modules/${moduleName}`) as T;
+    } catch (e) {
+      // no-empty
+    }
   }
 
   return mod;
