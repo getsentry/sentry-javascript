@@ -556,7 +556,7 @@ describe('continuous profiling', () => {
     expect(stopProfilingSpy).toHaveBeenCalledTimes(1);
   });
 
-  it('manullly stopping a chunk doesnt restart the profiler', async () => {
+  it('manually stopping a chunk doesnt restart the profiler', async () => {
     const startProfilingSpy = jest.spyOn(CpuProfilerBindings, 'startProfiling');
     const stopProfilingSpy = jest.spyOn(CpuProfilerBindings, 'stopProfiling');
 

@@ -35,7 +35,7 @@ describe('Integration | early events', () => {
 
     expect(initialTimestamp).not.toEqual(earlyTimeStampSeconds * 1000);
 
-    // A performance entry that happend before should not extend the session when we manually started
+    // A performance entry that happened before should not extend the session when we manually started
     replay.replayPerformanceEntries.push({
       type: 'largest-contentful-paint',
       name: 'largest-contentful-paint',

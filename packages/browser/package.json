@@ -9,9 +9,7 @@
   "engines": {
     "node": ">=14.18"
   },
-  "files": [
-    "/build/npm"
-  ],
+  "files": ["/build/npm"],
   "main": "build/npm/cjs/index.js",
   "module": "build/npm/esm/index.js",
   "types": "build/npm/types/index.d.ts",
@@ -30,9 +28,7 @@
   },
   "typesVersions": {
     "<4.9": {
-      "build/npm/types/index.d.ts": [
-        "build/npm/types-ts3.8/index.d.ts"
-      ]
+      "build/npm/types/index.d.ts": ["build/npm/types-ts3.8/index.d.ts"]
     }
   },
   "publishConfig": {
@@ -53,7 +49,7 @@
   },
   "scripts": {
     "build": "run-p build:transpile build:bundle build:types",
-    "build:dev": "yarn build",
+    "build:dev": "run-p build:transpile build:types",
     "build:bundle": "rollup -c rollup.bundle.config.mjs",
     "build:transpile": "rollup -c rollup.npm.config.mjs",
     "build:types": "run-s build:types:core build:types:downlevel",

@@ -39,7 +39,7 @@ export class EventBufferCompressionWorker implements EventBuffer {
 
   /**
    * Ensure the worker is ready (or not).
-   * This will either resolve when the worker is ready, or reject if an error occured.
+   * This will either resolve when the worker is ready, or reject if an error occurred.
    */
   public ensureReady(): Promise<void> {
     return this._worker.ensureReady();
@@ -55,7 +55,7 @@ export class EventBufferCompressionWorker implements EventBuffer {
   /**
    * Add an event to the event buffer.
    *
-   * Returns true if event was successfuly received and processed by worker.
+   * Returns true if event was successfully received and processed by worker.
    */
   public addEvent(event: RecordingEvent): Promise<AddEventResult> {
     const timestamp = timestampToMs(event.timestamp);

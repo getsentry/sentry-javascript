@@ -16,7 +16,7 @@ export function getCurrentScope(): Scope {
 
 /**
  * Get the currently active isolation scope.
- * The isolation scope is active for the current exection context.
+ * The isolation scope is active for the current execution context.
  */
 export function getIsolationScope(): Scope {
   const carrier = getMainCarrier();

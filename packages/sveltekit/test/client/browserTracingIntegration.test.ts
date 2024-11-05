@@ -291,7 +291,7 @@ describe('browserTracingIntegration', () => {
       // @ts-expect-error - the fakeClient doesn't satisfy Client but that's fine
       integration.afterAllSetup(fakeClient);
 
-      // window.location.pathame is "/" in tests
+      // window.location.pathname is "/" in tests
 
       // @ts-expect-error - page is a writable but the types say it's just readable
       navigating.set({
