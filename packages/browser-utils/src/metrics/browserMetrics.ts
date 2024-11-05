@@ -157,7 +157,7 @@ export function startTrackingLongAnimationFrames(): void {
       const { start_timestamp: parentStartTimestamp, op: parentOp } = spanToJSON(parent);
 
       if (parentOp === 'navigation' && parentStartTimestamp && startTime < parentStartTimestamp) {
-        // Skip adding the span if the long task started before the navigation started.
+        // Skip adding the span if the long animation frame started before the navigation started.
         // `startAndEndSpan` will otherwise adjust the parent's start time to the span's start
         // time, potentially skewing the duration of the actual navigation as reported via our
         // routing instrumentations
