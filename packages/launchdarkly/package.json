@@ -1,7 +1,7 @@
 {
   "name": "@sentry-internal/launchdarkly",
   "version": "8.35.0",
-  "description": "Sentry SDK integration for user launchdarkly",
+  "description": "Sentry SDK integration for Launch Darkly feature flagging",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/launchdarkly",
   "author": "Sentry",

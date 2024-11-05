@@ -38,10 +38,12 @@ export const launchDarklyIntegration = ((_options?: LaunchDarklyOptions) => {
 }) satisfies IntegrationFn;
 
 /**
- * TODO: docstring
+ * LaunchDarkly hook that listens for flag evaluations and updates the
+ * flagBuffer in our current scope
+ * TODO: finalize docstring
  */
 export class SentryInspector implements LDInspectionFlagUsedHandler {
-  public name = 'sentry-flag-used-handler';
+  public name = 'sentry-flag-auditor';
 
   public synchronous = true; // TODO: T or F?
 
