@@ -9,6 +9,7 @@ import {
   lastEventId,
   makeSession,
   setCurrentClient,
+  withMonitor,
 } from '../../src';
 import * as integrationModule from '../../src/integration';
 import { TestClient, getDefaultTestClientOptions } from '../mocks/client';
@@ -2088,6 +2089,50 @@ describe('BaseClient', () => {
       // because we unregistered it.
       expect(callback).toBeCalledTimes(1);
       expect(callback).toBeCalledWith(errorEvent, { statusCode: 200 });
+    });
+  });
+
+  describe('withMonitor', () => {
+    test('handles successful synchronous operations', () => {
+      const result = 'foo';
+      const callback = jest.fn().mockReturnValue(result);
+
+      const returnedResult = withMonitor('test-monitor', callback);
+
+      expect(returnedResult).toBe(result);
+      expect(callback).toHaveBeenCalledTimes(1);
+    });
+
+    test('handles synchronous errors', () => {
+      const error = new Error('Test error');
+      const callback = jest.fn().mockImplementation(() => {
+        throw error;
+      });
+
+      expect(() => withMonitor('test-monitor', callback)).toThrowError(error);
+    });
+
+    test('handles successful asynchronous operations', async () => {
+      const result = 'foo';
+      const callback = jest.fn().mockResolvedValue(result);
+
+      const promise = withMonitor('test-monitor', callback);
+      await expect(promise).resolves.toEqual(result);
+    });
+
+    // This test is skipped because jest keeps retrying ad infinitum
+    // when encountering an unhandled rejections.
+    // We could set "NODE_OPTIONS='--unhandled-rejections=warn' but it
+    // would affect the entire test suite.
+    // Maybe this can be re-enabled when switching to vitest.
+    //
+    // eslint-disable-next-line @sentry-internal/sdk/no-skipped-tests
+    test.skip('handles asynchronous errors', async () => {
+      const error = new Error('Test error');
+      const callback = jest.fn().mockRejectedValue(error);
+
+      const promise = await withMonitor('test-monitor', callback);
+      await expect(promise).rejects.toThrowError(error);
     });
   });
 });

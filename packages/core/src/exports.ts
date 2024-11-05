@@ -189,8 +189,9 @@ export function withMonitor<T>(
         () => {
           finishCheckIn('ok');
         },
-        () => {
+        e => {
           finishCheckIn('error');
+          throw e;
         },
       );
     } else {
