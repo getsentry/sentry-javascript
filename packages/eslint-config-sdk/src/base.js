@@ -40,7 +40,7 @@ module.exports = {
 
         // Although for most codebases inferencing the return type is fine, we explicitly ask to annotate
         // all functions with a return type. This is so that intent is as clear as possible. We are guarding against
-        // cases where you accidently refactor a function's return type to be the wrong type.
+        // cases where you accidentally refactor a function's return type to be the wrong type.
         '@typescript-eslint/explicit-function-return-type': ['error', { allowExpressions: true }],
 
         // Consistent ordering of fields, methods and constructors for classes should be enforced
@@ -131,7 +131,7 @@ module.exports = {
         ],
 
         // We want to prevent optional chaining & nullish coalescing usage in our files
-        // to prevent uncessary bundle size. Turned off in tests.
+        // to prevent unnecessary bundle size. Turned off in tests.
         '@sentry-internal/sdk/no-optional-chaining': 'error',
         '@sentry-internal/sdk/no-nullish-coalescing': 'error',
 
@@ -258,7 +258,7 @@ module.exports = {
 
     quotes: ['error', 'single', { avoidEscape: true }],
 
-    // Remove uncessary usages of async await to prevent extra micro-tasks
+    // Remove unnecessary usages of async await to prevent extra micro-tasks
     'no-return-await': 'error',
   },
 };

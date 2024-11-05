@@ -1,5 +1,5 @@
 // We export everything from both the client part of the SDK and from the server part. Some of the exports collide,
-// which is not allowed, unless we redifine the colliding exports in this file - which we do below.
+// which is not allowed, unless we redefine the colliding exports in this file - which we do below.
 export * from './index.client';
 export * from './index.server';
 
@@ -39,4 +39,5 @@ export const close = runtime === 'client' ? clientSdk.close : serverSdk.close;
 export const flush = runtime === 'client' ? clientSdk.flush : serverSdk.flush;
 export const lastEventId = runtime === 'client' ? clientSdk.lastEventId : serverSdk.lastEventId;
 
+// eslint-disable-next-line deprecation/deprecation
 export declare const metrics: typeof clientSdk.metrics & typeof serverSdk.metrics;

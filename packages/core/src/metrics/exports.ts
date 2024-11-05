@@ -78,7 +78,7 @@ function addToMetricsAggregator(
 /**
  * Adds a value to a counter metric
  *
- * @experimental This API is experimental and might have breaking changes in the future.
+ * @deprecated The Sentry metrics beta has ended. This method will be removed in a future release.
  */
 function increment(aggregator: MetricsAggregatorConstructor, name: string, value: number = 1, data?: MetricData): void {
   addToMetricsAggregator(aggregator, COUNTER_METRIC_TYPE, name, ensureNumber(value), data);
@@ -87,7 +87,7 @@ function increment(aggregator: MetricsAggregatorConstructor, name: string, value
 /**
  * Adds a value to a distribution metric
  *
- * @experimental This API is experimental and might have breaking changes in the future.
+ * @deprecated The Sentry metrics beta has ended. This method will be removed in a future release.
  */
 function distribution(aggregator: MetricsAggregatorConstructor, name: string, value: number, data?: MetricData): void {
   addToMetricsAggregator(aggregator, DISTRIBUTION_METRIC_TYPE, name, ensureNumber(value), data);
@@ -100,7 +100,7 @@ function distribution(aggregator: MetricsAggregatorConstructor, name: string, va
  * You can either directly capture a numeric `value`, or wrap a callback function in `timing`.
  * In the latter case, the duration of the callback execution will be captured as a span & a metric.
  *
- * @experimental This API is experimental and might have breaking changes in the future.
+ * @deprecated The Sentry metrics beta has ended. This method will be removed in a future release.
  */
 function timing<T = void>(
   aggregator: MetricsAggregatorConstructor,
@@ -129,6 +129,7 @@ function timing<T = void>(
           () => {
             const endTime = timestampInSeconds();
             const timeDiff = endTime - startTime;
+            // eslint-disable-next-line deprecation/deprecation
             distribution(aggregator, name, timeDiff, { ...data, unit: 'second' });
             span.end(endTime);
           },
@@ -138,13 +139,14 @@ function timing<T = void>(
   }
 
   // value form
+  // eslint-disable-next-line deprecation/deprecation
   distribution(aggregator, name, value, { ...data, unit });
 }
 
 /**
  * Adds a value to a set metric. Value must be a string or integer.
  *
- * @experimental This API is experimental and might have breaking changes in the future.
+ * @deprecated The Sentry metrics beta has ended. This method will be removed in a future release.
  */
 function set(aggregator: MetricsAggregatorConstructor, name: string, value: number | string, data?: MetricData): void {
   addToMetricsAggregator(aggregator, SET_METRIC_TYPE, name, value, data);
@@ -153,12 +155,17 @@ function set(aggregator: MetricsAggregatorConstructor, name: string, value: numb
 /**
  * Adds a value to a gauge metric
  *
- * @experimental This API is experimental and might have breaking changes in the future.
+ * @deprecated The Sentry metrics beta has ended. This method will be removed in a future release.
  */
 function gauge(aggregator: MetricsAggregatorConstructor, name: string, value: number, data?: MetricData): void {
   addToMetricsAggregator(aggregator, GAUGE_METRIC_TYPE, name, ensureNumber(value), data);
 }
 
+/**
+ * The metrics API is used to capture custom metrics in Sentry.
+ *
+ * @deprecated The Sentry metrics beta has ended. This export will be removed in a future release.
+ */
 export const metrics = {
   increment,
   distribution,

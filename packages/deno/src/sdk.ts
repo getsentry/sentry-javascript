@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/consistent-type-imports */
 import type { ServerRuntimeClientOptions } from '@sentry/core';
 import {
   dedupeIntegration,

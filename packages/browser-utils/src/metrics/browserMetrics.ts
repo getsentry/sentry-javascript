@@ -105,24 +105,32 @@ export function startTrackingWebVitals({ recordClsStandaloneSpans }: StartTracki
  */
 export function startTrackingLongTasks(): void {
   addPerformanceInstrumentationHandler('longtask', ({ entries }) => {
-    if (!getActiveSpan()) {
+    const parent = getActiveSpan();
+    if (!parent) {
       return;
     }
+
+    const { op: parentOp, start_timestamp: parentStartTimestamp } = spanToJSON(parent);
+
     for (const entry of entries) {
       const startTime = msToSec((browserPerformanceTimeOrigin as number) + entry.startTime);
       const duration = msToSec(entry.duration);
 
-      const span = startInactiveSpan({
+      if (parentOp === 'navigation' && parentStartTimestamp && startTime < parentStartTimestamp) {
+        // Skip adding a span if the long task started before the navigation started.
+        // `startAndEndSpan` will otherwise adjust the parent's start time to the span's start
+        // time, potentially skewing the duration of the actual navigation as reported via our
+        // routing instrumentations
+        continue;
+      }
+
+      startAndEndSpan(parent, startTime, startTime + duration, {
         name: 'Main UI thread blocked',
         op: 'ui.long-task',
-        startTime,
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.browser.metrics',
         },
       });
-      if (span) {
-        span.end(startTime + duration);
-      }
     }
   });
 }
@@ -418,7 +426,7 @@ export function _addMeasureSpans(
   // spans created by the Next.js framework.
   //
   // To prevent this we will pin the start timestamp to the request start time
-  // This does make duration inaccruate, so if this does happen, we will add
+  // This does make duration inaccurate, so if this does happen, we will add
   // an attribute to the span
   const measureStartTimestamp = timeOrigin + Math.max(startTime, requestTime);
   const startTimeStamp = timeOrigin + startTime;
@@ -513,6 +521,7 @@ export interface ResourceEntry extends Record<string, unknown> {
   encodedBodySize?: number;
   decodedBodySize?: number;
   renderBlockingStatus?: string;
+  deliveryType?: string;
 }
 
 /** Create resource-related spans */
@@ -538,6 +547,10 @@ export function _addResourceSpans(
   setResourceEntrySizeData(attributes, entry, 'transferSize', 'http.response_transfer_size');
   setResourceEntrySizeData(attributes, entry, 'encodedBodySize', 'http.response_content_length');
   setResourceEntrySizeData(attributes, entry, 'decodedBodySize', 'http.decoded_response_content_length');
+
+  if (entry.deliveryType != null) {
+    attributes['http.response_delivery_type'] = entry.deliveryType;
+  }
 
   if ('renderBlockingStatus' in entry) {
     attributes['resource.render_blocking_status'] = entry.renderBlockingStatus;

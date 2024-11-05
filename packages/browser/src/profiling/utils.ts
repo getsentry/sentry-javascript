@@ -601,7 +601,7 @@ export function createProfilingEvent(
 
 // TODO (v8): We need to obtain profile ids in @sentry-internal/tracing,
 // but we don't have access to this map because importing this map would
-// cause a circular dependancy. We need to resolve this in v8.
+// cause a circular dependency. We need to resolve this in v8.
 const PROFILE_MAP: Map<string, JSSelfProfile> = new Map();
 /**
  *

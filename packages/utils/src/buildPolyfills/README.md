@@ -8,7 +8,7 @@ which can lead to a great deal of duplication. For our builds, we have therefore
 polyfills injected in multiple places, we instead replace each injected function with an `import` or `require`
 statement.
 
-Note that not all polyfills are currently used by the SDK, but all are included here for future compatitibility, should
+Note that not all polyfills are currently used by the SDK, but all are included here for future compatibility, should
 they ever be needed. Also, since we're never going to be calling these directly from within another TS file, their types
 are fairly generic. In some cases testing required more specific types, which can be found in the test files.
 

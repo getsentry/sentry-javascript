@@ -74,6 +74,7 @@ export {
   localVariablesIntegration,
   lruMemoizerIntegration,
   makeNodeTransport,
+  // eslint-disable-next-line deprecation/deprecation
   metrics,
   modulesIntegration,
   mongoIntegration,

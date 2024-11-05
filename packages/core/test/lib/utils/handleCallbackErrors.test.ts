@@ -69,7 +69,7 @@ describe('handleCallbackErrors', () => {
   });
 
   describe('onFinally', () => {
-    it('triggers after successfuly sync callback', () => {
+    it('triggers after successful sync callback', () => {
       const onError = jest.fn();
       const onFinally = jest.fn();
 

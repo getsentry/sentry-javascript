@@ -117,7 +117,7 @@ function _getSentryBreadcrumbHandler(client: Client): (event: SentryEvent) => vo
 }
 
 /**
- * A HOC that creaes a function that creates breadcrumbs from DOM API calls.
+ * A HOC that creates a function that creates breadcrumbs from DOM API calls.
  * This is a HOC so that we get access to dom options in the closure.
  */
 function _getDomBreadcrumbHandler(

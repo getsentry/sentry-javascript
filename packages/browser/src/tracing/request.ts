@@ -138,7 +138,7 @@ export function instrumentOutgoingRequests(client: Client, _options?: Partial<Re
   const spans: Record<string, Span> = {};
 
   if (traceFetch) {
-    // Keeping track of http requests, whose body payloads resolved later than the intial resolved request
+    // Keeping track of http requests, whose body payloads resolved later than the initial resolved request
     // e.g. streaming using server sent events (SSE)
     client.addEventProcessor(event => {
       if (event.type === 'transaction' && event.spans) {

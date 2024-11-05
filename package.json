@@ -108,7 +108,6 @@
     "@rollup/pluginutils": "^5.1.0",
     "@size-limit/file": "~11.1.6",
     "@size-limit/webpack": "~11.1.6",
-    "@strictsoftware/typedoc-plugin-monorepo": "^0.3.1",
     "@types/jest": "^27.4.1",
     "@types/jsdom": "^21.1.6",
     "@types/node": "^14.18.0",
@@ -132,7 +131,6 @@
     "sucrase": "^3.35.0",
     "ts-jest": "^27.1.4",
     "ts-node": "10.9.1",
-    "typedoc": "^0.18.0",
     "typescript": "4.9.5",
     "vitest": "^1.6.0",
     "yalc": "^1.0.0-pre.53"

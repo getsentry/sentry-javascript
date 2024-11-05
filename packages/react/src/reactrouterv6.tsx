@@ -170,7 +170,7 @@ function getNormalizedName(
             if (
               // If the route defined on the element is something like
               // <Route path="/stores/:storeId/products/:productId" element={<div>Product</div>} />
-              // We should check against the branch.pathname for the number of / seperators
+              // We should check against the branch.pathname for the number of / separators
               getNumberOfUrlSegments(pathBuilder) !== getNumberOfUrlSegments(branch.pathname) &&
               // We should not count wildcard operators in the url segments calculation
               pathBuilder.slice(-2) !== '/*'
@@ -266,7 +266,7 @@ export function withSentryReactRouterV6Routing<P extends Record<string, any>, R 
           handleNavigation(location, routes, navigationType);
         }
       },
-      // `props.children` is purpusely not included in the dependency array, because we do not want to re-run this effect
+      // `props.children` is purposely not included in the dependency array, because we do not want to re-run this effect
       // when the children change. We only want to start transactions when the location or navigation type change.
       [location, navigationType],
     );

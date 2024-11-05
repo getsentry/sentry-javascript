@@ -38,7 +38,7 @@ describe('isMatchingPattern()', () => {
     expect(isMatchingPattern('foobar', 'nope', true)).toEqual(false);
   });
 
-  test('matches when `value` constains `pattern` but not vice-versa', () => {
+  test('matches when `value` contains `pattern` but not vice-versa', () => {
     expect(isMatchingPattern('foobar', 'foo')).toEqual(true);
     expect(isMatchingPattern('foobar', 'foobarbaz')).toEqual(false);
   });
@@ -83,7 +83,7 @@ describe('stringMatchesSomePattern()', () => {
     expect(stringMatchesSomePattern('foobar', ['baz', 'nope'], true)).toEqual(false);
   });
 
-  test('matches when `testString` constains a pattern but not vice-versa', () => {
+  test('matches when `testString` contains a pattern but not vice-versa', () => {
     expect(stringMatchesSomePattern('foobar', ['foo', 'nope'])).toEqual(true);
     expect(stringMatchesSomePattern('foobar', ['foobarbaz', 'nope'])).toEqual(false);
   });

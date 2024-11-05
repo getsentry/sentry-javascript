@@ -116,6 +116,7 @@ export {
   extraErrorDataIntegration,
   rewriteFramesIntegration,
   sessionTimingIntegration,
+  // eslint-disable-next-line deprecation/deprecation
   metricsDefault as metrics,
   startSession,
   captureSession,

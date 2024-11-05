@@ -6,7 +6,7 @@ import { getFirstSentryEnvelopeRequest, runScriptInSandbox } from '../../../../.
 
 sentryTest('should catch thrown errors', async ({ getLocalTestPath, page, browserName }) => {
   if (browserName === 'webkit') {
-    // This test fails on Webkit as erros thrown from `runScriptInSandbox` are Script Errors and skipped by Sentry
+    // This test fails on Webkit as errors thrown from `runScriptInSandbox` are Script Errors and skipped by Sentry
     sentryTest.skip();
   }
 
