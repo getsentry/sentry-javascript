@@ -96,7 +96,7 @@ jobs:
               - 'packages/profiling-node/**'
               - 'dev-packages/e2e-tests/test-applications/node-profiling/**'
             any_code:
-              - '!(**/*.md)'
+              - '!**/*.md'
 
 
       - name: Get PR labels
