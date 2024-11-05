@@ -105,24 +105,32 @@ export function startTrackingWebVitals({ recordClsStandaloneSpans }: StartTracki
  */
 export function startTrackingLongTasks(): void {
   addPerformanceInstrumentationHandler('longtask', ({ entries }) => {
-    if (!getActiveSpan()) {
+    const parent = getActiveSpan();
+    if (!parent) {
       return;
     }
+
+    const { op: parentOp, start_timestamp: parentStartTimestamp } = spanToJSON(parent);
+
     for (const entry of entries) {
       const startTime = msToSec((browserPerformanceTimeOrigin as number) + entry.startTime);
       const duration = msToSec(entry.duration);
 
-      const span = startInactiveSpan({
+      if (parentOp === 'navigation' && parentStartTimestamp && startTime < parentStartTimestamp) {
+        // Skip adding a span if the long task started before the navigation started.
+        // `startAndEndSpan` will otherwise adjust the parent's start time to the span's start
+        // time, potentially skewing the duration of the actual navigation as reported via our
+        // routing instrumentations
+        continue;
+      }
+
+      startAndEndSpan(parent, startTime, startTime + duration, {
         name: 'Main UI thread blocked',
         op: 'ui.long-task',
-        startTime,
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.browser.metrics',
         },
       });
-      if (span) {
-        span.end(startTime + duration);
-      }
     }
   });
 }
