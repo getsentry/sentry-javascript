@@ -3,9 +3,7 @@
  * you must either a) use `console.log` rather than the logger, or b) put your function elsewhere.
  */
 
-import { DEBUG_BUILD } from './debug-build';
 import { isBrowserBundle } from './env';
-import { logger } from './logger';
 
 /**
  * Checks whether we're in the Node.js or Browser environment
