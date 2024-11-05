@@ -126,10 +126,11 @@ jobs:
     runs-on: ubuntu-20.04
     timeout-minutes: 15
     if: |
-      needs.job_get_metadata.outputs.changed_any_code == 'true' ||
       needs.job_get_metadata.outputs.is_develop == 'true' ||
       needs.job_get_metadata.outputs.is_release == 'true' ||
-      (needs.job_get_metadata.outputs.is_gitflow_sync == 'false' && needs.job_get_metadata.outputs.has_gitflow_label == 'false')
+      (needs.job_get_metadata.outputs.changed_any_code == 'true' &&
+       needs.job_get_metadata.outputs.is_gitflow_sync == 'false' &&
+       needs.job_get_metadata.outputs.has_gitflow_label == 'false')
     steps:
 
       - name: debug job if conditions
