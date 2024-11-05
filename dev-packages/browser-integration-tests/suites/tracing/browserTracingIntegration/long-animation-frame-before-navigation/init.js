@@ -7,11 +7,10 @@ Sentry.init({
   integrations: [
     Sentry.browserTracingIntegration({
       idleTimeout: 9000,
-      enableLongAnimationFrame: false,
+      enableLongTask: false,
+      enableLongAnimationFrame: true,
       instrumentPageLoad: false,
-      instrumentNavigation: true,
       enableInp: false,
-      enableLongTask: true,
     }),
   ],
   tracesSampleRate: 1,

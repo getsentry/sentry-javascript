@@ -5,25 +5,27 @@ import { sentryTest } from '../../../../utils/fixtures';
 import { getFirstSentryEnvelopeRequest, shouldSkipTracingTest } from '../../../../utils/helpers';
 
 sentryTest(
-  "doesn't capture long task spans starting before a navigation in the navigation transaction",
+  "doesn't capture long animation frame that starts before a navigation.",
   async ({ browserName, getLocalTestPath, page }) => {
-    // Long tasks only work on chrome
+    // Long animation frames only work on chrome
     if (shouldSkipTracingTest() || browserName !== 'chromium') {
       sentryTest.skip();
     }
+
     const url = await getLocalTestPath({ testDir: __dirname });
 
     await page.goto(url);
 
     const navigationTransactionEventPromise = getFirstSentryEnvelopeRequest<Event>(page);
 
-    await page.locator('#myButton').click();
+    await page.locator('#clickme').click();
 
     const navigationTransactionEvent = await navigationTransactionEventPromise;
 
     expect(navigationTransactionEvent.contexts?.trace?.op).toBe('navigation');
 
-    const longTaskSpans = navigationTransactionEvent?.spans?.filter(span => span.op === 'ui.long-task');
-    expect(longTaskSpans).toHaveLength(0);
+    const loafSpans = navigationTransactionEvent.spans?.filter(s => s.op?.startsWith('ui.long-animation-frame'));
+
+    expect(loafSpans?.length).toEqual(0);
   },
 );
