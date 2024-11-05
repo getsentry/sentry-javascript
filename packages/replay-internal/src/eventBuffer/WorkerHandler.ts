@@ -18,7 +18,7 @@ export class WorkerHandler {
 
   /**
    * Ensure the worker is ready (or not).
-   * This will either resolve when the worker is ready, or reject if an error occured.
+   * This will either resolve when the worker is ready, or reject if an error occurred.
    */
   public ensureReady(): Promise<void> {
     // Ensure we only check once

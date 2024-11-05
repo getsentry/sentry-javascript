@@ -82,7 +82,7 @@ export default function wrappingLoader(
 
     // Get the parameterized route name from this page's filepath
     const parameterizedPagesRoute = path
-      // Get the path of the file insde of the pages directory
+      // Get the path of the file inside of the pages directory
       .relative(pagesDir, this.resourcePath)
       // Replace all backslashes with forward slashes (windows)
       .replace(/\\/g, '/')
@@ -124,7 +124,7 @@ export default function wrappingLoader(
 
     // Get the parameterized route name from this page's filepath
     const parameterizedPagesRoute = path
-      // Get the path of the file insde of the app directory
+      // Get the path of the file inside of the app directory
       .relative(appDir, this.resourcePath)
       // Replace all backslashes with forward slashes (windows)
       .replace(/\\/g, '/')
@@ -281,7 +281,7 @@ async function wrapUserCode(
             } else if (id === WRAPPING_TARGET_MODULE_NAME) {
               return {
                 code: userModuleCode,
-                map: userModuleSourceMap, // give rollup acces to original user module source map
+                map: userModuleSourceMap, // give rollup access to original user module source map
               };
             } else {
               return null;
@@ -342,7 +342,7 @@ async function wrapUserCode(
   // This is why we want to avoid unnecessarily creating default exports, even if they're just `undefined`.
   // For this reason we try to bundle/wrap the user code once including a re-export of `default`.
   // If the user code didn't have a default export, rollup will throw.
-  // We then try bundling/wrapping agian, but without including a re-export of `default`.
+  // We then try bundling/wrapping again, but without including a re-export of `default`.
   let rollupBuild;
   try {
     rollupBuild = await wrap(true);
@@ -356,7 +356,7 @@ async function wrapUserCode(
 
   const finalBundle = await rollupBuild.generate({
     format: 'esm',
-    sourcemap: 'hidden', // put source map data in the bundle but don't generate a source map commment in the output
+    sourcemap: 'hidden', // put source map data in the bundle but don't generate a source map comment in the output
   });
 
   // The module at index 0 is always the entrypoint, which in this case is the proxy module.

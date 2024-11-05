@@ -145,7 +145,7 @@ describe('SyncPromise', () => {
     expect(foo).toEqual(2);
   });
 
-  test('calling the callback not immediatly', () => {
+  test('calling the callback not immediately', () => {
     jest.useFakeTimers();
     expect.assertions(4);
 
@@ -226,7 +226,7 @@ describe('SyncPromise', () => {
       });
   });
 
-  test('reject immediatly and do not call then', async () => {
+  test('reject immediately and do not call then', async () => {
     expect.assertions(1);
 
     return new SyncPromise<number>((_, reject) => {

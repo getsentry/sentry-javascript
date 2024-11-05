@@ -418,7 +418,7 @@ export function _addMeasureSpans(
   // spans created by the Next.js framework.
   //
   // To prevent this we will pin the start timestamp to the request start time
-  // This does make duration inaccruate, so if this does happen, we will add
+  // This does make duration inaccurate, so if this does happen, we will add
   // an attribute to the span
   const measureStartTimestamp = timeOrigin + Math.max(startTime, requestTime);
   const startTimeStamp = timeOrigin + startTime;

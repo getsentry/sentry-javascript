@@ -311,7 +311,7 @@ describe('Unit | coreHandlers | handleClick', () => {
 
         vi.advanceTimersByTime(500);
 
-        // Pretend a mutation happend
+        // Pretend a mutation happened
         detector['_lastMutation'] = BASE_TIMESTAMP / 1000 + 0.5;
 
         expect(mockAddBreadcrumbEvent).toHaveBeenCalledTimes(0);
@@ -335,7 +335,7 @@ describe('Unit | coreHandlers | handleClick', () => {
 
         vi.advanceTimersByTime(1_000);
 
-        // Pretend a mutation happend
+        // Pretend a mutation happened
         detector['_lastMutation'] = BASE_TIMESTAMP / 1000 + 2;
 
         expect(mockAddBreadcrumbEvent).toHaveBeenCalledTimes(0);
@@ -376,7 +376,7 @@ describe('Unit | coreHandlers | handleClick', () => {
 
         vi.advanceTimersByTime(1_000);
 
-        // Pretend a mutation happend
+        // Pretend a mutation happened
         detector['_lastMutation'] = BASE_TIMESTAMP / 1000 + 5;
 
         expect(mockAddBreadcrumbEvent).toHaveBeenCalledTimes(0);
@@ -443,7 +443,7 @@ describe('Unit | coreHandlers | handleClick', () => {
 
         vi.advanceTimersByTime(100);
 
-        // Pretend a mutation happend
+        // Pretend a mutation happened
         detector['_lastScroll'] = BASE_TIMESTAMP / 1000 + 0.15;
 
         expect(mockAddBreadcrumbEvent).toHaveBeenCalledTimes(0);
@@ -467,7 +467,7 @@ describe('Unit | coreHandlers | handleClick', () => {
 
         vi.advanceTimersByTime(300);
 
-        // Pretend a mutation happend
+        // Pretend a mutation happened
         detector['_lastScroll'] = BASE_TIMESTAMP / 1000 + 0.3;
 
         expect(mockAddBreadcrumbEvent).toHaveBeenCalledTimes(0);

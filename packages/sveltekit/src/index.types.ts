@@ -1,5 +1,5 @@
 // We export everything from both the client part of the SDK and from the server part.
-// Some of the exports collide, which is not allowed, unless we redifine the colliding
+// Some of the exports collide, which is not allowed, unless we redefine the colliding
 // exports in this file - which we do below.
 export * from './client';
 export * from './vite';
@@ -52,6 +52,7 @@ export declare function lastEventId(): string | undefined;
 
 export declare const continueTrace: typeof clientSdk.continueTrace;
 
+// eslint-disable-next-line deprecation/deprecation
 export declare const metrics: typeof clientSdk.metrics & typeof serverSdk.metrics;
 
 export declare function trackComponent(options: clientSdk.TrackingOptions): ReturnType<typeof clientSdk.trackComponent>;

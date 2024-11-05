@@ -178,7 +178,7 @@ export type SentrySvelteKitPluginOptions = {
 
   /**
    * The Sentry plugin will automatically instrument certain parts of your SvelteKit application at build time.
-   * Set this option to `false` to disable this behavior or what is instrumentated by passing an object.
+   * Set this option to `false` to disable this behavior or what is intrumented by passing an object.
    *
    * Auto instrumentation includes:
    * - Universal `load` functions in `+page.(js|ts)` files

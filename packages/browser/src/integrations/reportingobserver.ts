@@ -65,7 +65,7 @@ const _reportingObserverIntegration = ((options: ReportingObserverOptions = {}) 
         let details = 'No details available';
 
         if (report.body) {
-          // Object.keys doesn't work on ReportBody, as all properties are inheirted
+          // Object.keys doesn't work on ReportBody, as all properties are inherited
           const plainBody: {
             [key: string]: unknown;
           } = {};
