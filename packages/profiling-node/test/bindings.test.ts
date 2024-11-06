@@ -14,7 +14,7 @@ const cases = [
   ['/Users/jonas/code/src/file.ts', 'Users.jonas.code.src:file.ts'],
   //   No extension
   ['/Users/jonas/code/src/file', 'Users.jonas.code.src:file'],
-  //   Edge cases that shouldn't happen in practice, but try and handle them so we dont crash
+  //   Edge cases that shouldn't happen in practice, but try and handle them so we don't crash
   ['/Users/jonas/code/src/file.js', 'Users.jonas.code.src:file'],
   ['', ''],
 ];

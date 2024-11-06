@@ -14,4 +14,4 @@ Sentry.init({
   integrations: [feedback],
 });
 
-feedback.attachTo('#custom-feedback-buttom');
+feedback.attachTo('#custom-feedback-button');

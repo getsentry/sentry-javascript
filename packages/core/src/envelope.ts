@@ -76,7 +76,7 @@ export function createEventEnvelope(
   /*
     Note: Due to TS, event.type may be `replay_event`, theoretically.
     In practice, we never call `createEventEnvelope` with `replay_event` type,
-    and we'd have to adjut a looot of types to make this work properly.
+    and we'd have to adjust a looot of types to make this work properly.
     We want to avoid casting this around, as that could lead to bugs (e.g. when we add another type)
     So the safe choice is to really guard against the replay_event type here.
   */

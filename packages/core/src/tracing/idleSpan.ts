@@ -32,7 +32,7 @@ const FINISH_REASON_CANCELLED = 'cancelled';
 // unused
 const FINISH_REASON_DOCUMENT_HIDDEN = 'documentHidden';
 
-// unusued in this file, but used in BrowserTracing
+// unused in this file, but used in BrowserTracing
 const FINISH_REASON_INTERRUPTED = 'interactionInterrupted';
 
 type IdleSpanFinishReason =

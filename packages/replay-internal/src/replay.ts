@@ -640,7 +640,7 @@ export class ReplayContainer implements ReplayContainerInterface {
   /**
    * Always flush via `_debouncedFlush` so that we do not have flushes triggered
    * from calling both `flush` and `_debouncedFlush`. Otherwise, there could be
-   * cases of mulitple flushes happening closely together.
+   * cases of multiple flushes happening closely together.
    */
   public flushImmediate(): Promise<void> {
     this._debouncedFlush();
@@ -655,7 +655,7 @@ export class ReplayContainer implements ReplayContainerInterface {
     this._debouncedFlush.cancel();
   }
 
-  /** Get the current sesion (=replay) ID */
+  /** Get the current session (=replay) ID */
   public getSessionId(): string | undefined {
     return this.session && this.session.id;
   }
@@ -1155,7 +1155,7 @@ export class ReplayContainer implements ReplayContainerInterface {
       const timestamp = Date.now();
 
       // Check total duration again, to avoid sending outdated stuff
-      // We leave 30s wiggle room to accomodate late flushing etc.
+      // We leave 30s wiggle room to accommodate late flushing etc.
       // This _could_ happen when the browser is suspended during flushing, in which case we just want to stop
       if (timestamp - this._context.initialTimestamp > this._options.maxReplayDuration + 30_000) {
         throw new Error('Session is too long, not sending replay');

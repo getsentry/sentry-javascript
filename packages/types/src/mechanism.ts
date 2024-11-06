@@ -50,7 +50,7 @@ export interface Mechanism {
   exception_id?: number;
 
   /**
-   * References another exception via the `exception_id` field to indicate that this excpetion is a child of that
+   * References another exception via the `exception_id` field to indicate that this exception is a child of that
    * exception in the case of aggregate or linked errors.
    */
   parent_id?: number;

@@ -64,7 +64,7 @@ export type UseLocation = () => Location;
 export type UseNavigationType = () => Action;
 
 // For both of these types, use `any` instead of `RouteObject[]` or `RouteMatch[]`.
-// Have to do this so we maintain backwards compatability between
+// Have to do this so we maintain backwards compatibility between
 // react-router > 6.0.0 and >= 6.4.2.
 export type RouteObjectArrayAlias = any;
 export type RouteMatchAlias = any;

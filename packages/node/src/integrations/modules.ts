@@ -2,12 +2,26 @@ import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { defineIntegration } from '@sentry/core';
 import type { IntegrationFn } from '@sentry/types';
+import { logger } from '@sentry/utils';
+import { DEBUG_BUILD } from '../debug-build';
+import { isCjs } from '../utils/commonjs';
 
 let moduleCache: { [key: string]: string };
 
 const INTEGRATION_NAME = 'Modules';
 
 const _modulesIntegration = (() => {
+  // This integration only works in CJS contexts
+  if (!isCjs()) {
+    DEBUG_BUILD &&
+      logger.warn(
+        'modulesIntegration only works in CommonJS (CJS) environments. Remove this integration if you are using ESM.',
+      );
+    return {
+      name: INTEGRATION_NAME,
+    };
+  }
+
   return {
     name: INTEGRATION_NAME,
     processEvent(event) {
@@ -23,6 +37,8 @@ const _modulesIntegration = (() => {
 
 /**
  * Add node modules / packages to the event.
+ *
+ * Only works in CommonJS (CJS) environments.
  */
 export const modulesIntegration = defineIntegration(_modulesIntegration);
 

@@ -99,7 +99,7 @@ export const generateViewport = serverComponentModule.generateViewport
   : undefined;
 
 // Re-export anything exported by the page module we're wrapping. When processing this code, Rollup is smart enough to
-// not include anything whose name matchs something we've explicitly exported above.
+// not include anything whose name matches something we've explicitly exported above.
 // @ts-expect-error See above
 export * from '__SENTRY_WRAPPING_TARGET_FILE__';
 

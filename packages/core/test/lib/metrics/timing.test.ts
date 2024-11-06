@@ -1,3 +1,4 @@
+/* eslint-disable deprecation/deprecation */
 import { getCurrentScope, getIsolationScope, setCurrentClient } from '../../../src';
 import { MetricsAggregator } from '../../../src/metrics/aggregator';
 import { metrics as metricsCore } from '../../../src/metrics/exports';
