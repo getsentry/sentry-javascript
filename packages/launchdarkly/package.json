@@ -1,5 +1,5 @@
 {
-  "name": "@sentry-internal/launchdarkly",
+  "name": "@sentry/launchdarkly",
   "version": "8.35.0",
   "description": "Sentry SDK integration for Launch Darkly feature flagging",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
@@ -41,7 +41,7 @@
   "dependencies": {
     "@sentry/browser": "^8.35.0",
     "@sentry/core": "8.35.0",
-    "@sentry/types": "file:.yalc/@sentry/types",
+    "@sentry/types": "8.35.0",
     "@sentry/utils": "8.35.0",
     "launchdarkly-js-client-sdk": "^3.5.0"
   },

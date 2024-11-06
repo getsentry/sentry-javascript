@@ -40,4 +40,4 @@ export * from './buildPolyfills';
 export * from './propagationContext';
 export * from './vercelWaitUntil';
 export * from './version';
-export * from './flagBuffer';
+export * from './flags';

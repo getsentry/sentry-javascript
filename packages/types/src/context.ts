@@ -1,6 +1,6 @@
 import type { Primitive } from './misc';
 import type { SpanOrigin } from './span';
-import type { FlagBufferInterface } from './flags'
+import type { FeatureFlag } from './flags'
 
 export type Context = Record<string, unknown>;
 
@@ -128,5 +128,6 @@ export interface MissingInstrumentationContext extends Record<string, unknown> {
 }
 
 export interface FeatureFlagContext extends Record<string, unknown> {
-  flag_buffer: FlagBufferInterface;
+  // This should only be modified by @sentry/util methods (insertToFlagBuffer).
+  readonly values: FeatureFlag[];
 }
