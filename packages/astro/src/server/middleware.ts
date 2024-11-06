@@ -21,7 +21,7 @@ import {
   vercelWaitUntil,
   winterCGRequestToRequestData,
 } from '@sentry/utils';
-import type { APIContext, MiddlewareResponseHandler } from 'astro';
+import type { APIContext, MiddlewareHandler } from 'astro';
 
 type MiddlewareOptions = {
   /**
@@ -60,7 +60,7 @@ type AstroLocalsWithSentry = Record<string, unknown> & {
   __sentry_wrapped__?: boolean;
 };
 
-export const handleRequest: (options?: MiddlewareOptions) => MiddlewareResponseHandler = options => {
+export const handleRequest: (options?: MiddlewareOptions) => MiddlewareHandler = options => {
   const handlerOptions = {
     trackClientIp: false,
     ...options,
@@ -80,8 +80,8 @@ export const handleRequest: (options?: MiddlewareOptions) => MiddlewareResponseH
 };
 
 async function instrumentRequest(
-  ctx: Parameters<MiddlewareResponseHandler>[0],
-  next: Parameters<MiddlewareResponseHandler>[1],
+  ctx: Parameters<MiddlewareHandler>[0],
+  next: Parameters<MiddlewareHandler>[1],
   options: MiddlewareOptions,
   isolationScope?: Scope,
 ): Promise<Response> {
@@ -311,7 +311,7 @@ function tryDecodeUrl(url: string): string | undefined {
  * We can check this by looking at the middleware's `clientAddress` context property because accessing
  * this prop in a static route will throw an error which we can conveniently catch.
  */
-function checkIsDynamicPageRequest(context: Parameters<MiddlewareResponseHandler>[0]): boolean {
+function checkIsDynamicPageRequest(context: Parameters<MiddlewareHandler>[0]): boolean {
   try {
     return context.clientAddress != null;
   } catch {
