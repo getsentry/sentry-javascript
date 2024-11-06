@@ -1,5 +1,6 @@
 import type { Primitive } from './misc';
 import type { SpanOrigin } from './span';
+import type { FlagBufferInterface } from './flags'
 
 export type Context = Record<string, unknown>;
 
@@ -13,6 +14,7 @@ export interface Contexts extends Record<string, Context | undefined> {
   cloud_resource?: CloudResourceContext;
   state?: StateContext;
   profile?: ProfileContext;
+  flags?: FeatureFlagContext;
 }
 
 export interface StateContext extends Record<string, unknown> {
@@ -123,4 +125,8 @@ export interface ProfileContext extends Record<string, unknown> {
 export interface MissingInstrumentationContext extends Record<string, unknown> {
   package: string;
   ['javascript.is_cjs']?: boolean;
+}
+
+export interface FeatureFlagContext extends Record<string, unknown> {
+  flag_buffer: FlagBufferInterface;
 }

@@ -45,9 +45,10 @@ export const launchDarklyIntegration = ((_options?: LaunchDarklyOptions) => {
 export class SentryInspector implements LDInspectionFlagUsedHandler {
   public name = 'sentry-flag-auditor';
 
-  public synchronous = true; // TODO: T or F?
-
   public type = 'flag-used' as const;
+
+  // We don't want the handler to impact the performance of the user's flag evaluations.
+  public synchronous = false;
 
   /**
    * TODO: docstring

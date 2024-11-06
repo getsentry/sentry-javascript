@@ -11,7 +11,6 @@ import type {
   EventProcessor,
   Extra,
   Extras,
-  FeatureFlag,
   Primitive,
   PropagationContext,
   RequestSession,
@@ -23,7 +22,6 @@ import type {
   User,
 } from '@sentry/types';
 import {
-  LRUMap,
   dateTimestampInSeconds,
   generatePropagationContext,
   isPlainObject,
@@ -105,12 +103,6 @@ class ScopeClass implements ScopeInterface {
   /** Contains the last event id of a captured event.  */
   protected _lastEventId?: string;
 
-  /** LRU cache of flags last evaluated by a feature flag provider. Used by FF integrations. */
-  protected _flagBuffer: LRUMap<FeatureFlag['flag'], FeatureFlag['result']>;
-
-  /** Max size of the flagBuffer */
-  protected _flagBufferSize: number; // TODO: make const?
-
   // NOTE: Any field which gets added here should get added not only to the constructor but also to the `clone` method.
 
   public constructor() {
@@ -125,9 +117,6 @@ class ScopeClass implements ScopeInterface {
     this._contexts = {};
     this._sdkProcessingMetadata = {};
     this._propagationContext = generatePropagationContext();
-
-    this._flagBufferSize = 100;
-    this._flagBuffer = new LRUMap<FeatureFlag['flag'], FeatureFlag['result']>(this._flagBufferSize);
   }
 
   /**
@@ -514,24 +503,6 @@ class ScopeClass implements ScopeInterface {
    */
   public getPropagationContext(): PropagationContext {
     return this._propagationContext;
-  }
-
-  /**
-   * @inheritDoc
-   */
-  public getFlags(): FeatureFlag[] {
-    const flags: FeatureFlag[] = [];
-    this._flagBuffer.keys().forEach(key => {
-      flags.push({ flag: key, result: this._flagBuffer.get(key) as boolean });
-    });
-    return flags;
-  }
-
-  /**
-   * @inheritDoc
-   */
-  public insertFlag(name: string, value: boolean): void {
-    this._flagBuffer.set(name, value);
   }
 
   /**

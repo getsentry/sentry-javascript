@@ -1,4 +1,3 @@
-
 import type { Attachment } from './attachment';
 import type { Breadcrumb } from './breadcrumb';
 import type { Client } from './client';
@@ -6,7 +5,6 @@ import type { Context, Contexts } from './context';
 import type { Event, EventHint } from './event';
 import type { EventProcessor } from './eventprocessor';
 import type { Extra, Extras } from './extra';
-import type { FeatureFlag } from './flags';
 import type { Primitive } from './misc';
 import type { RequestSession, Session } from './session';
 import type { SeverityLevel } from './severity';
@@ -232,17 +230,6 @@ export interface Scope {
    * Get propagation context from the scope, used for distributed tracing
    */
   getPropagationContext(): PropagationContext;
-
-  /**
-   * Return the list of recently accessed feature flags.
-   */
-  getFlags(): FeatureFlag[];
-
-  /**
-   * When an integration sends data that a flag name and its value have been evaluated,
-   * add it to the list of recently accessed feature flags.
-   */
-  insertFlag(name: string, value: boolean): void;
 
   /**
    * Capture an exception for this scope.
