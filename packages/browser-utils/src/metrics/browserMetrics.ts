@@ -200,7 +200,8 @@ export function startTrackingLongAnimationFrames(): void {
  */
 export function startTrackingInteractions(): void {
   addPerformanceInstrumentationHandler('event', ({ entries }) => {
-    if (!getActiveSpan()) {
+    const parent = getActiveSpan();
+    if (!parent) {
       return;
     }
     for (const entry of entries) {
@@ -222,10 +223,7 @@ export function startTrackingInteractions(): void {
           spanOptions.attributes['ui.component_name'] = componentName;
         }
 
-        const span = startInactiveSpan(spanOptions);
-        if (span) {
-          span.end(startTime + duration);
-        }
+        startAndEndSpan(parent, startTime, startTime + duration, spanOptions);
       }
     }
   });
