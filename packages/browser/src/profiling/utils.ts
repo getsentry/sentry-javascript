@@ -5,7 +5,7 @@ import type { DebugImage, Envelope, Event, EventEnvelope, Profile, Span, ThreadC
 import {
   browserPerformanceTimeOrigin,
   forEachEnvelopeItem,
-  getFilenameToDebugIdMap,
+  getDebugImagesForResources,
   logger,
   timestampInSeconds,
   uuid4,
@@ -354,21 +354,7 @@ export function applyDebugMetadata(resource_paths: ReadonlyArray<string>): Debug
     return [];
   }
 
-  // Build a map of filename -> debug_id
-  const filenameDebugIdMap = getFilenameToDebugIdMap(stackParser);
-
-  const images: DebugImage[] = [];
-  for (const path of resource_paths) {
-    if (path && filenameDebugIdMap[path]) {
-      images.push({
-        type: 'sourcemap',
-        code_file: path,
-        debug_id: filenameDebugIdMap[path] as string,
-      });
-    }
-  }
-
-  return images;
+  return getDebugImagesForResources(stackParser, resource_paths);
 }
 
 /**

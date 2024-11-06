@@ -20,7 +20,7 @@ import {
   createEnvelope,
   dsnToString,
   forEachEnvelopeItem,
-  getFilenameToDebugIdMap,
+  getDebugImagesForResources,
   logger,
   uuid4,
 } from '@sentry/utils';
@@ -432,20 +432,5 @@ export function applyDebugMetadata(client: Client, resource_paths: ReadonlyArray
     return [];
   }
 
-  // Build a map of filename -> debug_id.
-  const filenameDebugIdMap = getFilenameToDebugIdMap(options.stackParser);
-
-  const images: DebugImage[] = [];
-
-  for (const resource of resource_paths) {
-    if (resource && filenameDebugIdMap[resource]) {
-      images.push({
-        type: 'sourcemap',
-        code_file: resource,
-        debug_id: filenameDebugIdMap[resource] as string,
-      });
-    }
-  }
-
-  return images;
+  return getDebugImagesForResources(options.stackParser, resource_paths);
 }

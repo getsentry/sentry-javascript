@@ -1,4 +1,4 @@
-import type { StackFrame, StackParser } from '@sentry/types';
+import type { DebugImage, StackFrame, StackParser } from '@sentry/types';
 import { GLOBAL_OBJ } from './worldwide';
 
 const debugIdStackParserCache = new WeakMap<StackParser, Map<string, StackFrame[]>>();
@@ -44,4 +44,27 @@ export function getFilenameToDebugIdMap(stackParser: StackParser): Record<string
     }
     return acc;
   }, {});
+}
+
+/**
+ * Returns a list of debug images for the given resources.
+ */
+export function getDebugImagesForResources(
+  stackParser: StackParser,
+  resource_paths: ReadonlyArray<string>,
+): DebugImage[] {
+  const filenameDebugIdMap = getFilenameToDebugIdMap(stackParser);
+
+  const images: DebugImage[] = [];
+  for (const path of resource_paths) {
+    if (path && filenameDebugIdMap[path]) {
+      images.push({
+        type: 'sourcemap',
+        code_file: path,
+        debug_id: filenameDebugIdMap[path] as string,
+      });
+    }
+  }
+
+  return images;
 }
