@@ -562,6 +562,8 @@ function setUpModuleRules(newConfig: WebpackConfigObject): WebpackConfigObjectWi
 /**
  * Adds loaders to inject values on the global object based on user configuration.
  */
+// TODO(v9): Remove this loader and replace it with a nextConfig.env (https://web.archive.org/web/20240917153554/https://nextjs.org/docs/app/api-reference/next-config-js/env) or define based (https://github.com/vercel/next.js/discussions/71476) approach.
+// In order to remove this loader though we need to make sure the minimum supported Next.js version includes this PR (https://github.com/vercel/next.js/pull/61194), otherwise the nextConfig.env based approach will not work, as our SDK code is not processed by Next.js.
 function addValueInjectionLoader(
   newConfig: WebpackConfigObjectWithModuleRules,
   userNextConfig: NextConfigObject,
@@ -572,7 +574,7 @@ function addValueInjectionLoader(
 
   const isomorphicValues = {
     // `rewritesTunnel` set by the user in Next.js config
-    __sentryRewritesTunnelPath__:
+    _sentryRewritesTunnelPath:
       userSentryOptions.tunnelRoute !== undefined && userNextConfig.output !== 'export'
         ? `${userNextConfig.basePath ?? ''}${userSentryOptions.tunnelRoute}`
         : undefined,
@@ -582,21 +584,21 @@ function addValueInjectionLoader(
     SENTRY_RELEASE: buildContext.dev
       ? undefined
       : { id: userSentryOptions.release?.name ?? getSentryRelease(buildContext.buildId) },
-    __sentryBasePath: buildContext.dev ? userNextConfig.basePath : undefined,
+    _sentryBasePath: buildContext.dev ? userNextConfig.basePath : undefined,
   };
 
   const serverValues = {
     ...isomorphicValues,
     // Make sure that if we have a windows path, the backslashes are interpreted as such (rather than as escape
     // characters)
-    __rewriteFramesDistDir__: userNextConfig.distDir?.replace(/\\/g, '\\\\') || '.next',
+    _sentryRewriteFramesDistDir: userNextConfig.distDir?.replace(/\\/g, '\\\\') || '.next',
   };
 
   const clientValues = {
     ...isomorphicValues,
     // Get the path part of `assetPrefix`, minus any trailing slash. (We use a placeholder for the origin if
     // `assetPrefix` doesn't include one. Since we only care about the path, it doesn't matter what it is.)
-    __rewriteFramesAssetPrefixPath__: assetPrefix
+    _sentryRewriteFramesAssetPrefixPath: assetPrefix
       ? new URL(assetPrefix, 'http://dogs.are.great').pathname.replace(/\/$/, '')
       : '',
   };

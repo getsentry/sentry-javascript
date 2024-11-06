@@ -6,7 +6,7 @@ import { GLOBAL_OBJ } from '@sentry/utils';
 import { init } from '../src/server';
 
 // normally this is set as part of the build process, so mock it here
-(GLOBAL_OBJ as typeof GLOBAL_OBJ & { __rewriteFramesDistDir__: string }).__rewriteFramesDistDir__ = '.next';
+(GLOBAL_OBJ as typeof GLOBAL_OBJ & { _sentryRewriteFramesDistDir: string })._sentryRewriteFramesDistDir = '.next';
 
 const nodeInit = jest.spyOn(SentryNode, 'init');
 
