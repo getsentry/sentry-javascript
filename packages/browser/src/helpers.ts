@@ -64,7 +64,13 @@ export function wrap(
     // the original wrapper.
     const wrapper = fn.__sentry_wrapped__;
     if (wrapper) {
-      return wrapper;
+      if (typeof wrapper === 'function') {
+        return wrapper;
+      } else {
+        // If we find that the `__sentry_wrapped__` function is not a function at the time of accessing it, it means
+        // that something messed with it. In that case we want to return the originally passed function.
+        return fn;
+      }
     }
 
     // We don't wanna wrap it twice

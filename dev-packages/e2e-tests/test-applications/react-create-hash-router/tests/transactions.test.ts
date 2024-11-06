@@ -22,6 +22,8 @@ test('Captures a pageload transaction', async ({ page }) => {
       'sentry.origin': 'auto.pageload.react.reactrouter_v6',
       'sentry.sample_rate': 1,
       'sentry.source': 'route',
+      'performance.timeOrigin': expect.any(Number),
+      'performance.activationStart': expect.any(Number),
     },
     op: 'pageload',
     span_id: expect.any(String),
@@ -42,10 +44,10 @@ test('Captures a pageload transaction', async ({ page }) => {
   expect(transactionEvent.spans).toContainEqual({
     data: {
       'sentry.origin': 'auto.ui.browser.metrics',
-      'sentry.op': 'browser',
+      'sentry.op': 'browser.domContentLoadedEvent',
     },
-    description: 'domContentLoadedEvent',
-    op: 'browser',
+    description: page.url(),
+    op: 'browser.domContentLoadedEvent',
     parent_span_id: expect.any(String),
     span_id: expect.any(String),
     start_timestamp: expect.any(Number),
@@ -56,10 +58,10 @@ test('Captures a pageload transaction', async ({ page }) => {
   expect(transactionEvent.spans).toContainEqual({
     data: {
       'sentry.origin': 'auto.ui.browser.metrics',
-      'sentry.op': 'browser',
+      'sentry.op': 'browser.connect',
     },
-    description: 'connect',
-    op: 'browser',
+    description: page.url(),
+    op: 'browser.connect',
     parent_span_id: expect.any(String),
     span_id: expect.any(String),
     start_timestamp: expect.any(Number),
@@ -70,10 +72,10 @@ test('Captures a pageload transaction', async ({ page }) => {
   expect(transactionEvent.spans).toContainEqual({
     data: {
       'sentry.origin': 'auto.ui.browser.metrics',
-      'sentry.op': 'browser',
+      'sentry.op': 'browser.request',
     },
-    description: 'request',
-    op: 'browser',
+    description: page.url(),
+    op: 'browser.request',
     parent_span_id: expect.any(String),
     span_id: expect.any(String),
     start_timestamp: expect.any(Number),
@@ -84,10 +86,10 @@ test('Captures a pageload transaction', async ({ page }) => {
   expect(transactionEvent.spans).toContainEqual({
     data: {
       'sentry.origin': 'auto.ui.browser.metrics',
-      'sentry.op': 'browser',
+      'sentry.op': 'browser.response',
     },
-    description: 'response',
-    op: 'browser',
+    description: page.url(),
+    op: 'browser.response',
     parent_span_id: expect.any(String),
     span_id: expect.any(String),
     start_timestamp: expect.any(Number),

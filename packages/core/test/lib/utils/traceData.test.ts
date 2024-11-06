@@ -1,5 +1,6 @@
 import { SentrySpan, getTraceData } from '../../../src/';
 import * as SentryCoreCurrentScopes from '../../../src/currentScopes';
+import * as SentryCoreExports from '../../../src/exports';
 import * as SentryCoreTracing from '../../../src/tracing';
 import * as SentryCoreSpanUtils from '../../../src/utils/spanUtils';
 
@@ -22,6 +23,14 @@ const mockedScope = {
 } as any;
 
 describe('getTraceData', () => {
+  beforeEach(() => {
+    jest.spyOn(SentryCoreExports, 'isEnabled').mockReturnValue(true);
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
   it('returns the tracing data from the span, if a span is available', () => {
     {
       jest.spyOn(SentryCoreTracing, 'getDynamicSamplingContextFromSpan').mockReturnValueOnce({
@@ -134,6 +143,14 @@ describe('getTraceData', () => {
         };
       },
     }));
+
+    const traceData = getTraceData();
+
+    expect(traceData).toEqual({});
+  });
+
+  it('returns an empty object if the SDK is disabled', () => {
+    jest.spyOn(SentryCoreExports, 'isEnabled').mockReturnValueOnce(false);
 
     const traceData = getTraceData();
 

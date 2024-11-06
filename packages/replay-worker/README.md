@@ -15,5 +15,5 @@ By extracting this into a dedicated (private, internal) package, we can streamli
 
 You can find an example worker for if you want to self-host the compression worker in [/examples](./examples/).
 
-This is generated from the actual soure via `yarn build:examples`, which should be run manually whenever replay-worker
+This is generated from the actual source via `yarn build:examples`, which should be run manually whenever replay-worker
 is updated.

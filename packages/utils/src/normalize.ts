@@ -29,7 +29,7 @@ type ObjOrArray<T> = { [key: string]: T };
  * @param input The object to be normalized.
  * @param depth The max depth to which to normalize the object. (Anything deeper stringified whole.)
  * @param maxProperties The max number of elements or properties to be included in any single array or
- * object in the normallized output.
+ * object in the normalized output.
  * @returns A normalized version of the object, or `"**non-serializable**"` if any errors are thrown during normalization.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -81,7 +81,8 @@ function visit(
   // Get the simple cases out of the way first
   if (
     value == null || // this matches null and undefined -> eqeq not eqeqeq
-    (['number', 'boolean', 'string'].includes(typeof value) && !Number.isNaN(value))
+    ['boolean', 'string'].includes(typeof value) ||
+    (typeof value === 'number' && Number.isFinite(value))
   ) {
     return value as Primitive;
   }
@@ -220,8 +221,8 @@ function stringifyValue(
       return '[SyntheticEvent]';
     }
 
-    if (typeof value === 'number' && value !== value) {
-      return '[NaN]';
+    if (typeof value === 'number' && !Number.isFinite(value)) {
+      return `[${value}]`;
     }
 
     if (typeof value === 'function') {

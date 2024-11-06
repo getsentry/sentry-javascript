@@ -100,7 +100,7 @@ const FORM = `
 }
 
 .form__right {
-  flex: 0 0 var(--form-width, 272px);
+  flex: 0 0 auto;
   width: var(--form-width, 272px);
   display: flex;
   overflow: auto;
@@ -111,7 +111,7 @@ const FORM = `
 
 @media (max-width: 600px) {
   .form__right {
-    width: auto;
+    width: var(--form-width, 100%);
   }
 }
 

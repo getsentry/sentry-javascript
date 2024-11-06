@@ -7,7 +7,7 @@ type SdkInitPaths = {
    *
    * If this option is not specified, the default location (`<projectRoot>/sentry.client.config.(js|ts)`)
    * will be used to look up the config file.
-   * If there is no file at the default location either, the SDK will initalize with the options
+   * If there is no file at the default location either, the SDK will initialize with the options
    * specified in the `sentryAstro` integration or with default options.
    */
   clientInitPath?: string;
@@ -17,7 +17,7 @@ type SdkInitPaths = {
    *
    * If this option is not specified, the default location (`<projectRoot>/sentry.server.config.(js|ts)`)
    * will be used to look up the config file.
-   * If there is no file at the default location either, the SDK will initalize with the options
+   * If there is no file at the default location either, the SDK will initialize with the options
    * specified in the `sentryAstro` integration or with default options.
    */
   serverInitPath?: string;

@@ -5,7 +5,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { defaultStackParser } from '../src';
-import { eventFromUnknownInput } from '../src/eventbuilder';
+import { eventFromUnknownInput, extractMessage, extractType } from '../src/eventbuilder';
 
 vi.mock('@sentry/core', async requireActual => {
   return {
@@ -167,5 +167,67 @@ describe('eventFromUnknownInput', () => {
         },
       },
     });
+  });
+});
+
+describe('extractMessage', () => {
+  it('should extract message from a standard Error object', () => {
+    const error = new Error('Test error message');
+    const message = extractMessage(error);
+    expect(message).toBe('Test error message');
+  });
+
+  it('should extract message from a WebAssembly.Exception object', () => {
+    // https://developer.mozilla.org/en-US/docs/WebAssembly/JavaScript_interface/Exception/Exception#examples
+    // @ts-expect-error - WebAssembly.Tag is a valid constructor
+    const tag = new WebAssembly.Tag({ parameters: ['i32', 'f32'] });
+    // @ts-expect-error - WebAssembly.Exception is a valid constructor
+    const wasmException = new WebAssembly.Exception(tag, [42, 42.3]);
+
+    const message = extractMessage(wasmException);
+    expect(message).toBe('wasm exception');
+  });
+
+  it('should extract nested error message', () => {
+    const nestedError = {
+      message: {
+        error: new Error('Nested error message'),
+      },
+    };
+    const message = extractMessage(nestedError as any);
+    expect(message).toBe('Nested error message');
+  });
+
+  it('should return "No error message" if message is undefined', () => {
+    const error = new Error();
+    error.message = undefined as any;
+    const message = extractMessage(error);
+    expect(message).toBe('No error message');
+  });
+});
+
+describe('extractName', () => {
+  it('should extract name from a standard Error object', () => {
+    const error = new Error('Test error message');
+    const name = extractType(error);
+    expect(name).toBe('Error');
+  });
+
+  it('should extract name from a WebAssembly.Exception object', () => {
+    // https://developer.mozilla.org/en-US/docs/WebAssembly/JavaScript_interface/Exception/Exception#examples
+    // @ts-expect-error - WebAssembly.Tag is a valid constructor
+    const tag = new WebAssembly.Tag({ parameters: ['i32', 'f32'] });
+    // @ts-expect-error - WebAssembly.Exception is a valid constructor
+    const wasmException = new WebAssembly.Exception(tag, [42, 42.3]);
+
+    const name = extractType(wasmException);
+    expect(name).toBe('WebAssembly.Exception');
+  });
+
+  it('should return undefined if name is not present', () => {
+    const error = new Error('Test error message');
+    error.name = undefined as any;
+    const name = extractType(error);
+    expect(name).toBeUndefined();
   });
 });

@@ -533,7 +533,7 @@ describe('SentryPropagator', () => {
       );
     });
 
-    it('should NOT set baggage and sentry-trace header if instrumentation is supressed', () => {
+    it('should NOT set baggage and sentry-trace header if instrumentation is suppressed', () => {
       const spanContext = {
         traceId: 'd4cda95b652f4a1592b449d5929fda1b',
         spanId: '6e0c63257de34c92',

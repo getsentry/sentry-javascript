@@ -51,7 +51,7 @@ export const formatComponentName = (vm?: ViewModel, includeFile?: boolean): stri
 
   const options = vm.$options;
 
-  let name = options.name || options._componentTag;
+  let name = options.name || options._componentTag || options.__name;
   const file = options.__file;
   if (!name && file) {
     const match = file.match(/([^/\\]+)\.vue$/);

@@ -98,7 +98,7 @@ export function urlEncode(object: { [key: string]: any }): string {
  * non-enumerable properties attached.
  *
  * @param value Initial source that we have to transform in order for it to be usable by the serializer
- * @returns An Event or Error turned into an object - or the value argurment itself, when value is neither an Event nor
+ * @returns An Event or Error turned into an object - or the value argument itself, when value is neither an Event nor
  *  an Error.
  */
 export function convertToPlainObject<V>(
@@ -234,7 +234,7 @@ function _dropUndefinedKeys<T>(inputValue: T, memoizationMap: Map<unknown, unkno
     // Store the mapping of this value in case we visit it again, in case of circular data
     memoizationMap.set(inputValue, returnValue);
 
-    for (const key of Object.keys(inputValue)) {
+    for (const key of Object.getOwnPropertyNames(inputValue)) {
       if (typeof inputValue[key] !== 'undefined') {
         returnValue[key] = _dropUndefinedKeys(inputValue[key], memoizationMap);
       }

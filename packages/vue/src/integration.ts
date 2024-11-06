@@ -14,6 +14,7 @@ const DEFAULT_CONFIG: VueOptions = {
   Vue: globalWithVue.Vue,
   attachProps: true,
   logErrors: true,
+  attachErrorHandler: true,
   hooks: DEFAULT_HOOKS,
   timeout: 2000,
   trackComponents: false,
@@ -76,7 +77,9 @@ const vueInit = (app: Vue, options: Options): void => {
     }
   }
 
-  attachErrorHandler(app, options);
+  if (options.attachErrorHandler) {
+    attachErrorHandler(app, options);
+  }
 
   if (hasTracingEnabled(options)) {
     app.mixin(

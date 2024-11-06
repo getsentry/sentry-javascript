@@ -10,10 +10,3 @@ Sentry.init({
     feedbackIntegration({ tags: { from: 'integration init' }, styleNonce: 'foo1234', scriptNonce: 'foo1234' }),
   ],
 });
-
-document.addEventListener('securitypolicyviolation', () => {
-  const container = document.querySelector('#csp-violation');
-  if (container) {
-    container.innerText = 'CSP Violation';
-  }
-});

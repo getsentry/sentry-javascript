@@ -1,0 +1,37 @@
+{
+  "name": "solidstart-spa-e2e-testapp",
+  "version": "0.0.0",
+  "scripts": {
+    "clean": "pnpx rimraf node_modules pnpm-lock.yaml .vinxi .output",
+    "dev": "NODE_OPTIONS='--import ./src/instrument.server.mjs' vinxi dev",
+    "build": "vinxi build && sh ./post_build.sh",
+    "preview": "HOST=localhost PORT=3030 NODE_OPTIONS='--import ./src/instrument.server.mjs' vinxi start",
+    "test:prod": "TEST_ENV=production playwright test",
+    "test:build": "pnpm install && npx playwright install && pnpm build",
+    "test:assert": "pnpm test:prod"
+  },
+  "type": "module",
+  "dependencies": {
+    "@sentry/solidstart": "latest || *"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.44.1",
+    "@solidjs/meta": "^0.29.4",
+    "@solidjs/router": "^0.13.4",
+    "@solidjs/start": "^1.0.2",
+    "@solidjs/testing-library": "^0.8.7",
+    "@testing-library/jest-dom": "^6.4.2",
+    "@testing-library/user-event": "^14.5.2",
+    "@vitest/ui": "^1.5.0",
+    "jsdom": "^24.0.0",
+    "solid-js": "1.8.17",
+    "typescript": "^5.4.5",
+    "vinxi": "^0.4.0",
+    "vite": "^5.2.8",
+    "vite-plugin-solid": "^2.10.2",
+    "vitest": "^1.5.0"
+  },
+  "overrides": {
+    "@vercel/nft": "0.27.4"
+  }
+}

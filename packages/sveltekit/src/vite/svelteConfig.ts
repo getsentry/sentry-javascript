@@ -46,7 +46,7 @@ export function getHooksFileName(svelteConfig: Config, hookType: 'client' | 'ser
 }
 
 /**
- * Attempts to read a custom output directory that can be specidied in the options
+ * Attempts to read a custom output directory that can be specified in the options
  * of a SvelteKit adapter. If no custom output directory is specified, the default
  * directory is returned.
  */

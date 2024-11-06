@@ -25,7 +25,7 @@ export type SentrySvelteConfigOptions = {
 
 export type SpanOptions = {
   /**
-   * If true, a span is recorded between a component's intialization and its
+   * If true, a span is recorded between a component's initialization and its
    * onMount lifecycle hook. This span tells how long it takes a component
    * to be created and inserted into the DOM.
    *

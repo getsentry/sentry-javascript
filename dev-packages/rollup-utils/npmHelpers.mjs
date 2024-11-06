@@ -19,7 +19,6 @@ import {
   makeImportMetaUrlReplacePlugin,
   makeNodeResolvePlugin,
   makeRrwebBuildPlugin,
-  makeSetSDKSourcePlugin,
   makeSucrasePlugin,
 } from './plugins/index.mjs';
 import { makePackageNodeEsm } from './plugins/make-esm-plugin.mjs';
@@ -37,6 +36,7 @@ export function makeBaseNPMConfig(options = {}) {
     packageSpecificConfig = {},
     addPolyfills = true,
     sucrase = {},
+    bundledBuiltins = [],
   } = options;
 
   const nodeResolvePlugin = makeNodeResolvePlugin();
@@ -45,7 +45,6 @@ export function makeBaseNPMConfig(options = {}) {
   const importMetaUrlReplacePlugin = makeImportMetaUrlReplacePlugin();
   const cleanupPlugin = makeCleanupPlugin();
   const extractPolyfillsPlugin = makeExtractPolyfillsPlugin();
-  const setSdkSourcePlugin = makeSetSDKSourcePlugin('npm');
   const rrwebBuildPlugin = makeRrwebBuildPlugin({
     excludeShadowDom: undefined,
     excludeIframe: undefined,
@@ -106,7 +105,6 @@ export function makeBaseNPMConfig(options = {}) {
 
     plugins: [
       nodeResolvePlugin,
-      setSdkSourcePlugin,
       sucrasePlugin,
       debugBuildStatementReplacePlugin,
       importMetaUrlReplacePlugin,
@@ -116,7 +114,7 @@ export function makeBaseNPMConfig(options = {}) {
 
     // don't include imported modules from outside the package in the final output
     external: [
-      ...builtinModules,
+      ...builtinModules.filter(m => !bundledBuiltins.includes(m)),
       ...Object.keys(packageDotJSON.dependencies || {}),
       ...Object.keys(packageDotJSON.peerDependencies || {}),
       ...Object.keys(packageDotJSON.optionalDependencies || {}),

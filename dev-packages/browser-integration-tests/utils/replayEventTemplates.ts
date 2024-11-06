@@ -44,7 +44,7 @@ const DEFAULT_REPLAY_EVENT = {
  * This is useful for testing multi-segment replays to not repeat most of the properties that don't change
  * throughout the replay segments.
  *
- * Note: The benfit of this approach over expect.objectContaining is that,
+ * Note: The benefit of this approach over expect.objectContaining is that,
  *       we'll catch if properties we expect to stay the same actually change.
  *
  * @param customExpectedReplayEvent overwrite the default values with custom values (e.g. segment_id)
@@ -141,6 +141,7 @@ export const expectedCLSPerformanceSpan = {
   data: {
     value: expect.any(Number),
     nodeIds: expect.any(Array),
+    attributions: expect.any(Array),
     rating: expect.any(String),
     size: expect.any(Number),
   },

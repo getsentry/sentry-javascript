@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@sentry/vue": "latest || *",
+    "pinia": "^2.2.3",
     "vue": "^3.4.15",
     "vue-router": "^4.2.5"
   },
@@ -32,7 +33,7 @@
     "http-server": "^14.1.1",
     "npm-run-all2": "^6.2.0",
     "typescript": "~5.3.0",
-    "vite": "^5.0.11",
+    "vite": "^5.4.10",
     "vue-tsc": "^1.8.27"
   },
   "volta": {

@@ -8,7 +8,7 @@ Sentry.init({
   tracesSampler: samplingContext => {
     // The name we get here is inferred at span creation time
     // At this point, we sadly do not have a http.route attribute yet,
-    // so we infer the name from the unparametrized route instead
+    // so we infer the name from the unparameterized route instead
     return (
       samplingContext.name === 'GET /test/123' &&
       samplingContext.attributes['sentry.op'] === 'http.server' &&

@@ -33,6 +33,8 @@ jobs:
   analyze:
     name: Analyze
     runs-on: ubuntu-latest
+    # Skip for pushes from dependabot, which is not supported
+    if: github.event_name == 'pull_request' || github.actor != 'dependabot[bot]'
 
     strategy:
       fail-fast: false
@@ -48,7 +50,7 @@ jobs:
 
       # Initializes the CodeQL tools for scanning.
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@v2
+        uses: github/codeql-action/init@v3
         with:
           config-file: ./.github/codeql/codeql-config.yml
           queries: security-extended
@@ -61,7 +63,7 @@ jobs:
       # Autobuild attempts to build any compiled languages  (C/C++, C#, or Java).
       # If this step fails, then you should remove it and run the build manually (see below)
       - name: Autobuild
-        uses: github/codeql-action/autobuild@v2
+        uses: github/codeql-action/autobuild@v3
 
       # ℹ️ Command-line programs to run using the OS shell.
       # 📚 https://docs.github.com/en/actions/reference/workflow-syntax-for-github-actions
@@ -75,4 +77,4 @@ jobs:
       #   make release
 
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v2
+        uses: github/codeql-action/analyze@v3

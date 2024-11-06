@@ -13,17 +13,9 @@ type ErrorContext = {
 };
 
 /**
- * Reports errors for the Next.js `onRequestError` instrumentation hook.
- *
- * Notice: This function is experimental and not intended for production use. Breaking changes may be done to this funtion in any release.
- *
- * @experimental
+ * Reports errors passed to the the Next.js `onRequestError` instrumentation hook.
  */
-export function experimental_captureRequestError(
-  error: unknown,
-  request: RequestInfo,
-  errorContext: ErrorContext,
-): void {
+export function captureRequestError(error: unknown, request: RequestInfo, errorContext: ErrorContext): void {
   withScope(scope => {
     scope.setSDKProcessingMetadata({
       request: {
@@ -48,3 +40,11 @@ export function experimental_captureRequestError(
     });
   });
 }
+
+/**
+ * Reports errors passed to the the Next.js `onRequestError` instrumentation hook.
+ *
+ * @deprecated Use `captureRequestError` instead.
+ */
+// TODO(v9): Remove this export
+export const experimental_captureRequestError = captureRequestError;

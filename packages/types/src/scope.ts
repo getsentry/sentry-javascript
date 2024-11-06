@@ -189,8 +189,8 @@ export interface Scope {
   clear(): this;
 
   /**
-   * Sets the breadcrumbs in the scope
-   * @param breadcrumbs Breadcrumb
+   * Adds a breadcrumb to the scope
+   * @param breadcrumb Breadcrumb
    * @param maxBreadcrumbs number of max breadcrumbs to merged into event.
    */
   addBreadcrumb(breadcrumb: Breadcrumb, maxBreadcrumbs?: number): this;
@@ -201,7 +201,7 @@ export interface Scope {
   getLastBreadcrumb(): Breadcrumb | undefined;
 
   /**
-   * Clears all currently set Breadcrumbs.
+   * Clears all breadcrumbs from the scope.
    */
   clearBreadcrumbs(): this;
 
@@ -235,7 +235,7 @@ export interface Scope {
    * Capture an exception for this scope.
    *
    * @param exception The exception to capture.
-   * @param hint Optinal additional data to attach to the Sentry event.
+   * @param hint Optional additional data to attach to the Sentry event.
    * @returns the id of the captured Sentry event.
    */
   captureException(exception: unknown, hint?: EventHint): string;
@@ -243,7 +243,7 @@ export interface Scope {
   /**
    * Capture a message for this scope.
    *
-   * @param exception The exception to capture.
+   * @param message The message to capture.
    * @param level An optional severity level to report the message with.
    * @param hint Optional additional data to attach to the Sentry event.
    * @returns the id of the captured message.
@@ -253,7 +253,7 @@ export interface Scope {
   /**
    * Capture a Sentry event for this scope.
    *
-   * @param exception The event to capture.
+   * @param event The event to capture.
    * @param hint Optional additional data to attach to the Sentry event.
    * @returns the id of the captured event.
    */

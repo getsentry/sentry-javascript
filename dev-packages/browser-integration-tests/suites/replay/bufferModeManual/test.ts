@@ -45,7 +45,7 @@ sentryTest(
       });
     });
 
-    const url = await getLocalTestPath({ testDir: __dirname });
+    const url = await getLocalTestPath({ testDir: __dirname, skipDsnRouteHandler: true });
 
     await page.goto(url);
     await page.locator('#go-background').click();
@@ -190,7 +190,7 @@ sentryTest(
       });
     });
 
-    const url = await getLocalTestPath({ testDir: __dirname });
+    const url = await getLocalTestPath({ testDir: __dirname, skipDsnRouteHandler: true });
 
     await page.goto(url);
     await page.locator('#go-background').click();
@@ -287,6 +287,109 @@ sentryTest(
   },
 );
 
+sentryTest(
+  '[buffer-mode] manually starting replay ignores earlier performance entries',
+  async ({ getLocalTestUrl, page, browserName }) => {
+    // This was sometimes flaky on webkit, so skipping for now
+    if (shouldSkipReplayTest() || browserName === 'webkit') {
+      sentryTest.skip();
+    }
+
+    const reqPromise0 = waitForReplayRequest(page, 0);
+
+    const url = await getLocalTestUrl({ testDir: __dirname });
+
+    await page.goto(url);
+
+    // Wait for everything to be initialized - Replay is not running yet
+    await page.waitForFunction('!!window.Replay');
+
+    // Wait for a second, then start replay
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    await page.evaluate('window.Replay.start()');
+
+    const req0 = await reqPromise0;
+
+    const event0 = getReplayEvent(req0);
+    const content0 = getReplayRecordingContent(req0);
+
+    expect(event0).toEqual(
+      getExpectedReplayEvent({
+        replay_type: 'session',
+      }),
+    );
+
+    const { performanceSpans } = content0;
+
+    // Here, we test that this does not contain any web-vital etc. performance spans
+    // as these have been emitted _before_ the replay was manually started
+    expect(performanceSpans).toEqual([
+      {
+        op: 'memory',
+        description: 'memory',
+        startTimestamp: expect.any(Number),
+        endTimestamp: expect.any(Number),
+        data: {
+          memory: {
+            jsHeapSizeLimit: expect.any(Number),
+            totalJSHeapSize: expect.any(Number),
+            usedJSHeapSize: expect.any(Number),
+          },
+        },
+      },
+    ]);
+  },
+);
+
+sentryTest(
+  '[buffer-mode] manually starting replay ignores earlier performance entries when starting immediately',
+  async ({ getLocalTestUrl, page, browserName }) => {
+    // This was sometimes flaky on webkit, so skipping for now
+    if (shouldSkipReplayTest() || browserName === 'webkit') {
+      sentryTest.skip();
+    }
+
+    const reqPromise0 = waitForReplayRequest(page, 0);
+
+    const url = await getLocalTestUrl({ testDir: __dirname });
+
+    page.goto(url);
+
+    // Wait for everything to be initialized, then start replay as soon as possible
+    await page.waitForFunction('!!window.Replay');
+    await page.evaluate('window.Replay.start()');
+
+    const req0 = await reqPromise0;
+
+    const event0 = getReplayEvent(req0);
+    const content0 = getReplayRecordingContent(req0);
+
+    expect(event0).toEqual(
+      getExpectedReplayEvent({
+        replay_type: 'session',
+      }),
+    );
+
+    const { performanceSpans } = content0;
+
+    expect(performanceSpans).toEqual([
+      {
+        op: 'memory',
+        description: 'memory',
+        startTimestamp: expect.any(Number),
+        endTimestamp: expect.any(Number),
+        data: {
+          memory: {
+            jsHeapSizeLimit: expect.any(Number),
+            totalJSHeapSize: expect.any(Number),
+            usedJSHeapSize: expect.any(Number),
+          },
+        },
+      },
+    ]);
+  },
+);
+
 // Doing this in buffer mode to test changing error sample rate after first
 // error happens.
 sentryTest(
@@ -321,7 +424,7 @@ sentryTest(
       });
     });
 
-    const url = await getLocalTestPath({ testDir: __dirname });
+    const url = await getLocalTestPath({ testDir: __dirname, skipDsnRouteHandler: true });
 
     await page.goto(url);
     // Start buffering and assert that it is enabled

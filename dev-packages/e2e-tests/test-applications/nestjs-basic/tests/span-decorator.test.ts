@@ -70,3 +70,10 @@ test('Transaction includes span and correct value for decorated sync function', 
     ]),
   );
 });
+
+test('preserves original function name on decorated functions', async ({ baseURL }) => {
+  const response = await fetch(`${baseURL}/test-function-name`);
+  const body = await response.json();
+
+  expect(body.result).toEqual('getFunctionName');
+});

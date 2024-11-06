@@ -199,7 +199,7 @@ export async function waitForTransactionRequestOnUrl(page: Page, url: string): P
   return req;
 }
 
-export function waitForErrorRequest(page: Page): Promise<Request> {
+export function waitForErrorRequest(page: Page, callback?: (event: Event) => boolean): Promise<Request> {
   return page.waitForRequest(req => {
     const postData = req.postData();
     if (!postData) {
@@ -209,7 +209,15 @@ export function waitForErrorRequest(page: Page): Promise<Request> {
     try {
       const event = envelopeRequestParser(req);
 
-      return !event.type;
+      if (event.type) {
+        return false;
+      }
+
+      if (callback) {
+        return callback(event);
+      }
+
+      return true;
     } catch {
       return false;
     }
@@ -267,8 +275,8 @@ export function shouldSkipMetricsTest(): boolean {
 
 /**
  * Waits until a number of requests matching urlRgx at the given URL arrive.
- * If the timout option is configured, this function will abort waiting, even if it hasn't reveived the configured
- * amount of requests, and returns all the events recieved up to that point in time.
+ * If the timeout option is configured, this function will abort waiting, even if it hasn't received the configured
+ * amount of requests, and returns all the events received up to that point in time.
  */
 async function getMultipleRequests<T>(
   page: Page,

@@ -20,6 +20,7 @@ import { propagationContextFromHeaders, uuid4, winterCGHeadersToDict } from '@se
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import type { GenerationFunctionContext } from '../common/types';
 import { isNotFoundNavigationError, isRedirectNavigationError } from './nextNavigationErrorUtils';
+import { TRANSACTION_ATTR_SENTRY_TRACE_BACKFILL } from './span-attributes-with-logic-attached';
 import { commonObjectToIsolationScope, commonObjectToPropagationContext } from './utils/tracingUtils';
 
 /**
@@ -49,9 +50,6 @@ export function wrapGenerationFunctionWithSentry<F extends (...args: any[]) => a
         const rootSpan = getRootSpan(activeSpan);
         const { scope } = getCapturedScopesOnSpan(rootSpan);
         setCapturedScopesOnSpan(rootSpan, scope ?? new Scope(), isolationScope);
-
-        // We mark the root span as an app router span so we can allow-list it in our span processor that would normally filter out all Next.js transactions/spans
-        rootSpan.setAttribute('sentry.rsc', true);
       }
 
       let data: Record<string, unknown> | undefined = undefined;
@@ -74,6 +72,15 @@ export function wrapGenerationFunctionWithSentry<F extends (...args: any[]) => a
               headers: headersDict,
             },
           });
+
+          const activeSpan = getActiveSpan();
+          if (activeSpan) {
+            const rootSpan = getRootSpan(activeSpan);
+            const sentryTrace = headersDict?.['sentry-trace'];
+            if (sentryTrace) {
+              rootSpan.setAttribute(TRANSACTION_ATTR_SENTRY_TRACE_BACKFILL, sentryTrace);
+            }
+          }
 
           const propagationContext = commonObjectToPropagationContext(
             headers,

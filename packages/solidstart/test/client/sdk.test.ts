@@ -3,6 +3,7 @@ import * as SentrySolid from '@sentry/solid';
 
 import { vi } from 'vitest';
 import { init as solidStartInit } from '../../src/client';
+import { solidRouterBrowserTracingIntegration } from '../../src/client/solidrouter';
 
 const browserInit = vi.spyOn(SentrySolid, 'init');
 
@@ -32,5 +33,49 @@ describe('Initialize Solid Start SDK', () => {
     expect(client).not.toBeUndefined();
     expect(browserInit).toHaveBeenCalledTimes(1);
     expect(browserInit).toHaveBeenLastCalledWith(expect.objectContaining(expectedMetadata));
+  });
+});
+
+describe('browserTracingIntegration', () => {
+  it('adds the `browserTracingIntegration` when `__SENTRY_TRACING__` is not set', () => {
+    const client = solidStartInit({
+      dsn: 'https://public@dsn.ingest.sentry.io/1337',
+    });
+
+    const browserTracingIntegration = client
+      ?.getOptions()
+      .integrations.find(integration => integration.name === 'BrowserTracing');
+    expect(browserTracingIntegration).toBeDefined();
+    expect(browserTracingIntegration!.isDefaultInstance).toEqual(true);
+  });
+
+  it("doesn't add the `browserTracingIntegration` if `__SENTRY_TRACING__` is false", () => {
+    // @ts-expect-error Test setup for build-time flag
+    globalThis.__SENTRY_TRACING__ = false;
+
+    const client = solidStartInit({
+      dsn: 'https://public@dsn.ingest.sentry.io/1337',
+    });
+
+    const browserTracingIntegration = client
+      ?.getOptions()
+      .integrations.find(integration => integration.name === 'BrowserTracing');
+    expect(browserTracingIntegration).toBeUndefined();
+
+    // @ts-expect-error Test setup for build-time flag
+    delete globalThis.__SENTRY_TRACING__;
+  });
+
+  it("doesn't add the default `browserTracingIntegration` if `solidBrowserTracingIntegration` was already passed in", () => {
+    const client = solidStartInit({
+      integrations: [solidRouterBrowserTracingIntegration()],
+      dsn: 'https://public@dsn.ingest.sentry.io/1337',
+    });
+
+    const browserTracingIntegration = client
+      ?.getOptions()
+      .integrations.find(integration => integration.name === 'BrowserTracing');
+    expect(browserTracingIntegration).toBeDefined();
+    expect(browserTracingIntegration!.isDefaultInstance).toBeUndefined();
   });
 });

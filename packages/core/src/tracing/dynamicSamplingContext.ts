@@ -9,6 +9,7 @@ import {
 import { DEFAULT_ENVIRONMENT } from '../constants';
 import { getClient } from '../currentScopes';
 import { SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '../semanticAttributes';
+import { hasTracingEnabled } from '../utils/hasTracingEnabled';
 import { getRootSpan, spanIsSampled, spanToJSON } from '../utils/spanUtils';
 
 /**
@@ -103,7 +104,12 @@ export function getDynamicSamplingContextFromSpan(span: Span): Readonly<Partial<
     dsc.transaction = name;
   }
 
-  dsc.sampled = String(spanIsSampled(rootSpan));
+  // How can we even land here with hasTracingEnabled() returning false?
+  // Otel creates a Non-recording span in Tracing Without Performance mode when handling incoming requests
+  // So we end up with an active span that is not sampled (neither positively nor negatively)
+  if (hasTracingEnabled()) {
+    dsc.sampled = String(spanIsSampled(rootSpan));
+  }
 
   client.emit('createDsc', dsc, rootSpan);
 

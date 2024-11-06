@@ -15,7 +15,7 @@ To view Feedback in Sentry, your
 
 ## Installation
 
-Please read the [offical integration documentation](https://docs.sentry.io/platforms/javascript/user-feedback/) for
+Please read the [official integration documentation](https://docs.sentry.io/platforms/javascript/user-feedback/) for
 installation instructions.
 
 ## Configuration

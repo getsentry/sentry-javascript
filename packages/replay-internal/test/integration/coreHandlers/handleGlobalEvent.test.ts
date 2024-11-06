@@ -397,4 +397,23 @@ describe('Integration | coreHandlers | handleGlobalEvent', () => {
 
     expect(handleGlobalEventListener(replay)(errorEvent, {})).toEqual(errorEvent);
   });
+
+  it('does not add replayId if replay is paused', async () => {
+    const transaction = Transaction();
+    const error = Error();
+
+    replay['_isPaused'] = true;
+
+    expect(handleGlobalEventListener(replay)(transaction, {})).toEqual(
+      expect.not.objectContaining({
+        // no tags at all here by default
+        tags: expect.anything(),
+      }),
+    );
+    expect(handleGlobalEventListener(replay)(error, {})).toEqual(
+      expect.objectContaining({
+        tags: expect.not.objectContaining({ replayId: expect.anything() }),
+      }),
+    );
+  });
 });

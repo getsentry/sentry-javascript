@@ -174,4 +174,17 @@ describe('internal wrap()', () => {
     expect(wrapped.__sentry_original__).toBe(fn);
     expect(fn.__sentry_wrapped__).toBe(wrapped);
   });
+
+  it('should only return __sentry_wrapped__ when it is a function', () => {
+    const fn = (() => 1337) as WrappedFunction;
+
+    wrap(fn);
+    expect(fn).toHaveProperty('__sentry_wrapped__');
+    fn.__sentry_wrapped__ = 'something that is not a function' as any;
+
+    const wrapped = wrap(fn);
+
+    expect(wrapped).toBe(fn);
+    expect(wrapped).not.toBe('something that is not a function');
+  });
 });

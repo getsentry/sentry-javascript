@@ -4,15 +4,15 @@
   </a>
 </p>
 
-# Official Sentry SDK for Solid Start (EXPERIMENTAL)
+# Official Sentry SDK for SolidStart
 
 [![npm version](https://img.shields.io/npm/v/@sentry/solidstart.svg)](https://www.npmjs.com/package/@sentry/solidstart)
 [![npm dm](https://img.shields.io/npm/dm/@sentry/solidstart.svg)](https://www.npmjs.com/package/@sentry/solidstart)
 [![npm dt](https://img.shields.io/npm/dt/@sentry/solidstart.svg)](https://www.npmjs.com/package/@sentry/solidstart)
 
-This SDK is considered ⚠️ **experimental and in an alpha state**. It may experience breaking changes. Please reach out
-on [GitHub](https://github.com/getsentry/sentry-javascript/issues/new/choose) if you have any feedback or concerns. This
-SDK is for [Solid Start](https://start.solidjs.com/). If you're using [Solid](https://www.solidjs.com/) see our
+This SDK is in **Beta**. The API is stable but updates may include minor changes in behavior. Please reach out on
+[GitHub](https://github.com/getsentry/sentry-javascript/issues/new/choose) if you have any feedback or concerns. This
+SDK is for [SolidStart](https://start.solidjs.com/). If you're using [Solid](https://www.solidjs.com/) see our
 [Solid SDK here](https://github.com/getsentry/sentry-javascript/tree/develop/packages/solid).
 
 ## Links
@@ -22,15 +22,15 @@ SDK is for [Solid Start](https://start.solidjs.com/). If you're using [Solid](ht
 ## General
 
 This package is a wrapper around `@sentry/node` for the server and `@sentry/solid` for the client side, with added
-functionality related to Solid Start.
+functionality related to SolidStart.
 
 ## Manual Setup
 
 If the setup through the wizard doesn't work for you, you can also set up the SDK manually.
 
-### 1. Prerequesits & Installation
+### 1. Prerequisites & Installation
 
-Install the Sentry Solid Start SDK:
+Install the Sentry SolidStart SDK:
 
 ```bash
 # Using npm
@@ -73,10 +73,10 @@ Sentry.init({
 
 ### 4. Server instrumentation
 
-Complete the setup by adding the Sentry middlware to your `src/middleware.ts` file:
+Complete the setup by adding the Sentry middleware to your `src/middleware.ts` file:
 
 ```typescript
-import { sentryBeforeResponseMiddleware } from '@sentry/solidstart/middleware';
+import { sentryBeforeResponseMiddleware } from '@sentry/solidstart';
 import { createMiddleware } from '@solidjs/start/middleware';
 
 export default createMiddleware({
@@ -157,58 +157,34 @@ render(
 );
 ```
 
-# Sourcemaps and Releases
+## Uploading Source Maps
 
-To generate and upload source maps of your Solid Start app use our Vite bundler plugin.
-
-1. Install the Sentry Vite plugin
-
-```bash
-# Using npm
-npm install @sentry/vite-plugin --save-dev
-
-# Using yarn
-yarn add @sentry/vite-plugin --dev
-```
-
-2. Configure the vite plugin
-
-To upload source maps you have to configure an auth token. Auth tokens can be passed to the plugin explicitly with the
-`authToken` option, with a `SENTRY_AUTH_TOKEN` environment variable, or with an `.env.sentry-build-plugin` file in the
-working directory when building your project. We recommend you add the auth token to your CI/CD environment as an
-environment variable.
+To upload source maps, add the `sentrySolidStartVite` plugin from `@sentry/solidstart` to your `app.config.ts` and
+configure an auth token. Auth tokens can be passed to the plugin explicitly with the `authToken` option, with a
+`SENTRY_AUTH_TOKEN` environment variable, or with an `.env.sentry-build-plugin` file in the working directory when
+building your project. We recommend you add the auth token to your CI/CD environment as an environment variable.
 
 Learn more about configuring the plugin in our
 [Sentry Vite Plugin documentation](https://www.npmjs.com/package/@sentry/vite-plugin).
 
-```bash
-// .env.sentry-build-plugin
-SENTRY_AUTH_TOKEN=<your auth token>
-SENTRY_ORG=<your org>
-SENTRY_PROJECT=<your project name>
-```
-
-3. Finally, add the plugin to your `app.config.ts` file.
-
-```javascript
+```typescript
+// app.config.ts
 import { defineConfig } from '@solidjs/start/config';
-import { sentryVitePlugin } from '@sentry/vite-plugin';
+import { sentrySolidStartVite } from '@sentry/solidstart';
 
 export default defineConfig({
-  // rest of your config
   // ...
 
   vite: {
-    build: {
-      sourcemap: true,
-    },
     plugins: [
-      sentryVitePlugin({
+      sentrySolidStartVite({
         org: process.env.SENTRY_ORG,
         project: process.env.SENTRY_PROJECT,
         authToken: process.env.SENTRY_AUTH_TOKEN,
+        debug: true,
       }),
     ],
   },
+  // ...
 });
 ```

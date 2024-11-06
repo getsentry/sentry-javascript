@@ -3,9 +3,8 @@ import { INVALID_TRACEID } from '@opentelemetry/api';
 import { context } from '@opentelemetry/api';
 import { propagation, trace } from '@opentelemetry/api';
 import { W3CBaggagePropagator, isTracingSuppressed } from '@opentelemetry/core';
-import { SEMATTRS_HTTP_URL } from '@opentelemetry/semantic-conventions';
+import { ATTR_URL_FULL, SEMATTRS_HTTP_URL } from '@opentelemetry/semantic-conventions';
 import type { continueTrace } from '@sentry/core';
-import { hasTracingEnabled } from '@sentry/core';
 import { getRootSpan } from '@sentry/core';
 import { spanToJSON } from '@sentry/core';
 import {
@@ -198,7 +197,7 @@ function getInjectionData(context: Context): {
   spanId: string | undefined;
   sampled: boolean | undefined;
 } {
-  const span = hasTracingEnabled() ? trace.getSpan(context) : undefined;
+  const span = trace.getSpan(context);
   const spanIsRemote = span?.spanContext().isRemote;
 
   // If we have a local span, we can just pick everything from it
@@ -292,7 +291,10 @@ function getExistingBaggage(carrier: unknown): string | undefined {
  * 2. Else, if the active span has no URL attribute (e.g. it is unsampled), we check a special trace state (which we set in our sampler).
  */
 function getCurrentURL(span: Span): string | undefined {
-  const urlAttribute = spanToJSON(span).data?.[SEMATTRS_HTTP_URL];
+  const spanData = spanToJSON(span).data;
+  // `ATTR_URL_FULL` is the new attribute, but we still support the old one, `SEMATTRS_HTTP_URL`, for now.
+  // eslint-disable-next-line deprecation/deprecation
+  const urlAttribute = spanData?.[SEMATTRS_HTTP_URL] || spanData?.[ATTR_URL_FULL];
   if (urlAttribute) {
     return urlAttribute;
   }

@@ -4,13 +4,13 @@
   </a>
 </p>
 
-# Official Sentry SDK for NestJS (EXPERIMENTAL)
+# Official Sentry SDK for NestJS
 
 [![npm version](https://img.shields.io/npm/v/@sentry/nestjs.svg)](https://www.npmjs.com/package/@sentry/nestjs)
 [![npm dm](https://img.shields.io/npm/dm/@sentry/nestjs.svg)](https://www.npmjs.com/package/@sentry/nestjs)
 [![npm dt](https://img.shields.io/npm/dt/@sentry/nestjs.svg)](https://www.npmjs.com/package/@sentry/nestjs)
 
-This SDK is considered **experimental and in an alpha state**. It may experience breaking changes. Please reach out on
+This SDK is in **Beta**. The API is stable but updates may include minor changes in behavior. Please reach out on
 [GitHub](https://github.com/getsentry/sentry-javascript/issues/new/choose) if you have any feedback or concerns.
 
 ## Installation
@@ -108,6 +108,8 @@ import { SentryGlobalFilter } from '@sentry/nestjs/setup';
 })
 export class AppModule {}
 ```
+
+**Note:** In NestJS + GraphQL applications replace the `SentryGlobalFilter` with the `SentryGlobalGraphQLFilter`.
 
 ## SentryTraced
 
