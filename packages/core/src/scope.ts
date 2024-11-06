@@ -128,6 +128,11 @@ class ScopeClass implements ScopeInterface {
     newScope._tags = { ...this._tags };
     newScope._extra = { ...this._extra };
     newScope._contexts = { ...this._contexts };
+    if (this._contexts.flags) {
+      // The flags context requires a deep copy.
+      newScope._contexts.flags = {flag_buffer: this._contexts.flags.flag_buffer.clone()};
+    }
+
     newScope._user = this._user;
     newScope._level = this._level;
     newScope._session = this._session;
