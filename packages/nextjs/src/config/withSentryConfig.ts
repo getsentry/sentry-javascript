@@ -261,11 +261,11 @@ function setUpTunnelRewriteRules(userNextConfig: NextConfigObject, tunnelPath: s
 // not turn the next config function in the type it was passed.
 function setUpBuildTimeVariables(userNextConfig: NextConfigObject, userSentryOptions: SentryBuildOptions): void {
   const assetPrefix = userNextConfig.assetPrefix || userNextConfig.basePath || '';
+  const basePath = userNextConfig.basePath ?? '';
   const rewritesTunnelPath =
     userSentryOptions.tunnelRoute !== undefined && userNextConfig.output !== 'export'
-      ? `${userNextConfig.basePath ?? ''}${userSentryOptions.tunnelRoute}`
+      ? `${basePath}${userSentryOptions.tunnelRoute}`
       : undefined;
-  const basePath = userNextConfig.basePath;
 
   const buildTimeVariables: Record<string, string> = {
     // Make sure that if we have a windows path, the backslashes are interpreted as such (rather than as escape
