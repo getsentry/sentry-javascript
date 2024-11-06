@@ -8390,14 +8390,6 @@
     "@sentry/cli-win32-i686" "2.37.0"
     "@sentry/cli-win32-x64" "2.37.0"
 
-"@sentry/core@8.35.0":
-  version "8.35.0"
-  resolved "https://registry.yarnpkg.com/@sentry/core/-/core-8.35.0.tgz#17090f4d2d3bb983d9d99ecd2d27f4e9e107e0b0"
-  integrity sha512-Ci0Nmtw5ETWLqQJGY4dyF+iWh7PWKy6k303fCEoEmqj2czDrKJCp7yHBNV0XYbo00prj2ZTbCr6I7albYiyONA==
-  dependencies:
-    "@sentry/types" "8.35.0"
-    "@sentry/utils" "8.35.0"
-
 "@sentry/rollup-plugin@2.22.6":
   version "2.22.6"
   resolved "https://registry.yarnpkg.com/@sentry/rollup-plugin/-/rollup-plugin-2.22.6.tgz#74e9ab69729ee024a497b21b66be3b1992e786d5"
@@ -8405,18 +8397,6 @@
   dependencies:
     "@sentry/bundler-plugin-core" "2.22.6"
     unplugin "1.0.1"
-
-"@sentry/types@8.35.0":
-  version "8.35.0"
-  resolved "https://registry.yarnpkg.com/@sentry/types/-/types-8.35.0.tgz#535c807800f7e378f61416f30177c0ef81b95012"
-  integrity sha512-AVEZjb16MlYPifiDDvJ19dPQyDn0jlrtC1PHs6ZKO+Rzyz+2EX2BRdszvanqArldexPoU1p5Bn2w81XZNXThBA==
-
-"@sentry/utils@8.35.0":
-  version "8.35.0"
-  resolved "https://registry.yarnpkg.com/@sentry/utils/-/utils-8.35.0.tgz#1e099fcbc60040091c79f028a83226c145d588ee"
-  integrity sha512-MdMb6+uXjqND7qIPWhulubpSeHzia6HtxeJa8jYI09OCvIcmNGPydv/Gx/LZBwosfMHrLdTWcFH7Y7aCxrq7cg==
-  dependencies:
-    "@sentry/types" "8.35.0"
 
 "@sentry/vite-plugin@2.22.6", "@sentry/vite-plugin@^2.22.6":
   version "2.22.6"
@@ -18049,11 +18029,6 @@ fake-indexeddb@^4.0.1:
   dependencies:
     realistic-structured-clone "^3.0.0"
 
-fast-deep-equal@^2.0.1:
-  version "2.0.1"
-  resolved "https://registry.yarnpkg.com/fast-deep-equal/-/fast-deep-equal-2.0.1.tgz#7b05218ddf9667bf7f370bf7fdb2cb15fdd0aa49"
-  integrity sha512-bCK/2Z4zLidyB4ReuIsvALH6w31YfAQDmXMqMx6FyfHqvBxtjC0eRumeSu4Bs3XtXwpyIywtSTrVT99BxY1f9w==
-
 fast-deep-equal@^3.1.1, fast-deep-equal@^3.1.3:
   version "3.1.3"
   resolved "https://registry.yarnpkg.com/fast-deep-equal/-/fast-deep-equal-3.1.3.tgz#3a7d56b559d6cbc3eb512325244e619a65c6c525"
@@ -22296,23 +22271,6 @@ launch-editor@^2.9.1:
   dependencies:
     picocolors "^1.0.0"
     shell-quote "^1.8.1"
-
-launchdarkly-js-client-sdk@^3.5.0:
-  version "3.5.0"
-  resolved "https://registry.yarnpkg.com/launchdarkly-js-client-sdk/-/launchdarkly-js-client-sdk-3.5.0.tgz#cb0e3d6fc21e56750aa86fcaf75733d7f510946f"
-  integrity sha512-3dgxC9S8K2ix6qjdArjZGOJPtAytgfQTuE+vWgjWJK7725rpYbuqbHghIFr5B0+WyWyVBYANldjWd1JdtYLwsw==
-  dependencies:
-    escape-string-regexp "^4.0.0"
-    launchdarkly-js-sdk-common "5.4.0"
-
-launchdarkly-js-sdk-common@5.4.0:
-  version "5.4.0"
-  resolved "https://registry.yarnpkg.com/launchdarkly-js-sdk-common/-/launchdarkly-js-sdk-common-5.4.0.tgz#c9787daebe0b583b01d2334218524ea142c85001"
-  integrity sha512-Kb3SDcB6S0HUpFNBZgtEt0YUV/fVkyg+gODfaOCJQ0Y0ApxLKNmmJBZOrPE2qIdzw536u4BqEjtaJdqJWCEElg==
-  dependencies:
-    base64-js "^1.3.0"
-    fast-deep-equal "^2.0.1"
-    uuid "^8.0.0"
 
 lazystream@^1.0.0:
   version "1.0.1"
