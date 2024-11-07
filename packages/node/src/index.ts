@@ -29,6 +29,7 @@ export { koaIntegration, setupKoaErrorHandler } from './integrations/tracing/koa
 export { connectIntegration, setupConnectErrorHandler } from './integrations/tracing/connect';
 export { spotlightIntegration } from './integrations/spotlight';
 export { knexIntegration } from './integrations/tracing/knex';
+export { tediousIntegration } from './integrations/tracing/tedious';
 export { genericPoolIntegration } from './integrations/tracing/genericPool';
 export { dataloaderIntegration } from './integrations/tracing/dataloader';
 export { amqplibIntegration } from './integrations/tracing/amqplib';
