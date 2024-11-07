@@ -1,8 +1,11 @@
+import { conditionalTest } from '../../../utils';
 import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
 
 jest.setTimeout(75000);
 
-describe('tedious auto instrumentation', () => {
+// Tedious version we are testing against only supports Node 18+
+// https://github.com/tediousjs/tedious/blob/8310c455a2cc1cba83c1ca3c16677da4f83e12a9/package.json#L38
+conditionalTest({ min: 18 })('tedious auto instrumentation', () => {
   afterAll(() => {
     cleanupChildProcesses();
   });
