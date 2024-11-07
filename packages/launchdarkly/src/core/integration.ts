@@ -20,7 +20,7 @@ import { insertToFlagBuffer } from '@sentry/utils';
  * const ldClient = LDClient.initialize(..., inspectors: [SentryInspector]);
  * ```
  */
-export const launchDarklyIntegration = ((_options?: LaunchDarklyOptions) => {
+export const buildLaunchDarklyIntegration = ((_options?: LaunchDarklyOptions) => {
   return {
     name: 'launchdarkly',
 
@@ -44,26 +44,27 @@ export const launchDarklyIntegration = ((_options?: LaunchDarklyOptions) => {
  * This needs to be registered separately in the LDClient, after initializing
  * Sentry.
  */
-export class SentryInspector implements LDInspectionFlagUsedHandler {
-  public name = 'sentry-flag-auditor';
+export function buildSentryFlagUsedInspector(): LDInspectionFlagUsedHandler {
+  return {
+    name: 'sentry-flag-auditor',
+    type: 'flag-used',
 
-  public type = 'flag-used' as const;
+    // We don't want the handler to impact the performance of the user's flag evaluations.
+    synchronous: false,
 
-  // We don't want the handler to impact the performance of the user's flag evaluations.
-  public synchronous = false;
-
-  /**
-   * Handle a flag evaluation by storing its name and value on the current scope.
-   */
-  public method(flagKey: string, flagDetail: LDEvaluationDetail, _context: LDContext): void {
-    if (typeof flagDetail.value === 'boolean') {
-      const scopeContexts = Sentry.getCurrentScope().getScopeData().contexts;
-      if (!scopeContexts.flags) {
-        scopeContexts.flags = {values: []}
+    /**
+     * Handle a flag evaluation by storing its name and value on the current scope.
+     */
+    method: (flagKey: string, flagDetail: LDEvaluationDetail, _context: LDContext) => {
+      if (typeof flagDetail.value === 'boolean') {
+        const scopeContexts = Sentry.getCurrentScope().getScopeData().contexts;
+        if (!scopeContexts.flags) {
+          scopeContexts.flags = {values: []}
+        }
+        const flagBuffer = scopeContexts.flags.values;
+        insertToFlagBuffer(flagBuffer, flagKey, flagDetail.value);
       }
-      const flagBuffer = scopeContexts.flags.values;
-      insertToFlagBuffer(flagBuffer, flagKey, flagDetail.value);
+      return;
     }
-    return;
   }
 }
