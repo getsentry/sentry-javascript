@@ -6665,7 +6665,14 @@
     path-to-regexp "3.3.0"
     tslib "2.7.0"
 
-"@nestjs/platform-express@10.4.6":
+"@nestjs/event-emitter@^2.0.0":
+  version "2.1.1"
+  resolved "https://registry.yarnpkg.com/@nestjs/event-emitter/-/event-emitter-2.1.1.tgz#4e34edc487c507edbe6d02033e3dd014a19210f9"
+  integrity sha512-6L6fBOZTyfFlL7Ih/JDdqlCzZeCW0RjCX28wnzGyg/ncv5F/EOeT1dfopQr1loBRQ3LTgu8OWM7n4zLN4xigsg==
+  dependencies:
+    eventemitter2 "6.4.9"
+
+"@nestjs/platform-express@^10.4.6":
   version "10.4.6"
   resolved "https://registry.yarnpkg.com/@nestjs/platform-express/-/platform-express-10.4.6.tgz#6c39c522fa66036b4256714fea203fbeb49fc4de"
   integrity sha512-HcyCpAKccAasrLSGRTGWv5BKRs0rwTIFOSsk6laNyqfqvgvYcJQAedarnm4jmaemtmSJ0PFI9PmtEZADd2ahCg==
@@ -18006,6 +18013,11 @@ eventemitter-asyncresource@^1.0.0:
   version "1.0.0"
   resolved "https://registry.yarnpkg.com/eventemitter-asyncresource/-/eventemitter-asyncresource-1.0.0.tgz#734ff2e44bf448e627f7748f905d6bdd57bdb65b"
   integrity sha512-39F7TBIV0G7gTelxwbEqnwhp90eqCPON1k0NwNfwhgKn4Co4ybUbj2pECcXT0B3ztRKZ7Pw1JujUUgmQJHcVAQ==
+
+eventemitter2@6.4.9:
+  version "6.4.9"
+  resolved "https://registry.yarnpkg.com/eventemitter2/-/eventemitter2-6.4.9.tgz#41f2750781b4230ed58827bc119d293471ecb125"
+  integrity sha512-JEPTiaOt9f04oa6NOkc4aH+nVp5I3wEjpHbIPqfgCdD5v5bUzy7xQqwcVO2aDQgOWhI28da57HksMrzK9HlRxg==
 
 eventemitter3@^4.0.0, eventemitter3@^4.0.4:
   version "4.0.7"

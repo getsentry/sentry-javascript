@@ -34,6 +34,8 @@ export class SentryNestInstrumentation extends InstrumentationBase {
    * Initializes the instrumentation by defining the modules to be patched.
    */
   public init(): InstrumentationNodeModuleDefinition {
+    // eslint-disable-next-line no-console
+    console.log('HIT init common');
     const moduleDef = new InstrumentationNodeModuleDefinition(SentryNestInstrumentation.COMPONENT, supportedVersions);
 
     moduleDef.files.push(

@@ -14,6 +14,7 @@ import { logger } from '@sentry/utils';
 import { generateInstrumentOnce } from '../../../otel/instrument';
 import { SentryNestInstrumentation } from './sentry-nest-instrumentation';
 import type { MinimalNestJsApp, NestJsErrorFilter } from './types';
+import { SentryNestEventInstrumentation } from './sentry-nest-event-instrumentation';
 
 const INTEGRATION_NAME = 'Nest';
 
@@ -25,10 +26,17 @@ const instrumentNestCommon = generateInstrumentOnce('Nest-Common', () => {
   return new SentryNestInstrumentation();
 });
 
+const instrumentNestEvent = generateInstrumentOnce('Nest-Event', () => {
+  return new SentryNestEventInstrumentation();
+});
+
 export const instrumentNest = Object.assign(
   (): void => {
+    // eslint-disable-next-line no-console
+    console.log('HIT instrumentNest');
     instrumentNestCore();
     instrumentNestCommon();
+    instrumentNestEvent();
   },
   { id: INTEGRATION_NAME },
 );
@@ -37,6 +45,8 @@ const _nestIntegration = (() => {
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
+      // eslint-disable-next-line no-console
+      console.log('HIT nest setup');
       instrumentNest();
     },
   };
