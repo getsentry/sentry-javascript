@@ -7,14 +7,14 @@
   "author": "Sentry",
   "license": "MIT",
   "private": true,
+  "type": "module",
   "engines": {
     "node": ">=14.18"
   },
   "files": [
     "/build"
   ],
-  "main": "build/cjs/index.js",
-  "module": "build/esm/index.js",
+  "main": "build/esm/index.js",
   "types": "build/types/index.d.ts",
   "exports": {
     "./package.json": "./package.json",
@@ -22,10 +22,6 @@
       "import": {
         "types": "./build/types/index.d.ts",
         "default": "./build/esm/index.js"
-      },
-      "require": {
-        "types": "./build/types/index.d.ts",
-        "default": "./build/cjs/index.js"
       }
     }
   },
@@ -40,9 +36,11 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/core": "8.36.0",
     "@sentry/types": "8.36.0",
     "@sentry/utils": "8.36.0"
+  },
+  "devDependencies": {
+    "rollup": "^4.24.4"
   },
   "scripts": {
     "build": "run-p build:transpile build:types",

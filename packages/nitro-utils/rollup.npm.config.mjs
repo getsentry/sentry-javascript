@@ -14,4 +14,5 @@ export default makeNPMConfigVariants(
       },
     },
   }),
+  { emitCjs: false },
 );

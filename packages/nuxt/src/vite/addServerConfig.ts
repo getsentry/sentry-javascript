@@ -93,6 +93,7 @@ export function addDynamicImportEntryFileWrapper(
 
   nitro.options.rollupConfig.plugins.push(
     wrapServerEntryWithDynamicImport({
+      serverEntrypointFileName: moduleOptions.serverEntrypointFileName || nitro.options.preset,
       serverConfigFileName: SERVER_CONFIG_FILENAME,
       resolvedServerConfigPath: createResolver(nitro.options.srcDir).resolve(`/${serverConfigFile}`),
       entrypointWrappedFunctions: moduleOptions.entrypointWrappedFunctions,

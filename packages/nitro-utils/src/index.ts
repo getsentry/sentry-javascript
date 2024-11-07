@@ -1,1 +1,4 @@
-export { wrapServerEntryWithDynamicImport } from './rollupPlugins/wrapServerEntryWithDynamicImport';
+export {
+  wrapServerEntryWithDynamicImport,
+  type WrapServerEntryPluginOptions,
+} from './rollupPlugins/wrapServerEntryWithDynamicImport';

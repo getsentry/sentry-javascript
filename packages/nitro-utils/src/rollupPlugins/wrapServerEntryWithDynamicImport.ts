@@ -6,6 +6,15 @@ export const SENTRY_WRAPPED_FUNCTIONS = '?sentry-query-wrapped-functions=';
 export const SENTRY_REEXPORTED_FUNCTIONS = '?sentry-query-reexported-functions=';
 export const QUERY_END_INDICATOR = 'SENTRY-QUERY-END';
 
+export type WrapServerEntryPluginOptions = {
+  serverEntrypointFileName: string;
+  serverConfigFileName: string;
+  resolvedServerConfigPath: string;
+  entrypointWrappedFunctions: string[];
+  additionalImports?: string[];
+  debug?: boolean;
+};
+
 /**
  * A Rollup plugin which wraps the server entry with a dynamic `import()`. This makes it possible to initialize Sentry first
  * by using a regular `import` and load the server after that.
@@ -18,15 +27,15 @@ export const QUERY_END_INDICATOR = 'SENTRY-QUERY-END';
  * @param config.additionalImports Adds additional imports to the entry file. Can be e.g. 'import-in-the-middle/hook.mjs'
  * @param config.debug Whether debug logs are enabled in the build time environment
  */
-export function wrapServerEntryWithDynamicImport(config: {
-  serverConfigFileName: string;
-  resolvedServerConfigPath: string;
-  entrypointWrappedFunctions: string[];
-  additionalImports?: string[];
-  debug?: boolean;
-}): InputPluginOption {
-  const { serverConfigFileName, resolvedServerConfigPath, entrypointWrappedFunctions, additionalImports, debug } =
-    config;
+export function wrapServerEntryWithDynamicImport(config: WrapServerEntryPluginOptions): InputPluginOption {
+  const {
+    serverEntrypointFileName,
+    serverConfigFileName,
+    resolvedServerConfigPath,
+    entrypointWrappedFunctions,
+    additionalImports,
+    debug,
+  } = config;
 
   return {
     name: 'sentry-wrap-server-entry-with-dynamic-import',
@@ -43,7 +52,12 @@ export function wrapServerEntryWithDynamicImport(config: {
         return { id: source, moduleSideEffects: true, external: true };
       }
 
-      if (options.isEntry && source.includes('.mjs') && !source.includes(`.mjs${SENTRY_WRAPPED_ENTRY}`)) {
+      if (
+        options.isEntry &&
+        source.includes(serverEntrypointFileName) &&
+        source.includes('.mjs') &&
+        !source.includes(`.mjs${SENTRY_WRAPPED_ENTRY}`)
+      ) {
         const resolution = await this.resolve(source, importer, options);
 
         // If it cannot be resolved or is external, just return it so that Rollup can display an error
