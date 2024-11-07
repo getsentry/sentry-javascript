@@ -8,7 +8,6 @@ import { fastifyIntegration, instrumentFastify } from './fastify';
 import { genericPoolIntegration, instrumentGenericPool } from './genericPool';
 import { graphqlIntegration, instrumentGraphql } from './graphql';
 import { hapiIntegration, instrumentHapi } from './hapi';
-import { instrumentKnex, knexIntegration } from './knex';
 import { instrumentKafka, kafkaIntegration } from './kafka';
 import { instrumentKoa, koaIntegration } from './koa';
 import { instrumentLruMemoizer, lruMemoizerIntegration } from './lrumemoizer';
