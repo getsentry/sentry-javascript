@@ -62,7 +62,7 @@ package. Please refer to the README and instructions of those SDKs for more deta
 - [`@sentry/remix`](https://github.com/getsentry/sentry-javascript/tree/master/packages/remix): SDK for Remix
 - [`@sentry/aws-serverless`](https://github.com/getsentry/sentry-javascript/tree/master/packages/aws-serverless): SDK
   for AWS Lambda Functions
-- [`@sentry/google-cloud-serverless`](https://github.com/getsentry/sentry-javascript/tree/master/packages/google-cloud):
+- [`@sentry/google-cloud-serverless`](https://github.com/getsentry/sentry-javascript/tree/master/packages/google-cloud-serverless):
   SDK for Google Cloud Functions
 - [`@sentry/electron`](https://github.com/getsentry/sentry-electron): SDK for Electron with support for native crashes
 - [`@sentry/react-native`](https://github.com/getsentry/sentry-react-native): SDK for React Native with support for
@@ -71,6 +71,8 @@ package. Please refer to the README and instructions of those SDKs for more deta
   for native crashes
 - [`@sentry/bun`](https://github.com/getsentry/sentry-javascript/tree/master/packages/bun): SDK for Bun
 - [`@sentry/deno`](https://github.com/getsentry/sentry-javascript/tree/master/packages/deno): SDK for Deno
+- [`@sentry/cloudflare`](https://github.com/getsentry/sentry-javascript/tree/master/packages/cloudflare): SDK for
+  Cloudflare
 
 ## Version Support Policy
 

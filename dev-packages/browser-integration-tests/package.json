@@ -1,6 +1,6 @@
 {
   "name": "@sentry-internal/browser-integration-tests",
-  "version": "8.27.0",
+  "version": "8.37.1",
   "main": "index.js",
   "license": "MIT",
   "engines": {
@@ -35,7 +35,7 @@
     "test:loader:replay_buffer": "PW_BUNDLE=loader_replay_buffer yarn test:loader",
     "test:loader:full": "PW_BUNDLE=loader_tracing_replay yarn test:loader",
     "test:loader:debug": "PW_BUNDLE=loader_debug yarn test:loader",
-    "test:ci": "yarn test:all --reporter='line'",
+    "test:ci": "yarn test:all",
     "test:update-snapshots": "yarn test:all --update-snapshots",
     "test:detect-flaky": "ts-node scripts/detectFlakyTests.ts"
   },
@@ -43,12 +43,12 @@
     "@babel/preset-typescript": "^7.16.7",
     "@playwright/test": "^1.44.1",
     "@sentry-internal/rrweb": "2.11.0",
-    "@sentry/browser": "8.27.0",
-    "axios": "1.6.7",
+    "@sentry/browser": "8.37.1",
+    "axios": "1.7.7",
     "babel-loader": "^8.2.2",
     "html-webpack-plugin": "^5.5.0",
     "pako": "^2.1.0",
-    "webpack": "^5.90.3"
+    "webpack": "^5.95.0"
   },
   "devDependencies": {
     "@types/glob": "8.0.0",

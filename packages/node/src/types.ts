@@ -6,7 +6,18 @@ import type { NodeTransportOptions } from './transports';
 
 export interface EsmLoaderHookOptions {
   include?: Array<string | RegExp>;
-  exclude?: Array<string | RegExp>;
+  exclude?: Array<string | RegExp> /**
+   * When set to `true`, `import-in-the-middle` will only wrap ESM modules that are specifically instrumented by
+   * OpenTelemetry plugins. This is useful to avoid issues where `import-in-the-middle` is not compatible with some of
+   * your dependencies.
+   *
+   * **Note**: This feature will only work if you `Sentry.init()` the SDK before the instrumented modules are loaded.
+   * This can be achieved via the Node `--import` CLI flag or by loading your app via async `import()` after calling
+   * `Sentry.init()`.
+   *
+   * Defaults to `false`.
+   */;
+  onlyIncludeInstrumentedModules?: boolean;
 }
 
 export interface BaseNodeOptions {
@@ -114,6 +125,12 @@ export interface BaseNodeOptions {
    */
   clientReportFlushInterval?: number;
 
+  /**
+   * By default, the SDK will try to identify problems with your instrumentation setup and warn you about it.
+   * If you want to disable these warnings, set this to `true`.
+   */
+  disableInstrumentationWarnings?: boolean;
+
   /** Callback that is executed when a fatal global error occurs. */
   onFatalError?(this: void, error: Error): void;
 }
@@ -141,7 +158,7 @@ export interface CurrentScopes {
  * so in these cases we type this as `AbstractSpan` which could be either a regular `Span` or a `ReadableSpan`.
  * You'll have to make sur to check revelant fields before accessing them.
  *
- * Note that technically, the `Span` exported from `@opentelemwetry/sdk-trace-base` matches this,
+ * Note that technically, the `Span` exported from `@opentelemetry/sdk-trace-base` matches this,
  * but we cannot be 100% sure that we are actually getting such a span, so this type is more defensive.
  */
 export type AbstractSpan = WriteableSpan | ReadableSpan | Span;

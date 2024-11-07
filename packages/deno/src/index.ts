@@ -61,6 +61,8 @@ export {
   startInactiveSpan,
   startSpanManual,
   startNewTrace,
+  suppressTracing,
+  // eslint-disable-next-line deprecation/deprecation
   metricsDefault as metrics,
   inboundFiltersIntegration,
   linkedErrorsIntegration,

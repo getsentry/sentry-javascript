@@ -1,12 +1,5 @@
 import type { GLOBAL_OBJ } from '@sentry/utils';
 import type { SentryWebpackPluginOptions } from '@sentry/webpack-plugin';
-import type { DefinePlugin, WebpackPluginInstance } from 'webpack';
-
-// Export this from here because importing something from Webpack (the library) in `webpack.ts` confuses the heck out of
-// madge, which we use for circular dependency checking. We've manually excluded this file from the check (which is
-// safe, since it only includes types), so we can import it here without causing madge to fail. See
-// https://github.com/pahen/madge/issues/306.
-export type { WebpackPluginInstance };
 
 // The first argument to `withSentryConfig` (which is the user's next config).
 export type ExportedNextConfig = NextConfigObject | NextConfigFunction;
@@ -16,6 +9,11 @@ type NextRewrite = {
   source: string;
   destination: string;
 };
+
+interface WebpackPluginInstance {
+  [index: string]: any;
+  apply: (compiler: any) => void;
+}
 
 export type NextConfigObject = {
   // Custom webpack options
@@ -49,6 +47,8 @@ export type NextConfigObject = {
     clientTraceMetadata?: string[];
   };
   productionBrowserSourceMaps?: boolean;
+  // https://nextjs.org/docs/pages/api-reference/next-config-js/env
+  env?: Record<string, string>;
 };
 
 export type SentryBuildOptions = {
@@ -308,6 +308,50 @@ export type SentryBuildOptions = {
   };
 
   /**
+   * Options to configure various bundle size optimizations related to the Sentry SDK.
+   */
+  bundleSizeOptimizations?: {
+    /**
+     * If set to `true`, the Sentry SDK will attempt to tree-shake (remove) any debugging code within itself during the build.
+     * Note that the success of this depends on tree shaking being enabled in your build tooling.
+     *
+     * Setting this option to `true` will disable features like the SDK's `debug` option.
+     */
+    excludeDebugStatements?: boolean;
+
+    /**
+     * If set to `true`, the Sentry SDK will attempt to tree-shake (remove) code within itself that is related to tracing and performance monitoring.
+     * Note that the success of this depends on tree shaking being enabled in your build tooling.
+     * **Notice:** Do not enable this when you're using any performance monitoring-related SDK features (e.g. `Sentry.startTransaction()`).
+     */
+    excludeTracing?: boolean;
+
+    /**
+     * If set to `true`, the Sentry SDK will attempt to tree-shake (remove) code related to the SDK's Session Replay Shadow DOM recording functionality.
+     * Note that the success of this depends on tree shaking being enabled in your build tooling.
+     *
+     * This option is safe to be used when you do not want to capture any Shadow DOM activity via Sentry Session Replay.
+     */
+    excludeReplayShadowDom?: boolean;
+
+    /**
+     * If set to `true`, the Sentry SDK will attempt to tree-shake (remove) code related to the SDK's Session Replay `iframe` recording functionality.
+     * Note that the success of this depends on tree shaking being enabled in your build tooling.
+     *
+     * You can safely do this when you do not want to capture any `iframe` activity via Sentry Session Replay.
+     */
+    excludeReplayIframe?: boolean;
+
+    /**
+     * If set to `true`, the Sentry SDK will attempt to tree-shake (remove) code related to the SDK's Session Replay's Compression Web Worker.
+     * Note that the success of this depends on tree shaking being enabled in your build tooling.
+     *
+     * **Notice:** You should only use this option if you manually host a compression worker and configure it in your Sentry Session Replay integration config via the `workerUrl` option.
+     */
+    excludeReplayWorker?: boolean;
+  };
+
+  /**
    * Options related to react component name annotations.
    * Disabled by default, unless a value is set for this option.
    * When enabled, your app's DOM will automatically be annotated during build-time with their respective component names.
@@ -365,12 +409,15 @@ export type SentryBuildOptions = {
   autoInstrumentAppDirectory?: boolean;
 
   /**
-   * Exclude certain serverside API routes or pages from being instrumented with Sentry. This option takes an array of
-   * strings or regular expressions. This options also affects pages in the `app` directory.
+   * Exclude certain serverside API routes or pages from being instrumented with Sentry during build-time. This option
+   * takes an array of strings or regular expressions. This options also affects pages in the `app` directory.
    *
    * NOTE: Pages should be specified as routes (`/animals` or `/api/animals/[animalType]/habitat`), not filepaths
    * (`pages/animals/index.js` or `.\src\pages\api\animals\[animalType]\habitat.tsx`), and strings must be be a full,
    * exact match.
+   *
+   * Notice: If you build Next.js with turbopack, the Sentry SDK will no longer apply build-time instrumentation and
+   * purely rely on Next.js telemetry features, meaning that this option will effectively no-op.
    */
   excludeServerRoutes?: Array<RegExp | string>;
 
@@ -455,7 +502,7 @@ export type BuildContext = {
   config: any;
   webpack: {
     version: string;
-    DefinePlugin: typeof DefinePlugin;
+    DefinePlugin: new (values: Record<string, string | boolean>) => WebpackPluginInstance;
   };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   defaultLoaders: any; // needed for type tests (test:types)
@@ -503,7 +550,7 @@ export type ModuleRuleUseProperty = {
  * Global with values we add when we inject code into people's pages, for use at runtime.
  */
 export type EnhancedGlobal = typeof GLOBAL_OBJ & {
-  __rewriteFramesDistDir__?: string;
+  _sentryRewriteFramesDistDir?: string;
   SENTRY_RELEASE?: { id: string };
   SENTRY_RELEASES?: { [key: string]: { id: string } };
 };

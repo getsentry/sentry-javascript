@@ -84,8 +84,7 @@ export function trackClsAsStandaloneSpan(): void {
 function sendStandaloneClsSpan(clsValue: number, entry: LayoutShift | undefined, pageloadSpanId: string) {
   DEBUG_BUILD && logger.log(`Sending CLS span (${clsValue})`);
 
-  const startTime = msToSec(browserPerformanceTimeOrigin as number) + (entry?.startTime || 0);
-  const duration = msToSec(entry?.duration || 0);
+  const startTime = msToSec((browserPerformanceTimeOrigin || 0) + (entry?.startTime || 0));
   const routeName = getCurrentScope().getScopeData().transactionName;
 
   const name = entry ? htmlTreeAsString(entry.sources[0]?.node) : 'Layout shift';
@@ -110,7 +109,9 @@ function sendStandaloneClsSpan(clsValue: number, entry: LayoutShift | undefined,
     [SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_VALUE]: clsValue,
   });
 
-  span?.end(startTime + duration);
+  // LayoutShift performance entries always have a duration of 0, so we don't need to add `entry.duration` here
+  // see: https://developer.mozilla.org/en-US/docs/Web/API/PerformanceEntry/duration
+  span?.end(startTime);
 }
 
 function supportsLayoutShift(): boolean {

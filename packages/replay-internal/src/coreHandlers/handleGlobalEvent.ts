@@ -14,8 +14,8 @@ import { shouldSampleForBufferEvent } from './util/shouldSampleForBufferEvent';
 export function handleGlobalEventListener(replay: ReplayContainer): (event: Event, hint: EventHint) => Event | null {
   return Object.assign(
     (event: Event, hint: EventHint) => {
-      // Do nothing if replay has been disabled
-      if (!replay.isEnabled()) {
+      // Do nothing if replay has been disabled or paused
+      if (!replay.isEnabled() || replay.isPaused()) {
         return event;
       }
 

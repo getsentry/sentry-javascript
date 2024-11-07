@@ -12,6 +12,38 @@ const META_TAG_PARENT_SPAN_ID = '1234567890123456';
 const META_TAG_BAGGAGE =
   'sentry-trace_id=12345678901234567890123456789012,sentry-public_key=public,sentry-release=1.0.0,sentry-environment=prod';
 
+sentryTest('error on initial page has traceId from meta tag', async ({ getLocalTestUrl, page }) => {
+  if (shouldSkipTracingTest()) {
+    sentryTest.skip();
+  }
+
+  const url = await getLocalTestUrl({ testDir: __dirname });
+  await page.goto(url);
+
+  const errorEventPromise = getFirstSentryEnvelopeRequest<EventAndTraceHeader>(
+    page,
+    undefined,
+    eventAndTraceHeaderRequestParser,
+  );
+
+  await page.locator('#errorBtn').click();
+  const [errorEvent, errorTraceHeader] = await errorEventPromise;
+
+  expect(errorEvent.type).toEqual(undefined);
+  expect(errorEvent.contexts?.trace).toEqual({
+    trace_id: META_TAG_TRACE_ID,
+    parent_span_id: META_TAG_PARENT_SPAN_ID,
+    span_id: expect.stringMatching(/^[0-9a-f]{16}$/),
+  });
+
+  expect(errorTraceHeader).toEqual({
+    environment: 'prod',
+    public_key: 'public',
+    release: '1.0.0',
+    trace_id: META_TAG_TRACE_ID,
+  });
+});
+
 sentryTest('error has new traceId after navigation', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipTracingTest()) {
     sentryTest.skip();

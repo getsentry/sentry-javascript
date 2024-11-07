@@ -37,7 +37,7 @@ export function getPlaywrightConfig(
     /* In dev mode some apps are flaky, so we allow retry there... */
     retries: testEnv === 'development' ? 3 : 0,
     /* Reporter to use. See https://playwright.dev/docs/test-reporters */
-    reporter: process.env.CI ? 'line' : 'list',
+    reporter: process.env.CI ? [['line'], ['junit', { outputFile: 'results.junit.xml' }]] : 'list',
     /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
     use: {
       /* Maximum time each action such as `click()` can take. Defaults to 0 (no limit). */
@@ -46,7 +46,7 @@ export function getPlaywrightConfig(
       baseURL: `http://localhost:${appPort}`,
 
       /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
-      trace: 'on-first-retry',
+      trace: 'retain-on-failure',
     },
 
     /* Configure projects for major browsers */

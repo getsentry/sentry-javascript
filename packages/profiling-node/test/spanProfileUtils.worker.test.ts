@@ -9,7 +9,8 @@ jest.setTimeout(10000);
 
 import * as Sentry from '@sentry/node';
 import type { Transport } from '@sentry/types';
-import { type ProfilingIntegration, _nodeProfilingIntegration } from '../src/integration';
+import { type ProfilingIntegration } from '@sentry/types';
+import { _nodeProfilingIntegration } from '../src/integration';
 
 function makeContinuousProfilingClient(): [Sentry.NodeClient, Transport] {
   const integration = _nodeProfilingIntegration();
@@ -49,7 +50,7 @@ it('worker threads context', () => {
     },
   });
 
-  const integration = client.getIntegrationByName<ProfilingIntegration>('ProfilingIntegration');
+  const integration = client.getIntegrationByName<ProfilingIntegration<any>>('ProfilingIntegration');
   if (!integration) {
     throw new Error('Profiling integration not found');
   }

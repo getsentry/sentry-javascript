@@ -1,13 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 // We export everything from both the client part of the SDK and from the server part. Some of the exports collide,
-// which is not allowed, unless we redifine the colliding exports in this file - which we do below.
+// which is not allowed, unless we redefine the colliding exports in this file - which we do below.
 export * from './config';
 export * from './client';
 export * from './server';
 export * from './edge';
 
-import type { Integration, Options, StackParser } from '@sentry/types';
+import type { Client, Integration, Options, StackParser } from '@sentry/types';
 
 import type * as clientSdk from './client';
 import type { ServerComponentContext, VercelCronsConfig } from './common/types';
@@ -17,7 +17,7 @@ import type * as serverSdk from './server';
 /** Initializes Sentry Next.js SDK */
 export declare function init(
   options: Options | clientSdk.BrowserOptions | serverSdk.NodeOptions | edgeSdk.EdgeOptions,
-): void;
+): Client | undefined;
 
 export declare const getClient: typeof clientSdk.getClient;
 export declare const getRootSpan: typeof serverSdk.getRootSpan;
@@ -36,6 +36,7 @@ export declare const createReduxEnhancer: typeof clientSdk.createReduxEnhancer;
 export declare const showReportDialog: typeof clientSdk.showReportDialog;
 export declare const withErrorBoundary: typeof clientSdk.withErrorBoundary;
 
+// eslint-disable-next-line deprecation/deprecation
 export declare const metrics: typeof clientSdk.metrics & typeof serverSdk.metrics;
 
 export { withSentryConfig } from './config';
@@ -141,4 +142,5 @@ export declare function wrapApiHandlerWithSentryVercelCrons<F extends (...args: 
  */
 export declare function wrapPageComponentWithSentry<C>(WrappingTarget: C): C;
 
-export { experimental_captureRequestError } from './common/captureRequestError';
+// eslint-disable-next-line deprecation/deprecation
+export { experimental_captureRequestError, captureRequestError } from './common/captureRequestError';

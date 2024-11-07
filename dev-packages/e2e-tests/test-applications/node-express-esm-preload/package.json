@@ -11,7 +11,7 @@
   "dependencies": {
     "@sentry/node": "latest || *",
     "@sentry/opentelemetry": "latest || *",
-    "express": "4.19.2"
+    "express": "4.20.0"
   },
   "devDependencies": {
     "@playwright/test": "^1.44.1",

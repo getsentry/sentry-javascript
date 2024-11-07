@@ -73,3 +73,8 @@ export interface CatchTarget {
     catch?: (...args: any[]) => any;
   };
 }
+
+/**
+ * Represents an express NextFunction.
+ */
+export type NextFunction = (err?: any) => void;

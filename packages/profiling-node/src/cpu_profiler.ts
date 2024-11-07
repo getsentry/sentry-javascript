@@ -15,6 +15,12 @@ import type {
 } from './types';
 import type { ProfileFormat } from './types';
 
+// #START_SENTRY_ESM_SHIM
+// When building for ESM, we shim require to use createRequire and __dirname.
+// We need to do this because .node extensions in esm are not supported.
+// The comment below this line exists as a placeholder for where to insert the shim.
+// #END_SENTRY_ESM_SHIM
+
 const stdlib = familySync();
 const platform = process.env['BUILD_PLATFORM'] || _platform();
 const arch = process.env['BUILD_ARCH'] || _arch();
@@ -40,7 +46,7 @@ export function importCppBindingsModule(): PrivateV8CpuProfilerBindings {
     return require(`${binaryPath}.node`);
   }
 
-  // We need the fallthrough so that in the end, we can fallback to the require dynamice require.
+  // We need the fallthrough so that in the end, we can fallback to the dynamic require.
   // This is for cases where precompiled binaries were not provided, but may have been compiled from source.
   if (platform === 'darwin') {
     if (arch === 'x64') {

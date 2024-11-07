@@ -26,7 +26,7 @@ import {
 
 /**
  * Capture a fetch breadcrumb to a replay.
- * This adds additional data (where approriate).
+ * This adds additional data (where appropriate).
  */
 export async function captureFetchBreadcrumbToReplay(
   breadcrumb: Breadcrumb & { data: FetchBreadcrumbData },
@@ -209,6 +209,11 @@ async function _parseFetchResponseBody(response: Response): Promise<[string | un
     const text = await _tryGetResponseText(res);
     return [text];
   } catch (error) {
+    if (error instanceof Error && error.message.indexOf('Timeout') > -1) {
+      DEBUG_BUILD && logger.warn('Parsing text body from response timed out');
+      return [undefined, 'BODY_PARSE_TIMEOUT'];
+    }
+
     DEBUG_BUILD && logger.exception(error, 'Failed to get text body from response');
     return [undefined, 'BODY_PARSE_ERROR'];
   }
@@ -299,8 +304,6 @@ function _tryGetResponseText(response: Response): Promise<string | undefined> {
       )
       .finally(() => clearTimeout(timeout));
   });
-
-  return _getResponseText(response);
 }
 
 async function _getResponseText(response: Response): Promise<string> {

@@ -17,6 +17,7 @@ export function isError(wat: unknown): wat is Error {
     case '[object Error]':
     case '[object Exception]':
     case '[object DOMException]':
+    case '[object WebAssembly.Exception]':
       return true;
     default:
       return isInstanceOf(wat, Error);

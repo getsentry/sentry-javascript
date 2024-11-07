@@ -1,7 +1,7 @@
 import type { Span } from '@opentelemetry/api';
 import { SpanKind } from '@opentelemetry/api';
 import type { ReadableSpan } from '@opentelemetry/sdk-trace-base';
-import { SEMATTRS_HTTP_STATUS_CODE } from '@opentelemetry/semantic-conventions';
+import { ATTR_HTTP_RESPONSE_STATUS_CODE, SEMATTRS_HTTP_STATUS_CODE } from '@opentelemetry/semantic-conventions';
 import {
   captureEvent,
   getCapturedScopesOnSpan,
@@ -105,8 +105,9 @@ export class SentrySpanExporter {
    * We do this to avoid leaking memory.
    */
   private _cleanupOldSpans(spans = this._finishedSpans): void {
+    const currentTimeSeconds = Date.now() / 1000;
     this._finishedSpans = spans.filter(span => {
-      const shouldDrop = shouldCleanupSpan(span, this._timeout);
+      const shouldDrop = shouldCleanupSpan(span, currentTimeSeconds, this._timeout);
       DEBUG_BUILD &&
         shouldDrop &&
         logger.log(
@@ -174,8 +175,8 @@ function getCompletedRootNodes(nodes: SpanNode[]): SpanNodeCompleted[] {
   return nodes.filter(nodeIsCompletedRootNode);
 }
 
-function shouldCleanupSpan(span: ReadableSpan, maxStartTimeOffsetSeconds: number): boolean {
-  const cutoff = Date.now() / 1000 - maxStartTimeOffsetSeconds;
+function shouldCleanupSpan(span: ReadableSpan, currentTimeSeconds: number, maxStartTimeOffsetSeconds: number): boolean {
+  const cutoff = currentTimeSeconds - maxStartTimeOffsetSeconds;
   return spanTimeInputToSeconds(span.startTime) < cutoff;
 }
 
@@ -208,7 +209,7 @@ function createTransactionForOtelSpan(span: ReadableSpan): TransactionEvent {
 
   const parentSpanIdFromTraceState = span.spanContext().traceState?.get(SENTRY_TRACE_STATE_PARENT_SPAN_ID);
 
-  // If parentSpanIdFromTraceState is defined at all, we want it to take presedence
+  // If parentSpanIdFromTraceState is defined at all, we want it to take precedence
   // In that case, an empty string should be interpreted as "no parent span id",
   // even if `span.parentSpanId` is set
   // this is the case when we are starting a new trace, where we have a virtual span based on the propagationContext
@@ -336,7 +337,7 @@ function getSpanData(span: ReadableSpan): {
 }
 
 /**
- * Remove custom `sentry.` attribtues we do not need to send.
+ * Remove custom `sentry.` attributes we do not need to send.
  * These are more carrier attributes we use inside of the SDK, we do not need to send them to the API.
  */
 function removeSentryAttributes(data: Record<string, unknown>): Record<string, unknown> {
@@ -358,9 +359,10 @@ function getData(span: ReadableSpan): Record<string, unknown> {
     data['otel.kind'] = SpanKind[span.kind];
   }
 
-  if (attributes[SEMATTRS_HTTP_STATUS_CODE]) {
-    const statusCode = attributes[SEMATTRS_HTTP_STATUS_CODE] as string;
-    data['http.response.status_code'] = statusCode;
+  // eslint-disable-next-line deprecation/deprecation
+  const maybeHttpStatusCodeAttribute = attributes[SEMATTRS_HTTP_STATUS_CODE];
+  if (maybeHttpStatusCodeAttribute) {
+    data[ATTR_HTTP_RESPONSE_STATUS_CODE] = maybeHttpStatusCodeAttribute as string;
   }
 
   const requestData = getRequestSpanData(span);

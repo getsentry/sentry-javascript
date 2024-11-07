@@ -152,7 +152,7 @@ jobs:
         id: install_dependencies
 
       - name: Check for Affected Nx Projects
-        uses: dkhunt27/action-nx-affected-list@v5.3
+        uses: dkhunt27/action-nx-affected-list@v6.1
         id: checkForAffected
         if: github.event_name == 'pull_request'
         with:
@@ -437,7 +437,7 @@ jobs:
         with:
           node-version-file: 'package.json'
       - name: Set up Deno
-        uses: denoland/setup-deno@v1.1.4
+        uses: denoland/setup-deno@v2.0.1
         with:
           deno-version: v1.38.5
       - name: Restore caches
@@ -458,8 +458,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # TODO(lforst): Unpin Node.js version 22 when https://github.com/protobufjs/protobuf.js/issues/2025 is resolved which broke the nodejs tests
-        node: [14, 16, 18, 20, '22.6.0']
+        node: [14, 16, 18, 20, 22]
     steps:
       - name: Check out base commit (${{ github.event.pull_request.base.sha }})
         uses: actions/checkout@v4
@@ -500,7 +499,10 @@ jobs:
   job_profiling_node_unit_tests:
     name: Node Profiling Unit Tests
     needs: [job_get_metadata, job_build]
-    if: needs.job_build.outputs.changed_node == 'true' || needs.job_get_metadata.outputs.changed_profiling_node == 'true' || github.event_name != 'pull_request'
+    if: |
+      needs.job_build.outputs.changed_node == 'true' ||
+      needs.job_get_metadata.outputs.changed_profiling_node == 'true' ||
+      github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -607,6 +609,14 @@ jobs:
           overwrite: true
           retention-days: 7
 
+      - name: Upload test results to Codecov
+        if: cancelled() == false
+        continue-on-error: true
+        uses: codecov/test-results-action@v1
+        with:
+          directory: dev-packages/browser-integration-tests
+          token: ${{ secrets.CODECOV_TOKEN }}
+
   job_browser_loader_tests:
     name: PW ${{ matrix.bundle }} Tests
     needs: [job_get_metadata, job_build]
@@ -650,6 +660,7 @@ jobs:
         run: |
           cd dev-packages/browser-integration-tests
           yarn test:loader
+
       - name: Upload Playwright Traces
         uses: actions/upload-artifact@v4
         if: failure()
@@ -658,6 +669,14 @@ jobs:
           path: dev-packages/browser-integration-tests/test-results
           overwrite: true
           retention-days: 7
+
+      - name: Upload test results to Codecov
+        if: cancelled() == false
+        continue-on-error: true
+        uses: codecov/test-results-action@v1
+        with:
+          directory: dev-packages/browser-integration-tests
+          token: ${{ secrets.CODECOV_TOKEN }}
 
   job_check_for_faulty_dts:
     name: Check for faulty .d.ts files
@@ -839,7 +858,7 @@ jobs:
     if: always() && needs.job_e2e_prepare.result == 'success'
     needs: [job_get_metadata, job_build, job_e2e_prepare]
     runs-on: ubuntu-20.04
-    timeout-minutes: 10
+    timeout-minutes: 15
     env:
       # We just use a dummy DSN here, only send to the tunnel anyhow
       E2E_TEST_DSN: 'https://username@domain/123'
@@ -878,12 +897,15 @@ jobs:
             'node-express-cjs-preload',
             'node-otel-sdk-node',
             'node-otel-custom-sampler',
+            'node-otel-without-tracing',
             'ember-classic',
             'ember-embroider',
             'nextjs-app-dir',
             'nextjs-13',
             'nextjs-14',
             'nextjs-15',
+            'nextjs-turbo',
+            'nextjs-t3',
             'react-17',
             'react-19',
             'react-create-hash-router',
@@ -892,23 +914,30 @@ jobs:
             'react-router-6',
             'solid',
             'solidstart',
+            'solidstart-spa',
             'svelte-5',
             'sveltekit',
             'sveltekit-2',
             'sveltekit-2-svelte-5',
+            'sveltekit-2-twp',
             'tanstack-router',
             'generic-ts3.8',
             'node-fastify',
+            'node-fastify-5',
             'node-hapi',
             'node-nestjs-basic',
             'node-nestjs-distributed-tracing',
             'nestjs-basic',
             'nestjs-distributed-tracing',
             'nestjs-with-submodules',
+            'nestjs-with-submodules-decorator',
+            'nestjs-basic-with-graphql',
+            'nestjs-graphql',
             'node-exports-test-app',
             'node-koa',
             'node-connect',
             'nuxt-3',
+            'nuxt-4',
             'vue-3',
             'webpack-4',
             'webpack-5'
@@ -991,13 +1020,45 @@ jobs:
 
       - name: Build E2E app
         working-directory: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
-        timeout-minutes: 5
+        timeout-minutes: 7
         run: pnpm ${{ matrix.build-command || 'test:build' }}
 
       - name: Run E2E test
         working-directory: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
-        timeout-minutes: 5
+        timeout-minutes: 10
         run: pnpm test:assert
+
+      - name: Upload Playwright Traces
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-traces-job_e2e_playwright_tests-${{ matrix.test-application}}
+          path: dev-packages/e2e-tests/test-applications/${{ matrix.test-application}}/test-results
+          overwrite: true
+          retention-days: 7
+
+      - name: Pre-process E2E Test Dumps
+        if: always()
+        run: |
+          node ./scripts/normalize-e2e-test-dump-transaction-events.js
+
+      - name: Upload E2E Test Event Dumps
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: E2E Test Dump (${{ matrix.label || matrix.test-application }})
+          path: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}/event-dumps
+          overwrite: true
+          retention-days: 7
+          if-no-files-found: ignore
+
+      - name: Upload test results to Codecov
+        if: cancelled() == false
+        continue-on-error: true
+        uses: codecov/test-results-action@v1
+        with:
+          directory: dev-packages/e2e-tests
+          token: ${{ secrets.CODECOV_TOKEN }}
 
   job_optional_e2e_tests:
     name: E2E ${{ matrix.label || matrix.test-application }} Test
@@ -1010,7 +1071,7 @@ jobs:
       github.actor != 'dependabot[bot]'
     needs: [job_get_metadata, job_build, job_e2e_prepare]
     runs-on: ubuntu-20.04
-    timeout-minutes: 10
+    timeout-minutes: 15
     env:
       E2E_TEST_AUTH_TOKEN: ${{ secrets.E2E_TEST_AUTH_TOKEN }}
       E2E_TEST_DSN: ${{ secrets.E2E_TEST_DSN }}
@@ -1044,6 +1105,36 @@ jobs:
           - test-application: 'create-remix-app-legacy'
             assert-command: 'test:assert-sourcemaps'
             label: 'create-remix-app-legacy (sourcemaps)'
+          - test-application: 'nextjs-app-dir'
+            build-command: 'test:build-canary'
+            label: 'nextjs-app-dir (canary)'
+          - test-application: 'nextjs-app-dir'
+            build-command: 'test:build-latest'
+            label: 'nextjs-app-dir (latest)'
+          - test-application: 'nextjs-13'
+            build-command: 'test:build-canary'
+            label: 'nextjs-13 (canary)'
+          - test-application: 'nextjs-13'
+            build-command: 'test:build-latest'
+            label: 'nextjs-13 (latest)'
+          - test-application: 'nextjs-14'
+            build-command: 'test:build-canary'
+            label: 'nextjs-14 (canary)'
+          - test-application: 'nextjs-14'
+            build-command: 'test:build-latest'
+            label: 'nextjs-14 (latest)'
+          - test-application: 'nextjs-15'
+            build-command: 'test:build-canary'
+            label: 'nextjs-15 (canary)'
+          - test-application: 'nextjs-15'
+            build-command: 'test:build-latest'
+            label: 'nextjs-15 (latest)'
+          - test-application: 'nextjs-turbo'
+            build-command: 'test:build-canary'
+            label: 'nextjs-turbo (canary)'
+          - test-application: 'nextjs-turbo'
+            build-command: 'test:build-latest'
+            label: 'nextjs-turbo (latest)'
 
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
@@ -1095,13 +1186,28 @@ jobs:
 
       - name: Build E2E app
         working-directory: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
-        timeout-minutes: 5
+        timeout-minutes: 7
         run: pnpm ${{ matrix.build-command || 'test:build' }}
 
       - name: Run E2E test
         working-directory: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
-        timeout-minutes: 5
+        timeout-minutes: 10
         run: pnpm ${{ matrix.assert-command || 'test:assert' }}
+
+      - name: Pre-process E2E Test Dumps
+        if: always()
+        run: |
+          node ./scripts/normalize-e2e-test-dump-transaction-events.js
+
+      - name: Upload E2E Test Event Dumps
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: E2E Test Dump (${{ matrix.label || matrix.test-application }})
+          path: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}/event-dumps
+          overwrite: true
+          retention-days: 7
+          if-no-files-found: ignore
 
       - name: Deploy Astro to Cloudflare
         uses: cloudflare/pages-action@v1
@@ -1125,12 +1231,11 @@ jobs:
       (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) &&
      (
         (needs.job_get_metadata.outputs.changed_profiling_node == 'true') ||
-        (needs.job_get_metadata.outputs.is_release == 'true') ||
-        (github.event_name != 'pull_request')
+        (needs.job_get_metadata.outputs.is_release == 'true')
       )
     needs: [job_get_metadata, job_build, job_e2e_prepare]
     runs-on: ubuntu-20.04
-    timeout-minutes: 10
+    timeout-minutes: 15
     env:
       E2E_TEST_AUTH_TOKEN: ${{ secrets.E2E_TEST_AUTH_TOKEN }}
       E2E_TEST_DSN: ${{ secrets.E2E_TEST_DSN }}
@@ -1155,7 +1260,7 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
-          node-version-file: 'dev-packages/e2e-tests/package.json'
+          node-version: 22
       - name: Restore caches
         uses: ./.github/actions/restore-cache
         with:
@@ -1202,12 +1307,12 @@ jobs:
 
       - name: Build E2E app
         working-directory: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
-        timeout-minutes: 5
+        timeout-minutes: 7
         run: yarn ${{ matrix.build-command || 'test:build' }}
 
       - name: Run E2E test
         working-directory: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
-        timeout-minutes: 5
+        timeout-minutes: 10
         run: yarn test:assert
 
   job_required_jobs_passed:
@@ -1241,48 +1346,6 @@ jobs:
         run: |
           echo "One of the dependent jobs have failed. You may need to re-run it." && exit 1
 
-  overhead_metrics:
-    name: Overhead metrics
-    needs: [job_get_metadata, job_build]
-    runs-on: ubuntu-20.04
-    timeout-minutes: 30
-    if: |
-      contains(github.event.pull_request.labels.*.name, 'ci-overhead-measurements')
-    steps:
-      - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ env.HEAD_COMMIT }}
-      - name: Set up Node
-        uses: actions/setup-node@v4
-        with:
-          node-version-file: 'package.json'
-      - name: Restore caches
-        uses: ./.github/actions/restore-cache
-        with:
-          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
-
-      - name: Collect
-        run: yarn ci:collect
-        working-directory: dev-packages/overhead-metrics
-
-      - name: Process
-        id: process
-        run: yarn ci:process
-        working-directory: dev-packages/overhead-metrics
-        # Don't run on forks - the PR comment cannot be added.
-        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-
-      - name: Upload results
-        uses: actions/upload-artifact@v4
-        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
-        with:
-          name: ${{ steps.process.outputs.artifactName }}
-          path: ${{ steps.process.outputs.artifactPath }}
-          retention-days: 7
-
   job_compile_bindings_profiling_node:
     name: Compile & Test Profiling Bindings (v${{ matrix.node }}) ${{ matrix.target_platform || matrix.os }}, ${{ matrix.node || matrix.container }}, ${{ matrix.arch || matrix.container }}, ${{ contains(matrix.container, 'alpine') && 'musl' || 'glibc'  }}
     needs: [job_get_metadata, job_build]
@@ -1290,8 +1353,7 @@ jobs:
     # Skip precompile unless we are on a release branch as precompile slows down CI times.
     if: |
       (needs.job_get_metadata.outputs.changed_profiling_node == 'true') ||
-      (needs.job_get_metadata.outputs.is_release == 'true') ||
-      (github.event_name != 'pull_request')
+      (needs.job_get_metadata.outputs.is_release == 'true')
     runs-on: ${{ matrix.os }}
     container: ${{ matrix.container }}
     timeout-minutes: 30

@@ -6,4 +6,5 @@ Sentry.init({
   dsn: useRuntimeConfig().public.sentry.dsn,
   tunnel: `http://localhost:3031/`, // proxy server
   tracesSampleRate: 1.0,
+  trackComponents: true,
 });

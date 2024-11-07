@@ -707,3 +707,23 @@ test('API route transaction includes exactly one nest async interceptor span aft
   // 'Interceptor - After Route' is NOT the parent of 'test-controller-span'
   expect(testControllerSpan.parent_span_id).not.toBe(exampleInterceptorSpanAfterRouteId);
 });
+
+test('Calling use method on service with Injectable decorator returns 200', async ({ baseURL }) => {
+  const response = await fetch(`${baseURL}/test-service-use`);
+  expect(response.status).toBe(200);
+});
+
+test('Calling transform method on service with Injectable decorator returns 200', async ({ baseURL }) => {
+  const response = await fetch(`${baseURL}/test-service-transform`);
+  expect(response.status).toBe(200);
+});
+
+test('Calling intercept method on service with Injectable decorator returns 200', async ({ baseURL }) => {
+  const response = await fetch(`${baseURL}/test-service-intercept`);
+  expect(response.status).toBe(200);
+});
+
+test('Calling canActivate method on service with Injectable decorator returns 200', async ({ baseURL }) => {
+  const response = await fetch(`${baseURL}/test-service-canActivate`);
+  expect(response.status).toBe(200);
+});

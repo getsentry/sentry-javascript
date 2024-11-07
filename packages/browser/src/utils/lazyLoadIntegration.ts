@@ -68,7 +68,14 @@ export async function lazyLoadIntegration(
     script.addEventListener('error', reject);
   });
 
-  WINDOW.document.body.appendChild(script);
+  const currentScript = WINDOW.document.currentScript;
+  const parent = WINDOW.document.body || WINDOW.document.head || (currentScript && currentScript.parentElement);
+
+  if (parent) {
+    parent.appendChild(script);
+  } else {
+    throw new Error(`Could not find parent element to insert lazy-loaded ${name} script`);
+  }
 
   try {
     await waitForLoad;

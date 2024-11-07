@@ -77,9 +77,9 @@ export class AppController {
     return { result: await this.appService.testSpanDecoratorSync() };
   }
 
-  @Get('kill-test-cron')
-  async killTestCron() {
-    this.appService.killTestCron();
+  @Get('kill-test-cron/:job')
+  async killTestCron(@Param('job') job: string) {
+    this.appService.killTestCron(job);
   }
 
   @Get('flush')
@@ -95,5 +95,30 @@ export class AppController {
   @Get('example-exception-local-filter')
   async exampleExceptionLocalFilter() {
     throw new ExampleExceptionLocalFilter();
+  }
+
+  @Get('test-service-use')
+  testServiceWithUseMethod() {
+    return this.appService.use();
+  }
+
+  @Get('test-service-transform')
+  testServiceWithTransform() {
+    return this.appService.transform();
+  }
+
+  @Get('test-service-intercept')
+  testServiceWithIntercept() {
+    return this.appService.intercept();
+  }
+
+  @Get('test-service-canActivate')
+  testServiceWithCanActivate() {
+    return this.appService.canActivate();
+  }
+
+  @Get('test-function-name')
+  testFunctionName() {
+    return this.appService.getFunctionName();
   }
 }

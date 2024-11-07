@@ -1,3 +1,4 @@
+/* eslint-disable max-lines */
 import {
   SENTRY_XHR_DATA_KEY,
   addPerformanceInstrumentationHandler,
@@ -76,7 +77,16 @@ export interface RequestInstrumentationOptions {
    *
    * Default: true
    */
-  traceXHR: boolean;
+  traceXHR: boolean /**
+   * Flag to disable tracking of long-lived streams, like server-sent events (SSE) via fetch.
+   * Do not enable this in case you have live streams or very long running streams.
+   *
+   * Disabled by default since it can lead to issues with streams using the `cancel()` api
+   * (https://github.com/getsentry/sentry-javascript/issues/13950)
+   *
+   * Default: false
+   */;
+  trackFetchStreamPerformance: boolean;
 
   /**
    * If true, Sentry will capture http timings and add them to the corresponding http spans.
@@ -101,13 +111,22 @@ export const defaultRequestInstrumentationOptions: RequestInstrumentationOptions
   traceFetch: true,
   traceXHR: true,
   enableHTTPTimings: true,
+  trackFetchStreamPerformance: false,
 };
 
 /** Registers span creators for xhr and fetch requests  */
 export function instrumentOutgoingRequests(client: Client, _options?: Partial<RequestInstrumentationOptions>): void {
-  const { traceFetch, traceXHR, shouldCreateSpanForRequest, enableHTTPTimings, tracePropagationTargets } = {
+  const {
+    traceFetch,
+    traceXHR,
+    trackFetchStreamPerformance,
+    shouldCreateSpanForRequest,
+    enableHTTPTimings,
+    tracePropagationTargets,
+  } = {
     traceFetch: defaultRequestInstrumentationOptions.traceFetch,
     traceXHR: defaultRequestInstrumentationOptions.traceXHR,
+    trackFetchStreamPerformance: defaultRequestInstrumentationOptions.trackFetchStreamPerformance,
     ..._options,
   };
 
@@ -119,7 +138,7 @@ export function instrumentOutgoingRequests(client: Client, _options?: Partial<Re
   const spans: Record<string, Span> = {};
 
   if (traceFetch) {
-    // Keeping track of http requests, whose body payloads resolved later than the intial resolved request
+    // Keeping track of http requests, whose body payloads resolved later than the initial resolved request
     // e.g. streaming using server sent events (SSE)
     client.addEventProcessor(event => {
       if (event.type === 'transaction' && event.spans) {
@@ -136,14 +155,16 @@ export function instrumentOutgoingRequests(client: Client, _options?: Partial<Re
       return event;
     });
 
-    addFetchEndInstrumentationHandler(handlerData => {
-      if (handlerData.response) {
-        const span = responseToSpanId.get(handlerData.response);
-        if (span && handlerData.endTimestamp) {
-          spanIdToEndTimestamp.set(span, handlerData.endTimestamp);
+    if (trackFetchStreamPerformance) {
+      addFetchEndInstrumentationHandler(handlerData => {
+        if (handlerData.response) {
+          const span = responseToSpanId.get(handlerData.response);
+          if (span && handlerData.endTimestamp) {
+            spanIdToEndTimestamp.set(span, handlerData.endTimestamp);
+          }
         }
-      }
-    });
+      });
+    }
 
     addFetchInstrumentationHandler(handlerData => {
       const createdSpan = instrumentFetchRequest(handlerData, shouldCreateSpan, shouldAttachHeadersWithTargets, spans);

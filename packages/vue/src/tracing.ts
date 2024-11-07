@@ -46,6 +46,19 @@ function finishRootSpan(vm: VueSentry, timestamp: number, timeout: number): void
   }, timeout);
 }
 
+/** Find if the current component exists in the provided `TracingOptions.trackComponents` array option. */
+export function findTrackComponent(trackComponents: string[], formattedName: string): boolean {
+  function extractComponentName(name: string): string {
+    return name.replace(/^<([^\s]*)>(?: at [^\s]*)?$/, '$1');
+  }
+
+  const isMatched = trackComponents.some(compo => {
+    return extractComponentName(formattedName) === extractComponentName(compo);
+  });
+
+  return isMatched;
+}
+
 export const createTracingMixins = (options: TracingOptions): Mixins => {
   const hooks = (options.hooks || [])
     .concat(DEFAULT_HOOKS)
@@ -84,8 +97,9 @@ export const createTracingMixins = (options: TracingOptions): Mixins => {
 
         // Skip components that we don't want to track to minimize the noise and give a more granular control to the user
         const name = formatComponentName(this, false);
+
         const shouldTrack = Array.isArray(options.trackComponents)
-          ? options.trackComponents.indexOf(name) > -1
+          ? findTrackComponent(options.trackComponents, name)
           : options.trackComponents;
 
         // We always want to track root component
@@ -109,11 +123,13 @@ export const createTracingMixins = (options: TracingOptions): Mixins => {
             }
 
             this.$_sentrySpans[operation] = startInactiveSpan({
-              name: `Vue <${name}>`,
+              name: `Vue ${name}`,
               op: `${VUE_OP}.${operation}`,
               attributes: {
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.vue',
               },
+              // UI spans should only be created if there is an active root span (transaction)
+              onlyIfParent: true,
             });
           }
         } else {

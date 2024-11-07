@@ -14,7 +14,7 @@ export function FeedbackIcon(): SVGElement {
     width: `${SIZE}`,
     height: `${SIZE}`,
     viewBox: `0 0 ${SIZE} ${SIZE}`,
-    fill: 'var(--foreground)',
+    fill: 'var(--actor-color, var(--foreground))',
   });
 
   const g = setAttributesNS(createElementNS('g'), {

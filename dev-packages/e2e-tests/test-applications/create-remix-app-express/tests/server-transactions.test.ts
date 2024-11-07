@@ -19,6 +19,10 @@ test('Sends parameterized transaction name to Sentry', async ({ page }) => {
 });
 
 test('Sends form data with action span', async ({ page }) => {
+  const formdataActionTransaction = waitForTransaction('create-remix-app-express', transactionEvent => {
+    return transactionEvent?.spans?.some(span => span.data && span.data['code.function'] === 'action');
+  });
+
   await page.goto('/action-formdata');
 
   await page.fill('input[name=text]', 'test');
@@ -29,10 +33,6 @@ test('Sends form data with action span', async ({ page }) => {
   });
 
   await page.locator('button[type=submit]').click();
-
-  const formdataActionTransaction = waitForTransaction('create-remix-app-express', transactionEvent => {
-    return transactionEvent?.spans?.some(span => span.data && span.data['code.function'] === 'action');
-  });
 
   const actionSpan = (await formdataActionTransaction).spans.find(
     span => span.data && span.data['code.function'] === 'action',

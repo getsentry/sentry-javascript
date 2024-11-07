@@ -8,14 +8,15 @@ import { devErrorSymbolicationEventProcessor } from '../common/devErrorSymbolica
 import { getVercelEnv } from '../common/getVercelEnv';
 import { browserTracingIntegration } from './browserTracingIntegration';
 import { nextjsClientStackFrameNormalizationIntegration } from './clientNormalizationIntegration';
+import { INCOMPLETE_APP_ROUTER_INSTRUMENTATION_TRANSACTION_NAME } from './routing/appRouterRoutingInstrumentation';
 import { applyTunnelRouteOption } from './tunnelRoute';
 
 export * from '@sentry/react';
 
-export { captureUnderscoreErrorException } from '../common/_error';
+export { captureUnderscoreErrorException } from '../common/pages-router-instrumentation/_error';
 
 const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
-  __rewriteFramesAssetPrefixPath__: string;
+  _sentryRewriteFramesAssetPrefixPath: string;
 };
 
 // Treeshakable guard to remove all code related to tracing
@@ -39,6 +40,13 @@ export function init(options: BrowserOptions): Client | undefined {
   filterTransactions.id = 'NextClient404Filter';
   addEventProcessor(filterTransactions);
 
+  const filterIncompleteNavigationTransactions: EventProcessor = event =>
+    event.type === 'transaction' && event.transaction === INCOMPLETE_APP_ROUTER_INSTRUMENTATION_TRANSACTION_NAME
+      ? null
+      : event;
+  filterIncompleteNavigationTransactions.id = 'IncompleteTransactionFilter';
+  addEventProcessor(filterIncompleteNavigationTransactions);
+
   if (process.env.NODE_ENV === 'development') {
     addEventProcessor(devErrorSymbolicationEventProcessor);
   }
@@ -56,7 +64,10 @@ function getDefaultIntegrations(options: BrowserOptions): Integration[] {
 
   // This value is injected at build time, based on the output directory specified in the build config. Though a default
   // is set there, we set it here as well, just in case something has gone wrong with the injection.
-  const assetPrefixPath = globalWithInjectedValues.__rewriteFramesAssetPrefixPath__ || '';
+  const assetPrefixPath =
+    process.env._sentryRewriteFramesAssetPrefixPath ||
+    globalWithInjectedValues._sentryRewriteFramesAssetPrefixPath ||
+    '';
   customDefaultIntegrations.push(nextjsClientStackFrameNormalizationIntegration({ assetPrefixPath }));
 
   return customDefaultIntegrations;

@@ -53,7 +53,9 @@ import { debounce } from './util/debounce';
 import { getHandleRecordingEmit } from './util/handleRecordingEmit';
 import { isExpired } from './util/isExpired';
 import { isSessionExpired } from './util/isSessionExpired';
+import { resetReplayIdOnDynamicSamplingContext } from './util/resetReplayIdOnDynamicSamplingContext';
 import { sendReplay } from './util/sendReplay';
+import { RateLimitError } from './util/sendReplayRequest';
 import type { SKIPPED } from './util/throttle';
 import { THROTTLED, throttle } from './util/throttle';
 
@@ -72,7 +74,7 @@ export class ReplayContainer implements ReplayContainerInterface {
   public clickDetector: ClickDetector | undefined;
 
   /**
-   * Recording can happen in one of three modes:
+   * Recording can happen in one of two modes:
    *   - session: Record the whole session, sending it continuously
    *   - buffer: Always keep the last 60s of recording, requires:
    *     - having replaysOnErrorSampleRate > 0 to capture replay when an error occurs
@@ -245,6 +247,9 @@ export class ReplayContainer implements ReplayContainerInterface {
   /** A wrapper to conditionally capture exceptions. */
   public handleException(error: unknown): void {
     DEBUG_BUILD && logger.exception(error);
+    if (this._options.onError) {
+      this._options.onError(error);
+    }
   }
 
   /**
@@ -377,7 +382,19 @@ export class ReplayContainer implements ReplayContainerInterface {
         // When running in error sampling mode, we need to overwrite `checkoutEveryNms`
         // Without this, it would record forever, until an error happens, which we don't want
         // instead, we'll always keep the last 60 seconds of replay before an error happened
-        ...(this.recordingMode === 'buffer' && { checkoutEveryNms: BUFFER_CHECKOUT_TIME }),
+        ...(this.recordingMode === 'buffer'
+          ? { checkoutEveryNms: BUFFER_CHECKOUT_TIME }
+          : // Otherwise, use experimental option w/ min checkout time of 6 minutes
+            // This is to improve playback seeking as there could potentially be
+            // less mutations to process in the worse cases.
+            //
+            // checkout by "N" events is probably ideal, but means we have less
+            // control about the number of checkouts we make (which generally
+            // increases replay size)
+            this._options._experiments.continuousCheckout && {
+              // Minimum checkout time is 6 minutes
+              checkoutEveryNms: Math.max(360_000, this._options._experiments.continuousCheckout),
+            }),
         emit: getHandleRecordingEmit(this),
         onMutation: this._onMutationHandler,
         ...(canvasOptions
@@ -429,6 +446,8 @@ export class ReplayContainer implements ReplayContainerInterface {
 
     try {
       DEBUG_BUILD && logger.info(`Stopping Replay${reason ? ` triggered by ${reason}` : ''}`);
+
+      resetReplayIdOnDynamicSamplingContext();
 
       this._removeListeners();
       this.stopRecording();
@@ -621,7 +640,7 @@ export class ReplayContainer implements ReplayContainerInterface {
   /**
    * Always flush via `_debouncedFlush` so that we do not have flushes triggered
    * from calling both `flush` and `_debouncedFlush`. Otherwise, there could be
-   * cases of mulitple flushes happening closely together.
+   * cases of multiple flushes happening closely together.
    */
   public flushImmediate(): Promise<void> {
     this._debouncedFlush();
@@ -636,7 +655,7 @@ export class ReplayContainer implements ReplayContainerInterface {
     this._debouncedFlush.cancel();
   }
 
-  /** Get the current sesion (=replay) ID */
+  /** Get the current session (=replay) ID */
   public getSessionId(): string | undefined {
     return this.session && this.session.id;
   }
@@ -1027,10 +1046,21 @@ export class ReplayContainer implements ReplayContainerInterface {
    * are included in the replay event before it is finished and sent to Sentry.
    */
   private _addPerformanceEntries(): Promise<Array<AddEventResult | null>> {
-    const performanceEntries = createPerformanceEntries(this.performanceEntries).concat(this.replayPerformanceEntries);
+    let performanceEntries = createPerformanceEntries(this.performanceEntries).concat(this.replayPerformanceEntries);
 
     this.performanceEntries = [];
     this.replayPerformanceEntries = [];
+
+    // If we are manually starting, we want to ensure we only include performance entries
+    // that are after the initial timestamp
+    // The reason for this is that we may have performance entries from the page load, but may decide to start
+    // the replay later on, in which case we do not want to include these entries.
+    // without this, manually started replays can have events long before the actual replay recording starts,
+    // which messes with the timeline etc.
+    if (this._requiresManualStart) {
+      const initialTimestampInSeconds = this._context.initialTimestamp / 1000;
+      performanceEntries = performanceEntries.filter(entry => entry.start >= initialTimestampInSeconds);
+    }
 
     return Promise.all(createPerformanceSpans(this, performanceEntries));
   }
@@ -1125,7 +1155,7 @@ export class ReplayContainer implements ReplayContainerInterface {
       const timestamp = Date.now();
 
       // Check total duration again, to avoid sending outdated stuff
-      // We leave 30s wiggle room to accomodate late flushing etc.
+      // We leave 30s wiggle room to accommodate late flushing etc.
       // This _could_ happen when the browser is suspended during flushing, in which case we just want to stop
       if (timestamp - this._context.initialTimestamp > this._options.maxReplayDuration + 30_000) {
         throw new Error('Session is too long, not sending replay');
@@ -1145,8 +1175,8 @@ export class ReplayContainer implements ReplayContainerInterface {
         segmentId,
         eventContext,
         session: this.session,
-        options: this.getOptions(),
         timestamp,
+        onError: err => this.handleException(err),
       });
     } catch (err) {
       this.handleException(err);
@@ -1161,7 +1191,8 @@ export class ReplayContainer implements ReplayContainerInterface {
       const client = getClient();
 
       if (client) {
-        client.recordDroppedEvent('send_error', 'replay');
+        const dropReason = err instanceof RateLimitError ? 'ratelimit_backoff' : 'send_error';
+        client.recordDroppedEvent(dropReason, 'replay');
       }
     }
   }
@@ -1226,27 +1257,29 @@ export class ReplayContainer implements ReplayContainerInterface {
       // TODO FN: Evaluate if we want to stop here, or remove this again?
     }
 
-    // this._flushLock acts as a lock so that future calls to `_flush()`
-    // will be blocked until this promise resolves
+    const _flushInProgress = !!this._flushLock;
+
+    // this._flushLock acts as a lock so that future calls to `_flush()` will
+    // be blocked until current flush is finished (i.e. this promise resolves)
     if (!this._flushLock) {
       this._flushLock = this._runFlush();
-      await this._flushLock;
-      this._flushLock = undefined;
-      return;
     }
-
-    // Wait for previous flush to finish, then call the debounced `_flush()`.
-    // It's possible there are other flush requests queued and waiting for it
-    // to resolve. We want to reduce all outstanding requests (as well as any
-    // new flush requests that occur within a second of the locked flush
-    // completing) into a single flush.
 
     try {
       await this._flushLock;
     } catch (err) {
-      DEBUG_BUILD && logger.error(err);
+      this.handleException(err);
     } finally {
-      this._debouncedFlush();
+      this._flushLock = undefined;
+
+      if (_flushInProgress) {
+        // Wait for previous flush to finish, then call the debounced
+        // `_flush()`. It's possible there are other flush requests queued and
+        // waiting for it to resolve. We want to reduce all outstanding
+        // requests (as well as any new flush requests that occur within a
+        // second of the locked flush completing) into a single flush.
+        this._debouncedFlush();
+      }
     }
   };
 

@@ -1,13 +1,17 @@
 import type { Integration } from '@sentry/types';
-import { instrumentHttp } from '../http';
+import { instrumentOtelHttp } from '../http';
 
+import { amqplibIntegration, instrumentAmqplib } from './amqplib';
 import { connectIntegration, instrumentConnect } from './connect';
 import { expressIntegration, instrumentExpress } from './express';
 import { fastifyIntegration, instrumentFastify } from './fastify';
+import { genericPoolIntegration, instrumentGenericPool } from './genericPool';
 import { graphqlIntegration, instrumentGraphql } from './graphql';
 import { hapiIntegration, instrumentHapi } from './hapi';
 import { instrumentKnex, knexIntegration } from './knex';
+import { instrumentKafka, kafkaIntegration } from './kafka';
 import { instrumentKoa, koaIntegration } from './koa';
+import { instrumentLruMemoizer, lruMemoizerIntegration } from './lrumemoizer';
 import { instrumentMongo, mongoIntegration } from './mongo';
 import { instrumentMongoose, mongooseIntegration } from './mongoose';
 import { instrumentMysql, mysqlIntegration } from './mysql';
@@ -38,7 +42,10 @@ export function getAutoPerformanceIntegrations(): Integration[] {
     hapiIntegration(),
     koaIntegration(),
     connectIntegration(),
-    knexIntegration(),
+    genericPoolIntegration(),
+    kafkaIntegration(),
+    amqplibIntegration(),
+    lruMemoizerIntegration(),
   ];
 }
 
@@ -48,12 +55,14 @@ export function getAutoPerformanceIntegrations(): Integration[] {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function getOpenTelemetryInstrumentationToPreload(): (((options?: any) => void) & { id: string })[] {
   return [
-    instrumentHttp,
+    instrumentOtelHttp,
     instrumentExpress,
     instrumentConnect,
     instrumentFastify,
     instrumentHapi,
+    instrumentKafka,
     instrumentKoa,
+    instrumentLruMemoizer,
     instrumentNest,
     instrumentMongo,
     instrumentMongoose,
@@ -63,6 +72,7 @@ export function getOpenTelemetryInstrumentationToPreload(): (((options?: any) =>
     instrumentHapi,
     instrumentGraphql,
     instrumentRedis,
-    instrumentKnex,
+    instrumentGenericPool,
+    instrumentAmqplib,
   ];
 }

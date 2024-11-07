@@ -1,4 +1,4 @@
-import { isThenable, normalize } from '@sentry/utils';
+import { normalize } from '@sentry/utils';
 
 import { getClient } from './currentScopes';
 import { captureException, setContext } from './exports';
@@ -15,16 +15,35 @@ export interface SentryTrpcMiddlewareArguments<T> {
   type?: unknown;
   next: () => T;
   rawInput?: unknown;
+  getRawInput?: () => Promise<unknown>;
 }
 
 const trpcCaptureContext = { mechanism: { handled: false, data: { function: 'trpcMiddleware' } } };
+
+function captureIfError(nextResult: unknown): void {
+  // TODO: Set span status based on what TRPCError was encountered
+  if (
+    typeof nextResult === 'object' &&
+    nextResult !== null &&
+    'ok' in nextResult &&
+    !nextResult.ok &&
+    'error' in nextResult
+  ) {
+    captureException(nextResult.error, trpcCaptureContext);
+  }
+}
+
+type SentryTrpcMiddleware<T> = T extends Promise<unknown> ? T : Promise<T>;
 
 /**
  * Sentry tRPC middleware that captures errors and creates spans for tRPC procedures.
  */
 export function trpcMiddleware(options: SentryTrpcMiddlewareOptions = {}) {
-  return function <T>(opts: SentryTrpcMiddlewareArguments<T>): T {
-    const { path, type, next, rawInput } = opts;
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore
+  return async function <T>(opts: SentryTrpcMiddlewareArguments<T>): SentryTrpcMiddleware<T> {
+    const { path, type, next, rawInput, getRawInput } = opts;
+
     const client = getClient();
     const clientOptions = client && client.getOptions();
 
@@ -33,23 +52,21 @@ export function trpcMiddleware(options: SentryTrpcMiddlewareOptions = {}) {
     };
 
     if (options.attachRpcInput !== undefined ? options.attachRpcInput : clientOptions && clientOptions.sendDefaultPii) {
-      trpcContext.input = normalize(rawInput);
-    }
+      if (rawInput !== undefined) {
+        trpcContext.input = normalize(rawInput);
+      }
 
-    setContext('trpc', trpcContext);
+      if (getRawInput !== undefined && typeof getRawInput === 'function') {
+        try {
+          const rawRes = await getRawInput();
 
-    function captureIfError(nextResult: unknown): void {
-      // TODO: Set span status based on what TRPCError was encountered
-      if (
-        typeof nextResult === 'object' &&
-        nextResult !== null &&
-        'ok' in nextResult &&
-        !nextResult.ok &&
-        'error' in nextResult
-      ) {
-        captureException(nextResult.error, trpcCaptureContext);
+          trpcContext.input = normalize(rawRes);
+        } catch (err) {
+          // noop
+        }
       }
     }
+    setContext('trpc', trpcContext);
 
     return startSpanManual(
       {
@@ -60,35 +77,18 @@ export function trpcMiddleware(options: SentryTrpcMiddlewareOptions = {}) {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.rpc.trpc',
         },
       },
-      span => {
-        let maybePromiseResult;
+      async span => {
         try {
-          maybePromiseResult = next();
+          const nextResult = await next();
+          captureIfError(nextResult);
+          span.end();
+          return nextResult;
         } catch (e) {
           captureException(e, trpcCaptureContext);
           span.end();
           throw e;
         }
-
-        if (isThenable(maybePromiseResult)) {
-          return maybePromiseResult.then(
-            nextResult => {
-              captureIfError(nextResult);
-              span.end();
-              return nextResult;
-            },
-            e => {
-              captureException(e, trpcCaptureContext);
-              span.end();
-              throw e;
-            },
-          ) as T;
-        } else {
-          captureIfError(maybePromiseResult);
-          span.end();
-          return maybePromiseResult;
-        }
       },
-    );
+    ) as SentryTrpcMiddleware<T>;
   };
 }

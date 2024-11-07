@@ -117,7 +117,7 @@ export function serializeEnvelope(envelope: Envelope): string | Uint8Array {
       try {
         stringifiedPayload = JSON.stringify(payload);
       } catch (e) {
-        // In case, despite all our efforts to keep `payload` circular-dependency-free, `JSON.strinify()` still
+        // In case, despite all our efforts to keep `payload` circular-dependency-free, `JSON.stringify()` still
         // fails, we try again after normalizing it again with infinite normalization depth. This of course has a
         // performance impact but in this case a performance hit is better than throwing.
         stringifiedPayload = JSON.stringify(normalize(payload));

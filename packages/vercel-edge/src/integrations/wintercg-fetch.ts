@@ -7,7 +7,12 @@ import type {
   IntegrationFn,
   Span,
 } from '@sentry/types';
-import { LRUMap, addFetchInstrumentationHandler, stringMatchesSomePattern } from '@sentry/utils';
+import {
+  LRUMap,
+  addFetchInstrumentationHandler,
+  getBreadcrumbLogLevelFromHttpStatusCode,
+  stringMatchesSomePattern,
+} from '@sentry/utils';
 
 const INTEGRATION_NAME = 'WinterCGFetch';
 
@@ -150,11 +155,14 @@ function createBreadcrumb(handlerData: HandlerDataFetch): void {
       startTimestamp,
       endTimestamp,
     };
+    const level = getBreadcrumbLogLevelFromHttpStatusCode(data.status_code);
+
     addBreadcrumb(
       {
         category: 'fetch',
         data,
         type: 'http',
+        level,
       },
       hint,
     );

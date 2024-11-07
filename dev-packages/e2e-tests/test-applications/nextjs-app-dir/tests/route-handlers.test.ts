@@ -54,11 +54,14 @@ test('Should record exceptions and transactions for faulty route handlers', asyn
   expect(routehandlerError.tags?.['my-isolated-tag']).toBe(true);
   expect(routehandlerError.tags?.['my-global-scope-isolated-tag']).not.toBeDefined();
 
-  expect(routehandlerTransaction.contexts?.trace?.status).toBe('unknown_error');
+  expect(routehandlerTransaction.contexts?.trace?.status).toBe('internal_error');
   expect(routehandlerTransaction.contexts?.trace?.op).toBe('http.server');
-  expect(routehandlerTransaction.contexts?.trace?.origin).toBe('auto.function.nextjs');
+  expect(routehandlerTransaction.contexts?.trace?.origin).toContain('auto');
 
   expect(routehandlerError.exception?.values?.[0].value).toBe('route-handler-error');
+
+  expect(routehandlerError.request?.method).toBe('PUT');
+  expect(routehandlerError.request?.url).toContain('/route-handlers/baz/error');
 
   expect(routehandlerError.transaction).toBe('PUT /route-handlers/[param]/error');
 });
@@ -66,7 +69,10 @@ test('Should record exceptions and transactions for faulty route handlers', asyn
 test.describe('Edge runtime', () => {
   test('should create a transaction for route handlers', async ({ request }) => {
     const routehandlerTransactionPromise = waitForTransaction('nextjs-app-dir', async transactionEvent => {
-      return transactionEvent?.transaction === 'PATCH /route-handlers/[param]/edge';
+      return (
+        transactionEvent?.transaction === 'PATCH /route-handlers/[param]/edge' &&
+        transactionEvent.contexts?.runtime?.name === 'vercel-edge'
+      );
     });
 
     const response = await request.patch('/route-handlers/bar/edge');
@@ -80,11 +86,17 @@ test.describe('Edge runtime', () => {
 
   test('should record exceptions and transactions for faulty route handlers', async ({ request }) => {
     const errorEventPromise = waitForError('nextjs-app-dir', errorEvent => {
-      return errorEvent?.exception?.values?.[0]?.value === 'route-handler-edge-error';
+      return (
+        errorEvent?.exception?.values?.[0]?.value === 'route-handler-edge-error' &&
+        errorEvent.contexts?.runtime?.name === 'vercel-edge'
+      );
     });
 
     const routehandlerTransactionPromise = waitForTransaction('nextjs-app-dir', async transactionEvent => {
-      return transactionEvent?.transaction === 'DELETE /route-handlers/[param]/edge';
+      return (
+        transactionEvent?.transaction === 'DELETE /route-handlers/[param]/edge' &&
+        transactionEvent.contexts?.runtime?.name === 'vercel-edge'
+      );
     });
 
     await request.delete('/route-handlers/baz/edge').catch(() => {
@@ -100,12 +112,10 @@ test.describe('Edge runtime', () => {
     expect(routehandlerError.tags?.['my-isolated-tag']).toBe(true);
     expect(routehandlerError.tags?.['my-global-scope-isolated-tag']).not.toBeDefined();
 
-    expect(routehandlerTransaction.contexts?.trace?.status).toBe('internal_error');
+    expect(routehandlerTransaction.contexts?.trace?.status).toBe('unknown_error');
     expect(routehandlerTransaction.contexts?.trace?.op).toBe('http.server');
-    expect(routehandlerTransaction.contexts?.runtime?.name).toBe('vercel-edge');
 
     expect(routehandlerError.exception?.values?.[0].value).toBe('route-handler-edge-error');
-    expect(routehandlerError.contexts?.runtime?.name).toBe('vercel-edge');
 
     expect(routehandlerError.transaction).toBe('DELETE /route-handlers/[param]/edge');
   });

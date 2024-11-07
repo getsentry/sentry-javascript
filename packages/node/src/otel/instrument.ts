@@ -1,7 +1,8 @@
 import type { Instrumentation } from '@opentelemetry/instrumentation';
 import { addOpenTelemetryInstrumentation } from '@sentry/opentelemetry';
 
-const INSTRUMENTED: Record<string, Instrumentation> = {};
+/** Exported only for tests. */
+export const INSTRUMENTED: Record<string, Instrumentation> = {};
 
 /**
  * Instrument an OpenTelemetry instrumentation once.
