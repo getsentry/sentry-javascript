@@ -13,5 +13,5 @@ export default makeNPMConfigVariants(
             : Boolean(process.env.SENTRY_BUILD_PRESERVE_MODULES),
       },
     },
-  })
+  }),
 );
