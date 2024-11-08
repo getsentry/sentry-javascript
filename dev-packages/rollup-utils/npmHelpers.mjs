@@ -132,15 +132,9 @@ export function makeBaseNPMConfig(options = {}) {
 }
 
 export function makeNPMConfigVariants(baseConfig, options = {}) {
-  const { emitEsm = true, emitCjs = true } = options;
+  const { emitEsm = true } = options;
 
-  const variantSpecificConfigs = [];
-
-  if (emitCjs) {
-    variantSpecificConfigs.push({
-      output: { format: 'cjs', dir: path.join(baseConfig.output.dir, 'cjs') },
-    });
-  }
+  const variantSpecificConfigs = [{ output: { format: 'cjs', dir: path.join(baseConfig.output.dir, 'cjs') } }];
 
   if (emitEsm) {
     variantSpecificConfigs.push({
