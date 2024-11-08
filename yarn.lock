@@ -8772,18 +8772,6 @@
     "@sentry/bundler-plugin-core" "2.22.6"
     unplugin "1.0.1"
 
-"@sentry/types@8.36.0":
-  version "8.36.0"
-  resolved "https://registry.yarnpkg.com/@sentry/types/-/types-8.36.0.tgz#b58397eb672d896b65b06103feb59dba74da9d39"
-  integrity sha512-K1pVFfdGHw115RzGHpwSOqoEPeayn4N1F9IfM0kxrYpQSbFT1X29eak88GBfC8gPiLEF0iFGlSaQ4ERmF7oRcA==
-
-"@sentry/utils@8.36.0":
-  version "8.36.0"
-  resolved "https://registry.yarnpkg.com/@sentry/utils/-/utils-8.36.0.tgz#e733042ae231fdeeafe6970e49283dcd9ac9700f"
-  integrity sha512-oJ3EDPj0I00z+AwC3EWBpSidXYUoKW0Id8MfMQP5Hflniz3gif7UEReblT+FJgPEVo6+6uNzAncY0MuNMxmDKQ==
-  dependencies:
-    "@sentry/types" "8.36.0"
-
 "@sentry/vite-plugin@2.22.6", "@sentry/vite-plugin@^2.22.6":
   version "2.22.6"
   resolved "https://registry.yarnpkg.com/@sentry/vite-plugin/-/vite-plugin-2.22.6.tgz#d08a1ede05f137636d5b3c61845d24c0114f0d76"

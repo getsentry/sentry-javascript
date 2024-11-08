@@ -1,6 +1,6 @@
 {
   "name": "@sentry-internal/nitro-utils",
-  "version": "8.36.0",
+  "version": "8.37.1",
   "description": "Utilities for all Sentry SDKs with Nitro on the server-side",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/nitro-utils",
@@ -35,8 +35,8 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/types": "8.36.0",
-    "@sentry/utils": "8.36.0"
+    "@sentry/types": "8.37.1",
+    "@sentry/utils": "8.37.1"
   },
   "devDependencies": {
     "rollup": "^4.24.4"
