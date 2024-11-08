@@ -124,6 +124,7 @@ export {
   startSession,
   startSpan,
   startSpanManual,
+  tediousIntegration,
   trpcMiddleware,
   withActiveSpan,
   withIsolationScope,

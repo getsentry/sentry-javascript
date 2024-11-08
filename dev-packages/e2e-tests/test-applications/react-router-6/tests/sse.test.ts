@@ -66,8 +66,12 @@ test('Waits for sse streaming when sse has been explicitly aborted', async ({ pa
   expect(resolveBodyDuration).toBe(0);
 
   // validate abort error was thrown by inspecting console
-  const consoleBreadcrumb = rootSpan.breadcrumbs?.find(breadcrumb => breadcrumb.category === 'console');
-  expect(consoleBreadcrumb?.message).toBe('Could not fetch sse AbortError: BodyStreamBuffer was aborted');
+  expect(rootSpan.breadcrumbs).toContainEqual(
+    expect.objectContaining({
+      category: 'console',
+      message: 'Could not fetch sse AbortError: BodyStreamBuffer was aborted',
+    }),
+  );
 });
 
 test('Aborts when stream takes longer than 5s, by not updating the span duration', async ({ page }) => {

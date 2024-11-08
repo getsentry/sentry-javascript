@@ -13,5 +13,5 @@ longTaskButton?.addEventListener('click', () => {
   }
 
   // trigger a navigation in the same event loop tick
-  window.history.pushState({}, '', '/#myHeading');
+  window.history.pushState({}, '', '#myHeading');
 });
