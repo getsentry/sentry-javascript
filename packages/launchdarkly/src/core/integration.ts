@@ -1,5 +1,3 @@
-/* eslint-disable @sentry-internal/sdk/no-class-field-initializers */
-
 import * as Sentry from '@sentry/browser';
 import type { Client as SentryClient, Event, EventHint, IntegrationFn } from '@sentry/types';
 import type { LDContext, LDEvaluationDetail, LDInspectionFlagUsedHandler } from 'launchdarkly-js-client-sdk';
@@ -9,15 +7,15 @@ import { insertToFlagBuffer } from '@sentry/utils';
 /**
  * Sentry integration for capturing feature flags from LaunchDarkly.
  *
- * See the [feature flag documentation](TODO:) for more information.
+ * See the [feature flag documentation](https://develop.sentry.dev/sdk/expected-features/#feature-flags) for more information.
  *
  * @example
  * ```
- * import {SentryInspector, launchDarklyIntegration} from '@sentry/launchdarkly';
+ * import {buildSentryFlagUsedInspector, buildLaunchDarklyIntegration} from '@sentry/launchdarkly';
  * import {LDClient} from 'launchdarkly-js-client-sdk';
  *
- * Sentry.init(..., integrations: [launchDarklyIntegration()])
- * const ldClient = LDClient.initialize(..., inspectors: [SentryInspector]);
+ * Sentry.init(..., integrations: [buildLaunchDarklyIntegration()])
+ * const ldClient = LDClient.initialize(..., {inspectors: [buildSentryFlagUsedInspector()]});
  * ```
  */
 export const buildLaunchDarklyIntegration = ((_options?: LaunchDarklyOptions) => {

@@ -127,7 +127,11 @@ export interface MissingInstrumentationContext extends Record<string, unknown> {
   ['javascript.is_cjs']?: boolean;
 }
 
+/**
+ * Used to buffer flag evaluation data on the current scope and attach it to
+ * error events. `values` should be initialized as empty ([]), and it should
+ * only be modified by @sentry/util "FlagBuffer" methods.
+ */
 export interface FeatureFlagContext extends Record<string, unknown> {
-  // This should only be modified by @sentry/util methods (insertToFlagBuffer).
-  readonly values: FeatureFlag[];
+  values: FeatureFlag[];
 }
