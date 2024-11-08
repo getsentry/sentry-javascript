@@ -21,13 +21,7 @@ module.exports = {
     {
       files: ['test/**/*.ts'],
 
-      rules: {
-        // most of these errors come from `new Promise(process.nextTick)`
-        '@typescript-eslint/unbound-method': 'off',
-        // TODO: decide if we want to enable this again after the migration
-        // We can take the freedom to be a bit more lenient with tests
-        '@typescript-eslint/no-floating-promises': 'off',
-      },
+      rules: {},
     },
     {
       files: ['src/types/deprecated.ts'],

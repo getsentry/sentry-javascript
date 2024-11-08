@@ -17,7 +17,7 @@ export const FLAG_BUFFER_SIZE = 100;
  *   oldest inserted flag is evicted.
  */
 export function insertToFlagBuffer(flags: FeatureFlag[], name: string, value: boolean): void {
-  // Check if the flag is already in the buffer
+  // Check if the flag is already in the buffer - O(n)
   const index = flags.findIndex(f => f.flag === name);
 
   if (index !== -1) {

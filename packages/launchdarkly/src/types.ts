@@ -1,1 +1,1 @@
-export type LaunchDarklyOptions = Record<string, never>; //TODO:
+export type LaunchDarklyOptions = Record<string, never>; // Extend as needed.
