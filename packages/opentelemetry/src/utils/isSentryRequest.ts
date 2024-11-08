@@ -6,7 +6,7 @@ import { spanHasAttributes } from './spanTypes';
 
 /**
  *
- * @param otelSpan Checks wheter a given OTEL Span is an http request to sentry.
+ * @param otelSpan Checks whether a given OTEL Span is an http request to sentry.
  * @returns boolean
  */
 export function isSentryRequestSpan(span: AbstractSpan): boolean {

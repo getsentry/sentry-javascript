@@ -14,11 +14,16 @@ import type {
   ProfileChunkEnvelope,
   ProfileChunkItem,
   SdkInfo,
-  StackFrame,
-  StackParser,
   ThreadCpuProfile,
 } from '@sentry/types';
-import { GLOBAL_OBJ, createEnvelope, dsnToString, forEachEnvelopeItem, logger, uuid4 } from '@sentry/utils';
+import {
+  createEnvelope,
+  dsnToString,
+  forEachEnvelopeItem,
+  getDebugImagesForResources,
+  logger,
+  uuid4,
+} from '@sentry/utils';
 
 import { env, versions } from 'process';
 import { isMainThread, threadId } from 'worker_threads';
@@ -364,7 +369,7 @@ export function findProfiledTransactionsFromEnvelope(envelope: Envelope): Event[
       const event = item[j];
 
       if (!event) {
-        // Shouldnt happen, but lets be safe
+        // Shouldn't happen, but lets be safe
         continue;
       }
 
@@ -415,69 +420,17 @@ export function makeProfileChunkEnvelope(
   ]);
 }
 
-const debugIdStackParserCache = new WeakMap<StackParser, Map<string, StackFrame[]>>();
-
 /**
  * Cross reference profile collected resources with debug_ids and return a list of debug images.
  * @param {string[]} resource_paths
  * @returns {DebugImage[]}
  */
 export function applyDebugMetadata(client: Client, resource_paths: ReadonlyArray<string>): DebugImage[] {
-  const debugIdMap = GLOBAL_OBJ._sentryDebugIds;
-  if (!debugIdMap) {
-    return [];
-  }
-
   const options = client.getOptions();
 
   if (!options || !options.stackParser) {
     return [];
   }
 
-  let debugIdStackFramesCache: Map<string, StackFrame[]>;
-  const cachedDebugIdStackFrameCache = debugIdStackParserCache.get(options.stackParser);
-  if (cachedDebugIdStackFrameCache) {
-    debugIdStackFramesCache = cachedDebugIdStackFrameCache;
-  } else {
-    debugIdStackFramesCache = new Map<string, StackFrame[]>();
-    debugIdStackParserCache.set(options.stackParser, debugIdStackFramesCache);
-  }
-
-  // Build a map of filename -> debug_id.
-  const filenameDebugIdMap = Object.keys(debugIdMap).reduce<Record<string, string>>((acc, debugIdStackTrace) => {
-    let parsedStack: StackFrame[];
-
-    const cachedParsedStack = debugIdStackFramesCache.get(debugIdStackTrace);
-    if (cachedParsedStack) {
-      parsedStack = cachedParsedStack;
-    } else {
-      parsedStack = options.stackParser(debugIdStackTrace);
-      debugIdStackFramesCache.set(debugIdStackTrace, parsedStack);
-    }
-
-    for (let i = parsedStack.length - 1; i >= 0; i--) {
-      const stackFrame = parsedStack[i];
-      const file = stackFrame && stackFrame.filename;
-
-      if (stackFrame && file) {
-        acc[file] = debugIdMap[debugIdStackTrace] as string;
-        break;
-      }
-    }
-    return acc;
-  }, {});
-
-  const images: DebugImage[] = [];
-
-  for (const resource of resource_paths) {
-    if (resource && filenameDebugIdMap[resource]) {
-      images.push({
-        type: 'sourcemap',
-        code_file: resource,
-        debug_id: filenameDebugIdMap[resource] as string,
-      });
-    }
-  }
-
-  return images;
+  return getDebugImagesForResources(options.stackParser, resource_paths);
 }

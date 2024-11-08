@@ -1,7 +1,7 @@
 {
   "name": "@sentry-internal/clear-cache-gh-action",
   "description": "An internal Github Action to clear GitHub caches.",
-  "version": "8.36.0",
+  "version": "8.37.1",
   "license": "MIT",
   "engines": {
     "node": ">=18"

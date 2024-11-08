@@ -51,7 +51,7 @@ Some of the following concepts may be relevant to your SDK:
 - **Redirects**: If possible, we want to skip redirects. This means that if a user navigates to `/`, and this redirects
   the user internally to `/dashboard`, we only want to capture a single `/` navigation/pageload.
 - **Route Params**: Routes should be parametrized, which means that instead of `/users/123` we want to capture
-  `/users/:id` or simmilar.
+  `/users/:id` or similar.
 - **Query Params**: Query params should generally be removed from the route.
 
 #### Component Tracking
@@ -88,7 +88,7 @@ own instrumentation to capture `http.server` spans.
 Some of the following concepts may be relevant to your SDK:
 
 - **Route Params**: Routes should be parametrized, which means that instead of `/users/123` we want to capture
-  `/users/:id` or simmilar.
+  `/users/:id` or similar.
 - **Query Params**: Query params should generally be removed from the route.
 
 #### Middleware Tracking

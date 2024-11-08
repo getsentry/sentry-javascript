@@ -71,7 +71,7 @@ export class SentryNonRecordingSpan implements Span {
 
   /**
    * This should generally not be used,
-   * but we need it for being comliant with the OTEL Span interface.
+   * but we need it for being compliant with the OTEL Span interface.
    *
    * @hidden
    * @internal
@@ -82,7 +82,7 @@ export class SentryNonRecordingSpan implements Span {
 
   /**
    * This should generally not be used,
-   * but we need it for being comliant with the OTEL Span interface.
+   * but we need it for being compliant with the OTEL Span interface.
    *
    * @hidden
    * @internal
@@ -93,7 +93,7 @@ export class SentryNonRecordingSpan implements Span {
 
   /**
    * This should generally not be used,
-   * but we need it for being comliant with the OTEL Span interface.
+   * but we need it for being compliant with the OTEL Span interface.
    *
    * @hidden
    * @internal

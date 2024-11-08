@@ -25,7 +25,7 @@ export function maskAttribute({
     return value;
   }
 
-  // unmaskTextSelector takes precendence
+  // unmaskTextSelector takes precedence
   if (privacyOptions.unmaskTextSelector && el.matches(privacyOptions.unmaskTextSelector)) {
     return value;
   }

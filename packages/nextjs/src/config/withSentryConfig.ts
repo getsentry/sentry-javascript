@@ -20,6 +20,7 @@ let showedExportModeTunnelWarning = false;
  * @param sentryBuildOptions Additional options to configure instrumentation and
  * @returns The modified config to be exported
  */
+// TODO(v9): Always return an async function here to allow us to do async things like grabbing a deterministic build ID.
 export function withSentryConfig<C>(nextConfig?: C, sentryBuildOptions: SentryBuildOptions = {}): C {
   const castNextConfig = (nextConfig as NextConfig) || {};
   if (typeof castNextConfig === 'function') {
@@ -72,6 +73,8 @@ function getFinalConfigObject(
       setUpTunnelRewriteRules(incomingUserNextConfigObject, userSentryOptions.tunnelRoute);
     }
   }
+
+  setUpBuildTimeVariables(incomingUserNextConfigObject, userSentryOptions);
 
   const nextJsVersion = getNextjsVersion();
 
@@ -251,6 +254,43 @@ function setUpTunnelRewriteRules(userNextConfig: NextConfigObject, tunnelPath: s
       };
     }
   };
+}
+
+// TODO(v9): Inject the release into all the bundles. This is breaking because grabbing the build ID if the user provides
+// it in `generateBuildId` (https://nextjs.org/docs/app/api-reference/next-config-js/generateBuildId) is async but we do
+// not turn the next config function in the type it was passed.
+function setUpBuildTimeVariables(userNextConfig: NextConfigObject, userSentryOptions: SentryBuildOptions): void {
+  const assetPrefix = userNextConfig.assetPrefix || userNextConfig.basePath || '';
+  const basePath = userNextConfig.basePath ?? '';
+  const rewritesTunnelPath =
+    userSentryOptions.tunnelRoute !== undefined && userNextConfig.output !== 'export'
+      ? `${basePath}${userSentryOptions.tunnelRoute}`
+      : undefined;
+
+  const buildTimeVariables: Record<string, string> = {
+    // Make sure that if we have a windows path, the backslashes are interpreted as such (rather than as escape
+    // characters)
+    _sentryRewriteFramesDistDir: userNextConfig.distDir?.replace(/\\/g, '\\\\') || '.next',
+    // Get the path part of `assetPrefix`, minus any trailing slash. (We use a placeholder for the origin if
+    // `assetPrefix` doesn't include one. Since we only care about the path, it doesn't matter what it is.)
+    _sentryRewriteFramesAssetPrefixPath: assetPrefix
+      ? new URL(assetPrefix, 'http://dogs.are.great').pathname.replace(/\/$/, '')
+      : '',
+  };
+
+  if (rewritesTunnelPath) {
+    buildTimeVariables._sentryRewritesTunnelPath = rewritesTunnelPath;
+  }
+
+  if (basePath) {
+    buildTimeVariables._sentryBasePath = basePath;
+  }
+
+  if (typeof userNextConfig.env === 'object') {
+    userNextConfig.env = { ...buildTimeVariables, ...userNextConfig.env };
+  } else if (userNextConfig.env === undefined) {
+    userNextConfig.env = buildTimeVariables;
+  }
 }
 
 function getNextjsVersion(): string | undefined {

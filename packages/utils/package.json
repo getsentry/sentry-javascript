@@ -1,6 +1,6 @@
 {
   "name": "@sentry/utils",
-  "version": "8.36.0",
+  "version": "8.37.1",
   "description": "Utilities for all Sentry JavaScript SDKs",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/utils",
@@ -39,7 +39,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/types": "8.36.0"
+    "@sentry/types": "8.37.1"
   },
   "devDependencies": {
     "@types/array.prototype.flat": "^1.2.1",

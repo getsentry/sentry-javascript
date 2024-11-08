@@ -595,7 +595,7 @@ describe('Integration | Transactions', () => {
 
     jest.advanceTimersByTime(1);
 
-    // Child-spans have been added to the exporter, but they are pending since they are waiting for their parant
+    // Child-spans have been added to the exporter, but they are pending since they are waiting for their parent
     expect(exporter['_finishedSpans'].length).toBe(2);
     expect(beforeSendTransaction).toHaveBeenCalledTimes(0);
 

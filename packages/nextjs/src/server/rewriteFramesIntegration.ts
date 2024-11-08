@@ -4,7 +4,7 @@ import type { IntegrationFn, StackFrame } from '@sentry/types';
 import { escapeStringForRegex } from '@sentry/utils';
 
 const globalWithInjectedValues = global as typeof global & {
-  __rewriteFramesDistDir__?: string;
+  _sentryRewriteFramesDistDir?: string;
 };
 
 type StackFrameIteratee = (frame: StackFrame) => StackFrame;
@@ -17,7 +17,7 @@ interface RewriteFramesOptions {
 export const customRewriteFramesIntegration = ((options?: RewriteFramesOptions) => {
   // This value is injected at build time, based on the output directory specified in the build config. Though a default
   // is set there, we set it here as well, just in case something has gone wrong with the injection.
-  const distDirName = globalWithInjectedValues.__rewriteFramesDistDir__;
+  const distDirName = process.env._sentryRewriteFramesDistDir || globalWithInjectedValues._sentryRewriteFramesDistDir;
 
   if (distDirName) {
     // nextjs always puts the build directory at the project root level, which is also where you run `next start` from, so

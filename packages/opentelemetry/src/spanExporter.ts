@@ -209,7 +209,7 @@ function createTransactionForOtelSpan(span: ReadableSpan): TransactionEvent {
 
   const parentSpanIdFromTraceState = span.spanContext().traceState?.get(SENTRY_TRACE_STATE_PARENT_SPAN_ID);
 
-  // If parentSpanIdFromTraceState is defined at all, we want it to take presedence
+  // If parentSpanIdFromTraceState is defined at all, we want it to take precedence
   // In that case, an empty string should be interpreted as "no parent span id",
   // even if `span.parentSpanId` is set
   // this is the case when we are starting a new trace, where we have a virtual span based on the propagationContext
@@ -337,7 +337,7 @@ function getSpanData(span: ReadableSpan): {
 }
 
 /**
- * Remove custom `sentry.` attribtues we do not need to send.
+ * Remove custom `sentry.` attributes we do not need to send.
  * These are more carrier attributes we use inside of the SDK, we do not need to send them to the API.
  */
 function removeSentryAttributes(data: Record<string, unknown>): Record<string, unknown> {

@@ -1,5 +1,5 @@
 /* eslint-disable max-lines */
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, getActiveSpan, startInactiveSpan } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, getActiveSpan } from '@sentry/core';
 import { setMeasurement } from '@sentry/core';
 import type { Measurements, Span, SpanAttributes, StartSpanOptions } from '@sentry/types';
 import { browserPerformanceTimeOrigin, getComponentName, htmlTreeAsString, logger, parseUrl } from '@sentry/utils';
@@ -105,24 +105,32 @@ export function startTrackingWebVitals({ recordClsStandaloneSpans }: StartTracki
  */
 export function startTrackingLongTasks(): void {
   addPerformanceInstrumentationHandler('longtask', ({ entries }) => {
-    if (!getActiveSpan()) {
+    const parent = getActiveSpan();
+    if (!parent) {
       return;
     }
+
+    const { op: parentOp, start_timestamp: parentStartTimestamp } = spanToJSON(parent);
+
     for (const entry of entries) {
       const startTime = msToSec((browserPerformanceTimeOrigin as number) + entry.startTime);
       const duration = msToSec(entry.duration);
 
-      const span = startInactiveSpan({
+      if (parentOp === 'navigation' && parentStartTimestamp && startTime < parentStartTimestamp) {
+        // Skip adding a span if the long task started before the navigation started.
+        // `startAndEndSpan` will otherwise adjust the parent's start time to the span's start
+        // time, potentially skewing the duration of the actual navigation as reported via our
+        // routing instrumentations
+        continue;
+      }
+
+      startAndEndSpan(parent, startTime, startTime + duration, {
         name: 'Main UI thread blocked',
         op: 'ui.long-task',
-        startTime,
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.browser.metrics',
         },
       });
-      if (span) {
-        span.end(startTime + duration);
-      }
     }
   });
 }
@@ -135,7 +143,8 @@ export function startTrackingLongAnimationFrames(): void {
   // we directly observe `long-animation-frame` events instead of through the web-vitals
   // `observe` helper function.
   const observer = new PerformanceObserver(list => {
-    if (!getActiveSpan()) {
+    const parent = getActiveSpan();
+    if (!parent) {
       return;
     }
     for (const entry of list.getEntries() as PerformanceLongAnimationFrameTiming[]) {
@@ -144,6 +153,17 @@ export function startTrackingLongAnimationFrames(): void {
       }
 
       const startTime = msToSec((browserPerformanceTimeOrigin as number) + entry.startTime);
+
+      const { start_timestamp: parentStartTimestamp, op: parentOp } = spanToJSON(parent);
+
+      if (parentOp === 'navigation' && parentStartTimestamp && startTime < parentStartTimestamp) {
+        // Skip adding the span if the long animation frame started before the navigation started.
+        // `startAndEndSpan` will otherwise adjust the parent's start time to the span's start
+        // time, potentially skewing the duration of the actual navigation as reported via our
+        // routing instrumentations
+        continue;
+      }
+
       const duration = msToSec(entry.duration);
 
       const attributes: SpanAttributes = {
@@ -164,15 +184,11 @@ export function startTrackingLongAnimationFrames(): void {
         attributes['browser.script.source_char_position'] = sourceCharPosition;
       }
 
-      const span = startInactiveSpan({
+      startAndEndSpan(parent, startTime, startTime + duration, {
         name: 'Main UI thread blocked',
         op: 'ui.long-animation-frame',
-        startTime,
         attributes,
       });
-      if (span) {
-        span.end(startTime + duration);
-      }
     }
   });
 
@@ -184,7 +200,8 @@ export function startTrackingLongAnimationFrames(): void {
  */
 export function startTrackingInteractions(): void {
   addPerformanceInstrumentationHandler('event', ({ entries }) => {
-    if (!getActiveSpan()) {
+    const parent = getActiveSpan();
+    if (!parent) {
       return;
     }
     for (const entry of entries) {
@@ -206,10 +223,7 @@ export function startTrackingInteractions(): void {
           spanOptions.attributes['ui.component_name'] = componentName;
         }
 
-        const span = startInactiveSpan(spanOptions);
-        if (span) {
-          span.end(startTime + duration);
-        }
+        startAndEndSpan(parent, startTime, startTime + duration, spanOptions);
       }
     }
   });
@@ -418,7 +432,7 @@ export function _addMeasureSpans(
   // spans created by the Next.js framework.
   //
   // To prevent this we will pin the start timestamp to the request start time
-  // This does make duration inaccruate, so if this does happen, we will add
+  // This does make duration inaccurate, so if this does happen, we will add
   // an attribute to the span
   const measureStartTimestamp = timeOrigin + Math.max(startTime, requestTime);
   const startTimeStamp = timeOrigin + startTime;

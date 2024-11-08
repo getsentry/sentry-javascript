@@ -40,7 +40,7 @@ module.exports = [
     path: 'packages/browser/build/npm/esm/index.js',
     import: createImport('init', 'browserTracingIntegration'),
     gzip: true,
-    limit: '36 KB',
+    limit: '36.5 KB',
   },
   {
     name: '@sentry/browser (incl. Tracing, Replay)',
@@ -79,7 +79,7 @@ module.exports = [
     path: 'packages/browser/build/npm/esm/index.js',
     import: createImport('init', 'browserTracingIntegration', 'replayIntegration', 'replayCanvasIntegration'),
     gzip: true,
-    limit: '78.1 KB',
+    limit: '78.2 KB',
   },
   {
     name: '@sentry/browser (incl. Tracing, Replay, Feedback)',
@@ -124,7 +124,7 @@ module.exports = [
     import: createImport('init', 'ErrorBoundary', 'reactRouterV6BrowserTracingIntegration'),
     ignore: ['react/jsx-runtime'],
     gzip: true,
-    limit: '39.05 KB',
+    limit: '39.5 KB',
   },
   // Vue SDK (ESM)
   {

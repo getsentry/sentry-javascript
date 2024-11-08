@@ -1,6 +1,6 @@
 {
   "name": "@sentry/deno",
-  "version": "8.36.0",
+  "version": "8.37.1",
   "description": "Official Sentry SDK for Deno",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/deno",
@@ -24,9 +24,9 @@
     "/build"
   ],
   "dependencies": {
-    "@sentry/core": "8.36.0",
-    "@sentry/types": "8.36.0",
-    "@sentry/utils": "8.36.0"
+    "@sentry/core": "8.37.1",
+    "@sentry/types": "8.37.1",
+    "@sentry/utils": "8.37.1"
   },
   "devDependencies": {
     "@rollup/plugin-typescript": "^11.1.5",
