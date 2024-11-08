@@ -206,11 +206,6 @@ packages:
     unpublish: $all
     # proxy: npmjs # Don't proxy for E2E tests!
 
-  '@sentry-internal/nitro-utils':
-    access: $undefined
-    publish: $undefined
-    unpublish: $undefined
-
   '@*/*':
     # scoped packages
     access: $all

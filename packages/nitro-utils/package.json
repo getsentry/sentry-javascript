@@ -6,7 +6,6 @@
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/nitro-utils",
   "author": "Sentry",
   "license": "MIT",
-  "private": true,
   "type": "module",
   "engines": {
     "node": ">=14.18"
