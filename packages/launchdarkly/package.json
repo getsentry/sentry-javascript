@@ -39,10 +39,10 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/browser": "^8.35.0",
-    "@sentry/core": "8.35.0",
-    "@sentry/types": "*",
-    "@sentry/utils": "*",
+    "@sentry/browser": "^8.37.1",
+    "@sentry/core": "8.37.1",
+    "@sentry/types": "8.37.1",
+    "@sentry/utils": "8.37.1",
     "launchdarkly-js-client-sdk": "^3.5.0"
   },
   "scripts": {

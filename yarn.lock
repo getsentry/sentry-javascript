@@ -8577,14 +8577,6 @@
     "@sentry/cli-win32-i686" "2.37.0"
     "@sentry/cli-win32-x64" "2.37.0"
 
-"@sentry/core@8.35.0":
-  version "8.35.0"
-  resolved "https://registry.yarnpkg.com/@sentry/core/-/core-8.35.0.tgz#17090f4d2d3bb983d9d99ecd2d27f4e9e107e0b0"
-  integrity sha512-Ci0Nmtw5ETWLqQJGY4dyF+iWh7PWKy6k303fCEoEmqj2czDrKJCp7yHBNV0XYbo00prj2ZTbCr6I7albYiyONA==
-  dependencies:
-    "@sentry/types" "8.35.0"
-    "@sentry/utils" "8.35.0"
-
 "@sentry/rollup-plugin@2.22.6":
   version "2.22.6"
   resolved "https://registry.yarnpkg.com/@sentry/rollup-plugin/-/rollup-plugin-2.22.6.tgz#74e9ab69729ee024a497b21b66be3b1992e786d5"
@@ -8592,18 +8584,6 @@
   dependencies:
     "@sentry/bundler-plugin-core" "2.22.6"
     unplugin "1.0.1"
-
-"@sentry/types@8.35.0":
-  version "8.35.0"
-  resolved "https://registry.yarnpkg.com/@sentry/types/-/types-8.35.0.tgz#535c807800f7e378f61416f30177c0ef81b95012"
-  integrity sha512-AVEZjb16MlYPifiDDvJ19dPQyDn0jlrtC1PHs6ZKO+Rzyz+2EX2BRdszvanqArldexPoU1p5Bn2w81XZNXThBA==
-
-"@sentry/utils@8.35.0":
-  version "8.35.0"
-  resolved "https://registry.yarnpkg.com/@sentry/utils/-/utils-8.35.0.tgz#1e099fcbc60040091c79f028a83226c145d588ee"
-  integrity sha512-MdMb6+uXjqND7qIPWhulubpSeHzia6HtxeJa8jYI09OCvIcmNGPydv/Gx/LZBwosfMHrLdTWcFH7Y7aCxrq7cg==
-  dependencies:
-    "@sentry/types" "8.35.0"
 
 "@sentry/vite-plugin@2.22.6", "@sentry/vite-plugin@^2.22.6":
   version "2.22.6"
