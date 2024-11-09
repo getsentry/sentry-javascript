@@ -50,8 +50,17 @@ const _dataloaderIntegration = (() => {
 }) satisfies IntegrationFn;
 
 /**
- * Dataloader integration
+ * Adds Sentry tracing instrumentation for the [dataloader](https://www.npmjs.com/package/dataloader) library.
  *
- * Capture tracing data for Dataloader.
+ * For more information, see the [`dataloaderIntegration` documentation](https://docs.sentry.io/platforms/javascript/guides/node/configuration/integrations/dataloader/).
+ *
+ * @example
+ * ```javascript
+ * const Sentry = require('@sentry/node');
+ *
+ * Sentry.init({
+ *  integrations: [Sentry.dataloaderIntegration()],
+ * });
+ * ```
  */
 export const dataloaderIntegration = defineIntegration(_dataloaderIntegration);
