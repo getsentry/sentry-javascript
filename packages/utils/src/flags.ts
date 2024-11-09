@@ -6,17 +6,32 @@ import type { FeatureFlag } from '@sentry/types';
  * from oldest to newest.
  */
 
-export const FLAG_BUFFER_SIZE = 100;
+export const DEFAULT_MAX_SIZE = 100;
 
 /**
- * Insert into a FeatureFlag array while maintaining ordered LRU properties.
- * After inserting:
- * - The flag is guaranteed to be at the end of `flags`.
+ * Insert into a FeatureFlag array while maintaining ordered LRU properties. Not
+ * thread-safe. After inserting:
+ * - `flags` is sorted in order of recency, with the newest flag at the end.
  * - No other flags with the same name exist in `flags`.
- * - The length of `flags` does not exceed FLAG_BUFFER_SIZE. If needed, the
- *   oldest inserted flag is evicted.
+ * - The length of `flags` does not exceed `maxSize`. The oldest flag is evicted
+ *  as needed.
+ *
+ * @param flags    The array to insert into.
+ * @param name     Name of the feature flag to insert.
+ * @param value    Value of the feature flag.
+ * @param maxSize  Max number of flags the buffer should store. It's recommended
+ *   to keep this consistent across insertions. Default is DEFAULT_MAX_SIZE
  */
-export function insertToFlagBuffer(flags: FeatureFlag[], name: string, value: boolean): void {
+export function insertToFlagBuffer(
+  flags: FeatureFlag[],
+  name: string,
+  value: boolean,
+  maxSize: number = DEFAULT_MAX_SIZE,
+): void {
+  if (flags.length > maxSize) {
+    throw Error(`insertToFlagBuffer called on a buffer larger than the given maxSize=${maxSize}`);
+  }
+
   // Check if the flag is already in the buffer - O(n)
   const index = flags.findIndex(f => f.flag === name);
 
@@ -25,7 +40,7 @@ export function insertToFlagBuffer(flags: FeatureFlag[], name: string, value: bo
     flags.splice(index, 1);
   }
 
-  if (flags.length === FLAG_BUFFER_SIZE) {
+  if (flags.length === maxSize) {
     // If at capacity, pop the earliest flag - O(n)
     flags.shift();
   }
