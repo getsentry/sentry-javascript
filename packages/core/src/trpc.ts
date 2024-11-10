@@ -48,6 +48,7 @@ export function trpcMiddleware(options: SentryTrpcMiddlewareOptions = {}) {
     const clientOptions = client && client.getOptions();
 
     const trpcContext: Record<string, unknown> = {
+      procedure_path: path,
       procedure_type: type,
     };
 
