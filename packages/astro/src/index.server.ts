@@ -69,6 +69,7 @@ export {
   isInitialized,
   kafkaIntegration,
   koaIntegration,
+  knexIntegration,
   lastEventId,
   linkedErrorsIntegration,
   localVariablesIntegration,

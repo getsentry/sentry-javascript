@@ -113,6 +113,7 @@ export {
   setupConnectErrorHandler,
   genericPoolIntegration,
   graphqlIntegration,
+  knexIntegration,
   kafkaIntegration,
   lruMemoizerIntegration,
   mongoIntegration,

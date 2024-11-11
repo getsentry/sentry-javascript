@@ -68,6 +68,7 @@ export {
   inboundFiltersIntegration,
   initOpenTelemetry,
   isInitialized,
+  knexIntegration,
   kafkaIntegration,
   koaIntegration,
   lastEventId,
