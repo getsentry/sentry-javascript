@@ -94,6 +94,7 @@ export {
   continueTrace,
   getAutoPerformanceIntegrations,
   cron,
+  // eslint-disable-next-line deprecation/deprecation
   metrics,
   parameterize,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
@@ -119,6 +120,7 @@ export {
   mysqlIntegration,
   mysql2Integration,
   redisIntegration,
+  tediousIntegration,
   nestIntegration,
   setupNestErrorHandler,
   postgresIntegration,

@@ -429,10 +429,7 @@ function sendSpanEnvelope(envelope: SpanEnvelope): void {
     return;
   }
 
-  const transport = client.getTransport();
-  if (transport) {
-    transport.send(envelope).then(null, reason => {
-      DEBUG_BUILD && logger.error('Error while sending span:', reason);
-    });
-  }
+  // sendEnvelope should not throw
+  // eslint-disable-next-line @typescript-eslint/no-floating-promises
+  client.sendEnvelope(envelope);
 }

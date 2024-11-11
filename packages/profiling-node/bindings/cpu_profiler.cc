@@ -351,7 +351,7 @@ v8::CpuProfile *SentryProfile::Stop(Profiler *profiler) {
                               v8::NewStringType::kNormal)
           .ToLocalChecked());
 
-  // Remove the meemory sampler
+  // Remove the memory sampler
   profiler->measurements_ticker.remove_heap_listener(id, memory_sampler_cb);
   profiler->measurements_ticker.remove_cpu_listener(id, cpu_sampler_cb);
   // If for some reason stopProfiling was called with an invalid profile title

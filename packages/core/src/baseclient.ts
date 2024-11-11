@@ -472,7 +472,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   public on(hook: string, callback: unknown): () => void {
     const hooks = (this._hooks[hook] = this._hooks[hook] || []);
 
-    // @ts-expect-error We assue the types are correct
+    // @ts-expect-error We assume the types are correct
     hooks.push(callback);
 
     // This function returns a callback execution handler that, when invoked,
@@ -480,7 +480,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
     // need to be unregistered to prevent self-referencing in callback closures,
     // ensuring proper garbage collection.
     return () => {
-      // @ts-expect-error We assue the types are correct
+      // @ts-expect-error We assume the types are correct
       const cbIndex = hooks.indexOf(callback);
       if (cbIndex > -1) {
         hooks.splice(cbIndex, 1);
@@ -565,7 +565,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
 
     if (this._isEnabled() && this._transport) {
       return this._transport.send(envelope).then(null, reason => {
-        DEBUG_BUILD && logger.error('Error while sending event:', reason);
+        DEBUG_BUILD && logger.error('Error while sending envelope:', reason);
         return reason;
       });
     }

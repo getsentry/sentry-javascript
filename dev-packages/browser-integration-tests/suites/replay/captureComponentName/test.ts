@@ -10,14 +10,6 @@ sentryTest('captures component name attribute when available', async ({ forceFlu
 
   const reqPromise0 = waitForReplayRequest(page, 0);
 
-  await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-    return route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ id: 'test-id' }),
-    });
-  });
-
   const url = await getLocalTestPath({ testDir: __dirname });
 
   await page.goto(url);
@@ -94,14 +86,6 @@ sentryTest('sets element name to component name attribute', async ({ forceFlushR
   }
 
   const reqPromise0 = waitForReplayRequest(page, 0);
-
-  await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-    return route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ id: 'test-id' }),
-    });
-  });
 
   const url = await getLocalTestPath({ testDir: __dirname });
 

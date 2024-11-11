@@ -67,6 +67,7 @@ export {
   linkedErrorsIntegration,
   localVariablesIntegration,
   makeNodeTransport,
+  // eslint-disable-next-line deprecation/deprecation
   metrics,
   modulesIntegration,
   mongoIntegration,
@@ -117,6 +118,7 @@ export {
   startSession,
   startSpan,
   startSpanManual,
+  tediousIntegration,
   trpcMiddleware,
   withActiveSpan,
   withIsolationScope,

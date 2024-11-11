@@ -35,7 +35,7 @@ type TestCase = [
   string, // test name
   Options['defaultIntegrations'], // default integrations
   Options['integrations'], // user-provided integrations
-  Array<string | string[]>, // expected resulst
+  Array<string | string[]>, // expected results
 ];
 
 describe('getIntegrationsToSetup', () => {

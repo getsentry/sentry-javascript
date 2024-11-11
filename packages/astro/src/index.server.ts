@@ -74,6 +74,7 @@ export {
   localVariablesIntegration,
   lruMemoizerIntegration,
   makeNodeTransport,
+  // eslint-disable-next-line deprecation/deprecation
   metrics,
   modulesIntegration,
   mongoIntegration,
@@ -90,6 +91,7 @@ export {
   parameterize,
   postgresIntegration,
   prismaIntegration,
+  processThreadBreadcrumbIntegration,
   redisIntegration,
   requestDataIntegration,
   rewriteFramesIntegration,
@@ -124,6 +126,7 @@ export {
   startSession,
   startSpan,
   startSpanManual,
+  tediousIntegration,
   trpcMiddleware,
   withActiveSpan,
   withIsolationScope,

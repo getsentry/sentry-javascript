@@ -17,8 +17,17 @@ const _mysqlIntegration = (() => {
 }) satisfies IntegrationFn;
 
 /**
- * MySQL integration
+ * Adds Sentry tracing instrumentation for the [mysql](https://www.npmjs.com/package/mysql) library.
  *
- * Capture tracing data for mysql.
+ * For more information, see the [`mysqlIntegration` documentation](https://docs.sentry.io/platforms/javascript/guides/node/configuration/integrations/mysql/).
+ *
+ * @example
+ * ```javascript
+ * const Sentry = require('@sentry/node');
+ *
+ * Sentry.init({
+ *  integrations: [Sentry.mysqlIntegration()],
+ * });
+ * ```
  */
 export const mysqlIntegration = defineIntegration(_mysqlIntegration);

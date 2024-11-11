@@ -8,7 +8,7 @@ import { AsyncLocalStorage } from 'node:async_hooks';
 /**
  * Sets the async context strategy to use AsyncLocalStorage.
  *
- * AsyncLocalStorage is only avalaible in the cloudflare workers runtime if you set
+ * AsyncLocalStorage is only available in the cloudflare workers runtime if you set
  * compatibility_flags = ["nodejs_compat"] or compatibility_flags = ["nodejs_als"]
  */
 export function setAsyncLocalStorageAsyncContextStrategy(): void {

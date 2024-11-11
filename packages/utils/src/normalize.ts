@@ -29,7 +29,7 @@ type ObjOrArray<T> = { [key: string]: T };
  * @param input The object to be normalized.
  * @param depth The max depth to which to normalize the object. (Anything deeper stringified whole.)
  * @param maxProperties The max number of elements or properties to be included in any single array or
- * object in the normallized output.
+ * object in the normalized output.
  * @returns A normalized version of the object, or `"**non-serializable**"` if any errors are thrown during normalization.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

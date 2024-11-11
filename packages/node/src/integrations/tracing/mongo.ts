@@ -27,8 +27,17 @@ const _mongoIntegration = (() => {
 }) satisfies IntegrationFn;
 
 /**
- * MongoDB integration
+ * Adds Sentry tracing instrumentation for the [mongodb](https://www.npmjs.com/package/mongodb) library.
  *
- * Capture tracing data for MongoDB.
+ * For more information, see the [`mongoIntegration` documentation](https://docs.sentry.io/platforms/javascript/guides/node/configuration/integrations/mongo/).
+ *
+ * @example
+ * ```javascript
+ * const Sentry = require('@sentry/node');
+ *
+ * Sentry.init({
+ *  integrations: [Sentry.mongoIntegration()],
+ * });
+ * ```
  */
 export const mongoIntegration = defineIntegration(_mongoIntegration);

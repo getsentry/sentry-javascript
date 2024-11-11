@@ -40,7 +40,7 @@ module.exports = [
     path: 'packages/browser/build/npm/esm/index.js',
     import: createImport('init', 'browserTracingIntegration'),
     gzip: true,
-    limit: '36 KB',
+    limit: '36.5 KB',
   },
   {
     name: '@sentry/browser (incl. Tracing, Replay)',
@@ -79,7 +79,7 @@ module.exports = [
     path: 'packages/browser/build/npm/esm/index.js',
     import: createImport('init', 'browserTracingIntegration', 'replayIntegration', 'replayCanvasIntegration'),
     gzip: true,
-    limit: '78.1 KB',
+    limit: '78.2 KB',
   },
   {
     name: '@sentry/browser (incl. Tracing, Replay, Feedback)',
@@ -87,20 +87,6 @@ module.exports = [
     import: createImport('init', 'browserTracingIntegration', 'replayIntegration', 'feedbackIntegration'),
     gzip: true,
     limit: '95 KB',
-  },
-  {
-    name: '@sentry/browser (incl. Tracing, Replay, Feedback, metrics)',
-    path: 'packages/browser/build/npm/esm/index.js',
-    import: createImport('init', 'browserTracingIntegration', 'replayIntegration', 'feedbackIntegration', 'metrics'),
-    gzip: true,
-    limit: '100 KB',
-  },
-  {
-    name: '@sentry/browser (incl. metrics)',
-    path: 'packages/browser/build/npm/esm/index.js',
-    import: createImport('init', 'metrics'),
-    gzip: true,
-    limit: '30 KB',
   },
   {
     name: '@sentry/browser (incl. Feedback)',
@@ -138,7 +124,7 @@ module.exports = [
     import: createImport('init', 'ErrorBoundary', 'reactRouterV6BrowserTracingIntegration'),
     ignore: ['react/jsx-runtime'],
     gzip: true,
-    limit: '39.05 KB',
+    limit: '39.5 KB',
   },
   // Vue SDK (ESM)
   {
@@ -224,7 +210,7 @@ module.exports = [
     import: createImport('init'),
     ignore: ['next/router', 'next/constants'],
     gzip: true,
-    limit: '39 KB',
+    limit: '40 KB',
   },
   // SvelteKit SDK (ESM)
   {

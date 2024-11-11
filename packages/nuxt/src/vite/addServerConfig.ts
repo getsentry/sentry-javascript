@@ -7,9 +7,11 @@ import type { InputPluginOption } from 'rollup';
 import type { SentryNuxtModuleOptions } from '../common/types';
 import {
   QUERY_END_INDICATOR,
-  SENTRY_FUNCTIONS_REEXPORT,
+  SENTRY_REEXPORTED_FUNCTIONS,
   SENTRY_WRAPPED_ENTRY,
+  SENTRY_WRAPPED_FUNCTIONS,
   constructFunctionReExport,
+  constructWrappedFunctionExportQuery,
   removeSentryQueryFromPath,
 } from './utils';
 
@@ -81,7 +83,12 @@ export function addServerConfigToBuild(
  * With this, the Sentry server config can be loaded before all other modules of the application (which is needed for import-in-the-middle).
  * See: https://nodejs.org/api/module.html#enabling
  */
-export function addDynamicImportEntryFileWrapper(nitro: Nitro, serverConfigFile: string): void {
+export function addDynamicImportEntryFileWrapper(
+  nitro: Nitro,
+  serverConfigFile: string,
+  moduleOptions: Omit<SentryNuxtModuleOptions, 'entrypointWrappedFunctions'> &
+    Required<Pick<SentryNuxtModuleOptions, 'entrypointWrappedFunctions'>>,
+): void {
   if (!nitro.options.rollupConfig) {
     nitro.options.rollupConfig = { output: {} };
   }
@@ -94,8 +101,10 @@ export function addDynamicImportEntryFileWrapper(nitro: Nitro, serverConfigFile:
   }
 
   nitro.options.rollupConfig.plugins.push(
-    // @ts-expect-error - This is the correct type, but it shows an error because of two different definitions
-    wrapEntryWithDynamicImport(createResolver(nitro.options.srcDir).resolve(`/${serverConfigFile}`)),
+    wrapEntryWithDynamicImport({
+      resolvedSentryConfigPath: createResolver(nitro.options.srcDir).resolve(`/${serverConfigFile}`),
+      entrypointWrappedFunctions: moduleOptions.entrypointWrappedFunctions,
+    }),
   );
 }
 
@@ -104,7 +113,11 @@ export function addDynamicImportEntryFileWrapper(nitro: Nitro, serverConfigFile:
  * by using a regular `import` and load the server after that.
  * This also works with serverless `handler` functions, as it re-exports the `handler`.
  */
-function wrapEntryWithDynamicImport(resolvedSentryConfigPath: string): InputPluginOption {
+function wrapEntryWithDynamicImport({
+  resolvedSentryConfigPath,
+  entrypointWrappedFunctions,
+  debug,
+}: { resolvedSentryConfigPath: string; entrypointWrappedFunctions: string[]; debug?: boolean }): InputPluginOption {
   return {
     name: 'sentry-wrap-entry-with-dynamic-import',
     async resolveId(source, importer, options) {
@@ -130,16 +143,15 @@ function wrapEntryWithDynamicImport(resolvedSentryConfigPath: string): InputPlug
 
         moduleInfo.moduleSideEffects = true;
 
-        // The key `.` in `exportedBindings` refer to the exports within the file
-        const exportedFunctions = moduleInfo.exportedBindings?.['.'];
-
         // The enclosing `if` already checks for the suffix in `source`, but a check in `resolution.id` is needed as well to prevent multiple attachment of the suffix
         return resolution.id.includes(`.mjs${SENTRY_WRAPPED_ENTRY}`)
           ? resolution.id
           : resolution.id
               // Concatenates the query params to mark the file (also attaches names of re-exports - this is needed for serverless functions to re-export the handler)
               .concat(SENTRY_WRAPPED_ENTRY)
-              .concat(exportedFunctions?.length ? SENTRY_FUNCTIONS_REEXPORT.concat(exportedFunctions.join(',')) : '')
+              .concat(
+                constructWrappedFunctionExportQuery(moduleInfo.exportedBindings, entrypointWrappedFunctions, debug),
+              )
               .concat(QUERY_END_INDICATOR);
       }
       return null;
@@ -149,9 +161,10 @@ function wrapEntryWithDynamicImport(resolvedSentryConfigPath: string): InputPlug
         const entryId = removeSentryQueryFromPath(id);
 
         // Mostly useful for serverless `handler` functions
-        const reExportedFunctions = id.includes(SENTRY_FUNCTIONS_REEXPORT)
-          ? constructFunctionReExport(id, entryId)
-          : '';
+        const reExportedFunctions =
+          id.includes(SENTRY_WRAPPED_FUNCTIONS) || id.includes(SENTRY_REEXPORTED_FUNCTIONS)
+            ? constructFunctionReExport(id, entryId)
+            : '';
 
         return (
           // Regular `import` of the Sentry config

@@ -31,10 +31,10 @@
     "lint:biome": "biome check .",
     "lint:prettier": "prettier \"**/*.md\" \"**/*.css\" --check",
     "postpublish": "lerna run --stream --concurrency 1 postpublish",
-    "test": "lerna run --ignore \"@sentry-internal/{browser-integration-tests,e2e-tests,integration-shims,node-integration-tests,overhead-metrics}\" test",
-    "test:unit": "lerna run --ignore \"@sentry-internal/{browser-integration-tests,e2e-tests,integration-shims,node-integration-tests,overhead-metrics}\" test:unit",
+    "test": "lerna run --ignore \"@sentry-internal/{browser-integration-tests,e2e-tests,integration-shims,node-integration-tests}\" test",
+    "test:unit": "lerna run --ignore \"@sentry-internal/{browser-integration-tests,e2e-tests,integration-shims,node-integration-tests}\" test:unit",
     "test:update-snapshots": "lerna run test:update-snapshots",
-    "test:pr": "nx affected -t test --exclude \"@sentry-internal/{browser-integration-tests,e2e-tests,integration-shims,node-integration-tests,overhead-metrics}\"",
+    "test:pr": "nx affected -t test --exclude \"@sentry-internal/{browser-integration-tests,e2e-tests,integration-shims,node-integration-tests}\"",
     "test:pr:browser": "UNIT_TEST_ENV=browser ts-node ./scripts/ci-unit-tests.ts --affected",
     "test:pr:node": "UNIT_TEST_ENV=node ts-node ./scripts/ci-unit-tests.ts --affected",
     "test:ci:browser": "UNIT_TEST_ENV=browser ts-node ./scripts/ci-unit-tests.ts",
@@ -88,7 +88,6 @@
     "dev-packages/bundle-analyzer-scenarios",
     "dev-packages/e2e-tests",
     "dev-packages/node-integration-tests",
-    "dev-packages/overhead-metrics",
     "dev-packages/test-utils",
     "dev-packages/size-limit-gh-action",
     "dev-packages/clear-cache-gh-action",
@@ -106,9 +105,8 @@
     "@rollup/plugin-terser": "^0.4.4",
     "@rollup/plugin-typescript": "^11.1.6",
     "@rollup/pluginutils": "^5.1.0",
-    "@size-limit/file": "~11.1.0",
-    "@size-limit/webpack": "~11.1.0",
-    "@strictsoftware/typedoc-plugin-monorepo": "^0.3.1",
+    "@size-limit/file": "~11.1.6",
+    "@size-limit/webpack": "~11.1.6",
     "@types/jest": "^27.4.1",
     "@types/jsdom": "^21.1.6",
     "@types/node": "^14.18.0",
@@ -125,14 +123,13 @@
     "npm-run-all2": "^6.2.0",
     "prettier": "^3.1.1",
     "rimraf": "^3.0.2",
-    "rollup": "^4.13.0",
+    "rollup": "^4.24.2",
     "rollup-plugin-cleanup": "^3.2.1",
     "rollup-plugin-license": "^3.3.1",
-    "size-limit": "~11.1.0",
+    "size-limit": "~11.1.6",
     "sucrase": "^3.35.0",
     "ts-jest": "^27.1.4",
     "ts-node": "10.9.1",
-    "typedoc": "^0.18.0",
     "typescript": "4.9.5",
     "vitest": "^1.6.0",
     "yalc": "^1.0.0-pre.53"
@@ -154,6 +151,12 @@
     "printWidth": 120,
     "proseWrap": "always",
     "singleQuote": true,
-    "trailingComma": "all"
+    "trailingComma": "all",
+    "overrides": [{
+      "files": "CHANGELOG.md",
+      "options": {
+        "proseWrap": "preserve"
+      }
+    }]
   }
 }

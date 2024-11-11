@@ -37,7 +37,7 @@ export function setupSentryTest(hooks: NestedHooks): void {
       return true;
     };
 
-    setupOnerror(function (error) {
+    setupOnerror(function (error: Error) {
       errorMessages.push(error.message);
       throw error;
     });

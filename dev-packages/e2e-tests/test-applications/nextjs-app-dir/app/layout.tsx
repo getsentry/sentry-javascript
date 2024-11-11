@@ -9,31 +9,49 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           <h1>Layout (/)</h1>
           <ul>
             <li>
-              <Link href="/">/</Link>
+              <Link href="/" prefetch={false}>
+                /
+              </Link>
             </li>
             <li>
-              <Link href="/client-component">/client-component</Link>
+              <Link href="/client-component" prefetch={false}>
+                /client-component
+              </Link>
             </li>
             <li>
-              <Link href="/client-component/parameter/42">/client-component/parameter/42</Link>
+              <Link href="/client-component/parameter/42" prefetch={false}>
+                /client-component/parameter/42
+              </Link>
             </li>
             <li>
-              <Link href="/client-component/parameter/foo/bar/baz">/client-component/parameter/foo/bar/baz</Link>
+              <Link href="/client-component/parameter/foo/bar/baz" prefetch={false}>
+                /client-component/parameter/foo/bar/baz
+              </Link>
             </li>
             <li>
-              <Link href="/server-component">/server-component</Link>
+              <Link href="/server-component" prefetch={false}>
+                /server-component
+              </Link>
             </li>
             <li>
-              <Link href="/server-component/parameter/42">/server-component/parameter/42</Link>
+              <Link href="/server-component/parameter/42" prefetch={false}>
+                /server-component/parameter/42
+              </Link>
             </li>
             <li>
-              <Link href="/server-component/parameter/foo/bar/baz">/server-component/parameter/foo/bar/baz</Link>
+              <Link href="/server-component/parameter/foo/bar/baz" prefetch={false}>
+                /server-component/parameter/foo/bar/baz
+              </Link>
             </li>
             <li>
-              <Link href="/not-found">/not-found</Link>
+              <Link href="/not-found" prefetch={false}>
+                /not-found
+              </Link>
             </li>
             <li>
-              <Link href="/redirect">/redirect</Link>
+              <Link href="/redirect" prefetch={false}>
+                /redirect
+              </Link>
             </li>
           </ul>
           <SpanContextProvider>{children}</SpanContextProvider>

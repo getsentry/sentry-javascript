@@ -1,12 +1,12 @@
 (() => {
   const startTime = Date.now();
 
-  function getElasped() {
+  function getElapsed() {
     const time = Date.now();
     return time - startTime;
   }
 
-  while (getElasped() < 101) {
+  while (getElapsed() < 101) {
     //
   }
 })();

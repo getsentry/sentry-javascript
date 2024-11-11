@@ -27,8 +27,17 @@ const _mongooseIntegration = (() => {
 }) satisfies IntegrationFn;
 
 /**
- * Mongoose integration
+ * Adds Sentry tracing instrumentation for the [mongoose](https://www.npmjs.com/package/mongoose) library.
  *
- * Capture tracing data for Mongoose.
+ * For more information, see the [`mongooseIntegration` documentation](https://docs.sentry.io/platforms/javascript/guides/node/configuration/integrations/mongoose/).
+ *
+ * @example
+ * ```javascript
+ * const Sentry = require('@sentry/node');
+ *
+ * Sentry.init({
+ *  integrations: [Sentry.mongooseIntegration()],
+ * });
+ * ```
  */
 export const mongooseIntegration = defineIntegration(_mongooseIntegration);

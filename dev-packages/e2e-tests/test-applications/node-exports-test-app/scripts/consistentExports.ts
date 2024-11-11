@@ -52,6 +52,8 @@ const DEPENDENTS: Dependent[] = [
       'NodeClient',
       // Doesn't have these events
       'fetchBreadcrumbsIntegration',
+      // Bun doesn't emit the required diagnostics_channel events
+      'processThreadBreadcrumbIntegration',
     ],
   },
   {

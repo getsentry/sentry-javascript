@@ -32,5 +32,6 @@ export declare const continueTrace: typeof clientSdk.continueTrace;
 
 export declare const Span: clientSdk.Span;
 
+// eslint-disable-next-line deprecation/deprecation
 export declare const metrics: typeof clientSdk.metrics & typeof serverSdk;
 export default sentryAstro;
