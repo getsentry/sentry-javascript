@@ -12,7 +12,7 @@ export function createUserFeedbackEnvelope(
     dsn,
   }: {
     metadata: SdkMetadata | undefined;
-    tunnel: string | undefined;
+    tunnel?: string | undefined;
     dsn: DsnComponents | undefined;
   },
 ): EventEnvelope {

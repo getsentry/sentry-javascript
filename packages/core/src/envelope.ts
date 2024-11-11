@@ -111,13 +111,9 @@ export function createSpanEnvelope(spans: [SentrySpan, ...SentrySpan[]], client?
   // different segments in one envelope
   const dsc = getDynamicSamplingContextFromSpan(spans[0]);
 
-  const dsn = client && client.getDsn();
-  const tunnel = client && client.getOptions().tunnel;
-
   const headers: SpanEnvelope[0] = {
     sent_at: new Date().toISOString(),
     ...(dscHasRequiredProps(dsc) && { trace: dsc }),
-    ...(!!tunnel && dsn && { dsn: dsnToString(dsn) }),
   };
 
   const beforeSendSpan = client && client.getOptions().beforeSendSpan;

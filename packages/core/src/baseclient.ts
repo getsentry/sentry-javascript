@@ -141,11 +141,10 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
     if (this._dsn) {
       const url = getEnvelopeEndpointWithUrlEncodedAuth(
         this._dsn,
-        options.tunnel,
+        undefined,
         options._metadata ? options._metadata.sdk : undefined,
       );
       this._transport = options.transport({
-        tunnel: this._options.tunnel,
         recordDroppedEvent: this.recordDroppedEvent.bind(this),
         ...options.transportOptions,
         url,
@@ -353,7 +352,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   public sendEvent(event: Event, hint: EventHint = {}): void {
     this.emit('beforeSendEvent', event, hint);
 
-    let env = createEventEnvelope(event, this._dsn, this._options._metadata, this._options.tunnel);
+    let env = createEventEnvelope(event, this._dsn, this._options._metadata);
 
     for (const attachment of hint.attachments || []) {
       env = addItemToEnvelope(env, createAttachmentEnvelopeItem(attachment));
@@ -369,7 +368,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    * @inheritDoc
    */
   public sendSession(session: Session | SessionAggregates): void {
-    const env = createSessionEnvelope(session, this._dsn, this._options._metadata, this._options.tunnel);
+    const env = createSessionEnvelope(session, this._dsn, this._options._metadata);
 
     // sendEnvelope should not throw
     // eslint-disable-next-line @typescript-eslint/no-floating-promises
@@ -915,7 +914,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
 
     DEBUG_BUILD && logger.log('Sending outcomes:', outcomes);
 
-    const envelope = createClientReportEnvelope(outcomes, this._options.tunnel && dsnToString(this._dsn));
+    const envelope = createClientReportEnvelope(outcomes);
 
     // sendEnvelope should not throw
     // eslint-disable-next-line @typescript-eslint/no-floating-promises

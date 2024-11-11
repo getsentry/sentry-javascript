@@ -9,9 +9,8 @@ export function captureAggregateMetrics(client: Client, metricBucketItems: Array
   logger.log(`Flushing aggregated metrics, number of metrics: ${metricBucketItems.length}`);
   const dsn = client.getDsn();
   const metadata = client.getSdkMetadata();
-  const tunnel = client.getOptions().tunnel;
 
-  const metricsEnvelope = createMetricEnvelope(metricBucketItems, dsn, metadata, tunnel);
+  const metricsEnvelope = createMetricEnvelope(metricBucketItems, dsn, metadata);
 
   // sendEnvelope should not throw
   // eslint-disable-next-line @typescript-eslint/no-floating-promises

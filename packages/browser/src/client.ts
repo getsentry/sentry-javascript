@@ -122,7 +122,6 @@ export class BrowserClient extends BaseClient<BrowserClientOptions> {
     const envelope = createUserFeedbackEnvelope(feedback, {
       metadata: this.getSdkMetadata(),
       dsn: this.getDsn(),
-      tunnel: this.getOptions().tunnel,
     });
 
     // sendEnvelope should not throw

@@ -106,7 +106,7 @@ export function makeMultiplexedTransport<TO extends BaseTransportOptions>(
         if (!validatedDsn) {
           return undefined;
         }
-        const url = getEnvelopeEndpointWithUrlEncodedAuth(validatedDsn, options.tunnel);
+        const url = getEnvelopeEndpointWithUrlEncodedAuth(validatedDsn);
 
         transport = release
           ? makeOverrideReleaseTransport(createTransport, release)({ ...options, url })
