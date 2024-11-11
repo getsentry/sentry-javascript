@@ -33,10 +33,19 @@ targets.forEach(jsVersion => {
     outputFileBase: () => `bundles/browserprofiling${jsVersion === 'es5' ? '.es5' : ''}`,
   });
 
+  const moduleMetadataAddonBaseBundleConfig = makeBaseBundleConfig({
+    bundleType: 'addon',
+    entrypoints: ['src/integrations/modulemetadata.ts'],
+    jsVersion,
+    licenseTitle: '@sentry/browser',
+    outputFileBase: () => `bundles/modulemetadata${jsVersion === 'es5' ? '.es5' : ''}`,
+  });
+
   builds.push(
     ...makeBundleConfigVariants(baseBundleConfig),
     ...makeBundleConfigVariants(tracingBaseBundleConfig),
     ...makeBundleConfigVariants(browserProfilingAddonBaseBundleConfig),
+    ...makeBundleConfigVariants(moduleMetadataAddonBaseBundleConfig),
   );
 });
 
