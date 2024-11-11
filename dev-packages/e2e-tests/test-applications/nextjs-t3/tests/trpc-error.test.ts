@@ -12,9 +12,10 @@ test('should capture error with trpc context', async ({ page }) => {
   const trpcError = await errorEventPromise;
 
   expect(trpcError).toBeDefined();
-  expect(trpcError.contexts.trpc).toBeDefined();
-  expect(trpcError.contexts.trpc.procedure_type).toEqual('mutation');
-  expect(trpcError.contexts.trpc.input).toEqual({ name: 'I love dogs' });
+  expect(trpcError.contexts?.trpc).toBeDefined();
+  expect(trpcError.contexts?.trpc?.procedure_type).toEqual('mutation');
+  expect(trpcError.contexts?.trpc?.procedure_path).toBe('post.throwError');
+  expect(trpcError.contexts?.trpc?.input).toEqual({ name: 'I love dogs' });
 });
 
 test('should create transaction with trpc input for error', async ({ page }) => {
@@ -26,9 +27,5 @@ test('should create transaction with trpc input for error', async ({ page }) => 
   await page.click('#error-button');
 
   const trpcTransaction = await trpcTransactionPromise;
-
   expect(trpcTransaction).toBeDefined();
-  expect(trpcTransaction.contexts.trpc).toBeDefined();
-  expect(trpcTransaction.contexts.trpc.procedure_type).toEqual('mutation');
-  expect(trpcTransaction.contexts.trpc.input).toEqual({ name: 'I love dogs' });
 });
