@@ -32,6 +32,8 @@ const MEDIA_SELECTORS =
 
 const DEFAULT_NETWORK_HEADERS = ['content-length', 'content-type', 'accept'];
 
+const DEFAULT_SLOW_CLICK_IGNORE_SELECTORS = ['input[type="file"]'];
+
 let _initialized = false;
 
 /**
@@ -102,7 +104,7 @@ export class Replay implements Integration {
     mutationLimit = 10_000,
 
     slowClickTimeout = 7_000,
-    slowClickIgnoreSelectors = [],
+    slowClickIgnoreSelectors = DEFAULT_SLOW_CLICK_IGNORE_SELECTORS,
 
     networkDetailAllowUrls = [],
     networkDetailDenyUrls = [],
