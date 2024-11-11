@@ -38,12 +38,30 @@ const _prismaIntegration = (() => {
 }) satisfies IntegrationFn;
 
 /**
- * Prisma integration
+ * Adds Sentry tracing instrumentation for the [prisma](https://www.npmjs.com/package/prisma) library.
  *
- * Capture tracing data for prisma.
- * Note: This requires to set:
- * previewFeatures = ["tracing"]
- * For the prisma client.
- * See https://www.prisma.io/docs/concepts/components/prisma-client/opentelemetry-tracing for more details.
+ * For more information, see the [`prismaIntegration` documentation](https://docs.sentry.io/platforms/javascript/guides/node/configuration/integrations/prisma/).
+ *
+ * @example
+ *
+ * Make sure `previewFeatures = ["tracing"]` is set in the prisma client generator block. See the
+ * [prisma docs](https://www.prisma.io/docs/concepts/components/prisma-client/opentelemetry-tracing) for more details.
+ *
+ * ```prisma
+ * generator client {
+ *  provider = "prisma-client-js"
+ *  previewFeatures = ["tracing"]
+ * }
+ * ```
+ *
+ * Then you can use the integration like this:
+ *
+ * ```javascript
+ * const Sentry = require('@sentry/node');
+ *
+ * Sentry.init({
+ *  integrations: [Sentry.prismaIntegration()],
+ * });
+ * ```
  */
 export const prismaIntegration = defineIntegration(_prismaIntegration);

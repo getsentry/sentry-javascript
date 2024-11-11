@@ -1,7 +1,7 @@
 import { normalize } from '@sentry/utils';
 
-import { getClient } from './currentScopes';
-import { captureException, setContext } from './exports';
+import { getClient, withScope } from './currentScopes';
+import { captureException } from './exports';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from './semanticAttributes';
 import { startSpanManual } from './tracing';
 
@@ -48,6 +48,7 @@ export function trpcMiddleware(options: SentryTrpcMiddlewareOptions = {}) {
     const clientOptions = client && client.getOptions();
 
     const trpcContext: Record<string, unknown> = {
+      procedure_path: path,
       procedure_type: type,
     };
 
@@ -66,29 +67,31 @@ export function trpcMiddleware(options: SentryTrpcMiddlewareOptions = {}) {
         }
       }
     }
-    setContext('trpc', trpcContext);
 
-    return startSpanManual(
-      {
-        name: `trpc/${path}`,
-        op: 'rpc.server',
-        attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.rpc.trpc',
+    return withScope(scope => {
+      scope.setContext('trpc', trpcContext);
+      return startSpanManual(
+        {
+          name: `trpc/${path}`,
+          op: 'rpc.server',
+          attributes: {
+            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.rpc.trpc',
+          },
         },
-      },
-      async span => {
-        try {
-          const nextResult = await next();
-          captureIfError(nextResult);
-          span.end();
-          return nextResult;
-        } catch (e) {
-          captureException(e, trpcCaptureContext);
-          span.end();
-          throw e;
-        }
-      },
-    ) as SentryTrpcMiddleware<T>;
+        async span => {
+          try {
+            const nextResult = await next();
+            captureIfError(nextResult);
+            span.end();
+            return nextResult;
+          } catch (e) {
+            captureException(e, trpcCaptureContext);
+            span.end();
+            throw e;
+          }
+        },
+      ) as SentryTrpcMiddleware<T>;
+    });
   };
 }
