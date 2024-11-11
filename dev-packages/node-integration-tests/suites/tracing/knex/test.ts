@@ -4,13 +4,17 @@ import { createRunner } from '../../../utils/runner';
 jest.setTimeout(90000);
 
 describe('knex auto instrumentation', () => {
+  // Update this if another knex version is installed
+  const KNEX_VERSION = '2.5.1';
+
   test('should auto-instrument `knex` package when using `pg` client', done => {
     const EXPECTED_TRANSACTION = {
       transaction: 'Test Transaction',
       spans: expect.arrayContaining([
         expect.objectContaining({
           data: expect.objectContaining({
-            'db.system': 'knex',
+            'knex.version': KNEX_VERSION,
+            'db.system': 'postgresql',
             'db.name': 'tests',
             'sentry.origin': 'auto.db.otel.knex',
             'sentry.op': 'db',
@@ -24,7 +28,8 @@ describe('knex auto instrumentation', () => {
         }),
         expect.objectContaining({
           data: expect.objectContaining({
-            'db.system': 'knex',
+            'knex.version': KNEX_VERSION,
+            'db.system': 'postgresql',
             'db.name': 'tests',
             'sentry.origin': 'auto.db.otel.knex',
             'sentry.op': 'db',
@@ -39,9 +44,10 @@ describe('knex auto instrumentation', () => {
 
         expect.objectContaining({
           data: expect.objectContaining({
+            'knex.version': KNEX_VERSION,
             'db.operation': 'select',
             'db.sql.table': 'User',
-            'db.system': 'knex',
+            'db.system': 'postgresql',
             'db.name': 'tests',
             'db.statement': 'select * from "User"',
             'sentry.origin': 'auto.db.otel.knex',
@@ -66,7 +72,8 @@ describe('knex auto instrumentation', () => {
       spans: expect.arrayContaining([
         expect.objectContaining({
           data: expect.objectContaining({
-            'db.system': 'knex',
+            'knex.version': KNEX_VERSION,
+            'db.system': 'mysql2',
             'db.name': 'tests',
             'db.user': 'root',
             'sentry.origin': 'auto.db.otel.knex',
@@ -81,7 +88,8 @@ describe('knex auto instrumentation', () => {
         }),
         expect.objectContaining({
           data: expect.objectContaining({
-            'db.system': 'knex',
+            'knex.version': KNEX_VERSION,
+            'db.system': 'mysql2',
             'db.name': 'tests',
             'db.user': 'root',
             'sentry.origin': 'auto.db.otel.knex',
@@ -96,9 +104,10 @@ describe('knex auto instrumentation', () => {
 
         expect.objectContaining({
           data: expect.objectContaining({
+            'knex.version': KNEX_VERSION,
             'db.operation': 'select',
             'db.sql.table': 'User',
-            'db.system': 'knex',
+            'db.system': 'mysql2',
             'db.name': 'tests',
             'db.statement': 'select * from `User`',
             'db.user': 'root',
