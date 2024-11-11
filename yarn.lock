@@ -7480,13 +7480,13 @@
     "@opentelemetry/context-base" "^0.12.0"
     semver "^7.1.3"
 
-"@opentelemetry/instrumentation-amqplib@^0.42.0":
-  version "0.42.0"
-  resolved "https://registry.yarnpkg.com/@opentelemetry/instrumentation-amqplib/-/instrumentation-amqplib-0.42.0.tgz#b3cab5a7207736a30d769962eed3af3838f986c4"
-  integrity sha512-fiuU6OKsqHJiydHWgTRQ7MnIrJ2lEqsdgFtNIH4LbAUJl/5XmrIeoDzDnox+hfkgWK65jsleFuQDtYb5hW1koQ==
+"@opentelemetry/instrumentation-amqplib@^0.43.0":
+  version "0.43.0"
+  resolved "https://registry.yarnpkg.com/@opentelemetry/instrumentation-amqplib/-/instrumentation-amqplib-0.43.0.tgz#e18b7d763b69c605a7abf9869e1c278f9bfdc1eb"
+  integrity sha512-ALjfQC+0dnIEcvNYsbZl/VLh7D2P1HhFF4vicRKHhHFIUV3Shpg4kXgiek5PLhmeKSIPiUB25IYH5RIneclL4A==
   dependencies:
     "@opentelemetry/core" "^1.8.0"
-    "@opentelemetry/instrumentation" "^0.53.0"
+    "@opentelemetry/instrumentation" "^0.54.0"
     "@opentelemetry/semantic-conventions" "^1.27.0"
 
 "@opentelemetry/instrumentation-aws-lambda@0.44.0":
