@@ -45,7 +45,7 @@ targets.forEach(jsVersion => {
     ...makeBundleConfigVariants(baseBundleConfig),
     ...makeBundleConfigVariants(tracingBaseBundleConfig),
     ...makeBundleConfigVariants(browserProfilingAddonBaseBundleConfig),
-    ...makeBundleConfigVariants(moduleMetadataAddonBaseBundleConfig)
+    ...makeBundleConfigVariants(moduleMetadataAddonBaseBundleConfig),
   );
 });
 
