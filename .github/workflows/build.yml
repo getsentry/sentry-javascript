@@ -1254,19 +1254,27 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ env.HEAD_COMMIT }}
+
       - uses: pnpm/action-setup@v4
         with:
           version: 9.4.0
+
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
           node-version: 22
+
       - name: Restore caches
         uses: ./.github/actions/restore-cache
         with:
           dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
+
+      - name: Install dependencies
+        run: yarn install --ignore-engines --frozen-lockfile
+
       - name: Build Profiling Node
         run: yarn lerna run build:lib --scope @sentry/profiling-node
+
       - name: Extract Profiling Node Prebuilt Binaries
         uses: actions/download-artifact@v4
         with:
