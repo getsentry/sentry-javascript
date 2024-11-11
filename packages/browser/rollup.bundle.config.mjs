@@ -12,6 +12,7 @@ const reexportedPluggableIntegrationFiles = [
   'rewriteframes',
   'sessiontiming',
   'feedback',
+  'modulemetadata',
 ];
 
 browserPluggableIntegrationFiles.forEach(integrationName => {

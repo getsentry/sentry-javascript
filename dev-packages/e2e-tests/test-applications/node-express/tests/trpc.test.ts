@@ -33,11 +33,6 @@ test('Should record span for trpc query', async ({ baseURL }) => {
       description: `trpc/getSomething`,
     }),
   );
-
-  expect(transaction.contexts?.trpc).toMatchObject({
-    procedure_type: 'query',
-    input: 'foobar',
-  });
 });
 
 test('Should record transaction for trpc mutation', async ({ baseURL }) => {
@@ -70,10 +65,6 @@ test('Should record transaction for trpc mutation', async ({ baseURL }) => {
       description: `trpc/createSomething`,
     }),
   );
-
-  expect(transaction.contexts?.trpc).toMatchObject({
-    procedure_type: 'mutation',
-  });
 });
 
 test('Should record transaction and error for a crashing trpc handler', async ({ baseURL }) => {
@@ -100,6 +91,9 @@ test('Should record transaction and error for a crashing trpc handler', async ({
 
   await expect(transactionEventPromise).resolves.toBeDefined();
   await expect(errorEventPromise).resolves.toBeDefined();
+
+  expect((await errorEventPromise).contexts?.trpc?.['procedure_type']).toBe('mutation');
+  expect((await errorEventPromise).contexts?.trpc?.['procedure_path']).toBe('crashSomething');
 });
 
 test('Should record transaction and error for a trpc handler that returns a status code', async ({ baseURL }) => {
