@@ -1,8 +1,8 @@
-import * as Sentry from '@sentry/browser';
-import type { Client as SentryClient, Event, EventHint, IntegrationFn } from '@sentry/types';
+import type { Client, Event, EventHint, IntegrationFn } from '@sentry/types';
 import type { LDContext, LDEvaluationDetail, LDInspectionFlagUsedHandler } from 'launchdarkly-js-client-sdk';
-import type { LaunchDarklyOptions } from '../types';
+
 import { insertToFlagBuffer } from '@sentry/utils';
+import { defineIntegration, getCurrentScope } from '@sentry/core';
 
 /**
  * Sentry integration for capturing feature flags from LaunchDarkly.
@@ -11,19 +11,20 @@ import { insertToFlagBuffer } from '@sentry/utils';
  *
  * @example
  * ```
- * import {buildSentryFlagUsedInspector, buildLaunchDarklyIntegration} from '@sentry/launchdarkly';
- * import {LDClient} from 'launchdarkly-js-client-sdk';
+ * import * as Sentry from '@sentry/browser';
+ * import {launchDarklyIntegration, buildLaunchDarklyFlagUsedInspector} from '@sentry/browser';
+ * import * as LaunchDarkly from 'launchdarkly-js-client-sdk';
  *
- * Sentry.init(..., integrations: [buildLaunchDarklyIntegration()])
- * const ldClient = LDClient.initialize(..., {inspectors: [buildSentryFlagUsedInspector()]});
+ * Sentry.init(..., integrations: [launchDarklyIntegration()])
+ * const ldClient = LaunchDarkly.initialize(..., {inspectors: [buildLaunchDarklyFlagUsedInspector()]});
  * ```
  */
-export const buildLaunchDarklyIntegration = ((_options?: LaunchDarklyOptions) => {
+export const launchDarklyIntegration = defineIntegration(() => {
   return {
-    name: 'launchdarkly',
+    name: 'LaunchDarkly',
 
-    processEvent(event: Event, _hint: EventHint, _client: SentryClient): Event {
-      const scope = Sentry.getCurrentScope();
+    processEvent(event: Event, _hint: EventHint, _client: Client): Event {
+      const scope = getCurrentScope();
       const flagContext = scope.getScopeData().contexts.flags;
 
       if (event.contexts === undefined) {
@@ -36,13 +37,13 @@ export const buildLaunchDarklyIntegration = ((_options?: LaunchDarklyOptions) =>
 }) satisfies IntegrationFn;
 
 /**
- * LaunchDarkly hook that listens for flag evaluations and updates the
- * flagBuffer in our current scope.
+ * Constructs a LaunchDarkly hook that listens for flag evaluations and updates
+ * the flagBuffer in our current scope.
  *
- * This needs to be registered separately in the LDClient, after initializing
- * Sentry.
+ * This needs to be registered separately in the LD SDK initialize() options,
+ * after initializing Sentry.
  */
-export function buildSentryFlagUsedInspector(): LDInspectionFlagUsedHandler {
+export function buildLaunchDarklyFlagUsedInspector(): LDInspectionFlagUsedHandler {
   return {
     name: 'sentry-flag-auditor',
     type: 'flag-used',
@@ -55,14 +56,15 @@ export function buildSentryFlagUsedInspector(): LDInspectionFlagUsedHandler {
      */
     method: (flagKey: string, flagDetail: LDEvaluationDetail, _context: LDContext) => {
       if (typeof flagDetail.value === 'boolean') {
-        const scopeContexts = Sentry.getCurrentScope().getScopeData().contexts;
+        const scopeContexts = getCurrentScope().getScopeData().contexts;
         if (!scopeContexts.flags) {
-          scopeContexts.flags = {values: []}
+          scopeContexts.flags = { values: [] };
         }
         const flagBuffer = scopeContexts.flags.values;
         insertToFlagBuffer(flagBuffer, flagKey, flagDetail.value);
+        console.log('inserted')
       }
       return;
-    }
-  }
+    },
+  };
 }
