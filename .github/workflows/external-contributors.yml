@@ -41,8 +41,8 @@ jobs:
           # This token is scoped to Daniel Griesser
           # If we used the default GITHUB_TOKEN, the resulting PR would not trigger CI :(
           token: ${{ secrets.REPO_SCOPED_TOKEN }}
-          commit-message: "ref: Add external contributor to CHANGELOG.md"
-          title: "ref: Add external contributor to CHANGELOG.md"
+          commit-message: "chore: Add external contributor to CHANGELOG.md"
+          title: "chore: Add external contributor to CHANGELOG.md"
           branch: 'external-contributor/patch-${{ github.event.pull_request.user.login }}'
           base: 'develop'
           delete-branch: true
