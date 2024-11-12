@@ -41,4 +41,3 @@ export * from './propagationContext';
 export * from './vercelWaitUntil';
 export * from './version';
 export * from './debug-ids';
-export * from './flags';

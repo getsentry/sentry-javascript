@@ -1,7 +1,7 @@
 import type { Client, Event, EventHint, IntegrationFn } from '@sentry/types';
 import type { LDContext, LDEvaluationDetail, LDInspectionFlagUsedHandler } from 'launchdarkly-js-client-sdk';
 
-import { insertToFlagBuffer } from '@sentry/utils';
+import { insertToFlagBuffer } from '../utils/flags'
 import { defineIntegration, getCurrentScope } from '@sentry/core';
 
 /**

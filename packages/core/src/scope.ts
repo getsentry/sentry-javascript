@@ -129,7 +129,8 @@ class ScopeClass implements ScopeInterface {
     newScope._extra = { ...this._extra };
     newScope._contexts = { ...this._contexts };
     if (this._contexts.flags) {
-      // The flags context needs a deep copy.
+      // We need to copy the `values` array so insertions on a cloned scope
+      // won't affect the original array.
       newScope._contexts.flags = {
         values: [...this._contexts.flags.values]
       }

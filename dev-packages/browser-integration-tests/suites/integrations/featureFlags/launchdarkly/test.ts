@@ -3,6 +3,8 @@ import { expect } from '@playwright/test';
 import { sentryTest } from '../../../../utils/fixtures';
 
 import { envelopeRequestParser, waitForErrorRequest } from '../../../../utils/helpers';
+// import { FLAG_BUFFER_SIZE } from '@sentry/browser'; // TODO: not picking up export atm
+const FLAG_BUFFER_SIZE = 100;
 
 sentryTest('e2e test', async ({ getLocalTestPath, page }) => {
   await page.route('https://dsn.ingest.sentry.io/**/*', route => {
@@ -18,10 +20,10 @@ sentryTest('e2e test', async ({ getLocalTestPath, page }) => {
 
   await page.waitForFunction(() => {
     const ldClient = (window as any).InitializeLD();
-    for (let i = 1; i <= 100; i++) { // TODO: import constant for buffer size
+    for (let i = 1; i <= FLAG_BUFFER_SIZE; i++) { // TODO: import constant for buffer size
       ldClient.variation(`feat${i}`, false);
     }
-    ldClient.variation('feat101', true); // eviction
+    ldClient.variation(`feat${FLAG_BUFFER_SIZE+1}`, true); // eviction
     ldClient.variation('feat3', true);   // update
     return true;
   });
@@ -32,10 +34,10 @@ sentryTest('e2e test', async ({ getLocalTestPath, page }) => {
   const event = envelopeRequestParser(req);
 
   const expectedFlags = [{ flag: 'feat2', result: false }];
-  for (let i = 4; i <= 100; i++) {
+  for (let i = 4; i <= FLAG_BUFFER_SIZE; i++) {
     expectedFlags.push({ flag: `feat${i}`, result: false });
   }
-  expectedFlags.push({ flag: 'feat101', result: true });
+  expectedFlags.push({ flag: `feat${FLAG_BUFFER_SIZE + 1}`, result: true });
   expectedFlags.push({ flag: 'feat3', result: true });
 
   expect(event.contexts?.flags?.values).toEqual(expectedFlags);

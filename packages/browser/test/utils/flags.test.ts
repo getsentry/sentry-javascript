@@ -1,5 +1,5 @@
 
-import { insertToFlagBuffer } from '../src';
+import { insertToFlagBuffer } from '../../src/utils/flags';
 import type { FeatureFlag } from '@sentry/types';
 
 describe('flags', () => {

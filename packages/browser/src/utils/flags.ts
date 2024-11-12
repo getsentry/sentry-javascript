@@ -6,7 +6,10 @@ import type { FeatureFlag } from '@sentry/types';
  * from oldest to newest.
  */
 
-export const DEFAULT_MAX_SIZE = 100;
+/**
+ * Max size of the LRU flag buffer stored in Sentry scope and event contexts.
+ */
+export const FLAG_BUFFER_SIZE = 100;
 
 /**
  * Insert into a FeatureFlag array while maintaining ordered LRU properties. Not
@@ -26,7 +29,7 @@ export function insertToFlagBuffer(
   flags: FeatureFlag[],
   name: string,
   value: boolean,
-  maxSize: number = DEFAULT_MAX_SIZE,
+  maxSize: number = FLAG_BUFFER_SIZE,
 ): void {
   if (flags.length > maxSize) {
     throw Error(`insertToFlagBuffer called on a buffer larger than the given maxSize=${maxSize}`);
