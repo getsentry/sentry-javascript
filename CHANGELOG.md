@@ -10,6 +10,100 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+Work in this release was contributed by @Zen-cronic. Thank you for your contribution!
+
+Work in this release was contributed by @grahamhency, @Zen-cronic, @gilisho and @phuctm97. Thank you for your contributions!
+
+## 8.37.1
+
+- feat(deps): Bump @opentelemetry/instrumentation from 0.53.0 to 0.54.0 for @sentry/opentelemetry ([#14187](https://github.com/getsentry/sentry-javascript/pull/14187))
+
+## 8.37.0
+
+### Important Changes
+
+- **feat(nuxt): Add `piniaIntegration` ([#14138](https://github.com/getsentry/sentry-javascript/pull/14138))**
+
+The Nuxt SDK now allows you to track Pinia state for captured errors. To enable the Pinia plugin, add the `piniaIntegration` to your client config:
+
+```ts
+// sentry.client.config.ts
+import { usePinia } from '#imports';
+
+Sentry.init({
+  integrations: [
+    Sentry.piniaIntegration(usePinia(), {
+      /* optional Pinia plugin options */
+    }),
+  ],
+});
+```
+
+- **feat: Deprecate metrics API ([#14157](https://github.com/getsentry/sentry-javascript/pull/14157))**
+
+The Sentry Metrics beta has ended in favour of revisiting metrics in another form at a later date.
+
+This new approach will include different APIs, making the current metrics API unnecessary. This release
+deprecates the metrics API with the plan to remove in the next SDK major version. If you currently use the
+metrics API in your code, you can safely continue to do so but sent data will no longer be processed by Sentry.
+
+[Learn more](https://sentry.zendesk.com/hc/en-us/articles/26369339769883-Metrics-Beta-Ended-on-October-7th) about the end of the Metrics beta.
+
+### Other Changes
+
+- feat(browser): Add `http.response_delivery_type` attribute to resource spans ([#14056](https://github.com/getsentry/sentry-javascript/pull/14056))
+- feat(browser): Add `skipBrowserExtensionCheck` escape hatch option ([#14147](https://github.com/getsentry/sentry-javascript/pull/14147))
+- feat(deps): Bump @opentelemetry/instrumentation from 0.53.0 to 0.54.0 ([#14174](https://github.com/getsentry/sentry-javascript/pull/14174))
+- feat(deps): Bump @opentelemetry/instrumentation-fastify from 0.40.0 to 0.41.0 ([#14175](https://github.com/getsentry/sentry-javascript/pull/14175))
+- feat(deps): Bump @opentelemetry/instrumentation-graphql from 0.43.0 to 0.44.0 ([#14173](https://github.com/getsentry/sentry-javascript/pull/14173))
+- feat(deps): Bump @opentelemetry/instrumentation-mongodb from 0.47.0 to 0.48.0 ([#14171](https://github.com/getsentry/sentry-javascript/pull/14171))
+- feat(deps): Bump @opentelemetry/propagator-aws-xray from 1.25.1 to 1.26.0 ([#14172](https://github.com/getsentry/sentry-javascript/pull/14172))
+- feat(nuxt): Add `asyncFunctionReExports` to define re-exported server functions ([#14104](https://github.com/getsentry/sentry-javascript/pull/14104))
+- feat(nuxt): Add `piniaIntegration` ([#14138](https://github.com/getsentry/sentry-javascript/pull/14138))
+- fix(browser): Avoid recording long task spans starting before their parent span ([#14183](https://github.com/getsentry/sentry-javascript/pull/14183))
+- fix(core): Ensure errors thrown in async cron jobs bubble up ([#14182](https://github.com/getsentry/sentry-javascript/pull/14182))
+- fix(core): Silently fail `maybeInstrument` ([#14140](https://github.com/getsentry/sentry-javascript/pull/14140))
+- fix(nextjs): Resolve path for dynamic webpack import ([#13751](https://github.com/getsentry/sentry-javascript/pull/13751))
+- fix(node): Make sure `modulesIntegration` does not crash esm apps ([#14169](https://github.com/getsentry/sentry-javascript/pull/14169))
+
+Work in this release was contributed by @rexxars. Thank you for your contribution!
+
+## 8.36.0
+
+### Important Changes
+
+- **feat(nextjs/vercel-edge/cloudflare): Switch to OTEL for performance monitoring ([#13889](https://github.com/getsentry/sentry-javascript/pull/13889))**
+
+With this release, the Sentry Next.js, and Cloudflare SDKs will now capture performance data based on OpenTelemetry.
+Some exceptions apply in cases where Next.js captures inaccurate data itself.
+
+NOTE: You may experience minor differences in transaction names in Sentry.
+Most importantly transactions for serverside pages router invocations will now be named `GET /[param]/my/route` instead of `/[param]/my/route`.
+This means that those transactions are now better aligned with the OpenTelemetry semantic conventions.
+
+### Other Changes
+
+- deps: Bump bundler plugins and CLI to 2.22.6 and 2.37.0 respectively ([#14050](https://github.com/getsentry/sentry-javascript/pull/14050))
+- feat(deps): bump @opentelemetry/instrumentation-aws-sdk from 0.44.0 to 0.45.0 ([#14099](https://github.com/getsentry/sentry-javascript/pull/14099))
+- feat(deps): bump @opentelemetry/instrumentation-connect from 0.39.0 to 0.40.0 ([#14101](https://github.com/getsentry/sentry-javascript/pull/14101))
+- feat(deps): bump @opentelemetry/instrumentation-express from 0.43.0 to 0.44.0 ([#14102](https://github.com/getsentry/sentry-javascript/pull/14102))
+- feat(deps): bump @opentelemetry/instrumentation-fs from 0.15.0 to 0.16.0 ([#14098](https://github.com/getsentry/sentry-javascript/pull/14098))
+- feat(deps): bump @opentelemetry/instrumentation-kafkajs from 0.3.0 to 0.4.0 ([#14100](https://github.com/getsentry/sentry-javascript/pull/14100))
+- feat(nextjs): Add method and url to route handler request data ([#14084](https://github.com/getsentry/sentry-javascript/pull/14084))
+- feat(node): Add breadcrumbs for `child_process` and `worker_thread` ([#13896](https://github.com/getsentry/sentry-javascript/pull/13896))
+- fix(core): Ensure standalone spans are not sent if SDK is disabled ([#14088](https://github.com/getsentry/sentry-javascript/pull/14088))
+- fix(nextjs): Await flush in api handlers ([#14023](https://github.com/getsentry/sentry-javascript/pull/14023))
+- fix(nextjs): Don't leak webpack types into exports ([#14116](https://github.com/getsentry/sentry-javascript/pull/14116))
+- fix(nextjs): Fix matching logic for file convention type for root level components ([#14038](https://github.com/getsentry/sentry-javascript/pull/14038))
+- fix(nextjs): Respect directives in value injection loader ([#14083](https://github.com/getsentry/sentry-javascript/pull/14083))
+- fix(nuxt): Only wrap `.mjs` entry files in rollup ([#14060](https://github.com/getsentry/sentry-javascript/pull/14060))
+- fix(nuxt): Re-export all exported bindings ([#14086](https://github.com/getsentry/sentry-javascript/pull/14086))
+- fix(nuxt): Server-side setup in readme ([#14049](https://github.com/getsentry/sentry-javascript/pull/14049))
+- fix(profiling-node): Always warn when running on incompatible major version of Node.js ([#14043](https://github.com/getsentry/sentry-javascript/pull/14043))
+- fix(replay): Fix `onError` callback ([#14002](https://github.com/getsentry/sentry-javascript/pull/14002))
+- perf(otel): Only calculate current timestamp once ([#14094](https://github.com/getsentry/sentry-javascript/pull/14094))
+- test(browser-integration): Add sentry DSN route handler by default ([#14095](https://github.com/getsentry/sentry-javascript/pull/14095))
+
 ## 8.35.0
 
 ### Beta release of the official Nuxt Sentry SDK

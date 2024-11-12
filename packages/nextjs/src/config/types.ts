@@ -1,12 +1,5 @@
 import type { GLOBAL_OBJ } from '@sentry/utils';
 import type { SentryWebpackPluginOptions } from '@sentry/webpack-plugin';
-import type { DefinePlugin, WebpackPluginInstance } from 'webpack';
-
-// Export this from here because importing something from Webpack (the library) in `webpack.ts` confuses the heck out of
-// madge, which we use for circular dependency checking. We've manually excluded this file from the check (which is
-// safe, since it only includes types), so we can import it here without causing madge to fail. See
-// https://github.com/pahen/madge/issues/306.
-export type { WebpackPluginInstance };
 
 // The first argument to `withSentryConfig` (which is the user's next config).
 export type ExportedNextConfig = NextConfigObject | NextConfigFunction;
@@ -16,6 +9,11 @@ type NextRewrite = {
   source: string;
   destination: string;
 };
+
+interface WebpackPluginInstance {
+  [index: string]: any;
+  apply: (compiler: any) => void;
+}
 
 export type NextConfigObject = {
   // Custom webpack options
@@ -49,6 +47,8 @@ export type NextConfigObject = {
     clientTraceMetadata?: string[];
   };
   productionBrowserSourceMaps?: boolean;
+  // https://nextjs.org/docs/pages/api-reference/next-config-js/env
+  env?: Record<string, string>;
 };
 
 export type SentryBuildOptions = {
@@ -502,7 +502,7 @@ export type BuildContext = {
   config: any;
   webpack: {
     version: string;
-    DefinePlugin: typeof DefinePlugin;
+    DefinePlugin: new (values: Record<string, string | boolean>) => WebpackPluginInstance;
   };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   defaultLoaders: any; // needed for type tests (test:types)
@@ -550,7 +550,7 @@ export type ModuleRuleUseProperty = {
  * Global with values we add when we inject code into people's pages, for use at runtime.
  */
 export type EnhancedGlobal = typeof GLOBAL_OBJ & {
-  __rewriteFramesDistDir__?: string;
+  _sentryRewriteFramesDistDir?: string;
   SENTRY_RELEASE?: { id: string };
   SENTRY_RELEASES?: { [key: string]: { id: string } };
 };

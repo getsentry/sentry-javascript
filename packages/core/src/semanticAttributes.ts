@@ -30,7 +30,7 @@ export const SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_UNIT = 'sentry.measurement_un
 export const SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_VALUE = 'sentry.measurement_value';
 
 /**
- * The id of the profile that this span occured in.
+ * The id of the profile that this span occurred in.
  */
 export const SEMANTIC_ATTRIBUTE_PROFILE_ID = 'sentry.profile_id';
 

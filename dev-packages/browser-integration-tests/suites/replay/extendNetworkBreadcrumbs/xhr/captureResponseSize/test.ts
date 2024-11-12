@@ -25,14 +25,6 @@ sentryTest(
       });
     });
 
-    await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-      return route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({ id: 'test-id' }),
-      });
-    });
-
     const requestPromise = waitForErrorRequest(page);
     const replayRequestPromise = collectReplayRequests(page, recordingEvents => {
       return getReplayPerformanceSpans(recordingEvents).some(span => span.op === 'resource.xhr');
@@ -120,14 +112,6 @@ sentryTest('captures response size without Content-Length header', async ({ getL
     });
   });
 
-  await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-    return route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ id: 'test-id' }),
-    });
-  });
-
   const requestPromise = waitForErrorRequest(page);
   const replayRequestPromise = collectReplayRequests(page, recordingEvents => {
     return getReplayPerformanceSpans(recordingEvents).some(span => span.op === 'resource.xhr');
@@ -209,14 +193,6 @@ sentryTest('captures response size for non-string bodies', async ({ getLocalTest
       headers: {
         'Content-Length': '',
       },
-    });
-  });
-
-  await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-    return route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ id: 'test-id' }),
     });
   });
 

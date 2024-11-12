@@ -19,7 +19,7 @@ sentryTest('should not send replays if both sample rates are 0', async ({ getLoc
     });
   });
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestPath({ testDir: __dirname, skipDsnRouteHandler: true });
   await page.goto(url);
 
   await page.locator('button').click();

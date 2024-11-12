@@ -130,7 +130,7 @@ async function run() {
     const sizeLimitComment = await fetchPreviousComment(octokit, repo, pr);
 
     if (sizeLimitComment) {
-      core.debug('Found existing size limit comment, udpating it instead of creating a new one...');
+      core.debug('Found existing size limit comment, updating it instead of creating a new one...');
     }
 
     const shouldComment =

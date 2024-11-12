@@ -29,6 +29,22 @@ const _connectIntegration = (() => {
   };
 }) satisfies IntegrationFn;
 
+/**
+ * Adds Sentry tracing instrumentation for [Connect](https://github.com/senchalabs/connect/).
+ *
+ * If you also want to capture errors, you need to call `setupConnectErrorHandler(app)` after you initialize your connect app.
+ *
+ * For more information, see the [connect documentation](https://docs.sentry.io/platforms/javascript/guides/connect/).
+ *
+ * @example
+ * ```javascript
+ * const Sentry = require('@sentry/node');
+ *
+ * Sentry.init({
+ *   integrations: [Sentry.connectIntegration()],
+ * })
+ * ```
+ */
 export const connectIntegration = defineIntegration(_connectIntegration);
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -37,6 +53,25 @@ function connectErrorMiddleware(err: any, req: any, res: any, next: any): void {
   next(err);
 }
 
+/**
+ * Add a Connect middleware to capture errors to Sentry.
+ *
+ * @param app The Connect app to attach the error handler to
+ *
+ * @example
+ * ```javascript
+ * const Sentry = require('@sentry/node');
+ * const connect = require("connect");
+ *
+ * const app = connect();
+ *
+ * Sentry.setupConnectErrorHandler(app);
+ *
+ * // Add you connect routes here
+ *
+ * app.listen(3000);
+ * ```
+ */
 export const setupConnectErrorHandler = (app: ConnectApp): void => {
   app.use(connectErrorMiddleware);
 

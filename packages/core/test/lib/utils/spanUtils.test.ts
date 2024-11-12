@@ -238,7 +238,7 @@ describe('getRootSpan', () => {
         startSpan({ name: 'inner2' }, inner2 => {
           expect(getRootSpan(inner2)).toBe(root);
 
-          const inactiveSpan = startInactiveSpan({ name: 'inactived' });
+          const inactiveSpan = startInactiveSpan({ name: 'inactive' });
           expect(getRootSpan(inactiveSpan)).toBe(root);
         });
       });

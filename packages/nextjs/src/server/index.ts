@@ -42,8 +42,8 @@ export * from '@sentry/node';
 export { captureUnderscoreErrorException } from '../common/pages-router-instrumentation/_error';
 
 const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
-  __rewriteFramesDistDir__?: string;
-  __sentryRewritesTunnelPath__?: string;
+  _sentryRewriteFramesDistDir?: string;
+  _sentryRewritesTunnelPath?: string;
 };
 
 /**
@@ -109,7 +109,7 @@ export function init(options: NodeOptions): NodeClient | undefined {
 
   // This value is injected at build time, based on the output directory specified in the build config. Though a default
   // is set there, we set it here as well, just in case something has gone wrong with the injection.
-  const distDirName = globalWithInjectedValues.__rewriteFramesDistDir__;
+  const distDirName = process.env._sentryRewriteFramesDistDir || globalWithInjectedValues._sentryRewriteFramesDistDir;
   if (distDirName) {
     customDefaultIntegrations.push(distDirRewriteFramesIntegration({ distDirName }));
   }
@@ -212,8 +212,10 @@ export function init(options: NodeOptions): NodeClient | undefined {
 
           // Filter out transactions for requests to the tunnel route
           if (
-            globalWithInjectedValues.__sentryRewritesTunnelPath__ &&
-            event.transaction === `POST ${globalWithInjectedValues.__sentryRewritesTunnelPath__}`
+            (globalWithInjectedValues._sentryRewritesTunnelPath &&
+              event.transaction === `POST ${globalWithInjectedValues._sentryRewritesTunnelPath}`) ||
+            (process.env._sentryRewritesTunnelPath &&
+              event.transaction === `POST ${process.env._sentryRewritesTunnelPath}`)
           ) {
             return null;
           }

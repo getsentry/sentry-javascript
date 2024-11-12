@@ -36,7 +36,7 @@ const GLOBAL_OBJ_WITH_NEXT_ROUTER = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
   nd?: {
     router?: NextRouter;
   };
-  // Avalable from 13.4.4-canary.4 - https://github.com/vercel/next.js/pull/50210
+  // Available from 13.4.4-canary.4 - https://github.com/vercel/next.js/pull/50210
   next?: {
     router?: NextRouter;
   };

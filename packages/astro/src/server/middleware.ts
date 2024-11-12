@@ -3,6 +3,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   captureException,
   continueTrace,
+  flush,
   getActiveSpan,
   getClient,
   getCurrentScope,
@@ -14,8 +15,10 @@ import {
 import type { Scope, SpanAttributes } from '@sentry/types';
 import {
   addNonEnumerableProperty,
+  logger,
   objectify,
   stripUrlQueryAndFragment,
+  vercelWaitUntil,
   winterCGRequestToRequestData,
 } from '@sentry/utils';
 import type { APIContext, MiddlewareResponseHandler } from 'astro';
@@ -188,6 +191,17 @@ async function instrumentRequest(
       } catch (e) {
         sendErrorToSentry(e);
         throw e;
+      } finally {
+        vercelWaitUntil(
+          (async () => {
+            // Flushes pending Sentry events with a 2-second timeout and in a way that cannot create unhandled promise rejections.
+            try {
+              await flush(2000);
+            } catch (e) {
+              logger.log('Error while flushing events:\n', e);
+            }
+          })(),
+        );
       }
       // TODO: flush if serverless (first extract function)
     },

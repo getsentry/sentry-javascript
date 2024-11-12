@@ -77,9 +77,9 @@ export class AppController {
     return { result: await this.appService.testSpanDecoratorSync() };
   }
 
-  @Get('kill-test-cron')
-  async killTestCron() {
-    this.appService.killTestCron();
+  @Get('kill-test-cron/:job')
+  async killTestCron(@Param('job') job: string) {
+    this.appService.killTestCron(job);
   }
 
   @Get('flush')
