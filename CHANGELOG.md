@@ -10,7 +10,23 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
-Work in this release was contributed by @Zen-cronic. Thank you for your contribution!
+## 8.38.0
+
+- docs: Improve docstrings for node otel integrations ([#14217](https://github.com/getsentry/sentry-javascript/pull/14217))
+- feat(browser): Add moduleMetadataIntegration lazy loading support ([#13817](https://github.com/getsentry/sentry-javascript/pull/13817))
+- feat(core): Add trpc path to context in trpcMiddleware ([#14218](https://github.com/getsentry/sentry-javascript/pull/14218))
+- feat(deps): Bump @opentelemetry/instrumentation-amqplib from 0.42.0 to 0.43.0 ([#14230](https://github.com/getsentry/sentry-javascript/pull/14230))
+- feat(deps): Bump @sentry/cli from 2.37.0 to 2.38.2 ([#14232](https://github.com/getsentry/sentry-javascript/pull/14232))
+- feat(node): Add `knex` integration ([#13526](https://github.com/getsentry/sentry-javascript/pull/13526))
+- feat(node): Add `tedious` integration ([#13486](https://github.com/getsentry/sentry-javascript/pull/13486))
+- feat(utils): Single implementation to fetch debug ids ([#14199](https://github.com/getsentry/sentry-javascript/pull/14199))
+- fix(browser): Avoid recording long animation frame spans starting before their parent span ([#14186](https://github.com/getsentry/sentry-javascript/pull/14186))
+- fix(node): Include `debug_meta` with ANR events ([#14203](https://github.com/getsentry/sentry-javascript/pull/14203))
+- fix(nuxt): Fix dynamic import rollup plugin to work with latest nitro ([#14243](https://github.com/getsentry/sentry-javascript/pull/14243))
+- fix(react): Support wildcard routes on React Router 6 ([#14205](https://github.com/getsentry/sentry-javascript/pull/14205))
+- fix(spotlight): Export spotlightBrowserIntegration from the main browser package ([#14208](https://github.com/getsentry/sentry-javascript/pull/14208))
+- ref(browser): Ensure start time of interaction root and child span is aligned ([#14188](https://github.com/getsentry/sentry-javascript/pull/14188))
+- ref(nextjs): Make build-time value injection turbopack compatible ([#14081](https://github.com/getsentry/sentry-javascript/pull/14081))
 
 Work in this release was contributed by @grahamhency, @Zen-cronic, @gilisho and @phuctm97. Thank you for your contributions!
 
