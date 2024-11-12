@@ -4,6 +4,7 @@ import { join } from 'path';
 import { SDK_VERSION } from '@sentry/node';
 import type {
   ClientReport,
+  DeprecatedCSPReport,
   Envelope,
   EnvelopeItemType,
   Event,
@@ -165,6 +166,9 @@ type Expected =
     }
   | {
       client_report: Partial<ClientReport> | ((event: ClientReport) => void);
+    }
+  | {
+      raw_security: Partial<DeprecatedCSPReport> | ((event: DeprecatedCSPReport) => void);
     };
 
 type ExpectedEnvelopeHeader =
@@ -265,6 +269,7 @@ export function createRunner(...paths: string[]) {
         }
       }
 
+      // eslint-disable-next-line complexity
       function newEnvelope(envelope: Envelope): void {
         for (const item of envelope[1]) {
           const envelopeItemType = item[0].type;
@@ -356,6 +361,17 @@ export function createRunner(...paths: string[]) {
                 expected.client_report(clientReport);
               } else {
                 assertSentryClientReport(clientReport, expected.client_report);
+              }
+
+              expectCallbackCalled();
+            }
+
+            if ('raw_security' in expected) {
+              const rawSecurity = item[1] as DeprecatedCSPReport;
+              if (typeof expected.raw_security === 'function') {
+                expected.raw_security(rawSecurity);
+              } else {
+                expect(rawSecurity).toMatchObject(expected.raw_security);
               }
 
               expectCallbackCalled();
