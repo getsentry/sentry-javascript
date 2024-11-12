@@ -8,8 +8,8 @@
     "test": "node dist/index.js && node --experimental-require-module dist/index.js && node dist/index.shimmed.mjs",
     "clean": "npx rimraf node_modules dist",
     "test:electron": "electron-rebuild && playwright test",
-    "test:build": "npm run typecheck && npm run build",
-    "test:assert": "npm run test && npm run test:electron"
+    "test:build": "pnpm run typecheck && pnpm run build",
+    "test:assert": "pnpm run test && pnpm run test:electron"
   },
   "dependencies": {
     "@electron/rebuild": "^3.7.0",
