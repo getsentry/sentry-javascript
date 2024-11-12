@@ -10,6 +10,10 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+Work in this release was contributed by @Zen-cronic. Thank you for your contribution!
+
+Work in this release was contributed by @grahamhency, @Zen-cronic, @gilisho and @phuctm97. Thank you for your contributions!
+
 ## 8.37.1
 
 - feat(deps): Bump @opentelemetry/instrumentation from 0.53.0 to 0.54.0 for @sentry/opentelemetry ([#14187](https://github.com/getsentry/sentry-javascript/pull/14187))

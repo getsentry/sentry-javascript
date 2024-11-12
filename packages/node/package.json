@@ -9,9 +9,7 @@
   "engines": {
     "node": ">=14.18"
   },
-  "files": [
-    "/build"
-  ],
+  "files": ["/build"],
   "main": "build/cjs/index.js",
   "module": "build/esm/index.js",
   "types": "build/types/index.d.ts",
@@ -56,9 +54,7 @@
   },
   "typesVersions": {
     "<4.9": {
-      "build/types/index.d.ts": [
-        "build/types-ts3.8/index.d.ts"
-      ]
+      "build/types/index.d.ts": ["build/types-ts3.8/index.d.ts"]
     }
   },
   "publishConfig": {
@@ -69,7 +65,7 @@
     "@opentelemetry/context-async-hooks": "^1.25.1",
     "@opentelemetry/core": "^1.25.1",
     "@opentelemetry/instrumentation": "^0.54.0",
-    "@opentelemetry/instrumentation-amqplib": "^0.42.0",
+    "@opentelemetry/instrumentation-amqplib": "^0.43.0",
     "@opentelemetry/instrumentation-connect": "0.40.0",
     "@opentelemetry/instrumentation-dataloader": "0.12.0",
     "@opentelemetry/instrumentation-express": "0.44.0",
@@ -81,6 +77,7 @@
     "@opentelemetry/instrumentation-http": "0.53.0",
     "@opentelemetry/instrumentation-ioredis": "0.43.0",
     "@opentelemetry/instrumentation-kafkajs": "0.4.0",
+    "@opentelemetry/instrumentation-knex": "0.41.0",
     "@opentelemetry/instrumentation-koa": "0.43.0",
     "@opentelemetry/instrumentation-lru-memoizer": "0.40.0",
     "@opentelemetry/instrumentation-mongodb": "0.48.0",

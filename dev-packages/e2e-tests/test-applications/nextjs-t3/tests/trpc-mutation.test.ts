@@ -13,7 +13,4 @@ test('should create transaction with trpc input for mutation', async ({ page }) 
   const trpcTransaction = await trpcTransactionPromise;
 
   expect(trpcTransaction).toBeDefined();
-  expect(trpcTransaction.contexts.trpc).toBeDefined();
-  expect(trpcTransaction.contexts.trpc.procedure_type).toEqual('mutation');
-  expect(trpcTransaction.contexts.trpc.input).toEqual({ name: 'I love dogs' });
 });
