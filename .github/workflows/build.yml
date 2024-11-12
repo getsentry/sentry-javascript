@@ -1269,9 +1269,6 @@ jobs:
         with:
           dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
 
-      - name: Install dependencies
-        run: yarn install --ignore-engines --frozen-lockfile --force
-
       - name: Build Profiling Node
         run: yarn lerna run build:lib --scope @sentry/profiling-node
 
@@ -1312,6 +1309,10 @@ jobs:
         working-directory: dev-packages/e2e-tests
         env:
           E2E_TEST_PUBLISH_SCRIPT_NODE_VERSION: ${{ steps.versions.outputs.node }}
+
+      - name: Install dependencies
+        working-directory: dev-packages/e2e-tests/${{ matrix.test-application }}
+        run: yarn install --ignore-engines --frozen-lockfile
 
       - name: Build E2E app
         working-directory: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
