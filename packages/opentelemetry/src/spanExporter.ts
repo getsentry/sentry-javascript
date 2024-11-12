@@ -57,7 +57,7 @@ export class SentrySpanExporter {
   }) {
     this._finishedSpanBucketSize = options?.timeout || DEFAULT_TIMEOUT;
     this._finishedSpanBuckets = new Array(this._finishedSpanBucketSize).fill(undefined);
-    this._lastCleanupTimestampInS = 0;
+    this._lastCleanupTimestampInS = Math.floor(Date.now() / 1000);
     this._spansToBucketEntry = new WeakMap();
   }
 
@@ -79,7 +79,7 @@ export class SentrySpanExporter {
       timestampInS: currentTimestampInS,
       spans: new Set(),
     };
-
+    this._finishedSpanBuckets[currentBucketIndex] = currentBucket;
     currentBucket.spans.add(span);
     this._spansToBucketEntry.set(span, currentBucket);
 
