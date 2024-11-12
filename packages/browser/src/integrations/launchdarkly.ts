@@ -16,7 +16,7 @@ import { defineIntegration, getCurrentScope } from '@sentry/core';
  * import * as LaunchDarkly from 'launchdarkly-js-client-sdk';
  *
  * Sentry.init(..., integrations: [launchDarklyIntegration()])
- * const ldClient = LaunchDarkly.initialize(..., {inspectors: [buildLaunchDarklyFlagUsedInspector()]});
+ * const ldClient = LaunchDarkly.initialize(..., {inspectors: [buildLaunchDarklyFlagUsedHandler()]});
  * ```
  */
 export const launchDarklyIntegration = defineIntegration(() => {
@@ -43,13 +43,14 @@ export const launchDarklyIntegration = defineIntegration(() => {
  * This needs to be registered separately in the LD SDK initialize() options,
  * after initializing Sentry.
  */
-export function buildLaunchDarklyFlagUsedInspector(): LDInspectionFlagUsedHandler {
+export function buildLaunchDarklyFlagUsedHandler(): LDInspectionFlagUsedHandler {
   return {
     name: 'sentry-flag-auditor',
     type: 'flag-used',
 
     // We don't want the handler to impact the performance of the user's flag evaluations.
-    synchronous: false,
+    synchronous: false, // TODO: this could lead to race conditions where an error directly after an eval might not contain the eval
+    // TODO: the flag buffer itself isn't thread-safe, yet this handler and the event processor could access it at the same time.
 
     /**
      * Handle a flag evaluation by storing its name and value on the current scope.
@@ -62,7 +63,6 @@ export function buildLaunchDarklyFlagUsedInspector(): LDInspectionFlagUsedHandle
         }
         const flagBuffer = scopeContexts.flags.values;
         insertToFlagBuffer(flagBuffer, flagKey, flagDetail.value);
-        console.log('inserted')
       }
       return;
     },
