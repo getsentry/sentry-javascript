@@ -37,11 +37,10 @@ export const launchDarklyIntegration = defineIntegration(() => {
 }) satisfies IntegrationFn;
 
 /**
- * Constructs a LaunchDarkly hook that listens for flag evaluations and updates
- * the flagBuffer in our current scope.
- *
- * This needs to be registered separately in the LD SDK initialize() options,
- * after initializing Sentry.
+ * LaunchDarkly hook that listens for flag evaluations and updates the `flags`
+ * context in our Sentry scope. This needs to be registered as an
+ * 'inspector' in LaunchDarkly initialize() options, separately from
+ * `launchDarklyIntegration`. Both are needed to collect feature flags on error.
  */
 export function buildLaunchDarklyFlagUsedHandler(): LDInspectionFlagUsedHandler {
   return {
