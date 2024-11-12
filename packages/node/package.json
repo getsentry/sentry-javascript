@@ -67,7 +67,7 @@
   "dependencies": {
     "@opentelemetry/api": "^1.9.0",
     "@opentelemetry/context-async-hooks": "^1.25.1",
-    "@opentelemetry/core": "^1.25.1",
+    "@opentelemetry/core": "^1.27.0",
     "@opentelemetry/instrumentation": "^0.54.0",
     "@opentelemetry/instrumentation-amqplib": "^0.43.0",
     "@opentelemetry/instrumentation-connect": "0.40.0",
