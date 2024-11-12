@@ -25,6 +25,7 @@ import {
   assertSentryTransaction,
 } from './assertions';
 import { createBasicSentryServer } from './server';
+import { normalize } from '@sentry/utils';
 
 const CLEANUP_STEPS = new Set<VoidFunction>();
 
@@ -307,6 +308,8 @@ export function createRunner(...paths: string[]) {
       const dockerStartup: Promise<DockerStartup> = dockerOptions
         ? runDockerCompose(dockerOptions)
         : Promise.resolve(undefined);
+
+      log('before start');
 
       const startup = Promise.all([dockerStartup, serverStartup]) as Promise<[DockerStartup, ServerStartup]>;
 
