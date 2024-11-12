@@ -66,11 +66,19 @@ export class SentrySpanExporter {
     const currentTimestampInS = Math.floor(Date.now() / 1000);
 
     if (this._lastCleanupTimestampInS !== currentTimestampInS) {
+      let droppedSpanCount = 0;
       this._finishedSpanBuckets.forEach((bucket, i) => {
         if (bucket && bucket.timestampInS <= currentTimestampInS - this._finishedSpanBucketSize) {
+          droppedSpanCount += bucket.spans.size;
           this._finishedSpanBuckets[i] = undefined;
         }
       });
+      if (droppedSpanCount > 0) {
+        DEBUG_BUILD &&
+          logger.log(
+            `SpanExporter dropped ${droppedSpanCount} spans because they were pending for more than ${this._finishedSpanBucketSize} seconds.`,
+          );
+      }
       this._lastCleanupTimestampInS = currentTimestampInS;
     }
 
@@ -110,7 +118,10 @@ export class SentrySpanExporter {
 
     const sentSpanCount = sentSpans.size;
 
-    DEBUG_BUILD && logger.log(`SpanExporter exported ${sentSpanCount} spans`);
+    const remainingOpenSpanCount = finishedSpans.length - sentSpanCount;
+
+    DEBUG_BUILD &&
+      logger.log(`SpanExporter exported ${sentSpanCount} spans, ${remainingOpenSpanCount} unsent spans remaining`);
 
     sentSpans.forEach(span => {
       const bucketEntry = this._spansToBucketEntry.get(span);
