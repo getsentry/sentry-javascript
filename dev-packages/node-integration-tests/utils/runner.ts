@@ -15,6 +15,7 @@ import type {
 } from '@sentry/types';
 import axios from 'axios';
 import { createBasicSentryServer } from './server';
+import { normalize } from '@sentry/utils';
 
 export function assertSentryEvent(actual: Event, expected: Event): void {
   expect(actual).toMatchObject({
@@ -130,8 +131,7 @@ async function runDockerCompose(options: DockerOptions): Promise<VoidFunction> {
     function newData(data: Buffer): void {
       const text = data.toString('utf8');
 
-      // eslint-disable-next-line no-console
-      if (process.env.DEBUG) console.log(text);
+      if (process.env.DEBUG) log(text);
 
       for (const match of options.readyMatches) {
         if (text.includes(match)) {
@@ -254,7 +254,7 @@ export function createRunner(...paths: string[]) {
 
       function complete(error?: Error): void {
         child?.kill();
-        done?.(error);
+        done?.(normalize(error));
       }
 
       /** Called after each expect callback to check if we're complete */
@@ -397,8 +397,7 @@ export function createRunner(...paths: string[]) {
             ? { ...process.env, ...withEnv, SENTRY_DSN: `http://public@localhost:${mockServerPort}/1337` }
             : { ...process.env, ...withEnv };
 
-          // eslint-disable-next-line no-console
-          if (process.env.DEBUG) console.log('starting scenario', testPath, flags, env.SENTRY_DSN);
+          if (process.env.DEBUG) log('starting scenario', testPath, flags, env.SENTRY_DSN);
 
           child = spawn('node', [...flags, testPath], { env });
 
@@ -425,8 +424,7 @@ export function createRunner(...paths: string[]) {
 
           // Pass error to done to end the test quickly
           child.on('error', e => {
-            // eslint-disable-next-line no-console
-            if (process.env.DEBUG) console.log('scenario error', e);
+            if (process.env.DEBUG) log('scenario error', e);
             complete(e);
           });
 
@@ -465,8 +463,7 @@ export function createRunner(...paths: string[]) {
               logs.push(line.trim());
 
               buffer = Buffer.from(buffer.subarray(splitIndex + 1));
-              // eslint-disable-next-line no-console
-              if (process.env.DEBUG) console.log('line', line);
+              if (process.env.DEBUG) log('line', line);
               tryParseEnvelopeFromStdoutLine(line);
             }
           });
@@ -484,34 +481,36 @@ export function createRunner(...paths: string[]) {
           method: 'get' | 'post',
           path: string,
           headers: Record<string, string> = {},
-          data?: any, // axios accept any as data
+          data?: unknown,
         ): Promise<T | undefined> {
           try {
             await waitFor(() => scenarioServerPort !== undefined);
           } catch (e) {
             complete(e as Error);
-            return undefined;
+            return;
           }
 
           const url = `http://localhost:${scenarioServerPort}${path}`;
-          if (expectError) {
-            try {
-              if (method === 'get') {
-                await axios.get(url, { headers });
-              } else {
-                await axios.post(url, data, { headers });
-              }
-            } catch (e) {
+
+          try {
+            const res =
+              method === 'post' ? await axios.post(url, data, { headers }) : await axios.get(url, { headers });
+            return res.data;
+          } catch (e) {
+            if (expectError) {
               return;
             }
+
+            complete(e as Error);
             return;
-          } else if (method === 'get') {
-            return (await axios.get(url, { headers })).data;
-          } else {
-            return (await axios.post(url, data, { headers })).data;
           }
         },
       };
     },
   };
+}
+
+function log(...args: unknown[]): void {
+  // eslint-disable-next-line no-console
+  console.log(...args.map(arg => normalize(arg)));
 }
