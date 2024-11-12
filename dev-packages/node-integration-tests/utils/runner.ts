@@ -309,8 +309,6 @@ export function createRunner(...paths: string[]) {
         ? runDockerCompose(dockerOptions)
         : Promise.resolve(undefined);
 
-      log('before start');
-
       const startup = Promise.all([dockerStartup, serverStartup]) as Promise<[DockerStartup, ServerStartup]>;
 
       startup
