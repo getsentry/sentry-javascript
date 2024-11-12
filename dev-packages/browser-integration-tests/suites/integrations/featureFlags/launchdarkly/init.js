@@ -11,7 +11,7 @@ Sentry.init({
   integrations: [window.LDIntegration],
 });
 
-window.MockLaunchDarkly = {
+const MockLaunchDarkly = {
   initialize(_clientId, context, options) {
     const flagUsedHandler = (options && options.inspectors) ? options.inspectors[0].method : undefined;
 
@@ -27,7 +27,7 @@ window.MockLaunchDarkly = {
 };
 
 window.InitializeLD = () => {
-  return window.MockLaunchDarkly.initialize(
+  return MockLaunchDarkly.initialize(
     'example-client-id',
     { kind: 'user', key: 'example-context-key' },
     { inspectors: [buildLaunchDarklyFlagUsedHandler()] },

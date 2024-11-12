@@ -47,9 +47,7 @@ export function buildLaunchDarklyFlagUsedHandler(): LDInspectionFlagUsedHandler 
     name: 'sentry-flag-auditor',
     type: 'flag-used',
 
-    // We don't want the handler to impact the performance of the user's flag evaluations.
-    synchronous: false, // TODO: this could lead to race conditions where an error directly after an eval might not contain the eval
-    // TODO: the flag buffer itself isn't thread-safe, yet this handler and the event processor could access it at the same time.
+    synchronous: true,
 
     /**
      * Handle a flag evaluation by storing its name and value on the current scope.
@@ -62,6 +60,7 @@ export function buildLaunchDarklyFlagUsedHandler(): LDInspectionFlagUsedHandler 
         }
         const flagBuffer = scopeContexts.flags.values;
         insertToFlagBuffer(flagBuffer, flagKey, flagDetail.value);
+        // TODO: the flag buffer isn't thread-safe, yet this handler and the event processor could access it at the same time.
       }
       return;
     },
