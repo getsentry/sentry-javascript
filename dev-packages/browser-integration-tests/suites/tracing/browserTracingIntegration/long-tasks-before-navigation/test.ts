@@ -15,9 +15,11 @@ sentryTest(
 
     await page.goto(url);
 
+    const navigationTransactionEventPromise = getFirstSentryEnvelopeRequest<Event>(page);
+
     await page.locator('#myButton').click();
 
-    const navigationTransactionEvent = await getFirstSentryEnvelopeRequest<Event>(page, url);
+    const navigationTransactionEvent = await navigationTransactionEventPromise;
 
     expect(navigationTransactionEvent.contexts?.trace?.op).toBe('navigation');
 

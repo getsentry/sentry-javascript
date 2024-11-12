@@ -16,7 +16,7 @@ export * from '@sentry/react';
 export { captureUnderscoreErrorException } from '../common/pages-router-instrumentation/_error';
 
 const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
-  __rewriteFramesAssetPrefixPath__: string;
+  _sentryRewriteFramesAssetPrefixPath: string;
 };
 
 // Treeshakable guard to remove all code related to tracing
@@ -64,7 +64,10 @@ function getDefaultIntegrations(options: BrowserOptions): Integration[] {
 
   // This value is injected at build time, based on the output directory specified in the build config. Though a default
   // is set there, we set it here as well, just in case something has gone wrong with the injection.
-  const assetPrefixPath = globalWithInjectedValues.__rewriteFramesAssetPrefixPath__ || '';
+  const assetPrefixPath =
+    process.env._sentryRewriteFramesAssetPrefixPath ||
+    globalWithInjectedValues._sentryRewriteFramesAssetPrefixPath ||
+    '';
   customDefaultIntegrations.push(nextjsClientStackFrameNormalizationIntegration({ assetPrefixPath }));
 
   return customDefaultIntegrations;

@@ -11,7 +11,7 @@ type OriginalStackFrameResponse = {
 };
 
 const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
-  __sentryBasePath?: string;
+  _sentryBasePath?: string;
 };
 
 async function resolveStackFrame(
@@ -32,7 +32,7 @@ async function resolveStackFrame(
       params.append(key, (frame[key as keyof typeof frame] ?? '').toString());
     });
 
-    let basePath = globalWithInjectedValues.__sentryBasePath ?? '';
+    let basePath = process.env._sentryBasePath ?? globalWithInjectedValues._sentryBasePath ?? '';
 
     // Prefix the basepath with a slash if it doesn't have one
     if (basePath !== '' && !basePath.match(/^\//)) {

@@ -15,5 +15,4 @@ Sentry.init({
     }),
   ],
   tracesSampleRate: 1,
-  debug: true,
 });
