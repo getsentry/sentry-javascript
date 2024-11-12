@@ -1,7 +1,7 @@
 /* eslint-disable max-lines */
 import { spawn, spawnSync } from 'child_process';
+import { existsSync } from 'fs';
 import { join } from 'path';
-import { SDK_VERSION } from '@sentry/node';
 import type {
   ClientReport,
   Envelope,
@@ -13,59 +13,18 @@ import type {
   SessionAggregates,
   TransactionEvent,
 } from '@sentry/types';
-import axios from 'axios';
-import { createBasicSentryServer } from './server';
 import { normalize } from '@sentry/utils';
-
-export function assertSentryEvent(actual: Event, expected: Event): void {
-  expect(actual).toMatchObject({
-    event_id: expect.any(String),
-    ...expected,
-  });
-}
-
-export function assertSentrySession(actual: SerializedSession, expected: Partial<SerializedSession>): void {
-  expect(actual).toMatchObject({
-    sid: expect.any(String),
-    ...expected,
-  });
-}
-
-export function assertSentryTransaction(actual: Event, expected: Partial<Event>): void {
-  expect(actual).toMatchObject({
-    event_id: expect.any(String),
-    timestamp: expect.anything(),
-    start_timestamp: expect.anything(),
-    spans: expect.any(Array),
-    type: 'transaction',
-    ...expected,
-  });
-}
-
-export function assertSentryCheckIn(actual: SerializedCheckIn, expected: Partial<SerializedCheckIn>): void {
-  expect(actual).toMatchObject({
-    check_in_id: expect.any(String),
-    ...expected,
-  });
-}
-
-export function assertSentryClientReport(actual: ClientReport, expected: Partial<ClientReport>): void {
-  expect(actual).toMatchObject({
-    ...expected,
-  });
-}
-
-export function assertEnvelopeHeader(actual: Envelope[0], expected: Partial<Envelope[0]>): void {
-  expect(actual).toEqual({
-    event_id: expect.any(String),
-    sent_at: expect.any(String),
-    sdk: {
-      name: 'sentry.javascript.node',
-      version: SDK_VERSION,
-    },
-    ...expected,
-  });
-}
+import axios from 'axios';
+import {
+  assertEnvelopeHeader,
+  assertSentryCheckIn,
+  assertSentryClientReport,
+  assertSentryEvent,
+  assertSentrySession,
+  assertSentrySessions,
+  assertSentryTransaction,
+} from './assertions';
+import { createBasicSentryServer } from './server';
 
 const CLEANUP_STEPS = new Set<VoidFunction>();
 
@@ -147,24 +106,31 @@ async function runDockerCompose(options: DockerOptions): Promise<VoidFunction> {
   });
 }
 
+type ExpectedEvent = Partial<Event> | ((event: Event) => void);
+type ExpectedTransaction = Partial<TransactionEvent> | ((event: TransactionEvent) => void);
+type ExpectedSession = Partial<SerializedSession> | ((event: SerializedSession) => void);
+type ExpectedSessions = Partial<SessionAggregates> | ((event: SessionAggregates) => void);
+type ExpectedCheckIn = Partial<SerializedCheckIn> | ((event: SerializedCheckIn) => void);
+type ExpectedClientReport = Partial<ClientReport> | ((event: ClientReport) => void);
+
 type Expected =
   | {
-      event: Partial<Event> | ((event: Event) => void);
+      event: ExpectedEvent;
     }
   | {
-      transaction: Partial<TransactionEvent> | ((event: TransactionEvent) => void);
+      transaction: ExpectedTransaction;
     }
   | {
-      session: Partial<SerializedSession> | ((event: SerializedSession) => void);
+      session: ExpectedSession;
     }
   | {
-      sessions: Partial<SessionAggregates> | ((event: SessionAggregates) => void);
+      sessions: ExpectedSessions;
     }
   | {
-      check_in: Partial<SerializedCheckIn> | ((event: SerializedCheckIn) => void);
+      check_in: ExpectedCheckIn;
     }
   | {
-      client_report: Partial<ClientReport> | ((event: ClientReport) => void);
+      client_report: ExpectedClientReport;
     };
 
 type ExpectedEnvelopeHeader =
@@ -178,16 +144,19 @@ type ExpectedEnvelopeHeader =
 export function createRunner(...paths: string[]) {
   const testPath = join(...paths);
 
+  if (!existsSync(testPath)) {
+    throw new Error(`Test scenario not found: ${testPath}`);
+  }
+
   const expectedEnvelopes: Expected[] = [];
   let expectedEnvelopeHeaders: ExpectedEnvelopeHeader[] | undefined = undefined;
   const flags: string[] = [];
   // By default, we ignore session & sessions
-  const ignored: EnvelopeItemType[] = ['session', 'sessions'];
+  const ignored: Set<EnvelopeItemType> = new Set(['session', 'sessions']);
   let withEnv: Record<string, string> = {};
   let withSentryServer = false;
   let dockerOptions: DockerOptions | undefined;
   let ensureNoErrorOutput = false;
-  let expectError = false;
   const logs: string[] = [];
 
   if (testPath.endsWith('.ts')) {
@@ -207,10 +176,6 @@ export function createRunner(...paths: string[]) {
       expectedEnvelopeHeaders.push(expected);
       return this;
     },
-    expectError: function () {
-      expectError = true;
-      return this;
-    },
     withEnv: function (env: Record<string, string>) {
       withEnv = env;
       return this;
@@ -224,15 +189,12 @@ export function createRunner(...paths: string[]) {
       return this;
     },
     ignore: function (...types: EnvelopeItemType[]) {
-      ignored.push(...types);
+      types.forEach(t => ignored.add(t));
       return this;
     },
     unignore: function (...types: EnvelopeItemType[]) {
       for (const t of types) {
-        const pos = ignored.indexOf(t);
-        if (pos > -1) {
-          ignored.splice(pos, 1);
-        }
+        ignored.delete(t);
       }
       return this;
     },
@@ -269,7 +231,7 @@ export function createRunner(...paths: string[]) {
         for (const item of envelope[1]) {
           const envelopeItemType = item[0].type;
 
-          if (ignored.includes(envelopeItemType)) {
+          if (ignored.has(envelopeItemType)) {
             continue;
           }
 
@@ -307,58 +269,25 @@ export function createRunner(...paths: string[]) {
             }
 
             if ('event' in expected) {
-              const event = item[1] as Event;
-              if (typeof expected.event === 'function') {
-                expected.event(event);
-              } else {
-                assertSentryEvent(event, expected.event);
-              }
-
+              expectErrorEvent(item[1] as Event, expected.event);
               expectCallbackCalled();
-            }
-
-            if ('transaction' in expected) {
-              const event = item[1] as TransactionEvent;
-              if (typeof expected.transaction === 'function') {
-                expected.transaction(event);
-              } else {
-                assertSentryTransaction(event, expected.transaction);
-              }
-
+            } else if ('transaction' in expected) {
+              expectTransactionEvent(item[1] as TransactionEvent, expected.transaction);
               expectCallbackCalled();
-            }
-
-            if ('session' in expected) {
-              const session = item[1] as SerializedSession;
-              if (typeof expected.session === 'function') {
-                expected.session(session);
-              } else {
-                assertSentrySession(session, expected.session);
-              }
-
+            } else if ('session' in expected) {
+              expectSessionEvent(item[1] as SerializedSession, expected.session);
               expectCallbackCalled();
-            }
-
-            if ('check_in' in expected) {
-              const checkIn = item[1] as SerializedCheckIn;
-              if (typeof expected.check_in === 'function') {
-                expected.check_in(checkIn);
-              } else {
-                assertSentryCheckIn(checkIn, expected.check_in);
-              }
-
+            } else if ('sessions' in expected) {
+              expectSessionsEvent(item[1] as SessionAggregates, expected.sessions);
               expectCallbackCalled();
-            }
-
-            if ('client_report' in expected) {
-              const clientReport = item[1] as ClientReport;
-              if (typeof expected.client_report === 'function') {
-                expected.client_report(clientReport);
-              } else {
-                assertSentryClientReport(clientReport, expected.client_report);
-              }
-
+            } else if ('check_in' in expected) {
+              expectCheckInEvent(item[1] as SerializedCheckIn, expected.check_in);
               expectCallbackCalled();
+            } else if ('client_report' in expected) {
+              expectClientReport(item[1] as ClientReport, expected.client_report);
+              expectCallbackCalled();
+            } else {
+              throw new Error(`Unhandled expected envelope item type: ${JSON.stringify(expected)}`);
             }
           } catch (e) {
             complete(e as Error);
@@ -480,8 +409,7 @@ export function createRunner(...paths: string[]) {
         makeRequest: async function <T>(
           method: 'get' | 'post',
           path: string,
-          headers: Record<string, string> = {},
-          data?: unknown,
+          options: { headers?: Record<string, string>; data?: unknown; expectError?: boolean } = {},
         ): Promise<T | undefined> {
           try {
             await waitFor(() => scenarioServerPort !== undefined);
@@ -491,10 +419,21 @@ export function createRunner(...paths: string[]) {
           }
 
           const url = `http://localhost:${scenarioServerPort}${path}`;
+          const data = options.data;
+          const headers = options.headers || {};
+          const expectError = options.expectError || false;
+
+          if (process.env.DEBUG) log('making request', method, url, headers, data);
 
           try {
             const res =
               method === 'post' ? await axios.post(url, data, { headers }) : await axios.get(url, { headers });
+
+            if (expectError) {
+              complete(new Error(`Expected request to "${path}" to fail, but got a ${res.status} response`));
+              return;
+            }
+
             return res.data;
           } catch (e) {
             if (expectError) {
@@ -513,4 +452,52 @@ export function createRunner(...paths: string[]) {
 function log(...args: unknown[]): void {
   // eslint-disable-next-line no-console
   console.log(...args.map(arg => normalize(arg)));
+}
+
+function expectErrorEvent(item: Event, expected: ExpectedEvent): void {
+  if (typeof expected === 'function') {
+    expected(item);
+  } else {
+    assertSentryEvent(item, expected);
+  }
+}
+
+function expectTransactionEvent(item: TransactionEvent, expected: ExpectedTransaction): void {
+  if (typeof expected === 'function') {
+    expected(item);
+  } else {
+    assertSentryTransaction(item, expected);
+  }
+}
+
+function expectSessionEvent(item: SerializedSession, expected: ExpectedSession): void {
+  if (typeof expected === 'function') {
+    expected(item);
+  } else {
+    assertSentrySession(item, expected);
+  }
+}
+
+function expectSessionsEvent(item: SessionAggregates, expected: ExpectedSessions): void {
+  if (typeof expected === 'function') {
+    expected(item);
+  } else {
+    assertSentrySessions(item, expected);
+  }
+}
+
+function expectCheckInEvent(item: SerializedCheckIn, expected: ExpectedCheckIn): void {
+  if (typeof expected === 'function') {
+    expected(item);
+  } else {
+    assertSentryCheckIn(item, expected);
+  }
+}
+
+function expectClientReport(item: ClientReport, expected: ExpectedClientReport): void {
+  if (typeof expected === 'function') {
+    expected(item);
+  } else {
+    assertSentryClientReport(item, expected);
+  }
 }

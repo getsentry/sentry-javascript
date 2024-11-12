@@ -14,19 +14,10 @@ suites/
             |---- scenario_2.ts [optional extra test scenario]
             |---- server_with_mongo.ts [optional custom server]
             |---- server_with_postgres.ts [optional custom server]
-utils/
-|---- defaults/
-      |---- server.ts [default Express server configuration]
 ```
 
 The tests are grouped by their scopes, such as `public-api` or `tracing`. In every group of tests, there are multiple
 folders containing test scenarios and assertions.
-
-Tests run on Express servers (a server instance per test). By default, a simple server template inside
-`utils/defaults/server.ts` is used. Every server instance runs on a different port.
-
-A custom server configuration can be used, supplying a script that exports a valid express server instance as default.
-`runServer` utility function accepts an optional `serverPath` argument for this purpose.
 
 `scenario.ts` contains the initialization logic and the test subject. By default, `{TEST_DIR}/scenario.ts` is used, but
 `runServer` also accepts an optional `scenarioPath` argument for non-standard usage.
