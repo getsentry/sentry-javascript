@@ -1,7 +1,8 @@
+import * as diagnosticsChannel from 'node:diagnostics_channel';
 import { Worker } from 'node:worker_threads';
 import { defineIntegration, getCurrentScope, getGlobalScope, getIsolationScope, mergeScopeData } from '@sentry/core';
 import type { Contexts, Event, EventHint, Integration, IntegrationFn, ScopeData } from '@sentry/types';
-import { GLOBAL_OBJ, logger } from '@sentry/utils';
+import { GLOBAL_OBJ, getFilenameToDebugIdMap, logger } from '@sentry/utils';
 import { NODE_VERSION } from '../../nodeVersion';
 import type { NodeClient } from '../../sdk/client';
 import type { AnrIntegrationOptions, WorkerStartData } from './common';
@@ -100,6 +101,13 @@ type AnrReturn = (options?: Partial<AnrIntegrationOptions>) => Integration & Anr
 
 export const anrIntegration = defineIntegration(_anrIntegration) as AnrReturn;
 
+function onModuleLoad(callback: () => void): void {
+  // eslint-disable-next-line deprecation/deprecation
+  diagnosticsChannel.channel('module.require.end').subscribe(() => callback());
+  // eslint-disable-next-line deprecation/deprecation
+  diagnosticsChannel.channel('module.import.asyncEnd').subscribe(() => callback());
+}
+
 /**
  * Starts the ANR worker thread
  *
@@ -153,6 +161,12 @@ async function _startWorker(
     }
   }
 
+  let debugImages: Record<string, string> = getFilenameToDebugIdMap(initOptions.stackParser);
+
+  onModuleLoad(() => {
+    debugImages = getFilenameToDebugIdMap(initOptions.stackParser);
+  });
+
   const worker = new Worker(new URL(`data:application/javascript;base64,${base64WorkerScript}`), {
     workerData: options,
     // We don't want any Node args to be passed to the worker
@@ -171,7 +185,7 @@ async function _startWorker(
       // serialized without making it a SerializedSession
       const session = currentSession ? { ...currentSession, toJSON: undefined } : undefined;
       // message the worker to tell it the main event loop is still running
-      worker.postMessage({ session });
+      worker.postMessage({ session, debugImages });
     } catch (_) {
       //
     }

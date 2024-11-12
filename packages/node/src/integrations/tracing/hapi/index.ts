@@ -31,10 +31,20 @@ const _hapiIntegration = (() => {
 }) satisfies IntegrationFn;
 
 /**
- * Hapi integration
+ * Adds Sentry tracing instrumentation for [Hapi](https://hapi.dev/).
  *
- * Capture tracing data for Hapi.
  * If you also want to capture errors, you need to call `setupHapiErrorHandler(server)` after you set up your server.
+ *
+ * For more information, see the [hapi documentation](https://docs.sentry.io/platforms/javascript/guides/hapi/).
+ *
+ * @example
+ * ```javascript
+ * const Sentry = require('@sentry/node');
+ *
+ * Sentry.init({
+ *   integrations: [Sentry.hapiIntegration()],
+ * })
+ * ```
  */
 export const hapiIntegration = defineIntegration(_hapiIntegration);
 
@@ -81,6 +91,24 @@ export const hapiErrorPlugin = {
 
 /**
  * Add a Hapi plugin to capture errors to Sentry.
+ *
+ * @param server The Hapi server to attach the error handler to
+ *
+ * @example
+ * ```javascript
+ * const Sentry = require('@sentry/node');
+ * const Hapi = require('@hapi/hapi');
+ *
+ * const init = async () => {
+ *   const server = Hapi.server();
+ *
+ *   // all your routes here
+ *
+ *   await Sentry.setupHapiErrorHandler(server);
+ *
+ *   await server.start();
+ * };
+ * ```
  */
 export async function setupHapiErrorHandler(server: Server): Promise<void> {
   await server.register(hapiErrorPlugin);

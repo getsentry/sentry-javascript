@@ -110,8 +110,18 @@ const _redisIntegration = ((options: RedisOptions = {}) => {
 }) satisfies IntegrationFn;
 
 /**
- * Redis integration for "ioredis"
+ * Adds Sentry tracing instrumentation for the [redis](https://www.npmjs.com/package/redis) and
+ * [ioredis](https://www.npmjs.com/package/ioredis) libraries.
  *
- * Capture tracing data for redis and ioredis.
+ * For more information, see the [`redisIntegration` documentation](https://docs.sentry.io/platforms/javascript/guides/node/configuration/integrations/redis/).
+ *
+ * @example
+ * ```javascript
+ * const Sentry = require('@sentry/node');
+ *
+ * Sentry.init({
+ *  integrations: [Sentry.redisIntegration()],
+ * });
+ * ```
  */
 export const redisIntegration = defineIntegration(_redisIntegration);

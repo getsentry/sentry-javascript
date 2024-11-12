@@ -3,6 +3,8 @@ import * as crypto from 'crypto';
 
 import * as Sentry from '@sentry/node';
 
+global._sentryDebugIds = { [new Error().stack]: 'aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaa' };
+
 setTimeout(() => {
   process.exit();
 }, 10000);

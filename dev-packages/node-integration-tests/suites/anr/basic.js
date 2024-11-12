@@ -3,6 +3,8 @@ const assert = require('assert');
 
 const Sentry = require('@sentry/node');
 
+global._sentryDebugIds = { [new Error().stack]: 'aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaa' };
+
 setTimeout(() => {
   process.exit();
 }, 10000);
