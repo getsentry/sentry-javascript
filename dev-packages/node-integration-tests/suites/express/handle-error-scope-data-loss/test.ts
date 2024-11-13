@@ -14,7 +14,7 @@ afterAll(() => {
  * This test nevertheless covers the behavior so that we're aware.
  */
 test('withScope scope is NOT applied to thrown error caught by global handler', done => {
-  const runner = createRunner(__dirname, 'server.ts')
+  createRunner(__dirname, 'server.ts')
     .expect({
       event: {
         exception: {
@@ -42,16 +42,15 @@ test('withScope scope is NOT applied to thrown error caught by global handler', 
         tags: expect.not.objectContaining({ local: expect.anything() }),
       },
     })
-    .start(done);
-
-  expect(() => runner.makeRequest('get', '/test/withScope')).rejects.toThrow();
+    .start(done)
+    .makeRequest('get', '/test/withScope', { expectError: true });
 });
 
 /**
  * This test shows that the isolation scope set tags are applied correctly to the error.
  */
 test('isolation scope is applied to thrown error caught by global handler', done => {
-  const runner = createRunner(__dirname, 'server.ts')
+  createRunner(__dirname, 'server.ts')
     .expect({
       event: {
         exception: {
@@ -81,7 +80,6 @@ test('isolation scope is applied to thrown error caught by global handler', done
         },
       },
     })
-    .start(done);
-
-  expect(() => runner.makeRequest('get', '/test/isolationScope')).rejects.toThrow();
+    .start(done)
+    .makeRequest('get', '/test/isolationScope', { expectError: true });
 });
