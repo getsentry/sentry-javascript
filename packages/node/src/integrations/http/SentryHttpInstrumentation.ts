@@ -428,21 +428,15 @@ function patchRequestToCaptureBody(req: IncomingMessage, normalizedRequest: Requ
 }
 
 function extractQueryParams(req: IncomingMessage): string | undefined {
-  // url (including path and query string):
-  let originalUrl = req.url || '';
-
-  if (!originalUrl) {
+  // req.url is path and query string
+  if (!req.url) {
     return;
   }
 
-  // The `URL` constructor can't handle internal URLs of the form `/some/path/here`, so stick a dummy protocol and
-  // hostname on the beginning. Since the point here is just to grab the query string, it doesn't matter what we use.
-  if (originalUrl.startsWith('/')) {
-    originalUrl = `http://dogs.are.great${originalUrl}`;
-  }
-
   try {
-    const queryParams = new URL(originalUrl).search.slice(1);
+    // The `URL` constructor can't handle internal URLs of the form `/some/path/here`, so stick a dummy protocol and
+    // hostname as the base. Since the point here is just to grab the query string, it doesn't matter what we use.
+    const queryParams = new URL(req.url, 'http://dogs.are.great').search.slice(1);
     return queryParams.length ? queryParams : undefined;
   } catch {
     return undefined;
