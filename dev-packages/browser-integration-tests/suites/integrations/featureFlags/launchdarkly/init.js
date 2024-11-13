@@ -1,8 +1,7 @@
 import * as Sentry from '@sentry/browser';
-import { launchDarklyIntegration, buildLaunchDarklyFlagUsedHandler } from '@sentry/browser';
 
 window.Sentry = Sentry;
-window.sentryLDIntegration = launchDarklyIntegration();
+window.sentryLDIntegration = Sentry.launchDarklyIntegration();
 
 Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
@@ -31,6 +30,6 @@ window.initializeLD = () => {
   return MockLaunchDarkly.initialize(
     'example-client-id',
     { kind: 'user', key: 'example-context-key' },
-    { inspectors: [buildLaunchDarklyFlagUsedHandler()] },
+    { inspectors: [Sentry.buildLaunchDarklyFlagUsedHandler()] },
   );
 };
