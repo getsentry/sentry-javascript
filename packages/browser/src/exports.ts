@@ -100,5 +100,3 @@ export { linkedErrorsIntegration } from './integrations/linkederrors';
 export { browserApiErrorsIntegration } from './integrations/browserapierrors';
 
 export { lazyLoadIntegration } from './utils/lazyLoadIntegration';
-export { launchDarklyIntegration, buildLaunchDarklyFlagUsedHandler } from './integrations/featureFlags/launchdarkly';
-export { FLAG_BUFFER_SIZE } from './utils/featureFlags';

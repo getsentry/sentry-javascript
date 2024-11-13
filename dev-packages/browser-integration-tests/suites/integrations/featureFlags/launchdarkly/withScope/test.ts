@@ -2,11 +2,15 @@ import { expect } from '@playwright/test';
 
 import { sentryTest } from '../../../../../utils/fixtures';
 
-import { envelopeRequestParser, waitForErrorRequest } from '../../../../../utils/helpers';
+import { envelopeRequestParser, shouldSkipLaunchDarklyTest, waitForErrorRequest } from '../../../../../utils/helpers';
 
 import type { Scope } from '@sentry/browser';
 
 sentryTest('Flag evaluations in forked scopes are stored separately.', async ({ getLocalTestPath, page }) => {
+  if (shouldSkipLaunchDarklyTest()) {
+    sentryTest.skip();
+  }
+
   await page.route('https://dsn.ingest.sentry.io/**/*', route => {
     return route.fulfill({
       status: 200,

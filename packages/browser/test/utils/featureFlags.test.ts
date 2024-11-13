@@ -1,9 +1,17 @@
 
+import { logger } from '@sentry/utils';
 import { insertToFlagBuffer } from '../../src/utils/featureFlags';
 import type { FeatureFlag } from '@sentry/types';
+import { vi } from 'vitest';
 
 describe('flags', () => {
   describe('insertToFlagBuffer()', () => {
+    const loggerSpy = vi.spyOn(logger, 'error');
+
+    afterEach(() => {
+      loggerSpy.mockClear();
+    });
+
     it('maintains ordering and evicts the oldest entry', () => {
       const buffer: FeatureFlag[] = [];
       const maxSize = 3;
@@ -47,14 +55,29 @@ describe('flags', () => {
       ]);
     });
 
-    it('errors when maxSize is less than current buffer size', () => {
+    it('logs error and is a no-op when buffer is larger than maxSize', () => {
       const buffer: FeatureFlag[] = [
         { flag: 'feat1', result: true },
         { flag: 'feat2', result: true },
       ];
 
-      expect(() => insertToFlagBuffer(buffer, 'feat1', true, 1)).toThrowError();
-      expect(() => insertToFlagBuffer(buffer, 'feat1', true, -2)).toThrowError();
+      insertToFlagBuffer(buffer, 'feat1', true, 1);
+      expect(loggerSpy).toHaveBeenCalledWith(
+        expect.stringContaining('[Feature Flags] insertToFlagBuffer called on a buffer larger than maxSize'),
+      );
+      expect(buffer).toEqual([
+        { flag: 'feat1', result: true },
+        { flag: 'feat2', result: true },
+      ]);
+
+      insertToFlagBuffer(buffer, 'feat1', true, -2);
+      expect(loggerSpy).toHaveBeenCalledWith(
+        expect.stringContaining('[Feature Flags] insertToFlagBuffer called on a buffer larger than maxSize'),
+      );
+      expect(buffer).toEqual([
+        { flag: 'feat1', result: true },
+        { flag: 'feat2', result: true },
+      ]);
     });
   })
 })

@@ -34,7 +34,7 @@ export function insertToFlagBuffer(
   maxSize: number = FLAG_BUFFER_SIZE,
 ): void {
   if (flags.length > maxSize) {
-    DEBUG_BUILD && logger.error(`insertToFlagBuffer called on a buffer larger than the given maxSize=${maxSize}`);
+    DEBUG_BUILD && logger.error(`[Feature Flags] insertToFlagBuffer called on a buffer larger than maxSize=${maxSize}`);
     return;
   }
 
