@@ -92,7 +92,7 @@ describe('constructWrappedFunctionExportQuery', () => {
     const result = constructWrappedFunctionExportQuery(exportedBindings, entrypointWrappedFunctions, debug);
     expect(result).toBe('?sentry-query-reexported-functions=handler');
     expect(consoleWarnSpy).toHaveBeenCalledWith(
-      "[Sentry] No functions found to wrap. In case the server needs to export async functions other than `handler` or  `server`, consider adding the name(s) to Sentry's build options `sentry.entrypointWrappedFunctions` in `nuxt.config.ts`.",
+      '[Sentry] No functions found to wrap. In case the server needs to export async functions other than `handler` or `server`, consider adding the name(s) to `entrypointWrappedFunctions`.',
     );
 
     consoleWarnSpy.mockRestore();

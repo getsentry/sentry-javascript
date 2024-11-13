@@ -37,6 +37,12 @@ export function wrapServerEntryWithDynamicImport(config: WrapServerEntryPluginOp
     debug,
   } = config;
 
+  // In order to correctly import the server config file
+  // and dynamically import the nitro runtime, we need to
+  // mark the resolutionId with '\0raw' to fall into the
+  // raw chunk group, c.f. https://github.com/nitrojs/nitro/commit/8b4a408231bdc222569a32ce109796a41eac4aa6#diff-e58102d2230f95ddeef2662957b48d847a6e891e354cfd0ae6e2e03ce848d1a2R142
+  const resolutionIdPrefix = '\0raw';
+
   return {
     name: 'sentry-wrap-server-entry-with-dynamic-import',
     async resolveId(source, importer, options) {
@@ -70,19 +76,19 @@ export function wrapServerEntryWithDynamicImport(config: WrapServerEntryPluginOp
         // The enclosing `if` already checks for the suffix in `source`, but a check in `resolution.id` is needed as well to prevent multiple attachment of the suffix
         return resolution.id.includes(`.mjs${SENTRY_WRAPPED_ENTRY}`)
           ? resolution.id
-          : resolution.id
+          : `${resolutionIdPrefix}${resolution.id
               // Concatenates the query params to mark the file (also attaches names of re-exports - this is needed for serverless functions to re-export the handler)
               .concat(SENTRY_WRAPPED_ENTRY)
               .concat(
                 constructWrappedFunctionExportQuery(moduleInfo.exportedBindings, entrypointWrappedFunctions, debug),
               )
-              .concat(QUERY_END_INDICATOR);
+              .concat(QUERY_END_INDICATOR)}`;
       }
       return null;
     },
     load(id: string) {
       if (id.includes(`.mjs${SENTRY_WRAPPED_ENTRY}`)) {
-        const entryId = removeSentryQueryFromPath(id);
+        const entryId = removeSentryQueryFromPath(id).slice(resolutionIdPrefix.length);
 
         // Mostly useful for serverless `handler` functions
         const reExportedFunctions =
@@ -188,7 +194,7 @@ export function constructWrappedFunctionExportQuery(
     consoleSandbox(() =>
       // eslint-disable-next-line no-console
       console.warn(
-        "[Sentry] No functions found to wrap. In case the server needs to export async functions other than `handler` or  `server`, consider adding the name(s) to Sentry's build options `sentry.entrypointWrappedFunctions` in `nuxt.config.ts`.",
+        '[Sentry] No functions found to wrap. In case the server needs to export async functions other than `handler` or `server`, consider adding the name(s) to `entrypointWrappedFunctions`.',
       ),
     );
   }
