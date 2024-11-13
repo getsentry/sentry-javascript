@@ -1234,7 +1234,7 @@ jobs:
         (needs.job_get_metadata.outputs.is_release == 'true')
       )
     needs: [job_get_metadata, job_build, job_e2e_prepare]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     timeout-minutes: 15
     env:
       E2E_TEST_AUTH_TOKEN: ${{ secrets.E2E_TEST_AUTH_TOKEN }}
