@@ -26,11 +26,12 @@ export const launchDarklyIntegration = defineIntegration(() => {
     processEvent(event: Event, _hint: EventHint, _client: Client): Event {
       const scope = getCurrentScope();
       const flagContext = scope.getScopeData().contexts.flags;
+      const flagBuffer = flagContext ? flagContext.values : [];
 
       if (event.contexts === undefined) {
         event.contexts = {};
       }
-      event.contexts.flags = flagContext;
+      event.contexts.flags = { values: [...flagBuffer] };
       return event;
     },
   };
