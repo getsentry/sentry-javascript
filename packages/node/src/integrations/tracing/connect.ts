@@ -2,6 +2,7 @@ import { ConnectInstrumentation } from '@opentelemetry/instrumentation-connect';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   captureException,
   defineIntegration,
   getClient,
@@ -108,5 +109,7 @@ function addConnectSpanAttributes(span: Span): void {
   const name = attributes['connect.name'];
   if (typeof name === 'string') {
     span.updateName(name);
+    // set the source of the span to what it was before (likely undefined)
+    span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]);
   }
 }

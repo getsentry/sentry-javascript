@@ -1,4 +1,9 @@
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, withActiveSpan } from '@sentry/core';
+import {
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  withActiveSpan,
+} from '@sentry/core';
 import type { Span } from '@sentry/types';
 import { addNonEnumerableProperty } from '@sentry/utils';
 import type { CatchTarget, InjectableTarget, NextFunction, Observable, Subscription } from './types';
@@ -32,6 +37,7 @@ export function getMiddlewareSpanOptions(target: InjectableTarget | CatchTarget,
     attributes: {
       [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'middleware.nestjs',
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.middleware.nestjs',
+      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
     },
   };
 }

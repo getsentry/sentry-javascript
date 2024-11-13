@@ -1,6 +1,12 @@
 import type * as http from 'node:http';
 import { ExpressInstrumentation } from '@opentelemetry/instrumentation-express';
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP, defineIntegration, getDefaultIsolationScope, spanToJSON } from '@sentry/core';
+import {
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  defineIntegration,
+  getDefaultIsolationScope,
+  spanToJSON,
+} from '@sentry/core';
 import { captureException, getClient, getIsolationScope } from '@sentry/core';
 import type { IntegrationFn } from '@sentry/types';
 import { logger } from '@sentry/utils';
@@ -31,6 +37,8 @@ export const instrumentExpress = generateInstrumentOnce(
         const name = attributes['express.name'];
         if (typeof name === 'string') {
           span.updateName(name);
+          // set the source of the span to what it was before (likely undefined)
+          span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]);
         }
       },
       spanNameHook(info, defaultName) {

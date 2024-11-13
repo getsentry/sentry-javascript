@@ -173,6 +173,8 @@ export function init(options: NodeOptions): NodeClient | undefined {
       ) {
         const route = spanAttributes['next.route'].replace(/\/route$/, '');
         rootSpan.updateName(route);
+        // set the source of the root span to what it was before cleaning up the name
+        rootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, spanAttributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]);
         rootSpan.setAttribute(ATTR_HTTP_ROUTE, route);
       }
     }

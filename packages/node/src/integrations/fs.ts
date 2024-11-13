@@ -1,5 +1,10 @@
 import { FsInstrumentation } from '@opentelemetry/instrumentation-fs';
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, defineIntegration } from '@sentry/core';
+import {
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  defineIntegration,
+} from '@sentry/core';
 import { generateInstrumentOnce } from '../otel/instrument';
 
 const INTEGRATION_NAME = 'FileSystem';
@@ -45,6 +50,7 @@ export const fsIntegration = defineIntegration(
                 span.setAttributes({
                   [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'file',
                   [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.file.fs',
+                  [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
                 });
 
                 if (options.recordErrorMessagesAsSpanAttributes) {

@@ -16,7 +16,11 @@ import {
 import type { SpanAttributes, TransactionSource } from '@sentry/types';
 import { getSanitizedUrlString, parseUrl, stripUrlQueryAndFragment } from '@sentry/utils';
 
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
+import {
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+} from '@sentry/core';
 import { SEMANTIC_ATTRIBUTE_SENTRY_GRAPHQL_OPERATION } from '../semanticAttributes';
 import type { AbstractSpan } from '../types';
 import { getSpanKind } from './getSpanKind';
@@ -33,6 +37,13 @@ interface SpanDescription {
  * Infer the op & description for a set of name, attributes and kind of a span.
  */
 export function inferSpanData(name: string, attributes: SpanAttributes, kind: SpanKind): SpanDescription {
+  // If users (or in very rare occasions our SDK instrumentation) set the source to "custom"
+  // or users manually started a span, we just bail because we don't want to override their data
+  const previouslySetSource = attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
+  if (previouslySetSource && previouslySetSource === 'custom') {
+    return { op: attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP], description: name, source: previouslySetSource };
+  }
+
   // if http.method exists, this is an http request span
   // eslint-disable-next-line deprecation/deprecation
   const httpMethod = attributes[ATTR_HTTP_REQUEST_METHOD] || attributes[SEMATTRS_HTTP_METHOD];

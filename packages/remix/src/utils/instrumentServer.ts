@@ -135,6 +135,7 @@ function makeWrappedDocumentRequestFunction(autoInstrumentRemix?: boolean, remix
               url: request.url,
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.remix',
               [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function.remix.document_request',
+              [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
             },
           },
           () => {
@@ -175,6 +176,7 @@ function makeWrappedDataFunction(
           name: id,
           attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.remix',
+            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
             name,
           },
         },

@@ -3,6 +3,7 @@ import { ATTR_HTTP_ROUTE } from '@opentelemetry/semantic-conventions';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   captureException,
   defineIntegration,
   getDefaultIsolationScope,
@@ -120,5 +121,7 @@ function addKoaSpanAttributes(span: Span): void {
     // Somehow, name is sometimes `''` for middleware spans
     // See: https://github.com/open-telemetry/opentelemetry-js-contrib/issues/2220
     span.updateName(name || '< unknown >');
+    // set the source of the span to what it was before (likely undefined)
+    span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]);
   }
 }

@@ -8,6 +8,7 @@ import {
   getDefaultIsolationScope,
   logSpanEnd,
   logSpanStart,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   setCapturedScopesOnSpan,
 } from '@sentry/core';
 import { SEMANTIC_ATTRIBUTE_SENTRY_PARENT_IS_REMOTE } from './semanticAttributes';
@@ -16,6 +17,21 @@ import { getScopesFromContext } from './utils/contextData';
 import { setIsSetup } from './utils/setupCheck';
 
 function onSpanStart(span: Span, parentContext: Context): void {
+  // Ugly hack to set the source to custom when updating the span name
+  // We want to add this functionality so that users don't have to care
+  // about setting the source attribute themselves
+  // This is in-line with other SDKs as well as the `SentrySpan` class.
+  try {
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    const originalSpanUpdateName = span.updateName;
+    span.updateName = (name: string) => {
+      span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'custom');
+      return originalSpanUpdateName.call(span, name);
+    };
+  } catch {
+    // Safe-guarding this in case bundlers add freezing logic that breaks the assignment
+  }
+
   // This is a reliable way to get the parent span - because this is exactly how the parent is identified in the OTEL SDK
   const parentSpan = trace.getSpan(parentContext);
 
