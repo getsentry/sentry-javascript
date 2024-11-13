@@ -152,9 +152,6 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
         // Update the isolation scope, isolate this request
         isolationScope.setSDKProcessingMetadata({ request, normalizedRequest });
 
-        // Update the isolation scope, isolate this request
-        isolationScope.setSDKProcessingMetadata({ request });
-
         const client = getClient<NodeClient>();
         if (client && client.getOptions().autoSessionTracking) {
           isolationScope.setRequestSession({ status: 'ok' });

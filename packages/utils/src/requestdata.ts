@@ -450,8 +450,7 @@ function extractNormalizedRequestData(normalizedRequest: Request, { include }: {
   const includeKeys = include ? (Array.isArray(include) ? include : DEFAULT_REQUEST_INCLUDES) : [];
 
   const requestData: Request = {};
-
-  const { headers } = normalizedRequest;
+  const headers = { ...normalizedRequest.headers };
 
   if (includeKeys.includes('headers')) {
     requestData.headers = headers;
