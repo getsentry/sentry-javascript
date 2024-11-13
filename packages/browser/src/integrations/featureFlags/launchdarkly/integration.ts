@@ -1,7 +1,7 @@
 import type { Client, Event, EventHint, IntegrationFn } from '@sentry/types';
 import type { LDContext, LDEvaluationDetail, LDInspectionFlagUsedHandler } from 'launchdarkly-js-client-sdk';
 
-import { insertToFlagBuffer } from '../utils/flags'
+import { insertToFlagBuffer } from '../../../utils/featureFlags'
 import { defineIntegration, getCurrentScope } from '@sentry/core';
 
 /**
@@ -60,7 +60,6 @@ export function buildLaunchDarklyFlagUsedHandler(): LDInspectionFlagUsedHandler 
         }
         const flagBuffer = scopeContexts.flags.values;
         insertToFlagBuffer(flagBuffer, flagKey, flagDetail.value);
-        // TODO: the flag buffer isn't thread-safe, yet this handler and the event processor could access it at the same time.
       }
       return;
     },

@@ -1,11 +1,11 @@
 import { expect } from '@playwright/test';
 
-import { sentryTest } from '../../../../utils/fixtures';
+import { sentryTest } from '../../../../../utils/fixtures';
 
-import { envelopeRequestParser, waitForErrorRequest } from '../../../../utils/helpers';
+import { envelopeRequestParser, waitForErrorRequest } from '../../../../../utils/helpers';
 import { FLAG_BUFFER_SIZE } from '@sentry/browser';
 
-sentryTest('e2e test', async ({ getLocalTestPath, page }) => {
+sentryTest('Basic test with eviction, update, and no async tasks', async ({ getLocalTestPath, page }) => {
   await page.route('https://dsn.ingest.sentry.io/**/*', route => {
     return route.fulfill({
       status: 200,
