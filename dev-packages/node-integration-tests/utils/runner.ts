@@ -25,7 +25,6 @@ import {
   assertSentryTransaction,
 } from './assertions';
 import { createBasicSentryServer } from './server';
-import { normalize } from '@sentry/utils';
 
 const CLEANUP_STEPS = new Set<VoidFunction>();
 
