@@ -52,7 +52,7 @@ describe('express without tracing', () => {
         })
         .start(done);
 
-      runner.makeRequest('post', '/test-post', {}, { foo: 'bar', other: 1 });
+      runner.makeRequest('post', '/test-post', { data: { foo: 'bar', other: 1 } });
     });
 
     test('correctly captures plain text request data', done => {
@@ -73,14 +73,12 @@ describe('express without tracing', () => {
         })
         .start(done);
 
-      runner.makeRequest(
-        'post',
-        '/test-post',
-        {
+      runner.makeRequest('post', '/test-post', {
+        headers: {
           'Content-Type': 'text/plain',
         },
-        'some plain text',
-      );
+        data: 'some plain text',
+      });
     });
 
     test('correctly captures text buffer request data', done => {
@@ -101,12 +99,10 @@ describe('express without tracing', () => {
         })
         .start(done);
 
-      runner.makeRequest(
-        'post',
-        '/test-post',
-        { 'Content-Type': 'application/octet-stream' },
-        Buffer.from('some plain text in buffer'),
-      );
+      runner.makeRequest('post', '/test-post', {
+        headers: { 'Content-Type': 'application/octet-stream' },
+        data: Buffer.from('some plain text in buffer'),
+      });
     });
 
     test('correctly captures non-text buffer request data', done => {
@@ -130,7 +126,7 @@ describe('express without tracing', () => {
 
       const body = new Uint8Array([1, 2, 3, 4, 5]).buffer;
 
-      runner.makeRequest('post', '/test-post', { 'Content-Type': 'application/octet-stream' }, body);
+      runner.makeRequest('post', '/test-post', { headers: { 'Content-Type': 'application/octet-stream' }, data: body });
     });
   });
 });
