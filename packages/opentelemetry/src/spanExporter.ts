@@ -45,7 +45,6 @@ interface FinishedSpanBucket {
  */
 export class SentrySpanExporter {
   private _flushTimeout: ReturnType<typeof setTimeout> | undefined;
-  // private _finishedSpans: ReadableSpan[];
   private _finishedSpanBuckets: (FinishedSpanBucket | undefined)[];
   private _finishedSpanBucketSize: number;
   private _spansToBucketEntry: WeakMap<ReadableSpan, FinishedSpanBucket>;
