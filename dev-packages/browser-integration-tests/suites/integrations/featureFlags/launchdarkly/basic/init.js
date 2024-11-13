@@ -27,13 +27,10 @@ const MockLaunchDarkly = {
   },
 };
 
-window.ldClient = undefined;
-
 window.initializeLD = () => {
-  window.ldClient = MockLaunchDarkly.initialize(
+  return MockLaunchDarkly.initialize(
     'example-client-id',
     { kind: 'user', key: 'example-context-key' },
     { inspectors: [buildLaunchDarklyFlagUsedHandler()] },
   );
-  return window.ldClient;
 };

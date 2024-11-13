@@ -21,12 +21,9 @@ sentryTest('Flag evaluations in forked scopes are stored separately.', async ({ 
   const forkedReqPromise = waitForErrorRequest(page, event => !!event.tags && event.tags.isForked === true);
   const mainReqPromise = waitForErrorRequest(page, event => !!event.tags && event.tags.isForked === false);
 
-  const hasButton = await page.evaluate(() => {
+  await page.waitForFunction(() => {
     const Sentry = (window as any).Sentry;
-    const errorButton = document.querySelector('#error');
-    if (!(errorButton instanceof HTMLButtonElement)) {
-      return false;
-    }
+    const errorButton = document.querySelector('#error') as HTMLButtonElement;
     const ldClient = (window as any).initializeLD();
 
     ldClient.variation('shared', true);
@@ -35,7 +32,9 @@ sentryTest('Flag evaluations in forked scopes are stored separately.', async ({ 
       ldClient.variation('forked', true);
       ldClient.variation('shared', false);
       scope.setTag('isForked', true);
-      errorButton.click();
+      if (errorButton) {
+        errorButton.click();
+      }
     });
 
     ldClient.variation('main', true);
@@ -43,10 +42,6 @@ sentryTest('Flag evaluations in forked scopes are stored separately.', async ({ 
     errorButton.click();
     return true;
   });
-
-  if (!hasButton) {
-    throw new Error('Expected template to have a button that throws an error')
-  }
 
   const forkedReq = await forkedReqPromise;
   const forkedEvent = envelopeRequestParser(forkedReq);
