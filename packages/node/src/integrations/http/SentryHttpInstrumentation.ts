@@ -457,7 +457,7 @@ function extractQueryParams(req: IncomingMessage): string | undefined {
 }
 
 function headersToDict(reqHeaders: Record<string, string | string[] | undefined>): Record<string, string> {
-  const headers: Record<string, string> = {};
+  const headers: Record<string, string> = Object.create(null);
 
   try {
     Object.entries(reqHeaders).forEach(([key, value]) => {
