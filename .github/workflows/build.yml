@@ -965,6 +965,12 @@ jobs:
             label: 'nextjs-app-dir (next@13)'
 
     steps:
+      - name: Check out base commit (${{ github.event.pull_request.base.sha }})
+        uses: actions/checkout@v4
+        if: github.event_name == 'pull_request'
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v4
         with:
@@ -986,8 +992,8 @@ jobs:
 
       - name: Determine if test app should be run
         id: should-skip
-        if: github.event.pull_request.base.sha
-        run: yarn test:should-skip ${{ matrix.test-application }} --base=${{ github.event.pull_request.base.sha }} >> $GITHUB_OUTPUT
+        if: github.event_name == 'pull_request'
+        run: yarn --silent test:should-skip ${{ matrix.test-application }} --base=${{ github.event.pull_request.base.sha }} >> $GITHUB_OUTPUT
         working-directory: dev-packages/e2e-tests
 
       - name: Restore tarball cache
@@ -1146,6 +1152,11 @@ jobs:
             label: 'nextjs-turbo (latest)'
 
     steps:
+      - name: Check out base commit (${{ github.event.pull_request.base.sha }})
+        uses: actions/checkout@v4
+        if: github.event_name == 'pull_request'
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v4
         with:
@@ -1164,8 +1175,8 @@ jobs:
 
       - name: Determine if test app should be run
         id: should-skip
-        if: github.event.pull_request.base.sha
-        run: yarn test:should-skip ${{ matrix.test-application }} --base=${{ github.event.pull_request.base.sha }} >> $GITHUB_OUTPUT
+        if: github.event_name == 'pull_request'
+        run: yarn --silent test:should-skip ${{ matrix.test-application }} --base=${{ github.event.pull_request.base.sha }} >> $GITHUB_OUTPUT
         working-directory: dev-packages/e2e-tests
 
       - name: Restore tarball cache
