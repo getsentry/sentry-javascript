@@ -1015,6 +1015,7 @@ jobs:
           browsers: chromium
 
       - name: Get node version
+        if: steps.should-skip.outputs.SKIP != 'true'
         id: versions
         run: |
           echo "echo node=$(jq -r '.volta.node' dev-packages/e2e-tests/package.json)" >> $GITHUB_OUTPUT
@@ -1199,6 +1200,7 @@ jobs:
 
       - name: Get node version
         id: versions
+        if: steps.should-skip.outputs.SKIP != 'true'
         run: |
           echo "echo node=$(jq -r '.volta.node' dev-packages/e2e-tests/package.json)" >> $GITHUB_OUTPUT
 
