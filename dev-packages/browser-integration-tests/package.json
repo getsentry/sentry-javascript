@@ -51,7 +51,6 @@
     "webpack": "^5.95.0"
   },
   "devDependencies": {
-    "@sentry/types": "8.37.1",
     "@types/glob": "8.0.0",
     "@types/node": "^14.18.0",
     "@types/pako": "^2.0.0",
