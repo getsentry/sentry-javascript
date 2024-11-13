@@ -82,14 +82,14 @@ function withSentryRouterRoot(Root: Component<RouteSectionProps>): Component<Rou
       const rootSpan = getActiveRootSpan();
 
       if (rootSpan) {
-        const { op, description, data } = spanToJSON(rootSpan);
+        const { op, description } = spanToJSON(rootSpan);
 
         // We only need to update navigation spans that have been created by
         // a browser back-button navigation (stored as `-1` by solid router)
         // everything else was already instrumented correctly in `useBeforeLeave`
         if (op === 'navigation' && description === '-1') {
           rootSpan.updateName(name);
-          rootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, data && data[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]);
+          rootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'url');
         }
       }
     });
