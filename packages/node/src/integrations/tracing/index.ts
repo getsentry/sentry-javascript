@@ -18,6 +18,7 @@ import { instrumentMysql2, mysql2Integration } from './mysql2';
 import { instrumentNest, nestIntegration } from './nest/nest';
 import { instrumentPostgres, postgresIntegration } from './postgres';
 import { instrumentRedis, redisIntegration } from './redis';
+import { instrumentTedious, tediousIntegration } from './tedious';
 
 /**
  * With OTEL, all performance integrations will be added, as OTEL only initializes them when the patched package is actually required.
@@ -41,6 +42,7 @@ export function getAutoPerformanceIntegrations(): Integration[] {
     hapiIntegration(),
     koaIntegration(),
     connectIntegration(),
+    tediousIntegration(),
     genericPoolIntegration(),
     kafkaIntegration(),
     amqplibIntegration(),
@@ -71,6 +73,7 @@ export function getOpenTelemetryInstrumentationToPreload(): (((options?: any) =>
     instrumentHapi,
     instrumentGraphql,
     instrumentRedis,
+    instrumentTedious,
     instrumentGenericPool,
     instrumentAmqplib,
   ];

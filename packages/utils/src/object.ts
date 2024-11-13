@@ -98,7 +98,7 @@ export function urlEncode(object: { [key: string]: any }): string {
  * non-enumerable properties attached.
  *
  * @param value Initial source that we have to transform in order for it to be usable by the serializer
- * @returns An Event or Error turned into an object - or the value argurment itself, when value is neither an Event nor
+ * @returns An Event or Error turned into an object - or the value argument itself, when value is neither an Event nor
  *  an Error.
  */
 export function convertToPlainObject<V>(

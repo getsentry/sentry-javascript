@@ -163,7 +163,7 @@ describe('sentryHandle', () => {
         await sentryHandle()({
           event: mockEvent(),
           resolve: async _ => {
-            // simulateing a nested load call:
+            // simulating a nested load call:
             await sentryHandle()({
               event: mockEvent({ route: { id: 'api/users/details/[id]', isSubRequest: true } }),
               resolve: resolve(type, isError),
@@ -210,7 +210,7 @@ describe('sentryHandle', () => {
         await sentryHandle()({
           event: mockEvent(),
           resolve: async _ => {
-            // simulateing a nested load call:
+            // simulating a nested load call:
             await sentryHandle()({
               event: mockEvent({ route: { id: 'api/users/details/[id]' } }),
               resolve: resolve(type, isError),

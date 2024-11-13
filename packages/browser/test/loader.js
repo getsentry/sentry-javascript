@@ -42,7 +42,7 @@
       lazy
     ) {
       // We only want to lazy inject/load the sdk bundle if
-      // an error or promise rejection occured
+      // an error or promise rejection occurred
       // OR someone called `capture...` on the SDK
       injectSdk(onLoadCallbacks);
     }
@@ -127,7 +127,7 @@
           calledSentry = true;
           var call = data[i];
           if (initAlreadyCalled === false && call.f !== 'init') {
-            // First call always has to be init, this is a conveniece for the user so call to init is optional
+            // First call always has to be init, this is a convenience for the user so call to init is optional
             SDK.init();
           }
           initAlreadyCalled = true;

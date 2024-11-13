@@ -1,21 +1,11 @@
 /* eslint-disable max-lines */
 
 import { DEFAULT_ENVIRONMENT, getClient, spanToJSON } from '@sentry/core';
-import type {
-  DebugImage,
-  Envelope,
-  Event,
-  EventEnvelope,
-  Profile,
-  Span,
-  StackFrame,
-  StackParser,
-  ThreadCpuProfile,
-} from '@sentry/types';
+import type { DebugImage, Envelope, Event, EventEnvelope, Profile, Span, ThreadCpuProfile } from '@sentry/types';
 import {
-  GLOBAL_OBJ,
   browserPerformanceTimeOrigin,
   forEachEnvelopeItem,
+  getDebugImagesForResources,
   logger,
   timestampInSeconds,
   uuid4,
@@ -352,17 +342,10 @@ export function findProfiledTransactionsFromEnvelope(envelope: Envelope): Event[
   return events;
 }
 
-const debugIdStackParserCache = new WeakMap<StackParser, Map<string, StackFrame[]>>();
 /**
  * Applies debug meta data to an event from a list of paths to resources (sourcemaps)
  */
 export function applyDebugMetadata(resource_paths: ReadonlyArray<string>): DebugImage[] {
-  const debugIdMap = GLOBAL_OBJ._sentryDebugIds;
-
-  if (!debugIdMap) {
-    return [];
-  }
-
   const client = getClient();
   const options = client && client.getOptions();
   const stackParser = options && options.stackParser;
@@ -371,51 +354,7 @@ export function applyDebugMetadata(resource_paths: ReadonlyArray<string>): Debug
     return [];
   }
 
-  let debugIdStackFramesCache: Map<string, StackFrame[]>;
-  const cachedDebugIdStackFrameCache = debugIdStackParserCache.get(stackParser);
-  if (cachedDebugIdStackFrameCache) {
-    debugIdStackFramesCache = cachedDebugIdStackFrameCache;
-  } else {
-    debugIdStackFramesCache = new Map<string, StackFrame[]>();
-    debugIdStackParserCache.set(stackParser, debugIdStackFramesCache);
-  }
-
-  // Build a map of filename -> debug_id
-  const filenameDebugIdMap = Object.keys(debugIdMap).reduce<Record<string, string>>((acc, debugIdStackTrace) => {
-    let parsedStack: StackFrame[];
-
-    const cachedParsedStack = debugIdStackFramesCache.get(debugIdStackTrace);
-    if (cachedParsedStack) {
-      parsedStack = cachedParsedStack;
-    } else {
-      parsedStack = stackParser(debugIdStackTrace);
-      debugIdStackFramesCache.set(debugIdStackTrace, parsedStack);
-    }
-
-    for (let i = parsedStack.length - 1; i >= 0; i--) {
-      const stackFrame = parsedStack[i];
-      const file = stackFrame && stackFrame.filename;
-
-      if (stackFrame && file) {
-        acc[file] = debugIdMap[debugIdStackTrace] as string;
-        break;
-      }
-    }
-    return acc;
-  }, {});
-
-  const images: DebugImage[] = [];
-  for (const path of resource_paths) {
-    if (path && filenameDebugIdMap[path]) {
-      images.push({
-        type: 'sourcemap',
-        code_file: path,
-        debug_id: filenameDebugIdMap[path] as string,
-      });
-    }
-  }
-
-  return images;
+  return getDebugImagesForResources(stackParser, resource_paths);
 }
 
 /**
@@ -601,7 +540,7 @@ export function createProfilingEvent(
 
 // TODO (v8): We need to obtain profile ids in @sentry-internal/tracing,
 // but we don't have access to this map because importing this map would
-// cause a circular dependancy. We need to resolve this in v8.
+// cause a circular dependency. We need to resolve this in v8.
 const PROFILE_MAP: Map<string, JSSelfProfile> = new Map();
 /**
  *

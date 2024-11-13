@@ -41,7 +41,7 @@ export function startProfileForSpan(span: Span): void {
   // Whichever of the two (span.finish/timeout) is first to run, the profiling will be stopped and the gathered profile
   // will be processed when the original span is finished. Since onProfileHandler can be invoked multiple times in the
   // event of an error or user mistake (calling span.finish multiple times), it is important that the behavior of onProfileHandler
-  // is idempotent as we do not want any timings or profiles to be overriden by the last call to onProfileHandler.
+  // is idempotent as we do not want any timings or profiles to be overridden by the last call to onProfileHandler.
   // After the original finish method is called, the event will be reported through the integration and delegated to transport.
   const processedProfile: JSSelfProfile | null = null;
 

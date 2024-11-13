@@ -235,7 +235,7 @@ export interface Scope {
    * Capture an exception for this scope.
    *
    * @param exception The exception to capture.
-   * @param hint Optinal additional data to attach to the Sentry event.
+   * @param hint Optional additional data to attach to the Sentry event.
    * @returns the id of the captured Sentry event.
    */
   captureException(exception: unknown, hint?: EventHint): string;

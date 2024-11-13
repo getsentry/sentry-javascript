@@ -275,8 +275,8 @@ export function shouldSkipMetricsTest(): boolean {
 
 /**
  * Waits until a number of requests matching urlRgx at the given URL arrive.
- * If the timout option is configured, this function will abort waiting, even if it hasn't reveived the configured
- * amount of requests, and returns all the events recieved up to that point in time.
+ * If the timeout option is configured, this function will abort waiting, even if it hasn't received the configured
+ * amount of requests, and returns all the events received up to that point in time.
  */
 async function getMultipleRequests<T>(
   page: Page,

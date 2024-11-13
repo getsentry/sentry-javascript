@@ -7,7 +7,7 @@ import { handleRequest } from '../../server/middleware';
  * to astro ^3.5.0 projects.
  *
  * It's not possible to pass options at this moment, so we'll call our middleware
- * factory function with the default options. Users can deactiveate the automatic
+ * factory function with the default options. Users can deactivate the automatic
  * middleware registration in our integration and manually add it in their own
  * `/src/middleware.js` file.
  */

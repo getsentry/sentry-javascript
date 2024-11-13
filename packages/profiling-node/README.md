@@ -305,7 +305,7 @@ In that case it is possible that the function name may end up being reported to 
 
 No. All instances of the profiler are scoped per thread In practice, this means that starting a transaction on thread A
 and delegating work to thread B will only result in sample stacks being collected from thread A. That said, nothing
-should prevent you from starting a transaction on thread B concurrently which will result in two independant profiles
+should prevent you from starting a transaction on thread B concurrently which will result in two independent profiles
 being sent to the Sentry backend. We currently do not do any correlation between such transactions, but we would be open
 to exploring the possibilities. Please file an issue if you have suggestions or specific use-cases in mind.
 

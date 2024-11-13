@@ -49,7 +49,7 @@ export function detectAndReportSvelteKit(): void {
 
 /**
  * To actually detect a SvelteKit frontend, we search the DOM for a special
- * div that's inserted by SvelteKit when the page is rendered. It's identifyed
+ * div that's inserted by SvelteKit when the page is rendered. It's identified
  * by its id, 'svelte-announcer', and it's used to improve page accessibility.
  * This div is not present when only using Svelte without SvelteKit.
  *

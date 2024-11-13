@@ -52,11 +52,13 @@ export function loadModule<T>(moduleName: string): T | undefined {
     // no-empty
   }
 
-  try {
-    const { cwd } = dynamicRequire(module, 'process');
-    mod = dynamicRequire(module, `${cwd()}/node_modules/${moduleName}`) as T;
-  } catch (e) {
-    // no-empty
+  if (!mod) {
+    try {
+      const { cwd } = dynamicRequire(module, 'process');
+      mod = dynamicRequire(module, `${cwd()}/node_modules/${moduleName}`) as T;
+    } catch (e) {
+      // no-empty
+    }
   }
 
   return mod;

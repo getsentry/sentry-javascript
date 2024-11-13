@@ -8,7 +8,7 @@ import {
   makeSession,
   updateSession,
 } from '@sentry/core';
-import type { Event, ScopeData, Session, StackFrame } from '@sentry/types';
+import type { DebugImage, Event, ScopeData, Session, StackFrame } from '@sentry/types';
 import {
   callFrameToStackFrame,
   normalizeUrlToBase,
@@ -26,6 +26,7 @@ type VoidFunction = () => void;
 const options: WorkerStartData = workerData;
 let session: Session | undefined;
 let hasSentAnrEvent = false;
+let mainDebugImages: Record<string, string> = {};
 
 function log(msg: string): void {
   if (options.debug) {
@@ -87,6 +88,35 @@ function prepareStackFrames(stackFrames: StackFrame[] | undefined): StackFrame[]
   return strippedFrames;
 }
 
+function applyDebugMeta(event: Event): void {
+  if (Object.keys(mainDebugImages).length === 0) {
+    return;
+  }
+
+  const filenameToDebugId = new Map<string, string>();
+
+  for (const exception of event.exception?.values || []) {
+    for (const frame of exception.stacktrace?.frames || []) {
+      const filename = frame.abs_path || frame.filename;
+      if (filename && mainDebugImages[filename]) {
+        filenameToDebugId.set(filename, mainDebugImages[filename] as string);
+      }
+    }
+  }
+
+  if (filenameToDebugId.size > 0) {
+    const images: DebugImage[] = [];
+    for (const [filename, debugId] of filenameToDebugId.entries()) {
+      images.push({
+        type: 'sourcemap',
+        code_file: filename,
+        debug_id: debugId,
+      });
+    }
+    event.debug_meta = { images };
+  }
+}
+
 function applyScopeToEvent(event: Event, scope: ScopeData): void {
   applyScopeDataToEvent(event, scope);
 
@@ -139,6 +169,8 @@ async function sendAnrEvent(frames?: StackFrame[], scope?: ScopeData): Promise<v
   if (scope) {
     applyScopeToEvent(event, scope);
   }
+
+  applyDebugMeta(event);
 
   const envelope = createEventEnvelope(event, options.dsn, options.sdkMetadata, options.tunnel);
   // Log the envelope to aid in testing
@@ -272,9 +304,13 @@ function watchdogTimeout(): void {
 
 const { poll } = watchdogTimer(createHrTimer, options.pollInterval, options.anrThreshold, watchdogTimeout);
 
-parentPort?.on('message', (msg: { session: Session | undefined }) => {
+parentPort?.on('message', (msg: { session: Session | undefined; debugImages?: Record<string, string> }) => {
   if (msg.session) {
     session = makeSession(msg.session);
+  }
+
+  if (msg.debugImages) {
+    mainDebugImages = msg.debugImages;
   }
 
   poll();

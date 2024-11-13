@@ -8,7 +8,7 @@ import { makeFetchTransport } from './fetch';
 // modified and simplified: https://github.com/jakearchibald/idb-keyval
 //
 // At commit: 0420a704fd6cbb4225429c536b1f61112d012fca
-// Original licence:
+// Original license:
 
 // Copyright 2016, Jake Archibald
 //
