@@ -6,10 +6,6 @@
 
 # Sentry Utilities for Nitro-based SDKs
 
-[![npm version](https://img.shields.io/npm/v/@sentry-internal/nitro-utils.svg)](https://www.npmjs.com/package/@sentry-internal/nitro-utils)
-[![npm dm](https://img.shields.io/npm/dm/@sentry-internal/nitro-utils.svg)](https://www.npmjs.com/package/@sentry-internal/nitro-utils)
-[![npm dt](https://img.shields.io/npm/dt/@sentry-internal/nitro-utils.svg)](https://www.npmjs.com/package/@sentry-internal/nitro-utils)
-
 ## Links
 
 - [Official SDK Docs](https://docs.sentry.io/quickstart/)
