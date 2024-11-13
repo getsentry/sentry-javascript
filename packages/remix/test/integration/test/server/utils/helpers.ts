@@ -4,7 +4,7 @@ import * as path from 'path';
 import { createRequestHandler } from '@remix-run/express';
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import * as Sentry from '@sentry/node';
-import type { EnvelopeItemType, TransactionEvent, Event } from '@sentry/types';
+import type { EnvelopeItemType, Event, TransactionEvent } from '@sentry/types';
 import { logger } from '@sentry/utils';
 import type { AxiosRequestConfig } from 'axios';
 import axios from 'axios';
@@ -282,7 +282,6 @@ export class RemixTestEnv extends TestEnv {
 const parseEnvelope = (body: string): Array<Record<string, unknown>> => {
   return body.split('\n').map(e => JSON.parse(e));
 };
-
 
 /**
  * Asserts against a Sentry Event ignoring non-deterministic properties
