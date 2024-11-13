@@ -234,6 +234,13 @@ export interface Span {
 
   /**
    * Update the name of the span.
+   *
+   * Calling this method will also override or set the `SEMANTIC_ATTRIBUTE_SENTRY_SOURCE` attribute to `custom`.
+   * This indicates to the Sentry backend that the span name was set manually to skip potential post processing of the name.
+   * This is very likely what you want to achieve when calling this method!
+   *
+   * If you still need to change the source attribute (for instance for custom router instrumentation),
+   * you can do so by calling `span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, sourceValue)`.
    */
   updateName(name: string): this;
 

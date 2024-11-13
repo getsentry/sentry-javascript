@@ -4,7 +4,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   withActiveSpan,
 } from '@sentry/core';
-import type { Span } from '@sentry/types';
+import type { Span, StartSpanOptions } from '@sentry/types';
 import { addNonEnumerableProperty } from '@sentry/utils';
 import type { CatchTarget, InjectableTarget, NextFunction, Observable, Subscription } from './types';
 
@@ -28,8 +28,10 @@ export function isPatched(target: InjectableTarget | CatchTarget): boolean {
 /**
  * Returns span options for nest middleware spans.
  */
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-export function getMiddlewareSpanOptions(target: InjectableTarget | CatchTarget, name: string | undefined = undefined) {
+export function getMiddlewareSpanOptions(
+  target: InjectableTarget | CatchTarget,
+  name: string | undefined = undefined,
+): StartSpanOptions {
   const span_name = name ?? target.name; // fallback to class name if no name is provided
 
   return {

@@ -16,6 +16,7 @@ import {
 } from '@opentelemetry/semantic-conventions';
 
 import { descriptionForHttpMethod, getSanitizedUrl, parseSpanDescription } from '../../src/utils/parseSpanDescription';
+import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 
 describe('parseSpanDescription', () => {
   it.each([
@@ -137,6 +138,15 @@ describe('parseSpanDescription', () => {
     const actual = parseSpanDescription({ attributes, kind, name } as unknown as Span);
     expect(actual).toEqual(expected);
   });
+
+  it.each(['http.client', undefined])('returns the original values if source is custom (op: %s)', originalOp => {
+    const actual = parseSpanDescription({
+      attributes: { [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom', [SEMANTIC_ATTRIBUTE_SENTRY_OP]: originalOp },
+      kind: SpanKind.CLIENT,
+      name: 'test name',
+    } as unknown as Span);
+    expect(actual).toEqual({ description: 'test name', op: originalOp, source: 'custom' });
+  });
 });
 
 describe('descriptionForHttpMethod', () => {
@@ -228,6 +238,27 @@ describe('descriptionForHttpMethod', () => {
           url: 'https://www.example.com/my-path',
         },
         source: 'custom',
+      },
+    ],
+    [
+      'works with prefetch requests',
+      'GET',
+      {
+        [SEMATTRS_HTTP_METHOD]: 'GET',
+        [SEMATTRS_HTTP_URL]: 'https://www.example.com/my-path/123',
+        [SEMATTRS_HTTP_TARGET]: '/my-path/123',
+        [ATTR_HTTP_ROUTE]: '/my-path/:id',
+        'sentry.http.prefetch': true,
+      },
+      'test name',
+      SpanKind.CLIENT,
+      {
+        op: 'http.client.prefetch',
+        description: 'GET /my-path/:id',
+        data: {
+          url: 'https://www.example.com/my-path/123',
+        },
+        source: 'route',
       },
     ],
   ])('%s', (_, httpMethod, attributes, name, kind, expected) => {
