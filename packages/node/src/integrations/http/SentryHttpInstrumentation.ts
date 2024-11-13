@@ -41,8 +41,8 @@ type SentryHttpInstrumentationOptions = InstrumentationConfig & {
   ignoreOutgoingRequests?: (url: string, request: RequestOptions) => boolean;
 };
 
-// We only want to capture request bodies up to 500kb.
-const MAX_BODY_BYTE_LENGTH = 1024 * 500;
+// We only want to capture request bodies up to 1mb.
+const MAX_BODY_BYTE_LENGTH = 1024 * 1024;
 
 /**
  * This custom HTTP instrumentation is used to isolate incoming requests and annotate them with additional information.
@@ -375,6 +375,10 @@ function patchRequestToCaptureBody(req: IncomingMessage, normalizedRequest: Requ
               if (getChunksSize() < MAX_BODY_BYTE_LENGTH) {
                 const chunk = args[0] as Buffer;
                 chunks.push(chunk);
+              } else if (DEBUG_BUILD) {
+                logger.log(
+                  `Dropping request body chunk because it maximum body length of ${MAX_BODY_BYTE_LENGTH}b is exceeded.`,
+                );
               }
 
               return Reflect.apply(target, thisArg, args);
