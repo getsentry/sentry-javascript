@@ -41,6 +41,9 @@ type SentryHttpInstrumentationOptions = InstrumentationConfig & {
   ignoreOutgoingRequests?: (url: string, request: RequestOptions) => boolean;
 };
 
+// We only want to capture request bodies up to 500kb.
+const MAX_BODY_BYTE_LENGTH = 1024 * 500;
+
 /**
  * This custom HTTP instrumentation is used to isolate incoming requests and annotate them with additional information.
  * It does not emit any spans.
@@ -347,6 +350,10 @@ function getBreadcrumbData(request: http.ClientRequest): Partial<SanitizedReques
 function patchRequestToCaptureBody(req: IncomingMessage, normalizedRequest: Request): void {
   const chunks: Buffer[] = [];
 
+  function getChunksSize(): number {
+    return chunks.reduce((acc, chunk) => acc + chunk.byteLength, 0);
+  }
+
   /**
    * We need to keep track of the original callbacks, in order to be able to remove listeners again.
    * Since `off` depends on having the exact same function reference passed in, we need to be able to map
@@ -363,8 +370,13 @@ function patchRequestToCaptureBody(req: IncomingMessage, normalizedRequest: Requ
         if (event === 'data') {
           const callback = new Proxy(listener, {
             apply: (target, thisArg, args: Parameters<typeof listener>) => {
-              const chunk = args[0];
-              chunks.push(chunk);
+              // If we have already read more than the max body length, we stop addiing chunks
+              // To avoid growing the memory indefinitely if a respons is e.g. streamed
+              if (getChunksSize() < MAX_BODY_BYTE_LENGTH) {
+                const chunk = args[0] as Buffer;
+                chunks.push(chunk);
+              }
+
               return Reflect.apply(target, thisArg, args);
             },
           });
