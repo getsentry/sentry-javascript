@@ -1,16 +1,16 @@
 import { expect } from '@playwright/test';
 
+import {
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+} from '@sentry/browser';
 import { sentryTest } from '../../../../utils/fixtures';
 import {
   envelopeRequestParser,
   shouldSkipTracingTest,
   waitForTransactionRequestOnUrl,
 } from '../../../../utils/helpers';
-import {
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-} from '@sentry/browser';
 
 sentryTest(
   'sends a transaction in an envelope with manual origin and custom source',
