@@ -1,1 +1,1 @@
-export {launchDarklyIntegration, buildLaunchDarklyFlagUsedHandler} from './integration';
+export { launchDarklyIntegration, buildLaunchDarklyFlagUsedHandler } from './integration';

@@ -1,8 +1,7 @@
-
-import { logger } from '@sentry/utils';
-import { insertToFlagBuffer } from '../../src/utils/featureFlags';
 import type { FeatureFlag } from '@sentry/types';
+import { logger } from '@sentry/utils';
 import { vi } from 'vitest';
+import { insertToFlagBuffer } from '../../src/utils/featureFlags';
 
 describe('flags', () => {
   describe('insertToFlagBuffer()', () => {
@@ -79,5 +78,5 @@ describe('flags', () => {
         { flag: 'feat2', result: true },
       ]);
     });
-  })
-})
+  });
+});

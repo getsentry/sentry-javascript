@@ -21,13 +21,7 @@ import type {
   SeverityLevel,
   User,
 } from '@sentry/types';
-import {
-  dateTimestampInSeconds,
-  generatePropagationContext,
-  isPlainObject,
-  logger,
-  uuid4,
-} from '@sentry/utils';
+import { dateTimestampInSeconds, generatePropagationContext, isPlainObject, logger, uuid4 } from '@sentry/utils';
 
 import { updateSession } from './session';
 import { _getSpanForScope, _setSpanForScope } from './utils/spanOnScope';
@@ -132,8 +126,8 @@ class ScopeClass implements ScopeInterface {
       // We need to copy the `values` array so insertions on a cloned scope
       // won't affect the original array.
       newScope._contexts.flags = {
-        values: [...this._contexts.flags.values]
-      }
+        values: [...this._contexts.flags.values],
+      };
     }
 
     newScope._user = this._user;

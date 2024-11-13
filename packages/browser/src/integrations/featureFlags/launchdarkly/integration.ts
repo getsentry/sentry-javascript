@@ -1,8 +1,8 @@
 import type { Client, Event, EventHint, IntegrationFn } from '@sentry/types';
 import type { LDContext, LDEvaluationDetail, LDInspectionFlagUsedHandler } from './types';
 
-import { insertToFlagBuffer } from '../../../utils/featureFlags'
 import { defineIntegration, getCurrentScope } from '@sentry/core';
+import { insertToFlagBuffer } from '../../../utils/featureFlags';
 
 /**
  * Sentry integration for capturing feature flags from LaunchDarkly.

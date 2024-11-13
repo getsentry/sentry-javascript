@@ -1,6 +1,6 @@
+import type { FeatureFlag } from './featureFlags';
 import type { Primitive } from './misc';
 import type { SpanOrigin } from './span';
-import type { FeatureFlag } from './featureFlags'
 
 export type Context = Record<string, unknown>;
 

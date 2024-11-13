@@ -4,7 +4,7 @@ import { sentryTest } from '../../../../../utils/fixtures';
 
 import { envelopeRequestParser, shouldSkipLaunchDarklyTest, waitForErrorRequest } from '../../../../../utils/helpers';
 
-const FLAG_BUFFER_SIZE = 100;  // Corresponds to constant in featureFlags.ts, in browser utils.
+const FLAG_BUFFER_SIZE = 100; // Corresponds to constant in featureFlags.ts, in browser utils.
 
 sentryTest('Basic test with eviction, update, and no async tasks', async ({ getLocalTestPath, page }) => {
   if (shouldSkipLaunchDarklyTest()) {
@@ -22,13 +22,13 @@ sentryTest('Basic test with eviction, update, and no async tasks', async ({ getL
   const url = await getLocalTestPath({ testDir: __dirname, skipDsnRouteHandler: true });
   await page.goto(url);
 
-  await page.waitForFunction((bufferSize) => {
+  await page.waitForFunction(bufferSize => {
     const ldClient = (window as any).initializeLD();
     for (let i = 1; i <= bufferSize; i++) {
       ldClient.variation(`feat${i}`, false);
     }
     ldClient.variation(`feat${bufferSize + 1}`, true); // eviction
-    ldClient.variation('feat3', true);   // update
+    ldClient.variation('feat3', true); // update
     return true;
   }, FLAG_BUFFER_SIZE);
 
@@ -37,7 +37,7 @@ sentryTest('Basic test with eviction, update, and no async tasks', async ({ getL
   const req = await reqPromise;
   const event = envelopeRequestParser(req);
 
-  const expectedFlags = [{ flag: 'feat2', result: false }]
+  const expectedFlags = [{ flag: 'feat2', result: false }];
   for (let i = 4; i <= FLAG_BUFFER_SIZE; i++) {
     expectedFlags.push({ flag: `feat${i}`, result: false });
   }
