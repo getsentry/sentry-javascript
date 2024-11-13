@@ -49,8 +49,7 @@
   },
   "devDependencies": {
     "@sentry-internal/integration-shims": "8.37.1",
-    "fake-indexeddb": "^4.0.1",
-    "launchdarkly-js-client-sdk": "^3.5.0"
+    "fake-indexeddb": "^4.0.1"
   },
   "scripts": {
     "build": "run-p build:transpile build:bundle build:types",
