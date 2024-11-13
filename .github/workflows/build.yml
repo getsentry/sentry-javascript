@@ -1310,6 +1310,14 @@ jobs:
         env:
           E2E_TEST_PUBLISH_SCRIPT_NODE_VERSION: ${{ steps.versions.outputs.node }}
 
+      - name: Setup xvfb and update ubuntu dependencies
+        run: |
+          sudo apt-get install xvfb x11-xkb-utils xfonts-100dpi xfonts-75dpi xfonts-scalable xfonts-cyrillic x11-apps
+          sudo apt-get install build-essential clang libdbus-1-dev libgtk2.0-dev \
+                       libnotify-dev libgnome-keyring-dev libgconf2-dev \
+                       libasound2-dev libcap-dev libcups2-dev libxtst-dev \
+                       libxss1 libnss3-dev gcc-multilib g++-multilib
+
       - name: Install dependencies
         working-directory: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
         run: yarn install --ignore-engines --frozen-lockfile
@@ -1322,7 +1330,7 @@ jobs:
       - name: Run E2E test
         working-directory: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
         timeout-minutes: 10
-        run: yarn test:assert
+        run: xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" -- yarn test:assert
 
   job_required_jobs_passed:
     name: All required jobs passed or were skipped

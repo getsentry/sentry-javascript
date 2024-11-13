@@ -1,7 +1,15 @@
+const process = require('process');
 const { test, expect, _electron: electron } = require('@playwright/test');
 
 test('an h1 contains hello world"', async () => {
-  const electronApp = await electron.launch({ args: ['./index.electron.js'] });
+  const electronApp = await electron.launch({
+    args: ['./index.electron.js'],
+    process: {
+      env: {
+        ...process.env,
+      },
+    },
+  });
 
   // Wait for the first BrowserWindow to open
   const window = await electronApp.firstWindow();
