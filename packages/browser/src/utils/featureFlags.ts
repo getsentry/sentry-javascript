@@ -1,4 +1,6 @@
 import type { FeatureFlag } from '@sentry/types';
+import { logger } from '@sentry/utils';
+import { DEBUG_BUILD } from '../debug-build';
 
 /**
  * Ordered LRU cache for storing feature flags in the scope context. The name
@@ -32,7 +34,8 @@ export function insertToFlagBuffer(
   maxSize: number = FLAG_BUFFER_SIZE,
 ): void {
   if (flags.length > maxSize) {
-    throw Error(`insertToFlagBuffer called on a buffer larger than the given maxSize=${maxSize}`);
+    DEBUG_BUILD && logger.error(`insertToFlagBuffer called on a buffer larger than the given maxSize=${maxSize}`);
+    return;
   }
 
   // Check if the flag is already in the buffer - O(n)
