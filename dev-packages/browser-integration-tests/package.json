@@ -55,8 +55,7 @@
     "@types/glob": "8.0.0",
     "@types/node": "^14.18.0",
     "@types/pako": "^2.0.0",
-    "glob": "8.0.3",
-    "launchdarkly-js-client-sdk": "^3.5.0"
+    "glob": "8.0.3"
   },
   "volta": {
     "extends": "../../package.json"
