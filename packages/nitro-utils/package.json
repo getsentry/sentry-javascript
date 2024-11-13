@@ -39,7 +39,6 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/types": "8.37.1",
     "@sentry/utils": "8.37.1"
   },
   "devDependencies": {
