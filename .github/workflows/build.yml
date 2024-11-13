@@ -963,11 +963,6 @@ jobs:
           - test-application: 'nextjs-app-dir'
             build-command: 'test:build-13'
             label: 'nextjs-app-dir (next@13)'
-        exclude:
-          - is_dependabot: true
-            test-application: 'cloudflare-astro'
-          - is_dependabot: true
-            test-application: 'cloudflare-workers'
 
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
@@ -989,18 +984,26 @@ jobs:
         with:
           dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
 
+      - name: Determine if test app should be run
+        id: should-skip
+        if: github.event.pull_request.base.sha
+        run: yarn test:should-skip ${{ matrix.test-application }} --base=${{ github.event.pull_request.base.sha }} >> $GITHUB_OUTPUT
+        working-directory: dev-packages/e2e-tests
+
       - name: Restore tarball cache
         uses: actions/cache/restore@v4
         id: restore-tarball-cache
+        if: steps.should-skip.outputs.SKIP != 'true'
         with:
           path: ${{ github.workspace }}/packages/*/*.tgz
           key: ${{ env.BUILD_CACHE_TARBALL_KEY }}
 
       - name: Build tarballs if not cached
-        if: steps.restore-tarball-cache.outputs.cache-hit != 'true'
+        if: steps.restore-tarball-cache.outputs.cache-hit != 'true' && steps.should-skip.outputs.SKIP != 'true'
         run: yarn build:tarball
 
       - name: Install Playwright
+        if: steps.should-skip.outputs.SKIP != 'true'
         uses: ./.github/actions/install-playwright
         with:
           browsers: chromium
@@ -1011,28 +1014,32 @@ jobs:
           echo "echo node=$(jq -r '.volta.node' dev-packages/e2e-tests/package.json)" >> $GITHUB_OUTPUT
 
       - name: Validate Verdaccio
+        if: steps.should-skip.outputs.SKIP != 'true'
         run: yarn test:validate
         working-directory: dev-packages/e2e-tests
 
       - name: Prepare Verdaccio
+        if: steps.should-skip.outputs.SKIP != 'true'
         run: yarn test:prepare
         working-directory: dev-packages/e2e-tests
         env:
           E2E_TEST_PUBLISH_SCRIPT_NODE_VERSION: ${{ steps.versions.outputs.node }}
 
       - name: Build E2E app
+        if: steps.should-skip.outputs.SKIP != 'true'
         working-directory: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
         timeout-minutes: 7
         run: pnpm ${{ matrix.build-command || 'test:build' }}
 
       - name: Run E2E test
+        if: steps.should-skip.outputs.SKIP != 'true'
         working-directory: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
         timeout-minutes: 10
         run: pnpm test:assert
 
       - name: Upload Playwright Traces
         uses: actions/upload-artifact@v4
-        if: failure()
+        if: failure() &&  steps.should-skip.outputs.SKIP != 'true'
         with:
           name: playwright-traces-job_e2e_playwright_tests-${{ matrix.test-application}}
           path: dev-packages/e2e-tests/test-applications/${{ matrix.test-application}}/test-results
@@ -1040,13 +1047,13 @@ jobs:
           retention-days: 7
 
       - name: Pre-process E2E Test Dumps
-        if: always()
+        if: always() && steps.should-skip.outputs.SKIP != 'true'
         run: |
           node ./scripts/normalize-e2e-test-dump-transaction-events.js
 
       - name: Upload E2E Test Event Dumps
         uses: actions/upload-artifact@v4
-        if: always()
+        if: always() && steps.should-skip.outputs.SKIP != 'true'
         with:
           name: E2E Test Dump (${{ matrix.label || matrix.test-application }})
           path: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}/event-dumps
@@ -1055,7 +1062,7 @@ jobs:
           if-no-files-found: ignore
 
       - name: Upload test results to Codecov
-        if: cancelled() == false
+        if: cancelled() == false && steps.should-skip.outputs.SKIP != 'true'
         continue-on-error: true
         uses: codecov/test-results-action@v1
         with:
@@ -1155,7 +1162,14 @@ jobs:
         with:
           dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
 
+      - name: Determine if test app should be run
+        id: should-skip
+        if: github.event.pull_request.base.sha
+        run: yarn test:should-skip ${{ matrix.test-application }} --base=${{ github.event.pull_request.base.sha }} >> $GITHUB_OUTPUT
+        working-directory: dev-packages/e2e-tests
+
       - name: Restore tarball cache
+        if: steps.should-skip.outputs.SKIP != 'true'
         uses: actions/cache/restore@v4
         id: restore-tarball-cache
         with:
@@ -1163,10 +1177,11 @@ jobs:
           key: ${{ env.BUILD_CACHE_TARBALL_KEY }}
 
       - name: Build tarballs if not cached
-        if: steps.restore-tarball-cache.outputs.cache-hit != 'true'
+        if: steps.restore-tarball-cache.outputs.cache-hit != 'true' &&  steps.should-skip.outputs.SKIP != 'true'
         run: yarn build:tarball
 
       - name: Install Playwright
+        if: steps.should-skip.outputs.SKIP != 'true'
         uses: ./.github/actions/install-playwright
         with:
           browsers: chromium
@@ -1177,33 +1192,37 @@ jobs:
           echo "echo node=$(jq -r '.volta.node' dev-packages/e2e-tests/package.json)" >> $GITHUB_OUTPUT
 
       - name: Validate Verdaccio
+        if: steps.should-skip.outputs.SKIP != 'true'
         run: yarn test:validate
         working-directory: dev-packages/e2e-tests
 
       - name: Prepare Verdaccio
+        if: steps.should-skip.outputs.SKIP != 'true'
         run: yarn test:prepare
         working-directory: dev-packages/e2e-tests
         env:
           E2E_TEST_PUBLISH_SCRIPT_NODE_VERSION: ${{ steps.versions.outputs.node }}
 
       - name: Build E2E app
+        if: steps.should-skip.outputs.SKIP != 'true'
         working-directory: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
         timeout-minutes: 7
         run: pnpm ${{ matrix.build-command || 'test:build' }}
 
       - name: Run E2E test
+        if: steps.should-skip.outputs.SKIP != 'true'
         working-directory: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
         timeout-minutes: 10
         run: pnpm ${{ matrix.assert-command || 'test:assert' }}
 
       - name: Pre-process E2E Test Dumps
-        if: always()
+        if: always() && steps.should-skip.outputs.SKIP != 'true'
         run: |
           node ./scripts/normalize-e2e-test-dump-transaction-events.js
 
       - name: Upload E2E Test Event Dumps
         uses: actions/upload-artifact@v4
-        if: always()
+        if: always() && steps.should-skip.outputs.SKIP != 'true'
         with:
           name: E2E Test Dump (${{ matrix.label || matrix.test-application }})
           path: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}/event-dumps
@@ -1213,7 +1232,7 @@ jobs:
 
       - name: Deploy Astro to Cloudflare
         uses: cloudflare/pages-action@v1
-        if: matrix.test-application == 'cloudflare-astro'
+        if: matrix.test-application == 'cloudflare-astro' && steps.should-skip.outputs.SKIP != 'true'
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
