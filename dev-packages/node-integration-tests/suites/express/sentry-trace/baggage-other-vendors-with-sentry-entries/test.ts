@@ -9,8 +9,10 @@ test('should ignore sentry-values in `baggage` header of a third party vendor an
   const runner = createRunner(__dirname, 'server.ts').start();
 
   const response = await runner.makeRequest<TestAPIResponse>('get', '/test/express', {
-    'sentry-trace': '12312012123120121231201212312012-1121201211212012-1',
-    baggage: 'sentry-release=2.1.0,sentry-environment=myEnv',
+    headers: {
+      'sentry-trace': '12312012123120121231201212312012-1121201211212012-1',
+      baggage: 'sentry-release=2.1.0,sentry-environment=myEnv',
+    },
   });
 
   expect(response).toBeDefined();
