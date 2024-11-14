@@ -938,6 +938,7 @@ jobs:
             'node-koa',
             'node-connect',
             'nuxt-3',
+            'nuxt-3-min',
             'nuxt-4',
             'vue-3',
             'webpack-4',
