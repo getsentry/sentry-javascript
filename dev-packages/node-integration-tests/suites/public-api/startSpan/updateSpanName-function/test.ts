@@ -5,11 +5,11 @@ afterAll(() => {
   cleanupChildProcesses();
 });
 
-test('sends a manually started root span with source custom', done => {
+test('updates the span name and source when calling `updateSpanName`', done => {
   createRunner(__dirname, 'scenario.ts')
     .expect({
       transaction: {
-        transaction: 'test_span',
+        transaction: 'new name',
         transaction_info: { source: 'custom' },
         contexts: {
           trace: {

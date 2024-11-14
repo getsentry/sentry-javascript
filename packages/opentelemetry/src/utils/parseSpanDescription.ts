@@ -37,12 +37,12 @@ interface SpanDescription {
 /**
  * Infer the op & description for a set of name, attributes and kind of a span.
  */
-export function inferSpanData(originalName: string, attributes: SpanAttributes, kind: SpanKind): SpanDescription {
+export function inferSpanData(spanName: string, attributes: SpanAttributes, kind: SpanKind): SpanDescription {
   // if http.method exists, this is an http request span
   // eslint-disable-next-line deprecation/deprecation
   const httpMethod = attributes[ATTR_HTTP_REQUEST_METHOD] || attributes[SEMATTRS_HTTP_METHOD];
   if (httpMethod) {
-    return descriptionForHttpMethod({ attributes, name: originalName, kind }, httpMethod);
+    return descriptionForHttpMethod({ attributes, name: getOriginalName(spanName, attributes), kind }, httpMethod);
   }
 
   // eslint-disable-next-line deprecation/deprecation
@@ -54,7 +54,7 @@ export function inferSpanData(originalName: string, attributes: SpanAttributes, 
   // If db.type exists then this is a database call span
   // If the Redis DB is used as a cache, the span description should not be changed
   if (dbSystem && !opIsCache) {
-    return descriptionForDbSystem({ attributes, name: originalName });
+    return descriptionForDbSystem({ attributes, name: spanName });
   }
 
   const customSourceOrRoute = attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] === 'custom' ? 'custom' : 'route';
@@ -65,7 +65,7 @@ export function inferSpanData(originalName: string, attributes: SpanAttributes, 
   if (rpcService) {
     return {
       op: 'rpc',
-      description: originalName,
+      description: getOriginalName(spanName, attributes),
       source: customSourceOrRoute,
     };
   }
@@ -76,7 +76,7 @@ export function inferSpanData(originalName: string, attributes: SpanAttributes, 
   if (messagingSystem) {
     return {
       op: 'message',
-      description: originalName,
+      description: getOriginalName(spanName, attributes),
       source: customSourceOrRoute,
     };
   }
@@ -85,10 +85,14 @@ export function inferSpanData(originalName: string, attributes: SpanAttributes, 
   // eslint-disable-next-line deprecation/deprecation
   const faasTrigger = attributes[SEMATTRS_FAAS_TRIGGER];
   if (faasTrigger) {
-    return { op: faasTrigger.toString(), description: originalName, source: customSourceOrRoute };
+    return {
+      op: faasTrigger.toString(),
+      description: getOriginalName(spanName, attributes),
+      source: customSourceOrRoute,
+    };
   }
 
-  return { op: undefined, description: originalName, source: 'custom' };
+  return { op: undefined, description: spanName, source: 'custom' };
 }
 
 /**
@@ -111,7 +115,7 @@ export function parseSpanDescription(span: AbstractSpan): SpanDescription {
 function descriptionForDbSystem({ attributes, name }: { attributes: Attributes; name: string }): SpanDescription {
   // if we already set the source to custom, we don't overwrite the span description but just adjust the op
   if (attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] === 'custom') {
-    return { op: 'db', description: name, source: 'custom' };
+    return { op: 'db', description: getOriginalName(name, attributes), source: 'custom' };
   }
 
   // Use DB statement (Ex "SELECT * FROM table") if possible as description.
@@ -147,7 +151,7 @@ export function descriptionForHttpMethod(
   const { urlPath, url, query, fragment, hasRoute } = getSanitizedUrl(attributes, kind);
 
   if (!urlPath) {
-    return { op: opParts.join('.'), description: name, source: 'custom' };
+    return { op: opParts.join('.'), description: getOriginalName(name, attributes), source: 'custom' };
   }
 
   const graphqlOperationsAttribute = attributes[SEMANTIC_ATTRIBUTE_SENTRY_GRAPHQL_OPERATION];
@@ -193,7 +197,7 @@ export function descriptionForHttpMethod(
 
   return {
     op: opParts.join('.'),
-    description: useInferredDescription ? description : name,
+    description: useInferredDescription ? description : getOriginalName(name, attributes),
     source: useInferredDescription ? source : 'custom',
     data,
   };
@@ -258,4 +262,12 @@ export function getSanitizedUrl(
   }
 
   return { urlPath: undefined, url, query, fragment, hasRoute: false };
+}
+
+function getOriginalName(name: string, attributes: Attributes): string {
+  return attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] === 'custom' &&
+    attributes['_sentry_span_name_set_by_user'] &&
+    typeof attributes['_sentry_span_name_set_by_user'] === 'string'
+    ? attributes['_sentry_span_name_set_by_user']
+    : name;
 }
