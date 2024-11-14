@@ -6632,7 +6632,7 @@
     iterare "1.2.1"
     tslib "2.7.0"
 
-"@nestjs/common@10.4.7":
+"@nestjs/common@^8.0.0 || ^9.0.0 || ^10.0.0":
   version "10.4.7"
   resolved "https://registry.yarnpkg.com/@nestjs/common/-/common-10.4.7.tgz#076cb77c06149805cb1e193d8cdc69bbe8446c75"
   integrity sha512-gIOpjD3Mx8gfYGxYm/RHPcJzqdknNNFCyY+AxzBT3gc5Xvvik1Dn5OxaMGw5EbVfhZgJKVP0n83giUOAlZQe7w==
@@ -6653,7 +6653,7 @@
     path-to-regexp "3.3.0"
     tslib "2.7.0"
 
-"@nestjs/core@10.4.7":
+"@nestjs/core@^8.0.0 || ^9.0.0 || ^10.0.0":
   version "10.4.7"
   resolved "https://registry.yarnpkg.com/@nestjs/core/-/core-10.4.7.tgz#adb27067a8c40b79f0713b417457fdfc6cf3406a"
   integrity sha512-AIpQzW/vGGqSLkKvll1R7uaSNv99AxZI2EFyVJPNGDgFsfXaohfV1Ukl6f+s75Km+6Fj/7aNl80EqzNWQCS8Ig==
@@ -6672,7 +6672,7 @@
   dependencies:
     eventemitter2 "6.4.9"
 
-"@nestjs/platform-express@^10.4.6":
+"@nestjs/platform-express@10.4.6":
   version "10.4.6"
   resolved "https://registry.yarnpkg.com/@nestjs/platform-express/-/platform-express-10.4.6.tgz#6c39c522fa66036b4256714fea203fbeb49fc4de"
   integrity sha512-HcyCpAKccAasrLSGRTGWv5BKRs0rwTIFOSsk6laNyqfqvgvYcJQAedarnm4jmaemtmSJ0PFI9PmtEZADd2ahCg==
@@ -12962,25 +12962,7 @@ bluebird@^3.4.6, bluebird@^3.7.2:
   resolved "https://registry.yarnpkg.com/bluebird/-/bluebird-3.7.2.tgz#9f229c15be272454ffa973ace0dbee79a1b0c36f"
   integrity sha512-XpNj6GDQzdfW+r2Wnn7xiSAd7TM3jzkxGXBGTtWKuSXv1xUV+azxAm8jdWZN06QTQk+2N2XB9jRDkvbmQmcRtg==
 
-body-parser@1.20.3, body-parser@^1.18.3, body-parser@^1.19.0:
-  version "1.20.3"
-  resolved "https://registry.yarnpkg.com/body-parser/-/body-parser-1.20.3.tgz#1953431221c6fb5cd63c4b36d53fab0928e548c6"
-  integrity sha512-7rAxByjUMqQ3/bHJy7D6OGXvx/MMc4IqBn/X0fcM1QUcAItpZrBEYhWGem+tzXH90c+G01ypMcYJBO9Y30203g==
-  dependencies:
-    bytes "3.1.2"
-    content-type "~1.0.5"
-    debug "2.6.9"
-    depd "2.0.0"
-    destroy "1.2.0"
-    http-errors "2.0.0"
-    iconv-lite "0.4.24"
-    on-finished "2.4.1"
-    qs "6.13.0"
-    raw-body "2.5.2"
-    type-is "~1.6.18"
-    unpipe "1.0.0"
-
-body-parser@^1.20.3:
+body-parser@1.20.3, body-parser@^1.18.3, body-parser@^1.19.0, body-parser@^1.20.3:
   version "1.20.3"
   resolved "https://registry.yarnpkg.com/body-parser/-/body-parser-1.20.3.tgz#1953431221c6fb5cd63c4b36d53fab0928e548c6"
   integrity sha512-7rAxByjUMqQ3/bHJy7D6OGXvx/MMc4IqBn/X0fcM1QUcAItpZrBEYhWGem+tzXH90c+G01ypMcYJBO9Y30203g==
@@ -28365,13 +28347,6 @@ qs@^6.4.0:
   integrity sha512-MvjoMCJwEarSbUYk5O+nmoSzSutSsTwF85zcHPQ9OrlFoZOYIjaqBAJIqIXjptyD5vThxGq52Xu/MaJzRkIk4Q==
   dependencies:
     side-channel "^1.0.4"
-
-qs@6.13.0:
-  version "6.13.0"
-  resolved "https://registry.yarnpkg.com/qs/-/qs-6.13.0.tgz#6ca3bd58439f7e245655798997787b0d88a51906"
-  integrity sha512-+38qI9SOr8tfZ4QmJNplMUxqjbe7LKvvZgWdExBOmd+egZTtjLB67Gu0HRX3u/XOq7UU2Nx6nsjvS16Z9uwfpg==
-  dependencies:
-    side-channel "^1.0.6"
 
 query-string@^4.2.2:
   version "4.3.4"

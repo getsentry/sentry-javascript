@@ -7,6 +7,8 @@ import {
 } from '@opentelemetry/instrumentation';
 import { SDK_VERSION } from '@sentry/utils';
 import type { OnEventTarget } from './types';
+import { captureException, startSpan } from '@sentry/core';
+import { getEventSpanOptions } from './helpers';
 
 const supportedVersions = ['>=2.0.0'];
 
@@ -29,8 +31,6 @@ export class SentryNestEventInstrumentation extends InstrumentationBase {
    * Initializes the instrumentation by defining the modules to be patched.
    */
   public init(): InstrumentationNodeModuleDefinition {
-    // eslint-disable-next-line no-console
-    console.log(32);
     const moduleDef = new InstrumentationNodeModuleDefinition(
       SentryNestEventInstrumentation.COMPONENT,
       supportedVersions,
@@ -44,8 +44,6 @@ export class SentryNestEventInstrumentation extends InstrumentationBase {
    * Wraps the @OnEvent decorator.
    */
   private _getOnEventFileInstrumentation(versions: string[]): InstrumentationNodeModuleFile {
-    // eslint-disable-next-line no-console
-    console.log(46);
     return new InstrumentationNodeModuleFile(
       '@nestjs/event-emitter/dist/decorators/on-event.decorator.js',
       versions,
@@ -68,13 +66,52 @@ export class SentryNestEventInstrumentation extends InstrumentationBase {
   private _createWrapOnEvent() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return function wrapOnEvent(original: any) {
-      return function wrappedOnEvent(target: OnEventTarget) {
-        return function (name: string) {
-          return function () {
-            // eslint-disable-next-line no-console
-            console.log('wrappedOnEvent', name);
-            return original(name)(target);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return function wrappedOnEvent(event: any, options?: any) {
+        const eventName = Array.isArray(event)
+          ? event.join(',')
+          : typeof event === 'string' || typeof event === 'symbol'
+            ? event.toString()
+            : '<unknown_event>';
+
+        // Get the original decorator result
+        const decoratorResult = original(event, options);
+
+        // Return a new decorator function that wraps the handler
+        return function (target: OnEventTarget, propertyKey: string | symbol, descriptor: PropertyDescriptor) {
+          if (!descriptor.value || typeof descriptor.value !== 'function' || target.__SENTRY_INTERNAL__) {
+            return decoratorResult(target, propertyKey, descriptor);
+          }
+
+          // Get the original handler
+          const originalHandler = descriptor.value;
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          const handlerName = originalHandler.name || propertyKey;
+
+          // Instrument the handler
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          descriptor.value = async function (...args: any[]) {
+            return startSpan(getEventSpanOptions(eventName), async () => {
+              try {
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+                const result = await originalHandler.apply(this, args);
+                return result;
+              } catch (error) {
+                // exceptions from event handlers are not caught by global error filter
+                captureException(error);
+                throw error;
+              }
+            });
           };
+
+          // Preserve the original function name
+          Object.defineProperty(descriptor.value, 'name', {
+            value: handlerName,
+            configurable: true,
+          });
+
+          // Apply the original decorator
+          return decoratorResult(target, propertyKey, descriptor);
         };
       };
     };

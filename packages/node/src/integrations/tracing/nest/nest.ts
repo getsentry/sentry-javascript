@@ -32,8 +32,6 @@ const instrumentNestEvent = generateInstrumentOnce('Nest-Event', () => {
 
 export const instrumentNest = Object.assign(
   (): void => {
-    // eslint-disable-next-line no-console
-    console.log('HIT instrumentNest');
     instrumentNestCore();
     instrumentNestCommon();
     instrumentNestEvent();
@@ -45,8 +43,6 @@ const _nestIntegration = (() => {
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
-      // eslint-disable-next-line no-console
-      console.log('HIT nest setup');
       instrumentNest();
     },
   };
