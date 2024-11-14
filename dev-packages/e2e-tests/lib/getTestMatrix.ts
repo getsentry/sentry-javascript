@@ -10,6 +10,15 @@ interface MatrixInclude {
   label?: string;
 }
 
+/**
+ * This methods generates a matrix for the GitHub Actions workflow to run the E2E tests.
+ * It checks which test applications are affected by the current changes in the PR and then generates a matrix
+ * including all test apps that have at least one dependency that was changed in the PR.
+ * If no `--base=xxx` is provided, it will output all test applications.
+ *
+ * If `--optional=true` is set, it will generate a matrix of optional test applications only.
+ * Otherwise, these will be skipped.
+ */
 function run(): void {
   const args: Record<string, string> = {};
   process.argv
@@ -22,30 +31,15 @@ function run(): void {
       args[argName] = argValue;
     });
 
-  // We default to `develop` as base, if none is specified
-  // head has a correct default value anyhow
-  const { base = 'develop', head, optional = 'false' } = args;
+  const { base, head, optional = 'false' } = args;
 
   const testApplications = globSync('*', { cwd: `${__dirname}/../test-applications/` });
 
-  const additionalArgs = [];
-  if (base) {
-    additionalArgs.push(`--base=${base}`);
-  }
-  if (head) {
-    additionalArgs.push(`--head=${head}`);
-  }
-
-  const affectedProjects = execSync(`yarn --silent nx show projects --affected ${additionalArgs.join(' ')}`)
-    .toString()
-    .split('\n')
-    .map(line => line.trim())
-    .filter(Boolean);
-
-  const includedTestApplications = testApplications.filter(testApp => {
-    const sentryDependencies = getSentryDependencies(testApp);
-    return sentryDependencies.some(dep => affectedProjects.includes(dep));
-  });
+  // If `--base=xxx` is defined, we only want to get test applications changed since that base
+  // Else, we take all test applications (e.g. on push)
+  const includedTestApplications = base
+    ? getAffectedTestApplications(testApplications, { base, head })
+    : testApplications;
 
   const optionalMode = optional === 'true';
   const includes: MatrixInclude[] = [];
@@ -121,3 +115,25 @@ function getPackageJson(appName: string): {
 }
 
 run();
+
+function getAffectedTestApplications(
+  testApplications: string[],
+  { base = 'develop', head }: { base?: string; head?: string },
+): string[] {
+  const additionalArgs = [`--base=${base}`];
+
+  if (head) {
+    additionalArgs.push(`--head=${head}`);
+  }
+
+  const affectedProjects = execSync(`yarn --silent nx show projects --affected ${additionalArgs.join(' ')}`)
+    .toString()
+    .split('\n')
+    .map(line => line.trim())
+    .filter(Boolean);
+
+  return testApplications.filter(testApp => {
+    const sentryDependencies = getSentryDependencies(testApp);
+    return sentryDependencies.some(dep => affectedProjects.includes(dep));
+  });
+}
