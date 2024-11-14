@@ -94,15 +94,17 @@ function getSentryDependencies(appName: string): string[] {
   return Object.keys(dependencies).filter(key => key.startsWith('@sentry'));
 }
 
-function getPackageJson(appName: string): {
-  dependencies?: { [key: string]: string };
-  devDependencies?: { [key: string]: string };
-  sentryTest?: {
-    optional?: boolean;
-    variants?: Partial<MatrixInclude>[];
-    optionalVariants?: Partial<MatrixInclude>[];
-  };
-} | undefined {
+function getPackageJson(appName: string):
+  | {
+      dependencies?: { [key: string]: string };
+      devDependencies?: { [key: string]: string };
+      sentryTest?: {
+        optional?: boolean;
+        variants?: Partial<MatrixInclude>[];
+        optionalVariants?: Partial<MatrixInclude>[];
+      };
+    }
+  | undefined {
   const fullPath = path.resolve(__dirname, '..', 'test-applications', appName, 'package.json');
 
   // This can happen if you e.g. have a leftover directory in test-applications
