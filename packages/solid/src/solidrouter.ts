@@ -89,6 +89,7 @@ function withSentryRouterRoot(Root: Component<RouteSectionProps>): Component<Rou
         // everything else was already instrumented correctly in `useBeforeLeave`
         if (op === 'navigation' && description === '-1') {
           rootSpan.updateName(name);
+          rootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'url');
         }
       }
     });

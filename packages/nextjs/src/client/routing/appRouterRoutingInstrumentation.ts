@@ -61,6 +61,7 @@ export function appRouterInstrumentNavigation(client: Client): void {
   WINDOW.addEventListener('popstate', () => {
     if (currentNavigationSpan && currentNavigationSpan.isRecording()) {
       currentNavigationSpan.updateName(WINDOW.location.pathname);
+      currentNavigationSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'url');
     } else {
       currentNavigationSpan = startBrowserTracingNavigationSpan(client, {
         name: WINDOW.location.pathname,
@@ -105,9 +106,11 @@ export function appRouterInstrumentNavigation(client: Client): void {
 
               if (routerFunctionName === 'push') {
                 span?.updateName(transactionNameifyRouterArgument(argArray[0]));
+                span?.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'url');
                 span?.setAttribute('navigation.type', 'router.push');
               } else if (routerFunctionName === 'replace') {
                 span?.updateName(transactionNameifyRouterArgument(argArray[0]));
+                span?.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'url');
                 span?.setAttribute('navigation.type', 'router.replace');
               } else if (routerFunctionName === 'back') {
                 span?.setAttribute('navigation.type', 'router.back');
