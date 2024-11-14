@@ -52,3 +52,5 @@ export const conditionalTest = (allowedVersion: { min?: number; max?: number }):
 export const parseEnvelope = (body: string): Array<Record<string, unknown>> => {
   return body.split('\n').map(e => JSON.parse(e));
 };
+
+export const wipChange = 'true';
