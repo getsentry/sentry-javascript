@@ -65,8 +65,13 @@ function addIncludesForTestApp(
     return;
   }
 
+  const shouldSkip = packageJson.sentryTest?.skip || false;
   const isOptional = packageJson.sentryTest?.optional || false;
   const variants = (optionalMode ? packageJson.sentryTest?.optionalVariants : packageJson.sentryTest?.variants) || [];
+
+  if (shouldSkip) {
+    return;
+  }
 
   // Add the basic test-application itself, if it is in the current mode
   if (optionalMode === isOptional) {
@@ -102,6 +107,7 @@ function getPackageJson(appName: string):
         optional?: boolean;
         variants?: Partial<MatrixInclude>[];
         optionalVariants?: Partial<MatrixInclude>[];
+        skip?: boolean;
       };
     }
   | undefined {
@@ -132,6 +138,11 @@ function getAffectedTestApplications(
     .split('\n')
     .map(line => line.trim())
     .filter(Boolean);
+
+  // If something in e2e tests themselves are changed, just run everything
+  if (affectedProjects.includes('@sentry-internal/e2e-tests')) {
+    return testApplications;
+  }
 
   return testApplications.filter(testApp => {
     const sentryDependencies = getSentryDependencies(testApp);
