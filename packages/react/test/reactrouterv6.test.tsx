@@ -491,6 +491,57 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
       });
     });
 
+    it('works with descendant wildcard routes', () => {
+      const client = createMockBrowserClient();
+      setCurrentClient(client);
+
+      client.addIntegration(
+        reactRouterV6BrowserTracingIntegration({
+          useEffect: React.useEffect,
+          useLocation,
+          useNavigationType,
+          createRoutesFromChildren,
+          matchRoutes,
+        }),
+      );
+      const SentryRoutes = withSentryReactRouterV6Routing(Routes);
+
+      const ProjectsRoutes = () => (
+        <SentryRoutes>
+          <Route path=":projectId" element={<div>Project Page</div>}>
+            <Route index element={<div>Project Page Root</div>} />
+            <Route element={<div>Editor</div>}>
+              <Route path="*" element={<Outlet />}>
+                <Route path="views/:viewId" element={<div>View Canvas</div>} />
+              </Route>
+            </Route>
+          </Route>
+          <Route path="*" element={<div>No Match Page</div>} />
+        </SentryRoutes>
+      );
+
+      render(
+        <MemoryRouter initialEntries={['/']}>
+          <SentryRoutes>
+            <Route index element={<Navigate to="/projects/123/views/234" />} />
+            <Route path="projects/*" element={<ProjectsRoutes />}></Route>
+          </SentryRoutes>
+        </MemoryRouter>,
+      );
+
+      // Fixme: Check why it's called twice
+      expect(mockStartBrowserTracingNavigationSpan).toHaveBeenCalledTimes(2);
+
+      expect(mockStartBrowserTracingNavigationSpan).toHaveBeenLastCalledWith(expect.any(BrowserClient), {
+        name: '/projects/:projectId/views/:viewId',
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
+        },
+      });
+    });
+
     it("updates the scope's `transactionName` on a navigation", () => {
       const client = createMockBrowserClient();
       setCurrentClient(client);
