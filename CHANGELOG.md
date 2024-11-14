@@ -10,6 +10,11 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 8.39.0-beta.0
+
+- feat(browser): Add LaunchDarkly integration for beta testing
+- feat(replay): Clear event buffer when full and in buffer mode
+
 ## 8.38.0
 
 - docs: Improve docstrings for node otel integrations ([#14217](https://github.com/getsentry/sentry-javascript/pull/14217))
