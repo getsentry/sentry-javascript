@@ -45,6 +45,23 @@ interface FinishedSpanBucket {
  */
 export class SentrySpanExporter {
   private _flushTimeout: ReturnType<typeof setTimeout> | undefined;
+
+  /*
+   * A quick explanation on the buckets: We do bucketing of finished spans for efficiency. This span exporter is
+   * accumulating spans until a root span is encountered and then it flushes all the spans that are descendants of that
+   * root span. Because it is totally in the realm of possibilities that root spans are never finished, and we don't
+   * want to accumulate spans indefinitely in memory, we need to periodically evacuate spans. Naively we could simply
+   * store the spans in an array and each time a new span comes in we could iterate through the entire array and
+   * evacuate all spans that have an end-timestamp that is older than our limit. This could get quite expensive because
+   * we would have to iterate a potentially large number of spans every time we evacuate. We want to avoid these large
+   * bursts of computation.
+   *
+   * Instead we go for a bucketing approach and put spans into buckets, based on what second
+   * (modulo the time limit) the span was put into the exporter. With buckets, when we decide to evacuate, we can
+   * iterate through the bucket entries instead, which have an upper bound of items, making the evacuation much more
+   * efficient. Cleaning up also becomes much more efficient since it simply involves de-referencing a bucket within the
+   * bucket array, and letting garbage collection take care of the rest.
+   */
   private _finishedSpanBuckets: (FinishedSpanBucket | undefined)[];
   private _finishedSpanBucketSize: number;
   private _spansToBucketEntry: WeakMap<ReadableSpan, FinishedSpanBucket>;
