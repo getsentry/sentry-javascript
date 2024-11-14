@@ -21,7 +21,6 @@ import { getClientIPAddress, ipHeaderNames } from './vendor/getIpAddress';
 const DEFAULT_INCLUDES = {
   ip: false,
   request: true,
-  transaction: true,
   user: true,
 };
 const DEFAULT_REQUEST_INCLUDES = ['cookies', 'data', 'headers', 'method', 'query_string', 'url'];
@@ -35,6 +34,7 @@ export type AddRequestDataToEventOptions = {
   include?: {
     ip?: boolean;
     request?: boolean | Array<(typeof DEFAULT_REQUEST_INCLUDES)[number]>;
+    /** @deprecated This option will be removed in v9. It does not do anything anymore, the `transcation` is set in other places. */
     transaction?: boolean | TransactionNamingScheme;
     user?: boolean | Array<(typeof DEFAULT_USER_INCLUDES)[number]>;
   };
@@ -67,6 +67,7 @@ export type TransactionNamingScheme = 'path' | 'methodPath' | 'handler';
  *                used instead of the request's route)
  *
  * @returns A tuple of the fully constructed transaction name [0] and its source [1] (can be either 'route' or 'url')
+ * @deprecated This method will be removed in v9. It is not in use anymore.
  */
 export function extractPathForTransaction(
   req: PolymorphicRequest,
@@ -100,23 +101,6 @@ export function extractPathForTransaction(
   }
 
   return [name, source];
-}
-
-function extractTransaction(req: PolymorphicRequest, type: boolean | TransactionNamingScheme): string {
-  switch (type) {
-    case 'path': {
-      return extractPathForTransaction(req, { path: true })[0];
-    }
-    case 'handler': {
-      return (req.route && req.route.stack && req.route.stack[0] && req.route.stack[0].name) || '<anonymous>';
-    }
-    case 'methodPath':
-    default: {
-      // if exist _reconstructedRoute return that path instead of route.path
-      const customRoute = req._reconstructedRoute ? req._reconstructedRoute : undefined;
-      return extractPathForTransaction(req, { path: true, method: true, customRoute })[0];
-    }
-  }
 }
 
 function extractUserData(
@@ -377,12 +361,6 @@ export function addRequestDataToEvent(
         ip_address: ip,
       };
     }
-  }
-
-  if (include.transaction && !event.transaction && event.type === 'transaction') {
-    // TODO do we even need this anymore?
-    // TODO make this work for nextjs
-    event.transaction = extractTransaction(req, include.transaction);
   }
 
   return event;

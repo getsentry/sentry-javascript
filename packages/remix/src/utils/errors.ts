@@ -1,12 +1,5 @@
 import type { AppData, DataFunctionArgs, EntryContext, HandleDocumentRequestFunction } from '@remix-run/node';
-import {
-  captureException,
-  getActiveSpan,
-  getClient,
-  getRootSpan,
-  handleCallbackErrors,
-  spanToJSON,
-} from '@sentry/core';
+import { captureException, getClient, handleCallbackErrors } from '@sentry/core';
 import type { Span } from '@sentry/types';
 import { addExceptionMechanism, isPrimitive, logger, objectify } from '@sentry/utils';
 import { DEBUG_BUILD } from './debug-build';
@@ -61,19 +54,9 @@ export async function captureRemixServerException(
   const objectifiedErr = objectify(err);
 
   captureException(isResponse(objectifiedErr) ? await extractResponseError(objectifiedErr) : objectifiedErr, scope => {
-    const activeSpan = getActiveSpan();
-    const rootSpan = activeSpan && getRootSpan(activeSpan);
-    const activeRootSpanName = rootSpan ? spanToJSON(rootSpan).description : undefined;
-
     scope.setSDKProcessingMetadata({
       request: {
         ...normalizedRequest,
-        // When `route` is not defined, `RequestData` integration uses the full URL
-        route: activeRootSpanName
-          ? {
-              path: activeRootSpanName,
-            }
-          : undefined,
       },
     });
 

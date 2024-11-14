@@ -314,9 +314,6 @@ function wrapRequestHandler(
       isolationScope.setSDKProcessingMetadata({
         request: {
           ...normalizedRequest,
-          route: {
-            path: name,
-          },
         },
       });
 
