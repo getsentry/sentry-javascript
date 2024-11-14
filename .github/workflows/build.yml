@@ -861,13 +861,11 @@ jobs:
 
       - name: Determine which E2E test applications should be run
         id: matrix
-        if: github.event_name == 'pull_request'
         run: yarn --silent test:build-matrix --base=${{ github.event.pull_request.base.sha }} >> $GITHUB_OUTPUT
         working-directory: dev-packages/e2e-tests
 
       - name: Determine which optional E2E test applications should be run
         id: matrix-optional
-        if: github.event_name == 'pull_request'
         run: yarn --silent test:build-matrix-optional --base=${{ github.event.pull_request.base.sha }} >> $GITHUB_OUTPUT
         working-directory: dev-packages/e2e-tests
 
@@ -966,7 +964,7 @@ jobs:
 
       - name: Upload Playwright Traces
         uses: actions/upload-artifact@v4
-        if: failure() &&  steps.should-skip.outputs.SKIP != 'true'
+        if: failure()
         with:
           name: playwright-traces-job_e2e_playwright_tests-${{ matrix.test-application}}
           path: dev-packages/e2e-tests/test-applications/${{ matrix.test-application}}/test-results
@@ -1043,12 +1041,6 @@ jobs:
         with:
           dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
 
-      - name: Determine if test app should be run
-        id: should-skip
-        if: github.event_name == 'pull_request'
-        run: yarn --silent test:should-skip ${{ matrix.test-application }} --base=${{ github.event.pull_request.base.sha }} >> $GITHUB_OUTPUT
-        working-directory: dev-packages/e2e-tests
-
       - name: Restore tarball cache
         uses: actions/cache/restore@v4
         id: restore-tarball-cache
@@ -1057,7 +1049,7 @@ jobs:
           key: ${{ env.BUILD_CACHE_TARBALL_KEY }}
 
       - name: Build tarballs if not cached
-        if: steps.restore-tarball-cache.outputs.cache-hit != 'true' &&  steps.should-skip.outputs.SKIP != 'true'
+        if: steps.restore-tarball-cache.outputs.cache-hit != 'true'
         run: yarn build:tarball
 
       - name: Install Playwright
