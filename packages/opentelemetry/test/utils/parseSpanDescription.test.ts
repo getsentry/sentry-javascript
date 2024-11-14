@@ -15,6 +15,7 @@ import {
   SEMATTRS_RPC_SERVICE,
 } from '@opentelemetry/semantic-conventions';
 
+import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 import { descriptionForHttpMethod, getSanitizedUrl, parseSpanDescription } from '../../src/utils/parseSpanDescription';
 
 describe('parseSpanDescription', () => {
@@ -82,6 +83,21 @@ describe('parseSpanDescription', () => {
       },
     ],
     [
+      'works with db system and custom source',
+      {
+        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
+        [SEMATTRS_DB_SYSTEM]: 'mysql',
+        [SEMATTRS_DB_STATEMENT]: 'SELECT * from users',
+      },
+      'test name',
+      SpanKind.CLIENT,
+      {
+        description: 'test name',
+        op: 'db',
+        source: 'custom',
+      },
+    ],
+    [
       'works with db system without statement',
       {
         [SEMATTRS_DB_SYSTEM]: 'mysql',
@@ -108,6 +124,20 @@ describe('parseSpanDescription', () => {
       },
     ],
     [
+      'works with rpc service and custom source',
+      {
+        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
+        [SEMATTRS_RPC_SERVICE]: 'rpc-test-service',
+      },
+      'test name',
+      undefined,
+      {
+        description: 'test name',
+        op: 'rpc',
+        source: 'custom',
+      },
+    ],
+    [
       'works with messaging system',
       {
         [SEMATTRS_MESSAGING_SYSTEM]: 'test-messaging-system',
@@ -121,6 +151,20 @@ describe('parseSpanDescription', () => {
       },
     ],
     [
+      'works with messaging system and custom source',
+      {
+        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
+        [SEMATTRS_MESSAGING_SYSTEM]: 'test-messaging-system',
+      },
+      'test name',
+      undefined,
+      {
+        description: 'test name',
+        op: 'message',
+        source: 'custom',
+      },
+    ],
+    [
       'works with faas trigger',
       {
         [SEMATTRS_FAAS_TRIGGER]: 'test-faas-trigger',
@@ -131,6 +175,20 @@ describe('parseSpanDescription', () => {
         description: 'test name',
         op: 'test-faas-trigger',
         source: 'route',
+      },
+    ],
+    [
+      'works with faas trigger and custom source',
+      {
+        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
+        [SEMATTRS_FAAS_TRIGGER]: 'test-faas-trigger',
+      },
+      'test name',
+      undefined,
+      {
+        description: 'test name',
+        op: 'test-faas-trigger',
+        source: 'custom',
       },
     ],
   ])('%s', (_, attributes, name, kind, expected) => {
@@ -165,6 +223,26 @@ describe('descriptionForHttpMethod', () => {
       SpanKind.CLIENT,
       {
         op: 'http.client',
+        description: 'GET https://www.example.com/my-path',
+        data: {
+          url: 'https://www.example.com/my-path',
+        },
+        source: 'url',
+      },
+    ],
+    [
+      'works with prefetch request',
+      'GET',
+      {
+        [SEMATTRS_HTTP_METHOD]: 'GET',
+        [SEMATTRS_HTTP_URL]: 'https://www.example.com/my-path',
+        [SEMATTRS_HTTP_TARGET]: '/my-path',
+        'sentry.http.prefetch': true,
+      },
+      'test name',
+      SpanKind.CLIENT,
+      {
+        op: 'http.client.prefetch',
         description: 'GET https://www.example.com/my-path',
         data: {
           url: 'https://www.example.com/my-path',
@@ -226,6 +304,27 @@ describe('descriptionForHttpMethod', () => {
         description: 'test name',
         data: {
           url: 'https://www.example.com/my-path',
+        },
+        source: 'custom',
+      },
+    ],
+    [
+      "doesn't overwrite name with source custom",
+      'GET',
+      {
+        [SEMATTRS_HTTP_METHOD]: 'GET',
+        [SEMATTRS_HTTP_URL]: 'https://www.example.com/my-path/123',
+        [SEMATTRS_HTTP_TARGET]: '/my-path/123',
+        [ATTR_HTTP_ROUTE]: '/my-path/:id',
+        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
+      },
+      'test name',
+      SpanKind.CLIENT,
+      {
+        op: 'http.client',
+        description: 'test name',
+        data: {
+          url: 'https://www.example.com/my-path/123',
         },
         source: 'custom',
       },
