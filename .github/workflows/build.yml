@@ -869,12 +869,6 @@ jobs:
         run: yarn --silent ci:build-matrix-optional --base=${{ (github.event_name == 'pull_request' && github.event.pull_request.base.sha) || '' }} >> $GITHUB_OUTPUT
         working-directory: dev-packages/e2e-tests
 
-      - name: Debug this 1
-        run: echo ${{ fromJSON(steps.matrix.outputs.matrix) }}
-
-      - name: Debug this 2
-        run: echo ${{ fromJSON(steps.matrix.outputs.matrix).include }}
-
   job_e2e_tests:
     name: E2E ${{ matrix.label || matrix.test-application }} Test
     # We need to add the `always()` check here because the previous step has this as well :(
