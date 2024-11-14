@@ -43,5 +43,13 @@
   },
   "volta": {
     "extends": "../../package.json"
+  },
+  "sentryTest": {
+    "variants": [
+      {
+        "build-command": "test:build-ts3.8",
+        "label": "create-react-app (TS 3.8)"
+      }
+    ]
   }
 }
