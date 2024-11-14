@@ -1,7 +1,7 @@
-import { sync as globSync } from 'glob';
 import { execSync } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
+import { sync as globSync } from 'glob';
 
 interface MatrixInclude {
   'test-application': string;
