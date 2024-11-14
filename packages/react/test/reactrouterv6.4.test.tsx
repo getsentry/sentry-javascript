@@ -17,7 +17,7 @@ import {
   matchRoutes,
   useLocation,
   useNavigationType,
-} from 'react-router-6.4';
+} from 'react-router-6';
 
 import { BrowserClient, wrapCreateBrowserRouter } from '../src';
 import { reactRouterV6BrowserTracingIntegration } from '../src/reactrouterv6';
