@@ -129,3 +129,7 @@ export default defineNuxtConfig({
   },
 });
 ```
+
+## Troubleshoot
+
+If you encounter any issues with error tracking or integrations, refer to the official Sentry documentation for Nuxt at [https://docs.sentry.io/platforms/javascript/guides/nuxt/](https://docs.sentry.io/platforms/javascript/guides/nuxt/).
