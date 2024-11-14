@@ -577,17 +577,9 @@ describe('Integration | Transactions', () => {
       throw new Error('No exporter found, aborting test...');
     }
 
-    let innerSpan1Id: string | undefined;
-    let innerSpan2Id: string | undefined;
-
     void Sentry.startSpan({ name: 'test name' }, async () => {
-      const subSpan = Sentry.startInactiveSpan({ name: 'inner span 1' });
-      innerSpan1Id = subSpan.spanContext().spanId;
-      subSpan.end();
-
-      Sentry.startSpan({ name: 'inner span 2' }, innerSpan => {
-        innerSpan2Id = innerSpan.spanContext().spanId;
-      });
+      Sentry.startInactiveSpan({ name: 'inner span 1' }).end();
+      Sentry.startInactiveSpan({ name: 'inner span 2' }).end();
 
       // Pretend this is pending for 10 minutes
       await new Promise(resolve => setTimeout(resolve, 10 * 60 * 1000));
