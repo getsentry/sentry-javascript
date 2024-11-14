@@ -1,5 +1,5 @@
 import { expect } from '@playwright/test';
-import type { Event } from '@sentry/core';
+import type { Event } from '@sentry/types';
 
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
@@ -11,21 +11,19 @@ import { sentryTest } from '../../../../utils/fixtures';
 import { getFirstSentryEnvelopeRequest, shouldSkipTracingTest } from '../../../../utils/helpers';
 
 sentryTest(
-  'sets the source to custom when updating the transaction name with `span.updateName`',
-  async ({ getLocalTestUrl, page }) => {
+  'sets the source to custom when updating the transaction name with Sentry.updateSpanName',
+  async ({ getLocalTestPath, page }) => {
     if (shouldSkipTracingTest()) {
       sentryTest.skip();
     }
 
-    const url = await getLocalTestUrl({ testDir: __dirname });
+    const url = await getLocalTestPath({ testDir: __dirname });
 
     const eventData = await getFirstSentryEnvelopeRequest<Event>(page, url);
 
     const traceContextData = eventData.contexts?.trace?.data;
 
     expect(traceContextData).toBeDefined();
-
-    expect(eventData.transaction).toBe('new name');
 
     expect(traceContextData).toMatchObject({
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.browser',
@@ -35,6 +33,8 @@ sentryTest(
     });
 
     expect(traceContextData!._sentry_span_name_set_by_user).toBeUndefined();
+
+    expect(eventData.transaction).toBe('new name');
 
     expect(eventData.contexts?.trace?.op).toBe('pageload');
     expect(eventData.spans?.length).toBeGreaterThan(0);
