@@ -1,3 +1,4 @@
+import type { FeatureFlag } from './featureFlags';
 import type { Primitive } from './misc';
 import type { SpanOrigin } from './span';
 
@@ -13,6 +14,7 @@ export interface Contexts extends Record<string, Context | undefined> {
   cloud_resource?: CloudResourceContext;
   state?: StateContext;
   profile?: ProfileContext;
+  flags?: FeatureFlagContext;
 }
 
 export interface StateContext extends Record<string, unknown> {
@@ -123,4 +125,13 @@ export interface ProfileContext extends Record<string, unknown> {
 export interface MissingInstrumentationContext extends Record<string, unknown> {
   package: string;
   ['javascript.is_cjs']?: boolean;
+}
+
+/**
+ * Used to buffer flag evaluation data on the current scope and attach it to
+ * error events. `values` should be initialized as empty ([]), and it should
+ * only be modified by @sentry/util "FlagBuffer" functions.
+ */
+export interface FeatureFlagContext extends Record<string, unknown> {
+  values: FeatureFlag[];
 }
