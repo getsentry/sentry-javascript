@@ -193,7 +193,6 @@ class SentryModule {
       module: SentryModule,
       providers: [
         SentryService,
-
         {
           provide: APP_INTERCEPTOR,
           useClass: SentryTracingInterceptor,
@@ -207,7 +206,6 @@ Global()(SentryModule);
 Module({
   providers: [
     SentryService,
-
     {
       provide: APP_INTERCEPTOR,
       useClass: SentryTracingInterceptor,
