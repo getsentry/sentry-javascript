@@ -5,17 +5,17 @@ afterAll(() => {
   cleanupChildProcesses();
 });
 
-test('sends a manually started root span with source custom', done => {
+test('updates the span name when calling `span.updateName`', done => {
   createRunner(__dirname, 'scenario.ts')
     .expect({
       transaction: {
-        transaction: 'test_span',
-        transaction_info: { source: 'custom' },
+        transaction: 'new name',
+        transaction_info: { source: 'url' },
         contexts: {
           trace: {
             span_id: expect.any(String),
             trace_id: expect.any(String),
-            data: { [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom' },
+            data: { [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url' },
           },
         },
       },

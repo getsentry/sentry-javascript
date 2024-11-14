@@ -234,6 +234,22 @@ export interface Span {
 
   /**
    * Update the name of the span.
+   *
+   * **Important:** You most likely want to use `Sentry.updateSpanName(span, name)` instead!
+   *
+   * This method will update the current span name but cannot guarantee that the new name will be
+   * the final name of the span. Instrumentation might still overwrite the name with an automatically
+   * computed name, for example in `http.server` or `db` spans.
+   *
+   * You can ensure that your name is kept and not overwritten by
+   * - either calling `Sentry.updateSpanName(span, name)`
+   * - or by calling `span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'custom')`
+   *   in addition to `span.updateName`.
+   *
+   * If you want to update a span name in a browser-only app, `span.updateName` and `Sentry.updateSpanName`
+   * are identical: In both cases, the name will not be overwritten by the Sentry SDK.
+   *
+   * @param name the new name of the span
    */
   updateName(name: string): this;
 
