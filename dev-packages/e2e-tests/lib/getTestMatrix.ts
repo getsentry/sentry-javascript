@@ -61,7 +61,7 @@ function addIncludesForTestApp(
   const packageJson = getPackageJson(testApp);
 
   // this means something went wrong
-  if (!packageJson.name) {
+  if (!packageJson) {
     return;
   }
 
@@ -84,18 +84,17 @@ function addIncludesForTestApp(
 }
 
 function getSentryDependencies(appName: string): string[] {
-  const packageJson = getPackageJson(appName);
+  const packageJson = getPackageJson(appName) || {};
 
   const dependencies = {
     ...packageJson.devDependencies,
     ...packageJson.dependencies,
   };
 
-  return Object.keys(dependencies).filter(key => key.startsWith('@sentry/'));
+  return Object.keys(dependencies).filter(key => key.startsWith('@sentry'));
 }
 
 function getPackageJson(appName: string): {
-  name?: string;
   dependencies?: { [key: string]: string };
   devDependencies?: { [key: string]: string };
   sentryTest?: {
@@ -103,12 +102,12 @@ function getPackageJson(appName: string): {
     variants?: Partial<MatrixInclude>[];
     optionalVariants?: Partial<MatrixInclude>[];
   };
-} {
+} | undefined {
   const fullPath = path.resolve(__dirname, '..', 'test-applications', appName, 'package.json');
 
   // This can happen if you e.g. have a leftover directory in test-applications
   if (!fs.existsSync(fullPath)) {
-    return {};
+    return undefined;
   }
 
   return JSON.parse(fs.readFileSync(fullPath, 'utf8'));
