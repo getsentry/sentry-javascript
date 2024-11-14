@@ -890,11 +890,6 @@ jobs:
       fail-fast: false
       matrix: ${{ fromJson(needs.job_e2e_prepare.outputs.matrix) }}
     steps:
-      - name: Check out base commit (${{ github.event.pull_request.base.sha }})
-        uses: actions/checkout@v4
-        if: github.event_name == 'pull_request'
-        with:
-          ref: ${{ github.event.pull_request.base.sha }}
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v4
         with:
