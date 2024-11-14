@@ -264,7 +264,13 @@ export function getSanitizedUrl(
   return { urlPath: undefined, url, query, fragment, hasRoute: false };
 }
 
-function getOriginalName(name: string, attributes: Attributes): string {
+/**
+ * Because Otel decided to mutate span names via `span.updateName`, the only way to ensure
+ * that a user-set span name is preserved is to store it as a tmp attribute on the span.
+ * We delete this attribute once we're done with it when preparing the event envelope.
+ * @internal
+ */
+export function getOriginalName(name: string, attributes: Attributes): string {
   return attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] === 'custom' &&
     attributes['_sentry_span_name_set_by_user'] &&
     typeof attributes['_sentry_span_name_set_by_user'] === 'string'
