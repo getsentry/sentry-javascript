@@ -14,8 +14,8 @@
     "test:prepare": "ts-node prepare.ts",
     "test:validate": "run-s test:validate-configuration test:validate-test-app-setups",
     "clean": "rimraf tmp node_modules pnpm-lock.yaml && yarn clean:test-applications",
-    "ci:build-matrix": "ts-node ./lib/ciBuildMatrix.ts",
-    "ci:build-matrix-optional": "ts-node ./lib/ciBuildMatrix.ts --optional=true",
+    "ci:build-matrix": "ts-node ./lib/getTestMatrix.ts",
+    "ci:build-matrix-optional": "ts-node ./lib/getTestMatrix.ts --optional=true",
     "clean:test-applications": "rimraf --glob test-applications/**/{node_modules,dist,build,.next,.sveltekit,pnpm-lock.yaml} .last-run.json && pnpm store prune"
   },
   "devDependencies": {

@@ -861,12 +861,12 @@ jobs:
 
       - name: Determine which E2E test applications should be run
         id: matrix
-        run: yarn --silent test:build-matrix --base=${{ github.event.pull_request.base.sha }} >> $GITHUB_OUTPUT
+        run: yarn --silent ci:build-matrix --base=${{ github.event.pull_request.base.sha }} >> $GITHUB_OUTPUT
         working-directory: dev-packages/e2e-tests
 
       - name: Determine which optional E2E test applications should be run
         id: matrix-optional
-        run: yarn --silent test:build-matrix-optional --base=${{ github.event.pull_request.base.sha }} >> $GITHUB_OUTPUT
+        run: yarn --silent ci:build-matrix-optional --base=${{ github.event.pull_request.base.sha }} >> $GITHUB_OUTPUT
         working-directory: dev-packages/e2e-tests
 
   job_e2e_tests:
