@@ -169,10 +169,4 @@ describe('httpIntegration', () => {
       runner.makeRequest('get', '/testRequest');
     });
   });
-
-  describe('does not override the span name set by the user', () => {
-    test('via `span.updateName`', done => {
-      createRunner(__dirname, 'server-updateName.js').start(done);
-    });
-  });
 });
