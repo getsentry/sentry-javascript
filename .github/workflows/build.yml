@@ -915,12 +915,6 @@ jobs:
         with:
           dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
 
-      - name: Determine if test app should be run
-        id: should-skip
-        if: github.event_name == 'pull_request'
-        run: yarn --silent test:should-skip ${{ matrix.test-application }} --base=${{ github.event.pull_request.base.sha }} >> $GITHUB_OUTPUT
-        working-directory: dev-packages/e2e-tests
-
       - name: Restore tarball cache
         uses: actions/cache/restore@v4
         id: restore-tarball-cache
