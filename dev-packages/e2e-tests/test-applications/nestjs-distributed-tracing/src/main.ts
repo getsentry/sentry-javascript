@@ -3,9 +3,9 @@ import './instrument';
 
 // Import other modules
 import { NestFactory } from '@nestjs/core';
+import { EventsModule } from './events.module';
 import { TraceInitiatorModule } from './trace-initiator.module';
 import { TraceReceiverModule } from './trace-receiver.module';
-import { EventsModule } from './events.module';
 
 const TRACE_INITIATOR_PORT = 3030;
 const TRACE_RECEIVER_PORT = 3040;
