@@ -4,10 +4,10 @@
 
 These docs walk through how to migrate our JavaScript SDKs through different major versions.
 
-- Upgrading from [SDK 4.x to 5.x/6.x](./docs/migration/v4-to-v5_v6.md)
-- Upgrading from [SDK 6.x to 7.x](./docs/migration/v6-to-v7.md)
-- Upgrading from [SDK 7.x to 8.x](./docs/migration/v7-to-v8.md)
 - Upgrading from [SDK 8.x to 9.x](#upgrading-from-8x-to-9x)
+- Upgrading from [SDK 7.x to 8.x](./docs/migration/v7-to-v8.md)
+- Upgrading from [SDK 6.x to 7.x](./docs/migration/v6-to-v7.md)
+- Upgrading from [SDK 4.x to 5.x/6.x](./docs/migration/v4-to-v5_v6.md)
 
 # Upgrading from 8.x to 9.x
 
@@ -30,15 +30,13 @@ We periodically update the compatibility ranges in major versions to increase re
 **ECMAScript Version:** All of the JavaScript code in the Sentry SDK packages may now contain ECMAScript 2020 features.
 This includes features like Nullish Coalescing (`??`), Optional Chaining (`?.`), `String.matchAll()`, Logical Assignment Operators (`&&=`, `||=`, `??=`), and `Promise.allSettled()`.
 
-If you observe failures due to syntax or features listed above, it may be an indicator that your current Runtime does not support ES2020.
+If you observe failures due to syntax or features listed above, it may be an indicator that your current runtime does not support ES2020.
 If your runtime does not support ES2020, we recommend transpiling the SDK using Babel or similar tooling.
 
 **Node.js:** The minimum supported Node.js versions are TBD, TBD, and TBD.
 We no longer test against Node TBD, TBD, or TBD and cannot guarantee that the SDK will work as expected on these versions.
 
-**Browser:** Due to SDK code now including ES2020 features, the minimum supported browser list will be updated.
-
-New minimum supported browsers:
+**Browsers:** Due to SDK code now including ES2020 features, the minimum supported browser list now looks as follows:
 
 - Chrome 80
 - Edge 80
