@@ -10,9 +10,6 @@
 [![npm dm](https://img.shields.io/npm/dm/@sentry/nestjs.svg)](https://www.npmjs.com/package/@sentry/nestjs)
 [![npm dt](https://img.shields.io/npm/dt/@sentry/nestjs.svg)](https://www.npmjs.com/package/@sentry/nestjs)
 
-This SDK is in **Beta**. The API is stable but updates may include minor changes in behavior. Please reach out on
-[GitHub](https://github.com/getsentry/sentry-javascript/issues/new/choose) if you have any feedback or concerns.
-
 ## Installation
 
 ```bash
