@@ -6,7 +6,7 @@ import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
 import { InstrumentationBase, InstrumentationNodeModuleDefinition } from '@opentelemetry/instrumentation';
 import { getRequestInfo } from '@opentelemetry/instrumentation-http';
 import { addBreadcrumb, getClient, getIsolationScope, setNormalizedRequest, withIsolationScope } from '@sentry/core';
-import type { PolymorphicRequest, RequestEventData, SanitizedRequestData } from '@sentry/types';
+import type { PolymorphicRequest, RequestEventData, SanitizedRequestData, Scope } from '@sentry/types';
 import {
   getBreadcrumbLogLevelFromHttpStatusCode,
   getSanitizedUrlString,
@@ -150,7 +150,7 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
           cookies,
         };
 
-        patchRequestToCaptureBody(request, normalizedRequest);
+        patchRequestToCaptureBody(request, isolationScope);
 
         // Update the isolation scope, isolate this request
         // TODO(v9): Stop setting `request`, we only rely on normalizedRequest anymore
@@ -349,7 +349,7 @@ function getBreadcrumbData(request: http.ClientRequest): Partial<SanitizedReques
  * we monkey patch `req.on('data')` to intercept the body chunks.
  * This way, we only read the body if the user also consumes the body, ensuring we do not change any behavior in unexpected ways.
  */
-function patchRequestToCaptureBody(req: IncomingMessage, normalizedRequest: RequestEventData): void {
+function patchRequestToCaptureBody(req: IncomingMessage, isolationScope: Scope): void {
   const chunks: Buffer[] = [];
 
   function getChunksSize(): number {
@@ -398,9 +398,8 @@ function patchRequestToCaptureBody(req: IncomingMessage, normalizedRequest: Requ
               try {
                 const body = Buffer.concat(chunks).toString('utf-8');
 
-                // We mutate the passed in normalizedRequest and add the body to it
                 if (body) {
-                  normalizedRequest.data = body;
+                  setNormalizedRequest({ data: body }, isolationScope);
                 }
               } catch {
                 // ignore errors here
