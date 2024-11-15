@@ -9,7 +9,7 @@ import type { Client, Event, EventHint, IntegrationFn } from '@sentry/types';
 import type { EvaluationDetails, FlagValue, HookContext, HookHints, JsonValue, OpenFeatureHook } from './types';
 
 import { defineIntegration, getCurrentScope } from '@sentry/core';
-import { insertToFlagBuffer } from '../../../utils/featureFlags'
+import { insertToFlagBuffer } from '../../../utils/featureFlags';
 
 export const openFeatureIntegration = defineIntegration(() => {
   return {
