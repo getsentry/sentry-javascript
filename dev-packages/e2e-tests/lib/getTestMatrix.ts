@@ -1,13 +1,30 @@
 import { execSync } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
+import { dirname } from 'path';
+import { parseArgs } from 'util';
 import { sync as globSync } from 'glob';
 
 interface MatrixInclude {
+  /** The test application (directory) name. */
   'test-application': string;
+  /** Optional override for the build command to run. */
   'build-command'?: string;
+  /** Optional override for the assert command to run. */
   'assert-command'?: string;
+  /** Optional label for the test run. If not set, defaults to value of `test-application`. */
   label?: string;
+}
+
+interface PackageJsonSentryTestConfig {
+  /** If this is true, the test app is optional. */
+  optional?: boolean;
+  /** Variant configs that should be run in non-optional test runs. */
+  variants?: Partial<MatrixInclude>[];
+  /** Variant configs that should be run in optional test runs. */
+  optionalVariants?: Partial<MatrixInclude>[];
+  /** Skip this test app for matrix generation. */
+  skip?: boolean;
 }
 
 /**
@@ -20,20 +37,20 @@ interface MatrixInclude {
  * Otherwise, these will be skipped.
  */
 function run(): void {
-  const args: Record<string, string> = {};
-  process.argv
-    .slice(2)
-    .filter(arg => arg.startsWith('--') && arg.includes('='))
-    .forEach(arg => {
-      const [part1, part2] = arg.split('=') as [string, string];
-      const argName = part1.replace('--', '');
-      const argValue = part2;
-      args[argName] = argValue;
-    });
+  const { values } = parseArgs({
+    args: process.argv.slice(2),
+    options: {
+      base: { type: 'string' },
+      head: { type: 'string' },
+      optional: { type: 'string', default: 'false' },
+    },
+  });
 
-  const { base, head, optional = 'false' } = args;
+  const { base, head, optional } = values;
 
-  const testApplications = globSync('*', { cwd: `${__dirname}/../test-applications/` });
+  const testApplications = globSync('*/package.json', {
+    cwd: `${__dirname}/../test-applications`,
+  }).map(filePath => dirname(filePath));
 
   // If `--base=xxx` is defined, we only want to get test applications changed since that base
   // Else, we take all test applications (e.g. on push)
@@ -59,11 +76,6 @@ function addIncludesForTestApp(
   { optionalMode }: { optionalMode: boolean },
 ): void {
   const packageJson = getPackageJson(testApp);
-
-  // this means something went wrong
-  if (!packageJson) {
-    return;
-  }
 
   const shouldSkip = packageJson.sentryTest?.skip || false;
   const isOptional = packageJson.sentryTest?.optional || false;
@@ -99,23 +111,15 @@ function getSentryDependencies(appName: string): string[] {
   return Object.keys(dependencies).filter(key => key.startsWith('@sentry'));
 }
 
-function getPackageJson(appName: string):
-  | {
-      dependencies?: { [key: string]: string };
-      devDependencies?: { [key: string]: string };
-      sentryTest?: {
-        optional?: boolean;
-        variants?: Partial<MatrixInclude>[];
-        optionalVariants?: Partial<MatrixInclude>[];
-        skip?: boolean;
-      };
-    }
-  | undefined {
+function getPackageJson(appName: string): {
+  dependencies?: { [key: string]: string };
+  devDependencies?: { [key: string]: string };
+  sentryTest?: PackageJsonSentryTestConfig;
+} {
   const fullPath = path.resolve(__dirname, '..', 'test-applications', appName, 'package.json');
 
-  // This can happen if you e.g. have a leftover directory in test-applications
   if (!fs.existsSync(fullPath)) {
-    return undefined;
+    throw new Error(`Could not find package.json for ${appName}`);
   }
 
   return JSON.parse(fs.readFileSync(fullPath, 'utf8'));
