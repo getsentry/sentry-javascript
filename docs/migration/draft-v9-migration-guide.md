@@ -11,3 +11,7 @@
 ## `@sentry/core`
 
 - Deprecated `transactionNamingScheme` option in `requestDataIntegration`.
+
+## `@sentry/nestjs`
+
+- Deprecated `@WithSentry`. Use `@SentryExceptionCaptured` instead.

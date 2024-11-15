@@ -83,5 +83,7 @@ export function SentryExceptionCaptured() {
 
 /**
  * A decorator to wrap user-defined exception filters and add Sentry error reporting.
+ *
+ * @deprecated This decorator was renamed and will be removed in a future major version. Use `SentryExceptionCaptured` instead.
  */
 export const WithSentry = SentryExceptionCaptured;

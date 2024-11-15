@@ -8,6 +8,10 @@
 
 ## Unreleased
 
+### Deprecated `@WithSentry` in `@sentry/nestjs`
+
+The `@WithSentry` decorator was deprecated. Use `@SentryExceptionCaptured` instead. This is a simple renaming and functionality stays identical.
+
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
 ## 8.38.0
