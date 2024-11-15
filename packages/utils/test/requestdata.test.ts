@@ -702,6 +702,7 @@ describe('extractPathForTransaction', () => {
       expectedRoute: string,
       expectedSource: TransactionSource,
     ) => {
+      // eslint-disable-next-line deprecation/deprecation
       const [route, source] = extractPathForTransaction(req, options);
 
       expect(route).toEqual(expectedRoute);
@@ -717,6 +718,7 @@ describe('extractPathForTransaction', () => {
       originalUrl: '/api/users/123/details',
     } as PolymorphicRequest;
 
+    // eslint-disable-next-line deprecation/deprecation
     const [route, source] = extractPathForTransaction(req, {
       path: true,
       method: true,
