@@ -1,7 +1,7 @@
 import {
-  applySdkMetadata,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  applySdkMetadata,
   spanToJSON,
 } from '@sentry/core';
 import type { NodeClient, NodeOptions, Span } from '@sentry/node';
