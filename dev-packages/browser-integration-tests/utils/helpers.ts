@@ -286,6 +286,18 @@ export function shouldSkipFeatureFlagsTest(): boolean {
 }
 
 /**
+ * We can only test the openFeature browser integration in certain bundles/packages:
+ * - NPM (ESM, CJS)
+ * - Not CDNs.
+ *
+ * @returns `true` if we should skip the openFeature test
+ */
+export function shouldSkipOpenFeatureTest(): boolean {
+  const bundle = process.env.PW_BUNDLE as string | undefined;
+  return bundle != null && !bundle.includes('esm') && !bundle.includes('cjs');
+}
+
+/**
  * Waits until a number of requests matching urlRgx at the given URL arrive.
  * If the timeout option is configured, this function will abort waiting, even if it hasn't received the configured
  * amount of requests, and returns all the events received up to that point in time.
