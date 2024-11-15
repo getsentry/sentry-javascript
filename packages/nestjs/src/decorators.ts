@@ -1,8 +1,8 @@
-import * as Sentry from '@sentry/node';
-import type { MonitorConfig } from '@sentry/types';
 import { captureException } from '@sentry/core';
-import { isExpectedError } from './helpers';
+import * as Sentry from '@sentry/node';
 import { startSpan } from '@sentry/node';
+import type { MonitorConfig } from '@sentry/types';
+import { isExpectedError } from './helpers';
 
 /**
  * A decorator wrapping the native nest Cron decorator, sending check-ins to Sentry.
