@@ -5,7 +5,7 @@ import { VERSION } from '@opentelemetry/core';
 import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
 import { InstrumentationBase, InstrumentationNodeModuleDefinition } from '@opentelemetry/instrumentation';
 import { getRequestInfo } from '@opentelemetry/instrumentation-http';
-import { addBreadcrumb, getClient, getIsolationScope, setNormalizedRequest, withIsolationScope } from '@sentry/core';
+import { addBreadcrumb, getClient, getIsolationScope, setRequestEventData, withIsolationScope } from '@sentry/core';
 import type { PolymorphicRequest, RequestEventData, SanitizedRequestData, Scope } from '@sentry/types';
 import {
   getBreadcrumbLogLevelFromHttpStatusCode,
@@ -155,7 +155,7 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
         // Update the isolation scope, isolate this request
         // TODO(v9): Stop setting `request`, we only rely on normalizedRequest anymore
         isolationScope.setSDKProcessingMetadata({ request });
-        setNormalizedRequest(normalizedRequest, isolationScope);
+        setRequestEventData(normalizedRequest, isolationScope);
 
         const client = getClient<NodeClient>();
         if (client && client.getOptions().autoSessionTracking) {
@@ -399,7 +399,7 @@ function patchRequestToCaptureBody(req: IncomingMessage, isolationScope: Scope):
                 const body = Buffer.concat(chunks).toString('utf-8');
 
                 if (body) {
-                  setNormalizedRequest({ data: body }, isolationScope);
+                  setRequestEventData({ data: body }, isolationScope);
                 }
               } catch {
                 // ignore errors here

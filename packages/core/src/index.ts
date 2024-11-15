@@ -68,7 +68,7 @@ export { hasTracingEnabled } from './utils/hasTracingEnabled';
 export { isSentryRequestUrl } from './utils/isSentryRequestUrl';
 export { handleCallbackErrors } from './utils/handleCallbackErrors';
 export { parameterize } from './utils/parameterize';
-export { setNormalizedRequest } from './utils/sdkProcessingMetadata';
+export { setRequestEventData } from './utils/sdkProcessingMetadata';
 export {
   spanToTraceHeader,
   spanToJSON,

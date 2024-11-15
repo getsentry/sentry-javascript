@@ -35,7 +35,7 @@ export function mergeSdkProcessingMetadata(
  * By default, this will put this data on the isolation scope,
  * but you can also pass a different scope to set the data on.
  */
-export function setNormalizedRequest(normalizedRequest: Request, scope = getIsolationScope()): void {
+export function setRequestEventData(normalizedRequest: Request, scope = getIsolationScope()): void {
   const normalizedRequestBefore = scope.getScopeData().sdkProcessingMetadata['normalizedRequest'];
 
   const newNormalizedRequest = {
