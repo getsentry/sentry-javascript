@@ -24,7 +24,7 @@ import type {
 import { dateTimestampInSeconds, generatePropagationContext, isPlainObject, logger, uuid4 } from '@sentry/utils';
 
 import { updateSession } from './session';
-import { mergeSdkProcessingMetadata } from './utils/applyScopeDataToEvent';
+import { mergeSdkProcessingMetadata } from './utils/mergeSdkProcessingMetadata';
 import { _getSpanForScope, _setSpanForScope } from './utils/spanOnScope';
 
 /**
