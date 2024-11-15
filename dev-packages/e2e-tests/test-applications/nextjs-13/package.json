@@ -41,5 +41,17 @@
   },
   "volta": {
     "extends": "../../package.json"
+  },
+  "sentryTest": {
+    "optionalVariants": [
+      {
+        "build-command": "test:build-canary",
+        "label": "nextjs-13 (canary)"
+      },
+      {
+        "build-command": "test:build-latest",
+        "label": "nextjs-13 (latest)"
+      }
+    ]
   }
 }
