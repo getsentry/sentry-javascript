@@ -1,7 +1,7 @@
-import { isPatched } from '../../../src/integrations/tracing/nest/helpers';
-import type { InjectableTarget } from '../../../src/integrations/tracing/nest/types';
-import { SentryNestEventInstrumentation } from '../../../src/integrations/tracing/nest/sentry-nest-event-instrumentation';
 import * as core from '@sentry/core';
+import { isPatched } from '../../../src/integrations/tracing/nest/helpers';
+import { SentryNestEventInstrumentation } from '../../../src/integrations/tracing/nest/sentry-nest-event-instrumentation';
+import type { InjectableTarget } from '../../../src/integrations/tracing/nest/types';
 import type { OnEventTarget } from '../../../src/integrations/tracing/nest/types';
 
 describe('Nest', () => {

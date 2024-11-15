@@ -5,10 +5,10 @@ import {
   InstrumentationNodeModuleDefinition,
   InstrumentationNodeModuleFile,
 } from '@opentelemetry/instrumentation';
-import { SDK_VERSION } from '@sentry/utils';
-import type { OnEventTarget } from './types';
 import { captureException, startSpan } from '@sentry/core';
+import { SDK_VERSION } from '@sentry/utils';
 import { getEventSpanOptions } from './helpers';
+import type { OnEventTarget } from './types';
 
 const supportedVersions = ['>=2.0.0'];
 

@@ -12,9 +12,9 @@ import {
 import type { IntegrationFn, Span } from '@sentry/types';
 import { logger } from '@sentry/utils';
 import { generateInstrumentOnce } from '../../../otel/instrument';
+import { SentryNestEventInstrumentation } from './sentry-nest-event-instrumentation';
 import { SentryNestInstrumentation } from './sentry-nest-instrumentation';
 import type { MinimalNestJsApp, NestJsErrorFilter } from './types';
-import { SentryNestEventInstrumentation } from './sentry-nest-event-instrumentation';
 
 const INTEGRATION_NAME = 'Nest';
 
