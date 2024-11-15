@@ -6,7 +6,7 @@
  *   - OpenFeature.getClient().addHooks(new OpenFeatureIntegrationHook());
  */
 import type { Client, Event, EventHint, IntegrationFn } from '@sentry/types';
-import type { OpenFeatureHook, FlagValue, JsonValue, HookContext, EvaluationDetails, HookHints } from './types';
+import type { EvaluationDetails, FlagValue, HookContext, HookHints, JsonValue, OpenFeatureHook } from './types';
 
 import { defineIntegration, getCurrentScope } from '@sentry/core';
 import { insertToFlagBuffer } from '../../../utils/featureFlags'

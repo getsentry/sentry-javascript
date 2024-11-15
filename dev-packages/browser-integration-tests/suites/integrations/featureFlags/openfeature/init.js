@@ -13,8 +13,8 @@ window.initialize = () => {
   return {
     getBooleanValue(flag, value) {
       let hook = new Sentry.OpenFeatureIntegrationHook();
-      hook.after(null, {flagKey: flag, value: value})
+      hook.after(null, { flagKey: flag, value: value })
       return value;
-    }
-  }
+    },
+  };
 };
