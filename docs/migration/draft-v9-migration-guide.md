@@ -6,3 +6,8 @@
 
 - Deprecated `AddRequestDataToEventOptions.transaction`. This option effectively doesn't do anything anymore, and will
   be removed in v9.
+- Deprecated `TransactionNamingScheme` type.
+
+## `@sentry/core`
+
+- Deprecated `transactionNamingScheme` option in `requestDataIntegration`.
