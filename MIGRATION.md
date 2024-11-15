@@ -87,18 +87,87 @@ If you need to support older browsers, we recommend transpiling your code using 
 
 ## 2. Behavior Changes
 
+- Next.js withSentryConfig returning Promise
+- `request` on sdk processing metadata will be ignored going forward
+- respect sourcemap generation settings
+- SDK init options undefined
+- no more polyfills
+- no more update spans in vue component tracking by default
+- new propagation context
+- Client & Scope renaming
+
 ## 3. Package Removals
+
+As part of an architectural cleanup we deprecated the following packages:
+
+- `@sentry/utils`
+- `@sentry/types`
+
+All of these packages exports and APIs have been moved into the `@sentry/core` package.
+
+The `@sentry/utils` package will no longer be published.
+
+The `@sentry/types` package will continue to be published but it is deprecated and we don't plan on extending its APi.
+You may experience slight compatibility issues in the future by using it.
+We decided to keep this package around to temporarily lessen the upgrade burden.
+It will be removed in a future major version.
 
 ## 4. Removal of Deprecated APIs
 
+- [General](#general)
+- [Server-side SDKs (Node, Deno, Bun, ...)](#server-side-sdks-node-deno-bun-)
+- [Next.js SDK](#nextjs-sdk)
+- [Vue/Nuxt SDK](#vuenuxt-sdk)
+
+### General
+
+- sessionTimingIntegration
+- debugIntegration
+- `Request` type
+- spanid on propagation context
+- makeFifoCache in utils
+
+### Server-side SDKs (Node, Deno, Bun, ...)
+
+- processThreadBreadcrumbIntegration
+- NestJS stuff in Node sdk
+- various NestJS APIs
+- NestJS `@WithSentry`
+- `AddRequestDataToEventOptions.transaction`
+
+### Next.js SDK
+
+- `experimental_captureRequestError`
+
+### Vue/Nuxt SDK
+
+- vueComponent tracking options
+
 ## 5. Build Changes
 
-TODO add Typescript import change
+Previously the CJS versions of the SDK code (wrongfully) contained compatibility statements for default exports in ESM:
+
+```js
+Object.defineProperty(exports, '__esModule', { value: true });
+```
+
+The SDK no longer contains these statements.
+Let us know if this is causing issues in your setup by opening an issue on GitHub.
 
 # Deprecations in 8.x
 
 TODO (Copy over from migrations list we collected)
 
-# Support Timeline for Version 9.x
+# Version Support Timelines
 
-TODO
+With the release of version 9 we define the following support timelines for previous SDK versions:
+
+- **v8**:
+  - Security patches for 12 months.
+  - Bug fixes for 4 months.
+  - Feature updates based on demand and feasibility but no guarantees.
+- **v7**:
+  - Critical bug and security patches may be backported but no guarantees.
+  - Support for this version has officially ended.
+- **Older Versions**:
+  - Support has ended.
