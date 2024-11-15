@@ -1,3 +1,4 @@
+/* eslint-disable max-lines */
 // Inspired from Donnie McNeal's solution:
 // https://gist.github.com/wontondon/e8c4bdf2888875e4c755712e99279536
 
@@ -141,6 +142,29 @@ function stripBasenameFromPathname(pathname: string, basename: string): string {
   return pathname.slice(startIndex) || '/';
 }
 
+function sendIndexPath(pathBuilder: string, pathname: string, basename: string): [string, TransactionSource] {
+  const reconstructedPath = pathBuilder || _stripBasename ? stripBasenameFromPathname(pathname, basename) : pathname;
+
+  const formattedPath =
+    // If the path ends with a slash, remove it
+    reconstructedPath[reconstructedPath.length - 1] === '/'
+      ? reconstructedPath.slice(0, -1)
+      : // If the path ends with a wildcard, remove it
+        reconstructedPath.slice(-2) === '/*'
+        ? reconstructedPath.slice(0, -1)
+        : reconstructedPath;
+
+  return [formattedPath, 'route'];
+}
+
+function pathEndsWithWildcard(path: string, branch: RouteMatch<string>): boolean {
+  return (path.slice(-2) === '/*' && branch.route.children && branch.route.children.length > 0) || false;
+}
+
+function pathIsWildcardAndHasChildren(path: string, branch: RouteMatch<string>): boolean {
+  return (path === '*' && branch.route.children && branch.route.children.length > 0) || false;
+}
+
 function getNormalizedName(
   routes: RouteObject[],
   location: Location,
@@ -158,14 +182,16 @@ function getNormalizedName(
       if (route) {
         // Early return if index route
         if (route.index) {
-          return [_stripBasename ? stripBasenameFromPathname(branch.pathname, basename) : branch.pathname, 'route'];
+          return sendIndexPath(pathBuilder, branch.pathname, basename);
         }
-
         const path = route.path;
-        if (path) {
+
+        // If path is not a wildcard and has no child routes, append the path
+        if (path && !pathIsWildcardAndHasChildren(path, branch)) {
           const newPath = path[0] === '/' || pathBuilder[pathBuilder.length - 1] === '/' ? path : `/${path}`;
           pathBuilder += newPath;
 
+          // If the path matches the current location, return the path
           if (basename + branch.pathname === location.pathname) {
             if (
               // If the route defined on the element is something like
@@ -177,6 +203,12 @@ function getNormalizedName(
             ) {
               return [(_stripBasename ? '' : basename) + newPath, 'route'];
             }
+
+            // if the last character of the pathbuilder is a wildcard and there are children, remove the wildcard
+            if (pathEndsWithWildcard(pathBuilder, branch)) {
+              pathBuilder = pathBuilder.slice(0, -1);
+            }
+
             return [(_stripBasename ? '' : basename) + pathBuilder, 'route'];
           }
         }

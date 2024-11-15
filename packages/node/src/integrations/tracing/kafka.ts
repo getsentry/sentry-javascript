@@ -30,8 +30,16 @@ const _kafkaIntegration = (() => {
 }) satisfies IntegrationFn;
 
 /**
- * KafkaJs integration
+ * Adds Sentry tracing instrumentation for the [kafkajs](https://www.npmjs.com/package/kafkajs) library.
  *
- * Capture tracing data for KafkaJs.
+ * For more information, see the [`kafkaIntegration` documentation](https://docs.sentry.io/platforms/javascript/guides/node/configuration/integrations/kafka/).
+ *
+ * @example
+ * ```javascript
+ * const Sentry = require('@sentry/node');
+ *
+ * Sentry.init({
+ *  integrations: [Sentry.kafkaIntegration()],
+ * });
  */
 export const kafkaIntegration = defineIntegration(_kafkaIntegration);

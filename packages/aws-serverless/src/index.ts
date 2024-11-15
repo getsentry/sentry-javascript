@@ -92,6 +92,7 @@ export {
   fsIntegration,
   genericPoolIntegration,
   graphqlIntegration,
+  knexIntegration,
   kafkaIntegration,
   lruMemoizerIntegration,
   mongoIntegration,

@@ -1,5 +1,5 @@
 import { timestampInSeconds } from '@sentry/utils';
-import { setCurrentClient } from '../../../src';
+import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, setCurrentClient } from '../../../src';
 import { SentrySpan } from '../../../src/tracing/sentrySpan';
 import { SPAN_STATUS_ERROR } from '../../../src/tracing/spanstatus';
 import { TRACE_FLAG_NONE, TRACE_FLAG_SAMPLED, spanToJSON } from '../../../src/utils/spanUtils';
@@ -19,6 +19,19 @@ describe('SentrySpan', () => {
       span.updateName('new name');
 
       expect(spanToJSON(span).description).toEqual('new name');
+    });
+
+    it('sets the source to custom when calling updateName', () => {
+      const span = new SentrySpan({
+        name: 'original name',
+        attributes: { [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url' },
+      });
+
+      span.updateName('new name');
+
+      const spanJson = spanToJSON(span);
+      expect(spanJson.description).toEqual('new name');
+      expect(spanJson.data?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toEqual('custom');
     });
   });
 
