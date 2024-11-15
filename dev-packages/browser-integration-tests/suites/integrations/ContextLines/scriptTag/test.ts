@@ -5,7 +5,7 @@ import { envelopeRequestParser, waitForErrorRequestOnUrl } from '../../../../uti
 
 sentryTest(
   'should add source context lines around stack frames from errors in Html script tags',
-  async ({ getLocalTestPath, page, browserName }) => {
+  async ({ getLocalTestUrl, page, browserName }) => {
     if (browserName === 'webkit') {
       // The error we're throwing in this test is thrown as "Script error." in Webkit.
       // We filter "Script error." out by default in `InboundFilters`.
@@ -15,7 +15,7 @@ sentryTest(
       sentryTest.skip();
     }
 
-    const url = await getLocalTestPath({ testDir: __dirname });
+    const url = await getLocalTestUrl({ testDir: __dirname });
 
     const eventReqPromise = waitForErrorRequestOnUrl(page, url);
 

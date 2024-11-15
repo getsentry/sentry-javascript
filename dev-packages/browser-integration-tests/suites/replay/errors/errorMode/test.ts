@@ -17,7 +17,7 @@ import {
 
 sentryTest(
   '[error-mode] should start recording and switch to session mode once an error is thrown',
-  async ({ getLocalTestPath, page, browserName }) => {
+  async ({ getLocalTestUrl, page, browserName }) => {
     // This was sometimes flaky on webkit, so skipping for now
     if (shouldSkipReplayTest() || browserName === 'webkit') {
       sentryTest.skip();
@@ -48,7 +48,7 @@ sentryTest(
       });
     });
 
-    const url = await getLocalTestPath({ testDir: __dirname, skipDsnRouteHandler: true });
+    const url = await getLocalTestUrl({ testDir: __dirname, skipDsnRouteHandler: true });
 
     await Promise.all([
       page.goto(url),
