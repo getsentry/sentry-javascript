@@ -1,4 +1,4 @@
-import { mergeSdkProcessingMetadata } from '../../../src/utils/mergeSdkProcessingMetadata';
+import { mergeSdkProcessingMetadata } from '../../../src/utils/sdkProcessingMetadata';
 
 describe('mergeSdkProcessingMetadata', () => {
   it('works with empty objects', () => {

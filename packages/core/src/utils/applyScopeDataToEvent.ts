@@ -1,7 +1,7 @@
 import type { Breadcrumb, Event, ScopeData, Span } from '@sentry/types';
 import { arrayify, dropUndefinedKeys } from '@sentry/utils';
 import { getDynamicSamplingContextFromSpan } from '../tracing/dynamicSamplingContext';
-import { mergeSdkProcessingMetadata } from './mergeSdkProcessingMetadata';
+import { mergeSdkProcessingMetadata } from './sdkProcessingMetadata';
 import { getRootSpan, spanToJSON, spanToTraceContext } from './spanUtils';
 
 /**

@@ -211,7 +211,7 @@ describe('Scope', () => {
         expect(scope['_sdkProcessingMetadata'].dogs).toEqual('are great!');
       });
 
-      test('it overwrites arbitrary data', () => {
+      test('it overwrites data', () => {
         const scope = new Scope();
         scope.setSDKProcessingMetadata({ dogs: 'are great!' });
         scope.setSDKProcessingMetadata({ dogs: 'are really great!' });
@@ -223,26 +223,6 @@ describe('Scope', () => {
           dogs: 'are really great!',
           cats: 'are also great!',
           obj: { nested2: 'value2' },
-        });
-      });
-
-      test('it merges normalizedRequest data', () => {
-        const scope = new Scope();
-        scope.setSDKProcessingMetadata({
-          normalizedRequest: {
-            url: 'value1',
-            method: 'value1',
-          },
-        });
-        scope.setSDKProcessingMetadata({
-          normalizedRequest: {
-            url: 'value2',
-            headers: {},
-          },
-        });
-
-        expect(scope['_sdkProcessingMetadata']).toEqual({
-          normalizedRequest: { url: 'value2', method: 'value1', headers: {} },
         });
       });
     });

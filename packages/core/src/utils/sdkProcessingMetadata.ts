@@ -1,4 +1,5 @@
-import type { ScopeData } from '@sentry/types';
+import type { Request, ScopeData } from '@sentry/types';
+import { getIsolationScope } from '../currentScopes';
 
 /**
  * Merge new SDK processing metadata into existing data.
@@ -27,4 +28,20 @@ export function mergeSdkProcessingMetadata(
   }
 
   return newData;
+}
+
+/**
+ * Set a normalizedRequest on the scope, ensuring it merges with potentially existing request data.
+ * By default, this will put this data on the isolation scope,
+ * but you can also pass a different scope to set the data on.
+ */
+export function setNormalizedRequest(normalizedRequest: Request, scope = getIsolationScope()): void {
+  const normalizedRequestBefore = scope.getScopeData().sdkProcessingMetadata['normalizedRequest'];
+
+  const newNormalizedRequest = {
+    ...(normalizedRequestBefore || {}),
+    ...normalizedRequest,
+  } satisfies Request;
+
+  scope.setSDKProcessingMetadata({ normalizedRequest: newNormalizedRequest });
 }
