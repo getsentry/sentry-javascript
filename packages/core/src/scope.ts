@@ -24,6 +24,7 @@ import type {
 import { dateTimestampInSeconds, generatePropagationContext, isPlainObject, logger, uuid4 } from '@sentry/utils';
 
 import { updateSession } from './session';
+import { mergeSdkProcessingMetadata } from './utils/applyScopeDataToEvent';
 import { _getSpanForScope, _setSpanForScope } from './utils/spanOnScope';
 
 /**
@@ -479,8 +480,7 @@ class ScopeClass implements ScopeInterface {
    * @inheritDoc
    */
   public setSDKProcessingMetadata(newData: { [key: string]: unknown }): this {
-    this._sdkProcessingMetadata = { ...this._sdkProcessingMetadata, ...newData };
-
+    this._sdkProcessingMetadata = mergeSdkProcessingMetadata(this._sdkProcessingMetadata, newData);
     return this;
   }
 

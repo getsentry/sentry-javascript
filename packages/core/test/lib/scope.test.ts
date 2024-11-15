@@ -204,10 +204,47 @@ describe('Scope', () => {
       expect(scope['_user']).toEqual({});
     });
 
-    test('setProcessingMetadata', () => {
-      const scope = new Scope();
-      scope.setSDKProcessingMetadata({ dogs: 'are great!' });
-      expect(scope['_sdkProcessingMetadata'].dogs).toEqual('are great!');
+    describe('setProcessingMetadata', () => {
+      test('it works with no initial data', () => {
+        const scope = new Scope();
+        scope.setSDKProcessingMetadata({ dogs: 'are great!' });
+        expect(scope['_sdkProcessingMetadata'].dogs).toEqual('are great!');
+      });
+
+      test('it overwrites arbitrary data', () => {
+        const scope = new Scope();
+        scope.setSDKProcessingMetadata({ dogs: 'are great!' });
+        scope.setSDKProcessingMetadata({ dogs: 'are really great!' });
+        scope.setSDKProcessingMetadata({ cats: 'are also great!' });
+        scope.setSDKProcessingMetadata({ obj: { nested: 'value1' } });
+        scope.setSDKProcessingMetadata({ obj: { nested2: 'value2' } });
+
+        expect(scope['_sdkProcessingMetadata']).toEqual({
+          dogs: 'are really great!',
+          cats: 'are also great!',
+          obj: { nested2: 'value2' },
+        });
+      });
+
+      test('it merges normalizedRequest data', () => {
+        const scope = new Scope();
+        scope.setSDKProcessingMetadata({
+          normalizedRequest: {
+            url: 'value1',
+            method: 'value1',
+          },
+        });
+        scope.setSDKProcessingMetadata({
+          normalizedRequest: {
+            url: 'value2',
+            headers: {},
+          },
+        });
+
+        expect(scope['_sdkProcessingMetadata']).toEqual({
+          normalizedRequest: { url: 'value2', method: 'value1', headers: {} },
+        });
+      });
     });
 
     test('set and get propagation context', () => {
