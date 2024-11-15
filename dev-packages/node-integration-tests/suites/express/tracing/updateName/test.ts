@@ -52,6 +52,7 @@ describe('express tracing', () => {
               },
               contexts: {
                 trace: {
+                  op: 'http.server',
                   data: { [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom' },
                 },
               },
@@ -63,5 +64,30 @@ describe('express tracing', () => {
         .start(done)
         .makeRequest('get', '/test/123/updateSpanName');
     });
+  });
+
+  // This test documents the correct way to update the span name (and implicitly the source) in Node:
+  test('calling `Sentry.updateSpanName` and setting source subsequently updates the final name and sets correct source', done => {
+    createRunner(__dirname, 'server.js')
+      .expect({
+        transaction: txnEvent => {
+          expect(txnEvent).toMatchObject({
+            transaction: 'new-name',
+            transaction_info: {
+              source: 'component',
+            },
+            contexts: {
+              trace: {
+                op: 'http.server',
+                data: { [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component' },
+              },
+            },
+          });
+          // ensure we delete the internal attribute once we're done with it
+          expect(txnEvent.contexts?.trace?.data?.['_sentry_span_name_set_by_user']).toBeUndefined();
+        },
+      })
+      .start(done)
+      .makeRequest('get', '/test/123/updateSpanNameAndSource');
   });
 });
