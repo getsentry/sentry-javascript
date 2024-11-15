@@ -31,7 +31,6 @@ const getAsset = (assetDir: string, asset: string): string => {
 export type TestFixtures = {
   _autoSnapshotSuffix: void;
   testDir: string;
-  getLocalTestPath: (options: { testDir: string; skipDsnRouteHandler?: boolean }) => Promise<string>;
   getLocalTestUrl: (options: {
     testDir: string;
     skipRouteHandler?: boolean;
@@ -105,27 +104,6 @@ const sentryTest = base.extend<TestFixtures>({
         }
         return route.fulfill({ path: filePath });
       });
-
-      return pagePath;
-    });
-  },
-
-  getLocalTestPath: ({ page }, use) => {
-    return use(async ({ testDir, skipDsnRouteHandler }) => {
-      const tmpDir = path.join(testDir, 'dist', crypto.randomUUID());
-      const pagePath = `file:///${path.resolve(tmpDir, './index.html')}`;
-
-      await build(testDir, tmpDir);
-
-      if (!skipDsnRouteHandler) {
-        await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-          return route.fulfill({
-            status: 200,
-            contentType: 'application/json',
-            body: JSON.stringify({ id: 'test-id' }),
-          });
-        });
-      }
 
       return pagePath;
     });
