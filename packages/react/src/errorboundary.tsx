@@ -99,7 +99,7 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
   public componentDidCatch(error: unknown, errorInfo: React.ErrorInfo): void {
     const { componentStack } = errorInfo;
     // TODO(v9): Remove this check and type `componentStack` to be React.ErrorInfo['componentStack'].
-    const passedInComponentStack: string | undefined = componentStack == null ? undefined : componentStack;
+    const passedInComponentStack: React.ErrorInfo['componentStack'] = componentStack || undefined;
 
     const { beforeCapture, onError, showDialog, dialogOptions } = this.props;
     withScope(scope => {
