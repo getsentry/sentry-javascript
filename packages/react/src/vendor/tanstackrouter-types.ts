@@ -29,14 +29,13 @@ SOFTWARE.
 export interface VendoredTanstackRouter {
   history: VendoredTanstackRouterHistory;
   state: VendoredTanstackRouterState;
+  options: {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    parseSearch: (search: string) => Record<string, any>;
+  };
   matchRoutes: (
-    pathname: string,
-    // eslint-disable-next-line @typescript-eslint/ban-types
-    locationSearch: {},
-    opts?: {
-      preload?: boolean;
-      throwOnError?: boolean;
-    },
+    location: VendoredTanstackRouterLocation,
+    opts?: { preload?: boolean; throwOnError?: boolean },
   ) => Array<VendoredTanstackRouterRouteMatch>;
   subscribe(
     eventType: 'onResolved' | 'onBeforeNavigate',
@@ -47,7 +46,7 @@ export interface VendoredTanstackRouter {
   ): () => void;
 }
 
-interface VendoredTanstackRouterLocation {
+export interface VendoredTanstackRouterLocation {
   pathname: string;
   // eslint-disable-next-line @typescript-eslint/ban-types
   search: {};

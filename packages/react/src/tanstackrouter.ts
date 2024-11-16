@@ -7,7 +7,11 @@ import {
 
 import { browserTracingIntegration as originalBrowserTracingIntegration } from '@sentry/browser';
 import type { Integration } from '@sentry/types';
-import type { VendoredTanstackRouter, VendoredTanstackRouterRouteMatch } from './vendor/tanstackrouter-types';
+import type {
+  VendoredTanstackRouter,
+  VendoredTanstackRouterLocation,
+  VendoredTanstackRouterRouteMatch,
+} from './vendor/tanstackrouter-types';
 
 /**
  * A custom browser tracing integration for TanStack Router.
@@ -40,8 +44,10 @@ export function tanstackRouterBrowserTracingIntegration(
       const initialWindowLocation = WINDOW.location;
       if (instrumentPageLoad && initialWindowLocation) {
         const matchedRoutes = castRouterInstance.matchRoutes(
-          initialWindowLocation.pathname,
-          initialWindowLocation.search,
+          {
+            pathname: initialWindowLocation.pathname,
+            search: castRouterInstance.options.parseSearch(initialWindowLocation.search),
+          } as VendoredTanstackRouterLocation,
           { preload: false, throwOnError: false },
         );
 
@@ -66,11 +72,10 @@ export function tanstackRouterBrowserTracingIntegration(
             return;
           }
 
-          const onResolvedMatchedRoutes = castRouterInstance.matchRoutes(
-            onBeforeNavigateArgs.toLocation.pathname,
-            onBeforeNavigateArgs.toLocation.search,
-            { preload: false, throwOnError: false },
-          );
+          const onResolvedMatchedRoutes = castRouterInstance.matchRoutes(onBeforeNavigateArgs.toLocation, {
+            preload: false,
+            throwOnError: false,
+          });
 
           const onBeforeNavigateLastMatch = onResolvedMatchedRoutes[onResolvedMatchedRoutes.length - 1];
 
@@ -88,11 +93,10 @@ export function tanstackRouterBrowserTracingIntegration(
           const unsubscribeOnResolved = castRouterInstance.subscribe('onResolved', onResolvedArgs => {
             unsubscribeOnResolved();
             if (navigationSpan) {
-              const onResolvedMatchedRoutes = castRouterInstance.matchRoutes(
-                onResolvedArgs.toLocation.pathname,
-                onResolvedArgs.toLocation.search,
-                { preload: false, throwOnError: false },
-              );
+              const onResolvedMatchedRoutes = castRouterInstance.matchRoutes(onResolvedArgs.toLocation, {
+                preload: false,
+                throwOnError: false,
+              });
 
               const onResolvedLastMatch = onResolvedMatchedRoutes[onResolvedMatchedRoutes.length - 1];
 
