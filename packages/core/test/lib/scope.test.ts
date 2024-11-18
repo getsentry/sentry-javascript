@@ -216,13 +216,13 @@ describe('Scope', () => {
         scope.setSDKProcessingMetadata({ dogs: 'are great!' });
         scope.setSDKProcessingMetadata({ dogs: 'are really great!' });
         scope.setSDKProcessingMetadata({ cats: 'are also great!' });
-        scope.setSDKProcessingMetadata({ obj: { nested: 'value1' } });
-        scope.setSDKProcessingMetadata({ obj: { nested2: 'value2' } });
+        scope.setSDKProcessingMetadata({ obj: { nested1: 'value1', nested: 'value1' } });
+        scope.setSDKProcessingMetadata({ obj: { nested2: 'value2', nested: 'value2' } });
 
         expect(scope['_sdkProcessingMetadata']).toEqual({
           dogs: 'are really great!',
           cats: 'are also great!',
-          obj: { nested2: 'value2' },
+          obj: { nested2: 'value2', nested: 'value2', nested1: 'value1' },
         });
       });
     });

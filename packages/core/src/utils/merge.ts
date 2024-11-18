@@ -1,0 +1,29 @@
+/**
+ * Shallow merge two objects.
+ * Does not mutate the passed in objects.
+ * By default, this merges 2 levels deep.
+ */
+export function merge<T>(initialObj: T, mergeObj: T, levels = 2): T {
+  // If the merge value is not an object, or we have no merge levels left,
+  // we just set the value to the merge value
+  if (typeof mergeObj !== 'object' || levels <= 0) {
+    return mergeObj;
+  }
+
+  // If the merge object is an empty object, and the initial object is not undefined, we return the initial object
+  if (initialObj && mergeObj && Object.keys(mergeObj).length === 0) {
+    return initialObj;
+  }
+
+  // Clone object
+  const output = { ...initialObj };
+
+  // Merge values into output, resursively
+  for (const key in mergeObj) {
+    if (Object.prototype.hasOwnProperty.call(mergeObj, key)) {
+      output[key] = merge(output[key], mergeObj[key], levels - 1);
+    }
+  }
+
+  return output;
+}

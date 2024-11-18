@@ -1,7 +1,7 @@
 import type { Breadcrumb, Event, ScopeData, Span } from '@sentry/types';
 import { arrayify, dropUndefinedKeys } from '@sentry/utils';
 import { getDynamicSamplingContextFromSpan } from '../tracing/dynamicSamplingContext';
-import { mergeSdkProcessingMetadata } from './sdkProcessingMetadata';
+import { merge } from './merge';
 import { getRootSpan, spanToJSON, spanToTraceContext } from './spanUtils';
 
 /**
@@ -48,7 +48,7 @@ export function mergeScopeData(data: ScopeData, mergeData: ScopeData): void {
   mergeAndOverwriteScopeData(data, 'user', user);
   mergeAndOverwriteScopeData(data, 'contexts', contexts);
 
-  data.sdkProcessingMetadata = mergeSdkProcessingMetadata(data.sdkProcessingMetadata, sdkProcessingMetadata);
+  data.sdkProcessingMetadata = merge(data.sdkProcessingMetadata, sdkProcessingMetadata, 2);
 
   if (level) {
     data.level = level;
@@ -89,15 +89,7 @@ export function mergeAndOverwriteScopeData<
   Prop extends 'extra' | 'tags' | 'user' | 'contexts' | 'sdkProcessingMetadata',
   Data extends ScopeData,
 >(data: Data, prop: Prop, mergeVal: Data[Prop]): void {
-  if (mergeVal && Object.keys(mergeVal).length) {
-    // Clone object
-    data[prop] = { ...data[prop] };
-    for (const key in mergeVal) {
-      if (Object.prototype.hasOwnProperty.call(mergeVal, key)) {
-        data[prop][key] = mergeVal[key];
-      }
-    }
-  }
+  data[prop] = merge(data[prop], mergeVal, 1);
 }
 
 /** Exported only for tests */

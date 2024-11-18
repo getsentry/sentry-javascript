@@ -157,9 +157,7 @@ describe('mergeScopeData', () => {
       sdkProcessingMetadata: {
         bb: 'bb',
         cc: 'bb',
-        // Regular objects are not deep merged
         obj: { key2: 'value2' },
-        // Only normalizedRequest is deep merged
         normalizedRequest: {
           url: 'newUrl',
           headers: {},
@@ -181,7 +179,7 @@ describe('mergeScopeData', () => {
         aa: 'aa',
         bb: 'bb',
         cc: 'bb',
-        obj: { key2: 'value2' },
+        obj: { key: 'value', key2: 'value2' },
         normalizedRequest: {
           url: 'newUrl',
           method: 'oldMethod',
