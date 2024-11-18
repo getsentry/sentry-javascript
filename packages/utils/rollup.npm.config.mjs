@@ -1,4 +1,6 @@
+import replace from '@rollup/plugin-replace';
 import { makeBaseNPMConfig, makeNPMConfigVariants } from '@sentry-internal/rollup-utils';
+import packageJson from './package.json' with { type: 'json' };
 
 export default makeNPMConfigVariants(
   makeBaseNPMConfig({
@@ -12,6 +14,14 @@ export default makeNPMConfigVariants(
             ? true
             : Boolean(process.env.SENTRY_BUILD_PRESERVE_MODULES),
       },
+      plugins: [
+        replace({
+          preventAssignment: true,
+          values: {
+            __SENTRY_SDK_VERSION__: JSON.stringify(packageJson.version),
+          },
+        }),
+      ],
     },
   }),
 );

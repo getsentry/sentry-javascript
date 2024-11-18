@@ -44,7 +44,6 @@ env:
     ${{ github.workspace }}/packages/*/build
     ${{ github.workspace }}/packages/ember/*.d.ts
     ${{ github.workspace }}/packages/gatsby/*.d.ts
-    ${{ github.workspace }}/packages/core/src/version.ts
     ${{ github.workspace }}/packages/utils/cjs
     ${{ github.workspace }}/packages/utils/esm
 
