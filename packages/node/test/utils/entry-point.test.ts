@@ -52,7 +52,7 @@ describe('getEntryPointType', () => {
   });
 
   it('app absolute', () => {
-    const ctx = getEntryPointType(defaultStackParser, {
+    const ctx = getEntryPointType({
       cwd: () => __dirname,
       argv: ['/bin/node', __filename],
       execArgv: [],
@@ -62,7 +62,7 @@ describe('getEntryPointType', () => {
   });
 
   it('app relative', () => {
-    const ctx = getEntryPointType(defaultStackParser, {
+    const ctx = getEntryPointType({
       cwd: () => __dirname,
       argv: ['/bin/node', 'entry-point.test.ts'],
       execArgv: [],
@@ -72,7 +72,7 @@ describe('getEntryPointType', () => {
   });
 
   it('import absolute', () => {
-    const ctx = getEntryPointType(defaultStackParser, {
+    const ctx = getEntryPointType({
       cwd: () => __dirname,
       argv: ['/bin/node', 'app.ts'],
       execArgv: ['--import', __filename],
@@ -82,7 +82,7 @@ describe('getEntryPointType', () => {
   });
 
   it('import relative', () => {
-    const ctx = getEntryPointType(defaultStackParser, {
+    const ctx = getEntryPointType({
       cwd: () => __dirname,
       argv: ['/bin/node', 'app.ts'],
       execArgv: ['--import', './entry-point.test.ts'],
@@ -92,7 +92,7 @@ describe('getEntryPointType', () => {
   });
 
   it('require relative', () => {
-    const ctx = getEntryPointType(defaultStackParser, {
+    const ctx = getEntryPointType({
       cwd: () => __dirname,
       argv: ['/bin/node', 'app.ts'],
       execArgv: ['--require', './entry-point.test.ts'],

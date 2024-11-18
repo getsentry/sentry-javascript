@@ -1,5 +1,5 @@
 import { resolve } from 'node:path';
-import type { StackParser } from '@sentry/types';
+import { defaultStackParser } from '../sdk/api';
 
 export interface ProcessInterface {
   execArgv: string[];
@@ -36,11 +36,8 @@ export function parseProcessPaths(proc: ProcessInterface): ProcessArgs {
  * `require` means this function was most likely called from a --require cli arg.
  * `unknown` means we couldn't determine for sure.
  */
-export function getEntryPointType(
-  stackParser: StackParser,
-  proc: ProcessInterface = process,
-): 'import' | 'require' | 'app' | 'unknown' {
-  const filenames = stackParser(new Error().stack || '')
+export function getEntryPointType(proc: ProcessInterface = process): 'import' | 'require' | 'app' | 'unknown' {
+  const filenames = defaultStackParser(new Error().stack || '')
     .map(f => f.filename)
     .filter(Boolean) as string[];
 
