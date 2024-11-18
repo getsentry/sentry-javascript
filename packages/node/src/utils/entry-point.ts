@@ -1,5 +1,5 @@
-import type { StackParser } from '@sentry/types';
 import { resolve } from 'node:path';
+import type { StackParser } from '@sentry/types';
 
 export interface ProcessInterface {
   execArgv: string[];
@@ -29,14 +29,14 @@ export function parseProcessPaths(proc: ProcessInterface): ProcessArgs {
 }
 
 /**
- * Gets the current execution context.
+ * Gets the current entry point type.
  *
  * `app` means this function was most likely called via the app entry point.
  * `import` means this function was most likely called from an --import cli arg.
  * `require` means this function was most likely called from a --require cli arg.
  * `unknown` means we couldn't determine for sure.
  */
-export function getExecutionContext(
+export function getEntryPointType(
   stackParser: StackParser,
   proc: ProcessInterface = process,
 ): 'import' | 'require' | 'app' | 'unknown' {

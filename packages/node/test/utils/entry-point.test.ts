@@ -1,6 +1,6 @@
-import type { ProcessInterface, ProcessArgs } from '../../src/utils/execution-context';
-import { getExecutionContext, parseProcessPaths } from '../../src/utils/execution-context';
 import { defaultStackParser } from '../../src';
+import type { ProcessArgs, ProcessInterface } from '../../src/utils/entry-point';
+import { getEntryPointType, parseProcessPaths } from '../../src/utils/entry-point';
 
 const PROCESS_ARG_TESTS: [ProcessInterface, ProcessArgs][] = [
   [
@@ -45,14 +45,14 @@ const PROCESS_ARG_TESTS: [ProcessInterface, ProcessArgs][] = [
   ],
 ];
 
-describe('getExecutionContext', () => {
+describe('getEntryPointType', () => {
   it.each(PROCESS_ARG_TESTS)('parseProcessArgs', (input, output) => {
     const result = parseProcessPaths(input);
     expect(result).toStrictEqual(output);
   });
 
   it('app absolute', () => {
-    const ctx = getExecutionContext(defaultStackParser, {
+    const ctx = getEntryPointType(defaultStackParser, {
       cwd: () => __dirname,
       argv: ['/bin/node', __filename],
       execArgv: [],
@@ -62,9 +62,9 @@ describe('getExecutionContext', () => {
   });
 
   it('app relative', () => {
-    const ctx = getExecutionContext(defaultStackParser, {
+    const ctx = getEntryPointType(defaultStackParser, {
       cwd: () => __dirname,
-      argv: ['/bin/node', 'execution-context.test.ts'],
+      argv: ['/bin/node', 'entry-point.test.ts'],
       execArgv: [],
     });
 
@@ -72,7 +72,7 @@ describe('getExecutionContext', () => {
   });
 
   it('import absolute', () => {
-    const ctx = getExecutionContext(defaultStackParser, {
+    const ctx = getEntryPointType(defaultStackParser, {
       cwd: () => __dirname,
       argv: ['/bin/node', 'app.ts'],
       execArgv: ['--import', __filename],
@@ -82,20 +82,20 @@ describe('getExecutionContext', () => {
   });
 
   it('import relative', () => {
-    const ctx = getExecutionContext(defaultStackParser, {
+    const ctx = getEntryPointType(defaultStackParser, {
       cwd: () => __dirname,
       argv: ['/bin/node', 'app.ts'],
-      execArgv: ['--import', './execution-context.test.ts'],
+      execArgv: ['--import', './entry-point.test.ts'],
     });
 
     expect(ctx).toEqual('import');
   });
 
   it('require relative', () => {
-    const ctx = getExecutionContext(defaultStackParser, {
+    const ctx = getEntryPointType(defaultStackParser, {
       cwd: () => __dirname,
       argv: ['/bin/node', 'app.ts'],
-      execArgv: ['--require', './execution-context.test.ts'],
+      execArgv: ['--require', './entry-point.test.ts'],
     });
 
     expect(ctx).toEqual('require');
