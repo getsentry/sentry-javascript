@@ -24,7 +24,11 @@ export type RequestDataIntegrationOptions = {
         };
   };
 
-  /** Whether to identify transactions by parameterized path, parameterized path with method, or handler name */
+  /**
+   * Whether to identify transactions by parameterized path, parameterized path with method, or handler name.
+   * @deprecated This option does not do anything anymore, and will be removed in v9.
+   */
+  // eslint-disable-next-line deprecation/deprecation
   transactionNamingScheme?: TransactionNamingScheme;
 };
 
@@ -110,6 +114,7 @@ function convertReqDataIntegrationOptsToAddReqDataOpts(
   integrationOptions: Required<RequestDataIntegrationOptions>,
 ): AddRequestDataToEventOptions {
   const {
+    // eslint-disable-next-line deprecation/deprecation
     transactionNamingScheme,
     include: { ip, user, ...requestOptions },
   } = integrationOptions;
