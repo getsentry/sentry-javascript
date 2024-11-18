@@ -92,6 +92,7 @@ export {
   postgresIntegration,
   prismaIntegration,
   processThreadBreadcrumbIntegration,
+  childProcessIntegration,
   redisIntegration,
   requestDataIntegration,
   rewriteFramesIntegration,

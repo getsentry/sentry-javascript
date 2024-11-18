@@ -2,7 +2,6 @@ import type { ChildProcess } from 'node:child_process';
 import * as diagnosticsChannel from 'node:diagnostics_channel';
 import type { Worker } from 'node:worker_threads';
 import { addBreadcrumb, defineIntegration } from '@sentry/core';
-import type { IntegrationFn } from '@sentry/types';
 
 interface Options {
   /**
@@ -15,7 +14,10 @@ interface Options {
 
 const INTEGRATION_NAME = 'ProcessAndThreadBreadcrumbs';
 
-const _processThreadBreadcrumbIntegration = ((options: Options = {}) => {
+/**
+ * Capture breadcrumbs for child processes and worker threads.
+ */
+export const childProcessIntegration = defineIntegration((options: Options = {}) => {
   return {
     name: INTEGRATION_NAME,
     setup(_client) {
@@ -34,12 +36,14 @@ const _processThreadBreadcrumbIntegration = ((options: Options = {}) => {
       });
     },
   };
-}) satisfies IntegrationFn;
+});
 
 /**
  * Capture breadcrumbs for child processes and worker threads.
+ *
+ * @deprecated Use `childProcessIntegration` integration instead. Functionally they are the same. `processThreadBreadcrumbIntegration` will be removed in the next major version.
  */
-export const processThreadBreadcrumbIntegration = defineIntegration(_processThreadBreadcrumbIntegration);
+export const processThreadBreadcrumbIntegration = childProcessIntegration;
 
 function captureChildProcessEvents(child: ChildProcess, options: Options): void {
   let hasExited = false;

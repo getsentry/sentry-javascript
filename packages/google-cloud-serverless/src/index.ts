@@ -118,6 +118,7 @@ export {
   profiler,
   amqplibIntegration,
   processThreadBreadcrumbIntegration,
+  childProcessIntegration,
 } from '@sentry/node';
 
 export {

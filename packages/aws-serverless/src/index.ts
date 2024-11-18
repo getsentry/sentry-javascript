@@ -106,6 +106,7 @@ export {
   postgresIntegration,
   prismaIntegration,
   processThreadBreadcrumbIntegration,
+  childProcessIntegration,
   hapiIntegration,
   setupHapiErrorHandler,
   spotlightIntegration,
