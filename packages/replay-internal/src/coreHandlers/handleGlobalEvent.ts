@@ -5,9 +5,9 @@ import type { ReplayContainer } from '../types';
 import { isErrorEvent, isFeedbackEvent, isReplayEvent, isTransactionEvent } from '../util/eventUtils';
 import { isRrwebError } from '../util/isRrwebError';
 import { logger } from '../util/logger';
+import { resetReplayIdOnDynamicSamplingContext } from '../util/resetReplayIdOnDynamicSamplingContext';
 import { addFeedbackBreadcrumb } from './util/addFeedbackBreadcrumb';
 import { shouldSampleForBufferEvent } from './util/shouldSampleForBufferEvent';
-import { resetReplayIdOnDynamicSamplingContext } from '../util/resetReplayIdOnDynamicSamplingContext';
 
 /**
  * Returns a listener to be added to `addEventProcessor(listener)`.

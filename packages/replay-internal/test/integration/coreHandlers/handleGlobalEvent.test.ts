@@ -11,11 +11,11 @@ import { REPLAY_EVENT_NAME, SESSION_IDLE_EXPIRE_DURATION } from '../../../src/co
 import { handleGlobalEventListener } from '../../../src/coreHandlers/handleGlobalEvent';
 import type { ReplayContainer } from '../../../src/replay';
 import { makeSession } from '../../../src/session/Session';
+import * as resetReplayIdOnDynamicSamplingContextModule from '../../../src/util/resetReplayIdOnDynamicSamplingContext';
 import { Error } from '../../fixtures/error';
 import { Transaction } from '../../fixtures/transaction';
 import { resetSdkMock } from '../../mocks/resetSdkMock';
 import { useFakeTimers } from '../../utils/use-fake-timers';
-import * as resetReplayIdOnDynamicSamplingContextModule from '../../../src/util/resetReplayIdOnDynamicSamplingContext';
 
 useFakeTimers();
 let replay: ReplayContainer;
