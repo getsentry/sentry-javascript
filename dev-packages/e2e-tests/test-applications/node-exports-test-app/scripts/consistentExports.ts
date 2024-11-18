@@ -52,6 +52,7 @@ const DEPENDENTS: Dependent[] = [
       'NodeClient',
       // Bun doesn't emit the required diagnostics_channel events
       'processThreadBreadcrumbIntegration',
+      'childProcessIntegration',
     ],
   },
   {

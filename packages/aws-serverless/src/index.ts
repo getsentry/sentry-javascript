@@ -105,7 +105,9 @@ export {
   setupNestErrorHandler,
   postgresIntegration,
   prismaIntegration,
+  // eslint-disable-next-line deprecation/deprecation
   processThreadBreadcrumbIntegration,
+  childProcessIntegration,
   hapiIntegration,
   setupHapiErrorHandler,
   spotlightIntegration,
