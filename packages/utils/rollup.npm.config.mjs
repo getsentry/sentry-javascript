@@ -18,7 +18,7 @@ export default makeNPMConfigVariants(
         replace({
           preventAssignment: true,
           values: {
-            SENTRY_SDK_VERSION: JSON.stringify(packageJson.version),
+            __SENTRY_SDK_VERSION__: JSON.stringify(packageJson.version),
           },
         }),
       ],
