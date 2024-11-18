@@ -15,3 +15,7 @@
 ## `@sentry/nestjs`
 
 - Deprecated `@WithSentry`. Use `@SentryExceptionCaptured` instead.
+
+## `@sentry/types``
+
+- Deprecated `Request` in favor of `RequestEventData`.

@@ -37,6 +37,24 @@ export function getMiddlewareSpanOptions(target: InjectableTarget | CatchTarget,
 }
 
 /**
+ * Returns span options for nest event spans.
+ */
+export function getEventSpanOptions(event: string): {
+  name: string;
+  attributes: Record<string, string>;
+  forceTransaction: boolean;
+} {
+  return {
+    name: `event ${event}`,
+    attributes: {
+      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'event.nestjs',
+      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.event.nestjs',
+    },
+    forceTransaction: true,
+  };
+}
+
+/**
  * Adds instrumentation to a js observable and attaches the span to an active parent span.
  */
 export function instrumentObservable(observable: Observable<unknown>, activeSpan: Span | undefined): void {

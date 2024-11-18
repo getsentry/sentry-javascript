@@ -3,7 +3,7 @@ import type {
   Event,
   ExtractedNodeRequestData,
   PolymorphicRequest,
-  Request,
+  RequestEventData,
   TransactionSource,
   WebFetchHeaders,
   WebFetchRequest,
@@ -260,7 +260,7 @@ export function extractRequestData(
  */
 export function addNormalizedRequestDataToEvent(
   event: Event,
-  req: Request,
+  req: RequestEventData,
   // This is non-standard data that is not part of the regular HTTP request
   additionalData: { ipAddress?: string; user?: Record<string, unknown> },
   options: AddRequestDataToEventOptions,
@@ -428,10 +428,13 @@ export function winterCGRequestToRequestData(req: WebFetchRequest): PolymorphicR
   };
 }
 
-function extractNormalizedRequestData(normalizedRequest: Request, { include }: { include: string[] }): Request {
+function extractNormalizedRequestData(
+  normalizedRequest: RequestEventData,
+  { include }: { include: string[] },
+): RequestEventData {
   const includeKeys = include ? (Array.isArray(include) ? include : DEFAULT_REQUEST_INCLUDES) : [];
 
-  const requestData: Request = {};
+  const requestData: RequestEventData = {};
   const headers = { ...normalizedRequest.headers };
 
   if (includeKeys.includes('headers')) {
