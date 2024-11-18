@@ -15,6 +15,7 @@ import { Error } from '../../fixtures/error';
 import { Transaction } from '../../fixtures/transaction';
 import { resetSdkMock } from '../../mocks/resetSdkMock';
 import { useFakeTimers } from '../../utils/use-fake-timers';
+import * as resetReplayIdOnDynamicSamplingContextModule from '../../../src/util/resetReplayIdOnDynamicSamplingContext';
 
 useFakeTimers();
 let replay: ReplayContainer;
@@ -415,5 +416,22 @@ describe('Integration | coreHandlers | handleGlobalEvent', () => {
         tags: expect.not.objectContaining({ replayId: expect.anything() }),
       }),
     );
+  });
+
+  it('resets replayId on DSC when session expires', () => {
+    const errorEvent = Error();
+    const txEvent = Transaction();
+
+    vi.spyOn(replay, 'checkAndHandleExpiredSession').mockReturnValue(false);
+
+    const resetReplayIdSpy = vi.spyOn(
+      resetReplayIdOnDynamicSamplingContextModule,
+      'resetReplayIdOnDynamicSamplingContext',
+    );
+
+    handleGlobalEventListener(replay)(errorEvent, {});
+    handleGlobalEventListener(replay)(txEvent, {});
+
+    expect(resetReplayIdSpy).toHaveBeenCalledTimes(2);
   });
 });

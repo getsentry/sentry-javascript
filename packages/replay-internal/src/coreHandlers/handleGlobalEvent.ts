@@ -7,6 +7,7 @@ import { isRrwebError } from '../util/isRrwebError';
 import { logger } from '../util/logger';
 import { addFeedbackBreadcrumb } from './util/addFeedbackBreadcrumb';
 import { shouldSampleForBufferEvent } from './util/shouldSampleForBufferEvent';
+import { resetReplayIdOnDynamicSamplingContext } from '../util/resetReplayIdOnDynamicSamplingContext';
 
 /**
  * Returns a listener to be added to `addEventProcessor(listener)`.
@@ -34,6 +35,8 @@ export function handleGlobalEventListener(replay: ReplayContainer): (event: Even
       // Ensure we do not add replay_id if the session is expired
       const isSessionActive = replay.checkAndHandleExpiredSession();
       if (!isSessionActive) {
+        // prevent exceeding replay durations by removing the expired replayId from the DSC
+        resetReplayIdOnDynamicSamplingContext();
         return event;
       }
 
