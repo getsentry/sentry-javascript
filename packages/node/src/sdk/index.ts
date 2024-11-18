@@ -36,7 +36,7 @@ import { modulesIntegration } from '../integrations/modules';
 import { nativeNodeFetchIntegration } from '../integrations/node-fetch';
 import { onUncaughtExceptionIntegration } from '../integrations/onuncaughtexception';
 import { onUnhandledRejectionIntegration } from '../integrations/onunhandledrejection';
-import { childProcessIntegration } from '../integrations/processThread';
+import { childProcessIntegration } from '../integrations/childProcess';
 import { INTEGRATION_NAME as SPOTLIGHT_INTEGRATION_NAME, spotlightIntegration } from '../integrations/spotlight';
 import { getAutoPerformanceIntegrations } from '../integrations/tracing';
 import { makeNodeTransport } from '../transports';

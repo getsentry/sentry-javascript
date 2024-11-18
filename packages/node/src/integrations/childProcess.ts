@@ -12,6 +12,7 @@ interface Options {
   includeChildProcessArgs?: boolean;
 }
 
+// TODO(v9): Update this name and mention in migration docs.
 const INTEGRATION_NAME = 'ProcessAndThreadBreadcrumbs';
 
 /**

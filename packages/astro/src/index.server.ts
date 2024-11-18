@@ -91,6 +91,7 @@ export {
   parameterize,
   postgresIntegration,
   prismaIntegration,
+  // eslint-disable-next-line deprecation/deprecation
   processThreadBreadcrumbIntegration,
   childProcessIntegration,
   redisIntegration,
