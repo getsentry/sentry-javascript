@@ -1,4 +1,3 @@
-import { defaultStackParser } from '../../src';
 import type { ProcessArgs, ProcessInterface } from '../../src/utils/entry-point';
 import { getEntryPointType, parseProcessPaths } from '../../src/utils/entry-point';
 
