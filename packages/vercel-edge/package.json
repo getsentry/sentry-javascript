@@ -48,7 +48,7 @@
     "@edge-runtime/types": "3.0.1",
     "@opentelemetry/core": "^1.25.1",
     "@opentelemetry/resources": "^1.26.0",
-    "@opentelemetry/sdk-trace-base": "^1.26.0",
+    "@opentelemetry/sdk-trace-base": "^1.27.0",
     "@opentelemetry/semantic-conventions": "^1.27.0",
     "@sentry/opentelemetry": "8.38.0"
   },

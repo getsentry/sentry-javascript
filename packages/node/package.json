@@ -94,7 +94,7 @@
     "@opentelemetry/instrumentation-tedious": "0.15.0",
     "@opentelemetry/instrumentation-undici": "0.6.0",
     "@opentelemetry/resources": "^1.26.0",
-    "@opentelemetry/sdk-trace-base": "^1.26.0",
+    "@opentelemetry/sdk-trace-base": "^1.27.0",
     "@opentelemetry/semantic-conventions": "^1.27.0",
     "@prisma/instrumentation": "5.19.1",
     "@sentry/core": "8.38.0",
