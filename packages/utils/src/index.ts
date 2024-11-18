@@ -1,43 +1,154 @@
-export * from './aggregate-errors';
-export * from './array';
-export * from './breadcrumb-log-level';
-export * from './browser';
-export * from './dsn';
-export * from './error';
-export * from './worldwide';
-export * from './instrument';
-export * from './is';
-export * from './isBrowser';
-export * from './logger';
-export * from './memo';
-export * from './misc';
-export * from './node';
-export * from './normalize';
-export * from './object';
-export * from './path';
-export * from './promisebuffer';
+export { applyAggregateErrorsToEvent } from './aggregate-errors';
+export { flatten } from './array';
+export { getBreadcrumbLogLevelFromHttpStatusCode } from './breadcrumb-log-level';
+export { getComponentName, getDomElement, getLocationHref, htmlTreeAsString } from './browser';
+export { dsnFromString, dsnToString, makeDsn } from './dsn';
+export { SentryError } from './error';
+export { GLOBAL_OBJ, getGlobalSingleton } from './worldwide';
+export { addConsoleInstrumentationHandler } from './instrument/console';
+export { addFetchEndInstrumentationHandler, addFetchInstrumentationHandler } from './instrument/fetch';
+export { addGlobalErrorInstrumentationHandler } from './instrument/globalError';
+export { addGlobalUnhandledRejectionInstrumentationHandler } from './instrument/globalUnhandledRejection';
+export { addHandler, maybeInstrument, resetInstrumentationHandlers, triggerHandlers } from './instrument/handlers';
+export {
+  isDOMError,
+  isDOMException,
+  isElement,
+  isError,
+  isErrorEvent,
+  isEvent,
+  isInstanceOf,
+  isParameterizedString,
+  isPlainObject,
+  isPrimitive,
+  isRegExp,
+  isString,
+  isSyntheticEvent,
+  isThenable,
+  isVueViewModel,
+} from './is';
+export { isBrowser } from './isBrowser';
+export { CONSOLE_LEVELS, consoleSandbox, logger, originalConsoleMethods } from './logger';
+export { memoBuilder } from './memo';
+export {
+  addContextToFrame,
+  addExceptionMechanism,
+  addExceptionTypeValue,
+  arrayify,
+  checkOrSetAlreadyCaught,
+  getEventDescription,
+  parseSemver,
+  uuid4,
+} from './misc';
+export { dynamicRequire, isNodeEnv, loadModule } from './node';
+export { normalize, normalizeToSize, normalizeUrlToBase } from './normalize';
+export {
+  addNonEnumerableProperty,
+  convertToPlainObject,
+  dropUndefinedKeys,
+  extractExceptionKeysForMessage,
+  fill,
+  getOriginalFunction,
+  markFunctionWrapped,
+  objectify,
+  urlEncode,
+} from './object';
+export { basename, dirname, isAbsolute, join, normalizePath, relative, resolve } from './path';
+export { makePromiseBuffer } from './promisebuffer';
+
 // TODO: Remove requestdata export once equivalent integration is used everywhere
-export * from './requestdata';
-export * from './severity';
-export * from './stacktrace';
-export * from './node-stack-trace';
-export * from './string';
-export * from './supports';
-export * from './syncpromise';
-export * from './time';
-export * from './tracing';
-export * from './env';
-export * from './envelope';
-export * from './clientreport';
-export * from './ratelimit';
-export * from './baggage';
-export * from './url';
-export * from './cache';
-export * from './eventbuilder';
-export * from './anr';
-export * from './lru';
-export * from './buildPolyfills';
-export * from './propagationContext';
-export * from './vercelWaitUntil';
-export * from './version';
-export * from './debug-ids';
+export {
+  DEFAULT_USER_INCLUDES,
+  addNormalizedRequestDataToEvent,
+  addRequestDataToEvent,
+  // eslint-disable-next-line deprecation/deprecation
+  extractPathForTransaction,
+  extractRequestData,
+  winterCGHeadersToDict,
+  winterCGRequestToRequestData,
+} from './requestdata';
+
+export { severityLevelFromString, validSeverityLevels } from './severity';
+export {
+  UNKNOWN_FUNCTION,
+  createStackParser,
+  getFramesFromEvent,
+  getFunctionName,
+  stackParserFromStackParserOptions,
+  stripSentryFramesAndReverse,
+} from './stacktrace';
+export { filenameIsInApp, node, nodeStackLineParser } from './node-stack-trace';
+export { isMatchingPattern, safeJoin, snipLine, stringMatchesSomePattern, truncate } from './string';
+export {
+  isNativeFunction,
+  supportsDOMError,
+  supportsDOMException,
+  supportsErrorEvent,
+  supportsFetch,
+  supportsNativeFetch,
+  supportsReferrerPolicy,
+  supportsReportingObserver,
+} from './supports';
+export { SyncPromise, rejectedSyncPromise, resolvedSyncPromise } from './syncpromise';
+export {
+  _browserPerformanceTimeOriginMode,
+  browserPerformanceTimeOrigin,
+  dateTimestampInSeconds,
+  timestampInSeconds,
+} from './time';
+export {
+  TRACEPARENT_REGEXP,
+  extractTraceparentData,
+  generateSentryTraceHeader,
+  propagationContextFromHeaders,
+} from './tracing';
+export { getSDKSource, isBrowserBundle } from './env';
+export {
+  addItemToEnvelope,
+  createAttachmentEnvelopeItem,
+  createEnvelope,
+  createEventEnvelopeHeaders,
+  createSpanEnvelopeItem,
+  envelopeContainsItemType,
+  envelopeItemTypeToDataCategory,
+  forEachEnvelopeItem,
+  getSdkMetadataForEnvelopeHeader,
+  parseEnvelope,
+  serializeEnvelope,
+} from './envelope';
+export { createClientReportEnvelope } from './clientreport';
+export {
+  DEFAULT_RETRY_AFTER,
+  disabledUntil,
+  isRateLimited,
+  parseRetryAfterHeader,
+  updateRateLimits,
+} from './ratelimit';
+export {
+  BAGGAGE_HEADER_NAME,
+  MAX_BAGGAGE_STRING_LENGTH,
+  SENTRY_BAGGAGE_KEY_PREFIX,
+  SENTRY_BAGGAGE_KEY_PREFIX_REGEX,
+  baggageHeaderToDynamicSamplingContext,
+  dynamicSamplingContextToSentryBaggageHeader,
+  parseBaggageHeader,
+} from './baggage';
+
+export { getNumberOfUrlSegments, getSanitizedUrlString, parseUrl, stripUrlQueryAndFragment } from './url';
+export { makeFifoCache } from './cache';
+export { eventFromMessage, eventFromUnknownInput, exceptionFromError, parseStackFrames } from './eventbuilder';
+export { callFrameToStackFrame, watchdogTimer } from './anr';
+export { LRUMap } from './lru';
+export { generatePropagationContext } from './propagationContext';
+export { vercelWaitUntil } from './vercelWaitUntil';
+export { SDK_VERSION } from './version';
+export { getDebugImagesForResources, getFilenameToDebugIdMap } from './debug-ids';
+export { escapeStringForRegex } from './vendor/escapeStringForRegex';
+export { supportsHistory } from './vendor/supportsHistory';
+
+export { _asyncNullishCoalesce } from './buildPolyfills/_asyncNullishCoalesce';
+export { _asyncOptionalChain } from './buildPolyfills/_asyncOptionalChain';
+export { _asyncOptionalChainDelete } from './buildPolyfills/_asyncOptionalChainDelete';
+export { _nullishCoalesce } from './buildPolyfills/_nullishCoalesce';
+export { _optionalChain } from './buildPolyfills/_optionalChain';
+export { _optionalChainDelete } from './buildPolyfills/_optionalChainDelete';
