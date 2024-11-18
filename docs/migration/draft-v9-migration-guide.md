@@ -11,3 +11,7 @@
 ## `@sentry/core`
 
 - Deprecated `transactionNamingScheme` option in `requestDataIntegration`.
+
+## `@sentry/types``
+
+- Deprecated `Request` in favor of `RequestEventData`.

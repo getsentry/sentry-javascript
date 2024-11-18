@@ -6,7 +6,7 @@ import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
 import { InstrumentationBase, InstrumentationNodeModuleDefinition } from '@opentelemetry/instrumentation';
 import { getRequestInfo } from '@opentelemetry/instrumentation-http';
 import { addBreadcrumb, getClient, getIsolationScope, withIsolationScope } from '@sentry/core';
-import type { PolymorphicRequest, Request, SanitizedRequestData } from '@sentry/types';
+import type { PolymorphicRequest, RequestEventData, SanitizedRequestData } from '@sentry/types';
 import {
   getBreadcrumbLogLevelFromHttpStatusCode,
   getSanitizedUrlString,
@@ -142,7 +142,7 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
         // This is non-standard, but may be set on e.g. Next.js or Express requests
         const cookies = (request as PolymorphicRequest).cookies;
 
-        const normalizedRequest: Request = {
+        const normalizedRequest: RequestEventData = {
           url: absoluteUrl,
           method: request.method,
           query_string: extractQueryParams(request),
@@ -347,7 +347,7 @@ function getBreadcrumbData(request: http.ClientRequest): Partial<SanitizedReques
  * we monkey patch `req.on('data')` to intercept the body chunks.
  * This way, we only read the body if the user also consumes the body, ensuring we do not change any behavior in unexpected ways.
  */
-function patchRequestToCaptureBody(req: IncomingMessage, normalizedRequest: Request): void {
+function patchRequestToCaptureBody(req: IncomingMessage, normalizedRequest: RequestEventData): void {
   const chunks: Buffer[] = [];
 
   function getChunksSize(): number {
