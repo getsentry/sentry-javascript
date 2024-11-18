@@ -24,7 +24,11 @@ sentryTest(
       });
     });
 
-    const url = await getLocalTestUrl({ testDir: __dirname, skipDsnRouteHandler: true });
+    const url = await getLocalTestUrl({
+      testDir: __dirname,
+      skipDsnRouteHandler: true,
+      handleLazyLoadedFeedback: true,
+    });
 
     await page.goto(url);
 
