@@ -5,7 +5,7 @@ import type { Event } from '@sentry/types';
 import { sentryTest } from '../../../../utils/fixtures';
 import { getFirstSentryEnvelopeRequest, shouldSkipTracingTest } from '../../../../utils/helpers';
 
-sentryTest('should add resource spans to pageload transaction', async ({ getLocalTestUrl, page, browser }) => {
+sentryTest('should add resource spans to pageload transaction', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipTracingTest()) {
     sentryTest.skip();
   }
