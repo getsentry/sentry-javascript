@@ -136,6 +136,7 @@ export {
   spanToTraceHeader,
   spanToBaggageHeader,
   trpcMiddleware,
+  updateSpanName,
   addOpenTelemetryInstrumentation,
   zodErrorsIntegration,
   profiler,

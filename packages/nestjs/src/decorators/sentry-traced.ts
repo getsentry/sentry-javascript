@@ -1,4 +1,4 @@
-import { startSpan } from '@sentry/node';
+import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, startSpan } from '@sentry/node';
 
 /**
  * A decorator usable to wrap arbitrary functions with spans.
@@ -14,6 +14,9 @@ export function SentryTraced(op: string = 'function') {
         {
           op: op,
           name: propertyKey,
+          attributes: {
+            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
+          },
         },
         () => {
           return originalMethod.apply(this, args);

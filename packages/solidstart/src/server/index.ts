@@ -118,6 +118,7 @@ export {
   startSpanManual,
   tediousIntegration,
   trpcMiddleware,
+  updateSpanName,
   withActiveSpan,
   withIsolationScope,
   withMonitor,

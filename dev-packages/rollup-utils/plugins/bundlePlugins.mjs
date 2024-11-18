@@ -138,6 +138,8 @@ export function makeTerserPlugin() {
           '_resolveFilename',
           // Set on e.g. the shim feedbackIntegration to be able to detect it
           '_isShim',
+          // _sentry_span_name_set_by_user is set by the user and is used to store the original span name
+          '_sentry_span_name_set_by_user',
         ],
       },
     },

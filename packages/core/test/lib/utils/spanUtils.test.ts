@@ -3,6 +3,7 @@ import { TRACEPARENT_REGEXP, timestampInSeconds } from '@sentry/utils';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SPAN_STATUS_ERROR,
   SPAN_STATUS_OK,
   SPAN_STATUS_UNSET,
@@ -13,7 +14,13 @@ import {
   startSpan,
 } from '../../../src';
 import type { OpenTelemetrySdkTraceBaseSpan } from '../../../src/utils/spanUtils';
-import { getRootSpan, spanIsSampled, spanTimeInputToSeconds, spanToJSON } from '../../../src/utils/spanUtils';
+import {
+  getRootSpan,
+  spanIsSampled,
+  spanTimeInputToSeconds,
+  spanToJSON,
+  updateSpanName,
+} from '../../../src/utils/spanUtils';
 import { TestClient, getDefaultTestClientOptions } from '../../mocks/client';
 
 describe('spanToTraceHeader', () => {
@@ -243,5 +250,15 @@ describe('getRootSpan', () => {
         });
       });
     });
+  });
+});
+
+describe('updateSpanName', () => {
+  it('updates the span name and source', () => {
+    const span = new SentrySpan({ name: 'old-name', attributes: { [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url' } });
+    updateSpanName(span, 'new-name');
+    const spanJSON = spanToJSON(span);
+    expect(spanJSON.description).toBe('new-name');
+    expect(spanJSON.data?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toBe('custom');
   });
 });

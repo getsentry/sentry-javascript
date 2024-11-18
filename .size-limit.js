@@ -107,7 +107,7 @@ module.exports = [
     path: 'packages/browser/build/npm/esm/index.js',
     import: createImport('init', 'feedbackAsyncIntegration'),
     gzip: true,
-    limit: '33 KB',
+    limit: '33.5 KB',
   },
   // React SDK (ESM)
   {
@@ -160,7 +160,7 @@ module.exports = [
     name: 'CDN Bundle (incl. Tracing)',
     path: createCDNPath('bundle.tracing.min.js'),
     gzip: true,
-    limit: '38 KB',
+    limit: '38.5 KB',
   },
   {
     name: 'CDN Bundle (incl. Tracing, Replay)',
