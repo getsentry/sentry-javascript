@@ -5,11 +5,17 @@ export { getComponentName, getDomElement, getLocationHref, htmlTreeAsString } fr
 export { dsnFromString, dsnToString, makeDsn } from './dsn';
 export { SentryError } from './error';
 export { GLOBAL_OBJ, getGlobalSingleton } from './worldwide';
+export type { InternalGlobal } from './worldwide';
 export { addConsoleInstrumentationHandler } from './instrument/console';
 export { addFetchEndInstrumentationHandler, addFetchInstrumentationHandler } from './instrument/fetch';
 export { addGlobalErrorInstrumentationHandler } from './instrument/globalError';
 export { addGlobalUnhandledRejectionInstrumentationHandler } from './instrument/globalUnhandledRejection';
-export { addHandler, maybeInstrument, resetInstrumentationHandlers, triggerHandlers } from './instrument/handlers';
+export {
+  addHandler,
+  maybeInstrument,
+  resetInstrumentationHandlers,
+  triggerHandlers,
+} from './instrument/handlers';
 export {
   isDOMError,
   isDOMException,
@@ -55,6 +61,7 @@ export {
 } from './object';
 export { basename, dirname, isAbsolute, join, normalizePath, relative, resolve } from './path';
 export { makePromiseBuffer } from './promisebuffer';
+export type { PromiseBuffer } from './promisebuffer';
 
 // TODO: Remove requestdata export once equivalent integration is used everywhere
 export {
@@ -66,6 +73,11 @@ export {
   extractRequestData,
   winterCGHeadersToDict,
   winterCGRequestToRequestData,
+} from './requestdata';
+export type {
+  AddRequestDataToEventOptions,
+  // eslint-disable-next-line deprecation/deprecation
+  TransactionNamingScheme,
 } from './requestdata';
 
 export { severityLevelFromString, validSeverityLevels } from './severity';
@@ -103,6 +115,7 @@ export {
   propagationContextFromHeaders,
 } from './tracing';
 export { getSDKSource, isBrowserBundle } from './env';
+export type { SdkSource } from './env';
 export {
   addItemToEnvelope,
   createAttachmentEnvelopeItem,
@@ -124,6 +137,7 @@ export {
   parseRetryAfterHeader,
   updateRateLimits,
 } from './ratelimit';
+export type { RateLimits } from './ratelimit';
 export {
   BAGGAGE_HEADER_NAME,
   MAX_BAGGAGE_STRING_LENGTH,
