@@ -117,15 +117,19 @@ export {
   zodErrorsIntegration,
   profiler,
   amqplibIntegration,
+  // eslint-disable-next-line deprecation/deprecation
   processThreadBreadcrumbIntegration,
+  childProcessIntegration,
 } from '@sentry/node';
 
 export {
   captureConsoleIntegration,
+  // eslint-disable-next-line deprecation/deprecation
   debugIntegration,
   dedupeIntegration,
   extraErrorDataIntegration,
   rewriteFramesIntegration,
+  // eslint-disable-next-line deprecation/deprecation
   sessionTimingIntegration,
 } from '@sentry/core';
 

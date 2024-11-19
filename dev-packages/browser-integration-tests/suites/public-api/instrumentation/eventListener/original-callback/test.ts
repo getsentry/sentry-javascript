@@ -4,8 +4,8 @@ import { sentryTest } from '../../../../../utils/fixtures';
 
 sentryTest(
   'should remove the original callback if it was registered before Sentry initialized (w. original method)',
-  async ({ getLocalTestPath, page }) => {
-    const url = await getLocalTestPath({ testDir: __dirname });
+  async ({ getLocalTestUrl, page }) => {
+    const url = await getLocalTestUrl({ testDir: __dirname });
 
     await page.goto(url);
 

@@ -4,8 +4,8 @@ import { sentryTest } from '../../../../../utils/fixtures';
 
 sentryTest(
   'Event listener instrumentation should attach the same event listener only once',
-  async ({ getLocalTestPath, page }) => {
-    const url = await getLocalTestPath({ testDir: __dirname });
+  async ({ getLocalTestUrl, page }) => {
+    const url = await getLocalTestUrl({ testDir: __dirname });
     await page.goto(url);
 
     let functionListenerCalls = 0;

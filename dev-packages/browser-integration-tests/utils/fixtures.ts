@@ -31,11 +31,11 @@ const getAsset = (assetDir: string, asset: string): string => {
 export type TestFixtures = {
   _autoSnapshotSuffix: void;
   testDir: string;
-  getLocalTestPath: (options: { testDir: string; skipDsnRouteHandler?: boolean }) => Promise<string>;
   getLocalTestUrl: (options: {
     testDir: string;
     skipRouteHandler?: boolean;
     skipDsnRouteHandler?: boolean;
+    handleLazyLoadedFeedback?: boolean;
   }) => Promise<string>;
   forceFlushReplay: () => Promise<string>;
   enableConsole: () => void;
@@ -59,76 +59,59 @@ const sentryTest = base.extend<TestFixtures>({
   ],
 
   getLocalTestUrl: ({ page }, use) => {
-    return use(async ({ testDir, skipRouteHandler = false, skipDsnRouteHandler = false }) => {
-      const pagePath = `${TEST_HOST}/index.html`;
+    return use(
+      async ({ testDir, skipRouteHandler = false, skipDsnRouteHandler = false, handleLazyLoadedFeedback = false }) => {
+        const pagePath = `${TEST_HOST}/index.html`;
 
-      const tmpDir = path.join(testDir, 'dist', crypto.randomUUID());
+        const tmpDir = path.join(testDir, 'dist', crypto.randomUUID());
 
-      await build(testDir, tmpDir);
+        await build(testDir, tmpDir);
 
-      // If skipping route handlers we return the tmp dir instead of adding the handler
-      // This way, this can be handled by the caller manually
-      if (skipRouteHandler) {
-        return tmpDir;
-      }
-
-      if (!skipDsnRouteHandler) {
-        await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-          return route.fulfill({
-            status: 200,
-            contentType: 'application/json',
-            body: JSON.stringify({ id: 'test-id' }),
-          });
-        });
-      }
-
-      await page.route(`${TEST_HOST}/*.*`, route => {
-        const file = route.request().url().split('/').pop();
-        const filePath = path.resolve(tmpDir, `./${file}`);
-
-        return fs.existsSync(filePath) ? route.fulfill({ path: filePath }) : route.continue();
-      });
-
-      // Ensure feedback can be lazy loaded
-      await page.route(`https://browser.sentry-cdn.com/${SDK_VERSION}/feedback-modal.min.js`, route => {
-        const filePath = path.resolve(tmpDir, './feedback-modal.bundle.js');
-        if (!fs.existsSync(filePath)) {
-          throw new Error(`Feedback modal bundle (${filePath}) not found`);
+        // If skipping route handlers we return the tmp dir instead of adding the handler
+        // This way, this can be handled by the caller manually
+        if (skipRouteHandler) {
+          return tmpDir;
         }
-        return route.fulfill({ path: filePath });
-      });
 
-      await page.route(`https://browser.sentry-cdn.com/${SDK_VERSION}/feedback-screenshot.min.js`, route => {
-        const filePath = path.resolve(tmpDir, './feedback-screenshot.bundle.js');
-        if (!fs.existsSync(filePath)) {
-          throw new Error(`Feedback screenshot bundle (${filePath}) not found`);
-        }
-        return route.fulfill({ path: filePath });
-      });
-
-      return pagePath;
-    });
-  },
-
-  getLocalTestPath: ({ page }, use) => {
-    return use(async ({ testDir, skipDsnRouteHandler }) => {
-      const tmpDir = path.join(testDir, 'dist', crypto.randomUUID());
-      const pagePath = `file:///${path.resolve(tmpDir, './index.html')}`;
-
-      await build(testDir, tmpDir);
-
-      if (!skipDsnRouteHandler) {
-        await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-          return route.fulfill({
-            status: 200,
-            contentType: 'application/json',
-            body: JSON.stringify({ id: 'test-id' }),
+        if (!skipDsnRouteHandler) {
+          await page.route('https://dsn.ingest.sentry.io/**/*', route => {
+            return route.fulfill({
+              status: 200,
+              contentType: 'application/json',
+              body: JSON.stringify({ id: 'test-id' }),
+            });
           });
-        });
-      }
+        }
 
-      return pagePath;
-    });
+        await page.route(`${TEST_HOST}/*.*`, route => {
+          const file = route.request().url().split('/').pop();
+          const filePath = path.resolve(tmpDir, `./${file}`);
+
+          return fs.existsSync(filePath) ? route.fulfill({ path: filePath }) : route.continue();
+        });
+
+        if (handleLazyLoadedFeedback) {
+          // Ensure feedback can be lazy loaded
+          await page.route(`https://browser.sentry-cdn.com/${SDK_VERSION}/feedback-modal.min.js`, route => {
+            const filePath = path.resolve(tmpDir, './feedback-modal.bundle.js');
+            if (!fs.existsSync(filePath)) {
+              throw new Error(`Feedback modal bundle (${filePath}) not found`);
+            }
+            return route.fulfill({ path: filePath });
+          });
+
+          await page.route(`https://browser.sentry-cdn.com/${SDK_VERSION}/feedback-screenshot.min.js`, route => {
+            const filePath = path.resolve(tmpDir, './feedback-screenshot.bundle.js');
+            if (!fs.existsSync(filePath)) {
+              throw new Error(`Feedback screenshot bundle (${filePath}) not found`);
+            }
+            return route.fulfill({ path: filePath });
+          });
+        }
+
+        return pagePath;
+      },
+    );
   },
   runInChromium: ({ runInSingleBrowser }, use) => {
     return use((fn, args) => runInSingleBrowser('chromium', fn, args));

@@ -204,10 +204,27 @@ describe('Scope', () => {
       expect(scope['_user']).toEqual({});
     });
 
-    test('setProcessingMetadata', () => {
-      const scope = new Scope();
-      scope.setSDKProcessingMetadata({ dogs: 'are great!' });
-      expect(scope['_sdkProcessingMetadata'].dogs).toEqual('are great!');
+    describe('setProcessingMetadata', () => {
+      test('it works with no initial data', () => {
+        const scope = new Scope();
+        scope.setSDKProcessingMetadata({ dogs: 'are great!' });
+        expect(scope['_sdkProcessingMetadata'].dogs).toEqual('are great!');
+      });
+
+      test('it overwrites data', () => {
+        const scope = new Scope();
+        scope.setSDKProcessingMetadata({ dogs: 'are great!' });
+        scope.setSDKProcessingMetadata({ dogs: 'are really great!' });
+        scope.setSDKProcessingMetadata({ cats: 'are also great!' });
+        scope.setSDKProcessingMetadata({ obj: { nested1: 'value1', nested: 'value1' } });
+        scope.setSDKProcessingMetadata({ obj: { nested2: 'value2', nested: 'value2' } });
+
+        expect(scope['_sdkProcessingMetadata']).toEqual({
+          dogs: 'are really great!',
+          cats: 'are also great!',
+          obj: { nested2: 'value2', nested: 'value2', nested1: 'value1' },
+        });
+      });
     });
 
     test('set and get propagation context', () => {

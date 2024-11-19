@@ -31,6 +31,7 @@ export {
   createTransport,
   cron,
   dataloaderIntegration,
+  // eslint-disable-next-line deprecation/deprecation
   debugIntegration,
   dedupeIntegration,
   DEFAULT_USER_INCLUDES,
@@ -91,7 +92,9 @@ export {
   parameterize,
   postgresIntegration,
   prismaIntegration,
+  // eslint-disable-next-line deprecation/deprecation
   processThreadBreadcrumbIntegration,
+  childProcessIntegration,
   redisIntegration,
   requestDataIntegration,
   rewriteFramesIntegration,
@@ -101,6 +104,7 @@ export {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  // eslint-disable-next-line deprecation/deprecation
   sessionTimingIntegration,
   setContext,
   setCurrentClient,

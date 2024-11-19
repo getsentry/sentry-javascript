@@ -8,14 +8,14 @@ import {
   waitForReplayRequest,
 } from '../../../../utils/replayHelpers';
 
-sentryTest('replay should handle unicode characters', async ({ getLocalTestPath, page }) => {
+sentryTest('replay should handle unicode characters', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipReplayTest()) {
     sentryTest.skip();
   }
 
   const reqPromise0 = waitForReplayRequest(page, 0);
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
 
   await page.goto(url);
   const snapshots = getFullRecordingSnapshots(await reqPromise0);
