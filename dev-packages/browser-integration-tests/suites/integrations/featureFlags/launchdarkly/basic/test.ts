@@ -2,12 +2,12 @@ import { expect } from '@playwright/test';
 
 import { sentryTest } from '../../../../../utils/fixtures';
 
-import { envelopeRequestParser, shouldSkipLaunchDarklyTest, waitForErrorRequest } from '../../../../../utils/helpers';
+import { envelopeRequestParser, shouldSkipFeatureFlagsTest, waitForErrorRequest } from '../../../../../utils/helpers';
 
 const FLAG_BUFFER_SIZE = 100; // Corresponds to constant in featureFlags.ts, in browser utils.
 
 sentryTest('Basic test with eviction, update, and no async tasks', async ({ getLocalTestPath, page }) => {
-  if (shouldSkipLaunchDarklyTest()) {
+  if (shouldSkipFeatureFlagsTest()) {
     sentryTest.skip();
   }
 

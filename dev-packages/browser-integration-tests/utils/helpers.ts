@@ -274,13 +274,13 @@ export function shouldSkipMetricsTest(): boolean {
 }
 
 /**
- * We can only test the launchdarkly browser integration in certain bundles/packages:
+ * We only test feature flags integrations in certain bundles/packages:
  * - NPM (ESM, CJS)
  * - Not CDNs.
  *
  * @returns `true` if we should skip the launchdarkly test
  */
-export function shouldSkipLaunchDarklyTest(): boolean {
+export function shouldSkipFeatureFlagsTest(): boolean {
   const bundle = process.env.PW_BUNDLE as string | undefined;
   return bundle != null && !bundle.includes('esm') && !bundle.includes('cjs');
 }
