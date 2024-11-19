@@ -1,6 +1,18 @@
+// @ts-check
+
+import { readFileSync } from 'fs';
+import { dirname, join } from 'path';
+import { fileURLToPath } from 'url';
 import replace from '@rollup/plugin-replace';
 import { makeBaseNPMConfig, makeNPMConfigVariants } from '@sentry-internal/rollup-utils';
-import packageJson from './package.json' with { type: 'json' };
+
+const packageJson = JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'package.json'), 'utf-8'));
+
+if (!packageJson.version) {
+  throw new Error('invariant: package version not found');
+}
+
+const packageVersion = packageJson.version;
 
 export default makeNPMConfigVariants(
   makeBaseNPMConfig({
@@ -18,7 +30,7 @@ export default makeNPMConfigVariants(
         replace({
           preventAssignment: true,
           values: {
-            __SENTRY_SDK_VERSION__: JSON.stringify(packageJson.version),
+            __SENTRY_SDK_VERSION__: JSON.stringify(packageVersion),
           },
         }),
       ],
