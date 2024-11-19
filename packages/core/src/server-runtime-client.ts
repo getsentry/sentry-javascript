@@ -17,15 +17,12 @@ import { BaseClient } from './baseclient';
 import { createCheckInEnvelope } from './checkin';
 import { getIsolationScope } from './currentScopes';
 import { DEBUG_BUILD } from './debug-build';
+import { getDynamicSamplingContextFromScopes, getTraceContextFromScopes } from './propagationContext';
 import type { Scope } from './scope';
 import { SessionFlusher } from './sessionflusher';
-import {
-  getDynamicSamplingContextFromClient,
-  getDynamicSamplingContextFromSpan,
-  registerSpanErrorInstrumentation,
-} from './tracing';
+import { getDynamicSamplingContextFromSpan, registerSpanErrorInstrumentation } from './tracing';
 import { _getSpanForScope } from './utils/spanOnScope';
-import { getRootSpan, spanToTraceContext } from './utils/spanUtils';
+import { spanToTraceContext } from './utils/spanUtils';
 
 export interface ServerRuntimeClientOptions extends ClientOptions<BaseTransportOptions> {
   platform?: string;
@@ -248,7 +245,7 @@ export class ServerRuntimeClient<
   }
 
   /** Extract trace information from scope */
-  private _getTraceInfoFromScope(
+  protected _getTraceInfoFromScope(
     scope: Scope | undefined,
   ): [dynamicSamplingContext: Partial<DynamicSamplingContext> | undefined, traceContext: TraceContext | undefined] {
     if (!scope) {
@@ -256,22 +253,11 @@ export class ServerRuntimeClient<
     }
 
     const span = _getSpanForScope(scope);
-    if (span) {
-      const rootSpan = getRootSpan(span);
-      const samplingContext = getDynamicSamplingContextFromSpan(rootSpan);
-      return [samplingContext, spanToTraceContext(rootSpan)];
-    }
 
-    const { traceId, spanId, parentSpanId, dsc } = scope.getPropagationContext();
-    const traceContext: TraceContext = {
-      trace_id: traceId,
-      span_id: spanId,
-      parent_span_id: parentSpanId,
-    };
-    if (dsc) {
-      return [dsc, traceContext];
-    }
-
-    return [getDynamicSamplingContextFromClient(traceId, this), traceContext];
+    const traceContext = span ? spanToTraceContext(span) : getTraceContextFromScopes(scope);
+    const dynamicSamplingContext = span
+      ? getDynamicSamplingContextFromSpan(span)
+      : getDynamicSamplingContextFromScopes(this, scope);
+    return [dynamicSamplingContext, traceContext];
   }
 }

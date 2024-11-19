@@ -6,17 +6,17 @@ import {
   getActiveSpan,
   getClient,
   getRootSpan,
+  getSentryHeaders,
   hasTracingEnabled,
   setHttpStatus,
   spanToJSON,
-  spanToTraceHeader,
   startSpan,
   withIsolationScope,
 } from '@sentry/core';
-import { continueTrace, getDynamicSamplingContextFromSpan } from '@sentry/opentelemetry';
+import { continueTrace } from '@sentry/opentelemetry';
 import type { TransactionSource, WrappedFunction } from '@sentry/types';
 import type { Span } from '@sentry/types';
-import { dynamicSamplingContextToSentryBaggageHeader, fill, isNodeEnv, loadModule, logger } from '@sentry/utils';
+import { fill, isNodeEnv, loadModule, logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from './debug-build';
 import { captureRemixServerException, errorHandleDataFunction, errorHandleDocumentRequestFunction } from './errors';
@@ -204,18 +204,14 @@ function getTraceAndBaggage(): {
   sentryTrace?: string;
   sentryBaggage?: string;
 } {
-  if (isNodeEnv() && hasTracingEnabled()) {
-    const span = getActiveSpan();
-    const rootSpan = span && getRootSpan(span);
+  const client = getClient();
+  if (isNodeEnv() && client) {
+    const { sentryTrace, baggage } = getSentryHeaders({ client, span: getActiveSpan() });
 
-    if (rootSpan) {
-      const dynamicSamplingContext = getDynamicSamplingContextFromSpan(rootSpan);
-
-      return {
-        sentryTrace: spanToTraceHeader(span),
-        sentryBaggage: dynamicSamplingContextToSentryBaggageHeader(dynamicSamplingContext),
-      };
-    }
+    return {
+      sentryTrace,
+      sentryBaggage: baggage,
+    };
   }
 
   return {};

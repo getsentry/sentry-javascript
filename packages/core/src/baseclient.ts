@@ -37,7 +37,6 @@ import {
   checkOrSetAlreadyCaught,
   createAttachmentEnvelopeItem,
   createClientReportEnvelope,
-  dropUndefinedKeys,
   dsnToString,
   isParameterizedString,
   isPlainObject,
@@ -57,9 +56,9 @@ import { createEventEnvelope, createSessionEnvelope } from './envelope';
 import type { IntegrationIndex } from './integration';
 import { afterSetupIntegrations } from './integration';
 import { setupIntegration, setupIntegrations } from './integration';
+import { getDynamicSamplingContextFromScopes, getTraceContextFromScopes } from './propagationContext';
 import type { Scope } from './scope';
 import { updateSession } from './session';
-import { getDynamicSamplingContextFromClient } from './tracing/dynamicSamplingContext';
 import { parseSampleRate } from './utils/parseSampleRate';
 import { prepareEvent } from './utils/prepareEvent';
 
@@ -689,30 +688,18 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
         return evt;
       }
 
-      const propagationContext = {
-        ...isolationScope.getPropagationContext(),
-        ...(currentScope ? currentScope.getPropagationContext() : undefined),
+      evt.contexts = {
+        trace: getTraceContextFromScopes(currentScope, isolationScope),
+        ...evt.contexts,
       };
 
-      const trace = evt.contexts && evt.contexts.trace;
-      if (!trace && propagationContext) {
-        const { traceId: trace_id, spanId, parentSpanId, dsc } = propagationContext;
-        evt.contexts = {
-          trace: dropUndefinedKeys({
-            trace_id,
-            span_id: spanId,
-            parent_span_id: parentSpanId,
-          }),
-          ...evt.contexts,
-        };
+      const dynamicSamplingContext = getDynamicSamplingContextFromScopes(this, currentScope, isolationScope);
 
-        const dynamicSamplingContext = dsc ? dsc : getDynamicSamplingContextFromClient(trace_id, this);
+      evt.sdkProcessingMetadata = {
+        dynamicSamplingContext,
+        ...evt.sdkProcessingMetadata,
+      };
 
-        evt.sdkProcessingMetadata = {
-          dynamicSamplingContext,
-          ...evt.sdkProcessingMetadata,
-        };
-      }
       return evt;
     });
   }

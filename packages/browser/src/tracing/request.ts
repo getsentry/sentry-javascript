@@ -10,15 +10,11 @@ import {
   SentryNonRecordingSpan,
   getActiveSpan,
   getClient,
-  getCurrentScope,
-  getDynamicSamplingContextFromClient,
-  getDynamicSamplingContextFromSpan,
-  getIsolationScope,
+  getSentryHeaders,
   hasTracingEnabled,
   instrumentFetchRequest,
   setHttpStatus,
   spanToJSON,
-  spanToTraceHeader,
   startInactiveSpan,
 } from '@sentry/core';
 import type { Client, HandlerDataXhr, SentryWrappedXMLHttpRequest, Span } from '@sentry/types';
@@ -27,8 +23,6 @@ import {
   addFetchEndInstrumentationHandler,
   addFetchInstrumentationHandler,
   browserPerformanceTimeOrigin,
-  dynamicSamplingContextToSentryBaggageHeader,
-  generateSentryTraceHeader,
   parseUrl,
   stringMatchesSomePattern,
 } from '@sentry/utils';
@@ -419,21 +413,9 @@ export function xhrCallback(
 }
 
 function addTracingHeadersToXhrRequest(xhr: SentryWrappedXMLHttpRequest, client: Client, span?: Span): void {
-  const scope = getCurrentScope();
-  const isolationScope = getIsolationScope();
-  const { traceId, spanId, sampled, dsc } = {
-    ...isolationScope.getPropagationContext(),
-    ...scope.getPropagationContext(),
-  };
+  const { sentryTrace, baggage } = getSentryHeaders({ span, client });
 
-  const sentryTraceHeader =
-    span && hasTracingEnabled() ? spanToTraceHeader(span) : generateSentryTraceHeader(traceId, spanId, sampled);
-
-  const sentryBaggageHeader = dynamicSamplingContextToSentryBaggageHeader(
-    dsc || (span ? getDynamicSamplingContextFromSpan(span) : getDynamicSamplingContextFromClient(traceId, client)),
-  );
-
-  setHeaderOnXhr(xhr, sentryTraceHeader, sentryBaggageHeader);
+  setHeaderOnXhr(xhr, sentryTrace, baggage);
 }
 
 function setHeaderOnXhr(

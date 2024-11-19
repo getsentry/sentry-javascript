@@ -43,6 +43,10 @@ export {
   getDefaultCurrentScope,
   getDefaultIsolationScope,
 } from './defaultScopes';
+export {
+  getDynamicSamplingContextFromScopes,
+  getTraceContextFromScopes,
+} from './propagationContext';
 export { setAsyncContextStrategy } from './asyncContext';
 export { getMainCarrier } from './carrier';
 export { makeSession, closeSession, updateSession } from './session';

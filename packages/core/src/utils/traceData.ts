@@ -1,16 +1,11 @@
 import type { SerializedTraceData } from '@sentry/types';
-import {
-  TRACEPARENT_REGEXP,
-  dynamicSamplingContextToSentryBaggageHeader,
-  generateSentryTraceHeader,
-  logger,
-} from '@sentry/utils';
+import { TRACEPARENT_REGEXP, logger } from '@sentry/utils';
 import { getAsyncContextStrategy } from '../asyncContext';
 import { getMainCarrier } from '../carrier';
-import { getClient, getCurrentScope } from '../currentScopes';
+import { getClient } from '../currentScopes';
 import { isEnabled } from '../exports';
-import { getDynamicSamplingContextFromClient, getDynamicSamplingContextFromSpan } from '../tracing';
-import { getActiveSpan, getRootSpan, spanToTraceHeader } from './spanUtils';
+import { getSentryHeaders } from '../tracing';
+import { getActiveSpan } from './spanUtils';
 
 /**
  * Extracts trace propagation data from the current span or from the client's scope (via transaction or propagation
@@ -24,7 +19,8 @@ import { getActiveSpan, getRootSpan, spanToTraceHeader } from './spanUtils';
  * or meta tag name.
  */
 export function getTraceData(): SerializedTraceData {
-  if (!isEnabled()) {
+  const client = getClient();
+  if (!isEnabled() || !client) {
     return {};
   }
 
@@ -34,24 +30,8 @@ export function getTraceData(): SerializedTraceData {
     return acs.getTraceData();
   }
 
-  const client = getClient();
-  const scope = getCurrentScope();
   const span = getActiveSpan();
-
-  const { dsc, sampled, traceId } = scope.getPropagationContext();
-  const rootSpan = span && getRootSpan(span);
-
-  const sentryTrace = span ? spanToTraceHeader(span) : generateSentryTraceHeader(traceId, undefined, sampled);
-
-  const dynamicSamplingContext = rootSpan
-    ? getDynamicSamplingContextFromSpan(rootSpan)
-    : dsc
-      ? dsc
-      : client
-        ? getDynamicSamplingContextFromClient(traceId, client)
-        : undefined;
-
-  const baggage = dynamicSamplingContextToSentryBaggageHeader(dynamicSamplingContext);
+  const { sentryTrace, baggage } = getSentryHeaders({ span, client });
 
   const isValidSentryTraceHeader = TRACEPARENT_REGEXP.test(sentryTrace);
   if (!isValidSentryTraceHeader) {
