@@ -2,12 +2,12 @@ import { expect } from '@playwright/test';
 
 import { sentryTest } from '../../../../../utils/fixtures';
 
-import { envelopeRequestParser, shouldSkipOpenFeatureTest, waitForErrorRequest } from '../../../../../utils/helpers';
+import { envelopeRequestParser, shouldSkipFeatureFlagsTest, waitForErrorRequest } from '../../../../../utils/helpers';
 
 import type { Scope } from '@sentry/browser';
 
-sentryTest('Flag evaluations in forked scopes are stored separately.', async ({ getLocalTestPath, page }) => {
-  if (shouldSkipOpenFeatureTest()) {
+sentryTest('Flag evaluations in forked scopes are stored separately.', async ({ getLocalTestUrl, page }) => {
+  if (shouldSkipFeatureFlagsTest()) {
     sentryTest.skip();
   }
 
@@ -19,7 +19,7 @@ sentryTest('Flag evaluations in forked scopes are stored separately.', async ({ 
     });
   });
 
-  const url = await getLocalTestPath({ testDir: __dirname, skipDsnRouteHandler: true });
+  const url = await getLocalTestUrl({ testDir: __dirname, skipDsnRouteHandler: true });
   await page.goto(url);
 
   const forkedReqPromise = waitForErrorRequest(page, event => !!event.tags && event.tags.isForked === true);

@@ -2,12 +2,12 @@ import { expect } from '@playwright/test';
 
 import { sentryTest } from '../../../../../utils/fixtures';
 
-import { envelopeRequestParser, shouldSkipOpenFeatureTest, waitForErrorRequest } from '../../../../../utils/helpers';
+import { envelopeRequestParser, shouldSkipFeatureFlagsTest, waitForErrorRequest } from '../../../../../utils/helpers';
 
 const FLAG_BUFFER_SIZE = 100; // Corresponds to constant in featureFlags.ts, in browser utils.
 
-sentryTest('Basic test with eviction, update, and no async tasks', async ({ getLocalTestPath, page }) => {
-  if (shouldSkipOpenFeatureTest()) {
+sentryTest('Basic test with eviction, update, and no async tasks', async ({ getLocalTestUrl, page }) => {
+  if (shouldSkipFeatureFlagsTest()) {
     sentryTest.skip();
   }
 
@@ -19,7 +19,7 @@ sentryTest('Basic test with eviction, update, and no async tasks', async ({ getL
     });
   });
 
-  const url = await getLocalTestPath({ testDir: __dirname, skipDsnRouteHandler: true });
+  const url = await getLocalTestUrl({ testDir: __dirname, skipDsnRouteHandler: true });
   await page.goto(url);
 
   await page.waitForFunction(bufferSize => {
