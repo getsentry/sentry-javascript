@@ -63,7 +63,7 @@ describe('merge', () => {
       { a0: { a1: { a2: { a3: { a4: 'a4a' }, a3a: 'a3a' }, a2a: 'a2a' }, a1a: 'a1a' }, a0a: 'a0a' },
       { a0: { a1: { a2: { a3: { a4: 'a4b' }, a3b: 'a3b' }, a2b: 'a2b' }, a1b: 'a1b' }, a0b: 'a0b' },
       {
-        a0: { a1: { a2: { a3: { a4: 'a4a' }, a3b: 'a3a' }, a2b: 'a2b' }, a1b: 'a1b', a1a: 'a1a' },
+        a0: { a1: { a2: { a3: { a4: 'a4b' }, a3b: 'a3b' }, a2b: 'a2b' }, a1b: 'a1b', a1a: 'a1a' },
         a0b: 'a0b',
         a0a: 'a0a',
       },
