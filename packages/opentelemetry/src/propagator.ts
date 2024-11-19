@@ -4,16 +4,11 @@ import { context } from '@opentelemetry/api';
 import { propagation, trace } from '@opentelemetry/api';
 import { W3CBaggagePropagator, isTracingSuppressed } from '@opentelemetry/core';
 import { ATTR_URL_FULL, SEMATTRS_HTTP_URL } from '@opentelemetry/semantic-conventions';
-import type { continueTrace } from '@sentry/core';
+import type { continueTrace} from '@sentry/core';
+import { getDynamicSamplingContextFromScopes } from '@sentry/core';
 import { getRootSpan } from '@sentry/core';
 import { spanToJSON } from '@sentry/core';
-import {
-  getClient,
-  getCurrentScope,
-  getDynamicSamplingContextFromClient,
-  getDynamicSamplingContextFromSpan,
-  getIsolationScope,
-} from '@sentry/core';
+import { getClient, getCurrentScope, getDynamicSamplingContextFromSpan, getIsolationScope } from '@sentry/core';
 import type { DynamicSamplingContext, Options, PropagationContext } from '@sentry/types';
 import {
   LRUMap,
@@ -204,8 +199,7 @@ function getInjectionData(context: Context): {
   if (span && !spanIsRemote) {
     const spanContext = span.spanContext();
 
-    const propagationContext = getPropagationContextFromSpan(span);
-    const dynamicSamplingContext = getDynamicSamplingContext(propagationContext, spanContext.traceId);
+    const dynamicSamplingContext = getDynamicSamplingContextFromSpan(span);
     return {
       dynamicSamplingContext,
       traceId: spanContext.traceId,
@@ -216,35 +210,16 @@ function getInjectionData(context: Context): {
 
   // Else we try to use the propagation context from the scope
   const scope = getScopesFromContext(context)?.scope || getCurrentScope();
+  const client = getClient();
 
   const propagationContext = scope.getPropagationContext();
-  const dynamicSamplingContext = getDynamicSamplingContext(propagationContext, propagationContext.traceId);
+  const dynamicSamplingContext = client ? getDynamicSamplingContextFromScopes(client, scope) : undefined;
   return {
     dynamicSamplingContext,
     traceId: propagationContext.traceId,
     spanId: propagationContext.spanId,
     sampled: propagationContext.sampled,
   };
-}
-
-/** Get the DSC from a context, or fall back to use the one from the client. */
-function getDynamicSamplingContext(
-  propagationContext: PropagationContext,
-  traceId: string | undefined,
-): Partial<DynamicSamplingContext> | undefined {
-  // If we have a DSC on the propagation context, we just use it
-  if (propagationContext?.dsc) {
-    return propagationContext.dsc;
-  }
-
-  // Else, we try to generate a new one
-  const client = getClient();
-
-  if (client) {
-    return getDynamicSamplingContextFromClient(traceId || propagationContext.traceId, client);
-  }
-
-  return undefined;
 }
 
 function getContextWithRemoteActiveSpan(
