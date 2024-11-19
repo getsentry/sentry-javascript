@@ -15,12 +15,15 @@ import { eventFromMessage, eventFromUnknownInput, logger, resolvedSyncPromise, u
 
 import { BaseClient } from './baseclient';
 import { createCheckInEnvelope } from './checkin';
-import { getIsolationScope } from './currentScopes';
+import { getIsolationScope, getTraceContextFromScopes } from './currentScopes';
 import { DEBUG_BUILD } from './debug-build';
-import { getDynamicSamplingContextFromScopes, getTraceContextFromScopes } from './propagationContext';
 import type { Scope } from './scope';
 import { SessionFlusher } from './sessionflusher';
-import { getDynamicSamplingContextFromSpan, registerSpanErrorInstrumentation } from './tracing';
+import {
+  getDynamicSamplingContextFromScopes,
+  getDynamicSamplingContextFromSpan,
+  registerSpanErrorInstrumentation,
+} from './tracing';
 import { _getSpanForScope } from './utils/spanOnScope';
 import { spanToTraceContext } from './utils/spanUtils';
 

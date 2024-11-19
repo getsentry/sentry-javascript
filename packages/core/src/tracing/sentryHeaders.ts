@@ -1,8 +1,8 @@
 import type { Client, Scope, Span } from '@sentry/types';
 import { dynamicSamplingContextToSentryBaggageHeader } from '@sentry/utils';
-import { getDynamicSamplingContextFromScopes, scopesToTraceHeader } from '../propagationContext';
+import { scopesToTraceHeader } from '../currentScopes';
 import { spanToTraceHeader } from '../utils/spanUtils';
-import { getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
+import { getDynamicSamplingContextFromScopes, getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
 
 /**
  * Get the sentry-trace and baggage headers for a given span or scope.

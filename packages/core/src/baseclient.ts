@@ -50,15 +50,15 @@ import {
 } from '@sentry/utils';
 
 import { getEnvelopeEndpointWithUrlEncodedAuth } from './api';
-import { getIsolationScope } from './currentScopes';
+import { getIsolationScope, getTraceContextFromScopes } from './currentScopes';
 import { DEBUG_BUILD } from './debug-build';
 import { createEventEnvelope, createSessionEnvelope } from './envelope';
 import type { IntegrationIndex } from './integration';
 import { afterSetupIntegrations } from './integration';
 import { setupIntegration, setupIntegrations } from './integration';
-import { getDynamicSamplingContextFromScopes, getTraceContextFromScopes } from './propagationContext';
 import type { Scope } from './scope';
 import { updateSession } from './session';
+import { getDynamicSamplingContextFromScopes } from './tracing/dynamicSamplingContext';
 import { parseSampleRate } from './utils/parseSampleRate';
 import { prepareEvent } from './utils/prepareEvent';
 

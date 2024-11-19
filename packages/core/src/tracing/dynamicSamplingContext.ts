@@ -7,7 +7,13 @@ import {
 } from '@sentry/utils';
 
 import { DEFAULT_ENVIRONMENT } from '../constants';
-import { getClient } from '../currentScopes';
+import {
+  getClient,
+  getCurrentScope,
+  getGlobalScope,
+  getIsolationScope,
+  mergePropagationContexts,
+} from '../currentScopes';
 import { SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '../semanticAttributes';
 import { hasTracingEnabled } from '../utils/hasTracingEnabled';
 import { getRootSpan, spanIsSampled, spanToJSON } from '../utils/spanUtils';
@@ -50,6 +56,19 @@ export function getDynamicSamplingContextFromClient(trace_id: string, client: Cl
   client.emit('createDsc', dsc);
 
   return dsc;
+}
+
+/**
+ * Get the dynamic sampling context for the currently active scopes.
+ */
+export function getDynamicSamplingContextFromScopes(
+  client: Client,
+  scope = getCurrentScope(),
+  isolationScope = getIsolationScope(),
+  globalScope = getGlobalScope(),
+): Partial<DynamicSamplingContext> {
+  const propagationContext = mergePropagationContexts(scope, isolationScope, globalScope);
+  return propagationContext.dsc || getDynamicSamplingContextFromClient(propagationContext.traceId, client);
 }
 
 /**
