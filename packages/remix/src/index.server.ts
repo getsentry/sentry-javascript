@@ -35,6 +35,7 @@ export {
   createGetModuleFromFilename,
   createTransport,
   cron,
+  // eslint-disable-next-line deprecation/deprecation
   debugIntegration,
   dedupeIntegration,
   DEFAULT_USER_INCLUDES,
@@ -100,6 +101,7 @@ export {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  // eslint-disable-next-line deprecation/deprecation
   sessionTimingIntegration,
   setContext,
   setCurrentClient,
