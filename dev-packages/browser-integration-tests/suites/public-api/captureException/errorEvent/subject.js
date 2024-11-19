@@ -1,5 +1,1 @@
-window.addEventListener('error', function (event) {
-  Sentry.captureException(event);
-});
-
-window.thisDoesNotExist();
+Sentry.captureException(new ErrorEvent('something', { message: 'test error' }));

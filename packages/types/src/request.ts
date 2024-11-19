@@ -1,8 +1,7 @@
 /**
  * Request data included in an event as sent to Sentry.
- * TODO(v9): Rename this to avoid confusion, because Request is also a native type.
  */
-export interface Request {
+export interface RequestEventData {
   url?: string;
   method?: string;
   data?: any;
@@ -11,6 +10,12 @@ export interface Request {
   env?: { [key: string]: string };
   headers?: { [key: string]: string };
 }
+
+/**
+ * Request data included in an event as sent to Sentry.
+ * @deprecated: This type will be removed in v9. Use `RequestEventData` instead.
+ */
+export type Request = RequestEventData;
 
 export type QueryParams = string | { [key: string]: string } | Array<[string, string]>;
 

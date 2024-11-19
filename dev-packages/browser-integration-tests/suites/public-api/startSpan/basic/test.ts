@@ -14,12 +14,12 @@ import {
 
 sentryTest(
   'sends a transaction in an envelope with manual origin and custom source',
-  async ({ getLocalTestPath, page }) => {
+  async ({ getLocalTestUrl, page }) => {
     if (shouldSkipTracingTest()) {
       sentryTest.skip();
     }
 
-    const url = await getLocalTestPath({ testDir: __dirname });
+    const url = await getLocalTestUrl({ testDir: __dirname });
     const req = await waitForTransactionRequestOnUrl(page, url);
     const transaction = envelopeRequestParser(req);
 
@@ -37,12 +37,12 @@ sentryTest(
   },
 );
 
-sentryTest('should report finished spans as children of the root transaction', async ({ getLocalTestPath, page }) => {
+sentryTest('should report finished spans as children of the root transaction', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipTracingTest()) {
     sentryTest.skip();
   }
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
   const req = await waitForTransactionRequestOnUrl(page, url);
   const transaction = envelopeRequestParser(req);
 

@@ -1,10 +1,10 @@
 import { ArgumentsHost, BadRequestException, Catch, ExceptionFilter } from '@nestjs/common';
-import { WithSentry } from '@sentry/nestjs';
+import { SentryExceptionCaptured } from '@sentry/nestjs';
 import { Request, Response } from 'express';
 
 @Catch()
 export class ExampleWrappedGlobalFilter implements ExceptionFilter {
-  @WithSentry()
+  @SentryExceptionCaptured()
   catch(exception: BadRequestException, host: ArgumentsHost): void {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();

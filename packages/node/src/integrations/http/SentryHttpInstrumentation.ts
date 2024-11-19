@@ -6,7 +6,7 @@ import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
 import { InstrumentationBase, InstrumentationNodeModuleDefinition } from '@opentelemetry/instrumentation';
 import { getRequestInfo } from '@opentelemetry/instrumentation-http';
 import { addBreadcrumb, getClient, getIsolationScope, withIsolationScope } from '@sentry/core';
-import type { PolymorphicRequest, Request, SanitizedRequestData } from '@sentry/types';
+import type { PolymorphicRequest, RequestEventData, SanitizedRequestData, Scope } from '@sentry/types';
 import {
   getBreadcrumbLogLevelFromHttpStatusCode,
   getSanitizedUrlString,
@@ -142,7 +142,7 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
         // This is non-standard, but may be set on e.g. Next.js or Express requests
         const cookies = (request as PolymorphicRequest).cookies;
 
-        const normalizedRequest: Request = {
+        const normalizedRequest: RequestEventData = {
           url: absoluteUrl,
           method: request.method,
           query_string: extractQueryParams(request),
@@ -150,10 +150,14 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
           cookies,
         };
 
-        patchRequestToCaptureBody(request, normalizedRequest);
+        patchRequestToCaptureBody(request, isolationScope);
 
         // Update the isolation scope, isolate this request
-        isolationScope.setSDKProcessingMetadata({ request, normalizedRequest });
+        // TODO(v9): Stop setting `request`, we only rely on normalizedRequest anymore
+        isolationScope.setSDKProcessingMetadata({
+          request,
+          normalizedRequest,
+        });
 
         const client = getClient<NodeClient>();
         if (client && client.getOptions().autoSessionTracking) {
@@ -347,7 +351,7 @@ function getBreadcrumbData(request: http.ClientRequest): Partial<SanitizedReques
  * we monkey patch `req.on('data')` to intercept the body chunks.
  * This way, we only read the body if the user also consumes the body, ensuring we do not change any behavior in unexpected ways.
  */
-function patchRequestToCaptureBody(req: IncomingMessage, normalizedRequest: Request): void {
+function patchRequestToCaptureBody(req: IncomingMessage, isolationScope: Scope): void {
   const chunks: Buffer[] = [];
 
   function getChunksSize(): number {
@@ -396,9 +400,9 @@ function patchRequestToCaptureBody(req: IncomingMessage, normalizedRequest: Requ
               try {
                 const body = Buffer.concat(chunks).toString('utf-8');
 
-                // We mutate the passed in normalizedRequest and add the body to it
                 if (body) {
-                  normalizedRequest.data = body;
+                  const normalizedRequest = { data: body } satisfies RequestEventData;
+                  isolationScope.setSDKProcessingMetadata({ normalizedRequest });
                 }
               } catch {
                 // ignore errors here

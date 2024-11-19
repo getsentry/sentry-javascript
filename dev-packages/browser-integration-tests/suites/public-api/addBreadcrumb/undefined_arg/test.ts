@@ -6,8 +6,8 @@ import { getFirstSentryEnvelopeRequest } from '../../../../utils/helpers';
 
 sentryTest(
   'should add an empty breadcrumb initialized with a timestamp, when no argument is given',
-  async ({ getLocalTestPath, page }) => {
-    const url = await getLocalTestPath({ testDir: __dirname });
+  async ({ getLocalTestUrl, page }) => {
+    const url = await getLocalTestUrl({ testDir: __dirname });
 
     const eventData = await getFirstSentryEnvelopeRequest<Event>(page, url);
 

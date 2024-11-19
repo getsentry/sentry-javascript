@@ -34,6 +34,9 @@ describe('applyTunnelRouteOption()', () => {
   });
 
   it("Doesn't apply `tunnelRoute` when DSN is invalid", () => {
+    // Avoid polluting the test output with error messages
+    const mockConsoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
+
     globalWithInjectedValues._sentryRewritesTunnelPath = '/my-error-monitoring-route';
     const options: any = {
       dsn: 'invalidDsn',
@@ -42,6 +45,8 @@ describe('applyTunnelRouteOption()', () => {
     applyTunnelRouteOption(options);
 
     expect(options.tunnel).toBeUndefined();
+
+    mockConsoleError.mockRestore();
   });
 
   it("Doesn't apply `tunnelRoute` option when `tunnelRoute` option wasn't injected", () => {

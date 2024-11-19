@@ -6,8 +6,8 @@ import { getMultipleSentryEnvelopeRequests } from '../../../../utils/helpers';
 
 sentryTest(
   'should reject duplicate, back-to-back messages from captureMessage when it has stacktrace',
-  async ({ getLocalTestPath, page }) => {
-    const url = await getLocalTestPath({ testDir: __dirname });
+  async ({ getLocalTestUrl, page }) => {
+    const url = await getLocalTestUrl({ testDir: __dirname });
 
     const eventData = await getMultipleSentryEnvelopeRequests<Event>(page, 5, { url });
 

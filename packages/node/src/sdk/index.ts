@@ -30,13 +30,13 @@ import { consoleIntegration } from '../integrations/console';
 import { nodeContextIntegration } from '../integrations/context';
 import { contextLinesIntegration } from '../integrations/contextlines';
 
+import { childProcessIntegration } from '../integrations/childProcess';
 import { httpIntegration } from '../integrations/http';
 import { localVariablesIntegration } from '../integrations/local-variables';
 import { modulesIntegration } from '../integrations/modules';
 import { nativeNodeFetchIntegration } from '../integrations/node-fetch';
 import { onUncaughtExceptionIntegration } from '../integrations/onuncaughtexception';
 import { onUnhandledRejectionIntegration } from '../integrations/onunhandledrejection';
-import { processThreadBreadcrumbIntegration } from '../integrations/processThread';
 import { INTEGRATION_NAME as SPOTLIGHT_INTEGRATION_NAME, spotlightIntegration } from '../integrations/spotlight';
 import { getAutoPerformanceIntegrations } from '../integrations/tracing';
 import { makeNodeTransport } from '../transports';
@@ -72,7 +72,7 @@ export function getDefaultIntegrationsWithoutPerformance(): Integration[] {
     contextLinesIntegration(),
     localVariablesIntegration(),
     nodeContextIntegration(),
-    processThreadBreadcrumbIntegration(),
+    childProcessIntegration(),
     ...getCjsOnlyIntegrations(),
   ];
 }

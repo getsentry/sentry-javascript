@@ -2,7 +2,9 @@ export type {
   Breadcrumb,
   BreadcrumbHint,
   PolymorphicRequest,
+  // eslint-disable-next-line deprecation/deprecation
   Request,
+  RequestEventData,
   SdkInfo,
   Event,
   EventHint,
@@ -142,10 +144,12 @@ export {
 
 export {
   captureConsoleIntegration,
+  // eslint-disable-next-line deprecation/deprecation
   debugIntegration,
   dedupeIntegration,
   extraErrorDataIntegration,
   rewriteFramesIntegration,
+  // eslint-disable-next-line deprecation/deprecation
   sessionTimingIntegration,
 } from '@sentry/core';
 

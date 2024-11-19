@@ -42,14 +42,13 @@ describe('getSentryCarrier', () => {
   describe('multiple (older) SDKs', () => {
     it("returns the version of the sentry carrier object of the SDK's version rather than the one set in .version", () => {
       const sentryCarrier = getSentryCarrier({
+        // @ts-expect-error - this is just a test object
         __SENTRY__: {
-          version: '8.0.0' as const, // another SDK set this
+          version: '8.0.0', // another SDK set this
           '8.0.0': {
-            // @ts-expect-error - this is just a test object, not passing a full stack
             stack: {},
           },
           [SDK_VERSION]: {
-            // @ts-expect-error - this is just a test object, not passing a full ACS
             acs: {},
           },
           hub: {},

@@ -9,7 +9,7 @@ import type { Measurements } from './measurement';
 import type { Mechanism } from './mechanism';
 import type { Primitive } from './misc';
 import type { PolymorphicRequest } from './polymorphics';
-import type { Request } from './request';
+import type { RequestEventData } from './request';
 import type { CaptureContext, Scope } from './scope';
 import type { SdkInfo } from './sdkinfo';
 import type { SeverityLevel } from './severity';
@@ -36,7 +36,7 @@ export interface Event {
   dist?: string;
   environment?: string;
   sdk?: SdkInfo;
-  request?: Request;
+  request?: RequestEventData;
   transaction?: string;
   modules?: { [key: string]: string };
   fingerprint?: string[];
@@ -56,7 +56,7 @@ export interface Event {
   // Note: This is considered internal and is subject to change in minors
   sdkProcessingMetadata?: { [key: string]: unknown } & {
     request?: PolymorphicRequest;
-    normalizedRequest?: Request;
+    normalizedRequest?: RequestEventData;
     dynamicSamplingContext?: Partial<DynamicSamplingContext>;
     capturedSpanScope?: Scope;
     capturedSpanIsolationScope?: Scope;

@@ -33,7 +33,7 @@ const DEFAULT_REPLAY_EVENT = {
   request: {
     url: expect.stringContaining('/index.html'),
     headers: {
-      'User-Agent': expect.stringContaining(''),
+      'User-Agent': expect.any(String),
     },
   },
   platform: 'javascript',

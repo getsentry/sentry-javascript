@@ -2,7 +2,9 @@ export type {
   Breadcrumb,
   BreadcrumbHint,
   PolymorphicRequest,
+  // eslint-disable-next-line deprecation/deprecation
   Request,
+  RequestEventData,
   SdkInfo,
   Event,
   EventHint,
@@ -72,6 +74,7 @@ export {
   linkedErrorsIntegration,
   requestDataIntegration,
   extraErrorDataIntegration,
+  // eslint-disable-next-line deprecation/deprecation
   debugIntegration,
   dedupeIntegration,
   rewriteFramesIntegration,
