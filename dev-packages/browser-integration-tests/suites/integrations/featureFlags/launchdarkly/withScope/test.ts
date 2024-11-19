@@ -6,7 +6,7 @@ import { envelopeRequestParser, shouldSkipFeatureFlagsTest, waitForErrorRequest 
 
 import type { Scope } from '@sentry/browser';
 
-sentryTest('Flag evaluations in forked scopes are stored separately.', async ({ getLocalTestPath, page }) => {
+sentryTest('Flag evaluations in forked scopes are stored separately.', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipFeatureFlagsTest()) {
     sentryTest.skip();
   }
@@ -19,7 +19,7 @@ sentryTest('Flag evaluations in forked scopes are stored separately.', async ({ 
     });
   });
 
-  const url = await getLocalTestPath({ testDir: __dirname, skipDsnRouteHandler: true });
+  const url = await getLocalTestUrl({ testDir: __dirname, skipDsnRouteHandler: true });
   await page.goto(url);
 
   const forkedReqPromise = waitForErrorRequest(page, event => !!event.tags && event.tags.isForked === true);
