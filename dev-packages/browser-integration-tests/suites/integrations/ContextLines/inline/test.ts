@@ -16,6 +16,7 @@ sentryTest(
     }
 
     const url = await getLocalTestUrl({ testDir: __dirname });
+    await page.waitForFunction('window.Sentry');
 
     const eventReqPromise = waitForErrorRequestOnUrl(page, url);
 
