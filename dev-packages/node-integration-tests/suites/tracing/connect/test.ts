@@ -45,7 +45,6 @@ describe('connect auto-instrumentation', () => {
   test('CJS - should capture errors in `connect` middleware.', done => {
     createRunner(__dirname, 'scenario.js')
       .ignore('transaction')
-      .expectError()
       .expect({ event: EXPECTED_EVENT })
       .start(done)
       .makeRequest('get', '/error');
@@ -55,7 +54,6 @@ describe('connect auto-instrumentation', () => {
     createRunner(__dirname, 'scenario.js')
       .ignore('event')
       .expect({ transaction: { transaction: 'GET /error' } })
-      .expectError()
       .start(done)
       .makeRequest('get', '/error');
   });

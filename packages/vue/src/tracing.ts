@@ -81,18 +81,16 @@ export const createTracingMixins = (options: TracingOptions): Mixins => {
         const isRoot = this.$root === this;
 
         if (isRoot) {
-          const activeSpan = getActiveSpan();
-          if (activeSpan) {
-            this.$_sentryRootSpan =
-              this.$_sentryRootSpan ||
-              startInactiveSpan({
-                name: 'Application Render',
-                op: `${VUE_OP}.render`,
-                attributes: {
-                  [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.vue',
-                },
-              });
-          }
+          this.$_sentryRootSpan =
+            this.$_sentryRootSpan ||
+            startInactiveSpan({
+              name: 'Application Render',
+              op: `${VUE_OP}.render`,
+              attributes: {
+                [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.vue',
+              },
+              onlyIfParent: true,
+            });
         }
 
         // Skip components that we don't want to track to minimize the noise and give a more granular control to the user

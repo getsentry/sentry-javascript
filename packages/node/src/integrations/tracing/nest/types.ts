@@ -75,6 +75,15 @@ export interface CatchTarget {
 }
 
 /**
+ * Represents a target method in NestJS annotated with @OnEvent.
+ */
+export interface OnEventTarget {
+  name: string;
+  sentryPatched?: boolean;
+  __SENTRY_INTERNAL__?: boolean;
+}
+
+/**
  * Represents an express NextFunction.
  */
 export type NextFunction = (err?: any) => void;

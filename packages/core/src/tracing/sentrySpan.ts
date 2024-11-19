@@ -193,6 +193,7 @@ export class SentrySpan implements Span {
    */
   public updateName(name: string): this {
     this._name = name;
+    this.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'custom');
     return this;
   }
 

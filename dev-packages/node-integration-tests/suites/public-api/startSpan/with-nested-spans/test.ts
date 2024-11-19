@@ -1,5 +1,6 @@
 import type { SpanJSON } from '@sentry/types';
-import { assertSentryTransaction, cleanupChildProcesses, createRunner } from '../../../../utils/runner';
+import { assertSentryTransaction } from '../../../../utils/assertions';
+import { cleanupChildProcesses, createRunner } from '../../../../utils/runner';
 
 afterAll(() => {
   cleanupChildProcesses();

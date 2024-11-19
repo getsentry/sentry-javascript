@@ -36,5 +36,13 @@
   },
   "volta": {
     "extends": "../../package.json"
+  },
+  "sentryTest": {
+    "optionalVariants": [
+      {
+        "assert-command": "test:assert-sourcemaps",
+        "label": "create-remix-app (sourcemaps)"
+      }
+    ]
   }
 }

@@ -22,9 +22,9 @@ describe('express setupExpressErrorHandler', () => {
         .start(done);
 
       // this error is filtered & ignored
-      expect(() => runner.makeRequest('get', '/test1')).rejects.toThrow();
+      runner.makeRequest('get', '/test1', { expectError: true });
       // this error is actually captured
-      expect(() => runner.makeRequest('get', '/test2')).rejects.toThrow();
+      runner.makeRequest('get', '/test2', { expectError: true });
     });
   });
 });

@@ -1,7 +1,9 @@
+/* eslint-disable max-lines */
 import type {
   Event,
   ExtractedNodeRequestData,
   PolymorphicRequest,
+  RequestEventData,
   TransactionSource,
   WebFetchHeaders,
   WebFetchRequest,
@@ -12,13 +14,13 @@ import { DEBUG_BUILD } from './debug-build';
 import { isPlainObject, isString } from './is';
 import { logger } from './logger';
 import { normalize } from './normalize';
+import { truncate } from './string';
 import { stripUrlQueryAndFragment } from './url';
 import { getClientIPAddress, ipHeaderNames } from './vendor/getIpAddress';
 
 const DEFAULT_INCLUDES = {
   ip: false,
   request: true,
-  transaction: true,
   user: true,
 };
 const DEFAULT_REQUEST_INCLUDES = ['cookies', 'data', 'headers', 'method', 'query_string', 'url'];
@@ -32,6 +34,8 @@ export type AddRequestDataToEventOptions = {
   include?: {
     ip?: boolean;
     request?: boolean | Array<(typeof DEFAULT_REQUEST_INCLUDES)[number]>;
+    /** @deprecated This option will be removed in v9. It does not do anything anymore, the `transcation` is set in other places. */
+    // eslint-disable-next-line deprecation/deprecation
     transaction?: boolean | TransactionNamingScheme;
     user?: boolean | Array<(typeof DEFAULT_USER_INCLUDES)[number]>;
   };
@@ -49,6 +53,9 @@ export type AddRequestDataToEventOptions = {
   };
 };
 
+/**
+ * @deprecated This type will be removed in v9. It is not in use anymore.
+ */
 export type TransactionNamingScheme = 'path' | 'methodPath' | 'handler';
 
 /**
@@ -64,6 +71,7 @@ export type TransactionNamingScheme = 'path' | 'methodPath' | 'handler';
  *                used instead of the request's route)
  *
  * @returns A tuple of the fully constructed transaction name [0] and its source [1] (can be either 'route' or 'url')
+ * @deprecated This method will be removed in v9. It is not in use anymore.
  */
 export function extractPathForTransaction(
   req: PolymorphicRequest,
@@ -97,23 +105,6 @@ export function extractPathForTransaction(
   }
 
   return [name, source];
-}
-
-function extractTransaction(req: PolymorphicRequest, type: boolean | TransactionNamingScheme): string {
-  switch (type) {
-    case 'path': {
-      return extractPathForTransaction(req, { path: true })[0];
-    }
-    case 'handler': {
-      return (req.route && req.route.stack && req.route.stack[0] && req.route.stack[0].name) || '<anonymous>';
-    }
-    case 'methodPath':
-    default: {
-      // if exist _reconstructedRoute return that path instead of route.path
-      const customRoute = req._reconstructedRoute ? req._reconstructedRoute : undefined;
-      return extractPathForTransaction(req, { path: true, method: true, customRoute })[0];
-    }
-  }
 }
 
 function extractUserData(
@@ -228,14 +219,27 @@ export function extractRequestData(
         if (method === 'GET' || method === 'HEAD') {
           break;
         }
+        // NOTE: As of v8, request is (unless a user sets this manually) ALWAYS a http request
+        // Which does not have a body by default
+        // However, in our http instrumentation, we patch the request to capture the body and store it on the
+        // request as `.body` anyhow
+        // In v9, we may update requestData to only work with plain http requests
         // body data:
         //   express, koa, nextjs: req.body
         //
         //   when using node by itself, you have to read the incoming stream(see
         //   https://nodejs.dev/learn/get-http-request-body-data-using-nodejs); if a user is doing that, we can't know
         //   where they're going to store the final result, so they'll have to capture this data themselves
-        if (req.body !== undefined) {
-          requestData.data = isString(req.body) ? req.body : JSON.stringify(normalize(req.body));
+        const body = req.body;
+        if (body !== undefined) {
+          const stringBody: string = isString(body)
+            ? body
+            : isPlainObject(body)
+              ? JSON.stringify(normalize(body))
+              : truncate(`${body}`, 1024);
+          if (stringBody) {
+            requestData.data = stringBody;
+          }
         }
         break;
       }
@@ -248,6 +252,61 @@ export function extractRequestData(
   });
 
   return requestData;
+}
+
+/**
+ * Add already normalized request data to an event.
+ * This mutates the passed in event.
+ */
+export function addNormalizedRequestDataToEvent(
+  event: Event,
+  req: RequestEventData,
+  // This is non-standard data that is not part of the regular HTTP request
+  additionalData: { ipAddress?: string; user?: Record<string, unknown> },
+  options: AddRequestDataToEventOptions,
+): void {
+  const include = {
+    ...DEFAULT_INCLUDES,
+    ...(options && options.include),
+  };
+
+  if (include.request) {
+    const includeRequest = Array.isArray(include.request) ? [...include.request] : [...DEFAULT_REQUEST_INCLUDES];
+    if (include.ip) {
+      includeRequest.push('ip');
+    }
+
+    const extractedRequestData = extractNormalizedRequestData(req, { include: includeRequest });
+
+    event.request = {
+      ...event.request,
+      ...extractedRequestData,
+    };
+  }
+
+  if (include.user) {
+    const extractedUser =
+      additionalData.user && isPlainObject(additionalData.user)
+        ? extractUserData(additionalData.user, include.user)
+        : {};
+
+    if (Object.keys(extractedUser).length) {
+      event.user = {
+        ...event.user,
+        ...extractedUser,
+      };
+    }
+  }
+
+  if (include.ip) {
+    const ip = (req.headers && getClientIPAddress(req.headers)) || additionalData.ipAddress;
+    if (ip) {
+      event.user = {
+        ...event.user,
+        ip_address: ip,
+      };
+    }
+  }
 }
 
 /**
@@ -306,12 +365,6 @@ export function addRequestDataToEvent(
         ip_address: ip,
       };
     }
-  }
-
-  if (include.transaction && !event.transaction && event.type === 'transaction') {
-    // TODO do we even need this anymore?
-    // TODO make this work for nextjs
-    event.transaction = extractTransaction(req, include.transaction);
   }
 
   return event;
@@ -373,4 +426,54 @@ export function winterCGRequestToRequestData(req: WebFetchRequest): PolymorphicR
     url: req.url,
     headers,
   };
+}
+
+function extractNormalizedRequestData(
+  normalizedRequest: RequestEventData,
+  { include }: { include: string[] },
+): RequestEventData {
+  const includeKeys = include ? (Array.isArray(include) ? include : DEFAULT_REQUEST_INCLUDES) : [];
+
+  const requestData: RequestEventData = {};
+  const headers = { ...normalizedRequest.headers };
+
+  if (includeKeys.includes('headers')) {
+    requestData.headers = headers;
+
+    // Remove the Cookie header in case cookie data should not be included in the event
+    if (!include.includes('cookies')) {
+      delete (headers as { cookie?: string }).cookie;
+    }
+
+    // Remove IP headers in case IP data should not be included in the event
+    if (!include.includes('ip')) {
+      ipHeaderNames.forEach(ipHeaderName => {
+        // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+        delete (headers as Record<string, unknown>)[ipHeaderName];
+      });
+    }
+  }
+
+  if (includeKeys.includes('method')) {
+    requestData.method = normalizedRequest.method;
+  }
+
+  if (includeKeys.includes('url')) {
+    requestData.url = normalizedRequest.url;
+  }
+
+  if (includeKeys.includes('cookies')) {
+    const cookies = normalizedRequest.cookies || (headers && headers.cookie ? parseCookie(headers.cookie) : undefined);
+    requestData.cookies = cookies || {};
+  }
+
+  if (includeKeys.includes('query_string')) {
+    requestData.query_string = normalizedRequest.query_string;
+  }
+
+  if (includeKeys.includes('data')) {
+    requestData.data = normalizedRequest.data;
+  }
+
+  return requestData;
 }
