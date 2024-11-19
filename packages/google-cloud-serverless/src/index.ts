@@ -92,6 +92,7 @@ export {
   fastifyIntegration,
   genericPoolIntegration,
   graphqlIntegration,
+  knexIntegration,
   kafkaIntegration,
   lruMemoizerIntegration,
   mongoIntegration,
@@ -116,7 +117,9 @@ export {
   zodErrorsIntegration,
   profiler,
   amqplibIntegration,
+  // eslint-disable-next-line deprecation/deprecation
   processThreadBreadcrumbIntegration,
+  childProcessIntegration,
 } from '@sentry/node';
 
 export {

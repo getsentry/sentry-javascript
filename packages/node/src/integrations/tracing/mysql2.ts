@@ -27,8 +27,17 @@ const _mysql2Integration = (() => {
 }) satisfies IntegrationFn;
 
 /**
- * MySQL2 integration
+ * Adds Sentry tracing instrumentation for the [mysql2](https://www.npmjs.com/package/mysql2) library.
  *
- * Capture tracing data for mysql2
+ * For more information, see the [`mysql2Integration` documentation](https://docs.sentry.io/platforms/javascript/guides/node/configuration/integrations/mysql2/).
+ *
+ * @example
+ * ```javascript
+ * const Sentry = require('@sentry/node');
+ *
+ * Sentry.init({
+ *  integrations: [Sentry.mysqlIntegration()],
+ * });
+ * ```
  */
 export const mysql2Integration = defineIntegration(_mysql2Integration);

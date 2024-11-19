@@ -1,7 +1,7 @@
 {
   "name": "@sentry-internal/size-limit-gh-action",
   "description": "An internal Github Action to compare the current size of a PR against the one on develop.",
-  "version": "8.37.1",
+  "version": "8.38.0",
   "license": "MIT",
   "engines": {
     "node": ">=18"
@@ -14,7 +14,7 @@
     "fix": "eslint . --format stylish --fix"
   },
   "dependencies": {
-    "@actions/artifact": "1.1.2",
+    "@actions/artifact": "2.1.11",
     "@actions/core": "1.10.1",
     "@actions/exec": "1.1.1",
     "@actions/github": "^5.0.0",

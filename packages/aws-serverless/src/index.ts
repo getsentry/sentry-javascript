@@ -92,6 +92,7 @@ export {
   fsIntegration,
   genericPoolIntegration,
   graphqlIntegration,
+  knexIntegration,
   kafkaIntegration,
   lruMemoizerIntegration,
   mongoIntegration,
@@ -104,7 +105,9 @@ export {
   setupNestErrorHandler,
   postgresIntegration,
   prismaIntegration,
+  // eslint-disable-next-line deprecation/deprecation
   processThreadBreadcrumbIntegration,
+  childProcessIntegration,
   hapiIntegration,
   setupHapiErrorHandler,
   spotlightIntegration,

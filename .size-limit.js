@@ -139,7 +139,7 @@ module.exports = [
     path: 'packages/vue/build/esm/index.js',
     import: createImport('init', 'browserTracingIntegration'),
     gzip: true,
-    limit: '38 KB',
+    limit: '38.5 KB',
   },
   // Svelte SDK (ESM)
   {

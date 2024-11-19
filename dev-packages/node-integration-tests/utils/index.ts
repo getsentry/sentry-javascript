@@ -44,37 +44,6 @@ export const conditionalTest = (allowedVersion: { min?: number; max?: number }):
 };
 
 /**
- * Asserts against a Sentry Event ignoring non-deterministic properties
- *
- * @param {Record<string, unknown>} actual
- * @param {Record<string, unknown>} expected
- */
-export const assertSentryEvent = (actual: Record<string, unknown>, expected: Record<string, unknown>): void => {
-  expect(actual).toMatchObject({
-    event_id: expect.any(String),
-    timestamp: expect.anything(),
-    ...expected,
-  });
-};
-
-/**
- * Asserts against a Sentry Transaction ignoring non-deterministic properties
- *
- * @param {Record<string, unknown>} actual
- * @param {Record<string, unknown>} expected
- */
-export const assertSentryTransaction = (actual: Record<string, unknown>, expected: Record<string, unknown>): void => {
-  expect(actual).toMatchObject({
-    event_id: expect.any(String),
-    timestamp: expect.anything(),
-    start_timestamp: expect.anything(),
-    spans: expect.any(Array),
-    type: 'transaction',
-    ...expected,
-  });
-};
-
-/**
  * Parses response body containing an Envelope
  *
  * @param {string} body

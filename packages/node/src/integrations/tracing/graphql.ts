@@ -93,9 +93,19 @@ const _graphqlIntegration = ((options: GraphqlOptions = {}) => {
 }) satisfies IntegrationFn;
 
 /**
- * GraphQL integration
+ * Adds Sentry tracing instrumentation for the [graphql](https://www.npmjs.com/package/graphql) library.
  *
- * Capture tracing data for GraphQL.
+ * For more information, see the [`graphqlIntegration` documentation](https://docs.sentry.io/platforms/javascript/guides/node/configuration/integrations/graphql/).
+ *
+ * @param {GraphqlOptions} options Configuration options for the GraphQL integration.
+ *
+ * @example
+ * ```javascript
+ * const Sentry = require('@sentry/node');
+ *
+ * Sentry.init({
+ *  integrations: [Sentry.graphqlIntegration()],
+ * });
  */
 export const graphqlIntegration = defineIntegration(_graphqlIntegration);
 

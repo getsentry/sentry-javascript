@@ -28,11 +28,13 @@ export { hapiIntegration, setupHapiErrorHandler } from './integrations/tracing/h
 export { koaIntegration, setupKoaErrorHandler } from './integrations/tracing/koa';
 export { connectIntegration, setupConnectErrorHandler } from './integrations/tracing/connect';
 export { spotlightIntegration } from './integrations/spotlight';
+export { knexIntegration } from './integrations/tracing/knex';
 export { tediousIntegration } from './integrations/tracing/tedious';
 export { genericPoolIntegration } from './integrations/tracing/genericPool';
 export { dataloaderIntegration } from './integrations/tracing/dataloader';
 export { amqplibIntegration } from './integrations/tracing/amqplib';
-export { processThreadBreadcrumbIntegration } from './integrations/processThread';
+// eslint-disable-next-line deprecation/deprecation
+export { processThreadBreadcrumbIntegration, childProcessIntegration } from './integrations/childProcess';
 
 export { SentryContextManager } from './otel/contextManager';
 export { generateInstrumentOnce } from './otel/instrument';
@@ -143,7 +145,9 @@ export type {
   Breadcrumb,
   BreadcrumbHint,
   PolymorphicRequest,
+  // eslint-disable-next-line deprecation/deprecation
   Request,
+  RequestEventData,
   SdkInfo,
   Event,
   EventHint,

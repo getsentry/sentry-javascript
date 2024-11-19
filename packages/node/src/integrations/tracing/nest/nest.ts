@@ -12,6 +12,7 @@ import {
 import type { IntegrationFn, Span } from '@sentry/types';
 import { logger } from '@sentry/utils';
 import { generateInstrumentOnce } from '../../../otel/instrument';
+import { SentryNestEventInstrumentation } from './sentry-nest-event-instrumentation';
 import { SentryNestInstrumentation } from './sentry-nest-instrumentation';
 import type { MinimalNestJsApp, NestJsErrorFilter } from './types';
 
@@ -25,10 +26,15 @@ const instrumentNestCommon = generateInstrumentOnce('Nest-Common', () => {
   return new SentryNestInstrumentation();
 });
 
+const instrumentNestEvent = generateInstrumentOnce('Nest-Event', () => {
+  return new SentryNestEventInstrumentation();
+});
+
 export const instrumentNest = Object.assign(
   (): void => {
     instrumentNestCore();
     instrumentNestCommon();
+    instrumentNestEvent();
   },
   { id: INTEGRATION_NAME },
 );

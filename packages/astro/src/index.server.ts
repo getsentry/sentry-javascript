@@ -69,6 +69,7 @@ export {
   isInitialized,
   kafkaIntegration,
   koaIntegration,
+  knexIntegration,
   lastEventId,
   linkedErrorsIntegration,
   localVariablesIntegration,
@@ -90,7 +91,9 @@ export {
   parameterize,
   postgresIntegration,
   prismaIntegration,
+  // eslint-disable-next-line deprecation/deprecation
   processThreadBreadcrumbIntegration,
+  childProcessIntegration,
   redisIntegration,
   requestDataIntegration,
   rewriteFramesIntegration,

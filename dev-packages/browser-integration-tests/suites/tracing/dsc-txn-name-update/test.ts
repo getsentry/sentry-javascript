@@ -170,7 +170,7 @@ async function makeRequestAndGetBaggageItems(page: Page): Promise<string[]> {
   return baggage?.split(',').sort() ?? [];
 }
 
-async function captureErrorAndGetEnvelopeTraceHeader(page: Page): Promise<DynamicSamplingContext | undefined> {
+async function captureErrorAndGetEnvelopeTraceHeader(page: Page): Promise<Partial<DynamicSamplingContext> | undefined> {
   const errorEventPromise = getMultipleSentryEnvelopeRequests<EventAndTraceHeader>(
     page,
     1,

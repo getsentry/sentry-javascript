@@ -12,8 +12,10 @@ describe('getTraceMetaTags', () => {
     const runner = createRunner(__dirname, 'server.js').start();
 
     const response = await runner.makeRequest('get', '/test', {
-      'sentry-trace': `${traceId}-${parentSpanId}-1`,
-      baggage: 'sentry-environment=production',
+      headers: {
+        'sentry-trace': `${traceId}-${parentSpanId}-1`,
+        baggage: 'sentry-environment=production',
+      },
     });
 
     // @ts-ignore - response is defined, types just don't reflect it
@@ -61,8 +63,10 @@ describe('getTraceMetaTags', () => {
     const runner = createRunner(__dirname, 'server-sdk-disabled.js').start();
 
     const response = await runner.makeRequest('get', '/test', {
-      'sentry-trace': `${traceId}-${parentSpanId}-1`,
-      baggage: 'sentry-environment=production',
+      headers: {
+        'sentry-trace': `${traceId}-${parentSpanId}-1`,
+        baggage: 'sentry-environment=production',
+      },
     });
 
     // @ts-ignore - response is defined, types just don't reflect it
