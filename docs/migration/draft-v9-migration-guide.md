@@ -11,6 +11,8 @@
 ## `@sentry/core`
 
 - Deprecated `transactionNamingScheme` option in `requestDataIntegration`.
+- Deprecated `debugIntegration`. To log outgoing events, use [Hook Options](https://docs.sentry.io/platforms/javascript/configuration/options/#hooks) (`beforeSend`, `beforeSendTransaction`, ...).
+- Deprecated `sessionTimingIntegration`. To capture session durations alongside events, use [Context](https://docs.sentry.io/platforms/javascript/enriching-events/context/) (`Sentry.setContext()`).
 
 ## `@sentry/types`
 
