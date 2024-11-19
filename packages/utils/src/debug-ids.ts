@@ -2,11 +2,7 @@ import type { DebugImage, StackParser } from '@sentry/types';
 import { GLOBAL_OBJ } from './worldwide';
 
 type StackString = string;
-
-interface CachedResult {
-  filename: string;
-  debugId: string;
-}
+type CachedResult = [string, string];
 
 let debugIdStackParserCache: WeakMap<StackParser, Map<StackString, CachedResult>> | undefined;
 
@@ -25,8 +21,8 @@ function getCacheForStackParser(stackParser: StackParser): Map<StackString, Cach
   return result;
 }
 
-let lastDebugIdKeyCount = 0;
-let cachedFilenameToDebugId: Map<string, string> | undefined;
+let lastCount = 0;
+let cachedFilenameDebugIds: Map<string, string> | undefined;
 
 /**
  * Returns a map of filenames to debug identifiers.
@@ -41,17 +37,19 @@ export function getFilenameToDebugIdMap(stackParser: StackParser): Map<string, s
 
   // If the count of registered globals hasn't changed since the last call, we
   // can just return the cached result.
-  if (debugIdKeys.length === lastDebugIdKeyCount && cachedFilenameToDebugId) {
-    return cachedFilenameToDebugId;
+  if (cachedFilenameDebugIds && debugIdKeys.length === lastCount) {
+    return cachedFilenameDebugIds;
   }
 
   const debugIdStackFramesCache = getCacheForStackParser(stackParser);
 
   // Build a map of filename -> debug_id.
-  const output = debugIdKeys.reduce<Map<string, string>>((acc, debugIdStackTrace) => {
-    let result = debugIdStackFramesCache.get(debugIdStackTrace);
+  cachedFilenameDebugIds = debugIdKeys.reduce<Map<string, string>>((acc, debugIdStackTrace) => {
+    const result = debugIdStackFramesCache.get(debugIdStackTrace);
 
-    if (!result) {
+    if (result) {
+      acc.set(result[0], result[1]);
+    } else {
       const parsedStack = stackParser(debugIdStackTrace);
 
       for (let i = parsedStack.length - 1; i >= 0; i--) {
@@ -60,24 +58,19 @@ export function getFilenameToDebugIdMap(stackParser: StackParser): Map<string, s
         const debugId = debugIdMap[debugIdStackTrace];
 
         if (filename && debugId) {
-          result = { filename, debugId };
-          debugIdStackFramesCache.set(debugIdStackTrace, result);
+          acc.set(filename, debugId);
+          debugIdStackFramesCache.set(debugIdStackTrace, [filename, debugId]);
           break;
         }
       }
     }
 
-    if (result) {
-      acc.set(result.filename, result.debugId);
-    }
-
     return acc;
   }, new Map());
 
-  lastDebugIdKeyCount = Object.keys(debugIdMap).length;
-  cachedFilenameToDebugId = output;
+  lastCount = debugIdKeys.length;
 
-  return output;
+  return cachedFilenameDebugIds;
 }
 
 /**
