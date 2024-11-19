@@ -1,5 +1,5 @@
 import type { Client, Event, EventHint, Integration, IntegrationFn, Options } from '@sentry/types';
-import { arrayify, logger } from '@sentry/utils';
+import { logger } from '@sentry/utils';
 import { getClient } from './currentScopes';
 
 import { DEBUG_BUILD } from './debug-build';
@@ -58,7 +58,7 @@ export function getIntegrationsToSetup(options: Pick<Options, 'defaultIntegratio
   if (Array.isArray(userIntegrations)) {
     integrations = [...defaultIntegrations, ...userIntegrations];
   } else if (typeof userIntegrations === 'function') {
-    integrations = arrayify(userIntegrations(defaultIntegrations));
+    integrations = userIntegrations(defaultIntegrations);
   } else {
     integrations = defaultIntegrations;
   }

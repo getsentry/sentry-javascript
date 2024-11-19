@@ -24,7 +24,7 @@
 import type { StackLineParser, StackLineParserFn } from '@sentry/types';
 import { UNKNOWN_FUNCTION } from './stacktrace';
 
-export type GetModuleFn = (filename: string | undefined) => string | undefined;
+type GetModuleFn = (filename: string | undefined) => string | undefined;
 
 /**
  * Does this filename look like it's part of the app code?

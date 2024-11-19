@@ -1,5 +1,5 @@
 import type { Breadcrumb, Event, ScopeData, Span } from '@sentry/types';
-import { arrayify, dropUndefinedKeys } from '@sentry/utils';
+import { dropUndefinedKeys } from '@sentry/utils';
 import { getDynamicSamplingContextFromSpan } from '../tracing/dynamicSamplingContext';
 import { getRootSpan, spanToJSON, spanToTraceContext } from './spanUtils';
 
@@ -184,7 +184,11 @@ function applySpanToEvent(event: Event, span: Span): void {
  */
 function applyFingerprintToEvent(event: Event, fingerprint: ScopeData['fingerprint'] | undefined): void {
   // Make sure it's an array first and we actually have something in place
-  event.fingerprint = event.fingerprint ? arrayify(event.fingerprint) : [];
+  event.fingerprint = event.fingerprint
+    ? Array.isArray(event.fingerprint)
+      ? event.fingerprint
+      : [event.fingerprint]
+    : [];
 
   // If we have something on the scope, then merge it with event
   if (fingerprint) {

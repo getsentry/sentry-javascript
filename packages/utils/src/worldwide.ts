@@ -48,7 +48,7 @@ type BackwardsCompatibleSentryCarrier = SentryCarrier & {
 };
 
 /** Internal global with common properties and Sentry extensions  */
-export type InternalGlobal = {
+type InternalGlobal = {
   navigator?: { userAgent?: string };
   console: Console;
   PerformanceObserver?: any;

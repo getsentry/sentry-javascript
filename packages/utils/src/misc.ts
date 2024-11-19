@@ -232,7 +232,10 @@ export function checkOrSetAlreadyCaught(exception: unknown): boolean {
  *
  * @param maybeArray Input to turn into an array, if necessary
  * @returns The input, if already an array, or an array with the input as the only element, if not
+ *
+ * @deprecated This function is going to be removed
  */
+// TODO(v9): Remove this function
 export function arrayify<T = unknown>(maybeArray: T | T[]): T[] {
   return Array.isArray(maybeArray) ? maybeArray : [maybeArray];
 }

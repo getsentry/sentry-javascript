@@ -1,4 +1,3 @@
-import type { NestedArray } from '../src/array';
 import { flatten } from '../src/array';
 
 describe('flatten', () => {
@@ -24,7 +23,7 @@ describe('flatten', () => {
   });
 
   it('should flatten a nested array of objects', () => {
-    const input: NestedArray<{ a: number; b?: number } | { b: number; a?: number }> = [
+    const input = [
       [{ a: 1 }, { b: 2 }],
       [{ a: 3 }, { b: 4 }],
     ];
@@ -33,7 +32,7 @@ describe('flatten', () => {
   });
 
   it('should flatten a mixed type array', () => {
-    const input: NestedArray<string | { b: number }> = [['a', { b: 2 }, 'c'], 'd'];
+    const input = [['a', { b: 2 }, 'c'], 'd'];
     const expected = ['a', { b: 2 }, 'c', 'd'];
     expect(flatten(input)).toEqual(expected);
   });

@@ -2,7 +2,7 @@ import { DEBUG_BUILD } from '../debug-build';
 import { logger } from '../logger';
 import { getFunctionName } from '../stacktrace';
 
-export type InstrumentHandlerType =
+type InstrumentHandlerType =
   | 'console'
   | 'dom'
   | 'fetch'
@@ -11,8 +11,9 @@ export type InstrumentHandlerType =
   | 'xhr'
   | 'error'
   | 'unhandledrejection';
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type InstrumentHandlerCallback = (data: any) => void;
+type InstrumentHandlerCallback = (data: any) => void;
 
 // We keep the handlers globally
 const handlers: { [key in InstrumentHandlerType]?: InstrumentHandlerCallback[] } = {};

@@ -1,4 +1,5 @@
 export { applyAggregateErrorsToEvent } from './aggregate-errors';
+// eslint-disable-next-line deprecation/deprecation
 export { flatten } from './array';
 export { getBreadcrumbLogLevelFromHttpStatusCode } from './breadcrumb-log-level';
 export { getComponentName, getDomElement, getLocationHref, htmlTreeAsString } from './browser';
@@ -40,6 +41,7 @@ export {
   addContextToFrame,
   addExceptionMechanism,
   addExceptionTypeValue,
+  // eslint-disable-next-line deprecation/deprecation
   arrayify,
   checkOrSetAlreadyCaught,
   getEventDescription,
@@ -74,13 +76,19 @@ export {
   winterCGHeadersToDict,
   winterCGRequestToRequestData,
 } from './requestdata';
+
 export type {
   AddRequestDataToEventOptions,
   // eslint-disable-next-line deprecation/deprecation
   TransactionNamingScheme,
 } from './requestdata';
 
-export { severityLevelFromString, validSeverityLevels } from './severity';
+export {
+  severityLevelFromString,
+  // TODO(v9): Don't export
+  validSeverityLevels,
+} from './severity';
+
 export {
   UNKNOWN_FUNCTION,
   createStackParser,
@@ -103,6 +111,7 @@ export {
 } from './supports';
 export { SyncPromise, rejectedSyncPromise, resolvedSyncPromise } from './syncpromise';
 export {
+  // TODO(v9): Don't export
   _browserPerformanceTimeOriginMode,
   browserPerformanceTimeOrigin,
   dateTimestampInSeconds,
@@ -139,27 +148,51 @@ export {
 } from './ratelimit';
 export type { RateLimits } from './ratelimit';
 export {
+  // TODO(v9): Don't export
   BAGGAGE_HEADER_NAME,
+  // TODO(v9): Don't export
   MAX_BAGGAGE_STRING_LENGTH,
   SENTRY_BAGGAGE_KEY_PREFIX,
+  // TODO(v9): Don't export
   SENTRY_BAGGAGE_KEY_PREFIX_REGEX,
   baggageHeaderToDynamicSamplingContext,
   dynamicSamplingContextToSentryBaggageHeader,
   parseBaggageHeader,
 } from './baggage';
 
-export { getNumberOfUrlSegments, getSanitizedUrlString, parseUrl, stripUrlQueryAndFragment } from './url';
+export {
+  // TODO(v9): Hoist into RR6
+  getNumberOfUrlSegments,
+  getSanitizedUrlString,
+  // TODO(v9): Remove
+  // eslint-disable-next-line deprecation/deprecation
+  parseUrl,
+  stripUrlQueryAndFragment,
+} from './url';
+
+// TODO(v9): Remove
 export { makeFifoCache } from './cache';
+
 export { eventFromMessage, eventFromUnknownInput, exceptionFromError, parseStackFrames } from './eventbuilder';
+
 export { callFrameToStackFrame, watchdogTimer } from './anr';
+
 export { LRUMap } from './lru';
+
 export { generatePropagationContext } from './propagationContext';
+
 export { vercelWaitUntil } from './vercelWaitUntil';
+
 export { SDK_VERSION } from './version';
+
 export { getDebugImagesForResources, getFilenameToDebugIdMap } from './debug-ids';
+
 export { escapeStringForRegex } from './vendor/escapeStringForRegex';
+
+// TODO(v9): Hoist this into browser-utils
 export { supportsHistory } from './vendor/supportsHistory';
 
+// TODO(v9): Delete these
 export { _asyncNullishCoalesce } from './buildPolyfills/_asyncNullishCoalesce';
 export { _asyncOptionalChain } from './buildPolyfills/_asyncOptionalChain';
 export { _asyncOptionalChainDelete } from './buildPolyfills/_asyncOptionalChainDelete';

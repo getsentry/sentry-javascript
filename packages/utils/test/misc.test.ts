@@ -3,7 +3,6 @@ import type { Event, Mechanism, StackFrame } from '@sentry/types';
 import {
   addContextToFrame,
   addExceptionMechanism,
-  arrayify,
   checkOrSetAlreadyCaught,
   getEventDescription,
   uuid4,
@@ -361,21 +360,5 @@ describe('uuid4 generation', () => {
     for (let index = 0; index < 1_000; index++) {
       expect(uuid4()).toMatch(uuid4Regex);
     }
-  });
-});
-
-describe('arrayify()', () => {
-  it('returns arrays untouched', () => {
-    expect(arrayify([])).toEqual([]);
-    expect(arrayify(['dogs', 'are', 'great'])).toEqual(['dogs', 'are', 'great']);
-  });
-
-  it('wraps non-arrays with an array', () => {
-    expect(arrayify(1231)).toEqual([1231]);
-    expect(arrayify('dogs are great')).toEqual(['dogs are great']);
-    expect(arrayify(true)).toEqual([true]);
-    expect(arrayify({})).toEqual([{}]);
-    expect(arrayify(null)).toEqual([null]);
-    expect(arrayify(undefined)).toEqual([undefined]);
   });
 });

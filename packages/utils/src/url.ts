@@ -13,6 +13,8 @@ type PartialURL = {
  * // intentionally using regex and not <a/> href parsing trick because React Native and other
  * // environments where DOM might not be available
  * @returns parsed URL object
+ *
+ * @deprecated Use URL instead
  */
 export function parseUrl(url: string): PartialURL {
   if (!url) {

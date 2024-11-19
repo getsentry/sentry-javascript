@@ -4,7 +4,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { getSentryRelease } from '@sentry/node';
-import { arrayify, escapeStringForRegex, loadModule, logger } from '@sentry/utils';
+import { escapeStringForRegex, loadModule, logger } from '@sentry/utils';
 import * as chalk from 'chalk';
 import { sync as resolveSync } from 'resolve';
 
@@ -491,7 +491,8 @@ function addFilesToWebpackEntryPoint(
   let newEntryPoint = currentEntryPoint;
 
   if (typeof currentEntryPoint === 'string' || Array.isArray(currentEntryPoint)) {
-    newEntryPoint = arrayify(currentEntryPoint);
+    newEntryPoint = Array.isArray(currentEntryPoint) ? currentEntryPoint : [currentEntryPoint];
+
     if (newEntryPoint.some(entry => filesToInsert.includes(entry))) {
       return;
     }
@@ -507,7 +508,7 @@ function addFilesToWebpackEntryPoint(
   // descriptor object (webpack 5+)
   else if (typeof currentEntryPoint === 'object' && 'import' in currentEntryPoint) {
     const currentImportValue = currentEntryPoint.import;
-    const newImportValue = arrayify(currentImportValue);
+    const newImportValue = Array.isArray(currentImportValue) ? currentImportValue : [currentImportValue];
     if (newImportValue.some(entry => filesToInsert.includes(entry))) {
       return;
     }

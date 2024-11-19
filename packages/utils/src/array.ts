@@ -1,6 +1,10 @@
-export type NestedArray<T> = Array<NestedArray<T> | T>;
+type NestedArray<T> = Array<NestedArray<T> | T>;
 
-/** Flattens a multi-dimensional array */
+/**
+ * Flattens a multi-dimensional array
+ *
+ * @deprecated This function will be removed in the next major version.
+ */
 export function flatten<T>(input: NestedArray<T>): T[] {
   const result: T[] = [];
 

@@ -64,7 +64,7 @@ function splitPath(filename: string): string[] {
 // path.resolve([from ...], to)
 // posix version
 /** JSDoc */
-export function resolve(...args: string[]): string {
+function resolve(...args: string[]): string {
   let resolvedPath = '';
   let resolvedAbsolute = false;
 
@@ -117,7 +117,7 @@ function trim(arr: string[]): string[] {
 // path.relative(from, to)
 // posix version
 /** JSDoc */
-export function relative(from: string, to: string): string {
+function relative(from: string, to: string): string {
   /* eslint-disable no-param-reassign */
   from = resolve(from).slice(1);
   to = resolve(to).slice(1);
@@ -148,7 +148,7 @@ export function relative(from: string, to: string): string {
 // path.normalize(path)
 // posix version
 /** JSDoc */
-export function normalizePath(path: string): string {
+function normalizePath(path: string): string {
   const isPathAbsolute = isAbsolute(path);
   const trailingSlash = path.slice(-1) === '/';
 
@@ -170,18 +170,18 @@ export function normalizePath(path: string): string {
 
 // posix version
 /** JSDoc */
-export function isAbsolute(path: string): boolean {
+function isAbsolute(path: string): boolean {
   return path.charAt(0) === '/';
 }
 
 // posix version
 /** JSDoc */
-export function join(...args: string[]): string {
+function join(...args: string[]): string {
   return normalizePath(args.join('/'));
 }
 
 /** JSDoc */
-export function dirname(path: string): string {
+function dirname(path: string): string {
   const result = splitPath(path);
   const root = result[0] || '';
   let dir = result[1];
@@ -200,7 +200,7 @@ export function dirname(path: string): string {
 }
 
 /** JSDoc */
-export function basename(path: string, ext?: string): string {
+function basename(path: string, ext?: string): string {
   let f = splitPath(path)[2] || '';
   if (ext && f.slice(ext.length * -1) === ext) {
     f = f.slice(0, f.length - ext.length);
