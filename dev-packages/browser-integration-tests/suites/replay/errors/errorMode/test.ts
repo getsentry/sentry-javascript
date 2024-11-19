@@ -93,7 +93,7 @@ sentryTest(
     expect(content0.fullSnapshots).toHaveLength(1);
     // We don't know how many incremental snapshots we'll have (also browser-dependent),
     // but we know that we have at least 5
-    expect(content0.incrementalSnapshots.length).toBeGreaterThan(5);
+    expect(content0.incrementalSnapshots.length).toBeGreaterThanOrEqual(5);
     // We want to make sure that the event that triggered the error was recorded.
     expect(content0.breadcrumbs).toEqual(
       expect.arrayContaining([
