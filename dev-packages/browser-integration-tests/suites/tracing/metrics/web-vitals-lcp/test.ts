@@ -29,4 +29,6 @@ sentryTest('should capture a LCP vital with element details.', async ({ browserN
   // the button as LCP.
   expect(eventData.contexts?.trace?.data?.['lcp.element'].startsWith('body >')).toBe(true);
   expect(eventData.contexts?.trace?.data?.['lcp.size']).toBeGreaterThan(0);
+  expect(eventData.contexts?.trace?.data?.['lcp.renderTime']).toBeGreaterThan(0);
+  expect(eventData.contexts?.trace?.data?.['lcp.loadTime']).toBeGreaterThan(0);
 });
