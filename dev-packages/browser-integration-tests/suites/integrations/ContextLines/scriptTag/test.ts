@@ -18,6 +18,7 @@ sentryTest(
     const url = await getLocalTestUrl({ testDir: __dirname });
 
     const eventReqPromise = waitForErrorRequestOnUrl(page, url);
+    await page.waitForFunction('window.Sentry');
 
     const clickPromise = page.locator('#inline-error-btn').click();
 
