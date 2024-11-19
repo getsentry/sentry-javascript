@@ -1,8 +1,8 @@
 import type { Client, Event, EventHint, IntegrationFn } from '@sentry/types';
 import type { LDContext, LDEvaluationDetail, LDInspectionFlagUsedHandler } from './types';
 
-import { defineIntegration, getCurrentScope } from '@sentry/core';
-import { insertToFlagBuffer } from '../../../utils/featureFlags';
+import { defineIntegration } from '@sentry/core';
+import { copyFlagsFromScopeToEvent, insertToFlagBuffer } from '../../../utils/featureFlags';
 
 /**
  * Sentry integration for capturing feature flags from LaunchDarkly.
@@ -24,15 +24,7 @@ export const launchDarklyIntegration = defineIntegration(() => {
     name: 'LaunchDarkly',
 
     processEvent(event: Event, _hint: EventHint, _client: Client): Event {
-      const scope = getCurrentScope();
-      const flagContext = scope.getScopeData().contexts.flags;
-      const flagBuffer = flagContext ? flagContext.values : [];
-
-      if (event.contexts === undefined) {
-        event.contexts = {};
-      }
-      event.contexts.flags = { values: [...flagBuffer] };
-      return event;
+      return copyFlagsFromScopeToEvent(event);
     },
   };
 }) satisfies IntegrationFn;
@@ -54,15 +46,7 @@ export function buildLaunchDarklyFlagUsedHandler(): LDInspectionFlagUsedHandler 
      * Handle a flag evaluation by storing its name and value on the current scope.
      */
     method: (flagKey: string, flagDetail: LDEvaluationDetail, _context: LDContext) => {
-      if (typeof flagDetail.value === 'boolean') {
-        const scopeContexts = getCurrentScope().getScopeData().contexts;
-        if (!scopeContexts.flags) {
-          scopeContexts.flags = { values: [] };
-        }
-        const flagBuffer = scopeContexts.flags.values;
-        insertToFlagBuffer(flagBuffer, flagKey, flagDetail.value);
-      }
-      return;
+      insertToFlagBuffer(flagKey, flagDetail.value);
     },
   };
 }

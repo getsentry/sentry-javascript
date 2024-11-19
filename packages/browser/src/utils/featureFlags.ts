@@ -1,5 +1,5 @@
-import { logger } from '@sentry/core';
-import type { FeatureFlag } from '@sentry/types';
+import { getCurrentScope, logger } from '@sentry/core';
+import type { Event, FeatureFlag } from '@sentry/types';
 import { DEBUG_BUILD } from '../debug-build';
 
 /**
@@ -14,6 +14,21 @@ import { DEBUG_BUILD } from '../debug-build';
 export const FLAG_BUFFER_SIZE = 100;
 
 /**
+ * Copies feature flags that are in current scope context to the event context
+ */
+export function copyFlagsFromScopeToEvent(event: Event): Event {
+  const scope = getCurrentScope();
+  const flagContext = scope.getScopeData().contexts.flags;
+  const flagBuffer = flagContext ? flagContext.values : [];
+
+  if (event.contexts === undefined) {
+    event.contexts = {};
+  }
+  event.contexts.flags = { values: [...flagBuffer] };
+  return event;
+}
+
+/**
  * Insert into a FeatureFlag array while maintaining ordered LRU properties. Not
  * thread-safe. After inserting:
  * - `flags` is sorted in order of recency, with the newest flag at the end.
@@ -21,18 +36,23 @@ export const FLAG_BUFFER_SIZE = 100;
  * - The length of `flags` does not exceed `maxSize`. The oldest flag is evicted
  *  as needed.
  *
- * @param flags    The array to insert into.
  * @param name     Name of the feature flag to insert.
  * @param value    Value of the feature flag.
  * @param maxSize  Max number of flags the buffer should store. It's recommended
  *   to keep this consistent across insertions. Default is DEFAULT_MAX_SIZE
  */
-export function insertToFlagBuffer(
-  flags: FeatureFlag[],
-  name: string,
-  value: boolean,
-  maxSize: number = FLAG_BUFFER_SIZE,
-): void {
+export function insertToFlagBuffer(name: string, value: unknown, maxSize: number = FLAG_BUFFER_SIZE): void {
+  // Currently only accepts boolean values
+  if (typeof value !== 'boolean') {
+    return;
+  }
+
+  const scopeContexts = getCurrentScope().getScopeData().contexts;
+  if (!scopeContexts.flags) {
+    scopeContexts.flags = { values: [] };
+  }
+  const flags = scopeContexts.flags.values as FeatureFlag[];
+
   if (flags.length > maxSize) {
     DEBUG_BUILD && logger.error(`[Feature Flags] insertToFlagBuffer called on a buffer larger than maxSize=${maxSize}`);
     return;
