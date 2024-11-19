@@ -51,4 +51,25 @@ describe('merge', () => {
     expect(actual).not.toBe(oldData);
     expect(actual).not.toBe(newData);
   });
+
+  it.each([
+    [undefined, { a: 'aa' }, { a: 'aa' }],
+    [{ a: 'aa' }, undefined, undefined],
+    [{ a: 'aa' }, null, null],
+    [{ a: 'aa' }, { a: undefined }, { a: undefined }],
+    [{ a: 'aa' }, { a: null }, { a: null }],
+    [{ a: 'aa' }, { a: '' }, { a: '' }],
+    [
+      { a0: { a1: { a2: { a3: { a4: 'a4a' }, a3a: 'a3a' }, a2a: 'a2a' }, a1a: 'a1a' }, a0a: 'a0a' },
+      { a0: { a1: { a2: { a3: { a4: 'a4b' }, a3b: 'a3b' }, a2b: 'a2b' }, a1b: 'a1b' }, a0b: 'a0b' },
+      {
+        a0: { a1: { a2: { a3: { a4: 'a4a' }, a3b: 'a3a' }, a2b: 'a2b' }, a1b: 'a1b', a1a: 'a1a' },
+        a0b: 'a0b',
+        a0a: 'a0a',
+      },
+    ],
+  ])('works with %p and %p', (oldData, newData, expected) => {
+    const actual = merge(oldData, newData as any);
+    expect(actual).toEqual(expected);
+  });
 });

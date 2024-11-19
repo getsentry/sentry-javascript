@@ -1,12 +1,14 @@
 /**
  * Shallow merge two objects.
  * Does not mutate the passed in objects.
+ * Undefined/empty values in the merge object will overwrite existing values.
+ *
  * By default, this merges 2 levels deep.
  */
 export function merge<T>(initialObj: T, mergeObj: T, levels = 2): T {
   // If the merge value is not an object, or we have no merge levels left,
   // we just set the value to the merge value
-  if (typeof mergeObj !== 'object' || levels <= 0) {
+  if (!mergeObj || typeof mergeObj !== 'object' || levels <= 0) {
     return mergeObj;
   }
 
