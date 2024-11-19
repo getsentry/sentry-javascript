@@ -1,6 +1,6 @@
 import type { Client, Scope, Span } from '@sentry/types';
-import { dynamicSamplingContextToSentryBaggageHeader } from '@sentry/utils';
-import { getCurrentScope, scopesToTraceHeader } from '../currentScopes';
+import { dynamicSamplingContextToSentryBaggageHeader, generateSentryTraceHeader } from '@sentry/utils';
+import { getCurrentScope } from '../currentScopes';
 import { spanToTraceHeader } from '../utils/spanUtils';
 import { getDynamicSamplingContextFromScope, getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
 
@@ -24,4 +24,12 @@ export function getSentryHeaders({
     sentryTrace,
     baggage,
   };
+}
+
+/**
+ * Get a sentry-trace header value for the given scope.
+ */
+function scopesToTraceHeader(scope: Scope): string {
+  const { traceId, sampled, spanId } = scope.getPropagationContext();
+  return generateSentryTraceHeader(traceId, spanId, sampled);
 }

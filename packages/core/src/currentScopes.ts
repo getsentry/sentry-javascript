@@ -1,6 +1,6 @@
 import type { Scope, TraceContext } from '@sentry/types';
 import type { Client } from '@sentry/types';
-import { dropUndefinedKeys, generateSentryTraceHeader, getGlobalSingleton } from '@sentry/utils';
+import { dropUndefinedKeys, getGlobalSingleton } from '@sentry/utils';
 import { getAsyncContextStrategy } from './asyncContext';
 import { getMainCarrier } from './carrier';
 import { Scope as ScopeClass } from './scope';
@@ -122,7 +122,7 @@ export function getClient<C extends Client>(): C | undefined {
 }
 
 /**
- * Get a trace context for the currently active scopes.
+ * Get a trace context for the given scope.
  */
 export function getTraceContextFromScope(scope: Scope): TraceContext {
   const propagationContext = scope.getPropagationContext();
@@ -136,12 +136,4 @@ export function getTraceContextFromScope(scope: Scope): TraceContext {
   });
 
   return traceContext;
-}
-
-/**
- * Get a sentry-trace header value for the currently active scopes.
- */
-export function scopesToTraceHeader(scope: Scope): string {
-  const { traceId, sampled, spanId } = scope.getPropagationContext();
-  return generateSentryTraceHeader(traceId, spanId, sampled);
 }
