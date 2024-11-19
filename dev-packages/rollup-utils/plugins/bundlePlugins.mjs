@@ -139,6 +139,8 @@ export function makeTerserPlugin() {
           // For v7 backwards-compatibility we need to access txn._frozenDynamicSamplingContext
           // TODO (v8): Remove this reserved word
           '_frozenDynamicSamplingContext',
+          // This is used in metadata integration
+          '_sentryModuleMetadata',
         ],
       },
     },
