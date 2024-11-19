@@ -31,10 +31,10 @@ let cachedFilenameToDebugId: Map<string, string> | undefined;
 /**
  * Returns a map of filenames to debug identifiers.
  */
-export function getFilenameToDebugIdMap(stackParser: StackParser): Map<string, string> {
+export function getFilenameToDebugIdMap(stackParser: StackParser): Map<string, string> | undefined {
   const debugIdMap = GLOBAL_OBJ._sentryDebugIds;
   if (!debugIdMap) {
-    return new Map();
+    return undefined;
   }
 
   const debugIdKeys = Object.keys(debugIdMap);
@@ -88,6 +88,10 @@ export function getDebugImagesForResources(
   resource_paths: ReadonlyArray<string>,
 ): DebugImage[] {
   const filenameDebugIdMap = getFilenameToDebugIdMap(stackParser);
+
+  if (!filenameDebugIdMap) {
+    return [];
+  }
 
   const images: DebugImage[] = [];
   for (const path of resource_paths) {
