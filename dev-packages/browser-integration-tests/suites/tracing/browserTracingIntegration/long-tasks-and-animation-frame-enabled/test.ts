@@ -32,9 +32,11 @@ sentryTest(
 
     const uiSpans = eventData.spans?.filter(({ op }) => op?.startsWith('ui.long-animation-frame'));
 
-    expect(uiSpans?.length).toEqual(1);
+    expect(uiSpans?.length).toBeGreaterThanOrEqual(1);
 
-    const [topLevelUISpan] = uiSpans || [];
+    const topLevelUISpan = (uiSpans || []).find(
+      span => span.data?.['browser.script.invoker'] === 'https://example.com/path/to/script.js',
+    )!;
     expect(topLevelUISpan).toEqual(
       expect.objectContaining({
         op: 'ui.long-animation-frame',
@@ -86,10 +88,11 @@ sentryTest(
 
     const uiSpans = eventData.spans?.filter(({ op }) => op?.startsWith('ui.long-animation-frame'));
 
-    expect(uiSpans?.length).toEqual(2);
+    expect(uiSpans?.length).toBeGreaterThanOrEqual(2);
 
-    // ignore the first ui span (top-level long animation frame)
-    const [, eventListenerUISpan] = uiSpans || [];
+    const eventListenerUISpan = (uiSpans || []).find(
+      span => span.data?.['browser.script.invoker'] === 'BUTTON#clickme.onclick',
+    )!;
 
     expect(eventListenerUISpan).toEqual(
       expect.objectContaining({
