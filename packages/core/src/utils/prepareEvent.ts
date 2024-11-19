@@ -174,16 +174,12 @@ export function applyDebugIds(event: Event, stackParser: StackParser): void {
   // Build a map of filename -> debug_id
   const filenameDebugIdMap = getFilenameToDebugIdMap(stackParser);
 
-  if (!filenameDebugIdMap) {
-    return;
-  }
-
   try {
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     event!.exception!.values!.forEach(exception => {
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       exception.stacktrace!.frames!.forEach(frame => {
-        if (frame.filename) {
+        if (filenameDebugIdMap && frame.filename) {
           frame.debug_id = filenameDebugIdMap.get(frame.filename);
         }
       });
