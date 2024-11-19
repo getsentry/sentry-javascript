@@ -47,6 +47,7 @@ export {
   extractRequestData,
   createGetModuleFromFilename,
   anrIntegration,
+  disableAnrDetectionForCallback,
   consoleIntegration,
   httpIntegration,
   nativeNodeFetchIntegration,
