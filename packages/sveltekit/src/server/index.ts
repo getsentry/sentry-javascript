@@ -77,6 +77,7 @@ export {
   mysql2Integration,
   mysqlIntegration,
   nativeNodeFetchIntegration,
+  // eslint-disable-next-line deprecation/deprecation
   nestIntegration,
   NodeClient,
   nodeContextIntegration,
@@ -108,6 +109,7 @@ export {
   setupExpressErrorHandler,
   setupHapiErrorHandler,
   setupKoaErrorHandler,
+  // eslint-disable-next-line deprecation/deprecation
   setupNestErrorHandler,
   setUser,
   spanToBaggageHeader,
