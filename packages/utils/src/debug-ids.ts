@@ -4,24 +4,8 @@ import { GLOBAL_OBJ } from './worldwide';
 type StackString = string;
 type CachedResult = [string, string];
 
-let debugIdStackParserCache: WeakMap<StackParser, Record<StackString, CachedResult>> | undefined;
-
-function getCacheForStackParser(stackParser: StackParser): Record<StackString, CachedResult> {
-  if (!debugIdStackParserCache) {
-    debugIdStackParserCache = new WeakMap();
-  }
-
-  let result = debugIdStackParserCache.get(stackParser);
-
-  if (!result) {
-    result = {};
-    debugIdStackParserCache.set(stackParser, result);
-  }
-
-  return result;
-}
-
-let lastCount = 0;
+let parsedStackResults: Record<StackString, CachedResult> | undefined;
+let lastKeysCount: number | undefined;
 let cachedFilenameDebugIds: Record<string, string> | undefined;
 
 /**
@@ -37,29 +21,33 @@ export function getFilenameToDebugIdMap(stackParser: StackParser): Record<string
 
   // If the count of registered globals hasn't changed since the last call, we
   // can just return the cached result.
-  if (cachedFilenameDebugIds && debugIdKeys.length === lastCount) {
+  if (cachedFilenameDebugIds && debugIdKeys.length === lastKeysCount) {
     return cachedFilenameDebugIds;
   }
 
-  const debugIdStackFramesCache = getCacheForStackParser(stackParser);
+  lastKeysCount = debugIdKeys.length;
 
   // Build a map of filename -> debug_id.
-  cachedFilenameDebugIds = debugIdKeys.reduce<Record<string, string>>((acc, debugIdStackTrace) => {
-    const result = debugIdStackFramesCache[debugIdStackTrace];
+  cachedFilenameDebugIds = debugIdKeys.reduce<Record<string, string>>((acc, stackKey) => {
+    if (!parsedStackResults) {
+      parsedStackResults = {};
+    }
+
+    const result = parsedStackResults[stackKey];
 
     if (result) {
       acc[result[0]] = result[1];
     } else {
-      const parsedStack = stackParser(debugIdStackTrace);
+      const parsedStack = stackParser(stackKey);
 
       for (let i = parsedStack.length - 1; i >= 0; i--) {
         const stackFrame = parsedStack[i];
         const filename = stackFrame && stackFrame.filename;
-        const debugId = debugIdMap[debugIdStackTrace];
+        const debugId = debugIdMap[stackKey];
 
         if (filename && debugId) {
           acc[filename] = debugId;
-          debugIdStackFramesCache[debugIdStackTrace] = [filename, debugId];
+          parsedStackResults[stackKey] = [filename, debugId];
           break;
         }
       }
@@ -67,8 +55,6 @@ export function getFilenameToDebugIdMap(stackParser: StackParser): Record<string
 
     return acc;
   }, {});
-
-  lastCount = debugIdKeys.length;
 
   return cachedFilenameDebugIds;
 }
