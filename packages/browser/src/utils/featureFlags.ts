@@ -21,6 +21,10 @@ export function copyFlagsFromScopeToEvent(event: Event): Event {
   const flagContext = scope.getScopeData().contexts.flags;
   const flagBuffer = flagContext ? flagContext.values : [];
 
+  if (!flagBuffer.length) {
+    return event;
+  }
+
   if (event.contexts === undefined) {
     event.contexts = {};
   }
