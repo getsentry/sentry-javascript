@@ -45,7 +45,7 @@
   },
   "peerDependencies": {
     "@opentelemetry/api": "^1.9.0",
-    "@opentelemetry/core": "^1.25.1",
+    "@opentelemetry/core": "^1.28.0",
     "@opentelemetry/instrumentation": "^0.54.0",
     "@opentelemetry/sdk-trace-base": "^1.26.0",
     "@opentelemetry/semantic-conventions": "^1.27.0"
@@ -53,7 +53,7 @@
   "devDependencies": {
     "@opentelemetry/api": "^1.9.0",
     "@opentelemetry/context-async-hooks": "^1.25.1",
-    "@opentelemetry/core": "^1.25.1",
+    "@opentelemetry/core": "^1.28.0",
     "@opentelemetry/sdk-trace-base": "^1.26.0",
     "@opentelemetry/semantic-conventions": "^1.27.0"
   },
