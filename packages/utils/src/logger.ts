@@ -26,7 +26,7 @@ export const originalConsoleMethods: {
 } = {};
 
 /** JSDoc */
-interface Logger extends LoggerConsoleMethods {
+export interface Logger extends LoggerConsoleMethods {
   disable(): void;
   enable(): void;
   isEnabled(): boolean;

@@ -1,7 +1,6 @@
+// hoist core
 export { applyAggregateErrorsToEvent } from './aggregate-errors';
-export { flatten } from './array';
 export { getBreadcrumbLogLevelFromHttpStatusCode } from './breadcrumb-log-level';
-export { getComponentName, getDomElement, getLocationHref, htmlTreeAsString } from './browser';
 export { dsnFromString, dsnToString, makeDsn } from './dsn';
 export { SentryError } from './error';
 export { GLOBAL_OBJ, getGlobalSingleton } from './worldwide';
@@ -35,19 +34,16 @@ export {
 } from './is';
 export { isBrowser } from './isBrowser';
 export { CONSOLE_LEVELS, consoleSandbox, logger, originalConsoleMethods } from './logger';
-export { memoBuilder } from './memo';
 export {
   addContextToFrame,
   addExceptionMechanism,
   addExceptionTypeValue,
-  arrayify,
   checkOrSetAlreadyCaught,
   getEventDescription,
   parseSemver,
   uuid4,
 } from './misc';
-export { dynamicRequire, isNodeEnv, loadModule } from './node';
-export { normalize, normalizeToSize, normalizeUrlToBase } from './normalize';
+export { normalize, normalizeToSize } from './normalize';
 export {
   addNonEnumerableProperty,
   convertToPlainObject,
@@ -57,29 +53,15 @@ export {
   getOriginalFunction,
   markFunctionWrapped,
   objectify,
-  urlEncode,
 } from './object';
-export { basename, dirname, isAbsolute, join, normalizePath, relative, resolve } from './path';
 export { makePromiseBuffer } from './promisebuffer';
 export type { PromiseBuffer } from './promisebuffer';
-
-// TODO: Remove requestdata export once equivalent integration is used everywhere
 export {
-  DEFAULT_USER_INCLUDES,
   addNormalizedRequestDataToEvent,
-  addRequestDataToEvent,
-  // eslint-disable-next-line deprecation/deprecation
-  extractPathForTransaction,
-  extractRequestData,
   winterCGHeadersToDict,
   winterCGRequestToRequestData,
 } from './requestdata';
-export type {
-  AddRequestDataToEventOptions,
-  // eslint-disable-next-line deprecation/deprecation
-  TransactionNamingScheme,
-} from './requestdata';
-
+export type { AddRequestDataToEventOptions } from './requestdata';
 export { severityLevelFromString, validSeverityLevels } from './severity';
 export {
   UNKNOWN_FUNCTION,
@@ -91,20 +73,8 @@ export {
 } from './stacktrace';
 export { filenameIsInApp, node, nodeStackLineParser } from './node-stack-trace';
 export { isMatchingPattern, safeJoin, snipLine, stringMatchesSomePattern, truncate } from './string';
-export {
-  isNativeFunction,
-  supportsDOMError,
-  supportsDOMException,
-  supportsErrorEvent,
-  supportsFetch,
-  supportsNativeFetch,
-  supportsReferrerPolicy,
-  supportsReportingObserver,
-} from './supports';
 export { SyncPromise, rejectedSyncPromise, resolvedSyncPromise } from './syncpromise';
 export {
-  _browserPerformanceTimeOriginMode,
-  browserPerformanceTimeOrigin,
   dateTimestampInSeconds,
   timestampInSeconds,
 } from './time';
@@ -116,6 +86,14 @@ export {
 } from './tracing';
 export { getSDKSource, isBrowserBundle } from './env';
 export type { SdkSource } from './env';
+export {
+  MAX_BAGGAGE_STRING_LENGTH,
+  SENTRY_BAGGAGE_KEY_PREFIX,
+  SENTRY_BAGGAGE_KEY_PREFIX_REGEX,
+  baggageHeaderToDynamicSamplingContext,
+  dynamicSamplingContextToSentryBaggageHeader,
+  parseBaggageHeader,
+} from './baggage';
 export {
   addItemToEnvelope,
   createAttachmentEnvelopeItem,
@@ -138,18 +116,6 @@ export {
   updateRateLimits,
 } from './ratelimit';
 export type { RateLimits } from './ratelimit';
-export {
-  BAGGAGE_HEADER_NAME,
-  MAX_BAGGAGE_STRING_LENGTH,
-  SENTRY_BAGGAGE_KEY_PREFIX,
-  SENTRY_BAGGAGE_KEY_PREFIX_REGEX,
-  baggageHeaderToDynamicSamplingContext,
-  dynamicSamplingContextToSentryBaggageHeader,
-  parseBaggageHeader,
-} from './baggage';
-
-export { getNumberOfUrlSegments, getSanitizedUrlString, parseUrl, stripUrlQueryAndFragment } from './url';
-export { makeFifoCache } from './cache';
 export { eventFromMessage, eventFromUnknownInput, exceptionFromError, parseStackFrames } from './eventbuilder';
 export { callFrameToStackFrame, watchdogTimer } from './anr';
 export { LRUMap } from './lru';
@@ -158,11 +124,52 @@ export { vercelWaitUntil } from './vercelWaitUntil';
 export { SDK_VERSION } from './version';
 export { getDebugImagesForResources, getFilenameToDebugIdMap } from './debug-ids';
 export { escapeStringForRegex } from './vendor/escapeStringForRegex';
+
+// hoist browser
+export { getComponentName, getDomElement, getLocationHref, htmlTreeAsString } from './browser';
+export {
+  isNativeFunction,
+  supportsDOMError,
+  supportsDOMException,
+  supportsErrorEvent,
+  supportsFetch,
+  supportsNativeFetch,
+  supportsReferrerPolicy,
+  supportsReportingObserver,
+} from './supports';
+export {
+  _browserPerformanceTimeOriginMode,
+  browserPerformanceTimeOrigin,
+} from './time';
 export { supportsHistory } from './vendor/supportsHistory';
 
+// hoist node
+export { dynamicRequire, isNodeEnv, loadModule } from './node';
+
+//  ----- TO BE FULLY DEPRECATED -----
+export { flatten } from './array';
+export { memoBuilder } from './memo';
+export { arrayify } from './misc';
+export { normalizeUrlToBase } from './normalize';
+export { urlEncode } from './object';
+export { basename, dirname, isAbsolute, join, normalizePath, relative, resolve } from './path';
+export {
+  // eslint-disable-next-line deprecation/deprecation
+  extractPathForTransaction,
+  DEFAULT_USER_INCLUDES,
+  extractRequestData,
+  addRequestDataToEvent,
+} from './requestdata';
+export type {
+  // eslint-disable-next-line deprecation/deprecation
+  TransactionNamingScheme,
+} from './requestdata';
 export { _asyncNullishCoalesce } from './buildPolyfills/_asyncNullishCoalesce';
 export { _asyncOptionalChain } from './buildPolyfills/_asyncOptionalChain';
 export { _asyncOptionalChainDelete } from './buildPolyfills/_asyncOptionalChainDelete';
 export { _nullishCoalesce } from './buildPolyfills/_nullishCoalesce';
 export { _optionalChain } from './buildPolyfills/_optionalChain';
 export { _optionalChainDelete } from './buildPolyfills/_optionalChainDelete';
+export { BAGGAGE_HEADER_NAME } from './baggage';
+export { getNumberOfUrlSegments, getSanitizedUrlString, parseUrl, stripUrlQueryAndFragment } from './url';
+export { makeFifoCache } from './cache';
