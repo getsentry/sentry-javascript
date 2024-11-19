@@ -158,16 +158,11 @@ Let us know if this is causing issues in your setup by opening an issue on GitHu
 
 TODO (Copy over from migrations list we collected)
 
-# Version Support Timelines
+# No Version Support Timeline
 
-With the release of version 9 we define the following support timelines for previous SDK versions:
+Version support timelines are stressful for anybody using the SDK, so we won't be defining one.
+Instead, we will be applying bug fixes and features to older versions as long as there is demand for them.
+We also hold ourselves to high standards security-wise, meaning that if any vulnerabilities are found, we will in almost all cases backport them.
 
-- **v8**:
-  - Security patches for 12 months.
-  - Bug fixes for 4 months.
-  - Feature updates based on demand and feasibility but no guarantees.
-- **v7**:
-  - Critical bug and security patches may be backported but no guarantees.
-  - Support for this version has officially ended.
-- **Older Versions**:
-  - Support has ended.
+Note, that we will decide on a case-per-case basis, what gets backported or not.
+If you need a fix or feature in a previous version of the SDK, feel free to reach out via a GitHub issue.
