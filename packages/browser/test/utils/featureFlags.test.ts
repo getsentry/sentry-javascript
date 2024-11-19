@@ -1,9 +1,27 @@
+import { getCurrentScope } from '@sentry/core';
 import type { FeatureFlag } from '@sentry/types';
 import { logger } from '@sentry/utils';
 import { vi } from 'vitest';
-import { insertToFlagBuffer } from '../../src/utils/featureFlags';
+import { insertFlagToScope, insertToFlagBuffer } from '../../src/utils/featureFlags';
 
 describe('flags', () => {
+  describe('insertFlagToScope()', () => {
+    it('adds flags to the current scope context', () => {
+      const maxSize = 3;
+      insertFlagToScope('feat1', true, maxSize);
+      insertFlagToScope('feat2', true, maxSize);
+      insertFlagToScope('feat3', true, maxSize);
+      insertFlagToScope('feat4', true, maxSize);
+
+      const scope = getCurrentScope();
+      expect(scope.getScopeData().contexts.flags?.values).toEqual([
+        { flag: 'feat2', result: true },
+        { flag: 'feat3', result: true },
+        { flag: 'feat4', result: true },
+      ]);
+    });
+  });
+
   describe('insertToFlagBuffer()', () => {
     const loggerSpy = vi.spyOn(logger, 'error');
 
@@ -52,6 +70,15 @@ describe('flags', () => {
         { flag: 'feat1', result: true },
         { flag: 'feat2', result: true },
       ]);
+    });
+
+    it('does not accept non-boolean values', () => {
+      const buffer: FeatureFlag[] = [];
+      const maxSize = 1000;
+      insertToFlagBuffer(buffer, 'feat1', 1, maxSize);
+      insertToFlagBuffer(buffer, 'feat2', 'string', maxSize);
+
+      expect(buffer).toEqual([]);
     });
 
     it('logs error and is a no-op when buffer is larger than maxSize', () => {

@@ -2,7 +2,7 @@ import type { Client, Event, EventHint, IntegrationFn } from '@sentry/types';
 import type { LDContext, LDEvaluationDetail, LDInspectionFlagUsedHandler } from './types';
 
 import { defineIntegration } from '@sentry/core';
-import { copyFlagsFromScopeToEvent, insertToFlagBuffer } from '../../../utils/featureFlags';
+import { copyFlagsFromScopeToEvent, insertFlagToScope } from '../../../utils/featureFlags';
 
 /**
  * Sentry integration for capturing feature flags from LaunchDarkly.
@@ -46,7 +46,7 @@ export function buildLaunchDarklyFlagUsedHandler(): LDInspectionFlagUsedHandler 
      * Handle a flag evaluation by storing its name and value on the current scope.
      */
     method: (flagKey: string, flagDetail: LDEvaluationDetail, _context: LDContext) => {
-      insertToFlagBuffer(flagKey, flagDetail.value);
+      insertFlagToScope(flagKey, flagDetail.value);
     },
   };
 }
