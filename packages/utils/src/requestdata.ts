@@ -417,15 +417,55 @@ export function winterCGHeadersToDict(winterCGHeaders: WebFetchHeaders): Record<
 }
 
 /**
+ * Convert common request headers to a simple dictionary.
+ */
+export function headersToDict(reqHeaders: Record<string, string | string[] | undefined>): Record<string, string> {
+  const headers: Record<string, string> = Object.create(null);
+
+  try {
+    Object.entries(reqHeaders).forEach(([key, value]) => {
+      if (typeof value === 'string') {
+        headers[key] = value;
+      }
+    });
+  } catch (e) {
+    DEBUG_BUILD &&
+      logger.warn('Sentry failed extracting headers from a request object. If you see this, please file an issue.');
+  }
+
+  return headers;
+}
+
+/**
  * Converts a `Request` object that implements the `Web Fetch API` (https://developer.mozilla.org/en-US/docs/Web/API/Headers) into the format that the `RequestData` integration understands.
  */
-export function winterCGRequestToRequestData(req: WebFetchRequest): PolymorphicRequest {
+export function winterCGRequestToRequestData(req: WebFetchRequest): RequestEventData {
   const headers = winterCGHeadersToDict(req.headers);
+
   return {
     method: req.method,
     url: req.url,
+    query_string: extractQueryParamsFromUrl(req.url),
     headers,
+    // TODO: Can we extract body data from the request?
   };
+}
+
+/** Extract the query params from an URL. */
+export function extractQueryParamsFromUrl(url: string): string | undefined {
+  // url is path and query string
+  if (!url) {
+    return;
+  }
+
+  try {
+    // The `URL` constructor can't handle internal URLs of the form `/some/path/here`, so stick a dummy protocol and
+    // hostname as the base. Since the point here is just to grab the query string, it doesn't matter what we use.
+    const queryParams = new URL(url, 'http://dogs.are.great').search.slice(1);
+    return queryParams.length ? queryParams : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 function extractNormalizedRequestData(

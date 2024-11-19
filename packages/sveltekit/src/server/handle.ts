@@ -131,7 +131,9 @@ export function sentryHandle(handlerOptions?: SentryHandleOptions): Handle {
     return withIsolationScope(isolationScope => {
       // We only call continueTrace in the initial top level request to avoid
       // creating a new root span for the sub request.
-      isolationScope.setSDKProcessingMetadata({ request: winterCGRequestToRequestData(input.event.request.clone()) });
+      isolationScope.setSDKProcessingMetadata({
+        normalizedRequest: winterCGRequestToRequestData(input.event.request.clone()),
+      });
       return continueTrace(getTracePropagationData(input.event), () => instrumentHandle(input, options));
     });
   };
@@ -167,7 +169,9 @@ async function instrumentHandle(
         name: routeName,
       },
       async (span?: Span) => {
-        getCurrentScope().setSDKProcessingMetadata({ request: winterCGRequestToRequestData(event.request.clone()) });
+        getCurrentScope().setSDKProcessingMetadata({
+          normalizedRequest: winterCGRequestToRequestData(event.request.clone()),
+        });
         const res = await resolve(event, {
           transformPageChunk: addSentryCodeToPage(options),
         });

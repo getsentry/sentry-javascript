@@ -14,7 +14,7 @@ import {
   withIsolationScope,
   withScope,
 } from '@sentry/core';
-import type { WebFetchHeaders } from '@sentry/types';
+import type { RequestEventData, WebFetchHeaders } from '@sentry/types';
 import { propagationContextFromHeaders, uuid4, winterCGHeadersToDict } from '@sentry/utils';
 
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
@@ -68,9 +68,9 @@ export function wrapGenerationFunctionWithSentry<F extends (...args: any[]) => a
           scope.setTransactionName(`${componentType}.${generationFunctionIdentifier} (${componentRoute})`);
 
           isolationScope.setSDKProcessingMetadata({
-            request: {
+            normalizedRequest: {
               headers: headersDict,
-            },
+            } satisfies RequestEventData,
           });
 
           const activeSpan = getActiveSpan();

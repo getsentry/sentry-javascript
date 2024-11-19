@@ -13,6 +13,7 @@ import {
   withIsolationScope,
   withScope,
 } from '@sentry/core';
+import type { RequestEventData } from '@sentry/types';
 import { propagationContextFromHeaders, uuid4, vercelWaitUntil, winterCGHeadersToDict } from '@sentry/utils';
 
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
@@ -49,9 +50,9 @@ export function wrapServerComponentWithSentry<F extends (...args: any[]) => any>
       const headersDict = context.headers ? winterCGHeadersToDict(context.headers) : undefined;
 
       isolationScope.setSDKProcessingMetadata({
-        request: {
+        normalizedRequest: {
           headers: headersDict,
-        },
+        } satisfies RequestEventData,
       });
 
       return withIsolationScope(isolationScope, () => {

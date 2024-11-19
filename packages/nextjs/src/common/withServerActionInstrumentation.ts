@@ -9,6 +9,7 @@ import {
   startSpan,
   withIsolationScope,
 } from '@sentry/core';
+import type { RequestEventData } from '@sentry/types';
 import { logger, vercelWaitUntil } from '@sentry/utils';
 
 import { DEBUG_BUILD } from './debug-build';
@@ -89,9 +90,9 @@ async function withServerActionInstrumentationImplementation<A extends (...args:
 
     isolationScope.setTransactionName(`serverAction/${serverActionName}`);
     isolationScope.setSDKProcessingMetadata({
-      request: {
+      normalizedRequest: {
         headers: fullHeadersObject,
-      },
+      } satisfies RequestEventData,
     });
 
     return continueTrace(

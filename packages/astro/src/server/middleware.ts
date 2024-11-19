@@ -12,9 +12,10 @@ import {
   startSpan,
   withIsolationScope,
 } from '@sentry/node';
-import type { Scope, SpanAttributes } from '@sentry/types';
+import type { RequestEventData, Scope, SpanAttributes } from '@sentry/types';
 import {
   addNonEnumerableProperty,
+  extractQueryParamsFromUrl,
   logger,
   objectify,
   stripUrlQueryAndFragment,
@@ -111,7 +112,13 @@ async function instrumentRequest(
       getCurrentScope().setSDKProcessingMetadata({
         // We store the request on the current scope, not isolation scope,
         // because we may have multiple requests nested inside each other
-        request: isDynamicPageRequest ? winterCGRequestToRequestData(request) : { method, url: request.url },
+        normalizedRequest: (isDynamicPageRequest
+          ? winterCGRequestToRequestData(request)
+          : {
+              method,
+              url: request.url,
+              query_string: extractQueryParamsFromUrl(request.url),
+            }) satisfies RequestEventData,
       });
 
       if (options.trackClientIp && isDynamicPageRequest) {

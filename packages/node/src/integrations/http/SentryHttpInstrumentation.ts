@@ -8,8 +8,10 @@ import { getRequestInfo } from '@opentelemetry/instrumentation-http';
 import { addBreadcrumb, getClient, getIsolationScope, withIsolationScope } from '@sentry/core';
 import type { PolymorphicRequest, RequestEventData, SanitizedRequestData, Scope } from '@sentry/types';
 import {
+  extractQueryParamsFromUrl,
   getBreadcrumbLogLevelFromHttpStatusCode,
   getSanitizedUrlString,
+  headersToDict,
   logger,
   parseUrl,
   stripUrlQueryAndFragment,
@@ -145,7 +147,7 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
         const normalizedRequest: RequestEventData = {
           url: absoluteUrl,
           method: request.method,
-          query_string: extractQueryParams(request),
+          query_string: extractQueryParamsFromUrl(request.url || ''),
           headers: headersToDict(request.headers),
           cookies,
         };
@@ -442,37 +444,4 @@ function patchRequestToCaptureBody(req: IncomingMessage, isolationScope: Scope):
   } catch {
     // ignore errors if we can't patch stuff
   }
-}
-
-function extractQueryParams(req: IncomingMessage): string | undefined {
-  // req.url is path and query string
-  if (!req.url) {
-    return;
-  }
-
-  try {
-    // The `URL` constructor can't handle internal URLs of the form `/some/path/here`, so stick a dummy protocol and
-    // hostname as the base. Since the point here is just to grab the query string, it doesn't matter what we use.
-    const queryParams = new URL(req.url, 'http://dogs.are.great').search.slice(1);
-    return queryParams.length ? queryParams : undefined;
-  } catch {
-    return undefined;
-  }
-}
-
-function headersToDict(reqHeaders: Record<string, string | string[] | undefined>): Record<string, string> {
-  const headers: Record<string, string> = Object.create(null);
-
-  try {
-    Object.entries(reqHeaders).forEach(([key, value]) => {
-      if (typeof value === 'string') {
-        headers[key] = value;
-      }
-    });
-  } catch (e) {
-    DEBUG_BUILD &&
-      logger.warn('Sentry failed extracting headers from a request object. If you see this, please file an issue.');
-  }
-
-  return headers;
 }
