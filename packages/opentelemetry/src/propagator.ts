@@ -4,8 +4,8 @@ import { context } from '@opentelemetry/api';
 import { propagation, trace } from '@opentelemetry/api';
 import { W3CBaggagePropagator, isTracingSuppressed } from '@opentelemetry/core';
 import { ATTR_URL_FULL, SEMATTRS_HTTP_URL } from '@opentelemetry/semantic-conventions';
-import type { continueTrace} from '@sentry/core';
-import { getDynamicSamplingContextFromScopes } from '@sentry/core';
+import type { continueTrace } from '@sentry/core';
+import { getDynamicSamplingContextFromScope } from '@sentry/core';
 import { getRootSpan } from '@sentry/core';
 import { spanToJSON } from '@sentry/core';
 import { getClient, getCurrentScope, getDynamicSamplingContextFromSpan, getIsolationScope } from '@sentry/core';
@@ -213,7 +213,7 @@ function getInjectionData(context: Context): {
   const client = getClient();
 
   const propagationContext = scope.getPropagationContext();
-  const dynamicSamplingContext = client ? getDynamicSamplingContextFromScopes(client, scope) : undefined;
+  const dynamicSamplingContext = client ? getDynamicSamplingContextFromScope(client, scope) : undefined;
   return {
     dynamicSamplingContext,
     traceId: propagationContext.traceId,

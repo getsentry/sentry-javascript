@@ -38,7 +38,7 @@ export {
   withScope,
   withIsolationScope,
   getClient,
-  getTraceContextFromScopes,
+  getTraceContextFromScope,
 } from './currentScopes';
 export {
   getDefaultCurrentScope,

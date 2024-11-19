@@ -22,7 +22,7 @@ export {
 export {
   getDynamicSamplingContextFromClient,
   getDynamicSamplingContextFromSpan,
-  getDynamicSamplingContextFromScopes,
+  getDynamicSamplingContextFromScope,
   spanToBaggageHeader,
 } from './dynamicSamplingContext';
 export { setMeasurement, timedEventsToMeasurements } from './measurement';

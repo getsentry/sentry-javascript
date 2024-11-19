@@ -15,12 +15,12 @@ import { eventFromMessage, eventFromUnknownInput, logger, resolvedSyncPromise, u
 
 import { BaseClient } from './baseclient';
 import { createCheckInEnvelope } from './checkin';
-import { getIsolationScope, getTraceContextFromScopes } from './currentScopes';
+import { getIsolationScope, getTraceContextFromScope } from './currentScopes';
 import { DEBUG_BUILD } from './debug-build';
 import type { Scope } from './scope';
 import { SessionFlusher } from './sessionflusher';
 import {
-  getDynamicSamplingContextFromScopes,
+  getDynamicSamplingContextFromScope,
   getDynamicSamplingContextFromSpan,
   registerSpanErrorInstrumentation,
 } from './tracing';
@@ -257,10 +257,10 @@ export class ServerRuntimeClient<
 
     const span = _getSpanForScope(scope);
 
-    const traceContext = span ? spanToTraceContext(span) : getTraceContextFromScopes(scope);
+    const traceContext = span ? spanToTraceContext(span) : getTraceContextFromScope(scope);
     const dynamicSamplingContext = span
       ? getDynamicSamplingContextFromSpan(span)
-      : getDynamicSamplingContextFromScopes(this, scope);
+      : getDynamicSamplingContextFromScope(this, scope);
     return [dynamicSamplingContext, traceContext];
   }
 }

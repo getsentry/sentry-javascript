@@ -7,10 +7,10 @@ import {
   continueTrace as baseContinueTrace,
   getClient,
   getCurrentScope,
-  getDynamicSamplingContextFromScopes,
+  getDynamicSamplingContextFromScope,
   getDynamicSamplingContextFromSpan,
   getRootSpan,
-  getTraceContextFromScopes,
+  getTraceContextFromScope,
   handleCallbackErrors,
   spanToJSON,
   spanToTraceContext,
@@ -292,11 +292,11 @@ export function getTraceContextForScope(
   const ctx = getContextFromScope(scope);
   const span = ctx && trace.getSpan(ctx);
 
-  const traceContext = span ? spanToTraceContext(span) : getTraceContextFromScopes(scope);
+  const traceContext = span ? spanToTraceContext(span) : getTraceContextFromScope(scope);
 
   const dynamicSamplingContext = span
     ? getDynamicSamplingContextFromSpan(span)
-    : getDynamicSamplingContextFromScopes(client, scope);
+    : getDynamicSamplingContextFromScope(client, scope);
   return [dynamicSamplingContext, traceContext];
 }
 

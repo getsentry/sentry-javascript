@@ -50,7 +50,7 @@ import {
 } from '@sentry/utils';
 
 import { getEnvelopeEndpointWithUrlEncodedAuth } from './api';
-import { getIsolationScope, getTraceContextFromScopes } from './currentScopes';
+import { getCurrentScope, getIsolationScope, getTraceContextFromScope } from './currentScopes';
 import { DEBUG_BUILD } from './debug-build';
 import { createEventEnvelope, createSessionEnvelope } from './envelope';
 import type { IntegrationIndex } from './integration';
@@ -58,7 +58,7 @@ import { afterSetupIntegrations } from './integration';
 import { setupIntegration, setupIntegrations } from './integration';
 import type { Scope } from './scope';
 import { updateSession } from './session';
-import { getDynamicSamplingContextFromScopes } from './tracing/dynamicSamplingContext';
+import { getDynamicSamplingContextFromScope } from './tracing/dynamicSamplingContext';
 import { parseSampleRate } from './utils/parseSampleRate';
 import { prepareEvent } from './utils/prepareEvent';
 
@@ -668,7 +668,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   protected _prepareEvent(
     event: Event,
     hint: EventHint,
-    currentScope?: Scope,
+    currentScope = getCurrentScope(),
     isolationScope = getIsolationScope(),
   ): PromiseLike<Event | null> {
     const options = this.getOptions();
@@ -689,11 +689,11 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
       }
 
       evt.contexts = {
-        trace: getTraceContextFromScopes(currentScope, isolationScope),
+        trace: getTraceContextFromScope(currentScope),
         ...evt.contexts,
       };
 
-      const dynamicSamplingContext = getDynamicSamplingContextFromScopes(this, currentScope, isolationScope);
+      const dynamicSamplingContext = getDynamicSamplingContextFromScope(this, currentScope);
 
       evt.sdkProcessingMetadata = {
         dynamicSamplingContext,

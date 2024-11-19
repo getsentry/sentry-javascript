@@ -1,4 +1,4 @@
-import type { PropagationContext, Scope, TraceContext } from '@sentry/types';
+import type { Scope, TraceContext } from '@sentry/types';
 import type { Client } from '@sentry/types';
 import { dropUndefinedKeys, generateSentryTraceHeader, getGlobalSingleton } from '@sentry/utils';
 import { getAsyncContextStrategy } from './asyncContext';
@@ -124,12 +124,8 @@ export function getClient<C extends Client>(): C | undefined {
 /**
  * Get a trace context for the currently active scopes.
  */
-export function getTraceContextFromScopes(
-  scope = getCurrentScope(),
-  isolationScope = getIsolationScope(),
-  globalScope = getGlobalScope(),
-): TraceContext {
-  const propagationContext = mergePropagationContexts(scope, isolationScope, globalScope);
+export function getTraceContextFromScope(scope: Scope): TraceContext {
+  const propagationContext = scope.getPropagationContext();
 
   const { traceId, spanId, parentSpanId } = propagationContext;
 
@@ -145,24 +141,7 @@ export function getTraceContextFromScopes(
 /**
  * Get a sentry-trace header value for the currently active scopes.
  */
-export function scopesToTraceHeader(
-  scope = getCurrentScope(),
-  isolationScope = getIsolationScope(),
-  globalScope = getGlobalScope(),
-): string {
-  const { traceId, sampled, spanId } = mergePropagationContexts(scope, isolationScope, globalScope);
+export function scopesToTraceHeader(scope: Scope): string {
+  const { traceId, sampled, spanId } = scope.getPropagationContext();
   return generateSentryTraceHeader(traceId, spanId, sampled);
-}
-
-/** Get a merged propagationContext for the current scopes. */
-export function mergePropagationContexts(
-  scope = getCurrentScope(),
-  isolationScope = getIsolationScope(),
-  globalScope = getGlobalScope(),
-): PropagationContext {
-  return {
-    ...globalScope.getPropagationContext(),
-    ...isolationScope.getPropagationContext(),
-    ...scope.getPropagationContext(),
-  };
 }
