@@ -200,7 +200,10 @@ const makeWrappedLoader =
     return makeWrappedDataFunction(origLoader, id, 'loader', remixVersion, autoInstrumentRemix);
   };
 
-function getTraceAndBaggage(): { sentryTrace?: string; sentryBaggage?: string } {
+function getTraceAndBaggage(): {
+  sentryTrace?: string;
+  sentryBaggage?: string;
+} {
   if (isNodeEnv()) {
     const traceData = getTraceData();
 
@@ -239,11 +242,7 @@ function makeWrappedRootLoader(remixVersion: number) {
 
           if (typeof data === 'object') {
             return json(
-              {
-                ...data,
-                ...traceAndBaggage,
-                remixVersion,
-              },
+              { ...data, ...traceAndBaggage, remixVersion },
               {
                 headers: res.headers,
                 statusText: res.statusText,
@@ -257,11 +256,7 @@ function makeWrappedRootLoader(remixVersion: number) {
         }
       }
 
-      return {
-        ...res,
-        ...traceAndBaggage,
-        remixVersion,
-      };
+      return { ...res, ...traceAndBaggage, remixVersion };
     };
   };
 }
