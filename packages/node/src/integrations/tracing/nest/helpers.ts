@@ -1,6 +1,6 @@
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, withActiveSpan } from '@sentry/core';
+import { addNonEnumerableProperty } from '@sentry/core';
 import type { Span } from '@sentry/types';
-import { addNonEnumerableProperty } from '@sentry/utils';
 import type { CatchTarget, InjectableTarget, NextFunction, Observable, Subscription } from './types';
 
 const sentryPatched = 'sentryPatched';
@@ -33,6 +33,24 @@ export function getMiddlewareSpanOptions(target: InjectableTarget | CatchTarget,
       [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'middleware.nestjs',
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.middleware.nestjs',
     },
+  };
+}
+
+/**
+ * Returns span options for nest event spans.
+ */
+export function getEventSpanOptions(event: string): {
+  name: string;
+  attributes: Record<string, string>;
+  forceTransaction: boolean;
+} {
+  return {
+    name: `event ${event}`,
+    attributes: {
+      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'event.nestjs',
+      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.event.nestjs',
+    },
+    forceTransaction: true,
   };
 }
 

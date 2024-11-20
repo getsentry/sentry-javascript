@@ -4,12 +4,12 @@ import type { Event } from '@sentry/types';
 import { sentryTest } from '../../../../utils/fixtures';
 import { getFirstSentryEnvelopeRequest, shouldSkipTracingTest } from '../../../../utils/helpers';
 
-sentryTest('should create spans for XHR requests', async ({ getLocalTestPath, page }) => {
+sentryTest('should create spans for XHR requests', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipTracingTest()) {
     sentryTest.skip();
   }
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
 
   const eventData = await getFirstSentryEnvelopeRequest<Event>(page, url);
   const requestSpans = eventData.spans?.filter(({ op }) => op === 'http.client');
@@ -35,12 +35,12 @@ sentryTest('should create spans for XHR requests', async ({ getLocalTestPath, pa
   );
 });
 
-sentryTest('should attach `sentry-trace` header to XHR requests', async ({ getLocalTestPath, page }) => {
+sentryTest('should attach `sentry-trace` header to XHR requests', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipTracingTest()) {
     sentryTest.skip();
   }
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
 
   const requests = (
     await Promise.all([

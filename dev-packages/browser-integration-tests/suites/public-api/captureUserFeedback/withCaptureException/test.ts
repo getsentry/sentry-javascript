@@ -4,8 +4,8 @@ import type { Event, UserFeedback } from '@sentry/types';
 import { sentryTest } from '../../../../utils/fixtures';
 import { getMultipleSentryEnvelopeRequests } from '../../../../utils/helpers';
 
-sentryTest('capture user feedback when captureException is called', async ({ getLocalTestPath, page }) => {
-  const url = await getLocalTestPath({ testDir: __dirname });
+sentryTest('capture user feedback when captureException is called', async ({ getLocalTestUrl, page }) => {
+  const url = await getLocalTestUrl({ testDir: __dirname });
 
   const data = (await getMultipleSentryEnvelopeRequests(page, 2, { url })) as (Event | UserFeedback)[];
 

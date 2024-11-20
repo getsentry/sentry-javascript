@@ -8,8 +8,8 @@ import {
   SEMRESATTRS_SERVICE_NAMESPACE,
 } from '@opentelemetry/semantic-conventions';
 import { SDK_VERSION } from '@sentry/core';
+import { GLOBAL_OBJ, consoleSandbox, logger } from '@sentry/core';
 import { SentryPropagator, SentrySampler, SentrySpanProcessor } from '@sentry/opentelemetry';
-import { GLOBAL_OBJ, consoleSandbox, logger } from '@sentry/utils';
 import { createAddHookMessageChannel } from 'import-in-the-middle';
 
 import { getOpenTelemetryInstrumentationToPreload } from '../integrations/tracing';

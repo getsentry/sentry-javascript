@@ -1,8 +1,10 @@
 import type { IntegrationFn } from '@sentry/types';
-import type { AddRequestDataToEventOptions, TransactionNamingScheme } from '@sentry/utils';
-import { addNormalizedRequestDataToEvent } from '@sentry/utils';
-import { addRequestDataToEvent } from '@sentry/utils';
 import { defineIntegration } from '../integration';
+import {
+  type AddRequestDataToEventOptions,
+  addNormalizedRequestDataToEvent,
+  addRequestDataToEvent,
+} from '../utils-hoist/requestdata';
 
 export type RequestDataIntegrationOptions = {
   /**
@@ -24,8 +26,11 @@ export type RequestDataIntegrationOptions = {
         };
   };
 
-  /** Whether to identify transactions by parameterized path, parameterized path with method, or handler name */
-  transactionNamingScheme?: TransactionNamingScheme;
+  /**
+   * Whether to identify transactions by parameterized path, parameterized path with method, or handler name.
+   * @deprecated This option does not do anything anymore, and will be removed in v9.
+   */
+  transactionNamingScheme?: 'path' | 'methodPath' | 'handler';
 };
 
 const DEFAULT_OPTIONS = {
@@ -110,6 +115,7 @@ function convertReqDataIntegrationOptsToAddReqDataOpts(
   integrationOptions: Required<RequestDataIntegrationOptions>,
 ): AddRequestDataToEventOptions {
   const {
+    // eslint-disable-next-line deprecation/deprecation
     transactionNamingScheme,
     include: { ip, user, ...requestOptions },
   } = integrationOptions;

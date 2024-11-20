@@ -1,4 +1,4 @@
-import { TRACEPARENT_REGEXP } from '@sentry/utils';
+import { TRACEPARENT_REGEXP } from '@sentry/core';
 import { cleanupChildProcesses, createRunner } from '../../../../utils/runner';
 import type { TestAPIResponse } from '../server';
 

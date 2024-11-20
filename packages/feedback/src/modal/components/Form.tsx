@@ -1,10 +1,10 @@
+import { logger } from '@sentry/core';
 import type {
   FeedbackFormData,
   FeedbackInternalOptions,
   FeedbackScreenshotIntegration,
   SendFeedback,
 } from '@sentry/types';
-import { logger } from '@sentry/utils';
 // biome-ignore lint/nursery/noUnusedImports: reason
 import { h } from 'preact'; // eslint-disable-line @typescript-eslint/no-unused-vars
 import type { JSX, VNode } from 'preact';

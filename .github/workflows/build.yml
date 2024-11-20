@@ -44,7 +44,6 @@ env:
     ${{ github.workspace }}/packages/*/build
     ${{ github.workspace }}/packages/ember/*.d.ts
     ${{ github.workspace }}/packages/gatsby/*.d.ts
-    ${{ github.workspace }}/packages/core/src/version.ts
     ${{ github.workspace }}/packages/utils/cjs
     ${{ github.workspace }}/packages/utils/esm
 
@@ -801,7 +800,15 @@ jobs:
     needs: [job_get_metadata, job_build, job_compile_bindings_profiling_node]
     runs-on: ubuntu-20.04-large-js
     timeout-minutes: 15
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+      matrix-optional: ${{ steps.matrix-optional.outputs.matrix }}
     steps:
+      - name: Check out base commit (${{ github.event.pull_request.base.sha }})
+        uses: actions/checkout@v4
+        if: github.event_name == 'pull_request'
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v4
         with:
@@ -851,11 +858,21 @@ jobs:
           path: ${{ github.workspace }}/packages/*/*.tgz
           key: ${{ env.BUILD_CACHE_TARBALL_KEY }}
 
+      - name: Determine which E2E test applications should be run
+        id: matrix
+        run: yarn --silent ci:build-matrix --base=${{ (github.event_name == 'pull_request' && github.event.pull_request.base.sha) || '' }} >> $GITHUB_OUTPUT
+        working-directory: dev-packages/e2e-tests
+
+      - name: Determine which optional E2E test applications should be run
+        id: matrix-optional
+        run: yarn --silent ci:build-matrix-optional --base=${{ (github.event_name == 'pull_request' && github.event.pull_request.base.sha) || '' }} >> $GITHUB_OUTPUT
+        working-directory: dev-packages/e2e-tests
+
   job_e2e_tests:
     name: E2E ${{ matrix.label || matrix.test-application }} Test
     # We need to add the `always()` check here because the previous step has this as well :(
     # See: https://github.com/actions/runner/issues/2205
-    if: always() && needs.job_e2e_prepare.result == 'success'
+    if: always() && needs.job_e2e_prepare.result == 'success' && needs.job_e2e_prepare.outputs.matrix != '{"include":[]}'
     needs: [job_get_metadata, job_build, job_e2e_prepare]
     runs-on: ubuntu-20.04
     timeout-minutes: 15
@@ -870,105 +887,7 @@ jobs:
       E2E_TEST_SENTRY_PROJECT: 'sentry-javascript-e2e-tests'
     strategy:
       fail-fast: false
-      matrix:
-        is_dependabot:
-          - ${{ github.actor == 'dependabot[bot]' }}
-        test-application:
-          [
-            'angular-17',
-            'angular-18',
-            'astro-4',
-            'aws-lambda-layer-cjs',
-            'aws-serverless-esm',
-            'node-express',
-            'create-react-app',
-            'create-next-app',
-            'create-remix-app',
-            'create-remix-app-legacy',
-            'create-remix-app-v2',
-            'create-remix-app-v2-legacy',
-            'create-remix-app-express',
-            'create-remix-app-express-legacy',
-            'create-remix-app-express-vite-dev',
-            'default-browser',
-            'node-express-esm-loader',
-            'node-express-esm-preload',
-            'node-express-esm-without-loader',
-            'node-express-cjs-preload',
-            'node-otel-sdk-node',
-            'node-otel-custom-sampler',
-            'node-otel-without-tracing',
-            'ember-classic',
-            'ember-embroider',
-            'nextjs-app-dir',
-            'nextjs-13',
-            'nextjs-14',
-            'nextjs-15',
-            'nextjs-turbo',
-            'nextjs-t3',
-            'react-17',
-            'react-19',
-            'react-create-hash-router',
-            'react-router-6-use-routes',
-            'react-router-5',
-            'react-router-6',
-            'solid',
-            'solidstart',
-            'solidstart-spa',
-            'svelte-5',
-            'sveltekit',
-            'sveltekit-2',
-            'sveltekit-2-svelte-5',
-            'sveltekit-2-twp',
-            'tanstack-router',
-            'generic-ts3.8',
-            'node-fastify',
-            'node-fastify-5',
-            'node-hapi',
-            'node-nestjs-basic',
-            'node-nestjs-distributed-tracing',
-            'nestjs-basic',
-            'nestjs-8',
-            'nestjs-distributed-tracing',
-            'nestjs-with-submodules',
-            'nestjs-with-submodules-decorator',
-            'nestjs-basic-with-graphql',
-            'nestjs-graphql',
-            'node-exports-test-app',
-            'node-koa',
-            'node-connect',
-            'nuxt-3',
-            'nuxt-3-min',
-            'nuxt-4',
-            'vue-3',
-            'webpack-4',
-            'webpack-5'
-          ]
-        build-command:
-          - false
-        label:
-          - false
-        # Add any variations of a test app here
-        # You should provide an alternate build-command as well as a matching label
-        include:
-          - test-application: 'create-react-app'
-            build-command: 'test:build-ts3.8'
-            label: 'create-react-app (TS 3.8)'
-          - test-application: 'react-router-6'
-            build-command: 'test:build-ts3.8'
-            label: 'react-router-6 (TS 3.8)'
-          - test-application: 'create-next-app'
-            build-command: 'test:build-13'
-            label: 'create-next-app (next@13)'
-          - test-application: 'nextjs-app-dir'
-            build-command: 'test:build-13'
-            label: 'nextjs-app-dir (next@13)'
-        exclude:
-          - is_dependabot: true
-            test-application: 'cloudflare-astro'
-          - is_dependabot: true
-            test-application: 'cloudflare-workers'
-
+      matrix: ${{ fromJson(needs.job_e2e_prepare.outputs.matrix) }}
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v4
@@ -1069,6 +988,7 @@ jobs:
     # See: https://github.com/actions/runner/issues/2205
     if:
       always() && needs.job_e2e_prepare.result == 'success' &&
+      needs.job_e2e_prepare.outputs.matrix-optional != '{"include":[]}' &&
       (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) &&
       github.actor != 'dependabot[bot]'
     needs: [job_get_metadata, job_build, job_e2e_prepare]
@@ -1085,58 +1005,7 @@ jobs:
       E2E_TEST_SENTRY_PROJECT: 'sentry-javascript-e2e-tests'
     strategy:
       fail-fast: false
-      matrix:
-        test-application:
-          [
-            'cloudflare-astro',
-            'cloudflare-workers',
-            'react-send-to-sentry',
-            'node-express-send-to-sentry',
-            'debug-id-sourcemaps',
-          ]
-        build-command:
-          - false
-        assert-command:
-          - false
-        label:
-          - false
-        include:
-          - test-application: 'create-remix-app'
-            assert-command: 'test:assert-sourcemaps'
-            label: 'create-remix-app (sourcemaps)'
-          - test-application: 'create-remix-app-legacy'
-            assert-command: 'test:assert-sourcemaps'
-            label: 'create-remix-app-legacy (sourcemaps)'
-          - test-application: 'nextjs-app-dir'
-            build-command: 'test:build-canary'
-            label: 'nextjs-app-dir (canary)'
-          - test-application: 'nextjs-app-dir'
-            build-command: 'test:build-latest'
-            label: 'nextjs-app-dir (latest)'
-          - test-application: 'nextjs-13'
-            build-command: 'test:build-canary'
-            label: 'nextjs-13 (canary)'
-          - test-application: 'nextjs-13'
-            build-command: 'test:build-latest'
-            label: 'nextjs-13 (latest)'
-          - test-application: 'nextjs-14'
-            build-command: 'test:build-canary'
-            label: 'nextjs-14 (canary)'
-          - test-application: 'nextjs-14'
-            build-command: 'test:build-latest'
-            label: 'nextjs-14 (latest)'
-          - test-application: 'nextjs-15'
-            build-command: 'test:build-canary'
-            label: 'nextjs-15 (canary)'
-          - test-application: 'nextjs-15'
-            build-command: 'test:build-latest'
-            label: 'nextjs-15 (latest)'
-          - test-application: 'nextjs-turbo'
-            build-command: 'test:build-canary'
-            label: 'nextjs-turbo (canary)'
-          - test-application: 'nextjs-turbo'
-            build-command: 'test:build-latest'
-            label: 'nextjs-turbo (latest)'
+      matrix: ${{ fromJson(needs.job_e2e_prepare.outputs.matrix-optional) }}
 
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})

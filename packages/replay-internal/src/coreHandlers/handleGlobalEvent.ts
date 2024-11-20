@@ -5,6 +5,7 @@ import type { ReplayContainer } from '../types';
 import { isErrorEvent, isFeedbackEvent, isReplayEvent, isTransactionEvent } from '../util/eventUtils';
 import { isRrwebError } from '../util/isRrwebError';
 import { logger } from '../util/logger';
+import { resetReplayIdOnDynamicSamplingContext } from '../util/resetReplayIdOnDynamicSamplingContext';
 import { addFeedbackBreadcrumb } from './util/addFeedbackBreadcrumb';
 import { shouldSampleForBufferEvent } from './util/shouldSampleForBufferEvent';
 
@@ -34,6 +35,8 @@ export function handleGlobalEventListener(replay: ReplayContainer): (event: Even
       // Ensure we do not add replay_id if the session is expired
       const isSessionActive = replay.checkAndHandleExpiredSession();
       if (!isSessionActive) {
+        // prevent exceeding replay durations by removing the expired replayId from the DSC
+        resetReplayIdOnDynamicSamplingContext();
         return event;
       }
 

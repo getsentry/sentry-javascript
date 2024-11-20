@@ -8,7 +8,36 @@
 
 ## Unreleased
 
+### Deprecated `@WithSentry` in `@sentry/nestjs`
+
+The `@WithSentry` decorator was deprecated. Use `@SentryExceptionCaptured` instead. This is a simple renaming and functionality stays identical.
+
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
+
+## 8.39.0
+
+### Important Changes
+
+- **feat(nestjs): Instrument event handlers ([#14307](https://github.com/getsentry/sentry-javascript/pull/14307))**
+
+The `@sentry/nestjs` SDK will now capture performance data for [NestJS Events (`@nestjs/event-emitter`)](https://docs.nestjs.com/techniques/events)
+
+### Other Changes
+
+- feat(nestjs): Add alias `@SentryExceptionCaptured` for `@WithSentry` ([#14322](https://github.com/getsentry/sentry-javascript/pull/14322))
+- feat(nestjs): Duplicate `SentryService` behaviour into `@sentry/nestjs` SDK `init()` ([#14321](https://github.com/getsentry/sentry-javascript/pull/14321))
+- feat(nestjs): Handle GraphQL contexts in `SentryGlobalFilter` ([#14320](https://github.com/getsentry/sentry-javascript/pull/14320))
+- feat(node): Add alias `childProcessIntegration` for `processThreadBreadcrumbIntegration` and deprecate it ([#14334](https://github.com/getsentry/sentry-javascript/pull/14334))
+- feat(node): Ensure request bodies are reliably captured for http requests ([#13746](https://github.com/getsentry/sentry-javascript/pull/13746))
+- feat(replay): Upgrade rrweb packages to 2.29.0 ([#14160](https://github.com/getsentry/sentry-javascript/pull/14160))
+- fix(cdn): Ensure `_sentryModuleMetadata` is not mangled ([#14344](https://github.com/getsentry/sentry-javascript/pull/14344))
+- fix(core): Set `sentry.source` attribute to `custom` when calling `span.updateName` on `SentrySpan` ([#14251](https://github.com/getsentry/sentry-javascript/pull/14251))
+- fix(mongo): rewrite Buffer as ? during serialization ([#14071](https://github.com/getsentry/sentry-javascript/pull/14071))
+- fix(replay): Remove replay id from DSC on expired sessions ([#14342](https://github.com/getsentry/sentry-javascript/pull/14342))
+- ref(profiling) Fix electron crash ([#14216](https://github.com/getsentry/sentry-javascript/pull/14216))
+- ref(types): Deprecate `Request` type in favor of `RequestEventData` ([#14317](https://github.com/getsentry/sentry-javascript/pull/14317))
+- ref(utils): Stop setting `transaction` in `requestDataIntegration` ([#14306](https://github.com/getsentry/sentry-javascript/pull/14306))
+- ref(vue): Reduce bundle size for starting application render span ([#14275](https://github.com/getsentry/sentry-javascript/pull/14275))
 
 ## 8.38.0
 

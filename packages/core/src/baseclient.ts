@@ -30,25 +30,6 @@ import type {
   Transport,
   TransportMakeRequestResponse,
 } from '@sentry/types';
-import {
-  SentryError,
-  SyncPromise,
-  addItemToEnvelope,
-  checkOrSetAlreadyCaught,
-  createAttachmentEnvelopeItem,
-  createClientReportEnvelope,
-  dropUndefinedKeys,
-  dsnToString,
-  isParameterizedString,
-  isPlainObject,
-  isPrimitive,
-  isThenable,
-  logger,
-  makeDsn,
-  rejectedSyncPromise,
-  resolvedSyncPromise,
-  uuid4,
-} from '@sentry/utils';
 
 import { getEnvelopeEndpointWithUrlEncodedAuth } from './api';
 import { getIsolationScope } from './currentScopes';
@@ -60,6 +41,15 @@ import { setupIntegration, setupIntegrations } from './integration';
 import type { Scope } from './scope';
 import { updateSession } from './session';
 import { getDynamicSamplingContextFromClient } from './tracing/dynamicSamplingContext';
+import { createClientReportEnvelope } from './utils-hoist/clientreport';
+import { dsnToString, makeDsn } from './utils-hoist/dsn';
+import { addItemToEnvelope, createAttachmentEnvelopeItem } from './utils-hoist/envelope';
+import { SentryError } from './utils-hoist/error';
+import { isParameterizedString, isPlainObject, isPrimitive, isThenable } from './utils-hoist/is';
+import { logger } from './utils-hoist/logger';
+import { checkOrSetAlreadyCaught, uuid4 } from './utils-hoist/misc';
+import { dropUndefinedKeys } from './utils-hoist/object';
+import { SyncPromise, rejectedSyncPromise, resolvedSyncPromise } from './utils-hoist/syncpromise';
 import { parseSampleRate } from './utils/parseSampleRate';
 import { prepareEvent } from './utils/prepareEvent';
 

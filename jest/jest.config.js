@@ -3,8 +3,7 @@ module.exports = {
   rootDir: process.cwd(),
   collectCoverage: true,
   transform: {
-    '^.+\\.ts$': 'ts-jest',
-    '^.+\\.tsx$': 'ts-jest',
+    '^.+\\.(ts|tsx)$': 'ts-jest',
   },
   coverageDirectory: '<rootDir>/coverage',
   moduleFileExtensions: ['js', 'ts', 'tsx'],
@@ -15,6 +14,10 @@ module.exports = {
   globals: {
     'ts-jest': {
       tsconfig: '<rootDir>/tsconfig.test.json',
+      diagnostics: {
+        // Ignore this warning for tests, we do not care about this
+        ignoreCodes: ['TS151001'],
+      },
     },
     __DEBUG_BUILD__: true,
   },

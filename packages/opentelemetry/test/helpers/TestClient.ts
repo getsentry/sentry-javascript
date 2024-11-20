@@ -1,6 +1,6 @@
 import { BaseClient, createTransport, getCurrentScope } from '@sentry/core';
+import { resolvedSyncPromise } from '@sentry/core';
 import type { Client, ClientOptions, Event, Options, SeverityLevel } from '@sentry/types';
-import { resolvedSyncPromise } from '@sentry/utils';
 
 import { wrapClientClass } from '../../src/custom/client';
 import type { OpenTelemetryClient } from '../../src/types';

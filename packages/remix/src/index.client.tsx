@@ -1,7 +1,7 @@
 import { applySdkMetadata } from '@sentry/core';
+import { logger } from '@sentry/core';
 import { init as reactInit } from '@sentry/react';
 import type { Client } from '@sentry/types';
-import { logger } from '@sentry/utils';
 import { DEBUG_BUILD } from './utils/debug-build';
 import type { RemixOptions } from './utils/remixOptions';
 export { captureRemixErrorBoundaryError } from './client/errors';

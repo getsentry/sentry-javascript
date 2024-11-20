@@ -1,5 +1,10 @@
+import { SentryError, SyncPromise, dsnToString } from '@sentry/core';
 import type { Client, Envelope, ErrorEvent, Event, TransactionEvent } from '@sentry/types';
-import { SentryError, SyncPromise, dsnToString, logger } from '@sentry/utils';
+
+import * as loggerModule from '../../src/utils-hoist/logger';
+import * as miscModule from '../../src/utils-hoist/misc';
+import * as stringModule from '../../src/utils-hoist/string';
+import * as timeModule from '../../src/utils-hoist/time';
 
 import {
   Scope,
@@ -24,38 +29,10 @@ declare var global: any;
 const clientEventFromException = jest.spyOn(TestClient.prototype, 'eventFromException');
 const clientProcess = jest.spyOn(TestClient.prototype as any, '_process');
 
-jest.mock('@sentry/utils', () => {
-  const original = jest.requireActual('@sentry/utils');
-  return {
-    ...original,
-
-    uuid4(): string {
-      return '42';
-    },
-    GLOBAL_OBJ: {
-      console: {
-        log(): void {
-          // no-empty
-        },
-        warn(): void {
-          // no-empty
-        },
-        error(): void {
-          // no-empty
-        },
-      },
-    },
-    consoleSandbox(cb: () => any): any {
-      return cb();
-    },
-    truncate(str: string): string {
-      return str;
-    },
-    dateTimestampInSeconds(): number {
-      return 2020;
-    },
-  };
-});
+jest.spyOn(miscModule, 'uuid4').mockImplementation(() => '42');
+jest.spyOn(loggerModule, 'consoleSandbox').mockImplementation(cb => cb());
+jest.spyOn(stringModule, 'truncate').mockImplementation(str => str);
+jest.spyOn(timeModule, 'dateTimestampInSeconds').mockImplementation(() => 2020);
 
 describe('BaseClient', () => {
   beforeEach(() => {
@@ -1113,7 +1090,7 @@ describe('BaseClient', () => {
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSend });
       const client = new TestClient(options);
       const captureExceptionSpy = jest.spyOn(client, 'captureException');
-      const loggerWarnSpy = jest.spyOn(logger, 'log');
+      const loggerWarnSpy = jest.spyOn(loggerModule.logger, 'log');
 
       client.captureEvent({ message: 'hello' });
 
@@ -1132,7 +1109,7 @@ describe('BaseClient', () => {
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSendTransaction });
       const client = new TestClient(options);
       const captureExceptionSpy = jest.spyOn(client, 'captureException');
-      const loggerWarnSpy = jest.spyOn(logger, 'log');
+      const loggerWarnSpy = jest.spyOn(loggerModule.logger, 'log');
 
       client.captureEvent({ transaction: '/dogs/are/great', type: 'transaction' });
 
@@ -1184,7 +1161,7 @@ describe('BaseClient', () => {
         // @ts-expect-error we need to test regular-js behavior
         const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSend });
         const client = new TestClient(options);
-        const loggerWarnSpy = jest.spyOn(logger, 'warn');
+        const loggerWarnSpy = jest.spyOn(loggerModule.logger, 'warn');
 
         client.captureEvent({ message: 'hello' });
 
@@ -1205,7 +1182,7 @@ describe('BaseClient', () => {
         // @ts-expect-error we need to test regular-js behavior
         const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSendTransaction });
         const client = new TestClient(options);
-        const loggerWarnSpy = jest.spyOn(logger, 'warn');
+        const loggerWarnSpy = jest.spyOn(loggerModule.logger, 'warn');
 
         client.captureEvent({ transaction: '/dogs/are/great', type: 'transaction' });
 
@@ -1464,7 +1441,7 @@ describe('BaseClient', () => {
 
       const client = new TestClient(getDefaultTestClientOptions({ dsn: PUBLIC_DSN }));
       const captureExceptionSpy = jest.spyOn(client, 'captureException');
-      const loggerLogSpy = jest.spyOn(logger, 'log');
+      const loggerLogSpy = jest.spyOn(loggerModule.logger, 'log');
       const scope = new Scope();
       scope.addEventProcessor(() => null);
 
@@ -1482,7 +1459,7 @@ describe('BaseClient', () => {
 
       const client = new TestClient(getDefaultTestClientOptions({ dsn: PUBLIC_DSN }));
       const captureExceptionSpy = jest.spyOn(client, 'captureException');
-      const loggerLogSpy = jest.spyOn(logger, 'log');
+      const loggerLogSpy = jest.spyOn(loggerModule.logger, 'log');
       const scope = new Scope();
       scope.addEventProcessor(() => null);
 
@@ -1586,7 +1563,7 @@ describe('BaseClient', () => {
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
       const client = new TestClient(options);
       const captureExceptionSpy = jest.spyOn(client, 'captureException');
-      const loggerWarnSpy = jest.spyOn(logger, 'warn');
+      const loggerWarnSpy = jest.spyOn(loggerModule.logger, 'warn');
       const scope = new Scope();
       const exception = new Error('sorry');
       scope.addEventProcessor(() => {

@@ -1,6 +1,6 @@
 import { TraceState } from '@opentelemetry/core';
+import { dynamicSamplingContextToSentryBaggageHeader } from '@sentry/core';
 import type { DynamicSamplingContext } from '@sentry/types';
-import { dynamicSamplingContextToSentryBaggageHeader } from '@sentry/utils';
 import {
   SENTRY_TRACE_STATE_DSC,
   SENTRY_TRACE_STATE_PARENT_SPAN_ID,

@@ -81,10 +81,16 @@ describe('extractErrorContext', () => {
 });
 
 describe('reportNuxtError', () => {
-  vi.mock('@sentry/core', () => ({
-    captureException: vi.fn(),
-    getClient: vi.fn(),
-  }));
+  vi.mock('@sentry/core', async importOriginal => {
+    const actual = await importOriginal();
+    return {
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
+      ...actual,
+      captureException: vi.fn(),
+      getClient: vi.fn(),
+    };
+  });
 
   const mockError = new Error('Test error');
 
