@@ -201,8 +201,7 @@ const makeWrappedLoader =
   };
 
 function getTraceAndBaggage(): SerializedTraceData {
-  // TODO: Do we need to check for hasTracingEnabled() here?
-  return isNodeEnv() && hasTracingEnabled() ? getTraceData() : {};
+  return isNodeEnv() ? getTraceData() : {};
 }
 
 function makeWrappedRootLoader(remixVersion: number) {
