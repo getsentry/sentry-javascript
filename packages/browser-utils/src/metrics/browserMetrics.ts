@@ -635,16 +635,16 @@ function _setWebVitalAttributes(span: Span): void {
       span.setAttribute('lcp.url', _lcpEntry.url.trim().slice(0, 200));
     }
 
-    if (_lcpEntry.renderTime) {
-      // renderTime is the time portion of LCP that's related to rendering the LCP element.
+    if (_lcpEntry.loadTime != null) {
+      // loadTime is the time of LCP that's related to receiving the LCP element response..
+      span.setAttribute('lcp.loadTime', _lcpEntry.loadTime);
+    }
+
+    if (_lcpEntry.renderTime != null) {
+      // renderTime is loadTime + rendering time
       // it's 0 if the LCP element is loaded from a 3rd party origin that doesn't send the
       // `Timing-Allow-Origin` header.
       span.setAttribute('lcp.renderTime', _lcpEntry.renderTime);
-    }
-
-    if (_lcpEntry.loadTime) {
-      // loadTime is the time portion of LCP that's related to loading the LCP element.
-      span.setAttribute('lcp.loadTime', _lcpEntry.loadTime);
     }
 
     span.setAttribute('lcp.size', _lcpEntry.size);
