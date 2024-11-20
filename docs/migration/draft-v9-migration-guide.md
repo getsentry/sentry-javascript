@@ -34,6 +34,27 @@
 
 - Deprecated `Request` in favor of `RequestEventData`.
 
+## `@sentry/vue`
+
+- Deprecated `tracingOptions`, `trackComponents`, `timeout`, `hooks` options everywhere other than in the `tracingOptions` option of the `vueIntegration()`.
+  These options should now be set as follows:
+
+  ```ts
+  import * as Sentry from '@sentry/vue';
+
+  Sentry.init({
+    integrations: [
+      Sentry.vueIntegration({
+        tracingOptions: {
+          trackComponents: true,
+          timeout: 1000,
+          hooks: ['mount', 'update', 'unmount'],
+        },
+      }),
+    ],
+  });
+  ```
+
 ## Server-side SDKs (`@sentry/node` and all dependents)
 
 - Deprecated `processThreadBreadcrumbIntegration` in favor of `childProcessIntegration`. Functionally they are the same.
