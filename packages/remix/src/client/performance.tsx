@@ -5,6 +5,7 @@ import {
   getCurrentScope,
   getRootSpan,
 } from '@sentry/core';
+import { isNodeEnv, logger } from '@sentry/core';
 import type { browserTracingIntegration as originalBrowserTracingIntegration } from '@sentry/react';
 import type { BrowserClient, ErrorBoundaryProps } from '@sentry/react';
 import {
@@ -15,7 +16,6 @@ import {
   withErrorBoundary,
 } from '@sentry/react';
 import type { Client, StartSpanOptions } from '@sentry/types';
-import { isNodeEnv, logger } from '@sentry/utils';
 import * as React from 'react';
 
 import { DEBUG_BUILD } from '../utils/debug-build';

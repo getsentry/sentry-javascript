@@ -8,14 +8,14 @@ import {
   makeSession,
   updateSession,
 } from '@sentry/core';
-import type { DebugImage, Event, ScopeData, Session, StackFrame } from '@sentry/types';
 import {
   callFrameToStackFrame,
   normalizeUrlToBase,
   stripSentryFramesAndReverse,
   uuid4,
   watchdogTimer,
-} from '@sentry/utils';
+} from '@sentry/core';
+import type { DebugImage, Event, ScopeData, Session, StackFrame } from '@sentry/types';
 
 import { makeNodeTransport } from '../../transports';
 import { createGetModuleFromFilename } from '../../utils/module';

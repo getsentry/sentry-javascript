@@ -1,5 +1,5 @@
 import { getTraceMetaTags } from '@sentry/core';
-import { addNonEnumerableProperty } from '@sentry/utils';
+import { addNonEnumerableProperty } from '@sentry/core';
 import type { ResponseMiddleware } from '@solidjs/start/middleware';
 import type { FetchEvent } from '@solidjs/start/server';
 

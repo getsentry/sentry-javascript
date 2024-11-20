@@ -16,7 +16,7 @@ import {
 import type { RequestEventData } from '@sentry/types';
 import type { RouteHandlerContext } from './types';
 
-import { propagationContextFromHeaders, winterCGHeadersToDict } from '@sentry/utils';
+import { propagationContextFromHeaders, winterCGHeadersToDict } from '@sentry/core';
 import { isNotFoundNavigationError, isRedirectNavigationError } from './nextNavigationErrorUtils';
 import { commonObjectToIsolationScope } from './utils/tracingUtils';
 

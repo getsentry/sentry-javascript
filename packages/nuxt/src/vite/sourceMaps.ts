@@ -1,6 +1,6 @@
 import type { Nuxt } from '@nuxt/schema';
+import { consoleSandbox } from '@sentry/core';
 import { type SentryRollupPluginOptions, sentryRollupPlugin } from '@sentry/rollup-plugin';
-import { consoleSandbox } from '@sentry/utils';
 import { type SentryVitePluginOptions, sentryVitePlugin } from '@sentry/vite-plugin';
 import type { NitroConfig } from 'nitropack';
 import type { OutputOptions } from 'rollup';

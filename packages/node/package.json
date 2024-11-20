@@ -100,7 +100,6 @@
     "@sentry/core": "8.39.0",
     "@sentry/opentelemetry": "8.39.0",
     "@sentry/types": "8.39.0",
-    "@sentry/utils": "8.39.0",
     "import-in-the-middle": "^1.11.2"
   },
   "devDependencies": {

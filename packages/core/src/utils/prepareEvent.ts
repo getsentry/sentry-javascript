@@ -8,19 +8,16 @@ import type {
   ScopeContext,
   StackParser,
 } from '@sentry/types';
-import {
-  addExceptionMechanism,
-  dateTimestampInSeconds,
-  getFilenameToDebugIdMap,
-  normalize,
-  truncate,
-  uuid4,
-} from '@sentry/utils';
 
 import { DEFAULT_ENVIRONMENT } from '../constants';
 import { getGlobalScope } from '../currentScopes';
 import { notifyEventProcessors } from '../eventProcessors';
 import { Scope } from '../scope';
+import { getFilenameToDebugIdMap } from '../utils-hoist/debug-ids';
+import { addExceptionMechanism, uuid4 } from '../utils-hoist/misc';
+import { normalize } from '../utils-hoist/normalize';
+import { truncate } from '../utils-hoist/string';
+import { dateTimestampInSeconds } from '../utils-hoist/time';
 import { applyScopeDataToEvent, mergeScopeData } from './applyScopeDataToEvent';
 
 /**

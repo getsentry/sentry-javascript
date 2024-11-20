@@ -1,5 +1,5 @@
-import { logger } from '@sentry/utils';
 import { DEBUG_BUILD } from '../debug-build';
+import { logger } from '../utils-hoist/logger';
 
 /**
  * Parse a sample rate from a given value.

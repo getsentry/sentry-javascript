@@ -1,6 +1,6 @@
 import type { IntegrationFn } from '@sentry/types';
-import { timestampInSeconds } from '@sentry/utils';
 import { defineIntegration } from '../integration';
+import { timestampInSeconds } from '../utils-hoist/time';
 
 const INTEGRATION_NAME = 'SessionTiming';
 

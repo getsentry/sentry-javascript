@@ -1,8 +1,8 @@
 import type { Client, Event, EventHint, Integration, IntegrationFn, Options } from '@sentry/types';
-import { arrayify, logger } from '@sentry/utils';
 import { getClient } from './currentScopes';
 
 import { DEBUG_BUILD } from './debug-build';
+import { logger } from './utils-hoist/logger';
 
 declare module '@sentry/types' {
   interface Integration {
@@ -58,7 +58,8 @@ export function getIntegrationsToSetup(options: Pick<Options, 'defaultIntegratio
   if (Array.isArray(userIntegrations)) {
     integrations = [...defaultIntegrations, ...userIntegrations];
   } else if (typeof userIntegrations === 'function') {
-    integrations = arrayify(userIntegrations(defaultIntegrations));
+    const resolvedUserIntegrations = userIntegrations(defaultIntegrations);
+    integrations = Array.isArray(resolvedUserIntegrations) ? resolvedUserIntegrations : [resolvedUserIntegrations];
   } else {
     integrations = defaultIntegrations;
   }

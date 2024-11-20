@@ -1,6 +1,6 @@
 import { Scope, getCurrentScope, getGlobalScope, getIsolationScope, withIsolationScope, withScope } from '@sentry/core';
+import { GLOBAL_OBJ } from '@sentry/core';
 import { setOpenTelemetryContextAsyncContextStrategy } from '@sentry/opentelemetry';
-import { GLOBAL_OBJ } from '@sentry/utils';
 import { AsyncLocalStorage } from 'async_hooks';
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { VercelEdgeClient } from '../src';

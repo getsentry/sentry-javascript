@@ -1,7 +1,7 @@
 import type { AppData, DataFunctionArgs, EntryContext, HandleDocumentRequestFunction } from '@remix-run/node';
 import { captureException, getClient, handleCallbackErrors } from '@sentry/core';
+import { addExceptionMechanism, isPrimitive, logger, objectify } from '@sentry/core';
 import type { Span } from '@sentry/types';
-import { addExceptionMechanism, isPrimitive, logger, objectify } from '@sentry/utils';
 import { DEBUG_BUILD } from './debug-build';
 import type { RemixOptions } from './remixOptions';
 import { storeFormDataKeys } from './utils';

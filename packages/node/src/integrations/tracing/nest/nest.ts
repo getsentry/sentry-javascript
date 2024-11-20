@@ -9,8 +9,8 @@ import {
   getIsolationScope,
   spanToJSON,
 } from '@sentry/core';
+import { consoleSandbox, logger } from '@sentry/core';
 import type { Span } from '@sentry/types';
-import { consoleSandbox, logger } from '@sentry/utils';
 import { generateInstrumentOnce } from '../../../otel/instrument';
 import { SentryNestEventInstrumentation } from './sentry-nest-event-instrumentation';
 import { SentryNestInstrumentation } from './sentry-nest-instrumentation';

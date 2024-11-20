@@ -8,8 +8,7 @@ import type {
   EventProcessor,
   ScopeContext,
 } from '@sentry/types';
-import { GLOBAL_OBJ, createStackParser } from '@sentry/utils';
-import { getGlobalScope, getIsolationScope } from '../../src';
+import { GLOBAL_OBJ, createStackParser, getGlobalScope, getIsolationScope } from '../../src';
 
 import { Scope } from '../../src/scope';
 import {

@@ -1,3 +1,5 @@
+// TODO(v9): Don't have this file be in the "utils-hoist" folder but "utils" folder - it's cleaner
+
 export type { ClientClass as SentryCoreCurrentScopes } from './sdk';
 export type { AsyncContextStrategy } from './asyncContext/types';
 export type { Carrier } from './carrier';
@@ -116,4 +118,4 @@ export { captureFeedback } from './feedback';
 // eslint-disable-next-line deprecation/deprecation
 export { getCurrentHubShim, getCurrentHub } from './getCurrentHubShim';
 
-export { SDK_VERSION } from '@sentry/utils';
+export * from './utils-hoist/index';

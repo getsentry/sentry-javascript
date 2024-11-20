@@ -1,4 +1,4 @@
-import { isError } from '@sentry/utils';
+import { isError } from '@sentry/core';
 
 /**
  * Determines whether input is a Next.js not-found error.

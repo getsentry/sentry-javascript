@@ -10,9 +10,9 @@ import {
   withIsolationScope,
 } from '@sentry/core';
 import { startSpan } from '@sentry/core';
+import { logger, winterCGRequestToRequestData } from '@sentry/core';
 import { continueTrace } from '@sentry/node';
 import type { Span } from '@sentry/types';
-import { logger, winterCGRequestToRequestData } from '@sentry/utils';
 import type { Handle, ResolveOptions } from '@sveltejs/kit';
 
 import { DEBUG_BUILD } from '../common/debug-build';

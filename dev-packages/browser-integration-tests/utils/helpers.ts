@@ -1,4 +1,5 @@
 import type { Page, Request } from '@playwright/test';
+import { parseEnvelope } from '@sentry/core';
 import type {
   Envelope,
   EnvelopeItem,
@@ -7,7 +8,6 @@ import type {
   EventEnvelope,
   EventEnvelopeHeaders,
 } from '@sentry/types';
-import { parseEnvelope } from '@sentry/utils';
 
 export const envelopeUrlRegex = /\.sentry\.io\/api\/\d+\/envelope\//;
 
