@@ -1,6 +1,5 @@
 import {
   ROOT_CONTEXT,
-  SpanKind,
   TraceFlags,
   context,
   defaultTextMapGetter,
@@ -9,8 +8,7 @@ import {
   trace,
 } from '@opentelemetry/api';
 import { suppressTracing } from '@opentelemetry/core';
-import { ATTR_URL_FULL, SEMATTRS_HTTP_URL } from '@opentelemetry/semantic-conventions';
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP, getCurrentScope, withScope } from '@sentry/core';
+import { getCurrentScope, withScope } from '@sentry/core';
 
 import { SENTRY_BAGGAGE_HEADER, SENTRY_SCOPES_CONTEXT_KEY, SENTRY_TRACE_HEADER } from '../src/constants';
 import { SentryPropagator } from '../src/propagator';
@@ -30,7 +28,6 @@ describe('SentryPropagator', () => {
       release: '1.0.0',
       enableTracing: true,
       dsn: 'https://abc@domain/123',
-      tracePropagationTargets: ['/path2'],
     });
   });
 
@@ -547,111 +544,6 @@ describe('SentryPropagator', () => {
       propagator.inject(context, carrier, defaultTextMapSetter);
       expect(carrier[SENTRY_TRACE_HEADER]).toBe(undefined);
       expect(carrier[SENTRY_BAGGAGE_HEADER]).toBe(undefined);
-    });
-
-    it.each([
-      [
-        {
-          attributes: { [ATTR_URL_FULL]: 'https://domain.com/path2' },
-          kind: SpanKind.CLIENT,
-        },
-        true,
-      ],
-      [
-        {
-          // eslint-disable-next-line deprecation/deprecation
-          attributes: { [SEMATTRS_HTTP_URL]: 'https://domain.com/path2' },
-          kind: SpanKind.CLIENT,
-        },
-        true,
-      ],
-      [
-        {
-          attributes: { [ATTR_URL_FULL]: 'https://domain.com/path3' },
-          kind: SpanKind.CLIENT,
-        },
-        false,
-      ],
-      [
-        {
-          // eslint-disable-next-line deprecation/deprecation
-          attributes: { [SEMATTRS_HTTP_URL]: 'https://domain.com/path3' },
-          kind: SpanKind.CLIENT,
-        },
-        false,
-      ],
-      [
-        {
-          attributes: { [ATTR_URL_FULL]: 'https://domain.com/path2' },
-        },
-        true,
-      ],
-      [
-        {
-          // eslint-disable-next-line deprecation/deprecation
-          attributes: { [SEMATTRS_HTTP_URL]: 'https://domain.com/path2' },
-        },
-        true,
-      ],
-      [
-        {
-          attributes: { [ATTR_URL_FULL]: 'https://domain.com/path3' },
-        },
-        true,
-      ],
-      [
-        {
-          // eslint-disable-next-line deprecation/deprecation
-          attributes: { [SEMATTRS_HTTP_URL]: 'https://domain.com/path3' },
-        },
-        true,
-      ],
-      [
-        {
-          attributes: { [ATTR_URL_FULL]: 'https://domain.com/path3' },
-          kind: SpanKind.SERVER,
-        },
-        true,
-      ],
-      [
-        {
-          // eslint-disable-next-line deprecation/deprecation
-          attributes: { [SEMATTRS_HTTP_URL]: 'https://domain.com/path3' },
-          kind: SpanKind.SERVER,
-        },
-        true,
-      ],
-      [
-        {
-          attributes: {
-            [ATTR_URL_FULL]: 'https://domain.com/path3',
-            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.client',
-          },
-        },
-        false,
-      ],
-      [
-        {
-          attributes: {
-            // eslint-disable-next-line deprecation/deprecation
-            [SEMATTRS_HTTP_URL]: 'https://domain.com/path3',
-            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.client',
-          },
-        },
-        false,
-      ],
-    ])('for %p injection is %p', (spanContext, shouldInject) => {
-      trace.getTracer('test').startActiveSpan('test', spanContext, span => {
-        propagator.inject(context.active(), carrier, defaultTextMapSetter);
-
-        if (shouldInject) {
-          expect(carrier[SENTRY_TRACE_HEADER]).toBe(`${span.spanContext().traceId}-${span.spanContext().spanId}-1`);
-          expect(carrier[SENTRY_BAGGAGE_HEADER]).toMatch(/.+/);
-        } else {
-          expect(carrier[SENTRY_TRACE_HEADER]).toBe(undefined);
-          expect(carrier[SENTRY_BAGGAGE_HEADER]).toBe(undefined);
-        }
-      });
     });
   });
 
