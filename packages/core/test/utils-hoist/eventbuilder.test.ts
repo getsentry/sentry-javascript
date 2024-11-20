@@ -1,7 +1,7 @@
 import type { Client } from '@sentry/types';
-import { createStackParser } from '../../src/utils-hoist/stacktrace';
-import { nodeStackLineParser } from '../../src/utils-hoist/node-stack-trace';
 import { eventFromUnknownInput } from '../../src/utils-hoist/eventbuilder';
+import { nodeStackLineParser } from '../../src/utils-hoist/node-stack-trace';
+import { createStackParser } from '../../src/utils-hoist/stacktrace';
 
 const stackParser = createStackParser(nodeStackLineParser());
 

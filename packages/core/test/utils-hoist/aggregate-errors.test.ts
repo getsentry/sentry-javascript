@@ -1,6 +1,6 @@
 import type { Event, EventHint, Exception, ExtendedError, StackParser } from '@sentry/types';
-import { createStackParser } from '../../src/utils-hoist/stacktrace';
 import { applyAggregateErrorsToEvent } from '../../src/utils-hoist/aggregate-errors';
+import { createStackParser } from '../../src/utils-hoist/stacktrace';
 
 const stackParser = createStackParser([0, line => ({ filename: line })]);
 const exceptionFromError = (_stackParser: StackParser, ex: Error): Exception => {

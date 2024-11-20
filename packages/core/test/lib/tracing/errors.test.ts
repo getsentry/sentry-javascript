@@ -2,9 +2,9 @@ import type { HandlerDataError, HandlerDataUnhandledRejection } from '@sentry/ty
 import { setCurrentClient, spanToJSON, startInactiveSpan, startSpan } from '../../../src';
 
 import { _resetErrorsInstrumented, registerSpanErrorInstrumentation } from '../../../src/tracing/errors';
-import { TestClient, getDefaultTestClientOptions } from '../../mocks/client';
 import * as globalErrorModule from '../../../src/utils-hoist/instrument/globalError';
 import * as globalUnhandledRejectionModule from '../../../src/utils-hoist/instrument/globalUnhandledRejection';
+import { TestClient, getDefaultTestClientOptions } from '../../mocks/client';
 
 let mockErrorCallback: (data: HandlerDataError) => void = () => {};
 let mockUnhandledRejectionCallback: (data: HandlerDataUnhandledRejection) => void = () => {};
