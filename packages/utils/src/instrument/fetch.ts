@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import type { HandlerDataFetch } from '@sentry/types';
+import type { HandlerDataFetch, WebFetchResponse, WebReadableStreamDefaultReader } from '@sentry/types';
 
 import { isError } from '../is';
 import { addNonEnumerableProperty, fill } from '../object';
@@ -115,55 +115,102 @@ function instrumentFetch(onFetchResolved?: (response: Response) => void, skipNat
   });
 }
 
-async function resolveResponse(res: Response | undefined, onFinishedResolving: () => void): Promise<void> {
-  if (res && res.body) {
-    const body = res.body;
-    const responseReader = body.getReader();
+async function resloveReader(reader: WebReadableStreamDefaultReader, onFinishedResolving: () => void): Promise<void> {
+  let running = true;
+  while (running) {
+    try {
+      // This .read() call will reject/throw when `reader.cancel()`
+      const { done } = await reader.read();
 
-    // Define a maximum duration after which we just cancel
-    const maxFetchDurationTimeout = setTimeout(
-      () => {
-        body.cancel().then(null, () => {
-          // noop
-        });
-      },
-      90 * 1000, // 90s
-    );
+      running = !done;
 
-    let readingActive = true;
-    while (readingActive) {
-      let chunkTimeout;
-      try {
-        // abort reading if read op takes more than 5s
-        chunkTimeout = setTimeout(() => {
-          body.cancel().then(null, () => {
-            // noop on error
-          });
-        }, 5000);
-
-        // This .read() call will reject/throw when we abort due to timeouts through `body.cancel()`
-        const { done } = await responseReader.read();
-
-        clearTimeout(chunkTimeout);
-
-        if (done) {
-          onFinishedResolving();
-          readingActive = false;
-        }
-      } catch (error) {
-        readingActive = false;
-      } finally {
-        clearTimeout(chunkTimeout);
+      if (done) {
+        onFinishedResolving();
       }
+    } catch (_) {
+      running = false;
+    }
+  }
+}
+
+/**
+ * Resolves the body stream of a `Response` object and links its cancellation to a parent `Response` body.
+ *
+ * This function attaches a custom `cancel` behavior to both the parent `Response` body and its `getReader()` method.
+ * When the parent stream or its reader is canceled, it triggers the cancellation of the child stream as well.
+ * The function also monitors the resolution of the child's body stream using `resloveReader` and performs cleanup.
+ *
+ * @param {Response} res - The `Response` object whose body stream will be resolved.
+ * @param {Response} parentRes - The parent `Response` object whose body stream is linked to the cancellation of `res`.
+ * @param {() => void} onFinishedResolving - A callback function to be invoked when the body stream of `res` is fully resolved.
+ *
+ * Export For Test Only
+ */
+export function resolveResponse(
+  res: WebFetchResponse,
+  parentRes: WebFetchResponse,
+  onFinishedResolving: () => void,
+): void {
+  if (!res.body || !parentRes.body) {
+    if (res.body) {
+      res.body.cancel().catch(_ => {
+        // noop on error
+      });
     }
 
-    clearTimeout(maxFetchDurationTimeout);
+    return;
+  }
 
-    responseReader.releaseLock();
-    body.cancel().then(null, () => {
+  const body = res.body;
+  const parentBody = parentRes.body;
+  // According to the WHATWG Streams API specification, when a stream is locked by calling `getReader()`,
+  // invoking `stream.cancel()` will result in a TypeError.
+  // To cancel while the stream is locked, must use `reader.cancel()`
+  // @seealso: https://streams.spec.whatwg.org
+  const responseReader = body.getReader();
+
+  const originalCancel = parentBody.cancel.bind(parentBody) as (reason?: any) => Promise<any>;
+
+  // Override cancel method on parent response's body
+  parentBody.cancel = async (reason?: any) => {
+    responseReader.cancel('Cancelled by parent stream').catch(_ => {
       // noop on error
     });
-  }
+
+    await originalCancel(reason);
+  };
+
+  const originalGetReader = parentRes.body.getReader.bind(parentBody) as (
+    options: ReadableStreamGetReaderOptions,
+  ) => ReadableStreamDefaultReader;
+
+  // Override getReader on parent response's body
+  parentBody.getReader = ((opts?: any) => {
+    const reader = originalGetReader(opts) as ReadableStreamDefaultReader;
+
+    const originalReaderCancel = reader.cancel.bind(reader) as (reason?: any) => Promise<any>;
+
+    reader.cancel = async (reason?: any) => {
+      responseReader.cancel('Cancelled by parent reader').catch(_ => {
+        // noop on error
+      });
+
+      await originalReaderCancel(reason);
+    };
+
+    return reader;
+  }) as any;
+
+  resloveReader(responseReader, onFinishedResolving).finally(() => {
+    try {
+      responseReader.releaseLock();
+      body.cancel().catch(() => {
+        // noop on error
+      });
+    } catch (_) {
+      // noop on error
+    }
+  });
 }
 
 function streamHandler(response: Response): void {
@@ -175,8 +222,7 @@ function streamHandler(response: Response): void {
     return;
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-floating-promises
-  resolveResponse(clonedResponseForResolving, () => {
+  resolveResponse(clonedResponseForResolving as WebFetchResponse, response as WebFetchResponse, () => {
     triggerHandlers('fetch-body-resolved', {
       endTimestamp: timestampInSeconds() * 1000,
       response,
