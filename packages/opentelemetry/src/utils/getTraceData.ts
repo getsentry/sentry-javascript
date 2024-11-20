@@ -1,7 +1,8 @@
 import * as api from '@opentelemetry/api';
 import { getCapturedScopesOnSpan } from '@sentry/core';
 import type { SerializedTraceData, Span } from '@sentry/types';
-import { dropUndefinedKeys } from '@sentry/utils';
+import { dynamicSamplingContextToSentryBaggageHeader, generateSentryTraceHeader } from '@sentry/utils';
+import { getInjectionData } from '../propagator';
 import { getContextFromScope } from './contextData';
 
 /**
@@ -9,24 +10,18 @@ import { getContextFromScope } from './contextData';
  * @see `@sentry/core` version of `getTraceData` for more information
  */
 export function getTraceData({ span }: { span?: Span } = {}): SerializedTraceData {
-  const headersObject: Record<string, string> = {};
+  let ctx = api.context.active();
 
   if (span) {
     const { scope } = getCapturedScopesOnSpan(span);
     // fall back to current context if for whatever reason we can't find the one of the span
-    const ctx = (scope && getContextFromScope(scope)) || api.trace.setSpan(api.context.active(), span);
-
-    api.propagation.inject(ctx, headersObject);
-  } else {
-    api.propagation.inject(api.context.active(), headersObject);
+    ctx = (scope && getContextFromScope(scope)) || api.trace.setSpan(api.context.active(), span);
   }
 
-  if (!headersObject['sentry-trace']) {
-    return {};
-  }
+  const { traceId, spanId, sampled, dynamicSamplingContext } = getInjectionData(ctx);
 
-  return dropUndefinedKeys({
-    'sentry-trace': headersObject['sentry-trace'],
-    baggage: headersObject.baggage,
-  });
+  return {
+    'sentry-trace': generateSentryTraceHeader(traceId, spanId, sampled),
+    baggage: dynamicSamplingContextToSentryBaggageHeader(dynamicSamplingContext),
+  };
 }

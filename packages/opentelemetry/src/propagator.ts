@@ -186,7 +186,10 @@ export class SentryPropagator extends W3CBaggagePropagator {
   }
 }
 
-function getInjectionData(context: Context): {
+/**
+ * Get propagation injection data for the given context.
+ */
+export function getInjectionData(context: Context): {
   dynamicSamplingContext: Partial<DynamicSamplingContext> | undefined;
   traceId: string | undefined;
   spanId: string | undefined;
