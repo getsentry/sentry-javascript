@@ -9,8 +9,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SentryNonRecordingSpan,
   getActiveSpan,
-  getClient,
-  getSentryHeaders,
+  getTraceData,
   hasTracingEnabled,
   instrumentFetchRequest,
   setHttpStatus,
@@ -396,12 +395,9 @@ export function xhrCallback(
   xhr.__sentry_xhr_span_id__ = span.spanContext().spanId;
   spans[xhr.__sentry_xhr_span_id__] = span;
 
-  const client = getClient();
-
-  if (xhr.setRequestHeader && shouldAttachHeaders(sentryXhrData.url) && client) {
+  if (xhr.setRequestHeader && shouldAttachHeaders(sentryXhrData.url)) {
     addTracingHeadersToXhrRequest(
       xhr,
-      client,
       // If performance is disabled (TWP) or there's no active root span (pageload/navigation/interaction),
       // we do not want to use the span as base for the trace headers,
       // which means that the headers will be generated from the scope and the sampling decision is deferred
@@ -412,10 +408,12 @@ export function xhrCallback(
   return span;
 }
 
-function addTracingHeadersToXhrRequest(xhr: SentryWrappedXMLHttpRequest, client: Client, span?: Span): void {
-  const { sentryTrace, baggage } = getSentryHeaders({ span, client });
+function addTracingHeadersToXhrRequest(xhr: SentryWrappedXMLHttpRequest, span?: Span): void {
+  const { 'sentry-trace': sentryTrace, baggage } = getTraceData({ span });
 
-  setHeaderOnXhr(xhr, sentryTrace, baggage);
+  if (sentryTrace) {
+    setHeaderOnXhr(xhr, sentryTrace, baggage);
+  }
 }
 
 function setHeaderOnXhr(

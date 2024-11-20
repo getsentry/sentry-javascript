@@ -1,11 +1,11 @@
 import type { Client, HandlerDataFetch, Scope, Span, SpanOrigin } from '@sentry/types';
 import { BAGGAGE_HEADER_NAME, SENTRY_BAGGAGE_KEY_PREFIX, isInstanceOf, parseUrl } from '@sentry/utils';
-import { getClient, getCurrentScope } from './currentScopes';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from './semanticAttributes';
-import { SPAN_STATUS_ERROR, getSentryHeaders, setHttpStatus, startInactiveSpan } from './tracing';
+import { SPAN_STATUS_ERROR, setHttpStatus, startInactiveSpan } from './tracing';
 import { SentryNonRecordingSpan } from './tracing/sentryNonRecordingSpan';
 import { hasTracingEnabled } from './utils/hasTracingEnabled';
 import { getActiveSpan } from './utils/spanUtils';
+import { getTraceData } from './utils/traceData';
 
 type PolymorphicRequestHeaders =
   | Record<string, string | undefined>
@@ -50,9 +50,6 @@ export function instrumentFetchRequest(
     return undefined;
   }
 
-  const scope = getCurrentScope();
-  const client = getClient();
-
   const { method, url } = handlerData.fetchData;
 
   const fullUrl = getFullURL(url);
@@ -79,7 +76,7 @@ export function instrumentFetchRequest(
   handlerData.fetchData.__span = span.spanContext().spanId;
   spans[span.spanContext().spanId] = span;
 
-  if (shouldAttachHeaders(handlerData.fetchData.url) && client) {
+  if (shouldAttachHeaders(handlerData.fetchData.url)) {
     const request: string | Request = handlerData.args[0];
 
     // In case the user hasn't set the second argument of a fetch call we default it to `{}`.
@@ -88,10 +85,10 @@ export function instrumentFetchRequest(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const options: { [key: string]: any } = handlerData.args[1];
 
-    options.headers = addTracingHeadersToFetchRequest(
+    options.headers = _addTracingHeadersToFetchRequest(
       request,
-      client,
-      scope,
+      undefined,
+      undefined,
       options,
       // If performance is disabled (TWP) or there's no active root span (pageload/navigation/interaction),
       // we do not want to use the span as base for the trace headers,
@@ -104,12 +101,19 @@ export function instrumentFetchRequest(
 }
 
 /**
- * Adds sentry-trace and baggage headers to the various forms of fetch headers
+ * Adds sentry-trace and baggage headers to the various forms of fetch headers.
+ *
+ * @deprecated This function will not be exported anymore in v9.
  */
-export function addTracingHeadersToFetchRequest(
+export const addTracingHeadersToFetchRequest = _addTracingHeadersToFetchRequest;
+
+/**
+ * Adds sentry-trace and baggage headers to the various forms of fetch headers.
+ */
+function _addTracingHeadersToFetchRequest(
   request: string | unknown, // unknown is actually type Request but we can't export DOM types from this package,
-  client: Client,
-  scope: Scope,
+  _client: Client | undefined,
+  _scope: Scope | undefined,
   fetchOptionsObj: {
     headers?:
       | {
@@ -119,18 +123,22 @@ export function addTracingHeadersToFetchRequest(
   },
   span?: Span,
 ): PolymorphicRequestHeaders | undefined {
-  const { sentryTrace, baggage } = getSentryHeaders({ span, client, scope });
+  const traceHeaders = getTraceData({ span });
+  const sentryTrace = traceHeaders['sentry-trace'];
+  const baggage = traceHeaders.baggage;
 
   const headers =
     fetchOptionsObj.headers ||
     (typeof Request !== 'undefined' && isInstanceOf(request, Request) ? (request as Request).headers : undefined);
 
   if (!headers) {
-    return { 'sentry-trace': sentryTrace, baggage };
+    return { ...traceHeaders };
   } else if (typeof Headers !== 'undefined' && isInstanceOf(headers, Headers)) {
     const newHeaders = new Headers(headers as Headers);
 
-    newHeaders.set('sentry-trace', sentryTrace);
+    if (sentryTrace) {
+      newHeaders.set('sentry-trace', sentryTrace);
+    }
 
     if (baggage) {
       const prevBaggageHeader = newHeaders.get(BAGGAGE_HEADER_NAME);

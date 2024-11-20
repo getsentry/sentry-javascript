@@ -6,7 +6,7 @@ import {
   getActiveSpan,
   getClient,
   getRootSpan,
-  getSentryHeaders,
+  getTraceData,
   hasTracingEnabled,
   setHttpStatus,
   spanToJSON,
@@ -14,7 +14,7 @@ import {
   withIsolationScope,
 } from '@sentry/core';
 import { continueTrace } from '@sentry/opentelemetry';
-import type { TransactionSource, WrappedFunction } from '@sentry/types';
+import type { SerializedTraceData, TransactionSource, WrappedFunction } from '@sentry/types';
 import type { Span } from '@sentry/types';
 import { fill, isNodeEnv, loadModule, logger } from '@sentry/utils';
 
@@ -200,21 +200,8 @@ const makeWrappedLoader =
     return makeWrappedDataFunction(origLoader, id, 'loader', remixVersion, autoInstrumentRemix);
   };
 
-function getTraceAndBaggage(): {
-  sentryTrace?: string;
-  sentryBaggage?: string;
-} {
-  const client = getClient();
-  if (isNodeEnv() && client) {
-    const { sentryTrace, baggage } = getSentryHeaders({ client, span: getActiveSpan() });
-
-    return {
-      sentryTrace,
-      sentryBaggage: baggage,
-    };
-  }
-
-  return {};
+function getTraceAndBaggage(): SerializedTraceData {
+  return isNodeEnv() ? getTraceData() : {};
 }
 
 function makeWrappedRootLoader(remixVersion: number) {
@@ -224,8 +211,8 @@ function makeWrappedRootLoader(remixVersion: number) {
       const traceAndBaggage = getTraceAndBaggage();
 
       if (isDeferredData(res)) {
-        res.data['sentryTrace'] = traceAndBaggage.sentryTrace;
-        res.data['sentryBaggage'] = traceAndBaggage.sentryBaggage;
+        res.data['sentryTrace'] = traceAndBaggage['sentry-trace'];
+        res.data['sentryBaggage'] = traceAndBaggage.baggage;
         res.data['remixVersion'] = remixVersion;
 
         return res;

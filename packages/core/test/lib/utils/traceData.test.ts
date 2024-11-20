@@ -1,160 +1,280 @@
-import { SentrySpan, getTraceData } from '../../../src/';
-import * as SentryCoreCurrentScopes from '../../../src/currentScopes';
-import * as SentryCoreExports from '../../../src/exports';
-import * as SentryCoreTracing from '../../../src/tracing';
-import * as SentryCoreTracingDsc from '../../../src/tracing/dynamicSamplingContext';
+import type { Client, Span } from '@sentry/types';
+import {
+  SentrySpan,
+  getCurrentScope,
+  getGlobalScope,
+  getIsolationScope,
+  getMainCarrier,
+  getTraceData,
+  setAsyncContextStrategy,
+  setCurrentClient,
+  withActiveSpan,
+} from '../../../src/';
+import { getAsyncContextStrategy } from '../../../src/asyncContext';
 import { freezeDscOnSpan } from '../../../src/tracing/dynamicSamplingContext';
-import * as SentryCoreSpanUtils from '../../../src/utils/spanUtils';
 
 import { isValidBaggageString } from '../../../src/utils/traceData';
+import type { TestClientOptions } from '../../mocks/client';
+import { TestClient, getDefaultTestClientOptions } from '../../mocks/client';
 
-const TRACE_FLAG_SAMPLED = 1;
+const dsn = 'https://123@sentry.io/42';
 
-const mockedClient = {} as any;
+const SCOPE_TRACE_ID = '12345678901234567890123456789012';
+const SCOPE_SPAN_ID = '1234567890123456';
 
-const mockedScope = {
-  getPropagationContext: () => ({
-    traceId: '123',
-    spanId: '456',
-  }),
-} as any;
+function setupClient(opts?: Partial<TestClientOptions>): Client {
+  getCurrentScope().setPropagationContext({
+    traceId: SCOPE_TRACE_ID,
+    spanId: SCOPE_SPAN_ID,
+  });
+
+  const options = getDefaultTestClientOptions({
+    dsn,
+    tracesSampleRate: 1,
+    ...opts,
+  });
+  const client = new TestClient(options);
+  setCurrentClient(client);
+  client.init();
+
+  return client;
+}
 
 describe('getTraceData', () => {
   beforeEach(() => {
-    jest.spyOn(SentryCoreExports, 'isEnabled').mockReturnValue(true);
+    setAsyncContextStrategy(undefined);
+    getCurrentScope().clear();
+    getIsolationScope().clear();
+    getGlobalScope().clear();
+    getCurrentScope().setClient(undefined);
   });
 
   afterEach(() => {
     jest.clearAllMocks();
   });
 
-  it('returns the tracing data from the span, if a span is available', () => {
-    {
-      const mockedSpan = new SentrySpan({
-        traceId: '12345678901234567890123456789012',
-        spanId: '1234567890123456',
-        sampled: true,
+  it('uses the ACS implementation, if available', () => {
+    setupClient();
+
+    const carrier = getMainCarrier();
+
+    const customFn = jest.fn((options?: { span?: Span }) => {
+      expect(options).toEqual({ span: undefined });
+      return {
+        'sentry-trace': 'abc',
+        baggage: 'xyz',
+      };
+    }) as typeof getTraceData;
+
+    const acs = {
+      ...getAsyncContextStrategy(carrier),
+      getTraceData: customFn,
+    };
+    setAsyncContextStrategy(acs);
+
+    const span = new SentrySpan({
+      traceId: '12345678901234567890123456789012',
+      spanId: '1234567890123456',
+      sampled: true,
+    });
+
+    withActiveSpan(span, () => {
+      const data = getTraceData();
+
+      expect(data).toEqual({
+        'sentry-trace': 'abc',
+        baggage: 'xyz',
       });
-      freezeDscOnSpan(mockedSpan, { environment: 'production' });
+    });
+  });
 
-      jest.spyOn(SentryCoreSpanUtils, 'getActiveSpan').mockImplementation(() => mockedSpan);
-      jest.spyOn(SentryCoreCurrentScopes, 'getCurrentScope').mockImplementation(() => mockedScope);
-      jest.spyOn(SentryCoreCurrentScopes, 'getClient').mockImplementation(() => mockedClient);
+  it('passes span to ACS implementation, if available', () => {
+    setupClient();
 
+    const carrier = getMainCarrier();
+
+    const span = new SentrySpan({
+      traceId: '12345678901234567890123456789012',
+      spanId: '1234567890123456',
+      sampled: true,
+    });
+
+    const customFn = jest.fn((options?: { span?: Span }) => {
+      expect(options).toEqual({ span });
+      return {
+        'sentry-trace': 'abc',
+        baggage: 'xyz',
+      };
+    }) as typeof getTraceData;
+
+    const acs = {
+      ...getAsyncContextStrategy(carrier),
+      getTraceData: customFn,
+    };
+    setAsyncContextStrategy(acs);
+
+    const data = getTraceData({ span });
+
+    expect(data).toEqual({
+      'sentry-trace': 'abc',
+      baggage: 'xyz',
+    });
+  });
+
+  it('returns the tracing data from the span, if a span is available', () => {
+    setupClient();
+
+    const span = new SentrySpan({
+      traceId: '12345678901234567890123456789012',
+      spanId: '1234567890123456',
+      sampled: true,
+    });
+
+    withActiveSpan(span, () => {
       const data = getTraceData();
 
       expect(data).toEqual({
         'sentry-trace': '12345678901234567890123456789012-1234567890123456-1',
-        baggage: 'sentry-environment=production',
+        baggage:
+          'sentry-environment=production,sentry-public_key=123,sentry-trace_id=12345678901234567890123456789012,sentry-sampled=true',
       });
-    }
+    });
+  });
+
+  it('allows to pass a span directly', () => {
+    setupClient();
+
+    const span = new SentrySpan({
+      traceId: '12345678901234567890123456789012',
+      spanId: '1234567890123456',
+      sampled: true,
+    });
+
+    const data = getTraceData({ span });
+
+    expect(data).toEqual({
+      'sentry-trace': '12345678901234567890123456789012-1234567890123456-1',
+      baggage:
+        'sentry-environment=production,sentry-public_key=123,sentry-trace_id=12345678901234567890123456789012,sentry-sampled=true',
+    });
   });
 
   it('returns propagationContext DSC data if no span is available', () => {
-    jest.spyOn(SentryCoreSpanUtils, 'getActiveSpan').mockImplementation(() => undefined);
-    jest.spyOn(SentryCoreCurrentScopes, 'getCurrentScope').mockImplementation(
-      () =>
-        ({
-          getPropagationContext: () => ({
-            traceId: '12345678901234567890123456789012',
-            sampled: true,
-            spanId: '1234567890123456',
-            dsc: {
-              environment: 'staging',
-              public_key: 'key',
-              trace_id: '12345678901234567890123456789012',
-            },
-          }),
-        }) as any,
-    );
-    jest.spyOn(SentryCoreCurrentScopes, 'getClient').mockImplementation(() => mockedClient);
+    setupClient();
 
-    const traceData = getTraceData();
-
-    expect(traceData).toEqual({
-      'sentry-trace': expect.stringMatching(/12345678901234567890123456789012-(.{16})-1/),
-      baggage: 'sentry-environment=staging,sentry-public_key=key,sentry-trace_id=12345678901234567890123456789012',
-    });
-  });
-
-  it('returns only the `sentry-trace` value if no DSC is available', () => {
-    jest.spyOn(SentryCoreTracingDsc, 'getDynamicSamplingContextFromSpan').mockReturnValue({
-      trace_id: '',
-      public_key: undefined,
-    });
-
-    // @ts-expect-error - we don't need to provide all the properties
-    jest.spyOn(SentryCoreSpanUtils, 'getActiveSpan').mockImplementation(() => ({
-      isRecording: () => true,
-      spanContext: () => {
-        return {
-          traceId: '12345678901234567890123456789012',
-          spanId: '1234567890123456',
-          traceFlags: TRACE_FLAG_SAMPLED,
-        };
+    getCurrentScope().setPropagationContext({
+      traceId: '12345678901234567890123456789012',
+      sampled: true,
+      spanId: '1234567890123456',
+      dsc: {
+        environment: 'staging',
+        public_key: 'key',
+        trace_id: '12345678901234567890123456789012',
       },
-    }));
-
-    jest.spyOn(SentryCoreCurrentScopes, 'getCurrentScope').mockImplementation(() => mockedScope);
-    jest.spyOn(SentryCoreCurrentScopes, 'getClient').mockImplementation(() => {
-      return {
-        getOptions: () => ({}),
-        getDsn: () => ({}),
-      } as any;
     });
 
     const traceData = getTraceData();
 
     expect(traceData).toEqual({
       'sentry-trace': '12345678901234567890123456789012-1234567890123456-1',
+      baggage: 'sentry-environment=staging,sentry-public_key=key,sentry-trace_id=12345678901234567890123456789012',
+    });
+  });
+
+  it('returns frozen DSC from SentrySpan if available', () => {
+    setupClient();
+
+    const span = new SentrySpan({
+      traceId: '12345678901234567890123456789012',
+      spanId: '1234567890123456',
+      sampled: true,
+    });
+
+    freezeDscOnSpan(span, {
+      environment: 'test-dev',
+      public_key: '456',
+      trace_id: '12345678901234567890123456789088',
+    });
+
+    withActiveSpan(span, () => {
+      const data = getTraceData();
+
+      expect(data).toEqual({
+        'sentry-trace': '12345678901234567890123456789012-1234567890123456-1',
+        baggage: 'sentry-environment=test-dev,sentry-public_key=456,sentry-trace_id=12345678901234567890123456789088',
+      });
+    });
+  });
+
+  it('works with an OTEL span with frozen DSC in traceState', () => {
+    setupClient();
+
+    const traceId = '12345678901234567890123456789099';
+    const spanId = '1234567890123499';
+
+    const span = new SentrySpan({
+      traceId,
+      spanId,
+      sampled: true,
+    });
+
+    span.spanContext = () => {
+      const traceState = {
+        set: () => traceState,
+        unset: () => traceState,
+        get: (key: string) => {
+          if (key === 'sentry.dsc') {
+            return 'sentry-environment=test-dev,sentry-public_key=456,sentry-trace_id=12345678901234567890123456789088';
+          }
+          return undefined;
+        },
+        serialize: () => '',
+      };
+
+      return {
+        traceId,
+        spanId,
+        sampled: true,
+        traceFlags: 1,
+        traceState,
+      };
+    };
+
+    withActiveSpan(span, () => {
+      const data = getTraceData();
+
+      expect(data).toEqual({
+        'sentry-trace': '12345678901234567890123456789099-1234567890123499-1',
+        baggage: 'sentry-environment=test-dev,sentry-public_key=456,sentry-trace_id=12345678901234567890123456789088',
+      });
     });
   });
 
   it('returns empty object without a client', () => {
-    jest.spyOn(SentryCoreTracing, 'getDynamicSamplingContextFromClient').mockReturnValueOnce({
-      trace_id: '',
-      public_key: undefined,
-    });
-
-    // @ts-expect-error - we don't need to provide all the properties
-    jest.spyOn(SentryCoreSpanUtils, 'getActiveSpan').mockImplementation(() => ({
-      isRecording: () => true,
-      spanContext: () => {
-        return {
-          traceId: '12345678901234567890123456789012',
-          spanId: '1234567890123456',
-          traceFlags: TRACE_FLAG_SAMPLED,
-        };
-      },
-    }));
-    jest.spyOn(SentryCoreCurrentScopes, 'getCurrentScope').mockImplementation(() => mockedScope);
-    jest.spyOn(SentryCoreCurrentScopes, 'getClient').mockImplementation(() => undefined);
-
     const traceData = getTraceData();
 
     expect(traceData).toEqual({});
   });
 
   it('returns an empty object if the `sentry-trace` value is invalid', () => {
-    // @ts-expect-error - we don't need to provide all the properties
-    jest.spyOn(SentryCoreSpanUtils, 'getActiveSpan').mockImplementation(() => ({
-      isRecording: () => true,
-      spanContext: () => {
-        return {
-          traceId: '1234567890123456789012345678901+',
-          spanId: '1234567890123456',
-          traceFlags: TRACE_FLAG_SAMPLED,
-        };
-      },
-    }));
+    // Invalid traceID
+    const traceId = '1234567890123456789012345678901+';
+    const spanId = '1234567890123499';
 
-    const traceData = getTraceData();
+    const span = new SentrySpan({
+      traceId,
+      spanId,
+      sampled: true,
+    });
 
-    expect(traceData).toEqual({});
+    withActiveSpan(span, () => {
+      const data = getTraceData();
+      expect(data).toEqual({});
+    });
   });
 
   it('returns an empty object if the SDK is disabled', () => {
-    jest.spyOn(SentryCoreExports, 'isEnabled').mockReturnValueOnce(false);
+    setupClient({ dsn: undefined });
 
     const traceData = getTraceData();
 
