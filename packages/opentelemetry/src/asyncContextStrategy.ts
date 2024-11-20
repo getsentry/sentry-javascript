@@ -12,7 +12,6 @@ import { startInactiveSpan, startSpan, startSpanManual, withActiveSpan } from '.
 import type { CurrentScopes } from './types';
 import { getScopesFromContext } from './utils/contextData';
 import { getActiveSpan } from './utils/getActiveSpan';
-import { getTraceData } from './utils/getTraceData';
 import { suppressTracing } from './utils/suppressTracing';
 
 /**
@@ -104,7 +103,7 @@ export function setOpenTelemetryContextAsyncContextStrategy(): void {
     startInactiveSpan,
     getActiveSpan,
     suppressTracing,
-    getTraceData,
+    // getTraceData,
     // The types here don't fully align, because our own `Span` type is narrower
     // than the OTEL one - but this is OK for here, as we now we'll only have OTEL spans passed around
     withActiveSpan: withActiveSpan as typeof defaultWithActiveSpan,
