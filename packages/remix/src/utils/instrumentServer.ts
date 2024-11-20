@@ -14,7 +14,7 @@ import {
   withIsolationScope,
 } from '@sentry/core';
 import { continueTrace } from '@sentry/opentelemetry';
-import type { SerializedTraceData, TransactionSource, WrappedFunction } from '@sentry/types';
+import type { TransactionSource, WrappedFunction } from '@sentry/types';
 import type { Span } from '@sentry/types';
 import { fill, isNodeEnv, loadModule, logger } from '@sentry/utils';
 
@@ -200,8 +200,17 @@ const makeWrappedLoader =
     return makeWrappedDataFunction(origLoader, id, 'loader', remixVersion, autoInstrumentRemix);
   };
 
-function getTraceAndBaggage(): SerializedTraceData {
-  return isNodeEnv() ? getTraceData() : {};
+function getTraceAndBaggage(): { sentryTrace?: string; sentryBaggage?: string } {
+  if (isNodeEnv()) {
+    const traceData = getTraceData();
+
+    return {
+      sentryTrace: traceData['sentry-trace'],
+      sentryBaggage: traceData.baggage,
+    };
+  }
+
+  return {};
 }
 
 function makeWrappedRootLoader(remixVersion: number) {
@@ -211,8 +220,8 @@ function makeWrappedRootLoader(remixVersion: number) {
       const traceAndBaggage = getTraceAndBaggage();
 
       if (isDeferredData(res)) {
-        res.data['sentryTrace'] = traceAndBaggage['sentry-trace'];
-        res.data['sentryBaggage'] = traceAndBaggage.baggage;
+        res.data['sentryTrace'] = traceAndBaggage.sentryTrace;
+        res.data['sentryBaggage'] = traceAndBaggage.sentryBaggage;
         res.data['remixVersion'] = remixVersion;
 
         return res;
@@ -230,7 +239,11 @@ function makeWrappedRootLoader(remixVersion: number) {
 
           if (typeof data === 'object') {
             return json(
-              { ...data, ...traceAndBaggage, remixVersion },
+              {
+                ...data,
+                ...traceAndBaggage,
+                remixVersion,
+              },
               {
                 headers: res.headers,
                 statusText: res.statusText,
@@ -244,7 +257,11 @@ function makeWrappedRootLoader(remixVersion: number) {
         }
       }
 
-      return { ...res, ...traceAndBaggage, remixVersion };
+      return {
+        ...res,
+        ...traceAndBaggage,
+        remixVersion,
+      };
     };
   };
 }
