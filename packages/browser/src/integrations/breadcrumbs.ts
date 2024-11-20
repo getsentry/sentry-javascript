@@ -5,6 +5,18 @@ import {
   addXhrInstrumentationHandler,
 } from '@sentry-internal/browser-utils';
 import { addBreadcrumb, defineIntegration, getClient } from '@sentry/core';
+import {
+  addConsoleInstrumentationHandler,
+  addFetchInstrumentationHandler,
+  getBreadcrumbLogLevelFromHttpStatusCode,
+  getComponentName,
+  getEventDescription,
+  htmlTreeAsString,
+  logger,
+  parseUrl,
+  safeJoin,
+  severityLevelFromString,
+} from '@sentry/core';
 import type {
   Breadcrumb,
   Client,
@@ -20,18 +32,6 @@ import type {
   XhrBreadcrumbData,
   XhrBreadcrumbHint,
 } from '@sentry/types';
-import {
-  addConsoleInstrumentationHandler,
-  addFetchInstrumentationHandler,
-  getBreadcrumbLogLevelFromHttpStatusCode,
-  getComponentName,
-  getEventDescription,
-  htmlTreeAsString,
-  logger,
-  parseUrl,
-  safeJoin,
-  severityLevelFromString,
-} from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
 import { WINDOW } from '../helpers';

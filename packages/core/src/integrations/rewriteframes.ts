@@ -1,6 +1,7 @@
 import type { Event, StackFrame, Stacktrace } from '@sentry/types';
-import { GLOBAL_OBJ, basename, relative } from '@sentry/utils';
 import { defineIntegration } from '../integration';
+import { basename, relative } from '../utils-hoist/path';
+import { GLOBAL_OBJ } from '../utils-hoist/worldwide';
 
 type StackFrameIteratee = (frame: StackFrame) => StackFrame;
 

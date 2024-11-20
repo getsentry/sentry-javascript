@@ -1,6 +1,6 @@
 import { captureException, defineIntegration, getClient } from '@sentry/core';
+import { consoleSandbox } from '@sentry/core';
 import type { Client, IntegrationFn } from '@sentry/types';
-import { consoleSandbox } from '@sentry/utils';
 import { logAndExitProcess } from '../utils/errorhandling';
 
 type UnhandledRejectionMode = 'none' | 'warn' | 'strict';

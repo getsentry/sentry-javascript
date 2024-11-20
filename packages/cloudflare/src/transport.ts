@@ -1,6 +1,6 @@
 import { createTransport, suppressTracing } from '@sentry/core';
+import { SentryError } from '@sentry/core';
 import type { BaseTransportOptions, Transport, TransportMakeRequestResponse, TransportRequest } from '@sentry/types';
-import { SentryError } from '@sentry/utils';
 
 export interface CloudflareTransportOptions extends BaseTransportOptions {
   /** Fetch API init parameters. */

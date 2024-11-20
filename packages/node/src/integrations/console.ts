@@ -1,6 +1,6 @@
 import * as util from 'node:util';
 import { addBreadcrumb, defineIntegration, getClient } from '@sentry/core';
-import { addConsoleInstrumentationHandler, severityLevelFromString, truncate } from '@sentry/utils';
+import { addConsoleInstrumentationHandler, severityLevelFromString, truncate } from '@sentry/core';
 
 const INTEGRATION_NAME = 'Console';
 

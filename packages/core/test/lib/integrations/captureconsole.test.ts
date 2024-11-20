@@ -1,17 +1,14 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 
 import type { Client, ConsoleLevel, Event } from '@sentry/types';
-import {
-  CONSOLE_LEVELS,
-  GLOBAL_OBJ,
-  addConsoleInstrumentationHandler,
-  originalConsoleMethods,
-  resetInstrumentationHandlers,
-} from '@sentry/utils';
 import * as CurrentScopes from '../../../src/currentScopes';
 import * as SentryCore from '../../../src/exports';
 
 import { captureConsoleIntegration } from '../../../src/integrations/captureconsole';
+import { addConsoleInstrumentationHandler } from '../../../src/utils-hoist/instrument/console';
+import { resetInstrumentationHandlers } from '../../../src/utils-hoist/instrument/handlers';
+import { CONSOLE_LEVELS, originalConsoleMethods } from '../../../src/utils-hoist/logger';
+import { GLOBAL_OBJ } from '../../../src/utils-hoist/worldwide';
 
 const mockConsole: { [key in ConsoleLevel]: jest.Mock<any> } = {
   debug: jest.fn(),

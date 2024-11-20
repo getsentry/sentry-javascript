@@ -18,7 +18,7 @@ export type {
   Thread,
   User,
 } from '@sentry/types';
-export type { AddRequestDataToEventOptions } from '@sentry/utils';
+export type { AddRequestDataToEventOptions } from '@sentry/core';
 
 export {
   addEventProcessor,
@@ -124,7 +124,9 @@ export {
   mysql2Integration,
   redisIntegration,
   tediousIntegration,
+  // eslint-disable-next-line deprecation/deprecation
   nestIntegration,
+  // eslint-disable-next-line deprecation/deprecation
   setupNestErrorHandler,
   postgresIntegration,
   prismaIntegration,

@@ -1,4 +1,4 @@
-import { logger } from '@sentry/utils';
+import { logger } from '@sentry/core';
 
 describe('preload', () => {
   afterEach(() => {

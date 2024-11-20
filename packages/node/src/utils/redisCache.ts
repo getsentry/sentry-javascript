@@ -1,5 +1,5 @@
 import type { CommandArgs as IORedisCommandArgs } from '@opentelemetry/instrumentation-ioredis';
-import { flatten } from '@sentry/utils';
+import { flatten } from '@sentry/core';
 
 const SINGLE_ARG_COMMANDS = ['get', 'set', 'setex'];
 

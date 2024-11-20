@@ -13,8 +13,8 @@ import {
   functionToStringIntegration,
   inboundFiltersIntegration,
 } from '@sentry/core';
+import { logger } from '@sentry/core';
 import type { Client, Integration } from '@sentry/types';
-import { logger } from '@sentry/utils';
 
 import { IS_DEBUG_BUILD } from './flags';
 

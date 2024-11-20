@@ -3,8 +3,8 @@ import type { ErrorHandler as AngularErrorHandler, OnDestroy } from '@angular/co
 import { Inject, Injectable } from '@angular/core';
 import * as Sentry from '@sentry/browser';
 import type { ReportDialogOptions } from '@sentry/browser';
+import { consoleSandbox, isString } from '@sentry/core';
 import type { Event } from '@sentry/types';
-import { consoleSandbox, isString } from '@sentry/utils';
 
 import { runOutsideAngular } from './zone';
 

@@ -4,9 +4,9 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '@sentry/core';
+import { browserPerformanceTimeOrigin, logger, parseBaggageHeader, stripUrlQueryAndFragment } from '@sentry/core';
 import { WINDOW, startBrowserTracingNavigationSpan, startBrowserTracingPageLoadSpan } from '@sentry/react';
 import type { Client, TransactionSource } from '@sentry/types';
-import { browserPerformanceTimeOrigin, logger, parseBaggageHeader, stripUrlQueryAndFragment } from '@sentry/utils';
 
 import type { NEXT_DATA } from 'next/dist/shared/lib/utils';
 import RouterImport from 'next/router';
