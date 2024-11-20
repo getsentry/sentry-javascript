@@ -278,7 +278,7 @@ export function shouldSkipMetricsTest(): boolean {
  * - NPM (ESM, CJS)
  * - Not CDNs.
  *
- * @returns `true` if we should skip the launchdarkly test
+ * @returns `true` if we should skip the feature flags test
  */
 export function shouldSkipFeatureFlagsTest(): boolean {
   const bundle = process.env.PW_BUNDLE as string | undefined;
