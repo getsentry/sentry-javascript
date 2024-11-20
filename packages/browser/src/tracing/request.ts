@@ -9,13 +9,13 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SentryNonRecordingSpan,
   getActiveSpan,
+  getClient,
   getTraceData,
   hasTracingEnabled,
   instrumentFetchRequest,
   setHttpStatus,
   spanToJSON,
   startInactiveSpan,
-  getClient,
 } from '@sentry/core';
 import type { Client, HandlerDataXhr, SentryWrappedXMLHttpRequest, Span } from '@sentry/types';
 import {
