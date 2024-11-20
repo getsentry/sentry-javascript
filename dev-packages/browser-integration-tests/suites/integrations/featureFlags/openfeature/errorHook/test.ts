@@ -6,7 +6,7 @@ import { envelopeRequestParser, shouldSkipFeatureFlagsTest, waitForErrorRequest 
 
 const FLAG_BUFFER_SIZE = 100; // Corresponds to constant in featureFlags.ts, in browser utils.
 
-sentryTest('Basic test with eviction, update, and no async tasks', async ({ getLocalTestUrl, page }) => {
+sentryTest('Flag evaluation error hook', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipFeatureFlagsTest()) {
     sentryTest.skip();
   }
@@ -36,12 +36,14 @@ sentryTest('Basic test with eviction, update, and no async tasks', async ({ getL
   const req = await reqPromise;
   const event = envelopeRequestParser(req);
 
+  // Default value is mocked as false -- these will all error and use default
+  // value
   const expectedFlags = [{ flag: 'feat2', result: false }];
   for (let i = 4; i <= FLAG_BUFFER_SIZE; i++) {
     expectedFlags.push({ flag: `feat${i}`, result: false });
   }
-  expectedFlags.push({ flag: `feat${FLAG_BUFFER_SIZE + 1}`, result: true });
-  expectedFlags.push({ flag: 'feat3', result: true });
+  expectedFlags.push({ flag: `feat${FLAG_BUFFER_SIZE + 1}`, result: false });
+  expectedFlags.push({ flag: 'feat3', result: false });
 
   expect(event.contexts?.flags?.values).toEqual(expectedFlags);
 });
