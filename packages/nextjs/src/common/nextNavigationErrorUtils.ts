@@ -5,7 +5,12 @@ import { isError } from '@sentry/utils';
  * https://beta.nextjs.org/docs/api-reference/notfound#notfound
  */
 export function isNotFoundNavigationError(subject: unknown): boolean {
-  return isError(subject) && (subject as Error & { digest?: unknown }).digest === 'NEXT_NOT_FOUND';
+  return (
+    isError(subject) &&
+    ((subject as Error & { digest?: unknown }).digest === 'NEXT_NOT_FOUND' ||
+      // this was introduced in 15.0.4-canary.18: https://github.com/vercel/next.js/pull/72774
+      (subject as Error & { digest?: unknown }).digest === 'NEXT_HTTP_ERROR_FALLBACK;404')
+  );
 }
 
 /**
