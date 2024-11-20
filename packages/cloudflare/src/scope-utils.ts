@@ -25,5 +25,5 @@ export function addCultureContext(scope: Scope, cf: IncomingRequestCfProperties)
  * Set request data on scope
  */
 export function addRequest(scope: Scope, request: Request): void {
-  scope.setSDKProcessingMetadata({ request: winterCGRequestToRequestData(request) });
+  scope.setSDKProcessingMetadata({ normalizedRequest: winterCGRequestToRequestData(request) });
 }

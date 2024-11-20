@@ -13,7 +13,7 @@ import {
   withIsolationScope,
   withScope,
 } from '@sentry/core';
-
+import type { RequestEventData } from '@sentry/types';
 import type { RouteHandlerContext } from './types';
 
 import { propagationContextFromHeaders, winterCGHeadersToDict } from '@sentry/utils';
@@ -64,10 +64,10 @@ export function wrapRouteHandlerWithSentry<F extends (...args: any[]) => any>(
               );
               scope.setPropagationContext(incomingPropagationContext);
               scope.setSDKProcessingMetadata({
-                request: {
+                normalizedRequest: {
                   method,
                   headers: completeHeadersDict,
-                },
+                } satisfies RequestEventData,
               });
             }
 

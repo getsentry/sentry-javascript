@@ -221,7 +221,7 @@ describe('sentryMiddleware', () => {
       await middleware(ctx, next);
 
       expect(setSDKProcessingMetadataMock).toHaveBeenCalledWith({
-        request: {
+        normalizedRequest: {
           method: 'GET',
           url: '/users',
           headers: {
@@ -254,7 +254,7 @@ describe('sentryMiddleware', () => {
       await middleware(ctx, next);
 
       expect(setSDKProcessingMetadataMock).toHaveBeenCalledWith({
-        request: {
+        normalizedRequest: {
           method: 'GET',
           url: '/users',
         },
