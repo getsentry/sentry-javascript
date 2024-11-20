@@ -46,6 +46,7 @@ class AppModule {}
 async function run(): Promise<void> {
   const app = await NestFactory.create(AppModule);
   const { httpAdapter } = app.get(HttpAdapterHost);
+  // eslint-disable-next-line deprecation/deprecation
   Sentry.setupNestErrorHandler(app, new BaseExceptionFilter(httpAdapter));
   await app.listen(port);
   sendPortToRunner(port);
