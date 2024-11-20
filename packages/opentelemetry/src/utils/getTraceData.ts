@@ -11,15 +11,15 @@ import { getContextFromScope } from './contextData';
 export function getTraceData({ span }: { span?: Span } = {}): SerializedTraceData {
   const headersObject: Record<string, string> = {};
 
+  let ctx = api.context.active();
+
   if (span) {
     const { scope } = getCapturedScopesOnSpan(span);
     // fall back to current context if for whatever reason we can't find the one of the span
-    const ctx = (scope && getContextFromScope(scope)) || api.trace.setSpan(api.context.active(), span);
-
-    api.propagation.inject(ctx, headersObject);
-  } else {
-    api.propagation.inject(api.context.active(), headersObject);
+    ctx = (scope && getContextFromScope(scope)) || api.trace.setSpan(api.context.active(), span);
   }
+
+  api.propagation.inject(ctx, headersObject);
 
   if (!headersObject['sentry-trace']) {
     return {};

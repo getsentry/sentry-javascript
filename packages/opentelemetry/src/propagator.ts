@@ -1,4 +1,5 @@
 import type { Baggage, Context, Span, TextMapGetter, TextMapSetter } from '@opentelemetry/api';
+import { SpanKind } from '@opentelemetry/api';
 import { INVALID_TRACEID } from '@opentelemetry/api';
 import { context } from '@opentelemetry/api';
 import { propagation, trace } from '@opentelemetry/api';
@@ -32,6 +33,7 @@ import { DEBUG_BUILD } from './debug-build';
 import { getScopesFromContext, setScopesOnContext } from './utils/contextData';
 import { generateSpanContextForPropagationContext } from './utils/generateSpanContextForPropagationContext';
 import { getSamplingDecision } from './utils/getSamplingDecision';
+import { getSpanKind } from './utils/getSpanKind';
 import { setIsSetup } from './utils/setupCheck';
 
 /** Get the Sentry propagation context from a span context. */
@@ -86,9 +88,14 @@ export class SentryPropagator extends W3CBaggagePropagator {
 
     const activeSpan = trace.getSpan(context);
     const url = activeSpan && getCurrentURL(activeSpan);
+    // We only want to check the URL against tracePropagationTargets for outgoing request spans
+    // In other cases, we always inject the trace data
+    const shouldCheckUrl =
+      activeSpan && (spanToJSON(activeSpan).op === 'http.client' || getSpanKind(activeSpan) === SpanKind.CLIENT);
 
     const tracePropagationTargets = getClient()?.getOptions()?.tracePropagationTargets;
     if (
+      shouldCheckUrl &&
       typeof url === 'string' &&
       tracePropagationTargets &&
       !this._shouldInjectTraceData(tracePropagationTargets, url)
