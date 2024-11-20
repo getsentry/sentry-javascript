@@ -1,6 +1,6 @@
 import { EventType } from '@sentry-internal/rrweb';
+import { normalize } from '@sentry/core';
 import type { Breadcrumb } from '@sentry/types';
-import { normalize } from '@sentry/utils';
 
 import type { ReplayContainer } from '../../types';
 

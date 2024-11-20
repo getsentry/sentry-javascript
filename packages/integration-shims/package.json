@@ -56,8 +56,7 @@
   },
   "dependencies": {
     "@sentry/core": "8.39.0",
-    "@sentry/types": "8.39.0",
-    "@sentry/utils": "8.39.0"
+    "@sentry/types": "8.39.0"
   },
   "engines": {
     "node": ">=14.18"

@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import * as sentryCore from '@sentry/core';
+import * as sentryUtils from '@sentry/core';
+import { createStackParser } from '@sentry/core';
 import type { HandlerDataFetch, Integration } from '@sentry/types';
-import * as sentryUtils from '@sentry/utils';
-import { createStackParser } from '@sentry/utils';
 
 import { CloudflareClient } from '../../src/client';
 import { fetchIntegration } from '../../src/integrations/fetch';

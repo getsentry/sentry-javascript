@@ -1,7 +1,7 @@
 import type { Options, SamplingContext } from '@sentry/types';
-import { logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
+import { logger } from '../utils-hoist/logger';
 import { hasTracingEnabled } from '../utils/hasTracingEnabled';
 import { parseSampleRate } from '../utils/parseSampleRate';
 

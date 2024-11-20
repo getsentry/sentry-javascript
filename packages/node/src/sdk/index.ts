@@ -24,7 +24,7 @@ import {
   logger,
   propagationContextFromHeaders,
   stackParserFromStackParserOptions,
-} from '@sentry/utils';
+} from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
 import { consoleIntegration } from '../integrations/console';
 import { nodeContextIntegration } from '../integrations/context';

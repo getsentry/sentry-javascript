@@ -8,7 +8,6 @@ import {
   linkedErrorsIntegration,
   requestDataIntegration,
 } from '@sentry/core';
-import type { Client, Integration, Options } from '@sentry/types';
 import {
   GLOBAL_OBJ,
   SDK_VERSION,
@@ -16,7 +15,8 @@ import {
   logger,
   nodeStackLineParser,
   stackParserFromStackParserOptions,
-} from '@sentry/utils';
+} from '@sentry/core';
+import type { Client, Integration, Options } from '@sentry/types';
 
 import { DiagLogLevel, diag } from '@opentelemetry/api';
 import { Resource } from '@opentelemetry/resources';

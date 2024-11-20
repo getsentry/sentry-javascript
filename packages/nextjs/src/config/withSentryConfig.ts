@@ -1,5 +1,5 @@
 /* eslint-disable complexity */
-import { isThenable, parseSemver } from '@sentry/utils';
+import { isThenable, parseSemver } from '@sentry/core';
 
 import * as fs from 'fs';
 import { sync as resolveSync } from 'resolve';

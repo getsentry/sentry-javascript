@@ -1,8 +1,10 @@
 import type { Event, IntegrationFn, StackFrame } from '@sentry/types';
-import { getEventDescription, logger, stringMatchesSomePattern } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
 import { defineIntegration } from '../integration';
+import { logger } from '../utils-hoist/logger';
+import { getEventDescription } from '../utils-hoist/misc';
+import { stringMatchesSomePattern } from '../utils-hoist/string';
 
 // "Script error." is hard coded into browsers for errors that it can't read.
 // this is the result of a script being pulled in from an external domain and CORS.

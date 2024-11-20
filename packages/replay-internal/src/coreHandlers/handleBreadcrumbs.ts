@@ -1,6 +1,6 @@
 import { getClient } from '@sentry/core';
+import { normalize } from '@sentry/core';
 import type { Breadcrumb } from '@sentry/types';
-import { normalize } from '@sentry/utils';
 
 import { CONSOLE_ARG_MAX_SIZE } from '../constants';
 import type { ReplayContainer } from '../types';

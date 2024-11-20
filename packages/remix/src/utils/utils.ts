@@ -1,6 +1,6 @@
 import type { DataFunctionArgs } from '@remix-run/node';
+import { logger } from '@sentry/core';
 import type { Span, TransactionSource } from '@sentry/types';
-import { logger } from '@sentry/utils';
 import { DEBUG_BUILD } from './debug-build';
 import { getRequestMatch, matchServerRoutes } from './vendor/response';
 import type { ServerRoute, ServerRouteManifest } from './vendor/types';

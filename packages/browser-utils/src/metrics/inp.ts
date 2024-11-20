@@ -9,8 +9,8 @@ import {
   getRootSpan,
   spanToJSON,
 } from '@sentry/core';
+import { browserPerformanceTimeOrigin, dropUndefinedKeys, htmlTreeAsString } from '@sentry/core';
 import type { Span, SpanAttributes } from '@sentry/types';
-import { browserPerformanceTimeOrigin, dropUndefinedKeys, htmlTreeAsString } from '@sentry/utils';
 import {
   addInpInstrumentationHandler,
   addPerformanceInstrumentationHandler,

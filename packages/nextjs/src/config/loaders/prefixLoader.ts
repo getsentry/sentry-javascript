@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { escapeStringForRegex } from '@sentry/utils';
+import { escapeStringForRegex } from '@sentry/core';
 
 import type { LoaderThis } from './types';
 

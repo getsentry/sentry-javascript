@@ -28,7 +28,7 @@
 import type { Context } from '@opentelemetry/api';
 import { ROOT_CONTEXT } from '@opentelemetry/api';
 
-import { GLOBAL_OBJ, logger } from '@sentry/utils';
+import { GLOBAL_OBJ, logger } from '@sentry/core';
 import type { AsyncLocalStorage } from 'async_hooks';
 import { DEBUG_BUILD } from '../debug-build';
 import { AbstractAsyncHooksContextManager } from './abstract-async-hooks-context-manager';

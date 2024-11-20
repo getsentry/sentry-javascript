@@ -1,6 +1,6 @@
 import * as api from '@opentelemetry/api';
+import { dropUndefinedKeys } from '@sentry/core';
 import type { SerializedTraceData } from '@sentry/types';
-import { dropUndefinedKeys } from '@sentry/utils';
 
 /**
  * Otel-specific implementation of `getTraceData`.

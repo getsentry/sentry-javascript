@@ -49,7 +49,6 @@
     "@sentry/opentelemetry": "8.39.0",
     "@sentry/rollup-plugin": "2.22.6",
     "@sentry/types": "8.39.0",
-    "@sentry/utils": "8.39.0",
     "@sentry/vite-plugin": "2.22.6",
     "@sentry/vue": "8.39.0"
   },
