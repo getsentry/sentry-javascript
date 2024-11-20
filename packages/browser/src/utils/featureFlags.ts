@@ -1,5 +1,5 @@
+import { logger } from '@sentry/core';
 import type { FeatureFlag } from '@sentry/types';
-import { logger } from '@sentry/utils';
 import { DEBUG_BUILD } from '../debug-build';
 
 /**
