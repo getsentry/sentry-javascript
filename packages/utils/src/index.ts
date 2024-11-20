@@ -150,6 +150,7 @@ export {
   arrayify,
   normalizeUrlToBase,
   urlEncode,
+  // eslint-disable-next-line deprecation/deprecation
   extractPathForTransaction,
   DEFAULT_USER_INCLUDES,
   extractRequestData,
@@ -174,6 +175,7 @@ export type {
   RateLimits,
   AddRequestDataToEventOptions,
   SdkSource,
+  // eslint-disable-next-line deprecation/deprecation
   TransactionNamingScheme,
 } from '@sentry/core';
 
