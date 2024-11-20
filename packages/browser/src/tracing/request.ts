@@ -15,6 +15,7 @@ import {
   setHttpStatus,
   spanToJSON,
   startInactiveSpan,
+  getClient,
 } from '@sentry/core';
 import type { Client, HandlerDataXhr, SentryWrappedXMLHttpRequest, Span } from '@sentry/types';
 import {
@@ -395,7 +396,7 @@ export function xhrCallback(
   xhr.__sentry_xhr_span_id__ = span.spanContext().spanId;
   spans[xhr.__sentry_xhr_span_id__] = span;
 
-  if (xhr.setRequestHeader && shouldAttachHeaders(sentryXhrData.url)) {
+  if (xhr.setRequestHeader && shouldAttachHeaders(sentryXhrData.url) && getClient()) {
     addTracingHeadersToXhrRequest(
       xhr,
       // If performance is disabled (TWP) or there's no active root span (pageload/navigation/interaction),

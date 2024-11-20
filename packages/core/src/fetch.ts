@@ -1,5 +1,6 @@
 import type { Client, HandlerDataFetch, Scope, Span, SpanOrigin } from '@sentry/types';
 import { BAGGAGE_HEADER_NAME, SENTRY_BAGGAGE_KEY_PREFIX, isInstanceOf, parseUrl } from '@sentry/utils';
+import { getClient } from './currentScopes';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from './semanticAttributes';
 import { SPAN_STATUS_ERROR, setHttpStatus, startInactiveSpan } from './tracing';
 import { SentryNonRecordingSpan } from './tracing/sentryNonRecordingSpan';
@@ -76,7 +77,7 @@ export function instrumentFetchRequest(
   handlerData.fetchData.__span = span.spanContext().spanId;
   spans[span.spanContext().spanId] = span;
 
-  if (shouldAttachHeaders(handlerData.fetchData.url)) {
+  if (shouldAttachHeaders(handlerData.fetchData.url) && getClient()) {
     const request: string | Request = handlerData.args[0];
 
     // In case the user hasn't set the second argument of a fetch call we default it to `{}`.
@@ -127,6 +128,11 @@ function _addTracingHeadersToFetchRequest(
   const sentryTrace = traceHeaders['sentry-trace'];
   const baggage = traceHeaders.baggage;
 
+  // Nothing to do, we just return the existing headers untouched
+  if (!sentryTrace) {
+    return fetchOptionsObj && (fetchOptionsObj.headers as PolymorphicRequestHeaders);
+  }
+
   const headers =
     fetchOptionsObj.headers ||
     (typeof Request !== 'undefined' && isInstanceOf(request, Request) ? (request as Request).headers : undefined);
@@ -135,10 +141,7 @@ function _addTracingHeadersToFetchRequest(
     return { ...traceHeaders };
   } else if (typeof Headers !== 'undefined' && isInstanceOf(headers, Headers)) {
     const newHeaders = new Headers(headers as Headers);
-
-    if (sentryTrace) {
-      newHeaders.set('sentry-trace', sentryTrace);
-    }
+    newHeaders.set('sentry-trace', sentryTrace);
 
     if (baggage) {
       const prevBaggageHeader = newHeaders.get(BAGGAGE_HEADER_NAME);
