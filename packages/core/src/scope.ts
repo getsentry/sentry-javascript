@@ -127,6 +127,14 @@ class ScopeClass implements ScopeInterface {
     newScope._tags = { ...this._tags };
     newScope._extra = { ...this._extra };
     newScope._contexts = { ...this._contexts };
+    if (this._contexts.flags) {
+      // We need to copy the `values` array so insertions on a cloned scope
+      // won't affect the original array.
+      newScope._contexts.flags = {
+        values: [...this._contexts.flags.values],
+      };
+    }
+
     newScope._user = this._user;
     newScope._level = this._level;
     newScope._session = this._session;
