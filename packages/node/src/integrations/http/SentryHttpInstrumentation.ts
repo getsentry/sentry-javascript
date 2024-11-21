@@ -5,7 +5,7 @@ import { VERSION } from '@opentelemetry/core';
 import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
 import { InstrumentationBase, InstrumentationNodeModuleDefinition } from '@opentelemetry/instrumentation';
 import { getRequestInfo } from '@opentelemetry/instrumentation-http';
-import { addBreadcrumb, getClient, getIsolationScope, withIsolationScope } from '@sentry/core';
+import { addBreadcrumb, dropUndefinedKeys, getClient, getIsolationScope, withIsolationScope } from '@sentry/core';
 import {
   extractQueryParamsFromUrl,
   getBreadcrumbLogLevelFromHttpStatusCode,
@@ -439,16 +439,21 @@ export function httpRequestToRequestEventData(request: IncomingMessage): Request
   const originalUrl = request.url || '';
   const absoluteUrl = originalUrl.startsWith(protocol) ? originalUrl : `${protocol}://${host}${originalUrl}`;
 
+  // This is non-standard, but may be sometimes set
+  // It may be overwritten later by our own body handling
+  const data = (request as PolymorphicRequest).body;
+
   // This is non-standard, but may be set on e.g. Next.js or Express requests
   const cookies = (request as PolymorphicRequest).cookies;
 
-  const normalizedRequest: RequestEventData = {
+  const normalizedRequest: RequestEventData = dropUndefinedKeys({
     url: absoluteUrl,
     method: request.method,
     query_string: extractQueryParamsFromUrl(originalUrl),
     headers: headersToDict(headers),
     cookies,
-  };
+    data,
+  });
 
   return normalizedRequest;
 }
