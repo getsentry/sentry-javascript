@@ -3,7 +3,7 @@
   "version": "8.39.0",
   "description": "Official Sentry SDK for Google Cloud Functions",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
-  "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/google-cloud",
+  "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/google-cloud-serverless",
   "author": "Sentry",
   "license": "MIT",
   "engines": {
