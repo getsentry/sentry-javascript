@@ -73,6 +73,7 @@ export {
   extractRequestData,
   winterCGHeadersToDict,
   winterCGRequestToRequestData,
+  httpRequestToRequestData,
   extractQueryParamsFromUrl,
   headersToDict,
 } from './requestdata';

@@ -46,6 +46,7 @@
     "extends": "../../package.json"
   },
   "sentryTest": {
+    "optional": true,
     "optionalVariants": [
       {
         "build-command": "test:build-canary",
