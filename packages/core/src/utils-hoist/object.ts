@@ -32,7 +32,11 @@ export function fill(source: { [key: string]: any }, name: string, replacementFa
     markFunctionWrapped(wrapped, original);
   }
 
-  source[name] = wrapped;
+  try {
+    source[name] = wrapped;
+  } catch {
+    DEBUG_BUILD && logger.log(`Failed to replace method "${name}" in object`, source);
+  }
 }
 
 /**
