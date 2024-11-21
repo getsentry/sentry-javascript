@@ -3,6 +3,7 @@ import type { Client } from '@sentry/types';
 import { getAsyncContextStrategy } from './asyncContext';
 import { getMainCarrier } from './carrier';
 import { Scope as ScopeClass } from './scope';
+import { dropUndefinedKeys } from './utils-hoist/object';
 import { getGlobalSingleton } from './utils-hoist/worldwide';
 
 /**

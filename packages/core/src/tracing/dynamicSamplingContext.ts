@@ -1,4 +1,4 @@
-import type { Client, DynamicSamplingContext, Span } from '@sentry/types';
+import type { Client, DynamicSamplingContext, Scope, Span } from '@sentry/types';
 
 import { DEFAULT_ENVIRONMENT } from '../constants';
 import { getClient } from '../currentScopes';

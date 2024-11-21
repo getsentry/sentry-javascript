@@ -13,8 +13,8 @@ import {
   startSpan,
   withIsolationScope,
 } from '@sentry/core';
-import { dynamicSamplingContextToSentryBaggageHeader, fill, isNodeEnv, loadModule, logger } from '@sentry/core';
-import { continueTrace, getDynamicSamplingContextFromSpan } from '@sentry/opentelemetry';
+import { fill, isNodeEnv, loadModule, logger } from '@sentry/core';
+import { continueTrace } from '@sentry/opentelemetry';
 import type { TransactionSource, WrappedFunction } from '@sentry/types';
 import type { Span } from '@sentry/types';
 
