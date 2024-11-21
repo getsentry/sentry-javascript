@@ -31,6 +31,29 @@ describe('fill()', () => {
     expect(replacement).toBeCalled();
   });
 
+  test('does not throw on readonly properties', () => {
+    const originalFn = () => 41;
+    const source = {
+      get prop() {
+        return originalFn;
+      },
+      set prop(_fn: () => number) {
+        throw new Error('OH NO, this is not writeable...');
+      },
+    };
+
+    expect(source.prop()).toEqual(41);
+
+    const replacement = jest.fn().mockImplementation(() => {
+      return () => 42;
+    });
+    fill(source, 'prop', replacement);
+    expect(replacement).toBeCalled();
+
+    expect(source.prop).toBe(originalFn);
+    expect(source.prop()).toEqual(41);
+  });
+
   test('can do anything inside replacement function', () => {
     const source = {
       foo: (): number => 42,
