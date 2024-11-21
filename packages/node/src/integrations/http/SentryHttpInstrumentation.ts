@@ -445,7 +445,7 @@ export function httpRequestToRequestEventData(request: IncomingMessage): Request
   const normalizedRequest: RequestEventData = {
     url: absoluteUrl,
     method: request.method,
-    query_string: extractQueryParamsFromUrl(request.url || ''),
+    query_string: extractQueryParamsFromUrl(originalUrl),
     headers: headersToDict(request.headers),
     cookies,
   };
