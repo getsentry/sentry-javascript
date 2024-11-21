@@ -1,6 +1,5 @@
-import { captureException, withScope } from '@sentry/core';
+import { captureException, httpRequestToRequestData, withScope } from '@sentry/core';
 import { vercelWaitUntil } from '@sentry/core';
-import { httpRequestToRequestEventData } from '@sentry/node';
 import type { NextPageContext } from 'next';
 import { flushSafelyWithTimeout } from '../utils/responseEnd';
 
@@ -39,7 +38,7 @@ export async function captureUnderscoreErrorException(contextOrProps: ContextOrP
 
   withScope(scope => {
     if (req) {
-      const normalizedRequest = httpRequestToRequestEventData(req);
+      const normalizedRequest = httpRequestToRequestData(req);
       scope.setSDKProcessingMetadata({ normalizedRequest });
     }
 

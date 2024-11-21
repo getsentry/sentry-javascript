@@ -5,17 +5,19 @@ import { VERSION } from '@opentelemetry/core';
 import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
 import { InstrumentationBase, InstrumentationNodeModuleDefinition } from '@opentelemetry/instrumentation';
 import { getRequestInfo } from '@opentelemetry/instrumentation-http';
-import { addBreadcrumb, dropUndefinedKeys, getClient, getIsolationScope, withIsolationScope } from '@sentry/core';
 import {
-  extractQueryParamsFromUrl,
+  addBreadcrumb,
   getBreadcrumbLogLevelFromHttpStatusCode,
+  getClient,
+  getIsolationScope,
   getSanitizedUrlString,
-  headersToDict,
+  httpRequestToRequestData,
   logger,
   parseUrl,
   stripUrlQueryAndFragment,
+  withIsolationScope,
 } from '@sentry/core';
-import type { PolymorphicRequest, RequestEventData, SanitizedRequestData, Scope } from '@sentry/types';
+import type { RequestEventData, SanitizedRequestData, Scope } from '@sentry/types';
 import { DEBUG_BUILD } from '../../debug-build';
 import type { NodeClient } from '../../sdk/client';
 import { getRequestUrl } from '../../utils/getRequestUrl';
@@ -133,7 +135,8 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
 
         const isolationScope = getIsolationScope().clone();
         const request = args[0] as http.IncomingMessage;
-        const normalizedRequest = httpRequestToRequestEventData(request);
+
+        const normalizedRequest = httpRequestToRequestData(request);
 
         patchRequestToCaptureBody(request, isolationScope);
 
@@ -427,33 +430,4 @@ function patchRequestToCaptureBody(req: IncomingMessage, isolationScope: Scope):
   } catch {
     // ignore errors if we can't patch stuff
   }
-}
-
-/**
- * Convert a HTTP request object to RequestEventData to be passed as normalizedRequest.
- */
-export function httpRequestToRequestEventData(request: IncomingMessage): RequestEventData {
-  const headers = request.headers || {};
-  const host = headers.host || '<no host>';
-  const protocol = request.socket && (request.socket as { encrypted?: boolean }).encrypted ? 'https' : 'http';
-  const originalUrl = request.url || '';
-  const absoluteUrl = originalUrl.startsWith(protocol) ? originalUrl : `${protocol}://${host}${originalUrl}`;
-
-  // This is non-standard, but may be sometimes set
-  // It may be overwritten later by our own body handling
-  const data = (request as PolymorphicRequest).body;
-
-  // This is non-standard, but may be set on e.g. Next.js or Express requests
-  const cookies = (request as PolymorphicRequest).cookies;
-
-  const normalizedRequest: RequestEventData = dropUndefinedKeys({
-    url: absoluteUrl,
-    method: request.method,
-    query_string: extractQueryParamsFromUrl(originalUrl),
-    headers: headersToDict(headers),
-    cookies,
-    data,
-  });
-
-  return normalizedRequest;
 }
