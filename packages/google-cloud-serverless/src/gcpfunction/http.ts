@@ -4,8 +4,8 @@ import {
   handleCallbackErrors,
   setHttpStatus,
 } from '@sentry/core';
+import { isString, logger, stripUrlQueryAndFragment } from '@sentry/core';
 import { captureException, continueTrace, flush, getCurrentScope, startSpanManual } from '@sentry/node';
-import { isString, logger, stripUrlQueryAndFragment } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
 import { domainify, markEventUnhandled, proxyFunction } from '../utils';

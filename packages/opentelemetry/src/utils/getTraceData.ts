@@ -1,9 +1,6 @@
 import * as api from '@opentelemetry/api';
-import { getCapturedScopesOnSpan } from '@sentry/core';
-import type { SerializedTraceData, Span } from '@sentry/types';
-import { dynamicSamplingContextToSentryBaggageHeader, generateSentryTraceHeader } from '@sentry/utils';
-import { getInjectionData } from '../propagator';
-import { getContextFromScope } from './contextData';
+import { dropUndefinedKeys } from '@sentry/core';
+import type { SerializedTraceData } from '@sentry/types';
 
 /**
  * Otel-specific implementation of `getTraceData`.

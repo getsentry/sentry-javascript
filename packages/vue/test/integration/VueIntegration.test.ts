@@ -4,8 +4,8 @@
 
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { logger } from '@sentry/core';
 import type { Client } from '@sentry/types';
-import { logger } from '@sentry/utils';
 import { createApp } from 'vue';
 
 import * as Sentry from '../../src';

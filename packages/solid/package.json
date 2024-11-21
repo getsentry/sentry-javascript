@@ -46,8 +46,7 @@
   "dependencies": {
     "@sentry/browser": "8.39.0",
     "@sentry/core": "8.39.0",
-    "@sentry/types": "8.39.0",
-    "@sentry/utils": "8.39.0"
+    "@sentry/types": "8.39.0"
   },
   "peerDependencies": {
     "@solidjs/router": "^0.13.4",

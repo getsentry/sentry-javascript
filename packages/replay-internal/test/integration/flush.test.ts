@@ -10,7 +10,7 @@ import { useFakeTimers } from '../utils/use-fake-timers';
 useFakeTimers();
 
 import * as SentryBrowserUtils from '@sentry-internal/browser-utils';
-import * as SentryUtils from '@sentry/utils';
+import * as SentryUtils from '@sentry/core';
 
 import { DEFAULT_FLUSH_MIN_DELAY, MAX_REPLAY_DURATION, WINDOW } from '../../src/constants';
 import type { Replay } from '../../src/integration';

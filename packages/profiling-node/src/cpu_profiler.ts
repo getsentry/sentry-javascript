@@ -5,7 +5,7 @@ import { threadId } from 'node:worker_threads';
 import { familySync } from 'detect-libc';
 import { getAbi } from 'node-abi';
 
-import { GLOBAL_OBJ, logger } from '@sentry/utils';
+import { GLOBAL_OBJ, logger } from '@sentry/core';
 import { DEBUG_BUILD } from './debug-build';
 import type {
   PrivateV8CpuProfilerBindings,

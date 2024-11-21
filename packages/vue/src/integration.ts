@@ -1,6 +1,6 @@
 import { defineIntegration, hasTracingEnabled } from '@sentry/core';
+import { GLOBAL_OBJ, arrayify, consoleSandbox } from '@sentry/core';
 import type { Client, IntegrationFn } from '@sentry/types';
-import { GLOBAL_OBJ, arrayify, consoleSandbox } from '@sentry/utils';
 
 import { DEFAULT_HOOKS } from './constants';
 import { DEBUG_BUILD } from './debug-build';

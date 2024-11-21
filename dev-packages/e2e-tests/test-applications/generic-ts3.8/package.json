@@ -19,7 +19,7 @@
     "@sentry/node": "latest || *",
     "@sentry-internal/replay": "latest || *",
     "@sentry/types": "latest || *",
-    "@sentry/utils": "latest || *",
+    "@sentry/core": "latest || *",
     "@sentry/wasm": "latest || *"
   }
 }

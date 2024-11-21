@@ -1,4 +1,13 @@
 import {
+  addNonEnumerableProperty,
+  extractQueryParamsFromUrl,
+  logger,
+  objectify,
+  stripUrlQueryAndFragment,
+  vercelWaitUntil,
+  winterCGRequestToRequestData,
+} from '@sentry/core';
+import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   captureException,
@@ -13,15 +22,6 @@ import {
   withIsolationScope,
 } from '@sentry/node';
 import type { RequestEventData, Scope, SpanAttributes } from '@sentry/types';
-import {
-  addNonEnumerableProperty,
-  extractQueryParamsFromUrl,
-  logger,
-  objectify,
-  stripUrlQueryAndFragment,
-  vercelWaitUntil,
-  winterCGRequestToRequestData,
-} from '@sentry/utils';
 import type { APIContext, MiddlewareResponseHandler } from 'astro';
 
 type MiddlewareOptions = {

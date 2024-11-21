@@ -1,7 +1,7 @@
 import type { DsnComponents, SdkInfo } from '@sentry/types';
-import { makeDsn } from '@sentry/utils';
 
 import { getEnvelopeEndpointWithUrlEncodedAuth, getReportDialogEndpoint } from '../../src/api';
+import { makeDsn } from '../../src/utils-hoist/dsn';
 
 const ingestDsn = 'https://abc@xxxx.ingest.sentry.io:1234/subpath/123';
 const dsnPublic = 'https://abc@sentry.io:1234/subpath/123';

@@ -8,8 +8,13 @@ import type { continueTrace } from '@sentry/core';
 import { getDynamicSamplingContextFromScope } from '@sentry/core';
 import { getRootSpan } from '@sentry/core';
 import { spanToJSON } from '@sentry/core';
-import { getClient, getCurrentScope, getDynamicSamplingContextFromSpan, getIsolationScope } from '@sentry/core';
-import type { DynamicSamplingContext, Options, PropagationContext } from '@sentry/types';
+import {
+  getClient,
+  getCurrentScope,
+  getDynamicSamplingContextFromClient,
+  getDynamicSamplingContextFromSpan,
+  getIsolationScope,
+} from '@sentry/core';
 import {
   LRUMap,
   SENTRY_BAGGAGE_KEY_PREFIX,
@@ -19,7 +24,8 @@ import {
   parseBaggageHeader,
   propagationContextFromHeaders,
   stringMatchesSomePattern,
-} from '@sentry/utils';
+} from '@sentry/core';
+import type { DynamicSamplingContext, Options, PropagationContext } from '@sentry/types';
 
 import {
   SENTRY_BAGGAGE_HEADER,

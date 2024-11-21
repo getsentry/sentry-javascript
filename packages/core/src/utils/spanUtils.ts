@@ -9,12 +9,6 @@ import type {
   SpanTimeInput,
   TraceContext,
 } from '@sentry/types';
-import {
-  addNonEnumerableProperty,
-  dropUndefinedKeys,
-  generateSentryTraceHeader,
-  timestampInSeconds,
-} from '@sentry/utils';
 import { getAsyncContextStrategy } from '../asyncContext';
 import { getMainCarrier } from '../carrier';
 import { getCurrentScope } from '../currentScopes';
@@ -23,6 +17,9 @@ import type { MetricType } from '../metrics/types';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../semanticAttributes';
 import type { SentrySpan } from '../tracing/sentrySpan';
 import { SPAN_STATUS_OK, SPAN_STATUS_UNSET } from '../tracing/spanstatus';
+import { addNonEnumerableProperty, dropUndefinedKeys } from '../utils-hoist/object';
+import { timestampInSeconds } from '../utils-hoist/time';
+import { generateSentryTraceHeader } from '../utils-hoist/tracing';
 import { _getSpanForScope } from './spanOnScope';
 
 // These are aligned with OpenTelemetry trace flags

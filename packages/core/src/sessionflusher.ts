@@ -5,8 +5,8 @@ import type {
   SessionAggregates,
   SessionFlusherLike,
 } from '@sentry/types';
-import { dropUndefinedKeys } from '@sentry/utils';
 import { getIsolationScope } from './currentScopes';
+import { dropUndefinedKeys } from './utils-hoist/object';
 
 type ReleaseHealthAttributes = {
   environment?: string;

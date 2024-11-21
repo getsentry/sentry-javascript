@@ -9,8 +9,8 @@ import {
   startSpan,
   withIsolationScope,
 } from '@sentry/core';
+import { extractQueryParamsFromUrl, getSanitizedUrlString, parseUrl } from '@sentry/core';
 import type { IntegrationFn, RequestEventData, SpanAttributes } from '@sentry/types';
-import { extractQueryParamsFromUrl, getSanitizedUrlString, parseUrl } from '@sentry/utils';
 
 const INTEGRATION_NAME = 'BunServer';
 

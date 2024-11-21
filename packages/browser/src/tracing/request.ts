@@ -17,7 +17,6 @@ import {
   spanToJSON,
   startInactiveSpan,
 } from '@sentry/core';
-import type { Client, HandlerDataXhr, SentryWrappedXMLHttpRequest, Span } from '@sentry/types';
 import {
   BAGGAGE_HEADER_NAME,
   addFetchEndInstrumentationHandler,
@@ -25,7 +24,8 @@ import {
   browserPerformanceTimeOrigin,
   parseUrl,
   stringMatchesSomePattern,
-} from '@sentry/utils';
+} from '@sentry/core';
+import type { Client, HandlerDataXhr, SentryWrappedXMLHttpRequest, Span } from '@sentry/types';
 import { WINDOW } from '../helpers';
 
 /** Options for Request Instrumentation */

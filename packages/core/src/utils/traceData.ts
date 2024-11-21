@@ -1,20 +1,13 @@
-import type { SerializedTraceData, Span } from '@sentry/types';
-import {
-  TRACEPARENT_REGEXP,
-  dynamicSamplingContextToSentryBaggageHeader,
-  generateSentryTraceHeader,
-  logger,
-} from '@sentry/utils';
+import type { SerializedTraceData } from '@sentry/types';
 import { getAsyncContextStrategy } from '../asyncContext';
 import { getMainCarrier } from '../carrier';
 import { getClient, getCurrentScope } from '../currentScopes';
 import { isEnabled } from '../exports';
-import type { Scope } from '../scope';
-import {
-  getDynamicSamplingContextFromScope,
-  getDynamicSamplingContextFromSpan,
-} from '../tracing/dynamicSamplingContext';
-import { getActiveSpan, spanToTraceHeader } from './spanUtils';
+import { getDynamicSamplingContextFromClient, getDynamicSamplingContextFromSpan } from '../tracing';
+import { dynamicSamplingContextToSentryBaggageHeader } from '../utils-hoist/baggage';
+import { logger } from '../utils-hoist/logger';
+import { TRACEPARENT_REGEXP, generateSentryTraceHeader } from '../utils-hoist/tracing';
+import { getActiveSpan, getRootSpan, spanToTraceHeader } from './spanUtils';
 
 /**
  * Extracts trace propagation data from the current span or from the client's scope (via transaction or propagation

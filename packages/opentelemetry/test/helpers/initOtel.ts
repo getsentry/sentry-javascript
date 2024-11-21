@@ -8,7 +8,7 @@ import {
   SEMRESATTRS_SERVICE_NAMESPACE,
 } from '@opentelemetry/semantic-conventions';
 import { SDK_VERSION, getClient } from '@sentry/core';
-import { logger } from '@sentry/utils';
+import { logger } from '@sentry/core';
 
 import { wrapContextManagerClass } from '../../src/contextManager';
 import { DEBUG_BUILD } from '../../src/debug-build';

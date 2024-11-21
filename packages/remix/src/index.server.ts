@@ -1,8 +1,8 @@
 import { applySdkMetadata } from '@sentry/core';
+import { logger } from '@sentry/core';
 import type { NodeClient, NodeOptions } from '@sentry/node';
 import { getDefaultIntegrations as getDefaultNodeIntegrations, init as nodeInit, isInitialized } from '@sentry/node';
 import type { Integration } from '@sentry/types';
-import { logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from './utils/debug-build';
 import { instrumentServer } from './utils/instrumentServer';
@@ -84,6 +84,7 @@ export {
   mysql2Integration,
   mysqlIntegration,
   nativeNodeFetchIntegration,
+  // eslint-disable-next-line deprecation/deprecation
   nestIntegration,
   NodeClient,
   nodeContextIntegration,
@@ -115,6 +116,7 @@ export {
   setupExpressErrorHandler,
   setupHapiErrorHandler,
   setupKoaErrorHandler,
+  // eslint-disable-next-line deprecation/deprecation
   setupNestErrorHandler,
   setUser,
   spanToBaggageHeader,

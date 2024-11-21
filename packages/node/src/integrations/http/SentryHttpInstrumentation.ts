@@ -6,7 +6,6 @@ import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
 import { InstrumentationBase, InstrumentationNodeModuleDefinition } from '@opentelemetry/instrumentation';
 import { getRequestInfo } from '@opentelemetry/instrumentation-http';
 import { addBreadcrumb, getClient, getIsolationScope, withIsolationScope } from '@sentry/core';
-import type { PolymorphicRequest, RequestEventData, SanitizedRequestData, Scope } from '@sentry/types';
 import {
   extractQueryParamsFromUrl,
   getBreadcrumbLogLevelFromHttpStatusCode,
@@ -15,7 +14,8 @@ import {
   logger,
   parseUrl,
   stripUrlQueryAndFragment,
-} from '@sentry/utils';
+} from '@sentry/core';
+import type { PolymorphicRequest, RequestEventData, SanitizedRequestData, Scope } from '@sentry/types';
 import { DEBUG_BUILD } from '../../debug-build';
 import type { NodeClient } from '../../sdk/client';
 import { getRequestUrl } from '../../utils/getRequestUrl';

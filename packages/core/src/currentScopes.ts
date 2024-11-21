@@ -1,9 +1,9 @@
 import type { Scope, TraceContext } from '@sentry/types';
 import type { Client } from '@sentry/types';
-import { dropUndefinedKeys, getGlobalSingleton } from '@sentry/utils';
 import { getAsyncContextStrategy } from './asyncContext';
 import { getMainCarrier } from './carrier';
 import { Scope as ScopeClass } from './scope';
+import { getGlobalSingleton } from './utils-hoist/worldwide';
 
 /**
  * Get the currently active scope.

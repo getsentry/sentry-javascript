@@ -42,8 +42,7 @@
     "@sentry/core": "8.39.0",
     "@sentry/node": "8.39.0",
     "@sentry/opentelemetry": "8.39.0",
-    "@sentry/types": "8.39.0",
-    "@sentry/utils": "8.39.0"
+    "@sentry/types": "8.39.0"
   },
   "devDependencies": {
     "bun-types": "latest"
