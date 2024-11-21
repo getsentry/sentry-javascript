@@ -34,8 +34,13 @@ export interface VendoredTanstackRouter {
     parseSearch: (search: string) => Record<string, any>;
   };
   matchRoutes: (
-    location: VendoredTanstackRouterLocation,
-    opts?: { preload?: boolean; throwOnError?: boolean },
+    pathname: string,
+    // eslint-disable-next-line @typescript-eslint/ban-types
+    locationSearch: {},
+    opts?: {
+      preload?: boolean;
+      throwOnError?: boolean;
+    },
   ) => Array<VendoredTanstackRouterRouteMatch>;
   subscribe(
     eventType: 'onResolved' | 'onBeforeNavigate',
@@ -46,7 +51,7 @@ export interface VendoredTanstackRouter {
   ): () => void;
 }
 
-export interface VendoredTanstackRouterLocation {
+interface VendoredTanstackRouterLocation {
   pathname: string;
   // eslint-disable-next-line @typescript-eslint/ban-types
   search: {};
