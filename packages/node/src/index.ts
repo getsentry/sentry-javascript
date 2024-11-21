@@ -1,4 +1,5 @@
 export { httpIntegration } from './integrations/http';
+export { httpRequestToRequestEventData } from './integrations/http/SentryHttpInstrumentation';
 export { nativeNodeFetchIntegration } from './integrations/node-fetch';
 export { fsIntegration } from './integrations/fs';
 

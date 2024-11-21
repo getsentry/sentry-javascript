@@ -1,12 +1,20 @@
 import {
+  handleCallbackErrors,
+  isString,
+  logger,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  handleCallbackErrors,
   setHttpStatus,
+  stripUrlQueryAndFragment,
 } from '@sentry/core';
-import { isString, logger, stripUrlQueryAndFragment } from '@sentry/core';
-import { captureException, continueTrace, flush, getCurrentScope, startSpanManual } from '@sentry/node';
-
+import {
+  captureException,
+  continueTrace,
+  flush,
+  getCurrentScope,
+  httpRequestToRequestEventData,
+  startSpanManual,
+} from '@sentry/node';
 import { DEBUG_BUILD } from '../debug-build';
 import { domainify, markEventUnhandled, proxyFunction } from '../utils';
 import type { HttpFunction, WrapperOptions } from './general';
@@ -44,6 +52,9 @@ function _wrapHttpFunction(fn: HttpFunction, options: Partial<WrapperOptions>): 
     const baggage = req.headers?.baggage;
 
     return continueTrace({ sentryTrace, baggage }, () => {
+      const normalizedRequest = httpRequestToRequestEventData(req);
+      getCurrentScope().setSDKProcessingMetadata({ normalizedRequest });
+
       return startSpanManual(
         {
           name: `${reqMethod} ${reqUrl}`,
@@ -54,10 +65,6 @@ function _wrapHttpFunction(fn: HttpFunction, options: Partial<WrapperOptions>): 
           },
         },
         span => {
-          getCurrentScope().setSDKProcessingMetadata({
-            request: req,
-          });
-
           // eslint-disable-next-line @typescript-eslint/unbound-method
           const _end = res.end;
           // eslint-disable-next-line @typescript-eslint/no-explicit-any

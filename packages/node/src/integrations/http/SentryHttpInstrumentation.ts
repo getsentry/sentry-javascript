@@ -131,26 +131,9 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
 
         instrumentation._diag.debug('http instrumentation for incoming request');
 
-        const request = args[0] as http.IncomingMessage;
-
         const isolationScope = getIsolationScope().clone();
-
-        const headers = request.headers;
-        const host = headers.host || '<no host>';
-        const protocol = request.socket && (request.socket as { encrypted?: boolean }).encrypted ? 'https' : 'http';
-        const originalUrl = request.url || '';
-        const absoluteUrl = originalUrl.startsWith(protocol) ? originalUrl : `${protocol}://${host}${originalUrl}`;
-
-        // This is non-standard, but may be set on e.g. Next.js or Express requests
-        const cookies = (request as PolymorphicRequest).cookies;
-
-        const normalizedRequest: RequestEventData = {
-          url: absoluteUrl,
-          method: request.method,
-          query_string: extractQueryParamsFromUrl(request.url || ''),
-          headers: headersToDict(request.headers),
-          cookies,
-        };
+        const request = args[0] as http.IncomingMessage;
+        const normalizedRequest = httpRequestToRequestEventData(request);
 
         patchRequestToCaptureBody(request, isolationScope);
 
@@ -444,4 +427,28 @@ function patchRequestToCaptureBody(req: IncomingMessage, isolationScope: Scope):
   } catch {
     // ignore errors if we can't patch stuff
   }
+}
+
+/**
+ * Convert a HTTP request object to RequestEventData to be passed as normalizedRequest.
+ */
+export function httpRequestToRequestEventData(request: IncomingMessage): RequestEventData {
+  const headers = request.headers;
+  const host = headers.host || '<no host>';
+  const protocol = request.socket && (request.socket as { encrypted?: boolean }).encrypted ? 'https' : 'http';
+  const originalUrl = request.url || '';
+  const absoluteUrl = originalUrl.startsWith(protocol) ? originalUrl : `${protocol}://${host}${originalUrl}`;
+
+  // This is non-standard, but may be set on e.g. Next.js or Express requests
+  const cookies = (request as PolymorphicRequest).cookies;
+
+  const normalizedRequest: RequestEventData = {
+    url: absoluteUrl,
+    method: request.method,
+    query_string: extractQueryParamsFromUrl(request.url || ''),
+    headers: headersToDict(request.headers),
+    cookies,
+  };
+
+  return normalizedRequest;
 }

@@ -1,4 +1,3 @@
-import type { IncomingMessage, ServerResponse } from 'http';
 import {
   captureException,
   getActiveSpan,
@@ -7,6 +6,8 @@ import {
   getRootSpan,
   getTraceData,
 } from '@sentry/core';
+import { httpRequestToRequestEventData } from '@sentry/node';
+import type { IncomingMessage, ServerResponse } from 'http';
 import { TRANSACTION_ATTR_SENTRY_ROUTE_BACKFILL } from '../span-attributes-with-logic-attached';
 
 /**
@@ -61,10 +62,9 @@ export function withTracedServerSideDataFetcher<F extends (...args: any[]) => Pr
     this: unknown,
     ...args: Parameters<F>
   ): Promise<{ data: ReturnType<F>; sentryTrace?: string; baggage?: string }> {
+    const normalizedRequest = httpRequestToRequestEventData(req);
     getCurrentScope().setTransactionName(`${options.dataFetchingMethodName} (${options.dataFetcherRouteName})`);
-    getIsolationScope().setSDKProcessingMetadata({
-      request: req,
-    });
+    getIsolationScope().setSDKProcessingMetadata({ normalizedRequest });
 
     const span = getActiveSpan();
 

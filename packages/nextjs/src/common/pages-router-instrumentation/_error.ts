@@ -1,5 +1,6 @@
 import { captureException, withScope } from '@sentry/core';
 import { vercelWaitUntil } from '@sentry/core';
+import { httpRequestToRequestEventData } from '@sentry/node';
 import type { NextPageContext } from 'next';
 import { flushSafelyWithTimeout } from '../utils/responseEnd';
 
@@ -38,7 +39,8 @@ export async function captureUnderscoreErrorException(contextOrProps: ContextOrP
 
   withScope(scope => {
     if (req) {
-      scope.setSDKProcessingMetadata({ request: req });
+      const normalizedRequest = httpRequestToRequestEventData(req);
+      scope.setSDKProcessingMetadata({ normalizedRequest });
     }
 
     // If third-party libraries (or users themselves) throw something falsy, we want to capture it as a message (which
