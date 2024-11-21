@@ -6,13 +6,16 @@ import {
   SEMATTRS_HTTP_METHOD,
   SEMATTRS_HTTP_URL,
 } from '@opentelemetry/semantic-conventions';
-import { getSanitizedUrlString, parseUrl } from '@sentry/core';
+import { getSanitizedUrlString } from '@sentry/core';
 import type { SanitizedRequestData } from '@sentry/types';
 
 import { spanHasAttributes } from './spanTypes';
 
+// Just a dummy url base for the `URL` constructor.
+const DUMMY_URL_BASE = 'dummy://';
+
 /**
- * Get sanitizied request data from an OTEL span.
+ * Get sanitized request data from an OTEL span.
  */
 export function getRequestSpanData(span: Span | ReadableSpan): Partial<SanitizedRequestData> {
   // The base `Span` type has no `attributes`, so we need to guard here against that
@@ -40,9 +43,14 @@ export function getRequestSpanData(span: Span | ReadableSpan): Partial<Sanitized
 
   try {
     if (typeof maybeUrlAttribute === 'string') {
-      const url = parseUrl(maybeUrlAttribute);
+      const url = new URL(maybeUrlAttribute, DUMMY_URL_BASE);
 
-      data.url = getSanitizedUrlString(url);
+      // If the dummy protocol is still there it means that the url attribute was relative
+      if (url.protocol === 'dummy:') {
+        data.url = url.pathname;
+      } else {
+        data.url = getSanitizedUrlString(url);
+      }
 
       if (url.search) {
         data['http.query'] = url.search;

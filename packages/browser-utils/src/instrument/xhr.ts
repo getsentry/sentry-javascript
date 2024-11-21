@@ -37,7 +37,7 @@ export function instrumentXHR(): void {
       // open() should always be called with two or more arguments
       // But to be on the safe side, we actually validate this and bail out if we don't have a method & url
       const method = isString(xhrOpenArgArray[0]) ? xhrOpenArgArray[0].toUpperCase() : undefined;
-      const url = parseUrl(xhrOpenArgArray[1]);
+      const url = ensureUrlIsString(xhrOpenArgArray[1]);
 
       if (!method || !url) {
         return originalOpen.apply(xhrOpenThisArg, xhrOpenArgArray);
@@ -140,7 +140,7 @@ export function instrumentXHR(): void {
   });
 }
 
-function parseUrl(url: string | unknown): string | undefined {
+function ensureUrlIsString(url: string | unknown): string | undefined {
   if (isString(url)) {
     return url;
   }

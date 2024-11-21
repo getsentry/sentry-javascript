@@ -13,7 +13,7 @@ import {
   SEMATTRS_MESSAGING_SYSTEM,
   SEMATTRS_RPC_SERVICE,
 } from '@opentelemetry/semantic-conventions';
-import { getSanitizedUrlString, parseUrl, stripUrlQueryAndFragment } from '@sentry/core';
+import { getSanitizedUrlString, stripUrlQueryAndFragment } from '@sentry/core';
 import type { SpanAttributes, TransactionSource } from '@sentry/types';
 
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
@@ -196,6 +196,9 @@ function getGraphqlOperationNamesFromAttribute(attr: AttributeValue): string {
   return `${attr}`;
 }
 
+// Just a dummy url base for the `URL` constructor.
+const DUMMY_URL_BASE = 'dummy://';
+
 /** Exported for tests only */
 export function getSanitizedUrl(
   attributes: Attributes,
@@ -216,8 +219,8 @@ export function getSanitizedUrl(
   // This is the normalized route name - may not always be available!
   const httpRoute = attributes[ATTR_HTTP_ROUTE];
 
-  const parsedUrl = typeof httpUrl === 'string' ? parseUrl(httpUrl) : undefined;
-  const url = parsedUrl ? getSanitizedUrlString(parsedUrl) : undefined;
+  const parsedUrl = typeof httpUrl === 'string' ? new URL(httpUrl, DUMMY_URL_BASE) : undefined;
+  const url = parsedUrl && parsedUrl.protocol !== 'dummy:' ? getSanitizedUrlString(parsedUrl) : undefined;
   const query = parsedUrl && parsedUrl.search ? parsedUrl.search : undefined;
   const fragment = parsedUrl && parsedUrl.hash ? parsedUrl.hash : undefined;
 

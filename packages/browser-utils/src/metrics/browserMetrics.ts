@@ -1,7 +1,7 @@
 /* eslint-disable max-lines */
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, getActiveSpan } from '@sentry/core';
 import { setMeasurement } from '@sentry/core';
-import { browserPerformanceTimeOrigin, getComponentName, htmlTreeAsString, logger, parseUrl } from '@sentry/core';
+import { browserPerformanceTimeOrigin, getComponentName, htmlTreeAsString, logger } from '@sentry/core';
 import type { Measurements, Span, SpanAttributes, StartSpanOptions } from '@sentry/types';
 
 import { spanToJSON } from '@sentry/core';
@@ -545,8 +545,6 @@ export function _addResourceSpans(
     return;
   }
 
-  const parsedUrl = parseUrl(resourceUrl);
-
   const attributes: SpanAttributes = {
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.resource.browser.metrics',
   };
@@ -561,12 +559,18 @@ export function _addResourceSpans(
   if ('renderBlockingStatus' in entry) {
     attributes['resource.render_blocking_status'] = entry.renderBlockingStatus;
   }
-  if (parsedUrl.protocol) {
-    attributes['url.scheme'] = parsedUrl.protocol.split(':').pop(); // the protocol returned by parseUrl includes a :, but OTEL spec does not, so we remove it.
-  }
 
-  if (parsedUrl.host) {
-    attributes['server.address'] = parsedUrl.host;
+  try {
+    // The URL constructor can throw when there is no protocol or host.
+    const parsedUrl = new URL(resourceUrl);
+    if (parsedUrl.protocol) {
+      attributes['url.scheme'] = parsedUrl.protocol.split(':').pop(); // the protocol returned by parseUrl includes a :, but OTEL spec does not, so we remove it.
+    }
+    if (parsedUrl.host) {
+      attributes['server.address'] = parsedUrl.host;
+    }
+  } catch {
+    // noop
   }
 
   attributes['url.same_origin'] = resourceUrl.includes(WINDOW.location.origin);

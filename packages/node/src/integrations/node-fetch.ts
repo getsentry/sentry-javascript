@@ -8,7 +8,7 @@ import {
   getCurrentScope,
   hasTracingEnabled,
 } from '@sentry/core';
-import { getBreadcrumbLogLevelFromHttpStatusCode, getSanitizedUrlString, parseUrl } from '@sentry/core';
+import { getBreadcrumbLogLevelFromHttpStatusCode, getSanitizedUrlString } from '@sentry/core';
 import {
   addOpenTelemetryInstrumentation,
   generateSpanContextForPropagationContext,
@@ -128,18 +128,17 @@ function addRequestBreadcrumb(request: UndiciRequest, response: UndiciResponse):
 function getBreadcrumbData(request: UndiciRequest): Partial<SanitizedRequestData> {
   try {
     const url = new URL(request.path, request.origin);
-    const parsedUrl = parseUrl(url.toString());
 
     const data: Partial<SanitizedRequestData> = {
-      url: getSanitizedUrlString(parsedUrl),
+      url: getSanitizedUrlString(url),
       'http.method': request.method || 'GET',
     };
 
-    if (parsedUrl.search) {
-      data['http.query'] = parsedUrl.search;
+    if (url.search) {
+      data['http.query'] = url.search;
     }
-    if (parsedUrl.hash) {
-      data['http.fragment'] = parsedUrl.hash;
+    if (url.hash) {
+      data['http.fragment'] = url.hash;
     }
 
     return data;

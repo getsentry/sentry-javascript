@@ -9,7 +9,6 @@ import {
   startSpan,
   withIsolationScope,
 } from '@sentry/core';
-import { extractQueryParamsFromUrl, getSanitizedUrlString, parseUrl } from '@sentry/core';
 import type { IntegrationFn, RequestEventData, SpanAttributes } from '@sentry/types';
 
 const INTEGRATION_NAME = 'BunServer';
@@ -50,6 +49,9 @@ export function instrumentBunServe(): void {
   });
 }
 
+// Just a dummy url base for the `URL` constructor.
+const DUMMY_URL_BASE = 'a://';
+
 /**
  * Instruments Bun.serve `fetch` option to automatically create spans and capture errors.
  */
@@ -63,24 +65,23 @@ function instrumentBunServeOptions(serveOptions: Parameters<typeof Bun.serve>[0]
           return fetchTarget.apply(fetchThisArg, fetchArgs);
         }
 
-        const parsedUrl = parseUrl(request.url);
         const attributes: SpanAttributes = {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.bun.serve',
           [SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD]: request.method || 'GET',
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
         };
+
+        const parsedUrl = new URL(request.url, DUMMY_URL_BASE);
+
         if (parsedUrl.search) {
           attributes['http.query'] = parsedUrl.search;
         }
 
-        const url = getSanitizedUrlString(parsedUrl);
-
         isolationScope.setSDKProcessingMetadata({
           normalizedRequest: {
-            url,
+            url: `${parsedUrl.pathname}${parsedUrl.search}`,
             method: request.method,
             headers: request.headers.toJSON(),
-            query_string: extractQueryParamsFromUrl(url),
           } satisfies RequestEventData,
         });
 
@@ -91,7 +92,7 @@ function instrumentBunServeOptions(serveOptions: Parameters<typeof Bun.serve>[0]
               {
                 attributes,
                 op: 'http.server',
-                name: `${request.method} ${parsedUrl.path || '/'}`,
+                name: `${request.method} ${parsedUrl.pathname || '/'}`,
               },
               async span => {
                 try {

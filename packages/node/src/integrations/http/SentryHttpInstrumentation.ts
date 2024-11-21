@@ -13,7 +13,6 @@ import {
   getSanitizedUrlString,
   httpRequestToRequestData,
   logger,
-  parseUrl,
   stripUrlQueryAndFragment,
   withIsolationScope,
 } from '@sentry/core';
@@ -311,20 +310,20 @@ function addRequestBreadcrumb(request: http.ClientRequest, response: http.Incomi
 function getBreadcrumbData(request: http.ClientRequest): Partial<SanitizedRequestData> {
   try {
     // `request.host` does not contain the port, but the host header does
-    const host = request.getHeader('host') || request.host;
+    const hostHeader = request.getHeader('host');
+    const host = typeof hostHeader === 'string' ? hostHeader : request.host;
     const url = new URL(request.path, `${request.protocol}//${host}`);
-    const parsedUrl = parseUrl(url.toString());
 
     const data: Partial<SanitizedRequestData> = {
-      url: getSanitizedUrlString(parsedUrl),
+      url: getSanitizedUrlString(url),
       'http.method': request.method || 'GET',
     };
 
-    if (parsedUrl.search) {
-      data['http.query'] = parsedUrl.search;
+    if (url.search) {
+      data['http.query'] = url.search;
     }
-    if (parsedUrl.hash) {
-      data['http.fragment'] = parsedUrl.hash;
+    if (url.hash) {
+      data['http.fragment'] = url.hash;
     }
 
     return data;

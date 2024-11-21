@@ -16,7 +16,6 @@ import {
 } from './utils-hoist/baggage';
 import { isInstanceOf } from './utils-hoist/is';
 import { generateSentryTraceHeader } from './utils-hoist/tracing';
-import { parseUrl } from './utils-hoist/url';
 import { hasTracingEnabled } from './utils/hasTracingEnabled';
 import { getActiveSpan, spanToTraceHeader } from './utils/spanUtils';
 
@@ -68,8 +67,12 @@ export function instrumentFetchRequest(
 
   const { method, url } = handlerData.fetchData;
 
-  const fullUrl = getFullURL(url);
-  const host = fullUrl ? parseUrl(fullUrl).host : undefined;
+  let parsedUrl;
+  try {
+    parsedUrl = new URL(url);
+  } catch {
+    // noop
+  }
 
   const hasParent = !!getActiveSpan();
 
@@ -81,8 +84,8 @@ export function instrumentFetchRequest(
             url,
             type: 'fetch',
             'http.method': method,
-            'http.url': fullUrl,
-            'server.address': host,
+            'http.url': parsedUrl ? parsedUrl.href : undefined,
+            'server.address': parsedUrl ? parsedUrl.hostname : undefined,
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: spanOrigin,
             [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.client',
           },
@@ -224,15 +227,6 @@ export function addTracingHeadersToFetchRequest(
       'sentry-trace': sentryTraceHeader,
       baggage: newBaggageHeaders.length > 0 ? newBaggageHeaders.join(',') : undefined,
     };
-  }
-}
-
-function getFullURL(url: string): string | undefined {
-  try {
-    const parsed = new URL(url);
-    return parsed.href;
-  } catch {
-    return undefined;
   }
 }
 

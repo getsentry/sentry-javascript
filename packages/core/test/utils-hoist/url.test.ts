@@ -84,6 +84,7 @@ describe('getSanitizedUrlString', () => {
     ['url with port 443', 'http://172.31.12.144:443/test', 'http://172.31.12.144/test'],
     ['url with IP and port 80', 'http://172.31.12.144:80/test', 'http://172.31.12.144/test'],
   ])('returns a sanitized URL for a %s', (_, rawUrl: string, sanitizedURL: string) => {
+    // eslint-disable-next-line deprecation/deprecation
     const urlObject = parseUrl(rawUrl);
     expect(getSanitizedUrlString(urlObject)).toEqual(sanitizedURL);
   });

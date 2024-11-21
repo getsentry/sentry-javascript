@@ -13,7 +13,6 @@ import {
   getEventDescription,
   htmlTreeAsString,
   logger,
-  parseUrl,
   safeJoin,
   severityLevelFromString,
 } from '@sentry/core';
@@ -328,6 +327,9 @@ function _getFetchBreadcrumbHandler(client: Client): (handlerData: HandlerDataFe
   };
 }
 
+// Just a dummy url base for the `URL` constructor.
+const DUMMY_URL_BASE = 'a://';
+
 /**
  * Creates breadcrumbs from history API calls
  */
@@ -337,24 +339,25 @@ function _getHistoryBreadcrumbHandler(client: Client): (handlerData: HandlerData
       return;
     }
 
+    const currentUrl = new URL(WINDOW.location.href);
+
     let from: string | undefined = handlerData.from;
     let to: string | undefined = handlerData.to;
-    const parsedLoc = parseUrl(WINDOW.location.href);
-    let parsedFrom = from ? parseUrl(from) : undefined;
-    const parsedTo = parseUrl(to);
+    let parsedFrom = from ? new URL(from, DUMMY_URL_BASE) : undefined;
+    const parsedTo = new URL(to, DUMMY_URL_BASE);
 
     // Initial pushState doesn't provide `from` information
-    if (!parsedFrom || !parsedFrom.path) {
-      parsedFrom = parsedLoc;
+    if (!parsedFrom || !parsedFrom.pathname) {
+      parsedFrom = currentUrl;
     }
 
     // Use only the path component of the URL if the URL matches the current
     // document (almost all the time when using pushState)
-    if (parsedLoc.protocol === parsedTo.protocol && parsedLoc.host === parsedTo.host) {
-      to = parsedTo.relative;
+    if (currentUrl.origin === parsedTo.origin) {
+      to = `${parsedTo.pathname}${parsedTo.search}${parsedTo.hash}`;
     }
-    if (parsedLoc.protocol === parsedFrom.protocol && parsedLoc.host === parsedFrom.host) {
-      from = parsedFrom.relative;
+    if (currentUrl.origin === parsedFrom.origin) {
+      from = `${parsedTo.pathname}${parsedTo.search}${parsedTo.hash}`;
     }
 
     addBreadcrumb({

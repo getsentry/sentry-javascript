@@ -14,6 +14,7 @@ import {
   getDynamicSamplingContextFromClient,
   getDynamicSamplingContextFromSpan,
   getIsolationScope,
+  getSanitizedUrlString,
   hasTracingEnabled,
   instrumentFetchRequest,
   setHttpStatus,
@@ -173,15 +174,19 @@ export function instrumentOutgoingRequests(client: Client, _options?: Partial<Re
         responseToSpanId.set(handlerData.response, handlerData.fetchData.__span);
       }
 
-      // We cannot use `window.location` in the generic fetch instrumentation,
-      // but we need it for reliable `server.address` attribute.
-      // so we extend this in here
       if (createdSpan) {
-        const fullUrl = getFullURL(handlerData.fetchData.url);
-        const host = fullUrl ? parseUrl(fullUrl).host : undefined;
+        let parsedUrl;
+        try {
+          // By adding a base URL to new URL(), this will also work for relative urls
+          // If `url` is a full URL, the base URL is ignored anyhow
+          parsedUrl = new URL(handlerData.fetchData.url, WINDOW.location.origin);
+        } catch {
+          // noop
+        }
+
         createdSpan.setAttributes({
-          'http.url': fullUrl,
-          'server.address': host,
+          'http.url': parsedUrl ? getSanitizedUrlString(parsedUrl) : undefined,
+          'server.address': parsedUrl ? parsedUrl.host : undefined,
         });
       }
 
@@ -347,6 +352,7 @@ export function shouldAttachHeaders(
  *
  * @returns Span if a span was created, otherwise void.
  */
+// eslint-disable-next-line complexity
 export function xhrCallback(
   handlerData: HandlerDataXhr,
   shouldCreateSpan: (url: string) => boolean,
@@ -378,8 +384,14 @@ export function xhrCallback(
     return undefined;
   }
 
-  const fullUrl = getFullURL(sentryXhrData.url);
-  const host = fullUrl ? parseUrl(fullUrl).host : undefined;
+  let parsedUrl;
+  try {
+    // By adding a base URL to new URL(), this will also work for relative urls
+    // If `url` is a full URL, the base URL is ignored anyhow
+    parsedUrl = new URL(sentryXhrData.url, WINDOW.location.origin);
+  } catch {
+    // noop
+  }
 
   const hasParent = !!getActiveSpan();
 
@@ -390,9 +402,9 @@ export function xhrCallback(
           attributes: {
             type: 'xhr',
             'http.method': sentryXhrData.method,
-            'http.url': fullUrl,
+            'http.url': parsedUrl ? getSanitizedUrlString(parsedUrl) : undefined,
             url: sentryXhrData.url,
-            'server.address': host,
+            'server.address': parsedUrl ? parsedUrl.host : undefined,
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.browser',
             [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.client',
           },
@@ -453,16 +465,5 @@ function setHeaderOnXhr(
     }
   } catch (_) {
     // Error: InvalidStateError: Failed to execute 'setRequestHeader' on 'XMLHttpRequest': The object's state must be OPENED.
-  }
-}
-
-function getFullURL(url: string): string | undefined {
-  try {
-    // By adding a base URL to new URL(), this will also work for relative urls
-    // If `url` is a full URL, the base URL is ignored anyhow
-    const parsed = new URL(url, WINDOW.location.origin);
-    return parsed.href;
-  } catch {
-    return undefined;
   }
 }

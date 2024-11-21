@@ -1,6 +1,7 @@
 type PartialURL = {
   host?: string;
   path?: string;
+  pathname?: string;
   protocol?: string;
   relative?: string;
   search?: string;
@@ -13,6 +14,8 @@ type PartialURL = {
  * // intentionally using regex and not <a/> href parsing trick because React Native and other
  * // environments where DOM might not be available
  * @returns parsed URL object
+ *
+ * @deprecated This function is deprecated and will be removed in the next major version. Use `new URL()` instead.
  */
 export function parseUrl(url: string): PartialURL {
   if (!url) {
@@ -61,7 +64,10 @@ export function getNumberOfUrlSegments(url: string): number {
  * see: https://develop.sentry.dev/sdk/data-handling/#structuring-data
  */
 export function getSanitizedUrlString(url: PartialURL): string {
-  const { protocol, host, path } = url;
+  const { protocol, host, path, pathname } = url;
+
+  // This is the compatibility layer between PartialURL and URL
+  const prioritizedPathArg = pathname || path;
 
   const filteredHost =
     (host &&
@@ -74,5 +80,5 @@ export function getSanitizedUrlString(url: PartialURL): string {
         .replace(/(:443)$/, '')) ||
     '';
 
-  return `${protocol ? `${protocol}://` : ''}${filteredHost}${path}`;
+  return `${protocol ? `${protocol}://` : ''}${filteredHost}${prioritizedPathArg}`;
 }
