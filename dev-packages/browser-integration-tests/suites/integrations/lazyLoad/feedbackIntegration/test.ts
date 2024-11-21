@@ -5,7 +5,7 @@ import { sentryTest } from '../../../../utils/fixtures';
 
 sentryTest('it allows to lazy load the feedback integration', async ({ getLocalTestUrl, page }) => {
   const bundle = process.env.PW_BUNDLE || '';
-  const url = await getLocalTestUrl({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname, handleLazyLoadedFeedback: true });
 
   await page.route(`https://browser.sentry-cdn.com/${SDK_VERSION}/feedback.min.js`, route => {
     return route.fulfill({
