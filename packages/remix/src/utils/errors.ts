@@ -1,13 +1,20 @@
 import type { AppData, DataFunctionArgs, EntryContext, HandleDocumentRequestFunction } from '@remix-run/node';
-import { captureException, getClient, handleCallbackErrors } from '@sentry/core';
-import { addExceptionMechanism, isPrimitive, logger, objectify } from '@sentry/core';
-import type { Span } from '@sentry/types';
+import {
+  addExceptionMechanism,
+  captureException,
+  getClient,
+  handleCallbackErrors,
+  isPrimitive,
+  logger,
+  objectify,
+  winterCGRequestToRequestData,
+} from '@sentry/core';
+import type { RequestEventData, Span } from '@sentry/types';
 import { DEBUG_BUILD } from './debug-build';
 import type { RemixOptions } from './remixOptions';
 import { storeFormDataKeys } from './utils';
 import { extractData, isResponse, isRouteErrorResponse } from './vendor/response';
 import type { DataFunction, RemixRequest } from './vendor/types';
-import { normalizeRemixRequest } from './web-fetch';
 
 /**
  * Captures an exception happened in the Remix server.
@@ -41,12 +48,10 @@ export async function captureRemixServerException(
     return;
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let normalizedRequest: Record<string, unknown> = request as unknown as any;
+  let normalizedRequest: RequestEventData = {};
 
   try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    normalizedRequest = normalizeRemixRequest(request as unknown as any);
+    normalizedRequest = winterCGRequestToRequestData(request);
   } catch (e) {
     DEBUG_BUILD && logger.warn('Failed to normalize Remix request');
   }
@@ -54,11 +59,7 @@ export async function captureRemixServerException(
   const objectifiedErr = objectify(err);
 
   captureException(isResponse(objectifiedErr) ? await extractResponseError(objectifiedErr) : objectifiedErr, scope => {
-    scope.setSDKProcessingMetadata({
-      request: {
-        ...normalizedRequest,
-      },
-    });
+    scope.setSDKProcessingMetadata({ normalizedRequest });
 
     scope.addEventProcessor(event => {
       addExceptionMechanism(event, {

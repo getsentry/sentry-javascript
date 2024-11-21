@@ -11,11 +11,12 @@ import {
   spanToJSON,
   spanToTraceHeader,
   startSpan,
+  winterCGRequestToRequestData,
   withIsolationScope,
 } from '@sentry/core';
 import { dynamicSamplingContextToSentryBaggageHeader, fill, isNodeEnv, loadModule, logger } from '@sentry/core';
 import { continueTrace, getDynamicSamplingContextFromSpan } from '@sentry/opentelemetry';
-import type { TransactionSource, WrappedFunction } from '@sentry/types';
+import type { RequestEventData, TransactionSource, WrappedFunction } from '@sentry/types';
 import type { Span } from '@sentry/types';
 
 import { DEBUG_BUILD } from './debug-build';
@@ -39,7 +40,6 @@ import type {
   ServerRoute,
   ServerRouteManifest,
 } from './vendor/types';
-import { normalizeRemixRequest } from './web-fetch';
 
 let FUTURE_FLAGS: FutureConfig | undefined;
 
@@ -296,10 +296,10 @@ function wrapRequestHandler(
     return withIsolationScope(async isolationScope => {
       const options = getClient()?.getOptions();
 
-      let normalizedRequest: Record<string, unknown> = request;
+      let normalizedRequest: RequestEventData = {};
 
       try {
-        normalizedRequest = normalizeRemixRequest(request);
+        normalizedRequest = winterCGRequestToRequestData(request);
       } catch (e) {
         DEBUG_BUILD && logger.warn('Failed to normalize Remix request');
       }
@@ -311,11 +311,7 @@ function wrapRequestHandler(
         isolationScope.setTransactionName(name);
       }
 
-      isolationScope.setSDKProcessingMetadata({
-        request: {
-          ...normalizedRequest,
-        },
-      });
+      isolationScope.setSDKProcessingMetadata({ normalizedRequest });
 
       if (!options || !hasTracingEnabled(options)) {
         return origRequestHandler.call(this, request, loadContext);

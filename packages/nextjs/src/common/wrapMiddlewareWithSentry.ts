@@ -8,9 +8,10 @@ import {
   handleCallbackErrors,
   setCapturedScopesOnSpan,
   startSpan,
+  vercelWaitUntil,
+  winterCGRequestToRequestData,
   withIsolationScope,
 } from '@sentry/core';
-import { vercelWaitUntil, winterCGRequestToRequestData } from '@sentry/core';
 import type { TransactionSource } from '@sentry/types';
 import type { EdgeRouteHandler } from '../edge/types';
 import { flushSafelyWithTimeout } from './utils/responseEnd';
