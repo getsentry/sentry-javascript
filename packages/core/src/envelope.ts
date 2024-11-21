@@ -15,15 +15,15 @@ import type {
   SpanItem,
   SpanJSON,
 } from '@sentry/types';
+import { getDynamicSamplingContextFromSpan } from './tracing/dynamicSamplingContext';
+import type { SentrySpan } from './tracing/sentrySpan';
+import { dsnToString } from './utils-hoist/dsn';
 import {
   createEnvelope,
   createEventEnvelopeHeaders,
-  dsnToString,
+  createSpanEnvelopeItem,
   getSdkMetadataForEnvelopeHeader,
-} from '@sentry/utils';
-import { createSpanEnvelopeItem } from '@sentry/utils';
-import { getDynamicSamplingContextFromSpan } from './tracing/dynamicSamplingContext';
-import type { SentrySpan } from './tracing/sentrySpan';
+} from './utils-hoist/envelope';
 import { spanToJSON } from './utils/spanUtils';
 
 /**

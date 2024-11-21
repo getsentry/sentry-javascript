@@ -3,7 +3,7 @@ import * as path from 'path';
 import { sentryVitePlugin } from '@sentry/vite-plugin';
 import type { AstroConfig, AstroIntegration } from 'astro';
 
-import { dropUndefinedKeys } from '@sentry/utils';
+import { dropUndefinedKeys } from '@sentry/core';
 import { buildClientSnippet, buildSdkInitFileImportSnippet, buildServerSnippet } from './snippets';
 import type { SentryOptions } from './types';
 

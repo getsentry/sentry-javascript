@@ -10,8 +10,8 @@ import {
   startSpan,
   withIsolationScope,
 } from '@sentry/core';
+import { vercelWaitUntil, winterCGRequestToRequestData } from '@sentry/core';
 import type { TransactionSource } from '@sentry/types';
-import { vercelWaitUntil, winterCGRequestToRequestData } from '@sentry/utils';
 import type { EdgeRouteHandler } from '../edge/types';
 import { flushSafelyWithTimeout } from './utils/responseEnd';
 

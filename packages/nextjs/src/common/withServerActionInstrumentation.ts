@@ -9,8 +9,8 @@ import {
   startSpan,
   withIsolationScope,
 } from '@sentry/core';
+import { logger, vercelWaitUntil } from '@sentry/core';
 import type { RequestEventData } from '@sentry/types';
-import { logger, vercelWaitUntil } from '@sentry/utils';
 
 import { DEBUG_BUILD } from './debug-build';
 import { isNotFoundNavigationError, isRedirectNavigationError } from './nextNavigationErrorUtils';

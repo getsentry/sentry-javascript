@@ -1,6 +1,6 @@
 import { captureException, withScope } from '@sentry/core';
+import { headersToDict } from '@sentry/core';
 import type { RequestEventData } from '@sentry/types';
-import { headersToDict } from '@sentry/utils';
 
 type RequestInfo = {
   path: string;

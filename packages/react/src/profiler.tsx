@@ -1,7 +1,7 @@
 import { startInactiveSpan } from '@sentry/browser';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, spanToJSON, withActiveSpan } from '@sentry/core';
+import { timestampInSeconds } from '@sentry/core';
 import type { Span } from '@sentry/types';
-import { timestampInSeconds } from '@sentry/utils';
 import hoistNonReactStatics from 'hoist-non-react-statics';
 import * as React from 'react';
 

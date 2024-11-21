@@ -2,6 +2,7 @@
 import { spawn, spawnSync } from 'child_process';
 import { existsSync } from 'fs';
 import { join } from 'path';
+import { normalize } from '@sentry/core';
 import type {
   ClientReport,
   Envelope,
@@ -13,7 +14,6 @@ import type {
   SessionAggregates,
   TransactionEvent,
 } from '@sentry/types';
-import { normalize } from '@sentry/utils';
 import axios from 'axios';
 import {
   assertEnvelopeHeader,

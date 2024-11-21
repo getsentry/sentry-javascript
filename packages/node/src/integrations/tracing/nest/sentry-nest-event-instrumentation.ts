@@ -6,7 +6,7 @@ import {
   InstrumentationNodeModuleFile,
 } from '@opentelemetry/instrumentation';
 import { captureException, startSpan } from '@sentry/core';
-import { SDK_VERSION } from '@sentry/utils';
+import { SDK_VERSION } from '@sentry/core';
 import { getEventSpanOptions } from './helpers';
 import type { OnEventTarget } from './types';
 

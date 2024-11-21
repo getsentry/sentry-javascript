@@ -14,8 +14,8 @@ import {
   withIsolationScope,
   withScope,
 } from '@sentry/core';
+import { propagationContextFromHeaders, uuid4, winterCGHeadersToDict } from '@sentry/core';
 import type { RequestEventData, WebFetchHeaders } from '@sentry/types';
-import { propagationContextFromHeaders, uuid4, winterCGHeadersToDict } from '@sentry/utils';
 
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import type { GenerationFunctionContext } from '../common/types';

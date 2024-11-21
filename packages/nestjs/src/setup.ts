@@ -18,8 +18,8 @@ import {
   getIsolationScope,
   spanToJSON,
 } from '@sentry/core';
+import { logger } from '@sentry/core';
 import type { Span } from '@sentry/types';
-import { logger } from '@sentry/utils';
 import type { Observable } from 'rxjs';
 import { isExpectedError } from './helpers';
 

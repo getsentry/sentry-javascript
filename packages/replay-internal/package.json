@@ -52,7 +52,7 @@
     "fix:eslint": "eslint . --format stylish --fix",
     "fix:biome": "biome check --apply .",
     "lint": "eslint . --format stylish",
-    "test": "vitest",
+    "test": "vitest run",
     "test:watch": "vitest --watch",
     "yalc:publish": "yalc publish --push --sig"
   },
@@ -78,8 +78,7 @@
   "dependencies": {
     "@sentry-internal/browser-utils": "8.39.0",
     "@sentry/core": "8.39.0",
-    "@sentry/types": "8.39.0",
-    "@sentry/utils": "8.39.0"
+    "@sentry/types": "8.39.0"
   },
   "engines": {
     "node": ">=14.18"

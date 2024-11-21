@@ -17,8 +17,8 @@ import {
   getStatusMessage,
   spanTimeInputToSeconds,
 } from '@sentry/core';
+import { dropUndefinedKeys, logger } from '@sentry/core';
 import type { SpanJSON, SpanOrigin, TraceContext, TransactionEvent, TransactionSource } from '@sentry/types';
-import { dropUndefinedKeys, logger } from '@sentry/utils';
 import { SENTRY_TRACE_STATE_PARENT_SPAN_ID } from './constants';
 
 import { DEBUG_BUILD } from './debug-build';

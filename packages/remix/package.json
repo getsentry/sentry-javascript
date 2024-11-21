@@ -59,7 +59,6 @@
     "@sentry/opentelemetry": "8.39.0",
     "@sentry/react": "8.39.0",
     "@sentry/types": "8.39.0",
-    "@sentry/utils": "8.39.0",
     "glob": "^10.3.4",
     "opentelemetry-instrumentation-remix": "0.7.1",
     "yargs": "^17.6.0"

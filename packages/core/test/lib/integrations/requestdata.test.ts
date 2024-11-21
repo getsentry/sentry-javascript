@@ -1,12 +1,13 @@
 import type { IncomingMessage } from 'http';
 import type { Event, EventProcessor } from '@sentry/types';
-import * as sentryUtils from '@sentry/utils';
 import type { RequestDataIntegrationOptions } from '../../../src';
 import { requestDataIntegration, setCurrentClient } from '../../../src';
 
 import { TestClient, getDefaultTestClientOptions } from '../../mocks/client';
 
-const addRequestDataToEventSpy = jest.spyOn(sentryUtils, 'addRequestDataToEvent');
+import * as requestDataModule from '../../../src/utils-hoist/requestdata';
+
+const addRequestDataToEventSpy = jest.spyOn(requestDataModule, 'addRequestDataToEvent');
 
 const headers = { ears: 'furry', nose: 'wet', tongue: 'spotted', cookie: 'favorite=zukes' };
 const method = 'wagging';

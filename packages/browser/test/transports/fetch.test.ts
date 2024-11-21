@@ -1,8 +1,8 @@
 import type { Mock } from 'vitest';
 import { describe, expect, it, vi } from 'vitest';
 
+import { createEnvelope, serializeEnvelope } from '@sentry/core';
 import type { EventEnvelope, EventItem } from '@sentry/types';
-import { createEnvelope, serializeEnvelope } from '@sentry/utils';
 
 import { makeFetchTransport } from '../../src/transports/fetch';
 import type { BrowserTransportOptions } from '../../src/transports/types';

@@ -35,7 +35,6 @@
     "@sentry/browser": "8.39.0",
     "@sentry/core": "8.39.0",
     "@sentry/types": "8.39.0",
-    "@sentry/utils": "8.39.0",
     "ember-auto-import": "^2.7.2",
     "ember-cli-babel": "^8.2.0",
     "ember-cli-htmlbars": "^6.1.1",

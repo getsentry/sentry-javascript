@@ -18,9 +18,9 @@ import {
   getClient,
   startInactiveSpan,
 } from '@sentry/browser';
+import { GLOBAL_OBJ, browserPerformanceTimeOrigin, timestampInSeconds } from '@sentry/core';
 import type { ExtendedBackburner } from '@sentry/ember/runloop';
 import type { Span } from '@sentry/types';
-import { GLOBAL_OBJ, browserPerformanceTimeOrigin, timestampInSeconds } from '@sentry/utils';
 import type { EmberRouterMain, EmberSentryConfig, GlobalConfig, OwnConfig } from '../types';
 
 function getSentryConfig(): EmberSentryConfig {
