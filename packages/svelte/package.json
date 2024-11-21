@@ -42,7 +42,6 @@
     "@sentry/browser": "8.39.0",
     "@sentry/core": "8.39.0",
     "@sentry/types": "8.39.0",
-    "@sentry/utils": "8.39.0",
     "magic-string": "^0.30.0"
   },
   "peerDependencies": {

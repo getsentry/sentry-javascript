@@ -6,7 +6,9 @@ import type {
   SdkMetadata,
   SerializedCheckIn,
 } from '@sentry/types';
-import { createEnvelope, dropUndefinedKeys, dsnToString } from '@sentry/utils';
+import { dsnToString } from './utils-hoist/dsn';
+import { createEnvelope } from './utils-hoist/envelope';
+import { dropUndefinedKeys } from './utils-hoist/object';
 
 /**
  * Create envelope from check in item.

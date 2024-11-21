@@ -1,5 +1,5 @@
 import { captureException, withScope } from '@sentry/core';
-import { vercelWaitUntil } from '@sentry/utils';
+import { vercelWaitUntil } from '@sentry/core';
 import type { NextPageContext } from 'next';
 import { flushSafelyWithTimeout } from '../utils/responseEnd';
 

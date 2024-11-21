@@ -3,8 +3,8 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
+import { arrayify, escapeStringForRegex, loadModule, logger } from '@sentry/core';
 import { getSentryRelease } from '@sentry/node';
-import { arrayify, escapeStringForRegex, loadModule, logger } from '@sentry/utils';
 import * as chalk from 'chalk';
 import { sync as resolveSync } from 'resolve';
 

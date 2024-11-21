@@ -24,7 +24,6 @@
     "@sentry/browser": "8.39.0",
     "@sentry/core": "8.39.0",
     "@sentry/types": "8.39.0",
-    "@sentry/utils": "8.39.0",
     "tslib": "^2.4.1"
   },
   "devDependencies": {

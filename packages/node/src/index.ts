@@ -21,6 +21,7 @@ export { mongooseIntegration } from './integrations/tracing/mongoose';
 export { mysqlIntegration } from './integrations/tracing/mysql';
 export { mysql2Integration } from './integrations/tracing/mysql2';
 export { redisIntegration } from './integrations/tracing/redis';
+// eslint-disable-next-line deprecation/deprecation
 export { nestIntegration, setupNestErrorHandler } from './integrations/tracing/nest/nest';
 export { postgresIntegration } from './integrations/tracing/postgres';
 export { prismaIntegration } from './integrations/tracing/prisma';
@@ -56,7 +57,7 @@ export { cron } from './cron';
 
 export type { NodeOptions } from './types';
 
-export { addRequestDataToEvent, DEFAULT_USER_INCLUDES, extractRequestData } from '@sentry/utils';
+export { addRequestDataToEvent, DEFAULT_USER_INCLUDES, extractRequestData } from '@sentry/core';
 
 export {
   addOpenTelemetryInstrumentation,

@@ -1,10 +1,7 @@
-import {
-  addGlobalErrorInstrumentationHandler,
-  addGlobalUnhandledRejectionInstrumentationHandler,
-  logger,
-} from '@sentry/utils';
-
 import { DEBUG_BUILD } from '../debug-build';
+import { addGlobalErrorInstrumentationHandler } from '../utils-hoist/instrument/globalError';
+import { addGlobalUnhandledRejectionInstrumentationHandler } from '../utils-hoist/instrument/globalUnhandledRejection';
+import { logger } from '../utils-hoist/logger';
 import { getActiveSpan, getRootSpan } from '../utils/spanUtils';
 import { SPAN_STATUS_ERROR } from './spanstatus';
 

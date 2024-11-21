@@ -1,6 +1,6 @@
 import * as http from 'http';
+import { createEnvelope, logger } from '@sentry/core';
 import type { Envelope, EventEnvelope } from '@sentry/types';
-import { createEnvelope, logger } from '@sentry/utils';
 
 import { spotlightIntegration } from '../../src/integrations/spotlight';
 import { NodeClient } from '../../src/sdk/client';

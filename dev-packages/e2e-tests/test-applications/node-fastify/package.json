@@ -14,7 +14,6 @@
     "@sentry/node": "latest || *",
     "@sentry/types": "latest || *",
     "@sentry/core": "latest || *",
-    "@sentry/utils": "latest || *",
     "@sentry/opentelemetry": "latest || *",
     "@types/node": "18.15.1",
     "fastify": "4.23.2",

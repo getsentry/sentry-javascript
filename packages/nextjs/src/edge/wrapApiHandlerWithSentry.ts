@@ -11,7 +11,7 @@ import {
   startSpan,
   withIsolationScope,
 } from '@sentry/core';
-import { vercelWaitUntil, winterCGRequestToRequestData } from '@sentry/utils';
+import { vercelWaitUntil, winterCGRequestToRequestData } from '@sentry/core';
 import { flushSafelyWithTimeout } from '../common/utils/responseEnd';
 import type { EdgeRouteHandler } from './types';
 

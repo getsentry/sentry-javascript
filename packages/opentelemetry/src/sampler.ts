@@ -10,8 +10,8 @@ import {
   hasTracingEnabled,
   sampleSpan,
 } from '@sentry/core';
+import { logger } from '@sentry/core';
 import type { Client, SpanAttributes } from '@sentry/types';
-import { logger } from '@sentry/utils';
 import { SENTRY_TRACE_STATE_SAMPLED_NOT_RECORDING, SENTRY_TRACE_STATE_URL } from './constants';
 
 import {

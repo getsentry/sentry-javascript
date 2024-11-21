@@ -1,8 +1,8 @@
 import * as http from 'http';
 import * as https from 'https';
 import { createTransport } from '@sentry/core';
+import { createEnvelope, serializeEnvelope } from '@sentry/core';
 import type { EventEnvelope, EventItem } from '@sentry/types';
-import { createEnvelope, serializeEnvelope } from '@sentry/utils';
 
 import { makeNodeTransport } from '../../src/transports';
 import type { HTTPModule, HTTPModuleRequestIncomingMessage } from '../../src/transports/http-module';

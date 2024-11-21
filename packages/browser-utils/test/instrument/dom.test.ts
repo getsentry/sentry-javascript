@@ -1,18 +1,11 @@
 import { instrumentDOM } from '../../src/instrument/dom';
+import { WINDOW } from '../../src/types';
 
-jest.mock('@sentry/utils', () => {
-  const original = jest.requireActual('@sentry/utils');
+// @ts-expect-error - idk
+WINDOW.XMLHttpRequest = undefined;
 
-  return {
-    ...original,
-    GLOBAL_OBJ: {
-      document: undefined,
-    },
-  };
-});
-
-describe('instrumentDOM', () => {
-  it('it does not throw if document is a key on window but not defined', () => {
+describe('instrumentXHR', () => {
+  it('it does not throw if XMLHttpRequest is a key on window but not defined', () => {
     expect(instrumentDOM).not.toThrow();
   });
 });

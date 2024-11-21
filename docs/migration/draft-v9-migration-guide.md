@@ -17,6 +17,18 @@
 ## `@sentry/nestjs`
 
 - Deprecated `@WithSentry`. Use `@SentryExceptionCaptured` instead.
+- Deprecated `SentryTracingInterceptor`.
+  If you are using `@sentry/nestjs` you can safely remove any references to the `SentryTracingInterceptor`.
+  If you are using another package migrate to `@sentry/nestjs` and remove the `SentryTracingInterceptor` afterwards.
+- Deprecated `SentryService`.
+  If you are using `@sentry/nestjs` you can safely remove any references to the `SentryService`.
+  If you are using another package migrate to `@sentry/nestjs` and remove the `SentryService` afterwards.
+- Deprecated `SentryGlobalGenericFilter`.
+  Use the `SentryGlobalFilter` instead.
+  The `SentryGlobalFilter` is a drop-in replacement.
+- Deprecated `SentryGlobalGraphQLFilter`.
+  Use the `SentryGlobalFilter` instead.
+  The `SentryGlobalFilter` is a drop-in replacement.
 
 ## `@sentry/types`
 
@@ -25,3 +37,5 @@
 ## Server-side SDKs (`@sentry/node` and all dependents)
 
 - Deprecated `processThreadBreadcrumbIntegration` in favor of `childProcessIntegration`. Functionally they are the same.
+- Deprecated `nestIntegration`. Use the NestJS SDK (`@sentry/nestjs`) instead.
+- Deprecated `setupNestErrorHandler`. Use the NestJS SDK (`@sentry/nestjs`) instead.
