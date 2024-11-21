@@ -21,6 +21,7 @@ const NODE_EXPORTS_IGNORE = [
   'SentryContextManager',
   'validateOpenTelemetrySetup',
   'preloadOpenTelemetry',
+  'httpRequestToRequestEventData',
 ];
 
 const nodeExports = Object.keys(SentryNode).filter(e => !NODE_EXPORTS_IGNORE.includes(e));
