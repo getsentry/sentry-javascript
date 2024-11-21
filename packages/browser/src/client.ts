@@ -1,6 +1,7 @@
 import type { Scope } from '@sentry/core';
 import { applySdkMetadata } from '@sentry/core';
 import { BaseClient } from '@sentry/core';
+import { getSDKSource, logger } from '@sentry/core';
 import type {
   BrowserClientProfilingOptions,
   BrowserClientReplayOptions,
@@ -12,7 +13,6 @@ import type {
   SeverityLevel,
   UserFeedback,
 } from '@sentry/types';
-import { getSDKSource, logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from './debug-build';
 import { eventFromException, eventFromMessage } from './eventbuilder';

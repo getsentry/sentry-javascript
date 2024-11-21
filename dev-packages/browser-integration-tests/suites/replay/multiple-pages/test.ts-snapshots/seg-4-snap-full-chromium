@@ -116,7 +116,7 @@
                     "type": 2,
                     "tagName": "a",
                     "attributes": {
-                      "href": "/index.html"
+                      "href": "http://sentry-test.io/index.html"
                     },
                     "childNodes": [
                       {

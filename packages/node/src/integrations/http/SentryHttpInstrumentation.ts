@@ -5,15 +5,19 @@ import { VERSION } from '@opentelemetry/core';
 import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
 import { InstrumentationBase, InstrumentationNodeModuleDefinition } from '@opentelemetry/instrumentation';
 import { getRequestInfo } from '@opentelemetry/instrumentation-http';
-import { addBreadcrumb, getClient, getIsolationScope, withIsolationScope } from '@sentry/core';
-import type { PolymorphicRequest, Request, SanitizedRequestData } from '@sentry/types';
 import {
+  addBreadcrumb,
   getBreadcrumbLogLevelFromHttpStatusCode,
+  getClient,
+  getIsolationScope,
   getSanitizedUrlString,
+  httpRequestToRequestData,
   logger,
   parseUrl,
   stripUrlQueryAndFragment,
-} from '@sentry/utils';
+  withIsolationScope,
+} from '@sentry/core';
+import type { RequestEventData, SanitizedRequestData, Scope } from '@sentry/types';
 import { DEBUG_BUILD } from '../../debug-build';
 import type { NodeClient } from '../../sdk/client';
 import { getRequestUrl } from '../../utils/getRequestUrl';
@@ -129,31 +133,19 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
 
         instrumentation._diag.debug('http instrumentation for incoming request');
 
+        const isolationScope = getIsolationScope().clone();
         const request = args[0] as http.IncomingMessage;
 
-        const isolationScope = getIsolationScope().clone();
+        const normalizedRequest = httpRequestToRequestData(request);
 
-        const headers = request.headers;
-        const host = headers.host || '<no host>';
-        const protocol = request.socket && (request.socket as { encrypted?: boolean }).encrypted ? 'https' : 'http';
-        const originalUrl = request.url || '';
-        const absoluteUrl = originalUrl.startsWith(protocol) ? originalUrl : `${protocol}://${host}${originalUrl}`;
-
-        // This is non-standard, but may be set on e.g. Next.js or Express requests
-        const cookies = (request as PolymorphicRequest).cookies;
-
-        const normalizedRequest: Request = {
-          url: absoluteUrl,
-          method: request.method,
-          query_string: extractQueryParams(request),
-          headers: headersToDict(request.headers),
-          cookies,
-        };
-
-        patchRequestToCaptureBody(request, normalizedRequest);
+        patchRequestToCaptureBody(request, isolationScope);
 
         // Update the isolation scope, isolate this request
-        isolationScope.setSDKProcessingMetadata({ request, normalizedRequest });
+        // TODO(v9): Stop setting `request`, we only rely on normalizedRequest anymore
+        isolationScope.setSDKProcessingMetadata({
+          request,
+          normalizedRequest,
+        });
 
         const client = getClient<NodeClient>();
         if (client && client.getOptions().autoSessionTracking) {
@@ -347,7 +339,7 @@ function getBreadcrumbData(request: http.ClientRequest): Partial<SanitizedReques
  * we monkey patch `req.on('data')` to intercept the body chunks.
  * This way, we only read the body if the user also consumes the body, ensuring we do not change any behavior in unexpected ways.
  */
-function patchRequestToCaptureBody(req: IncomingMessage, normalizedRequest: Request): void {
+function patchRequestToCaptureBody(req: IncomingMessage, isolationScope: Scope): void {
   const chunks: Buffer[] = [];
 
   function getChunksSize(): number {
@@ -396,9 +388,9 @@ function patchRequestToCaptureBody(req: IncomingMessage, normalizedRequest: Requ
               try {
                 const body = Buffer.concat(chunks).toString('utf-8');
 
-                // We mutate the passed in normalizedRequest and add the body to it
                 if (body) {
-                  normalizedRequest.data = body;
+                  const normalizedRequest = { data: body } satisfies RequestEventData;
+                  isolationScope.setSDKProcessingMetadata({ normalizedRequest });
                 }
               } catch {
                 // ignore errors here
@@ -438,37 +430,4 @@ function patchRequestToCaptureBody(req: IncomingMessage, normalizedRequest: Requ
   } catch {
     // ignore errors if we can't patch stuff
   }
-}
-
-function extractQueryParams(req: IncomingMessage): string | undefined {
-  // req.url is path and query string
-  if (!req.url) {
-    return;
-  }
-
-  try {
-    // The `URL` constructor can't handle internal URLs of the form `/some/path/here`, so stick a dummy protocol and
-    // hostname as the base. Since the point here is just to grab the query string, it doesn't matter what we use.
-    const queryParams = new URL(req.url, 'http://dogs.are.great').search.slice(1);
-    return queryParams.length ? queryParams : undefined;
-  } catch {
-    return undefined;
-  }
-}
-
-function headersToDict(reqHeaders: Record<string, string | string[] | undefined>): Record<string, string> {
-  const headers: Record<string, string> = Object.create(null);
-
-  try {
-    Object.entries(reqHeaders).forEach(([key, value]) => {
-      if (typeof value === 'string') {
-        headers[key] = value;
-      }
-    });
-  } catch (e) {
-    DEBUG_BUILD &&
-      logger.warn('Sentry failed extracting headers from a request object. If you see this, please file an issue.');
-  }
-
-  return headers;
 }

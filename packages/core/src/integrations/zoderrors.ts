@@ -1,7 +1,8 @@
 import type { IntegrationFn } from '@sentry/types';
 import type { Event, EventHint } from '@sentry/types';
-import { isError, truncate } from '@sentry/utils';
 import { defineIntegration } from '../integration';
+import { isError } from '../utils-hoist/is';
+import { truncate } from '../utils-hoist/string';
 
 interface ZodErrorsOptions {
   key?: string;

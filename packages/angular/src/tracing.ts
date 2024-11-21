@@ -18,8 +18,8 @@ import {
   startBrowserTracingNavigationSpan,
   startInactiveSpan,
 } from '@sentry/browser';
+import { logger, stripUrlQueryAndFragment, timestampInSeconds } from '@sentry/core';
 import type { Integration, Span } from '@sentry/types';
-import { logger, stripUrlQueryAndFragment, timestampInSeconds } from '@sentry/utils';
 import type { Observable } from 'rxjs';
 import { Subscription } from 'rxjs';
 import { filter, tap } from 'rxjs/operators';

@@ -1,4 +1,6 @@
 import { captureException, withScope } from '@sentry/core';
+import { headersToDict } from '@sentry/core';
+import type { RequestEventData } from '@sentry/types';
 
 type RequestInfo = {
   path: string;
@@ -18,10 +20,10 @@ type ErrorContext = {
 export function captureRequestError(error: unknown, request: RequestInfo, errorContext: ErrorContext): void {
   withScope(scope => {
     scope.setSDKProcessingMetadata({
-      request: {
-        headers: request.headers,
+      normalizedRequest: {
+        headers: headersToDict(request.headers),
         method: request.method,
-      },
+      } satisfies RequestEventData,
     });
 
     scope.setContext('nextjs', {

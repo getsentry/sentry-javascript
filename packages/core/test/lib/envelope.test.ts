@@ -95,6 +95,13 @@ describe('createSpanEnvelope', () => {
     client = new TestClient(options);
     setCurrentClient(client);
     client.init();
+
+    // We want to avoid console errors in the tests
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    jest.resetAllMocks();
   });
 
   it('creates a span envelope', () => {

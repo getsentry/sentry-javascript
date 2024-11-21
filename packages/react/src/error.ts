@@ -1,6 +1,6 @@
 import { captureException } from '@sentry/browser';
+import { isError } from '@sentry/core';
 import type { EventHint } from '@sentry/types';
-import { isError } from '@sentry/utils';
 import { version } from 'react';
 import type { ErrorInfo } from 'react';
 

@@ -1,4 +1,4 @@
-import type { GLOBAL_OBJ } from '@sentry/utils';
+import type { GLOBAL_OBJ } from '@sentry/core';
 import type { SentryWebpackPluginOptions } from '@sentry/webpack-plugin';
 
 // The first argument to `withSentryConfig` (which is the user's next config).

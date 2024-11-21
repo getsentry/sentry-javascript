@@ -4,8 +4,8 @@ import {
   handleCallbackErrors,
   startSpan,
 } from '@sentry/core';
+import { addNonEnumerableProperty, objectify } from '@sentry/core';
 import { captureException } from '@sentry/svelte';
-import { addNonEnumerableProperty, objectify } from '@sentry/utils';
 import type { LoadEvent } from '@sveltejs/kit';
 
 import type { SentryWrappedFlag } from '../common/utils';

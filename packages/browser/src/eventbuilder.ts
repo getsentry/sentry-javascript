@@ -1,13 +1,4 @@
 import { getClient } from '@sentry/core';
-import type {
-  Event,
-  EventHint,
-  Exception,
-  ParameterizedString,
-  SeverityLevel,
-  StackFrame,
-  StackParser,
-} from '@sentry/types';
 import {
   addExceptionMechanism,
   addExceptionTypeValue,
@@ -21,7 +12,16 @@ import {
   isPlainObject,
   normalizeToSize,
   resolvedSyncPromise,
-} from '@sentry/utils';
+} from '@sentry/core';
+import type {
+  Event,
+  EventHint,
+  Exception,
+  ParameterizedString,
+  SeverityLevel,
+  StackFrame,
+  StackParser,
+} from '@sentry/types';
 
 type Prototype = { constructor: (...args: unknown[]) => unknown };
 

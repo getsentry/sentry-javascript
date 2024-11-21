@@ -1,5 +1,5 @@
+import { getLocationHref } from '@sentry/core';
 import type { ErrorEvent, Event } from '@sentry/types';
-import { getLocationHref } from '@sentry/utils';
 
 import type { ReplayContainer } from '../types';
 import { createBreadcrumb } from '../util/createBreadcrumb';

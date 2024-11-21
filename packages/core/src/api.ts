@@ -1,5 +1,6 @@
 import type { DsnComponents, DsnLike, SdkInfo } from '@sentry/types';
-import { dsnToString, makeDsn, urlEncode } from '@sentry/utils';
+import { dsnToString, makeDsn } from './utils-hoist/dsn';
+import { urlEncode } from './utils-hoist/object';
 
 const SENTRY_API_VERSION = '7';
 

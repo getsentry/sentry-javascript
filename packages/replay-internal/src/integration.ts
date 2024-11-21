@@ -1,4 +1,5 @@
 import { parseSampleRate } from '@sentry/core';
+import { consoleSandbox, dropUndefinedKeys, isBrowser } from '@sentry/core';
 import type {
   BrowserClientReplayOptions,
   Client,
@@ -6,7 +7,6 @@ import type {
   IntegrationFn,
   ReplayRecordingMode,
 } from '@sentry/types';
-import { consoleSandbox, dropUndefinedKeys, isBrowser } from '@sentry/utils';
 
 import {
   DEFAULT_FLUSH_MAX_DELAY,

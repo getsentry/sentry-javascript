@@ -101,11 +101,15 @@ export {
   mysql2Integration,
   redisIntegration,
   tediousIntegration,
+  // eslint-disable-next-line deprecation/deprecation
   nestIntegration,
+  // eslint-disable-next-line deprecation/deprecation
   setupNestErrorHandler,
   postgresIntegration,
   prismaIntegration,
+  // eslint-disable-next-line deprecation/deprecation
   processThreadBreadcrumbIntegration,
+  childProcessIntegration,
   hapiIntegration,
   setupHapiErrorHandler,
   spotlightIntegration,
@@ -122,10 +126,12 @@ export {
 
 export {
   captureConsoleIntegration,
+  // eslint-disable-next-line deprecation/deprecation
   debugIntegration,
   dedupeIntegration,
   extraErrorDataIntegration,
   rewriteFramesIntegration,
+  // eslint-disable-next-line deprecation/deprecation
   sessionTimingIntegration,
 } from '@sentry/core';
 
