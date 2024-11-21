@@ -433,7 +433,7 @@ function patchRequestToCaptureBody(req: IncomingMessage, isolationScope: Scope):
  * Convert a HTTP request object to RequestEventData to be passed as normalizedRequest.
  */
 export function httpRequestToRequestEventData(request: IncomingMessage): RequestEventData {
-  const headers = request.headers;
+  const headers = request.headers || {};
   const host = headers.host || '<no host>';
   const protocol = request.socket && (request.socket as { encrypted?: boolean }).encrypted ? 'https' : 'http';
   const originalUrl = request.url || '';
@@ -446,7 +446,7 @@ export function httpRequestToRequestEventData(request: IncomingMessage): Request
     url: absoluteUrl,
     method: request.method,
     query_string: extractQueryParamsFromUrl(originalUrl),
-    headers: headersToDict(request.headers),
+    headers: headersToDict(headers),
     cookies,
   };
 
