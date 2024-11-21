@@ -8,7 +8,7 @@ import {
   spanToJSON,
 } from '@sentry/core';
 
-import { GLOBAL_OBJ, stripUrlQueryAndFragment, vercelWaitUntil } from '@sentry/utils';
+import { GLOBAL_OBJ, stripUrlQueryAndFragment, vercelWaitUntil } from '@sentry/core';
 import type { VercelEdgeOptions } from '@sentry/vercel-edge';
 import { getDefaultIntegrations, init as vercelEdgeInit } from '@sentry/vercel-edge';
 

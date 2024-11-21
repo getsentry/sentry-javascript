@@ -1,5 +1,5 @@
 import * as SentryCore from '@sentry/core';
-import { resetInstrumentationHandlers } from '@sentry/utils';
+import { resetInstrumentationHandlers } from '@sentry/core';
 import { getClient } from '../../src';
 import type { NodeClient } from '../../src';
 import { consoleIntegration } from '../../src/integrations/console';

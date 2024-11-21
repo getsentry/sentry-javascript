@@ -38,6 +38,7 @@ export function getAutoPerformanceIntegrations(): Integration[] {
     // See https://github.com/prisma/prisma/issues/23410
     // TODO v8: Figure out a better solution for this, maybe only disable in ESM mode?
     // prismaIntegration(),
+    // eslint-disable-next-line deprecation/deprecation
     nestIntegration(),
     hapiIntegration(),
     koaIntegration(),
@@ -64,6 +65,7 @@ export function getOpenTelemetryInstrumentationToPreload(): (((options?: any) =>
     instrumentKafka,
     instrumentKoa,
     instrumentLruMemoizer,
+    // eslint-disable-next-line deprecation/deprecation
     instrumentNest,
     instrumentMongo,
     instrumentMongoose,

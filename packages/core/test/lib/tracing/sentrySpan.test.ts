@@ -1,5 +1,4 @@
-import { timestampInSeconds } from '@sentry/utils';
-import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, setCurrentClient } from '../../../src';
+import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, setCurrentClient, timestampInSeconds } from '../../../src';
 import { SentrySpan } from '../../../src/tracing/sentrySpan';
 import { SPAN_STATUS_ERROR } from '../../../src/tracing/spanstatus';
 import { TRACE_FLAG_NONE, TRACE_FLAG_SAMPLED, spanToJSON } from '../../../src/utils/spanUtils';

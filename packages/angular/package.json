@@ -15,16 +15,15 @@
     "access": "public"
   },
   "peerDependencies": {
-    "@angular/common": ">= 14.x <= 18.x",
-    "@angular/core": ">= 14.x <= 18.x",
-    "@angular/router": ">= 14.x <= 18.x",
+    "@angular/common": ">= 14.x <= 19.x",
+    "@angular/core": ">= 14.x <= 19.x",
+    "@angular/router": ">= 14.x <= 19.x",
     "rxjs": "^6.5.5 || ^7.x"
   },
   "dependencies": {
     "@sentry/browser": "8.39.0",
     "@sentry/core": "8.39.0",
     "@sentry/types": "8.39.0",
-    "@sentry/utils": "8.39.0",
     "tslib": "^2.4.1"
   },
   "devDependencies": {
@@ -66,10 +65,7 @@
   "nx": {
     "targets": {
       "build:transpile": {
-        "dependsOn": [
-          "^build:transpile",
-          "^build:types"
-        ],
+        "dependsOn": ["^build:transpile", "^build:types"],
         "outputs": [
           "{projectRoot}/build/esm2015",
           "{projectRoot}/build/fesm2015",

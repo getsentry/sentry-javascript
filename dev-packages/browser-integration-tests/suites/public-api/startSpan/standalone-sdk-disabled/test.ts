@@ -3,12 +3,12 @@ import { expect } from '@playwright/test';
 import { sentryTest } from '../../../../utils/fixtures';
 import { shouldSkipTracingTest } from '../../../../utils/helpers';
 
-sentryTest("doesn't send a standalone span envelope if SDK is disabled", async ({ getLocalTestPath, page }) => {
+sentryTest("doesn't send a standalone span envelope if SDK is disabled", async ({ getLocalTestUrl, page }) => {
   if (shouldSkipTracingTest()) {
     sentryTest.skip();
   }
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
   await page.goto(url);
 
   // @ts-expect-error this exists in the test init/subject

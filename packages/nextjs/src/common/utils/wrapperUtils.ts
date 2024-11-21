@@ -6,6 +6,7 @@ import {
   getIsolationScope,
   getRootSpan,
   getTraceData,
+  httpRequestToRequestData,
 } from '@sentry/core';
 import { TRANSACTION_ATTR_SENTRY_ROUTE_BACKFILL } from '../span-attributes-with-logic-attached';
 
@@ -61,10 +62,9 @@ export function withTracedServerSideDataFetcher<F extends (...args: any[]) => Pr
     this: unknown,
     ...args: Parameters<F>
   ): Promise<{ data: ReturnType<F>; sentryTrace?: string; baggage?: string }> {
+    const normalizedRequest = httpRequestToRequestData(req);
     getCurrentScope().setTransactionName(`${options.dataFetchingMethodName} (${options.dataFetcherRouteName})`);
-    getIsolationScope().setSDKProcessingMetadata({
-      request: req,
-    });
+    getIsolationScope().setSDKProcessingMetadata({ normalizedRequest });
 
     const span = getActiveSpan();
 

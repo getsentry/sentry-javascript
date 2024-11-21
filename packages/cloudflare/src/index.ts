@@ -18,7 +18,7 @@ export type {
   Thread,
   User,
 } from '@sentry/types';
-export type { AddRequestDataToEventOptions } from '@sentry/utils';
+export type { AddRequestDataToEventOptions } from '@sentry/core';
 
 export type { CloudflareOptions } from './client';
 
@@ -74,6 +74,7 @@ export {
   linkedErrorsIntegration,
   requestDataIntegration,
   extraErrorDataIntegration,
+  // eslint-disable-next-line deprecation/deprecation
   debugIntegration,
   dedupeIntegration,
   rewriteFramesIntegration,

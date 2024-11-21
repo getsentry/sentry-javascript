@@ -18,7 +18,7 @@ export type {
   Thread,
   User,
 } from '@sentry/types';
-export type { AddRequestDataToEventOptions } from '@sentry/utils';
+export type { AddRequestDataToEventOptions } from '@sentry/core';
 
 export type { DenoOptions } from './types';
 
@@ -71,10 +71,12 @@ export {
   functionToStringIntegration,
   requestDataIntegration,
   captureConsoleIntegration,
+  // eslint-disable-next-line deprecation/deprecation
   debugIntegration,
   dedupeIntegration,
   extraErrorDataIntegration,
   rewriteFramesIntegration,
+  // eslint-disable-next-line deprecation/deprecation
   sessionTimingIntegration,
   zodErrorsIntegration,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,

@@ -1,6 +1,6 @@
 import { createTransport, suppressTracing } from '@sentry/core';
+import { rejectedSyncPromise } from '@sentry/core';
 import type { BaseTransportOptions, Transport, TransportMakeRequestResponse, TransportRequest } from '@sentry/types';
-import { rejectedSyncPromise } from '@sentry/utils';
 
 export interface BunTransportOptions extends BaseTransportOptions {
   /** Custom headers for the transport. Used by the XHRTransport and FetchTransport */

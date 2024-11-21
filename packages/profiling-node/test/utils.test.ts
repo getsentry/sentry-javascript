@@ -1,5 +1,5 @@
+import { addItemToEnvelope, createEnvelope, uuid4 } from '@sentry/core';
 import type { Event } from '@sentry/types';
-import { addItemToEnvelope, createEnvelope, uuid4 } from '@sentry/utils';
 
 import {
   addProfilesToEnvelope,

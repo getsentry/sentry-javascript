@@ -1,6 +1,6 @@
 import type { EventHint, FeedbackEvent, SendFeedbackParams } from '@sentry/types';
-import { dropUndefinedKeys } from '@sentry/utils';
 import { getClient, getCurrentScope } from './currentScopes';
+import { dropUndefinedKeys } from './utils-hoist/object';
 
 /**
  * Send user feedback to Sentry.

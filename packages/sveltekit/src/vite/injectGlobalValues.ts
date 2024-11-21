@@ -1,4 +1,4 @@
-import type { InternalGlobal } from '@sentry/utils';
+import type { InternalGlobal } from '@sentry/core';
 
 export type GlobalSentryValues = {
   __sentry_sveltekit_output_dir?: string;
