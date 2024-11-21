@@ -1,9 +1,9 @@
 import { Routes } from '@angular/router';
-import { UserComponent } from './user/user.component';
-import { HomeComponent } from './home/home.component';
-import { CancelComponent } from './cancel/cancel.components';
 import { cancelGuard } from './cancel-guard.guard';
+import { CancelComponent } from './cancel/cancel.components';
 import { ComponentTrackingComponent } from './component-tracking/component-tracking.components';
+import { HomeComponent } from './home/home.component';
+import { UserComponent } from './user/user.component';
 
 export const routes: Routes = [
   {

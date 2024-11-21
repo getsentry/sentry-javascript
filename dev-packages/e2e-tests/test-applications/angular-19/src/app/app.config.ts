@@ -5,10 +5,10 @@ import {
   provideAppInitializer,
   provideZoneChangeDetection,
 } from '@angular/core';
-import { provideRouter, Router } from '@angular/router';
+import { Router, provideRouter } from '@angular/router';
 
+import { TraceService, createErrorHandler } from '@sentry/angular';
 import { routes } from './app.routes';
-import { createErrorHandler, TraceService } from '@sentry/angular';
 
 export const appConfig: ApplicationConfig = {
   providers: [
