@@ -474,7 +474,7 @@ export function httpRequestToRequestData(request: {
 
   // This is non-standard, but may be sometimes set
   // It may be overwritten later by our own body handling
-  const data = (request as PolymorphicRequest).body;
+  const data = (request as PolymorphicRequest).body || undefined;
 
   // This is non-standard, but may be set on e.g. Next.js or Express requests
   const cookies = (request as PolymorphicRequest).cookies;
