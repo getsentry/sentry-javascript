@@ -316,7 +316,7 @@ sentryTest(
       sentryTest.skip();
     }
 
-    const url = await getLocalTestUrl({ testDir: __dirname });
+    const url = await getLocalTestUrl({ testDir: __dirname, handleLazyLoadedFeedback: true });
 
     // ensure pageload transaction is finished
     await getFirstSentryEnvelopeRequest<Event>(page, url);
