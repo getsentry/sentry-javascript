@@ -302,7 +302,7 @@ sentryTest('user feedback event after pageload has pageload traceId in headers',
     sentryTest.skip();
   }
 
-  const url = await getLocalTestUrl({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname, handleLazyLoadedFeedback: true });
 
   const pageloadEvent = await getFirstSentryEnvelopeRequest<Event>(page, url);
   const pageloadTraceContext = pageloadEvent.contexts?.trace;

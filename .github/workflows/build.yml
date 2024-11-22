@@ -795,7 +795,8 @@ jobs:
     # - The build job was successful, not skipped
     # - AND if the profiling node bindings were either successful or skipped
     if: |
-      always() && needs.job_build.result == 'success' &&
+      always() &&
+      needs.job_build.result == 'success' &&
       (needs.job_compile_bindings_profiling_node.result == 'success' || needs.job_compile_bindings_profiling_node.result == 'skipped')
     needs: [job_get_metadata, job_build, job_compile_bindings_profiling_node]
     runs-on: ubuntu-20.04-large-js
@@ -981,13 +982,16 @@ jobs:
           directory: dev-packages/e2e-tests
           token: ${{ secrets.CODECOV_TOKEN }}
 
+  # - We skip optional tests on release branches
   job_optional_e2e_tests:
     name: E2E ${{ matrix.label || matrix.test-application }} Test
     # We only run E2E tests for non-fork PRs because the E2E tests require secrets to work and they can't be accessed from forks
     # We need to add the `always()` check here because the previous step has this as well :(
     # See: https://github.com/actions/runner/issues/2205
     if:
-      always() && needs.job_e2e_prepare.result == 'success' &&
+      always() &&
+      needs.job_get_metadata.outputs.is_release != 'true' &&
+      needs.job_e2e_prepare.result == 'success' &&
       needs.job_e2e_prepare.outputs.matrix-optional != '{"include":[]}' &&
       (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) &&
       github.actor != 'dependabot[bot]'
