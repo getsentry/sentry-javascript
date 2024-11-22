@@ -7,6 +7,7 @@
 - Deprecated `AddRequestDataToEventOptions.transaction`. This option effectively doesn't do anything anymore, and will
   be removed in v9.
 - Deprecated `TransactionNamingScheme` type.
+- Deprecated `validSeverityLevels`. Will not be replaced.
 
 ## `@sentry/core`
 
