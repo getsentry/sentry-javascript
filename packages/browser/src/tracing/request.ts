@@ -9,7 +9,6 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SentryNonRecordingSpan,
   getActiveSpan,
-  getClient,
   getTraceData,
   hasTracingEnabled,
   instrumentFetchRequest,
@@ -71,7 +70,9 @@ export interface RequestInstrumentationOptions {
    *
    * Default: true
    */
-  traceXHR: boolean /**
+  traceXHR: boolean;
+
+  /**
    * Flag to disable tracking of long-lived streams, like server-sent events (SSE) via fetch.
    * Do not enable this in case you have live streams or very long running streams.
    *
@@ -79,7 +80,7 @@ export interface RequestInstrumentationOptions {
    * (https://github.com/getsentry/sentry-javascript/issues/13950)
    *
    * Default: false
-   */;
+   */
   trackFetchStreamPerformance: boolean;
 
   /**
@@ -396,7 +397,7 @@ export function xhrCallback(
   xhr.__sentry_xhr_span_id__ = span.spanContext().spanId;
   spans[xhr.__sentry_xhr_span_id__] = span;
 
-  if (xhr.setRequestHeader && shouldAttachHeaders(sentryXhrData.url) && getClient()) {
+  if (shouldAttachHeaders(sentryXhrData.url)) {
     addTracingHeadersToXhrRequest(
       xhr,
       // If performance is disabled (TWP) or there's no active root span (pageload/navigation/interaction),
