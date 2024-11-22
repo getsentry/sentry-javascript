@@ -1,5 +1,4 @@
 import type { Client, HandlerDataFetch, Scope, Span, SpanOrigin } from '@sentry/types';
-import { getClient } from './currentScopes';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from './semanticAttributes';
 import { SPAN_STATUS_ERROR, setHttpStatus, startInactiveSpan } from './tracing';
 import { SentryNonRecordingSpan } from './tracing/sentryNonRecordingSpan';
@@ -79,7 +78,7 @@ export function instrumentFetchRequest(
   handlerData.fetchData.__span = span.spanContext().spanId;
   spans[span.spanContext().spanId] = span;
 
-  if (shouldAttachHeaders(handlerData.fetchData.url) && getClient()) {
+  if (shouldAttachHeaders(handlerData.fetchData.url)) {
     const request: string | Request = handlerData.args[0];
 
     // In case the user hasn't set the second argument of a fetch call we default it to `{}`.
@@ -90,8 +89,6 @@ export function instrumentFetchRequest(
 
     options.headers = _addTracingHeadersToFetchRequest(
       request,
-      undefined,
-      undefined,
       options,
       // If performance is disabled (TWP) or there's no active root span (pageload/navigation/interaction),
       // we do not want to use the span as base for the trace headers,
@@ -105,18 +102,9 @@ export function instrumentFetchRequest(
 
 /**
  * Adds sentry-trace and baggage headers to the various forms of fetch headers.
- *
- * @deprecated This function will not be exported anymore in v9.
- */
-export const addTracingHeadersToFetchRequest = _addTracingHeadersToFetchRequest;
-
-/**
- * Adds sentry-trace and baggage headers to the various forms of fetch headers.
  */
 function _addTracingHeadersToFetchRequest(
-  request: string | unknown, // unknown is actually type Request but we can't export DOM types from this package,
-  _client: Client | undefined,
-  _scope: Scope | undefined,
+  request: string | Request,
   fetchOptionsObj: {
     headers?:
       | {
@@ -135,14 +123,12 @@ function _addTracingHeadersToFetchRequest(
     return fetchOptionsObj && (fetchOptionsObj.headers as PolymorphicRequestHeaders);
   }
 
-  const headers =
-    fetchOptionsObj.headers ||
-    (typeof Request !== 'undefined' && isInstanceOf(request, Request) ? (request as Request).headers : undefined);
+  const headers = fetchOptionsObj.headers || (isRequest(request) ? request.headers : undefined);
 
   if (!headers) {
     return { ...traceHeaders };
-  } else if (typeof Headers !== 'undefined' && isInstanceOf(headers, Headers)) {
-    const newHeaders = new Headers(headers as Headers);
+  } else if (isHeaders(headers)) {
+    const newHeaders = new Headers(headers);
     newHeaders.set('sentry-trace', sentryTrace);
 
     if (baggage) {
@@ -160,7 +146,7 @@ function _addTracingHeadersToFetchRequest(
       }
     }
 
-    return newHeaders as PolymorphicRequestHeaders;
+    return newHeaders;
   } else if (Array.isArray(headers)) {
     const newHeaders = [
       ...headers
@@ -214,6 +200,27 @@ function _addTracingHeadersToFetchRequest(
   }
 }
 
+/**
+ * Adds sentry-trace and baggage headers to the various forms of fetch headers.
+ *
+ * @deprecated This function will not be exported anymore in v9.
+ */
+export function addTracingHeadersToFetchRequest(
+  request: string | unknown,
+  _client: Client | undefined,
+  _scope: Scope | undefined,
+  fetchOptionsObj: {
+    headers?:
+      | {
+          [key: string]: string[] | string | undefined;
+        }
+      | PolymorphicRequestHeaders;
+  },
+  span?: Span,
+): PolymorphicRequestHeaders | undefined {
+  return _addTracingHeadersToFetchRequest(request as Request, fetchOptionsObj, span);
+}
+
 function getFullURL(url: string): string | undefined {
   try {
     const parsed = new URL(url);
@@ -250,4 +257,12 @@ function stripBaggageHeaderOfSentryBaggageValues(baggageHeader: string): string 
       .filter(baggageEntry => !baggageEntry.split('=')[0]!.startsWith(SENTRY_BAGGAGE_KEY_PREFIX))
       .join(',')
   );
+}
+
+function isRequest(request: unknown): request is Request {
+  return typeof Request !== 'undefined' && isInstanceOf(request, Request);
+}
+
+function isHeaders(headers: unknown): headers is Headers {
+  return typeof Headers !== 'undefined' && isInstanceOf(headers, Headers);
 }
