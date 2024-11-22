@@ -11,14 +11,6 @@ import { clientSourceMapErrorFilter, mergeRegisterEsmLoaderHooks } from '../../s
 
 const nodeInit = vi.spyOn(SentryNode, 'init');
 
-let passedEventProcessors: EventProcessor[] = [];
-const addEventProcessor = vi
-  .spyOn(getGlobalScope(), 'addEventProcessor')
-  .mockImplementation((eventProcessor: EventProcessor) => {
-    passedEventProcessors = [...passedEventProcessors, eventProcessor];
-    return new Scope();
-  });
-
 describe('Nuxt Server SDK', () => {
   describe('init', () => {
     beforeEach(() => {
@@ -96,6 +88,14 @@ describe('Nuxt Server SDK', () => {
     });
 
     it('registers an event processor', async () => {
+      let passedEventProcessors: EventProcessor[] = [];
+      const addEventProcessor = vi
+        .spyOn(getGlobalScope(), 'addEventProcessor')
+        .mockImplementation((eventProcessor: EventProcessor) => {
+          passedEventProcessors = [...passedEventProcessors, eventProcessor];
+          return new Scope();
+        });
+
       init({
         dsn: 'https://public@dsn.ingest.sentry.io/1337',
       });
