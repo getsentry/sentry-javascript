@@ -491,7 +491,55 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
       });
     });
 
-    it('works with descendant wildcard routes', () => {
+    it('works with descendant wildcard routes - pageload', () => {
+      const client = createMockBrowserClient();
+      setCurrentClient(client);
+
+      client.addIntegration(
+        reactRouterV6BrowserTracingIntegration({
+          useEffect: React.useEffect,
+          useLocation,
+          useNavigationType,
+          createRoutesFromChildren,
+          matchRoutes,
+        }),
+      );
+      const SentryRoutes = withSentryReactRouterV6Routing(Routes);
+
+      const ProjectsRoutes = () => (
+        <SentryRoutes>
+          <Route path=":projectId" element={<div>Project Page</div>}>
+            <Route index element={<div>Project Page Root</div>} />
+            <Route element={<div>Editor</div>}>
+              <Route path="*" element={<Outlet />}>
+                <Route path="views/:viewId" element={<div>View Canvas</div>} />
+              </Route>
+            </Route>
+          </Route>
+          <Route path="*" element={<div>No Match Page</div>} />
+        </SentryRoutes>
+      );
+
+      render(
+        <MemoryRouter initialEntries={['/projects/foo/views/bar']}>
+          <SentryRoutes>
+            <Route path="projects/*" element={<ProjectsRoutes />}></Route>
+          </SentryRoutes>
+        </MemoryRouter>,
+      );
+
+      expect(mockStartBrowserTracingPageLoadSpan).toHaveBeenCalledTimes(1);
+      expect(mockStartBrowserTracingPageLoadSpan).toHaveBeenLastCalledWith(expect.any(BrowserClient), {
+        name: '/projects/:projectId/views/:viewId',
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.react.reactrouter_v6',
+        },
+      });
+    });
+
+    it('works with descendant wildcard routes - navigation', () => {
       const client = createMockBrowserClient();
       setCurrentClient(client);
 
