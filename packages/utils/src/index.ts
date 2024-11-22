@@ -169,510 +169,510 @@ import {
   winterCGRequestToRequestData as winterCGRequestToRequestData_imported,
 } from '@sentry/core';
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const applyAggregateErrorsToEvent = applyAggregateErrorsToEvent_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const getBreadcrumbLogLevelFromHttpStatusCode = getBreadcrumbLogLevelFromHttpStatusCode_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const dsnFromString = dsnFromString_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const dsnToString = dsnToString_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const makeDsn = makeDsn_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const SentryError = SentryError_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const GLOBAL_OBJ = GLOBAL_OBJ_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const getGlobalSingleton = getGlobalSingleton_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const addConsoleInstrumentationHandler = addConsoleInstrumentationHandler_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const addFetchEndInstrumentationHandler = addFetchEndInstrumentationHandler_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const addFetchInstrumentationHandler = addFetchInstrumentationHandler_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const addGlobalErrorInstrumentationHandler = addGlobalErrorInstrumentationHandler_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const addGlobalUnhandledRejectionInstrumentationHandler =
   addGlobalUnhandledRejectionInstrumentationHandler_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const addHandler = addHandler_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const maybeInstrument = maybeInstrument_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const resetInstrumentationHandlers = resetInstrumentationHandlers_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const triggerHandlers = triggerHandlers_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const isDOMError = isDOMError_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const isDOMException = isDOMException_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const isElement = isElement_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const isError = isError_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const isErrorEvent = isErrorEvent_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const isEvent = isEvent_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const isInstanceOf = isInstanceOf_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const isParameterizedString = isParameterizedString_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const isPlainObject = isPlainObject_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const isPrimitive = isPrimitive_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const isRegExp = isRegExp_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const isString = isString_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const isSyntheticEvent = isSyntheticEvent_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const isThenable = isThenable_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const isVueViewModel = isVueViewModel_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const isBrowser = isBrowser_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const CONSOLE_LEVELS = CONSOLE_LEVELS_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const consoleSandbox = consoleSandbox_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const logger = logger_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const originalConsoleMethods = originalConsoleMethods_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const addContextToFrame = addContextToFrame_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const addExceptionMechanism = addExceptionMechanism_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const addExceptionTypeValue = addExceptionTypeValue_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const checkOrSetAlreadyCaught = checkOrSetAlreadyCaught_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const getEventDescription = getEventDescription_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const parseSemver = parseSemver_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const uuid4 = uuid4_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const normalize = normalize_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const normalizeToSize = normalizeToSize_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const addNonEnumerableProperty = addNonEnumerableProperty_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const convertToPlainObject = convertToPlainObject_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const dropUndefinedKeys = dropUndefinedKeys_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const extractExceptionKeysForMessage = extractExceptionKeysForMessage_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const fill = fill_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const getOriginalFunction = getOriginalFunction_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const markFunctionWrapped = markFunctionWrapped_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const objectify = objectify_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const makePromiseBuffer = makePromiseBuffer_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const addNormalizedRequestDataToEvent = addNormalizedRequestDataToEvent_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const winterCGHeadersToDict = winterCGHeadersToDict_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const winterCGRequestToRequestData = winterCGRequestToRequestData_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const severityLevelFromString = severityLevelFromString_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 // eslint-disable-next-line deprecation/deprecation
 export const validSeverityLevels = validSeverityLevels_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const UNKNOWN_FUNCTION = UNKNOWN_FUNCTION_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const createStackParser = createStackParser_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const getFramesFromEvent = getFramesFromEvent_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const getFunctionName = getFunctionName_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const stackParserFromStackParserOptions = stackParserFromStackParserOptions_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const stripSentryFramesAndReverse = stripSentryFramesAndReverse_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const filenameIsInApp = filenameIsInApp_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const node = node_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const nodeStackLineParser = nodeStackLineParser_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const isMatchingPattern = isMatchingPattern_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const safeJoin = safeJoin_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const snipLine = snipLine_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const stringMatchesSomePattern = stringMatchesSomePattern_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const truncate = truncate_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const SyncPromise = SyncPromise_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const rejectedSyncPromise = rejectedSyncPromise_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const resolvedSyncPromise = resolvedSyncPromise_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const dateTimestampInSeconds = dateTimestampInSeconds_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const timestampInSeconds = timestampInSeconds_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const TRACEPARENT_REGEXP = TRACEPARENT_REGEXP_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const extractTraceparentData = extractTraceparentData_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const generateSentryTraceHeader = generateSentryTraceHeader_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const propagationContextFromHeaders = propagationContextFromHeaders_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const getSDKSource = getSDKSource_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const isBrowserBundle = isBrowserBundle_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const MAX_BAGGAGE_STRING_LENGTH = MAX_BAGGAGE_STRING_LENGTH_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const SENTRY_BAGGAGE_KEY_PREFIX = SENTRY_BAGGAGE_KEY_PREFIX_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const SENTRY_BAGGAGE_KEY_PREFIX_REGEX = SENTRY_BAGGAGE_KEY_PREFIX_REGEX_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const baggageHeaderToDynamicSamplingContext = baggageHeaderToDynamicSamplingContext_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const dynamicSamplingContextToSentryBaggageHeader = dynamicSamplingContextToSentryBaggageHeader_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const parseBaggageHeader = parseBaggageHeader_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const addItemToEnvelope = addItemToEnvelope_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const createAttachmentEnvelopeItem = createAttachmentEnvelopeItem_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const createEnvelope = createEnvelope_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const createEventEnvelopeHeaders = createEventEnvelopeHeaders_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const createSpanEnvelopeItem = createSpanEnvelopeItem_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const envelopeContainsItemType = envelopeContainsItemType_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const envelopeItemTypeToDataCategory = envelopeItemTypeToDataCategory_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const forEachEnvelopeItem = forEachEnvelopeItem_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const getSdkMetadataForEnvelopeHeader = getSdkMetadataForEnvelopeHeader_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const parseEnvelope = parseEnvelope_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const serializeEnvelope = serializeEnvelope_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const createClientReportEnvelope = createClientReportEnvelope_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const DEFAULT_RETRY_AFTER = DEFAULT_RETRY_AFTER_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const disabledUntil = disabledUntil_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const isRateLimited = isRateLimited_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const parseRetryAfterHeader = parseRetryAfterHeader_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const updateRateLimits = updateRateLimits_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const eventFromMessage = eventFromMessage_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const eventFromUnknownInput = eventFromUnknownInput_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const exceptionFromError = exceptionFromError_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const parseStackFrames = parseStackFrames_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const callFrameToStackFrame = callFrameToStackFrame_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const watchdogTimer = watchdogTimer_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const LRUMap = LRUMap_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const generatePropagationContext = generatePropagationContext_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const vercelWaitUntil = vercelWaitUntil_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const SDK_VERSION = SDK_VERSION_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const getDebugImagesForResources = getDebugImagesForResources_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const getFilenameToDebugIdMap = getFilenameToDebugIdMap_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const escapeStringForRegex = escapeStringForRegex_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const basename = basename_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const dirname = dirname_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const isAbsolute = isAbsolute_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const join = join_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const normalizePath = normalizePath_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const relative = relative_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const resolve = resolve_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const getComponentName = getComponentName_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const getDomElement = getDomElement_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const getLocationHref = getLocationHref_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const htmlTreeAsString = htmlTreeAsString_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const isNativeFunction = isNativeFunction_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const supportsDOMError = supportsDOMError_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const supportsDOMException = supportsDOMException_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const supportsErrorEvent = supportsErrorEvent_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const supportsFetch = supportsFetch_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const supportsNativeFetch = supportsNativeFetch_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const supportsReferrerPolicy = supportsReferrerPolicy_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const supportsReportingObserver = supportsReportingObserver_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const _browserPerformanceTimeOriginMode = _browserPerformanceTimeOriginMode_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const browserPerformanceTimeOrigin = browserPerformanceTimeOrigin_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const supportsHistory = supportsHistory_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const dynamicRequire = dynamicRequire_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const isNodeEnv = isNodeEnv_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const loadModule = loadModule_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const flatten = flatten_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const memoBuilder = memoBuilder_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 // eslint-disable-next-line deprecation/deprecation
 export const arrayify = arrayify_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const normalizeUrlToBase = normalizeUrlToBase_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 // eslint-disable-next-line deprecation/deprecation
 export const urlEncode = urlEncode_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 // eslint-disable-next-line deprecation/deprecation
 export const extractPathForTransaction = extractPathForTransaction_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const DEFAULT_USER_INCLUDES = DEFAULT_USER_INCLUDES_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const extractRequestData = extractRequestData_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const addRequestDataToEvent = addRequestDataToEvent_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const _asyncNullishCoalesce = _asyncNullishCoalesce_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const _asyncOptionalChain = _asyncOptionalChain_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const _asyncOptionalChainDelete = _asyncOptionalChainDelete_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const _nullishCoalesce = _nullishCoalesce_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const _optionalChain = _optionalChain_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const _optionalChainDelete = _optionalChainDelete_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const BAGGAGE_HEADER_NAME = BAGGAGE_HEADER_NAME_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const getNumberOfUrlSegments = getNumberOfUrlSegments_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const getSanitizedUrlString = getSanitizedUrlString_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const parseUrl = parseUrl_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const stripUrlQueryAndFragment = stripUrlQueryAndFragment_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export const makeFifoCache = makeFifoCache_imported;
 
 import type {
@@ -684,21 +684,21 @@ import type {
   TransactionNamingScheme as TransactionNamingScheme_imported,
 } from '@sentry/core';
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export type InternalGlobal = InternalGlobal_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export type SdkSource = SdkSource_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export type RateLimits = RateLimits_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export type AddRequestDataToEventOptions = AddRequestDataToEventOptions_imported;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 export type PromiseBuffer<T> = PromiseBuffer_imported<T>;
 
-/** @deprecated Import from `@sentry/node` instead. */
+/** @deprecated Import from `@sentry/core` instead. */
 // eslint-disable-next-line deprecation/deprecation
 export type TransactionNamingScheme = TransactionNamingScheme_imported;
