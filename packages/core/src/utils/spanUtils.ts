@@ -21,10 +21,17 @@ import { addNonEnumerableProperty, dropUndefinedKeys } from '../utils-hoist/obje
 import { timestampInSeconds } from '../utils-hoist/time';
 import { generateSentryTraceHeader } from '../utils-hoist/tracing';
 import { _getSpanForScope } from './spanOnScope';
+import { logger } from '../utils-hoist/logger';
+import { DEBUG_BUILD } from '../debug-build';
 
 // These are aligned with OpenTelemetry trace flags
 export const TRACE_FLAG_NONE = 0x0;
 export const TRACE_FLAG_SAMPLED = 0x1;
+
+// todo(v9): Remove this once we've stopped dropping spans via `beforeSendSpan`
+const SPAN_DROP_WARNING =
+  'Dropping spans via `beforeSendSpan` will be removed in SDK v9.0.0. The callback will only support modifying span attributes.';
+let hasShownSpanDropWarning = false;
 
 /**
  * Convert a span to a trace context, which can be sent as the `trace` context in an event.
@@ -278,5 +285,17 @@ export function updateMetricSummaryOnActiveSpan(
   const span = getActiveSpan();
   if (span) {
     updateMetricSummaryOnSpan(span, metricType, sanitizedName, value, unit, tags, bucketKey);
+  }
+}
+
+/**
+ * Logs a warning once if `beforeSendSpan` is used to drop spans.
+ *
+ * todo(v9): Remove this once we've stopped dropping spans via `beforeSendSpan`.
+ */
+export function showSpanDropWarning(): void {
+  if (DEBUG_BUILD && !hasShownSpanDropWarning) {
+    logger.warn(SPAN_DROP_WARNING);
+    hasShownSpanDropWarning = true;
   }
 }
