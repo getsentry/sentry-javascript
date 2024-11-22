@@ -12,13 +12,12 @@ import type {
 import { getAsyncContextStrategy } from '../asyncContext';
 import { getMainCarrier } from '../carrier';
 import { getCurrentScope } from '../currentScopes';
-import { DEBUG_BUILD } from '../debug-build';
 import { getMetricSummaryJsonForSpan, updateMetricSummaryOnSpan } from '../metrics/metric-summary';
 import type { MetricType } from '../metrics/types';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../semanticAttributes';
 import type { SentrySpan } from '../tracing/sentrySpan';
 import { SPAN_STATUS_OK, SPAN_STATUS_UNSET } from '../tracing/spanstatus';
-import { logger } from '../utils-hoist/logger';
+import { consoleSandbox } from '../utils-hoist/logger';
 import { addNonEnumerableProperty, dropUndefinedKeys } from '../utils-hoist/object';
 import { timestampInSeconds } from '../utils-hoist/time';
 import { generateSentryTraceHeader } from '../utils-hoist/tracing';
@@ -29,8 +28,6 @@ export const TRACE_FLAG_NONE = 0x0;
 export const TRACE_FLAG_SAMPLED = 0x1;
 
 // todo(v9): Remove this once we've stopped dropping spans via `beforeSendSpan`
-const SPAN_DROP_WARNING =
-  'Dropping spans via `beforeSendSpan` will be removed in SDK v9.0.0. The callback will only support modifying span attributes.';
 let hasShownSpanDropWarning = false;
 
 /**
@@ -294,8 +291,13 @@ export function updateMetricSummaryOnActiveSpan(
  * todo(v9): Remove this once we've stopped dropping spans via `beforeSendSpan`.
  */
 export function showSpanDropWarning(): void {
-  if (DEBUG_BUILD && !hasShownSpanDropWarning) {
-    logger.warn(SPAN_DROP_WARNING);
+  if (!hasShownSpanDropWarning) {
+    consoleSandbox(() => {
+      // eslint-disable-next-line no-console
+      console.warn(
+        '[Sentry] Dropping spans via `beforeSendSpan` will be removed in SDK v9.0.0. The callback will only support modifying span attributes.',
+      );
+    });
     hasShownSpanDropWarning = true;
   }
 }
