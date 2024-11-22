@@ -4,6 +4,8 @@
 
 ## `@sentry/utils`
 
+- **The `@sentry/utils` package has been deprecated. Import everything from `@sentry/core` instead.**
+
 - Deprecated `AddRequestDataToEventOptions.transaction`. This option effectively doesn't do anything anymore, and will
   be removed in v9.
 - Deprecated `TransactionNamingScheme` type.

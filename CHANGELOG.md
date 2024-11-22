@@ -8,11 +8,86 @@
 
 ## Unreleased
 
-### Deprecated `@WithSentry` in `@sentry/nestjs`
-
-The `@WithSentry` decorator was deprecated. Use `@SentryExceptionCaptured` instead. This is a simple renaming and functionality stays identical.
-
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
+
+## 8.40.0
+
+### Important Changes
+
+- **feat(angular): Support Angular 19 ([#14398](https://github.com/getsentry/sentry-javascript/pull/14398))**
+
+  The `@sentry/angular` SDK can now be used with Angular 19. If you're upgrading to the new Angular version, you might want to migrate from the now deprecated `APP_INITIALIZER` token to `provideAppInitializer`.
+  In this case, change the Sentry `TraceService` initialization in `app.config.ts`:
+
+  ```ts
+  // Angular 18
+  export const appConfig: ApplicationConfig = {
+    providers: [
+      // other providers
+      {
+        provide: TraceService,
+        deps: [Router],
+      },
+      {
+        provide: APP_INITIALIZER,
+        useFactory: () => () => {},
+        deps: [TraceService],
+        multi: true,
+      },
+    ],
+  };
+
+  // Angular 19
+  export const appConfig: ApplicationConfig = {
+    providers: [
+      // other providers
+      {
+        provide: TraceService,
+        deps: [Router],
+      },
+      provideAppInitializer(() => {
+        inject(TraceService);
+      }),
+    ],
+  };
+  ```
+
+- **feat(core): Deprecate `debugIntegration` and `sessionTimingIntegration` ([#14363](https://github.com/getsentry/sentry-javascript/pull/14363))**
+
+  The `debugIntegration` was deprecated and will be removed in the next major version of the SDK.
+  To log outgoing events, use [Hook Options](https://docs.sentry.io/platforms/javascript/configuration/options/#hooks) (`beforeSend`, `beforeSendTransaction`, ...).
+
+  The `sessionTimingIntegration` was deprecated and will be removed in the next major version of the SDK.
+  To capture session durations alongside events, use [Context](https://docs.sentry.io/platforms/javascript/enriching-events/context/) (`Sentry.setContext()`).
+
+- **feat(nestjs): Deprecate `@WithSentry` in favor of `@SentryExceptionCaptured` ([#14323](https://github.com/getsentry/sentry-javascript/pull/14323))**
+
+  The `@WithSentry` decorator was deprecated. Use `@SentryExceptionCaptured` instead. This is a simple renaming and functionality stays identical.
+
+- **feat(nestjs): Deprecate `SentryTracingInterceptor`, `SentryService`, `SentryGlobalGenericFilter`, `SentryGlobalGraphQLFilter` ([#14371](https://github.com/getsentry/sentry-javascript/pull/14371))**
+
+  The `SentryTracingInterceptor` was deprecated. If you are using `@sentry/nestjs` you can safely remove any references to the `SentryTracingInterceptor`. If you are using another package migrate to `@sentry/nestjs` and remove the `SentryTracingInterceptor` afterwards.
+
+  The `SentryService` was deprecated and its functionality was added to `Sentry.init`. If you are using `@sentry/nestjs` you can safely remove any references to the `SentryService`. If you are using another package migrate to `@sentry/nestjs` and remove the `SentryService` afterwards.
+
+  The `SentryGlobalGenericFilter` was deprecated. Use the `SentryGlobalFilter` instead which is a drop-in replacement.
+
+  The `SentryGlobalGraphQLFilter` was deprecated. Use the `SentryGlobalFilter` instead which is a drop-in replacement.
+
+- **feat(node): Deprecate `nestIntegration` and `setupNestErrorHandler` in favor of using `@sentry/nestjs` ([#14374](https://github.com/getsentry/sentry-javascript/pull/14374))**
+
+  The `nestIntegration` and `setupNestErrorHandler` functions from `@sentry/node` were deprecated and will be removed in the next major version of the SDK. If you're using `@sentry/node` in a NestJS application, we recommend switching to our new dedicated `@sentry/nestjs` package.
+
+### Other Changes
+
+- feat(browser): Send additional LCP timing info ([#14372](https://github.com/getsentry/sentry-javascript/pull/14372))
+- feat(replay): Clear event buffer when full and in buffer mode ([#14078](https://github.com/getsentry/sentry-javascript/pull/14078))
+- feat(core): Ensure `normalizedRequest` on `sdkProcessingMetadata` is merged ([#14315](https://github.com/getsentry/sentry-javascript/pull/14315))
+- feat(core): Hoist everything from `@sentry/utils` into `@sentry/core` ([#14382](https://github.com/getsentry/sentry-javascript/pull/14382))
+- fix(core): Do not throw when trying to fill readonly properties ([#14402](https://github.com/getsentry/sentry-javascript/pull/14402))
+- fix(feedback): Fix `__self` and `__source` attributes on feedback nodes ([#14356](https://github.com/getsentry/sentry-javascript/pull/14356))
+- fix(feedback): Fix non-wrapping form title ([#14355](https://github.com/getsentry/sentry-javascript/pull/14355))
+- fix(nextjs): Update check for not found navigation error ([#14378](https://github.com/getsentry/sentry-javascript/pull/14378))
 
 ## 8.39.0
 
