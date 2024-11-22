@@ -16,21 +16,10 @@
 
 import { WINDOW } from '../../../types';
 
-export interface OnHiddenCallback {
-  (event: Event): void;
-}
-
-export const onHidden = (cb: OnHiddenCallback) => {
-  const onHiddenOrPageHide = (event: Event) => {
-    if (event.type === 'pagehide' || (WINDOW.document && WINDOW.document.visibilityState === 'hidden')) {
-      cb(event);
+export const onHidden = (cb: () => void) => {
+  WINDOW.document?.addEventListener('visibilitychange', () => {
+    if (WINDOW.document?.visibilityState === 'hidden') {
+      cb();
     }
-  };
-
-  if (WINDOW.document) {
-    addEventListener('visibilitychange', onHiddenOrPageHide, true);
-    // Some browsers have buggy implementations of visibilitychange,
-    // so we use pagehide in addition, just to be safe.
-    addEventListener('pagehide', onHiddenOrPageHide, true);
-  }
+  });
 };

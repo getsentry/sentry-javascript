@@ -14,15 +14,14 @@
  * limitations under the License.
  */
 
-import type { FirstInputPolyfillEntry, NavigationTimingPolyfillEntry } from '../types';
-
 interface PerformanceEntryMap {
   event: PerformanceEventTiming[];
   paint: PerformancePaintTiming[];
+  'first-input': PerformanceEventTiming[];
   'layout-shift': LayoutShift[];
   'largest-contentful-paint': LargestContentfulPaint[];
-  'first-input': PerformanceEventTiming[] | FirstInputPolyfillEntry[];
-  navigation: PerformanceNavigationTiming[] | NavigationTimingPolyfillEntry[];
+  'long-animation-frame': PerformanceLongAnimationFrameTiming[];
+  navigation: PerformanceNavigationTiming[];
   resource: PerformanceResourceTiming[];
   longtask: PerformanceEntry[];
 }

@@ -15,7 +15,6 @@
  */
 
 import type { LoadState, Metric } from './base';
-import type { NavigationTimingPolyfillEntry } from './polyfills';
 
 /**
  * An FCP-specific version of the Metric object.
@@ -55,7 +54,7 @@ export interface FCPAttribution {
    * general page load issues. This can be used to access `serverTiming` for example:
    * navigationEntry?.serverTiming
    */
-  navigationEntry?: PerformanceNavigationTiming | NavigationTimingPolyfillEntry;
+  navigationEntry?: PerformanceNavigationTiming;
 }
 
 /**
@@ -63,18 +62,4 @@ export interface FCPAttribution {
  */
 export interface FCPMetricWithAttribution extends FCPMetric {
   attribution: FCPAttribution;
-}
-
-/**
- * An FCP-specific version of the ReportCallback function.
- */
-export interface FCPReportCallback {
-  (metric: FCPMetric): void;
-}
-
-/**
- * An FCP-specific version of the ReportCallback function with attribution.
- */
-export interface FCPReportCallbackWithAttribution {
-  (metric: FCPMetricWithAttribution): void;
 }

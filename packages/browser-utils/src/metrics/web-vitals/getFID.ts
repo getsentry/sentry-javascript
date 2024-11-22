@@ -14,14 +14,14 @@
  * limitations under the License.
  */
 
-import { bindReporter } from './lib/bindReporter';
-import { getVisibilityWatcher } from './lib/getVisibilityWatcher';
-import { initMetric } from './lib/initMetric';
-import { observe } from './lib/observe';
-import { onHidden } from './lib/onHidden';
+import { bindReporter } from './lib/bindReporter.js';
+import { getVisibilityWatcher } from './lib/getVisibilityWatcher.js';
+import { initMetric } from './lib/initMetric.js';
+import { observe } from './lib/observe.js';
+import { onHidden } from './lib/onHidden.js';
 import { runOnce } from './lib/runOnce';
-import { whenActivated } from './lib/whenActivated';
-import type { FIDMetric, FIDReportCallback, MetricRatingThresholds, ReportOpts } from './types';
+import { whenActivated } from './lib/whenActivated.js';
+import type { FIDMetric, MetricRatingThresholds, ReportOpts } from './types';
 
 /** Thresholds for FID. See https://web.dev/articles/fid#what_is_a_good_fid_score */
 export const FIDThresholds: MetricRatingThresholds = [100, 300];
@@ -35,7 +35,7 @@ export const FIDThresholds: MetricRatingThresholds = [100, 300];
  * _**Important:** since FID is only reported after the user interacts with the
  * page, it's possible that it will not be reported for some page loads._
  */
-export const onFID = (onReport: FIDReportCallback, opts: ReportOpts = {}) => {
+export const onFID = (onReport: (metric: FIDMetric) => void, opts: ReportOpts = {}) => {
   whenActivated(() => {
     const visibilityWatcher = getVisibilityWatcher();
     const metric = initMetric('FID');
@@ -56,6 +56,7 @@ export const onFID = (onReport: FIDReportCallback, opts: ReportOpts = {}) => {
     };
 
     const po = observe('first-input', handleEntries);
+
     report = bindReporter(onReport, metric, FIDThresholds, opts.reportAllChanges);
 
     if (po) {
