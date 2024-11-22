@@ -58,6 +58,7 @@ export {
   winterCGHeadersToDict,
   winterCGRequestToRequestData,
   severityLevelFromString,
+  // eslint-disable-next-line deprecation/deprecation
   validSeverityLevels,
   UNKNOWN_FUNCTION,
   createStackParser,
@@ -147,6 +148,7 @@ export {
   loadModule,
   flatten,
   memoBuilder,
+  // eslint-disable-next-line deprecation/deprecation
   arrayify,
   normalizeUrlToBase,
   // eslint-disable-next-line deprecation/deprecation
