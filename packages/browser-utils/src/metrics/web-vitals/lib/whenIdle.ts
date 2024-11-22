@@ -23,7 +23,7 @@ import { runOnce } from './runOnce';
  * if the browser's visibility state is (or becomes) hidden.
  */
 export const whenIdle = (cb: () => void): number => {
-  const rIC = self.requestIdleCallback || self.setTimeout;
+  const rIC = WINDOW.requestIdleCallback || WINDOW.setTimeout;
 
   let handle = -1;
   // eslint-disable-next-line no-param-reassign

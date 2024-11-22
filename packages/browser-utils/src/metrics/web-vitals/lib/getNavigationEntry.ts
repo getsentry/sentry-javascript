@@ -14,9 +14,11 @@
  * limitations under the License.
  */
 
+import { WINDOW } from '../../../types';
+
 export const getNavigationEntry = (): PerformanceNavigationTiming | void => {
   const navigationEntry =
-    self.performance && performance.getEntriesByType && performance.getEntriesByType('navigation')[0];
+    WINDOW.performance && WINDOW.performance.getEntriesByType && WINDOW.performance.getEntriesByType('navigation')[0];
 
   // Check to ensure the `responseStart` property is present and valid.
   // In some cases no value is reported by the browser (for

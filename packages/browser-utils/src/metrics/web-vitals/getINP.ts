@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+import { WINDOW } from '../../types';
 import { bindReporter } from './lib/bindReporter';
 import { initMetric } from './lib/initMetric';
 import { DEFAULT_DURATION_THRESHOLD, estimateP98LongestInteraction, processInteractionEntry } from './lib/interactions';
@@ -57,7 +58,7 @@ export const INPThresholds: MetricRatingThresholds = [200, 500];
  */
 export const onINP = (onReport: (metric: INPMetric) => void, opts: ReportOpts = {}) => {
   // Return if the browser doesn't support all APIs needed to measure INP.
-  if (!('PerformanceEventTiming' in self && 'interactionId' in PerformanceEventTiming.prototype)) {
+  if (!('PerformanceEventTiming' in WINDOW && 'interactionId' in PerformanceEventTiming.prototype)) {
     return;
   }
 
