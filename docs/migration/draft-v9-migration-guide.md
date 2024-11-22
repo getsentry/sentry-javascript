@@ -8,6 +8,7 @@
   be removed in v9.
 - Deprecated `TransactionNamingScheme` type.
 - Deprecated `urlEncode`. No replacements.
+- Deprecated `arrayify`. No replacements.
 
 ## `@sentry/core`
 

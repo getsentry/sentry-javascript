@@ -40,6 +40,7 @@ export {
   addContextToFrame,
   addExceptionMechanism,
   addExceptionTypeValue,
+  // eslint-disable-next-line deprecation/deprecation
   arrayify,
   checkOrSetAlreadyCaught,
   getEventDescription,

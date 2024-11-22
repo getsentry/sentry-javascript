@@ -1,5 +1,5 @@
 import { defineIntegration, hasTracingEnabled } from '@sentry/core';
-import { GLOBAL_OBJ, arrayify, consoleSandbox } from '@sentry/core';
+import { GLOBAL_OBJ, consoleSandbox } from '@sentry/core';
 import type { Client, IntegrationFn } from '@sentry/types';
 
 import { DEFAULT_HOOKS } from './constants';
@@ -48,7 +48,7 @@ Update your \`Sentry.init\` call with an appropriate config option:
   }
 
   if (options.app) {
-    const apps = arrayify(options.app);
+    const apps = Array.isArray(options.app) ? options.app : [options.app];
     apps.forEach(app => vueInit(app, options));
   } else if (options.Vue) {
     vueInit(options.Vue, options);
