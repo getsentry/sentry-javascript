@@ -150,6 +150,7 @@ export {
   memoBuilder,
   arrayify,
   normalizeUrlToBase,
+  // eslint-disable-next-line deprecation/deprecation
   urlEncode,
   // eslint-disable-next-line deprecation/deprecation
   extractPathForTransaction,

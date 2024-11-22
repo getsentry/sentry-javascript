@@ -57,6 +57,7 @@ export {
   getOriginalFunction,
   markFunctionWrapped,
   objectify,
+  // eslint-disable-next-line deprecation/deprecation
   urlEncode,
 } from './object';
 export { basename, dirname, isAbsolute, join, normalizePath, relative, resolve } from './path';

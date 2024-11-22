@@ -401,6 +401,12 @@ export interface EventBuffer {
   hasCheckout: boolean;
 
   /**
+   * If the event buffer needs to wait for a checkout event before it
+   * starts buffering events.
+   */
+  waitForCheckout: boolean;
+
+  /**
    * Destroy the event buffer.
    */
   destroy(): void;

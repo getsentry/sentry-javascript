@@ -8,6 +8,7 @@
   be removed in v9.
 - Deprecated `TransactionNamingScheme` type.
 - Deprecated `validSeverityLevels`. Will not be replaced.
+- Deprecated `urlEncode`. No replacements.
 
 ## `@sentry/core`
 
