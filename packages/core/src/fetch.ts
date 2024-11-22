@@ -81,13 +81,9 @@ export function instrumentFetchRequest(
   if (shouldAttachHeaders(handlerData.fetchData.url)) {
     const request: string | Request = handlerData.args[0];
 
-    // In case the user hasn't set the second argument of a fetch call we default it to `{}`.
-    handlerData.args[1] = handlerData.args[1] || {};
+    const options: { [key: string]: unknown } = handlerData.args[1] || {};
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const options: { [key: string]: any } = handlerData.args[1];
-
-    options.headers = _addTracingHeadersToFetchRequest(
+    const headers = _addTracingHeadersToFetchRequest(
       request,
       options,
       // If performance is disabled (TWP) or there's no active root span (pageload/navigation/interaction),
@@ -95,6 +91,9 @@ export function instrumentFetchRequest(
       // which means that the headers will be generated from the scope and the sampling decision is deferred
       hasTracingEnabled() && hasParent ? span : undefined,
     );
+    if (headers) {
+      options.headers = headers;
+    }
   }
 
   return span;
@@ -118,9 +117,9 @@ function _addTracingHeadersToFetchRequest(
   const sentryTrace = traceHeaders['sentry-trace'];
   const baggage = traceHeaders.baggage;
 
-  // Nothing to do, we just return the existing headers untouched
+  // Nothing to do, when we return undefined here, the original headers will be used
   if (!sentryTrace) {
-    return fetchOptionsObj && (fetchOptionsObj.headers as PolymorphicRequestHeaders);
+    return undefined;
   }
 
   const headers = fetchOptionsObj.headers || (isRequest(request) ? request.headers : undefined);
