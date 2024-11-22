@@ -295,7 +295,7 @@ export function showSpanDropWarning(): void {
     consoleSandbox(() => {
       // eslint-disable-next-line no-console
       console.warn(
-        '[Sentry] Dropping spans via `beforeSendSpan` will be removed in SDK v9.0.0. The callback will only support modifying span attributes.',
+        '[Sentry] Deprecation warning: Returning null from `beforeSendSpan` will be disallowed from SDK version 9.0.0 onwards. The callback will only support mutating spans. To drop certain spans, configure the respective integrations directly.',
       );
     });
     hasShownSpanDropWarning = true;
