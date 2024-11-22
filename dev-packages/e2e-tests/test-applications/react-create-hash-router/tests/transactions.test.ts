@@ -24,6 +24,8 @@ test('Captures a pageload transaction', async ({ page }) => {
       'sentry.source': 'route',
       'performance.timeOrigin': expect.any(Number),
       'performance.activationStart': expect.any(Number),
+      'lcp.renderTime': expect.any(Number),
+      'lcp.loadTime': expect.any(Number),
     },
     op: 'pageload',
     span_id: expect.any(String),
