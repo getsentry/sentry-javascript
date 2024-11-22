@@ -14,12 +14,16 @@ export class EventBufferArray implements EventBuffer {
   /** @inheritdoc */
   public hasCheckout: boolean;
 
+  /** @inheritdoc */
+  public waitForCheckout: boolean;
+
   private _totalSize: number;
 
   public constructor() {
     this.events = [];
     this._totalSize = 0;
     this.hasCheckout = false;
+    this.waitForCheckout = false;
   }
 
   /** @inheritdoc */
