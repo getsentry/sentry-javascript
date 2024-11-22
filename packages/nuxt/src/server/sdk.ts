@@ -49,6 +49,25 @@ export function init(options: SentryNuxtServerOptions): Client | undefined {
     ),
   );
 
+  getGlobalScope().addEventProcessor(
+    Object.assign(
+      (event => {
+        if (event.exception?.values) {
+          const errorMsg = event.exception.values[0]?.value;
+          // The browser devtools try to get the source maps, but as client source maps may not be available there is going to be an error (no problem for the application though)
+          if (errorMsg?.match(/^ENOENT: no such file or directory, open '.*\/_nuxt\/.*\.js\.map'/)) {
+            options.debug && DEBUG_BUILD && logger.log('ClientSourceMapErrorFilter filtered error: ', errorMsg);
+            return null;
+          }
+          return event;
+        } else {
+          return event;
+        }
+      }) satisfies EventProcessor,
+      { id: 'ClientSourceMapErrorFilter' },
+    ),
+  );
+
   return client;
 }
 
