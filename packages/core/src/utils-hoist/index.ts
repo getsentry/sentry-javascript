@@ -85,6 +85,7 @@ export type {
   TransactionNamingScheme,
 } from './requestdata';
 
+// eslint-disable-next-line deprecation/deprecation
 export { severityLevelFromString, validSeverityLevels } from './severity';
 export {
   UNKNOWN_FUNCTION,

@@ -58,6 +58,7 @@ export {
   winterCGHeadersToDict,
   winterCGRequestToRequestData,
   severityLevelFromString,
+  // eslint-disable-next-line deprecation/deprecation
   validSeverityLevels,
   UNKNOWN_FUNCTION,
   createStackParser,
