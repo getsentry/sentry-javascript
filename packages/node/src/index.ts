@@ -57,6 +57,7 @@ export { cron } from './cron';
 
 export type { NodeOptions } from './types';
 
+// eslint-disable-next-line deprecation/deprecation
 export { addRequestDataToEvent, DEFAULT_USER_INCLUDES, extractRequestData } from '@sentry/core';
 
 export {

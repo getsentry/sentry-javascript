@@ -154,7 +154,9 @@ export {
   // eslint-disable-next-line deprecation/deprecation
   extractPathForTransaction,
   DEFAULT_USER_INCLUDES,
+  // eslint-disable-next-line deprecation/deprecation
   extractRequestData,
+  // eslint-disable-next-line deprecation/deprecation
   addRequestDataToEvent,
   _asyncNullishCoalesce,
   _asyncOptionalChain,

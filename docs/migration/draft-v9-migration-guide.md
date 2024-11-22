@@ -8,6 +8,8 @@
   be removed in v9.
 - Deprecated `TransactionNamingScheme` type.
 - Deprecated `urlEncode`. No replacements.
+- Deprecated `addRequestDataToEvent`. Use `addNormalizedRequestDataToEvent` instead.
+- Deprecated `extractRequestData`. Instead manually extract relevant data off request.
 
 ## `@sentry/core`
 
