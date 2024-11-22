@@ -14,6 +14,9 @@
 - Deprecated `addRequestDataToEvent`. Use `addNormalizedRequestDataToEvent` instead.
 - Deprecated `extractRequestData`. Instead manually extract relevant data off request.
 - Deprecated `arrayify`. No replacements.
+- Deprecated `memoBuilder`. No replacements.
+- Deprecated `BAGGAGE_HEADER_NAME`. No replacements.
+- Deprecated `makeFifoCache`. No replacements.
 
 ## `@sentry/core`
 

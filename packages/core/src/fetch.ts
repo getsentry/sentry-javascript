@@ -9,11 +9,7 @@ import {
   startInactiveSpan,
 } from './tracing';
 import { SentryNonRecordingSpan } from './tracing/sentryNonRecordingSpan';
-import {
-  BAGGAGE_HEADER_NAME,
-  SENTRY_BAGGAGE_KEY_PREFIX,
-  dynamicSamplingContextToSentryBaggageHeader,
-} from './utils-hoist/baggage';
+import { SENTRY_BAGGAGE_KEY_PREFIX, dynamicSamplingContextToSentryBaggageHeader } from './utils-hoist/baggage';
 import { isInstanceOf } from './utils-hoist/is';
 import { generateSentryTraceHeader } from './utils-hoist/tracing';
 import { parseUrl } from './utils-hoist/url';
@@ -157,11 +153,11 @@ export function addTracingHeadersToFetchRequest(
     newHeaders.set('sentry-trace', sentryTraceHeader);
 
     if (sentryBaggageHeader) {
-      const prevBaggageHeader = newHeaders.get(BAGGAGE_HEADER_NAME);
+      const prevBaggageHeader = newHeaders.get('baggage');
       if (prevBaggageHeader) {
         const prevHeaderStrippedFromSentryBaggage = stripBaggageHeaderOfSentryBaggageValues(prevBaggageHeader);
         newHeaders.set(
-          BAGGAGE_HEADER_NAME,
+          'baggage',
           // If there are non-sentry entries (i.e. if the stripped string is non-empty/truthy) combine the stripped header and sentry baggage header
           // otherwise just set the sentry baggage header
           prevHeaderStrippedFromSentryBaggage
@@ -169,7 +165,7 @@ export function addTracingHeadersToFetchRequest(
             : sentryBaggageHeader,
         );
       } else {
-        newHeaders.set(BAGGAGE_HEADER_NAME, sentryBaggageHeader);
+        newHeaders.set('baggage', sentryBaggageHeader);
       }
     }
 
@@ -183,7 +179,7 @@ export function addTracingHeadersToFetchRequest(
         })
         // Get rid of previous sentry baggage values in baggage header
         .map(header => {
-          if (Array.isArray(header) && header[0] === BAGGAGE_HEADER_NAME && typeof header[1] === 'string') {
+          if (Array.isArray(header) && header[0] === 'baggage' && typeof header[1] === 'string') {
             const [headerName, headerValue, ...rest] = header;
             return [headerName, stripBaggageHeaderOfSentryBaggageValues(headerValue), ...rest];
           } else {
@@ -197,7 +193,7 @@ export function addTracingHeadersToFetchRequest(
     if (sentryBaggageHeader) {
       // If there are multiple entries with the same key, the browser will merge the values into a single request header.
       // Its therefore safe to simply push a "baggage" entry, even though there might already be another baggage header.
-      newHeaders.push([BAGGAGE_HEADER_NAME, sentryBaggageHeader]);
+      newHeaders.push(['baggage', sentryBaggageHeader]);
     }
 
     return newHeaders as PolymorphicRequestHeaders;
