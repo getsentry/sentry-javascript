@@ -634,9 +634,11 @@ export const extractPathForTransaction = extractPathForTransaction_imported;
 export const DEFAULT_USER_INCLUDES = DEFAULT_USER_INCLUDES_imported;
 
 /** @deprecated Import from `@sentry/core` instead. */
+// eslint-disable-next-line deprecation/deprecation
 export const extractRequestData = extractRequestData_imported;
 
 /** @deprecated Import from `@sentry/core` instead. */
+// eslint-disable-next-line deprecation/deprecation
 export const addRequestDataToEvent = addRequestDataToEvent_imported;
 
 /** @deprecated Import from `@sentry/core` instead. */

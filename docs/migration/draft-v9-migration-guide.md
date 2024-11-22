@@ -11,6 +11,8 @@
 - Deprecated `TransactionNamingScheme` type.
 - Deprecated `validSeverityLevels`. Will not be replaced.
 - Deprecated `urlEncode`. No replacements.
+- Deprecated `addRequestDataToEvent`. Use `addNormalizedRequestDataToEvent` instead.
+- Deprecated `extractRequestData`. Instead manually extract relevant data off request.
 - Deprecated `arrayify`. No replacements.
 
 ## `@sentry/core`
