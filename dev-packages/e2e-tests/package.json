@@ -16,7 +16,7 @@
     "clean": "rimraf tmp node_modules pnpm-lock.yaml && yarn clean:test-applications",
     "ci:build-matrix": "ts-node ./lib/getTestMatrix.ts",
     "ci:build-matrix-optional": "ts-node ./lib/getTestMatrix.ts --optional=true",
-    "clean:test-applications": "rimraf --glob test-applications/**/{node_modules,dist,build,.next,.sveltekit,pnpm-lock.yaml} .last-run.json && pnpm store prune"
+    "clean:test-applications": "rimraf --glob test-applications/**/{node_modules,dist,build,.next,.sveltekit,pnpm-lock.yaml,.last-run.json,test-results} && pnpm store prune"
   },
   "devDependencies": {
     "@types/glob": "8.0.0",
