@@ -134,6 +134,8 @@ function extractUserData(
  * DEFAULT_REQUEST_INCLUDES if not provided.
  * @param options.deps Injected, platform-specific dependencies
  * @returns An object containing normalized request data
+ *
+ * @deprecated Instead manually normalize the request data into a format that fits `addNormalizedRequestDataToEvent`.
  */
 export function extractRequestData(
   req: PolymorphicRequest,
@@ -318,6 +320,8 @@ export function addNormalizedRequestDataToEvent(
  * @param options.include Flags to control what data is included
  * @param options.deps Injected platform-specific dependencies
  * @returns The mutated `Event` object
+ *
+ * @deprecated Use `addNormalizedRequestDataToEvent` instead.
  */
 export function addRequestDataToEvent(
   event: Event,
@@ -335,6 +339,7 @@ export function addRequestDataToEvent(
       includeRequest.push('ip');
     }
 
+    // eslint-disable-next-line deprecation/deprecation
     const extractedRequestData = extractRequestData(req, { include: includeRequest });
 
     event.request = {

@@ -130,14 +130,17 @@ describe('fill()', () => {
 
 describe('urlEncode()', () => {
   test('returns empty string for empty object input', () => {
+    // eslint-disable-next-line deprecation/deprecation
     expect(urlEncode({})).toEqual('');
   });
 
   test('returns single key/value pair joined with = sign', () => {
+    // eslint-disable-next-line deprecation/deprecation
     expect(urlEncode({ foo: 'bar' })).toEqual('foo=bar');
   });
 
   test('returns multiple key/value pairs joined together with & sign', () => {
+    // eslint-disable-next-line deprecation/deprecation
     expect(urlEncode({ foo: 'bar', pickle: 'rick', morty: '4 2' })).toEqual('foo=bar&pickle=rick&morty=4%202');
   });
 });

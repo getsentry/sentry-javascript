@@ -1,6 +1,8 @@
 /**
  * Creates a cache that evicts keys in fifo order
  * @param size {Number}
+ *
+ * @deprecated This function is deprecated and will be removed in the next major version.
  */
 export function makeFifoCache<Key extends string, Value>(
   size: number,

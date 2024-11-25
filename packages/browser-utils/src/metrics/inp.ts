@@ -112,12 +112,14 @@ function _trackINP(): () => void {
       startTime,
     });
 
-    span?.addEvent('inp', {
-      [SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_UNIT]: 'millisecond',
-      [SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_VALUE]: metric.value,
-    });
+    if (span) {
+      span.addEvent('inp', {
+        [SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_UNIT]: 'millisecond',
+        [SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_VALUE]: metric.value,
+      });
 
-    span?.end(startTime + duration);
+      span.end(startTime + duration);
+    }
   });
 }
 

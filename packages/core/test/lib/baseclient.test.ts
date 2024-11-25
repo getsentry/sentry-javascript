@@ -77,6 +77,56 @@ describe('BaseClient', () => {
     });
   });
 
+  describe('constructor() / warnings', () => {
+    test('does not warn for defaults', () => {
+      const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
+      new TestClient(options);
+
+      expect(consoleWarnSpy).toHaveBeenCalledTimes(0);
+      consoleWarnSpy.mockRestore();
+    });
+
+    describe.each(['tracesSampleRate', 'tracesSampler', 'enableTracing'])('%s', key => {
+      it('warns when set to undefined', () => {
+        const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+        const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, [key]: undefined });
+        new TestClient(options);
+
+        expect(consoleWarnSpy).toHaveBeenCalledTimes(1);
+        expect(consoleWarnSpy).toBeCalledWith(
+          `[Sentry] Deprecation warning: \`${key}\` is set to undefined, which leads to tracing being enabled. In v9, a value of \`undefined\` will result in tracing being disabled.`,
+        );
+        consoleWarnSpy.mockRestore();
+      });
+
+      it('warns when set to null', () => {
+        const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+        const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, [key]: null });
+        new TestClient(options);
+
+        expect(consoleWarnSpy).toHaveBeenCalledTimes(1);
+        expect(consoleWarnSpy).toBeCalledWith(
+          `[Sentry] Deprecation warning: \`${key}\` is set to undefined, which leads to tracing being enabled. In v9, a value of \`undefined\` will result in tracing being disabled.`,
+        );
+        consoleWarnSpy.mockRestore();
+      });
+
+      it('does not warn when set to 0', () => {
+        const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+        const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, [key]: 0 });
+        new TestClient(options);
+
+        expect(consoleWarnSpy).toHaveBeenCalledTimes(0);
+        consoleWarnSpy.mockRestore();
+      });
+    });
+  });
+
   describe('getOptions()', () => {
     test('returns the options', () => {
       expect.assertions(1);
@@ -552,7 +602,7 @@ describe('BaseClient', () => {
       );
     });
 
-    test('allows for environment to be explicitly set to falsy value', () => {
+    test('uses default environment when set to falsy value', () => {
       expect.assertions(1);
 
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, environment: undefined });
@@ -563,7 +613,7 @@ describe('BaseClient', () => {
 
       expect(TestClient.instance!.event!).toEqual(
         expect.objectContaining({
-          environment: undefined,
+          environment: 'production',
           event_id: '42',
           message: 'message',
           timestamp: 2020,
@@ -1122,6 +1172,8 @@ describe('BaseClient', () => {
     });
 
     test('calls `beforeSendSpan` and discards the span', () => {
+      const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+
       const beforeSendSpan = jest.fn(() => null);
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSendSpan });
       const client = new TestClient(options);
@@ -1150,6 +1202,12 @@ describe('BaseClient', () => {
       const capturedEvent = TestClient.instance!.event!;
       expect(capturedEvent.spans).toHaveLength(0);
       expect(client['_outcomes']).toEqual({ 'before_send:span': 2 });
+
+      expect(consoleWarnSpy).toHaveBeenCalledTimes(1);
+      expect(consoleWarnSpy).toBeCalledWith(
+        '[Sentry] Deprecation warning: Returning null from `beforeSendSpan` will be disallowed from SDK version 9.0.0 onwards. The callback will only support mutating spans. To drop certain spans, configure the respective integrations directly.',
+      );
+      consoleWarnSpy.mockRestore();
     });
 
     test('calls `beforeSend` and logs info about invalid return value', () => {

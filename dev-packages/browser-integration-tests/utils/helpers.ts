@@ -7,6 +7,7 @@ import type {
   Event,
   EventEnvelope,
   EventEnvelopeHeaders,
+  TransactionEvent,
 } from '@sentry/types';
 
 export const envelopeUrlRegex = /\.sentry\.io\/api\/\d+\/envelope\//;
@@ -224,7 +225,10 @@ export function waitForErrorRequest(page: Page, callback?: (event: Event) => boo
   });
 }
 
-export function waitForTransactionRequest(page: Page): Promise<Request> {
+export function waitForTransactionRequest(
+  page: Page,
+  callback?: (event: TransactionEvent) => boolean,
+): Promise<Request> {
   return page.waitForRequest(req => {
     const postData = req.postData();
     if (!postData) {
@@ -234,7 +238,15 @@ export function waitForTransactionRequest(page: Page): Promise<Request> {
     try {
       const event = envelopeRequestParser(req);
 
-      return event.type === 'transaction';
+      if (event.type !== 'transaction') {
+        return false;
+      }
+
+      if (callback) {
+        return callback(event as TransactionEvent);
+      }
+
+      return true;
     } catch {
       return false;
     }
