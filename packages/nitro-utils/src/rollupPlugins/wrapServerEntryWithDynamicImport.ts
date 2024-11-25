@@ -1,4 +1,4 @@
-import { consoleSandbox, flatten } from '@sentry/utils';
+import { consoleSandbox } from '@sentry/core';
 import type { InputPluginOption } from 'rollup';
 
 export const SENTRY_WRAPPED_ENTRY = '?sentry-query-wrapped-entry';
@@ -176,18 +176,21 @@ export function constructWrappedFunctionExportQuery(
   entrypointWrappedFunctions: string[],
   debug?: boolean,
 ): string {
+  const functionsToExport: { wrap: string[]; reexport: string[] } = {
+    wrap: [],
+    reexport: [],
+  };
+
   // `exportedBindings` can look like this:  `{ '.': [ 'handler' ] }` or `{ '.': [], './firebase-gen-1.mjs': [ 'server' ] }`
   // The key `.` refers to exports within the current file, while other keys show from where exports were imported first.
-  const functionsToExport = flatten(Object.values(exportedBindings || {})).reduce(
-    (functions, currFunctionName) => {
-      if (entrypointWrappedFunctions.includes(currFunctionName)) {
-        functions.wrap.push(currFunctionName);
+  Object.values(exportedBindings || {}).forEach(functions =>
+    functions.forEach(fn => {
+      if (entrypointWrappedFunctions.includes(fn)) {
+        functionsToExport.wrap.push(fn);
       } else {
-        functions.reexport.push(currFunctionName);
+        functionsToExport.reexport.push(fn);
       }
-      return functions;
-    },
-    { wrap: [], reexport: [] } as { wrap: string[]; reexport: string[] },
+    }),
   );
 
   if (debug && functionsToExport.wrap.length === 0) {
