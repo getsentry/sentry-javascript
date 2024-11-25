@@ -610,6 +610,7 @@ export const isNodeEnv = isNodeEnv_imported;
 export const loadModule = loadModule_imported;
 
 /** @deprecated Import from `@sentry/core` instead. */
+// eslint-disable-next-line deprecation/deprecation
 export const flatten = flatten_imported;
 
 /** @deprecated Import from `@sentry/core` instead. */
