@@ -17,7 +17,7 @@ export function getCurrentScope(): Scope {
  * The isolation scope is active for the current execution context.
  */
 export function getIsolationScope(): Scope {
-  return getAsyncContextStrategyImplementation('getCurrentScope')();
+  return getAsyncContextStrategyImplementation('getIsolationScope')();
 }
 
 /**
