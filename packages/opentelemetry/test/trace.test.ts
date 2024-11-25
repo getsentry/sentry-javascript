@@ -329,9 +329,7 @@ describe('trace', () => {
     it('allows to pass parentSpan=null', () => {
       startSpan({ name: 'GET users/[id' }, () => {
         startSpan({ name: 'child', parentSpan: null }, span => {
-          // Due to the way we propagate the scope in OTEL,
-          // the parent_span_id is not actually undefined here, but comes from the propagation context
-          expect(spanToJSON(span).parent_span_id).toBe(getCurrentScope().getPropagationContext().spanId);
+          expect(spanToJSON(span).parent_span_id).toBe(undefined);
         });
       });
     });
@@ -591,10 +589,7 @@ describe('trace', () => {
     it('allows to pass parentSpan=null', () => {
       startSpan({ name: 'outer' }, () => {
         const span = startInactiveSpan({ name: 'test span', parentSpan: null });
-
-        // Due to the way we propagate the scope in OTEL,
-        // the parent_span_id is not actually undefined here, but comes from the propagation context
-        expect(spanToJSON(span).parent_span_id).toBe(getCurrentScope().getPropagationContext().spanId);
+        expect(spanToJSON(span).parent_span_id).toBe(undefined);
         span.end();
       });
     });
@@ -881,9 +876,7 @@ describe('trace', () => {
     it('allows to pass parentSpan=null', () => {
       startSpan({ name: 'outer' }, () => {
         startSpanManual({ name: 'GET users/[id]', parentSpan: null }, span => {
-          // Due to the way we propagate the scope in OTEL,
-          // the parent_span_id is not actually undefined here, but comes from the propagation context
-          expect(spanToJSON(span).parent_span_id).toBe(getCurrentScope().getPropagationContext().spanId);
+          expect(spanToJSON(span).parent_span_id).toBe(undefined);
           span.end();
         });
       });
@@ -1016,20 +1009,23 @@ describe('trace', () => {
   });
 
   describe('propagation', () => {
-    it('picks up the trace context from the scope, if there is no parent', () => {
+    it('ignores the trace context from the scope, if there is no parent & no propagationContext.parentSpanId', () => {
       withScope(scope => {
         const propagationContext = scope.getPropagationContext();
         const span = startInactiveSpan({ name: 'test span' });
 
         expect(span).toBeDefined();
-        expect(spanToJSON(span).trace_id).toEqual(propagationContext.traceId);
-        expect(spanToJSON(span).parent_span_id).toEqual(propagationContext.spanId);
+        expect(spanToJSON(span).trace_id).toMatch(/^[0-9a-f]{32}$/);
+        expect(spanToJSON(span).trace_id).not.toEqual(propagationContext.traceId);
+        expect(spanToJSON(span).parent_span_id).toEqual(undefined);
 
         expect(getDynamicSamplingContextFromSpan(span)).toEqual({
-          ...getDynamicSamplingContextFromClient(propagationContext.traceId, getClient()!),
+          environment: 'production',
+          public_key: 'username',
           sample_rate: '1',
           sampled: 'true',
           transaction: 'test span',
+          trace_id: spanToJSON(span).trace_id,
         });
       });
     });

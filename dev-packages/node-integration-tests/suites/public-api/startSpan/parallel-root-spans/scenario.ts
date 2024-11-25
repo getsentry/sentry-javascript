@@ -14,17 +14,5 @@ Sentry.getCurrentScope().setPropagationContext({
   traceId: '12345678901234567890123456789012',
 });
 
-const spanIdTraceId = Sentry.startSpan(
-  {
-    name: 'test_span_1',
-  },
-  span1 => span1.spanContext().traceId,
-);
-
-Sentry.startSpan(
-  {
-    name: 'test_span_2',
-    attributes: { spanIdTraceId },
-  },
-  () => undefined,
-);
+Sentry.startSpan({ name: 'test_span_1' }, () => undefined);
+Sentry.startSpan({ name: 'test_span_2' }, () => undefined);

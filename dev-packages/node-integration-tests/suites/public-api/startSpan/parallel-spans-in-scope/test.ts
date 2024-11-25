@@ -19,8 +19,7 @@ test('should send manually started parallel root spans outside of root context',
         const trace1Id = transaction.contexts?.trace?.data?.spanIdTraceId;
         expect(trace1Id).toBeDefined();
 
-        // Same trace ID as the first span
-        expect(trace1Id).toBe(traceId);
+        expect(trace1Id).not.toBe(traceId);
       },
     })
     .start(done);
