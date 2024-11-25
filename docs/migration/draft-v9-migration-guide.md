@@ -2,6 +2,22 @@
 
 # Deprecations
 
+## General
+
+- **Passing `undefined` to `tracesSampleRate` / `tracesSampler` / `enableTracing` will be handled differently in v9**
+
+In v8, a setup like the following:
+
+```ts
+Sentry.init({
+  tracesSampleRate: undefined,
+});
+```
+
+Will result in tracing being _enabled_, although no spans will be generated.
+In v9, we will streamline this behavior so that passing `undefined` will result in tracing being disabled, the same as not passing the option at all.
+If you are relying on `undefined` being passed in and having tracing enabled because of this, you should update your config to set e.g. `tracesSampleRate: 0` instead, which will also enable tracing in v9.
+
 ## `@sentry/utils`
 
 - **The `@sentry/utils` package has been deprecated. Import everything from `@sentry/core` instead.**
