@@ -90,7 +90,7 @@
     "@opentelemetry/instrumentation-mysql2": "0.41.0",
     "@opentelemetry/instrumentation-nestjs-core": "0.40.0",
     "@opentelemetry/instrumentation-pg": "0.44.0",
-    "@opentelemetry/instrumentation-redis-4": "0.42.0",
+    "@opentelemetry/instrumentation-redis-4": "0.44.0",
     "@opentelemetry/instrumentation-tedious": "0.15.0",
     "@opentelemetry/instrumentation-undici": "0.6.0",
     "@opentelemetry/resources": "^1.26.0",
