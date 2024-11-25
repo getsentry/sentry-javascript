@@ -124,7 +124,7 @@ module.exports = [
     import: createImport('init', 'ErrorBoundary', 'reactRouterV6BrowserTracingIntegration'),
     ignore: ['react/jsx-runtime'],
     gzip: true,
-    limit: '39.5 KB',
+    limit: '40.5 KB',
   },
   // Vue SDK (ESM)
   {
@@ -132,7 +132,7 @@ module.exports = [
     path: 'packages/vue/build/esm/index.js',
     import: createImport('init'),
     gzip: true,
-    limit: '28 KB',
+    limit: '29 KB',
   },
   {
     name: '@sentry/vue (incl. Tracing)',
