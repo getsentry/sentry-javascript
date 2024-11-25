@@ -46,7 +46,7 @@ import { dsnToString, makeDsn } from './utils-hoist/dsn';
 import { addItemToEnvelope, createAttachmentEnvelopeItem } from './utils-hoist/envelope';
 import { SentryError } from './utils-hoist/error';
 import { isParameterizedString, isPlainObject, isPrimitive, isThenable } from './utils-hoist/is';
-import { logger } from './utils-hoist/logger';
+import { consoleSandbox, logger } from './utils-hoist/logger';
 import { checkOrSetAlreadyCaught, uuid4 } from './utils-hoist/misc';
 import { dropUndefinedKeys } from './utils-hoist/object';
 import { SyncPromise, rejectedSyncPromise, resolvedSyncPromise } from './utils-hoist/syncpromise';
@@ -140,6 +140,18 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
         recordDroppedEvent: this.recordDroppedEvent.bind(this),
         ...options.transportOptions,
         url,
+      });
+    }
+
+    // TODO(v9): Remove this deprecation warning
+    const tracingOptions = ['enableTracing', 'tracesSampleRate', 'tracesSampler'] as const;
+    const undefinedOption = tracingOptions.find(option => option in options && options[option] == undefined);
+    if (undefinedOption) {
+      consoleSandbox(() => {
+        // eslint-disable-next-line no-console
+        console.warn(
+          `[Sentry] Deprecation warning: ${undefinedOption} is set to undefined, which leads to tracing being enabled. In v9, you need to set this to 0 to disable tracing.`,
+        );
       });
     }
   }
