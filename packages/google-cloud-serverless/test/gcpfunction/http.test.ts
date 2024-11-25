@@ -176,11 +176,12 @@ describe('GCPFunction', () => {
     expect(defaultIntegrations).toContain('RequestData');
 
     expect(mockScope.setSDKProcessingMetadata).toHaveBeenCalledWith({
-      request: {
+      normalizedRequest: {
         method: 'POST',
-        url: '/path?q=query',
+        url: 'http://hostname/path?q=query',
         headers: { host: 'hostname', 'content-type': 'application/json' },
-        body: { foo: 'bar' },
+        query_string: 'q=query',
+        data: { foo: 'bar' },
       },
     });
   });

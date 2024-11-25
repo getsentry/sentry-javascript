@@ -1,4 +1,4 @@
-import { GLOBAL_OBJ, arrayify, consoleSandbox, defineIntegration, hasTracingEnabled } from '@sentry/core';
+import { GLOBAL_OBJ, consoleSandbox, defineIntegration, hasTracingEnabled } from '@sentry/core';
 import { DEFAULT_HOOKS } from './constants';
 import { DEBUG_BUILD } from './debug-build';
 import { attachErrorHandler } from './errorhandler';
@@ -35,7 +35,7 @@ export const vueIntegration = defineIntegration((integrationOptions: Partial<Vue
       }
 
       if (options.app) {
-        const apps = arrayify(options.app);
+        const apps = Array.isArray(options.app) ? options.app : [options.app];
         apps.forEach(app => vueInit(app, options));
       } else if (options.Vue) {
         vueInit(options.Vue, options);

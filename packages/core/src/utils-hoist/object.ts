@@ -32,7 +32,11 @@ export function fill(source: { [key: string]: any }, name: string, replacementFa
     markFunctionWrapped(wrapped, original);
   }
 
-  source[name] = wrapped;
+  try {
+    source[name] = wrapped;
+  } catch {
+    DEBUG_BUILD && logger.log(`Failed to replace method "${name}" in object`, source);
+  }
 }
 
 /**
@@ -86,6 +90,8 @@ export function getOriginalFunction(func: WrappedFunction): WrappedFunction | un
  *
  * @param object An object that contains serializable values
  * @returns string Encoded
+ *
+ * @deprecated This function is deprecated and will be removed in the next major version of the SDK.
  */
 export function urlEncode(object: { [key: string]: any }): string {
   return Object.keys(object)

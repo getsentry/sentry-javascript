@@ -14,6 +14,7 @@ import { DEBUG_BUILD } from './debug-build';
 import { isPlainObject, isString } from './is';
 import { logger } from './logger';
 import { normalize } from './normalize';
+import { dropUndefinedKeys } from './object';
 import { truncate } from './string';
 import { stripUrlQueryAndFragment } from './url';
 import { getClientIPAddress, ipHeaderNames } from './vendor/getIpAddress';
@@ -133,6 +134,8 @@ function extractUserData(
  * DEFAULT_REQUEST_INCLUDES if not provided.
  * @param options.deps Injected, platform-specific dependencies
  * @returns An object containing normalized request data
+ *
+ * @deprecated Instead manually normalize the request data into a format that fits `addNormalizedRequestDataToEvent`.
  */
 export function extractRequestData(
   req: PolymorphicRequest,
@@ -317,6 +320,8 @@ export function addNormalizedRequestDataToEvent(
  * @param options.include Flags to control what data is included
  * @param options.deps Injected platform-specific dependencies
  * @returns The mutated `Event` object
+ *
+ * @deprecated Use `addNormalizedRequestDataToEvent` instead.
  */
 export function addRequestDataToEvent(
   event: Event,
@@ -334,6 +339,7 @@ export function addRequestDataToEvent(
       includeRequest.push('ip');
     }
 
+    // eslint-disable-next-line deprecation/deprecation
     const extractedRequestData = extractRequestData(req, { include: includeRequest });
 
     event.request = {
@@ -449,6 +455,43 @@ export function winterCGRequestToRequestData(req: WebFetchRequest): RequestEvent
     headers,
     // TODO: Can we extract body data from the request?
   };
+}
+
+/**
+ * Convert a HTTP request object to RequestEventData to be passed as normalizedRequest.
+ * Instead of allowing `PolymorphicRequest` to be passed,
+ * we want to be more specific and generally require a http.IncomingMessage-like object.
+ */
+export function httpRequestToRequestData(request: {
+  method?: string;
+  url?: string;
+  headers?: {
+    [key: string]: string | string[] | undefined;
+  };
+  protocol?: string;
+  socket?: unknown;
+}): RequestEventData {
+  const headers = request.headers || {};
+  const host = headers.host || '<no host>';
+  const protocol = request.socket && (request.socket as { encrypted?: boolean }).encrypted ? 'https' : 'http';
+  const originalUrl = request.url || '';
+  const absoluteUrl = originalUrl.startsWith(protocol) ? originalUrl : `${protocol}://${host}${originalUrl}`;
+
+  // This is non-standard, but may be sometimes set
+  // It may be overwritten later by our own body handling
+  const data = (request as PolymorphicRequest).body || undefined;
+
+  // This is non-standard, but may be set on e.g. Next.js or Express requests
+  const cookies = (request as PolymorphicRequest).cookies;
+
+  return dropUndefinedKeys({
+    url: absoluteUrl,
+    method: request.method,
+    query_string: extractQueryParamsFromUrl(originalUrl),
+    headers: headersToDict(headers),
+    cookies,
+    data,
+  });
 }
 
 /** Extract the query params from an URL. */

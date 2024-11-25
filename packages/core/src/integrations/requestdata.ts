@@ -98,6 +98,7 @@ const _requestDataIntegration = ((options: RequestDataIntegrationOptions = {}) =
         return event;
       }
 
+      // eslint-disable-next-line deprecation/deprecation
       return addRequestDataToEvent(event, request, addRequestDataOptions);
     },
   };

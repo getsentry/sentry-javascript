@@ -40,6 +40,7 @@ export {
   addContextToFrame,
   addExceptionMechanism,
   addExceptionTypeValue,
+  // eslint-disable-next-line deprecation/deprecation
   arrayify,
   checkOrSetAlreadyCaught,
   getEventDescription,
@@ -57,6 +58,7 @@ export {
   getOriginalFunction,
   markFunctionWrapped,
   objectify,
+  // eslint-disable-next-line deprecation/deprecation
   urlEncode,
 } from './object';
 export { basename, dirname, isAbsolute, join, normalizePath, relative, resolve } from './path';
@@ -67,12 +69,15 @@ export type { PromiseBuffer } from './promisebuffer';
 export {
   DEFAULT_USER_INCLUDES,
   addNormalizedRequestDataToEvent,
+  // eslint-disable-next-line deprecation/deprecation
   addRequestDataToEvent,
   // eslint-disable-next-line deprecation/deprecation
   extractPathForTransaction,
+  // eslint-disable-next-line deprecation/deprecation
   extractRequestData,
   winterCGHeadersToDict,
   winterCGRequestToRequestData,
+  httpRequestToRequestData,
   extractQueryParamsFromUrl,
   headersToDict,
 } from './requestdata';
@@ -82,6 +87,7 @@ export type {
   TransactionNamingScheme,
 } from './requestdata';
 
+// eslint-disable-next-line deprecation/deprecation
 export { severityLevelFromString, validSeverityLevels } from './severity';
 export {
   UNKNOWN_FUNCTION,
