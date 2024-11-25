@@ -179,8 +179,9 @@ function ensureTimestampInMilliseconds(timestamp: number): number {
 
 function getContext(scope: Scope | undefined, forceTransaction: boolean | undefined): Context {
   const ctx = getContextForScope(scope);
+  // Note: If the context is the ROOT_CONTEXT, no scope is attached
+  // Thus we will not use the propagation context in this case, which is desired
   const actualScope = getScopesFromContext(ctx)?.scope;
-
   const parentSpan = trace.getSpan(ctx);
 
   // In the case that we have no parent span, we need to "simulate" one to ensure the propagation context is correct

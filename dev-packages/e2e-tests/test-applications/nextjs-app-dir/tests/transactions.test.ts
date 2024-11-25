@@ -125,13 +125,14 @@ test('Should set not_found status for server actions calling notFound()', async 
 test('Will not include spans in pageload transaction with faulty timestamps for slow loading pages', async ({
   page,
 }) => {
+  test.slow();
   const pageloadTransactionEventPromise = waitForTransaction('nextjs-app-dir', transactionEvent => {
     return (
       transactionEvent?.contexts?.trace?.op === 'pageload' && transactionEvent?.transaction === '/very-slow-component'
     );
   });
 
-  await page.goto('/very-slow-component');
+  await page.goto('/very-slow-component', { timeout: 11000 });
 
   const pageLoadTransaction = await pageloadTransactionEventPromise;
 

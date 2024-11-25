@@ -51,6 +51,7 @@ import { checkOrSetAlreadyCaught, uuid4 } from './utils-hoist/misc';
 import { SyncPromise, rejectedSyncPromise, resolvedSyncPromise } from './utils-hoist/syncpromise';
 import { parseSampleRate } from './utils/parseSampleRate';
 import { prepareEvent } from './utils/prepareEvent';
+import { showSpanDropWarning } from './utils/spanUtils';
 
 const ALREADY_SEEN_ERROR = "Not capturing exception because it's already been captured.";
 
@@ -964,6 +965,7 @@ function processBeforeSend(
         if (processedSpan) {
           processedSpans.push(processedSpan);
         } else {
+          showSpanDropWarning();
           client.recordDroppedEvent('before_send', 'span');
         }
       }
