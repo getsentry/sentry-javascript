@@ -1,6 +1,6 @@
 import * as fs from 'node:fs';
+import { parseStackFrames } from '@sentry/core';
 import type { StackFrame } from '@sentry/types';
-import { parseStackFrames } from '@sentry/utils';
 
 import {
   MAX_CONTEXTLINES_COLNO,

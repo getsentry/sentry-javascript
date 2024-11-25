@@ -18,7 +18,7 @@ export type {
   Thread,
   User,
 } from '@sentry/types';
-export type { AddRequestDataToEventOptions } from '@sentry/utils';
+export type { AddRequestDataToEventOptions } from '@sentry/core';
 
 export {
   addEventProcessor,
@@ -64,8 +64,10 @@ export {
   flush,
   close,
   getSentryRelease,
+  // eslint-disable-next-line deprecation/deprecation
   addRequestDataToEvent,
   DEFAULT_USER_INCLUDES,
+  // eslint-disable-next-line deprecation/deprecation
   extractRequestData,
   createGetModuleFromFilename,
   anrIntegration,
@@ -125,7 +127,9 @@ export {
   mysql2Integration,
   redisIntegration,
   tediousIntegration,
+  // eslint-disable-next-line deprecation/deprecation
   nestIntegration,
+  // eslint-disable-next-line deprecation/deprecation
   setupNestErrorHandler,
   postgresIntegration,
   prismaIntegration,
@@ -145,10 +149,12 @@ export {
 
 export {
   captureConsoleIntegration,
+  // eslint-disable-next-line deprecation/deprecation
   debugIntegration,
   dedupeIntegration,
   extraErrorDataIntegration,
   rewriteFramesIntegration,
+  // eslint-disable-next-line deprecation/deprecation
   sessionTimingIntegration,
 } from '@sentry/core';
 

@@ -1,5 +1,5 @@
-import { SDK_VERSION } from '@sentry/utils';
 import { getSentryCarrier } from '../../src/carrier';
+import { SDK_VERSION } from '../../src/utils-hoist/version';
 
 describe('getSentryCarrier', () => {
   describe('base case (one SDK)', () => {

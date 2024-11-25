@@ -100,7 +100,7 @@ ${changedPaths.join('\n')}
  * Returns how many time one test should run based on the chosen mode and a bunch of heuristics
  */
 function getPerTestRunCount(testPaths: string[]) {
-  if (process.env.TEST_RUN_COUNT === 'AUTO' && testPaths.length > 0) {
+  if ((!process.env.TEST_RUN_COUNT || process.env.TEST_RUN_COUNT === 'AUTO') && testPaths.length > 0) {
     // Run everything up to 100x, assuming that total runtime is less than 60min.
     // We assume an average runtime of 3s per test, times 4 (for different browsers) = 12s per detected testPaths
     // We want to keep overall runtime under 30min

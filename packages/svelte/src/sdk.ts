@@ -1,8 +1,8 @@
 import type { BrowserOptions } from '@sentry/browser';
 import { addEventProcessor, init as browserInit } from '@sentry/browser';
 import { applySdkMetadata } from '@sentry/core';
+import { getDomElement } from '@sentry/core';
 import type { Client, EventProcessor } from '@sentry/types';
-import { getDomElement } from '@sentry/utils';
 /**
  * Inits the Svelte SDK
  */

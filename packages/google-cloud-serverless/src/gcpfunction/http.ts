@@ -2,11 +2,13 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   handleCallbackErrors,
+  httpRequestToRequestData,
+  isString,
+  logger,
   setHttpStatus,
+  stripUrlQueryAndFragment,
 } from '@sentry/core';
 import { captureException, continueTrace, flush, getCurrentScope, startSpanManual } from '@sentry/node';
-import { isString, logger, stripUrlQueryAndFragment } from '@sentry/utils';
-
 import { DEBUG_BUILD } from '../debug-build';
 import { domainify, markEventUnhandled, proxyFunction } from '../utils';
 import type { HttpFunction, WrapperOptions } from './general';
@@ -44,6 +46,9 @@ function _wrapHttpFunction(fn: HttpFunction, options: Partial<WrapperOptions>): 
     const baggage = req.headers?.baggage;
 
     return continueTrace({ sentryTrace, baggage }, () => {
+      const normalizedRequest = httpRequestToRequestData(req);
+      getCurrentScope().setSDKProcessingMetadata({ normalizedRequest });
+
       return startSpanManual(
         {
           name: `${reqMethod} ${reqUrl}`,
@@ -54,10 +59,6 @@ function _wrapHttpFunction(fn: HttpFunction, options: Partial<WrapperOptions>): 
           },
         },
         span => {
-          getCurrentScope().setSDKProcessingMetadata({
-            request: req,
-          });
-
           // eslint-disable-next-line @typescript-eslint/unbound-method
           const _end = res.end;
           // eslint-disable-next-line @typescript-eslint/no-explicit-any

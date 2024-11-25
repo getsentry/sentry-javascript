@@ -1,7 +1,8 @@
 import type { Client, Integration, MetricsAggregator, Scope } from '@sentry/types';
-import { GLOBAL_OBJ, SDK_VERSION } from '@sentry/utils';
 import type { AsyncContextStack } from './asyncContext/stackStrategy';
 import type { AsyncContextStrategy } from './asyncContext/types';
+import { SDK_VERSION } from './utils-hoist/version';
+import { GLOBAL_OBJ } from './utils-hoist/worldwide';
 
 /**
  * An object that contains globally accessible properties and maintains a scope stack.

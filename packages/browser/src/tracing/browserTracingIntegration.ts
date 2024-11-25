@@ -25,8 +25,6 @@ import {
   spanToJSON,
   startIdleSpan,
 } from '@sentry/core';
-import type { Client, IntegrationFn, StartSpanOptions, TransactionSource } from '@sentry/types';
-import type { Span } from '@sentry/types';
 import {
   GLOBAL_OBJ,
   browserPerformanceTimeOrigin,
@@ -34,7 +32,9 @@ import {
   getDomElement,
   logger,
   propagationContextFromHeaders,
-} from '@sentry/utils';
+} from '@sentry/core';
+import type { Client, IntegrationFn, StartSpanOptions, TransactionSource } from '@sentry/types';
+import type { Span } from '@sentry/types';
 
 import { DEBUG_BUILD } from '../debug-build';
 import { WINDOW } from '../helpers';

@@ -8,6 +8,7 @@ export {
   addEventProcessor,
   addIntegration,
   addOpenTelemetryInstrumentation,
+  // eslint-disable-next-line deprecation/deprecation
   addRequestDataToEvent,
   amqplibIntegration,
   anrIntegration,
@@ -27,6 +28,7 @@ export {
   createGetModuleFromFilename,
   createTransport,
   cron,
+  // eslint-disable-next-line deprecation/deprecation
   debugIntegration,
   dedupeIntegration,
   DEFAULT_USER_INCLUDES,
@@ -34,6 +36,7 @@ export {
   endSession,
   expressErrorHandler,
   expressIntegration,
+  // eslint-disable-next-line deprecation/deprecation
   extractRequestData,
   extraErrorDataIntegration,
   fastifyIntegration,
@@ -75,6 +78,7 @@ export {
   mysql2Integration,
   mysqlIntegration,
   nativeNodeFetchIntegration,
+  // eslint-disable-next-line deprecation/deprecation
   nestIntegration,
   NodeClient,
   nodeContextIntegration,
@@ -92,6 +96,7 @@ export {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  // eslint-disable-next-line deprecation/deprecation
   sessionTimingIntegration,
   setContext,
   setCurrentClient,
@@ -105,6 +110,7 @@ export {
   setupExpressErrorHandler,
   setupHapiErrorHandler,
   setupKoaErrorHandler,
+  // eslint-disable-next-line deprecation/deprecation
   setupNestErrorHandler,
   setUser,
   spanToBaggageHeader,

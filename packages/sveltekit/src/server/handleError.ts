@@ -1,5 +1,5 @@
+import { consoleSandbox } from '@sentry/core';
 import { captureException } from '@sentry/node';
-import { consoleSandbox } from '@sentry/utils';
 import type { HandleServerError } from '@sveltejs/kit';
 
 import { flushIfServerless } from './utils';

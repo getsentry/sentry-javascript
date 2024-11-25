@@ -4,7 +4,7 @@ import { trace } from '@opentelemetry/api';
 import type { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
 import type { ServerRuntimeClientOptions } from '@sentry/core';
 import { SDK_VERSION, ServerRuntimeClient, applySdkMetadata } from '@sentry/core';
-import { logger } from '@sentry/utils';
+import { logger } from '@sentry/core';
 import { isMainThread, threadId } from 'worker_threads';
 import { DEBUG_BUILD } from '../debug-build';
 import type { NodeClientOptions } from '../types';

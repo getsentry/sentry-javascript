@@ -1,6 +1,6 @@
 import type { Event, EventHint, IntegrationFn } from '@sentry/types';
-import { consoleSandbox } from '@sentry/utils';
 import { defineIntegration } from '../integration';
+import { consoleSandbox } from '../utils-hoist/logger';
 
 const INTEGRATION_NAME = 'Debug';
 
@@ -11,10 +11,6 @@ interface DebugOptions {
   debugger?: boolean;
 }
 
-/**
- * Integration to debug sent Sentry events.
- * This integration should not be used in production.
- */
 const _debugIntegration = ((options: DebugOptions = {}) => {
   const _options = {
     debugger: false,
@@ -51,4 +47,11 @@ const _debugIntegration = ((options: DebugOptions = {}) => {
   };
 }) satisfies IntegrationFn;
 
+/**
+ * Integration to debug sent Sentry events.
+ * This integration should not be used in production.
+ *
+ * @deprecated This integration is deprecated and will be removed in the next major version of the SDK.
+ * To log outgoing events, use [Hook Options](https://docs.sentry.io/platforms/javascript/configuration/options/#hooks) (`beforeSend`, `beforeSendTransaction`, ...).
+ */
 export const debugIntegration = defineIntegration(_debugIntegration);

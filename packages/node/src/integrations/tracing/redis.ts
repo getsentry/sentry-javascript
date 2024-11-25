@@ -11,8 +11,8 @@ import {
   defineIntegration,
   spanToJSON,
 } from '@sentry/core';
+import { truncate } from '@sentry/core';
 import type { IntegrationFn } from '@sentry/types';
-import { truncate } from '@sentry/utils';
 import { generateInstrumentOnce } from '../../otel/instrument';
 import {
   GET_COMMANDS,

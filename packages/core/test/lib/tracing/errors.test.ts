@@ -2,28 +2,23 @@ import type { HandlerDataError, HandlerDataUnhandledRejection } from '@sentry/ty
 import { setCurrentClient, spanToJSON, startInactiveSpan, startSpan } from '../../../src';
 
 import { _resetErrorsInstrumented, registerSpanErrorInstrumentation } from '../../../src/tracing/errors';
+import * as globalErrorModule from '../../../src/utils-hoist/instrument/globalError';
+import * as globalUnhandledRejectionModule from '../../../src/utils-hoist/instrument/globalUnhandledRejection';
 import { TestClient, getDefaultTestClientOptions } from '../../mocks/client';
 
-const mockAddGlobalErrorInstrumentationHandler = jest.fn();
-const mockAddGlobalUnhandledRejectionInstrumentationHandler = jest.fn();
 let mockErrorCallback: (data: HandlerDataError) => void = () => {};
 let mockUnhandledRejectionCallback: (data: HandlerDataUnhandledRejection) => void = () => {};
 
-jest.mock('@sentry/utils', () => {
-  const actual = jest.requireActual('@sentry/utils');
-  return {
-    ...actual,
-    addGlobalErrorInstrumentationHandler: (callback: () => void) => {
-      mockErrorCallback = callback;
-
-      return mockAddGlobalErrorInstrumentationHandler(callback);
-    },
-    addGlobalUnhandledRejectionInstrumentationHandler: (callback: () => void) => {
-      mockUnhandledRejectionCallback = callback;
-      return mockAddGlobalUnhandledRejectionInstrumentationHandler(callback);
-    },
-  };
-});
+const mockAddGlobalErrorInstrumentationHandler = jest
+  .spyOn(globalErrorModule, 'addGlobalErrorInstrumentationHandler')
+  .mockImplementation(callback => {
+    mockErrorCallback = callback;
+  });
+const mockAddGlobalUnhandledRejectionInstrumentationHandler = jest
+  .spyOn(globalUnhandledRejectionModule, 'addGlobalUnhandledRejectionInstrumentationHandler')
+  .mockImplementation(callback => {
+    mockUnhandledRejectionCallback = callback;
+  });
 
 describe('registerErrorHandlers()', () => {
   beforeEach(() => {

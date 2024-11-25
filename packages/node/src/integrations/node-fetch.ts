@@ -8,13 +8,13 @@ import {
   getCurrentScope,
   hasTracingEnabled,
 } from '@sentry/core';
+import { getBreadcrumbLogLevelFromHttpStatusCode, getSanitizedUrlString, parseUrl } from '@sentry/core';
 import {
   addOpenTelemetryInstrumentation,
   generateSpanContextForPropagationContext,
   getPropagationContextFromSpan,
 } from '@sentry/opentelemetry';
 import type { IntegrationFn, SanitizedRequestData } from '@sentry/types';
-import { getBreadcrumbLogLevelFromHttpStatusCode, getSanitizedUrlString, parseUrl } from '@sentry/utils';
 
 interface NodeFetchOptions {
   /**

@@ -18,8 +18,8 @@ import {
   getIsolationScope,
   spanToJSON,
 } from '@sentry/core';
+import { logger } from '@sentry/core';
 import type { Span } from '@sentry/types';
-import { logger } from '@sentry/utils';
 import type { Observable } from 'rxjs';
 import { isExpectedError } from './helpers';
 
@@ -29,6 +29,10 @@ import { isExpectedError } from './helpers';
 
 /**
  * Interceptor to add Sentry tracing capabilities to Nest.js applications.
+ *
+ * @deprecated `SentryTracingInterceptor` is deprecated.
+ * If you are using `@sentry/nestjs` you can safely remove any references to the `SentryTracingInterceptor`.
+ * If you are using another package migrate to `@sentry/nestjs` and remove the `SentryTracingInterceptor` afterwards.
  */
 class SentryTracingInterceptor implements NestInterceptor {
   // used to exclude this class from being auto-instrumented
@@ -59,7 +63,9 @@ class SentryTracingInterceptor implements NestInterceptor {
     return next.handle();
   }
 }
+// eslint-disable-next-line deprecation/deprecation
 Injectable()(SentryTracingInterceptor);
+// eslint-disable-next-line deprecation/deprecation
 export { SentryTracingInterceptor };
 
 /**
@@ -108,6 +114,8 @@ export { SentryGlobalFilter };
 
 /**
  * Global filter to handle exceptions in NestJS + GraphQL applications and report them to Sentry.
+ *
+ * @deprecated `SentryGlobalGraphQLFilter` is deprecated. Use the `SentryGlobalFilter` instead. The `SentryGlobalFilter` is a drop-in replacement.
  */
 class SentryGlobalGraphQLFilter {
   private static readonly _logger = new Logger('ExceptionsHandler');
@@ -127,24 +135,33 @@ class SentryGlobalGraphQLFilter {
       throw exception;
     }
     if (exception instanceof Error) {
+      // eslint-disable-next-line deprecation/deprecation
       SentryGlobalGraphQLFilter._logger.error(exception.message, exception.stack);
     }
     captureException(exception);
     throw exception;
   }
 }
+// eslint-disable-next-line deprecation/deprecation
 Catch()(SentryGlobalGraphQLFilter);
+// eslint-disable-next-line deprecation/deprecation
 export { SentryGlobalGraphQLFilter };
 
 /**
  * Global filter to handle exceptions and report them to Sentry.
  *
  * This filter is a generic filter that can handle both HTTP and GraphQL exceptions.
+ *
+ * @deprecated `SentryGlobalGenericFilter` is deprecated. Use the `SentryGlobalFilter` instead. The `SentryGlobalFilter` is a drop-in replacement.
  */
 export const SentryGlobalGenericFilter = SentryGlobalFilter;
 
 /**
  * Service to set up Sentry performance tracing for Nest.js applications.
+ *
+ * @deprecated `SentryService` is deprecated.
+ * If you are using `@sentry/nestjs` you can safely remove any references to the `SentryService`.
+ * If you are using another package migrate to `@sentry/nestjs` and remove the `SentryService` afterwards.
  */
 class SentryService implements OnModuleInit {
   public readonly __SENTRY_INTERNAL__: boolean;
@@ -168,7 +185,9 @@ class SentryService implements OnModuleInit {
     }
   }
 }
+// eslint-disable-next-line deprecation/deprecation
 Injectable()(SentryService);
+// eslint-disable-next-line deprecation/deprecation
 export { SentryService };
 
 /**
@@ -182,12 +201,15 @@ class SentryModule {
     return {
       module: SentryModule,
       providers: [
+        // eslint-disable-next-line deprecation/deprecation
         SentryService,
         {
           provide: APP_INTERCEPTOR,
+          // eslint-disable-next-line deprecation/deprecation
           useClass: SentryTracingInterceptor,
         },
       ],
+      // eslint-disable-next-line deprecation/deprecation
       exports: [SentryService],
     };
   }
@@ -195,12 +217,15 @@ class SentryModule {
 Global()(SentryModule);
 Module({
   providers: [
+    // eslint-disable-next-line deprecation/deprecation
     SentryService,
     {
       provide: APP_INTERCEPTOR,
+      // eslint-disable-next-line deprecation/deprecation
       useClass: SentryTracingInterceptor,
     },
   ],
+  // eslint-disable-next-line deprecation/deprecation
   exports: [SentryService],
 })(SentryModule);
 export { SentryModule };

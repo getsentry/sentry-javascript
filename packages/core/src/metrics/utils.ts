@@ -1,5 +1,5 @@
 import type { MeasurementUnit, MetricBucketItem, Primitive } from '@sentry/types';
-import { dropUndefinedKeys } from '@sentry/utils';
+import { dropUndefinedKeys } from '../utils-hoist/object';
 import type { MetricType } from './types';
 
 /**

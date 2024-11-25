@@ -11,7 +11,7 @@ import {
 import type { NodeClient } from '@sentry/node';
 import type { Event, IntegrationFn, Profile, ProfileChunk, ProfilingIntegration, Span } from '@sentry/types';
 
-import { LRUMap, consoleSandbox, logger, uuid4 } from '@sentry/utils';
+import { LRUMap, consoleSandbox, logger, uuid4 } from '@sentry/core';
 
 import { CpuProfilerBindings } from './cpu_profiler';
 import { DEBUG_BUILD } from './debug-build';

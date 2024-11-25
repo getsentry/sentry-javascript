@@ -217,7 +217,9 @@ export interface Scope {
   clearAttachments(): this;
 
   /**
-   * Add data which will be accessible during event processing but won't get sent to Sentry
+   * Add data which will be accessible during event processing but won't get sent to Sentry.
+   *
+   * TODO(v9): We should type this stricter, so that e.g. `normalizedRequest` is strictly typed.
    */
   setSDKProcessingMetadata(newData: { [key: string]: unknown }): this;
 

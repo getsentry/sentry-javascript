@@ -5,12 +5,14 @@ import {
   defineIntegration,
   getClient,
   getCurrentScope,
+  getFilenameToDebugIdMap,
   getGlobalScope,
   getIsolationScope,
+  GLOBAL_OBJ,
+  logger,
   mergeScopeData,
 } from '@sentry/core';
 import type { Contexts, Event, EventHint, Integration, IntegrationFn, ScopeData } from '@sentry/types';
-import { GLOBAL_OBJ, getFilenameToDebugIdMap, logger } from '@sentry/utils';
 import { NODE_VERSION } from '../../nodeVersion';
 import type { NodeClient } from '../../sdk/client';
 import type { AnrIntegrationOptions, WorkerStartData } from './common';
