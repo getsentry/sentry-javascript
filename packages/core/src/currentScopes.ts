@@ -1,6 +1,6 @@
 import type { Scope } from '@sentry/types';
 import type { Client } from '@sentry/types';
-import { getAsyncContextStrategy } from './asyncContext';
+import { getAsyncContextStrategy, getAsyncContextStrategyImplementation } from './asyncContext';
 import { getMainCarrier } from './carrier';
 import { Scope as ScopeClass } from './scope';
 import { getGlobalSingleton } from './utils-hoist/worldwide';
@@ -9,9 +9,7 @@ import { getGlobalSingleton } from './utils-hoist/worldwide';
  * Get the currently active scope.
  */
 export function getCurrentScope(): Scope {
-  const carrier = getMainCarrier();
-  const acs = getAsyncContextStrategy(carrier);
-  return acs.getCurrentScope();
+  return getAsyncContextStrategyImplementation('getCurrentScope')();
 }
 
 /**
@@ -19,9 +17,7 @@ export function getCurrentScope(): Scope {
  * The isolation scope is active for the current execution context.
  */
 export function getIsolationScope(): Scope {
-  const carrier = getMainCarrier();
-  const acs = getAsyncContextStrategy(carrier);
-  return acs.getIsolationScope();
+  return getAsyncContextStrategyImplementation('getCurrentScope')();
 }
 
 /**
