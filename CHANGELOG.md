@@ -12,6 +12,10 @@
 
 Work in this release was contributed by @NEKOYASAN. Thank you for your contribution!
 
+## 8.41.0-beta.1
+
+- feat: Add LaunchDarkly and OpenFeature integrations for beta testing
+
 ## 8.40.0
 
 ### Important Changes
