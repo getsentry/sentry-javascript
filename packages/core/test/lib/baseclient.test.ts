@@ -97,7 +97,7 @@ describe('BaseClient', () => {
 
         expect(consoleWarnSpy).toHaveBeenCalledTimes(1);
         expect(consoleWarnSpy).toBeCalledWith(
-          `[Sentry] Deprecation warning: ${key} is set to undefined, which leads to tracing being enabled. In v9, you need to set this to 0 to disable tracing.`,
+          `[Sentry] Deprecation warning: ${key} is set to undefined, which leads to tracing being enabled. In v9, a value of \`undefined\` will result in tracing being disabled.`,
         );
         consoleWarnSpy.mockRestore();
       });
@@ -110,7 +110,7 @@ describe('BaseClient', () => {
 
         expect(consoleWarnSpy).toHaveBeenCalledTimes(1);
         expect(consoleWarnSpy).toBeCalledWith(
-          `[Sentry] Deprecation warning: ${key} is set to undefined, which leads to tracing being enabled. In v9, you need to set this to 0 to disable tracing.`,
+          `[Sentry] Deprecation warning: ${key} is set to undefined, which leads to tracing being enabled. In v9, a value of \`undefined\` will result in tracing being disabled.`,
         );
         consoleWarnSpy.mockRestore();
       });

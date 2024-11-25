@@ -150,7 +150,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
       consoleSandbox(() => {
         // eslint-disable-next-line no-console
         console.warn(
-          `[Sentry] Deprecation warning: ${undefinedOption} is set to undefined, which leads to tracing being enabled. In v9, you need to set this to 0 to disable tracing.`,
+          `[Sentry] Deprecation warning: ${undefinedOption} is set to undefined, which leads to tracing being enabled. In v9, a value of \`undefined\` will result in tracing being disabled.`,
         );
       });
     }
