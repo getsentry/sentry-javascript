@@ -1,11 +1,10 @@
 /* eslint-disable max-lines */
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, getActiveSpan } from '@sentry/core';
 import { setMeasurement } from '@sentry/core';
-import { browserPerformanceTimeOrigin, getComponentName, htmlTreeAsString, logger, parseUrl } from '@sentry/core';
+import { browserPerformanceTimeOrigin, getComponentName, htmlTreeAsString, parseUrl } from '@sentry/core';
 import type { Measurements, Span, SpanAttributes, StartSpanOptions } from '@sentry/types';
 
 import { spanToJSON } from '@sentry/core';
-import { DEBUG_BUILD } from '../debug-build';
 import { WINDOW } from '../types';
 import { trackClsAsStandaloneSpan } from './cls';
 import {
@@ -611,7 +610,6 @@ function _trackNavigator(span: Span): void {
 /** Add LCP / CLS data to span to allow debugging */
 function _setWebVitalAttributes(span: Span): void {
   if (_lcpEntry) {
-
     // Capture Properties of the LCP element that contributes to the LCP.
 
     if (_lcpEntry.element) {
