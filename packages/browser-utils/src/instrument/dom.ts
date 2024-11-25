@@ -64,24 +64,20 @@ export function instrumentDOM(): void {
   // could potentially prevent the event from bubbling up to our global listeners. This way, our handler are still
   // guaranteed to fire at least once.)
   ['EventTarget', 'Node'].forEach((target: string) => {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
-    const proto = (WINDOW as any)[target] && (WINDOW as any)[target].prototype;
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, no-prototype-builtins
-    if (!proto || !proto.hasOwnProperty || !proto.hasOwnProperty('addEventListener')) {
+    const globalObject = WINDOW as unknown as Record<string, { prototype?: object }>;
+    const targetObj = globalObject[target];
+    const proto = targetObj && targetObj.prototype;
+
+    if (!proto || Object.prototype.hasOwnProperty.call(proto, 'addEventListener')) {
       return;
     }
 
     fill(proto, 'addEventListener', function (originalAddEventListener: AddEventListener): AddEventListener {
-      return function (
-        this: Element,
-        type: string,
-        listener: EventListenerOrEventListenerObject,
-        options?: boolean | AddEventListenerOptions,
-      ): AddEventListener {
+      return function (this: InstrumentedElement, type, listener, options): AddEventListener {
         if (type === 'click' || type == 'keypress') {
           try {
-            const el = this as InstrumentedElement;
-            const handlers = (el.__sentry_instrumentation_handlers__ = el.__sentry_instrumentation_handlers__ || {});
+            const handlers = (this.__sentry_instrumentation_handlers__ =
+              this.__sentry_instrumentation_handlers__ || {});
             const handlerForType = (handlers[type] = handlers[type] || { refCount: 0 });
 
             if (!handlerForType.handler) {
@@ -105,16 +101,10 @@ export function instrumentDOM(): void {
       proto,
       'removeEventListener',
       function (originalRemoveEventListener: RemoveEventListener): RemoveEventListener {
-        return function (
-          this: Element,
-          type: string,
-          listener: EventListenerOrEventListenerObject,
-          options?: boolean | EventListenerOptions,
-        ): () => void {
+        return function (this: InstrumentedElement, type, listener, options): () => void {
           if (type === 'click' || type == 'keypress') {
             try {
-              const el = this as InstrumentedElement;
-              const handlers = el.__sentry_instrumentation_handlers__ || {};
+              const handlers = this.__sentry_instrumentation_handlers__ || {};
               const handlerForType = handlers[type];
 
               if (handlerForType) {
@@ -128,7 +118,7 @@ export function instrumentDOM(): void {
 
                 // If there are no longer any custom handlers of any type on this element, cleanup everything.
                 if (Object.keys(handlers).length === 0) {
-                  delete el.__sentry_instrumentation_handlers__;
+                  delete this.__sentry_instrumentation_handlers__;
                 }
               }
             } catch (e) {

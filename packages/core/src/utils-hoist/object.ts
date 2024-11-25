@@ -296,7 +296,8 @@ function isPojo(input: unknown): input is Record<string, unknown> {
 export function objectify(wat: unknown): typeof Object {
   let objectified;
   switch (true) {
-    case wat === undefined || wat === null:
+    // this will catch both undefined and null
+    case wat == undefined:
       objectified = new String(wat);
       break;
 

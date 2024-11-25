@@ -68,8 +68,8 @@ let nextjsEscapedAsyncStorage: AsyncLocalStorage<true>;
  * first time.
  */
 export function escapeNextjsTracing<T>(cb: () => T): T {
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
-  const MaybeGlobalAsyncLocalStorage = (GLOBAL_OBJ as any).AsyncLocalStorage;
+  const MaybeGlobalAsyncLocalStorage = (GLOBAL_OBJ as { AsyncLocalStorage?: new () => AsyncLocalStorage<true> })
+    .AsyncLocalStorage;
 
   if (!MaybeGlobalAsyncLocalStorage) {
     DEBUG_BUILD &&
