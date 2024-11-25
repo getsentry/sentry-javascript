@@ -1,4 +1,4 @@
-import { dropUndefinedKeys, stringMatchesSomePattern } from '@sentry/utils';
+import { dropUndefinedKeys, stringMatchesSomePattern } from '@sentry/core';
 
 import { NETWORK_BODY_MAX_SIZE, WINDOW } from '../../constants';
 import { DEBUG_BUILD } from '../../debug-build';

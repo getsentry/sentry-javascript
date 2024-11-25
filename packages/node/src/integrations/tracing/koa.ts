@@ -9,8 +9,8 @@ import {
   getIsolationScope,
   spanToJSON,
 } from '@sentry/core';
+import { logger } from '@sentry/core';
 import type { IntegrationFn, Span } from '@sentry/types';
-import { logger } from '@sentry/utils';
 import { DEBUG_BUILD } from '../../debug-build';
 import { generateInstrumentOnce } from '../../otel/instrument';
 import { ensureIsWrapped } from '../../utils/ensureIsWrapped';

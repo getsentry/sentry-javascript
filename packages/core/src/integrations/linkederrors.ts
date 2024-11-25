@@ -1,6 +1,7 @@
 import type { IntegrationFn } from '@sentry/types';
-import { applyAggregateErrorsToEvent, exceptionFromError } from '@sentry/utils';
 import { defineIntegration } from '../integration';
+import { applyAggregateErrorsToEvent } from '../utils-hoist/aggregate-errors';
+import { exceptionFromError } from '../utils-hoist/eventbuilder';
 
 interface LinkedErrorsOptions {
   key?: string;

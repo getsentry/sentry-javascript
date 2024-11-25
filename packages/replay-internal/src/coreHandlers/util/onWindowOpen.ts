@@ -1,4 +1,4 @@
-import { fill } from '@sentry/utils';
+import { fill } from '@sentry/core';
 
 import { WINDOW } from '../../constants';
 

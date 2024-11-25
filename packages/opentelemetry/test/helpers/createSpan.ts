@@ -2,7 +2,7 @@ import type { Context, SpanContext, TimeInput } from '@opentelemetry/api';
 import { SpanKind } from '@opentelemetry/api';
 import type { Tracer } from '@opentelemetry/sdk-trace-base';
 import { Span } from '@opentelemetry/sdk-trace-base';
-import { uuid4 } from '@sentry/utils';
+import { uuid4 } from '@sentry/core';
 
 export function createSpan(
   name?: string,

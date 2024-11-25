@@ -6,13 +6,13 @@ import { getFirstSentryEnvelopeRequest, shouldSkipTracingTest } from '../../../.
 
 sentryTest(
   "doesn't capture long animation frame that starts before a navigation.",
-  async ({ browserName, getLocalTestPath, page }) => {
+  async ({ browserName, getLocalTestUrl, page }) => {
     // Long animation frames only work on chrome
     if (shouldSkipTracingTest() || browserName !== 'chromium') {
       sentryTest.skip();
     }
 
-    const url = await getLocalTestPath({ testDir: __dirname });
+    const url = await getLocalTestUrl({ testDir: __dirname });
 
     await page.goto(url);
 

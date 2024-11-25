@@ -10,21 +10,19 @@ import type {
   TransportMakeRequestResponse,
   TransportRequestExecutor,
 } from '@sentry/types';
-import type { PromiseBuffer, RateLimits } from '@sentry/utils';
+
+import { DEBUG_BUILD } from '../debug-build';
 import {
-  SentryError,
   createEnvelope,
   envelopeItemTypeToDataCategory,
   forEachEnvelopeItem,
-  isRateLimited,
-  logger,
-  makePromiseBuffer,
-  resolvedSyncPromise,
   serializeEnvelope,
-  updateRateLimits,
-} from '@sentry/utils';
-
-import { DEBUG_BUILD } from '../debug-build';
+} from '../utils-hoist/envelope';
+import { SentryError } from '../utils-hoist/error';
+import { logger } from '../utils-hoist/logger';
+import { type PromiseBuffer, makePromiseBuffer } from '../utils-hoist/promisebuffer';
+import { type RateLimits, isRateLimited, updateRateLimits } from '../utils-hoist/ratelimit';
+import { resolvedSyncPromise } from '../utils-hoist/syncpromise';
 
 export const DEFAULT_TRANSPORT_BUFFER_SIZE = 64;
 

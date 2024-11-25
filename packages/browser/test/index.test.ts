@@ -13,7 +13,7 @@ import {
   inboundFiltersIntegration,
   lastEventId,
 } from '@sentry/core';
-import * as utils from '@sentry/utils';
+import * as utils from '@sentry/core';
 
 import { setCurrentClient } from '../src';
 import {

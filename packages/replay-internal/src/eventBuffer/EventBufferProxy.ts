@@ -26,6 +26,11 @@ export class EventBufferProxy implements EventBuffer {
   }
 
   /** @inheritdoc */
+  public get waitForCheckout(): boolean {
+    return this._used.waitForCheckout;
+  }
+
+  /** @inheritdoc */
   public get type(): EventBufferType {
     return this._used.type;
   }
@@ -42,6 +47,12 @@ export class EventBufferProxy implements EventBuffer {
   /** @inheritdoc */
   public set hasCheckout(value: boolean) {
     this._used.hasCheckout = value;
+  }
+
+  /** @inheritdoc */
+  // eslint-disable-next-line @typescript-eslint/adjacent-overload-signatures
+  public set waitForCheckout(value: boolean) {
+    this._used.waitForCheckout = value;
   }
 
   /** @inheritDoc */
@@ -99,7 +110,7 @@ export class EventBufferProxy implements EventBuffer {
 
   /** Switch the used buffer to the compression worker. */
   private async _switchToCompressionWorker(): Promise<void> {
-    const { events, hasCheckout } = this._fallback;
+    const { events, hasCheckout, waitForCheckout } = this._fallback;
 
     const addEventPromises: Promise<void>[] = [];
     for (const event of events) {
@@ -107,6 +118,7 @@ export class EventBufferProxy implements EventBuffer {
     }
 
     this._compression.hasCheckout = hasCheckout;
+    this._compression.waitForCheckout = waitForCheckout;
 
     // We switch over to the new buffer immediately - any further events will be added
     // after the previously buffered ones

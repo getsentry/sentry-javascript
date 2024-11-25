@@ -20,6 +20,7 @@ export default makeNPMConfigVariants(
       jsxPragma: 'h',
       jsxFragmentPragma: 'Fragment',
       jsxRuntime: 'classic',
+      production: true,
     },
   }),
 );

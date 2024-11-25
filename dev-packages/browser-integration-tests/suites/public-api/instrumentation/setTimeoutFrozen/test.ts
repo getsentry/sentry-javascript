@@ -6,11 +6,11 @@ import { getFirstSentryEnvelopeRequest } from '../../../../utils/helpers';
 
 sentryTest(
   'Instrumentation does not fail when using frozen callback for setTimeout',
-  async ({ getLocalTestPath, page }) => {
+  async ({ getLocalTestUrl, page }) => {
     const bundleKey = process.env.PW_BUNDLE || '';
     const hasDebug = !bundleKey.includes('_min');
 
-    const url = await getLocalTestPath({ testDir: __dirname });
+    const url = await getLocalTestUrl({ testDir: __dirname });
 
     const logMessages: string[] = [];
 

@@ -1,14 +1,13 @@
 import type { Client, DynamicSamplingContext, Span } from '@sentry/types';
-import {
-  addNonEnumerableProperty,
-  baggageHeaderToDynamicSamplingContext,
-  dropUndefinedKeys,
-  dynamicSamplingContextToSentryBaggageHeader,
-} from '@sentry/utils';
 
 import { DEFAULT_ENVIRONMENT } from '../constants';
 import { getClient } from '../currentScopes';
 import { SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '../semanticAttributes';
+import {
+  baggageHeaderToDynamicSamplingContext,
+  dynamicSamplingContextToSentryBaggageHeader,
+} from '../utils-hoist/baggage';
+import { addNonEnumerableProperty, dropUndefinedKeys } from '../utils-hoist/object';
 import { hasTracingEnabled } from '../utils/hasTracingEnabled';
 import { getRootSpan, spanIsSampled, spanToJSON } from '../utils/spanUtils';
 

@@ -4,7 +4,11 @@
   </a>
 </p>
 
-# Sentry JavaScript SDK Utilities
+# Sentry JavaScript SDK Utilities (DEPRECATED)
+
+> DEPRECATION NOTICE: The `@sentry/utils` package is deprecated.
+> All exports have been moved to `@sentry/core`.
+> Import everything from `@sentry/core` instead.
 
 [![npm version](https://img.shields.io/npm/v/@sentry/utils.svg)](https://www.npmjs.com/package/@sentry/utils)
 [![npm dm](https://img.shields.io/npm/dm/@sentry/utils.svg)](https://www.npmjs.com/package/@sentry/utils)

@@ -8,8 +8,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import * as SentryCore from '@sentry/core';
 import { Scope, createTransport } from '@sentry/core';
+import { resolvedSyncPromise } from '@sentry/core';
 import type { Client, Integration } from '@sentry/types';
-import { resolvedSyncPromise } from '@sentry/utils';
 
 import type { BrowserOptions } from '../src';
 import { WINDOW } from '../src';

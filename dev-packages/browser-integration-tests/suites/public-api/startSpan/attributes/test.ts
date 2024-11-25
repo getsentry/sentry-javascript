@@ -7,12 +7,12 @@ import {
   waitForTransactionRequestOnUrl,
 } from '../../../../utils/helpers';
 
-sentryTest('sends an empty string attribute', async ({ getLocalTestPath, page }) => {
+sentryTest('sends an empty string attribute', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipTracingTest()) {
     sentryTest.skip();
   }
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
   const req = await waitForTransactionRequestOnUrl(page, url);
   const transaction = envelopeRequestParser(req);
 

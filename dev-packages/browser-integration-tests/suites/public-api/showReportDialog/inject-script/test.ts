@@ -2,8 +2,8 @@ import { expect } from '@playwright/test';
 
 import { sentryTest } from '../../../../utils/fixtures';
 
-sentryTest('should inject dialog script into <head> with correct attributes', async ({ getLocalTestPath, page }) => {
-  const url = await getLocalTestPath({ testDir: __dirname });
+sentryTest('should inject dialog script into <head> with correct attributes', async ({ getLocalTestUrl, page }) => {
+  const url = await getLocalTestUrl({ testDir: __dirname });
 
   const dialogScriptSelector = 'head > script[src^="https://dsn.ingest.sentry.io/api/embed/error-page"]';
 
