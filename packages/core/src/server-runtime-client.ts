@@ -11,7 +11,6 @@ import type {
   SeverityLevel,
   TraceContext,
 } from '@sentry/types';
-import { eventFromMessage, eventFromUnknownInput, logger, resolvedSyncPromise, uuid4 } from '@sentry/utils';
 
 import { BaseClient } from './baseclient';
 import { createCheckInEnvelope } from './checkin';
@@ -24,6 +23,10 @@ import {
   getDynamicSamplingContextFromSpan,
   registerSpanErrorInstrumentation,
 } from './tracing';
+import { eventFromMessage, eventFromUnknownInput } from './utils-hoist/eventbuilder';
+import { logger } from './utils-hoist/logger';
+import { uuid4 } from './utils-hoist/misc';
+import { resolvedSyncPromise } from './utils-hoist/syncpromise';
 import { _getSpanForScope } from './utils/spanOnScope';
 import { getRootSpan, spanToTraceContext } from './utils/spanUtils';
 

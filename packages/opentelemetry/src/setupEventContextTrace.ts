@@ -1,6 +1,6 @@
 import { getDynamicSamplingContextFromSpan, getRootSpan } from '@sentry/core';
+import { dropUndefinedKeys } from '@sentry/core';
 import type { Client } from '@sentry/types';
-import { dropUndefinedKeys } from '@sentry/utils';
 import { SENTRY_TRACE_STATE_PARENT_SPAN_ID } from './constants';
 import { getActiveSpan } from './utils/getActiveSpan';
 import { spanHasParentId } from './utils/spanTypes';

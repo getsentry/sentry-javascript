@@ -1,4 +1,13 @@
 import {
+  addNonEnumerableProperty,
+  extractQueryParamsFromUrl,
+  logger,
+  objectify,
+  stripUrlQueryAndFragment,
+  vercelWaitUntil,
+  winterCGRequestToRequestData,
+} from '@sentry/core';
+import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   captureException,
@@ -12,15 +21,7 @@ import {
   startSpan,
   withIsolationScope,
 } from '@sentry/node';
-import type { Scope, SpanAttributes } from '@sentry/types';
-import {
-  addNonEnumerableProperty,
-  logger,
-  objectify,
-  stripUrlQueryAndFragment,
-  vercelWaitUntil,
-  winterCGRequestToRequestData,
-} from '@sentry/utils';
+import type { RequestEventData, Scope, SpanAttributes } from '@sentry/types';
 import type { APIContext, MiddlewareResponseHandler } from 'astro';
 
 type MiddlewareOptions = {
@@ -111,7 +112,13 @@ async function instrumentRequest(
       getCurrentScope().setSDKProcessingMetadata({
         // We store the request on the current scope, not isolation scope,
         // because we may have multiple requests nested inside each other
-        request: isDynamicPageRequest ? winterCGRequestToRequestData(request) : { method, url: request.url },
+        normalizedRequest: (isDynamicPageRequest
+          ? winterCGRequestToRequestData(request)
+          : {
+              method,
+              url: request.url,
+              query_string: extractQueryParamsFromUrl(request.url),
+            }) satisfies RequestEventData,
       });
 
       if (options.trackClientIp && isDynamicPageRequest) {

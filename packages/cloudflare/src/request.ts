@@ -13,8 +13,8 @@ import {
   startSpan,
   withIsolationScope,
 } from '@sentry/core';
+import { stripUrlQueryAndFragment } from '@sentry/core';
 import type { SpanAttributes } from '@sentry/types';
-import { stripUrlQueryAndFragment } from '@sentry/utils';
 import type { CloudflareOptions } from './client';
 import { addCloudResourceContext, addCultureContext, addRequest } from './scope-utils';
 import { init } from './sdk';

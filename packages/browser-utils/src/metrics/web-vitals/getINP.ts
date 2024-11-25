@@ -66,7 +66,6 @@ const processEntry = (entry: PerformanceEventTiming) => {
   // The least-long of the 10 longest interactions.
   const minLongestInteraction = longestInteractionList[longestInteractionList.length - 1];
 
-  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   const existingInteraction = longestInteractionMap[entry.interactionId!];
 
   // Only process the entry if it's possibly one of the ten longest,
@@ -82,7 +81,6 @@ const processEntry = (entry: PerformanceEventTiming) => {
       existingInteraction.latency = Math.max(existingInteraction.latency, entry.duration);
     } else {
       const interaction = {
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         id: entry.interactionId!,
         latency: entry.duration,
         entries: [entry],

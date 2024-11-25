@@ -86,3 +86,44 @@ sentryTest('click is ignored on div', async ({ getLocalTestUrl, page }) => {
     },
   ]);
 });
+
+sentryTest('click is ignored on input file by default', async ({ getLocalTestUrl, page }) => {
+  if (shouldSkipReplayTest()) {
+    sentryTest.skip();
+  }
+
+  const url = await getLocalTestUrl({ testDir: __dirname });
+
+  await Promise.all([waitForReplayRequest(page, 0), page.goto(url)]);
+
+  const [req1] = await Promise.all([
+    waitForReplayRequest(page, (event, res) => {
+      const { breadcrumbs } = getCustomRecordingEvents(res);
+
+      return breadcrumbs.some(breadcrumb => breadcrumb.category === 'ui.click');
+    }),
+    page.locator('#inputFile').click(),
+  ]);
+
+  const { breadcrumbs } = getCustomRecordingEvents(req1);
+
+  expect(breadcrumbs).toEqual([
+    {
+      category: 'ui.click',
+      data: {
+        node: {
+          attributes: {
+            id: 'inputFile',
+          },
+          id: expect.any(Number),
+          tagName: 'input',
+          textContent: '',
+        },
+        nodeId: expect.any(Number),
+      },
+      message: 'body > input#inputFile[type="file"]',
+      timestamp: expect.any(Number),
+      type: 'default',
+    },
+  ]);
+});

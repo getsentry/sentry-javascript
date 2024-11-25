@@ -147,7 +147,7 @@ describe('Integration | events', () => {
     // when a tab has sat idle for a long period and user comes back to it.
     //
     // We pass a negative start time as it's a bit difficult to mock
-    // `@sentry/utils/browserPerformanceTimeOrigin`. This would not happen in
+    // browserPerformanceTimeOrigin in `@sentry/core`. This would not happen in
     // real world.
     replay.performanceEntries.push(
       PerformanceEntryResource({

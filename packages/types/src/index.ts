@@ -87,7 +87,13 @@ export type {
   SendFeedbackParams,
   UserFeedback,
 } from './feedback';
-export type { QueryParams, Request, SanitizedRequestData } from './request';
+export type {
+  QueryParams,
+  RequestEventData,
+  // eslint-disable-next-line deprecation/deprecation
+  Request,
+  SanitizedRequestData,
+} from './request';
 export type { Runtime } from './runtime';
 export type { CaptureContext, Scope, ScopeContext, ScopeData } from './scope';
 export type { SdkInfo } from './sdkinfo';

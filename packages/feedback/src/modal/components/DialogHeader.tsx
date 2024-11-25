@@ -14,7 +14,7 @@ export function DialogHeader({ options }: Props): VNode {
 
   return (
     <h2 class="dialog__header">
-      {options.formTitle}
+      <span class="dialog__title">{options.formTitle}</span>
       {options.showBranding ? (
         <a
           class="brand-link"

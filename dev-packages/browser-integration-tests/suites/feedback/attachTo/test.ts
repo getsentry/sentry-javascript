@@ -23,7 +23,7 @@ sentryTest('should capture feedback with custom button', async ({ getLocalTestUr
     }
   });
 
-  const url = await getLocalTestUrl({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname, handleLazyLoadedFeedback: true });
 
   await page.goto(url);
   await page.locator('#custom-feedback-button').click();

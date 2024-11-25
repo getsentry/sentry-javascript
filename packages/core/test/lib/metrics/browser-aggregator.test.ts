@@ -3,6 +3,10 @@ import { CounterMetric } from '../../../src/metrics/instance';
 import { serializeMetricBuckets } from '../../../src/metrics/utils';
 import { TestClient, getDefaultTestClientOptions } from '../../mocks/client';
 
+function _cleanupAggregator(aggregator: BrowserMetricsAggregator): void {
+  clearInterval(aggregator['_interval']);
+}
+
 describe('BrowserMetricsAggregator', () => {
   const options = getDefaultTestClientOptions({ tracesSampleRate: 0.0 });
   const testClient = new TestClient(options);
@@ -21,6 +25,8 @@ describe('BrowserMetricsAggregator', () => {
       timestamp: expect.any(Number),
       unit: 'none',
     });
+
+    _cleanupAggregator(aggregator);
   });
 
   it('groups same items together', () => {
@@ -40,6 +46,8 @@ describe('BrowserMetricsAggregator', () => {
       unit: 'none',
     });
     expect(firstValue.metric._value).toEqual(2);
+
+    _cleanupAggregator(aggregator);
   });
 
   it('differentiates based on tag value', () => {
@@ -48,6 +56,8 @@ describe('BrowserMetricsAggregator', () => {
     expect(aggregator['_buckets'].size).toEqual(1);
     aggregator.add('g', 'cpu', 55, undefined, { a: 'value' });
     expect(aggregator['_buckets'].size).toEqual(2);
+
+    _cleanupAggregator(aggregator);
   });
 
   describe('serializeBuckets', () => {
@@ -69,6 +79,8 @@ describe('BrowserMetricsAggregator', () => {
       expect(serializedBuckets).toContain('cpu@none:52:50:55:157:3|g|T');
       expect(serializedBuckets).toContain('lcp@second:1:1.2|d|#a:value,b:anothervalue|T');
       expect(serializedBuckets).toContain('important_people@none:97:98|s|#numericKey:2|T');
+
+      _cleanupAggregator(aggregator);
     });
   });
 });

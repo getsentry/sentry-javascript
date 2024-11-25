@@ -15,7 +15,7 @@
   },
   "dependencies": {
     "@sentry/nuxt": "latest || *",
-    "nuxt": "3.13.1"
+    "nuxt": "^3.13.1"
   },
   "devDependencies": {
     "@nuxt/test-utils": "^3.14.1",

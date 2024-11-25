@@ -2,10 +2,10 @@ import * as http from 'http';
 import { AddressInfo } from 'net';
 import * as path from 'path';
 import { createRequestHandler } from '@remix-run/express';
+import { logger } from '@sentry/core';
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import * as Sentry from '@sentry/node';
-import type { EnvelopeItemType } from '@sentry/types';
-import { logger } from '@sentry/utils';
+import type { EnvelopeItemType, Event, TransactionEvent } from '@sentry/types';
 import type { AxiosRequestConfig } from 'axios';
 import axios from 'axios';
 import express from 'express';
@@ -13,8 +13,6 @@ import type { Express } from 'express';
 import type { HttpTerminator } from 'http-terminator';
 import { createHttpTerminator } from 'http-terminator';
 import nock from 'nock';
-
-export * from '../../../../../../../dev-packages/node-integration-tests/utils';
 
 type DataCollectorOptions = {
   // Optional custom URL
@@ -283,4 +281,34 @@ export class RemixTestEnv extends TestEnv {
 
 const parseEnvelope = (body: string): Array<Record<string, unknown>> => {
   return body.split('\n').map(e => JSON.parse(e));
+};
+
+/**
+ * Asserts against a Sentry Event ignoring non-deterministic properties
+ *
+ * @param {Record<string, unknown>} actual
+ * @param {Record<string, unknown>} expected
+ */
+export const assertSentryEvent = (actual: Event, expected: Record<string, unknown>): void => {
+  expect(actual).toMatchObject({
+    event_id: expect.any(String),
+    ...expected,
+  });
+};
+
+/**
+ * Asserts against a Sentry Transaction ignoring non-deterministic properties
+ *
+ * @param {Record<string, unknown>} actual
+ * @param {Record<string, unknown>} expected
+ */
+export const assertSentryTransaction = (actual: TransactionEvent, expected: Record<string, unknown>): void => {
+  expect(actual).toMatchObject({
+    event_id: expect.any(String),
+    timestamp: expect.anything(),
+    start_timestamp: expect.anything(),
+    spans: expect.any(Array),
+    type: 'transaction',
+    ...expected,
+  });
 };

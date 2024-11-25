@@ -1,8 +1,9 @@
 import type { Event, Exception, IntegrationFn, StackFrame } from '@sentry/types';
-import { getFramesFromEvent, logger } from '@sentry/utils';
 import { defineIntegration } from '../integration';
 
 import { DEBUG_BUILD } from '../debug-build';
+import { logger } from '../utils-hoist/logger';
+import { getFramesFromEvent } from '../utils-hoist/stacktrace';
 
 const INTEGRATION_NAME = 'Dedupe';
 

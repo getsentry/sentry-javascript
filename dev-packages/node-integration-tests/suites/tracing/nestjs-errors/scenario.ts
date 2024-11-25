@@ -1,5 +1,3 @@
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-nocheck These are only tests
 /* eslint-disable @typescript-eslint/naming-convention */
 /* eslint-disable @typescript-eslint/explicit-member-accessibility */
 import { loggingTransport, sendPortToRunner } from '@sentry-internal/node-integration-tests';
@@ -33,7 +31,7 @@ class AppController {
   constructor(private readonly appService: AppService) {}
 
   @Get('test-exception/:id')
-  async testException(@Param('id') id: string): void {
+  async testException(@Param('id') id: string): Promise<void> {
     Sentry.captureException(new Error(`error with id ${id}`));
   }
 }
@@ -48,6 +46,7 @@ class AppModule {}
 async function run(): Promise<void> {
   const app = await NestFactory.create(AppModule);
   const { httpAdapter } = app.get(HttpAdapterHost);
+  // eslint-disable-next-line deprecation/deprecation
   Sentry.setupNestErrorHandler(app, new BaseExceptionFilter(httpAdapter));
   await app.listen(port);
   sendPortToRunner(port);

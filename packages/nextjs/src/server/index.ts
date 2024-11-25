@@ -12,9 +12,9 @@ import {
   setCapturedScopesOnSpan,
   spanToJSON,
 } from '@sentry/core';
+import { GLOBAL_OBJ, extractTraceparentData, logger, stripUrlQueryAndFragment } from '@sentry/core';
 import type { NodeClient, NodeOptions } from '@sentry/node';
 import { getDefaultIntegrations, httpIntegration, init as nodeInit } from '@sentry/node';
-import { GLOBAL_OBJ, extractTraceparentData, logger, stripUrlQueryAndFragment } from '@sentry/utils';
 
 import { context } from '@opentelemetry/api';
 import {

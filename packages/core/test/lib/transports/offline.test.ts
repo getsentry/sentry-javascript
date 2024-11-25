@@ -8,16 +8,16 @@ import type {
   ReplayEvent,
   TransportMakeRequestResponse,
 } from '@sentry/types';
+
 import {
   createClientReportEnvelope,
   createEnvelope,
   createEventEnvelopeHeaders,
+  createTransport,
   dsnFromString,
   getSdkMetadataForEnvelopeHeader,
   parseEnvelope,
-} from '@sentry/utils';
-
-import { createTransport } from '../../../src';
+} from '../../../src';
 import type { CreateOfflineStore, OfflineTransportOptions } from '../../../src/transports/offline';
 import { START_DELAY, makeOfflineTransport } from '../../../src/transports/offline';
 

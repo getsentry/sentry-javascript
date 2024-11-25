@@ -42,8 +42,10 @@ export {
   flush,
   close,
   getSentryRelease,
+  // eslint-disable-next-line deprecation/deprecation
   addRequestDataToEvent,
   DEFAULT_USER_INCLUDES,
+  // eslint-disable-next-line deprecation/deprecation
   extractRequestData,
   createGetModuleFromFilename,
   anrIntegration,
@@ -93,6 +95,7 @@ export {
   fsIntegration,
   genericPoolIntegration,
   graphqlIntegration,
+  knexIntegration,
   kafkaIntegration,
   lruMemoizerIntegration,
   mongoIntegration,
@@ -101,11 +104,15 @@ export {
   mysql2Integration,
   redisIntegration,
   tediousIntegration,
+  // eslint-disable-next-line deprecation/deprecation
   nestIntegration,
+  // eslint-disable-next-line deprecation/deprecation
   setupNestErrorHandler,
   postgresIntegration,
   prismaIntegration,
+  // eslint-disable-next-line deprecation/deprecation
   processThreadBreadcrumbIntegration,
+  childProcessIntegration,
   hapiIntegration,
   setupHapiErrorHandler,
   spotlightIntegration,
@@ -122,10 +129,12 @@ export {
 
 export {
   captureConsoleIntegration,
+  // eslint-disable-next-line deprecation/deprecation
   debugIntegration,
   dedupeIntegration,
   extraErrorDataIntegration,
   rewriteFramesIntegration,
+  // eslint-disable-next-line deprecation/deprecation
   sessionTimingIntegration,
 } from '@sentry/core';
 
