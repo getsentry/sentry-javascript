@@ -5,7 +5,7 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "build": "node build.mjs && node build.shimmed.mjs",
-    "test": "node dist/index.js && node --experimental-require-module dist/index.js && node dist/index.shimmed.mjs",
+    "test": "node dist/index.js && node --experimental-require-module dist/index.js && node dist/index.shimmed.mjs && node index.mjs",
     "clean": "npx rimraf node_modules dist",
     "test:electron": "$(pnpm bin)/electron-rebuild && playwright test",
     "test:build": "pnpm run typecheck && pnpm run build",
