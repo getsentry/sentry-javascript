@@ -1,12 +1,10 @@
 /* eslint-disable max-lines */
 
 import type { ClientOptions, Scope, SentrySpanArguments, Span, SpanTimeInput, StartSpanOptions } from '@sentry/types';
-import type { AsyncContextStrategy } from '../asyncContext/types';
-import { getMainCarrier } from '../carrier';
 
 import { getClient, getCurrentScope, getIsolationScope, withScope } from '../currentScopes';
 
-import { getAsyncContextStrategy } from '../asyncContext';
+import { getAsyncContextStrategyImplementation } from '../asyncContext';
 import { DEBUG_BUILD } from '../debug-build';
 import { SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '../semanticAttributes';
 import { logger } from '../utils-hoist/logger';
@@ -37,9 +35,9 @@ const SUPPRESS_TRACING_KEY = '__SENTRY_SUPPRESS_TRACING__';
  * it may just be a non-recording span if the span is not sampled or if tracing is disabled.
  */
 export function startSpan<T>(options: StartSpanOptions, callback: (span: Span) => T): T {
-  const acs = getAcs();
-  if (acs.startSpan) {
-    return acs.startSpan(options, callback);
+  const acsStartSpan = getAsyncContextStrategyImplementation('startSpan');
+  if (acsStartSpan) {
+    return acsStartSpan(options, callback);
   }
 
   const spanArguments = parseSentrySpanArguments(options);
@@ -91,9 +89,9 @@ export function startSpan<T>(options: StartSpanOptions, callback: (span: Span) =
  * it may just be a non-recording span if the span is not sampled or if tracing is disabled.
  */
 export function startSpanManual<T>(options: StartSpanOptions, callback: (span: Span, finish: () => void) => T): T {
-  const acs = getAcs();
-  if (acs.startSpanManual) {
-    return acs.startSpanManual(options, callback);
+  const acsStartSpanManual = getAsyncContextStrategyImplementation('startSpanManual');
+  if (acsStartSpanManual) {
+    return acsStartSpanManual(options, callback);
   }
 
   const spanArguments = parseSentrySpanArguments(options);
@@ -147,9 +145,9 @@ export function startSpanManual<T>(options: StartSpanOptions, callback: (span: S
  * it may just be a non-recording span if the span is not sampled or if tracing is disabled.
  */
 export function startInactiveSpan(options: StartSpanOptions): Span {
-  const acs = getAcs();
-  if (acs.startInactiveSpan) {
-    return acs.startInactiveSpan(options);
+  const acsStartInactiveSpan = getAsyncContextStrategyImplementation('startInactiveSpan');
+  if (acsStartInactiveSpan) {
+    return acsStartInactiveSpan(options);
   }
 
   const spanArguments = parseSentrySpanArguments(options);
@@ -217,9 +215,9 @@ export const continueTrace = <V>(
  * @returns the value returned from the provided callback function.
  */
 export function withActiveSpan<T>(span: Span | null, callback: (scope: Scope) => T): T {
-  const acs = getAcs();
-  if (acs.withActiveSpan) {
-    return acs.withActiveSpan(span, callback);
+  const acsImpl = getAsyncContextStrategyImplementation('withActiveSpan');
+  if (acsImpl) {
+    return acsImpl(span, callback);
   }
 
   return withScope(scope => {
@@ -230,10 +228,9 @@ export function withActiveSpan<T>(span: Span | null, callback: (scope: Scope) =>
 
 /** Suppress tracing in the given callback, ensuring no spans are generated inside of it. */
 export function suppressTracing<T>(callback: () => T): T {
-  const acs = getAcs();
-
-  if (acs.suppressTracing) {
-    return acs.suppressTracing(callback);
+  const acsImpl = getAsyncContextStrategyImplementation('suppressTracing');
+  if (acsImpl) {
+    return acsImpl(callback);
   }
 
   return withScope(scope => {
@@ -357,11 +354,6 @@ function parseSentrySpanArguments(options: StartSpanOptions): SentrySpanArgument
   }
 
   return initialCtx;
-}
-
-function getAcs(): AsyncContextStrategy {
-  const carrier = getMainCarrier();
-  return getAsyncContextStrategy(carrier);
 }
 
 function _startRootSpan(spanArguments: SentrySpanArguments, scope: Scope, parentSampled?: boolean): SentrySpan {

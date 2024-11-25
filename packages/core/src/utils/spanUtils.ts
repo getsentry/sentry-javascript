@@ -9,8 +9,7 @@ import type {
   SpanTimeInput,
   TraceContext,
 } from '@sentry/types';
-import { getAsyncContextStrategy } from '../asyncContext';
-import { getMainCarrier } from '../carrier';
+import { getAsyncContextStrategyImplementation } from '../asyncContext';
 import { getCurrentScope } from '../currentScopes';
 import { getMetricSummaryJsonForSpan, updateMetricSummaryOnSpan } from '../metrics/metric-summary';
 import type { MetricType } from '../metrics/types';
@@ -259,10 +258,9 @@ export function getRootSpan(span: SpanWithPotentialChildren): Span {
  * Returns the currently active span.
  */
 export function getActiveSpan(): Span | undefined {
-  const carrier = getMainCarrier();
-  const acs = getAsyncContextStrategy(carrier);
-  if (acs.getActiveSpan) {
-    return acs.getActiveSpan();
+  const acsImpl = getAsyncContextStrategyImplementation('getActiveSpan');
+  if (acsImpl) {
+    return acsImpl();
   }
 
   return _getSpanForScope(getCurrentScope());

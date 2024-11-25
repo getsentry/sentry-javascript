@@ -1,6 +1,5 @@
 import type { SerializedTraceData } from '@sentry/types';
-import { getAsyncContextStrategy } from '../asyncContext';
-import { getMainCarrier } from '../carrier';
+import { getAsyncContextStrategyImplementation } from '../asyncContext';
 import { getClient, getCurrentScope } from '../currentScopes';
 import { isEnabled } from '../exports';
 import { getDynamicSamplingContextFromClient, getDynamicSamplingContextFromSpan } from '../tracing';
@@ -25,10 +24,9 @@ export function getTraceData(): SerializedTraceData {
     return {};
   }
 
-  const carrier = getMainCarrier();
-  const acs = getAsyncContextStrategy(carrier);
-  if (acs.getTraceData) {
-    return acs.getTraceData();
+  const acsImpl = getAsyncContextStrategyImplementation('getTraceData');
+  if (acsImpl) {
+    return acsImpl();
   }
 
   const client = getClient();

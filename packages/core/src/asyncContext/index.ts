@@ -29,3 +29,14 @@ export function getAsyncContextStrategy(carrier: Carrier): AsyncContextStrategy 
   // Otherwise, use the default one (stack)
   return getStackAsyncContextStrategy();
 }
+
+/**
+ * Get the implementation of a specific async context strategy method.
+ */
+export function getAsyncContextStrategyImplementation<T extends keyof AsyncContextStrategy>(
+  prop: T,
+): AsyncContextStrategy[T] {
+  const carrier = getMainCarrier();
+  const acs = getAsyncContextStrategy(carrier);
+  return acs[prop];
+}
