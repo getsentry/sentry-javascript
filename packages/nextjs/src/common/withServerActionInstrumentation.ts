@@ -9,7 +9,8 @@ import {
   startSpan,
   withIsolationScope,
 } from '@sentry/core';
-import { logger, vercelWaitUntil } from '@sentry/utils';
+import { logger, vercelWaitUntil } from '@sentry/core';
+import type { RequestEventData } from '@sentry/types';
 
 import { DEBUG_BUILD } from './debug-build';
 import { isNotFoundNavigationError, isRedirectNavigationError } from './nextNavigationErrorUtils';
@@ -89,9 +90,9 @@ async function withServerActionInstrumentationImplementation<A extends (...args:
 
     isolationScope.setTransactionName(`serverAction/${serverActionName}`);
     isolationScope.setSDKProcessingMetadata({
-      request: {
+      normalizedRequest: {
         headers: fullHeadersObject,
-      },
+      } satisfies RequestEventData,
     });
 
     return continueTrace(

@@ -40,7 +40,7 @@ module.exports = [
     path: 'packages/browser/build/npm/esm/index.js',
     import: createImport('init', 'browserTracingIntegration'),
     gzip: true,
-    limit: '36.5 KB',
+    limit: '37.5 KB',
   },
   {
     name: '@sentry/browser (incl. Tracing, Replay)',
@@ -79,7 +79,7 @@ module.exports = [
     path: 'packages/browser/build/npm/esm/index.js',
     import: createImport('init', 'browserTracingIntegration', 'replayIntegration', 'replayCanvasIntegration'),
     gzip: true,
-    limit: '78.2 KB',
+    limit: '79 KB',
   },
   {
     name: '@sentry/browser (incl. Tracing, Replay, Feedback)',
@@ -107,7 +107,7 @@ module.exports = [
     path: 'packages/browser/build/npm/esm/index.js',
     import: createImport('init', 'feedbackAsyncIntegration'),
     gzip: true,
-    limit: '33 KB',
+    limit: '34 KB',
   },
   // React SDK (ESM)
   {
@@ -124,7 +124,7 @@ module.exports = [
     import: createImport('init', 'ErrorBoundary', 'reactRouterV6BrowserTracingIntegration'),
     ignore: ['react/jsx-runtime'],
     gzip: true,
-    limit: '39.5 KB',
+    limit: '40.5 KB',
   },
   // Vue SDK (ESM)
   {
@@ -139,7 +139,7 @@ module.exports = [
     path: 'packages/vue/build/esm/index.js',
     import: createImport('init', 'browserTracingIntegration'),
     gzip: true,
-    limit: '38.5 KB',
+    limit: '39.5 KB',
   },
   // Svelte SDK (ESM)
   {
@@ -160,7 +160,7 @@ module.exports = [
     name: 'CDN Bundle (incl. Tracing)',
     path: createCDNPath('bundle.tracing.min.js'),
     gzip: true,
-    limit: '38 KB',
+    limit: '39 KB',
   },
   {
     name: 'CDN Bundle (incl. Tracing, Replay)',
@@ -187,7 +187,7 @@ module.exports = [
     path: createCDNPath('bundle.tracing.min.js'),
     gzip: false,
     brotli: false,
-    limit: '113 KB',
+    limit: '120 KB',
   },
   {
     name: 'CDN Bundle (incl. Tracing, Replay) - uncompressed',
@@ -219,7 +219,7 @@ module.exports = [
     import: createImport('init'),
     ignore: ['$app/stores'],
     gzip: true,
-    limit: '37 KB',
+    limit: '38 KB',
   },
   // Node SDK (ESM)
   {

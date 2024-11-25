@@ -48,6 +48,7 @@ async function run(): Promise<void> {
   await app.listen(port);
 
   const { httpAdapter } = app.get(HttpAdapterHost);
+  // eslint-disable-next-line deprecation/deprecation
   Sentry.setupNestErrorHandler(app, new BaseExceptionFilter(httpAdapter));
   sendPortToRunner(port);
 }

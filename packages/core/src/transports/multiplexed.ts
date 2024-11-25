@@ -7,9 +7,10 @@ import type {
   Transport,
   TransportMakeRequestResponse,
 } from '@sentry/types';
-import { createEnvelope, dsnFromString, forEachEnvelopeItem } from '@sentry/utils';
 
 import { getEnvelopeEndpointWithUrlEncodedAuth } from '../api';
+import { dsnFromString } from '../utils-hoist/dsn';
+import { createEnvelope, forEachEnvelopeItem } from '../utils-hoist/envelope';
 
 interface MatchParam {
   /** The envelope to be sent */

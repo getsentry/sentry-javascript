@@ -21,8 +21,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+import { basename, createStackParser, nodeStackLineParser } from '@sentry/core';
 import type { StackLineParser, StackLineParserFn, StackParser } from '@sentry/types';
-import { basename, createStackParser, nodeStackLineParser } from '@sentry/utils';
 
 type GetModuleFn = (filename: string | undefined) => string | undefined;
 

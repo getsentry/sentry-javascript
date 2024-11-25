@@ -1,7 +1,7 @@
 import type { MeasurementUnit, Span } from '@sentry/types';
 import type { MetricSummary } from '@sentry/types';
 import type { Primitive } from '@sentry/types';
-import { dropUndefinedKeys } from '@sentry/utils';
+import { dropUndefinedKeys } from '../utils-hoist/object';
 import type { MetricType } from './types';
 
 /**

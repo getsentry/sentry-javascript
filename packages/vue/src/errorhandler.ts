@@ -1,5 +1,5 @@
 import { captureException } from '@sentry/core';
-import { consoleSandbox } from '@sentry/utils';
+import { consoleSandbox } from '@sentry/core';
 
 import type { ViewModel, Vue, VueOptions } from './types';
 import { formatComponentName, generateComponentTrace } from './vendor/components';

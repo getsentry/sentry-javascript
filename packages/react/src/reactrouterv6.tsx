@@ -18,8 +18,8 @@ import {
   getRootSpan,
   spanToJSON,
 } from '@sentry/core';
+import { getNumberOfUrlSegments, logger } from '@sentry/core';
 import type { Client, Integration, Span, TransactionSource } from '@sentry/types';
-import { getNumberOfUrlSegments, logger } from '@sentry/utils';
 import hoistNonReactStatics from 'hoist-non-react-statics';
 import * as React from 'react';
 

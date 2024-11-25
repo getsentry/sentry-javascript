@@ -1,5 +1,5 @@
+import { GLOBAL_OBJ, dsnFromString, logger } from '@sentry/core';
 import type { BrowserOptions } from '@sentry/react';
-import { GLOBAL_OBJ, dsnFromString, logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../common/debug-build';
 

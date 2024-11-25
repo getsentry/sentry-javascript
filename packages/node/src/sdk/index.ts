@@ -12,19 +12,19 @@ import {
   startSession,
 } from '@sentry/core';
 import {
+  consoleSandbox,
+  dropUndefinedKeys,
+  logger,
+  propagationContextFromHeaders,
+  stackParserFromStackParserOptions,
+} from '@sentry/core';
+import {
   enhanceDscWithOpenTelemetryRootSpanName,
   openTelemetrySetupCheck,
   setOpenTelemetryContextAsyncContextStrategy,
   setupEventContextTrace,
 } from '@sentry/opentelemetry';
 import type { Integration, Options } from '@sentry/types';
-import {
-  consoleSandbox,
-  dropUndefinedKeys,
-  logger,
-  propagationContextFromHeaders,
-  stackParserFromStackParserOptions,
-} from '@sentry/utils';
 import { DEBUG_BUILD } from '../debug-build';
 import { consoleIntegration } from '../integrations/console';
 import { nodeContextIntegration } from '../integrations/context';

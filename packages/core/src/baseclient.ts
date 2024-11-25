@@ -30,25 +30,6 @@ import type {
   Transport,
   TransportMakeRequestResponse,
 } from '@sentry/types';
-import {
-  SentryError,
-  SyncPromise,
-  addItemToEnvelope,
-  checkOrSetAlreadyCaught,
-  createAttachmentEnvelopeItem,
-  createClientReportEnvelope,
-  dropUndefinedKeys,
-  dsnToString,
-  isParameterizedString,
-  isPlainObject,
-  isPrimitive,
-  isThenable,
-  logger,
-  makeDsn,
-  rejectedSyncPromise,
-  resolvedSyncPromise,
-  uuid4,
-} from '@sentry/utils';
 
 import { getEnvelopeEndpointWithUrlEncodedAuth } from './api';
 import { getIsolationScope } from './currentScopes';
@@ -60,8 +41,18 @@ import { setupIntegration, setupIntegrations } from './integration';
 import type { Scope } from './scope';
 import { updateSession } from './session';
 import { getDynamicSamplingContextFromClient } from './tracing/dynamicSamplingContext';
+import { createClientReportEnvelope } from './utils-hoist/clientreport';
+import { dsnToString, makeDsn } from './utils-hoist/dsn';
+import { addItemToEnvelope, createAttachmentEnvelopeItem } from './utils-hoist/envelope';
+import { SentryError } from './utils-hoist/error';
+import { isParameterizedString, isPlainObject, isPrimitive, isThenable } from './utils-hoist/is';
+import { consoleSandbox, logger } from './utils-hoist/logger';
+import { checkOrSetAlreadyCaught, uuid4 } from './utils-hoist/misc';
+import { dropUndefinedKeys } from './utils-hoist/object';
+import { SyncPromise, rejectedSyncPromise, resolvedSyncPromise } from './utils-hoist/syncpromise';
 import { parseSampleRate } from './utils/parseSampleRate';
 import { prepareEvent } from './utils/prepareEvent';
+import { showSpanDropWarning } from './utils/spanUtils';
 
 const ALREADY_SEEN_ERROR = "Not capturing exception because it's already been captured.";
 
@@ -149,6 +140,18 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
         recordDroppedEvent: this.recordDroppedEvent.bind(this),
         ...options.transportOptions,
         url,
+      });
+    }
+
+    // TODO(v9): Remove this deprecation warning
+    const tracingOptions = ['enableTracing', 'tracesSampleRate', 'tracesSampler'] as const;
+    const undefinedOption = tracingOptions.find(option => option in options && options[option] == undefined);
+    if (undefinedOption) {
+      consoleSandbox(() => {
+        // eslint-disable-next-line no-console
+        console.warn(
+          `[Sentry] Deprecation warning: \`${undefinedOption}\` is set to undefined, which leads to tracing being enabled. In v9, a value of \`undefined\` will result in tracing being disabled.`,
+        );
       });
     }
   }
@@ -987,6 +990,7 @@ function processBeforeSend(
         if (processedSpan) {
           processedSpans.push(processedSpan);
         } else {
+          showSpanDropWarning();
           client.recordDroppedEvent('before_send', 'span');
         }
       }

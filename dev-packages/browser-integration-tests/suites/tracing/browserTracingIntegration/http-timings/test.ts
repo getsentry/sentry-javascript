@@ -4,7 +4,7 @@ import type { Event } from '@sentry/types';
 import { sentryTest } from '../../../../utils/fixtures';
 import { getMultipleSentryEnvelopeRequests, shouldSkipTracingTest } from '../../../../utils/helpers';
 
-sentryTest('should create fetch spans with http timing @firefox', async ({ browserName, getLocalTestPath, page }) => {
+sentryTest('should create fetch spans with http timing @firefox', async ({ browserName, getLocalTestUrl, page }) => {
   const supportedBrowsers = ['chromium', 'firefox'];
 
   if (shouldSkipTracingTest() || !supportedBrowsers.includes(browserName)) {
@@ -21,7 +21,7 @@ sentryTest('should create fetch spans with http timing @firefox', async ({ brows
     });
   });
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
 
   const envelopes = await getMultipleSentryEnvelopeRequests<Event>(page, 2, { url, timeout: 10000 });
   const tracingEvent = envelopes[envelopes.length - 1]; // last envelope contains tracing data on all browsers

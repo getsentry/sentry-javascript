@@ -1,5 +1,4 @@
-import { fill } from '@sentry/utils';
-import { getClient, getCurrentScope, setCurrentClient } from '../../../src';
+import { fill, getClient, getCurrentScope, setCurrentClient } from '../../../src';
 import { functionToStringIntegration } from '../../../src/integrations/functiontostring';
 import { TestClient, getDefaultTestClientOptions } from '../../mocks/client';
 

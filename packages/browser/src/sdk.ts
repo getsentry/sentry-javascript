@@ -9,8 +9,8 @@ import {
   lastEventId,
   startSession,
 } from '@sentry/core';
+import { consoleSandbox, logger, stackParserFromStackParserOptions, supportsFetch } from '@sentry/core';
 import type { Client, DsnLike, Integration, Options, UserFeedback } from '@sentry/types';
-import { consoleSandbox, logger, stackParserFromStackParserOptions, supportsFetch } from '@sentry/utils';
 
 import { addHistoryInstrumentationHandler } from '@sentry-internal/browser-utils';
 import { dedupeIntegration } from '@sentry/core';
