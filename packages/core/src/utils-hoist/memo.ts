@@ -10,7 +10,10 @@ export type MemoFunc = [
 
 /**
  * Helper to decycle json objects
+ *
+ * @deprecated This function is deprecated and will be removed in the next major version.
  */
+// TODO(v9): Move this function into normalize() directly
 export function memoBuilder(): MemoFunc {
   const hasWeakSet = typeof WeakSet === 'function';
   const inner: any = hasWeakSet ? new WeakSet() : [];
