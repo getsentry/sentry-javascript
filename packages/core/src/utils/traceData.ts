@@ -50,7 +50,6 @@ export function getTraceData(options: { span?: Span } = {}): SerializedTraceData
   };
 }
 
-
 /**
  * Get a sentry-trace header value for the given scope.
  */
