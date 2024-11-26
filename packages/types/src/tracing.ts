@@ -20,6 +20,8 @@ export interface PropagationContext {
    * particular execution context when performance monitoring is disabled.
    *
    * The ID of a current span (if one exists) should have precedence over this value when propagating trace data.
+   *
+   * @deprecated This value will not be used anymore in the future, and should not be set or read anymore.
    */
   spanId: string;
   /**

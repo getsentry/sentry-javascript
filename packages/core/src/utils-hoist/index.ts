@@ -166,7 +166,12 @@ export { makeFifoCache } from './cache';
 export { eventFromMessage, eventFromUnknownInput, exceptionFromError, parseStackFrames } from './eventbuilder';
 export { callFrameToStackFrame, watchdogTimer } from './anr';
 export { LRUMap } from './lru';
-export { generatePropagationContext } from './propagationContext';
+export {
+  // eslint-disable-next-line deprecation/deprecation
+  generatePropagationContext,
+  generateTraceId,
+  generateSpanId,
+} from './propagationContext';
 export { vercelWaitUntil } from './vercelWaitUntil';
 export { SDK_VERSION } from './version';
 export { getDebugImagesForResources, getFilenameToDebugIdMap } from './debug-ids';
