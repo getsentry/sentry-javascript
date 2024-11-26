@@ -1,11 +1,10 @@
 /* eslint-disable max-lines */
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, getActiveSpan } from '@sentry/core';
 import { setMeasurement } from '@sentry/core';
-import { browserPerformanceTimeOrigin, getComponentName, htmlTreeAsString, logger, parseUrl } from '@sentry/core';
+import { browserPerformanceTimeOrigin, getComponentName, htmlTreeAsString, parseUrl } from '@sentry/core';
 import type { Measurements, Span, SpanAttributes, StartSpanOptions } from '@sentry/types';
 
 import { spanToJSON } from '@sentry/core';
-import { DEBUG_BUILD } from '../debug-build';
 import { WINDOW } from '../types';
 import { trackClsAsStandaloneSpan } from './cls';
 import {
@@ -241,7 +240,6 @@ function _trackCLS(): () => void {
     if (!entry) {
       return;
     }
-    DEBUG_BUILD && logger.log(`[Measurements] Adding CLS ${metric.value}`);
     _measurements['cls'] = { value: metric.value, unit: '' };
     _clsEntry = entry;
   }, true);
@@ -255,7 +253,6 @@ function _trackLCP(): () => void {
       return;
     }
 
-    DEBUG_BUILD && logger.log('[Measurements] Adding LCP');
     _measurements['lcp'] = { value: metric.value, unit: 'millisecond' };
     _lcpEntry = entry as LargestContentfulPaint;
   }, true);
@@ -271,7 +268,6 @@ function _trackFID(): () => void {
 
     const timeOrigin = msToSec(browserPerformanceTimeOrigin as number);
     const startTime = msToSec(entry.startTime);
-    DEBUG_BUILD && logger.log('[Measurements] Adding FID');
     _measurements['fid'] = { value: metric.value, unit: 'millisecond' };
     _measurements['mark.fid'] = { value: timeOrigin + startTime, unit: 'second' };
   });
@@ -284,7 +280,6 @@ function _trackTtfb(): () => void {
       return;
     }
 
-    DEBUG_BUILD && logger.log('[Measurements] Adding TTFB');
     _measurements['ttfb'] = { value: metric.value, unit: 'millisecond' };
   });
 }
@@ -305,7 +300,6 @@ export function addPerformanceEntries(span: Span, options: AddPerformanceEntries
     return;
   }
 
-  DEBUG_BUILD && logger.log('[Tracing] Adding & adjusting spans using Performance API');
   const timeOrigin = msToSec(browserPerformanceTimeOrigin);
 
   const performanceEntries = performance.getEntries();
@@ -343,11 +337,9 @@ export function addPerformanceEntries(span: Span, options: AddPerformanceEntries
         const shouldRecord = entry.startTime < firstHidden.firstHiddenTime;
 
         if (entry.name === 'first-paint' && shouldRecord) {
-          DEBUG_BUILD && logger.log('[Measurements] Adding FP');
           _measurements['fp'] = { value: entry.startTime, unit: 'millisecond' };
         }
         if (entry.name === 'first-contentful-paint' && shouldRecord) {
-          DEBUG_BUILD && logger.log('[Measurements] Adding FCP');
           _measurements['fcp'] = { value: entry.startTime, unit: 'millisecond' };
         }
         break;
@@ -618,8 +610,6 @@ function _trackNavigator(span: Span): void {
 /** Add LCP / CLS data to span to allow debugging */
 function _setWebVitalAttributes(span: Span): void {
   if (_lcpEntry) {
-    DEBUG_BUILD && logger.log('[Measurements] Adding LCP Data');
-
     // Capture Properties of the LCP element that contributes to the LCP.
 
     if (_lcpEntry.element) {
@@ -652,7 +642,6 @@ function _setWebVitalAttributes(span: Span): void {
 
   // See: https://developer.mozilla.org/en-US/docs/Web/API/LayoutShift
   if (_clsEntry && _clsEntry.sources) {
-    DEBUG_BUILD && logger.log('[Measurements] Adding CLS Data');
     _clsEntry.sources.forEach((source, index) =>
       span.setAttribute(`cls.source.${index + 1}`, htmlTreeAsString(source.node)),
     );
@@ -685,7 +674,6 @@ function _addTtfbRequestTimeToMeasurements(_measurements: Measurements): void {
   const { responseStart, requestStart } = navEntry;
 
   if (requestStart <= responseStart) {
-    DEBUG_BUILD && logger.log('[Measurements] Adding TTFB Request Time');
     _measurements['ttfb.requestTime'] = {
       value: responseStart - requestStart,
       unit: 'millisecond',
