@@ -1,5 +1,4 @@
 import type { Span as WriteableSpan } from '@opentelemetry/api';
-import type { Instrumentation } from '@opentelemetry/instrumentation';
 import type { ReadableSpan } from '@opentelemetry/sdk-trace-base';
 import type { ClientOptions, Options, SamplingContext, Scope, Span, TracePropagationTargets } from '@sentry/types';
 
