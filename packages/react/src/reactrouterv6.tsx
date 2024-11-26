@@ -197,6 +197,8 @@ function getNormalizedName(
               // If the route defined on the element is something like
               // <Route path="/stores/:storeId/products/:productId" element={<div>Product</div>} />
               // We should check against the branch.pathname for the number of / separators
+              // TODO(v9): Put the implementation of `getNumberOfUrlSegments` in this file
+              // eslint-disable-next-line deprecation/deprecation
               getNumberOfUrlSegments(pathBuilder) !== getNumberOfUrlSegments(branch.pathname) &&
               // We should not count wildcard operators in the url segments calculation
               pathBuilder.slice(-2) !== '/*'

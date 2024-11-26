@@ -33,6 +33,7 @@ describe('getNumberOfUrlSegments', () => {
     ['multi param parameterized path', '/stores/:storeId/products/:productId', 4],
     ['regex path', String(/\/api\/post[0-9]/), 2],
   ])('%s', (_: string, input, output) => {
+    // eslint-disable-next-line deprecation/deprecation
     expect(getNumberOfUrlSegments(input)).toEqual(output);
   });
 });
