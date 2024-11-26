@@ -53,6 +53,7 @@ export {
 
 export { openTelemetrySetupCheck } from './utils/setupCheck';
 
+// eslint-disable-next-line deprecation/deprecation
 export { addOpenTelemetryInstrumentation } from './instrumentation';
 
 // Legacy

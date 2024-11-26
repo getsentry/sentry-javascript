@@ -1,4 +1,5 @@
 import { context, propagation, trace } from '@opentelemetry/api';
+import { registerInstrumentations } from '@opentelemetry/instrumentation';
 import type { UndiciRequest, UndiciResponse } from '@opentelemetry/instrumentation-undici';
 import { UndiciInstrumentation } from '@opentelemetry/instrumentation-undici';
 import {
@@ -9,11 +10,7 @@ import {
   hasTracingEnabled,
 } from '@sentry/core';
 import { getBreadcrumbLogLevelFromHttpStatusCode, getSanitizedUrlString, parseUrl } from '@sentry/core';
-import {
-  addOpenTelemetryInstrumentation,
-  generateSpanContextForPropagationContext,
-  getPropagationContextFromSpan,
-} from '@sentry/opentelemetry';
+import { generateSpanContextForPropagationContext, getPropagationContextFromSpan } from '@sentry/opentelemetry';
 import type { IntegrationFn, SanitizedRequestData } from '@sentry/types';
 
 interface NodeFetchOptions {
@@ -94,7 +91,7 @@ const _nativeNodeFetchIntegration = ((options: NodeFetchOptions = {}) => {
         },
       });
 
-      addOpenTelemetryInstrumentation(instrumentation);
+      registerInstrumentations({ instrumentations: [instrumentation] });
     },
   };
 }) satisfies IntegrationFn;
