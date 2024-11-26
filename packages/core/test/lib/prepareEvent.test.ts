@@ -12,6 +12,7 @@ import { GLOBAL_OBJ, createStackParser, getGlobalScope, getIsolationScope } from
 
 import { Scope } from '../../src/scope';
 import {
+  applyClientOptions,
   applyDebugIds,
   applyDebugMeta,
   parseEventHintOrCaptureContext,
@@ -515,6 +516,139 @@ describe('prepareEvent', () => {
         sdkProcessingMetadata: {},
         tags: { initial: 'aa', foo: 'bar' },
       });
+    });
+  });
+});
+
+describe('applyClientOptions', () => {
+  it('works with defaults', () => {
+    const event: Event = {};
+    const options = {} as ClientOptions;
+
+    applyClientOptions(event, options);
+
+    expect(event).toEqual({
+      environment: 'production',
+    });
+
+    // These should not be set at all on the event
+    expect('release' in event).toBe(false);
+    expect('dist' in event).toBe(false);
+  });
+
+  it('works with event data and no options', () => {
+    const event: Event = {
+      environment: 'blub',
+      release: 'blab',
+      dist: 'blib',
+    };
+    const options = {} as ClientOptions;
+
+    applyClientOptions(event, options);
+
+    expect(event).toEqual({
+      environment: 'blub',
+      release: 'blab',
+      dist: 'blib',
+    });
+  });
+
+  it('event data has precedence over options', () => {
+    const event: Event = {
+      environment: 'blub',
+      release: 'blab',
+      dist: 'blib',
+    };
+    const options = {
+      environment: 'blub2',
+      release: 'blab2',
+      dist: 'blib2',
+    } as ClientOptions;
+
+    applyClientOptions(event, options);
+
+    expect(event).toEqual({
+      environment: 'blub',
+      release: 'blab',
+      dist: 'blib',
+    });
+  });
+
+  it('option data is used if no event data exists', () => {
+    const event: Event = {};
+    const options = {
+      environment: 'blub2',
+      release: 'blab2',
+      dist: 'blib2',
+    } as ClientOptions;
+
+    applyClientOptions(event, options);
+
+    expect(event).toEqual({
+      environment: 'blub2',
+      release: 'blab2',
+      dist: 'blib2',
+    });
+  });
+
+  it('option data is ignored if empty string', () => {
+    const event: Event = {};
+    const options = {
+      environment: '',
+      release: '',
+      dist: '',
+    } as ClientOptions;
+
+    applyClientOptions(event, options);
+
+    expect(event).toEqual({
+      environment: 'production',
+    });
+
+    // These should not be set at all on the event
+    expect('release' in event).toBe(false);
+    expect('dist' in event).toBe(false);
+  });
+
+  it('option data is used if event data is undefined', () => {
+    const event: Event = {
+      environment: undefined,
+      release: undefined,
+      dist: undefined,
+    };
+    const options = {
+      environment: 'blub2',
+      release: 'blab2',
+      dist: 'blib2',
+    } as ClientOptions;
+
+    applyClientOptions(event, options);
+
+    expect(event).toEqual({
+      environment: 'blub2',
+      release: 'blab2',
+      dist: 'blib2',
+    });
+  });
+
+  it('option data is used if event data is empty string', () => {
+    const event: Event = {
+      environment: '',
+      release: '',
+      dist: '',
+    };
+    const options = {
+      environment: 'blub2',
+      release: 'blab2',
+      dist: 'blib2',
+    } as ClientOptions;
+
+    applyClientOptions(event, options);
+
+    expect(event).toEqual({
+      environment: 'blub2',
+      release: 'blab2',
+      dist: 'blib2',
     });
   });
 });

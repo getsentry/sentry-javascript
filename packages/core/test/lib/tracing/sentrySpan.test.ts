@@ -161,6 +161,8 @@ describe('SentrySpan', () => {
     });
 
     test('does not send the span if `beforeSendSpan` drops the span', () => {
+      const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+
       const beforeSendSpan = jest.fn(() => null);
       const client = new TestClient(
         getDefaultTestClientOptions({
@@ -185,6 +187,12 @@ describe('SentrySpan', () => {
 
       expect(mockSend).not.toHaveBeenCalled();
       expect(recordDroppedEventSpy).toHaveBeenCalledWith('before_send', 'span');
+
+      expect(consoleWarnSpy).toHaveBeenCalledTimes(1);
+      expect(consoleWarnSpy).toBeCalledWith(
+        '[Sentry] Deprecation warning: Returning null from `beforeSendSpan` will be disallowed from SDK version 9.0.0 onwards. The callback will only support mutating spans. To drop certain spans, configure the respective integrations directly.',
+      );
+      consoleWarnSpy.mockRestore();
     });
   });
 

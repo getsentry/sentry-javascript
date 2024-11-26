@@ -666,6 +666,7 @@ export const _optionalChainDelete = _optionalChainDelete_imported;
 export const BAGGAGE_HEADER_NAME = BAGGAGE_HEADER_NAME_imported;
 
 /** @deprecated Import from `@sentry/core` instead. */
+// eslint-disable-next-line deprecation/deprecation
 export const getNumberOfUrlSegments = getNumberOfUrlSegments_imported;
 
 /** @deprecated Import from `@sentry/core` instead. */
