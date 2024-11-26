@@ -68,7 +68,8 @@ export function instrumentDOM(): void {
     const targetObj = globalObject[target];
     const proto = targetObj && targetObj.prototype;
 
-    if (!proto || Object.prototype.hasOwnProperty.call(proto, 'addEventListener')) {
+    // eslint-disable-next-line no-prototype-builtins
+    if (!proto || !proto.hasOwnProperty || !proto.hasOwnProperty('addEventListener')) {
       return;
     }
 

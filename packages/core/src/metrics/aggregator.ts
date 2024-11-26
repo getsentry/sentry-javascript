@@ -20,8 +20,7 @@ export class MetricsAggregator implements MetricsAggregatorBase {
   // that we store in memory.
   private _bucketsTotalWeight;
 
-  // Cast to any so that it can use Node.js timeout
-  private readonly _interval: ReturnType<typeof setInterval>;
+  private readonly _interval: ReturnType<typeof setInterval> & { unref?: () => void };
 
   // SDKs are required to shift the flush interval by random() * rollup_in_seconds.
   // That shift is determined once per startup to create jittering.
