@@ -6,16 +6,16 @@ import {
   getActiveSpan,
   getClient,
   getRootSpan,
+  getTraceData,
   hasTracingEnabled,
   setHttpStatus,
   spanToJSON,
-  spanToTraceHeader,
   startSpan,
   winterCGRequestToRequestData,
   withIsolationScope,
 } from '@sentry/core';
-import { dynamicSamplingContextToSentryBaggageHeader, fill, isNodeEnv, loadModule, logger } from '@sentry/core';
-import { continueTrace, getDynamicSamplingContextFromSpan } from '@sentry/opentelemetry';
+import { fill, isNodeEnv, loadModule, logger } from '@sentry/core';
+import { continueTrace } from '@sentry/opentelemetry';
 import type { RequestEventData, TransactionSource, WrappedFunction } from '@sentry/types';
 import type { Span } from '@sentry/types';
 
@@ -204,18 +204,13 @@ function getTraceAndBaggage(): {
   sentryTrace?: string;
   sentryBaggage?: string;
 } {
-  if (isNodeEnv() && hasTracingEnabled()) {
-    const span = getActiveSpan();
-    const rootSpan = span && getRootSpan(span);
+  if (isNodeEnv()) {
+    const traceData = getTraceData();
 
-    if (rootSpan) {
-      const dynamicSamplingContext = getDynamicSamplingContextFromSpan(rootSpan);
-
-      return {
-        sentryTrace: spanToTraceHeader(span),
-        sentryBaggage: dynamicSamplingContextToSentryBaggageHeader(dynamicSamplingContext),
-      };
-    }
+    return {
+      sentryTrace: traceData['sentry-trace'],
+      sentryBaggage: traceData.baggage,
+    };
   }
 
   return {};

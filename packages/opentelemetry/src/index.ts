@@ -27,7 +27,14 @@ export { enhanceDscWithOpenTelemetryRootSpanName } from './utils/enhanceDscWithO
 export { generateSpanContextForPropagationContext } from './utils/generateSpanContextForPropagationContext';
 
 export { getActiveSpan } from './utils/getActiveSpan';
-export { startSpan, startSpanManual, startInactiveSpan, withActiveSpan, continueTrace } from './trace';
+export {
+  startSpan,
+  startSpanManual,
+  startInactiveSpan,
+  withActiveSpan,
+  continueTrace,
+  getTraceContextForScope,
+} from './trace';
 
 export { suppressTracing } from './utils/suppressTracing';
 

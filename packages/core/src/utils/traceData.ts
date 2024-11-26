@@ -1,13 +1,13 @@
-import type { SerializedTraceData } from '@sentry/types';
+import type { Scope, SerializedTraceData, Span } from '@sentry/types';
 import { getAsyncContextStrategy } from '../asyncContext';
 import { getMainCarrier } from '../carrier';
 import { getClient, getCurrentScope } from '../currentScopes';
 import { isEnabled } from '../exports';
-import { getDynamicSamplingContextFromClient, getDynamicSamplingContextFromSpan } from '../tracing';
+import { getDynamicSamplingContextFromScope, getDynamicSamplingContextFromSpan } from '../tracing';
 import { dynamicSamplingContextToSentryBaggageHeader } from '../utils-hoist/baggage';
 import { logger } from '../utils-hoist/logger';
 import { TRACEPARENT_REGEXP, generateSentryTraceHeader } from '../utils-hoist/tracing';
-import { getActiveSpan, getRootSpan, spanToTraceHeader } from './spanUtils';
+import { getActiveSpan, spanToTraceHeader } from './spanUtils';
 
 /**
  * Extracts trace propagation data from the current span or from the client's scope (via transaction or propagation
@@ -20,35 +20,23 @@ import { getActiveSpan, getRootSpan, spanToTraceHeader } from './spanUtils';
  * @returns an object with the tracing data values. The object keys are the name of the tracing key to be used as header
  * or meta tag name.
  */
-export function getTraceData(): SerializedTraceData {
-  if (!isEnabled()) {
+export function getTraceData(options: { span?: Span } = {}): SerializedTraceData {
+  const client = getClient();
+  if (!isEnabled() || !client) {
     return {};
   }
 
   const carrier = getMainCarrier();
   const acs = getAsyncContextStrategy(carrier);
   if (acs.getTraceData) {
-    return acs.getTraceData();
+    return acs.getTraceData(options);
   }
 
-  const client = getClient();
   const scope = getCurrentScope();
-  const span = getActiveSpan();
-
-  const { dsc, sampled, traceId } = scope.getPropagationContext();
-  const rootSpan = span && getRootSpan(span);
-
-  const sentryTrace = span ? spanToTraceHeader(span) : generateSentryTraceHeader(traceId, undefined, sampled);
-
-  const dynamicSamplingContext = rootSpan
-    ? getDynamicSamplingContextFromSpan(rootSpan)
-    : dsc
-      ? dsc
-      : client
-        ? getDynamicSamplingContextFromClient(traceId, client)
-        : undefined;
-
-  const baggage = dynamicSamplingContextToSentryBaggageHeader(dynamicSamplingContext);
+  const span = options.span || getActiveSpan();
+  const sentryTrace = span ? spanToTraceHeader(span) : scopeToTraceHeader(scope);
+  const dsc = span ? getDynamicSamplingContextFromSpan(span) : getDynamicSamplingContextFromScope(client, scope);
+  const baggage = dynamicSamplingContextToSentryBaggageHeader(dsc);
 
   const isValidSentryTraceHeader = TRACEPARENT_REGEXP.test(sentryTrace);
   if (!isValidSentryTraceHeader) {
@@ -87,4 +75,12 @@ export function isValidBaggageString(baggage?: string): boolean {
     `^${keyRegex}${spaces}=${spaces}${valueRegex}(${spaces},${spaces}${keyRegex}${spaces}=${spaces}${valueRegex})*$`,
   );
   return baggageRegex.test(baggage);
+}
+
+/**
+ * Get a sentry-trace header value for the given scope.
+ */
+function scopeToTraceHeader(scope: Scope): string {
+  const { traceId, sampled, spanId } = scope.getPropagationContext();
+  return generateSentryTraceHeader(traceId, spanId, sampled);
 }
