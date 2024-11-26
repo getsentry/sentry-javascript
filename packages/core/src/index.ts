@@ -40,6 +40,7 @@ export {
   withScope,
   withIsolationScope,
   getClient,
+  getTraceContextFromScope,
 } from './currentScopes';
 export {
   getDefaultCurrentScope,
@@ -111,7 +112,11 @@ export type { MetricData } from '@sentry/types';
 export { metricsDefault } from './metrics/exports-default';
 export { BrowserMetricsAggregator } from './metrics/browser-aggregator';
 export { getMetricSummaryJsonForSpan } from './metrics/metric-summary';
-export { addTracingHeadersToFetchRequest, instrumentFetchRequest } from './fetch';
+export {
+  // eslint-disable-next-line deprecation/deprecation
+  addTracingHeadersToFetchRequest,
+  instrumentFetchRequest,
+} from './fetch';
 export { trpcMiddleware } from './trpc';
 export { captureFeedback } from './feedback';
 

@@ -159,6 +159,7 @@ export {
   parseBaggageHeader,
 } from './baggage';
 
+// eslint-disable-next-line deprecation/deprecation
 export { getNumberOfUrlSegments, getSanitizedUrlString, parseUrl, stripUrlQueryAndFragment } from './url';
 // eslint-disable-next-line deprecation/deprecation
 export { makeFifoCache } from './cache';
