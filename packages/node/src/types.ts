@@ -91,6 +91,13 @@ export interface BaseNodeOptions {
   skipOpenTelemetrySetup?: boolean;
 
   /**
+   * Provide an array of OpenTelemetry Instrumentations that should be registered.
+   *
+   * Use this option if you want to register OpenTelemetry instrumentation that the Sentry SDK does not yet have support for.
+   */
+  openTelemetryInstrumentations?: Instrumentation[];
+
+  /**
    * The max. duration in seconds that the SDK will wait for parent spans to be finished before discarding a span.
    * The SDK will automatically clean up spans that have no finished parent after this duration.
    * This is necessary to prevent memory leaks in case of parent spans that are never finished or otherwise dropped/missing.
@@ -156,7 +163,7 @@ export interface CurrentScopes {
  * The base `Span` type is basically a `WriteableSpan`.
  * There are places where we basically want to allow passing _any_ span,
  * so in these cases we type this as `AbstractSpan` which could be either a regular `Span` or a `ReadableSpan`.
- * You'll have to make sur to check revelant fields before accessing them.
+ * You'll have to make sur to check relevant fields before accessing them.
  *
  * Note that technically, the `Span` exported from `@opentelemetry/sdk-trace-base` matches this,
  * but we cannot be 100% sure that we are actually getting such a span, so this type is more defensive.
