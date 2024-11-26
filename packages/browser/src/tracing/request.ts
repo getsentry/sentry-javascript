@@ -17,7 +17,6 @@ import {
   startInactiveSpan,
 } from '@sentry/core';
 import {
-  BAGGAGE_HEADER_NAME,
   addFetchEndInstrumentationHandler,
   addFetchInstrumentationHandler,
   browserPerformanceTimeOrigin,
@@ -431,7 +430,7 @@ function setHeaderOnXhr(
       // We can therefore simply set a baggage header without checking what was there before
       // https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest/setRequestHeader
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      xhr.setRequestHeader!(BAGGAGE_HEADER_NAME, sentryBaggageHeader);
+      xhr.setRequestHeader!('baggage', sentryBaggageHeader);
     }
   } catch (_) {
     // Error: InvalidStateError: Failed to execute 'setRequestHeader' on 'XMLHttpRequest': The object's state must be OPENED.

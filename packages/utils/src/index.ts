@@ -610,9 +610,11 @@ export const isNodeEnv = isNodeEnv_imported;
 export const loadModule = loadModule_imported;
 
 /** @deprecated Import from `@sentry/core` instead. */
+// eslint-disable-next-line deprecation/deprecation
 export const flatten = flatten_imported;
 
 /** @deprecated Import from `@sentry/core` instead. */
+// eslint-disable-next-line deprecation/deprecation
 export const memoBuilder = memoBuilder_imported;
 
 /** @deprecated Import from `@sentry/core` instead. */
@@ -660,6 +662,7 @@ export const _optionalChain = _optionalChain_imported;
 export const _optionalChainDelete = _optionalChainDelete_imported;
 
 /** @deprecated Import from `@sentry/core` instead. */
+// eslint-disable-next-line deprecation/deprecation
 export const BAGGAGE_HEADER_NAME = BAGGAGE_HEADER_NAME_imported;
 
 /** @deprecated Import from `@sentry/core` instead. */
@@ -675,6 +678,7 @@ export const parseUrl = parseUrl_imported;
 export const stripUrlQueryAndFragment = stripUrlQueryAndFragment_imported;
 
 /** @deprecated Import from `@sentry/core` instead. */
+// eslint-disable-next-line deprecation/deprecation
 export const makeFifoCache = makeFifoCache_imported;
 
 import type {

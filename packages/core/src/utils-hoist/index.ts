@@ -1,4 +1,5 @@
 export { applyAggregateErrorsToEvent } from './aggregate-errors';
+// eslint-disable-next-line deprecation/deprecation
 export { flatten } from './array';
 export { getBreadcrumbLogLevelFromHttpStatusCode } from './breadcrumb-log-level';
 export { getComponentName, getDomElement, getLocationHref, htmlTreeAsString } from './browser';
@@ -35,6 +36,7 @@ export {
 } from './is';
 export { isBrowser } from './isBrowser';
 export { CONSOLE_LEVELS, consoleSandbox, logger, originalConsoleMethods } from './logger';
+// eslint-disable-next-line deprecation/deprecation
 export { memoBuilder } from './memo';
 export {
   addContextToFrame,
@@ -147,6 +149,7 @@ export {
 } from './ratelimit';
 export type { RateLimits } from './ratelimit';
 export {
+  // eslint-disable-next-line deprecation/deprecation
   BAGGAGE_HEADER_NAME,
   MAX_BAGGAGE_STRING_LENGTH,
   SENTRY_BAGGAGE_KEY_PREFIX,
@@ -157,6 +160,7 @@ export {
 } from './baggage';
 
 export { getNumberOfUrlSegments, getSanitizedUrlString, parseUrl, stripUrlQueryAndFragment } from './url';
+// eslint-disable-next-line deprecation/deprecation
 export { makeFifoCache } from './cache';
 export { eventFromMessage, eventFromUnknownInput, exceptionFromError, parseStackFrames } from './eventbuilder';
 export { callFrameToStackFrame, watchdogTimer } from './anr';
