@@ -2,13 +2,13 @@ import * as diagnosticsChannel from 'node:diagnostics_channel';
 import { types } from 'node:util';
 import { Worker } from 'node:worker_threads';
 import {
+  GLOBAL_OBJ,
   defineIntegration,
   getClient,
   getCurrentScope,
   getFilenameToDebugIdMap,
   getGlobalScope,
   getIsolationScope,
-  GLOBAL_OBJ,
   logger,
   mergeScopeData,
 } from '@sentry/core';
