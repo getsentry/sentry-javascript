@@ -44,38 +44,12 @@ export function getTraceData(options: { span?: Span } = {}): SerializedTraceData
     return {};
   }
 
-  const validBaggage = isValidBaggageString(baggage);
-  if (!validBaggage) {
-    logger.warn('Invalid baggage data. Not returning "baggage" value');
-  }
-
   return {
     'sentry-trace': sentryTrace,
-    ...(validBaggage && { baggage }),
+    baggage,
   };
 }
 
-/**
- * Tests string against baggage spec as defined in:
- *
- * - W3C Baggage grammar: https://www.w3.org/TR/baggage/#definition
- * - RFC7230 token definition: https://datatracker.ietf.org/doc/html/rfc7230#section-3.2.6
- *
- * exported for testing
- */
-export function isValidBaggageString(baggage?: string): boolean {
-  if (!baggage || !baggage.length) {
-    return false;
-  }
-  const keyRegex = "[-!#$%&'*+.^_`|~A-Za-z0-9]+";
-  const valueRegex = '[!#-+-./0-9:<=>?@A-Z\\[\\]a-z{-}]+';
-  const spaces = '\\s*';
-  // eslint-disable-next-line @sentry-internal/sdk/no-regexp-constructor -- RegExp for readability, no user input
-  const baggageRegex = new RegExp(
-    `^${keyRegex}${spaces}=${spaces}${valueRegex}(${spaces},${spaces}${keyRegex}${spaces}=${spaces}${valueRegex})*$`,
-  );
-  return baggageRegex.test(baggage);
-}
 
 /**
  * Get a sentry-trace header value for the given scope.
