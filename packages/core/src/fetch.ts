@@ -141,7 +141,7 @@ function _addTracingHeadersToFetchRequest(
           prevHeaderStrippedFromSentryBaggage ? `${prevHeaderStrippedFromSentryBaggage},${baggage}` : baggage,
         );
       } else {
-        newHeaders.set('baggage', sentryBaggageHeader);
+        newHeaders.set('baggage', baggage);
       }
     }
 
@@ -169,7 +169,7 @@ function _addTracingHeadersToFetchRequest(
     if (baggage) {
       // If there are multiple entries with the same key, the browser will merge the values into a single request header.
       // Its therefore safe to simply push a "baggage" entry, even though there might already be another baggage header.
-      newHeaders.push(['baggage', sentryBaggageHeader]);
+      newHeaders.push(['baggage', baggage]);
     }
 
     return newHeaders as PolymorphicRequestHeaders;
