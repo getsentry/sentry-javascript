@@ -2,7 +2,7 @@ import type { Client, HandlerDataFetch, Scope, Span, SpanOrigin } from '@sentry/
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from './semanticAttributes';
 import { SPAN_STATUS_ERROR, setHttpStatus, startInactiveSpan } from './tracing';
 import { SentryNonRecordingSpan } from './tracing/sentryNonRecordingSpan';
-import { BAGGAGE_HEADER_NAME, SENTRY_BAGGAGE_KEY_PREFIX } from './utils-hoist/baggage';
+import { SENTRY_BAGGAGE_KEY_PREFIX } from './utils-hoist/baggage';
 import { isInstanceOf } from './utils-hoist/is';
 import { parseUrl } from './utils-hoist/url';
 import { hasTracingEnabled } from './utils/hasTracingEnabled';
