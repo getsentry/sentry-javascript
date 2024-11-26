@@ -108,8 +108,8 @@ function _parseCookieHeaders(
     if (cookieString) {
       cookies = _parseCookieString(cookieString);
     }
-  } catch (e) {
-    DEBUG_BUILD && logger.log(`Could not extract cookies from header ${cookieHeader}`);
+  } catch {
+    // ignore it if parsing fails
   }
 
   return [headers, cookies];
@@ -138,14 +138,14 @@ function _xhrResponseHandler(
         if (cookieString) {
           responseCookies = _parseCookieString(cookieString);
         }
-      } catch (e) {
-        DEBUG_BUILD && logger.log('Could not extract cookies from response headers');
+      } catch {
+        // ignore it if parsing fails
       }
 
       try {
         responseHeaders = _getXHRResponseHeaders(xhr);
-      } catch (e) {
-        DEBUG_BUILD && logger.log('Could not extract headers from response');
+      } catch {
+        // ignore it if parsing fails
       }
 
       requestHeaders = headers;
