@@ -167,19 +167,15 @@ function _wrapEventTarget(target: string): void {
   const targetObj = globalObject[target];
   const proto = targetObj && targetObj.prototype;
 
-  if (!proto || Object.prototype.hasOwnProperty.call(proto, 'addEventListener')) {
+  // eslint-disable-next-line no-prototype-builtins
+  if (!proto || !proto.hasOwnProperty || !proto.hasOwnProperty('addEventListener')) {
     return;
   }
 
   fill(proto, 'addEventListener', function (original: VoidFunction,): (
     ...args: Parameters<typeof WINDOW.addEventListener>
-  ) => void {
-    return function (
-      this: unknown,
-      eventName,
-      fn,
-      options,
-    ): (eventName: string, fn: EventListenerObject, capture?: boolean, secure?: boolean) => void {
+  ) => ReturnType<typeof WINDOW.addEventListener> {
+    return function (this: unknown, eventName, fn, options): VoidFunction {
       try {
         if (isEventListenerObject(fn)) {
           // ESlint disable explanation:
@@ -222,11 +218,11 @@ function _wrapEventTarget(target: string): void {
     };
   });
 
-  fill(proto, 'removeEventListener', function (originalRemoveEventListener: () => void,): (
+  fill(proto, 'removeEventListener', function (originalRemoveEventListener: VoidFunction,): (
     this: unknown,
     ...args: Parameters<typeof WINDOW.removeEventListener>
-  ) => () => void {
-    return function (this: unknown, eventName, fn, options): () => void {
+  ) => ReturnType<typeof WINDOW.removeEventListener> {
+    return function (this: unknown, eventName, fn, options): VoidFunction {
       /**
        * There are 2 possible scenarios here:
        *
