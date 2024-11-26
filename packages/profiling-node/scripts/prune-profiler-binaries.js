@@ -62,6 +62,7 @@ const NODE_TO_ABI = {
   16: '93',
   18: '108',
   20: '115',
+  22: '127',
 };
 
 if (NODE) {
@@ -73,6 +74,8 @@ if (NODE) {
     NODE = NODE_TO_ABI['18'];
   } else if (NODE.startsWith('20')) {
     NODE = NODE_TO_ABI['20'];
+  } else if (NODE.startsWith('22')) {
+    NODE = NODE_TO_ABI['22'];
   } else {
     ARGV_ERRORS.push(
       '❌ Sentry: Invalid node version passed as argument, please make sure --target_node is a valid major node version. Supported versions are 16, 18 and 20.',
