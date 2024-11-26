@@ -39,9 +39,7 @@
     "access": "public"
   },
   "peerDependencies": {
-    "nuxt": ">=3.7.0 || 4.x",
-    "nitropack": ">=2.10.0",
-    "ofetch": ">=1.4.0"
+    "nuxt": ">=3.7.0 || 4.x"
   },
   "dependencies": {
     "@nuxt/kit": "^3.13.2",
