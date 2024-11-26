@@ -1,5 +1,5 @@
+import { consoleSandbox } from '@sentry/core';
 import { captureException } from '@sentry/svelte';
-import { consoleSandbox } from '@sentry/utils';
 import type { HandleClientError } from '@sveltejs/kit';
 
 // The SvelteKit default error handler just logs the error to the console

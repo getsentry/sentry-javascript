@@ -1,5 +1,5 @@
 import { defineIntegration } from '@sentry/core';
-import { consoleSandbox } from '@sentry/utils';
+import { consoleSandbox } from '@sentry/core';
 
 /**
  * This is a shim for the BrowserTracing integration.

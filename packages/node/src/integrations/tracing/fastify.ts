@@ -55,14 +55,41 @@ const _fastifyIntegration = (() => {
 }) satisfies IntegrationFn;
 
 /**
- * Express integration
+ * Adds Sentry tracing instrumentation for [Fastify](https://fastify.dev/).
  *
- * Capture tracing data for fastify.
+ * If you also want to capture errors, you need to call `setupFastifyErrorHandler(app)` after you set up your Fastify server.
+ *
+ * For more information, see the [fastify documentation](https://docs.sentry.io/platforms/javascript/guides/fastify/).
+ *
+ * @example
+ * ```javascript
+ * const Sentry = require('@sentry/node');
+ *
+ * Sentry.init({
+ *   integrations: [Sentry.fastifyIntegration()],
+ * })
+ * ```
  */
 export const fastifyIntegration = defineIntegration(_fastifyIntegration);
 
 /**
- * Setup an error handler for Fastify.
+ * Add an Fastify error handler to capture errors to Sentry.
+ *
+ * @param fastify The Fastify instance to which to add the error handler
+ *
+ * @example
+ * ```javascript
+ * const Sentry = require('@sentry/node');
+ * const Fastify = require("fastify");
+ *
+ * const app = Fastify();
+ *
+ * Sentry.setupFastifyErrorHandler(app);
+ *
+ * // Add your routes, etc.
+ *
+ * app.listen({ port: 3000 });
+ * ```
  */
 export function setupFastifyErrorHandler(fastify: Fastify): void {
   const plugin = Object.assign(

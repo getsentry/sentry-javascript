@@ -7,7 +7,7 @@ import type {
   SpanStatus,
   SpanTimeInput,
 } from '@sentry/types';
-import { uuid4 } from '@sentry/utils';
+import { uuid4 } from '../utils-hoist/misc';
 import { TRACE_FLAG_NONE } from '../utils/spanUtils';
 
 /**
@@ -71,7 +71,7 @@ export class SentryNonRecordingSpan implements Span {
 
   /**
    * This should generally not be used,
-   * but we need it for being comliant with the OTEL Span interface.
+   * but we need it for being compliant with the OTEL Span interface.
    *
    * @hidden
    * @internal
@@ -82,7 +82,7 @@ export class SentryNonRecordingSpan implements Span {
 
   /**
    * This should generally not be used,
-   * but we need it for being comliant with the OTEL Span interface.
+   * but we need it for being compliant with the OTEL Span interface.
    *
    * @hidden
    * @internal
@@ -93,7 +93,7 @@ export class SentryNonRecordingSpan implements Span {
 
   /**
    * This should generally not be used,
-   * but we need it for being comliant with the OTEL Span interface.
+   * but we need it for being compliant with the OTEL Span interface.
    *
    * @hidden
    * @internal

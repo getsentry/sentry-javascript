@@ -7,11 +7,20 @@ Sentry.init({
   tracePropagationTargets: [/\/v0/, 'v1'],
   integrations: [],
   transport: loggingTransport,
+  // Ensure this gets a correct hint
+  beforeBreadcrumb(breadcrumb, hint) {
+    breadcrumb.data = breadcrumb.data || {};
+    const req = hint?.request as { path?: string };
+    breadcrumb.data.ADDED_PATH = req?.path;
+    return breadcrumb;
+  },
 });
 
 import * as http from 'http';
 
 async function run(): Promise<void> {
+  Sentry.addBreadcrumb({ message: 'manual breadcrumb' });
+
   await makeHttpRequest(`${process.env.SERVER_URL}/api/v0`);
   await makeHttpGet(`${process.env.SERVER_URL}/api/v1`);
   await makeHttpRequest(`${process.env.SERVER_URL}/api/v2`);

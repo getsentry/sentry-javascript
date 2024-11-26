@@ -18,6 +18,7 @@ import { instrumentMysql2, mysql2Integration } from './mysql2';
 import { instrumentNest, nestIntegration } from './nest/nest';
 import { instrumentPostgres, postgresIntegration } from './postgres';
 import { instrumentRedis, redisIntegration } from './redis';
+import { instrumentTedious, tediousIntegration } from './tedious';
 
 /**
  * With OTEL, all performance integrations will be added, as OTEL only initializes them when the patched package is actually required.
@@ -37,10 +38,12 @@ export function getAutoPerformanceIntegrations(): Integration[] {
     // See https://github.com/prisma/prisma/issues/23410
     // TODO v8: Figure out a better solution for this, maybe only disable in ESM mode?
     // prismaIntegration(),
+    // eslint-disable-next-line deprecation/deprecation
     nestIntegration(),
     hapiIntegration(),
     koaIntegration(),
     connectIntegration(),
+    tediousIntegration(),
     genericPoolIntegration(),
     kafkaIntegration(),
     amqplibIntegration(),
@@ -62,6 +65,7 @@ export function getOpenTelemetryInstrumentationToPreload(): (((options?: any) =>
     instrumentKafka,
     instrumentKoa,
     instrumentLruMemoizer,
+    // eslint-disable-next-line deprecation/deprecation
     instrumentNest,
     instrumentMongo,
     instrumentMongoose,
@@ -71,6 +75,7 @@ export function getOpenTelemetryInstrumentationToPreload(): (((options?: any) =>
     instrumentHapi,
     instrumentGraphql,
     instrumentRedis,
+    instrumentTedious,
     instrumentGenericPool,
     instrumentAmqplib,
   ];

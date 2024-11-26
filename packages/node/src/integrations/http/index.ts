@@ -75,7 +75,7 @@ interface HttpOptions {
     ) => void;
 
     /**
-     * You can pass any configuration through to the underlying instrumention.
+     * You can pass any configuration through to the underlying instrumentation.
      * Note that there are no semver guarantees for this!
      */
     _experimentalConfig?: ConstructorParameters<typeof HttpInstrumentation>[0];

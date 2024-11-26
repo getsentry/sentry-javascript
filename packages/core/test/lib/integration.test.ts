@@ -1,9 +1,9 @@
 import type { Integration, Options } from '@sentry/types';
-import { logger } from '@sentry/utils';
 import { getCurrentScope } from '../../src/currentScopes';
 
 import { addIntegration, getIntegrationsToSetup, installedIntegrations, setupIntegration } from '../../src/integration';
 import { setCurrentClient } from '../../src/sdk';
+import { logger } from '../../src/utils-hoist/logger';
 import { TestClient, getDefaultTestClientOptions } from '../mocks/client';
 
 function getTestClient(): TestClient {
@@ -35,7 +35,7 @@ type TestCase = [
   string, // test name
   Options['defaultIntegrations'], // default integrations
   Options['integrations'], // user-provided integrations
-  Array<string | string[]>, // expected resulst
+  Array<string | string[]>, // expected results
 ];
 
 describe('getIntegrationsToSetup', () => {

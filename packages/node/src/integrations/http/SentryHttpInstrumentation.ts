@@ -1,18 +1,24 @@
 import type * as http from 'node:http';
-import type { RequestOptions } from 'node:http';
+import type { IncomingMessage, RequestOptions } from 'node:http';
 import type * as https from 'node:https';
 import { VERSION } from '@opentelemetry/core';
 import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
 import { InstrumentationBase, InstrumentationNodeModuleDefinition } from '@opentelemetry/instrumentation';
 import { getRequestInfo } from '@opentelemetry/instrumentation-http';
-import { addBreadcrumb, getClient, getIsolationScope, withIsolationScope } from '@sentry/core';
-import type { SanitizedRequestData } from '@sentry/types';
 import {
+  addBreadcrumb,
   getBreadcrumbLogLevelFromHttpStatusCode,
+  getClient,
+  getIsolationScope,
   getSanitizedUrlString,
+  httpRequestToRequestData,
+  logger,
   parseUrl,
   stripUrlQueryAndFragment,
-} from '@sentry/utils';
+  withIsolationScope,
+} from '@sentry/core';
+import type { RequestEventData, SanitizedRequestData, Scope } from '@sentry/types';
+import { DEBUG_BUILD } from '../../debug-build';
 import type { NodeClient } from '../../sdk/client';
 import { getRequestUrl } from '../../utils/getRequestUrl';
 
@@ -38,6 +44,9 @@ type SentryHttpInstrumentationOptions = InstrumentationConfig & {
    */
   ignoreOutgoingRequests?: (url: string, request: RequestOptions) => boolean;
 };
+
+// We only want to capture request bodies up to 1mb.
+const MAX_BODY_BYTE_LENGTH = 1024 * 1024;
 
 /**
  * This custom HTTP instrumentation is used to isolate incoming requests and annotate them with additional information.
@@ -124,12 +133,19 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
 
         instrumentation._diag.debug('http instrumentation for incoming request');
 
+        const isolationScope = getIsolationScope().clone();
         const request = args[0] as http.IncomingMessage;
 
-        const isolationScope = getIsolationScope().clone();
+        const normalizedRequest = httpRequestToRequestData(request);
+
+        patchRequestToCaptureBody(request, isolationScope);
 
         // Update the isolation scope, isolate this request
-        isolationScope.setSDKProcessingMetadata({ request });
+        // TODO(v9): Stop setting `request`, we only rely on normalizedRequest anymore
+        isolationScope.setSDKProcessingMetadata({
+          request,
+          normalizedRequest,
+        });
 
         const client = getClient<NodeClient>();
         if (client && client.getOptions().autoSessionTracking) {
@@ -314,5 +330,104 @@ function getBreadcrumbData(request: http.ClientRequest): Partial<SanitizedReques
     return data;
   } catch {
     return {};
+  }
+}
+
+/**
+ * This method patches the request object to capture the body.
+ * Instead of actually consuming the streamed body ourselves, which has potential side effects,
+ * we monkey patch `req.on('data')` to intercept the body chunks.
+ * This way, we only read the body if the user also consumes the body, ensuring we do not change any behavior in unexpected ways.
+ */
+function patchRequestToCaptureBody(req: IncomingMessage, isolationScope: Scope): void {
+  const chunks: Buffer[] = [];
+
+  function getChunksSize(): number {
+    return chunks.reduce((acc, chunk) => acc + chunk.byteLength, 0);
+  }
+
+  /**
+   * We need to keep track of the original callbacks, in order to be able to remove listeners again.
+   * Since `off` depends on having the exact same function reference passed in, we need to be able to map
+   * original listeners to our wrapped ones.
+   */
+  const callbackMap = new WeakMap();
+
+  try {
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    req.on = new Proxy(req.on, {
+      apply: (target, thisArg, args: Parameters<typeof req.on>) => {
+        const [event, listener, ...restArgs] = args;
+
+        if (event === 'data') {
+          const callback = new Proxy(listener, {
+            apply: (target, thisArg, args: Parameters<typeof listener>) => {
+              // If we have already read more than the max body length, we stop addiing chunks
+              // To avoid growing the memory indefinitely if a respons is e.g. streamed
+              if (getChunksSize() < MAX_BODY_BYTE_LENGTH) {
+                const chunk = args[0] as Buffer;
+                chunks.push(chunk);
+              } else if (DEBUG_BUILD) {
+                logger.log(
+                  `Dropping request body chunk because it maximum body length of ${MAX_BODY_BYTE_LENGTH}b is exceeded.`,
+                );
+              }
+
+              return Reflect.apply(target, thisArg, args);
+            },
+          });
+
+          callbackMap.set(listener, callback);
+
+          return Reflect.apply(target, thisArg, [event, callback, ...restArgs]);
+        }
+
+        if (event === 'end') {
+          const callback = new Proxy(listener, {
+            apply: (target, thisArg, args) => {
+              try {
+                const body = Buffer.concat(chunks).toString('utf-8');
+
+                if (body) {
+                  const normalizedRequest = { data: body } satisfies RequestEventData;
+                  isolationScope.setSDKProcessingMetadata({ normalizedRequest });
+                }
+              } catch {
+                // ignore errors here
+              }
+
+              return Reflect.apply(target, thisArg, args);
+            },
+          });
+
+          callbackMap.set(listener, callback);
+
+          return Reflect.apply(target, thisArg, [event, callback, ...restArgs]);
+        }
+
+        return Reflect.apply(target, thisArg, args);
+      },
+    });
+
+    // Ensure we also remove callbacks correctly
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    req.off = new Proxy(req.off, {
+      apply: (target, thisArg, args: Parameters<typeof req.off>) => {
+        const [, listener] = args;
+
+        const callback = callbackMap.get(listener);
+        if (callback) {
+          callbackMap.delete(listener);
+
+          const modifiedArgs = args.slice();
+          modifiedArgs[1] = callback;
+          return Reflect.apply(target, thisArg, modifiedArgs);
+        }
+
+        return Reflect.apply(target, thisArg, args);
+      },
+    });
+  } catch {
+    // ignore errors if we can't patch stuff
   }
 }

@@ -23,7 +23,7 @@ import {
 
 sentryTest(
   'replay recording should contain default performance spans',
-  async ({ getLocalTestPath, page, browserName }) => {
+  async ({ getLocalTestUrl, page, browserName }) => {
     // We only test this against the NPM package and replay bundles
     // and only on chromium as most performance entries are only available in chromium
     if (shouldSkipReplayTest() || browserName !== 'chromium') {
@@ -33,15 +33,7 @@ sentryTest(
     const reqPromise0 = waitForReplayRequest(page, 0);
     const reqPromise1 = waitForReplayRequest(page, 1);
 
-    await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-      return route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({ id: 'test-id' }),
-      });
-    });
-
-    const url = await getLocalTestPath({ testDir: __dirname });
+    const url = await getLocalTestUrl({ testDir: __dirname });
 
     await page.goto(url);
     const replayEvent0 = getReplayEvent(await reqPromise0);
@@ -84,7 +76,7 @@ sentryTest(
 
 sentryTest(
   'replay recording should contain a click breadcrumb when a button is clicked',
-  async ({ forceFlushReplay, getLocalTestPath, page, browserName }) => {
+  async ({ forceFlushReplay, getLocalTestUrl, page, browserName }) => {
     // TODO(replay): This is flakey on webkit where clicks are flakey
     if (shouldSkipReplayTest() || browserName === 'webkit') {
       sentryTest.skip();
@@ -95,15 +87,7 @@ sentryTest(
     const reqPromise2 = waitForReplayRequest(page, 2);
     const reqPromise3 = waitForReplayRequest(page, 3);
 
-    await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-      return route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({ id: 'test-id' }),
-      });
-    });
-
-    const url = await getLocalTestPath({ testDir: __dirname });
+    const url = await getLocalTestUrl({ testDir: __dirname });
 
     await page.goto(url);
     await reqPromise0;
@@ -189,7 +173,7 @@ sentryTest(
 
 sentryTest(
   'replay recording should contain an "options" breadcrumb for Replay SDK configuration',
-  async ({ forceFlushReplay, getLocalTestPath, page, browserName }) => {
+  async ({ forceFlushReplay, getLocalTestUrl, page, browserName }) => {
     // TODO(replay): This is flakey on webkit where clicks are flakey
     if (shouldSkipReplayTest() || browserName === 'webkit') {
       sentryTest.skip();
@@ -198,15 +182,7 @@ sentryTest(
     const reqPromise0 = waitForReplayRequest(page, 0);
     const reqPromise1 = waitForReplayRequest(page, 1);
 
-    await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-      return route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({ id: 'test-id' }),
-      });
-    });
-
-    const url = await getLocalTestPath({ testDir: __dirname });
+    const url = await getLocalTestUrl({ testDir: __dirname });
 
     await page.goto(url);
     await forceFlushReplay();

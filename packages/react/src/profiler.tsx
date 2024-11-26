@@ -1,7 +1,7 @@
 import { startInactiveSpan } from '@sentry/browser';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, spanToJSON, withActiveSpan } from '@sentry/core';
+import { timestampInSeconds } from '@sentry/core';
 import type { Span } from '@sentry/types';
-import { timestampInSeconds } from '@sentry/utils';
 import hoistNonReactStatics from 'hoist-non-react-statics';
 import * as React from 'react';
 
@@ -78,8 +78,8 @@ class Profiler extends React.Component<ProfilerProps> {
     // and if the updateProps have changed. It is ok to not do a deep equality check here as it is expensive.
     // We are just trying to give baseline clues for further investigation.
     if (includeUpdates && this._mountSpan && updateProps !== this.props.updateProps) {
-      // See what props haved changed between the previous props, and the current props. This is
-      // set as data on the span. We just store the prop keys as the values could be potenially very large.
+      // See what props have changed between the previous props, and the current props. This is
+      // set as data on the span. We just store the prop keys as the values could be potentially very large.
       const changedProps = Object.keys(updateProps).filter(k => updateProps[k] !== this.props.updateProps[k]);
       if (changedProps.length > 0) {
         const now = timestampInSeconds();

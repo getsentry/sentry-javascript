@@ -2,7 +2,9 @@ export type {
   Breadcrumb,
   BreadcrumbHint,
   PolymorphicRequest,
+  // eslint-disable-next-line deprecation/deprecation
   Request,
+  RequestEventData,
   SdkInfo,
   Event,
   EventHint,
@@ -16,7 +18,7 @@ export type {
   Thread,
   User,
 } from '@sentry/types';
-export type { AddRequestDataToEventOptions } from '@sentry/utils';
+export type { AddRequestDataToEventOptions } from '@sentry/core';
 
 export type { CloudflareOptions } from './client';
 
@@ -65,12 +67,14 @@ export {
   withActiveSpan,
   getSpanDescendants,
   continueTrace,
+  // eslint-disable-next-line deprecation/deprecation
   metrics,
   functionToStringIntegration,
   inboundFiltersIntegration,
   linkedErrorsIntegration,
   requestDataIntegration,
   extraErrorDataIntegration,
+  // eslint-disable-next-line deprecation/deprecation
   debugIntegration,
   dedupeIntegration,
   rewriteFramesIntegration,

@@ -10,8 +10,8 @@ import {
   getRootSpan,
   spanToJSON,
 } from '@sentry/core';
+import { browserPerformanceTimeOrigin, dropUndefinedKeys, htmlTreeAsString, logger } from '@sentry/core';
 import type { SpanAttributes } from '@sentry/types';
-import { browserPerformanceTimeOrigin, dropUndefinedKeys, htmlTreeAsString, logger } from '@sentry/utils';
 import { DEBUG_BUILD } from '../debug-build';
 import { addClsInstrumentationHandler } from './instrument';
 import { msToSec, startStandaloneWebVitalSpan } from './utils';
@@ -67,7 +67,11 @@ export function trackClsAsStandaloneSpan(): void {
   setTimeout(() => {
     const client = getClient();
 
-    const unsubscribeStartNavigation = client?.on('startNavigationSpan', () => {
+    if (!client) {
+      return;
+    }
+
+    const unsubscribeStartNavigation = client.on('startNavigationSpan', () => {
       _collectClsOnce();
       unsubscribeStartNavigation && unsubscribeStartNavigation();
     });
@@ -87,12 +91,12 @@ function sendStandaloneClsSpan(clsValue: number, entry: LayoutShift | undefined,
   const startTime = msToSec((browserPerformanceTimeOrigin() || 0) + (entry?.startTime || 0));
   const routeName = getCurrentScope().getScopeData().transactionName;
 
-  const name = entry ? htmlTreeAsString(entry.sources[0]?.node) : 'Layout shift';
+  const name = entry ? htmlTreeAsString(entry.sources[0] && entry.sources[0].node) : 'Layout shift';
 
   const attributes: SpanAttributes = dropUndefinedKeys({
     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.browser.cls',
     [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'ui.webvital.cls',
-    [SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME]: entry?.duration || 0,
+    [SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME]: (entry && entry.duration) || 0,
     // attach the pageload span id to the CLS span so that we can link them in the UI
     'sentry.pageload.span_id': pageloadSpanId,
   });
@@ -104,19 +108,21 @@ function sendStandaloneClsSpan(clsValue: number, entry: LayoutShift | undefined,
     startTime,
   });
 
-  span?.addEvent('cls', {
-    [SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_UNIT]: '',
-    [SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_VALUE]: clsValue,
-  });
+  if (span) {
+    span.addEvent('cls', {
+      [SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_UNIT]: '',
+      [SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_VALUE]: clsValue,
+    });
 
-  // LayoutShift performance entries always have a duration of 0, so we don't need to add `entry.duration` here
-  // see: https://developer.mozilla.org/en-US/docs/Web/API/PerformanceEntry/duration
-  span?.end(startTime);
+    // LayoutShift performance entries always have a duration of 0, so we don't need to add `entry.duration` here
+    // see: https://developer.mozilla.org/en-US/docs/Web/API/PerformanceEntry/duration
+    span.end(startTime);
+  }
 }
 
 function supportsLayoutShift(): boolean {
   try {
-    return PerformanceObserver.supportedEntryTypes?.includes('layout-shift');
+    return PerformanceObserver.supportedEntryTypes.includes('layout-shift');
   } catch {
     return false;
   }

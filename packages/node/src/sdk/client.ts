@@ -2,9 +2,10 @@ import * as os from 'node:os';
 import type { Tracer } from '@opentelemetry/api';
 import { trace } from '@opentelemetry/api';
 import type { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
-import type { ServerRuntimeClientOptions } from '@sentry/core';
-import { SDK_VERSION, ServerRuntimeClient, applySdkMetadata } from '@sentry/core';
-import { logger } from '@sentry/utils';
+import type { Scope, ServerRuntimeClientOptions } from '@sentry/core';
+import { SDK_VERSION, ServerRuntimeClient, applySdkMetadata, logger } from '@sentry/core';
+import { getTraceContextForScope } from '@sentry/opentelemetry';
+import type { DynamicSamplingContext, TraceContext } from '@sentry/types';
 import { isMainThread, threadId } from 'worker_threads';
 import { DEBUG_BUILD } from '../debug-build';
 import type { NodeClientOptions } from '../types';
@@ -114,5 +115,16 @@ export class NodeClient extends ServerRuntimeClient<NodeClientOptions> {
 
       process.on('beforeExit', this._clientReportOnExitFlushListener);
     }
+  }
+
+  /** Custom implementation for OTEL, so we can handle scope-span linking. */
+  protected _getTraceInfoFromScope(
+    scope: Scope | undefined,
+  ): [dynamicSamplingContext: Partial<DynamicSamplingContext> | undefined, traceContext: TraceContext | undefined] {
+    if (!scope) {
+      return [undefined, undefined];
+    }
+
+    return getTraceContextForScope(this, scope);
   }
 }

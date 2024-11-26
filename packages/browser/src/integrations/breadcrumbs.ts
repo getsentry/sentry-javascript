@@ -5,6 +5,18 @@ import {
   addXhrInstrumentationHandler,
 } from '@sentry-internal/browser-utils';
 import { addBreadcrumb, defineIntegration, getClient } from '@sentry/core';
+import {
+  addConsoleInstrumentationHandler,
+  addFetchInstrumentationHandler,
+  getBreadcrumbLogLevelFromHttpStatusCode,
+  getComponentName,
+  getEventDescription,
+  htmlTreeAsString,
+  logger,
+  parseUrl,
+  safeJoin,
+  severityLevelFromString,
+} from '@sentry/core';
 import type {
   Breadcrumb,
   Client,
@@ -20,18 +32,6 @@ import type {
   XhrBreadcrumbData,
   XhrBreadcrumbHint,
 } from '@sentry/types';
-import {
-  addConsoleInstrumentationHandler,
-  addFetchInstrumentationHandler,
-  getBreadcrumbLogLevelFromHttpStatusCode,
-  getComponentName,
-  getEventDescription,
-  htmlTreeAsString,
-  logger,
-  parseUrl,
-  safeJoin,
-  severityLevelFromString,
-} from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
 import { WINDOW } from '../helpers';
@@ -117,7 +117,7 @@ function _getSentryBreadcrumbHandler(client: Client): (event: SentryEvent) => vo
 }
 
 /**
- * A HOC that creaes a function that creates breadcrumbs from DOM API calls.
+ * A HOC that creates a function that creates breadcrumbs from DOM API calls.
  * This is a HOC so that we get access to dom options in the closure.
  */
 function _getDomBreadcrumbHandler(

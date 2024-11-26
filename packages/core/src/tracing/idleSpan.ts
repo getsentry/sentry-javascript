@@ -1,9 +1,10 @@
 import type { Span, SpanAttributes, StartSpanOptions } from '@sentry/types';
-import { logger, timestampInSeconds } from '@sentry/utils';
 import { getClient, getCurrentScope } from '../currentScopes';
 
 import { DEBUG_BUILD } from '../debug-build';
 import { SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON } from '../semanticAttributes';
+import { logger } from '../utils-hoist/logger';
+import { timestampInSeconds } from '../utils-hoist/time';
 import { hasTracingEnabled } from '../utils/hasTracingEnabled';
 import { _setSpanForScope } from '../utils/spanOnScope';
 import {
@@ -32,7 +33,7 @@ const FINISH_REASON_CANCELLED = 'cancelled';
 // unused
 const FINISH_REASON_DOCUMENT_HIDDEN = 'documentHidden';
 
-// unusued in this file, but used in BrowserTracing
+// unused in this file, but used in BrowserTracing
 const FINISH_REASON_INTERRUPTED = 'interactionInterrupted';
 
 type IdleSpanFinishReason =

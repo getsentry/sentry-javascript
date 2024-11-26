@@ -1,3 +1,4 @@
+/* eslint-disable max-lines */
 // Inspired from Donnie McNeal's solution:
 // https://gist.github.com/wontondon/e8c4bdf2888875e4c755712e99279536
 
@@ -17,8 +18,8 @@ import {
   getRootSpan,
   spanToJSON,
 } from '@sentry/core';
+import { getNumberOfUrlSegments, logger } from '@sentry/core';
 import type { Client, Integration, Span, TransactionSource } from '@sentry/types';
-import { getNumberOfUrlSegments, logger } from '@sentry/utils';
 import hoistNonReactStatics from 'hoist-non-react-statics';
 import * as React from 'react';
 
@@ -141,6 +142,29 @@ function stripBasenameFromPathname(pathname: string, basename: string): string {
   return pathname.slice(startIndex) || '/';
 }
 
+function sendIndexPath(pathBuilder: string, pathname: string, basename: string): [string, TransactionSource] {
+  const reconstructedPath = pathBuilder || _stripBasename ? stripBasenameFromPathname(pathname, basename) : pathname;
+
+  const formattedPath =
+    // If the path ends with a slash, remove it
+    reconstructedPath[reconstructedPath.length - 1] === '/'
+      ? reconstructedPath.slice(0, -1)
+      : // If the path ends with a wildcard, remove it
+        reconstructedPath.slice(-2) === '/*'
+        ? reconstructedPath.slice(0, -1)
+        : reconstructedPath;
+
+  return [formattedPath, 'route'];
+}
+
+function pathEndsWithWildcard(path: string, branch: RouteMatch<string>): boolean {
+  return (path.slice(-2) === '/*' && branch.route.children && branch.route.children.length > 0) || false;
+}
+
+function pathIsWildcardAndHasChildren(path: string, branch: RouteMatch<string>): boolean {
+  return (path === '*' && branch.route.children && branch.route.children.length > 0) || false;
+}
+
 function getNormalizedName(
   routes: RouteObject[],
   location: Location,
@@ -158,25 +182,35 @@ function getNormalizedName(
       if (route) {
         // Early return if index route
         if (route.index) {
-          return [_stripBasename ? stripBasenameFromPathname(branch.pathname, basename) : branch.pathname, 'route'];
+          return sendIndexPath(pathBuilder, branch.pathname, basename);
         }
-
         const path = route.path;
-        if (path) {
+
+        // If path is not a wildcard and has no child routes, append the path
+        if (path && !pathIsWildcardAndHasChildren(path, branch)) {
           const newPath = path[0] === '/' || pathBuilder[pathBuilder.length - 1] === '/' ? path : `/${path}`;
           pathBuilder += newPath;
 
+          // If the path matches the current location, return the path
           if (basename + branch.pathname === location.pathname) {
             if (
               // If the route defined on the element is something like
               // <Route path="/stores/:storeId/products/:productId" element={<div>Product</div>} />
-              // We should check against the branch.pathname for the number of / seperators
+              // We should check against the branch.pathname for the number of / separators
+              // TODO(v9): Put the implementation of `getNumberOfUrlSegments` in this file
+              // eslint-disable-next-line deprecation/deprecation
               getNumberOfUrlSegments(pathBuilder) !== getNumberOfUrlSegments(branch.pathname) &&
               // We should not count wildcard operators in the url segments calculation
               pathBuilder.slice(-2) !== '/*'
             ) {
               return [(_stripBasename ? '' : basename) + newPath, 'route'];
             }
+
+            // if the last character of the pathbuilder is a wildcard and there are children, remove the wildcard
+            if (pathEndsWithWildcard(pathBuilder, branch)) {
+              pathBuilder = pathBuilder.slice(0, -1);
+            }
+
             return [(_stripBasename ? '' : basename) + pathBuilder, 'route'];
           }
         }
@@ -266,7 +300,7 @@ export function withSentryReactRouterV6Routing<P extends Record<string, any>, R 
           handleNavigation(location, routes, navigationType);
         }
       },
-      // `props.children` is purpusely not included in the dependency array, because we do not want to re-run this effect
+      // `props.children` is purposely not included in the dependency array, because we do not want to re-run this effect
       // when the children change. We only want to start transactions when the location or navigation type change.
       [location, navigationType],
     );

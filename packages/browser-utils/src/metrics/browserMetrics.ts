@@ -1,11 +1,10 @@
 /* eslint-disable max-lines */
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, getActiveSpan, startInactiveSpan } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, getActiveSpan } from '@sentry/core';
 import { setMeasurement } from '@sentry/core';
+import { browserPerformanceTimeOrigin, getComponentName, htmlTreeAsString, parseUrl } from '@sentry/core';
 import type { Measurements, Span, SpanAttributes, StartSpanOptions } from '@sentry/types';
-import { browserPerformanceTimeOrigin, getComponentName, htmlTreeAsString, logger, parseUrl } from '@sentry/utils';
 
 import { spanToJSON } from '@sentry/core';
-import { DEBUG_BUILD } from '../debug-build';
 import { WINDOW } from '../types';
 import { trackClsAsStandaloneSpan } from './cls';
 import {
@@ -105,24 +104,32 @@ export function startTrackingWebVitals({ recordClsStandaloneSpans }: StartTracki
  */
 export function startTrackingLongTasks(): void {
   addPerformanceInstrumentationHandler('longtask', ({ entries }) => {
-    if (!getActiveSpan()) {
+    const parent = getActiveSpan();
+    if (!parent) {
       return;
     }
+
+    const { op: parentOp, start_timestamp: parentStartTimestamp } = spanToJSON(parent);
+
     for (const entry of entries) {
       const startTime = msToSec((browserPerformanceTimeOrigin() as number) + entry.startTime);
       const duration = msToSec(entry.duration);
 
-      const span = startInactiveSpan({
+      if (parentOp === 'navigation' && parentStartTimestamp && startTime < parentStartTimestamp) {
+        // Skip adding a span if the long task started before the navigation started.
+        // `startAndEndSpan` will otherwise adjust the parent's start time to the span's start
+        // time, potentially skewing the duration of the actual navigation as reported via our
+        // routing instrumentations
+        continue;
+      }
+
+      startAndEndSpan(parent, startTime, startTime + duration, {
         name: 'Main UI thread blocked',
         op: 'ui.long-task',
-        startTime,
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.browser.metrics',
         },
       });
-      if (span) {
-        span.end(startTime + duration);
-      }
     }
   });
 }
@@ -135,7 +142,8 @@ export function startTrackingLongAnimationFrames(): void {
   // we directly observe `long-animation-frame` events instead of through the web-vitals
   // `observe` helper function.
   const observer = new PerformanceObserver(list => {
-    if (!getActiveSpan()) {
+    const parent = getActiveSpan();
+    if (!parent) {
       return;
     }
     for (const entry of list.getEntries() as PerformanceLongAnimationFrameTiming[]) {
@@ -144,6 +152,16 @@ export function startTrackingLongAnimationFrames(): void {
       }
 
       const startTime = msToSec((browserPerformanceTimeOrigin() as number) + entry.startTime);
+
+      const { start_timestamp: parentStartTimestamp, op: parentOp } = spanToJSON(parent);
+
+      if (parentOp === 'navigation' && parentStartTimestamp && startTime < parentStartTimestamp) {
+        // Skip adding the span if the long animation frame started before the navigation started.
+        // `startAndEndSpan` will otherwise adjust the parent's start time to the span's start
+        // time, potentially skewing the duration of the actual navigation as reported via our
+        // routing instrumentations
+        continue;
+      }
       const duration = msToSec(entry.duration);
 
       const attributes: SpanAttributes = {
@@ -164,15 +182,11 @@ export function startTrackingLongAnimationFrames(): void {
         attributes['browser.script.source_char_position'] = sourceCharPosition;
       }
 
-      const span = startInactiveSpan({
+      startAndEndSpan(parent, startTime, startTime + duration, {
         name: 'Main UI thread blocked',
         op: 'ui.long-animation-frame',
-        startTime,
         attributes,
       });
-      if (span) {
-        span.end(startTime + duration);
-      }
     }
   });
 
@@ -184,7 +198,8 @@ export function startTrackingLongAnimationFrames(): void {
  */
 export function startTrackingInteractions(): void {
   addPerformanceInstrumentationHandler('event', ({ entries }) => {
-    if (!getActiveSpan()) {
+    const parent = getActiveSpan();
+    if (!parent) {
       return;
     }
     for (const entry of entries) {
@@ -206,10 +221,7 @@ export function startTrackingInteractions(): void {
           spanOptions.attributes['ui.component_name'] = componentName;
         }
 
-        const span = startInactiveSpan(spanOptions);
-        if (span) {
-          span.end(startTime + duration);
-        }
+        startAndEndSpan(parent, startTime, startTime + duration, spanOptions);
       }
     }
   });
@@ -227,7 +239,6 @@ function _trackCLS(): () => void {
     if (!entry) {
       return;
     }
-    DEBUG_BUILD && logger.log(`[Measurements] Adding CLS ${metric.value}`);
     _measurements['cls'] = { value: metric.value, unit: '' };
     _clsEntry = entry;
   }, true);
@@ -241,7 +252,6 @@ function _trackLCP(): () => void {
       return;
     }
 
-    DEBUG_BUILD && logger.log('[Measurements] Adding LCP');
     _measurements['lcp'] = { value: metric.value, unit: 'millisecond' };
     _lcpEntry = entry as LargestContentfulPaint;
   }, true);
@@ -257,7 +267,6 @@ function _trackFID(): () => void {
 
     const timeOrigin = msToSec(browserPerformanceTimeOrigin() as number);
     const startTime = msToSec(entry.startTime);
-    DEBUG_BUILD && logger.log('[Measurements] Adding FID');
     _measurements['fid'] = { value: metric.value, unit: 'millisecond' };
     _measurements['mark.fid'] = { value: timeOrigin + startTime, unit: 'second' };
   });
@@ -270,7 +279,6 @@ function _trackTtfb(): () => void {
       return;
     }
 
-    DEBUG_BUILD && logger.log('[Measurements] Adding TTFB');
     _measurements['ttfb'] = { value: metric.value, unit: 'millisecond' };
   });
 }
@@ -292,7 +300,6 @@ export function addPerformanceEntries(span: Span, options: AddPerformanceEntries
     return;
   }
 
-  DEBUG_BUILD && logger.log('[Tracing] Adding & adjusting spans using Performance API');
   const timeOrigin = msToSec(origin);
 
   const performanceEntries = performance.getEntries();
@@ -330,11 +337,9 @@ export function addPerformanceEntries(span: Span, options: AddPerformanceEntries
         const shouldRecord = entry.startTime < firstHidden.firstHiddenTime;
 
         if (entry.name === 'first-paint' && shouldRecord) {
-          DEBUG_BUILD && logger.log('[Measurements] Adding FP');
           _measurements['fp'] = { value: entry.startTime, unit: 'millisecond' };
         }
         if (entry.name === 'first-contentful-paint' && shouldRecord) {
-          DEBUG_BUILD && logger.log('[Measurements] Adding FCP');
           _measurements['fcp'] = { value: entry.startTime, unit: 'millisecond' };
         }
         break;
@@ -419,7 +424,7 @@ export function _addMeasureSpans(
   // spans created by the Next.js framework.
   //
   // To prevent this we will pin the start timestamp to the request start time
-  // This does make duration inaccruate, so if this does happen, we will add
+  // This does make duration inaccurate, so if this does happen, we will add
   // an attribute to the span
   const measureStartTimestamp = timeOrigin + Math.max(startTime, requestTime);
   const startTimeStamp = timeOrigin + startTime;
@@ -514,6 +519,7 @@ export interface ResourceEntry extends Record<string, unknown> {
   encodedBodySize?: number;
   decodedBodySize?: number;
   renderBlockingStatus?: string;
+  deliveryType?: string;
 }
 
 /** Create resource-related spans */
@@ -539,6 +545,10 @@ export function _addResourceSpans(
   setResourceEntrySizeData(attributes, entry, 'transferSize', 'http.response_transfer_size');
   setResourceEntrySizeData(attributes, entry, 'encodedBodySize', 'http.response_content_length');
   setResourceEntrySizeData(attributes, entry, 'decodedBodySize', 'http.decoded_response_content_length');
+
+  if (entry.deliveryType != null) {
+    attributes['http.response_delivery_type'] = entry.deliveryType;
+  }
 
   if ('renderBlockingStatus' in entry) {
     attributes['resource.render_blocking_status'] = entry.renderBlockingStatus;
@@ -600,8 +610,6 @@ function _trackNavigator(span: Span): void {
 /** Add LCP / CLS data to span to allow debugging */
 function _setWebVitalAttributes(span: Span): void {
   if (_lcpEntry) {
-    DEBUG_BUILD && logger.log('[Measurements] Adding LCP Data');
-
     // Capture Properties of the LCP element that contributes to the LCP.
 
     if (_lcpEntry.element) {
@@ -617,12 +625,23 @@ function _setWebVitalAttributes(span: Span): void {
       span.setAttribute('lcp.url', _lcpEntry.url.trim().slice(0, 200));
     }
 
+    if (_lcpEntry.loadTime != null) {
+      // loadTime is the time of LCP that's related to receiving the LCP element response..
+      span.setAttribute('lcp.loadTime', _lcpEntry.loadTime);
+    }
+
+    if (_lcpEntry.renderTime != null) {
+      // renderTime is loadTime + rendering time
+      // it's 0 if the LCP element is loaded from a 3rd party origin that doesn't send the
+      // `Timing-Allow-Origin` header.
+      span.setAttribute('lcp.renderTime', _lcpEntry.renderTime);
+    }
+
     span.setAttribute('lcp.size', _lcpEntry.size);
   }
 
   // See: https://developer.mozilla.org/en-US/docs/Web/API/LayoutShift
   if (_clsEntry && _clsEntry.sources) {
-    DEBUG_BUILD && logger.log('[Measurements] Adding CLS Data');
     _clsEntry.sources.forEach((source, index) =>
       span.setAttribute(`cls.source.${index + 1}`, htmlTreeAsString(source.node)),
     );
@@ -655,7 +674,6 @@ function _addTtfbRequestTimeToMeasurements(_measurements: Measurements): void {
   const { responseStart, requestStart } = navEntry;
 
   if (requestStart <= responseStart) {
-    DEBUG_BUILD && logger.log('[Measurements] Adding TTFB Request Time');
     _measurements['ttfb.requestTime'] = {
       value: responseStart - requestStart,
       unit: 'millisecond',

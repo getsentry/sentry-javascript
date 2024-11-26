@@ -115,7 +115,7 @@ describe('startIdleSpan', () => {
     setCurrentClient(client);
     client.init();
 
-    // We want to accomodate a bit of drift there, so we ensure this starts earlier...
+    // We want to accommodate a bit of drift there, so we ensure this starts earlier...
     const baseTimeInSeconds = Math.floor(Date.now() / 1000) - 9999;
 
     const beforeSpanEnd = jest.fn((span: Span) => {
@@ -169,7 +169,7 @@ describe('startIdleSpan', () => {
     setCurrentClient(client);
     client.init();
 
-    // We want to accomodate a bit of drift there, so we ensure this starts earlier...
+    // We want to accommodate a bit of drift there, so we ensure this starts earlier...
     const baseTimeInSeconds = Math.floor(Date.now() / 1000) - 9999;
 
     const idleSpan = startIdleSpan({ name: 'idle span', startTime: baseTimeInSeconds });
@@ -249,7 +249,7 @@ describe('startIdleSpan', () => {
     setCurrentClient(client);
     client.init();
 
-    // We want to accomodate a bit of drift there, so we ensure this starts earlier...
+    // We want to accommodate a bit of drift there, so we ensure this starts earlier...
     const finalTimeout = 99_999;
     const baseTimeInSeconds = Math.floor(Date.now() / 1000) - 9999;
 

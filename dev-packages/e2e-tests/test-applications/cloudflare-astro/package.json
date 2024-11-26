@@ -21,7 +21,13 @@
     "@sentry/astro": "latest || *",
     "astro": "4.16.1"
   },
+  "devDependencies": {
+    "@astrojs/internal-helpers": "0.4.1"
+  },
   "volta": {
     "extends": "../../package.json"
+  },
+  "sentryTest": {
+    "optional": true
   }
 }

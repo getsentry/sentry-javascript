@@ -1,14 +1,14 @@
 import type { OfflineStore, OfflineTransportOptions } from '@sentry/core';
 import { makeOfflineTransport } from '@sentry/core';
+import { parseEnvelope, serializeEnvelope } from '@sentry/core';
 import type { BaseTransportOptions, Envelope, Transport } from '@sentry/types';
-import { parseEnvelope, serializeEnvelope } from '@sentry/utils';
 import { makeFetchTransport } from './fetch';
 
 // 'Store', 'promisifyRequest' and 'createStore' were originally copied from the 'idb-keyval' package before being
 // modified and simplified: https://github.com/jakearchibald/idb-keyval
 //
 // At commit: 0420a704fd6cbb4225429c536b1f61112d012fca
-// Original licence:
+// Original license:
 
 // Copyright 2016, Jake Archibald
 //

@@ -6,7 +6,7 @@ import { isSampled } from '../../util/isSampled';
 
 /**
  * Determine if event should be sampled (only applies in buffer mode).
- * When an event is captured by `hanldleGlobalEvent`, when in buffer mode
+ * When an event is captured by `handleGlobalEvent`, when in buffer mode
  * we determine if we want to sample the error or not.
  */
 export function shouldSampleForBufferEvent(replay: ReplayContainer, event: Event): boolean {

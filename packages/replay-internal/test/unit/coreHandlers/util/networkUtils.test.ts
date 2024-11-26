@@ -38,7 +38,7 @@ describe('Unit | coreHandlers | util | networkUtils', () => {
 
     it('works with string body', () => {
       expect(getBodySize('abcd')).toBe(4);
-      // Emojis are correctly counted as mutliple characters
+      // Emojis are correctly counted as multiple characters
       expect(getBodySize('With emoji: 😈')).toBe(16);
     });
 

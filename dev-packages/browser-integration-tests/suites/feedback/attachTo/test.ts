@@ -23,18 +23,10 @@ sentryTest('should capture feedback with custom button', async ({ getLocalTestUr
     }
   });
 
-  await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-    return route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ id: 'test-id' }),
-    });
-  });
-
-  const url = await getLocalTestUrl({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname, handleLazyLoadedFeedback: true });
 
   await page.goto(url);
-  await page.locator('#custom-feedback-buttom').click();
+  await page.locator('#custom-feedback-button').click();
   await page.waitForSelector(':visible:text-is("Report a Bug")');
 
   expect(await page.locator(':visible:text-is("Report a Bug")').count()).toEqual(1);

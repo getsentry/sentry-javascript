@@ -2,6 +2,7 @@ import { existsSync } from 'fs';
 import { hostname } from 'os';
 import { basename, resolve } from 'path';
 import { types } from 'util';
+import { logger } from '@sentry/core';
 import type { NodeClient, NodeOptions } from '@sentry/node';
 import {
   SDK_VERSION,
@@ -16,7 +17,6 @@ import {
   withScope,
 } from '@sentry/node';
 import type { Integration, Options, Scope, SdkMetadata, Span } from '@sentry/types';
-import { logger } from '@sentry/utils';
 import type { Context, Handler } from 'aws-lambda';
 import { performance } from 'perf_hooks';
 
@@ -165,6 +165,12 @@ export function tryPatchHandler(taskRoot: string, handlerPath: string): void {
   }
   if (typeof obj !== 'function') {
     DEBUG_BUILD && logger.error(`${handlerPath} is not a function`);
+    return;
+  }
+
+  // Check for prototype pollution
+  if (functionName === '__proto__' || functionName === 'constructor' || functionName === 'prototype') {
+    DEBUG_BUILD && logger.error(`Invalid handler name: ${functionName}`);
     return;
   }
 

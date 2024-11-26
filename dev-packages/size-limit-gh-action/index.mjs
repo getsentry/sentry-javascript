@@ -2,7 +2,7 @@ import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import * as artifact from '@actions/artifact';
+import { DefaultArtifactClient } from '@actions/artifact';
 import * as core from '@actions/core';
 import { exec } from '@actions/exec';
 import { context, getOctokit } from '@actions/github';
@@ -130,7 +130,7 @@ async function run() {
     const sizeLimitComment = await fetchPreviousComment(octokit, repo, pr);
 
     if (sizeLimitComment) {
-      core.debug('Found existing size limit comment, udpating it instead of creating a new one...');
+      core.debug('Found existing size limit comment, updating it instead of creating a new one...');
     }
 
     const shouldComment =
@@ -195,7 +195,7 @@ async function runSizeLimitOnComparisonBranch() {
   const resultsFilePath = getResultsFilePath();
 
   const limit = new SizeLimitFormatter();
-  const artifactClient = artifact.create();
+  const artifactClient = new DefaultArtifactClient();
 
   const { output: baseOutput } = await execSizeLimit();
 

@@ -1,8 +1,18 @@
 import {
+  addNonEnumerableProperty,
+  extractQueryParamsFromUrl,
+  logger,
+  objectify,
+  stripUrlQueryAndFragment,
+  vercelWaitUntil,
+  winterCGRequestToRequestData,
+} from '@sentry/core';
+import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   captureException,
   continueTrace,
+  flush,
   getActiveSpan,
   getClient,
   getCurrentScope,
@@ -11,13 +21,7 @@ import {
   startSpan,
   withIsolationScope,
 } from '@sentry/node';
-import type { Scope, SpanAttributes } from '@sentry/types';
-import {
-  addNonEnumerableProperty,
-  objectify,
-  stripUrlQueryAndFragment,
-  winterCGRequestToRequestData,
-} from '@sentry/utils';
+import type { RequestEventData, Scope, SpanAttributes } from '@sentry/types';
 import type { APIContext, MiddlewareResponseHandler } from 'astro';
 
 type MiddlewareOptions = {
@@ -108,7 +112,13 @@ async function instrumentRequest(
       getCurrentScope().setSDKProcessingMetadata({
         // We store the request on the current scope, not isolation scope,
         // because we may have multiple requests nested inside each other
-        request: isDynamicPageRequest ? winterCGRequestToRequestData(request) : { method, url: request.url },
+        normalizedRequest: (isDynamicPageRequest
+          ? winterCGRequestToRequestData(request)
+          : {
+              method,
+              url: request.url,
+              query_string: extractQueryParamsFromUrl(request.url),
+            }) satisfies RequestEventData,
       });
 
       if (options.trackClientIp && isDynamicPageRequest) {
@@ -188,6 +198,17 @@ async function instrumentRequest(
       } catch (e) {
         sendErrorToSentry(e);
         throw e;
+      } finally {
+        vercelWaitUntil(
+          (async () => {
+            // Flushes pending Sentry events with a 2-second timeout and in a way that cannot create unhandled promise rejections.
+            try {
+              await flush(2000);
+            } catch (e) {
+              logger.log('Error while flushing events:\n', e);
+            }
+          })(),
+        );
       }
       // TODO: flush if serverless (first extract function)
     },

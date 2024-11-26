@@ -2,9 +2,11 @@ import * as fs from 'fs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   QUERY_END_INDICATOR,
-  SENTRY_FUNCTIONS_REEXPORT,
+  SENTRY_REEXPORTED_FUNCTIONS,
   SENTRY_WRAPPED_ENTRY,
+  SENTRY_WRAPPED_FUNCTIONS,
   constructFunctionReExport,
+  constructWrappedFunctionExportQuery,
   extractFunctionReexportQueryParameters,
   findDefaultSdkInitFile,
   removeSentryQueryFromPath,
@@ -70,7 +72,7 @@ describe('findDefaultSdkInitFile', () => {
 
 describe('removeSentryQueryFromPath', () => {
   it('strips the Sentry query part from the path', () => {
-    const url = `/example/path${SENTRY_WRAPPED_ENTRY}${SENTRY_FUNCTIONS_REEXPORT}foo,${QUERY_END_INDICATOR}`;
+    const url = `/example/path${SENTRY_WRAPPED_ENTRY}${SENTRY_WRAPPED_FUNCTIONS}foo,${QUERY_END_INDICATOR}`;
     const url2 = `/example/path${SENTRY_WRAPPED_ENTRY}${QUERY_END_INDICATOR}`;
     const result = removeSentryQueryFromPath(url);
     const result2 = removeSentryQueryFromPath(url2);
@@ -87,56 +89,157 @@ describe('removeSentryQueryFromPath', () => {
 
 describe('extractFunctionReexportQueryParameters', () => {
   it.each([
-    [`${SENTRY_FUNCTIONS_REEXPORT}foo,bar,${QUERY_END_INDICATOR}`, ['foo', 'bar']],
-    [`${SENTRY_FUNCTIONS_REEXPORT}foo,bar,default${QUERY_END_INDICATOR}`, ['foo', 'bar', 'default']],
+    [`${SENTRY_WRAPPED_FUNCTIONS}foo,bar,${QUERY_END_INDICATOR}`, { wrap: ['foo', 'bar'], reexport: [] }],
     [
-      `${SENTRY_FUNCTIONS_REEXPORT}foo,a.b*c?d[e]f(g)h|i\\\\j(){hello},${QUERY_END_INDICATOR}`,
-      ['foo', 'a\\.b\\*c\\?d\\[e\\]f\\(g\\)h\\|i\\\\\\\\j\\(\\)\\{hello\\}'],
+      `${SENTRY_WRAPPED_FUNCTIONS}foo,bar,default${QUERY_END_INDICATOR}`,
+      { wrap: ['foo', 'bar', 'default'], reexport: [] },
     ],
-    [`/example/path/${SENTRY_FUNCTIONS_REEXPORT}foo,bar${QUERY_END_INDICATOR}`, ['foo', 'bar']],
-    [`${SENTRY_FUNCTIONS_REEXPORT}${QUERY_END_INDICATOR}`, []],
-    ['?other-query=param', []],
+    [
+      `${SENTRY_WRAPPED_FUNCTIONS}foo,a.b*c?d[e]f(g)h|i\\\\j(){hello},${QUERY_END_INDICATOR}`,
+      { wrap: ['foo', 'a\\.b\\*c\\?d\\[e\\]f\\(g\\)h\\|i\\\\\\\\j\\(\\)\\{hello\\}'], reexport: [] },
+    ],
+    [`/example/path/${SENTRY_WRAPPED_FUNCTIONS}foo,bar${QUERY_END_INDICATOR}`, { wrap: ['foo', 'bar'], reexport: [] }],
+    [
+      `${SENTRY_WRAPPED_FUNCTIONS}foo,bar,${SENTRY_REEXPORTED_FUNCTIONS}${QUERY_END_INDICATOR}`,
+      { wrap: ['foo', 'bar'], reexport: [] },
+    ],
+    [`${SENTRY_REEXPORTED_FUNCTIONS}${QUERY_END_INDICATOR}`, { wrap: [], reexport: [] }],
+    [
+      `/path${SENTRY_WRAPPED_FUNCTIONS}foo,bar${SENTRY_REEXPORTED_FUNCTIONS}bar${QUERY_END_INDICATOR}`,
+      { wrap: ['foo', 'bar'], reexport: ['bar'] },
+    ],
+    ['?other-query=param', { wrap: [], reexport: [] }],
   ])('extracts parameters from the query string: %s', (query, expected) => {
     const result = extractFunctionReexportQueryParameters(query);
     expect(result).toEqual(expected);
   });
 });
 
+describe('constructWrappedFunctionExportQuery', () => {
+  it.each([
+    [{ '.': ['handler'] }, ['handler'], `${SENTRY_WRAPPED_FUNCTIONS}handler`],
+    [{ '.': ['handler'], './module': ['server'] }, [], `${SENTRY_REEXPORTED_FUNCTIONS}handler,server`],
+    [
+      { '.': ['handler'], './module': ['server'] },
+      ['server'],
+      `${SENTRY_WRAPPED_FUNCTIONS}server${SENTRY_REEXPORTED_FUNCTIONS}handler`,
+    ],
+    [
+      { '.': ['handler', 'otherFunction'] },
+      ['handler'],
+      `${SENTRY_WRAPPED_FUNCTIONS}handler${SENTRY_REEXPORTED_FUNCTIONS}otherFunction`,
+    ],
+    [{ '.': ['handler', 'otherFn'] }, ['handler', 'otherFn'], `${SENTRY_WRAPPED_FUNCTIONS}handler,otherFn`],
+    [{ '.': ['bar'], './module': ['foo'] }, ['bar', 'foo'], `${SENTRY_WRAPPED_FUNCTIONS}bar,foo`],
+    [{ '.': ['foo', 'bar'] }, ['foo'], `${SENTRY_WRAPPED_FUNCTIONS}foo${SENTRY_REEXPORTED_FUNCTIONS}bar`],
+    [{ '.': ['foo', 'bar'] }, ['bar'], `${SENTRY_WRAPPED_FUNCTIONS}bar${SENTRY_REEXPORTED_FUNCTIONS}foo`],
+    [{ '.': ['foo', 'bar'] }, ['foo', 'bar'], `${SENTRY_WRAPPED_FUNCTIONS}foo,bar`],
+    [{ '.': ['foo', 'bar'] }, [], `${SENTRY_REEXPORTED_FUNCTIONS}foo,bar`],
+  ])(
+    'constructs re-export query for exportedBindings: %j and entrypointWrappedFunctions: %j',
+    (exportedBindings, entrypointWrappedFunctions, expected) => {
+      const result = constructWrappedFunctionExportQuery(exportedBindings, entrypointWrappedFunctions);
+      expect(result).toBe(expected);
+    },
+  );
+
+  it('logs a warning if no functions are found for re-export and debug is true', () => {
+    const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const exportedBindings = { '.': ['handler'] };
+    const entrypointWrappedFunctions = ['nonExistentFunction'];
+    const debug = true;
+
+    const result = constructWrappedFunctionExportQuery(exportedBindings, entrypointWrappedFunctions, debug);
+    expect(result).toBe('?sentry-query-reexported-functions=handler');
+    expect(consoleWarnSpy).toHaveBeenCalledWith(
+      "[Sentry] No functions found to wrap. In case the server needs to export async functions other than `handler` or  `server`, consider adding the name(s) to Sentry's build options `sentry.entrypointWrappedFunctions` in `nuxt.config.ts`.",
+    );
+
+    consoleWarnSpy.mockRestore();
+  });
+});
+
 describe('constructFunctionReExport', () => {
   it('constructs re-export code for given query parameters and entry ID', () => {
-    const query = `${SENTRY_FUNCTIONS_REEXPORT}foo,bar,${QUERY_END_INDICATOR}}`;
-    const query2 = `${SENTRY_FUNCTIONS_REEXPORT}foo,bar${QUERY_END_INDICATOR}}`;
+    const query = `${SENTRY_WRAPPED_FUNCTIONS}foo,bar,${QUERY_END_INDICATOR}}`;
+    const query2 = `${SENTRY_WRAPPED_FUNCTIONS}foo,bar${QUERY_END_INDICATOR}}`;
     const entryId = './module';
     const result = constructFunctionReExport(query, entryId);
     const result2 = constructFunctionReExport(query2, entryId);
 
     const expected = `
-async function reExport(...args) {
+async function foo_sentryWrapped(...args) {
   const res = await import("./module");
   return res.foo.call(this, ...args);
 }
-export { reExport as foo };
-async function reExport(...args) {
+export { foo_sentryWrapped as foo };
+async function bar_sentryWrapped(...args) {
   const res = await import("./module");
   return res.bar.call(this, ...args);
 }
-export { reExport as bar };
+export { bar_sentryWrapped as bar };
 `;
     expect(result.trim()).toBe(expected.trim());
     expect(result2.trim()).toBe(expected.trim());
   });
 
   it('constructs re-export code for a "default" query parameters and entry ID', () => {
-    const query = `${SENTRY_FUNCTIONS_REEXPORT}default${QUERY_END_INDICATOR}}`;
+    const query = `${SENTRY_WRAPPED_FUNCTIONS}default${QUERY_END_INDICATOR}}`;
     const entryId = './index';
     const result = constructFunctionReExport(query, entryId);
 
     const expected = `
-async function reExport(...args) {
+async function default_sentryWrapped(...args) {
   const res = await import("./index");
   return res.default.call(this, ...args);
 }
-export { reExport as default };
+export { default_sentryWrapped as default };
+`;
+    expect(result.trim()).toBe(expected.trim());
+  });
+
+  it('constructs re-export code for a "default" query parameters and entry ID', () => {
+    const query = `${SENTRY_WRAPPED_FUNCTIONS}default${QUERY_END_INDICATOR}}`;
+    const entryId = './index';
+    const result = constructFunctionReExport(query, entryId);
+
+    const expected = `
+async function default_sentryWrapped(...args) {
+  const res = await import("./index");
+  return res.default.call(this, ...args);
+}
+export { default_sentryWrapped as default };
+`;
+    expect(result.trim()).toBe(expected.trim());
+  });
+
+  it('constructs re-export code for a mix of wrapped and re-exported functions', () => {
+    const query = `${SENTRY_WRAPPED_FUNCTIONS}foo,${SENTRY_REEXPORTED_FUNCTIONS}bar${QUERY_END_INDICATOR}`;
+    const entryId = './module';
+    const result = constructFunctionReExport(query, entryId);
+
+    const expected = `
+async function foo_sentryWrapped(...args) {
+  const res = await import("./module");
+  return res.foo.call(this, ...args);
+}
+export { foo_sentryWrapped as foo };
+export { bar } from "./module";
+`;
+    expect(result.trim()).toBe(expected.trim());
+  });
+
+  it('does not re-export a default export for regular re-exported functions', () => {
+    const query = `${SENTRY_WRAPPED_FUNCTIONS}foo${SENTRY_REEXPORTED_FUNCTIONS}default${QUERY_END_INDICATOR}`;
+    const entryId = './module';
+    const result = constructFunctionReExport(query, entryId);
+
+    const expected = `
+async function foo_sentryWrapped(...args) {
+  const res = await import("./module");
+  return res.foo.call(this, ...args);
+}
+export { foo_sentryWrapped as foo };
 `;
     expect(result.trim()).toBe(expected.trim());
   });

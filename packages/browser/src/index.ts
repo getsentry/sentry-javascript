@@ -6,9 +6,11 @@ export { contextLinesIntegration } from './integrations/contextlines';
 
 export {
   captureConsoleIntegration,
+  // eslint-disable-next-line deprecation/deprecation
   debugIntegration,
   extraErrorDataIntegration,
   rewriteFramesIntegration,
+  // eslint-disable-next-line deprecation/deprecation
   sessionTimingIntegration,
   captureFeedback,
 } from '@sentry/core';
@@ -74,3 +76,4 @@ export {
 export type { Span } from '@sentry/types';
 export { makeBrowserOfflineTransport } from './transports/offline';
 export { browserProfilingIntegration } from './profiling/integration';
+export { spotlightBrowserIntegration } from './integrations/spotlight';

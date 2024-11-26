@@ -17,8 +17,8 @@ import {
   getStatusMessage,
   spanTimeInputToSeconds,
 } from '@sentry/core';
+import { dropUndefinedKeys, logger } from '@sentry/core';
 import type { SpanJSON, SpanOrigin, TraceContext, TransactionEvent, TransactionSource } from '@sentry/types';
-import { dropUndefinedKeys, logger } from '@sentry/utils';
 import { SENTRY_TRACE_STATE_PARENT_SPAN_ID } from './constants';
 
 import { DEBUG_BUILD } from './debug-build';
@@ -105,8 +105,9 @@ export class SentrySpanExporter {
    * We do this to avoid leaking memory.
    */
   private _cleanupOldSpans(spans = this._finishedSpans): void {
+    const currentTimeSeconds = Date.now() / 1000;
     this._finishedSpans = spans.filter(span => {
-      const shouldDrop = shouldCleanupSpan(span, this._timeout);
+      const shouldDrop = shouldCleanupSpan(span, currentTimeSeconds, this._timeout);
       DEBUG_BUILD &&
         shouldDrop &&
         logger.log(
@@ -174,8 +175,8 @@ function getCompletedRootNodes(nodes: SpanNode[]): SpanNodeCompleted[] {
   return nodes.filter(nodeIsCompletedRootNode);
 }
 
-function shouldCleanupSpan(span: ReadableSpan, maxStartTimeOffsetSeconds: number): boolean {
-  const cutoff = Date.now() / 1000 - maxStartTimeOffsetSeconds;
+function shouldCleanupSpan(span: ReadableSpan, currentTimeSeconds: number, maxStartTimeOffsetSeconds: number): boolean {
+  const cutoff = currentTimeSeconds - maxStartTimeOffsetSeconds;
   return spanTimeInputToSeconds(span.startTime) < cutoff;
 }
 
@@ -208,7 +209,7 @@ function createTransactionForOtelSpan(span: ReadableSpan): TransactionEvent {
 
   const parentSpanIdFromTraceState = span.spanContext().traceState?.get(SENTRY_TRACE_STATE_PARENT_SPAN_ID);
 
-  // If parentSpanIdFromTraceState is defined at all, we want it to take presedence
+  // If parentSpanIdFromTraceState is defined at all, we want it to take precedence
   // In that case, an empty string should be interpreted as "no parent span id",
   // even if `span.parentSpanId` is set
   // this is the case when we are starting a new trace, where we have a virtual span based on the propagationContext
@@ -336,7 +337,7 @@ function getSpanData(span: ReadableSpan): {
 }
 
 /**
- * Remove custom `sentry.` attribtues we do not need to send.
+ * Remove custom `sentry.` attributes we do not need to send.
  * These are more carrier attributes we use inside of the SDK, we do not need to send them to the API.
  */
 function removeSentryAttributes(data: Record<string, unknown>): Record<string, unknown> {
@@ -345,7 +346,6 @@ function removeSentryAttributes(data: Record<string, unknown>): Record<string, u
   /* eslint-disable @typescript-eslint/no-dynamic-delete */
   delete cleanedData[SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE];
   delete cleanedData[SEMANTIC_ATTRIBUTE_SENTRY_PARENT_IS_REMOTE];
-  delete cleanedData['sentry.skip_span_data_inference'];
   /* eslint-enable @typescript-eslint/no-dynamic-delete */
 
   return cleanedData;

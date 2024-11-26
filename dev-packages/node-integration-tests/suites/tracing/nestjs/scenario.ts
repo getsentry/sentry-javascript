@@ -1,5 +1,3 @@
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-nocheck These are only tests
 /* eslint-disable @typescript-eslint/naming-convention */
 /* eslint-disable @typescript-eslint/explicit-member-accessibility */
 import { loggingTransport, sendPortToRunner } from '@sentry-internal/node-integration-tests';
@@ -50,6 +48,7 @@ async function run(): Promise<void> {
   await app.listen(port);
 
   const { httpAdapter } = app.get(HttpAdapterHost);
+  // eslint-disable-next-line deprecation/deprecation
   Sentry.setupNestErrorHandler(app, new BaseExceptionFilter(httpAdapter));
   sendPortToRunner(port);
 }

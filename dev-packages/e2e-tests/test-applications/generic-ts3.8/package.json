@@ -10,7 +10,8 @@
     "test:assert": "pnpm -v"
   },
   "devDependencies": {
-    "typescript": "3.8.3"
+    "typescript": "3.8.3",
+    "@types/node": "^14.18.0"
   },
   "dependencies": {
     "@sentry/browser": "latest || *",
@@ -18,7 +19,7 @@
     "@sentry/node": "latest || *",
     "@sentry-internal/replay": "latest || *",
     "@sentry/types": "latest || *",
-    "@sentry/utils": "latest || *",
+    "@sentry/core": "latest || *",
     "@sentry/wasm": "latest || *"
   }
 }

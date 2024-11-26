@@ -14,10 +14,12 @@ const port1 = 3030;
 const port2 = 3040;
 
 const Koa = require('koa');
+const { bodyParser } = require('@koa/bodyparser');
 const Router = require('@koa/router');
 const http = require('http');
 
 const app1 = new Koa();
+app1.use(bodyParser());
 
 Sentry.setupKoaErrorHandler(app1);
 
@@ -107,6 +109,10 @@ router1.get('/test-assert/:condition', async ctx => {
   ctx.body = 200;
   const condition = ctx.params.condition !== 'false';
   ctx.assert(condition, 400, 'ctx.assert failed');
+});
+
+router1.post('/test-post', async ctx => {
+  ctx.body = { status: 'ok', body: ctx.request.body };
 });
 
 app1.use(router1.routes()).use(router1.allowedMethods());

@@ -10,22 +10,14 @@ import {
 
 sentryTest(
   'should capture an INP click event span during pageload for a parametrized transaction',
-  async ({ browserName, getLocalTestPath, page }) => {
+  async ({ browserName, getLocalTestUrl, page }) => {
     const supportedBrowsers = ['chromium'];
 
     if (shouldSkipTracingTest() || !supportedBrowsers.includes(browserName)) {
       sentryTest.skip();
     }
 
-    await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-      return route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({ id: 'test-id' }),
-      });
-    });
-
-    const url = await getLocalTestPath({ testDir: __dirname });
+    const url = await getLocalTestUrl({ testDir: __dirname });
 
     await page.goto(url);
 

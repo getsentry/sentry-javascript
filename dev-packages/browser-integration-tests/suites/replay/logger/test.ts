@@ -3,7 +3,7 @@ import { expect } from '@playwright/test';
 import { sentryTest } from '../../../utils/fixtures';
 import { shouldSkipReplayTest, waitForReplayRequest } from '../../../utils/replayHelpers';
 
-sentryTest('should output logger messages', async ({ getLocalTestPath, page }) => {
+sentryTest('should output logger messages', async ({ getLocalTestUrl, page }) => {
   // In minified bundles we do not have logger messages, so we skip the test
   if (shouldSkipReplayTest() || (process.env.PW_BUNDLE || '').includes('_min')) {
     sentryTest.skip();
@@ -15,17 +15,9 @@ sentryTest('should output logger messages', async ({ getLocalTestPath, page }) =
     messages.push(message.text());
   });
 
-  await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-    return route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ id: 'test-id' }),
-    });
-  });
-
   const reqPromise0 = waitForReplayRequest(page, 0);
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
 
   await Promise.all([page.goto(url), reqPromise0]);
 

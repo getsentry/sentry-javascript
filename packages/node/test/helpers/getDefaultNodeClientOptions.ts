@@ -1,5 +1,5 @@
 import { createTransport } from '@sentry/core';
-import { resolvedSyncPromise } from '@sentry/utils';
+import { resolvedSyncPromise } from '@sentry/core';
 
 import type { NodeClientOptions } from '../../src/types';
 

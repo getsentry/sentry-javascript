@@ -1,0 +1,30 @@
+{
+  "name": "nuxt-3-min",
+  "description": "E2E test app for the minimum nuxt 3 version our nuxt SDK supports.",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "nuxt build && bash ./copyIITM.bash",
+    "dev": "nuxt dev",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview",
+    "start": "node .output/server/index.mjs",
+    "clean": "npx nuxi cleanup",
+    "test": "playwright test",
+    "test:build": "pnpm install && npx playwright install && pnpm build",
+    "test:assert": "pnpm test"
+  },
+  "dependencies": {
+    "@sentry/nuxt": "latest || *",
+    "nuxt": "3.13.2"
+  },
+  "devDependencies": {
+    "@nuxt/test-utils": "^3.14.1",
+    "@playwright/test": "^1.44.1",
+    "@sentry-internal/test-utils": "link:../../../test-utils"
+  },
+  "overrides": {
+    "nitropack": "2.9.7",
+    "@vercel/nft": "^0.27.4"
+  }
+}

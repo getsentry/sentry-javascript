@@ -44,7 +44,6 @@ env:
     ${{ github.workspace }}/packages/*/build
     ${{ github.workspace }}/packages/ember/*.d.ts
     ${{ github.workspace }}/packages/gatsby/*.d.ts
-    ${{ github.workspace }}/packages/core/src/version.ts
     ${{ github.workspace }}/packages/utils/cjs
     ${{ github.workspace }}/packages/utils/esm
 
@@ -437,7 +436,7 @@ jobs:
         with:
           node-version-file: 'package.json'
       - name: Set up Deno
-        uses: denoland/setup-deno@v1.5.1
+        uses: denoland/setup-deno@v2.0.1
         with:
           deno-version: v1.38.5
       - name: Restore caches
@@ -796,12 +795,21 @@ jobs:
     # - The build job was successful, not skipped
     # - AND if the profiling node bindings were either successful or skipped
     if: |
-      always() && needs.job_build.result == 'success' &&
+      always() &&
+      needs.job_build.result == 'success' &&
       (needs.job_compile_bindings_profiling_node.result == 'success' || needs.job_compile_bindings_profiling_node.result == 'skipped')
     needs: [job_get_metadata, job_build, job_compile_bindings_profiling_node]
     runs-on: ubuntu-20.04-large-js
     timeout-minutes: 15
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+      matrix-optional: ${{ steps.matrix-optional.outputs.matrix }}
     steps:
+      - name: Check out base commit (${{ github.event.pull_request.base.sha }})
+        uses: actions/checkout@v4
+        if: github.event_name == 'pull_request'
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v4
         with:
@@ -851,14 +859,24 @@ jobs:
           path: ${{ github.workspace }}/packages/*/*.tgz
           key: ${{ env.BUILD_CACHE_TARBALL_KEY }}
 
+      - name: Determine which E2E test applications should be run
+        id: matrix
+        run: yarn --silent ci:build-matrix --base=${{ (github.event_name == 'pull_request' && github.event.pull_request.base.sha) || '' }} >> $GITHUB_OUTPUT
+        working-directory: dev-packages/e2e-tests
+
+      - name: Determine which optional E2E test applications should be run
+        id: matrix-optional
+        run: yarn --silent ci:build-matrix-optional --base=${{ (github.event_name == 'pull_request' && github.event.pull_request.base.sha) || '' }} >> $GITHUB_OUTPUT
+        working-directory: dev-packages/e2e-tests
+
   job_e2e_tests:
     name: E2E ${{ matrix.label || matrix.test-application }} Test
     # We need to add the `always()` check here because the previous step has this as well :(
     # See: https://github.com/actions/runner/issues/2205
-    if: always() && needs.job_e2e_prepare.result == 'success'
+    if: always() && needs.job_e2e_prepare.result == 'success' && needs.job_e2e_prepare.outputs.matrix != '{"include":[]}'
     needs: [job_get_metadata, job_build, job_e2e_prepare]
     runs-on: ubuntu-20.04
-    timeout-minutes: 10
+    timeout-minutes: 15
     env:
       # We just use a dummy DSN here, only send to the tunnel anyhow
       E2E_TEST_DSN: 'https://username@domain/123'
@@ -870,101 +888,7 @@ jobs:
       E2E_TEST_SENTRY_PROJECT: 'sentry-javascript-e2e-tests'
     strategy:
       fail-fast: false
-      matrix:
-        is_dependabot:
-          - ${{ github.actor == 'dependabot[bot]' }}
-        test-application:
-          [
-            'angular-17',
-            'angular-18',
-            'astro-4',
-            'aws-lambda-layer-cjs',
-            'aws-serverless-esm',
-            'node-express',
-            'create-react-app',
-            'create-next-app',
-            'create-remix-app',
-            'create-remix-app-legacy',
-            'create-remix-app-v2',
-            'create-remix-app-v2-legacy',
-            'create-remix-app-express',
-            'create-remix-app-express-legacy',
-            'create-remix-app-express-vite-dev',
-            'default-browser',
-            'node-express-esm-loader',
-            'node-express-esm-preload',
-            'node-express-esm-without-loader',
-            'node-express-cjs-preload',
-            'node-otel-sdk-node',
-            'node-otel-custom-sampler',
-            'node-otel-without-tracing',
-            'ember-classic',
-            'ember-embroider',
-            'nextjs-app-dir',
-            'nextjs-13',
-            'nextjs-14',
-            'nextjs-15',
-            'nextjs-t3',
-            'react-17',
-            'react-19',
-            'react-create-hash-router',
-            'react-router-6-use-routes',
-            'react-router-5',
-            'react-router-6',
-            'solid',
-            'solidstart',
-            'svelte-5',
-            'sveltekit',
-            'sveltekit-2',
-            'sveltekit-2-svelte-5',
-            'sveltekit-2-twp',
-            'tanstack-router',
-            'generic-ts3.8',
-            'node-fastify',
-            'node-fastify-5',
-            'node-hapi',
-            'node-nestjs-basic',
-            'node-nestjs-distributed-tracing',
-            'nestjs-basic',
-            'nestjs-distributed-tracing',
-            'nestjs-with-submodules',
-            'nestjs-with-submodules-decorator',
-            'nestjs-basic-with-graphql',
-            'nestjs-graphql',
-            'node-exports-test-app',
-            'node-koa',
-            'node-connect',
-            'nuxt-3',
-            'nuxt-4',
-            'vue-3',
-            'webpack-4',
-            'webpack-5'
-          ]
-        build-command:
-          - false
-        label:
-          - false
-        # Add any variations of a test app here
-        # You should provide an alternate build-command as well as a matching label
-        include:
-          - test-application: 'create-react-app'
-            build-command: 'test:build-ts3.8'
-            label: 'create-react-app (TS 3.8)'
-          - test-application: 'react-router-6'
-            build-command: 'test:build-ts3.8'
-            label: 'react-router-6 (TS 3.8)'
-          - test-application: 'create-next-app'
-            build-command: 'test:build-13'
-            label: 'create-next-app (next@13)'
-          - test-application: 'nextjs-app-dir'
-            build-command: 'test:build-13'
-            label: 'nextjs-app-dir (next@13)'
-        exclude:
-          - is_dependabot: true
-            test-application: 'cloudflare-astro'
-          - is_dependabot: true
-            test-application: 'cloudflare-workers'
-
+      matrix: ${{ fromJson(needs.job_e2e_prepare.outputs.matrix) }}
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v4
@@ -1018,12 +942,12 @@ jobs:
 
       - name: Build E2E app
         working-directory: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
-        timeout-minutes: 5
+        timeout-minutes: 7
         run: pnpm ${{ matrix.build-command || 'test:build' }}
 
       - name: Run E2E test
         working-directory: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
-        timeout-minutes: 5
+        timeout-minutes: 10
         run: pnpm test:assert
 
       - name: Upload Playwright Traces
@@ -1035,6 +959,21 @@ jobs:
           overwrite: true
           retention-days: 7
 
+      - name: Pre-process E2E Test Dumps
+        if: always()
+        run: |
+          node ./scripts/normalize-e2e-test-dump-transaction-events.js
+
+      - name: Upload E2E Test Event Dumps
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: E2E Test Dump (${{ matrix.label || matrix.test-application }})
+          path: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}/event-dumps
+          overwrite: true
+          retention-days: 7
+          if-no-files-found: ignore
+
       - name: Upload test results to Codecov
         if: cancelled() == false
         continue-on-error: true
@@ -1043,18 +982,22 @@ jobs:
           directory: dev-packages/e2e-tests
           token: ${{ secrets.CODECOV_TOKEN }}
 
+  # - We skip optional tests on release branches
   job_optional_e2e_tests:
     name: E2E ${{ matrix.label || matrix.test-application }} Test
     # We only run E2E tests for non-fork PRs because the E2E tests require secrets to work and they can't be accessed from forks
     # We need to add the `always()` check here because the previous step has this as well :(
     # See: https://github.com/actions/runner/issues/2205
     if:
-      always() && needs.job_e2e_prepare.result == 'success' &&
+      always() &&
+      needs.job_get_metadata.outputs.is_release != 'true' &&
+      needs.job_e2e_prepare.result == 'success' &&
+      needs.job_e2e_prepare.outputs.matrix-optional != '{"include":[]}' &&
       (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) &&
       github.actor != 'dependabot[bot]'
     needs: [job_get_metadata, job_build, job_e2e_prepare]
     runs-on: ubuntu-20.04
-    timeout-minutes: 10
+    timeout-minutes: 15
     env:
       E2E_TEST_AUTH_TOKEN: ${{ secrets.E2E_TEST_AUTH_TOKEN }}
       E2E_TEST_DSN: ${{ secrets.E2E_TEST_DSN }}
@@ -1066,56 +1009,7 @@ jobs:
       E2E_TEST_SENTRY_PROJECT: 'sentry-javascript-e2e-tests'
     strategy:
       fail-fast: false
-      matrix:
-        test-application:
-          [
-            'cloudflare-astro',
-            'cloudflare-workers',
-            'react-send-to-sentry',
-            'node-express-send-to-sentry',
-            'debug-id-sourcemaps',
-            'nextjs-app-dir',
-            'nextjs-13',
-            'nextjs-14',
-            'nextjs-15',
-          ]
-        build-command:
-          - false
-        assert-command:
-          - false
-        label:
-          - false
-        include:
-          - test-application: 'create-remix-app'
-            assert-command: 'test:assert-sourcemaps'
-            label: 'create-remix-app (sourcemaps)'
-          - test-application: 'create-remix-app-legacy'
-            assert-command: 'test:assert-sourcemaps'
-            label: 'create-remix-app-legacy (sourcemaps)'
-          - test-application: 'nextjs-app-dir'
-            build-command: 'test:build-canary'
-            label: 'nextjs-app-dir (canary)'
-          - test-application: 'nextjs-app-dir'
-            build-command: 'test:build-latest'
-            label: 'nextjs-app-dir (latest)'
-          - test-application: 'nextjs-13'
-            build-command: 'test:build-canary'
-            label: 'nextjs-13 (canary)'
-          - test-application: 'nextjs-13'
-            build-command: 'test:build-latest'
-            label: 'nextjs-13 (latest)'
-          - test-application: 'nextjs-14'
-            build-command: 'test:build-canary'
-            label: 'nextjs-14 (canary)'
-          - test-application: 'nextjs-14'
-            build-command: 'test:build-latest'
-            label: 'nextjs-14 (latest)'
-          - test-application: 'nextjs-15'
-            build-command: 'test:build-canary'
-            label: 'nextjs-15 (canary)'
-          - test-application: 'nextjs-15'
-            build-command: 'test:build-latest'
-            label: 'nextjs-15 (latest)'
+      matrix: ${{ fromJson(needs.job_e2e_prepare.outputs.matrix-optional) }}
 
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
@@ -1167,13 +1061,28 @@ jobs:
 
       - name: Build E2E app
         working-directory: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
-        timeout-minutes: 5
+        timeout-minutes: 7
         run: pnpm ${{ matrix.build-command || 'test:build' }}
 
       - name: Run E2E test
         working-directory: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
-        timeout-minutes: 5
+        timeout-minutes: 10
         run: pnpm ${{ matrix.assert-command || 'test:assert' }}
+
+      - name: Pre-process E2E Test Dumps
+        if: always()
+        run: |
+          node ./scripts/normalize-e2e-test-dump-transaction-events.js
+
+      - name: Upload E2E Test Event Dumps
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: E2E Test Dump (${{ matrix.label || matrix.test-application }})
+          path: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}/event-dumps
+          overwrite: true
+          retention-days: 7
+          if-no-files-found: ignore
 
       - name: Deploy Astro to Cloudflare
         uses: cloudflare/pages-action@v1
@@ -1200,8 +1109,8 @@ jobs:
         (needs.job_get_metadata.outputs.is_release == 'true')
       )
     needs: [job_get_metadata, job_build, job_e2e_prepare]
-    runs-on: ubuntu-20.04
-    timeout-minutes: 10
+    runs-on: ubuntu-22.04
+    timeout-minutes: 15
     env:
       E2E_TEST_AUTH_TOKEN: ${{ secrets.E2E_TEST_AUTH_TOKEN }}
       E2E_TEST_DSN: ${{ secrets.E2E_TEST_DSN }}
@@ -1220,19 +1129,24 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ env.HEAD_COMMIT }}
+
       - uses: pnpm/action-setup@v4
         with:
           version: 9.4.0
+
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
           node-version: 22
+
       - name: Restore caches
         uses: ./.github/actions/restore-cache
         with:
           dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
+
       - name: Build Profiling Node
         run: yarn lerna run build:lib --scope @sentry/profiling-node
+
       - name: Extract Profiling Node Prebuilt Binaries
         uses: actions/download-artifact@v4
         with:
@@ -1271,15 +1185,27 @@ jobs:
         env:
           E2E_TEST_PUBLISH_SCRIPT_NODE_VERSION: ${{ steps.versions.outputs.node }}
 
+      - name: Setup xvfb and update ubuntu dependencies
+        run: |
+          sudo apt-get install xvfb x11-xkb-utils xfonts-100dpi xfonts-75dpi xfonts-scalable xfonts-cyrillic x11-apps
+          sudo apt-get install build-essential clang libdbus-1-dev libgtk2.0-dev \
+                       libnotify-dev libgconf2-dev \
+                       libasound2-dev libcap-dev libcups2-dev libxtst-dev \
+                       libxss1 libnss3-dev gcc-multilib g++-multilib
+
+      - name: Install dependencies
+        working-directory: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
+        run: yarn install --ignore-engines --frozen-lockfile
+
       - name: Build E2E app
         working-directory: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
-        timeout-minutes: 5
+        timeout-minutes: 7
         run: yarn ${{ matrix.build-command || 'test:build' }}
 
       - name: Run E2E test
         working-directory: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
-        timeout-minutes: 5
-        run: yarn test:assert
+        timeout-minutes: 10
+        run: xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" -- yarn test:assert
 
   job_required_jobs_passed:
     name: All required jobs passed or were skipped
@@ -1311,48 +1237,6 @@ jobs:
         if: contains(needs.*.result, 'failure')
         run: |
           echo "One of the dependent jobs have failed. You may need to re-run it." && exit 1
-
-  overhead_metrics:
-    name: Overhead metrics
-    needs: [job_get_metadata, job_build]
-    runs-on: ubuntu-20.04
-    timeout-minutes: 30
-    if: |
-      contains(github.event.pull_request.labels.*.name, 'ci-overhead-measurements')
-    steps:
-      - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ env.HEAD_COMMIT }}
-      - name: Set up Node
-        uses: actions/setup-node@v4
-        with:
-          node-version-file: 'package.json'
-      - name: Restore caches
-        uses: ./.github/actions/restore-cache
-        with:
-          dependency_cache_key: ${{ needs.job_build.outputs.dependency_cache_key }}
-
-      - name: Collect
-        run: yarn ci:collect
-        working-directory: dev-packages/overhead-metrics
-
-      - name: Process
-        id: process
-        run: yarn ci:process
-        working-directory: dev-packages/overhead-metrics
-        # Don't run on forks - the PR comment cannot be added.
-        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-
-      - name: Upload results
-        uses: actions/upload-artifact@v4
-        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
-        with:
-          name: ${{ steps.process.outputs.artifactName }}
-          path: ${{ steps.process.outputs.artifactPath }}
-          retention-days: 7
 
   job_compile_bindings_profiling_node:
     name: Compile & Test Profiling Bindings (v${{ matrix.node }}) ${{ matrix.target_platform || matrix.os }}, ${{ matrix.node || matrix.container }}, ${{ matrix.arch || matrix.container }}, ${{ contains(matrix.container, 'alpine') && 'musl' || 'glibc'  }}

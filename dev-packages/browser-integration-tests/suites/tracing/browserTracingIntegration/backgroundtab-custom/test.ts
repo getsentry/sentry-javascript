@@ -4,12 +4,12 @@ import type { SpanJSON } from '@sentry/types';
 import { sentryTest } from '../../../../utils/fixtures';
 import { shouldSkipTracingTest } from '../../../../utils/helpers';
 
-sentryTest('should finish a custom transaction when the page goes background', async ({ getLocalTestPath, page }) => {
+sentryTest('should finish a custom transaction when the page goes background', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipTracingTest()) {
     sentryTest.skip();
   }
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
   await page.goto(url);
 
   await page.locator('#start-span').click();

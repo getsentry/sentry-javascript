@@ -1,4 +1,4 @@
-// This is a build scripts, so some logging is desireable as it allows
+// This is a build script, so some logging is desirable as it allows
 // us to follow the code path that triggered the error.
 /* eslint-disable no-console */
 const fs = require('fs');

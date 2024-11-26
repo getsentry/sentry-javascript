@@ -25,7 +25,7 @@ type NextApiModule = (
 const userApiModule = origModule as NextApiModule;
 
 // Default to undefined. It's possible for Next.js users to not define any exports/handlers in an API route. If that is
-// the case Next.js wil crash during runtime but the Sentry SDK should definitely not crash so we need tohandle it.
+// the case Next.js will crash during runtime but the Sentry SDK should definitely not crash so we need to handle it.
 let userProvidedHandler = undefined;
 
 if ('default' in userApiModule && typeof userApiModule.default === 'function') {
@@ -65,6 +65,6 @@ if (wrappedHandler) {
 export default wrappedHandler;
 
 // Re-export anything exported by the page module we're wrapping. When processing this code, Rollup is smart enough to
-// not include anything whose name matchs something we've explicitly exported above.
+// not include anything whose name matches something we've explicitly exported above.
 // @ts-expect-error See above
 export * from '__SENTRY_WRAPPING_TARGET_FILE__';

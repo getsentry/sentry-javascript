@@ -1,9 +1,9 @@
 import { TraceFlags, context, trace } from '@opentelemetry/api';
 import type { SpanProcessor } from '@opentelemetry/sdk-trace-base';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
+import { logger } from '@sentry/core';
 import { SentrySpanProcessor } from '@sentry/opentelemetry';
 import type { TransactionEvent } from '@sentry/types';
-import { logger } from '@sentry/utils';
 
 import * as Sentry from '../../src';
 import { cleanupOtel, getProvider, mockSdkInit } from '../helpers/mockSdkInit';
@@ -595,7 +595,7 @@ describe('Integration | Transactions', () => {
 
     jest.advanceTimersByTime(1);
 
-    // Child-spans have been added to the exporter, but they are pending since they are waiting for their parant
+    // Child-spans have been added to the exporter, but they are pending since they are waiting for their parent
     expect(exporter['_finishedSpans'].length).toBe(2);
     expect(beforeSendTransaction).toHaveBeenCalledTimes(0);
 

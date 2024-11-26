@@ -1,6 +1,6 @@
 import type { AddressInfo } from 'net';
+import { parseEnvelope } from '@sentry/core';
 import type { Envelope } from '@sentry/types';
-import { parseEnvelope } from '@sentry/utils';
 import express from 'express';
 
 /**
@@ -70,9 +70,9 @@ export function createTestServer(done: (error?: unknown) => void) {
           const address = server.address() as AddressInfo;
           resolve([
             `http://localhost:${address.port}`,
-            () => {
+            (error?: unknown) => {
               server.close();
-              done();
+              done(error);
             },
           ]);
         });

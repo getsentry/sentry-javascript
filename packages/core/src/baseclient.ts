@@ -30,28 +30,9 @@ import type {
   Transport,
   TransportMakeRequestResponse,
 } from '@sentry/types';
-import {
-  SentryError,
-  SyncPromise,
-  addItemToEnvelope,
-  checkOrSetAlreadyCaught,
-  createAttachmentEnvelopeItem,
-  createClientReportEnvelope,
-  dropUndefinedKeys,
-  dsnToString,
-  isParameterizedString,
-  isPlainObject,
-  isPrimitive,
-  isThenable,
-  logger,
-  makeDsn,
-  rejectedSyncPromise,
-  resolvedSyncPromise,
-  uuid4,
-} from '@sentry/utils';
 
 import { getEnvelopeEndpointWithUrlEncodedAuth } from './api';
-import { getIsolationScope } from './currentScopes';
+import { getCurrentScope, getIsolationScope, getTraceContextFromScope } from './currentScopes';
 import { DEBUG_BUILD } from './debug-build';
 import { createEventEnvelope, createSessionEnvelope } from './envelope';
 import type { IntegrationIndex } from './integration';
@@ -59,9 +40,18 @@ import { afterSetupIntegrations } from './integration';
 import { setupIntegration, setupIntegrations } from './integration';
 import type { Scope } from './scope';
 import { updateSession } from './session';
-import { getDynamicSamplingContextFromClient } from './tracing/dynamicSamplingContext';
+import { getDynamicSamplingContextFromScope } from './tracing/dynamicSamplingContext';
+import { createClientReportEnvelope } from './utils-hoist/clientreport';
+import { dsnToString, makeDsn } from './utils-hoist/dsn';
+import { addItemToEnvelope, createAttachmentEnvelopeItem } from './utils-hoist/envelope';
+import { SentryError } from './utils-hoist/error';
+import { isParameterizedString, isPlainObject, isPrimitive, isThenable } from './utils-hoist/is';
+import { consoleSandbox, logger } from './utils-hoist/logger';
+import { checkOrSetAlreadyCaught, uuid4 } from './utils-hoist/misc';
+import { SyncPromise, rejectedSyncPromise, resolvedSyncPromise } from './utils-hoist/syncpromise';
 import { parseSampleRate } from './utils/parseSampleRate';
 import { prepareEvent } from './utils/prepareEvent';
+import { showSpanDropWarning } from './utils/spanUtils';
 
 const ALREADY_SEEN_ERROR = "Not capturing exception because it's already been captured.";
 
@@ -149,6 +139,18 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
         recordDroppedEvent: this.recordDroppedEvent.bind(this),
         ...options.transportOptions,
         url,
+      });
+    }
+
+    // TODO(v9): Remove this deprecation warning
+    const tracingOptions = ['enableTracing', 'tracesSampleRate', 'tracesSampler'] as const;
+    const undefinedOption = tracingOptions.find(option => option in options && options[option] == undefined);
+    if (undefinedOption) {
+      consoleSandbox(() => {
+        // eslint-disable-next-line no-console
+        console.warn(
+          `[Sentry] Deprecation warning: \`${undefinedOption}\` is set to undefined, which leads to tracing being enabled. In v9, a value of \`undefined\` will result in tracing being disabled.`,
+        );
       });
     }
   }
@@ -472,7 +474,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   public on(hook: string, callback: unknown): () => void {
     const hooks = (this._hooks[hook] = this._hooks[hook] || []);
 
-    // @ts-expect-error We assue the types are correct
+    // @ts-expect-error We assume the types are correct
     hooks.push(callback);
 
     // This function returns a callback execution handler that, when invoked,
@@ -480,7 +482,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
     // need to be unregistered to prevent self-referencing in callback closures,
     // ensuring proper garbage collection.
     return () => {
-      // @ts-expect-error We assue the types are correct
+      // @ts-expect-error We assume the types are correct
       const cbIndex = hooks.indexOf(callback);
       if (cbIndex > -1) {
         hooks.splice(cbIndex, 1);
@@ -565,7 +567,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
 
     if (this._isEnabled() && this._transport) {
       return this._transport.send(envelope).then(null, reason => {
-        DEBUG_BUILD && logger.error('Error while sending event:', reason);
+        DEBUG_BUILD && logger.error('Error while sending envelope:', reason);
         return reason;
       });
     }
@@ -669,7 +671,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   protected _prepareEvent(
     event: Event,
     hint: EventHint,
-    currentScope?: Scope,
+    currentScope = getCurrentScope(),
     isolationScope = getIsolationScope(),
   ): PromiseLike<Event | null> {
     const options = this.getOptions();
@@ -689,30 +691,18 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
         return evt;
       }
 
-      const propagationContext = {
-        ...isolationScope.getPropagationContext(),
-        ...(currentScope ? currentScope.getPropagationContext() : undefined),
+      evt.contexts = {
+        trace: getTraceContextFromScope(currentScope),
+        ...evt.contexts,
       };
 
-      const trace = evt.contexts && evt.contexts.trace;
-      if (!trace && propagationContext) {
-        const { traceId: trace_id, spanId, parentSpanId, dsc } = propagationContext;
-        evt.contexts = {
-          trace: dropUndefinedKeys({
-            trace_id,
-            span_id: spanId,
-            parent_span_id: parentSpanId,
-          }),
-          ...evt.contexts,
-        };
+      const dynamicSamplingContext = getDynamicSamplingContextFromScope(this, currentScope);
 
-        const dynamicSamplingContext = dsc ? dsc : getDynamicSamplingContextFromClient(trace_id, this);
+      evt.sdkProcessingMetadata = {
+        dynamicSamplingContext,
+        ...evt.sdkProcessingMetadata,
+      };
 
-        evt.sdkProcessingMetadata = {
-          dynamicSamplingContext,
-          ...evt.sdkProcessingMetadata,
-        };
-      }
       return evt;
     });
   }
@@ -987,6 +977,7 @@ function processBeforeSend(
         if (processedSpan) {
           processedSpans.push(processedSpan);
         } else {
+          showSpanDropWarning();
           client.recordDroppedEvent('before_send', 'span');
         }
       }

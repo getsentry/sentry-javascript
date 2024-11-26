@@ -74,14 +74,6 @@ sentryTest('error after navigation has navigation traceId', async ({ getLocalTes
     sentryTest.skip();
   }
 
-  await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-    return route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ id: 'test-id' }),
-    });
-  });
-
   const url = await getLocalTestUrl({ testDir: __dirname });
 
   // ensure pageload transaction is finished
@@ -324,7 +316,7 @@ sentryTest(
       sentryTest.skip();
     }
 
-    const url = await getLocalTestUrl({ testDir: __dirname });
+    const url = await getLocalTestUrl({ testDir: __dirname, handleLazyLoadedFeedback: true });
 
     // ensure pageload transaction is finished
     await getFirstSentryEnvelopeRequest<Event>(page, url);

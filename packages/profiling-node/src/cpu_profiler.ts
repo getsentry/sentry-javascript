@@ -5,7 +5,7 @@ import { threadId } from 'node:worker_threads';
 import { familySync } from 'detect-libc';
 import { getAbi } from 'node-abi';
 
-import { GLOBAL_OBJ, logger } from '@sentry/utils';
+import { GLOBAL_OBJ, logger } from '@sentry/core';
 import { DEBUG_BUILD } from './debug-build';
 import type {
   PrivateV8CpuProfilerBindings,
@@ -46,7 +46,7 @@ export function importCppBindingsModule(): PrivateV8CpuProfilerBindings {
     return require(`${binaryPath}.node`);
   }
 
-  // We need the fallthrough so that in the end, we can fallback to the require dynamice require.
+  // We need the fallthrough so that in the end, we can fallback to the dynamic require.
   // This is for cases where precompiled binaries were not provided, but may have been compiled from source.
   if (platform === 'darwin') {
     if (arch === 'x64') {

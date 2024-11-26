@@ -18,13 +18,13 @@ type TestWindow = Window & {
 
 sentryTest(
   'should add replay_id to dsc of transactions when in session mode',
-  async ({ getLocalTestPath, page, browserName }) => {
+  async ({ getLocalTestUrl, page, browserName }) => {
     // This is flaky on webkit, so skipping there...
     if (shouldSkipReplayTest() || shouldSkipTracingTest() || browserName === 'webkit') {
       sentryTest.skip();
     }
 
-    const url = await getLocalTestPath({ testDir: __dirname });
+    const url = await getLocalTestUrl({ testDir: __dirname });
     await page.goto(url);
 
     const transactionReq = waitForTransactionRequest(page);
@@ -68,13 +68,13 @@ sentryTest(
 
 sentryTest(
   'should not add replay_id to dsc of transactions when in buffer mode',
-  async ({ getLocalTestPath, page, browserName }) => {
+  async ({ getLocalTestUrl, page, browserName }) => {
     // This is flaky on webkit, so skipping there...
     if (shouldSkipReplayTest() || shouldSkipTracingTest() || browserName === 'webkit') {
       sentryTest.skip();
     }
 
-    const url = await getLocalTestPath({ testDir: __dirname });
+    const url = await getLocalTestUrl({ testDir: __dirname });
     await page.goto(url);
 
     const transactionReq = waitForTransactionRequest(page);
@@ -114,21 +114,13 @@ sentryTest(
 
 sentryTest(
   'should add replay_id to dsc of transactions when switching from buffer to session mode',
-  async ({ getLocalTestPath, page, browserName }) => {
+  async ({ getLocalTestUrl, page, browserName }) => {
     // This is flaky on webkit, so skipping there...
     if (shouldSkipReplayTest() || shouldSkipTracingTest() || browserName === 'webkit') {
       sentryTest.skip();
     }
 
-    await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-      return route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({ id: 'test-id' }),
-      });
-    });
-
-    const url = await getLocalTestPath({ testDir: __dirname });
+    const url = await getLocalTestUrl({ testDir: __dirname });
     await page.goto(url);
 
     const transactionReq = waitForTransactionRequest(page);
@@ -175,21 +167,13 @@ sentryTest(
 
 sentryTest(
   'should not add replay_id to dsc of transactions if replay is not enabled',
-  async ({ getLocalTestPath, page, browserName }) => {
+  async ({ getLocalTestUrl, page, browserName }) => {
     // This is flaky on webkit, so skipping there...
     if (shouldSkipReplayTest() || shouldSkipTracingTest() || browserName === 'webkit') {
       sentryTest.skip();
     }
 
-    await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-      return route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({ id: 'test-id' }),
-      });
-    });
-
-    const url = await getLocalTestPath({ testDir: __dirname });
+    const url = await getLocalTestUrl({ testDir: __dirname });
     await page.goto(url);
 
     const transactionReq = waitForTransactionRequest(page);
@@ -222,22 +206,14 @@ sentryTest(
   },
 );
 
-sentryTest('should add replay_id to error DSC while replay is active', async ({ getLocalTestPath, page }) => {
+sentryTest('should add replay_id to error DSC while replay is active', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipReplayTest()) {
     sentryTest.skip();
   }
 
   const hasTracing = !shouldSkipTracingTest();
 
-  await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-    return route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ id: 'test-id' }),
-    });
-  });
-
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
   await page.goto(url);
 
   const error1Req = waitForErrorRequest(page, event => event.exception?.values?.[0].value === 'This is error #1');

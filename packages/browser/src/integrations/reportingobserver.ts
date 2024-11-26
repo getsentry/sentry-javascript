@@ -1,6 +1,6 @@
 import { captureMessage, defineIntegration, getClient, withScope } from '@sentry/core';
+import { GLOBAL_OBJ, supportsReportingObserver } from '@sentry/core';
 import type { Client, IntegrationFn } from '@sentry/types';
-import { GLOBAL_OBJ, supportsReportingObserver } from '@sentry/utils';
 
 const WINDOW = GLOBAL_OBJ as typeof GLOBAL_OBJ & Window;
 
@@ -65,7 +65,7 @@ const _reportingObserverIntegration = ((options: ReportingObserverOptions = {}) 
         let details = 'No details available';
 
         if (report.body) {
-          // Object.keys doesn't work on ReportBody, as all properties are inheirted
+          // Object.keys doesn't work on ReportBody, as all properties are inherited
           const plainBody: {
             [key: string]: unknown;
           } = {};

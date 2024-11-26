@@ -16,7 +16,7 @@ test('Sends a transaction for a request to app router', async ({ page }) => {
   expect(transactionEvent.contexts?.trace).toEqual({
     data: expect.objectContaining({
       'sentry.op': 'http.server',
-      'sentry.origin': 'auto.http.otel.http',
+      'sentry.origin': 'auto',
       'sentry.sample_rate': 1,
       'sentry.source': 'route',
       'http.method': 'GET',
@@ -27,23 +27,18 @@ test('Sends a transaction for a request to app router', async ({ page }) => {
       'otel.kind': 'SERVER',
     }),
     op: 'http.server',
-    origin: 'auto.http.otel.http',
+    origin: 'auto',
     span_id: expect.any(String),
     status: 'ok',
     trace_id: expect.any(String),
   });
 
-  expect(transactionEvent).toEqual(
-    expect.objectContaining({
-      request: {
-        cookies: {},
-        headers: expect.any(Object),
-        url: expect.any(String),
-      },
+  expect(transactionEvent.request).toEqual({
+    cookies: {},
+    headers: expect.objectContaining({
+      'user-agent': expect.any(String),
     }),
-  );
-
-  expect(Object.keys(transactionEvent.request?.headers!).length).toBeGreaterThan(0);
+  });
 
   // The transaction should not contain any spans with the same name as the transaction
   // e.g. "GET /server-component/parameter/[...parameters]"

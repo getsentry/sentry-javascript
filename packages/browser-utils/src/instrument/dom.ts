@@ -1,6 +1,6 @@
 import type { HandlerDataDom } from '@sentry/types';
 
-import { addHandler, addNonEnumerableProperty, fill, maybeInstrument, triggerHandlers, uuid4 } from '@sentry/utils';
+import { addHandler, addNonEnumerableProperty, fill, maybeInstrument, triggerHandlers, uuid4 } from '@sentry/core';
 import { WINDOW } from '../types';
 
 type SentryWrappedTarget = HTMLElement & { _sentryId?: string };
@@ -93,7 +93,7 @@ export function instrumentDOM(): void {
             handlerForType.refCount++;
           } catch (e) {
             // Accessing dom properties is always fragile.
-            // Also allows us to skip `addEventListenrs` calls with no proper `this` context.
+            // Also allows us to skip `addEventListeners` calls with no proper `this` context.
           }
         }
 
@@ -133,7 +133,7 @@ export function instrumentDOM(): void {
               }
             } catch (e) {
               // Accessing dom properties is always fragile.
-              // Also allows us to skip `addEventListenrs` calls with no proper `this` context.
+              // Also allows us to skip `addEventListeners` calls with no proper `this` context.
             }
           }
 

@@ -15,7 +15,7 @@ import {
 
 sentryTest(
   '[buffer-mode] manually start buffer mode and capture buffer',
-  async ({ getLocalTestPath, page, browserName }) => {
+  async ({ getLocalTestUrl, page, browserName }) => {
     // This was sometimes flaky on webkit, so skipping for now
     if (shouldSkipReplayTest() || browserName === 'webkit') {
       sentryTest.skip();
@@ -45,7 +45,7 @@ sentryTest(
       });
     });
 
-    const url = await getLocalTestPath({ testDir: __dirname });
+    const url = await getLocalTestUrl({ testDir: __dirname, skipDsnRouteHandler: true });
 
     await page.goto(url);
     await page.locator('#go-background').click();
@@ -161,7 +161,7 @@ sentryTest(
 
 sentryTest(
   '[buffer-mode] manually start buffer mode and capture buffer, but do not continue as session',
-  async ({ getLocalTestPath, page, browserName }) => {
+  async ({ getLocalTestUrl, page, browserName }) => {
     // This was sometimes flaky on webkit, so skipping for now
     if (shouldSkipReplayTest() || browserName === 'webkit') {
       sentryTest.skip();
@@ -190,7 +190,7 @@ sentryTest(
       });
     });
 
-    const url = await getLocalTestPath({ testDir: __dirname });
+    const url = await getLocalTestUrl({ testDir: __dirname, skipDsnRouteHandler: true });
 
     await page.goto(url);
     await page.locator('#go-background').click();
@@ -297,14 +297,6 @@ sentryTest(
 
     const reqPromise0 = waitForReplayRequest(page, 0);
 
-    await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-      return route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({ id: 'test-id' }),
-      });
-    });
-
     const url = await getLocalTestUrl({ testDir: __dirname });
 
     await page.goto(url);
@@ -359,14 +351,6 @@ sentryTest(
 
     const reqPromise0 = waitForReplayRequest(page, 0);
 
-    await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-      return route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({ id: 'test-id' }),
-      });
-    });
-
     const url = await getLocalTestUrl({ testDir: __dirname });
 
     page.goto(url);
@@ -410,7 +394,7 @@ sentryTest(
 // error happens.
 sentryTest(
   '[buffer-mode] can sample on each error event',
-  async ({ getLocalTestPath, page, browserName, enableConsole }) => {
+  async ({ getLocalTestUrl, page, browserName, enableConsole }) => {
     if (shouldSkipReplayTest() || browserName === 'webkit') {
       sentryTest.skip();
     }
@@ -440,7 +424,7 @@ sentryTest(
       });
     });
 
-    const url = await getLocalTestPath({ testDir: __dirname });
+    const url = await getLocalTestUrl({ testDir: __dirname, skipDsnRouteHandler: true });
 
     await page.goto(url);
     // Start buffering and assert that it is enabled

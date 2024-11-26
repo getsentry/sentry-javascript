@@ -1,5 +1,4 @@
 import type { Span, SpanAttributes, SpanStatus, SpanTimeInput } from '@sentry/types';
-import { TRACEPARENT_REGEXP, timestampInSeconds } from '@sentry/utils';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -7,10 +6,12 @@ import {
   SPAN_STATUS_OK,
   SPAN_STATUS_UNSET,
   SentrySpan,
+  TRACEPARENT_REGEXP,
   setCurrentClient,
   spanToTraceHeader,
   startInactiveSpan,
   startSpan,
+  timestampInSeconds,
 } from '../../../src';
 import type { OpenTelemetrySdkTraceBaseSpan } from '../../../src/utils/spanUtils';
 import { getRootSpan, spanIsSampled, spanTimeInputToSeconds, spanToJSON } from '../../../src/utils/spanUtils';
@@ -238,7 +239,7 @@ describe('getRootSpan', () => {
         startSpan({ name: 'inner2' }, inner2 => {
           expect(getRootSpan(inner2)).toBe(root);
 
-          const inactiveSpan = startInactiveSpan({ name: 'inactived' });
+          const inactiveSpan = startInactiveSpan({ name: 'inactive' });
           expect(getRootSpan(inactiveSpan)).toBe(root);
         });
       });

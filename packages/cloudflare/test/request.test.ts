@@ -109,7 +109,7 @@ describe('withSentry', () => {
         },
       );
 
-      expect(sentryEvent.sdkProcessingMetadata?.request).toEqual({
+      expect(sentryEvent.sdkProcessingMetadata?.normalizedRequest).toEqual({
         headers: {},
         url: 'https://example.com/',
         method: 'GET',

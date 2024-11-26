@@ -1,5 +1,10 @@
 import { expect } from '@playwright/test';
 
+import {
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+} from '@sentry/browser';
 import { sentryTest } from '../../../../utils/fixtures';
 import {
   envelopeRequestParser,
@@ -7,25 +12,37 @@ import {
   waitForTransactionRequestOnUrl,
 } from '../../../../utils/helpers';
 
-sentryTest('should send a transaction in an envelope', async ({ getLocalTestPath, page }) => {
+sentryTest(
+  'sends a transaction in an envelope with manual origin and custom source',
+  async ({ getLocalTestUrl, page }) => {
+    if (shouldSkipTracingTest()) {
+      sentryTest.skip();
+    }
+
+    const url = await getLocalTestUrl({ testDir: __dirname });
+    const req = await waitForTransactionRequestOnUrl(page, url);
+    const transaction = envelopeRequestParser(req);
+
+    const attributes = transaction.contexts?.trace?.data;
+    expect(attributes).toEqual({
+      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'manual',
+      [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
+      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
+    });
+
+    expect(transaction.transaction_info?.source).toBe('custom');
+
+    expect(transaction.transaction).toBe('parent_span');
+    expect(transaction.spans).toBeDefined();
+  },
+);
+
+sentryTest('should report finished spans as children of the root transaction', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipTracingTest()) {
     sentryTest.skip();
   }
 
-  const url = await getLocalTestPath({ testDir: __dirname });
-  const req = await waitForTransactionRequestOnUrl(page, url);
-  const transaction = envelopeRequestParser(req);
-
-  expect(transaction.transaction).toBe('parent_span');
-  expect(transaction.spans).toBeDefined();
-});
-
-sentryTest('should report finished spans as children of the root transaction', async ({ getLocalTestPath, page }) => {
-  if (shouldSkipTracingTest()) {
-    sentryTest.skip();
-  }
-
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
   const req = await waitForTransactionRequestOnUrl(page, url);
   const transaction = envelopeRequestParser(req);
 

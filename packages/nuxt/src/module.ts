@@ -1,6 +1,6 @@
 import * as path from 'path';
 import { addPlugin, addPluginTemplate, addServerPlugin, createResolver, defineNuxtModule } from '@nuxt/kit';
-import { consoleSandbox } from '@sentry/utils';
+import { consoleSandbox } from '@sentry/core';
 import type { SentryNuxtModuleOptions } from './common/types';
 import { addDynamicImportEntryFileWrapper, addServerConfigToBuild } from './vite/addServerConfig';
 import { setupSourceMaps } from './vite/sourceMaps';
@@ -21,6 +21,7 @@ export default defineNuxtModule<ModuleOptions>({
     const moduleOptions = {
       ...moduleOptionsParam,
       dynamicImportForServerEntry: moduleOptionsParam.dynamicImportForServerEntry !== false, // default: true
+      entrypointWrappedFunctions: moduleOptionsParam.entrypointWrappedFunctions || ['default', 'handler', 'server'],
     };
 
     const moduleDirResolver = createResolver(import.meta.url);
@@ -101,7 +102,7 @@ export default defineNuxtModule<ModuleOptions>({
             });
           }
         } else {
-          addDynamicImportEntryFileWrapper(nitro, serverConfigFile);
+          addDynamicImportEntryFileWrapper(nitro, serverConfigFile, moduleOptions);
 
           if (moduleOptions.debug) {
             consoleSandbox(() => {

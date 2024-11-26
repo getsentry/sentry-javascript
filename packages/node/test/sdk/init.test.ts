@@ -1,5 +1,5 @@
+import { logger } from '@sentry/core';
 import type { Integration } from '@sentry/types';
-import { logger } from '@sentry/utils';
 
 import * as SentryOpentelemetry from '@sentry/opentelemetry';
 import { getClient, getIsolationScope } from '../../src/';
@@ -143,7 +143,7 @@ describe('init()', () => {
     });
   });
 
-  it('returns intiated client', () => {
+  it('returns initialized client', () => {
     const client = init({ dsn: PUBLIC_DSN, skipOpenTelemetrySetup: true });
 
     expect(client).toBeInstanceOf(NodeClient);

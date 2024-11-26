@@ -1,5 +1,5 @@
 import { getClient } from '@sentry/core';
-import { consoleSandbox, logger } from '@sentry/utils';
+import { consoleSandbox, logger } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
 import type { NodeClient } from '../sdk/client';
 

@@ -20,14 +20,6 @@ sentryTest('captures text request body', async ({ getLocalTestUrl, page, browser
     });
   });
 
-  await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-    return route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ id: 'test-id' }),
-    });
-  });
-
   const requestPromise = waitForErrorRequest(page);
   const replayRequestPromise = collectReplayRequests(page, recordingEvents => {
     return getReplayPerformanceSpans(recordingEvents).some(span => span.op === 'resource.xhr');
@@ -100,14 +92,6 @@ sentryTest('captures JSON request body', async ({ getLocalTestUrl, page, browser
     });
   });
 
-  await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-    return route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ id: 'test-id' }),
-    });
-  });
-
   const requestPromise = waitForErrorRequest(page);
   const replayRequestPromise = collectReplayRequests(page, recordingEvents => {
     return getReplayPerformanceSpans(recordingEvents).some(span => span.op === 'resource.xhr');
@@ -177,14 +161,6 @@ sentryTest('captures non-text request body', async ({ getLocalTestUrl, page, bro
   await page.route('**/foo', async route => {
     return route.fulfill({
       status: 200,
-    });
-  });
-
-  await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-    return route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ id: 'test-id' }),
     });
   });
 
@@ -264,14 +240,6 @@ sentryTest('captures text request body when matching relative URL', async ({ get
     });
   });
 
-  await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-    return route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ id: 'test-id' }),
-    });
-  });
-
   const requestPromise = waitForErrorRequest(page);
   const replayRequestPromise = collectReplayRequests(page, recordingEvents => {
     return getReplayPerformanceSpans(recordingEvents).some(span => span.op === 'resource.xhr');
@@ -341,14 +309,6 @@ sentryTest('does not capture request body when URL does not match', async ({ get
   await page.route('http://sentry-test.io/bar', route => {
     return route.fulfill({
       status: 200,
-    });
-  });
-
-  await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-    return route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ id: 'test-id' }),
     });
   });
 

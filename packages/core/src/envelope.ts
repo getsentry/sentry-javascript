@@ -15,16 +15,16 @@ import type {
   SpanItem,
   SpanJSON,
 } from '@sentry/types';
+import { getDynamicSamplingContextFromSpan } from './tracing/dynamicSamplingContext';
+import type { SentrySpan } from './tracing/sentrySpan';
+import { dsnToString } from './utils-hoist/dsn';
 import {
   createEnvelope,
   createEventEnvelopeHeaders,
-  dsnToString,
+  createSpanEnvelopeItem,
   getSdkMetadataForEnvelopeHeader,
-} from '@sentry/utils';
-import { createSpanEnvelopeItem } from '@sentry/utils';
-import { getDynamicSamplingContextFromSpan } from './tracing/dynamicSamplingContext';
-import type { SentrySpan } from './tracing/sentrySpan';
-import { spanToJSON } from './utils/spanUtils';
+} from './utils-hoist/envelope';
+import { showSpanDropWarning, spanToJSON } from './utils/spanUtils';
 
 /**
  * Apply SdkInfo (name, version, packages, integrations) to the corresponding event key.
@@ -76,7 +76,7 @@ export function createEventEnvelope(
   /*
     Note: Due to TS, event.type may be `replay_event`, theoretically.
     In practice, we never call `createEventEnvelope` with `replay_event` type,
-    and we'd have to adjut a looot of types to make this work properly.
+    and we'd have to adjust a looot of types to make this work properly.
     We want to avoid casting this around, as that could lead to bugs (e.g. when we add another type)
     So the safe choice is to really guard against the replay_event type here.
   */
@@ -122,7 +122,13 @@ export function createSpanEnvelope(spans: [SentrySpan, ...SentrySpan[]], client?
 
   const beforeSendSpan = client && client.getOptions().beforeSendSpan;
   const convertToSpanJSON = beforeSendSpan
-    ? (span: SentrySpan) => beforeSendSpan(spanToJSON(span) as SpanJSON)
+    ? (span: SentrySpan) => {
+        const spanJson = beforeSendSpan(spanToJSON(span) as SpanJSON);
+        if (!spanJson) {
+          showSpanDropWarning();
+        }
+        return spanJson;
+      }
     : (span: SentrySpan) => spanToJSON(span);
 
   const items: SpanItem[] = [];

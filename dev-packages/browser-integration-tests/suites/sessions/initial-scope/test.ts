@@ -5,8 +5,8 @@ import type { SessionContext } from '@sentry/types';
 import { sentryTest } from '../../../utils/fixtures';
 import { getFirstSentryEnvelopeRequest } from '../../../utils/helpers';
 
-sentryTest('should start a new session on pageload.', async ({ getLocalTestPath, page }) => {
-  const url = await getLocalTestPath({ testDir: __dirname });
+sentryTest('should start a new session on pageload.', async ({ getLocalTestUrl, page }) => {
+  const url = await getLocalTestUrl({ testDir: __dirname });
   const session = await getFirstSentryEnvelopeRequest<SessionContext>(page, url);
 
   expect(session).toBeDefined();
@@ -20,14 +20,6 @@ sentryTest('should start a new session with navigation.', async ({ getLocalTestU
   const url = await getLocalTestUrl({ testDir: __dirname });
 
   await page.route('**/foo', (route: Route) => route.continue({ url }));
-
-  await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-    return route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ id: 'test-id' }),
-    });
-  });
 
   const initSession = await getFirstSentryEnvelopeRequest<SessionContext>(page, url);
 

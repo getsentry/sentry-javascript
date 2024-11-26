@@ -1,10 +1,10 @@
+import { logger } from '@sentry/core';
 import type {
   FeedbackFormData,
   FeedbackInternalOptions,
   FeedbackScreenshotIntegration,
   SendFeedback,
 } from '@sentry/types';
-import { logger } from '@sentry/utils';
 // biome-ignore lint/nursery/noUnusedImports: reason
 import { h } from 'preact'; // eslint-disable-line @typescript-eslint/no-unused-vars
 import type { JSX, VNode } from 'preact';
@@ -61,7 +61,7 @@ export function Form({
     submitButtonLabel,
     isRequiredLabel,
   } = options;
-  // TODO: set a ref on the form, and whenever an input changes call proceessForm() and setError()
+  // TODO: set a ref on the form, and whenever an input changes call processForm() and setError()
   const [error, setError] = useState<null | string>(null);
 
   const [showScreenshotInput, setShowScreenshotInput] = useState(false);

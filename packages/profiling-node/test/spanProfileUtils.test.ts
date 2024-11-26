@@ -1,10 +1,10 @@
 import * as Sentry from '@sentry/node';
 
 import { getMainCarrier } from '@sentry/core';
+import { GLOBAL_OBJ, createEnvelope, logger } from '@sentry/core';
 import type { NodeClientOptions } from '@sentry/node/build/types/types';
 import type { ProfilingIntegration } from '@sentry/types';
 import type { ProfileChunk, Transport } from '@sentry/types';
-import { GLOBAL_OBJ, createEnvelope, logger } from '@sentry/utils';
 import { CpuProfilerBindings } from '../src/cpu_profiler';
 import { _nodeProfilingIntegration } from '../src/integration';
 
@@ -556,7 +556,7 @@ describe('continuous profiling', () => {
     expect(stopProfilingSpy).toHaveBeenCalledTimes(1);
   });
 
-  it('manullly stopping a chunk doesnt restart the profiler', async () => {
+  it('manually stopping a chunk doesnt restart the profiler', async () => {
     const startProfilingSpy = jest.spyOn(CpuProfilerBindings, 'startProfiling');
     const stopProfilingSpy = jest.spyOn(CpuProfilerBindings, 'stopProfiling');
 

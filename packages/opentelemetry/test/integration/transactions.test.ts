@@ -11,8 +11,8 @@ import {
   startSpanManual,
   withIsolationScope,
 } from '@sentry/core';
+import { logger } from '@sentry/core';
 import type { Event, TransactionEvent } from '@sentry/types';
-import { logger } from '@sentry/utils';
 
 import { TraceState } from '@opentelemetry/core';
 import { SENTRY_TRACE_STATE_DSC } from '../../src/constants';
@@ -476,7 +476,7 @@ describe('Integration | Transactions', () => {
       await new Promise(resolve => setTimeout(resolve, 10 * 60 * 1000));
     });
 
-    // Child-spans have been added to the exporter, but they are pending since they are waiting for their parant
+    // Child-spans have been added to the exporter, but they are pending since they are waiting for their parent
     expect(exporter['_finishedSpans'].length).toBe(2);
     expect(beforeSendTransaction).toHaveBeenCalledTimes(0);
 

@@ -80,8 +80,19 @@ export class AppService {
     console.log('Test cron!');
   }
 
-  async killTestCron() {
-    this.schedulerRegistry.deleteCronJob('test-cron-job');
+  /*
+  Actual cron schedule differs from schedule defined in config because Sentry
+  only supports minute granularity, but we don't want to wait (worst case) a
+  full minute for the tests to finish.
+  */
+  @Cron('*/5 * * * * *', { name: 'test-cron-error' })
+  @SentryCron('test-cron-error-slug', monitorConfig)
+  async testCronError() {
+    throw new Error('Test error from cron job');
+  }
+
+  async killTestCron(job: string) {
+    this.schedulerRegistry.deleteCronJob(job);
   }
 
   use() {

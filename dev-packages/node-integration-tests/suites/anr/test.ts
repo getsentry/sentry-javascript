@@ -1,3 +1,4 @@
+import type { Event } from '@sentry/types';
 import { conditionalTest } from '../../utils';
 import { cleanupChildProcesses, createRunner } from '../../utils/runner';
 
@@ -56,12 +57,25 @@ const ANR_EVENT_WITH_SCOPE = {
   user: {
     email: 'person@home.com',
   },
-  breadcrumbs: [
+  breadcrumbs: expect.arrayContaining([
     {
       timestamp: expect.any(Number),
       message: 'important message!',
     },
-  ],
+  ]),
+};
+
+const ANR_EVENT_WITH_DEBUG_META: Event = {
+  ...ANR_EVENT_WITH_SCOPE,
+  debug_meta: {
+    images: [
+      {
+        type: 'sourcemap',
+        debug_id: 'aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaa',
+        code_file: expect.stringContaining('basic.'),
+      },
+    ],
+  },
 };
 
 conditionalTest({ min: 16 })('should report ANR when event loop blocked', () => {
@@ -70,11 +84,14 @@ conditionalTest({ min: 16 })('should report ANR when event loop blocked', () => 
   });
 
   test('CJS', done => {
-    createRunner(__dirname, 'basic.js').withMockSentryServer().expect({ event: ANR_EVENT_WITH_SCOPE }).start(done);
+    createRunner(__dirname, 'basic.js').withMockSentryServer().expect({ event: ANR_EVENT_WITH_DEBUG_META }).start(done);
   });
 
   test('ESM', done => {
-    createRunner(__dirname, 'basic.mjs').withMockSentryServer().expect({ event: ANR_EVENT_WITH_SCOPE }).start(done);
+    createRunner(__dirname, 'basic.mjs')
+      .withMockSentryServer()
+      .expect({ event: ANR_EVENT_WITH_DEBUG_META })
+      .start(done);
   });
 
   test('blocked indefinitely', done => {

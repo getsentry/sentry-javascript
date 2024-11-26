@@ -4,19 +4,11 @@ import { sentryTest } from '../../../utils/fixtures';
 import { expectedFetchPerformanceSpan, expectedXHRPerformanceSpan } from '../../../utils/replayEventTemplates';
 import { getReplayRecordingContent, shouldSkipReplayTest, waitForReplayRequest } from '../../../utils/replayHelpers';
 
-sentryTest('replay recording should contain fetch request span', async ({ getLocalTestPath, page, browserName }) => {
+sentryTest('replay recording should contain fetch request span', async ({ getLocalTestUrl, page, browserName }) => {
   // Possibly related: https://github.com/microsoft/playwright/issues/11390
   if (shouldSkipReplayTest() || browserName === 'webkit') {
     sentryTest.skip();
   }
-
-  await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-    return route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ id: 'test-id' }),
-    });
-  });
 
   await page.route('https://example.com', route => {
     return route.fulfill({
@@ -29,7 +21,7 @@ sentryTest('replay recording should contain fetch request span', async ({ getLoc
   const reqPromise0 = waitForReplayRequest(page, 0);
   const reqPromise1 = waitForReplayRequest(page, 1);
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
 
   const [req0] = await Promise.all([reqPromise0, page.goto(url), page.locator('#go-background').click()]);
 
@@ -43,18 +35,10 @@ sentryTest('replay recording should contain fetch request span', async ({ getLoc
   expect(performanceSpans).toContainEqual(expectedFetchPerformanceSpan);
 });
 
-sentryTest('replay recording should contain XHR request span', async ({ getLocalTestPath, page, browserName }) => {
+sentryTest('replay recording should contain XHR request span', async ({ getLocalTestUrl, page, browserName }) => {
   if (shouldSkipReplayTest() || browserName === 'webkit') {
     sentryTest.skip();
   }
-
-  await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-    return route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ id: 'test-id' }),
-    });
-  });
 
   await page.route('https://example.com', route => {
     return route.fulfill({
@@ -67,7 +51,7 @@ sentryTest('replay recording should contain XHR request span', async ({ getLocal
   const reqPromise0 = waitForReplayRequest(page, 0);
   const reqPromise1 = waitForReplayRequest(page, 1);
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
 
   const [req0] = await Promise.all([reqPromise0, page.goto(url), page.locator('#go-background').click()]);
 

@@ -1,8 +1,8 @@
 import * as child_process from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
+import { escapeStringForRegex, uuid4 } from '@sentry/core';
 import { getSentryRelease } from '@sentry/node';
-import { escapeStringForRegex, uuid4 } from '@sentry/utils';
 import type { SentryVitePluginOptions } from '@sentry/vite-plugin';
 import { sentryVitePlugin } from '@sentry/vite-plugin';
 import type { Plugin } from 'vite';
@@ -105,7 +105,7 @@ export async function makeCustomSentryVitePlugins(options?: CustomSentryVitePlug
       const sourceMapsPreviouslyNotEnabled = !config.build?.sourcemap;
       if (debug && sourceMapsPreviouslyNotEnabled) {
         // eslint-disable-next-line no-console
-        console.log('[Source Maps Plugin] Enabeling source map generation');
+        console.log('[Source Maps Plugin] Enabling source map generation');
         if (!mergedOptions.sourcemaps?.filesToDeleteAfterUpload) {
           // eslint-disable-next-line no-console
           console.warn(

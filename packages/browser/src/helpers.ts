@@ -1,5 +1,4 @@
 import { captureException, withScope } from '@sentry/core';
-import type { Mechanism, WrappedFunction } from '@sentry/types';
 import {
   GLOBAL_OBJ,
   addExceptionMechanism,
@@ -7,7 +6,8 @@ import {
   addNonEnumerableProperty,
   getOriginalFunction,
   markFunctionWrapped,
-} from '@sentry/utils';
+} from '@sentry/core';
+import type { Mechanism, WrappedFunction } from '@sentry/types';
 
 export const WINDOW = GLOBAL_OBJ as typeof GLOBAL_OBJ & Window;
 

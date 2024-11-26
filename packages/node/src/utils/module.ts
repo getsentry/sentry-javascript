@@ -1,5 +1,5 @@
 import { posix, sep } from 'node:path';
-import { dirname } from '@sentry/utils';
+import { dirname } from '@sentry/core';
 
 /** normalizes Windows paths */
 function normalizeWindowsPath(path: string): string {

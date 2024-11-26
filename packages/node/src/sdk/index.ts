@@ -12,24 +12,25 @@ import {
   startSession,
 } from '@sentry/core';
 import {
+  consoleSandbox,
+  dropUndefinedKeys,
+  logger,
+  propagationContextFromHeaders,
+  stackParserFromStackParserOptions,
+} from '@sentry/core';
+import {
   enhanceDscWithOpenTelemetryRootSpanName,
   openTelemetrySetupCheck,
   setOpenTelemetryContextAsyncContextStrategy,
   setupEventContextTrace,
 } from '@sentry/opentelemetry';
 import type { Integration, Options } from '@sentry/types';
-import {
-  consoleSandbox,
-  dropUndefinedKeys,
-  logger,
-  propagationContextFromHeaders,
-  stackParserFromStackParserOptions,
-} from '@sentry/utils';
 import { DEBUG_BUILD } from '../debug-build';
 import { consoleIntegration } from '../integrations/console';
 import { nodeContextIntegration } from '../integrations/context';
 import { contextLinesIntegration } from '../integrations/contextlines';
 
+import { childProcessIntegration } from '../integrations/childProcess';
 import { httpIntegration } from '../integrations/http';
 import { localVariablesIntegration } from '../integrations/local-variables';
 import { modulesIntegration } from '../integrations/modules';
@@ -71,6 +72,7 @@ export function getDefaultIntegrationsWithoutPerformance(): Integration[] {
     contextLinesIntegration(),
     localVariablesIntegration(),
     nodeContextIntegration(),
+    childProcessIntegration(),
     ...getCjsOnlyIntegrations(),
   ];
 }
