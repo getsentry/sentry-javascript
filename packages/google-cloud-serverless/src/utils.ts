@@ -16,14 +16,14 @@ export function domainify<A extends unknown[], R>(fn: (...args: A) => R): (...ar
  * @returns wrapped function
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function proxyFunction<A extends any[], R, F extends (...args: A) => R>(
+export function proxyFunction<F extends (...args: any[]) => unknown>(
   source: F,
   wrap: (source: F) => F,
   overrides?: Record<PropertyKey, unknown>,
 ): F {
   const wrapper = wrap(source);
   const handler: ProxyHandler<F> = {
-    apply: <T>(_target: F, thisArg: T, args: A) => {
+    apply: <T>(_target: F, thisArg: T, args: Parameters<F>) => {
       return wrapper.apply(thisArg, args);
     },
   };
