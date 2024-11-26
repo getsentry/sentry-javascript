@@ -81,7 +81,7 @@ export function instrumentFetchRequest(
   if (shouldAttachHeaders(handlerData.fetchData.url)) {
     const request: string | Request = handlerData.args[0];
 
-    const options: { [key: string]: unknown } = (handlerData.args[1] = handlerData.args[1] || {});
+    const options: { [key: string]: unknown } = handlerData.args[1] || {};
 
     const headers = _addTracingHeadersToFetchRequest(
       request,
@@ -92,6 +92,8 @@ export function instrumentFetchRequest(
       hasTracingEnabled() && hasParent ? span : undefined,
     );
     if (headers) {
+      // Ensure this is actually set, if no options have been passed previously
+      handlerData.args[1] = options;
       options.headers = headers;
     }
   }
