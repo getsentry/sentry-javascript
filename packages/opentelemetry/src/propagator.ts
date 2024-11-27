@@ -1,4 +1,5 @@
-import type { Baggage, Context, Span, TextMapGetter, TextMapSetter } from '@opentelemetry/api';
+import type { Baggage, Context, Span, SpanContext, TextMapGetter, TextMapSetter } from '@opentelemetry/api';
+import { TraceFlags } from '@opentelemetry/api';
 import { INVALID_TRACEID } from '@opentelemetry/api';
 import { context } from '@opentelemetry/api';
 import { propagation, trace } from '@opentelemetry/api';
@@ -30,8 +31,8 @@ import {
 } from './constants';
 import { DEBUG_BUILD } from './debug-build';
 import { getScopesFromContext, setScopesOnContext } from './utils/contextData';
-import { generateSpanContextForPropagationContext } from './utils/generateSpanContextForPropagationContext';
 import { getSamplingDecision } from './utils/getSamplingDecision';
+import { makeTraceState } from './utils/makeTraceState';
 import { setIsSetup } from './utils/setupCheck';
 
 /** Get the Sentry propagation context from a span context. */
@@ -286,4 +287,24 @@ function getCurrentURL(span: Span): string | undefined {
   }
 
   return undefined;
+}
+
+// TODO: Adjust this behavior to avoid invalid spans
+function generateSpanContextForPropagationContext(propagationContext: PropagationContext): SpanContext {
+  // We store the DSC as OTEL trace state on the span context
+  const traceState = makeTraceState({
+    parentSpanId: propagationContext.parentSpanId,
+    dsc: propagationContext.dsc,
+    sampled: propagationContext.sampled,
+  });
+
+  const spanContext: SpanContext = {
+    traceId: propagationContext.traceId,
+    spanId: propagationContext.parentSpanId || '',
+    isRemote: true,
+    traceFlags: propagationContext.sampled ? TraceFlags.SAMPLED : TraceFlags.NONE,
+    traceState,
+  };
+
+  return spanContext;
 }

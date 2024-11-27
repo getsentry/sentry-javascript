@@ -6,6 +6,8 @@ import { makeTraceState } from './makeTraceState';
 /**
  * Generates a SpanContext that represents a PropagationContext.
  * This can be set on a `context` to make this a (virtual) active span.
+ *
+ * @deprecated This function is deprecated and will be removed in the next major version.
  */
 export function generateSpanContextForPropagationContext(propagationContext: PropagationContext): SpanContext {
   // We store the DSC as OTEL trace state on the span context
