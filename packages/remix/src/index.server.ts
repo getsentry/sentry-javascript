@@ -168,6 +168,7 @@ export function getRemixDefaultIntegrations(options: RemixOptions): Integration[
   return [
     ...getDefaultNodeIntegrations(options as NodeOptions).filter(integration => integration.name !== 'Http'),
     httpIntegration(),
+    // eslint-disable-next-line deprecation/deprecation
     options.autoInstrumentRemix ? remixIntegration() : undefined,
   ].filter(int => int) as Integration[];
 }
