@@ -338,6 +338,8 @@ export function createRunner(...paths: string[]) {
             const output = data.toString();
             logs.push(output.trim());
 
+            if (process.env.DEBUG) log('stderr line', output);
+
             if (ensureNoErrorOutput) {
               complete(new Error(`Expected no error output but got: '${output}'`));
             }

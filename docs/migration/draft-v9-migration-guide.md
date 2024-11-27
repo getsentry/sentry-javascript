@@ -43,6 +43,8 @@
 - Deprecated `debugIntegration`. To log outgoing events, use [Hook Options](https://docs.sentry.io/platforms/javascript/configuration/options/#hooks) (`beforeSend`, `beforeSendTransaction`, ...).
 - Deprecated `sessionTimingIntegration`. To capture session durations alongside events, use [Context](https://docs.sentry.io/platforms/javascript/enriching-events/context/) (`Sentry.setContext()`).
 - Deprecated `addTracingHeadersToFetchRequest` method - this was only meant for internal use and is not needed anymore.
+- Deprecated `generatePropagationContext()` in favor of using `generateTraceId()` directly.
+- Deprecated `spanId` field on `propagationContext` - this field will be removed in v9, and should neither be read or set anymore.
 
 ## `@sentry/nestjs`
 
@@ -91,3 +93,5 @@
 - Deprecated `nestIntegration`. Use the NestJS SDK (`@sentry/nestjs`) instead.
 - Deprecated `setupNestErrorHandler`. Use the NestJS SDK (`@sentry/nestjs`) instead.
 - Deprecated `addOpenTelemetryInstrumentation`. Use the `openTelemetryInstrumentations` option in `Sentry.init()` or your custom Sentry Client instead.
+- Deprecated `registerEsmLoaderHooks.include` and `registerEsmLoaderHooks.exclude`. Set `onlyIncludeInstrumentedModules: true` instead.
+- `registerEsmLoaderHooks` will only accept `true | false | undefined` in the future. The SDK will default to wrapping modules that are used as part of OpenTelemetry Instrumentation.
