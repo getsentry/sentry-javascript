@@ -38,9 +38,6 @@
   "publishConfig": {
     "access": "public"
   },
-  "dependencies": {
-    "@sentry/types": "8.40.0"
-  },
   "TODO(v9):": "Remove these dependencies",
   "devDependencies": {
     "@types/array.prototype.flat": "^1.2.1",
