@@ -1,11 +1,12 @@
 import { addEventProcessor, applySdkMetadata } from '@sentry/core';
+import { GLOBAL_OBJ } from '@sentry/core';
 import type { BrowserOptions } from '@sentry/react';
 import { getDefaultIntegrations as getReactDefaultIntegrations, init as reactInit } from '@sentry/react';
 import type { Client, EventProcessor, Integration } from '@sentry/types';
-import { GLOBAL_OBJ } from '@sentry/utils';
 
 import { devErrorSymbolicationEventProcessor } from '../common/devErrorSymbolicationEventProcessor';
 import { getVercelEnv } from '../common/getVercelEnv';
+import { isRedirectNavigationError } from '../common/nextNavigationErrorUtils';
 import { browserTracingIntegration } from './browserTracingIntegration';
 import { nextjsClientStackFrameNormalizationIntegration } from './clientNormalizationIntegration';
 import { INCOMPLETE_APP_ROUTER_INSTRUMENTATION_TRANSACTION_NAME } from './routing/appRouterRoutingInstrumentation';
@@ -46,6 +47,11 @@ export function init(options: BrowserOptions): Client | undefined {
       : event;
   filterIncompleteNavigationTransactions.id = 'IncompleteTransactionFilter';
   addEventProcessor(filterIncompleteNavigationTransactions);
+
+  const filterNextRedirectError: EventProcessor = (event, hint) =>
+    isRedirectNavigationError(hint?.originalException) ? null : event;
+  filterNextRedirectError.id = 'NextRedirectErrorFilter';
+  addEventProcessor(filterNextRedirectError);
 
   if (process.env.NODE_ENV === 'development') {
     addEventProcessor(devErrorSymbolicationEventProcessor);

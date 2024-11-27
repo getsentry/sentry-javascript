@@ -1,13 +1,13 @@
 import { SENTRY_XHR_DATA_KEY, addXhrInstrumentationHandler } from '@sentry-internal/browser-utils';
 import { captureEvent, defineIntegration, getClient, isSentryRequestUrl } from '@sentry/core';
-import type { Client, Event as SentryEvent, IntegrationFn, SentryWrappedXMLHttpRequest } from '@sentry/types';
 import {
   GLOBAL_OBJ,
   addExceptionMechanism,
   addFetchInstrumentationHandler,
   logger,
   supportsNativeFetch,
-} from '@sentry/utils';
+} from '@sentry/core';
+import type { Client, Event as SentryEvent, IntegrationFn, SentryWrappedXMLHttpRequest } from '@sentry/types';
 
 import { DEBUG_BUILD } from '../debug-build';
 
@@ -108,8 +108,8 @@ function _parseCookieHeaders(
     if (cookieString) {
       cookies = _parseCookieString(cookieString);
     }
-  } catch (e) {
-    DEBUG_BUILD && logger.log(`Could not extract cookies from header ${cookieHeader}`);
+  } catch {
+    // ignore it if parsing fails
   }
 
   return [headers, cookies];
@@ -138,14 +138,14 @@ function _xhrResponseHandler(
         if (cookieString) {
           responseCookies = _parseCookieString(cookieString);
         }
-      } catch (e) {
-        DEBUG_BUILD && logger.log('Could not extract cookies from response headers');
+      } catch {
+        // ignore it if parsing fails
       }
 
       try {
         responseHeaders = _getXHRResponseHeaders(xhr);
-      } catch (e) {
-        DEBUG_BUILD && logger.log('Could not extract headers from response');
+      } catch {
+        // ignore it if parsing fails
       }
 
       requestHeaders = headers;

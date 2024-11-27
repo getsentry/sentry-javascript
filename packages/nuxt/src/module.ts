@@ -1,6 +1,6 @@
 import * as path from 'path';
 import { addPlugin, addPluginTemplate, addServerPlugin, createResolver, defineNuxtModule } from '@nuxt/kit';
-import { consoleSandbox } from '@sentry/utils';
+import { consoleSandbox } from '@sentry/core';
 import type { SentryNuxtModuleOptions } from './common/types';
 import { addDynamicImportEntryFileWrapper, addServerConfigToBuild } from './vite/addServerConfig';
 import { setupSourceMaps } from './vite/sourceMaps';
@@ -13,7 +13,7 @@ export default defineNuxtModule<ModuleOptions>({
     name: '@sentry/nuxt/module',
     configKey: 'sentry',
     compatibility: {
-      nuxt: '^3.0.0',
+      nuxt: '>=3.7.0',
     },
   },
   defaults: {},

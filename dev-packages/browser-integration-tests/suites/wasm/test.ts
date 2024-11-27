@@ -7,12 +7,12 @@ import { shouldSkipWASMTests } from '../../utils/wasmHelpers';
 
 sentryTest(
   'captured exception should include modified frames and debug_meta attribute',
-  async ({ getLocalTestPath, page, browserName }) => {
+  async ({ getLocalTestUrl, page, browserName }) => {
     if (shouldSkipWASMTests(browserName)) {
       sentryTest.skip();
     }
 
-    const url = await getLocalTestPath({ testDir: __dirname });
+    const url = await getLocalTestUrl({ testDir: __dirname });
 
     await page.route('**/simple.wasm', route => {
       const wasmModule = fs.readFileSync(path.resolve(__dirname, 'simple.wasm'));

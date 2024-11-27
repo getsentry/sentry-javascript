@@ -1,5 +1,7 @@
-/** Request data included in an event as sent to Sentry */
-export interface Request {
+/**
+ * Request data included in an event as sent to Sentry.
+ */
+export interface RequestEventData {
   url?: string;
   method?: string;
   data?: any;
@@ -8,6 +10,12 @@ export interface Request {
   env?: { [key: string]: string };
   headers?: { [key: string]: string };
 }
+
+/**
+ * Request data included in an event as sent to Sentry.
+ * @deprecated: This type will be removed in v9. Use `RequestEventData` instead.
+ */
+export type Request = RequestEventData;
 
 export type QueryParams = string | { [key: string]: string } | Array<[string, string]>;
 

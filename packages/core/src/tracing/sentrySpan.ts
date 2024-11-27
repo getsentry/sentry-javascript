@@ -13,7 +13,6 @@ import type {
   TransactionEvent,
   TransactionSource,
 } from '@sentry/types';
-import { dropUndefinedKeys, logger, timestampInSeconds, uuid4 } from '@sentry/utils';
 import { getClient, getCurrentScope } from '../currentScopes';
 import { DEBUG_BUILD } from '../debug-build';
 
@@ -26,6 +25,10 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '../semanticAttributes';
+import { logger } from '../utils-hoist/logger';
+import { uuid4 } from '../utils-hoist/misc';
+import { dropUndefinedKeys } from '../utils-hoist/object';
+import { timestampInSeconds } from '../utils-hoist/time';
 import {
   TRACE_FLAG_NONE,
   TRACE_FLAG_SAMPLED,
@@ -193,6 +196,7 @@ export class SentrySpan implements Span {
    */
   public updateName(name: string): this {
     this._name = name;
+    this.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'custom');
     return this;
   }
 

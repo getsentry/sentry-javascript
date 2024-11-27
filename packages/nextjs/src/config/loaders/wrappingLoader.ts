@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import commonjs from '@rollup/plugin-commonjs';
-import { stringMatchesSomePattern } from '@sentry/utils';
+import { stringMatchesSomePattern } from '@sentry/core';
 import * as chalk from 'chalk';
 import type { RollupBuild, RollupError } from 'rollup';
 import { rollup } from 'rollup';

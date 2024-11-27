@@ -1,8 +1,8 @@
 import type { TextMapGetter } from '@opentelemetry/api';
 import type { Context as OtelContext } from '@opentelemetry/api';
 import { context as otelContext, propagation } from '@opentelemetry/api';
+import { addExceptionMechanism, isString } from '@sentry/core';
 import type { Scope } from '@sentry/types';
-import { addExceptionMechanism, isString } from '@sentry/utils';
 import type { Handler } from 'aws-lambda';
 import type { APIGatewayProxyEventHeaders } from 'aws-lambda';
 

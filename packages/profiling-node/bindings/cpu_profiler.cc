@@ -333,9 +333,8 @@ void SentryProfile::Start(Profiler *profiler) {
 
   // Initialize the CPU Profiler
   profiler->cpu_profiler->StartProfiling(
-      profile_title,
-      {v8::CpuProfilingMode::kCallerLineNumbers,
-       v8::CpuProfilingOptions::kNoSampleLimit, kSamplingInterval});
+      profile_title, v8::CpuProfilingMode::kCallerLineNumbers, true,
+      v8::CpuProfilingOptions::kNoSampleLimit);
 
   // listen for memory sample ticks
   profiler->measurements_ticker.add_cpu_listener(id, cpu_sampler_cb);
@@ -1169,6 +1168,7 @@ napi_value Init(napi_env env, napi_value exports) {
   }
 
   Profiler *profiler = new Profiler(env, isolate);
+  profiler->cpu_profiler->SetSamplingInterval(kSamplingInterval);
 
   if (napi_set_instance_data(env, profiler, FreeAddonData, NULL) != napi_ok) {
     napi_throw_error(env, nullptr, "Failed to set instance data for profiler.");

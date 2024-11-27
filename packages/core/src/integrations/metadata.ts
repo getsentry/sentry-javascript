@@ -1,8 +1,8 @@
 import type { EventItem } from '@sentry/types';
-import { forEachEnvelopeItem } from '@sentry/utils';
 import { defineIntegration } from '../integration';
 
 import { addMetadataToStackFrames, stripMetadataFromStackFrames } from '../metadata';
+import { forEachEnvelopeItem } from '../utils-hoist/envelope';
 
 /**
  * Adds module metadata to stack frames.

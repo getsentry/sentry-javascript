@@ -38,11 +38,28 @@
     "@sentry/react": "latest || *",
     "@sentry-internal/replay": "latest || *",
     "@sentry/types": "latest || *",
-    "@sentry/utils": "latest || *",
     "@sentry/vercel-edge": "latest || *",
     "ts-node": "10.9.1"
   },
   "volta": {
     "extends": "../../package.json"
+  },
+  "sentryTest": {
+    "variants": [
+      {
+        "build-command": "test:build-13",
+        "label": "nextjs-app-dir (next@13)"
+      }
+    ],
+    "optionalVariants": [
+      {
+        "build-command": "test:build-canary",
+        "label": "nextjs-app-dir (canary)"
+      },
+      {
+        "build-command": "test:build-latest",
+        "label": "nextjs-app-dir (latest)"
+      }
+    ]
   }
 }

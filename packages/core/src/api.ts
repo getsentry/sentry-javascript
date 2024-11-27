@@ -1,5 +1,5 @@
 import type { DsnComponents, DsnLike, SdkInfo } from '@sentry/types';
-import { dsnToString, makeDsn, urlEncode } from '@sentry/utils';
+import { dsnToString, makeDsn } from './utils-hoist/dsn';
 
 const SENTRY_API_VERSION = '7';
 
@@ -17,13 +17,21 @@ function _getIngestEndpoint(dsn: DsnComponents): string {
 
 /** Returns a URL-encoded string with auth config suitable for a query string. */
 function _encodedAuth(dsn: DsnComponents, sdkInfo: SdkInfo | undefined): string {
-  return urlEncode({
+  const params: Record<string, string> = {
+    sentry_version: SENTRY_API_VERSION,
+  };
+
+  if (dsn.publicKey) {
     // We send only the minimum set of required information. See
     // https://github.com/getsentry/sentry-javascript/issues/2572.
-    sentry_key: dsn.publicKey,
-    sentry_version: SENTRY_API_VERSION,
-    ...(sdkInfo && { sentry_client: `${sdkInfo.name}/${sdkInfo.version}` }),
-  });
+    params.sentry_key = dsn.publicKey;
+  }
+
+  if (sdkInfo) {
+    params.sentry_client = `${sdkInfo.name}/${sdkInfo.version}`;
+  }
+
+  return new URLSearchParams(params).toString();
 }
 
 /**

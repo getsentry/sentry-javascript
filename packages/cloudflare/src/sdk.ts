@@ -7,8 +7,8 @@ import {
   linkedErrorsIntegration,
   requestDataIntegration,
 } from '@sentry/core';
+import { stackParserFromStackParserOptions } from '@sentry/core';
 import type { Integration } from '@sentry/types';
-import { stackParserFromStackParserOptions } from '@sentry/utils';
 import type { CloudflareClientOptions, CloudflareOptions } from './client';
 import { CloudflareClient } from './client';
 

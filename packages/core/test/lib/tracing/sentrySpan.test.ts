@@ -1,5 +1,4 @@
-import { timestampInSeconds } from '@sentry/utils';
-import { setCurrentClient } from '../../../src';
+import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, setCurrentClient, timestampInSeconds } from '../../../src';
 import { SentrySpan } from '../../../src/tracing/sentrySpan';
 import { SPAN_STATUS_ERROR } from '../../../src/tracing/spanstatus';
 import { TRACE_FLAG_NONE, TRACE_FLAG_SAMPLED, spanToJSON } from '../../../src/utils/spanUtils';
@@ -19,6 +18,19 @@ describe('SentrySpan', () => {
       span.updateName('new name');
 
       expect(spanToJSON(span).description).toEqual('new name');
+    });
+
+    it('sets the source to custom when calling updateName', () => {
+      const span = new SentrySpan({
+        name: 'original name',
+        attributes: { [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url' },
+      });
+
+      span.updateName('new name');
+
+      const spanJson = spanToJSON(span);
+      expect(spanJson.description).toEqual('new name');
+      expect(spanJson.data?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toEqual('custom');
     });
   });
 
@@ -149,6 +161,8 @@ describe('SentrySpan', () => {
     });
 
     test('does not send the span if `beforeSendSpan` drops the span', () => {
+      const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+
       const beforeSendSpan = jest.fn(() => null);
       const client = new TestClient(
         getDefaultTestClientOptions({
@@ -173,6 +187,12 @@ describe('SentrySpan', () => {
 
       expect(mockSend).not.toHaveBeenCalled();
       expect(recordDroppedEventSpy).toHaveBeenCalledWith('before_send', 'span');
+
+      expect(consoleWarnSpy).toHaveBeenCalledTimes(1);
+      expect(consoleWarnSpy).toBeCalledWith(
+        '[Sentry] Deprecation warning: Returning null from `beforeSendSpan` will be disallowed from SDK version 9.0.0 onwards. The callback will only support mutating spans. To drop certain spans, configure the respective integrations directly.',
+      );
+      consoleWarnSpy.mockRestore();
     });
   });
 

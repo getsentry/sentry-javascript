@@ -1,3 +1,5 @@
+// TODO(v9): Don't have this file be in the "utils-hoist" folder but "utils" folder - it's cleaner
+
 export type { ClientClass as SentryCoreCurrentScopes } from './sdk';
 export type { AsyncContextStrategy } from './asyncContext/types';
 export type { Carrier } from './carrier';
@@ -38,6 +40,7 @@ export {
   withScope,
   withIsolationScope,
   getClient,
+  getTraceContextFromScope,
 } from './currentScopes';
 export {
   getDefaultCurrentScope,
@@ -92,10 +95,12 @@ export { linkedErrorsIntegration } from './integrations/linkederrors';
 export { moduleMetadataIntegration } from './integrations/metadata';
 export { requestDataIntegration } from './integrations/requestdata';
 export { captureConsoleIntegration } from './integrations/captureconsole';
+// eslint-disable-next-line deprecation/deprecation
 export { debugIntegration } from './integrations/debug';
 export { dedupeIntegration } from './integrations/dedupe';
 export { extraErrorDataIntegration } from './integrations/extraerrordata';
 export { rewriteFramesIntegration } from './integrations/rewriteframes';
+// eslint-disable-next-line deprecation/deprecation
 export { sessionTimingIntegration } from './integrations/sessiontiming';
 export { zodErrorsIntegration } from './integrations/zoderrors';
 export { thirdPartyErrorFilterIntegration } from './integrations/third-party-errors-filter';
@@ -107,11 +112,15 @@ export type { MetricData } from '@sentry/types';
 export { metricsDefault } from './metrics/exports-default';
 export { BrowserMetricsAggregator } from './metrics/browser-aggregator';
 export { getMetricSummaryJsonForSpan } from './metrics/metric-summary';
-export { addTracingHeadersToFetchRequest, instrumentFetchRequest } from './fetch';
+export {
+  // eslint-disable-next-line deprecation/deprecation
+  addTracingHeadersToFetchRequest,
+  instrumentFetchRequest,
+} from './fetch';
 export { trpcMiddleware } from './trpc';
 export { captureFeedback } from './feedback';
 
 // eslint-disable-next-line deprecation/deprecation
 export { getCurrentHubShim, getCurrentHub } from './getCurrentHubShim';
 
-export { SDK_VERSION } from '@sentry/utils';
+export * from './utils-hoist/index';

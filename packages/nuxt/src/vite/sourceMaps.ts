@@ -1,6 +1,6 @@
 import type { Nuxt } from '@nuxt/schema';
+import { consoleSandbox } from '@sentry/core';
 import { type SentryRollupPluginOptions, sentryRollupPlugin } from '@sentry/rollup-plugin';
-import { consoleSandbox } from '@sentry/utils';
 import { type SentryVitePluginOptions, sentryVitePlugin } from '@sentry/vite-plugin';
 import type { NitroConfig } from 'nitropack';
 import type { OutputOptions } from 'rollup';
@@ -81,7 +81,7 @@ export function getPluginOptions(
     consoleSandbox(() => {
       // eslint-disable-next-line no-console
       console.log(
-        '[Sentry] Setting `sentry.sourceMapsUploadOptions.sourcemaps.filesToDeleteAfterUpload: [".*/**/*.map"]` to delete generated source maps after they were uploaded to Sentry.',
+        '[Sentry] Setting `sentry.sourceMapsUploadOptions.sourcemaps.filesToDeleteAfterUpload: [".*/**/public/**/*.map"]` to delete generated source maps after they were uploaded to Sentry.',
       );
     });
   }
@@ -108,7 +108,7 @@ export function getPluginOptions(
       filesToDeleteAfterUpload: sourceMapsUploadOptions.sourcemaps?.filesToDeleteAfterUpload
         ? sourceMapsUploadOptions.sourcemaps?.filesToDeleteAfterUpload
         : deleteFilesAfterUpload
-          ? ['.*/**/*.map']
+          ? ['.*/**/public/**/*.map']
           : undefined,
       rewriteSources: (source: string) => normalizePath(source),
       ...moduleOptions?.unstable_sentryBundlerPluginOptions?.sourcemaps,
@@ -279,7 +279,7 @@ function warnExplicitlyDisabledSourceMap(settingKey: string): void {
   consoleSandbox(() => {
     //  eslint-disable-next-line no-console
     console.warn(
-      `[Sentry] Parts of source map generation are currently disabled in your Nuxt configuration (\`${settingKey}: false\`). This setting is either a default setting or was explicitly set in your configuration. Sentry won't override this setting. Without source maps, code snippets on the Sentry Issues page will remain minified. To show unminified code, enable source maps in \`${settingKey}\`.`,
+      `[Sentry] Parts of source map generation are currently disabled in your Nuxt configuration (\`${settingKey}: false\`). This setting is either a default setting or was explicitly set in your configuration. Sentry won't override this setting. Without source maps, code snippets on the Sentry Issues page will remain minified. To show unminified code, enable source maps in \`${settingKey}\` (e.g. by setting them to \`hidden\`).`,
     );
   });
 }

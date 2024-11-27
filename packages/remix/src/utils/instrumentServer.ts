@@ -6,17 +6,18 @@ import {
   getActiveSpan,
   getClient,
   getRootSpan,
+  getTraceData,
   hasTracingEnabled,
   setHttpStatus,
   spanToJSON,
-  spanToTraceHeader,
   startSpan,
+  winterCGRequestToRequestData,
   withIsolationScope,
 } from '@sentry/core';
-import { continueTrace, getDynamicSamplingContextFromSpan } from '@sentry/opentelemetry';
-import type { TransactionSource, WrappedFunction } from '@sentry/types';
+import { fill, isNodeEnv, loadModule, logger } from '@sentry/core';
+import { continueTrace } from '@sentry/opentelemetry';
+import type { RequestEventData, TransactionSource, WrappedFunction } from '@sentry/types';
 import type { Span } from '@sentry/types';
-import { dynamicSamplingContextToSentryBaggageHeader, fill, isNodeEnv, loadModule, logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from './debug-build';
 import { captureRemixServerException, errorHandleDataFunction, errorHandleDocumentRequestFunction } from './errors';
@@ -39,7 +40,6 @@ import type {
   ServerRoute,
   ServerRouteManifest,
 } from './vendor/types';
-import { normalizeRemixRequest } from './web-fetch';
 
 let FUTURE_FLAGS: FutureConfig | undefined;
 
@@ -204,18 +204,13 @@ function getTraceAndBaggage(): {
   sentryTrace?: string;
   sentryBaggage?: string;
 } {
-  if (isNodeEnv() && hasTracingEnabled()) {
-    const span = getActiveSpan();
-    const rootSpan = span && getRootSpan(span);
+  if (isNodeEnv()) {
+    const traceData = getTraceData();
 
-    if (rootSpan) {
-      const dynamicSamplingContext = getDynamicSamplingContextFromSpan(rootSpan);
-
-      return {
-        sentryTrace: spanToTraceHeader(span),
-        sentryBaggage: dynamicSamplingContextToSentryBaggageHeader(dynamicSamplingContext),
-      };
-    }
+    return {
+      sentryTrace: traceData['sentry-trace'],
+      sentryBaggage: traceData.baggage,
+    };
   }
 
   return {};
@@ -296,10 +291,10 @@ function wrapRequestHandler(
     return withIsolationScope(async isolationScope => {
       const options = getClient()?.getOptions();
 
-      let normalizedRequest: Record<string, unknown> = request;
+      let normalizedRequest: RequestEventData = {};
 
       try {
-        normalizedRequest = normalizeRemixRequest(request);
+        normalizedRequest = winterCGRequestToRequestData(request);
       } catch (e) {
         DEBUG_BUILD && logger.warn('Failed to normalize Remix request');
       }
@@ -311,14 +306,7 @@ function wrapRequestHandler(
         isolationScope.setTransactionName(name);
       }
 
-      isolationScope.setSDKProcessingMetadata({
-        request: {
-          ...normalizedRequest,
-          route: {
-            path: name,
-          },
-        },
-      });
+      isolationScope.setSDKProcessingMetadata({ normalizedRequest });
 
       if (!options || !hasTracingEnabled(options)) {
         return origRequestHandler.call(this, request, loadContext);

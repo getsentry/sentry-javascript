@@ -25,8 +25,6 @@ import {
   spanToJSON,
   startIdleSpan,
 } from '@sentry/core';
-import type { Client, IntegrationFn, StartSpanOptions, TransactionSource } from '@sentry/types';
-import type { Span } from '@sentry/types';
 import {
   GLOBAL_OBJ,
   browserPerformanceTimeOrigin,
@@ -34,7 +32,9 @@ import {
   getDomElement,
   logger,
   propagationContextFromHeaders,
-} from '@sentry/utils';
+} from '@sentry/core';
+import type { Client, IntegrationFn, StartSpanOptions, TransactionSource } from '@sentry/types';
+import type { Span } from '@sentry/types';
 
 import { DEBUG_BUILD } from '../debug-build';
 import { WINDOW } from '../helpers';
@@ -299,16 +299,20 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
       let activeSpan: Span | undefined;
       let startingUrl: string | undefined = WINDOW.location && WINDOW.location.href;
 
+      function maybeEndActiveSpan(): void {
+        if (activeSpan && !spanToJSON(activeSpan).timestamp) {
+          DEBUG_BUILD && logger.log(`[Tracing] Finishing current active span with op: ${spanToJSON(activeSpan).op}`);
+          // If there's an open active span, we need to finish it before creating an new one.
+          activeSpan.end();
+        }
+      }
+
       client.on('startNavigationSpan', startSpanOptions => {
         if (getClient() !== client) {
           return;
         }
 
-        if (activeSpan && !spanToJSON(activeSpan).timestamp) {
-          DEBUG_BUILD && logger.log(`[Tracing] Finishing current root span with op: ${spanToJSON(activeSpan).op}`);
-          // If there's an open transaction on the scope, we need to finish it before creating an new one.
-          activeSpan.end();
-        }
+        maybeEndActiveSpan();
 
         activeSpan = _createRouteSpan(client, {
           op: 'navigation',
@@ -320,12 +324,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
         if (getClient() !== client) {
           return;
         }
-
-        if (activeSpan && !spanToJSON(activeSpan).timestamp) {
-          DEBUG_BUILD && logger.log(`[Tracing] Finishing current root span with op: ${spanToJSON(activeSpan).op}`);
-          // If there's an open transaction on the scope, we need to finish it before creating an new one.
-          activeSpan.end();
-        }
+        maybeEndActiveSpan();
 
         const sentryTrace = traceOptions.sentryTrace || getMetaContent('sentry-trace');
         const baggage = traceOptions.baggage || getMetaContent('baggage');

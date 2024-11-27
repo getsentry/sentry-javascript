@@ -41,7 +41,7 @@ function hidePage(page: Page): Promise<void> {
   });
 }
 
-sentryTest('captures a "GOOD" CLS vital with its source as a standalone span', async ({ getLocalTestPath, page }) => {
+sentryTest('captures a "GOOD" CLS vital with its source as a standalone span', async ({ getLocalTestUrl, page }) => {
   const spanEnvelopePromise = getMultipleSentryEnvelopeRequests<SpanEnvelope>(
     page,
     1,
@@ -49,7 +49,7 @@ sentryTest('captures a "GOOD" CLS vital with its source as a standalone span', a
     properFullEnvelopeRequestParser,
   );
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
   await page.goto(`${url}#0.05`);
 
   await waitForLayoutShift(page);
@@ -105,7 +105,7 @@ sentryTest('captures a "GOOD" CLS vital with its source as a standalone span', a
   });
 });
 
-sentryTest('captures a "MEH" CLS vital with its source as a standalone span', async ({ getLocalTestPath, page }) => {
+sentryTest('captures a "MEH" CLS vital with its source as a standalone span', async ({ getLocalTestUrl, page }) => {
   const spanEnvelopePromise = getMultipleSentryEnvelopeRequests<SpanEnvelope>(
     page,
     1,
@@ -113,7 +113,7 @@ sentryTest('captures a "MEH" CLS vital with its source as a standalone span', as
     properFullEnvelopeRequestParser,
   );
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
   await page.goto(`${url}#0.21`);
 
   await waitForLayoutShift(page);
@@ -172,7 +172,7 @@ sentryTest('captures a "MEH" CLS vital with its source as a standalone span', as
   });
 });
 
-sentryTest('captures a "POOR" CLS vital with its source as a standalone span.', async ({ getLocalTestPath, page }) => {
+sentryTest('captures a "POOR" CLS vital with its source as a standalone span.', async ({ getLocalTestUrl, page }) => {
   const spanEnvelopePromise = getMultipleSentryEnvelopeRequests<SpanEnvelope>(
     page,
     1,
@@ -180,7 +180,7 @@ sentryTest('captures a "POOR" CLS vital with its source as a standalone span.', 
     properFullEnvelopeRequestParser,
   );
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
   await page.goto(`${url}#0.35`);
 
   await waitForLayoutShift(page);
@@ -239,7 +239,7 @@ sentryTest('captures a "POOR" CLS vital with its source as a standalone span.', 
 
 sentryTest(
   'captures a 0 CLS vital as a standalone span if no layout shift occurred',
-  async ({ getLocalTestPath, page }) => {
+  async ({ getLocalTestUrl, page }) => {
     const spanEnvelopePromise = getMultipleSentryEnvelopeRequests<SpanEnvelope>(
       page,
       1,
@@ -247,7 +247,7 @@ sentryTest(
       properFullEnvelopeRequestParser,
     );
 
-    const url = await getLocalTestPath({ testDir: __dirname });
+    const url = await getLocalTestUrl({ testDir: __dirname });
     await page.goto(url);
 
     await page.waitForTimeout(1000);
@@ -302,8 +302,8 @@ sentryTest(
 
 sentryTest(
   'captures CLS increases after the pageload span ended, when page is hidden',
-  async ({ getLocalTestPath, page }) => {
-    const url = await getLocalTestPath({ testDir: __dirname });
+  async ({ getLocalTestUrl, page }) => {
+    const url = await getLocalTestUrl({ testDir: __dirname });
 
     const eventData = await getFirstSentryEnvelopeRequest<SentryEvent>(page, url);
 
@@ -339,8 +339,8 @@ sentryTest(
   },
 );
 
-sentryTest('sends CLS of the initial page when soft-navigating to a new page', async ({ getLocalTestPath, page }) => {
-  const url = await getLocalTestPath({ testDir: __dirname });
+sentryTest('sends CLS of the initial page when soft-navigating to a new page', async ({ getLocalTestUrl, page }) => {
+  const url = await getLocalTestUrl({ testDir: __dirname });
 
   const eventData = await getFirstSentryEnvelopeRequest<SentryEvent>(page, url);
 
@@ -366,8 +366,8 @@ sentryTest('sends CLS of the initial page when soft-navigating to a new page', a
   expect(spanEnvelopeItem.data?.['sentry.pageload.span_id']).toMatch(/[a-f0-9]{16}/);
 });
 
-sentryTest("doesn't send further CLS after the first navigation", async ({ getLocalTestPath, page }) => {
-  const url = await getLocalTestPath({ testDir: __dirname });
+sentryTest("doesn't send further CLS after the first navigation", async ({ getLocalTestUrl, page }) => {
+  const url = await getLocalTestUrl({ testDir: __dirname });
 
   const eventData = await getFirstSentryEnvelopeRequest<SentryEvent>(page, url);
 
@@ -410,8 +410,8 @@ sentryTest("doesn't send further CLS after the first navigation", async ({ getLo
   await navigationTxnPromise;
 });
 
-sentryTest("doesn't send further CLS after the first page hide", async ({ getLocalTestPath, page }) => {
-  const url = await getLocalTestPath({ testDir: __dirname });
+sentryTest("doesn't send further CLS after the first page hide", async ({ getLocalTestUrl, page }) => {
+  const url = await getLocalTestUrl({ testDir: __dirname });
 
   const eventData = await getFirstSentryEnvelopeRequest<SentryEvent>(page, url);
 
@@ -454,8 +454,8 @@ sentryTest("doesn't send further CLS after the first page hide", async ({ getLoc
   await navigationTxnPromise;
 });
 
-sentryTest('CLS span timestamps are set correctly', async ({ getLocalTestPath, page }) => {
-  const url = await getLocalTestPath({ testDir: __dirname });
+sentryTest('CLS span timestamps are set correctly', async ({ getLocalTestUrl, page }) => {
+  const url = await getLocalTestUrl({ testDir: __dirname });
 
   const eventData = await getFirstSentryEnvelopeRequest<SentryEvent>(page, url);
 

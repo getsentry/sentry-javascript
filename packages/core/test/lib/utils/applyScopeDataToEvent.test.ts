@@ -134,7 +134,15 @@ describe('mergeScopeData', () => {
       contexts: { os: { name: 'os1' }, culture: { display_name: 'name1' } },
       attachments: [attachment1],
       propagationContext: { spanId: '1', traceId: '1' },
-      sdkProcessingMetadata: { aa: 'aa', bb: 'aa' },
+      sdkProcessingMetadata: {
+        aa: 'aa',
+        bb: 'aa',
+        obj: { key: 'value' },
+        normalizedRequest: {
+          url: 'oldUrl',
+          method: 'oldMethod',
+        },
+      },
       fingerprint: ['aa', 'bb'],
     };
     const data2: ScopeData = {
@@ -146,7 +154,15 @@ describe('mergeScopeData', () => {
       contexts: { os: { name: 'os2' } },
       attachments: [attachment2, attachment3],
       propagationContext: { spanId: '2', traceId: '2' },
-      sdkProcessingMetadata: { bb: 'bb', cc: 'bb' },
+      sdkProcessingMetadata: {
+        bb: 'bb',
+        cc: 'bb',
+        obj: { key2: 'value2' },
+        normalizedRequest: {
+          url: 'newUrl',
+          headers: {},
+        },
+      },
       fingerprint: ['cc'],
     };
     mergeScopeData(data1, data2);
@@ -159,7 +175,17 @@ describe('mergeScopeData', () => {
       contexts: { os: { name: 'os2' }, culture: { display_name: 'name1' } },
       attachments: [attachment1, attachment2, attachment3],
       propagationContext: { spanId: '2', traceId: '2' },
-      sdkProcessingMetadata: { aa: 'aa', bb: 'bb', cc: 'bb' },
+      sdkProcessingMetadata: {
+        aa: 'aa',
+        bb: 'bb',
+        cc: 'bb',
+        obj: { key: 'value', key2: 'value2' },
+        normalizedRequest: {
+          url: 'newUrl',
+          method: 'oldMethod',
+          headers: {},
+        },
+      },
       fingerprint: ['aa', 'bb', 'cc'],
     });
   });

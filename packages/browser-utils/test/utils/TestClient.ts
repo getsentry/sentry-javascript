@@ -1,4 +1,5 @@
 import { BaseClient, createTransport, initAndBind } from '@sentry/core';
+import { resolvedSyncPromise } from '@sentry/core';
 import type {
   BrowserClientReplayOptions,
   ClientOptions,
@@ -6,7 +7,6 @@ import type {
   ParameterizedString,
   SeverityLevel,
 } from '@sentry/types';
-import { resolvedSyncPromise } from '@sentry/utils';
 
 export interface TestClientOptions extends ClientOptions, BrowserClientReplayOptions {}
 
@@ -20,10 +20,8 @@ export class TestClient extends BaseClient<TestClientOptions> {
       exception: {
         values: [
           {
-            /* eslint-disable @typescript-eslint/no-unsafe-member-access */
             type: exception.name,
             value: exception.message,
-            /* eslint-enable @typescript-eslint/no-unsafe-member-access */
           },
         ],
       },
