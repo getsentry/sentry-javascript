@@ -1,22 +1,30 @@
 import * as api from '@opentelemetry/api';
-import { dropUndefinedKeys } from '@sentry/core';
-import type { SerializedTraceData } from '@sentry/types';
+import {
+  dynamicSamplingContextToSentryBaggageHeader,
+  generateSentryTraceHeader,
+  getCapturedScopesOnSpan,
+} from '@sentry/core';
+import type { SerializedTraceData, Span } from '@sentry/types';
+import { getInjectionData } from '../propagator';
+import { getContextFromScope } from './contextData';
 
 /**
  * Otel-specific implementation of `getTraceData`.
  * @see `@sentry/core` version of `getTraceData` for more information
  */
-export function getTraceData(): SerializedTraceData {
-  const headersObject: Record<string, string> = {};
+export function getTraceData({ span }: { span?: Span } = {}): SerializedTraceData {
+  let ctx = api.context.active();
 
-  api.propagation.inject(api.context.active(), headersObject);
-
-  if (!headersObject['sentry-trace']) {
-    return {};
+  if (span) {
+    const { scope } = getCapturedScopesOnSpan(span);
+    // fall back to current context if for whatever reason we can't find the one of the span
+    ctx = (scope && getContextFromScope(scope)) || api.trace.setSpan(api.context.active(), span);
   }
 
-  return dropUndefinedKeys({
-    'sentry-trace': headersObject['sentry-trace'],
-    baggage: headersObject.baggage,
-  });
+  const { traceId, spanId, sampled, dynamicSamplingContext } = getInjectionData(ctx);
+
+  return {
+    'sentry-trace': generateSentryTraceHeader(traceId, spanId, sampled),
+    baggage: dynamicSamplingContextToSentryBaggageHeader(dynamicSamplingContext),
+  };
 }
