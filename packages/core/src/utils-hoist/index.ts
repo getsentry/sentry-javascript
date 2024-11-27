@@ -49,6 +49,7 @@ export {
   parseSemver,
   uuid4,
 } from './misc';
+// eslint-disable-next-line deprecation/deprecation
 export { dynamicRequire, isNodeEnv, loadModule } from './node';
 export { normalize, normalizeToSize, normalizeUrlToBase } from './normalize';
 export {
