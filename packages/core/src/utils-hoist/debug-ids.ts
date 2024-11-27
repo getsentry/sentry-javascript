@@ -1,7 +1,12 @@
-import type { DebugImage, StackFrame, StackParser } from '@sentry/types';
+import type { DebugImage, StackParser } from '@sentry/types';
 import { GLOBAL_OBJ } from './worldwide';
 
-const debugIdStackParserCache = new WeakMap<StackParser, Map<string, StackFrame[]>>();
+type StackString = string;
+type CachedResult = [string, string];
+
+let parsedStackResults: Record<StackString, CachedResult> | undefined;
+let lastKeysCount: number | undefined;
+let cachedFilenameDebugIds: Record<string, string> | undefined;
 
 /**
  * Returns a map of filenames to debug identifiers.
@@ -12,38 +17,46 @@ export function getFilenameToDebugIdMap(stackParser: StackParser): Record<string
     return {};
   }
 
-  let debugIdStackFramesCache: Map<string, StackFrame[]>;
-  const cachedDebugIdStackFrameCache = debugIdStackParserCache.get(stackParser);
-  if (cachedDebugIdStackFrameCache) {
-    debugIdStackFramesCache = cachedDebugIdStackFrameCache;
-  } else {
-    debugIdStackFramesCache = new Map<string, StackFrame[]>();
-    debugIdStackParserCache.set(stackParser, debugIdStackFramesCache);
+  const debugIdKeys = Object.keys(debugIdMap);
+
+  // If the count of registered globals hasn't changed since the last call, we
+  // can just return the cached result.
+  if (cachedFilenameDebugIds && debugIdKeys.length === lastKeysCount) {
+    return cachedFilenameDebugIds;
   }
 
-  // Build a map of filename -> debug_id.
-  return Object.keys(debugIdMap).reduce<Record<string, string>>((acc, debugIdStackTrace) => {
-    let parsedStack: StackFrame[];
+  lastKeysCount = debugIdKeys.length;
 
-    const cachedParsedStack = debugIdStackFramesCache.get(debugIdStackTrace);
-    if (cachedParsedStack) {
-      parsedStack = cachedParsedStack;
-    } else {
-      parsedStack = stackParser(debugIdStackTrace);
-      debugIdStackFramesCache.set(debugIdStackTrace, parsedStack);
+  // Build a map of filename -> debug_id.
+  cachedFilenameDebugIds = debugIdKeys.reduce<Record<string, string>>((acc, stackKey) => {
+    if (!parsedStackResults) {
+      parsedStackResults = {};
     }
 
-    for (let i = parsedStack.length - 1; i >= 0; i--) {
-      const stackFrame = parsedStack[i];
-      const file = stackFrame && stackFrame.filename;
+    const result = parsedStackResults[stackKey];
 
-      if (stackFrame && file) {
-        acc[file] = debugIdMap[debugIdStackTrace] as string;
-        break;
+    if (result) {
+      acc[result[0]] = result[1];
+    } else {
+      const parsedStack = stackParser(stackKey);
+
+      for (let i = parsedStack.length - 1; i >= 0; i--) {
+        const stackFrame = parsedStack[i];
+        const filename = stackFrame && stackFrame.filename;
+        const debugId = debugIdMap[stackKey];
+
+        if (filename && debugId) {
+          acc[filename] = debugId;
+          parsedStackResults[stackKey] = [filename, debugId];
+          break;
+        }
       }
     }
+
     return acc;
   }, {});
+
+  return cachedFilenameDebugIds;
 }
 
 /**
@@ -54,6 +67,10 @@ export function getDebugImagesForResources(
   resource_paths: ReadonlyArray<string>,
 ): DebugImage[] {
   const filenameDebugIdMap = getFilenameToDebugIdMap(stackParser);
+
+  if (!filenameDebugIdMap) {
+    return [];
+  }
 
   const images: DebugImage[] = [];
   for (const path of resource_paths) {
