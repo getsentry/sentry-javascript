@@ -17,7 +17,7 @@
     "clean:build": "lerna run clean",
     "clean:caches": "yarn rimraf eslintcache .nxcache && yarn jest --clearCache",
     "clean:deps": "lerna clean --yes && rm -rf node_modules && yarn",
-    "clean:tarballs": "rimraf -g **/*.tgz",
+    "clean:tarballs": "rimraf {packages,dev-packages}/*/*.tgz",
     "clean:all": "run-s clean:build clean:tarballs clean:caches clean:deps",
     "fix": "run-s fix:biome fix:prettier fix:lerna",
     "fix:lerna": "lerna run fix",

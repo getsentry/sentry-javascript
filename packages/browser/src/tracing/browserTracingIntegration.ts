@@ -14,6 +14,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   TRACING_DEFAULTS,
+  generateTraceId,
   getActiveSpan,
   getClient,
   getCurrentScope,
@@ -28,7 +29,6 @@ import {
 import {
   GLOBAL_OBJ,
   browserPerformanceTimeOrigin,
-  generatePropagationContext,
   getDomElement,
   logger,
   propagationContextFromHeaders,
@@ -452,8 +452,8 @@ export function startBrowserTracingPageLoadSpan(
  * This will only do something if a browser tracing integration has been setup.
  */
 export function startBrowserTracingNavigationSpan(client: Client, spanOptions: StartSpanOptions): Span | undefined {
-  getIsolationScope().setPropagationContext(generatePropagationContext());
-  getCurrentScope().setPropagationContext(generatePropagationContext());
+  getIsolationScope().setPropagationContext({ traceId: generateTraceId() });
+  getCurrentScope().setPropagationContext({ traceId: generateTraceId() });
 
   client.emit('startNavigationSpan', spanOptions);
 

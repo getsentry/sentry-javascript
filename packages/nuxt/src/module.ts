@@ -13,7 +13,7 @@ export default defineNuxtModule<ModuleOptions>({
     name: '@sentry/nuxt/module',
     configKey: 'sentry',
     compatibility: {
-      nuxt: '^3.0.0',
+      nuxt: '>=3.7.0',
     },
   },
   defaults: {},
