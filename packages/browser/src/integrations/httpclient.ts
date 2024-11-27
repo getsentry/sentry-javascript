@@ -46,7 +46,7 @@ const _httpClientIntegration = ((options: Partial<HttpClientOptions> = {}) => {
 
   return {
     name: INTEGRATION_NAME,
-    setup(client: Client): void {
+    setup(client): void {
       _wrapFetch(client, _options);
       _wrapXHR(client, _options);
     },
@@ -93,10 +93,7 @@ function _fetchResponseHandler(
       stacktrace: error instanceof Error ? error.stack : undefined,
     });
 
-    // withScope(scope => {
-    //   scope.setFingerprint([request.url, request.method, response.status.toString()]);
     captureEvent(event);
-    // });
   }
 }
 
