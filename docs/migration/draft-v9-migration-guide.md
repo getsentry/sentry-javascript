@@ -35,6 +35,7 @@
 - Deprecated `getNumberOfUrlSegments`. No replacements.
 - Deprecated `BAGGAGE_HEADER_NAME`. No replacements.
 - Deprecated `makeFifoCache`. No replacements.
+- Deprecated `dynamicRequire`. No replacements.
 - Deprecated `flatten`. No replacements.
 - Deprecated `_browserPerformanceTimeOriginMode`. No replacements.
 
