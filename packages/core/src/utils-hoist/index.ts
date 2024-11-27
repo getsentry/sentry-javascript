@@ -1,4 +1,5 @@
 export { applyAggregateErrorsToEvent } from './aggregate-errors';
+// eslint-disable-next-line deprecation/deprecation
 export { flatten } from './array';
 export { getBreadcrumbLogLevelFromHttpStatusCode } from './breadcrumb-log-level';
 export { getComponentName, getDomElement, getLocationHref, htmlTreeAsString } from './browser';
@@ -35,11 +36,13 @@ export {
 } from './is';
 export { isBrowser } from './isBrowser';
 export { CONSOLE_LEVELS, consoleSandbox, logger, originalConsoleMethods } from './logger';
+// eslint-disable-next-line deprecation/deprecation
 export { memoBuilder } from './memo';
 export {
   addContextToFrame,
   addExceptionMechanism,
   addExceptionTypeValue,
+  // eslint-disable-next-line deprecation/deprecation
   arrayify,
   checkOrSetAlreadyCaught,
   getEventDescription,
@@ -57,6 +60,7 @@ export {
   getOriginalFunction,
   markFunctionWrapped,
   objectify,
+  // eslint-disable-next-line deprecation/deprecation
   urlEncode,
 } from './object';
 export { basename, dirname, isAbsolute, join, normalizePath, relative, resolve } from './path';
@@ -67,9 +71,11 @@ export type { PromiseBuffer } from './promisebuffer';
 export {
   DEFAULT_USER_INCLUDES,
   addNormalizedRequestDataToEvent,
+  // eslint-disable-next-line deprecation/deprecation
   addRequestDataToEvent,
   // eslint-disable-next-line deprecation/deprecation
   extractPathForTransaction,
+  // eslint-disable-next-line deprecation/deprecation
   extractRequestData,
   winterCGHeadersToDict,
   winterCGRequestToRequestData,
@@ -83,6 +89,7 @@ export type {
   TransactionNamingScheme,
 } from './requestdata';
 
+// eslint-disable-next-line deprecation/deprecation
 export { severityLevelFromString, validSeverityLevels } from './severity';
 export {
   UNKNOWN_FUNCTION,
@@ -142,6 +149,7 @@ export {
 } from './ratelimit';
 export type { RateLimits } from './ratelimit';
 export {
+  // eslint-disable-next-line deprecation/deprecation
   BAGGAGE_HEADER_NAME,
   MAX_BAGGAGE_STRING_LENGTH,
   SENTRY_BAGGAGE_KEY_PREFIX,
@@ -151,7 +159,9 @@ export {
   parseBaggageHeader,
 } from './baggage';
 
+// eslint-disable-next-line deprecation/deprecation
 export { getNumberOfUrlSegments, getSanitizedUrlString, parseUrl, stripUrlQueryAndFragment } from './url';
+// eslint-disable-next-line deprecation/deprecation
 export { makeFifoCache } from './cache';
 export { eventFromMessage, eventFromUnknownInput, exceptionFromError, parseStackFrames } from './eventbuilder';
 export { callFrameToStackFrame, watchdogTimer } from './anr';
