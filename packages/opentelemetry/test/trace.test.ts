@@ -1521,8 +1521,8 @@ describe('continueTrace', () => {
       const span = getActiveSpan()!;
       expect(span).toBeDefined();
       expect(spanToJSON(span)).toEqual({
-        span_id: '',
-        trace_id: expect.any(String),
+        span_id: expect.stringMatching(/^[0-9a-f]{16}$/),
+        trace_id: expect.stringMatching(/^[0-9a-f]{32}$/),
       });
       expect(getSamplingDecision(span.spanContext())).toBe(undefined);
       expect(spanIsSampled(span)).toBe(false);
