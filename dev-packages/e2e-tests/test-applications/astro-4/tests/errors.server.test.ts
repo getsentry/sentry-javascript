@@ -37,9 +37,7 @@ test.describe('server-side errors', () => {
         os: expect.any(Object),
         runtime: expect.any(Object),
         trace: {
-          // TODO: This is a bug, this should be spanId
-          // This is due to generateSpanContextForPropagationContext() returning '' as fallback
-          span_id: '',
+          span_id: spanId,
           trace_id: traceId,
         },
       },
