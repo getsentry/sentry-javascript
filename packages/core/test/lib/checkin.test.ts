@@ -1,4 +1,4 @@
-import type { SerializedCheckIn } from '@sentry/types';
+import type { SerializedCheckIn } from '../../src/types-hoist';
 
 import { createCheckInEnvelope } from '../../src/checkin';
 

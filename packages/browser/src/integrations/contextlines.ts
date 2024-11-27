@@ -1,6 +1,6 @@
 import { defineIntegration } from '@sentry/core';
 import { GLOBAL_OBJ, addContextToFrame, stripUrlQueryAndFragment } from '@sentry/core';
-import type { Event, IntegrationFn, StackFrame } from '@sentry/types';
+import type { Event, IntegrationFn, StackFrame } from '@sentry/core';
 
 const WINDOW = GLOBAL_OBJ as typeof GLOBAL_OBJ & Window;
 

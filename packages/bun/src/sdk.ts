@@ -4,6 +4,7 @@ import {
   linkedErrorsIntegration,
   requestDataIntegration,
 } from '@sentry/core';
+import type { Integration, Options } from '@sentry/core';
 import type { NodeClient } from '@sentry/node';
 import {
   consoleIntegration,
@@ -16,7 +17,6 @@ import {
   onUncaughtExceptionIntegration,
   onUnhandledRejectionIntegration,
 } from '@sentry/node';
-import type { Integration, Options } from '@sentry/types';
 
 import { BunClient } from './client';
 import { bunServerIntegration } from './integrations/bunserver';

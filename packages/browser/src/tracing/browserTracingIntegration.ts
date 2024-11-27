@@ -33,8 +33,8 @@ import {
   logger,
   propagationContextFromHeaders,
 } from '@sentry/core';
-import type { Client, IntegrationFn, StartSpanOptions, TransactionSource } from '@sentry/types';
-import type { Span } from '@sentry/types';
+import type { Client, IntegrationFn, StartSpanOptions, TransactionSource } from '@sentry/core';
+import type { Span } from '@sentry/core';
 
 import { DEBUG_BUILD } from '../debug-build';
 import { WINDOW } from '../helpers';

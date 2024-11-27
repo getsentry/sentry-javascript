@@ -41,7 +41,6 @@
   "dependencies": {
     "@sentry/browser": "8.40.0",
     "@sentry/core": "8.40.0",
-    "@sentry/types": "8.40.0",
     "hoist-non-react-statics": "^3.3.2"
   },
   "peerDependencies": {

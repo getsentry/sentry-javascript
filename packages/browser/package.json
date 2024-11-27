@@ -43,8 +43,7 @@
     "@sentry-internal/feedback": "8.40.0",
     "@sentry-internal/replay": "8.40.0",
     "@sentry-internal/replay-canvas": "8.40.0",
-    "@sentry/core": "8.40.0",
-    "@sentry/types": "8.40.0"
+    "@sentry/core": "8.40.0"
   },
   "devDependencies": {
     "@sentry-internal/integration-shims": "8.40.0",

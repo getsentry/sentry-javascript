@@ -10,7 +10,7 @@ import {
   spanToJSON,
 } from '@sentry/core';
 import { browserPerformanceTimeOrigin, dropUndefinedKeys, htmlTreeAsString } from '@sentry/core';
-import type { Span, SpanAttributes } from '@sentry/types';
+import type { Span, SpanAttributes } from '@sentry/core';
 import {
   addInpInstrumentationHandler,
   addPerformanceInstrumentationHandler,

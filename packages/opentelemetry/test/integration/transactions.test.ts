@@ -12,7 +12,7 @@ import {
   withIsolationScope,
 } from '@sentry/core';
 import { logger } from '@sentry/core';
-import type { Event, TransactionEvent } from '@sentry/types';
+import type { Event, TransactionEvent } from '@sentry/core';
 
 import { TraceState } from '@opentelemetry/core';
 import { SENTRY_TRACE_STATE_DSC } from '../../src/constants';

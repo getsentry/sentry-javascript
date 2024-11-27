@@ -9,7 +9,7 @@ import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, app
 import { GLOBAL_OBJ } from '@sentry/core';
 import Ember from 'ember';
 
-import type { Client, TransactionSource } from '@sentry/types';
+import type { Client, TransactionSource } from '@sentry/core';
 import type { EmberSentryConfig, GlobalConfig, OwnConfig } from './types';
 
 function _getSentryInitConfig(): EmberSentryConfig['sentry'] {

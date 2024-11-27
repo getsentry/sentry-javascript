@@ -1,14 +1,8 @@
-import type { Client, Event, EventHint, Integration, IntegrationFn, Options } from '@sentry/types';
 import { getClient } from './currentScopes';
+import type { Client, Event, EventHint, Integration, IntegrationFn, Options } from './types-hoist';
 
 import { DEBUG_BUILD } from './debug-build';
 import { logger } from './utils-hoist/logger';
-
-declare module '@sentry/types' {
-  interface Integration {
-    isDefaultInstance?: boolean;
-  }
-}
 
 export const installedIntegrations: string[] = [];
 

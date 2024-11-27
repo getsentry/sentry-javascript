@@ -1,5 +1,5 @@
-import type { Integration, Options } from '@sentry/types';
 import { getCurrentScope } from '../../src/currentScopes';
+import type { Integration, Options } from '../../src/types-hoist';
 
 import { addIntegration, getIntegrationsToSetup, installedIntegrations, setupIntegration } from '../../src/integration';
 import { setCurrentClient } from '../../src/sdk';

@@ -7,7 +7,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, render } from '@testing-library/svelte';
 import { getClient, getCurrentScope, getIsolationScope, init, startSpan } from '../src';
 
-import type { TransactionEvent } from '@sentry/types';
+import type { TransactionEvent } from '@sentry/core';
 
 // @ts-expect-error svelte import
 import DummyComponent from './components/Dummy.svelte';

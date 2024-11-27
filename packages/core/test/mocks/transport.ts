@@ -1,4 +1,4 @@
-import type { Transport } from '@sentry/types';
+import type { Transport } from '../../src/types-hoist';
 
 import { createTransport } from '../../src/transports/base';
 import { SyncPromise } from '../../src/utils-hoist/syncpromise';

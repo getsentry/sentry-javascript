@@ -1,7 +1,7 @@
 import { AwsInstrumentation } from '@opentelemetry/instrumentation-aws-sdk';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, defineIntegration } from '@sentry/core';
+import type { IntegrationFn } from '@sentry/core';
 import { addOpenTelemetryInstrumentation } from '@sentry/node';
-import type { IntegrationFn } from '@sentry/types';
 
 const _awsIntegration = (() => {
   return {

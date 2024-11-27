@@ -13,7 +13,7 @@ import {
   getRootSpan,
   spanToJSON,
 } from '@sentry/core';
-import type { Client, Integration, Span, TransactionSource } from '@sentry/types';
+import type { Client, Integration, Span, TransactionSource } from '@sentry/core';
 import hoistNonReactStatics from 'hoist-non-react-statics';
 import * as React from 'react';
 import type { ReactElement } from 'react';

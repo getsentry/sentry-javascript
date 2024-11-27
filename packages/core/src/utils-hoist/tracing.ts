@@ -1,4 +1,4 @@
-import type { PropagationContext, TraceparentData } from '@sentry/types';
+import type { PropagationContext, TraceparentData } from '../types-hoist';
 
 import { baggageHeaderToDynamicSamplingContext } from './baggage';
 import { uuid4 } from './misc';

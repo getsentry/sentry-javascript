@@ -1,12 +1,12 @@
 import { applySdkMetadata, flush, getGlobalScope } from '@sentry/core';
 import { logger, vercelWaitUntil } from '@sentry/core';
+import type { Client, EventProcessor, Integration } from '@sentry/core';
 import {
   type NodeOptions,
   getDefaultIntegrations as getDefaultNodeIntegrations,
   httpIntegration,
   init as initNode,
 } from '@sentry/node';
-import type { Client, EventProcessor, Integration } from '@sentry/types';
 import { DEBUG_BUILD } from '../common/debug-build';
 import type { SentryNuxtServerOptions } from '../common/types';
 

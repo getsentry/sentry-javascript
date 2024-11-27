@@ -164,4 +164,4 @@ export type {
   Thread,
   User,
   Span,
-} from '@sentry/types';
+} from '@sentry/core';

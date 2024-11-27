@@ -5,9 +5,9 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '@sentry/core';
+import type { Event } from '@sentry/core';
 import { NodeClient, getCurrentScope, getIsolationScope, setCurrentClient } from '@sentry/node';
 import * as SentryNode from '@sentry/node';
-import type { Event } from '@sentry/types';
 import type { Load, ServerLoad } from '@sveltejs/kit';
 import { error, redirect } from '@sveltejs/kit';
 

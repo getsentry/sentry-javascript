@@ -3,7 +3,7 @@ import { trace } from '@opentelemetry/api';
 import type { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
 import type { BaseClient } from '@sentry/core';
 import { SDK_VERSION } from '@sentry/core';
-import type { Client } from '@sentry/types';
+import type { Client } from '@sentry/core';
 
 import type { OpenTelemetryClient as OpenTelemetryClientInterface } from '../types';
 

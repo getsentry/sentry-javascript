@@ -10,7 +10,7 @@ import {
   spanToJSON,
 } from '@sentry/core';
 import { consoleSandbox, logger } from '@sentry/core';
-import type { Span } from '@sentry/types';
+import type { Span } from '@sentry/core';
 import { generateInstrumentOnce } from '../../../otel/instrument';
 import { SentryNestEventInstrumentation } from './sentry-nest-event-instrumentation';
 import { SentryNestInstrumentation } from './sentry-nest-instrumentation';

@@ -41,8 +41,7 @@
   "dependencies": {
     "@sentry/core": "8.40.0",
     "@sentry/node": "8.40.0",
-    "@sentry/opentelemetry": "8.40.0",
-    "@sentry/types": "8.40.0"
+    "@sentry/opentelemetry": "8.40.0"
   },
   "devDependencies": {
     "bun-types": "latest"

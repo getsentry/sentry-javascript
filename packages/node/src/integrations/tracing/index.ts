@@ -1,4 +1,4 @@
-import type { Integration } from '@sentry/types';
+import type { Integration } from '@sentry/core';
 import { instrumentOtelHttp } from '../http';
 
 import { amqplibIntegration, instrumentAmqplib } from './amqplib';

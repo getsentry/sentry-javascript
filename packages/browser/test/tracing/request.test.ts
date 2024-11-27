@@ -2,7 +2,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vites
 
 import * as browserUtils from '@sentry-internal/browser-utils';
 import * as utils from '@sentry/core';
-import type { Client } from '@sentry/types';
+import type { Client } from '@sentry/core';
 import { WINDOW } from '../../src/helpers';
 
 import { extractNetworkProtocol, instrumentOutgoingRequests, shouldAttachHeaders } from '../../src/tracing/request';

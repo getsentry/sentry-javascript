@@ -45,8 +45,7 @@
   },
   "dependencies": {
     "@sentry/core": "8.40.0",
-    "@sentry/node": "8.40.0",
-    "@sentry/types": "8.40.0"
+    "@sentry/node": "8.40.0"
   },
   "devDependencies": {
     "@nestjs/common": "^8.0.0 || ^9.0.0 || ^10.0.0",

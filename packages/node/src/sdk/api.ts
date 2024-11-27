@@ -1,7 +1,7 @@
 // PUBLIC APIS
 
 import { GLOBAL_OBJ, createStackParser, nodeStackLineParser } from '@sentry/core';
-import type { StackParser } from '@sentry/types';
+import type { StackParser } from '@sentry/core';
 import { createGetModuleFromFilename } from '../utils/module';
 
 /**

@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import type { ParameterizedString, PolymorphicEvent, Primitive } from '@sentry/types';
+import type { ParameterizedString, PolymorphicEvent, Primitive } from '../types-hoist';
 
 // eslint-disable-next-line @typescript-eslint/unbound-method
 const objectToString = Object.prototype.toString;

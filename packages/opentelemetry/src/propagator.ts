@@ -19,7 +19,7 @@ import {
   propagationContextFromHeaders,
   stringMatchesSomePattern,
 } from '@sentry/core';
-import type { DynamicSamplingContext, Options, PropagationContext } from '@sentry/types';
+import type { DynamicSamplingContext, Options, PropagationContext } from '@sentry/core';
 
 import {
   SENTRY_BAGGAGE_HEADER,

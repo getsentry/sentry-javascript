@@ -10,7 +10,7 @@ import type {
   TransportMakeRequestResponse,
   TransportRequest,
   TransportRequestExecutor,
-} from '@sentry/types';
+} from '@sentry/core';
 import { HttpsProxyAgent } from '../proxy';
 import type { HTTPModule } from './http-module';
 

@@ -1,4 +1,4 @@
-import type { Client, DsnComponents, MetricBucketItem, SdkMetadata, StatsdEnvelope, StatsdItem } from '@sentry/types';
+import type { Client, DsnComponents, MetricBucketItem, SdkMetadata, StatsdEnvelope, StatsdItem } from '../types-hoist';
 import { dsnToString } from '../utils-hoist/dsn';
 import { createEnvelope } from '../utils-hoist/envelope';
 import { logger } from '../utils-hoist/logger';

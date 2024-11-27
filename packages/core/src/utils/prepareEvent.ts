@@ -7,7 +7,7 @@ import type {
   Scope as ScopeInterface,
   ScopeContext,
   StackParser,
-} from '@sentry/types';
+} from '../types-hoist';
 
 import { DEFAULT_ENVIRONMENT } from '../constants';
 import { getGlobalScope } from '../currentScopes';

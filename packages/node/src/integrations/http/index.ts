@@ -4,8 +4,8 @@ import type { HttpInstrumentationConfig } from '@opentelemetry/instrumentation-h
 import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
 
 import { defineIntegration } from '@sentry/core';
+import type { IntegrationFn, Span } from '@sentry/core';
 import { getClient } from '@sentry/opentelemetry';
-import type { IntegrationFn, Span } from '@sentry/types';
 
 import { generateInstrumentOnce } from '../../otel/instrument';
 import type { NodeClient } from '../../sdk/client';

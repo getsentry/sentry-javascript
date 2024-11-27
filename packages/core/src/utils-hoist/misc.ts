@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import type { Event, Exception, Mechanism, StackFrame } from '@sentry/types';
+import type { Event, Exception, Mechanism, StackFrame } from '../types-hoist';
 
 import { addNonEnumerableProperty } from './object';
 import { snipLine } from './string';

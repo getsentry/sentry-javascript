@@ -12,7 +12,7 @@ import type {
   ParameterizedString,
   SeverityLevel,
   UserFeedback,
-} from '@sentry/types';
+} from '@sentry/core';
 
 import { DEBUG_BUILD } from './debug-build';
 import { eventFromException, eventFromMessage } from './eventbuilder';
@@ -22,7 +22,7 @@ import { createUserFeedbackEnvelope } from './userfeedback';
 
 /**
  * Configuration options for the Sentry Browser SDK.
- * @see @sentry/types Options for more information.
+ * @see @sentry/core Options for more information.
  */
 export type BrowserOptions = Options<BrowserTransportOptions> &
   BrowserClientReplayOptions &

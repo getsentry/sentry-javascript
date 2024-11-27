@@ -17,7 +17,7 @@ import {
   stripUrlQueryAndFragment,
   withIsolationScope,
 } from '@sentry/core';
-import type { RequestEventData, SanitizedRequestData, Scope } from '@sentry/types';
+import type { RequestEventData, SanitizedRequestData, Scope } from '@sentry/core';
 import { DEBUG_BUILD } from '../../debug-build';
 import type { NodeClient } from '../../sdk/client';
 import { getRequestUrl } from '../../utils/getRequestUrl';

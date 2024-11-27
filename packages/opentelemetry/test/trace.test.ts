@@ -20,7 +20,7 @@ import {
   suppressTracing,
   withScope,
 } from '@sentry/core';
-import type { Event, Scope } from '@sentry/types';
+import type { Event, Scope } from '@sentry/core';
 
 import { SEMATTRS_HTTP_METHOD } from '@opentelemetry/semantic-conventions';
 import { continueTrace, startInactiveSpan, startSpan, startSpanManual } from '../src/trace';

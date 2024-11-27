@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import type { WrappedFunction } from '@sentry/types';
+import type { WrappedFunction } from '@sentry/core';
 
 import { wrap } from '../../src/helpers';
 

@@ -24,8 +24,8 @@ import {
   SEMATTRS_HTTP_METHOD,
   SEMATTRS_HTTP_TARGET,
 } from '@opentelemetry/semantic-conventions';
+import type { EventProcessor } from '@sentry/core';
 import { getScopesFromContext } from '@sentry/opentelemetry';
-import type { EventProcessor } from '@sentry/types';
 import { DEBUG_BUILD } from '../common/debug-build';
 import { devErrorSymbolicationEventProcessor } from '../common/devErrorSymbolicationEventProcessor';
 import { getVercelEnv } from '../common/getVercelEnv';

@@ -1,6 +1,6 @@
 import { createTransport, suppressTracing } from '@sentry/core';
 import { consoleSandbox, logger, rejectedSyncPromise } from '@sentry/core';
-import type { BaseTransportOptions, Transport, TransportMakeRequestResponse, TransportRequest } from '@sentry/types';
+import type { BaseTransportOptions, Transport, TransportMakeRequestResponse, TransportRequest } from '@sentry/core';
 
 export interface DenoTransportOptions extends BaseTransportOptions {
   /** Custom headers for the transport. Used by the XHRTransport and FetchTransport */

@@ -73,7 +73,7 @@ export {
   zodErrorsIntegration,
   thirdPartyErrorFilterIntegration,
 } from '@sentry/core';
-export type { Span } from '@sentry/types';
+export type { Span } from '@sentry/core';
 export { makeBrowserOfflineTransport } from './transports/offline';
 export { browserProfilingIntegration } from './profiling/integration';
 export { spotlightBrowserIntegration } from './integrations/spotlight';

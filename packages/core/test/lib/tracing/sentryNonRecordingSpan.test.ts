@@ -1,6 +1,6 @@
-import type { Span } from '@sentry/types';
 import { SPAN_STATUS_ERROR } from '../../../src/tracing';
 import { SentryNonRecordingSpan } from '../../../src/tracing/sentryNonRecordingSpan';
+import type { Span } from '../../../src/types-hoist';
 import { TRACE_FLAG_NONE, spanIsSampled, spanToJSON } from '../../../src/utils/spanUtils';
 
 describe('SentryNonRecordingSpan', () => {

@@ -34,7 +34,6 @@
     "@sentry/aws-serverless": "8.40.0",
     "@sentry/core": "8.40.0",
     "@sentry/node": "8.40.0",
-    "@sentry/types": "8.40.0",
     "@types/mongodb": "^3.6.20",
     "@types/mysql": "^2.15.21",
     "@types/pg": "^8.6.5",

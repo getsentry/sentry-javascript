@@ -4,7 +4,7 @@
 import { beforeAll, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import * as SentryCore from '@sentry/core';
-import type { Event } from '@sentry/types';
+import type { Event } from '@sentry/core';
 import { setAsyncLocalStorageAsyncContextStrategy } from '../src/async';
 import type { CloudflareOptions } from '../src/client';
 import { CloudflareClient } from '../src/client';

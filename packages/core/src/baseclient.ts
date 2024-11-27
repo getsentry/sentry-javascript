@@ -29,7 +29,7 @@ import type {
   TransactionEvent,
   Transport,
   TransportMakeRequestResponse,
-} from '@sentry/types';
+} from './types-hoist';
 
 import { getEnvelopeEndpointWithUrlEncodedAuth } from './api';
 import { getCurrentScope, getIsolationScope, getTraceContextFromScope } from './currentScopes';
@@ -260,7 +260,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   }
 
   /**
-   * @see SdkMetadata in @sentry/types
+   * @see SdkMetadata
    *
    * @return The metadata of the SDK
    */

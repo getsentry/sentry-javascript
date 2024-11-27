@@ -7,7 +7,7 @@ import {
 } from '@sentry/core';
 import { getIntegrationsToSetup, initAndBind } from '@sentry/core';
 import { createStackParser, nodeStackLineParser, stackParserFromStackParserOptions } from '@sentry/core';
-import type { Client, Integration, Options, StackParser } from '@sentry/types';
+import type { Client, Integration, Options, StackParser } from '@sentry/core';
 
 import { DenoClient } from './client';
 import { breadcrumbsIntegration } from './integrations/breadcrumbs';

@@ -31,7 +31,7 @@ import type {
   IntegrationFn,
   XhrBreadcrumbData,
   XhrBreadcrumbHint,
-} from '@sentry/types';
+} from '@sentry/core';
 
 import { DEBUG_BUILD } from '../debug-build';
 import { WINDOW } from '../helpers';

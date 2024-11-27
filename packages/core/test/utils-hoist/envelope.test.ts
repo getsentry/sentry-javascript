@@ -1,4 +1,4 @@
-import type { Event, EventEnvelope, SpanAttributes } from '@sentry/types';
+import type { Event, EventEnvelope, SpanAttributes } from '../../src/types-hoist';
 
 import {
   SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME,

@@ -10,7 +10,7 @@ import {
   spanToJSON,
 } from '@sentry/core';
 import { logger } from '@sentry/core';
-import type { IntegrationFn, Span } from '@sentry/types';
+import type { IntegrationFn, Span } from '@sentry/core';
 import { DEBUG_BUILD } from '../../debug-build';
 import { generateInstrumentOnce } from '../../otel/instrument';
 import { ensureIsWrapped } from '../../utils/ensureIsWrapped';

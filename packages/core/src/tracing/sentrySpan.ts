@@ -1,3 +1,5 @@
+import { getClient, getCurrentScope } from '../currentScopes';
+import { DEBUG_BUILD } from '../debug-build';
 import type {
   SentrySpanArguments,
   Span,
@@ -12,9 +14,7 @@ import type {
   TimedEvent,
   TransactionEvent,
   TransactionSource,
-} from '@sentry/types';
-import { getClient, getCurrentScope } from '../currentScopes';
-import { DEBUG_BUILD } from '../debug-build';
+} from '../types-hoist';
 
 import { createSpanEnvelope } from '../envelope';
 import { getMetricSummaryJsonForSpan } from '../metrics/metric-summary';

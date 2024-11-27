@@ -1,4 +1,4 @@
-import type { ReplayRecordingData } from '@sentry/types';
+import type { ReplayRecordingData } from '@sentry/core';
 
 import { REPLAY_MAX_EVENT_BUFFER_SIZE } from '../constants';
 import { DEBUG_BUILD } from '../debug-build';

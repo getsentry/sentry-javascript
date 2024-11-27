@@ -1,4 +1,3 @@
-import type { Event, Span, StartSpanOptions } from '@sentry/types';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -25,6 +24,7 @@ import {
 } from '../../../src/tracing';
 import { SentryNonRecordingSpan } from '../../../src/tracing/sentryNonRecordingSpan';
 import { startNewTrace } from '../../../src/tracing/trace';
+import type { Event, Span, StartSpanOptions } from '../../../src/types-hoist';
 import { _setSpanForScope } from '../../../src/utils/spanOnScope';
 import { getActiveSpan, getRootSpan, getSpanDescendants, spanIsSampled } from '../../../src/utils/spanUtils';
 import { TestClient, getDefaultTestClientOptions } from '../../mocks/client';

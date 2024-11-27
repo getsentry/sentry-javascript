@@ -1,4 +1,4 @@
-import type { Event } from '@sentry/types';
+import type { Event } from '../../../src/types-hoist';
 
 import {
   GLOBAL_OBJ,

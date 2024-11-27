@@ -11,7 +11,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   getClient,
 } from '@sentry/core';
-import type { Client, Integration, Span } from '@sentry/types';
+import type { Client, Integration, Span } from '@sentry/core';
 import type {
   BeforeLeaveEventArgs,
   HashRouter,

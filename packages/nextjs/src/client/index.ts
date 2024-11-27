@@ -1,8 +1,8 @@
 import { addEventProcessor, applySdkMetadata } from '@sentry/core';
 import { GLOBAL_OBJ } from '@sentry/core';
+import type { Client, EventProcessor, Integration } from '@sentry/core';
 import type { BrowserOptions } from '@sentry/react';
 import { getDefaultIntegrations as getReactDefaultIntegrations, init as reactInit } from '@sentry/react';
-import type { Client, EventProcessor, Integration } from '@sentry/types';
 
 import { devErrorSymbolicationEventProcessor } from '../common/devErrorSymbolicationEventProcessor';
 import { getVercelEnv } from '../common/getVercelEnv';

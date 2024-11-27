@@ -9,12 +9,12 @@ import {
   hasTracingEnabled,
 } from '@sentry/core';
 import { getBreadcrumbLogLevelFromHttpStatusCode, getSanitizedUrlString, parseUrl } from '@sentry/core';
+import type { IntegrationFn, SanitizedRequestData } from '@sentry/core';
 import {
   addOpenTelemetryInstrumentation,
   generateSpanContextForPropagationContext,
   getPropagationContextFromSpan,
 } from '@sentry/opentelemetry';
-import type { IntegrationFn, SanitizedRequestData } from '@sentry/types';
 
 interface NodeFetchOptions {
   /**

@@ -7,7 +7,7 @@ import type {
   ParameterizedString,
   Session,
   SeverityLevel,
-} from '@sentry/types';
+} from '../../src/types-hoist';
 
 import { BaseClient } from '../../src/baseclient';
 import { initAndBind } from '../../src/sdk';

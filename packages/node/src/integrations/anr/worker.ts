@@ -15,7 +15,7 @@ import {
   uuid4,
   watchdogTimer,
 } from '@sentry/core';
-import type { DebugImage, Event, ScopeData, Session, StackFrame } from '@sentry/types';
+import type { DebugImage, Event, ScopeData, Session, StackFrame } from '@sentry/core';
 
 import { makeNodeTransport } from '../../transports';
 import { createGetModuleFromFilename } from '../../utils/module';

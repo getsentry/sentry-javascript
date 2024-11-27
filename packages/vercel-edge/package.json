@@ -40,8 +40,7 @@
   },
   "dependencies": {
     "@opentelemetry/api": "^1.9.0",
-    "@sentry/core": "8.40.0",
-    "@sentry/types": "8.40.0"
+    "@sentry/core": "8.40.0"
   },
   "devDependencies": {
     "@edge-runtime/types": "3.0.1",

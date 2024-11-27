@@ -23,7 +23,7 @@ import type {
   ProfileChunkItem,
   SdkInfo,
   ThreadCpuProfile,
-} from '@sentry/types';
+} from '@sentry/core';
 
 import { env, versions } from 'process';
 import { isMainThread, threadId } from 'worker_threads';

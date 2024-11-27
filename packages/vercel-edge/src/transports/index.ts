@@ -1,6 +1,6 @@
 import { createTransport, suppressTracing } from '@sentry/core';
 import { SentryError } from '@sentry/core';
-import type { BaseTransportOptions, Transport, TransportMakeRequestResponse, TransportRequest } from '@sentry/types';
+import type { BaseTransportOptions, Transport, TransportMakeRequestResponse, TransportRequest } from '@sentry/core';
 
 export interface VercelEdgeTransportOptions extends BaseTransportOptions {
   /** Fetch API init parameters. */

@@ -1,5 +1,5 @@
-import type { IntegrationFn } from '@sentry/types';
 import { defineIntegration } from '../integration';
+import type { IntegrationFn } from '../types-hoist';
 import { applyAggregateErrorsToEvent } from '../utils-hoist/aggregate-errors';
 import { exceptionFromError } from '../utils-hoist/eventbuilder';
 
