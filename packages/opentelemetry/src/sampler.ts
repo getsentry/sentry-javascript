@@ -48,7 +48,7 @@ export class SentrySampler implements Sampler {
   ): SamplingResult {
     const options = this._client.getOptions();
 
-    const parentSpan = trace.getSpan(context);
+    const parentSpan = getValidSpan(context);
     const parentContext = parentSpan?.spanContext();
 
     if (!hasTracingEnabled(options)) {
@@ -209,4 +209,13 @@ function getBaseTraceState(context: Context, spanAttributes: SpanAttributes): Tr
   }
 
   return traceState;
+}
+
+/**
+ * If the active span is invalid, we want to ignore it as parent.
+ * This aligns with how otel tracers and default samplers handle these cases.
+ */
+function getValidSpan(context: Context): Span | undefined {
+  const span = trace.getSpan(context);
+  return span && isSpanContextValid(span.spanContext()) ? span : undefined;
 }

@@ -1450,6 +1450,27 @@ describe('trace (sampling)', () => {
       },
     });
   });
+
+  it('ignores parent span context if it is invalid', () => {
+    mockSdkInit({ tracesSampleRate: 1 });
+    const traceId = 'd4cda95b652f4a1592b449d5929fda1b';
+
+    const spanContext = {
+      traceId,
+      spanId: 'INVALID',
+      traceFlags: TraceFlags.SAMPLED,
+    };
+
+    context.with(trace.setSpanContext(ROOT_CONTEXT, spanContext), () => {
+      startSpan({ name: 'outer' }, span => {
+        expect(span.isRecording()).toBe(true);
+        expect(span.spanContext().spanId).not.toBe('INVALID');
+        expect(span.spanContext().spanId).toMatch(/[a-f0-9]{16}/);
+        expect(span.spanContext().traceId).not.toBe(traceId);
+        expect(span.spanContext().traceId).toMatch(/[a-f0-9]{32}/);
+      });
+    });
+  });
 });
 
 describe('HTTP methods (sampling)', () => {
