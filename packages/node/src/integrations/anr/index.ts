@@ -1,5 +1,5 @@
-import { Worker } from 'node:worker_threads';
 import { types } from 'node:util';
+import { Worker } from 'node:worker_threads';
 import {
   GLOBAL_OBJ,
   defineIntegration,
