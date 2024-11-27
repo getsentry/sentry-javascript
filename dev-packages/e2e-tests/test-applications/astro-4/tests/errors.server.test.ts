@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { waitForError } from '@sentry-internal/test-utils';
+import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
 
 test.describe('server-side errors', () => {
   test('captures SSR error', async ({ page }) => {
@@ -7,9 +7,26 @@ test.describe('server-side errors', () => {
       return errorEvent?.exception?.values?.[0]?.value === "Cannot read properties of undefined (reading 'x')";
     });
 
+    const transactionEventPromise = waitForTransaction('astro-4', transactionEvent => {
+      return transactionEvent.transaction === 'GET /ssr-error';
+    });
+
     await page.goto('/ssr-error');
 
     const errorEvent = await errorEventPromise;
+    const transactionEvent = await transactionEventPromise;
+
+    expect(transactionEvent).toMatchObject({
+      transaction: 'GET /ssr-error',
+      spans: [],
+    });
+
+    const traceId = transactionEvent.contexts?.trace?.trace_id;
+    const spanId = transactionEvent.contexts?.trace?.span_id;
+
+    expect(traceId).toMatch(/[a-f0-9]{32}/);
+    expect(spanId).toMatch(/[a-f0-9]{16}/);
+    expect(transactionEvent.contexts?.trace?.parent_span_id).toBeUndefined();
 
     expect(errorEvent).toMatchObject({
       contexts: {
@@ -20,8 +37,8 @@ test.describe('server-side errors', () => {
         os: expect.any(Object),
         runtime: expect.any(Object),
         trace: {
-          span_id: '', //TODO: This is a bug! We should expect.stringMatching(/[a-f0-9]{16}/) instead of ''
-          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+          span_id: spanId,
+          trace_id: traceId,
         },
       },
       environment: 'qa',
@@ -69,18 +86,50 @@ test.describe('server-side errors', () => {
     const errorEventPromise = waitForError('astro-4', errorEvent => {
       return errorEvent?.exception?.values?.[0]?.value === 'Endpoint Error';
     });
+    const transactionEventApiPromise = waitForTransaction('astro-4', transactionEvent => {
+      return transactionEvent.transaction === 'GET /endpoint-error/api';
+    });
+    const transactionEventEndpointPromise = waitForTransaction('astro-4', transactionEvent => {
+      return transactionEvent.transaction === 'GET /endpoint-error';
+    });
 
     await page.goto('/endpoint-error');
     await page.getByText('Get Data').click();
 
     const errorEvent = await errorEventPromise;
+    const transactionEventApi = await transactionEventApiPromise;
+    const transactionEventEndpoint = await transactionEventEndpointPromise;
+
+    expect(transactionEventEndpoint).toMatchObject({
+      transaction: 'GET /endpoint-error',
+      spans: [],
+    });
+
+    const traceId = transactionEventEndpoint.contexts?.trace?.trace_id;
+    const endpointSpanId = transactionEventApi.contexts?.trace?.span_id;
+
+    expect(traceId).toMatch(/[a-f0-9]{32}/);
+    expect(endpointSpanId).toMatch(/[a-f0-9]{16}/);
+
+    expect(transactionEventApi).toMatchObject({
+      transaction: 'GET /endpoint-error/api',
+      spans: [],
+    });
+
+    const spanId = transactionEventApi.contexts?.trace?.span_id;
+    const parentSpanId = transactionEventApi.contexts?.trace?.parent_span_id;
+
+    expect(spanId).toMatch(/[a-f0-9]{16}/);
+    // TODO: This is incorrect, for whatever reason, it should be the endpointSpanId ideally
+    expect(parentSpanId).toMatch(/[a-f0-9]{16}/);
+    expect(parentSpanId).not.toEqual(endpointSpanId);
 
     expect(errorEvent).toMatchObject({
       contexts: {
         trace: {
-          parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
-          span_id: expect.stringMatching(/[a-f0-9]{16}/),
-          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+          parent_span_id: parentSpanId,
+          span_id: spanId,
+          trace_id: traceId,
         },
       },
       exception: {

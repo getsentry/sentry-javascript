@@ -100,9 +100,12 @@ export function mergeRegisterEsmLoaderHooks(
 ): SentryNuxtServerOptions['registerEsmLoaderHooks'] {
   if (typeof options.registerEsmLoaderHooks === 'object' && options.registerEsmLoaderHooks !== null) {
     return {
+      // eslint-disable-next-line deprecation/deprecation
       exclude: Array.isArray(options.registerEsmLoaderHooks.exclude)
-        ? [...options.registerEsmLoaderHooks.exclude, /vue/]
-        : options.registerEsmLoaderHooks.exclude ?? [/vue/],
+        ? // eslint-disable-next-line deprecation/deprecation
+          [...options.registerEsmLoaderHooks.exclude, /vue/]
+        : // eslint-disable-next-line deprecation/deprecation
+          options.registerEsmLoaderHooks.exclude ?? [/vue/],
     };
   }
   return options.registerEsmLoaderHooks ?? { exclude: [/vue/] };

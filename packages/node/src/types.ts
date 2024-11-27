@@ -1,12 +1,30 @@
 import type { Span as WriteableSpan } from '@opentelemetry/api';
+import type { Instrumentation } from '@opentelemetry/instrumentation';
 import type { ReadableSpan } from '@opentelemetry/sdk-trace-base';
 import type { ClientOptions, Options, SamplingContext, Scope, Span, TracePropagationTargets } from '@sentry/types';
 
 import type { NodeTransportOptions } from './transports';
 
+/**
+ * Note: In the next major version of the Sentry SDK this interface will be removed and the SDK will by default only wrap
+ * ESM modules that are required to be wrapped by OpenTelemetry Instrumentation.
+ */
 export interface EsmLoaderHookOptions {
+  /**
+   * Provide a list of modules to wrap with `import-in-the-middle`.
+   *
+   * @deprecated It is recommended to use `onlyIncludeInstrumentedModules: true` instead of manually defining modules to include and exclude.
+   */
   include?: Array<string | RegExp>;
-  exclude?: Array<string | RegExp> /**
+
+  /**
+   * Provide a list of modules to prevent them from being wrapped with `import-in-the-middle`.
+   *
+   * @deprecated It is recommended to use `onlyIncludeInstrumentedModules: true` instead of manually defining modules to include and exclude.
+   */
+  exclude?: Array<string | RegExp>;
+
+  /**
    * When set to `true`, `import-in-the-middle` will only wrap ESM modules that are specifically instrumented by
    * OpenTelemetry plugins. This is useful to avoid issues where `import-in-the-middle` is not compatible with some of
    * your dependencies.
@@ -16,7 +34,11 @@ export interface EsmLoaderHookOptions {
    * `Sentry.init()`.
    *
    * Defaults to `false`.
-   */;
+   *
+   * Note: In the next major version of the Sentry SDK this option will be removed and the SDK will by default only wrap
+   * ESM modules that are required to be wrapped by OpenTelemetry Instrumentation.
+   */
+  // TODO(v9): Make `onlyIncludeInstrumentedModules: true` the default behavior.
   onlyIncludeInstrumentedModules?: boolean;
 }
 
@@ -94,8 +116,17 @@ export interface BaseNodeOptions {
    * * The `SentryPropagator`
    * * The `SentryContextManager`
    * * The `SentrySampler`
+   *
+   * If you are registering your own OpenTelemetry Loader Hooks (or `import-in-the-middle` hooks), it is also recommended to set the `registerEsmLoaderHooks` option to false.
    */
   skipOpenTelemetrySetup?: boolean;
+
+  /**
+   * Provide an array of OpenTelemetry Instrumentations that should be registered.
+   *
+   * Use this option if you want to register OpenTelemetry instrumentation that the Sentry SDK does not yet have support for.
+   */
+  openTelemetryInstrumentations?: Instrumentation[];
 
   /**
    * The max. duration in seconds that the SDK will wait for parent spans to be finished before discarding a span.
@@ -124,7 +155,11 @@ export interface BaseNodeOptions {
    * ```
    *
    * Defaults to `true`.
+   *
+   * Note: In the next major version of the SDK, the possibility to provide fine-grained control will be removed from this option.
+   * This means that it will only be possible to pass `true` or `false`. The default value will continue to be `true`.
    */
+  // TODO(v9): Only accept true | false | undefined.
   registerEsmLoaderHooks?: boolean | EsmLoaderHookOptions;
 
   /**
@@ -163,7 +198,7 @@ export interface CurrentScopes {
  * The base `Span` type is basically a `WriteableSpan`.
  * There are places where we basically want to allow passing _any_ span,
  * so in these cases we type this as `AbstractSpan` which could be either a regular `Span` or a `ReadableSpan`.
- * You'll have to make sur to check revelant fields before accessing them.
+ * You'll have to make sur to check relevant fields before accessing them.
  *
  * Note that technically, the `Span` exported from `@opentelemetry/sdk-trace-base` matches this,
  * but we cannot be 100% sure that we are actually getting such a span, so this type is more defensive.

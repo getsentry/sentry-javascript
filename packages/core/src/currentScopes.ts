@@ -1,8 +1,9 @@
-import type { Scope } from '@sentry/types';
+import type { Scope, TraceContext } from '@sentry/types';
 import type { Client } from '@sentry/types';
 import { getAsyncContextStrategy } from './asyncContext';
 import { getMainCarrier } from './carrier';
 import { Scope as ScopeClass } from './scope';
+import { dropUndefinedKeys } from './utils-hoist/object';
 import { getGlobalSingleton } from './utils-hoist/worldwide';
 
 /**
@@ -119,4 +120,23 @@ export function withIsolationScope<T>(
  */
 export function getClient<C extends Client>(): C | undefined {
   return getCurrentScope().getClient<C>();
+}
+
+/**
+ * Get a trace context for the given scope.
+ */
+export function getTraceContextFromScope(scope: Scope): TraceContext {
+  const propagationContext = scope.getPropagationContext();
+
+  // TODO(v9): Use generateSpanId() instead of spanId
+  // eslint-disable-next-line deprecation/deprecation
+  const { traceId, spanId, parentSpanId } = propagationContext;
+
+  const traceContext: TraceContext = dropUndefinedKeys({
+    trace_id: traceId,
+    span_id: spanId,
+    parent_span_id: parentSpanId,
+  });
+
+  return traceContext;
 }

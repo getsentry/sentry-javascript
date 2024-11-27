@@ -7,12 +7,15 @@ import {
   continueTrace as baseContinueTrace,
   getClient,
   getCurrentScope,
+  getDynamicSamplingContextFromScope,
   getDynamicSamplingContextFromSpan,
   getRootSpan,
+  getTraceContextFromScope,
   handleCallbackErrors,
   spanToJSON,
+  spanToTraceContext,
 } from '@sentry/core';
-import type { Client, Scope, Span as SentrySpan } from '@sentry/types';
+import type { Client, DynamicSamplingContext, Scope, Span as SentrySpan, TraceContext } from '@sentry/types';
 import { continueTraceAsRemoteSpan } from './propagator';
 
 import type { OpenTelemetryClient, OpenTelemetrySpanContext } from './types';
@@ -198,6 +201,7 @@ function getContext(scope: Scope | undefined, forceTransaction: boolean | undefi
 
       const spanOptions: SpanContext = {
         traceId: propagationContext.traceId,
+        // eslint-disable-next-line deprecation/deprecation
         spanId: propagationContext.parentSpanId || propagationContext.spanId,
         isRemote: true,
         traceFlags: propagationContext.sampled ? TraceFlags.SAMPLED : TraceFlags.NONE,
@@ -277,6 +281,25 @@ export function continueTrace<T>(options: Parameters<typeof baseContinueTrace>[0
   return baseContinueTrace(options, () => {
     return continueTraceAsRemoteSpan(context.active(), options, callback);
   });
+}
+
+/**
+ * Get the trace context for a given scope.
+ * We have a custom implemention here because we need an OTEL-specific way to get the span from a scope.
+ */
+export function getTraceContextForScope(
+  client: Client,
+  scope: Scope,
+): [dynamicSamplingContext: Partial<DynamicSamplingContext>, traceContext: TraceContext] {
+  const ctx = getContextFromScope(scope);
+  const span = ctx && trace.getSpan(ctx);
+
+  const traceContext = span ? spanToTraceContext(span) : getTraceContextFromScope(scope);
+
+  const dynamicSamplingContext = span
+    ? getDynamicSamplingContextFromSpan(span)
+    : getDynamicSamplingContextFromScope(client, scope);
+  return [dynamicSamplingContext, traceContext];
 }
 
 function getActiveSpanWrapper<T>(parentSpan: Span | SentrySpan | undefined | null): (callback: () => T) => T {
