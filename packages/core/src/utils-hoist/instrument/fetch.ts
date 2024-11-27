@@ -21,10 +21,11 @@ type FetchResource = string | { toString(): string } | { url: string };
 export function addFetchInstrumentationHandler(
   handler: (data: HandlerDataFetch) => void,
   skipNativeFetchCheck?: boolean,
+  httpClientInstrumented?: boolean,
 ): void {
   const type = 'fetch';
   addHandler(type, handler);
-  maybeInstrument(type, () => instrumentFetch(undefined, skipNativeFetchCheck));
+  maybeInstrument(type, () => instrumentFetch(undefined, skipNativeFetchCheck, httpClientInstrumented));
 }
 
 /**
@@ -41,7 +42,11 @@ export function addFetchEndInstrumentationHandler(handler: (data: HandlerDataFet
   maybeInstrument(type, () => instrumentFetch(streamHandler));
 }
 
-function instrumentFetch(onFetchResolved?: (response: Response) => void, skipNativeFetchCheck: boolean = false): void {
+function instrumentFetch(
+  onFetchResolved?: (response: Response) => void,
+  skipNativeFetchCheck: boolean = false,
+  httpClientInstrumented: boolean = false,
+): void {
   if (skipNativeFetchCheck && !supportsNativeFetch()) {
     return;
   }
@@ -59,7 +64,9 @@ function instrumentFetch(onFetchResolved?: (response: Response) => void, skipNat
       };
 
       // if there is no callback, fetch is instrumented directly
-      if (!onFetchResolved) {
+      // if httpClientInstrumented is true, we are in the HttpClient instrumentation
+      // and we may need to capture the stacktrace even when the fetch promise is resolved
+      if (!onFetchResolved && !httpClientInstrumented) {
         triggerHandlers('fetch', {
           ...handlerData,
         });
@@ -72,7 +79,8 @@ function instrumentFetch(onFetchResolved?: (response: Response) => void, skipNat
       //       it means the error, that was caused by your fetch call did not
       //       have a stack trace, so the SDK backfilled the stack trace so
       //       you can see which fetch call failed.
-      const virtualStackTrace = new Error().stack;
+      const virtualError = new Error();
+      const virtualStackTrace = virtualError.stack;
 
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       return originalFetch.apply(GLOBAL_OBJ, args).then(
@@ -80,10 +88,12 @@ function instrumentFetch(onFetchResolved?: (response: Response) => void, skipNat
           if (onFetchResolved) {
             onFetchResolved(response);
           } else {
+            // Adding the stacktrace to be able to fingerprint the failed fetch event in HttpClient instrumentation
             triggerHandlers('fetch', {
               ...handlerData,
               endTimestamp: timestampInSeconds() * 1000,
               response,
+              error: httpClientInstrumented ? virtualError : undefined,
             });
           }
 

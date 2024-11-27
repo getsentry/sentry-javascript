@@ -46,7 +46,7 @@ const _httpClientIntegration = ((options: Partial<HttpClientOptions> = {}) => {
 
   return {
     name: INTEGRATION_NAME,
-    setup(client): void {
+    setup(client: Client): void {
       _wrapFetch(client, _options);
       _wrapXHR(client, _options);
     },
@@ -70,6 +70,7 @@ function _fetchResponseHandler(
   requestInfo: RequestInfo,
   response: Response,
   requestInit?: RequestInit,
+  error?: unknown,
 ): void {
   if (_shouldCaptureResponse(options, response.status, response.url)) {
     const request = _getRequest(requestInfo, requestInit);
@@ -89,9 +90,13 @@ function _fetchResponseHandler(
       responseHeaders,
       requestCookies,
       responseCookies,
+      stacktrace: error instanceof Error ? error.stack : undefined,
     });
 
+    // withScope(scope => {
+    //   scope.setFingerprint([request.url, request.method, response.status.toString()]);
     captureEvent(event);
+    // });
   }
 }
 
@@ -127,6 +132,7 @@ function _xhrResponseHandler(
   xhr: XMLHttpRequest,
   method: string,
   headers: Record<string, string>,
+  error?: unknown,
 ): void {
   if (_shouldCaptureResponse(options, xhr.status, xhr.responseURL)) {
     let requestHeaders, responseCookies, responseHeaders;
@@ -159,6 +165,7 @@ function _xhrResponseHandler(
       // Can't access request cookies from XHR
       responseHeaders,
       responseCookies,
+      stacktrace: error instanceof Error ? error.stack : undefined,
     });
 
     captureEvent(event);
@@ -283,20 +290,24 @@ function _wrapFetch(client: Client, options: HttpClientOptions): void {
     return;
   }
 
-  addFetchInstrumentationHandler(handlerData => {
-    if (getClient() !== client) {
-      return;
-    }
+  addFetchInstrumentationHandler(
+    handlerData => {
+      if (getClient() !== client) {
+        return;
+      }
 
-    const { response, args } = handlerData;
-    const [requestInfo, requestInit] = args as [RequestInfo, RequestInit | undefined];
+      const { response, args } = handlerData;
+      const [requestInfo, requestInit] = args as [RequestInfo, RequestInit | undefined];
 
-    if (!response) {
-      return;
-    }
+      if (!response) {
+        return;
+      }
 
-    _fetchResponseHandler(options, requestInfo, response as Response, requestInit);
-  });
+      _fetchResponseHandler(options, requestInfo, response as Response, requestInit, handlerData.error);
+    },
+    false,
+    true,
+  );
 }
 
 /**
@@ -323,11 +334,11 @@ function _wrapXHR(client: Client, options: HttpClientOptions): void {
     const { method, request_headers: headers } = sentryXhrData;
 
     try {
-      _xhrResponseHandler(options, xhr, method, headers);
+      _xhrResponseHandler(options, xhr, method, headers, handlerData.error);
     } catch (e) {
       DEBUG_BUILD && logger.warn('Error while extracting response event form XHR response', e);
     }
-  });
+  }, true);
 }
 
 /**
@@ -358,7 +369,13 @@ function _createEvent(data: {
   responseCookies?: Record<string, string>;
   requestHeaders?: Record<string, string>;
   requestCookies?: Record<string, string>;
+  stacktrace?: string;
 }): SentryEvent {
+  const client = getClient();
+  const virtualStackTrace = client && data.stacktrace ? data.stacktrace : undefined;
+  // Remove the first frame from the stack as it's the HttpClient call
+  const stack = virtualStackTrace && client ? client.getOptions().stackParser(virtualStackTrace, 0, 1) : undefined;
+
   const message = `HTTP Client Error with status code: ${data.status}`;
 
   const event: SentryEvent = {
@@ -368,6 +385,7 @@ function _createEvent(data: {
         {
           type: 'Error',
           value: message,
+          stacktrace: stack ? { frames: stack } : undefined,
         },
       ],
     },

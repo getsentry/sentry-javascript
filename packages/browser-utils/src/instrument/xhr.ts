@@ -15,14 +15,17 @@ type WindowWithXhr = Window & { XMLHttpRequest?: typeof XMLHttpRequest };
  * Use at your own risk, this might break without changelog notice, only used internally.
  * @hidden
  */
-export function addXhrInstrumentationHandler(handler: (data: HandlerDataXhr) => void): void {
+export function addXhrInstrumentationHandler(
+  handler: (data: HandlerDataXhr) => void,
+  httpClientInstrumented?: boolean,
+): void {
   const type = 'xhr';
   addHandler(type, handler);
-  maybeInstrument(type, instrumentXHR);
+  maybeInstrument(type, () => instrumentXHR(httpClientInstrumented));
 }
 
 /** Exported only for tests. */
-export function instrumentXHR(): void {
+export function instrumentXHR(httpClientInstrumented: boolean = false): void {
   if (!(WINDOW as WindowWithXhr).XMLHttpRequest) {
     return;
   }
@@ -32,6 +35,13 @@ export function instrumentXHR(): void {
   // eslint-disable-next-line @typescript-eslint/unbound-method
   xhrproto.open = new Proxy(xhrproto.open, {
     apply(originalOpen, xhrOpenThisArg: XMLHttpRequest & SentryWrappedXMLHttpRequest, xhrOpenArgArray) {
+      // NOTE: If you are a Sentry user, and you are seeing this stack frame,
+      //       it means the error, that was caused by your XHR call did not
+      //       have a stack trace. If you are using HttpClient integration,
+      //       this is the expected behavior, as we are using this virtual error to capture
+      //       the location of your XHR call, and group your HttpClient events accordingly.
+      const virtualError = new Error();
+
       const startTimestamp = timestampInSeconds() * 1000;
 
       // open() should always be called with two or more arguments
@@ -75,6 +85,7 @@ export function instrumentXHR(): void {
             endTimestamp: timestampInSeconds() * 1000,
             startTimestamp,
             xhr: xhrOpenThisArg,
+            error: httpClientInstrumented ? virtualError : undefined,
           };
           triggerHandlers('xhr', handlerData);
         }
