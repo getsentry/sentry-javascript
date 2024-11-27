@@ -1,9 +1,9 @@
 import type { UndiciRequest, UndiciResponse } from '@opentelemetry/instrumentation-undici';
 import { UndiciInstrumentation } from '@opentelemetry/instrumentation-undici';
-import { getTraceData } from '@sentry/core';
+import { getClient, getTraceData, LRUMap } from '@sentry/core';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, addBreadcrumb, defineIntegration, hasTracingEnabled } from '@sentry/core';
 import { getBreadcrumbLogLevelFromHttpStatusCode, getSanitizedUrlString, parseUrl } from '@sentry/core';
-import { addOpenTelemetryInstrumentation } from '@sentry/opentelemetry';
+import { addOpenTelemetryInstrumentation, shouldPropagateTraceForUrl } from '@sentry/opentelemetry';
 import type { IntegrationFn, SanitizedRequestData } from '@sentry/types';
 
 interface NodeFetchOptions {
@@ -27,6 +27,8 @@ const _nativeNodeFetchIntegration = ((options: NodeFetchOptions = {}) => {
   return {
     name: 'NodeFetch',
     setupOnce() {
+      const propagationDecisionMap = new LRUMap<string, boolean>(100);
+
       const instrumentation = new UndiciInstrumentation({
         requireParentforSpans: false,
         ignoreRequestHook: request => {
@@ -40,7 +42,11 @@ const _nativeNodeFetchIntegration = ((options: NodeFetchOptions = {}) => {
           // If tracing is disabled, we still want to propagate traces
           // So we do that manually here, matching what the instrumentation does otherwise
           if (!hasTracingEnabled()) {
-            const addedHeaders = getTraceData();
+            const tracePropagationTargets = getClient()?.getOptions().tracePropagationTargets;
+            const addedHeaders = shouldPropagateTraceForUrl(url, tracePropagationTargets, propagationDecisionMap)
+              ? getTraceData()
+              : {};
+
             const requestHeaders = request.headers;
             if (Array.isArray(requestHeaders)) {
               Object.entries(addedHeaders).forEach(headers => requestHeaders.push(...headers));

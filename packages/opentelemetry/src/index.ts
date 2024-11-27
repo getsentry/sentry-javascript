@@ -45,7 +45,11 @@ export { setupEventContextTrace } from './setupEventContextTrace';
 
 export { setOpenTelemetryContextAsyncContextStrategy } from './asyncContextStrategy';
 export { wrapContextManagerClass } from './contextManager';
-export { SentryPropagator, getPropagationContextFromSpan } from './propagator';
+export {
+  SentryPropagator,
+  getPropagationContextFromSpan,
+  shouldPropagateTraceForUrl,
+} from './propagator';
 export { SentrySpanProcessor } from './spanProcessor';
 export {
   SentrySampler,

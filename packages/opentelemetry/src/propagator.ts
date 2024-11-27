@@ -89,11 +89,7 @@ export class SentryPropagator extends W3CBaggagePropagator {
     const url = activeSpan && getCurrentURL(activeSpan);
 
     const tracePropagationTargets = getClient()?.getOptions()?.tracePropagationTargets;
-    if (
-      typeof url === 'string' &&
-      tracePropagationTargets &&
-      !this._shouldInjectTraceData(tracePropagationTargets, url)
-    ) {
+    if (!shouldPropagateTraceForUrl(url, tracePropagationTargets, this._urlMatchesTargetsMap)) {
       DEBUG_BUILD &&
         logger.log(
           '[Tracing] Not injecting trace data for url because it does not match tracePropagationTargets:',
@@ -169,22 +165,36 @@ export class SentryPropagator extends W3CBaggagePropagator {
   public fields(): string[] {
     return [SENTRY_TRACE_HEADER, SENTRY_BAGGAGE_HEADER];
   }
+}
 
-  /** If we want to inject trace data for a given URL. */
-  private _shouldInjectTraceData(tracePropagationTargets: Options['tracePropagationTargets'], url: string): boolean {
-    if (tracePropagationTargets === undefined) {
-      return true;
-    }
+const NOT_PROPAGATED_MESSAGE =
+  '[Tracing] Not injecting trace data for url because it does not match tracePropagationTargets:';
 
-    const cachedDecision = this._urlMatchesTargetsMap.get(url);
-    if (cachedDecision !== undefined) {
-      return cachedDecision;
-    }
-
-    const decision = stringMatchesSomePattern(url, tracePropagationTargets);
-    this._urlMatchesTargetsMap.set(url, decision);
-    return decision;
+/**
+ * Check if a given URL should be propagated to or not.
+ * If no url is defined, or no trace propagation targets are defined, this will always return `true`.
+ * You can also optionally provide a decision map, to cache decisions and avoid repeated regex lookups.
+ */
+export function shouldPropagateTraceForUrl(
+  url: string | undefined,
+  tracePropagationTargets: Options['tracePropagationTargets'],
+  decisionMap?: LRUMap<string, boolean>,
+): boolean {
+  if (typeof url !== 'string' || !tracePropagationTargets) {
+    return true;
   }
+
+  const cachedDecision = decisionMap?.get(url);
+  if (cachedDecision !== undefined) {
+    DEBUG_BUILD && !cachedDecision && logger.log(NOT_PROPAGATED_MESSAGE, url);
+    return cachedDecision;
+  }
+
+  const decision = stringMatchesSomePattern(url, tracePropagationTargets);
+  decisionMap?.set(url, decision);
+
+  DEBUG_BUILD && !decision && logger.log(NOT_PROPAGATED_MESSAGE, url);
+  return decision;
 }
 
 /**
