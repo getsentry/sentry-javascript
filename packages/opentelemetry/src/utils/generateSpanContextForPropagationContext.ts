@@ -1,6 +1,5 @@
 import type { SpanContext } from '@opentelemetry/api';
 import { TraceFlags } from '@opentelemetry/api';
-import { uuid4 } from '@sentry/core';
 import type { PropagationContext } from '@sentry/types';
 import { makeTraceState } from './makeTraceState';
 
@@ -18,8 +17,8 @@ export function generateSpanContextForPropagationContext(propagationContext: Pro
 
   const spanContext: SpanContext = {
     traceId: propagationContext.traceId,
-    // If we have no parent span ID, just generate a random one
-    spanId: propagationContext.parentSpanId || uuid4().substring(16),
+    // TODO: Do not create an invalid span context here
+    spanId: propagationContext.parentSpanId || '',
     isRemote: true,
     traceFlags: propagationContext.sampled ? TraceFlags.SAMPLED : TraceFlags.NONE,
     traceState,
