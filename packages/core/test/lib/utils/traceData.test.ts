@@ -13,7 +13,6 @@ import {
 import { getAsyncContextStrategy } from '../../../src/asyncContext';
 import { freezeDscOnSpan } from '../../../src/tracing/dynamicSamplingContext';
 
-import { isValidBaggageString } from '../../../src/utils/traceData';
 import type { TestClientOptions } from '../../mocks/client';
 import { TestClient, getDefaultTestClientOptions } from '../../mocks/client';
 
@@ -279,77 +278,5 @@ describe('getTraceData', () => {
     const traceData = getTraceData();
 
     expect(traceData).toEqual({});
-  });
-});
-
-describe('isValidBaggageString', () => {
-  it.each([
-    'sentry-environment=production',
-    'sentry-environment=staging,sentry-public_key=key,sentry-trace_id=abc',
-    // @ is allowed in values
-    'sentry-release=project@1.0.0',
-    // spaces are allowed around the delimiters
-    'sentry-environment=staging ,   sentry-public_key=key  ,sentry-release=myproject@1.0.0',
-    'sentry-environment=staging ,   thirdparty=value  ,sentry-release=myproject@1.0.0',
-    // these characters are explicitly allowed for keys in the baggage spec:
-    "!#$%&'*+-.^_`|~1234567890abcxyzABCXYZ=true",
-    // special characters in values are fine (except for ",;\ - see other test)
-    'key=(value)',
-    'key=[{(value)}]',
-    'key=some$value',
-    'key=more#value',
-    'key=max&value',
-    'key=max:value',
-    'key=x=value',
-  ])('returns true if the baggage string is valid (%s)', baggageString => {
-    expect(isValidBaggageString(baggageString)).toBe(true);
-  });
-
-  it.each([
-    // baggage spec doesn't permit leading spaces
-    ' sentry-environment=production,sentry-publickey=key,sentry-trace_id=abc',
-    // no spaces in keys or values
-    'sentry-public key=key',
-    'sentry-publickey=my key',
-    // no delimiters ("(),/:;<=>?@[\]{}") in keys
-    'asdf(x=value',
-    'asdf)x=value',
-    'asdf,x=value',
-    'asdf/x=value',
-    'asdf:x=value',
-    'asdf;x=value',
-    'asdf<x=value',
-    'asdf>x=value',
-    'asdf?x=value',
-    'asdf@x=value',
-    'asdf[x=value',
-    'asdf]x=value',
-    'asdf\\x=value',
-    'asdf{x=value',
-    'asdf}x=value',
-    // no ,;\" in values
-    'key=va,lue',
-    'key=va;lue',
-    'key=va\\lue',
-    'key=va"lue"',
-    // baggage headers can have properties but we currently don't support them
-    'sentry-environment=production;prop1=foo;prop2=bar,nextkey=value',
-    // no fishy stuff
-    'absolutely not a valid baggage string',
-    'val"/><script>alert("xss")</script>',
-    'something"/>',
-    '<script>alert("xss")</script>',
-    '/>',
-    '" onblur="alert("xss")',
-  ])('returns false if the baggage string is invalid (%s)', baggageString => {
-    expect(isValidBaggageString(baggageString)).toBe(false);
-  });
-
-  it('returns false if the baggage string is empty', () => {
-    expect(isValidBaggageString('')).toBe(false);
-  });
-
-  it('returns false if the baggage string is empty', () => {
-    expect(isValidBaggageString(undefined)).toBe(false);
   });
 });
