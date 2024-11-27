@@ -17,6 +17,7 @@ export function generateSpanContextForPropagationContext(propagationContext: Pro
 
   const spanContext: SpanContext = {
     traceId: propagationContext.traceId,
+    // TODO: Do not create an invalid span context here
     spanId: propagationContext.parentSpanId || '',
     isRemote: true,
     traceFlags: propagationContext.sampled ? TraceFlags.SAMPLED : TraceFlags.NONE,
