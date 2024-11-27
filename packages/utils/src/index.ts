@@ -517,6 +517,7 @@ export const watchdogTimer = watchdogTimer_imported;
 export const LRUMap = LRUMap_imported;
 
 /** @deprecated Import from `@sentry/core` instead. */
+// eslint-disable-next-line deprecation/deprecation
 export const generatePropagationContext = generatePropagationContext_imported;
 
 /** @deprecated Import from `@sentry/core` instead. */

@@ -220,6 +220,8 @@ export function getInjectionData(context: Context): {
   return {
     dynamicSamplingContext,
     traceId: propagationContext.traceId,
+    // TODO(v9): Use generateSpanId() instead
+    // eslint-disable-next-line deprecation/deprecation
     spanId: propagationContext.spanId,
     sampled: propagationContext.sampled,
   };

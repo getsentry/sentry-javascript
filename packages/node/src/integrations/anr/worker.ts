@@ -121,6 +121,8 @@ function applyScopeToEvent(event: Event, scope: ScopeData): void {
   applyScopeDataToEvent(event, scope);
 
   if (!event.contexts?.trace) {
+    // TODO(v9): Use generateSpanId() instead of spanId
+    // eslint-disable-next-line deprecation/deprecation
     const { traceId, spanId, parentSpanId } = scope.propagationContext;
     event.contexts = {
       trace: {

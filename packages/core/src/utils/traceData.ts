@@ -54,6 +54,8 @@ export function getTraceData(options: { span?: Span } = {}): SerializedTraceData
  * Get a sentry-trace header value for the given scope.
  */
 function scopeToTraceHeader(scope: Scope): string {
+  // TODO(v9): Use generateSpanId() instead of spanId
+  // eslint-disable-next-line deprecation/deprecation
   const { traceId, sampled, spanId } = scope.getPropagationContext();
   return generateSentryTraceHeader(traceId, spanId, sampled);
 }
