@@ -11,6 +11,7 @@ import {
   useLocation,
   useNavigationType,
 } from 'react-router-dom';
+import Index from './pages/Index';
 
 const replay = Sentry.replayIntegration();
 
@@ -60,7 +61,7 @@ const root = ReactDOM.createRoot(document.getElementById('root') as HTMLElement)
 root.render(
   <BrowserRouter>
     <SentryRoutes>
-      {/* <Route index element={<Navigate to="/projects/123/views/234" />} /> */}
+      <Route path='/' element={<Index/>} />
       <Route path="projects/*" element={<ProjectsRoutes />}></Route>
     </SentryRoutes>
   </BrowserRouter>,

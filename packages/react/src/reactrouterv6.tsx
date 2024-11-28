@@ -247,7 +247,11 @@ function getNormalizedName(
     }
   }
 
-  return [_stripBasename ? stripBasenameFromPathname(location.pathname, basename) : location.pathname, 'url'];
+  const fallbackTransactionName = _stripBasename
+    ? stripBasenameFromPathname(location.pathname, basename)
+    : location.pathname || '/';
+
+  return [fallbackTransactionName, 'url'];
 }
 
 function updatePageloadTransaction(
