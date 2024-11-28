@@ -89,6 +89,10 @@
   });
   ```
 
+## `@sentry/astro`
+
+- Deprecated passing `dsn`, `release`, `environment`, `sampleRate`, `tracesSampleRate`, `replaysSessionSampleRate` to the integration. Use the runtime-specific `Sentry.init()` calls for passing these options instead.
+
 ## `@sentry/remix`
 
 - Deprecated `autoInstrumentRemix: false`. The next major version will default to behaving as if this option were `true` and the option itself will be removed.
