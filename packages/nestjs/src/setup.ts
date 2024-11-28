@@ -19,7 +19,7 @@ import {
   spanToJSON,
 } from '@sentry/core';
 import { logger } from '@sentry/core';
-import type { Span } from '@sentry/types';
+import type { Span } from '@sentry/core';
 import type { Observable } from 'rxjs';
 import { isExpectedError } from './helpers';
 

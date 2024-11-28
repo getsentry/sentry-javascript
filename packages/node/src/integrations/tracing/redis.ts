@@ -12,7 +12,7 @@ import {
   spanToJSON,
 } from '@sentry/core';
 import { truncate } from '@sentry/core';
-import type { IntegrationFn } from '@sentry/types';
+import type { IntegrationFn } from '@sentry/core';
 import { generateInstrumentOnce } from '../../otel/instrument';
 import {
   GET_COMMANDS,

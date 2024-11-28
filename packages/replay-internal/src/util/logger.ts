@@ -1,6 +1,6 @@
 import { addBreadcrumb, captureException } from '@sentry/core';
 import { logger as coreLogger, severityLevelFromString } from '@sentry/core';
-import type { ConsoleLevel, SeverityLevel } from '@sentry/types';
+import type { ConsoleLevel, SeverityLevel } from '@sentry/core';
 
 import { DEBUG_BUILD } from '../debug-build';
 

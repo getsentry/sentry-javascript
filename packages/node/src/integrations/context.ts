@@ -14,7 +14,7 @@ import type {
   Event,
   IntegrationFn,
   OsContext,
-} from '@sentry/types';
+} from '@sentry/core';
 
 export const readFileAsync = promisify(readFile);
 export const readDirAsync = promisify(readdir);

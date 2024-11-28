@@ -1,6 +1,6 @@
 import { BaseClient, createTransport, initAndBind } from '@sentry/core';
 import { resolvedSyncPromise } from '@sentry/core';
-import type { BrowserClientReplayOptions, ClientOptions, Event, SeverityLevel } from '@sentry/types';
+import type { BrowserClientReplayOptions, ClientOptions, Event, SeverityLevel } from '@sentry/core';
 
 export interface TestClientOptions extends ClientOptions, BrowserClientReplayOptions {}
 

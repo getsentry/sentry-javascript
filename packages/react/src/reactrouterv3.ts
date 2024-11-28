@@ -9,7 +9,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '@sentry/core';
-import type { Integration, TransactionSource } from '@sentry/types';
+import type { Integration, TransactionSource } from '@sentry/core';
 
 import type { Location } from './types';
 

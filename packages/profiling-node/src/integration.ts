@@ -8,8 +8,8 @@ import {
   getRootSpan,
   spanToJSON,
 } from '@sentry/core';
+import type { Event, IntegrationFn, Profile, ProfileChunk, ProfilingIntegration, Span } from '@sentry/core';
 import type { NodeClient } from '@sentry/node';
-import type { Event, IntegrationFn, Profile, ProfileChunk, ProfilingIntegration, Span } from '@sentry/types';
 
 import { LRUMap, consoleSandbox, logger, uuid4 } from '@sentry/core';
 

@@ -1,4 +1,4 @@
-import type { Event, StackFrame, StackLineParser, StackParser } from '@sentry/types';
+import type { Event, StackFrame, StackLineParser, StackParser } from '../types-hoist';
 
 const STACKTRACE_FRAME_LIMIT = 50;
 export const UNKNOWN_FUNCTION = '?';

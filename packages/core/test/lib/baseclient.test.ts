@@ -1,5 +1,5 @@
 import { SentryError, SyncPromise, dsnToString } from '@sentry/core';
-import type { Client, Envelope, ErrorEvent, Event, TransactionEvent } from '@sentry/types';
+import type { Client, Envelope, ErrorEvent, Event, TransactionEvent } from '../../src/types-hoist';
 
 import * as loggerModule from '../../src/utils-hoist/logger';
 import * as miscModule from '../../src/utils-hoist/misc';

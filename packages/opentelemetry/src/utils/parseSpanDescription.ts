@@ -14,7 +14,7 @@ import {
   SEMATTRS_RPC_SERVICE,
 } from '@opentelemetry/semantic-conventions';
 import { getSanitizedUrlString, parseUrl, stripUrlQueryAndFragment } from '@sentry/core';
-import type { SpanAttributes, TransactionSource } from '@sentry/types';
+import type { SpanAttributes, TransactionSource } from '@sentry/core';
 
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import { SEMANTIC_ATTRIBUTE_SENTRY_GRAPHQL_OPERATION } from '../semanticAttributes';

@@ -6,7 +6,7 @@ import {
 } from '@sentry/core';
 
 import { browserTracingIntegration as originalBrowserTracingIntegration } from '@sentry/browser';
-import type { Integration } from '@sentry/types';
+import type { Integration } from '@sentry/core';
 import type { VendoredTanstackRouter, VendoredTanstackRouterRouteMatch } from './vendor/tanstackrouter-types';
 
 /**

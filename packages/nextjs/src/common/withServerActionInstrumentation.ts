@@ -10,7 +10,7 @@ import {
   withIsolationScope,
 } from '@sentry/core';
 import { logger, vercelWaitUntil } from '@sentry/core';
-import type { RequestEventData } from '@sentry/types';
+import type { RequestEventData } from '@sentry/core';
 
 import { DEBUG_BUILD } from './debug-build';
 import { isNotFoundNavigationError, isRedirectNavigationError } from './nextNavigationErrorUtils';

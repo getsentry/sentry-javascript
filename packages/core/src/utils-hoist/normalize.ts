@@ -1,4 +1,4 @@
-import type { Primitive } from '@sentry/types';
+import type { Primitive } from '../types-hoist';
 
 import { isSyntheticEvent, isVueViewModel } from './is';
 import type { MemoFunc } from './memo';

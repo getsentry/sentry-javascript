@@ -15,7 +15,7 @@ import {
   spanToJSON,
   spanToTraceContext,
 } from '@sentry/core';
-import type { Client, DynamicSamplingContext, Scope, Span as SentrySpan, TraceContext } from '@sentry/types';
+import type { Client, DynamicSamplingContext, Scope, Span as SentrySpan, TraceContext } from '@sentry/core';
 import { continueTraceAsRemoteSpan } from './propagator';
 
 import type { OpenTelemetryClient, OpenTelemetrySpanContext } from './types';

@@ -16,7 +16,6 @@
   "devDependencies": {
     "@playwright/test": "^1.44.1",
     "@sentry-internal/test-utils": "link:../../../test-utils",
-    "@sentry/types": "latest || *",
     "@sentry/core": "latest || *",
     "autoprefixer": "^10.4.17",
     "postcss": "^8.4.33",

@@ -3,6 +3,7 @@ import { hostname } from 'os';
 import { basename, resolve } from 'path';
 import { types } from 'util';
 import { logger } from '@sentry/core';
+import type { Integration, Options, Scope, SdkMetadata, Span } from '@sentry/core';
 import type { NodeClient, NodeOptions } from '@sentry/node';
 import {
   SDK_VERSION,
@@ -16,7 +17,6 @@ import {
   startSpanManual,
   withScope,
 } from '@sentry/node';
-import type { Integration, Options, Scope, SdkMetadata, Span } from '@sentry/types';
 import type { Context, Handler } from 'aws-lambda';
 import { performance } from 'perf_hooks';
 

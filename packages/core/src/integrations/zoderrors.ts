@@ -1,6 +1,5 @@
-import type { IntegrationFn } from '@sentry/types';
-import type { Event, EventHint } from '@sentry/types';
 import { defineIntegration } from '../integration';
+import type { Event, EventHint, IntegrationFn } from '../types-hoist';
 import { isError } from '../utils-hoist/is';
 import { truncate } from '../utils-hoist/string';
 

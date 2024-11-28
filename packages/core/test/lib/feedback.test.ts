@@ -1,4 +1,3 @@
-import type { Span } from '@sentry/types';
 import {
   Scope,
   addBreadcrumb,
@@ -9,6 +8,7 @@ import {
   withScope,
 } from '../../src';
 import { captureFeedback } from '../../src/feedback';
+import type { Span } from '../../src/types-hoist';
 import { TestClient, getDefaultTestClientOptions } from '../mocks/client';
 
 describe('captureFeedback', () => {

@@ -14,7 +14,7 @@ import {
   withScope,
 } from '@sentry/core';
 import { propagationContextFromHeaders, uuid4, vercelWaitUntil, winterCGHeadersToDict } from '@sentry/core';
-import type { RequestEventData } from '@sentry/types';
+import type { RequestEventData } from '@sentry/core';
 
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import { isNotFoundNavigationError, isRedirectNavigationError } from '../common/nextNavigationErrorUtils';

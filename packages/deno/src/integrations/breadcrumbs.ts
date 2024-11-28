@@ -15,7 +15,7 @@ import type {
   HandlerDataConsole,
   HandlerDataFetch,
   IntegrationFn,
-} from '@sentry/types';
+} from '@sentry/core';
 
 interface BreadcrumbsOptions {
   console: boolean;

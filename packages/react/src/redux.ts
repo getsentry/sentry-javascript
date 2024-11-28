@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { addBreadcrumb, getClient, getCurrentScope, getGlobalScope } from '@sentry/core';
 import { addNonEnumerableProperty } from '@sentry/core';
-import type { Scope } from '@sentry/types';
+import type { Scope } from '@sentry/core';
 
 interface Action<T = any> {
   type: T;

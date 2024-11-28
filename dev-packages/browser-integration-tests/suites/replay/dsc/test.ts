@@ -1,6 +1,6 @@
 import { expect } from '@playwright/test';
 import type * as Sentry from '@sentry/browser';
-import type { EventEnvelopeHeaders } from '@sentry/types';
+import type { EventEnvelopeHeaders } from '@sentry/core';
 
 import { sentryTest } from '../../../utils/fixtures';
 import {

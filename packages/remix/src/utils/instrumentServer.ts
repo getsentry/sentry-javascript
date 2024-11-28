@@ -15,9 +15,9 @@ import {
   withIsolationScope,
 } from '@sentry/core';
 import { fill, isNodeEnv, loadModule, logger } from '@sentry/core';
+import type { RequestEventData, TransactionSource, WrappedFunction } from '@sentry/core';
+import type { Span } from '@sentry/core';
 import { continueTrace } from '@sentry/opentelemetry';
-import type { RequestEventData, TransactionSource, WrappedFunction } from '@sentry/types';
-import type { Span } from '@sentry/types';
 
 import { DEBUG_BUILD } from './debug-build';
 import { captureRemixServerException, errorHandleDataFunction, errorHandleDocumentRequestFunction } from './errors';

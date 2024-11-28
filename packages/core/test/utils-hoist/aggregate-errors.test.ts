@@ -1,4 +1,4 @@
-import type { Event, EventHint, Exception, ExtendedError, StackParser } from '@sentry/types';
+import type { Event, EventHint, Exception, ExtendedError, StackParser } from '../../src/types-hoist';
 import { applyAggregateErrorsToEvent } from '../../src/utils-hoist/aggregate-errors';
 import { createStackParser } from '../../src/utils-hoist/stacktrace';
 

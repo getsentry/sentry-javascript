@@ -6,7 +6,7 @@ import type {
   FeedbackScreenshotIntegration,
   Integration,
   IntegrationFn,
-} from '@sentry/types';
+} from '@sentry/core';
 import {
   ADD_SCREENSHOT_LABEL,
   CANCEL_BUTTON_LABEL,

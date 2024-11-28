@@ -1,3 +1,4 @@
+import { GLOBAL_OBJ, createStackParser, getGlobalScope, getIsolationScope } from '../../src';
 import type {
   Attachment,
   Breadcrumb,
@@ -7,8 +8,7 @@ import type {
   EventHint,
   EventProcessor,
   ScopeContext,
-} from '@sentry/types';
-import { GLOBAL_OBJ, createStackParser, getGlobalScope, getIsolationScope } from '../../src';
+} from '../../src/types-hoist';
 
 import { Scope } from '../../src/scope';
 import {

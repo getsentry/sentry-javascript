@@ -1,7 +1,7 @@
 import * as http from 'node:http';
 import { defineIntegration } from '@sentry/core';
 import { logger, serializeEnvelope } from '@sentry/core';
-import type { Client, Envelope, IntegrationFn } from '@sentry/types';
+import type { Client, Envelope, IntegrationFn } from '@sentry/core';
 
 type SpotlightConnectionOptions = {
   /**

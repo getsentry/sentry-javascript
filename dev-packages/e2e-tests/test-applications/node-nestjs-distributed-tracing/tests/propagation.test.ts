@@ -1,7 +1,7 @@
 import crypto from 'crypto';
 import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/test-utils';
-import { SpanJSON } from '@sentry/types';
+import { SpanJSON } from '@sentry/core';
 
 test('Propagates trace for outgoing http requests', async ({ baseURL }) => {
   const id = crypto.randomUUID();

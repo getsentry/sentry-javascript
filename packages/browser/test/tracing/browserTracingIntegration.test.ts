@@ -30,7 +30,7 @@ import {
   spanToJSON,
   startInactiveSpan,
 } from '@sentry/core';
-import type { Span, StartSpanOptions } from '@sentry/types';
+import type { Span, StartSpanOptions } from '@sentry/core';
 import { JSDOM } from 'jsdom';
 import { BrowserClient } from '../../src/client';
 import { WINDOW } from '../../src/helpers';

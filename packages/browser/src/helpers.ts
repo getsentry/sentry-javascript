@@ -7,7 +7,7 @@ import {
   getOriginalFunction,
   markFunctionWrapped,
 } from '@sentry/core';
-import type { Mechanism, WrappedFunction } from '@sentry/types';
+import type { Mechanism, WrappedFunction } from '@sentry/core';
 
 export const WINDOW = GLOBAL_OBJ as typeof GLOBAL_OBJ & Window;
 

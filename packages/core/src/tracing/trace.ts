@@ -1,8 +1,8 @@
 /* eslint-disable max-lines */
 
-import type { ClientOptions, Scope, SentrySpanArguments, Span, SpanTimeInput, StartSpanOptions } from '@sentry/types';
 import type { AsyncContextStrategy } from '../asyncContext/types';
 import { getMainCarrier } from '../carrier';
+import type { ClientOptions, Scope, SentrySpanArguments, Span, SpanTimeInput, StartSpanOptions } from '../types-hoist';
 
 import { getClient, getCurrentScope, getIsolationScope, withScope } from '../currentScopes';
 

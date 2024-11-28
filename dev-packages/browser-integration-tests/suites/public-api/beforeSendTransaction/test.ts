@@ -1,5 +1,5 @@
 import { expect } from '@playwright/test';
-import type { Event } from '@sentry/types';
+import type { Event } from '@sentry/core';
 
 import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/browser';
 import { sentryTest } from '../../../utils/fixtures';

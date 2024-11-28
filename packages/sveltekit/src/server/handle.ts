@@ -11,8 +11,8 @@ import {
 } from '@sentry/core';
 import { startSpan } from '@sentry/core';
 import { logger, winterCGRequestToRequestData } from '@sentry/core';
+import type { Span } from '@sentry/core';
 import { continueTrace } from '@sentry/node';
-import type { Span } from '@sentry/types';
 import type { Handle, ResolveOptions } from '@sveltejs/kit';
 
 import { DEBUG_BUILD } from '../common/debug-build';

@@ -1,6 +1,6 @@
-import type { Client, Scope as ScopeInterface } from '@sentry/types';
 import { getDefaultCurrentScope, getDefaultIsolationScope } from '../defaultScopes';
 import { Scope } from '../scope';
+import type { Client, Scope as ScopeInterface } from '../types-hoist';
 
 import { isThenable } from '../utils-hoist';
 import { getMainCarrier, getSentryCarrier } from './../carrier';

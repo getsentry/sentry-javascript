@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 import type { ScheduledController } from '@cloudflare/workers-types';
 import * as SentryCore from '@sentry/core';
-import type { Event } from '@sentry/types';
+import type { Event } from '@sentry/core';
 import { CloudflareClient } from '../src/client';
 import { withSentry } from '../src/handler';
 

@@ -1,15 +1,15 @@
-export type { Attachment } from './attachment';
 export type {
+  Attachment,
   Breadcrumb,
   BreadcrumbHint,
   FetchBreadcrumbData,
   XhrBreadcrumbData,
   FetchBreadcrumbHint,
   XhrBreadcrumbHint,
-} from './breadcrumb';
-export type { Client } from './client';
-export type { ClientReport, Outcome, EventDropReason } from './clientreport';
-export type {
+  Client,
+  ClientReport,
+  Outcome,
+  EventDropReason,
   Context,
   Contexts,
   DeviceContext,
@@ -19,11 +19,12 @@ export type {
   TraceContext,
   CloudResourceContext,
   MissingInstrumentationContext,
-} from './context';
-export type { DataCategory } from './datacategory';
-export type { DsnComponents, DsnLike, DsnProtocol } from './dsn';
-export type { DebugImage, DebugMeta } from './debugMeta';
-export type {
+  DataCategory,
+  DsnComponents,
+  DsnLike,
+  DsnProtocol,
+  DebugImage,
+  DebugMeta,
   AttachmentItem,
   BaseEnvelopeHeaders,
   BaseEnvelopeItemHeaders,
@@ -50,21 +51,31 @@ export type {
   ProfileChunkItem,
   SpanEnvelope,
   SpanItem,
-} from './envelope';
-export type { ExtendedError } from './error';
-export type { Event, EventHint, EventType, ErrorEvent, TransactionEvent } from './event';
-export type { EventProcessor } from './eventprocessor';
-export type { Exception } from './exception';
-export type { Extra, Extras } from './extra';
-// eslint-disable-next-line deprecation/deprecation
-export type { Hub } from './hub';
-export type { Integration, IntegrationClass, IntegrationFn } from './integration';
-export type { Mechanism } from './mechanism';
-export type { ExtractedNodeRequestData, HttpHeaderValue, Primitive, WorkerLocation } from './misc';
-export type { ClientOptions, Options } from './options';
-export type { Package } from './package';
-export type { PolymorphicEvent, PolymorphicRequest } from './polymorphics';
-export type {
+  ExtendedError,
+  Event,
+  EventHint,
+  EventType,
+  ErrorEvent,
+  TransactionEvent,
+  EventProcessor,
+  Exception,
+  Extra,
+  Extras,
+  // eslint-disable-next-line deprecation/deprecation
+  Hub,
+  Integration,
+  IntegrationClass,
+  IntegrationFn,
+  Mechanism,
+  ExtractedNodeRequestData,
+  HttpHeaderValue,
+  Primitive,
+  WorkerLocation,
+  ClientOptions,
+  Options,
+  Package,
+  PolymorphicEvent,
+  PolymorphicRequest,
   ThreadId,
   FrameId,
   StackId,
@@ -75,9 +86,9 @@ export type {
   ContinuousThreadCpuProfile,
   Profile,
   ProfileChunk,
-} from './profiling';
-export type { ReplayEvent, ReplayRecordingData, ReplayRecordingMode } from './replay';
-export type {
+  ReplayEvent,
+  ReplayRecordingData,
+  ReplayRecordingMode,
   FeedbackEvent,
   FeedbackFormData,
   FeedbackInternalOptions,
@@ -86,19 +97,18 @@ export type {
   SendFeedback,
   SendFeedbackParams,
   UserFeedback,
-} from './feedback';
-export type {
   QueryParams,
   RequestEventData,
   // eslint-disable-next-line deprecation/deprecation
   Request,
   SanitizedRequestData,
-} from './request';
-export type { Runtime } from './runtime';
-export type { CaptureContext, Scope, ScopeContext, ScopeData } from './scope';
-export type { SdkInfo } from './sdkinfo';
-export type { SdkMetadata } from './sdkmetadata';
-export type {
+  Runtime,
+  CaptureContext,
+  Scope,
+  ScopeContext,
+  ScopeData,
+  SdkInfo,
+  SdkMetadata,
   SessionAggregates,
   AggregationCounts,
   Session,
@@ -108,10 +118,7 @@ export type {
   RequestSessionStatus,
   SessionFlusherLike,
   SerializedSession,
-} from './session';
-
-export type { SeverityLevel } from './severity';
-export type {
+  SeverityLevel,
   Span,
   SentrySpanArguments,
   SpanOrigin,
@@ -122,39 +129,38 @@ export type {
   SpanContextData,
   TraceFlag,
   MetricSummary,
-} from './span';
-export type { SpanStatus } from './spanStatus';
-export type { TimedEvent } from './timedEvent';
-export type { StackFrame } from './stackframe';
-export type { Stacktrace, StackParser, StackLineParser, StackLineParserFn } from './stacktrace';
-export type { PropagationContext, TracePropagationTargets, SerializedTraceData } from './tracing';
-export type { StartSpanOptions } from './startSpanOptions';
-export type {
+  SpanStatus,
+  TimedEvent,
+  StackFrame,
+  Stacktrace,
+  StackParser,
+  StackLineParser,
+  StackLineParserFn,
+  PropagationContext,
+  TracePropagationTargets,
+  SerializedTraceData,
+  StartSpanOptions,
   TraceparentData,
   TransactionSource,
-} from './transaction';
-export type { CustomSamplingContext, SamplingContext } from './samplingcontext';
-export type {
+  CustomSamplingContext,
+  SamplingContext,
   DurationUnit,
   InformationUnit,
   FractionUnit,
   MeasurementUnit,
   NoneUnit,
   Measurements,
-} from './measurement';
-export type { Thread } from './thread';
-export type {
+  Thread,
   Transport,
   TransportRequest,
   TransportMakeRequestResponse,
   InternalBaseTransportOptions,
   BaseTransportOptions,
   TransportRequestExecutor,
-} from './transport';
-export type { User } from './user';
-export type { WebFetchHeaders, WebFetchRequest } from './webfetchapi';
-export type { WrappedFunction } from './wrappedfunction';
-export type {
+  User,
+  WebFetchHeaders,
+  WebFetchRequest,
+  WrappedFunction,
   HandlerDataFetch,
   HandlerDataXhr,
   HandlerDataDom,
@@ -165,17 +171,22 @@ export type {
   ConsoleLevel,
   SentryXhrData,
   SentryWrappedXMLHttpRequest,
-} from './instrument';
-
-export type { BrowserClientReplayOptions, BrowserClientProfilingOptions } from './browseroptions';
-export type { CheckIn, MonitorConfig, FinishedCheckIn, InProgressCheckIn, SerializedCheckIn } from './checkin';
-export type {
+  BrowserClientReplayOptions,
+  BrowserClientProfilingOptions,
+  CheckIn,
+  MonitorConfig,
+  FinishedCheckIn,
+  InProgressCheckIn,
+  SerializedCheckIn,
   MetricsAggregator,
   MetricBucketItem,
   MetricInstance,
   MetricData,
   Metrics,
-} from './metrics';
-export type { ParameterizedString } from './parameterize';
-export type { ContinuousProfiler, ProfilingIntegration, Profiler } from './profiling';
-export type { ViewHierarchyData, ViewHierarchyWindow } from './view-hierarchy';
+  ParameterizedString,
+  ContinuousProfiler,
+  ProfilingIntegration,
+  Profiler,
+  ViewHierarchyData,
+  ViewHierarchyWindow,
+} from '@sentry/core';

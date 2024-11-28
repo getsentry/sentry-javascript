@@ -1,9 +1,9 @@
+import type { EventProcessor } from '@sentry/core';
 import * as SentryNode from '@sentry/node';
 import type { NodeClient } from '@sentry/node';
 import { Scope } from '@sentry/node';
 import { getGlobalScope } from '@sentry/node';
 import { SDK_VERSION } from '@sentry/node';
-import type { EventProcessor } from '@sentry/types';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { SentryNuxtServerOptions } from '../../src/common/types';
 import { init } from '../../src/server';

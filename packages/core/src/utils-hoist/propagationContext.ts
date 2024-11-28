@@ -1,4 +1,4 @@
-import type { PropagationContext } from '@sentry/types';
+import type { PropagationContext } from '../types-hoist';
 import { uuid4 } from './misc';
 
 /**
