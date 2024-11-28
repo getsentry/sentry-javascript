@@ -1,4 +1,5 @@
-import type { Baggage, Context, Span, TextMapGetter, TextMapSetter } from '@opentelemetry/api';
+import type { Baggage, Context, Span, SpanContext, TextMapGetter, TextMapSetter } from '@opentelemetry/api';
+import { TraceFlags } from '@opentelemetry/api';
 import { INVALID_TRACEID } from '@opentelemetry/api';
 import { context } from '@opentelemetry/api';
 import { propagation, trace } from '@opentelemetry/api';
@@ -30,8 +31,8 @@ import {
 } from './constants';
 import { DEBUG_BUILD } from './debug-build';
 import { getScopesFromContext, setScopesOnContext } from './utils/contextData';
-import { generateSpanContextForPropagationContext } from './utils/generateSpanContextForPropagationContext';
 import { getSamplingDecision } from './utils/getSamplingDecision';
+import { makeTraceState } from './utils/makeTraceState';
 import { setIsSetup } from './utils/setupCheck';
 
 /** Get the Sentry propagation context from a span context. */
@@ -88,11 +89,7 @@ export class SentryPropagator extends W3CBaggagePropagator {
     const url = activeSpan && getCurrentURL(activeSpan);
 
     const tracePropagationTargets = getClient()?.getOptions()?.tracePropagationTargets;
-    if (
-      typeof url === 'string' &&
-      tracePropagationTargets &&
-      !this._shouldInjectTraceData(tracePropagationTargets, url)
-    ) {
+    if (!shouldPropagateTraceForUrl(url, tracePropagationTargets, this._urlMatchesTargetsMap)) {
       DEBUG_BUILD &&
         logger.log(
           '[Tracing] Not injecting trace data for url because it does not match tracePropagationTargets:',
@@ -168,22 +165,36 @@ export class SentryPropagator extends W3CBaggagePropagator {
   public fields(): string[] {
     return [SENTRY_TRACE_HEADER, SENTRY_BAGGAGE_HEADER];
   }
+}
 
-  /** If we want to inject trace data for a given URL. */
-  private _shouldInjectTraceData(tracePropagationTargets: Options['tracePropagationTargets'], url: string): boolean {
-    if (tracePropagationTargets === undefined) {
-      return true;
-    }
+const NOT_PROPAGATED_MESSAGE =
+  '[Tracing] Not injecting trace data for url because it does not match tracePropagationTargets:';
 
-    const cachedDecision = this._urlMatchesTargetsMap.get(url);
-    if (cachedDecision !== undefined) {
-      return cachedDecision;
-    }
-
-    const decision = stringMatchesSomePattern(url, tracePropagationTargets);
-    this._urlMatchesTargetsMap.set(url, decision);
-    return decision;
+/**
+ * Check if a given URL should be propagated to or not.
+ * If no url is defined, or no trace propagation targets are defined, this will always return `true`.
+ * You can also optionally provide a decision map, to cache decisions and avoid repeated regex lookups.
+ */
+export function shouldPropagateTraceForUrl(
+  url: string | undefined,
+  tracePropagationTargets: Options['tracePropagationTargets'],
+  decisionMap?: LRUMap<string, boolean>,
+): boolean {
+  if (typeof url !== 'string' || !tracePropagationTargets) {
+    return true;
   }
+
+  const cachedDecision = decisionMap?.get(url);
+  if (cachedDecision !== undefined) {
+    DEBUG_BUILD && !cachedDecision && logger.log(NOT_PROPAGATED_MESSAGE, url);
+    return cachedDecision;
+  }
+
+  const decision = stringMatchesSomePattern(url, tracePropagationTargets);
+  decisionMap?.set(url, decision);
+
+  DEBUG_BUILD && !decision && logger.log(NOT_PROPAGATED_MESSAGE, url);
+  return decision;
 }
 
 /**
@@ -286,4 +297,24 @@ function getCurrentURL(span: Span): string | undefined {
   }
 
   return undefined;
+}
+
+// TODO: Adjust this behavior to avoid invalid spans
+function generateSpanContextForPropagationContext(propagationContext: PropagationContext): SpanContext {
+  // We store the DSC as OTEL trace state on the span context
+  const traceState = makeTraceState({
+    parentSpanId: propagationContext.parentSpanId,
+    dsc: propagationContext.dsc,
+    sampled: propagationContext.sampled,
+  });
+
+  const spanContext: SpanContext = {
+    traceId: propagationContext.traceId,
+    spanId: propagationContext.parentSpanId || '',
+    isRemote: true,
+    traceFlags: propagationContext.sampled ? TraceFlags.SAMPLED : TraceFlags.NONE,
+    traceState,
+  };
+
+  return spanContext;
 }

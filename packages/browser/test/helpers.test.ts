@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import type { WrappedFunction } from '@sentry/core';
 
-import { wrap } from '../../src/helpers';
+import { wrap } from '../src/helpers';
 
 describe('internal wrap()', () => {
   it('should wrap only functions', () => {
@@ -13,14 +13,22 @@ describe('internal wrap()', () => {
     const num = 42;
 
     expect(wrap(fn)).not.toBe(fn);
-    // @ts-expect-error Issue with `WrappedFunction` type from wrap fn
     expect(wrap(obj)).toBe(obj);
-    // @ts-expect-error Issue with `WrappedFunction` type from wrap fn
     expect(wrap(arr)).toBe(arr);
-    // @ts-expect-error Issue with `WrappedFunction` type from wrap fn
     expect(wrap(str)).toBe(str);
-    // @ts-expect-error Issue with `WrappedFunction` type from wrap fn
     expect(wrap(num)).toBe(num);
+  });
+
+  it('correctly infers types', () => {
+    const a = wrap(42);
+    expect(a > 40).toBe(true);
+
+    const b = wrap('42');
+    expect(b.length).toBe(2);
+
+    const c = wrap(() => 42);
+    expect(c()).toBe(42);
+    expect(c.__sentry_original__).toBeInstanceOf(Function);
   });
 
   it('should preserve correct function name when accessed', () => {
@@ -56,16 +64,6 @@ describe('internal wrap()', () => {
     expect(wrap(wrapped)).toBe(wrapped);
   });
 
-  it('calls "before" function when invoking wrapped function', () => {
-    const fn = (() => 1337) as WrappedFunction;
-    const before = vi.fn();
-
-    const wrapped = wrap(fn, {}, before);
-    wrapped();
-
-    expect(before).toHaveBeenCalledTimes(1);
-  });
-
   it('attaches metadata to original and wrapped functions', () => {
     const fn = (() => 1337) as WrappedFunction;
 
@@ -78,10 +76,11 @@ describe('internal wrap()', () => {
     expect(wrapped.__sentry_original__).toBe(fn);
   });
 
-  it('copies over original functions properties', () => {
-    const fn = (() => 1337) as WrappedFunction;
-    fn.some = 1337;
-    fn.property = 'Rick';
+  it('keeps original functions properties', () => {
+    const fn = Object.assign(() => 1337, {
+      some: 1337,
+      property: 'Rick',
+    });
 
     const wrapped = wrap(fn);
 
@@ -105,7 +104,7 @@ describe('internal wrap()', () => {
   });
 
   it('recrusively wraps arguments that are functions', () => {
-    const fn = (() => 1337) as WrappedFunction;
+    const fn = (_arg1: unknown, _arg2: unknown) => 1337;
     const fnArgA = (): number => 1337;
     const fnArgB = (): number => 1337;
 
@@ -162,7 +161,7 @@ describe('internal wrap()', () => {
   });
 
   it('internal flags shouldnt be enumerable', () => {
-    const fn = (() => 1337) as WrappedFunction;
+    const fn = () => 1337;
     const wrapped = wrap(fn);
 
     // Shouldn't show up in iteration
@@ -172,7 +171,7 @@ describe('internal wrap()', () => {
     expect(Object.keys(wrapped)).toEqual(expect.not.arrayContaining(['__sentry_wrapped__']));
     // But should be accessible directly
     expect(wrapped.__sentry_original__).toBe(fn);
-    expect(fn.__sentry_wrapped__).toBe(wrapped);
+    expect((fn as WrappedFunction).__sentry_wrapped__).toBe(wrapped);
   });
 
   it('should only return __sentry_wrapped__ when it is a function', () => {

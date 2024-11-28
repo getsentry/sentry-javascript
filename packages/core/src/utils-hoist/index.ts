@@ -49,6 +49,7 @@ export {
   parseSemver,
   uuid4,
 } from './misc';
+// eslint-disable-next-line deprecation/deprecation
 export { dynamicRequire, isNodeEnv, loadModule } from './node';
 export { normalize, normalizeToSize, normalizeUrlToBase } from './normalize';
 export {
@@ -113,6 +114,7 @@ export {
 } from './supports';
 export { SyncPromise, rejectedSyncPromise, resolvedSyncPromise } from './syncpromise';
 export {
+  // eslint-disable-next-line deprecation/deprecation
   _browserPerformanceTimeOriginMode,
   browserPerformanceTimeOrigin,
   dateTimestampInSeconds,

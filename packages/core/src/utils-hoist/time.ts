@@ -70,6 +70,8 @@ export const timestampInSeconds = createUnixTimestampInSecondsFunc();
 
 /**
  * Internal helper to store what is the source of browserPerformanceTimeOrigin below. For debugging only.
+ *
+ * @deprecated This variable will be removed in the next major version.
  */
 export let _browserPerformanceTimeOriginMode: string;
 
@@ -84,6 +86,7 @@ export const browserPerformanceTimeOrigin = ((): number | undefined => {
 
   const { performance } = GLOBAL_OBJ as typeof GLOBAL_OBJ & Window;
   if (!performance || !performance.now) {
+    // eslint-disable-next-line deprecation/deprecation
     _browserPerformanceTimeOriginMode = 'none';
     return undefined;
   }
@@ -113,15 +116,18 @@ export const browserPerformanceTimeOrigin = ((): number | undefined => {
   if (timeOriginIsReliable || navigationStartIsReliable) {
     // Use the more reliable time origin
     if (timeOriginDelta <= navigationStartDelta) {
+      // eslint-disable-next-line deprecation/deprecation
       _browserPerformanceTimeOriginMode = 'timeOrigin';
       return performance.timeOrigin;
     } else {
+      // eslint-disable-next-line deprecation/deprecation
       _browserPerformanceTimeOriginMode = 'navigationStart';
       return navigationStart;
     }
   }
 
   // Either both timeOrigin and navigationStart are skewed or neither is available, fallback to Date.
+  // eslint-disable-next-line deprecation/deprecation
   _browserPerformanceTimeOriginMode = 'dateNow';
   return dateNow;
 })();
