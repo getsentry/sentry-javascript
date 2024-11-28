@@ -6,6 +6,8 @@
 > [migration guide](https://docs.sentry.io/platforms/javascript/migration/) first.
 <!-- prettier-ignore-end -->
 
+## TMP
+
 ## Unreleased
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
