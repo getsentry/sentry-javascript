@@ -593,6 +593,7 @@ export const supportsReferrerPolicy = supportsReferrerPolicy_imported;
 export const supportsReportingObserver = supportsReportingObserver_imported;
 
 /** @deprecated Import from `@sentry/core` instead. */
+// eslint-disable-next-line deprecation/deprecation
 export const _browserPerformanceTimeOriginMode = _browserPerformanceTimeOriginMode_imported;
 
 /** @deprecated Import from `@sentry/core` instead. */
@@ -602,6 +603,7 @@ export const browserPerformanceTimeOrigin = browserPerformanceTimeOrigin_importe
 export const supportsHistory = supportsHistory_imported;
 
 /** @deprecated Import from `@sentry/core` instead. */
+// eslint-disable-next-line deprecation/deprecation
 export const dynamicRequire = dynamicRequire_imported;
 
 /** @deprecated Import from `@sentry/core` instead. */
