@@ -97,6 +97,11 @@
 
 - Deprecated `autoInstrumentRemix: false`. The next major version will default to behaving as if this option were `true` and the option itself will be removed.
 
+## `@sentry/react`
+
+- Deprecated `wrapUseRoutes`. Use `wrapUseRoutesV6` or `wrapUseRoutesV7` instead.
+- Deprecated `wrapCreateBrowserRouter`. Use `wrapCreateBrowserRouterV6` or `wrapCreateBrowserRouterV7` instead.
+
 ## `@sentry/opentelemetry`
 
 - Deprecated `generateSpanContextForPropagationContext` in favor of doing this manually - we do not need this export anymore.
