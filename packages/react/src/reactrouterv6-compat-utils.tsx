@@ -23,6 +23,7 @@ import {
 import type { Client, Integration, Span, TransactionSource } from '@sentry/types';
 import * as React from 'react';
 
+import hoistNonReactStatics from 'hoist-non-react-statics';
 import { DEBUG_BUILD } from './debug-build';
 import type {
   Action,
@@ -40,7 +41,6 @@ import type {
   UseNavigationType,
   UseRoutes,
 } from './types';
-import hoistNonReactStatics from 'hoist-non-react-statics';
 
 let _useEffect: UseEffect;
 let _useLocation: UseLocation;

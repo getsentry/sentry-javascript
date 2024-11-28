@@ -2,7 +2,6 @@
 import type { browserTracingIntegration } from '@sentry/browser';
 
 import type { Integration } from '@sentry/types';
-import type { CreateRouterFunction, Router, RouterState, UseRoutes } from './types';
 import type { ReactRouterOptions } from './reactrouterv6-compat-utils';
 import {
   createReactRouterV6CompatibleTracingIntegration,
@@ -10,6 +9,7 @@ import {
   createV6CompatibleWrapCreateBrowserRouter,
   createV6CompatibleWrapUseRoutes,
 } from './reactrouterv6-compat-utils';
+import type { CreateRouterFunction, Router, RouterState, UseRoutes } from './types';
 
 /**
  * A browser tracing integration that uses React Router v7 to instrument navigations.
