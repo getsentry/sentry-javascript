@@ -93,6 +93,10 @@
 
 - Deprecated `autoInstrumentRemix: false`. The next major version will default to behaving as if this option were `true` and the option itself will be removed.
 
+## `@sentry/opentelemetry`
+
+- Deprecated `generateSpanContextForPropagationContext` in favor of doing this manually - we do not need this export anymore.
+
 ## Server-side SDKs (`@sentry/node` and all dependents)
 
 - Deprecated `processThreadBreadcrumbIntegration` in favor of `childProcessIntegration`. Functionally they are the same.
