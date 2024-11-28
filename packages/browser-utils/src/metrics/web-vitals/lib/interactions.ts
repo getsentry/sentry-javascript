@@ -113,7 +113,7 @@ export const processInteractionEntry = (entry: PerformanceEventTiming) => {
         existingInteraction.latency = entry.duration;
       } else if (
         entry.duration === existingInteraction.latency &&
-        entry.startTime === existingInteraction?.entries[0]?.startTime
+        entry.startTime === (existingInteraction.entries[0] && existingInteraction.entries[0].startTime)
       ) {
         existingInteraction.entries.push(entry);
       }

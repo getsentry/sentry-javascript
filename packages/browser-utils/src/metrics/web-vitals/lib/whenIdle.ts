@@ -30,7 +30,7 @@ export const whenIdle = (cb: () => void): number => {
   cb = runOnce(cb) as () => void;
   // If the document is hidden, run the callback immediately, otherwise
   // race an idle callback with the next `visibilitychange` event.
-  if (WINDOW.document?.visibilityState === 'hidden') {
+  if (WINDOW.document && WINDOW.document.visibilityState === 'hidden') {
     cb();
   } else {
     handle = rIC(cb);
