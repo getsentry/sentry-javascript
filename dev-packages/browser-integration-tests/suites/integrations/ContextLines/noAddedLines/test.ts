@@ -7,6 +7,7 @@ sentryTest('should not add source context lines to errors from script files', as
   const url = await getLocalTestUrl({ testDir: __dirname });
 
   const eventReqPromise = waitForErrorRequestOnUrl(page, url);
+  await page.waitForFunction('window.Sentry');
 
   const clickPromise = page.locator('#script-error-btn').click();
 

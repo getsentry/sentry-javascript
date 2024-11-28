@@ -74,6 +74,7 @@ function visit(
   value: unknown,
   depth: number = +Infinity,
   maxProperties: number = +Infinity,
+  // eslint-disable-next-line deprecation/deprecation
   memo: MemoFunc = memoBuilder(),
 ): Primitive | ObjOrArray<unknown> {
   const [memoize, unmemoize] = memo;

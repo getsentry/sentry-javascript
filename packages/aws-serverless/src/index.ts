@@ -42,8 +42,10 @@ export {
   flush,
   close,
   getSentryRelease,
+  // eslint-disable-next-line deprecation/deprecation
   addRequestDataToEvent,
   DEFAULT_USER_INCLUDES,
+  // eslint-disable-next-line deprecation/deprecation
   extractRequestData,
   createGetModuleFromFilename,
   anrIntegration,
@@ -118,6 +120,7 @@ export {
   spanToTraceHeader,
   spanToBaggageHeader,
   trpcMiddleware,
+  // eslint-disable-next-line deprecation/deprecation
   addOpenTelemetryInstrumentation,
   zodErrorsIntegration,
   profiler,

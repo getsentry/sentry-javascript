@@ -24,10 +24,18 @@ export { getDynamicSamplingContextFromSpan } from '@sentry/core';
 export { isSentryRequestSpan } from './utils/isSentryRequest';
 
 export { enhanceDscWithOpenTelemetryRootSpanName } from './utils/enhanceDscWithOpenTelemetryRootSpanName';
+// eslint-disable-next-line deprecation/deprecation
 export { generateSpanContextForPropagationContext } from './utils/generateSpanContextForPropagationContext';
 
 export { getActiveSpan } from './utils/getActiveSpan';
-export { startSpan, startSpanManual, startInactiveSpan, withActiveSpan, continueTrace } from './trace';
+export {
+  startSpan,
+  startSpanManual,
+  startInactiveSpan,
+  withActiveSpan,
+  continueTrace,
+  getTraceContextForScope,
+} from './trace';
 
 export { suppressTracing } from './utils/suppressTracing';
 
@@ -37,7 +45,11 @@ export { setupEventContextTrace } from './setupEventContextTrace';
 
 export { setOpenTelemetryContextAsyncContextStrategy } from './asyncContextStrategy';
 export { wrapContextManagerClass } from './contextManager';
-export { SentryPropagator, getPropagationContextFromSpan } from './propagator';
+export {
+  SentryPropagator,
+  getPropagationContextFromSpan,
+  shouldPropagateTraceForUrl,
+} from './propagator';
 export { SentrySpanProcessor } from './spanProcessor';
 export {
   SentrySampler,
@@ -46,6 +58,7 @@ export {
 
 export { openTelemetrySetupCheck } from './utils/setupCheck';
 
+// eslint-disable-next-line deprecation/deprecation
 export { addOpenTelemetryInstrumentation } from './instrumentation';
 
 // Legacy

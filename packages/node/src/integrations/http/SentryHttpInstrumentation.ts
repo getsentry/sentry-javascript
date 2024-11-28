@@ -5,17 +5,19 @@ import { VERSION } from '@opentelemetry/core';
 import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
 import { InstrumentationBase, InstrumentationNodeModuleDefinition } from '@opentelemetry/instrumentation';
 import { getRequestInfo } from '@opentelemetry/instrumentation-http';
-import { addBreadcrumb, getClient, getIsolationScope, withIsolationScope } from '@sentry/core';
 import {
-  extractQueryParamsFromUrl,
+  addBreadcrumb,
   getBreadcrumbLogLevelFromHttpStatusCode,
+  getClient,
+  getIsolationScope,
   getSanitizedUrlString,
-  headersToDict,
+  httpRequestToRequestData,
   logger,
   parseUrl,
   stripUrlQueryAndFragment,
+  withIsolationScope,
 } from '@sentry/core';
-import type { PolymorphicRequest, RequestEventData, SanitizedRequestData, Scope } from '@sentry/types';
+import type { RequestEventData, SanitizedRequestData, Scope } from '@sentry/types';
 import { DEBUG_BUILD } from '../../debug-build';
 import type { NodeClient } from '../../sdk/client';
 import { getRequestUrl } from '../../utils/getRequestUrl';
@@ -131,26 +133,10 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
 
         instrumentation._diag.debug('http instrumentation for incoming request');
 
+        const isolationScope = getIsolationScope().clone();
         const request = args[0] as http.IncomingMessage;
 
-        const isolationScope = getIsolationScope().clone();
-
-        const headers = request.headers;
-        const host = headers.host || '<no host>';
-        const protocol = request.socket && (request.socket as { encrypted?: boolean }).encrypted ? 'https' : 'http';
-        const originalUrl = request.url || '';
-        const absoluteUrl = originalUrl.startsWith(protocol) ? originalUrl : `${protocol}://${host}${originalUrl}`;
-
-        // This is non-standard, but may be set on e.g. Next.js or Express requests
-        const cookies = (request as PolymorphicRequest).cookies;
-
-        const normalizedRequest: RequestEventData = {
-          url: absoluteUrl,
-          method: request.method,
-          query_string: extractQueryParamsFromUrl(request.url || ''),
-          headers: headersToDict(request.headers),
-          cookies,
-        };
+        const normalizedRequest = httpRequestToRequestData(request);
 
         patchRequestToCaptureBody(request, isolationScope);
 

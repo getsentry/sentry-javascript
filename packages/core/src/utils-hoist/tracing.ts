@@ -2,6 +2,7 @@ import type { PropagationContext, TraceparentData } from '@sentry/types';
 
 import { baggageHeaderToDynamicSamplingContext } from './baggage';
 import { uuid4 } from './misc';
+import { generateSpanId, generateTraceId } from './propagationContext';
 
 // eslint-disable-next-line @sentry-internal/sdk/no-regexp-constructor -- RegExp is used for readability here
 export const TRACEPARENT_REGEXP = new RegExp(
@@ -54,22 +55,21 @@ export function propagationContextFromHeaders(
   const traceparentData = extractTraceparentData(sentryTrace);
   const dynamicSamplingContext = baggageHeaderToDynamicSamplingContext(baggage);
 
-  const { traceId, parentSpanId, parentSampled } = traceparentData || {};
-
-  if (!traceparentData) {
-    return {
-      traceId: traceId || uuid4(),
-      spanId: uuid4().substring(16),
-    };
-  } else {
-    return {
-      traceId: traceId || uuid4(),
-      parentSpanId: parentSpanId || uuid4().substring(16),
-      spanId: uuid4().substring(16),
-      sampled: parentSampled,
-      dsc: dynamicSamplingContext || {}, // If we have traceparent data but no DSC it means we are not head of trace and we must freeze it
-    };
+  if (!traceparentData || !traceparentData.traceId) {
+    return { traceId: generateTraceId(), spanId: generateSpanId() };
   }
+
+  const { traceId, parentSpanId, parentSampled } = traceparentData;
+
+  const virtualSpanId = generateSpanId();
+
+  return {
+    traceId,
+    parentSpanId,
+    spanId: virtualSpanId,
+    sampled: parentSampled,
+    dsc: dynamicSamplingContext || {}, // If we have traceparent data but no DSC it means we are not head of trace and we must freeze it
+  };
 }
 
 /**

@@ -3,6 +3,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   captureException,
   continueTrace,
+  httpRequestToRequestData,
   setHttpStatus,
   startSpanManual,
   withIsolationScope,
@@ -65,8 +66,9 @@ export function wrapApiHandlerWithSentry(apiHandler: NextApiHandler, parameteriz
             },
             () => {
               const reqMethod = `${(req.method || 'GET').toUpperCase()} `;
+              const normalizedRequest = httpRequestToRequestData(req);
 
-              isolationScope.setSDKProcessingMetadata({ request: req });
+              isolationScope.setSDKProcessingMetadata({ normalizedRequest });
               isolationScope.setTransactionName(`${reqMethod}${parameterizedRoute}`);
 
               return startSpanManual(

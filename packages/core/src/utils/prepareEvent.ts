@@ -129,23 +129,26 @@ export function prepareEvent(
 }
 
 /**
- *  Enhances event using the client configuration.
- *  It takes care of all "static" values like environment, release and `dist`,
- *  as well as truncating overly long values.
+ * Enhances event using the client configuration.
+ * It takes care of all "static" values like environment, release and `dist`,
+ * as well as truncating overly long values.
+ *
+ * Only exported for tests.
+ *
  * @param event event instance to be enhanced
  */
-function applyClientOptions(event: Event, options: ClientOptions): void {
+export function applyClientOptions(event: Event, options: ClientOptions): void {
   const { environment, release, dist, maxValueLength = 250 } = options;
 
-  if (!('environment' in event)) {
-    event.environment = 'environment' in options ? environment : DEFAULT_ENVIRONMENT;
-  }
+  // empty strings do not make sense for environment, release, and dist
+  // so we handle them the same as if they were not provided
+  event.environment = event.environment || environment || DEFAULT_ENVIRONMENT;
 
-  if (event.release === undefined && release !== undefined) {
+  if (!event.release && release) {
     event.release = release;
   }
 
-  if (event.dist === undefined && dist !== undefined) {
+  if (!event.dist && dist) {
     event.dist = dist;
   }
 
@@ -176,7 +179,7 @@ export function applyDebugIds(event: Event, stackParser: StackParser): void {
     event!.exception!.values!.forEach(exception => {
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       exception.stacktrace!.frames!.forEach(frame => {
-        if (frame.filename) {
+        if (filenameDebugIdMap && frame.filename) {
           frame.debug_id = filenameDebugIdMap[frame.filename];
         }
       });
