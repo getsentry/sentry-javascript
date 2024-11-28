@@ -61,7 +61,7 @@ const root = ReactDOM.createRoot(document.getElementById('root') as HTMLElement)
 root.render(
   <BrowserRouter>
     <SentryRoutes>
-      <Route path='/' element={<Index/>} />
+      <Route path="/" element={<Index />} />
       <Route path="projects/*" element={<ProjectsRoutes />}></Route>
     </SentryRoutes>
   </BrowserRouter>,
