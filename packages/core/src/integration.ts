@@ -11,6 +11,8 @@ export type IntegrationIndex = {
   [key: string]: Integration;
 };
 
+type IntegrationWithDefaultInstance = Integration & { isDefaultInstance?: true };
+
 /**
  * Remove duplicates from the given array, preferring the last instance of any duplicate. Not guaranteed to
  * preserve the order of integrations in the array.
@@ -20,10 +22,10 @@ export type IntegrationIndex = {
 function filterDuplicates(integrations: Integration[]): Integration[] {
   const integrationsByName: { [key: string]: Integration } = {};
 
-  integrations.forEach(currentInstance => {
+  integrations.forEach((currentInstance: IntegrationWithDefaultInstance) => {
     const { name } = currentInstance;
 
-    const existingInstance = integrationsByName[name];
+    const existingInstance: IntegrationWithDefaultInstance | undefined = integrationsByName[name];
 
     // We want integrations later in the array to overwrite earlier ones of the same type, except that we never want a
     // default instance to overwrite an existing user instance
@@ -43,7 +45,7 @@ export function getIntegrationsToSetup(options: Pick<Options, 'defaultIntegratio
   const userIntegrations = options.integrations;
 
   // We flag default instances, so that later we can tell them apart from any user-created instances of the same class
-  defaultIntegrations.forEach(integration => {
+  defaultIntegrations.forEach((integration: IntegrationWithDefaultInstance) => {
     integration.isDefaultInstance = true;
   });
 
