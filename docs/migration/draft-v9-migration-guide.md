@@ -66,6 +66,8 @@
 
 ## `@sentry/types`
 
+- **The `@sentry/types` package has been deprecated. Import everything from `@sentry/core` instead.**
+
 - Deprecated `Request` in favor of `RequestEventData`.
 
 ## `@sentry/vue`
