@@ -27,7 +27,7 @@ sentryTest(
     expect(envHeader.trace).toEqual({
       environment: 'production',
       sample_rate: '1',
-      trace_id: expect.any(String),
+      trace_id: expect.stringMatching(/[a-f0-9]{32}/),
       public_key: 'public',
       sampled: 'true',
     });

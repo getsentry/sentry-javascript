@@ -17,7 +17,7 @@ test('Should report an error event for errors thrown in getServerSideProps', asy
 
   expect(await errorEventPromise).toMatchObject({
     contexts: {
-      trace: { span_id: expect.any(String), trace_id: expect.any(String) },
+      trace: { span_id: expect.stringMatching(/[a-f0-9]{16}/), trace_id: expect.stringMatching(/[a-f0-9]{32}/) },
     },
     event_id: expect.any(String),
     exception: {
@@ -65,9 +65,9 @@ test('Should report an error event for errors thrown in getServerSideProps', asy
         },
         op: 'http.server',
         origin: 'auto',
-        span_id: expect.any(String),
+        span_id: expect.stringMatching(/[a-f0-9]{16}/),
         status: 'internal_error',
-        trace_id: expect.any(String),
+        trace_id: expect.stringMatching(/[a-f0-9]{32}/),
       },
     },
     event_id: expect.any(String),
@@ -104,7 +104,7 @@ test('Should report an error event for errors thrown in getServerSideProps in pa
 
   expect(await errorEventPromise).toMatchObject({
     contexts: {
-      trace: { span_id: expect.any(String), trace_id: expect.any(String) },
+      trace: { span_id: expect.stringMatching(/[a-f0-9]{16}/), trace_id: expect.stringMatching(/[a-f0-9]{32}/) },
     },
     event_id: expect.any(String),
     exception: {
@@ -152,9 +152,9 @@ test('Should report an error event for errors thrown in getServerSideProps in pa
         },
         op: 'http.server',
         origin: 'auto',
-        span_id: expect.any(String),
+        span_id: expect.stringMatching(/[a-f0-9]{16}/),
         status: 'internal_error',
-        trace_id: expect.any(String),
+        trace_id: expect.stringMatching(/[a-f0-9]{32}/),
       },
     },
     event_id: expect.any(String),
