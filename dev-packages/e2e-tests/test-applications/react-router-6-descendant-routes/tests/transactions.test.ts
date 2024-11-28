@@ -10,8 +10,6 @@ test('sends a pageload transaction with a parameterized URL', async ({ page }) =
 
   const rootSpan = await transactionPromise;
 
-  console.debug('rootSpan', rootSpan);
-
   expect(rootSpan).toMatchObject({
     contexts: {
       trace: {
@@ -26,34 +24,44 @@ test('sends a pageload transaction with a parameterized URL', async ({ page }) =
   });
 });
 
-// test('sends a navigation transaction with a parameterized URL', async ({ page }) => {
-//   page.on('console', msg => console.log(msg.text()));
+test('sends a navigation transaction with a parameterized URL', async ({ page }) => {
+  const pageloadTxnPromise = waitForTransaction('react-router-6-descendant-routes', async transactionEvent => {
+    return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
+  });
 
-//   const pageloadTxnPromise = waitForTransaction('react-router-6-descendant-routes', async transactionEvent => {
-//     return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
-//   });
+  const navigationTxnPromise = waitForTransaction('react-router-6-descendant-routes', async transactionEvent => {
+    return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'navigation';
+  });
 
-//   const navigationTxnPromise = waitForTransaction('react-router-6-descendant-routes', async transactionEvent => {
-//     return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'navigation';
-//   });
+  await page.goto(`/`);
+  const pageloadTxn = await pageloadTxnPromise;
 
-//   await page.goto(`/`);
-//   await pageloadTxnPromise;
+  expect(pageloadTxn).toMatchObject({
+    contexts: {
+      trace: {
+        op: 'pageload',
+        origin: 'auto.pageload.react.reactrouter_v6',
+      },
+    },
+    transaction: '/',
+    transaction_info: {
+      source: 'route',
+    },
+  });
 
-//   const linkElement = page.locator('id=navigation');
+  const linkElement = page.locator('id=navigation');
 
-//   const [_, navigationTxn] = await Promise.all([linkElement.click(), navigationTxnPromise]);
-
-//   expect(navigationTxn).toMatchObject({
-//     contexts: {
-//       trace: {
-//         op: 'navigation',
-//         origin: 'auto.navigation.react.reactrouter_v6',
-//       },
-//     },
-//     transaction: '/user/:id',
-//     transaction_info: {
-//       source: 'route',
-//     },
-//   });
-// });
+  const [_, navigationTxn] = await Promise.all([linkElement.click(), navigationTxnPromise]);
+  expect(navigationTxn).toMatchObject({
+    contexts: {
+      trace: {
+        op: 'navigation',
+        origin: 'auto.navigation.react.reactrouter_v6',
+      },
+    },
+    transaction: '/projects/:projectId/views/:viewId',
+    transaction_info: {
+      source: 'route',
+    },
+  });
+});
