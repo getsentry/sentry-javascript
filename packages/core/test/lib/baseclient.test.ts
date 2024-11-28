@@ -29,7 +29,7 @@ declare var global: any;
 const clientEventFromException = jest.spyOn(TestClient.prototype, 'eventFromException');
 const clientProcess = jest.spyOn(TestClient.prototype as any, '_process');
 
-jest.spyOn(miscModule, 'uuid4').mockImplementation(() => '42');
+jest.spyOn(miscModule, 'uuid4').mockImplementation(() => '12312012123120121231201212312012');
 jest.spyOn(loggerModule, 'consoleSandbox').mockImplementation(cb => cb());
 jest.spyOn(stringModule, 'truncate').mockImplementation(str => str);
 jest.spyOn(timeModule, 'dateTimestampInSeconds').mockImplementation(() => 2020);
@@ -265,7 +265,7 @@ describe('BaseClient', () => {
       expect(TestClient.instance!.event).toEqual(
         expect.objectContaining({
           environment: 'production',
-          event_id: '42',
+          event_id: '12312012123120121231201212312012',
           exception: {
             values: [
               {
@@ -378,7 +378,7 @@ describe('BaseClient', () => {
       expect(TestClient.instance!.event).toEqual(
         expect.objectContaining({
           environment: 'production',
-          event_id: '42',
+          event_id: '12312012123120121231201212312012',
           level: 'info',
           message: 'test message',
           timestamp: 2020,
@@ -488,7 +488,7 @@ describe('BaseClient', () => {
       expect(TestClient.instance!.event).toEqual(
         expect.objectContaining({
           environment: 'production',
-          event_id: '42',
+          event_id: '12312012123120121231201212312012',
           message: 'message',
           timestamp: 2020,
         }),
@@ -516,14 +516,14 @@ describe('BaseClient', () => {
       expect(TestClient.instance!.event).toEqual(
         expect.objectContaining({
           environment: 'production',
-          event_id: '42',
+          event_id: '12312012123120121231201212312012',
           message: 'message',
           timestamp: 1234,
         }),
       );
     });
 
-    test('it adds a trace context all events', () => {
+    test('it adds a trace context to all events xxx', () => {
       expect.assertions(1);
 
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
@@ -532,17 +532,11 @@ describe('BaseClient', () => {
 
       client.captureEvent({ message: 'message' }, { event_id: 'wat' }, scope);
 
-      expect(TestClient.instance!.event!).toEqual(
-        expect.objectContaining({
-          contexts: {
-            trace: {
-              parent_span_id: undefined,
-              span_id: expect.stringMatching(/[a-f0-9]{16}/),
-              trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-            },
-          },
-        }),
-      );
+      expect(TestClient.instance?.event?.contexts?.trace).toEqual({
+        parent_span_id: undefined,
+        span_id: expect.stringMatching(/[a-f0-9]{16}/),
+        trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+      });
     });
 
     test('adds `event_id` from hint if available', () => {
@@ -576,7 +570,7 @@ describe('BaseClient', () => {
       expect(TestClient.instance!.event!).toEqual(
         expect.objectContaining({
           environment: 'production',
-          event_id: '42',
+          event_id: '12312012123120121231201212312012',
           message: 'message',
           timestamp: 2020,
         }),
@@ -595,7 +589,7 @@ describe('BaseClient', () => {
       expect(TestClient.instance!.event!).toEqual(
         expect.objectContaining({
           environment: 'env',
-          event_id: '42',
+          event_id: '12312012123120121231201212312012',
           message: 'message',
           timestamp: 2020,
         }),
@@ -614,7 +608,7 @@ describe('BaseClient', () => {
       expect(TestClient.instance!.event!).toEqual(
         expect.objectContaining({
           environment: 'production',
-          event_id: '42',
+          event_id: '12312012123120121231201212312012',
           message: 'message',
           timestamp: 2020,
         }),
@@ -633,7 +627,7 @@ describe('BaseClient', () => {
       expect(TestClient.instance!.event!).toEqual(
         expect.objectContaining({
           environment: 'production',
-          event_id: '42',
+          event_id: '12312012123120121231201212312012',
           message: 'message',
           release: 'v1.0.0',
           timestamp: 2020,
@@ -651,7 +645,7 @@ describe('BaseClient', () => {
 
       client.captureEvent({ message: 'message' }, undefined, scope);
 
-      expect(TestClient.instance!.event!).toHaveProperty('event_id', '42');
+      expect(TestClient.instance!.event!).toHaveProperty('event_id', '12312012123120121231201212312012');
       expect(TestClient.instance!.event!).toHaveProperty('message', 'message');
       expect(TestClient.instance!.event!).toHaveProperty('breadcrumbs');
       expect(TestClient.instance!.event!.breadcrumbs![0]).toHaveProperty('message', 'breadcrumb');
@@ -690,7 +684,7 @@ describe('BaseClient', () => {
       expect(TestClient.instance!.event!).toEqual(
         expect.objectContaining({
           environment: 'production',
-          event_id: '42',
+          event_id: '12312012123120121231201212312012',
           extra: { b: 'b' },
           message: 'message',
           tags: { a: 'a' },
@@ -713,7 +707,7 @@ describe('BaseClient', () => {
       expect(TestClient.instance!.event!).toEqual(
         expect.objectContaining({
           environment: 'production',
-          event_id: '42',
+          event_id: '12312012123120121231201212312012',
           fingerprint: ['abcd'],
           message: 'message',
           timestamp: 2020,
@@ -813,7 +807,7 @@ describe('BaseClient', () => {
           // also has trace context from global scope
           contexts: { ...normalizedObject, trace: expect.anything() },
           environment: 'production',
-          event_id: '42',
+          event_id: '12312012123120121231201212312012',
           extra: normalizedObject,
           timestamp: 2020,
           user: normalizedObject,
@@ -863,7 +857,7 @@ describe('BaseClient', () => {
           // also has trace context from global scope
           contexts: { ...normalizedObject, trace: expect.anything() },
           environment: 'production',
-          event_id: '42',
+          event_id: '12312012123120121231201212312012',
           extra: normalizedObject,
           timestamp: 2020,
           user: normalizedObject,
@@ -918,7 +912,7 @@ describe('BaseClient', () => {
           // also has trace context from global scope
           contexts: { ...normalizedObject, trace: expect.anything() },
           environment: 'production',
-          event_id: '42',
+          event_id: '12312012123120121231201212312012',
           extra: normalizedObject,
           timestamp: 2020,
           user: normalizedObject,
