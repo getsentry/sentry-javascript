@@ -1,6 +1,19 @@
-import * as Sentry from '@sentry/node';
-import { nodeProfilingIntegration } from '@sentry/profiling-node';
+function assertUnpatechedRequire(cycle) {
+  if (globalThis.require !== undefined) {
+    // Test that globalThis.require is not defined by any side effects of the profiling
+    // https://github.com/getsentry/sentry-javascript/issues/13662
+    throw new Error(
+      `globalThis.require should not be defined ${cycle}, check that profiling integration is not defining it, received: ` +
+        typeof globalThis.require,
+    );
+  }
+}
 
+assertUnpatechedRequire('at startup');
+import * as Sentry from '@sentry/node';
+assertUnpatechedRequire('after importing sentry/node');
+import { nodeProfilingIntegration } from '@sentry/profiling-node';
+assertUnpatechedRequire('after importing sentry/profiling-node');
 const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 Sentry.init({
@@ -14,8 +27,4 @@ Sentry.startSpan({ name: 'Precompile test' }, async () => {
   await wait(500);
 });
 
-// Test that globalThis.require is not defined by any side effects of the profiling
-// https://github.com/getsentry/sentry-javascript/issues/13662
-if (globalThis.require !== undefined) {
-  throw new Error('globalThis.require should not be defined, check that profiling integration is not defining it, received: ' + typeof globalThis.require);
-}
+assertUnpatechedRequire('after a span was created');
