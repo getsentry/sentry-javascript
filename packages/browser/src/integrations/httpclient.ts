@@ -70,7 +70,7 @@ function _fetchResponseHandler(
   requestInfo: RequestInfo,
   response: Response,
   requestInit?: RequestInit,
-  error?: unknown,
+  stack?: string,
 ): void {
   if (_shouldCaptureResponse(options, response.status, response.url)) {
     const request = _getRequest(requestInfo, requestInit);
@@ -90,7 +90,7 @@ function _fetchResponseHandler(
       responseHeaders,
       requestCookies,
       responseCookies,
-      stacktrace: error instanceof Error ? error.stack : undefined,
+      stacktrace: stack,
     });
 
     captureEvent(event);
@@ -129,7 +129,7 @@ function _xhrResponseHandler(
   xhr: XMLHttpRequest,
   method: string,
   headers: Record<string, string>,
-  error?: unknown,
+  stack?: string,
 ): void {
   if (_shouldCaptureResponse(options, xhr.status, xhr.responseURL)) {
     let requestHeaders, responseCookies, responseHeaders;
@@ -162,7 +162,7 @@ function _xhrResponseHandler(
       // Can't access request cookies from XHR
       responseHeaders,
       responseCookies,
-      stacktrace: error instanceof Error ? error.stack : undefined,
+      stacktrace: stack,
     });
 
     captureEvent(event);
@@ -287,24 +287,20 @@ function _wrapFetch(client: Client, options: HttpClientOptions): void {
     return;
   }
 
-  addFetchInstrumentationHandler(
-    handlerData => {
-      if (getClient() !== client) {
-        return;
-      }
+  addFetchInstrumentationHandler(handlerData => {
+    if (getClient() !== client) {
+      return;
+    }
 
-      const { response, args } = handlerData;
-      const [requestInfo, requestInit] = args as [RequestInfo, RequestInit | undefined];
+    const { response, args } = handlerData;
+    const [requestInfo, requestInit] = args as [RequestInfo, RequestInit | undefined];
 
-      if (!response) {
-        return;
-      }
+    if (!response) {
+      return;
+    }
 
-      _fetchResponseHandler(options, requestInfo, response as Response, requestInit, handlerData.error);
-    },
-    false,
-    true,
-  );
+    _fetchResponseHandler(options, requestInfo, response as Response, requestInit, handlerData.stack);
+  }, false);
 }
 
 /**
@@ -331,11 +327,11 @@ function _wrapXHR(client: Client, options: HttpClientOptions): void {
     const { method, request_headers: headers } = sentryXhrData;
 
     try {
-      _xhrResponseHandler(options, xhr, method, headers, handlerData.error);
+      _xhrResponseHandler(options, xhr, method, headers, handlerData.stack);
     } catch (e) {
       DEBUG_BUILD && logger.warn('Error while extracting response event form XHR response', e);
     }
-  }, true);
+  });
 }
 
 /**

@@ -21,11 +21,10 @@ type FetchResource = string | { toString(): string } | { url: string };
 export function addFetchInstrumentationHandler(
   handler: (data: HandlerDataFetch) => void,
   skipNativeFetchCheck?: boolean,
-  httpClientInstrumented?: boolean,
 ): void {
   const type = 'fetch';
   addHandler(type, handler);
-  maybeInstrument(type, () => instrumentFetch(undefined, skipNativeFetchCheck, httpClientInstrumented));
+  maybeInstrument(type, () => instrumentFetch(undefined, skipNativeFetchCheck));
 }
 
 /**
@@ -42,36 +41,13 @@ export function addFetchEndInstrumentationHandler(handler: (data: HandlerDataFet
   maybeInstrument(type, () => instrumentFetch(streamHandler));
 }
 
-function instrumentFetch(
-  onFetchResolved?: (response: Response) => void,
-  skipNativeFetchCheck: boolean = false,
-  httpClientInstrumented: boolean = false,
-): void {
+function instrumentFetch(onFetchResolved?: (response: Response) => void, skipNativeFetchCheck: boolean = false): void {
   if (skipNativeFetchCheck && !supportsNativeFetch()) {
     return;
   }
 
   fill(GLOBAL_OBJ, 'fetch', function (originalFetch: () => void): () => void {
     return function (...args: any[]): void {
-      const { method, url } = parseFetchArgs(args);
-      const handlerData: HandlerDataFetch = {
-        args,
-        fetchData: {
-          method,
-          url,
-        },
-        startTimestamp: timestampInSeconds() * 1000,
-      };
-
-      // if there is no callback, fetch is instrumented directly
-      // if httpClientInstrumented is true, we are in the HttpClient instrumentation
-      // and we may need to capture the stacktrace even when the fetch promise is resolved
-      if (!onFetchResolved && !httpClientInstrumented) {
-        triggerHandlers('fetch', {
-          ...handlerData,
-        });
-      }
-
       // We capture the stack right here and not in the Promise error callback because Safari (and probably other
       // browsers too) will wipe the stack trace up to this point, only leaving us with this file which is useless.
 
@@ -81,6 +57,24 @@ function instrumentFetch(
       //       you can see which fetch call failed.
       const virtualError = new Error();
       const virtualStackTrace = virtualError.stack;
+
+      const { method, url } = parseFetchArgs(args);
+      const handlerData: HandlerDataFetch = {
+        args,
+        fetchData: {
+          method,
+          url,
+        },
+        startTimestamp: timestampInSeconds() * 1000,
+        stack: virtualStackTrace,
+      };
+
+      // if there is no callback, fetch is instrumented directly
+      if (!onFetchResolved) {
+        triggerHandlers('fetch', {
+          ...handlerData,
+        });
+      }
 
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       return originalFetch.apply(GLOBAL_OBJ, args).then(
@@ -93,7 +87,6 @@ function instrumentFetch(
               ...handlerData,
               endTimestamp: timestampInSeconds() * 1000,
               response,
-              error: httpClientInstrumented ? virtualError : undefined,
             });
           }
 

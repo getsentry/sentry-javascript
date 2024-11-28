@@ -32,7 +32,7 @@ export interface HandlerDataXhr {
   xhr: SentryWrappedXMLHttpRequest;
   startTimestamp?: number;
   endTimestamp?: number;
-  error?: unknown;
+  stack?: string;
 }
 
 interface SentryFetchData {
@@ -57,6 +57,7 @@ export interface HandlerDataFetch {
     headers: WebFetchHeaders;
   };
   error?: unknown;
+  stack?: string;
 }
 
 export interface HandlerDataDom {

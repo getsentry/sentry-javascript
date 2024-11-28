@@ -15,17 +15,14 @@ type WindowWithXhr = Window & { XMLHttpRequest?: typeof XMLHttpRequest };
  * Use at your own risk, this might break without changelog notice, only used internally.
  * @hidden
  */
-export function addXhrInstrumentationHandler(
-  handler: (data: HandlerDataXhr) => void,
-  httpClientInstrumented?: boolean,
-): void {
+export function addXhrInstrumentationHandler(handler: (data: HandlerDataXhr) => void): void {
   const type = 'xhr';
   addHandler(type, handler);
-  maybeInstrument(type, () => instrumentXHR(httpClientInstrumented));
+  maybeInstrument(type, instrumentXHR);
 }
 
 /** Exported only for tests. */
-export function instrumentXHR(httpClientInstrumented: boolean = false): void {
+export function instrumentXHR(): void {
   if (!(WINDOW as WindowWithXhr).XMLHttpRequest) {
     return;
   }
@@ -85,7 +82,7 @@ export function instrumentXHR(httpClientInstrumented: boolean = false): void {
             endTimestamp: timestampInSeconds() * 1000,
             startTimestamp,
             xhr: xhrOpenThisArg,
-            error: httpClientInstrumented ? virtualError : undefined,
+            stack: virtualError.stack,
           };
           triggerHandlers('xhr', handlerData);
         }
