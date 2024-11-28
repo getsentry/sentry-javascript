@@ -61,6 +61,7 @@ export type {
   Exception,
   Extra,
   Extras,
+  // eslint-disable-next-line deprecation/deprecation
   Hub,
   Integration,
   IntegrationClass,
@@ -98,6 +99,7 @@ export type {
   UserFeedback,
   QueryParams,
   RequestEventData,
+  // eslint-disable-next-line deprecation/deprecation
   Request,
   SanitizedRequestData,
   Runtime,
