@@ -688,6 +688,7 @@ describe('browserTracingIntegration', () => {
 
       const propCtxAfterEnd = getCurrentScope().getPropagationContext();
       expect(propCtxAfterEnd).toStrictEqual({
+        // eslint-disable-next-line deprecation/deprecation
         spanId: propCtxBeforeEnd.spanId,
         traceId: propCtxBeforeEnd.traceId,
         sampled: true,
@@ -727,6 +728,7 @@ describe('browserTracingIntegration', () => {
 
       const propCtxAfterEnd = getCurrentScope().getPropagationContext();
       expect(propCtxAfterEnd).toStrictEqual({
+        // eslint-disable-next-line deprecation/deprecation
         spanId: propCtxBeforeEnd.spanId,
         traceId: propCtxBeforeEnd.traceId,
         sampled: false,
