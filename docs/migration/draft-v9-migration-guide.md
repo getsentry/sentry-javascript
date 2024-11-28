@@ -35,6 +35,7 @@
 - Deprecated `getNumberOfUrlSegments`. No replacements.
 - Deprecated `BAGGAGE_HEADER_NAME`. No replacements.
 - Deprecated `makeFifoCache`. No replacements.
+- Deprecated `dynamicRequire`. No replacements.
 - Deprecated `flatten`. No replacements.
 - Deprecated `_browserPerformanceTimeOriginMode`. No replacements.
 
@@ -88,10 +89,23 @@
   });
   ```
 
+## `@sentry/astro`
+
+- Deprecated passing `dsn`, `release`, `environment`, `sampleRate`, `tracesSampleRate`, `replaysSessionSampleRate` to the integration. Use the runtime-specific `Sentry.init()` calls for passing these options instead.
+
+## `@sentry/remix`
+
+- Deprecated `autoInstrumentRemix: false`. The next major version will default to behaving as if this option were `true` and the option itself will be removed.
+
+## `@sentry/opentelemetry`
+
+- Deprecated `generateSpanContextForPropagationContext` in favor of doing this manually - we do not need this export anymore.
+
 ## Server-side SDKs (`@sentry/node` and all dependents)
 
 - Deprecated `processThreadBreadcrumbIntegration` in favor of `childProcessIntegration`. Functionally they are the same.
 - Deprecated `nestIntegration`. Use the NestJS SDK (`@sentry/nestjs`) instead.
 - Deprecated `setupNestErrorHandler`. Use the NestJS SDK (`@sentry/nestjs`) instead.
+- Deprecated `addOpenTelemetryInstrumentation`. Use the `openTelemetryInstrumentations` option in `Sentry.init()` or your custom Sentry Client instead.
 - Deprecated `registerEsmLoaderHooks.include` and `registerEsmLoaderHooks.exclude`. Set `onlyIncludeInstrumentedModules: true` instead.
 - `registerEsmLoaderHooks` will only accept `true | false | undefined` in the future. The SDK will default to wrapping modules that are used as part of OpenTelemetry Instrumentation.
