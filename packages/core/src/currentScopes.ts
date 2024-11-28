@@ -128,6 +128,8 @@ export function getClient<C extends Client>(): C | undefined {
 export function getTraceContextFromScope(scope: Scope): TraceContext {
   const propagationContext = scope.getPropagationContext();
 
+  // TODO(v9): Use generateSpanId() instead of spanId
+  // eslint-disable-next-line deprecation/deprecation
   const { traceId, spanId, parentSpanId } = propagationContext;
 
   const traceContext: TraceContext = dropUndefinedKeys({

@@ -399,6 +399,7 @@ export function instrumentBuild(
   build: ServerBuild | (() => ServerBuild | Promise<ServerBuild>),
   options: RemixOptions,
 ): ServerBuild | (() => ServerBuild | Promise<ServerBuild>) {
+  // eslint-disable-next-line deprecation/deprecation
   const autoInstrumentRemix = options?.autoInstrumentRemix || false;
 
   if (typeof build === 'function') {
@@ -434,6 +435,7 @@ const makeWrappedCreateRequestHandler = (options: RemixOptions) =>
       const newBuild = instrumentBuild(build, options);
       const requestHandler = origCreateRequestHandler.call(this, newBuild, ...args);
 
+      // eslint-disable-next-line deprecation/deprecation
       return wrapRequestHandler(requestHandler, newBuild, options.autoInstrumentRemix || false);
     };
   };

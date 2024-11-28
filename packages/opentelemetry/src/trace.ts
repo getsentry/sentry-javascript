@@ -201,6 +201,7 @@ function getContext(scope: Scope | undefined, forceTransaction: boolean | undefi
 
       const spanOptions: SpanContext = {
         traceId: propagationContext.traceId,
+        // eslint-disable-next-line deprecation/deprecation
         spanId: propagationContext.parentSpanId || propagationContext.spanId,
         isRemote: true,
         traceFlags: propagationContext.sampled ? TraceFlags.SAMPLED : TraceFlags.NONE,
