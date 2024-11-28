@@ -3,14 +3,13 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import {
   BrowserRouter,
+  Outlet,
   Route,
   Routes,
   createRoutesFromChildren,
   matchRoutes,
   useLocation,
   useNavigationType,
-  Navigate,
-  Outlet,
 } from 'react-router-dom';
 
 const replay = Sentry.replayIntegration();
