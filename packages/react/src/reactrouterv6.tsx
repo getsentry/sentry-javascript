@@ -382,7 +382,6 @@ export function wrapUseRoutes(origUseRoutes: UseRoutes): UseRoutes {
     return origUseRoutes;
   }
 
-  let isMountRenderPass: boolean = true;
   const allRoutes: RouteObject[] = [];
 
   const SentryRoutes: React.FC<{
@@ -390,6 +389,8 @@ export function wrapUseRoutes(origUseRoutes: UseRoutes): UseRoutes {
     routes: RouteObject[];
     locationArg?: Partial<Location> | string;
   }> = (props: { children?: React.ReactNode; routes: RouteObject[]; locationArg?: Partial<Location> | string }) => {
+    const isMountRenderPass = React.useRef(true);
+
     const { routes, locationArg } = props;
 
     const Routes = origUseRoutes(routes, locationArg);
@@ -411,9 +412,9 @@ export function wrapUseRoutes(origUseRoutes: UseRoutes): UseRoutes {
         allRoutes.push(...getChildRoutesRecursively(route));
       });
 
-      if (isMountRenderPass) {
+      if (isMountRenderPass.current) {
         updatePageloadTransaction(getActiveRootSpan(), normalizedLocation, routes, undefined, undefined, allRoutes);
-        isMountRenderPass = false;
+        isMountRenderPass.current = false;
       } else {
         handleNavigation(normalizedLocation, routes, navigationType, undefined, undefined, allRoutes);
       }
