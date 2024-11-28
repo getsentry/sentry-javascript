@@ -24,7 +24,7 @@ import { initInteractionCountPolyfill } from './lib/polyfills/interactionCountPo
 import { whenActivated } from './lib/whenActivated';
 import { whenIdle } from './lib/whenIdle';
 
-import type { INPMetric, MetricRatingThresholds, ReportOpts } from './types.js';
+import type { INPMetric, MetricRatingThresholds, ReportOpts } from './types';
 
 /** Thresholds for INP. See https://web.dev/articles/inp#what_is_a_good_inp_score */
 export const INPThresholds: MetricRatingThresholds = [200, 500];

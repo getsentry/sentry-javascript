@@ -14,13 +14,13 @@
  * limitations under the License.
  */
 
-import { bindReporter } from './lib/bindReporter.js';
-import { getVisibilityWatcher } from './lib/getVisibilityWatcher.js';
-import { initMetric } from './lib/initMetric.js';
-import { observe } from './lib/observe.js';
-import { onHidden } from './lib/onHidden.js';
+import { bindReporter } from './lib/bindReport';
+import { getVisibilityWatcher } from './lib/getVisibilityWatcher';
+import { initMetric } from './lib/initMetric';
+import { observe } from './lib/observe';
+import { onHidden } from './lib/onHidden';
 import { runOnce } from './lib/runOnce';
-import { whenActivated } from './lib/whenActivated.js';
+import { whenActivated } from './lib/whenActivated';
 import type { FIDMetric, MetricRatingThresholds, ReportOpts } from './types';
 
 /** Thresholds for FID. See https://web.dev/articles/fid#what_is_a_good_fid_score */

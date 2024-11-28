@@ -17,9 +17,9 @@
 import { bindReporter } from './lib/bindReporter';
 import { getActivationStart } from './lib/getActivationStart';
 import { getVisibilityWatcher } from './lib/getVisibilityWatcher';
-import { initMetric } from './lib/initMetric.js';
-import { observe } from './lib/observe.js';
-import { whenActivated } from './lib/whenActivated.js';
+import { initMetric } from './lib/initMetric';
+import { observe } from './lib/observe';
+import { whenActivated } from './lib/whenActivated';
 import type { FCPMetric, MetricRatingThresholds, ReportOpts } from './types';
 
 /** Thresholds for FCP. See https://web.dev/articles/fcp#what_is_a_good_fcp_score */
