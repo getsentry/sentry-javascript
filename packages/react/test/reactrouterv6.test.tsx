@@ -529,14 +529,8 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
       );
 
       expect(mockStartBrowserTracingPageLoadSpan).toHaveBeenCalledTimes(1);
-      expect(mockStartBrowserTracingPageLoadSpan).toHaveBeenLastCalledWith(expect.any(BrowserClient), {
-        name: '/projects/:projectId/views/:viewId',
-        attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.react.reactrouter_v6',
-        },
-      });
+      expect(mockRootSpan.updateName).toHaveBeenLastCalledWith('/projects/:projectId/views/:viewId');
+      expect(mockRootSpan.setAttribute).toHaveBeenLastCalledWith(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
     });
 
     it('works with descendant wildcard routes - navigation', () => {
@@ -565,6 +559,7 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
             </Route>
           </Route>
           <Route path="*" element={<div>No Match Page</div>} />
+          <Route path="/404" element={<div>404</div>} />
         </SentryRoutes>
       );
 
