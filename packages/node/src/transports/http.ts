@@ -2,8 +2,6 @@ import * as http from 'node:http';
 import * as https from 'node:https';
 import { Readable } from 'node:stream';
 import { createGzip } from 'node:zlib';
-import { createTransport, suppressTracing } from '@sentry/core';
-import { consoleSandbox } from '@sentry/core';
 import type {
   BaseTransportOptions,
   Transport,
@@ -11,6 +9,7 @@ import type {
   TransportRequest,
   TransportRequestExecutor,
 } from '@sentry/core';
+import { consoleSandbox, createTransport, suppressTracing } from '@sentry/core';
 import { HttpsProxyAgent } from '../proxy';
 import type { HTTPModule } from './http-module';
 

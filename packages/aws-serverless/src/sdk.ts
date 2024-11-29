@@ -2,8 +2,8 @@ import { existsSync } from 'fs';
 import { hostname } from 'os';
 import { basename, resolve } from 'path';
 import { types } from 'util';
-import { logger } from '@sentry/core';
 import type { Integration, Options, Scope, SdkMetadata, Span } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, logger } from '@sentry/core';
 import type { NodeClient, NodeOptions } from '@sentry/node';
 import {
   SDK_VERSION,
@@ -19,9 +19,6 @@ import {
 } from '@sentry/node';
 import type { Context, Handler } from 'aws-lambda';
 import { performance } from 'perf_hooks';
-
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
-
 import { DEBUG_BUILD } from './debug-build';
 import { awsIntegration } from './integration/aws';
 import { awsLambdaIntegration } from './integration/awslambda';

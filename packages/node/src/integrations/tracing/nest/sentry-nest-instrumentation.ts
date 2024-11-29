@@ -5,9 +5,17 @@ import {
   InstrumentationNodeModuleDefinition,
   InstrumentationNodeModuleFile,
 } from '@opentelemetry/instrumentation';
-import { getActiveSpan, startInactiveSpan, startSpan, startSpanManual, withActiveSpan } from '@sentry/core';
-import { SDK_VERSION, addNonEnumerableProperty, isThenable } from '@sentry/core';
 import type { Span } from '@sentry/core';
+import {
+  SDK_VERSION,
+  addNonEnumerableProperty,
+  getActiveSpan,
+  isThenable,
+  startInactiveSpan,
+  startSpan,
+  startSpanManual,
+  withActiveSpan,
+} from '@sentry/core';
 import { getMiddlewareSpanOptions, getNextProxy, instrumentObservable, isPatched } from './helpers';
 import type { CallHandler, CatchTarget, InjectableTarget, MinimalNestJsExecutionContext, Observable } from './types';
 

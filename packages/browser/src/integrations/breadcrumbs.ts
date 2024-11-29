@@ -1,22 +1,11 @@
+/* eslint-disable max-lines */
+
 import {
   SENTRY_XHR_DATA_KEY,
   addClickKeypressInstrumentationHandler,
   addHistoryInstrumentationHandler,
   addXhrInstrumentationHandler,
 } from '@sentry-internal/browser-utils';
-import { addBreadcrumb, defineIntegration, getClient } from '@sentry/core';
-import {
-  addConsoleInstrumentationHandler,
-  addFetchInstrumentationHandler,
-  getBreadcrumbLogLevelFromHttpStatusCode,
-  getComponentName,
-  getEventDescription,
-  htmlTreeAsString,
-  logger,
-  parseUrl,
-  safeJoin,
-  severityLevelFromString,
-} from '@sentry/core';
 import type {
   Breadcrumb,
   Client,
@@ -32,7 +21,21 @@ import type {
   XhrBreadcrumbData,
   XhrBreadcrumbHint,
 } from '@sentry/core';
-
+import {
+  addBreadcrumb,
+  addConsoleInstrumentationHandler,
+  addFetchInstrumentationHandler,
+  defineIntegration,
+  getBreadcrumbLogLevelFromHttpStatusCode,
+  getClient,
+  getComponentName,
+  getEventDescription,
+  htmlTreeAsString,
+  logger,
+  parseUrl,
+  safeJoin,
+  severityLevelFromString,
+} from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
 import { WINDOW } from '../helpers';
 

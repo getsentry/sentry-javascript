@@ -1,9 +1,7 @@
 /* eslint-disable max-lines */ // TODO: We might want to split this file up
 import { EventType, record } from '@sentry-internal/rrweb';
-import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, getActiveSpan, getClient, getRootSpan, spanToJSON } from '@sentry/core';
 import type { ReplayRecordingMode, Span } from '@sentry/core';
-import { logger } from './util/logger';
-
+import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, getActiveSpan, getClient, getRootSpan, spanToJSON } from '@sentry/core';
 import {
   BUFFER_CHECKOUT_TIME,
   SESSION_IDLE_EXPIRE_DURATION,
@@ -21,7 +19,6 @@ import { clearSession } from './session/clearSession';
 import { loadOrCreateSession } from './session/loadOrCreateSession';
 import { saveSession } from './session/saveSession';
 import { shouldRefreshSession } from './session/shouldRefreshSession';
-
 import type {
   AddEventResult,
   AddUpdateCallback,
@@ -53,6 +50,7 @@ import { debounce } from './util/debounce';
 import { getHandleRecordingEmit } from './util/handleRecordingEmit';
 import { isExpired } from './util/isExpired';
 import { isSessionExpired } from './util/isSessionExpired';
+import { logger } from './util/logger';
 import { resetReplayIdOnDynamicSamplingContext } from './util/resetReplayIdOnDynamicSamplingContext';
 import { sendReplay } from './util/sendReplay';
 import { RateLimitError } from './util/sendReplayRequest';

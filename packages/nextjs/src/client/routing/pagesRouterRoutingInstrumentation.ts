@@ -1,13 +1,15 @@
 import type { ParsedUrlQuery } from 'querystring';
+import type { Client, TransactionSource } from '@sentry/core';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  browserPerformanceTimeOrigin,
+  logger,
+  parseBaggageHeader,
+  stripUrlQueryAndFragment,
 } from '@sentry/core';
-import { browserPerformanceTimeOrigin, logger, parseBaggageHeader, stripUrlQueryAndFragment } from '@sentry/core';
-import type { Client, TransactionSource } from '@sentry/core';
 import { WINDOW, startBrowserTracingNavigationSpan, startBrowserTracingPageLoadSpan } from '@sentry/react';
-
 import type { NEXT_DATA } from 'next/dist/shared/lib/utils';
 import RouterImport from 'next/router';
 

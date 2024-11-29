@@ -1,13 +1,16 @@
 import { SENTRY_XHR_DATA_KEY, addXhrInstrumentationHandler } from '@sentry-internal/browser-utils';
-import { captureEvent, defineIntegration, getClient, isSentryRequestUrl } from '@sentry/core';
+import type { Client, Event as SentryEvent, IntegrationFn, SentryWrappedXMLHttpRequest } from '@sentry/core';
 import {
   GLOBAL_OBJ,
   addExceptionMechanism,
   addFetchInstrumentationHandler,
+  captureEvent,
+  defineIntegration,
+  getClient,
+  isSentryRequestUrl,
   logger,
   supportsNativeFetch,
 } from '@sentry/core';
-import type { Client, Event as SentryEvent, IntegrationFn, SentryWrappedXMLHttpRequest } from '@sentry/core';
 
 import { DEBUG_BUILD } from '../debug-build';
 

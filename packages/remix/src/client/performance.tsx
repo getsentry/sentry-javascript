@@ -1,14 +1,18 @@
+import type { Client, StartSpanOptions } from '@sentry/core';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   getActiveSpan,
   getCurrentScope,
   getRootSpan,
+  isNodeEnv,
+  logger,
 } from '@sentry/core';
-import { isNodeEnv, logger } from '@sentry/core';
-import type { Client, StartSpanOptions } from '@sentry/core';
-import type { browserTracingIntegration as originalBrowserTracingIntegration } from '@sentry/react';
-import type { BrowserClient, ErrorBoundaryProps } from '@sentry/react';
+import type {
+  BrowserClient,
+  ErrorBoundaryProps,
+  browserTracingIntegration as originalBrowserTracingIntegration,
+} from '@sentry/react';
 import {
   WINDOW,
   getClient,
@@ -17,7 +21,6 @@ import {
   withErrorBoundary,
 } from '@sentry/react';
 import * as React from 'react';
-
 import { DEBUG_BUILD } from '../utils/debug-build';
 import { getFutureFlagsBrowser, readRemixVersionFromLoader } from '../utils/futureFlags';
 

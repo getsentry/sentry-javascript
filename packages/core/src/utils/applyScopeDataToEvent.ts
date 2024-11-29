@@ -1,6 +1,6 @@
 import { getDynamicSamplingContextFromSpan } from '../tracing/dynamicSamplingContext';
 import type { Breadcrumb, Event, ScopeData, Span } from '../types-hoist';
-import { dropUndefinedKeys } from '../utils-hoist';
+import { dropUndefinedKeys } from '../utils-hoist/object';
 import { merge } from './merge';
 import { getRootSpan, spanToJSON, spanToTraceContext } from './spanUtils';
 

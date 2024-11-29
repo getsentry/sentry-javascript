@@ -1,7 +1,6 @@
 import * as path from 'node:path';
-import { applySdkMetadata, flush, getGlobalScope } from '@sentry/core';
-import { logger, vercelWaitUntil } from '@sentry/core';
 import type { Client, EventProcessor, Integration } from '@sentry/core';
+import { applySdkMetadata, flush, getGlobalScope, logger, vercelWaitUntil } from '@sentry/core';
 import {
   type NodeOptions,
   getDefaultIntegrations as getDefaultNodeIntegrations,

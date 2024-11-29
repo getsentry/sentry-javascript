@@ -1,4 +1,6 @@
+import type { RequestEventData } from '@sentry/core';
 import {
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SPAN_STATUS_ERROR,
   SPAN_STATUS_OK,
@@ -8,15 +10,15 @@ import {
   getCapturedScopesOnSpan,
   getRootSpan,
   handleCallbackErrors,
+  propagationContextFromHeaders,
   setCapturedScopesOnSpan,
   startSpanManual,
+  uuid4,
+  vercelWaitUntil,
+  winterCGHeadersToDict,
   withIsolationScope,
   withScope,
 } from '@sentry/core';
-import { propagationContextFromHeaders, uuid4, vercelWaitUntil, winterCGHeadersToDict } from '@sentry/core';
-import type { RequestEventData } from '@sentry/core';
-
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import { isNotFoundNavigationError, isRedirectNavigationError } from '../common/nextNavigationErrorUtils';
 import type { ServerComponentContext } from '../common/types';
 import { TRANSACTION_ATTR_SENTRY_TRACE_BACKFILL } from './span-attributes-with-logic-attached';

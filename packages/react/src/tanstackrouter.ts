@@ -1,12 +1,15 @@
-import { WINDOW, startBrowserTracingNavigationSpan, startBrowserTracingPageLoadSpan } from '@sentry/browser';
+import {
+  WINDOW,
+  browserTracingIntegration as originalBrowserTracingIntegration,
+  startBrowserTracingNavigationSpan,
+  startBrowserTracingPageLoadSpan,
+} from '@sentry/browser';
+import type { Integration } from '@sentry/core';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '@sentry/core';
-
-import { browserTracingIntegration as originalBrowserTracingIntegration } from '@sentry/browser';
-import type { Integration } from '@sentry/core';
 import type { VendoredTanstackRouter, VendoredTanstackRouterRouteMatch } from './vendor/tanstackrouter-types';
 
 /**

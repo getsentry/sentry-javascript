@@ -1,4 +1,7 @@
+import type { Integration, Options } from '@sentry/core';
 import {
+  consoleSandbox,
+  dropUndefinedKeys,
   endSession,
   functionToStringIntegration,
   getClient,
@@ -8,17 +11,12 @@ import {
   hasTracingEnabled,
   inboundFiltersIntegration,
   linkedErrorsIntegration,
-  requestDataIntegration,
-  startSession,
-} from '@sentry/core';
-import {
-  consoleSandbox,
-  dropUndefinedKeys,
   logger,
   propagationContextFromHeaders,
+  requestDataIntegration,
   stackParserFromStackParserOptions,
+  startSession,
 } from '@sentry/core';
-import type { Integration, Options } from '@sentry/core';
 import {
   enhanceDscWithOpenTelemetryRootSpanName,
   openTelemetrySetupCheck,
@@ -26,11 +24,10 @@ import {
   setupEventContextTrace,
 } from '@sentry/opentelemetry';
 import { DEBUG_BUILD } from '../debug-build';
+import { childProcessIntegration } from '../integrations/childProcess';
 import { consoleIntegration } from '../integrations/console';
 import { nodeContextIntegration } from '../integrations/context';
 import { contextLinesIntegration } from '../integrations/contextlines';
-
-import { childProcessIntegration } from '../integrations/childProcess';
 import { httpIntegration } from '../integrations/http';
 import { localVariablesIntegration } from '../integrations/local-variables';
 import { modulesIntegration } from '../integrations/modules';

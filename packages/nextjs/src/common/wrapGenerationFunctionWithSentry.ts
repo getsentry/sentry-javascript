@@ -1,23 +1,25 @@
 import {
+  RequestEventData,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SPAN_STATUS_ERROR,
   SPAN_STATUS_OK,
   Scope,
+  WebFetchHeaders,
   captureException,
   getActiveSpan,
   getCapturedScopesOnSpan,
   getClient,
   getRootSpan,
   handleCallbackErrors,
+  propagationContextFromHeaders,
   setCapturedScopesOnSpan,
   startSpanManual,
+  uuid4,
+  winterCGHeadersToDict,
   withIsolationScope,
   withScope,
 } from '@sentry/core';
-import { propagationContextFromHeaders, uuid4, winterCGHeadersToDict } from '@sentry/core';
-import type { RequestEventData, WebFetchHeaders } from '@sentry/core';
-
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import type { GenerationFunctionContext } from '../common/types';
 import { isNotFoundNavigationError, isRedirectNavigationError } from './nextNavigationErrorUtils';
 import { TRANSACTION_ATTR_SENTRY_TRACE_BACKFILL } from './span-attributes-with-logic-attached';

@@ -1,16 +1,17 @@
 import { NestInstrumentation } from '@opentelemetry/instrumentation-nestjs-core';
+import type { Span } from '@sentry/core';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   captureException,
+  consoleSandbox,
   defineIntegration,
   getClient,
   getDefaultIsolationScope,
   getIsolationScope,
+  logger,
   spanToJSON,
 } from '@sentry/core';
-import { consoleSandbox, logger } from '@sentry/core';
-import type { Span } from '@sentry/core';
 import { generateInstrumentOnce } from '../../../otel/instrument';
 import { SentryNestEventInstrumentation } from './sentry-nest-event-instrumentation';
 import { SentryNestInstrumentation } from './sentry-nest-instrumentation';
