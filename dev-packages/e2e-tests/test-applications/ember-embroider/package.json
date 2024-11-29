@@ -68,5 +68,8 @@
   },
   "volta": {
     "extends": "../../package.json"
+  },
+  "sentryTest": {
+    "ignore": true
   }
 }
