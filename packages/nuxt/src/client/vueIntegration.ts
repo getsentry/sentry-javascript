@@ -26,8 +26,11 @@ export type GlobalObjWithIntegrationOptions = { _sentryNuxtVueIntegrationOptions
  * Add additional error and span instrumentation specialized for Vue.
  */
 export const vueIntegration = defineIntegration((options: Options = {}) => {
-  (GLOBAL_OBJ as GlobalObjWithIntegrationOptions)._sentryNuxtVueIntegrationOptions = options;
   return {
+    // NOTE: This name is different from the original vueIntegration's name.
     name: 'NuxtVueIntegration',
+    setup() {
+      (GLOBAL_OBJ as GlobalObjWithIntegrationOptions)._sentryNuxtVueIntegrationOptions = options;
+    },
   };
 });
