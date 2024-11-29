@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { bindReporter } from './lib/bindReport';
+import { bindReporter } from './lib/bindReporter';
 import { getVisibilityWatcher } from './lib/getVisibilityWatcher';
 import { initMetric } from './lib/initMetric';
 import { observe } from './lib/observe';
