@@ -1,3 +1,11 @@
+import { getAsyncContextStrategy } from '../asyncContext';
+import { getMainCarrier } from '../carrier';
+import { getCurrentScope } from '../currentScopes';
+import { getMetricSummaryJsonForSpan, updateMetricSummaryOnSpan } from '../metrics/metric-summary';
+import type { MetricType } from '../metrics/types';
+import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../semanticAttributes';
+import type { SentrySpan } from '../tracing/sentrySpan';
+import { SPAN_STATUS_OK, SPAN_STATUS_UNSET } from '../tracing/spanstatus';
 import type {
   MeasurementUnit,
   Primitive,
@@ -9,17 +17,9 @@ import type {
   SpanTimeInput,
   TraceContext,
 } from '../types-hoist';
-import { getAsyncContextStrategy } from '../asyncContext';
-import { getMainCarrier } from '../carrier';
-import { getCurrentScope } from '../currentScopes';
-import { getMetricSummaryJsonForSpan, updateMetricSummaryOnSpan } from '../metrics/metric-summary';
-import type { MetricType } from '../metrics/types';
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../semanticAttributes';
-import type { SentrySpan } from '../tracing/sentrySpan';
-import { SPAN_STATUS_OK, SPAN_STATUS_UNSET } from '../tracing/spanstatus';
-import { generateSpanId } from '../utils-hoist/propagationContext';
 import { consoleSandbox } from '../utils-hoist/logger';
 import { addNonEnumerableProperty, dropUndefinedKeys } from '../utils-hoist/object';
+import { generateSpanId } from '../utils-hoist/propagationContext';
 import { timestampInSeconds } from '../utils-hoist/time';
 import { generateSentryTraceHeader } from '../utils-hoist/tracing';
 import { _getSpanForScope } from './spanOnScope';
