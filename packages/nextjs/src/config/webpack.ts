@@ -341,7 +341,7 @@ export function constructWebpackConfigFunction(
             const runtimePrefix = !isServer ? 'Client' : runtime === 'edge' ? 'Edge' : 'Node.js';
             // eslint-disable-next-line no-console
             console.warn(
-              `[@sentry/nextjs - ${runtimePrefix}] You disabled sourcemaps with the Webpack \`devtool\` option. Currently, the Sentry SDK will override this option to generate sourcemaps. In future versions, the Sentry SDK will not override the \`devtool\` option if you explicitly disable it. If you want to generate and upload sourcemaps please set the \`devtool\` option to true or undefined.`,
+              `[@sentry/nextjs - ${runtimePrefix}] You disabled sourcemaps with the Webpack \`devtool\` option. Currently, the Sentry SDK will override this option to generate sourcemaps. In future versions, the Sentry SDK will not override the \`devtool\` option if you explicitly disable it. If you want to generate and upload sourcemaps please set the \`devtool\` option to 'hidden-source-map' or undefined.`,
             );
           }
 

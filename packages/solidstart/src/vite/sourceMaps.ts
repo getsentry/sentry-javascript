@@ -22,8 +22,7 @@ export function makeSourceMapsVitePlugin(options: SentrySolidStartPluginOptions)
           if (!sourceMapsUploadOptions?.filesToDeleteAfterUpload) {
             // eslint-disable-next-line no-console
             console.warn(
-              `[Sentry SolidStart PLugin] We recommend setting the \`sourceMapsUploadOptions.filesToDeleteAfterUpload\` option to clean up source maps after uploading.
-[Sentry SolidStart Plugin] Otherwise, source maps might be deployed to production, depending on your configuration`,
+              '[Sentry SolidStart PLugin] We recommend setting the `sourceMapsUploadOptions.filesToDeleteAfterUpload` option to clean up source maps after uploading. Otherwise, source maps might be deployed to production, depending on your configuration. In future versions the SDK will default to deleting sourcemaps after uploading them.',
             );
           }
         }

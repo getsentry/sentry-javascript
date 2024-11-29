@@ -35,6 +35,15 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
 
         // We don't need to check for AUTH_TOKEN here, because the plugin will pick it up from the env
         if (shouldUploadSourcemaps && command !== 'dev') {
+          // TODO(v9): Remove this warning
+          if (config.vite.build?.sourcemap === false) {
+            logger.warn(
+              "You disabled sourcemaps with the `vite.build.sourcemap` option. Currently, the Sentry SDK will override this option to generate sourcemaps. In future versions, the Sentry SDK will not override the `vite.build.sourcemap` option if you explicitly disable it. If you want to generate and upload sourcemaps please set the `vite.build.sourcemap` option to 'hidden' or undefined.",
+            );
+          }
+
+          // TODO: Add deleteSourcemapsAfterUpload option and warn if it isn't set.
+
           updateConfig({
             vite: {
               build: {
