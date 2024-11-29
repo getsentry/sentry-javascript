@@ -7,7 +7,7 @@ import type {
   SpanStatus,
   SpanTimeInput,
 } from '../types-hoist';
-import { generateSpanId, generateTraceId } from '../utils-hoist';
+import { generateSpanId, generateTraceId } from '../utils-hoist/propagationContext';
 import { TRACE_FLAG_NONE } from '../utils/spanUtils';
 
 /**
