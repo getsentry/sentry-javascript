@@ -1,11 +1,10 @@
+import type { RequestEventData, WebFetchHeaders } from '@sentry/core';
 import {
-  RequestEventData,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SPAN_STATUS_ERROR,
   SPAN_STATUS_OK,
   Scope,
-  WebFetchHeaders,
   captureException,
   getActiveSpan,
   getCapturedScopesOnSpan,
