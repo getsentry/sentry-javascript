@@ -32,7 +32,9 @@ export interface HandlerDataXhr {
   xhr: SentryWrappedXMLHttpRequest;
   startTimestamp?: number;
   endTimestamp?: number;
-  stack?: string;
+  error?: unknown;
+  // This is to be consumed by the HttpClient integration
+  virtualError?: unknown;
 }
 
 interface SentryFetchData {
@@ -57,7 +59,8 @@ export interface HandlerDataFetch {
     headers: WebFetchHeaders;
   };
   error?: unknown;
-  stack?: string;
+  // This is to be consumed by the HttpClient integration
+  virtualError?: unknown;
 }
 
 export interface HandlerDataDom {

@@ -70,7 +70,7 @@ function _fetchResponseHandler(
   requestInfo: RequestInfo,
   response: Response,
   requestInit?: RequestInit,
-  stack?: string,
+  error?: unknown,
 ): void {
   if (_shouldCaptureResponse(options, response.status, response.url)) {
     const request = _getRequest(requestInfo, requestInit);
@@ -90,7 +90,7 @@ function _fetchResponseHandler(
       responseHeaders,
       requestCookies,
       responseCookies,
-      stacktrace: stack,
+      error,
     });
 
     captureEvent(event);
@@ -129,7 +129,7 @@ function _xhrResponseHandler(
   xhr: XMLHttpRequest,
   method: string,
   headers: Record<string, string>,
-  stack?: string,
+  error?: unknown,
 ): void {
   if (_shouldCaptureResponse(options, xhr.status, xhr.responseURL)) {
     let requestHeaders, responseCookies, responseHeaders;
@@ -162,7 +162,7 @@ function _xhrResponseHandler(
       // Can't access request cookies from XHR
       responseHeaders,
       responseCookies,
-      stacktrace: stack,
+      error,
     });
 
     captureEvent(event);
@@ -292,14 +292,14 @@ function _wrapFetch(client: Client, options: HttpClientOptions): void {
       return;
     }
 
-    const { response, args } = handlerData;
+    const { response, args, error, virtualError } = handlerData;
     const [requestInfo, requestInit] = args as [RequestInfo, RequestInit | undefined];
 
     if (!response) {
       return;
     }
 
-    _fetchResponseHandler(options, requestInfo, response as Response, requestInit, handlerData.stack);
+    _fetchResponseHandler(options, requestInfo, response as Response, requestInit, error || virtualError);
   }, false);
 }
 
@@ -316,6 +316,8 @@ function _wrapXHR(client: Client, options: HttpClientOptions): void {
       return;
     }
 
+    const { error, virtualError } = handlerData;
+
     const xhr = handlerData.xhr as SentryWrappedXMLHttpRequest & XMLHttpRequest;
 
     const sentryXhrData = xhr[SENTRY_XHR_DATA_KEY];
@@ -327,7 +329,7 @@ function _wrapXHR(client: Client, options: HttpClientOptions): void {
     const { method, request_headers: headers } = sentryXhrData;
 
     try {
-      _xhrResponseHandler(options, xhr, method, headers, handlerData.stack);
+      _xhrResponseHandler(options, xhr, method, headers, error || virtualError);
     } catch (e) {
       DEBUG_BUILD && logger.warn('Error while extracting response event form XHR response', e);
     }
@@ -362,13 +364,12 @@ function _createEvent(data: {
   responseCookies?: Record<string, string>;
   requestHeaders?: Record<string, string>;
   requestCookies?: Record<string, string>;
-  stacktrace?: string;
+  error?: unknown;
 }): SentryEvent {
   const client = getClient();
-  const virtualStackTrace = client && data.stacktrace ? data.stacktrace : undefined;
+  const virtualStackTrace = client && data.error && data.error instanceof Error ? data.error.stack : undefined;
   // Remove the first frame from the stack as it's the HttpClient call
   const stack = virtualStackTrace && client ? client.getOptions().stackParser(virtualStackTrace, 0, 1) : undefined;
-
   const message = `HTTP Client Error with status code: ${data.status}`;
 
   const event: SentryEvent = {

@@ -82,7 +82,7 @@ export function instrumentXHR(): void {
             endTimestamp: timestampInSeconds() * 1000,
             startTimestamp,
             xhr: xhrOpenThisArg,
-            stack: virtualError.stack,
+            virtualError,
           };
           triggerHandlers('xhr', handlerData);
         }
