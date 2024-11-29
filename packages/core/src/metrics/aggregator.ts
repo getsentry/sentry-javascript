@@ -20,6 +20,7 @@ export class MetricsAggregator implements MetricsAggregatorBase {
   // that we store in memory.
   private _bucketsTotalWeight;
 
+  // We adjust the type here to add the `unref()` part, as setInterval can technically return a number of a NodeJS.Timer.
   private readonly _interval: ReturnType<typeof setInterval> & { unref?: () => void };
 
   // SDKs are required to shift the flush interval by random() * rollup_in_seconds.

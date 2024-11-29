@@ -108,9 +108,9 @@ function markAsInstrumented<T>(handler: T): void {
   }
 }
 
-function isInstrumented<T>(handler: T): boolean {
+function isInstrumented<T>(handler: T): boolean | undefined {
   try {
-    return !!(handler as SentryInstrumented<T>).__SENTRY_INSTRUMENTED__;
+    return (handler as SentryInstrumented<T>).__SENTRY_INSTRUMENTED__;
   } catch {
     return false;
   }
