@@ -18,7 +18,7 @@
     "test:build": "pnpm install && npx playwright install && pnpm build",
     "test:build-latest": "pnpm install && pnpm add ember-source@latest && npx playwright install && pnpm build",
     "test:assert": "playwright test",
-    "clean": "npx rimraf node_modules,pnpm-lock.yaml,dist"
+    "clean": "npx rimraf node_modules pnpm-lock.yaml dist"
   },
   "devDependencies": {
     "@babel/core": "^7.24.4",
