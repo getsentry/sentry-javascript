@@ -20,6 +20,7 @@ export interface OnHiddenCallback {
   (event: Event): void;
 }
 
+// Sentry-specific change:
 // This function's logic was NOT updated to web-vitals 4.2.4 but we continue
 // to use the web-vitals 3.5.2 due to us having stricter browser support.
 // PR with context that made the changes: https://github.com/GoogleChrome/web-vitals/pull/442/files#r1530492402

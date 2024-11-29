@@ -16,13 +16,17 @@
 
 interface PerformanceEntryMap {
   event: PerformanceEventTiming[];
-  paint: PerformancePaintTiming[];
   'first-input': PerformanceEventTiming[];
   'layout-shift': LayoutShift[];
   'largest-contentful-paint': LargestContentfulPaint[];
   'long-animation-frame': PerformanceLongAnimationFrameTiming[];
+  paint: PerformancePaintTiming[];
   navigation: PerformanceNavigationTiming[];
   resource: PerformanceResourceTiming[];
+  // Sentry-specific change:
+  // We add longtask as a supported entry type as we use this in
+  // our `instrumentPerformanceObserver` function also observes 'longtask'
+  // entries.
   longtask: PerformanceEntry[];
 }
 

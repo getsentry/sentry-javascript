@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+import { WINDOW } from '../../types';
 import { bindReporter } from './lib/bindReporter';
 import { getActivationStart } from './lib/getActivationStart';
 import { getVisibilityWatcher } from './lib/getVisibilityWatcher';
@@ -92,10 +93,12 @@ export const onLCP = (onReport: (metric: LCPMetric) => void, opts: ReportOpts = 
         // Wrap in a setTimeout so the callback is run in a separate task
         // to avoid extending the keyboard/click handler to reduce INP impact
         // https://github.com/GoogleChrome/web-vitals/issues/383
-        addEventListener(type, () => whenIdle(stopListening as () => void), {
-          once: true,
-          capture: true,
-        });
+        if (WINDOW.document) {
+          addEventListener(type, () => whenIdle(stopListening as () => void), {
+            once: true,
+            capture: true,
+          });
+        }
       });
 
       onHidden(stopListening);
