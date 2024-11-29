@@ -1,7 +1,15 @@
 import { Worker } from 'node:worker_threads';
-import { defineIntegration, getCurrentScope, getGlobalScope, getIsolationScope, mergeScopeData } from '@sentry/core';
-import { GLOBAL_OBJ, getFilenameToDebugIdMap, logger } from '@sentry/core';
 import type { Contexts, Event, EventHint, Integration, IntegrationFn, ScopeData } from '@sentry/core';
+import {
+  GLOBAL_OBJ,
+  defineIntegration,
+  getCurrentScope,
+  getFilenameToDebugIdMap,
+  getGlobalScope,
+  getIsolationScope,
+  logger,
+  mergeScopeData,
+} from '@sentry/core';
 import { NODE_VERSION } from '../../nodeVersion';
 import type { NodeClient } from '../../sdk/client';
 import type { AnrIntegrationOptions, WorkerStartData } from './common';

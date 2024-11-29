@@ -1,7 +1,12 @@
 import type * as common from '@google-cloud/common';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SentryNonRecordingSpan, defineIntegration, getClient } from '@sentry/core';
-import { fill } from '@sentry/core';
 import type { Client, IntegrationFn } from '@sentry/core';
+import {
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SentryNonRecordingSpan,
+  defineIntegration,
+  fill,
+  getClient,
+} from '@sentry/core';
 import { startInactiveSpan } from '@sentry/node';
 
 type RequestOptions = common.DecorateRequestOptions;

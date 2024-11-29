@@ -1,10 +1,15 @@
 /* eslint-disable max-lines */
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, getActiveSpan } from '@sentry/core';
-import { setMeasurement } from '@sentry/core';
-import { browserPerformanceTimeOrigin, getComponentName, htmlTreeAsString, parseUrl } from '@sentry/core';
 import type { Measurements, Span, SpanAttributes, StartSpanOptions } from '@sentry/core';
-
-import { spanToJSON } from '@sentry/core';
+import {
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  browserPerformanceTimeOrigin,
+  getActiveSpan,
+  getComponentName,
+  htmlTreeAsString,
+  parseUrl,
+  setMeasurement,
+  spanToJSON,
+} from '@sentry/core';
 import { WINDOW } from '../types';
 import { trackClsAsStandaloneSpan } from './cls';
 import {
@@ -228,7 +233,7 @@ export function startTrackingInteractions(): void {
   });
 }
 
-export { startTrackingINP, registerInpInteractionListener } from './inp';
+export { registerInpInteractionListener, startTrackingINP } from './inp';
 
 /**
  * Starts tracking the Cumulative Layout Shift on the current page and collects the value and last entry

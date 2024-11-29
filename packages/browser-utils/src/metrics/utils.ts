@@ -1,6 +1,5 @@
-import type { SentrySpan } from '@sentry/core';
+import type { Integration, SentrySpan, Span, SpanAttributes, SpanTimeInput, StartSpanOptions } from '@sentry/core';
 import { getClient, getCurrentScope, spanToJSON, startInactiveSpan, withActiveSpan } from '@sentry/core';
-import type { Integration, Span, SpanAttributes, SpanTimeInput, StartSpanOptions } from '@sentry/core';
 import { WINDOW } from '../types';
 
 /**

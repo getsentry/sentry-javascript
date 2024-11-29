@@ -1,10 +1,19 @@
 import { registerInstrumentations } from '@opentelemetry/instrumentation';
 import type { UndiciRequest, UndiciResponse } from '@opentelemetry/instrumentation-undici';
 import { UndiciInstrumentation } from '@opentelemetry/instrumentation-undici';
-import { LRUMap, getClient, getTraceData } from '@sentry/core';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, addBreadcrumb, defineIntegration, hasTracingEnabled } from '@sentry/core';
-import { getBreadcrumbLogLevelFromHttpStatusCode, getSanitizedUrlString, parseUrl } from '@sentry/core';
 import type { IntegrationFn, SanitizedRequestData } from '@sentry/core';
+import {
+  LRUMap,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  addBreadcrumb,
+  defineIntegration,
+  getBreadcrumbLogLevelFromHttpStatusCode,
+  getClient,
+  getSanitizedUrlString,
+  getTraceData,
+  hasTracingEnabled,
+  parseUrl,
+} from '@sentry/core';
 import { shouldPropagateTraceForUrl } from '@sentry/opentelemetry';
 
 interface NodeFetchOptions {

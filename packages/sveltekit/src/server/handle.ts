@@ -1,3 +1,4 @@
+import type { Span } from '@sentry/core';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
@@ -6,12 +7,12 @@ import {
   getDefaultIsolationScope,
   getIsolationScope,
   getTraceMetaTags,
+  logger,
   setHttpStatus,
+  startSpan,
+  winterCGRequestToRequestData,
   withIsolationScope,
 } from '@sentry/core';
-import { startSpan } from '@sentry/core';
-import { logger, winterCGRequestToRequestData } from '@sentry/core';
-import type { Span } from '@sentry/core';
 import { continueTrace } from '@sentry/node';
 import type { Handle, ResolveOptions } from '@sveltejs/kit';
 

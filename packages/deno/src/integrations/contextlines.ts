@@ -1,6 +1,5 @@
-import { defineIntegration } from '@sentry/core';
-import { LRUMap, addContextToFrame } from '@sentry/core';
 import type { Event, IntegrationFn, StackFrame } from '@sentry/core';
+import { LRUMap, addContextToFrame, defineIntegration } from '@sentry/core';
 
 const INTEGRATION_NAME = 'ContextLines';
 const FILE_CONTENT_CACHE = new LRUMap<string, string | null>(100);

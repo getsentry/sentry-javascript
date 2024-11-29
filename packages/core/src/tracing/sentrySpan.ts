@@ -1,5 +1,14 @@
 import { getClient, getCurrentScope } from '../currentScopes';
 import { DEBUG_BUILD } from '../debug-build';
+import { createSpanEnvelope } from '../envelope';
+import { getMetricSummaryJsonForSpan } from '../metrics/metric-summary';
+import {
+  SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME,
+  SEMANTIC_ATTRIBUTE_PROFILE_ID,
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+} from '../semanticAttributes';
 import type {
   SentrySpanArguments,
   Span,
@@ -15,16 +24,6 @@ import type {
   TransactionEvent,
   TransactionSource,
 } from '../types-hoist';
-
-import { createSpanEnvelope } from '../envelope';
-import { getMetricSummaryJsonForSpan } from '../metrics/metric-summary';
-import {
-  SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME,
-  SEMANTIC_ATTRIBUTE_PROFILE_ID,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-} from '../semanticAttributes';
 import { logger } from '../utils-hoist/logger';
 import { uuid4 } from '../utils-hoist/misc';
 import { dropUndefinedKeys } from '../utils-hoist/object';

@@ -1,27 +1,25 @@
 import type { Baggage, Context, Span, SpanContext, TextMapGetter, TextMapSetter } from '@opentelemetry/api';
-import { TraceFlags } from '@opentelemetry/api';
-import { INVALID_TRACEID } from '@opentelemetry/api';
-import { context } from '@opentelemetry/api';
-import { propagation, trace } from '@opentelemetry/api';
+import { INVALID_TRACEID, TraceFlags, context, propagation, trace } from '@opentelemetry/api';
 import { W3CBaggagePropagator, isTracingSuppressed } from '@opentelemetry/core';
 import { ATTR_URL_FULL, SEMATTRS_HTTP_URL } from '@opentelemetry/semantic-conventions';
-import type { continueTrace } from '@sentry/core';
-import { getDynamicSamplingContextFromScope } from '@sentry/core';
-import { getRootSpan } from '@sentry/core';
-import { spanToJSON } from '@sentry/core';
-import { getClient, getCurrentScope, getDynamicSamplingContextFromSpan, getIsolationScope } from '@sentry/core';
+import type { DynamicSamplingContext, Options, PropagationContext, continueTrace } from '@sentry/core';
 import {
   LRUMap,
   SENTRY_BAGGAGE_KEY_PREFIX,
   baggageHeaderToDynamicSamplingContext,
   generateSentryTraceHeader,
+  getClient,
+  getCurrentScope,
+  getDynamicSamplingContextFromScope,
+  getDynamicSamplingContextFromSpan,
+  getIsolationScope,
+  getRootSpan,
   logger,
   parseBaggageHeader,
   propagationContextFromHeaders,
+  spanToJSON,
   stringMatchesSomePattern,
 } from '@sentry/core';
-import type { DynamicSamplingContext, Options, PropagationContext } from '@sentry/core';
-
 import {
   SENTRY_BAGGAGE_HEADER,
   SENTRY_TRACE_HEADER,

@@ -1,5 +1,4 @@
 import type { ClientOptions, Options, TracePropagationTargets } from '@sentry/core';
-
 import type { DenoTransportOptions } from './transports';
 
 export interface BaseDenoOptions {

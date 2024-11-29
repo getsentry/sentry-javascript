@@ -1,9 +1,5 @@
-import { getClient, getCurrentScope } from '@sentry/core';
-import type { RateLimits } from '@sentry/core';
-import { resolvedSyncPromise } from '@sentry/core';
-import { isRateLimited, updateRateLimits } from '@sentry/core';
-import type { ReplayEvent, TransportMakeRequestResponse } from '@sentry/core';
-
+import type { RateLimits, ReplayEvent, TransportMakeRequestResponse } from '@sentry/core';
+import { getClient, getCurrentScope, isRateLimited, resolvedSyncPromise, updateRateLimits } from '@sentry/core';
 import { REPLAY_EVENT_NAME, UNABLE_TO_SEND_REPLAY } from '../constants';
 import { DEBUG_BUILD } from '../debug-build';
 import type { SendReplayData } from '../types';

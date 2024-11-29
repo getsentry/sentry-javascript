@@ -1,3 +1,4 @@
+import type { Integration } from '@sentry/core';
 import {
   dedupeIntegration,
   functionToStringIntegration,
@@ -6,12 +7,10 @@ import {
   initAndBind,
   linkedErrorsIntegration,
   requestDataIntegration,
+  stackParserFromStackParserOptions,
 } from '@sentry/core';
-import { stackParserFromStackParserOptions } from '@sentry/core';
-import type { Integration } from '@sentry/core';
 import type { CloudflareClientOptions, CloudflareOptions } from './client';
 import { CloudflareClient } from './client';
-
 import { fetchIntegration } from './integrations/fetch';
 import { makeCloudflareTransport } from './transport';
 import { defaultStackParser } from './vendor/stacktrace';

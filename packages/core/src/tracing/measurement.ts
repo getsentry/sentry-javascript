@@ -4,7 +4,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_VALUE,
 } from '../semanticAttributes';
 import type { MeasurementUnit, Measurements, TimedEvent } from '../types-hoist';
-import { logger } from '../utils-hoist';
+import { logger } from '../utils-hoist/logger';
 import { getActiveSpan, getRootSpan } from '../utils/spanUtils';
 
 /**

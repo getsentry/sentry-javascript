@@ -1,5 +1,5 @@
 import type { ExecutionContext, IncomingRequestCfProperties } from '@cloudflare/workers-types';
-
+import type { SpanAttributes } from '@sentry/core';
 import {
   SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
@@ -11,10 +11,9 @@ import {
   flush,
   setHttpStatus,
   startSpan,
+  stripUrlQueryAndFragment,
   withIsolationScope,
 } from '@sentry/core';
-import { stripUrlQueryAndFragment } from '@sentry/core';
-import type { SpanAttributes } from '@sentry/core';
 import type { CloudflareOptions } from './client';
 import { addCloudResourceContext, addCultureContext, addRequest } from './scope-utils';
 import { init } from './sdk';

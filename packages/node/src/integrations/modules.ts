@@ -1,8 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
-import { defineIntegration } from '@sentry/core';
-import { logger } from '@sentry/core';
 import type { IntegrationFn } from '@sentry/core';
+import { defineIntegration, logger } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
 import { isCjs } from '../utils/commonjs';
 

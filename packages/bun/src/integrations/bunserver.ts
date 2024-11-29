@@ -1,3 +1,4 @@
+import type { IntegrationFn, RequestEventData, SpanAttributes } from '@sentry/core';
 import {
   SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -5,12 +6,13 @@ import {
   captureException,
   continueTrace,
   defineIntegration,
+  extractQueryParamsFromUrl,
+  getSanitizedUrlString,
+  parseUrl,
   setHttpStatus,
   startSpan,
   withIsolationScope,
 } from '@sentry/core';
-import { extractQueryParamsFromUrl, getSanitizedUrlString, parseUrl } from '@sentry/core';
-import type { IntegrationFn, RequestEventData, SpanAttributes } from '@sentry/core';
 
 const INTEGRATION_NAME = 'BunServer';
 

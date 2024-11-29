@@ -1,6 +1,5 @@
-import { defineIntegration } from '@sentry/core';
-import { applyAggregateErrorsToEvent } from '@sentry/core';
 import type { IntegrationFn } from '@sentry/core';
+import { applyAggregateErrorsToEvent, defineIntegration } from '@sentry/core';
 import { exceptionFromError } from '../eventbuilder';
 
 interface LinkedErrorsOptions {
