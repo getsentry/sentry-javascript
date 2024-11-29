@@ -1,19 +1,20 @@
 import type { RequestEventData } from '@sentry/core';
 import {
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  SPAN_STATUS_ERROR,
-  SPAN_STATUS_OK,
-  Scope,
   captureException,
+  generateSpanId,
+  generateTraceId,
   getActiveSpan,
   getCapturedScopesOnSpan,
   getRootSpan,
   handleCallbackErrors,
   propagationContextFromHeaders,
+  Scope,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   setCapturedScopesOnSpan,
+  SPAN_STATUS_ERROR,
+  SPAN_STATUS_OK,
   startSpanManual,
-  uuid4,
   vercelWaitUntil,
   winterCGHeadersToDict,
   withIsolationScope,
@@ -67,8 +68,8 @@ export function wrapServerComponentWithSentry<F extends (...args: any[]) => any>
               headersDict?.['sentry-trace']
                 ? propagationContextFromHeaders(headersDict['sentry-trace'], headersDict['baggage'])
                 : {
-                    traceId: requestTraceId || uuid4(),
-                    spanId: uuid4().substring(16),
+                    traceId: requestTraceId || generateTraceId(),
+                    spanId: generateSpanId(),
                   },
             );
 

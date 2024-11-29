@@ -7,7 +7,7 @@ import type {
   SpanStatus,
   SpanTimeInput,
 } from '../types-hoist';
-import { uuid4 } from '../utils-hoist/misc';
+import { generateSpanId, generateTraceId } from '../utils-hoist';
 import { TRACE_FLAG_NONE } from '../utils/spanUtils';
 
 /**
@@ -18,8 +18,8 @@ export class SentryNonRecordingSpan implements Span {
   private _spanId: string;
 
   public constructor(spanContext: SentrySpanArguments = {}) {
-    this._traceId = spanContext.traceId || uuid4();
-    this._spanId = spanContext.spanId || uuid4().substring(16);
+    this._traceId = spanContext.traceId || generateTraceId();
+    this._spanId = spanContext.spanId || generateSpanId();
   }
 
   /** @inheritdoc */

@@ -4,7 +4,6 @@ export const SENTRY_TRACE_HEADER = 'sentry-trace';
 export const SENTRY_BAGGAGE_HEADER = 'baggage';
 
 export const SENTRY_TRACE_STATE_DSC = 'sentry.dsc';
-export const SENTRY_TRACE_STATE_PARENT_SPAN_ID = 'sentry.parent_span_id';
 export const SENTRY_TRACE_STATE_SAMPLED_NOT_RECORDING = 'sentry.sampled_not_recording';
 export const SENTRY_TRACE_STATE_URL = 'sentry.url';
 

@@ -1,20 +1,21 @@
 import type { RequestEventData, WebFetchHeaders } from '@sentry/core';
 import {
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  SPAN_STATUS_ERROR,
-  SPAN_STATUS_OK,
-  Scope,
   captureException,
+  generateSpanId,
+  generateTraceId,
   getActiveSpan,
   getCapturedScopesOnSpan,
   getClient,
   getRootSpan,
   handleCallbackErrors,
   propagationContextFromHeaders,
+  Scope,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   setCapturedScopesOnSpan,
+  SPAN_STATUS_ERROR,
+  SPAN_STATUS_OK,
   startSpanManual,
-  uuid4,
   winterCGHeadersToDict,
   withIsolationScope,
   withScope,
@@ -88,8 +89,8 @@ export function wrapGenerationFunctionWithSentry<F extends (...args: any[]) => a
             headersDict?.['sentry-trace']
               ? propagationContextFromHeaders(headersDict['sentry-trace'], headersDict['baggage'])
               : {
-                  traceId: requestTraceId || uuid4(),
-                  spanId: uuid4().substring(16),
+                  traceId: requestTraceId || generateTraceId(),
+                  spanId: generateSpanId(),
                 },
           );
           scope.setPropagationContext(propagationContext);
