@@ -4,7 +4,7 @@ import { captureEvent } from '@sentry/core';
 import { getClient } from '@sentry/core';
 import { flush } from '@sentry/core';
 import { eventFromUnknownInput, isPrimitive } from '@sentry/core';
-import type { Client, Event, IntegrationFn, Primitive, StackParser } from '@sentry/types';
+import type { Client, Event, IntegrationFn, Primitive, StackParser } from '@sentry/core';
 
 type GlobalHandlersIntegrationsOptionKeys = 'error' | 'unhandledrejection';
 

@@ -1,5 +1,5 @@
 import { defineIntegration } from '@sentry/core';
-import type { IntegrationFn } from '@sentry/types';
+import type { IntegrationFn } from '@sentry/core';
 
 import { consoleSandbox } from '@sentry/core';
 import { createSentryPiniaPlugin } from '@sentry/vue';

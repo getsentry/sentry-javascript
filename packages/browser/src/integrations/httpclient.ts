@@ -7,7 +7,7 @@ import {
   logger,
   supportsNativeFetch,
 } from '@sentry/core';
-import type { Client, Event as SentryEvent, IntegrationFn, SentryWrappedXMLHttpRequest } from '@sentry/types';
+import type { Client, Event as SentryEvent, IntegrationFn, SentryWrappedXMLHttpRequest } from '@sentry/core';
 
 import { DEBUG_BUILD } from '../debug-build';
 

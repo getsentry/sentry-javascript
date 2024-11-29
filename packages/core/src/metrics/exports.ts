@@ -1,7 +1,7 @@
-import type { Client, DurationUnit, MetricData, MetricsAggregator as MetricsAggregatorInterface } from '@sentry/types';
 import { getClient } from '../currentScopes';
 import { DEBUG_BUILD } from '../debug-build';
 import { startSpanManual } from '../tracing';
+import type { Client, DurationUnit, MetricData, MetricsAggregator as MetricsAggregatorInterface } from '../types-hoist';
 import { logger } from '../utils-hoist/logger';
 import { timestampInSeconds } from '../utils-hoist/time';
 import { getGlobalSingleton } from '../utils-hoist/worldwide';

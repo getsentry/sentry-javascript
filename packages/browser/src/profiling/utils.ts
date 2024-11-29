@@ -9,7 +9,7 @@ import {
   timestampInSeconds,
   uuid4,
 } from '@sentry/core';
-import type { DebugImage, Envelope, Event, EventEnvelope, Profile, Span, ThreadCpuProfile } from '@sentry/types';
+import type { DebugImage, Envelope, Event, EventEnvelope, Profile, Span, ThreadCpuProfile } from '@sentry/core';
 
 import { DEBUG_BUILD } from '../debug-build';
 import { WINDOW } from '../helpers';

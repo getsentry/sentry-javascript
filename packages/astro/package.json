@@ -59,7 +59,6 @@
     "@sentry/browser": "8.41.0",
     "@sentry/core": "8.41.0",
     "@sentry/node": "8.41.0",
-    "@sentry/types": "8.41.0",
     "@sentry/vite-plugin": "^2.22.6"
   },
   "devDependencies": {

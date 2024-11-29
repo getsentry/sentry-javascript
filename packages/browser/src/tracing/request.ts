@@ -23,7 +23,7 @@ import {
   parseUrl,
   stringMatchesSomePattern,
 } from '@sentry/core';
-import type { Client, HandlerDataXhr, SentryWrappedXMLHttpRequest, Span } from '@sentry/types';
+import type { Client, HandlerDataXhr, SentryWrappedXMLHttpRequest, Span } from '@sentry/core';
 import { WINDOW } from '../helpers';
 
 /** Options for Request Instrumentation */

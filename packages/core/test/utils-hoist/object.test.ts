@@ -2,7 +2,7 @@
  * @jest-environment jsdom
  */
 
-import type { WrappedFunction } from '@sentry/types';
+import type { WrappedFunction } from '../../src/types-hoist';
 
 import {
   addNonEnumerableProperty,

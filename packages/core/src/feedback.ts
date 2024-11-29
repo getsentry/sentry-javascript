@@ -1,5 +1,5 @@
-import type { EventHint, FeedbackEvent, SendFeedbackParams } from '@sentry/types';
 import { getClient, getCurrentScope } from './currentScopes';
+import type { EventHint, FeedbackEvent, SendFeedbackParams } from './types-hoist';
 import { dropUndefinedKeys } from './utils-hoist/object';
 
 /**

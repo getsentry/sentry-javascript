@@ -1,6 +1,6 @@
 import type { SpanContext } from '@opentelemetry/api';
 import { TraceFlags } from '@opentelemetry/api';
-import type { PropagationContext } from '@sentry/types';
+import type { PropagationContext } from '@sentry/core';
 import { makeTraceState } from './makeTraceState';
 
 /**

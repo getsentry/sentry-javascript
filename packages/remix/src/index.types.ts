@@ -3,7 +3,7 @@
 export * from './index.client';
 export * from './index.server';
 
-import type { Client, Integration, Options, StackParser } from '@sentry/types';
+import type { Client, Integration, Options, StackParser } from '@sentry/core';
 
 import * as clientSdk from './index.client';
 import * as serverSdk from './index.server';

@@ -1,4 +1,3 @@
-import type { Breadcrumb, Client, Event, RequestSessionStatus } from '@sentry/types';
 import {
   applyScopeDataToEvent,
   getCurrentScope,
@@ -7,6 +6,7 @@ import {
   withIsolationScope,
   withScope,
 } from '../../src';
+import type { Breadcrumb, Client, Event, RequestSessionStatus } from '../../src/types-hoist';
 
 import { Scope } from '../../src/scope';
 import { TestClient, getDefaultTestClientOptions } from '../mocks/client';
@@ -1001,16 +1001,5 @@ describe('withIsolationScope()', () => {
       expect(scope).toBe(isolationScope);
       done();
     });
-  });
-
-  it('Scope type is equal to Scope from @sentry/types', () => {
-    // We pass the Scope _class_ here to the callback,
-    // Which actually is typed as using the Scope from @sentry/types
-    // This should not TS-error, as we export the type from core as well
-    const scope = withScope((scope: Scope) => {
-      return scope;
-    });
-
-    expect(scope).toBeDefined();
   });
 });

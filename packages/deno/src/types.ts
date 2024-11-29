@@ -1,4 +1,4 @@
-import type { ClientOptions, Options, TracePropagationTargets } from '@sentry/types';
+import type { ClientOptions, Options, TracePropagationTargets } from '@sentry/core';
 
 import type { DenoTransportOptions } from './transports';
 
@@ -30,7 +30,7 @@ export interface BaseDenoOptions {
 
 /**
  * Configuration options for the Sentry Deno SDK
- * @see @sentry/types Options for more information.
+ * @see @sentry/core Options for more information.
  */
 export interface DenoOptions extends Options<DenoTransportOptions>, BaseDenoOptions {}
 

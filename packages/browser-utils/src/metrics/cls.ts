@@ -11,7 +11,7 @@ import {
   spanToJSON,
 } from '@sentry/core';
 import { browserPerformanceTimeOrigin, dropUndefinedKeys, htmlTreeAsString, logger } from '@sentry/core';
-import type { SpanAttributes } from '@sentry/types';
+import type { SpanAttributes } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
 import { addClsInstrumentationHandler } from './instrument';
 import { msToSec, startStandaloneWebVitalSpan } from './utils';

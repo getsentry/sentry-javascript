@@ -14,7 +14,7 @@ import {
   inboundFiltersIntegration,
 } from '@sentry/core';
 import { logger } from '@sentry/core';
-import type { Client, Integration } from '@sentry/types';
+import type { Client, Integration } from '@sentry/core';
 
 import { IS_DEBUG_BUILD } from './flags';
 

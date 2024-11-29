@@ -37,9 +37,9 @@ test('Lambda layer SDK bundle sends events', async ({ request }) => {
     },
     op: 'function.aws.lambda',
     origin: 'auto.otel.aws-lambda',
-    span_id: expect.any(String),
+    span_id: expect.stringMatching(/[a-f0-9]{16}/),
     status: 'ok',
-    trace_id: expect.any(String),
+    trace_id: expect.stringMatching(/[a-f0-9]{32}/),
   });
 
   expect(transactionEvent.spans).toHaveLength(2);

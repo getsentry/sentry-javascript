@@ -1,9 +1,9 @@
-import type { MeasurementUnit, Measurements, TimedEvent } from '@sentry/types';
 import { DEBUG_BUILD } from '../debug-build';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_UNIT,
   SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_VALUE,
 } from '../semanticAttributes';
+import type { MeasurementUnit, Measurements, TimedEvent } from '../types-hoist';
 import { logger } from '../utils-hoist';
 import { getActiveSpan, getRootSpan } from '../utils/spanUtils';
 

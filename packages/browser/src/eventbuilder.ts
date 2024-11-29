@@ -21,7 +21,7 @@ import type {
   SeverityLevel,
   StackFrame,
   StackParser,
-} from '@sentry/types';
+} from '@sentry/core';
 
 type Prototype = { constructor: (...args: unknown[]) => unknown };
 

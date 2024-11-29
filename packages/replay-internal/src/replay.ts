@@ -1,7 +1,7 @@
 /* eslint-disable max-lines */ // TODO: We might want to split this file up
 import { EventType, record } from '@sentry-internal/rrweb';
 import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, getActiveSpan, getClient, getRootSpan, spanToJSON } from '@sentry/core';
-import type { ReplayRecordingMode, Span } from '@sentry/types';
+import type { ReplayRecordingMode, Span } from '@sentry/core';
 import { logger } from './util/logger';
 
 import {

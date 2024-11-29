@@ -9,7 +9,7 @@ import type {
   Transport,
   TransportMakeRequestResponse,
   TransportRequestExecutor,
-} from '@sentry/types';
+} from '../types-hoist';
 
 import { DEBUG_BUILD } from '../debug-build';
 import {

@@ -1,6 +1,6 @@
 import { EventEmitter } from 'events';
 
-import type { Transport } from '@sentry/types';
+import type { Transport } from '@sentry/core';
 
 import type { NodeClient } from '@sentry/node';
 import { _nodeProfilingIntegration } from '../src/integration';

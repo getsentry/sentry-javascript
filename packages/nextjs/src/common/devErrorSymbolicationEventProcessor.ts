@@ -1,6 +1,6 @@
 import { suppressTracing } from '@sentry/core';
 import { GLOBAL_OBJ } from '@sentry/core';
-import type { Event, EventHint } from '@sentry/types';
+import type { Event, EventHint } from '@sentry/core';
 import type { StackFrame } from 'stacktrace-parser';
 import * as stackTraceParser from 'stacktrace-parser';
 

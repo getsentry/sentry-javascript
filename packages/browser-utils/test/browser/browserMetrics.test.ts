@@ -8,7 +8,7 @@ import {
   setCurrentClient,
   spanToJSON,
 } from '@sentry/core';
-import type { Span } from '@sentry/types';
+import type { Span } from '@sentry/core';
 import type { ResourceEntry } from '../../src/metrics/browserMetrics';
 import { _addMeasureSpans, _addResourceSpans } from '../../src/metrics/browserMetrics';
 import { WINDOW } from '../../src/types';

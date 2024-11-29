@@ -1,6 +1,6 @@
 import type { Span as WriteableSpan, SpanKind, Tracer } from '@opentelemetry/api';
 import type { BasicTracerProvider, ReadableSpan } from '@opentelemetry/sdk-trace-base';
-import type { Scope, Span, StartSpanOptions } from '@sentry/types';
+import type { Scope, Span, StartSpanOptions } from '@sentry/core';
 
 export interface OpenTelemetryClient {
   tracer: Tracer;

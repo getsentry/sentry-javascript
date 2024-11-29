@@ -1,4 +1,4 @@
-import type { DynamicSamplingContext } from '@sentry/types';
+import type { DynamicSamplingContext } from '../types-hoist';
 
 import { DEBUG_BUILD } from './debug-build';
 import { isString } from './is';

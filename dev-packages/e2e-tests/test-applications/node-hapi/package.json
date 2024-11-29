@@ -13,8 +13,7 @@
   "dependencies": {
     "@hapi/boom": "10.0.1",
     "@hapi/hapi": "21.3.10",
-    "@sentry/node": "latest || *",
-    "@sentry/types": "latest || *"
+    "@sentry/node": "latest || *"
   },
   "devDependencies": {
     "@playwright/test": "^1.44.1",

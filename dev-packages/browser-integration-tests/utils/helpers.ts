@@ -8,7 +8,7 @@ import type {
   EventEnvelope,
   EventEnvelopeHeaders,
   TransactionEvent,
-} from '@sentry/types';
+} from '@sentry/core';
 
 export const envelopeUrlRegex = /\.sentry\.io\/api\/\d+\/envelope\//;
 

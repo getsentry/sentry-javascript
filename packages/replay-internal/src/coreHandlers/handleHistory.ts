@@ -1,4 +1,4 @@
-import type { HandlerDataHistory } from '@sentry/types';
+import type { HandlerDataHistory } from '@sentry/core';
 
 import type { HistoryData, ReplayContainer, ReplayPerformanceEntry } from '../types';
 import { createPerformanceSpans } from '../util/createPerformanceSpans';

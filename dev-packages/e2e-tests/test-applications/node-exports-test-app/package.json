@@ -20,7 +20,6 @@
     "@sentry/aws-serverless": "latest || *",
     "@sentry/google-cloud-serverless": "latest || *",
     "@sentry/bun": "latest || *",
-    "@sentry/types": "latest || *",
     "@types/node": "18.15.1",
     "typescript": "4.9.5"
   },

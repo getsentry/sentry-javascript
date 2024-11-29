@@ -1,4 +1,3 @@
-import type { Event, Span, StartSpanOptions } from '@sentry/types';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -25,6 +24,7 @@ import {
 } from '../../../src/tracing';
 import { SentryNonRecordingSpan } from '../../../src/tracing/sentryNonRecordingSpan';
 import { startNewTrace } from '../../../src/tracing/trace';
+import type { Event, Span, StartSpanOptions } from '../../../src/types-hoist';
 import { _setSpanForScope } from '../../../src/utils/spanOnScope';
 import { getActiveSpan, getRootSpan, getSpanDescendants, spanIsSampled } from '../../../src/utils/spanUtils';
 import { TestClient, getDefaultTestClientOptions } from '../../mocks/client';
@@ -198,11 +198,11 @@ describe('startSpan', () => {
         },
         origin: 'auto.http.browser',
         description: 'GET users/[id]',
-        span_id: expect.any(String),
+        span_id: expect.stringMatching(/[a-f0-9]{16}/),
         start_timestamp: expect.any(Number),
         status: isError ? 'internal_error' : undefined,
         timestamp: expect.any(Number),
-        trace_id: expect.any(String),
+        trace_id: expect.stringMatching(/[a-f0-9]{32}/),
       });
     });
   });
@@ -350,8 +350,8 @@ describe('startSpan', () => {
           'sentry.sample_rate': 1,
           'sentry.origin': 'manual',
         },
-        span_id: expect.any(String),
-        trace_id: expect.any(String),
+        span_id: expect.stringMatching(/[a-f0-9]{16}/),
+        trace_id: expect.stringMatching(/[a-f0-9]{32}/),
         origin: 'manual',
       },
     });
@@ -375,7 +375,7 @@ describe('startSpan', () => {
           'sentry.origin': 'manual',
         },
         parent_span_id: innerParentSpanId,
-        span_id: expect.any(String),
+        span_id: expect.stringMatching(/[a-f0-9]{16}/),
         trace_id: outerTraceId,
         origin: 'manual',
       },
@@ -774,8 +774,8 @@ describe('startSpanManual', () => {
           'sentry.sample_rate': 1,
           'sentry.origin': 'manual',
         },
-        span_id: expect.any(String),
-        trace_id: expect.any(String),
+        span_id: expect.stringMatching(/[a-f0-9]{16}/),
+        trace_id: expect.stringMatching(/[a-f0-9]{32}/),
         origin: 'manual',
       },
     });
@@ -799,7 +799,7 @@ describe('startSpanManual', () => {
           'sentry.origin': 'manual',
         },
         parent_span_id: innerParentSpanId,
-        span_id: expect.any(String),
+        span_id: expect.stringMatching(/[a-f0-9]{16}/),
         trace_id: outerTraceId,
         origin: 'manual',
       },
@@ -1096,8 +1096,8 @@ describe('startInactiveSpan', () => {
           'sentry.sample_rate': 1,
           'sentry.origin': 'manual',
         },
-        span_id: expect.any(String),
-        trace_id: expect.any(String),
+        span_id: expect.stringMatching(/[a-f0-9]{16}/),
+        trace_id: expect.stringMatching(/[a-f0-9]{32}/),
         origin: 'manual',
       },
     });
@@ -1121,7 +1121,7 @@ describe('startInactiveSpan', () => {
           'sentry.origin': 'manual',
         },
         parent_span_id: innerParentSpanId,
-        span_id: expect.any(String),
+        span_id: expect.stringMatching(/[a-f0-9]{16}/),
         trace_id: outerTraceId,
         origin: 'manual',
       },

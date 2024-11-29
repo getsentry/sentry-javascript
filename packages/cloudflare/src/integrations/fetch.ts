@@ -12,7 +12,7 @@ import type {
   HandlerDataFetch,
   IntegrationFn,
   Span,
-} from '@sentry/types';
+} from '@sentry/core';
 
 const INTEGRATION_NAME = 'Fetch';
 

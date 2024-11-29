@@ -1,4 +1,4 @@
-import type { HandlerDataDom } from '@sentry/types';
+import type { HandlerDataDom } from '@sentry/core';
 
 import { addHandler, addNonEnumerableProperty, fill, maybeInstrument, triggerHandlers, uuid4 } from '@sentry/core';
 import { WINDOW } from '../types';

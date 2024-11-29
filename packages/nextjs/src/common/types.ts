@@ -1,5 +1,5 @@
 import type { SentrySpan } from '@sentry/core';
-import type { WebFetchHeaders, WrappedFunction } from '@sentry/types';
+import type { WebFetchHeaders, WrappedFunction } from '@sentry/core';
 import type { NextApiRequest, NextApiResponse } from 'next';
 import type { RequestAsyncStorage } from '../config/templates/requestAsyncStorageShim';
 

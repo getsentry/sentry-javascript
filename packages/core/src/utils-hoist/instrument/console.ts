@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/ban-types */
-import type { ConsoleLevel, HandlerDataConsole } from '@sentry/types';
+import type { ConsoleLevel, HandlerDataConsole } from '../../types-hoist';
 
 import { CONSOLE_LEVELS, originalConsoleMethods } from '../logger';
 import { fill } from '../object';

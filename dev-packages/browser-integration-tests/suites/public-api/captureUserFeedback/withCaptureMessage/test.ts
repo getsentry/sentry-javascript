@@ -1,5 +1,5 @@
 import { expect } from '@playwright/test';
-import type { Event, UserFeedback } from '@sentry/types';
+import type { Event, UserFeedback } from '@sentry/core';
 
 import { sentryTest } from '../../../../utils/fixtures';
 import { getMultipleSentryEnvelopeRequests } from '../../../../utils/helpers';

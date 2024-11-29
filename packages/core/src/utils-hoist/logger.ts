@@ -1,4 +1,4 @@
-import type { ConsoleLevel } from '@sentry/types';
+import type { ConsoleLevel } from '../types-hoist';
 
 import { DEBUG_BUILD } from './debug-build';
 import { GLOBAL_OBJ, getGlobalSingleton } from './worldwide';

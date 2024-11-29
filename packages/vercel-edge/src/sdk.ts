@@ -16,7 +16,7 @@ import {
   nodeStackLineParser,
   stackParserFromStackParserOptions,
 } from '@sentry/core';
-import type { Client, Integration, Options } from '@sentry/types';
+import type { Client, Integration, Options } from '@sentry/core';
 
 import { DiagLogLevel, diag } from '@opentelemetry/api';
 import { Resource } from '@opentelemetry/resources';
