@@ -8,6 +8,7 @@ import {
   startBrowserTracingNavigationSpan,
   startBrowserTracingPageLoadSpan,
 } from '@sentry/browser';
+import type { Client, Integration, Span, TransactionSource } from '@sentry/core';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -20,7 +21,6 @@ import {
   logger,
   spanToJSON,
 } from '@sentry/core';
-import type { Client, Integration, Span, TransactionSource } from '@sentry/types';
 import * as React from 'react';
 
 import hoistNonReactStatics from 'hoist-non-react-statics';
