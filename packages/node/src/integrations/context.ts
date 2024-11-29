@@ -171,8 +171,7 @@ async function getOsContext(): Promise<OsContext> {
 
 function getCultureContext(): CultureContext | undefined {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
-    if (typeof (process.versions as unknown as any).icu !== 'string') {
+    if (typeof process.versions.icu !== 'string') {
       // Node was built without ICU support
       return;
     }

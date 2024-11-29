@@ -223,7 +223,7 @@ function computeRootMatch(pathname: string): Match {
 
 /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access */
 export function withSentryRouting<P extends Record<string, any>, R extends React.ComponentType<P>>(Route: R): R {
-  const componentDisplayName = (Route as any).displayName || (Route as any).name;
+  const componentDisplayName = Route.displayName || Route.name;
 
   const WrappedRoute: React.FC<P> = (props: P) => {
     if (props && props.computedMatch && props.computedMatch.isExact) {

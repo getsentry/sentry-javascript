@@ -46,6 +46,13 @@ interface ReportingObserverOptions {
   types?: ReportTypes[];
 }
 
+/** This is experimental and the types are not included with TypeScript, sadly. */
+interface ReportingObserverClass {
+  new (handler: (reports: Report[]) => void, options: { buffered?: boolean; types?: ReportTypes[] }): {
+    observe: () => void;
+  };
+}
+
 const SETUP_CLIENTS = new WeakMap<Client, boolean>();
 
 const _reportingObserverIntegration = ((options: ReportingObserverOptions = {}) => {
@@ -99,13 +106,14 @@ const _reportingObserverIntegration = ((options: ReportingObserverOptions = {}) 
         return;
       }
 
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
-      const observer = new (WINDOW as any).ReportingObserver(handler, {
-        buffered: true,
-        types,
-      });
+      const observer = new (WINDOW as typeof WINDOW & { ReportingObserver: ReportingObserverClass }).ReportingObserver(
+        handler,
+        {
+          buffered: true,
+          types,
+        },
+      );
 
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       observer.observe();
     },
 

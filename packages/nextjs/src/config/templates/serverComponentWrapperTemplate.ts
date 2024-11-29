@@ -41,14 +41,13 @@ if (typeof serverComponent === 'function') {
   // Current assumption is that Next.js applies some loader magic to userfiles, but not files in node_modules. This file
   // is technically a userfile so it gets the loader magic applied.
   wrappedServerComponent = new Proxy(serverComponent, {
-    apply: (originalFunction, thisArg, args) => {
+    apply: (originalFunction: (...args: unknown[]) => unknown, thisArg, args) => {
       let sentryTraceHeader: string | undefined | null = undefined;
       let baggageHeader: string | undefined | null = undefined;
       let headers: WebFetchHeaders | undefined = undefined;
 
       // We try-catch here just in `requestAsyncStorage` is undefined since it may not be defined
       try {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         const requestAsyncStore = requestAsyncStorage?.getStore() as ReturnType<RequestAsyncStorage['getStore']>;
         sentryTraceHeader = requestAsyncStore?.headers.get('sentry-trace') ?? undefined;
         baggageHeader = requestAsyncStore?.headers.get('baggage') ?? undefined;
@@ -57,8 +56,7 @@ if (typeof serverComponent === 'function') {
         /** empty */
       }
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      return Sentry.wrapServerComponentWithSentry(originalFunction as any, {
+      return Sentry.wrapServerComponentWithSentry(originalFunction, {
         componentRoute: '__ROUTE__',
         componentType: '__COMPONENT_TYPE__',
         sentryTraceHeader,
