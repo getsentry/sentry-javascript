@@ -68,6 +68,10 @@
 
 - Deprecated `Request` in favor of `RequestEventData`.
 
+## `@sentry/nuxt`
+
+- Deprecated `tracingOptions` in `Sentry.init()` in favor of passing the `vueIntegration()` to `Sentry.init({ integrations: [...] })` and setting `tracingOptions` there.
+
 ## `@sentry/vue`
 
 - Deprecated `tracingOptions`, `trackComponents`, `timeout`, `hooks` options everywhere other than in the `tracingOptions` option of the `vueIntegration()`.
