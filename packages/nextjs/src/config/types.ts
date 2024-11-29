@@ -470,7 +470,7 @@ export type IgnoreWarningsOption = (
 // The two possible formats for providing custom webpack config in `next.config.js`
 export type WebpackConfigFunction = (config: WebpackConfigObject, options: BuildContext) => WebpackConfigObject;
 export type WebpackConfigObject = {
-  devtool?: string;
+  devtool?: string | boolean;
   plugins?: Array<WebpackPluginInstance>;
   entry: WebpackEntryProperty;
   output: { filename: string; path: string };

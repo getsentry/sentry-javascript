@@ -336,13 +336,33 @@ export function constructWebpackConfigFunction(
 
       if (sentryWebpackPlugin) {
         if (!userSentryOptions.sourcemaps?.disable) {
+          // TODO(v9): Remove this warning
+          if (newConfig.devtool === false) {
+            const runtimePrefix = !isServer ? 'Client' : runtime === 'edge' ? 'Edge' : 'Node.js';
+            // eslint-disable-next-line no-console
+            console.warn(
+              `[@sentry/nextjs - ${runtimePrefix}] You disabled sourcemaps with the Webpack \`devtool\` option. Currently, the Sentry SDK will override this option to generate sourcemaps. In future versions, the Sentry SDK will not override the \`devtool\` option if you explicitly disable it. If you want to generate and upload sourcemaps please set the \`devtool\` option to 'hidden-source-map' or undefined.`,
+            );
+          }
+
+          // TODO(v9): Remove this warning and print warning in case source map deletion is auto configured
+          if (!isServer && !userSentryOptions.sourcemaps?.deleteSourcemapsAfterUpload) {
+            // eslint-disable-next-line no-console
+            console.warn(
+              "[@sentry/nextjs] The Sentry SDK has enabled source map generation for your Next.js app. If you don't want to serve Source Maps to your users, either set the `deleteSourceMapsAfterUpload` option to true, or manually delete the source maps after the build. In future Sentry SDK versions `deleteSourceMapsAfterUpload` will default to `true`.",
+            );
+          }
+
           // `hidden-source-map` produces the same sourcemaps as `source-map`, but doesn't include the `sourceMappingURL`
           // comment at the bottom. For folks who aren't publicly hosting their sourcemaps, this is helpful because then
           // the browser won't look for them and throw errors into the console when it can't find them. Because this is a
           // front-end-only problem, and because `sentry-cli` handles sourcemaps more reliably with the comment than
           // without, the option to use `hidden-source-map` only applies to the client-side build.
-          newConfig.devtool =
-            isServer || userNextConfig.productionBrowserSourceMaps ? 'source-map' : 'hidden-source-map';
+          if (isServer || userNextConfig.productionBrowserSourceMaps) {
+            newConfig.devtool = 'source-map';
+          } else {
+            newConfig.devtool = 'hidden-source-map';
+          }
         }
 
         newConfig.plugins = newConfig.plugins || [];
