@@ -7,7 +7,7 @@ import cjsModule from 'node:module';
 
 const ESMRequireShim = `
 const require = cjsModule.createRequire(import.meta.url);
-`
+`;
 
 function makeESMImportShimPlugin(shim) {
   return {
@@ -18,7 +18,7 @@ function makeESMImportShimPlugin(shim) {
   };
 }
 
-function makeESMRequireShimPlugin(shim){
+function makeESMRequireShimPlugin(shim) {
   return {
     transform(code) {
       const SHIM_REGEXP = /\/\/ #START_SENTRY_ESM_REQUIRE_SHIM[\s\S]*?\/\/ #END_SENTRY_ESM_REQUIRE_SHIM/;
@@ -39,7 +39,7 @@ const variants = makeNPMConfigVariants(
 for (const variant of variants) {
   if (variant.output.format === 'esm') {
     variant.plugins.push(makeESMImportShimPlugin(ESMImportShim));
-    variant.plugins.push(makeESMRequireShimPlugin(ESMRequireShim))
+    variant.plugins.push(makeESMRequireShimPlugin(ESMRequireShim));
   } else {
     // Remove the ESM shim comment
     variant.plugins.push(makeESMImportShimPlugin(''));
