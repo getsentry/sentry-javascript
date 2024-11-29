@@ -16,8 +16,8 @@ describe('SentryNonRecordingSpan', () => {
     expect(spanIsSampled(span)).toBe(false);
     expect(span.isRecording()).toBe(false);
     expect(spanToJSON(span)).toEqual({
-      span_id: expect.any(String),
-      trace_id: expect.any(String),
+      span_id: expect.stringMatching(/[a-f0-9]{16}/),
+      trace_id: expect.stringMatching(/[a-f0-9]{32}/),
     });
 
     // Ensure all methods work
@@ -30,8 +30,8 @@ describe('SentryNonRecordingSpan', () => {
 
     // but nothing is actually set/readable
     expect(spanToJSON(span)).toEqual({
-      span_id: expect.any(String),
-      trace_id: expect.any(String),
+      span_id: expect.stringMatching(/[a-f0-9]{16}/),
+      trace_id: expect.stringMatching(/[a-f0-9]{32}/),
     });
   });
 });

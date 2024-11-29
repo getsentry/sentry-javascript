@@ -391,8 +391,8 @@ describe('trace', () => {
           'sentry.sample_rate': 1,
           'sentry.origin': 'manual',
         },
-        span_id: expect.any(String),
-        trace_id: expect.any(String),
+        span_id: expect.stringMatching(/[a-f0-9]{16}/),
+        trace_id: expect.stringMatching(/[a-f0-9]{32}/),
         origin: 'manual',
         status: 'ok',
       });
@@ -416,7 +416,7 @@ describe('trace', () => {
           'sentry.sample_rate': 1,
         },
         parent_span_id: innerParentSpanId,
-        span_id: expect.any(String),
+        span_id: expect.stringMatching(/[a-f0-9]{16}/),
         trace_id: outerTraceId,
         origin: 'manual',
         status: 'ok',
@@ -651,8 +651,8 @@ describe('trace', () => {
           'sentry.sample_rate': 1,
           'sentry.origin': 'manual',
         },
-        span_id: expect.any(String),
-        trace_id: expect.any(String),
+        span_id: expect.stringMatching(/[a-f0-9]{16}/),
+        trace_id: expect.stringMatching(/[a-f0-9]{32}/),
         origin: 'manual',
         status: 'ok',
       });
@@ -676,7 +676,7 @@ describe('trace', () => {
           'sentry.sample_rate': 1,
         },
         parent_span_id: innerParentSpanId,
-        span_id: expect.any(String),
+        span_id: expect.stringMatching(/[a-f0-9]{16}/),
         trace_id: outerTraceId,
         origin: 'manual',
         status: 'ok',
@@ -948,8 +948,8 @@ describe('trace', () => {
           'sentry.sample_rate': 1,
           'sentry.origin': 'manual',
         },
-        span_id: expect.any(String),
-        trace_id: expect.any(String),
+        span_id: expect.stringMatching(/[a-f0-9]{16}/),
+        trace_id: expect.stringMatching(/[a-f0-9]{32}/),
         origin: 'manual',
         status: 'ok',
       });
@@ -973,7 +973,7 @@ describe('trace', () => {
           'sentry.sample_rate': 1,
         },
         parent_span_id: innerParentSpanId,
-        span_id: expect.any(String),
+        span_id: expect.stringMatching(/[a-f0-9]{16}/),
         trace_id: outerTraceId,
         origin: 'manual',
         status: 'ok',
@@ -1522,7 +1522,7 @@ describe('continueTrace', () => {
       expect(span).toBeDefined();
       expect(spanToJSON(span)).toEqual({
         span_id: '',
-        trace_id: expect.any(String),
+        trace_id: expect.stringMatching(/[a-f0-9]{32}/),
       });
       expect(getSamplingDecision(span.spanContext())).toBe(undefined);
       expect(spanIsSampled(span)).toBe(false);

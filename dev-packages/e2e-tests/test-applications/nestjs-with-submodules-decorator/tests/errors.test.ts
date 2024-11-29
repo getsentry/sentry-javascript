@@ -32,8 +32,8 @@ test('Sends unexpected exception to Sentry if thrown in module with global filte
   expect(errorEvent.transaction).toEqual('GET /example-module/unexpected-exception');
 
   expect(errorEvent.contexts?.trace).toEqual({
-    trace_id: expect.any(String),
-    span_id: expect.any(String),
+    trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+    span_id: expect.stringMatching(/[a-f0-9]{16}/),
   });
 });
 
@@ -68,8 +68,8 @@ test('Sends unexpected exception to Sentry if thrown in module with local filter
   expect(errorEvent.transaction).toEqual('GET /example-module-local-filter/unexpected-exception');
 
   expect(errorEvent.contexts?.trace).toEqual({
-    trace_id: expect.any(String),
-    span_id: expect.any(String),
+    trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+    span_id: expect.stringMatching(/[a-f0-9]{16}/),
   });
 });
 
@@ -106,8 +106,8 @@ test('Sends unexpected exception to Sentry if thrown in module that was register
   expect(errorEvent.transaction).toEqual('GET /example-module-registered-first/unexpected-exception');
 
   expect(errorEvent.contexts?.trace).toEqual({
-    trace_id: expect.any(String),
-    span_id: expect.any(String),
+    trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+    span_id: expect.stringMatching(/[a-f0-9]{16}/),
   });
 });
 

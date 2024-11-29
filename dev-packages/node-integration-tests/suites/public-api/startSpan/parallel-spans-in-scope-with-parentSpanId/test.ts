@@ -11,7 +11,7 @@ test('should send manually started parallel root spans outside of root context w
         transaction: 'test_span_1',
         contexts: {
           trace: {
-            span_id: expect.any(String),
+            span_id: expect.stringMatching(/[a-f0-9]{16}/),
             parent_span_id: '1234567890123456',
             trace_id: '12345678901234567890123456789012',
           },
@@ -23,7 +23,7 @@ test('should send manually started parallel root spans outside of root context w
         transaction: 'test_span_2',
         contexts: {
           trace: {
-            span_id: expect.any(String),
+            span_id: expect.stringMatching(/[a-f0-9]{16}/),
             parent_span_id: '1234567890123456',
             trace_id: '12345678901234567890123456789012',
           },

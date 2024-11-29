@@ -35,7 +35,7 @@ sentryTest('should create fetch spans with http timing @firefox', async ({ brows
     expect(span).toMatchObject({
       description: `GET http://example.com/${index}`,
       parent_span_id: tracingEvent.contexts?.trace?.span_id,
-      span_id: expect.any(String),
+      span_id: expect.stringMatching(/[a-f0-9]{16}/),
       start_timestamp: expect.any(Number),
       timestamp: expect.any(Number),
       trace_id: tracingEvent.contexts?.trace?.trace_id,
