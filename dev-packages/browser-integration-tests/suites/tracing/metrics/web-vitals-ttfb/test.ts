@@ -19,6 +19,7 @@ sentryTest('should capture TTFB vital.', async ({ getLocalTestUrl, page }) => {
   const responseStart = await page.evaluate("performance.getEntriesByType('navigation')[0].responseStart;");
   if (responseStart !== 0) {
     expect(eventData.measurements?.ttfb?.value).toBeDefined();
-    expect(eventData.measurements?.['ttfb.requestTime']?.value).toBeDefined();
   }
+
+  expect(eventData.measurements?.['ttfb.requestTime']?.value).toBeDefined();
 });
