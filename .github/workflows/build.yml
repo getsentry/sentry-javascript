@@ -1408,20 +1408,19 @@ jobs:
           key: ${{ needs.job_build.outputs.dependency_cache_key }}
           enableCrossOsArchive: true
 
+      - name: Increase yarn network timeout on Windows
+        if: contains(matrix.os, 'windows')
+        run: yarn config set network-timeout 600000 -g
+
       - name: Install dependencies
         env:
           SKIP_PLAYWRIGHT_BROWSER_INSTALL: "1"
         if: steps.restore-dependencies.outputs.cache-hit != 'true'
-        working-directory: packages/profiling-node
         run: yarn install --ignore-engines --frozen-lockfile
 
       - name: Configure safe directory
         run: |
           git config --global --add safe.directory "*"
-
-      - name: Increase yarn network timeout on Windows
-        if: contains(matrix.os, 'windows')
-        run: yarn config set network-timeout 600000 -g
 
       - name: Setup python
         uses: actions/setup-python@v5
