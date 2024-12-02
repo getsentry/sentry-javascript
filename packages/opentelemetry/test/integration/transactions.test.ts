@@ -12,7 +12,7 @@ import {
   withIsolationScope,
 } from '@sentry/core';
 import { logger } from '@sentry/core';
-import type { Event, TransactionEvent } from '@sentry/types';
+import type { Event, TransactionEvent } from '@sentry/core';
 
 import { TraceState } from '@opentelemetry/core';
 import { SENTRY_TRACE_STATE_DSC } from '../../src/constants';
@@ -109,9 +109,9 @@ describe('Integration | Transactions', () => {
         'test.outer': 'test value',
       },
       op: 'test op',
-      span_id: expect.any(String),
+      span_id: expect.stringMatching(/[a-f0-9]{16}/),
       status: 'ok',
-      trace_id: expect.any(String),
+      trace_id: expect.stringMatching(/[a-f0-9]{32}/),
       origin: 'auto.test',
     });
 
@@ -121,7 +121,7 @@ describe('Integration | Transactions', () => {
       public_key: expect.any(String),
       sample_rate: '1',
       sampled: 'true',
-      trace_id: expect.any(String),
+      trace_id: expect.stringMatching(/[a-f0-9]{32}/),
       transaction: 'test name',
       release: '8.0.0',
     });
@@ -151,12 +151,12 @@ describe('Integration | Transactions', () => {
         },
         description: 'inner span 1',
         origin: 'manual',
-        parent_span_id: expect.any(String),
-        span_id: expect.any(String),
+        parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
+        span_id: expect.stringMatching(/[a-f0-9]{16}/),
         start_timestamp: expect.any(Number),
         status: 'ok',
         timestamp: expect.any(Number),
-        trace_id: expect.any(String),
+        trace_id: expect.stringMatching(/[a-f0-9]{32}/),
       },
       {
         data: {
@@ -165,12 +165,12 @@ describe('Integration | Transactions', () => {
         },
         description: 'inner span 2',
         origin: 'manual',
-        parent_span_id: expect.any(String),
-        span_id: expect.any(String),
+        parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
+        span_id: expect.stringMatching(/[a-f0-9]{16}/),
         start_timestamp: expect.any(Number),
         status: 'ok',
         timestamp: expect.any(Number),
-        trace_id: expect.any(String),
+        trace_id: expect.stringMatching(/[a-f0-9]{32}/),
       },
     ]);
   });
@@ -260,9 +260,9 @@ describe('Integration | Transactions', () => {
               'sentry.sample_rate': 1,
             },
             op: 'test op',
-            span_id: expect.any(String),
+            span_id: expect.stringMatching(/[a-f0-9]{16}/),
             status: 'ok',
-            trace_id: expect.any(String),
+            trace_id: expect.stringMatching(/[a-f0-9]{32}/),
             origin: 'auto.test',
           },
         }),
@@ -298,9 +298,9 @@ describe('Integration | Transactions', () => {
               'sentry.sample_rate': 1,
             },
             op: 'test op b',
-            span_id: expect.any(String),
+            span_id: expect.stringMatching(/[a-f0-9]{16}/),
             status: 'ok',
-            trace_id: expect.any(String),
+            trace_id: expect.stringMatching(/[a-f0-9]{32}/),
             origin: 'manual',
           },
         }),
@@ -377,7 +377,7 @@ describe('Integration | Transactions', () => {
               'sentry.sample_rate': 1,
             },
             op: 'test op',
-            span_id: expect.any(String),
+            span_id: expect.stringMatching(/[a-f0-9]{16}/),
             parent_span_id: parentSpanId,
             status: 'ok',
             trace_id: traceId,
@@ -411,8 +411,8 @@ describe('Integration | Transactions', () => {
         },
         description: 'inner span 1',
         origin: 'manual',
-        parent_span_id: expect.any(String),
-        span_id: expect.any(String),
+        parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
+        span_id: expect.stringMatching(/[a-f0-9]{16}/),
         start_timestamp: expect.any(Number),
         status: 'ok',
         timestamp: expect.any(Number),
@@ -424,8 +424,8 @@ describe('Integration | Transactions', () => {
         },
         description: 'inner span 2',
         origin: 'manual',
-        parent_span_id: expect.any(String),
-        span_id: expect.any(String),
+        parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
+        span_id: expect.stringMatching(/[a-f0-9]{16}/),
         start_timestamp: expect.any(Number),
         status: 'ok',
         timestamp: expect.any(Number),

@@ -1,7 +1,7 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import * as SentryCore from '@sentry/core';
 
-import type { Client } from '@sentry/types';
+import type { Client } from '@sentry/core';
 import { wrapGetInitialPropsWithSentry, wrapGetServerSidePropsWithSentry } from '../../src/common';
 
 const startSpanManualSpy = jest.spyOn(SentryCore, 'startSpanManual');

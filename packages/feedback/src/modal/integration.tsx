@@ -1,5 +1,5 @@
 import { getCurrentScope, getGlobalScope, getIsolationScope } from '@sentry/core';
-import type { FeedbackFormData, FeedbackModalIntegration, IntegrationFn, User } from '@sentry/types';
+import type { FeedbackFormData, FeedbackModalIntegration, IntegrationFn, User } from '@sentry/core';
 import { h, render } from 'preact';
 import * as hooks from 'preact/hooks';
 import { DOCUMENT } from '../constants';

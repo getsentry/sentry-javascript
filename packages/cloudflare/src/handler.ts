@@ -40,8 +40,7 @@ export function withSentry<E extends ExportedHandler<any>>(
 ): E {
   setAsyncLocalStorageAsyncContextStrategy();
 
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
-  if ('fetch' in handler && typeof handler.fetch === 'function' && !(handler.fetch as any).__SENTRY_INSTRUMENTED__) {
+  if ('fetch' in handler && typeof handler.fetch === 'function' && !isInstrumented(handler.fetch)) {
     handler.fetch = new Proxy(handler.fetch, {
       apply(target, thisArg, args: Parameters<ExportedHandlerFetchHandler<ExtractEnv<E>>>) {
         const [request, env, context] = args;
@@ -50,16 +49,10 @@ export function withSentry<E extends ExportedHandler<any>>(
       },
     });
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
-    (handler.fetch as any).__SENTRY_INSTRUMENTED__ = true;
+    markAsInstrumented(handler.fetch);
   }
 
-  if (
-    'scheduled' in handler &&
-    typeof handler.scheduled === 'function' &&
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
-    !(handler.scheduled as any).__SENTRY_INSTRUMENTED__
-  ) {
+  if ('scheduled' in handler && typeof handler.scheduled === 'function' && !isInstrumented(handler.scheduled)) {
     handler.scheduled = new Proxy(handler.scheduled, {
       apply(target, thisArg, args: Parameters<ExportedHandlerScheduledHandler<ExtractEnv<E>>>) {
         const [event, env, context] = args;
@@ -97,9 +90,28 @@ export function withSentry<E extends ExportedHandler<any>>(
       },
     });
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
-    (handler.scheduled as any).__SENTRY_INSTRUMENTED__ = true;
+    markAsInstrumented(handler.scheduled);
   }
 
   return handler;
+}
+
+type SentryInstrumented<T> = T & {
+  __SENTRY_INSTRUMENTED__?: boolean;
+};
+
+function markAsInstrumented<T>(handler: T): void {
+  try {
+    (handler as SentryInstrumented<T>).__SENTRY_INSTRUMENTED__ = true;
+  } catch {
+    // ignore errors here
+  }
+}
+
+function isInstrumented<T>(handler: T): boolean | undefined {
+  try {
+    return (handler as SentryInstrumented<T>).__SENTRY_INSTRUMENTED__;
+  } catch {
+    return false;
+  }
 }

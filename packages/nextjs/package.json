@@ -85,7 +85,6 @@
     "@sentry/node": "8.41.0",
     "@sentry/opentelemetry": "8.41.0",
     "@sentry/react": "8.41.0",
-    "@sentry/types": "8.41.0",
     "@sentry/vercel-edge": "8.41.0",
     "@sentry/webpack-plugin": "2.22.6",
     "chalk": "3.0.0",

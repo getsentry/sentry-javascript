@@ -1,4 +1,4 @@
-import type { ParameterizedString } from '@sentry/types';
+import type { ParameterizedString } from '../types-hoist';
 
 /**
  * Tagged template function which returns parameterized representation of the message

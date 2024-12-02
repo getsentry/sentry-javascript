@@ -1,16 +1,18 @@
+import type { Span, SpanAttributes } from '@sentry/core';
 import {
   SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME,
   SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_UNIT,
   SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_VALUE,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  browserPerformanceTimeOrigin,
+  dropUndefinedKeys,
   getActiveSpan,
   getCurrentScope,
   getRootSpan,
+  htmlTreeAsString,
   spanToJSON,
 } from '@sentry/core';
-import { browserPerformanceTimeOrigin, dropUndefinedKeys, htmlTreeAsString } from '@sentry/core';
-import type { Span, SpanAttributes } from '@sentry/types';
 import {
   addInpInstrumentationHandler,
   addPerformanceInstrumentationHandler,

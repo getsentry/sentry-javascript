@@ -72,12 +72,12 @@ test('Should record a transaction for route with parameters', async ({ request }
     op: 'middleware.express',
     description: 'query',
     origin: 'auto.http.otel.express',
-    parent_span_id: expect.any(String),
-    span_id: expect.any(String),
+    parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
+    span_id: expect.stringMatching(/[a-f0-9]{16}/),
     start_timestamp: expect.any(Number),
     status: 'ok',
     timestamp: expect.any(Number),
-    trace_id: expect.any(String),
+    trace_id: expect.stringMatching(/[a-f0-9]{32}/),
   });
 
   expect(spans).toContainEqual({
@@ -91,12 +91,12 @@ test('Should record a transaction for route with parameters', async ({ request }
     op: 'middleware.express',
     description: 'expressInit',
     origin: 'auto.http.otel.express',
-    parent_span_id: expect.any(String),
-    span_id: expect.any(String),
+    parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
+    span_id: expect.stringMatching(/[a-f0-9]{16}/),
     start_timestamp: expect.any(Number),
     status: 'ok',
     timestamp: expect.any(Number),
-    trace_id: expect.any(String),
+    trace_id: expect.stringMatching(/[a-f0-9]{32}/),
   });
 
   expect(spans).toContainEqual({
@@ -110,12 +110,12 @@ test('Should record a transaction for route with parameters', async ({ request }
     op: 'request_handler.express',
     description: '/test-transaction/:param',
     origin: 'auto.http.otel.express',
-    parent_span_id: expect.any(String),
-    span_id: expect.any(String),
+    parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
+    span_id: expect.stringMatching(/[a-f0-9]{16}/),
     start_timestamp: expect.any(Number),
     status: 'ok',
     timestamp: expect.any(Number),
-    trace_id: expect.any(String),
+    trace_id: expect.stringMatching(/[a-f0-9]{32}/),
   });
 });
 
@@ -133,8 +133,8 @@ test.skip('Should record spans from http instrumentation', async ({ request }) =
   const httpClientSpan = transactionEvent.spans?.find(span => span.op === 'http.client');
 
   expect(httpClientSpan).toEqual({
-    span_id: expect.any(String),
-    trace_id: expect.any(String),
+    span_id: expect.stringMatching(/[a-f0-9]{16}/),
+    trace_id: expect.stringMatching(/[a-f0-9]{32}/),
     data: {
       'http.flavor': '1.1',
       'http.host': 'example.com:80',
@@ -155,7 +155,7 @@ test.skip('Should record spans from http instrumentation', async ({ request }) =
       url: 'http://example.com/',
     },
     description: 'GET http://example.com/',
-    parent_span_id: expect.any(String),
+    parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
     start_timestamp: expect.any(Number),
     timestamp: expect.any(Number),
     status: 'ok',

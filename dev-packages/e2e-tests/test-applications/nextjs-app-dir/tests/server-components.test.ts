@@ -28,9 +28,9 @@ test('Sends a transaction for a request to app router', async ({ page }) => {
     }),
     op: 'http.server',
     origin: 'auto',
-    span_id: expect.any(String),
+    span_id: expect.stringMatching(/[a-f0-9]{16}/),
     status: 'ok',
-    trace_id: expect.any(String),
+    trace_id: expect.stringMatching(/[a-f0-9]{32}/),
   });
 
   expect(transactionEvent.request).toEqual({

@@ -34,9 +34,9 @@ test('AWS Serverless SDK sends events in ESM mode', async ({ request }) => {
     },
     op: 'function.aws.lambda',
     origin: 'auto.function.serverless',
-    span_id: expect.any(String),
+    span_id: expect.stringMatching(/[a-f0-9]{16}/),
     status: 'ok',
-    trace_id: expect.any(String),
+    trace_id: expect.stringMatching(/[a-f0-9]{32}/),
   });
 
   expect(transactionEvent.spans).toHaveLength(2);

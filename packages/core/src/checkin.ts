@@ -5,7 +5,7 @@ import type {
   DynamicSamplingContext,
   SdkMetadata,
   SerializedCheckIn,
-} from '@sentry/types';
+} from './types-hoist';
 import { dsnToString } from './utils-hoist/dsn';
 import { createEnvelope } from './utils-hoist/envelope';
 import { dropUndefinedKeys } from './utils-hoist/object';

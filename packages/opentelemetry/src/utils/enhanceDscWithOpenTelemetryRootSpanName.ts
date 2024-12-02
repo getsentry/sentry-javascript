@@ -1,5 +1,5 @@
 import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, spanToJSON } from '@sentry/core';
-import type { Client } from '@sentry/types';
+import type { Client } from '@sentry/core';
 import { parseSpanDescription } from './parseSpanDescription';
 import { spanHasName } from './spanTypes';
 

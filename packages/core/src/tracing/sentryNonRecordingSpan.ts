@@ -6,7 +6,7 @@ import type {
   SpanContextData,
   SpanStatus,
   SpanTimeInput,
-} from '@sentry/types';
+} from '../types-hoist';
 import { uuid4 } from '../utils-hoist/misc';
 import { TRACE_FLAG_NONE } from '../utils/spanUtils';
 

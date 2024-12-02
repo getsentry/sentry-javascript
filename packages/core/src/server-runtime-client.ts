@@ -10,7 +10,7 @@ import type {
   SerializedCheckIn,
   SeverityLevel,
   TraceContext,
-} from '@sentry/types';
+} from './types-hoist';
 
 import { BaseClient } from './baseclient';
 import { createCheckInEnvelope } from './checkin';

@@ -1,8 +1,7 @@
-import type { Scope, TraceContext } from '@sentry/types';
-import type { Client } from '@sentry/types';
 import { getAsyncContextStrategy } from './asyncContext';
 import { getMainCarrier } from './carrier';
 import { Scope as ScopeClass } from './scope';
+import type { Client, Scope, TraceContext } from './types-hoist';
 import { dropUndefinedKeys } from './utils-hoist/object';
 import { getGlobalSingleton } from './utils-hoist/worldwide';
 

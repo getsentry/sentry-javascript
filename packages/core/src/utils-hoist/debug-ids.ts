@@ -1,4 +1,4 @@
-import type { DebugImage, StackParser } from '@sentry/types';
+import type { DebugImage, StackParser } from '../types-hoist';
 import { GLOBAL_OBJ } from './worldwide';
 
 type StackString = string;

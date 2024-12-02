@@ -1,6 +1,5 @@
-import { defineIntegration } from '@sentry/core';
-import { fill, getFunctionName, getOriginalFunction } from '@sentry/core';
-import type { IntegrationFn, WrappedFunction } from '@sentry/types';
+import type { IntegrationFn, WrappedFunction } from '@sentry/core';
+import { defineIntegration, fill, getFunctionName, getOriginalFunction } from '@sentry/core';
 
 import { WINDOW, wrap } from '../helpers';
 

@@ -20,7 +20,7 @@ import type {
   Session,
   SeverityLevel,
   User,
-} from '@sentry/types';
+} from './types-hoist';
 
 import { updateSession } from './session';
 import { isPlainObject } from './utils-hoist/is';
@@ -599,10 +599,6 @@ class ScopeClass implements ScopeInterface {
     }
   }
 }
-
-// NOTE: By exporting this here as const & type, instead of doing `export class`,
-// We can get the correct class when importing from `@sentry/core`, but the original type (from `@sentry/types`)
-// This is helpful for interop, e.g. when doing `import type { Scope } from '@sentry/node';` (which re-exports this)
 
 /**
  * Holds additional event information.

@@ -1,5 +1,5 @@
-import type { Contexts, Event, EventHint, ExtendedError, IntegrationFn } from '@sentry/types';
 import { defineIntegration } from '../integration';
+import type { Contexts, Event, EventHint, ExtendedError, IntegrationFn } from '../types-hoist';
 
 import { DEBUG_BUILD } from '../debug-build';
 import { isError, isPlainObject } from '../utils-hoist/is';

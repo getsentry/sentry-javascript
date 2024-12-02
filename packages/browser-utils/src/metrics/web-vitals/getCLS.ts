@@ -20,7 +20,7 @@ import { observe } from './lib/observe';
 import { onHidden } from './lib/onHidden';
 import { runOnce } from './lib/runOnce';
 import { onFCP } from './onFCP';
-import type { CLSMetric, CLSReportCallback, MetricRatingThresholds, ReportOpts } from './types';
+import type { CLSMetric, MetricRatingThresholds, ReportOpts } from './types';
 
 /** Thresholds for CLS. See https://web.dev/articles/cls#what_is_a_good_cls_score */
 export const CLSThresholds: MetricRatingThresholds = [0.1, 0.25];
@@ -46,7 +46,7 @@ export const CLSThresholds: MetricRatingThresholds = [0.1, 0.25];
  * hidden. As a result, the `callback` function might be called multiple times
  * during the same page load._
  */
-export const onCLS = (onReport: CLSReportCallback, opts: ReportOpts = {}): void => {
+export const onCLS = (onReport: (metric: CLSMetric) => void, opts: ReportOpts = {}) => {
   // Start monitoring FCP so we can only report CLS if FCP is also reported.
   // Note: this is done to match the current behavior of CrUX.
   onFCP(
@@ -57,7 +57,7 @@ export const onCLS = (onReport: CLSReportCallback, opts: ReportOpts = {}): void 
       let sessionValue = 0;
       let sessionEntries: LayoutShift[] = [];
 
-      const handleEntries = (entries: LayoutShift[]): void => {
+      const handleEntries = (entries: LayoutShift[]) => {
         entries.forEach(entry => {
           // Only count layout shifts without recent user input.
           if (!entry.hadRecentInput) {

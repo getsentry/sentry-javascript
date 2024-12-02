@@ -55,8 +55,7 @@
     "url": "https://github.com/getsentry/sentry-javascript/issues"
   },
   "dependencies": {
-    "@sentry/core": "8.41.0",
-    "@sentry/types": "8.41.0"
+    "@sentry/core": "8.41.0"
   },
   "engines": {
     "node": ">=14.18"
