@@ -2,12 +2,19 @@ import commonjs from '@rollup/plugin-commonjs';
 import { makeBaseNPMConfig, makeNPMConfigVariants } from '@sentry-internal/rollup-utils';
 
 export const ESMImportShim = `
-import cjsModule from 'node:module';
+import {createRequire} from 'node:module';
+import {fileURLToPath} from 'node:url';
+import {dirname } from 'node:path';
 `;
 
 const ESMRequireShim = `
-const require = cjsModule.createRequire(import.meta.url);
+const require = createRequire(import.meta.url);
 `;
+
+const ESMDirnameShim = `
+const filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+`
 
 function makeESMImportShimPlugin(shim) {
   return {
@@ -27,6 +34,15 @@ function makeESMRequireShimPlugin(shim) {
   };
 }
 
+function makeESMDirnameShimPlugin(shim){
+  return {
+    transform(code){
+      const SHIM_REGEXP = /\/\/ #START_SENTRY_ESM_DIRNAME_SHIM[\s\S]*?\/\/ #END_SENTRY_ESM_DIRNAME_SHIM/
+      return code.replace(SHIM_REGEXP, shim);
+    }
+  }
+}
+
 const variants = makeNPMConfigVariants(
   makeBaseNPMConfig({
     packageSpecificConfig: {
@@ -40,10 +56,12 @@ for (const variant of variants) {
   if (variant.output.format === 'esm') {
     variant.plugins.push(makeESMImportShimPlugin(ESMImportShim));
     variant.plugins.push(makeESMRequireShimPlugin(ESMRequireShim));
+    variant.plugins.push(makeESMDirnameShimPlugin(ESMDirnameShim));
   } else {
     // Remove the ESM shim comment
     variant.plugins.push(makeESMImportShimPlugin(''));
     variant.plugins.push(makeESMRequireShimPlugin(''));
+    variant.plugins.push(makeESMDirnameShimPlugin(''));
   }
 }
 
