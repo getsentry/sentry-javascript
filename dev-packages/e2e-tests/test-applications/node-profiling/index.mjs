@@ -1,9 +1,13 @@
+// This tests asserts that @sentr/profiling-node is not patching globalThis values, which
+// breaks our runtime detection and can break instrumentation
+// https://github.com/getsentry/sentry-javascript/issues/14525#issuecomment-2511208064
+
 function assertUnpatechedRequire(cycle) {
   if (globalThis.require !== undefined) {
     // Test that globalThis.require is not defined by any side effects of the profiling
     // https://github.com/getsentry/sentry-javascript/issues/13662
     throw new Error(
-      `globalThis.require should not be defined ${cycle}, check that profiling integration is not defining it, received: ` +
+      `globalThis.require should not be defined, check that profiling integration is not defining it, received: ` +
         typeof globalThis.require,
     );
   }
@@ -11,7 +15,6 @@ function assertUnpatechedRequire(cycle) {
 
 import * as Sentry from '@sentry/node';
 import { nodeProfilingIntegration } from '@sentry/profiling-node';
-assertUnpatechedRequire('after importing sentry/profiling-node');
 const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 Sentry.init({
@@ -25,4 +28,4 @@ Sentry.startSpan({ name: 'Precompile test' }, async () => {
   await wait(500);
 });
 
-assertUnpatechedRequire('after a span was created');
+assertUnpatechedRequire();
