@@ -8,7 +8,14 @@ import type { Options, TracingOptions } from './types';
  * Inits the Vue SDK
  */
 export function init(
-  config: Partial<Omit<Options, 'tracingOptions'> & { tracingOptions: Partial<TracingOptions> }> = {},
+  config: Partial<
+    Omit<Options, 'tracingOptions'> & {
+      /**
+       * @deprecated Add the `vueIntegration()` and pass the `tracingOptions` there instead.
+       */
+      tracingOptions: Partial<TracingOptions>;
+    }
+  > = {},
 ): Client | undefined {
   const options = {
     _metadata: {
