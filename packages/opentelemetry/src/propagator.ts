@@ -1,9 +1,11 @@
 import type { Baggage, Context, Span, SpanContext, TextMapGetter, TextMapSetter } from '@opentelemetry/api';
-import { context, INVALID_TRACEID, propagation, trace, TraceFlags } from '@opentelemetry/api';
-import { isTracingSuppressed, W3CBaggagePropagator } from '@opentelemetry/core';
+import { INVALID_TRACEID, TraceFlags, context, propagation, trace } from '@opentelemetry/api';
+import { W3CBaggagePropagator, isTracingSuppressed } from '@opentelemetry/core';
 import { ATTR_URL_FULL, SEMATTRS_HTTP_URL } from '@opentelemetry/semantic-conventions';
-import type { continueTrace, DynamicSamplingContext, Options, PropagationContext } from '@sentry/core';
+import type { DynamicSamplingContext, Options, PropagationContext, continueTrace } from '@sentry/core';
 import {
+  LRUMap,
+  SENTRY_BAGGAGE_KEY_PREFIX,
   baggageHeaderToDynamicSamplingContext,
   generateSentryTraceHeader,
   generateSpanId,
@@ -14,10 +16,8 @@ import {
   getIsolationScope,
   getRootSpan,
   logger,
-  LRUMap,
   parseBaggageHeader,
   propagationContextFromHeaders,
-  SENTRY_BAGGAGE_KEY_PREFIX,
   spanToJSON,
   stringMatchesSomePattern,
 } from '@sentry/core';

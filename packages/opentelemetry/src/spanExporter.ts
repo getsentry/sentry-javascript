@@ -4,6 +4,10 @@ import type { ReadableSpan } from '@opentelemetry/sdk-trace-base';
 import { ATTR_HTTP_RESPONSE_STATUS_CODE, SEMATTRS_HTTP_STATUS_CODE } from '@opentelemetry/semantic-conventions';
 import type { SpanJSON, SpanOrigin, TraceContext, TransactionEvent, TransactionSource } from '@sentry/core';
 import {
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   captureEvent,
   dropUndefinedKeys,
   getCapturedScopesOnSpan,
@@ -11,10 +15,6 @@ import {
   getMetricSummaryJsonForSpan,
   getStatusMessage,
   logger,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   spanTimeInputToSeconds,
   timedEventsToMeasurements,
 } from '@sentry/core';

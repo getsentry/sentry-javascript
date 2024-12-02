@@ -1,5 +1,10 @@
 import type { RequestEventData } from '@sentry/core';
 import {
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  SPAN_STATUS_ERROR,
+  SPAN_STATUS_OK,
+  Scope,
   captureException,
   generateSpanId,
   generateTraceId,
@@ -8,12 +13,7 @@ import {
   getRootSpan,
   handleCallbackErrors,
   propagationContextFromHeaders,
-  Scope,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   setCapturedScopesOnSpan,
-  SPAN_STATUS_ERROR,
-  SPAN_STATUS_OK,
   startSpanManual,
   vercelWaitUntil,
   winterCGHeadersToDict,

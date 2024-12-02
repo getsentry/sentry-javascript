@@ -12,8 +12,8 @@ import {
 import type {
   SentrySpanArguments,
   Span,
-  SpanAttributes,
   SpanAttributeValue,
+  SpanAttributes,
   SpanContextData,
   SpanEnvelope,
   SpanJSON,
@@ -29,14 +29,14 @@ import { dropUndefinedKeys } from '../utils-hoist/object';
 import { generateSpanId, generateTraceId } from '../utils-hoist/propagationContext';
 import { timestampInSeconds } from '../utils-hoist/time';
 import {
+  TRACE_FLAG_NONE,
+  TRACE_FLAG_SAMPLED,
   getRootSpan,
   getSpanDescendants,
   getStatusMessage,
   spanTimeInputToSeconds,
   spanToJSON,
   spanToTransactionTraceContext,
-  TRACE_FLAG_NONE,
-  TRACE_FLAG_SAMPLED,
 } from '../utils/spanUtils';
 import { getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
 import { logSpanEnd } from './logSpans';
