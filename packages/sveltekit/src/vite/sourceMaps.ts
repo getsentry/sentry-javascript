@@ -269,7 +269,10 @@ function getFiles(dir: string): string[] {
 function detectSentryRelease(): string {
   let releaseFallback: string;
   try {
-    releaseFallback = child_process.execSync('git rev-parse HEAD', { stdio: 'ignore' }).toString().trim();
+    releaseFallback = child_process
+      .execSync('git rev-parse HEAD', { stdio: ['ignore', 'pipe', 'ignore'] })
+      .toString()
+      .trim();
   } catch (_) {
     // the command can throw for various reasons. Most importantly:
     // - git is not installed
