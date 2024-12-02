@@ -1,5 +1,6 @@
+import type { Event, FeatureFlag } from '@sentry/core';
+
 import { getCurrentScope, logger } from '@sentry/core';
-import type { Event, FeatureFlag } from '@sentry/types';
 import { DEBUG_BUILD } from '../debug-build';
 
 /**

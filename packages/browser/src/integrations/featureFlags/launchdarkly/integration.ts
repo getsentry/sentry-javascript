@@ -1,4 +1,4 @@
-import type { Client, Event, EventHint, IntegrationFn } from '@sentry/types';
+import type { Client, Event, EventHint, IntegrationFn } from '@sentry/core';
 import type { LDContext, LDEvaluationDetail, LDInspectionFlagUsedHandler } from './types';
 
 import { defineIntegration } from '@sentry/core';

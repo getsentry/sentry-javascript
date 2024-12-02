@@ -5,7 +5,7 @@
  * Add the integration hook to your OpenFeature object.
  *   - OpenFeature.getClient().addHooks(new OpenFeatureIntegrationHook());
  */
-import type { Client, Event, EventHint, IntegrationFn } from '@sentry/types';
+import type { Client, Event, EventHint, IntegrationFn } from '@sentry/core';
 import type { EvaluationDetails, HookContext, HookHints, JsonValue, OpenFeatureHook } from './types';
 
 import { defineIntegration } from '@sentry/core';

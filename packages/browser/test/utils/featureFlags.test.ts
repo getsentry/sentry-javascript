@@ -1,6 +1,6 @@
-import { getCurrentScope } from '@sentry/core';
-import type { FeatureFlag } from '@sentry/types';
-import { logger } from '@sentry/utils';
+import type { FeatureFlag } from '@sentry/core';
+
+import { getCurrentScope, logger } from '@sentry/core';
 import { vi } from 'vitest';
 import { insertFlagToScope, insertToFlagBuffer } from '../../src/utils/featureFlags';
 
