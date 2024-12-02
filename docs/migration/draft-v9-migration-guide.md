@@ -66,7 +66,13 @@
 
 ## `@sentry/types`
 
+- **The `@sentry/types` package has been deprecated. Import everything from `@sentry/core` instead.**
+
 - Deprecated `Request` in favor of `RequestEventData`.
+
+## `@sentry/nuxt`
+
+- Deprecated `tracingOptions` in `Sentry.init()` in favor of passing the `vueIntegration()` to `Sentry.init({ integrations: [...] })` and setting `tracingOptions` there.
 
 ## `@sentry/vue`
 
@@ -97,6 +103,11 @@
 
 - Deprecated `autoInstrumentRemix: false`. The next major version will default to behaving as if this option were `true` and the option itself will be removed.
 
+## `@sentry/react`
+
+- Deprecated `wrapUseRoutes`. Use `wrapUseRoutesV6` or `wrapUseRoutesV7` instead.
+- Deprecated `wrapCreateBrowserRouter`. Use `wrapCreateBrowserRouterV6` or `wrapCreateBrowserRouterV7` instead.
+
 ## `@sentry/opentelemetry`
 
 - Deprecated `generateSpanContextForPropagationContext` in favor of doing this manually - we do not need this export anymore.
@@ -106,5 +117,6 @@
 - Deprecated `processThreadBreadcrumbIntegration` in favor of `childProcessIntegration`. Functionally they are the same.
 - Deprecated `nestIntegration`. Use the NestJS SDK (`@sentry/nestjs`) instead.
 - Deprecated `setupNestErrorHandler`. Use the NestJS SDK (`@sentry/nestjs`) instead.
+- Deprecated `addOpenTelemetryInstrumentation`. Use the `openTelemetryInstrumentations` option in `Sentry.init()` or your custom Sentry Client instead.
 - Deprecated `registerEsmLoaderHooks.include` and `registerEsmLoaderHooks.exclude`. Set `onlyIncludeInstrumentedModules: true` instead.
 - `registerEsmLoaderHooks` will only accept `true | false | undefined` in the future. The SDK will default to wrapping modules that are used as part of OpenTelemetry Instrumentation.

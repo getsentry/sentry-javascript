@@ -61,6 +61,7 @@ export type { NodeOptions } from './types';
 export { addRequestDataToEvent, DEFAULT_USER_INCLUDES, extractRequestData } from '@sentry/core';
 
 export {
+  // eslint-disable-next-line deprecation/deprecation
   addOpenTelemetryInstrumentation,
   // These are custom variants that need to be used instead of the core one
   // As they have slightly different implementations
@@ -164,4 +165,4 @@ export type {
   Thread,
   User,
   Span,
-} from '@sentry/types';
+} from '@sentry/core';

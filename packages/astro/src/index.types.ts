@@ -7,7 +7,7 @@ export * from '@sentry/node';
 
 import type { NodeOptions } from '@sentry/node';
 
-import type { Client, Integration, Options, StackParser } from '@sentry/types';
+import type { Client, Integration, Options, StackParser } from '@sentry/core';
 
 import type * as clientSdk from './index.client';
 import type * as serverSdk from './index.server';

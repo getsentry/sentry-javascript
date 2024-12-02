@@ -1,5 +1,5 @@
 import { Scope, getClient, setCurrentClient } from '@sentry/browser';
-import type { Client } from '@sentry/types';
+import type { Client } from '@sentry/core';
 import { fireEvent, render, screen } from '@testing-library/react';
 import * as React from 'react';
 import { useState } from 'react';

@@ -15,8 +15,25 @@
  */
 
 import { WINDOW } from '../../../types';
-import type { NavigationTimingPolyfillEntry } from '../types';
 
-export const getNavigationEntry = (): PerformanceNavigationTiming | NavigationTimingPolyfillEntry | undefined => {
-  return WINDOW.performance && performance.getEntriesByType && performance.getEntriesByType('navigation')[0];
+// sentry-specific change:
+// add optional param to not check for responseStart (see comment below)
+export const getNavigationEntry = (checkResponseStart = true): PerformanceNavigationTiming | void => {
+  const navigationEntry =
+    WINDOW.performance && WINDOW.performance.getEntriesByType && WINDOW.performance.getEntriesByType('navigation')[0];
+  // Check to ensure the `responseStart` property is present and valid.
+  // In some cases no value is reported by the browser (for
+  // privacy/security reasons), and in other cases (bugs) the value is
+  // negative or is larger than the current page time. Ignore these cases:
+  // https://github.com/GoogleChrome/web-vitals/issues/137
+  // https://github.com/GoogleChrome/web-vitals/issues/162
+  // https://github.com/GoogleChrome/web-vitals/issues/275
+  if (
+    // sentry-specific change:
+    // We don't want to check for responseStart for our own use of `getNavigationEntry`
+    !checkResponseStart ||
+    (navigationEntry && navigationEntry.responseStart > 0 && navigationEntry.responseStart < performance.now())
+  ) {
+    return navigationEntry;
+  }
 };

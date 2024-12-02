@@ -1,5 +1,5 @@
-import type { Event, StackFrame, Stacktrace } from '@sentry/types';
 import { defineIntegration } from '../integration';
+import type { Event, StackFrame, Stacktrace } from '../types-hoist';
 import { basename, relative } from '../utils-hoist/path';
 import { GLOBAL_OBJ } from '../utils-hoist/worldwide';
 

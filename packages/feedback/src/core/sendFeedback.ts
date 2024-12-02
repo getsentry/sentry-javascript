@@ -1,8 +1,5 @@
-import { captureFeedback } from '@sentry/core';
-import { getClient } from '@sentry/core';
-import { getCurrentScope } from '@sentry/core';
-import { getLocationHref } from '@sentry/core';
-import type { Event, EventHint, SendFeedback, SendFeedbackParams, TransportMakeRequestResponse } from '@sentry/types';
+import type { Event, EventHint, SendFeedback, SendFeedbackParams, TransportMakeRequestResponse } from '@sentry/core';
+import { captureFeedback, getClient, getCurrentScope, getLocationHref } from '@sentry/core';
 import { FEEDBACK_API_SOURCE } from '../constants';
 
 /**

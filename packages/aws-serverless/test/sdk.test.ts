@@ -1,6 +1,6 @@
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 
-import type { Event } from '@sentry/types';
+import type { Event } from '@sentry/core';
 import type { Callback, Handler } from 'aws-lambda';
 
 import { init, wrapHandler } from '../src/sdk';

@@ -10,8 +10,8 @@ import {
   setCurrentClient,
   withIsolationScope,
 } from '@sentry/core';
-import type { Event, EventHint } from '@sentry/types';
-import type { Scope } from '@sentry/types';
+import type { Event, EventHint } from '@sentry/core';
+import type { Scope } from '@sentry/core';
 
 import { setOpenTelemetryContextAsyncContextStrategy } from '@sentry/opentelemetry';
 import { NodeClient, initOpenTelemetry } from '../../src';

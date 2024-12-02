@@ -17,7 +17,7 @@
 - **meta(nuxt): Require minimum Nuxt v3.7.0 ([#14473](https://github.com/getsentry/sentry-javascript/pull/14473))**
 
   We formalized that the Nuxt SDK is at minimum compatible with Nuxt version 3.7.0 and above.
-  Additionally, the SDK requires the implicit `nitropack` dependency to satisfy version `^2.6.1` and `ofetch` to satisfy `^1.3.3`.
+  Additionally, the SDK requires the implicit `nitropack` dependency to satisfy version `^2.10.0` and `ofetch` to satisfy `^1.4.0`.
   It is recommended to check your lock-files and manually upgrade these dependencies if they don't match the version ranges.
 
 ### Deprecations
