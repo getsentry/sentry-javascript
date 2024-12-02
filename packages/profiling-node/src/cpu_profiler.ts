@@ -1,5 +1,5 @@
 import { arch as _arch, platform as _platform } from 'node:os';
-import { join, resolve} from 'node:path';
+import { join, resolve } from 'node:path';
 import { env, versions } from 'node:process';
 import { threadId } from 'node:worker_threads';
 import { familySync } from 'detect-libc';

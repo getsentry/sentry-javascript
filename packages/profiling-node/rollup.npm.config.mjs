@@ -14,7 +14,7 @@ const require = createRequire(import.meta.url);
 const ESMDirnameShim = `
 const filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-`
+`;
 
 function makeESMImportShimPlugin(shim) {
   return {
@@ -34,13 +34,13 @@ function makeESMRequireShimPlugin(shim) {
   };
 }
 
-function makeESMDirnameShimPlugin(shim){
+function makeESMDirnameShimPlugin(shim) {
   return {
-    transform(code){
-      const SHIM_REGEXP = /\/\/ #START_SENTRY_ESM_DIRNAME_SHIM[\s\S]*?\/\/ #END_SENTRY_ESM_DIRNAME_SHIM/
+    transform(code) {
+      const SHIM_REGEXP = /\/\/ #START_SENTRY_ESM_DIRNAME_SHIM[\s\S]*?\/\/ #END_SENTRY_ESM_DIRNAME_SHIM/;
       return code.replace(SHIM_REGEXP, shim);
-    }
-  }
+    },
+  };
 }
 
 const variants = makeNPMConfigVariants(
