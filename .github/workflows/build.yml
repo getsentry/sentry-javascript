@@ -1205,8 +1205,10 @@ jobs:
       - name: Run E2E test
         working-directory: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
         timeout-minutes: 10
-        run:
+        run: |
           xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" -- yarn test:assert
+          npm pkg set type=module
+          node index.mjs
 
   job_required_jobs_passed:
     name: All required jobs passed or were skipped

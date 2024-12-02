@@ -5,12 +5,12 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "build": "node build.mjs && node build.shimmed.mjs",
-    "test": "node dist/index.js && node --experimental-require-module dist/index.js && node dist/index.shimmed.mjs && pnpm run test:mjs",
+    "test": "node dist/index.js && node --experimental-require-module dist/index.js && node dist/index.shimmed.mjs",
     "clean": "npx rimraf node_modules dist",
     "test:electron": "$(pnpm bin)/electron-rebuild && playwright test",
     "test:build": "pnpm run typecheck && pnpm run build",
     "test:assert": "pnpm run test && pnpm run test:electron",
-    "test:mjs": "node --version && npm pkg set type=module && node index.mjs"
+    "test:mjs": "node index.mjs"
   },
   "dependencies": {
     "@electron/rebuild": "^3.7.0",
