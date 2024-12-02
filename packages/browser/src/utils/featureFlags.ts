@@ -56,10 +56,9 @@ export function insertFlagToScope(name: string, value: unknown, maxSize: number 
 }
 
 /**
- * Exported for tests
+ * Exported for tests. Currently only accepts boolean values (otherwise no-op).
  */
 export function insertToFlagBuffer(flags: FeatureFlag[], name: string, value: unknown, maxSize: number): void {
-  // Currently only accepts boolean values
   if (typeof value !== 'boolean') {
     return;
   }

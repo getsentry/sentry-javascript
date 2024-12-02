@@ -1,4 +1,4 @@
-import type { FeatureFlag } from './featureFlags';
+import type { FeatureFlag } from '../featureFlags';
 import type { Primitive } from './misc';
 import type { SpanOrigin } from './span';
 
@@ -129,8 +129,9 @@ export interface MissingInstrumentationContext extends Record<string, unknown> {
 
 /**
  * Used to buffer flag evaluation data on the current scope and attach it to
- * error events. `values` should be initialized as empty ([]), and it should
- * only be modified by @sentry/util "FlagBuffer" functions.
+ * error events. `values` should be initialized as empty ([]), and modifying
+ * directly is not recommended. Use the functions in @sentry/browser
+ * src/utils/featureFlags instead.
  */
 export interface FeatureFlagContext extends Record<string, unknown> {
   values: FeatureFlag[];
