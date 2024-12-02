@@ -1,4 +1,4 @@
-import type { Envelope, InternalBaseTransportOptions, Transport, TransportMakeRequestResponse } from '@sentry/types';
+import type { Envelope, InternalBaseTransportOptions, Transport, TransportMakeRequestResponse } from '../types-hoist';
 
 import { DEBUG_BUILD } from '../debug-build';
 import { envelopeContainsItemType } from '../utils-hoist/envelope';

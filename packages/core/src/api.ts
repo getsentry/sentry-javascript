@@ -1,4 +1,4 @@
-import type { DsnComponents, DsnLike, SdkInfo } from '@sentry/types';
+import type { DsnComponents, DsnLike, SdkInfo } from './types-hoist';
 import { dsnToString, makeDsn } from './utils-hoist/dsn';
 
 const SENTRY_API_VERSION = '7';

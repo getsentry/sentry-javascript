@@ -7,6 +7,7 @@ import {
   vercelWaitUntil,
   winterCGRequestToRequestData,
 } from '@sentry/core';
+import type { RequestEventData, Scope, SpanAttributes } from '@sentry/core';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
@@ -21,7 +22,6 @@ import {
   startSpan,
   withIsolationScope,
 } from '@sentry/node';
-import type { RequestEventData, Scope, SpanAttributes } from '@sentry/types';
 import type { APIContext, MiddlewareResponseHandler } from 'astro';
 
 type MiddlewareOptions = {
@@ -155,49 +155,50 @@ async function instrumentRequest(
             op: 'http.server',
           },
           async span => {
-            const originalResponse = await next();
+            try {
+              const originalResponse = await next();
+              if (originalResponse.status) {
+                setHttpStatus(span, originalResponse.status);
+              }
 
-            if (originalResponse.status) {
-              setHttpStatus(span, originalResponse.status);
+              const client = getClient();
+              const contentType = originalResponse.headers.get('content-type');
+
+              const isPageloadRequest = contentType && contentType.startsWith('text/html');
+              if (!isPageloadRequest || !client) {
+                return originalResponse;
+              }
+
+              // Type case necessary b/c the body's ReadableStream type doesn't include
+              // the async iterator that is actually available in Node
+              // We later on use the async iterator to read the body chunks
+              // see https://github.com/microsoft/TypeScript/issues/39051
+              const originalBody = originalResponse.body as NodeJS.ReadableStream | null;
+              if (!originalBody) {
+                return originalResponse;
+              }
+
+              const decoder = new TextDecoder();
+
+              const newResponseStream = new ReadableStream({
+                start: async controller => {
+                  for await (const chunk of originalBody) {
+                    const html = typeof chunk === 'string' ? chunk : decoder.decode(chunk, { stream: true });
+                    const modifiedHtml = addMetaTagToHead(html);
+                    controller.enqueue(new TextEncoder().encode(modifiedHtml));
+                  }
+                  controller.close();
+                },
+              });
+
+              return new Response(newResponseStream, originalResponse);
+            } catch (e) {
+              sendErrorToSentry(e);
+              throw e;
             }
-
-            const client = getClient();
-            const contentType = originalResponse.headers.get('content-type');
-
-            const isPageloadRequest = contentType && contentType.startsWith('text/html');
-            if (!isPageloadRequest || !client) {
-              return originalResponse;
-            }
-
-            // Type case necessary b/c the body's ReadableStream type doesn't include
-            // the async iterator that is actually available in Node
-            // We later on use the async iterator to read the body chunks
-            // see https://github.com/microsoft/TypeScript/issues/39051
-            const originalBody = originalResponse.body as NodeJS.ReadableStream | null;
-            if (!originalBody) {
-              return originalResponse;
-            }
-
-            const decoder = new TextDecoder();
-
-            const newResponseStream = new ReadableStream({
-              start: async controller => {
-                for await (const chunk of originalBody) {
-                  const html = typeof chunk === 'string' ? chunk : decoder.decode(chunk, { stream: true });
-                  const modifiedHtml = addMetaTagToHead(html);
-                  controller.enqueue(new TextEncoder().encode(modifiedHtml));
-                }
-                controller.close();
-              },
-            });
-
-            return new Response(newResponseStream, originalResponse);
           },
         );
         return res;
-      } catch (e) {
-        sendErrorToSentry(e);
-        throw e;
       } finally {
         vercelWaitUntil(
           (async () => {

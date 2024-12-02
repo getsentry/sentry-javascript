@@ -5,10 +5,12 @@ targets:
   # NPM Targets
   ## 1. Base Packages, node or browser SDKs depend on
   ## 1.1 Types
+  # TODO(v9): Remove
   - name: npm
     id: '@sentry/types'
     includeNames: /^sentry-types-\d.*\.tgz$/
   ## 1.2 Utils
+  # TODO(v9): Remove
   - name: npm
     id: '@sentry/utils'
     includeNames: /^sentry-utils-\d.*\.tgz$/

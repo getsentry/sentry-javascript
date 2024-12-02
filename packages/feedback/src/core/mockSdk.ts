@@ -1,4 +1,4 @@
-import type { Envelope, Transport, TransportMakeRequestResponse } from '@sentry/types';
+import type { Envelope, Transport, TransportMakeRequestResponse } from '@sentry/core';
 
 import type { TestClientOptions } from './TestClient';
 import { getDefaultClientOptions, init } from './TestClient';

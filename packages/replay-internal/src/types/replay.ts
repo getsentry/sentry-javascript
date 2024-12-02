@@ -8,7 +8,7 @@ import type {
   SentryWrappedXMLHttpRequest,
   Span,
   XhrBreadcrumbHint,
-} from '@sentry/types';
+} from '@sentry/core';
 
 import type { SKIPPED, THROTTLED } from '../util/throttle';
 import type { AllPerformanceEntry, AllPerformanceEntryData, ReplayPerformanceEntry } from './performance';

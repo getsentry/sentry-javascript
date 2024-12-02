@@ -1,6 +1,6 @@
 import type { D1Database, D1PreparedStatement, D1Response } from '@cloudflare/workers-types';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SPAN_STATUS_ERROR, addBreadcrumb, startSpan } from '@sentry/core';
-import type { Span, SpanAttributes, StartSpanOptions } from '@sentry/types';
+import type { Span, SpanAttributes, StartSpanOptions } from '@sentry/core';
 
 // Patching is based on internal Cloudflare D1 API
 // https://github.com/cloudflare/workerd/blob/cd5279e7b305003f1d9c851e73efa9d67e4b68b2/src/cloudflare/internal/d1-api.ts

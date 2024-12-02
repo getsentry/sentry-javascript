@@ -12,8 +12,8 @@ test('Should capture an error thrown in a server component', async ({ page }) =>
     contexts: {
       runtime: { name: 'node', version: expect.any(String) },
       trace: {
-        span_id: expect.any(String),
-        trace_id: expect.any(String),
+        span_id: expect.stringMatching(/[a-f0-9]{16}/),
+        trace_id: expect.stringMatching(/[a-f0-9]{32}/),
       },
     },
     event_id: expect.any(String),

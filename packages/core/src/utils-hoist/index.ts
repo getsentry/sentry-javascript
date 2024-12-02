@@ -49,6 +49,7 @@ export {
   parseSemver,
   uuid4,
 } from './misc';
+// eslint-disable-next-line deprecation/deprecation
 export { dynamicRequire, isNodeEnv, loadModule } from './node';
 export { normalize, normalizeToSize, normalizeUrlToBase } from './normalize';
 export {
@@ -113,6 +114,7 @@ export {
 } from './supports';
 export { SyncPromise, rejectedSyncPromise, resolvedSyncPromise } from './syncpromise';
 export {
+  // eslint-disable-next-line deprecation/deprecation
   _browserPerformanceTimeOriginMode,
   browserPerformanceTimeOrigin,
   dateTimestampInSeconds,
@@ -166,7 +168,12 @@ export { makeFifoCache } from './cache';
 export { eventFromMessage, eventFromUnknownInput, exceptionFromError, parseStackFrames } from './eventbuilder';
 export { callFrameToStackFrame, watchdogTimer } from './anr';
 export { LRUMap } from './lru';
-export { generatePropagationContext } from './propagationContext';
+export {
+  // eslint-disable-next-line deprecation/deprecation
+  generatePropagationContext,
+  generateTraceId,
+  generateSpanId,
+} from './propagationContext';
 export { vercelWaitUntil } from './vercelWaitUntil';
 export { SDK_VERSION } from './version';
 export { getDebugImagesForResources, getFilenameToDebugIdMap } from './debug-ids';

@@ -2,6 +2,7 @@ import type { Span } from '@opentelemetry/api';
 import type { RedisResponseCustomAttributeFunction } from '@opentelemetry/instrumentation-ioredis';
 import { IORedisInstrumentation } from '@opentelemetry/instrumentation-ioredis';
 import { RedisInstrumentation } from '@opentelemetry/instrumentation-redis-4';
+import type { IntegrationFn } from '@sentry/core';
 import {
   SEMANTIC_ATTRIBUTE_CACHE_HIT,
   SEMANTIC_ATTRIBUTE_CACHE_ITEM_SIZE,
@@ -10,9 +11,8 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   defineIntegration,
   spanToJSON,
+  truncate,
 } from '@sentry/core';
-import { truncate } from '@sentry/core';
-import type { IntegrationFn } from '@sentry/types';
 import { generateInstrumentOnce } from '../../otel/instrument';
 import {
   GET_COMMANDS,

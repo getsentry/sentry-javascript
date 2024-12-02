@@ -1,8 +1,6 @@
 import type { Debugger, InspectorNotification, Runtime, Session } from 'node:inspector';
-import { defineIntegration, getClient } from '@sentry/core';
-import { LRUMap, logger } from '@sentry/core';
-import type { Event, Exception, IntegrationFn, StackFrame, StackParser } from '@sentry/types';
-
+import type { Event, Exception, IntegrationFn, StackFrame, StackParser } from '@sentry/core';
+import { LRUMap, defineIntegration, getClient, logger } from '@sentry/core';
 import { NODE_MAJOR } from '../../nodeVersion';
 import type { NodeClient } from '../../sdk/client';
 import type {

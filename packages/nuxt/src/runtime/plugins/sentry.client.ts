@@ -1,6 +1,7 @@
-import { getClient } from '@sentry/core';
+import { GLOBAL_OBJ, getClient } from '@sentry/core';
 import { browserTracingIntegration, vueIntegration } from '@sentry/vue';
 import { defineNuxtPlugin } from 'nuxt/app';
+import type { GlobalObjWithIntegrationOptions } from '../../client/vueIntegration';
 import { reportNuxtError } from '../utils';
 
 // --- Types are copied from @sentry/vue (so it does not need to be exported) ---
@@ -53,7 +54,14 @@ export default defineNuxtPlugin({
         // Adding the Vue integration without the Vue error handler
         // Nuxt is registering their own error handler, which is unset after hydration: https://github.com/nuxt/nuxt/blob/d3fdbcaac6cf66d21e25d259390d7824696f1a87/packages/nuxt/src/app/entry.ts#L64-L73
         // We don't want to wrap the existing error handler, as it leads to a 500 error: https://github.com/getsentry/sentry-javascript/issues/12515
-        sentryClient.addIntegration(vueIntegration({ app: vueApp, attachErrorHandler: false }));
+        sentryClient.addIntegration(
+          vueIntegration({
+            // We pick up the options from the "fake" vueIntegration exported by the SDK.
+            ...(GLOBAL_OBJ as GlobalObjWithIntegrationOptions)._sentryNuxtVueIntegrationOptions,
+            app: vueApp,
+            attachErrorHandler: false,
+          }),
+        );
       }
     });
 

@@ -4,13 +4,14 @@ import {
   captureException,
   continueTrace,
   httpRequestToRequestData,
+  isString,
+  logger,
+  objectify,
   setHttpStatus,
   startSpanManual,
+  vercelWaitUntil,
   withIsolationScope,
 } from '@sentry/core';
-import { isString, logger, objectify } from '@sentry/core';
-
-import { vercelWaitUntil } from '@sentry/core';
 import type { NextApiRequest } from 'next';
 import type { AugmentedNextApiResponse, NextApiHandler } from '../types';
 import { flushSafelyWithTimeout } from '../utils/responseEnd';

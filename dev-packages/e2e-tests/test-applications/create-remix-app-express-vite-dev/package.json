@@ -28,7 +28,6 @@
     "@playwright/test": "^1.44.1",
     "@sentry-internal/test-utils": "link:../../../test-utils",
     "@remix-run/dev": "^2.7.2",
-    "@sentry/types": "latest || *",
     "@sentry/core": "latest || *",
     "@types/compression": "^1.7.5",
     "@types/express": "^4.17.20",

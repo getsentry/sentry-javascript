@@ -5,7 +5,7 @@ export * from './client';
 export * from './vite';
 export * from './server';
 
-import type { Client, Integration, Options, StackParser } from '@sentry/types';
+import type { Client, Integration, Options, StackParser } from '@sentry/core';
 import type { HandleClientError, HandleServerError } from '@sveltejs/kit';
 
 import type * as clientSdk from './client';

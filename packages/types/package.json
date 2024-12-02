@@ -55,6 +55,9 @@
     "fix": "eslint . --format stylish --fix",
     "yalc:publish": "yalc publish --push --sig"
   },
+  "dependencies": {
+    "@sentry/core": "8.41.0"
+  },
   "volta": {
     "extends": "../../package.json"
   },

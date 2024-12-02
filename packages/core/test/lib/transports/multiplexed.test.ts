@@ -6,7 +6,7 @@ import type {
   EventItem,
   TransactionEvent,
   Transport,
-} from '@sentry/types';
+} from '../../../src/types-hoist';
 
 import {
   createClientReportEnvelope,

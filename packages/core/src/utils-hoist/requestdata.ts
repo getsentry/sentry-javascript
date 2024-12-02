@@ -7,7 +7,7 @@ import type {
   TransactionSource,
   WebFetchHeaders,
   WebFetchRequest,
-} from '@sentry/types';
+} from '../types-hoist';
 
 import { parseCookie } from './cookie';
 import { DEBUG_BUILD } from './debug-build';

@@ -1,4 +1,4 @@
-import type { SerializedSession, Session, SessionContext, SessionStatus } from '@sentry/types';
+import type { SerializedSession, Session, SessionContext, SessionStatus } from './types-hoist';
 import { dropUndefinedKeys, timestampInSeconds, uuid4 } from './utils-hoist';
 
 /**

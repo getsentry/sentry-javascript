@@ -387,7 +387,7 @@ jobs:
         if: github.event_name != 'pull_request'
 
       - name: Compute test coverage
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
 
@@ -491,7 +491,7 @@ jobs:
           NODE_VERSION: ${{ matrix.node }}
 
       - name: Compute test coverage
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
 

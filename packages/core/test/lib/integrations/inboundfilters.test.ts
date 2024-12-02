@@ -1,4 +1,4 @@
-import type { Event, EventProcessor } from '@sentry/types';
+import type { Event, EventProcessor } from '../../../src/types-hoist';
 
 import type { InboundFiltersOptions } from '../../../src/integrations/inboundfilters';
 import { inboundFiltersIntegration } from '../../../src/integrations/inboundfilters';

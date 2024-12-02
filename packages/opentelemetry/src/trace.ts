@@ -1,6 +1,7 @@
 import type { Context, Span, SpanContext, SpanOptions, Tracer } from '@opentelemetry/api';
 import { INVALID_SPANID, SpanStatusCode, TraceFlags, context, trace } from '@opentelemetry/api';
 import { suppressTracing } from '@opentelemetry/core';
+import type { Client, DynamicSamplingContext, Scope, Span as SentrySpan, TraceContext } from '@sentry/core';
 import {
   SDK_VERSION,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
@@ -15,9 +16,7 @@ import {
   spanToJSON,
   spanToTraceContext,
 } from '@sentry/core';
-import type { Client, DynamicSamplingContext, Scope, Span as SentrySpan, TraceContext } from '@sentry/types';
 import { continueTraceAsRemoteSpan } from './propagator';
-
 import type { OpenTelemetryClient, OpenTelemetrySpanContext } from './types';
 import { getContextFromScope, getScopesFromContext } from './utils/contextData';
 import { getSamplingDecision } from './utils/getSamplingDecision';
@@ -201,6 +200,7 @@ function getContext(scope: Scope | undefined, forceTransaction: boolean | undefi
 
       const spanOptions: SpanContext = {
         traceId: propagationContext.traceId,
+        // eslint-disable-next-line deprecation/deprecation
         spanId: propagationContext.parentSpanId || propagationContext.spanId,
         isRemote: true,
         traceFlags: propagationContext.sampled ? TraceFlags.SAMPLED : TraceFlags.NONE,

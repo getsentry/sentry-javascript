@@ -1,4 +1,4 @@
-import type { Event, EventHint } from '@sentry/types';
+import type { Event, EventHint } from '../../../src/types-hoist';
 
 import { applyZodErrorsToEvent } from '../../../src/integrations/zoderrors';
 

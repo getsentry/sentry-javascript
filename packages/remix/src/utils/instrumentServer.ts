@@ -1,24 +1,25 @@
 /* eslint-disable max-lines */
+import type { RequestEventData, Span, TransactionSource, WrappedFunction } from '@sentry/core';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  fill,
   getActiveSpan,
   getClient,
   getRootSpan,
   getTraceData,
   hasTracingEnabled,
+  isNodeEnv,
+  loadModule,
+  logger,
   setHttpStatus,
   spanToJSON,
   startSpan,
   winterCGRequestToRequestData,
   withIsolationScope,
 } from '@sentry/core';
-import { fill, isNodeEnv, loadModule, logger } from '@sentry/core';
 import { continueTrace } from '@sentry/opentelemetry';
-import type { RequestEventData, TransactionSource, WrappedFunction } from '@sentry/types';
-import type { Span } from '@sentry/types';
-
 import { DEBUG_BUILD } from './debug-build';
 import { captureRemixServerException, errorHandleDataFunction, errorHandleDocumentRequestFunction } from './errors';
 import { getFutureFlagsServer, getRemixVersionFromBuild } from './futureFlags';
@@ -399,6 +400,7 @@ export function instrumentBuild(
   build: ServerBuild | (() => ServerBuild | Promise<ServerBuild>),
   options: RemixOptions,
 ): ServerBuild | (() => ServerBuild | Promise<ServerBuild>) {
+  // eslint-disable-next-line deprecation/deprecation
   const autoInstrumentRemix = options?.autoInstrumentRemix || false;
 
   if (typeof build === 'function') {
@@ -434,6 +436,7 @@ const makeWrappedCreateRequestHandler = (options: RemixOptions) =>
       const newBuild = instrumentBuild(build, options);
       const requestHandler = origCreateRequestHandler.call(this, newBuild, ...args);
 
+      // eslint-disable-next-line deprecation/deprecation
       return wrapRequestHandler(requestHandler, newBuild, options.autoInstrumentRemix || false);
     };
   };
