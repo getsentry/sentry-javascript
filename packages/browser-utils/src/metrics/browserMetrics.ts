@@ -420,7 +420,7 @@ export function _addMeasureSpans(
   duration: number,
   timeOrigin: number,
 ): number {
-  const navEntry = getNavigationEntry();
+  const navEntry = getNavigationEntry(false);
   const requestTime = msToSec(navEntry ? navEntry.requestStart : 0);
   // Because performance.measure accepts arbitrary timestamps it can produce
   // spans that happen before the browser even makes a request for the page.
@@ -671,7 +671,7 @@ function setResourceEntrySizeData(
  * ttfb information is added via vendored web vitals library.
  */
 function _addTtfbRequestTimeToMeasurements(_measurements: Measurements): void {
-  const navEntry = getNavigationEntry();
+  const navEntry = getNavigationEntry(false);
   if (!navEntry) {
     return;
   }

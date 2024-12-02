@@ -20,7 +20,7 @@ import { getActivationStart } from './lib/getActivationStart';
 import { getNavigationEntry } from './lib/getNavigationEntry';
 import { initMetric } from './lib/initMetric';
 import { whenActivated } from './lib/whenActivated';
-import type { MetricRatingThresholds, ReportOpts, TTFBReportCallback } from './types';
+import type { MetricRatingThresholds, ReportOpts, TTFBMetric } from './types';
 
 /** Thresholds for TTFB. See https://web.dev/articles/ttfb#what_is_a_good_ttfb_score */
 export const TTFBThresholds: MetricRatingThresholds = [800, 1800];
@@ -55,31 +55,21 @@ const whenReady = (callback: () => void) => {
  * includes time spent on DNS lookup, connection negotiation, network latency,
  * and server processing time.
  */
-export const onTTFB = (onReport: TTFBReportCallback, opts: ReportOpts = {}) => {
+export const onTTFB = (onReport: (metric: TTFBMetric) => void, opts: ReportOpts = {}) => {
   const metric = initMetric('TTFB');
   const report = bindReporter(onReport, metric, TTFBThresholds, opts.reportAllChanges);
 
   whenReady(() => {
-    const navEntry = getNavigationEntry();
+    const navigationEntry = getNavigationEntry();
 
-    if (navEntry) {
-      const responseStart = navEntry.responseStart;
-
-      // In some cases no value is reported by the browser (for
-      // privacy/security reasons), and in other cases (bugs) the value is
-      // negative or is larger than the current page time. Ignore these cases:
-      // https://github.com/GoogleChrome/web-vitals/issues/137
-      // https://github.com/GoogleChrome/web-vitals/issues/162
-      // https://github.com/GoogleChrome/web-vitals/issues/275
-      if (responseStart <= 0 || responseStart > performance.now()) return;
-
+    if (navigationEntry) {
       // The activationStart reference is used because TTFB should be
       // relative to page activation rather than navigation start if the
       // page was prerendered. But in cases where `activationStart` occurs
       // after the first byte is received, this time should be clamped at 0.
-      metric.value = Math.max(responseStart - getActivationStart(), 0);
+      metric.value = Math.max(navigationEntry.responseStart - getActivationStart(), 0);
 
-      metric.entries = [navEntry];
+      metric.entries = [navigationEntry];
       report(true);
     }
   });
