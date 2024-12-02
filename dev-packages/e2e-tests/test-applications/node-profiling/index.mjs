@@ -2,8 +2,8 @@
 // breaks our runtime detection and can break instrumentation
 // https://github.com/getsentry/sentry-javascript/issues/14525#issuecomment-2511208064
 
-function assertUnpatechedRequire(cycle) {
-  if (globalThis.require !== undefined) {
+function assertUnpatechedRequire() {
+  if (typeof globalThis.require !== 'undefined') {
     // Test that globalThis.require is not defined by any side effects of the profiling
     // https://github.com/getsentry/sentry-javascript/issues/13662
     throw new Error(
