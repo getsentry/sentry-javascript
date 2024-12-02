@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { makeDsn } from '@sentry/core';
-import type { ReplayEvent } from '@sentry/types';
+import type { ReplayEvent } from '@sentry/core';
 
 import { createReplayEnvelope } from '../../../src/util/createReplayEnvelope';
 

@@ -1,4 +1,4 @@
-import type { Event, Mechanism, StackFrame } from '@sentry/types';
+import type { Event, Mechanism, StackFrame } from '../../src/types-hoist';
 
 import {
   addContextToFrame,
@@ -366,16 +366,24 @@ describe('uuid4 generation', () => {
 
 describe('arrayify()', () => {
   it('returns arrays untouched', () => {
+    // eslint-disable-next-line deprecation/deprecation
     expect(arrayify([])).toEqual([]);
+    // eslint-disable-next-line deprecation/deprecation
     expect(arrayify(['dogs', 'are', 'great'])).toEqual(['dogs', 'are', 'great']);
   });
 
   it('wraps non-arrays with an array', () => {
+    // eslint-disable-next-line deprecation/deprecation
     expect(arrayify(1231)).toEqual([1231]);
+    // eslint-disable-next-line deprecation/deprecation
     expect(arrayify('dogs are great')).toEqual(['dogs are great']);
+    // eslint-disable-next-line deprecation/deprecation
     expect(arrayify(true)).toEqual([true]);
+    // eslint-disable-next-line deprecation/deprecation
     expect(arrayify({})).toEqual([{}]);
+    // eslint-disable-next-line deprecation/deprecation
     expect(arrayify(null)).toEqual([null]);
+    // eslint-disable-next-line deprecation/deprecation
     expect(arrayify(undefined)).toEqual([undefined]);
   });
 });

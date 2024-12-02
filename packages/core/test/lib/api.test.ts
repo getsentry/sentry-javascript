@@ -1,6 +1,5 @@
-import type { DsnComponents, SdkInfo } from '@sentry/types';
-
 import { getEnvelopeEndpointWithUrlEncodedAuth, getReportDialogEndpoint } from '../../src/api';
+import type { DsnComponents, SdkInfo } from '../../src/types-hoist';
 import { makeDsn } from '../../src/utils-hoist/dsn';
 
 const ingestDsn = 'https://abc@xxxx.ingest.sentry.io:1234/subpath/123';
@@ -18,7 +17,7 @@ describe('API', () => {
         dsnPublicComponents,
         undefined,
         undefined,
-        'https://sentry.io:1234/subpath/api/123/envelope/?sentry_key=abc&sentry_version=7',
+        'https://sentry.io:1234/subpath/api/123/envelope/?sentry_version=7&sentry_key=abc',
       ],
       ['uses `tunnel` value when called with `tunnel` option', dsnPublicComponents, tunnel, undefined, tunnel],
       [
@@ -33,7 +32,7 @@ describe('API', () => {
         dsnPublicComponents,
         undefined,
         sdkInfo,
-        'https://sentry.io:1234/subpath/api/123/envelope/?sentry_key=abc&sentry_version=7&sentry_client=sentry.javascript.browser%2F12.31.12',
+        'https://sentry.io:1234/subpath/api/123/envelope/?sentry_version=7&sentry_key=abc&sentry_client=sentry.javascript.browser%2F12.31.12',
       ],
     ])(
       '%s',

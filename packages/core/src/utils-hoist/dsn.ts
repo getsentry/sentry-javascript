@@ -1,4 +1,4 @@
-import type { DsnComponents, DsnLike, DsnProtocol } from '@sentry/types';
+import type { DsnComponents, DsnLike, DsnProtocol } from '../types-hoist';
 
 import { DEBUG_BUILD } from './debug-build';
 import { consoleSandbox, logger } from './logger';

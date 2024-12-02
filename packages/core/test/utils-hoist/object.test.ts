@@ -2,7 +2,7 @@
  * @jest-environment jsdom
  */
 
-import type { WrappedFunction } from '@sentry/types';
+import type { WrappedFunction } from '../../src/types-hoist';
 
 import {
   addNonEnumerableProperty,
@@ -29,6 +29,29 @@ describe('fill()', () => {
 
     expect(source.foo()).toEqual(42);
     expect(replacement).toBeCalled();
+  });
+
+  test('does not throw on readonly properties', () => {
+    const originalFn = () => 41;
+    const source = {
+      get prop() {
+        return originalFn;
+      },
+      set prop(_fn: () => number) {
+        throw new Error('OH NO, this is not writeable...');
+      },
+    };
+
+    expect(source.prop()).toEqual(41);
+
+    const replacement = jest.fn().mockImplementation(() => {
+      return () => 42;
+    });
+    fill(source, 'prop', replacement);
+    expect(replacement).toBeCalled();
+
+    expect(source.prop).toBe(originalFn);
+    expect(source.prop()).toEqual(41);
   });
 
   test('can do anything inside replacement function', () => {
@@ -107,14 +130,17 @@ describe('fill()', () => {
 
 describe('urlEncode()', () => {
   test('returns empty string for empty object input', () => {
+    // eslint-disable-next-line deprecation/deprecation
     expect(urlEncode({})).toEqual('');
   });
 
   test('returns single key/value pair joined with = sign', () => {
+    // eslint-disable-next-line deprecation/deprecation
     expect(urlEncode({ foo: 'bar' })).toEqual('foo=bar');
   });
 
   test('returns multiple key/value pairs joined together with & sign', () => {
+    // eslint-disable-next-line deprecation/deprecation
     expect(urlEncode({ foo: 'bar', pickle: 'rick', morty: '4 2' })).toEqual('foo=bar&pickle=rick&morty=4%202');
   });
 });

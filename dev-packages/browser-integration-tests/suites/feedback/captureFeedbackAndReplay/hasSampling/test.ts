@@ -31,7 +31,7 @@ sentryTest('should capture feedback', async ({ forceFlushReplay, getLocalTestUrl
     }
   });
 
-  const url = await getLocalTestUrl({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname, handleLazyLoadedFeedback: true });
 
   await Promise.all([page.goto(url), page.getByText('Report a Bug').click(), reqPromise0]);
 

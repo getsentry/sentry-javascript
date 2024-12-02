@@ -20,8 +20,8 @@ test('Sends a pageload transaction to Sentry', async ({ page }) => {
           version: '18.2.0',
         },
         trace: {
-          span_id: expect.any(String),
-          trace_id: expect.any(String),
+          span_id: expect.stringMatching(/[a-f0-9]{16}/),
+          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
           op: 'pageload',
           origin: 'auto.pageload.nextjs.pages_router_instrumentation',
           data: expect.objectContaining({
@@ -65,8 +65,8 @@ test('captures a navigation transcation to Sentry', async ({ page }) => {
           version: '18.2.0',
         },
         trace: {
-          span_id: expect.any(String),
-          trace_id: expect.any(String),
+          span_id: expect.stringMatching(/[a-f0-9]{16}/),
+          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
           op: 'navigation',
           origin: 'auto.navigation.nextjs.pages_router_instrumentation',
           data: expect.objectContaining({

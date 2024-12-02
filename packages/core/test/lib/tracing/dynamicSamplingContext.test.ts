@@ -1,4 +1,3 @@
-import type { Span, SpanContextData, TransactionSource } from '@sentry/types';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
@@ -7,6 +6,7 @@ import {
 } from '../../../src';
 import { SentrySpan, getDynamicSamplingContextFromSpan, startInactiveSpan } from '../../../src/tracing';
 import { freezeDscOnSpan } from '../../../src/tracing/dynamicSamplingContext';
+import type { Span, SpanContextData, TransactionSource } from '../../../src/types-hoist';
 import { TestClient, getDefaultTestClientOptions } from '../../mocks/client';
 
 describe('getDynamicSamplingContextFromSpan', () => {

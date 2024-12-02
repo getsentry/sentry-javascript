@@ -1,9 +1,12 @@
-import type { DynamicSamplingContext } from '@sentry/types';
+import type { DynamicSamplingContext } from '../types-hoist';
 
 import { DEBUG_BUILD } from './debug-build';
 import { isString } from './is';
 import { logger } from './logger';
 
+/**
+ * @deprecated Use a `"baggage"` string directly
+ */
 export const BAGGAGE_HEADER_NAME = 'baggage';
 
 export const SENTRY_BAGGAGE_KEY_PREFIX = 'sentry-';

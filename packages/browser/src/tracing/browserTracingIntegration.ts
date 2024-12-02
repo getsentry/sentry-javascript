@@ -9,33 +9,29 @@ import {
   startTrackingLongTasks,
   startTrackingWebVitals,
 } from '@sentry-internal/browser-utils';
+import type { Client, IntegrationFn, Span, StartSpanOptions, TransactionSource } from '@sentry/core';
 import {
+  GLOBAL_OBJ,
   SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   TRACING_DEFAULTS,
+  browserPerformanceTimeOrigin,
+  generateTraceId,
   getActiveSpan,
   getClient,
   getCurrentScope,
+  getDomElement,
   getDynamicSamplingContextFromSpan,
   getIsolationScope,
   getRootSpan,
+  logger,
+  propagationContextFromHeaders,
   registerSpanErrorInstrumentation,
   spanIsSampled,
   spanToJSON,
   startIdleSpan,
 } from '@sentry/core';
-import {
-  GLOBAL_OBJ,
-  browserPerformanceTimeOrigin,
-  generatePropagationContext,
-  getDomElement,
-  logger,
-  propagationContextFromHeaders,
-} from '@sentry/core';
-import type { Client, IntegrationFn, StartSpanOptions, TransactionSource } from '@sentry/types';
-import type { Span } from '@sentry/types';
-
 import { DEBUG_BUILD } from '../debug-build';
 import { WINDOW } from '../helpers';
 import { registerBackgroundTabDetection } from './backgroundtab';
@@ -299,16 +295,20 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
       let activeSpan: Span | undefined;
       let startingUrl: string | undefined = WINDOW.location && WINDOW.location.href;
 
+      function maybeEndActiveSpan(): void {
+        if (activeSpan && !spanToJSON(activeSpan).timestamp) {
+          DEBUG_BUILD && logger.log(`[Tracing] Finishing current active span with op: ${spanToJSON(activeSpan).op}`);
+          // If there's an open active span, we need to finish it before creating an new one.
+          activeSpan.end();
+        }
+      }
+
       client.on('startNavigationSpan', startSpanOptions => {
         if (getClient() !== client) {
           return;
         }
 
-        if (activeSpan && !spanToJSON(activeSpan).timestamp) {
-          DEBUG_BUILD && logger.log(`[Tracing] Finishing current root span with op: ${spanToJSON(activeSpan).op}`);
-          // If there's an open transaction on the scope, we need to finish it before creating an new one.
-          activeSpan.end();
-        }
+        maybeEndActiveSpan();
 
         activeSpan = _createRouteSpan(client, {
           op: 'navigation',
@@ -320,12 +320,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
         if (getClient() !== client) {
           return;
         }
-
-        if (activeSpan && !spanToJSON(activeSpan).timestamp) {
-          DEBUG_BUILD && logger.log(`[Tracing] Finishing current root span with op: ${spanToJSON(activeSpan).op}`);
-          // If there's an open transaction on the scope, we need to finish it before creating an new one.
-          activeSpan.end();
-        }
+        maybeEndActiveSpan();
 
         const sentryTrace = traceOptions.sentryTrace || getMetaContent('sentry-trace');
         const baggage = traceOptions.baggage || getMetaContent('baggage');
@@ -453,8 +448,8 @@ export function startBrowserTracingPageLoadSpan(
  * This will only do something if a browser tracing integration has been setup.
  */
 export function startBrowserTracingNavigationSpan(client: Client, spanOptions: StartSpanOptions): Span | undefined {
-  getIsolationScope().setPropagationContext(generatePropagationContext());
-  getCurrentScope().setPropagationContext(generatePropagationContext());
+  getIsolationScope().setPropagationContext({ traceId: generateTraceId() });
+  getCurrentScope().setPropagationContext({ traceId: generateTraceId() });
 
   client.emit('startNavigationSpan', spanOptions);
 

@@ -6,7 +6,7 @@ import type {
   Event,
   ParameterizedString,
   SeverityLevel,
-} from '@sentry/types';
+} from '@sentry/core';
 
 export interface TestClientOptions extends ClientOptions, BrowserClientReplayOptions {}
 
@@ -20,10 +20,8 @@ export class TestClient extends BaseClient<TestClientOptions> {
       exception: {
         values: [
           {
-            /* eslint-disable @typescript-eslint/no-unsafe-member-access */
             type: exception.name,
             value: exception.message,
-            /* eslint-enable @typescript-eslint/no-unsafe-member-access */
           },
         ],
       },

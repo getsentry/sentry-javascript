@@ -1,4 +1,4 @@
-import type { Primitive } from '@sentry/types';
+import type { Primitive } from '../types-hoist';
 
 import { isSyntheticEvent, isVueViewModel } from './is';
 import type { MemoFunc } from './memo';
@@ -74,6 +74,7 @@ function visit(
   value: unknown,
   depth: number = +Infinity,
   maxProperties: number = +Infinity,
+  // eslint-disable-next-line deprecation/deprecation
   memo: MemoFunc = memoBuilder(),
 ): Primitive | ObjOrArray<unknown> {
   const [memoize, unmemoize] = memo;

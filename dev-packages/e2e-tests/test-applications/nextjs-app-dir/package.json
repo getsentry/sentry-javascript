@@ -37,7 +37,6 @@
     "@sentry/opentelemetry": "latest || *",
     "@sentry/react": "latest || *",
     "@sentry-internal/replay": "latest || *",
-    "@sentry/types": "latest || *",
     "@sentry/vercel-edge": "latest || *",
     "ts-node": "10.9.1"
   },

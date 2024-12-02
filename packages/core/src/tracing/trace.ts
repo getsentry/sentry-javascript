@@ -1,8 +1,8 @@
 /* eslint-disable max-lines */
 
-import type { ClientOptions, Scope, SentrySpanArguments, Span, SpanTimeInput, StartSpanOptions } from '@sentry/types';
 import type { AsyncContextStrategy } from '../asyncContext/types';
 import { getMainCarrier } from '../carrier';
+import type { ClientOptions, Scope, SentrySpanArguments, Span, SpanTimeInput, StartSpanOptions } from '../types-hoist';
 
 import { getClient, getCurrentScope, getIsolationScope, withScope } from '../currentScopes';
 
@@ -10,7 +10,7 @@ import { getAsyncContextStrategy } from '../asyncContext';
 import { DEBUG_BUILD } from '../debug-build';
 import { SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '../semanticAttributes';
 import { logger } from '../utils-hoist/logger';
-import { generatePropagationContext } from '../utils-hoist/propagationContext';
+import { generateTraceId } from '../utils-hoist/propagationContext';
 import { propagationContextFromHeaders } from '../utils-hoist/tracing';
 import { handleCallbackErrors } from '../utils/handleCallbackErrors';
 import { hasTracingEnabled } from '../utils/hasTracingEnabled';
@@ -260,7 +260,7 @@ export function suppressTracing<T>(callback: () => T): T {
  */
 export function startNewTrace<T>(callback: () => T): T {
   return withScope(scope => {
-    scope.setPropagationContext(generatePropagationContext());
+    scope.setPropagationContext({ traceId: generateTraceId() });
     DEBUG_BUILD && logger.info(`Starting a new trace with id ${scope.getPropagationContext().traceId}`);
     return withActiveSpan(null, callback);
   });

@@ -1,3 +1,4 @@
+import type { RequestEventData } from '@sentry/core';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SPAN_STATUS_ERROR,
@@ -6,12 +7,11 @@ import {
   getClient,
   getIsolationScope,
   handleCallbackErrors,
+  logger,
   startSpan,
+  vercelWaitUntil,
   withIsolationScope,
 } from '@sentry/core';
-import { logger, vercelWaitUntil } from '@sentry/core';
-import type { RequestEventData } from '@sentry/types';
-
 import { DEBUG_BUILD } from './debug-build';
 import { isNotFoundNavigationError, isRedirectNavigationError } from './nextNavigationErrorUtils';
 import { flushSafelyWithTimeout } from './utils/responseEnd';

@@ -1,37 +1,26 @@
-/* eslint-disable max-lines */
 import {
   SENTRY_XHR_DATA_KEY,
   addPerformanceInstrumentationHandler,
   addXhrInstrumentationHandler,
 } from '@sentry-internal/browser-utils';
+import type { Client, HandlerDataXhr, SentryWrappedXMLHttpRequest, Span } from '@sentry/core';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SentryNonRecordingSpan,
-  getActiveSpan,
-  getClient,
-  getCurrentScope,
-  getDynamicSamplingContextFromClient,
-  getDynamicSamplingContextFromSpan,
-  getIsolationScope,
-  hasTracingEnabled,
-  instrumentFetchRequest,
-  setHttpStatus,
-  spanToJSON,
-  spanToTraceHeader,
-  startInactiveSpan,
-} from '@sentry/core';
-import {
-  BAGGAGE_HEADER_NAME,
   addFetchEndInstrumentationHandler,
   addFetchInstrumentationHandler,
   browserPerformanceTimeOrigin,
-  dynamicSamplingContextToSentryBaggageHeader,
-  generateSentryTraceHeader,
+  getActiveSpan,
+  getTraceData,
+  hasTracingEnabled,
+  instrumentFetchRequest,
   parseUrl,
+  setHttpStatus,
+  spanToJSON,
+  startInactiveSpan,
   stringMatchesSomePattern,
 } from '@sentry/core';
-import type { Client, HandlerDataXhr, SentryWrappedXMLHttpRequest, Span } from '@sentry/types';
 import { WINDOW } from '../helpers';
 
 /** Options for Request Instrumentation */
@@ -77,7 +66,9 @@ export interface RequestInstrumentationOptions {
    *
    * Default: true
    */
-  traceXHR: boolean /**
+  traceXHR: boolean;
+
+  /**
    * Flag to disable tracking of long-lived streams, like server-sent events (SSE) via fetch.
    * Do not enable this in case you have live streams or very long running streams.
    *
@@ -85,7 +76,7 @@ export interface RequestInstrumentationOptions {
    * (https://github.com/getsentry/sentry-javascript/issues/13950)
    *
    * Default: false
-   */;
+   */
   trackFetchStreamPerformance: boolean;
 
   /**
@@ -402,12 +393,9 @@ export function xhrCallback(
   xhr.__sentry_xhr_span_id__ = span.spanContext().spanId;
   spans[xhr.__sentry_xhr_span_id__] = span;
 
-  const client = getClient();
-
-  if (xhr.setRequestHeader && shouldAttachHeaders(sentryXhrData.url) && client) {
+  if (shouldAttachHeaders(sentryXhrData.url)) {
     addTracingHeadersToXhrRequest(
       xhr,
-      client,
       // If performance is disabled (TWP) or there's no active root span (pageload/navigation/interaction),
       // we do not want to use the span as base for the trace headers,
       // which means that the headers will be generated from the scope and the sampling decision is deferred
@@ -418,22 +406,12 @@ export function xhrCallback(
   return span;
 }
 
-function addTracingHeadersToXhrRequest(xhr: SentryWrappedXMLHttpRequest, client: Client, span?: Span): void {
-  const scope = getCurrentScope();
-  const isolationScope = getIsolationScope();
-  const { traceId, spanId, sampled, dsc } = {
-    ...isolationScope.getPropagationContext(),
-    ...scope.getPropagationContext(),
-  };
+function addTracingHeadersToXhrRequest(xhr: SentryWrappedXMLHttpRequest, span?: Span): void {
+  const { 'sentry-trace': sentryTrace, baggage } = getTraceData({ span });
 
-  const sentryTraceHeader =
-    span && hasTracingEnabled() ? spanToTraceHeader(span) : generateSentryTraceHeader(traceId, spanId, sampled);
-
-  const sentryBaggageHeader = dynamicSamplingContextToSentryBaggageHeader(
-    dsc || (span ? getDynamicSamplingContextFromSpan(span) : getDynamicSamplingContextFromClient(traceId, client)),
-  );
-
-  setHeaderOnXhr(xhr, sentryTraceHeader, sentryBaggageHeader);
+  if (sentryTrace) {
+    setHeaderOnXhr(xhr, sentryTrace, baggage);
+  }
 }
 
 function setHeaderOnXhr(
@@ -449,7 +427,7 @@ function setHeaderOnXhr(
       // We can therefore simply set a baggage header without checking what was there before
       // https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest/setRequestHeader
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      xhr.setRequestHeader!(BAGGAGE_HEADER_NAME, sentryBaggageHeader);
+      xhr.setRequestHeader!('baggage', sentryBaggageHeader);
     }
   } catch (_) {
     // Error: InvalidStateError: Failed to execute 'setRequestHeader' on 'XMLHttpRequest': The object's state must be OPENED.

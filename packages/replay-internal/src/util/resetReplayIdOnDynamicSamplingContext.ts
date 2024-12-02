@@ -1,5 +1,5 @@
 import { getActiveSpan, getCurrentScope, getDynamicSamplingContextFromSpan } from '@sentry/core';
-import type { DynamicSamplingContext } from '@sentry/types';
+import type { DynamicSamplingContext } from '@sentry/core';
 
 /**
  * Reset the `replay_id` field on the DSC.

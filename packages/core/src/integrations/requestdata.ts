@@ -1,5 +1,5 @@
-import type { IntegrationFn } from '@sentry/types';
 import { defineIntegration } from '../integration';
+import type { IntegrationFn } from '../types-hoist';
 import {
   type AddRequestDataToEventOptions,
   addNormalizedRequestDataToEvent,
@@ -98,6 +98,7 @@ const _requestDataIntegration = ((options: RequestDataIntegrationOptions = {}) =
         return event;
       }
 
+      // eslint-disable-next-line deprecation/deprecation
       return addRequestDataToEvent(event, request, addRequestDataOptions);
     },
   };

@@ -6,7 +6,7 @@ import type {
   EventItem,
   Transport,
   TransportMakeRequestResponse,
-} from '@sentry/types';
+} from '../types-hoist';
 
 import { getEnvelopeEndpointWithUrlEncodedAuth } from '../api';
 import { dsnFromString } from '../utils-hoist/dsn';

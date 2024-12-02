@@ -1,5 +1,6 @@
 import * as os from 'os';
 import { ProxyTracer } from '@opentelemetry/api';
+import * as opentelemetryInstrumentationPackage from '@opentelemetry/instrumentation';
 import {
   SDK_VERSION,
   SessionFlusher,
@@ -9,8 +10,8 @@ import {
   setCurrentClient,
   withIsolationScope,
 } from '@sentry/core';
-import type { Event, EventHint } from '@sentry/types';
-import type { Scope } from '@sentry/types';
+import type { Event, EventHint } from '@sentry/core';
+import type { Scope } from '@sentry/core';
 
 import { setOpenTelemetryContextAsyncContextStrategy } from '@sentry/opentelemetry';
 import { NodeClient, initOpenTelemetry } from '../../src';
@@ -494,6 +495,21 @@ describe('NodeClient', () => {
 
       expect(sendEnvelopeSpy).toHaveBeenCalledTimes(0);
     });
+  });
+
+  it('registers instrumentations provided with `openTelemetryInstrumentations`', () => {
+    const registerInstrumentationsSpy = jest
+      .spyOn(opentelemetryInstrumentationPackage, 'registerInstrumentations')
+      .mockImplementationOnce(() => () => undefined);
+    const instrumentationsArray = ['foobar'] as unknown as opentelemetryInstrumentationPackage.Instrumentation[];
+
+    new NodeClient(getDefaultNodeClientOptions({ openTelemetryInstrumentations: instrumentationsArray }));
+
+    expect(registerInstrumentationsSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        instrumentations: instrumentationsArray,
+      }),
+    );
   });
 });
 

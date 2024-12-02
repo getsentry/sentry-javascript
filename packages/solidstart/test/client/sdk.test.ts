@@ -46,6 +46,7 @@ describe('browserTracingIntegration', () => {
       ?.getOptions()
       .integrations.find(integration => integration.name === 'BrowserTracing');
     expect(browserTracingIntegration).toBeDefined();
+    // @ts-expect-error Non public field
     expect(browserTracingIntegration!.isDefaultInstance).toEqual(true);
   });
 
@@ -76,6 +77,7 @@ describe('browserTracingIntegration', () => {
       ?.getOptions()
       .integrations.find(integration => integration.name === 'BrowserTracing');
     expect(browserTracingIntegration).toBeDefined();
+    // @ts-expect-error Non public field
     expect(browserTracingIntegration!.isDefaultInstance).toBeUndefined();
   });
 });

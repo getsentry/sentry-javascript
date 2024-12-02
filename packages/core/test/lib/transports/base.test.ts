@@ -1,4 +1,4 @@
-import type { AttachmentItem, EventEnvelope, EventItem, TransportMakeRequestResponse } from '@sentry/types';
+import type { AttachmentItem, EventEnvelope, EventItem, TransportMakeRequestResponse } from '../../../src/types-hoist';
 
 import { createTransport } from '../../../src/transports/base';
 import { createEnvelope, serializeEnvelope } from '../../../src/utils-hoist/envelope';

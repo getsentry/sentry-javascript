@@ -14,16 +14,19 @@
  * limitations under the License.
  */
 
-import type { FirstInputPolyfillEntry, NavigationTimingPolyfillEntry } from '../types';
-
 interface PerformanceEntryMap {
   event: PerformanceEventTiming[];
-  paint: PerformancePaintTiming[];
+  'first-input': PerformanceEventTiming[];
   'layout-shift': LayoutShift[];
   'largest-contentful-paint': LargestContentfulPaint[];
-  'first-input': PerformanceEventTiming[] | FirstInputPolyfillEntry[];
-  navigation: PerformanceNavigationTiming[] | NavigationTimingPolyfillEntry[];
+  'long-animation-frame': PerformanceLongAnimationFrameTiming[];
+  paint: PerformancePaintTiming[];
+  navigation: PerformanceNavigationTiming[];
   resource: PerformanceResourceTiming[];
+  // Sentry-specific change:
+  // We add longtask as a supported entry type as we use this in
+  // our `instrumentPerformanceObserver` function also observes 'longtask'
+  // entries.
   longtask: PerformanceEntry[];
 }
 

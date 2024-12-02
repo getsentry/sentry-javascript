@@ -1,4 +1,4 @@
-import type { Event, EventEnvelope, SpanAttributes } from '@sentry/types';
+import type { Event, EventEnvelope, SpanAttributes } from '../../src/types-hoist';
 
 import {
   SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME,
@@ -62,10 +62,10 @@ describe('envelope', () => {
         },
         description: expect.any(String),
         op: expect.any(String),
-        span_id: expect.any(String),
+        span_id: expect.stringMatching(/[a-f0-9]{16}/),
         start_timestamp: expect.any(Number),
         timestamp: expect.any(Number),
-        trace_id: expect.any(String),
+        trace_id: expect.stringMatching(/[a-f0-9]{32}/),
         origin: expect.any(String),
         exclusive_time: expect.any(Number),
         measurements: { inp: { value: expect.any(Number), unit: expect.any(String) } },

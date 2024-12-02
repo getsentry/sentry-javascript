@@ -2,7 +2,7 @@ import * as http from 'http';
 import { createGunzip } from 'zlib';
 import { createTransport } from '@sentry/core';
 import { addItemToEnvelope, createAttachmentEnvelopeItem, createEnvelope, serializeEnvelope } from '@sentry/core';
-import type { EventEnvelope, EventItem } from '@sentry/types';
+import type { EventEnvelope, EventItem } from '@sentry/core';
 
 import { makeNodeTransport } from '../../src/transports';
 

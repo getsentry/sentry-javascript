@@ -1,5 +1,5 @@
 import { consoleSandbox } from '@sentry/core';
-import type { Metrics } from '@sentry/types';
+import type { Metrics } from '@sentry/core';
 
 function warn(): void {
   consoleSandbox(() => {

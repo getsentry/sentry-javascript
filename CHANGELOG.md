@@ -8,11 +8,180 @@
 
 ## Unreleased
 
-### Deprecated `@WithSentry` in `@sentry/nestjs`
-
-The `@WithSentry` decorator was deprecated. Use `@SentryExceptionCaptured` instead. This is a simple renaming and functionality stays identical.
-
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
+
+## 8.41.0
+
+### Important Changes
+
+- **meta(nuxt): Require minimum Nuxt v3.7.0 ([#14473](https://github.com/getsentry/sentry-javascript/pull/14473))**
+
+  We formalized that the Nuxt SDK is at minimum compatible with Nuxt version 3.7.0 and above.
+  Additionally, the SDK requires the implicit `nitropack` dependency to satisfy version `^2.10.0` and `ofetch` to satisfy `^1.4.0`.
+  It is recommended to check your lock-files and manually upgrade these dependencies if they don't match the version ranges.
+
+### Deprecations
+
+We are deprecating a few APIs which will be removed in the next major.
+
+The following deprecations will _potentially_ affect you:
+
+- **feat(core): Update & deprecate `undefined` option handling ([#14450](https://github.com/getsentry/sentry-javascript/pull/14450))**
+
+  In the next major version we will change how passing `undefined` to `tracesSampleRate` / `tracesSampler` / `enableTracing` will behave.
+
+  Currently, doing the following:
+
+  ```ts
+  Sentry.init({
+    tracesSampleRate: undefined,
+  });
+  ```
+
+  Will result in tracing being _enabled_ (although no spans will be generated) because the `tracesSampleRate` key is present in the options object.
+  In the next major version, this behavior will be changed so that passing `undefined` (or rather having a `tracesSampleRate` key) will result in tracing being disabled, the same as not passing the option at all.
+  If you are currently relying on `undefined` being passed, and and thus have tracing enabled, it is recommended to update your config to set e.g. `tracesSampleRate: 0` instead, which will also enable tracing in v9.
+
+  The same applies to `tracesSampler` and `enableTracing`.
+
+- **feat(core): Log warnings when returning `null` in `beforeSendSpan` ([#14433](https://github.com/getsentry/sentry-javascript/pull/14433))**
+
+  Currently, the `beforeSendSpan` option in `Sentry.init()` allows you to drop individual spans from a trace by returning `null` from the hook.
+  Since this API lends itself to creating "gaps" inside traces, we decided to change how this API will work in the next major version.
+
+  With the next major version the `beforeSendSpan` API can only be used to mutate spans, but no longer to drop them.
+  With this release the SDK will warn you if you are using this API to drop spans.
+  Instead, it is recommended to configure instrumentation (i.e. integrations) directly to control what spans are created.
+
+  Additionally, with the next major version, root spans will also be passed to `beforeSendSpan`.
+
+- **feat(utils): Deprecate `@sentry/utils` ([#14431](https://github.com/getsentry/sentry-javascript/pull/14431))**
+
+  With the next major version the `@sentry/utils` package will be merged into the `@sentry/core` package.
+  It is therefore no longer recommended to use the `@sentry/utils` package.
+
+- **feat(vue): Deprecate configuring Vue tracing options anywhere else other than through the `vueIntegration`'s `tracingOptions` option ([#14385](https://github.com/getsentry/sentry-javascript/pull/14385))**
+
+  Currently it is possible to configure tracing options in various places in the Sentry Vue SDK:
+
+  - In `Sentry.init()`
+  - Inside `tracingOptions` in `Sentry.init()`
+  - In the `vueIntegration()` options
+  - Inside `tracingOptions` in the `vueIntegration()` options
+
+  Because this is a bit messy and confusing to document, the only recommended way to configure tracing options going forward is through the `tracingOptions` in the `vueIntegration()`.
+  The other means of configuration will be removed in the next major version of the SDK.
+
+- **feat: Deprecate `registerEsmLoaderHooks.include` and `registerEsmLoaderHooks.exclude` ([#14486](https://github.com/getsentry/sentry-javascript/pull/14486))**
+
+  Currently it is possible to define `registerEsmLoaderHooks.include` and `registerEsmLoaderHooks.exclude` options in `Sentry.init()` to only apply ESM loader hooks to a subset of modules.
+  This API served as an escape hatch in case certain modules are incompatible with ESM loader hooks.
+
+  Since this API was introduced, a way was found to only wrap modules that there exists instrumentation for (meaning a vetted list).
+  To only wrap modules that have instrumentation, it is recommended to instead set `registerEsmLoaderHooks.onlyIncludeInstrumentedModules` to `true`.
+
+  Note that `onlyIncludeInstrumentedModules: true` will become the default behavior in the next major version and the `registerEsmLoaderHooks` will no longer accept fine-grained options.
+
+The following deprecations will _most likely_ not affect you unless you are building an SDK yourself:
+
+- feat(core): Deprecate `arrayify` ([#14405](https://github.com/getsentry/sentry-javascript/pull/14405))
+- feat(core): Deprecate `flatten` ([#14454](https://github.com/getsentry/sentry-javascript/pull/14454))
+- feat(core): Deprecate `urlEncode` ([#14406](https://github.com/getsentry/sentry-javascript/pull/14406))
+- feat(core): Deprecate `validSeverityLevels` ([#14407](https://github.com/getsentry/sentry-javascript/pull/14407))
+- feat(core/utils): Deprecate `getNumberOfUrlSegments` ([#14458](https://github.com/getsentry/sentry-javascript/pull/14458))
+- feat(utils): Deprecate `memoBuilder`, `BAGGAGE_HEADER_NAME`, and `makeFifoCache` ([#14434](https://github.com/getsentry/sentry-javascript/pull/14434))
+- feat(utils/core): Deprecate `addRequestDataToEvent` and `extractRequestData` ([#14430](https://github.com/getsentry/sentry-javascript/pull/14430))
+
+### Other Changes
+
+- feat: Streamline `sentry-trace`, `baggage` and DSC handling ([#14364](https://github.com/getsentry/sentry-javascript/pull/14364))
+- feat(core): Further optimize debug ID parsing ([#14365](https://github.com/getsentry/sentry-javascript/pull/14365))
+- feat(node): Add `openTelemetryInstrumentations` option ([#14484](https://github.com/getsentry/sentry-javascript/pull/14484))
+- feat(nuxt): Add filter for not found source maps (devtools) ([#14437](https://github.com/getsentry/sentry-javascript/pull/14437))
+- feat(nuxt): Only delete public source maps ([#14438](https://github.com/getsentry/sentry-javascript/pull/14438))
+- fix(nextjs): Don't report `NEXT_REDIRECT` from browser ([#14440](https://github.com/getsentry/sentry-javascript/pull/14440))
+- perf(opentelemetry): Bucket spans for cleanup ([#14154](https://github.com/getsentry/sentry-javascript/pull/14154))
+
+Work in this release was contributed by @NEKOYASAN and @fmorett. Thank you for your contributions!
+
+## 8.40.0
+
+### Important Changes
+
+- **feat(angular): Support Angular 19 ([#14398](https://github.com/getsentry/sentry-javascript/pull/14398))**
+
+  The `@sentry/angular` SDK can now be used with Angular 19. If you're upgrading to the new Angular version, you might want to migrate from the now deprecated `APP_INITIALIZER` token to `provideAppInitializer`.
+  In this case, change the Sentry `TraceService` initialization in `app.config.ts`:
+
+  ```ts
+  // Angular 18
+  export const appConfig: ApplicationConfig = {
+    providers: [
+      // other providers
+      {
+        provide: TraceService,
+        deps: [Router],
+      },
+      {
+        provide: APP_INITIALIZER,
+        useFactory: () => () => {},
+        deps: [TraceService],
+        multi: true,
+      },
+    ],
+  };
+
+  // Angular 19
+  export const appConfig: ApplicationConfig = {
+    providers: [
+      // other providers
+      {
+        provide: TraceService,
+        deps: [Router],
+      },
+      provideAppInitializer(() => {
+        inject(TraceService);
+      }),
+    ],
+  };
+  ```
+
+- **feat(core): Deprecate `debugIntegration` and `sessionTimingIntegration` ([#14363](https://github.com/getsentry/sentry-javascript/pull/14363))**
+
+  The `debugIntegration` was deprecated and will be removed in the next major version of the SDK.
+  To log outgoing events, use [Hook Options](https://docs.sentry.io/platforms/javascript/configuration/options/#hooks) (`beforeSend`, `beforeSendTransaction`, ...).
+
+  The `sessionTimingIntegration` was deprecated and will be removed in the next major version of the SDK.
+  To capture session durations alongside events, use [Context](https://docs.sentry.io/platforms/javascript/enriching-events/context/) (`Sentry.setContext()`).
+
+- **feat(nestjs): Deprecate `@WithSentry` in favor of `@SentryExceptionCaptured` ([#14323](https://github.com/getsentry/sentry-javascript/pull/14323))**
+
+  The `@WithSentry` decorator was deprecated. Use `@SentryExceptionCaptured` instead. This is a simple renaming and functionality stays identical.
+
+- **feat(nestjs): Deprecate `SentryTracingInterceptor`, `SentryService`, `SentryGlobalGenericFilter`, `SentryGlobalGraphQLFilter` ([#14371](https://github.com/getsentry/sentry-javascript/pull/14371))**
+
+  The `SentryTracingInterceptor` was deprecated. If you are using `@sentry/nestjs` you can safely remove any references to the `SentryTracingInterceptor`. If you are using another package migrate to `@sentry/nestjs` and remove the `SentryTracingInterceptor` afterwards.
+
+  The `SentryService` was deprecated and its functionality was added to `Sentry.init`. If you are using `@sentry/nestjs` you can safely remove any references to the `SentryService`. If you are using another package migrate to `@sentry/nestjs` and remove the `SentryService` afterwards.
+
+  The `SentryGlobalGenericFilter` was deprecated. Use the `SentryGlobalFilter` instead which is a drop-in replacement.
+
+  The `SentryGlobalGraphQLFilter` was deprecated. Use the `SentryGlobalFilter` instead which is a drop-in replacement.
+
+- **feat(node): Deprecate `nestIntegration` and `setupNestErrorHandler` in favor of using `@sentry/nestjs` ([#14374](https://github.com/getsentry/sentry-javascript/pull/14374))**
+
+  The `nestIntegration` and `setupNestErrorHandler` functions from `@sentry/node` were deprecated and will be removed in the next major version of the SDK. If you're using `@sentry/node` in a NestJS application, we recommend switching to our new dedicated `@sentry/nestjs` package.
+
+### Other Changes
+
+- feat(browser): Send additional LCP timing info ([#14372](https://github.com/getsentry/sentry-javascript/pull/14372))
+- feat(replay): Clear event buffer when full and in buffer mode ([#14078](https://github.com/getsentry/sentry-javascript/pull/14078))
+- feat(core): Ensure `normalizedRequest` on `sdkProcessingMetadata` is merged ([#14315](https://github.com/getsentry/sentry-javascript/pull/14315))
+- feat(core): Hoist everything from `@sentry/utils` into `@sentry/core` ([#14382](https://github.com/getsentry/sentry-javascript/pull/14382))
+- fix(core): Do not throw when trying to fill readonly properties ([#14402](https://github.com/getsentry/sentry-javascript/pull/14402))
+- fix(feedback): Fix `__self` and `__source` attributes on feedback nodes ([#14356](https://github.com/getsentry/sentry-javascript/pull/14356))
+- fix(feedback): Fix non-wrapping form title ([#14355](https://github.com/getsentry/sentry-javascript/pull/14355))
+- fix(nextjs): Update check for not found navigation error ([#14378](https://github.com/getsentry/sentry-javascript/pull/14378))
 
 ## 8.39.0
 

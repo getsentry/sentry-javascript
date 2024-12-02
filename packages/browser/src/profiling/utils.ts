@@ -1,16 +1,16 @@
 /* eslint-disable max-lines */
-
-import { DEFAULT_ENVIRONMENT, getClient, spanToJSON } from '@sentry/core';
+import type { DebugImage, Envelope, Event, EventEnvelope, Profile, Span, ThreadCpuProfile } from '@sentry/core';
 import {
+  DEFAULT_ENVIRONMENT,
   browserPerformanceTimeOrigin,
   forEachEnvelopeItem,
+  getClient,
   getDebugImagesForResources,
   logger,
+  spanToJSON,
   timestampInSeconds,
   uuid4,
 } from '@sentry/core';
-import type { DebugImage, Envelope, Event, EventEnvelope, Profile, Span, ThreadCpuProfile } from '@sentry/types';
-
 import { DEBUG_BUILD } from '../debug-build';
 import { WINDOW } from '../helpers';
 import type { JSSelfProfile, JSSelfProfileStack, JSSelfProfiler, JSSelfProfilerConstructor } from './jsSelfProfiling';
