@@ -1,4 +1,4 @@
-import type { MetricBucketItem } from '@sentry/types';
+import type { MetricBucketItem } from '../types-hoist';
 import type { COUNTER_METRIC_TYPE, DISTRIBUTION_METRIC_TYPE, GAUGE_METRIC_TYPE, SET_METRIC_TYPE } from './constants';
 
 export type MetricType =

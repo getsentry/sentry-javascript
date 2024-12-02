@@ -24,8 +24,7 @@
     "/build"
   ],
   "dependencies": {
-    "@sentry/core": "8.41.0",
-    "@sentry/types": "8.41.0"
+    "@sentry/core": "8.41.0"
   },
   "devDependencies": {
     "@rollup/plugin-typescript": "^11.1.5",

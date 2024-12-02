@@ -13,7 +13,7 @@ import type {
   SdkMetadata,
   SpanItem,
   SpanJSON,
-} from '@sentry/types';
+} from '../types-hoist';
 
 import { dsnToString } from './dsn';
 import { normalize } from './normalize';

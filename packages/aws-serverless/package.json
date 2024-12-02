@@ -69,7 +69,6 @@
     "@opentelemetry/instrumentation-aws-sdk": "0.45.0",
     "@sentry/core": "8.41.0",
     "@sentry/node": "8.41.0",
-    "@sentry/types": "8.41.0",
     "@types/aws-lambda": "^8.10.62"
   },
   "devDependencies": {

@@ -1,7 +1,7 @@
 import type { IncomingMessage } from 'http';
-import type { Event, EventProcessor } from '@sentry/types';
 import type { RequestDataIntegrationOptions } from '../../../src';
 import { requestDataIntegration, setCurrentClient } from '../../../src';
+import type { Event, EventProcessor } from '../../../src/types-hoist';
 
 import { TestClient, getDefaultTestClientOptions } from '../../mocks/client';
 

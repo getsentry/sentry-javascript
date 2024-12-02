@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 
-import type { Client, ConsoleLevel, Event } from '@sentry/types';
 import * as CurrentScopes from '../../../src/currentScopes';
 import * as SentryCore from '../../../src/exports';
+import type { Client, ConsoleLevel, Event } from '../../../src/types-hoist';
 
 import { captureConsoleIntegration } from '../../../src/integrations/captureconsole';
 import { addConsoleInstrumentationHandler } from '../../../src/utils-hoist/instrument/console';

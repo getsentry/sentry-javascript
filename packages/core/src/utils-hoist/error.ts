@@ -1,4 +1,4 @@
-import type { ConsoleLevel } from '@sentry/types';
+import type { ConsoleLevel } from '../types-hoist';
 
 /** An error emitted by Sentry SDKs and related utilities. */
 export class SentryError extends Error {

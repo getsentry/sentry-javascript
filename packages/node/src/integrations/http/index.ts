@@ -2,11 +2,9 @@ import type { ClientRequest, IncomingMessage, RequestOptions, ServerResponse } f
 import { diag } from '@opentelemetry/api';
 import type { HttpInstrumentationConfig } from '@opentelemetry/instrumentation-http';
 import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
-
+import type { IntegrationFn, Span } from '@sentry/core';
 import { defineIntegration } from '@sentry/core';
 import { getClient } from '@sentry/opentelemetry';
-import type { IntegrationFn, Span } from '@sentry/types';
-
 import { generateInstrumentOnce } from '../../otel/instrument';
 import type { NodeClient } from '../../sdk/client';
 import type { HTTPModuleRequestIncomingMessage } from '../../transports/http-module';

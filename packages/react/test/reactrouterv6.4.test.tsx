@@ -94,6 +94,7 @@ describe('reactRouterV6BrowserTracingIntegration (v6.4)', () => {
           matchRoutes,
         }),
       );
+      // eslint-disable-next-line deprecation/deprecation
       const sentryCreateBrowserRouter = wrapCreateBrowserRouter(createMemoryRouter as CreateRouterFunction);
 
       const router = sentryCreateBrowserRouter(
@@ -135,6 +136,7 @@ describe('reactRouterV6BrowserTracingIntegration (v6.4)', () => {
           matchRoutes,
         }),
       );
+      // eslint-disable-next-line deprecation/deprecation
       const sentryCreateBrowserRouter = wrapCreateBrowserRouter(createMemoryRouter as CreateRouterFunction);
 
       const router = sentryCreateBrowserRouter(
@@ -168,6 +170,7 @@ describe('reactRouterV6BrowserTracingIntegration (v6.4)', () => {
           matchRoutes,
         }),
       );
+      // eslint-disable-next-line deprecation/deprecation
       const sentryCreateBrowserRouter = wrapCreateBrowserRouter(createMemoryRouter as CreateRouterFunction);
 
       const router = sentryCreateBrowserRouter(
@@ -213,6 +216,7 @@ describe('reactRouterV6BrowserTracingIntegration (v6.4)', () => {
           matchRoutes,
         }),
       );
+      // eslint-disable-next-line deprecation/deprecation
       const sentryCreateBrowserRouter = wrapCreateBrowserRouter(createMemoryRouter as CreateRouterFunction);
 
       const router = sentryCreateBrowserRouter(
@@ -264,6 +268,7 @@ describe('reactRouterV6BrowserTracingIntegration (v6.4)', () => {
           matchRoutes,
         }),
       );
+      // eslint-disable-next-line deprecation/deprecation
       const sentryCreateBrowserRouter = wrapCreateBrowserRouter(createMemoryRouter as CreateRouterFunction);
 
       const router = sentryCreateBrowserRouter(
@@ -315,6 +320,7 @@ describe('reactRouterV6BrowserTracingIntegration (v6.4)', () => {
           matchRoutes,
         }),
       );
+      // eslint-disable-next-line deprecation/deprecation
       const sentryCreateBrowserRouter = wrapCreateBrowserRouter(createMemoryRouter as CreateRouterFunction);
 
       const router = sentryCreateBrowserRouter(
@@ -378,6 +384,7 @@ describe('reactRouterV6BrowserTracingIntegration (v6.4)', () => {
           matchRoutes,
         }),
       );
+      // eslint-disable-next-line deprecation/deprecation
       const sentryCreateBrowserRouter = wrapCreateBrowserRouter(createMemoryRouter as CreateRouterFunction);
 
       const router = sentryCreateBrowserRouter(
@@ -419,6 +426,7 @@ describe('reactRouterV6BrowserTracingIntegration (v6.4)', () => {
           matchRoutes,
         }),
       );
+      // eslint-disable-next-line deprecation/deprecation
       const sentryCreateBrowserRouter = wrapCreateBrowserRouter(createMemoryRouter as CreateRouterFunction);
 
       const router = sentryCreateBrowserRouter(
@@ -471,6 +479,7 @@ describe('reactRouterV6BrowserTracingIntegration (v6.4)', () => {
           matchRoutes,
         }),
       );
+      // eslint-disable-next-line deprecation/deprecation
       const sentryCreateBrowserRouter = wrapCreateBrowserRouter(createMemoryRouter as CreateRouterFunction);
 
       const router = sentryCreateBrowserRouter(
@@ -528,6 +537,7 @@ describe('reactRouterV6BrowserTracingIntegration (v6.4)', () => {
           stripBasename: true,
         }),
       );
+      // eslint-disable-next-line deprecation/deprecation
       const sentryCreateBrowserRouter = wrapCreateBrowserRouter(createMemoryRouter as CreateRouterFunction);
 
       const router = sentryCreateBrowserRouter(
@@ -585,6 +595,7 @@ describe('reactRouterV6BrowserTracingIntegration (v6.4)', () => {
           stripBasename: true,
         }),
       );
+      // eslint-disable-next-line deprecation/deprecation
       const sentryCreateBrowserRouter = wrapCreateBrowserRouter(createMemoryRouter as CreateRouterFunction);
 
       const router = sentryCreateBrowserRouter(
@@ -637,6 +648,7 @@ describe('reactRouterV6BrowserTracingIntegration (v6.4)', () => {
           matchRoutes,
         }),
       );
+      // eslint-disable-next-line deprecation/deprecation
       const sentryCreateBrowserRouter = wrapCreateBrowserRouter(createMemoryRouter as CreateRouterFunction);
 
       const router = sentryCreateBrowserRouter(

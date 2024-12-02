@@ -7,7 +7,7 @@ import type {
   SerializedSession,
   SessionAggregates,
   TransactionEvent,
-} from '@sentry/types';
+} from '@sentry/core';
 
 /**
  * Asserts against a Sentry Event ignoring non-deterministic properties

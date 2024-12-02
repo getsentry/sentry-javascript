@@ -1,4 +1,3 @@
-import type { Span, SpanAttributes, SpanStatus, SpanTimeInput } from '@sentry/types';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -13,6 +12,7 @@ import {
   startSpan,
   timestampInSeconds,
 } from '../../../src';
+import type { Span, SpanAttributes, SpanStatus, SpanTimeInput } from '../../../src/types-hoist';
 import type { OpenTelemetrySdkTraceBaseSpan } from '../../../src/utils/spanUtils';
 import { getRootSpan, spanIsSampled, spanTimeInputToSeconds, spanToJSON } from '../../../src/utils/spanUtils';
 import { TestClient, getDefaultTestClientOptions } from '../../mocks/client';

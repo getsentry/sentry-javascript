@@ -1,6 +1,5 @@
-import type { Event, EventHint, EventProcessor } from '@sentry/types';
-
 import { DEBUG_BUILD } from './debug-build';
+import type { Event, EventHint, EventProcessor } from './types-hoist';
 import { isThenable } from './utils-hoist/is';
 import { logger } from './utils-hoist/logger';
 import { SyncPromise } from './utils-hoist/syncpromise';

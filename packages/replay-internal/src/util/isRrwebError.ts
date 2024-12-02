@@ -1,4 +1,4 @@
-import type { Event, EventHint } from '@sentry/types';
+import type { Event, EventHint } from '@sentry/core';
 
 /**
  * Returns true if we think the given event is an error originating inside of rrweb.

@@ -10,7 +10,7 @@ import type {
   EventItem,
   InternalBaseTransportOptions,
   TransportMakeRequestResponse,
-} from '@sentry/types';
+} from '@sentry/core';
 
 import { createStore, makeBrowserOfflineTransport, push, shift, unshift } from '../../src/transports/offline';
 

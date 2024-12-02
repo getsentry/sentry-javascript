@@ -7,9 +7,9 @@ jest.mock('worker_threads', () => {
 });
 jest.setTimeout(10000);
 
+import type { Transport } from '@sentry/core';
+import { type ProfilingIntegration } from '@sentry/core';
 import * as Sentry from '@sentry/node';
-import type { Transport } from '@sentry/types';
-import { type ProfilingIntegration } from '@sentry/types';
 import { _nodeProfilingIntegration } from '../src/integration';
 
 function makeContinuousProfilingClient(): [Sentry.NodeClient, Transport] {

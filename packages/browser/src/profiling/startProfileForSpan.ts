@@ -1,6 +1,6 @@
 import { getCurrentScope, spanToJSON } from '@sentry/core';
 import { logger, timestampInSeconds, uuid4 } from '@sentry/core';
-import type { Span } from '@sentry/types';
+import type { Span } from '@sentry/core';
 
 import { DEBUG_BUILD } from '../debug-build';
 import { WINDOW } from '../helpers';

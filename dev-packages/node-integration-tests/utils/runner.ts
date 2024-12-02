@@ -13,7 +13,7 @@ import type {
   SerializedSession,
   SessionAggregates,
   TransactionEvent,
-} from '@sentry/types';
+} from '@sentry/core';
 import axios from 'axios';
 import {
   assertEnvelopeHeader,

@@ -20,7 +20,7 @@ import {
   suppressTracing,
   withScope,
 } from '@sentry/core';
-import type { Event, Scope } from '@sentry/types';
+import type { Event, Scope } from '@sentry/core';
 
 import { SEMATTRS_HTTP_METHOD } from '@opentelemetry/semantic-conventions';
 import { continueTrace, startInactiveSpan, startSpan, startSpanManual } from '../src/trace';
@@ -391,8 +391,8 @@ describe('trace', () => {
           'sentry.sample_rate': 1,
           'sentry.origin': 'manual',
         },
-        span_id: expect.any(String),
-        trace_id: expect.any(String),
+        span_id: expect.stringMatching(/[a-f0-9]{16}/),
+        trace_id: expect.stringMatching(/[a-f0-9]{32}/),
         origin: 'manual',
         status: 'ok',
       });
@@ -416,7 +416,7 @@ describe('trace', () => {
           'sentry.sample_rate': 1,
         },
         parent_span_id: innerParentSpanId,
-        span_id: expect.any(String),
+        span_id: expect.stringMatching(/[a-f0-9]{16}/),
         trace_id: outerTraceId,
         origin: 'manual',
         status: 'ok',
@@ -651,8 +651,8 @@ describe('trace', () => {
           'sentry.sample_rate': 1,
           'sentry.origin': 'manual',
         },
-        span_id: expect.any(String),
-        trace_id: expect.any(String),
+        span_id: expect.stringMatching(/[a-f0-9]{16}/),
+        trace_id: expect.stringMatching(/[a-f0-9]{32}/),
         origin: 'manual',
         status: 'ok',
       });
@@ -676,7 +676,7 @@ describe('trace', () => {
           'sentry.sample_rate': 1,
         },
         parent_span_id: innerParentSpanId,
-        span_id: expect.any(String),
+        span_id: expect.stringMatching(/[a-f0-9]{16}/),
         trace_id: outerTraceId,
         origin: 'manual',
         status: 'ok',
@@ -948,8 +948,8 @@ describe('trace', () => {
           'sentry.sample_rate': 1,
           'sentry.origin': 'manual',
         },
-        span_id: expect.any(String),
-        trace_id: expect.any(String),
+        span_id: expect.stringMatching(/[a-f0-9]{16}/),
+        trace_id: expect.stringMatching(/[a-f0-9]{32}/),
         origin: 'manual',
         status: 'ok',
       });
@@ -973,7 +973,7 @@ describe('trace', () => {
           'sentry.sample_rate': 1,
         },
         parent_span_id: innerParentSpanId,
-        span_id: expect.any(String),
+        span_id: expect.stringMatching(/[a-f0-9]{16}/),
         trace_id: outerTraceId,
         origin: 'manual',
         status: 'ok',
@@ -1450,6 +1450,27 @@ describe('trace (sampling)', () => {
       },
     });
   });
+
+  it('ignores parent span context if it is invalid', () => {
+    mockSdkInit({ tracesSampleRate: 1 });
+    const traceId = 'd4cda95b652f4a1592b449d5929fda1b';
+
+    const spanContext = {
+      traceId,
+      spanId: 'INVALID',
+      traceFlags: TraceFlags.SAMPLED,
+    };
+
+    context.with(trace.setSpanContext(ROOT_CONTEXT, spanContext), () => {
+      startSpan({ name: 'outer' }, span => {
+        expect(span.isRecording()).toBe(true);
+        expect(span.spanContext().spanId).not.toBe('INVALID');
+        expect(span.spanContext().spanId).toMatch(/[a-f0-9]{16}/);
+        expect(span.spanContext().traceId).not.toBe(traceId);
+        expect(span.spanContext().traceId).toMatch(/[a-f0-9]{32}/);
+      });
+    });
+  });
 });
 
 describe('HTTP methods (sampling)', () => {
@@ -1522,7 +1543,7 @@ describe('continueTrace', () => {
       expect(span).toBeDefined();
       expect(spanToJSON(span)).toEqual({
         span_id: '',
-        trace_id: expect.any(String),
+        trace_id: expect.stringMatching(/[a-f0-9]{32}/),
       });
       expect(getSamplingDecision(span.spanContext())).toBe(undefined);
       expect(spanIsSampled(span)).toBe(false);

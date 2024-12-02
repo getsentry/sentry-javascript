@@ -13,7 +13,7 @@ import type {
   SessionContext,
   SeverityLevel,
   User,
-} from '@sentry/types';
+} from './types-hoist';
 
 import { DEFAULT_ENVIRONMENT } from './constants';
 import { getClient, getCurrentScope, getIsolationScope, withIsolationScope } from './currentScopes';

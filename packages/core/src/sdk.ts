@@ -1,5 +1,5 @@
-import type { Client, ClientOptions } from '@sentry/types';
 import { getCurrentScope } from './currentScopes';
+import type { Client, ClientOptions } from './types-hoist';
 
 import { DEBUG_BUILD } from './debug-build';
 import { consoleSandbox, logger } from './utils-hoist/logger';

@@ -3,9 +3,9 @@ import { AddressInfo } from 'net';
 import * as path from 'path';
 import { createRequestHandler } from '@remix-run/express';
 import { logger } from '@sentry/core';
+import type { EnvelopeItemType, Event, TransactionEvent } from '@sentry/core';
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import * as Sentry from '@sentry/node';
-import type { EnvelopeItemType, Event, TransactionEvent } from '@sentry/types';
 import type { AxiosRequestConfig } from 'axios';
 import axios from 'axios';
 import express from 'express';

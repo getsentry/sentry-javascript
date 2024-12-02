@@ -1,6 +1,6 @@
 /**
  * Options added to the Browser SDK's init options that are specific for Replay.
- * Note: This type was moved to @sentry/types to avoid a circular dependency between Browser and Replay.
+ * Note: This type was moved to @sentry/core to avoid a circular dependency between Browser and Replay.
  */
 export type BrowserClientReplayOptions = {
   /**

@@ -1,21 +1,19 @@
 import { Session as InspectorSession } from 'node:inspector';
 import { parentPort, workerData } from 'node:worker_threads';
+import type { DebugImage, Event, ScopeData, Session, StackFrame } from '@sentry/core';
 import {
   applyScopeDataToEvent,
+  callFrameToStackFrame,
   createEventEnvelope,
   createSessionEnvelope,
   getEnvelopeEndpointWithUrlEncodedAuth,
   makeSession,
-  updateSession,
-} from '@sentry/core';
-import {
-  callFrameToStackFrame,
   normalizeUrlToBase,
   stripSentryFramesAndReverse,
+  updateSession,
   uuid4,
   watchdogTimer,
 } from '@sentry/core';
-import type { DebugImage, Event, ScopeData, Session, StackFrame } from '@sentry/types';
 
 import { makeNodeTransport } from '../../transports';
 import { createGetModuleFromFilename } from '../../utils/module';

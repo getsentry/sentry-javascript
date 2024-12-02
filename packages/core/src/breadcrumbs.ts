@@ -1,5 +1,5 @@
-import type { Breadcrumb, BreadcrumbHint } from '@sentry/types';
 import { getClient, getIsolationScope } from './currentScopes';
+import type { Breadcrumb, BreadcrumbHint } from './types-hoist';
 import { consoleSandbox } from './utils-hoist/logger';
 import { dateTimestampInSeconds } from './utils-hoist/time';
 

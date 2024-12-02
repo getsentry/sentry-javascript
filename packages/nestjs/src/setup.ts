@@ -3,12 +3,13 @@ import type {
   CallHandler,
   DynamicModule,
   ExecutionContext,
+  HttpServer,
   NestInterceptor,
   OnModuleInit,
 } from '@nestjs/common';
 import { Catch, Global, HttpException, Injectable, Logger, Module } from '@nestjs/common';
-import type { HttpServer } from '@nestjs/common';
 import { APP_INTERCEPTOR, BaseExceptionFilter } from '@nestjs/core';
+import type { Span } from '@sentry/core';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -16,10 +17,9 @@ import {
   getClient,
   getDefaultIsolationScope,
   getIsolationScope,
+  logger,
   spanToJSON,
 } from '@sentry/core';
-import { logger } from '@sentry/core';
-import type { Span } from '@sentry/types';
 import type { Observable } from 'rxjs';
 import { isExpectedError } from './helpers';
 
