@@ -32,5 +32,4 @@ Sentry.startSpan({ name: 'Precompile test' }, async () => {
 });
 
 assertUnpatechedRequire();
-
 console.log('✅ Require is not patched');
