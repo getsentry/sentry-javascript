@@ -33,6 +33,7 @@ sentryTest('logs debug messages correctly', async ({ getLocalTestUrl, page }) =>
           'Sentry Logger [log]: Integration installed: LinkedErrors',
           'Sentry Logger [log]: Integration installed: Dedupe',
           'Sentry Logger [log]: Integration installed: HttpContext',
+          'Sentry Logger [log]: Integration installed: BrowserSession',
           'Sentry Logger [warn]: Discarded session because of missing or non-string release',
           'test log',
         ]
