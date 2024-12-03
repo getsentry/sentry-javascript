@@ -3,12 +3,18 @@ import { captureSession, defineIntegration, logger, startSession } from '@sentry
 import { DEBUG_BUILD } from '../debug-build';
 import { WINDOW } from '../helpers';
 
+/**
+ * When added, automatically creates sessions which allow you to track adoption and crashes (crash free rate) in your Releases in Sentry.
+ *
+ * Note: In order for session tracking to work, you need to set up Releases: https://docs.sentry.io/product/releases/
+ */
 export const browserSessionIntegration = defineIntegration(() => {
   return {
-    name: 'Session',
+    name: 'BrowserSession',
     setupOnce() {
       if (typeof WINDOW.document === 'undefined') {
-        DEBUG_BUILD && logger.warn('Using the sessionIntegration in non-browser environments is not supported.');
+        DEBUG_BUILD &&
+          logger.warn('Using the `browserSessionIntegration` in non-browser environments is not supported.');
         return;
       }
 
