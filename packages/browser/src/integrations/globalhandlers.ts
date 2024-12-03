@@ -155,11 +155,11 @@ function _eventFromRejectionWithPrimitive(reason: Primitive): Event {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function _enhanceEventWithInitialFrame(event: Event, url: any, line: any, column: any): Event {
-  const frames: StackFrame[] = [];
+  let frames: StackFrame[] = [];
   try {
     // @ts-expect-error - this is fine and done to reduce bundle size
     // we're catching the error if any of the properties in the chain is undefined
-    frames.push(event.exception.values[0].stacktrace.frames);
+    frames = event.exception.values[0].stacktrace.frames;
   } catch {
     // ignored
   }
