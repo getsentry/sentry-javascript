@@ -1,5 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import { consoleSandbox } from '@sentry/core';
 
 /**
  *  Find the default SDK init file for the given type (client or server).
