@@ -1,4 +1,4 @@
-import type { MeasurementUnit, MetricBucketItem, Primitive } from '@sentry/types';
+import type { MeasurementUnit, MetricBucketItem, Primitive } from '../types-hoist';
 import { dropUndefinedKeys } from '../utils-hoist/object';
 import type { MetricType } from './types';
 

@@ -16,7 +16,6 @@
     "@sentry/core": "latest || *",
     "@sentry/node": "latest || *",
     "@sentry/opentelemetry": "latest || *",
-    "@sentry/types": "latest || *",
     "@types/express": "4.17.17",
     "@types/node": "18.15.1",
     "express": "4.19.2",

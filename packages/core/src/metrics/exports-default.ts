@@ -4,7 +4,7 @@ import type {
   MetricData,
   Metrics,
   MetricsAggregator as MetricsAggregatorInterface,
-} from '@sentry/types';
+} from '../types-hoist';
 import { MetricsAggregator } from './aggregator';
 import { metrics as metricsCore } from './exports';
 

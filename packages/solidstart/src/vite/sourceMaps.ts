@@ -15,18 +15,22 @@ export function makeSourceMapsVitePlugin(options: SentrySolidStartPluginOptions)
       apply: 'build',
       enforce: 'post',
       config(config) {
-        const sourceMapsPreviouslyNotEnabled = !config.build?.sourcemap;
-        if (debug && sourceMapsPreviouslyNotEnabled) {
+        // TODO(v9): Remove this warning
+        if (config.build?.sourcemap === false) {
           // eslint-disable-next-line no-console
-          console.log('[Sentry SolidStart Plugin] Enabling source map generation');
-          if (!sourceMapsUploadOptions?.filesToDeleteAfterUpload) {
-            // eslint-disable-next-line no-console
-            console.warn(
-              `[Sentry SolidStart PLugin] We recommend setting the \`sourceMapsUploadOptions.filesToDeleteAfterUpload\` option to clean up source maps after uploading.
-[Sentry SolidStart Plugin] Otherwise, source maps might be deployed to production, depending on your configuration`,
-            );
-          }
+          console.warn(
+            "[Sentry SolidStart Plugin] You disabled sourcemaps with the `build.sourcemap` option. Currently, the Sentry SDK will override this option to generate sourcemaps. In future versions, the Sentry SDK will not override the `build.sourcemap` option if you explicitly disable it. If you want to generate and upload sourcemaps please set the `build.sourcemap` option to 'hidden' or undefined.",
+          );
         }
+
+        // TODO(v9): Remove this warning and print warning in case source map deletion is auto configured
+        if (!sourceMapsUploadOptions?.filesToDeleteAfterUpload) {
+          // eslint-disable-next-line no-console
+          console.warn(
+            "[Sentry SolidStart Plugin] The Sentry SDK has enabled source map generation for your SolidStart app. If you don't want to serve Source Maps to your users, either configure the `filesToDeleteAfterUpload` option with a glob to remove source maps after uploading them, or manually delete the source maps after the build. In future Sentry SDK versions source maps will be deleted automatically after uploading them.",
+          );
+        }
+
         return {
           ...config,
           build: {

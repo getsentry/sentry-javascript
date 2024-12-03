@@ -7,11 +7,9 @@ import {
   ATTR_SERVICE_VERSION,
   SEMRESATTRS_SERVICE_NAMESPACE,
 } from '@opentelemetry/semantic-conventions';
-import { SDK_VERSION } from '@sentry/core';
-import { GLOBAL_OBJ, consoleSandbox, logger } from '@sentry/core';
+import { GLOBAL_OBJ, SDK_VERSION, consoleSandbox, logger } from '@sentry/core';
 import { SentryPropagator, SentrySampler, SentrySpanProcessor } from '@sentry/opentelemetry';
 import { createAddHookMessageChannel } from 'import-in-the-middle';
-
 import { getOpenTelemetryInstrumentationToPreload } from '../integrations/tracing';
 import { SentryContextManager } from '../otel/contextManager';
 import type { EsmLoaderHookOptions } from '../types';
@@ -42,10 +40,12 @@ interface RegisterOptions {
 }
 
 function getRegisterOptions(esmHookConfig?: EsmLoaderHookOptions): RegisterOptions {
+  // TODO(v9): Make onlyIncludeInstrumentedModules: true the default behavior.
   if (esmHookConfig?.onlyIncludeInstrumentedModules) {
     const { addHookMessagePort } = createAddHookMessageChannel();
     // If the user supplied include, we need to use that as a starting point or use an empty array to ensure no modules
     // are wrapped if they are not hooked
+    // eslint-disable-next-line deprecation/deprecation
     return { data: { addHookMessagePort, include: esmHookConfig.include || [] }, transferList: [addHookMessagePort] };
   }
 
@@ -75,7 +75,7 @@ export function maybeInitializeEsmLoader(esmHookConfig?: EsmLoaderHookOptions): 
     consoleSandbox(() => {
       // eslint-disable-next-line no-console
       console.warn(
-        '[Sentry] You are using Node.js in ESM mode ("import syntax"). The Sentry Node.js SDK is not compatible with ESM in Node.js versions before 18.19.0 or before 20.6.0. Please either build your application with CommonJS ("require() syntax"), or use version 7.x of the Sentry Node.js SDK.',
+        '[Sentry] You are using Node.js in ESM mode ("import syntax"). The Sentry Node.js SDK is not compatible with ESM in Node.js versions before 18.19.0 or before 20.6.0. Please either build your application with CommonJS ("require() syntax"), or upgrade your Node.js version.',
       );
     });
   }

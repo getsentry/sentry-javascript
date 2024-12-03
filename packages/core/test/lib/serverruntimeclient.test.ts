@@ -1,4 +1,4 @@
-import type { Event, EventHint } from '@sentry/types';
+import type { Event, EventHint } from '../../src/types-hoist';
 
 import { createTransport } from '../../src';
 import type { ServerRuntimeClientOptions } from '../../src/server-runtime-client';

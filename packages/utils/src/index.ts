@@ -517,6 +517,7 @@ export const watchdogTimer = watchdogTimer_imported;
 export const LRUMap = LRUMap_imported;
 
 /** @deprecated Import from `@sentry/core` instead. */
+// eslint-disable-next-line deprecation/deprecation
 export const generatePropagationContext = generatePropagationContext_imported;
 
 /** @deprecated Import from `@sentry/core` instead. */
@@ -592,6 +593,7 @@ export const supportsReferrerPolicy = supportsReferrerPolicy_imported;
 export const supportsReportingObserver = supportsReportingObserver_imported;
 
 /** @deprecated Import from `@sentry/core` instead. */
+// eslint-disable-next-line deprecation/deprecation
 export const _browserPerformanceTimeOriginMode = _browserPerformanceTimeOriginMode_imported;
 
 /** @deprecated Import from `@sentry/core` instead. */
@@ -601,6 +603,7 @@ export const browserPerformanceTimeOrigin = browserPerformanceTimeOrigin_importe
 export const supportsHistory = supportsHistory_imported;
 
 /** @deprecated Import from `@sentry/core` instead. */
+// eslint-disable-next-line deprecation/deprecation
 export const dynamicRequire = dynamicRequire_imported;
 
 /** @deprecated Import from `@sentry/core` instead. */
@@ -666,6 +669,7 @@ export const _optionalChainDelete = _optionalChainDelete_imported;
 export const BAGGAGE_HEADER_NAME = BAGGAGE_HEADER_NAME_imported;
 
 /** @deprecated Import from `@sentry/core` instead. */
+// eslint-disable-next-line deprecation/deprecation
 export const getNumberOfUrlSegments = getNumberOfUrlSegments_imported;
 
 /** @deprecated Import from `@sentry/core` instead. */

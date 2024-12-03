@@ -20,13 +20,13 @@ import type {
   Session,
   SeverityLevel,
   User,
-} from '@sentry/types';
+} from './types-hoist';
 
 import { updateSession } from './session';
 import { isPlainObject } from './utils-hoist/is';
 import { logger } from './utils-hoist/logger';
 import { uuid4 } from './utils-hoist/misc';
-import { generatePropagationContext } from './utils-hoist/propagationContext';
+import { generateSpanId, generateTraceId } from './utils-hoist/propagationContext';
 import { dateTimestampInSeconds } from './utils-hoist/time';
 import { merge } from './utils/merge';
 import { _getSpanForScope, _setSpanForScope } from './utils/spanOnScope';
@@ -115,7 +115,10 @@ class ScopeClass implements ScopeInterface {
     this._extra = {};
     this._contexts = {};
     this._sdkProcessingMetadata = {};
-    this._propagationContext = generatePropagationContext();
+    this._propagationContext = {
+      traceId: generateTraceId(),
+      spanId: generateSpanId(),
+    };
   }
 
   /**
@@ -398,7 +401,7 @@ class ScopeClass implements ScopeInterface {
     this._session = undefined;
     _setSpanForScope(this, undefined);
     this._attachments = [];
-    this._propagationContext = generatePropagationContext();
+    this.setPropagationContext({ traceId: generateTraceId() });
 
     this._notifyScopeListeners();
     return this;
@@ -491,8 +494,14 @@ class ScopeClass implements ScopeInterface {
   /**
    * @inheritDoc
    */
-  public setPropagationContext(context: PropagationContext): this {
-    this._propagationContext = context;
+  public setPropagationContext(
+    context: Omit<PropagationContext, 'spanId'> & Partial<Pick<PropagationContext, 'spanId'>>,
+  ): this {
+    this._propagationContext = {
+      // eslint-disable-next-line deprecation/deprecation
+      spanId: generateSpanId(),
+      ...context,
+    };
     return this;
   }
 
@@ -590,10 +599,6 @@ class ScopeClass implements ScopeInterface {
     }
   }
 }
-
-// NOTE: By exporting this here as const & type, instead of doing `export class`,
-// We can get the correct class when importing from `@sentry/core`, but the original type (from `@sentry/types`)
-// This is helpful for interop, e.g. when doing `import type { Scope } from '@sentry/node';` (which re-exports this)
 
 /**
  * Holds additional event information.

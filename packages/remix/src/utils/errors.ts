@@ -9,7 +9,7 @@ import {
   objectify,
   winterCGRequestToRequestData,
 } from '@sentry/core';
-import type { RequestEventData, Span } from '@sentry/types';
+import type { RequestEventData, Span } from '@sentry/core';
 import { DEBUG_BUILD } from './debug-build';
 import type { RemixOptions } from './remixOptions';
 import { storeFormDataKeys } from './utils';

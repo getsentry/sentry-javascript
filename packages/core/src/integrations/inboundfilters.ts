@@ -1,4 +1,4 @@
-import type { Event, IntegrationFn, StackFrame } from '@sentry/types';
+import type { Event, IntegrationFn, StackFrame } from '../types-hoist';
 
 import { DEBUG_BUILD } from '../debug-build';
 import { defineIntegration } from '../integration';

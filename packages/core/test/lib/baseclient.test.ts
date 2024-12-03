@@ -1,5 +1,5 @@
 import { SentryError, SyncPromise, dsnToString } from '@sentry/core';
-import type { Client, Envelope, ErrorEvent, Event, TransactionEvent } from '@sentry/types';
+import type { Client, Envelope, ErrorEvent, Event, TransactionEvent } from '../../src/types-hoist';
 
 import * as loggerModule from '../../src/utils-hoist/logger';
 import * as miscModule from '../../src/utils-hoist/misc';
@@ -29,7 +29,7 @@ declare var global: any;
 const clientEventFromException = jest.spyOn(TestClient.prototype, 'eventFromException');
 const clientProcess = jest.spyOn(TestClient.prototype as any, '_process');
 
-jest.spyOn(miscModule, 'uuid4').mockImplementation(() => '42');
+jest.spyOn(miscModule, 'uuid4').mockImplementation(() => '12312012123120121231201212312012');
 jest.spyOn(loggerModule, 'consoleSandbox').mockImplementation(cb => cb());
 jest.spyOn(stringModule, 'truncate').mockImplementation(str => str);
 jest.spyOn(timeModule, 'dateTimestampInSeconds').mockImplementation(() => 2020);
@@ -74,6 +74,56 @@ describe('BaseClient', () => {
 
       expect(client.getDsn()).toBeUndefined();
       expect(client.getTransport()).toBeUndefined();
+    });
+  });
+
+  describe('constructor() / warnings', () => {
+    test('does not warn for defaults', () => {
+      const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
+      new TestClient(options);
+
+      expect(consoleWarnSpy).toHaveBeenCalledTimes(0);
+      consoleWarnSpy.mockRestore();
+    });
+
+    describe.each(['tracesSampleRate', 'tracesSampler', 'enableTracing'])('%s', key => {
+      it('warns when set to undefined', () => {
+        const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+        const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, [key]: undefined });
+        new TestClient(options);
+
+        expect(consoleWarnSpy).toHaveBeenCalledTimes(1);
+        expect(consoleWarnSpy).toBeCalledWith(
+          `[Sentry] Deprecation warning: \`${key}\` is set to undefined, which leads to tracing being enabled. In v9, a value of \`undefined\` will result in tracing being disabled.`,
+        );
+        consoleWarnSpy.mockRestore();
+      });
+
+      it('warns when set to null', () => {
+        const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+        const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, [key]: null });
+        new TestClient(options);
+
+        expect(consoleWarnSpy).toHaveBeenCalledTimes(1);
+        expect(consoleWarnSpy).toBeCalledWith(
+          `[Sentry] Deprecation warning: \`${key}\` is set to undefined, which leads to tracing being enabled. In v9, a value of \`undefined\` will result in tracing being disabled.`,
+        );
+        consoleWarnSpy.mockRestore();
+      });
+
+      it('does not warn when set to 0', () => {
+        const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+        const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, [key]: 0 });
+        new TestClient(options);
+
+        expect(consoleWarnSpy).toHaveBeenCalledTimes(0);
+        consoleWarnSpy.mockRestore();
+      });
     });
   });
 
@@ -215,7 +265,7 @@ describe('BaseClient', () => {
       expect(TestClient.instance!.event).toEqual(
         expect.objectContaining({
           environment: 'production',
-          event_id: '42',
+          event_id: '12312012123120121231201212312012',
           exception: {
             values: [
               {
@@ -328,7 +378,7 @@ describe('BaseClient', () => {
       expect(TestClient.instance!.event).toEqual(
         expect.objectContaining({
           environment: 'production',
-          event_id: '42',
+          event_id: '12312012123120121231201212312012',
           level: 'info',
           message: 'test message',
           timestamp: 2020,
@@ -438,7 +488,7 @@ describe('BaseClient', () => {
       expect(TestClient.instance!.event).toEqual(
         expect.objectContaining({
           environment: 'production',
-          event_id: '42',
+          event_id: '12312012123120121231201212312012',
           message: 'message',
           timestamp: 2020,
         }),
@@ -466,14 +516,14 @@ describe('BaseClient', () => {
       expect(TestClient.instance!.event).toEqual(
         expect.objectContaining({
           environment: 'production',
-          event_id: '42',
+          event_id: '12312012123120121231201212312012',
           message: 'message',
           timestamp: 1234,
         }),
       );
     });
 
-    test('it adds a trace context all events', () => {
+    test('it adds a trace context to all events xxx', () => {
       expect.assertions(1);
 
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
@@ -482,17 +532,11 @@ describe('BaseClient', () => {
 
       client.captureEvent({ message: 'message' }, { event_id: 'wat' }, scope);
 
-      expect(TestClient.instance!.event!).toEqual(
-        expect.objectContaining({
-          contexts: {
-            trace: {
-              parent_span_id: undefined,
-              span_id: expect.any(String),
-              trace_id: expect.any(String),
-            },
-          },
-        }),
-      );
+      expect(TestClient.instance?.event?.contexts?.trace).toEqual({
+        parent_span_id: undefined,
+        span_id: expect.stringMatching(/[a-f0-9]{16}/),
+        trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+      });
     });
 
     test('adds `event_id` from hint if available', () => {
@@ -526,7 +570,7 @@ describe('BaseClient', () => {
       expect(TestClient.instance!.event!).toEqual(
         expect.objectContaining({
           environment: 'production',
-          event_id: '42',
+          event_id: '12312012123120121231201212312012',
           message: 'message',
           timestamp: 2020,
         }),
@@ -545,14 +589,14 @@ describe('BaseClient', () => {
       expect(TestClient.instance!.event!).toEqual(
         expect.objectContaining({
           environment: 'env',
-          event_id: '42',
+          event_id: '12312012123120121231201212312012',
           message: 'message',
           timestamp: 2020,
         }),
       );
     });
 
-    test('allows for environment to be explicitly set to falsy value', () => {
+    test('uses default environment when set to falsy value', () => {
       expect.assertions(1);
 
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, environment: undefined });
@@ -563,8 +607,8 @@ describe('BaseClient', () => {
 
       expect(TestClient.instance!.event!).toEqual(
         expect.objectContaining({
-          environment: undefined,
-          event_id: '42',
+          environment: 'production',
+          event_id: '12312012123120121231201212312012',
           message: 'message',
           timestamp: 2020,
         }),
@@ -583,7 +627,7 @@ describe('BaseClient', () => {
       expect(TestClient.instance!.event!).toEqual(
         expect.objectContaining({
           environment: 'production',
-          event_id: '42',
+          event_id: '12312012123120121231201212312012',
           message: 'message',
           release: 'v1.0.0',
           timestamp: 2020,
@@ -601,7 +645,7 @@ describe('BaseClient', () => {
 
       client.captureEvent({ message: 'message' }, undefined, scope);
 
-      expect(TestClient.instance!.event!).toHaveProperty('event_id', '42');
+      expect(TestClient.instance!.event!).toHaveProperty('event_id', '12312012123120121231201212312012');
       expect(TestClient.instance!.event!).toHaveProperty('message', 'message');
       expect(TestClient.instance!.event!).toHaveProperty('breadcrumbs');
       expect(TestClient.instance!.event!.breadcrumbs![0]).toHaveProperty('message', 'breadcrumb');
@@ -640,7 +684,7 @@ describe('BaseClient', () => {
       expect(TestClient.instance!.event!).toEqual(
         expect.objectContaining({
           environment: 'production',
-          event_id: '42',
+          event_id: '12312012123120121231201212312012',
           extra: { b: 'b' },
           message: 'message',
           tags: { a: 'a' },
@@ -663,7 +707,7 @@ describe('BaseClient', () => {
       expect(TestClient.instance!.event!).toEqual(
         expect.objectContaining({
           environment: 'production',
-          event_id: '42',
+          event_id: '12312012123120121231201212312012',
           fingerprint: ['abcd'],
           message: 'message',
           timestamp: 2020,
@@ -763,7 +807,7 @@ describe('BaseClient', () => {
           // also has trace context from global scope
           contexts: { ...normalizedObject, trace: expect.anything() },
           environment: 'production',
-          event_id: '42',
+          event_id: '12312012123120121231201212312012',
           extra: normalizedObject,
           timestamp: 2020,
           user: normalizedObject,
@@ -813,7 +857,7 @@ describe('BaseClient', () => {
           // also has trace context from global scope
           contexts: { ...normalizedObject, trace: expect.anything() },
           environment: 'production',
-          event_id: '42',
+          event_id: '12312012123120121231201212312012',
           extra: normalizedObject,
           timestamp: 2020,
           user: normalizedObject,
@@ -868,7 +912,7 @@ describe('BaseClient', () => {
           // also has trace context from global scope
           contexts: { ...normalizedObject, trace: expect.anything() },
           environment: 'production',
-          event_id: '42',
+          event_id: '12312012123120121231201212312012',
           extra: normalizedObject,
           timestamp: 2020,
           user: normalizedObject,
@@ -1122,6 +1166,8 @@ describe('BaseClient', () => {
     });
 
     test('calls `beforeSendSpan` and discards the span', () => {
+      const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+
       const beforeSendSpan = jest.fn(() => null);
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSendSpan });
       const client = new TestClient(options);
@@ -1150,6 +1196,12 @@ describe('BaseClient', () => {
       const capturedEvent = TestClient.instance!.event!;
       expect(capturedEvent.spans).toHaveLength(0);
       expect(client['_outcomes']).toEqual({ 'before_send:span': 2 });
+
+      expect(consoleWarnSpy).toHaveBeenCalledTimes(1);
+      expect(consoleWarnSpy).toBeCalledWith(
+        '[Sentry] Deprecation warning: Returning null from `beforeSendSpan` will be disallowed from SDK version 9.0.0 onwards. The callback will only support mutating spans. To drop certain spans, configure the respective integrations directly.',
+      );
+      consoleWarnSpy.mockRestore();
     });
 
     test('calls `beforeSend` and logs info about invalid return value', () => {

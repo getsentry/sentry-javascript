@@ -5,9 +5,9 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '@sentry/core';
+import type { Event } from '@sentry/core';
 import { NodeClient, getCurrentScope, getIsolationScope, setCurrentClient } from '@sentry/node';
 import * as SentryNode from '@sentry/node';
-import type { Event } from '@sentry/types';
 import type { Load, ServerLoad } from '@sveltejs/kit';
 import { error, redirect } from '@sveltejs/kit';
 
@@ -265,8 +265,8 @@ describe('wrapServerLoadWithSentry calls `startSpan`', () => {
         'sentry.sample_rate': 1,
       },
       op: 'function.sveltekit.server.load',
-      span_id: expect.any(String),
-      trace_id: expect.any(String),
+      span_id: expect.stringMatching(/[a-f0-9]{16}/),
+      trace_id: expect.stringMatching(/[a-f0-9]{32}/),
       origin: 'auto.function.sveltekit',
     });
     expect(transaction.transaction).toEqual('/users/123');

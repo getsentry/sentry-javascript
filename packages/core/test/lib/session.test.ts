@@ -1,4 +1,4 @@
-import type { SessionContext } from '@sentry/types';
+import type { SessionContext } from '../../src/types-hoist';
 
 import { closeSession, makeSession, updateSession } from '../../src/session';
 import { timestampInSeconds } from '../../src/utils-hoist/time';

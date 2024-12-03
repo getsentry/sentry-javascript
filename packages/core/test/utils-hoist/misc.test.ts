@@ -1,4 +1,4 @@
-import type { Event, Mechanism, StackFrame } from '@sentry/types';
+import type { Event, Mechanism, StackFrame } from '../../src/types-hoist';
 
 import {
   addContextToFrame,

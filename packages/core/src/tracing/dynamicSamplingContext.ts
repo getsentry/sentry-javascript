@@ -1,4 +1,4 @@
-import type { Client, DynamicSamplingContext, Span } from '@sentry/types';
+import type { Client, DynamicSamplingContext, Scope, Span } from '../types-hoist';
 
 import { DEFAULT_ENVIRONMENT } from '../constants';
 import { getClient } from '../currentScopes';
@@ -52,6 +52,14 @@ export function getDynamicSamplingContextFromClient(trace_id: string, client: Cl
 }
 
 /**
+ * Get the dynamic sampling context for the currently active scopes.
+ */
+export function getDynamicSamplingContextFromScope(client: Client, scope: Scope): Partial<DynamicSamplingContext> {
+  const propagationContext = scope.getPropagationContext();
+  return propagationContext.dsc || getDynamicSamplingContextFromClient(propagationContext.traceId, client);
+}
+
+/**
  * Creates a dynamic sampling context from a span (and client and scope)
  *
  * @param span the span from which a few values like the root span name and sample rate are extracted.
@@ -63,8 +71,6 @@ export function getDynamicSamplingContextFromSpan(span: Span): Readonly<Partial<
   if (!client) {
     return {};
   }
-
-  const dsc = getDynamicSamplingContextFromClient(spanToJSON(span).trace_id || '', client);
 
   const rootSpan = getRootSpan(span);
 
@@ -86,6 +92,7 @@ export function getDynamicSamplingContextFromSpan(span: Span): Readonly<Partial<
   }
 
   // Else, we generate it from the span
+  const dsc = getDynamicSamplingContextFromClient(span.spanContext().traceId, client);
   const jsonSpan = spanToJSON(rootSpan);
   const attributes = jsonSpan.data || {};
   const maybeSampleRate = attributes[SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE];

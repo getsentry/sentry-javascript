@@ -10,7 +10,150 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
-Work in this release was contributed by @NEKOYASAN. Thank you for your contribution!
+## 8.42.0
+
+### Important Changes
+
+- **feat(react): React Router v7 support (library) ([#14513](https://github.com/getsentry/sentry-javascript/pull/14513))**
+
+  This release adds support for [React Router v7 (library mode)](https://reactrouter.com/home#react-router-as-a-library).
+  Check out the docs on how to set up the integration: [Sentry React Router v7 Integration Docs](https://docs.sentry.io/platforms/javascript/guides/react/features/react-router/v7/)
+
+### Deprecations
+
+- **feat: Warn about source-map generation ([#14533](https://github.com/getsentry/sentry-javascript/pull/14533))**
+
+  In the next major version of the SDK we will change how source maps are generated when the SDK is added to an application.
+  Currently, the implementation varies a lot between different SDKs and can be difficult to understand.
+  Moving forward, our goal is to turn on source maps for every framework, unless we detect that they are explicitly turned off.
+  Additionally, if we end up enabling source maps, we will emit a log message that we did so.
+
+  With this particular release, we are emitting warnings that source map generation will change in the future and we print instructions on how to prepare for the next major.
+
+- **feat(nuxt): Deprecate `tracingOptions` in favor of `vueIntegration` ([#14530](https://github.com/getsentry/sentry-javascript/pull/14530))**
+
+  Currently it is possible to configure tracing options in two places in the Sentry Nuxt SDK:
+
+  - In `Sentry.init()`
+  - Inside `tracingOptions` in `Sentry.init()`
+
+  For tree-shaking purposes and alignment with the Vue SDK, it is now recommended to instead use the newly exported `vueIntegration()` and its `tracingOptions` option to configure tracing options in the Nuxt SDK:
+
+  ```ts
+  // sentry.client.config.ts
+  import * as Sentry from '@sentry/nuxt';
+
+  Sentry.init({
+    // ...
+    integrations: [
+      Sentry.vueIntegration({
+        tracingOptions: {
+          trackComponents: true,
+        },
+      }),
+    ],
+  });
+  ```
+
+### Other Changes
+
+- feat(browser-utils): Update `web-vitals` to v4.2.4 ([#14439](https://github.com/getsentry/sentry-javascript/pull/14439))
+- feat(nuxt): Expose `vueIntegration` ([#14526](https://github.com/getsentry/sentry-javascript/pull/14526))
+- fix(feedback): Handle css correctly in screenshot mode ([#14535](https://github.com/getsentry/sentry-javascript/pull/14535))
+
+## 8.41.0
+
+### Important Changes
+
+- **meta(nuxt): Require minimum Nuxt v3.7.0 ([#14473](https://github.com/getsentry/sentry-javascript/pull/14473))**
+
+  We formalized that the Nuxt SDK is at minimum compatible with Nuxt version 3.7.0 and above.
+  Additionally, the SDK requires the implicit `nitropack` dependency to satisfy version `^2.10.0` and `ofetch` to satisfy `^1.4.0`.
+  It is recommended to check your lock-files and manually upgrade these dependencies if they don't match the version ranges.
+
+### Deprecations
+
+We are deprecating a few APIs which will be removed in the next major.
+
+The following deprecations will _potentially_ affect you:
+
+- **feat(core): Update & deprecate `undefined` option handling ([#14450](https://github.com/getsentry/sentry-javascript/pull/14450))**
+
+  In the next major version we will change how passing `undefined` to `tracesSampleRate` / `tracesSampler` / `enableTracing` will behave.
+
+  Currently, doing the following:
+
+  ```ts
+  Sentry.init({
+    tracesSampleRate: undefined,
+  });
+  ```
+
+  Will result in tracing being _enabled_ (although no spans will be generated) because the `tracesSampleRate` key is present in the options object.
+  In the next major version, this behavior will be changed so that passing `undefined` (or rather having a `tracesSampleRate` key) will result in tracing being disabled, the same as not passing the option at all.
+  If you are currently relying on `undefined` being passed, and and thus have tracing enabled, it is recommended to update your config to set e.g. `tracesSampleRate: 0` instead, which will also enable tracing in v9.
+
+  The same applies to `tracesSampler` and `enableTracing`.
+
+- **feat(core): Log warnings when returning `null` in `beforeSendSpan` ([#14433](https://github.com/getsentry/sentry-javascript/pull/14433))**
+
+  Currently, the `beforeSendSpan` option in `Sentry.init()` allows you to drop individual spans from a trace by returning `null` from the hook.
+  Since this API lends itself to creating "gaps" inside traces, we decided to change how this API will work in the next major version.
+
+  With the next major version the `beforeSendSpan` API can only be used to mutate spans, but no longer to drop them.
+  With this release the SDK will warn you if you are using this API to drop spans.
+  Instead, it is recommended to configure instrumentation (i.e. integrations) directly to control what spans are created.
+
+  Additionally, with the next major version, root spans will also be passed to `beforeSendSpan`.
+
+- **feat(utils): Deprecate `@sentry/utils` ([#14431](https://github.com/getsentry/sentry-javascript/pull/14431))**
+
+  With the next major version the `@sentry/utils` package will be merged into the `@sentry/core` package.
+  It is therefore no longer recommended to use the `@sentry/utils` package.
+
+- **feat(vue): Deprecate configuring Vue tracing options anywhere else other than through the `vueIntegration`'s `tracingOptions` option ([#14385](https://github.com/getsentry/sentry-javascript/pull/14385))**
+
+  Currently it is possible to configure tracing options in various places in the Sentry Vue SDK:
+
+  - In `Sentry.init()`
+  - Inside `tracingOptions` in `Sentry.init()`
+  - In the `vueIntegration()` options
+  - Inside `tracingOptions` in the `vueIntegration()` options
+
+  Because this is a bit messy and confusing to document, the only recommended way to configure tracing options going forward is through the `tracingOptions` in the `vueIntegration()`.
+  The other means of configuration will be removed in the next major version of the SDK.
+
+- **feat: Deprecate `registerEsmLoaderHooks.include` and `registerEsmLoaderHooks.exclude` ([#14486](https://github.com/getsentry/sentry-javascript/pull/14486))**
+
+  Currently it is possible to define `registerEsmLoaderHooks.include` and `registerEsmLoaderHooks.exclude` options in `Sentry.init()` to only apply ESM loader hooks to a subset of modules.
+  This API served as an escape hatch in case certain modules are incompatible with ESM loader hooks.
+
+  Since this API was introduced, a way was found to only wrap modules that there exists instrumentation for (meaning a vetted list).
+  To only wrap modules that have instrumentation, it is recommended to instead set `registerEsmLoaderHooks.onlyIncludeInstrumentedModules` to `true`.
+
+  Note that `onlyIncludeInstrumentedModules: true` will become the default behavior in the next major version and the `registerEsmLoaderHooks` will no longer accept fine-grained options.
+
+The following deprecations will _most likely_ not affect you unless you are building an SDK yourself:
+
+- feat(core): Deprecate `arrayify` ([#14405](https://github.com/getsentry/sentry-javascript/pull/14405))
+- feat(core): Deprecate `flatten` ([#14454](https://github.com/getsentry/sentry-javascript/pull/14454))
+- feat(core): Deprecate `urlEncode` ([#14406](https://github.com/getsentry/sentry-javascript/pull/14406))
+- feat(core): Deprecate `validSeverityLevels` ([#14407](https://github.com/getsentry/sentry-javascript/pull/14407))
+- feat(core/utils): Deprecate `getNumberOfUrlSegments` ([#14458](https://github.com/getsentry/sentry-javascript/pull/14458))
+- feat(utils): Deprecate `memoBuilder`, `BAGGAGE_HEADER_NAME`, and `makeFifoCache` ([#14434](https://github.com/getsentry/sentry-javascript/pull/14434))
+- feat(utils/core): Deprecate `addRequestDataToEvent` and `extractRequestData` ([#14430](https://github.com/getsentry/sentry-javascript/pull/14430))
+
+### Other Changes
+
+- feat: Streamline `sentry-trace`, `baggage` and DSC handling ([#14364](https://github.com/getsentry/sentry-javascript/pull/14364))
+- feat(core): Further optimize debug ID parsing ([#14365](https://github.com/getsentry/sentry-javascript/pull/14365))
+- feat(node): Add `openTelemetryInstrumentations` option ([#14484](https://github.com/getsentry/sentry-javascript/pull/14484))
+- feat(nuxt): Add filter for not found source maps (devtools) ([#14437](https://github.com/getsentry/sentry-javascript/pull/14437))
+- feat(nuxt): Only delete public source maps ([#14438](https://github.com/getsentry/sentry-javascript/pull/14438))
+- fix(nextjs): Don't report `NEXT_REDIRECT` from browser ([#14440](https://github.com/getsentry/sentry-javascript/pull/14440))
+- perf(opentelemetry): Bucket spans for cleanup ([#14154](https://github.com/getsentry/sentry-javascript/pull/14154))
+
+Work in this release was contributed by @NEKOYASAN and @fmorett. Thank you for your contributions!
 
 ## 8.40.0
 

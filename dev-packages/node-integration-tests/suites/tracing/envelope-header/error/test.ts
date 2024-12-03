@@ -5,7 +5,7 @@ test('envelope header for error events is correct', done => {
     .expectHeader({
       event: {
         trace: {
-          trace_id: expect.any(String),
+          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
           environment: 'production',
           public_key: 'public',
           release: '1.0',

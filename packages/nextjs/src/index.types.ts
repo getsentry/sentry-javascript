@@ -7,7 +7,7 @@ export * from './client';
 export * from './server';
 export * from './edge';
 
-import type { Client, Integration, Options, StackParser } from '@sentry/types';
+import type { Client, Integration, Options, StackParser } from '@sentry/core';
 
 import type * as clientSdk from './client';
 import type { ServerComponentContext, VercelCronsConfig } from './common/types';

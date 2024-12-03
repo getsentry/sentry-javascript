@@ -1,5 +1,3 @@
-// TODO(v9): Don't have this file be in the "utils-hoist" folder but "utils" folder - it's cleaner
-
 export type { ClientClass as SentryCoreCurrentScopes } from './sdk';
 export type { AsyncContextStrategy } from './asyncContext/types';
 export type { Carrier } from './carrier';
@@ -40,6 +38,7 @@ export {
   withScope,
   withIsolationScope,
   getClient,
+  getTraceContextFromScope,
 } from './currentScopes';
 export {
   getDefaultCurrentScope,
@@ -106,16 +105,22 @@ export { thirdPartyErrorFilterIntegration } from './integrations/third-party-err
 // eslint-disable-next-line deprecation/deprecation
 export { metrics } from './metrics/exports';
 export { profiler } from './profiling';
-export type { MetricData } from '@sentry/types';
 // eslint-disable-next-line deprecation/deprecation
 export { metricsDefault } from './metrics/exports-default';
 export { BrowserMetricsAggregator } from './metrics/browser-aggregator';
 export { getMetricSummaryJsonForSpan } from './metrics/metric-summary';
-export { addTracingHeadersToFetchRequest, instrumentFetchRequest } from './fetch';
+export {
+  // eslint-disable-next-line deprecation/deprecation
+  addTracingHeadersToFetchRequest,
+  instrumentFetchRequest,
+} from './fetch';
 export { trpcMiddleware } from './trpc';
 export { captureFeedback } from './feedback';
 
 // eslint-disable-next-line deprecation/deprecation
 export { getCurrentHubShim, getCurrentHub } from './getCurrentHubShim';
 
+// TODO(v9): Make this structure pretty again and don't do "export *"
 export * from './utils-hoist/index';
+// TODO(v9): Make this structure pretty again and don't do "export *"
+export * from './types-hoist/index';

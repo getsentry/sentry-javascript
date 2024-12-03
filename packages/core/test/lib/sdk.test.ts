@@ -1,5 +1,5 @@
-import type { Client, Integration } from '@sentry/types';
 import { captureCheckIn, getCurrentScope, setCurrentClient } from '../../src';
+import type { Client, Integration } from '../../src/types-hoist';
 
 import { installedIntegrations } from '../../src/integration';
 import { initAndBind } from '../../src/sdk';

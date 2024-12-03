@@ -5,7 +5,7 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { Span } from '@sentry/types';
+import type { Span } from '@sentry/core';
 import { writable } from 'svelte/store';
 
 import { navigating, page } from '$app/stores';

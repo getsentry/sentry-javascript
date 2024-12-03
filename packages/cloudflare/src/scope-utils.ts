@@ -1,7 +1,7 @@
 import type { IncomingRequestCfProperties } from '@cloudflare/workers-types';
 
 import { winterCGRequestToRequestData } from '@sentry/core';
-import type { Scope } from '@sentry/types';
+import type { Scope } from '@sentry/core';
 
 /**
  * Set cloud resource context on scope.
