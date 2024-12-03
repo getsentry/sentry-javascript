@@ -24,6 +24,7 @@ test('Sends exception to Sentry', async ({ baseURL }) => {
   expect(errorEvent.transaction).toEqual('GET /test-exception/:id');
 
   expect(errorEvent.contexts?.trace).toEqual({
+    parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
     trace_id: expect.stringMatching(/[a-f0-9]{32}/),
     span_id: expect.stringMatching(/[a-f0-9]{16}/),
   });
