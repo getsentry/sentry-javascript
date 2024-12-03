@@ -1,6 +1,6 @@
 import { join } from 'path';
-import { createRunner } from '../../utils/runner';
 import { conditionalTest } from '../../utils';
+import { createRunner } from '../../utils/runner';
 
 describe('ContextLines integration in CJS', () => {
   test('reads encoded context lines from filenames with spaces', done => {
