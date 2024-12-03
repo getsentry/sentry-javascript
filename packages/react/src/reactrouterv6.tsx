@@ -170,35 +170,91 @@ function pathIsWildcardWithNoChildren(path: string, branch: RouteMatch<string>):
   return (pathEndsWithWildcard(path) && (!branch.route.children || branch.route.children.length === 0)) || false;
 }
 
+function routeIsDescendant(route: RouteObject): boolean {
+  return !!(!route.children && route.element && route.path && route.path.endsWith('/*'));
+}
+
+function locationIsInsideDescendantRoute(location: Location, routes: RouteObject[]): boolean {
+  const matchedRoutes = _matchRoutes(routes, location) as RouteMatch[];
+
+  if (matchedRoutes) {
+    for (const match of matchedRoutes) {
+      if (routeIsDescendant(match.route) && pickSplat(match)) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
+const getChildRoutesRecursively = (route: RouteObject, allRoutes: RouteObject[] = []): RouteObject[] => {
+  if (route.children && !route.index) {
+    route.children.forEach(child => {
+      allRoutes.push(...getChildRoutesRecursively(child, allRoutes));
+    });
+  }
+
+  allRoutes.push(route);
+
+  return allRoutes;
+};
+
+function pickPath(match: RouteMatch): string {
+  return trimWildcard(match.route.path || '');
+}
+
+function pickSplat(match: RouteMatch): string {
+  return match.params['*'] || '';
+}
+
+function trimWildcard(path: string): string {
+  return path[path.length - 1] === '*' ? path.slice(0, -1) : path;
+}
+
+function trimSlash(path: string): string {
+  return path[path.length - 1] === '/' ? path.slice(0, -1) : path;
+}
+
+function prefixWithSlash(path: string): string {
+  return path[0] === '/' ? path : `/${path}`;
+}
+
+function rebuildRoutePathFromAllRoutes(allRoutes: RouteObject[], location: Location): string {
+  const matchedRoutes = _matchRoutes(allRoutes, location) as RouteMatch[];
+
+  if (matchedRoutes) {
+    for (const match of matchedRoutes) {
+      if (match.route.path && match.route.path !== '*') {
+        const path = pickPath(match);
+        const strippedPath = stripBasenameFromPathname(location.pathname, prefixWithSlash(match.pathnameBase));
+
+        return trimSlash(
+          trimSlash(path || '') +
+            prefixWithSlash(
+              rebuildRoutePathFromAllRoutes(
+                allRoutes.filter(route => route !== match.route),
+                {
+                  pathname: strippedPath,
+                },
+              ),
+            ),
+        );
+      }
+    }
+  }
+
+  return '';
+}
+
 function getNormalizedName(
   routes: RouteObject[],
   location: Location,
   branches: RouteMatch[],
   basename: string = '',
-  allRoutes: RouteObject[] = routes,
 ): [string, TransactionSource] {
   if (!routes || routes.length === 0) {
     return [_stripBasename ? stripBasenameFromPathname(location.pathname, basename) : location.pathname, 'url'];
-  }
-
-  const matchedRoutes = _matchRoutes(routes, location);
-
-  if (matchedRoutes) {
-    const wildCardRoutes: RouteMatch[] = matchedRoutes.filter(
-      (match: RouteMatch) => match.route.path && pathIsWildcardWithNoChildren(match.route.path, match),
-    );
-
-    for (const wildCardRoute of wildCardRoutes) {
-      const wildCardRouteMatch = _matchRoutes(allRoutes, location, wildCardRoute.pathnameBase);
-
-      if (wildCardRouteMatch) {
-        const [name, source] = getNormalizedName(wildCardRoutes, location, wildCardRouteMatch, basename, allRoutes);
-
-        if (wildCardRoute.pathnameBase && name) {
-          return [wildCardRoute.pathnameBase + name, source];
-        }
-      }
-    }
   }
 
   let pathBuilder = '';
@@ -267,12 +323,18 @@ function updatePageloadTransaction(
     : (_matchRoutes(routes, location, basename) as unknown as RouteMatch[]);
 
   if (branches) {
-    const [name, source] = getNormalizedName(routes, location, branches, basename, allRoutes);
+    const [name, source] = getNormalizedName(routes, location, branches, basename);
 
-    getCurrentScope().setTransactionName(name);
+    let txnName = name;
+
+    if (locationIsInsideDescendantRoute(location, allRoutes || routes)) {
+      txnName = prefixWithSlash(rebuildRoutePathFromAllRoutes(allRoutes || routes, location));
+    }
+
+    getCurrentScope().setTransactionName(txnName);
 
     if (activeRootSpan) {
-      activeRootSpan.updateName(name);
+      activeRootSpan.updateName(txnName);
       activeRootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, source);
     }
   }
@@ -294,10 +356,16 @@ function handleNavigation(
   }
 
   if ((navigationType === 'PUSH' || navigationType === 'POP') && branches) {
-    const [name, source] = getNormalizedName(routes, location, branches, basename, allRoutes);
+    const [name, source] = getNormalizedName(routes, location, branches, basename);
+
+    let txnName = name;
+
+    if (locationIsInsideDescendantRoute(location, allRoutes || routes)) {
+      txnName = prefixWithSlash(rebuildRoutePathFromAllRoutes(allRoutes || routes, location));
+    }
 
     startBrowserTracingNavigationSpan(client, {
-      name,
+      name: txnName,
       attributes: {
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
         [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
@@ -306,20 +374,6 @@ function handleNavigation(
     });
   }
 }
-
-const getChildRoutesRecursively = (route: RouteObject): RouteObject[] => {
-  const routes: RouteObject[] = [];
-
-  if (route.children) {
-    route.children.forEach(child => {
-      routes.push(...getChildRoutesRecursively(child));
-    });
-  }
-
-  routes.push(route);
-
-  return routes;
-};
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function withSentryReactRouterV6Routing<P extends Record<string, any>, R extends React.FC<P>>(Routes: R): R {
@@ -409,7 +463,9 @@ export function wrapUseRoutes(origUseRoutes: UseRoutes): UseRoutes {
         typeof stableLocationParam === 'string' ? { pathname: stableLocationParam } : stableLocationParam;
 
       routes.forEach(route => {
-        allRoutes.push(...getChildRoutesRecursively(route));
+        if (!route.index) {
+          allRoutes.push(...getChildRoutesRecursively(route));
+        }
       });
 
       if (isMountRenderPass.current) {
