@@ -1,4 +1,4 @@
-import type { Client, Event, IntegrationFn, Primitive, StackParser } from '@sentry/core';
+import type { Client, Event, IntegrationFn, Primitive, StackFrame, StackParser } from '@sentry/core';
 import {
   UNKNOWN_FUNCTION,
   addGlobalErrorInstrumentationHandler,
@@ -155,24 +155,22 @@ function _eventFromRejectionWithPrimitive(reason: Primitive): Event {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function _enhanceEventWithInitialFrame(event: Event, url: any, line: any, column: any): Event {
-  // event.exception
-  const e = (event.exception = event.exception || {});
-  // event.exception.values
-  const ev = (e.values = e.values || []);
-  // event.exception.values[0]
-  const ev0 = (ev[0] = ev[0] || {});
-  // event.exception.values[0].stacktrace
-  const ev0s = (ev0.stacktrace = ev0.stacktrace || {});
-  // event.exception.values[0].stacktrace.frames
-  const ev0sf = (ev0s.frames = ev0s.frames || []);
+  const frames: StackFrame[] = [];
+  try {
+    // @ts-expect-error - this is fine and done to reduce bundle size
+    // we're catching the error if any of the properties in the chain is undefined
+    frames.push(event.exception.values[0].stacktrace.frames);
+  } catch {
+    // ignored
+  }
 
   const colno = isNaN(parseInt(column, 10)) ? undefined : column;
   const lineno = isNaN(parseInt(line, 10)) ? undefined : line;
   const filename = isString(url) && url.length > 0 ? url : getLocationHref();
 
   // event.exception.values[0].stacktrace.frames
-  if (ev0sf.length === 0) {
-    ev0sf.push({
+  if (frames.length === 0) {
+    frames.push({
       colno,
       filename,
       function: UNKNOWN_FUNCTION,
