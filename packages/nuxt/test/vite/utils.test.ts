@@ -70,7 +70,6 @@ describe('findDefaultSdkInitFile', () => {
   });
 });
 
-
 describe('removeSentryQueryFromPath', () => {
   it('strips the Sentry query part from the path', () => {
     const url = `/example/path${SENTRY_WRAPPED_ENTRY}${SENTRY_WRAPPED_FUNCTIONS}foo,${QUERY_END_INDICATOR}`;

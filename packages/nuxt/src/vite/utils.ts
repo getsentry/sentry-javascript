@@ -25,7 +25,6 @@ export function findDefaultSdkInitFile(type: 'server' | 'client'): string | unde
   return filePaths.find(filename => fs.existsSync(filename));
 }
 
-
 export const SENTRY_WRAPPED_ENTRY = '?sentry-query-wrapped-entry';
 export const SENTRY_WRAPPED_FUNCTIONS = '?sentry-query-wrapped-functions=';
 export const SENTRY_REEXPORTED_FUNCTIONS = '?sentry-query-reexported-functions=';
@@ -64,19 +63,19 @@ export function extractFunctionReexportQueryParameters(query: string): { wrap: s
   const wrap =
     wrapMatch && wrapMatch[1]
       ? wrapMatch[1]
-        .split(',')
-        .filter(param => param !== '')
-        // Sanitize, as code could be injected with another rollup plugin
-        .map((str: string) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+          .split(',')
+          .filter(param => param !== '')
+          // Sanitize, as code could be injected with another rollup plugin
+          .map((str: string) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
       : [];
 
   const reexport =
     reexportMatch && reexportMatch[1]
       ? reexportMatch[1]
-        .split(',')
-        .filter(param => param !== '' && param !== 'default')
-        // Sanitize, as code could be injected with another rollup plugin
-        .map((str: string) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+          .split(',')
+          .filter(param => param !== '' && param !== 'default')
+          // Sanitize, as code could be injected with another rollup plugin
+          .map((str: string) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
       : [];
 
   return { wrap, reexport };
@@ -139,10 +138,10 @@ export function constructFunctionReExport(pathWithQuery: string, entryId: string
       (functionsCode, currFunctionName) =>
         functionsCode.concat(
           `async function ${currFunctionName}_sentryWrapped(...args) {\n` +
-          `  const res = await import(${JSON.stringify(entryId)});\n` +
-          `  return res.${currFunctionName}.call(this, ...args);\n` +
-          '}\n' +
-          `export { ${currFunctionName}_sentryWrapped as ${currFunctionName} };\n`,
+            `  const res = await import(${JSON.stringify(entryId)});\n` +
+            `  return res.${currFunctionName}.call(this, ...args);\n` +
+            '}\n' +
+            `export { ${currFunctionName}_sentryWrapped as ${currFunctionName} };\n`,
         ),
       '',
     )

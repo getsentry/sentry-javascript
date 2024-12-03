@@ -108,17 +108,16 @@ export function addDynamicImportEntryFileWrapper(
   );
 }
 
-
 /**
  * A Rollup plugin which wraps the server entry with a dynamic `import()`. This makes it possible to initialize Sentry first
  * by using a regular `import` and load the server after that.
  * This also works with serverless `handler` functions, as it re-exports the `handler`.
  */
 function wrapEntryWithDynamicImport({
-                                      resolvedSentryConfigPath,
-                                      entrypointWrappedFunctions,
-                                      debug,
-                                    }: { resolvedSentryConfigPath: string; entrypointWrappedFunctions: string[]; debug?: boolean }): InputPluginOption {
+  resolvedSentryConfigPath,
+  entrypointWrappedFunctions,
+  debug,
+}: { resolvedSentryConfigPath: string; entrypointWrappedFunctions: string[]; debug?: boolean }): InputPluginOption {
   // In order to correctly import the server config file
   // and dynamically import the nitro runtime, we need to
   // mark the resolutionId with '\0raw' to fall into the
@@ -154,12 +153,12 @@ function wrapEntryWithDynamicImport({
         return resolution.id.includes(`.mjs${SENTRY_WRAPPED_ENTRY}`)
           ? resolution.id
           : `${resolutionIdPrefix}${resolution.id
-            // Concatenates the query params to mark the file (also attaches names of re-exports - this is needed for serverless functions to re-export the handler)
-            .concat(SENTRY_WRAPPED_ENTRY)
-            .concat(
-              constructWrappedFunctionExportQuery(moduleInfo.exportedBindings, entrypointWrappedFunctions, debug),
-            )
-            .concat(QUERY_END_INDICATOR)}`;
+              // Concatenates the query params to mark the file (also attaches names of re-exports - this is needed for serverless functions to re-export the handler)
+              .concat(SENTRY_WRAPPED_ENTRY)
+              .concat(
+                constructWrappedFunctionExportQuery(moduleInfo.exportedBindings, entrypointWrappedFunctions, debug),
+              )
+              .concat(QUERY_END_INDICATOR)}`;
       }
       return null;
     },
