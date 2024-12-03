@@ -1212,6 +1212,7 @@ jobs:
         working-directory: dev-packages/e2e-tests/test-applications/node-profiling
         run: |
           npm pkg set type=module
+          cat node_modules/@sentry/profiling-node/lib/esm/index.js
           node index.mjs
 
   job_required_jobs_passed:
