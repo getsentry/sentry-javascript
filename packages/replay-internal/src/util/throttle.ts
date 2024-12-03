@@ -10,7 +10,7 @@ export const SKIPPED = '__SKIPPED';
  * or else the return value of the original function.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function throttle<T extends (...rest: unknown[]) => any>(
+export function throttle<T extends (...rest: any[]) => any>(
   fn: T,
   maxCount: number,
   durationSeconds: number,
