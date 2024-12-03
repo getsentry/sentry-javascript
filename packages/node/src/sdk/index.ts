@@ -4,7 +4,6 @@ import {
   dropUndefinedKeys,
   endSession,
   functionToStringIntegration,
-  getClient,
   getCurrentScope,
   getIntegrationsToSetup,
   getIsolationScope,
@@ -14,8 +13,8 @@ import {
   logger,
   propagationContextFromHeaders,
   requestDataIntegration,
+  serverRequestSessionIntegration,
   stackParserFromStackParserOptions,
-  startSession,
 } from '@sentry/core';
 import {
   enhanceDscWithOpenTelemetryRootSpanName,
@@ -76,7 +75,7 @@ export function getDefaultIntegrationsWithoutPerformance(): Integration[] {
 
 /** Get the default integrations for the Node SDK. */
 export function getDefaultIntegrations(options: Options): Integration[] {
-  return [
+  const integrations = [
     ...getDefaultIntegrationsWithoutPerformance(),
     // We only add performance integrations if tracing is enabled
     // Note that this means that without tracing enabled, e.g. `expressIntegration()` will not be added
@@ -84,6 +83,13 @@ export function getDefaultIntegrations(options: Options): Integration[] {
     // But `transactionName` will not be set automatically
     ...(shouldAddPerformanceIntegrations(options) ? getAutoPerformanceIntegrations() : []),
   ];
+
+  // TODO(v9): Make this a default default integration
+  if (options.autoSessionTracking) {
+    integrations.push(serverRequestSessionIntegration());
+  }
+
+  return integrations;
 }
 
 function shouldAddPerformanceIntegrations(options: Options): boolean {
@@ -156,8 +162,9 @@ function _init(
 
   logger.log(`Running in ${isCjs() ? 'CommonJS' : 'ESM'} mode.`);
 
+  // TODO(V9): Unconditionally call startSessionTracking
   if (options.autoSessionTracking) {
-    startSessionTracking();
+    startSessionTracking(client);
   }
 
   client.startClientReportTracking();
@@ -308,17 +315,11 @@ function updateScopeFromEnvVariables(): void {
     getCurrentScope().setPropagationContext(propagationContext);
   }
 }
-
 /**
  * Enable automatic Session Tracking for the node process.
  */
-function startSessionTracking(): void {
-  const client = getClient<NodeClient>();
-  if (client && client.getOptions().autoSessionTracking) {
-    client.initSessionFlusher();
-  }
-
-  startSession();
+function startSessionTracking(client: NodeClient): void {
+  client.initSessionFlusher();
 
   // Emitted in the case of healthy sessions, error of `mechanism.handled: true` and unhandledrejections because
   // The 'beforeExit' event is not emitted for conditions causing explicit termination,

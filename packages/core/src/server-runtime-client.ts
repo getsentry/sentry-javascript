@@ -134,11 +134,11 @@ export class ServerRuntimeClient<
     return super.close(timeout);
   }
 
-  /** Method that initialises an instance of SessionFlusher on Client */
+  /** Method that initializes an instance of SessionFlusher on Client */
   public initSessionFlusher(): void {
     const { release, environment } = this._options;
     if (!release) {
-      DEBUG_BUILD && logger.warn('Cannot initialise an instance of SessionFlusher if no release is provided!');
+      DEBUG_BUILD && logger.warn('Cannot initialize an instance of SessionFlusher if no release is provided!');
     } else {
       this._sessionFlusher = new SessionFlusher(this, {
         release,

@@ -92,6 +92,7 @@ export { inboundFiltersIntegration } from './integrations/inboundfilters';
 export { linkedErrorsIntegration } from './integrations/linkederrors';
 export { moduleMetadataIntegration } from './integrations/metadata';
 export { requestDataIntegration } from './integrations/requestdata';
+export { serverRequestSessionIntegration } from './integrations/serverrequestsession';
 export { captureConsoleIntegration } from './integrations/captureconsole';
 // eslint-disable-next-line deprecation/deprecation
 export { debugIntegration } from './integrations/debug';
