@@ -8,6 +8,7 @@ export interface MinimalNestJsExecutionContext {
     // according to official types, all properties are required but
     // let's play it safe and assume they're optional
     getRequest: () => {
+      routeOptions?: any;
       route?: {
         path?: string;
       };

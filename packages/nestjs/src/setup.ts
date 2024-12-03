@@ -53,11 +53,17 @@ class SentryTracingInterceptor implements NestInterceptor {
 
     if (context.getType() === 'http') {
       const req = context.switchToHttp().getRequest();
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      if (req.route) {
-        // eslint-disable-next-line @sentry-internal/sdk/no-optional-chaining,@typescript-eslint/no-unsafe-member-access
+      /* eslint-disable @typescript-eslint/no-unsafe-member-access, @sentry-internal/sdk/no-optional-chaining */
+      if (req.routeOptions && req.routeOptions.url) {
+        // fastify case
+        getIsolationScope().setTransactionName(
+          `${req.routeOptions.method?.toUpperCase() || 'GET'} ${req.routeOptions.url}`,
+        );
+      } else if (req.route && req.route.path) {
+        // express case
         getIsolationScope().setTransactionName(`${req.method?.toUpperCase() || 'GET'} ${req.route.path}`);
       }
+      /* eslint-enable @typescript-eslint/no-unsafe-member-access, @sentry-internal/sdk/no-optional-chaining */
     }
 
     return next.handle();

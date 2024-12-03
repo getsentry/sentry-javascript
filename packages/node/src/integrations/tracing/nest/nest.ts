@@ -88,9 +88,17 @@ export function setupNestErrorHandler(app: MinimalNestJsApp, baseFilter: NestJsE
 
       if (context.getType() === 'http') {
         const req = context.switchToHttp().getRequest();
-        if (req.route) {
+        /* eslint-disable @typescript-eslint/no-unsafe-member-access */
+        if (req.routeOptions && req.routeOptions.url) {
+          // fastify case
+          getIsolationScope().setTransactionName(
+            `${req.routeOptions.method?.toUpperCase() || 'GET'} ${req.routeOptions.url}`,
+          );
+        } else if (req.route && req.route.path) {
+          // express case
           getIsolationScope().setTransactionName(`${req.method?.toUpperCase() || 'GET'} ${req.route.path}`);
         }
+        /* eslint-enable @typescript-eslint/no-unsafe-member-access, @sentry-internal/sdk/no-optional-chaining */
       }
 
       return next.handle();
