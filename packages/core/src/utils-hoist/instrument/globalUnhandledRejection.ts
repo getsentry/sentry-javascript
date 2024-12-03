@@ -1,5 +1,4 @@
 import type { HandlerDataUnhandledRejection } from '../../types-hoist';
-
 import { GLOBAL_OBJ } from '../worldwide';
 import { addHandler, maybeInstrument, triggerHandlers } from './handlers';
 

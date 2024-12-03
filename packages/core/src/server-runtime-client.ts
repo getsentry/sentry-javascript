@@ -79,8 +79,7 @@ export class ServerRuntimeClient<
   /**
    * @inheritDoc
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  public captureException(exception: any, hint?: EventHint, scope?: Scope): string {
+  public captureException(exception: unknown, hint?: EventHint, scope?: Scope): string {
     // Check if `_sessionFlusher` exists because it is initialized (defined) only when the `autoSessionTracking` is enabled.
     // The expectation is that session aggregates are only sent when `autoSessionTracking` is enabled.
     // TODO(v9): Our goal in the future is to not have the `autoSessionTracking` option and instead rely on integrations doing the creation and sending of sessions. We will not have a central kill-switch for sessions.
