@@ -1,10 +1,10 @@
 import { Injectable, NestMiddleware } from '@nestjs/common';
 import * as Sentry from '@sentry/nestjs';
-import { NextFunction, Request, Response } from 'express';
+import { FastifyRequest, FastifyReply } from 'fastify';
 
 @Injectable()
 export class ExampleMiddleware implements NestMiddleware {
-  use(req: Request, res: Response, next: NextFunction) {
+  use(req: FastifyRequest, res: FastifyReply, next: () => void) {
     // span that should be a child span of the middleware span
     Sentry.startSpan({ name: 'test-middleware-span' }, () => {});
     next();
