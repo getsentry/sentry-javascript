@@ -1,5 +1,5 @@
-import type { HandlerDataError, HandlerDataUnhandledRejection } from '@sentry/types';
 import { setCurrentClient, spanToJSON, startInactiveSpan, startSpan } from '../../../src';
+import type { HandlerDataError, HandlerDataUnhandledRejection } from '../../../src/types-hoist';
 
 import { _resetErrorsInstrumented, registerSpanErrorInstrumentation } from '../../../src/tracing/errors';
 import * as globalErrorModule from '../../../src/utils-hoist/instrument/globalError';

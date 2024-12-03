@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import type { Event, Exception, Mechanism, StackFrame } from '@sentry/types';
+import type { Event, Exception, Mechanism, StackFrame } from '../types-hoist';
 
 import { addNonEnumerableProperty } from './object';
 import { snipLine } from './string';
@@ -211,8 +211,7 @@ export function addContextToFrame(lines: string[], frame: StackFrame, linesOfCon
  * @returns `true` if the exception has already been captured, `false` if not (with the side effect of marking it seen)
  */
 export function checkOrSetAlreadyCaught(exception: unknown): boolean {
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-  if (exception && (exception as any).__sentry_captured__) {
+  if (isAlreadyCaptured(exception)) {
     return true;
   }
 
@@ -225,6 +224,12 @@ export function checkOrSetAlreadyCaught(exception: unknown): boolean {
   }
 
   return false;
+}
+
+function isAlreadyCaptured(exception: unknown): boolean | void {
+  try {
+    return (exception as { __sentry_captured__?: boolean }).__sentry_captured__;
+  } catch {} // eslint-disable-line no-empty
 }
 
 /**

@@ -1,5 +1,5 @@
-import type { Span, SpanAttributes, StartSpanOptions } from '@sentry/types';
 import { getClient, getCurrentScope } from '../currentScopes';
+import type { Span, SpanAttributes, StartSpanOptions } from '../types-hoist';
 
 import { DEBUG_BUILD } from '../debug-build';
 import { SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON } from '../semanticAttributes';

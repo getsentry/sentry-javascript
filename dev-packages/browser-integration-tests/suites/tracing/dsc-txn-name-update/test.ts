@@ -1,6 +1,6 @@
 import { expect } from '@playwright/test';
 import type { Page } from '@playwright/test';
-import type { DynamicSamplingContext } from '@sentry/types';
+import type { DynamicSamplingContext } from '@sentry/core';
 import { sentryTest } from '../../../utils/fixtures';
 import type { EventAndTraceHeader } from '../../../utils/helpers';
 import {

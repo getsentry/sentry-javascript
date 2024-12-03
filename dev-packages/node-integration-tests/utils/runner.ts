@@ -13,7 +13,7 @@ import type {
   SerializedSession,
   SessionAggregates,
   TransactionEvent,
-} from '@sentry/types';
+} from '@sentry/core';
 import axios from 'axios';
 import {
   assertEnvelopeHeader,
@@ -337,6 +337,8 @@ export function createRunner(...paths: string[]) {
           child.stderr?.on('data', (data: Buffer) => {
             const output = data.toString();
             logs.push(output.trim());
+
+            if (process.env.DEBUG) log('stderr line', output);
 
             if (ensureNoErrorOutput) {
               complete(new Error(`Expected no error output but got: '${output}'`));

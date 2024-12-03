@@ -11,7 +11,7 @@ import type {
 import type { fullSnapshotEvent, incrementalSnapshotEvent } from '@sentry-internal/rrweb';
 import { EventType } from '@sentry-internal/rrweb';
 import type { ReplayEventWithTime } from '@sentry/browser';
-import type { Breadcrumb, Event, ReplayEvent, ReplayRecordingMode } from '@sentry/types';
+import type { Breadcrumb, Event, ReplayEvent, ReplayRecordingMode } from '@sentry/core';
 import pako from 'pako';
 
 import { envelopeRequestParser } from './helpers';

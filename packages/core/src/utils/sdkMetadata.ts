@@ -1,4 +1,4 @@
-import type { Options } from '@sentry/types';
+import type { Options } from '../types-hoist';
 import { SDK_VERSION } from '../utils-hoist/version';
 
 /**

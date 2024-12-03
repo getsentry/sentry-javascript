@@ -1,4 +1,4 @@
-import type { BaseTransportOptions } from '@sentry/types';
+import type { BaseTransportOptions } from '@sentry/core';
 
 export interface VercelEdgeTransportOptions extends BaseTransportOptions {
   /** Fetch API init parameters. */

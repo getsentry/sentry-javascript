@@ -1,4 +1,4 @@
-import type { Event, EventHint, Exception, ExtendedError, StackParser } from '@sentry/types';
+import type { Event, EventHint, Exception, ExtendedError, StackParser } from '../types-hoist';
 
 import { isInstanceOf } from './is';
 import { truncate } from './string';

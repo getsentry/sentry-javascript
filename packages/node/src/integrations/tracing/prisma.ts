@@ -1,7 +1,7 @@
 // When importing CJS modules into an ESM module, we cannot import the named exports directly.
 import * as prismaInstrumentation from '@prisma/instrumentation';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, defineIntegration, spanToJSON } from '@sentry/core';
-import type { IntegrationFn } from '@sentry/types';
+import type { IntegrationFn } from '@sentry/core';
 import { generateInstrumentOnce } from '../../otel/instrument';
 
 const INTEGRATION_NAME = 'Prisma';

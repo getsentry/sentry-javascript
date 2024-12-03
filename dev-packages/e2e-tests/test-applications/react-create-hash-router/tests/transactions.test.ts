@@ -28,8 +28,8 @@ test('Captures a pageload transaction', async ({ page }) => {
       'lcp.loadTime': expect.any(Number),
     },
     op: 'pageload',
-    span_id: expect.any(String),
-    trace_id: expect.any(String),
+    span_id: expect.stringMatching(/[a-f0-9]{16}/),
+    trace_id: expect.stringMatching(/[a-f0-9]{32}/),
     origin: 'auto.pageload.react.reactrouter_v6',
   });
 
@@ -50,11 +50,11 @@ test('Captures a pageload transaction', async ({ page }) => {
     },
     description: page.url(),
     op: 'browser.domContentLoadedEvent',
-    parent_span_id: expect.any(String),
-    span_id: expect.any(String),
+    parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
+    span_id: expect.stringMatching(/[a-f0-9]{16}/),
     start_timestamp: expect.any(Number),
     timestamp: expect.any(Number),
-    trace_id: expect.any(String),
+    trace_id: expect.stringMatching(/[a-f0-9]{32}/),
     origin: 'auto.ui.browser.metrics',
   });
   expect(transactionEvent.spans).toContainEqual({
@@ -64,11 +64,11 @@ test('Captures a pageload transaction', async ({ page }) => {
     },
     description: page.url(),
     op: 'browser.connect',
-    parent_span_id: expect.any(String),
-    span_id: expect.any(String),
+    parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
+    span_id: expect.stringMatching(/[a-f0-9]{16}/),
     start_timestamp: expect.any(Number),
     timestamp: expect.any(Number),
-    trace_id: expect.any(String),
+    trace_id: expect.stringMatching(/[a-f0-9]{32}/),
     origin: 'auto.ui.browser.metrics',
   });
   expect(transactionEvent.spans).toContainEqual({
@@ -78,11 +78,11 @@ test('Captures a pageload transaction', async ({ page }) => {
     },
     description: page.url(),
     op: 'browser.request',
-    parent_span_id: expect.any(String),
-    span_id: expect.any(String),
+    parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
+    span_id: expect.stringMatching(/[a-f0-9]{16}/),
     start_timestamp: expect.any(Number),
     timestamp: expect.any(Number),
-    trace_id: expect.any(String),
+    trace_id: expect.stringMatching(/[a-f0-9]{32}/),
     origin: 'auto.ui.browser.metrics',
   });
   expect(transactionEvent.spans).toContainEqual({
@@ -92,11 +92,11 @@ test('Captures a pageload transaction', async ({ page }) => {
     },
     description: page.url(),
     op: 'browser.response',
-    parent_span_id: expect.any(String),
-    span_id: expect.any(String),
+    parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
+    span_id: expect.stringMatching(/[a-f0-9]{16}/),
     start_timestamp: expect.any(Number),
     timestamp: expect.any(Number),
-    trace_id: expect.any(String),
+    trace_id: expect.stringMatching(/[a-f0-9]{32}/),
     origin: 'auto.ui.browser.metrics',
   });
 });
@@ -123,8 +123,8 @@ test('Captures a navigation transaction', async ({ page }) => {
       'sentry.source': 'route',
     }),
     op: 'navigation',
-    span_id: expect.any(String),
-    trace_id: expect.any(String),
+    span_id: expect.stringMatching(/[a-f0-9]{16}/),
+    trace_id: expect.stringMatching(/[a-f0-9]{32}/),
     origin: 'auto.navigation.react.reactrouter_v6',
   });
 

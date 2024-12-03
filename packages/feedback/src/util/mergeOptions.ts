@@ -1,4 +1,4 @@
-import type { FeedbackFormData, FeedbackInternalOptions } from '@sentry/types';
+import type { FeedbackFormData, FeedbackInternalOptions } from '@sentry/core';
 import type { OptionalFeedbackConfiguration } from '../core/types';
 
 /**

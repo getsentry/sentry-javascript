@@ -1,6 +1,6 @@
 import * as http from 'http';
 import { getCurrentScope, getIsolationScope, setAsyncContextStrategy, setCurrentClient, withScope } from '@sentry/core';
-import type { Scope } from '@sentry/types';
+import type { Scope } from '@sentry/core';
 import { expressErrorHandler } from '../../src/integrations/tracing/express';
 import { NodeClient } from '../../src/sdk/client';
 import { getDefaultNodeClientOptions } from '../helpers/getDefaultNodeClientOptions';

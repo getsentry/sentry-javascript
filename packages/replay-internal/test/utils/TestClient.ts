@@ -7,7 +7,7 @@ import type {
   Event,
   ParameterizedString,
   SeverityLevel,
-} from '@sentry/types';
+} from '@sentry/core';
 
 export interface TestClientOptions extends ClientOptions, BrowserClientReplayOptions {}
 

@@ -26,6 +26,6 @@ describe('awsIntegration', () => {
   });
 
   test('should auto-instrument aws-sdk v2 package.', done => {
-    createRunner(__dirname, 'scenario.js').expect({ transaction: EXPECTED_TRANSCATION }).start(done);
+    createRunner(__dirname, 'scenario.js').ignore('event').expect({ transaction: EXPECTED_TRANSCATION }).start(done);
   });
 });

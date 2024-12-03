@@ -1,6 +1,6 @@
 import * as domain from 'domain';
 
-import type { Integration } from '@sentry/types';
+import type { Integration } from '@sentry/core';
 
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 

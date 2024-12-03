@@ -21,7 +21,7 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
-import type { StackLineParser, StackLineParserFn } from '@sentry/types';
+import type { StackLineParser, StackLineParserFn } from '../types-hoist';
 import { UNKNOWN_FUNCTION } from './stacktrace';
 
 export type GetModuleFn = (filename: string | undefined) => string | undefined;

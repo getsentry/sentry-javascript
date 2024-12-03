@@ -1,7 +1,7 @@
 import * as domain from 'domain';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 
-import type { Event } from '@sentry/types';
+import type { Event } from '@sentry/core';
 import { wrapEventFunction } from '../../src/gcpfunction/events';
 import type { EventFunction, EventFunctionWithCallback } from '../../src/gcpfunction/general';
 

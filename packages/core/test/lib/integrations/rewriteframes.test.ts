@@ -1,4 +1,4 @@
-import type { Event, StackFrame } from '@sentry/types';
+import type { Event, StackFrame } from '../../../src/types-hoist';
 
 import { generateIteratee, rewriteFramesIntegration } from '../../../src/integrations/rewriteframes';
 

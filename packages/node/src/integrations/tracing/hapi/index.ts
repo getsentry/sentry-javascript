@@ -1,4 +1,5 @@
 import { HapiInstrumentation } from '@opentelemetry/instrumentation-hapi';
+import type { IntegrationFn, Span } from '@sentry/core';
 import {
   SDK_VERSION,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
@@ -8,10 +9,9 @@ import {
   getClient,
   getDefaultIsolationScope,
   getIsolationScope,
+  logger,
   spanToJSON,
 } from '@sentry/core';
-import { logger } from '@sentry/core';
-import type { IntegrationFn, Span } from '@sentry/types';
 import { DEBUG_BUILD } from '../../../debug-build';
 import { generateInstrumentOnce } from '../../../otel/instrument';
 import { ensureIsWrapped } from '../../../utils/ensureIsWrapped';

@@ -1,20 +1,20 @@
-import { context, propagation, trace } from '@opentelemetry/api';
+import { registerInstrumentations } from '@opentelemetry/instrumentation';
 import type { UndiciRequest, UndiciResponse } from '@opentelemetry/instrumentation-undici';
 import { UndiciInstrumentation } from '@opentelemetry/instrumentation-undici';
+import type { IntegrationFn, SanitizedRequestData } from '@sentry/core';
 import {
+  LRUMap,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   addBreadcrumb,
   defineIntegration,
-  getCurrentScope,
+  getBreadcrumbLogLevelFromHttpStatusCode,
+  getClient,
+  getSanitizedUrlString,
+  getTraceData,
   hasTracingEnabled,
+  parseUrl,
 } from '@sentry/core';
-import { getBreadcrumbLogLevelFromHttpStatusCode, getSanitizedUrlString, parseUrl } from '@sentry/core';
-import {
-  addOpenTelemetryInstrumentation,
-  generateSpanContextForPropagationContext,
-  getPropagationContextFromSpan,
-} from '@sentry/opentelemetry';
-import type { IntegrationFn, SanitizedRequestData } from '@sentry/types';
+import { shouldPropagateTraceForUrl } from '@sentry/opentelemetry';
 
 interface NodeFetchOptions {
   /**
@@ -37,6 +37,8 @@ const _nativeNodeFetchIntegration = ((options: NodeFetchOptions = {}) => {
   return {
     name: 'NodeFetch',
     setupOnce() {
+      const propagationDecisionMap = new LRUMap<string, boolean>(100);
+
       const instrumentation = new UndiciInstrumentation({
         requireParentforSpans: false,
         ignoreRequestHook: request => {
@@ -50,22 +52,10 @@ const _nativeNodeFetchIntegration = ((options: NodeFetchOptions = {}) => {
           // If tracing is disabled, we still want to propagate traces
           // So we do that manually here, matching what the instrumentation does otherwise
           if (!hasTracingEnabled()) {
-            const ctx = context.active();
-            const addedHeaders: Record<string, string> = {};
-
-            // We generate a virtual span context from the active one,
-            // Where we attach the URL to the trace state, so the propagator can pick it up
-            const activeSpan = trace.getSpan(ctx);
-            const propagationContext = activeSpan
-              ? getPropagationContextFromSpan(activeSpan)
-              : getCurrentScope().getPropagationContext();
-
-            const spanContext = generateSpanContextForPropagationContext(propagationContext);
-            // We know that in practice we'll _always_ haven a traceState here
-            spanContext.traceState = spanContext.traceState?.set('sentry.url', url);
-            const ctxWithUrlTraceState = trace.setSpanContext(ctx, spanContext);
-
-            propagation.inject(ctxWithUrlTraceState, addedHeaders);
+            const tracePropagationTargets = getClient()?.getOptions().tracePropagationTargets;
+            const addedHeaders = shouldPropagateTraceForUrl(url, tracePropagationTargets, propagationDecisionMap)
+              ? getTraceData()
+              : {};
 
             const requestHeaders = request.headers;
             if (Array.isArray(requestHeaders)) {
@@ -94,7 +84,7 @@ const _nativeNodeFetchIntegration = ((options: NodeFetchOptions = {}) => {
         },
       });
 
-      addOpenTelemetryInstrumentation(instrumentation);
+      registerInstrumentations({ instrumentations: [instrumentation] });
     },
   };
 }) satisfies IntegrationFn;
