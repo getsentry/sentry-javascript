@@ -4,7 +4,8 @@ import { mergeProps, splitProps } from 'solid-js';
 import { createComponent } from 'solid-js/web';
 
 type ErrorBoundaryProps = {
-  fallback: JSX.Element | ((err: unknown, reset: () => void) => JSX.Element);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  fallback: JSX.Element | ((err: any, reset: () => void) => JSX.Element);
   children: JSX.Element;
 };
 
