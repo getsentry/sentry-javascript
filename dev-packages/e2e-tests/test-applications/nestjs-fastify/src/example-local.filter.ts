@@ -1,5 +1,5 @@
 import { ArgumentsHost, BadRequestException, Catch, ExceptionFilter } from '@nestjs/common';
-import { FastifyRequest, FastifyReply } from 'fastify';
+import { FastifyReply, FastifyRequest } from 'fastify';
 import { ExampleExceptionLocalFilter } from './example-local-filter.exception';
 
 @Catch(ExampleExceptionLocalFilter)
