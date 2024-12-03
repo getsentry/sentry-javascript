@@ -1,8 +1,9 @@
 import { join } from 'path';
 import { createRunner } from '../../utils/runner';
+import { conditionalTest } from '../../utils';
 
-describe('ContextLines integration', () => {
-  test('reads encoded context lines from filenames with spaces (ESM)', done => {
+describe('ContextLines integration in CJS', () => {
+  test('reads encoded context lines from filenames with spaces', done => {
     expect.assertions(1);
     const instrumentPath = join(__dirname, 'instrument.mjs');
 
@@ -36,8 +37,10 @@ describe('ContextLines integration', () => {
       })
       .start(done);
   });
+});
 
-  test('reads context lines from filenames with spaces (CJS)', done => {
+conditionalTest({ min: 18 })('ContextLines integration in ESM', () => {
+  test('reads context lines from filenames with spaces', done => {
     expect.assertions(1);
 
     createRunner(__dirname, 'scenario with space.cjs')
