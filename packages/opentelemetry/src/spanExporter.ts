@@ -18,7 +18,6 @@ import {
   spanTimeInputToSeconds,
   timedEventsToMeasurements,
 } from '@sentry/core';
-import { SENTRY_TRACE_STATE_PARENT_SPAN_ID } from './constants';
 import { DEBUG_BUILD } from './debug-build';
 import { SEMANTIC_ATTRIBUTE_SENTRY_PARENT_IS_REMOTE } from './semanticAttributes';
 import { getRequestSpanData } from './utils/getRequestSpanData';
@@ -239,15 +238,12 @@ function createTransactionForOtelSpan(span: ReadableSpan): TransactionEvent {
 
   const { traceId: trace_id, spanId: span_id } = span.spanContext();
 
-  const parentSpanIdFromTraceState = span.spanContext().traceState?.get(SENTRY_TRACE_STATE_PARENT_SPAN_ID);
-
   // If parentSpanIdFromTraceState is defined at all, we want it to take precedence
   // In that case, an empty string should be interpreted as "no parent span id",
   // even if `span.parentSpanId` is set
   // this is the case when we are starting a new trace, where we have a virtual span based on the propagationContext
   // We only want to continue the traceId in this case, but ignore the parent span
-  const parent_span_id =
-    typeof parentSpanIdFromTraceState === 'string' ? parentSpanIdFromTraceState || undefined : span.parentSpanId;
+  const parent_span_id = span.parentSpanId;
 
   const status = mapStatus(span);
 

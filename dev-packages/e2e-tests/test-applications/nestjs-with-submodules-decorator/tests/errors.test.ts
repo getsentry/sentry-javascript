@@ -34,6 +34,7 @@ test('Sends unexpected exception to Sentry if thrown in module with global filte
   expect(errorEvent.contexts?.trace).toEqual({
     trace_id: expect.stringMatching(/[a-f0-9]{32}/),
     span_id: expect.stringMatching(/[a-f0-9]{16}/),
+    parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
   });
 });
 
@@ -70,6 +71,7 @@ test('Sends unexpected exception to Sentry if thrown in module with local filter
   expect(errorEvent.contexts?.trace).toEqual({
     trace_id: expect.stringMatching(/[a-f0-9]{32}/),
     span_id: expect.stringMatching(/[a-f0-9]{16}/),
+    parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
   });
 });
 
@@ -108,6 +110,7 @@ test('Sends unexpected exception to Sentry if thrown in module that was register
   expect(errorEvent.contexts?.trace).toEqual({
     trace_id: expect.stringMatching(/[a-f0-9]{32}/),
     span_id: expect.stringMatching(/[a-f0-9]{16}/),
+    parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
   });
 });
 

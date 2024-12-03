@@ -10,6 +10,57 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 8.42.0
+
+### Important Changes
+
+- **feat(react): React Router v7 support (library) ([#14513](https://github.com/getsentry/sentry-javascript/pull/14513))**
+
+  This release adds support for [React Router v7 (library mode)](https://reactrouter.com/home#react-router-as-a-library).
+  Check out the docs on how to set up the integration: [Sentry React Router v7 Integration Docs](https://docs.sentry.io/platforms/javascript/guides/react/features/react-router/v7/)
+
+### Deprecations
+
+- **feat: Warn about source-map generation ([#14533](https://github.com/getsentry/sentry-javascript/pull/14533))**
+
+  In the next major version of the SDK we will change how source maps are generated when the SDK is added to an application.
+  Currently, the implementation varies a lot between different SDKs and can be difficult to understand.
+  Moving forward, our goal is to turn on source maps for every framework, unless we detect that they are explicitly turned off.
+  Additionally, if we end up enabling source maps, we will emit a log message that we did so.
+
+  With this particular release, we are emitting warnings that source map generation will change in the future and we print instructions on how to prepare for the next major.
+
+- **feat(nuxt): Deprecate `tracingOptions` in favor of `vueIntegration` ([#14530](https://github.com/getsentry/sentry-javascript/pull/14530))**
+
+  Currently it is possible to configure tracing options in two places in the Sentry Nuxt SDK:
+
+  - In `Sentry.init()`
+  - Inside `tracingOptions` in `Sentry.init()`
+
+  For tree-shaking purposes and alignment with the Vue SDK, it is now recommended to instead use the newly exported `vueIntegration()` and its `tracingOptions` option to configure tracing options in the Nuxt SDK:
+
+  ```ts
+  // sentry.client.config.ts
+  import * as Sentry from '@sentry/nuxt';
+
+  Sentry.init({
+    // ...
+    integrations: [
+      Sentry.vueIntegration({
+        tracingOptions: {
+          trackComponents: true,
+        },
+      }),
+    ],
+  });
+  ```
+
+### Other Changes
+
+- feat(browser-utils): Update `web-vitals` to v4.2.4 ([#14439](https://github.com/getsentry/sentry-javascript/pull/14439))
+- feat(nuxt): Expose `vueIntegration` ([#14526](https://github.com/getsentry/sentry-javascript/pull/14526))
+- fix(feedback): Handle css correctly in screenshot mode ([#14535](https://github.com/getsentry/sentry-javascript/pull/14535))
+
 ## 8.41.0
 
 ### Important Changes

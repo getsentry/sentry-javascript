@@ -14,8 +14,47 @@ import {
 } from '../../../src';
 import type { Span, SpanAttributes, SpanStatus, SpanTimeInput } from '../../../src/types-hoist';
 import type { OpenTelemetrySdkTraceBaseSpan } from '../../../src/utils/spanUtils';
+import { spanToTraceContext } from '../../../src/utils/spanUtils';
 import { getRootSpan, spanIsSampled, spanTimeInputToSeconds, spanToJSON } from '../../../src/utils/spanUtils';
 import { TestClient, getDefaultTestClientOptions } from '../../mocks/client';
+
+function createMockedOtelSpan({
+  spanId,
+  traceId,
+  isRemote,
+  attributes = {},
+  startTime = Date.now(),
+  name = 'test span',
+  status = { code: SPAN_STATUS_UNSET },
+  endTime = Date.now(),
+  parentSpanId,
+}: {
+  spanId: string;
+  traceId: string;
+  attributes?: SpanAttributes;
+  startTime?: SpanTimeInput;
+  isRemote?: boolean;
+  name?: string;
+  status?: SpanStatus;
+  endTime?: SpanTimeInput;
+  parentSpanId?: string;
+}): Span {
+  return {
+    spanContext: () => {
+      return {
+        spanId,
+        traceId,
+        isRemote,
+      };
+    },
+    attributes,
+    startTime,
+    name,
+    status,
+    endTime,
+    parentSpanId,
+  } as OpenTelemetrySdkTraceBaseSpan;
+}
 
 describe('spanToTraceHeader', () => {
   test('simple', () => {
@@ -25,6 +64,88 @@ describe('spanToTraceHeader', () => {
   test('with sample', () => {
     const span = new SentrySpan({ sampled: true });
     expect(spanToTraceHeader(span)).toMatch(TRACEPARENT_REGEXP);
+  });
+});
+
+describe('spanToTraceContext', () => {
+  it('works with a minimal span', () => {
+    const span = new SentrySpan({ spanId: '1234', traceId: 'ABCD' });
+
+    expect(spanToTraceContext(span)).toEqual({
+      span_id: '1234',
+      trace_id: 'ABCD',
+    });
+  });
+
+  it('works with a span with parentSpanId', () => {
+    const span = new SentrySpan({
+      spanId: '1234',
+      traceId: 'ABCD',
+      parentSpanId: '5678',
+    });
+
+    expect(spanToTraceContext(span)).toEqual({
+      span_id: '1234',
+      trace_id: 'ABCD',
+      parent_span_id: '5678',
+    });
+  });
+
+  it('works with a local OTEL span', () => {
+    const span = createMockedOtelSpan({
+      spanId: '1234',
+      traceId: 'ABCD',
+      isRemote: false,
+    });
+
+    expect(spanToTraceContext(span)).toEqual({
+      span_id: '1234',
+      trace_id: 'ABCD',
+    });
+  });
+
+  it('works with a local OTEL span with parentSpanId', () => {
+    const span = createMockedOtelSpan({
+      spanId: '1234',
+      traceId: 'ABCD',
+      isRemote: false,
+      parentSpanId: 'XYZ',
+    });
+
+    expect(spanToTraceContext(span)).toEqual({
+      parent_span_id: 'XYZ',
+      span_id: '1234',
+      trace_id: 'ABCD',
+    });
+  });
+
+  it('works with a remote OTEL span', () => {
+    const span = createMockedOtelSpan({
+      spanId: '1234',
+      traceId: 'ABCD',
+      isRemote: true,
+    });
+
+    expect(spanToTraceContext(span)).toEqual({
+      parent_span_id: '1234',
+      span_id: expect.stringMatching(/^[0-9a-f]{16}$/),
+      trace_id: 'ABCD',
+    });
+  });
+
+  it('works with a remote OTEL span with parentSpanId', () => {
+    const span = createMockedOtelSpan({
+      spanId: '1234',
+      traceId: 'ABCD',
+      isRemote: true,
+      parentSpanId: 'XYZ',
+    });
+
+    expect(spanToTraceContext(span)).toEqual({
+      parent_span_id: '1234',
+      span_id: expect.stringMatching(/^[0-9a-f]{16}$/),
+      trace_id: 'ABCD',
+    });
   });
 });
 
@@ -111,41 +232,6 @@ describe('spanToJSON', () => {
   });
 
   describe('OpenTelemetry Span', () => {
-    function createMockedOtelSpan({
-      spanId,
-      traceId,
-      attributes,
-      startTime,
-      name,
-      status,
-      endTime,
-      parentSpanId,
-    }: {
-      spanId: string;
-      traceId: string;
-      attributes: SpanAttributes;
-      startTime: SpanTimeInput;
-      name: string;
-      status: SpanStatus;
-      endTime: SpanTimeInput;
-      parentSpanId?: string;
-    }): Span {
-      return {
-        spanContext: () => {
-          return {
-            spanId,
-            traceId,
-          };
-        },
-        attributes,
-        startTime,
-        name,
-        status,
-        endTime,
-        parentSpanId,
-      } as OpenTelemetrySdkTraceBaseSpan;
-    }
-
     it('works with a simple span', () => {
       const span = createMockedOtelSpan({
         spanId: 'SPAN-1',
