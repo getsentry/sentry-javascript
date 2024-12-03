@@ -26,6 +26,15 @@ export function findDefaultSdkInitFile(type: 'server' | 'client'): string | unde
   return filePaths.find(filename => fs.existsSync(filename));
 }
 
+/**
+ *  Extracts the filename from a path.
+ */
+export function getFilenameFromPath(path: string): string | null {
+  const regex = /[^/\\]+$/;
+  const match = path.match(regex);
+  return match ? match[0] : null;
+}
+
 export const SENTRY_WRAPPED_ENTRY = '?sentry-query-wrapped-entry';
 export const SENTRY_WRAPPED_FUNCTIONS = '?sentry-query-wrapped-functions=';
 export const SENTRY_REEXPORTED_FUNCTIONS = '?sentry-query-reexported-functions=';
@@ -89,7 +98,7 @@ export function extractFunctionReexportQueryParameters(query: string): { wrap: s
  */
 export function constructWrappedFunctionExportQuery(
   exportedBindings: Record<string, string[]> | null,
-  entrypointWrappedFunctions: string[],
+  experimental_entrypointWrappedFunctions: string[],
   debug?: boolean,
 ): string {
   const functionsToExport: { wrap: string[]; reexport: string[] } = {
@@ -101,7 +110,7 @@ export function constructWrappedFunctionExportQuery(
   // The key `.` refers to exports within the current file, while other keys show from where exports were imported first.
   Object.values(exportedBindings || {}).forEach(functions =>
     functions.forEach(fn => {
-      if (entrypointWrappedFunctions.includes(fn)) {
+      if (experimental_entrypointWrappedFunctions.includes(fn)) {
         functionsToExport.wrap.push(fn);
       } else {
         functionsToExport.reexport.push(fn);
@@ -113,7 +122,7 @@ export function constructWrappedFunctionExportQuery(
     consoleSandbox(() =>
       // eslint-disable-next-line no-console
       console.warn(
-        "[Sentry] No functions found to wrap. In case the server needs to export async functions other than `handler` or  `server`, consider adding the name(s) to Sentry's build options `sentry.entrypointWrappedFunctions` in `nuxt.config.ts`.",
+        "[Sentry] No functions found to wrap. In case the server needs to export async functions other than `handler` or  `server`, consider adding the name(s) to Sentry's build options `sentry.experimental_entrypointWrappedFunctions` in `nuxt.config.ts`.",
       ),
     );
   }
