@@ -16,6 +16,11 @@ describe('createGetModuleFromFilename', () => {
     expect(getModule('/path/to/base/file.js')).toBe('file');
   });
 
+  it('decodes URI-encoded file names', () => {
+    const getModule = createGetModuleFromFilename();
+    expect(getModule('/path%20with%space/file%20with%20spaces(1).js')).toBe('file with spaces(1)');
+  });
+
   it('returns undefined if no filename is provided', () => {
     const getModule = createGetModuleFromFilename();
     expect(getModule(undefined)).toBeUndefined();
@@ -29,7 +34,7 @@ describe('createGetModuleFromFilename', () => {
     expect(getModule(filename)).toBe(expected);
   });
 
-  it('handles windows paths with passed basePath', () => {
+  it('handles windows paths with passed basePath and node_modules', () => {
     const getModule = createGetModuleFromFilename('C:\\path\\to\\base', true);
     expect(getModule('C:\\path\\to\\base\\node_modules\\somePkg\\file.js')).toBe('somePkg:file');
   });

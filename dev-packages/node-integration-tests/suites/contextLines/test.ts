@@ -25,7 +25,7 @@ describe('ContextLines integration', () => {
                       lineno: 3,
                       function: '?',
                       in_app: true,
-                      module: 'scenario%20with%20space',
+                      module: 'scenario with space',
                     },
                   ]),
                 },
