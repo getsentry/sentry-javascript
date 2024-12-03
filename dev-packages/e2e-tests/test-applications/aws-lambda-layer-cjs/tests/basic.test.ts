@@ -33,7 +33,7 @@ test('Lambda layer SDK bundle sends events', async ({ request }) => {
       'sentry.op': 'function.aws.lambda',
       'cloud.account.id': '123453789012',
       'faas.id': 'arn:aws:lambda:us-east-1:123453789012:function:my-lambda',
-      "faas.coldstart": true,
+      'faas.coldstart': true,
       'otel.kind': 'SERVER',
     },
     op: 'function.aws.lambda',
