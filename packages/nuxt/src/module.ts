@@ -79,7 +79,8 @@ export default defineNuxtModule<ModuleOptions>({
           consoleSandbox(() => {
             // eslint-disable-next-line no-console
             console.log(
-              '[Sentry] Your application is running in development mode. Note: @sentry/nuxt is in beta and may not work as expected on the server-side (Nitro). Errors are reported, but tracing does not work.',
+              '%c [Sentry] Your application is running in development mode. @sentry/nuxt will only report errors and will not add performance tracing on the server-side (Nitro) in development mode.',
+              'color:#fe69c0',
             );
           });
         }
