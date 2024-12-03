@@ -77,3 +77,4 @@ export type { Span } from '@sentry/core';
 export { makeBrowserOfflineTransport } from './transports/offline';
 export { browserProfilingIntegration } from './profiling/integration';
 export { spotlightBrowserIntegration } from './integrations/spotlight';
+export { browserSessionIntegration } from './integrations/session';
