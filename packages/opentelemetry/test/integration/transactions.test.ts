@@ -327,7 +327,6 @@ describe('Integration | Transactions', () => {
     const parentSpanId = '6e0c63257de34c92';
 
     const traceState = makeTraceState({
-      parentSpanId,
       dsc: undefined,
       sampled: true,
     });

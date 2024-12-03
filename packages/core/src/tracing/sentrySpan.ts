@@ -25,8 +25,8 @@ import type {
   TransactionSource,
 } from '../types-hoist';
 import { logger } from '../utils-hoist/logger';
-import { uuid4 } from '../utils-hoist/misc';
 import { dropUndefinedKeys } from '../utils-hoist/object';
+import { generateSpanId, generateTraceId } from '../utils-hoist/propagationContext';
 import { timestampInSeconds } from '../utils-hoist/time';
 import {
   TRACE_FLAG_NONE,
@@ -75,8 +75,8 @@ export class SentrySpan implements Span {
    * @hidden
    */
   public constructor(spanContext: SentrySpanArguments = {}) {
-    this._traceId = spanContext.traceId || uuid4();
-    this._spanId = spanContext.spanId || uuid4().substring(16);
+    this._traceId = spanContext.traceId || generateTraceId();
+    this._spanId = spanContext.spanId || generateSpanId();
     this._startTime = spanContext.startTimestamp || timestampInSeconds();
 
     this._attributes = {};

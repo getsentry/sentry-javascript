@@ -16,6 +16,7 @@ import { SentryPropagator } from '../../src/propagator';
 import { SentrySampler } from '../../src/sampler';
 import { setupEventContextTrace } from '../../src/setupEventContextTrace';
 import { SentrySpanProcessor } from '../../src/spanProcessor';
+import { enhanceDscWithOpenTelemetryRootSpanName } from '../../src/utils/enhanceDscWithOpenTelemetryRootSpanName';
 import type { TestClientInterface } from './TestClient';
 
 /**
@@ -44,6 +45,7 @@ export function initOtel(): void {
   }
 
   setupEventContextTrace(client);
+  enhanceDscWithOpenTelemetryRootSpanName(client);
 
   const provider = setupOtel(client);
   client.traceProvider = provider;
