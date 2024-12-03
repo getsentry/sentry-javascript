@@ -46,8 +46,7 @@ const SKIP_TEST_PACKAGES: Record<NodeVersion, VersionConfig> = {
       '@sentry/astro',
       '@sentry/nuxt',
       '@sentry/nestjs',
-      '@sentry-internal/eslint-plugin-sdk',
-      '@sentry-internal/nitro-utils',
+      '@sentry-internal/eslint-plugin-sdk'
     ],
   },
   '16': {
