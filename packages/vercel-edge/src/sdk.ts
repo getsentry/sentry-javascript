@@ -167,13 +167,12 @@ export function setupOtel(client: VercelEdgeClient): void {
       [ATTR_SERVICE_VERSION]: SDK_VERSION,
     }),
     forceFlushTimeoutMillis: 500,
+    spanProcessors: [
+      new SentrySpanProcessor({
+        timeout: client.getOptions().maxSpanWaitDuration,
+      }),
+    ],
   });
-
-  provider.addSpanProcessor(
-    new SentrySpanProcessor({
-      timeout: client.getOptions().maxSpanWaitDuration,
-    }),
-  );
 
   const SentryContextManager = wrapContextManagerClass(AsyncLocalStorageContextManager);
 
