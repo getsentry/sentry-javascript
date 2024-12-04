@@ -113,8 +113,8 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
         beforeCapture(scope, error, passedInComponentStack);
       }
 
-      const isHandled = this.props.handled === undefined ? !!this.props.fallback : this.props.handled;
-      const eventId = captureReactException(error, errorInfo, { mechanism: { handled: isHandled } });
+      const handled = this.props.handled != null ? this.props.handled : !!this.props.fallback;
+      const eventId = captureReactException(error, errorInfo, { mechanism: { handled } });
 
       if (onError) {
         onError(error, passedInComponentStack, eventId);
