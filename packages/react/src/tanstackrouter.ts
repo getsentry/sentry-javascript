@@ -44,7 +44,7 @@ export function tanstackRouterBrowserTracingIntegration(
       if (instrumentPageLoad && initialWindowLocation) {
         const matchedRoutes = castRouterInstance.matchRoutes(
           initialWindowLocation.pathname,
-          initialWindowLocation.search,
+          castRouterInstance.options.parseSearch(initialWindowLocation.search),
           { preload: false, throwOnError: false },
         );
 

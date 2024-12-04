@@ -2,6 +2,7 @@ import { VERSION } from '@angular/core';
 import type { BrowserOptions } from '@sentry/browser';
 import {
   breadcrumbsIntegration,
+  browserSessionIntegration,
   globalHandlersIntegration,
   httpContextIntegration,
   init as browserInit,
@@ -22,7 +23,7 @@ import { IS_DEBUG_BUILD } from './flags';
 /**
  * Get the default integrations for the Angular SDK.
  */
-export function getDefaultIntegrations(): Integration[] {
+export function getDefaultIntegrations(options: BrowserOptions = {}): Integration[] {
   // Don't include the BrowserApiErrors integration as it interferes with the Angular SDK's `ErrorHandler`:
   // BrowserApiErrors would catch certain errors before they reach the `ErrorHandler` and
   // thus provide a lower fidelity error than what `SentryErrorHandler`
@@ -31,7 +32,7 @@ export function getDefaultIntegrations(): Integration[] {
   // see:
   //  - https://github.com/getsentry/sentry-javascript/issues/5417#issuecomment-1453407097
   //  - https://github.com/getsentry/sentry-javascript/issues/2744
-  return [
+  const integrations = [
     inboundFiltersIntegration(),
     functionToStringIntegration(),
     breadcrumbsIntegration(),
@@ -40,6 +41,12 @@ export function getDefaultIntegrations(): Integration[] {
     dedupeIntegration(),
     httpContextIntegration(),
   ];
+
+  if (options.autoSessionTracking !== false) {
+    integrations.push(browserSessionIntegration());
+  }
+
+  return integrations;
 }
 
 /**

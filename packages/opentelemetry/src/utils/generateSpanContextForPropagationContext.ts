@@ -12,7 +12,6 @@ import { makeTraceState } from './makeTraceState';
 export function generateSpanContextForPropagationContext(propagationContext: PropagationContext): SpanContext {
   // We store the DSC as OTEL trace state on the span context
   const traceState = makeTraceState({
-    parentSpanId: propagationContext.parentSpanId,
     dsc: propagationContext.dsc,
     sampled: propagationContext.sampled,
   });
