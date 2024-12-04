@@ -554,33 +554,38 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
       );
       const SentryRoutes = withSentryReactRouterV6Routing(Routes);
 
+      const DetailsRoutes = () => (
+        <SentryRoutes>
+          <Route path=":detailId" element={<div id="details">Details</div>} />
+        </SentryRoutes>
+      );
+
+      const ViewsRoutes = () => (
+        <SentryRoutes>
+          <Route index element={<div id="views">Views</div>} />
+          <Route path="views/:viewId/*" element={<DetailsRoutes />} />
+        </SentryRoutes>
+      );
+
       const ProjectsRoutes = () => (
         <SentryRoutes>
-          <Route path=":projectId" element={<div>Project Page</div>}>
-            <Route index element={<div>Project Page Root</div>} />
-            <Route element={<div>Editor</div>}>
-              <Route path="*" element={<Outlet />}>
-                <Route path="views/:viewId" element={<div>View Canvas</div>} />
-              </Route>
-            </Route>
-          </Route>
+          <Route path="projects/:projectId/*" element={<ViewsRoutes />}></Route>
           <Route path="*" element={<div>No Match Page</div>} />
-          <Route path="/404" element={<div>404</div>} />
         </SentryRoutes>
       );
 
       render(
         <MemoryRouter initialEntries={['/']}>
           <SentryRoutes>
-            <Route index element={<Navigate to="/projects/123/views/234" />} />
-            <Route path="projects/*" element={<ProjectsRoutes />}></Route>
+            <Route index element={<Navigate to="/projects/123/views/234/567" />} />
+            <Route path="/*" element={<ProjectsRoutes />}></Route>
           </SentryRoutes>
         </MemoryRouter>,
       );
 
       expect(mockStartBrowserTracingNavigationSpan).toHaveBeenCalledTimes(1);
       expect(mockStartBrowserTracingNavigationSpan).toHaveBeenLastCalledWith(expect.any(BrowserClient), {
-        name: '/projects/:projectId/views/:viewId',
+        name: '/projects/:projectId/views/:viewId/:detailId',
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
@@ -1147,51 +1152,54 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
 
       const wrappedUseRoutes = wrapUseRoutesV6(useRoutes);
 
+      const DetailsRoutes = () =>
+        wrappedUseRoutes([
+          {
+            path: ':detailId',
+            element: <div id="details">Details</div>,
+          },
+        ]);
+
+      const ViewsRoutes = () =>
+        wrappedUseRoutes([
+          {
+            index: true,
+            element: <div id="views">Views</div>,
+          },
+          {
+            path: 'views/:viewId/*',
+            element: <DetailsRoutes />,
+          },
+        ]);
+
       const ProjectsRoutes = () =>
         wrappedUseRoutes([
           {
-            path: ':projectId',
-            element: <div>Project Page</div>,
-            children: [
-              {
-                index: true,
-                element: <div>Project Page Root</div>,
-              },
-              {
-                element: <div>Editor</div>,
-                children: [
-                  {
-                    path: '*',
-                    element: <Outlet />,
-                    children: [
-                      {
-                        path: 'views/:viewId/*',
-                        element: <div>View Canvas</div>,
-                      },
-                    ],
-                  },
-                ],
-              },
-            ],
+            path: 'projects/:projectId/*',
+            element: <ViewsRoutes />,
+          },
+          {
+            path: '*',
+            element: <div>No Match Page</div>,
           },
         ]);
 
       const Routes = () =>
         wrappedUseRoutes([
           {
-            path: 'projects/*',
+            path: '/*',
             element: <ProjectsRoutes />,
           },
         ]);
 
       render(
-        <MemoryRouter initialEntries={['/projects/123/views/456']}>
+        <MemoryRouter initialEntries={['/projects/123/views/456/789']}>
           <Routes />
         </MemoryRouter>,
       );
 
       expect(mockStartBrowserTracingPageLoadSpan).toHaveBeenCalledTimes(1);
-      expect(mockRootSpan.updateName).toHaveBeenLastCalledWith('/projects/:projectId/views/:viewId');
+      expect(mockRootSpan.updateName).toHaveBeenLastCalledWith('/projects/:projectId/views/:viewId/:detailId');
       expect(mockRootSpan.setAttribute).toHaveBeenLastCalledWith(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
     });
 
@@ -1211,32 +1219,35 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
 
       const wrappedUseRoutes = wrapUseRoutesV6(useRoutes);
 
+      const DetailsRoutes = () =>
+        wrappedUseRoutes([
+          {
+            path: ':detailId',
+            element: <div id="details">Details</div>,
+          },
+        ]);
+
+      const ViewsRoutes = () =>
+        wrappedUseRoutes([
+          {
+            index: true,
+            element: <div id="views">Views</div>,
+          },
+          {
+            path: 'views/:viewId/*',
+            element: <DetailsRoutes />,
+          },
+        ]);
+
       const ProjectsRoutes = () =>
         wrappedUseRoutes([
           {
-            path: ':projectId',
-            element: <div>Project Page</div>,
-            children: [
-              {
-                index: true,
-                element: <div>Project Page Root</div>,
-              },
-              {
-                element: <div>Editor</div>,
-                children: [
-                  {
-                    path: '*',
-                    element: <Outlet />,
-                    children: [
-                      {
-                        path: 'views/:viewId/*',
-                        element: <div>View Canvas</div>,
-                      },
-                    ],
-                  },
-                ],
-              },
-            ],
+            path: 'projects/:projectId/*',
+            element: <ViewsRoutes />,
+          },
+          {
+            path: '*',
+            element: <div>No Match Page</div>,
           },
         ]);
 
@@ -1244,10 +1255,10 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
         wrappedUseRoutes([
           {
             index: true,
-            element: <Navigate to="/projects/123/views/456" />,
+            element: <Navigate to="/projects/123/views/456/789" />,
           },
           {
-            path: 'projects/*',
+            path: '/*',
             element: <ProjectsRoutes />,
           },
         ]);
@@ -1260,7 +1271,7 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
 
       expect(mockStartBrowserTracingNavigationSpan).toHaveBeenCalledTimes(1);
       expect(mockStartBrowserTracingNavigationSpan).toHaveBeenLastCalledWith(expect.any(BrowserClient), {
-        name: '/projects/:projectId/views/:viewId',
+        name: '/projects/:projectId/views/:viewId/:detailId',
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
