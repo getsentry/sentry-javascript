@@ -1,7 +1,3 @@
-/* eslint-disable complexity */
-/* eslint-disable max-lines */
-// Inspired from Donnie McNeal's solution:
-// https://gist.github.com/wontondon/e8c4bdf2888875e4c755712e99279536
 import type { browserTracingIntegration } from '@sentry/browser';
 import type { Integration } from '@sentry/core';
 import type { ReactRouterOptions } from './reactrouterv6-compat-utils';

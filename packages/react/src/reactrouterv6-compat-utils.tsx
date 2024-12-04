@@ -1,4 +1,3 @@
-/* eslint-disable complexity */
 /* eslint-disable max-lines */
 // Inspired from Donnie McNeal's solution:
 // https://gist.github.com/wontondon/e8c4bdf2888875e4c755712e99279536
@@ -416,10 +415,7 @@ function getNormalizedName(
           pathBuilder += newPath;
 
           // If the path matches the current location, return the path
-          if (
-            location.pathname.endsWith(basename + branch.pathname) ||
-            location.pathname.endsWith(`${basename}${branch.pathname}/`)
-          ) {
+          if (location.pathname.endsWith(basename + branch.pathname)) {
             if (
               // If the route defined on the element is something like
               // <Route path="/stores/:storeId/products/:productId" element={<div>Product</div>} />
