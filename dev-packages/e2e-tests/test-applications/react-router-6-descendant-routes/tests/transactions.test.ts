@@ -6,7 +6,7 @@ test('sends a pageload transaction with a parameterized URL', async ({ page }) =
     return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
   });
 
-  await page.goto(`/projects/123/views/234`);
+  await page.goto(`/projects/123/views/234/567`);
 
   const rootSpan = await transactionPromise;
 
@@ -17,7 +17,7 @@ test('sends a pageload transaction with a parameterized URL', async ({ page }) =
         origin: 'auto.pageload.react.reactrouter_v6',
       },
     },
-    transaction: '/projects/:projectId/views/:viewId',
+    transaction: '/projects/:projectId/views/:viewId/:detailId',
     transaction_info: {
       source: 'route',
     },
@@ -59,7 +59,7 @@ test('sends a navigation transaction with a parameterized URL', async ({ page })
         origin: 'auto.navigation.react.reactrouter_v6',
       },
     },
-    transaction: '/projects/:projectId/views/:viewId',
+    transaction: '/projects/:projectId/views/:viewId/:detailId',
     transaction_info: {
       source: 'route',
     },

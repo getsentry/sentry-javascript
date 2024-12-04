@@ -3,7 +3,6 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import {
   BrowserRouter,
-  Outlet,
   Route,
   Routes,
   createRoutesFromChildren,
@@ -43,16 +42,22 @@ Sentry.init({
 
 const SentryRoutes = Sentry.withSentryReactRouterV6Routing(Routes);
 
+const DetailsRoutes = () => (
+  <SentryRoutes>
+    <Route path=":detailId" element={<div id="details">Details</div>} />
+  </SentryRoutes>
+);
+
+const ViewsRoutes = () => (
+  <SentryRoutes>
+    <Route index element={<div id="views">Views</div>} />
+    <Route path="views/:viewId/*" element={<DetailsRoutes />} />
+  </SentryRoutes>
+);
+
 const ProjectsRoutes = () => (
   <SentryRoutes>
-    <Route path=":projectId" element={<div>Project Page</div>}>
-      <Route index element={<div>Project Page Root</div>} />
-      <Route element={<div>Editor</div>}>
-        <Route path="*" element={<Outlet />}>
-          <Route path="views/:viewId" element={<div>View Canvas</div>} />
-        </Route>
-      </Route>
-    </Route>
+    <Route path="projects/:projectId/*" element={<ViewsRoutes />}></Route>
     <Route path="*" element={<div>No Match Page</div>} />
   </SentryRoutes>
 );
@@ -62,7 +67,7 @@ root.render(
   <BrowserRouter>
     <SentryRoutes>
       <Route path="/" element={<Index />} />
-      <Route path="projects/*" element={<ProjectsRoutes />}></Route>
+      <Route path="/*" element={<ProjectsRoutes />}></Route>
     </SentryRoutes>
   </BrowserRouter>,
 );
