@@ -67,7 +67,7 @@ export {
 export type { Span } from '@sentry/core';
 export { makeBrowserOfflineTransport } from './transports/offline';
 export { browserProfilingIntegration } from './profiling/integration';
-export { browserSessionIntegration } from './integrations/browsersession';
 export { spotlightBrowserIntegration } from './integrations/spotlight';
+export { browserSessionIntegration } from './integrations/browsersession';
 export { launchDarklyIntegration, buildLaunchDarklyFlagUsedHandler } from './integrations/featureFlags/launchdarkly';
 export { openFeatureIntegration, OpenFeatureIntegrationHook } from './integrations/featureFlags/openfeature';
