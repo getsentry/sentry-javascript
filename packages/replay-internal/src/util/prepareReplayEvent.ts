@@ -1,6 +1,6 @@
 import type { IntegrationIndex } from '@sentry/core';
 import { getIsolationScope, prepareEvent } from '@sentry/core';
-import type { Client, EventHint, ReplayEvent, Scope } from '@sentry/types';
+import type { Client, EventHint, ReplayEvent, Scope } from '@sentry/core';
 
 /**
  * Prepare a replay event & enrich it with the SDK metadata.

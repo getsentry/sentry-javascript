@@ -1,6 +1,5 @@
-import { captureException, getClient, getTraceMetaTags } from '@sentry/core';
-import { dropUndefinedKeys } from '@sentry/core';
-import type { ClientOptions, Context } from '@sentry/types';
+import type { ClientOptions, Context } from '@sentry/core';
+import { captureException, dropUndefinedKeys, getClient, getTraceMetaTags } from '@sentry/core';
 import type { VueOptions } from '@sentry/vue/src/types';
 import type { CapturedErrorContext } from 'nitropack';
 import type { NuxtRenderHTMLContext } from 'nuxt/app';

@@ -1,4 +1,4 @@
-import type { Client } from '@sentry/types';
+import type { Client } from '../../src/types-hoist';
 import { eventFromUnknownInput } from '../../src/utils-hoist/eventbuilder';
 import { nodeStackLineParser } from '../../src/utils-hoist/node-stack-trace';
 import { createStackParser } from '../../src/utils-hoist/stacktrace';

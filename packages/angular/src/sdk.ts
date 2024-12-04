@@ -4,17 +4,18 @@ import {
   breadcrumbsIntegration,
   globalHandlersIntegration,
   httpContextIntegration,
+  init as browserInit,
   linkedErrorsIntegration,
+  setContext,
 } from '@sentry/browser';
-import { init as browserInit, setContext } from '@sentry/browser';
+import type { Client, Integration } from '@sentry/core';
 import {
   applySdkMetadata,
   dedupeIntegration,
   functionToStringIntegration,
   inboundFiltersIntegration,
+  logger,
 } from '@sentry/core';
-import { logger } from '@sentry/core';
-import type { Client, Integration } from '@sentry/types';
 
 import { IS_DEBUG_BUILD } from './flags';
 

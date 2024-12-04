@@ -12,7 +12,6 @@ import { getCurrentScope, withScope } from '@sentry/core';
 
 import { SENTRY_BAGGAGE_HEADER, SENTRY_SCOPES_CONTEXT_KEY, SENTRY_TRACE_HEADER } from '../src/constants';
 import { SentryPropagator } from '../src/propagator';
-import { getScopesFromContext } from '../src/utils/contextData';
 import { getSamplingDecision } from '../src/utils/getSamplingDecision';
 import { makeTraceState } from '../src/utils/makeTraceState';
 import { cleanupOtel, mockSdkInit } from './helpers/mockSdkInit';
@@ -101,39 +100,6 @@ describe('SentryPropagator', () => {
         });
       });
 
-      it('uses scope propagation context over remote spanContext', () => {
-        context.with(
-          trace.setSpanContext(ROOT_CONTEXT, {
-            traceId: 'd4cda95b652f4a1592b449d5929fda1b',
-            spanId: '6e0c63257de34c92',
-            traceFlags: TraceFlags.NONE,
-            isRemote: true,
-          }),
-          () => {
-            withScope(scope => {
-              scope.setPropagationContext({
-                traceId: 'TRACE_ID',
-                parentSpanId: 'PARENT_SPAN_ID',
-                spanId: 'SPAN_ID',
-                sampled: true,
-              });
-
-              propagator.inject(context.active(), carrier, defaultTextMapSetter);
-
-              expect(baggageToArray(carrier[SENTRY_BAGGAGE_HEADER])).toEqual(
-                [
-                  'sentry-environment=production',
-                  'sentry-release=1.0.0',
-                  'sentry-public_key=abc',
-                  'sentry-trace_id=TRACE_ID',
-                ].sort(),
-              );
-              expect(carrier[SENTRY_TRACE_HEADER]).toBe('TRACE_ID-SPAN_ID-1');
-            });
-          },
-        );
-      });
-
       it('uses propagation data from current scope if no scope & span is found', () => {
         const scope = getCurrentScope();
         const traceId = scope.getPropagationContext().traceId;
@@ -181,7 +147,6 @@ describe('SentryPropagator', () => {
             traceFlags: TraceFlags.SAMPLED,
             isRemote: true,
             traceState: makeTraceState({
-              parentSpanId: '6e0c63257de34c92',
               dsc: {
                 transaction: 'sampled-transaction',
                 sampled: 'true',
@@ -256,7 +221,6 @@ describe('SentryPropagator', () => {
             traceFlags: TraceFlags.NONE,
             isRemote: true,
             traceState: makeTraceState({
-              parentSpanId: '6e0c63257de34c92',
               dsc: {
                 transaction: 'sampled-transaction',
                 sampled: 'false',
@@ -291,7 +255,6 @@ describe('SentryPropagator', () => {
             isRemote: true,
             traceState: makeTraceState({
               sampled: false,
-              parentSpanId: '6e0c63257de34c92',
               dsc: {
                 transaction: 'sampled-transaction',
                 trace_id: 'dsc_trace_id',
@@ -383,8 +346,10 @@ describe('SentryPropagator', () => {
             });
           },
         );
+      });
 
-        const carrier2: Record<string, string> = {};
+      it('uses remote span with deferred sampling decision over propagation context', () => {
+        const carrier: Record<string, string> = {};
         context.with(
           trace.setSpanContext(ROOT_CONTEXT, {
             traceId: 'd4cda95b652f4a1592b449d5929fda1b',
@@ -401,17 +366,57 @@ describe('SentryPropagator', () => {
                 sampled: true,
               });
 
-              propagator.inject(context.active(), carrier2, defaultTextMapSetter);
+              propagator.inject(context.active(), carrier, defaultTextMapSetter);
 
-              expect(baggageToArray(carrier2[SENTRY_BAGGAGE_HEADER])).toEqual(
+              expect(baggageToArray(carrier[SENTRY_BAGGAGE_HEADER])).toEqual(
                 [
                   'sentry-environment=production',
                   'sentry-release=1.0.0',
                   'sentry-public_key=abc',
-                  'sentry-trace_id=TRACE_ID',
+                  'sentry-trace_id=d4cda95b652f4a1592b449d5929fda1b',
                 ].sort(),
               );
-              expect(carrier2[SENTRY_TRACE_HEADER]).toBe('TRACE_ID-SPAN_ID-1');
+              // Used spanId is a random ID, not from the remote span
+              expect(carrier[SENTRY_TRACE_HEADER]).toMatch(/d4cda95b652f4a1592b449d5929fda1b-[a-f0-9]{16}/);
+              expect(carrier[SENTRY_TRACE_HEADER]).not.toBe('d4cda95b652f4a1592b449d5929fda1b-6e0c63257de34c92');
+            });
+          },
+        );
+      });
+
+      it('uses remote span over propagation context', () => {
+        const carrier: Record<string, string> = {};
+        context.with(
+          trace.setSpanContext(ROOT_CONTEXT, {
+            traceId: 'd4cda95b652f4a1592b449d5929fda1b',
+            spanId: '6e0c63257de34c92',
+            traceFlags: TraceFlags.NONE,
+            isRemote: true,
+            traceState: makeTraceState({ sampled: false }),
+          }),
+          () => {
+            withScope(scope => {
+              scope.setPropagationContext({
+                traceId: 'TRACE_ID',
+                parentSpanId: 'PARENT_SPAN_ID',
+                spanId: 'SPAN_ID',
+                sampled: true,
+              });
+
+              propagator.inject(context.active(), carrier, defaultTextMapSetter);
+
+              expect(baggageToArray(carrier[SENTRY_BAGGAGE_HEADER])).toEqual(
+                [
+                  'sentry-environment=production',
+                  'sentry-release=1.0.0',
+                  'sentry-public_key=abc',
+                  'sentry-sampled=false',
+                  'sentry-trace_id=d4cda95b652f4a1592b449d5929fda1b',
+                ].sort(),
+              );
+              // Used spanId is a random ID, not from the remote span
+              expect(carrier[SENTRY_TRACE_HEADER]).toMatch(/d4cda95b652f4a1592b449d5929fda1b-[a-f0-9]{16}-0/);
+              expect(carrier[SENTRY_TRACE_HEADER]).not.toBe('d4cda95b652f4a1592b449d5929fda1b-6e0c63257de34c92-0');
             });
           },
         );
@@ -557,7 +562,7 @@ describe('SentryPropagator', () => {
         spanId: '6e0c63257de34c92',
         traceFlags: TraceFlags.SAMPLED,
         traceId: 'd4cda95b652f4a1592b449d5929fda1b',
-        traceState: makeTraceState({ parentSpanId: '6e0c63257de34c92' }),
+        traceState: makeTraceState({}),
       });
       expect(getSamplingDecision(trace.getSpanContext(context)!)).toBe(true);
     });
@@ -571,7 +576,7 @@ describe('SentryPropagator', () => {
         spanId: '6e0c63257de34c92',
         traceFlags: TraceFlags.NONE,
         traceId: 'd4cda95b652f4a1592b449d5929fda1b',
-        traceState: makeTraceState({ parentSpanId: '6e0c63257de34c92', sampled: false }),
+        traceState: makeTraceState({ sampled: false }),
       });
       expect(getSamplingDecision(trace.getSpanContext(context)!)).toBe(false);
     });
@@ -585,41 +590,20 @@ describe('SentryPropagator', () => {
         spanId: '6e0c63257de34c92',
         traceFlags: TraceFlags.NONE,
         traceId: 'd4cda95b652f4a1592b449d5929fda1b',
-        traceState: makeTraceState({ parentSpanId: '6e0c63257de34c92' }),
+        traceState: makeTraceState({}),
       });
       expect(getSamplingDecision(trace.getSpanContext(context)!)).toBe(undefined);
-    });
-
-    it('sets data from sentry trace header on scope', () => {
-      const sentryTraceHeader = 'd4cda95b652f4a1592b449d5929fda1b-6e0c63257de34c92-1';
-      carrier[SENTRY_TRACE_HEADER] = sentryTraceHeader;
-      const context = propagator.extract(ROOT_CONTEXT, carrier, defaultTextMapGetter);
-
-      const scopes = getScopesFromContext(context);
-
-      expect(scopes).toBeDefined();
-      expect(scopes?.scope.getPropagationContext()).toEqual({
-        spanId: expect.any(String),
-        sampled: true,
-        traceId: 'd4cda95b652f4a1592b449d5929fda1b',
-        parentSpanId: '6e0c63257de34c92',
-        dsc: {},
-      });
-      expect(getSamplingDecision(trace.getSpanContext(context)!)).toBe(true);
     });
 
     it('handles undefined sentry trace header', () => {
       const sentryTraceHeader = undefined;
       carrier[SENTRY_TRACE_HEADER] = sentryTraceHeader;
       const context = propagator.extract(ROOT_CONTEXT, carrier, defaultTextMapGetter);
-      expect(trace.getSpanContext(context)).toEqual({
-        isRemote: true,
-        spanId: expect.any(String),
-        traceFlags: TraceFlags.NONE,
-        traceId: expect.any(String),
-        traceState: makeTraceState({}),
+      expect(trace.getSpanContext(context)).toEqual(undefined);
+      expect(getCurrentScope().getPropagationContext()).toEqual({
+        spanId: expect.stringMatching(/[a-f0-9]{16}/),
+        traceId: expect.stringMatching(/[a-f0-9]{32}/),
       });
-      expect(getSamplingDecision(trace.getSpanContext(context)!)).toBe(undefined);
     });
 
     it('sets data from baggage header on span context', () => {
@@ -635,7 +619,6 @@ describe('SentryPropagator', () => {
         traceFlags: TraceFlags.SAMPLED,
         traceId: 'd4cda95b652f4a1592b449d5929fda1b',
         traceState: makeTraceState({
-          parentSpanId: '6e0c63257de34c92',
           dsc: {
             environment: 'production',
             release: '1.0.0',
@@ -648,55 +631,29 @@ describe('SentryPropagator', () => {
       expect(getSamplingDecision(trace.getSpanContext(context)!)).toBe(true);
     });
 
-    it('sets data from baggage header on scope', () => {
-      const sentryTraceHeader = 'd4cda95b652f4a1592b449d5929fda1b-6e0c63257de34c92-1';
-      const baggage =
-        'sentry-environment=production,sentry-release=1.0.0,sentry-public_key=abc,sentry-trace_id=d4cda95b652f4a1592b449d5929fda1b,sentry-transaction=dsc-transaction';
-      carrier[SENTRY_TRACE_HEADER] = sentryTraceHeader;
-      carrier[SENTRY_BAGGAGE_HEADER] = baggage;
-      const context = propagator.extract(ROOT_CONTEXT, carrier, defaultTextMapGetter);
-
-      const scopes = getScopesFromContext(context);
-
-      expect(scopes).toBeDefined();
-      expect(scopes?.scope.getPropagationContext()).toEqual({
-        spanId: expect.any(String),
-        sampled: true,
-        traceId: 'd4cda95b652f4a1592b449d5929fda1b',
-        parentSpanId: '6e0c63257de34c92',
-        dsc: {
-          environment: 'production',
-          release: '1.0.0',
-          public_key: 'abc',
-          trace_id: 'd4cda95b652f4a1592b449d5929fda1b',
-          transaction: 'dsc-transaction',
-        },
-      });
-    });
-
     it('handles empty dsc baggage header', () => {
+      const sentryTraceHeader = 'd4cda95b652f4a1592b449d5929fda1b-6e0c63257de34c92-1';
       const baggage = '';
+      carrier[SENTRY_TRACE_HEADER] = sentryTraceHeader;
       carrier[SENTRY_BAGGAGE_HEADER] = baggage;
       const context = propagator.extract(ROOT_CONTEXT, carrier, defaultTextMapGetter);
       expect(trace.getSpanContext(context)).toEqual({
         isRemote: true,
-        spanId: expect.any(String),
-        traceFlags: TraceFlags.NONE,
-        traceId: expect.any(String),
+        spanId: '6e0c63257de34c92',
+        traceFlags: TraceFlags.SAMPLED,
+        traceId: 'd4cda95b652f4a1592b449d5929fda1b',
         traceState: makeTraceState({}),
       });
-      expect(getSamplingDecision(trace.getSpanContext(context)!)).toBe(undefined);
+      expect(getSamplingDecision(trace.getSpanContext(context)!)).toBe(true);
     });
 
     it('handles when sentry-trace is an empty array', () => {
       carrier[SENTRY_TRACE_HEADER] = [];
       const context = propagator.extract(ROOT_CONTEXT, carrier, defaultTextMapGetter);
-      expect(trace.getSpanContext(context)).toEqual({
-        isRemote: true,
-        spanId: expect.any(String),
-        traceFlags: TraceFlags.NONE,
-        traceId: expect.any(String),
-        traceState: makeTraceState({}),
+      expect(trace.getSpanContext(context)).toEqual(undefined);
+      expect(getCurrentScope().getPropagationContext()).toEqual({
+        spanId: expect.stringMatching(/[a-f0-9]{16}/),
+        traceId: expect.stringMatching(/[a-f0-9]{32}/),
       });
     });
   });

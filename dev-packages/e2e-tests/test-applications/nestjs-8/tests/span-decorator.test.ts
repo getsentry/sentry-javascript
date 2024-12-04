@@ -19,14 +19,14 @@ test('Transaction includes span and correct value for decorated async function',
   expect(transactionEvent.spans).toEqual(
     expect.arrayContaining([
       expect.objectContaining({
-        span_id: expect.any(String),
-        trace_id: expect.any(String),
+        span_id: expect.stringMatching(/[a-f0-9]{16}/),
+        trace_id: expect.stringMatching(/[a-f0-9]{32}/),
         data: {
           'sentry.origin': 'manual',
           'sentry.op': 'wait and return a string',
         },
         description: 'wait',
-        parent_span_id: expect.any(String),
+        parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
         start_timestamp: expect.any(Number),
         status: 'ok',
         op: 'wait and return a string',
@@ -54,14 +54,14 @@ test('Transaction includes span and correct value for decorated sync function', 
   expect(transactionEvent.spans).toEqual(
     expect.arrayContaining([
       expect.objectContaining({
-        span_id: expect.any(String),
-        trace_id: expect.any(String),
+        span_id: expect.stringMatching(/[a-f0-9]{16}/),
+        trace_id: expect.stringMatching(/[a-f0-9]{32}/),
         data: {
           'sentry.origin': 'manual',
           'sentry.op': 'return a string',
         },
         description: 'getString',
-        parent_span_id: expect.any(String),
+        parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
         start_timestamp: expect.any(Number),
         status: 'ok',
         op: 'return a string',

@@ -1,3 +1,5 @@
+import { getDynamicSamplingContextFromSpan } from './tracing/dynamicSamplingContext';
+import type { SentrySpan } from './tracing/sentrySpan';
 import type {
   Client,
   DsnComponents,
@@ -14,9 +16,7 @@ import type {
   SpanEnvelope,
   SpanItem,
   SpanJSON,
-} from '@sentry/types';
-import { getDynamicSamplingContextFromSpan } from './tracing/dynamicSamplingContext';
-import type { SentrySpan } from './tracing/sentrySpan';
+} from './types-hoist';
 import { dsnToString } from './utils-hoist/dsn';
 import {
   createEnvelope,

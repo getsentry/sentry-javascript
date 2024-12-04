@@ -1,5 +1,4 @@
-import { addBreadcrumb, getClient, getCurrentScope, getGlobalScope } from '@sentry/core';
-import { addNonEnumerableProperty } from '@sentry/core';
+import { addBreadcrumb, addNonEnumerableProperty, getClient, getCurrentScope, getGlobalScope } from '@sentry/core';
 
 // Inline PiniaPlugin type
 type PiniaPlugin = (context: {

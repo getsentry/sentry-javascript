@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as sentryCore from '@sentry/core';
 import * as sentryUtils from '@sentry/core';
 import { createStackParser } from '@sentry/core';
-import type { HandlerDataFetch, Integration } from '@sentry/types';
+import type { HandlerDataFetch, Integration } from '@sentry/core';
 
 import { VercelEdgeClient } from '../src/index';
 import { winterCGFetchIntegration } from '../src/integrations/wintercg-fetch';

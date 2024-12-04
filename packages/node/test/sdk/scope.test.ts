@@ -1,5 +1,5 @@
 import { Scope, getGlobalScope, prepareEvent } from '@sentry/core';
-import type { Attachment, Breadcrumb, Client, ClientOptions, EventProcessor } from '@sentry/types';
+import type { Attachment, Breadcrumb, Client, ClientOptions, EventProcessor } from '@sentry/core';
 import { getIsolationScope } from '../../src';
 import { mockSdkInit } from '../helpers/mockSdkInit';
 

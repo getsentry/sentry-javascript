@@ -12,7 +12,7 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import type { Client, MetricsAggregator, Scope } from '@sentry/types';
+import type { Client, MetricsAggregator, Scope } from '../types-hoist';
 
 import type { SdkSource } from './env';
 import type { logger } from './logger';

@@ -1,5 +1,5 @@
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/browser';
-import type { Span } from '@sentry/types';
+import type { Span } from '@sentry/core';
 import { afterUpdate, beforeUpdate, onMount } from 'svelte';
 
 import { startInactiveSpan } from '@sentry/core';

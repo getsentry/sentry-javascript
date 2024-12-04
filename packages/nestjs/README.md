@@ -134,7 +134,7 @@ after each cron job run.
 ```typescript
 import { Cron } from '@nestjs/schedule';
 import { SentryCron, MonitorConfig } from '@sentry/nestjs';
-import type { MonitorConfig } from '@sentry/types';
+import type { MonitorConfig } from '@sentry/core';
 
 const monitorConfig: MonitorConfig = {
   schedule: {

@@ -1,11 +1,11 @@
+import { getIsolationScope } from './currentScopes';
 import type {
   AggregationCounts,
   Client,
   RequestSessionStatus,
   SessionAggregates,
   SessionFlusherLike,
-} from '@sentry/types';
-import { getIsolationScope } from './currentScopes';
+} from './types-hoist';
 import { dropUndefinedKeys } from './utils-hoist/object';
 
 type ReleaseHealthAttributes = {

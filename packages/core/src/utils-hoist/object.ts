@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import type { WrappedFunction } from '@sentry/types';
+import type { WrappedFunction } from '../types-hoist';
 
 import { htmlTreeAsString } from './browser';
 import { DEBUG_BUILD } from './debug-build';
@@ -81,7 +81,8 @@ export function markFunctionWrapped(wrapped: WrappedFunction, original: WrappedF
  * @param func the function to unwrap
  * @returns the unwrapped version of the function if available.
  */
-export function getOriginalFunction(func: WrappedFunction): WrappedFunction | undefined {
+// eslint-disable-next-line @typescript-eslint/ban-types
+export function getOriginalFunction<T extends Function>(func: WrappedFunction<T>): T | undefined {
   return func.__sentry_original__;
 }
 
@@ -295,7 +296,8 @@ function isPojo(input: unknown): input is Record<string, unknown> {
 export function objectify(wat: unknown): typeof Object {
   let objectified;
   switch (true) {
-    case wat === undefined || wat === null:
+    // this will catch both undefined and null
+    case wat == undefined:
       objectified = new String(wat);
       break;
 

@@ -1,4 +1,4 @@
-import type { Contexts, DsnComponents, Primitive, SdkMetadata } from '@sentry/types';
+import type { Contexts, DsnComponents, Primitive, SdkMetadata } from '@sentry/core';
 
 export interface AnrIntegrationOptions {
   /**

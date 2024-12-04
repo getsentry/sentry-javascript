@@ -1,5 +1,6 @@
 import { types } from 'node:util';
 import { Worker } from 'node:worker_threads';
+import type { Contexts, Event, EventHint, Integration, IntegrationFn, ScopeData } from '@sentry/core';
 import {
   GLOBAL_OBJ,
   defineIntegration,
@@ -11,7 +12,6 @@ import {
   logger,
   mergeScopeData,
 } from '@sentry/core';
-import type { Contexts, Event, EventHint, Integration, IntegrationFn, ScopeData } from '@sentry/types';
 import { NODE_VERSION } from '../../nodeVersion';
 import type { NodeClient } from '../../sdk/client';
 import type { AnrIntegrationOptions, WorkerStartData } from './common';

@@ -14,15 +14,11 @@
  * limitations under the License.
  */
 
-export interface RunOnceCallback {
-  (arg: unknown): void;
-}
-
-export const runOnce = (cb: RunOnceCallback) => {
+export const runOnce = (cb: () => void) => {
   let called = false;
-  return (arg: unknown) => {
+  return () => {
     if (!called) {
-      cb(arg);
+      cb();
       called = true;
     }
   };

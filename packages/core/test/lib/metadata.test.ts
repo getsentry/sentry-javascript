@@ -1,4 +1,4 @@
-import type { Event } from '@sentry/types';
+import type { Event } from '../../src/types-hoist';
 
 import { addMetadataToStackFrames, getMetadataForUrl, stripMetadataFromStackFrames } from '../../src/metadata';
 import { nodeStackLineParser } from '../../src/utils-hoist/node-stack-trace';

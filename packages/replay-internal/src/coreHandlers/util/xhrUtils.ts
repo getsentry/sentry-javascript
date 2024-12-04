@@ -1,5 +1,5 @@
 import { SENTRY_XHR_DATA_KEY } from '@sentry-internal/browser-utils';
-import type { Breadcrumb, XhrBreadcrumbData } from '@sentry/types';
+import type { Breadcrumb, XhrBreadcrumbData } from '@sentry/core';
 
 import { DEBUG_BUILD } from '../../debug-build';
 import type {
