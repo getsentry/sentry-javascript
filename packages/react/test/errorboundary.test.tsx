@@ -537,7 +537,7 @@ describe('ErrorBoundary', () => {
       expect(mockOnReset).toHaveBeenCalledTimes(1);
       expect(mockOnReset).toHaveBeenCalledWith(expect.any(Error), expect.any(String), expect.any(String));
     });
-    it.only.each`
+    it.each`
       fallback | handled      | expected
       ${true}  | ${undefined} | ${true}
       ${false} | ${undefined} | ${false}
