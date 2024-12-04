@@ -1,5 +1,5 @@
-import { startSession } from '..';
 import { getIsolationScope } from '../currentScopes';
+import { startSession } from '../exports';
 import { defineIntegration } from '../integration';
 
 export const serverRequestSessionIntegration = defineIntegration(() => {
