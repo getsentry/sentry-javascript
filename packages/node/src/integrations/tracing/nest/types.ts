@@ -1,5 +1,22 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+// Partial extract of FastifyRequest interface
+// https://github.com/fastify/fastify/blob/87f9f20687c938828f1138f91682d568d2a31e53/types/request.d.ts#L41
+export interface FastifyRequest {
+  routeOptions?: {
+    method?: string;
+    url?: string;
+  };
+}
+
+// Partial extract of ExpressRequest interface
+export interface ExpressRequest {
+  route?: {
+    path?: string;
+  };
+  method?: string;
+}
+
 export interface MinimalNestJsExecutionContext {
   getType: () => string;
 
@@ -7,13 +24,7 @@ export interface MinimalNestJsExecutionContext {
     // minimal request object
     // according to official types, all properties are required but
     // let's play it safe and assume they're optional
-    getRequest: () => {
-      routeOptions?: any;
-      route?: {
-        path?: string;
-      };
-      method?: string;
-    };
+    getRequest: () => FastifyRequest | ExpressRequest;
   };
 
   _sentryInterceptorInstrumented?: boolean;

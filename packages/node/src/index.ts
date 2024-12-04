@@ -166,3 +166,5 @@ export type {
   User,
   Span,
 } from '@sentry/core';
+
+export type { FastifyRequest, ExpressRequest } from './integrations/tracing/nest/types';

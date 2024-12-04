@@ -22,6 +22,7 @@ import {
 } from '@sentry/core';
 import type { Observable } from 'rxjs';
 import { isExpectedError } from './helpers';
+import type { FastifyRequest, ExpressRequest } from '@sentry/node';
 
 /**
  * Note: We cannot use @ syntax to add the decorators, so we add them directly below the classes as function wrappers.
@@ -52,18 +53,16 @@ class SentryTracingInterceptor implements NestInterceptor {
     }
 
     if (context.getType() === 'http') {
-      const req = context.switchToHttp().getRequest();
-      /* eslint-disable @typescript-eslint/no-unsafe-member-access, @sentry-internal/sdk/no-optional-chaining */
-      if (req.routeOptions && req.routeOptions.url) {
+      const req = context.switchToHttp().getRequest() as FastifyRequest | ExpressRequest;
+      if ('routeOptions' in req && req.routeOptions && req.routeOptions.url) {
         // fastify case
         getIsolationScope().setTransactionName(
-          `${req.routeOptions.method?.toUpperCase() || 'GET'} ${req.routeOptions.url}`,
+          `${(req.routeOptions.method || 'GET').toUpperCase()} ${req.routeOptions.url}`,
         );
-      } else if (req.route && req.route.path) {
+      } else if ('route' in req && req.route && req.route.path) {
         // express case
-        getIsolationScope().setTransactionName(`${req.method?.toUpperCase() || 'GET'} ${req.route.path}`);
+        getIsolationScope().setTransactionName(`${(req.method || 'GET').toUpperCase()} ${req.route.path}`);
       }
-      /* eslint-enable @typescript-eslint/no-unsafe-member-access, @sentry-internal/sdk/no-optional-chaining */
     }
 
     return next.handle();

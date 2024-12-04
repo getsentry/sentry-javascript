@@ -87,18 +87,17 @@ export function setupNestErrorHandler(app: MinimalNestJsApp, baseFilter: NestJsE
       }
 
       if (context.getType() === 'http') {
+        // getRequest() returns either a FastifyRequest or ExpressRequest, depending on the used adapter
         const req = context.switchToHttp().getRequest();
-        /* eslint-disable @typescript-eslint/no-unsafe-member-access */
-        if (req.routeOptions && req.routeOptions.url) {
+        if ('routeOptions' in req && req.routeOptions && req.routeOptions.url) {
           // fastify case
           getIsolationScope().setTransactionName(
             `${req.routeOptions.method?.toUpperCase() || 'GET'} ${req.routeOptions.url}`,
           );
-        } else if (req.route && req.route.path) {
+        } else if ('route' in req && req.route && req.route.path) {
           // express case
           getIsolationScope().setTransactionName(`${req.method?.toUpperCase() || 'GET'} ${req.route.path}`);
         }
-        /* eslint-enable @typescript-eslint/no-unsafe-member-access, @sentry-internal/sdk/no-optional-chaining */
       }
 
       return next.handle();
