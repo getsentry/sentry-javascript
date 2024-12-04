@@ -22,6 +22,8 @@ jest/transformers/*.js
 # node tarballs
 packages/*/sentry-*.tgz
 .nxcache
+# test results
+test-results/
 
 # logs
 yarn-error.log
