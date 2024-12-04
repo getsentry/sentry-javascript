@@ -94,6 +94,7 @@ class ScopeClass implements ScopeInterface {
   protected _session?: Session;
 
   /** Request Mode Session Status */
+  // eslint-disable-next-line deprecation/deprecation
   protected _requestSession?: RequestSession;
 
   /** The client on this scope */
@@ -222,6 +223,7 @@ class ScopeClass implements ScopeInterface {
   /**
    * @inheritDoc
    */
+  // eslint-disable-next-line deprecation/deprecation
   public getRequestSession(): RequestSession | undefined {
     return this._requestSession;
   }
@@ -229,6 +231,7 @@ class ScopeClass implements ScopeInterface {
   /**
    * @inheritDoc
    */
+  // eslint-disable-next-line deprecation/deprecation
   public setRequestSession(requestSession?: RequestSession): this {
     this._requestSession = requestSession;
     return this;
@@ -350,7 +353,8 @@ class ScopeClass implements ScopeInterface {
 
     const [scopeInstance, requestSession] =
       scopeToMerge instanceof Scope
-        ? [scopeToMerge.getScopeData(), scopeToMerge.getRequestSession()]
+        ? // eslint-disable-next-line deprecation/deprecation
+          [scopeToMerge.getScopeData(), scopeToMerge.getRequestSession()]
         : isPlainObject(scopeToMerge)
           ? [captureContext as ScopeContext, (captureContext as ScopeContext).requestSession]
           : [];
