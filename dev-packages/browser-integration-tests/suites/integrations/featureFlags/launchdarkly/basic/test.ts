@@ -22,7 +22,7 @@ sentryTest('Basic test with eviction, update, and no async tasks', async ({ getL
   const url = await getLocalTestUrl({ testDir: __dirname, skipDsnRouteHandler: true });
   await page.goto(url);
 
-  await page.waitForFunction(bufferSize => {
+  await page.evaluate(bufferSize => {
     const ldClient = (window as any).initializeLD();
     for (let i = 1; i <= bufferSize; i++) {
       ldClient.variation(`feat${i}`, false);

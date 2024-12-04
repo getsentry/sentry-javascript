@@ -25,7 +25,7 @@ sentryTest('Flag evaluations in forked scopes are stored separately.', async ({ 
   const forkedReqPromise = waitForErrorRequest(page, event => !!event.tags && event.tags.isForked === true);
   const mainReqPromise = waitForErrorRequest(page, event => !!event.tags && event.tags.isForked === false);
 
-  await page.waitForFunction(() => {
+  await page.evaluate(() => {
     const Sentry = (window as any).Sentry;
     const errorButton = document.querySelector('#error') as HTMLButtonElement;
     const ldClient = (window as any).initializeLD();
