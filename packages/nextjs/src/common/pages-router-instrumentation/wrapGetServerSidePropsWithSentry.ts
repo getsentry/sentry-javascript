@@ -36,7 +36,7 @@ export function wrapGetServerSidePropsWithSentry(
         sentryTrace,
       } = await (tracedGetServerSideProps.apply(thisArg, args) as ReturnType<typeof tracedGetServerSideProps>);
 
-      if (serverSideProps && 'props' in serverSideProps) {
+      if (typeof serverSideProps === 'object' && 'props' in serverSideProps) {
         // The Next.js serializer throws on undefined values so we need to guard for it (#12102)
         if (sentryTrace) {
           (serverSideProps.props as Record<string, unknown>)._sentryTraceData = sentryTrace;
