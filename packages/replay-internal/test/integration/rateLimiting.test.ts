@@ -6,7 +6,7 @@ import type { MockedFunction } from 'vitest';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { getClient } from '@sentry/core';
-import type { Transport, TransportMakeRequestResponse } from '@sentry/types';
+import type { Transport, TransportMakeRequestResponse } from '@sentry/core';
 
 import { DEFAULT_FLUSH_MIN_DELAY } from '../../src/constants';
 import type { ReplayContainer } from '../../src/replay';

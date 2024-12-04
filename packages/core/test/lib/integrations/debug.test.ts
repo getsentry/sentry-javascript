@@ -1,4 +1,4 @@
-import type { Client, Event, EventHint } from '@sentry/types';
+import type { Client, Event, EventHint } from '../../../src/types-hoist';
 
 import { debugIntegration } from '../../../src/integrations/debug';
 

@@ -536,6 +536,7 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
         }),
       );
 
+      // eslint-disable-next-line deprecation/deprecation
       const wrappedUseRoutes = wrapUseRoutes(useRoutes);
 
       const Routes = () =>
@@ -577,6 +578,7 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
         }),
       );
 
+      // eslint-disable-next-line deprecation/deprecation
       const wrappedUseRoutes = wrapUseRoutes(useRoutes);
 
       const Routes = () =>
@@ -611,6 +613,7 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
         }),
       );
 
+      // eslint-disable-next-line deprecation/deprecation
       const wrappedUseRoutes = wrapUseRoutes(useRoutes);
 
       const Routes = () =>
@@ -645,6 +648,7 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
         }),
       );
 
+      // eslint-disable-next-line deprecation/deprecation
       const wrappedUseRoutes = wrapUseRoutes(useRoutes);
 
       const Routes = () =>
@@ -682,6 +686,7 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
           matchRoutes,
         }),
       );
+      // eslint-disable-next-line deprecation/deprecation
       const wrappedUseRoutes = wrapUseRoutes(useRoutes);
 
       const Routes = () =>
@@ -726,6 +731,7 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
           matchRoutes,
         }),
       );
+      // eslint-disable-next-line deprecation/deprecation
       const wrappedUseRoutes = wrapUseRoutes(useRoutes);
 
       const Routes = () =>
@@ -776,6 +782,7 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
           matchRoutes,
         }),
       );
+      // eslint-disable-next-line deprecation/deprecation
       const wrappedUseRoutes = wrapUseRoutes(useRoutes);
 
       const Routes = () =>
@@ -826,6 +833,7 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
           matchRoutes,
         }),
       );
+      // eslint-disable-next-line deprecation/deprecation
       const wrappedUseRoutes = wrapUseRoutes(useRoutes);
 
       const Routes = () =>
@@ -882,6 +890,7 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
           matchRoutes,
         }),
       );
+      // eslint-disable-next-line deprecation/deprecation
       const wrappedUseRoutes = wrapUseRoutes(useRoutes);
 
       const Routes = () =>
@@ -962,6 +971,7 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
           matchRoutes,
         }),
       );
+      // eslint-disable-next-line deprecation/deprecation
       const wrappedUseRoutes = wrapUseRoutes(useRoutes);
 
       const Routes = () =>
@@ -1040,6 +1050,7 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
           matchRoutes,
         }),
       );
+      // eslint-disable-next-line deprecation/deprecation
       const wrappedUseRoutes = wrapUseRoutes(useRoutes);
 
       const Routes = () =>
@@ -1098,6 +1109,7 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
           matchRoutes,
         }),
       );
+      // eslint-disable-next-line deprecation/deprecation
       const wrappedUseRoutes = wrapUseRoutes(useRoutes);
 
       const Routes = () =>
@@ -1155,6 +1167,7 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
           matchRoutes,
         }),
       );
+      // eslint-disable-next-line deprecation/deprecation
       const wrappedUseRoutes = wrapUseRoutes(useRoutes);
 
       const Routes = () =>

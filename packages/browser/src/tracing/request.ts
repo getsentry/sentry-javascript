@@ -1,29 +1,26 @@
-/* eslint-disable max-lines */
 import {
   SENTRY_XHR_DATA_KEY,
   addPerformanceInstrumentationHandler,
   addXhrInstrumentationHandler,
 } from '@sentry-internal/browser-utils';
+import type { Client, HandlerDataXhr, SentryWrappedXMLHttpRequest, Span } from '@sentry/core';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SentryNonRecordingSpan,
+  addFetchEndInstrumentationHandler,
+  addFetchInstrumentationHandler,
+  browserPerformanceTimeOrigin,
   getActiveSpan,
   getTraceData,
   hasTracingEnabled,
   instrumentFetchRequest,
+  parseUrl,
   setHttpStatus,
   spanToJSON,
   startInactiveSpan,
-} from '@sentry/core';
-import {
-  addFetchEndInstrumentationHandler,
-  addFetchInstrumentationHandler,
-  browserPerformanceTimeOrigin,
-  parseUrl,
   stringMatchesSomePattern,
 } from '@sentry/core';
-import type { Client, HandlerDataXhr, SentryWrappedXMLHttpRequest, Span } from '@sentry/types';
 import { WINDOW } from '../helpers';
 
 /** Options for Request Instrumentation */

@@ -1,8 +1,7 @@
-import type { PropagationContext, TraceparentData } from '@sentry/types';
+import type { PropagationContext, TraceparentData } from '../types-hoist';
 
 import { baggageHeaderToDynamicSamplingContext } from './baggage';
-import { uuid4 } from './misc';
-import { generatePropagationContext } from './propagationContext';
+import { generateSpanId, generateTraceId } from './propagationContext';
 
 // eslint-disable-next-line @sentry-internal/sdk/no-regexp-constructor -- RegExp is used for readability here
 export const TRACEPARENT_REGEXP = new RegExp(
@@ -56,12 +55,12 @@ export function propagationContextFromHeaders(
   const dynamicSamplingContext = baggageHeaderToDynamicSamplingContext(baggage);
 
   if (!traceparentData || !traceparentData.traceId) {
-    return generatePropagationContext();
+    return { traceId: generateTraceId(), spanId: generateSpanId() };
   }
 
   const { traceId, parentSpanId, parentSampled } = traceparentData;
 
-  const virtualSpanId = uuid4().substring(16);
+  const virtualSpanId = generateSpanId();
 
   return {
     traceId,
@@ -76,8 +75,8 @@ export function propagationContextFromHeaders(
  * Create sentry-trace header from span context values.
  */
 export function generateSentryTraceHeader(
-  traceId: string = uuid4(),
-  spanId: string = uuid4().substring(16),
+  traceId: string = generateTraceId(),
+  spanId: string = generateSpanId(),
   sampled?: boolean,
 ): string {
   let sampledString = '';

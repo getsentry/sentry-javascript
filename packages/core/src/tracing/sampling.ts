@@ -1,4 +1,4 @@
-import type { Options, SamplingContext } from '@sentry/types';
+import type { Options, SamplingContext } from '../types-hoist';
 
 import { DEBUG_BUILD } from '../debug-build';
 import { logger } from '../utils-hoist/logger';

@@ -1,5 +1,5 @@
 import { getDefaultCurrentScope, getDefaultIsolationScope, setAsyncContextStrategy } from '@sentry/core';
-import type { Scope } from '@sentry/types';
+import type { Scope } from '@sentry/core';
 
 // Need to use node: prefix for cloudflare workers compatibility
 // Note: Because we are using node:async_hooks, we need to set `node_compat` in the wrangler.toml

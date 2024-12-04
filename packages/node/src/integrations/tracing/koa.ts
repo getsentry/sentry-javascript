@@ -1,5 +1,6 @@
 import { KoaInstrumentation } from '@opentelemetry/instrumentation-koa';
 import { ATTR_HTTP_ROUTE } from '@opentelemetry/semantic-conventions';
+import type { IntegrationFn, Span } from '@sentry/core';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -7,10 +8,9 @@ import {
   defineIntegration,
   getDefaultIsolationScope,
   getIsolationScope,
+  logger,
   spanToJSON,
 } from '@sentry/core';
-import { logger } from '@sentry/core';
-import type { IntegrationFn, Span } from '@sentry/types';
 import { DEBUG_BUILD } from '../../debug-build';
 import { generateInstrumentOnce } from '../../otel/instrument';
 import { ensureIsWrapped } from '../../utils/ensureIsWrapped';

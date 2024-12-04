@@ -4,8 +4,8 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '@sentry/core';
 import { GLOBAL_OBJ, browserPerformanceTimeOrigin } from '@sentry/core';
+import type { Client, Span } from '@sentry/core';
 import { WINDOW, startBrowserTracingNavigationSpan, startBrowserTracingPageLoadSpan } from '@sentry/react';
-import type { Client, Span } from '@sentry/types';
 
 export const INCOMPLETE_APP_ROUTER_INSTRUMENTATION_TRANSACTION_NAME = 'incomplete-app-router-transaction';
 

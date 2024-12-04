@@ -1,4 +1,4 @@
-import type { Client, DsnComponents, DynamicSamplingContext, Event } from '@sentry/types';
+import type { Client, DsnComponents, DynamicSamplingContext, Event } from '../../src/types-hoist';
 
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,

@@ -1,4 +1,4 @@
-import type { SpanJSON } from '@sentry/types';
+import type { SpanJSON } from '@sentry/core';
 import { createRunner } from '../../../utils/runner';
 
 test('it limits spans to 1000', done => {

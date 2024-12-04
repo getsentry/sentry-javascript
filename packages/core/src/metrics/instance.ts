@@ -1,4 +1,4 @@
-import type { MetricInstance } from '@sentry/types';
+import type { MetricInstance } from '../types-hoist';
 import { COUNTER_METRIC_TYPE, DISTRIBUTION_METRIC_TYPE, GAUGE_METRIC_TYPE, SET_METRIC_TYPE } from './constants';
 import { simpleHash } from './utils';
 

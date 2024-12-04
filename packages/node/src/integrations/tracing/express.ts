@@ -1,9 +1,16 @@
 import type * as http from 'node:http';
 import { ExpressInstrumentation } from '@opentelemetry/instrumentation-express';
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP, defineIntegration, getDefaultIsolationScope, spanToJSON } from '@sentry/core';
-import { captureException, getClient, getIsolationScope } from '@sentry/core';
-import { logger } from '@sentry/core';
-import type { IntegrationFn } from '@sentry/types';
+import type { IntegrationFn } from '@sentry/core';
+import {
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  captureException,
+  defineIntegration,
+  getClient,
+  getDefaultIsolationScope,
+  getIsolationScope,
+  logger,
+  spanToJSON,
+} from '@sentry/core';
 import { DEBUG_BUILD } from '../../debug-build';
 import { generateInstrumentOnce } from '../../otel/instrument';
 import type { NodeClient } from '../../sdk/client';

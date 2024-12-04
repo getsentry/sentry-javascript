@@ -1,5 +1,5 @@
-import type { Attachment, Breadcrumb, Event, EventProcessor, EventType, ScopeData } from '@sentry/types';
 import { startInactiveSpan } from '../../../src';
+import type { Attachment, Breadcrumb, Event, EventProcessor, EventType, ScopeData } from '../../../src/types-hoist';
 import {
   applyScopeDataToEvent,
   mergeAndOverwriteScopeData,

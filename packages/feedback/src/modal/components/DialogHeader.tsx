@@ -1,4 +1,4 @@
-import type { FeedbackInternalOptions } from '@sentry/types';
+import type { FeedbackInternalOptions } from '@sentry/core';
 // biome-ignore lint/nursery/noUnusedImports: reason
 import { h } from 'preact'; // eslint-disable-line @typescript-eslint/no-unused-vars
 import type { VNode } from 'preact';

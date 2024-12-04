@@ -1,5 +1,5 @@
-import type { Scope } from '@sentry/types';
 import { Scope as ScopeClass } from './scope';
+import type { Scope } from './types-hoist';
 import { getGlobalSingleton } from './utils-hoist/worldwide';
 
 /** Get the default current scope. */

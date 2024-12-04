@@ -1,19 +1,22 @@
-import { getCurrentScope } from '@sentry/core';
-import { functionToStringIntegration, inboundFiltersIntegration } from '@sentry/core';
+import { addHistoryInstrumentationHandler } from '@sentry-internal/browser-utils';
 import {
   captureSession,
+  consoleSandbox,
+  dedupeIntegration,
+  functionToStringIntegration,
   getClient,
+  getCurrentScope,
   getIntegrationsToSetup,
   getReportDialogEndpoint,
+  inboundFiltersIntegration,
   initAndBind,
   lastEventId,
+  logger,
+  stackParserFromStackParserOptions,
   startSession,
+  supportsFetch,
 } from '@sentry/core';
-import { consoleSandbox, logger, stackParserFromStackParserOptions, supportsFetch } from '@sentry/core';
-import type { Client, DsnLike, Integration, Options, UserFeedback } from '@sentry/types';
-
-import { addHistoryInstrumentationHandler } from '@sentry-internal/browser-utils';
-import { dedupeIntegration } from '@sentry/core';
+import type { Client, DsnLike, Integration, Options, UserFeedback } from '@sentry/core';
 import type { BrowserClientOptions, BrowserOptions } from './client';
 import { BrowserClient } from './client';
 import { DEBUG_BUILD } from './debug-build';

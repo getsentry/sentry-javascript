@@ -1,4 +1,4 @@
-import type { Event } from '@sentry/types';
+import type { Event } from '@sentry/core';
 import { getActiveSpan, getClient, startInactiveSpan, startSpan, withActiveSpan } from '../../src';
 import { cleanupOtel, mockSdkInit } from '../helpers/mockSdkInit';
 

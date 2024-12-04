@@ -40,9 +40,9 @@ test('Sends an API route transaction', async ({ baseURL }) => {
       'http.route': '/test-transaction',
     },
     op: 'http.server',
-    span_id: expect.any(String),
+    span_id: expect.stringMatching(/[a-f0-9]{16}/),
     status: 'ok',
-    trace_id: expect.any(String),
+    trace_id: expect.stringMatching(/[a-f0-9]{32}/),
     origin: 'auto.http.otel.http',
   });
 
@@ -59,12 +59,12 @@ test('Sends an API route transaction', async ({ baseURL }) => {
           },
           op: 'request_handler.express',
           description: '/test-transaction',
-          parent_span_id: expect.any(String),
-          span_id: expect.any(String),
+          parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
+          span_id: expect.stringMatching(/[a-f0-9]{16}/),
           start_timestamp: expect.any(Number),
           status: 'ok',
           timestamp: expect.any(Number),
-          trace_id: expect.any(String),
+          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
           origin: 'auto.http.otel.express',
         },
         {
@@ -72,12 +72,12 @@ test('Sends an API route transaction', async ({ baseURL }) => {
             'sentry.origin': 'manual',
           },
           description: 'test-span',
-          parent_span_id: expect.any(String),
-          span_id: expect.any(String),
+          parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
+          span_id: expect.stringMatching(/[a-f0-9]{16}/),
           start_timestamp: expect.any(Number),
           status: 'ok',
           timestamp: expect.any(Number),
-          trace_id: expect.any(String),
+          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
           origin: 'manual',
         },
         {
@@ -85,17 +85,17 @@ test('Sends an API route transaction', async ({ baseURL }) => {
             'sentry.origin': 'manual',
           },
           description: 'child-span',
-          parent_span_id: expect.any(String),
-          span_id: expect.any(String),
+          parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
+          span_id: expect.stringMatching(/[a-f0-9]{16}/),
           start_timestamp: expect.any(Number),
           status: 'ok',
           timestamp: expect.any(Number),
-          trace_id: expect.any(String),
+          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
           origin: 'manual',
         },
         {
-          span_id: expect.any(String),
-          trace_id: expect.any(String),
+          span_id: expect.stringMatching(/[a-f0-9]{16}/),
+          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
           data: {
             'sentry.origin': 'auto.http.otel.nestjs',
             'sentry.op': 'handler.nestjs',
@@ -105,7 +105,7 @@ test('Sends an API route transaction', async ({ baseURL }) => {
             'nestjs.callback': 'testTransaction',
           },
           description: 'testTransaction',
-          parent_span_id: expect.any(String),
+          parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
           start_timestamp: expect.any(Number),
           timestamp: expect.any(Number),
           status: 'ok',
@@ -141,14 +141,14 @@ test('API route transaction includes nest middleware span. Spans created in and 
     expect.objectContaining({
       spans: expect.arrayContaining([
         {
-          span_id: expect.any(String),
-          trace_id: expect.any(String),
+          span_id: expect.stringMatching(/[a-f0-9]{16}/),
+          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
           data: {
             'sentry.op': 'middleware.nestjs',
             'sentry.origin': 'auto.middleware.nestjs',
           },
           description: 'ExampleMiddleware',
-          parent_span_id: expect.any(String),
+          parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
           start_timestamp: expect.any(Number),
           timestamp: expect.any(Number),
           status: 'ok',
@@ -166,22 +166,22 @@ test('API route transaction includes nest middleware span. Spans created in and 
     expect.objectContaining({
       spans: expect.arrayContaining([
         {
-          span_id: expect.any(String),
-          trace_id: expect.any(String),
+          span_id: expect.stringMatching(/[a-f0-9]{16}/),
+          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
           data: expect.any(Object),
           description: 'test-controller-span',
-          parent_span_id: expect.any(String),
+          parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
           start_timestamp: expect.any(Number),
           timestamp: expect.any(Number),
           status: 'ok',
           origin: 'manual',
         },
         {
-          span_id: expect.any(String),
-          trace_id: expect.any(String),
+          span_id: expect.stringMatching(/[a-f0-9]{16}/),
+          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
           data: expect.any(Object),
           description: 'test-middleware-span',
-          parent_span_id: expect.any(String),
+          parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
           start_timestamp: expect.any(Number),
           timestamp: expect.any(Number),
           status: 'ok',
@@ -221,14 +221,14 @@ test('API route transaction includes nest guard span and span started in guard i
     expect.objectContaining({
       spans: expect.arrayContaining([
         {
-          span_id: expect.any(String),
-          trace_id: expect.any(String),
+          span_id: expect.stringMatching(/[a-f0-9]{16}/),
+          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
           data: {
             'sentry.op': 'middleware.nestjs',
             'sentry.origin': 'auto.middleware.nestjs',
           },
           description: 'ExampleGuard',
-          parent_span_id: expect.any(String),
+          parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
           start_timestamp: expect.any(Number),
           timestamp: expect.any(Number),
           status: 'ok',
@@ -246,11 +246,11 @@ test('API route transaction includes nest guard span and span started in guard i
     expect.objectContaining({
       spans: expect.arrayContaining([
         {
-          span_id: expect.any(String),
-          trace_id: expect.any(String),
+          span_id: expect.stringMatching(/[a-f0-9]{16}/),
+          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
           data: expect.any(Object),
           description: 'test-guard-span',
-          parent_span_id: expect.any(String),
+          parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
           start_timestamp: expect.any(Number),
           timestamp: expect.any(Number),
           status: 'ok',
@@ -285,14 +285,14 @@ test('API route transaction includes nest pipe span for valid request', async ({
     expect.objectContaining({
       spans: expect.arrayContaining([
         {
-          span_id: expect.any(String),
-          trace_id: expect.any(String),
+          span_id: expect.stringMatching(/[a-f0-9]{16}/),
+          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
           data: {
             'sentry.op': 'middleware.nestjs',
             'sentry.origin': 'auto.middleware.nestjs',
           },
           description: 'ParseIntPipe',
-          parent_span_id: expect.any(String),
+          parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
           start_timestamp: expect.any(Number),
           timestamp: expect.any(Number),
           status: 'ok',
@@ -322,14 +322,14 @@ test('API route transaction includes nest pipe span for invalid request', async 
     expect.objectContaining({
       spans: expect.arrayContaining([
         {
-          span_id: expect.any(String),
-          trace_id: expect.any(String),
+          span_id: expect.stringMatching(/[a-f0-9]{16}/),
+          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
           data: {
             'sentry.op': 'middleware.nestjs',
             'sentry.origin': 'auto.middleware.nestjs',
           },
           description: 'ParseIntPipe',
-          parent_span_id: expect.any(String),
+          parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
           start_timestamp: expect.any(Number),
           timestamp: expect.any(Number),
           status: 'unknown_error',
@@ -361,14 +361,14 @@ test('API route transaction includes nest interceptor spans before route executi
     expect.objectContaining({
       spans: expect.arrayContaining([
         {
-          span_id: expect.any(String),
-          trace_id: expect.any(String),
+          span_id: expect.stringMatching(/[a-f0-9]{16}/),
+          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
           data: {
             'sentry.op': 'middleware.nestjs',
             'sentry.origin': 'auto.middleware.nestjs',
           },
           description: 'ExampleInterceptor1',
-          parent_span_id: expect.any(String),
+          parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
           start_timestamp: expect.any(Number),
           timestamp: expect.any(Number),
           status: 'ok',
@@ -376,14 +376,14 @@ test('API route transaction includes nest interceptor spans before route executi
           origin: 'auto.middleware.nestjs',
         },
         {
-          span_id: expect.any(String),
-          trace_id: expect.any(String),
+          span_id: expect.stringMatching(/[a-f0-9]{16}/),
+          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
           data: {
             'sentry.op': 'middleware.nestjs',
             'sentry.origin': 'auto.middleware.nestjs',
           },
           description: 'ExampleInterceptor2',
-          parent_span_id: expect.any(String),
+          parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
           start_timestamp: expect.any(Number),
           timestamp: expect.any(Number),
           status: 'ok',
@@ -405,33 +405,33 @@ test('API route transaction includes nest interceptor spans before route executi
     expect.objectContaining({
       spans: expect.arrayContaining([
         {
-          span_id: expect.any(String),
-          trace_id: expect.any(String),
+          span_id: expect.stringMatching(/[a-f0-9]{16}/),
+          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
           data: expect.any(Object),
           description: 'test-controller-span',
-          parent_span_id: expect.any(String),
+          parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
           start_timestamp: expect.any(Number),
           timestamp: expect.any(Number),
           status: 'ok',
           origin: 'manual',
         },
         {
-          span_id: expect.any(String),
-          trace_id: expect.any(String),
+          span_id: expect.stringMatching(/[a-f0-9]{16}/),
+          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
           data: expect.any(Object),
           description: 'test-interceptor-span-1',
-          parent_span_id: expect.any(String),
+          parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
           start_timestamp: expect.any(Number),
           timestamp: expect.any(Number),
           status: 'ok',
           origin: 'manual',
         },
         {
-          span_id: expect.any(String),
-          trace_id: expect.any(String),
+          span_id: expect.stringMatching(/[a-f0-9]{16}/),
+          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
           data: expect.any(Object),
           description: 'test-interceptor-span-2',
-          parent_span_id: expect.any(String),
+          parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
           start_timestamp: expect.any(Number),
           timestamp: expect.any(Number),
           status: 'ok',
@@ -479,14 +479,14 @@ test('API route transaction includes exactly one nest interceptor span after rou
     expect.objectContaining({
       spans: expect.arrayContaining([
         {
-          span_id: expect.any(String),
-          trace_id: expect.any(String),
+          span_id: expect.stringMatching(/[a-f0-9]{16}/),
+          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
           data: {
             'sentry.op': 'middleware.nestjs',
             'sentry.origin': 'auto.middleware.nestjs',
           },
           description: 'Interceptors - After Route',
-          parent_span_id: expect.any(String),
+          parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
           start_timestamp: expect.any(Number),
           timestamp: expect.any(Number),
           status: 'ok',
@@ -514,11 +514,11 @@ test('API route transaction includes exactly one nest interceptor span after rou
     expect.objectContaining({
       spans: expect.arrayContaining([
         {
-          span_id: expect.any(String),
-          trace_id: expect.any(String),
+          span_id: expect.stringMatching(/[a-f0-9]{16}/),
+          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
           data: expect.any(Object),
           description: 'test-interceptor-span-after-route',
-          parent_span_id: expect.any(String),
+          parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
           start_timestamp: expect.any(Number),
           timestamp: expect.any(Number),
           status: 'ok',
@@ -561,14 +561,14 @@ test('API route transaction includes nest async interceptor spans before route e
     expect.objectContaining({
       spans: expect.arrayContaining([
         {
-          span_id: expect.any(String),
-          trace_id: expect.any(String),
+          span_id: expect.stringMatching(/[a-f0-9]{16}/),
+          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
           data: {
             'sentry.op': 'middleware.nestjs',
             'sentry.origin': 'auto.middleware.nestjs',
           },
           description: 'AsyncInterceptor',
-          parent_span_id: expect.any(String),
+          parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
           start_timestamp: expect.any(Number),
           timestamp: expect.any(Number),
           status: 'ok',
@@ -588,22 +588,22 @@ test('API route transaction includes nest async interceptor spans before route e
     expect.objectContaining({
       spans: expect.arrayContaining([
         {
-          span_id: expect.any(String),
-          trace_id: expect.any(String),
+          span_id: expect.stringMatching(/[a-f0-9]{16}/),
+          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
           data: expect.any(Object),
           description: 'test-controller-span',
-          parent_span_id: expect.any(String),
+          parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
           start_timestamp: expect.any(Number),
           timestamp: expect.any(Number),
           status: 'ok',
           origin: 'manual',
         },
         {
-          span_id: expect.any(String),
-          trace_id: expect.any(String),
+          span_id: expect.stringMatching(/[a-f0-9]{16}/),
+          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
           data: expect.any(Object),
           description: 'test-async-interceptor-span',
-          parent_span_id: expect.any(String),
+          parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
           start_timestamp: expect.any(Number),
           timestamp: expect.any(Number),
           status: 'ok',
@@ -646,14 +646,14 @@ test('API route transaction includes exactly one nest async interceptor span aft
     expect.objectContaining({
       spans: expect.arrayContaining([
         {
-          span_id: expect.any(String),
-          trace_id: expect.any(String),
+          span_id: expect.stringMatching(/[a-f0-9]{16}/),
+          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
           data: {
             'sentry.op': 'middleware.nestjs',
             'sentry.origin': 'auto.middleware.nestjs',
           },
           description: 'Interceptors - After Route',
-          parent_span_id: expect.any(String),
+          parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
           start_timestamp: expect.any(Number),
           timestamp: expect.any(Number),
           status: 'ok',
@@ -681,11 +681,11 @@ test('API route transaction includes exactly one nest async interceptor span aft
     expect.objectContaining({
       spans: expect.arrayContaining([
         {
-          span_id: expect.any(String),
-          trace_id: expect.any(String),
+          span_id: expect.stringMatching(/[a-f0-9]{16}/),
+          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
           data: expect.any(Object),
           description: 'test-async-interceptor-span-after-route',
-          parent_span_id: expect.any(String),
+          parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
           start_timestamp: expect.any(Number),
           timestamp: expect.any(Number),
           status: 'ok',

@@ -27,8 +27,7 @@ export function wrapHttpFunction(fn: HttpFunction, wrapOptions: Partial<WrapperO
 
   // Functions emulator from firebase-tools has a hack-ish workaround that saves the actual function
   // passed to `onRequest(...)` and in fact runs it so we need to wrap it too.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-  const emulatorFunc = (fn as any).__emulator_func as HttpFunction | undefined;
+  const emulatorFunc = (fn as HttpFunction & { __emulator_func?: HttpFunction }).__emulator_func;
   if (emulatorFunc) {
     overrides = { __emulator_func: proxyFunction(emulatorFunc, wrap) };
   }
