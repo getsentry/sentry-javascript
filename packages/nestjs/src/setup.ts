@@ -20,9 +20,9 @@ import {
   logger,
   spanToJSON,
 } from '@sentry/core';
+import type { ExpressRequest, FastifyRequest } from '@sentry/node';
 import type { Observable } from 'rxjs';
 import { isExpectedError } from './helpers';
-import type { FastifyRequest, ExpressRequest } from '@sentry/node';
 
 /**
  * Note: We cannot use @ syntax to add the decorators, so we add them directly below the classes as function wrappers.
