@@ -200,11 +200,11 @@ export function createV6CompatibleWrapUseRoutes(origUseRoutes: UseRoutes, versio
       const normalizedLocation =
         typeof stableLocationParam === 'string' ? { pathname: stableLocationParam } : stableLocationParam;
 
-      routes.forEach(route => {
-        allRoutes.push(...getChildRoutesRecursively(route));
-      });
-
       if (isMountRenderPass.current) {
+        routes.forEach(route => {
+          allRoutes.push(...getChildRoutesRecursively(route));
+        });
+
         updatePageloadTransaction(getActiveRootSpan(), normalizedLocation, routes, undefined, undefined, allRoutes);
         isMountRenderPass.current = false;
       } else {
@@ -238,16 +238,21 @@ export function handleNavigation(
   }
 
   if ((navigationType === 'PUSH' || navigationType === 'POP') && branches) {
-    const [name, source] = getNormalizedName(routes, location, branches, basename);
+    let name,
+      source: TransactionSource = 'url';
+    const isInDescendantRoute = locationIsInsideDescendantRoute(location, allRoutes || routes);
 
-    let txnName = name;
+    if (isInDescendantRoute) {
+      name = prefixWithSlash(rebuildRoutePathFromAllRoutes(allRoutes || routes, location));
+      source = 'route';
+    }
 
-    if (locationIsInsideDescendantRoute(location, allRoutes || routes)) {
-      txnName = prefixWithSlash(rebuildRoutePathFromAllRoutes(allRoutes || routes, location));
+    if (!isInDescendantRoute || !name) {
+      [name, source] = getNormalizedName(routes, location, branches, basename);
     }
 
     startBrowserTracingNavigationSpan(client, {
-      name: txnName,
+      name,
       attributes: {
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
         [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
@@ -306,10 +311,6 @@ function pathEndsWithWildcard(path: string): boolean {
 function pathIsWildcardAndHasChildren(path: string, branch: RouteMatch<string>): boolean {
   return (pathEndsWithWildcard(path) && branch.route.children && branch.route.children.length > 0) || false;
 }
-
-// function pathIsWildcardWithNoChildren(path: string, branch: RouteMatch<string>): boolean {
-//   return (pathEndsWithWildcard(path) && (!branch.route.children || branch.route.children.length === 0)) || false;
-// }
 
 function routeIsDescendant(route: RouteObject): boolean {
   return !!(!route.children && route.element && route.path && route.path.endsWith('/*'));
@@ -464,18 +465,23 @@ function updatePageloadTransaction(
     : (_matchRoutes(routes, location, basename) as unknown as RouteMatch[]);
 
   if (branches) {
-    const [name, source] = getNormalizedName(routes, location, branches, basename);
+    let name,
+      source: TransactionSource = 'url';
+    const isInDescendantRoute = locationIsInsideDescendantRoute(location, allRoutes || routes);
 
-    let txnName = name;
-
-    if (locationIsInsideDescendantRoute(location, allRoutes || routes)) {
-      txnName = prefixWithSlash(rebuildRoutePathFromAllRoutes(allRoutes || routes, location));
+    if (isInDescendantRoute) {
+      name = prefixWithSlash(rebuildRoutePathFromAllRoutes(allRoutes || routes, location));
+      source = 'route';
     }
 
-    getCurrentScope().setTransactionName(txnName);
+    if (!isInDescendantRoute || !name) {
+      [name, source] = getNormalizedName(routes, location, branches, basename);
+    }
+
+    getCurrentScope().setTransactionName(name);
 
     if (activeRootSpan) {
-      activeRootSpan.updateName(txnName);
+      activeRootSpan.updateName(name);
       activeRootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, source);
     }
   }
@@ -507,11 +513,11 @@ export function createV6CompatibleWithSentryReactRouterRouting<P extends Record<
       () => {
         const routes = _createRoutesFromChildren(props.children) as RouteObject[];
 
-        routes.forEach(route => {
-          allRoutes.push(...getChildRoutesRecursively(route));
-        });
-
         if (isMountRenderPass.current) {
+          routes.forEach(route => {
+            allRoutes.push(...getChildRoutesRecursively(route));
+          });
+
           updatePageloadTransaction(getActiveRootSpan(), location, routes, undefined, undefined, allRoutes);
           isMountRenderPass.current = false;
         } else {
