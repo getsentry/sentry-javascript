@@ -2,7 +2,7 @@ import { join } from 'path';
 import { conditionalTest } from '../../utils';
 import { createRunner } from '../../utils/runner';
 
-describe('ContextLines integration in CJS', () => {
+conditionalTest({ min: 18 })('ContextLines integration in ESM', () => {
   test('reads encoded context lines from filenames with spaces', done => {
     expect.assertions(1);
     const instrumentPath = join(__dirname, 'instrument.mjs');
@@ -39,7 +39,7 @@ describe('ContextLines integration in CJS', () => {
   });
 });
 
-conditionalTest({ min: 18 })('ContextLines integration in ESM', () => {
+describe('ContextLines integration in CJS', () => {
   test('reads context lines from filenames with spaces', done => {
     expect.assertions(1);
 
