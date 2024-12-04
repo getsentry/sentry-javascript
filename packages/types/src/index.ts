@@ -54,6 +54,7 @@ import type {
   Extra as Extra_imported,
   ExtractedNodeRequestData as ExtractedNodeRequestData_imported,
   Extras as Extras_imported,
+  FeatureFlag as FeatureFlag_imported,
   FeedbackEvent as FeedbackEvent_imported,
   FeedbackFormData as FeedbackFormData_imported,
   FeedbackInternalOptions as FeedbackInternalOptions_imported,
@@ -568,3 +569,5 @@ export type Profiler = Profiler_imported;
 export type ViewHierarchyData = ViewHierarchyData_imported;
 /** @deprecated This type has been moved to `@sentry/core`. */
 export type ViewHierarchyWindow = ViewHierarchyWindow_imported;
+/** @deprecated This type has been moved to `@sentry/core`. */
+export type FeatureFlag = FeatureFlag_imported;
