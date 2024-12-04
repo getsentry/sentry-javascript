@@ -36,7 +36,7 @@ interface HttpOptions {
    *
    * Defaults to `true`.
    *
-   * Note: If `autoSessionTracking` is set to `false` in `Sentry.init()` or the Client owning this integration, this option will also default to `false`.
+   * Note: If `autoSessionTracking` is set to `false` in `Sentry.init()` or the Client owning this integration, this option will be ignored.
    */
   trackIncomingRequestsAsSessions?: boolean;
 
