@@ -43,6 +43,8 @@ export type {
   UserFeedbackItem,
   CheckInItem,
   CheckInEnvelope,
+  RawSecurityEnvelope,
+  RawSecurityItem,
   StatsdItem,
   StatsdEnvelope,
   ProfileItem,
@@ -179,3 +181,4 @@ export type {
 export type { ParameterizedString } from './parameterize';
 export type { ContinuousProfiler, ProfilingIntegration, Profiler } from './profiling';
 export type { ViewHierarchyData, ViewHierarchyWindow } from './view-hierarchy';
+export type { LegacyCSPReport } from './csp';
