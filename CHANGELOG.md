@@ -4,6 +4,12 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.120.1
+
+- fix(v7/cdn): Ensure `_sentryModuleMetadata` is not mangled (#14357)
+
+Work in this release contributed by @gilisho. Thank you for your contribution!
+
 ## 7.120.0
 
 - feat(v7/browser): Add moduleMetadataIntegration lazy loading support (#13822)
