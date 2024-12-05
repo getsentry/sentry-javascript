@@ -22,9 +22,8 @@ export class SessionFlusher implements SessionFlusherLike {
   public readonly flushTimeout: number;
   private _pendingAggregates: Map<number, AggregationCounts>;
   private _sessionAttrs: ReleaseHealthAttributes;
-  // Cast to any so that it can use Node.js timeout
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private _intervalId: any;
+  // We adjust the type here to add the `unref()` part, as setInterval can technically return a number or a NodeJS.Timer
+  private readonly _intervalId: ReturnType<typeof setInterval> & { unref?: () => void };
   private _isEnabled: boolean;
   private _client: Client;
 
@@ -36,9 +35,7 @@ export class SessionFlusher implements SessionFlusherLike {
 
     // Call to setInterval, so that flush is called every 60 seconds.
     this._intervalId = setInterval(() => this.flush(), this.flushTimeout * 1000);
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     if (this._intervalId.unref) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       this._intervalId.unref();
     }
     this._sessionAttrs = attrs;

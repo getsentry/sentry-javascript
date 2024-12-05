@@ -47,6 +47,7 @@ export function getEnvelopeEndpointWithUrlEncodedAuth(dsn: DsnComponents, tunnel
 export function getReportDialogEndpoint(
   dsnLike: DsnLike,
   dialogOptions: {
+    // TODO(v9): Change this to  [key: string]: unknown;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     [key: string]: any;
     user?: { name?: string; email?: string };

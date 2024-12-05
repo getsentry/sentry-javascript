@@ -115,6 +115,10 @@
 - Deprecated `wrapUseRoutes`. Use `wrapUseRoutesV6` or `wrapUseRoutesV7` instead.
 - Deprecated `wrapCreateBrowserRouter`. Use `wrapCreateBrowserRouterV6` or `wrapCreateBrowserRouterV7` instead.
 
+## `@sentry/nextjs`
+
+- Deprecated `hideSourceMaps`. No replacements. The SDK emits hidden sourcemaps by default.
+
 ## `@sentry/opentelemetry`
 
 - Deprecated `generateSpanContextForPropagationContext` in favor of doing this manually - we do not need this export anymore.
