@@ -113,7 +113,7 @@ export function node(getModule?: GetModuleFn): StackLineParserFn {
       }
 
       return {
-        filename,
+        filename: filename ? decodeURI(filename) : undefined,
         module: getModule ? getModule(filename) : undefined,
         function: functionName,
         lineno: _parseIntOrUndefined(lineMatch[3]),
