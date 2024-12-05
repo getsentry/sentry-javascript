@@ -19,6 +19,7 @@ import type {
 } from '../types-hoist';
 import { consoleSandbox } from '../utils-hoist/logger';
 import { addNonEnumerableProperty, dropUndefinedKeys } from '../utils-hoist/object';
+import { generateSpanId } from '../utils-hoist/propagationContext';
 import { timestampInSeconds } from '../utils-hoist/time';
 import { generateSentryTraceHeader } from '../utils-hoist/tracing';
 import { _getSpanForScope } from './spanOnScope';
@@ -54,10 +55,18 @@ export function spanToTransactionTraceContext(span: Span): TraceContext {
  * Convert a span to a trace context, which can be sent as the `trace` context in a non-transaction event.
  */
 export function spanToTraceContext(span: Span): TraceContext {
-  const { spanId: span_id, traceId: trace_id } = span.spanContext();
-  const { parent_span_id } = spanToJSON(span);
+  const { spanId, traceId: trace_id, isRemote } = span.spanContext();
 
-  return dropUndefinedKeys({ parent_span_id, span_id, trace_id });
+  // If the span is remote, we use a random/virtual span as span_id to the trace context,
+  // and the remote span as parent_span_id
+  const parent_span_id = isRemote ? spanId : spanToJSON(span).parent_span_id;
+  const span_id = isRemote ? generateSpanId() : spanId;
+
+  return dropUndefinedKeys({
+    parent_span_id,
+    span_id,
+    trace_id,
+  });
 }
 
 /**

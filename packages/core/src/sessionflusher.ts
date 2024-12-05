@@ -14,8 +14,10 @@ type ReleaseHealthAttributes = {
 };
 
 /**
- * @inheritdoc
+ * @deprecated `SessionFlusher` is deprecated and will be removed in the next major version of the SDK.
  */
+// TODO(v9): The goal for the SessionFlusher is to become a stupidly simple mechanism to aggregate "Sessions" (actually "RequestSessions"). It should probably live directly inside the Http integration/instrumentation.
+// eslint-disable-next-line deprecation/deprecation
 export class SessionFlusher implements SessionFlusherLike {
   public readonly flushTimeout: number;
   private _pendingAggregates: Map<number, AggregationCounts>;
@@ -80,12 +82,14 @@ export class SessionFlusher implements SessionFlusherLike {
       return;
     }
     const isolationScope = getIsolationScope();
+    // eslint-disable-next-line deprecation/deprecation
     const requestSession = isolationScope.getRequestSession();
 
     if (requestSession && requestSession.status) {
       this._incrementSessionStatusCount(requestSession.status, new Date());
       // This is not entirely necessarily but is added as a safe guard to indicate the bounds of a request and so in
       // case captureRequestSession is called more than once to prevent double count
+      // eslint-disable-next-line deprecation/deprecation
       isolationScope.setRequestSession(undefined);
       /* eslint-enable @typescript-eslint/no-unsafe-member-access */
     }
@@ -95,6 +99,7 @@ export class SessionFlusher implements SessionFlusherLike {
    * Increments status bucket in pendingAggregates buffer (internal state) corresponding to status of
    * the session received
    */
+  // eslint-disable-next-line deprecation/deprecation
   private _incrementSessionStatusCount(status: RequestSessionStatus, date: Date): number {
     // Truncate minutes and seconds on Session Started attribute to have one minute bucket keys
     const sessionStartedTrunc = new Date(date).setSeconds(0, 0);

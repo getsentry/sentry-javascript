@@ -205,7 +205,8 @@ export type FetchBreadcrumbHint = FetchBreadcrumbHint_imported;
 /** @deprecated This type has been moved to `@sentry/core`. */
 export type XhrBreadcrumbHint = XhrBreadcrumbHint_imported;
 /** @deprecated This type has been moved to `@sentry/core`. */
-export type Client = Client_imported;
+// eslint-disable-next-line deprecation/deprecation
+export type Client<O extends ClientOptions = ClientOptions<BaseTransportOptions>> = Client_imported<O>;
 /** @deprecated This type has been moved to `@sentry/core`. */
 export type ClientReport = ClientReport_imported;
 /** @deprecated This type has been moved to `@sentry/core`. */
@@ -322,7 +323,8 @@ export type Integration = Integration_imported;
 /** @deprecated This type has been moved to `@sentry/core`. */
 export type IntegrationClass<T> = IntegrationClass_imported<T>;
 /** @deprecated This type has been moved to `@sentry/core`. */
-export type IntegrationFn = IntegrationFn_imported;
+// eslint-disable-next-line deprecation/deprecation
+export type IntegrationFn<IntegrationType = Integration> = IntegrationFn_imported<IntegrationType>;
 /** @deprecated This type has been moved to `@sentry/core`. */
 export type Mechanism = Mechanism_imported;
 /** @deprecated This type has been moved to `@sentry/core`. */
@@ -334,9 +336,11 @@ export type Primitive = Primitive_imported;
 /** @deprecated This type has been moved to `@sentry/core`. */
 export type WorkerLocation = WorkerLocation_imported;
 /** @deprecated This type has been moved to `@sentry/core`. */
-export type ClientOptions = ClientOptions_imported;
+// eslint-disable-next-line deprecation/deprecation
+export type ClientOptions<TO extends BaseTransportOptions = BaseTransportOptions> = ClientOptions_imported<TO>;
 /** @deprecated This type has been moved to `@sentry/core`. */
-export type Options = Options_imported;
+// eslint-disable-next-line deprecation/deprecation
+export type Options<TO extends BaseTransportOptions = BaseTransportOptions> = Options_imported<TO>;
 /** @deprecated This type has been moved to `@sentry/core`. */
 export type Package = Package_imported;
 /** @deprecated This type has been moved to `@sentry/core`. */
@@ -419,10 +423,13 @@ export type SessionContext = SessionContext_imported;
 /** @deprecated This type has been moved to `@sentry/core`. */
 export type SessionStatus = SessionStatus_imported;
 /** @deprecated This type has been moved to `@sentry/core`. */
+// eslint-disable-next-line deprecation/deprecation
 export type RequestSession = RequestSession_imported;
 /** @deprecated This type has been moved to `@sentry/core`. */
+// eslint-disable-next-line deprecation/deprecation
 export type RequestSessionStatus = RequestSessionStatus_imported;
 /** @deprecated This type has been moved to `@sentry/core`. */
+// eslint-disable-next-line deprecation/deprecation
 export type SessionFlusherLike = SessionFlusherLike_imported;
 /** @deprecated This type has been moved to `@sentry/core`. */
 export type SerializedSession = SerializedSession_imported;
@@ -511,7 +518,8 @@ export type WebFetchHeaders = WebFetchHeaders_imported;
 /** @deprecated This type has been moved to `@sentry/core`. */
 export type WebFetchRequest = WebFetchRequest_imported;
 /** @deprecated This type has been moved to `@sentry/core`. */
-export type WrappedFunction = WrappedFunction_imported;
+// eslint-disable-next-line @typescript-eslint/ban-types
+export type WrappedFunction<T extends Function = Function> = WrappedFunction_imported<T>;
 /** @deprecated This type has been moved to `@sentry/core`. */
 export type HandlerDataFetch = HandlerDataFetch_imported;
 /** @deprecated This type has been moved to `@sentry/core`. */

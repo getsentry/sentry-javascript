@@ -136,12 +136,12 @@ export function setupOtel(client: NodeClient): BasicTracerProvider {
       [ATTR_SERVICE_VERSION]: SDK_VERSION,
     }),
     forceFlushTimeoutMillis: 500,
+    spanProcessors: [
+      new SentrySpanProcessor({
+        timeout: client.getOptions().maxSpanWaitDuration,
+      }),
+    ],
   });
-  provider.addSpanProcessor(
-    new SentrySpanProcessor({
-      timeout: client.getOptions().maxSpanWaitDuration,
-    }),
-  );
 
   // Initialize the provider
   provider.register({

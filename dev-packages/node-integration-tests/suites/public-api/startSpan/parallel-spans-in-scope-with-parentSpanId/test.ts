@@ -6,28 +6,19 @@ afterAll(() => {
 
 test('should send manually started parallel root spans outside of root context with parentSpanId', done => {
   createRunner(__dirname, 'scenario.ts')
+    .expect({ transaction: { transaction: 'test_span_1' } })
     .expect({
-      transaction: {
-        transaction: 'test_span_1',
-        contexts: {
-          trace: {
-            span_id: expect.stringMatching(/[a-f0-9]{16}/),
-            parent_span_id: '1234567890123456',
-            trace_id: '12345678901234567890123456789012',
-          },
-        },
-      },
-    })
-    .expect({
-      transaction: {
-        transaction: 'test_span_2',
-        contexts: {
-          trace: {
-            span_id: expect.stringMatching(/[a-f0-9]{16}/),
-            parent_span_id: '1234567890123456',
-            trace_id: '12345678901234567890123456789012',
-          },
-        },
+      transaction: transaction => {
+        expect(transaction).toBeDefined();
+        const traceId = transaction.contexts?.trace?.trace_id;
+        expect(traceId).toBeDefined();
+        expect(transaction.contexts?.trace?.parent_span_id).toBeUndefined();
+
+        const trace1Id = transaction.contexts?.trace?.data?.spanIdTraceId;
+        expect(trace1Id).toBeDefined();
+
+        // Different trace ID as the first span
+        expect(trace1Id).not.toBe(traceId);
       },
     })
     .start(done);

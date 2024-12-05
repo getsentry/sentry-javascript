@@ -680,7 +680,7 @@ describe('Integration | Transactions', () => {
 
     expect(spans).toHaveLength(2);
 
-    expect(spans[0]!.description).toEqual('inner span 1');
-    expect(spans[1]!.description).toEqual('inner span 2');
+    expect(spans).toContainEqual(expect.objectContaining({ description: 'inner span 1' }));
+    expect(spans).toContainEqual(expect.objectContaining({ description: 'inner span 2' }));
   });
 });
