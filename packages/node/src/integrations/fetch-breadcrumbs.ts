@@ -1,8 +1,13 @@
 import type { UndiciRequest, UndiciResponse } from '@opentelemetry/instrumentation-undici';
-import { addBreadcrumb, defineIntegration } from '@sentry/core';
+import type { Integration, IntegrationFn, SanitizedRequestData } from '@sentry/core';
+import {
+  addBreadcrumb,
+  defineIntegration,
+  getBreadcrumbLogLevelFromHttpStatusCode,
+  getSanitizedUrlString,
+  parseUrl,
+} from '@sentry/core';
 
-import type { Integration, IntegrationFn, SanitizedRequestData } from '@sentry/types';
-import { getBreadcrumbLogLevelFromHttpStatusCode, getSanitizedUrlString, parseUrl } from '@sentry/utils';
 import * as diagnosticsChannel from 'diagnostics_channel';
 import type { NodeClient } from '../sdk/client';
 

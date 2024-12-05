@@ -15,7 +15,6 @@
   "devDependencies": {
     "@playwright/test": "^1.44.1",
     "@sentry-internal/test-utils": "link:../../../test-utils",
-    "@sentry/types": "latest || *",
     "@sentry/core": "latest || *",
     "@sveltejs/vite-plugin-svelte": "^3.0.2",
     "@tsconfig/svelte": "^5.0.2",

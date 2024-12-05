@@ -1,7 +1,7 @@
 import { GLOBAL_OBJ } from '@sentry/core';
+import type { Integration } from '@sentry/core';
 import { getCurrentScope } from '@sentry/node';
 import * as SentryNode from '@sentry/node';
-import type { Integration } from '@sentry/types';
 
 import { init } from '../src/server';
 

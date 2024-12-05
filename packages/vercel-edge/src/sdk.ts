@@ -1,23 +1,3 @@
-import {
-  dedupeIntegration,
-  functionToStringIntegration,
-  getCurrentScope,
-  getIntegrationsToSetup,
-  hasTracingEnabled,
-  inboundFiltersIntegration,
-  linkedErrorsIntegration,
-  requestDataIntegration,
-} from '@sentry/core';
-import {
-  GLOBAL_OBJ,
-  SDK_VERSION,
-  createStackParser,
-  logger,
-  nodeStackLineParser,
-  stackParserFromStackParserOptions,
-} from '@sentry/core';
-import type { Client, Integration, Options } from '@sentry/types';
-
 import { DiagLogLevel, diag } from '@opentelemetry/api';
 import { Resource } from '@opentelemetry/resources';
 import { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
@@ -26,6 +6,23 @@ import {
   ATTR_SERVICE_VERSION,
   SEMRESATTRS_SERVICE_NAMESPACE,
 } from '@opentelemetry/semantic-conventions';
+import type { Client, Integration, Options } from '@sentry/core';
+import {
+  GLOBAL_OBJ,
+  SDK_VERSION,
+  createStackParser,
+  dedupeIntegration,
+  functionToStringIntegration,
+  getCurrentScope,
+  getIntegrationsToSetup,
+  hasTracingEnabled,
+  inboundFiltersIntegration,
+  linkedErrorsIntegration,
+  logger,
+  nodeStackLineParser,
+  requestDataIntegration,
+  stackParserFromStackParserOptions,
+} from '@sentry/core';
 import {
   SentryPropagator,
   SentrySampler,
@@ -170,13 +167,12 @@ export function setupOtel(client: VercelEdgeClient): void {
       [ATTR_SERVICE_VERSION]: SDK_VERSION,
     }),
     forceFlushTimeoutMillis: 500,
+    spanProcessors: [
+      new SentrySpanProcessor({
+        timeout: client.getOptions().maxSpanWaitDuration,
+      }),
+    ],
   });
-
-  provider.addSpanProcessor(
-    new SentrySpanProcessor({
-      timeout: client.getOptions().maxSpanWaitDuration,
-    }),
-  );
 
   const SentryContextManager = wrapContextManagerClass(AsyncLocalStorageContextManager);
 

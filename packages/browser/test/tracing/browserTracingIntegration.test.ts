@@ -30,7 +30,7 @@ import {
   spanToJSON,
   startInactiveSpan,
 } from '@sentry/core';
-import type { Span, StartSpanOptions } from '@sentry/types';
+import type { Span, StartSpanOptions } from '@sentry/core';
 import { JSDOM } from 'jsdom';
 import { BrowserClient } from '../../src/client';
 import { WINDOW } from '../../src/helpers';
@@ -105,9 +105,9 @@ describe('browserTracingIntegration', () => {
         [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
       },
-      span_id: expect.any(String),
+      span_id: expect.stringMatching(/[a-f0-9]{16}/),
       start_timestamp: expect.any(Number),
-      trace_id: expect.any(String),
+      trace_id: expect.stringMatching(/[a-f0-9]{32}/),
     });
   });
 
@@ -176,9 +176,9 @@ describe('browserTracingIntegration', () => {
         [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
       },
-      span_id: expect.any(String),
+      span_id: expect.stringMatching(/[a-f0-9]{16}/),
       start_timestamp: expect.any(Number),
-      trace_id: expect.any(String),
+      trace_id: expect.stringMatching(/[a-f0-9]{32}/),
     });
 
     // this is what is used to get the span name - JSDOM does not update this on it's own!
@@ -203,9 +203,9 @@ describe('browserTracingIntegration', () => {
         [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
       },
-      span_id: expect.any(String),
+      span_id: expect.stringMatching(/[a-f0-9]{16}/),
       start_timestamp: expect.any(Number),
-      trace_id: expect.any(String),
+      trace_id: expect.stringMatching(/[a-f0-9]{32}/),
     });
 
     // this is what is used to get the span name - JSDOM does not update this on it's own!
@@ -230,9 +230,9 @@ describe('browserTracingIntegration', () => {
         [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
       },
-      span_id: expect.any(String),
+      span_id: expect.stringMatching(/[a-f0-9]{16}/),
       start_timestamp: expect.any(Number),
-      trace_id: expect.any(String),
+      trace_id: expect.stringMatching(/[a-f0-9]{32}/),
     });
   });
 
@@ -290,9 +290,9 @@ describe('browserTracingIntegration', () => {
           [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
         },
-        span_id: expect.any(String),
+        span_id: expect.stringMatching(/[a-f0-9]{16}/),
         start_timestamp: expect.any(Number),
-        trace_id: expect.any(String),
+        trace_id: expect.stringMatching(/[a-f0-9]{32}/),
       });
       expect(spanIsSampled(span!)).toBe(true);
     });
@@ -327,9 +327,9 @@ describe('browserTracingIntegration', () => {
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
           testy: 'yes',
         },
-        span_id: expect.any(String),
+        span_id: expect.stringMatching(/[a-f0-9]{16}/),
         start_timestamp: expect.any(Number),
-        trace_id: expect.any(String),
+        trace_id: expect.stringMatching(/[a-f0-9]{32}/),
       });
     });
 
@@ -483,9 +483,9 @@ describe('browserTracingIntegration', () => {
           [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
         },
-        span_id: expect.any(String),
+        span_id: expect.stringMatching(/[a-f0-9]{16}/),
         start_timestamp: expect.any(Number),
-        trace_id: expect.any(String),
+        trace_id: expect.stringMatching(/[a-f0-9]{32}/),
       });
       expect(spanIsSampled(span!)).toBe(true);
     });
@@ -520,9 +520,9 @@ describe('browserTracingIntegration', () => {
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
           testy: 'yes',
         },
-        span_id: expect.any(String),
+        span_id: expect.stringMatching(/[a-f0-9]{16}/),
         start_timestamp: expect.any(Number),
-        trace_id: expect.any(String),
+        trace_id: expect.stringMatching(/[a-f0-9]{32}/),
       });
     });
 

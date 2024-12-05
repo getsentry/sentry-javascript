@@ -6,7 +6,6 @@ Sentry.init({
   dsn: useRuntimeConfig().public.sentry.dsn,
   tunnel: `http://localhost:3031/`, // proxy server
   tracesSampleRate: 1.0,
-  trackComponents: true,
   integrations: [
     Sentry.piniaIntegration(usePinia(), {
       actionTransformer: action => `Transformed: ${action}`,
@@ -14,6 +13,11 @@ Sentry.init({
         transformed: true,
         ...state,
       }),
+    }),
+    Sentry.vueIntegration({
+      tracingOptions: {
+        trackComponents: true,
+      },
     }),
   ],
 });

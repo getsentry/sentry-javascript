@@ -1,6 +1,6 @@
 import { navigating, page } from '$app/stores';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
-import { dropUndefinedKeys } from '@sentry/core';
+import type { Client, Integration, Span } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, dropUndefinedKeys } from '@sentry/core';
 import {
   WINDOW,
   browserTracingIntegration as originalBrowserTracingIntegration,
@@ -9,7 +9,6 @@ import {
   startBrowserTracingPageLoadSpan,
   startInactiveSpan,
 } from '@sentry/svelte';
-import type { Client, Integration, Span } from '@sentry/types';
 
 /**
  * A custom `BrowserTracing` integration for SvelteKit.

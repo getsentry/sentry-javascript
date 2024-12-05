@@ -4,7 +4,7 @@ import type {
   FeedbackInternalOptions,
   FeedbackScreenshotIntegration,
   SendFeedback,
-} from '@sentry/types';
+} from '@sentry/core';
 // biome-ignore lint/nursery/noUnusedImports: reason
 import { h } from 'preact'; // eslint-disable-line @typescript-eslint/no-unused-vars
 import type { JSX, VNode } from 'preact';

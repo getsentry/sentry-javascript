@@ -49,6 +49,7 @@ export {
   extractRequestData,
   createGetModuleFromFilename,
   anrIntegration,
+  disableAnrDetectionForCallback,
   consoleIntegration,
   httpIntegration,
   nativeNodeFetchIntegration,
@@ -118,6 +119,7 @@ export {
   spanToTraceHeader,
   spanToBaggageHeader,
   trpcMiddleware,
+  // eslint-disable-next-line deprecation/deprecation
   addOpenTelemetryInstrumentation,
   zodErrorsIntegration,
   profiler,

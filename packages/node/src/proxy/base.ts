@@ -81,8 +81,7 @@ export abstract class Agent extends http.Agent {
     if (options) {
       // First check the `secureEndpoint` property explicitly, since this
       // means that a parent `Agent` is "passing through" to this instance.
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      if (typeof (options as any).secureEndpoint === 'boolean') {
+      if (typeof (options as Partial<typeof options>).secureEndpoint === 'boolean') {
         return options.secureEndpoint;
       }
 

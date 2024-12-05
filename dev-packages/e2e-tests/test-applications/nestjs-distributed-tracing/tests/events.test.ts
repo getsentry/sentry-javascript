@@ -27,9 +27,9 @@ test('Event emitter', async () => {
   });
 
   expect(successEventTransaction.contexts.trace).toEqual({
-    parent_span_id: expect.any(String),
-    span_id: expect.any(String),
-    trace_id: expect.any(String),
+    parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
+    span_id: expect.stringMatching(/[a-f0-9]{16}/),
+    trace_id: expect.stringMatching(/[a-f0-9]{32}/),
     data: {
       'sentry.source': 'custom',
       'sentry.sample_rate': 1,

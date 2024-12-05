@@ -36,7 +36,6 @@
     "@sentry/opentelemetry": "latest || *",
     "@sentry/react": "latest || *",
     "@sentry-internal/replay": "latest || *",
-    "@sentry/types": "latest || *",
     "@sentry/vercel-edge": "latest || *"
   },
   "volta": {

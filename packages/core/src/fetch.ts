@@ -1,7 +1,7 @@
-import type { Client, HandlerDataFetch, Scope, Span, SpanOrigin } from '@sentry/types';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from './semanticAttributes';
 import { SPAN_STATUS_ERROR, setHttpStatus, startInactiveSpan } from './tracing';
 import { SentryNonRecordingSpan } from './tracing/sentryNonRecordingSpan';
+import type { Client, HandlerDataFetch, Scope, Span, SpanOrigin } from './types-hoist';
 import { SENTRY_BAGGAGE_KEY_PREFIX } from './utils-hoist/baggage';
 import { isInstanceOf } from './utils-hoist/is';
 import { parseUrl } from './utils-hoist/url';
@@ -14,8 +14,6 @@ type PolymorphicRequestHeaders =
   | Array<[string, string]>
   // the below is not precisely the Header type used in Request, but it'll pass duck-typing
   | {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      [key: string]: any;
       append: (key: string, value: string) => void;
       get: (key: string) => string | null | undefined;
     };

@@ -1,4 +1,4 @@
-import type { SpanJSON } from '@sentry/types';
+import type { SpanJSON } from '@sentry/core';
 import { assertSentryTransaction } from '../../../../utils/assertions';
 import { cleanupChildProcesses, createRunner } from '../../../../utils/runner';
 

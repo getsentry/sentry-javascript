@@ -1,6 +1,6 @@
 import { expect } from '@playwright/test';
 
-import type { TransactionEvent } from '@sentry/types';
+import type { TransactionEvent } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
 import { envelopeRequestParser, shouldSkipTracingTest, waitForTransactionRequest } from '../../../../utils/helpers';
 

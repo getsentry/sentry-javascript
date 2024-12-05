@@ -1,13 +1,4 @@
-/* eslint-disable max-lines */
 import * as os from 'os';
-import {
-  createEnvelope,
-  dsnToString,
-  forEachEnvelopeItem,
-  getDebugImagesForResources,
-  logger,
-  uuid4,
-} from '@sentry/core';
 import type {
   Client,
   Context,
@@ -23,7 +14,15 @@ import type {
   ProfileChunkItem,
   SdkInfo,
   ThreadCpuProfile,
-} from '@sentry/types';
+} from '@sentry/core';
+import {
+  createEnvelope,
+  dsnToString,
+  forEachEnvelopeItem,
+  getDebugImagesForResources,
+  logger,
+  uuid4,
+} from '@sentry/core';
 
 import { env, versions } from 'process';
 import { isMainThread, threadId } from 'worker_threads';

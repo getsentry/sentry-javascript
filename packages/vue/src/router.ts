@@ -7,7 +7,7 @@ import {
   getRootSpan,
   spanToJSON,
 } from '@sentry/core';
-import type { Span, SpanAttributes, StartSpanOptions, TransactionSource } from '@sentry/types';
+import type { Span, SpanAttributes, StartSpanOptions, TransactionSource } from '@sentry/core';
 
 // The following type is an intersection of the Route type from VueRouter v2, v3, and v4.
 // This is not great, but kinda necessary to make it work with all versions at the same time.

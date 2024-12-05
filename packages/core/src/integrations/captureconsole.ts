@@ -1,7 +1,7 @@
-import type { CaptureContext, IntegrationFn } from '@sentry/types';
 import { getClient, withScope } from '../currentScopes';
 import { captureException, captureMessage } from '../exports';
 import { defineIntegration } from '../integration';
+import type { CaptureContext, IntegrationFn } from '../types-hoist';
 import { addConsoleInstrumentationHandler } from '../utils-hoist/instrument/console';
 import { CONSOLE_LEVELS } from '../utils-hoist/logger';
 import { addExceptionMechanism } from '../utils-hoist/misc';

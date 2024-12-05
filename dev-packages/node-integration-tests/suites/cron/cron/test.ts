@@ -15,8 +15,8 @@ test('cron instrumentation', done => {
         monitor_config: { schedule: { type: 'crontab', value: '* * * * * *' } },
         contexts: {
           trace: {
-            trace_id: expect.any(String),
-            span_id: expect.any(String),
+            trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+            span_id: expect.stringMatching(/[a-f0-9]{16}/),
           },
         },
       },
@@ -30,8 +30,8 @@ test('cron instrumentation', done => {
         duration: expect.any(Number),
         contexts: {
           trace: {
-            trace_id: expect.any(String),
-            span_id: expect.any(String),
+            trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+            span_id: expect.stringMatching(/[a-f0-9]{16}/),
           },
         },
       },
@@ -45,8 +45,8 @@ test('cron instrumentation', done => {
         monitor_config: { schedule: { type: 'crontab', value: '* * * * * *' } },
         contexts: {
           trace: {
-            trace_id: expect.any(String),
-            span_id: expect.any(String),
+            trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+            span_id: expect.stringMatching(/[a-f0-9]{16}/),
           },
         },
       },
@@ -60,8 +60,8 @@ test('cron instrumentation', done => {
         duration: expect.any(Number),
         contexts: {
           trace: {
-            trace_id: expect.any(String),
-            span_id: expect.any(String),
+            trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+            span_id: expect.stringMatching(/[a-f0-9]{16}/),
           },
         },
       },

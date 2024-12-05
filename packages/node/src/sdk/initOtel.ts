@@ -7,11 +7,9 @@ import {
   ATTR_SERVICE_VERSION,
   SEMRESATTRS_SERVICE_NAMESPACE,
 } from '@opentelemetry/semantic-conventions';
-import { SDK_VERSION } from '@sentry/core';
-import { GLOBAL_OBJ, consoleSandbox, logger } from '@sentry/core';
+import { GLOBAL_OBJ, SDK_VERSION, consoleSandbox, logger } from '@sentry/core';
 import { SentryPropagator, SentrySampler, SentrySpanProcessor } from '@sentry/opentelemetry';
 import { createAddHookMessageChannel } from 'import-in-the-middle';
-
 import { getOpenTelemetryInstrumentationToPreload } from '../integrations/tracing';
 import { SentryContextManager } from '../otel/contextManager';
 import type { EsmLoaderHookOptions } from '../types';
@@ -138,12 +136,12 @@ export function setupOtel(client: NodeClient): BasicTracerProvider {
       [ATTR_SERVICE_VERSION]: SDK_VERSION,
     }),
     forceFlushTimeoutMillis: 500,
+    spanProcessors: [
+      new SentrySpanProcessor({
+        timeout: client.getOptions().maxSpanWaitDuration,
+      }),
+    ],
   });
-  provider.addSpanProcessor(
-    new SentrySpanProcessor({
-      timeout: client.getOptions().maxSpanWaitDuration,
-    }),
-  );
 
   // Initialize the provider
   provider.register({

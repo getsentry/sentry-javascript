@@ -47,6 +47,10 @@
 - Deprecated `addTracingHeadersToFetchRequest` method - this was only meant for internal use and is not needed anymore.
 - Deprecated `generatePropagationContext()` in favor of using `generateTraceId()` directly.
 - Deprecated `spanId` field on `propagationContext` - this field will be removed in v9, and should neither be read or set anymore.
+- Deprecated `RequestSession` type. No replacements.
+- Deprecated `RequestSessionStatus` type. No replacements.
+- Deprecated `SessionFlusherLike` type. No replacements.
+- Deprecated `SessionFlusher`. No replacements.
 
 ## `@sentry/nestjs`
 
@@ -66,7 +70,16 @@
 
 ## `@sentry/types`
 
+- **The `@sentry/types` package has been deprecated. Import everything from `@sentry/core` instead.**
+
 - Deprecated `Request` in favor of `RequestEventData`.
+- Deprecated `RequestSession`. No replacements.
+- Deprecated `RequestSessionStatus`. No replacements.
+- Deprecated `SessionFlusherLike`. No replacements.
+
+## `@sentry/nuxt`
+
+- Deprecated `tracingOptions` in `Sentry.init()` in favor of passing the `vueIntegration()` to `Sentry.init({ integrations: [...] })` and setting `tracingOptions` there.
 
 ## `@sentry/vue`
 
@@ -89,14 +102,28 @@
   });
   ```
 
+## `@sentry/astro`
+
+- Deprecated passing `dsn`, `release`, `environment`, `sampleRate`, `tracesSampleRate`, `replaysSessionSampleRate` to the integration. Use the runtime-specific `Sentry.init()` calls for passing these options instead.
+
 ## `@sentry/remix`
 
 - Deprecated `autoInstrumentRemix: false`. The next major version will default to behaving as if this option were `true` and the option itself will be removed.
+
+## `@sentry/react`
+
+- Deprecated `wrapUseRoutes`. Use `wrapUseRoutesV6` or `wrapUseRoutesV7` instead.
+- Deprecated `wrapCreateBrowserRouter`. Use `wrapCreateBrowserRouterV6` or `wrapCreateBrowserRouterV7` instead.
+
+## `@sentry/opentelemetry`
+
+- Deprecated `generateSpanContextForPropagationContext` in favor of doing this manually - we do not need this export anymore.
 
 ## Server-side SDKs (`@sentry/node` and all dependents)
 
 - Deprecated `processThreadBreadcrumbIntegration` in favor of `childProcessIntegration`. Functionally they are the same.
 - Deprecated `nestIntegration`. Use the NestJS SDK (`@sentry/nestjs`) instead.
 - Deprecated `setupNestErrorHandler`. Use the NestJS SDK (`@sentry/nestjs`) instead.
+- Deprecated `addOpenTelemetryInstrumentation`. Use the `openTelemetryInstrumentations` option in `Sentry.init()` or your custom Sentry Client instead.
 - Deprecated `registerEsmLoaderHooks.include` and `registerEsmLoaderHooks.exclude`. Set `onlyIncludeInstrumentedModules: true` instead.
 - `registerEsmLoaderHooks` will only accept `true | false | undefined` in the future. The SDK will default to wrapping modules that are used as part of OpenTelemetry Instrumentation.

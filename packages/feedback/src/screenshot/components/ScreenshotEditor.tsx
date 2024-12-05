@@ -1,5 +1,5 @@
 /* eslint-disable max-lines */
-import type { FeedbackInternalOptions, FeedbackModalIntegration } from '@sentry/types';
+import type { FeedbackInternalOptions, FeedbackModalIntegration } from '@sentry/core';
 import type { ComponentType, VNode, h as hType } from 'preact';
 // biome-ignore lint/nursery/noUnusedImports: reason
 import { h } from 'preact'; // eslint-disable-line @typescript-eslint/no-unused-vars

@@ -18,7 +18,8 @@
     "clean:caches": "yarn rimraf eslintcache .nxcache && yarn jest --clearCache",
     "clean:deps": "lerna clean --yes && rm -rf node_modules && yarn",
     "clean:tarballs": "rimraf {packages,dev-packages}/*/*.tgz",
-    "clean:all": "run-s clean:build clean:tarballs clean:caches clean:deps",
+    "clean:watchman": "watchman watch-del \".\"",
+    "clean:all": "run-s clean:build clean:tarballs clean:caches clean:deps clean:watchman",
     "fix": "run-s fix:biome fix:prettier fix:lerna",
     "fix:lerna": "lerna run fix",
     "fix:biome": "biome check --apply .",
@@ -44,7 +45,8 @@
   },
   "volta": {
     "node": "18.20.3",
-    "yarn": "1.22.22"
+    "yarn": "1.22.22",
+    "pnpm": "9.4.0"
   },
   "workspaces": [
     "packages/angular",
@@ -65,6 +67,7 @@
     "packages/integration-shims",
     "packages/nestjs",
     "packages/nextjs",
+    "packages/nitro-utils",
     "packages/node",
     "packages/nuxt",
     "packages/opentelemetry",
@@ -122,7 +125,7 @@
     "nodemon": "^2.0.16",
     "npm-run-all2": "^6.2.0",
     "prettier": "^3.1.1",
-    "rimraf": "^3.0.2",
+    "rimraf": "^5.0.10",
     "rollup": "^4.24.2",
     "rollup-plugin-cleanup": "^3.2.1",
     "rollup-plugin-license": "^3.3.1",

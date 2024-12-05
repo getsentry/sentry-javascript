@@ -2,11 +2,9 @@ import type { ClientRequest, IncomingMessage, RequestOptions, ServerResponse } f
 import { diag } from '@opentelemetry/api';
 import type { HttpInstrumentationConfig } from '@opentelemetry/instrumentation-http';
 import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
-
+import type { Span } from '@sentry/core';
 import { defineIntegration } from '@sentry/core';
 import { getClient } from '@sentry/opentelemetry';
-import type { IntegrationFn, Span } from '@sentry/types';
-
 import { generateInstrumentOnce } from '../../otel/instrument';
 import type { NodeClient } from '../../sdk/client';
 import type { HTTPModuleRequestIncomingMessage } from '../../transports/http-module';
@@ -31,6 +29,16 @@ interface HttpOptions {
    * only the Sentry-specific instrumentation for request isolation is applied.
    */
   spans?: boolean;
+
+  /**
+   * Whether the integration should create [Sessions](https://docs.sentry.io/product/releases/health/#sessions) for incoming requests to track the health and crash-free rate of your releases in Sentry.
+   * Read more about Release Health: https://docs.sentry.io/product/releases/health/
+   *
+   * Defaults to `true`.
+   *
+   * Note: If `autoSessionTracking` is set to `false` in `Sentry.init()` or the Client owning this integration, this option will be ignored.
+   */
+  trackIncomingRequestsAsSessions?: boolean;
 
   /**
    * Do not capture spans or breadcrumbs for outgoing HTTP requests to URLs where the given callback returns `true`.
@@ -125,20 +133,18 @@ const instrumentHttp = (options: HttpOptions = {}): void => {
   instrumentSentryHttp(options);
 };
 
-const _httpIntegration = ((options: HttpOptions = {}) => {
+/**
+ * The http integration instruments Node's internal http and https modules.
+ * It creates breadcrumbs and spans for outgoing HTTP requests which will be attached to the currently active span.
+ */
+export const httpIntegration = defineIntegration((options: HttpOptions = {}) => {
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
       instrumentHttp(options);
     },
   };
-}) satisfies IntegrationFn;
-
-/**
- * The http integration instruments Node's internal http and https modules.
- * It creates breadcrumbs and spans for outgoing HTTP requests which will be attached to the currently active span.
- */
-export const httpIntegration = defineIntegration(_httpIntegration);
+});
 
 /**
  * Determines if @param req is a ClientRequest, meaning the request was created within the express app
@@ -209,7 +215,12 @@ function getConfigWithDefaults(options: Partial<HttpOptions> = {}): HttpInstrume
     },
     responseHook: (span, res) => {
       const client = getClient<NodeClient>();
-      if (client && client.getOptions().autoSessionTracking) {
+
+      if (
+        client &&
+        client.getOptions().autoSessionTracking !== false &&
+        options.trackIncomingRequestsAsSessions !== false
+      ) {
         setImmediate(() => {
           client['_captureRequestSession']();
         });

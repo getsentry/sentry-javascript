@@ -23,6 +23,7 @@ export interface ScopeContext {
   contexts: Contexts;
   tags: { [key: string]: Primitive };
   fingerprint: string[];
+  // eslint-disable-next-line deprecation/deprecation
   requestSession: RequestSession;
   propagationContext: PropagationContext;
 }
@@ -168,12 +169,18 @@ export interface Scope {
 
   /**
    * Returns the `RequestSession` if there is one
+   *
+   * @deprecated Use `getSession()` and `setSession()` instead of `getRequestSession()` and `setRequestSession()`;
    */
+  // eslint-disable-next-line deprecation/deprecation
   getRequestSession(): RequestSession | undefined;
 
   /**
    * Sets the `RequestSession` on the scope
+   *
+   * @deprecated Use `getSession()` and `setSession()` instead of `getRequestSession()` and `setRequestSession()`;
    */
+  // eslint-disable-next-line deprecation/deprecation
   setRequestSession(requestSession?: RequestSession): this;
 
   /**

@@ -5,7 +5,7 @@ test('envelope header for transaction event with source=url correct', done => {
     .expectHeader({
       transaction: {
         trace: {
-          trace_id: expect.any(String),
+          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
           public_key: 'public',
           environment: 'production',
           release: '1.0',

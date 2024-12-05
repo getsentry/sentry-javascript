@@ -1,4 +1,4 @@
-import type { Client } from '@sentry/types';
+import type { Client } from '../../src/types-hoist';
 
 import { SessionFlusher } from '../../src/sessionflusher';
 
@@ -19,6 +19,7 @@ describe('Session Flusher', () => {
   });
 
   test('test incrementSessionStatusCount updates the internal SessionFlusher state', () => {
+    // eslint-disable-next-line deprecation/deprecation
     const flusher = new SessionFlusher(mockClient, { release: '1.0.0', environment: 'dev' });
 
     const date = new Date('2021-04-08T12:18:23.043Z');
@@ -42,6 +43,7 @@ describe('Session Flusher', () => {
   });
 
   test('test undefined attributes are excluded, on incrementSessionStatusCount call', () => {
+    // eslint-disable-next-line deprecation/deprecation
     const flusher = new SessionFlusher(mockClient, { release: '1.0.0' });
 
     const date = new Date('2021-04-08T12:18:23.043Z');
@@ -55,6 +57,7 @@ describe('Session Flusher', () => {
   });
 
   test('flush is called every 60 seconds after initialisation of an instance of SessionFlusher', () => {
+    // eslint-disable-next-line deprecation/deprecation
     const flusher = new SessionFlusher(mockClient, { release: '1.0.0', environment: 'dev' });
     const flusherFlushFunc = jest.spyOn(flusher, 'flush');
     jest.advanceTimersByTime(59000);
@@ -68,6 +71,7 @@ describe('Session Flusher', () => {
   });
 
   test('sendSessions is called on flush if sessions were captured', () => {
+    // eslint-disable-next-line deprecation/deprecation
     const flusher = new SessionFlusher(mockClient, { release: '1.0.0', environment: 'dev' });
     const flusherFlushFunc = jest.spyOn(flusher, 'flush');
     const date = new Date('2021-04-08T12:18:23.043Z');
@@ -88,6 +92,7 @@ describe('Session Flusher', () => {
   });
 
   test('sendSessions is not called on flush if no sessions were captured', () => {
+    // eslint-disable-next-line deprecation/deprecation
     const flusher = new SessionFlusher(mockClient, { release: '1.0.0', environment: 'dev' });
     const flusherFlushFunc = jest.spyOn(flusher, 'flush');
 
@@ -98,12 +103,14 @@ describe('Session Flusher', () => {
   });
 
   test('calling close on SessionFlusher should disable SessionFlusher', () => {
+    // eslint-disable-next-line deprecation/deprecation
     const flusher = new SessionFlusher(mockClient, { release: '1.0.x' });
     flusher.close();
     expect((flusher as any)._isEnabled).toEqual(false);
   });
 
   test('calling close on SessionFlusher will force call flush', () => {
+    // eslint-disable-next-line deprecation/deprecation
     const flusher = new SessionFlusher(mockClient, { release: '1.0.x' });
     const flusherFlushFunc = jest.spyOn(flusher, 'flush');
     const date = new Date('2021-04-08T12:18:23.043Z');

@@ -13,7 +13,7 @@ import type {
   SdkMetadata,
   SpanItem,
   SpanJSON,
-} from '@sentry/types';
+} from '../types-hoist';
 
 import { dsnToString } from './dsn';
 import { normalize } from './normalize';
@@ -224,6 +224,7 @@ const ITEM_TYPE_TO_DATA_CATEGORY_MAP: Record<EnvelopeItemType, DataCategory> = {
   feedback: 'feedback',
   span: 'span',
   statsd: 'metric_bucket',
+  raw_security: 'security',
 };
 
 /**

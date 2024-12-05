@@ -1,16 +1,17 @@
 import { NestInstrumentation } from '@opentelemetry/instrumentation-nestjs-core';
+import type { Span } from '@sentry/core';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   captureException,
+  consoleSandbox,
   defineIntegration,
   getClient,
   getDefaultIsolationScope,
   getIsolationScope,
+  logger,
   spanToJSON,
 } from '@sentry/core';
-import { consoleSandbox, logger } from '@sentry/core';
-import type { Span } from '@sentry/types';
 import { generateInstrumentOnce } from '../../../otel/instrument';
 import { SentryNestEventInstrumentation } from './sentry-nest-event-instrumentation';
 import { SentryNestInstrumentation } from './sentry-nest-instrumentation';
@@ -86,8 +87,15 @@ export function setupNestErrorHandler(app: MinimalNestJsApp, baseFilter: NestJsE
       }
 
       if (context.getType() === 'http') {
+        // getRequest() returns either a FastifyRequest or ExpressRequest, depending on the used adapter
         const req = context.switchToHttp().getRequest();
-        if (req.route) {
+        if ('routeOptions' in req && req.routeOptions && req.routeOptions.url) {
+          // fastify case
+          getIsolationScope().setTransactionName(
+            `${req.routeOptions.method?.toUpperCase() || 'GET'} ${req.routeOptions.url}`,
+          );
+        } else if ('route' in req && req.route && req.route.path) {
+          // express case
           getIsolationScope().setTransactionName(`${req.method?.toUpperCase() || 'GET'} ${req.route.path}`);
         }
       }

@@ -1,8 +1,7 @@
-import { applySdkMetadata } from '@sentry/core';
-import { logger } from '@sentry/core';
+import { applySdkMetadata, logger } from '@sentry/core';
+import type { Integration } from '@sentry/core';
 import type { NodeClient, NodeOptions } from '@sentry/node';
 import { getDefaultIntegrations as getDefaultNodeIntegrations, init as nodeInit, isInitialized } from '@sentry/node';
-import type { Integration } from '@sentry/types';
 
 import { DEBUG_BUILD } from './utils/debug-build';
 import { instrumentServer } from './utils/instrumentServer';
@@ -16,11 +15,13 @@ export {
   addBreadcrumb,
   addEventProcessor,
   addIntegration,
+  // eslint-disable-next-line deprecation/deprecation
   addOpenTelemetryInstrumentation,
   // eslint-disable-next-line deprecation/deprecation
   addRequestDataToEvent,
   amqplibIntegration,
   anrIntegration,
+  disableAnrDetectionForCallback,
   captureCheckIn,
   captureConsoleIntegration,
   captureEvent,

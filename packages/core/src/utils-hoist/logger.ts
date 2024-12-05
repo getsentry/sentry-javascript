@@ -1,4 +1,4 @@
-import type { ConsoleLevel } from '@sentry/types';
+import type { ConsoleLevel } from '../types-hoist';
 
 import { DEBUG_BUILD } from './debug-build';
 import { GLOBAL_OBJ, getGlobalSingleton } from './worldwide';
@@ -21,8 +21,7 @@ type LoggerConsoleMethods = Record<ConsoleLevel, LoggerMethod>;
 
 /** This may be mutated by the console instrumentation. */
 export const originalConsoleMethods: {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  [key in ConsoleLevel]?: (...args: any[]) => void;
+  [key in ConsoleLevel]?: (...args: unknown[]) => void;
 } = {};
 
 /** JSDoc */
@@ -79,8 +78,7 @@ function makeLogger(): Logger {
 
   if (DEBUG_BUILD) {
     CONSOLE_LEVELS.forEach(name => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      logger[name] = (...args: any[]) => {
+      logger[name] = (...args: Parameters<(typeof GLOBAL_OBJ.console)[typeof name]>) => {
         if (enabled) {
           consoleSandbox(() => {
             GLOBAL_OBJ.console[name](`${PREFIX}[${name}]:`, ...args);

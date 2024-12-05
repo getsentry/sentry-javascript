@@ -7,6 +7,7 @@ import {
   vercelWaitUntil,
   winterCGRequestToRequestData,
 } from '@sentry/core';
+import type { RequestEventData, Scope, SpanAttributes } from '@sentry/core';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
@@ -21,7 +22,6 @@ import {
   startSpan,
   withIsolationScope,
 } from '@sentry/node';
-import type { RequestEventData, Scope, SpanAttributes } from '@sentry/types';
 import type { APIContext, MiddlewareResponseHandler } from 'astro';
 
 type MiddlewareOptions = {
