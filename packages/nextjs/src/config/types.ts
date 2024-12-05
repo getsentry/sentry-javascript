@@ -379,6 +379,7 @@ export type SentryBuildOptions = {
    *
    * @deprecated This is deprecated. The SDK emits chunks without `sourceMappingURL` for client bundles by default.
    */
+  // TODO(v9): Remove option
   hideSourceMaps?: boolean;
 
   /**
