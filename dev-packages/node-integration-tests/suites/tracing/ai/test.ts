@@ -1,6 +1,8 @@
+import { conditionalTest } from '../../../utils';
 import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
 
-describe('ai', () => {
+// `ai` SDK only support Node 18+
+conditionalTest({ min: 18 })('ai', () => {
   afterAll(() => {
     cleanupChildProcesses();
   });
