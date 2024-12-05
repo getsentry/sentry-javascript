@@ -21,7 +21,7 @@ export function addGlobalUnhandledRejectionInstrumentationHandler(
 function instrumentUnhandledRejection(): void {
   _oldOnUnhandledRejectionHandler = GLOBAL_OBJ.onunhandledrejection;
 
-  // Note: The reason we are doing window.onerror instead of window.addEventListener('unhandledrejection') is
+  // Note: The reason we are doing window.onunhandledrejection instead of window.addEventListener('unhandledrejection')
   // is that we are using this handler in the Loader Script, to handle buffered rejections consistently
   GLOBAL_OBJ.onunhandledrejection = function (e: unknown): boolean {
     const handlerData: HandlerDataUnhandledRejection = e;
