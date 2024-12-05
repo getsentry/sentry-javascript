@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 import type { HandlerDataUnhandledRejection } from '../../types-hoist';
 
 import { GLOBAL_OBJ } from '../worldwide';
@@ -24,11 +22,13 @@ export function addGlobalUnhandledRejectionInstrumentationHandler(
 function instrumentUnhandledRejection(): void {
   _oldOnUnhandledRejectionHandler = GLOBAL_OBJ.onunhandledrejection;
 
-  GLOBAL_OBJ.onunhandledrejection = function (e: any): boolean {
+  // Note: The reason we are doing window.onerror instead of window.addEventListener('unhandledrejection') is
+  // is that we are using this handler in the Loader Script, to handle buffered rejections consistently
+  GLOBAL_OBJ.onunhandledrejection = function (e: unknown): boolean {
     const handlerData: HandlerDataUnhandledRejection = e;
     triggerHandlers('unhandledrejection', handlerData);
 
-    if (_oldOnUnhandledRejectionHandler && !_oldOnUnhandledRejectionHandler.__SENTRY_LOADER__) {
+    if (_oldOnUnhandledRejectionHandler) {
       // eslint-disable-next-line prefer-rest-params
       return _oldOnUnhandledRejectionHandler.apply(this, arguments);
     }
