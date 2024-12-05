@@ -13,6 +13,7 @@ import express from 'express';
 
 const app = express();
 
+// eslint-disable-next-line deprecation/deprecation
 const flusher = (Sentry.getClient() as Sentry.NodeClient)['_sessionFlusher'] as SessionFlusher;
 
 // Flush after 2 seconds (to avoid waiting for the default 60s)

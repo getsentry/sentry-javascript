@@ -423,10 +423,13 @@ export type SessionContext = SessionContext_imported;
 /** @deprecated This type has been moved to `@sentry/core`. */
 export type SessionStatus = SessionStatus_imported;
 /** @deprecated This type has been moved to `@sentry/core`. */
+// eslint-disable-next-line deprecation/deprecation
 export type RequestSession = RequestSession_imported;
 /** @deprecated This type has been moved to `@sentry/core`. */
+// eslint-disable-next-line deprecation/deprecation
 export type RequestSessionStatus = RequestSessionStatus_imported;
 /** @deprecated This type has been moved to `@sentry/core`. */
+// eslint-disable-next-line deprecation/deprecation
 export type SessionFlusherLike = SessionFlusherLike_imported;
 /** @deprecated This type has been moved to `@sentry/core`. */
 export type SerializedSession = SerializedSession_imported;

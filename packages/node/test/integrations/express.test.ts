@@ -59,6 +59,7 @@ describe('expressErrorHandler()', () => {
 
     jest.spyOn<any, any>(client, '_captureRequestSession');
 
+    // eslint-disable-next-line deprecation/deprecation
     getIsolationScope().setRequestSession({ status: 'ok' });
 
     let isolationScope: Scope;
@@ -68,6 +69,7 @@ describe('expressErrorHandler()', () => {
     });
 
     setImmediate(() => {
+      // eslint-disable-next-line deprecation/deprecation
       expect(isolationScope.getRequestSession()).toEqual({ status: 'ok' });
       done();
     });
@@ -80,6 +82,7 @@ describe('expressErrorHandler()', () => {
 
     jest.spyOn<any, any>(client, '_captureRequestSession');
 
+    // eslint-disable-next-line deprecation/deprecation
     getIsolationScope().setRequestSession({ status: 'ok' });
 
     let isolationScope: Scope;
@@ -89,6 +92,7 @@ describe('expressErrorHandler()', () => {
     });
 
     setImmediate(() => {
+      // eslint-disable-next-line deprecation/deprecation
       expect(isolationScope.getRequestSession()).toEqual({ status: 'ok' });
       done();
     });
@@ -106,8 +110,10 @@ describe('expressErrorHandler()', () => {
     jest.spyOn<any, any>(client, '_captureRequestSession');
 
     withScope(() => {
+      // eslint-disable-next-line deprecation/deprecation
       getIsolationScope().setRequestSession({ status: 'ok' });
       sentryErrorMiddleware({ name: 'error', message: 'this is an error' }, req, res, () => {
+        // eslint-disable-next-line deprecation/deprecation
         expect(getIsolationScope().getRequestSession()).toEqual({ status: 'crashed' });
       });
     });
@@ -130,6 +136,7 @@ describe('expressErrorHandler()', () => {
     });
 
     setImmediate(() => {
+      // eslint-disable-next-line deprecation/deprecation
       expect(isolationScope.getRequestSession()).toEqual(undefined);
       done();
     });
