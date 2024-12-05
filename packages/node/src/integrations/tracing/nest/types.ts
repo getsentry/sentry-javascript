@@ -2,7 +2,7 @@
 
 // Partial extract of FastifyRequest interface
 // https://github.com/fastify/fastify/blob/87f9f20687c938828f1138f91682d568d2a31e53/types/request.d.ts#L41
-export interface FastifyRequest {
+interface FastifyRequest {
   routeOptions?: {
     method?: string;
     url?: string;
@@ -10,7 +10,7 @@ export interface FastifyRequest {
 }
 
 // Partial extract of ExpressRequest interface
-export interface ExpressRequest {
+interface ExpressRequest {
   route?: {
     path?: string;
   };

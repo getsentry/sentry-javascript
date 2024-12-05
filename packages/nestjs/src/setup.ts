@@ -20,9 +20,25 @@ import {
   logger,
   spanToJSON,
 } from '@sentry/core';
-import type { ExpressRequest, FastifyRequest } from '@sentry/node';
 import type { Observable } from 'rxjs';
 import { isExpectedError } from './helpers';
+
+// Partial extract of FastifyRequest interface
+// https://github.com/fastify/fastify/blob/87f9f20687c938828f1138f91682d568d2a31e53/types/request.d.ts#L41
+interface FastifyRequest {
+  routeOptions?: {
+    method?: string;
+    url?: string;
+  };
+}
+
+// Partial extract of ExpressRequest interface
+interface ExpressRequest {
+  route?: {
+    path?: string;
+  };
+  method?: string;
+}
 
 /**
  * Note: We cannot use @ syntax to add the decorators, so we add them directly below the classes as function wrappers.
