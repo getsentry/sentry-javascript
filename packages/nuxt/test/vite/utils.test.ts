@@ -9,7 +9,7 @@ import {
   constructWrappedFunctionExportQuery,
   extractFunctionReexportQueryParameters,
   findDefaultSdkInitFile,
-  getFilenameFromPath,
+  getFilenameFromNodeStartCommand,
   removeSentryQueryFromPath,
 } from '../../src/vite/utils';
 
@@ -74,37 +74,37 @@ describe('findDefaultSdkInitFile', () => {
 describe('getFilenameFromPath', () => {
   it('should return the filename from a simple path', () => {
     const path = 'node ./server/index.mjs';
-    const filename = getFilenameFromPath(path);
+    const filename = getFilenameFromNodeStartCommand(path);
     expect(filename).toBe('index.mjs');
   });
 
   it('should return the filename from a nested path', () => {
     const path = 'node ./.output/whatever/path/server.js';
-    const filename = getFilenameFromPath(path);
+    const filename = getFilenameFromNodeStartCommand(path);
     expect(filename).toBe('server.js');
   });
 
   it('should return the filename from a Windows-style path', () => {
     const path = '.\\Projects\\my-app\\src\\main.js';
-    const filename = getFilenameFromPath(path);
+    const filename = getFilenameFromNodeStartCommand(path);
     expect(filename).toBe('main.js');
   });
 
   it('should return null for an empty path', () => {
     const path = '';
-    const filename = getFilenameFromPath(path);
+    const filename = getFilenameFromNodeStartCommand(path);
     expect(filename).toBeNull();
   });
 
   it('should return the filename when there are no directory separators', () => {
     const path = 'index.mjs';
-    const filename = getFilenameFromPath(path);
+    const filename = getFilenameFromNodeStartCommand(path);
     expect(filename).toBe('index.mjs');
   });
 
   it('should return null for paths with trailing slashes', () => {
     const path = 'node ./server/';
-    const filename = getFilenameFromPath(path);
+    const filename = getFilenameFromNodeStartCommand(path);
     expect(filename).toBeNull();
   });
 });

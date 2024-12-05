@@ -27,11 +27,11 @@ export function findDefaultSdkInitFile(type: 'server' | 'client'): string | unde
 }
 
 /**
- *  Extracts the filename from a path.
+ *  Extracts the filename from a node command with a path.
  */
-export function getFilenameFromPath(path: string): string | null {
+export function getFilenameFromNodeStartCommand(nodeCommand: string): string | null {
   const regex = /[^/\\]+$/;
-  const match = path.match(regex);
+  const match = nodeCommand.match(regex);
   return match ? match[0] : null;
 }
 
@@ -98,7 +98,7 @@ export function extractFunctionReexportQueryParameters(query: string): { wrap: s
  */
 export function constructWrappedFunctionExportQuery(
   exportedBindings: Record<string, string[]> | null,
-  experimental_entrypointWrappedFunctions: string[],
+  entrypointWrappedFunctions: string[],
   debug?: boolean,
 ): string {
   const functionsToExport: { wrap: string[]; reexport: string[] } = {
@@ -110,7 +110,7 @@ export function constructWrappedFunctionExportQuery(
   // The key `.` refers to exports within the current file, while other keys show from where exports were imported first.
   Object.values(exportedBindings || {}).forEach(functions =>
     functions.forEach(fn => {
-      if (experimental_entrypointWrappedFunctions.includes(fn)) {
+      if (entrypointWrappedFunctions.includes(fn)) {
         functionsToExport.wrap.push(fn);
       } else {
         functionsToExport.reexport.push(fn);

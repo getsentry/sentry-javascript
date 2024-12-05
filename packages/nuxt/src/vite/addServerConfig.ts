@@ -12,7 +12,7 @@ import {
   SENTRY_WRAPPED_FUNCTIONS,
   constructFunctionReExport,
   constructWrappedFunctionExportQuery,
-  getFilenameFromPath,
+  getFilenameFromNodeStartCommand,
   removeSentryQueryFromPath,
 } from './utils';
 
@@ -84,7 +84,8 @@ export function addServerConfigToBuild(
  */
 export function addSentryTopImport(moduleOptions: SentryNuxtModuleOptions, nitro: Nitro): void {
   nitro.hooks.hook('close', async () => {
-    const fileNameFromCommand = nitro.options.commands.preview && getFilenameFromPath(nitro.options.commands.preview);
+    const fileNameFromCommand =
+      nitro.options.commands.preview && getFilenameFromNodeStartCommand(nitro.options.commands.preview);
 
     // other presets ('node-server' or 'vercel') have an index.mjs
     const presetsWithServerFile = ['netlify'];

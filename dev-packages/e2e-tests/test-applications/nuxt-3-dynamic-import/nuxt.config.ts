@@ -18,6 +18,6 @@ export default defineNuxtConfig({
     },
   },
   sentry: {
-    autoInjectServerSentry: 'top-level-import',
+    autoInjectServerSentry: 'experimental_dynamic-import',
   },
 });

@@ -59,11 +59,11 @@ export default defineNuxtModule<ModuleOptions>({
 
     if (serverConfigFile) {
       if (moduleOptions.autoInjectServerSentry !== 'experimental_dynamic-import') {
-        // Inject the server-side Sentry config file with a side effect import
         addPluginTemplate({
           mode: 'server',
           filename: 'sentry-server-config.mjs',
           getContents: () =>
+            // This won't actually import the server config in the build output (so no double init call). The import here is only needed for correctly resolving the Sentry release injection.
             `import "${buildDirResolver.resolve(`/${serverConfigFile}`)}";
             import { defineNuxtPlugin } from "#imports";
             export default defineNuxtPlugin(() => {});`,
