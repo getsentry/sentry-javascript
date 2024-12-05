@@ -143,6 +143,7 @@ export function importCppBindingsModule(): PrivateV8CpuProfilerBindings {
           return require('../sentry_cpu_profiler-linux-arm64-musl-127.node');
         }
       }
+
       if (stdlib === 'glibc') {
         if (abi === '93') {
           return require('../sentry_cpu_profiler-linux-arm64-glibc-93.node');

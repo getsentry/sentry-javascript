@@ -10,6 +10,7 @@ module.exports = {
   testMatch: ['<rootDir>/**/*.test.ts', '<rootDir>/**/*.test.tsx'],
   moduleNameMapper: {
     '^axios$': require.resolve('axios'),
+    '@opentelemetry/semantic-conventions/incubating': require.resolve('@opentelemetry/semantic-conventions/incubating'),
   },
   globals: {
     'ts-jest': {

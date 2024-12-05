@@ -2,7 +2,6 @@ import { getDefaultCurrentScope, getDefaultIsolationScope } from '../defaultScop
 import { Scope } from '../scope';
 import type { Client, Scope as ScopeInterface } from '../types-hoist';
 import { isThenable } from '../utils-hoist/is';
-
 import { getMainCarrier, getSentryCarrier } from './../carrier';
 import type { AsyncContextStrategy } from './types';
 

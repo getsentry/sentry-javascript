@@ -125,3 +125,5 @@ export { getCurrentHubShim, getCurrentHub } from './getCurrentHubShim';
 export * from './utils-hoist/index';
 // TODO(v9): Make this structure pretty again and don't do "export *"
 export * from './types-hoist/index';
+
+export type { FeatureFlag } from './featureFlags';

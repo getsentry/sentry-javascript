@@ -20,6 +20,8 @@ export function addGlobalErrorInstrumentationHandler(handler: (data: HandlerData
 function instrumentError(): void {
   _oldOnErrorHandler = GLOBAL_OBJ.onerror;
 
+  // Note: The reason we are doing window.onerror instead of window.addEventListener('error') is
+  // is that we are using this handler in the Loader Script, to handle buffered errors consistently
   GLOBAL_OBJ.onerror = function (
     msg: string | object,
     url?: string,
@@ -36,7 +38,7 @@ function instrumentError(): void {
     };
     triggerHandlers('error', handlerData);
 
-    if (_oldOnErrorHandler && !_oldOnErrorHandler.__SENTRY_LOADER__) {
+    if (_oldOnErrorHandler) {
       // eslint-disable-next-line prefer-rest-params
       return _oldOnErrorHandler.apply(this, arguments);
     }
