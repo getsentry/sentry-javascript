@@ -99,7 +99,7 @@
     "@prisma/instrumentation": "5.19.1",
     "@sentry/core": "8.42.0",
     "@sentry/opentelemetry": "8.42.0",
-    "import-in-the-middle": "^1.11.3"
+    "import-in-the-middle": "^1.11.2"
   },
   "devDependencies": {
     "@types/node": "^14.18.0"
