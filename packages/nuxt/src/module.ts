@@ -58,8 +58,7 @@ export default defineNuxtModule<ModuleOptions>({
     const serverConfigFile = findDefaultSdkInitFile('server');
 
     if (serverConfigFile) {
-      // todo: check when this is needed - seems to be needed for sentry-release-injection-file
-      if (!moduleOptions.autoInjectServerSentry) {
+      if (moduleOptions.autoInjectServerSentry !== 'experimental_dynamic-import') {
         // Inject the server-side Sentry config file with a side effect import
         addPluginTemplate({
           mode: 'server',

@@ -84,11 +84,21 @@ export function addServerConfigToBuild(
  */
 export function addSentryTopImport(moduleOptions: SentryNuxtModuleOptions, nitro: Nitro): void {
   nitro.hooks.hook('close', async () => {
-    const fileName = nitro.options.commands.preview && getFilenameFromPath(nitro.options.commands.preview);
-    const serverEntry = fileName ? fileName : 'index.mjs';
+    const fileNameFromCommand = nitro.options.commands.preview && getFilenameFromPath(nitro.options.commands.preview);
+
+    // other presets ('node-server' or 'vercel') have an index.mjs
+    const presetsWithServerFile = ['netlify'];
+
+    const entryFileName = fileNameFromCommand
+      ? fileNameFromCommand
+      : typeof nitro.options.rollupConfig?.output.entryFileNames === 'string'
+        ? nitro.options.rollupConfig?.output.entryFileNames
+        : presetsWithServerFile.includes(nitro.options.preset)
+          ? 'server.mjs'
+          : 'index.mjs';
 
     const serverDirResolver = createResolver(nitro.options.output.serverDir);
-    const entryFilePath = serverDirResolver.resolve(serverEntry);
+    const entryFilePath = serverDirResolver.resolve(entryFileName);
 
     try {
       fs.readFile(entryFilePath, 'utf8', (err, data) => {
