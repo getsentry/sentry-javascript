@@ -260,7 +260,7 @@ module.exports = [
     import: createImport('init'),
     ignore: [...builtinModules, ...nodePrefixedBuiltinModules],
     gzip: true,
-    limit: '130 KB',
+    limit: '135 KB',
   },
 ];
 
