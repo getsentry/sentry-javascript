@@ -19,5 +19,5 @@ export default defineNuxtConfig({
   },
   sentry: {
     autoInjectServerSentry: 'top-level-import',
-  }
+  },
 });
