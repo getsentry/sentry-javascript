@@ -17,10 +17,10 @@ export interface FeatureFlagsIntegration extends Integration {
  * @example
  * ```
  * import * as Sentry from '@sentry/browser';
- * import { featureFlagsIntegration, type FeatureFlagsIntegration } from '@sentry/browser';
+ * import { type FeatureFlagsIntegration } from '@sentry/browser';
  *
  * // Setup
- * Sentry.init(..., integrations: [featureFlagsIntegration()])
+ * Sentry.init(..., integrations: [Sentry.featureFlagsIntegration()])
  *
  * // Verify
  * const flagsIntegration = Sentry.getClient()?.getIntegrationByName<FeatureFlagsIntegration>('FeatureFlags');

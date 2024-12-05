@@ -72,8 +72,6 @@ export { browserSessionIntegration } from './integrations/browsersession';
 export {
   featureFlagsIntegration,
   type FeatureFlagsIntegration,
-  launchDarklyIntegration,
-  buildLaunchDarklyFlagUsedHandler,
-  openFeatureIntegration,
-  OpenFeatureIntegrationHook,
 } from './integrations/featureFlags';
+export { launchDarklyIntegration, buildLaunchDarklyFlagUsedHandler } from './integrations/featureFlags/launchdarkly';
+export { openFeatureIntegration, OpenFeatureIntegrationHook } from './integrations/featureFlags/openfeature';
