@@ -1388,33 +1388,33 @@ jobs:
             node: 22
 
             # macos x64
-          - os: macos-12
+          - os: macos-13
             node: 16
             arch: x64
-          - os: macos-12
+          - os: macos-13
             node: 18
             arch: x64
-          - os: macos-12
+          - os: macos-13
             node: 20
             arch: x64
-          - os: macos-12
+          - os: macos-13
             node: 22
             arch: x64
 
             # macos arm64
-          - os: macos-12
+          - os: macos-13
             arch: arm64
             node: 16
             target_platform: darwin
-          - os: macos-12
+          - os: macos-13
             arch: arm64
             node: 18
             target_platform: darwin
-          - os: macos-12
+          - os: macos-13
             arch: arm64
             node: 20
             target_platform: darwin
-          - os: macos-12
+          - os: macos-13
             arch: arm64
             node: 22
             target_platform: darwin
