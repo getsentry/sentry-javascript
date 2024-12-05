@@ -23,6 +23,8 @@ type MethodArgs = [MethodFirstArg, ...unknown[]];
 type PatchedModuleExports = Record<(typeof INSTRUMENTED_METHODS)[number], (...args: MethodArgs) => unknown> &
   Record<string, unknown>;
 
+export let sentryVercelAiPatched = false;
+
 /**
  * This detects is added by the Sentry Vercel AI Integration to detect if the integration should
  * be enabled.
@@ -30,10 +32,8 @@ type PatchedModuleExports = Record<(typeof INSTRUMENTED_METHODS)[number], (...ar
  * It also patches the `ai` module to enable Vercel AI telemetry automatically for all methods.
  */
 export class SentryVercelAiInstrumentation extends InstrumentationBase {
-  public patchIsActive: boolean = false;
-
   public constructor(config: InstrumentationConfig = {}) {
-    super('sentry-vercel-ai', SDK_VERSION, config);
+    super('@sentry/instrumentation-vercel-ai', SDK_VERSION, config);
   }
 
   /**
@@ -48,7 +48,7 @@ export class SentryVercelAiInstrumentation extends InstrumentationBase {
    * Patches module exports to enable Vercel AI telemetry.
    */
   private _patch(moduleExports: PatchedModuleExports): unknown {
-    this.patchIsActive = true;
+    sentryVercelAiPatched = true;
 
     function generatePatch(name: string) {
       return (...args: MethodArgs) => {

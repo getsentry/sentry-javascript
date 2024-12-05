@@ -3,11 +3,9 @@ import { SEMANTIC_ATTRIBUTE_SENTRY_OP, defineIntegration, spanToJSON } from '@se
 import type { IntegrationFn } from '@sentry/core';
 import { generateInstrumentOnce } from '../../../otel/instrument';
 import { addOriginToSpan } from '../../../utils/addOriginToSpan';
-import { SentryVercelAiInstrumentation } from './instrumentation';
+import { SentryVercelAiInstrumentation, sentryVercelAiPatched } from './instrumentation';
 
-const sentryVercelAiInstance = new SentryVercelAiInstrumentation({});
-
-export const instrumentVercelAi = generateInstrumentOnce('vercelAI', () => sentryVercelAiInstance);
+export const instrumentVercelAi = generateInstrumentOnce('vercelAI', () => new SentryVercelAiInstrumentation({}));
 
 const _vercelAIIntegration = (() => {
   return {
@@ -15,11 +13,7 @@ const _vercelAIIntegration = (() => {
     setupOnce() {
       instrumentVercelAi();
     },
-    preprocessEvent(event) {
-      if (!sentryVercelAiInstance.patchIsActive) {
-        return;
-      }
-
+    processEvent(event) {
       if (event.type === 'transaction' && event.spans?.length) {
         for (const span of event.spans) {
           const { data: attributes, description: name } = span;
@@ -46,10 +40,12 @@ const _vercelAIIntegration = (() => {
           }
         }
       }
+
+      return event;
     },
     setup(client) {
       client.on('spanStart', span => {
-        if (!sentryVercelAiInstance.patchIsActive) {
+        if (!sentryVercelAiPatched) {
           return;
         }
 
