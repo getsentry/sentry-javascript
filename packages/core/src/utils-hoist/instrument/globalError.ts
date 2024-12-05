@@ -20,7 +20,7 @@ export function addGlobalErrorInstrumentationHandler(handler: (data: HandlerData
 function instrumentError(): void {
   _oldOnErrorHandler = GLOBAL_OBJ.onerror;
 
-  // Note: The reason we are doing window.onerror instead of window.addEventListener('error') is
+  // Note: The reason we are doing window.onerror instead of window.addEventListener('error')
   // is that we are using this handler in the Loader Script, to handle buffered errors consistently
   GLOBAL_OBJ.onerror = function (
     msg: string | object,
