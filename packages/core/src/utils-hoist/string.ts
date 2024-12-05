@@ -65,8 +65,7 @@ export function snipLine(line: string, colno: number): string {
  * @param delimiter string to be placed in-between values
  * @returns Joined values
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function safeJoin(input: any[], delimiter?: string): string {
+export function safeJoin(input: unknown[], delimiter?: string): string {
   if (!Array.isArray(input)) {
     return '';
   }

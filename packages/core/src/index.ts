@@ -47,6 +47,7 @@ export {
 export { setAsyncContextStrategy } from './asyncContext';
 export { getMainCarrier } from './carrier';
 export { makeSession, closeSession, updateSession } from './session';
+// eslint-disable-next-line deprecation/deprecation
 export { SessionFlusher } from './sessionflusher';
 export { Scope } from './scope';
 export { notifyEventProcessors } from './eventProcessors';
