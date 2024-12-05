@@ -41,7 +41,8 @@ const _vercelAIIntegration = (() => {
             attributes['ai.usage.completionTokens'] != undefined &&
             attributes['ai.usage.promptTokens'] != undefined
           ) {
-            span.data['ai.tokens.used'] = attributes['ai.usage.completionTokens'] + attributes['ai.usage.promptTokens'];
+            span.data['ai.total_tokens.used'] =
+              attributes['ai.usage.completionTokens'] + attributes['ai.usage.promptTokens'];
           }
         }
       }
