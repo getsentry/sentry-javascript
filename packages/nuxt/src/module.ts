@@ -2,7 +2,7 @@ import * as path from 'path';
 import { addPlugin, addPluginTemplate, addServerPlugin, createResolver, defineNuxtModule } from '@nuxt/kit';
 import { consoleSandbox } from '@sentry/core';
 import type { SentryNuxtModuleOptions } from './common/types';
-import { addDynamicImportEntryFileWrapper, addServerConfigToBuild } from './vite/addServerConfig';
+import { addDynamicImportEntryFileWrapper, addSentryTopImport, addServerConfigToBuild } from './vite/addServerConfig';
 import { setupSourceMaps } from './vite/sourceMaps';
 import { findDefaultSdkInitFile } from './vite/utils';
 
@@ -20,8 +20,12 @@ export default defineNuxtModule<ModuleOptions>({
   setup(moduleOptionsParam, nuxt) {
     const moduleOptions = {
       ...moduleOptionsParam,
-      dynamicImportForServerEntry: moduleOptionsParam.dynamicImportForServerEntry !== false, // default: true
-      entrypointWrappedFunctions: moduleOptionsParam.entrypointWrappedFunctions || ['default', 'handler', 'server'],
+      autoInjectServerSentry: moduleOptionsParam.autoInjectServerSentry,
+      experimental_entrypointWrappedFunctions: moduleOptionsParam.experimental_entrypointWrappedFunctions || [
+        'default',
+        'handler',
+        'server',
+      ],
     };
 
     const moduleDirResolver = createResolver(import.meta.url);
@@ -54,15 +58,15 @@ export default defineNuxtModule<ModuleOptions>({
     const serverConfigFile = findDefaultSdkInitFile('server');
 
     if (serverConfigFile) {
-      if (moduleOptions.dynamicImportForServerEntry === false) {
-        // Inject the server-side Sentry config file with a side effect import
+      if (moduleOptions.autoInjectServerSentry !== 'experimental_dynamic-import') {
         addPluginTemplate({
           mode: 'server',
           filename: 'sentry-server-config.mjs',
           getContents: () =>
-            `import "${buildDirResolver.resolve(`/${serverConfigFile}`)}"\n` +
-            'import { defineNuxtPlugin } from "#imports"\n' +
-            'export default defineNuxtPlugin(() => {})',
+            // This won't actually import the server config in the build output (so no double init call). The import here is only needed for correctly resolving the Sentry release injection.
+            `import "${buildDirResolver.resolve(`/${serverConfigFile}`)}";
+            import { defineNuxtPlugin } from "#imports";
+            export default defineNuxtPlugin(() => {});`,
         });
       }
 
@@ -79,12 +83,12 @@ export default defineNuxtModule<ModuleOptions>({
           consoleSandbox(() => {
             // eslint-disable-next-line no-console
             console.log(
-              '[Sentry] Your application is running in development mode. Note: @sentry/nuxt is in beta and may not work as expected on the server-side (Nitro). Errors are reported, but tracing does not work.',
+              '[Sentry] Your application is running in development mode. Note: @sentry/nuxt does not work as expected on the server-side (Nitro). Errors are reported, but tracing does not work.',
             );
           });
         }
 
-        if (moduleOptions.dynamicImportForServerEntry === false) {
+        if (moduleOptions.autoInjectServerSentry !== 'experimental_dynamic-import') {
           addServerConfigToBuild(moduleOptions, nuxt, nitro, serverConfigFile);
 
           if (moduleOptions.debug) {
@@ -101,7 +105,13 @@ export default defineNuxtModule<ModuleOptions>({
               );
             });
           }
-        } else {
+        }
+
+        if (moduleOptions.autoInjectServerSentry === 'top-level-import') {
+          addSentryTopImport(moduleOptions, nitro);
+        }
+
+        if (moduleOptions.autoInjectServerSentry === 'experimental_dynamic-import') {
           addDynamicImportEntryFileWrapper(nitro, serverConfigFile, moduleOptions);
 
           if (moduleOptions.debug) {

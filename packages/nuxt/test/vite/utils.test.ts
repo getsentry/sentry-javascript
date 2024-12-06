@@ -9,6 +9,7 @@ import {
   constructWrappedFunctionExportQuery,
   extractFunctionReexportQueryParameters,
   findDefaultSdkInitFile,
+  getFilenameFromNodeStartCommand,
   removeSentryQueryFromPath,
 } from '../../src/vite/utils';
 
@@ -67,6 +68,44 @@ describe('findDefaultSdkInitFile', () => {
 
     const result = findDefaultSdkInitFile('server');
     expect(result).toMatch('packages/nuxt/sentry.server.config.js');
+  });
+});
+
+describe('getFilenameFromPath', () => {
+  it('should return the filename from a simple path', () => {
+    const path = 'node ./server/index.mjs';
+    const filename = getFilenameFromNodeStartCommand(path);
+    expect(filename).toBe('index.mjs');
+  });
+
+  it('should return the filename from a nested path', () => {
+    const path = 'node ./.output/whatever/path/server.js';
+    const filename = getFilenameFromNodeStartCommand(path);
+    expect(filename).toBe('server.js');
+  });
+
+  it('should return the filename from a Windows-style path', () => {
+    const path = '.\\Projects\\my-app\\src\\main.js';
+    const filename = getFilenameFromNodeStartCommand(path);
+    expect(filename).toBe('main.js');
+  });
+
+  it('should return null for an empty path', () => {
+    const path = '';
+    const filename = getFilenameFromNodeStartCommand(path);
+    expect(filename).toBeNull();
+  });
+
+  it('should return the filename when there are no directory separators', () => {
+    const path = 'index.mjs';
+    const filename = getFilenameFromNodeStartCommand(path);
+    expect(filename).toBe('index.mjs');
+  });
+
+  it('should return null for paths with trailing slashes', () => {
+    const path = 'node ./server/';
+    const filename = getFilenameFromNodeStartCommand(path);
+    expect(filename).toBeNull();
   });
 });
 
@@ -152,7 +191,7 @@ describe('constructWrappedFunctionExportQuery', () => {
     const result = constructWrappedFunctionExportQuery(exportedBindings, entrypointWrappedFunctions, debug);
     expect(result).toBe('?sentry-query-reexported-functions=handler');
     expect(consoleWarnSpy).toHaveBeenCalledWith(
-      "[Sentry] No functions found to wrap. In case the server needs to export async functions other than `handler` or  `server`, consider adding the name(s) to Sentry's build options `sentry.entrypointWrappedFunctions` in `nuxt.config.ts`.",
+      "[Sentry] No functions found to wrap. In case the server needs to export async functions other than `handler` or  `server`, consider adding the name(s) to Sentry's build options `sentry.experimental_entrypointWrappedFunctions` in `nuxt.config.ts`.",
     );
 
     consoleWarnSpy.mockRestore();

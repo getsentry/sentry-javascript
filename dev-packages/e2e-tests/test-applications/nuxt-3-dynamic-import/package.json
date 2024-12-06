@@ -1,5 +1,5 @@
 {
-  "name": "nuxt-4",
+  "name": "nuxt-3-dynamic-import",
   "private": true,
   "type": "module",
   "scripts": {
@@ -8,23 +8,22 @@
     "generate": "nuxt generate",
     "preview": "nuxt preview",
     "start": "node .output/server/index.mjs",
-    "start:import": "node --import ./.output/server/sentry.server.config.mjs .output/server/index.mjs",
     "clean": "npx nuxi cleanup",
     "test": "playwright test",
     "test:build": "pnpm install && npx playwright install && pnpm build",
     "test:assert": "pnpm test"
   },
   "dependencies": {
-    "@pinia/nuxt": "^0.5.5",
     "@sentry/nuxt": "latest || *",
-    "nuxt": "^3.13.2"
+    "nuxt": "^3.14.0"
   },
   "devDependencies": {
-    "@nuxt/test-utils": "^3.14.2",
+    "@nuxt/test-utils": "^3.14.1",
     "@playwright/test": "^1.44.1",
     "@sentry-internal/test-utils": "link:../../../test-utils"
   },
   "overrides": {
-    "@vercel/nft": "0.27.4"
+    "nitropack": "~2.9.7",
+    "ofetch": "^1.4.0"
   }
 }

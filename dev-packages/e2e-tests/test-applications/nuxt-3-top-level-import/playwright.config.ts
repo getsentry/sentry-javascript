@@ -12,7 +12,7 @@ const nuxtConfigOptions: ConfigOptions = {
  *  Like this: import { expect, test } from '@nuxt/test-utils/playwright' */
 
 const config = getPlaywrightConfig({
-  startCommand: `pnpm start:import`,
+  startCommand: `pnpm start`,
   use: { ...nuxtConfigOptions },
 });
 

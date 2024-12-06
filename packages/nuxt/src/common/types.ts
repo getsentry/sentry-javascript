@@ -103,22 +103,35 @@ export type SentryNuxtModuleOptions = {
   debug?: boolean;
 
   /**
+   *
+   * Enables (partial) server tracing by automatically injecting Sentry for environments where modifying the node option `--import` is not possible.
+   *
+   * **DO NOT** add the node CLI flag `--import` in your node start script, when auto-injecting Sentry.
+   * This would initialize Sentry twice on the server-side and this leads to unexpected issues.
+   *
+   * ---
+   *
+   * **"top-level-import"**
+   *
+   * Enabling basic server tracing with top-level import can be used for environments where modifying the node option `--import` is not possible.
+   * However, enabling this option only supports limited tracing instrumentation. Only http traces will be collected (but no database-specific traces etc.).
+   *
+   * If `"top-level-import"` is enabled, the Sentry SDK will import the Sentry server config at the top of the server entry file to load the SDK on the server.
+   *
+   * ---
+   * **"experimental_dynamic-import"**
+   *
    * Wraps the server entry file with a dynamic `import()`. This will make it possible to preload Sentry and register
    * necessary hooks before other code runs. (Node docs: https://nodejs.org/api/module.html#enabling)
    *
-   * If this option is `false`, the Sentry SDK won't wrap the server entry file with `import()`. Not wrapping the
-   * server entry file will disable Sentry on the server-side. When you set this option to `false`, make sure
-   * to add the Sentry server config with the node `--import` CLI flag to enable Sentry on the server-side.
+   * If `"experimental_dynamic-import"` is enabled, the Sentry SDK wraps the server entry file with `import()`.
    *
-   * **DO NOT** add the node CLI flag `--import` in your node start script, when `dynamicImportForServerEntry` is set to `true` (default).
-   * This would initialize Sentry twice on the server-side and this leads to unexpected issues.
-   *
-   * @default true
+   * @default undefined
    */
-  dynamicImportForServerEntry?: boolean;
+  autoInjectServerSentry?: 'top-level-import' | 'experimental_dynamic-import';
 
   /**
-   * By default—unless you configure `dynamicImportForServerEntry: false`—the SDK will try to wrap your Nitro server entrypoint
+   * When `autoInjectServerSentry` is set to `"experimental_dynamic-import"`, the SDK will wrap your Nitro server entrypoint
    * with a dynamic `import()` to ensure all dependencies can be properly instrumented. Any previous exports from the entrypoint are still exported.
    * Most exports of the server entrypoint are serverless functions and those are wrapped by Sentry. Other exports stay as-is.
    *
@@ -128,7 +141,7 @@ export type SentryNuxtModuleOptions = {
    *
    * @default ['default', 'handler', 'server']
    */
-  entrypointWrappedFunctions?: string[];
+  experimental_entrypointWrappedFunctions?: string[];
 
   /**
    * Options to be passed directly to the Sentry Rollup Plugin (`@sentry/rollup-plugin`) and Sentry Vite Plugin (`@sentry/vite-plugin`) that ship with the Sentry Nuxt SDK.

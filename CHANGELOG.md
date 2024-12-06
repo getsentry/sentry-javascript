@@ -10,6 +10,27 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+### Important Changes
+
+- **feat(nuxt): Add option autoInjectServerSentry (no default import()) ([#14553](https://github.com/getsentry/sentry-javascript/pull/14553))**
+
+Using the dynamic `import()` as the default behavior for initializing the SDK on the server-side did not work for every project.
+The default behavior of the SDK has been changed, and you now need to **use the `--import` flag to initialize Sentry on the server-side** to leverage full functionality.
+
+Example with `--import`:
+
+```bash
+node --import ./.output/server/sentry.server.config.mjs .output/server/index.mjs
+```
+
+In case you are not able to use the `--import` flag, you can enable auto-injecting Sentry in the `nuxt.config.ts` (comes with limitations):
+
+```json
+  sentry: {
+    autoInjectServerSentry: 'top-level-import', // or 'experimental_dynamic-import'
+  },
+```
+
 Work in this release was contributed by @lsmurray. Thank you for your contribution!
 
 ## 8.42.0
