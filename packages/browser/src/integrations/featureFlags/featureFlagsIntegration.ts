@@ -1,11 +1,8 @@
-import type { Client, Event, EventHint, Integration, IntegrationFn } from '@sentry/core';
+import type { Client, Event, EventHint, IntegrationFn } from '@sentry/core';
 
-import { defineIntegration } from '@sentry/core';
+import { defineIntegration, getClient, logger } from '@sentry/core';
 import { copyFlagsFromScopeToEvent, insertFlagToScope } from '../../utils/featureFlags';
-
-export interface FeatureFlagsIntegration extends Integration {
-  setFlag: (name: string, value: unknown) => void;
-}
+import { DEBUG_BUILD } from '../../debug-build';
 
 /**
  * Sentry integration for buffering feature flags manually with an API, and
@@ -17,19 +14,11 @@ export interface FeatureFlagsIntegration extends Integration {
  * @example
  * ```
  * import * as Sentry from '@sentry/browser';
- * import { type FeatureFlagsIntegration } from '@sentry/browser';
  *
- * // Setup
- * Sentry.init(..., integrations: [Sentry.featureFlagsIntegration()])
+ * Sentry.init(..., integrations: [Sentry.featureFlagsIntegration()]);
  *
- * // Verify
- * const flagsIntegration = Sentry.getClient()?.getIntegrationByName<FeatureFlagsIntegration>('FeatureFlags');
- * if (flagsIntegration) {
- *   flagsIntegration.setFlag('my-flag', true);
- * } else {
- *   // check your setup
- * }
- * Sentry.captureException(Exception('broke')); // 'my-flag' should be captured to this Sentry event.
+ * Sentry.addFlag('my-flag', true);
+ * Sentry.captureException(Exception('broke')); // 'my-flag' should be captured on this Sentry event.
  * ```
  */
 export const featureFlagsIntegration = defineIntegration(() => {
@@ -38,10 +27,21 @@ export const featureFlagsIntegration = defineIntegration(() => {
 
     processEvent(event: Event, _hint: EventHint, _client: Client): Event {
       return copyFlagsFromScopeToEvent(event);
-    },
-
-    setFlag(name: string, value: unknown): void {
-      insertFlagToScope(name, value);
-    },
+    }
   };
-}) as IntegrationFn<FeatureFlagsIntegration>;
+}) as IntegrationFn;
+
+
+/**
+ * Records a flag and its value to be sent on subsequent error events. We
+ * recommend you do this on flag evaluations. Flags are buffered per Sentry
+ * scope and limited to 100 per event.
+ */
+export function addFlag(name: string, value: unknown): void {
+  const client = getClient();
+  if (!client || !client.getIntegrationByName('FeatureFlags')) {
+    DEBUG_BUILD && logger.error('Must enable the Feature Flags Integration to use the addFlag function.');
+    return;
+  }
+  insertFlagToScope(name, value);
+}
