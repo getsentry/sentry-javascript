@@ -1,0 +1,21 @@
+{
+  "name": "astro-5",
+  "type": "module",
+  "version": "0.0.1",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro",
+    "test:build": "pnpm install && npx playwright install && pnpm build",
+    "test:assert": "TEST_ENV=production playwright test"
+  },
+  "dependencies": {
+    "@astrojs/internal-helpers": "^0.4.2",
+    "@astrojs/node": "^9.0.0",
+    "@playwright/test": "^1.46.0",
+    "@sentry-internal/test-utils": "link:../../../test-utils",
+    "@sentry/astro": "^8.42.0",
+    "astro": "^5.0.3"
+  }
+}
