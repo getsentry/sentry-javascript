@@ -5,43 +5,6 @@ import type { ClientOptions, Options, SamplingContext, Scope, Span, TracePropaga
 
 import type { NodeTransportOptions } from './transports';
 
-/**
- * Note: In the next major version of the Sentry SDK this interface will be removed and the SDK will by default only wrap
- * ESM modules that are required to be wrapped by OpenTelemetry Instrumentation.
- */
-export interface EsmLoaderHookOptions {
-  /**
-   * Provide a list of modules to wrap with `import-in-the-middle`.
-   *
-   * @deprecated It is recommended to use `onlyIncludeInstrumentedModules: true` instead of manually defining modules to include and exclude.
-   */
-  include?: Array<string | RegExp>;
-
-  /**
-   * Provide a list of modules to prevent them from being wrapped with `import-in-the-middle`.
-   *
-   * @deprecated It is recommended to use `onlyIncludeInstrumentedModules: true` instead of manually defining modules to include and exclude.
-   */
-  exclude?: Array<string | RegExp>;
-
-  /**
-   * When set to `true`, `import-in-the-middle` will only wrap ESM modules that are specifically instrumented by
-   * OpenTelemetry plugins. This is useful to avoid issues where `import-in-the-middle` is not compatible with some of
-   * your dependencies.
-   *
-   * **Note**: This feature will only work if you `Sentry.init()` the SDK before the instrumented modules are loaded.
-   * This can be achieved via the Node `--import` CLI flag or by loading your app via async `import()` after calling
-   * `Sentry.init()`.
-   *
-   * Defaults to `false`.
-   *
-   * Note: In the next major version of the Sentry SDK this option will be removed and the SDK will by default only wrap
-   * ESM modules that are required to be wrapped by OpenTelemetry Instrumentation.
-   */
-  // TODO(v9): Make `onlyIncludeInstrumentedModules: true` the default behavior.
-  onlyIncludeInstrumentedModules?: boolean;
-}
-
 export interface BaseNodeOptions {
   /**
    * List of strings/regex controlling to which outgoing requests
@@ -138,22 +101,9 @@ export interface BaseNodeOptions {
    * with certain libraries. If you run into problems running your app with this enabled,
    * please raise an issue in https://github.com/getsentry/sentry-javascript.
    *
-   * You can optionally exclude specific modules or only include specific modules from being instrumented by providing
-   * an object with `include` or `exclude` properties.
-   *
-   * ```js
-   * registerEsmLoaderHooks: {
-   *   exclude: ['openai'],
-   * }
-   * ```
-   *
    * Defaults to `true`.
-   *
-   * Note: In the next major version of the SDK, the possibility to provide fine-grained control will be removed from this option.
-   * This means that it will only be possible to pass `true` or `false`. The default value will continue to be `true`.
    */
-  // TODO(v9): Only accept true | false | undefined.
-  registerEsmLoaderHooks?: boolean | EsmLoaderHookOptions;
+  registerEsmLoaderHooks?: boolean;
 
   /**
    * Configures in which interval client reports will be flushed. Defaults to `60_000` (milliseconds).

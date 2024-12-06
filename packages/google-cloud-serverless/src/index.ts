@@ -118,8 +118,6 @@ export {
   spanToTraceHeader,
   spanToBaggageHeader,
   trpcMiddleware,
-  // eslint-disable-next-line deprecation/deprecation
-  addOpenTelemetryInstrumentation,
   zodErrorsIntegration,
   profiler,
   amqplibIntegration,
