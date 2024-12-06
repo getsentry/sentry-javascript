@@ -22,7 +22,7 @@ export function patchEventHandler(handler: EventHandler): EventHandler {
       const newIsolationScope = isolationScope === getDefaultIsolationScope() ? isolationScope.clone() : isolationScope;
 
       logger.log(
-        `[Sentry] Patched h3 event handler. ${
+        `Patched h3 event handler. ${
           isolationScope === newIsolationScope ? 'Using existing' : 'Created new'
         } isolation scope.`,
       );
