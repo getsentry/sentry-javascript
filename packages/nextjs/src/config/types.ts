@@ -376,7 +376,10 @@ export type SentryBuildOptions = {
   /**
    * Use `hidden-source-map` for webpack `devtool` option, which strips the `sourceMappingURL` from the bottom of built
    * JS files.
+   *
+   * @deprecated This is deprecated. The SDK emits chunks without `sourceMappingURL` for client bundles by default.
    */
+  // TODO(v9): Remove option
   hideSourceMaps?: boolean;
 
   /**

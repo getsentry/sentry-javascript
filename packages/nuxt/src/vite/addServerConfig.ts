@@ -5,6 +5,16 @@ import { wrapServerEntryWithDynamicImport } from '@sentry-internal/nitro-utils';
 import { consoleSandbox } from '@sentry/core';
 import type { Nitro } from 'nitropack';
 import type { SentryNuxtModuleOptions } from '../common/types';
+import {
+  QUERY_END_INDICATOR,
+  SENTRY_REEXPORTED_FUNCTIONS,
+  SENTRY_WRAPPED_ENTRY,
+  SENTRY_WRAPPED_FUNCTIONS,
+  constructFunctionReExport,
+  constructWrappedFunctionExportQuery,
+  getFilenameFromNodeStartCommand,
+  removeSentryQueryFromPath,
+} from './utils';
 
 const SERVER_CONFIG_FILENAME = 'sentry.server.config';
 
@@ -29,41 +39,90 @@ export function addServerConfigToBuild(
       (viteInlineConfig.build.rollupOptions.input as { [entryName: string]: string })[SERVER_CONFIG_FILENAME] =
         createResolver(nuxt.options.srcDir).resolve(`/${serverConfigFile}`);
     }
+  });
 
-    /**
-     * When the build process is finished, copy the `sentry.server.config` file to the `.output` directory.
-     * This is necessary because we need to reference this file path in the node --import option.
-     */
-    nitro.hooks.hook('close', async () => {
-      const buildDirResolver = createResolver(nitro.options.buildDir);
-      const serverDirResolver = createResolver(nitro.options.output.serverDir);
-      const source = buildDirResolver.resolve(`dist/server/${SERVER_CONFIG_FILENAME}.mjs`);
-      const destination = serverDirResolver.resolve(`${SERVER_CONFIG_FILENAME}.mjs`);
+  /**
+   * When the build process is finished, copy the `sentry.server.config` file to the `.output` directory.
+   * This is necessary because we need to reference this file path in the node --import option.
+   */
+  nitro.hooks.hook('close', async () => {
+    const buildDirResolver = createResolver(nitro.options.buildDir);
+    const serverDirResolver = createResolver(nitro.options.output.serverDir);
+    const source = buildDirResolver.resolve(`dist/server/${SERVER_CONFIG_FILENAME}.mjs`);
+    const destination = serverDirResolver.resolve(`${SERVER_CONFIG_FILENAME}.mjs`);
 
-      try {
-        await fs.promises.access(source, fs.constants.F_OK);
-        await fs.promises.copyFile(source, destination);
+    try {
+      await fs.promises.access(source, fs.constants.F_OK);
+      await fs.promises.copyFile(source, destination);
 
-        if (moduleOptions.debug) {
-          consoleSandbox(() => {
+      if (moduleOptions.debug) {
+        consoleSandbox(() => {
+          // eslint-disable-next-line no-console
+          console.log(
+            `[Sentry] Successfully added the content of the \`${serverConfigFile}\` file to \`${destination}\``,
+          );
+        });
+      }
+    } catch (error) {
+      if (moduleOptions.debug) {
+        consoleSandbox(() => {
+          // eslint-disable-next-line no-console
+          console.warn(
+            `[Sentry] An error occurred when trying to add the \`${serverConfigFile}\` file to the \`.output\` directory`,
+            error,
+          );
+        });
+      }
+    }
+  });
+}
+
+/**
+ *  Adds the Sentry server config import at the top of the server entry file to load the SDK on the server.
+ *  This is necessary for environments where modifying the node option `--import` is not possible.
+ *  However, only limited tracing instrumentation is supported when doing this.
+ */
+export function addSentryTopImport(moduleOptions: SentryNuxtModuleOptions, nitro: Nitro): void {
+  nitro.hooks.hook('close', async () => {
+    const fileNameFromCommand =
+      nitro.options.commands.preview && getFilenameFromNodeStartCommand(nitro.options.commands.preview);
+
+    // other presets ('node-server' or 'vercel') have an index.mjs
+    const presetsWithServerFile = ['netlify'];
+
+    const entryFileName = fileNameFromCommand
+      ? fileNameFromCommand
+      : typeof nitro.options.rollupConfig?.output.entryFileNames === 'string'
+        ? nitro.options.rollupConfig?.output.entryFileNames
+        : presetsWithServerFile.includes(nitro.options.preset)
+          ? 'server.mjs'
+          : 'index.mjs';
+
+    const serverDirResolver = createResolver(nitro.options.output.serverDir);
+    const entryFilePath = serverDirResolver.resolve(entryFileName);
+
+    try {
+      fs.readFile(entryFilePath, 'utf8', (err, data) => {
+        const updatedContent = `import './${SERVER_CONFIG_FILENAME}.mjs';\n${data}`;
+
+        fs.writeFile(entryFilePath, updatedContent, 'utf8', () => {
+          if (moduleOptions.debug) {
             // eslint-disable-next-line no-console
             console.log(
-              `[Sentry] Successfully added the content of the \`${serverConfigFile}\` file to \`${destination}\``,
+              `[Sentry] Successfully added the Sentry import to the server entry file "\`${entryFilePath}\`"`,
             );
-          });
-        }
-      } catch (error) {
-        if (moduleOptions.debug) {
-          consoleSandbox(() => {
-            // eslint-disable-next-line no-console
-            console.warn(
-              `[Sentry] An error occurred when trying to add the \`${serverConfigFile}\` file to the \`.output\` directory`,
-              error,
-            );
-          });
-        }
+          }
+        });
+      });
+    } catch (err) {
+      if (moduleOptions.debug) {
+        // eslint-disable-next-line no-console
+        console.warn(
+          `[Sentry] An error occurred when trying to add the Sentry import to the server entry file "\`${entryFilePath}\`":`,
+          err,
+        );
       }
-    });
+    }
   });
 }
 
@@ -77,8 +136,8 @@ export function addServerConfigToBuild(
 export function addDynamicImportEntryFileWrapper(
   nitro: Nitro,
   serverConfigFile: string,
-  moduleOptions: Omit<SentryNuxtModuleOptions, 'entrypointWrappedFunctions'> &
-    Required<Pick<SentryNuxtModuleOptions, 'entrypointWrappedFunctions'>>,
+  moduleOptions: Omit<SentryNuxtModuleOptions, 'experimental_entrypointWrappedFunctions'> &
+    Required<Pick<SentryNuxtModuleOptions, 'experimental_entrypointWrappedFunctions'>>,
 ): void {
   if (!nitro.options.rollupConfig) {
     nitro.options.rollupConfig = { output: {} };

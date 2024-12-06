@@ -7,7 +7,7 @@ const DEFAULT_SHUTDOWN_TIMEOUT = 2000;
 /**
  * @hidden
  */
-export function logAndExitProcess(error: Error): void {
+export function logAndExitProcess(error: unknown): void {
   consoleSandbox(() => {
     // eslint-disable-next-line no-console
     console.error(error);

@@ -14,8 +14,6 @@ type PolymorphicRequestHeaders =
   | Array<[string, string]>
   // the below is not precisely the Header type used in Request, but it'll pass duck-typing
   | {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      [key: string]: any;
       append: (key: string, value: string) => void;
       get: (key: string) => string | null | undefined;
     };

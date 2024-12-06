@@ -1,6 +1,7 @@
 import type { AttachmentType } from './attachment';
 import type { SerializedCheckIn } from './checkin';
 import type { ClientReport } from './clientreport';
+import type { LegacyCSPReport } from './csp';
 import type { DsnComponents } from './dsn';
 import type { Event } from './event';
 import type { FeedbackEvent, UserFeedback } from './feedback';
@@ -41,7 +42,8 @@ export type EnvelopeItemType =
   | 'replay_recording'
   | 'check_in'
   | 'statsd'
-  | 'span';
+  | 'span'
+  | 'raw_security';
 
 export type BaseEnvelopeHeaders = {
   [key: string]: unknown;
@@ -84,6 +86,7 @@ type ProfileItemHeaders = { type: 'profile' };
 type ProfileChunkItemHeaders = { type: 'profile_chunk' };
 type StatsdItemHeaders = { type: 'statsd'; length: number };
 type SpanItemHeaders = { type: 'span' };
+type RawSecurityHeaders = { type: 'raw_security'; sentry_release?: string; sentry_environment?: string };
 
 export type EventItem = BaseEnvelopeItem<EventItemHeaders, Event>;
 export type AttachmentItem = BaseEnvelopeItem<AttachmentItemHeaders, string | Uint8Array>;
@@ -100,6 +103,7 @@ export type FeedbackItem = BaseEnvelopeItem<FeedbackItemHeaders, FeedbackEvent>;
 export type ProfileItem = BaseEnvelopeItem<ProfileItemHeaders, Profile>;
 export type ProfileChunkItem = BaseEnvelopeItem<ProfileChunkItemHeaders, ProfileChunk>;
 export type SpanItem = BaseEnvelopeItem<SpanItemHeaders, Partial<SpanJSON>>;
+export type RawSecurityItem = BaseEnvelopeItem<RawSecurityHeaders, LegacyCSPReport>;
 
 export type EventEnvelopeHeaders = { event_id: string; sent_at: string; trace?: Partial<DynamicSamplingContext> };
 type SessionEnvelopeHeaders = { sent_at: string };
@@ -120,6 +124,7 @@ export type CheckInEnvelope = BaseEnvelope<CheckInEnvelopeHeaders, CheckInItem>;
 export type StatsdEnvelope = BaseEnvelope<StatsdEnvelopeHeaders, StatsdItem>;
 export type SpanEnvelope = BaseEnvelope<SpanEnvelopeHeaders, SpanItem>;
 export type ProfileChunkEnvelope = BaseEnvelope<BaseEnvelopeHeaders, ProfileChunkItem>;
+export type RawSecurityEnvelope = BaseEnvelope<BaseEnvelopeHeaders, RawSecurityItem>;
 
 export type Envelope =
   | EventEnvelope
@@ -129,6 +134,7 @@ export type Envelope =
   | ReplayEnvelope
   | CheckInEnvelope
   | StatsdEnvelope
-  | SpanEnvelope;
+  | SpanEnvelope
+  | RawSecurityEnvelope;
 
 export type EnvelopeItem = Envelope[1][number];

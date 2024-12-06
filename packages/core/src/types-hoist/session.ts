@@ -1,6 +1,10 @@
 import type { User } from './user';
 
+/**
+ * @deprecated This type is deprecated and will be removed in the next major version of the SDK.
+ */
 export interface RequestSession {
+  // eslint-disable-next-line deprecation/deprecation
   status?: RequestSessionStatus;
 }
 
@@ -35,6 +39,10 @@ export interface Session {
 export type SessionContext = Partial<Session>;
 
 export type SessionStatus = 'ok' | 'exited' | 'crashed' | 'abnormal';
+
+/**
+ * @deprecated This type is deprecated and will be removed in the next major version of the SDK.
+ */
 export type RequestSessionStatus = 'ok' | 'errored' | 'crashed';
 
 /** JSDoc */
@@ -46,6 +54,9 @@ export interface SessionAggregates {
   aggregates: Array<AggregationCounts>;
 }
 
+/**
+ * @deprecated This type is deprecated and will be removed in the next major version of the SDK.
+ */
 export interface SessionFlusherLike {
   /**
    * Increments the Session Status bucket in SessionAggregates Object corresponding to the status of the session

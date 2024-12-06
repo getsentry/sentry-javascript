@@ -1,6 +1,18 @@
 import * as fs from 'fs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { findDefaultSdkInitFile } from '../../src/vite/utils';
+import {
+  QUERY_END_INDICATOR,
+  SENTRY_REEXPORTED_FUNCTIONS,
+  SENTRY_WRAPPED_ENTRY,
+  SENTRY_WRAPPED_FUNCTIONS,
+  constructFunctionReExport,
+  constructWrappedFunctionExportQuery,
+  extractFunctionReexportQueryParameters,
+  findDefaultSdkInitFile,
+  getFilenameFromNodeStartCommand,
+  removeSentryQueryFromPath,
+} from '../../src/vite/utils';
 
 vi.mock('fs');
 

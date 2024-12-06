@@ -129,6 +129,7 @@ export function expressErrorHandler(options?: ExpressHandlerOptions): ExpressMid
         // running in SessionAggregates mode
         const isSessionAggregatesMode = client['_sessionFlusher'] !== undefined;
         if (isSessionAggregatesMode) {
+          // eslint-disable-next-line deprecation/deprecation
           const requestSession = getIsolationScope().getRequestSession();
           // If an error bubbles to the `errorHandler`, then this is an unhandled error, and should be reported as a
           // Crashed session. The `_requestSession.status` is checked to ensure that this error is happening within

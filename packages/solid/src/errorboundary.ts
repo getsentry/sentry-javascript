@@ -16,8 +16,7 @@ export function withSentryErrorBoundary(ErrorBoundary: Component<ErrorBoundaryPr
   const SentryErrorBoundary = (props: ErrorBoundaryProps): JSX.Element => {
     const [local, others] = splitProps(props, ['fallback']);
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const fallback = (error: any, reset: () => void): JSX.Element => {
+    const fallback = (error: unknown, reset: () => void): JSX.Element => {
       captureException(error);
 
       const f = local.fallback;
