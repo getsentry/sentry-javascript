@@ -5,8 +5,4 @@ Sentry.init({
   environment: 'qa',
   tracesSampleRate: 1.0,
   tunnel: 'http://localhost:3031/', // proxy server
-  beforeSendTransaction: transaction => {
-    console.log('beforeSendTransaction', transaction);
-    return transaction;
-  },
 });
