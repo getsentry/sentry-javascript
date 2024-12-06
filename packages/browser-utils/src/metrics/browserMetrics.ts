@@ -488,7 +488,7 @@ function _addPerformanceNavigationTiming(
   entry: PerformanceNavigationTiming,
   event: StartEventName,
   timeOrigin: number,
-  name?: string,
+  name: string = event,
 ): void {
   const eventEnd = _getEndPropertyNameForNavigationTiming(event) satisfies keyof PerformanceNavigationTiming;
   const end = entry[eventEnd];
@@ -497,7 +497,7 @@ function _addPerformanceNavigationTiming(
     return;
   }
   startAndEndSpan(span, timeOrigin + msToSec(start), timeOrigin + msToSec(end), {
-    op: `browser.${name || event}`,
+    op: `browser.${name}`,
     name: entry.name,
     attributes: {
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.browser.metrics',
