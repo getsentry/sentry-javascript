@@ -300,7 +300,7 @@ interface AddPerformanceEntriesOptions {
 /** Add performance related spans to a transaction */
 export function addPerformanceEntries(span: Span, options: AddPerformanceEntriesOptions): void {
   const performance = getBrowserPerformanceAPI();
-  if (!performance || !WINDOW.performance.getEntries || !browserPerformanceTimeOrigin) {
+  if (!performance || !performance.getEntries || !browserPerformanceTimeOrigin) {
     // Gatekeeper if performance API not available
     return;
   }
@@ -352,7 +352,6 @@ export function addPerformanceEntries(span: Span, options: AddPerformanceEntries
         _addResourceSpans(span, entry as PerformanceResourceTiming, entry.name, startTime, duration, timeOrigin);
         break;
       }
-      default:
       // Ignore other entry types.
     }
   });
