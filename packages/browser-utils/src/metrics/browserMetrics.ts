@@ -409,7 +409,10 @@ export function addPerformanceEntries(span: Span, options: AddPerformanceEntries
   _measurements = {};
 }
 
-/** Create measure related spans */
+/**
+ * Create measure related spans.
+ * Exported only for tests.
+ */
 export function _addMeasureSpans(
   span: Span,
   entry: PerformanceEntry,
@@ -543,8 +546,11 @@ function _addRequest(span: Span, entry: PerformanceNavigationTiming, timeOrigin:
   }
 }
 
-/** Create resource-related spans */
-function _addResourceSpans(
+/**
+ * Create resource-related spans.
+ * Exported only for tests.
+ */
+export function _addResourceSpans(
   span: Span,
   entry: PerformanceResourceTiming,
   resourceUrl: string,
