@@ -1,6 +1,6 @@
+import sentry from '@sentry/astro';
 // @ts-check
 import { defineConfig } from 'astro/config';
-import sentry from '@sentry/astro';
 
 import node from '@astrojs/node';
 
