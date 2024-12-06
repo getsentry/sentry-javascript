@@ -52,6 +52,7 @@
     "access": "public"
   },
   "dependencies": {
+    "@opentelemetry/api": "^1.9.0",
     "@remix-run/router": "1.x",
     "@sentry/cli": "^2.38.2",
     "@sentry/core": "8.42.0",
@@ -59,7 +60,7 @@
     "@sentry/opentelemetry": "8.42.0",
     "@sentry/react": "8.42.0",
     "glob": "^10.3.4",
-    "opentelemetry-instrumentation-remix": "0.7.1",
+    "opentelemetry-instrumentation-remix": "0.8.0",
     "yargs": "^17.6.0"
   },
   "devDependencies": {

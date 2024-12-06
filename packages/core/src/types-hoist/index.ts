@@ -43,6 +43,8 @@ export type {
   UserFeedbackItem,
   CheckInItem,
   CheckInEnvelope,
+  RawSecurityEnvelope,
+  RawSecurityItem,
   StatsdItem,
   StatsdEnvelope,
   ProfileItem,
@@ -104,8 +106,11 @@ export type {
   Session,
   SessionContext,
   SessionStatus,
+  // eslint-disable-next-line deprecation/deprecation
   RequestSession,
+  // eslint-disable-next-line deprecation/deprecation
   RequestSessionStatus,
+  // eslint-disable-next-line deprecation/deprecation
   SessionFlusherLike,
   SerializedSession,
 } from './session';
@@ -179,3 +184,4 @@ export type {
 export type { ParameterizedString } from './parameterize';
 export type { ContinuousProfiler, ProfilingIntegration, Profiler } from './profiling';
 export type { ViewHierarchyData, ViewHierarchyWindow } from './view-hierarchy';
+export type { LegacyCSPReport } from './csp';

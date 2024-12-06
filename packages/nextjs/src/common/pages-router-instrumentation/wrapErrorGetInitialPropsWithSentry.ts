@@ -43,22 +43,21 @@ export function wrapErrorGetInitialPropsWithSentry(
           baggage,
           sentryTrace,
         }: {
-          data: ErrorProps & {
-            _sentryTraceData?: string;
-            _sentryBaggage?: string;
-          };
+          data?: unknown;
           baggage?: string;
           sentryTrace?: string;
         } = await tracedGetInitialProps.apply(thisArg, args);
 
-        // The Next.js serializer throws on undefined values so we need to guard for it (#12102)
-        if (sentryTrace) {
-          errorGetInitialProps._sentryTraceData = sentryTrace;
-        }
+        if (typeof errorGetInitialProps === 'object' && errorGetInitialProps !== null) {
+          if (sentryTrace) {
+            // The Next.js serializer throws on undefined values so we need to guard for it (#12102)
+            (errorGetInitialProps as Record<string, unknown>)._sentryTraceData = sentryTrace;
+          }
 
-        // The Next.js serializer throws on undefined values so we need to guard for it (#12102)
-        if (baggage) {
-          errorGetInitialProps._sentryBaggage = baggage;
+          // The Next.js serializer throws on undefined values so we need to guard for it (#12102)
+          if (baggage) {
+            (errorGetInitialProps as Record<string, unknown>)._sentryBaggage = baggage;
+          }
         }
 
         return errorGetInitialProps;

@@ -94,9 +94,10 @@ export function getOriginalFunction<T extends Function>(func: WrappedFunction<T>
  *
  * @deprecated This function is deprecated and will be removed in the next major version of the SDK.
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function urlEncode(object: { [key: string]: any }): string {
-  return Object.keys(object)
-    .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(object[key])}`)
+  return Object.entries(object)
+    .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
     .join('&');
 }
 
@@ -237,7 +238,7 @@ function _dropUndefinedKeys<T>(inputValue: T, memoizationMap: Map<unknown, unkno
       return memoVal as T;
     }
 
-    const returnValue: { [key: string]: any } = {};
+    const returnValue: { [key: string]: unknown } = {};
     // Store the mapping of this value in case we visit it again, in case of circular data
     memoizationMap.set(inputValue, returnValue);
 

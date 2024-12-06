@@ -9,11 +9,9 @@ import { isExpectedError } from './helpers';
  */
 export const SentryCron = (monitorSlug: string, monitorConfig?: MonitorConfig): MethodDecorator => {
   return (target: unknown, propertyKey, descriptor: PropertyDescriptor) => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const originalMethod = descriptor.value as (...args: any[]) => Promise<any>;
+    const originalMethod = descriptor.value as (...args: unknown[]) => Promise<unknown>;
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    descriptor.value = function (...args: any[]) {
+    descriptor.value = function (...args: unknown[]) {
       return Sentry.withMonitor(
         monitorSlug,
         () => {
@@ -31,11 +29,9 @@ export const SentryCron = (monitorSlug: string, monitorConfig?: MonitorConfig): 
  */
 export function SentryTraced(op: string = 'function') {
   return function (target: unknown, propertyKey: string, descriptor: PropertyDescriptor) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const originalMethod = descriptor.value as (...args: any[]) => Promise<any> | any; // function can be sync or async
+    const originalMethod = descriptor.value as (...args: unknown[]) => Promise<unknown> | unknown; // function can be sync or async
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    descriptor.value = function (...args: any[]) {
+    descriptor.value = function (...args: unknown[]) {
       return startSpan(
         {
           op: op,
@@ -64,11 +60,9 @@ export function SentryTraced(op: string = 'function') {
  */
 export function SentryExceptionCaptured() {
   return function (target: unknown, propertyKey: string, descriptor: PropertyDescriptor) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const originalCatch = descriptor.value as (exception: unknown, host: unknown, ...args: any[]) => void;
+    const originalCatch = descriptor.value as (exception: unknown, host: unknown, ...args: unknown[]) => void;
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    descriptor.value = function (exception: unknown, host: unknown, ...args: any[]) {
+    descriptor.value = function (exception: unknown, host: unknown, ...args: unknown[]) {
       if (isExpectedError(exception)) {
         return originalCatch.apply(this, [exception, host, ...args]);
       }
