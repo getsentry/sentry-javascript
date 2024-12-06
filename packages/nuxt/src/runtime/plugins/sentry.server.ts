@@ -1,13 +1,5 @@
-import {
-  GLOBAL_OBJ,
-  flush,
-  getClient,
-  getDefaultIsolationScope,
-  getIsolationScope,
-  logger,
-  vercelWaitUntil,
-  withIsolationScope,
-} from '@sentry/core';
+import { patchEventHandler } from '@sentry-internal/nitro-utils';
+import { GLOBAL_OBJ, flush, getClient, logger, vercelWaitUntil } from '@sentry/core';
 import * as Sentry from '@sentry/node';
 import { H3Error } from 'h3';
 import { defineNitroPlugin } from 'nitropack/runtime';
@@ -15,30 +7,7 @@ import type { NuxtRenderHTMLContext } from 'nuxt/app';
 import { addSentryTracingMetaTags, extractErrorContext } from '../utils';
 
 export default defineNitroPlugin(nitroApp => {
-  nitroApp.h3App.handler = new Proxy(nitroApp.h3App.handler, {
-    async apply(handlerTarget, handlerThisArg, handlerArgs: Parameters<typeof nitroApp.h3App.handler>) {
-      // In environments where we cannot make use of OTel httpInstrumentation, we still need to ensure requests are properly isolated (e.g. when just importing the Sentry server config at the top level instead of `--import`).
-      // If OTel httpInstrumentation works, requests will be already isolated by the SentryHttpInstrumentation.
-      // We can identify this by comparing the current isolation scope to the default one. The requests are properly isolated if
-      // the current isolation scope is different from the default one. If that is not the case, we fork the isolation scope here.
-      const isolationScope = getIsolationScope();
-      const newIsolationScope = isolationScope === getDefaultIsolationScope() ? isolationScope.clone() : isolationScope;
-
-      logger.log(
-        `[Sentry] Patched h3 event handler. ${
-          isolationScope === newIsolationScope ? 'Using existing' : 'Created new'
-        } isolation scope.`,
-      );
-
-      return withIsolationScope(newIsolationScope, async () => {
-        try {
-          return await handlerTarget.apply(handlerThisArg, handlerArgs);
-        } finally {
-          await flushIfServerless();
-        }
-      });
-    },
-  });
+  nitroApp.h3App.handler = patchEventHandler(nitroApp.h3App.handler);
 
   nitroApp.hooks.hook('error', async (error, errorContext) => {
     // Do not handle 404 and 422
