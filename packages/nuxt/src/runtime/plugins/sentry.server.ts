@@ -1,6 +1,5 @@
 import {
   GLOBAL_OBJ,
-  consoleSandbox,
   flush,
   getClient,
   getDefaultIsolationScope,
@@ -18,19 +17,18 @@ import { addSentryTracingMetaTags, extractErrorContext } from '../utils';
 export default defineNitroPlugin(nitroApp => {
   nitroApp.h3App.handler = new Proxy(nitroApp.h3App.handler, {
     async apply(handlerTarget, handlerThisArg, handlerArgs: Parameters<typeof nitroApp.h3App.handler>) {
-      // In environments where we cannot make use of OTel httpInstrumentation, e.g. when just importing the Sentry server config at
-      // the top level instead of `--import` or dynamic import like on Vercel, we still need to ensure requests are properly isolated
+      // In environments where we cannot make use of OTel httpInstrumentation, we still need to ensure requests are properly isolated (e.g. when just importing the Sentry server config at the top level instead of `--import`).
+      // If OTel httpInstrumentation works, requests will be already isolated by the SentryHttpInstrumentation.
+      // We can identify this by comparing the current isolation scope to the default one. The requests are properly isolated if
+      // the current isolation scope is different from the default one. If that is not the case, we fork the isolation scope here.
       const isolationScope = getIsolationScope();
       const newIsolationScope = isolationScope === getDefaultIsolationScope() ? isolationScope.clone() : isolationScope;
 
-      consoleSandbox(() => {
-        // eslint-disable-next-line no-console
-        console.log(
-          `[Sentry] Patched h3 event handler. ${
-            isolationScope === newIsolationScope ? 'Using existing' : 'Created new'
-          } isolation scope.`,
-        );
-      });
+      logger.log(
+        `[Sentry] Patched h3 event handler. ${
+          isolationScope === newIsolationScope ? 'Using existing' : 'Created new'
+        } isolation scope.`,
+      );
 
       return withIsolationScope(newIsolationScope, async () => {
         try {
