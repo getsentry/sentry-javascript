@@ -25,10 +25,10 @@ sentryTest('Basic test with eviction, update, and no async tasks', async ({ getL
   await page.evaluate(bufferSize => {
     const flagsIntegration = (window as any).Sentry.getClient().getIntegrationByName('FeatureFlags');
     for (let i = 1; i <= bufferSize; i++) {
-      flagsIntegration.setFlag(`feat${i}`, false);
+      flagsIntegration.addFeatureFlag(`feat${i}`, false);
     }
-    flagsIntegration.setFlag(`feat${bufferSize + 1}`, true); // eviction
-    flagsIntegration.setFlag('feat3', true); // update
+    flagsIntegration.addFeatureFlag(`feat${bufferSize + 1}`, true); // eviction
+    flagsIntegration.addFeatureFlag('feat3', true); // update
     return true;
   }, FLAG_BUFFER_SIZE);
 

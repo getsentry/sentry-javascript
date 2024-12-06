@@ -4,7 +4,7 @@ import { defineIntegration } from '@sentry/core';
 import { copyFlagsFromScopeToEvent, insertFlagToScope } from '../../utils/featureFlags';
 
 export interface FeatureFlagsIntegration extends Integration {
-  setFlag: (name: string, value: unknown) => void;
+  addFeatureFlag: (name: string, value: unknown) => void;
 }
 
 /**
@@ -25,7 +25,7 @@ export interface FeatureFlagsIntegration extends Integration {
  * // Verify
  * const flagsIntegration = Sentry.getClient()?.getIntegrationByName<FeatureFlagsIntegration>('FeatureFlags');
  * if (flagsIntegration) {
- *   flagsIntegration.setFlag('my-flag', true);
+ *   flagsIntegration.addFeatureFlag('my-flag', true);
  * } else {
  *   // check your setup
  * }
@@ -40,7 +40,7 @@ export const featureFlagsIntegration = defineIntegration(() => {
       return copyFlagsFromScopeToEvent(event);
     },
 
-    setFlag(name: string, value: unknown): void {
+    addFeatureFlag(name: string, value: unknown): void {
       insertFlagToScope(name, value);
     },
   };
