@@ -462,23 +462,35 @@ function _addNavigationSpans(span: Span, entry: PerformanceNavigationTiming, tim
   _addRequest(span, entry, timeOrigin);
 }
 
+type StartEventName =
+  | 'secureConnection'
+  | 'fetch'
+  | 'domainLookup'
+  | 'unloadEvent'
+  | 'redirect'
+  | 'connect'
+  | 'domContentLoadedEvent'
+  | 'loadEvent';
+
+type EndEventName =
+  | 'connectEnd'
+  | 'domainLookupStart'
+  | 'domainLookupEnd'
+  | 'unloadEventEnd'
+  | 'redirectEnd'
+  | 'connectEnd'
+  | 'domContentLoadedEventEnd'
+  | 'loadEventEnd';
+
 /** Create performance navigation related spans */
 function _addPerformanceNavigationTiming(
   span: Span,
   entry: PerformanceNavigationTiming,
-  event:
-    | 'secureConnection'
-    | 'fetch'
-    | 'domainLookup'
-    | 'unloadEvent'
-    | 'redirect'
-    | 'connect'
-    | 'domContentLoadedEvent'
-    | 'loadEvent',
+  event: StartEventName,
   timeOrigin: number,
   name?: string,
 ): void {
-  const eventEnd = getEndPropertyNameForNavigationTiming(event) satisfies keyof PerformanceNavigationTiming;
+  const eventEnd = _getEndPropertyNameForNavigationTiming(event) satisfies keyof PerformanceNavigationTiming;
   const end = entry[eventEnd];
   const start = entry[`${event}Start`];
   if (!start || !end) {
@@ -493,25 +505,7 @@ function _addPerformanceNavigationTiming(
   });
 }
 
-function getEndPropertyNameForNavigationTiming(
-  event:
-    | 'secureConnection'
-    | 'fetch'
-    | 'domainLookup'
-    | 'unloadEvent'
-    | 'redirect'
-    | 'connect'
-    | 'domContentLoadedEvent'
-    | 'loadEvent',
-):
-  | 'connectEnd'
-  | 'domainLookupStart'
-  | 'domainLookupEnd'
-  | 'unloadEventEnd'
-  | 'redirectEnd'
-  | 'connectEnd'
-  | 'domContentLoadedEventEnd'
-  | 'loadEventEnd' {
+function _getEndPropertyNameForNavigationTiming(event: StartEventName): EndEventName {
   if (event === 'secureConnection') {
     return 'connectEnd';
   }
