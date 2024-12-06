@@ -88,6 +88,26 @@ export default defineNuxtModule<ModuleOptions>({
           });
         }
 
+        consoleSandbox(() => {
+          const serverDir = nitro.options.output.serverDir;
+
+          // Netlify env: https://docs.netlify.com/configure-builds/environment-variables/#build-metadata
+          if (serverDir.includes('.netlify') || !!process.env.NETLIFY) {
+            // eslint-disable-next-line no-console
+            console.warn(
+              '[Sentry] Warning: The Sentry SDK detected a Netlify build. Server-side support for the Sentry Nuxt SDK on Netlify is currently unreliable due to technical limitations of serverless functions. Traces are not collected, and errors may occasionally not be reported. For more information on setting up Sentry on the Nuxt server-side, please refer to the documentation: https://docs.sentry.io/platforms/javascript/guides/nuxt/install/',
+            );
+          }
+
+          // Vercel env: https://vercel.com/docs/projects/environment-variables/system-environment-variables#VERCEL
+          if (serverDir.includes('.vercel') || !!process.env.VERCEL) {
+            // eslint-disable-next-line no-console
+            console.warn(
+              '[Sentry] Warning: The Sentry SDK detected a Vercel build. The Sentry Nuxt SDK currently does not support tracing on Vercel. For more information on setting up Sentry on the Nuxt server-side, please refer to the documentation: https://docs.sentry.io/platforms/javascript/guides/nuxt/install/',
+            );
+          }
+        });
+
         if (moduleOptions.autoInjectServerSentry !== 'experimental_dynamic-import') {
           addServerConfigToBuild(moduleOptions, nuxt, nitro, serverConfigFile);
 
