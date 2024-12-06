@@ -87,11 +87,18 @@ if (major >= 16) {
       expect(extractOriginalRoute(path, regex, [key])).toBeUndefined();
     });
 
-    it('should return the original route path when valid inputs are provided', () => {
+    it('should return the original route path when valid inputs are provided first static value then dynamic', () => {
       const path = '/router/123';
       const regex = /^\/router\/(\d+)$/;
       const keys = [{ name: 'pathParam', offset: 8, optional: false }];
       expect(extractOriginalRoute(path, regex, keys)).toBe('/router/:pathParam');
+    });
+
+    it('should return the original route path when valid inputs are provided first dynamic value then static', () => {
+      const path = '/123/router';
+      const regex = /^(?:\/([^/]+?))\/router\/?(?=\/|$)/i;
+      const keys = [{ name: 'pathParam', offset: 0, optional: false }];
+      expect(extractOriginalRoute(path, regex, keys)).toBe('/:pathParam/router');
     });
 
     it('should handle multiple parameters in the route', () => {

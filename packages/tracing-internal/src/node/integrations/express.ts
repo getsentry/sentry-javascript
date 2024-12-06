@@ -413,10 +413,9 @@ export const extractOriginalRoute = (
   regexp?: Layer['regexp'],
   keys?: Layer['keys'],
 ): string | undefined => {
-  if (!path || !regexp || !keys || Object.keys(keys).length === 0 || !keys[0]?.offset) {
+  if (!path || !regexp || !keys || Object.keys(keys).length === 0 || keys[0]?.offset === undefined ||  keys[0]?.offset === null) {
     return undefined;
   }
-
   const orderedKeys = keys.sort((a, b) => a.offset - b.offset);
 
   // add d flag for getting indices from regexp result
