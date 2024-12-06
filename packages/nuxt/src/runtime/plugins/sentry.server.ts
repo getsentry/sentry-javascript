@@ -18,9 +18,8 @@ import { addSentryTracingMetaTags, extractErrorContext } from '../utils';
 export default defineNitroPlugin(nitroApp => {
   nitroApp.h3App.handler = new Proxy(nitroApp.h3App.handler, {
     async apply(handlerTarget, handlerThisArg, handlerArgs: Parameters<typeof nitroApp.h3App.handler>) {
-      // In environments where we cannot make use of OTel httpInstrumentation, e.g. when using top level import
-      // of the server instrumentation file instead of `--import` or dynamic import like on vercel
-      // we still need to ensure requests are properly isolated
+      // In environments where we cannot make use of OTel httpInstrumentation, e.g. when just importing the Sentry server config at
+      // the top level instead of `--import` or dynamic import like on Vercel, we still need to ensure requests are properly isolated
       const isolationScope = getIsolationScope();
       const newIsolationScope = isolationScope === getDefaultIsolationScope() ? isolationScope.clone() : isolationScope;
 
