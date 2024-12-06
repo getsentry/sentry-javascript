@@ -1,3 +1,5 @@
+export { patchEventHandler } from './nitro/patchEventHandler';
+
 export {
   wrapServerEntryWithDynamicImport,
   type WrapServerEntryPluginOptions,
