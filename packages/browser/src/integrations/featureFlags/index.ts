@@ -1,1 +1,1 @@
-export { featureFlagsIntegration, addFlag } from './featureFlagsIntegration';
+export { featureFlagsIntegration, type FeatureFlagsIntegration } from './featureFlagsIntegration';

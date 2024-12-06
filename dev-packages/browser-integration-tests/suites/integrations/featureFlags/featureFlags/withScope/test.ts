@@ -28,19 +28,20 @@ sentryTest('Flag evaluations in forked scopes are stored separately.', async ({ 
   await page.evaluate(() => {
     const Sentry = (window as any).Sentry;
     const errorButton = document.querySelector('#error') as HTMLButtonElement;
+    const flagsIntegration = (window as any).Sentry.getClient().getIntegrationByName('FeatureFlags');
 
-    Sentry.addFlag('shared', true);
+    flagsIntegration.setFlag('shared', true);
 
     Sentry.withScope((scope: Scope) => {
-      Sentry.addFlag('forked', true);
-      Sentry.addFlag('shared', false);
+      flagsIntegration.setFlag('forked', true);
+      flagsIntegration.setFlag('shared', false);
       scope.setTag('isForked', true);
       if (errorButton) {
         errorButton.click();
       }
     });
 
-    Sentry.addFlag('main', true);
+    flagsIntegration.setFlag('main', true);
     Sentry.getCurrentScope().setTag('isForked', false);
     errorButton.click();
     return true;
