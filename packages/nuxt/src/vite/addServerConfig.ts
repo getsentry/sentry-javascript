@@ -5,16 +5,7 @@ import { wrapServerEntryWithDynamicImport } from '@sentry-internal/nitro-utils';
 import { consoleSandbox } from '@sentry/core';
 import type { Nitro } from 'nitropack';
 import type { SentryNuxtModuleOptions } from '../common/types';
-import {
-  QUERY_END_INDICATOR,
-  SENTRY_REEXPORTED_FUNCTIONS,
-  SENTRY_WRAPPED_ENTRY,
-  SENTRY_WRAPPED_FUNCTIONS,
-  constructFunctionReExport,
-  constructWrappedFunctionExportQuery,
-  getFilenameFromNodeStartCommand,
-  removeSentryQueryFromPath,
-} from './utils';
+import { getFilenameFromNodeStartCommand } from './utils';
 
 const SERVER_CONFIG_FILENAME = 'sentry.server.config';
 
@@ -155,7 +146,7 @@ export function addDynamicImportEntryFileWrapper(
       serverEntrypointFileName: moduleOptions.serverEntrypointFileName || nitro.options.preset,
       serverConfigFileName: SERVER_CONFIG_FILENAME,
       resolvedServerConfigPath: createResolver(nitro.options.srcDir).resolve(`/${serverConfigFile}`),
-      entrypointWrappedFunctions: moduleOptions.entrypointWrappedFunctions,
+      entrypointWrappedFunctions: moduleOptions.experimental_entrypointWrappedFunctions,
       additionalImports: ['import-in-the-middle/hook.mjs'],
       debug: moduleOptions.debug,
     }),

@@ -24,3 +24,12 @@ export function findDefaultSdkInitFile(type: 'server' | 'client'): string | unde
 
   return filePaths.find(filename => fs.existsSync(filename));
 }
+
+/**
+ *  Extracts the filename from a node command with a path.
+ */
+export function getFilenameFromNodeStartCommand(nodeCommand: string): string | null {
+  const regex = /[^/\\]+$/;
+  const match = nodeCommand.match(regex);
+  return match ? match[0] : null;
+}

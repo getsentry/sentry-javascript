@@ -144,9 +144,6 @@ export type SentryNuxtModuleOptions = {
   experimental_entrypointWrappedFunctions?: string[];
 
   /**
-   * By default—unless you configure `dynamicImportForServerEntry: false`—the SDK will try to wrap your Nitro server entrypoint
-   * with a dynamic `import()` to ensure all dependencies can be properly instrumented.
-   *
    * The server entrypoint filename is automatically set by the Sentry SDK depending on the Nitro present.
    * In case the server entrypoint has a different filename, you can overwrite it here.
    */

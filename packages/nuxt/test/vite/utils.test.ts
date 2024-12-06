@@ -1,18 +1,6 @@
 import * as fs from 'fs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { findDefaultSdkInitFile } from '../../src/vite/utils';
-import {
-  QUERY_END_INDICATOR,
-  SENTRY_REEXPORTED_FUNCTIONS,
-  SENTRY_WRAPPED_ENTRY,
-  SENTRY_WRAPPED_FUNCTIONS,
-  constructFunctionReExport,
-  constructWrappedFunctionExportQuery,
-  extractFunctionReexportQueryParameters,
-  findDefaultSdkInitFile,
-  getFilenameFromNodeStartCommand,
-  removeSentryQueryFromPath,
-} from '../../src/vite/utils';
+import { findDefaultSdkInitFile, getFilenameFromNodeStartCommand } from '../../src/vite/utils';
 
 vi.mock('fs');
 
@@ -69,5 +57,43 @@ describe('findDefaultSdkInitFile', () => {
 
     const result = findDefaultSdkInitFile('server');
     expect(result).toMatch('packages/nuxt/sentry.server.config.js');
+  });
+});
+
+describe('getFilenameFromNodeStartCommand', () => {
+  it('should return the filename from a simple path', () => {
+    const path = 'node ./server/index.mjs';
+    const filename = getFilenameFromNodeStartCommand(path);
+    expect(filename).toBe('index.mjs');
+  });
+
+  it('should return the filename from a nested path', () => {
+    const path = 'node ./.output/whatever/path/server.js';
+    const filename = getFilenameFromNodeStartCommand(path);
+    expect(filename).toBe('server.js');
+  });
+
+  it('should return the filename from a Windows-style path', () => {
+    const path = '.\\Projects\\my-app\\src\\main.js';
+    const filename = getFilenameFromNodeStartCommand(path);
+    expect(filename).toBe('main.js');
+  });
+
+  it('should return null for an empty path', () => {
+    const path = '';
+    const filename = getFilenameFromNodeStartCommand(path);
+    expect(filename).toBeNull();
+  });
+
+  it('should return the filename when there are no directory separators', () => {
+    const path = 'index.mjs';
+    const filename = getFilenameFromNodeStartCommand(path);
+    expect(filename).toBe('index.mjs');
+  });
+
+  it('should return null for paths with trailing slashes', () => {
+    const path = 'node ./server/';
+    const filename = getFilenameFromNodeStartCommand(path);
+    expect(filename).toBeNull();
   });
 });
