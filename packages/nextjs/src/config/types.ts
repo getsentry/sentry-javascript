@@ -448,7 +448,7 @@ export type SentryBuildOptions = {
 export type NextConfigFunction = (
   phase: string,
   defaults: { defaultConfig: NextConfigObject },
-) => NextConfigObject | PromiseLike<NextConfigObject>;
+) => Promise<NextConfigObject>;
 
 /**
  * Webpack config
