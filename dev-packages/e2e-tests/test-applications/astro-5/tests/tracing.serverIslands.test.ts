@@ -51,6 +51,19 @@ test.describe('tracing in static routes with server islands', () => {
       type: 'transaction',
     });
 
+    const pageloadSpans = clientPageloadTxn.spans;
+
+    // pageload transaction contains a resource link span for the preloaded server island request
+    expect(pageloadSpans).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          op: 'resource.link',
+          origin: 'auto.resource.browser.metrics',
+          description: expect.stringMatching(/\/_server-islands\/Avatar.*$/),
+        }),
+      ]),
+    );
+
     expect(baggageMetaTagContent).toContain('sentry-transaction=GET%20%2Fserver-island%2F'); // URL-encoded for 'GET /test-static/'
     expect(baggageMetaTagContent).toContain('sentry-sampled=true');
 
