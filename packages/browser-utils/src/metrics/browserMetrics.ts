@@ -479,10 +479,10 @@ function _addPerformanceNavigationTiming(
   timeOrigin: number,
   name?: string,
 ): void {
-  const eventEnd = getEndPropertyNameForNavigationTiming(event);
+  const eventEnd = getEndPropertyNameForNavigationTiming(event) satisfies keyof PerformanceNavigationTiming;
   const end = entry[eventEnd];
   const start = entry[`${event}Start`];
-  if (typeof start !== 'number' || typeof end !== 'number') {
+  if (!start || !end) {
     return;
   }
   startAndEndSpan(span, timeOrigin + msToSec(start), timeOrigin + msToSec(end), {
@@ -504,7 +504,15 @@ function getEndPropertyNameForNavigationTiming(
     | 'connect'
     | 'domContentLoadedEvent'
     | 'loadEvent',
-): keyof PerformanceNavigationTiming {
+):
+  | 'connectEnd'
+  | 'domainLookupStart'
+  | 'domainLookupEnd'
+  | 'unloadEventEnd'
+  | 'redirectEnd'
+  | 'connectEnd'
+  | 'domContentLoadedEventEnd'
+  | 'loadEventEnd' {
   if (event === 'secureConnection') {
     return 'connectEnd';
   }
