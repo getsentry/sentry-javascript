@@ -26,9 +26,9 @@ export default defineNitroPlugin(nitroApp => {
       consoleSandbox(() => {
         // eslint-disable-next-line no-console
         console.log(
-          `[Sentry] Patched event handler. Using ${
-            isolationScope === newIsolationScope ? 'existing' : 'new'
-          } isolationscope.`,
+          `[Sentry] Patched h3 event handler. ${
+            isolationScope === newIsolationScope ? 'Using existing' : 'Created new'
+          } isolation scope.`,
         );
       });
 
