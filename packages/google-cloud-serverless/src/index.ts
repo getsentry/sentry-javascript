@@ -53,6 +53,7 @@ export {
   consoleIntegration,
   httpIntegration,
   nativeNodeFetchIntegration,
+  fetchBreadcrumbsIntegration,
   onUncaughtExceptionIntegration,
   onUnhandledRejectionIntegration,
   modulesIntegration,
