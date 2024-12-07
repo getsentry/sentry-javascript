@@ -53,6 +53,7 @@
   },
   "devDependencies": {
     "@nuxt/module-builder": "^0.8.4",
+    "@sentry-internal/nitro-utils": "8.42.0",
     "nuxt": "^3.13.2"
   },
   "scripts": {
