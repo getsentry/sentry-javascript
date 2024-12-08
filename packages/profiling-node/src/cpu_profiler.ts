@@ -15,11 +15,11 @@ import type {
 } from './types';
 import type { ProfileFormat } from './types';
 
-// #START_SENTRY_ESM_SHIM
+// #START_SENTRY_ESM_IMPORT_SHIM
 // When building for ESM, we shim require to use createRequire and __dirname.
 // We need to do this because .node extensions in esm are not supported.
 // The comment below this line exists as a placeholder for where to insert the shim.
-// #END_SENTRY_ESM_SHIM
+// #END_SENTRY_ESM_IMPORT_SHIM
 
 const stdlib = familySync();
 const platform = process.env['BUILD_PLATFORM'] || _platform();
@@ -27,13 +27,15 @@ const arch = process.env['BUILD_ARCH'] || _arch();
 const abi = getAbi(versions.node, 'node');
 const identifier = [platform, arch, stdlib, abi].filter(c => c !== undefined && c !== null).join('-');
 
-const built_from_source_path = resolve(__dirname, '..', `./sentry_cpu_profiler-${identifier}`);
-
 /**
  *  Imports cpp bindings based on the current platform and architecture.
  */
 // eslint-disable-next-line complexity
 export function importCppBindingsModule(): PrivateV8CpuProfilerBindings {
+  // #START_SENTRY_ESM_REQUIRE_SHIM
+  // When building for ESM, we shim require to use createRequire because .node extensions in esm are not supported.
+  // #END_SENTRY_ESM_REQUIRE_SHIM
+
   // If a binary path is specified, use that.
   if (env['SENTRY_PROFILER_BINARY_PATH']) {
     const envPath = env['SENTRY_PROFILER_BINARY_PATH'];
@@ -160,6 +162,12 @@ export function importCppBindingsModule(): PrivateV8CpuProfilerBindings {
       }
     }
   }
+
+  // #START_SENTRY_ESM_DIRNAME_SHIM
+  // const filename = fileURLToPath(import.meta.url);
+  // const __dirname = dirname(filename);
+  // #END_SENTRY_ESM_DIRNAME_SHIM
+  const built_from_source_path = resolve(__dirname, '..', `./sentry_cpu_profiler-${identifier}`);
   return require(`${built_from_source_path}.node`);
 }
 

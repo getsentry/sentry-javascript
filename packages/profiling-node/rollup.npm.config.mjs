@@ -1,28 +1,43 @@
 import commonjs from '@rollup/plugin-commonjs';
 import { makeBaseNPMConfig, makeNPMConfigVariants } from '@sentry-internal/rollup-utils';
 
-export const ESMShim = `
-import cjsUrl from 'node:url';
-import cjsPath from 'node:path';
-import cjsModule from 'node:module';
-
-if(typeof __filename === 'undefined'){
-  globalThis.__filename = cjsUrl.fileURLToPath(import.meta.url);
-}
-
-if(typeof __dirname === 'undefined'){
-  globalThis.__dirname = cjsPath.dirname(__filename);
-}
-
-if(typeof require === 'undefined'){
-  globalThis.require = cjsModule.createRequire(import.meta.url);
-}
+export const ESMImportShim = `
+import {createRequire} from 'node:module';
+import {fileURLToPath} from 'node:url';
+import {dirname } from 'node:path';
 `;
 
-function makeESMShimPlugin(shim) {
+const ESMRequireShim = `
+const require = createRequire(import.meta.url);
+`;
+
+const ESMDirnameShim = `
+const filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+`;
+
+function makeESMImportShimPlugin(shim) {
   return {
     transform(code) {
-      const SHIM_REGEXP = /\/\/ #START_SENTRY_ESM_SHIM[\s\S]*?\/\/ #END_SENTRY_ESM_SHIM/;
+      const SHIM_REGEXP = /\/\/ #START_SENTRY_ESM_IMPORT_SHIM[\s\S]*?\/\/ #END_SENTRY_ESM_IMPORT_SHIM/;
+      return code.replace(SHIM_REGEXP, shim);
+    },
+  };
+}
+
+function makeESMRequireShimPlugin(shim) {
+  return {
+    transform(code) {
+      const SHIM_REGEXP = /\/\/ #START_SENTRY_ESM_REQUIRE_SHIM[\s\S]*?\/\/ #END_SENTRY_ESM_REQUIRE_SHIM/;
+      return code.replace(SHIM_REGEXP, shim);
+    },
+  };
+}
+
+function makeESMDirnameShimPlugin(shim) {
+  return {
+    transform(code) {
+      const SHIM_REGEXP = /\/\/ #START_SENTRY_ESM_DIRNAME_SHIM[\s\S]*?\/\/ #END_SENTRY_ESM_DIRNAME_SHIM/;
       return code.replace(SHIM_REGEXP, shim);
     },
   };
@@ -39,10 +54,14 @@ const variants = makeNPMConfigVariants(
 
 for (const variant of variants) {
   if (variant.output.format === 'esm') {
-    variant.plugins.push(makeESMShimPlugin(ESMShim));
+    variant.plugins.push(makeESMImportShimPlugin(ESMImportShim));
+    variant.plugins.push(makeESMRequireShimPlugin(ESMRequireShim));
+    variant.plugins.push(makeESMDirnameShimPlugin(ESMDirnameShim));
   } else {
     // Remove the ESM shim comment
-    variant.plugins.push(makeESMShimPlugin(''));
+    variant.plugins.push(makeESMImportShimPlugin(''));
+    variant.plugins.push(makeESMRequireShimPlugin(''));
+    variant.plugins.push(makeESMDirnameShimPlugin(''));
   }
 }
 
