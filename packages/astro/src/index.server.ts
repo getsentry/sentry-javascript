@@ -88,6 +88,7 @@ export {
   mysql2Integration,
   mysqlIntegration,
   nativeNodeFetchIntegration,
+  fetchBreadcrumbsIntegration,
   // eslint-disable-next-line deprecation/deprecation
   nestIntegration,
   NodeClient,
