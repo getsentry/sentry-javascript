@@ -17,7 +17,6 @@ import {
   _asyncNullishCoalesce as _asyncNullishCoalesce_imported,
   _asyncOptionalChain as _asyncOptionalChain_imported,
   _asyncOptionalChainDelete as _asyncOptionalChainDelete_imported,
-  _browserPerformanceTimeOriginMode as _browserPerformanceTimeOriginMode_imported,
   _nullishCoalesce as _nullishCoalesce_imported,
   _optionalChain as _optionalChain_imported,
   _optionalChainDelete as _optionalChainDelete_imported,
@@ -591,10 +590,6 @@ export const supportsReferrerPolicy = supportsReferrerPolicy_imported;
 
 /** @deprecated Import from `@sentry/core` instead. */
 export const supportsReportingObserver = supportsReportingObserver_imported;
-
-/** @deprecated Import from `@sentry/core` instead. */
-// eslint-disable-next-line deprecation/deprecation
-export const _browserPerformanceTimeOriginMode = _browserPerformanceTimeOriginMode_imported;
 
 /** @deprecated Import from `@sentry/core` instead. */
 export const browserPerformanceTimeOrigin = browserPerformanceTimeOrigin_imported;

@@ -114,8 +114,6 @@ export {
 } from './supports';
 export { SyncPromise, rejectedSyncPromise, resolvedSyncPromise } from './syncpromise';
 export {
-  // eslint-disable-next-line deprecation/deprecation
-  _browserPerformanceTimeOriginMode,
   browserPerformanceTimeOrigin,
   dateTimestampInSeconds,
   timestampInSeconds,
