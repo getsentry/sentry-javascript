@@ -133,7 +133,9 @@ export class SentrySpanExporter {
     const remainingOpenSpanCount = finishedSpans.length - sentSpanCount;
 
     DEBUG_BUILD &&
-      logger.log(`SpanExporter exported ${sentSpanCount} spans, ${remainingOpenSpanCount} unsent spans remaining`);
+      logger.log(
+        `SpanExporter exported ${sentSpanCount} spans, ${remainingOpenSpanCount} spans are waiting for their root span to finish`,
+      );
 
     sentSpans.forEach(span => {
       const bucketEntry = this._spansToBucketEntry.get(span);
