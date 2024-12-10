@@ -1,7 +1,6 @@
 import type { PropagationContext, TraceparentData } from '../types-hoist';
 
 import { baggageHeaderToDynamicSamplingContext } from './baggage';
-import { uuid4 } from './misc';
 import { generateSpanId, generateTraceId } from './propagationContext';
 
 // eslint-disable-next-line @sentry-internal/sdk/no-regexp-constructor -- RegExp is used for readability here
@@ -76,8 +75,8 @@ export function propagationContextFromHeaders(
  * Create sentry-trace header from span context values.
  */
 export function generateSentryTraceHeader(
-  traceId: string = uuid4(),
-  spanId: string = uuid4().substring(16),
+  traceId: string = generateTraceId(),
+  spanId: string = generateSpanId(),
   sampled?: boolean,
 ): string {
   let sampledString = '';

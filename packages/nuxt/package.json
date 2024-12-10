@@ -47,12 +47,13 @@
     "@sentry/core": "8.42.0",
     "@sentry/node": "8.42.0",
     "@sentry/opentelemetry": "8.42.0",
-    "@sentry/rollup-plugin": "2.22.6",
+    "@sentry/rollup-plugin": "2.22.7",
     "@sentry/vite-plugin": "2.22.6",
     "@sentry/vue": "8.42.0"
   },
   "devDependencies": {
     "@nuxt/module-builder": "^0.8.4",
+    "@sentry-internal/nitro-utils": "8.42.0",
     "nuxt": "^3.13.2"
   },
   "scripts": {

@@ -16,7 +16,7 @@ const DEFAULT_REPLAY_EVENT = {
   event_id: expect.stringMatching(/\w{32}/),
   environment: 'production',
   sdk: {
-    integrations: [
+    integrations: expect.arrayContaining([
       'InboundFilters',
       'FunctionToString',
       'BrowserApiErrors',
@@ -25,8 +25,9 @@ const DEFAULT_REPLAY_EVENT = {
       'LinkedErrors',
       'Dedupe',
       'HttpContext',
+      'BrowserSession',
       'Replay',
-    ],
+    ]),
     version: SDK_VERSION,
     name: 'sentry.javascript.browser',
   },

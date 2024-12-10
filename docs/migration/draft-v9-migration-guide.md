@@ -47,6 +47,10 @@
 - Deprecated `addTracingHeadersToFetchRequest` method - this was only meant for internal use and is not needed anymore.
 - Deprecated `generatePropagationContext()` in favor of using `generateTraceId()` directly.
 - Deprecated `spanId` field on `propagationContext` - this field will be removed in v9, and should neither be read or set anymore.
+- Deprecated `RequestSession` type. No replacements.
+- Deprecated `RequestSessionStatus` type. No replacements.
+- Deprecated `SessionFlusherLike` type. No replacements.
+- Deprecated `SessionFlusher`. No replacements.
 
 ## `@sentry/nestjs`
 
@@ -69,6 +73,9 @@
 - **The `@sentry/types` package has been deprecated. Import everything from `@sentry/core` instead.**
 
 - Deprecated `Request` in favor of `RequestEventData`.
+- Deprecated `RequestSession`. No replacements.
+- Deprecated `RequestSessionStatus`. No replacements.
+- Deprecated `SessionFlusherLike`. No replacements.
 
 ## `@sentry/nuxt`
 
@@ -107,6 +114,10 @@
 
 - Deprecated `wrapUseRoutes`. Use `wrapUseRoutesV6` or `wrapUseRoutesV7` instead.
 - Deprecated `wrapCreateBrowserRouter`. Use `wrapCreateBrowserRouterV6` or `wrapCreateBrowserRouterV7` instead.
+
+## `@sentry/nextjs`
+
+- Deprecated `hideSourceMaps`. No replacements. The SDK emits hidden sourcemaps by default.
 
 ## `@sentry/opentelemetry`
 

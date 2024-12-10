@@ -6,6 +6,8 @@ import {
   SPAN_STATUS_OK,
   Scope,
   captureException,
+  generateSpanId,
+  generateTraceId,
   getActiveSpan,
   getCapturedScopesOnSpan,
   getRootSpan,
@@ -13,7 +15,6 @@ import {
   propagationContextFromHeaders,
   setCapturedScopesOnSpan,
   startSpanManual,
-  uuid4,
   vercelWaitUntil,
   winterCGHeadersToDict,
   withIsolationScope,
@@ -67,8 +68,8 @@ export function wrapServerComponentWithSentry<F extends (...args: any[]) => any>
               headersDict?.['sentry-trace']
                 ? propagationContextFromHeaders(headersDict['sentry-trace'], headersDict['baggage'])
                 : {
-                    traceId: requestTraceId || uuid4(),
-                    spanId: uuid4().substring(16),
+                    traceId: requestTraceId || generateTraceId(),
+                    spanId: generateSpanId(),
                   },
             );
 

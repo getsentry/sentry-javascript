@@ -319,4 +319,64 @@ describe('node', () => {
     const result = node(line);
     expect(result?.in_app).toBe(true);
   });
+
+  it('parses frame filename paths with spaces and characters in file name', () => {
+    const input = 'at myObject.myMethod (/path/to/file with space(1).js:10:5)';
+
+    const expectedOutput = {
+      filename: '/path/to/file with space(1).js',
+      module: undefined,
+      function: 'myObject.myMethod',
+      lineno: 10,
+      colno: 5,
+      in_app: true,
+    };
+
+    expect(node(input)).toEqual(expectedOutput);
+  });
+
+  it('parses frame filename paths with spaces and characters in file path', () => {
+    const input = 'at myObject.myMethod (/path with space(1)/to/file.js:10:5)';
+
+    const expectedOutput = {
+      filename: '/path with space(1)/to/file.js',
+      module: undefined,
+      function: 'myObject.myMethod',
+      lineno: 10,
+      colno: 5,
+      in_app: true,
+    };
+
+    expect(node(input)).toEqual(expectedOutput);
+  });
+
+  it('parses encoded frame filename paths with spaces and characters in file name', () => {
+    const input = 'at myObject.myMethod (/path/to/file%20with%20space(1).js:10:5)';
+
+    const expectedOutput = {
+      filename: '/path/to/file with space(1).js',
+      module: undefined,
+      function: 'myObject.myMethod',
+      lineno: 10,
+      colno: 5,
+      in_app: true,
+    };
+
+    expect(node(input)).toEqual(expectedOutput);
+  });
+
+  it('parses encoded frame filename paths with spaces and characters in file path', () => {
+    const input = 'at myObject.myMethod (/path%20with%20space(1)/to/file.js:10:5)';
+
+    const expectedOutput = {
+      filename: '/path with space(1)/to/file.js',
+      module: undefined,
+      function: 'myObject.myMethod',
+      lineno: 10,
+      colno: 5,
+      in_app: true,
+    };
+
+    expect(node(input)).toEqual(expectedOutput);
+  });
 });

@@ -156,6 +156,7 @@ function _init(
 
   logger.log(`Running in ${isCjs() ? 'CommonJS' : 'ESM'} mode.`);
 
+  // TODO(V9): Remove this code since all of the logic should be in an integration
   if (options.autoSessionTracking) {
     startSessionTracking();
   }

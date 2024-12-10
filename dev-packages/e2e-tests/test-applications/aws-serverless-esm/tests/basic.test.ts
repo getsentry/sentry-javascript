@@ -28,18 +28,22 @@ test('AWS Serverless SDK sends events in ESM mode', async ({ request }) => {
   expect(transactionEvent.contexts?.trace).toEqual({
     data: {
       'sentry.sample_rate': 1,
-      'sentry.source': 'component',
-      'sentry.origin': 'auto.function.serverless',
+      'sentry.source': 'custom',
+      'sentry.origin': 'auto.otel.aws-lambda',
       'sentry.op': 'function.aws.lambda',
+      'cloud.account.id': '123453789012',
+      'faas.id': 'arn:aws:lambda:us-east-1:123453789012:function:my-lambda',
+      'faas.coldstart': true,
+      'otel.kind': 'SERVER',
     },
     op: 'function.aws.lambda',
-    origin: 'auto.function.serverless',
+    origin: 'auto.otel.aws-lambda',
     span_id: expect.stringMatching(/[a-f0-9]{16}/),
     status: 'ok',
     trace_id: expect.stringMatching(/[a-f0-9]{32}/),
   });
 
-  expect(transactionEvent.spans).toHaveLength(2);
+  expect(transactionEvent.spans).toHaveLength(3);
 
   // shows that the Otel Http instrumentation is working
   expect(transactionEvent.spans).toContainEqual(
@@ -51,6 +55,19 @@ test('AWS Serverless SDK sends events in ESM mode', async ({ request }) => {
       }),
       description: 'GET http://example.com/',
       op: 'http.client',
+    }),
+  );
+
+  expect(transactionEvent.spans).toContainEqual(
+    expect.objectContaining({
+      data: {
+        'sentry.op': 'function.aws.lambda',
+        'sentry.origin': 'auto.function.serverless',
+        'sentry.source': 'component',
+      },
+      description: 'my-lambda',
+      op: 'function.aws.lambda',
+      origin: 'auto.function.serverless',
     }),
   );
 

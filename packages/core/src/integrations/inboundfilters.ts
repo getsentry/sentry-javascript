@@ -17,6 +17,7 @@ const DEFAULT_IGNORE_ERRORS = [
   'can\'t redefine non-configurable property "solana"', // Probably a browser extension or custom browser (Brave) throwing this error
   "vv().getRestrictions is not a function. (In 'vv().getRestrictions(1,a)', 'vv().getRestrictions' is undefined)", // Error thrown by GTM, seemingly not affecting end-users
   "Can't find variable: _AutofillCallbackHandler", // Unactionable error in instagram webview https://developers.facebook.com/community/threads/320013549791141/
+  /^Non-Error promise rejection captured with value: Object Not Found Matching Id:\d+, MethodName:simulateEvent, ParamCount:\d+$/, // unactionable error from CEFSharp, a .NET library that embeds chromium in .NET apps
 ];
 
 /** Options for the InboundFilters integration */
