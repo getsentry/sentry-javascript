@@ -7,11 +7,11 @@
     "clean": "npx rimraf node_modules pnpm-lock.yaml",
     "test:prod": "TEST_ENV=production playwright test",
     "test:dev": "TEST_ENV=development playwright test",
-    "test:build": "pnpm install && npx playwright install && pnpm build",
+    "test:build": "pnpm install && pnpm build",
     "test:test-build": "pnpm ts-node --script-mode assert-build.ts",
-    "test:build-canary": "pnpm install && pnpm add next@canary && pnpm add react@beta && pnpm add react-dom@beta && npx playwright install && pnpm build",
-    "test:build-latest": "pnpm install && pnpm add next@latest && npx playwright install && pnpm build",
-    "test:build-13": "pnpm install && pnpm add next@13.4.19 && npx playwright install && pnpm build",
+    "test:build-canary": "pnpm install && pnpm add next@canary && pnpm add react@beta && pnpm add react-dom@beta && pnpm build",
+    "test:build-latest": "pnpm install && pnpm add next@latest && pnpm build",
+    "test:build-13": "pnpm install && pnpm add next@13.4.19 && pnpm build",
     "test:assert": "pnpm test:test-build && pnpm test:prod && pnpm test:dev"
   },
   "dependencies": {
