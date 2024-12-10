@@ -269,6 +269,18 @@ const GOOGLETAG_EVENT: Event = {
   },
 };
 
+const CEFSHARP_EVENT: Event = {
+  exception: {
+    values: [
+      {
+        type: 'TypeError',
+        value:
+          'Non-Error promise rejection captured with value: Object Not Found Matching Id:3, MethodName:simulateEvent, ParamCount:1',
+      },
+    ],
+  },
+};
+
 const MALFORMED_EVENT: Event = {
   exception: {
     values: [
@@ -383,6 +395,11 @@ describe('InboundFilters', () => {
     it('uses default filters (googletag)', () => {
       const eventProcessor = createInboundFiltersEventProcessor();
       expect(eventProcessor(GOOGLETAG_EVENT, {})).toBe(null);
+    });
+
+    it('uses default filters (CEFSharp)', () => {
+      const eventProcessor = createInboundFiltersEventProcessor();
+      expect(eventProcessor(CEFSHARP_EVENT, {})).toBe(null);
     });
 
     it('filters on last exception when multiple present', () => {
