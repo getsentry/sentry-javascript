@@ -7,7 +7,7 @@
     "build": "vinxi build && sh ./post_build.sh",
     "preview": "HOST=localhost PORT=3030 NODE_OPTIONS='--import ./src/instrument.server.mjs' vinxi start",
     "test:prod": "TEST_ENV=production playwright test",
-    "test:build": "pnpm install && npx playwright install && pnpm build",
+    "test:build": "pnpm install && pnpm build",
     "test:assert": "pnpm test:prod"
   },
   "type": "module",
