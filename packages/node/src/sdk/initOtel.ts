@@ -142,7 +142,7 @@ export function setupOtel(client: NodeClient): BasicTracerProvider {
     forceFlushTimeoutMillis: 500,
     spanProcessors: [
       new SentrySpanProcessor({
-        timeout: _getSpanProcessorTimeout(client.getOptions().maxSpanWaitDuration),
+        timeout: _clampSpanProcessorTimeout(client.getOptions().maxSpanWaitDuration),
       }),
     ],
   });
@@ -157,7 +157,7 @@ export function setupOtel(client: NodeClient): BasicTracerProvider {
 }
 
 /** Just exported for tests. */
-export function _getSpanProcessorTimeout(maxSpanWaitDuration: number | undefined): number | undefined {
+export function _clampSpanProcessorTimeout(maxSpanWaitDuration: number | undefined): number | undefined {
   if (maxSpanWaitDuration == null) {
     return undefined;
   }
