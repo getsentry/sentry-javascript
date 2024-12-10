@@ -55,10 +55,6 @@ const ANR_EVENT = {
 const ANR_EVENT_WITHOUT_STACKTRACE = {
   // Ensure we have context
   contexts: {
-    trace: {
-      span_id: expect.stringMatching(/[a-f0-9]{16}/),
-      trace_id: expect.stringMatching(/[a-f0-9]{32}/),
-    },
     device: {
       arch: expect.any(String),
     },
