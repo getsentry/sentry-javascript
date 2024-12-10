@@ -4,6 +4,9 @@ inputs:
   browsers:
     description: 'What browsers to install.'
     default: 'chromium webkit firefox'
+  cwd:
+    description: 'The working directory to run Playwright in.'
+    default: '.'
 
 runs:
   using: "composite"
@@ -26,11 +29,13 @@ runs:
         run: npx playwright install chromium webkit firefox --with-deps
         if: steps.playwright-cache.outputs.cache-hit != 'true'
         shell: bash
+        working-directory: ${{ inputs.cwd }}
 
       - name: Install Playwright system dependencies only (cached)
         run: npx playwright install-deps ${{ inputs.browsers || 'chromium webkit firefox' }}
         if: steps.playwright-cache.outputs.cache-hit == 'true'
         shell: bash
+        working-directory: ${{ inputs.cwd }}
 
       # Only store cache on develop branch
       - name: Store cached playwright binaries

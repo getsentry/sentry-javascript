@@ -944,7 +944,7 @@ jobs:
         uses: ./.github/actions/install-playwright
         with:
           browsers: chromium
-          working-directory: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
+          cwd: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
 
       - name: Run E2E test
         working-directory: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
@@ -1064,7 +1064,7 @@ jobs:
         uses: ./.github/actions/install-playwright
         with:
           browsers: chromium
-          working-directory: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
+          cwd: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
 
       - name: Run E2E test
         working-directory: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
