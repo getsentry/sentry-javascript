@@ -2,9 +2,9 @@ import { Worker } from 'node:worker_threads';
 import type { Event, EventHint, Exception, IntegrationFn } from '@sentry/core';
 import { defineIntegration, logger } from '@sentry/core';
 import type { NodeClient } from '../../sdk/client';
+import { isDebuggerEnabled } from '../../utils/debug';
 import type { FrameVariables, LocalVariablesIntegrationOptions, LocalVariablesWorkerArgs } from './common';
 import { LOCAL_VARIABLES_KEY, functionNamesMatch } from './common';
-import { isDebuggerEnabled } from '../../utils/debug';
 
 // This string is a placeholder that gets overwritten with the worker code.
 export const base64WorkerScript = '###LocalVariablesWorkerScript###';

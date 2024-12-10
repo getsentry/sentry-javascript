@@ -3,6 +3,7 @@ import type { Event, Exception, IntegrationFn, StackFrame, StackParser } from '@
 import { LRUMap, defineIntegration, getClient, logger } from '@sentry/core';
 import { NODE_MAJOR } from '../../nodeVersion';
 import type { NodeClient } from '../../sdk/client';
+import { isDebuggerEnabled } from '../../utils/debug';
 import type {
   FrameVariables,
   LocalVariablesIntegrationOptions,
@@ -11,7 +12,6 @@ import type {
   Variables,
 } from './common';
 import { createRateLimiter, functionNamesMatch } from './common';
-import { isDebuggerEnabled } from '../../utils/debug';
 
 /** Creates a unique hash from stack frames */
 export function hashFrames(frames: StackFrame[] | undefined): string | undefined {

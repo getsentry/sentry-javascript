@@ -14,8 +14,8 @@ import {
 } from '@sentry/core';
 import { NODE_VERSION } from '../../nodeVersion';
 import type { NodeClient } from '../../sdk/client';
-import type { AnrIntegrationOptions, WorkerStartData } from './common';
 import { isDebuggerEnabled } from '../../utils/debug';
+import type { AnrIntegrationOptions, WorkerStartData } from './common';
 
 const { isPromise } = types;
 
