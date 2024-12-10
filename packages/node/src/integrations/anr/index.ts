@@ -15,6 +15,7 @@ import {
 import { NODE_VERSION } from '../../nodeVersion';
 import type { NodeClient } from '../../sdk/client';
 import type { AnrIntegrationOptions, WorkerStartData } from './common';
+import { isDebuggerEnabled } from '../../utils/debug';
 
 const { isPromise } = types;
 
@@ -72,6 +73,11 @@ const _anrIntegration = ((options: Partial<AnrIntegrationOptions> = {}) => {
 
   let worker: Promise<() => void> | undefined;
   let client: NodeClient | undefined;
+
+  if (isDebuggerEnabled() && options.captureStackTrace) {
+    logger.warn('ANR captureStackTrace has been disabled because the debugger is enabled');
+    options.captureStackTrace = false;
+  }
 
   // Hookup the scope fetch function to the global object so that it can be called from the worker thread via the
   // debugger when it pauses

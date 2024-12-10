@@ -99,6 +99,11 @@ conditionalTest({ min: 16 })('should report ANR when event loop blocked', () => 
   });
 
   test('With --inspect', done => {
+    const ANR_EVENT_NO_STACKTRACE = { ...ANR_EVENT };
+    if (ANR_EVENT_NO_STACKTRACE?.exception?.values?.[0]?.stacktrace) {
+      (ANR_EVENT_NO_STACKTRACE.exception.values[0].stacktrace as any) = {};
+    }
+
     createRunner(__dirname, 'basic.mjs')
       .withMockSentryServer()
       .withFlags('--inspect')

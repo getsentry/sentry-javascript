@@ -11,6 +11,7 @@ import type {
   Variables,
 } from './common';
 import { createRateLimiter, functionNamesMatch } from './common';
+import { isDebuggerEnabled } from '../../utils/debug';
 
 /** Creates a unique hash from stack frames */
 export function hashFrames(frames: StackFrame[] | undefined): string | undefined {
@@ -304,6 +305,10 @@ const _localVariablesSyncIntegration = ((
       if (unsupportedNodeVersion) {
         logger.log('The `LocalVariables` integration is only supported on Node >= v18.');
         return;
+      }
+
+      if (isDebuggerEnabled()) {
+        logger.warn('Local variables capture has been disabled because the debugger is enabled');
       }
 
       AsyncSession.create(sessionOverride).then(
