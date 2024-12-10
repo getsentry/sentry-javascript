@@ -41,11 +41,3 @@ export function captureRequestError(error: unknown, request: RequestInfo, errorC
     });
   });
 }
-
-/**
- * Reports errors passed to the the Next.js `onRequestError` instrumentation hook.
- *
- * @deprecated Use `captureRequestError` instead.
- */
-// TODO(v9): Remove this export
-export const experimental_captureRequestError = captureRequestError;
