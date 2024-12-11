@@ -34,8 +34,6 @@ export { tediousIntegration } from './integrations/tracing/tedious';
 export { genericPoolIntegration } from './integrations/tracing/genericPool';
 export { dataloaderIntegration } from './integrations/tracing/dataloader';
 export { amqplibIntegration } from './integrations/tracing/amqplib';
-// eslint-disable-next-line deprecation/deprecation
-export { processThreadBreadcrumbIntegration, childProcessIntegration } from './integrations/childProcess';
 
 export { SentryContextManager } from './otel/contextManager';
 export { generateInstrumentOnce } from './otel/instrument';
