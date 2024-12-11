@@ -10,41 +10,33 @@
 // SvelteKit SDK exports:
 export { handleErrorWithSentry } from './handleError';
 export { wrapLoadWithSentry, wrapServerLoadWithSentry } from './load';
-export { sentryHandle } from './handle';
+export { sentryHandle, initCloudflareSentryHandle } from './handle';
 export { wrapServerRouteWithSentry } from './serverRoute';
 
-// Re-export some functions from core SDK
+// Re-export some functions from Cloudflare SDK
 export {
   addBreadcrumb,
   addEventProcessor,
   addIntegration,
-  // eslint-disable-next-line deprecation/deprecation
-  addRequestDataToEvent,
   captureCheckIn,
   captureConsoleIntegration,
   captureEvent,
   captureException,
   captureFeedback,
   captureMessage,
-  captureSession,
   close,
   continueTrace,
   createTransport,
   // eslint-disable-next-line deprecation/deprecation
   debugIntegration,
   dedupeIntegration,
-  DEFAULT_USER_INCLUDES,
-  endSession,
-  // eslint-disable-next-line deprecation/deprecation
-  extractRequestData,
   extraErrorDataIntegration,
   flush,
   functionToStringIntegration,
   getActiveSpan,
   getClient,
-  // eslint-disable-next-line deprecation/deprecation
-  getCurrentHub,
   getCurrentScope,
+  getDefaultIntegrations,
   getGlobalScope,
   getIsolationScope,
   getRootSpan,
@@ -58,7 +50,6 @@ export {
   linkedErrorsIntegration,
   // eslint-disable-next-line deprecation/deprecation
   metrics,
-  parameterize,
   requestDataIntegration,
   rewriteFramesIntegration,
   Scope,
@@ -67,8 +58,6 @@ export {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  // eslint-disable-next-line deprecation/deprecation
-  sessionTimingIntegration,
   setContext,
   setCurrentClient,
   setExtra,
@@ -84,7 +73,6 @@ export {
   startInactiveSpan,
   startNewTrace,
   suppressTracing,
-  startSession,
   startSpan,
   startSpanManual,
   trpcMiddleware,
@@ -93,7 +81,7 @@ export {
   withMonitor,
   withScope,
   zodErrorsIntegration,
-} from '@sentry/core';
+} from '@sentry/cloudflare';
 
 /**
  * Tracks the Svelte component's initialization and mounting operation as well as

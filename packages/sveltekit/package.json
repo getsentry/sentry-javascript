@@ -42,6 +42,7 @@
     }
   },
   "dependencies": {
+    "@sentry/cloudflare": "9.0.0-alpha.0",
     "@sentry/core": "9.0.0-alpha.0",
     "@sentry/node": "9.0.0-alpha.0",
     "@sentry/opentelemetry": "9.0.0-alpha.0",
