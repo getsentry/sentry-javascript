@@ -100,7 +100,13 @@ export function createV6CompatibleWrapCreateBrowserRouter<
     router.subscribe((state: RouterState) => {
       const location = state.location;
       if (state.historyAction === 'PUSH' || state.historyAction === 'POP') {
-        handleNavigation(location, routes, state.historyAction, version, undefined, basename);
+        handleNavigation({
+          location,
+          routes,
+          navigationType: state.historyAction,
+          version,
+          basename,
+        });
       }
     });
 
@@ -207,7 +213,13 @@ export function createV6CompatibleWrapUseRoutes(origUseRoutes: UseRoutes, versio
         updatePageloadTransaction(getActiveRootSpan(), normalizedLocation, routes, undefined, undefined, allRoutes);
         isMountRenderPass.current = false;
       } else {
-        handleNavigation(normalizedLocation, routes, navigationType, version, undefined, undefined, allRoutes);
+        handleNavigation({
+          location: normalizedLocation,
+          routes,
+          navigationType,
+          version,
+          allRoutes,
+        });
       }
     }, [navigationType, stableLocationParam]);
 
@@ -220,15 +232,17 @@ export function createV6CompatibleWrapUseRoutes(origUseRoutes: UseRoutes, versio
   };
 }
 
-export function handleNavigation(
-  location: Location,
-  routes: RouteObject[],
-  navigationType: Action,
-  version: V6CompatibleVersion,
-  matches?: AgnosticDataRouteMatch,
-  basename?: string,
-  allRoutes?: RouteObject[],
-): void {
+export function handleNavigation(opts: {
+  location: Location;
+  routes: RouteObject[];
+  navigationType: Action;
+  version: V6CompatibleVersion;
+  matches?: AgnosticDataRouteMatch;
+  basename?: string;
+  allRoutes?: RouteObject[];
+}): void {
+  const { location, routes, navigationType, version, matches, basename, allRoutes } = opts;
+
   const branches = Array.isArray(matches) ? matches : _matchRoutes(routes, location, basename);
 
   const client = getClient();
@@ -364,24 +378,26 @@ function prefixWithSlash(path: string): string {
 function rebuildRoutePathFromAllRoutes(allRoutes: RouteObject[], location: Location): string {
   const matchedRoutes = _matchRoutes(allRoutes, location) as RouteMatch[];
 
-  if (matchedRoutes) {
-    for (const match of matchedRoutes) {
-      if (match.route.path && match.route.path !== '*') {
-        const path = pickPath(match);
-        const strippedPath = stripBasenameFromPathname(location.pathname, prefixWithSlash(match.pathnameBase));
+  if (!matchedRoutes || matchedRoutes.length === 0) {
+    return '';
+  }
 
-        return trimSlash(
-          trimSlash(path || '') +
-            prefixWithSlash(
-              rebuildRoutePathFromAllRoutes(
-                allRoutes.filter(route => route !== match.route),
-                {
-                  pathname: strippedPath,
-                },
-              ),
+  for (const match of matchedRoutes) {
+    if (match.route.path && match.route.path !== '*') {
+      const path = pickPath(match);
+      const strippedPath = stripBasenameFromPathname(location.pathname, prefixWithSlash(match.pathnameBase));
+
+      return trimSlash(
+        trimSlash(path || '') +
+          prefixWithSlash(
+            rebuildRoutePathFromAllRoutes(
+              allRoutes.filter(route => route !== match.route),
+              {
+                pathname: strippedPath,
+              },
             ),
-        );
-      }
+          ),
+      );
     }
   }
 
@@ -517,7 +533,13 @@ export function createV6CompatibleWithSentryReactRouterRouting<P extends Record<
           updatePageloadTransaction(getActiveRootSpan(), location, routes, undefined, undefined, allRoutes);
           isMountRenderPass.current = false;
         } else {
-          handleNavigation(location, routes, navigationType, version, undefined, undefined, allRoutes);
+          handleNavigation({
+            location,
+            routes,
+            navigationType,
+            version,
+            allRoutes,
+          });
         }
       },
       // `props.children` is purposely not included in the dependency array, because we do not want to re-run this effect
