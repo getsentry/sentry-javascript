@@ -134,7 +134,7 @@ export class SentrySpanExporter {
 
     DEBUG_BUILD &&
       logger.log(
-        `SpanExporter exported ${sentSpanCount} spans, ${remainingOpenSpanCount} spans are waiting for their root span to finish`,
+        `SpanExporter exported ${sentSpanCount} spans, ${remainingOpenSpanCount} spans are waiting for their parent spans to finish`,
       );
 
     sentSpans.forEach(span => {
