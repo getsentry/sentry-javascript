@@ -6,10 +6,17 @@ import type {
   EventItem,
   TransactionEvent,
   Transport,
-} from '@sentry/types';
-import { createClientReportEnvelope, createEnvelope, dsnFromString, parseEnvelope } from '@sentry/utils';
+} from '../../../src/types-hoist';
 
-import { createTransport, getEnvelopeEndpointWithUrlEncodedAuth, makeMultiplexedTransport } from '../../../src';
+import {
+  createClientReportEnvelope,
+  createEnvelope,
+  createTransport,
+  dsnFromString,
+  getEnvelopeEndpointWithUrlEncodedAuth,
+  makeMultiplexedTransport,
+  parseEnvelope,
+} from '../../../src';
 import { eventFromEnvelope } from '../../../src/transports/multiplexed';
 
 const DSN1 = 'https://1234@5678.ingest.sentry.io/4321';

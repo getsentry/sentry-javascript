@@ -1,5 +1,6 @@
 import * as os from 'os';
 import { ProxyTracer } from '@opentelemetry/api';
+import * as opentelemetryInstrumentationPackage from '@opentelemetry/instrumentation';
 import {
   SDK_VERSION,
   SessionFlusher,
@@ -9,8 +10,8 @@ import {
   setCurrentClient,
   withIsolationScope,
 } from '@sentry/core';
-import type { Event, EventHint } from '@sentry/types';
-import type { Scope } from '@sentry/types';
+import type { Event, EventHint } from '@sentry/core';
+import type { Scope } from '@sentry/core';
 
 import { setOpenTelemetryContextAsyncContextStrategy } from '@sentry/opentelemetry';
 import { NodeClient, initOpenTelemetry } from '../../src';
@@ -81,10 +82,12 @@ describe('NodeClient', () => {
       initOpenTelemetry(client);
 
       withIsolationScope(isolationScope => {
+        // eslint-disable-next-line deprecation/deprecation
         isolationScope.setRequestSession({ status: 'ok' });
 
         client.captureException(new Error('test exception'));
 
+        // eslint-disable-next-line deprecation/deprecation
         const requestSession = isolationScope.getRequestSession();
         expect(requestSession!.status).toEqual('ok');
       });
@@ -102,10 +105,12 @@ describe('NodeClient', () => {
       client.initSessionFlusher();
 
       withIsolationScope(isolationScope => {
+        // eslint-disable-next-line deprecation/deprecation
         isolationScope.setRequestSession({ status: 'ok' });
 
         client.captureException(new Error('test exception'));
 
+        // eslint-disable-next-line deprecation/deprecation
         const requestSession = isolationScope.getRequestSession();
         expect(requestSession!.status).toEqual('ok');
       });
@@ -123,10 +128,12 @@ describe('NodeClient', () => {
       client.initSessionFlusher();
 
       withIsolationScope(isolationScope => {
+        // eslint-disable-next-line deprecation/deprecation
         isolationScope.setRequestSession({ status: 'crashed' });
 
         client.captureException(new Error('test exception'));
 
+        // eslint-disable-next-line deprecation/deprecation
         const requestSession = isolationScope.getRequestSession();
         expect(requestSession!.status).toEqual('crashed');
       });
@@ -144,10 +151,12 @@ describe('NodeClient', () => {
       client.initSessionFlusher();
 
       withIsolationScope(isolationScope => {
+        // eslint-disable-next-line deprecation/deprecation
         isolationScope.setRequestSession({ status: 'ok' });
 
         client.captureException(new Error('test exception'));
 
+        // eslint-disable-next-line deprecation/deprecation
         const requestSession = isolationScope.getRequestSession();
         expect(requestSession!.status).toEqual('errored');
       });
@@ -166,6 +175,7 @@ describe('NodeClient', () => {
 
       let isolationScope: Scope;
       withIsolationScope(_isolationScope => {
+        // eslint-disable-next-line deprecation/deprecation
         _isolationScope.setRequestSession({ status: 'ok' });
         isolationScope = _isolationScope;
       });
@@ -173,6 +183,7 @@ describe('NodeClient', () => {
       client.captureException(new Error('test exception'));
 
       setImmediate(() => {
+        // eslint-disable-next-line deprecation/deprecation
         const requestSession = isolationScope.getRequestSession();
         expect(requestSession).toEqual({ status: 'ok' });
         done();
@@ -193,8 +204,10 @@ describe('NodeClient', () => {
       client.initSessionFlusher();
 
       withIsolationScope(isolationScope => {
+        // eslint-disable-next-line deprecation/deprecation
         isolationScope.setRequestSession({ status: 'ok' });
         client.captureEvent({ message: 'message', exception: { values: [{ type: 'exception type 1' }] } });
+        // eslint-disable-next-line deprecation/deprecation
         const requestSession = isolationScope.getRequestSession();
         expect(requestSession!.status).toEqual('ok');
       });
@@ -208,10 +221,12 @@ describe('NodeClient', () => {
       client.initSessionFlusher();
 
       withIsolationScope(isolationScope => {
+        // eslint-disable-next-line deprecation/deprecation
         isolationScope.setRequestSession({ status: 'ok' });
 
         client.captureEvent({ message: 'message', exception: { values: [{ type: 'exception type 1' }] } });
 
+        // eslint-disable-next-line deprecation/deprecation
         const requestSession = isolationScope.getRequestSession();
         expect(requestSession!.status).toEqual('errored');
       });
@@ -229,10 +244,12 @@ describe('NodeClient', () => {
       client.initSessionFlusher();
 
       withIsolationScope(isolationScope => {
+        // eslint-disable-next-line deprecation/deprecation
         isolationScope.setRequestSession({ status: 'ok' });
 
         client.captureEvent({ message: 'message' });
 
+        // eslint-disable-next-line deprecation/deprecation
         const requestSession = isolationScope.getRequestSession();
         expect(requestSession!.status).toEqual('ok');
       });
@@ -253,6 +270,7 @@ describe('NodeClient', () => {
         isolationScope.clear();
         client.captureEvent({ message: 'message', exception: { values: [{ type: 'exception type 1' }] } });
 
+        // eslint-disable-next-line deprecation/deprecation
         expect(isolationScope.getRequestSession()).toEqual(undefined);
       });
     });
@@ -269,10 +287,12 @@ describe('NodeClient', () => {
       client.initSessionFlusher();
 
       withIsolationScope(isolationScope => {
+        // eslint-disable-next-line deprecation/deprecation
         isolationScope.setRequestSession({ status: 'ok' });
 
         client.captureEvent({ message: 'message', type: 'transaction' });
 
+        // eslint-disable-next-line deprecation/deprecation
         const requestSession = isolationScope.getRequestSession();
         expect(requestSession!.status).toEqual('ok');
       });
@@ -286,10 +306,12 @@ describe('NodeClient', () => {
       initOpenTelemetry(client);
 
       withIsolationScope(isolationScope => {
+        // eslint-disable-next-line deprecation/deprecation
         isolationScope.setRequestSession({ status: 'ok' });
 
         client.captureEvent({ message: 'message', exception: { values: [{ type: 'exception type 1' }] } });
 
+        // eslint-disable-next-line deprecation/deprecation
         const requestSession = isolationScope.getRequestSession();
         expect(requestSession!.status).toEqual('ok');
       });
@@ -495,6 +517,21 @@ describe('NodeClient', () => {
       expect(sendEnvelopeSpy).toHaveBeenCalledTimes(0);
     });
   });
+
+  it('registers instrumentations provided with `openTelemetryInstrumentations`', () => {
+    const registerInstrumentationsSpy = jest
+      .spyOn(opentelemetryInstrumentationPackage, 'registerInstrumentations')
+      .mockImplementationOnce(() => () => undefined);
+    const instrumentationsArray = ['foobar'] as unknown as opentelemetryInstrumentationPackage.Instrumentation[];
+
+    new NodeClient(getDefaultNodeClientOptions({ openTelemetryInstrumentations: instrumentationsArray }));
+
+    expect(registerInstrumentationsSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        instrumentations: instrumentationsArray,
+      }),
+    );
+  });
 });
 
 describe('flush/close', () => {
@@ -511,6 +548,7 @@ describe('flush/close', () => {
     // not due to the interval running every 60s
     clearInterval(client['_sessionFlusher']!['_intervalId']);
 
+    // eslint-disable-next-line deprecation/deprecation
     const sessionFlusherFlushFunc = jest.spyOn(SessionFlusher.prototype, 'flush');
 
     const delay = 1;

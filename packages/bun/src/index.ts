@@ -2,7 +2,9 @@ export type {
   Breadcrumb,
   BreadcrumbHint,
   PolymorphicRequest,
+  // eslint-disable-next-line deprecation/deprecation
   Request,
+  RequestEventData,
   SdkInfo,
   Event,
   EventHint,
@@ -15,8 +17,8 @@ export type {
   Stacktrace,
   Thread,
   User,
-} from '@sentry/types';
-export type { AddRequestDataToEventOptions } from '@sentry/utils';
+} from '@sentry/core';
+export type { AddRequestDataToEventOptions } from '@sentry/core';
 
 export {
   addEventProcessor,
@@ -62,11 +64,14 @@ export {
   flush,
   close,
   getSentryRelease,
+  // eslint-disable-next-line deprecation/deprecation
   addRequestDataToEvent,
   DEFAULT_USER_INCLUDES,
+  // eslint-disable-next-line deprecation/deprecation
   extractRequestData,
   createGetModuleFromFilename,
   anrIntegration,
+  disableAnrDetectionForCallback,
   consoleIntegration,
   httpIntegration,
   nativeNodeFetchIntegration,
@@ -122,7 +127,9 @@ export {
   mysql2Integration,
   redisIntegration,
   tediousIntegration,
+  // eslint-disable-next-line deprecation/deprecation
   nestIntegration,
+  // eslint-disable-next-line deprecation/deprecation
   setupNestErrorHandler,
   postgresIntegration,
   prismaIntegration,
@@ -134,6 +141,7 @@ export {
   spanToTraceHeader,
   spanToBaggageHeader,
   trpcMiddleware,
+  // eslint-disable-next-line deprecation/deprecation
   addOpenTelemetryInstrumentation,
   zodErrorsIntegration,
   profiler,
@@ -142,10 +150,12 @@ export {
 
 export {
   captureConsoleIntegration,
+  // eslint-disable-next-line deprecation/deprecation
   debugIntegration,
   dedupeIntegration,
   extraErrorDataIntegration,
   rewriteFramesIntegration,
+  // eslint-disable-next-line deprecation/deprecation
   sessionTimingIntegration,
 } from '@sentry/core';
 

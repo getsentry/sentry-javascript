@@ -1,14 +1,8 @@
-import type { Client, Event, EventHint, Integration, IntegrationFn, Options } from '@sentry/types';
-import { arrayify, logger } from '@sentry/utils';
 import { getClient } from './currentScopes';
+import type { Client, Event, EventHint, Integration, IntegrationFn, Options } from './types-hoist';
 
 import { DEBUG_BUILD } from './debug-build';
-
-declare module '@sentry/types' {
-  interface Integration {
-    isDefaultInstance?: boolean;
-  }
-}
+import { logger } from './utils-hoist/logger';
 
 export const installedIntegrations: string[] = [];
 
@@ -16,6 +10,8 @@ export const installedIntegrations: string[] = [];
 export type IntegrationIndex = {
   [key: string]: Integration;
 };
+
+type IntegrationWithDefaultInstance = Integration & { isDefaultInstance?: true };
 
 /**
  * Remove duplicates from the given array, preferring the last instance of any duplicate. Not guaranteed to
@@ -26,10 +22,10 @@ export type IntegrationIndex = {
 function filterDuplicates(integrations: Integration[]): Integration[] {
   const integrationsByName: { [key: string]: Integration } = {};
 
-  integrations.forEach(currentInstance => {
+  integrations.forEach((currentInstance: IntegrationWithDefaultInstance) => {
     const { name } = currentInstance;
 
-    const existingInstance = integrationsByName[name];
+    const existingInstance: IntegrationWithDefaultInstance | undefined = integrationsByName[name];
 
     // We want integrations later in the array to overwrite earlier ones of the same type, except that we never want a
     // default instance to overwrite an existing user instance
@@ -49,7 +45,7 @@ export function getIntegrationsToSetup(options: Pick<Options, 'defaultIntegratio
   const userIntegrations = options.integrations;
 
   // We flag default instances, so that later we can tell them apart from any user-created instances of the same class
-  defaultIntegrations.forEach(integration => {
+  defaultIntegrations.forEach((integration: IntegrationWithDefaultInstance) => {
     integration.isDefaultInstance = true;
   });
 
@@ -58,7 +54,8 @@ export function getIntegrationsToSetup(options: Pick<Options, 'defaultIntegratio
   if (Array.isArray(userIntegrations)) {
     integrations = [...defaultIntegrations, ...userIntegrations];
   } else if (typeof userIntegrations === 'function') {
-    integrations = arrayify(userIntegrations(defaultIntegrations));
+    const resolvedUserIntegrations = userIntegrations(defaultIntegrations);
+    integrations = Array.isArray(resolvedUserIntegrations) ? resolvedUserIntegrations : [resolvedUserIntegrations];
   } else {
     integrations = defaultIntegrations;
   }

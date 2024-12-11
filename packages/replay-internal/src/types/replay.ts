@@ -8,7 +8,7 @@ import type {
   SentryWrappedXMLHttpRequest,
   Span,
   XhrBreadcrumbHint,
-} from '@sentry/types';
+} from '@sentry/core';
 
 import type { SKIPPED, THROTTLED } from '../util/throttle';
 import type { AllPerformanceEntry, AllPerformanceEntryData, ReplayPerformanceEntry } from './performance';
@@ -399,6 +399,12 @@ export interface EventBuffer {
    * If the event buffer contains a checkout event.
    */
   hasCheckout: boolean;
+
+  /**
+   * If the event buffer needs to wait for a checkout event before it
+   * starts buffering events.
+   */
+  waitForCheckout: boolean;
 
   /**
    * Destroy the event buffer.

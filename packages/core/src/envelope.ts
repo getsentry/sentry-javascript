@@ -1,3 +1,5 @@
+import { getDynamicSamplingContextFromSpan } from './tracing/dynamicSamplingContext';
+import type { SentrySpan } from './tracing/sentrySpan';
 import type {
   Client,
   DsnComponents,
@@ -5,6 +7,9 @@ import type {
   Event,
   EventEnvelope,
   EventItem,
+  LegacyCSPReport,
+  RawSecurityEnvelope,
+  RawSecurityItem,
   SdkInfo,
   SdkMetadata,
   Session,
@@ -14,17 +19,16 @@ import type {
   SpanEnvelope,
   SpanItem,
   SpanJSON,
-} from '@sentry/types';
+} from './types-hoist';
+import { dsnToString } from './utils-hoist/dsn';
 import {
   createEnvelope,
   createEventEnvelopeHeaders,
-  dsnToString,
+  createSpanEnvelopeItem,
   getSdkMetadataForEnvelopeHeader,
-} from '@sentry/utils';
-import { createSpanEnvelopeItem } from '@sentry/utils';
-import { getDynamicSamplingContextFromSpan } from './tracing/dynamicSamplingContext';
-import type { SentrySpan } from './tracing/sentrySpan';
-import { spanToJSON } from './utils/spanUtils';
+} from './utils-hoist/envelope';
+import { uuid4 } from './utils-hoist/misc';
+import { showSpanDropWarning, spanToJSON } from './utils/spanUtils';
 
 /**
  * Apply SdkInfo (name, version, packages, integrations) to the corresponding event key.
@@ -122,7 +126,13 @@ export function createSpanEnvelope(spans: [SentrySpan, ...SentrySpan[]], client?
 
   const beforeSendSpan = client && client.getOptions().beforeSendSpan;
   const convertToSpanJSON = beforeSendSpan
-    ? (span: SentrySpan) => beforeSendSpan(spanToJSON(span) as SpanJSON)
+    ? (span: SentrySpan) => {
+        const spanJson = beforeSendSpan(spanToJSON(span) as SpanJSON);
+        if (!spanJson) {
+          showSpanDropWarning();
+        }
+        return spanJson;
+      }
     : (span: SentrySpan) => spanToJSON(span);
 
   const items: SpanItem[] = [];
@@ -134,4 +144,27 @@ export function createSpanEnvelope(spans: [SentrySpan, ...SentrySpan[]], client?
   }
 
   return createEnvelope<SpanEnvelope>(headers, items);
+}
+
+/**
+ * Create an Envelope from a CSP report.
+ */
+export function createRawSecurityEnvelope(
+  report: LegacyCSPReport,
+  dsn: DsnComponents,
+  tunnel?: string,
+  release?: string,
+  environment?: string,
+): RawSecurityEnvelope {
+  const envelopeHeaders = {
+    event_id: uuid4(),
+    ...(!!tunnel && dsn && { dsn: dsnToString(dsn) }),
+  };
+
+  const eventItem: RawSecurityItem = [
+    { type: 'raw_security', sentry_release: release, sentry_environment: environment },
+    report,
+  ];
+
+  return createEnvelope<RawSecurityEnvelope>(envelopeHeaders, [eventItem]);
 }

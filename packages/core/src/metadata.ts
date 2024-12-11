@@ -1,5 +1,5 @@
-import type { Event, StackParser } from '@sentry/types';
-import { GLOBAL_OBJ } from '@sentry/utils';
+import type { Event, StackParser } from './types-hoist';
+import { GLOBAL_OBJ } from './utils-hoist/worldwide';
 
 /** Keys are source filename/url, values are metadata objects. */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

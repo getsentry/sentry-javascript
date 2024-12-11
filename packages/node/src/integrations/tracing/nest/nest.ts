@@ -1,17 +1,19 @@
 import { NestInstrumentation } from '@opentelemetry/instrumentation-nestjs-core';
+import type { Span } from '@sentry/core';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   captureException,
+  consoleSandbox,
   defineIntegration,
   getClient,
   getDefaultIsolationScope,
   getIsolationScope,
+  logger,
   spanToJSON,
 } from '@sentry/core';
-import type { IntegrationFn, Span } from '@sentry/types';
-import { logger } from '@sentry/utils';
 import { generateInstrumentOnce } from '../../../otel/instrument';
+import { SentryNestEventInstrumentation } from './sentry-nest-event-instrumentation';
 import { SentryNestInstrumentation } from './sentry-nest-instrumentation';
 import type { MinimalNestJsApp, NestJsErrorFilter } from './types';
 
@@ -25,34 +27,48 @@ const instrumentNestCommon = generateInstrumentOnce('Nest-Common', () => {
   return new SentryNestInstrumentation();
 });
 
+const instrumentNestEvent = generateInstrumentOnce('Nest-Event', () => {
+  return new SentryNestEventInstrumentation();
+});
+
 export const instrumentNest = Object.assign(
   (): void => {
     instrumentNestCore();
     instrumentNestCommon();
+    instrumentNestEvent();
   },
   { id: INTEGRATION_NAME },
 );
 
-const _nestIntegration = (() => {
+/**
+ * Integration capturing tracing data for NestJS.
+ *
+ * @deprecated The `nestIntegration` is deprecated. Instead, use the NestJS SDK directly (`@sentry/nestjs`), or use the `nestIntegration` export from `@sentry/nestjs`.
+ */
+export const nestIntegration = defineIntegration(() => {
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
       instrumentNest();
     },
   };
-}) satisfies IntegrationFn;
-
-/**
- * Nest framework integration
- *
- * Capture tracing data for nest.
- */
-export const nestIntegration = defineIntegration(_nestIntegration);
+});
 
 /**
  * Setup an error handler for Nest.
+ *
+ * @deprecated `setupNestErrorHandler` is deprecated.
+ * Instead use the `@sentry/nestjs` package, which has more functional APIs for capturing errors.
+ * See the [`@sentry/nestjs` Setup Guide](https://docs.sentry.io/platforms/javascript/guides/nestjs/) for how to set up the Sentry NestJS SDK.
  */
 export function setupNestErrorHandler(app: MinimalNestJsApp, baseFilter: NestJsErrorFilter): void {
+  consoleSandbox(() => {
+    // eslint-disable-next-line no-console
+    console.warn(
+      '[Sentry] Warning: You used the `setupNestErrorHandler()` method to set up Sentry error monitoring. This function is deprecated and will be removed in the next major version. Instead, it is recommended to use the `@sentry/nestjs` package. To set up the NestJS SDK see: https://docs.sentry.io/platforms/javascript/guides/nestjs/',
+    );
+  });
+
   // Sadly, NestInstrumentation has no requestHook, so we need to add the attributes here
   // We register this hook in this method, because if we register it in the integration `setup`,
   // it would always run even for users that are not even using Nest.js
@@ -71,8 +87,15 @@ export function setupNestErrorHandler(app: MinimalNestJsApp, baseFilter: NestJsE
       }
 
       if (context.getType() === 'http') {
+        // getRequest() returns either a FastifyRequest or ExpressRequest, depending on the used adapter
         const req = context.switchToHttp().getRequest();
-        if (req.route) {
+        if ('routeOptions' in req && req.routeOptions && req.routeOptions.url) {
+          // fastify case
+          getIsolationScope().setTransactionName(
+            `${req.routeOptions.method?.toUpperCase() || 'GET'} ${req.routeOptions.url}`,
+          );
+        } else if ('route' in req && req.route && req.route.path) {
+          // express case
           getIsolationScope().setTransactionName(`${req.method?.toUpperCase() || 'GET'} ${req.route.path}`);
         }
       }

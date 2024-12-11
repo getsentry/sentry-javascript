@@ -1,8 +1,6 @@
-import { spanIsSampled, spanToJSON } from '@sentry/core';
+import type { CustomSamplingContext, Span } from '@sentry/core';
+import { logger, spanIsSampled, spanToJSON, uuid4 } from '@sentry/core';
 import type { NodeClient } from '@sentry/node';
-import type { CustomSamplingContext, Span } from '@sentry/types';
-import { logger, uuid4 } from '@sentry/utils';
-
 import { CpuProfilerBindings } from './cpu_profiler';
 import { DEBUG_BUILD } from './debug-build';
 import type { RawThreadCpuProfile } from './types';

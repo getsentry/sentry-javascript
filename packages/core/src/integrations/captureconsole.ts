@@ -1,15 +1,13 @@
-import type { CaptureContext, IntegrationFn } from '@sentry/types';
-import {
-  CONSOLE_LEVELS,
-  GLOBAL_OBJ,
-  addConsoleInstrumentationHandler,
-  addExceptionMechanism,
-  safeJoin,
-  severityLevelFromString,
-} from '@sentry/utils';
 import { getClient, withScope } from '../currentScopes';
 import { captureException, captureMessage } from '../exports';
 import { defineIntegration } from '../integration';
+import type { CaptureContext, IntegrationFn } from '../types-hoist';
+import { addConsoleInstrumentationHandler } from '../utils-hoist/instrument/console';
+import { CONSOLE_LEVELS } from '../utils-hoist/logger';
+import { addExceptionMechanism } from '../utils-hoist/misc';
+import { severityLevelFromString } from '../utils-hoist/severity';
+import { safeJoin } from '../utils-hoist/string';
+import { GLOBAL_OBJ } from '../utils-hoist/worldwide';
 
 interface CaptureConsoleOptions {
   levels?: string[];

@@ -1,12 +1,9 @@
 import { Worker } from 'node:worker_threads';
-import { defineIntegration } from '@sentry/core';
-import type { Event, EventHint, Exception, IntegrationFn } from '@sentry/types';
-import { logger } from '@sentry/utils';
-
+import type { Event, EventHint, Exception, IntegrationFn } from '@sentry/core';
+import { defineIntegration, logger } from '@sentry/core';
 import type { NodeClient } from '../../sdk/client';
 import type { FrameVariables, LocalVariablesIntegrationOptions, LocalVariablesWorkerArgs } from './common';
-import { LOCAL_VARIABLES_KEY } from './common';
-import { functionNamesMatch } from './common';
+import { LOCAL_VARIABLES_KEY, functionNamesMatch } from './common';
 
 // This string is a placeholder that gets overwritten with the worker code.
 export const base64WorkerScript = '###LocalVariablesWorkerScript###';

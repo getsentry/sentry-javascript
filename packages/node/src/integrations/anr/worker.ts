@@ -1,21 +1,19 @@
 import { Session as InspectorSession } from 'node:inspector';
 import { parentPort, workerData } from 'node:worker_threads';
+import type { DebugImage, Event, ScopeData, Session, StackFrame } from '@sentry/core';
 import {
   applyScopeDataToEvent,
+  callFrameToStackFrame,
   createEventEnvelope,
   createSessionEnvelope,
   getEnvelopeEndpointWithUrlEncodedAuth,
   makeSession,
-  updateSession,
-} from '@sentry/core';
-import type { DebugImage, Event, ScopeData, Session, StackFrame } from '@sentry/types';
-import {
-  callFrameToStackFrame,
   normalizeUrlToBase,
   stripSentryFramesAndReverse,
+  updateSession,
   uuid4,
   watchdogTimer,
-} from '@sentry/utils';
+} from '@sentry/core';
 
 import { makeNodeTransport } from '../../transports';
 import { createGetModuleFromFilename } from '../../utils/module';
@@ -121,6 +119,8 @@ function applyScopeToEvent(event: Event, scope: ScopeData): void {
   applyScopeDataToEvent(event, scope);
 
   if (!event.contexts?.trace) {
+    // TODO(v9): Use generateSpanId() instead of spanId
+    // eslint-disable-next-line deprecation/deprecation
     const { traceId, spanId, parentSpanId } = scope.propagationContext;
     event.contexts = {
       trace: {

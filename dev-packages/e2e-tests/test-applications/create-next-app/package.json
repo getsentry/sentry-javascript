@@ -7,8 +7,8 @@
     "clean": "npx rimraf node_modules pnpm-lock.yaml .next",
     "test:prod": "TEST_ENV=prod playwright test",
     "test:dev": "TEST_ENV=dev playwright test",
-    "test:build": "pnpm install && npx playwright install && pnpm build",
-    "test:build-13": "pnpm install && pnpm add next@13.4.19 && npx playwright install && pnpm build",
+    "test:build": "pnpm install && pnpm build",
+    "test:build-13": "pnpm install && pnpm add next@13.4.19 && pnpm build",
     "test:assert": "pnpm test:prod && pnpm test:dev"
   },
   "dependencies": {
@@ -27,5 +27,13 @@
   },
   "volta": {
     "extends": "../../package.json"
+  },
+  "sentryTest": {
+    "variants": [
+      {
+        "build-command": "test:build-13",
+        "label": "create-next-app (next@13)"
+      }
+    ]
   }
 }

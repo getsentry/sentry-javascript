@@ -1,23 +1,25 @@
+import type { RequestEventData, WebFetchHeaders } from '@sentry/core';
 import {
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SPAN_STATUS_ERROR,
   SPAN_STATUS_OK,
   Scope,
   captureException,
+  generateSpanId,
+  generateTraceId,
   getActiveSpan,
   getCapturedScopesOnSpan,
   getClient,
   getRootSpan,
   handleCallbackErrors,
+  propagationContextFromHeaders,
   setCapturedScopesOnSpan,
   startSpanManual,
+  winterCGHeadersToDict,
   withIsolationScope,
   withScope,
 } from '@sentry/core';
-import type { WebFetchHeaders } from '@sentry/types';
-import { propagationContextFromHeaders, uuid4, winterCGHeadersToDict } from '@sentry/utils';
-
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import type { GenerationFunctionContext } from '../common/types';
 import { isNotFoundNavigationError, isRedirectNavigationError } from './nextNavigationErrorUtils';
 import { TRANSACTION_ATTR_SENTRY_TRACE_BACKFILL } from './span-attributes-with-logic-attached';
@@ -68,9 +70,9 @@ export function wrapGenerationFunctionWithSentry<F extends (...args: any[]) => a
           scope.setTransactionName(`${componentType}.${generationFunctionIdentifier} (${componentRoute})`);
 
           isolationScope.setSDKProcessingMetadata({
-            request: {
+            normalizedRequest: {
               headers: headersDict,
-            },
+            } satisfies RequestEventData,
           });
 
           const activeSpan = getActiveSpan();
@@ -87,8 +89,8 @@ export function wrapGenerationFunctionWithSentry<F extends (...args: any[]) => a
             headersDict?.['sentry-trace']
               ? propagationContextFromHeaders(headersDict['sentry-trace'], headersDict['baggage'])
               : {
-                  traceId: requestTraceId || uuid4(),
-                  spanId: uuid4().substring(16),
+                  traceId: requestTraceId || generateTraceId(),
+                  spanId: generateSpanId(),
                 },
           );
           scope.setPropagationContext(propagationContext);

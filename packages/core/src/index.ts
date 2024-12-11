@@ -38,6 +38,7 @@ export {
   withScope,
   withIsolationScope,
   getClient,
+  getTraceContextFromScope,
 } from './currentScopes';
 export {
   getDefaultCurrentScope,
@@ -46,6 +47,7 @@ export {
 export { setAsyncContextStrategy } from './asyncContext';
 export { getMainCarrier } from './carrier';
 export { makeSession, closeSession, updateSession } from './session';
+// eslint-disable-next-line deprecation/deprecation
 export { SessionFlusher } from './sessionflusher';
 export { Scope } from './scope';
 export { notifyEventProcessors } from './eventProcessors';
@@ -92,26 +94,36 @@ export { linkedErrorsIntegration } from './integrations/linkederrors';
 export { moduleMetadataIntegration } from './integrations/metadata';
 export { requestDataIntegration } from './integrations/requestdata';
 export { captureConsoleIntegration } from './integrations/captureconsole';
+// eslint-disable-next-line deprecation/deprecation
 export { debugIntegration } from './integrations/debug';
 export { dedupeIntegration } from './integrations/dedupe';
 export { extraErrorDataIntegration } from './integrations/extraerrordata';
 export { rewriteFramesIntegration } from './integrations/rewriteframes';
+// eslint-disable-next-line deprecation/deprecation
 export { sessionTimingIntegration } from './integrations/sessiontiming';
 export { zodErrorsIntegration } from './integrations/zoderrors';
 export { thirdPartyErrorFilterIntegration } from './integrations/third-party-errors-filter';
 // eslint-disable-next-line deprecation/deprecation
 export { metrics } from './metrics/exports';
 export { profiler } from './profiling';
-export type { MetricData } from '@sentry/types';
 // eslint-disable-next-line deprecation/deprecation
 export { metricsDefault } from './metrics/exports-default';
 export { BrowserMetricsAggregator } from './metrics/browser-aggregator';
 export { getMetricSummaryJsonForSpan } from './metrics/metric-summary';
-export { addTracingHeadersToFetchRequest, instrumentFetchRequest } from './fetch';
+export {
+  // eslint-disable-next-line deprecation/deprecation
+  addTracingHeadersToFetchRequest,
+  instrumentFetchRequest,
+} from './fetch';
 export { trpcMiddleware } from './trpc';
 export { captureFeedback } from './feedback';
 
 // eslint-disable-next-line deprecation/deprecation
 export { getCurrentHubShim, getCurrentHub } from './getCurrentHubShim';
 
-export { SDK_VERSION } from '@sentry/utils';
+// TODO(v9): Make this structure pretty again and don't do "export *"
+export * from './utils-hoist/index';
+// TODO(v9): Make this structure pretty again and don't do "export *"
+export * from './types-hoist/index';
+
+export type { FeatureFlag } from './featureFlags';

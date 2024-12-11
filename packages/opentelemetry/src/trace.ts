@@ -1,22 +1,24 @@
 import type { Context, Span, SpanContext, SpanOptions, Tracer } from '@opentelemetry/api';
-import { INVALID_SPANID, SpanStatusCode, TraceFlags, context, trace } from '@opentelemetry/api';
+import { SpanStatusCode, TraceFlags, context, trace } from '@opentelemetry/api';
 import { suppressTracing } from '@opentelemetry/core';
+import type { Client, DynamicSamplingContext, Scope, Span as SentrySpan, TraceContext } from '@sentry/core';
 import {
   SDK_VERSION,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   continueTrace as baseContinueTrace,
   getClient,
   getCurrentScope,
+  getDynamicSamplingContextFromScope,
   getDynamicSamplingContextFromSpan,
   getRootSpan,
+  getTraceContextFromScope,
   handleCallbackErrors,
   spanToJSON,
+  spanToTraceContext,
 } from '@sentry/core';
-import type { Client, Scope, Span as SentrySpan } from '@sentry/types';
 import { continueTraceAsRemoteSpan } from './propagator';
-
 import type { OpenTelemetryClient, OpenTelemetrySpanContext } from './types';
-import { getContextFromScope, getScopesFromContext } from './utils/contextData';
+import { getContextFromScope } from './utils/contextData';
 import { getSamplingDecision } from './utils/getSamplingDecision';
 import { makeTraceState } from './utils/makeTraceState';
 
@@ -176,38 +178,11 @@ function ensureTimestampInMilliseconds(timestamp: number): number {
 
 function getContext(scope: Scope | undefined, forceTransaction: boolean | undefined): Context {
   const ctx = getContextForScope(scope);
-  const actualScope = getScopesFromContext(ctx)?.scope;
-
   const parentSpan = trace.getSpan(ctx);
 
-  // In the case that we have no parent span, we need to "simulate" one to ensure the propagation context is correct
+  // In the case that we have no parent span, we start a new trace
+  // Note that if we continue a trace, we'll always have a remote parent span here anyhow
   if (!parentSpan) {
-    const client = getClient();
-
-    if (actualScope && client) {
-      const propagationContext = actualScope.getPropagationContext();
-
-      // We store the DSC as OTEL trace state on the span context
-      const traceState = makeTraceState({
-        parentSpanId: propagationContext.parentSpanId,
-        // Not defined yet, we want to pick this up on-demand only
-        dsc: undefined,
-        sampled: propagationContext.sampled,
-      });
-
-      const spanOptions: SpanContext = {
-        traceId: propagationContext.traceId,
-        spanId: propagationContext.parentSpanId || propagationContext.spanId,
-        isRemote: true,
-        traceFlags: propagationContext.sampled ? TraceFlags.SAMPLED : TraceFlags.NONE,
-        traceState,
-      };
-
-      // Add remote parent span context,
-      return trace.setSpanContext(ctx, spanOptions);
-    }
-
-    // if we have no scope or client, we just return the context as-is
     return ctx;
   }
 
@@ -233,7 +208,6 @@ function getContext(scope: Scope | undefined, forceTransaction: boolean | undefi
 
   const traceState = makeTraceState({
     dsc,
-    parentSpanId: spanId !== INVALID_SPANID ? spanId : undefined,
     sampled,
   });
 
@@ -276,6 +250,25 @@ export function continueTrace<T>(options: Parameters<typeof baseContinueTrace>[0
   return baseContinueTrace(options, () => {
     return continueTraceAsRemoteSpan(context.active(), options, callback);
   });
+}
+
+/**
+ * Get the trace context for a given scope.
+ * We have a custom implemention here because we need an OTEL-specific way to get the span from a scope.
+ */
+export function getTraceContextForScope(
+  client: Client,
+  scope: Scope,
+): [dynamicSamplingContext: Partial<DynamicSamplingContext>, traceContext: TraceContext] {
+  const ctx = getContextFromScope(scope);
+  const span = ctx && trace.getSpan(ctx);
+
+  const traceContext = span ? spanToTraceContext(span) : getTraceContextFromScope(scope);
+
+  const dynamicSamplingContext = span
+    ? getDynamicSamplingContextFromSpan(span)
+    : getDynamicSamplingContextFromScope(client, scope);
+  return [dynamicSamplingContext, traceContext];
 }
 
 function getActiveSpanWrapper<T>(parentSpan: Span | SentrySpan | undefined | null): (callback: () => T) => T {

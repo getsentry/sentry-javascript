@@ -1,6 +1,10 @@
-import { defineIntegration, rewriteFramesIntegration as originalRewriteFramesIntegration } from '@sentry/core';
-import type { IntegrationFn, StackFrame } from '@sentry/types';
-import { GLOBAL_OBJ, escapeStringForRegex } from '@sentry/utils';
+import type { IntegrationFn, StackFrame } from '@sentry/core';
+import {
+  GLOBAL_OBJ,
+  defineIntegration,
+  escapeStringForRegex,
+  rewriteFramesIntegration as originalRewriteFramesIntegration,
+} from '@sentry/core';
 
 const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
   _sentryRewriteFramesDistDir?: string;

@@ -1,6 +1,6 @@
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, getActiveSpan, startInactiveSpan } from '@sentry/browser';
-import type { Span } from '@sentry/types';
-import { logger, timestampInSeconds } from '@sentry/utils';
+import { logger, timestampInSeconds } from '@sentry/core';
+import type { Span } from '@sentry/core';
 
 import { DEFAULT_HOOKS } from './constants';
 import { DEBUG_BUILD } from './debug-build';

@@ -18,8 +18,8 @@ import {
   startBrowserTracingNavigationSpan,
   startInactiveSpan,
 } from '@sentry/browser';
-import type { Integration, Span } from '@sentry/types';
-import { logger, stripUrlQueryAndFragment, timestampInSeconds } from '@sentry/utils';
+import { logger, stripUrlQueryAndFragment, timestampInSeconds } from '@sentry/core';
+import type { Integration, Span } from '@sentry/core';
 import type { Observable } from 'rxjs';
 import { Subscription } from 'rxjs';
 import { filter, tap } from 'rxjs/operators';
@@ -271,8 +271,9 @@ export class TraceDirective implements OnInit, AfterViewInit {
    * @inheritdoc
    */
   public ngAfterViewInit(): void {
-    if (this._tracingSpan) {
-      runOutsideAngular(() => this._tracingSpan!.end());
+    const span = this._tracingSpan;
+    if (span) {
+      runOutsideAngular(() => span.end());
     }
   }
 }
@@ -302,8 +303,7 @@ export function TraceClass(options?: TraceClassOptions): ClassDecorator {
   /* eslint-disable @typescript-eslint/no-unsafe-member-access */
   return target => {
     const originalOnInit = target.prototype.ngOnInit;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    target.prototype.ngOnInit = function (...args: any[]): ReturnType<typeof originalOnInit> {
+    target.prototype.ngOnInit = function (...args: unknown[]): ReturnType<typeof originalOnInit> {
       tracingSpan = runOutsideAngular(() =>
         startInactiveSpan({
           onlyIfParent: true,
@@ -321,8 +321,7 @@ export function TraceClass(options?: TraceClassOptions): ClassDecorator {
     };
 
     const originalAfterViewInit = target.prototype.ngAfterViewInit;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    target.prototype.ngAfterViewInit = function (...args: any[]): ReturnType<typeof originalAfterViewInit> {
+    target.prototype.ngAfterViewInit = function (...args: unknown[]): ReturnType<typeof originalAfterViewInit> {
       if (tracingSpan) {
         runOutsideAngular(() => tracingSpan.end());
       }
@@ -345,11 +344,9 @@ interface TraceMethodOptions {
  * Decorator function that can be used to capture a single lifecycle methods of the component.
  */
 export function TraceMethod(options?: TraceMethodOptions): MethodDecorator {
-  // eslint-disable-next-line @typescript-eslint/ban-types
-  return (target: Object, propertyKey: string | symbol, descriptor: PropertyDescriptor) => {
+  return (_target: unknown, propertyKey: string | symbol, descriptor: PropertyDescriptor) => {
     const originalMethod = descriptor.value;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    descriptor.value = function (...args: any[]): ReturnType<typeof originalMethod> {
+    descriptor.value = function (...args: unknown[]): ReturnType<typeof originalMethod> {
       const now = timestampInSeconds();
 
       runOutsideAngular(() => {

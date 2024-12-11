@@ -1,3 +1,4 @@
+import type { Span } from '@sentry/core';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
@@ -6,13 +7,13 @@ import {
   getDefaultIsolationScope,
   getIsolationScope,
   getTraceMetaTags,
+  logger,
   setHttpStatus,
+  startSpan,
+  winterCGRequestToRequestData,
   withIsolationScope,
 } from '@sentry/core';
-import { startSpan } from '@sentry/core';
 import { continueTrace } from '@sentry/node';
-import type { Span } from '@sentry/types';
-import { logger, winterCGRequestToRequestData } from '@sentry/utils';
 import type { Handle, ResolveOptions } from '@sveltejs/kit';
 
 import { DEBUG_BUILD } from '../common/debug-build';
@@ -131,7 +132,9 @@ export function sentryHandle(handlerOptions?: SentryHandleOptions): Handle {
     return withIsolationScope(isolationScope => {
       // We only call continueTrace in the initial top level request to avoid
       // creating a new root span for the sub request.
-      isolationScope.setSDKProcessingMetadata({ request: winterCGRequestToRequestData(input.event.request.clone()) });
+      isolationScope.setSDKProcessingMetadata({
+        normalizedRequest: winterCGRequestToRequestData(input.event.request.clone()),
+      });
       return continueTrace(getTracePropagationData(input.event), () => instrumentHandle(input, options));
     });
   };
@@ -167,7 +170,9 @@ async function instrumentHandle(
         name: routeName,
       },
       async (span?: Span) => {
-        getCurrentScope().setSDKProcessingMetadata({ request: winterCGRequestToRequestData(event.request.clone()) });
+        getCurrentScope().setSDKProcessingMetadata({
+          normalizedRequest: winterCGRequestToRequestData(event.request.clone()),
+        });
         const res = await resolve(event, {
           transformPageChunk: addSentryCodeToPage(options),
         });

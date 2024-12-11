@@ -1,3 +1,11 @@
+import { context } from '@opentelemetry/api';
+import {
+  ATTR_HTTP_REQUEST_METHOD,
+  ATTR_HTTP_ROUTE,
+  ATTR_URL_QUERY,
+  SEMATTRS_HTTP_METHOD,
+  SEMATTRS_HTTP_TARGET,
+} from '@opentelemetry/semantic-conventions';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -12,20 +20,11 @@ import {
   setCapturedScopesOnSpan,
   spanToJSON,
 } from '@sentry/core';
+import { GLOBAL_OBJ, extractTraceparentData, logger, stripUrlQueryAndFragment } from '@sentry/core';
+import type { EventProcessor } from '@sentry/core';
 import type { NodeClient, NodeOptions } from '@sentry/node';
 import { getDefaultIntegrations, httpIntegration, init as nodeInit } from '@sentry/node';
-import { GLOBAL_OBJ, extractTraceparentData, logger, stripUrlQueryAndFragment } from '@sentry/utils';
-
-import { context } from '@opentelemetry/api';
-import {
-  ATTR_HTTP_REQUEST_METHOD,
-  ATTR_HTTP_ROUTE,
-  ATTR_URL_QUERY,
-  SEMATTRS_HTTP_METHOD,
-  SEMATTRS_HTTP_TARGET,
-} from '@opentelemetry/semantic-conventions';
 import { getScopesFromContext } from '@sentry/opentelemetry';
-import type { EventProcessor } from '@sentry/types';
 import { DEBUG_BUILD } from '../common/debug-build';
 import { devErrorSymbolicationEventProcessor } from '../common/devErrorSymbolicationEventProcessor';
 import { getVercelEnv } from '../common/getVercelEnv';

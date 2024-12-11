@@ -1,4 +1,4 @@
-import type { Event } from '@sentry/types';
+import type { Event } from '@sentry/core';
 
 const defaultAssertOptions = {
   method: 'POST',

@@ -1,4 +1,4 @@
-import type { Event } from '@sentry/types';
+import type { Event } from '@sentry/core';
 import { conditionalTest } from '../../utils';
 import { cleanupChildProcesses, createRunner } from '../../utils/runner';
 
@@ -6,8 +6,8 @@ const ANR_EVENT = {
   // Ensure we have context
   contexts: {
     trace: {
-      span_id: expect.any(String),
-      trace_id: expect.any(String),
+      span_id: expect.stringMatching(/[a-f0-9]{16}/),
+      trace_id: expect.stringMatching(/[a-f0-9]{32}/),
     },
     device: {
       arch: expect.any(String),

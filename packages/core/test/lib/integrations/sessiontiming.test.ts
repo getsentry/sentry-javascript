@@ -1,6 +1,7 @@
-import type { Event } from '@sentry/types';
 import { sessionTimingIntegration } from '../../../src/integrations/sessiontiming';
+import type { Event } from '../../../src/types-hoist';
 
+// eslint-disable-next-line deprecation/deprecation
 const sessionTiming = sessionTimingIntegration();
 
 describe('SessionTiming', () => {

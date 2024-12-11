@@ -1,21 +1,24 @@
 import type { ParsedUrlQuery } from 'querystring';
+import type { Client, TransactionSource } from '@sentry/core';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  browserPerformanceTimeOrigin,
+  logger,
+  parseBaggageHeader,
+  stripUrlQueryAndFragment,
 } from '@sentry/core';
 import { WINDOW, startBrowserTracingNavigationSpan, startBrowserTracingPageLoadSpan } from '@sentry/react';
-import type { Client, TransactionSource } from '@sentry/types';
-import { browserPerformanceTimeOrigin, logger, parseBaggageHeader, stripUrlQueryAndFragment } from '@sentry/utils';
-
 import type { NEXT_DATA } from 'next/dist/shared/lib/utils';
 import RouterImport from 'next/router';
 
 // next/router v10 is CJS
 //
 // For ESM/CJS interoperability 'reasons', depending on how this file is loaded, Router might be on the default export
-// eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
-const Router: typeof RouterImport = RouterImport.events ? RouterImport : (RouterImport as any).default;
+const Router: typeof RouterImport = RouterImport.events
+  ? RouterImport
+  : (RouterImport as unknown as { default: typeof RouterImport }).default;
 
 import { DEBUG_BUILD } from '../../common/debug-build';
 

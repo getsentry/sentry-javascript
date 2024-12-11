@@ -7,11 +7,10 @@ import {
   ATTR_SERVICE_VERSION,
   SEMRESATTRS_SERVICE_NAMESPACE,
 } from '@opentelemetry/semantic-conventions';
-import { SDK_VERSION } from '@sentry/core';
+import { GLOBAL_OBJ, SDK_VERSION, consoleSandbox, logger } from '@sentry/core';
 import { SentryPropagator, SentrySampler, SentrySpanProcessor } from '@sentry/opentelemetry';
-import { GLOBAL_OBJ, consoleSandbox, logger } from '@sentry/utils';
 import { createAddHookMessageChannel } from 'import-in-the-middle';
-
+import { DEBUG_BUILD } from '../debug-build';
 import { getOpenTelemetryInstrumentationToPreload } from '../integrations/tracing';
 import { SentryContextManager } from '../otel/contextManager';
 import type { EsmLoaderHookOptions } from '../types';
@@ -19,6 +18,9 @@ import { isCjs } from '../utils/commonjs';
 import type { NodeClient } from './client';
 
 declare const __IMPORT_META_URL_REPLACEMENT__: string;
+
+// About 277h - this must fit into new Array(len)!
+const MAX_MAX_SPAN_WAIT_DURATION = 1_000_000;
 
 /**
  * Initialize OpenTelemetry for Node.
@@ -42,10 +44,12 @@ interface RegisterOptions {
 }
 
 function getRegisterOptions(esmHookConfig?: EsmLoaderHookOptions): RegisterOptions {
+  // TODO(v9): Make onlyIncludeInstrumentedModules: true the default behavior.
   if (esmHookConfig?.onlyIncludeInstrumentedModules) {
     const { addHookMessagePort } = createAddHookMessageChannel();
     // If the user supplied include, we need to use that as a starting point or use an empty array to ensure no modules
     // are wrapped if they are not hooked
+    // eslint-disable-next-line deprecation/deprecation
     return { data: { addHookMessagePort, include: esmHookConfig.include || [] }, transferList: [addHookMessagePort] };
   }
 
@@ -75,7 +79,7 @@ export function maybeInitializeEsmLoader(esmHookConfig?: EsmLoaderHookOptions): 
     consoleSandbox(() => {
       // eslint-disable-next-line no-console
       console.warn(
-        '[Sentry] You are using Node.js in ESM mode ("import syntax"). The Sentry Node.js SDK is not compatible with ESM in Node.js versions before 18.19.0 or before 20.6.0. Please either build your application with CommonJS ("require() syntax"), or use version 7.x of the Sentry Node.js SDK.',
+        '[Sentry] You are using Node.js in ESM mode ("import syntax"). The Sentry Node.js SDK is not compatible with ESM in Node.js versions before 18.19.0 or before 20.6.0. Please either build your application with CommonJS ("require() syntax"), or upgrade your Node.js version.',
       );
     });
   }
@@ -136,12 +140,12 @@ export function setupOtel(client: NodeClient): BasicTracerProvider {
       [ATTR_SERVICE_VERSION]: SDK_VERSION,
     }),
     forceFlushTimeoutMillis: 500,
+    spanProcessors: [
+      new SentrySpanProcessor({
+        timeout: _clampSpanProcessorTimeout(client.getOptions().maxSpanWaitDuration),
+      }),
+    ],
   });
-  provider.addSpanProcessor(
-    new SentrySpanProcessor({
-      timeout: client.getOptions().maxSpanWaitDuration,
-    }),
-  );
 
   // Initialize the provider
   provider.register({
@@ -150,6 +154,26 @@ export function setupOtel(client: NodeClient): BasicTracerProvider {
   });
 
   return provider;
+}
+
+/** Just exported for tests. */
+export function _clampSpanProcessorTimeout(maxSpanWaitDuration: number | undefined): number | undefined {
+  if (maxSpanWaitDuration == null) {
+    return undefined;
+  }
+
+  // We guard for a max. value here, because we create an array with this length
+  // So if this value is too large, this would fail
+  if (maxSpanWaitDuration > MAX_MAX_SPAN_WAIT_DURATION) {
+    DEBUG_BUILD &&
+      logger.warn(`\`maxSpanWaitDuration\` is too high, using the maximum value of ${MAX_MAX_SPAN_WAIT_DURATION}`);
+    return MAX_MAX_SPAN_WAIT_DURATION;
+  } else if (maxSpanWaitDuration <= 0 || Number.isNaN(maxSpanWaitDuration)) {
+    DEBUG_BUILD && logger.warn('`maxSpanWaitDuration` must be a positive number, using default value instead.');
+    return undefined;
+  }
+
+  return maxSpanWaitDuration;
 }
 
 /**

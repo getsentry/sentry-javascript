@@ -1,5 +1,5 @@
-import type { Integration } from '@sentry/types';
-import { logger } from '@sentry/utils';
+import { logger } from '@sentry/core';
+import type { Integration } from '@sentry/core';
 
 import * as SentryOpentelemetry from '@sentry/opentelemetry';
 import { getClient, getIsolationScope } from '../../src/';

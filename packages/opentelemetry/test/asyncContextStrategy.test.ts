@@ -8,7 +8,7 @@ import {
   withScope,
 } from '@sentry/core';
 
-import type { Scope } from '@sentry/types';
+import type { Scope } from '@sentry/core';
 import { setOpenTelemetryContextAsyncContextStrategy } from '../src/asyncContextStrategy';
 import { TestClient, getDefaultTestClientOptions } from './helpers/TestClient';
 import { setupOtel } from './helpers/initOtel';

@@ -1,5 +1,5 @@
-import type { Client, MeasurementUnit, MetricsAggregator, Primitive } from '@sentry/types';
-import { timestampInSeconds } from '@sentry/utils';
+import type { Client, MeasurementUnit, MetricsAggregator, Primitive } from '../types-hoist';
+import { timestampInSeconds } from '../utils-hoist/time';
 import { updateMetricSummaryOnActiveSpan } from '../utils/spanUtils';
 import { DEFAULT_BROWSER_FLUSH_INTERVAL, SET_METRIC_TYPE } from './constants';
 import { captureAggregateMetrics } from './envelope';

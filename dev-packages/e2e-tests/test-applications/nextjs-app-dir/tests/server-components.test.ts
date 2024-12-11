@@ -28,22 +28,17 @@ test('Sends a transaction for a request to app router', async ({ page }) => {
     }),
     op: 'http.server',
     origin: 'auto',
-    span_id: expect.any(String),
+    span_id: expect.stringMatching(/[a-f0-9]{16}/),
     status: 'ok',
-    trace_id: expect.any(String),
+    trace_id: expect.stringMatching(/[a-f0-9]{32}/),
   });
 
-  expect(transactionEvent).toEqual(
-    expect.objectContaining({
-      request: {
-        cookies: {},
-        headers: expect.any(Object),
-        url: expect.any(String),
-      },
+  expect(transactionEvent.request).toEqual({
+    cookies: {},
+    headers: expect.objectContaining({
+      'user-agent': expect.any(String),
     }),
-  );
-
-  expect(Object.keys(transactionEvent.request?.headers!).length).toBeGreaterThan(0);
+  });
 
   // The transaction should not contain any spans with the same name as the transaction
   // e.g. "GET /server-component/parameter/[...parameters]"

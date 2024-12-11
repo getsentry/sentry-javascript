@@ -7,17 +7,17 @@ import type {
   ReplayEnvelope,
   ReplayEvent,
   TransportMakeRequestResponse,
-} from '@sentry/types';
+} from '../../../src/types-hoist';
+
 import {
   createClientReportEnvelope,
   createEnvelope,
   createEventEnvelopeHeaders,
+  createTransport,
   dsnFromString,
   getSdkMetadataForEnvelopeHeader,
   parseEnvelope,
-} from '@sentry/utils';
-
-import { createTransport } from '../../../src';
+} from '../../../src';
 import type { CreateOfflineStore, OfflineTransportOptions } from '../../../src/transports/offline';
 import { START_DELAY, makeOfflineTransport } from '../../../src/transports/offline';
 

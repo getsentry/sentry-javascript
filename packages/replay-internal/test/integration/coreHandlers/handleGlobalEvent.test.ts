@@ -5,12 +5,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { getClient } from '@sentry/core';
-import type { Event } from '@sentry/types';
+import type { Event } from '@sentry/core';
 
 import { REPLAY_EVENT_NAME, SESSION_IDLE_EXPIRE_DURATION } from '../../../src/constants';
 import { handleGlobalEventListener } from '../../../src/coreHandlers/handleGlobalEvent';
 import type { ReplayContainer } from '../../../src/replay';
 import { makeSession } from '../../../src/session/Session';
+import * as resetReplayIdOnDynamicSamplingContextModule from '../../../src/util/resetReplayIdOnDynamicSamplingContext';
 import { Error } from '../../fixtures/error';
 import { Transaction } from '../../fixtures/transaction';
 import { resetSdkMock } from '../../mocks/resetSdkMock';
@@ -415,5 +416,22 @@ describe('Integration | coreHandlers | handleGlobalEvent', () => {
         tags: expect.not.objectContaining({ replayId: expect.anything() }),
       }),
     );
+  });
+
+  it('resets replayId on DSC when session expires', () => {
+    const errorEvent = Error();
+    const txEvent = Transaction();
+
+    vi.spyOn(replay, 'checkAndHandleExpiredSession').mockReturnValue(false);
+
+    const resetReplayIdSpy = vi.spyOn(
+      resetReplayIdOnDynamicSamplingContextModule,
+      'resetReplayIdOnDynamicSamplingContext',
+    );
+
+    handleGlobalEventListener(replay)(errorEvent, {});
+    handleGlobalEventListener(replay)(txEvent, {});
+
+    expect(resetReplayIdSpy).toHaveBeenCalledTimes(2);
   });
 });

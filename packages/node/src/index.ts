@@ -9,7 +9,7 @@ export { localVariablesIntegration } from './integrations/local-variables';
 export { modulesIntegration } from './integrations/modules';
 export { onUncaughtExceptionIntegration } from './integrations/onuncaughtexception';
 export { onUnhandledRejectionIntegration } from './integrations/onunhandledrejection';
-export { anrIntegration } from './integrations/anr';
+export { anrIntegration, disableAnrDetectionForCallback } from './integrations/anr';
 
 export { expressIntegration, expressErrorHandler, setupExpressErrorHandler } from './integrations/tracing/express';
 export { fastifyIntegration, setupFastifyErrorHandler } from './integrations/tracing/fastify';
@@ -21,6 +21,7 @@ export { mongooseIntegration } from './integrations/tracing/mongoose';
 export { mysqlIntegration } from './integrations/tracing/mysql';
 export { mysql2Integration } from './integrations/tracing/mysql2';
 export { redisIntegration } from './integrations/tracing/redis';
+// eslint-disable-next-line deprecation/deprecation
 export { nestIntegration, setupNestErrorHandler } from './integrations/tracing/nest/nest';
 export { postgresIntegration } from './integrations/tracing/postgres';
 export { prismaIntegration } from './integrations/tracing/prisma';
@@ -33,7 +34,8 @@ export { tediousIntegration } from './integrations/tracing/tedious';
 export { genericPoolIntegration } from './integrations/tracing/genericPool';
 export { dataloaderIntegration } from './integrations/tracing/dataloader';
 export { amqplibIntegration } from './integrations/tracing/amqplib';
-export { processThreadBreadcrumbIntegration } from './integrations/processThread';
+// eslint-disable-next-line deprecation/deprecation
+export { processThreadBreadcrumbIntegration, childProcessIntegration } from './integrations/childProcess';
 
 export { SentryContextManager } from './otel/contextManager';
 export { generateInstrumentOnce } from './otel/instrument';
@@ -55,9 +57,11 @@ export { cron } from './cron';
 
 export type { NodeOptions } from './types';
 
-export { addRequestDataToEvent, DEFAULT_USER_INCLUDES, extractRequestData } from '@sentry/utils';
+// eslint-disable-next-line deprecation/deprecation
+export { addRequestDataToEvent, DEFAULT_USER_INCLUDES, extractRequestData } from '@sentry/core';
 
 export {
+  // eslint-disable-next-line deprecation/deprecation
   addOpenTelemetryInstrumentation,
   // These are custom variants that need to be used instead of the core one
   // As they have slightly different implementations
@@ -113,10 +117,12 @@ export {
   captureMessage,
   captureFeedback,
   captureConsoleIntegration,
+  // eslint-disable-next-line deprecation/deprecation
   debugIntegration,
   dedupeIntegration,
   extraErrorDataIntegration,
   rewriteFramesIntegration,
+  // eslint-disable-next-line deprecation/deprecation
   sessionTimingIntegration,
   // eslint-disable-next-line deprecation/deprecation
   metricsDefault as metrics,
@@ -144,7 +150,9 @@ export type {
   Breadcrumb,
   BreadcrumbHint,
   PolymorphicRequest,
+  // eslint-disable-next-line deprecation/deprecation
   Request,
+  RequestEventData,
   SdkInfo,
   Event,
   EventHint,
@@ -157,4 +165,4 @@ export type {
   Thread,
   User,
   Span,
-} from '@sentry/types';
+} from '@sentry/core';

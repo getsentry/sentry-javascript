@@ -1,6 +1,6 @@
+import { logger } from '@sentry/core';
+import type { EventProcessor, Options } from '@sentry/core';
 import { flush, getGlobalScope } from '@sentry/node';
-import type { EventProcessor, Options } from '@sentry/types';
-import { logger } from '@sentry/utils';
 import { DEBUG_BUILD } from '../common/debug-build';
 
 /** Flush the event queue to ensure that events get sent to Sentry before the response is finished and the lambda ends */

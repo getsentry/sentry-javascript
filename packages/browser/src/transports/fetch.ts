@@ -1,9 +1,7 @@
 import { clearCachedImplementation, getNativeImplementation } from '@sentry-internal/browser-utils';
-import { createTransport } from '@sentry/core';
-import type { Transport, TransportMakeRequestResponse, TransportRequest } from '@sentry/types';
-import { rejectedSyncPromise } from '@sentry/utils';
+import type { Transport, TransportMakeRequestResponse, TransportRequest } from '@sentry/core';
+import { createTransport, rejectedSyncPromise } from '@sentry/core';
 import type { WINDOW } from '../helpers';
-
 import type { BrowserTransportOptions } from './types';
 
 /**

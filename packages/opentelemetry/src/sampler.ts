@@ -1,25 +1,23 @@
 import type { Attributes, Context, Span, TraceState as TraceStateInterface } from '@opentelemetry/api';
-import { SpanKind } from '@opentelemetry/api';
-import { isSpanContextValid, trace } from '@opentelemetry/api';
+import { SpanKind, isSpanContextValid, trace } from '@opentelemetry/api';
 import { TraceState } from '@opentelemetry/core';
 import type { Sampler, SamplingResult } from '@opentelemetry/sdk-trace-base';
 import { SamplingDecision } from '@opentelemetry/sdk-trace-base';
-import {
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
-  hasTracingEnabled,
-  sampleSpan,
-} from '@sentry/core';
-import type { Client, SpanAttributes } from '@sentry/types';
-import { logger } from '@sentry/utils';
-import { SENTRY_TRACE_STATE_SAMPLED_NOT_RECORDING, SENTRY_TRACE_STATE_URL } from './constants';
-
 import {
   ATTR_HTTP_REQUEST_METHOD,
   ATTR_URL_FULL,
   SEMATTRS_HTTP_METHOD,
   SEMATTRS_HTTP_URL,
 } from '@opentelemetry/semantic-conventions';
+import type { Client, SpanAttributes } from '@sentry/core';
+import {
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
+  hasTracingEnabled,
+  logger,
+  sampleSpan,
+} from '@sentry/core';
+import { SENTRY_TRACE_STATE_SAMPLED_NOT_RECORDING, SENTRY_TRACE_STATE_URL } from './constants';
 import { DEBUG_BUILD } from './debug-build';
 import { getPropagationContextFromSpan } from './propagator';
 import { getSamplingDecision } from './utils/getSamplingDecision';
@@ -48,7 +46,7 @@ export class SentrySampler implements Sampler {
   ): SamplingResult {
     const options = this._client.getOptions();
 
-    const parentSpan = trace.getSpan(context);
+    const parentSpan = getValidSpan(context);
     const parentContext = parentSpan?.spanContext();
 
     if (!hasTracingEnabled(options)) {
@@ -209,4 +207,13 @@ function getBaseTraceState(context: Context, spanAttributes: SpanAttributes): Tr
   }
 
   return traceState;
+}
+
+/**
+ * If the active span is invalid, we want to ignore it as parent.
+ * This aligns with how otel tracers and default samplers handle these cases.
+ */
+function getValidSpan(context: Context): Span | undefined {
+  const span = trace.getSpan(context);
+  return span && isSpanContextValid(span.spanContext()) ? span : undefined;
 }

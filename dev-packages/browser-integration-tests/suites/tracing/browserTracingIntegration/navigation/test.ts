@@ -1,15 +1,15 @@
 import { expect } from '@playwright/test';
-import type { Event } from '@sentry/types';
+import type { Event } from '@sentry/core';
 
 import { sentryTest } from '../../../../utils/fixtures';
 import { getFirstSentryEnvelopeRequest, shouldSkipTracingTest } from '../../../../utils/helpers';
 
-sentryTest('should create a navigation transaction on page navigation', async ({ getLocalTestPath, page }) => {
+sentryTest('should create a navigation transaction on page navigation', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipTracingTest()) {
     sentryTest.skip();
   }
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
 
   const pageloadRequest = await getFirstSentryEnvelopeRequest<Event>(page, url);
   const navigationRequest = await getFirstSentryEnvelopeRequest<Event>(page, `${url}#foo`);

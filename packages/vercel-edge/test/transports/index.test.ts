@@ -1,7 +1,7 @@
 import { afterAll, describe, expect, it, vi } from 'vitest';
 
-import type { EventEnvelope, EventItem } from '@sentry/types';
-import { createEnvelope, serializeEnvelope } from '@sentry/utils';
+import { createEnvelope, serializeEnvelope } from '@sentry/core';
+import type { EventEnvelope, EventItem } from '@sentry/core';
 
 import type { VercelEdgeTransportOptions } from '../../src/transports';
 import { IsolatedPromiseBuffer, makeEdgeTransport } from '../../src/transports';

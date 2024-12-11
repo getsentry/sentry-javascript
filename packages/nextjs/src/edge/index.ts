@@ -1,4 +1,5 @@
 import {
+  GLOBAL_OBJ,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
@@ -6,17 +7,19 @@ import {
   getRootSpan,
   registerSpanErrorInstrumentation,
   spanToJSON,
+  stripUrlQueryAndFragment,
+  vercelWaitUntil,
 } from '@sentry/core';
-
-import { GLOBAL_OBJ, stripUrlQueryAndFragment, vercelWaitUntil } from '@sentry/utils';
 import type { VercelEdgeOptions } from '@sentry/vercel-edge';
 import { getDefaultIntegrations, init as vercelEdgeInit } from '@sentry/vercel-edge';
-
 import { isBuild } from '../common/utils/isBuild';
 import { flushSafelyWithTimeout } from '../common/utils/responseEnd';
 import { distDirRewriteFramesIntegration } from './distDirRewriteFramesIntegration';
 
+export * from '@sentry/vercel-edge';
+export * from '../common';
 export { captureUnderscoreErrorException } from '../common/pages-router-instrumentation/_error';
+export { wrapApiHandlerWithSentry } from './wrapApiHandlerWithSentry';
 
 export type EdgeOptions = VercelEdgeOptions;
 
@@ -95,9 +98,3 @@ export function init(options: VercelEdgeOptions = {}): void {
 export function withSentryConfig<T>(exportedUserNextConfig: T): T {
   return exportedUserNextConfig;
 }
-
-export * from '@sentry/vercel-edge';
-
-export * from '../common';
-
-export { wrapApiHandlerWithSentry } from './wrapApiHandlerWithSentry';

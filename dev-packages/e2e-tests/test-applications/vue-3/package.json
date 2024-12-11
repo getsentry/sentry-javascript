@@ -11,7 +11,7 @@
     "build-only": "vite build",
     "type-check": "vue-tsc --build --force",
     "test": "playwright test",
-    "test:build": "pnpm install && npx playwright install && pnpm build",
+    "test:build": "pnpm install && pnpm build",
     "test:assert": "playwright test"
   },
   "dependencies": {
@@ -23,8 +23,7 @@
   "devDependencies": {
     "@playwright/test": "^1.44.1",
     "@sentry-internal/test-utils": "link:../../../test-utils",
-    "@sentry/types": "latest || *",
-    "@sentry/utils": "latest || *",
+    "@sentry/core": "latest || *",
     "@tsconfig/node20": "^20.1.2",
     "@types/node": "^20.11.10",
     "@vitejs/plugin-vue": "^5.0.3",

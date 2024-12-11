@@ -10,9 +10,6 @@
 [![npm dm](https://img.shields.io/npm/dm/@sentry/nestjs.svg)](https://www.npmjs.com/package/@sentry/nestjs)
 [![npm dt](https://img.shields.io/npm/dt/@sentry/nestjs.svg)](https://www.npmjs.com/package/@sentry/nestjs)
 
-This SDK is in **Beta**. The API is stable but updates may include minor changes in behavior. Please reach out on
-[GitHub](https://github.com/getsentry/sentry-javascript/issues/new/choose) if you have any feedback or concerns.
-
 ## Installation
 
 ```bash
@@ -72,8 +69,8 @@ export class AppModule {}
 
 In case you are using a global catch-all exception filter (which is either a filter registered with
 `app.useGlobalFilters()` or a filter registered in your app module providers annotated with an empty `@Catch()`
-decorator), add a `@WithSentry()` decorator to the `catch()` method of this global error filter. This decorator will
-report all unexpected errors that are received by your global error filter to Sentry:
+decorator), add a `@SentryExceptionCaptured()` decorator to the `catch()` method of this global error filter. This
+decorator will report all unexpected errors that are received by your global error filter to Sentry:
 
 ```typescript
 import { Catch, ExceptionFilter } from '@nestjs/common';
@@ -81,7 +78,7 @@ import { WithSentry } from '@sentry/nestjs';
 
 @Catch()
 export class YourCatchAllExceptionFilter implements ExceptionFilter {
-  @WithSentry()
+  @SentryExceptionCaptured()
   catch(exception, host): void {
     // your implementation here
   }
@@ -137,7 +134,7 @@ after each cron job run.
 ```typescript
 import { Cron } from '@nestjs/schedule';
 import { SentryCron, MonitorConfig } from '@sentry/nestjs';
-import type { MonitorConfig } from '@sentry/types';
+import type { MonitorConfig } from '@sentry/core';
 
 const monitorConfig: MonitorConfig = {
   schedule: {

@@ -1,5 +1,5 @@
+import type { IntegrationFn } from '@sentry/core';
 import { httpIntegration as originalHttpIntegration } from '@sentry/node';
-import type { IntegrationFn } from '@sentry/types';
 
 type HttpOptions = Parameters<typeof originalHttpIntegration>[0];
 

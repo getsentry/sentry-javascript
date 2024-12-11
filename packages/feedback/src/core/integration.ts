@@ -1,12 +1,11 @@
-import { getClient } from '@sentry/core';
 import type {
   FeedbackInternalOptions,
   FeedbackModalIntegration,
   FeedbackScreenshotIntegration,
   Integration,
   IntegrationFn,
-} from '@sentry/types';
-import { isBrowser, logger } from '@sentry/utils';
+} from '@sentry/core';
+import { getClient, isBrowser, logger } from '@sentry/core';
 import {
   ADD_SCREENSHOT_LABEL,
   CANCEL_BUTTON_LABEL,

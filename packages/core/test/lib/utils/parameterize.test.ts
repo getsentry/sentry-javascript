@@ -1,4 +1,4 @@
-import type { ParameterizedString } from '@sentry/types';
+import type { ParameterizedString } from '../../../src/types-hoist';
 
 import { parameterize } from '../../../src/utils/parameterize';
 

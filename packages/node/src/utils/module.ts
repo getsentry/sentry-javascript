@@ -1,5 +1,5 @@
 import { posix, sep } from 'node:path';
-import { dirname } from '@sentry/utils';
+import { dirname } from '@sentry/core';
 
 /** normalizes Windows paths */
 function normalizeWindowsPath(path: string): string {
@@ -29,6 +29,10 @@ export function createGetModuleFromFilename(
       file = file.slice(0, ext.length * -1);
     }
 
+    // The file name might be URI-encoded which we want to decode to
+    // the original file name.
+    const decodedFile = decodeURIComponent(file);
+
     if (!dir) {
       // No dirname whatsoever
       dir = '.';
@@ -36,22 +40,16 @@ export function createGetModuleFromFilename(
 
     const n = dir.lastIndexOf('/node_modules');
     if (n > -1) {
-      return `${dir.slice(n + 14).replace(/\//g, '.')}:${file}`;
+      return `${dir.slice(n + 14).replace(/\//g, '.')}:${decodedFile}`;
     }
 
     // Let's see if it's a part of the main module
     // To be a part of main module, it has to share the same base
     if (dir.startsWith(normalizedBase)) {
-      let moduleName = dir.slice(normalizedBase.length + 1).replace(/\//g, '.');
-
-      if (moduleName) {
-        moduleName += ':';
-      }
-      moduleName += file;
-
-      return moduleName;
+      const moduleName = dir.slice(normalizedBase.length + 1).replace(/\//g, '.');
+      return moduleName ? `${moduleName}:${decodedFile}` : decodedFile;
     }
 
-    return file;
+    return decodedFile;
   };
 }

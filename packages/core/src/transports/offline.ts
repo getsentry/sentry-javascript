@@ -1,7 +1,9 @@
-import type { Envelope, InternalBaseTransportOptions, Transport, TransportMakeRequestResponse } from '@sentry/types';
-import { envelopeContainsItemType, logger, parseRetryAfterHeader } from '@sentry/utils';
+import type { Envelope, InternalBaseTransportOptions, Transport, TransportMakeRequestResponse } from '../types-hoist';
 
 import { DEBUG_BUILD } from '../debug-build';
+import { envelopeContainsItemType } from '../utils-hoist/envelope';
+import { logger } from '../utils-hoist/logger';
+import { parseRetryAfterHeader } from '../utils-hoist/ratelimit';
 
 export const MIN_DELAY = 100; // 100 ms
 export const START_DELAY = 5_000; // 5 seconds

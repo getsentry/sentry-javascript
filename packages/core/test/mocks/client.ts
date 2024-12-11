@@ -7,12 +7,12 @@ import type {
   ParameterizedString,
   Session,
   SeverityLevel,
-} from '@sentry/types';
-import { resolvedSyncPromise } from '@sentry/utils';
+} from '../../src/types-hoist';
 
 import { BaseClient } from '../../src/baseclient';
 import { initAndBind } from '../../src/sdk';
 import { createTransport } from '../../src/transports/base';
+import { resolvedSyncPromise } from '../../src/utils-hoist/syncpromise';
 
 export function getDefaultTestClientOptions(options: Partial<TestClientOptions> = {}): TestClientOptions {
   return {

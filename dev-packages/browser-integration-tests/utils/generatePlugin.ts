@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import type { Package } from '@sentry/types';
+import type { Package } from '@sentry/core';
 import HtmlWebpackPlugin, { createHtmlTagObject } from 'html-webpack-plugin';
 import type { Compiler } from 'webpack';
 

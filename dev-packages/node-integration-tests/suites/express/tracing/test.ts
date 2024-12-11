@@ -12,8 +12,8 @@ describe('express tracing', () => {
           transaction: {
             contexts: {
               trace: {
-                span_id: expect.any(String),
-                trace_id: expect.any(String),
+                span_id: expect.stringMatching(/[a-f0-9]{16}/),
+                trace_id: expect.stringMatching(/[a-f0-9]{32}/),
                 data: {
                   url: expect.stringMatching(/\/test\/express$/),
                   'http.response.status_code': 200,
@@ -58,8 +58,8 @@ describe('express tracing', () => {
             },
             contexts: {
               trace: {
-                trace_id: expect.any(String),
-                span_id: expect.any(String),
+                trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+                span_id: expect.stringMatching(/[a-f0-9]{16}/),
                 data: {
                   url: expect.stringMatching(/\/test\/regex$/),
                   'http.response.status_code': 200,
@@ -86,8 +86,8 @@ describe('express tracing', () => {
               },
               contexts: {
                 trace: {
-                  trace_id: expect.any(String),
-                  span_id: expect.any(String),
+                  trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+                  span_id: expect.stringMatching(/[a-f0-9]{16}/),
                   data: {
                     url: expect.stringMatching(`/test/${segment}$`),
                     'http.response.status_code': 200,
@@ -122,8 +122,8 @@ describe('express tracing', () => {
             },
             contexts: {
               trace: {
-                trace_id: expect.any(String),
-                span_id: expect.any(String),
+                trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+                span_id: expect.stringMatching(/[a-f0-9]{16}/),
                 data: {
                   url: expect.stringMatching(`/test/${segment}$`),
                   'http.response.status_code': 200,

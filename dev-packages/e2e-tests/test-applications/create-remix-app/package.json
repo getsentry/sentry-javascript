@@ -8,7 +8,7 @@
     "start": "NODE_OPTIONS='--require=./instrument.server.cjs' remix-serve build",
     "typecheck": "tsc",
     "clean": "npx rimraf node_modules pnpm-lock.yaml",
-    "test:build": "pnpm install && npx playwright install && pnpm build",
+    "test:build": "pnpm install && pnpm build",
     "test:assert": "pnpm playwright test",
     "test:assert-sourcemaps": "pnpm upload-sourcemaps"
   },
@@ -29,12 +29,19 @@
     "@remix-run/eslint-config": "^1.19.3",
     "@types/react": "^18.0.35",
     "@types/react-dom": "^18.0.11",
-    "@sentry/types": "latest || *",
-    "@sentry/utils": "latest || *",
+    "@sentry/core": "latest || *",
     "eslint": "^8.38.0",
     "typescript": "^5.0.4"
   },
   "volta": {
     "extends": "../../package.json"
+  },
+  "sentryTest": {
+    "optionalVariants": [
+      {
+        "assert-command": "test:assert-sourcemaps",
+        "label": "create-remix-app (sourcemaps)"
+      }
+    ]
   }
 }

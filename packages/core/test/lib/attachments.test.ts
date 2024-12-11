@@ -1,6 +1,5 @@
-import { parseEnvelope } from '@sentry/utils';
-
 import { createTransport } from '../../src/transports/base';
+import { parseEnvelope } from '../../src/utils-hoist/envelope';
 import { TestClient, getDefaultTestClientOptions } from '../mocks/client';
 
 describe('Attachments', () => {

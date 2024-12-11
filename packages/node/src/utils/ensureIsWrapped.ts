@@ -1,6 +1,5 @@
 import { isWrapped } from '@opentelemetry/core';
-import { getClient, getGlobalScope, hasTracingEnabled, isEnabled } from '@sentry/core';
-import { consoleSandbox } from '@sentry/utils';
+import { consoleSandbox, getClient, getGlobalScope, hasTracingEnabled, isEnabled } from '@sentry/core';
 import type { NodeClient } from '../sdk/client';
 import { isCjs } from './commonjs';
 import { createMissingInstrumentationContext } from './createMissingInstrumentationContext';

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import type { StackFrame } from '@sentry/types';
+import type { StackFrame } from '@sentry/core';
 
 import { applySourceContextToFrame } from '../../src/integrations/contextlines';
 
