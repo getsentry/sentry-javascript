@@ -28,7 +28,7 @@ const INTEGRATION_NAME = 'CaptureConsole';
 const _captureConsoleIntegration = ((options: CaptureConsoleOptions = {}) => {
   const levels = options.levels || CONSOLE_LEVELS;
   // TODO(v9): Flip default value to `true`
-  const handled = options.handled != null ? options.handled : false;
+  const handled = !!options.handled;
 
   return {
     name: INTEGRATION_NAME,
