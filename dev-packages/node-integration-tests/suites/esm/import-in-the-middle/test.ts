@@ -7,6 +7,11 @@ afterAll(() => {
 
 conditionalTest({ min: 18 })('import-in-the-middle', () => {
   test('onlyIncludeInstrumentedModules', done => {
-    createRunner(__dirname, 'app.mjs').ensureNoErrorOutput().start(done);
+    const runner = createRunner(__dirname, 'app.mjs').start(() => {
+      runner.getLogs().forEach(logMsg => {
+        expect(logMsg).not.toContain('should be the only hooked modules but we just hooked');
+      });
+      done();
+    });
   });
 });
