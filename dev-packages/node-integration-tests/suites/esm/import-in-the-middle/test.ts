@@ -6,7 +6,7 @@ afterAll(() => {
 });
 
 conditionalTest({ min: 18 })('import-in-the-middle', () => {
-  test('onlyIncludeInstrumentedModules', done => {
+  test('should only instrument modules that we have instrumentation for', done => {
     createRunner(__dirname, 'app.mjs').ensureNoErrorOutput().start(done);
   });
 });

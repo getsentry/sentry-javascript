@@ -13,7 +13,6 @@ Sentry.init({
   release: '1.0',
   autoSessionTracking: false,
   transport: loggingTransport,
-  registerEsmLoaderHooks: { onlyIncludeInstrumentedModules: true },
 });
 
 await import('./sub-module.mjs');
