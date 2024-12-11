@@ -40,41 +40,41 @@ If you need to support older browsers, we recommend transpiling your code using 
 
 ### Framework Support Changes
 
-**Angular:** TODO
+**Angular:** TBD
 
-**Ember:** TODO
+**Ember:** TBD
 
-**Next.js:** TODO
+**Next.js:** TBD
 
-**Nuxt:** TODO
+**Nuxt:** TBD
 
-**React:** TODO
+**React:** TBD
 
-**Vue:** TODO
+**Vue:** TBD
 
-**Astro:** TODO
+**Astro:** TBD
 
-**Gatsby:** TODO
+**Gatsby:** TBD
 
-**NestJS:** TODO
+**NestJS:** TBD
 
-**Svelte:** TODO
+**Svelte:** TBD
 
-**SvelteKit:** TODO
+**SvelteKit:** TBD
 
-**Bun:** TODO
+**Bun:** TBD
 
-**Cloudflare Workers:** TODO
+**Cloudflare Workers:** TBD
 
-**Deno:** TODO
+**Deno:** TBD
 
-**Solid:** TODO
+**Solid:** TBD
 
-**SolidStart:** TODO
+**SolidStart:** TBD
 
-**GCP Functions:** TODO
+**GCP Functions:** TBD
 
-**AWS Lambda:** TODO
+**AWS Lambda:** TBD
 
 ## 2. Behavior Changes
 
@@ -147,7 +147,7 @@ Let us know if this is causing issues in your setup by opening an issue on GitHu
 
 # Deprecations in 8.x
 
-TODO (Copy over from migrations list we collected)
+TBD (Copy over from migrations list we collected)
 
 # No Version Support Timeline
 
