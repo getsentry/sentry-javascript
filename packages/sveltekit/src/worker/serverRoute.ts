@@ -1,9 +1,5 @@
-import {
-  addNonEnumerableProperty,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  startSpan,
-} from '@sentry/core';
+import { addNonEnumerableProperty } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, startSpan } from '@sentry/cloudflare';
 import type { RequestEvent } from '@sveltejs/kit';
 import { flushIfServerless, sendErrorToSentry } from './utils';
 

@@ -9,9 +9,7 @@
   "engines": {
     "node": ">=18"
   },
-  "files": [
-    "/build"
-  ],
+  "files": ["/build"],
   "main": "build/cjs/index.server.js",
   "module": "build/esm/index.server.js",
   "browser": "build/esm/index.client.js",
@@ -44,6 +42,7 @@
     }
   },
   "dependencies": {
+    "@sentry/cloudflare": "9.1.0",
     "@sentry/core": "9.1.0",
     "@sentry/node": "9.1.0",
     "@sentry/opentelemetry": "9.1.0",

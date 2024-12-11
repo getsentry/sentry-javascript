@@ -12,8 +12,8 @@ import {
   startSpan,
   winterCGRequestToRequestData,
   withIsolationScope,
-  continueTrace,
 } from '@sentry/core';
+import { CloudflareOptions, continueTrace, wrapRequestHandler } from '@sentry/cloudflare';
 import type { Handle, ResolveOptions } from '@sveltejs/kit';
 
 import { DEBUG_BUILD } from '../common/debug-build';
@@ -191,4 +191,28 @@ async function instrumentHandle(
   } finally {
     await flushIfServerless();
   }
+}
+
+/** Initializes Sentry SvelteKit Cloudflare SDK
+ *  This should be before the sentryHandle() call.
+ * */
+export function initCloudflareSentryHandle(handlerOptions: CloudflareOptions): Handle {
+  const options = { ...handlerOptions };
+
+  const handleInitSentry: Handle = ({ event, resolve }) => {
+    // if event.platform exists (should be there in a cloudflare worker), then do the cloudflare sentry init
+    return event.platform
+      ? wrapRequestHandler(
+        {
+          options,
+          request: event.request,
+          // @ts-expect-error This will exist in Cloudflare
+          context: event.platform.context,
+        },
+        () => resolve(event),
+      )
+      : resolve(event);
+  };
+
+  return handleInitSentry;
 }
