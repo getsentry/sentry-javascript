@@ -90,6 +90,11 @@ sentryTest('it captures console messages correctly', async ({ getLocalTestUrl, p
     }),
   );
   expect(errorWithErrorEvent?.exception?.values?.[0].value).toBe('console error with error object');
+  expect(errorWithErrorEvent?.exception?.values?.[0].mechanism).toEqual({
+    // TODO (v9): Adjust to true after changing the integration's default value
+    handled: false,
+    type: 'console',
+  });
   expect(traceWithErrorEvent).toEqual(
     expect.objectContaining({
       level: 'log',
