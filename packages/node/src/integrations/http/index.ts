@@ -4,9 +4,7 @@ import type { HttpInstrumentationConfig } from '@opentelemetry/instrumentation-h
 import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
 import type { Span } from '@sentry/core';
 import { defineIntegration } from '@sentry/core';
-import { getClient } from '@sentry/opentelemetry';
 import { generateInstrumentOnce } from '../../otel/instrument';
-import type { NodeClient } from '../../sdk/client';
 import type { HTTPModuleRequestIncomingMessage } from '../../transports/http-module';
 import { addOriginToSpan } from '../../utils/addOriginToSpan';
 import { getRequestUrl } from '../../utils/getRequestUrl';
@@ -35,8 +33,6 @@ interface HttpOptions {
    * Read more about Release Health: https://docs.sentry.io/product/releases/health/
    *
    * Defaults to `true`.
-   *
-   * Note: If `autoSessionTracking` is set to `false` in `Sentry.init()` or the Client owning this integration, this option will be ignored.
    */
   trackIncomingRequestsAsSessions?: boolean;
 
@@ -90,13 +86,15 @@ interface HttpOptions {
   };
 }
 
-export const instrumentSentryHttp = generateInstrumentOnce<{
+const instrumentSentryHttp = generateInstrumentOnce<{
   breadcrumbs?: HttpOptions['breadcrumbs'];
   ignoreOutgoingRequests?: HttpOptions['ignoreOutgoingRequests'];
+  trackIncomingRequestsAsSessions?: HttpOptions['trackIncomingRequestsAsSessions'];
 }>(`${INTEGRATION_NAME}.sentry`, options => {
   return new SentryHttpInstrumentation({
     breadcrumbs: options?.breadcrumbs,
     ignoreOutgoingRequests: options?.ignoreOutgoingRequests,
+    trackIncomingRequestsAsSessions: options?.trackIncomingRequestsAsSessions,
   });
 });
 
@@ -118,22 +116,6 @@ export const instrumentOtelHttp = generateInstrumentOnce<HttpInstrumentationConf
 });
 
 /**
- * Instrument the HTTP and HTTPS modules.
- */
-const instrumentHttp = (options: HttpOptions = {}): void => {
-  // This is the "regular" OTEL instrumentation that emits spans
-  if (options.spans !== false) {
-    const instrumentationConfig = getConfigWithDefaults(options);
-    instrumentOtelHttp(instrumentationConfig);
-  }
-
-  // This is the Sentry-specific instrumentation that isolates requests & creates breadcrumbs
-  // Note that this _has_ to be wrapped after the OTEL instrumentation,
-  // otherwise the isolation will not work correctly
-  instrumentSentryHttp(options);
-};
-
-/**
  * The http integration instruments Node's internal http and https modules.
  * It creates breadcrumbs and spans for outgoing HTTP requests which will be attached to the currently active span.
  */
@@ -141,7 +123,16 @@ export const httpIntegration = defineIntegration((options: HttpOptions = {}) => 
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
-      instrumentHttp(options);
+      // This is the "regular" OTEL instrumentation that emits spans
+      if (options.spans !== false) {
+        const instrumentationConfig = getConfigWithDefaults(options);
+        instrumentOtelHttp(instrumentationConfig);
+      }
+
+      // This is the Sentry-specific instrumentation that isolates requests & creates breadcrumbs
+      // Note that this _has_ to be wrapped after the OTEL instrumentation,
+      // otherwise the isolation will not work correctly
+      instrumentSentryHttp(options);
     },
   };
 });
@@ -214,18 +205,6 @@ function getConfigWithDefaults(options: Partial<HttpOptions> = {}): HttpInstrume
       options.instrumentation?.requestHook?.(span, req);
     },
     responseHook: (span, res) => {
-      const client = getClient<NodeClient>();
-
-      if (
-        client &&
-        client.getOptions().autoSessionTracking !== false &&
-        options.trackIncomingRequestsAsSessions !== false
-      ) {
-        setImmediate(() => {
-          client['_captureRequestSession']();
-        });
-      }
-
       options.instrumentation?.responseHook?.(span, res);
     },
     applyCustomAttributesOnSpan: (

@@ -54,6 +54,7 @@ import { prepareEvent } from './utils/prepareEvent';
 import { showSpanDropWarning } from './utils/spanUtils';
 
 const ALREADY_SEEN_ERROR = "Not capturing exception because it's already been captured.";
+const MISSING_RELEASE_FOR_SESSION_ERROR = 'Discarded session because of miss ing or non-string release';
 
 /**
  * Base implementation for all JavaScript SDK clients.
@@ -235,13 +236,9 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    * @inheritDoc
    */
   public captureSession(session: Session): void {
-    if (!(typeof session.release === 'string')) {
-      DEBUG_BUILD && logger.warn('Discarded session because of missing or non-string release');
-    } else {
-      this.sendSession(session);
-      // After sending, we set init false to indicate it's not the first occurrence
-      updateSession(session, { init: false });
-    }
+    this.sendSession(session);
+    // After sending, we set init false to indicate it's not the first occurrence
+    updateSession(session, { init: false });
   }
 
   /**
@@ -370,6 +367,27 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    * @inheritDoc
    */
   public sendSession(session: Session | SessionAggregates): void {
+    const clientReleaseOption = this._options.release;
+    const clientEnvironmentOption = this._options.environment;
+    if ('aggregates' in session) {
+      // TODO(v9): Remove eslint disable
+      // eslint-disable-next-line @sentry-internal/sdk/no-optional-chaining
+      if (!session.attrs?.release && !clientReleaseOption) {
+        DEBUG_BUILD && logger.warn(MISSING_RELEASE_FOR_SESSION_ERROR);
+        return;
+      }
+      session.attrs = session.attrs || {};
+      session.attrs.release = session.attrs.release || clientReleaseOption;
+      session.attrs.environment = session.attrs.environment || clientEnvironmentOption;
+    } else {
+      if (!session.release && !clientReleaseOption) {
+        DEBUG_BUILD && logger.warn(MISSING_RELEASE_FOR_SESSION_ERROR);
+        return;
+      }
+      session.release = session.release || clientReleaseOption;
+      session.environment = session.environment || clientEnvironmentOption;
+    }
+
     const env = createSessionEnvelope(session, this._dsn, this._options._metadata, this._options.tunnel);
 
     // sendEnvelope should not throw

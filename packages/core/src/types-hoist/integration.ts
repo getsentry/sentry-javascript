@@ -51,6 +51,16 @@ export interface Integration {
    * This receives the client that the integration was installed for as third argument.
    */
   processEvent?(event: Event, hint: EventHint, client: Client): Event | null | PromiseLike<Event | null>;
+
+  /**
+   * TODO
+   */
+  flush?(client: Client): Promise<void>;
+
+  /**
+   * TODO
+   */
+  close?(client: Client): Promise<void>;
 }
 
 /**
