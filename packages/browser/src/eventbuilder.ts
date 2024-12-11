@@ -252,7 +252,6 @@ export function eventFromMessage(
   if (hint && hint.event_id) {
     event.event_id = hint.event_id;
   }
-  console.log('xx 3', event, event.exception?.values![0]);
   return resolvedSyncPromise(event);
 }
 
@@ -312,8 +311,6 @@ export function eventFromUnknownInput(
     addExceptionMechanism(event, {
       synthetic: true,
     });
-    console.log('xx 1', event, event.exception?.values![0]);
-
     return event;
   }
 
@@ -328,8 +325,6 @@ export function eventFromUnknownInput(
   // So bail out and capture it as a simple message:
   event = eventFromString(stackParser, exception as string, syntheticException, attachStacktrace);
   addExceptionTypeValue(event, `${exception}`, undefined);
-
-  console.log('xx 2', event, event.exception?.values![0]);
 
   return event;
 }
