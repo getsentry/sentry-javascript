@@ -157,6 +157,7 @@ function _init(
   logger.log(`Running in ${isCjs() ? 'CommonJS' : 'ESM'} mode.`);
 
   // TODO(V9): Remove this code since all of the logic should be in an integration
+  // eslint-disable-next-line deprecation/deprecation
   if (options.autoSessionTracking) {
     startSessionTracking();
   }
@@ -218,9 +219,11 @@ function getClientOptions(
   const autoSessionTracking =
     typeof release !== 'string'
       ? false
-      : options.autoSessionTracking === undefined
+      : // eslint-disable-next-line deprecation/deprecation
+        options.autoSessionTracking === undefined
         ? true
-        : options.autoSessionTracking;
+        : // eslint-disable-next-line deprecation/deprecation
+          options.autoSessionTracking;
 
   if (options.spotlight == null) {
     const spotlightEnv = envToBool(process.env.SENTRY_SPOTLIGHT, { strict: true });
@@ -315,6 +318,7 @@ function updateScopeFromEnvVariables(): void {
  */
 function startSessionTracking(): void {
   const client = getClient<NodeClient>();
+  // eslint-disable-next-line deprecation/deprecation
   if (client && client.getOptions().autoSessionTracking) {
     client.initSessionFlusher();
   }

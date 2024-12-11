@@ -4,7 +4,7 @@
   "scripts": {
     "start": "serve -s build",
     "build": "node build.mjs",
-    "test:build": "pnpm install && npx playwright install && pnpm build",
+    "test:build": "pnpm install && pnpm build",
     "test:assert": "playwright test"
   },
   "devDependencies": {

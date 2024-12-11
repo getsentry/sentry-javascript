@@ -1,4 +1,4 @@
-import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, setCurrentClient, timestampInSeconds } from '../../../src';
+import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, getCurrentScope, setCurrentClient, timestampInSeconds } from '../../../src';
 import { SentrySpan } from '../../../src/tracing/sentrySpan';
 import { SPAN_STATUS_ERROR } from '../../../src/tracing/spanstatus';
 import { TRACE_FLAG_NONE, TRACE_FLAG_SAMPLED, spanToJSON } from '../../../src/utils/spanUtils';
@@ -95,12 +95,28 @@ describe('SentrySpan', () => {
     });
   });
 
-  describe('finish', () => {
+  describe('end', () => {
     test('simple', () => {
       const span = new SentrySpan({});
       expect(spanToJSON(span).timestamp).toBeUndefined();
       span.end();
       expect(spanToJSON(span).timestamp).toBeGreaterThan(1);
+    });
+
+    test('with endTime in seconds', () => {
+      const span = new SentrySpan({});
+      expect(spanToJSON(span).timestamp).toBeUndefined();
+      const endTime = Date.now() / 1000;
+      span.end(endTime);
+      expect(spanToJSON(span).timestamp).toBe(endTime);
+    });
+
+    test('with endTime in milliseconds', () => {
+      const span = new SentrySpan({});
+      expect(spanToJSON(span).timestamp).toBeUndefined();
+      const endTime = Date.now();
+      span.end(endTime);
+      expect(spanToJSON(span).timestamp).toBe(endTime / 1000);
     });
 
     test('uses sampled config for standalone span', () => {
@@ -136,7 +152,7 @@ describe('SentrySpan', () => {
       expect(mockSend).toHaveBeenCalledTimes(1);
     });
 
-    test('sends the span if `beforeSendSpan` does not modify the span ', () => {
+    test('sends the span if `beforeSendSpan` does not modify the span', () => {
       const beforeSendSpan = jest.fn(span => span);
       const client = new TestClient(
         getDefaultTestClientOptions({
@@ -194,30 +210,54 @@ describe('SentrySpan', () => {
       );
       consoleWarnSpy.mockRestore();
     });
-  });
 
-  describe('end', () => {
-    test('simple', () => {
-      const span = new SentrySpan({});
-      expect(spanToJSON(span).timestamp).toBeUndefined();
-      span.end();
-      expect(spanToJSON(span).timestamp).toBeGreaterThan(1);
-    });
+    test('build TransactionEvent for basic root span', () => {
+      const client = new TestClient(
+        getDefaultTestClientOptions({
+          dsn: 'https://username@domain/123',
+        }),
+      );
+      setCurrentClient(client);
 
-    test('with endTime in seconds', () => {
-      const span = new SentrySpan({});
-      expect(spanToJSON(span).timestamp).toBeUndefined();
-      const endTime = Date.now() / 1000;
-      span.end(endTime);
-      expect(spanToJSON(span).timestamp).toBe(endTime);
-    });
+      const scope = getCurrentScope();
+      const captureEventSpy = jest.spyOn(scope, 'captureEvent').mockImplementation(() => 'testId');
 
-    test('with endTime in milliseconds', () => {
-      const span = new SentrySpan({});
-      expect(spanToJSON(span).timestamp).toBeUndefined();
-      const endTime = Date.now();
-      span.end(endTime);
-      expect(spanToJSON(span).timestamp).toBe(endTime / 1000);
+      const span = new SentrySpan({
+        name: 'test',
+        startTimestamp: 1,
+        sampled: true,
+      });
+      span.end(2);
+
+      expect(captureEventSpy).toHaveBeenCalledTimes(1);
+      expect(captureEventSpy).toHaveBeenCalledWith({
+        _metrics_summary: undefined,
+        contexts: {
+          trace: {
+            data: {
+              'sentry.origin': 'manual',
+            },
+            origin: 'manual',
+            span_id: expect.stringMatching(/^[a-f0-9]{16}$/),
+            trace_id: expect.stringMatching(/^[a-f0-9]{32}$/),
+          },
+        },
+        sdkProcessingMetadata: {
+          capturedSpanIsolationScope: undefined,
+          capturedSpanScope: undefined,
+          dynamicSamplingContext: {
+            environment: 'production',
+            public_key: 'username',
+            trace_id: expect.stringMatching(/^[a-f0-9]{32}$/),
+            transaction: 'test',
+          },
+        },
+        spans: [],
+        start_timestamp: 1,
+        timestamp: 2,
+        transaction: 'test',
+        type: 'transaction',
+      });
     });
   });
 

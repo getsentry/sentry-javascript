@@ -122,6 +122,7 @@ export function expressErrorHandler(options?: ExpressHandlerOptions): ExpressMid
 
     if (shouldHandleError(error)) {
       const client = getClient<NodeClient>();
+      // eslint-disable-next-line deprecation/deprecation
       if (client && client.getOptions().autoSessionTracking) {
         // Check if the `SessionFlusher` is instantiated on the client to go into this branch that marks the
         // `requestSession.status` as `Crashed`, and this check is necessary because the `SessionFlusher` is only

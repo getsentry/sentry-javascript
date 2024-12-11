@@ -10,12 +10,16 @@ import {
 import { GLOBAL_OBJ, SDK_VERSION, consoleSandbox, logger } from '@sentry/core';
 import { SentryPropagator, SentrySampler, SentrySpanProcessor } from '@sentry/opentelemetry';
 import { createAddHookMessageChannel } from 'import-in-the-middle';
+import { DEBUG_BUILD } from '../debug-build';
 import { getOpenTelemetryInstrumentationToPreload } from '../integrations/tracing';
 import { SentryContextManager } from '../otel/contextManager';
 import { isCjs } from '../utils/commonjs';
 import type { NodeClient } from './client';
 
 declare const __IMPORT_META_URL_REPLACEMENT__: string;
+
+// About 277h - this must fit into new Array(len)!
+const MAX_MAX_SPAN_WAIT_DURATION = 1_000_000;
 
 /**
  * Initialize OpenTelemetry for Node.
@@ -118,7 +122,7 @@ export function setupOtel(client: NodeClient): BasicTracerProvider {
     forceFlushTimeoutMillis: 500,
     spanProcessors: [
       new SentrySpanProcessor({
-        timeout: client.getOptions().maxSpanWaitDuration,
+        timeout: _clampSpanProcessorTimeout(client.getOptions().maxSpanWaitDuration),
       }),
     ],
   });
@@ -130,6 +134,26 @@ export function setupOtel(client: NodeClient): BasicTracerProvider {
   });
 
   return provider;
+}
+
+/** Just exported for tests. */
+export function _clampSpanProcessorTimeout(maxSpanWaitDuration: number | undefined): number | undefined {
+  if (maxSpanWaitDuration == null) {
+    return undefined;
+  }
+
+  // We guard for a max. value here, because we create an array with this length
+  // So if this value is too large, this would fail
+  if (maxSpanWaitDuration > MAX_MAX_SPAN_WAIT_DURATION) {
+    DEBUG_BUILD &&
+      logger.warn(`\`maxSpanWaitDuration\` is too high, using the maximum value of ${MAX_MAX_SPAN_WAIT_DURATION}`);
+    return MAX_MAX_SPAN_WAIT_DURATION;
+  } else if (maxSpanWaitDuration <= 0 || Number.isNaN(maxSpanWaitDuration)) {
+    DEBUG_BUILD && logger.warn('`maxSpanWaitDuration` must be a positive number, using default value instead.');
+    return undefined;
+  }
+
+  return maxSpanWaitDuration;
 }
 
 /**
