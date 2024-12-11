@@ -10,6 +10,28 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 8.44.0
+
+### Deprecations
+
+- **feat: Deprecate `autoSessionTracking` ([#14640](https://github.com/getsentry/sentry-javascript/pull/14640))**
+
+  Deprecates `autoSessionTracking`.
+  To enable session tracking, it is recommended to unset `autoSessionTracking` and ensure that either, in browser environments
+  the `browserSessionIntegration` is added, or in server environments the `httpIntegration` is added.
+
+  To disable session tracking, it is recommended to unset `autoSessionTracking` and to remove the `browserSessionIntegration` in
+  browser environments, or in server environments configure the `httpIntegration` with the `trackIncomingRequestsAsSessions` option set to `false`.
+
+### Other Changes
+
+- feat: Reword log message around unsent spans ([#14641](https://github.com/getsentry/sentry-javascript/pull/14641))
+- feat(opentelemetry): Set `response` context for http.server spans ([#14634](https://github.com/getsentry/sentry-javascript/pull/14634))
+- fix(google-cloud-serverless): Update homepage link in package.json ([#14411](https://github.com/getsentry/sentry-javascript/pull/14411))
+- fix(nuxt): Add unbuild config to not fail on warn ([#14662](https://github.com/getsentry/sentry-javascript/pull/14662))
+
+Work in this release was contributed by @robinvw1. Thank you for your contribution!
+
 ## 8.43.0
 
 ### Important Changes
