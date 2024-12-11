@@ -17,7 +17,6 @@ import { createCheckInEnvelope } from './checkin';
 import { getIsolationScope, getTraceContextFromScope } from './currentScopes';
 import { DEBUG_BUILD } from './debug-build';
 import type { Scope } from './scope';
-import { SessionFlusher } from './sessionflusher';
 import {
   getDynamicSamplingContextFromScope,
   getDynamicSamplingContextFromSpan,
@@ -42,9 +41,6 @@ export interface ServerRuntimeClientOptions extends ClientOptions<BaseTransportO
 export class ServerRuntimeClient<
   O extends ClientOptions & ServerRuntimeClientOptions = ServerRuntimeClientOptions,
 > extends BaseClient<O> {
-  // eslint-disable-next-line deprecation/deprecation
-  protected _sessionFlusher: SessionFlusher | undefined;
-
   /**
    * Creates a new Edge SDK instance.
    * @param options Configuration options for this SDK.
@@ -80,21 +76,6 @@ export class ServerRuntimeClient<
    * @inheritDoc
    */
   public captureException(exception: unknown, hint?: EventHint, scope?: Scope): string {
-    // Check if `_sessionFlusher` exists because it is initialized (defined) only when the `autoSessionTracking` is enabled.
-    // The expectation is that session aggregates are only sent when `autoSessionTracking` is enabled.
-    // TODO(v9): Our goal in the future is to not have the `autoSessionTracking` option and instead rely on integrations doing the creation and sending of sessions. We will not have a central kill-switch for sessions.
-    // TODO(v9): This should move into the httpIntegration.
-    if (this._options.autoSessionTracking && this._sessionFlusher) {
-      // eslint-disable-next-line deprecation/deprecation
-      const requestSession = getIsolationScope().getRequestSession();
-
-      // Necessary checks to ensure this is code block is executed only within a request
-      // Should override the status only if `requestSession.status` is `Ok`, which is its initial stage
-      if (requestSession && requestSession.status === 'ok') {
-        requestSession.status = 'errored';
-      }
-    }
-
     return super.captureException(exception, hint, scope);
   }
 
@@ -102,60 +83,22 @@ export class ServerRuntimeClient<
    * @inheritDoc
    */
   public captureEvent(event: Event, hint?: EventHint, scope?: Scope): string {
-    // Check if `_sessionFlusher` exists because it is initialized only when the `autoSessionTracking` is enabled.
-    // The expectation is that session aggregates are only sent when `autoSessionTracking` is enabled.
-    // TODO(v9): Our goal in the future is to not have the `autoSessionTracking` option and instead rely on integrations doing the creation and sending of sessions. We will not have a central kill-switch for sessions.
-    // TODO(v9): This should move into the httpIntegration.
-    if (this._options.autoSessionTracking && this._sessionFlusher) {
-      const eventType = event.type || 'exception';
-      const isException =
-        eventType === 'exception' && event.exception && event.exception.values && event.exception.values.length > 0;
-
-      // If the event is of type Exception, then a request session should be captured
-      if (isException) {
-        // eslint-disable-next-line deprecation/deprecation
-        const requestSession = getIsolationScope().getRequestSession();
-
-        // Ensure that this is happening within the bounds of a request, and make sure not to override
-        // Session Status if Errored / Crashed
-        if (requestSession && requestSession.status === 'ok') {
-          requestSession.status = 'errored';
-        }
+    // If the event is of type Exception, then a request session should be captured
+    const isException = !event.type && event.exception && event.exception.values && event.exception.values.length > 0;
+    if (isException) {
+      // TODO: Check if mechanism === unhandled
+      const isolationScope = getIsolationScope();
+      const requestSession = isolationScope.getScopeData().sdkProcessingMetadata.requestSession;
+      if (requestSession) {
+        isolationScope.setSDKProcessingMetadata({
+          requestSession: {
+            status: 'errored',
+          },
+        });
       }
     }
 
     return super.captureEvent(event, hint, scope);
-  }
-
-  /**
-   *
-   * @inheritdoc
-   */
-  public close(timeout?: number): PromiseLike<boolean> {
-    if (this._sessionFlusher) {
-      this._sessionFlusher.close();
-    }
-    return super.close(timeout);
-  }
-
-  /**
-   * Initializes an instance of SessionFlusher on the client which will aggregate and periodically flush session data.
-   *
-   * NOTICE: This method will implicitly create an interval that is periodically called.
-   * To clean up this resources, call `.close()` when you no longer intend to use the client.
-   * Not doing so will result in a memory leak.
-   */
-  public initSessionFlusher(): void {
-    const { release, environment } = this._options;
-    if (!release) {
-      DEBUG_BUILD && logger.warn('Cannot initialize an instance of SessionFlusher if no release is provided!');
-    } else {
-      // eslint-disable-next-line deprecation/deprecation
-      this._sessionFlusher = new SessionFlusher(this, {
-        release,
-        environment,
-      });
-    }
   }
 
   /**
@@ -168,7 +111,7 @@ export class ServerRuntimeClient<
   public captureCheckIn(checkIn: CheckIn, monitorConfig?: MonitorConfig, scope?: Scope): string {
     const id = 'checkInId' in checkIn && checkIn.checkInId ? checkIn.checkInId : uuid4();
     if (!this._isEnabled()) {
-      DEBUG_BUILD && logger.warn('SDK not enabled, will not capture checkin.');
+      DEBUG_BUILD && logger.warn('SDK not enabled, will not capture check-in.');
       return id;
     }
 
@@ -220,20 +163,6 @@ export class ServerRuntimeClient<
     this.sendEnvelope(envelope);
 
     return id;
-  }
-
-  /**
-   * Method responsible for capturing/ending a request session by calling `incrementSessionStatusCount` to increment
-   * appropriate session aggregates bucket
-   *
-   * @deprecated This method should not be used or extended. It's functionality will move into the `httpIntegration` and not be part of any public API.
-   */
-  protected _captureRequestSession(): void {
-    if (!this._sessionFlusher) {
-      DEBUG_BUILD && logger.warn('Discarded request mode session because autoSessionTracking option was disabled');
-    } else {
-      this._sessionFlusher.incrementSessionStatusCount();
-    }
   }
 
   /**

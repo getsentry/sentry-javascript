@@ -1,14 +1,14 @@
+/* eslint-disable max-lines */
 import type * as http from 'node:http';
 import type { IncomingMessage, RequestOptions } from 'node:http';
 import type * as https from 'node:https';
 import { VERSION } from '@opentelemetry/core';
 import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
 import { InstrumentationBase, InstrumentationNodeModuleDefinition } from '@opentelemetry/instrumentation';
-import type { RequestEventData, SanitizedRequestData, Scope } from '@sentry/core';
+import type { AggregationCounts, Client, RequestEventData, SanitizedRequestData, Scope } from '@sentry/core';
 import {
   addBreadcrumb,
   getBreadcrumbLogLevelFromHttpStatusCode,
-  getClient,
   getIsolationScope,
   getSanitizedUrlString,
   httpRequestToRequestData,
@@ -18,9 +18,18 @@ import {
   withIsolationScope,
 } from '@sentry/core';
 import { DEBUG_BUILD } from '../../debug-build';
-import type { NodeClient } from '../../sdk/client';
 import { getRequestUrl } from '../../utils/getRequestUrl';
 import { getRequestInfo } from './vendor/getRequestInfo';
+
+const clientToAggregatesMap = new Map<
+  Client,
+  { [timestampRoundedToSeconds: string]: { exited: number; errored: number } }
+>();
+
+interface RequestSession {
+  status: 'ok' | 'errored';
+}
+
 type Http = typeof http;
 type Https = typeof https;
 
@@ -42,6 +51,13 @@ type SentryHttpInstrumentationOptions = InstrumentationConfig & {
    * @param request Contains the {@type RequestOptions} object used to make the outgoing request.
    */
   ignoreOutgoingRequests?: (url: string, request: RequestOptions) => boolean;
+
+  /**
+   * TODO
+   *
+   * Defaults to `true`.
+   */
+  trackIncomingRequestsAsSessions?: boolean;
 };
 
 // We only want to capture request bodies up to 1mb.
@@ -134,6 +150,7 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
 
         const isolationScope = getIsolationScope().clone();
         const request = args[0] as http.IncomingMessage;
+        const response = args[1] as http.OutgoingMessage;
 
         const normalizedRequest = httpRequestToRequestData(request);
 
@@ -146,12 +163,6 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
           normalizedRequest,
         });
 
-        const client = getClient<NodeClient>();
-        if (client && client.getOptions().autoSessionTracking) {
-          // eslint-disable-next-line deprecation/deprecation
-          isolationScope.setRequestSession({ status: 'ok' });
-        }
-
         // attempt to update the scope's `transactionName` based on the request URL
         // Ideally, framework instrumentations coming after the HttpInstrumentation
         // update the transactionName once we get a parameterized route.
@@ -161,6 +172,62 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
         const bestEffortTransactionName = `${httpMethod} ${httpTarget}`;
 
         isolationScope.setTransactionName(bestEffortTransactionName);
+
+        if (instrumentation.getConfig().trackIncomingRequestsAsSessions !== false) {
+          isolationScope.setSDKProcessingMetadata({
+            requestSession: { status: 'ok' },
+          });
+          response.once('close', () => {
+            const client = isolationScope.getClient();
+            const requestSession = isolationScope.getScopeData().sdkProcessingMetadata.requestSession as
+              | RequestSession
+              | undefined;
+
+            if (client && requestSession) {
+              const roundedDate = new Date();
+              roundedDate.setSeconds(0, 0);
+              const dateBucketKey = roundedDate.toISOString();
+
+              const existingClientAggregate = clientToAggregatesMap.get(client);
+              if (existingClientAggregate) {
+                DEBUG_BUILD && logger.debug(`Recorded request session with status: ${requestSession.status}`);
+                const bucket = existingClientAggregate[dateBucketKey] || { errored: 0, exited: 0 };
+                bucket[requestSession.status === 'ok' ? 'exited' : 'errored']++;
+                existingClientAggregate[dateBucketKey] = bucket;
+              } else {
+                DEBUG_BUILD && logger.debug('Opened new request session aggregate.');
+                const bucket = { errored: 0, exited: 0 };
+                bucket[requestSession.status === 'ok' ? 'exited' : 'errored']++;
+                const newClientAggregate = { [dateBucketKey]: bucket };
+                clientToAggregatesMap.set(client, newClientAggregate);
+
+                const flushPendingClientAggregates = (): void => {
+                  clearTimeout(timeout);
+                  unregisterClientFlushHook();
+                  clientToAggregatesMap.delete(client);
+
+                  const aggregatePayload: AggregationCounts[] = Object.entries(newClientAggregate).map(
+                    ([timestamp, value]) => ({
+                      started: timestamp,
+                      exited: value.exited,
+                      errored: value.errored,
+                    }),
+                  );
+                  client.sendSession({ aggregates: aggregatePayload });
+                };
+
+                const unregisterClientFlushHook = client.on('flush', () => {
+                  DEBUG_BUILD && logger.debug('Sending request session aggregate due to client flush');
+                  flushPendingClientAggregates();
+                });
+                const timeout = setTimeout(() => {
+                  DEBUG_BUILD && logger.debug('Sending request session aggregate due to flushing schedule');
+                  flushPendingClientAggregates();
+                }, 60_000).unref();
+              }
+            }
+          });
+        }
 
         return withIsolationScope(isolationScope, () => {
           return original.apply(this, [event, ...args]);
@@ -362,8 +429,8 @@ function patchRequestToCaptureBody(req: IncomingMessage, isolationScope: Scope):
         if (event === 'data') {
           const callback = new Proxy(listener, {
             apply: (target, thisArg, args: Parameters<typeof listener>) => {
-              // If we have already read more than the max body length, we stop addiing chunks
-              // To avoid growing the memory indefinitely if a respons is e.g. streamed
+              // If we have already read more than the max body length, we stop adding chunks
+              // To avoid growing the memory indefinitely if a response is e.g. streamed
               if (getChunksSize() < MAX_BODY_BYTE_LENGTH) {
                 const chunk = args[0] as Buffer;
                 chunks.push(chunk);
