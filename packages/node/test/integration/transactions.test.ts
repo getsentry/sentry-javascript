@@ -620,7 +620,7 @@ describe('Integration | Transactions', () => {
     expect(logs).toEqual(
       expect.arrayContaining([
         'SpanExporter dropped 2 spans because they were pending for more than 300 seconds.',
-        'SpanExporter exported 1 spans, 0 unsent spans remaining',
+        'SpanExporter exported 1 spans, 0 spans are waiting for their parent spans to finish',
       ]),
     );
   });
