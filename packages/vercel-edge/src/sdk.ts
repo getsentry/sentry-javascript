@@ -87,6 +87,7 @@ export function init(options: VercelEdgeOptions = {}): Client | undefined {
       options.release = detectedRelease;
     } else {
       // If release is not provided, then we should disable autoSessionTracking
+      // eslint-disable-next-line deprecation/deprecation
       options.autoSessionTracking = false;
     }
   }
@@ -94,7 +95,9 @@ export function init(options: VercelEdgeOptions = {}): Client | undefined {
   options.environment =
     options.environment || process.env.SENTRY_ENVIRONMENT || getVercelEnv(false) || process.env.NODE_ENV;
 
+  // eslint-disable-next-line deprecation/deprecation
   if (options.autoSessionTracking === undefined && options.dsn !== undefined) {
+    // eslint-disable-next-line deprecation/deprecation
     options.autoSessionTracking = true;
   }
 

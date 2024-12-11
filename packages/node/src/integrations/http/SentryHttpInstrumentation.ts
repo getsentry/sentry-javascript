@@ -147,6 +147,7 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
         });
 
         const client = getClient<NodeClient>();
+        // eslint-disable-next-line deprecation/deprecation
         if (client && client.getOptions().autoSessionTracking) {
           // eslint-disable-next-line deprecation/deprecation
           isolationScope.setRequestSession({ status: 'ok' });
