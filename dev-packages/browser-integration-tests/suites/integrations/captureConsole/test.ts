@@ -30,6 +30,7 @@ sentryTest('it captures console messages correctly', async ({ getLocalTestUrl, p
       extra: {
         arguments: ['console log'],
       },
+      message: 'console log',
     }),
   );
   expect(logEvent?.exception).toBeUndefined();
@@ -40,6 +41,7 @@ sentryTest('it captures console messages correctly', async ({ getLocalTestUrl, p
       extra: {
         arguments: ['console warn'],
       },
+      message: 'console warn',
     }),
   );
   expect(warnEvent?.exception).toBeUndefined();
@@ -50,6 +52,7 @@ sentryTest('it captures console messages correctly', async ({ getLocalTestUrl, p
       extra: {
         arguments: ['console info'],
       },
+      message: 'console info',
     }),
   );
   expect(infoEvent?.exception).toBeUndefined();
@@ -60,6 +63,7 @@ sentryTest('it captures console messages correctly', async ({ getLocalTestUrl, p
       extra: {
         arguments: ['console error'],
       },
+      message: 'console error',
     }),
   );
   expect(errorEvent?.exception).toBeUndefined();
@@ -70,6 +74,7 @@ sentryTest('it captures console messages correctly', async ({ getLocalTestUrl, p
       extra: {
         arguments: ['console trace'],
       },
+      message: 'console trace',
     }),
   );
   expect(traceEvent?.exception).toBeUndefined();
