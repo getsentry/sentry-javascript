@@ -1,7 +1,11 @@
-import { addNonEnumerableProperty } from '@sentry/core';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, startSpan } from '@sentry/node';
+import {
+  addNonEnumerableProperty,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  startSpan,
+} from '@sentry/core';
 import type { RequestEvent } from '@sveltejs/kit';
-import { flushIfServerless, sendErrorToSentry } from '../server-common/utils';
+import { flushIfServerless, sendErrorToSentry } from './utils';
 
 type PatchedServerRouteEvent = RequestEvent & { __sentry_wrapped__?: boolean };
 

@@ -8,10 +8,10 @@
 //
 // -------------------------
 // SvelteKit SDK exports:
-export { handleErrorWithSentry } from './handleError';
-export { wrapLoadWithSentry, wrapServerLoadWithSentry } from './load';
+export { handleErrorWithSentry } from '../server-common/handleError';
+export { wrapLoadWithSentry, wrapServerLoadWithSentry } from '../server-common/load';
 export { sentryHandle, initCloudflareSentryHandle } from './handle';
-export { wrapServerRouteWithSentry } from './serverRoute';
+export { wrapServerRouteWithSentry } from '../server-common/serverRoute';
 
 // Re-export some functions from Cloudflare SDK
 export {
