@@ -3,7 +3,8 @@
   "vcs": {
     "enabled": true,
     "clientKind": "git",
-    "useIgnoreFile": true
+    "useIgnoreFile": true,
+    "defaultBranch": "develop"
   },
   "organizeImports": {
     "enabled": true
@@ -17,13 +18,15 @@
         "noUnusedVariables": "error",
         "noPrecisionLoss": "error"
       },
+      "complexity": {
+        "useRegexLiterals": "error"
+      },
       "suspicious": {
         "all": false,
         "noControlCharactersInRegex": "error"
       },
       "nursery": {
-        "noUnusedImports": "error",
-        "useRegexLiterals": "error"
+        "noUnusedImports": "error"
       },
       "performance": {
         "all": true,
@@ -92,6 +95,10 @@
   "json": {
     "formatter": {
       "enabled": true
+    },
+    "parser": {
+      "allowComments": true,
+      "allowTrailingCommas": true
     }
   }
 }

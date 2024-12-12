@@ -48,6 +48,15 @@ function instrumentFetch(onFetchResolved?: (response: Response) => void, skipNat
 
   fill(GLOBAL_OBJ, 'fetch', function (originalFetch: () => void): () => void {
     return function (...args: any[]): void {
+      // We capture the error right here and not in the Promise error callback because Safari (and probably other
+      // browsers too) will wipe the stack trace up to this point, only leaving us with this file which is useless.
+
+      // NOTE: If you are a Sentry user, and you are seeing this stack frame,
+      //       it means the error, that was caused by your fetch call did not
+      //       have a stack trace, so the SDK backfilled the stack trace so
+      //       you can see which fetch call failed.
+      const virtualError = new Error();
+
       const { method, url } = parseFetchArgs(args);
       const handlerData: HandlerDataFetch = {
         args,
@@ -56,6 +65,8 @@ function instrumentFetch(onFetchResolved?: (response: Response) => void, skipNat
           url,
         },
         startTimestamp: timestampInSeconds() * 1000,
+        // // Adding the error to be able to fingerprint the failed fetch event in HttpClient instrumentation
+        virtualError,
       };
 
       // if there is no callback, fetch is instrumented directly
@@ -64,15 +75,6 @@ function instrumentFetch(onFetchResolved?: (response: Response) => void, skipNat
           ...handlerData,
         });
       }
-
-      // We capture the stack right here and not in the Promise error callback because Safari (and probably other
-      // browsers too) will wipe the stack trace up to this point, only leaving us with this file which is useless.
-
-      // NOTE: If you are a Sentry user, and you are seeing this stack frame,
-      //       it means the error, that was caused by your fetch call did not
-      //       have a stack trace, so the SDK backfilled the stack trace so
-      //       you can see which fetch call failed.
-      const virtualStackTrace = new Error().stack;
 
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       return originalFetch.apply(GLOBAL_OBJ, args).then(
@@ -101,7 +103,7 @@ function instrumentFetch(onFetchResolved?: (response: Response) => void, skipNat
             //       it means the error, that was caused by your fetch call did not
             //       have a stack trace, so the SDK backfilled the stack trace so
             //       you can see which fetch call failed.
-            error.stack = virtualStackTrace;
+            error.stack = virtualError.stack;
             addNonEnumerableProperty(error, 'framesToPop', 1);
           }
 

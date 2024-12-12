@@ -2,6 +2,7 @@ import { Worker } from 'node:worker_threads';
 import type { Event, EventHint, Exception, IntegrationFn } from '@sentry/core';
 import { defineIntegration, logger } from '@sentry/core';
 import type { NodeClient } from '../../sdk/client';
+import { isDebuggerEnabled } from '../../utils/debug';
 import type { FrameVariables, LocalVariablesIntegrationOptions, LocalVariablesWorkerArgs } from './common';
 import { LOCAL_VARIABLES_KEY, functionNamesMatch } from './common';
 
@@ -101,10 +102,15 @@ export const localVariablesAsyncIntegration = defineIntegration(((
 
   return {
     name: 'LocalVariablesAsync',
-    setup(client: NodeClient) {
+    async setup(client: NodeClient) {
       const clientOptions = client.getOptions();
 
       if (!clientOptions.includeLocalVariables) {
+        return;
+      }
+
+      if (await isDebuggerEnabled()) {
+        logger.warn('Local variables capture has been disabled because the debugger was already enabled');
         return;
       }
 
