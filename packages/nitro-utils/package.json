@@ -6,6 +6,7 @@
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/nitro-utils",
   "author": "Sentry",
   "license": "MIT",
+  "private": true,
   "engines": {
     "node": ">=16.20"
   },
@@ -34,9 +35,6 @@
         "build/types-ts3.8/index.d.ts"
       ]
     }
-  },
-  "publishConfig": {
-    "access": "public"
   },
   "dependencies": {
     "@sentry/core": "8.44.0"

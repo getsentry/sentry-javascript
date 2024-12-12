@@ -1,7 +1,15 @@
-import { patchEventHandler } from '@sentry-internal/nitro-utils';
-import { GLOBAL_OBJ, flush, getClient, logger, vercelWaitUntil } from '@sentry/core';
+import {
+  GLOBAL_OBJ,
+  flush,
+  getClient,
+  getDefaultIsolationScope,
+  getIsolationScope,
+  logger,
+  vercelWaitUntil,
+  withIsolationScope,
+} from '@sentry/core';
 import * as Sentry from '@sentry/node';
-import { H3Error } from 'h3';
+import { type EventHandler, H3Error } from 'h3';
 import { defineNitroPlugin } from 'nitropack/runtime';
 import type { NuxtRenderHTMLContext } from 'nuxt/app';
 import { addSentryTracingMetaTags, extractErrorContext } from '../utils';
@@ -65,4 +73,28 @@ async function flushWithTimeout(): Promise<void> {
   } catch (e) {
     isDebug && logger.log('Error while flushing events:\n', e);
   }
+}
+
+// copied from '@sentry-internal/nitro-utils' - the nuxt-module-builder does not inline devDependencies
+function patchEventHandler(handler: EventHandler): EventHandler {
+  return new Proxy(handler, {
+    async apply(handlerTarget, handlerThisArg, handlerArgs: Parameters<EventHandler>) {
+      const isolationScope = getIsolationScope();
+      const newIsolationScope = isolationScope === getDefaultIsolationScope() ? isolationScope.clone() : isolationScope;
+
+      logger.log(
+        `Patched h3 event handler. ${
+          isolationScope === newIsolationScope ? 'Using existing' : 'Created new'
+        } isolation scope.`,
+      );
+
+      return withIsolationScope(newIsolationScope, async () => {
+        try {
+          return await handlerTarget.apply(handlerThisArg, handlerArgs);
+        } finally {
+          await flushIfServerless();
+        }
+      });
+    },
+  });
 }

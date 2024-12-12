@@ -15,9 +15,11 @@ export default [
       },
     }),
   ),
-  /*  The Nuxt module plugins are also built with the @nuxt/module-builder.
-      This rollup setup is still left here for an easier switch between the setups while
-      manually testing different built outputs (module-builder vs. rollup only) */
+
+  // The Nuxt module plugins are also built with the @nuxt/module-builder.
+  // This rollup setup is still left here for an easier switch between the setups while
+  // manually testing different built outputs (module-builder vs. rollup only)
+  /*
   ...makeNPMConfigVariants(
     makeBaseNPMConfig({
       entrypoints: ['src/runtime/plugins/sentry.client.ts', 'src/runtime/plugins/sentry.server.ts'],
@@ -31,4 +33,5 @@ export default [
       },
     }),
   ),
+ */
 ];
