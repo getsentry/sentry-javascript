@@ -16,5 +16,5 @@ esbuild.buildSync({
   format: 'cjs',
   bundle: true,
   loader: { '.node': 'copy' },
-  external: ['@sentry/node'],
+  external: ['@sentry/node', 'detect-libc', 'node-abi'],
 });
