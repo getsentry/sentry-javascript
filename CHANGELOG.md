@@ -8,6 +8,10 @@
 
 ## Unreleased
 
+### Other Changes
+
+- fix(feedback): return when the sendFeedback promise resolves ([#14683](https://github.com/getsentry/sentry-javascript/pull/14683))
+
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
 Work in this release was contributed by @anonrig. Thank you for your contribution!
