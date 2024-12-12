@@ -107,6 +107,28 @@
   });
   ```
 
+## `@sentry/nuxt` and `@sentry/vue`
+
+- When component tracking is enabled, "update" spans are no longer created by default.
+  Add an `"update"` item to the `tracingOptions.hooks` option via the `vueIntegration()` to restore this behavior.
+
+  ```ts
+  Sentry.init({
+    integrations: [
+      Sentry.vueIntegration({
+        tracingOptions: {
+          trackComponents: true,
+          hooks: [
+            'mount',
+            'update', // <--
+            'unmount',
+          ],
+        },
+      }),
+    ],
+  });
+  ```
+
 ## `@sentry/astro`
 
 - Deprecated passing `dsn`, `release`, `environment`, `sampleRate`, `tracesSampleRate`, `replaysSessionSampleRate` to the integration. Use the runtime-specific `Sentry.init()` calls for passing these options instead.
