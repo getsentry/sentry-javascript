@@ -78,6 +78,12 @@ If you need to support older browsers, we recommend transpiling your code using 
 
 ## 2. Behavior Changes
 
+### `@sentry/node`
+
+- When `skipOpenTelemetrySetup: true` is configured, `httpIntegration({ spans: false })` will be configured by default. This means that you no longer have to specify this yourself in this scenario. With this change, no spans are emitted once `skipOpenTelemetrySetup: true` is configured, without any further configuration being needed.
+
+### Uncategorized (TODO)
+
 - Next.js withSentryConfig returning Promise
 - `request` on sdk processing metadata will be ignored going forward
 - respect sourcemap generation settings

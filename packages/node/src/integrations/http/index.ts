@@ -8,6 +8,7 @@ import { getClient } from '@sentry/opentelemetry';
 import { generateInstrumentOnce } from '../../otel/instrument';
 import type { NodeClient } from '../../sdk/client';
 import type { HTTPModuleRequestIncomingMessage } from '../../transports/http-module';
+import type { NodeClientOptions } from '../../types';
 import { addOriginToSpan } from '../../utils/addOriginToSpan';
 import { getRequestUrl } from '../../utils/getRequestUrl';
 import { SentryHttpInstrumentation } from './SentryHttpInstrumentation';
@@ -27,6 +28,8 @@ interface HttpOptions {
    * If set to false, do not emit any spans.
    * This will ensure that the default HttpInstrumentation from OpenTelemetry is not setup,
    * only the Sentry-specific instrumentation for request isolation is applied.
+   *
+   * If `skipOpenTelemetrySetup: true` is configured, this defaults to `false`, otherwise it defaults to `true`.
    */
   spans?: boolean;
 
@@ -118,12 +121,21 @@ export const instrumentOtelHttp = generateInstrumentOnce<HttpInstrumentationConf
   return instrumentation;
 });
 
+/** Exported only for tests. */
+export function _shouldInstrumentSpans(options: HttpOptions, clientOptions: Partial<NodeClientOptions> = {}): boolean {
+  // If `spans` is passed in, it takes precedence
+  // Else, we by default emit spans, unless `skipOpenTelemetrySetup` is set to `true`
+  return typeof options.spans === 'boolean' ? options.spans : !clientOptions.skipOpenTelemetrySetup;
+}
+
 /**
  * Instrument the HTTP and HTTPS modules.
  */
 const instrumentHttp = (options: HttpOptions = {}): void => {
+  const instrumentSpans = _shouldInstrumentSpans(options, getClient<NodeClient>()?.getOptions());
+
   // This is the "regular" OTEL instrumentation that emits spans
-  if (options.spans !== false) {
+  if (instrumentSpans) {
     const instrumentationConfig = getConfigWithDefaults(options);
     instrumentOtelHttp(instrumentationConfig);
   }
