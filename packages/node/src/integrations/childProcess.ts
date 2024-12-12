@@ -39,13 +39,6 @@ export const childProcessIntegration = defineIntegration((options: Options = {})
   };
 });
 
-/**
- * Capture breadcrumbs for child processes and worker threads.
- *
- * @deprecated Use `childProcessIntegration` integration instead. Functionally they are the same. `processThreadBreadcrumbIntegration` will be removed in the next major version.
- */
-export const processThreadBreadcrumbIntegration = childProcessIntegration;
-
 function captureChildProcessEvents(child: ChildProcess, options: Options): void {
   let hasExited = false;
   let data: Record<string, unknown> | undefined;
