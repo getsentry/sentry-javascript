@@ -6,6 +6,7 @@
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/nitro-utils",
   "author": "Sentry",
   "license": "MIT",
+  "private": true,
   "engines": {
     "node": ">=16.20"
   },
@@ -35,9 +36,6 @@
       ]
     }
   },
-  "publishConfig": {
-    "access": "public"
-  },
   "dependencies": {
     "@sentry/core": "8.44.0"
   },
@@ -55,7 +53,6 @@
     "build:dev:watch": "run-p build:transpile:watch build:types:watch",
     "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",
     "build:types:watch": "tsc -p tsconfig.types.json --watch",
-    "build:tarball": "npm pack",
     "clean": "rimraf build coverage sentry-internal-nitro-utils-*.tgz",
     "fix": "eslint . --format stylish --fix",
     "lint": "eslint . --format stylish",
