@@ -20,11 +20,14 @@ let showedExportModeTunnelWarning = false;
  * @param sentryBuildOptions Additional options to configure instrumentation and
  * @returns The modified config to be exported
  */
-// TODO(v9): Always return an async function here to allow us to do async things like grabbing a deterministic build ID.
-export function withSentryConfig<C>(nextConfig?: C, sentryBuildOptions: SentryBuildOptions = {}): C {
+export function withSentryConfig(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  nextConfig?: any,
+  sentryBuildOptions: SentryBuildOptions = {},
+): NextConfigFunction {
   const castNextConfig = (nextConfig as NextConfig) || {};
-  if (typeof castNextConfig === 'function') {
-    return function (this: unknown, ...webpackConfigFunctionArgs: unknown[]): ReturnType<NextConfigFunction> {
+  return async function (this: unknown, ...webpackConfigFunctionArgs: unknown[]): ReturnType<NextConfigFunction> {
+    if (typeof castNextConfig === 'function') {
       const maybePromiseNextConfig: ReturnType<typeof castNextConfig> = castNextConfig.apply(
         this,
         webpackConfigFunctionArgs,
@@ -37,10 +40,10 @@ export function withSentryConfig<C>(nextConfig?: C, sentryBuildOptions: SentryBu
       }
 
       return getFinalConfigObject(maybePromiseNextConfig, sentryBuildOptions);
-    } as C;
-  } else {
-    return getFinalConfigObject(castNextConfig, sentryBuildOptions) as C;
-  }
+    } else {
+      return getFinalConfigObject(castNextConfig, sentryBuildOptions);
+    }
+  };
 }
 
 // Modify the materialized object form of the user's next config by deleting the `sentry` property and wrapping the
