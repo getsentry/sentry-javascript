@@ -154,6 +154,7 @@ async function _startWorker(
     pollInterval: integrationOptions.pollInterval || DEFAULT_INTERVAL,
     anrThreshold: integrationOptions.anrThreshold || DEFAULT_HANG_THRESHOLD,
     captureStackTrace: !!integrationOptions.captureStackTrace,
+    maxAnrEvents: integrationOptions.maxAnrEvents || 1,
     staticTags: integrationOptions.staticTags || {},
     contexts,
   };

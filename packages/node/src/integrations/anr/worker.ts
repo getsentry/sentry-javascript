@@ -23,7 +23,7 @@ type VoidFunction = () => void;
 
 const options: WorkerStartData = workerData;
 let session: Session | undefined;
-let hasSentAnrEvent = false;
+let sentAnrEvents = 0;
 let mainDebugImages: Record<string, string> = {};
 
 function log(msg: string): void {
@@ -134,11 +134,11 @@ function applyScopeToEvent(event: Event, scope: ScopeData): void {
 }
 
 async function sendAnrEvent(frames?: StackFrame[], scope?: ScopeData): Promise<void> {
-  if (hasSentAnrEvent) {
+  if (sentAnrEvents >= options.maxAnrEvents) {
     return;
   }
 
-  hasSentAnrEvent = true;
+  sentAnrEvents += 1;
 
   await sendAbnormalSession();
 
@@ -179,11 +179,13 @@ async function sendAnrEvent(frames?: StackFrame[], scope?: ScopeData): Promise<v
   await transport.send(envelope);
   await transport.flush(2000);
 
-  // Delay for 5 seconds so that stdio can flush if the main event loop ever restarts.
-  // This is mainly for the benefit of logging or debugging.
-  setTimeout(() => {
-    process.exit(0);
-  }, 5_000);
+  if (sentAnrEvents >= options.maxAnrEvents) {
+    // Delay for 5 seconds so that stdio can flush if the main event loop ever restarts.
+    // This is mainly for the benefit of logging or debugging.
+    setTimeout(() => {
+      process.exit(0);
+    }, 5_000);
+  }
 }
 
 let debuggerPause: VoidFunction | undefined;
