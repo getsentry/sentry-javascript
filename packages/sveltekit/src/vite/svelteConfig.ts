@@ -1,5 +1,3 @@
-/* eslint-disable @sentry-internal/sdk/no-optional-chaining */
-
 import * as fs from 'fs';
 import * as path from 'path';
 import * as url from 'url';
