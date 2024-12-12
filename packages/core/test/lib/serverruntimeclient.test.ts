@@ -160,8 +160,7 @@ describe('ServerRuntimeClient', () => {
       const options = getDefaultClientOptions({ dsn: PUBLIC_DSN });
       client = new ServerRuntimeClient(options);
 
-      // @ts-expect-error accessing private method
-      const sendEnvelopeSpy = jest.spyOn(client, '_sendEnvelope');
+      const sendEnvelopeSpy = jest.spyOn(client, 'sendEnvelope');
 
       client.captureException(new Error('foo'));
 
@@ -185,8 +184,7 @@ describe('ServerRuntimeClient', () => {
       const options = getDefaultClientOptions({ dsn: PUBLIC_DSN });
       client = new ServerRuntimeClient(options);
 
-      // @ts-expect-error accessing private method
-      const sendEnvelopeSpy = jest.spyOn(client, '_sendEnvelope');
+      const sendEnvelopeSpy = jest.spyOn(client, 'sendEnvelope');
 
       client.captureMessage('foo');
 
