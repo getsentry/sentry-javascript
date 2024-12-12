@@ -4,6 +4,12 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.120.2
+
+- fix(tracing-internal): Fix case when lrp keys offset is 0 (#14615)
+
+Work in this release contributed by @LubomirIgonda1. Thank you for your contribution!
+
 ## 7.120.1
 
 - fix(v7/cdn): Ensure `_sentryModuleMetadata` is not mangled (#14357)
