@@ -18,8 +18,8 @@ import {
 import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 import {
   descriptionForHttpMethod,
-  getUserUpdatedNameAndSource,
   getSanitizedUrl,
+  getUserUpdatedNameAndSource,
   parseSpanDescription,
 } from '../../src/utils/parseSpanDescription';
 
