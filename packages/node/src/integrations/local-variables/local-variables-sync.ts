@@ -290,7 +290,7 @@ const _localVariablesSyncIntegration = ((
 
   return {
     name: INTEGRATION_NAME,
-    setupOnce() {
+    async setupOnce() {
       const client = getClient<NodeClient>();
       const clientOptions = client?.getOptions();
 
@@ -307,8 +307,9 @@ const _localVariablesSyncIntegration = ((
         return;
       }
 
-      if (isDebuggerEnabled()) {
-        logger.warn('Local variables capture has been disabled because the debugger is enabled');
+      if (await isDebuggerEnabled()) {
+        logger.warn('Local variables capture has been disabled because the debugger was already enabled');
+        return;
       }
 
       AsyncSession.create(sessionOverride).then(

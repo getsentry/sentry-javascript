@@ -102,15 +102,16 @@ export const localVariablesAsyncIntegration = defineIntegration(((
 
   return {
     name: 'LocalVariablesAsync',
-    setup(client: NodeClient) {
+    async setup(client: NodeClient) {
       const clientOptions = client.getOptions();
 
       if (!clientOptions.includeLocalVariables) {
         return;
       }
 
-      if (isDebuggerEnabled()) {
-        logger.warn('Local variables capture has been disabled because the debugger is enabled');
+      if (await isDebuggerEnabled()) {
+        logger.warn('Local variables capture has been disabled because the debugger was already enabled');
+        return;
       }
 
       const options: LocalVariablesWorkerArgs = {

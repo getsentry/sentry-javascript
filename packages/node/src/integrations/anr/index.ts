@@ -74,11 +74,6 @@ const _anrIntegration = ((options: Partial<AnrIntegrationOptions> = {}) => {
   let worker: Promise<() => void> | undefined;
   let client: NodeClient | undefined;
 
-  if (isDebuggerEnabled() && options.captureStackTrace) {
-    logger.warn('ANR captureStackTrace has been disabled because the debugger is enabled');
-    options.captureStackTrace = false;
-  }
-
   // Hookup the scope fetch function to the global object so that it can be called from the worker thread via the
   // debugger when it pauses
   const gbl = globalWithScopeFetchFn();
@@ -104,8 +99,13 @@ const _anrIntegration = ((options: Partial<AnrIntegrationOptions> = {}) => {
         });
       }
     },
-    setup(initClient: NodeClient) {
+    async setup(initClient: NodeClient) {
       client = initClient;
+
+      if (options.captureStackTrace && (await isDebuggerEnabled())) {
+        logger.warn('ANR captureStackTrace has been disabled because the debugger was already enabled');
+        options.captureStackTrace = false;
+      }
 
       // setImmediate is used to ensure that all other integrations have had their setup called first.
       // This allows us to call into all integrations to fetch the full context
