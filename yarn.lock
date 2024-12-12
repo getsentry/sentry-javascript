@@ -8645,34 +8645,34 @@
     "@angular-devkit/schematics" "14.2.13"
     jsonc-parser "3.1.0"
 
-"@sentry-internal/rrdom@2.30.0":
-  version "2.30.0"
-  resolved "https://registry.yarnpkg.com/@sentry-internal/rrdom/-/rrdom-2.30.0.tgz#b0d0455be62db08a196d22c3f99e063489634223"
-  integrity sha512-u5f38j3y7esGSoJfblgQETX2sWC2+jM3nkzhqPP0nOEKoIb0GPA+m1fa2D949BXrk20e98qEUPzW32dpF4ka/w==
+"@sentry-internal/rrdom@2.31.0":
+  version "2.31.0"
+  resolved "https://registry.yarnpkg.com/@sentry-internal/rrdom/-/rrdom-2.31.0.tgz#548773964167ec104d3cbb9d7a4b25103c091e06"
+  integrity sha512-6sCgyKZy0Jpkb0wQ2XYLNcJjCETfbjHJ5jroAm2mU1imoSBlAldtNTdMc0wk8MaX/0q5qkMlr78SiYFf7xo12Q==
   dependencies:
-    "@sentry-internal/rrweb-snapshot" "2.30.0"
+    "@sentry-internal/rrweb-snapshot" "2.31.0"
 
-"@sentry-internal/rrweb-snapshot@2.30.0":
-  version "2.30.0"
-  resolved "https://registry.yarnpkg.com/@sentry-internal/rrweb-snapshot/-/rrweb-snapshot-2.30.0.tgz#d4e1974e32e068db0bd3e3cfd5f0d700f5c4d414"
-  integrity sha512-rR6KRcE0UZfrh1taBO1KLVzfDaQ2iWW879LBMa94HEH/xUUSG3vRF7t55rmKpxIam1v2Ib6iiCMMTAZoZxzE0Q==
+"@sentry-internal/rrweb-snapshot@2.31.0":
+  version "2.31.0"
+  resolved "https://registry.yarnpkg.com/@sentry-internal/rrweb-snapshot/-/rrweb-snapshot-2.31.0.tgz#7a86d02429a490f6367d7aead0548fad7e0c9487"
+  integrity sha512-uGyJPfmOaiSZOZyd5HFiI8aCd/pPOtrZB89BJBgdB63++wD9Fry8OoWvRORzTo+N+Squummkq3Iucjm/yGdbAw==
 
-"@sentry-internal/rrweb-types@2.30.0":
-  version "2.30.0"
-  resolved "https://registry.yarnpkg.com/@sentry-internal/rrweb-types/-/rrweb-types-2.30.0.tgz#50ab65034fab3d8243b601ff9925fe45ad141f48"
-  integrity sha512-Wb6RM5SnnWdCpHB6nxEGFV4bqQwMMDOGryMj8QyZf7fK6lkxtEBXOWiEhxUgAUPjMBqQDZm/2DzKO+bW4NHLZg==
+"@sentry-internal/rrweb-types@2.31.0":
+  version "2.31.0"
+  resolved "https://registry.yarnpkg.com/@sentry-internal/rrweb-types/-/rrweb-types-2.31.0.tgz#daf766526efff760eb6020ddf22c6432db9ff6a6"
+  integrity sha512-rWNCU6KaYopmd+353KBbRuNftpqfI97GdNFeCmB1wwwV/S2CW/lVcEn1uzMwzs8blm3YL2i/O+ykONxecQj+BQ==
   dependencies:
-    "@sentry-internal/rrweb-snapshot" "2.30.0"
+    "@sentry-internal/rrweb-snapshot" "2.31.0"
     "@types/css-font-loading-module" "0.0.7"
 
-"@sentry-internal/rrweb@2.30.0":
-  version "2.30.0"
-  resolved "https://registry.yarnpkg.com/@sentry-internal/rrweb/-/rrweb-2.30.0.tgz#9af028b80a0081c75ff410817fe2fcda010f9cf6"
-  integrity sha512-ZOf4RmxX29LgQDW5sy9D/JfwmQbgMzF6DfA00rlFTtQYht56gbgtmWfqeWMDxG9tas71BnMTOz6eF28t7MoykQ==
+"@sentry-internal/rrweb@2.31.0":
+  version "2.31.0"
+  resolved "https://registry.yarnpkg.com/@sentry-internal/rrweb/-/rrweb-2.31.0.tgz#69c6f6a4304c4d7446c3a1cc1c9b044d5dc4f040"
+  integrity sha512-u1uobvl5qnjtdhL2lrzbpwROZagc5xT1P2lANXxrKpLOUpp2+jMSjq0Zt2TElj+2aHlqh4lkDsj/OIa/FBHnnQ==
   dependencies:
-    "@sentry-internal/rrdom" "2.30.0"
-    "@sentry-internal/rrweb-snapshot" "2.30.0"
-    "@sentry-internal/rrweb-types" "2.30.0"
+    "@sentry-internal/rrdom" "2.31.0"
+    "@sentry-internal/rrweb-snapshot" "2.31.0"
+    "@sentry-internal/rrweb-types" "2.31.0"
     "@types/css-font-loading-module" "0.0.7"
     "@xstate/fsm" "^1.4.0"
     base64-arraybuffer "^1.0.1"

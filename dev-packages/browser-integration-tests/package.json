@@ -42,7 +42,7 @@
   "dependencies": {
     "@babel/preset-typescript": "^7.16.7",
     "@playwright/test": "^1.44.1",
-    "@sentry-internal/rrweb": "2.30.0",
+    "@sentry-internal/rrweb": "2.31.0",
     "@sentry/browser": "8.44.0",
     "axios": "1.7.7",
     "babel-loader": "^8.2.2",
