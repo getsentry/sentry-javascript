@@ -101,6 +101,7 @@ snapshot[`captureException 1`] = `
       },
     ],
   },
+  level: "error",
   platform: "javascript",
   sdk: {
     integrations: [
@@ -134,6 +135,7 @@ snapshot[`captureMessage 1`] = `
     {
       category: "sentry.event",
       event_id: "{{id}}",
+      level: "error",
       message: "Error: Some unhandled error",
       timestamp: 0,
     },
@@ -204,6 +206,7 @@ snapshot[`captureMessage twice 1`] = `
     {
       category: "sentry.event",
       event_id: "{{id}}",
+      level: "error",
       message: "Error: Some unhandled error",
       timestamp: 0,
     },
@@ -281,6 +284,7 @@ snapshot[`captureMessage twice 2`] = `
     {
       category: "sentry.event",
       event_id: "{{id}}",
+      level: "error",
       message: "Error: Some unhandled error",
       timestamp: 0,
     },
