@@ -149,6 +149,12 @@ jobs:
         timeout-minutes: 7
         run: yarn ${{ matrix.build-command }}
 
+      - name: Install Playwright
+        uses: ./.github/actions/install-playwright
+        with:
+          browsers: chromium
+          cwd: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
+
       - name: Run E2E test
         working-directory: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
         timeout-minutes: 15

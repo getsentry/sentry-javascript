@@ -38,6 +38,7 @@ interface HttpOptions {
    *
    * Note: If `autoSessionTracking` is set to `false` in `Sentry.init()` or the Client owning this integration, this option will be ignored.
    */
+  // TODO(v9): Remove the note above.
   trackIncomingRequestsAsSessions?: boolean;
 
   /**
@@ -218,6 +219,7 @@ function getConfigWithDefaults(options: Partial<HttpOptions> = {}): HttpInstrume
 
       if (
         client &&
+        // eslint-disable-next-line deprecation/deprecation
         client.getOptions().autoSessionTracking !== false &&
         options.trackIncomingRequestsAsSessions !== false
       ) {

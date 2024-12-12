@@ -42,6 +42,7 @@ export function getDefaultIntegrations(options: BrowserOptions = {}): Integratio
     httpContextIntegration(),
   ];
 
+  // eslint-disable-next-line deprecation/deprecation
   if (options.autoSessionTracking !== false) {
     integrations.push(browserSessionIntegration());
   }
