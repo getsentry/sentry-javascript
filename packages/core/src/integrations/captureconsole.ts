@@ -11,12 +11,24 @@ import { GLOBAL_OBJ } from '../utils-hoist/worldwide';
 
 interface CaptureConsoleOptions {
   levels?: string[];
+
+  // TODO(v9): Flip default value to `true` and adjust JSDoc!
+  /**
+   * By default, Sentry will mark captured console messages as unhandled.
+   * Set this to `true` if you want to mark them as handled instead.
+   *
+   * Note: in v9 of the SDK, this option will default to `true`, meaning the default behavior will change to mark console messages as handled.
+   * @default false
+   */
+  handled?: boolean;
 }
 
 const INTEGRATION_NAME = 'CaptureConsole';
 
 const _captureConsoleIntegration = ((options: CaptureConsoleOptions = {}) => {
   const levels = options.levels || CONSOLE_LEVELS;
+  // TODO(v9): Flip default value to `true`
+  const handled = !!options.handled;
 
   return {
     name: INTEGRATION_NAME,
@@ -30,7 +42,7 @@ const _captureConsoleIntegration = ((options: CaptureConsoleOptions = {}) => {
           return;
         }
 
-        consoleHandler(args, level);
+        consoleHandler(args, level, handled);
       });
     },
   };
@@ -41,7 +53,7 @@ const _captureConsoleIntegration = ((options: CaptureConsoleOptions = {}) => {
  */
 export const captureConsoleIntegration = defineIntegration(_captureConsoleIntegration);
 
-function consoleHandler(args: unknown[], level: string): void {
+function consoleHandler(args: unknown[], level: string, handled: boolean): void {
   const captureContext: CaptureContext = {
     level: severityLevelFromString(level),
     extra: {
@@ -54,7 +66,7 @@ function consoleHandler(args: unknown[], level: string): void {
       event.logger = 'console';
 
       addExceptionMechanism(event, {
-        handled: false,
+        handled,
         type: 'console',
       });
 

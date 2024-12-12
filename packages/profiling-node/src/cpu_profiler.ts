@@ -172,6 +172,12 @@ class Bindings implements V8CpuProfilerBindings {
       return;
     }
 
+    if (typeof PrivateCpuProfilerBindings.startProfiling !== 'function') {
+      DEBUG_BUILD &&
+        logger.log('[Profiling] Native startProfiling function is not available, ignoring call to startProfiling.');
+      return;
+    }
+
     return PrivateCpuProfilerBindings.startProfiling(name);
   }
 
@@ -184,6 +190,12 @@ class Bindings implements V8CpuProfilerBindings {
     if (!PrivateCpuProfilerBindings) {
       DEBUG_BUILD &&
         logger.log('[Profiling] Bindings not loaded or profile was never started, ignoring call to stopProfiling.');
+      return null;
+    }
+
+    if (typeof PrivateCpuProfilerBindings.stopProfiling !== 'function') {
+      DEBUG_BUILD &&
+        logger.log('[Profiling] Native stopProfiling function is not available, ignoring call to stopProfiling.');
       return null;
     }
 
