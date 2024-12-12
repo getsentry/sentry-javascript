@@ -10,7 +10,22 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
-Work in this release was contributed by @anonrig. Thank you for your contribution!
+## 8.45.0
+
+- feat(core): Add `handled` option to `captureConsoleIntegration` ([#14664](https://github.com/getsentry/sentry-javascript/pull/14664))
+- feat(browser): Attach virtual stack traces to `HttpClient` events ([#14515](https://github.com/getsentry/sentry-javascript/pull/14515))
+- feat(replay): Upgrade rrweb packages to 2.31.0 ([#14689](https://github.com/getsentry/sentry-javascript/pull/14689))
+- fix(aws-serverless): Remove v8 layer as it overwrites the current layer for docs ([#14679](https://github.com/getsentry/sentry-javascript/pull/14679))
+- fix(browser): Mark stack trace from `captureMessage` with `attachStacktrace: true` as synthetic ([#14668](https://github.com/getsentry/sentry-javascript/pull/14668))
+- fix(core): Mark stack trace from `captureMessage` with `attatchStackTrace: true` as synthetic ([#14670](https://github.com/getsentry/sentry-javascript/pull/14670))
+- fix(core): Set `level` in server runtime `captureException` ([#10587](https://github.com/getsentry/sentry-javascript/pull/10587))
+- fix(profiling-node): Guard invocation of native profiling methods ([#14676](https://github.com/getsentry/sentry-javascript/pull/14676))
+- fix(nuxt): Inline nitro-utils function ([#14680](https://github.com/getsentry/sentry-javascript/pull/14680))
+- fix(profiling-node): Ensure profileId is added to transaction event ([#14681](https://github.com/getsentry/sentry-javascript/pull/14681))
+- fix(react): Add React Router Descendant Routes support ([#14304](https://github.com/getsentry/sentry-javascript/pull/14304))
+- fix: Disable ANR and Local Variables if debugger is enabled via CLI args ([#14643](https://github.com/getsentry/sentry-javascript/pull/14643))
+
+Work in this release was contributed by @anonrig and @Zih0. Thank you for your contributions!
 
 ## 8.44.0
 
