@@ -147,7 +147,7 @@ module.exports = [
     path: 'packages/svelte/build/esm/index.js',
     import: createImport('init'),
     gzip: true,
-    limit: '26 KB',
+    limit: '25 KB',
   },
   // Browser CDN bundles
   {
