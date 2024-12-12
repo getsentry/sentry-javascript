@@ -347,6 +347,7 @@ function eventFromString(
         values: [{ value: message, stacktrace: { frames } }],
       };
     }
+    addExceptionMechanism(event, { synthetic: true });
   }
 
   if (isParameterizedString(message)) {
