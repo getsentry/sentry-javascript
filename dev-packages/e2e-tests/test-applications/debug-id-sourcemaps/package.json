@@ -5,7 +5,7 @@
   "scripts": {
     "build": "rollup --config rollup.config.mjs",
     "test": "vitest run",
-    "clean": "npx rimraf node_modules,pnpm-lock.yaml",
+    "clean": "npx rimraf node_modules pnpm-lock.yaml",
     "test:build": "pnpm install && pnpm build",
     "test:assert": "pnpm test"
   },
@@ -13,17 +13,14 @@
     "@sentry/node": "latest || *"
   },
   "devDependencies": {
-    "rollup": "^4.0.2",
+    "rollup": "^4.24.2",
     "vitest": "^0.34.6",
-    "@sentry/rollup-plugin": "2.8.0"
-  },
-  "pnpm": {
-    "overrides": {
-      "@sentry/node": "latest || *",
-      "@sentry/utils": "latest || *"
-    }
+    "@sentry/rollup-plugin": "2.22.6"
   },
   "volta": {
     "extends": "../../package.json"
+  },
+  "sentryTest": {
+    "optional": true
   }
 }

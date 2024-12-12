@@ -1,13 +1,10 @@
 import * as http from 'http';
-import { TextEncoder } from 'util';
 import { createGunzip } from 'zlib';
 import { createTransport } from '@sentry/core';
-import type { EventEnvelope, EventItem } from '@sentry/types';
-import { addItemToEnvelope, createAttachmentEnvelopeItem, createEnvelope, serializeEnvelope } from '@sentry/utils';
+import { addItemToEnvelope, createAttachmentEnvelopeItem, createEnvelope, serializeEnvelope } from '@sentry/core';
+import type { EventEnvelope, EventItem } from '@sentry/core';
 
 import { makeNodeTransport } from '../../src/transports';
-
-const textEncoder = new TextEncoder();
 
 jest.mock('@sentry/core', () => {
   const actualCore = jest.requireActual('@sentry/core');
@@ -17,7 +14,7 @@ jest.mock('@sentry/core', () => {
   };
 });
 
-import * as httpProxyAgent from 'https-proxy-agent';
+import * as httpProxyAgent from '../../src/proxy';
 
 const SUCCESS = 200;
 const RATE_LIMIT = 429;
@@ -52,49 +49,48 @@ function setupTestServer(
     res.end();
 
     // also terminate socket because keepalive hangs connection a bit
-    res.connection.end();
+    // eslint-disable-next-line deprecation/deprecation
+    res.connection?.end();
   });
 
-  testServer.listen(18099);
+  testServer.listen(18101);
 
   return new Promise(resolve => {
     testServer?.on('listening', resolve);
   });
 }
 
-const TEST_SERVER_URL = 'http://localhost:18099';
+const TEST_SERVER_URL = 'http://localhost:18101';
 
 const EVENT_ENVELOPE = createEnvelope<EventEnvelope>({ event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2', sent_at: '123' }, [
   [{ type: 'event' }, { event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2' }] as EventItem,
 ]);
 
-const SERIALIZED_EVENT_ENVELOPE = serializeEnvelope(EVENT_ENVELOPE, textEncoder);
+const SERIALIZED_EVENT_ENVELOPE = serializeEnvelope(EVENT_ENVELOPE);
 
-const ATTACHMENT_ITEM = createAttachmentEnvelopeItem(
-  { filename: 'empty-file.bin', data: new Uint8Array(50_000) },
-  textEncoder,
-);
+const ATTACHMENT_ITEM = createAttachmentEnvelopeItem({ filename: 'empty-file.bin', data: new Uint8Array(50_000) });
 const EVENT_ATTACHMENT_ENVELOPE = addItemToEnvelope(EVENT_ENVELOPE, ATTACHMENT_ITEM);
-const SERIALIZED_EVENT_ATTACHMENT_ENVELOPE = serializeEnvelope(EVENT_ATTACHMENT_ENVELOPE, textEncoder) as Uint8Array;
+const SERIALIZED_EVENT_ATTACHMENT_ENVELOPE = serializeEnvelope(EVENT_ATTACHMENT_ENVELOPE) as Uint8Array;
 
 const defaultOptions = {
   url: TEST_SERVER_URL,
   recordDroppedEvent: () => undefined,
-  textEncoder,
 };
 
 // empty function to keep test output clean
 const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
 
+afterEach(done => {
+  jest.clearAllMocks();
+
+  if (testServer && testServer.listening) {
+    testServer.close(done);
+  } else {
+    done();
+  }
+});
+
 describe('makeNewHttpTransport()', () => {
-  afterEach(() => {
-    jest.clearAllMocks();
-
-    if (testServer) {
-      testServer.close();
-    }
-  });
-
   describe('.send()', () => {
     it('should correctly send envelope to server', async () => {
       await setupTestServer({ statusCode: SUCCESS }, (req, body) => {
@@ -306,7 +302,7 @@ describe('makeNewHttpTransport()', () => {
       const registeredRequestExecutor = (createTransport as jest.Mock).mock.calls[0][1];
 
       const executorResult = registeredRequestExecutor({
-        body: serializeEnvelope(EVENT_ENVELOPE, textEncoder),
+        body: serializeEnvelope(EVENT_ENVELOPE),
         category: 'error',
       });
 
@@ -326,7 +322,7 @@ describe('makeNewHttpTransport()', () => {
       const registeredRequestExecutor = (createTransport as jest.Mock).mock.calls[0][1];
 
       const executorResult = registeredRequestExecutor({
-        body: serializeEnvelope(EVENT_ENVELOPE, textEncoder),
+        body: serializeEnvelope(EVENT_ENVELOPE),
         category: 'error',
       });
 
@@ -354,7 +350,7 @@ describe('makeNewHttpTransport()', () => {
       const registeredRequestExecutor = (createTransport as jest.Mock).mock.calls[0][1];
 
       const executorResult = registeredRequestExecutor({
-        body: serializeEnvelope(EVENT_ENVELOPE, textEncoder),
+        body: serializeEnvelope(EVENT_ENVELOPE),
         category: 'error',
       });
 
@@ -382,7 +378,7 @@ describe('makeNewHttpTransport()', () => {
       const registeredRequestExecutor = (createTransport as jest.Mock).mock.calls[0][1];
 
       const executorResult = registeredRequestExecutor({
-        body: serializeEnvelope(EVENT_ENVELOPE, textEncoder),
+        body: serializeEnvelope(EVENT_ENVELOPE),
         category: 'error',
       });
 

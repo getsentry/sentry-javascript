@@ -1,9 +1,9 @@
 import { expect, test } from '@playwright/test';
-import { waitForError, waitForTransaction } from '../event-proxy-server';
+import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
 
 test('Should create a transaction for middleware', async ({ request }) => {
-  const middlewareTransactionPromise = waitForTransaction('nextjs-13-app-dir', async transactionEvent => {
-    return transactionEvent?.transaction === 'middleware' && transactionEvent?.contexts?.trace?.status === 'ok';
+  const middlewareTransactionPromise = waitForTransaction('nextjs-app-dir', async transactionEvent => {
+    return transactionEvent?.transaction === 'middleware GET /api/endpoint-behind-middleware';
   });
 
   const response = await request.get('/api/endpoint-behind-middleware');
@@ -12,44 +12,50 @@ test('Should create a transaction for middleware', async ({ request }) => {
   const middlewareTransaction = await middlewareTransactionPromise;
 
   expect(middlewareTransaction.contexts?.trace?.status).toBe('ok');
-  expect(middlewareTransaction.contexts?.trace?.op).toBe('middleware.nextjs');
+  expect(middlewareTransaction.contexts?.trace?.op).toBe('http.server.middleware');
   expect(middlewareTransaction.contexts?.runtime?.name).toBe('vercel-edge');
+  expect(middlewareTransaction.transaction_info?.source).toBe('url');
+
+  // Assert that isolation scope works properly
+  expect(middlewareTransaction.tags?.['my-isolated-tag']).toBe(true);
+  expect(middlewareTransaction.tags?.['my-global-scope-isolated-tag']).not.toBeDefined();
 });
 
-test('Should create a transaction with error status for faulty middleware', async ({ request }) => {
-  const middlewareTransactionPromise = waitForTransaction('nextjs-13-app-dir', async transactionEvent => {
-    return (
-      transactionEvent?.transaction === 'middleware' && transactionEvent?.contexts?.trace?.status === 'internal_error'
-    );
+test('Faulty middlewares', async ({ request }) => {
+  const middlewareTransactionPromise = waitForTransaction('nextjs-app-dir', async transactionEvent => {
+    return transactionEvent?.transaction === 'middleware GET /api/endpoint-behind-faulty-middleware';
   });
 
-  request.get('/api/endpoint-behind-middleware', { headers: { 'x-should-throw': '1' } }).catch(() => {
-    // Noop
-  });
-
-  const middlewareTransaction = await middlewareTransactionPromise;
-
-  expect(middlewareTransaction.contexts?.trace?.status).toBe('internal_error');
-  expect(middlewareTransaction.contexts?.trace?.op).toBe('middleware.nextjs');
-  expect(middlewareTransaction.contexts?.runtime?.name).toBe('vercel-edge');
-});
-
-test('Records exceptions happening in middleware', async ({ request }) => {
-  const errorEventPromise = waitForError('nextjs-13-app-dir', errorEvent => {
+  const errorEventPromise = waitForError('nextjs-app-dir', errorEvent => {
     return errorEvent?.exception?.values?.[0]?.value === 'Middleware Error';
   });
 
-  request.get('/api/endpoint-behind-middleware', { headers: { 'x-should-throw': '1' } }).catch(() => {
+  request.get('/api/endpoint-behind-faulty-middleware', { headers: { 'x-should-throw': '1' } }).catch(() => {
     // Noop
   });
 
-  expect(await errorEventPromise).toBeDefined();
+  await test.step('should record transactions', async () => {
+    const middlewareTransaction = await middlewareTransactionPromise;
+    expect(middlewareTransaction.contexts?.trace?.status).toBe('unknown_error');
+    expect(middlewareTransaction.contexts?.trace?.op).toBe('http.server.middleware');
+    expect(middlewareTransaction.contexts?.runtime?.name).toBe('vercel-edge');
+    expect(middlewareTransaction.transaction_info?.source).toBe('url');
+  });
+
+  await test.step('should record exceptions', async () => {
+    const errorEvent = await errorEventPromise;
+
+    // Assert that isolation scope works properly
+    expect(errorEvent.tags?.['my-isolated-tag']).toBe(true);
+    expect(errorEvent.tags?.['my-global-scope-isolated-tag']).not.toBeDefined();
+    expect(errorEvent.transaction).toBe('middleware GET /api/endpoint-behind-faulty-middleware');
+  });
 });
 
 test('Should trace outgoing fetch requests inside middleware and create breadcrumbs for it', async ({ request }) => {
-  const middlewareTransactionPromise = waitForTransaction('nextjs-13-app-dir', async transactionEvent => {
+  const middlewareTransactionPromise = waitForTransaction('nextjs-app-dir', async transactionEvent => {
     return (
-      transactionEvent?.transaction === 'middleware' &&
+      transactionEvent?.transaction === 'middleware GET /api/endpoint-behind-middleware' &&
       !!transactionEvent.spans?.find(span => span.op === 'http.client')
     );
   });
@@ -63,17 +69,25 @@ test('Should trace outgoing fetch requests inside middleware and create breadcru
   expect(middlewareTransaction.spans).toEqual(
     expect.arrayContaining([
       {
-        data: { 'http.method': 'GET', 'http.response.status_code': 200, type: 'fetch', url: 'http://localhost:3030/' },
+        data: {
+          'http.method': 'GET',
+          'http.response.status_code': 200,
+          type: 'fetch',
+          url: 'http://localhost:3030/',
+          'http.url': 'http://localhost:3030/',
+          'server.address': 'localhost:3030',
+          'sentry.op': 'http.client',
+          'sentry.origin': 'auto.http.wintercg_fetch',
+        },
         description: 'GET http://localhost:3030/',
         op: 'http.client',
         origin: 'auto.http.wintercg_fetch',
-        parent_span_id: expect.any(String),
-        span_id: expect.any(String),
+        parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
+        span_id: expect.stringMatching(/[a-f0-9]{16}/),
         start_timestamp: expect.any(Number),
         status: 'ok',
-        tags: { 'http.status_code': '200' },
         timestamp: expect.any(Number),
-        trace_id: expect.any(String),
+        trace_id: expect.stringMatching(/[a-f0-9]{32}/),
       },
     ]),
   );

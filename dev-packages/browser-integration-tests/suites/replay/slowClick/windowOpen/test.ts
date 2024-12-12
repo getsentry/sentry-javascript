@@ -8,11 +8,11 @@ sentryTest('window.open() is considered for slow click', async ({ getLocalTestUr
     sentryTest.skip();
   }
 
-  await page.route('https://dsn.ingest.sentry.io/**/*', route => {
+  await page.route('http://example.com/', route => {
     return route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify({ id: 'test-id' }),
+      body: JSON.stringify({}),
     });
   });
 
@@ -28,11 +28,14 @@ sentryTest('window.open() is considered for slow click', async ({ getLocalTestUr
 
   // Ensure window.open() still works as expected
   const context = browser.contexts()[0];
-  const waitForNewPage = context.waitForEvent('page');
 
-  await page.click('#windowOpenButton');
+  const [reqResponse1] = await Promise.all([
+    reqPromise1,
+    context.waitForEvent('page'),
+    page.locator('#windowOpenButton').click(),
+  ]);
 
-  const { breadcrumbs } = getCustomRecordingEvents(await reqPromise1);
+  const { breadcrumbs } = getCustomRecordingEvents(reqResponse1);
 
   // Filter out potential blur breadcrumb, as otherwise this can be flaky
   const filteredBreadcrumb = breadcrumbs.filter(breadcrumb => breadcrumb.category !== 'ui.blur');
@@ -56,8 +59,6 @@ sentryTest('window.open() is considered for slow click', async ({ getLocalTestUr
       type: 'default',
     },
   ]);
-
-  await waitForNewPage;
 
   const pages = context.pages();
 

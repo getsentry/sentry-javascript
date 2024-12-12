@@ -30,9 +30,13 @@ export function instrumentNodeSchedule<T>(lib: T & NodeSchedule): T {
         // eslint-disable-next-line @typescript-eslint/unbound-method
         return new Proxy(target.scheduleJob, {
           apply(target, thisArg, argArray: Parameters<NodeSchedule['scheduleJob']>) {
-            const [nameOrExpression, expressionOrCallback] = argArray;
+            const [nameOrExpression, expressionOrCallback, callback] = argArray;
 
-            if (typeof nameOrExpression !== 'string' || typeof expressionOrCallback !== 'string') {
+            if (
+              typeof nameOrExpression !== 'string' ||
+              typeof expressionOrCallback !== 'string' ||
+              typeof callback !== 'function'
+            ) {
               throw new Error(
                 "Automatic instrumentation of 'node-schedule' requires the first parameter of 'scheduleJob' to be a job name string and the second parameter to be a crontab string",
               );
@@ -41,15 +45,19 @@ export function instrumentNodeSchedule<T>(lib: T & NodeSchedule): T {
             const monitorSlug = nameOrExpression;
             const expression = expressionOrCallback;
 
-            return withMonitor(
-              monitorSlug,
-              () => {
-                return target.apply(thisArg, argArray);
-              },
-              {
-                schedule: { type: 'crontab', value: replaceCronNames(expression) },
-              },
-            );
+            async function monitoredCallback(): Promise<void> {
+              return withMonitor(
+                monitorSlug,
+                async () => {
+                  await callback?.();
+                },
+                {
+                  schedule: { type: 'crontab', value: replaceCronNames(expression) },
+                },
+              );
+            }
+
+            return target.apply(thisArg, [monitorSlug, expression, monitoredCallback]);
           },
         });
       }

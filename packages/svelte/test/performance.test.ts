@@ -1,196 +1,255 @@
-import type { Scope } from '@sentry/core';
-import { act, render } from '@testing-library/svelte';
+/**
+ * @vitest-environment jsdom
+ */
 
-// linter doesn't like Svelte component imports
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { act, render } from '@testing-library/svelte';
+import { getClient, getCurrentScope, getIsolationScope, init, startSpan } from '../src';
+
+import type { TransactionEvent } from '@sentry/core';
+
+// @ts-expect-error svelte import
 import DummyComponent from './components/Dummy.svelte';
 
-let returnUndefinedTransaction = false;
-
-const testTransaction: { spans: any[]; startChild: jest.Mock; end: jest.Mock; isRecording: () => boolean } = {
-  spans: [],
-  startChild: jest.fn(),
-  end: jest.fn(),
-  isRecording: () => true,
-};
-const testUpdateSpan = { end: jest.fn() };
-const testInitSpan: any = {
-  transaction: testTransaction,
-  end: jest.fn(),
-  startChild: jest.fn(),
-  isRecording: () => true,
-};
-
-jest.mock('@sentry/core', () => {
-  const original = jest.requireActual('@sentry/core');
-  return {
-    ...original,
-    getCurrentScope(): Scope {
-      return {
-        getTransaction: () => {
-          return returnUndefinedTransaction ? undefined : testTransaction;
-        },
-      } as Scope;
-    },
-  };
-});
+const PUBLIC_DSN = 'https://username@domain/123';
 
 describe('Sentry.trackComponent()', () => {
+  const transactions: TransactionEvent[] = [];
+
   beforeEach(() => {
-    jest.resetAllMocks();
-    testTransaction.spans = [];
+    transactions.splice(0, transactions.length);
 
-    testTransaction.startChild.mockImplementation(spanCtx => {
-      testTransaction.spans.push(spanCtx);
-      return testInitSpan;
+    vi.resetAllMocks();
+
+    getCurrentScope().clear();
+    getIsolationScope().clear();
+
+    const beforeSendTransaction = vi.fn(event => {
+      transactions.push(event);
+      return null;
     });
 
-    testInitSpan.startChild.mockImplementation((spanCtx: any) => {
-      testTransaction.spans.push(spanCtx);
-      return testUpdateSpan;
+    init({
+      dsn: PUBLIC_DSN,
+      enableTracing: true,
+      beforeSendTransaction,
     });
-
-    testInitSpan.end = jest.fn();
-    testInitSpan.isRecording = () => true;
-    returnUndefinedTransaction = false;
   });
 
-  it('creates nested init and update spans on component initialization', () => {
-    render(DummyComponent, { props: { options: {} } });
+  it('creates init and update spans on component initialization', async () => {
+    startSpan({ name: 'outer' }, span => {
+      expect(span).toBeDefined();
+      render(DummyComponent, { props: { options: {} } });
+    });
 
-    expect(testTransaction.startChild).toHaveBeenCalledWith({
-      description: '<Dummy>',
+    await getClient()?.flush();
+
+    expect(transactions).toHaveLength(1);
+    const transaction = transactions[0]!;
+    expect(transaction.spans).toHaveLength(2);
+
+    const rootSpanId = transaction.contexts?.trace?.span_id;
+    expect(rootSpanId).toBeDefined();
+
+    const initSpanId = transaction.spans![0]?.span_id;
+
+    expect(transaction.spans![0]).toEqual({
+      data: {
+        'sentry.op': 'ui.svelte.init',
+        'sentry.origin': 'auto.ui.svelte',
+      },
+      description: '<Svelte Component>',
       op: 'ui.svelte.init',
       origin: 'auto.ui.svelte',
+      parent_span_id: rootSpanId,
+      span_id: initSpanId,
+      start_timestamp: expect.any(Number),
+      timestamp: expect.any(Number),
+      trace_id: expect.stringMatching(/[a-f0-9]{32}/),
     });
 
-    expect(testInitSpan.startChild).toHaveBeenCalledWith({
-      description: '<Dummy>',
+    expect(transaction.spans![1]).toEqual({
+      data: {
+        'sentry.op': 'ui.svelte.update',
+        'sentry.origin': 'auto.ui.svelte',
+      },
+      description: '<Svelte Component>',
       op: 'ui.svelte.update',
       origin: 'auto.ui.svelte',
+      parent_span_id: rootSpanId,
+      span_id: expect.stringMatching(/[a-f0-9]{16}/),
+      start_timestamp: expect.any(Number),
+      timestamp: expect.any(Number),
+      trace_id: expect.stringMatching(/[a-f0-9]{32}/),
     });
-
-    expect(testInitSpan.end).toHaveBeenCalledTimes(1);
-    expect(testUpdateSpan.end).toHaveBeenCalledTimes(1);
-    expect(testTransaction.spans.length).toEqual(2);
   });
 
   it('creates an update span, when the component is updated', async () => {
-    // Make the end() function actually end the initSpan
-    testInitSpan.end.mockImplementation(() => {
-      testInitSpan.isRecording = () => false;
+    startSpan({ name: 'outer' }, async span => {
+      expect(span).toBeDefined();
+
+      // first we create the component
+      const { component } = render(DummyComponent, { props: { options: {} } });
+
+      // then trigger an update
+      // (just changing the trackUpdates prop so that we trigger an update. #
+      //  The value doesn't do anything here)
+      await act(() => component.$set({ options: { trackUpdates: true } }));
     });
 
-    // first we create the component
-    const { component } = render(DummyComponent, { props: { options: {} } });
+    await getClient()?.flush();
 
-    // then trigger an update
-    // (just changing the trackUpdates prop so that we trigger an update. #
-    //  The value doesn't do anything here)
-    await act(() => component.$set({ options: { trackUpdates: true } }));
+    expect(transactions).toHaveLength(1);
+    const transaction = transactions[0]!;
+    expect(transaction.spans).toHaveLength(3);
 
-    // once for init (unimportant here), once for starting the update span
-    expect(testTransaction.startChild).toHaveBeenCalledTimes(2);
-    expect(testTransaction.startChild).toHaveBeenLastCalledWith({
-      description: '<Dummy>',
-      op: 'ui.svelte.update',
-      origin: 'auto.ui.svelte',
-    });
-    expect(testTransaction.spans.length).toEqual(3);
-  });
+    const rootSpanId = transaction.contexts?.trace?.span_id;
+    expect(rootSpanId).toBeDefined();
 
-  it('only creates init spans if trackUpdates is deactivated', () => {
-    render(DummyComponent, { props: { options: { trackUpdates: false } } });
+    const initSpanId = transaction.spans![0]?.span_id;
 
-    expect(testTransaction.startChild).toHaveBeenCalledWith({
-      description: '<Dummy>',
+    expect(transaction.spans![0]).toEqual({
+      data: {
+        'sentry.op': 'ui.svelte.init',
+        'sentry.origin': 'auto.ui.svelte',
+      },
+      description: '<Svelte Component>',
       op: 'ui.svelte.init',
       origin: 'auto.ui.svelte',
+      parent_span_id: rootSpanId,
+      span_id: initSpanId,
+      start_timestamp: expect.any(Number),
+      timestamp: expect.any(Number),
+      trace_id: expect.stringMatching(/[a-f0-9]{32}/),
     });
 
-    expect(testInitSpan.startChild).not.toHaveBeenCalled();
-
-    expect(testInitSpan.end).toHaveBeenCalledTimes(1);
-    expect(testTransaction.spans.length).toEqual(1);
-  });
-
-  it('only creates update spans if trackInit is deactivated', () => {
-    render(DummyComponent, { props: { options: { trackInit: false } } });
-
-    expect(testTransaction.startChild).toHaveBeenCalledWith({
-      description: '<Dummy>',
+    expect(transaction.spans![1]).toEqual({
+      data: {
+        'sentry.op': 'ui.svelte.update',
+        'sentry.origin': 'auto.ui.svelte',
+      },
+      description: '<Svelte Component>',
       op: 'ui.svelte.update',
       origin: 'auto.ui.svelte',
+      parent_span_id: rootSpanId,
+      span_id: expect.stringMatching(/[a-f0-9]{16}/),
+      start_timestamp: expect.any(Number),
+      timestamp: expect.any(Number),
+      trace_id: expect.stringMatching(/[a-f0-9]{32}/),
     });
 
-    expect(testInitSpan.startChild).not.toHaveBeenCalled();
-
-    expect(testInitSpan.end).toHaveBeenCalledTimes(1);
-    expect(testTransaction.spans.length).toEqual(1);
-  });
-
-  it('creates no spans if trackInit and trackUpdates are deactivated', () => {
-    render(DummyComponent, { props: { options: { trackInit: false, trackUpdates: false } } });
-
-    expect(testTransaction.startChild).not.toHaveBeenCalled();
-    expect(testInitSpan.startChild).not.toHaveBeenCalled();
-    expect(testTransaction.spans.length).toEqual(0);
-  });
-
-  it('sets a custom component name as a span description if `componentName` is provided', async () => {
-    render(DummyComponent, {
-      props: { options: { componentName: 'CustomComponentName' } },
-    });
-
-    expect(testTransaction.startChild).toHaveBeenCalledWith({
-      description: '<CustomComponentName>',
-      op: 'ui.svelte.init',
-      origin: 'auto.ui.svelte',
-    });
-
-    expect(testInitSpan.startChild).toHaveBeenCalledWith({
-      description: '<CustomComponentName>',
+    expect(transaction.spans![2]).toEqual({
+      data: {
+        'sentry.op': 'ui.svelte.update',
+        'sentry.origin': 'auto.ui.svelte',
+      },
+      description: '<Svelte Component>',
       op: 'ui.svelte.update',
       origin: 'auto.ui.svelte',
+      parent_span_id: rootSpanId,
+      span_id: expect.stringMatching(/[a-f0-9]{16}/),
+      start_timestamp: expect.any(Number),
+      timestamp: expect.any(Number),
+      trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+    });
+  });
+
+  it('only creates init spans if trackUpdates is deactivated', async () => {
+    startSpan({ name: 'outer' }, async span => {
+      expect(span).toBeDefined();
+
+      render(DummyComponent, { props: { options: { trackUpdates: false } } });
     });
 
-    expect(testInitSpan.end).toHaveBeenCalledTimes(1);
-    expect(testUpdateSpan.end).toHaveBeenCalledTimes(1);
-    expect(testTransaction.spans.length).toEqual(2);
+    await getClient()?.flush();
+
+    expect(transactions).toHaveLength(1);
+    const transaction = transactions[0]!;
+    expect(transaction.spans).toHaveLength(1);
+
+    expect(transaction.spans![0]?.op).toEqual('ui.svelte.init');
+  });
+
+  it('only creates update spans if trackInit is deactivated', async () => {
+    startSpan({ name: 'outer' }, span => {
+      expect(span).toBeDefined();
+
+      render(DummyComponent, { props: { options: { trackInit: false } } });
+    });
+
+    await getClient()?.flush();
+
+    expect(transactions).toHaveLength(1);
+    const transaction = transactions[0]!;
+    expect(transaction.spans).toHaveLength(1);
+
+    expect(transaction.spans![0]?.op).toEqual('ui.svelte.update');
+  });
+
+  it('creates no spans if trackInit and trackUpdates are deactivated', async () => {
+    startSpan({ name: 'outer' }, span => {
+      expect(span).toBeDefined();
+
+      render(DummyComponent, { props: { options: { trackInit: false, trackUpdates: false } } });
+    });
+
+    await getClient()?.flush();
+
+    expect(transactions).toHaveLength(1);
+    const transaction = transactions[0]!;
+    expect(transaction.spans).toHaveLength(0);
+  });
+
+  it('sets a custom component name as a span name if `componentName` is provided', async () => {
+    startSpan({ name: 'outer' }, span => {
+      expect(span).toBeDefined();
+
+      render(DummyComponent, {
+        props: { options: { componentName: 'CustomComponentName' } },
+      });
+    });
+
+    await getClient()?.flush();
+
+    expect(transactions).toHaveLength(1);
+    const transaction = transactions[0]!;
+    expect(transaction.spans).toHaveLength(2);
+
+    expect(transaction.spans![0]?.description).toEqual('<CustomComponentName>');
+    expect(transaction.spans![1]?.description).toEqual('<CustomComponentName>');
   });
 
   it("doesn't do anything, if there's no ongoing transaction", async () => {
-    returnUndefinedTransaction = true;
-
     render(DummyComponent, {
       props: { options: { componentName: 'CustomComponentName' } },
     });
 
-    expect(testInitSpan.end).toHaveBeenCalledTimes(0);
-    expect(testUpdateSpan.end).toHaveBeenCalledTimes(0);
-    expect(testTransaction.spans.length).toEqual(0);
+    await getClient()?.flush();
+
+    expect(transactions).toHaveLength(0);
   });
 
-  it("doesn't record update spans, if there's no ongoing transaction at that time", async () => {
-    // Make the end() function actually end the initSpan
-    testInitSpan.end.mockImplementation(() => {
-      testInitSpan.isRecording = () => false;
+  it("doesn't record update spans, if there's no ongoing root span at that time", async () => {
+    const component = startSpan({ name: 'outer' }, span => {
+      expect(span).toBeDefined();
+
+      const { component } = render(DummyComponent, { props: { options: {} } });
+      return component;
     });
 
-    // first we create the component
-    const { component } = render(DummyComponent, { props: { options: {} } });
-
-    // then clear the current transaction and trigger an update
-    returnUndefinedTransaction = true;
+    // then trigger an update after the root span ended - should not record update span
     await act(() => component.$set({ options: { trackUpdates: true } }));
 
-    // we should only record the init spans (including the initial update)
-    // but not the second update
-    expect(testTransaction.startChild).toHaveBeenCalledTimes(1);
-    expect(testTransaction.startChild).toHaveBeenLastCalledWith({
-      description: '<Dummy>',
-      op: 'ui.svelte.init',
-      origin: 'auto.ui.svelte',
-    });
-    expect(testTransaction.spans.length).toEqual(2);
+    await getClient()?.flush();
+
+    expect(transactions).toHaveLength(1);
+    const transaction = transactions[0]!;
+
+    // One update span is triggered by the initial rendering, but the second one is not captured
+    expect(transaction.spans).toHaveLength(2);
+
+    expect(transaction.spans![0]?.op).toEqual('ui.svelte.init');
+    expect(transaction.spans![1]?.op).toEqual('ui.svelte.update');
   });
 });

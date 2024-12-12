@@ -1,20 +1,10 @@
-import type { Transaction, WebFetchHeaders, WrappedFunction } from '@sentry/types';
+import type { SentrySpan, WebFetchHeaders, WrappedFunction } from '@sentry/core';
 import type { NextApiRequest, NextApiResponse } from 'next';
 import type { RequestAsyncStorage } from '../config/templates/requestAsyncStorageShim';
 
 export type ServerComponentContext = {
   componentRoute: string;
-  componentType: string;
-  // TODO(v8): Remove
-  /**
-   * @deprecated pass a complete `Headers` object with the `headers` field instead.
-   */
-  sentryTraceHeader?: string;
-  // TODO(v8): Remove
-  /**
-   * @deprecated pass a complete `Headers` object with the `headers` field instead.
-   */
-  baggageHeader?: string;
+  componentType: 'Page' | 'Layout' | 'Head' | 'Not-found' | 'Loading' | 'Unknown';
   headers?: WebFetchHeaders;
 };
 
@@ -28,16 +18,6 @@ export type GenerationFunctionContext = {
 export interface RouteHandlerContext {
   method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'HEAD' | 'OPTIONS';
   parameterizedRoute: string;
-  // TODO(v8): Remove
-  /**
-   * @deprecated pass a complete `Headers` object with the `headers` field instead.
-   */
-  sentryTraceHeader?: string;
-  // TODO(v8): Remove
-  /**
-   * @deprecated pass a complete `Headers` object with the `headers` field instead.
-   */
-  baggageHeader?: string;
   headers?: WebFetchHeaders;
 }
 
@@ -67,11 +47,6 @@ export type VercelCronsConfig = { path?: string; schedule?: string }[] | undefin
 export type NextApiHandler = {
   (req: NextApiRequest, res: NextApiResponse): void | Promise<void> | unknown | Promise<unknown>;
   __sentry_route__?: string;
-
-  /**
-   * A property we set in our integration tests to simulate running an API route on platforms that don't support streaming.
-   */
-  __sentry_test_doesnt_support_streaming__?: true;
 };
 
 export type WrappedNextApiHandler = {
@@ -79,13 +54,8 @@ export type WrappedNextApiHandler = {
   __sentry_route__?: string;
   __sentry_wrapped__?: boolean;
 };
-
-export type AugmentedNextApiRequest = NextApiRequest & {
-  __withSentry_applied__?: boolean;
-};
-
 export type AugmentedNextApiResponse = NextApiResponse & {
-  __sentryTransaction?: Transaction;
+  __sentryTransaction?: SentrySpan;
 };
 
 export type ResponseEndMethod = AugmentedNextApiResponse['end'];

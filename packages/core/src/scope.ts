@@ -18,17 +18,18 @@ import type {
   ScopeContext,
   ScopeData,
   Session,
-  Severity,
   SeverityLevel,
-  Span,
-  Transaction,
   User,
-} from '@sentry/types';
-import { dateTimestampInSeconds, isPlainObject, logger, uuid4 } from '@sentry/utils';
+} from './types-hoist';
 
-import { getGlobalEventProcessors, notifyEventProcessors } from './eventProcessors';
 import { updateSession } from './session';
-import { applyScopeDataToEvent } from './utils/applyScopeDataToEvent';
+import { isPlainObject } from './utils-hoist/is';
+import { logger } from './utils-hoist/logger';
+import { uuid4 } from './utils-hoist/misc';
+import { generateSpanId, generateTraceId } from './utils-hoist/propagationContext';
+import { dateTimestampInSeconds } from './utils-hoist/time';
+import { merge } from './utils/merge';
+import { _getSpanForScope, _setSpanForScope } from './utils/spanOnScope';
 
 /**
  * Default value for maximum number of breadcrumbs added to an event.
@@ -36,23 +37,16 @@ import { applyScopeDataToEvent } from './utils/applyScopeDataToEvent';
 const DEFAULT_MAX_BREADCRUMBS = 100;
 
 /**
- * The global scope is kept in this module.
- * When accessing this via `getGlobalScope()` we'll make sure to set one if none is currently present.
+ * Holds additional event information.
  */
-let globalScope: ScopeInterface | undefined;
-
-/**
- * Holds additional event information. {@link Scope.applyToEvent} will be
- * called by the client before an event will be sent.
- */
-export class Scope implements ScopeInterface {
+class ScopeClass implements ScopeInterface {
   /** Flag if notifying is happening. */
   protected _notifyingListeners: boolean;
 
   /** Callback for client to receive scope changes. */
   protected _scopeListeners: Array<(scope: Scope) => void>;
 
-  /** Callback list that will be called after {@link applyToEvent}. */
+  /** Callback list that will be called during event processing. */
   protected _eventProcessors: EventProcessor[];
 
   /** Array of breadcrumbs. */
@@ -86,25 +80,28 @@ export class Scope implements ScopeInterface {
   protected _fingerprint?: string[];
 
   /** Severity */
-  // eslint-disable-next-line deprecation/deprecation
-  protected _level?: Severity | SeverityLevel;
+  protected _level?: SeverityLevel;
 
   /**
    * Transaction Name
+   *
+   * IMPORTANT: The transaction name on the scope has nothing to do with root spans/transaction objects.
+   * It's purpose is to assign a transaction to the scope that's added to non-transaction events.
    */
   protected _transactionName?: string;
-
-  /** Span */
-  protected _span?: Span;
 
   /** Session */
   protected _session?: Session;
 
   /** Request Mode Session Status */
+  // eslint-disable-next-line deprecation/deprecation
   protected _requestSession?: RequestSession;
 
   /** The client on this scope */
   protected _client?: Client;
+
+  /** Contains the last event id of a captured event.  */
+  protected _lastEventId?: string;
 
   // NOTE: Any field which gets added here should get added not only to the constructor but also to the `clone` method.
 
@@ -119,29 +116,31 @@ export class Scope implements ScopeInterface {
     this._extra = {};
     this._contexts = {};
     this._sdkProcessingMetadata = {};
-    this._propagationContext = generatePropagationContext();
+    this._propagationContext = {
+      traceId: generateTraceId(),
+      spanId: generateSpanId(),
+    };
   }
 
   /**
-   * Inherit values from the parent scope.
-   * @deprecated Use `scope.clone()` and `new Scope()` instead.
+   * @inheritDoc
    */
-  public static clone(scope?: Scope): Scope {
-    return scope ? scope.clone() : new Scope();
-  }
-
-  /**
-   * Clone this scope instance.
-   */
-  public clone(): Scope {
-    const newScope = new Scope();
+  public clone(): ScopeClass {
+    const newScope = new ScopeClass();
     newScope._breadcrumbs = [...this._breadcrumbs];
     newScope._tags = { ...this._tags };
     newScope._extra = { ...this._extra };
     newScope._contexts = { ...this._contexts };
+    if (this._contexts.flags) {
+      // We need to copy the `values` array so insertions on a cloned scope
+      // won't affect the original array.
+      newScope._contexts.flags = {
+        values: [...this._contexts.flags.values],
+      };
+    }
+
     newScope._user = this._user;
     newScope._level = this._level;
-    newScope._span = this._span;
     newScope._session = this._session;
     newScope._transactionName = this._transactionName;
     newScope._fingerprint = this._fingerprint;
@@ -151,27 +150,43 @@ export class Scope implements ScopeInterface {
     newScope._sdkProcessingMetadata = { ...this._sdkProcessingMetadata };
     newScope._propagationContext = { ...this._propagationContext };
     newScope._client = this._client;
+    newScope._lastEventId = this._lastEventId;
+
+    _setSpanForScope(newScope, _getSpanForScope(this));
 
     return newScope;
   }
 
-  /** Update the client on the scope. */
+  /**
+   * @inheritDoc
+   */
   public setClient(client: Client | undefined): void {
     this._client = client;
   }
 
   /**
-   * Get the client assigned to this scope.
-   *
-   * It is generally recommended to use the global function `Sentry.getClient()` instead, unless you know what you are doing.
+   * @inheritDoc
    */
-  public getClient(): Client | undefined {
-    return this._client;
+  public setLastEventId(lastEventId: string | undefined): void {
+    this._lastEventId = lastEventId;
   }
 
   /**
-   * Add internal on change listener. Used for sub SDKs that need to store the scope.
-   * @hidden
+   * @inheritDoc
+   */
+  public getClient<C extends Client>(): C | undefined {
+    return this._client as C | undefined;
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public lastEventId(): string | undefined {
+    return this._lastEventId;
+  }
+
+  /**
+   * @inheritDoc
    */
   public addScopeListener(callback: (scope: Scope) => void): void {
     this._scopeListeners.push(callback);
@@ -195,7 +210,6 @@ export class Scope implements ScopeInterface {
       email: undefined,
       id: undefined,
       ip_address: undefined,
-      segment: undefined,
       username: undefined,
     };
 
@@ -217,6 +231,7 @@ export class Scope implements ScopeInterface {
   /**
    * @inheritDoc
    */
+  // eslint-disable-next-line deprecation/deprecation
   public getRequestSession(): RequestSession | undefined {
     return this._requestSession;
   }
@@ -224,6 +239,7 @@ export class Scope implements ScopeInterface {
   /**
    * @inheritDoc
    */
+  // eslint-disable-next-line deprecation/deprecation
   public setRequestSession(requestSession?: RequestSession): this {
     this._requestSession = requestSession;
     return this;
@@ -283,18 +299,14 @@ export class Scope implements ScopeInterface {
   /**
    * @inheritDoc
    */
-  public setLevel(
-    // eslint-disable-next-line deprecation/deprecation
-    level: Severity | SeverityLevel,
-  ): this {
+  public setLevel(level: SeverityLevel): this {
     this._level = level;
     this._notifyScopeListeners();
     return this;
   }
 
   /**
-   * Sets the transaction name on the scope for future events.
-   * @deprecated Use extra or tags instead.
+   * @inheritDoc
    */
   public setTransactionName(name?: string): this {
     this._transactionName = name;
@@ -315,39 +327,6 @@ export class Scope implements ScopeInterface {
 
     this._notifyScopeListeners();
     return this;
-  }
-
-  /**
-   * Sets the Span on the scope.
-   * @param span Span
-   * @deprecated Instead of setting a span on a scope, use `startSpan()`/`startSpanManual()` instead.
-   */
-  public setSpan(span?: Span): this {
-    this._span = span;
-    this._notifyScopeListeners();
-    return this;
-  }
-
-  /**
-   * Returns the `Span` if there is one.
-   * @deprecated Use `getActiveSpan()` instead.
-   */
-  public getSpan(): Span | undefined {
-    return this._span;
-  }
-
-  /**
-   * Returns the `Transaction` attached to the scope (if there is one).
-   * @deprecated You should not rely on the transaction, but just use `startSpan()` APIs instead.
-   */
-  public getTransaction(): Transaction | undefined {
-    // Often, this span (if it exists at all) will be a transaction, but it's not guaranteed to be. Regardless, it will
-    // have a pointer to the currently-active transaction.
-    const span = this._span;
-    // Cannot replace with getRootSpan because getRootSpan returns a span, not a transaction
-    // Also, this method will be removed anyway.
-    // eslint-disable-next-line deprecation/deprecation
-    return span && span.transaction;
   }
 
   /**
@@ -378,51 +357,40 @@ export class Scope implements ScopeInterface {
       return this;
     }
 
-    if (typeof captureContext === 'function') {
-      const updatedScope = (captureContext as <T>(scope: T) => T)(this);
-      return updatedScope instanceof Scope ? updatedScope : this;
+    const scopeToMerge = typeof captureContext === 'function' ? captureContext(this) : captureContext;
+
+    const [scopeInstance, requestSession] =
+      scopeToMerge instanceof Scope
+        ? // eslint-disable-next-line deprecation/deprecation
+          [scopeToMerge.getScopeData(), scopeToMerge.getRequestSession()]
+        : isPlainObject(scopeToMerge)
+          ? [captureContext as ScopeContext, (captureContext as ScopeContext).requestSession]
+          : [];
+
+    const { tags, extra, user, contexts, level, fingerprint = [], propagationContext } = scopeInstance || {};
+
+    this._tags = { ...this._tags, ...tags };
+    this._extra = { ...this._extra, ...extra };
+    this._contexts = { ...this._contexts, ...contexts };
+
+    if (user && Object.keys(user).length) {
+      this._user = user;
     }
 
-    if (captureContext instanceof Scope) {
-      this._tags = { ...this._tags, ...captureContext._tags };
-      this._extra = { ...this._extra, ...captureContext._extra };
-      this._contexts = { ...this._contexts, ...captureContext._contexts };
-      if (captureContext._user && Object.keys(captureContext._user).length) {
-        this._user = captureContext._user;
-      }
-      if (captureContext._level) {
-        this._level = captureContext._level;
-      }
-      if (captureContext._fingerprint) {
-        this._fingerprint = captureContext._fingerprint;
-      }
-      if (captureContext._requestSession) {
-        this._requestSession = captureContext._requestSession;
-      }
-      if (captureContext._propagationContext) {
-        this._propagationContext = captureContext._propagationContext;
-      }
-    } else if (isPlainObject(captureContext)) {
-      // eslint-disable-next-line no-param-reassign
-      captureContext = captureContext as ScopeContext;
-      this._tags = { ...this._tags, ...captureContext.tags };
-      this._extra = { ...this._extra, ...captureContext.extra };
-      this._contexts = { ...this._contexts, ...captureContext.contexts };
-      if (captureContext.user) {
-        this._user = captureContext.user;
-      }
-      if (captureContext.level) {
-        this._level = captureContext.level;
-      }
-      if (captureContext.fingerprint) {
-        this._fingerprint = captureContext.fingerprint;
-      }
-      if (captureContext.requestSession) {
-        this._requestSession = captureContext.requestSession;
-      }
-      if (captureContext.propagationContext) {
-        this._propagationContext = captureContext.propagationContext;
-      }
+    if (level) {
+      this._level = level;
+    }
+
+    if (fingerprint.length) {
+      this._fingerprint = fingerprint;
+    }
+
+    if (propagationContext) {
+      this._propagationContext = propagationContext;
+    }
+
+    if (requestSession) {
+      this._requestSession = requestSession;
     }
 
     return this;
@@ -432,6 +400,7 @@ export class Scope implements ScopeInterface {
    * @inheritDoc
    */
   public clear(): this {
+    // client is not cleared here on purpose!
     this._breadcrumbs = [];
     this._tags = {};
     this._extra = {};
@@ -441,11 +410,12 @@ export class Scope implements ScopeInterface {
     this._transactionName = undefined;
     this._fingerprint = undefined;
     this._requestSession = undefined;
-    this._span = undefined;
     this._session = undefined;
-    this._notifyScopeListeners();
+    _setSpanForScope(this, undefined);
     this._attachments = [];
-    this._propagationContext = generatePropagationContext();
+    this.setPropagationContext({ traceId: generateTraceId() });
+
+    this._notifyScopeListeners();
     return this;
   }
 
@@ -500,16 +470,6 @@ export class Scope implements ScopeInterface {
 
   /**
    * @inheritDoc
-   * @deprecated Use `getScopeData()` instead.
-   */
-  public getAttachments(): Attachment[] {
-    const data = this.getScopeData();
-
-    return data.attachments;
-  }
-
-  /**
-   * @inheritDoc
    */
   public clearAttachments(): this {
     this._attachments = [];
@@ -518,79 +478,42 @@ export class Scope implements ScopeInterface {
 
   /** @inheritDoc */
   public getScopeData(): ScopeData {
-    const {
-      _breadcrumbs,
-      _attachments,
-      _contexts,
-      _tags,
-      _extra,
-      _user,
-      _level,
-      _fingerprint,
-      _eventProcessors,
-      _propagationContext,
-      _sdkProcessingMetadata,
-      _transactionName,
-      _span,
-    } = this;
-
     return {
-      breadcrumbs: _breadcrumbs,
-      attachments: _attachments,
-      contexts: _contexts,
-      tags: _tags,
-      extra: _extra,
-      user: _user,
-      level: _level,
-      fingerprint: _fingerprint || [],
-      eventProcessors: _eventProcessors,
-      propagationContext: _propagationContext,
-      sdkProcessingMetadata: _sdkProcessingMetadata,
-      transactionName: _transactionName,
-      span: _span,
+      breadcrumbs: this._breadcrumbs,
+      attachments: this._attachments,
+      contexts: this._contexts,
+      tags: this._tags,
+      extra: this._extra,
+      user: this._user,
+      level: this._level,
+      fingerprint: this._fingerprint || [],
+      eventProcessors: this._eventProcessors,
+      propagationContext: this._propagationContext,
+      sdkProcessingMetadata: this._sdkProcessingMetadata,
+      transactionName: this._transactionName,
+      span: _getSpanForScope(this),
     };
   }
 
   /**
-   * Applies data from the scope to the event and runs all event processors on it.
-   *
-   * @param event Event
-   * @param hint Object containing additional information about the original exception, for use by the event processors.
-   * @hidden
-   * @deprecated Use `applyScopeDataToEvent()` directly
-   */
-  public applyToEvent(
-    event: Event,
-    hint: EventHint = {},
-    additionalEventProcessors: EventProcessor[] = [],
-  ): PromiseLike<Event | null> {
-    applyScopeDataToEvent(event, this.getScopeData());
-
-    // TODO (v8): Update this order to be: Global > Client > Scope
-    const eventProcessors: EventProcessor[] = [
-      ...additionalEventProcessors,
-      // eslint-disable-next-line deprecation/deprecation
-      ...getGlobalEventProcessors(),
-      ...this._eventProcessors,
-    ];
-
-    return notifyEventProcessors(eventProcessors, event, hint);
-  }
-
-  /**
-   * Add data which will be accessible during event processing but won't get sent to Sentry
+   * @inheritDoc
    */
   public setSDKProcessingMetadata(newData: { [key: string]: unknown }): this {
-    this._sdkProcessingMetadata = { ...this._sdkProcessingMetadata, ...newData };
-
+    this._sdkProcessingMetadata = merge(this._sdkProcessingMetadata, newData, 2);
     return this;
   }
 
   /**
    * @inheritDoc
    */
-  public setPropagationContext(context: PropagationContext): this {
-    this._propagationContext = context;
+  public setPropagationContext(
+    context: Omit<PropagationContext, 'spanId'> & Partial<Pick<PropagationContext, 'spanId'>>,
+  ): this {
+    this._propagationContext = {
+      // eslint-disable-next-line deprecation/deprecation
+      spanId: generateSpanId(),
+      ...context,
+    };
     return this;
   }
 
@@ -602,11 +525,7 @@ export class Scope implements ScopeInterface {
   }
 
   /**
-   * Capture an exception for this scope.
-   *
-   * @param exception The exception to capture.
-   * @param hint Optinal additional data to attach to the Sentry event.
-   * @returns the id of the captured Sentry event.
+   * @inheritDoc
    */
   public captureException(exception: unknown, hint?: EventHint): string {
     const eventId = hint && hint.event_id ? hint.event_id : uuid4();
@@ -633,12 +552,7 @@ export class Scope implements ScopeInterface {
   }
 
   /**
-   * Capture a message for this scope.
-   *
-   * @param message The message to capture.
-   * @param level An optional severity level to report the message with.
-   * @param hint Optional additional data to attach to the Sentry event.
-   * @returns the id of the captured message.
+   * @inheritDoc
    */
   public captureMessage(message: string, level?: SeverityLevel, hint?: EventHint): string {
     const eventId = hint && hint.event_id ? hint.event_id : uuid4();
@@ -666,11 +580,7 @@ export class Scope implements ScopeInterface {
   }
 
   /**
-   * Captures a manually created event for this scope and sends it to Sentry.
-   *
-   * @param exception The event to capture.
-   * @param hint Optional additional data to attach to the Sentry event.
-   * @returns the id of the captured event.
+   * @inheritDoc
    */
   public captureEvent(event: Event, hint?: EventHint): string {
     const eventId = hint && hint.event_id ? hint.event_id : uuid4();
@@ -703,29 +613,11 @@ export class Scope implements ScopeInterface {
 }
 
 /**
- * Get the global scope.
- * This scope is applied to _all_ events.
+ * Holds additional event information.
  */
-export function getGlobalScope(): ScopeInterface {
-  if (!globalScope) {
-    globalScope = new Scope();
-  }
-
-  return globalScope;
-}
+export const Scope = ScopeClass;
 
 /**
- * This is mainly needed for tests.
- * DO NOT USE this, as this is an internal API and subject to change.
- * @hidden
+ * Holds additional event information.
  */
-export function setGlobalScope(scope: ScopeInterface | undefined): void {
-  globalScope = scope;
-}
-
-function generatePropagationContext(): PropagationContext {
-  return {
-    traceId: uuid4(),
-    spanId: uuid4().substring(16),
-  };
-}
+export type Scope = ScopeInterface;

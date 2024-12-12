@@ -1,8 +1,7 @@
 import * as Sentry from '@sentry/browser';
-import { Integrations } from '@sentry/tracing';
 
 window.Sentry = Sentry;
-window.Replay = new Sentry.Replay({
+window.Replay = Sentry.replayIntegration({
   flushMinDelay: 200,
   flushMaxDelay: 200,
   minReplayDuration: 0,
@@ -11,7 +10,8 @@ window.Replay = new Sentry.Replay({
 
 Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
-  integrations: [new Integrations.BrowserTracing({ tracingOrigins: [/.*/] }), window.Replay],
+  integrations: [Sentry.browserTracingIntegration(), window.Replay],
+  tracePropagationTargets: [/.*/],
   environment: 'production',
   tracesSampleRate: 1,
   // Needs manual start!

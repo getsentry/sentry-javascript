@@ -1,8 +1,6 @@
-import * as http from 'http';
-import { URL } from 'url';
-import { convertIntegrationFnToClass } from '@sentry/core';
-import type { Client, Envelope, Integration, IntegrationClass, IntegrationFn } from '@sentry/types';
-import { logger, serializeEnvelope } from '@sentry/utils';
+import * as http from 'node:http';
+import type { Client, Envelope, IntegrationFn } from '@sentry/core';
+import { defineIntegration, logger, serializeEnvelope } from '@sentry/core';
 
 type SpotlightConnectionOptions = {
   /**
@@ -12,17 +10,15 @@ type SpotlightConnectionOptions = {
   sidecarUrl?: string;
 };
 
-const INTEGRATION_NAME = 'Spotlight';
+export const INTEGRATION_NAME = 'Spotlight';
 
-const spotlightIntegration = ((options: Partial<SpotlightConnectionOptions> = {}) => {
+const _spotlightIntegration = ((options: Partial<SpotlightConnectionOptions> = {}) => {
   const _options = {
     sidecarUrl: options.sidecarUrl || 'http://localhost:8969/stream',
   };
 
   return {
     name: INTEGRATION_NAME,
-    // TODO v8: Remove this
-    setupOnce() {}, // eslint-disable-line @typescript-eslint/no-empty-function
     setup(client) {
       if (typeof process === 'object' && process.env && process.env.NODE_ENV !== 'development') {
         logger.warn("[Spotlight] It seems you're not in dev mode. Do you really want to have Spotlight enabled?");
@@ -37,18 +33,9 @@ const spotlightIntegration = ((options: Partial<SpotlightConnectionOptions> = {}
  *
  * Learn more about spotlight at https://spotlightjs.com
  *
- * Important: This integration only works with Node 18 or newer
+ * Important: This integration only works with Node 18 or newer.
  */
-// eslint-disable-next-line deprecation/deprecation
-export const Spotlight = convertIntegrationFnToClass(INTEGRATION_NAME, spotlightIntegration) as IntegrationClass<
-  Integration & { setup: (client: Client) => void }
-> & {
-  new (
-    options?: Partial<{
-      sidecarUrl?: string;
-    }>,
-  ): Integration;
-};
+export const spotlightIntegration = defineIntegration(_spotlightIntegration);
 
 function connectToSpotlight(client: Client, options: Required<SpotlightConnectionOptions>): void {
   const spotlightUrl = parseSidecarUrl(options.sidecarUrl);
@@ -58,11 +45,6 @@ function connectToSpotlight(client: Client, options: Required<SpotlightConnectio
 
   let failedRequests = 0;
 
-  if (typeof client.on !== 'function') {
-    logger.warn('[Spotlight] Cannot connect to spotlight due to missing method on SDK client (`client.on`)');
-    return;
-  }
-
   client.on('beforeEnvelope', (envelope: Envelope) => {
     if (failedRequests > 3) {
       logger.warn('[Spotlight] Disabled Sentry -> Spotlight integration due to too many failed requests');
@@ -71,7 +53,8 @@ function connectToSpotlight(client: Client, options: Required<SpotlightConnectio
 
     const serializedEnvelope = serializeEnvelope(envelope);
 
-    const req = http.request(
+    const request = getNativeHttpRequest();
+    const req = request(
       {
         method: 'POST',
         path: spotlightUrl.pathname,
@@ -82,6 +65,10 @@ function connectToSpotlight(client: Client, options: Required<SpotlightConnectio
         },
       },
       res => {
+        if (res.statusCode && res.statusCode >= 200 && res.statusCode < 400) {
+          // Reset failed requests counter on success
+          failedRequests = 0;
+        }
         res.on('data', () => {
           // Drain socket
         });
@@ -109,4 +96,23 @@ function parseSidecarUrl(url: string): URL | undefined {
     logger.warn(`[Spotlight] Invalid sidecar URL: ${url}`);
     return undefined;
   }
+}
+
+type HttpRequestImpl = typeof http.request;
+type WrappedHttpRequest = HttpRequestImpl & { __sentry_original__: HttpRequestImpl };
+
+/**
+ * We want to get an unpatched http request implementation to avoid capturing our own calls.
+ */
+export function getNativeHttpRequest(): HttpRequestImpl {
+  const { request } = http;
+  if (isWrapped(request)) {
+    return request.__sentry_original__;
+  }
+
+  return request;
+}
+
+function isWrapped(impl: HttpRequestImpl): impl is WrappedHttpRequest {
+  return '__sentry_original__' in impl;
 }

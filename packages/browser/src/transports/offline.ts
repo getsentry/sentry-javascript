@@ -1,14 +1,12 @@
-import type { OfflineStore, OfflineTransportOptions } from '@sentry/core';
-import { makeOfflineTransport } from '@sentry/core';
-import type { Envelope, InternalBaseTransportOptions, Transport } from '@sentry/types';
-import type { TextDecoderInternal } from '@sentry/utils';
-import { parseEnvelope, serializeEnvelope } from '@sentry/utils';
+import type { BaseTransportOptions, Envelope, OfflineStore, OfflineTransportOptions, Transport } from '@sentry/core';
+import { makeOfflineTransport, parseEnvelope, serializeEnvelope } from '@sentry/core';
+import { makeFetchTransport } from './fetch';
 
 // 'Store', 'promisifyRequest' and 'createStore' were originally copied from the 'idb-keyval' package before being
 // modified and simplified: https://github.com/jakearchibald/idb-keyval
 //
 // At commit: 0420a704fd6cbb4225429c536b1f61112d012fca
-// Original licence:
+// Original license:
 
 // Copyright 2016, Jake Archibald
 //
@@ -48,8 +46,8 @@ function keys(store: IDBObjectStore): Promise<number[]> {
   return promisifyRequest(store.getAllKeys() as IDBRequest<number[]>);
 }
 
-/** Insert into the store */
-export function insert(store: Store, value: Uint8Array | string, maxQueueSize: number): Promise<void> {
+/** Insert into the end of the store */
+export function push(store: Store, value: Uint8Array | string, maxQueueSize: number): Promise<void> {
   return store(store => {
     return keys(store).then(keys => {
       if (keys.length >= maxQueueSize) {
@@ -63,23 +61,39 @@ export function insert(store: Store, value: Uint8Array | string, maxQueueSize: n
   });
 }
 
-/** Pop the oldest value from the store */
-export function pop(store: Store): Promise<Uint8Array | string | undefined> {
+/** Insert into the front of the store */
+export function unshift(store: Store, value: Uint8Array | string, maxQueueSize: number): Promise<void> {
   return store(store => {
     return keys(store).then(keys => {
-      if (keys.length === 0) {
+      if (keys.length >= maxQueueSize) {
+        return;
+      }
+
+      // We insert with an decremented key so that the entries are popped in order
+      store.put(value, Math.min(...keys, 0) - 1);
+      return promisifyRequest(store.transaction);
+    });
+  });
+}
+
+/** Pop the oldest value from the store */
+export function shift(store: Store): Promise<Uint8Array | string | undefined> {
+  return store(store => {
+    return keys(store).then(keys => {
+      const firstKey = keys[0];
+      if (firstKey == null) {
         return undefined;
       }
 
-      return promisifyRequest(store.get(keys[0])).then(value => {
-        store.delete(keys[0]);
+      return promisifyRequest(store.get(firstKey)).then(value => {
+        store.delete(firstKey);
         return promisifyRequest(store.transaction).then(() => value);
       });
     });
   });
 }
 
-export interface BrowserOfflineTransportOptions extends OfflineTransportOptions {
+export interface BrowserOfflineTransportOptions extends Omit<OfflineTransportOptions, 'createStore'> {
   /**
    * Name of indexedDb database to store envelopes in
    * Default: 'sentry-offline'
@@ -95,11 +109,6 @@ export interface BrowserOfflineTransportOptions extends OfflineTransportOptions 
    * Default: 30
    */
   maxQueueSize?: number;
-  /**
-   * Only required for testing on node.js
-   * @ignore
-   */
-  textDecoder?: TextDecoderInternal;
 }
 
 function createIndexedDbStore(options: BrowserOfflineTransportOptions): OfflineStore {
@@ -115,23 +124,27 @@ function createIndexedDbStore(options: BrowserOfflineTransportOptions): OfflineS
   }
 
   return {
-    insert: async (env: Envelope) => {
+    push: async (env: Envelope) => {
       try {
-        const serialized = await serializeEnvelope(env, options.textEncoder);
-        await insert(getStore(), serialized, options.maxQueueSize || 30);
+        const serialized = await serializeEnvelope(env);
+        await push(getStore(), serialized, options.maxQueueSize || 30);
       } catch (_) {
         //
       }
     },
-    pop: async () => {
+    unshift: async (env: Envelope) => {
       try {
-        const deserialized = await pop(getStore());
+        const serialized = await serializeEnvelope(env);
+        await unshift(getStore(), serialized, options.maxQueueSize || 30);
+      } catch (_) {
+        //
+      }
+    },
+    shift: async () => {
+      try {
+        const deserialized = await shift(getStore());
         if (deserialized) {
-          return parseEnvelope(
-            deserialized,
-            options.textEncoder || new TextEncoder(),
-            options.textDecoder || new TextDecoder(),
-          );
+          return parseEnvelope(deserialized);
         }
       } catch (_) {
         //
@@ -151,8 +164,8 @@ function makeIndexedDbOfflineTransport<T>(
 /**
  * Creates a transport that uses IndexedDb to store events when offline.
  */
-export function makeBrowserOfflineTransport<T extends InternalBaseTransportOptions>(
-  createTransport: (options: T) => Transport,
+export function makeBrowserOfflineTransport<T extends BaseTransportOptions>(
+  createTransport: (options: T) => Transport = makeFetchTransport,
 ): (options: T & BrowserOfflineTransportOptions) => Transport {
   return makeIndexedDbOfflineTransport<T>(makeOfflineTransport(createTransport));
 }

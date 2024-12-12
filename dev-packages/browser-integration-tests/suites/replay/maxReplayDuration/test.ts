@@ -6,29 +6,21 @@ import { getReplayEvent, shouldSkipReplayTest, waitForReplayRequest } from '../.
 
 const MAX_REPLAY_DURATION = 2000;
 
-sentryTest('keeps track of max duration across reloads', async ({ getLocalTestPath, page }) => {
+sentryTest('keeps track of max duration across reloads', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipReplayTest()) {
     sentryTest.skip();
   }
 
-  await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-    return route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ id: 'test-id' }),
-    });
-  });
-
   const reqPromise0 = waitForReplayRequest(page, 0);
   const reqPromise1 = waitForReplayRequest(page, 1);
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
 
   await page.goto(url);
 
   await new Promise(resolve => setTimeout(resolve, MAX_REPLAY_DURATION / 2));
 
-  await Promise.all([page.reload(), page.click('#button1')]);
+  await Promise.all([page.reload(), page.locator('#button1').click()]);
 
   // After the second reload, we should have a new session (because we exceeded max age)
   const reqPromise3 = waitForReplayRequest(page, 0);
@@ -38,7 +30,7 @@ sentryTest('keeps track of max duration across reloads', async ({ getLocalTestPa
   const [req0, req1] = await Promise.all([
     reqPromise0,
     reqPromise1,
-    page.click('#button1'),
+    page.locator('#button1').click(),
     page.evaluate(
       `Object.defineProperty(document, 'visibilityState', {
     configurable: true,

@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { Event } from '@sentry/types';
+import { Event } from '@sentry/core';
 import { getMultipleSentryEnvelopeRequests } from './utils/helpers';
 
 test('should report a manually captured error.', async ({ page }) => {
@@ -8,7 +8,7 @@ test('should report a manually captured error.', async ({ page }) => {
   const [errorEnvelope, pageloadEnvelope] = envelopes;
 
   expect(errorEnvelope.level).toBe('error');
-  expect(errorEnvelope.tags?.transaction).toBe('/capture-exception');
+  expect(errorEnvelope.transaction).toBe('/capture-exception');
   expect(errorEnvelope.exception?.values).toMatchObject([
     {
       type: 'Error',
@@ -18,8 +18,7 @@ test('should report a manually captured error.', async ({ page }) => {
     },
   ]);
 
-  expect(pageloadEnvelope.contexts?.trace.op).toBe('pageload');
-  expect(pageloadEnvelope.tags?.['routing.instrumentation']).toBe('remix-router');
+  expect(pageloadEnvelope.contexts?.trace?.op).toBe('pageload');
   expect(pageloadEnvelope.type).toBe('transaction');
   expect(pageloadEnvelope.transaction).toBe('routes/capture-exception');
 });

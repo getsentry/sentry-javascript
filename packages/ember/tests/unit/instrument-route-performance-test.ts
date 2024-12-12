@@ -4,20 +4,21 @@ import { setupTest } from 'ember-qunit';
 import { module, test } from 'qunit';
 import sinon from 'sinon';
 
+import type { SentryTestContext } from '../helpers/setup-sentry';
 import { setupSentryTest } from '../helpers/setup-sentry';
 
 module('Unit | Utility | instrument-route-performance', function (hooks) {
   setupTest(hooks);
   setupSentryTest(hooks);
 
-  test('wrapped Route hooks maintain the current context', function (assert) {
+  test('wrapped Route hooks maintain the current context', function (this: SentryTestContext, assert) {
     const beforeModel = sinon.spy();
     const model = sinon.spy();
     const afterModel = sinon.spy();
     const setupController = sinon.spy();
 
     class DummyRoute extends Route {
-      public beforeModel(...args: unknown[]): unknown {
+      public beforeModel(...args: unknown[]): ReturnType<Route['beforeModel']> {
         return beforeModel.call(this, ...args);
       }
 
@@ -25,7 +26,7 @@ module('Unit | Utility | instrument-route-performance', function (hooks) {
         return model.call(this, ...args);
       }
 
-      public afterModel(...args: unknown[]): unknown {
+      public afterModel(...args: unknown[]): ReturnType<Route['afterModel']> {
         return afterModel.call(this, ...args);
       }
 

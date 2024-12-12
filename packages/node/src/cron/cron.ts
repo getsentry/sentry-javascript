@@ -1,4 +1,4 @@
-import { withMonitor } from '@sentry/core';
+import { captureException, withMonitor } from '@sentry/core';
 import { replaceCronNames } from './common';
 
 export type CronJobParams = {
@@ -8,10 +8,17 @@ export type CronJobParams = {
   start?: boolean | null;
   context?: unknown;
   runOnInit?: boolean | null;
-  utcOffset?: number;
-  timeZone?: string;
   unrefTimeout?: boolean | null;
-};
+} & (
+  | {
+      timeZone?: string | null;
+      utcOffset?: never;
+    }
+  | {
+      timeZone?: never;
+      utcOffset?: number | null;
+    }
+);
 
 export type CronJob = {
   //
@@ -26,6 +33,17 @@ export type CronJobConstructor = {
     onComplete?: CronJobParams['onComplete'],
     start?: CronJobParams['start'],
     timeZone?: CronJobParams['timeZone'],
+    context?: CronJobParams['context'],
+    runOnInit?: CronJobParams['runOnInit'],
+    utcOffset?: null,
+    unrefTimeout?: CronJobParams['unrefTimeout'],
+  ): CronJob;
+  new (
+    cronTime: CronJobParams['cronTime'],
+    onTick: CronJobParams['onTick'],
+    onComplete?: CronJobParams['onComplete'],
+    start?: CronJobParams['start'],
+    timeZone?: null,
     context?: CronJobParams['context'],
     runOnInit?: CronJobParams['runOnInit'],
     utcOffset?: CronJobParams['utcOffset'],
@@ -74,15 +92,20 @@ export function instrumentCron<T>(lib: T & CronJobConstructor, monitorSlug: stri
 
       const cronString = replaceCronNames(cronTime);
 
-      function monitoredTick(context: unknown, onComplete?: unknown): void | Promise<void> {
+      async function monitoredTick(context: unknown, onComplete?: unknown): Promise<void> {
         return withMonitor(
           monitorSlug,
-          () => {
-            return onTick(context, onComplete);
+          async () => {
+            try {
+              await onTick(context, onComplete);
+            } catch (e) {
+              captureException(e);
+              throw e;
+            }
           },
           {
             schedule: { type: 'crontab', value: cronString },
-            ...(timeZone ? { timeZone } : {}),
+            timezone: timeZone || undefined,
           },
         );
       }
@@ -106,15 +129,20 @@ export function instrumentCron<T>(lib: T & CronJobConstructor, monitorSlug: stri
 
           const cronString = replaceCronNames(cronTime);
 
-          param.onTick = (context: unknown, onComplete?: unknown) => {
+          param.onTick = async (context: unknown, onComplete?: unknown) => {
             return withMonitor(
               monitorSlug,
-              () => {
-                return onTick(context, onComplete);
+              async () => {
+                try {
+                  await onTick(context, onComplete);
+                } catch (e) {
+                  captureException(e);
+                  throw e;
+                }
               },
               {
                 schedule: { type: 'crontab', value: cronString },
-                ...(timeZone ? { timeZone } : {}),
+                timezone: timeZone || undefined,
               },
             );
           };

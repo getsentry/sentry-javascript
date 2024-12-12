@@ -6,10 +6,11 @@ import type {
   EventItem,
   Transport,
   TransportMakeRequestResponse,
-} from '@sentry/types';
-import { dsnFromString, forEachEnvelopeItem } from '@sentry/utils';
+} from '../types-hoist';
 
 import { getEnvelopeEndpointWithUrlEncodedAuth } from '../api';
+import { dsnFromString } from '../utils-hoist/dsn';
+import { createEnvelope, forEachEnvelopeItem } from '../utils-hoist/envelope';
 
 interface MatchParam {
   /** The envelope to be sent */
@@ -57,7 +58,8 @@ function makeOverrideReleaseTransport<TO extends BaseTransportOptions>(
     const transport = createTransport(options);
 
     return {
-      send: async (envelope: Envelope): Promise<void | TransportMakeRequestResponse> => {
+      ...transport,
+      send: async (envelope: Envelope): Promise<TransportMakeRequestResponse> => {
         const event = eventFromEnvelope(envelope, ['event', 'transaction', 'profile', 'replay_event']);
 
         if (event) {
@@ -65,9 +67,21 @@ function makeOverrideReleaseTransport<TO extends BaseTransportOptions>(
         }
         return transport.send(envelope);
       },
-      flush: timeout => transport.flush(timeout),
     };
   };
+}
+
+/** Overrides the DSN in the envelope header  */
+function overrideDsn(envelope: Envelope, dsn: string): Envelope {
+  return createEnvelope(
+    dsn
+      ? {
+          ...envelope[0],
+          dsn,
+        }
+      : envelope[0],
+    envelope[1],
+  );
 }
 
 /**
@@ -79,29 +93,33 @@ export function makeMultiplexedTransport<TO extends BaseTransportOptions>(
 ): (options: TO) => Transport {
   return options => {
     const fallbackTransport = createTransport(options);
-    const otherTransports: Record<string, Transport> = {};
+    const otherTransports: Map<string, Transport> = new Map();
 
-    function getTransport(dsn: string, release: string | undefined): Transport | undefined {
+    function getTransport(dsn: string, release: string | undefined): [string, Transport] | undefined {
       // We create a transport for every unique dsn/release combination as there may be code from multiple releases in
       // use at the same time
       const key = release ? `${dsn}:${release}` : dsn;
 
-      if (!otherTransports[key]) {
+      let transport = otherTransports.get(key);
+
+      if (!transport) {
         const validatedDsn = dsnFromString(dsn);
         if (!validatedDsn) {
           return undefined;
         }
-        const url = getEnvelopeEndpointWithUrlEncodedAuth(validatedDsn);
+        const url = getEnvelopeEndpointWithUrlEncodedAuth(validatedDsn, options.tunnel);
 
-        otherTransports[key] = release
+        transport = release
           ? makeOverrideReleaseTransport(createTransport, release)({ ...options, url })
           : createTransport({ ...options, url });
+
+        otherTransports.set(key, transport);
       }
 
-      return otherTransports[key];
+      return [dsn, transport];
     }
 
-    async function send(envelope: Envelope): Promise<void | TransportMakeRequestResponse> {
+    async function send(envelope: Envelope): Promise<TransportMakeRequestResponse> {
       function getEvent(types?: EnvelopeItemType[]): Event | undefined {
         const eventTypes: EnvelopeItemType[] = types && types.length ? types : ['event'];
         return eventFromEnvelope(envelope, eventTypes);
@@ -115,20 +133,21 @@ export function makeMultiplexedTransport<TO extends BaseTransportOptions>(
             return getTransport(result.dsn, result.release);
           }
         })
-        .filter((t): t is Transport => !!t);
+        .filter((t): t is [string, Transport] => !!t);
 
       // If we have no transports to send to, use the fallback transport
-      if (transports.length === 0) {
-        transports.push(fallbackTransport);
-      }
+      // Don't override the DSN in the header for the fallback transport. '' is falsy
+      const transportsWithFallback: [string, Transport][] = transports.length ? transports : [['', fallbackTransport]];
 
-      const results = await Promise.all(transports.map(transport => transport.send(envelope)));
+      const results = (await Promise.all(
+        transportsWithFallback.map(([dsn, transport]) => transport.send(overrideDsn(envelope, dsn))),
+      )) as [TransportMakeRequestResponse, ...TransportMakeRequestResponse[]];
 
       return results[0];
     }
 
     async function flush(timeout: number | undefined): Promise<boolean> {
-      const allTransports = [...Object.keys(otherTransports).map(dsn => otherTransports[dsn]), fallbackTransport];
+      const allTransports = [...otherTransports.values(), fallbackTransport];
       const results = await Promise.all(allTransports.map(transport => transport.flush(timeout)));
       return results.every(r => r);
     }

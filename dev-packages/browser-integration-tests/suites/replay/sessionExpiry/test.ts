@@ -14,7 +14,7 @@ import {
 // Session should expire after 2s - keep in sync with init.js
 const SESSION_TIMEOUT = 2000;
 
-sentryTest('handles an expired session', async ({ browserName, forceFlushReplay, getLocalTestPath, page }) => {
+sentryTest('handles an expired session', async ({ browserName, forceFlushReplay, getLocalTestUrl, page }) => {
   if (shouldSkipReplayTest() || browserName === 'webkit') {
     sentryTest.skip();
   }
@@ -22,15 +22,7 @@ sentryTest('handles an expired session', async ({ browserName, forceFlushReplay,
   const reqPromise0 = waitForReplayRequest(page, 0);
   const reqPromise1 = waitForReplayRequest(page, 1);
 
-  await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-    return route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ id: 'test-id' }),
-    });
-  });
-
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
 
   await page.goto(url);
   const req0 = await reqPromise0;
@@ -46,7 +38,7 @@ sentryTest('handles an expired session', async ({ browserName, forceFlushReplay,
   // We wait for another segment 0
   const reqPromise2 = waitForReplayRequest(page, 0);
 
-  await page.click('#button1');
+  await page.locator('#button1').click();
   await forceFlushReplay();
   const req1 = await reqPromise1;
 
@@ -58,7 +50,7 @@ sentryTest('handles an expired session', async ({ browserName, forceFlushReplay,
 
   await new Promise(resolve => setTimeout(resolve, SESSION_TIMEOUT));
 
-  await page.click('#button2');
+  await page.locator('#button2').click();
   await forceFlushReplay();
   const req2 = await reqPromise2;
 

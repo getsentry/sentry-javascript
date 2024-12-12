@@ -14,18 +14,12 @@ import {
 
 sentryTest(
   'should stop recording when running into eventBuffer error',
-  async ({ getLocalTestPath, page, forceFlushReplay }) => {
+  async ({ getLocalTestUrl, page, forceFlushReplay }) => {
     if (shouldSkipReplayTest()) {
       sentryTest.skip();
     }
 
-    await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-      return route.fulfill({
-        status: 200,
-      });
-    });
-
-    const url = await getLocalTestPath({ testDir: __dirname });
+    const url = await getLocalTestUrl({ testDir: __dirname });
     await page.goto(url);
 
     await waitForReplayRequest(page);
@@ -73,8 +67,8 @@ window.Replay._replay.eventBuffer.addEvent = (...args) => {
 };
 `);
 
-    void page.click('#button1');
-    void page.click('#button2');
+    void page.locator('#button1').click();
+    void page.locator('#button2').click();
 
     // Should immediately skip retrying and just cancel, no backoff
     // This waitForTimeout call should be okay, as we're not checking for any

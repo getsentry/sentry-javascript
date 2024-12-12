@@ -1,18 +1,28 @@
-import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 import {
+  addNonEnumerableProperty,
+  extractQueryParamsFromUrl,
+  logger,
+  objectify,
+  stripUrlQueryAndFragment,
+  vercelWaitUntil,
+  winterCGRequestToRequestData,
+} from '@sentry/core';
+import type { RequestEventData, Scope, SpanAttributes } from '@sentry/core';
+import {
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   captureException,
   continueTrace,
+  flush,
   getActiveSpan,
   getClient,
   getCurrentScope,
-  runWithAsyncContext,
+  getTraceMetaTags,
+  setHttpStatus,
   startSpan,
+  withIsolationScope,
 } from '@sentry/node';
-import type { Client, Scope, Span } from '@sentry/types';
-import { addNonEnumerableProperty, objectify, stripUrlQueryAndFragment } from '@sentry/utils';
 import type { APIContext, MiddlewareResponseHandler } from 'astro';
-
-import { getTracingMetaTags } from './meta';
 
 type MiddlewareOptions = {
   /**
@@ -27,15 +37,6 @@ type MiddlewareOptions = {
    * @default false (recommended)
    */
   trackClientIp?: boolean;
-
-  /**
-   * If true, the headers from the request will be attached to the event by calling `setExtra`.
-   *
-   * Only set this to `true` if you're fine with collecting potentially personally identifiable information (PII).
-   *
-   * @default false (recommended)
-   */
-  trackHeaders?: boolean;
 };
 
 function sendErrorToSentry(e: unknown): unknown {
@@ -63,7 +64,6 @@ type AstroLocalsWithSentry = Record<string, unknown> & {
 export const handleRequest: (options?: MiddlewareOptions) => MiddlewareResponseHandler = options => {
   const handlerOptions = {
     trackClientIp: false,
-    trackHeaders: false,
     ...options,
   };
 
@@ -74,8 +74,8 @@ export const handleRequest: (options?: MiddlewareOptions) => MiddlewareResponseH
     if (getActiveSpan()) {
       return instrumentRequest(ctx, next, handlerOptions);
     }
-    return runWithAsyncContext(() => {
-      return instrumentRequest(ctx, next, handlerOptions);
+    return withIsolationScope(isolationScope => {
+      return instrumentRequest(ctx, next, handlerOptions, isolationScope);
     });
   };
 };
@@ -84,6 +84,7 @@ async function instrumentRequest(
   ctx: Parameters<MiddlewareResponseHandler>[0],
   next: Parameters<MiddlewareResponseHandler>[1],
   options: MiddlewareOptions,
+  isolationScope?: Scope,
 ): Promise<Response> {
   // Make sure we don't accidentally double wrap (e.g. user added middleware and integration auto added it)
   const locals = ctx.locals as AstroLocalsWithSentry;
@@ -92,110 +93,145 @@ async function instrumentRequest(
   }
   addNonEnumerableProperty(locals, '__sentry_wrapped__', true);
 
-  const { method, headers } = ctx.request;
+  const isDynamicPageRequest = checkIsDynamicPageRequest(ctx);
 
-  const traceCtx = continueTrace({
-    sentryTrace: headers.get('sentry-trace') || undefined,
-    baggage: headers.get('baggage'),
-  });
+  const request = ctx.request;
 
-  const allHeaders: Record<string, string> = {};
+  const { method, headers } = isDynamicPageRequest
+    ? request
+    : // headers can only be accessed in dynamic routes. Accessing `request.headers` in a static route
+      // will make the server log a warning.
+      { method: request.method, headers: undefined };
 
-  if (options.trackHeaders) {
-    headers.forEach((value, key) => {
-      allHeaders[key] = value;
-    });
-  }
+  return continueTrace(
+    {
+      sentryTrace: headers?.get('sentry-trace') || undefined,
+      baggage: headers?.get('baggage'),
+    },
+    async () => {
+      getCurrentScope().setSDKProcessingMetadata({
+        // We store the request on the current scope, not isolation scope,
+        // because we may have multiple requests nested inside each other
+        normalizedRequest: (isDynamicPageRequest
+          ? winterCGRequestToRequestData(request)
+          : {
+              method,
+              url: request.url,
+              query_string: extractQueryParamsFromUrl(request.url),
+            }) satisfies RequestEventData,
+      });
 
-  if (options.trackClientIp) {
-    getCurrentScope().setUser({ ip_address: ctx.clientAddress });
-  }
+      if (options.trackClientIp && isDynamicPageRequest) {
+        getCurrentScope().setUser({ ip_address: ctx.clientAddress });
+      }
 
-  try {
-    const interpolatedRoute = interpolateRouteFromUrlAndParams(ctx.url.pathname, ctx.params);
-    const source = interpolatedRoute ? 'route' : 'url';
-    // storing res in a variable instead of directly returning is necessary to
-    // invoke the catch block if next() throws
-    const res = await startSpan(
-      {
-        ...traceCtx,
-        name: `${method} ${interpolatedRoute || ctx.url.pathname}`,
-        op: 'http.server',
-        origin: 'auto.http.astro',
-        status: 'ok',
-        metadata: {
-          // eslint-disable-next-line deprecation/deprecation
-          ...traceCtx?.metadata,
-        },
-        data: {
+      try {
+        const interpolatedRoute = interpolateRouteFromUrlAndParams(ctx.url.pathname, ctx.params);
+        const source = interpolatedRoute ? 'route' : 'url';
+        // storing res in a variable instead of directly returning is necessary to
+        // invoke the catch block if next() throws
+
+        const attributes: SpanAttributes = {
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.astro',
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
           method,
           url: stripUrlQueryAndFragment(ctx.url.href),
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
-          ...(ctx.url.search && { 'http.query': ctx.url.search }),
-          ...(ctx.url.hash && { 'http.fragment': ctx.url.hash }),
-          ...(options.trackHeaders && { headers: allHeaders }),
-        },
-      },
-      async span => {
-        const originalResponse = await next();
+        };
 
-        if (span && originalResponse.status) {
-          span.setHttpStatus(originalResponse.status);
+        if (ctx.url.search) {
+          attributes['http.query'] = ctx.url.search;
         }
 
-        const scope = getCurrentScope();
-        const client = getClient();
-        const contentType = originalResponse.headers.get('content-type');
-
-        const isPageloadRequest = contentType && contentType.startsWith('text/html');
-        if (!isPageloadRequest || !client) {
-          return originalResponse;
+        if (ctx.url.hash) {
+          attributes['http.fragment'] = ctx.url.hash;
         }
 
-        // Type case necessary b/c the body's ReadableStream type doesn't include
-        // the async iterator that is actually available in Node
-        // We later on use the async iterator to read the body chunks
-        // see https://github.com/microsoft/TypeScript/issues/39051
-        const originalBody = originalResponse.body as NodeJS.ReadableStream | null;
-        if (!originalBody) {
-          return originalResponse;
-        }
+        isolationScope?.setTransactionName(`${method} ${interpolatedRoute || ctx.url.pathname}`);
 
-        const decoder = new TextDecoder();
-
-        const newResponseStream = new ReadableStream({
-          start: async controller => {
-            for await (const chunk of originalBody) {
-              const html = typeof chunk === 'string' ? chunk : decoder.decode(chunk, { stream: true });
-              const modifiedHtml = addMetaTagToHead(html, scope, client, span);
-              controller.enqueue(new TextEncoder().encode(modifiedHtml));
-            }
-            controller.close();
+        const res = await startSpan(
+          {
+            attributes,
+            name: `${method} ${interpolatedRoute || ctx.url.pathname}`,
+            op: 'http.server',
           },
-        });
+          async span => {
+            try {
+              const originalResponse = await next();
+              if (originalResponse.status) {
+                setHttpStatus(span, originalResponse.status);
+              }
 
-        return new Response(newResponseStream, originalResponse);
-      },
-    );
-    return res;
-  } catch (e) {
-    sendErrorToSentry(e);
-    throw e;
-  }
-  // TODO: flush if serverless (first extract function)
+              const client = getClient();
+              const contentType = originalResponse.headers.get('content-type');
+
+              const isPageloadRequest = contentType && contentType.startsWith('text/html');
+              if (!isPageloadRequest || !client) {
+                return originalResponse;
+              }
+
+              // Type case necessary b/c the body's ReadableStream type doesn't include
+              // the async iterator that is actually available in Node
+              // We later on use the async iterator to read the body chunks
+              // see https://github.com/microsoft/TypeScript/issues/39051
+              const originalBody = originalResponse.body as NodeJS.ReadableStream | null;
+              if (!originalBody) {
+                return originalResponse;
+              }
+
+              const decoder = new TextDecoder();
+
+              const newResponseStream = new ReadableStream({
+                start: async controller => {
+                  for await (const chunk of originalBody) {
+                    const html = typeof chunk === 'string' ? chunk : decoder.decode(chunk, { stream: true });
+                    const modifiedHtml = addMetaTagToHead(html);
+                    controller.enqueue(new TextEncoder().encode(modifiedHtml));
+                  }
+                  controller.close();
+                },
+              });
+
+              return new Response(newResponseStream, originalResponse);
+            } catch (e) {
+              sendErrorToSentry(e);
+              throw e;
+            }
+          },
+        );
+        return res;
+      } finally {
+        vercelWaitUntil(
+          (async () => {
+            // Flushes pending Sentry events with a 2-second timeout and in a way that cannot create unhandled promise rejections.
+            try {
+              await flush(2000);
+            } catch (e) {
+              logger.log('Error while flushing events:\n', e);
+            }
+          })(),
+        );
+      }
+      // TODO: flush if serverless (first extract function)
+    },
+  );
 }
 
 /**
  * This function optimistically assumes that the HTML coming in chunks will not be split
  * within the <head> tag. If this still happens, we simply won't replace anything.
  */
-function addMetaTagToHead(htmlChunk: string, scope: Scope, client: Client, span?: Span): string {
+function addMetaTagToHead(htmlChunk: string): string {
   if (typeof htmlChunk !== 'string') {
     return htmlChunk;
   }
+  const metaTags = getTraceMetaTags();
 
-  const { sentryTrace, baggage } = getTracingMetaTags(span, scope, client);
-  const content = `<head>\n${sentryTrace}\n${baggage}\n`;
+  if (!metaTags) {
+    return htmlChunk;
+  }
+
+  const content = `<head>${metaTags}`;
+
   return htmlChunk.replace('<head>', content);
 }
 
@@ -275,5 +311,18 @@ function tryDecodeUrl(url: string): string | undefined {
     return decodeURI(url);
   } catch {
     return undefined;
+  }
+}
+
+/**
+ * Checks if the incoming request is a request for a dynamic (server-side rendered) page.
+ * We can check this by looking at the middleware's `clientAddress` context property because accessing
+ * this prop in a static route will throw an error which we can conveniently catch.
+ */
+function checkIsDynamicPageRequest(context: Parameters<MiddlewareResponseHandler>[0]): boolean {
+  try {
+    return context.clientAddress != null;
+  } catch {
+    return false;
   }
 }

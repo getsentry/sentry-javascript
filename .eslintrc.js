@@ -6,7 +6,7 @@
 module.exports = {
   root: true,
   env: {
-    es6: true,
+    es2017: true,
   },
   parserOptions: {
     ecmaVersion: 2018,
@@ -21,7 +21,9 @@ module.exports = {
     'examples/**',
     'test/manual/**',
     'types/**',
+    'scripts/*.js',
   ],
+  reportUnusedDisableDirectives: true,
   overrides: [
     {
       files: ['*.ts', '*.tsx', '*.d.ts'],
@@ -50,12 +52,18 @@ module.exports = {
       },
     },
     {
-      files: ['scenarios/**', 'dev-packages/rollup-utils/**'],
+      files: ['scenarios/**', 'dev-packages/rollup-utils/**', 'dev-packages/bundle-analyzer-scenarios/**'],
       parserOptions: {
         sourceType: 'module',
       },
       rules: {
         'no-console': 'off',
+      },
+    },
+    {
+      files: ['vite.config.ts'],
+      parserOptions: {
+        project: ['tsconfig.test.json'],
       },
     },
   ],

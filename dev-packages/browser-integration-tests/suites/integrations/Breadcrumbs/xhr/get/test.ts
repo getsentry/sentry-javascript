@@ -1,5 +1,5 @@
 import { expect } from '@playwright/test';
-import type { Event } from '@sentry/types';
+import type { Event } from '@sentry/core';
 
 import { sentryTest } from '../../../../../utils/fixtures';
 import { getFirstSentryEnvelopeRequest } from '../../../../../utils/helpers';
@@ -32,7 +32,7 @@ sentryTest('captures Breadcrumb for basic GET request', async ({ getLocalTestUrl
     data: {
       method: 'GET',
       status_code: 200,
-      url: 'http://localhost:7654/foo',
+      url: 'http://sentry-test.io/foo',
     },
   });
 });

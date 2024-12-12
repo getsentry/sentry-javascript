@@ -10,25 +10,17 @@ import {
 
 sentryTest(
   'handles large mutations by stopping replay when `mutationLimit` configured',
-  async ({ getLocalTestPath, page, forceFlushReplay, browserName }) => {
+  async ({ getLocalTestUrl, page, forceFlushReplay, browserName }) => {
     if (shouldSkipReplayTest() || browserName === 'webkit') {
       sentryTest.skip();
     }
 
-    await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-      return route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({ id: 'test-id' }),
-      });
-    });
-
-    const url = await getLocalTestPath({ testDir: __dirname });
+    const url = await getLocalTestUrl({ testDir: __dirname });
 
     // We have to click in order to ensure the LCP is generated, leading to consistent results
     async function gotoPageAndClick() {
       await page.goto(url);
-      await page.click('#noop');
+      await page.locator('#noop').click();
     }
 
     const [res0] = await Promise.all([waitForReplayRequest(page, 0), gotoPageAndClick()]);
@@ -39,7 +31,7 @@ sentryTest(
         const parsed = getReplayRecordingContent(res);
         return !!parsed.incrementalSnapshots.length || !!parsed.fullSnapshots.length;
       }),
-      page.click('#button-add'),
+      page.locator('#button-add').click(),
       forceFlushReplay(),
     ]);
 
@@ -48,10 +40,10 @@ sentryTest(
     expect(replay.session).toBe(undefined);
     expect(replay._isEnabled).toBe(false);
 
-    await page.click('#button-modify');
+    await page.locator('#button-modify').click();
     await forceFlushReplay();
 
-    await page.click('#button-remove');
+    await page.locator('#button-remove').click();
     await forceFlushReplay();
 
     const replayData0 = getReplayRecordingContent(res0);

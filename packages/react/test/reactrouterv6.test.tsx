@@ -1,4 +1,11 @@
-import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
+import {
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  createTransport,
+  getCurrentScope,
+  setCurrentClient,
+} from '@sentry/core';
 import { render } from '@testing-library/react';
 import * as React from 'react';
 import {
@@ -8,47 +15,84 @@ import {
   Route,
   Routes,
   createRoutesFromChildren,
-  matchPath,
   matchRoutes,
   useLocation,
   useNavigationType,
   useRoutes,
 } from 'react-router-6';
 
-import { reactRouterV6Instrumentation } from '../src';
-import { withSentryReactRouterV6Routing, wrapUseRoutes } from '../src/reactrouterv6';
+import { BrowserClient } from '../src';
+import {
+  reactRouterV6BrowserTracingIntegration,
+  withSentryReactRouterV6Routing,
+  wrapUseRoutes,
+} from '../src/reactrouterv6';
 
-describe('React Router v6', () => {
-  function createInstrumentation(_opts?: {
-    startTransactionOnPageLoad?: boolean;
-    startTransactionOnLocationChange?: boolean;
-  }): [jest.Mock, { mockUpdateName: jest.Mock; mockFinish: jest.Mock; mockSetAttribute: jest.Mock }] {
-    const options = {
-      matchPath: _opts ? matchPath : undefined,
-      startTransactionOnLocationChange: true,
-      startTransactionOnPageLoad: true,
-      ..._opts,
-    };
-    const mockFinish = jest.fn();
-    const mockUpdateName = jest.fn();
-    const mockSetAttribute = jest.fn();
-    const mockStartTransaction = jest
-      .fn()
-      .mockReturnValue({ updateName: mockUpdateName, end: mockFinish, setAttribute: mockSetAttribute });
+const mockStartBrowserTracingPageLoadSpan = jest.fn();
+const mockStartBrowserTracingNavigationSpan = jest.fn();
 
-    reactRouterV6Instrumentation(
-      React.useEffect,
-      useLocation,
-      useNavigationType,
-      createRoutesFromChildren,
-      matchRoutes,
-    )(mockStartTransaction, options.startTransactionOnPageLoad, options.startTransactionOnLocationChange);
-    return [mockStartTransaction, { mockUpdateName, mockFinish, mockSetAttribute }];
+const mockRootSpan = {
+  updateName: jest.fn(),
+  setAttribute: jest.fn(),
+  getSpanJSON() {
+    return { op: 'pageload' };
+  },
+};
+
+jest.mock('@sentry/browser', () => {
+  const actual = jest.requireActual('@sentry/browser');
+  return {
+    ...actual,
+    startBrowserTracingNavigationSpan: (...args: unknown[]) => {
+      mockStartBrowserTracingNavigationSpan(...args);
+      return actual.startBrowserTracingNavigationSpan(...args);
+    },
+    startBrowserTracingPageLoadSpan: (...args: unknown[]) => {
+      mockStartBrowserTracingPageLoadSpan(...args);
+      return actual.startBrowserTracingPageLoadSpan(...args);
+    },
+  };
+});
+
+jest.mock('@sentry/core', () => {
+  const actual = jest.requireActual('@sentry/core');
+  return {
+    ...actual,
+    getRootSpan: () => {
+      return mockRootSpan;
+    },
+  };
+});
+
+describe('reactRouterV6BrowserTracingIntegration', () => {
+  function createMockBrowserClient(): BrowserClient {
+    return new BrowserClient({
+      integrations: [],
+      tracesSampleRate: 1,
+      transport: () => createTransport({ recordDroppedEvent: () => undefined }, _ => Promise.resolve({})),
+      stackParser: () => [],
+    });
   }
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    getCurrentScope().setClient(undefined);
+  });
 
   describe('withSentryReactRouterV6Routing', () => {
     it('starts a pageload transaction', () => {
-      const [mockStartTransaction] = createInstrumentation();
+      const client = createMockBrowserClient();
+      setCurrentClient(client);
+
+      client.addIntegration(
+        reactRouterV6BrowserTracingIntegration({
+          useEffect: React.useEffect,
+          useLocation,
+          useNavigationType,
+          createRoutesFromChildren,
+          matchRoutes,
+        }),
+      );
       const SentryRoutes = withSentryReactRouterV6Routing(Routes);
 
       render(
@@ -59,18 +103,30 @@ describe('React Router v6', () => {
         </MemoryRouter>,
       );
 
-      expect(mockStartTransaction).toHaveBeenCalledTimes(1);
-      expect(mockStartTransaction).toHaveBeenLastCalledWith({
+      expect(mockStartBrowserTracingPageLoadSpan).toHaveBeenCalledTimes(1);
+      expect(mockStartBrowserTracingPageLoadSpan).toHaveBeenLastCalledWith(expect.any(BrowserClient), {
         name: '/',
-        op: 'pageload',
-        origin: 'auto.pageload.react.reactrouterv6',
-        tags: { 'routing.instrumentation': 'react-router-v6' },
-        metadata: { source: 'url' },
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.react.reactrouter_v6',
+        },
       });
     });
 
-    it('skips pageload transaction with `startTransactionOnPageLoad: false`', () => {
-      const [mockStartTransaction] = createInstrumentation({ startTransactionOnPageLoad: false });
+    it("updates the scope's `transactionName` on a pageload", () => {
+      const client = createMockBrowserClient();
+      setCurrentClient(client);
+
+      client.addIntegration(
+        reactRouterV6BrowserTracingIntegration({
+          useEffect: React.useEffect,
+          useLocation,
+          useNavigationType,
+          createRoutesFromChildren,
+          matchRoutes,
+        }),
+      );
       const SentryRoutes = withSentryReactRouterV6Routing(Routes);
 
       render(
@@ -81,11 +137,50 @@ describe('React Router v6', () => {
         </MemoryRouter>,
       );
 
-      expect(mockStartTransaction).toHaveBeenCalledTimes(0);
+      expect(getCurrentScope().getScopeData().transactionName).toEqual('/');
     });
 
-    it('skips navigation transaction, with `startTransactionOnLocationChange: false`', () => {
-      const [mockStartTransaction] = createInstrumentation({ startTransactionOnLocationChange: false });
+    it('skips pageload transaction with `instrumentPageLoad: false`', () => {
+      const client = createMockBrowserClient();
+      setCurrentClient(client);
+
+      client.addIntegration(
+        reactRouterV6BrowserTracingIntegration({
+          useEffect: React.useEffect,
+          useLocation,
+          useNavigationType,
+          createRoutesFromChildren,
+          matchRoutes,
+          instrumentPageLoad: false,
+        }),
+      );
+      const SentryRoutes = withSentryReactRouterV6Routing(Routes);
+
+      render(
+        <MemoryRouter initialEntries={['/']}>
+          <SentryRoutes>
+            <Route path="/" element={<div>Home</div>} />
+          </SentryRoutes>
+        </MemoryRouter>,
+      );
+
+      expect(mockStartBrowserTracingPageLoadSpan).toHaveBeenCalledTimes(0);
+    });
+
+    it('skips navigation transaction, with `instrumentNavigation: false`', () => {
+      const client = createMockBrowserClient();
+      setCurrentClient(client);
+
+      client.addIntegration(
+        reactRouterV6BrowserTracingIntegration({
+          useEffect: React.useEffect,
+          useLocation,
+          useNavigationType,
+          createRoutesFromChildren,
+          matchRoutes,
+          instrumentNavigation: false,
+        }),
+      );
       const SentryRoutes = withSentryReactRouterV6Routing(Routes);
 
       render(
@@ -97,18 +192,23 @@ describe('React Router v6', () => {
         </MemoryRouter>,
       );
 
-      expect(mockStartTransaction).toHaveBeenCalledTimes(1);
-      expect(mockStartTransaction).toHaveBeenLastCalledWith({
-        name: '/',
-        op: 'pageload',
-        origin: 'auto.pageload.react.reactrouterv6',
-        tags: { 'routing.instrumentation': 'react-router-v6' },
-        metadata: { source: 'url' },
-      });
+      expect(mockStartBrowserTracingPageLoadSpan).toHaveBeenCalledTimes(1);
+      expect(mockStartBrowserTracingNavigationSpan).toHaveBeenCalledTimes(0);
     });
 
     it('starts a navigation transaction', () => {
-      const [mockStartTransaction] = createInstrumentation();
+      const client = createMockBrowserClient();
+      setCurrentClient(client);
+
+      client.addIntegration(
+        reactRouterV6BrowserTracingIntegration({
+          useEffect: React.useEffect,
+          useLocation,
+          useNavigationType,
+          createRoutesFromChildren,
+          matchRoutes,
+        }),
+      );
       const SentryRoutes = withSentryReactRouterV6Routing(Routes);
 
       render(
@@ -120,18 +220,30 @@ describe('React Router v6', () => {
         </MemoryRouter>,
       );
 
-      expect(mockStartTransaction).toHaveBeenCalledTimes(2);
-      expect(mockStartTransaction).toHaveBeenLastCalledWith({
+      expect(mockStartBrowserTracingNavigationSpan).toHaveBeenCalledTimes(1);
+      expect(mockStartBrowserTracingNavigationSpan).toHaveBeenLastCalledWith(expect.any(BrowserClient), {
         name: '/about',
-        op: 'navigation',
-        origin: 'auto.navigation.react.reactrouterv6',
-        tags: { 'routing.instrumentation': 'react-router-v6' },
-        metadata: { source: 'route' },
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
+        },
       });
     });
 
     it('works with nested routes', () => {
-      const [mockStartTransaction] = createInstrumentation();
+      const client = createMockBrowserClient();
+      setCurrentClient(client);
+
+      client.addIntegration(
+        reactRouterV6BrowserTracingIntegration({
+          useEffect: React.useEffect,
+          useLocation,
+          useNavigationType,
+          createRoutesFromChildren,
+          matchRoutes,
+        }),
+      );
       const SentryRoutes = withSentryReactRouterV6Routing(Routes);
 
       render(
@@ -145,18 +257,30 @@ describe('React Router v6', () => {
         </MemoryRouter>,
       );
 
-      expect(mockStartTransaction).toHaveBeenCalledTimes(2);
-      expect(mockStartTransaction).toHaveBeenLastCalledWith({
+      expect(mockStartBrowserTracingNavigationSpan).toHaveBeenCalledTimes(1);
+      expect(mockStartBrowserTracingNavigationSpan).toHaveBeenLastCalledWith(expect.any(BrowserClient), {
         name: '/about/us',
-        op: 'navigation',
-        origin: 'auto.navigation.react.reactrouterv6',
-        tags: { 'routing.instrumentation': 'react-router-v6' },
-        metadata: { source: 'route' },
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
+        },
       });
     });
 
-    it('works with paramaterized paths', () => {
-      const [mockStartTransaction] = createInstrumentation();
+    it('works with parameterized paths', () => {
+      const client = createMockBrowserClient();
+      setCurrentClient(client);
+
+      client.addIntegration(
+        reactRouterV6BrowserTracingIntegration({
+          useEffect: React.useEffect,
+          useLocation,
+          useNavigationType,
+          createRoutesFromChildren,
+          matchRoutes,
+        }),
+      );
       const SentryRoutes = withSentryReactRouterV6Routing(Routes);
 
       render(
@@ -170,18 +294,30 @@ describe('React Router v6', () => {
         </MemoryRouter>,
       );
 
-      expect(mockStartTransaction).toHaveBeenCalledTimes(2);
-      expect(mockStartTransaction).toHaveBeenLastCalledWith({
+      expect(mockStartBrowserTracingNavigationSpan).toHaveBeenCalledTimes(1);
+      expect(mockStartBrowserTracingNavigationSpan).toHaveBeenLastCalledWith(expect.any(BrowserClient), {
         name: '/about/:page',
-        op: 'navigation',
-        origin: 'auto.navigation.react.reactrouterv6',
-        tags: { 'routing.instrumentation': 'react-router-v6' },
-        metadata: { source: 'route' },
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
+        },
       });
     });
 
     it('works with paths with multiple parameters', () => {
-      const [mockStartTransaction] = createInstrumentation();
+      const client = createMockBrowserClient();
+      setCurrentClient(client);
+
+      client.addIntegration(
+        reactRouterV6BrowserTracingIntegration({
+          useEffect: React.useEffect,
+          useLocation,
+          useNavigationType,
+          createRoutesFromChildren,
+          matchRoutes,
+        }),
+      );
       const SentryRoutes = withSentryReactRouterV6Routing(Routes);
 
       render(
@@ -197,18 +333,30 @@ describe('React Router v6', () => {
         </MemoryRouter>,
       );
 
-      expect(mockStartTransaction).toHaveBeenCalledTimes(2);
-      expect(mockStartTransaction).toHaveBeenLastCalledWith({
+      expect(mockStartBrowserTracingNavigationSpan).toHaveBeenCalledTimes(1);
+      expect(mockStartBrowserTracingNavigationSpan).toHaveBeenLastCalledWith(expect.any(BrowserClient), {
         name: '/stores/:storeId/products/:productId',
-        op: 'navigation',
-        origin: 'auto.navigation.react.reactrouterv6',
-        tags: { 'routing.instrumentation': 'react-router-v6' },
-        metadata: { source: 'route' },
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
+        },
       });
     });
 
     it('works with nested paths with parameters', () => {
-      const [mockStartTransaction] = createInstrumentation();
+      const client = createMockBrowserClient();
+      setCurrentClient(client);
+
+      client.addIntegration(
+        reactRouterV6BrowserTracingIntegration({
+          useEffect: React.useEffect,
+          useLocation,
+          useNavigationType,
+          createRoutesFromChildren,
+          matchRoutes,
+        }),
+      );
       const SentryRoutes = withSentryReactRouterV6Routing(Routes);
 
       render(
@@ -232,20 +380,163 @@ describe('React Router v6', () => {
         </MemoryRouter>,
       );
 
-      expect(mockStartTransaction).toHaveBeenCalledTimes(2);
-      expect(mockStartTransaction).toHaveBeenLastCalledWith({
+      expect(mockStartBrowserTracingNavigationSpan).toHaveBeenCalledTimes(1);
+      expect(mockStartBrowserTracingNavigationSpan).toHaveBeenLastCalledWith(expect.any(BrowserClient), {
         name: '/projects/:projectId/views/:viewId',
-        op: 'navigation',
-        origin: 'auto.navigation.react.reactrouterv6',
-        tags: { 'routing.instrumentation': 'react-router-v6' },
-        metadata: { source: 'route' },
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
+        },
       });
+    });
+
+    it('works with wildcard routes', () => {
+      const client = createMockBrowserClient();
+      setCurrentClient(client);
+
+      client.addIntegration(
+        reactRouterV6BrowserTracingIntegration({
+          useEffect: React.useEffect,
+          useLocation,
+          useNavigationType,
+          createRoutesFromChildren,
+          matchRoutes,
+        }),
+      );
+      const SentryRoutes = withSentryReactRouterV6Routing(Routes);
+
+      render(
+        <MemoryRouter initialEntries={['/']}>
+          <SentryRoutes>
+            <Route path="*" element={<Outlet />}>
+              <Route index element={<Navigate to="/projects/123/views/234" />} />
+              <Route path="account" element={<div>Account Page</div>} />
+              <Route path="projects">
+                <Route path="*" element={<Outlet />}>
+                  <Route path=":projectId" element={<div>Project Page</div>}>
+                    <Route index element={<div>Project Page Root</div>} />
+                    <Route element={<div>Editor</div>}>
+                      <Route path="views/:viewId" element={<div>View Canvas</div>} />
+                      <Route path="spaces/:spaceId" element={<div>Space Canvas</div>} />
+                    </Route>
+                  </Route>
+                </Route>
+              </Route>
+              <Route path="*" element={<div>No Match Page</div>} />
+            </Route>
+          </SentryRoutes>
+        </MemoryRouter>,
+      );
+
+      expect(mockStartBrowserTracingNavigationSpan).toHaveBeenCalledTimes(1);
+      expect(mockStartBrowserTracingNavigationSpan).toHaveBeenLastCalledWith(expect.any(BrowserClient), {
+        name: '/projects/:projectId/views/:viewId',
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
+        },
+      });
+    });
+
+    it('works with nested wildcard routes', () => {
+      const client = createMockBrowserClient();
+      setCurrentClient(client);
+
+      client.addIntegration(
+        reactRouterV6BrowserTracingIntegration({
+          useEffect: React.useEffect,
+          useLocation,
+          useNavigationType,
+          createRoutesFromChildren,
+          matchRoutes,
+        }),
+      );
+      const SentryRoutes = withSentryReactRouterV6Routing(Routes);
+
+      render(
+        <MemoryRouter initialEntries={['/']}>
+          <SentryRoutes>
+            <Route path="*" element={<Outlet />}>
+              <Route index element={<Navigate to="/projects/123/views/234" />} />
+              <Route path="account" element={<div>Account Page</div>} />
+              <Route path="projects">
+                <Route path="*" element={<Outlet />}>
+                  <Route path=":projectId" element={<div>Project Page</div>}>
+                    <Route index element={<div>Project Page Root</div>} />
+                    <Route element={<div>Editor</div>}>
+                      <Route path="*" element={<Outlet />}>
+                        <Route path="views/:viewId" element={<div>View Canvas</div>} />
+                        <Route path="spaces/:spaceId" element={<div>Space Canvas</div>} />
+                      </Route>
+                    </Route>
+                  </Route>
+                </Route>
+              </Route>
+              <Route path="*" element={<div>No Match Page</div>} />
+            </Route>
+          </SentryRoutes>
+        </MemoryRouter>,
+      );
+
+      expect(mockStartBrowserTracingNavigationSpan).toHaveBeenCalledTimes(1);
+      expect(mockStartBrowserTracingNavigationSpan).toHaveBeenLastCalledWith(expect.any(BrowserClient), {
+        name: '/projects/:projectId/views/:viewId',
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
+        },
+      });
+    });
+
+    it("updates the scope's `transactionName` on a navigation", () => {
+      const client = createMockBrowserClient();
+      setCurrentClient(client);
+
+      client.addIntegration(
+        reactRouterV6BrowserTracingIntegration({
+          useEffect: React.useEffect,
+          useLocation,
+          useNavigationType,
+          createRoutesFromChildren,
+          matchRoutes,
+        }),
+      );
+      const SentryRoutes = withSentryReactRouterV6Routing(Routes);
+
+      render(
+        <MemoryRouter initialEntries={['/']}>
+          <SentryRoutes>
+            <Route path="/about" element={<div>About</div>}>
+              <Route path="/about/:page" element={<div>page</div>} />
+            </Route>
+            <Route path="/" element={<Navigate to="/about/us" />} />
+          </SentryRoutes>
+        </MemoryRouter>,
+      );
+
+      expect(getCurrentScope().getScopeData().transactionName).toBe('/about/:page');
     });
   });
 
   describe('wrapUseRoutes', () => {
     it('starts a pageload transaction', () => {
-      const [mockStartTransaction] = createInstrumentation();
+      const client = createMockBrowserClient();
+      setCurrentClient(client);
+
+      client.addIntegration(
+        reactRouterV6BrowserTracingIntegration({
+          useEffect: React.useEffect,
+          useLocation,
+          useNavigationType,
+          createRoutesFromChildren,
+          matchRoutes,
+        }),
+      );
+
+      // eslint-disable-next-line deprecation/deprecation
       const wrappedUseRoutes = wrapUseRoutes(useRoutes);
 
       const Routes = () =>
@@ -262,18 +553,32 @@ describe('React Router v6', () => {
         </MemoryRouter>,
       );
 
-      expect(mockStartTransaction).toHaveBeenCalledTimes(1);
-      expect(mockStartTransaction).toHaveBeenLastCalledWith({
+      expect(mockStartBrowserTracingPageLoadSpan).toHaveBeenCalledTimes(1);
+      expect(mockStartBrowserTracingPageLoadSpan).toHaveBeenLastCalledWith(expect.any(BrowserClient), {
         name: '/',
-        op: 'pageload',
-        origin: 'auto.pageload.react.reactrouterv6',
-        tags: { 'routing.instrumentation': 'react-router-v6' },
-        metadata: { source: 'url' },
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.react.reactrouter_v6',
+        },
       });
     });
 
-    it('skips pageload transaction with `startTransactionOnPageLoad: false`', () => {
-      const [mockStartTransaction] = createInstrumentation({ startTransactionOnPageLoad: false });
+    it("updates the scope's `transactionName` on a pageload", () => {
+      const client = createMockBrowserClient();
+      setCurrentClient(client);
+
+      client.addIntegration(
+        reactRouterV6BrowserTracingIntegration({
+          useEffect: React.useEffect,
+          useLocation,
+          useNavigationType,
+          createRoutesFromChildren,
+          matchRoutes,
+        }),
+      );
+
+      // eslint-disable-next-line deprecation/deprecation
       const wrappedUseRoutes = wrapUseRoutes(useRoutes);
 
       const Routes = () =>
@@ -290,11 +595,60 @@ describe('React Router v6', () => {
         </MemoryRouter>,
       );
 
-      expect(mockStartTransaction).toHaveBeenCalledTimes(0);
+      expect(getCurrentScope().getScopeData().transactionName).toEqual('/');
     });
 
-    it('skips navigation transaction, with `startTransactionOnLocationChange: false`', () => {
-      const [mockStartTransaction] = createInstrumentation({ startTransactionOnLocationChange: false });
+    it('skips pageload transaction with `instrumentPageLoad: false`', () => {
+      const client = createMockBrowserClient();
+      setCurrentClient(client);
+
+      client.addIntegration(
+        reactRouterV6BrowserTracingIntegration({
+          useEffect: React.useEffect,
+          useLocation,
+          useNavigationType,
+          createRoutesFromChildren,
+          matchRoutes,
+          instrumentPageLoad: false,
+        }),
+      );
+
+      // eslint-disable-next-line deprecation/deprecation
+      const wrappedUseRoutes = wrapUseRoutes(useRoutes);
+
+      const Routes = () =>
+        wrappedUseRoutes([
+          {
+            path: '/',
+            element: <div>Home</div>,
+          },
+        ]);
+
+      render(
+        <MemoryRouter initialEntries={['/']}>
+          <Routes />
+        </MemoryRouter>,
+      );
+
+      expect(mockStartBrowserTracingPageLoadSpan).toHaveBeenCalledTimes(0);
+    });
+
+    it('skips navigation transaction, with `instrumentNavigation: false`', () => {
+      const client = createMockBrowserClient();
+      setCurrentClient(client);
+
+      client.addIntegration(
+        reactRouterV6BrowserTracingIntegration({
+          useEffect: React.useEffect,
+          useLocation,
+          useNavigationType,
+          createRoutesFromChildren,
+          matchRoutes,
+          instrumentNavigation: false,
+        }),
+      );
+
+      // eslint-disable-next-line deprecation/deprecation
       const wrappedUseRoutes = wrapUseRoutes(useRoutes);
 
       const Routes = () =>
@@ -315,18 +669,24 @@ describe('React Router v6', () => {
         </MemoryRouter>,
       );
 
-      expect(mockStartTransaction).toHaveBeenCalledTimes(1);
-      expect(mockStartTransaction).toHaveBeenLastCalledWith({
-        name: '/',
-        op: 'pageload',
-        origin: 'auto.pageload.react.reactrouterv6',
-        tags: { 'routing.instrumentation': 'react-router-v6' },
-        metadata: { source: 'url' },
-      });
+      expect(mockStartBrowserTracingPageLoadSpan).toHaveBeenCalledTimes(1);
+      expect(mockStartBrowserTracingNavigationSpan).toHaveBeenCalledTimes(0);
     });
 
     it('starts a navigation transaction', () => {
-      const [mockStartTransaction] = createInstrumentation();
+      const client = createMockBrowserClient();
+      setCurrentClient(client);
+
+      client.addIntegration(
+        reactRouterV6BrowserTracingIntegration({
+          useEffect: React.useEffect,
+          useLocation,
+          useNavigationType,
+          createRoutesFromChildren,
+          matchRoutes,
+        }),
+      );
+      // eslint-disable-next-line deprecation/deprecation
       const wrappedUseRoutes = wrapUseRoutes(useRoutes);
 
       const Routes = () =>
@@ -347,18 +707,31 @@ describe('React Router v6', () => {
         </MemoryRouter>,
       );
 
-      expect(mockStartTransaction).toHaveBeenCalledTimes(2);
-      expect(mockStartTransaction).toHaveBeenLastCalledWith({
+      expect(mockStartBrowserTracingNavigationSpan).toHaveBeenCalledTimes(1);
+      expect(mockStartBrowserTracingNavigationSpan).toHaveBeenLastCalledWith(expect.any(BrowserClient), {
         name: '/about',
-        op: 'navigation',
-        origin: 'auto.navigation.react.reactrouterv6',
-        tags: { 'routing.instrumentation': 'react-router-v6' },
-        metadata: { source: 'route' },
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
+        },
       });
     });
 
     it('works with nested routes', () => {
-      const [mockStartTransaction] = createInstrumentation();
+      const client = createMockBrowserClient();
+      setCurrentClient(client);
+
+      client.addIntegration(
+        reactRouterV6BrowserTracingIntegration({
+          useEffect: React.useEffect,
+          useLocation,
+          useNavigationType,
+          createRoutesFromChildren,
+          matchRoutes,
+        }),
+      );
+      // eslint-disable-next-line deprecation/deprecation
       const wrappedUseRoutes = wrapUseRoutes(useRoutes);
 
       const Routes = () =>
@@ -385,18 +758,31 @@ describe('React Router v6', () => {
         </MemoryRouter>,
       );
 
-      expect(mockStartTransaction).toHaveBeenCalledTimes(2);
-      expect(mockStartTransaction).toHaveBeenLastCalledWith({
+      expect(mockStartBrowserTracingNavigationSpan).toHaveBeenCalledTimes(1);
+      expect(mockStartBrowserTracingNavigationSpan).toHaveBeenLastCalledWith(expect.any(BrowserClient), {
         name: '/about/us',
-        op: 'navigation',
-        origin: 'auto.navigation.react.reactrouterv6',
-        tags: { 'routing.instrumentation': 'react-router-v6' },
-        metadata: { source: 'route' },
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
+        },
       });
     });
 
-    it('works with paramaterized paths', () => {
-      const [mockStartTransaction] = createInstrumentation();
+    it('works with parameterized paths', () => {
+      const client = createMockBrowserClient();
+      setCurrentClient(client);
+
+      client.addIntegration(
+        reactRouterV6BrowserTracingIntegration({
+          useEffect: React.useEffect,
+          useLocation,
+          useNavigationType,
+          createRoutesFromChildren,
+          matchRoutes,
+        }),
+      );
+      // eslint-disable-next-line deprecation/deprecation
       const wrappedUseRoutes = wrapUseRoutes(useRoutes);
 
       const Routes = () =>
@@ -423,18 +809,31 @@ describe('React Router v6', () => {
         </MemoryRouter>,
       );
 
-      expect(mockStartTransaction).toHaveBeenCalledTimes(2);
-      expect(mockStartTransaction).toHaveBeenLastCalledWith({
+      expect(mockStartBrowserTracingNavigationSpan).toHaveBeenCalledTimes(1);
+      expect(mockStartBrowserTracingNavigationSpan).toHaveBeenLastCalledWith(expect.any(BrowserClient), {
         name: '/about/:page',
-        op: 'navigation',
-        origin: 'auto.navigation.react.reactrouterv6',
-        tags: { 'routing.instrumentation': 'react-router-v6' },
-        metadata: { source: 'route' },
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
+        },
       });
     });
 
     it('works with paths with multiple parameters', () => {
-      const [mockStartTransaction] = createInstrumentation();
+      const client = createMockBrowserClient();
+      setCurrentClient(client);
+
+      client.addIntegration(
+        reactRouterV6BrowserTracingIntegration({
+          useEffect: React.useEffect,
+          useLocation,
+          useNavigationType,
+          createRoutesFromChildren,
+          matchRoutes,
+        }),
+      );
+      // eslint-disable-next-line deprecation/deprecation
       const wrappedUseRoutes = wrapUseRoutes(useRoutes);
 
       const Routes = () =>
@@ -467,18 +866,31 @@ describe('React Router v6', () => {
         </MemoryRouter>,
       );
 
-      expect(mockStartTransaction).toHaveBeenCalledTimes(2);
-      expect(mockStartTransaction).toHaveBeenLastCalledWith({
+      expect(mockStartBrowserTracingNavigationSpan).toHaveBeenCalledTimes(1);
+      expect(mockStartBrowserTracingNavigationSpan).toHaveBeenLastCalledWith(expect.any(BrowserClient), {
         name: '/stores/:storeId/products/:productId',
-        op: 'navigation',
-        origin: 'auto.navigation.react.reactrouterv6',
-        tags: { 'routing.instrumentation': 'react-router-v6' },
-        metadata: { source: 'route' },
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
+        },
       });
     });
 
     it('works with nested paths with parameters', () => {
-      const [mockStartTransaction] = createInstrumentation();
+      const client = createMockBrowserClient();
+      setCurrentClient(client);
+
+      client.addIntegration(
+        reactRouterV6BrowserTracingIntegration({
+          useEffect: React.useEffect,
+          useLocation,
+          useNavigationType,
+          createRoutesFromChildren,
+          matchRoutes,
+        }),
+      );
+      // eslint-disable-next-line deprecation/deprecation
       const wrappedUseRoutes = wrapUseRoutes(useRoutes);
 
       const Routes = () =>
@@ -535,18 +947,110 @@ describe('React Router v6', () => {
         </MemoryRouter>,
       );
 
-      expect(mockStartTransaction).toHaveBeenCalledTimes(2);
-      expect(mockStartTransaction).toHaveBeenLastCalledWith({
+      expect(mockStartBrowserTracingNavigationSpan).toHaveBeenCalledTimes(1);
+      expect(mockStartBrowserTracingNavigationSpan).toHaveBeenLastCalledWith(expect.any(BrowserClient), {
         name: '/projects/:projectId/views/:viewId',
-        op: 'navigation',
-        origin: 'auto.navigation.react.reactrouterv6',
-        tags: { 'routing.instrumentation': 'react-router-v6' },
-        metadata: { source: 'route' },
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
+        },
+      });
+    });
+
+    it('works with wildcard routes', () => {
+      const client = createMockBrowserClient();
+      setCurrentClient(client);
+
+      client.addIntegration(
+        reactRouterV6BrowserTracingIntegration({
+          useEffect: React.useEffect,
+          useLocation,
+          useNavigationType,
+          createRoutesFromChildren,
+          matchRoutes,
+        }),
+      );
+      // eslint-disable-next-line deprecation/deprecation
+      const wrappedUseRoutes = wrapUseRoutes(useRoutes);
+
+      const Routes = () =>
+        wrappedUseRoutes([
+          {
+            index: true,
+            element: <Navigate to="/param-page/1231/details/3212" />,
+          },
+          {
+            path: '*',
+            element: <></>,
+            children: [
+              {
+                path: 'profile',
+                element: <></>,
+              },
+              {
+                path: 'param-page',
+                element: <Outlet />,
+                children: [
+                  {
+                    path: '*',
+                    element: <Outlet />,
+                    children: [
+                      {
+                        path: ':id',
+                        element: <></>,
+                        children: [
+                          {
+                            element: <></>,
+                            path: 'details',
+                            children: [
+                              {
+                                element: <></>,
+                                path: ':superId',
+                              },
+                            ],
+                          },
+                        ],
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+        ]);
+
+      render(
+        <MemoryRouter initialEntries={['/']}>
+          <Routes />
+        </MemoryRouter>,
+      );
+
+      expect(mockStartBrowserTracingNavigationSpan).toHaveBeenCalledTimes(1);
+      expect(mockStartBrowserTracingNavigationSpan).toHaveBeenLastCalledWith(expect.any(BrowserClient), {
+        name: '/param-page/:id/details/:superId',
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
+        },
       });
     });
 
     it('does not add double slashes to URLS', () => {
-      const [mockStartTransaction, { mockUpdateName, mockSetAttribute }] = createInstrumentation();
+      const client = createMockBrowserClient();
+      setCurrentClient(client);
+
+      client.addIntegration(
+        reactRouterV6BrowserTracingIntegration({
+          useEffect: React.useEffect,
+          useLocation,
+          useNavigationType,
+          createRoutesFromChildren,
+          matchRoutes,
+        }),
+      );
+      // eslint-disable-next-line deprecation/deprecation
       const wrappedUseRoutes = wrapUseRoutes(useRoutes);
 
       const Routes = () =>
@@ -586,14 +1090,26 @@ describe('React Router v6', () => {
         </MemoryRouter>,
       );
 
-      expect(mockStartTransaction).toHaveBeenCalledTimes(1);
+      expect(mockStartBrowserTracingPageLoadSpan).toHaveBeenCalledTimes(1);
       // should be /tests not //tests
-      expect(mockUpdateName).toHaveBeenLastCalledWith('/tests');
-      expect(mockSetAttribute).toHaveBeenCalledWith(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
+      expect(mockRootSpan.updateName).toHaveBeenLastCalledWith('/tests');
+      expect(mockRootSpan.setAttribute).toHaveBeenCalledWith(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
     });
 
     it('handles wildcard routes properly', () => {
-      const [mockStartTransaction, { mockUpdateName, mockSetAttribute }] = createInstrumentation();
+      const client = createMockBrowserClient();
+      setCurrentClient(client);
+
+      client.addIntegration(
+        reactRouterV6BrowserTracingIntegration({
+          useEffect: React.useEffect,
+          useLocation,
+          useNavigationType,
+          createRoutesFromChildren,
+          matchRoutes,
+        }),
+      );
+      // eslint-disable-next-line deprecation/deprecation
       const wrappedUseRoutes = wrapUseRoutes(useRoutes);
 
       const Routes = () =>
@@ -633,9 +1149,46 @@ describe('React Router v6', () => {
         </MemoryRouter>,
       );
 
-      expect(mockStartTransaction).toHaveBeenCalledTimes(1);
-      expect(mockUpdateName).toHaveBeenLastCalledWith('/tests/:testId/*');
-      expect(mockSetAttribute).toHaveBeenCalledWith(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
+      expect(mockStartBrowserTracingPageLoadSpan).toHaveBeenCalledTimes(1);
+      expect(mockRootSpan.updateName).toHaveBeenLastCalledWith('/tests/:testId/*');
+      expect(mockRootSpan.setAttribute).toHaveBeenCalledWith(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
+    });
+
+    it("updates the scope's `transactionName` on a navigation", () => {
+      const client = createMockBrowserClient();
+      setCurrentClient(client);
+
+      client.addIntegration(
+        reactRouterV6BrowserTracingIntegration({
+          useEffect: React.useEffect,
+          useLocation,
+          useNavigationType,
+          createRoutesFromChildren,
+          matchRoutes,
+        }),
+      );
+      // eslint-disable-next-line deprecation/deprecation
+      const wrappedUseRoutes = wrapUseRoutes(useRoutes);
+
+      const Routes = () =>
+        wrappedUseRoutes([
+          {
+            path: '/',
+            element: <Navigate to="/about" />,
+          },
+          {
+            path: '/about',
+            element: <div>About</div>,
+          },
+        ]);
+
+      render(
+        <MemoryRouter initialEntries={['/']}>
+          <Routes />
+        </MemoryRouter>,
+      );
+
+      expect(getCurrentScope().getScopeData().transactionName).toBe('/about');
     });
   });
 });

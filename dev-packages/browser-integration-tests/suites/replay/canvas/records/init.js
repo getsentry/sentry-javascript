@@ -1,16 +1,10 @@
-import { getCanvasManager } from '@sentry-internal/rrweb';
 import * as Sentry from '@sentry/browser';
 
 window.Sentry = Sentry;
-window.Replay = new Sentry.Replay({
+window.Replay = Sentry.replayIntegration({
   flushMinDelay: 50,
   flushMaxDelay: 50,
   minReplayDuration: 0,
-  _experiments: {
-    canvas: {
-      manager: getCanvasManager,
-    },
-  },
 });
 
 Sentry.init({
@@ -18,7 +12,6 @@ Sentry.init({
   sampleRate: 0,
   replaysSessionSampleRate: 1.0,
   replaysOnErrorSampleRate: 0.0,
-  debug: true,
 
-  integrations: [window.Replay],
+  integrations: [window.Replay, Sentry.replayCanvasIntegration()],
 });

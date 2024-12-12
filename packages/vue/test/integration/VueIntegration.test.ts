@@ -1,4 +1,11 @@
-import { logger } from '@sentry/utils';
+/**
+ * @vitest-environment jsdom
+ */
+
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { logger } from '@sentry/core';
+import type { Client } from '@sentry/core';
 import { createApp } from 'vue';
 
 import * as Sentry from '../../src';
@@ -9,25 +16,46 @@ describe('Sentry.VueIntegration', () => {
   let loggerWarnings: unknown[] = [];
   let warnings: unknown[] = [];
 
+  const globalFetch = globalThis.fetch;
+  const globalResponse = globalThis.Response;
+  const globalRequest = globalThis.Request;
+
+  beforeAll(() => {
+    globalThis.fetch = vi.fn();
+    // @ts-expect-error This is a mock
+    globalThis.Response = vi.fn();
+    globalThis.Request = vi.fn();
+  });
+
+  afterAll(() => {
+    globalThis.fetch = globalFetch;
+    globalThis.Response = globalResponse;
+    globalThis.Request = globalRequest;
+  });
+
   beforeEach(() => {
     warnings = [];
     loggerWarnings = [];
 
-    jest.spyOn(logger, 'warn').mockImplementation((message: unknown) => {
+    vi.spyOn(logger, 'warn').mockImplementation((message: unknown) => {
       loggerWarnings.push(message);
     });
 
-    jest.spyOn(console, 'warn').mockImplementation((message: unknown) => {
+    vi.spyOn(console, 'warn').mockImplementation((message: unknown) => {
       warnings.push(message);
     });
   });
 
   afterEach(() => {
-    jest.resetAllMocks();
+    vi.resetAllMocks();
   });
 
   it('allows to initialize integration later', () => {
-    Sentry.init({ dsn: PUBLIC_DSN, defaultIntegrations: false, autoSessionTracking: false });
+    Sentry.init({
+      dsn: PUBLIC_DSN,
+      defaultIntegrations: false,
+      autoSessionTracking: false,
+    });
 
     const el = document.createElement('div');
     const app = createApp({
@@ -35,8 +63,8 @@ describe('Sentry.VueIntegration', () => {
     });
 
     // This would normally happen through client.addIntegration()
-    const integration = new Sentry.VueIntegration({ app });
-    integration['_setupIntegration'](Sentry.getCurrentHub());
+    const integration = Sentry.vueIntegration({ app });
+    integration['setup']?.(Sentry.getClient() as Client);
 
     app.mount(el);
 
@@ -47,7 +75,11 @@ describe('Sentry.VueIntegration', () => {
   });
 
   it('warns when mounting before SDK.VueIntegration', () => {
-    Sentry.init({ dsn: PUBLIC_DSN, defaultIntegrations: false, autoSessionTracking: false });
+    Sentry.init({
+      dsn: PUBLIC_DSN,
+      defaultIntegrations: false,
+      autoSessionTracking: false,
+    });
 
     const el = document.createElement('div');
     const app = createApp({
@@ -57,8 +89,8 @@ describe('Sentry.VueIntegration', () => {
     app.mount(el);
 
     // This would normally happen through client.addIntegration()
-    const integration = new Sentry.VueIntegration({ app });
-    integration['_setupIntegration'](Sentry.getCurrentHub());
+    const integration = Sentry.vueIntegration({ app });
+    integration['setup']?.(Sentry.getClient() as Client);
 
     expect(warnings).toEqual([
       '[@sentry/vue]: Misconfigured SDK. Vue app is already mounted. Make sure to call `app.mount()` after `Sentry.init()`.',

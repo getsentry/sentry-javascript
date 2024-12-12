@@ -1,5 +1,5 @@
 import { beforeAll, beforeEach, describe, expect, test } from 'bun:test';
-import { Hub, getDynamicSamplingContextFromSpan, makeMain, spanIsSampled, spanToJSON } from '@sentry/core';
+import { getDynamicSamplingContextFromSpan, setCurrentClient, spanIsSampled, spanToJSON } from '@sentry/core';
 
 import { BunClient } from '../../src/client';
 import { instrumentBunServe } from '../../src/integrations/bunserver';
@@ -9,7 +9,6 @@ import { getDefaultBunClientOptions } from '../helpers';
 const DEFAULT_PORT = 22114;
 
 describe('Bun Serve Integration', () => {
-  let hub: Hub;
   let client: BunClient;
 
   beforeAll(() => {
@@ -19,20 +18,16 @@ describe('Bun Serve Integration', () => {
   beforeEach(() => {
     const options = getDefaultBunClientOptions({ tracesSampleRate: 1, debug: true });
     client = new BunClient(options);
-    hub = new Hub(client);
-    // eslint-disable-next-line deprecation/deprecation
-    makeMain(hub);
+    setCurrentClient(client);
+    client.init();
   });
 
   test('generates a transaction around a request', async () => {
-    client.on('finishTransaction', transaction => {
-      expect(transaction.status).toBe('ok');
-      // eslint-disable-next-line deprecation/deprecation
-      expect(transaction.tags).toEqual({
-        'http.status_code': '200',
-      });
-      expect(transaction.op).toEqual('http.server');
-      expect(spanToJSON(transaction).description).toEqual('GET /');
+    client.on('spanEnd', span => {
+      expect(spanToJSON(span).status).toBe('ok');
+      expect(spanToJSON(span).data?.['http.response.status_code']).toEqual(200);
+      expect(spanToJSON(span).op).toEqual('http.server');
+      expect(spanToJSON(span).description).toEqual('GET /');
     });
 
     const server = Bun.serve({
@@ -48,14 +43,11 @@ describe('Bun Serve Integration', () => {
   });
 
   test('generates a post transaction', async () => {
-    client.on('finishTransaction', transaction => {
-      expect(transaction.status).toBe('ok');
-      // eslint-disable-next-line deprecation/deprecation
-      expect(transaction.tags).toEqual({
-        'http.status_code': '200',
-      });
-      expect(transaction.op).toEqual('http.server');
-      expect(spanToJSON(transaction).description).toEqual('POST /');
+    client.on('spanEnd', span => {
+      expect(spanToJSON(span).status).toBe('ok');
+      expect(spanToJSON(span).data?.['http.response.status_code']).toEqual(200);
+      expect(spanToJSON(span).op).toEqual('http.server');
+      expect(spanToJSON(span).description).toEqual('POST /');
     });
 
     const server = Bun.serve({
@@ -80,16 +72,13 @@ describe('Bun Serve Integration', () => {
     const SENTRY_TRACE_HEADER = `${TRACE_ID}-${PARENT_SPAN_ID}-${PARENT_SAMPLED}`;
     const SENTRY_BAGGAGE_HEADER = 'sentry-version=1.0,sentry-environment=production';
 
-    client.on('finishTransaction', transaction => {
-      expect(transaction.spanContext().traceId).toBe(TRACE_ID);
-      expect(transaction.parentSpanId).toBe(PARENT_SPAN_ID);
-      expect(spanIsSampled(transaction)).toBe(true);
-      // span.endTimestamp is already set in `finishTransaction` hook
-      expect(transaction.isRecording()).toBe(false);
+    client.on('spanEnd', span => {
+      expect(span.spanContext().traceId).toBe(TRACE_ID);
+      expect(spanToJSON(span).parent_span_id).toBe(PARENT_SPAN_ID);
+      expect(spanIsSampled(span)).toBe(true);
+      expect(span.isRecording()).toBe(false);
 
-      // eslint-disable-next-line deprecation/deprecation
-      expect(transaction.metadata?.dynamicSamplingContext).toStrictEqual({ version: '1.0', environment: 'production' });
-      expect(getDynamicSamplingContextFromSpan(transaction)).toStrictEqual({
+      expect(getDynamicSamplingContextFromSpan(span)).toStrictEqual({
         version: '1.0',
         environment: 'production',
       });
@@ -110,7 +99,7 @@ describe('Bun Serve Integration', () => {
   });
 
   test('does not create transactions for OPTIONS or HEAD requests', async () => {
-    client.on('finishTransaction', () => {
+    client.on('spanEnd', () => {
       // This will never run, but we want to make sure it doesn't run.
       expect(false).toEqual(true);
     });

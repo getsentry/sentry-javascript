@@ -2,60 +2,45 @@ export type {
   Breadcrumb,
   BreadcrumbHint,
   PolymorphicRequest,
+  // eslint-disable-next-line deprecation/deprecation
   Request,
+  RequestEventData,
   SdkInfo,
   Event,
   EventHint,
+  ErrorEvent,
   Exception,
   Session,
-  // eslint-disable-next-line deprecation/deprecation
-  Severity,
   SeverityLevel,
   Span,
   StackFrame,
   Stacktrace,
   Thread,
-  Transaction,
   User,
-} from '@sentry/types';
-export type { AddRequestDataToEventOptions } from '@sentry/utils';
+} from '@sentry/core';
+export type { AddRequestDataToEventOptions } from '@sentry/core';
 
 export type { VercelEdgeOptions } from './types';
 
 export {
-  // eslint-disable-next-line deprecation/deprecation
-  addGlobalEventProcessor,
   addEventProcessor,
   addBreadcrumb,
   addIntegration,
   captureException,
   captureEvent,
   captureMessage,
+  captureFeedback,
   close,
-  // eslint-disable-next-line deprecation/deprecation
-  configureScope,
   createTransport,
-  // eslint-disable-next-line deprecation/deprecation
-  extractTraceparentData,
+  lastEventId,
   flush,
-  // eslint-disable-next-line deprecation/deprecation
-  getActiveTransaction,
-  getHubFromCarrier,
-  getCurrentHub,
   getClient,
+  isInitialized,
   getCurrentScope,
   getGlobalScope,
   getIsolationScope,
-  Hub,
-  // eslint-disable-next-line deprecation/deprecation
-  lastEventId,
-  // eslint-disable-next-line deprecation/deprecation
-  makeMain,
   setCurrentClient,
-  runWithAsyncContext,
   Scope,
-  // eslint-disable-next-line deprecation/deprecation
-  startTransaction,
   SDK_VERSION,
   setContext,
   setExtra,
@@ -63,34 +48,53 @@ export {
   setTag,
   setTags,
   setUser,
-  spanStatusfromHttpCode,
-  // eslint-disable-next-line deprecation/deprecation
-  trace,
+  getSpanStatusFromHttpCode,
+  setHttpStatus,
   withScope,
   withIsolationScope,
   captureCheckIn,
   withMonitor,
   setMeasurement,
   getActiveSpan,
+  getRootSpan,
+  getTraceData,
+  getTraceMetaTags,
   startSpan,
   startInactiveSpan,
   startSpanManual,
+  startNewTrace,
+  suppressTracing,
+  withActiveSpan,
+  getSpanDescendants,
   continueTrace,
+  // eslint-disable-next-line deprecation/deprecation
   metrics,
+  functionToStringIntegration,
+  inboundFiltersIntegration,
+  linkedErrorsIntegration,
+  requestDataIntegration,
+  extraErrorDataIntegration,
+  // eslint-disable-next-line deprecation/deprecation
+  debugIntegration,
+  dedupeIntegration,
+  rewriteFramesIntegration,
+  captureConsoleIntegration,
+  moduleMetadataIntegration,
+  zodErrorsIntegration,
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
+  trpcMiddleware,
+  spanToJSON,
+  spanToTraceHeader,
+  spanToBaggageHeader,
 } from '@sentry/core';
-export type { SpanStatusType } from '@sentry/core';
 
 export { VercelEdgeClient } from './client';
-export { defaultIntegrations, init } from './sdk';
+export {
+  getDefaultIntegrations,
+  init,
+} from './sdk';
 
-import { Integrations as CoreIntegrations, RequestData } from '@sentry/core';
-
-import { WinterCGFetch } from './integrations/wintercg-fetch';
-
-const INTEGRATIONS = {
-  ...CoreIntegrations,
-  WinterCGFetch,
-  RequestData,
-};
-
-export { INTEGRATIONS as Integrations };
+export { winterCGFetchIntegration } from './integrations/wintercg-fetch';

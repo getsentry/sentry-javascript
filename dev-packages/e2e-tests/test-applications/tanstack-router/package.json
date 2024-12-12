@@ -1,0 +1,34 @@
+{
+  "name": "tanstack-router-e2e-test-application",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "scripts": {
+    "build": "vite build",
+    "start": "vite preview",
+    "test": "playwright test",
+    "clean": "npx rimraf node_modules pnpm-lock.yaml",
+    "test:build": "pnpm install && pnpm build",
+    "test:assert": "pnpm test"
+  },
+  "dependencies": {
+    "@sentry/react": "latest || *",
+    "@tanstack/react-router": "1.34.5",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.66",
+    "@types/react-dom": "^18.2.22",
+    "@typescript-eslint/eslint-plugin": "^7.2.0",
+    "@typescript-eslint/parser": "^7.2.0",
+    "@vitejs/plugin-react-swc": "^3.5.0",
+    "typescript": "^5.2.2",
+    "vite": "^5.4.10",
+    "@playwright/test": "^1.44.1",
+    "@sentry-internal/test-utils": "link:../../../test-utils"
+  },
+  "volta": {
+    "extends": "../../package.json"
+  }
+}

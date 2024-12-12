@@ -1,0 +1,9 @@
+services:
+  db:
+    image: mysql:8
+    restart: always
+    container_name: integration-tests-mysql
+    ports:
+      - '3306:3306'
+    environment:
+      MYSQL_ROOT_PASSWORD: password

@@ -1,11 +1,16 @@
-import { TestEnv, assertSentryEvent } from '../../../../utils';
+import { cleanupChildProcesses, createRunner } from '../../../../utils/runner';
 
-test('should capture a simple message string', async () => {
-  const env = await TestEnv.init(__dirname);
-  const event = await env.getEnvelopeRequest();
+afterAll(() => {
+  cleanupChildProcesses();
+});
 
-  assertSentryEvent(event[2], {
-    message: 'Message',
-    level: 'info',
-  });
+test('should capture a simple message string', done => {
+  createRunner(__dirname, 'scenario.ts')
+    .expect({
+      event: {
+        message: 'Message',
+        level: 'info',
+      },
+    })
+    .start(done);
 });

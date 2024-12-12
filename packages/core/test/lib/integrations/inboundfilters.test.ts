@@ -1,7 +1,7 @@
-import type { Event, EventProcessor } from '@sentry/types';
+import type { Event, EventProcessor } from '../../../src/types-hoist';
 
 import type { InboundFiltersOptions } from '../../../src/integrations/inboundfilters';
-import { InboundFilters } from '../../../src/integrations/inboundfilters';
+import { inboundFiltersIntegration } from '../../../src/integrations/inboundfilters';
 import { TestClient, getDefaultTestClientOptions } from '../../mocks/client';
 
 const PUBLIC_DSN = 'https://username@domain/123';
@@ -33,7 +33,7 @@ function createInboundFiltersEventProcessor(
       dsn: PUBLIC_DSN,
       ...clientOptions,
       defaultIntegrations: false,
-      integrations: [new InboundFilters(options)],
+      integrations: [inboundFiltersIntegration(options)],
     }),
   );
 
@@ -165,6 +165,66 @@ const EXCEPTION_EVENT_WITH_LINKED_ERRORS: Event = {
   },
 };
 
+const USELESS_EXCEPTION_EVENT: Event = {
+  exception: {
+    values: [
+      {},
+      {
+        mechanism: { type: 'onunhandledrejection', handled: false },
+      },
+    ],
+  },
+};
+
+const USELESS_ERROR_EXCEPTION_EVENT: Event = {
+  exception: {
+    values: [{ type: 'Error' }, {}],
+  },
+};
+
+const EVENT_WITH_MESSAGE: Event = {
+  message: 'hello',
+};
+
+const EVENT_WITH_STACKTRACE: Event = {
+  exception: {
+    values: [
+      {},
+      {
+        stacktrace: {
+          frames: [
+            {
+              abs_path: 'hello.js',
+            },
+          ],
+        },
+      },
+    ],
+  },
+};
+
+const EVENT_WITH_TYPE: Event = {
+  exception: {
+    values: [
+      {},
+      {
+        type: 'MyCustomError',
+      },
+    ],
+  },
+};
+
+const EVENT_WITH_VALUE: Event = {
+  exception: {
+    values: [
+      {},
+      {
+        value: 'some error',
+      },
+    ],
+  },
+};
+
 const SENTRY_EVENT: Event = {
   exception: {
     values: [
@@ -182,6 +242,40 @@ const SCRIPT_ERROR_EVENT: Event = {
       {
         type: '[undefined]',
         value: 'Script error.',
+      },
+    ],
+  },
+};
+
+const RESIZEOBSERVER_EVENT: Event = {
+  exception: {
+    values: [
+      {
+        type: 'Error',
+        value: 'ResizeObserver loop completed with undelivered notifications.',
+      },
+    ],
+  },
+};
+
+const GOOGLETAG_EVENT: Event = {
+  exception: {
+    values: [
+      {
+        type: 'TypeError',
+        value: 'Cannot redefine property: googletag',
+      },
+    ],
+  },
+};
+
+const CEFSHARP_EVENT: Event = {
+  exception: {
+    values: [
+      {
+        type: 'TypeError',
+        value:
+          'Non-Error promise rejection captured with value: Object Not Found Matching Id:3, MethodName:simulateEvent, ParamCount:1',
       },
     ],
   },
@@ -212,21 +306,6 @@ const TRANSACTION_EVENT_2: Event = {
 
 const TRANSACTION_EVENT_3: Event = {
   transaction: 'other name',
-  type: 'transaction',
-};
-
-const TRANSACTION_EVENT_HEALTH: Event = {
-  transaction: 'GET /health',
-  type: 'transaction',
-};
-
-const TRANSACTION_EVENT_HEALTH_2: Event = {
-  transaction: 'GET /healthy',
-  type: 'transaction',
-};
-
-const TRANSACTION_EVENT_HEALTH_3: Event = {
-  transaction: 'GET /live',
   type: 'transaction',
 };
 
@@ -303,9 +382,24 @@ describe('InboundFilters', () => {
       expect(eventProcessor(EXCEPTION_EVENT, {})).toBe(null);
     });
 
-    it('uses default filters', () => {
+    it('uses default filters (script error)', () => {
       const eventProcessor = createInboundFiltersEventProcessor();
       expect(eventProcessor(SCRIPT_ERROR_EVENT, {})).toBe(null);
+    });
+
+    it('uses default filters (ResizeObserver)', () => {
+      const eventProcessor = createInboundFiltersEventProcessor();
+      expect(eventProcessor(RESIZEOBSERVER_EVENT, {})).toBe(null);
+    });
+
+    it('uses default filters (googletag)', () => {
+      const eventProcessor = createInboundFiltersEventProcessor();
+      expect(eventProcessor(GOOGLETAG_EVENT, {})).toBe(null);
+    });
+
+    it('uses default filters (CEFSharp)', () => {
+      const eventProcessor = createInboundFiltersEventProcessor();
+      expect(eventProcessor(CEFSHARP_EVENT, {})).toBe(null);
     });
 
     it('filters on last exception when multiple present', () => {
@@ -407,39 +501,12 @@ describe('InboundFilters', () => {
       const eventProcessor = createInboundFiltersEventProcessor();
       expect(eventProcessor(SCRIPT_ERROR_EVENT, {})).toBe(null);
       expect(eventProcessor(TRANSACTION_EVENT, {})).toBe(TRANSACTION_EVENT);
-      expect(eventProcessor(TRANSACTION_EVENT_HEALTH, {})).toBe(null);
-      expect(eventProcessor(TRANSACTION_EVENT_HEALTH_2, {})).toBe(null);
-      expect(eventProcessor(TRANSACTION_EVENT_HEALTH_3, {})).toBe(null);
     });
 
     it('disable default error filters', () => {
       const eventProcessor = createInboundFiltersEventProcessor({ disableErrorDefaults: true });
       expect(eventProcessor(SCRIPT_ERROR_EVENT, {})).toBe(SCRIPT_ERROR_EVENT);
-      expect(eventProcessor(TRANSACTION_EVENT_HEALTH, {})).toBe(null);
-      expect(eventProcessor(TRANSACTION_EVENT_HEALTH_2, {})).toBe(null);
-      expect(eventProcessor(TRANSACTION_EVENT_HEALTH_3, {})).toBe(null);
     });
-
-    it('disable default transaction filters', () => {
-      const eventProcessor = createInboundFiltersEventProcessor({ disableTransactionDefaults: true });
-      expect(eventProcessor(SCRIPT_ERROR_EVENT, {})).toBe(null);
-      expect(eventProcessor(TRANSACTION_EVENT, {})).toBe(TRANSACTION_EVENT);
-      expect(eventProcessor(TRANSACTION_EVENT_HEALTH, {})).toBe(TRANSACTION_EVENT_HEALTH);
-      expect(eventProcessor(TRANSACTION_EVENT_HEALTH_2, {})).toBe(TRANSACTION_EVENT_HEALTH_2);
-      expect(eventProcessor(TRANSACTION_EVENT_HEALTH_3, {})).toBe(TRANSACTION_EVENT_HEALTH_3);
-    });
-
-    it.each(['/delivery', '/already', '/healthysnacks'])(
-      "doesn't filter out transactions that have similar names to health check ones (%s)",
-      transaction => {
-        const eventProcessor = createInboundFiltersEventProcessor();
-        const evt: Event = {
-          transaction,
-          type: 'transaction',
-        };
-        expect(eventProcessor(evt, {})).toBe(evt);
-      },
-    );
   });
 
   describe('denyUrls/allowUrls', () => {
@@ -519,6 +586,38 @@ describe('InboundFilters', () => {
         denyUrls: ['https://awesome-analytics.io/some/file.js'],
       });
       expect(eventProcessor(MESSAGE_EVENT_WITH_NATIVE_LAST_FRAME, {})).toBe(null);
+    });
+  });
+
+  describe('useless errors', () => {
+    it("should drop event with exceptions that don't have any message, type or stack trace", () => {
+      const eventProcessor = createInboundFiltersEventProcessor();
+      expect(eventProcessor(USELESS_EXCEPTION_EVENT, {})).toBe(null);
+    });
+
+    it('should drop event with just a generic error without stacktrace or message', () => {
+      const eventProcessor = createInboundFiltersEventProcessor();
+      expect(eventProcessor(USELESS_ERROR_EXCEPTION_EVENT, {})).toBe(null);
+    });
+
+    it('should not drop event with a message', () => {
+      const eventProcessor = createInboundFiltersEventProcessor();
+      expect(eventProcessor(EVENT_WITH_MESSAGE, {})).toBe(EVENT_WITH_MESSAGE);
+    });
+
+    it('should not drop event with an exception that has a type', () => {
+      const eventProcessor = createInboundFiltersEventProcessor();
+      expect(eventProcessor(EVENT_WITH_TYPE, {})).toBe(EVENT_WITH_TYPE);
+    });
+
+    it('should not drop event with an exception that has a stacktrace', () => {
+      const eventProcessor = createInboundFiltersEventProcessor();
+      expect(eventProcessor(EVENT_WITH_STACKTRACE, {})).toBe(EVENT_WITH_STACKTRACE);
+    });
+
+    it('should not drop event with an exception that has a value', () => {
+      const eventProcessor = createInboundFiltersEventProcessor();
+      expect(eventProcessor(EVENT_WITH_VALUE, {})).toBe(EVENT_WITH_VALUE);
     });
   });
 });

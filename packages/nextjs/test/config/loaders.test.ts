@@ -77,7 +77,7 @@ describe('webpack loaders', () => {
       });
 
       expect(finalWebpackConfig.module.rules).toContainEqual({
-        test: /sentry\.(server|edge)\.config\.(jsx?|tsx?)/,
+        test: expect.any(RegExp),
         use: [
           {
             loader: expect.stringEndingWith('valueInjectionLoader.js'),
@@ -94,6 +94,10 @@ describe('webpack loaders', () => {
     it.each([
       {
         resourcePath: '/Users/Maisey/projects/squirrelChasingSimulator/src/pages/testPage.tsx',
+        expectedWrappingTargetKind: 'page',
+      },
+      {
+        resourcePath: '/Users/Maisey/projects/squirrelChasingSimulator/src/pages/testPage.custom.tsx',
         expectedWrappingTargetKind: 'page',
       },
       {
@@ -134,6 +138,10 @@ describe('webpack loaders', () => {
         expectedWrappingTargetKind: 'middleware',
       },
       {
+        resourcePath: '/Users/Maisey/projects/squirrelChasingSimulator/src/middleware.custom.js',
+        expectedWrappingTargetKind: 'middleware',
+      },
+      {
         resourcePath: './src/middleware.js',
         expectedWrappingTargetKind: 'middleware',
       },
@@ -163,7 +171,23 @@ describe('webpack loaders', () => {
         expectedWrappingTargetKind: 'api-route',
       },
       {
+        resourcePath: '/Users/Maisey/projects/squirrelChasingSimulator/src/pages/api/nested/testApiRoute.custom.js',
+        expectedWrappingTargetKind: 'api-route',
+      },
+      {
+        resourcePath: '/Users/Maisey/projects/squirrelChasingSimulator/src/app/nested/route.ts',
+        expectedWrappingTargetKind: 'route-handler',
+      },
+      {
+        resourcePath: '/Users/Maisey/projects/squirrelChasingSimulator/src/app/nested/route.custom.ts',
+        expectedWrappingTargetKind: 'route-handler',
+      },
+      {
         resourcePath: '/Users/Maisey/projects/squirrelChasingSimulator/src/app/page.js',
+        expectedWrappingTargetKind: 'server-component',
+      },
+      {
+        resourcePath: '/Users/Maisey/projects/squirrelChasingSimulator/src/app/page.custom.js',
         expectedWrappingTargetKind: 'server-component',
       },
       {
@@ -171,8 +195,8 @@ describe('webpack loaders', () => {
         expectedWrappingTargetKind: 'server-component',
       },
       {
-        resourcePath: '/Users/Maisey/projects/squirrelChasingSimulator/src/app/nested/page.ts', // ts is not a valid file ending for pages in the app dir
-        expectedWrappingTargetKind: undefined,
+        resourcePath: '/Users/Maisey/projects/squirrelChasingSimulator/src/app/nested/page.ts',
+        expectedWrappingTargetKind: 'server-component',
       },
       {
         resourcePath: '/Users/Maisey/projects/squirrelChasingSimulator/src/app/(group)/nested/page.tsx',
@@ -180,7 +204,7 @@ describe('webpack loaders', () => {
       },
       {
         resourcePath: '/Users/Maisey/projects/squirrelChasingSimulator/src/app/(group)/nested/loading.ts',
-        expectedWrappingTargetKind: undefined,
+        expectedWrappingTargetKind: 'server-component',
       },
       {
         resourcePath: '/Users/Maisey/projects/squirrelChasingSimulator/src/app/layout.js',

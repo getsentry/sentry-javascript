@@ -1,8 +1,15 @@
-import { TextDecoder, TextEncoder } from 'util';
-import type { Event } from '@sentry/types';
-import { GLOBAL_OBJ, createStackParser, nodeStackLineParser, parseEnvelope } from '@sentry/utils';
+import type { Event } from '../../../src/types-hoist';
 
-import { ModuleMetadata, captureException, createTransport, setCurrentClient } from '../../../src';
+import {
+  GLOBAL_OBJ,
+  captureException,
+  createStackParser,
+  createTransport,
+  moduleMetadataIntegration,
+  nodeStackLineParser,
+  parseEnvelope,
+  setCurrentClient,
+} from '../../../src';
 import { TestClient, getDefaultTestClientOptions } from '../../mocks/client';
 
 const stackParser = createStackParser(nodeStackLineParser());
@@ -27,17 +34,17 @@ describe('ModuleMetadata integration', () => {
       dsn: 'https://username@domain/123',
       enableSend: true,
       stackParser,
-      integrations: [new ModuleMetadata()],
+      integrations: [moduleMetadataIntegration()],
       beforeSend: (event, _hint) => {
         // copy the frames since reverse in in-place
-        const lastFrame = [...(event.exception?.values?.[0].stacktrace?.frames || [])].reverse()[0];
+        const lastFrame = [...(event.exception?.values?.[0]?.stacktrace?.frames || [])].reverse()[0];
         // Ensure module_metadata is populated in beforeSend callback
         expect(lastFrame?.module_metadata).toEqual({ team: 'frontend' });
         return event;
       },
       transport: () =>
-        createTransport({ recordDroppedEvent: () => undefined, textEncoder: new TextEncoder() }, async req => {
-          const [, items] = parseEnvelope(req.body, new TextEncoder(), new TextDecoder());
+        createTransport({ recordDroppedEvent: () => undefined }, async req => {
+          const [, items] = parseEnvelope(req.body);
 
           expect(items[0][1]).toBeDefined();
           const event = items[0][1] as Event;

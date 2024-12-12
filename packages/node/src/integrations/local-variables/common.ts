@@ -1,9 +1,13 @@
-import type { StackFrame, StackParser } from '@sentry/types';
-import type { Debugger } from 'inspector';
+import type { Debugger } from 'node:inspector';
 
 export type Variables = Record<string, unknown>;
 
 export type RateLimitIncrement = () => void;
+
+/**
+ * The key used to store the local variables on the error object.
+ */
+export const LOCAL_VARIABLES_KEY = '__SENTRY_ERROR_LOCAL_VARIABLES__';
 
 /**
  * Creates a rate limiter that will call the disable callback when the rate limit is reached and the enable callback
@@ -55,6 +59,7 @@ export type PausedExceptionEvent = Debugger.PausedEventDataType & {
   data: {
     // This contains error.stack
     description: string;
+    objectId?: string;
   };
 };
 
@@ -68,34 +73,12 @@ export function functionNamesMatch(a: string | undefined, b: string | undefined)
   return a === b || (isAnonymous(a) && isAnonymous(b));
 }
 
-/** Creates a unique hash from stack frames */
-export function hashFrames(frames: StackFrame[] | undefined): string | undefined {
-  if (frames === undefined) {
-    return;
-  }
-
-  // Only hash the 10 most recent frames (ie. the last 10)
-  return frames.slice(-10).reduce((acc, frame) => `${acc},${frame.function},${frame.lineno},${frame.colno}`, '');
-}
-
-/**
- * We use the stack parser to create a unique hash from the exception stack trace
- * This is used to lookup vars when the exception passes through the event processor
- */
-export function hashFromStack(stackParser: StackParser, stack: string | undefined): string | undefined {
-  if (stack === undefined) {
-    return undefined;
-  }
-
-  return hashFrames(stackParser(stack, 1));
-}
-
 export interface FrameVariables {
   function: string;
   vars?: Variables;
 }
 
-export interface Options {
+export interface LocalVariablesIntegrationOptions {
   /**
    * Capture local variables for both caught and uncaught exceptions
    *
@@ -116,4 +99,17 @@ export interface Options {
    * Maximum number of exceptions to capture local variables for per second before rate limiting is triggered.
    */
   maxExceptionsPerSecond?: number;
+}
+
+export interface LocalVariablesWorkerArgs extends LocalVariablesIntegrationOptions {
+  /**
+   * Whether to enable debug logging.
+   */
+  debug: boolean;
+  /**
+   * Base path used to calculate module name.
+   *
+   * Defaults to `dirname(process.argv[1])` and falls back to `process.cwd()`
+   */
+  basePath?: string;
 }

@@ -1,22 +1,35 @@
+import type { RequestEventData } from '@sentry/core';
 import {
-  addTracingExtensions,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  SPAN_STATUS_ERROR,
   captureException,
+  continueTrace,
   getClient,
-  getCurrentScope,
+  getIsolationScope,
   handleCallbackErrors,
-  runWithAsyncContext,
+  logger,
   startSpan,
+  vercelWaitUntil,
+  withIsolationScope,
 } from '@sentry/core';
-import { logger, tracingContextFromHeaders } from '@sentry/utils';
-
 import { DEBUG_BUILD } from './debug-build';
-import { platformSupportsStreaming } from './utils/platformSupportsStreaming';
-import { flushQueue } from './utils/responseEnd';
+import { isNotFoundNavigationError, isRedirectNavigationError } from './nextNavigationErrorUtils';
+import { flushSafelyWithTimeout } from './utils/responseEnd';
 
 interface Options {
   formData?: FormData;
-  // TODO: Whenever we decide to drop support for Next.js <= 12 we can automatically pick up the headers becauase "next/headers" will be resolvable.
-  headers?: Headers;
+
+  /**
+   * Headers as returned from `headers()`.
+   *
+   * Currently accepts both a plain `Headers` object and `Promise<ReadonlyHeaders>` to be compatible with async APIs introduced in Next.js 15: https://github.com/vercel/next.js/pull/68812
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  headers?: Headers | Promise<any>;
+
+  /**
+   * Whether the server action response should be included in any events captured within the server action.
+   */
   recordResponse?: boolean;
 }
 
@@ -55,17 +68,17 @@ async function withServerActionInstrumentationImplementation<A extends (...args:
   options: Options,
   callback: A,
 ): Promise<ReturnType<A>> {
-  addTracingExtensions();
-  return runWithAsyncContext(async () => {
+  return withIsolationScope(async isolationScope => {
     const sendDefaultPii = getClient()?.getOptions().sendDefaultPii;
 
     let sentryTraceHeader;
     let baggageHeader;
     const fullHeadersObject: Record<string, string> = {};
     try {
-      sentryTraceHeader = options.headers?.get('sentry-trace') ?? undefined;
-      baggageHeader = options.headers?.get('baggage');
-      options.headers?.forEach((value, key) => {
+      const awaitedHeaders: Headers = await options.headers;
+      sentryTraceHeader = awaitedHeaders?.get('sentry-trace') ?? undefined;
+      baggageHeader = awaitedHeaders?.get('baggage');
+      awaitedHeaders?.forEach((value, key) => {
         fullHeadersObject[key] = value;
       });
     } catch (e) {
@@ -75,63 +88,66 @@ async function withServerActionInstrumentationImplementation<A extends (...args:
         );
     }
 
-    const currentScope = getCurrentScope();
-    const { traceparentData, dynamicSamplingContext, propagationContext } = tracingContextFromHeaders(
-      sentryTraceHeader,
-      baggageHeader,
-    );
-    currentScope.setPropagationContext(propagationContext);
+    isolationScope.setTransactionName(`serverAction/${serverActionName}`);
+    isolationScope.setSDKProcessingMetadata({
+      normalizedRequest: {
+        headers: fullHeadersObject,
+      } satisfies RequestEventData,
+    });
 
-    let res;
-    try {
-      res = await startSpan(
-        {
-          op: 'function.server_action',
-          name: `serverAction/${serverActionName}`,
-          status: 'ok',
-          ...traceparentData,
-          metadata: {
-            source: 'route',
-            dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
-            request: {
-              headers: fullHeadersObject,
+    return continueTrace(
+      {
+        sentryTrace: sentryTraceHeader,
+        baggage: baggageHeader,
+      },
+      async () => {
+        try {
+          return await startSpan(
+            {
+              op: 'function.server_action',
+              name: `serverAction/${serverActionName}`,
+              forceTransaction: true,
+              attributes: {
+                [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+              },
             },
-          },
-        },
-        async span => {
-          const result = await handleCallbackErrors(callback, error => {
-            captureException(error, { mechanism: { handled: false } });
-          });
+            async span => {
+              const result = await handleCallbackErrors(callback, error => {
+                if (isNotFoundNavigationError(error)) {
+                  // We don't want to report "not-found"s
+                  span.setStatus({ code: SPAN_STATUS_ERROR, message: 'not_found' });
+                } else if (isRedirectNavigationError(error)) {
+                  // Don't do anything for redirects
+                } else {
+                  span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+                  captureException(error, {
+                    mechanism: {
+                      handled: false,
+                    },
+                  });
+                }
+              });
 
-          if (options.recordResponse !== undefined ? options.recordResponse : sendDefaultPii) {
-            span?.setAttribute('server_action_result', result);
-          }
+              if (options.recordResponse !== undefined ? options.recordResponse : sendDefaultPii) {
+                getIsolationScope().setExtra('server_action_result', result);
+              }
 
-          if (options.formData) {
-            options.formData.forEach((value, key) => {
-              span?.setAttribute(
-                `server_action_form_data.${key}`,
-                typeof value === 'string' ? value : '[non-string value]',
-              );
-            });
-          }
+              if (options.formData) {
+                options.formData.forEach((value, key) => {
+                  getIsolationScope().setExtra(
+                    `server_action_form_data.${key}`,
+                    typeof value === 'string' ? value : '[non-string value]',
+                  );
+                });
+              }
 
-          return result;
-        },
-      );
-    } finally {
-      if (!platformSupportsStreaming()) {
-        // Lambdas require manual flushing to prevent execution freeze before the event is sent
-        await flushQueue();
-      }
-
-      if (process.env.NEXT_RUNTIME === 'edge') {
-        // flushQueue should not throw
-        // eslint-disable-next-line @typescript-eslint/no-floating-promises
-        flushQueue();
-      }
-    }
-
-    return res;
+              return result;
+            },
+          );
+        } finally {
+          vercelWaitUntil(flushSafelyWithTimeout());
+        }
+      },
+    );
   });
 }

@@ -19,7 +19,7 @@ function isInputMutation(
 
 sentryTest(
   'should mask input initial value and its changes',
-  async ({ browserName, forceFlushReplay, getLocalTestPath, page }) => {
+  async ({ browserName, forceFlushReplay, getLocalTestUrl, page }) => {
     // TODO(replay): This is flakey on webkit (~1%) where we do not always get the latest mutation.
     if (shouldSkipReplayTest() || browserName === 'webkit') {
       sentryTest.skip();
@@ -54,15 +54,7 @@ sentryTest(
       return inputMutationSegmentIds.length === 2 && inputMutationSegmentIds[1] < event.segment_id;
     });
 
-    await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-      return route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({ id: 'test-id' }),
-      });
-    });
-
-    const url = await getLocalTestPath({ testDir: __dirname });
+    const url = await getLocalTestUrl({ testDir: __dirname });
 
     await page.goto(url);
 
@@ -92,7 +84,7 @@ sentryTest(
 
 sentryTest(
   'should mask textarea initial value and its changes',
-  async ({ browserName, forceFlushReplay, getLocalTestPath, page }) => {
+  async ({ browserName, forceFlushReplay, getLocalTestUrl, page }) => {
     // TODO(replay): This is flakey on webkit (~1%) where we do not always get the latest mutation.
     if (shouldSkipReplayTest() || browserName === 'webkit') {
       sentryTest.skip();
@@ -126,16 +118,20 @@ sentryTest(
       // This one should not have any input mutations
       return inputMutationSegmentIds.length === 2 && inputMutationSegmentIds[1] < event.segment_id;
     });
+    const reqPromise4 = waitForReplayRequest(page, (event, res) => {
+      const check =
+        inputMutationSegmentIds.length === 2 &&
+        inputMutationSegmentIds[1] < event.segment_id &&
+        getIncrementalRecordingSnapshots(res).some(isInputMutation);
 
-    await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-      return route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({ id: 'test-id' }),
-      });
+      if (check) {
+        inputMutationSegmentIds.push(event.segment_id);
+      }
+
+      return check;
     });
 
-    const url = await getLocalTestPath({ testDir: __dirname });
+    const url = await getLocalTestUrl({ testDir: __dirname });
 
     await page.goto(url);
     const fullSnapshot = getFullRecordingSnapshots(await reqPromise0);
@@ -160,5 +156,11 @@ sentryTest(
     await forceFlushReplay();
     const snapshots3 = getIncrementalRecordingSnapshots(await reqPromise3).filter(isInputMutation);
     expect(snapshots3.length).toBe(0);
+
+    await page.locator('#should-still-be-masked').fill(text);
+    await forceFlushReplay();
+    const snapshots4 = getIncrementalRecordingSnapshots(await reqPromise4).filter(isInputMutation);
+    const lastSnapshot4 = snapshots4[snapshots4.length - 1];
+    expect(lastSnapshot4.data.text).toBe('*'.repeat(text.length));
   },
 );

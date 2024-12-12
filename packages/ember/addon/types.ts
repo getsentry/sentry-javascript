@@ -1,7 +1,6 @@
-import type { BrowserOptions, BrowserTracing } from '@sentry/browser';
-import type { Transaction, TransactionContext } from '@sentry/types';
+import type { BrowserOptions, browserTracingIntegration } from '@sentry/browser';
 
-type BrowserTracingOptions = ConstructorParameters<typeof BrowserTracing>[0];
+type BrowserTracingOptions = Parameters<typeof browserTracingIntegration>[0];
 
 export type EmberSentryConfig = {
   sentry: BrowserOptions & { browserTracingOptions?: BrowserTracingOptions };
@@ -31,8 +30,6 @@ export interface EmberRouterMain {
     rootURL: string;
   };
 }
-
-export type StartTransactionFunction = (context: TransactionContext) => Transaction | undefined;
 
 export type GlobalConfig = {
   __sentryEmberConfig: EmberSentryConfig['sentry'];

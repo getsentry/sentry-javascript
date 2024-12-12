@@ -1,12 +1,12 @@
 import * as Sentry from '@sentry/browser';
 
 window.Sentry = Sentry;
-window.Replay = new Sentry.Replay({
+window.Replay = Sentry.replayIntegration({
   flushMinDelay: 200,
   flushMaxDelay: 200,
   minReplayDuration: 0,
 
-  networkDetailAllowUrls: ['http://localhost:7654/foo'],
+  networkDetailAllowUrls: ['http://sentry-test.io/foo'],
   networkCaptureBodies: true,
 });
 

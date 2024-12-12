@@ -1,12 +1,13 @@
+import type { Event } from '@sentry/core';
 import { conditionalTest } from '../../utils';
 import { cleanupChildProcesses, createRunner } from '../../utils/runner';
 
-const EXPECTED_ANR_EVENT = {
+const ANR_EVENT = {
   // Ensure we have context
   contexts: {
     trace: {
-      span_id: expect.any(String),
-      trace_id: expect.any(String),
+      span_id: expect.stringMatching(/[a-f0-9]{16}/),
+      trace_id: expect.stringMatching(/[a-f0-9]{32}/),
     },
     device: {
       arch: expect.any(String),
@@ -51,26 +52,58 @@ const EXPECTED_ANR_EVENT = {
   },
 };
 
+const ANR_EVENT_WITH_SCOPE = {
+  ...ANR_EVENT,
+  user: {
+    email: 'person@home.com',
+  },
+  breadcrumbs: expect.arrayContaining([
+    {
+      timestamp: expect.any(Number),
+      message: 'important message!',
+    },
+  ]),
+};
+
+const ANR_EVENT_WITH_DEBUG_META: Event = {
+  ...ANR_EVENT_WITH_SCOPE,
+  debug_meta: {
+    images: [
+      {
+        type: 'sourcemap',
+        debug_id: 'aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaa',
+        code_file: expect.stringContaining('basic.'),
+      },
+    ],
+  },
+};
+
 conditionalTest({ min: 16 })('should report ANR when event loop blocked', () => {
   afterAll(() => {
     cleanupChildProcesses();
   });
 
-  // TODO (v8): Remove this old API and this test
-  test('Legacy API', done => {
-    createRunner(__dirname, 'legacy.js').expect({ event: EXPECTED_ANR_EVENT }).start(done);
-  });
-
   test('CJS', done => {
-    createRunner(__dirname, 'basic.js').expect({ event: EXPECTED_ANR_EVENT }).start(done);
+    createRunner(__dirname, 'basic.js').withMockSentryServer().expect({ event: ANR_EVENT_WITH_DEBUG_META }).start(done);
   });
 
   test('ESM', done => {
-    createRunner(__dirname, 'basic.mjs').expect({ event: EXPECTED_ANR_EVENT }).start(done);
+    createRunner(__dirname, 'basic.mjs')
+      .withMockSentryServer()
+      .expect({ event: ANR_EVENT_WITH_DEBUG_META })
+      .start(done);
+  });
+
+  test('blocked indefinitely', done => {
+    createRunner(__dirname, 'indefinite.mjs').withMockSentryServer().expect({ event: ANR_EVENT }).start(done);
   });
 
   test('With --inspect', done => {
-    createRunner(__dirname, 'basic.mjs').withFlags('--inspect').expect({ event: EXPECTED_ANR_EVENT }).start(done);
+    createRunner(__dirname, 'basic.mjs')
+      .withMockSentryServer()
+      .withFlags('--inspect')
+      .expect({ event: ANR_EVENT_WITH_SCOPE })
+      .start(done);
   });
 
   test('should exit', done => {
@@ -93,17 +126,56 @@ conditionalTest({ min: 16 })('should report ANR when event loop blocked', () => 
 
   test('With session', done => {
     createRunner(__dirname, 'basic-session.js')
+      .withMockSentryServer()
+      .unignore('session')
       .expect({
         session: {
           status: 'abnormal',
           abnormal_mechanism: 'anr_foreground',
         },
       })
-      .expect({ event: EXPECTED_ANR_EVENT })
+      .expect({ event: ANR_EVENT_WITH_SCOPE })
       .start(done);
   });
 
   test('from forked process', done => {
-    createRunner(__dirname, 'forker.js').expect({ event: EXPECTED_ANR_EVENT }).start(done);
+    createRunner(__dirname, 'forker.js').expect({ event: ANR_EVENT_WITH_SCOPE }).start(done);
+  });
+
+  test('worker can be stopped and restarted', done => {
+    createRunner(__dirname, 'stop-and-start.js').expect({ event: ANR_EVENT_WITH_SCOPE }).start(done);
+  });
+
+  const EXPECTED_ISOLATED_EVENT = {
+    user: {
+      id: 5,
+    },
+    exception: {
+      values: [
+        {
+          type: 'ApplicationNotResponding',
+          value: 'Application Not Responding for at least 100 ms',
+          mechanism: { type: 'ANR' },
+          stacktrace: {
+            frames: expect.arrayContaining([
+              {
+                colno: expect.any(Number),
+                lineno: expect.any(Number),
+                filename: expect.stringMatching(/isolated.mjs$/),
+                function: 'longWork',
+                in_app: true,
+              },
+            ]),
+          },
+        },
+      ],
+    },
+  };
+
+  test('fetches correct isolated scope', done => {
+    createRunner(__dirname, 'isolated.mjs')
+      .withMockSentryServer()
+      .expect({ event: EXPECTED_ISOLATED_EVENT })
+      .start(done);
   });
 });

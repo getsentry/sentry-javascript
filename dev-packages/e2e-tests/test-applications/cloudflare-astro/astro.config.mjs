@@ -17,7 +17,8 @@ export default defineConfig({
       sourceMapsUploadOptions: {
         enabled: false,
       },
-      clientInitPath: 'sentry.client.mjs',
+      // purposefully setting the default name for client
+      // and a custom name for server to test both cases
       serverInitPath: 'sentry.server.mjs',
     }),
   ],

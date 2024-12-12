@@ -6,7 +6,7 @@ module.exports = {
   parserOptions: {
     jsx: true,
   },
-  ignorePatterns: ['playwright.config.ts', 'test/integration/**'],
+  ignorePatterns: ['playwright.config.ts', 'vitest.config.ts', 'test/integration/**'],
   extends: ['../../.eslintrc.js'],
   rules: {
     '@sentry-internal/sdk/no-optional-chaining': 'off',

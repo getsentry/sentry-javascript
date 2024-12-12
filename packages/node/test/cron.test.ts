@@ -53,13 +53,20 @@ describe('cron check-ins', () => {
 
       const CronJobWithCheckIn = cron.instrumentCron(CronJobMock, 'my-cron-job');
 
-      new CronJobWithCheckIn('* * * Jan,Sep Sun', () => {
-        expect(withMonitorSpy).toHaveBeenCalledTimes(1);
-        expect(withMonitorSpy).toHaveBeenLastCalledWith('my-cron-job', expect.anything(), {
-          schedule: { type: 'crontab', value: '* * * 1,9 0' },
-        });
-        done();
-      });
+      new CronJobWithCheckIn(
+        '* * * Jan,Sep Sun',
+        () => {
+          expect(withMonitorSpy).toHaveBeenCalledTimes(1);
+          expect(withMonitorSpy).toHaveBeenLastCalledWith('my-cron-job', expect.anything(), {
+            schedule: { type: 'crontab', value: '* * * 1,9 0' },
+            timezone: 'America/Los_Angeles',
+          });
+          done();
+        },
+        undefined,
+        true,
+        'America/Los_Angeles',
+      );
     });
 
     test('CronJob.from()', done => {

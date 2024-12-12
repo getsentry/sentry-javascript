@@ -1,6 +1,5 @@
 import type { ReadableSpan } from '@opentelemetry/sdk-trace-base';
-
-import { getSpanParent } from './spanData';
+import { SEMANTIC_ATTRIBUTE_SENTRY_PARENT_IS_REMOTE } from '../semanticAttributes';
 
 export interface SpanNode {
   id: string;
@@ -27,15 +26,19 @@ export function groupSpansWithParents(spans: ReadableSpan[]): SpanNode[] {
   });
 }
 
-function createOrUpdateSpanNodeAndRefs(nodeMap: SpanMap, span: ReadableSpan): void {
-  const parentSpan = getSpanParent(span);
-  const parentIsRemote = parentSpan ? !!parentSpan.spanContext().isRemote : false;
-
-  const id = span.spanContext().spanId;
-
+/**
+ * This returns the _local_ parent ID - `parentId` on the span may point to a remote span.
+ */
+export function getLocalParentId(span: ReadableSpan): string | undefined {
+  const parentIsRemote = span.attributes[SEMANTIC_ATTRIBUTE_SENTRY_PARENT_IS_REMOTE] === true;
   // If the parentId is the trace parent ID, we pretend it's undefined
   // As this means the parent exists somewhere else
-  const parentId = !parentIsRemote ? span.parentSpanId : undefined;
+  return !parentIsRemote ? span.parentSpanId : undefined;
+}
+
+function createOrUpdateSpanNodeAndRefs(nodeMap: SpanMap, span: ReadableSpan): void {
+  const id = span.spanContext().spanId;
+  const parentId = getLocalParentId(span);
 
   if (!parentId) {
     createOrUpdateNode(nodeMap, { id, span, children: [] });

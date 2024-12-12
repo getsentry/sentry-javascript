@@ -1,13 +1,11 @@
-/* eslint-disable deprecation/deprecation */
-import type { ClientOptions, DsnComponents } from '@sentry/types';
-import { makeDsn } from '@sentry/utils';
-
 import { getEnvelopeEndpointWithUrlEncodedAuth, getReportDialogEndpoint } from '../../src/api';
+import type { DsnComponents, SdkInfo } from '../../src/types-hoist';
+import { makeDsn } from '../../src/utils-hoist/dsn';
 
 const ingestDsn = 'https://abc@xxxx.ingest.sentry.io:1234/subpath/123';
 const dsnPublic = 'https://abc@sentry.io:1234/subpath/123';
 const tunnel = 'https://hello.com/world';
-const _metadata = { sdk: { name: 'sentry.javascript.browser', version: '12.31.12' } } as ClientOptions['_metadata'];
+const sdkInfo = { name: 'sentry.javascript.browser', version: '12.31.12' };
 
 const dsnPublicComponents = makeDsn(dsnPublic)!;
 
@@ -18,36 +16,34 @@ describe('API', () => {
         "doesn't include `sentry_client` when called with only DSN",
         dsnPublicComponents,
         undefined,
-        'https://sentry.io:1234/subpath/api/123/envelope/?sentry_key=abc&sentry_version=7',
+        undefined,
+        'https://sentry.io:1234/subpath/api/123/envelope/?sentry_version=7&sentry_key=abc',
       ],
-      ['uses `tunnel` value when called with `tunnel` as string', dsnPublicComponents, tunnel, tunnel],
+      ['uses `tunnel` value when called with `tunnel` option', dsnPublicComponents, tunnel, undefined, tunnel],
       [
-        'uses `tunnel` value when called with `tunnel` in options',
+        'uses `tunnel` value when called with `tunnel` and `sdkInfo` options',
         dsnPublicComponents,
-        { tunnel } as ClientOptions,
+        tunnel,
+        sdkInfo,
         tunnel,
       ],
       [
-        'uses `tunnel` value when called with `tunnel` and `_metadata` in options',
+        'includes `sentry_client` when called with `sdkInfo` in options and no tunnel',
         dsnPublicComponents,
-        { tunnel, _metadata } as ClientOptions,
-        tunnel,
-      ],
-      [
-        'includes `sentry_client` when called with `_metadata` in options and no tunnel',
-        dsnPublicComponents,
-        { _metadata } as ClientOptions,
-        'https://sentry.io:1234/subpath/api/123/envelope/?sentry_key=abc&sentry_version=7&sentry_client=sentry.javascript.browser%2F12.31.12',
+        undefined,
+        sdkInfo,
+        'https://sentry.io:1234/subpath/api/123/envelope/?sentry_version=7&sentry_key=abc&sentry_client=sentry.javascript.browser%2F12.31.12',
       ],
     ])(
       '%s',
       (
         _testName: string,
         dsnComponents: DsnComponents,
-        tunnelOrOptions: string | ClientOptions | undefined,
+        tunnel: string | undefined,
+        sdkInfo: SdkInfo | undefined,
         expected: string,
       ) => {
-        expect(getEnvelopeEndpointWithUrlEncodedAuth(dsnComponents, tunnelOrOptions)).toBe(expected);
+        expect(getEnvelopeEndpointWithUrlEncodedAuth(dsnComponents, tunnel, sdkInfo)).toBe(expected);
       },
     );
   });

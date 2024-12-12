@@ -3,7 +3,7 @@ import * as Sentry from '@sentry/browser';
 window.Sentry = Sentry;
 
 // Replay should not actually work, but still not error out
-window.Replay = new Sentry.Replay({
+window.Replay = Sentry.replayIntegration({
   flushMinDelay: 200,
   flushMaxDelay: 200,
   minReplayDuration: 0,

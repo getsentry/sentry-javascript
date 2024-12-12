@@ -1,3 +1,4 @@
+import { consoleSandbox } from '@sentry/core';
 import { captureException } from '@sentry/node';
 import type { HandleServerError } from '@sveltejs/kit';
 
@@ -8,7 +9,7 @@ import { flushIfServerless } from './utils';
 function defaultErrorHandler({ error }: Parameters<HandleServerError>[0]): ReturnType<HandleServerError> {
   // @ts-expect-error this conforms to the default implementation (including this ts-expect-error)
   // eslint-disable-next-line no-console
-  console.error(error && error.stack);
+  consoleSandbox(() => console.error(error && error.stack));
 }
 
 type HandleServerErrorInput = Parameters<HandleServerError>[0];

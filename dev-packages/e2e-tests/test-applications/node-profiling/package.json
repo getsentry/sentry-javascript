@@ -1,0 +1,29 @@
+{
+  "name": "node-profiling",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build": "node build.mjs && node build.shimmed.mjs",
+    "test": "node dist/index.js && node --experimental-require-module dist/index.js && node dist/index.shimmed.mjs",
+    "clean": "npx rimraf node_modules dist",
+    "test:electron": "$(pnpm bin)/electron-rebuild && playwright test",
+    "test:build": "pnpm run typecheck && pnpm run build",
+    "test:assert": "pnpm run test && pnpm run test:electron"
+  },
+  "dependencies": {
+    "@electron/rebuild": "^3.7.0",
+    "@playwright/test": "^1.48.2",
+    "@sentry/electron": "latest || *",
+    "@sentry/node": "latest || *",
+    "@sentry/profiling-node": "latest || *",
+    "electron": "^33.2.0"
+  },
+  "devDependencies": {},
+  "volta": {
+    "extends": "../../package.json"
+  },
+  "sentryTest": {
+    "skip": true
+  }
+}

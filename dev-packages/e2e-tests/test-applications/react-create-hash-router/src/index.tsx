@@ -12,20 +12,18 @@ import {
 import Index from './pages/Index';
 import User from './pages/User';
 
-const replay = new Sentry.Replay();
+const replay = Sentry.replayIntegration();
 
 Sentry.init({
   // environment: 'qa', // dynamic sampling bias to keep transactions
   dsn: process.env.REACT_APP_E2E_TEST_DSN,
   integrations: [
-    new Sentry.BrowserTracing({
-      routingInstrumentation: Sentry.reactRouterV6Instrumentation(
-        React.useEffect,
-        useLocation,
-        useNavigationType,
-        createRoutesFromChildren,
-        matchRoutes,
-      ),
+    Sentry.reactRouterV6BrowserTracingIntegration({
+      useEffect: React.useEffect,
+      useLocation,
+      useNavigationType,
+      createRoutesFromChildren,
+      matchRoutes,
     }),
     replay,
   ],
@@ -34,32 +32,13 @@ Sentry.init({
   tracesSampleRate: 1.0,
   release: 'e2e-test',
 
+  tunnel: 'http://localhost:3031',
+
   // Always capture replays, so we can test this properly
   replaysSessionSampleRate: 1.0,
   replaysOnErrorSampleRate: 0.0,
 
-  debug: true,
-});
-
-Object.defineProperty(window, 'sentryReplayId', {
-  get() {
-    return replay['_replay'].session.id;
-  },
-});
-
-Sentry.addEventProcessor(event => {
-  if (
-    event.type === 'transaction' &&
-    (event.contexts?.trace?.op === 'pageload' || event.contexts?.trace?.op === 'navigation')
-  ) {
-    const eventId = event.event_id;
-    if (eventId) {
-      window.recordedTransactions = window.recordedTransactions || [];
-      window.recordedTransactions.push(eventId);
-    }
-  }
-
-  return event;
+  debug: !!process.env.DEBUG,
 });
 
 const sentryCreateHashRouter = Sentry.wrapCreateBrowserRouter(createHashRouter);

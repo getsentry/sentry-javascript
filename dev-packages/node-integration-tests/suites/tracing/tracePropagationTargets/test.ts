@@ -1,42 +1,37 @@
-import nock from 'nock';
+import { createRunner } from '../../../utils/runner';
+import { createTestServer } from '../../../utils/server';
 
-import { TestEnv, runScenario } from '../../../utils';
+test('HttpIntegration should instrument correct requests when tracePropagationTargets option is provided', done => {
+  expect.assertions(11);
 
-test('HttpIntegration should instrument correct requests when tracePropagationTargets option is provided', async () => {
-  const match1 = nock('http://match-this-url.com')
-    .get('/api/v0')
-    .matchHeader('baggage', val => typeof val === 'string')
-    .matchHeader('sentry-trace', val => typeof val === 'string')
-    .reply(200);
-
-  const match2 = nock('http://match-this-url.com')
-    .get('/api/v1')
-    .matchHeader('baggage', val => typeof val === 'string')
-    .matchHeader('sentry-trace', val => typeof val === 'string')
-    .reply(200);
-
-  const match3 = nock('http://dont-match-this-url.com')
-    .get('/api/v2')
-    .matchHeader('baggage', val => val === undefined)
-    .matchHeader('sentry-trace', val => val === undefined)
-    .reply(200);
-
-  const match4 = nock('http://dont-match-this-url.com')
-    .get('/api/v3')
-    .matchHeader('baggage', val => val === undefined)
-    .matchHeader('sentry-trace', val => val === undefined)
-    .reply(200);
-
-  const env = await TestEnv.init(__dirname);
-  await runScenario(env.url);
-
-  env.server.close();
-  nock.cleanAll();
-
-  await new Promise(resolve => env.server.close(resolve));
-
-  expect(match1.isDone()).toBe(true);
-  expect(match2.isDone()).toBe(true);
-  expect(match3.isDone()).toBe(true);
-  expect(match4.isDone()).toBe(true);
+  createTestServer(done)
+    .get('/api/v0', headers => {
+      expect(headers['baggage']).toEqual(expect.any(String));
+      expect(headers['sentry-trace']).toEqual(expect.stringMatching(/^([a-f0-9]{32})-([a-f0-9]{16})-1$/));
+      expect(headers['sentry-trace']).not.toEqual('00000000000000000000000000000000-0000000000000000-1');
+    })
+    .get('/api/v1', headers => {
+      expect(headers['baggage']).toEqual(expect.any(String));
+      expect(headers['sentry-trace']).toEqual(expect.stringMatching(/^([a-f0-9]{32})-([a-f0-9]{16})-1$/));
+      expect(headers['sentry-trace']).not.toEqual('00000000000000000000000000000000-0000000000000000-1');
+    })
+    .get('/api/v2', headers => {
+      expect(headers['baggage']).toBeUndefined();
+      expect(headers['sentry-trace']).toBeUndefined();
+    })
+    .get('/api/v3', headers => {
+      expect(headers['baggage']).toBeUndefined();
+      expect(headers['sentry-trace']).toBeUndefined();
+    })
+    .start()
+    .then(([SERVER_URL, closeTestServer]) => {
+      createRunner(__dirname, 'scenario.ts')
+        .withEnv({ SERVER_URL })
+        .expect({
+          transaction: {
+            // we're not too concerned with the actual transaction here since this is tested elsewhere
+          },
+        })
+        .start(closeTestServer);
+    });
 });

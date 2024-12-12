@@ -4,15 +4,14 @@
   "private": true,
   "scripts": {
     "build": "next build",
-    "clean": "npx rimraf node_modules,pnpm-lock.yaml",
+    "clean": "npx rimraf node_modules pnpm-lock.yaml .next",
     "test:prod": "TEST_ENV=prod playwright test",
     "test:dev": "TEST_ENV=dev playwright test",
-    "test:build": "pnpm install && npx playwright install && pnpm build",
-    "test:build-13": "pnpm install && pnpm add next@13.4.19 && npx playwright install && pnpm build",
+    "test:build": "pnpm install && pnpm build",
+    "test:build-13": "pnpm install && pnpm add next@13.4.19 && pnpm build",
     "test:assert": "pnpm test:prod && pnpm test:dev"
   },
   "dependencies": {
-    "@next/font": "13.0.7",
     "@sentry/nextjs": "latest || *",
     "@types/node": "18.11.17",
     "@types/react": "18.0.26",
@@ -23,9 +22,18 @@
     "typescript": "4.9.5"
   },
   "devDependencies": {
-    "@playwright/test": "^1.27.1"
+    "@playwright/test": "^1.44.1",
+    "@sentry-internal/test-utils": "link:../../../test-utils"
   },
   "volta": {
     "extends": "../../package.json"
+  },
+  "sentryTest": {
+    "variants": [
+      {
+        "build-command": "test:build-13",
+        "label": "create-next-app (next@13)"
+      }
+    ]
   }
 }

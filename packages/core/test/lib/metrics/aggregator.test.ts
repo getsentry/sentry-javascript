@@ -81,7 +81,7 @@ describe('MetricsAggregator', () => {
 
   describe('close', () => {
     test('should flush immediately', () => {
-      const capture = jest.spyOn(testClient, 'captureAggregateMetrics');
+      const capture = jest.spyOn(testClient, 'sendEnvelope');
       const aggregator = new MetricsAggregator(testClient);
       aggregator.add('c', 'requests', 1);
       aggregator.close();
@@ -89,37 +89,18 @@ describe('MetricsAggregator', () => {
       expect(clearInterval).toHaveBeenCalled();
       expect(capture).toBeCalled();
       expect(capture).toBeCalledTimes(1);
-      expect(capture).toBeCalledWith([
-        {
-          metric: { _value: 1 },
-          metricType: 'c',
-          name: 'requests',
-          tags: {},
-          timestamp: expect.any(Number),
-          unit: 'none',
-        },
-      ]);
     });
   });
 
   describe('flush', () => {
     test('should flush immediately', () => {
-      const capture = jest.spyOn(testClient, 'captureAggregateMetrics');
+      const capture = jest.spyOn(testClient, 'sendEnvelope');
       const aggregator = new MetricsAggregator(testClient);
       aggregator.add('c', 'requests', 1);
       aggregator.flush();
       expect(capture).toBeCalled();
       expect(capture).toBeCalledTimes(1);
-      expect(capture).toBeCalledWith([
-        {
-          metric: { _value: 1 },
-          metricType: 'c',
-          name: 'requests',
-          tags: {},
-          timestamp: expect.any(Number),
-          unit: 'none',
-        },
-      ]);
+
       capture.mockReset();
       aggregator.close();
       // It should clear the interval.
@@ -130,7 +111,7 @@ describe('MetricsAggregator', () => {
     });
 
     test('should not capture if empty', () => {
-      const capture = jest.spyOn(testClient, 'captureAggregateMetrics');
+      const capture = jest.spyOn(testClient, 'sendEnvelope');
       const aggregator = new MetricsAggregator(testClient);
       aggregator.add('c', 'requests', 1);
       aggregator.flush();
@@ -143,7 +124,7 @@ describe('MetricsAggregator', () => {
 
   describe('add', () => {
     test('it should respect the max weight and flush if exceeded', () => {
-      const capture = jest.spyOn(testClient, 'captureAggregateMetrics');
+      const capture = jest.spyOn(testClient, 'sendEnvelope');
       const aggregator = new MetricsAggregator(testClient);
 
       for (let i = 0; i < MAX_WEIGHT; i++) {

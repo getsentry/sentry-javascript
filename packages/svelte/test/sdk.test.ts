@@ -1,13 +1,19 @@
+/**
+ * @vitest-environment jsdom
+ */
+
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { SDK_VERSION } from '@sentry/browser';
 import * as SentryBrowser from '@sentry/browser';
-import type { EventProcessor } from '@sentry/types';
+import type { EventProcessor } from '@sentry/core';
 
 import { detectAndReportSvelteKit, init as svelteInit, isSvelteKitApp } from '../src/sdk';
 
 let passedEventProcessor: EventProcessor | undefined;
 
-const browserInit = jest.spyOn(SentryBrowser, 'init');
-const addEventProcessor = jest
+const browserInit = vi.spyOn(SentryBrowser, 'init');
+const addEventProcessor = vi
   .spyOn(SentryBrowser, 'addEventProcessor')
   .mockImplementation((eventProcessor: EventProcessor) => {
     passedEventProcessor = eventProcessor;
@@ -16,7 +22,7 @@ const addEventProcessor = jest
 
 describe('Initialize Svelte SDk', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('has the correct metadata', () => {
@@ -69,12 +75,20 @@ describe('Initialize Svelte SDk', () => {
       }),
     );
   });
+
+  it('returns client from init', () => {
+    const client = svelteInit({
+      dsn: 'https://public@dsn.ingest.sentry.io/1337',
+    });
+
+    expect(client).not.toBeUndefined();
+  });
 });
 
 describe('detectAndReportSvelteKit()', () => {
   const originalHtmlBody = document.body.innerHTML;
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     document.body.innerHTML = originalHtmlBody;
     passedEventProcessor = undefined;
   });

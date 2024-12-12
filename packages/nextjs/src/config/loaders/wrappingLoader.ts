@@ -1,12 +1,12 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import commonjs from '@rollup/plugin-commonjs';
-import { stringMatchesSomePattern } from '@sentry/utils';
+import { stringMatchesSomePattern } from '@sentry/core';
 import * as chalk from 'chalk';
 import type { RollupBuild, RollupError } from 'rollup';
 import { rollup } from 'rollup';
 
-import type { VercelCronsConfig } from '../../common/types';
+import type { ServerComponentContext, VercelCronsConfig } from '../../common/types';
 import type { LoaderThis } from './types';
 
 // Just a simple placeholder to make referencing module consistent
@@ -26,9 +26,6 @@ const middlewareWrapperTemplateCode = fs.readFileSync(middlewareWrapperTemplateP
 
 let showedMissingAsyncStorageModuleWarning = false;
 
-const sentryInitWrapperTemplatePath = path.resolve(__dirname, '..', 'templates', 'sentryInitWrapperTemplate.js');
-const sentryInitWrapperTemplateCode = fs.readFileSync(sentryInitWrapperTemplatePath, { encoding: 'utf8' });
-
 const serverComponentWrapperTemplatePath = path.resolve(
   __dirname,
   '..',
@@ -45,8 +42,7 @@ export type WrappingLoaderOptions = {
   appDir: string | undefined;
   pageExtensionRegex: string;
   excludeServerRoutes: Array<RegExp | string>;
-  wrappingTargetKind: 'page' | 'api-route' | 'middleware' | 'server-component' | 'sentry-init' | 'route-handler';
-  sentryConfigFilePath?: string;
+  wrappingTargetKind: 'page' | 'api-route' | 'middleware' | 'server-component' | 'route-handler';
   vercelCronsConfig?: VercelCronsConfig;
   nextjsRequestAsyncStorageModulePath?: string;
 };
@@ -70,7 +66,6 @@ export default function wrappingLoader(
     pageExtensionRegex,
     excludeServerRoutes = [],
     wrappingTargetKind,
-    sentryConfigFilePath,
     vercelCronsConfig,
     nextjsRequestAsyncStorageModulePath,
   } = 'getOptions' in this ? this.getOptions() : this.query;
@@ -79,28 +74,7 @@ export default function wrappingLoader(
 
   let templateCode: string;
 
-  if (wrappingTargetKind === 'sentry-init') {
-    templateCode = sentryInitWrapperTemplateCode;
-
-    // Absolute paths to the sentry config do not work with Windows: https://github.com/getsentry/sentry-javascript/issues/8133
-    // Se we need check whether `this.resourcePath` is absolute because there is no contract by webpack that says it is absolute.
-    // Examples where `this.resourcePath` could possibly be non-absolute are virtual modules.
-    if (sentryConfigFilePath && path.isAbsolute(this.resourcePath)) {
-      const sentryConfigImportPath = path
-        .relative(path.dirname(this.resourcePath), sentryConfigFilePath)
-        .replace(/\\/g, '/');
-
-      // path.relative() may return something like `sentry.server.config.js` which is not allowed. Imports from the
-      // current directory need to start with './'.This is why we prepend the path with './', which should always again
-      // be a valid relative path.
-      // https://github.com/getsentry/sentry-javascript/issues/8798
-      templateCode = templateCode.replace(/__SENTRY_CONFIG_IMPORT_PATH__/g, `./${sentryConfigImportPath}`);
-    } else {
-      // Bail without doing any wrapping
-      this.callback(null, userCode, userModuleSourceMap);
-      return;
-    }
-  } else if (wrappingTargetKind === 'page' || wrappingTargetKind === 'api-route') {
+  if (wrappingTargetKind === 'page' || wrappingTargetKind === 'api-route') {
     if (pagesDir === undefined) {
       this.callback(null, userCode, userModuleSourceMap);
       return;
@@ -108,7 +82,7 @@ export default function wrappingLoader(
 
     // Get the parameterized route name from this page's filepath
     const parameterizedPagesRoute = path
-      // Get the path of the file insde of the pages directory
+      // Get the path of the file inside of the pages directory
       .relative(pagesDir, this.resourcePath)
       // Replace all backslashes with forward slashes (windows)
       .replace(/\\/g, '/')
@@ -150,7 +124,7 @@ export default function wrappingLoader(
 
     // Get the parameterized route name from this page's filepath
     const parameterizedPagesRoute = path
-      // Get the path of the file insde of the app directory
+      // Get the path of the file inside of the app directory
       .relative(appDir, this.resourcePath)
       // Replace all backslashes with forward slashes (windows)
       .replace(/\\/g, '/')
@@ -200,7 +174,7 @@ export default function wrappingLoader(
       }
       templateCode = templateCode.replace(
         /__SENTRY_NEXTJS_REQUEST_ASYNC_STORAGE_SHIM__/g,
-        '@sentry/nextjs/esm/config/templates/requestAsyncStorageShim.js',
+        '@sentry/nextjs/async-storage-shim',
       );
     }
 
@@ -208,10 +182,13 @@ export default function wrappingLoader(
 
     const componentTypeMatch = path.posix
       .normalize(path.relative(appDir, this.resourcePath))
-      .match(/\/?([^/]+)\.(?:js|ts|jsx|tsx)$/);
+      // Replace all backslashes with forward slashes (windows)
+      .replace(/\\/g, '/')
+      // eslint-disable-next-line @sentry-internal/sdk/no-regexp-constructor
+      .match(new RegExp(`(?:^|/)?([^/]+)\\.(?:${pageExtensionRegex})$`));
 
     if (componentTypeMatch && componentTypeMatch[1]) {
-      let componentType;
+      let componentType: ServerComponentContext['componentType'];
       switch (componentTypeMatch[1]) {
         case 'page':
           componentType = 'Page';
@@ -304,7 +281,7 @@ async function wrapUserCode(
             } else if (id === WRAPPING_TARGET_MODULE_NAME) {
               return {
                 code: userModuleCode,
-                map: userModuleSourceMap, // give rollup acces to original user module source map
+                map: userModuleSourceMap, // give rollup access to original user module source map
               };
             } else {
               return null;
@@ -365,7 +342,7 @@ async function wrapUserCode(
   // This is why we want to avoid unnecessarily creating default exports, even if they're just `undefined`.
   // For this reason we try to bundle/wrap the user code once including a re-export of `default`.
   // If the user code didn't have a default export, rollup will throw.
-  // We then try bundling/wrapping agian, but without including a re-export of `default`.
+  // We then try bundling/wrapping again, but without including a re-export of `default`.
   let rollupBuild;
   try {
     rollupBuild = await wrap(true);
@@ -379,7 +356,7 @@ async function wrapUserCode(
 
   const finalBundle = await rollupBuild.generate({
     format: 'esm',
-    sourcemap: 'hidden', // put source map data in the bundle but don't generate a source map commment in the output
+    sourcemap: 'hidden', // put source map data in the bundle but don't generate a source map comment in the output
   });
 
   // The module at index 0 is always the entrypoint, which in this case is the proxy module.

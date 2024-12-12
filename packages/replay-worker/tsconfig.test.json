@@ -1,7 +1,7 @@
 {
   "extends": "./tsconfig.json",
-  "include": ["test/**/*.ts"],
+  "include": ["test/**/*.ts", "vite.config.ts"],
   "compilerOptions": {
-    "types": ["node", "jest"]
+    "types": ["node"]
   }
 }

@@ -1,4 +1,5 @@
-import type { FeedbackInternalOptions, OptionalFeedbackConfiguration } from '../types';
+import type { FeedbackFormData, FeedbackInternalOptions } from '@sentry/core';
+import type { OptionalFeedbackConfiguration } from '../core/types';
 
 /**
  * Quick and dirty deep merge for the Feedback integration options
@@ -10,6 +11,30 @@ export function mergeOptions(
   return {
     ...defaultOptions,
     ...optionOverrides,
+    tags: {
+      ...defaultOptions.tags,
+      ...optionOverrides.tags,
+    },
+    onFormOpen: () => {
+      optionOverrides.onFormOpen && optionOverrides.onFormOpen();
+      defaultOptions.onFormOpen && defaultOptions.onFormOpen();
+    },
+    onFormClose: () => {
+      optionOverrides.onFormClose && optionOverrides.onFormClose();
+      defaultOptions.onFormClose && defaultOptions.onFormClose();
+    },
+    onSubmitSuccess: (data: FeedbackFormData) => {
+      optionOverrides.onSubmitSuccess && optionOverrides.onSubmitSuccess(data);
+      defaultOptions.onSubmitSuccess && defaultOptions.onSubmitSuccess(data);
+    },
+    onSubmitError: (error: Error) => {
+      optionOverrides.onSubmitError && optionOverrides.onSubmitError(error);
+      defaultOptions.onSubmitError && defaultOptions.onSubmitError(error);
+    },
+    onFormSubmitted: () => {
+      optionOverrides.onFormSubmitted && optionOverrides.onFormSubmitted();
+      defaultOptions.onFormSubmitted && defaultOptions.onFormSubmitted();
+    },
     themeDark: {
       ...defaultOptions.themeDark,
       ...optionOverrides.themeDark,

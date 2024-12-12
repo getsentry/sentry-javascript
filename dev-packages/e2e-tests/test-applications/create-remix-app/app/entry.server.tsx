@@ -5,21 +5,15 @@
  */
 
 import { PassThrough } from 'node:stream';
+import * as Sentry from '@sentry/remix';
 
 import type { AppLoadContext, EntryContext } from '@remix-run/node';
 import { Response } from '@remix-run/node';
 import { RemixServer } from '@remix-run/react';
-import * as Sentry from '@sentry/remix';
 import isbot from 'isbot';
 import { renderToPipeableStream } from 'react-dom/server';
 
 const ABORT_DELAY = 5_000;
-
-Sentry.init({
-  dsn: process.env.E2E_TEST_DSN,
-  // Performance Monitoring
-  tracesSampleRate: 1.0, // Capture 100% of the transactions, reduce in production!
-});
 
 export const handleError = Sentry.wrapRemixHandleError;
 

@@ -1,35 +1,29 @@
 import type {
-  Breadcrumb,
-  BreadcrumbHint,
   CaptureContext,
   CheckIn,
-  Client,
-  CustomSamplingContext,
   Event,
   EventHint,
+  EventProcessor,
   Extra,
   Extras,
   FinishedCheckIn,
   MonitorConfig,
   Primitive,
-  Scope as ScopeInterface,
   Session,
   SessionContext,
-  Severity,
   SeverityLevel,
-  Span,
-  TransactionContext,
   User,
-} from '@sentry/types';
-import { GLOBAL_OBJ, isThenable, logger, timestampInSeconds, uuid4 } from '@sentry/utils';
+} from './types-hoist';
 
 import { DEFAULT_ENVIRONMENT } from './constants';
+import { getClient, getCurrentScope, getIsolationScope, withIsolationScope } from './currentScopes';
 import { DEBUG_BUILD } from './debug-build';
-import type { Hub } from './hub';
-import { runWithAsyncContext } from './hub';
-import { getCurrentHub, getIsolationScope } from './hub';
-import type { Scope } from './scope';
 import { closeSession, makeSession, updateSession } from './session';
+import { isThenable } from './utils-hoist/is';
+import { logger } from './utils-hoist/logger';
+import { uuid4 } from './utils-hoist/misc';
+import { timestampInSeconds } from './utils-hoist/time';
+import { GLOBAL_OBJ } from './utils-hoist/worldwide';
 import type { ExclusiveEventHintOrCaptureContext } from './utils/prepareEvent';
 import { parseEventHintOrCaptureContext } from './utils/prepareEvent';
 
@@ -40,69 +34,34 @@ import { parseEventHintOrCaptureContext } from './utils/prepareEvent';
  * @param hint Optional additional data to attach to the Sentry event.
  * @returns the id of the captured Sentry event.
  */
-export function captureException(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  exception: any,
-  hint?: ExclusiveEventHintOrCaptureContext,
-): string {
-  // eslint-disable-next-line deprecation/deprecation
-  return getCurrentHub().captureException(exception, parseEventHintOrCaptureContext(hint));
+export function captureException(exception: unknown, hint?: ExclusiveEventHintOrCaptureContext): string {
+  return getCurrentScope().captureException(exception, parseEventHintOrCaptureContext(hint));
 }
 
 /**
  * Captures a message event and sends it to Sentry.
  *
- * @param exception The exception to capture.
+ * @param message The message to send to Sentry.
  * @param captureContext Define the level of the message or pass in additional data to attach to the message.
  * @returns the id of the captured message.
  */
-export function captureMessage(
-  message: string,
-  // eslint-disable-next-line deprecation/deprecation
-  captureContext?: CaptureContext | Severity | SeverityLevel,
-): string {
+export function captureMessage(message: string, captureContext?: CaptureContext | SeverityLevel): string {
   // This is necessary to provide explicit scopes upgrade, without changing the original
   // arity of the `captureMessage(message, level)` method.
   const level = typeof captureContext === 'string' ? captureContext : undefined;
   const context = typeof captureContext !== 'string' ? { captureContext } : undefined;
-  // eslint-disable-next-line deprecation/deprecation
-  return getCurrentHub().captureMessage(message, level, context);
+  return getCurrentScope().captureMessage(message, level, context);
 }
 
 /**
  * Captures a manually created event and sends it to Sentry.
  *
- * @param exception The event to send to Sentry.
+ * @param event The event to send to Sentry.
  * @param hint Optional additional data to attach to the Sentry event.
  * @returns the id of the captured event.
  */
 export function captureEvent(event: Event, hint?: EventHint): string {
-  // eslint-disable-next-line deprecation/deprecation
-  return getCurrentHub().captureEvent(event, hint);
-}
-
-/**
- * Callback to set context information onto the scope.
- * @param callback Callback function that receives Scope.
- *
- * @deprecated Use getCurrentScope() directly.
- */
-export function configureScope(callback: (scope: Scope) => void): ReturnType<Hub['configureScope']> {
-  // eslint-disable-next-line deprecation/deprecation
-  getCurrentHub().configureScope(callback);
-}
-
-/**
- * Records a new breadcrumb which will be attached to future events.
- *
- * Breadcrumbs will be added to subsequent events to provide more context on
- * user's actions prior to an error or crash.
- *
- * @param breadcrumb The breadcrumb to record.
- */
-export function addBreadcrumb(breadcrumb: Breadcrumb, hint?: BreadcrumbHint): ReturnType<Hub['addBreadcrumb']> {
-  // eslint-disable-next-line deprecation/deprecation
-  getCurrentHub().addBreadcrumb(breadcrumb, hint);
+  return getCurrentScope().captureEvent(event, hint);
 }
 
 /**
@@ -110,19 +69,16 @@ export function addBreadcrumb(breadcrumb: Breadcrumb, hint?: BreadcrumbHint): Re
  * @param name of the context
  * @param context Any kind of data. This data will be normalized.
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function setContext(name: string, context: { [key: string]: any } | null): ReturnType<Hub['setContext']> {
-  // eslint-disable-next-line deprecation/deprecation
-  getCurrentHub().setContext(name, context);
+export function setContext(name: string, context: { [key: string]: unknown } | null): void {
+  getIsolationScope().setContext(name, context);
 }
 
 /**
  * Set an object that will be merged sent as extra data with the event.
  * @param extras Extras object to merge into current context.
  */
-export function setExtras(extras: Extras): ReturnType<Hub['setExtras']> {
-  // eslint-disable-next-line deprecation/deprecation
-  getCurrentHub().setExtras(extras);
+export function setExtras(extras: Extras): void {
+  getIsolationScope().setExtras(extras);
 }
 
 /**
@@ -130,18 +86,16 @@ export function setExtras(extras: Extras): ReturnType<Hub['setExtras']> {
  * @param key String of extra
  * @param extra Any kind of data. This data will be normalized.
  */
-export function setExtra(key: string, extra: Extra): ReturnType<Hub['setExtra']> {
-  // eslint-disable-next-line deprecation/deprecation
-  getCurrentHub().setExtra(key, extra);
+export function setExtra(key: string, extra: Extra): void {
+  getIsolationScope().setExtra(key, extra);
 }
 
 /**
  * Set an object that will be merged sent as tags data with the event.
  * @param tags Tags context object to merge into current context.
  */
-export function setTags(tags: { [key: string]: Primitive }): ReturnType<Hub['setTags']> {
-  // eslint-disable-next-line deprecation/deprecation
-  getCurrentHub().setTags(tags);
+export function setTags(tags: { [key: string]: Primitive }): void {
+  getIsolationScope().setTags(tags);
 }
 
 /**
@@ -152,9 +106,8 @@ export function setTags(tags: { [key: string]: Primitive }): ReturnType<Hub['set
  * @param key String key of tag
  * @param value Value of tag
  */
-export function setTag(key: string, value: Primitive): ReturnType<Hub['setTag']> {
-  // eslint-disable-next-line deprecation/deprecation
-  getCurrentHub().setTag(key, value);
+export function setTag(key: string, value: Primitive): void {
+  getIsolationScope().setTag(key, value);
 }
 
 /**
@@ -162,117 +115,23 @@ export function setTag(key: string, value: Primitive): ReturnType<Hub['setTag']>
  *
  * @param user User context object to be set in the current context. Pass `null` to unset the user.
  */
-export function setUser(user: User | null): ReturnType<Hub['setUser']> {
-  // eslint-disable-next-line deprecation/deprecation
-  getCurrentHub().setUser(user);
+export function setUser(user: User | null): void {
+  getIsolationScope().setUser(user);
 }
 
 /**
- * Creates a new scope with and executes the given operation within.
- * The scope is automatically removed once the operation
- * finishes or throws.
+ * The last error event id of the isolation scope.
  *
- * This is essentially a convenience function for:
+ * Warning: This function really returns the last recorded error event id on the current
+ * isolation scope. If you call this function after handling a certain error and another error
+ * is captured in between, the last one is returned instead of the one you might expect.
+ * Also, ids of events that were never sent to Sentry (for example because
+ * they were dropped in `beforeSend`) could be returned.
  *
- *     pushScope();
- *     callback();
- *     popScope();
+ * @returns The last event id of the isolation scope.
  */
-export function withScope<T>(callback: (scope: Scope) => T): T;
-/**
- * Set the given scope as the active scope in the callback.
- */
-export function withScope<T>(scope: ScopeInterface | undefined, callback: (scope: Scope) => T): T;
-/**
- * Either creates a new active scope, or sets the given scope as active scope in the given callback.
- */
-export function withScope<T>(
-  ...rest: [callback: (scope: Scope) => T] | [scope: ScopeInterface | undefined, callback: (scope: Scope) => T]
-): T {
-  // If a scope is defined, we want to make this the active scope instead of the default one
-  if (rest.length === 2) {
-    const [scope, callback] = rest;
-    if (!scope) {
-      // eslint-disable-next-line deprecation/deprecation
-      return getCurrentHub().withScope(callback);
-    }
-
-    const hub = getCurrentHub();
-    // eslint-disable-next-line deprecation/deprecation
-    return hub.withScope(() => {
-      // eslint-disable-next-line deprecation/deprecation
-      hub.getStackTop().scope = scope as Scope;
-      return callback(scope as Scope);
-    });
-  }
-
-  // eslint-disable-next-line deprecation/deprecation
-  return getCurrentHub().withScope(rest[0]);
-}
-
-/**
- * Attempts to fork the current isolation scope and the current scope based on the current async context strategy. If no
- * async context strategy is set, the isolation scope and the current scope will not be forked (this is currently the
- * case, for example, in the browser).
- *
- * Usage of this function in environments without async context strategy is discouraged and may lead to unexpected behaviour.
- *
- * This function is intended for Sentry SDK and SDK integration development. It is not recommended to be used in "normal"
- * applications directly because it comes with pitfalls. Use at your own risk!
- *
- * @param callback The callback in which the passed isolation scope is active. (Note: In environments without async
- * context strategy, the currently active isolation scope may change within execution of the callback.)
- * @returns The same value that `callback` returns.
- */
-export function withIsolationScope<T>(callback: (isolationScope: Scope) => T): T {
-  return runWithAsyncContext(() => {
-    return callback(getIsolationScope());
-  });
-}
-
-/**
- * Forks the current scope and sets the provided span as active span in the context of the provided callback.
- *
- * @param span Spans started in the context of the provided callback will be children of this span.
- * @param callback Execution context in which the provided span will be active. Is passed the newly forked scope.
- * @returns the value returned from the provided callback function.
- */
-export function withActiveSpan<T>(span: Span, callback: (scope: Scope) => T): T {
-  return withScope(scope => {
-    // eslint-disable-next-line deprecation/deprecation
-    scope.setSpan(span);
-    return callback(scope);
-  });
-}
-
-/**
- * Starts a new `Transaction` and returns it. This is the entry point to manual tracing instrumentation.
- *
- * A tree structure can be built by adding child spans to the transaction, and child spans to other spans. To start a
- * new child span within the transaction or any span, call the respective `.startChild()` method.
- *
- * Every child span must be finished before the transaction is finished, otherwise the unfinished spans are discarded.
- *
- * The transaction must be finished with a call to its `.end()` method, at which point the transaction with all its
- * finished child spans will be sent to Sentry.
- *
- * NOTE: This function should only be used for *manual* instrumentation. Auto-instrumentation should call
- * `startTransaction` directly on the hub.
- *
- * @param context Properties of the new `Transaction`.
- * @param customSamplingContext Information given to the transaction sampling function (along with context-dependent
- * default values). See {@link Options.tracesSampler}.
- *
- * @returns The transaction which was just started
- *
- * @deprecated Use `startSpan()`, `startSpanManual()` or `startInactiveSpan()` instead.
- */
-export function startTransaction(
-  context: TransactionContext,
-  customSamplingContext?: CustomSamplingContext,
-): ReturnType<Hub['startTransaction']> {
-  // eslint-disable-next-line deprecation/deprecation
-  return getCurrentHub().startTransaction({ ...context }, customSamplingContext);
+export function lastEventId(): string | undefined {
+  return getIsolationScope().lastEventId();
 }
 
 /**
@@ -315,28 +174,31 @@ export function withMonitor<T>(
     captureCheckIn({ monitorSlug, status, checkInId, duration: timestampInSeconds() - now });
   }
 
-  let maybePromiseResult: T;
-  try {
-    maybePromiseResult = callback();
-  } catch (e) {
-    finishCheckIn('error');
-    throw e;
-  }
+  return withIsolationScope(() => {
+    let maybePromiseResult: T;
+    try {
+      maybePromiseResult = callback();
+    } catch (e) {
+      finishCheckIn('error');
+      throw e;
+    }
 
-  if (isThenable(maybePromiseResult)) {
-    Promise.resolve(maybePromiseResult).then(
-      () => {
-        finishCheckIn('ok');
-      },
-      () => {
-        finishCheckIn('error');
-      },
-    );
-  } else {
-    finishCheckIn('ok');
-  }
+    if (isThenable(maybePromiseResult)) {
+      Promise.resolve(maybePromiseResult).then(
+        () => {
+          finishCheckIn('ok');
+        },
+        e => {
+          finishCheckIn('error');
+          throw e;
+        },
+      );
+    } else {
+      finishCheckIn('ok');
+    }
 
-  return maybePromiseResult;
+    return maybePromiseResult;
+  });
 }
 
 /**
@@ -374,30 +236,25 @@ export async function close(timeout?: number): Promise<boolean> {
 }
 
 /**
- * This is the getter for lastEventId.
- *
- * @returns The last event id of a captured event.
- * @deprecated This function will be removed in the next major version of the Sentry SDK.
+ * Returns true if Sentry has been properly initialized.
  */
-export function lastEventId(): string | undefined {
-  // eslint-disable-next-line deprecation/deprecation
-  return getCurrentHub().lastEventId();
+export function isInitialized(): boolean {
+  return !!getClient();
+}
+
+/** If the SDK is initialized & enabled. */
+export function isEnabled(): boolean {
+  const client = getClient();
+  return !!client && client.getOptions().enabled !== false && !!client.getTransport();
 }
 
 /**
- * Get the currently active client.
+ * Add an event processor.
+ * This will be added to the current isolation scope, ensuring any event that is processed in the current execution
+ * context will have the processor applied.
  */
-export function getClient<C extends Client>(): C | undefined {
-  // eslint-disable-next-line deprecation/deprecation
-  return getCurrentHub().getClient<C>();
-}
-
-/**
- * Get the currently active scope.
- */
-export function getCurrentScope(): Scope {
-  // eslint-disable-next-line deprecation/deprecation
-  return getCurrentHub().getScope();
+export function addEventProcessor(callback: EventProcessor): void {
+  getIsolationScope().addEventProcessor(callback);
 }
 
 /**
@@ -474,7 +331,7 @@ function _sendSessionUpdate(): void {
   // TODO (v8): Remove currentScope and only use the isolation scope(?).
   // For v7 though, we can't "soft-break" people using getCurrentHub().getScope().setSession()
   const session = currentScope.getSession() || isolationScope.getSession();
-  if (session && client && client.captureSession) {
+  if (session && client) {
     client.captureSession(session);
   }
 }

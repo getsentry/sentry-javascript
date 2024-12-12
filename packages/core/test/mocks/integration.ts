@@ -1,4 +1,4 @@
-import type { Event, EventProcessor, Integration } from '@sentry/types';
+import type { Client, Event, EventProcessor, Integration } from '../../src/types-hoist';
 
 import { getClient, getCurrentScope } from '../../src';
 
@@ -9,7 +9,7 @@ export class TestIntegration implements Integration {
 
   public setupOnce(): void {
     const eventProcessor: EventProcessor = (event: Event) => {
-      if (!getClient()?.getIntegrationByName?.('TestIntegration')) {
+      if (!getClient()?.getIntegrationByName('TestIntegration')) {
         return event;
       }
 
@@ -27,8 +27,8 @@ export class AddAttachmentTestIntegration implements Integration {
 
   public name: string = 'AddAttachmentTestIntegration';
 
-  public setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void): void {
-    addGlobalEventProcessor((event, hint) => {
+  public setup(client: Client): void {
+    client.addEventProcessor((event, hint) => {
       hint.attachments = [...(hint.attachments || []), { filename: 'integration.file', data: 'great content!' }];
       return event;
     });

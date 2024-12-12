@@ -4,7 +4,7 @@ import { sentryTest } from '../../../utils/fixtures';
 
 sentryTest(
   'exports a shim Replay integration for non-replay bundles',
-  async ({ getLocalTestPath, page, forceFlushReplay }) => {
+  async ({ getLocalTestUrl, page, forceFlushReplay }) => {
     const bundle = process.env.PW_BUNDLE;
 
     if (!bundle || !bundle.startsWith('bundle_') || bundle.includes('replay')) {
@@ -24,12 +24,14 @@ sentryTest(
       });
     });
 
-    const url = await getLocalTestPath({ testDir: __dirname });
+    const url = await getLocalTestUrl({ testDir: __dirname, skipDsnRouteHandler: true });
 
     await page.goto(url);
     await forceFlushReplay();
 
     expect(requestCount).toBe(0);
-    expect(consoleMessages).toEqual(['You are using new Replay() even though this bundle does not include replay.']);
+    expect(consoleMessages).toEqual([
+      'You are using replayIntegration() even though this bundle does not include replay.',
+    ]);
   },
 );

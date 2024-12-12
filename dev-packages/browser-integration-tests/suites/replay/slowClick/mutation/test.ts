@@ -8,59 +8,53 @@ sentryTest('mutation after threshold results in slow click', async ({ forceFlush
     sentryTest.skip();
   }
 
-  await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-    return route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ id: 'test-id' }),
-    });
-  });
-
   const url = await getLocalTestUrl({ testDir: __dirname });
 
-  await Promise.all([waitForReplayRequest(page, 0), page.goto(url)]);
+  const replayRequestPromise = waitForReplayRequest(page, 0);
+
+  const segmentReqWithSlowClickBreadcrumbPromise = waitForReplayRequest(page, (event, res) => {
+    const { breadcrumbs } = getCustomRecordingEvents(res);
+
+    return breadcrumbs.some(breadcrumb => breadcrumb.category === 'ui.slowClickDetected');
+  });
+
+  await page.goto(url);
+  await replayRequestPromise;
+
   await forceFlushReplay();
 
-  const [req1] = await Promise.all([
-    waitForReplayRequest(page, (event, res) => {
-      const { breadcrumbs } = getCustomRecordingEvents(res);
+  await page.locator('#mutationButton').click();
 
-      return breadcrumbs.some(breadcrumb => breadcrumb.category === 'ui.slowClickDetected');
-    }),
+  const segmentReqWithSlowClick = await segmentReqWithSlowClickBreadcrumbPromise;
 
-    page.click('#mutationButton'),
-  ]);
-
-  const { breadcrumbs } = getCustomRecordingEvents(req1);
+  const { breadcrumbs } = getCustomRecordingEvents(segmentReqWithSlowClick);
 
   const slowClickBreadcrumbs = breadcrumbs.filter(breadcrumb => breadcrumb.category === 'ui.slowClickDetected');
 
-  expect(slowClickBreadcrumbs).toEqual([
-    {
-      category: 'ui.slowClickDetected',
-      type: 'default',
-      data: {
-        endReason: 'mutation',
-        clickCount: 1,
-        node: {
-          attributes: {
-            id: 'mutationButton',
-          },
-          id: expect.any(Number),
-          tagName: 'button',
-          textContent: '******* ********',
+  expect(slowClickBreadcrumbs).toContainEqual({
+    category: 'ui.slowClickDetected',
+    type: 'default',
+    data: {
+      endReason: 'mutation',
+      clickCount: 1,
+      node: {
+        attributes: {
+          id: 'mutationButton',
         },
-        nodeId: expect.any(Number),
-        timeAfterClickMs: expect.any(Number),
-        url: 'http://sentry-test.io/index.html',
+        id: expect.any(Number),
+        tagName: 'button',
+        textContent: '******* ********',
       },
-      message: 'body > button#mutationButton',
-      timestamp: expect.any(Number),
+      nodeId: expect.any(Number),
+      timeAfterClickMs: expect.any(Number),
+      url: 'http://sentry-test.io/index.html',
     },
-  ]);
+    message: 'body > button#mutationButton',
+    timestamp: expect.any(Number),
+  });
 
   expect(slowClickBreadcrumbs[0]?.data?.timeAfterClickMs).toBeGreaterThan(3000);
-  expect(slowClickBreadcrumbs[0]?.data?.timeAfterClickMs).toBeLessThan(3500);
+  expect(slowClickBreadcrumbs[0]?.data?.timeAfterClickMs).toBeLessThan(3501);
 });
 
 sentryTest('multiple clicks are counted', async ({ getLocalTestUrl, page }) => {
@@ -68,59 +62,52 @@ sentryTest('multiple clicks are counted', async ({ getLocalTestUrl, page }) => {
     sentryTest.skip();
   }
 
-  await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-    return route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ id: 'test-id' }),
-    });
-  });
-
   const url = await getLocalTestUrl({ testDir: __dirname });
 
-  await Promise.all([waitForReplayRequest(page, 0), page.goto(url)]);
+  const replayRequestPromise = waitForReplayRequest(page, 0);
+  const segmentReqWithSlowClickBreadcrumbPromise = waitForReplayRequest(page, (event, res) => {
+    const { breadcrumbs } = getCustomRecordingEvents(res);
 
-  const [req1] = await Promise.all([
-    waitForReplayRequest(page, (event, res) => {
-      const { breadcrumbs } = getCustomRecordingEvents(res);
+    return breadcrumbs.some(breadcrumb => breadcrumb.category === 'ui.slowClickDetected');
+  });
 
-      return breadcrumbs.some(breadcrumb => breadcrumb.category === 'ui.slowClickDetected');
-    }),
-    page.click('#mutationButton', { clickCount: 4 }),
-  ]);
+  await page.goto(url);
+  await replayRequestPromise;
 
-  const { breadcrumbs } = getCustomRecordingEvents(req1);
+  await page.locator('#mutationButton').click({ clickCount: 4 });
+
+  const segmentReqWithSlowClick = await segmentReqWithSlowClickBreadcrumbPromise;
+
+  const { breadcrumbs } = getCustomRecordingEvents(segmentReqWithSlowClick);
 
   const slowClickBreadcrumbs = breadcrumbs.filter(breadcrumb => breadcrumb.category === 'ui.slowClickDetected');
   const multiClickBreadcrumbs = breadcrumbs.filter(breadcrumb => breadcrumb.category === 'ui.multiClick');
 
-  expect(slowClickBreadcrumbs).toEqual([
-    {
-      category: 'ui.slowClickDetected',
-      type: 'default',
-      data: {
-        endReason: 'mutation',
-        clickCount: 4,
-        node: {
-          attributes: {
-            id: 'mutationButton',
-          },
-          id: expect.any(Number),
-          tagName: 'button',
-          textContent: '******* ********',
+  expect(slowClickBreadcrumbs).toContainEqual({
+    category: 'ui.slowClickDetected',
+    type: 'default',
+    data: {
+      endReason: expect.stringMatching(/^(mutation|timeout)$/),
+      clickCount: 4,
+      node: {
+        attributes: {
+          id: 'mutationButton',
         },
-        nodeId: expect.any(Number),
-        timeAfterClickMs: expect.any(Number),
-        url: 'http://sentry-test.io/index.html',
+        id: expect.any(Number),
+        tagName: 'button',
+        textContent: '******* ********',
       },
-      message: 'body > button#mutationButton',
-      timestamp: expect.any(Number),
+      nodeId: expect.any(Number),
+      timeAfterClickMs: expect.any(Number),
+      url: 'http://sentry-test.io/index.html',
     },
-  ]);
+    message: 'body > button#mutationButton',
+    timestamp: expect.any(Number),
+  });
   expect(multiClickBreadcrumbs.length).toEqual(0);
 
   expect(slowClickBreadcrumbs[0]?.data?.timeAfterClickMs).toBeGreaterThan(3000);
-  expect(slowClickBreadcrumbs[0]?.data?.timeAfterClickMs).toBeLessThan(3500);
+  expect(slowClickBreadcrumbs[0]?.data?.timeAfterClickMs).toBeLessThan(3501);
 });
 
 sentryTest('immediate mutation does not trigger slow click', async ({ forceFlushReplay, getLocalTestUrl, page }) => {
@@ -128,17 +115,17 @@ sentryTest('immediate mutation does not trigger slow click', async ({ forceFlush
     sentryTest.skip();
   }
 
-  await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-    return route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ id: 'test-id' }),
-    });
-  });
-
   const url = await getLocalTestUrl({ testDir: __dirname });
 
-  await Promise.all([waitForReplayRequest(page, 0), page.goto(url)]);
+  const replayRequestPromise = waitForReplayRequest(page, 0);
+  const segmentReqWithClickBreadcrumbPromise = waitForReplayRequest(page, (_event, res) => {
+    const { breadcrumbs } = getCustomRecordingEvents(res);
+
+    return breadcrumbs.some(breadcrumb => breadcrumb.category === 'ui.click');
+  });
+
+  await page.goto(url);
+  await replayRequestPromise;
   await forceFlushReplay();
 
   let slowClickCount = 0;
@@ -150,36 +137,29 @@ sentryTest('immediate mutation does not trigger slow click', async ({ forceFlush
     slowClickCount += slowClicks.length;
   });
 
-  const [req1] = await Promise.all([
-    waitForReplayRequest(page, (_event, res) => {
-      const { breadcrumbs } = getCustomRecordingEvents(res);
+  await page.locator('#mutationButtonImmediately').click();
 
-      return breadcrumbs.some(breadcrumb => breadcrumb.category === 'ui.click');
-    }),
-    page.click('#mutationButtonImmediately'),
-  ]);
+  const segmentReqWithSlowClick = await segmentReqWithClickBreadcrumbPromise;
 
-  const { breadcrumbs } = getCustomRecordingEvents(req1);
+  const { breadcrumbs } = getCustomRecordingEvents(segmentReqWithSlowClick);
 
-  expect(breadcrumbs).toEqual([
-    {
-      category: 'ui.click',
-      data: {
-        node: {
-          attributes: {
-            id: 'mutationButtonImmediately',
-          },
-          id: expect.any(Number),
-          tagName: 'button',
-          textContent: '******* ******** ***********',
+  expect(breadcrumbs).toContainEqual({
+    category: 'ui.click',
+    data: {
+      node: {
+        attributes: {
+          id: 'mutationButtonImmediately',
         },
-        nodeId: expect.any(Number),
+        id: expect.any(Number),
+        tagName: 'button',
+        textContent: '******* ******** ***********',
       },
-      message: 'body > button#mutationButtonImmediately',
-      timestamp: expect.any(Number),
-      type: 'default',
+      nodeId: expect.any(Number),
     },
-  ]);
+    message: 'body > button#mutationButtonImmediately',
+    timestamp: expect.any(Number),
+    type: 'default',
+  });
 
   // Ensure we wait for timeout, to make sure no slow click is created
   // Waiting for 3500 + 1s rounding room
@@ -194,49 +174,43 @@ sentryTest('inline click handler does not trigger slow click', async ({ forceFlu
     sentryTest.skip();
   }
 
-  await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-    return route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ id: 'test-id' }),
-    });
-  });
-
   const url = await getLocalTestUrl({ testDir: __dirname });
 
-  await Promise.all([waitForReplayRequest(page, 0), page.goto(url)]);
+  const replayRequestPromise = waitForReplayRequest(page, 0);
+  const segmentReqWithClickBreadcrumbPromise = waitForReplayRequest(page, (event, res) => {
+    const { breadcrumbs } = getCustomRecordingEvents(res);
+
+    return breadcrumbs.some(breadcrumb => breadcrumb.category === 'ui.click');
+  });
+
+  await page.goto(url);
+  await replayRequestPromise;
+
   await forceFlushReplay();
 
-  const [req1] = await Promise.all([
-    waitForReplayRequest(page, (event, res) => {
-      const { breadcrumbs } = getCustomRecordingEvents(res);
+  await page.locator('#mutationButtonInline').click();
 
-      return breadcrumbs.some(breadcrumb => breadcrumb.category === 'ui.click');
-    }),
-    page.click('#mutationButtonInline'),
-  ]);
+  const segmentReqWithClick = await segmentReqWithClickBreadcrumbPromise;
 
-  const { breadcrumbs } = getCustomRecordingEvents(req1);
+  const { breadcrumbs } = getCustomRecordingEvents(segmentReqWithClick);
 
-  expect(breadcrumbs).toEqual([
-    {
-      category: 'ui.click',
-      data: {
-        node: {
-          attributes: {
-            id: 'mutationButtonInline',
-          },
-          id: expect.any(Number),
-          tagName: 'button',
-          textContent: '******* ******** ***********',
+  expect(breadcrumbs).toContainEqual({
+    category: 'ui.click',
+    data: {
+      node: {
+        attributes: {
+          id: 'mutationButtonInline',
         },
-        nodeId: expect.any(Number),
+        id: expect.any(Number),
+        tagName: 'button',
+        textContent: '******* ******** ***********',
       },
-      message: 'body > button#mutationButtonInline',
-      timestamp: expect.any(Number),
-      type: 'default',
+      nodeId: expect.any(Number),
     },
-  ]);
+    message: 'body > button#mutationButtonInline',
+    timestamp: expect.any(Number),
+    type: 'default',
+  });
 });
 
 sentryTest('mouseDown events are considered', async ({ getLocalTestUrl, page }) => {
@@ -244,46 +218,38 @@ sentryTest('mouseDown events are considered', async ({ getLocalTestUrl, page }) 
     sentryTest.skip();
   }
 
-  await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-    return route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ id: 'test-id' }),
-    });
-  });
-
   const url = await getLocalTestUrl({ testDir: __dirname });
 
-  await Promise.all([waitForReplayRequest(page, 0), page.goto(url)]);
+  const replayRequestPromise = waitForReplayRequest(page, 0);
+  const segmentReqWithClickBreadcrumbPromise = waitForReplayRequest(page, (event, res) => {
+    const { breadcrumbs } = getCustomRecordingEvents(res);
 
-  const [req1] = await Promise.all([
-    waitForReplayRequest(page, (event, res) => {
-      const { breadcrumbs } = getCustomRecordingEvents(res);
+    return breadcrumbs.some(breadcrumb => breadcrumb.category === 'ui.click');
+  });
 
-      return breadcrumbs.some(breadcrumb => breadcrumb.category === 'ui.click');
-    }),
-    page.click('#mouseDownButton'),
-  ]);
+  await page.goto(url);
+  await replayRequestPromise;
 
-  const { breadcrumbs } = getCustomRecordingEvents(req1);
+  await page.locator('#mouseDownButton').click();
+  const segmentReqWithClick = await segmentReqWithClickBreadcrumbPromise;
 
-  expect(breadcrumbs).toEqual([
-    {
-      category: 'ui.click',
-      data: {
-        node: {
-          attributes: {
-            id: 'mouseDownButton',
-          },
-          id: expect.any(Number),
-          tagName: 'button',
-          textContent: '******* ******** ** ***** ****',
+  const { breadcrumbs } = getCustomRecordingEvents(segmentReqWithClick);
+
+  expect(breadcrumbs).toContainEqual({
+    category: 'ui.click',
+    data: {
+      node: {
+        attributes: {
+          id: 'mouseDownButton',
         },
-        nodeId: expect.any(Number),
+        id: expect.any(Number),
+        tagName: 'button',
+        textContent: '******* ******** ** ***** ****',
       },
-      message: 'body > button#mouseDownButton',
-      timestamp: expect.any(Number),
-      type: 'default',
+      nodeId: expect.any(Number),
     },
-  ]);
+    message: 'body > button#mouseDownButton',
+    timestamp: expect.any(Number),
+    type: 'default',
+  });
 });

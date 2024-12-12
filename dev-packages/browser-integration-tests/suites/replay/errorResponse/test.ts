@@ -8,7 +8,7 @@ import {
   waitForReplayRequest,
 } from '../../../utils/replayHelpers';
 
-sentryTest('should stop recording after receiving an error response', async ({ getLocalTestPath, page }) => {
+sentryTest('should stop recording after receiving an error response', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipReplayTest()) {
     sentryTest.skip();
   }
@@ -22,11 +22,10 @@ sentryTest('should stop recording after receiving an error response', async ({ g
     });
   });
 
-  const url = await getLocalTestPath({ testDir: __dirname });
-  await page.goto(url);
+  const url = await getLocalTestUrl({ testDir: __dirname, skipDsnRouteHandler: true });
+  await Promise.all([page.goto(url), waitForReplayRequest(page)]);
 
-  await waitForReplayRequest(page);
-  await page.click('button');
+  await page.locator('button').click();
 
   expect(called).toBe(1);
 

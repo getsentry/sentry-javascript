@@ -1,23 +1,33 @@
 {
   "name": "@sentry/browser",
-  "version": "7.93.0",
+  "version": "8.43.0",
   "description": "Official Sentry SDK for browsers",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/browser",
   "author": "Sentry",
   "license": "MIT",
   "engines": {
-    "node": ">=8"
+    "node": ">=14.18"
   },
   "files": [
-    "cjs",
-    "esm",
-    "types",
-    "types-ts3.8"
+    "/build/npm"
   ],
   "main": "build/npm/cjs/index.js",
   "module": "build/npm/esm/index.js",
   "types": "build/npm/types/index.d.ts",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "import": {
+        "types": "./build/npm/types/index.d.ts",
+        "default": "./build/npm/esm/index.js"
+      },
+      "require": {
+        "types": "./build/npm/types/index.d.ts",
+        "default": "./build/npm/cjs/index.js"
+      }
+    }
+  },
   "typesVersions": {
     "<4.9": {
       "build/npm/types/index.d.ts": [
@@ -29,43 +39,20 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry-internal/feedback": "7.93.0",
-    "@sentry-internal/tracing": "7.93.0",
-    "@sentry/core": "7.93.0",
-    "@sentry/replay": "7.93.0",
-    "@sentry/types": "7.93.0",
-    "@sentry/utils": "7.93.0"
+    "@sentry-internal/browser-utils": "8.43.0",
+    "@sentry-internal/feedback": "8.43.0",
+    "@sentry-internal/replay": "8.43.0",
+    "@sentry-internal/replay-canvas": "8.43.0",
+    "@sentry/core": "8.43.0"
   },
   "devDependencies": {
-    "@sentry-internal/integration-shims": "7.93.0",
-    "@types/md5": "2.1.33",
-    "btoa": "^1.2.1",
-    "chai": "^4.1.2",
-    "chokidar": "^3.0.2",
-    "fake-indexeddb": "^4.0.1",
-    "mocha": "^6.1.4",
-    "karma": "^6.3.16",
-    "karma-chai": "^0.1.0",
-    "karma-chrome-launcher": "^2.2.0",
-    "karma-firefox-launcher": "^2.1.2",
-    "karma-mocha": "^1.3.0",
-    "karma-mocha-reporter": "^2.2.5",
-    "karma-rollup-preprocessor": "^7.0.0",
-    "karma-sinon": "^1.0.5",
-    "karma-typescript": "^4.0.0",
-    "karma-typescript-es6-transform": "^4.0.0",
-    "karma-webkit-launcher": "^1.0.2",
-    "node-fetch": "^2.6.0",
-    "playwright": "^1.31.1",
-    "sinon": "^7.3.2",
-    "webpack": "^4.47.0"
+    "@sentry-internal/integration-shims": "8.43.0",
+    "fake-indexeddb": "^4.0.1"
   },
   "scripts": {
     "build": "run-p build:transpile build:bundle build:types",
-    "build:dev": "yarn build",
-    "build:bundle": "run-p build:bundle:es5 build:bundle:es6",
-    "build:bundle:es5": "JS_VERSION=es5 rollup -c rollup.bundle.config.mjs",
-    "build:bundle:es6": "JS_VERSION=es6 rollup -c rollup.bundle.config.mjs",
+    "build:dev": "run-p build:transpile build:types",
+    "build:bundle": "rollup -c rollup.bundle.config.mjs",
     "build:transpile": "rollup -c rollup.npm.config.mjs",
     "build:types": "run-s build:types:core build:types:downlevel",
     "build:types:core": "tsc -p tsconfig.types.json",
@@ -75,23 +62,15 @@
     "build:bundle:watch": "rollup -c rollup.bundle.config.mjs --watch",
     "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",
     "build:types:watch": "tsc -p tsconfig.types.json --watch",
-    "build:tarball": "ts-node ../../scripts/prepack.ts --bundles && npm pack ./build/npm",
+    "build:tarball": "npm pack",
     "circularDepCheck": "madge --circular src/index.ts",
     "clean": "rimraf build coverage .rpt2_cache sentry-browser-*.tgz",
     "fix": "eslint . --format stylish --fix",
     "lint": "eslint . --format stylish",
-    "validate:es5": "es-check es5 'build/bundles/*.es5*.js'",
-    "size:check": "run-p size:check:es5 size:check:es6",
-    "size:check:es5": "cat build/bundles/bundle.min.js | gzip -9 | wc -c | awk '{$1=$1/1024; print \"ES5: \",$1,\"kB\";}'",
-    "size:check:es6": "cat build/bundles/bundle.es6.min.js | gzip -9 | wc -c | awk '{$1=$1/1024; print \"ES6: \",$1,\"kB\";}'",
-    "test": "yarn test:unit",
-    "test:unit": "jest",
-    "test:integration": "test/integration/run.js",
-    "test:integration:checkbrowsers": "node scripts/checkbrowsers.js",
-    "test:package": "node test/package/npm-build.js && rm test/package/tmp.js",
-    "test:unit:watch": "jest --watch",
-    "test:integration:watch": "test/integration/run.js --watch",
-    "yalc:publish": "ts-node ../../scripts/prepack.ts --bundles && yalc publish ./build/npm --push --sig"
+    "size:check": "cat build/bundles/bundle.min.js | gzip -9 | wc -c | awk '{$1=$1/1024; print \"ES2017: \",$1,\"kB\";}'",
+    "test": "vitest run",
+    "test:watch": "vitest --watch",
+    "yalc:publish": "yalc publish --push --sig"
   },
   "volta": {
     "extends": "../../package.json"

@@ -8,14 +8,6 @@ sentryTest('click is ignored on ignoreSelectors', async ({ getLocalTestUrl, page
     sentryTest.skip();
   }
 
-  await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-    return route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ id: 'test-id' }),
-    });
-  });
-
   const url = await getLocalTestUrl({ testDir: __dirname });
 
   await Promise.all([waitForReplayRequest(page, 0), page.goto(url)]);
@@ -26,7 +18,7 @@ sentryTest('click is ignored on ignoreSelectors', async ({ getLocalTestUrl, page
 
       return breadcrumbs.some(breadcrumb => breadcrumb.category === 'ui.click');
     }),
-    page.click('#mutationIgnoreButton'),
+    page.locator('#mutationIgnoreButton').click(),
   ]);
 
   const { breadcrumbs } = getCustomRecordingEvents(req1);
@@ -58,14 +50,6 @@ sentryTest('click is ignored on div', async ({ getLocalTestUrl, page }) => {
     sentryTest.skip();
   }
 
-  await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-    return route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ id: 'test-id' }),
-    });
-  });
-
   const url = await getLocalTestUrl({ testDir: __dirname });
 
   await Promise.all([waitForReplayRequest(page, 0), page.goto(url)]);
@@ -77,7 +61,7 @@ sentryTest('click is ignored on div', async ({ getLocalTestUrl, page }) => {
       return breadcrumbs.some(breadcrumb => breadcrumb.category === 'ui.click');
     }),
 
-    await page.click('#mutationDiv'),
+    await page.locator('#mutationDiv').click(),
   ]);
 
   const { breadcrumbs } = getCustomRecordingEvents(req1);
@@ -97,6 +81,47 @@ sentryTest('click is ignored on div', async ({ getLocalTestUrl, page }) => {
         nodeId: expect.any(Number),
       },
       message: 'body > div#mutationDiv',
+      timestamp: expect.any(Number),
+      type: 'default',
+    },
+  ]);
+});
+
+sentryTest('click is ignored on input file by default', async ({ getLocalTestUrl, page }) => {
+  if (shouldSkipReplayTest()) {
+    sentryTest.skip();
+  }
+
+  const url = await getLocalTestUrl({ testDir: __dirname });
+
+  await Promise.all([waitForReplayRequest(page, 0), page.goto(url)]);
+
+  const [req1] = await Promise.all([
+    waitForReplayRequest(page, (event, res) => {
+      const { breadcrumbs } = getCustomRecordingEvents(res);
+
+      return breadcrumbs.some(breadcrumb => breadcrumb.category === 'ui.click');
+    }),
+    page.locator('#inputFile').click(),
+  ]);
+
+  const { breadcrumbs } = getCustomRecordingEvents(req1);
+
+  expect(breadcrumbs).toEqual([
+    {
+      category: 'ui.click',
+      data: {
+        node: {
+          attributes: {
+            id: 'inputFile',
+          },
+          id: expect.any(Number),
+          tagName: 'input',
+          textContent: '',
+        },
+        nodeId: expect.any(Number),
+      },
+      message: 'body > input#inputFile[type="file"]',
       timestamp: expect.any(Number),
       type: 'default',
     },

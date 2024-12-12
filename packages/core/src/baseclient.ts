@@ -15,50 +15,43 @@ import type {
   EventProcessor,
   FeedbackEvent,
   Integration,
-  IntegrationClass,
-  MetricBucketItem,
-  MetricsAggregator,
   Outcome,
   ParameterizedString,
-  PropagationContext,
   SdkMetadata,
   Session,
   SessionAggregates,
-  Severity,
   SeverityLevel,
-  Transaction,
+  Span,
+  SpanAttributes,
+  SpanContextData,
+  SpanJSON,
+  StartSpanOptions,
   TransactionEvent,
   Transport,
   TransportMakeRequestResponse,
-} from '@sentry/types';
-import {
-  SentryError,
-  SyncPromise,
-  addItemToEnvelope,
-  checkOrSetAlreadyCaught,
-  createAttachmentEnvelopeItem,
-  isParameterizedString,
-  isPlainObject,
-  isPrimitive,
-  isThenable,
-  logger,
-  makeDsn,
-  rejectedSyncPromise,
-  resolvedSyncPromise,
-} from '@sentry/utils';
+} from './types-hoist';
 
 import { getEnvelopeEndpointWithUrlEncodedAuth } from './api';
+import { getCurrentScope, getIsolationScope, getTraceContextFromScope } from './currentScopes';
 import { DEBUG_BUILD } from './debug-build';
 import { createEventEnvelope, createSessionEnvelope } from './envelope';
-import { getClient } from './exports';
-import { getIsolationScope } from './hub';
 import type { IntegrationIndex } from './integration';
+import { afterSetupIntegrations } from './integration';
 import { setupIntegration, setupIntegrations } from './integration';
-import { createMetricEnvelope } from './metrics/envelope';
 import type { Scope } from './scope';
 import { updateSession } from './session';
-import { getDynamicSamplingContextFromClient } from './tracing/dynamicSamplingContext';
+import { getDynamicSamplingContextFromScope } from './tracing/dynamicSamplingContext';
+import { createClientReportEnvelope } from './utils-hoist/clientreport';
+import { dsnToString, makeDsn } from './utils-hoist/dsn';
+import { addItemToEnvelope, createAttachmentEnvelopeItem } from './utils-hoist/envelope';
+import { SentryError } from './utils-hoist/error';
+import { isParameterizedString, isPlainObject, isPrimitive, isThenable } from './utils-hoist/is';
+import { consoleSandbox, logger } from './utils-hoist/logger';
+import { checkOrSetAlreadyCaught, uuid4 } from './utils-hoist/misc';
+import { SyncPromise, rejectedSyncPromise, resolvedSyncPromise } from './utils-hoist/syncpromise';
+import { parseSampleRate } from './utils/parseSampleRate';
 import { prepareEvent } from './utils/prepareEvent';
+import { showSpanDropWarning } from './utils/spanUtils';
 
 const ALREADY_SEEN_ERROR = "Not capturing exception because it's already been captured.";
 
@@ -94,13 +87,6 @@ const ALREADY_SEEN_ERROR = "Not capturing exception because it's already been ca
  * }
  */
 export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
-  /**
-   * A reference to a metrics aggregator
-   *
-   * @experimental Note this is alpha API. It may experience breaking changes in the future.
-   */
-  public metricsAggregator?: MetricsAggregator;
-
   /** Options passed to the SDK. */
   protected readonly _options: O;
 
@@ -111,9 +97,6 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
 
   /** Array of set up integrations. */
   protected _integrations: IntegrationIndex;
-
-  /** Indicates whether this client's integrations have been set up. */
-  protected _integrationsInitialized: boolean;
 
   /** Number of calls being processed */
   protected _numProcessing: number;
@@ -134,7 +117,6 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   protected constructor(options: O) {
     this._options = options;
     this._integrations = {};
-    this._integrationsInitialized = false;
     this._numProcessing = 0;
     this._outcomes = {};
     this._hooks = {};
@@ -147,11 +129,28 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
     }
 
     if (this._dsn) {
-      const url = getEnvelopeEndpointWithUrlEncodedAuth(this._dsn, options);
+      const url = getEnvelopeEndpointWithUrlEncodedAuth(
+        this._dsn,
+        options.tunnel,
+        options._metadata ? options._metadata.sdk : undefined,
+      );
       this._transport = options.transport({
+        tunnel: this._options.tunnel,
         recordDroppedEvent: this.recordDroppedEvent.bind(this),
         ...options.transportOptions,
         url,
+      });
+    }
+
+    // TODO(v9): Remove this deprecation warning
+    const tracingOptions = ['enableTracing', 'tracesSampleRate', 'tracesSampler'] as const;
+    const undefinedOption = tracingOptions.find(option => option in options && options[option] == undefined);
+    if (undefinedOption) {
+      consoleSandbox(() => {
+        // eslint-disable-next-line no-console
+        console.warn(
+          `[Sentry] Deprecation warning: \`${undefinedOption}\` is set to undefined, which leads to tracing being enabled. In v9, a value of \`undefined\` will result in tracing being disabled.`,
+        );
       });
     }
   }
@@ -159,25 +158,27 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   /**
    * @inheritDoc
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/explicit-module-boundary-types
-  public captureException(exception: any, hint?: EventHint, scope?: Scope): string | undefined {
+  public captureException(exception: unknown, hint?: EventHint, scope?: Scope): string {
+    const eventId = uuid4();
+
     // ensure we haven't captured this very object before
     if (checkOrSetAlreadyCaught(exception)) {
       DEBUG_BUILD && logger.log(ALREADY_SEEN_ERROR);
-      return;
+      return eventId;
     }
 
-    let eventId: string | undefined = hint && hint.event_id;
+    const hintWithEventId = {
+      event_id: eventId,
+      ...hint,
+    };
 
     this._process(
-      this.eventFromException(exception, hint)
-        .then(event => this._captureEvent(event, hint, scope))
-        .then(result => {
-          eventId = result;
-        }),
+      this.eventFromException(exception, hintWithEventId).then(event =>
+        this._captureEvent(event, hintWithEventId, scope),
+      ),
     );
 
-    return eventId;
+    return hintWithEventId.event_id;
   }
 
   /**
@@ -185,49 +186,49 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    */
   public captureMessage(
     message: ParameterizedString,
-    // eslint-disable-next-line deprecation/deprecation
-    level?: Severity | SeverityLevel,
+    level?: SeverityLevel,
     hint?: EventHint,
-    scope?: Scope,
-  ): string | undefined {
-    let eventId: string | undefined = hint && hint.event_id;
+    currentScope?: Scope,
+  ): string {
+    const hintWithEventId = {
+      event_id: uuid4(),
+      ...hint,
+    };
 
     const eventMessage = isParameterizedString(message) ? message : String(message);
 
     const promisedEvent = isPrimitive(message)
-      ? this.eventFromMessage(eventMessage, level, hint)
-      : this.eventFromException(message, hint);
+      ? this.eventFromMessage(eventMessage, level, hintWithEventId)
+      : this.eventFromException(message, hintWithEventId);
 
-    this._process(
-      promisedEvent
-        .then(event => this._captureEvent(event, hint, scope))
-        .then(result => {
-          eventId = result;
-        }),
-    );
+    this._process(promisedEvent.then(event => this._captureEvent(event, hintWithEventId, currentScope)));
 
-    return eventId;
+    return hintWithEventId.event_id;
   }
 
   /**
    * @inheritDoc
    */
-  public captureEvent(event: Event, hint?: EventHint, scope?: Scope): string | undefined {
+  public captureEvent(event: Event, hint?: EventHint, currentScope?: Scope): string {
+    const eventId = uuid4();
+
     // ensure we haven't captured this very object before
     if (hint && hint.originalException && checkOrSetAlreadyCaught(hint.originalException)) {
       DEBUG_BUILD && logger.log(ALREADY_SEEN_ERROR);
-      return;
+      return eventId;
     }
 
-    let eventId: string | undefined = hint && hint.event_id;
+    const hintWithEventId = {
+      event_id: eventId,
+      ...hint,
+    };
 
-    this._process(
-      this._captureEvent(event, hint, scope).then(result => {
-        eventId = result;
-      }),
-    );
+    const sdkProcessingMetadata = event.sdkProcessingMetadata || {};
+    const capturedSpanScope: Scope | undefined = sdkProcessingMetadata.capturedSpanScope;
 
-    return eventId;
+    this._process(this._captureEvent(event, hintWithEventId, capturedSpanScope || currentScope));
+
+    return hintWithEventId.event_id;
   }
 
   /**
@@ -258,7 +259,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   }
 
   /**
-   * @see SdkMetadata in @sentry/types
+   * @see SdkMetadata
    *
    * @return The metadata of the SDK
    */
@@ -279,9 +280,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   public flush(timeout?: number): PromiseLike<boolean> {
     const transport = this._transport;
     if (transport) {
-      if (this.metricsAggregator) {
-        this.metricsAggregator.flush();
-      }
+      this.emit('flush');
       return this._isClientDoneProcessing(timeout).then(clientFinished => {
         return transport.flush(timeout).then(transportFlushed => clientFinished && transportFlushed);
       });
@@ -296,9 +295,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   public close(timeout?: number): PromiseLike<boolean> {
     return this.flush(timeout).then(result => {
       this.getOptions().enabled = false;
-      if (this.metricsAggregator) {
-        this.metricsAggregator.close();
-      }
+      this.emit('close');
       return result;
     });
   }
@@ -313,31 +310,19 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
     this._eventProcessors.push(eventProcessor);
   }
 
-  /**
-   * This is an internal function to setup all integrations that should run on the client.
-   * @deprecated Use `client.init()` instead.
-   */
-  public setupIntegrations(forceInitialize?: boolean): void {
-    if ((forceInitialize && !this._integrationsInitialized) || (this._isEnabled() && !this._integrationsInitialized)) {
-      this._setupIntegrations();
-    }
-  }
-
   /** @inheritdoc */
   public init(): void {
-    if (this._isEnabled()) {
+    if (
+      this._isEnabled() ||
+      // Force integrations to be setup even if no DSN was set when we have
+      // Spotlight enabled. This is particularly important for browser as we
+      // don't support the `spotlight` option there and rely on the users
+      // adding the `spotlightBrowserIntegration()` to their integrations which
+      // wouldn't get initialized with the check below when there's no DSN set.
+      this._options.integrations.some(({ name }) => name.startsWith('Spotlight'))
+    ) {
       this._setupIntegrations();
     }
-  }
-
-  /**
-   * Gets an installed integration by its `id`.
-   *
-   * @returns The installed integration or `undefined` if no integration with that `id` was installed.
-   * @deprecated Use `getIntegrationByName()` instead.
-   */
-  public getIntegrationById(integrationId: string): Integration | undefined {
-    return this.getIntegrationByName(integrationId);
   }
 
   /**
@@ -350,23 +335,17 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   }
 
   /**
-   * Returns the client's instance of the given integration class, it any.
-   * @deprecated Use `getIntegrationByName()` instead.
-   */
-  public getIntegration<T extends Integration>(integration: IntegrationClass<T>): T | null {
-    try {
-      return (this._integrations[integration.id] as T) || null;
-    } catch (_oO) {
-      DEBUG_BUILD && logger.warn(`Cannot retrieve integration ${integration.id} from the current Client`);
-      return null;
-    }
-  }
-
-  /**
    * @inheritDoc
    */
   public addIntegration(integration: Integration): void {
+    const isAlreadyInstalled = this._integrations[integration.name];
+
+    // This hook takes care of only installing if not already installed
     setupIntegration(this, integration, this._integrations);
+    // Here we need to check manually to make sure to not run this multiple times
+    if (!isAlreadyInstalled) {
+      afterSetupIntegrations(this, [integration]);
+    }
   }
 
   /**
@@ -378,16 +357,10 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
     let env = createEventEnvelope(event, this._dsn, this._options._metadata, this._options.tunnel);
 
     for (const attachment of hint.attachments || []) {
-      env = addItemToEnvelope(
-        env,
-        createAttachmentEnvelopeItem(
-          attachment,
-          this._options.transportOptions && this._options.transportOptions.textEncoder,
-        ),
-      );
+      env = addItemToEnvelope(env, createAttachmentEnvelopeItem(attachment));
     }
 
-    const promise = this._sendEnvelope(env);
+    const promise = this.sendEnvelope(env);
     if (promise) {
       promise.then(sendResponse => this.emit('afterSendEvent', event, sendResponse), null);
     }
@@ -399,18 +372,20 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   public sendSession(session: Session | SessionAggregates): void {
     const env = createSessionEnvelope(session, this._dsn, this._options._metadata, this._options.tunnel);
 
-    // _sendEnvelope should not throw
+    // sendEnvelope should not throw
     // eslint-disable-next-line @typescript-eslint/no-floating-promises
-    this._sendEnvelope(env);
+    this.sendEnvelope(env);
   }
 
   /**
    * @inheritDoc
    */
-  public recordDroppedEvent(reason: EventDropReason, category: DataCategory, _event?: Event): void {
-    // Note: we use `event` in replay, where we overwrite this hook.
-
+  public recordDroppedEvent(reason: EventDropReason, category: DataCategory, eventOrCount?: Event | number): void {
     if (this._options.sendClientReports) {
+      // TODO v9: We do not need the `event` passed as third argument anymore, and can possibly remove this overload
+      // If event is passed as third argument, we assume this is a count of 1
+      const count = typeof eventOrCount === 'number' ? eventOrCount : 1;
+
       // We want to track each category (error, transaction, session, replay_event) separately
       // but still keep the distinction between different type of outcomes.
       // We could use nested maps, but it's much easier to read and type this way.
@@ -418,84 +393,122 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
       // would be `Partial<Record<SentryRequestType, Partial<Record<Outcome, number>>>>`
       // With typescript 4.1 we could even use template literal types
       const key = `${reason}:${category}`;
-      DEBUG_BUILD && logger.log(`Adding outcome: "${key}"`);
-
-      // The following works because undefined + 1 === NaN and NaN is falsy
-      this._outcomes[key] = this._outcomes[key] + 1 || 1;
+      DEBUG_BUILD && logger.log(`Recording outcome: "${key}"${count > 1 ? ` (${count} times)` : ''}`);
+      this._outcomes[key] = (this._outcomes[key] || 0) + count;
     }
-  }
-
-  /**
-   * @inheritDoc
-   */
-  public captureAggregateMetrics(metricBucketItems: Array<MetricBucketItem>): void {
-    DEBUG_BUILD && logger.log(`Flushing aggregated metrics, number of metrics: ${metricBucketItems.length}`);
-    const metricsEnvelope = createMetricEnvelope(
-      metricBucketItems,
-      this._dsn,
-      this._options._metadata,
-      this._options.tunnel,
-    );
-
-    // _sendEnvelope should not throw
-    // eslint-disable-next-line @typescript-eslint/no-floating-promises
-    this._sendEnvelope(metricsEnvelope);
   }
 
   // Keep on() & emit() signatures in sync with types' client.ts interface
   /* eslint-disable @typescript-eslint/unified-signatures */
 
   /** @inheritdoc */
-  public on(hook: 'startTransaction', callback: (transaction: Transaction) => void): void;
+  public on(hook: 'spanStart', callback: (span: Span) => void): () => void;
 
   /** @inheritdoc */
-  public on(hook: 'finishTransaction', callback: (transaction: Transaction) => void): void;
+  public on(hook: 'spanEnd', callback: (span: Span) => void): () => void;
 
   /** @inheritdoc */
-  public on(hook: 'beforeEnvelope', callback: (envelope: Envelope) => void): void;
+  public on(hook: 'idleSpanEnableAutoFinish', callback: (span: Span) => void): () => void;
 
   /** @inheritdoc */
-  public on(hook: 'beforeSendEvent', callback: (event: Event, hint?: EventHint) => void): void;
+  public on(hook: 'beforeEnvelope', callback: (envelope: Envelope) => void): () => void;
 
   /** @inheritdoc */
-  public on(hook: 'preprocessEvent', callback: (event: Event, hint?: EventHint) => void): void;
+  public on(hook: 'beforeSendEvent', callback: (event: Event, hint?: EventHint) => void): () => void;
+
+  /** @inheritdoc */
+  public on(hook: 'preprocessEvent', callback: (event: Event, hint?: EventHint) => void): () => void;
 
   /** @inheritdoc */
   public on(
     hook: 'afterSendEvent',
-    callback: (event: Event, sendResponse: TransportMakeRequestResponse | void) => void,
-  ): void;
+    callback: (event: Event, sendResponse: TransportMakeRequestResponse) => void,
+  ): () => void;
 
   /** @inheritdoc */
-  public on(hook: 'beforeAddBreadcrumb', callback: (breadcrumb: Breadcrumb, hint?: BreadcrumbHint) => void): void;
+  public on(hook: 'beforeAddBreadcrumb', callback: (breadcrumb: Breadcrumb, hint?: BreadcrumbHint) => void): () => void;
 
   /** @inheritdoc */
-  public on(hook: 'createDsc', callback: (dsc: DynamicSamplingContext) => void): void;
-
-  /** @inheritdoc */
-  public on(hook: 'otelSpanEnd', callback: (otelSpan: unknown, mutableOptions: { drop: boolean }) => void): void;
+  public on(hook: 'createDsc', callback: (dsc: DynamicSamplingContext, rootSpan?: Span) => void): () => void;
 
   /** @inheritdoc */
   public on(
     hook: 'beforeSendFeedback',
     callback: (feedback: FeedbackEvent, options?: { includeReplay: boolean }) => void,
+  ): () => void;
+
+  /** @inheritdoc */
+  public on(
+    hook: 'beforeSampling',
+    callback: (
+      samplingData: {
+        spanAttributes: SpanAttributes;
+        spanName: string;
+        parentSampled?: boolean;
+        parentContext?: SpanContextData;
+      },
+      samplingDecision: { decision: boolean },
+    ) => void,
   ): void;
 
   /** @inheritdoc */
-  public on(hook: string, callback: unknown): void {
-    if (!this._hooks[hook]) {
-      this._hooks[hook] = [];
-    }
+  public on(
+    hook: 'startPageLoadSpan',
+    callback: (
+      options: StartSpanOptions,
+      traceOptions?: { sentryTrace?: string | undefined; baggage?: string | undefined },
+    ) => void,
+  ): () => void;
 
-    // @ts-expect-error We assue the types are correct
-    this._hooks[hook].push(callback);
+  /** @inheritdoc */
+  public on(hook: 'startNavigationSpan', callback: (options: StartSpanOptions) => void): () => void;
+
+  public on(hook: 'flush', callback: () => void): () => void;
+
+  public on(hook: 'close', callback: () => void): () => void;
+
+  public on(hook: 'applyFrameMetadata', callback: (event: Event) => void): () => void;
+
+  /** @inheritdoc */
+  public on(hook: string, callback: unknown): () => void {
+    const hooks = (this._hooks[hook] = this._hooks[hook] || []);
+
+    // @ts-expect-error We assume the types are correct
+    hooks.push(callback);
+
+    // This function returns a callback execution handler that, when invoked,
+    // deregisters a callback. This is crucial for managing instances where callbacks
+    // need to be unregistered to prevent self-referencing in callback closures,
+    // ensuring proper garbage collection.
+    return () => {
+      // @ts-expect-error We assume the types are correct
+      const cbIndex = hooks.indexOf(callback);
+      if (cbIndex > -1) {
+        hooks.splice(cbIndex, 1);
+      }
+    };
   }
 
   /** @inheritdoc */
-  public emit(hook: 'startTransaction', transaction: Transaction): void;
+  public emit(
+    hook: 'beforeSampling',
+    samplingData: {
+      spanAttributes: SpanAttributes;
+      spanName: string;
+      parentSampled?: boolean;
+      parentContext?: SpanContextData;
+    },
+    samplingDecision: { decision: boolean },
+  ): void;
 
   /** @inheritdoc */
-  public emit(hook: 'finishTransaction', transaction: Transaction): void;
+  public emit(hook: 'spanStart', span: Span): void;
+
+  /** @inheritdoc */
+  public emit(hook: 'spanEnd', span: Span): void;
+
+  /** @inheritdoc */
+  public emit(hook: 'idleSpanEnableAutoFinish', span: Span): void;
 
   /** @inheritdoc */
   public emit(hook: 'beforeEnvelope', envelope: Envelope): void;
@@ -507,34 +520,69 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   public emit(hook: 'preprocessEvent', event: Event, hint?: EventHint): void;
 
   /** @inheritdoc */
-  public emit(hook: 'afterSendEvent', event: Event, sendResponse: TransportMakeRequestResponse | void): void;
+  public emit(hook: 'afterSendEvent', event: Event, sendResponse: TransportMakeRequestResponse): void;
 
   /** @inheritdoc */
   public emit(hook: 'beforeAddBreadcrumb', breadcrumb: Breadcrumb, hint?: BreadcrumbHint): void;
 
   /** @inheritdoc */
-  public emit(hook: 'createDsc', dsc: DynamicSamplingContext): void;
-
-  /** @inheritdoc */
-  public emit(hook: 'otelSpanEnd', otelSpan: unknown, mutableOptions: { drop: boolean }): void;
+  public emit(hook: 'createDsc', dsc: DynamicSamplingContext, rootSpan?: Span): void;
 
   /** @inheritdoc */
   public emit(hook: 'beforeSendFeedback', feedback: FeedbackEvent, options?: { includeReplay: boolean }): void;
 
   /** @inheritdoc */
+  public emit(
+    hook: 'startPageLoadSpan',
+    options: StartSpanOptions,
+    traceOptions?: { sentryTrace?: string | undefined; baggage?: string | undefined },
+  ): void;
+
+  /** @inheritdoc */
+  public emit(hook: 'startNavigationSpan', options: StartSpanOptions): void;
+
+  /** @inheritdoc */
+  public emit(hook: 'flush'): void;
+
+  /** @inheritdoc */
+  public emit(hook: 'close'): void;
+
+  /** @inheritdoc */
+  public emit(hook: 'applyFrameMetadata', event: Event): void;
+
+  /** @inheritdoc */
   public emit(hook: string, ...rest: unknown[]): void {
-    if (this._hooks[hook]) {
-      this._hooks[hook].forEach(callback => callback(...rest));
+    const callbacks = this._hooks[hook];
+    if (callbacks) {
+      callbacks.forEach(callback => callback(...rest));
     }
+  }
+
+  /**
+   * @inheritdoc
+   */
+  public sendEnvelope(envelope: Envelope): PromiseLike<TransportMakeRequestResponse> {
+    this.emit('beforeEnvelope', envelope);
+
+    if (this._isEnabled() && this._transport) {
+      return this._transport.send(envelope).then(null, reason => {
+        DEBUG_BUILD && logger.error('Error while sending envelope:', reason);
+        return reason;
+      });
+    }
+
+    DEBUG_BUILD && logger.error('Transport disabled');
+
+    return resolvedSyncPromise({});
   }
 
   /* eslint-enable @typescript-eslint/unified-signatures */
 
   /** Setup integrations for this client. */
   protected _setupIntegrations(): void {
-    this._integrations = setupIntegrations(this, this._options.integrations);
-    // TODO v8: We don't need this flag anymore
-    this._integrationsInitialized = true;
+    const { integrations } = this._options;
+    this._integrations = setupIntegrations(this, integrations);
+    afterSetupIntegrations(this, integrations);
   }
 
   /** Updates existing session based on the provided event */
@@ -616,13 +664,13 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    *
    * @param event The original event.
    * @param hint May contain additional information about the original exception.
-   * @param scope A scope containing event metadata.
+   * @param currentScope A scope containing event metadata.
    * @returns A new event with more information.
    */
   protected _prepareEvent(
     event: Event,
     hint: EventHint,
-    scope?: Scope,
+    currentScope = getCurrentScope(),
     isolationScope = getIsolationScope(),
   ): PromiseLike<Event | null> {
     const options = this.getOptions();
@@ -633,34 +681,27 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
 
     this.emit('preprocessEvent', event, hint);
 
-    return prepareEvent(options, event, hint, scope, this, isolationScope).then(evt => {
+    if (!event.type) {
+      isolationScope.setLastEventId(event.event_id || hint.event_id);
+    }
+
+    return prepareEvent(options, event, hint, currentScope, this, isolationScope).then(evt => {
       if (evt === null) {
         return evt;
       }
 
-      // If a trace context is not set on the event, we use the propagationContext set on the event to
-      // generate a trace context. If the propagationContext does not have a dynamic sampling context, we
-      // also generate one for it.
-      const { propagationContext } = evt.sdkProcessingMetadata || {};
-      const trace = evt.contexts && evt.contexts.trace;
-      if (!trace && propagationContext) {
-        const { traceId: trace_id, spanId, parentSpanId, dsc } = propagationContext as PropagationContext;
-        evt.contexts = {
-          trace: {
-            trace_id,
-            span_id: spanId,
-            parent_span_id: parentSpanId,
-          },
-          ...evt.contexts,
-        };
+      evt.contexts = {
+        trace: getTraceContextFromScope(currentScope),
+        ...evt.contexts,
+      };
 
-        const dynamicSamplingContext = dsc ? dsc : getDynamicSamplingContextFromClient(trace_id, this, scope);
+      const dynamicSamplingContext = getDynamicSamplingContextFromScope(this, currentScope);
 
-        evt.sdkProcessingMetadata = {
-          dynamicSamplingContext,
-          ...evt.sdkProcessingMetadata,
-        };
-      }
+      evt.sdkProcessingMetadata = {
+        dynamicSamplingContext,
+        ...evt.sdkProcessingMetadata,
+      };
+
       return evt;
     });
   }
@@ -702,10 +743,10 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    *
    * @param event The event to send to Sentry.
    * @param hint May contain additional information about the original exception.
-   * @param scope A scope containing event metadata.
+   * @param currentScope A scope containing event metadata.
    * @returns A SyncPromise that resolves with the event or rejects in case event was/will not be send.
    */
-  protected _processEvent(event: Event, hint: EventHint, scope?: Scope): PromiseLike<Event> {
+  protected _processEvent(event: Event, hint: EventHint, currentScope?: Scope): PromiseLike<Event> {
     const options = this.getOptions();
     const { sampleRate } = options;
 
@@ -717,7 +758,8 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
     // 1.0 === 100% events are sent
     // 0.0 === 0% events are sent
     // Sampling for transaction happens somewhere else
-    if (isError && typeof sampleRate === 'number' && Math.random() > sampleRate) {
+    const parsedSampleRate = typeof sampleRate === 'undefined' ? undefined : parseSampleRate(sampleRate);
+    if (isError && typeof parsedSampleRate === 'number' && Math.random() > parsedSampleRate) {
       this.recordDroppedEvent('sample_rate', 'error', event);
       return rejectedSyncPromise(
         new SentryError(
@@ -729,7 +771,10 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
 
     const dataCategory: DataCategory = eventType === 'replay_event' ? 'replay' : eventType;
 
-    return this._prepareEvent(event, hint, scope)
+    const sdkProcessingMetadata = event.sdkProcessingMetadata || {};
+    const capturedSpanIsolationScope: Scope | undefined = sdkProcessingMetadata.capturedSpanIsolationScope;
+
+    return this._prepareEvent(event, hint, currentScope, capturedSpanIsolationScope)
       .then(prepared => {
         if (prepared === null) {
           this.recordDroppedEvent('event_processor', dataCategory, event);
@@ -741,18 +786,36 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
           return prepared;
         }
 
-        const result = processBeforeSend(options, prepared, hint);
+        const result = processBeforeSend(this, options, prepared, hint);
         return _validateBeforeSendResult(result, beforeSendLabel);
       })
       .then(processedEvent => {
         if (processedEvent === null) {
           this.recordDroppedEvent('before_send', dataCategory, event);
+          if (isTransaction) {
+            const spans = event.spans || [];
+            // the transaction itself counts as one span, plus all the child spans that are added
+            const spanCount = 1 + spans.length;
+            this.recordDroppedEvent('before_send', 'span', spanCount);
+          }
           throw new SentryError(`${beforeSendLabel} returned \`null\`, will not send event.`, 'log');
         }
 
-        const session = scope && scope.getSession();
+        const session = currentScope && currentScope.getSession();
         if (!isTransaction && session) {
           this._updateSessionFromEvent(session, processedEvent);
+        }
+
+        if (isTransaction) {
+          const spanCountBefore =
+            (processedEvent.sdkProcessingMetadata && processedEvent.sdkProcessingMetadata.spanCountBeforeProcessing) ||
+            0;
+          const spanCountAfter = processedEvent.spans ? processedEvent.spans.length : 0;
+
+          const droppedSpanCount = spanCountBefore - spanCountAfter;
+          if (droppedSpanCount > 0) {
+            this.recordDroppedEvent('before_send', 'span', droppedSpanCount);
+          }
         }
 
         // None of the Sentry built event processor will update transaction name,
@@ -805,49 +868,60 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   }
 
   /**
-   * @inheritdoc
-   */
-  protected _sendEnvelope(envelope: Envelope): PromiseLike<void | TransportMakeRequestResponse> | void {
-    this.emit('beforeEnvelope', envelope);
-
-    if (this._isEnabled() && this._transport) {
-      return this._transport.send(envelope).then(null, reason => {
-        DEBUG_BUILD && logger.error('Error while sending event:', reason);
-      });
-    } else {
-      DEBUG_BUILD && logger.error('Transport disabled');
-    }
-  }
-
-  /**
    * Clears outcomes on this client and returns them.
    */
   protected _clearOutcomes(): Outcome[] {
     const outcomes = this._outcomes;
     this._outcomes = {};
-    return Object.keys(outcomes).map(key => {
+    return Object.entries(outcomes).map(([key, quantity]) => {
       const [reason, category] = key.split(':') as [EventDropReason, DataCategory];
       return {
         reason,
         category,
-        quantity: outcomes[key],
+        quantity,
       };
     });
   }
 
   /**
+   * Sends client reports as an envelope.
+   */
+  protected _flushOutcomes(): void {
+    DEBUG_BUILD && logger.log('Flushing outcomes...');
+
+    const outcomes = this._clearOutcomes();
+
+    if (outcomes.length === 0) {
+      DEBUG_BUILD && logger.log('No outcomes to send');
+      return;
+    }
+
+    // This is really the only place where we want to check for a DSN and only send outcomes then
+    if (!this._dsn) {
+      DEBUG_BUILD && logger.log('No dsn provided, will not send outcomes');
+      return;
+    }
+
+    DEBUG_BUILD && logger.log('Sending outcomes:', outcomes);
+
+    const envelope = createClientReportEnvelope(outcomes, this._options.tunnel && dsnToString(this._dsn));
+
+    // sendEnvelope should not throw
+    // eslint-disable-next-line @typescript-eslint/no-floating-promises
+    this.sendEnvelope(envelope);
+  }
+
+  /**
    * @inheritDoc
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/explicit-module-boundary-types
-  public abstract eventFromException(_exception: any, _hint?: EventHint): PromiseLike<Event>;
+  public abstract eventFromException(_exception: unknown, _hint?: EventHint): PromiseLike<Event>;
 
   /**
    * @inheritDoc
    */
   public abstract eventFromMessage(
     _message: ParameterizedString,
-    // eslint-disable-next-line deprecation/deprecation
-    _level?: Severity | SeverityLevel,
+    _level?: SeverityLevel,
     _hint?: EventHint,
   ): PromiseLike<Event>;
 }
@@ -882,18 +956,44 @@ function _validateBeforeSendResult(
  * Process the matching `beforeSendXXX` callback.
  */
 function processBeforeSend(
+  client: Client,
   options: ClientOptions,
   event: Event,
   hint: EventHint,
 ): PromiseLike<Event | null> | Event | null {
-  const { beforeSend, beforeSendTransaction } = options;
+  const { beforeSend, beforeSendTransaction, beforeSendSpan } = options;
 
   if (isErrorEvent(event) && beforeSend) {
     return beforeSend(event, hint);
   }
 
-  if (isTransactionEvent(event) && beforeSendTransaction) {
-    return beforeSendTransaction(event, hint);
+  if (isTransactionEvent(event)) {
+    if (event.spans && beforeSendSpan) {
+      const processedSpans: SpanJSON[] = [];
+      for (const span of event.spans) {
+        const processedSpan = beforeSendSpan(span);
+        if (processedSpan) {
+          processedSpans.push(processedSpan);
+        } else {
+          showSpanDropWarning();
+          client.recordDroppedEvent('before_send', 'span');
+        }
+      }
+      event.spans = processedSpans;
+    }
+
+    if (beforeSendTransaction) {
+      if (event.spans) {
+        // We store the # of spans before processing in SDK metadata,
+        // so we can compare it afterwards to determine how many spans were dropped
+        const spanCountBefore = event.spans.length;
+        event.sdkProcessingMetadata = {
+          ...event.sdkProcessingMetadata,
+          spanCountBeforeProcessing: spanCountBefore,
+        };
+      }
+      return beforeSendTransaction(event, hint);
+    }
   }
 
   return event;
@@ -905,18 +1005,4 @@ function isErrorEvent(event: Event): event is ErrorEvent {
 
 function isTransactionEvent(event: Event): event is TransactionEvent {
   return event.type === 'transaction';
-}
-
-/**
- * Add an event processor to the current client.
- * This event processor will run for all events processed by this client.
- */
-export function addEventProcessor(callback: EventProcessor): void {
-  const client = getClient();
-
-  if (!client || !client.addEventProcessor) {
-    return;
-  }
-
-  client.addEventProcessor(callback);
 }

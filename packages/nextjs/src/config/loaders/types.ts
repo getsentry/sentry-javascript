@@ -1,4 +1,9 @@
-import type webpack from 'webpack';
+type LoaderCallback = (
+  err: Error | undefined | null,
+  content?: string | Buffer,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  sourceMap?: string | any,
+) => void;
 
 export type LoaderThis<Options> = {
   /**
@@ -27,14 +32,14 @@ export type LoaderThis<Options> = {
    *
    * https://webpack.js.org/api/loaders/#thisasync
    */
-  async: webpack.loader.LoaderContext['async'];
+  async: () => undefined | LoaderCallback;
 
   /**
    * Return errors, code, and sourcemaps from an asynchronous loader
    *
    * https://webpack.js.org/api/loaders/#thiscallback
    */
-  callback: webpack.loader.LoaderContext['callback'];
+  callback: LoaderCallback;
 } & (
   | {
       /**

@@ -25,7 +25,7 @@ This document gives an outline for how event sending works, and which which plac
             - `createEnvelope()`
           - `addItemToEnvelope()`
             - `createAttachmentEnvelopeItem()`
-          - `baseclient._sendEnvelope()`
+          - `baseclient.sendEnvelope()`
             - `transport.send()`
 
 ## Transactions
@@ -54,7 +54,7 @@ This document gives an outline for how event sending works, and which which plac
             - `createEnvelope()`
           - `addItemToEnvelope()`
             - `createAttachmentEnvelopeItem()`
-          - `baseclient._sendEnvelope()`
+          - `baseclient.sendEnvelope()`
             - `transport.send()`
 
 ## Sessions
@@ -70,7 +70,7 @@ This document gives an outline for how event sending works, and which which plac
         - `createSessionEnvelope()`
           - `getSdkMetadataForEnvelopeHeader()`
           - `createEnvelope()`
-        - `baseclient._sendEnvelope()`
+        - `baseclient.sendEnvelope()`
           - `transport.send()`
       - `updateSession()`
 
@@ -94,5 +94,5 @@ This document gives an outline for how event sending works, and which which plac
   - `browser.client._flushOutcomes()`
     - `getEnvelopeEndpointWithUrlEncodedAuth()`
     - `createClientReportEnvelope()`
-    - `baseclient._sendEnvelope()`
+    - `baseclient.sendEnvelope()`
       - `transport.send()`

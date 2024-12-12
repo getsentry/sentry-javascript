@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { addEventProcessor, getClient, getCurrentScope } from '@sentry/browser';
-import type { Scope } from '@sentry/types';
-import { addNonEnumerableProperty } from '@sentry/utils';
+import type { Scope } from '@sentry/core';
+import { addBreadcrumb, addNonEnumerableProperty, getClient, getCurrentScope, getGlobalScope } from '@sentry/core';
 
 interface Action<T = any> {
   type: T;
@@ -97,7 +96,7 @@ function createReduxEnhancer(enhancerOptions?: Partial<SentryEnhancerOptions>): 
   return (next: StoreEnhancerStoreCreator): StoreEnhancerStoreCreator =>
     <S = any, A extends Action = AnyAction>(reducer: Reducer<S, A>, initialState?: PreloadedState<S>) => {
       options.attachReduxState &&
-        addEventProcessor((event, hint) => {
+        getGlobalScope().addEventProcessor((event, hint) => {
           try {
             // @ts-expect-error try catch to reduce bundle size
             if (event.type === undefined && event.contexts.state.state.type === 'redux') {
@@ -117,10 +116,11 @@ function createReduxEnhancer(enhancerOptions?: Partial<SentryEnhancerOptions>): 
         const newState = reducer(state, action);
 
         const scope = getCurrentScope();
+
         /* Action breadcrumbs */
         const transformedAction = options.actionTransformer(action);
         if (typeof transformedAction !== 'undefined' && transformedAction !== null) {
-          scope.addBreadcrumb({
+          addBreadcrumb({
             category: ACTION_BREADCRUMB_CATEGORY,
             data: transformedAction,
             type: ACTION_BREADCRUMB_TYPE,

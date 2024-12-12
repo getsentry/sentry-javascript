@@ -1,21 +1,13 @@
-import { addOriginToSpan } from './utils/addOriginToSpan';
-import { maybeCaptureExceptionForTimedEvent } from './utils/captureExceptionForTimedEvent';
-import { getRequestSpanData } from './utils/getRequestSpanData';
+export { SEMANTIC_ATTRIBUTE_SENTRY_GRAPHQL_OPERATION } from './semanticAttributes';
+
+export { getRequestSpanData } from './utils/getRequestSpanData';
 
 export type { OpenTelemetryClient } from './types';
 export { wrapClientClass } from './custom/client';
 
 export { getSpanKind } from './utils/getSpanKind';
-export {
-  getSpanHub,
-  getSpanMetadata,
-  getSpanParent,
-  getSpanScope,
-  setSpanMetadata,
-  getSpanFinishScope,
-} from './utils/spanData';
 
-export { getPropagationContextFromContext, setPropagationContextOnContext, setHubOnContext } from './utils/contextData';
+export { getScopesFromContext } from './utils/contextData';
 
 export {
   spanHasAttributes,
@@ -26,30 +18,48 @@ export {
   spanHasStatus,
 } from './utils/spanTypes';
 
+// Re-export this for backwards compatibility (this used to be a different implementation)
+export { getDynamicSamplingContextFromSpan } from '@sentry/core';
+
 export { isSentryRequestSpan } from './utils/isSentryRequest';
 
-export { getActiveSpan, getRootSpan } from './utils/getActiveSpan';
-export { startSpan, startSpanManual, startInactiveSpan } from './trace';
+export { enhanceDscWithOpenTelemetryRootSpanName } from './utils/enhanceDscWithOpenTelemetryRootSpanName';
+// eslint-disable-next-line deprecation/deprecation
+export { generateSpanContextForPropagationContext } from './utils/generateSpanContextForPropagationContext';
 
-export { getCurrentHub, setupGlobalHub, getClient } from './custom/hub';
-export { OpenTelemetryScope } from './custom/scope';
-export { addTracingExtensions } from './custom/hubextensions';
+export { getActiveSpan } from './utils/getActiveSpan';
+export {
+  startSpan,
+  startSpanManual,
+  startInactiveSpan,
+  withActiveSpan,
+  continueTrace,
+  getTraceContextForScope,
+} from './trace';
+
+export { suppressTracing } from './utils/suppressTracing';
+
+// eslint-disable-next-line deprecation/deprecation
+export { getCurrentHubShim } from '@sentry/core';
 export { setupEventContextTrace } from './setupEventContextTrace';
 
 export { setOpenTelemetryContextAsyncContextStrategy } from './asyncContextStrategy';
 export { wrapContextManagerClass } from './contextManager';
-export { SentryPropagator } from './propagator';
+export {
+  SentryPropagator,
+  getPropagationContextFromSpan,
+  shouldPropagateTraceForUrl,
+} from './propagator';
 export { SentrySpanProcessor } from './spanProcessor';
-export { SentrySampler } from './sampler';
+export {
+  SentrySampler,
+  wrapSamplingDecision,
+} from './sampler';
 
-/**
- * The following internal utils are not considered public API and are subject to change.
- * @hidden
- */
-const _INTERNAL = {
-  addOriginToSpan,
-  maybeCaptureExceptionForTimedEvent,
-  getRequestSpanData,
-} as const;
+export { openTelemetrySetupCheck } from './utils/setupCheck';
 
-export { _INTERNAL };
+// eslint-disable-next-line deprecation/deprecation
+export { addOpenTelemetryInstrumentation } from './instrumentation';
+
+// Legacy
+export { getClient } from '@sentry/core';

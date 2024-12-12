@@ -1,27 +1,37 @@
 {
   "name": "@sentry/bun",
-  "version": "7.93.0",
+  "version": "8.43.0",
   "description": "Official Sentry SDK for bun",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/bun",
   "author": "Sentry",
   "license": "MIT",
   "engines": {
-    "node": ">=8"
+    "node": ">=14.18"
   },
   "files": [
-    "cjs",
-    "esm",
-    "types",
-    "types-ts3.8"
+    "/build"
   ],
-  "main": "build/esm/index.js",
+  "main": "build/cjs/index.js",
   "module": "build/esm/index.js",
   "types": "build/types/index.d.ts",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "import": {
+        "types": "./build/types/index.d.ts",
+        "default": "./build/esm/index.js"
+      },
+      "require": {
+        "types": "./build/types/index.d.ts",
+        "default": "./build/cjs/index.js"
+      }
+    }
+  },
   "typesVersions": {
     "<4.9": {
-      "build/npm/types/index.d.ts": [
-        "build/npm/types-ts3.8/index.d.ts"
+      "build/types/index.d.ts": [
+        "build/types-ts3.8/index.d.ts"
       ]
     }
   },
@@ -29,10 +39,9 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/core": "7.93.0",
-    "@sentry/node": "7.93.0",
-    "@sentry/types": "7.93.0",
-    "@sentry/utils": "7.93.0"
+    "@sentry/core": "8.43.0",
+    "@sentry/node": "8.43.0",
+    "@sentry/opentelemetry": "8.43.0"
   },
   "devDependencies": {
     "bun-types": "latest"
@@ -48,7 +57,7 @@
     "build:dev:watch": "yarn build:watch",
     "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",
     "build:types:watch": "tsc -p tsconfig.types.json --watch",
-    "build:tarball": "ts-node ../../scripts/prepack.ts && npm pack ./build",
+    "build:tarball": "npm pack",
     "circularDepCheck": "madge --circular src/index.ts",
     "clean": "rimraf build coverage sentry-bun-*.tgz",
     "fix": "eslint . --format stylish --fix",
@@ -57,17 +66,10 @@
     "test": "run-s install:bun test:bun",
     "test:bun": "bun test",
     "test:watch": "bun test --watch",
-    "yalc:publish": "ts-node ../../scripts/prepack.ts && yalc publish build --push --sig"
+    "yalc:publish": "yalc publish --push --sig"
   },
   "volta": {
     "extends": "../../package.json"
   },
-  "sideEffects": false,
-  "madge": {
-    "detectiveOptions": {
-      "ts": {
-        "skipTypeImports": true
-      }
-    }
-  }
+  "sideEffects": false
 }

@@ -13,14 +13,6 @@ sentryTest('captures multi click when not detecting slow click', async ({ getLoc
     sentryTest.skip();
   }
 
-  await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-    return route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ id: 'test-id' }),
-    });
-  });
-
   const url = await getLocalTestUrl({ testDir: __dirname });
 
   await Promise.all([waitForReplayRequest(page, 0), page.goto(url)]);
@@ -31,7 +23,7 @@ sentryTest('captures multi click when not detecting slow click', async ({ getLoc
 
       return breadcrumbs.some(breadcrumb => breadcrumb.category === 'ui.multiClick');
     }),
-    page.click('#mutationButtonImmediately', { clickCount: 4 }),
+    page.locator('#mutationButtonImmediately').click({ clickCount: 4 }),
   ]);
 
   const { breadcrumbs } = getCustomRecordingEvents(req1);
@@ -69,7 +61,7 @@ sentryTest('captures multi click when not detecting slow click', async ({ getLoc
 
       return breadcrumbs.some(breadcrumb => breadcrumb.category === 'ui.multiClick');
     }),
-    page.click('#mutationButtonImmediately', { clickCount: 3 }),
+    page.locator('#mutationButtonImmediately').click({ clickCount: 3 }),
   ]);
 
   const { breadcrumbs: breadcrumbb2 } = getCustomRecordingEvents(req2);
@@ -105,14 +97,6 @@ sentryTest('captures multiple multi clicks', async ({ getLocalTestUrl, page, for
     sentryTest.skip();
   }
 
-  await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-    return route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ id: 'test-id' }),
-    });
-  });
-
   const url = await getLocalTestUrl({ testDir: __dirname });
 
   await Promise.all([waitForReplayRequest(page, 0), page.goto(url)]);
@@ -132,13 +116,13 @@ sentryTest('captures multiple multi clicks', async ({ getLocalTestUrl, page, for
     return false;
   });
 
-  await page.click('#mutationButtonImmediately', { clickCount: 4 });
+  await page.locator('#mutationButtonImmediately').click({ clickCount: 4 });
   await forceFlushReplay();
 
   // Ensure we waited at least 1s, which is the threshold to create a new ui.click breadcrumb
   await new Promise(resolve => setTimeout(resolve, 1001));
 
-  await page.click('#mutationButtonImmediately', { clickCount: 2 });
+  await page.locator('#mutationButtonImmediately').click({ clickCount: 2 });
   await forceFlushReplay();
 
   const responses = await reqsPromise;

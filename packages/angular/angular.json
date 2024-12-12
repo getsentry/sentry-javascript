@@ -1,6 +1,6 @@
 /* To learn more about this file see: https://angular.io/guide/workspace-config */
 {
-  "$schema": "../../node_modules/@angular/cli/lib/config/schema.json",
+  "$schema": "./node_modules/@angular/cli/lib/config/schema.json",
   "version": 1, // version of angular.json
   "projects": {
     "sentry-angular": {
@@ -11,17 +11,22 @@
         "build": {
           "builder": "@angular-devkit/build-angular:ng-packagr",
           "options": {
-            "tsConfig": "tsconfig.ngc.json",
             "project": "ng-package.json"
           },
           "configurations": {
             "production": {
               "tsConfig": "tsconfig.ngc.json"
+            },
+            "development": {
+              "tsConfig": "tsconfig.ngc.json"
             }
-          }
+          },
+          "defaultConfiguration": "production"
         }
       }
     }
   },
-  "defaultProject": "sentry-angular"
+  "cli": {
+    "analytics": false
+  }
 }

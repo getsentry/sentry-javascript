@@ -1,31 +1,41 @@
 import * as Sentry from '@sentry/browser';
+import * as SentryCore from '@sentry/core';
 import * as Redux from 'redux';
 
 import { createReduxEnhancer } from '../src/redux';
 
-const mockAddBreadcrumb = jest.fn();
 const mockSetContext = jest.fn();
+const mockGlobalScopeAddEventProcessor = jest.fn();
 
-jest.mock('@sentry/browser', () => ({
-  ...jest.requireActual('@sentry/browser'),
+jest.mock('@sentry/core', () => ({
+  ...jest.requireActual('@sentry/core'),
   getCurrentScope() {
     return {
-      addBreadcrumb: mockAddBreadcrumb,
       setContext: mockSetContext,
     };
   },
+  getGlobalScope() {
+    return {
+      addEventProcessor: mockGlobalScopeAddEventProcessor,
+    };
+  },
   addEventProcessor: jest.fn(),
+  addBreadcrumb: jest.fn(),
 }));
 
-const mockAddEventProcessor = Sentry.addEventProcessor as jest.Mock;
-
 afterEach(() => {
-  mockAddBreadcrumb.mockReset();
   mockSetContext.mockReset();
-  mockAddEventProcessor.mockReset();
+  mockGlobalScopeAddEventProcessor.mockReset();
 });
 
 describe('createReduxEnhancer', () => {
+  let mockAddBreadcrumb: jest.SpyInstance;
+
+  beforeEach(() => {
+    mockAddBreadcrumb = SentryCore.addBreadcrumb as unknown as jest.SpyInstance;
+    mockAddBreadcrumb.mockReset();
+  });
+
   it('logs redux action as breadcrumb', () => {
     const enhancer = createReduxEnhancer();
 
@@ -257,9 +267,9 @@ describe('createReduxEnhancer', () => {
 
       Redux.createStore((state = initialState) => state, enhancer);
 
-      expect(mockAddEventProcessor).toHaveBeenCalledTimes(1);
+      expect(mockGlobalScopeAddEventProcessor).toHaveBeenCalledTimes(1);
 
-      const callbackFunction = mockAddEventProcessor.mock.calls[0][0];
+      const callbackFunction = mockGlobalScopeAddEventProcessor.mock.calls[0][0];
 
       const mockEvent = {
         contexts: {
@@ -306,7 +316,7 @@ describe('createReduxEnhancer', () => {
 
       Redux.createStore((state = initialState) => state, enhancer);
 
-      expect(mockAddEventProcessor).toHaveBeenCalledTimes(0);
+      expect(mockGlobalScopeAddEventProcessor).toHaveBeenCalledTimes(0);
     });
 
     it('does not attach when state.type is not redux', () => {
@@ -318,9 +328,9 @@ describe('createReduxEnhancer', () => {
 
       Redux.createStore((state = initialState) => state, enhancer);
 
-      expect(mockAddEventProcessor).toHaveBeenCalledTimes(1);
+      expect(mockGlobalScopeAddEventProcessor).toHaveBeenCalledTimes(1);
 
-      const callbackFunction = mockAddEventProcessor.mock.calls[0][0];
+      const callbackFunction = mockGlobalScopeAddEventProcessor.mock.calls[0][0];
 
       const mockEvent = {
         contexts: {
@@ -353,9 +363,9 @@ describe('createReduxEnhancer', () => {
 
       Redux.createStore((state = initialState) => state, enhancer);
 
-      expect(mockAddEventProcessor).toHaveBeenCalledTimes(1);
+      expect(mockGlobalScopeAddEventProcessor).toHaveBeenCalledTimes(1);
 
-      const callbackFunction = mockAddEventProcessor.mock.calls[0][0];
+      const callbackFunction = mockGlobalScopeAddEventProcessor.mock.calls[0][0];
 
       const mockEvent = {
         contexts: {
@@ -385,9 +395,9 @@ describe('createReduxEnhancer', () => {
 
       Redux.createStore((state = initialState) => state, enhancer);
 
-      expect(mockAddEventProcessor).toHaveBeenCalledTimes(1);
+      expect(mockGlobalScopeAddEventProcessor).toHaveBeenCalledTimes(1);
 
-      const callbackFunction = mockAddEventProcessor.mock.calls[0][0];
+      const callbackFunction = mockGlobalScopeAddEventProcessor.mock.calls[0][0];
 
       const mockEvent = {
         type: 'not_redux',

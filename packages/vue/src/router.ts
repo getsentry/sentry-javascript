@@ -1,24 +1,13 @@
-import { WINDOW, captureException } from '@sentry/browser';
-import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, spanToJSON } from '@sentry/core';
-import type { Transaction, TransactionContext, TransactionSource } from '@sentry/types';
-
-import { getActiveTransaction } from './tracing';
-
-interface VueRouterInstrumationOptions {
-  /**
-   * What to use for route labels.
-   * By default, we use route.name (if set) and else the path.
-   *
-   * Default: 'name'
-   */
-  routeLabel: 'name' | 'path';
-}
-
-export type VueRouterInstrumentation = <T extends Transaction>(
-  startTransaction: (context: TransactionContext) => T | undefined,
-  startTransactionOnPageLoad?: boolean,
-  startTransactionOnLocationChange?: boolean,
-) => void;
+import { captureException } from '@sentry/browser';
+import {
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  getActiveSpan,
+  getCurrentScope,
+  getRootSpan,
+  spanToJSON,
+} from '@sentry/core';
+import type { Span, SpanAttributes, StartSpanOptions, TransactionSource } from '@sentry/core';
 
 // The following type is an intersection of the Route type from VueRouter v2, v3, and v4.
 // This is not great, but kinda necessary to make it work with all versions at the same time.
@@ -44,104 +33,121 @@ interface VueRouter {
 }
 
 /**
- * Creates routing instrumentation for Vue Router v2, v3 and v4
- *
- * You can optionally pass in an options object with the available option:
- * * `routeLabel`: Set this to `route` to opt-out of using `route.name` for transaction names.
- *
- * @param router The Vue Router instance that is used
+ * Instrument the Vue router to create navigation spans.
  */
-export function vueRouterInstrumentation(
+export function instrumentVueRouter(
   router: VueRouter,
-  options: Partial<VueRouterInstrumationOptions> = {},
-): VueRouterInstrumentation {
-  return (
-    startTransaction: (context: TransactionContext) => Transaction | undefined,
-    startTransactionOnPageLoad: boolean = true,
-    startTransactionOnLocationChange: boolean = true,
-  ) => {
-    const tags = {
-      'routing.instrumentation': 'vue-router',
+  options: {
+    /**
+     * What to use for route labels.
+     * By default, we use route.name (if set) and else the path.
+     *
+     * Default: 'name'
+     */
+    routeLabel: 'name' | 'path';
+    instrumentPageLoad: boolean;
+    instrumentNavigation: boolean;
+  },
+  startNavigationSpanFn: (context: StartSpanOptions) => void,
+): void {
+  let isFirstPageLoad = true;
+
+  router.onError(error => captureException(error, { mechanism: { handled: false } }));
+
+  router.beforeEach((to, from, next) => {
+    // According to docs we could use `from === VueRouter.START_LOCATION` but I couldn't get it working for Vue 2
+    // https://router.vuejs.org/api/#router-start-location
+    // https://next.router.vuejs.org/api/#start-location
+    // Additionally, Nuxt does not provide the possibility to check for `from.matched.length === 0` (this is never 0).
+    // Therefore, a flag was added to track the page-load: isFirstPageLoad
+
+    // from.name:
+    // - Vue 2: null
+    // - Vue 3: undefined
+    // - Nuxt: undefined
+    // hence only '==' instead of '===', because `undefined == null` evaluates to `true`
+    const isPageLoadNavigation =
+      (from.name == null && from.matched.length === 0) || (from.name === undefined && isFirstPageLoad);
+
+    if (isFirstPageLoad) {
+      isFirstPageLoad = false;
+    }
+
+    const attributes: SpanAttributes = {
+      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.vue',
     };
 
-    // We have to start the pageload transaction as early as possible (before the router's `beforeEach` hook
-    // is called) to not miss child spans of the pageload.
-    // We check that window & window.location exists in order to not run this code in SSR environments.
-    if (startTransactionOnPageLoad && WINDOW && WINDOW.location) {
-      startTransaction({
-        name: WINDOW.location.pathname,
-        op: 'pageload',
-        origin: 'auto.pageload.vue',
-        tags,
-        data: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
-        },
+    for (const key of Object.keys(to.params)) {
+      attributes[`params.${key}`] = to.params[key];
+    }
+    for (const key of Object.keys(to.query)) {
+      const value = to.query[key];
+      if (value) {
+        attributes[`query.${key}`] = value;
+      }
+    }
+
+    // Determine a name for the routing transaction and where that name came from
+    let spanName: string = to.path;
+    let transactionSource: TransactionSource = 'url';
+    if (to.name && options.routeLabel !== 'path') {
+      spanName = to.name.toString();
+      transactionSource = 'custom';
+    } else if (to.matched.length > 0) {
+      const lastIndex = to.matched.length - 1;
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      spanName = to.matched[lastIndex]!.path;
+      transactionSource = 'route';
+    }
+
+    getCurrentScope().setTransactionName(spanName);
+
+    if (options.instrumentPageLoad && isPageLoadNavigation) {
+      const activeRootSpan = getActiveRootSpan();
+      if (activeRootSpan) {
+        const existingAttributes = spanToJSON(activeRootSpan).data || {};
+        if (existingAttributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] !== 'custom') {
+          activeRootSpan.updateName(spanName);
+          activeRootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, transactionSource);
+        }
+        // Set router attributes on the existing pageload transaction
+        // This will override the origin, and add params & query attributes
+        activeRootSpan.setAttributes({
+          ...attributes,
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.vue',
+        });
+      }
+    }
+
+    if (options.instrumentNavigation && !isPageLoadNavigation) {
+      attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] = transactionSource;
+      attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] = 'auto.navigation.vue';
+      startNavigationSpanFn({
+        name: spanName,
+        op: 'navigation',
+        attributes,
       });
     }
 
-    router.onError(error => captureException(error, { mechanism: { handled: false } }));
+    // Vue Router 4 no longer exposes the `next` function, so we need to
+    // check if it's available before calling it.
+    // `next` needs to be called in Vue Router 3 so that the hook is resolved.
+    if (next) {
+      next();
+    }
+  });
+}
 
-    router.beforeEach((to, from, next) => {
-      // According to docs we could use `from === VueRouter.START_LOCATION` but I couldnt get it working for Vue 2
-      // https://router.vuejs.org/api/#router-start-location
-      // https://next.router.vuejs.org/api/#start-location
+function getActiveRootSpan(): Span | undefined {
+  const span = getActiveSpan();
+  const rootSpan = span && getRootSpan(span);
 
-      // from.name:
-      // - Vue 2: null
-      // - Vue 3: undefined
-      // hence only '==' instead of '===', because `undefined == null` evaluates to `true`
-      const isPageLoadNavigation = from.name == null && from.matched.length === 0;
+  if (!rootSpan) {
+    return undefined;
+  }
 
-      const data: Record<string, unknown> = {
-        params: to.params,
-        query: to.query,
-      };
+  const op = spanToJSON(rootSpan).op;
 
-      // Determine a name for the routing transaction and where that name came from
-      let transactionName: string = to.path;
-      let transactionSource: TransactionSource = 'url';
-      if (to.name && options.routeLabel !== 'path') {
-        transactionName = to.name.toString();
-        transactionSource = 'custom';
-      } else if (to.matched[0] && to.matched[0].path) {
-        transactionName = to.matched[0].path;
-        transactionSource = 'route';
-      }
-
-      if (startTransactionOnPageLoad && isPageLoadNavigation) {
-        // eslint-disable-next-line deprecation/deprecation
-        const pageloadTransaction = getActiveTransaction();
-        if (pageloadTransaction) {
-          const attributes = spanToJSON(pageloadTransaction).data || {};
-          if (attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] !== 'custom') {
-            pageloadTransaction.updateName(transactionName);
-            pageloadTransaction.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, transactionSource);
-          }
-          // TODO: We need to flatten these to make them attributes
-          // eslint-disable-next-line deprecation/deprecation
-          pageloadTransaction.setData('params', data.params);
-          // eslint-disable-next-line deprecation/deprecation
-          pageloadTransaction.setData('query', data.query);
-        }
-      }
-
-      if (startTransactionOnLocationChange && !isPageLoadNavigation) {
-        data[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] = transactionSource;
-        startTransaction({
-          name: transactionName,
-          op: 'navigation',
-          origin: 'auto.navigation.vue',
-          tags,
-          data,
-        });
-      }
-
-      // Vue Router 4 no longer exposes the `next` function, so we need to
-      // check if it's available before calling it.
-      // `next` needs to be called in Vue Router 3 so that the hook is resolved.
-      if (next) {
-        next();
-      }
-    });
-  };
+  // Only use this root span if it is a pageload or navigation span
+  return op === 'navigation' || op === 'pageload' ? rootSpan : undefined;
 }

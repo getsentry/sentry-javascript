@@ -1,141 +1,140 @@
 import { expect, test } from '@playwright/test';
-import axios, { AxiosError } from 'axios';
-import { waitForTransaction } from '../event-proxy-server';
+import { waitForTransaction } from '@sentry-internal/test-utils';
 
 const packageJson = require('../package.json');
 
-const authToken = process.env.E2E_TEST_AUTH_TOKEN;
-const sentryTestOrgSlug = process.env.E2E_TEST_SENTRY_ORG_SLUG;
-const sentryTestProject = process.env.E2E_TEST_SENTRY_TEST_PROJECT;
-const EVENT_POLLING_TIMEOUT = 90_000;
-
 test('Sends a pageload transaction', async ({ page }) => {
-  const pageloadTransactionEventPromise = waitForTransaction('nextjs-13-app-dir', transactionEvent => {
+  const nextjsVersion = packageJson.dependencies.next;
+  const nextjsMajor = Number(nextjsVersion.split('.')[0]);
+  const isDevMode = process.env.TEST_ENV === 'development';
+
+  const pageloadTransactionEventPromise = waitForTransaction('nextjs-app-dir', transactionEvent => {
     return transactionEvent?.contexts?.trace?.op === 'pageload' && transactionEvent?.transaction === '/';
   });
 
   await page.goto('/');
 
   const transactionEvent = await pageloadTransactionEventPromise;
-  const transactionEventId = transactionEvent.event_id;
 
-  await expect
-    .poll(
-      async () => {
-        try {
-          const response = await axios.get(
-            `https://sentry.io/api/0/projects/${sentryTestOrgSlug}/${sentryTestProject}/events/${transactionEventId}/`,
-            { headers: { Authorization: `Bearer ${authToken}` } },
-          );
-
-          return response.status;
-        } catch (e) {
-          if (e instanceof AxiosError && e.response) {
-            if (e.response.status !== 404) {
-              throw e;
-            } else {
-              return e.response.status;
-            }
-          } else {
-            throw e;
-          }
-        }
+  expect(transactionEvent).toEqual(
+    expect.objectContaining({
+      transaction: '/',
+      transaction_info: { source: 'url' },
+      type: 'transaction',
+      contexts: {
+        react: {
+          version: expect.any(String),
+        },
+        trace: {
+          // Next.js >= 15 propagates a trace ID to the client via a meta tag. Also, only dev mode emits a meta tag because
+          // the requested page is static and only in dev mode SSR is kicked off.
+          parent_span_id: nextjsMajor >= 15 && isDevMode ? expect.any(String) : undefined,
+          span_id: expect.stringMatching(/[a-f0-9]{16}/),
+          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+          op: 'pageload',
+          origin: 'auto.pageload.nextjs.app_router_instrumentation',
+          data: expect.objectContaining({
+            'sentry.op': 'pageload',
+            'sentry.origin': 'auto.pageload.nextjs.app_router_instrumentation',
+            'sentry.sample_rate': 1,
+            'sentry.source': 'url',
+          }),
+        },
       },
-      {
-        timeout: EVENT_POLLING_TIMEOUT,
+      request: {
+        headers: {
+          'User-Agent': expect.any(String),
+        },
+        url: 'http://localhost:3030/',
       },
-    )
-    .toBe(200);
+    }),
+  );
 });
-
-if (process.env.TEST_ENV === 'production') {
-  // TODO: Fix that this is flakey on dev server - might be an SDK bug
-  test('Sends a transaction for a server component', async ({ page }) => {
-    const serverComponentTransactionPromise = waitForTransaction('nextjs-13-app-dir', transactionEvent => {
-      return (
-        transactionEvent?.contexts?.trace?.op === 'function.nextjs' &&
-        transactionEvent?.transaction === 'Page Server Component (/server-component/parameter/[...parameters])'
-      );
-    });
-
-    await page.goto('/server-component/parameter/1337/42');
-
-    const transactionEvent = await serverComponentTransactionPromise;
-    const transactionEventId = transactionEvent.event_id;
-
-    expect(transactionEvent.request?.headers).toBeDefined();
-
-    await expect
-      .poll(
-        async () => {
-          try {
-            const response = await axios.get(
-              `https://sentry.io/api/0/projects/${sentryTestOrgSlug}/${sentryTestProject}/events/${transactionEventId}/`,
-              { headers: { Authorization: `Bearer ${authToken}` } },
-            );
-
-            return response.status;
-          } catch (e) {
-            if (e instanceof AxiosError && e.response) {
-              if (e.response.status !== 404) {
-                throw e;
-              } else {
-                return e.response.status;
-              }
-            } else {
-              throw e;
-            }
-          }
-        },
-        {
-          timeout: EVENT_POLLING_TIMEOUT,
-        },
-      )
-      .toBe(200);
-  });
-
-  test('Should not set an error status on a server component transaction when it redirects', async ({ page }) => {
-    const serverComponentTransactionPromise = waitForTransaction('nextjs-13-app-dir', async transactionEvent => {
-      return transactionEvent?.transaction === 'Page Server Component (/server-component/redirect)';
-    });
-
-    await page.goto('/server-component/redirect');
-
-    expect((await serverComponentTransactionPromise).contexts?.trace?.status).not.toBe('internal_error');
-  });
-
-  test('Should set a "not_found" status on a server component transaction when notFound() is called', async ({
-    page,
-  }) => {
-    const serverComponentTransactionPromise = waitForTransaction('nextjs-13-app-dir', async transactionEvent => {
-      return transactionEvent?.transaction === 'Page Server Component (/server-component/not-found)';
-    });
-
-    await page.goto('/server-component/not-found');
-
-    expect((await serverComponentTransactionPromise).contexts?.trace?.status).toBe('not_found');
-  });
-}
 
 test('Should send a transaction for instrumented server actions', async ({ page }) => {
   const nextjsVersion = packageJson.dependencies.next;
   const nextjsMajor = Number(nextjsVersion.split('.')[0]);
   test.skip(!isNaN(nextjsMajor) && nextjsMajor < 14, 'only applies to nextjs apps >= version 14');
 
-  const serverComponentTransactionPromise = waitForTransaction('nextjs-13-app-dir', async transactionEvent => {
+  const serverComponentTransactionPromise = waitForTransaction('nextjs-app-dir', async transactionEvent => {
     return transactionEvent?.transaction === 'serverAction/myServerAction';
   });
 
   await page.goto('/server-action');
   await page.getByText('Run Action').click();
 
-  expect(await serverComponentTransactionPromise).toBeDefined();
-  expect(
-    (await serverComponentTransactionPromise).contexts?.trace?.data?.['server_action_form_data.some-text-value'],
-  ).toEqual('some-default-value');
-  expect((await serverComponentTransactionPromise).contexts?.trace?.data?.['server_action_result']).toEqual({
-    city: 'Vienna',
+  const transactionEvent = await serverComponentTransactionPromise;
+
+  expect(transactionEvent).toBeDefined();
+  expect(transactionEvent.extra).toMatchObject({
+    'server_action_form_data.some-text-value': 'some-default-value',
+    server_action_result: {
+      city: 'Vienna',
+    },
   });
 
-  expect(Object.keys((await serverComponentTransactionPromise).request?.headers || {}).length).toBeGreaterThan(0);
+  expect(Object.keys(transactionEvent.request?.headers || {}).length).toBeGreaterThan(0);
+});
+
+test('Should send a wrapped server action as a child of a nextjs transaction', async ({ page }) => {
+  const nextjsVersion = packageJson.dependencies.next;
+  const nextjsMajor = Number(nextjsVersion.split('.')[0]);
+  test.skip(!isNaN(nextjsMajor) && nextjsMajor < 14, 'only applies to nextjs apps >= version 14');
+  test.skip(process.env.TEST_ENV === 'development', 'this magically only works in production');
+
+  const nextjsPostTransactionPromise = waitForTransaction('nextjs-app-dir', async transactionEvent => {
+    return (
+      transactionEvent?.transaction === 'POST /server-action' && transactionEvent.contexts?.trace?.origin === 'auto'
+    );
+  });
+
+  const serverActionTransactionPromise = waitForTransaction('nextjs-app-dir', async transactionEvent => {
+    return transactionEvent?.transaction === 'serverAction/myServerAction';
+  });
+
+  await page.goto('/server-action');
+  await page.getByText('Run Action').click();
+
+  const nextjsTransaction = await nextjsPostTransactionPromise;
+  const serverActionTransaction = await serverActionTransactionPromise;
+
+  expect(nextjsTransaction).toBeDefined();
+  expect(serverActionTransaction).toBeDefined();
+
+  expect(nextjsTransaction.contexts?.trace?.span_id).toBe(serverActionTransaction.contexts?.trace?.parent_span_id);
+});
+
+test('Should set not_found status for server actions calling notFound()', async ({ page }) => {
+  const nextjsVersion = packageJson.dependencies.next;
+  const nextjsMajor = Number(nextjsVersion.split('.')[0]);
+  test.skip(!isNaN(nextjsMajor) && nextjsMajor < 14, 'only applies to nextjs apps >= version 14');
+
+  const serverComponentTransactionPromise = waitForTransaction('nextjs-app-dir', async transactionEvent => {
+    return transactionEvent?.transaction === 'serverAction/notFoundServerAction';
+  });
+
+  await page.goto('/server-action');
+  await page.getByText('Run NotFound Action').click();
+
+  const transactionEvent = await serverComponentTransactionPromise;
+
+  expect(transactionEvent).toBeDefined();
+  expect(transactionEvent.contexts?.trace?.status).toBe('not_found');
+});
+
+test('Will not include spans in pageload transaction with faulty timestamps for slow loading pages', async ({
+  page,
+}) => {
+  test.slow();
+  const pageloadTransactionEventPromise = waitForTransaction('nextjs-app-dir', transactionEvent => {
+    return (
+      transactionEvent?.contexts?.trace?.op === 'pageload' && transactionEvent?.transaction === '/very-slow-component'
+    );
+  });
+
+  await page.goto('/very-slow-component', { timeout: 11000 });
+
+  const pageLoadTransaction = await pageloadTransactionEventPromise;
+
+  expect(pageLoadTransaction.spans?.filter(span => span.timestamp! < span.start_timestamp)).toHaveLength(0);
 });

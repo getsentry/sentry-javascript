@@ -23,11 +23,8 @@
 // CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
 // OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-import type { StackFrame, StackLineParser, StackLineParserFn } from '@sentry/types';
-import { createStackParser } from '@sentry/utils';
-
-// global reference to slice
-const UNKNOWN_FUNCTION = '?';
+import { UNKNOWN_FUNCTION, createStackParser } from '@sentry/core';
+import type { StackFrame, StackLineParser, StackLineParserFn } from '@sentry/core';
 
 const OPERA10_PRIORITY = 10;
 const OPERA11_PRIORITY = 20;
@@ -38,7 +35,7 @@ const GECKO_PRIORITY = 50;
 function createFrame(filename: string, func: string, lineno?: number, colno?: number): StackFrame {
   const frame: StackFrame = {
     filename,
-    function: func,
+    function: func === '<anonymous>' ? UNKNOWN_FUNCTION : func,
     in_app: true, // All browser frames are considered in_app
   };
 
@@ -53,19 +50,36 @@ function createFrame(filename: string, func: string, lineno?: number, colno?: nu
   return frame;
 }
 
-// Chromium based browsers: Chrome, Brave, new Opera, new Edge
+// This regex matches frames that have no function name (ie. are at the top level of a module).
+// For example "at http://localhost:5000//script.js:1:126"
+// Frames _with_ function names usually look as follows: "at commitLayoutEffects (react-dom.development.js:23426:1)"
+const chromeRegexNoFnName = /^\s*at (\S+?)(?::(\d+))(?::(\d+))\s*$/i;
+
+// This regex matches all the frames that have a function name.
 const chromeRegex =
   /^\s*at (?:(.+?\)(?: \[.+\])?|.*?) ?\((?:address at )?)?(?:async )?((?:<anonymous>|[-a-z]+:|.*bundle|\/)?.*?)(?::(\d+))?(?::(\d+))?\)?\s*$/i;
+
 const chromeEvalRegex = /\((\S*)(?::(\d+))(?::(\d+))\)/;
 
-const chrome: StackLineParserFn = line => {
-  const parts = chromeRegex.exec(line);
+// Chromium based browsers: Chrome, Brave, new Opera, new Edge
+// We cannot call this variable `chrome` because it can conflict with global `chrome` variable in certain environments
+// See: https://github.com/getsentry/sentry-javascript/issues/6880
+const chromeStackParserFn: StackLineParserFn = line => {
+  // If the stack line has no function name, we need to parse it differently
+  const noFnParts = chromeRegexNoFnName.exec(line) as null | [string, string, string, string];
+
+  if (noFnParts) {
+    const [, filename, line, col] = noFnParts;
+    return createFrame(filename, UNKNOWN_FUNCTION, +line, +col);
+  }
+
+  const parts = chromeRegex.exec(line) as null | [string, string, string, string, string];
 
   if (parts) {
     const isEval = parts[2] && parts[2].indexOf('eval') === 0; // start of line
 
     if (isEval) {
-      const subMatch = chromeEvalRegex.exec(parts[2]);
+      const subMatch = chromeEvalRegex.exec(parts[2]) as null | [string, string, string, string];
 
       if (subMatch) {
         // throw out eval line/column and use top-most line/column number
@@ -85,7 +99,7 @@ const chrome: StackLineParserFn = line => {
   return;
 };
 
-export const chromeStackLineParser: StackLineParser = [CHROME_PRIORITY, chrome];
+export const chromeStackLineParser: StackLineParser = [CHROME_PRIORITY, chromeStackParserFn];
 
 // gecko regex: `(?:bundle|\d+\.js)`: `bundle` is for react native, `\d+\.js` also but specifically for ram bundles because it
 // generates filenames without a prefix like `file://` the filenames in the stacktrace are just 42.js
@@ -95,12 +109,12 @@ const geckoREgex =
 const geckoEvalRegex = /(\S+) line (\d+)(?: > eval line \d+)* > eval/i;
 
 const gecko: StackLineParserFn = line => {
-  const parts = geckoREgex.exec(line);
+  const parts = geckoREgex.exec(line) as null | [string, string, string, string, string, string];
 
   if (parts) {
     const isEval = parts[3] && parts[3].indexOf(' > eval') > -1;
     if (isEval) {
-      const subMatch = geckoEvalRegex.exec(parts[3]);
+      const subMatch = geckoEvalRegex.exec(parts[3]) as null | [string, string, string];
 
       if (subMatch) {
         // throw out eval line/column and use top-most line number
@@ -126,7 +140,7 @@ export const geckoStackLineParser: StackLineParser = [GECKO_PRIORITY, gecko];
 const winjsRegex = /^\s*at (?:((?:\[object object\])?.+) )?\(?((?:[-a-z]+):.*?):(\d+)(?::(\d+))?\)?\s*$/i;
 
 const winjs: StackLineParserFn = line => {
-  const parts = winjsRegex.exec(line);
+  const parts = winjsRegex.exec(line) as null | [string, string, string, string, string];
 
   return parts
     ? createFrame(parts[2], parts[1] || UNKNOWN_FUNCTION, +parts[3], parts[4] ? +parts[4] : undefined)
@@ -138,7 +152,7 @@ export const winjsStackLineParser: StackLineParser = [WINJS_PRIORITY, winjs];
 const opera10Regex = / line (\d+).*script (?:in )?(\S+)(?:: in function (\S+))?$/i;
 
 const opera10: StackLineParserFn = line => {
-  const parts = opera10Regex.exec(line);
+  const parts = opera10Regex.exec(line) as null | [string, string, string, string];
   return parts ? createFrame(parts[2], parts[3] || UNKNOWN_FUNCTION, +parts[1]) : undefined;
 };
 
@@ -148,13 +162,13 @@ const opera11Regex =
   / line (\d+), column (\d+)\s*(?:in (?:<anonymous function: ([^>]+)>|([^)]+))\(.*\))? in (.*):\s*$/i;
 
 const opera11: StackLineParserFn = line => {
-  const parts = opera11Regex.exec(line);
+  const parts = opera11Regex.exec(line) as null | [string, string, string, string, string, string];
   return parts ? createFrame(parts[5], parts[3] || parts[4] || UNKNOWN_FUNCTION, +parts[1], +parts[2]) : undefined;
 };
 
 export const opera11StackLineParser: StackLineParser = [OPERA11_PRIORITY, opera11];
 
-export const defaultStackLineParsers = [chromeStackLineParser, geckoStackLineParser, winjsStackLineParser];
+export const defaultStackLineParsers = [chromeStackLineParser, geckoStackLineParser];
 
 export const defaultStackParser = createStackParser(...defaultStackLineParsers);
 
@@ -184,7 +198,7 @@ const extractSafariExtensionDetails = (func: string, filename: string): [string,
 
   return isSafariExtension || isSafariWebExtension
     ? [
-        func.indexOf('@') !== -1 ? func.split('@')[0] : UNKNOWN_FUNCTION,
+        func.indexOf('@') !== -1 ? (func.split('@')[0] as string) : UNKNOWN_FUNCTION,
         isSafariExtension ? `safari-extension:${filename}` : `safari-web-extension:${filename}`,
       ]
     : [func, filename];

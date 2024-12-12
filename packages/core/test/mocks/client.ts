@@ -1,4 +1,3 @@
-import { TextEncoder } from 'util';
 import type {
   ClientOptions,
   Event,
@@ -7,25 +6,22 @@ import type {
   Outcome,
   ParameterizedString,
   Session,
-  Severity,
   SeverityLevel,
-} from '@sentry/types';
-import { resolvedSyncPromise } from '@sentry/utils';
+} from '../../src/types-hoist';
 
 import { BaseClient } from '../../src/baseclient';
 import { initAndBind } from '../../src/sdk';
 import { createTransport } from '../../src/transports/base';
+import { resolvedSyncPromise } from '../../src/utils-hoist/syncpromise';
 
 export function getDefaultTestClientOptions(options: Partial<TestClientOptions> = {}): TestClientOptions {
   return {
     integrations: [],
     sendClientReports: true,
-    transportOptions: { textEncoder: new TextEncoder() },
     transport: () =>
       createTransport(
         {
           recordDroppedEvent: () => undefined,
-          textEncoder: new TextEncoder(),
         }, // noop
         _ => resolvedSyncPromise({}),
       ),
@@ -53,13 +49,11 @@ export class TestClient extends BaseClient<TestClientOptions> {
     TestClient.instance = this;
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/explicit-module-boundary-types
   public eventFromException(exception: any): PromiseLike<Event> {
     const event: Event = {
       exception: {
         values: [
           {
-            /* eslint-disable @typescript-eslint/no-unsafe-member-access */
             type: exception.name,
             value: exception.message,
             /* eslint-enable @typescript-eslint/no-unsafe-member-access */
@@ -69,32 +63,28 @@ export class TestClient extends BaseClient<TestClientOptions> {
     };
 
     const frames = this._options.stackParser(exception.stack || '', 1);
-    if (frames.length && event?.exception?.values?.[0]) {
+    if (frames.length && event.exception?.values?.[0]) {
       event.exception.values[0] = { ...event.exception.values[0], stacktrace: { frames } };
     }
 
     return resolvedSyncPromise(event);
   }
 
-  public eventFromMessage(
-    message: ParameterizedString,
-    // eslint-disable-next-line deprecation/deprecation
-    level: Severity | SeverityLevel = 'info',
-  ): PromiseLike<Event> {
+  public eventFromMessage(message: ParameterizedString, level: SeverityLevel = 'info'): PromiseLike<Event> {
     return resolvedSyncPromise({ message, level });
   }
 
   public sendEvent(event: Event, hint?: EventHint): void {
     this.event = event;
 
-    // In real life, this will get deleted as part of envelope creation.
-    delete event.sdkProcessingMetadata;
-
     if (this._options.enableSend) {
       super.sendEvent(event, hint);
       return;
     }
-    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+
+    // In real life, this will get deleted as part of envelope creation.
+    delete event.sdkProcessingMetadata;
+
     TestClient.sendEventCalled && TestClient.sendEventCalled(event);
   }
 

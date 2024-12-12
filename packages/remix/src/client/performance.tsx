@@ -1,46 +1,62 @@
-import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
-import type { ErrorBoundaryProps } from '@sentry/react';
-import { WINDOW, withErrorBoundary } from '@sentry/react';
-import type { Transaction, TransactionContext } from '@sentry/types';
-import { isNodeEnv, logger } from '@sentry/utils';
+import type { Client, StartSpanOptions } from '@sentry/core';
+import {
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  getActiveSpan,
+  getCurrentScope,
+  getRootSpan,
+  isNodeEnv,
+  logger,
+} from '@sentry/core';
+import type {
+  BrowserClient,
+  ErrorBoundaryProps,
+  browserTracingIntegration as originalBrowserTracingIntegration,
+} from '@sentry/react';
+import {
+  WINDOW,
+  getClient,
+  startBrowserTracingNavigationSpan,
+  startBrowserTracingPageLoadSpan,
+  withErrorBoundary,
+} from '@sentry/react';
 import * as React from 'react';
-
 import { DEBUG_BUILD } from '../utils/debug-build';
 import { getFutureFlagsBrowser, readRemixVersionFromLoader } from '../utils/futureFlags';
 
-const DEFAULT_TAGS = {
-  'routing.instrumentation': 'remix-router',
-} as const;
-
-type Params<Key extends string = string> = {
+export type Params<Key extends string = string> = {
   readonly [key in Key]: string | undefined;
 };
 
-interface RouteMatch<ParamKey extends string = string> {
+export interface RouteMatch<ParamKey extends string = string> {
   params: Params<ParamKey>;
   pathname: string;
   id: string;
   handle: unknown;
 }
+export type UseEffect = (cb: () => void, deps: unknown[]) => void;
 
-type UseEffect = (cb: () => void, deps: unknown[]) => void;
-type UseLocation = () => {
+export type UseLocation = () => {
   pathname: string;
   search?: string;
   hash?: string;
   state?: unknown;
   key?: unknown;
 };
-type UseMatches = () => RouteMatch[] | null;
 
-let activeTransaction: Transaction | undefined;
+export type UseMatches = () => RouteMatch[] | null;
 
-let _useEffect: UseEffect;
-let _useLocation: UseLocation;
-let _useMatches: UseMatches;
+export type RemixBrowserTracingIntegrationOptions = Partial<Parameters<typeof originalBrowserTracingIntegration>[0]> & {
+  useEffect?: UseEffect;
+  useLocation?: UseLocation;
+  useMatches?: UseMatches;
+};
 
-let _customStartTransaction: (context: TransactionContext) => Transaction | undefined;
-let _startTransactionOnLocationChange: boolean;
+let _useEffect: UseEffect | undefined;
+let _useLocation: UseLocation | undefined;
+let _useMatches: UseMatches | undefined;
+
+let _instrumentNavigation: boolean | undefined;
 
 function getInitPathName(): string | undefined {
   if (WINDOW && WINDOW.location) {
@@ -54,38 +70,44 @@ function isRemixV2(remixVersion: number | undefined): boolean {
   return remixVersion === 2 || getFutureFlagsBrowser()?.v2_errorBoundary || false;
 }
 
-/**
- * Creates a react-router v6 instrumention for Remix applications.
- *
- * This implementation is slightly different (and simpler) from the react-router instrumentation
- * as in Remix, `useMatches` hook is available where in react-router-v6 it's not yet.
- */
-export function remixRouterInstrumentation(useEffect: UseEffect, useLocation: UseLocation, useMatches: UseMatches) {
-  return (
-    customStartTransaction: (context: TransactionContext) => Transaction | undefined,
-    startTransactionOnPageLoad = true,
-    startTransactionOnLocationChange = true,
-  ): void => {
-    const initPathName = getInitPathName();
-    if (startTransactionOnPageLoad && initPathName) {
-      activeTransaction = customStartTransaction({
-        name: initPathName,
-        op: 'pageload',
-        origin: 'auto.pageload.remix',
-        tags: DEFAULT_TAGS,
-        metadata: {
-          source: 'url',
-        },
-      });
-    }
+export function startPageloadSpan(client: Client): void {
+  const initPathName = getInitPathName();
 
-    _useEffect = useEffect;
-    _useLocation = useLocation;
-    _useMatches = useMatches;
+  if (!initPathName) {
+    return;
+  }
 
-    _customStartTransaction = customStartTransaction;
-    _startTransactionOnLocationChange = startTransactionOnLocationChange;
+  const spanContext: StartSpanOptions = {
+    name: initPathName,
+    op: 'pageload',
+    attributes: {
+      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.remix',
+      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+    },
   };
+
+  startBrowserTracingPageLoadSpan(client, spanContext);
+}
+
+function startNavigationSpan(matches: RouteMatch<string>[]): void {
+  const lastMatch = matches[matches.length - 1];
+
+  const client = getClient<BrowserClient>();
+
+  if (!client || !lastMatch) {
+    return;
+  }
+
+  const spanContext: StartSpanOptions = {
+    name: lastMatch.id,
+    op: 'navigation',
+    attributes: {
+      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.remix',
+      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+    },
+  };
+
+  startBrowserTracingNavigationSpan(client, spanContext);
 }
 
 /**
@@ -109,7 +131,7 @@ export function withSentry<P extends Record<string, unknown>, R extends React.Co
 ): R {
   const SentryRoot: React.FC<P> = (props: P) => {
     // Early return when any of the required functions is not available.
-    if (!_useEffect || !_useLocation || !_useMatches || !_customStartTransaction) {
+    if (!_useEffect || !_useLocation || !_useMatches) {
       DEBUG_BUILD &&
         !isNodeEnv() &&
         logger.warn('Remix SDK was unable to wrap your root because of one or more missing parameters.');
@@ -125,37 +147,42 @@ export function withSentry<P extends Record<string, unknown>, R extends React.Co
     const matches = _useMatches();
 
     _useEffect(() => {
-      if (activeTransaction && matches && matches.length) {
-        activeTransaction.updateName(matches[matches.length - 1].id);
-        activeTransaction.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
+      const lastMatch = matches && matches[matches.length - 1];
+      if (lastMatch) {
+        const routeName = lastMatch.id;
+        getCurrentScope().setTransactionName(routeName);
+
+        const activeRootSpan = getActiveSpan();
+        if (activeRootSpan) {
+          const transaction = getRootSpan(activeRootSpan);
+
+          if (transaction) {
+            transaction.updateName(routeName);
+            transaction.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
+          }
+        }
       }
 
       isBaseLocation = true;
     }, []);
 
     _useEffect(() => {
+      const activeRootSpan = getActiveSpan();
+
       if (isBaseLocation) {
-        if (activeTransaction) {
-          activeTransaction.end();
+        if (activeRootSpan) {
+          activeRootSpan.end();
         }
 
         return;
       }
 
-      if (_startTransactionOnLocationChange && matches && matches.length) {
-        if (activeTransaction) {
-          activeTransaction.end();
+      if (_instrumentNavigation && matches && matches.length) {
+        if (activeRootSpan) {
+          activeRootSpan.end();
         }
 
-        activeTransaction = _customStartTransaction({
-          name: matches[matches.length - 1].id,
-          op: 'navigation',
-          origin: 'auto.navigation.remix',
-          tags: DEFAULT_TAGS,
-          metadata: {
-            source: 'route',
-          },
-        });
+        startNavigationSpan(matches);
       }
     }, [location]);
 
@@ -174,4 +201,21 @@ export function withSentry<P extends Record<string, unknown>, R extends React.Co
   // @ts-expect-error Setting more specific React Component typing for `R` generic above
   // will break advanced type inference done by react router params
   return SentryRoot;
+}
+
+export function setGlobals({
+  useEffect,
+  useLocation,
+  useMatches,
+  instrumentNavigation,
+}: {
+  useEffect?: UseEffect;
+  useLocation?: UseLocation;
+  useMatches?: UseMatches;
+  instrumentNavigation?: boolean;
+}): void {
+  _useEffect = useEffect;
+  _useLocation = useLocation;
+  _useMatches = useMatches;
+  _instrumentNavigation = instrumentNavigation;
 }

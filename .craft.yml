@@ -5,10 +5,12 @@ targets:
   # NPM Targets
   ## 1. Base Packages, node or browser SDKs depend on
   ## 1.1 Types
+  # TODO(v9): Remove
   - name: npm
     id: '@sentry/types'
     includeNames: /^sentry-types-\d.*\.tgz$/
   ## 1.2 Utils
+  # TODO(v9): Remove
   - name: npm
     id: '@sentry/utils'
     includeNames: /^sentry-utils-\d.*\.tgz$/
@@ -16,15 +18,15 @@ targets:
   - name: npm
     id: '@sentry/core'
     includeNames: /^sentry-core-\d.*\.tgz$/
-  ## 1.4 Tracing package
+  ## 1.4 Browser Utils package
   - name: npm
-    id: '@sentry-internal/tracing'
-    includeNames: /^sentry-internal-tracing-\d.*\.tgz$/
-  ## 1.5 Replay package (browser only)
+    id: '@sentry-internal/browser-utils'
+    includeNames: /^sentry-internal-browser-utils-\d.*\.tgz$/
+  ## 1.5 Replay Internal package (browser only)
   - name: npm
-    id: '@sentry/replay'
-    includeNames: /^sentry-replay-\d.*\.tgz$/
-  ## 1.6. OpenTelemetry package
+    id: '@sentry-internal/replay'
+    includeNames: /^sentry-internal-replay-\d.*\.tgz$/
+  ## 1.6 OpenTelemetry package
   - name: npm
     id: '@sentry/opentelemetry'
     includeNames: /^sentry-opentelemetry-\d.*\.tgz$/
@@ -32,6 +34,10 @@ targets:
   - name: npm
     id: '@sentry-internal/feedback'
     includeNames: /^sentry-internal-feedback-\d.*\.tgz$/
+  ## 1.8 ReplayCanvas package (browser only)
+  - name: npm
+    id: '@sentry-internal/replay-canvas'
+    includeNames: /^sentry-internal-replay-canvas-\d.*\.tgz$/
 
   ## 2. Browser & Node SDKs
   - name: npm
@@ -40,11 +46,11 @@ targets:
   - name: npm
     id: '@sentry/node'
     includeNames: /^sentry-node-\d.*\.tgz$/
+  - name: npm
+    id: '@sentry/profiling-node'
+    includeNames: /^sentry-profiling-node-\d.*\.tgz$/
 
   ## 3 Browser-based Packages
-  - name: npm
-    id: '@sentry/angular-ivy'
-    includeNames: /^sentry-angular-ivy-\d.*\.tgz$/
   - name: npm
     id: '@sentry/angular'
     includeNames: /^sentry-angular-\d.*\.tgz$/
@@ -55,6 +61,9 @@ targets:
     id: '@sentry/react'
     includeNames: /^sentry-react-\d.*\.tgz$/
   - name: npm
+    id: '@sentry/solid'
+    includeNames: /^sentry-solid-\d.*\.tgz$/
+  - name: npm
     id: '@sentry/svelte'
     includeNames: /^sentry-svelte-\d.*\.tgz$/
   - name: npm
@@ -63,14 +72,14 @@ targets:
   - name: npm
     id: '@sentry/wasm'
     includeNames: /^sentry-wasm-\d.*\.tgz$/
-  - name: npm
-    id: '@sentry/integrations'
-    includeNames: /^sentry-integrations-\d.*\.tgz$/
 
   ## 4. WinterCG Packages
   - name: npm
     id: '@sentry/vercel-edge'
     includeNames: /^sentry-vercel-edge-\d.*\.tgz$/
+  - name: npm
+    id: '@sentry/cloudflare'
+    includeNames: /^sentry-cloudflare-\d.*\.tgz$/
   - name: npm
     id: '@sentry/deno'
     includeNames: /^sentry-deno-\d.*\.tgz$/
@@ -85,22 +94,31 @@ targets:
 
   ## 5. Node-based Packages
   - name: npm
-    id: '@sentry/serverless'
-    includeNames: /^sentry-serverless-\d.*\.tgz$/
+    id: '@sentry/aws-serverless'
+    includeNames: /^sentry-aws-serverless-\d.*\.tgz$/
   - name: npm
-    id: '@sentry/opentelemetry-node'
-    includeNames: /^sentry-opentelemetry-node-\d.*\.tgz$/
+    id: '@sentry/google-cloud-serverless'
+    includeNames: /^sentry-google-cloud-serverless-\d.*\.tgz$/
   - name: npm
     id: '@sentry/bun'
     includeNames: /^sentry-bun-\d.*\.tgz$/
+  - name: npm
+    id: '@sentry/nestjs'
+    includeNames: /^sentry-nestjs-\d.*\.tgz$/
 
   ## 6. Fullstack/Meta Frameworks (depending on Node and Browser or Framework SDKs)
   - name: npm
     id: '@sentry/nextjs'
     includeNames: /^sentry-nextjs-\d.*\.tgz$/
   - name: npm
+    id: '@sentry/nuxt'
+    includeNames: /^sentry-nuxt-\d.*\.tgz$/
+  - name: npm
     id: '@sentry/remix'
     includeNames: /^sentry-remix-\d.*\.tgz$/
+  - name: npm
+    id: '@sentry/solidstart'
+    includeNames: /^sentry-solidstart-\d.*\.tgz$/
   - name: npm
     id: '@sentry/sveltekit'
     includeNames: /^sentry-sveltekit-\d.*\.tgz$/
@@ -124,22 +142,9 @@ targets:
     id: '@sentry-internal/eslint-config-sdk'
     includeNames: /^sentry-internal-eslint-config-sdk-\d.*\.tgz$/
 
-  ## 8. Deprecated packages we still release (but no packages depend on them anymore)
-  - name: npm
-    id: '@sentry/hub'
-    includeNames: /^sentry-hub-\d.*\.tgz$/
-  - name: npm
-    id: '@sentry/tracing'
-    includeNames: /^sentry-tracing-\d.*\.tgz$/
-
-  ## 9. Experimental packages
-  - name: npm
-    id: '@sentry/node-experimental'
-    includeNames: /^sentry-node-experimental-\d.*\.tgz$/
-
   # AWS Lambda Layer target
   - name: aws-lambda-layer
-    includeNames: /^sentry-node-serverless-\d+.\d+.\d+(-(beta|alpha)\.\d+)?\.zip$/
+    includeNames: /^sentry-node-serverless-\d+.\d+.\d+(-(beta|alpha|rc)\.\d+)?\.zip$/
     layerName: SentryNodeServerlessSDK
     compatibleRuntimes:
       - name: node
@@ -149,6 +154,25 @@ targets:
           - nodejs14.x
           - nodejs16.x
           - nodejs18.x
+          - nodejs20.x
+    license: MIT
+
+  # NOTE: We publish the v8 layer under its own name so people on v8 can still get patches
+  # whenever we release a new v8 version—otherwise we would overwrite the current major lambda layer.
+
+  # AWS Lambda Layer target
+  - name: aws-lambda-layer
+    includeNames: /^sentry-node-serverless-\d+.\d+.\d+(-(beta|alpha|rc)\.\d+)?\.zip$/
+    layerName: SentryNodeServerlessSDKv8
+    compatibleRuntimes:
+      - name: node
+        versions:
+          - nodejs10.x
+          - nodejs12.x
+          - nodejs14.x
+          - nodejs16.x
+          - nodejs18.x
+          - nodejs20.x
     license: MIT
 
   # CDN Bundle Target
@@ -168,41 +192,49 @@ targets:
   # Sentry Release Registry Target
   - name: registry
     sdks:
+      'npm:@sentry/angular':
+        onlyIfPresent: /^sentry-angular-\d.*\.tgz$/
+      'npm:@sentry/astro':
+        onlyIfPresent: /^sentry-astro-\d.*\.tgz$/
+      'npm:@sentry/aws-serverless':
+        onlyIfPresent: /^sentry-aws-serverless-\d.*\.tgz$/
       'npm:@sentry/browser':
         onlyIfPresent: /^sentry-browser-\d.*\.tgz$/
         includeNames: /\.js$/
         checksums:
           - algorithm: sha384
             format: base64
+      'npm:@sentry/bun':
+        onlyIfPresent: /^sentry-bun-\d.*\.tgz$/
+      'npm:@sentry/cloudflare':
+        onlyIfPresent: /^sentry-cloudflare-\d.*\.tgz$/
+      'npm:@sentry/deno':
+        onlyIfPresent: /^sentry-deno-\d.*\.tgz$/
+      'npm:@sentry/ember':
+        onlyIfPresent: /^sentry-ember-\d.*\.tgz$/
+      'npm:@sentry/gatsby':
+        onlyIfPresent: /^sentry-gatsby-\d.*\.tgz$/
+      'npm:@sentry/google-cloud-serverless':
+        onlyIfPresent: /^sentry-google-cloud-serverless-\d.*\.tgz$/
+      'npm:@sentry/nextjs':
+        onlyIfPresent: /^sentry-nextjs-\d.*\.tgz$/
       'npm:@sentry/node':
         onlyIfPresent: /^sentry-node-\d.*\.tgz$/
       'npm:@sentry/react':
         onlyIfPresent: /^sentry-react-\d.*\.tgz$/
-      'npm:@sentry/vue':
-        onlyIfPresent: /^sentry-vue-\d.*\.tgz$/
-      'npm:@sentry/gatsby':
-        onlyIfPresent: /^sentry-gatsby-\d.*\.tgz$/
-      'npm:@sentry/angular-ivy':
-        onlyIfPresent: /^sentry-angular-ivy-\d.*\.tgz$/
-      'npm:@sentry/angular':
-        onlyIfPresent: /^sentry-angular-\d.*\.tgz$/
-      'npm:@sentry/astro':
-        onlyIfPresent: /^sentry-astro-\d.*\.tgz$/
-      'npm:@sentry/wasm':
-        onlyIfPresent: /^sentry-wasm-\d.*\.tgz$/
-      'npm:@sentry/nextjs':
-        onlyIfPresent: /^sentry-nextjs-\d.*\.tgz$/
       'npm:@sentry/remix':
         onlyIfPresent: /^sentry-remix-\d.*\.tgz$/
+      'npm:@sentry/solid':
+        onlyIfPresent: /^sentry-solid-\d.*\.tgz$/
+      'npm:@sentry/solidstart':
+        onlyIfPresent: /^sentry-solidstart-\d.*\.tgz$/
       'npm:@sentry/svelte':
         onlyIfPresent: /^sentry-svelte-\d.*\.tgz$/
       'npm:@sentry/sveltekit':
         onlyIfPresent: /^sentry-sveltekit-\d.*\.tgz$/
-      'npm:@sentry/opentelemetry-node':
-        onlyIfPresent: /^sentry-opentelemetry-node-\d.*\.tgz$/
-      'npm:@sentry/bun':
-        onlyIfPresent: /^sentry-bun-\d.*\.tgz$/
       'npm:@sentry/vercel-edge':
         onlyIfPresent: /^sentry-vercel-edge-\d.*\.tgz$/
-      'npm:@sentry/ember':
-        onlyIfPresent: /^sentry-ember-\d.*\.tgz$/
+      'npm:@sentry/vue':
+        onlyIfPresent: /^sentry-vue-\d.*\.tgz$/
+      'npm:@sentry/wasm':
+        onlyIfPresent: /^sentry-wasm-\d.*\.tgz$/

@@ -1,0 +1,23 @@
+{
+  "name": "node-express-cjs-preload",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "node --require @sentry/node/preload src/app.js",
+    "clean": "npx rimraf node_modules pnpm-lock.yaml",
+    "test:build": "pnpm install",
+    "test:assert": "playwright test"
+  },
+  "dependencies": {
+    "@sentry/node": "latest || *",
+    "@sentry/opentelemetry": "latest || *",
+    "express": "4.20.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.44.1",
+    "@sentry-internal/test-utils": "link:../../../test-utils"
+  },
+  "volta": {
+    "extends": "../../package.json"
+  }
+}

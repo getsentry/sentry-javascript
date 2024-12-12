@@ -1,0 +1,17 @@
+'use client';
+
+import * as Sentry from '@sentry/nextjs';
+
+if (typeof window !== 'undefined') {
+  Sentry.init({
+    environment: 'qa', // dynamic sampling bias to keep transactions
+    dsn: process.env.NEXT_PUBLIC_E2E_TEST_DSN,
+    tunnel: `http://localhost:3031/`, // proxy server
+    tracesSampleRate: 1.0,
+    sendDefaultPii: true,
+  });
+}
+
+export function HackComponentToRunSideEffectsInSentryClientConfig() {
+  return null;
+}

@@ -1,21 +1,27 @@
-import { TestEnv, assertSentryEvent } from '../../../../utils';
+import { cleanupChildProcesses, createRunner } from '../../../../utils/runner';
 
-test('should update user', async () => {
-  const env = await TestEnv.init(__dirname);
-  const envelopes = await env.getMultipleEnvelopeRequest({ count: 2 });
+afterAll(() => {
+  cleanupChildProcesses();
+});
 
-  assertSentryEvent(envelopes[0][2], {
-    message: 'first_user',
-    user: {
-      id: 'foo',
-      ip_address: 'bar',
-    },
-  });
-
-  assertSentryEvent(envelopes[1][2], {
-    message: 'second_user',
-    user: {
-      id: 'baz',
-    },
-  });
+test('should update user', done => {
+  createRunner(__dirname, 'scenario.ts')
+    .expect({
+      event: {
+        message: 'first_user',
+        user: {
+          id: 'foo',
+          ip_address: 'bar',
+        },
+      },
+    })
+    .expect({
+      event: {
+        message: 'second_user',
+        user: {
+          id: 'baz',
+        },
+      },
+    })
+    .start(done);
 });

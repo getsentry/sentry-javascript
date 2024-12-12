@@ -3,28 +3,28 @@ import { assertSnapshot } from 'https://deno.land/std@0.202.0/testing/snapshot.t
 
 import type { sentryTypes } from '../build-test/index.js';
 import { sentryUtils } from '../build-test/index.js';
-import { DenoClient, Hub, Scope, defaultIntegrations } from '../build/index.mjs';
+import { DenoClient, getCurrentScope, getDefaultIntegrations } from '../build/index.mjs';
 import { getNormalizedEvent } from './normalize.ts';
 import { makeTestTransport } from './transport.ts';
 
 function getTestClient(
   callback: (event?: sentryTypes.Event) => void,
   integrations: sentryTypes.Integration[] = [],
-): [Hub, DenoClient] {
+): DenoClient {
   const client = new DenoClient({
     dsn: 'https://233a45e5efe34c47a3536797ce15dafa@nothing.here/5650507',
     debug: true,
-    integrations: [...defaultIntegrations, ...integrations],
+    integrations: [...getDefaultIntegrations({}), ...integrations],
     stackParser: sentryUtils.createStackParser(sentryUtils.nodeStackLineParser()),
     transport: makeTestTransport(envelope => {
       callback(getNormalizedEvent(envelope));
     }),
   });
 
-  const scope = new Scope();
-  const hub = new Hub(client, scope);
+  client.init();
+  getCurrentScope().setClient(client);
 
-  return [hub, client];
+  return client;
 }
 
 function delay(time: number): Promise<void> {
@@ -35,7 +35,7 @@ function delay(time: number): Promise<void> {
 
 Deno.test('captureException', async t => {
   let ev: sentryTypes.Event | undefined;
-  const [, client] = getTestClient(event => {
+  const client = getTestClient(event => {
     ev = event;
   });
 
@@ -51,11 +51,28 @@ Deno.test('captureException', async t => {
 
 Deno.test('captureMessage', async t => {
   let ev: sentryTypes.Event | undefined;
-  const [, client] = getTestClient(event => {
+  const client = getTestClient(event => {
     ev = event;
   });
 
   client.captureMessage('Some error message');
+
+  await delay(200);
+  await assertSnapshot(t, ev);
+});
+
+Deno.test('captureMessage twice', async t => {
+  let ev: sentryTypes.Event | undefined;
+  const client = getTestClient(event => {
+    ev = event;
+  });
+
+  client.captureMessage('Some error message');
+
+  await delay(200);
+  await assertSnapshot(t, ev);
+
+  client.captureMessage('Another error message');
 
   await delay(200);
   await assertSnapshot(t, ev);

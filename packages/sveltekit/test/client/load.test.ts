@@ -1,8 +1,10 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import * as SentrySvelte from '@sentry/svelte';
 import type { Load } from '@sveltejs/kit';
 import { redirect } from '@sveltejs/kit';
-import { vi } from 'vitest';
 
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 import { wrapLoadWithSentry } from '../../src/client/load';
 
 const mockCaptureException = vi.spyOn(SentrySvelte, 'captureException').mockImplementation(() => 'xx');
@@ -31,10 +33,6 @@ const MOCK_LOAD_ARGS: any = {
   },
   url: new URL('http://localhost:3000/users/123'),
 };
-
-beforeAll(() => {
-  SentrySvelte.addTracingExtensions();
-});
 
 describe('wrapLoadWithSentry', () => {
   beforeEach(() => {
@@ -68,6 +66,30 @@ describe('wrapLoadWithSentry', () => {
     expect(mockCaptureException).not.toHaveBeenCalled();
   });
 
+  it.each([400, 404, 499])("doesn't call captureException for thrown `HttpError`s with status %s", async status => {
+    async function load(_: Parameters<Load>[0]): Promise<ReturnType<Load>> {
+      throw { status, body: 'error' };
+    }
+
+    const wrappedLoad = wrapLoadWithSentry(load);
+    const res = wrappedLoad(MOCK_LOAD_ARGS);
+    await expect(res).rejects.toThrow();
+
+    expect(mockCaptureException).not.toHaveBeenCalled();
+  });
+
+  it.each([500, 501, 599])('calls captureException for thrown `HttpError`s with status %s', async status => {
+    async function load(_: Parameters<Load>[0]): Promise<ReturnType<Load>> {
+      throw { status, body: 'error' };
+    }
+
+    const wrappedLoad = wrapLoadWithSentry(load);
+    const res = wrappedLoad(MOCK_LOAD_ARGS);
+    await expect(res).rejects.toThrow();
+
+    expect(mockCaptureException).toHaveBeenCalledTimes(1);
+  });
+
   describe('calls trace function', async () => {
     it('creates a load span', async () => {
       async function load({ params }: Parameters<Load>[0]): Promise<ReturnType<Load>> {
@@ -82,13 +104,12 @@ describe('wrapLoadWithSentry', () => {
       expect(mockStartSpan).toHaveBeenCalledTimes(1);
       expect(mockStartSpan).toHaveBeenCalledWith(
         {
-          op: 'function.sveltekit.load',
-          origin: 'auto.function.sveltekit',
-          name: '/users/[id]',
-          status: 'ok',
-          metadata: {
-            source: 'route',
+          attributes: {
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.sveltekit',
+            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
           },
+          op: 'function.sveltekit.load',
+          name: '/users/[id]',
         },
         expect.any(Function),
       );
@@ -110,13 +131,12 @@ describe('wrapLoadWithSentry', () => {
       expect(mockStartSpan).toHaveBeenCalledTimes(1);
       expect(mockStartSpan).toHaveBeenCalledWith(
         {
-          op: 'function.sveltekit.load',
-          origin: 'auto.function.sveltekit',
-          name: '/users/123',
-          status: 'ok',
-          metadata: {
-            source: 'url',
+          attributes: {
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.sveltekit',
+            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
           },
+          op: 'function.sveltekit.load',
+          name: '/users/123',
         },
         expect.any(Function),
       );

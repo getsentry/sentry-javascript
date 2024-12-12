@@ -1,0 +1,31 @@
+{
+  "name": "cloudflare-workers",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev --var E2E_TEST_DSN=$E2E_TEST_DSN",
+    "build": "wrangler deploy --dry-run --var E2E_TEST_DSN=$E2E_TEST_DSN",
+    "test": "vitest",
+    "typecheck": "tsc --noEmit",
+    "cf-typegen": "wrangler types",
+    "test:build": "pnpm install && pnpm build",
+    "test:assert": "pnpm typecheck"
+  },
+  "dependencies": {
+    "@sentry/cloudflare": "latest || *"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "^0.4.5",
+    "@cloudflare/workers-types": "^4.20240725.0",
+    "typescript": "^5.5.2",
+    "vitest": "1.5.0",
+    "wrangler": "^3.60.3"
+  },
+  "volta": {
+    "extends": "../../package.json"
+  },
+  "sentryTest": {
+    "optional": true
+  }
+}

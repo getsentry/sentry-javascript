@@ -1,19 +1,24 @@
-import { TestEnv, assertSentryEvent } from '../../../../utils';
+import { cleanupChildProcesses, createRunner } from '../../../../utils/runner';
 
-test('should set different properties of a scope', async () => {
-  const env = await TestEnv.init(__dirname);
-  const envelope = await env.getEnvelopeRequest();
+afterAll(() => {
+  cleanupChildProcesses();
+});
 
-  assertSentryEvent(envelope[2], {
-    message: 'configured_scope',
-    tags: {
-      foo: 'bar',
-    },
-    extra: {
-      qux: 'quux',
-    },
-    user: {
-      id: 'baz',
-    },
-  });
+test('should set different properties of a scope', done => {
+  createRunner(__dirname, 'scenario.ts')
+    .expect({
+      event: {
+        message: 'configured_scope',
+        tags: {
+          foo: 'bar',
+        },
+        extra: {
+          qux: 'quux',
+        },
+        user: {
+          id: 'baz',
+        },
+      },
+    })
+    .start(done);
 });

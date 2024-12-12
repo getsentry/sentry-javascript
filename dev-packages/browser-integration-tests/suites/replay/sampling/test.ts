@@ -3,7 +3,7 @@ import { expect } from '@playwright/test';
 import { sentryTest } from '../../../utils/fixtures';
 import { getReplaySnapshot, shouldSkipReplayTest } from '../../../utils/replayHelpers';
 
-sentryTest('should not send replays if both sample rates are 0', async ({ getLocalTestPath, page }) => {
+sentryTest('should not send replays if both sample rates are 0', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipReplayTest()) {
     sentryTest.skip();
   }
@@ -19,10 +19,10 @@ sentryTest('should not send replays if both sample rates are 0', async ({ getLoc
     });
   });
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname, skipDsnRouteHandler: true });
   await page.goto(url);
 
-  await page.click('button');
+  await page.locator('button').click();
 
   const replay = await getReplaySnapshot(page);
 

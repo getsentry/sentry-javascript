@@ -1,4 +1,4 @@
-import { makeBaseNPMConfig, makeNPMConfigVariants } from '@sentry-internal/rollup-utils';
+import { makeBaseNPMConfig, makeNPMConfigVariants, makeOtelLoaders } from '@sentry-internal/rollup-utils';
 
 export default [
   ...makeNPMConfigVariants(
@@ -14,7 +14,7 @@ export default [
         'src/config/index.ts',
       ],
 
-      // prevent this internal nextjs code from ending up in our built package (this doesn't happen automatially because
+      // prevent this internal nextjs code from ending up in our built package (this doesn't happen automatically because
       // the name doesn't match an SDK dependency)
       packageSpecificConfig: {
         external: ['next/router', 'next/constants', 'next/headers', 'stacktrace-parser'],
@@ -72,4 +72,5 @@ export default [
       },
     }),
   ),
+  ...makeOtelLoaders('./build', 'sentry-node'),
 ];

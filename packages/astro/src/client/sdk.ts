@@ -1,11 +1,13 @@
 import type { BrowserOptions } from '@sentry/browser';
-import { BrowserTracing, init as initBrowserSdk } from '@sentry/browser';
-import { getCurrentScope, hasTracingEnabled } from '@sentry/core';
-import { addOrUpdateIntegration } from '@sentry/utils';
+import {
+  browserTracingIntegration,
+  getDefaultIntegrations as getBrowserDefaultIntegrations,
+  init as initBrowserSdk,
+} from '@sentry/browser';
+import { applySdkMetadata } from '@sentry/core';
+import type { Client, Integration } from '@sentry/core';
 
-import { applySdkMetadata } from '../common/metadata';
-
-// Treeshakable guard to remove all code related to tracing
+// Tree-shakable guard to remove all code related to tracing
 declare const __SENTRY_TRACING__: boolean;
 
 /**
@@ -13,28 +15,23 @@ declare const __SENTRY_TRACING__: boolean;
  *
  * @param options Configuration options for the SDK.
  */
-export function init(options: BrowserOptions): void {
-  applySdkMetadata(options, ['astro', 'browser']);
+export function init(options: BrowserOptions): Client | undefined {
+  const opts = {
+    defaultIntegrations: getDefaultIntegrations(options),
+    ...options,
+  };
 
-  addClientIntegrations(options);
+  applySdkMetadata(opts, 'astro', ['astro', 'browser']);
 
-  initBrowserSdk(options);
-
-  getCurrentScope().setTag('runtime', 'browser');
+  return initBrowserSdk(opts);
 }
 
-function addClientIntegrations(options: BrowserOptions): void {
-  let integrations = options.integrations || [];
-
+function getDefaultIntegrations(options: BrowserOptions): Integration[] {
   // This evaluates to true unless __SENTRY_TRACING__ is text-replaced with "false",
-  // in which case everything inside will get treeshaken away
+  // in which case everything inside will get tree-shaken away
   if (typeof __SENTRY_TRACING__ === 'undefined' || __SENTRY_TRACING__) {
-    if (hasTracingEnabled(options)) {
-      const defaultBrowserTracingIntegration = new BrowserTracing({});
-
-      integrations = addOrUpdateIntegration(defaultBrowserTracingIntegration, integrations);
-    }
+    return [...getBrowserDefaultIntegrations(options), browserTracingIntegration()];
+  } else {
+    return getBrowserDefaultIntegrations(options);
   }
-
-  options.integrations = integrations;
 }

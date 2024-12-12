@@ -1,51 +1,29 @@
-import type { Integration } from '@sentry/types';
-import { consoleSandbox } from '@sentry/utils';
+import { consoleSandbox } from '@sentry/core';
+import type { Integration } from '@sentry/core';
+import { FAKE_FUNCTION } from './common';
+
+const REPLAY_INTEGRATION_METHODS = ['start', 'stop', 'flush'] as const;
+
+type ReplaySpecificMethods = Record<(typeof REPLAY_INTEGRATION_METHODS)[number], () => void>;
+
+interface ReplayIntegration extends Integration, ReplaySpecificMethods {}
 
 /**
  * This is a shim for the Replay integration.
  * It is needed in order for the CDN bundles to continue working when users add/remove replay
  * from it, without changing their config. This is necessary for the loader mechanism.
  */
-class ReplayShim implements Integration {
-  /**
-   * @inheritDoc
-   */
-  public static id: string = 'Replay';
+export function replayIntegrationShim(_options: unknown): ReplayIntegration {
+  consoleSandbox(() => {
+    // eslint-disable-next-line no-console
+    console.warn('You are using replayIntegration() even though this bundle does not include replay.');
+  });
 
-  /**
-   * @inheritDoc
-   */
-  public name: string;
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  public constructor(_options: any) {
-    this.name = ReplayShim.id;
-
-    consoleSandbox(() => {
-      // eslint-disable-next-line no-console
-      console.warn('You are using new Replay() even though this bundle does not include replay.');
-    });
-  }
-
-  /** jsdoc */
-  public setupOnce(): void {
-    // noop
-  }
-
-  /** jsdoc */
-  public start(): void {
-    // noop
-  }
-
-  /** jsdoc */
-  public stop(): void {
-    // noop
-  }
-
-  /** jsdoc */
-  public flush(): void {
-    // noop
-  }
+  return {
+    name: 'Replay',
+    ...(REPLAY_INTEGRATION_METHODS.reduce((acc, method) => {
+      acc[method] = FAKE_FUNCTION;
+      return acc;
+    }, {} as ReplaySpecificMethods) as ReplaySpecificMethods),
+  };
 }
-
-export { ReplayShim as Replay };

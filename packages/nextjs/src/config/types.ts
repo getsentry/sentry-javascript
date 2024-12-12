@@ -1,38 +1,19 @@
-import type { GLOBAL_OBJ } from '@sentry/utils';
-import type { SentryCliPluginOptions } from '@sentry/webpack-plugin';
-import type { DefinePlugin, WebpackPluginInstance } from 'webpack';
+import type { GLOBAL_OBJ } from '@sentry/core';
+import type { SentryWebpackPluginOptions } from '@sentry/webpack-plugin';
 
-export type SentryWebpackPluginOptions = SentryCliPluginOptions;
-export type SentryWebpackPlugin = WebpackPluginInstance & { options: SentryWebpackPluginOptions };
-// Export this from here because importing something from Webpack (the library) in `webpack.ts` confuses the heck out of
-// madge, which we use for circular dependency checking. We've manually excluded this file from the check (which is
-// safe, since it only includes types), so we can import it here without causing madge to fail. See
-// https://github.com/pahen/madge/issues/306.
-export type { WebpackPluginInstance };
-
-/**
- * Overall Nextjs config
- */
-
-// The first argument to `withSentryConfig` (which is the user's next config) may contain a `sentry` key, which we'll
-// remove once we've captured it, in order to prevent nextjs from throwing warnings. Since it's only in there
-// temporarily, we don't include it in the main `NextConfigObject` or `NextConfigFunction` types.
-export type ExportedNextConfig = NextConfigObjectWithSentry | NextConfigFunctionWithSentry;
-
-export type NextConfigObjectWithSentry = NextConfigObject & {
-  sentry?: UserSentryOptions;
-};
-
-export type NextConfigFunctionWithSentry = (
-  phase: string,
-  defaults: { defaultConfig: NextConfigObject },
-) => NextConfigObjectWithSentry | PromiseLike<NextConfigObjectWithSentry>;
+// The first argument to `withSentryConfig` (which is the user's next config).
+export type ExportedNextConfig = NextConfigObject | NextConfigFunction;
 
 // Vendored from Next.js (this type is not complete - extend if necessary)
 type NextRewrite = {
   source: string;
   destination: string;
 };
+
+interface WebpackPluginInstance {
+  [index: string]: any;
+  apply: (compiler: any) => void;
+}
 
 export type NextConfigObject = {
   // Custom webpack options
@@ -60,41 +41,358 @@ export type NextConfigObject = {
         fallback?: NextRewrite[];
       }
   >;
+  // Next.js experimental options
+  experimental?: {
+    instrumentationHook?: boolean;
+    clientTraceMetadata?: string[];
+  };
+  productionBrowserSourceMaps?: boolean;
+  // https://nextjs.org/docs/pages/api-reference/next-config-js/env
+  env?: Record<string, string>;
 };
 
-export type UserSentryOptions = {
+export type SentryBuildOptions = {
   /**
-   * Override the SDK's default decision about whether or not to enable to the Sentry webpack plugin for server files.
-   * Note that `false` forces the plugin to be enabled, even in situations where it's not recommended.
+   * The slug of the Sentry organization associated with the app.
+   *
+   * This value can also be specified via the `SENTRY_ORG` environment variable.
    */
-  disableServerWebpackPlugin?: boolean;
+  org?: string;
 
   /**
-   * Override the SDK's default decision about whether or not to enable to the Sentry webpack plugin for client files.
-   * Note that `false` forces the plugin to be enabled, even in situations where it's not recommended.
+   * The slug of the Sentry project associated with the app.
+   *
+   * This value can also be specified via the `SENTRY_PROJECT` environment variable.
    */
-  disableClientWebpackPlugin?: boolean;
+  project?: string;
+
+  /**
+   * The authentication token to use for all communication with Sentry.
+   * Can be obtained from https://sentry.io/orgredirect/organizations/:orgslug/settings/auth-tokens/.
+   *
+   * This value can also be specified via the `SENTRY_AUTH_TOKEN` environment variable.
+   */
+  authToken?: string;
+
+  /**
+   * The base URL of your Sentry instance. Use this if you are using a self-hosted
+   * or Sentry instance other than sentry.io.
+   *
+   * This value can also be set via the `SENTRY_URL` environment variable.
+   *
+   * Defaults to https://sentry.io/, which is the correct value for SaaS customers.
+   */
+  sentryUrl?: string;
+
+  /**
+   * Headers added to every outgoing network request.
+   */
+  headers?: Record<string, string>;
+
+  /**
+   * If set to true, internal plugin errors and performance data will be sent to Sentry.
+   *
+   * At Sentry we like to use Sentry ourselves to deliver faster and more stable products.
+   * We're very careful of what we're sending. We won't collect anything other than error
+   * and high-level performance data. We will never collect your code or any details of the
+   * projects in which you're using this plugin.
+   *
+   * Defaults to `true`.
+   */
+  telemetry?: boolean;
+
+  /**
+   * Suppresses all Sentry SDK build logs.
+   *
+   * Defaults to `false`.
+   */
+  // TODO: Actually implement this for the non-plugin code.
+  silent?: boolean;
+
+  /**
+   * Prints additional debug information about the SDK and uploading source maps when building the application.
+   *
+   * Defaults to `false`.
+   */
+  // TODO: Actually implement this for the non-plugin code.
+  debug?: boolean;
+
+  /**
+   * Options for source maps uploading.
+   */
+  sourcemaps?: {
+    /**
+     * Disable any functionality related to source maps upload.
+     */
+    disable?: boolean;
+
+    /**
+     * A glob or an array of globs that specifies the build artifacts that should be uploaded to Sentry.
+     *
+     * If this option is not specified, the plugin will try to upload all JavaScript files and source map files that are created during build.
+     *
+     * The globbing patterns follow the implementation of the `glob` package. (https://www.npmjs.com/package/glob)
+     *
+     * Use the `debug` option to print information about which files end up being uploaded.
+     */
+    assets?: string | string[];
+
+    /**
+     * A glob or an array of globs that specifies which build artifacts should not be uploaded to Sentry.
+     *
+     * Default: `[]`
+     *
+     * The globbing patterns follow the implementation of the `glob` package. (https://www.npmjs.com/package/glob)
+     *
+     * Use the `debug` option to print information about which files end up being uploaded.
+     */
+    ignore?: string | string[];
+
+    /**
+     * Toggle whether generated source maps within your Next.js build folder should be automatically deleted after being uploaded to Sentry.
+     *
+     * Defaults to `false`.
+     */
+    deleteSourcemapsAfterUpload?: boolean;
+  };
+
+  /**
+   * Options related to managing the Sentry releases for a build.
+   *
+   * More info: https://docs.sentry.io/product/releases/
+   */
+  release?: {
+    /**
+     * Unique identifier for the release you want to create.
+     *
+     * This value can also be specified via the `SENTRY_RELEASE` environment variable.
+     *
+     * Defaults to automatically detecting a value for your environment.
+     * This includes values for Cordova, Heroku, AWS CodeBuild, CircleCI, Xcode, and Gradle, and otherwise uses the git `HEAD`'s commit SHA.
+     * (the latter requires access to git CLI and for the root directory to be a valid repository)
+     *
+     * If you didn't provide a value and the plugin can't automatically detect one, no release will be created.
+     */
+    name?: string;
+
+    /**
+     * Whether the plugin should create a release on Sentry during the build.
+     * Note that a release may still appear in Sentry even if this is value is `false` because any Sentry event that has a release value attached will automatically create a release.
+     * (for example via the `inject` option)
+     *
+     * Defaults to `true`.
+     */
+    create?: boolean;
+
+    /**
+     * Whether the Sentry release should be automatically finalized (meaning an end timestamp is added) after the build ends.
+     *
+     * Defaults to `true`.
+     */
+    finalize?: boolean;
+
+    /**
+     * Unique identifier for the distribution, used to further segment your release.
+     * Usually your build number.
+     */
+    dist?: string;
+
+    /**
+     * Version control system remote name.
+     *
+     * This value can also be specified via the `SENTRY_VSC_REMOTE` environment variable.
+     *
+     * Defaults to 'origin'.
+     */
+    vcsRemote?: string;
+
+    /**
+     * Associates the release with its commits in Sentry.
+     */
+    setCommits?: (
+      | {
+          /**
+           * Automatically sets `commit` and `previousCommit`. Sets `commit` to `HEAD`
+           * and `previousCommit` as described in the option's documentation.
+           *
+           * If you set this to `true`, manually specified `commit` and `previousCommit`
+           * options will be overridden. It is best to not specify them at all if you
+           * set this option to `true`.
+           */
+          auto: true;
+
+          repo?: undefined;
+          commit?: undefined;
+        }
+      | {
+          auto?: false | undefined;
+
+          /**
+           * The full repo name as defined in Sentry.
+           *
+           * Required if the `auto` option is not set to `true`.
+           */
+          repo: string;
+
+          /**
+           * The current (last) commit in the release.
+           *
+           * Required if the `auto` option is not set to `true`.
+           */
+          commit: string;
+        }
+    ) & {
+      /**
+       * The commit before the beginning of this release (in other words,
+       * the last commit of the previous release).
+       *
+       * Defaults to the last commit of the previous release in Sentry.
+       *
+       * If there was no previous release, the last 10 commits will be used.
+       */
+      previousCommit?: string;
+
+      /**
+       * If the flag is to `true` and the previous release commit was not found
+       * in the repository, the plugin creates a release with the default commits
+       * count instead of failing the command.
+       *
+       * Defaults to `false`.
+       */
+      ignoreMissing?: boolean;
+
+      /**
+       * If this flag is set, the setCommits step will not fail and just exit
+       * silently if no new commits for a given release have been found.
+       *
+       * Defaults to `false`.
+       */
+      ignoreEmpty?: boolean;
+    };
+
+    /**
+     * Adds deployment information to the release in Sentry.
+     */
+    deploy?: {
+      /**
+       * Environment for this release. Values that make sense here would
+       * be `production` or `staging`.
+       */
+      env: string;
+
+      /**
+       * Deployment start time in Unix timestamp (in seconds) or ISO 8601 format.
+       */
+      started?: number | string;
+
+      /**
+       * Deployment finish time in Unix timestamp (in seconds) or ISO 8601 format.
+       */
+      finished?: number | string;
+
+      /**
+       * Deployment duration (in seconds). Can be used instead of started and finished.
+       */
+      time?: number;
+
+      /**
+       * Human readable name for the deployment.
+       */
+      name?: string;
+
+      /**
+       * URL that points to the deployment.
+       */
+      url?: string;
+    };
+  };
+
+  /**
+   * Options to configure various bundle size optimizations related to the Sentry SDK.
+   */
+  bundleSizeOptimizations?: {
+    /**
+     * If set to `true`, the Sentry SDK will attempt to tree-shake (remove) any debugging code within itself during the build.
+     * Note that the success of this depends on tree shaking being enabled in your build tooling.
+     *
+     * Setting this option to `true` will disable features like the SDK's `debug` option.
+     */
+    excludeDebugStatements?: boolean;
+
+    /**
+     * If set to `true`, the Sentry SDK will attempt to tree-shake (remove) code within itself that is related to tracing and performance monitoring.
+     * Note that the success of this depends on tree shaking being enabled in your build tooling.
+     * **Notice:** Do not enable this when you're using any performance monitoring-related SDK features (e.g. `Sentry.startTransaction()`).
+     */
+    excludeTracing?: boolean;
+
+    /**
+     * If set to `true`, the Sentry SDK will attempt to tree-shake (remove) code related to the SDK's Session Replay Shadow DOM recording functionality.
+     * Note that the success of this depends on tree shaking being enabled in your build tooling.
+     *
+     * This option is safe to be used when you do not want to capture any Shadow DOM activity via Sentry Session Replay.
+     */
+    excludeReplayShadowDom?: boolean;
+
+    /**
+     * If set to `true`, the Sentry SDK will attempt to tree-shake (remove) code related to the SDK's Session Replay `iframe` recording functionality.
+     * Note that the success of this depends on tree shaking being enabled in your build tooling.
+     *
+     * You can safely do this when you do not want to capture any `iframe` activity via Sentry Session Replay.
+     */
+    excludeReplayIframe?: boolean;
+
+    /**
+     * If set to `true`, the Sentry SDK will attempt to tree-shake (remove) code related to the SDK's Session Replay's Compression Web Worker.
+     * Note that the success of this depends on tree shaking being enabled in your build tooling.
+     *
+     * **Notice:** You should only use this option if you manually host a compression worker and configure it in your Sentry Session Replay integration config via the `workerUrl` option.
+     */
+    excludeReplayWorker?: boolean;
+  };
+
+  /**
+   * Options related to react component name annotations.
+   * Disabled by default, unless a value is set for this option.
+   * When enabled, your app's DOM will automatically be annotated during build-time with their respective component names.
+   * This will unlock the capability to search for Replays in Sentry by component name, as well as see component names in breadcrumbs and performance monitoring.
+   * Please note that this feature is not currently supported by the esbuild bundler plugins, and will only annotate React components
+   */
+  reactComponentAnnotation?: {
+    /**
+     * Whether the component name annotate plugin should be enabled or not.
+     */
+    enabled?: boolean;
+  };
+
+  /**
+   * Options to be passed directly to the Sentry Webpack Plugin (`@sentry/webpack-plugin`) that ships with the Sentry Next.js SDK.
+   * You can use this option to override any options the SDK passes to the webpack plugin.
+   *
+   * Please note that this option is unstable and may change in a breaking way in any release.
+   */
+  unstable_sentryWebpackPluginOptions?: SentryWebpackPluginOptions;
 
   /**
    * Use `hidden-source-map` for webpack `devtool` option, which strips the `sourceMappingURL` from the bottom of built
    * JS files.
+   *
+   * @deprecated This is deprecated. The SDK emits chunks without `sourceMappingURL` for client bundles by default.
    */
+  // TODO(v9): Remove option
   hideSourceMaps?: boolean;
 
   /**
-   * Instructs webpack to apply the same transpilation rules to the SDK code as apply to user code. Helpful when
-   * targeting older browsers which don't support ES6 (or ES6+ features like object spread).
+   * Include Next.js-internal code and code from dependencies when uploading source maps.
+   *
+   * Note: Enabling this option can lead to longer build times.
+   * Disabling this option will leave you without readable stacktraces for dependencies and Next.js-internal code.
+   *
+   * Defaults to `false`.
    */
-  transpileClientSDK?: boolean;
-
-  /**
-   * Instructs the Sentry webpack plugin to upload source files from `<distDir>/static/chunks` rather than
-   * `<distDir>/static/chunks/pages`. Usually files outside of `pages/` only contain third-party code, but in cases
-   * where they contain user code, restricting the webpack plugin's upload breaks sourcemaps for those
-   * user-code-containing files, because it keeps them from being uploaded. Defaults to `false`.
-   */
-  // We don't want to widen the scope if we don't have to, because we're guaranteed to end up uploading too many files,
-  // which is why this defaults to`false`.
+  // Enabling this option may upload a lot of source maps and since the sourcemap upload endpoint in Sentry is super
+  // slow we don't enable it by default so that we don't opaquely increase build times for users.
+  // TODO: Add an alias to this function called "uploadSourceMapsForDependencies"
   widenClientFileUpload?: boolean;
 
   /**
@@ -114,12 +412,15 @@ export type UserSentryOptions = {
   autoInstrumentAppDirectory?: boolean;
 
   /**
-   * Exclude certain serverside API routes or pages from being instrumented with Sentry. This option takes an array of
-   * strings or regular expressions. This options also affects pages in the `app` directory.
+   * Exclude certain serverside API routes or pages from being instrumented with Sentry during build-time. This option
+   * takes an array of strings or regular expressions. This options also affects pages in the `app` directory.
    *
    * NOTE: Pages should be specified as routes (`/animals` or `/api/animals/[animalType]/habitat`), not filepaths
    * (`pages/animals/index.js` or `.\src\pages\api\animals\[animalType]\habitat.tsx`), and strings must be be a full,
    * exact match.
+   *
+   * Notice: If you build Next.js with turbopack, the Sentry SDK will no longer apply build-time instrumentation and
+   * purely rely on Next.js telemetry features, meaning that this option will effectively no-op.
    */
   excludeServerRoutes?: Array<RegExp | string>;
 
@@ -153,15 +454,32 @@ export type NextConfigFunction = (
  * Webpack config
  */
 
+// Note: The interface for `ignoreWarnings` is larger but we only need this. See https://webpack.js.org/configuration/other-options/#ignorewarnings
+export type IgnoreWarningsOption = (
+  | { module?: RegExp; message?: RegExp }
+  | ((
+      webpackError: {
+        module?: {
+          readableIdentifier: (requestShortener: unknown) => string;
+        };
+        message: string;
+      },
+      compilation: {
+        requestShortener: unknown;
+      },
+    ) => boolean)
+)[];
+
 // The two possible formats for providing custom webpack config in `next.config.js`
 export type WebpackConfigFunction = (config: WebpackConfigObject, options: BuildContext) => WebpackConfigObject;
 export type WebpackConfigObject = {
-  devtool?: string;
-  plugins?: Array<WebpackPluginInstance | SentryWebpackPlugin>;
+  devtool?: string | boolean;
+  plugins?: Array<WebpackPluginInstance>;
   entry: WebpackEntryProperty;
   output: { filename: string; path: string };
   target: string;
   context: string;
+  ignoreWarnings?: IgnoreWarningsOption;
   resolve?: {
     modules?: string[];
     alias?: { [key: string]: string | boolean };
@@ -187,11 +505,11 @@ export type BuildContext = {
   config: any;
   webpack: {
     version: string;
-    DefinePlugin: typeof DefinePlugin;
+    DefinePlugin: new (values: Record<string, string | boolean>) => WebpackPluginInstance;
   };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  defaultLoaders: any;
-  totalPages: number;
+  defaultLoaders: any; // needed for type tests (test:types)
+  totalPages: number; // needed for type tests (test:types)
   nextRuntime?: 'nodejs' | 'edge'; // Added in Next.js 12+
 };
 
@@ -235,7 +553,7 @@ export type ModuleRuleUseProperty = {
  * Global with values we add when we inject code into people's pages, for use at runtime.
  */
 export type EnhancedGlobal = typeof GLOBAL_OBJ & {
-  __rewriteFramesDistDir__?: string;
+  _sentryRewriteFramesDistDir?: string;
   SENTRY_RELEASE?: { id: string };
   SENTRY_RELEASES?: { [key: string]: { id: string } };
 };

@@ -1,26 +1,30 @@
+import { GLOBAL_OBJ, dsnFromString, logger } from '@sentry/core';
 import type { BrowserOptions } from '@sentry/react';
-import { dsnFromString, logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../common/debug-build';
 
-const globalWithInjectedValues = global as typeof global & {
-  __sentryRewritesTunnelPath__?: string;
+const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
+  _sentryRewritesTunnelPath?: string;
 };
 
 /**
  * Applies the `tunnel` option to the Next.js SDK options based on `withSentryConfig`'s `tunnelRoute` option.
  */
 export function applyTunnelRouteOption(options: BrowserOptions): void {
-  const tunnelRouteOption = globalWithInjectedValues.__sentryRewritesTunnelPath__;
+  const tunnelRouteOption = process.env._sentryRewritesTunnelPath || globalWithInjectedValues._sentryRewritesTunnelPath;
   if (tunnelRouteOption && options.dsn) {
     const dsnComponents = dsnFromString(options.dsn);
     if (!dsnComponents) {
       return;
     }
-    const sentrySaasDsnMatch = dsnComponents.host.match(/^o(\d+)\.ingest\.sentry\.io$/);
+    const sentrySaasDsnMatch = dsnComponents.host.match(/^o(\d+)\.ingest(?:\.([a-z]{2}))?\.sentry\.io$/);
     if (sentrySaasDsnMatch) {
       const orgId = sentrySaasDsnMatch[1];
-      const tunnelPath = `${tunnelRouteOption}?o=${orgId}&p=${dsnComponents.projectId}`;
+      const regionCode = sentrySaasDsnMatch[2];
+      let tunnelPath = `${tunnelRouteOption}?o=${orgId}&p=${dsnComponents.projectId}`;
+      if (regionCode) {
+        tunnelPath += `&r=${regionCode}`;
+      }
       options.tunnel = tunnelPath;
       DEBUG_BUILD && logger.info(`Tunneling events to "${tunnelPath}"`);
     } else {

@@ -1,15 +1,13 @@
-import { BaseClient, getClient } from '@sentry/core';
+import { getGlobalScope, getIsolationScope } from '@sentry/core';
+import { logger } from '@sentry/core';
+import type { Integration } from '@sentry/core';
 import * as SentryReact from '@sentry/react';
-import { BrowserTracing, WINDOW, getCurrentScope } from '@sentry/react';
-import type { Integration } from '@sentry/types';
-import type { UserIntegrationsFunction } from '@sentry/utils';
-import { logger } from '@sentry/utils';
+import { WINDOW, getClient, getCurrentScope } from '@sentry/react';
 import { JSDOM } from 'jsdom';
 
-import { Integrations, init, nextRouterInstrumentation } from '../src/client';
+import { breadcrumbsIntegration, browserTracingIntegration, init } from '../src/client';
 
 const reactInit = jest.spyOn(SentryReact, 'init');
-const captureEvent = jest.spyOn(BaseClient.prototype, 'captureEvent');
 const loggerLogSpy = jest.spyOn(logger, 'log');
 
 // We're setting up JSDom here because the Next.js routing instrumentations requires a few things to be present on pageload:
@@ -18,23 +16,34 @@ const loggerLogSpy = jest.spyOn(logger, 'log');
 const dom = new JSDOM(undefined, { url: 'https://example.com/' });
 Object.defineProperty(global, 'document', { value: dom.window.document, writable: true });
 Object.defineProperty(global, 'location', { value: dom.window.document.location, writable: true });
+Object.defineProperty(global, 'addEventListener', { value: () => undefined, writable: true });
 
 const originalGlobalDocument = WINDOW.document;
 const originalGlobalLocation = WINDOW.location;
+// eslint-disable-next-line @typescript-eslint/unbound-method
+const originalGlobalAddEventListener = WINDOW.addEventListener;
+
 afterAll(() => {
   // Clean up JSDom
   Object.defineProperty(WINDOW, 'document', { value: originalGlobalDocument });
   Object.defineProperty(WINDOW, 'location', { value: originalGlobalLocation });
+  Object.defineProperty(WINDOW, 'addEventListener', { value: originalGlobalAddEventListener });
 });
 
 function findIntegrationByName(integrations: Integration[] = [], name: string): Integration | undefined {
   return integrations.find(integration => integration.name === name);
 }
 
+const TEST_DSN = 'https://public@dsn.ingest.sentry.io/1337';
+
 describe('Client init()', () => {
   afterEach(() => {
     jest.clearAllMocks();
-    WINDOW.__SENTRY__.hub = undefined;
+
+    getGlobalScope().clear();
+    getIsolationScope().clear();
+    getCurrentScope().clear();
+    getCurrentScope().setClient(undefined);
   });
 
   it('inits the React SDK', () => {
@@ -60,25 +69,13 @@ describe('Client init()', () => {
           },
         },
         environment: 'test',
-        integrations: expect.arrayContaining([
+        defaultIntegrations: expect.arrayContaining([
           expect.objectContaining({
-            name: 'RewriteFrames',
+            name: 'NextjsClientStackFrameNormalization',
           }),
         ]),
       }),
     );
-  });
-
-  it('sets runtime on scope', () => {
-    const currentScope = getCurrentScope();
-
-    // @ts-expect-error need access to protected _tags attribute
-    expect(currentScope._tags).toEqual({});
-
-    init({});
-
-    // @ts-expect-error need access to protected _tags attribute
-    expect(currentScope._tags).toEqual({ runtime: 'browser' });
   });
 
   it('adds 404 transaction filter', () => {
@@ -89,114 +86,82 @@ describe('Client init()', () => {
     const transportSend = jest.spyOn(getClient()!.getTransport()!, 'send');
 
     // Ensure we have no current span, so our next span is a transaction
-    // eslint-disable-next-line deprecation/deprecation
-    getCurrentScope().setSpan(undefined);
-
-    SentryReact.startSpan({ name: '/404' }, () => {
-      // noop
+    SentryReact.withActiveSpan(null, () => {
+      SentryReact.startInactiveSpan({ name: '/404' })?.end();
     });
 
     expect(transportSend).not.toHaveBeenCalled();
-    expect(captureEvent.mock.results[0].value).toBeUndefined();
     expect(loggerLogSpy).toHaveBeenCalledWith('An event processor returned `null`, will not send event.');
   });
 
   describe('integrations', () => {
     // Options passed by `@sentry/nextjs`'s `init` to `@sentry/react`'s `init` after modifying them
-    type ModifiedInitOptionsIntegrationArray = { integrations: Integration[] };
-    type ModifiedInitOptionsIntegrationFunction = { integrations: UserIntegrationsFunction };
+    type ModifiedInitOptionsIntegrationArray = { defaultIntegrations: Integration[]; integrations: Integration[] };
 
     it('supports passing unrelated integrations through options', () => {
-      init({ integrations: [new Integrations.Breadcrumbs({ console: false })] });
+      init({ integrations: [breadcrumbsIntegration({ console: false })] });
 
-      const reactInitOptions = reactInit.mock.calls[0][0] as ModifiedInitOptionsIntegrationArray;
-      const breadcrumbsIntegration = findIntegrationByName(reactInitOptions.integrations, 'Breadcrumbs');
+      const reactInitOptions = reactInit.mock.calls[0]![0] as ModifiedInitOptionsIntegrationArray;
+      const installedBreadcrumbsIntegration = findIntegrationByName(reactInitOptions.integrations, 'Breadcrumbs');
 
-      expect(breadcrumbsIntegration).toBeDefined();
+      expect(installedBreadcrumbsIntegration).toBeDefined();
     });
 
-    describe('`BrowserTracing` integration', () => {
-      it('adds `BrowserTracing` integration if `tracesSampleRate` is set', () => {
-        init({ tracesSampleRate: 1.0 });
+    it('forces correct router instrumentation if user provides `browserTracingIntegration` in an array', () => {
+      const providedBrowserTracingInstance = browserTracingIntegration();
 
-        const reactInitOptions = reactInit.mock.calls[0][0] as ModifiedInitOptionsIntegrationArray;
-        const browserTracingIntegration = findIntegrationByName(reactInitOptions.integrations, 'BrowserTracing');
-
-        expect(browserTracingIntegration).toBeDefined();
-        expect(browserTracingIntegration).toEqual(
-          expect.objectContaining({
-            options: expect.objectContaining({
-              routingInstrumentation: nextRouterInstrumentation,
-            }),
-          }),
-        );
+      const client = init({
+        dsn: TEST_DSN,
+        tracesSampleRate: 1.0,
+        integrations: [providedBrowserTracingInstance],
       });
 
-      it('adds `BrowserTracing` integration if `tracesSampler` is set', () => {
-        init({ tracesSampler: () => true });
+      const integration = client?.getIntegrationByName('BrowserTracing');
+      expect(integration).toBe(providedBrowserTracingInstance);
+    });
 
-        const reactInitOptions = reactInit.mock.calls[0][0] as ModifiedInitOptionsIntegrationArray;
-        const browserTracingIntegration = findIntegrationByName(reactInitOptions.integrations, 'BrowserTracing');
+    it('forces correct router instrumentation if user provides `BrowserTracing` in a function', () => {
+      const providedBrowserTracingInstance = browserTracingIntegration();
 
-        expect(browserTracingIntegration).toBeDefined();
-        expect(browserTracingIntegration).toEqual(
-          expect.objectContaining({
-            options: expect.objectContaining({
-              routingInstrumentation: nextRouterInstrumentation,
-            }),
-          }),
-        );
+      const client = init({
+        dsn: TEST_DSN,
+        tracesSampleRate: 1.0,
+        integrations: defaults => [...defaults, providedBrowserTracingInstance],
       });
 
-      it('does not add `BrowserTracing` integration if tracing not enabled in SDK', () => {
-        init({});
+      const integration = client?.getIntegrationByName('BrowserTracing');
 
-        const reactInitOptions = reactInit.mock.calls[0][0] as ModifiedInitOptionsIntegrationArray;
-        const browserTracingIntegration = findIntegrationByName(reactInitOptions.integrations, 'BrowserTracing');
+      expect(integration).toBe(providedBrowserTracingInstance);
+    });
 
+    describe('browserTracingIntegration()', () => {
+      it('adds the browserTracingIntegration when `__SENTRY_TRACING__` is not set', () => {
+        const client = init({
+          dsn: TEST_DSN,
+        });
+
+        const browserTracingIntegration = client?.getIntegrationByName('BrowserTracing');
+        expect(browserTracingIntegration).toBeDefined();
+      });
+
+      it("doesn't add a browserTracingIntegration if `__SENTRY_TRACING__` is set to false", () => {
+        // @ts-expect-error Test setup for build-time flag
+        globalThis.__SENTRY_TRACING__ = false;
+
+        const client = init({
+          dsn: TEST_DSN,
+        });
+
+        const browserTracingIntegration = client?.getIntegrationByName('BrowserTracing');
         expect(browserTracingIntegration).toBeUndefined();
-      });
 
-      it('forces correct router instrumentation if user provides `BrowserTracing` in an array', () => {
-        init({
-          tracesSampleRate: 1.0,
-          integrations: [new BrowserTracing({ startTransactionOnLocationChange: false })],
-        });
-
-        const reactInitOptions = reactInit.mock.calls[0][0] as ModifiedInitOptionsIntegrationArray;
-        const browserTracingIntegration = findIntegrationByName(reactInitOptions.integrations, 'BrowserTracing');
-
-        expect(browserTracingIntegration).toEqual(
-          expect.objectContaining({
-            options: expect.objectContaining({
-              routingInstrumentation: nextRouterInstrumentation,
-              // This proves it's still the user's copy
-              startTransactionOnLocationChange: false,
-            }),
-          }),
-        );
-      });
-
-      it('forces correct router instrumentation if user provides `BrowserTracing` in a function', () => {
-        init({
-          tracesSampleRate: 1.0,
-          integrations: defaults => [...defaults, new BrowserTracing({ startTransactionOnLocationChange: false })],
-        });
-
-        const reactInitOptions = reactInit.mock.calls[0][0] as ModifiedInitOptionsIntegrationFunction;
-        const materializedIntegrations = reactInitOptions.integrations(SentryReact.defaultIntegrations);
-        const browserTracingIntegration = findIntegrationByName(materializedIntegrations, 'BrowserTracing');
-
-        expect(browserTracingIntegration).toEqual(
-          expect.objectContaining({
-            options: expect.objectContaining({
-              routingInstrumentation: nextRouterInstrumentation,
-              // This proves it's still the user's copy
-              startTransactionOnLocationChange: false,
-            }),
-          }),
-        );
+        // @ts-expect-error Test setup for build-time flag
+        delete globalThis.__SENTRY_TRACING__;
       });
     });
+  });
+
+  it('returns client from init', () => {
+    expect(init({})).not.toBeUndefined();
   });
 });

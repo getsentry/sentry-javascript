@@ -1,6 +1,5 @@
-import { convertIntegrationFnToClass } from '@sentry/core';
-import type { Event, Integration, IntegrationClass, IntegrationFn } from '@sentry/types';
-import { createStackParser, dirname, nodeStackLineParser } from '@sentry/utils';
+import type { IntegrationFn } from '@sentry/core';
+import { createStackParser, defineIntegration, dirname, nodeStackLineParser } from '@sentry/core';
 
 const INTEGRATION_NAME = 'NormalizePaths';
 
@@ -21,25 +20,32 @@ function appRootFromErrorStack(error: Error): string | undefined {
           .filter(seg => seg !== ''), // remove empty segments
     ) as string[][];
 
-  if (paths.length == 0) {
+  const firstPath = paths[0];
+
+  if (!firstPath) {
     return undefined;
   }
 
   if (paths.length == 1) {
     // Assume the single file is in the root
-    return dirname(paths[0].join('/'));
+    return dirname(firstPath.join('/'));
   }
 
   // Iterate over the paths and bail out when they no longer have a common root
   let i = 0;
-  while (paths[0][i] && paths.every(w => w[i] === paths[0][i])) {
+  while (firstPath[i] && paths.every(w => w[i] === firstPath[i])) {
     i++;
   }
 
-  return paths[0].slice(0, i).join('/');
+  return firstPath.slice(0, i).join('/');
 }
 
 function getCwd(): string | undefined {
+  // Deno.permissions.querySync is not available on Deno Deploy
+  if (!Deno.permissions.querySync) {
+    return undefined;
+  }
+
   // We don't want to prompt for permissions so we only get the cwd if
   // permissions are already granted
   const permission = Deno.permissions.querySync({ name: 'read', path: './' });
@@ -55,7 +61,7 @@ function getCwd(): string | undefined {
   return undefined;
 }
 
-const normalizePathsIntegration = (() => {
+const _normalizePathsIntegration = (() => {
   // Cached here
   let appRoot: string | undefined;
 
@@ -70,8 +76,6 @@ const normalizePathsIntegration = (() => {
 
   return {
     name: INTEGRATION_NAME,
-    // TODO v8: Remove this
-    setupOnce() {}, // eslint-disable-line @typescript-eslint/no-empty-function
     processEvent(event) {
       // This error.stack hopefully contains paths that traverse the app cwd
       const error = new Error();
@@ -98,9 +102,17 @@ const normalizePathsIntegration = (() => {
   };
 }) satisfies IntegrationFn;
 
-/** Normalises paths to the app root directory. */
-// eslint-disable-next-line deprecation/deprecation
-export const NormalizePaths = convertIntegrationFnToClass(
-  INTEGRATION_NAME,
-  normalizePathsIntegration,
-) as IntegrationClass<Integration & { processEvent: (event: Event) => Event }>;
+/**
+ * Normalises paths to the app root directory.
+ *
+ * Enabled by default in the Deno SDK.
+ *
+ * ```js
+ * Sentry.init({
+ *   integrations: [
+ *     Sentry.normalizePathsIntegration(),
+ *   ],
+ * })
+ * ```
+ */
+export const normalizePathsIntegration = defineIntegration(_normalizePathsIntegration);

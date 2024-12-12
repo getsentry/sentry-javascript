@@ -1,12 +1,12 @@
 import type { Route } from '@playwright/test';
 import { expect } from '@playwright/test';
-import type { SessionContext } from '@sentry/types';
+import type { SessionContext } from '@sentry/core';
 
 import { sentryTest } from '../../../utils/fixtures';
 import { getFirstSentryEnvelopeRequest } from '../../../utils/helpers';
 
-sentryTest('should start a new session on pageload.', async ({ getLocalTestPath, page }) => {
-  const url = await getLocalTestPath({ testDir: __dirname });
+sentryTest('should start a new session on pageload.', async ({ getLocalTestUrl, page }) => {
+  const url = await getLocalTestUrl({ testDir: __dirname });
   const session = await getFirstSentryEnvelopeRequest<SessionContext>(page, url);
 
   expect(session).toBeDefined();
@@ -16,14 +16,10 @@ sentryTest('should start a new session on pageload.', async ({ getLocalTestPath,
   expect(session.did).toBe('1337');
 });
 
-sentryTest('should start a new session with navigation.', async ({ getLocalTestPath, page, browserName }) => {
-  // Navigations get CORS error on Firefox and WebKit as we're using `file://` protocol.
-  if (browserName !== 'chromium') {
-    sentryTest.skip();
-  }
+sentryTest('should start a new session with navigation.', async ({ getLocalTestUrl, page }) => {
+  const url = await getLocalTestUrl({ testDir: __dirname });
 
-  const url = await getLocalTestPath({ testDir: __dirname });
-  await page.route('**/foo', (route: Route) => route.fulfill({ path: `${__dirname}/dist/index.html` }));
+  await page.route('**/foo', (route: Route) => route.continue({ url }));
 
   const initSession = await getFirstSentryEnvelopeRequest<SessionContext>(page, url);
 

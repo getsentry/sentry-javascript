@@ -1,5 +1,4 @@
-import type { ClientOptions, Options, TracePropagationTargets } from '@sentry/types';
-
+import type { ClientOptions, Options, TracePropagationTargets } from '@sentry/core';
 import type { DenoTransportOptions } from './transports';
 
 export interface BaseDenoOptions {
@@ -24,31 +23,13 @@ export interface BaseDenoOptions {
   /** Sets an optional server name (device name) */
   serverName?: string;
 
-  // TODO (v8): Remove this in v8
-  /**
-   * @deprecated Moved to constructor options of the `Http` and `Undici` integration.
-   * @example
-   * ```js
-   * Sentry.init({
-   *   integrations: [
-   *     new Sentry.Integrations.Http({
-   *       tracing: {
-   *         shouldCreateSpanForRequest: (url: string) => false,
-   *       }
-   *     });
-   *   ],
-   * });
-   * ```
-   */
-  shouldCreateSpanForRequest?(this: void, url: string): boolean;
-
   /** Callback that is executed when a fatal global error occurs. */
   onFatalError?(this: void, error: Error): void;
 }
 
 /**
  * Configuration options for the Sentry Deno SDK
- * @see @sentry/types Options for more information.
+ * @see @sentry/core Options for more information.
  */
 export interface DenoOptions extends Options<DenoTransportOptions>, BaseDenoOptions {}
 

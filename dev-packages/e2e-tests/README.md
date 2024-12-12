@@ -8,9 +8,10 @@ current state.
 Prerequisites: Docker
 
 - Copy `.env.example` to `.env`
-- Fill in auth information in `.env` for an example Sentry project
-  - The `E2E_TEST_AUTH_TOKEN` must have all the default permissions
-- Run `yarn build:tarball` in the root of the repository
+- OPTIONAL: Fill in auth information in `.env` for an example Sentry project - you only need this to run E2E tests that
+  send data to Sentry.
+- Run `yarn build:tarball` in the root of the repository (needs to be rerun after every update in /packages for the
+  changes to have effect on the tests).
 
 To finally run all of the tests:
 
@@ -42,7 +43,7 @@ Test applications are completely standalone applications that can be used to ver
 these commands:
 
 ```sh
-cd packages/e2e-tests
+cd dev-packages/e2e-tests
 
 # Create a new test application folder
 mkdir test-applications/my-new-test-application # Name of the new folder doesn't technically matter but choose something meaningful
@@ -56,8 +57,14 @@ EOF
 
 Make sure to add a `test:build` and `test:assert` command to the new app's `package.json` file.
 
-Add the new test app to `test-application` matrix in `.github/workflows/build.yml` for the `job_e2e_tests` job. If you
-want to run a canary test, add it to the `canary.yml` workflow.
+Test apps in the folder `test-applications` will be automatically picked up by CI in the job `job_e2e_tests` (in `.github/workflows/build.yml`).
+The test matrix for CI is generated in `dev-packages/e2e-tests/lib/getTestMatrix.ts`.
+
+For each test app, CI checks its dependencies (and devDependencies) to see if any of them have changed in the current PR (based on nx affected projects).
+For example, if something is changed in the browser package, only E2E test apps that depend on browser will run, while others will be skipped.
+
+You can add additional information about the test (e.g. canary versions, optional in CI) by adding `sentryTest` in the `package.json`
+of a test application.
 
 **An important thing to note:** In the context of the build/test commands the fake test registry is available at
 `http://127.0.0.1:4873`. It hosts all of our packages as if they were to be published with the state of the current
@@ -90,6 +97,8 @@ For some of our E2E tests we define a standard for test applications as to how t
 test apps enables us to reuse the same test suite over a number of different frameworks/SDKs.
 
 ### Standardized Frontend Test Apps
+
+TODO: This is not up to date.
 
 A standardized frontend test application has the following features:
 

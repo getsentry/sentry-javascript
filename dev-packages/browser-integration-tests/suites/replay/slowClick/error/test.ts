@@ -13,14 +13,6 @@ sentryTest('slow click that triggers error is captured', async ({ getLocalTestUr
     sentryTest.skip();
   }
 
-  await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-    return route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ id: 'test-id' }),
-    });
-  });
-
   const url = await getLocalTestUrl({ testDir: __dirname });
 
   await page.goto(url);
@@ -31,7 +23,7 @@ sentryTest('slow click that triggers error is captured', async ({ getLocalTestUr
 
       return breadcrumbs.some(breadcrumb => breadcrumb.category === 'ui.slowClickDetected');
     }),
-    page.click('#buttonError'),
+    page.locator('#buttonError').click(),
   ]);
 
   const { breadcrumbs } = getCustomRecordingEvents(req0);
@@ -70,14 +62,6 @@ sentryTest(
       sentryTest.skip();
     }
 
-    await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-      return route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({ id: 'test-id' }),
-      });
-    });
-
     const url = await getLocalTestUrl({ testDir: __dirname });
 
     await page.goto(url);
@@ -105,7 +89,7 @@ sentryTest(
 
         return breadcrumbs.some(breadcrumb => breadcrumb.category === 'ui.click');
       }),
-      page.click('#buttonErrorMutation'),
+      page.locator('#buttonErrorMutation').click(),
     ]);
 
     const { breadcrumbs } = getCustomRecordingEvents(req1);

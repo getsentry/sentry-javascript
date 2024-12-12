@@ -8,14 +8,6 @@ sentryTest('does not capture slow click when slowClickTimeout === 0', async ({ g
     sentryTest.skip();
   }
 
-  await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-    return route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ id: 'test-id' }),
-    });
-  });
-
   const url = await getLocalTestUrl({ testDir: __dirname });
 
   await Promise.all([waitForReplayRequest(page, 0), page.goto(url)]);
@@ -26,7 +18,7 @@ sentryTest('does not capture slow click when slowClickTimeout === 0', async ({ g
 
       return breadcrumbs.some(breadcrumb => breadcrumb.category === 'ui.click');
     }),
-    page.click('#mutationButton'),
+    page.locator('#mutationButton').click(),
   ]);
 
   const { breadcrumbs } = getCustomRecordingEvents(req1);

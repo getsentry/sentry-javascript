@@ -2,17 +2,21 @@ import { DiagLogLevel, diag } from '@opentelemetry/api';
 import { AsyncLocalStorageContextManager } from '@opentelemetry/context-async-hooks';
 import { Resource } from '@opentelemetry/resources';
 import { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
-import { SemanticResourceAttributes } from '@opentelemetry/semantic-conventions';
-import { SDK_VERSION } from '@sentry/core';
-import { logger } from '@sentry/utils';
+import {
+  ATTR_SERVICE_NAME,
+  ATTR_SERVICE_VERSION,
+  SEMRESATTRS_SERVICE_NAMESPACE,
+} from '@opentelemetry/semantic-conventions';
+import { SDK_VERSION, getClient } from '@sentry/core';
+import { logger } from '@sentry/core';
 
 import { wrapContextManagerClass } from '../../src/contextManager';
-import { getClient } from '../../src/custom/hub';
 import { DEBUG_BUILD } from '../../src/debug-build';
 import { SentryPropagator } from '../../src/propagator';
 import { SentrySampler } from '../../src/sampler';
 import { setupEventContextTrace } from '../../src/setupEventContextTrace';
 import { SentrySpanProcessor } from '../../src/spanProcessor';
+import { enhanceDscWithOpenTelemetryRootSpanName } from '../../src/utils/enhanceDscWithOpenTelemetryRootSpanName';
 import type { TestClientInterface } from './TestClient';
 
 /**
@@ -41,6 +45,7 @@ export function initOtel(): void {
   }
 
   setupEventContextTrace(client);
+  enhanceDscWithOpenTelemetryRootSpanName(client);
 
   const provider = setupOtel(client);
   client.traceProvider = provider;
@@ -52,13 +57,14 @@ export function setupOtel(client: TestClientInterface): BasicTracerProvider {
   const provider = new BasicTracerProvider({
     sampler: new SentrySampler(client),
     resource: new Resource({
-      [SemanticResourceAttributes.SERVICE_NAME]: 'opentelemetry-test',
-      [SemanticResourceAttributes.SERVICE_NAMESPACE]: 'sentry',
-      [SemanticResourceAttributes.SERVICE_VERSION]: SDK_VERSION,
+      [ATTR_SERVICE_NAME]: 'opentelemetry-test',
+      // eslint-disable-next-line deprecation/deprecation
+      [SEMRESATTRS_SERVICE_NAMESPACE]: 'sentry',
+      [ATTR_SERVICE_VERSION]: SDK_VERSION,
     }),
     forceFlushTimeoutMillis: 500,
+    spanProcessors: [new SentrySpanProcessor()],
   });
-  provider.addSpanProcessor(new SentrySpanProcessor());
 
   // We use a custom context manager to keep context in sync with sentry scope
   const SentryContextManager = wrapContextManagerClass(AsyncLocalStorageContextManager);

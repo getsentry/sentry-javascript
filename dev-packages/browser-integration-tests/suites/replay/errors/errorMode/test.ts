@@ -17,7 +17,7 @@ import {
 
 sentryTest(
   '[error-mode] should start recording and switch to session mode once an error is thrown',
-  async ({ getLocalTestPath, page, browserName }) => {
+  async ({ getLocalTestUrl, page, browserName }) => {
     // This was sometimes flaky on webkit, so skipping for now
     if (shouldSkipReplayTest() || browserName === 'webkit') {
       sentryTest.skip();
@@ -48,27 +48,27 @@ sentryTest(
       });
     });
 
-    const url = await getLocalTestPath({ testDir: __dirname });
+    const url = await getLocalTestUrl({ testDir: __dirname, skipDsnRouteHandler: true });
 
     await Promise.all([
       page.goto(url),
-      page.click('#go-background'),
+      page.locator('#go-background').click(),
       new Promise(resolve => setTimeout(resolve, 1000)),
     ]);
 
     expect(callsToSentry).toEqual(0);
 
-    const [req0] = await Promise.all([reqPromise0, page.click('#error')]);
+    const [req0] = await Promise.all([reqPromise0, page.locator('#error').click()]);
 
     expect(callsToSentry).toEqual(2); // 1 error, 1 replay event
 
-    const [req1] = await Promise.all([reqPromise1, page.click('#go-background'), reqErrorPromise]);
+    const [req1] = await Promise.all([reqPromise1, page.locator('#go-background').click(), reqErrorPromise]);
 
     expect(callsToSentry).toEqual(3); // 1 error, 2 replay events
 
-    await page.click('#log');
+    await page.locator('#log').click();
 
-    const [req2] = await Promise.all([reqPromise2, page.click('#go-background')]);
+    const [req2] = await Promise.all([reqPromise2, page.locator('#go-background').click()]);
 
     const event0 = getReplayEvent(req0);
     const content0 = getReplayRecordingContent(req0);
@@ -93,7 +93,7 @@ sentryTest(
     expect(content0.fullSnapshots).toHaveLength(1);
     // We don't know how many incremental snapshots we'll have (also browser-dependent),
     // but we know that we have at least 5
-    expect(content0.incrementalSnapshots.length).toBeGreaterThan(5);
+    expect(content0.incrementalSnapshots.length).toBeGreaterThanOrEqual(5);
     // We want to make sure that the event that triggered the error was recorded.
     expect(content0.breadcrumbs).toEqual(
       expect.arrayContaining([

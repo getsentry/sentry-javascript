@@ -1,11 +1,9 @@
-import { flush } from '@sentry/node';
-import type { StackFrame } from '@sentry/types';
-import { GLOBAL_OBJ, basename, escapeStringForRegex, join, logger, tracingContextFromHeaders } from '@sentry/utils';
+import { logger, objectify } from '@sentry/core';
+import { captureException, flush } from '@sentry/node';
 import type { RequestEvent } from '@sveltejs/kit';
 
 import { DEBUG_BUILD } from '../common/debug-build';
-import { WRAPPED_MODULE_SUFFIX } from '../vite/autoInstrument';
-import type { GlobalWithSentryValues } from '../vite/injectGlobalValues';
+import { isHttpError, isRedirect } from '../common/utils';
 
 /**
  * Takes a request event and extracts traceparent and DSC data
@@ -13,63 +11,11 @@ import type { GlobalWithSentryValues } from '../vite/injectGlobalValues';
  *
  * Sets propagation context as a side effect.
  */
-export function getTracePropagationData(event: RequestEvent): ReturnType<typeof tracingContextFromHeaders> {
-  const sentryTraceHeader = event.request.headers.get('sentry-trace') || '';
-  const baggageHeader = event.request.headers.get('baggage');
-  return tracingContextFromHeaders(sentryTraceHeader, baggageHeader);
-}
+export function getTracePropagationData(event: RequestEvent): { sentryTrace: string; baggage: string | null } {
+  const sentryTrace = event.request.headers.get('sentry-trace') || '';
+  const baggage = event.request.headers.get('baggage');
 
-/**
- * A custom iteratee function for the `RewriteFrames` integration.
- *
- * Does the same as the default iteratee, but also removes the `module` property from the
- * frame to improve issue grouping.
- *
- * For some reason, our stack trace processing pipeline isn't able to resolve the bundled
- * module name to the original file name correctly, leading to individual error groups for
- * each module. Removing the `module` field makes the grouping algorithm fall back to the
- * `filename` field, which is correctly resolved and hence grouping works as expected.
- */
-export function rewriteFramesIteratee(frame: StackFrame): StackFrame {
-  if (!frame.filename) {
-    return frame;
-  }
-  const globalWithSentryValues: GlobalWithSentryValues = GLOBAL_OBJ;
-  const svelteKitBuildOutDir = globalWithSentryValues.__sentry_sveltekit_output_dir;
-  const prefix = 'app:///';
-
-  // Check if the frame filename begins with `/` or a Windows-style prefix such as `C:\`
-  const isWindowsFrame = /^[a-zA-Z]:\\/.test(frame.filename);
-  const startsWithSlash = /^\//.test(frame.filename);
-  if (isWindowsFrame || startsWithSlash) {
-    const filename = isWindowsFrame
-      ? frame.filename
-          .replace(/^[a-zA-Z]:/, '') // remove Windows-style prefix
-          .replace(/\\/g, '/') // replace all `\\` instances with `/`
-      : frame.filename;
-
-    let strippedFilename;
-    if (svelteKitBuildOutDir) {
-      strippedFilename = filename.replace(
-        // eslint-disable-next-line @sentry-internal/sdk/no-regexp-constructor -- not end user input + escaped anyway
-        new RegExp(`^.*${escapeStringForRegex(join(svelteKitBuildOutDir, 'server'))}/`),
-        '',
-      );
-    } else {
-      strippedFilename = basename(filename);
-    }
-    frame.filename = `${prefix}${strippedFilename}`;
-  }
-
-  delete frame.module;
-
-  // In dev-mode, the WRAPPED_MODULE_SUFFIX is still present in the frame's file name.
-  // We need to remove it to make sure that the frame's filename matches the actual file
-  if (frame.filename.endsWith(WRAPPED_MODULE_SUFFIX)) {
-    frame.filename = frame.filename.slice(0, -WRAPPED_MODULE_SUFFIX.length);
-  }
-
-  return frame;
+  return { sentryTrace, baggage };
 }
 
 /** Flush the event queue to ensure that events get sent to Sentry before the response is finished and the lambda ends */
@@ -85,4 +31,42 @@ export async function flushIfServerless(): Promise<void> {
       DEBUG_BUILD && logger.log('Error while flushing events:\n', e);
     }
   }
+}
+
+/**
+ * Extracts a server-side sveltekit error, filters a couple of known errors we don't want to capture
+ * and captures the error via `captureException`.
+ *
+ * @param e error
+ *
+ * @returns an objectified version of @param e
+ */
+export function sendErrorToSentry(e: unknown, handlerFn: 'handle' | 'load' | 'serverRoute'): object {
+  // In case we have a primitive, wrap it in the equivalent wrapper class (string -> String, etc.) so that we can
+  // store a seen flag on it.
+  const objectifiedErr = objectify(e);
+
+  // The error() helper is commonly used to throw errors in load functions: https://kit.svelte.dev/docs/modules#sveltejs-kit-error
+  // If we detect a thrown error that is an instance of HttpError, we don't want to capture 4xx errors as they
+  // could be noisy.
+  // Also the `redirect(...)` helper is used to redirect users from one page to another. We don't want to capture thrown
+  // `Redirect`s as they're not errors but expected behaviour
+  if (
+    isRedirect(objectifiedErr) ||
+    (isHttpError(objectifiedErr) && objectifiedErr.status < 500 && objectifiedErr.status >= 400)
+  ) {
+    return objectifiedErr;
+  }
+
+  captureException(objectifiedErr, {
+    mechanism: {
+      type: 'sveltekit',
+      handled: false,
+      data: {
+        function: handlerFn,
+      },
+    },
+  });
+
+  return objectifiedErr;
 }

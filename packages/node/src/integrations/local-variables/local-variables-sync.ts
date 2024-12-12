@@ -1,13 +1,38 @@
-/* eslint-disable max-lines */
-import { convertIntegrationFnToClass } from '@sentry/core';
-import type { Event, Exception, Integration, IntegrationClass, IntegrationFn, StackParser } from '@sentry/types';
-import { LRUMap, logger } from '@sentry/utils';
-import type { Debugger, InspectorNotification, Runtime, Session } from 'inspector';
-import type { NodeClient } from '../../client';
+import type { Debugger, InspectorNotification, Runtime, Session } from 'node:inspector';
+import type { Event, Exception, IntegrationFn, StackFrame, StackParser } from '@sentry/core';
+import { LRUMap, defineIntegration, getClient, logger } from '@sentry/core';
+import { NODE_MAJOR } from '../../nodeVersion';
+import type { NodeClient } from '../../sdk/client';
+import type {
+  FrameVariables,
+  LocalVariablesIntegrationOptions,
+  PausedExceptionEvent,
+  RateLimitIncrement,
+  Variables,
+} from './common';
+import { createRateLimiter, functionNamesMatch } from './common';
 
-import { NODE_VERSION } from '../../nodeVersion';
-import type { FrameVariables, Options, PausedExceptionEvent, RateLimitIncrement, Variables } from './common';
-import { createRateLimiter, functionNamesMatch, hashFrames, hashFromStack } from './common';
+/** Creates a unique hash from stack frames */
+export function hashFrames(frames: StackFrame[] | undefined): string | undefined {
+  if (frames === undefined) {
+    return;
+  }
+
+  // Only hash the 10 most recent frames (ie. the last 10)
+  return frames.slice(-10).reduce((acc, frame) => `${acc},${frame.function},${frame.lineno},${frame.colno}`, '');
+}
+
+/**
+ * We use the stack parser to create a unique hash from the exception stack trace
+ * This is used to lookup vars when the exception passes through the event processor
+ */
+export function hashFromStack(stackParser: StackParser, stack: string | undefined): string | undefined {
+  if (stack === undefined) {
+    return undefined;
+  }
+
+  return hashFrames(stackParser(stack, 1));
+}
 
 type OnPauseEvent = InspectorNotification<Debugger.PausedEventDataType>;
 export interface DebugSession {
@@ -69,27 +94,18 @@ export function createCallbackList<T>(complete: Next<T>): CallbackWrapper<T> {
  * https://nodejs.org/docs/latest-v14.x/api/inspector.html
  */
 class AsyncSession implements DebugSession {
-  private readonly _session: Session;
-
   /** Throws if inspector API is not available */
-  public constructor() {
-    /*
-    TODO: We really should get rid of this require statement below for a couple of reasons:
-    1. It makes the integration unusable in the SvelteKit SDK, as it's not possible to use `require`
-       in SvelteKit server code (at least not by default).
-    2. Throwing in a constructor is bad practice
+  private constructor(private readonly _session: Session) {
+    //
+  }
 
-    More context for a future attempt to fix this:
-    We already tried replacing it with import but didn't get it to work because of async problems.
-    We still called import in the constructor but assigned to a promise which we "awaited" in
-    `configureAndConnect`. However, this broke the Node integration tests as no local variables
-    were reported any more. We probably missed a place where we need to await the promise, too.
-    */
+  public static async create(orDefault?: DebugSession | undefined): Promise<DebugSession> {
+    if (orDefault) {
+      return orDefault;
+    }
 
-    // Node can be built without inspector support so this can throw
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const { Session } = require('inspector');
-    this._session = new Session();
+    const inspector = await import('node:inspector');
+    return new AsyncSession(new inspector.Session());
   }
 
   /** @inheritdoc */
@@ -123,7 +139,7 @@ class AsyncSession implements DebugSession {
         } else if (prop?.value?.objectId && prop?.value?.className === 'Object') {
           const id = prop.value.objectId;
           add(vars => this._unrollObject(id, prop.name, vars, next));
-        } else if (prop?.value?.value || prop?.value?.description) {
+        } else if (prop?.value) {
           add(vars => this._unrollOther(prop, vars, next));
         }
       }
@@ -186,25 +202,21 @@ class AsyncSession implements DebugSession {
    * Unrolls other properties
    */
   private _unrollOther(prop: Runtime.PropertyDescriptor, vars: Variables, next: (vars: Variables) => void): void {
-    if (prop?.value?.value) {
-      vars[prop.name] = prop.value.value;
-    } else if (prop?.value?.description && prop?.value?.type !== 'function') {
-      vars[prop.name] = `<${prop.value.description}>`;
+    if (prop.value) {
+      if ('value' in prop.value) {
+        if (prop.value.value === undefined || prop.value.value === null) {
+          vars[prop.name] = `<${prop.value.value}>`;
+        } else {
+          vars[prop.name] = prop.value.value;
+        }
+      } else if ('description' in prop.value && prop.value.type !== 'function') {
+        vars[prop.name] = `<${prop.value.description}>`;
+      } else if (prop.value.type === 'undefined') {
+        vars[prop.name] = '<undefined>';
+      }
     }
 
     next(vars);
-  }
-}
-
-/**
- * When using Vercel pkg, the inspector module is not available.
- * https://github.com/getsentry/sentry-javascript/issues/6769
- */
-function tryNewAsyncSession(): AsyncSession | undefined {
-  try {
-    return new AsyncSession();
-  } catch (e) {
-    return undefined;
   }
 }
 
@@ -213,67 +225,13 @@ const INTEGRATION_NAME = 'LocalVariables';
 /**
  * Adds local variables to exception frames
  */
-const localVariablesSyncIntegration = ((
-  options: Options = {},
-  session: DebugSession | undefined = tryNewAsyncSession(),
+const _localVariablesSyncIntegration = ((
+  options: LocalVariablesIntegrationOptions = {},
+  sessionOverride?: DebugSession,
 ) => {
   const cachedFrames: LRUMap<string, FrameVariables[]> = new LRUMap(20);
   let rateLimiter: RateLimitIncrement | undefined;
   let shouldProcessEvent = false;
-
-  function handlePaused(
-    stackParser: StackParser,
-    { params: { reason, data, callFrames } }: InspectorNotification<PausedExceptionEvent>,
-    complete: () => void,
-  ): void {
-    if (reason !== 'exception' && reason !== 'promiseRejection') {
-      complete();
-      return;
-    }
-
-    rateLimiter?.();
-
-    // data.description contains the original error.stack
-    const exceptionHash = hashFromStack(stackParser, data?.description);
-
-    if (exceptionHash == undefined) {
-      complete();
-      return;
-    }
-
-    const { add, next } = createCallbackList<FrameVariables[]>(frames => {
-      cachedFrames.set(exceptionHash, frames);
-      complete();
-    });
-
-    // Because we're queuing up and making all these calls synchronously, we can potentially overflow the stack
-    // For this reason we only attempt to get local variables for the first 5 frames
-    for (let i = 0; i < Math.min(callFrames.length, 5); i++) {
-      const { scopeChain, functionName, this: obj } = callFrames[i];
-
-      const localScope = scopeChain.find(scope => scope.type === 'local');
-
-      // obj.className is undefined in ESM modules
-      const fn = obj.className === 'global' || !obj.className ? functionName : `${obj.className}.${functionName}`;
-
-      if (localScope?.object.objectId === undefined) {
-        add(frames => {
-          frames[i] = { function: fn };
-          next(frames);
-        });
-      } else {
-        const id = localScope.object.objectId;
-        add(frames =>
-          session?.getLocalVariables(id, vars => {
-            frames[i] = { function: fn, vars };
-            next(frames);
-          }),
-        );
-      }
-    }
-
-    next([]);
-  }
 
   function addLocalVariablesToException(exception: Exception): void {
     const hash = hashFrames(exception?.stacktrace?.frames);
@@ -290,29 +248,34 @@ const localVariablesSyncIntegration = ((
       return;
     }
 
-    const frameCount = exception.stacktrace?.frames?.length || 0;
+    // Filter out frames where the function name is `new Promise` since these are in the error.stack frames
+    // but do not appear in the debugger call frames
+    const frames = (exception.stacktrace?.frames || []).filter(frame => frame.function !== 'new Promise');
 
-    for (let i = 0; i < frameCount; i++) {
+    for (let i = 0; i < frames.length; i++) {
       // Sentry frames are in reverse order
-      const frameIndex = frameCount - i - 1;
+      const frameIndex = frames.length - i - 1;
+
+      const cachedFrameVariable = cachedFrame[i];
+      const frameVariable = frames[frameIndex];
 
       // Drop out if we run out of frames to match up
-      if (!exception?.stacktrace?.frames?.[frameIndex] || !cachedFrame[i]) {
+      if (!frameVariable || !cachedFrameVariable) {
         break;
       }
 
       if (
         // We need to have vars to add
-        cachedFrame[i].vars === undefined ||
+        cachedFrameVariable.vars === undefined ||
         // We're not interested in frames that are not in_app because the vars are not relevant
-        exception.stacktrace.frames[frameIndex].in_app === false ||
+        frameVariable.in_app === false ||
         // The function names need to match
-        !functionNamesMatch(exception.stacktrace.frames[frameIndex].function, cachedFrame[i].function)
+        !functionNamesMatch(frameVariable.function, cachedFrameVariable.function)
       ) {
         continue;
       }
 
-      exception.stacktrace.frames[frameIndex].vars = cachedFrame[i].vars;
+      frameVariable.vars = cachedFrameVariable.vars;
     }
   }
 
@@ -326,49 +289,113 @@ const localVariablesSyncIntegration = ((
 
   return {
     name: INTEGRATION_NAME,
-    // TODO v8: Remove this
-    setupOnce() {}, // eslint-disable-line @typescript-eslint/no-empty-function
-    setup(client: NodeClient) {
-      const clientOptions = client.getOptions();
+    setupOnce() {
+      const client = getClient<NodeClient>();
+      const clientOptions = client?.getOptions();
 
-      if (session && clientOptions.includeLocalVariables) {
-        // Only setup this integration if the Node version is >= v18
-        // https://github.com/getsentry/sentry-javascript/issues/7697
-        const unsupportedNodeVersion = NODE_VERSION.major < 18;
-
-        if (unsupportedNodeVersion) {
-          logger.log('The `LocalVariables` integration is only supported on Node >= v18.');
-          return;
-        }
-
-        const captureAll = options.captureAllExceptions !== false;
-
-        session.configureAndConnect(
-          (ev, complete) =>
-            handlePaused(clientOptions.stackParser, ev as InspectorNotification<PausedExceptionEvent>, complete),
-          captureAll,
-        );
-
-        if (captureAll) {
-          const max = options.maxExceptionsPerSecond || 50;
-
-          rateLimiter = createRateLimiter(
-            max,
-            () => {
-              logger.log('Local variables rate-limit lifted.');
-              session?.setPauseOnExceptions(true);
-            },
-            seconds => {
-              logger.log(
-                `Local variables rate-limit exceeded. Disabling capturing of caught exceptions for ${seconds} seconds.`,
-              );
-              session?.setPauseOnExceptions(false);
-            },
-          );
-        }
-
-        shouldProcessEvent = true;
+      if (!clientOptions?.includeLocalVariables) {
+        return;
       }
+
+      // Only setup this integration if the Node version is >= v18
+      // https://github.com/getsentry/sentry-javascript/issues/7697
+      const unsupportedNodeVersion = NODE_MAJOR < 18;
+
+      if (unsupportedNodeVersion) {
+        logger.log('The `LocalVariables` integration is only supported on Node >= v18.');
+        return;
+      }
+
+      AsyncSession.create(sessionOverride).then(
+        session => {
+          function handlePaused(
+            stackParser: StackParser,
+            { params: { reason, data, callFrames } }: InspectorNotification<PausedExceptionEvent>,
+            complete: () => void,
+          ): void {
+            if (reason !== 'exception' && reason !== 'promiseRejection') {
+              complete();
+              return;
+            }
+
+            rateLimiter?.();
+
+            // data.description contains the original error.stack
+            const exceptionHash = hashFromStack(stackParser, data?.description);
+
+            if (exceptionHash == undefined) {
+              complete();
+              return;
+            }
+
+            const { add, next } = createCallbackList<FrameVariables[]>(frames => {
+              cachedFrames.set(exceptionHash, frames);
+              complete();
+            });
+
+            // Because we're queuing up and making all these calls synchronously, we can potentially overflow the stack
+            // For this reason we only attempt to get local variables for the first 5 frames
+            for (let i = 0; i < Math.min(callFrames.length, 5); i++) {
+              // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+              const { scopeChain, functionName, this: obj } = callFrames[i]!;
+
+              const localScope = scopeChain.find(scope => scope.type === 'local');
+
+              // obj.className is undefined in ESM modules
+              const fn =
+                obj.className === 'global' || !obj.className ? functionName : `${obj.className}.${functionName}`;
+
+              if (localScope?.object.objectId === undefined) {
+                add(frames => {
+                  frames[i] = { function: fn };
+                  next(frames);
+                });
+              } else {
+                const id = localScope.object.objectId;
+                add(frames =>
+                  session?.getLocalVariables(id, vars => {
+                    frames[i] = { function: fn, vars };
+                    next(frames);
+                  }),
+                );
+              }
+            }
+
+            next([]);
+          }
+
+          const captureAll = options.captureAllExceptions !== false;
+
+          session.configureAndConnect(
+            (ev, complete) =>
+              handlePaused(clientOptions.stackParser, ev as InspectorNotification<PausedExceptionEvent>, complete),
+            captureAll,
+          );
+
+          if (captureAll) {
+            const max = options.maxExceptionsPerSecond || 50;
+
+            rateLimiter = createRateLimiter(
+              max,
+              () => {
+                logger.log('Local variables rate-limit lifted.');
+                session?.setPauseOnExceptions(true);
+              },
+              seconds => {
+                logger.log(
+                  `Local variables rate-limit exceeded. Disabling capturing of caught exceptions for ${seconds} seconds.`,
+                );
+                session?.setPauseOnExceptions(false);
+              },
+            );
+          }
+
+          shouldProcessEvent = true;
+        },
+        error => {
+          logger.log('The `LocalVariables` integration failed to start.', error);
+        },
+      );
     },
     processEvent(event: Event): Event {
       if (shouldProcessEvent) {
@@ -388,12 +415,6 @@ const localVariablesSyncIntegration = ((
 }) satisfies IntegrationFn;
 
 /**
- * Adds local variables to exception frames
+ * Adds local variables to exception frames.
  */
-// eslint-disable-next-line deprecation/deprecation
-export const LocalVariablesSync = convertIntegrationFnToClass(
-  INTEGRATION_NAME,
-  localVariablesSyncIntegration,
-) as IntegrationClass<Integration & { processEvent: (event: Event) => Event; setup: (client: NodeClient) => void }> & {
-  new (options?: Options, session?: DebugSession): Integration;
-};
+export const localVariablesSyncIntegration = defineIntegration(_localVariablesSyncIntegration);

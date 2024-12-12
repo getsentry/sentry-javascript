@@ -4,26 +4,32 @@
   </a>
 </p>
 
-# Official Sentry SDK for NodeJS
+# Official Sentry SDK for Node
 
 [![npm version](https://img.shields.io/npm/v/@sentry/node.svg)](https://www.npmjs.com/package/@sentry/node)
 [![npm dm](https://img.shields.io/npm/dm/@sentry/node.svg)](https://www.npmjs.com/package/@sentry/node)
 [![npm dt](https://img.shields.io/npm/dt/@sentry/node.svg)](https://www.npmjs.com/package/@sentry/node)
 
-## Links
+## Installation
 
-- [Official SDK Docs](https://docs.sentry.io/quickstart/)
-- [TypeDoc](http://getsentry.github.io/sentry-javascript/)
+```bash
+npm install @sentry/node
+
+# Or yarn
+yarn add @sentry/node
+```
 
 ## Usage
 
-To use this SDK, call `init(options)` as early as possible in the main entry module. This will initialize the SDK and
-hook into the environment. Note that you can turn off almost all side effects using the respective options.
+Sentry should be initialized as early in your app as possible. It is essential that you call `Sentry.init` before you
+require any other modules in your application, otherwise auto-instrumentation of these modules will **not** work.
 
-```javascript
-// CJS syntax
+You need to create a file named `instrument.js` that imports and initializes Sentry:
+
+```js
+// CJS Syntax
 const Sentry = require('@sentry/node');
-// ESM syntax
+// ESM Syntax
 import * as Sentry from '@sentry/node';
 
 Sentry.init({
@@ -32,31 +38,40 @@ Sentry.init({
 });
 ```
 
-To set context information or send manual events, use the exported functions of `@sentry/node`. Note that these
-functions will not perform any action before you have called `init()`:
+You need to require or import the `instrument.js` file before importing any other modules in your application. This is
+necessary to ensure that Sentry can automatically instrument all modules in your application:
 
-```javascript
-// Set user information, as well as tags and further extras
-Sentry.configureScope(scope => {
-  scope.setExtra('battery', 0.7);
-  scope.setTag('user_mode', 'admin');
-  scope.setUser({ id: '4711' });
-  // scope.clear();
-});
+```js
+// Import this first!
+import './instrument';
 
-// Add a breadcrumb for future events
-Sentry.addBreadcrumb({
-  message: 'My Breadcrumb',
-  // ...
-});
+// Now import other modules
+import http from 'http';
 
-// Capture exceptions, messages or manual events
-Sentry.captureMessage('Hello, world!');
-Sentry.captureException(new Error('Good bye'));
-Sentry.captureEvent({
-  message: 'Manual',
-  stacktrace: [
-    // ...
-  ],
-});
+// Your application code goes here
 ```
+
+### ESM Support
+
+When running your application in ESM mode, you should use the Node.js
+[`--import`](https://nodejs.org/api/cli.html#--importmodule) command line option to ensure that Sentry is loaded before
+the application code is evaluated.
+
+Adjust the Node.js call for your application to use the `--import` parameter and point it at `instrument.js`, which
+contains your `Sentry.init`() code:
+
+```bash
+# Note: This is only available for Node v18.19.0 onwards.
+node --import ./instrument.mjs app.mjs
+```
+
+If it is not possible for you to pass the `--import` flag to the Node.js binary, you can alternatively use the
+`NODE_OPTIONS` environment variable as follows:
+
+```bash
+NODE_OPTIONS="--import ./instrument.mjs" npm run start
+```
+
+## Links
+
+- [Official SDK Docs](https://docs.sentry.io/quickstart/)

@@ -3,49 +3,44 @@ import { expect } from '@playwright/test';
 import { sentryTest } from '../../../../../utils/fixtures';
 import { envelopeRequestParser, waitForErrorRequest } from '../../../../../utils/helpers';
 import {
-  getCustomRecordingEvents,
+  collectReplayRequests,
+  getReplayPerformanceSpans,
   shouldSkipReplayTest,
-  waitForReplayRequest,
 } from '../../../../../utils/replayHelpers';
 
-sentryTest('captures request body size when body is sent', async ({ getLocalTestPath, page }) => {
+sentryTest('captures request body size when body is sent', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipReplayTest()) {
     sentryTest.skip();
   }
 
-  await page.route('**/foo', route => {
+  await page.route('http://sentry-test.io/foo', route => {
     return route.fulfill({
       status: 200,
-    });
-  });
-
-  await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-    return route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ id: 'test-id' }),
     });
   });
 
   const requestPromise = waitForErrorRequest(page);
-  const replayRequestPromise1 = waitForReplayRequest(page, 0);
-
-  const url = await getLocalTestPath({ testDir: __dirname });
-  await page.goto(url);
-
-  await page.evaluate(() => {
-    /* eslint-disable */
-    fetch('http://localhost:7654/foo', {
-      method: 'POST',
-      body: '{"foo":"bar"}',
-    }).then(() => {
-      // @ts-expect-error Sentry is a global
-      Sentry.captureException('test error');
-    });
-    /* eslint-enable */
+  const replayRequestPromise = collectReplayRequests(page, recordingEvents => {
+    return getReplayPerformanceSpans(recordingEvents).some(span => span.op === 'resource.fetch');
   });
 
-  const request = await requestPromise;
+  const url = await getLocalTestUrl({ testDir: __dirname });
+  await page.goto(url);
+
+  const [, request, { replayRecordingSnapshots }] = await Promise.all([
+    page.evaluate(() => {
+      fetch('http://sentry-test.io/foo', {
+        method: 'POST',
+        body: '{"foo":"bar"}',
+      }).then(() => {
+        // @ts-expect-error Sentry is a global
+        Sentry.captureException('test error');
+      });
+    }),
+    requestPromise,
+    replayRequestPromise,
+  ]);
+
   const eventData = envelopeRequestParser(request);
 
   expect(eventData.exception?.values).toHaveLength(1);
@@ -59,13 +54,11 @@ sentryTest('captures request body size when body is sent', async ({ getLocalTest
       method: 'POST',
       request_body_size: 13,
       status_code: 200,
-      url: 'http://localhost:7654/foo',
+      url: 'http://sentry-test.io/foo',
     },
   });
 
-  const replayReq1 = await replayRequestPromise1;
-  const { performanceSpans: performanceSpans1 } = getCustomRecordingEvents(replayReq1);
-  expect(performanceSpans1.filter(span => span.op === 'resource.fetch')).toEqual([
+  expect(getReplayPerformanceSpans(replayRecordingSnapshots).filter(span => span.op === 'resource.fetch')).toEqual([
     {
       data: {
         method: 'POST',
@@ -84,7 +77,7 @@ sentryTest('captures request body size when body is sent', async ({ getLocalTest
           },
         },
       },
-      description: 'http://localhost:7654/foo',
+      description: 'http://sentry-test.io/foo',
       endTimestamp: expect.any(Number),
       op: 'resource.fetch',
       startTimestamp: expect.any(Number),
@@ -92,7 +85,7 @@ sentryTest('captures request body size when body is sent', async ({ getLocalTest
   ]);
 });
 
-sentryTest('captures request size from non-text request body', async ({ getLocalTestPath, page }) => {
+sentryTest('captures request size from non-text request body', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipReplayTest()) {
     sentryTest.skip();
   }
@@ -103,35 +96,30 @@ sentryTest('captures request size from non-text request body', async ({ getLocal
     });
   });
 
-  await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-    return route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ id: 'test-id' }),
-    });
+  const requestPromise = waitForErrorRequest(page);
+  const replayRequestPromise = collectReplayRequests(page, recordingEvents => {
+    return getReplayPerformanceSpans(recordingEvents).some(span => span.op === 'resource.fetch');
   });
 
-  const requestPromise = waitForErrorRequest(page);
-  const replayRequestPromise1 = waitForReplayRequest(page, 0);
-
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
   await page.goto(url);
 
-  await page.evaluate(() => {
-    /* eslint-disable */
-    const blob = new Blob(['<html>Hello world!!</html>'], { type: 'text/html' });
+  const [, request, { replayRecordingSnapshots }] = await Promise.all([
+    page.evaluate(() => {
+      const blob = new Blob(['<html>Hello world!!</html>'], { type: 'text/html' });
 
-    fetch('http://localhost:7654/foo', {
-      method: 'POST',
-      body: blob,
-    }).then(() => {
-      // @ts-expect-error Sentry is a global
-      Sentry.captureException('test error');
-    });
-    /* eslint-enable */
-  });
+      fetch('http://sentry-test.io/foo', {
+        method: 'POST',
+        body: blob,
+      }).then(() => {
+        // @ts-expect-error Sentry is a global
+        Sentry.captureException('test error');
+      });
+    }),
+    requestPromise,
+    replayRequestPromise,
+  ]);
 
-  const request = await requestPromise;
   const eventData = envelopeRequestParser(request);
 
   expect(eventData.exception?.values).toHaveLength(1);
@@ -145,13 +133,11 @@ sentryTest('captures request size from non-text request body', async ({ getLocal
       method: 'POST',
       request_body_size: 26,
       status_code: 200,
-      url: 'http://localhost:7654/foo',
+      url: 'http://sentry-test.io/foo',
     },
   });
 
-  const replayReq1 = await replayRequestPromise1;
-  const { performanceSpans: performanceSpans1 } = getCustomRecordingEvents(replayReq1);
-  expect(performanceSpans1.filter(span => span.op === 'resource.fetch')).toEqual([
+  expect(getReplayPerformanceSpans(replayRecordingSnapshots).filter(span => span.op === 'resource.fetch')).toEqual([
     {
       data: {
         method: 'POST',
@@ -170,7 +156,7 @@ sentryTest('captures request size from non-text request body', async ({ getLocal
           },
         },
       },
-      description: 'http://localhost:7654/foo',
+      description: 'http://sentry-test.io/foo',
       endTimestamp: expect.any(Number),
       op: 'resource.fetch',
       startTimestamp: expect.any(Number),

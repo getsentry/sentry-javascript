@@ -2,16 +2,16 @@
 
 import commonjs from '@rollup/plugin-commonjs';
 import resolve from '@rollup/plugin-node-resolve';
+import terser from '@rollup/plugin-terser';
 import typescript from '@rollup/plugin-typescript';
 import { defineConfig } from 'rollup';
-import { terser } from 'rollup-plugin-terser';
 
 const config = defineConfig([
   {
     input: ['./src/index.ts'],
     treeshake: 'smallest',
     output: {
-      dir: './build/npm/esm',
+      dir: './build/esm',
       format: 'esm',
     },
     external: ['./worker'],
@@ -27,7 +27,7 @@ const config = defineConfig([
   {
     input: ['./src/_worker.ts'],
     output: {
-      file: './build/npm/esm/worker.ts',
+      file: './build/esm/worker.ts',
       format: 'esm',
     },
     treeshake: 'smallest',

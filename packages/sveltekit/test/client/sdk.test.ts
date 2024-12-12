@@ -1,11 +1,10 @@
-import { getClient, getCurrentScope } from '@sentry/core';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+
 import type { BrowserClient } from '@sentry/svelte';
 import * as SentrySvelte from '@sentry/svelte';
-import { SDK_VERSION, WINDOW } from '@sentry/svelte';
-import { vi } from 'vitest';
+import { SDK_VERSION, getClient, getCurrentScope, getGlobalScope, getIsolationScope } from '@sentry/svelte';
 
-import { BrowserTracing, init } from '../../src/client';
-import { svelteKitRoutingInstrumentation } from '../../src/client/router';
+import { init } from '../../src/client';
 
 const svelteInit = vi.spyOn(SentrySvelte, 'init');
 
@@ -13,7 +12,11 @@ describe('Sentry client SDK', () => {
   describe('init', () => {
     afterEach(() => {
       vi.clearAllMocks();
-      WINDOW.__SENTRY__.hub = undefined;
+
+      getGlobalScope().clear();
+      getIsolationScope().clear();
+      getCurrentScope().clear();
+      getCurrentScope().setClient(undefined);
     });
 
     it('adds SvelteKit metadata to the SDK options', () => {
@@ -38,57 +41,26 @@ describe('Sentry client SDK', () => {
       );
     });
 
-    it('sets the runtime tag on the scope', () => {
-      const currentScope = getCurrentScope();
-
-      // @ts-expect-error need access to protected _tags attribute
-      expect(currentScope._tags).toEqual({});
-
-      init({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
-
-      // @ts-expect-error need access to protected _tags attribute
-      expect(currentScope._tags).toEqual({ runtime: 'browser' });
-    });
-
     describe('automatically added integrations', () => {
       it.each([
         ['tracesSampleRate', { tracesSampleRate: 0 }],
         ['tracesSampler', { tracesSampler: () => 1.0 }],
         ['enableTracing', { enableTracing: true }],
-      ])('adds the BrowserTracing integration if tracing is enabled via %s', (_, tracingOptions) => {
+        ['no tracing option set', {}],
+      ])('adds a browserTracingIntegration if tracing is enabled via %s', (_, tracingOptions) => {
         init({
           dsn: 'https://public@dsn.ingest.sentry.io/1337',
           ...tracingOptions,
         });
 
-        const integrationsToInit = svelteInit.mock.calls[0][0].integrations;
         const browserTracing = getClient<BrowserClient>()?.getIntegrationByName('BrowserTracing');
-
-        expect(integrationsToInit).toContainEqual(expect.objectContaining({ name: 'BrowserTracing' }));
         expect(browserTracing).toBeDefined();
       });
 
-      it.each([
-        ['enableTracing', { enableTracing: false }],
-        ['no tracing option set', {}],
-      ])("doesn't add the BrowserTracing integration if tracing is disabled via %s", (_, tracingOptions) => {
-        init({
-          dsn: 'https://public@dsn.ingest.sentry.io/1337',
-          ...tracingOptions,
-        });
-
-        const integrationsToInit = svelteInit.mock.calls[0][0].integrations;
-        const browserTracing = getClient<BrowserClient>()?.getIntegrationByName('BrowserTracing');
-
-        expect(integrationsToInit).not.toContainEqual(expect.objectContaining({ name: 'BrowserTracing' }));
-        expect(browserTracing).toBeUndefined();
-      });
-
-      it("doesn't add the BrowserTracing integration if `__SENTRY_TRACING__` is set to false", () => {
+      it("doesn't add a browserTracingIntegration if `__SENTRY_TRACING__` is set to false", () => {
         // This is the closest we can get to unit-testing the `__SENTRY_TRACING__` tree-shaking guard
         // IRL, the code to add the integration would most likely be removed by the bundler.
 
-        // @ts-expect-error this is fine in the test
         globalThis.__SENTRY_TRACING__ = false;
 
         init({
@@ -96,37 +68,15 @@ describe('Sentry client SDK', () => {
           enableTracing: true,
         });
 
-        const integrationsToInit = svelteInit.mock.calls[0][0].integrations;
         const browserTracing = getClient<BrowserClient>()?.getIntegrationByName('BrowserTracing');
-
-        expect(integrationsToInit).not.toContainEqual(expect.objectContaining({ name: 'BrowserTracing' }));
         expect(browserTracing).toBeUndefined();
 
-        // @ts-expect-error this is fine in the test
         delete globalThis.__SENTRY_TRACING__;
       });
+    });
 
-      it('Merges a user-provided BrowserTracing integration with the automatically added one', () => {
-        init({
-          dsn: 'https://public@dsn.ingest.sentry.io/1337',
-          integrations: [new BrowserTracing({ finalTimeout: 10, startTransactionOnLocationChange: false })],
-          enableTracing: true,
-        });
-
-        const integrationsToInit = svelteInit.mock.calls[0][0].integrations;
-
-        const browserTracing = getClient<BrowserClient>()?.getIntegrationByName('BrowserTracing') as BrowserTracing;
-        const options = browserTracing.options;
-
-        expect(integrationsToInit).toContainEqual(expect.objectContaining({ name: 'BrowserTracing' }));
-        expect(browserTracing).toBeDefined();
-
-        // This shows that the user-configured options are still here
-        expect(options.finalTimeout).toEqual(10);
-
-        // But we force the routing instrumentation to be ours
-        expect(options.routingInstrumentation).toEqual(svelteKitRoutingInstrumentation);
-      });
+    it('returns client from init', () => {
+      expect(init({})).not.toBeUndefined();
     });
   });
 });

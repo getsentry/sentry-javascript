@@ -1,12 +1,13 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import * as SentryBrowser from '@sentry/browser';
-import type { Client, Event } from '@sentry/types';
+import type { Client, Event } from '@sentry/core';
+import { vi } from 'vitest';
 
 import { SentryErrorHandler, createErrorHandler } from '../src/errorhandler';
 
-const captureExceptionSpy = jest.spyOn(SentryBrowser, 'captureException');
+const captureExceptionSpy = vi.spyOn(SentryBrowser, 'captureException');
 
-jest.spyOn(console, 'error').mockImplementation();
+vi.spyOn(console, 'error').mockImplementation(() => {});
 
 const captureExceptionEventHint = {
   mechanism: { handled: false, type: 'angular' },
@@ -37,7 +38,7 @@ class NonErrorShapedClass {}
 
 describe('SentryErrorHandler', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('`createErrorHandler `creates a SentryErrorHandler with an empty config', () => {
@@ -47,6 +48,11 @@ describe('SentryErrorHandler', () => {
   });
 
   describe('handleError method', () => {
+    const originalErrorEvent = globalThis.ErrorEvent;
+    afterEach(() => {
+      globalThis.ErrorEvent = originalErrorEvent;
+    });
+
     it('extracts `null` error', () => {
       createErrorHandler().handleError(null);
 
@@ -223,6 +229,18 @@ describe('SentryErrorHandler', () => {
 
       expect(captureExceptionSpy).toHaveBeenCalledTimes(1);
       expect(captureExceptionSpy).toHaveBeenCalledWith('Handled unknown error', captureExceptionEventHint);
+    });
+
+    it('handles ErrorEvent being undefined', () => {
+      const httpErr = new ErrorEvent('http', { message: 'sentry-http-test' });
+      const err = new HttpErrorResponse({ error: httpErr });
+
+      // @ts-expect-error - this is fine in this test
+      delete globalThis.ErrorEvent;
+
+      expect(() => {
+        createErrorHandler().handleError(err);
+      }).not.toThrow();
     });
 
     it('extracts an Error with `ngOriginalError`', () => {
@@ -503,33 +521,77 @@ describe('SentryErrorHandler', () => {
       it('by using SDK lifecycle hooks if available', () => {
         const client = {
           cb: (_: Event) => {},
-          on: jest.fn((_, cb) => {
+          on: vi.fn((_, cb) => {
             client.cb = cb;
           }),
         };
 
-        jest.spyOn(SentryBrowser, 'getClient').mockImplementationOnce(() => client as unknown as Client);
+        vi.spyOn(SentryBrowser, 'getClient').mockImplementationOnce(() => client as unknown as Client);
 
-        const showReportDialogSpy = jest.spyOn(SentryBrowser, 'showReportDialog');
+        const showReportDialogSpy = vi.spyOn(SentryBrowser, 'showReportDialog');
 
         const errorHandler = createErrorHandler({ showDialog: true });
         errorHandler.handleError(new Error('test'));
         expect(client.on).toHaveBeenCalledWith('afterSendEvent', expect.any(Function));
 
         // this simulates the afterSend hook being called
-        client.cb({});
+        client.cb({ event_id: 'foobar' });
 
         expect(showReportDialogSpy).toBeCalledTimes(1);
       });
 
       it('by just calling `showReportDialog` if hooks are not available', () => {
-        const showReportDialogSpy = jest.spyOn(SentryBrowser, 'showReportDialog');
+        const showReportDialogSpy = vi.spyOn(SentryBrowser, 'showReportDialog');
 
         const errorHandler = createErrorHandler({ showDialog: true });
         errorHandler.handleError(new Error('test'));
 
         expect(showReportDialogSpy).toBeCalledTimes(1);
       });
+    });
+
+    it('only registers the client "afterSendEvent" listener to open the dialog once', () => {
+      const unsubScribeSpy = vi.fn();
+      const client = {
+        cbs: [] as ((event: Event) => void)[],
+        on: vi.fn((_, cb) => {
+          client.cbs.push(cb);
+          return unsubScribeSpy;
+        }),
+      };
+
+      vi.spyOn(SentryBrowser, 'getClient').mockImplementation(() => client as unknown as Client);
+
+      const errorhandler = createErrorHandler({ showDialog: true });
+      expect(client.cbs).toHaveLength(0);
+
+      errorhandler.handleError(new Error('error 1'));
+      expect(client.cbs).toHaveLength(1);
+
+      errorhandler.handleError(new Error('error 2'));
+      errorhandler.handleError(new Error('error 3'));
+      expect(client.cbs).toHaveLength(1);
+    });
+
+    it('cleans up the "afterSendEvent" listener once the ErrorHandler is destroyed', () => {
+      const unsubScribeSpy = vi.fn();
+      const client = {
+        cbs: [] as ((event: Event) => void)[],
+        on: vi.fn((_, cb) => {
+          client.cbs.push(cb);
+          return unsubScribeSpy;
+        }),
+      };
+
+      vi.spyOn(SentryBrowser, 'getClient').mockImplementation(() => client as unknown as Client);
+
+      const errorhandler = createErrorHandler({ showDialog: true });
+
+      errorhandler.handleError(new Error('error 1'));
+      expect(client.cbs).toHaveLength(1);
+
+      errorhandler.ngOnDestroy();
+      expect(unsubScribeSpy).toHaveBeenCalledTimes(1);
     });
   });
 });

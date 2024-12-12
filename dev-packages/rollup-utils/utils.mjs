@@ -21,7 +21,7 @@ export function mergePlugins(pluginsA, pluginsB) {
     // here.
     // Additionally, the excludeReplay plugin must run before TS/Sucrase so that we can eliminate the replay code
     // before anything is type-checked (TS-only) and transpiled.
-    const order = ['excludeReplay', 'typescript', 'sucrase', '...', 'terser', 'license'];
+    const order = ['excludeReplay', 'typescript', 'sucrase', '...', 'terser', 'license', 'output-base64-worker-script'];
     const sortKeyA = order.includes(a.name) ? a.name : '...';
     const sortKeyB = order.includes(b.name) ? b.name : '...';
 

@@ -1,36 +1,16 @@
-import { TestEnv, assertSentryEvent } from '../../../../utils';
+import { cleanupChildProcesses, createRunner } from '../../../../utils/runner';
 
-test('should capture with different severity levels', async () => {
-  const env = await TestEnv.init(__dirname);
-  const events = await env.getMultipleEnvelopeRequest({ count: 6 });
+afterAll(() => {
+  cleanupChildProcesses();
+});
 
-  assertSentryEvent(events[0][2], {
-    message: 'debug_message',
-    level: 'debug',
-  });
-
-  assertSentryEvent(events[1][2], {
-    message: 'info_message',
-    level: 'info',
-  });
-
-  assertSentryEvent(events[2][2], {
-    message: 'warning_message',
-    level: 'warning',
-  });
-
-  assertSentryEvent(events[3][2], {
-    message: 'error_message',
-    level: 'error',
-  });
-
-  assertSentryEvent(events[4][2], {
-    message: 'fatal_message',
-    level: 'fatal',
-  });
-
-  assertSentryEvent(events[5][2], {
-    message: 'log_message',
-    level: 'log',
-  });
+test('should capture with different severity levels', done => {
+  createRunner(__dirname, 'scenario.ts')
+    .expect({ event: { message: 'debug_message', level: 'debug' } })
+    .expect({ event: { message: 'info_message', level: 'info' } })
+    .expect({ event: { message: 'warning_message', level: 'warning' } })
+    .expect({ event: { message: 'error_message', level: 'error' } })
+    .expect({ event: { message: 'fatal_message', level: 'fatal' } })
+    .expect({ event: { message: 'log_message', level: 'log' } })
+    .start(done);
 });

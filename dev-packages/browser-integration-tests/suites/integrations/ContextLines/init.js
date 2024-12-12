@@ -1,9 +1,9 @@
 import * as Sentry from '@sentry/browser';
-import { ContextLines } from '@sentry/integrations';
+import { contextLinesIntegration } from '@sentry/browser';
 
 window.Sentry = Sentry;
 
 Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
-  integrations: [new ContextLines()],
+  integrations: [contextLinesIntegration()],
 });

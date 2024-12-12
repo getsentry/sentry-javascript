@@ -3,6 +3,7 @@ import * as path from 'path';
 import { sentryVitePlugin } from '@sentry/vite-plugin';
 import type { AstroConfig, AstroIntegration } from 'astro';
 
+import { dropUndefinedKeys } from '@sentry/core';
 import { buildClientSnippet, buildSdkInitFileImportSnippet, buildServerSnippet } from './snippets';
 import type { SentryOptions } from './types';
 
@@ -34,22 +35,44 @@ export const sentryAstro = (options: SentryOptions = {}): AstroIntegration => {
 
         // We don't need to check for AUTH_TOKEN here, because the plugin will pick it up from the env
         if (shouldUploadSourcemaps && command !== 'dev') {
+          // TODO(v9): Remove this warning
+          if (config?.vite?.build?.sourcemap === false) {
+            logger.warn(
+              "You disabled sourcemaps with the `vite.build.sourcemap` option. Currently, the Sentry SDK will override this option to generate sourcemaps. In future versions, the Sentry SDK will not override the `vite.build.sourcemap` option if you explicitly disable it. If you want to generate and upload sourcemaps please set the `vite.build.sourcemap` option to 'hidden' or undefined.",
+            );
+          }
+
+          // TODO: Add deleteSourcemapsAfterUpload option and warn if it isn't set.
+
           updateConfig({
             vite: {
               build: {
                 sourcemap: true,
               },
               plugins: [
-                sentryVitePlugin({
-                  org: uploadOptions.org ?? env.SENTRY_ORG,
-                  project: uploadOptions.project ?? env.SENTRY_PROJECT,
-                  authToken: uploadOptions.authToken ?? env.SENTRY_AUTH_TOKEN,
-                  telemetry: uploadOptions.telemetry ?? true,
-                  sourcemaps: {
-                    assets: uploadOptions.assets ?? [getSourcemapsAssetsGlob(config)],
-                  },
-                  debug: options.debug ?? false,
-                }),
+                sentryVitePlugin(
+                  dropUndefinedKeys({
+                    org: uploadOptions.org ?? env.SENTRY_ORG,
+                    project: uploadOptions.project ?? env.SENTRY_PROJECT,
+                    authToken: uploadOptions.authToken ?? env.SENTRY_AUTH_TOKEN,
+                    telemetry: uploadOptions.telemetry ?? true,
+                    sourcemaps: {
+                      assets: uploadOptions.assets ?? [getSourcemapsAssetsGlob(config)],
+                    },
+                    bundleSizeOptimizations: {
+                      ...options.bundleSizeOptimizations,
+                      // TODO: with a future version of the vite plugin (probably 2.22.0) this re-mapping is not needed anymore
+                      // ref: https://github.com/getsentry/sentry-javascript-bundler-plugins/pull/582
+                      excludePerformanceMonitoring: options.bundleSizeOptimizations?.excludeTracing,
+                    },
+                    _metaOptions: {
+                      telemetry: {
+                        metaFramework: 'astro',
+                      },
+                    },
+                    debug: options.debug ?? false,
+                  }),
+                ),
               ],
             },
           });
@@ -120,10 +143,9 @@ const possibleFileExtensions = ['ts', 'js', 'tsx', 'jsx', 'mjs', 'cjs', 'mts'];
 
 function findDefaultSdkInitFile(type: 'server' | 'client'): string | undefined {
   const cwd = process.cwd();
-  return possibleFileExtensions.find(extension => {
-    const filename = path.resolve(path.join(cwd, `sentry.${type}.config.${extension}`));
-    return fs.existsSync(filename);
-  });
+  return possibleFileExtensions
+    .map(e => path.resolve(path.join(cwd, `sentry.${type}.config.${e}`)))
+    .find(filename => fs.existsSync(filename));
 }
 
 function getSourcemapsAssetsGlob(config: AstroConfig): string {

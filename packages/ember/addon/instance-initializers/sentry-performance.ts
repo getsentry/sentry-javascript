@@ -6,19 +6,22 @@ import type RouterService from '@ember/routing/router-service';
 import { _backburner, run, scheduleOnce } from '@ember/runloop';
 import type { EmberRunQueues } from '@ember/runloop/-private/types';
 import { getOwnConfig, isTesting, macroCondition } from '@embroider/macros';
-import * as Sentry from '@sentry/browser';
+import type {
+  BrowserClient,
+  startBrowserTracingNavigationSpan as startBrowserTracingNavigationSpanType,
+  startBrowserTracingPageLoadSpan as startBrowserTracingPageLoadSpanType,
+} from '@sentry/browser';
+import {
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  getActiveSpan,
+  getClient,
+  startInactiveSpan,
+} from '@sentry/browser';
+import { GLOBAL_OBJ, browserPerformanceTimeOrigin, timestampInSeconds } from '@sentry/core';
+import type { Span } from '@sentry/core';
 import type { ExtendedBackburner } from '@sentry/ember/runloop';
-import type { Span, Transaction } from '@sentry/types';
-import { GLOBAL_OBJ, browserPerformanceTimeOrigin, timestampInSeconds } from '@sentry/utils';
-
-import type { BrowserClient } from '..';
-import { getActiveSpan, startInactiveSpan } from '..';
-import type { EmberRouterMain, EmberSentryConfig, GlobalConfig, OwnConfig, StartTransactionFunction } from '../types';
-
-type SentryTestRouterService = RouterService & {
-  _startTransaction?: StartTransactionFunction;
-  _sentryInstrumented?: boolean;
-};
+import type { EmberRouterMain, EmberSentryConfig, GlobalConfig, OwnConfig } from '../types';
 
 function getSentryConfig(): EmberSentryConfig {
   const _global = GLOBAL_OBJ as typeof GLOBAL_OBJ & GlobalConfig;
@@ -97,33 +100,33 @@ export function _instrumentEmberRouter(
   routerService: RouterService,
   routerMain: EmberRouterMain,
   config: EmberSentryConfig,
-  startTransaction: StartTransactionFunction,
-  startTransactionOnPageLoad?: boolean,
-): {
-  startTransaction: StartTransactionFunction;
-} {
+  startBrowserTracingPageLoadSpan: typeof startBrowserTracingPageLoadSpanType,
+  startBrowserTracingNavigationSpan: typeof startBrowserTracingNavigationSpanType,
+): void {
   const { disableRunloopPerformance } = config;
   const location = routerMain.location;
-  let activeTransaction: Transaction | undefined;
+  let activeRootSpan: Span | undefined;
   let transitionSpan: Span | undefined;
 
+  // Maintaining backwards compatibility with config.browserTracingOptions, but passing it with Sentry options is preferred.
+  const browserTracingOptions = config.browserTracingOptions || config.sentry.browserTracingOptions || {};
   const url = getLocationURL(location);
 
-  if (macroCondition(isTesting())) {
-    (routerService as SentryTestRouterService)._sentryInstrumented = true;
-    (routerService as SentryTestRouterService)._startTransaction = startTransaction;
+  const client = getClient<BrowserClient>();
+
+  if (!client) {
+    return;
   }
 
-  if (startTransactionOnPageLoad && url) {
+  if (url && browserTracingOptions.instrumentPageLoad !== false) {
     const routeInfo = routerService.recognize(url);
-    activeTransaction = startTransaction({
+    activeRootSpan = startBrowserTracingPageLoadSpan(client, {
       name: `route:${routeInfo.name}`,
-      op: 'pageload',
-      origin: 'auto.pageload.ember',
-      tags: {
+      attributes: {
+        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.ember',
         url,
         toRoute: routeInfo.name,
-        'routing.instrumentation': '@sentry/ember',
       },
     });
   }
@@ -132,47 +135,57 @@ export function _instrumentEmberRouter(
     if (nextInstance) {
       return;
     }
-    activeTransaction?.end();
+    activeRootSpan?.end();
     getBackburner().off('end', finishActiveTransaction);
   };
 
+  if (browserTracingOptions.instrumentNavigation === false) {
+    return;
+  }
+
   routerService.on('routeWillChange', (transition: Transition) => {
     const { fromRoute, toRoute } = getTransitionInformation(transition, routerService);
-    activeTransaction?.end();
-    activeTransaction = startTransaction({
+
+    // We want to ignore loading && error routes
+    if (transitionIsIntermediate(transition)) {
+      return;
+    }
+
+    activeRootSpan?.end();
+
+    activeRootSpan = startBrowserTracingNavigationSpan(client, {
       name: `route:${toRoute}`,
-      op: 'navigation',
-      origin: 'auto.navigation.ember',
-      tags: {
+      attributes: {
+        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.ember',
         fromRoute,
         toRoute,
-        'routing.instrumentation': '@sentry/ember',
       },
     });
+
     transitionSpan = startInactiveSpan({
+      attributes: {
+        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.ember',
+      },
       op: 'ui.ember.transition',
       name: `route:${fromRoute} -> route:${toRoute}`,
-      origin: 'auto.ui.ember',
+      onlyIfParent: true,
     });
   });
 
-  routerService.on('routeDidChange', () => {
-    if (!transitionSpan || !activeTransaction) {
+  routerService.on('routeDidChange', transition => {
+    if (!transitionSpan || !activeRootSpan || transitionIsIntermediate(transition)) {
       return;
     }
     transitionSpan.end();
 
     if (disableRunloopPerformance) {
-      activeTransaction.end();
+      activeRootSpan.end();
       return;
     }
 
     getBackburner().on('end', finishActiveTransaction);
   });
-
-  return {
-    startTransaction,
-  };
 }
 
 function _instrumentEmberRunloop(config: EmberSentryConfig): void {
@@ -212,10 +225,13 @@ function _instrumentEmberRunloop(config: EmberSentryConfig): void {
 
         if ((now - currentQueueStart) * 1000 >= minQueueDuration) {
           startInactiveSpan({
+            attributes: {
+              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.ember',
+            },
             name: 'runloop',
             op: `ui.ember.runloop.${queue}`,
-            origin: 'auto.ui.ember',
-            startTimestamp: currentQueueStart,
+            startTime: currentQueueStart,
+            onlyIfParent: true,
           })?.end(now);
         }
         currentQueueStart = undefined;
@@ -287,8 +303,11 @@ function processComponentRenderAfter(
     startInactiveSpan({
       name: payload.containerKey || payload.object,
       op,
-      origin: 'auto.ui.ember',
-      startTimestamp: begin.now,
+      startTime: begin.now,
+      attributes: {
+        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.ember',
+      },
+      onlyIfParent: true,
     })?.end(now);
   }
 }
@@ -364,15 +383,18 @@ function _instrumentInitialLoad(config: EmberSentryConfig): void {
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   const measure = measures[0]!;
 
-  const startTimestamp = (measure.startTime + browserPerformanceTimeOrigin) / 1000;
-  const endTimestamp = startTimestamp + measure.duration / 1000;
+  const startTime = (measure.startTime + browserPerformanceTimeOrigin) / 1000;
+  const endTime = startTime + measure.duration / 1000;
 
   startInactiveSpan({
     op: 'ui.ember.init',
     name: 'init',
-    origin: 'auto.ui.ember',
-    startTimestamp,
-  })?.end(endTimestamp);
+    attributes: {
+      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.ember',
+    },
+    startTime,
+    onlyIfParent: true,
+  })?.end(endTime);
   performance.clearMarks(startName);
   performance.clearMarks(endName);
 
@@ -404,54 +426,32 @@ export async function instrumentForPerformance(appInstance: ApplicationInstance)
   // Maintaining backwards compatibility with config.browserTracingOptions, but passing it with Sentry options is preferred.
   const browserTracingOptions = config.browserTracingOptions || config.sentry.browserTracingOptions || {};
 
-  const { BrowserTracing } = await import('@sentry/browser');
+  const { browserTracingIntegration, startBrowserTracingNavigationSpan, startBrowserTracingPageLoadSpan } =
+    await import('@sentry/browser');
 
   const idleTimeout = config.transitionTimeout || 5000;
 
-  const browserTracing = new BrowserTracing({
-    routingInstrumentation: (customStartTransaction, startTransactionOnPageLoad) => {
-      // eslint-disable-next-line ember/no-private-routing-service
-      const routerMain = appInstance.lookup('router:main') as EmberRouterMain;
-      let routerService = appInstance.lookup('service:router') as RouterService & {
-        externalRouter?: RouterService;
-        _hasMountedSentryPerformanceRouting?: boolean;
-      };
-
-      if (routerService.externalRouter) {
-        // Using ember-engines-router-service in an engine.
-        routerService = routerService.externalRouter;
-      }
-      if (routerService._hasMountedSentryPerformanceRouting) {
-        // Routing listens to route changes on the main router, and should not be initialized multiple times per page.
-        return;
-      }
-      if (!routerService.recognize) {
-        // Router is missing critical functionality to limit cardinality of the transaction names.
-        return;
-      }
-      routerService._hasMountedSentryPerformanceRouting = true;
-      _instrumentEmberRouter(routerService, routerMain, config, customStartTransaction, startTransactionOnPageLoad);
-    },
+  const browserTracing = browserTracingIntegration({
     idleTimeout,
     ...browserTracingOptions,
+    instrumentNavigation: false,
+    instrumentPageLoad: false,
   });
 
-  if (macroCondition(isTesting())) {
-    const client = Sentry.getClient();
+  const client = getClient<BrowserClient>();
 
-    if (
-      client &&
-      (client as BrowserClient).getIntegrationByName &&
-      (client as BrowserClient).getIntegrationByName('BrowserTracing')
-    ) {
-      // Initializers are called more than once in tests, causing the integrations to not be setup correctly.
-      return;
-    }
-  }
+  const isAlreadyInitialized = macroCondition(isTesting()) ? !!client?.getIntegrationByName('BrowserTracing') : false;
 
-  const client = Sentry.getClient();
   if (client && client.addIntegration) {
     client.addIntegration(browserTracing);
+  }
+
+  // We _always_ call this, as it triggers the page load & navigation spans
+  _instrumentNavigation(appInstance, config, startBrowserTracingPageLoadSpan, startBrowserTracingNavigationSpan);
+
+  // Skip instrumenting the stuff below again in tests, as these are not reset between tests
+  if (isAlreadyInitialized) {
+    return;
   }
 
   _instrumentEmberRunloop(config);
@@ -459,6 +459,57 @@ export async function instrumentForPerformance(appInstance: ApplicationInstance)
   _instrumentInitialLoad(config);
 }
 
+function _instrumentNavigation(
+  appInstance: ApplicationInstance,
+  config: EmberSentryConfig,
+  startBrowserTracingPageLoadSpan: typeof startBrowserTracingPageLoadSpanType,
+  startBrowserTracingNavigationSpan: typeof startBrowserTracingNavigationSpanType,
+): void {
+  // eslint-disable-next-line ember/no-private-routing-service
+  const routerMain = appInstance.lookup('router:main') as EmberRouterMain;
+  let routerService = appInstance.lookup('service:router') as RouterService & {
+    externalRouter?: RouterService;
+    _hasMountedSentryPerformanceRouting?: boolean;
+  };
+
+  if (routerService.externalRouter) {
+    // Using ember-engines-router-service in an engine.
+    routerService = routerService.externalRouter;
+  }
+  if (routerService._hasMountedSentryPerformanceRouting) {
+    // Routing listens to route changes on the main router, and should not be initialized multiple times per page.
+    return;
+  }
+  if (!routerService.recognize) {
+    // Router is missing critical functionality to limit cardinality of the transaction names.
+    return;
+  }
+
+  routerService._hasMountedSentryPerformanceRouting = true;
+  _instrumentEmberRouter(
+    routerService,
+    routerMain,
+    config,
+    startBrowserTracingPageLoadSpan,
+    startBrowserTracingNavigationSpan,
+  );
+}
+
 export default {
   initialize,
 };
+
+function transitionIsIntermediate(transition: Transition): boolean {
+  //  We want to use ignore, as this may actually be defined on new versions
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore This actually exists on newer versions
+  const isIntermediate: boolean | undefined = transition.isIntermediate;
+
+  if (typeof isIntermediate === 'boolean') {
+    return isIntermediate;
+  }
+
+  // For versions without this, we look if the route is a `.loading` or `.error` route
+  // This is not perfect and may false-positive in some cases, but it's the best we can do
+  return transition.to?.localName === 'loading' || transition.to?.localName === 'error';
+}

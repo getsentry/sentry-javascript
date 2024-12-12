@@ -1,25 +1,19 @@
 import type { BrowserOptions } from '@sentry/browser';
-import { SDK_VERSION, init as browserInit } from '@sentry/browser';
-import type { SdkMetadata } from '@sentry/types';
+import { init as browserInit, setContext } from '@sentry/browser';
+import { applySdkMetadata } from '@sentry/core';
+import type { Client } from '@sentry/core';
+
+import { version } from 'react';
 
 /**
  * Inits the React SDK
  */
-export function init(options: BrowserOptions): void {
+export function init(options: BrowserOptions): Client | undefined {
   const opts = {
-    _metadata: {} as SdkMetadata,
     ...options,
   };
 
-  opts._metadata.sdk = opts._metadata.sdk || {
-    name: 'sentry.javascript.react',
-    packages: [
-      {
-        name: 'npm:@sentry/react',
-        version: SDK_VERSION,
-      },
-    ],
-    version: SDK_VERSION,
-  };
-  browserInit(opts);
+  applySdkMetadata(opts, 'react');
+  setContext('react', { version });
+  return browserInit(opts);
 }

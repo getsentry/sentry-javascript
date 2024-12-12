@@ -1,24 +1,29 @@
-import { TestEnv, assertSentryEvent } from '../../../../utils';
+import { cleanupChildProcesses, createRunner } from '../../../../utils/runner';
 
-test('should capture a simple error with message', async () => {
-  const env = await TestEnv.init(__dirname);
-  const envelope = await env.getEnvelopeRequest();
+afterAll(() => {
+  cleanupChildProcesses();
+});
 
-  assertSentryEvent(envelope[2], {
-    exception: {
-      values: [
-        {
-          type: 'Error',
-          value: 'test_simple_error',
-          mechanism: {
-            type: 'generic',
-            handled: true,
-          },
-          stacktrace: {
-            frames: expect.any(Array),
-          },
+test('should capture a simple error with message', done => {
+  createRunner(__dirname, 'scenario.ts')
+    .expect({
+      event: {
+        exception: {
+          values: [
+            {
+              type: 'Error',
+              value: 'test_simple_error',
+              mechanism: {
+                type: 'generic',
+                handled: true,
+              },
+              stacktrace: {
+                frames: expect.any(Array),
+              },
+            },
+          ],
         },
-      ],
-    },
-  });
+      },
+    })
+    .start(done);
 });

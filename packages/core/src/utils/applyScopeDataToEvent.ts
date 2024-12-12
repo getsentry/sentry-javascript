@@ -1,14 +1,14 @@
-import type { Breadcrumb, Event, PropagationContext, ScopeData, Span } from '@sentry/types';
-import { arrayify, dropUndefinedKeys } from '@sentry/utils';
 import { getDynamicSamplingContextFromSpan } from '../tracing/dynamicSamplingContext';
-import { getRootSpan } from './getRootSpan';
-import { spanToJSON, spanToTraceContext } from './spanUtils';
+import type { Breadcrumb, Event, ScopeData, Span } from '../types-hoist';
+import { dropUndefinedKeys } from '../utils-hoist/object';
+import { merge } from './merge';
+import { getRootSpan, spanToJSON, spanToTraceContext } from './spanUtils';
 
 /**
  * Applies data from the scope to the event and runs all event processors on it.
  */
 export function applyScopeDataToEvent(event: Event, data: ScopeData): void {
-  const { fingerprint, span, breadcrumbs, sdkProcessingMetadata, propagationContext } = data;
+  const { fingerprint, span, breadcrumbs, sdkProcessingMetadata } = data;
 
   // Apply general data
   applyDataToEvent(event, data);
@@ -22,7 +22,7 @@ export function applyScopeDataToEvent(event: Event, data: ScopeData): void {
 
   applyFingerprintToEvent(event, fingerprint);
   applyBreadcrumbsToEvent(event, breadcrumbs);
-  applySdkMetadataToEvent(event, sdkProcessingMetadata, propagationContext);
+  applySdkMetadataToEvent(event, sdkProcessingMetadata);
 }
 
 /** Merge data of two scopes together. */
@@ -39,7 +39,6 @@ export function mergeScopeData(data: ScopeData, mergeData: ScopeData): void {
     eventProcessors,
     attachments,
     propagationContext,
-    // eslint-disable-next-line deprecation/deprecation
     transactionName,
     span,
   } = mergeData;
@@ -48,14 +47,14 @@ export function mergeScopeData(data: ScopeData, mergeData: ScopeData): void {
   mergeAndOverwriteScopeData(data, 'tags', tags);
   mergeAndOverwriteScopeData(data, 'user', user);
   mergeAndOverwriteScopeData(data, 'contexts', contexts);
-  mergeAndOverwriteScopeData(data, 'sdkProcessingMetadata', sdkProcessingMetadata);
+
+  data.sdkProcessingMetadata = merge(data.sdkProcessingMetadata, sdkProcessingMetadata, 2);
 
   if (level) {
     data.level = level;
   }
 
   if (transactionName) {
-    // eslint-disable-next-line deprecation/deprecation
     data.transactionName = transactionName;
   }
 
@@ -90,15 +89,7 @@ export function mergeAndOverwriteScopeData<
   Prop extends 'extra' | 'tags' | 'user' | 'contexts' | 'sdkProcessingMetadata',
   Data extends ScopeData,
 >(data: Data, prop: Prop, mergeVal: Data[Prop]): void {
-  if (mergeVal && Object.keys(mergeVal).length) {
-    // Clone object
-    data[prop] = { ...data[prop] };
-    for (const key in mergeVal) {
-      if (Object.prototype.hasOwnProperty.call(mergeVal, key)) {
-        data[prop][key] = mergeVal[key];
-      }
-    }
-  }
+  data[prop] = merge(data[prop], mergeVal, 1);
 }
 
 /** Exported only for tests */
@@ -119,15 +110,7 @@ export function mergeArray<Prop extends 'breadcrumbs' | 'fingerprint'>(
 }
 
 function applyDataToEvent(event: Event, data: ScopeData): void {
-  const {
-    extra,
-    tags,
-    user,
-    contexts,
-    level,
-    // eslint-disable-next-line deprecation/deprecation
-    transactionName,
-  } = data;
+  const { extra, tags, user, contexts, level, transactionName } = data;
 
   const cleanedExtra = dropUndefinedKeys(extra);
   if (cleanedExtra && Object.keys(cleanedExtra).length) {
@@ -153,7 +136,8 @@ function applyDataToEvent(event: Event, data: ScopeData): void {
     event.level = level;
   }
 
-  if (transactionName) {
+  // transaction events get their `transaction` from the root span name
+  if (transactionName && event.type !== 'transaction') {
     event.transaction = transactionName;
   }
 }
@@ -163,30 +147,28 @@ function applyBreadcrumbsToEvent(event: Event, breadcrumbs: Breadcrumb[]): void 
   event.breadcrumbs = mergedBreadcrumbs.length ? mergedBreadcrumbs : undefined;
 }
 
-function applySdkMetadataToEvent(
-  event: Event,
-  sdkProcessingMetadata: ScopeData['sdkProcessingMetadata'],
-  propagationContext: PropagationContext,
-): void {
+function applySdkMetadataToEvent(event: Event, sdkProcessingMetadata: ScopeData['sdkProcessingMetadata']): void {
   event.sdkProcessingMetadata = {
     ...event.sdkProcessingMetadata,
     ...sdkProcessingMetadata,
-    propagationContext: propagationContext,
   };
 }
 
 function applySpanToEvent(event: Event, span: Span): void {
-  event.contexts = { trace: spanToTraceContext(span), ...event.contexts };
+  event.contexts = {
+    trace: spanToTraceContext(span),
+    ...event.contexts,
+  };
+
+  event.sdkProcessingMetadata = {
+    dynamicSamplingContext: getDynamicSamplingContextFromSpan(span),
+    ...event.sdkProcessingMetadata,
+  };
+
   const rootSpan = getRootSpan(span);
-  if (rootSpan) {
-    event.sdkProcessingMetadata = {
-      dynamicSamplingContext: getDynamicSamplingContextFromSpan(span),
-      ...event.sdkProcessingMetadata,
-    };
-    const transactionName = spanToJSON(rootSpan).description;
-    if (transactionName) {
-      event.tags = { transaction: transactionName, ...event.tags };
-    }
+  const transactionName = spanToJSON(rootSpan).description;
+  if (transactionName && !event.transaction && event.type === 'transaction') {
+    event.transaction = transactionName;
   }
 }
 
@@ -196,7 +178,11 @@ function applySpanToEvent(event: Event, span: Span): void {
  */
 function applyFingerprintToEvent(event: Event, fingerprint: ScopeData['fingerprint'] | undefined): void {
   // Make sure it's an array first and we actually have something in place
-  event.fingerprint = event.fingerprint ? arrayify(event.fingerprint) : [];
+  event.fingerprint = event.fingerprint
+    ? Array.isArray(event.fingerprint)
+      ? event.fingerprint
+      : [event.fingerprint]
+    : [];
 
   // If we have something on the scope, then merge it with event
   if (fingerprint) {

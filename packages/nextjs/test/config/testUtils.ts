@@ -1,12 +1,9 @@
-import type { default as SentryWebpackPlugin } from '@sentry/webpack-plugin';
-import type { WebpackPluginInstance } from 'webpack';
-
 import type {
   BuildContext,
   EntryPropertyFunction,
   ExportedNextConfig,
   NextConfigObject,
-  SentryWebpackPluginOptions,
+  SentryBuildOptions,
   WebpackConfigObject,
   WebpackConfigObjectWithModuleRules,
 } from '../../src/config/types';
@@ -26,10 +23,10 @@ import { defaultRuntimePhase, defaultsObject } from './fixtures';
  */
 export function materializeFinalNextConfig(
   exportedNextConfig: ExportedNextConfig,
-  userSentryWebpackPluginConfig?: Partial<SentryWebpackPluginOptions>,
   runtimePhase?: string,
+  sentryBuildOptions?: SentryBuildOptions,
 ): NextConfigObject {
-  const sentrifiedConfig = withSentryConfig(exportedNextConfig, userSentryWebpackPluginConfig);
+  const sentrifiedConfig = withSentryConfig(exportedNextConfig, sentryBuildOptions);
   let finalConfigValues = sentrifiedConfig;
 
   if (typeof sentrifiedConfig === 'function') {
@@ -56,12 +53,11 @@ export function materializeFinalNextConfig(
  */
 export async function materializeFinalWebpackConfig(options: {
   exportedNextConfig: ExportedNextConfig;
-  userSentryWebpackPluginConfig?: Partial<SentryWebpackPluginOptions>;
   incomingWebpackConfig: WebpackConfigObject;
   incomingWebpackBuildContext: BuildContext;
+  sentryBuildTimeOptions?: SentryBuildOptions;
 }): Promise<WebpackConfigObjectWithModuleRules> {
-  const { exportedNextConfig, userSentryWebpackPluginConfig, incomingWebpackConfig, incomingWebpackBuildContext } =
-    options;
+  const { exportedNextConfig, incomingWebpackConfig, incomingWebpackBuildContext } = options;
 
   // if the user's next config is a function, run it so we have access to the values
   const materializedUserNextConfig =
@@ -69,15 +65,10 @@ export async function materializeFinalWebpackConfig(options: {
       ? await exportedNextConfig('phase-production-build', defaultsObject)
       : exportedNextConfig;
 
-  // extract the `sentry` property as we do in `withSentryConfig`
-  const { sentry: sentryConfig } = materializedUserNextConfig;
-  delete materializedUserNextConfig.sentry;
-
   // get the webpack config function we'd normally pass back to next
   const webpackConfigFunction = constructWebpackConfigFunction(
     materializedUserNextConfig,
-    userSentryWebpackPluginConfig,
-    sentryConfig,
+    options.sentryBuildTimeOptions,
   );
 
   // call it to get concrete values for comparison
@@ -86,38 +77,4 @@ export async function materializeFinalWebpackConfig(options: {
   finalWebpackConfigValue.entry = await webpackEntryProperty();
 
   return finalWebpackConfigValue as WebpackConfigObjectWithModuleRules;
-}
-
-// helper function to make sure we're checking the correct plugin's data
-
-/**
- * Given a webpack config, find a plugin (or the plugins) with the given name.
- *
- * Note that this function will error if more than one instance is found, unless the `allowMultiple` flag is passed.
- *
- * @param webpackConfig The webpack config object
- * @param pluginName The name of the plugin's constructor
- * @returns The plugin instance(s), or undefined if it's not found.
- */
-export function findWebpackPlugin(
-  webpackConfig: WebpackConfigObject,
-  pluginName: string,
-  multipleAllowed: boolean = false,
-): WebpackPluginInstance | SentryWebpackPlugin | WebpackPluginInstance[] | SentryWebpackPlugin[] | undefined {
-  const plugins = webpackConfig.plugins || [];
-  const matchingPlugins = plugins.filter(plugin => plugin.constructor.name === pluginName);
-
-  if (matchingPlugins.length > 1 && !multipleAllowed) {
-    throw new Error(
-      `More than one ${pluginName} instance found. Please use the \`multipleAllowed\` flag if this is intentional.\nExisting plugins: ${plugins.map(
-        plugin => plugin.constructor.name,
-      )}`,
-    );
-  }
-
-  if (matchingPlugins.length > 0) {
-    return multipleAllowed ? matchingPlugins : matchingPlugins[0];
-  }
-
-  return undefined;
 }

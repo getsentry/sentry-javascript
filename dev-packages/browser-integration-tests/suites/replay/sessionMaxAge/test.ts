@@ -18,7 +18,7 @@ const MAX_REPLAY_DURATION = 4000;
   The main difference between this and sessionExpiry test, is that here we wait for the overall time (4s)
   in multiple steps (2s, 2s) instead of waiting for the whole time at once (4s).
 */
-sentryTest('handles session that exceeds max age', async ({ forceFlushReplay, getLocalTestPath, page }) => {
+sentryTest('handles session that exceeds max age', async ({ forceFlushReplay, getLocalTestUrl, page }) => {
   if (shouldSkipReplayTest()) {
     sentryTest.skip();
   }
@@ -26,15 +26,7 @@ sentryTest('handles session that exceeds max age', async ({ forceFlushReplay, ge
   const reqPromise0 = waitForReplayRequest(page, 0);
   const reqPromise1 = waitForReplayRequest(page, 1);
 
-  await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-    return route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ id: 'test-id' }),
-    });
-  });
-
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
 
   await page.goto(url);
 
@@ -59,7 +51,7 @@ sentryTest('handles session that exceeds max age', async ({ forceFlushReplay, ge
   // Wait half of the session max age (after initial flush), but account for potentially slow runners
   const timePassed1 = Date.now() - startTimestamp;
   await new Promise(resolve => setTimeout(resolve, Math.max(MAX_REPLAY_DURATION / 2 - timePassed1, 0)));
-  await page.click('#button1');
+  await page.locator('#button1').click();
   await forceFlushReplay();
 
   const req1 = await reqPromise1;
@@ -73,7 +65,7 @@ sentryTest('handles session that exceeds max age', async ({ forceFlushReplay, ge
   // Wait for session to expire
   const timePassed2 = Date.now() - startTimestamp;
   await new Promise(resolve => setTimeout(resolve, Math.max(MAX_REPLAY_DURATION - timePassed2, 0)));
-  await page.click('#button2');
+  await page.locator('#button2').click();
   await forceFlushReplay();
 
   const req2 = await reqPromise2;

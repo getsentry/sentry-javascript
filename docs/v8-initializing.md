@@ -21,7 +21,7 @@ In an environment with multiple execution contexts (e.g. Node), you can setup mu
 different contexts, like this:
 
 ```js
-import * as Sentry from '@sentry/browser';
+import * as Sentry from '@sentry/node';
 
 // Sets up the _default_ client
 Sentry.init({

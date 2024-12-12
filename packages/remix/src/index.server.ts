@@ -1,100 +1,208 @@
-import type { NodeOptions } from '@sentry/node';
-import { getClient } from '@sentry/node';
-import { getCurrentScope, init as nodeInit } from '@sentry/node';
-import { logger } from '@sentry/utils';
+import { applySdkMetadata, logger } from '@sentry/core';
+import type { Integration } from '@sentry/core';
+import type { NodeClient, NodeOptions } from '@sentry/node';
+import { getDefaultIntegrations as getDefaultNodeIntegrations, init as nodeInit, isInitialized } from '@sentry/node';
 
 import { DEBUG_BUILD } from './utils/debug-build';
 import { instrumentServer } from './utils/instrumentServer';
-import { buildMetadata } from './utils/metadata';
+import { httpIntegration } from './utils/integrations/http';
+import { remixIntegration } from './utils/integrations/opentelemetry';
 import type { RemixOptions } from './utils/remixOptions';
 
 // We need to explicitly export @sentry/node as they end up under `default` in ESM builds
 // See: https://github.com/getsentry/sentry-javascript/issues/8474
 export {
-  // eslint-disable-next-line deprecation/deprecation
-  addGlobalEventProcessor,
-  addEventProcessor,
   addBreadcrumb,
+  addEventProcessor,
+  addIntegration,
+  // eslint-disable-next-line deprecation/deprecation
+  addOpenTelemetryInstrumentation,
+  // eslint-disable-next-line deprecation/deprecation
+  addRequestDataToEvent,
+  amqplibIntegration,
+  anrIntegration,
+  disableAnrDetectionForCallback,
   captureCheckIn,
-  withMonitor,
-  captureException,
+  captureConsoleIntegration,
   captureEvent,
+  captureException,
+  captureFeedback,
   captureMessage,
-  // eslint-disable-next-line deprecation/deprecation
-  configureScope,
+  captureSession,
+  close,
+  connectIntegration,
+  consoleIntegration,
+  contextLinesIntegration,
+  continueTrace,
+  createGetModuleFromFilename,
   createTransport,
+  cron,
   // eslint-disable-next-line deprecation/deprecation
-  extractTraceparentData,
+  debugIntegration,
+  dedupeIntegration,
+  DEFAULT_USER_INCLUDES,
+  defaultStackParser,
+  endSession,
+  expressErrorHandler,
+  expressIntegration,
   // eslint-disable-next-line deprecation/deprecation
-  getActiveTransaction,
-  getHubFromCarrier,
+  extractRequestData,
+  extraErrorDataIntegration,
+  fastifyIntegration,
+  flush,
+  functionToStringIntegration,
+  generateInstrumentOnce,
+  genericPoolIntegration,
+  getActiveSpan,
+  getAutoPerformanceIntegrations,
+  getClient,
+  // eslint-disable-next-line deprecation/deprecation
   getCurrentHub,
-  Hub,
+  getCurrentScope,
+  getDefaultIntegrations,
+  getGlobalScope,
+  getIsolationScope,
+  getRootSpan,
+  getSentryRelease,
+  getSpanDescendants,
+  getSpanStatusFromHttpCode,
+  graphqlIntegration,
+  hapiIntegration,
+  httpIntegration,
+  inboundFiltersIntegration,
+  initOpenTelemetry,
+  isInitialized,
+  knexIntegration,
+  kafkaIntegration,
+  koaIntegration,
+  lastEventId,
+  linkedErrorsIntegration,
+  localVariablesIntegration,
+  makeNodeTransport,
   // eslint-disable-next-line deprecation/deprecation
-  makeMain,
-  setCurrentClient,
+  metrics,
+  modulesIntegration,
+  mongoIntegration,
+  mongooseIntegration,
+  mysql2Integration,
+  mysqlIntegration,
+  nativeNodeFetchIntegration,
+  // eslint-disable-next-line deprecation/deprecation
+  nestIntegration,
+  NodeClient,
+  nodeContextIntegration,
+  onUncaughtExceptionIntegration,
+  onUnhandledRejectionIntegration,
+  parameterize,
+  postgresIntegration,
+  prismaIntegration,
+  redisIntegration,
+  requestDataIntegration,
+  rewriteFramesIntegration,
   Scope,
-  // eslint-disable-next-line deprecation/deprecation
-  startTransaction,
   SDK_VERSION,
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  // eslint-disable-next-line deprecation/deprecation
+  sessionTimingIntegration,
   setContext,
+  setCurrentClient,
   setExtra,
   setExtras,
+  setHttpStatus,
+  setMeasurement,
   setTag,
   setTags,
+  setupConnectErrorHandler,
+  setupExpressErrorHandler,
+  setupHapiErrorHandler,
+  setupKoaErrorHandler,
+  // eslint-disable-next-line deprecation/deprecation
+  setupNestErrorHandler,
   setUser,
-  spanStatusfromHttpCode,
-  // eslint-disable-next-line deprecation/deprecation
-  trace,
-  withScope,
+  spanToBaggageHeader,
+  spanToJSON,
+  spanToTraceHeader,
+  spotlightIntegration,
+  startInactiveSpan,
+  startNewTrace,
+  suppressTracing,
+  startSession,
+  startSpan,
+  startSpanManual,
+  tediousIntegration,
+  trpcMiddleware,
+  withActiveSpan,
   withIsolationScope,
-  autoDiscoverNodePerformanceMonitoringIntegrations,
-  makeNodeTransport,
-  defaultIntegrations,
-  defaultStackParser,
-  // eslint-disable-next-line deprecation/deprecation
-  lastEventId,
-  flush,
-  close,
-  getSentryRelease,
-  addRequestDataToEvent,
-  DEFAULT_USER_INCLUDES,
-  extractRequestData,
-  // eslint-disable-next-line deprecation/deprecation
-  deepReadDirSync,
-  Integrations,
-  Handlers,
-  cron,
+  withMonitor,
+  withScope,
+  zodErrorsIntegration,
 } from '@sentry/node';
 
 // Keeping the `*` exports for backwards compatibility and types
 export * from '@sentry/node';
 
-export { captureRemixServerException, wrapRemixHandleError } from './utils/instrumentServer';
+export {
+  // eslint-disable-next-line deprecation/deprecation
+  wrapRemixHandleError,
+  sentryHandleError,
+  wrapHandleErrorWithSentry,
+} from './utils/instrumentServer';
+
+export { captureRemixServerException } from './utils/errors';
+
 export { ErrorBoundary, withErrorBoundary } from '@sentry/react';
-export { remixRouterInstrumentation, withSentry } from './client/performance';
+export { withSentry } from './client/performance';
 export { captureRemixErrorBoundaryError } from './client/errors';
-export { wrapExpressCreateRequestHandler } from './utils/serverAdapters/express';
+export { browserTracingIntegration } from './client/browserTracingIntegration';
 
 export type { SentryMetaArgs } from './utils/types';
 
-function sdkAlreadyInitialized(): boolean {
-  return !!getClient();
+/**
+ * Returns the default Remix integrations.
+ *
+ * @param options The options for the SDK.
+ */
+export function getRemixDefaultIntegrations(options: RemixOptions): Integration[] {
+  return [
+    ...getDefaultNodeIntegrations(options as NodeOptions).filter(integration => integration.name !== 'Http'),
+    httpIntegration(),
+    // eslint-disable-next-line deprecation/deprecation
+    options.autoInstrumentRemix ? remixIntegration() : undefined,
+  ].filter(int => int) as Integration[];
+}
+
+/**
+ * Returns the given Express createRequestHandler function.
+ * This function is no-op and only returns the given function.
+ *
+ * @deprecated No need to wrap the Express request handler.
+ * @param createRequestHandlerFn The Remix Express `createRequestHandler`.
+ * @returns `createRequestHandler` function.
+ */
+export function wrapExpressCreateRequestHandler(createRequestHandlerFn: unknown): unknown {
+  DEBUG_BUILD && logger.warn('wrapExpressCreateRequestHandler is deprecated and no longer needed.');
+
+  return createRequestHandlerFn;
 }
 
 /** Initializes Sentry Remix SDK on Node. */
-export function init(options: RemixOptions): void {
-  buildMetadata(options, ['remix', 'node']);
+export function init(options: RemixOptions): NodeClient | undefined {
+  applySdkMetadata(options, 'remix', ['remix', 'node']);
 
-  if (sdkAlreadyInitialized()) {
+  if (isInitialized()) {
     DEBUG_BUILD && logger.log('SDK already initialized');
 
     return;
   }
 
-  instrumentServer();
+  options.defaultIntegrations = getRemixDefaultIntegrations(options as NodeOptions);
 
-  nodeInit(options as NodeOptions);
+  const client = nodeInit(options as NodeOptions);
 
-  getCurrentScope().setTag('runtime', 'node');
+  instrumentServer(options);
+
+  return client;
 }

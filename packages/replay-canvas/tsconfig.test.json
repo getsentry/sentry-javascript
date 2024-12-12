@@ -1,0 +1,16 @@
+{
+  "extends": "./tsconfig.json",
+
+  "include": ["test/**/*.ts", "vite.config.ts"],
+
+  "compilerOptions": {
+    "lib": ["DOM", "ES2018"],
+    "types": ["node"],
+    "esModuleInterop": true,
+    "allowJs": true,
+    "noImplicitAny": true,
+    "noImplicitThis": false,
+    "strictNullChecks": true,
+    "strictPropertyInitialization": false
+  }
+}

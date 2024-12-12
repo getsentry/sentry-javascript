@@ -1,7 +1,15 @@
-import { Hub, addTracingExtensions, makeMain } from '@sentry/core';
-import { NodeClient } from '@sentry/node';
+import { beforeEach, describe, expect, it } from 'vitest';
+
+import {
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  getRootSpan,
+  getSpanDescendants,
+  spanIsSampled,
+  spanToJSON,
+} from '@sentry/core';
+import type { EventEnvelopeHeaders, Span } from '@sentry/core';
+import { NodeClient, setCurrentClient } from '@sentry/node';
 import * as SentryNode from '@sentry/node';
-import type { Transaction } from '@sentry/types';
 import type { Handle } from '@sveltejs/kit';
 import { redirect } from '@sveltejs/kit';
 import { vi } from 'vitest';
@@ -37,6 +45,8 @@ function mockEvent(override: Record<string, unknown> = {}): Parameters<Handle>[0
 
     ...override,
   };
+
+  event.request.clone = () => event.request;
 
   return event;
 }
@@ -81,24 +91,18 @@ function resolve(
   };
 }
 
-let hub: Hub;
 let client: NodeClient;
-
-beforeAll(() => {
-  addTracingExtensions();
-});
 
 beforeEach(() => {
   const options = getDefaultNodeClientOptions({ tracesSampleRate: 1.0 });
   client = new NodeClient(options);
-  hub = new Hub(client);
-  // eslint-disable-next-line deprecation/deprecation
-  makeMain(hub);
+  setCurrentClient(client);
+  client.init();
 
   mockCaptureException.mockClear();
 });
 
-describe('handleSentry', () => {
+describe('sentryHandle', () => {
   describe.each([
     // isSync, isError, expectedResponse
     [Type.Sync, true, undefined],
@@ -119,9 +123,11 @@ describe('handleSentry', () => {
     });
 
     it("creates a transaction if there's no active span", async () => {
-      let ref: any = undefined;
-      client.on('finishTransaction', (transaction: Transaction) => {
-        ref = transaction;
+      let _span: Span | undefined = undefined;
+      client.on('spanEnd', span => {
+        if (span === getRootSpan(span)) {
+          _span = span;
+        }
       });
 
       try {
@@ -130,30 +136,81 @@ describe('handleSentry', () => {
         //
       }
 
-      expect(ref).toBeDefined();
+      expect(_span!).toBeDefined();
 
-      expect(ref.name).toEqual('GET /users/[id]');
-      expect(ref.op).toEqual('http.server');
-      expect(ref.status).toEqual(isError ? 'internal_error' : 'ok');
-      expect(ref.metadata.source).toEqual('route');
+      expect(spanToJSON(_span!).description).toEqual('GET /users/[id]');
+      expect(spanToJSON(_span!).op).toEqual('http.server');
+      expect(spanToJSON(_span!).status).toEqual(isError ? 'internal_error' : 'ok');
+      expect(spanToJSON(_span!).data?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toEqual('route');
 
-      expect(ref.endTimestamp).toBeDefined();
-      expect(ref.spanRecorder.spans).toHaveLength(1);
+      expect(spanToJSON(_span!).timestamp).toBeDefined();
+
+      const spans = getSpanDescendants(_span!);
+      expect(spans).toHaveLength(1);
     });
 
-    it('creates a child span for nested server calls (i.e. if there is an active span)', async () => {
-      let ref: any = undefined;
+    it('[kit>=1.21.0] creates a child span for nested server calls (i.e. if there is an active span)', async () => {
+      let _span: Span | undefined = undefined;
       let txnCount = 0;
-      client.on('finishTransaction', (transaction: Transaction) => {
-        ref = transaction;
-        ++txnCount;
+      client.on('spanEnd', span => {
+        if (span === getRootSpan(span)) {
+          _span = span;
+          ++txnCount;
+        }
       });
 
       try {
         await sentryHandle()({
           event: mockEvent(),
           resolve: async _ => {
-            // simulateing a nested load call:
+            // simulating a nested load call:
+            await sentryHandle()({
+              event: mockEvent({ route: { id: 'api/users/details/[id]', isSubRequest: true } }),
+              resolve: resolve(type, isError),
+            });
+            return mockResponse;
+          },
+        });
+      } catch (e) {
+        //
+      }
+
+      expect(txnCount).toEqual(1);
+      expect(_span!).toBeDefined();
+
+      expect(spanToJSON(_span!).description).toEqual('GET /users/[id]');
+      expect(spanToJSON(_span!).op).toEqual('http.server');
+      expect(spanToJSON(_span!).status).toEqual(isError ? 'internal_error' : 'ok');
+      expect(spanToJSON(_span!).data?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toEqual('route');
+
+      expect(spanToJSON(_span!).timestamp).toBeDefined();
+
+      const spans = getSpanDescendants(_span!).map(spanToJSON);
+
+      expect(spans).toHaveLength(2);
+      expect(spans).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ op: 'http.server', description: 'GET /users/[id]' }),
+          expect.objectContaining({ op: 'http.server', description: 'GET api/users/details/[id]' }),
+        ]),
+      );
+    });
+
+    it('creates a child span for nested server calls (i.e. if there is an active span)', async () => {
+      let _span: Span | undefined = undefined;
+      let txnCount = 0;
+      client.on('spanEnd', span => {
+        if (span === getRootSpan(span)) {
+          _span = span;
+          ++txnCount;
+        }
+      });
+
+      try {
+        await sentryHandle()({
+          event: mockEvent(),
+          resolve: async _ => {
+            // simulating a nested load call:
             await sentryHandle()({
               event: mockEvent({ route: { id: 'api/users/details/[id]' } }),
               resolve: resolve(type, isError),
@@ -166,25 +223,27 @@ describe('handleSentry', () => {
       }
 
       expect(txnCount).toEqual(1);
-      expect(ref).toBeDefined();
+      expect(_span!).toBeDefined();
 
-      expect(ref.name).toEqual('GET /users/[id]');
-      expect(ref.op).toEqual('http.server');
-      expect(ref.status).toEqual(isError ? 'internal_error' : 'ok');
-      expect(ref.metadata.source).toEqual('route');
+      expect(spanToJSON(_span!).description).toEqual('GET /users/[id]');
+      expect(spanToJSON(_span!).op).toEqual('http.server');
+      expect(spanToJSON(_span!).status).toEqual(isError ? 'internal_error' : 'ok');
+      expect(spanToJSON(_span!).data?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toEqual('route');
 
-      expect(ref.endTimestamp).toBeDefined();
+      expect(spanToJSON(_span!).timestamp).toBeDefined();
 
-      expect(ref.spanRecorder.spans).toHaveLength(2);
-      expect(ref.spanRecorder.spans).toEqual(
+      const spans = getSpanDescendants(_span!).map(spanToJSON);
+
+      expect(spans).toHaveLength(2);
+      expect(spans).toEqual(
         expect.arrayContaining([
-          expect.objectContaining({ op: 'http.server', name: 'GET /users/[id]' }),
+          expect.objectContaining({ op: 'http.server', description: 'GET /users/[id]' }),
           expect.objectContaining({ op: 'http.server', description: 'GET api/users/details/[id]' }),
         ]),
       );
     });
 
-    it('creates a transaction from sentry-trace header', async () => {
+    it("creates a transaction from sentry-trace header but doesn't populate a new DSC", async () => {
       const event = mockEvent({
         request: {
           headers: {
@@ -199,9 +258,16 @@ describe('handleSentry', () => {
         },
       });
 
-      let ref: any = undefined;
-      client.on('finishTransaction', (transaction: Transaction) => {
-        ref = transaction;
+      let _span: Span | undefined = undefined;
+      client.on('spanEnd', span => {
+        if (span === getRootSpan(span)) {
+          _span = span;
+        }
+      });
+
+      let envelopeHeaders: EventEnvelopeHeaders | undefined = undefined;
+      client.on('beforeEnvelope', env => {
+        envelopeHeaders = env[0] as EventEnvelopeHeaders;
       });
 
       try {
@@ -210,10 +276,11 @@ describe('handleSentry', () => {
         //
       }
 
-      expect(ref).toBeDefined();
-      expect(ref.traceId).toEqual('1234567890abcdef1234567890abcdef');
-      expect(ref.parentSpanId).toEqual('1234567890abcdef');
-      expect(ref.sampled).toEqual(true);
+      expect(_span).toBeDefined();
+      expect(_span!.spanContext().traceId).toEqual('1234567890abcdef1234567890abcdef');
+      expect(spanToJSON(_span!).parent_span_id).toEqual('1234567890abcdef');
+      expect(spanIsSampled(_span!)).toEqual(true);
+      expect(envelopeHeaders!.trace).toEqual({});
     });
 
     it('creates a transaction with dynamic sampling context from baggage header', async () => {
@@ -228,7 +295,7 @@ describe('handleSentry', () => {
               if (key === 'baggage') {
                 return (
                   'sentry-environment=production,sentry-release=1.0.0,sentry-transaction=dogpark,' +
-                  'sentry-user_segment=segmentA,sentry-public_key=dogsarebadatkeepingsecrets,' +
+                  'sentry-public_key=dogsarebadatkeepingsecrets,' +
                   'sentry-trace_id=1234567890abcdef1234567890abcdef,sentry-sample_rate=1'
                 );
               }
@@ -239,9 +306,16 @@ describe('handleSentry', () => {
         },
       });
 
-      let ref: any = undefined;
-      client.on('finishTransaction', (transaction: Transaction) => {
-        ref = transaction;
+      let _span: Span | undefined = undefined;
+      client.on('spanEnd', span => {
+        if (span === getRootSpan(span)) {
+          _span = span;
+        }
+      });
+
+      let envelopeHeaders: EventEnvelopeHeaders | undefined = undefined;
+      client.on('beforeEnvelope', env => {
+        envelopeHeaders = env[0] as EventEnvelopeHeaders;
       });
 
       try {
@@ -250,15 +324,14 @@ describe('handleSentry', () => {
         //
       }
 
-      expect(ref).toBeDefined();
-      expect(ref.metadata.dynamicSamplingContext).toEqual({
+      expect(_span!).toBeDefined();
+      expect(envelopeHeaders!.trace).toEqual({
         environment: 'production',
         release: '1.0.0',
         public_key: 'dogsarebadatkeepingsecrets',
         sample_rate: '1',
         trace_id: '1234567890abcdef1234567890abcdef',
         transaction: 'dogpark',
-        user_segment: 'segmentA',
       });
     });
 
@@ -296,6 +369,7 @@ describe('handleSentry', () => {
         await sentryHandle()({ event, resolve: mockResolve });
       } catch (e) {
         expect(e).toBeInstanceOf(Error);
+        // @ts-expect-error - this is fine
         expect(e.message).toEqual(type);
       }
 
@@ -304,9 +378,11 @@ describe('handleSentry', () => {
     });
 
     it("doesn't create a transaction if there's no route", async () => {
-      let ref: any = undefined;
-      client.on('finishTransaction', (transaction: Transaction) => {
-        ref = transaction;
+      let _span: Span | undefined = undefined;
+      client.on('spanEnd', span => {
+        if (span === getRootSpan(span)) {
+          _span = span;
+        }
       });
 
       try {
@@ -315,13 +391,15 @@ describe('handleSentry', () => {
         //
       }
 
-      expect(ref).toBeUndefined();
+      expect(_span!).toBeUndefined();
     });
 
     it("Creates a transaction if there's no route but `handleUnknownRequests` is true", async () => {
-      let ref: any = undefined;
-      client.on('finishTransaction', (transaction: Transaction) => {
-        ref = transaction;
+      let _span: Span | undefined = undefined;
+      client.on('spanEnd', span => {
+        if (span === getRootSpan(span)) {
+          _span = span;
+        }
       });
 
       try {
@@ -333,7 +411,7 @@ describe('handleSentry', () => {
         //
       }
 
-      expect(ref).toBeDefined();
+      expect(_span!).toBeDefined();
     });
   });
 });
@@ -351,10 +429,14 @@ describe('addSentryCodeToPage', () => {
     </body>
   </html>`;
 
-  it('does not add meta tags if no active transaction', () => {
+  it("Adds add meta tags and fetch proxy script if there's no active transaction", () => {
     const transformPageChunk = addSentryCodeToPage({});
     const transformed = transformPageChunk({ html, done: true });
-    expect(transformed).toEqual(html);
+
+    expect(transformed).toContain('<meta name="sentry-trace"');
+    expect(transformed).toContain('<meta name="baggage"');
+    expect(transformed).not.toContain('sentry-transaction=');
+    expect(transformed).toContain(`<script >${FETCH_PROXY_SCRIPT}</script>`);
   });
 
   it('adds meta tags and the fetch proxy script if there is an active transaction', () => {
@@ -364,6 +446,7 @@ describe('addSentryCodeToPage', () => {
 
       expect(transformed).toContain('<meta name="sentry-trace"');
       expect(transformed).toContain('<meta name="baggage"');
+      expect(transformed).toContain('sentry-transaction=test');
       expect(transformed).toContain(`<script >${FETCH_PROXY_SCRIPT}</script>`);
     });
   });
@@ -375,18 +458,17 @@ describe('addSentryCodeToPage', () => {
 
       expect(transformed).toContain('<meta name="sentry-trace"');
       expect(transformed).toContain('<meta name="baggage"');
+      expect(transformed).toContain('sentry-transaction=test');
       expect(transformed).toContain(`<script nonce="123abc">${FETCH_PROXY_SCRIPT}</script>`);
     });
   });
 
   it('does not add the fetch proxy script if the `injectFetchProxyScript` option is false', () => {
     const transformPageChunk = addSentryCodeToPage({ injectFetchProxyScript: false });
-    SentryNode.startSpan({ name: 'test' }, () => {
-      const transformed = transformPageChunk({ html, done: true }) as string;
+    const transformed = transformPageChunk({ html, done: true }) as string;
 
-      expect(transformed).toContain('<meta name="sentry-trace"');
-      expect(transformed).toContain('<meta name="baggage"');
-      expect(transformed).not.toContain(`<script >${FETCH_PROXY_SCRIPT}</script>`);
-    });
+    expect(transformed).toContain('<meta name="sentry-trace"');
+    expect(transformed).toContain('<meta name="baggage"');
+    expect(transformed).not.toContain(`<script >${FETCH_PROXY_SCRIPT}</script>`);
   });
 });

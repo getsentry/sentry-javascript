@@ -13,13 +13,12 @@
 
 ## General
 
-This package is an Ember addon that wraps `@sentry/browser`, with added functionality related to Ember. All methods available in
-`@sentry/browser` can be imported from `@sentry/ember`.
+This package is an Ember addon that wraps `@sentry/browser`, with added functionality related to Ember. All methods
+available in `@sentry/browser` can be imported from `@sentry/ember`.
 
 ### Installation
 
-As with other Ember addons, run:
-`ember install @sentry/ember`
+As with other Ember addons, run: `ember install @sentry/ember`
 
 Then add the following to your `<your-app>/app.js`
 
@@ -38,8 +37,9 @@ Then add the following to your `<your-app>/app.js`
 
 ### Usage
 
-To use this SDK, call `Sentry.init` before the application is initialized, in `app.js`. This will allow Sentry to capture information while your app is starting.
-Any additional SDK settings can be modified via the usual config in `environment.js` for you, see the Additional Configuration section for more details.
+To use this SDK, call `Sentry.init` before the application is initialized, in `app.js`. This will allow Sentry to
+capture information while your app is starting. Any additional SDK settings can be modified via the usual config in
+`environment.js` for you, see the Additional Configuration section for more details.
 
 ```javascript
 import Application from '@ember/application';
@@ -66,7 +66,8 @@ export default class App extends Application {
 
 ### Additional Configuration
 
-Aside from configuration passed from this addon into `@sentry/browser` via the `sentry` property, there is also the following Ember specific configuration:
+Aside from configuration passed from this addon into `@sentry/browser` via the `sentry` property, there is also the
+following Ember specific configuration:
 
 ```javascript
 ENV['@sentry/ember'] = {
@@ -93,15 +94,14 @@ ENV['@sentry/ember'] = {
 
 #### Disabling Performance
 
-
-`@sentry/ember` captures performance by default, if you would like to disable the automatic performance instrumentation, you can add the following to your `config/environment.js`:
+`@sentry/ember` captures performance by default, if you would like to disable the automatic performance instrumentation,
+you can add the following to your `config/environment.js`:
 
 ```javascript
 ENV['@sentry/ember'] = {
   disablePerformance: true, // Will disable automatic instrumentation of performance. Manual instrumentation will still be sent.
 };
 ```
-
 
 ### Performance
 
@@ -149,8 +149,8 @@ ENV['@sentry/ember'] = {
 };
 ```
 
-Additionally, components whose render time is below a threshold (by default 2ms) will not be included as spans.
-If you would like to change this threshold, add the following to your config:
+Additionally, components whose render time is below a threshold (by default 2ms) will not be included as spans. If you
+would like to change this threshold, add the following to your config:
 
 ```javascript
 ENV['@sentry/ember'] = {
@@ -172,8 +172,8 @@ ENV['@sentry/ember'] = {
 
 ### Supported Versions
 
-* **Ember.js**: v4.0 or above
-* **Node**: v14 or above
+- **Ember.js**: v4.0 or above
+- **Node**: v14.18 or above
 
 ### Previous Integration
 
@@ -182,8 +182,8 @@ this Ember addon to offer more Ember-specific error and performancing monitoring
 
 ## Testing
 
-For this package itself, you can find example instrumentation in the `dummy` application, which is also used for testing.
-To test with the dummy application, you must pass the dsn as an environment variable.
+For this package itself, you can find example instrumentation in the `dummy` application, which is also used for
+testing. To test with the dummy application, you must pass the dsn as an environment variable.
 
 ```javascript
 SENTRY_DSN=__DSN__ ember serve

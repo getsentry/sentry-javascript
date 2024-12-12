@@ -1,3 +1,5 @@
+import * as Sentry from '@sentry/remix';
+
 /**
  * By default, Remix will handle generating the HTTP Response for you.
  * You are free to delete this file if you'd like to, but if you ever want it revealed again, you can run `npx remix reveal` ✨
@@ -10,7 +12,6 @@ import type { AppLoadContext, EntryContext } from '@remix-run/node';
 import { createReadableStreamFromReadable } from '@remix-run/node';
 import { installGlobals } from '@remix-run/node';
 import { RemixServer } from '@remix-run/react';
-import * as Sentry from '@sentry/remix';
 import isbot from 'isbot';
 import { renderToPipeableStream } from 'react-dom/server';
 
@@ -18,13 +19,11 @@ installGlobals();
 
 const ABORT_DELAY = 5_000;
 
-Sentry.init({
-  dsn: process.env.E2E_TEST_DSN,
-  // Performance Monitoring
-  tracesSampleRate: 1.0, // Capture 100% of the transactions, reduce in production!
-});
+const handleErrorImpl = () => {
+  Sentry.setTag('remix-test-tag', 'remix-test-value');
+};
 
-export const handleError = Sentry.wrapRemixHandleError;
+export const handleError = Sentry.wrapHandleErrorWithSentry(handleErrorImpl);
 
 export default function handleRequest(
   request: Request,

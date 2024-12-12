@@ -1,8 +1,7 @@
-import { TextEncoder } from 'util';
-import type { Transport } from '@sentry/types';
-import { SyncPromise } from '@sentry/utils';
+import type { Transport } from '../../src/types-hoist';
 
 import { createTransport } from '../../src/transports/base';
+import { SyncPromise } from '../../src/utils-hoist/syncpromise';
 
 async function sleep(delay: number): Promise<void> {
   return new SyncPromise(resolve => setTimeout(resolve, delay));
@@ -17,7 +16,7 @@ export function makeFakeTransport(delay: number = 2000): {
   let sendCalled = 0;
   let sentCount = 0;
   const makeTransport = () =>
-    createTransport({ recordDroppedEvent: () => undefined, textEncoder: new TextEncoder() }, () => {
+    createTransport({ recordDroppedEvent: () => undefined }, () => {
       sendCalled++;
       return new SyncPromise(async res => {
         await sleep(delay);

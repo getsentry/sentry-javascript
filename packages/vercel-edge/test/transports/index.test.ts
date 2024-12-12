@@ -1,6 +1,7 @@
-import { TextEncoder } from 'util';
-import type { EventEnvelope, EventItem } from '@sentry/types';
-import { createEnvelope, serializeEnvelope } from '@sentry/utils';
+import { afterAll, describe, expect, it, vi } from 'vitest';
+
+import { createEnvelope, serializeEnvelope } from '@sentry/core';
+import type { EventEnvelope, EventItem } from '@sentry/core';
 
 import type { VercelEdgeTransportOptions } from '../../src/transports';
 import { IsolatedPromiseBuffer, makeEdgeTransport } from '../../src/transports';
@@ -8,7 +9,6 @@ import { IsolatedPromiseBuffer, makeEdgeTransport } from '../../src/transports';
 const DEFAULT_EDGE_TRANSPORT_OPTIONS: VercelEdgeTransportOptions = {
   url: 'https://sentry.io/api/42/store/?sentry_key=123&sentry_version=7',
   recordDroppedEvent: () => undefined,
-  textEncoder: new TextEncoder(),
 };
 
 const ERROR_ENVELOPE = createEnvelope<EventEnvelope>({ event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2', sent_at: '123' }, [
@@ -25,15 +25,12 @@ class Headers {
   }
 }
 
-const mockFetch = jest.fn();
+const mockFetch = vi.fn();
 
-// @ts-expect-error fetch is not on global
 const oldFetch = global.fetch;
-// @ts-expect-error fetch is not on global
 global.fetch = mockFetch;
 
 afterAll(() => {
-  // @ts-expect-error fetch is not on global
   global.fetch = oldFetch;
 });
 
@@ -55,14 +52,14 @@ describe('Edge Transport', () => {
     expect(mockFetch).toHaveBeenCalledTimes(1);
 
     expect(mockFetch).toHaveBeenLastCalledWith(DEFAULT_EDGE_TRANSPORT_OPTIONS.url, {
-      body: serializeEnvelope(ERROR_ENVELOPE, new TextEncoder()),
+      body: serializeEnvelope(ERROR_ENVELOPE),
       method: 'POST',
     });
   });
 
   it('sets rate limit headers', async () => {
     const headers = {
-      get: jest.fn(),
+      get: vi.fn(),
     };
 
     mockFetch.mockImplementationOnce(() =>
@@ -104,7 +101,7 @@ describe('Edge Transport', () => {
     await transport.send(ERROR_ENVELOPE);
     await transport.flush();
     expect(mockFetch).toHaveBeenLastCalledWith(DEFAULT_EDGE_TRANSPORT_OPTIONS.url, {
-      body: serializeEnvelope(ERROR_ENVELOPE, new TextEncoder()),
+      body: serializeEnvelope(ERROR_ENVELOPE),
       method: 'POST',
       ...REQUEST_OPTIONS,
     });
@@ -115,8 +112,8 @@ describe('IsolatedPromiseBuffer', () => {
   it('should not call tasks until drained', async () => {
     const ipb = new IsolatedPromiseBuffer();
 
-    const task1 = jest.fn(() => Promise.resolve({}));
-    const task2 = jest.fn(() => Promise.resolve({}));
+    const task1 = vi.fn(() => Promise.resolve({}));
+    const task2 = vi.fn(() => Promise.resolve({}));
 
     await ipb.add(task1);
     await ipb.add(task2);
@@ -133,10 +130,10 @@ describe('IsolatedPromiseBuffer', () => {
   it('should not allow adding more items than the specified limit', async () => {
     const ipb = new IsolatedPromiseBuffer(3);
 
-    const task1 = jest.fn(() => Promise.resolve({}));
-    const task2 = jest.fn(() => Promise.resolve({}));
-    const task3 = jest.fn(() => Promise.resolve({}));
-    const task4 = jest.fn(() => Promise.resolve({}));
+    const task1 = vi.fn(() => Promise.resolve({}));
+    const task2 = vi.fn(() => Promise.resolve({}));
+    const task3 = vi.fn(() => Promise.resolve({}));
+    const task4 = vi.fn(() => Promise.resolve({}));
 
     await ipb.add(task1);
     await ipb.add(task2);
@@ -148,8 +145,8 @@ describe('IsolatedPromiseBuffer', () => {
   it('should not throw when one of the tasks throws when drained', async () => {
     const ipb = new IsolatedPromiseBuffer();
 
-    const task1 = jest.fn(() => Promise.resolve({}));
-    const task2 = jest.fn(() => Promise.reject(new Error()));
+    const task1 = vi.fn(() => Promise.resolve({}));
+    const task2 = vi.fn(() => Promise.reject(new Error()));
 
     await ipb.add(task1);
     await ipb.add(task2);

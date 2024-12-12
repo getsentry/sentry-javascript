@@ -1,13 +1,23 @@
-import { getActiveSpan, getCurrentScope, getDynamicSamplingContextFromSpan, spanToTraceHeader } from '@sentry/core';
-import { getActiveTransaction, runWithAsyncContext, startSpan } from '@sentry/core';
-import { captureException } from '@sentry/node';
-/* eslint-disable @sentry-internal/sdk/no-optional-chaining */
-import type { Span } from '@sentry/types';
-import { dynamicSamplingContextToSentryBaggageHeader, objectify } from '@sentry/utils';
+import type { Span } from '@sentry/core';
+import {
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  getActiveSpan,
+  getCurrentScope,
+  getDefaultIsolationScope,
+  getIsolationScope,
+  getTraceMetaTags,
+  logger,
+  setHttpStatus,
+  startSpan,
+  winterCGRequestToRequestData,
+  withIsolationScope,
+} from '@sentry/core';
+import { continueTrace } from '@sentry/node';
 import type { Handle, ResolveOptions } from '@sveltejs/kit';
 
-import { isHttpError, isRedirect } from '../common/utils';
-import { flushIfServerless, getTracePropagationData } from './utils';
+import { DEBUG_BUILD } from '../common/debug-build';
+import { flushIfServerless, getTracePropagationData, sendErrorToSentry } from './utils';
 
 export type SentryHandleOptions = {
   /**
@@ -44,32 +54,6 @@ export type SentryHandleOptions = {
   fetchProxyScriptNonce?: string;
 };
 
-function sendErrorToSentry(e: unknown): unknown {
-  // In case we have a primitive, wrap it in the equivalent wrapper class (string -> String, etc.) so that we can
-  // store a seen flag on it.
-  const objectifiedErr = objectify(e);
-
-  // similarly to the `load` function, we don't want to capture 4xx errors or redirects
-  if (
-    isRedirect(objectifiedErr) ||
-    (isHttpError(objectifiedErr) && objectifiedErr.status < 500 && objectifiedErr.status >= 400)
-  ) {
-    return objectifiedErr;
-  }
-
-  captureException(objectifiedErr, {
-    mechanism: {
-      type: 'sveltekit',
-      handled: false,
-      data: {
-        function: 'handle',
-      },
-    },
-  });
-
-  return objectifiedErr;
-}
-
 /**
  * Exported only for testing
  */
@@ -95,25 +79,14 @@ export function addSentryCodeToPage(options: SentryHandleOptions): NonNullable<R
   const nonce = fetchProxyScriptNonce ? `nonce="${fetchProxyScriptNonce}"` : '';
 
   return ({ html }) => {
-    // eslint-disable-next-line deprecation/deprecation
-    const transaction = getActiveTransaction();
-    if (transaction) {
-      const traceparentData = spanToTraceHeader(transaction);
-      const dynamicSamplingContext = dynamicSamplingContextToSentryBaggageHeader(
-        getDynamicSamplingContextFromSpan(transaction),
-      );
-      const contentMeta = `<head>
-    <meta name="sentry-trace" content="${traceparentData}"/>
-    <meta name="baggage" content="${dynamicSamplingContext}"/>
-    `;
-      const contentScript = shouldInjectScript ? `<script ${nonce}>${FETCH_PROXY_SCRIPT}</script>` : '';
+    const metaTags = getTraceMetaTags();
+    const headWithMetaTags = metaTags ? `<head>\n${metaTags}` : '<head>';
 
-      const content = `${contentMeta}\n${contentScript}`;
+    const headWithFetchScript = shouldInjectScript ? `\n<script ${nonce}>${FETCH_PROXY_SCRIPT}</script>` : '';
 
-      return html.replace('<head>', content);
-    }
+    const modifiedHead = `${headWithMetaTags}${headWithFetchScript}`;
 
-    return html;
+    return html.replace('<head>', modifiedHead);
   };
 }
 
@@ -140,14 +113,29 @@ export function sentryHandle(handlerOptions?: SentryHandleOptions): Handle {
   };
 
   const sentryRequestHandler: Handle = input => {
-    // if there is an active transaction, we know that this handle call is nested and hence
-    // we don't create a new domain for it. If we created one, nested server calls would
-    // create new transactions instead of adding a child span to the currently active span.
-    if (getActiveSpan()) {
+    // event.isSubRequest was added in SvelteKit 1.21.0 and we can use it to check
+    // if we should create a new execution context or not.
+    // In case of a same-origin `fetch` call within a server`load` function,
+    // SvelteKit will actually just re-enter the `handle` function and set `isSubRequest`
+    // to `true` so that no additional network call is made.
+    // We want the `http.server` span of that nested call to be a child span of the
+    // currently active span instead of a new root span to correctly reflect this
+    // behavior.
+    // As a fallback for Kit < 1.21.0, we check if there is an active span only if there's none,
+    // we create a new execution context.
+    const isSubRequest = typeof input.event.isSubRequest === 'boolean' ? input.event.isSubRequest : !!getActiveSpan();
+
+    if (isSubRequest) {
       return instrumentHandle(input, options);
     }
-    return runWithAsyncContext(() => {
-      return instrumentHandle(input, options);
+
+    return withIsolationScope(isolationScope => {
+      // We only call continueTrace in the initial top level request to avoid
+      // creating a new root span for the sub request.
+      isolationScope.setSDKProcessingMetadata({
+        normalizedRequest: winterCGRequestToRequestData(input.event.request.clone()),
+      });
+      return continueTrace(getTracePropagationData(input.event), () => instrumentHandle(input, options));
     });
   };
 
@@ -162,35 +150,41 @@ async function instrumentHandle(
     return resolve(event);
   }
 
-  const { dynamicSamplingContext, traceparentData, propagationContext } = getTracePropagationData(event);
-  getCurrentScope().setPropagationContext(propagationContext);
+  const routeName = `${event.request.method} ${event.route?.id || event.url.pathname}`;
+
+  if (getIsolationScope() !== getDefaultIsolationScope()) {
+    getIsolationScope().setTransactionName(routeName);
+  } else {
+    DEBUG_BUILD && logger.warn('Isolation scope is default isolation scope - skipping setting transactionName');
+  }
 
   try {
     const resolveResult = await startSpan(
       {
         op: 'http.server',
-        origin: 'auto.http.sveltekit',
-        name: `${event.request.method} ${event.route?.id || event.url.pathname}`,
-        status: 'ok',
-        ...traceparentData,
-        metadata: {
-          source: event.route?.id ? 'route' : 'url',
-          dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.sveltekit',
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: event.route?.id ? 'route' : 'url',
+          'http.method': event.request.method,
         },
+        name: routeName,
       },
       async (span?: Span) => {
+        getCurrentScope().setSDKProcessingMetadata({
+          normalizedRequest: winterCGRequestToRequestData(event.request.clone()),
+        });
         const res = await resolve(event, {
           transformPageChunk: addSentryCodeToPage(options),
         });
         if (span) {
-          span.setHttpStatus(res.status);
+          setHttpStatus(span, res.status);
         }
         return res;
       },
     );
     return resolveResult;
   } catch (e: unknown) {
-    sendErrorToSentry(e);
+    sendErrorToSentry(e, 'handle');
     throw e;
   } finally {
     await flushIfServerless();

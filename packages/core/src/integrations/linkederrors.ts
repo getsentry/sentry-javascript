@@ -1,6 +1,7 @@
-import type { Client, Event, EventHint, Integration, IntegrationClass, IntegrationFn } from '@sentry/types';
-import { applyAggregateErrorsToEvent, exceptionFromError } from '@sentry/utils';
-import { convertIntegrationFnToClass } from '../integration';
+import { defineIntegration } from '../integration';
+import type { IntegrationFn } from '../types-hoist';
+import { applyAggregateErrorsToEvent } from '../utils-hoist/aggregate-errors';
+import { exceptionFromError } from '../utils-hoist/eventbuilder';
 
 interface LinkedErrorsOptions {
   key?: string;
@@ -12,14 +13,12 @@ const DEFAULT_LIMIT = 5;
 
 const INTEGRATION_NAME = 'LinkedErrors';
 
-const linkedErrorsIntegration = ((options: LinkedErrorsOptions = {}) => {
+const _linkedErrorsIntegration = ((options: LinkedErrorsOptions = {}) => {
   const limit = options.limit || DEFAULT_LIMIT;
   const key = options.key || DEFAULT_KEY;
 
   return {
     name: INTEGRATION_NAME,
-    // TODO v8: Remove this
-    setupOnce() {}, // eslint-disable-line @typescript-eslint/no-empty-function
     preprocessEvent(event, hint, client) {
       const options = client.getOptions();
 
@@ -36,8 +35,4 @@ const linkedErrorsIntegration = ((options: LinkedErrorsOptions = {}) => {
   };
 }) satisfies IntegrationFn;
 
-/** Adds SDK info to an event. */
-// eslint-disable-next-line deprecation/deprecation
-export const LinkedErrors = convertIntegrationFnToClass(INTEGRATION_NAME, linkedErrorsIntegration) as IntegrationClass<
-  Integration & { preprocessEvent: (event: Event, hint: EventHint, client: Client) => void }
-> & { new (options?: { key?: string; limit?: number }): Integration };
+export const linkedErrorsIntegration = defineIntegration(_linkedErrorsIntegration);

@@ -1,18 +1,30 @@
-import { Feedback } from '@sentry-internal/integration-shims';
-import { BrowserTracing, Span, addExtensionMethods } from '@sentry-internal/tracing';
-import { Replay } from '@sentry/replay';
+import { registerSpanErrorInstrumentation } from '@sentry/core';
 
-import * as Sentry from './index.bundle.base';
+registerSpanErrorInstrumentation();
 
-// TODO (v8): Remove this as it was only needed for backwards compatibility
-// We want replay to be available under Sentry.Replay, to be consistent
-// with the NPM package version.
-Sentry.Integrations.Replay = Replay;
-
-Sentry.Integrations.BrowserTracing = BrowserTracing;
-
-// We are patching the global object with our hub extension methods
-addExtensionMethods();
-
-export { Feedback, Replay, BrowserTracing, Span, addExtensionMethods };
 export * from './index.bundle.base';
+
+export * from './metrics';
+
+export {
+  getActiveSpan,
+  getRootSpan,
+  startSpan,
+  startInactiveSpan,
+  startSpanManual,
+  startNewTrace,
+  withActiveSpan,
+  getSpanDescendants,
+  setMeasurement,
+} from '@sentry/core';
+
+export {
+  browserTracingIntegration,
+  startBrowserTracingNavigationSpan,
+  startBrowserTracingPageLoadSpan,
+} from './tracing/browserTracingIntegration';
+
+import { feedbackIntegrationShim } from '@sentry-internal/integration-shims';
+export { feedbackIntegrationShim as feedbackAsyncIntegration, feedbackIntegrationShim as feedbackIntegration };
+
+export { replayIntegration, getReplay } from '@sentry-internal/replay';

@@ -106,7 +106,7 @@
                   "childNodes": [
                     {
                       "type": 3,
-                      "textContent": "This should be unmasked due to data attribute",
+                      "textContent": "**** ******* ********* **** ****** **** ** ****** ***** **** **** **********",
                       "id": 17
                     }
                   ],
@@ -121,7 +121,7 @@
                   "type": 2,
                   "tagName": "input",
                   "attributes": {
-                    "placeholder": "*********** ****** ** ******"
+                    "placeholder": "*********** *** ** ******** * *** *** **** ******* ********"
                   },
                   "childNodes": [],
                   "id": 19
@@ -226,12 +226,12 @@
                 {
                   "type": 3,
                   "textContent": "\n  ",
-                  "id": 33
+                  "id": 34
                 },
                 {
                   "type": 3,
                   "textContent": "\n\n",
-                  "id": 34
+                  "id": 35
                 }
               ],
               "id": 8

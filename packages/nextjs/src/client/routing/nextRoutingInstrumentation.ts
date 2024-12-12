@@ -1,23 +1,29 @@
+import type { Client } from '@sentry/core';
 import { WINDOW } from '@sentry/react';
-import type { Transaction, TransactionContext } from '@sentry/types';
 
-import { appRouterInstrumentation } from './appRouterRoutingInstrumentation';
-import { pagesRouterInstrumentation } from './pagesRouterRoutingInstrumentation';
-
-type StartTransactionCb = (context: TransactionContext) => Transaction | undefined;
+import { appRouterInstrumentNavigation, appRouterInstrumentPageLoad } from './appRouterRoutingInstrumentation';
+import { pagesRouterInstrumentNavigation, pagesRouterInstrumentPageLoad } from './pagesRouterRoutingInstrumentation';
 
 /**
- * Instruments the Next.js Clientside Router.
+ * Instruments the Next.js Client Router for page loads.
  */
-export function nextRouterInstrumentation(
-  startTransactionCb: StartTransactionCb,
-  startTransactionOnPageLoad: boolean = true,
-  startTransactionOnLocationChange: boolean = true,
-): void {
+export function nextRouterInstrumentPageLoad(client: Client): void {
   const isAppRouter = !WINDOW.document.getElementById('__NEXT_DATA__');
   if (isAppRouter) {
-    appRouterInstrumentation(startTransactionCb, startTransactionOnPageLoad, startTransactionOnLocationChange);
+    appRouterInstrumentPageLoad(client);
   } else {
-    pagesRouterInstrumentation(startTransactionCb, startTransactionOnPageLoad, startTransactionOnLocationChange);
+    pagesRouterInstrumentPageLoad(client);
+  }
+}
+
+/**
+ * Instruments the Next.js Client Router for navigation.
+ */
+export function nextRouterInstrumentNavigation(client: Client): void {
+  const isAppRouter = !WINDOW.document.getElementById('__NEXT_DATA__');
+  if (isAppRouter) {
+    appRouterInstrumentNavigation(client);
+  } else {
+    pagesRouterInstrumentNavigation(client);
   }
 }

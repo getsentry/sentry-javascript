@@ -1,9 +1,8 @@
-import { getCurrentScope } from '@sentry/browser';
-import type { Span, Transaction } from '@sentry/types';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/browser';
+import type { Span } from '@sentry/core';
 import { afterUpdate, beforeUpdate, onMount } from 'svelte';
-import { current_component } from 'svelte/internal';
 
-import { getRootSpan } from '@sentry/core';
+import { startInactiveSpan } from '@sentry/core';
 import { DEFAULT_COMPONENT_NAME, UI_SVELTE_INIT, UI_SVELTE_UPDATE } from './constants';
 import type { TrackComponentOptions } from './types';
 
@@ -17,71 +16,51 @@ const defaultTrackComponentOptions: {
 };
 
 /**
- * Tracks the Svelte component's intialization and mounting operation as well as
+ * Tracks the Svelte component's initialization and mounting operation as well as
  * updates and records them as spans.
+ *
  * This function is injected automatically into your Svelte components' code
- * if you are using the Sentry componentTrackingPreprocessor.
+ * if you are using the withSentryConfig wrapper.
+ *
  * Alternatively, you can call it yourself if you don't want to use the preprocessor.
  */
 export function trackComponent(options?: TrackComponentOptions): void {
   const mergedOptions = { ...defaultTrackComponentOptions, ...options };
 
-  const transaction = getActiveTransaction();
-  if (!transaction) {
-    return;
-  }
-
   const customComponentName = mergedOptions.componentName;
 
-  // current_component.ctor.name is likely to give us the component's name automatically
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-  const componentName = `<${customComponentName || current_component.constructor.name || DEFAULT_COMPONENT_NAME}>`;
+  const componentName = `<${customComponentName || DEFAULT_COMPONENT_NAME}>`;
 
-  let initSpan: Span | undefined = undefined;
   if (mergedOptions.trackInit) {
-    initSpan = recordInitSpan(transaction, componentName);
+    recordInitSpan(componentName);
   }
 
   if (mergedOptions.trackUpdates) {
-    recordUpdateSpans(componentName, initSpan);
+    recordUpdateSpans(componentName);
   }
 }
 
-function recordInitSpan(transaction: Transaction, componentName: string): Span {
-  // eslint-disable-next-line deprecation/deprecation
-  const initSpan = transaction.startChild({
+function recordInitSpan(componentName: string): void {
+  const initSpan = startInactiveSpan({
+    onlyIfParent: true,
     op: UI_SVELTE_INIT,
-    description: componentName,
-    origin: 'auto.ui.svelte',
+    name: componentName,
+    attributes: { [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.svelte' },
   });
 
   onMount(() => {
     initSpan.end();
   });
-
-  return initSpan;
 }
 
-function recordUpdateSpans(componentName: string, initSpan?: Span): void {
+function recordUpdateSpans(componentName: string): void {
   let updateSpan: Span | undefined;
   beforeUpdate(() => {
-    // We need to get the active transaction again because the initial one could
-    // already be finished or there is currently no transaction going on.
-    const transaction = getActiveTransaction();
-    if (!transaction) {
-      return;
-    }
-
-    // If we are initializing the component when the update span is started, we start it as child
-    // of the init span. Else, we start it as a child of the transaction.
-    const parentSpan =
-      initSpan && initSpan.isRecording() && getRootSpan(initSpan) === transaction ? initSpan : transaction;
-
-    // eslint-disable-next-line deprecation/deprecation
-    updateSpan = parentSpan.startChild({
+    updateSpan = startInactiveSpan({
+      onlyIfParent: true,
       op: UI_SVELTE_UPDATE,
-      description: componentName,
-      origin: 'auto.ui.svelte',
+      name: componentName,
+      attributes: { [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.svelte' },
     });
   });
 
@@ -92,9 +71,4 @@ function recordUpdateSpans(componentName: string, initSpan?: Span): void {
     updateSpan.end();
     updateSpan = undefined;
   });
-}
-
-function getActiveTransaction(): Transaction | undefined {
-  // eslint-disable-next-line deprecation/deprecation
-  return getCurrentScope().getTransaction();
 }

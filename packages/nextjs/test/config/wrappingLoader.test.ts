@@ -86,7 +86,6 @@ describe('wrappingLoader', () => {
             pageExtensionRegex: DEFAULT_PAGE_EXTENSION_REGEX,
             excludeServerRoutes: [],
             wrappingTargetKind: 'api-route',
-            sentryConfigFilePath: '/my/sentry.server.config.ts',
             vercelCronsConfig: undefined,
             nextjsRequestAsyncStorageModulePath: '/my/request-async-storage.js',
           };
@@ -100,6 +99,4 @@ describe('wrappingLoader', () => {
 
     expect(callback).toHaveBeenCalledWith(null, expect.stringContaining("'/my/route'"), expect.anything());
   });
-
-  it.todo('should correctly wrap API routes on unix');
 });

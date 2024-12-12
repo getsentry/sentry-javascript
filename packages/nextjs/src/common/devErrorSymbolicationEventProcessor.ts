@@ -1,5 +1,5 @@
-import type { Event, EventHint } from '@sentry/types';
-import { GLOBAL_OBJ } from '@sentry/utils';
+import type { Event, EventHint } from '@sentry/core';
+import { GLOBAL_OBJ, suppressTracing } from '@sentry/core';
 import type { StackFrame } from 'stacktrace-parser';
 import * as stackTraceParser from 'stacktrace-parser';
 
@@ -10,7 +10,7 @@ type OriginalStackFrameResponse = {
 };
 
 const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
-  __sentryBasePath?: string;
+  _sentryBasePath?: string;
 };
 
 async function resolveStackFrame(
@@ -31,7 +31,7 @@ async function resolveStackFrame(
       params.append(key, (frame[key as keyof typeof frame] ?? '').toString());
     });
 
-    let basePath = globalWithInjectedValues.__sentryBasePath ?? '';
+    let basePath = process.env._sentryBasePath ?? globalWithInjectedValues._sentryBasePath ?? '';
 
     // Prefix the basepath with a slash if it doesn't have one
     if (basePath !== '' && !basePath.match(/^\//)) {
@@ -40,17 +40,19 @@ async function resolveStackFrame(
 
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 3000);
-    const res = await fetch(
-      `${
-        // eslint-disable-next-line no-restricted-globals
-        typeof window === 'undefined' ? 'http://localhost:3000' : '' // TODO: handle the case where users define a different port
-      }${basePath}/__nextjs_original-stack-frame?${params.toString()}`,
-      {
-        signal: controller.signal,
-      },
-    ).finally(() => {
-      clearTimeout(timer);
-    });
+    const res = await suppressTracing(() =>
+      fetch(
+        `${
+          // eslint-disable-next-line no-restricted-globals
+          typeof window === 'undefined' ? 'http://localhost:3000' : '' // TODO: handle the case where users define a different port
+        }${basePath}/__nextjs_original-stack-frame?${params.toString()}`,
+        {
+          signal: controller.signal,
+        },
+      ).finally(() => {
+        clearTimeout(timer);
+      }),
+    );
 
     if (!res.ok || res.status === 204) {
       return null;
@@ -122,6 +124,18 @@ function parseOriginalCodeFrame(codeFrame: string): {
  * in the dev overlay.
  */
 export async function devErrorSymbolicationEventProcessor(event: Event, hint: EventHint): Promise<Event | null> {
+  // Filter out spans for requests resolving source maps for stack frames in dev mode
+  if (event.type === 'transaction') {
+    event.spans = event.spans?.filter(span => {
+      const httpUrlAttribute: unknown = span.data?.['http.url'];
+      if (typeof httpUrlAttribute === 'string') {
+        return !httpUrlAttribute.includes('__nextjs_original-stack-frame');
+      }
+
+      return true;
+    });
+  }
+
   // Due to changes across Next.js versions, there are a million things that can go wrong here so we just try-catch the  // entire event processor.Symbolicated stack traces are just a nice to have.
   try {
     if (hint.originalException && hint.originalException instanceof Error && hint.originalException.stack) {
@@ -131,7 +145,7 @@ export async function devErrorSymbolicationEventProcessor(event: Event, hint: Ev
         frames.map(frame => resolveStackFrame(frame, hint.originalException as Error)),
       );
 
-      if (event.exception?.values?.[0].stacktrace?.frames) {
+      if (event.exception?.values?.[0]?.stacktrace?.frames) {
         event.exception.values[0].stacktrace.frames = event.exception.values[0].stacktrace.frames.map(
           (frame, i, frames) => {
             const resolvedFrame = resolvedFrames[frames.length - 1 - i];

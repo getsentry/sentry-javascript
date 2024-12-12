@@ -1,0 +1,12 @@
+name: 'external-contributor-gh-action'
+description: 'Add external contributors to CHANGELOG.md'
+inputs:
+  name:
+    required: true
+    description: 'The name of the external contributor'
+  author_association:
+    required: false
+    description: 'The association of the author'
+runs:
+  using: 'node20'
+  main: 'index.mjs'

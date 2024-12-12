@@ -1,6 +1,12 @@
+/**
+ * @vitest-environment jsdom
+ */
+
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { createApp } from 'vue';
 
-import { VueIntegration } from '../../src/integration';
+import type { Client } from '@sentry/core';
 import type { Options } from '../../src/types';
 import * as Sentry from './../../src';
 
@@ -11,13 +17,13 @@ describe('Sentry.init', () => {
 
   beforeEach(() => {
     warnings = [];
-    jest.spyOn(console, 'warn').mockImplementation((message: unknown) => {
+    vi.spyOn(console, 'warn').mockImplementation((message: unknown) => {
       warnings.push(message);
     });
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('does not warn when correctly setup (Vue 3)', () => {
@@ -79,9 +85,7 @@ describe('Sentry.init', () => {
     app.mount(el);
 
     expect(warnings).toEqual([
-      `[@sentry/vue]: Misconfigured SDK. Vue specific errors will not be captured.
-Update your \`Sentry.init\` call with an appropriate config option:
-\`app\` (Application Instance - Vue 3) or \`Vue\` (Vue Constructor - Vue 2).`,
+      '[@sentry/vue]: Misconfigured SDK. Vue specific errors will not be captured. Update your `Sentry.init` call with an appropriate config option: `app` (Application Instance - Vue 3) or `Vue` (Vue Constructor - Vue 2).',
     ]);
   });
 
@@ -101,24 +105,19 @@ Update your \`Sentry.init\` call with an appropriate config option:
 
     expect(warnings).toEqual([]);
   });
+
+  it('returns client from init', () => {
+    expect(runInit({})).not.toBeUndefined();
+  });
 });
 
-function runInit(options: Partial<Options>): void {
-  const hasRunBefore = Sentry.getClient()?.getIntegrationByName?.(VueIntegration.id);
+function runInit(options: Partial<Options>): Client | undefined {
+  const integration = Sentry.vueIntegration();
 
-  const integration = new VueIntegration();
-
-  Sentry.init({
+  return Sentry.init({
     dsn: PUBLIC_DSN,
     defaultIntegrations: false,
     integrations: [integration],
     ...options,
   });
-
-  // Because our integrations API is terrible to test, we need to make sure to check
-  // If we've already had this integration registered before
-  // if that's the case, `setup()` will not be run, so we need to manually run it :(
-  if (hasRunBefore) {
-    integration['_setupIntegration'](Sentry.getCurrentHub());
-  }
 }

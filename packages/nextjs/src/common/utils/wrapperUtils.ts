@@ -1,39 +1,14 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import {
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   captureException,
   getActiveSpan,
-  getActiveTransaction,
   getCurrentScope,
-  runWithAsyncContext,
-  startTransaction,
+  getIsolationScope,
+  getRootSpan,
+  getTraceData,
+  httpRequestToRequestData,
 } from '@sentry/core';
-import type { Span, Transaction } from '@sentry/types';
-import { isString, tracingContextFromHeaders } from '@sentry/utils';
-
-import { platformSupportsStreaming } from './platformSupportsStreaming';
-import { autoEndTransactionOnResponseEnd, flushQueue } from './responseEnd';
-
-declare module 'http' {
-  interface IncomingMessage {
-    _sentryTransaction?: Transaction;
-  }
-}
-
-/**
- * Grabs a transaction off a Next.js datafetcher request object, if it was previously put there via
- * `setTransactionOnRequest`.
- *
- * @param req The Next.js datafetcher request object
- * @returns the Transaction on the request object if there is one, or `undefined` if the request object didn't have one.
- */
-export function getTransactionFromRequest(req: IncomingMessage): Transaction | undefined {
-  return req._sentryTransaction;
-}
-
-function setTransactionOnRequest(transaction: Transaction, req: IncomingMessage): void {
-  req._sentryTransaction = transaction;
-}
+import { TRANSACTION_ATTR_SENTRY_ROUTE_BACKFILL } from '../span-attributes-with-logic-attached';
 
 /**
  * Wraps a function that potentially throws. If it does, the error is passed to `captureException` and rethrown.
@@ -50,7 +25,6 @@ export function withErrorInstrumentation<F extends (...args: any[]) => any>(
     } catch (e) {
       // TODO: Extract error logic from `withSentry` in here or create a new wrapper with said logic or something like that.
       captureException(e, { mechanism: { handled: false } });
-
       throw e;
     }
   };
@@ -83,101 +57,30 @@ export function withTracedServerSideDataFetcher<F extends (...args: any[]) => Pr
     /** Name of the data fetching method - will be used for describing the data fetcher's span. */
     dataFetchingMethodName: string;
   },
-): (...params: Parameters<F>) => Promise<ReturnType<F>> {
-  return async function (this: unknown, ...args: Parameters<F>): Promise<ReturnType<F>> {
-    return runWithAsyncContext(async () => {
-      const scope = getCurrentScope();
-      const previousSpan: Span | undefined = getTransactionFromRequest(req) ?? getActiveSpan();
-      let dataFetcherSpan;
+): (...params: Parameters<F>) => Promise<{ data: ReturnType<F>; sentryTrace?: string; baggage?: string }> {
+  return async function (
+    this: unknown,
+    ...args: Parameters<F>
+  ): Promise<{ data: ReturnType<F>; sentryTrace?: string; baggage?: string }> {
+    const normalizedRequest = httpRequestToRequestData(req);
+    getCurrentScope().setTransactionName(`${options.dataFetchingMethodName} (${options.dataFetcherRouteName})`);
+    getIsolationScope().setSDKProcessingMetadata({ normalizedRequest });
 
-      const sentryTrace =
-        req.headers && isString(req.headers['sentry-trace']) ? req.headers['sentry-trace'] : undefined;
-      const baggage = req.headers?.baggage;
-      const { traceparentData, dynamicSamplingContext, propagationContext } = tracingContextFromHeaders(
-        sentryTrace,
-        baggage,
-      );
-      scope.setPropagationContext(propagationContext);
+    const span = getActiveSpan();
 
-      if (platformSupportsStreaming()) {
-        let spanToContinue: Span;
-        if (previousSpan === undefined) {
-          // TODO: Refactor this to use `startSpan()`
-          // eslint-disable-next-line deprecation/deprecation
-          const newTransaction = startTransaction(
-            {
-              op: 'http.server',
-              name: options.requestedRouteName,
-              origin: 'auto.function.nextjs',
-              ...traceparentData,
-              status: 'ok',
-              metadata: {
-                request: req,
-                source: 'route',
-                dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
-              },
-            },
-            { request: req },
-          );
+    // Only set the route backfill if the span is not for /_error
+    if (span && options.requestedRouteName !== '/_error') {
+      const root = getRootSpan(span);
+      root.setAttribute(TRANSACTION_ATTR_SENTRY_ROUTE_BACKFILL, options.requestedRouteName);
+    }
 
-          if (platformSupportsStreaming()) {
-            // On platforms that don't support streaming, doing things after res.end() is unreliable.
-            autoEndTransactionOnResponseEnd(newTransaction, res);
-          }
+    const { 'sentry-trace': sentryTrace, baggage } = getTraceData();
 
-          // Link the transaction and the request together, so that when we would normally only have access to one, it's
-          // still possible to grab the other.
-          setTransactionOnRequest(newTransaction, req);
-          spanToContinue = newTransaction;
-        } else {
-          spanToContinue = previousSpan;
-        }
-
-        // eslint-disable-next-line deprecation/deprecation
-        dataFetcherSpan = spanToContinue.startChild({
-          op: 'function.nextjs',
-          description: `${options.dataFetchingMethodName} (${options.dataFetcherRouteName})`,
-          origin: 'auto.function.nextjs',
-          status: 'ok',
-        });
-      } else {
-        // TODO: Refactor this to use `startSpan()`
-        // eslint-disable-next-line deprecation/deprecation
-        dataFetcherSpan = startTransaction({
-          op: 'function.nextjs',
-          name: `${options.dataFetchingMethodName} (${options.dataFetcherRouteName})`,
-          origin: 'auto.function.nextjs',
-          ...traceparentData,
-          status: 'ok',
-          metadata: {
-            request: req,
-            source: 'route',
-            dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
-          },
-        });
-      }
-
-      // eslint-disable-next-line deprecation/deprecation
-      scope.setSpan(dataFetcherSpan);
-      scope.setSDKProcessingMetadata({ request: req });
-
-      try {
-        return await origDataFetcher.apply(this, args);
-      } catch (e) {
-        // Since we finish the span before the error can bubble up and trigger the handlers in `registerErrorInstrumentation`
-        // that set the transaction status, we need to manually set the status of the span & transaction
-        dataFetcherSpan.setStatus('internal_error');
-        previousSpan?.setStatus('internal_error');
-        throw e;
-      } finally {
-        dataFetcherSpan.end();
-        // eslint-disable-next-line deprecation/deprecation
-        scope.setSpan(previousSpan);
-        if (!platformSupportsStreaming()) {
-          await flushQueue();
-        }
-      }
-    });
+    return {
+      sentryTrace: sentryTrace,
+      baggage: baggage,
+      data: await origDataFetcher.apply(this, args),
+    };
   };
 }
 
@@ -191,50 +94,11 @@ export function withTracedServerSideDataFetcher<F extends (...args: any[]) => Pr
 export async function callDataFetcherTraced<F extends (...args: any[]) => Promise<any> | any>(
   origFunction: F,
   origFunctionArgs: Parameters<F>,
-  options: {
-    parameterizedRoute: string;
-    dataFetchingMethodName: string;
-  },
 ): Promise<ReturnType<F>> {
-  const { parameterizedRoute, dataFetchingMethodName } = options;
-
-  // eslint-disable-next-line deprecation/deprecation
-  const transaction = getActiveTransaction();
-
-  if (!transaction) {
-    return origFunction(...origFunctionArgs);
-  }
-
-  // TODO: Make sure that the given route matches the name of the active transaction (to prevent background data
-  // fetching from switching the name to a completely other route) -- We'll probably switch to creating a transaction
-  // right here so making that check will probabably not even be necessary.
-  // Logic will be: If there is no active transaction, start one with correct name and source. If there is an active
-  // transaction, create a child span with correct name and source.
-  transaction.updateName(parameterizedRoute);
-  transaction.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
-
-  // Capture the route, since pre-loading, revalidation, etc might mean that this span may happen during another
-  // route's transaction
-  // eslint-disable-next-line deprecation/deprecation
-  const span = transaction.startChild({
-    op: 'function.nextjs',
-    origin: 'auto.function.nextjs',
-    description: `${dataFetchingMethodName} (${parameterizedRoute})`,
-    status: 'ok',
-  });
-
   try {
     return await origFunction(...origFunctionArgs);
-  } catch (err) {
-    // Since we finish the span before the error can bubble up and trigger the handlers in `registerErrorInstrumentation`
-    // that set the transaction status, we need to manually set the status of the span & transaction
-    transaction.setStatus('internal_error');
-    span.setStatus('internal_error');
-    span.end();
-
-    // TODO Copy more robust error handling over from `withSentry`
-    captureException(err, { mechanism: { handled: false } });
-
-    throw err;
+  } catch (e) {
+    captureException(e, { mechanism: { handled: false } });
+    throw e;
   }
 }

@@ -1,11 +1,45 @@
-import { existsSync, readFileSync } from 'fs';
-import { dirname, join } from 'path';
-import { convertIntegrationFnToClass } from '@sentry/core';
-import type { Event, Integration, IntegrationClass, IntegrationFn } from '@sentry/types';
+import { existsSync, readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import type { IntegrationFn } from '@sentry/core';
+import { defineIntegration, logger } from '@sentry/core';
+import { DEBUG_BUILD } from '../debug-build';
+import { isCjs } from '../utils/commonjs';
 
 let moduleCache: { [key: string]: string };
 
 const INTEGRATION_NAME = 'Modules';
+
+const _modulesIntegration = (() => {
+  // This integration only works in CJS contexts
+  if (!isCjs()) {
+    DEBUG_BUILD &&
+      logger.warn(
+        'modulesIntegration only works in CommonJS (CJS) environments. Remove this integration if you are using ESM.',
+      );
+    return {
+      name: INTEGRATION_NAME,
+    };
+  }
+
+  return {
+    name: INTEGRATION_NAME,
+    processEvent(event) {
+      event.modules = {
+        ...event.modules,
+        ..._getModules(),
+      };
+
+      return event;
+    },
+  };
+}) satisfies IntegrationFn;
+
+/**
+ * Add node modules / packages to the event.
+ *
+ * Only works in CommonJS (CJS) environments.
+ */
+export const modulesIntegration = defineIntegration(_modulesIntegration);
 
 /** Extract information about paths */
 function getPaths(): string[] {
@@ -75,25 +109,3 @@ function _getModules(): { [key: string]: string } {
   }
   return moduleCache;
 }
-
-const modulesIntegration = (() => {
-  return {
-    name: INTEGRATION_NAME,
-    // TODO v8: Remove this
-    setupOnce() {}, // eslint-disable-line @typescript-eslint/no-empty-function
-    processEvent(event) {
-      event.modules = {
-        ...event.modules,
-        ..._getModules(),
-      };
-
-      return event;
-    },
-  };
-}) satisfies IntegrationFn;
-
-/** Add node modules / packages to the event */
-// eslint-disable-next-line deprecation/deprecation
-export const Modules = convertIntegrationFnToClass(INTEGRATION_NAME, modulesIntegration) as IntegrationClass<
-  Integration & { processEvent: (event: Event) => Event }
->;

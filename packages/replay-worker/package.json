@@ -1,22 +1,19 @@
 {
   "name": "@sentry-internal/replay-worker",
-  "version": "7.93.0",
-  "description": "Worker for @sentry/replay",
-  "main": "build/npm/esm/index.js",
-  "module": "build/npm/esm/index.js",
-  "types": "build/npm/types/index.d.ts",
+  "version": "8.43.0",
+  "description": "Worker for @sentry-internal/replay",
+  "main": "build/esm/index.js",
+  "module": "build/esm/index.js",
+  "types": "build/types/index.d.ts",
   "typesVersions": {
     "<4.9": {
-      "build/npm/types/index.d.ts": [
-        "build/npm/types-ts3.8/index.d.ts"
+      "build/types/index.d.ts": [
+        "build/types-ts3.8/index.d.ts"
       ]
     }
   },
   "files": [
-    "cjs",
-    "esm",
-    "types",
-    "types-ts3.8"
+    "/build"
   ],
   "sideEffects": false,
   "private": true,
@@ -26,7 +23,7 @@
     "build:examples": "rollup -c rollup.examples.config.mjs",
     "build:types": "run-s build:types:core build:types:downlevel",
     "build:types:core": "tsc -p tsconfig.types.json",
-    "build:types:downlevel": "yarn downlevel-dts build/npm/types build/npm/types-ts3.8 --to ts3.8",
+    "build:types:downlevel": "yarn downlevel-dts build/types build/types-ts3.8 --to ts3.8",
     "build:dev": "yarn build",
     "build:watch": "run-p build:transpile:watch build:types:watch",
     "build:dev:watch": "yarn build:watch",
@@ -35,8 +32,8 @@
     "clean": "rimraf build",
     "fix": "eslint . --format stylish --fix",
     "lint": "eslint . --format stylish",
-    "test": "jest",
-    "test:watch": "jest --watch"
+    "test": "vitest run",
+    "test:watch": "vitest --watch"
   },
   "repository": {
     "type": "git",
@@ -52,7 +49,7 @@
     "fflate": "0.8.1"
   },
   "engines": {
-    "node": ">=12"
+    "node": ">=14.18"
   },
   "volta": {
     "extends": "../../package.json"

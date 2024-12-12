@@ -10,69 +10,50 @@
 [![npm dm](https://img.shields.io/npm/dm/@sentry/nextjs.svg)](https://www.npmjs.com/package/@sentry/nextjs)
 [![npm dt](https://img.shields.io/npm/dt/@sentry/nextjs.svg)](https://www.npmjs.com/package/@sentry/nextjs)
 
-## Links
-
-- [Official SDK Docs](https://docs.sentry.io/platforms/javascript/guides/nextjs/)
-- [TypeDoc](http://getsentry.github.io/sentry-javascript/)
+> See the [Official Sentry Next.js SDK Docs](https://docs.sentry.io/platforms/javascript/guides/nextjs/) to get started.
 
 ## Compatibility
 
-Currently, the minimum Next.js supported version is `10.0.8`.
+Currently, the minimum supported version of Next.js is `13.2.0`.
 
-## General
+## Installation
 
-This package is a wrapper around `@sentry/node` for the server and `@sentry/react` for the client, with added functionality related to Next.js.
+To get started installing the SDK, use the Sentry Next.js Wizard by running the following command in your terminal or
+read the [Getting Started Docs](https://docs.sentry.io/platforms/javascript/guides/nextjs/):
 
-To use this SDK, init it in the Sentry config files.
-
-```javascript
-// sentry.client.config.js
-
-import * as Sentry from '@sentry/nextjs';
-
-Sentry.init({
-  dsn: "__DSN__",
-  // ...
-});
+```sh
+npx @sentry/wizard@latest -i nextjs
 ```
 
-```javascript
-// sentry.server.config.js
+The wizard will prompt you to log in to Sentry. After the wizard setup is completed, the SDK will automatically capture
+unhandled errors, and monitor performance.
 
-import * as Sentry from '@sentry/nextjs';
+## Custom Usage
 
-Sentry.init({
-  dsn: "__DSN__",
-  // ...
-});
-```
+To set context information or to send manual events, you can use `@sentry/nextjs` as follows:
 
-To set context information or send manual events, use the exported functions of `@sentry/nextjs`.
-
-```javascript
+```ts
 import * as Sentry from '@sentry/nextjs';
 
 // Set user information, as well as tags and further extras
-Sentry.configureScope(scope => {
-  scope.setExtra('battery', 0.7);
-  scope.setTag('user_mode', 'admin');
-  scope.setUser({ id: '4711' });
-  // scope.clear();
-});
+Sentry.setTag('user_mode', 'admin');
+Sentry.setUser({ id: '4711' });
+Sentry.setContext('application_area', { location: 'checkout' });
 
 // Add a breadcrumb for future events
 Sentry.addBreadcrumb({
-  message: 'My Breadcrumb',
+  message: '"Add to cart" clicked',
   // ...
 });
 
-// Capture exceptions, messages or manual events
+// Capture exceptions or messages
+Sentry.captureException(new Error('Oh no.'));
 Sentry.captureMessage('Hello, world!');
-Sentry.captureException(new Error('Good bye'));
-Sentry.captureEvent({
-  message: 'Manual',
-  stacktrace: [
-    // ...
-  ],
-});
 ```
+
+## Links
+
+- [Official SDK Docs](https://docs.sentry.io/platforms/javascript/guides/nextjs/)
+- [Sentry.io](https://sentry.io/?utm_source=github&utm_medium=npm_nextjs)
+- [Sentry Discord Server](https://discord.gg/Ww9hbqr)
+- [Stack Overflow](https://stackoverflow.com/questions/tagged/sentry)

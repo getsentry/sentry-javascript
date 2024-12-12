@@ -1,4 +1,4 @@
-import { withMonitor } from '@sentry/core';
+import { captureException, withMonitor } from '@sentry/core';
 import { replaceCronNames } from './common';
 
 export interface NodeCronOptions {
@@ -15,7 +15,7 @@ export interface NodeCron {
  *
  * ```ts
  * import * as Sentry from "@sentry/node";
- * import cron from "node-cron";
+ * import * as cron from "node-cron";
  *
  * const cronWithCheckIn = Sentry.cron.instrumentNodeCron(cron);
  *
@@ -35,22 +35,33 @@ export function instrumentNodeCron<T>(lib: Partial<NodeCron> & T): T {
         // When 'get' is called for schedule, return a proxied version of the schedule function
         return new Proxy(target.schedule, {
           apply(target, thisArg, argArray: Parameters<NodeCron['schedule']>) {
-            const [expression, , options] = argArray;
+            const [expression, callback, options] = argArray;
 
             if (!options?.name) {
               throw new Error('Missing "name" for scheduled job. A name is required for Sentry check-in monitoring.');
             }
 
-            return withMonitor(
-              options.name,
-              () => {
-                return target.apply(thisArg, argArray);
-              },
-              {
-                schedule: { type: 'crontab', value: replaceCronNames(expression) },
-                timezone: options?.timezone,
-              },
-            );
+            async function monitoredCallback(): Promise<void> {
+              return withMonitor(
+                options.name,
+                async () => {
+                  // We have to manually catch here and capture the exception because node-cron swallows errors
+                  // https://github.com/node-cron/node-cron/issues/399
+                  try {
+                    return await callback();
+                  } catch (e) {
+                    captureException(e);
+                    throw e;
+                  }
+                },
+                {
+                  schedule: { type: 'crontab', value: replaceCronNames(expression) },
+                  timezone: options?.timezone,
+                },
+              );
+            }
+
+            return target.apply(thisArg, [expression, monitoredCallback, options]);
           },
         });
       } else {

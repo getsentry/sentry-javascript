@@ -1,6 +1,6 @@
-import { getCurrentScope } from '@sentry/browser';
-import type { Span, Transaction } from '@sentry/types';
-import { logger, timestampInSeconds } from '@sentry/utils';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, getActiveSpan, startInactiveSpan } from '@sentry/browser';
+import { logger, timestampInSeconds } from '@sentry/core';
+import type { Span } from '@sentry/core';
 
 import { DEFAULT_HOOKS } from './constants';
 import { DEBUG_BUILD } from './debug-build';
@@ -32,16 +32,6 @@ const HOOKS: { [key in Operation]: Hook[] } = {
   update: ['beforeUpdate', 'updated'],
 };
 
-/**
- * Grabs active transaction off scope.
- *
- * @deprecated You should not rely on the transaction, but just use `startSpan()` APIs instead.
- */
-export function getActiveTransaction(): Transaction | undefined {
-  // eslint-disable-next-line deprecation/deprecation
-  return getCurrentScope().getTransaction();
-}
-
 /** Finish top-level span and activity with a debounce configured using `timeout` option */
 function finishRootSpan(vm: VueSentry, timestamp: number, timeout: number): void {
   if (vm.$_sentryRootSpanTimer) {
@@ -54,6 +44,19 @@ function finishRootSpan(vm: VueSentry, timestamp: number, timeout: number): void
       vm.$root.$_sentryRootSpan = undefined;
     }
   }, timeout);
+}
+
+/** Find if the current component exists in the provided `TracingOptions.trackComponents` array option. */
+export function findTrackComponent(trackComponents: string[], formattedName: string): boolean {
+  function extractComponentName(name: string): string {
+    return name.replace(/^<([^\s]*)>(?: at [^\s]*)?$/, '$1');
+  }
+
+  const isMatched = trackComponents.some(compo => {
+    return extractComponentName(formattedName) === extractComponentName(compo);
+  });
+
+  return isMatched;
 }
 
 export const createTracingMixins = (options: TracingOptions): Mixins => {
@@ -78,24 +81,23 @@ export const createTracingMixins = (options: TracingOptions): Mixins => {
         const isRoot = this.$root === this;
 
         if (isRoot) {
-          // eslint-disable-next-line deprecation/deprecation
-          const activeTransaction = getActiveTransaction();
-          if (activeTransaction) {
-            this.$_sentryRootSpan =
-              this.$_sentryRootSpan ||
-              // eslint-disable-next-line deprecation/deprecation
-              activeTransaction.startChild({
-                description: 'Application Render',
-                op: `${VUE_OP}.render`,
-                origin: 'auto.ui.vue',
-              });
-          }
+          this.$_sentryRootSpan =
+            this.$_sentryRootSpan ||
+            startInactiveSpan({
+              name: 'Application Render',
+              op: `${VUE_OP}.render`,
+              attributes: {
+                [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.vue',
+              },
+              onlyIfParent: true,
+            });
         }
 
         // Skip components that we don't want to track to minimize the noise and give a more granular control to the user
         const name = formatComponentName(this, false);
+
         const shouldTrack = Array.isArray(options.trackComponents)
-          ? options.trackComponents.indexOf(name) > -1
+          ? findTrackComponent(options.trackComponents, name)
           : options.trackComponents;
 
         // We always want to track root component
@@ -108,9 +110,8 @@ export const createTracingMixins = (options: TracingOptions): Mixins => {
         // Start a new span if current hook is a 'before' hook.
         // Otherwise, retrieve the current span and finish it.
         if (internalHook == internalHooks[0]) {
-          // eslint-disable-next-line deprecation/deprecation
-          const activeTransaction = (this.$root && this.$root.$_sentryRootSpan) || getActiveTransaction();
-          if (activeTransaction) {
+          const activeSpan = (this.$root && this.$root.$_sentryRootSpan) || getActiveSpan();
+          if (activeSpan) {
             // Cancel old span for this hook operation in case it didn't get cleaned up. We're not actually sure if it
             // will ever be the case that cleanup hooks re not called, but we had users report that spans didn't get
             // finished so we finish the span before starting a new one, just to be sure.
@@ -119,11 +120,14 @@ export const createTracingMixins = (options: TracingOptions): Mixins => {
               oldSpan.end();
             }
 
-            // eslint-disable-next-line deprecation/deprecation
-            this.$_sentrySpans[operation] = activeTransaction.startChild({
-              description: `Vue <${name}>`,
+            this.$_sentrySpans[operation] = startInactiveSpan({
+              name: `Vue ${name}`,
               op: `${VUE_OP}.${operation}`,
-              origin: 'auto.ui.vue',
+              attributes: {
+                [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.vue',
+              },
+              // UI spans should only be created if there is an active root span (transaction)
+              onlyIfParent: true,
             });
           }
         } else {

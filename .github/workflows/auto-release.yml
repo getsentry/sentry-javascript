@@ -1,4 +1,4 @@
-name: Gitflow - Auto prepare release
+name: "Gitflow: Auto prepare release"
 on:
   pull_request:
     types:
@@ -13,26 +13,41 @@ jobs:
     name: 'Prepare a new version'
 
     steps:
+      - name: Get auth token
+        id: token
+        uses: actions/create-github-app-token@5d869da34e18e7287c1daad50e0b8ea0f506ce69 # v1.11.0
+        with:
+          app-id: ${{ vars.SENTRY_RELEASE_BOT_CLIENT_ID }}
+          private-key: ${{ secrets.SENTRY_RELEASE_BOT_PRIVATE_KEY }}
+
       - uses: actions/checkout@v4
         with:
-          token: ${{ secrets.GH_RELEASE_PAT }}
+          token: ${{ steps.token.outputs.token }}
           fetch-depth: 0
 
       # https://github.com/actions-ecosystem/action-regex-match
       - uses: actions-ecosystem/action-regex-match@v2
-        id: version
+        id: version-regex
         with:
           # Parse version from head branch
           text: ${{ github.head_ref }}
           # match: preprare-release/xx.xx.xx
-          regex: '^prepare-release\/(\d+\.\d+\.\d+)$'
+          regex: '^prepare-release\/(\d+\.\d+\.\d+)(?:-(alpha|beta|rc)\.\d+)?$'
+
+      - name: Extract version
+        id: get_version
+        run: |
+          version=${{ steps.version-regex.outputs.match }}
+          version=${version/'prepare-release/'/''}
+          echo "version=$version" >> $GITHUB_OUTPUT
 
       - name: Prepare release
         uses: getsentry/action-prepare-release@v1
-        if: github.event.pull_request.merged == true && steps.version.outputs.match != ''
+        if: github.event.pull_request.merged == true && steps.version-regex.outputs.match != '' && steps.get_version.outputs.version != ''
         env:
-          GITHUB_TOKEN: ${{ secrets.GH_RELEASE_PAT }}
+          GITHUB_TOKEN: ${{ steps.token.outputs.token }}
         with:
-          version: ${{ steps.version.outputs.group1 }}
+          version: ${{ steps.get_version.outputs.version }}
           force: false
           merge_target: master
+          craft_config_from_merge_target: true

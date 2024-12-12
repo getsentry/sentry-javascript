@@ -1,23 +1,30 @@
-export { startIdleTransaction, addTracingExtensions } from './hubextensions';
-export { IdleTransaction, TRACING_DEFAULTS } from './idletransaction';
-export type { BeforeFinishCallback } from './idletransaction';
-export { Span, spanStatusfromHttpCode } from './span';
-export { Transaction } from './transaction';
+export { registerSpanErrorInstrumentation } from './errors';
+export { setCapturedScopesOnSpan, getCapturedScopesOnSpan } from './utils';
 // eslint-disable-next-line deprecation/deprecation
-export { extractTraceparentData, getActiveTransaction } from './utils';
-// eslint-disable-next-line deprecation/deprecation
-export { SpanStatus } from './spanstatus';
-export type { SpanStatusType } from './span';
+export { addTracingExtensions } from './hubextensions';
+export { startIdleSpan, TRACING_DEFAULTS } from './idleSpan';
+export { SentrySpan } from './sentrySpan';
+export { SentryNonRecordingSpan } from './sentryNonRecordingSpan';
 export {
-  // eslint-disable-next-line deprecation/deprecation
-  trace,
-  getActiveSpan,
+  setHttpStatus,
+  getSpanStatusFromHttpCode,
+} from './spanstatus';
+export { SPAN_STATUS_ERROR, SPAN_STATUS_OK, SPAN_STATUS_UNSET } from './spanstatus';
+export {
   startSpan,
   startInactiveSpan,
-  // eslint-disable-next-line deprecation/deprecation
-  startActiveSpan,
   startSpanManual,
   continueTrace,
+  withActiveSpan,
+  suppressTracing,
+  startNewTrace,
 } from './trace';
-export { getDynamicSamplingContextFromClient, getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
-export { setMeasurement } from './measurement';
+export {
+  getDynamicSamplingContextFromClient,
+  getDynamicSamplingContextFromSpan,
+  getDynamicSamplingContextFromScope,
+  spanToBaggageHeader,
+} from './dynamicSamplingContext';
+export { setMeasurement, timedEventsToMeasurements } from './measurement';
+export { sampleSpan } from './sampling';
+export { logSpanEnd, logSpanStart } from './logSpans';

@@ -1,5 +1,5 @@
-import { captureCheckIn, getCurrentHub } from '@sentry/core';
-import type { Client, Integration } from '@sentry/types';
+import { captureCheckIn, getCurrentScope, setCurrentClient } from '../../src';
+import type { Client, Integration } from '../../src/types-hoist';
 
 import { installedIntegrations } from '../../src/integration';
 import { initAndBind } from '../../src/sdk';
@@ -32,28 +32,77 @@ describe('SDK', () => {
       ];
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, integrations });
       initAndBind(TestClient, options);
-      expect((integrations[0].setupOnce as jest.Mock).mock.calls.length).toBe(1);
-      expect((integrations[1].setupOnce as jest.Mock).mock.calls.length).toBe(1);
+      expect((integrations[0]?.setupOnce as jest.Mock).mock.calls.length).toBe(1);
+      expect((integrations[1]?.setupOnce as jest.Mock).mock.calls.length).toBe(1);
+    });
+
+    test('calls hooks in the correct order', () => {
+      const list: string[] = [];
+
+      const integration1 = {
+        name: 'integration1',
+        setupOnce: jest.fn(() => list.push('setupOnce1')),
+        afterAllSetup: jest.fn(() => list.push('afterAllSetup1')),
+      } satisfies Integration;
+
+      const integration2 = {
+        name: 'integration2',
+        setupOnce: jest.fn(() => list.push('setupOnce2')),
+        setup: jest.fn(() => list.push('setup2')),
+        afterAllSetup: jest.fn(() => list.push('afterAllSetup2')),
+      } satisfies Integration;
+
+      const integration3 = {
+        name: 'integration3',
+        setupOnce: jest.fn(() => list.push('setupOnce3')),
+        setup: jest.fn(() => list.push('setup3')),
+      } satisfies Integration;
+
+      const integrations: Integration[] = [integration1, integration2, integration3];
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, integrations });
+      initAndBind(TestClient, options);
+
+      expect(integration1.setupOnce).toHaveBeenCalledTimes(1);
+      expect(integration2.setupOnce).toHaveBeenCalledTimes(1);
+      expect(integration3.setupOnce).toHaveBeenCalledTimes(1);
+
+      expect(integration2.setup).toHaveBeenCalledTimes(1);
+      expect(integration3.setup).toHaveBeenCalledTimes(1);
+
+      expect(integration1.afterAllSetup).toHaveBeenCalledTimes(1);
+      expect(integration2.afterAllSetup).toHaveBeenCalledTimes(1);
+
+      expect(list).toEqual([
+        'setupOnce1',
+        'setupOnce2',
+        'setup2',
+        'setupOnce3',
+        'setup3',
+        'afterAllSetup1',
+        'afterAllSetup2',
+      ]);
+    });
+
+    test('returns client from init', () => {
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
+      const client = initAndBind(TestClient, options);
+      expect(client).not.toBeUndefined();
     });
   });
 });
 
 describe('captureCheckIn', () => {
   it('returns an id when client is defined', () => {
-    const hub = getCurrentHub();
-    jest.spyOn(hub, 'getClient').mockImplementation(() => {
-      return {
-        captureCheckIn: () => 'some-id-wasd-1234',
-      } as unknown as Client;
-    });
+    const client = {
+      captureCheckIn: () => 'some-id-wasd-1234',
+    } as unknown as Client;
+    setCurrentClient(client);
 
     expect(captureCheckIn({ monitorSlug: 'gogogo', status: 'in_progress' })).toStrictEqual('some-id-wasd-1234');
   });
 
   it('returns an id when client is undefined', () => {
-    const hub = getCurrentHub();
-    jest.spyOn(hub, 'getClient').mockImplementation(() => undefined);
-
+    getCurrentScope().setClient(undefined);
     expect(captureCheckIn({ monitorSlug: 'gogogo', status: 'in_progress' })).toStrictEqual(expect.any(String));
   });
 });

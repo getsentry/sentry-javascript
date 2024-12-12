@@ -12,5 +12,4 @@ Sentry.init({
       username: 'user1337',
     },
   },
-  debug: true,
 });

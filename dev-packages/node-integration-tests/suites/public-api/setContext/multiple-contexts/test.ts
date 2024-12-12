@@ -1,21 +1,22 @@
-import type { Event } from '@sentry/node';
+import { cleanupChildProcesses, createRunner } from '../../../../utils/runner';
 
-import { TestEnv, assertSentryEvent } from '../../../../utils';
+afterAll(() => {
+  cleanupChildProcesses();
+});
 
-test('should record multiple contexts', async () => {
-  const env = await TestEnv.init(__dirname);
-  const envelope = await env.getEnvelopeRequest();
-
-  assertSentryEvent(envelope[2], {
-    message: 'multiple_contexts',
-    contexts: {
-      context_1: {
-        foo: 'bar',
-        baz: { qux: 'quux' },
+test('should record multiple contexts', done => {
+  createRunner(__dirname, 'scenario.ts')
+    .expect({
+      event: {
+        message: 'multiple_contexts',
+        contexts: {
+          context_1: {
+            foo: 'bar',
+            baz: { qux: 'quux' },
+          },
+          context_2: { 1: 'foo', bar: false },
+        },
       },
-      context_2: { 1: 'foo', bar: false },
-    },
-  });
-
-  expect((envelope[0] as Event).contexts?.context_3).not.toBeDefined();
+    })
+    .start(done);
 });

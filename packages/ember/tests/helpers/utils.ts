@@ -1,5 +1,4 @@
-import { spanToJSON } from '@sentry/core';
-import type { Event } from '@sentry/types';
+import type { Event } from '@sentry/core';
 
 const defaultAssertOptions = {
   method: 'POST',
@@ -51,24 +50,32 @@ export function assertSentryTransactions(
   options: {
     spans: string[];
     transaction: string;
-    tags: Record<string, string | undefined>;
+    attributes: Record<string, string | undefined>;
     durationCheck?: (duration: number) => boolean;
   },
 ): void {
   const sentryTestEvents = getTestSentryTransactions();
-  const event = sentryTestEvents[callNumber];
+  const event = sentryTestEvents[callNumber]!;
 
-  assert.ok(event);
-  assert.ok(event.spans);
+  assert.ok(event, 'event exists');
+  assert.ok(event.spans, 'event has spans');
 
   const spans = event.spans || [];
 
   // instead of checking the specific order of runloop spans (which is brittle),
   // we check (below) that _any_ runloop spans are added
+  // Also we ignore ui.long-task spans and ui.long-animation-frame, as they are brittle and may or may not appear
   const filteredSpans = spans
-    .filter(span => !span.op?.startsWith('ui.ember.runloop.'))
-    .map(s => {
-      return `${s.op} | ${spanToJSON(s).description}`;
+    .filter(span => {
+      const op = span.op;
+      return (
+        !op?.startsWith('ui.ember.runloop.') &&
+        !op?.startsWith('ui.long-task') &&
+        !op?.startsWith('ui.long-animation-frame')
+      );
+    })
+    .map(spanJson => {
+      return `${spanJson.op} | ${spanJson.description}`;
     });
 
   assert.true(
@@ -78,8 +85,10 @@ export function assertSentryTransactions(
   assert.deepEqual(filteredSpans, options.spans, 'Has correct spans');
 
   assert.equal(event.transaction, options.transaction);
-  assert.equal(event.tags?.fromRoute, options.tags.fromRoute);
-  assert.equal(event.tags?.toRoute, options.tags.toRoute);
+
+  Object.keys(options.attributes).forEach(key => {
+    assert.equal(event.contexts?.trace?.data?.[key], options.attributes[key]);
+  });
 
   if (options.durationCheck && event.timestamp && event.start_timestamp) {
     const duration = (event.timestamp - event.start_timestamp) * 1000;

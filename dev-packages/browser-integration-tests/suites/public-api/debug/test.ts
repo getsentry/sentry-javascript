@@ -25,7 +25,7 @@ sentryTest('logs debug messages correctly', async ({ getLocalTestUrl, page }) =>
       ? [
           'Sentry Logger [log]: Integration installed: InboundFilters',
           'Sentry Logger [log]: Integration installed: FunctionToString',
-          'Sentry Logger [log]: Integration installed: TryCatch',
+          'Sentry Logger [log]: Integration installed: BrowserApiErrors',
           'Sentry Logger [log]: Integration installed: Breadcrumbs',
           'Sentry Logger [log]: Global Handler attached: onerror',
           'Sentry Logger [log]: Global Handler attached: onunhandledrejection',
@@ -34,6 +34,7 @@ sentryTest('logs debug messages correctly', async ({ getLocalTestUrl, page }) =>
           'Sentry Logger [log]: Integration installed: Dedupe',
           'Sentry Logger [log]: Integration installed: HttpContext',
           'Sentry Logger [warn]: Discarded session because of missing or non-string release',
+          'Sentry Logger [log]: Integration installed: BrowserSession',
           'test log',
         ]
       : ['[Sentry] Cannot initialize SDK with `debug` option using a non-debug bundle.', 'test log'],

@@ -1,15 +1,11 @@
-import type {
-  Client,
-  ClientOptions,
-  MeasurementUnit,
-  MetricsAggregator as MetricsAggregatorBase,
-  Primitive,
-} from '@sentry/types';
-import { timestampInSeconds } from '@sentry/utils';
-import { DEFAULT_FLUSH_INTERVAL, MAX_WEIGHT, NAME_AND_TAG_KEY_NORMALIZATION_REGEX } from './constants';
+import type { Client, MeasurementUnit, MetricsAggregator as MetricsAggregatorBase, Primitive } from '../types-hoist';
+import { timestampInSeconds } from '../utils-hoist/time';
+import { updateMetricSummaryOnActiveSpan } from '../utils/spanUtils';
+import { DEFAULT_FLUSH_INTERVAL, MAX_WEIGHT, SET_METRIC_TYPE } from './constants';
+import { captureAggregateMetrics } from './envelope';
 import { METRIC_MAP } from './instance';
 import type { MetricBucket, MetricType } from './types';
-import { getBucketKey, sanitizeTags } from './utils';
+import { getBucketKey, sanitizeMetricKey, sanitizeTags, sanitizeUnit } from './utils';
 
 /**
  * A metrics aggregator that aggregates metrics in memory and flushes them periodically.
@@ -24,7 +20,8 @@ export class MetricsAggregator implements MetricsAggregatorBase {
   // that we store in memory.
   private _bucketsTotalWeight;
 
-  private readonly _interval: ReturnType<typeof setInterval>;
+  // We adjust the type here to add the `unref()` part, as setInterval can technically return a number or a NodeJS.Timer
+  private readonly _interval: ReturnType<typeof setInterval> & { unref?: () => void };
 
   // SDKs are required to shift the flush interval by random() * rollup_in_seconds.
   // That shift is determined once per startup to create jittering.
@@ -38,10 +35,15 @@ export class MetricsAggregator implements MetricsAggregatorBase {
   // Force flush is used on either shutdown, flush() or when we exceed the max weight.
   private _forceFlush: boolean;
 
-  public constructor(private readonly _client: Client<ClientOptions>) {
+  public constructor(private readonly _client: Client) {
     this._buckets = new Map();
     this._bucketsTotalWeight = 0;
+
     this._interval = setInterval(() => this._flush(), DEFAULT_FLUSH_INTERVAL);
+    if (this._interval.unref) {
+      this._interval.unref();
+    }
+
     this._flushShift = Math.floor((Math.random() * DEFAULT_FLUSH_INTERVAL) / 1000);
     this._forceFlush = false;
   }
@@ -53,16 +55,21 @@ export class MetricsAggregator implements MetricsAggregatorBase {
     metricType: MetricType,
     unsanitizedName: string,
     value: number | string,
-    unit: MeasurementUnit = 'none',
+    unsanitizedUnit: MeasurementUnit = 'none',
     unsanitizedTags: Record<string, Primitive> = {},
     maybeFloatTimestamp = timestampInSeconds(),
   ): void {
     const timestamp = Math.floor(maybeFloatTimestamp);
-    const name = unsanitizedName.replace(NAME_AND_TAG_KEY_NORMALIZATION_REGEX, '_');
+    const name = sanitizeMetricKey(unsanitizedName);
     const tags = sanitizeTags(unsanitizedTags);
+    const unit = sanitizeUnit(unsanitizedUnit as string);
 
     const bucketKey = getBucketKey(metricType, name, unit, tags);
+
     let bucketItem = this._buckets.get(bucketKey);
+    // If this is a set metric, we need to calculate the delta from the previous weight.
+    const previousWeight = bucketItem && metricType === SET_METRIC_TYPE ? bucketItem.metric.weight : 0;
+
     if (bucketItem) {
       bucketItem.metric.add(value);
       // TODO(abhi): Do we need this check?
@@ -81,6 +88,10 @@ export class MetricsAggregator implements MetricsAggregatorBase {
       };
       this._buckets.set(bucketKey, bucketItem);
     }
+
+    // If value is a string, it's a set metric so calculate the delta from the previous weight.
+    const val = typeof value === 'string' ? bucketItem.metric.weight - previousWeight : value;
+    updateMetricSummaryOnActiveSpan(metricType, name, val, unit, unsanitizedTags, bucketKey);
 
     // We need to keep track of the total weight of the buckets so that we can
     // flush them when we exceed the max weight.
@@ -153,11 +164,11 @@ export class MetricsAggregator implements MetricsAggregatorBase {
    * @param flushedBuckets
    */
   private _captureMetrics(flushedBuckets: MetricBucket): void {
-    if (flushedBuckets.size > 0 && this._client.captureAggregateMetrics) {
+    if (flushedBuckets.size > 0) {
       // TODO(@anonrig): Optimization opportunity.
       // This copy operation can be avoided if we store the key in the bucketItem.
       const buckets = Array.from(flushedBuckets).map(([, bucketItem]) => bucketItem);
-      this._client.captureAggregateMetrics(buckets);
+      captureAggregateMetrics(this._client, buckets);
     }
   }
 }

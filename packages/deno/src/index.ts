@@ -2,60 +2,45 @@ export type {
   Breadcrumb,
   BreadcrumbHint,
   PolymorphicRequest,
+  // eslint-disable-next-line deprecation/deprecation
   Request,
+  RequestEventData,
   SdkInfo,
   Event,
   EventHint,
+  ErrorEvent,
   Exception,
   Session,
-  // eslint-disable-next-line deprecation/deprecation
-  Severity,
   SeverityLevel,
   Span,
   StackFrame,
   Stacktrace,
   Thread,
-  Transaction,
   User,
-} from '@sentry/types';
-export type { AddRequestDataToEventOptions } from '@sentry/utils';
+} from '@sentry/core';
+export type { AddRequestDataToEventOptions } from '@sentry/core';
 
 export type { DenoOptions } from './types';
 
 export {
-  // eslint-disable-next-line deprecation/deprecation
-  addGlobalEventProcessor,
   addEventProcessor,
   addBreadcrumb,
   captureException,
   captureEvent,
   captureMessage,
+  captureFeedback,
   close,
-  // eslint-disable-next-line deprecation/deprecation
-  configureScope,
   createTransport,
-  // eslint-disable-next-line deprecation/deprecation
-  extractTraceparentData,
   continueTrace,
+  lastEventId,
   flush,
-  // eslint-disable-next-line deprecation/deprecation
-  getActiveTransaction,
-  getHubFromCarrier,
-  getCurrentHub,
   getClient,
+  isInitialized,
   getCurrentScope,
   getGlobalScope,
   getIsolationScope,
-  Hub,
-  // eslint-disable-next-line deprecation/deprecation
-  lastEventId,
-  // eslint-disable-next-line deprecation/deprecation
-  makeMain,
   setCurrentClient,
-  runWithAsyncContext,
   Scope,
-  // eslint-disable-next-line deprecation/deprecation
-  startTransaction,
   SDK_VERSION,
   setContext,
   setExtra,
@@ -63,33 +48,59 @@ export {
   setTag,
   setTags,
   setUser,
-  spanStatusfromHttpCode,
-  // eslint-disable-next-line deprecation/deprecation
-  trace,
+  getSpanStatusFromHttpCode,
+  setHttpStatus,
   withScope,
   withIsolationScope,
   captureCheckIn,
   withMonitor,
   setMeasurement,
   getActiveSpan,
+  getRootSpan,
+  getTraceData,
+  getTraceMetaTags,
   startSpan,
   startInactiveSpan,
   startSpanManual,
-  metrics,
+  startNewTrace,
+  suppressTracing,
+  // eslint-disable-next-line deprecation/deprecation
+  metricsDefault as metrics,
+  inboundFiltersIntegration,
+  linkedErrorsIntegration,
+  functionToStringIntegration,
+  requestDataIntegration,
+  captureConsoleIntegration,
+  // eslint-disable-next-line deprecation/deprecation
+  debugIntegration,
+  dedupeIntegration,
+  extraErrorDataIntegration,
+  rewriteFramesIntegration,
+  // eslint-disable-next-line deprecation/deprecation
+  sessionTimingIntegration,
+  zodErrorsIntegration,
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
+  startSession,
+  captureSession,
+  endSession,
+  spanToJSON,
+  spanToTraceHeader,
+  spanToBaggageHeader,
 } from '@sentry/core';
-export type { SpanStatusType } from '@sentry/core';
 
 export { DenoClient } from './client';
 
-export { defaultIntegrations, init } from './sdk';
+export {
+  getDefaultIntegrations,
+  init,
+} from './sdk';
 
-import { Integrations as CoreIntegrations } from '@sentry/core';
-
-import * as DenoIntegrations from './integrations';
-
-const INTEGRATIONS = {
-  ...CoreIntegrations,
-  ...DenoIntegrations,
-};
-
-export { INTEGRATIONS as Integrations };
+export { denoContextIntegration } from './integrations/context';
+export { globalHandlersIntegration } from './integrations/globalhandlers';
+export { normalizePathsIntegration } from './integrations/normalizepaths';
+export { contextLinesIntegration } from './integrations/contextlines';
+export { denoCronIntegration } from './integrations/deno-cron';
+export { breadcrumbsIntegration } from './integrations/breadcrumbs';

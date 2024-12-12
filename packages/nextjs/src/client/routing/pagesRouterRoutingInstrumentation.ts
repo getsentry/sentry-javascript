@@ -1,15 +1,24 @@
 import type { ParsedUrlQuery } from 'querystring';
-import { getClient, getCurrentScope } from '@sentry/core';
-import { WINDOW } from '@sentry/react';
-import type { Primitive, Transaction, TransactionContext, TransactionSource } from '@sentry/types';
+import type { Client, TransactionSource } from '@sentry/core';
 import {
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   browserPerformanceTimeOrigin,
   logger,
+  parseBaggageHeader,
   stripUrlQueryAndFragment,
-  tracingContextFromHeaders,
-} from '@sentry/utils';
-import type { NEXT_DATA as NextData } from 'next/dist/next-server/lib/utils';
-import { default as Router } from 'next/router';
+} from '@sentry/core';
+import { WINDOW, startBrowserTracingNavigationSpan, startBrowserTracingPageLoadSpan } from '@sentry/react';
+import type { NEXT_DATA } from 'next/dist/shared/lib/utils';
+import RouterImport from 'next/router';
+
+// next/router v10 is CJS
+//
+// For ESM/CJS interoperability 'reasons', depending on how this file is loaded, Router might be on the default export
+const Router: typeof RouterImport = RouterImport.events
+  ? RouterImport
+  : (RouterImport as unknown as { default: typeof RouterImport }).default;
 
 import { DEBUG_BUILD } from '../../common/debug-build';
 
@@ -19,12 +28,10 @@ const globalObject = WINDOW as typeof WINDOW & {
   };
 };
 
-type StartTransactionCb = (context: TransactionContext) => Transaction | undefined;
-
 /**
  * Describes data located in the __NEXT_DATA__ script tag. This tag is present on every page of a Next.js app.
  */
-interface SentryEnhancedNextData extends NextData {
+interface SentryEnhancedNextData extends NEXT_DATA {
   props: {
     pageProps?: {
       _sentryTraceData?: string; // trace parent info, if injected by a data-fetcher
@@ -92,116 +99,76 @@ function extractNextDataTagInformation(): NextDataTagInfo {
   return nextDataTagInfo;
 }
 
-const DEFAULT_TAGS = {
-  'routing.instrumentation': 'next-pages-router',
-} as const;
-
-// We keep track of the active transaction so we can finish it when we start a navigation transaction.
-let activeTransaction: Transaction | undefined = undefined;
-
-// We keep track of the previous location name so we can set the `from` field on navigation transactions.
-// This is either a route or a pathname.
-let prevLocationName: string | undefined = undefined;
-
-const client = getClient();
-
 /**
- * Instruments the Next.js pages router. Only supported for
- * client side routing. Works for Next >= 10.
+ * Instruments the Next.js pages router for pageloads.
+ * Only supported for client side routing. Works for Next >= 10.
  *
  * Leverages the SingletonRouter from the `next/router` to
  * generate pageload/navigation transactions and parameterize
  * transaction names.
  */
-export function pagesRouterInstrumentation(
-  startTransactionCb: StartTransactionCb,
-  startTransactionOnPageLoad: boolean = true,
-  startTransactionOnLocationChange: boolean = true,
-): void {
+export function pagesRouterInstrumentPageLoad(client: Client): void {
   const { route, params, sentryTrace, baggage } = extractNextDataTagInformation();
-  const { traceparentData, dynamicSamplingContext, propagationContext } = tracingContextFromHeaders(
-    sentryTrace,
-    baggage,
-  );
+  const parsedBaggage = parseBaggageHeader(baggage);
+  let name = route || globalObject.location.pathname;
 
-  getCurrentScope().setPropagationContext(propagationContext);
-  prevLocationName = route || globalObject.location.pathname;
+  // /_error is the fallback page for all errors. If there is a transaction name for /_error, use that instead
+  if (parsedBaggage && parsedBaggage['sentry-transaction'] && name === '/_error') {
+    name = parsedBaggage['sentry-transaction'];
+    // Strip any HTTP method from the span name
+    name = name.replace(/^(GET|POST|PUT|DELETE|PATCH|HEAD|OPTIONS|TRACE|CONNECT)\s+/i, '');
+  }
 
-  if (startTransactionOnPageLoad) {
-    const source = route ? 'route' : 'url';
-    activeTransaction = startTransactionCb({
-      name: prevLocationName,
-      op: 'pageload',
-      origin: 'auto.pageload.nextjs.pages_router_instrumentation',
-      tags: DEFAULT_TAGS,
+  startBrowserTracingPageLoadSpan(
+    client,
+    {
+      name,
       // pageload should always start at timeOrigin (and needs to be in s, not ms)
-      startTimestamp: browserPerformanceTimeOrigin ? browserPerformanceTimeOrigin / 1000 : undefined,
-      ...(params && client && client.getOptions().sendDefaultPii && { data: params }),
-      ...traceparentData,
-      metadata: {
-        source,
-        dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
+      startTime: browserPerformanceTimeOrigin ? browserPerformanceTimeOrigin / 1000 : undefined,
+      attributes: {
+        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
+        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.nextjs.pages_router_instrumentation',
+        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: route ? 'route' : 'url',
+        ...(params && client.getOptions().sendDefaultPii && { ...params }),
+      },
+    },
+    { sentryTrace, baggage },
+  );
+}
+
+/**
+ * Instruments the Next.js pages router for navigation.
+ * Only supported for client side routing. Works for Next >= 10.
+ *
+ * Leverages the SingletonRouter from the `next/router` to
+ * generate pageload/navigation transactions and parameterize
+ * transaction names.
+ */
+export function pagesRouterInstrumentNavigation(client: Client): void {
+  Router.events.on('routeChangeStart', (navigationTarget: string) => {
+    const strippedNavigationTarget = stripUrlQueryAndFragment(navigationTarget);
+    const matchedRoute = getNextRouteFromPathname(strippedNavigationTarget);
+
+    let newLocation: string;
+    let spanSource: TransactionSource;
+
+    if (matchedRoute) {
+      newLocation = matchedRoute;
+      spanSource = 'route';
+    } else {
+      newLocation = strippedNavigationTarget;
+      spanSource = 'url';
+    }
+
+    startBrowserTracingNavigationSpan(client, {
+      name: newLocation,
+      attributes: {
+        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
+        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.nextjs.pages_router_instrumentation',
+        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: spanSource,
       },
     });
-  }
-
-  if (startTransactionOnLocationChange) {
-    Router.events.on('routeChangeStart', (navigationTarget: string) => {
-      const strippedNavigationTarget = stripUrlQueryAndFragment(navigationTarget);
-      const matchedRoute = getNextRouteFromPathname(strippedNavigationTarget);
-
-      let transactionName: string;
-      let transactionSource: TransactionSource;
-
-      if (matchedRoute) {
-        transactionName = matchedRoute;
-        transactionSource = 'route';
-      } else {
-        transactionName = strippedNavigationTarget;
-        transactionSource = 'url';
-      }
-
-      const tags: Record<string, Primitive> = {
-        ...DEFAULT_TAGS,
-        from: prevLocationName,
-      };
-
-      prevLocationName = transactionName;
-
-      if (activeTransaction) {
-        activeTransaction.end();
-      }
-
-      const navigationTransaction = startTransactionCb({
-        name: transactionName,
-        op: 'navigation',
-        origin: 'auto.navigation.nextjs.pages_router_instrumentation',
-        tags,
-        metadata: { source: transactionSource },
-      });
-
-      if (navigationTransaction) {
-        // In addition to the navigation transaction we're also starting a span to mark Next.js's `routeChangeStart`
-        // and `routeChangeComplete` events.
-        // We don't want to finish the navigation transaction on `routeChangeComplete`, since users might want to attach
-        // spans to that transaction even after `routeChangeComplete` is fired (eg. HTTP requests in some useEffect
-        // hooks). Instead, we'll simply let the navigation transaction finish itself (it's an `IdleTransaction`).
-        // eslint-disable-next-line deprecation/deprecation
-        const nextRouteChangeSpan = navigationTransaction.startChild({
-          op: 'ui.nextjs.route-change',
-          origin: 'auto.ui.nextjs.pages_router_instrumentation',
-          description: 'Next.js Route Change',
-        });
-
-        const finishRouteChangeSpan = (): void => {
-          nextRouteChangeSpan.end();
-          Router.events.off('routeChangeComplete', finishRouteChangeSpan);
-        };
-
-        Router.events.on('routeChangeComplete', finishRouteChangeSpan);
-      }
-    });
-  }
+  });
 }
 
 function getNextRouteFromPathname(pathname: string): string | undefined {
@@ -237,7 +204,7 @@ function convertNextRouteToRegExp(route: string): RegExp {
   const routeParts = route.split('/');
 
   let optionalCatchallWildcardRegex = '';
-  if (routeParts[routeParts.length - 1].match(/^\[\[\.\.\..+\]\]$/)) {
+  if (routeParts[routeParts.length - 1]?.match(/^\[\[\.\.\..+\]\]$/)) {
     // If last route part has pattern "[[...xyz]]" we pop the latest route part to get rid of the required trailing
     // slash that would come before it if we didn't pop it.
     routeParts.pop();

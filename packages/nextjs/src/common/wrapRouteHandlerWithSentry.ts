@@ -1,89 +1,116 @@
+import type { RequestEventData } from '@sentry/core';
 import {
-  addTracingExtensions,
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  Scope,
   captureException,
-  getCurrentScope,
+  getActiveSpan,
+  getCapturedScopesOnSpan,
+  getIsolationScope,
+  getRootSpan,
   handleCallbackErrors,
-  runWithAsyncContext,
-  startSpan,
+  propagationContextFromHeaders,
+  setCapturedScopesOnSpan,
+  setHttpStatus,
+  winterCGHeadersToDict,
+  withIsolationScope,
+  withScope,
 } from '@sentry/core';
-import { tracingContextFromHeaders, winterCGHeadersToDict } from '@sentry/utils';
-
-import { isRedirectNavigationError } from './nextNavigationErrorUtils';
+import { isNotFoundNavigationError, isRedirectNavigationError } from './nextNavigationErrorUtils';
 import type { RouteHandlerContext } from './types';
-import { platformSupportsStreaming } from './utils/platformSupportsStreaming';
-import { flushQueue } from './utils/responseEnd';
+import { commonObjectToIsolationScope } from './utils/tracingUtils';
 
 /**
- * Wraps a Next.js route handler with performance and error instrumentation.
+ * Wraps a Next.js App Router Route handler with Sentry error and performance instrumentation.
+ *
+ * NOTICE: This wrapper is for App Router API routes. If you are looking to wrap Pages Router API routes use `wrapApiHandlerWithSentry` instead.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function wrapRouteHandlerWithSentry<F extends (...args: any[]) => any>(
   routeHandler: F,
   context: RouteHandlerContext,
 ): (...args: Parameters<F>) => ReturnType<F> extends Promise<unknown> ? ReturnType<F> : Promise<ReturnType<F>> {
-  addTracingExtensions();
-  // eslint-disable-next-line deprecation/deprecation
-  const { method, parameterizedRoute, baggageHeader, sentryTraceHeader, headers } = context;
+  const { method, parameterizedRoute, headers } = context;
+
   return new Proxy(routeHandler, {
-    apply: (originalFunction, thisArg, args) => {
-      return runWithAsyncContext(async () => {
-        const { traceparentData, dynamicSamplingContext, propagationContext } = tracingContextFromHeaders(
-          sentryTraceHeader ?? headers?.get('sentry-trace') ?? undefined,
-          baggageHeader ?? headers?.get('baggage'),
-        );
-        getCurrentScope().setPropagationContext(propagationContext);
+    apply: async (originalFunction, thisArg, args) => {
+      const activeSpan = getActiveSpan();
+      const rootSpan = activeSpan ? getRootSpan(activeSpan) : undefined;
 
-        let result;
+      let edgeRuntimeIsolationScopeOverride: Scope | undefined;
+      if (rootSpan && process.env.NEXT_RUNTIME === 'edge') {
+        const isolationScope = commonObjectToIsolationScope(headers);
+        const { scope } = getCapturedScopesOnSpan(rootSpan);
+        setCapturedScopesOnSpan(rootSpan, scope ?? new Scope(), isolationScope);
 
-        try {
-          result = await startSpan(
-            {
-              op: 'http.server',
-              name: `${method} ${parameterizedRoute}`,
-              status: 'ok',
-              ...traceparentData,
-              metadata: {
-                request: {
-                  headers: headers ? winterCGHeadersToDict(headers) : undefined,
-                },
-                source: 'route',
-                dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
-              },
-            },
-            async span => {
-              const response: Response = await handleCallbackErrors(
-                () => originalFunction.apply(thisArg, args),
-                error => {
-                  // Next.js throws errors when calling `redirect()`. We don't wanna report these.
-                  if (!isRedirectNavigationError(error)) {
-                    captureException(error, {
-                      mechanism: {
-                        handled: false,
-                      },
-                    });
-                  }
-                },
+        edgeRuntimeIsolationScopeOverride = isolationScope;
+
+        rootSpan.updateName(`${method} ${parameterizedRoute}`);
+        rootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
+        rootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'http.server');
+      }
+
+      return withIsolationScope(
+        process.env.NEXT_RUNTIME === 'edge' ? edgeRuntimeIsolationScopeOverride : getIsolationScope(),
+        () => {
+          return withScope(async scope => {
+            scope.setTransactionName(`${method} ${parameterizedRoute}`);
+
+            if (process.env.NEXT_RUNTIME === 'edge') {
+              const completeHeadersDict: Record<string, string> = headers ? winterCGHeadersToDict(headers) : {};
+              const incomingPropagationContext = propagationContextFromHeaders(
+                completeHeadersDict['sentry-trace'],
+                completeHeadersDict['baggage'],
               );
+              scope.setPropagationContext(incomingPropagationContext);
+              scope.setSDKProcessingMetadata({
+                normalizedRequest: {
+                  method,
+                  headers: completeHeadersDict,
+                } satisfies RequestEventData,
+              });
+            }
 
-              try {
-                span?.setHttpStatus(response.status);
-              } catch {
-                // best effort
+            const response: Response = await handleCallbackErrors(
+              () => originalFunction.apply(thisArg, args),
+              error => {
+                // Next.js throws errors when calling `redirect()`. We don't wanna report these.
+                if (isRedirectNavigationError(error)) {
+                  // Don't do anything
+                } else if (isNotFoundNavigationError(error)) {
+                  if (activeSpan) {
+                    setHttpStatus(activeSpan, 404);
+                  }
+                  if (rootSpan) {
+                    setHttpStatus(rootSpan, 404);
+                  }
+                } else {
+                  captureException(error, {
+                    mechanism: {
+                      handled: false,
+                    },
+                  });
+                }
+              },
+            );
+
+            try {
+              if (response.status) {
+                if (activeSpan) {
+                  setHttpStatus(activeSpan, response.status);
+                }
+                if (rootSpan) {
+                  setHttpStatus(rootSpan, response.status);
+                }
               }
+            } catch {
+              // best effort - response may be undefined?
+            }
 
-              return response;
-            },
-          );
-        } finally {
-          if (!platformSupportsStreaming() || process.env.NEXT_RUNTIME === 'edge') {
-            // 1. Edge tranpsort requires manual flushing
-            // 2. Lambdas require manual flushing to prevent execution freeze before the event is sent
-            await flushQueue();
-          }
-        }
-
-        return result;
-      });
+            return response;
+          });
+        },
+      );
     },
   });
 }

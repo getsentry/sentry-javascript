@@ -1,29 +1,22 @@
 import type { BrowserOptions } from '@sentry/browser';
-import { SDK_VERSION, addEventProcessor, init as browserInit } from '@sentry/browser';
-import type { EventProcessor, SdkMetadata } from '@sentry/types';
-import { getDomElement } from '@sentry/utils';
+import { addEventProcessor, init as browserInit } from '@sentry/browser';
+import type { Client, EventProcessor } from '@sentry/core';
+import { applySdkMetadata, getDomElement } from '@sentry/core';
 /**
  * Inits the Svelte SDK
  */
-export function init(options: BrowserOptions): void {
+export function init(options: BrowserOptions): Client | undefined {
   const opts = {
-    _metadata: {} as SdkMetadata,
     ...options,
   };
 
-  opts._metadata.sdk = opts._metadata.sdk || {
-    name: 'sentry.javascript.svelte',
-    packages: [
-      {
-        name: 'npm:@sentry/svelte',
-        version: SDK_VERSION,
-      },
-    ],
-    version: SDK_VERSION,
-  };
-  browserInit(opts);
+  applySdkMetadata(opts, 'svelte');
+
+  const client = browserInit(opts);
 
   detectAndReportSvelteKit();
+
+  return client;
 }
 
 /**
@@ -55,7 +48,7 @@ export function detectAndReportSvelteKit(): void {
 
 /**
  * To actually detect a SvelteKit frontend, we search the DOM for a special
- * div that's inserted by SvelteKit when the page is rendered. It's identifyed
+ * div that's inserted by SvelteKit when the page is rendered. It's identified
  * by its id, 'svelte-announcer', and it's used to improve page accessibility.
  * This div is not present when only using Svelte without SvelteKit.
  *

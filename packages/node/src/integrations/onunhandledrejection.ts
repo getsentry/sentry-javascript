@@ -1,8 +1,6 @@
-import { captureException, convertIntegrationFnToClass, getClient } from '@sentry/core';
-import type { Client, Integration, IntegrationClass, IntegrationFn } from '@sentry/types';
-import { consoleSandbox } from '@sentry/utils';
-
-import { logAndExitProcess } from './utils/errorhandling';
+import type { Client, IntegrationFn } from '@sentry/core';
+import { captureException, consoleSandbox, defineIntegration, getClient } from '@sentry/core';
+import { logAndExitProcess } from '../utils/errorhandling';
 
 type UnhandledRejectionMode = 'none' | 'warn' | 'strict';
 
@@ -16,27 +14,21 @@ interface OnUnhandledRejectionOptions {
 
 const INTEGRATION_NAME = 'OnUnhandledRejection';
 
-const onUnhandledRejectionIntegration = ((options: Partial<OnUnhandledRejectionOptions> = {}) => {
+const _onUnhandledRejectionIntegration = ((options: Partial<OnUnhandledRejectionOptions> = {}) => {
   const mode = options.mode || 'warn';
 
   return {
     name: INTEGRATION_NAME,
-    // TODO v8: Remove this
-    setupOnce() {}, // eslint-disable-line @typescript-eslint/no-empty-function
     setup(client) {
       global.process.on('unhandledRejection', makeUnhandledPromiseHandler(client, { mode }));
     },
   };
 }) satisfies IntegrationFn;
 
-/** Global Promise Rejection handler */
-// eslint-disable-next-line deprecation/deprecation
-export const OnUnhandledRejection = convertIntegrationFnToClass(
-  INTEGRATION_NAME,
-  onUnhandledRejectionIntegration,
-) as IntegrationClass<Integration & { setup: (client: Client) => void }> & {
-  new (options?: Partial<{ mode: UnhandledRejectionMode }>): Integration;
-};
+/**
+ * Add a global promise rejection handler.
+ */
+export const onUnhandledRejectionIntegration = defineIntegration(_onUnhandledRejectionIntegration);
 
 /**
  * Send an exception with reason
@@ -71,13 +63,8 @@ export function makeUnhandledPromiseHandler(
 
 /**
  * Handler for `mode` option
-
  */
-function handleRejection(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  reason: any,
-  options: OnUnhandledRejectionOptions,
-): void {
+function handleRejection(reason: unknown, options: OnUnhandledRejectionOptions): void {
   // https://github.com/nodejs/node/blob/7cf6f9e964aa00772965391c23acda6d71972a9a/lib/internal/process/promises.js#L234-L240
   const rejectionWarning =
     'This error originated either by ' +
@@ -89,8 +76,7 @@ function handleRejection(
   if (options.mode === 'warn') {
     consoleSandbox(() => {
       console.warn(rejectionWarning);
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      console.error(reason && reason.stack ? reason.stack : reason);
+      console.error(reason && typeof reason === 'object' && 'stack' in reason ? reason.stack : reason);
     });
   } else if (options.mode === 'strict') {
     consoleSandbox(() => {

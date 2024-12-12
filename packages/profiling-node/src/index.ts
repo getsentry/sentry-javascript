@@ -1,0 +1,1 @@
+export { nodeProfilingIntegration } from './integration';

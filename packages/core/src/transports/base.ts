@@ -9,24 +9,22 @@ import type {
   Transport,
   TransportMakeRequestResponse,
   TransportRequestExecutor,
-} from '@sentry/types';
-import type { PromiseBuffer, RateLimits } from '@sentry/utils';
+} from '../types-hoist';
+
+import { DEBUG_BUILD } from '../debug-build';
 import {
-  SentryError,
   createEnvelope,
   envelopeItemTypeToDataCategory,
   forEachEnvelopeItem,
-  isRateLimited,
-  logger,
-  makePromiseBuffer,
-  resolvedSyncPromise,
   serializeEnvelope,
-  updateRateLimits,
-} from '@sentry/utils';
+} from '../utils-hoist/envelope';
+import { SentryError } from '../utils-hoist/error';
+import { logger } from '../utils-hoist/logger';
+import { type PromiseBuffer, makePromiseBuffer } from '../utils-hoist/promisebuffer';
+import { type RateLimits, isRateLimited, updateRateLimits } from '../utils-hoist/ratelimit';
+import { resolvedSyncPromise } from '../utils-hoist/syncpromise';
 
-import { DEBUG_BUILD } from '../debug-build';
-
-export const DEFAULT_TRANSPORT_BUFFER_SIZE = 30;
+export const DEFAULT_TRANSPORT_BUFFER_SIZE = 64;
 
 /**
  * Creates an instance of a Sentry `Transport`
@@ -37,22 +35,22 @@ export const DEFAULT_TRANSPORT_BUFFER_SIZE = 30;
 export function createTransport(
   options: InternalBaseTransportOptions,
   makeRequest: TransportRequestExecutor,
-  buffer: PromiseBuffer<void | TransportMakeRequestResponse> = makePromiseBuffer(
+  buffer: PromiseBuffer<TransportMakeRequestResponse> = makePromiseBuffer(
     options.bufferSize || DEFAULT_TRANSPORT_BUFFER_SIZE,
   ),
 ): Transport {
   let rateLimits: RateLimits = {};
   const flush = (timeout?: number): PromiseLike<boolean> => buffer.drain(timeout);
 
-  function send(envelope: Envelope): PromiseLike<void | TransportMakeRequestResponse> {
+  function send(envelope: Envelope): PromiseLike<TransportMakeRequestResponse> {
     const filteredEnvelopeItems: EnvelopeItem[] = [];
 
     // Drop rate limited items from envelope
     forEachEnvelopeItem(envelope, (item, type) => {
-      const envelopeItemDataCategory = envelopeItemTypeToDataCategory(type);
-      if (isRateLimited(rateLimits, envelopeItemDataCategory)) {
+      const dataCategory = envelopeItemTypeToDataCategory(type);
+      if (isRateLimited(rateLimits, dataCategory)) {
         const event: Event | undefined = getEventForEnvelopeItem(item, type);
-        options.recordDroppedEvent('ratelimit_backoff', envelopeItemDataCategory, event);
+        options.recordDroppedEvent('ratelimit_backoff', dataCategory, event);
       } else {
         filteredEnvelopeItems.push(item);
       }
@@ -60,11 +58,10 @@ export function createTransport(
 
     // Skip sending if envelope is empty after filtering out rate limited events
     if (filteredEnvelopeItems.length === 0) {
-      return resolvedSyncPromise();
+      return resolvedSyncPromise({});
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const filteredEnvelope: Envelope = createEnvelope(envelope[0], filteredEnvelopeItems as any);
+    const filteredEnvelope: Envelope = createEnvelope(envelope[0], filteredEnvelopeItems as (typeof envelope)[1]);
 
     // Creates client report for each item in an envelope
     const recordEnvelopeLoss = (reason: EventDropReason): void => {
@@ -74,8 +71,8 @@ export function createTransport(
       });
     };
 
-    const requestTask = (): PromiseLike<void | TransportMakeRequestResponse> =>
-      makeRequest({ body: serializeEnvelope(filteredEnvelope, options.textEncoder) }).then(
+    const requestTask = (): PromiseLike<TransportMakeRequestResponse> =>
+      makeRequest({ body: serializeEnvelope(filteredEnvelope) }).then(
         response => {
           // We don't want to throw on NOK responses, but we want to at least log them
           if (response.statusCode !== undefined && (response.statusCode < 200 || response.statusCode >= 300)) {
@@ -97,17 +94,13 @@ export function createTransport(
         if (error instanceof SentryError) {
           DEBUG_BUILD && logger.error('Skipped sending event because buffer is full.');
           recordEnvelopeLoss('queue_overflow');
-          return resolvedSyncPromise();
+          return resolvedSyncPromise({});
         } else {
           throw error;
         }
       },
     );
   }
-
-  // We use this to identifify if the transport is the base transport
-  // TODO (v8): Remove this again as we'll no longer need it
-  send.__sentry__baseTransport__ = true;
 
   return {
     send,

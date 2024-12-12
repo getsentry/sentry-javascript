@@ -1,26 +1,21 @@
 export * from './exports';
 
-import { Integrations as CoreIntegrations } from '@sentry/core';
+export { reportingObserverIntegration } from './integrations/reportingobserver';
+export { httpClientIntegration } from './integrations/httpclient';
+export { contextLinesIntegration } from './integrations/contextlines';
 
-import { WINDOW } from './helpers';
-import * as BrowserIntegrations from './integrations';
+export {
+  captureConsoleIntegration,
+  // eslint-disable-next-line deprecation/deprecation
+  debugIntegration,
+  extraErrorDataIntegration,
+  rewriteFramesIntegration,
+  // eslint-disable-next-line deprecation/deprecation
+  sessionTimingIntegration,
+  captureFeedback,
+} from '@sentry/core';
 
-let windowIntegrations = {};
-
-// This block is needed to add compatibility with the integrations packages when used with a CDN
-if (WINDOW.Sentry && WINDOW.Sentry.Integrations) {
-  windowIntegrations = WINDOW.Sentry.Integrations;
-}
-
-const INTEGRATIONS = {
-  ...windowIntegrations,
-  ...CoreIntegrations,
-  ...BrowserIntegrations,
-};
-
-export { INTEGRATIONS as Integrations };
-
-export { Replay } from '@sentry/replay';
+export { replayIntegration, getReplay } from '@sentry-internal/replay';
 export type {
   ReplayEventType,
   ReplayEventWithTime,
@@ -31,31 +26,52 @@ export type {
   ReplayFrameEvent,
   ReplaySpanFrame,
   ReplaySpanFrameEvent,
-} from '@sentry/replay';
+} from '@sentry-internal/replay';
 
-export { Feedback } from '@sentry-internal/feedback';
+export { replayCanvasIntegration } from '@sentry-internal/replay-canvas';
 
+import { feedbackAsyncIntegration } from './feedbackAsync';
+import { feedbackSyncIntegration } from './feedbackSync';
+export { feedbackAsyncIntegration, feedbackSyncIntegration, feedbackSyncIntegration as feedbackIntegration };
+export { getFeedback, sendFeedback } from '@sentry-internal/feedback';
+
+export * from './metrics';
+
+export { defaultRequestInstrumentationOptions, instrumentOutgoingRequests } from './tracing/request';
 export {
-  BrowserTracing,
-  defaultRequestInstrumentationOptions,
-  instrumentOutgoingRequests,
-} from '@sentry-internal/tracing';
-export type { RequestInstrumentationOptions } from '@sentry-internal/tracing';
+  browserTracingIntegration,
+  startBrowserTracingNavigationSpan,
+  startBrowserTracingPageLoadSpan,
+} from './tracing/browserTracingIntegration';
+export type { RequestInstrumentationOptions } from './tracing/request';
 export {
+  // eslint-disable-next-line deprecation/deprecation
   addTracingExtensions,
+  registerSpanErrorInstrumentation,
+  getActiveSpan,
+  getRootSpan,
+  startSpan,
+  startInactiveSpan,
+  startSpanManual,
+  withActiveSpan,
+  startNewTrace,
+  getSpanDescendants,
   setMeasurement,
-  // eslint-disable-next-line deprecation/deprecation
-  extractTraceparentData,
-  // eslint-disable-next-line deprecation/deprecation
-  getActiveTransaction,
-  spanStatusfromHttpCode,
-  // eslint-disable-next-line deprecation/deprecation
-  trace,
+  getSpanStatusFromHttpCode,
+  setHttpStatus,
   makeMultiplexedTransport,
-  ModuleMetadata,
+  moduleMetadataIntegration,
+  zodErrorsIntegration,
+  thirdPartyErrorFilterIntegration,
 } from '@sentry/core';
-export type { SpanStatusType } from '@sentry/core';
-export type { Span } from '@sentry/types';
+export type { Span } from '@sentry/core';
 export { makeBrowserOfflineTransport } from './transports/offline';
-export { onProfilingStartRouteTransaction } from './profiling/hubextensions';
-export { BrowserProfilingIntegration } from './profiling/integration';
+export { browserProfilingIntegration } from './profiling/integration';
+export { spotlightBrowserIntegration } from './integrations/spotlight';
+export { browserSessionIntegration } from './integrations/browsersession';
+export {
+  featureFlagsIntegration,
+  type FeatureFlagsIntegration,
+} from './integrations/featureFlags';
+export { launchDarklyIntegration, buildLaunchDarklyFlagUsedHandler } from './integrations/featureFlags/launchdarkly';
+export { openFeatureIntegration, OpenFeatureIntegrationHook } from './integrations/featureFlags/openfeature';

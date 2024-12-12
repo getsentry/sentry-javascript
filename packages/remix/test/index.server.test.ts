@@ -1,14 +1,17 @@
 import * as SentryNode from '@sentry/node';
-import { GLOBAL_OBJ } from '@sentry/utils';
 
-import { Integrations, init } from '../src/index.server';
+import { init } from '../src/index.server';
 
 const nodeInit = jest.spyOn(SentryNode, 'init');
 
 describe('Server init()', () => {
   afterEach(() => {
     jest.clearAllMocks();
-    GLOBAL_OBJ.__SENTRY__.hub = undefined;
+
+    SentryNode.getGlobalScope().clear();
+    SentryNode.getIsolationScope().clear();
+    SentryNode.getCurrentScope().clear();
+    SentryNode.getCurrentScope().setClient(undefined);
   });
 
   it('inits the Node SDK', () => {
@@ -45,20 +48,7 @@ describe('Server init()', () => {
     expect(nodeInit).toHaveBeenCalledTimes(1);
   });
 
-  it('sets runtime on scope', () => {
-    const currentScope = SentryNode.getCurrentScope();
-
-    // @ts-expect-error need access to protected _tags attribute
-    expect(currentScope._tags).toEqual({});
-
-    init({});
-
-    // @ts-expect-error need access to protected _tags attribute
-    expect(currentScope._tags).toEqual({ runtime: 'node' });
-  });
-
-  it('has both node and tracing integrations', () => {
-    expect(Integrations.Apollo).not.toBeUndefined();
-    expect(Integrations.Http).not.toBeUndefined();
+  it('returns client from init', () => {
+    expect(init({})).not.toBeUndefined();
   });
 });

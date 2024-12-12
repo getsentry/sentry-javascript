@@ -1,13 +1,14 @@
 import * as Sentry from '@sentry/browser';
 
 window.Sentry = Sentry;
-window.Replay = new Sentry.Replay({
+window.Replay = Sentry.replayIntegration({
   flushMinDelay: 200,
   flushMaxDelay: 200,
   minReplayDuration: 0,
   useCompression: false,
   blockAllMedia: false,
   block: ['link[rel="icon"]', 'video', '.nested-hide'],
+  unmask: ['.sentry-unmask, [data-sentry-unmask]'],
 });
 
 Sentry.init({

@@ -1,24 +1,38 @@
-/* eslint-disable no-bitwise */
-import type { Attributes, Context, SpanContext } from '@opentelemetry/api';
-import { TraceFlags, isSpanContextValid, trace } from '@opentelemetry/api';
+import type { Attributes, Context, Span, TraceState as TraceStateInterface } from '@opentelemetry/api';
+import { SpanKind, isSpanContextValid, trace } from '@opentelemetry/api';
+import { TraceState } from '@opentelemetry/core';
 import type { Sampler, SamplingResult } from '@opentelemetry/sdk-trace-base';
 import { SamplingDecision } from '@opentelemetry/sdk-trace-base';
-import { hasTracingEnabled } from '@sentry/core';
-import type { Client, ClientOptions, SamplingContext } from '@sentry/types';
-import { isNaN, logger } from '@sentry/utils';
-
+import {
+  ATTR_HTTP_REQUEST_METHOD,
+  ATTR_URL_FULL,
+  SEMATTRS_HTTP_METHOD,
+  SEMATTRS_HTTP_URL,
+} from '@opentelemetry/semantic-conventions';
+import type { Client, SpanAttributes } from '@sentry/core';
+import {
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
+  hasTracingEnabled,
+  logger,
+  sampleSpan,
+} from '@sentry/core';
+import { SENTRY_TRACE_STATE_SAMPLED_NOT_RECORDING, SENTRY_TRACE_STATE_URL } from './constants';
 import { DEBUG_BUILD } from './debug-build';
-import { InternalSentrySemanticAttributes } from './semanticAttributes';
-import { getPropagationContextFromContext } from './utils/contextData';
+import { getPropagationContextFromSpan } from './propagator';
+import { getSamplingDecision } from './utils/getSamplingDecision';
+import { inferSpanData } from './utils/parseSpanDescription';
+import { setIsSetup } from './utils/setupCheck';
 
 /**
- * A custom OTEL sampler that uses Sentry sampling rates to make it's decision
+ * A custom OTEL sampler that uses Sentry sampling rates to make its decision
  */
 export class SentrySampler implements Sampler {
   private _client: Client;
 
   public constructor(client: Client) {
     this._client = client;
+    setIsSetup('SentrySampler');
   }
 
   /** @inheritDoc */
@@ -26,98 +40,94 @@ export class SentrySampler implements Sampler {
     context: Context,
     traceId: string,
     spanName: string,
-    _spanKind: unknown,
-    _attributes: unknown,
+    spanKind: SpanKind,
+    spanAttributes: SpanAttributes,
     _links: unknown,
   ): SamplingResult {
     const options = this._client.getOptions();
 
+    const parentSpan = getValidSpan(context);
+    const parentContext = parentSpan?.spanContext();
+
     if (!hasTracingEnabled(options)) {
-      return { decision: SamplingDecision.NOT_RECORD };
+      return wrapSamplingDecision({ decision: undefined, context, spanAttributes });
     }
 
-    const parentContext = trace.getSpanContext(context);
+    // `ATTR_HTTP_REQUEST_METHOD` is the new attribute, but we still support the old one, `SEMATTRS_HTTP_METHOD`, for now.
+    // eslint-disable-next-line deprecation/deprecation
+    const maybeSpanHttpMethod = spanAttributes[SEMATTRS_HTTP_METHOD] || spanAttributes[ATTR_HTTP_REQUEST_METHOD];
 
-    let parentSampled: boolean | undefined = undefined;
-
-    // Only inherit sample rate if `traceId` is the same
-    // Note for testing: `isSpanContextValid()` checks the format of the traceId/spanId, so we need to pass valid ones
-    if (parentContext && isSpanContextValid(parentContext) && parentContext.traceId === traceId) {
-      if (parentContext.isRemote) {
-        parentSampled = getParentRemoteSampled(parentContext, context);
-        DEBUG_BUILD &&
-          logger.log(`[Tracing] Inheriting remote parent's sampled decision for ${spanName}: ${parentSampled}`);
-      } else {
-        parentSampled = Boolean(parentContext.traceFlags & TraceFlags.SAMPLED);
-        DEBUG_BUILD && logger.log(`[Tracing] Inheriting parent's sampled decision for ${spanName}: ${parentSampled}`);
-      }
+    // If we have a http.client span that has no local parent, we never want to sample it
+    // but we want to leave downstream sampling decisions up to the server
+    if (spanKind === SpanKind.CLIENT && maybeSpanHttpMethod && (!parentSpan || parentContext?.isRemote)) {
+      return wrapSamplingDecision({ decision: undefined, context, spanAttributes });
     }
 
-    const sampleRate = getSampleRate(options, {
+    const parentSampled = parentSpan ? getParentSampled(parentSpan, traceId, spanName) : undefined;
+
+    // We want to pass the inferred name & attributes to the sampler method
+    const {
+      description: inferredSpanName,
+      data: inferredAttributes,
+      op,
+    } = inferSpanData(spanName, spanAttributes, spanKind);
+
+    const mergedAttributes = {
+      ...inferredAttributes,
+      ...spanAttributes,
+    };
+
+    if (op) {
+      mergedAttributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] = op;
+    }
+
+    const mutableSamplingDecision = { decision: true };
+    this._client.emit(
+      'beforeSampling',
+      {
+        spanAttributes: mergedAttributes,
+        spanName: inferredSpanName,
+        parentSampled: parentSampled,
+        parentContext: parentContext,
+      },
+      mutableSamplingDecision,
+    );
+    if (!mutableSamplingDecision.decision) {
+      return wrapSamplingDecision({ decision: undefined, context, spanAttributes });
+    }
+
+    const [sampled, sampleRate] = sampleSpan(options, {
+      name: inferredSpanName,
+      attributes: mergedAttributes,
       transactionContext: {
-        name: spanName,
+        name: inferredSpanName,
         parentSampled,
       },
       parentSampled,
     });
 
     const attributes: Attributes = {
-      [InternalSentrySemanticAttributes.SAMPLE_RATE]: Number(sampleRate),
+      [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: sampleRate,
     };
 
-    if (typeof parentSampled === 'boolean') {
-      attributes[InternalSentrySemanticAttributes.PARENT_SAMPLED] = parentSampled;
-    }
-
-    // Since this is coming from the user (or from a function provided by the user), who knows what we might get. (The
-    // only valid values are booleans or numbers between 0 and 1.)
-    if (!isValidSampleRate(sampleRate)) {
-      DEBUG_BUILD && logger.warn('[Tracing] Discarding span because of invalid sample rate.');
+    const method = `${maybeSpanHttpMethod}`.toUpperCase();
+    if (method === 'OPTIONS' || method === 'HEAD') {
+      DEBUG_BUILD && logger.log(`[Tracing] Not sampling span because HTTP method is '${method}' for ${spanName}`);
 
       return {
-        decision: SamplingDecision.NOT_RECORD,
+        ...wrapSamplingDecision({ decision: SamplingDecision.NOT_RECORD, context, spanAttributes }),
         attributes,
       };
     }
 
-    // if the function returned 0 (or false), or if `tracesSampleRate` is 0, it's a sign the transaction should be dropped
-    if (!sampleRate) {
-      DEBUG_BUILD &&
-        logger.log(
-          `[Tracing] Discarding span because ${
-            typeof options.tracesSampler === 'function'
-              ? 'tracesSampler returned 0 or false'
-              : 'a negative sampling decision was inherited or tracesSampleRate is set to 0'
-          }`,
-        );
-
+    if (!sampled) {
       return {
-        decision: SamplingDecision.NOT_RECORD,
+        ...wrapSamplingDecision({ decision: SamplingDecision.NOT_RECORD, context, spanAttributes }),
         attributes,
       };
     }
-
-    // Now we roll the dice. Math.random is inclusive of 0, but not of 1, so strict < is safe here. In case sampleRate is
-    // a boolean, the < comparison will cause it to be automatically cast to 1 if it's true and 0 if it's false.
-    const isSampled = Math.random() < (sampleRate as number | boolean);
-
-    // if we're not going to keep it, we're done
-    if (!isSampled) {
-      DEBUG_BUILD &&
-        logger.log(
-          `[Tracing] Discarding span because it's not included in the random sample (sampling rate = ${Number(
-            sampleRate,
-          )})`,
-        );
-
-      return {
-        decision: SamplingDecision.NOT_RECORD,
-        attributes,
-      };
-    }
-
     return {
-      decision: SamplingDecision.RECORD_AND_SAMPLED,
+      ...wrapSamplingDecision({ decision: SamplingDecision.RECORD_AND_SAMPLED, context, spanAttributes }),
       attributes,
     };
   }
@@ -128,59 +138,82 @@ export class SentrySampler implements Sampler {
   }
 }
 
-function getSampleRate(
-  options: Pick<ClientOptions, 'tracesSampleRate' | 'tracesSampler' | 'enableTracing'>,
-  samplingContext: SamplingContext,
-): number | boolean {
-  if (typeof options.tracesSampler === 'function') {
-    return options.tracesSampler(samplingContext);
+function getParentRemoteSampled(parentSpan: Span): boolean | undefined {
+  const traceId = parentSpan.spanContext().traceId;
+  const traceparentData = getPropagationContextFromSpan(parentSpan);
+
+  // Only inherit sampled if `traceId` is the same
+  return traceparentData && traceId === traceparentData.traceId ? traceparentData.sampled : undefined;
+}
+
+function getParentSampled(parentSpan: Span, traceId: string, spanName: string): boolean | undefined {
+  const parentContext = parentSpan.spanContext();
+
+  // Only inherit sample rate if `traceId` is the same
+  // Note for testing: `isSpanContextValid()` checks the format of the traceId/spanId, so we need to pass valid ones
+  if (isSpanContextValid(parentContext) && parentContext.traceId === traceId) {
+    if (parentContext.isRemote) {
+      const parentSampled = getParentRemoteSampled(parentSpan);
+      DEBUG_BUILD &&
+        logger.log(`[Tracing] Inheriting remote parent's sampled decision for ${spanName}: ${parentSampled}`);
+      return parentSampled;
+    }
+
+    const parentSampled = getSamplingDecision(parentContext);
+    DEBUG_BUILD && logger.log(`[Tracing] Inheriting parent's sampled decision for ${spanName}: ${parentSampled}`);
+    return parentSampled;
   }
 
-  if (samplingContext.parentSampled !== undefined) {
-    return samplingContext.parentSampled;
-  }
-
-  if (typeof options.tracesSampleRate !== 'undefined') {
-    return options.tracesSampleRate;
-  }
-
-  // When `enableTracing === true`, we use a sample rate of 100%
-  if (options.enableTracing) {
-    return 1;
-  }
-
-  return 0;
+  return undefined;
 }
 
 /**
- * Checks the given sample rate to make sure it is valid type and value (a boolean, or a number between 0 and 1).
+ * Wrap a sampling decision with data that Sentry needs to work properly with it.
+ * If you pass `decision: undefined`, it will be treated as `NOT_RECORDING`, but in contrast to passing `NOT_RECORDING`
+ * it will not propagate this decision to downstream Sentry SDKs.
  */
-function isValidSampleRate(rate: unknown): boolean {
-  // we need to check NaN explicitly because it's of type 'number' and therefore wouldn't get caught by this typecheck
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  if (isNaN(rate) || !(typeof rate === 'number' || typeof rate === 'boolean')) {
-    DEBUG_BUILD &&
-      logger.warn(
-        `[Tracing] Given sample rate is invalid. Sample rate must be a boolean or a number between 0 and 1. Got ${JSON.stringify(
-          rate,
-        )} of type ${JSON.stringify(typeof rate)}.`,
-      );
-    return false;
+export function wrapSamplingDecision({
+  decision,
+  context,
+  spanAttributes,
+}: { decision: SamplingDecision | undefined; context: Context; spanAttributes: SpanAttributes }): SamplingResult {
+  const traceState = getBaseTraceState(context, spanAttributes);
+
+  // If the decision is undefined, we treat it as NOT_RECORDING, but we don't propagate this decision to downstream SDKs
+  // Which is done by not setting `SENTRY_TRACE_STATE_SAMPLED_NOT_RECORDING` traceState
+  if (decision == undefined) {
+    return { decision: SamplingDecision.NOT_RECORD, traceState };
   }
 
-  // in case sampleRate is a boolean, it will get automatically cast to 1 if it's true and 0 if it's false
-  if (rate < 0 || rate > 1) {
-    DEBUG_BUILD &&
-      logger.warn(`[Tracing] Given sample rate is invalid. Sample rate must be between 0 and 1. Got ${rate}.`);
-    return false;
+  if (decision === SamplingDecision.NOT_RECORD) {
+    return { decision, traceState: traceState.set(SENTRY_TRACE_STATE_SAMPLED_NOT_RECORDING, '1') };
   }
-  return true;
+
+  return { decision, traceState };
 }
 
-function getParentRemoteSampled(spanContext: SpanContext, context: Context): boolean | undefined {
-  const traceId = spanContext.traceId;
-  const traceparentData = getPropagationContextFromContext(context);
+function getBaseTraceState(context: Context, spanAttributes: SpanAttributes): TraceStateInterface {
+  const parentSpan = trace.getSpan(context);
+  const parentContext = parentSpan?.spanContext();
 
-  // Only inherit sample rate if `traceId` is the same
-  return traceparentData && traceId === traceparentData.traceId ? traceparentData.sampled : undefined;
+  let traceState = parentContext?.traceState || new TraceState();
+
+  // We always keep the URL on the trace state, so we can access it in the propagator
+  // `ATTR_URL_FULL` is the new attribute, but we still support the old one, `ATTR_HTTP_URL`, for now.
+  // eslint-disable-next-line deprecation/deprecation
+  const url = spanAttributes[SEMATTRS_HTTP_URL] || spanAttributes[ATTR_URL_FULL];
+  if (url && typeof url === 'string') {
+    traceState = traceState.set(SENTRY_TRACE_STATE_URL, url);
+  }
+
+  return traceState;
+}
+
+/**
+ * If the active span is invalid, we want to ignore it as parent.
+ * This aligns with how otel tracers and default samplers handle these cases.
+ */
+function getValidSpan(context: Context): Span | undefined {
+  const span = trace.getSpan(context);
+  return span && isSpanContextValid(span.spanContext()) ? span : undefined;
 }

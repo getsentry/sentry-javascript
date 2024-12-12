@@ -34,7 +34,25 @@
         "noDelete": "off"
       }
     },
-    "ignore": [".vscode/*", "**/*.json", ".next/**/*", ".svelte-kit/**/*"]
+    "ignore": [
+      ".vscode/*",
+      "**/*.json",
+      ".next/**/*",
+      ".svelte-kit/**/*",
+      "**/fixtures/*/*.json",
+      "**/*.min.js",
+      ".next/**",
+      ".svelte-kit/**",
+      ".angular/**",
+      "angular.json",
+      "ember/instance-initializers/**",
+      "ember/types.d.ts",
+      "solidstart/*.d.ts",
+      "solidstart/client/",
+      "solidstart/server/",
+      ".output",
+      ".vinxi"
+    ]
   },
   "files": {
     "ignoreUnknown": true
@@ -50,8 +68,16 @@
       "dev-packages/browser-integration-tests/suites/**/*.json",
       "dev-packages/browser-integration-tests/loader-suites/**/*.js",
       "dev-packages/browser-integration-tests/suites/stacktraces/**/*.js",
-      "fixtures/*/*.json",
-      "*.min.js"
+      ".next/**/*",
+      "**/fixtures/*/*.json",
+      "**/*.min.js",
+      ".next/**",
+      ".svelte-kit/**",
+      ".angular/**",
+      "angular.json",
+      "**/profiling-node/lib/**",
+      "ember/instance-initializers/**",
+      "ember/types.d.ts"
     ]
   },
   "javascript": {

@@ -1,6 +1,5 @@
 import * as SentryNode from '@sentry/node';
 import { SDK_VERSION } from '@sentry/node';
-import { GLOBAL_OBJ } from '@sentry/utils';
 import { vi } from 'vitest';
 
 import { init } from '../../src/server/sdk';
@@ -11,7 +10,11 @@ describe('Sentry server SDK', () => {
   describe('init', () => {
     afterEach(() => {
       vi.clearAllMocks();
-      GLOBAL_OBJ.__SENTRY__.hub = undefined;
+
+      SentryNode.getGlobalScope().clear();
+      SentryNode.getIsolationScope().clear();
+      SentryNode.getCurrentScope().clear();
+      SentryNode.getCurrentScope().setClient(undefined);
     });
 
     it('adds Astro metadata to the SDK options', () => {
@@ -36,16 +39,8 @@ describe('Sentry server SDK', () => {
       );
     });
 
-    it('sets the runtime tag on the scope', () => {
-      const currentScope = SentryNode.getCurrentScope();
-
-      // @ts-expect-error need access to protected _tags attribute
-      expect(currentScope._tags).toEqual({});
-
-      init({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
-
-      // @ts-expect-error need access to protected _tags attribute
-      expect(currentScope._tags).toEqual({ runtime: 'node' });
+    it('returns client from init', () => {
+      expect(init({})).not.toBeUndefined();
     });
   });
 });

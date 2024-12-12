@@ -1,23 +1,33 @@
 {
   "name": "@sentry/opentelemetry",
-  "version": "7.93.0",
+  "version": "8.43.0",
   "description": "Official Sentry utilities for OpenTelemetry",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/opentelemetry",
   "author": "Sentry",
   "license": "MIT",
   "engines": {
-    "node": ">=14"
+    "node": ">=14.18"
   },
   "files": [
-    "cjs",
-    "esm",
-    "types",
-    "types-ts3.8"
+    "/build"
   ],
   "main": "build/cjs/index.js",
   "module": "build/esm/index.js",
   "types": "build/types/index.d.ts",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "import": {
+        "types": "./build/types/index.d.ts",
+        "default": "./build/esm/index.js"
+      },
+      "require": {
+        "types": "./build/types/index.d.ts",
+        "default": "./build/cjs/index.js"
+      }
+    }
+  },
   "typesVersions": {
     "<4.9": {
       "build/types/index.d.ts": [
@@ -29,23 +39,21 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/core": "7.93.0",
-    "@sentry/types": "7.93.0",
-    "@sentry/utils": "7.93.0"
+    "@sentry/core": "8.43.0"
   },
   "peerDependencies": {
-    "@opentelemetry/api": "^1.0.0",
-    "@opentelemetry/core": "^1.0.0",
-    "@opentelemetry/sdk-trace-base": "^1.0.0",
-    "@opentelemetry/semantic-conventions": "^1.0.0"
+    "@opentelemetry/api": "^1.9.0",
+    "@opentelemetry/core": "^1.29.0",
+    "@opentelemetry/instrumentation": "^0.56.0",
+    "@opentelemetry/sdk-trace-base": "^1.29.0",
+    "@opentelemetry/semantic-conventions": "^1.28.0"
   },
   "devDependencies": {
-    "@opentelemetry/api": "^1.6.0",
-    "@opentelemetry/context-async-hooks": "^1.17.1",
-    "@opentelemetry/core": "^1.17.1",
-    "@opentelemetry/sdk-trace-base": "^1.17.1",
-    "@opentelemetry/sdk-trace-node": "^1.17.1",
-    "@opentelemetry/semantic-conventions": "^1.17.1"
+    "@opentelemetry/api": "^1.9.0",
+    "@opentelemetry/context-async-hooks": "^1.29.0",
+    "@opentelemetry/core": "^1.29.0",
+    "@opentelemetry/sdk-trace-base": "^1.29.0",
+    "@opentelemetry/semantic-conventions": "^1.28.0"
   },
   "scripts": {
     "build": "run-p build:transpile build:types",
@@ -58,7 +66,7 @@
     "build:dev:watch": "yarn build:watch",
     "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",
     "build:types:watch": "tsc -p tsconfig.types.json --watch",
-    "build:tarball": "ts-node ../../scripts/prepack.ts && npm pack ./build",
+    "build:tarball": "npm pack",
     "circularDepCheck": "madge --circular src/index.ts",
     "clean": "rimraf build coverage sentry-opentelemetry-*.tgz",
     "fix": "eslint . --format stylish --fix",
@@ -66,7 +74,7 @@
     "test": "yarn test:jest",
     "test:jest": "jest",
     "test:watch": "jest --watch",
-    "yalc:publish": "ts-node ../../scripts/prepack.ts && yalc publish build --push --sig"
+    "yalc:publish": "yalc publish --push --sig"
   },
   "volta": {
     "extends": "../../package.json"

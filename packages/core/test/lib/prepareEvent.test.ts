@@ -1,3 +1,4 @@
+import { GLOBAL_OBJ, createStackParser, getGlobalScope, getIsolationScope } from '../../src';
 import type {
   Attachment,
   Breadcrumb,
@@ -7,17 +8,17 @@ import type {
   EventHint,
   EventProcessor,
   ScopeContext,
-} from '@sentry/types';
-import { GLOBAL_OBJ, createStackParser } from '@sentry/utils';
-import { getIsolationScope, setGlobalScope } from '../../src';
+} from '../../src/types-hoist';
 
-import { Scope, getGlobalScope } from '../../src/scope';
+import { Scope } from '../../src/scope';
 import {
+  applyClientOptions,
   applyDebugIds,
   applyDebugMeta,
   parseEventHintOrCaptureContext,
   prepareEvent,
 } from '../../src/utils/prepareEvent';
+import { clearGlobalScope } from './clear-global-scope';
 
 describe('applyDebugIds', () => {
   afterEach(() => {
@@ -52,18 +53,18 @@ describe('applyDebugIds', () => {
 
     applyDebugIds(event, stackParser);
 
-    expect(event.exception?.values?.[0].stacktrace?.frames).toContainEqual({
+    expect(event.exception?.values?.[0]?.stacktrace?.frames).toContainEqual({
       filename: 'filename1.js',
       debug_id: 'aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaa',
     });
 
-    expect(event.exception?.values?.[0].stacktrace?.frames).toContainEqual({
+    expect(event.exception?.values?.[0]?.stacktrace?.frames).toContainEqual({
       filename: 'filename2.js',
       debug_id: 'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbb',
     });
 
     // expect not to contain an image for the stack frame that doesn't have a corresponding debug id
-    expect(event.exception?.values?.[0].stacktrace?.frames).not.toContainEqual(
+    expect(event.exception?.values?.[0]?.stacktrace?.frames).not.toContainEqual(
       expect.objectContaining({
         filename3: 'filename3.js',
         debug_id: expect.any(String),
@@ -71,7 +72,7 @@ describe('applyDebugIds', () => {
     );
 
     // expect not to contain an image for the debug id mapping that isn't contained in the stack trace
-    expect(event.exception?.values?.[0].stacktrace?.frames).not.toContainEqual(
+    expect(event.exception?.values?.[0]?.stacktrace?.frames).not.toContainEqual(
       expect.objectContaining({
         filename3: 'filename4.js',
         debug_id: 'cccccccc-cccc-4ccc-cccc-cccccccccc',
@@ -101,7 +102,7 @@ describe('applyDebugMeta', () => {
 
     applyDebugMeta(event);
 
-    expect(event.exception?.values?.[0].stacktrace?.frames).toEqual([
+    expect(event.exception?.values?.[0]?.stacktrace?.frames).toEqual([
       { filename: 'filename1.js' },
       { filename: 'filename2.js' },
       { filename: 'filename1.js' },
@@ -191,7 +192,7 @@ describe('parseEventHintOrCaptureContext', () => {
 
 describe('prepareEvent', () => {
   beforeEach(() => {
-    setGlobalScope(undefined);
+    clearGlobalScope();
     getIsolationScope().clear();
   });
 
@@ -204,10 +205,13 @@ describe('prepareEvent', () => {
 
     const options = {} as ClientOptions;
     const client = {
+      emit() {
+        // noop
+      },
       getEventProcessors() {
         return [eventProcessor];
       },
-    } as Client;
+    } as unknown as Client;
     const processedEvent = await prepareEvent(
       options,
       event,
@@ -228,12 +232,7 @@ describe('prepareEvent', () => {
       event_id: expect.any(String),
       environment: 'production',
       message: 'foo',
-      sdkProcessingMetadata: {
-        propagationContext: {
-          spanId: expect.any(String),
-          traceId: expect.any(String),
-        },
-      },
+      sdkProcessingMetadata: {},
     });
   });
 
@@ -309,16 +308,15 @@ describe('prepareEvent', () => {
       user: { id: '1', email: 'test@example.com' },
       tags: { tag1: 'aa', tag2: 'aa' },
       extra: { extra1: 'aa', extra2: 'aa' },
-      contexts: { os: { name: 'os1' }, culture: { display_name: 'name1' } },
+      contexts: {
+        os: { name: 'os1' },
+        culture: { display_name: 'name1' },
+      },
       fingerprint: ['dd', 'aa'],
       breadcrumbs: [breadcrumb4, breadcrumb2, breadcrumb3, breadcrumb1],
       sdkProcessingMetadata: {
         aa: 'aa',
         bb: 'bb',
-        propagationContext: {
-          spanId: '1',
-          traceId: '1',
-        },
       },
     });
   });
@@ -382,8 +380,275 @@ describe('prepareEvent', () => {
       sdkProcessingMetadata: {
         aa: 'aa',
         bb: 'bb',
-        propagationContext: isolationScope.getPropagationContext(),
       },
+    });
+  });
+
+  describe('captureContext', () => {
+    it('works with scope & captureContext=POJO', async () => {
+      const scope = new Scope();
+      scope.setTags({
+        initial: 'aa',
+        foo: 'foo',
+      });
+
+      const event = { message: 'foo' };
+
+      const options = {} as ClientOptions;
+      const client = {
+        emit() {
+          // noop
+        },
+        getEventProcessors() {
+          return [] as EventProcessor[];
+        },
+      } as unknown as Client;
+
+      const processedEvent = await prepareEvent(
+        options,
+        event,
+        {
+          captureContext: { tags: { foo: 'bar' } },
+          integrations: [],
+        },
+        scope,
+        client,
+      );
+
+      expect(processedEvent).toEqual({
+        timestamp: expect.any(Number),
+        event_id: expect.any(String),
+        environment: 'production',
+        message: 'foo',
+        sdkProcessingMetadata: {},
+        tags: { initial: 'aa', foo: 'bar' },
+      });
+    });
+
+    it('works with scope & captureContext=scope instance', async () => {
+      const scope = new Scope();
+      scope.setTags({
+        initial: 'aa',
+        foo: 'foo',
+      });
+
+      const event = { message: 'foo' };
+
+      const options = {} as ClientOptions;
+      const client = {
+        emit() {
+          // noop
+        },
+        getEventProcessors() {
+          return [] as EventProcessor[];
+        },
+      } as unknown as Client;
+
+      const captureContext = new Scope();
+      captureContext.setTags({ foo: 'bar' });
+
+      const processedEvent = await prepareEvent(
+        options,
+        event,
+        {
+          captureContext,
+          integrations: [],
+        },
+        scope,
+        client,
+      );
+
+      expect(processedEvent).toEqual({
+        timestamp: expect.any(Number),
+        event_id: expect.any(String),
+        environment: 'production',
+        message: 'foo',
+        sdkProcessingMetadata: {},
+        tags: { initial: 'aa', foo: 'bar' },
+      });
+    });
+
+    it('works with scope & captureContext=function', async () => {
+      const scope = new Scope();
+      scope.setTags({
+        initial: 'aa',
+        foo: 'foo',
+      });
+
+      const event = { message: 'foo' };
+
+      const options = {} as ClientOptions;
+      const client = {
+        emit() {
+          // noop
+        },
+        getEventProcessors() {
+          return [] as EventProcessor[];
+        },
+      } as unknown as Client;
+
+      const captureContextScope = new Scope();
+      captureContextScope.setTags({ foo: 'bar' });
+
+      const captureContext = jest.fn(passedScope => {
+        expect(passedScope).toEqual(scope);
+        return captureContextScope;
+      });
+
+      const processedEvent = await prepareEvent(
+        options,
+        event,
+        {
+          captureContext,
+          integrations: [],
+        },
+        scope,
+        client,
+      );
+
+      expect(captureContext).toHaveBeenCalledTimes(1);
+
+      expect(processedEvent).toEqual({
+        timestamp: expect.any(Number),
+        event_id: expect.any(String),
+        environment: 'production',
+        message: 'foo',
+        sdkProcessingMetadata: {},
+        tags: { initial: 'aa', foo: 'bar' },
+      });
+    });
+  });
+});
+
+describe('applyClientOptions', () => {
+  it('works with defaults', () => {
+    const event: Event = {};
+    const options = {} as ClientOptions;
+
+    applyClientOptions(event, options);
+
+    expect(event).toEqual({
+      environment: 'production',
+    });
+
+    // These should not be set at all on the event
+    expect('release' in event).toBe(false);
+    expect('dist' in event).toBe(false);
+  });
+
+  it('works with event data and no options', () => {
+    const event: Event = {
+      environment: 'blub',
+      release: 'blab',
+      dist: 'blib',
+    };
+    const options = {} as ClientOptions;
+
+    applyClientOptions(event, options);
+
+    expect(event).toEqual({
+      environment: 'blub',
+      release: 'blab',
+      dist: 'blib',
+    });
+  });
+
+  it('event data has precedence over options', () => {
+    const event: Event = {
+      environment: 'blub',
+      release: 'blab',
+      dist: 'blib',
+    };
+    const options = {
+      environment: 'blub2',
+      release: 'blab2',
+      dist: 'blib2',
+    } as ClientOptions;
+
+    applyClientOptions(event, options);
+
+    expect(event).toEqual({
+      environment: 'blub',
+      release: 'blab',
+      dist: 'blib',
+    });
+  });
+
+  it('option data is used if no event data exists', () => {
+    const event: Event = {};
+    const options = {
+      environment: 'blub2',
+      release: 'blab2',
+      dist: 'blib2',
+    } as ClientOptions;
+
+    applyClientOptions(event, options);
+
+    expect(event).toEqual({
+      environment: 'blub2',
+      release: 'blab2',
+      dist: 'blib2',
+    });
+  });
+
+  it('option data is ignored if empty string', () => {
+    const event: Event = {};
+    const options = {
+      environment: '',
+      release: '',
+      dist: '',
+    } as ClientOptions;
+
+    applyClientOptions(event, options);
+
+    expect(event).toEqual({
+      environment: 'production',
+    });
+
+    // These should not be set at all on the event
+    expect('release' in event).toBe(false);
+    expect('dist' in event).toBe(false);
+  });
+
+  it('option data is used if event data is undefined', () => {
+    const event: Event = {
+      environment: undefined,
+      release: undefined,
+      dist: undefined,
+    };
+    const options = {
+      environment: 'blub2',
+      release: 'blab2',
+      dist: 'blib2',
+    } as ClientOptions;
+
+    applyClientOptions(event, options);
+
+    expect(event).toEqual({
+      environment: 'blub2',
+      release: 'blab2',
+      dist: 'blib2',
+    });
+  });
+
+  it('option data is used if event data is empty string', () => {
+    const event: Event = {
+      environment: '',
+      release: '',
+      dist: '',
+    };
+    const options = {
+      environment: 'blub2',
+      release: 'blab2',
+      dist: 'blib2',
+    } as ClientOptions;
+
+    applyClientOptions(event, options);
+
+    expect(event).toEqual({
+      environment: 'blub2',
+      release: 'blab2',
+      dist: 'blib2',
     });
   });
 });

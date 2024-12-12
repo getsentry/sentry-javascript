@@ -1,10 +1,15 @@
-import { handleCallbackErrors, startSpan } from '@sentry/core';
+import {
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  handleCallbackErrors,
+  startSpan,
+} from '@sentry/core';
+import { addNonEnumerableProperty, objectify } from '@sentry/core';
 import { captureException } from '@sentry/svelte';
-import { addNonEnumerableProperty, objectify } from '@sentry/utils';
 import type { LoadEvent } from '@sveltejs/kit';
 
 import type { SentryWrappedFlag } from '../common/utils';
-import { isRedirect } from '../common/utils';
+import { isHttpError, isRedirect } from '../common/utils';
 
 type PatchedLoadEvent = LoadEvent & Partial<SentryWrappedFlag>;
 
@@ -14,7 +19,11 @@ function sendErrorToSentry(e: unknown): unknown {
   const objectifiedErr = objectify(e);
 
   // We don't want to capture thrown `Redirect`s as these are not errors but expected behaviour
-  if (isRedirect(objectifiedErr)) {
+  // Neither 4xx errors, given that they are not valuable.
+  if (
+    isRedirect(objectifiedErr) ||
+    (isHttpError(objectifiedErr) && objectifiedErr.status < 500 && objectifiedErr.status >= 400)
+  ) {
     return objectifiedErr;
   }
 
@@ -36,7 +45,7 @@ function sendErrorToSentry(e: unknown): unknown {
  *
  * - catch errors happening during the execution of `load`
  * - create a load span if performance monitoring is enabled
- * - attach tracing Http headers to `fech` requests if performance monitoring is enabled to get connected traces.
+ * - attach tracing Http headers to `fetch` requests if performance monitoring is enabled to get connected traces.
  * - add a fetch breadcrumb for every `fetch` request
  *
  * Note that tracing Http headers are only attached if the url matches the specified `tracePropagationTargets`
@@ -80,12 +89,11 @@ export function wrapLoadWithSentry<T extends (...args: any) => any>(origLoad: T)
       return startSpan(
         {
           op: 'function.sveltekit.load',
-          origin: 'auto.function.sveltekit',
-          name: routeId ? routeId : event.url.pathname,
-          status: 'ok',
-          metadata: {
-            source: routeId ? 'route' : 'url',
+          attributes: {
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.sveltekit',
+            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: routeId ? 'route' : 'url',
           },
+          name: routeId ? routeId : event.url.pathname,
         },
         () => handleCallbackErrors(() => wrappingTarget.apply(thisArg, [patchedEvent]), sendErrorToSentry),
       );

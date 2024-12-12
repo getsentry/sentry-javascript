@@ -1,10 +1,10 @@
 import * as http from 'http';
-import type { Envelope, EventEnvelope } from '@sentry/types';
-import { createEnvelope, logger } from '@sentry/utils';
+import { createEnvelope, logger } from '@sentry/core';
+import type { Envelope, EventEnvelope } from '@sentry/core';
 
-import { NodeClient } from '../../src';
-import { Spotlight } from '../../src/integrations';
-import { getDefaultNodeClientOptions } from '../helper/node-client-options';
+import { spotlightIntegration } from '../../src/integrations/spotlight';
+import { NodeClient } from '../../src/sdk/client';
+import { getDefaultNodeClientOptions } from '../helpers/getDefaultNodeClientOptions';
 
 describe('Spotlight', () => {
   const loggerSpy = jest.spyOn(logger, 'warn');
@@ -17,10 +17,9 @@ describe('Spotlight', () => {
   const options = getDefaultNodeClientOptions();
   const client = new NodeClient(options);
 
-  it('has a name and id', () => {
-    const integration = new Spotlight();
+  it('has a name', () => {
+    const integration = spotlightIntegration();
     expect(integration.name).toEqual('Spotlight');
-    expect(Spotlight.id).toEqual('Spotlight');
   });
 
   it('registers a callback on the `beforeEnvelope` hook', () => {
@@ -28,7 +27,7 @@ describe('Spotlight', () => {
       ...client,
       on: jest.fn(),
     };
-    const integration = new Spotlight();
+    const integration = spotlightIntegration();
     // @ts-expect-error - this is fine in tests
     integration.setup(clientWithSpy);
     expect(clientWithSpy.on).toHaveBeenCalledWith('beforeEnvelope', expect.any(Function));
@@ -49,7 +48,7 @@ describe('Spotlight', () => {
       on: jest.fn().mockImplementationOnce((_, cb) => (callback = cb)),
     };
 
-    const integration = new Spotlight();
+    const integration = spotlightIntegration();
     // @ts-expect-error - this is fine in tests
     integration.setup(clientWithSpy);
 
@@ -88,7 +87,7 @@ describe('Spotlight', () => {
       on: jest.fn().mockImplementationOnce((_, cb) => (callback = cb)),
     };
 
-    const integration = new Spotlight({ sidecarUrl: 'http://mylocalhost:8888/abcd' });
+    const integration = spotlightIntegration({ sidecarUrl: 'http://mylocalhost:8888/abcd' });
     // @ts-expect-error - this is fine in tests
     integration.setup(clientWithSpy);
 
@@ -114,19 +113,9 @@ describe('Spotlight', () => {
 
   describe('no-ops if', () => {
     it('an invalid URL is passed', () => {
-      const integration = new Spotlight({ sidecarUrl: 'invalid-url' });
-      integration.setup(client);
+      const integration = spotlightIntegration({ sidecarUrl: 'invalid-url' });
+      integration.setup!(client);
       expect(loggerSpy).toHaveBeenCalledWith(expect.stringContaining('Invalid sidecar URL: invalid-url'));
-    });
-
-    it("the client doesn't support life cycle hooks", () => {
-      const integration = new Spotlight({ sidecarUrl: 'http://mylocalhost:8969' });
-      const clientWithoutHooks = { ...client };
-      // @ts-expect-error - this is fine in tests
-      delete client.on;
-      // @ts-expect-error - this is fine in tests
-      integration.setup(clientWithoutHooks);
-      expect(loggerSpy).toHaveBeenCalledWith(expect.stringContaining(' missing method on SDK client (`client.on`)'));
     });
   });
 
@@ -134,8 +123,8 @@ describe('Spotlight', () => {
     const oldEnvValue = process.env.NODE_ENV;
     process.env.NODE_ENV = 'production';
 
-    const integration = new Spotlight({ sidecarUrl: 'http://localhost:8969' });
-    integration.setup(client);
+    const integration = spotlightIntegration({ sidecarUrl: 'http://localhost:8969' });
+    integration.setup!(client);
 
     expect(loggerSpy).toHaveBeenCalledWith(
       expect.stringContaining("It seems you're not in dev mode. Do you really want to have Spotlight enabled?"),
@@ -148,8 +137,8 @@ describe('Spotlight', () => {
     const oldEnvValue = process.env.NODE_ENV;
     process.env.NODE_ENV = 'development';
 
-    const integration = new Spotlight({ sidecarUrl: 'http://localhost:8969' });
-    integration.setup(client);
+    const integration = spotlightIntegration({ sidecarUrl: 'http://localhost:8969' });
+    integration.setup!(client);
 
     expect(loggerSpy).not.toHaveBeenCalledWith(
       expect.stringContaining("It seems you're not in dev mode. Do you really want to have Spotlight enabled?"),
@@ -164,8 +153,8 @@ describe('Spotlight', () => {
     // @ts-expect-error - TS complains but we explicitly wanna test this
     delete global.process;
 
-    const integration = new Spotlight({ sidecarUrl: 'http://localhost:8969' });
-    integration.setup(client);
+    const integration = spotlightIntegration({ sidecarUrl: 'http://localhost:8969' });
+    integration.setup!(client);
 
     expect(loggerSpy).not.toHaveBeenCalledWith(
       expect.stringContaining("It seems you're not in dev mode. Do you really want to have Spotlight enabled?"),
@@ -180,8 +169,8 @@ describe('Spotlight', () => {
     // @ts-expect-error - TS complains but we explicitly wanna test this
     delete process.env;
 
-    const integration = new Spotlight({ sidecarUrl: 'http://localhost:8969' });
-    integration.setup(client);
+    const integration = spotlightIntegration({ sidecarUrl: 'http://localhost:8969' });
+    integration.setup!(client);
 
     expect(loggerSpy).not.toHaveBeenCalledWith(
       expect.stringContaining("It seems you're not in dev mode. Do you really want to have Spotlight enabled?"),

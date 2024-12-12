@@ -1,4 +1,4 @@
-name: 'Tag issue with package label'
+name: 'Automation: Tag issue with package label'
 
 on:
   issues:
@@ -29,20 +29,26 @@ jobs:
           # Note: Since this is handled as a regex, and JSON parse wrangles slashes /, we just use `.` instead
           map: |
             {
+              "@sentry.angular": {
+                "label": "Package: angular"
+              },
               "@sentry.astro": {
-                "label": "Package: Astro"
+                "label": "Package: astro"
+              },
+              "@sentry.aws-serverless": {
+                "label": "Package: aws-serverless"
               },
               "@sentry.browser": {
-                "label": "Package: Browser"
-              },
-              "@sentry.angular": {
-                "label": "Package: Angular"
-              },
-              "@sentry.angular-ivy": {
-                "label": "Package: Angular"
+                "label": "Package: browser"
               },
               "@sentry.bun": {
-                "label": "Package: Bun"
+                "label": "Package: bun"
+              },
+              "@sentry.cloudflare": {
+                "label": "Package: cloudflare"
+              },
+              "@sentry.deno": {
+                "label": "Package: deno"
               },
               "@sentry.ember": {
                 "label": "Package: ember"
@@ -50,14 +56,20 @@ jobs:
               "@sentry.gatsby": {
                 "label": "Package: gatbsy"
               },
+              "@sentry.google-cloud-serverless": {
+                "label": "Package: google-cloud-serverless"
+              },
+              "@sentry.nestjs": {
+                "label": "Package: nestjs"
+              },
               "@sentry.nextjs": {
-                "label": "Package: Nextjs"
+                "label": "Package: nextjs"
               },
               "@sentry.node": {
-                "label": "Package: Node"
+                "label": "Package: node"
               },
-              "@sentry.opentelemetry-node": {
-                "label": "Package: otel-node"
+              "@sentry.nuxt": {
+                "label": "Package: nuxt"
               },
               "@sentry.react": {
                 "label": "Package: react"
@@ -65,11 +77,14 @@ jobs:
               "@sentry.remix": {
                 "label": "Package: remix"
               },
-              "@sentry.serverless": {
-                "label": "Package: Serverless"
+              "@sentry.solid": {
+                "label": "Package: solid"
+              },
+              "@sentry.solid": {
+                "label": "Package: solidstart"
               },
               "@sentry.sveltekit": {
-                "label": "Package: SvelteKit"
+                "label": "Package: sveltekit"
               },
               "@sentry.svelte": {
                 "label": "Package: svelte"

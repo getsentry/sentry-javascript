@@ -1,19 +1,22 @@
+import type { IntegrationFn, RequestEventData, SpanAttributes } from '@sentry/core';
 import {
+  SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  Transaction,
   captureException,
   continueTrace,
-  convertIntegrationFnToClass,
-  getCurrentScope,
-  runWithAsyncContext,
+  defineIntegration,
+  extractQueryParamsFromUrl,
+  getSanitizedUrlString,
+  parseUrl,
+  setHttpStatus,
   startSpan,
+  withIsolationScope,
 } from '@sentry/core';
-import type { IntegrationFn } from '@sentry/types';
-import { getSanitizedUrlString, parseUrl } from '@sentry/utils';
 
 const INTEGRATION_NAME = 'BunServer';
 
-const bunServerIntegration = (() => {
+const _bunServerIntegration = (() => {
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
@@ -24,9 +27,18 @@ const bunServerIntegration = (() => {
 
 /**
  * Instruments `Bun.serve` to automatically create transactions and capture errors.
+ *
+ * Enabled by default in the Bun SDK.
+ *
+ * ```js
+ * Sentry.init({
+ *   integrations: [
+ *     Sentry.bunServerIntegration(),
+ *   ],
+ * })
+ * ```
  */
-// eslint-disable-next-line deprecation/deprecation
-export const BunServer = convertIntegrationFnToClass(INTEGRATION_NAME, bunServerIntegration);
+export const bunServerIntegration = defineIntegration(_bunServerIntegration);
 
 /**
  * Instruments Bun.serve by patching it's options.
@@ -46,7 +58,7 @@ export function instrumentBunServe(): void {
 function instrumentBunServeOptions(serveOptions: Parameters<typeof Bun.serve>[0]): void {
   serveOptions.fetch = new Proxy(serveOptions.fetch, {
     apply(fetchTarget, fetchThisArg, fetchArgs: Parameters<typeof serveOptions.fetch>) {
-      return runWithAsyncContext(() => {
+      return withIsolationScope(isolationScope => {
         const request = fetchArgs[0];
         const upperCaseMethod = request.method.toUpperCase();
         if (upperCaseMethod === 'OPTIONS' || upperCaseMethod === 'HEAD') {
@@ -54,35 +66,34 @@ function instrumentBunServeOptions(serveOptions: Parameters<typeof Bun.serve>[0]
         }
 
         const parsedUrl = parseUrl(request.url);
-        const data: Record<string, unknown> = {
-          'http.request.method': request.method || 'GET',
+        const attributes: SpanAttributes = {
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.bun.serve',
+          [SEMANTIC_ATTRIBUTE_HTTP_REQUEST_METHOD]: request.method || 'GET',
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
         };
         if (parsedUrl.search) {
-          data['http.query'] = parsedUrl.search;
+          attributes['http.query'] = parsedUrl.search;
         }
 
         const url = getSanitizedUrlString(parsedUrl);
 
+        isolationScope.setSDKProcessingMetadata({
+          normalizedRequest: {
+            url,
+            method: request.method,
+            headers: request.headers.toJSON(),
+            query_string: extractQueryParamsFromUrl(url),
+          } satisfies RequestEventData,
+        });
+
         return continueTrace(
           { sentryTrace: request.headers.get('sentry-trace') || '', baggage: request.headers.get('baggage') },
-          ctx => {
+          () => {
             return startSpan(
               {
+                attributes,
                 op: 'http.server',
                 name: `${request.method} ${parsedUrl.path || '/'}`,
-                origin: 'auto.http.bun.serve',
-                ...ctx,
-                data,
-                metadata: {
-                  // eslint-disable-next-line deprecation/deprecation
-                  ...ctx.metadata,
-                  request: {
-                    url,
-                    method: request.method,
-                    headers: request.headers.toJSON(),
-                  },
-                },
               },
               async span => {
                 try {
@@ -90,15 +101,11 @@ function instrumentBunServeOptions(serveOptions: Parameters<typeof Bun.serve>[0]
                     typeof serveOptions.fetch
                   >);
                   if (response && response.status) {
-                    span?.setHttpStatus(response.status);
-                    span?.setAttribute('http.response.status_code', response.status);
-                    if (span instanceof Transaction) {
-                      const scope = getCurrentScope();
-                      scope.setContext('response', {
-                        headers: response.headers.toJSON(),
-                        status_code: response.status,
-                      });
-                    }
+                    setHttpStatus(span, response.status);
+                    isolationScope.setContext('response', {
+                      headers: response.headers.toJSON(),
+                      status_code: response.status,
+                    });
                   }
                   return response;
                 } catch (e) {

@@ -3,18 +3,18 @@ import { expect } from '@playwright/test';
 import { sentryTest } from '../../../../../utils/fixtures';
 import { envelopeRequestParser, waitForErrorRequest } from '../../../../../utils/helpers';
 import {
-  getCustomRecordingEvents,
+  collectReplayRequests,
+  getReplayPerformanceSpans,
   shouldSkipReplayTest,
-  waitForReplayRequest,
 } from '../../../../../utils/replayHelpers';
 
-sentryTest('captures correct timestamps', async ({ getLocalTestPath, page, browserName }) => {
+sentryTest('captures correct timestamps', async ({ getLocalTestUrl, page, browserName }) => {
   // These are a bit flaky on non-chromium browsers
   if (shouldSkipReplayTest() || browserName !== 'chromium') {
     sentryTest.skip();
   }
 
-  await page.route('**/foo', route => {
+  await page.route('http://sentry-test.io/foo', route => {
     return route.fulfill({
       status: 200,
     });
@@ -30,30 +30,29 @@ sentryTest('captures correct timestamps', async ({ getLocalTestPath, page, brows
   });
 
   const requestPromise = waitForErrorRequest(page);
-  const replayRequestPromise1 = waitForReplayRequest(page, 0);
+  const replayRequestPromise = collectReplayRequests(page, recordingEvents => {
+    return getReplayPerformanceSpans(recordingEvents).some(span => span.op === 'resource.fetch');
+  });
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname, skipDsnRouteHandler: true });
   await page.goto(url);
 
   await page.evaluate(() => {
-    /* eslint-disable */
-    fetch('http://localhost:7654/foo', {
+    fetch('http://sentry-test.io/foo', {
       method: 'POST',
       body: '{"foo":"bar"}',
     }).then(() => {
       // @ts-expect-error Sentry is a global
       Sentry.captureException('test error');
     });
-    /* eslint-enable */
   });
 
   const request = await requestPromise;
   const eventData = envelopeRequestParser(request);
 
-  const replayReq1 = await replayRequestPromise1;
-  const { performanceSpans: performanceSpans1 } = getCustomRecordingEvents(replayReq1);
+  const { replayRecordingSnapshots } = await replayRequestPromise;
 
-  const xhrSpan = performanceSpans1.find(span => span.op === 'resource.fetch')!;
+  const xhrSpan = getReplayPerformanceSpans(replayRecordingSnapshots).find(span => span.op === 'resource.fetch')!;
 
   expect(xhrSpan).toBeDefined();
 

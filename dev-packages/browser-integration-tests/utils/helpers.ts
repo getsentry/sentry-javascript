@@ -1,7 +1,16 @@
 import type { Page, Request } from '@playwright/test';
-import type { EnvelopeItemType, Event, EventEnvelopeHeaders } from '@sentry/types';
+import { parseEnvelope } from '@sentry/core';
+import type {
+  Envelope,
+  EnvelopeItem,
+  EnvelopeItemType,
+  Event,
+  EventEnvelope,
+  EventEnvelopeHeaders,
+  TransactionEvent,
+} from '@sentry/core';
 
-const envelopeUrlRegex = /\.sentry\.io\/api\/\d+\/envelope\//;
+export const envelopeUrlRegex = /\.sentry\.io\/api\/\d+\/envelope\//;
 
 export const envelopeParser = (request: Request | null): unknown[] => {
   // https://develop.sentry.dev/sdk/envelopes/
@@ -19,6 +28,63 @@ export const envelopeParser = (request: Request | null): unknown[] => {
 
 export const envelopeRequestParser = <T = Event>(request: Request | null, envelopeIndex = 2): T => {
   return envelopeParser(request)[envelopeIndex] as T;
+};
+
+/**
+ * The above envelope parser does not follow the envelope spec...
+ * ...but modifying it to follow the spec breaks a lot of the test which rely on the current indexing behavior.
+ *
+ * This parser is a temporary solution to allow us to test metrics with statsd envelopes.
+ *
+ * Eventually, all the tests should be migrated to use this 'proper' envelope parser!
+ */
+export const properEnvelopeParser = (request: Request | null): EnvelopeItem[] => {
+  // https://develop.sentry.dev/sdk/envelopes/
+  const envelope = request?.postData() || '';
+
+  const [, items] = parseEnvelope(envelope);
+
+  return items;
+};
+
+export type EventAndTraceHeader = [Event, EventEnvelopeHeaders['trace']];
+
+/**
+ * Returns the first event item and `trace` envelope header from an envelope.
+ * This is particularly helpful if you want to test dynamic sampling and trace propagation-related cases.
+ */
+export const eventAndTraceHeaderRequestParser = (request: Request | null): EventAndTraceHeader => {
+  const envelope = properFullEnvelopeParser<EventEnvelope>(request);
+  return getEventAndTraceHeader(envelope);
+};
+
+const properFullEnvelopeParser = <T extends Envelope>(request: Request | null): T => {
+  // https://develop.sentry.dev/sdk/envelopes/
+  const envelope = request?.postData() || '';
+
+  return parseEnvelope(envelope) as T;
+};
+
+function getEventAndTraceHeader(envelope: EventEnvelope): EventAndTraceHeader {
+  const event = envelope[1][0]?.[1] as Event | undefined;
+  const trace = envelope[0]?.trace;
+
+  if (!event || !trace) {
+    throw new Error('Could not get event or trace from envelope');
+  }
+
+  return [event, trace];
+}
+
+export const properEnvelopeRequestParser = <T = Event>(request: Request | null, envelopeIndex = 1): T => {
+  return properEnvelopeParser(request)[0]?.[envelopeIndex] as T;
+};
+
+export const properFullEnvelopeRequestParser = <T extends Envelope>(request: Request | null): T => {
+  // https://develop.sentry.dev/sdk/envelopes/
+  const envelope = request?.postData() || '';
+
+  return parseEnvelope(envelope) as T;
 };
 
 export const envelopeHeaderRequestParser = (request: Request | null): EventEnvelopeHeaders => {
@@ -82,14 +148,27 @@ export const countEnvelopes = async (
 };
 
 /**
- * Run script at the given path inside the test environment.
+ * Run script inside the test environment.
+ * This is useful for throwing errors in the test environment.
+ *
+ * Errors thrown from this function are not guaranteed to be captured by Sentry, especially in Webkit.
  *
  * @param {Page} page
- * @param {string} path
+ * @param {{ path?: string; content?: string }} impl
  * @return {*}  {Promise<void>}
  */
-async function runScriptInSandbox(page: Page, path: string): Promise<void> {
-  await page.addScriptTag({ path });
+async function runScriptInSandbox(
+  page: Page,
+  impl: {
+    path?: string;
+    content?: string;
+  },
+): Promise<void> {
+  try {
+    await page.addScriptTag({ path: impl.path, content: impl.content });
+  } catch (e) {
+    // no-op
+  }
 }
 
 /**
@@ -118,7 +197,7 @@ export async function waitForTransactionRequestOnUrl(page: Page, url: string): P
   return req;
 }
 
-export function waitForErrorRequest(page: Page): Promise<Request> {
+export function waitForErrorRequest(page: Page, callback?: (event: Event) => boolean): Promise<Request> {
   return page.waitForRequest(req => {
     const postData = req.postData();
     if (!postData) {
@@ -128,14 +207,25 @@ export function waitForErrorRequest(page: Page): Promise<Request> {
     try {
       const event = envelopeRequestParser(req);
 
-      return !event.type;
+      if (event.type) {
+        return false;
+      }
+
+      if (callback) {
+        return callback(event);
+      }
+
+      return true;
     } catch {
       return false;
     }
   });
 }
 
-export function waitForTransactionRequest(page: Page): Promise<Request> {
+export function waitForTransactionRequest(
+  page: Page,
+  callback?: (event: TransactionEvent) => boolean,
+): Promise<Request> {
   return page.waitForRequest(req => {
     const postData = req.postData();
     if (!postData) {
@@ -145,7 +235,15 @@ export function waitForTransactionRequest(page: Page): Promise<Request> {
     try {
       const event = envelopeRequestParser(req);
 
-      return event.type === 'transaction';
+      if (event.type !== 'transaction') {
+        return false;
+      }
+
+      if (callback) {
+        return callback(event as TransactionEvent);
+      }
+
+      return true;
     } catch {
       return false;
     }
@@ -165,9 +263,41 @@ export function shouldSkipTracingTest(): boolean {
 }
 
 /**
+ * Today we always run feedback tests, but this can be used to guard this if we ever need to.
+ */
+export function shouldSkipFeedbackTest(): boolean {
+  // We always run these, in bundles the pluggable integration is automatically added
+  return false;
+}
+
+/**
+ * We can only test metrics tests in certain bundles/packages:
+ * - NPM (ESM, CJS)
+ * - CDN bundles that include tracing
+ *
+ * @returns `true` if we should skip the metrics test
+ */
+export function shouldSkipMetricsTest(): boolean {
+  const bundle = process.env.PW_BUNDLE as string | undefined;
+  return bundle != null && !bundle.includes('tracing') && !bundle.includes('esm') && !bundle.includes('cjs');
+}
+
+/**
+ * We only test feature flags integrations in certain bundles/packages:
+ * - NPM (ESM, CJS)
+ * - Not CDNs.
+ *
+ * @returns `true` if we should skip the feature flags test
+ */
+export function shouldSkipFeatureFlagsTest(): boolean {
+  const bundle = process.env.PW_BUNDLE as string | undefined;
+  return bundle != null && !bundle.includes('esm') && !bundle.includes('cjs');
+}
+
+/**
  * Waits until a number of requests matching urlRgx at the given URL arrive.
- * If the timout option is configured, this function will abort waiting, even if it hasn't reveived the configured
- * amount of requests, and returns all the events recieved up to that point in time.
+ * If the timeout option is configured, this function will abort waiting, even if it hasn't received the configured
+ * amount of requests, and returns all the events received up to that point in time.
  */
 async function getMultipleRequests<T>(
   page: Page,
@@ -261,30 +391,14 @@ async function getFirstSentryEnvelopeRequest<T>(
   url?: string,
   requestParser: (req: Request) => T = envelopeRequestParser as (req: Request) => T,
 ): Promise<T> {
-  return (await getMultipleSentryEnvelopeRequests<T>(page, 1, { url }, requestParser))[0];
+  const reqs = await getMultipleSentryEnvelopeRequests<T>(page, 1, { url }, requestParser);
+
+  const req = reqs[0];
+  if (!req) {
+    throw new Error('No request found');
+  }
+
+  return req;
 }
 
-/**
- * Manually inject a script into the page of given URL.
- * This function is useful to create more complex test subjects that can't be achieved by pre-built pages.
- * The given script should be vanilla browser JavaScript
- *
- * @param {Page} page
- * @param {string} url
- * @param {string} scriptPath
- * @return {*}  {Promise<Array<Event>>}
- */
-async function injectScriptAndGetEvents(page: Page, url: string, scriptPath: string): Promise<Array<Event>> {
-  await page.goto(url);
-  await runScriptInSandbox(page, scriptPath);
-
-  return getSentryEvents(page);
-}
-
-export {
-  runScriptInSandbox,
-  getMultipleSentryEnvelopeRequests,
-  getFirstSentryEnvelopeRequest,
-  getSentryEvents,
-  injectScriptAndGetEvents,
-};
+export { runScriptInSandbox, getMultipleSentryEnvelopeRequests, getFirstSentryEnvelopeRequest, getSentryEvents };

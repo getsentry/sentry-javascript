@@ -1,0 +1,117 @@
+{
+  "name": "@sentry/aws-serverless",
+  "version": "8.43.0",
+  "description": "Official Sentry SDK for AWS Lambda and AWS Serverless Environments",
+  "repository": "git://github.com/getsentry/sentry-javascript.git",
+  "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/serverless",
+  "author": "Sentry",
+  "license": "MIT",
+  "engines": {
+    "node": ">=14.18"
+  },
+  "files": [
+    "/build/npm",
+    "/build/import-hook.mjs",
+    "/build/loader-hook.mjs"
+  ],
+  "main": "build/npm/cjs/index.js",
+  "types": "build/npm/types/index.d.ts",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "import": {
+        "types": "./build/npm/types/index.d.ts",
+        "default": "./build/npm/esm/index.js"
+      },
+      "require": {
+        "types": "./build/npm/types/index.d.ts",
+        "default": "./build/npm/cjs/index.js"
+      }
+    },
+    "./import": {
+      "import": {
+        "default": "./build/import-hook.mjs"
+      }
+    },
+    "./loader": {
+      "import": {
+        "default": "./build/loader-hook.mjs"
+      }
+    },
+    "./awslambda-auto": {
+      "require": {
+        "default": "./build/npm/cjs/awslambda-auto.js"
+      },
+      "import": {
+        "default": "./build/npm/esm/awslambda-auto.js"
+      }
+    },
+    "./dist/awslambda-auto": {
+      "//": "@deprecated Use `./awslambda-auto` instead",
+      "require": {
+        "default": "./build/npm/cjs/awslambda-auto.js"
+      }
+    }
+  },
+  "typesVersions": {
+    "<4.9": {
+      "build/npm/types/index.d.ts": [
+        "build/npm/types-ts3.8/index.d.ts"
+      ]
+    }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@opentelemetry/api": "^1.9.0",
+    "@opentelemetry/instrumentation": "^0.56.0",
+    "@opentelemetry/instrumentation-aws-lambda": "0.49.0",
+    "@opentelemetry/instrumentation-aws-sdk": "0.48.0",
+    "@sentry/core": "8.43.0",
+    "@sentry/node": "8.43.0",
+    "@types/aws-lambda": "^8.10.62"
+  },
+  "devDependencies": {
+    "@types/node": "^14.18.0"
+  },
+  "scripts": {
+    "build": "run-p build:transpile build:types build:bundle",
+    "build:bundle": "yarn build:layer",
+    "build:layer": "yarn ts-node scripts/buildLambdaLayer.ts",
+    "build:dev": "run-p build:transpile build:types",
+    "build:transpile": "rollup -c rollup.npm.config.mjs && yarn build:layer",
+    "build:types": "run-s build:types:core build:types:downlevel",
+    "build:types:core": "tsc -p tsconfig.types.json",
+    "build:types:downlevel": "yarn downlevel-dts build/npm/types build/npm/types-ts3.8 --to ts3.8",
+    "build:watch": "run-p build:transpile:watch build:types:watch",
+    "build:dev:watch": "yarn build:watch",
+    "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",
+    "build:types:watch": "tsc -p tsconfig.types.json --watch",
+    "build:tarball": "npm pack",
+    "circularDepCheck": "madge --circular src/index.ts",
+    "clean": "rimraf build dist-awslambda-layer coverage sentry-serverless-*.tgz",
+    "fix": "eslint . --format stylish --fix",
+    "lint": "eslint . --format stylish",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "yalc:publish": "yalc publish --push --sig"
+  },
+  "volta": {
+    "extends": "../../package.json"
+  },
+  "sideEffects": false,
+  "nx": {
+    "targets": {
+      "build:bundle": {
+        "dependsOn": [
+          "build:transpile",
+          "build:types"
+        ],
+        "outputs": [
+          "{projectRoot}/build/aws"
+        ]
+      }
+    }
+  }
+}

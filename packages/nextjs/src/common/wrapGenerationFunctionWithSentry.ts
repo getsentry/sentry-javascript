@@ -1,20 +1,29 @@
+import type { RequestEventData, WebFetchHeaders } from '@sentry/core';
 import {
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  addTracingExtensions,
+  SPAN_STATUS_ERROR,
+  SPAN_STATUS_OK,
+  Scope,
   captureException,
-  continueTrace,
+  generateSpanId,
+  generateTraceId,
+  getActiveSpan,
+  getCapturedScopesOnSpan,
   getClient,
-  getCurrentScope,
+  getRootSpan,
   handleCallbackErrors,
-  runWithAsyncContext,
+  propagationContextFromHeaders,
+  setCapturedScopesOnSpan,
   startSpanManual,
+  winterCGHeadersToDict,
+  withIsolationScope,
+  withScope,
 } from '@sentry/core';
-import type { WebFetchHeaders } from '@sentry/types';
-import { winterCGHeadersToDict } from '@sentry/utils';
-
 import type { GenerationFunctionContext } from '../common/types';
 import { isNotFoundNavigationError, isRedirectNavigationError } from './nextNavigationErrorUtils';
-import { commonObjectToPropagationContext } from './utils/commonObjectTracing';
+import { TRANSACTION_ATTR_SENTRY_TRACE_BACKFILL } from './span-attributes-with-logic-attached';
+import { commonObjectToIsolationScope, commonObjectToPropagationContext } from './utils/tracingUtils';
 
 /**
  * Wraps a generation function (e.g. generateMetadata) with Sentry error and performance instrumentation.
@@ -24,16 +33,25 @@ export function wrapGenerationFunctionWithSentry<F extends (...args: any[]) => a
   generationFunction: F,
   context: GenerationFunctionContext,
 ): F {
-  addTracingExtensions();
   const { requestAsyncStorage, componentRoute, componentType, generationFunctionIdentifier } = context;
   return new Proxy(generationFunction, {
     apply: (originalFunction, thisArg, args) => {
+      const requestTraceId = getActiveSpan()?.spanContext().traceId;
       let headers: WebFetchHeaders | undefined = undefined;
       // We try-catch here just in case anything goes wrong with the async storage here goes wrong since it is Next.js internal API
       try {
         headers = requestAsyncStorage?.getStore()?.headers;
       } catch (e) {
         /** empty */
+      }
+
+      const isolationScope = commonObjectToIsolationScope(headers);
+
+      const activeSpan = getActiveSpan();
+      if (activeSpan) {
+        const rootSpan = getRootSpan(activeSpan);
+        const { scope } = getCapturedScopesOnSpan(rootSpan);
+        setCapturedScopesOnSpan(rootSpan, scope ?? new Scope(), isolationScope);
       }
 
       let data: Record<string, unknown> | undefined = undefined;
@@ -45,70 +63,79 @@ export function wrapGenerationFunctionWithSentry<F extends (...args: any[]) => a
         data = { params, searchParams };
       }
 
-      return runWithAsyncContext(() => {
-        const transactionContext = continueTrace({
-          baggage: headers?.get('baggage'),
-          sentryTrace: headers?.get('sentry-trace') ?? undefined,
-        });
+      const headersDict = headers ? winterCGHeadersToDict(headers) : undefined;
 
-        // If there is no incoming trace, we are setting the transaction context to one that is shared between all other
-        // transactions for this request. We do this based on the `headers` object, which is the same for all components.
-        const propagationContext = getCurrentScope().getPropagationContext();
-        if (!transactionContext.traceId && !transactionContext.parentSpanId) {
-          const { traceId: commonTraceId, spanId: commonSpanId } = commonObjectToPropagationContext(
+      return withIsolationScope(isolationScope, () => {
+        return withScope(scope => {
+          scope.setTransactionName(`${componentType}.${generationFunctionIdentifier} (${componentRoute})`);
+
+          isolationScope.setSDKProcessingMetadata({
+            normalizedRequest: {
+              headers: headersDict,
+            } satisfies RequestEventData,
+          });
+
+          const activeSpan = getActiveSpan();
+          if (activeSpan) {
+            const rootSpan = getRootSpan(activeSpan);
+            const sentryTrace = headersDict?.['sentry-trace'];
+            if (sentryTrace) {
+              rootSpan.setAttribute(TRANSACTION_ATTR_SENTRY_TRACE_BACKFILL, sentryTrace);
+            }
+          }
+
+          const propagationContext = commonObjectToPropagationContext(
             headers,
-            propagationContext,
+            headersDict?.['sentry-trace']
+              ? propagationContextFromHeaders(headersDict['sentry-trace'], headersDict['baggage'])
+              : {
+                  traceId: requestTraceId || generateTraceId(),
+                  spanId: generateSpanId(),
+                },
           );
-          transactionContext.traceId = commonTraceId;
-          transactionContext.parentSpanId = commonSpanId;
-        }
+          scope.setPropagationContext(propagationContext);
 
-        return startSpanManual(
-          {
-            op: 'function.nextjs',
-            name: `${componentType}.${generationFunctionIdentifier} (${componentRoute})`,
-            origin: 'auto.function.nextjs',
-            ...transactionContext,
-            data,
-            attributes: {
-              [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
-            },
-            metadata: {
-              // eslint-disable-next-line deprecation/deprecation
-              ...transactionContext.metadata,
-              request: {
-                headers: headers ? winterCGHeadersToDict(headers) : undefined,
+          scope.setExtra('route_data', data);
+
+          return startSpanManual(
+            {
+              op: 'function.nextjs',
+              name: `${componentType}.${generationFunctionIdentifier} (${componentRoute})`,
+              attributes: {
+                [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+                [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nextjs',
               },
             },
-          },
-          span => {
-            return handleCallbackErrors(
-              () => originalFunction.apply(thisArg, args),
-              err => {
-                if (isNotFoundNavigationError(err)) {
-                  // We don't want to report "not-found"s
-                  span?.setStatus('not_found');
-                } else if (isRedirectNavigationError(err)) {
-                  // We don't want to report redirects
-                  span?.setStatus('ok');
-                } else {
-                  span?.setStatus('internal_error');
-                  captureException(err, {
-                    mechanism: {
-                      handled: false,
-                      data: {
-                        function: 'wrapGenerationFunctionWithSentry',
+            span => {
+              return handleCallbackErrors(
+                () => originalFunction.apply(thisArg, args),
+                err => {
+                  // When you read this code you might think: "Wait a minute, shouldn't we set the status on the root span too?"
+                  // The answer is: "No." - The status of the root span is determined by whatever status code Next.js decides to put on the response.
+                  if (isNotFoundNavigationError(err)) {
+                    // We don't want to report "not-found"s
+                    span.setStatus({ code: SPAN_STATUS_ERROR, message: 'not_found' });
+                    getRootSpan(span).setStatus({ code: SPAN_STATUS_ERROR, message: 'not_found' });
+                  } else if (isRedirectNavigationError(err)) {
+                    // We don't want to report redirects
+                    span.setStatus({ code: SPAN_STATUS_OK });
+                  } else {
+                    span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+                    getRootSpan(span).setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+                    captureException(err, {
+                      mechanism: {
+                        handled: false,
                       },
-                    },
-                  });
-                }
-              },
-              () => {
-                span?.end();
-              },
-            );
-          },
-        );
+                    });
+                  }
+                },
+                () => {
+                  span.end();
+                },
+              );
+            },
+          );
+        });
       });
     },
   });

@@ -4,10 +4,10 @@
   "description": "",
   "main": "index.js",
   "engines": {
-    "node": ">=12"
+    "node": ">=16"
   },
   "scripts": {
-    "db-up": "docker-compose up -d",
+    "db-up": "docker compose up -d",
     "generate": "prisma generate",
     "migrate": "prisma migrate dev -n sentry-test",
     "setup": "run-s --silent db-up generate migrate"
@@ -16,7 +16,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@prisma/client": "3.12.0",
-    "prisma": "^3.12.0"
+    "@prisma/client": "5.9.1",
+    "prisma": "^5.9.1"
   }
 }

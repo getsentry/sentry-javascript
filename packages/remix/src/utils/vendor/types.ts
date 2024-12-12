@@ -61,7 +61,7 @@ export type RemixRequestState = {
 
 export type RemixRequest = Request &
   Record<symbol | string, RemixRequestState> & {
-    agent: Agent | ((parsedURL: URL) => Agent) | undefined;
+    agent?: Agent | ((parsedURL: URL) => Agent) | undefined;
   };
 
 export type AppLoadContext = Record<string, unknown> & { __sentry_express_wrapped__?: boolean };
@@ -78,7 +78,7 @@ export type ExpressResponse = Express.Response;
 export type ExpressNextFunction = Express.NextFunction;
 
 export interface Route {
-  index?: boolean;
+  index: false | undefined;
   caseSensitive?: boolean;
   id: string;
   parentId?: string;
@@ -208,10 +208,6 @@ export interface DataFunctionArgs {
 
 export interface DataFunction {
   (args: DataFunctionArgs): Promise<Response> | Response | Promise<AppData> | AppData;
-}
-
-export interface ReactRouterDomPkg {
-  matchRoutes: (routes: ServerRoute[], pathname: string) => RouteMatch<ServerRoute>[] | null;
 }
 
 // Taken from Remix Implementation

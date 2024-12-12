@@ -1,13 +1,13 @@
 import { expect } from '@playwright/test';
-import type { Event } from '@sentry/types';
+import type { Event } from '@sentry/core';
 
 import { sentryTest } from '../../../../utils/fixtures';
 import { getFirstSentryEnvelopeRequest } from '../../../../utils/helpers';
 
 sentryTest(
   'should assign request and response context from a failed 500 XHR request',
-  async ({ getLocalTestPath, page }) => {
-    const url = await getLocalTestPath({ testDir: __dirname });
+  async ({ getLocalTestUrl, page }) => {
+    const url = await getLocalTestUrl({ testDir: __dirname });
 
     await page.route('**/foo', route => {
       return route.fulfill({
@@ -44,7 +44,7 @@ sentryTest(
         ],
       },
       request: {
-        url: 'http://localhost:7654/foo',
+        url: 'http://sentry-test.io/foo',
         method: 'GET',
         headers: {
           accept: 'application/json',

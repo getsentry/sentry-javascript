@@ -8,7 +8,11 @@ export const ErrorBoundary: V2_ErrorBoundaryComponent = () => {
 
   captureRemixErrorBoundaryError(error);
 
-  return <div>error</div>;
+  return (
+    <div>
+      <span id="error-header">ErrorBoundary Error</span>
+    </div>
+  );
 };
 
 export const meta: V2_MetaFunction = ({ data }) => [

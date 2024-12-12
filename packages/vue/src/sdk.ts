@@ -1,14 +1,22 @@
-import { SDK_VERSION, defaultIntegrations, init as browserInit } from '@sentry/browser';
+import { SDK_VERSION, getDefaultIntegrations, init as browserInit } from '@sentry/browser';
 
-import { VueIntegration } from './integration';
+import type { Client } from '@sentry/core';
+import { vueIntegration } from './integration';
 import type { Options, TracingOptions } from './types';
 
 /**
  * Inits the Vue SDK
  */
 export function init(
-  config: Partial<Omit<Options, 'tracingOptions'> & { tracingOptions: Partial<TracingOptions> }> = {},
-): void {
+  config: Partial<
+    Omit<Options, 'tracingOptions'> & {
+      /**
+       * @deprecated Add the `vueIntegration()` and pass the `tracingOptions` there instead.
+       */
+      tracingOptions: Partial<TracingOptions>;
+    }
+  > = {},
+): Client | undefined {
   const options = {
     _metadata: {
       sdk: {
@@ -22,9 +30,9 @@ export function init(
         version: SDK_VERSION,
       },
     },
-    defaultIntegrations: [...defaultIntegrations, new VueIntegration()],
+    defaultIntegrations: [...getDefaultIntegrations(config), vueIntegration()],
     ...config,
   };
 
-  browserInit(options);
+  return browserInit(options);
 }

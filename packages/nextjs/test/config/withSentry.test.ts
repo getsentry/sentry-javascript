@@ -1,13 +1,9 @@
 import * as SentryCore from '@sentry/core';
-import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, addTracingExtensions } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 import type { NextApiRequest, NextApiResponse } from 'next';
 
 import type { AugmentedNextApiResponse, NextApiHandler } from '../../src/common/types';
-import { withSentry } from '../../src/server';
-
-// The wrap* functions require the hub to have tracing extensions. This is normally called by the NodeClient
-// constructor but the client isn't used in these tests.
-addTracingExtensions();
+import { wrapApiHandlerWithSentry } from '../../src/server';
 
 const startSpanManualSpy = jest.spyOn(SentryCore, 'startSpanManual');
 
@@ -18,8 +14,7 @@ describe('withSentry', () => {
     res.send('Good dog, Maisey!');
   };
 
-  // eslint-disable-next-line deprecation/deprecation
-  const wrappedHandlerNoError = withSentry(origHandlerNoError);
+  const wrappedHandlerNoError = wrapApiHandlerWithSentry(origHandlerNoError, '/my-parameterized-route');
 
   beforeEach(() => {
     req = { url: 'http://dogs.are.great' } as NextApiRequest;
@@ -28,7 +23,10 @@ describe('withSentry', () => {
         this.end();
       },
       end: function (this: AugmentedNextApiResponse) {
+        // eslint-disable-next-line deprecation/deprecation
         this.finished = true;
+        // @ts-expect-error This is a mock
+        this.writableEnded = true;
       },
     } as unknown as AugmentedNextApiResponse;
   });
@@ -38,20 +36,17 @@ describe('withSentry', () => {
   });
 
   describe('tracing', () => {
-    it('starts a transaction and sets metadata when tracing is enabled', async () => {
+    it('starts a transaction when tracing is enabled', async () => {
       await wrappedHandlerNoError(req, res);
       expect(startSpanManualSpy).toHaveBeenCalledWith(
-        {
-          name: 'GET http://dogs.are.great',
+        expect.objectContaining({
+          name: 'GET /my-parameterized-route',
           op: 'http.server',
-          origin: 'auto.http.nextjs',
           attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.nextjs',
           },
-          metadata: {
-            request: expect.objectContaining({ url: 'http://dogs.are.great' }),
-          },
-        },
+        }),
         expect.any(Function),
       );
     });

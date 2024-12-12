@@ -1,30 +1,37 @@
 // We export everything from both the client part of the SDK and from the server part.
-// Some of the exports collide, which is not allowed, unless we redifine the colliding
+// Some of the exports collide, which is not allowed, unless we redefine the colliding
 // exports in this file - which we do below.
 export * from './index.client';
 export * from './index.server';
+export * from '@sentry/node';
 
-import type { Integration, Options, StackParser } from '@sentry/types';
+import type { NodeOptions } from '@sentry/node';
+
+import type { Client, Integration, Options, StackParser } from '@sentry/core';
 
 import type * as clientSdk from './index.client';
 import type * as serverSdk from './index.server';
 import sentryAstro from './index.server';
 
 /** Initializes Sentry Astro SDK */
-export declare function init(options: Options | clientSdk.BrowserOptions | serverSdk.NodeOptions): void;
+export declare function init(options: Options | clientSdk.BrowserOptions | NodeOptions): Client | undefined;
 
-// We export a merged Integrations object so that users can (at least typing-wise) use all integrations everywhere.
-export declare const Integrations: typeof clientSdk.Integrations & typeof serverSdk.Integrations;
+export declare const linkedErrorsIntegration: typeof clientSdk.linkedErrorsIntegration;
+export declare const contextLinesIntegration: typeof clientSdk.contextLinesIntegration;
 
-export declare const defaultIntegrations: Integration[];
+export declare const getDefaultIntegrations: (options: Options) => Integration[];
 export declare const defaultStackParser: StackParser;
 
 export declare function close(timeout?: number | undefined): PromiseLike<boolean>;
 export declare function flush(timeout?: number | undefined): PromiseLike<boolean>;
 
-/**
- * @deprecated This function will be removed in the next major version of the Sentry SDK.
- */
-export declare function lastEventId(): string | undefined;
+// eslint-disable-next-line deprecation/deprecation
+export declare const getCurrentHub: typeof clientSdk.getCurrentHub;
+export declare const getClient: typeof clientSdk.getClient;
+export declare const continueTrace: typeof clientSdk.continueTrace;
 
+export declare const Span: clientSdk.Span;
+
+// eslint-disable-next-line deprecation/deprecation
+export declare const metrics: typeof clientSdk.metrics & typeof serverSdk;
 export default sentryAstro;

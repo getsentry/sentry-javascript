@@ -5,11 +5,11 @@ import { getOwnConfig, isDevelopingApp, macroCondition } from '@embroider/macros
 import { startSpan } from '@sentry/browser';
 import type { BrowserOptions } from '@sentry/browser';
 import * as Sentry from '@sentry/browser';
-import { SDK_VERSION } from '@sentry/browser';
-import { GLOBAL_OBJ } from '@sentry/utils';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, applySdkMetadata } from '@sentry/core';
+import { GLOBAL_OBJ } from '@sentry/core';
 import Ember from 'ember';
 
-import type { Transaction } from '@sentry/types';
+import type { Client, TransactionSource } from '@sentry/core';
 import type { EmberSentryConfig, GlobalConfig, OwnConfig } from './types';
 
 function _getSentryInitConfig(): EmberSentryConfig['sentry'] {
@@ -18,7 +18,10 @@ function _getSentryInitConfig(): EmberSentryConfig['sentry'] {
   return _global.__sentryEmberConfig;
 }
 
-export function InitSentryForEmber(_runtimeConfig?: BrowserOptions): void {
+/**
+ * Initialize the Sentry SDK for Ember.
+ */
+export function init(_runtimeConfig?: BrowserOptions): Client | undefined {
   const environmentConfig = getOwnConfig<OwnConfig>().sentryConfig;
 
   assert('Missing configuration.', environmentConfig);
@@ -33,27 +36,17 @@ export function InitSentryForEmber(_runtimeConfig?: BrowserOptions): void {
   Object.assign(environmentConfig.sentry, _runtimeConfig || {});
   const initConfig = Object.assign({}, environmentConfig.sentry);
 
-  initConfig._metadata = initConfig._metadata || {};
-  initConfig._metadata.sdk = {
-    name: 'sentry.javascript.ember',
-    packages: [
-      {
-        name: 'npm:@sentry/ember',
-        version: SDK_VERSION,
-      },
-    ],
-    version: SDK_VERSION,
-  };
+  applySdkMetadata(initConfig, 'ember');
 
   // Persist Sentry init options so they are identical when performance initializers call init again.
   const sentryInitConfig = _getSentryInitConfig();
   Object.assign(sentryInitConfig, initConfig);
 
-  Sentry.init(initConfig);
+  const client = Sentry.init(initConfig);
 
   if (macroCondition(isDevelopingApp())) {
     if (environmentConfig.ignoreEmberOnErrorWarning) {
-      return;
+      return client;
     }
     next(null, function () {
       warn(
@@ -65,17 +58,9 @@ export function InitSentryForEmber(_runtimeConfig?: BrowserOptions): void {
       );
     });
   }
-}
 
-/**
- * Grabs active transaction off scope.
- *
- * @deprecated You should not rely on the transaction, but just use `startSpan()` APIs instead.
- */
-export const getActiveTransaction = (): Transaction | undefined => {
-  // eslint-disable-next-line deprecation/deprecation
-  return Sentry.getCurrentScope().getTransaction();
-};
+  return client;
+}
 
 type RouteConstructor = new (...args: ConstructorParameters<typeof Route>) => Route;
 
@@ -83,15 +68,20 @@ export const instrumentRoutePerformance = <T extends RouteConstructor>(BaseRoute
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const instrumentFunction = async <X extends (...args: unknown[]) => any>(
     op: string,
-    description: string,
+    name: string,
     fn: X,
     args: Parameters<X>,
+    source: TransactionSource,
   ): Promise<ReturnType<X>> => {
     return startSpan(
       {
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.ember',
+        },
         op,
-        name: description,
-        origin: 'auto.ui.ember',
+        name,
+        onlyIfParent: true,
       },
       () => {
         return fn(...args);
@@ -110,15 +100,22 @@ export const instrumentRoutePerformance = <T extends RouteConstructor>(BaseRoute
           this.fullRouteName,
           super.beforeModel.bind(this),
           args,
+          'custom',
         );
       }
 
       public async model(...args: unknown[]): Promise<unknown> {
-        return instrumentFunction('ui.ember.route.model', this.fullRouteName, super.model.bind(this), args);
+        return instrumentFunction('ui.ember.route.model', this.fullRouteName, super.model.bind(this), args, 'custom');
       }
 
       public afterModel(...args: unknown[]): void | Promise<unknown> {
-        return instrumentFunction('ui.ember.route.after_model', this.fullRouteName, super.afterModel.bind(this), args);
+        return instrumentFunction(
+          'ui.ember.route.after_model',
+          this.fullRouteName,
+          super.afterModel.bind(this),
+          args,
+          'custom',
+        );
       }
 
       public setupController(...args: unknown[]): void | Promise<unknown> {
@@ -127,6 +124,7 @@ export const instrumentRoutePerformance = <T extends RouteConstructor>(BaseRoute
           this.fullRouteName,
           super.setupController.bind(this),
           args,
+          'custom',
         );
       }
     },
@@ -134,6 +132,3 @@ export const instrumentRoutePerformance = <T extends RouteConstructor>(BaseRoute
 };
 
 export * from '@sentry/browser';
-
-// init is now the preferred way to call initialization for this addon.
-export const init = InitSentryForEmber;

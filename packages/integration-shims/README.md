@@ -6,4 +6,5 @@
 
 # Sentry Integration Shims
 
-This internal package exports shims for Integrations, which are used in order to guarantee a consistent CDN bundle output.
+This internal package exports shims for Integrations, which are used in order to guarantee a consistent CDN bundle
+output.

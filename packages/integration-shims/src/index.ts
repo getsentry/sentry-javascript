@@ -1,3 +1,4 @@
-export { Feedback } from './Feedback';
-export { Replay } from './Replay';
-export { BrowserTracing, addTracingExtensions } from './BrowserTracing';
+export { feedbackIntegrationShim } from './Feedback';
+export { replayIntegrationShim } from './Replay';
+export { browserTracingIntegrationShim } from './BrowserTracing';
+export { metricsShim } from './metrics';

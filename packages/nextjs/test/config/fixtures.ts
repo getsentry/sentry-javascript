@@ -3,7 +3,6 @@ import type {
   EntryPropertyFunction,
   ExportedNextConfig,
   NextConfigObject,
-  NextConfigObjectWithSentry,
   WebpackConfigObject,
 } from '../../src/config/types';
 
@@ -14,6 +13,7 @@ export const EDGE_SDK_CONFIG_FILE = 'sentry.edge.config.js';
 /** Mock next config object */
 export const userNextConfig: NextConfigObject = {
   publicRuntimeConfig: { location: 'dogpark', activities: ['fetch', 'chasing', 'digging'] },
+  pageExtensions: ['jsx', 'js', 'tsx', 'ts', 'custom.jsx', 'custom.js', 'custom.tsx', 'custom.ts'],
   webpack: (incomingWebpackConfig: WebpackConfigObject, _options: BuildContext) => ({
     ...incomingWebpackConfig,
     mode: 'universal-sniffing',
@@ -26,7 +26,7 @@ export const userNextConfig: NextConfigObject = {
 };
 
 /** Mocks of the arguments passed to `withSentryConfig` */
-export const exportedNextConfig = userNextConfig as NextConfigObjectWithSentry;
+export const exportedNextConfig = userNextConfig;
 export const userSentryWebpackPluginConfig = { org: 'squirrelChasers', project: 'simulator' };
 process.env.SENTRY_AUTH_TOKEN = 'dogsarebadatkeepingsecrets';
 process.env.SENTRY_RELEASE = 'doGsaREgReaT';

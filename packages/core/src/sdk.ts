@@ -1,8 +1,8 @@
-import type { Client, ClientOptions } from '@sentry/types';
-import { consoleSandbox, logger } from '@sentry/utils';
+import { getCurrentScope } from './currentScopes';
+import type { Client, ClientOptions } from './types-hoist';
 
 import { DEBUG_BUILD } from './debug-build';
-import { getCurrentHub } from './hub';
+import { consoleSandbox, logger } from './utils-hoist/logger';
 
 /** A class object that can instantiate Client objects. */
 export type ClientClass<F extends Client, O extends ClientOptions> = new (options: O) => F;
@@ -17,7 +17,7 @@ export type ClientClass<F extends Client, O extends ClientOptions> = new (option
 export function initAndBind<F extends Client, O extends ClientOptions>(
   clientClass: ClientClass<F, O>,
   options: O,
-): void {
+): Client {
   if (options.debug === true) {
     if (DEBUG_BUILD) {
       logger.enable();
@@ -29,38 +29,18 @@ export function initAndBind<F extends Client, O extends ClientOptions>(
       });
     }
   }
-  const hub = getCurrentHub();
-  // eslint-disable-next-line deprecation/deprecation
-  const scope = hub.getScope();
+  const scope = getCurrentScope();
   scope.update(options.initialScope);
 
   const client = new clientClass(options);
   setCurrentClient(client);
-  initializeClient(client);
+  client.init();
+  return client;
 }
 
 /**
  * Make the given client the current client.
  */
 export function setCurrentClient(client: Client): void {
-  const hub = getCurrentHub();
-  // eslint-disable-next-line deprecation/deprecation
-  const top = hub.getStackTop();
-  top.client = client;
-  top.scope.setClient(client);
-}
-
-/**
- * Initialize the client for the current scope.
- * Make sure to call this after `setCurrentClient()`.
- */
-function initializeClient(client: Client): void {
-  if (client.init) {
-    client.init();
-    // TODO v8: Remove this fallback
-    // eslint-disable-next-line deprecation/deprecation
-  } else if (client.setupIntegrations) {
-    // eslint-disable-next-line deprecation/deprecation
-    client.setupIntegrations();
-  }
+  getCurrentScope().setClient(client);
 }

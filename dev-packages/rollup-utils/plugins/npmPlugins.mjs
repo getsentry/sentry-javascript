@@ -7,20 +7,35 @@
  * Sucrase plugin docs: https://github.com/rollup/plugins/tree/master/packages/sucrase
  */
 
+import * as fs from 'fs';
+import * as path from 'path';
+
+import json from '@rollup/plugin-json';
 import replace from '@rollup/plugin-replace';
-import sucrase from '@rollup/plugin-sucrase';
 import cleanup from 'rollup-plugin-cleanup';
+import sucrase from './vendor/sucrase-plugin.mjs';
 
 /**
  * Create a plugin to transpile TS syntax using `sucrase`.
  *
  * @returns An instance of the `@rollup/plugin-sucrase` plugin
  */
-export function makeSucrasePlugin(options = {}) {
-  return sucrase({
-    transforms: ['typescript', 'jsx'],
-    ...options,
-  });
+export function makeSucrasePlugin(options = {}, sucraseOptions = {}) {
+  return sucrase(
+    {
+      // Required for bundling OTEL code properly
+      exclude: ['**/*.json'],
+      ...options,
+    },
+    {
+      transforms: ['typescript', 'jsx'],
+      ...sucraseOptions,
+    },
+  );
+}
+
+export function makeJsonPlugin() {
+  return json();
 }
 
 /**
@@ -107,6 +122,19 @@ export function makeDebugBuildStatementReplacePlugin() {
 }
 
 /**
+ * Because jest doesn't like `import.meta` statements but we still need it in the code base we instead use a magic
+ * string that we replace with import.meta.url in the build.
+ */
+export function makeImportMetaUrlReplacePlugin() {
+  return replace({
+    preventAssignment: false,
+    values: {
+      __IMPORT_META_URL_REPLACEMENT__: 'import.meta.url',
+    },
+  });
+}
+
+/**
  * Creates a plugin to replace build flags of rrweb with either a constant (if passed true/false) or with a safe statement that:
  * a) evaluates to `true`
  * b) can easily be modified by our users' bundlers to evaluate to false, facilitating the treeshaking of logger code.
@@ -128,6 +156,21 @@ export function makeRrwebBuildPlugin({ excludeShadowDom, excludeIframe } = {}) {
   return replace({
     preventAssignment: true,
     values,
+  });
+}
+
+/**
+ * Plugin that uploads bundle analysis to codecov.
+ *
+ * @param type The type of bundle being uploaded.
+ * @param prefix The prefix for the codecov bundle name. Defaults to 'npm'.
+ */
+export function makeCodeCovPlugin() {
+  const packageJson = JSON.parse(fs.readFileSync(path.resolve(process.cwd(), './package.json'), { encoding: 'utf8' }));
+  return codecovRollupPlugin({
+    enableBundleAnalysis: process.env.CODECOV_TOKEN !== undefined,
+    bundleName: packageJson.name,
+    uploadToken: process.env.CODECOV_TOKEN,
   });
 }
 

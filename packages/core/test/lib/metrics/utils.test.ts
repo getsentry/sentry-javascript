@@ -4,7 +4,7 @@ import {
   GAUGE_METRIC_TYPE,
   SET_METRIC_TYPE,
 } from '../../../src/metrics/constants';
-import { getBucketKey } from '../../../src/metrics/utils';
+import { getBucketKey, sanitizeTags } from '../../../src/metrics/utils';
 
 describe('getBucketKey', () => {
   it.each([
@@ -17,5 +17,27 @@ describe('getBucketKey', () => {
     [SET_METRIC_TYPE, 'important_org_ids', 'none', { numericKey: '2' }, 'simportant_org_idsnonenumericKey,2'],
   ])('should return', (metricType, name, unit, tags, expected) => {
     expect(getBucketKey(metricType, name, unit, tags)).toEqual(expected);
+  });
+
+  it('should sanitize tags', () => {
+    const inputTags = {
+      'f-oo|bar': '%$foo/',
+      'foo$.$.$bar': 'blah{}',
+      'foö-bar': 'snöwmän',
+      route: 'GET /foo',
+      __bar__: 'this | or , that',
+      'foo/': 'hello!\n\r\t\\',
+    };
+
+    const outputTags = {
+      'f-oobar': '%$foo/',
+      'foo..bar': 'blah{}',
+      'fo-bar': 'snöwmän',
+      route: 'GET /foo',
+      __bar__: 'this \\u{7c} or \\u{2c} that',
+      'foo/': 'hello!\\n\\r\\t\\\\',
+    };
+
+    expect(sanitizeTags(inputTags)).toEqual(outputTags);
   });
 });

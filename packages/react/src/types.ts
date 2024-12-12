@@ -1,6 +1,6 @@
 // Disabling `no-explicit-any` for the whole file as `any` has became common requirement.
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import type { Transaction, TransactionContext } from '@sentry/types';
+import type { ReactElement } from 'react';
 
 export type Action = 'PUSH' | 'REPLACE' | 'POP';
 
@@ -8,12 +8,6 @@ export type Location = {
   pathname: string;
   action?: Action;
 } & Record<string, any>;
-
-export type ReactRouterInstrumentation = <T extends Transaction>(
-  startTransaction: (context: TransactionContext) => T | undefined,
-  startTransactionOnPageLoad?: boolean,
-  startTransactionOnLocationChange?: boolean,
-) => void;
 
 // React Router v6 Vendored Types
 export interface NonIndexRouteObject {
@@ -70,11 +64,11 @@ export type UseLocation = () => Location;
 export type UseNavigationType = () => Action;
 
 // For both of these types, use `any` instead of `RouteObject[]` or `RouteMatch[]`.
-// Have to do this so we maintain backwards compatability between
+// Have to do this so we maintain backwards compatibility between
 // react-router > 6.0.0 and >= 6.4.2.
 export type RouteObjectArrayAlias = any;
 export type RouteMatchAlias = any;
-export type CreateRoutesFromChildren = (children: JSX.Element[]) => RouteObjectArrayAlias;
+export type CreateRoutesFromChildren = (children: ReactElement[]) => RouteObjectArrayAlias;
 export type MatchRoutes = (
   routes: RouteObjectArrayAlias,
   location: Location,

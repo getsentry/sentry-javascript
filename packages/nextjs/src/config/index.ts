@@ -1,2 +1,2 @@
-export type { SentryWebpackPluginOptions } from './types';
 export { withSentryConfig } from './withSentryConfig';
+export type { SentryBuildOptions } from './types';

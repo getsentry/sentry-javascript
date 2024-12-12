@@ -1,17 +1,18 @@
+import type { Page, Request, Response } from '@playwright/test';
 /* eslint-disable max-lines */
-import type { fullSnapshotEvent, incrementalSnapshotEvent } from '@sentry-internal/rrweb';
-import { EventType } from '@sentry-internal/rrweb';
-import type { ReplayEventWithTime } from '@sentry/browser';
+import type { ReplayCanvasIntegrationOptions } from '@sentry-internal/replay-canvas';
 import type {
   InternalEventContext,
   RecordingEvent,
   ReplayContainer,
   ReplayPluginOptions,
   Session,
-} from '@sentry/replay/build/npm/types/types';
-import type { Breadcrumb, Event, ReplayEvent, ReplayRecordingMode } from '@sentry/types';
+} from '@sentry-internal/replay/build/npm/types/types';
+import type { fullSnapshotEvent, incrementalSnapshotEvent } from '@sentry-internal/rrweb';
+import { EventType } from '@sentry-internal/rrweb';
+import type { ReplayEventWithTime } from '@sentry/browser';
+import type { Breadcrumb, Event, ReplayEvent, ReplayRecordingMode } from '@sentry/core';
 import pako from 'pako';
-import type { Page, Request, Response } from 'playwright';
 
 import { envelopeRequestParser } from './helpers';
 
@@ -104,6 +105,49 @@ export function waitForReplayRequest(
 }
 
 /**
+ * Collect replay requests until a given callback is satisfied.
+ * This can be used to ensure we wait correctly,
+ *  when we don't know in which request a certain replay event/snapshot will be.
+ */
+export function collectReplayRequests(
+  page: Page,
+  callback: (replayRecordingEvents: RecordingSnapshot[], replayEvents: ReplayEvent[]) => boolean,
+): Promise<{ replayEvents: ReplayEvent[]; replayRecordingSnapshots: RecordingSnapshot[] }> {
+  const replayEvents: ReplayEvent[] = [];
+  const replayRecordingSnapshots: RecordingSnapshot[] = [];
+
+  // eslint-disable-next-line @typescript-eslint/no-floating-promises
+  const promise = page.waitForResponse(res => {
+    const req = res.request();
+
+    const event = getReplayEventFromRequest(req);
+
+    if (!event) {
+      return false;
+    }
+
+    replayEvents.push(event);
+    replayRecordingSnapshots.push(...getDecompressedRecordingEvents(req));
+
+    try {
+      return callback(replayRecordingSnapshots, replayEvents);
+    } catch {
+      return false;
+    }
+  });
+
+  const replayRequestPromise = async (): Promise<{
+    replayEvents: ReplayEvent[];
+    replayRecordingSnapshots: RecordingSnapshot[];
+  }> => {
+    await promise;
+    return { replayEvents, replayRecordingSnapshots };
+  };
+
+  return replayRequestPromise();
+}
+
+/**
  * Wait until a callback returns true, collecting all replay responses along the way.
  * This can be useful when you don't know if stuff will be in one or multiple replay requests.
  */
@@ -174,12 +218,17 @@ export function getReplaySnapshot(page: Page): Promise<{
   _isEnabled: boolean;
   _context: InternalEventContext;
   _options: ReplayPluginOptions;
+  _canvas: ReplayCanvasIntegrationOptions | undefined;
   _hasCanvas: boolean;
   session: Session | undefined;
   recordingMode: ReplayRecordingMode;
 }> {
   return page.evaluate(() => {
-    const replayIntegration = (window as unknown as Window & { Replay: { _replay: ReplayContainer } }).Replay;
+    const replayIntegration = (
+      window as unknown as Window & {
+        Replay: { _replay: ReplayContainer & { _canvas: ReplayCanvasIntegrationOptions | undefined } };
+      }
+    ).Replay;
     const replay = replayIntegration._replay;
 
     const replaySnapshot = {
@@ -187,8 +236,9 @@ export function getReplaySnapshot(page: Page): Promise<{
       _isEnabled: replay.isEnabled(),
       _context: replay.getContext(),
       _options: replay.getOptions(),
+      _canvas: replay['_canvas'],
       // We cannot pass the function through as this is serialized
-      _hasCanvas: typeof replay.getOptions()._experiments.canvas?.manager === 'function',
+      _hasCanvas: typeof replay['_canvas']?.getCanvasManager === 'function',
       session: replay.session,
       recordingMode: replay.recordingMode,
     };
@@ -239,14 +289,14 @@ function getAllCustomRrwebRecordingEvents(recordingEvents: RecordingEvent[]): Cu
   return recordingEvents.filter(isCustomSnapshot).map(event => event.data);
 }
 
-function getReplayBreadcrumbs(recordingEvents: RecordingSnapshot[], category?: string): Breadcrumb[] {
+export function getReplayBreadcrumbs(recordingEvents: RecordingSnapshot[], category?: string): Breadcrumb[] {
   return getAllCustomRrwebRecordingEvents(recordingEvents)
     .filter(data => data.tag === 'breadcrumb')
     .map(data => data.payload)
     .filter(payload => !category || payload.category === category);
 }
 
-function getReplayPerformanceSpans(recordingEvents: RecordingEvent[]): PerformanceSpan[] {
+export function getReplayPerformanceSpans(recordingEvents: RecordingSnapshot[]): PerformanceSpan[] {
   return getAllCustomRrwebRecordingEvents(recordingEvents)
     .filter(data => data.tag === 'performanceSpan')
     .map(data => data.payload) as PerformanceSpan[];

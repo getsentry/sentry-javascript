@@ -23,6 +23,11 @@ function one(name) {
     name,
     num: 5,
   };
+  const bool = false;
+  const num = 0;
+  const str = '';
+  const something = undefined;
+  const somethingElse = null;
 
   const ty = new Some();
 

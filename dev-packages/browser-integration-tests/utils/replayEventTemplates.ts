@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/explicit-function-return-type */
 import { expect } from '@playwright/test';
 import { SDK_VERSION } from '@sentry/browser';
-import type { ReplayEvent } from '@sentry/types';
+import type { ReplayEvent } from '@sentry/core';
 
 const DEFAULT_REPLAY_EVENT = {
   type: 'replay_event',
@@ -16,24 +16,25 @@ const DEFAULT_REPLAY_EVENT = {
   event_id: expect.stringMatching(/\w{32}/),
   environment: 'production',
   sdk: {
-    integrations: [
+    integrations: expect.arrayContaining([
       'InboundFilters',
       'FunctionToString',
-      'TryCatch',
+      'BrowserApiErrors',
       'Breadcrumbs',
       'GlobalHandlers',
       'LinkedErrors',
       'Dedupe',
       'HttpContext',
+      'BrowserSession',
       'Replay',
-    ],
+    ]),
     version: SDK_VERSION,
     name: 'sentry.javascript.browser',
   },
   request: {
     url: expect.stringContaining('/index.html'),
     headers: {
-      'User-Agent': expect.stringContaining(''),
+      'User-Agent': expect.any(String),
     },
   },
   platform: 'javascript',
@@ -44,7 +45,7 @@ const DEFAULT_REPLAY_EVENT = {
  * This is useful for testing multi-segment replays to not repeat most of the properties that don't change
  * throughout the replay segments.
  *
- * Note: The benfit of this approach over expect.objectContaining is that,
+ * Note: The benefit of this approach over expect.objectContaining is that,
  *       we'll catch if properties we expect to stay the same actually change.
  *
  * @param customExpectedReplayEvent overwrite the default values with custom values (e.g. segment_id)
@@ -60,7 +61,7 @@ export function getExpectedReplayEvent(customExpectedReplayEvent: Partial<Replay
 
 export const expectedNavigationPerformanceSpan = {
   op: 'navigation.navigate',
-  description: '',
+  description: expect.any(String),
   startTimestamp: expect.any(Number),
   endTimestamp: expect.any(Number),
   data: {
@@ -88,7 +89,7 @@ export const expectedNavigationPushPerformanceSpan = {
 
 export const expectedReloadPerformanceSpan = {
   op: 'navigation.reload',
-  description: '',
+  description: expect.any(String),
   startTimestamp: expect.any(Number),
   endTimestamp: expect.any(Number),
   data: {
@@ -121,14 +122,55 @@ export const expectedMemoryPerformanceSpan = {
 };
 
 export const expectedLCPPerformanceSpan = {
-  op: 'largest-contentful-paint',
+  op: 'web-vital',
   description: 'largest-contentful-paint',
   startTimestamp: expect.any(Number),
   endTimestamp: expect.any(Number),
   data: {
     value: expect.any(Number),
-    nodeId: expect.any(Number),
+    nodeIds: expect.any(Array),
+    rating: expect.any(String),
     size: expect.any(Number),
+  },
+};
+
+export const expectedCLSPerformanceSpan = {
+  op: 'web-vital',
+  description: 'cumulative-layout-shift',
+  startTimestamp: expect.any(Number),
+  endTimestamp: expect.any(Number),
+  data: {
+    value: expect.any(Number),
+    nodeIds: expect.any(Array),
+    attributions: expect.any(Array),
+    rating: expect.any(String),
+    size: expect.any(Number),
+  },
+};
+
+export const expectedFIDPerformanceSpan = {
+  op: 'web-vital',
+  description: 'first-input-delay',
+  startTimestamp: expect.any(Number),
+  endTimestamp: expect.any(Number),
+  data: {
+    value: expect.any(Number),
+    rating: expect.any(String),
+    size: expect.any(Number),
+    nodeIds: expect.any(Array),
+  },
+};
+
+export const expectedINPPerformanceSpan = {
+  op: 'web-vital',
+  description: 'interaction-to-next-paint',
+  startTimestamp: expect.any(Number),
+  endTimestamp: expect.any(Number),
+  data: {
+    value: expect.any(Number),
+    rating: expect.any(String),
+    size: expect.any(Number),
+    nodeIds: expect.any(Array),
   },
 };
 

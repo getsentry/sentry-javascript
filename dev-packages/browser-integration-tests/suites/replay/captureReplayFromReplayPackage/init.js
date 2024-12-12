@@ -1,8 +1,8 @@
+import { replayIntegration } from '@sentry-internal/replay';
 import * as Sentry from '@sentry/browser';
-import { Replay } from '@sentry/replay';
 
 window.Sentry = Sentry;
-window.Replay = new Replay({
+window.Replay = replayIntegration({
   flushMinDelay: 200,
   flushMaxDelay: 200,
   minReplayDuration: 0,

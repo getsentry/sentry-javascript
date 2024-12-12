@@ -1,23 +1,33 @@
 {
   "name": "@sentry/svelte",
-  "version": "7.93.0",
+  "version": "8.43.0",
   "description": "Official Sentry SDK for Svelte",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/svelte",
   "author": "Sentry",
   "license": "MIT",
   "engines": {
-    "node": ">=8"
+    "node": ">=14.18"
   },
   "files": [
-    "cjs",
-    "esm",
-    "types",
-    "types-ts3.8"
+    "/build"
   ],
   "main": "build/cjs/index.js",
   "module": "build/esm/index.js",
   "types": "build/types/index.d.ts",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "import": {
+        "types": "./build/types/index.d.ts",
+        "default": "./build/esm/index.js"
+      },
+      "require": {
+        "types": "./build/types/index.d.ts",
+        "default": "./build/cjs/index.js"
+      }
+    }
+  },
   "typesVersions": {
     "<4.9": {
       "build/types/index.d.ts": [
@@ -29,19 +39,17 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/browser": "7.93.0",
-    "@sentry/core": "7.93.0",
-    "@sentry/types": "7.93.0",
-    "@sentry/utils": "7.93.0",
+    "@sentry/browser": "8.43.0",
+    "@sentry/core": "8.43.0",
     "magic-string": "^0.30.0"
   },
   "peerDependencies": {
-    "svelte": "3.x || 4.x"
+    "svelte": "3.x || 4.x || 5.x"
   },
   "devDependencies": {
+    "@sveltejs/vite-plugin-svelte": "1.4.0",
     "@testing-library/svelte": "^3.2.1",
-    "svelte": "3.49.0",
-    "svelte-jester": "^2.3.2"
+    "svelte": "3.49.0"
   },
   "scripts": {
     "build": "run-p build:transpile build:types",
@@ -54,14 +62,14 @@
     "build:dev:watch": "yarn build:watch",
     "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",
     "build:types:watch": "tsc -p tsconfig.types.json --watch",
-    "build:tarball": "ts-node ../../scripts/prepack.ts && npm pack ./build",
+    "build:tarball": "npm pack",
     "circularDepCheck": "madge --circular src/index.ts",
     "clean": "rimraf build coverage sentry-svelte-*.tgz",
     "fix": "eslint . --format stylish --fix",
     "lint": "eslint . --format stylish",
-    "test": "jest",
-    "test:watch": "jest --watch",
-    "yalc:publish": "ts-node ../../scripts/prepack.ts && yalc publish build --push --sig"
+    "test": "vitest run",
+    "test:watch": "vitest --watch",
+    "yalc:publish": "yalc publish --push --sig"
   },
   "volta": {
     "extends": "../../package.json"

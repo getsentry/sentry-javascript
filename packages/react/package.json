@@ -1,23 +1,33 @@
 {
   "name": "@sentry/react",
-  "version": "7.93.0",
+  "version": "8.43.0",
   "description": "Official Sentry SDK for React.js",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/react",
   "author": "Sentry",
   "license": "MIT",
   "engines": {
-    "node": ">=8"
+    "node": ">=14.18"
   },
   "files": [
-    "cjs",
-    "esm",
-    "types",
-    "types-ts3.8"
+    "/build"
   ],
   "main": "build/cjs/index.js",
   "module": "build/esm/index.js",
   "types": "build/types/index.d.ts",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "import": {
+        "types": "./build/types/index.d.ts",
+        "default": "./build/esm/index.js"
+      },
+      "require": {
+        "types": "./build/types/index.d.ts",
+        "default": "./build/cjs/index.js"
+      }
+    }
+  },
   "typesVersions": {
     "<4.9": {
       "build/types/index.d.ts": [
@@ -29,23 +39,21 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/browser": "7.93.0",
-    "@sentry/core": "7.93.0",
-    "@sentry/types": "7.93.0",
-    "@sentry/utils": "7.93.0",
+    "@sentry/browser": "8.43.0",
+    "@sentry/core": "8.43.0",
     "hoist-non-react-statics": "^3.3.2"
   },
   "peerDependencies": {
-    "react": "15.x || 16.x || 17.x || 18.x"
+    "react": "^16.14.0 || 17.x || 18.x || 19.x"
   },
   "devDependencies": {
     "@testing-library/react": "^13.0.0",
     "@testing-library/react-hooks": "^7.0.2",
     "@types/history-4": "npm:@types/history@4.7.8",
     "@types/history-5": "npm:@types/history@4.7.8",
-    "@types/hoist-non-react-statics": "^3.3.1",
-    "@types/node-fetch": "^2.6.0",
-    "@types/react": "^17.0.3",
+    "@types/hoist-non-react-statics": "^3.3.5",
+    "@types/node-fetch": "^2.6.11",
+    "@types/react": "17.0.3",
     "@types/react-router-3": "npm:@types/react-router@3.0.24",
     "@types/react-router-4": "npm:@types/react-router@5.1.14",
     "@types/react-router-5": "npm:@types/react-router@5.1.14",
@@ -53,7 +61,7 @@
     "eslint-plugin-react-hooks": "^4.0.8",
     "history-4": "npm:history@4.6.0",
     "history-5": "npm:history@4.9.0",
-    "node-fetch": "^2.6.0",
+    "node-fetch": "^2.6.7",
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
     "react-router-3": "npm:react-router@3.2.0",
@@ -74,14 +82,14 @@
     "build:dev:watch": "yarn build:watch",
     "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",
     "build:types:watch": "tsc -p tsconfig.types.json --watch",
-    "build:tarball": "ts-node ../../scripts/prepack.ts && npm pack ./build",
+    "build:tarball": "npm pack",
     "circularDepCheck": "madge --circular src/index.ts",
     "clean": "rimraf build coverage sentry-react-*.tgz",
     "fix": "eslint . --format stylish --fix",
     "lint": "eslint . --format stylish",
     "test": "jest",
     "test:watch": "jest --watch",
-    "yalc:publish": "ts-node ../../scripts/prepack.ts && yalc publish build --push --sig"
+    "yalc:publish": "yalc publish --push --sig"
   },
   "volta": {
     "extends": "../../package.json"

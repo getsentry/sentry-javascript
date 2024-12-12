@@ -1,15 +1,21 @@
-import * as util from 'util';
-import { addBreadcrumb, convertIntegrationFnToClass, getClient } from '@sentry/core';
-import type { Client, Integration, IntegrationClass, IntegrationFn } from '@sentry/types';
-import { addConsoleInstrumentationHandler, severityLevelFromString } from '@sentry/utils';
+import * as util from 'node:util';
+import {
+  addBreadcrumb,
+  addConsoleInstrumentationHandler,
+  defineIntegration,
+  getClient,
+  severityLevelFromString,
+  truncate,
+} from '@sentry/core';
 
 const INTEGRATION_NAME = 'Console';
 
-const consoleIntegration = (() => {
+/**
+ * Capture console logs as breadcrumbs.
+ */
+export const consoleIntegration = defineIntegration(() => {
   return {
     name: INTEGRATION_NAME,
-    // TODO v8: Remove this
-    setupOnce() {}, // eslint-disable-line @typescript-eslint/no-empty-function
     setup(client) {
       addConsoleInstrumentationHandler(({ args, level }) => {
         if (getClient() !== client) {
@@ -20,7 +26,7 @@ const consoleIntegration = (() => {
           {
             category: 'console',
             level: severityLevelFromString(level),
-            message: util.format.apply(undefined, args),
+            message: truncate(util.format.apply(undefined, args), 2048), // 2KB
           },
           {
             input: [...args],
@@ -30,10 +36,4 @@ const consoleIntegration = (() => {
       });
     },
   };
-}) satisfies IntegrationFn;
-
-/** Console module integration */
-// eslint-disable-next-line deprecation/deprecation
-export const Console = convertIntegrationFnToClass(INTEGRATION_NAME, consoleIntegration) as IntegrationClass<
-  Integration & { setup: (client: Client) => void }
->;
+});

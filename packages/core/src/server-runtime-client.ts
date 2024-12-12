@@ -8,25 +8,26 @@ import type {
   MonitorConfig,
   ParameterizedString,
   SerializedCheckIn,
-  Severity,
   SeverityLevel,
   TraceContext,
-} from '@sentry/types';
-import { eventFromMessage, eventFromUnknownInput, logger, resolvedSyncPromise, uuid4 } from '@sentry/utils';
+} from './types-hoist';
 
 import { BaseClient } from './baseclient';
 import { createCheckInEnvelope } from './checkin';
+import { getIsolationScope, getTraceContextFromScope } from './currentScopes';
 import { DEBUG_BUILD } from './debug-build';
-import { getClient } from './exports';
-import { MetricsAggregator } from './metrics/aggregator';
 import type { Scope } from './scope';
 import { SessionFlusher } from './sessionflusher';
 import {
-  addTracingExtensions,
-  getDynamicSamplingContextFromClient,
+  getDynamicSamplingContextFromScope,
   getDynamicSamplingContextFromSpan,
+  registerSpanErrorInstrumentation,
 } from './tracing';
-import { getRootSpan } from './utils/getRootSpan';
+import { eventFromMessage, eventFromUnknownInput } from './utils-hoist/eventbuilder';
+import { logger } from './utils-hoist/logger';
+import { uuid4 } from './utils-hoist/misc';
+import { resolvedSyncPromise } from './utils-hoist/syncpromise';
+import { _getSpanForScope } from './utils/spanOnScope';
 import { spanToTraceContext } from './utils/spanUtils';
 
 export interface ServerRuntimeClientOptions extends ClientOptions<BaseTransportOptions> {
@@ -41,6 +42,7 @@ export interface ServerRuntimeClientOptions extends ClientOptions<BaseTransportO
 export class ServerRuntimeClient<
   O extends ClientOptions & ServerRuntimeClientOptions = ServerRuntimeClientOptions,
 > extends BaseClient<O> {
+  // eslint-disable-next-line deprecation/deprecation
   protected _sessionFlusher: SessionFlusher | undefined;
 
   /**
@@ -49,20 +51,16 @@ export class ServerRuntimeClient<
    */
   public constructor(options: O) {
     // Server clients always support tracing
-    addTracingExtensions();
+    registerSpanErrorInstrumentation();
 
     super(options);
-
-    if (options._experiments && options._experiments['metricsAggregator']) {
-      this.metricsAggregator = new MetricsAggregator(this);
-    }
   }
 
   /**
    * @inheritDoc
    */
   public eventFromException(exception: unknown, hint?: EventHint): PromiseLike<Event> {
-    return resolvedSyncPromise(eventFromUnknownInput(getClient(), this._options.stackParser, exception, hint));
+    return resolvedSyncPromise(eventFromUnknownInput(this, this._options.stackParser, exception, hint));
   }
 
   /**
@@ -70,8 +68,7 @@ export class ServerRuntimeClient<
    */
   public eventFromMessage(
     message: ParameterizedString,
-    // eslint-disable-next-line deprecation/deprecation
-    level: Severity | SeverityLevel = 'info',
+    level: SeverityLevel = 'info',
     hint?: EventHint,
   ): PromiseLike<Event> {
     return resolvedSyncPromise(
@@ -82,13 +79,15 @@ export class ServerRuntimeClient<
   /**
    * @inheritDoc
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/explicit-module-boundary-types
-  public captureException(exception: any, hint?: EventHint, scope?: Scope): string | undefined {
-    // Check if the flag `autoSessionTracking` is enabled, and if `_sessionFlusher` exists because it is initialised only
-    // when the `requestHandler` middleware is used, and hence the expectation is to have SessionAggregates payload
-    // sent to the Server only when the `requestHandler` middleware is used
-    if (this._options.autoSessionTracking && this._sessionFlusher && scope) {
-      const requestSession = scope.getRequestSession();
+  public captureException(exception: unknown, hint?: EventHint, scope?: Scope): string {
+    // Check if `_sessionFlusher` exists because it is initialized (defined) only when the `autoSessionTracking` is enabled.
+    // The expectation is that session aggregates are only sent when `autoSessionTracking` is enabled.
+    // TODO(v9): Our goal in the future is to not have the `autoSessionTracking` option and instead rely on integrations doing the creation and sending of sessions. We will not have a central kill-switch for sessions.
+    // TODO(v9): This should move into the httpIntegration.
+    // eslint-disable-next-line deprecation/deprecation
+    if (this._options.autoSessionTracking && this._sessionFlusher) {
+      // eslint-disable-next-line deprecation/deprecation
+      const requestSession = getIsolationScope().getRequestSession();
 
       // Necessary checks to ensure this is code block is executed only within a request
       // Should override the status only if `requestSession.status` is `Ok`, which is its initial stage
@@ -103,18 +102,21 @@ export class ServerRuntimeClient<
   /**
    * @inheritDoc
    */
-  public captureEvent(event: Event, hint?: EventHint, scope?: Scope): string | undefined {
-    // Check if the flag `autoSessionTracking` is enabled, and if `_sessionFlusher` exists because it is initialised only
-    // when the `requestHandler` middleware is used, and hence the expectation is to have SessionAggregates payload
-    // sent to the Server only when the `requestHandler` middleware is used
-    if (this._options.autoSessionTracking && this._sessionFlusher && scope) {
+  public captureEvent(event: Event, hint?: EventHint, scope?: Scope): string {
+    // Check if `_sessionFlusher` exists because it is initialized only when the `autoSessionTracking` is enabled.
+    // The expectation is that session aggregates are only sent when `autoSessionTracking` is enabled.
+    // TODO(v9): Our goal in the future is to not have the `autoSessionTracking` option and instead rely on integrations doing the creation and sending of sessions. We will not have a central kill-switch for sessions.
+    // TODO(v9): This should move into the httpIntegration.
+    // eslint-disable-next-line deprecation/deprecation
+    if (this._options.autoSessionTracking && this._sessionFlusher) {
       const eventType = event.type || 'exception';
       const isException =
         eventType === 'exception' && event.exception && event.exception.values && event.exception.values.length > 0;
 
       // If the event is of type Exception, then a request session should be captured
       if (isException) {
-        const requestSession = scope.getRequestSession();
+        // eslint-disable-next-line deprecation/deprecation
+        const requestSession = getIsolationScope().getRequestSession();
 
         // Ensure that this is happening within the bounds of a request, and make sure not to override
         // Session Status if Errored / Crashed
@@ -138,12 +140,19 @@ export class ServerRuntimeClient<
     return super.close(timeout);
   }
 
-  /** Method that initialises an instance of SessionFlusher on Client */
+  /**
+   * Initializes an instance of SessionFlusher on the client which will aggregate and periodically flush session data.
+   *
+   * NOTICE: This method will implicitly create an interval that is periodically called.
+   * To clean up this resources, call `.close()` when you no longer intend to use the client.
+   * Not doing so will result in a memory leak.
+   */
   public initSessionFlusher(): void {
     const { release, environment } = this._options;
     if (!release) {
-      DEBUG_BUILD && logger.warn('Cannot initialise an instance of SessionFlusher if no release is provided!');
+      DEBUG_BUILD && logger.warn('Cannot initialize an instance of SessionFlusher if no release is provided!');
     } else {
+      // eslint-disable-next-line deprecation/deprecation
       this._sessionFlusher = new SessionFlusher(this, {
         release,
         environment,
@@ -186,6 +195,8 @@ export class ServerRuntimeClient<
         checkin_margin: monitorConfig.checkinMargin,
         max_runtime: monitorConfig.maxRuntime,
         timezone: monitorConfig.timezone,
+        failure_issue_threshold: monitorConfig.failureIssueThreshold,
+        recovery_threshold: monitorConfig.recoveryThreshold,
       };
     }
 
@@ -206,9 +217,9 @@ export class ServerRuntimeClient<
 
     DEBUG_BUILD && logger.info('Sending checkin:', checkIn.monitorSlug, checkIn.status);
 
-    // _sendEnvelope should not throw
+    // sendEnvelope should not throw
     // eslint-disable-next-line @typescript-eslint/no-floating-promises
-    this._sendEnvelope(envelope);
+    this.sendEnvelope(envelope);
 
     return id;
   }
@@ -216,6 +227,8 @@ export class ServerRuntimeClient<
   /**
    * Method responsible for capturing/ending a request session by calling `incrementSessionStatusCount` to increment
    * appropriate session aggregates bucket
+   *
+   * @deprecated This method should not be used or extended. It's functionality will move into the `httpIntegration` and not be part of any public API.
    */
   protected _captureRequestSession(): void {
     if (!this._sessionFlusher) {
@@ -253,30 +266,19 @@ export class ServerRuntimeClient<
   }
 
   /** Extract trace information from scope */
-  private _getTraceInfoFromScope(
+  protected _getTraceInfoFromScope(
     scope: Scope | undefined,
   ): [dynamicSamplingContext: Partial<DynamicSamplingContext> | undefined, traceContext: TraceContext | undefined] {
     if (!scope) {
       return [undefined, undefined];
     }
 
-    // eslint-disable-next-line deprecation/deprecation
-    const span = scope.getSpan();
-    if (span) {
-      const samplingContext = getRootSpan(span) ? getDynamicSamplingContextFromSpan(span) : undefined;
-      return [samplingContext, spanToTraceContext(span)];
-    }
+    const span = _getSpanForScope(scope);
 
-    const { traceId, spanId, parentSpanId, dsc } = scope.getPropagationContext();
-    const traceContext: TraceContext = {
-      trace_id: traceId,
-      span_id: spanId,
-      parent_span_id: parentSpanId,
-    };
-    if (dsc) {
-      return [dsc, traceContext];
-    }
-
-    return [getDynamicSamplingContextFromClient(traceId, this, scope), traceContext];
+    const traceContext = span ? spanToTraceContext(span) : getTraceContextFromScope(scope);
+    const dynamicSamplingContext = span
+      ? getDynamicSamplingContextFromSpan(span)
+      : getDynamicSamplingContextFromScope(this, scope);
+    return [dynamicSamplingContext, traceContext];
   }
 }

@@ -4,8 +4,8 @@ import { sentryTest } from '../../../utils/fixtures';
 import { shouldSkipTracingTest } from '../../../utils/helpers';
 
 sentryTest(
-  'exports a shim Integrations.BrowserTracing integration for non-tracing bundles',
-  async ({ getLocalTestPath, page }) => {
+  'exports a shim browserTracingIntegration() integration for non-tracing bundles',
+  async ({ getLocalTestUrl, page }) => {
     // Skip in tracing tests
     if (!shouldSkipTracingTest()) {
       sentryTest.skip();
@@ -24,13 +24,17 @@ sentryTest(
       });
     });
 
-    const url = await getLocalTestPath({ testDir: __dirname });
+    const url = await getLocalTestUrl({
+      testDir: __dirname,
+      skipDsnRouteHandler: true,
+      handleLazyLoadedFeedback: true,
+    });
 
     await page.goto(url);
 
     expect(requestCount).toBe(0);
     expect(consoleMessages).toEqual([
-      'You are using new BrowserTracing() even though this bundle does not include tracing.',
+      'You are using browserTracingIntegration() even though this bundle does not include tracing.',
     ]);
   },
 );

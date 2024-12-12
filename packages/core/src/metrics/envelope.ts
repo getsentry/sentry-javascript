@@ -1,6 +1,24 @@
-import type { DsnComponents, MetricBucketItem, SdkMetadata, StatsdEnvelope, StatsdItem } from '@sentry/types';
-import { createEnvelope, dsnToString } from '@sentry/utils';
+import type { Client, DsnComponents, MetricBucketItem, SdkMetadata, StatsdEnvelope, StatsdItem } from '../types-hoist';
+import { dsnToString } from '../utils-hoist/dsn';
+import { createEnvelope } from '../utils-hoist/envelope';
+import { logger } from '../utils-hoist/logger';
 import { serializeMetricBuckets } from './utils';
+
+/**
+ * Captures aggregated metrics to the supplied client.
+ */
+export function captureAggregateMetrics(client: Client, metricBucketItems: Array<MetricBucketItem>): void {
+  logger.log(`Flushing aggregated metrics, number of metrics: ${metricBucketItems.length}`);
+  const dsn = client.getDsn();
+  const metadata = client.getSdkMetadata();
+  const tunnel = client.getOptions().tunnel;
+
+  const metricsEnvelope = createMetricEnvelope(metricBucketItems, dsn, metadata, tunnel);
+
+  // sendEnvelope should not throw
+  // eslint-disable-next-line @typescript-eslint/no-floating-promises
+  client.sendEnvelope(metricsEnvelope);
+}
 
 /**
  * Create envelope from a metric aggregate.

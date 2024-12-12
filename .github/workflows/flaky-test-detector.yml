@@ -1,9 +1,9 @@
-name: 'Detect flaky tests'
+name: 'CI: Detect flaky tests'
 on:
   workflow_dispatch:
   pull_request:
     paths:
-      - 'dev-packages/browser-integration-tests/suites/**'
+      - 'dev-packages/browser-integration-tests/suites/**/test.ts'
     branches-ignore:
       - master
 
@@ -40,7 +40,7 @@ jobs:
         run: yarn install --ignore-engines --frozen-lockfile
 
       - name: NX cache
-        uses: actions/cache/restore@v3
+        uses: actions/cache/restore@v4
         with:
           path: .nxcache
           key: nx-Linux-${{ github.ref }}-${{ env.HEAD_COMMIT }}
@@ -49,38 +49,29 @@ jobs:
       - name: Build packages
         run: yarn build
 
-      - name: Get npm cache directory
-        id: npm-cache-dir
-        run: echo "dir=$(npm config get cache)" >> $GITHUB_OUTPUT
-      - name: Get Playwright version
-        id: playwright-version
-        run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> $GITHUB_OUTPUT
-      - uses: actions/cache@v3
-        name: Check if Playwright browser is cached
-        id: playwright-cache
-        with:
-          path: ${{ steps.npm-cache-dir.outputs.dir }}
-          key: ${{ runner.os }}-Playwright-${{steps.playwright-version.outputs.version}}
-      - name: Install Playwright browser if not cached
-        if: steps.playwright-cache.outputs.cache-hit != 'true'
-        run: npx playwright install --with-deps
-        env:
-          PLAYWRIGHT_BROWSERS_PATH: ${{steps.npm-cache-dir.outputs.dir}}
-      - name: Install OS dependencies of Playwright if cache hit
-        if: steps.playwright-cache.outputs.cache-hit == 'true'
-        run: npx playwright install-deps
+      - name: Install Playwright
+        uses: ./.github/actions/install-playwright
 
       - name: Determine changed tests
-        uses: getsentry/paths-filter@v2.11.1
+        uses: dorny/paths-filter@v3.0.1
         id: changed
         with:
           list-files: json
           filters: |
-            browser_integration: dev-packages/browser-integration-tests/suites/**
+            browser_integration: dev-packages/browser-integration-tests/suites/**/test.ts
 
       - name: Detect flaky tests
+        id: test
         run: yarn test:detect-flaky
         working-directory: dev-packages/browser-integration-tests
         env:
           CHANGED_TEST_PATHS: ${{ steps.changed.outputs.browser_integration_files }}
           TEST_RUN_COUNT: 'AUTO'
+
+      - name: Upload Playwright Traces
+        uses: actions/upload-artifact@v4
+        if: failure() && steps.test.outcome == 'failure'
+        with:
+          name: playwright-test-results
+          path: dev-packages/browser-integration-tests/test-results
+          retention-days: 5

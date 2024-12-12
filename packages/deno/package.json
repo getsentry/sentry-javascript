@@ -1,6 +1,6 @@
 {
   "name": "@sentry/deno",
-  "version": "7.93.0",
+  "version": "8.43.0",
   "description": "Official Sentry SDK for Deno",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/deno",
@@ -8,19 +8,23 @@
   "license": "MIT",
   "module": "build/index.mjs",
   "types": "build/index.d.ts",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "import": {
+        "types": "./build/index.d.ts",
+        "default": "./build/index.mjs"
+      }
+    }
+  },
   "publishConfig": {
     "access": "public"
   },
   "files": [
-    "index.mjs",
-    "index.mjs.map",
-    "index.d.ts"
+    "/build"
   ],
   "dependencies": {
-    "@sentry/browser": "7.93.0",
-    "@sentry/core": "7.93.0",
-    "@sentry/types": "7.93.0",
-    "@sentry/utils": "7.93.0"
+    "@sentry/core": "8.43.0"
   },
   "devDependencies": {
     "@rollup/plugin-typescript": "^11.1.5",
@@ -31,13 +35,13 @@
     "deno-types": "node ./scripts/download-deno-types.mjs",
     "build": "run-s build:transpile build:types",
     "build:dev": "yarn build",
-    "build:transpile": "yarn deno-types && rollup -c rollup.config.js",
+    "build:transpile": "yarn deno-types && rollup -c rollup.config.mjs",
     "build:types": "run-s deno-types build:types:tsc build:types:bundle",
     "build:types:tsc": "tsc -p tsconfig.types.json",
     "build:types:bundle": "rollup -c rollup.types.config.mjs",
-    "build:tarball": "ts-node ../../scripts/prepack.ts && npm pack ./build",
+    "build:tarball": "node ./scripts/prepack.js && npm pack ./build",
     "circularDepCheck": "madge --circular src/index.ts",
-    "clean": "rimraf build build-types build-test coverage",
+    "clean": "rimraf build build-types build-test coverage sentry-deno-*.tgz",
     "prefix": "yarn deno-types",
     "fix": "eslint . --format stylish --fix",
     "prelint": "yarn deno-types",
@@ -49,16 +53,23 @@
     "test:types": "deno check ./build/index.mjs",
     "test:unit": "deno test --allow-read --allow-run",
     "test:unit:update": "deno test --allow-read --allow-write --allow-run -- --update",
-    "yalc:publish": "ts-node ../../scripts/prepack.ts && yalc publish build --push --sig"
+    "yalc:publish": "node ./scripts/prepack.js && yalc publish build --push --sig"
   },
   "volta": {
     "extends": "../../package.json"
   },
   "sideEffects": false,
-  "madge": {
-    "detectiveOptions": {
-      "ts": {
-        "skipTypeImports": true
+  "nx": {
+    "targets": {
+      "build:transpile": {
+        "outputs": [
+          "{projectRoot}/build"
+        ]
+      },
+      "build:types": {
+        "outputs": [
+          "{projectRoot}/build-types"
+        ]
       }
     }
   }

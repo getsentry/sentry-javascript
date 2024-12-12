@@ -35,14 +35,6 @@ import { getCustomRecordingEvents, shouldSkipReplayTest, waitForReplayRequest } 
         sentryTest.skip();
       }
 
-      await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-        return route.fulfill({
-          status: 200,
-          contentType: 'application/json',
-          body: JSON.stringify({ id: 'test-id' }),
-        });
-      });
-
       const url = await getLocalTestUrl({ testDir: __dirname });
 
       await Promise.all([waitForReplayRequest(page, 0), page.goto(url)]);
@@ -54,7 +46,7 @@ import { getCustomRecordingEvents, shouldSkipReplayTest, waitForReplayRequest } 
           return breadcrumbs.some(breadcrumb => breadcrumb.category === 'ui.slowClickDetected');
         }),
 
-        page.click(`#${id}`),
+        page.locator(`#${id}`).click(),
       ]);
 
       const { breadcrumbs } = getCustomRecordingEvents(req1);
@@ -91,14 +83,6 @@ import { getCustomRecordingEvents, shouldSkipReplayTest, waitForReplayRequest } 
         sentryTest.skip();
       }
 
-      await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-        return route.fulfill({
-          status: 200,
-          contentType: 'application/json',
-          body: JSON.stringify({ id: 'test-id' }),
-        });
-      });
-
       const url = await getLocalTestUrl({ testDir: __dirname });
 
       await Promise.all([waitForReplayRequest(page, 0), page.goto(url)]);
@@ -109,7 +93,7 @@ import { getCustomRecordingEvents, shouldSkipReplayTest, waitForReplayRequest } 
 
           return breadcrumbs.some(breadcrumb => breadcrumb.category === 'ui.click');
         }),
-        page.click(`#${id}`),
+        page.locator(`#${id}`).click(),
       ]);
 
       const { breadcrumbs } = getCustomRecordingEvents(req1);

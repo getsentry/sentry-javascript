@@ -40,7 +40,7 @@ module.exports = {
 
         // Although for most codebases inferencing the return type is fine, we explicitly ask to annotate
         // all functions with a return type. This is so that intent is as clear as possible. We are guarding against
-        // cases where you accidently refactor a function's return type to be the wrong type.
+        // cases where you accidentally refactor a function's return type to be the wrong type.
         '@typescript-eslint/explicit-function-return-type': ['error', { allowExpressions: true }],
 
         // Consistent ordering of fields, methods and constructors for classes should be enforced
@@ -111,27 +111,27 @@ module.exports = {
           {
             name: 'window',
             message:
-              'Some global variables are not available in environments like WebWorker or Node.js. Use getGlobalObject() instead.',
+              'Some global variables are not available in environments like WebWorker or Node.js. Use GLOBAL_OBJ instead.',
           },
           {
             name: 'document',
             message:
-              'Some global variables are not available in environments like WebWorker or Node.js. Use getGlobalObject() instead.',
+              'Some global variables are not available in environments like WebWorker or Node.js. Use GLOBAL_OBJ instead.',
           },
           {
             name: 'location',
             message:
-              'Some global variables are not available in environments like WebWorker or Node.js. Use getGlobalObject() instead.',
+              'Some global variables are not available in environments like WebWorker or Node.js. Use GLOBAL_OBJ instead.',
           },
           {
             name: 'navigator',
             message:
-              'Some global variables are not available in environments like WebWorker or Node.js. Use getGlobalObject() instead.',
+              'Some global variables are not available in environments like WebWorker or Node.js. Use GLOBAL_OBJ instead.',
           },
         ],
 
         // We want to prevent optional chaining & nullish coalescing usage in our files
-        // to prevent uncessary bundle size. Turned off in tests.
+        // to prevent unnecessary bundle size. Turned off in tests.
         '@sentry-internal/sdk/no-optional-chaining': 'error',
         '@sentry-internal/sdk/no-nullish-coalescing': 'error',
 
@@ -150,9 +150,6 @@ module.exports = {
             publicOnly: true,
           },
         ],
-
-        // Do not allow usage of functions we do not polyfill for ES5
-        '@sentry-internal/sdk/no-unsupported-es6-methods': 'error',
 
         // Do not allow usage of class field initializers
         '@sentry-internal/sdk/no-class-field-initializers': 'error',
@@ -187,24 +184,8 @@ module.exports = {
         '@sentry-internal/sdk/no-optional-chaining': 'off',
         '@sentry-internal/sdk/no-nullish-coalescing': 'off',
         '@typescript-eslint/no-floating-promises': 'off',
-      },
-    },
-    {
-      // Configuration only for test files (this won't apply to utils or other files in test directories)
-      plugins: ['jest'],
-      env: {
-        jest: true,
-      },
-      files: ['test.ts', '*.test.ts', '*.test.tsx', '*.test.js', '*.test.jsx'],
-      rules: {
-        // Prevent permanent usage of `it.only`, `fit`, `test.only` etc
-        // We want to avoid debugging leftovers making their way into the codebase
-        'jest/no-focused-tests': 'error',
-
-        // Prevent permanent usage of `it.skip`, `xit`, `test.skip` etc
-        // We want to avoid debugging leftovers making their way into the codebase
-        // If there's a good reason to skip a test (e.g. bad flakiness), just add an ignore comment
-        'jest/no-disabled-tests': 'error',
+        '@sentry-internal/sdk/no-focused-tests': 'error',
+        '@sentry-internal/sdk/no-skipped-tests': 'error',
       },
     },
     {
@@ -277,7 +258,7 @@ module.exports = {
 
     quotes: ['error', 'single', { avoidEscape: true }],
 
-    // Remove uncessary usages of async await to prevent extra micro-tasks
+    // Remove unnecessary usages of async await to prevent extra micro-tasks
     'no-return-await': 'error',
   },
 };

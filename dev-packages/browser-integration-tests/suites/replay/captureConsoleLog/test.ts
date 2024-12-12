@@ -3,24 +3,14 @@ import { expect } from '@playwright/test';
 import { sentryTest } from '../../../utils/fixtures';
 import { getCustomRecordingEvents, shouldSkipReplayTest, waitForReplayRequest } from '../../../utils/replayHelpers';
 
-sentryTest('should capture console messages in replay', async ({ getLocalTestPath, page, forceFlushReplay }) => {
-  // console integration is not used in bundles/loader
-  const bundle = process.env.PW_BUNDLE || '';
-  if (shouldSkipReplayTest() || bundle.startsWith('bundle_') || bundle.startsWith('loader_')) {
+sentryTest('should capture console messages in replay', async ({ getLocalTestUrl, page, forceFlushReplay }) => {
+  if (shouldSkipReplayTest()) {
     sentryTest.skip();
   }
 
-  await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-    return route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ id: 'test-id' }),
-    });
-  });
-
   const reqPromise0 = waitForReplayRequest(page, 0);
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
 
   await Promise.all([page.goto(url), reqPromise0]);
 
@@ -34,10 +24,10 @@ sentryTest('should capture console messages in replay', async ({ getLocalTestPat
     5_000,
   );
 
-  await page.click('[data-log]');
+  await page.locator('[data-log]').click();
 
   // Sometimes this doesn't seem to trigger, so we trigger it twice to be sure...
-  const [req1] = await Promise.all([reqPromise1, page.click('[data-log]')]);
+  const [req1] = await Promise.all([reqPromise1, page.locator('[data-log]').click()]);
   await forceFlushReplay();
 
   const { breadcrumbs } = getCustomRecordingEvents(req1);
@@ -56,24 +46,14 @@ sentryTest('should capture console messages in replay', async ({ getLocalTestPat
   );
 });
 
-sentryTest('should capture very large console logs', async ({ getLocalTestPath, page, forceFlushReplay }) => {
-  // console integration is not used in bundles/loader
-  const bundle = process.env.PW_BUNDLE || '';
-  if (shouldSkipReplayTest() || bundle.startsWith('bundle_') || bundle.startsWith('loader_')) {
+sentryTest('should capture very large console logs', async ({ getLocalTestUrl, page, forceFlushReplay }) => {
+  if (shouldSkipReplayTest()) {
     sentryTest.skip();
   }
 
-  await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-    return route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ id: 'test-id' }),
-    });
-  });
-
   const reqPromise0 = waitForReplayRequest(page, 0);
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
 
   await Promise.all([page.goto(url), reqPromise0]);
 
@@ -87,7 +67,7 @@ sentryTest('should capture very large console logs', async ({ getLocalTestPath, 
     5_000,
   );
 
-  const [req1] = await Promise.all([reqPromise1, page.click('[data-log-large]')]);
+  const [req1] = await Promise.all([reqPromise1, page.locator('[data-log-large]').click()]);
   await forceFlushReplay();
 
   const { breadcrumbs } = getCustomRecordingEvents(req1);

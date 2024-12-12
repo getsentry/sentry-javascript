@@ -1,66 +1,10 @@
-import type { SentryVitePluginOptions } from '@sentry/vite-plugin';
+import { dropUndefinedKeys } from '@sentry/core';
 import type { Plugin } from 'vite';
-
 import type { AutoInstrumentSelection } from './autoInstrument';
 import { makeAutoInstrumentationPlugin } from './autoInstrument';
-import type { SupportedSvelteKitAdapters } from './detectAdapter';
 import { detectAdapter } from './detectAdapter';
-import { makeCustomSentryVitePlugin } from './sourceMaps';
-
-type SourceMapsUploadOptions = {
-  /**
-   * If this flag is `true`, the Sentry plugins will automatically upload source maps to Sentry.
-   * @default true`.
-   */
-  autoUploadSourceMaps?: boolean;
-
-  /**
-   * Options for the Sentry Vite plugin to customize and override the release creation and source maps upload process.
-   * See [Sentry Vite Plugin Options](https://github.com/getsentry/sentry-javascript-bundler-plugins/tree/main/packages/vite-plugin#configuration) for a detailed description.
-   */
-  sourceMapsUploadOptions?: Partial<SentryVitePluginOptions>;
-};
-
-type AutoInstrumentOptions = {
-  /**
-   * The Sentry plugin will automatically instrument certain parts of your SvelteKit application at build time.
-   * Set this option to `false` to disable this behavior or what is instrumentated by passing an object.
-   *
-   * Auto instrumentation includes:
-   * - Universal `load` functions in `+page.(js|ts)` files
-   * - Server-only `load` functions in `+page.server.(js|ts)` files
-   *
-   * @default true (meaning, the plugin will instrument all of the above)
-   */
-  autoInstrument?: boolean | AutoInstrumentSelection;
-};
-
-export type SentrySvelteKitPluginOptions = {
-  /**
-   * If this flag is `true`, the Sentry plugins will log some useful debug information.
-   * @default false.
-   */
-  debug?: boolean;
-
-  /**
-   * Specify which SvelteKit adapter you're using.
-   * By default, the SDK will attempt auto-detect the used adapter at build time and apply the
-   * correct config for source maps upload or auto-instrumentation.
-   *
-   * Currently, the SDK supports the following adapters:
-   * - node (@sveltejs/adapter-node)
-   * - auto (@sveltejs/adapter-auto) only Vercel
-   * - vercel (@sveltejs/adapter-auto) only Serverless functions, no edge runtime
-   *
-   * Set this option, if the SDK detects the wrong adapter or you want to use an adapter
-   * that is not in this list. If you specify 'other', you'll most likely need to configure
-   * source maps upload yourself.
-   *
-   * @default {} the SDK attempts to auto-detect the used adapter at build time
-   */
-  adapter?: SupportedSvelteKitAdapters;
-} & SourceMapsUploadOptions &
-  AutoInstrumentOptions;
+import { makeCustomSentryVitePlugins } from './sourceMaps';
+import type { CustomSentryVitePluginOptions, SentrySvelteKitPluginOptions } from './types';
 
 const DEFAULT_PLUGIN_OPTIONS: SentrySvelteKitPluginOptions = {
   autoUploadSourceMaps: true,
@@ -79,7 +23,7 @@ export async function sentrySvelteKit(options: SentrySvelteKitPluginOptions = {}
   const mergedOptions = {
     ...DEFAULT_PLUGIN_OPTIONS,
     ...options,
-    adapter: options.adapter || (await detectAdapter(options.debug || false)),
+    adapter: options.adapter || (await detectAdapter(options.debug)),
   };
 
   const sentryPlugins: Plugin[] = [];
@@ -99,14 +43,66 @@ export async function sentrySvelteKit(options: SentrySvelteKitPluginOptions = {}
     );
   }
 
-  if (mergedOptions.autoUploadSourceMaps && process.env.NODE_ENV !== 'development') {
-    const pluginOptions = {
-      ...mergedOptions.sourceMapsUploadOptions,
-      debug: mergedOptions.debug, // override the plugin's debug flag with the one from the top-level options
-      adapter: mergedOptions.adapter,
-    };
-    sentryPlugins.push(await makeCustomSentryVitePlugin(pluginOptions));
+  const sentryVitePluginsOptions = generateVitePluginOptions(mergedOptions);
+
+  if (sentryVitePluginsOptions) {
+    const sentryVitePlugins = await makeCustomSentryVitePlugins(sentryVitePluginsOptions);
+
+    sentryPlugins.push(...sentryVitePlugins);
   }
 
   return sentryPlugins;
+}
+
+/**
+ * This function creates the options for the custom Sentry Vite plugin.
+ * The options are derived from the Sentry SvelteKit plugin options, where the `_unstable` options take precedence.
+ *
+ * only exported for testing
+ */
+export function generateVitePluginOptions(
+  svelteKitPluginOptions: SentrySvelteKitPluginOptions,
+): CustomSentryVitePluginOptions | null {
+  let sentryVitePluginsOptions: CustomSentryVitePluginOptions | null = null;
+
+  // Bundle Size Optimizations
+  if (svelteKitPluginOptions.bundleSizeOptimizations) {
+    sentryVitePluginsOptions = {
+      bundleSizeOptimizations: {
+        ...svelteKitPluginOptions.bundleSizeOptimizations,
+      },
+    };
+  }
+
+  // Source Maps
+  if (svelteKitPluginOptions.autoUploadSourceMaps && process.env.NODE_ENV !== 'development') {
+    const { unstable_sentryVitePluginOptions, ...sourceMapsUploadOptions } =
+      svelteKitPluginOptions.sourceMapsUploadOptions || {};
+
+    sentryVitePluginsOptions = {
+      ...(sentryVitePluginsOptions ? sentryVitePluginsOptions : {}),
+
+      ...sourceMapsUploadOptions,
+      ...unstable_sentryVitePluginOptions,
+      adapter: svelteKitPluginOptions.adapter,
+      // override the plugin's debug flag with the one from the top-level options
+      debug: svelteKitPluginOptions.debug,
+    };
+
+    if (sentryVitePluginsOptions.sourcemaps) {
+      sentryVitePluginsOptions.sourcemaps = {
+        ...sourceMapsUploadOptions?.sourcemaps,
+        ...unstable_sentryVitePluginOptions?.sourcemaps,
+      };
+    }
+
+    if (sentryVitePluginsOptions.release) {
+      sentryVitePluginsOptions.release = {
+        ...sourceMapsUploadOptions?.release,
+        ...unstable_sentryVitePluginOptions?.release,
+      };
+    }
+  }
+
+  return dropUndefinedKeys(sentryVitePluginsOptions);
 }

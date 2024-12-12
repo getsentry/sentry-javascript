@@ -10,19 +10,14 @@
     "test:assert": "pnpm -v"
   },
   "devDependencies": {
-    "typescript": "3.8.3"
+    "typescript": "3.8.3",
+    "@types/node": "^14.18.0"
   },
   "dependencies": {
     "@sentry/browser": "latest || *",
     "@sentry/core": "latest || *",
-    "@sentry/hub": "latest || *",
-    "@sentry/integrations": "latest || *",
     "@sentry/node": "latest || *",
-    "@sentry/opentelemetry-node": "latest || *",
-    "@sentry/replay": "latest || *",
-    "@sentry/tracing": "latest || *",
-    "@sentry/types": "latest || *",
-    "@sentry/utils": "latest || *",
+    "@sentry-internal/replay": "latest || *",
     "@sentry/wasm": "latest || *"
   }
 }

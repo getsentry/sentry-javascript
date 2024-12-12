@@ -12,8 +12,8 @@
 
 This package allows you to send your OpenTelemetry trace data to Sentry via OpenTelemetry SpanProcessors.
 
-This SDK is **considered experimental and in an alpha state**. It may experience breaking changes. Please reach out on
-[GitHub](https://github.com/getsentry/sentry-javascript/issues/new/choose) if you have any feedback/concerns.
+If you are using `@sentry/node`, OpenTelemetry support is included out of the box. This package is only necessary if you
+are setting up OpenTelemetry support for Sentry yourself.
 
 ## Installation
 
@@ -34,26 +34,24 @@ Note that `@sentry/opentelemetry` depends on the following peer dependencies:
 
 ## Usage
 
-This package exposes a few building blocks you can add to your OpenTelemetry setup in order to capture OpenTelemetry traces to Sentry.
+This package exposes a few building blocks you can add to your OpenTelemetry setup in order to capture OpenTelemetry
+traces to Sentry.
 
 This is how you can use this in your app:
 
-1. Setup the global hub for OpenTelemetry compatibility - ensure `setupGlobalHub()` is called before anything else!
-1. Initialize Sentry, e.g. `@sentry/node` - make sure to set `instrumenter: 'otel'` in the SDK `init({})`!
-1. Call `setupEventContextTrace(client)`
-1. Add `SentrySampler` as sampler
-1. Add `SentrySpanProcessor` as span processor
-1. Add a context manager wrapped via `wrapContextManagerClass`
-1. Add `SentryPropagator` as propagator
-1. Setup OTEL-powered async context strategy for Sentry via `setOpenTelemetryContextAsyncContextStrategy()`
+1. Initialize Sentry, e.g. `@sentry/node`!
+2. Call `setupEventContextTrace(client)`
+3. Add `SentrySampler` as sampler
+4. Add `SentrySpanProcessor` as span processor
+5. Add a context manager wrapped via `wrapContextManagerClass`
+6. Add `SentryPropagator` as propagator
+7. Setup OTEL-powered async context strategy for Sentry via `setOpenTelemetryContextAsyncContextStrategy()`
 
 For example, you could set this up as follows:
 
 ```js
 import * as Sentry from '@sentry/node';
 import {
-  getCurrentHub,
-  setupGlobalHub,
   SentryPropagator,
   SentrySampler,
   SentrySpanProcessor,
@@ -64,14 +62,11 @@ import {
 import { AsyncLocalStorageContextManager } from '@opentelemetry/context-async-hooks';
 
 function setupSentry() {
-  setupGlobalHub();
-
   Sentry.init({
     dsn: 'xxx',
-    instrumenter: 'otel'
   });
 
-  const client = getCurrentHub().getClient();
+  const client = Sentry.getClient();
   setupEventContextTrace(client);
 
   const provider = new BasicTracerProvider({
@@ -91,7 +86,8 @@ function setupSentry() {
 }
 ```
 
-A full setup example can be found in [node-experimental](./../node-experimental).
+A full setup example can be found in
+[node-experimental](https://github.com/getsentry/sentry-javascript/blob/develop/packages/node-experimental).
 
 ## Links
 

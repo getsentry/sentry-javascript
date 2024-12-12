@@ -1,5 +1,5 @@
 import type { BrowserOptions } from '@sentry/browser';
-import type { Options } from '@sentry/types';
+import type { Options } from '@sentry/core';
 
 type SdkInitPaths = {
   /**
@@ -7,7 +7,7 @@ type SdkInitPaths = {
    *
    * If this option is not specified, the default location (`<projectRoot>/sentry.client.config.(js|ts)`)
    * will be used to look up the config file.
-   * If there is no file at the default location either, the SDK will initalize with the options
+   * If there is no file at the default location either, the SDK will initialize with the options
    * specified in the `sentryAstro` integration or with default options.
    */
   clientInitPath?: string;
@@ -17,7 +17,7 @@ type SdkInitPaths = {
    *
    * If this option is not specified, the default location (`<projectRoot>/sentry.server.config.(js|ts)`)
    * will be used to look up the config file.
-   * If there is no file at the default location either, the SDK will initalize with the options
+   * If there is no file at the default location either, the SDK will initialize with the options
    * specified in the `sentryAstro` integration or with default options.
    */
   serverInitPath?: string;
@@ -25,62 +25,95 @@ type SdkInitPaths = {
 
 type SourceMapsOptions = {
   /**
-   * Options for the Sentry Vite plugin to customize the source maps upload process.
+   * If this flag is `true`, and an auth token is detected, the Sentry integration will
+   * automatically generate and upload source maps to Sentry during a production build.
    *
-   * These options are always read from the `sentryAstro` integration.
-   * Do not define them in the `sentry.client.config.(js|ts)` or `sentry.server.config.(js|ts)` files.
+   * @default true
    */
-  sourceMapsUploadOptions?: {
-    /**
-     * If this flag is `true`, and an auth token is detected, the Sentry integration will
-     * automatically generate and upload source maps to Sentry during a production build.
-     *
-     * @default true
-     */
-    enabled?: boolean;
+  enabled?: boolean;
 
-    /**
-     * The auth token to use when uploading source maps to Sentry.
-     *
-     * Instead of specifying this option, you can also set the `SENTRY_AUTH_TOKEN` environment variable.
-     *
-     * To create an auth token, follow this guide:
-     * @see https://docs.sentry.io/product/accounts/auth-tokens/#organization-auth-tokens
-     */
-    authToken?: string;
+  /**
+   * The auth token to use when uploading source maps to Sentry.
+   *
+   * Instead of specifying this option, you can also set the `SENTRY_AUTH_TOKEN` environment variable.
+   *
+   * To create an auth token, follow this guide:
+   * @see https://docs.sentry.io/product/accounts/auth-tokens/#organization-auth-tokens
+   */
+  authToken?: string;
 
-    /**
-     * The organization slug of your Sentry organization.
-     * Instead of specifying this option, you can also set the `SENTRY_ORG` environment variable.
-     */
-    org?: string;
+  /**
+   * The organization slug of your Sentry organization.
+   * Instead of specifying this option, you can also set the `SENTRY_ORG` environment variable.
+   */
+  org?: string;
 
-    /**
-     * The project slug of your Sentry project.
-     * Instead of specifying this option, you can also set the `SENTRY_PROJECT` environment variable.
-     */
-    project?: string;
+  /**
+   * The project slug of your Sentry project.
+   * Instead of specifying this option, you can also set the `SENTRY_PROJECT` environment variable.
+   */
+  project?: string;
 
-    /**
-     * If this flag is `true`, the Sentry plugin will collect some telemetry data and send it to Sentry.
-     * It will not collect any sensitive or user-specific data.
-     *
-     * @default true
-     */
-    telemetry?: boolean;
+  /**
+   * If this flag is `true`, the Sentry plugin will collect some telemetry data and send it to Sentry.
+   * It will not collect any sensitive or user-specific data.
+   *
+   * @default true
+   */
+  telemetry?: boolean;
 
-    /**
-     * A glob or an array of globs that specify the build artifacts and source maps that will uploaded to Sentry.
-     *
-     * If this option is not specified, sensible defaults based on your `outDir`, `rootDir` and `adapter`
-     * config will be used. Use this option to override these defaults, for instance if you have a
-     * customized build setup that diverges from Astro's defaults.
-     *
-     * The globbing patterns must follow the implementation of the `glob` package.
-     * @see https://www.npmjs.com/package/glob#glob-primer
-     */
-    assets?: string | Array<string>;
-  };
+  /**
+   * A glob or an array of globs that specify the build artifacts and source maps that will be uploaded to Sentry.
+   *
+   * If this option is not specified, sensible defaults based on your `outDir`, `rootDir` and `adapter`
+   * config will be used. Use this option to override these defaults, for instance if you have a
+   * customized build setup that diverges from Astro's defaults.
+   *
+   * The globbing patterns must follow the implementation of the `glob` package.
+   * @see https://www.npmjs.com/package/glob#glob-primer
+   */
+  assets?: string | Array<string>;
+};
+
+type BundleSizeOptimizationOptions = {
+  /**
+   * If set to `true`, the plugin will attempt to tree-shake (remove) any debugging code within the Sentry SDK.
+   * Note that the success of this depends on tree shaking being enabled in your build tooling.
+   *
+   * Setting this option to `true` will disable features like the SDK's `debug` option.
+   */
+  excludeDebugStatements?: boolean;
+
+  /**
+   * If set to true, the plugin will try to tree-shake performance monitoring statements out.
+   * Note that the success of this depends on tree shaking generally being enabled in your build.
+   * Attention: DO NOT enable this when you're using any performance monitoring-related SDK features (e.g. Sentry.startSpan()).
+   */
+  excludeTracing?: boolean;
+
+  /**
+   * If set to `true`, the plugin will attempt to tree-shake (remove) code related to the Sentry SDK's Session Replay Shadow DOM recording functionality.
+   * Note that the success of this depends on tree shaking being enabled in your build tooling.
+   *
+   * This option is safe to be used when you do not want to capture any Shadow DOM activity via Sentry Session Replay.
+   */
+  excludeReplayShadowDom?: boolean;
+
+  /**
+   * If set to `true`, the plugin will attempt to tree-shake (remove) code related to the Sentry SDK's Session Replay `iframe` recording functionality.
+   * Note that the success of this depends on tree shaking being enabled in your build tooling.
+   *
+   * You can safely do this when you do not want to capture any `iframe` activity via Sentry Session Replay.
+   */
+  excludeReplayIframe?: boolean;
+
+  /**
+   * If set to `true`, the plugin will attempt to tree-shake (remove) code related to the Sentry SDK's Session Replay's Compression Web Worker.
+   * Note that the success of this depends on tree shaking being enabled in your build tooling.
+   *
+   * **Notice:** You should only do use this option if you manually host a compression worker and configure it in your Sentry Session Replay integration config via the `workerUrl` option.
+   */
+  excludeReplayWorker?: boolean;
 };
 
 type InstrumentationOptions = {
@@ -117,6 +150,7 @@ type SdkEnabledOptions = {
    * Sentry code will be added to your bundle.
    *
    * @default true - the SDK is enabled by default for both, client and server.
+   *
    */
   enabled?:
     | boolean
@@ -125,6 +159,41 @@ type SdkEnabledOptions = {
         server?: boolean;
       };
 };
+
+type DeprecatedRuntimeOptions = Pick<
+  Options,
+  'environment' | 'release' | 'dsn' | 'debug' | 'sampleRate' | 'tracesSampleRate'
+> &
+  Pick<BrowserOptions, 'replaysSessionSampleRate' | 'replaysOnErrorSampleRate'> & {
+    /**
+     * @deprecated Use the `environment` option in your runtime-specific Sentry.init() call in sentry.client.config.(js|ts) or sentry.server.config.(js|ts) instead.
+     */
+    environment?: string;
+    /**
+     * @deprecated Use the `release` option in your runtime-specific Sentry.init() call in sentry.client.config.(js|ts) or sentry.server.config.(js|ts) instead.
+     */
+    release?: string;
+    /**
+     * @deprecated Use the `dsn` option in your runtime-specific Sentry.init() call in sentry.client.config.(js|ts) or sentry.server.config.(js|ts) instead.
+     */
+    dsn?: string;
+    /**
+     * @deprecated Use the `sampleRate` option in your runtime-specific Sentry.init() call in sentry.client.config.(js|ts) or sentry.server.config.(js|ts) instead.
+     */
+    sampleRate?: number;
+    /**
+     * @deprecated Use the `tracesSampleRate` option in your runtime-specific Sentry.init() call in sentry.client.config.(js|ts) or sentry.server.config.(js|ts) instead.
+     */
+    tracesSampleRate?: number;
+    /**
+     * @deprecated Use the `replaysSessionSampleRate` option in your Sentry.init() call in sentry.client.config.(js|ts) instead.
+     */
+    replaysSessionSampleRate?: number;
+    /**
+     * @deprecated Use the `replaysOnErrorSampleRate` option in your Sentry.init() call in sentry.client.config.(js|ts) instead.
+     */
+    replaysOnErrorSampleRate?: number;
+  };
 
 /**
  * A subset of Sentry SDK options that can be set via the `sentryAstro` integration.
@@ -136,8 +205,25 @@ type SdkEnabledOptions = {
  * If you specify a dedicated init file, the SDK options passed to `sentryAstro` will be ignored.
  */
 export type SentryOptions = SdkInitPaths &
-  Pick<Options, 'dsn' | 'release' | 'environment' | 'sampleRate' | 'tracesSampleRate' | 'debug'> &
-  Pick<BrowserOptions, 'replaysSessionSampleRate' | 'replaysOnErrorSampleRate'> &
-  SourceMapsOptions &
+  DeprecatedRuntimeOptions &
   InstrumentationOptions &
-  SdkEnabledOptions;
+  SdkEnabledOptions & {
+    /**
+     * Options for the Sentry Vite plugin to customize the source maps upload process.
+     *
+     * These options are always read from the `sentryAstro` integration.
+     * Do not define them in the `sentry.client.config.(js|ts)` or `sentry.server.config.(js|ts)` files.
+     */
+    sourceMapsUploadOptions?: SourceMapsOptions;
+    /**
+     * Options for the Sentry Vite plugin to customize bundle size optimizations.
+     *
+     * These options are always read from the `sentryAstro` integration.
+     * Do not define them in the `sentry.client.config.(js|ts)` or `sentry.server.config.(js|ts)` files.
+     */
+    bundleSizeOptimizations?: BundleSizeOptimizationOptions;
+    /**
+     * If enabled, prints debug logs during the build process.
+     */
+    debug?: boolean;
+  };

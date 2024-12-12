@@ -1,63 +1,61 @@
 {
   "name": "@sentry/angular",
-  "version": "7.93.0",
+  "version": "8.43.0",
   "description": "Official Sentry SDK for Angular",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/angular",
   "author": "Sentry",
   "license": "MIT",
   "engines": {
-    "node": ">=8"
+    "node": ">=14.18"
   },
-  "main": "build/bundles/sentry-angular.umd.js",
-  "module": "build/fesm2015/sentry-angular.js",
+  "type": "module",
+  "module": "build/fesm2015/sentry-angular.mjs",
   "publishConfig": {
     "access": "public"
   },
   "peerDependencies": {
-    "@angular/common": ">= 10.x <= 15.x",
-    "@angular/core": ">= 10.x <= 15.x",
-    "@angular/router": ">= 10.x <= 15.x",
+    "@angular/common": ">= 14.x <= 19.x",
+    "@angular/core": ">= 14.x <= 19.x",
+    "@angular/router": ">= 14.x <= 19.x",
     "rxjs": "^6.5.5 || ^7.x"
   },
   "dependencies": {
-    "@sentry/browser": "7.93.0",
-    "@sentry/core": "7.93.0",
-    "@sentry/types": "7.93.0",
-    "@sentry/utils": "7.93.0",
+    "@sentry/browser": "8.43.0",
+    "@sentry/core": "8.43.0",
     "tslib": "^2.4.1"
   },
   "devDependencies": {
-    "@angular-devkit/build-angular": "~0.1002.4",
-    "@angular/cli": "^10.2.4",
-    "@angular/common": "~10.2.5",
-    "@angular/compiler": "^10.2.5",
-    "@angular/compiler-cli": "~10.2.5",
-    "@angular/core": "~10.2.5",
-    "@angular/platform-browser": "~10.2.5",
-    "@angular/platform-browser-dynamic": "~10.2.5",
-    "@angular/router": "~10.2.5",
-    "ng-packagr": "^10.1.0",
-    "rxjs": "6.5.5",
-    "typescript": "4.0.2",
-    "zone.js": "^0.11.8"
+    "@angular-devkit/build-angular": "^14.2.13",
+    "@angular/cli": "^14.2.13",
+    "@angular/common": "^14.3.0",
+    "@angular/compiler": "^14.3.0",
+    "@angular/compiler-cli": "^14.3.0",
+    "@angular/core": "^14.3.0",
+    "@angular/platform-browser": "^14.3.0",
+    "@angular/platform-browser-dynamic": "^14.3.0",
+    "@angular/router": "^14.3.0",
+    "ng-packagr": "^14.2.2",
+    "rxjs": "7.8.1",
+    "typescript": "4.6.4",
+    "zone.js": "^0.12.0"
   },
   "scripts": {
     "build": "yarn build:transpile",
-    "build:transpile": "ng build --prod",
+    "build:transpile": "ng build --configuration production",
     "build:dev": "yarn build",
     "build:watch": "yarn build:transpile:watch",
     "build:dev:watch": "yarn build:watch",
-    "build:transpile:watch": "ng build --prod --watch",
+    "build:transpile:watch": "ng build --configuration production --watch",
     "build:tarball": "npm pack ./build",
     "circularDepCheck": "madge --circular src/index.ts",
     "clean": "rimraf build coverage sentry-angular-*.tgz",
     "fix": "eslint . --format stylish --fix",
     "lint": "eslint . --format stylish",
     "test": "yarn test:unit",
-    "test:unit": "jest",
-    "test:unit:watch": "jest --watch",
-    "yalc:publish": "yalc publish build --push --sig"
+    "test:unit": "vitest run",
+    "test:unit:watch": "vitest --watch",
+    "yalc:publish": "yalc publish --push --sig"
   },
   "volta": {
     "extends": "../../package.json"
@@ -69,6 +67,12 @@
         "dependsOn": [
           "^build:transpile",
           "^build:types"
+        ],
+        "outputs": [
+          "{projectRoot}/build/esm2015",
+          "{projectRoot}/build/fesm2015",
+          "{projectRoot}/build/fesm2020",
+          "{projectRoot}/build/*.d.ts"
         ]
       }
     }

@@ -1,13 +1,14 @@
-import { captureException, withScope } from '@sentry/core';
-import type { DsnLike, Mechanism, WrappedFunction } from '@sentry/types';
+import type { Mechanism, WrappedFunction } from '@sentry/core';
 import {
   GLOBAL_OBJ,
   addExceptionMechanism,
   addExceptionTypeValue,
   addNonEnumerableProperty,
+  captureException,
   getOriginalFunction,
   markFunctionWrapped,
-} from '@sentry/utils';
+  withScope,
+} from '@sentry/core';
 
 export const WINDOW = GLOBAL_OBJ as typeof GLOBAL_OBJ & Window;
 
@@ -31,6 +32,21 @@ export function ignoreNextOnError(): void {
   });
 }
 
+// eslint-disable-next-line @typescript-eslint/ban-types
+type WrappableFunction = Function;
+
+export function wrap<T extends WrappableFunction>(
+  fn: T,
+  options?: {
+    mechanism?: Mechanism;
+  },
+): WrappedFunction<T>;
+export function wrap<NonFunction>(
+  fn: NonFunction,
+  options?: {
+    mechanism?: Mechanism;
+  },
+): NonFunction;
 /**
  * Instruments the given function and sends an event to Sentry every time the
  * function throws an exception.
@@ -40,14 +56,12 @@ export function ignoreNextOnError(): void {
  * @returns The wrapped function.
  * @hidden
  */
-export function wrap(
-  fn: WrappedFunction,
+export function wrap<T extends WrappableFunction, NonFunction>(
+  fn: T | NonFunction,
   options: {
     mechanism?: Mechanism;
   } = {},
-  before?: WrappedFunction,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-): any {
+): NonFunction | WrappedFunction<T> {
   // for future readers what this does is wrap a function and then create
   // a bi-directional wrapping between them.
   //
@@ -55,16 +69,26 @@ export function wrap(
   //  original.__sentry_wrapped__ -> wrapped
   //  wrapped.__sentry_original__ -> original
 
-  if (typeof fn !== 'function') {
+  function isFunction(fn: T | NonFunction): fn is T {
+    return typeof fn === 'function';
+  }
+
+  if (!isFunction(fn)) {
     return fn;
   }
 
   try {
     // if we're dealing with a function that was previously wrapped, return
     // the original wrapper.
-    const wrapper = fn.__sentry_wrapped__;
+    const wrapper = (fn as WrappedFunction<T>).__sentry_wrapped__;
     if (wrapper) {
-      return wrapper;
+      if (typeof wrapper === 'function') {
+        return wrapper;
+      } else {
+        // If we find that the `__sentry_wrapped__` function is not a function at the time of accessing it, it means
+        // that something messed with it. In that case we want to return the originally passed function.
+        return fn;
+      }
     }
 
     // We don't wanna wrap it twice
@@ -78,18 +102,12 @@ export function wrap(
     return fn;
   }
 
-  /* eslint-disable prefer-rest-params */
+  // Wrap the function itself
   // It is important that `sentryWrapped` is not an arrow function to preserve the context of `this`
-  const sentryWrapped: WrappedFunction = function (this: unknown): void {
-    const args = Array.prototype.slice.call(arguments);
-
+  const sentryWrapped = function (this: unknown, ...args: unknown[]): unknown {
     try {
-      if (before && typeof before === 'function') {
-        before.apply(this, arguments);
-      }
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-      const wrappedArguments = args.map((arg: any) => wrap(arg, options));
+      // Also wrap arguments that are themselves functions
+      const wrappedArguments = args.map(arg => wrap(arg, options));
 
       // Attempt to invoke user-land function
       // NOTE: If you are a Sentry user, and you are seeing this stack frame, it
@@ -119,18 +137,19 @@ export function wrap(
 
       throw ex;
     }
-  };
-  /* eslint-enable prefer-rest-params */
+  } as unknown as WrappedFunction<T>;
 
-  // Accessing some objects may throw
-  // ref: https://github.com/getsentry/sentry-javascript/issues/1168
+  // Wrap the wrapped function in a proxy, to ensure any other properties of the original function remain available
   try {
     for (const property in fn) {
       if (Object.prototype.hasOwnProperty.call(fn, property)) {
-        sentryWrapped[property] = fn[property];
+        sentryWrapped[property as keyof T] = fn[property as keyof T];
       }
     }
-  } catch (_oO) {} // eslint-disable-line no-empty
+  } catch {
+    // Accessing some objects may throw
+    // ref: https://github.com/getsentry/sentry-javascript/issues/1168
+  }
 
   // Signal that this function has been wrapped/filled already
   // for both debugging and to prevent it to being wrapped/filled twice
@@ -140,7 +159,8 @@ export function wrap(
 
   // Restore original function name (not all browsers allow that)
   try {
-    const descriptor = Object.getOwnPropertyDescriptor(sentryWrapped, 'name') as PropertyDescriptor;
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const descriptor = Object.getOwnPropertyDescriptor(sentryWrapped, 'name')!;
     if (descriptor.configurable) {
       Object.defineProperty(sentryWrapped, 'name', {
         get(): string {
@@ -148,40 +168,10 @@ export function wrap(
         },
       });
     }
-    // eslint-disable-next-line no-empty
-  } catch (_oO) {}
+  } catch {
+    // This may throw if e.g. the descriptor does not exist, or a browser does not allow redefining `name`.
+    // to save some bytes we simply try-catch this
+  }
 
   return sentryWrapped;
-}
-
-/**
- * All properties the report dialog supports
- *
- * @deprecated This type will be removed in the next major version of the Sentry SDK. `showReportDialog` will still be around, however the `eventId` option will now be required.
- */
-export interface ReportDialogOptions {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  [key: string]: any;
-  eventId?: string;
-  dsn?: DsnLike;
-  user?: {
-    email?: string;
-    name?: string;
-  };
-  lang?: string;
-  title?: string;
-  subtitle?: string;
-  subtitle2?: string;
-  labelName?: string;
-  labelEmail?: string;
-  labelComments?: string;
-  labelClose?: string;
-  labelSubmit?: string;
-  errorGeneric?: string;
-  errorFormEntry?: string;
-  successMessage?: string;
-  /** Callback after reportDialog showed up */
-  onLoad?(this: void): void;
-  /** Callback after reportDialog closed */
-  onClose?(this: void): void;
 }

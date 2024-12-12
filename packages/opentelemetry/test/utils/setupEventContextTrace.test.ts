@@ -1,7 +1,6 @@
 import type { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
-import { makeMain } from '@sentry/core';
+import { captureException, setCurrentClient } from '@sentry/core';
 
-import { OpenTelemetryHub } from '../../src/custom/hub';
 import { setupEventContextTrace } from '../../src/setupEventContextTrace';
 import type { TestClientInterface } from '../helpers/TestClient';
 import { TestClient, getDefaultTestClientOptions } from '../helpers/TestClient';
@@ -13,7 +12,6 @@ const PUBLIC_DSN = 'https://username@domain/123';
 describe('setupEventContextTrace', () => {
   const beforeSend = jest.fn(() => null);
   let client: TestClientInterface;
-  let hub: OpenTelemetryHub;
   let provider: BasicTracerProvider | undefined;
 
   beforeEach(() => {
@@ -27,9 +25,8 @@ describe('setupEventContextTrace', () => {
       }),
     );
 
-    hub = new OpenTelemetryHub(client);
-    // eslint-disable-next-line deprecation/deprecation
-    makeMain(hub);
+    setCurrentClient(client);
+    client.init();
 
     setupEventContextTrace(client);
     provider = setupOtel(client);
@@ -46,8 +43,7 @@ describe('setupEventContextTrace', () => {
 
   it('works with no active span', async () => {
     const error = new Error('test');
-    // eslint-disable-next-line deprecation/deprecation
-    hub.captureException(error);
+    captureException(error);
     await client.flush();
 
     expect(beforeSend).toHaveBeenCalledTimes(1);
@@ -55,8 +51,8 @@ describe('setupEventContextTrace', () => {
       expect.objectContaining({
         contexts: expect.objectContaining({
           trace: {
-            span_id: expect.any(String),
-            trace_id: expect.any(String),
+            span_id: expect.stringMatching(/[a-f0-9]{16}/),
+            trace_id: expect.stringMatching(/[a-f0-9]{32}/),
           },
         }),
       }),
@@ -76,13 +72,12 @@ describe('setupEventContextTrace', () => {
     let traceId: string | undefined;
 
     client.tracer.startActiveSpan('outer', outerSpan => {
-      outerId = outerSpan?.spanContext().spanId;
-      traceId = outerSpan?.spanContext().traceId;
+      outerId = outerSpan.spanContext().spanId;
+      traceId = outerSpan.spanContext().traceId;
 
       client.tracer.startActiveSpan('inner', innerSpan => {
-        innerId = innerSpan?.spanContext().spanId;
-        // eslint-disable-next-line deprecation/deprecation
-        hub.captureException(error);
+        innerId = innerSpan.spanContext().spanId;
+        captureException(error);
       });
     });
 

@@ -1,31 +1,33 @@
 /* eslint-disable max-lines */
-import { addBreadcrumb, convertIntegrationFnToClass, getClient } from '@sentry/core';
+
+import {
+  SENTRY_XHR_DATA_KEY,
+  addClickKeypressInstrumentationHandler,
+  addHistoryInstrumentationHandler,
+  addXhrInstrumentationHandler,
+} from '@sentry-internal/browser-utils';
 import type {
+  Breadcrumb,
   Client,
   Event as SentryEvent,
+  FetchBreadcrumbData,
+  FetchBreadcrumbHint,
   HandlerDataConsole,
   HandlerDataDom,
   HandlerDataFetch,
   HandlerDataHistory,
   HandlerDataXhr,
-  Integration,
-  IntegrationClass,
   IntegrationFn,
-} from '@sentry/types';
-import type {
-  Breadcrumb,
-  FetchBreadcrumbData,
-  FetchBreadcrumbHint,
   XhrBreadcrumbData,
   XhrBreadcrumbHint,
-} from '@sentry/types/build/types/breadcrumb';
+} from '@sentry/core';
 import {
-  SENTRY_XHR_DATA_KEY,
-  addClickKeypressInstrumentationHandler,
+  addBreadcrumb,
   addConsoleInstrumentationHandler,
   addFetchInstrumentationHandler,
-  addHistoryInstrumentationHandler,
-  addXhrInstrumentationHandler,
+  defineIntegration,
+  getBreadcrumbLogLevelFromHttpStatusCode,
+  getClient,
   getComponentName,
   getEventDescription,
   htmlTreeAsString,
@@ -33,8 +35,7 @@ import {
   parseUrl,
   safeJoin,
   severityLevelFromString,
-} from '@sentry/utils';
-
+} from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
 import { WINDOW } from '../helpers';
 
@@ -57,7 +58,7 @@ const MAX_ALLOWED_STRING_LENGTH = 1024;
 
 const INTEGRATION_NAME = 'Breadcrumbs';
 
-const breadcrumbsIntegration = ((options: Partial<BreadcrumbsOptions> = {}) => {
+const _breadcrumbsIntegration = ((options: Partial<BreadcrumbsOptions> = {}) => {
   const _options = {
     console: true,
     dom: true,
@@ -70,8 +71,6 @@ const breadcrumbsIntegration = ((options: Partial<BreadcrumbsOptions> = {}) => {
 
   return {
     name: INTEGRATION_NAME,
-    // TODO v8: Remove this
-    setupOnce() {}, // eslint-disable-line @typescript-eslint/no-empty-function
     setup(client) {
       if (_options.console) {
         addConsoleInstrumentationHandler(_getConsoleBreadcrumbHandler(client));
@@ -88,36 +87,14 @@ const breadcrumbsIntegration = ((options: Partial<BreadcrumbsOptions> = {}) => {
       if (_options.history) {
         addHistoryInstrumentationHandler(_getHistoryBreadcrumbHandler(client));
       }
-      if (_options.sentry && client.on) {
+      if (_options.sentry) {
         client.on('beforeSendEvent', _getSentryBreadcrumbHandler(client));
       }
     },
   };
 }) satisfies IntegrationFn;
 
-/**
- * Default Breadcrumbs instrumentations
- */
-// eslint-disable-next-line deprecation/deprecation
-export const Breadcrumbs = convertIntegrationFnToClass(INTEGRATION_NAME, breadcrumbsIntegration) as IntegrationClass<
-  Integration & { setup: (client: Client) => void }
-> & {
-  new (
-    options?: Partial<{
-      console: boolean;
-      dom:
-        | boolean
-        | {
-            serializeAttribute?: string | string[];
-            maxStringLength?: number;
-          };
-      fetch: boolean;
-      history: boolean;
-      sentry: boolean;
-      xhr: boolean;
-    }>,
-  ): Integration;
-};
+export const breadcrumbsIntegration = defineIntegration(_breadcrumbsIntegration);
 
 /**
  * Adds a breadcrumb for Sentry events or transactions if this option is enabled.
@@ -143,7 +120,7 @@ function _getSentryBreadcrumbHandler(client: Client): (event: SentryEvent) => vo
 }
 
 /**
- * A HOC that creaes a function that creates breadcrumbs from DOM API calls.
+ * A HOC that creates a function that creates breadcrumbs from DOM API calls.
  * This is a HOC so that we get access to dom options in the closure.
  */
 function _getDomBreadcrumbHandler(
@@ -274,11 +251,14 @@ function _getXhrBreadcrumbHandler(client: Client): (handlerData: HandlerDataXhr)
       endTimestamp,
     };
 
+    const level = getBreadcrumbLogLevelFromHttpStatusCode(status_code);
+
     addBreadcrumb(
       {
         category: 'xhr',
         data,
         type: 'http',
+        level,
       },
       hint,
     );
@@ -336,11 +316,14 @@ function _getFetchBreadcrumbHandler(client: Client): (handlerData: HandlerDataFe
         startTimestamp,
         endTimestamp,
       };
+      const level = getBreadcrumbLogLevelFromHttpStatusCode(data.status_code);
+
       addBreadcrumb(
         {
           category: 'fetch',
           data,
           type: 'http',
+          level,
         },
         hint,
       );

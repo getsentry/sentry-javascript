@@ -1,16 +1,11 @@
-import type {
-  Client,
-  ClientOptions,
-  MeasurementUnit,
-  MetricBucketItem,
-  MetricsAggregator,
-  Primitive,
-} from '@sentry/types';
-import { timestampInSeconds } from '@sentry/utils';
-import { DEFAULT_BROWSER_FLUSH_INTERVAL, NAME_AND_TAG_KEY_NORMALIZATION_REGEX } from './constants';
+import type { Client, MeasurementUnit, MetricsAggregator, Primitive } from '../types-hoist';
+import { timestampInSeconds } from '../utils-hoist/time';
+import { updateMetricSummaryOnActiveSpan } from '../utils/spanUtils';
+import { DEFAULT_BROWSER_FLUSH_INTERVAL, SET_METRIC_TYPE } from './constants';
+import { captureAggregateMetrics } from './envelope';
 import { METRIC_MAP } from './instance';
 import type { MetricBucket, MetricType } from './types';
-import { getBucketKey, sanitizeTags } from './utils';
+import { getBucketKey, sanitizeMetricKey, sanitizeTags, sanitizeUnit } from './utils';
 
 /**
  * A simple metrics aggregator that aggregates metrics in memory and flushes them periodically.
@@ -25,7 +20,7 @@ export class BrowserMetricsAggregator implements MetricsAggregator {
   private _buckets: MetricBucket;
   private readonly _interval: ReturnType<typeof setInterval>;
 
-  public constructor(private readonly _client: Client<ClientOptions>) {
+  public constructor(private readonly _client: Client) {
     this._buckets = new Map();
     this._interval = setInterval(() => this.flush(), DEFAULT_BROWSER_FLUSH_INTERVAL);
   }
@@ -37,16 +32,21 @@ export class BrowserMetricsAggregator implements MetricsAggregator {
     metricType: MetricType,
     unsanitizedName: string,
     value: number | string,
-    unit: MeasurementUnit | undefined = 'none',
+    unsanitizedUnit: MeasurementUnit | undefined = 'none',
     unsanitizedTags: Record<string, Primitive> | undefined = {},
     maybeFloatTimestamp: number | undefined = timestampInSeconds(),
   ): void {
     const timestamp = Math.floor(maybeFloatTimestamp);
-    const name = unsanitizedName.replace(NAME_AND_TAG_KEY_NORMALIZATION_REGEX, '_');
+    const name = sanitizeMetricKey(unsanitizedName);
     const tags = sanitizeTags(unsanitizedTags);
+    const unit = sanitizeUnit(unsanitizedUnit as string);
 
     const bucketKey = getBucketKey(metricType, name, unit, tags);
-    const bucketItem: MetricBucketItem | undefined = this._buckets.get(bucketKey);
+
+    let bucketItem = this._buckets.get(bucketKey);
+    // If this is a set metric, we need to calculate the delta from the previous weight.
+    const previousWeight = bucketItem && metricType === SET_METRIC_TYPE ? bucketItem.metric.weight : 0;
+
     if (bucketItem) {
       bucketItem.metric.add(value);
       // TODO(abhi): Do we need this check?
@@ -54,7 +54,7 @@ export class BrowserMetricsAggregator implements MetricsAggregator {
         bucketItem.timestamp = timestamp;
       }
     } else {
-      this._buckets.set(bucketKey, {
+      bucketItem = {
         // @ts-expect-error we don't need to narrow down the type of value here, saves bundle size.
         metric: new METRIC_MAP[metricType](value),
         timestamp,
@@ -62,8 +62,13 @@ export class BrowserMetricsAggregator implements MetricsAggregator {
         name,
         unit,
         tags,
-      });
+      };
+      this._buckets.set(bucketKey, bucketItem);
     }
+
+    // If value is a string, it's a set metric so calculate the delta from the previous weight.
+    const val = typeof value === 'string' ? bucketItem.metric.weight - previousWeight : value;
+    updateMetricSummaryOnActiveSpan(metricType, name, val, unit, unsanitizedTags, bucketKey);
   }
 
   /**
@@ -74,11 +79,10 @@ export class BrowserMetricsAggregator implements MetricsAggregator {
     if (this._buckets.size === 0) {
       return;
     }
-    if (this._client.captureAggregateMetrics) {
-      // TODO(@anonrig): Use Object.values() when we support ES6+
-      const metricBuckets = Array.from(this._buckets).map(([, bucketItem]) => bucketItem);
-      this._client.captureAggregateMetrics(metricBuckets);
-    }
+
+    const metricBuckets = Array.from(this._buckets.values());
+    captureAggregateMetrics(this._client, metricBuckets);
+
     this._buckets.clear();
   }
 

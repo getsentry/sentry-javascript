@@ -1,16 +1,15 @@
-import type { Request } from '@playwright/test';
 import { expect } from '@playwright/test';
-import type { Event } from '@sentry/types';
+import type { Event } from '@sentry/core';
 
 import { sentryTest } from '../../../../utils/fixtures';
 import { getFirstSentryEnvelopeRequest, shouldSkipTracingTest } from '../../../../utils/helpers';
 
-sentryTest('should create spans for multiple XHR requests', async ({ getLocalTestPath, page }) => {
+sentryTest('should create spans for XHR requests', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipTracingTest()) {
     sentryTest.skip();
   }
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
 
   const eventData = await getFirstSentryEnvelopeRequest<Event>(page, url);
   const requestSpans = eventData.spans?.filter(({ op }) => op === 'http.client');
@@ -21,20 +20,27 @@ sentryTest('should create spans for multiple XHR requests', async ({ getLocalTes
     expect(span).toMatchObject({
       description: `GET http://example.com/${index}`,
       parent_span_id: eventData.contexts?.trace?.span_id,
-      span_id: expect.any(String),
+      span_id: expect.stringMatching(/[a-f0-9]{16}/),
       start_timestamp: expect.any(Number),
       timestamp: expect.any(Number),
       trace_id: eventData.contexts?.trace?.trace_id,
+      data: {
+        'http.method': 'GET',
+        'http.url': `http://example.com/${index}`,
+        url: `http://example.com/${index}`,
+        'server.address': 'example.com',
+        type: 'xhr',
+      },
     }),
   );
 });
 
-sentryTest('should attach `sentry-trace` header to multiple XHR requests', async ({ getLocalTestPath, page }) => {
+sentryTest('should attach `sentry-trace` header to XHR requests', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipTracingTest()) {
     sentryTest.skip();
   }
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
 
   const requests = (
     await Promise.all([
@@ -45,10 +51,25 @@ sentryTest('should attach `sentry-trace` header to multiple XHR requests', async
 
   expect(requests).toHaveLength(3);
 
-  requests?.forEach(async (request: Request) => {
-    const requestHeaders = await request.allHeaders();
-    expect(requestHeaders).toMatchObject({
-      'sentry-trace': expect.any(String),
-    });
+  const request1 = requests[0];
+  const requestHeaders1 = request1.headers();
+  expect(requestHeaders1).toMatchObject({
+    'sentry-trace': expect.stringMatching(/^([a-f0-9]{32})-([a-f0-9]{16})-1$/),
+    baggage: expect.any(String),
+  });
+
+  const request2 = requests[1];
+  const requestHeaders2 = request2.headers();
+  expect(requestHeaders2).toMatchObject({
+    'sentry-trace': expect.stringMatching(/^([a-f0-9]{32})-([a-f0-9]{16})-1$/),
+    baggage: expect.any(String),
+    'x-test-header': 'existing-header',
+  });
+
+  const request3 = requests[2];
+  const requestHeaders3 = request3.headers();
+  expect(requestHeaders3).toMatchObject({
+    'sentry-trace': expect.stringMatching(/^([a-f0-9]{32})-([a-f0-9]{16})-1$/),
+    baggage: expect.any(String),
   });
 });

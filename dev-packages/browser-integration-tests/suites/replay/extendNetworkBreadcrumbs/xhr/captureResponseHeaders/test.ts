@@ -3,18 +3,18 @@ import { expect } from '@playwright/test';
 import { sentryTest } from '../../../../../utils/fixtures';
 import { envelopeRequestParser, waitForErrorRequest } from '../../../../../utils/helpers';
 import {
-  getCustomRecordingEvents,
+  collectReplayRequests,
+  getReplayPerformanceSpans,
   shouldSkipReplayTest,
-  waitForReplayRequest,
 } from '../../../../../utils/replayHelpers';
 
-sentryTest('captures response headers', async ({ getLocalTestPath, page, browserName }) => {
+sentryTest('captures response headers', async ({ getLocalTestUrl, page, browserName }) => {
   // These are a bit flaky on non-chromium browsers
   if (shouldSkipReplayTest() || browserName !== 'chromium') {
     sentryTest.skip();
   }
 
-  await page.route('**/foo', route => {
+  await page.route('http://sentry-test.io/foo', route => {
     return route.fulfill({
       status: 200,
       headers: {
@@ -27,25 +27,18 @@ sentryTest('captures response headers', async ({ getLocalTestPath, page, browser
     });
   });
 
-  await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-    return route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ id: 'test-id' }),
-    });
+  const requestPromise = waitForErrorRequest(page);
+  const replayRequestPromise = collectReplayRequests(page, recordingEvents => {
+    return getReplayPerformanceSpans(recordingEvents).some(span => span.op === 'resource.xhr');
   });
 
-  const requestPromise = waitForErrorRequest(page);
-  const replayRequestPromise1 = waitForReplayRequest(page, 0);
-
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
   await page.goto(url);
 
   await page.evaluate(() => {
-    /* eslint-disable */
     const xhr = new XMLHttpRequest();
 
-    xhr.open('GET', 'http://localhost:7654/foo');
+    xhr.open('GET', 'http://sentry-test.io/foo');
     xhr.send();
 
     xhr.addEventListener('readystatechange', function () {
@@ -54,7 +47,6 @@ sentryTest('captures response headers', async ({ getLocalTestPath, page, browser
         setTimeout(() => Sentry.captureException('test error', 0));
       }
     });
-    /* eslint-enable */
   });
 
   const request = await requestPromise;
@@ -70,13 +62,12 @@ sentryTest('captures response headers', async ({ getLocalTestPath, page, browser
     data: {
       method: 'GET',
       status_code: 200,
-      url: 'http://localhost:7654/foo',
+      url: 'http://sentry-test.io/foo',
     },
   });
 
-  const replayReq1 = await replayRequestPromise1;
-  const { performanceSpans: performanceSpans1 } = getCustomRecordingEvents(replayReq1);
-  expect(performanceSpans1.filter(span => span.op === 'resource.xhr')).toEqual([
+  const { replayRecordingSnapshots } = await replayRequestPromise;
+  expect(getReplayPerformanceSpans(replayRecordingSnapshots).filter(span => span.op === 'resource.xhr')).toEqual([
     {
       data: {
         method: 'GET',
@@ -89,7 +80,7 @@ sentryTest('captures response headers', async ({ getLocalTestPath, page, browser
           },
         },
       },
-      description: 'http://localhost:7654/foo',
+      description: 'http://sentry-test.io/foo',
       endTimestamp: expect.any(Number),
       op: 'resource.xhr',
       startTimestamp: expect.any(Number),
@@ -99,13 +90,13 @@ sentryTest('captures response headers', async ({ getLocalTestPath, page, browser
 
 sentryTest(
   'does not capture response headers if URL does not match',
-  async ({ getLocalTestPath, page, browserName }) => {
+  async ({ getLocalTestUrl, page, browserName }) => {
     // These are a bit flaky on non-chromium browsers
     if (shouldSkipReplayTest() || browserName !== 'chromium') {
       sentryTest.skip();
     }
 
-    await page.route('**/bar', route => {
+    await page.route('http://sentry-test.io/bar', route => {
       return route.fulfill({
         status: 200,
         headers: {
@@ -118,25 +109,18 @@ sentryTest(
       });
     });
 
-    await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-      return route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({ id: 'test-id' }),
-      });
+    const requestPromise = waitForErrorRequest(page);
+    const replayRequestPromise = collectReplayRequests(page, recordingEvents => {
+      return getReplayPerformanceSpans(recordingEvents).some(span => span.op === 'resource.xhr');
     });
 
-    const requestPromise = waitForErrorRequest(page);
-    const replayRequestPromise1 = waitForReplayRequest(page, 0);
-
-    const url = await getLocalTestPath({ testDir: __dirname });
+    const url = await getLocalTestUrl({ testDir: __dirname });
     await page.goto(url);
 
     await page.evaluate(() => {
-      /* eslint-disable */
       const xhr = new XMLHttpRequest();
 
-      xhr.open('GET', 'http://localhost:7654/bar');
+      xhr.open('GET', 'http://sentry-test.io/bar');
       xhr.send();
 
       xhr.addEventListener('readystatechange', function () {
@@ -145,7 +129,6 @@ sentryTest(
           setTimeout(() => Sentry.captureException('test error', 0));
         }
       });
-      /* eslint-enable */
     });
 
     const request = await requestPromise;
@@ -161,13 +144,12 @@ sentryTest(
       data: {
         method: 'GET',
         status_code: 200,
-        url: 'http://localhost:7654/bar',
+        url: 'http://sentry-test.io/bar',
       },
     });
 
-    const replayReq1 = await replayRequestPromise1;
-    const { performanceSpans: performanceSpans1 } = getCustomRecordingEvents(replayReq1);
-    expect(performanceSpans1.filter(span => span.op === 'resource.xhr')).toEqual([
+    const { replayRecordingSnapshots } = await replayRequestPromise;
+    expect(getReplayPerformanceSpans(replayRecordingSnapshots).filter(span => span.op === 'resource.xhr')).toEqual([
       {
         data: {
           method: 'GET',
@@ -185,7 +167,7 @@ sentryTest(
             },
           },
         },
-        description: 'http://localhost:7654/bar',
+        description: 'http://sentry-test.io/bar',
         endTimestamp: expect.any(Number),
         op: 'resource.xhr',
         startTimestamp: expect.any(Number),

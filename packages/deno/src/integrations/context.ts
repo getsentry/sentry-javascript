@@ -1,5 +1,5 @@
-import { convertIntegrationFnToClass } from '@sentry/core';
-import type { Event, Integration, IntegrationClass, IntegrationFn } from '@sentry/types';
+import { defineIntegration } from '@sentry/core';
+import type { Event, IntegrationFn } from '@sentry/core';
 
 const INTEGRATION_NAME = 'DenoContext';
 
@@ -16,8 +16,8 @@ function getOSName(): string {
   }
 }
 
-function getOSRelease(): string | undefined {
-  return Deno.permissions.querySync({ name: 'sys', kind: 'osRelease' }).state === 'granted'
+async function getOSRelease(): Promise<string | undefined> {
+  return (await Deno.permissions.query({ name: 'sys', kind: 'osRelease' })).state === 'granted'
     ? Deno.osRelease()
     : undefined;
 }
@@ -35,7 +35,7 @@ async function addDenoRuntimeContext(event: Event): Promise<Event> {
       },
       os: {
         name: getOSName(),
-        version: getOSRelease(),
+        version: await getOSRelease(),
       },
       v8: {
         name: 'v8',
@@ -52,19 +52,26 @@ async function addDenoRuntimeContext(event: Event): Promise<Event> {
   return event;
 }
 
-const denoContextIntegration = (() => {
+const _denoContextIntegration = (() => {
   return {
     name: INTEGRATION_NAME,
-    // TODO v8: Remove this
-    setupOnce() {}, // eslint-disable-line @typescript-eslint/no-empty-function
     processEvent(event) {
       return addDenoRuntimeContext(event);
     },
   };
 }) satisfies IntegrationFn;
 
-/** Adds Deno context to events. */
-// eslint-disable-next-line deprecation/deprecation
-export const DenoContext = convertIntegrationFnToClass(INTEGRATION_NAME, denoContextIntegration) as IntegrationClass<
-  Integration & { processEvent: (event: Event) => Promise<Event> }
->;
+/**
+ * Adds Deno related context to events. This includes contexts about app, device, os, v8, and TypeScript.
+ *
+ * Enabled by default in the Deno SDK.
+ *
+ * ```js
+ * Sentry.init({
+ *   integrations: [
+ *     Sentry.denoContextIntegration(),
+ *   ],
+ * })
+ * ```
+ */
+export const denoContextIntegration = defineIntegration(_denoContextIntegration);

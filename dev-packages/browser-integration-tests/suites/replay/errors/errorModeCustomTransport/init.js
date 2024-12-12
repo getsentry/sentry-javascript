@@ -1,7 +1,7 @@
 import * as Sentry from '@sentry/browser';
 
 window.Sentry = Sentry;
-window.Replay = new Sentry.Replay({
+window.Replay = Sentry.replayIntegration({
   flushMinDelay: 200,
   flushMaxDelay: 200,
   minReplayDuration: 0,
@@ -14,7 +14,7 @@ Sentry.init({
   replaysOnErrorSampleRate: 1.0,
   integrations: [window.Replay],
   transport: options => {
-    const transport = new Sentry.makeXHRTransport(options);
+    const transport = new Sentry.makeFetchTransport(options);
 
     delete transport.send.__sentry__baseTransport__;
 

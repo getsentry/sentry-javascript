@@ -1,4 +1,4 @@
-name: Gitflow - Sync master into develop
+name: "Gitflow: Sync master into develop"
 on:
   push:
     branches:
@@ -47,7 +47,7 @@ jobs:
       # https://github.com/marketplace/actions/auto-approve
       - name: Auto approve PR
         if: steps.open-pr.outputs.pr_number != ''
-        uses: hmarr/auto-approve-action@v3
+        uses: hmarr/auto-approve-action@v4
         with:
           pull-request-number: ${{ steps.open-pr.outputs.pr_number }}
           review-message: 'Auto approved automated PR'

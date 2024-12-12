@@ -19,7 +19,7 @@ function isInputMutation(
 
 sentryTest(
   'should mask input initial value and its changes from `maskAllInputs` and allow unmasked selector',
-  async ({ browserName, forceFlushReplay, getLocalTestPath, page }) => {
+  async ({ browserName, forceFlushReplay, getLocalTestUrl, page }) => {
     // TODO(replay): This is flakey on webkit (~1%) where we do not always get the latest mutation.
     if (shouldSkipReplayTest() || browserName === 'webkit') {
       sentryTest.skip();
@@ -46,15 +46,7 @@ sentryTest(
       );
     });
 
-    await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-      return route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({ id: 'test-id' }),
-      });
-    });
-
-    const url = await getLocalTestPath({ testDir: __dirname });
+    const url = await getLocalTestUrl({ testDir: __dirname });
 
     await page.goto(url);
 
@@ -83,7 +75,7 @@ sentryTest(
 
 sentryTest(
   'should mask textarea initial value and its changes from `maskAllInputs` and allow unmasked selector',
-  async ({ browserName, forceFlushReplay, getLocalTestPath, page }) => {
+  async ({ browserName, forceFlushReplay, getLocalTestUrl, page }) => {
     // TODO(replay): This is flakey on webkit (~1%) where we do not always get the latest mutation.
     if (shouldSkipReplayTest() || browserName === 'webkit') {
       sentryTest.skip();
@@ -110,15 +102,7 @@ sentryTest(
       );
     });
 
-    await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-      return route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({ id: 'test-id' }),
-      });
-    });
-
-    const url = await getLocalTestPath({ testDir: __dirname });
+    const url = await getLocalTestUrl({ testDir: __dirname });
 
     await page.goto(url);
 

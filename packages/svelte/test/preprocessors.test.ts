@@ -1,6 +1,7 @@
+import { describe, expect, it } from 'vitest';
+
 import * as svelteCompiler from 'svelte/compiler';
 
-/* eslint-disable deprecation/deprecation */
 import {
   FIRST_PASS_COMPONENT_TRACKING_PREPROC_ID,
   componentTrackingPreprocessor,
@@ -118,9 +119,9 @@ describe('componentTrackingPreprocessor', () => {
         return { ...cmp, newCode: res.code, map: res.map };
       });
 
-      expect(cmp2.newCode).toEqual(cmp2.originalCode);
+      expect(cmp2?.newCode).toEqual(cmp2?.originalCode);
 
-      expectComponentCodeToBeModified([cmp1, cmp3], { trackInit: true, trackUpdates: true });
+      expectComponentCodeToBeModified([cmp1!, cmp3!], { trackInit: true, trackUpdates: true });
     });
 
     it('doesnt inject the function call to the same component more than once', () => {
@@ -156,8 +157,8 @@ describe('componentTrackingPreprocessor', () => {
         return { ...cmp, newCode: res.code, map: res.map };
       });
 
-      expectComponentCodeToBeModified([cmp11, cmp2], { trackInit: true, trackUpdates: true });
-      expect(cmp12.newCode).toEqual(cmp12.originalCode);
+      expectComponentCodeToBeModified([cmp11!, cmp2!], { trackInit: true, trackUpdates: true });
+      expect(cmp12!.newCode).toEqual(cmp12!.originalCode);
     });
 
     it('doesnt inject the function call to a module context script block', () => {

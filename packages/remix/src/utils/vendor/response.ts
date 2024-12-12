@@ -6,7 +6,9 @@
 //
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-import type { DeferredData, ErrorResponse, ReactRouterDomPkg, RouteMatch, ServerRoute } from './types';
+import { matchRoutes } from '@remix-run/router';
+import type { AgnosticRouteMatch, AgnosticRouteObject } from '@remix-run/router';
+import type { DeferredData, ErrorResponse, ServerRoute } from './types';
 
 /**
  * Based on Remix Implementation
@@ -76,13 +78,9 @@ export const json: JsonFunction = (data, init = {}) => {
 export function matchServerRoutes(
   routes: ServerRoute[],
   pathname: string,
-  pkg?: ReactRouterDomPkg,
-): RouteMatch<ServerRoute>[] | null {
-  if (!pkg) {
-    return null;
-  }
+): AgnosticRouteMatch<string, AgnosticRouteObject>[] | null {
+  const matches = matchRoutes(routes, pathname);
 
-  const matches = pkg.matchRoutes(routes, pathname);
   if (!matches) {
     return null;
   }
@@ -91,6 +89,7 @@ export function matchServerRoutes(
     params: match.params,
     pathname: match.pathname,
     route: match.route,
+    pathnameBase: match.pathnameBase,
   }));
 }
 
@@ -115,11 +114,14 @@ export function isIndexRequestUrl(url: URL): boolean {
 /**
  * https://github.com/remix-run/remix/blob/97999d02493e8114c39d48b76944069d58526e8d/packages/remix-server-runtime/server.ts#L588-L596
  */
-export function getRequestMatch(url: URL, matches: RouteMatch<ServerRoute>[]): RouteMatch<ServerRoute> {
-  const match = matches.slice(-1)[0];
+export function getRequestMatch(
+  url: URL,
+  matches: AgnosticRouteMatch[],
+): AgnosticRouteMatch<string, AgnosticRouteObject> {
+  const match = matches.slice(-1)[0] as AgnosticRouteMatch<string, AgnosticRouteObject>;
 
-  if (!isIndexRequestUrl(url) && match.route.id.endsWith('/index')) {
-    return matches.slice(-2)[0];
+  if (!isIndexRequestUrl(url) && match.route.id?.endsWith('/index')) {
+    return matches.slice(-2)[0] as AgnosticRouteMatch<string, AgnosticRouteObject>;
   }
 
   return match;

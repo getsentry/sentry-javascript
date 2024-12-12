@@ -1,18 +1,17 @@
-import { getClient } from '@sentry/core';
 import type {
   Event,
   EventHint,
   Exception,
   ParameterizedString,
-  Severity,
   SeverityLevel,
   StackFrame,
   StackParser,
-} from '@sentry/types';
+} from '@sentry/core';
 import {
   addExceptionMechanism,
   addExceptionTypeValue,
   extractExceptionKeysForMessage,
+  getClient,
   isDOMError,
   isDOMException,
   isError,
@@ -22,7 +21,7 @@ import {
   isPlainObject,
   normalizeToSize,
   resolvedSyncPromise,
-} from '@sentry/utils';
+} from '@sentry/core';
 
 type Prototype = { constructor: (...args: unknown[]) => unknown };
 
@@ -34,7 +33,7 @@ export function exceptionFromError(stackParser: StackParser, ex: Error): Excepti
   const frames = parseStackFrames(stackParser, ex);
 
   const exception: Exception = {
-    type: ex && ex.name,
+    type: extractType(ex),
     value: extractMessage(ex),
   };
 
@@ -49,10 +48,7 @@ export function exceptionFromError(stackParser: StackParser, ex: Error): Excepti
   return exception;
 }
 
-/**
- * @hidden
- */
-export function eventFromPlainObject(
+function eventFromPlainObject(
   stackParser: StackParser,
   exception: Record<string, unknown>,
   syntheticException?: Error,
@@ -61,35 +57,47 @@ export function eventFromPlainObject(
   const client = getClient();
   const normalizeDepth = client && client.getOptions().normalizeDepth;
 
-  const event: Event = {
+  // If we can, we extract an exception from the object properties
+  const errorFromProp = getErrorPropertyFromObject(exception);
+
+  const extra = {
+    __serialized__: normalizeToSize(exception, normalizeDepth),
+  };
+
+  if (errorFromProp) {
+    return {
+      exception: {
+        values: [exceptionFromError(stackParser, errorFromProp)],
+      },
+      extra,
+    };
+  }
+
+  const event = {
     exception: {
       values: [
         {
           type: isEvent(exception) ? exception.constructor.name : isUnhandledRejection ? 'UnhandledRejection' : 'Error',
           value: getNonErrorObjectExceptionValue(exception, { isUnhandledRejection }),
-        },
+        } as Exception,
       ],
     },
-    extra: {
-      __serialized__: normalizeToSize(exception, normalizeDepth),
-    },
-  };
+    extra,
+  } satisfies Event;
 
   if (syntheticException) {
     const frames = parseStackFrames(stackParser, syntheticException);
     if (frames.length) {
       // event.exception.values[0] has been set above
-      (event.exception as { values: Exception[] }).values[0].stacktrace = { frames };
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      event.exception.values[0]!.stacktrace = { frames };
     }
   }
 
   return event;
 }
 
-/**
- * @hidden
- */
-export function eventFromError(stackParser: StackParser, ex: Error): Event {
+function eventFromError(stackParser: StackParser, ex: Error): Event {
   return {
     exception: {
       values: [exceptionFromError(stackParser, ex)],
@@ -98,7 +106,7 @@ export function eventFromError(stackParser: StackParser, ex: Error): Event {
 }
 
 /** Parses stack frames from an error */
-export function parseStackFrames(
+function parseStackFrames(
   stackParser: StackParser,
   ex: Error & { framesToPop?: number; stacktrace?: string },
 ): StackFrame[] {
@@ -107,10 +115,11 @@ export function parseStackFrames(
   // reliably in other circumstances.
   const stacktrace = ex.stacktrace || ex.stack || '';
 
-  const popSize = getPopSize(ex);
+  const skipLines = getSkipFirstStackStringLines(ex);
+  const framesToPop = getPopFirstTopFrames(ex);
 
   try {
-    return stackParser(stacktrace, popSize);
+    return stackParser(stacktrace, skipLines, framesToPop);
   } catch (e) {
     // no-empty
   }
@@ -121,18 +130,65 @@ export function parseStackFrames(
 // Based on our own mapping pattern - https://github.com/getsentry/sentry/blob/9f08305e09866c8bd6d0c24f5b0aabdd7dd6c59c/src/sentry/lang/javascript/errormapping.py#L83-L108
 const reactMinifiedRegexp = /Minified React error #\d+;/i;
 
-function getPopSize(ex: Error & { framesToPop?: number }): number {
-  if (ex) {
-    if (typeof ex.framesToPop === 'number') {
-      return ex.framesToPop;
-    }
-
-    if (reactMinifiedRegexp.test(ex.message)) {
-      return 1;
-    }
+/**
+ * Certain known React errors contain links that would be falsely
+ * parsed as frames. This function check for these errors and
+ * returns number of the stack string lines to skip.
+ */
+function getSkipFirstStackStringLines(ex: Error): number {
+  if (ex && reactMinifiedRegexp.test(ex.message)) {
+    return 1;
   }
 
   return 0;
+}
+
+/**
+ * If error has `framesToPop` property, it means that the
+ * creator tells us the first x frames will be useless
+ * and should be discarded. Typically error from wrapper function
+ * which don't point to the actual location in the developer's code.
+ *
+ * Example: https://github.com/zertosh/invariant/blob/master/invariant.js#L46
+ */
+function getPopFirstTopFrames(ex: Error & { framesToPop?: unknown }): number {
+  if (typeof ex.framesToPop === 'number') {
+    return ex.framesToPop;
+  }
+
+  return 0;
+}
+
+// https://developer.mozilla.org/en-US/docs/WebAssembly/JavaScript_interface/Exception
+// @ts-expect-error - WebAssembly.Exception is a valid class
+function isWebAssemblyException(exception: unknown): exception is WebAssembly.Exception {
+  // Check for support
+  // @ts-expect-error - WebAssembly.Exception is a valid class
+  if (typeof WebAssembly !== 'undefined' && typeof WebAssembly.Exception !== 'undefined') {
+    // @ts-expect-error - WebAssembly.Exception is a valid class
+    return exception instanceof WebAssembly.Exception;
+  } else {
+    return false;
+  }
+}
+
+/**
+ * Extracts from errors what we use as the exception `type` in error events.
+ *
+ * Usually, this is the `name` property on Error objects but WASM errors need to be treated differently.
+ */
+export function extractType(ex: Error & { message: { error?: Error } }): string | undefined {
+  const name = ex && ex.name;
+
+  // The name for WebAssembly.Exception Errors needs to be extracted differently.
+  // Context: https://github.com/getsentry/sentry-javascript/issues/13787
+  if (!name && isWebAssemblyException(ex)) {
+    // Emscripten sets array[type, message] to the "message" property on the WebAssembly.Exception object
+    const hasTypeInMessage = ex.message && Array.isArray(ex.message) && ex.message.length == 2;
+    return hasTypeInMessage ? ex.message[0] : 'WebAssembly.Exception';
+  }
+
+  return name;
 }
 
 /**
@@ -140,14 +196,22 @@ function getPopSize(ex: Error & { framesToPop?: number }): number {
  * https://github.com/getsentry/sentry-javascript/issues/1949
  * In this specific case we try to extract stacktrace.message.error.message
  */
-function extractMessage(ex: Error & { message: { error?: Error } }): string {
+export function extractMessage(ex: Error & { message: { error?: Error } }): string {
   const message = ex && ex.message;
+
   if (!message) {
     return 'No error message';
   }
+
   if (message.error && typeof message.error.message === 'string') {
     return message.error.message;
   }
+
+  // Emscripten sets array[type, message] to the "message" property on the WebAssembly.Exception object
+  if (isWebAssemblyException(ex) && Array.isArray(ex.message) && ex.message.length == 2) {
+    return ex.message[1];
+  }
+
   return message;
 }
 
@@ -178,8 +242,7 @@ export function eventFromException(
 export function eventFromMessage(
   stackParser: StackParser,
   message: ParameterizedString,
-  // eslint-disable-next-line deprecation/deprecation
-  level: Severity | SeverityLevel = 'info',
+  level: SeverityLevel = 'info',
   hint?: EventHint,
   attachStacktrace?: boolean,
 ): PromiseLike<Event> {
@@ -269,10 +332,7 @@ export function eventFromUnknownInput(
   return event;
 }
 
-/**
- * @hidden
- */
-export function eventFromString(
+function eventFromString(
   stackParser: StackParser,
   message: ParameterizedString,
   syntheticException?: Error,
@@ -331,4 +391,18 @@ function getObjectClassName(obj: unknown): string | undefined | void {
   } catch (e) {
     // ignore errors here
   }
+}
+
+/** If a plain object has a property that is an `Error`, return this error. */
+function getErrorPropertyFromObject(obj: Record<string, unknown>): Error | undefined {
+  for (const prop in obj) {
+    if (Object.prototype.hasOwnProperty.call(obj, prop)) {
+      const value = obj[prop];
+      if (value instanceof Error) {
+        return value;
+      }
+    }
+  }
+
+  return undefined;
 }

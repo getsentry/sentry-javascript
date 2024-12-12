@@ -13,8 +13,9 @@ module.exports = {
     'no-optional-chaining': require('./rules/no-optional-chaining'),
     'no-nullish-coalescing': require('./rules/no-nullish-coalescing'),
     'no-eq-empty': require('./rules/no-eq-empty'),
-    'no-unsupported-es6-methods': require('./rules/no-unsupported-es6-methods'),
     'no-class-field-initializers': require('./rules/no-class-field-initializers'),
     'no-regexp-constructor': require('./rules/no-regexp-constructor'),
+    'no-focused-tests': require('./rules/no-focused-tests'),
+    'no-skipped-tests': require('./rules/no-skipped-tests'),
   },
 };

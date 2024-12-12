@@ -1,24 +1,20 @@
-import type { Attachment, Breadcrumb, Client, Event } from '@sentry/types';
 import {
-  Hub,
-  addTracingExtensions,
   applyScopeDataToEvent,
-  getActiveSpan,
   getCurrentScope,
+  getGlobalScope,
   getIsolationScope,
-  makeMain,
-  startInactiveSpan,
-  startSpan,
   withIsolationScope,
+  withScope,
 } from '../../src';
+import type { Breadcrumb, Client, Event, RequestSessionStatus } from '../../src/types-hoist';
 
-import { withActiveSpan } from '../../src/exports';
-import { Scope, getGlobalScope, setGlobalScope } from '../../src/scope';
+import { Scope } from '../../src/scope';
 import { TestClient, getDefaultTestClientOptions } from '../mocks/client';
+import { clearGlobalScope } from './clear-global-scope';
 
 describe('Scope', () => {
   beforeEach(() => {
-    setGlobalScope(undefined);
+    clearGlobalScope();
   });
 
   it('allows to create & update a scope', () => {
@@ -102,9 +98,410 @@ describe('Scope', () => {
     });
   });
 
+  describe('init', () => {
+    test('it creates a propagation context', () => {
+      const scope = new Scope();
+
+      expect(scope.getScopeData().propagationContext).toEqual({
+        traceId: expect.any(String),
+        spanId: expect.any(String),
+        sampled: undefined,
+        dsc: undefined,
+        parentSpanId: undefined,
+      });
+    });
+  });
+
+  describe('attributes modification', () => {
+    test('setFingerprint', () => {
+      const scope = new Scope();
+      scope.setFingerprint(['abcd']);
+      expect(scope['_fingerprint']).toEqual(['abcd']);
+    });
+
+    test('setExtra', () => {
+      const scope = new Scope();
+      scope.setExtra('a', 1);
+      expect(scope['_extra']).toEqual({ a: 1 });
+    });
+
+    test('setExtras', () => {
+      const scope = new Scope();
+      scope.setExtras({ a: 1 });
+      expect(scope['_extra']).toEqual({ a: 1 });
+    });
+
+    test('setExtras with undefined overrides the value', () => {
+      const scope = new Scope();
+      scope.setExtra('a', 1);
+      scope.setExtras({ a: undefined });
+      expect(scope['_extra']).toEqual({ a: undefined });
+    });
+
+    test('setTag', () => {
+      const scope = new Scope();
+      scope.setTag('a', 'b');
+      expect(scope['_tags']).toEqual({ a: 'b' });
+    });
+
+    test('setTags', () => {
+      const scope = new Scope();
+      scope.setTags({ a: 'b' });
+      expect(scope['_tags']).toEqual({ a: 'b' });
+    });
+
+    test('setUser', () => {
+      const scope = new Scope();
+      scope.setUser({ id: '1' });
+      expect(scope['_user']).toEqual({ id: '1' });
+    });
+
+    test('setUser with null unsets the user', () => {
+      const scope = new Scope();
+      scope.setUser({ id: '1' });
+      scope.setUser(null);
+      expect(scope['_user']).toEqual({});
+    });
+
+    test('addBreadcrumb', () => {
+      const scope = new Scope();
+      scope.addBreadcrumb({ message: 'test' });
+      expect(scope['_breadcrumbs'][0]).toHaveProperty('message', 'test');
+    });
+
+    test('addBreadcrumb can be limited to hold up to N breadcrumbs', () => {
+      const scope = new Scope();
+      for (let i = 0; i < 10; i++) {
+        scope.addBreadcrumb({ message: 'test' }, 5);
+      }
+      expect(scope['_breadcrumbs']).toHaveLength(5);
+    });
+
+    test('addBreadcrumb can go over DEFAULT_MAX_BREADCRUMBS value', () => {
+      const scope = new Scope();
+      for (let i = 0; i < 120; i++) {
+        scope.addBreadcrumb({ message: 'test' }, 111);
+      }
+      expect(scope['_breadcrumbs']).toHaveLength(111);
+    });
+
+    test('setLevel', () => {
+      const scope = new Scope();
+      scope.setLevel('fatal');
+      expect(scope['_level']).toEqual('fatal');
+    });
+
+    test('setContext', () => {
+      const scope = new Scope();
+      scope.setContext('os', { id: '1' });
+      expect(scope['_contexts'].os).toEqual({ id: '1' });
+    });
+
+    test('setContext with null unsets it', () => {
+      const scope = new Scope();
+      scope.setContext('os', { id: '1' });
+      scope.setContext('os', null);
+      expect(scope['_user']).toEqual({});
+    });
+
+    describe('setProcessingMetadata', () => {
+      test('it works with no initial data', () => {
+        const scope = new Scope();
+        scope.setSDKProcessingMetadata({ dogs: 'are great!' });
+        expect(scope['_sdkProcessingMetadata'].dogs).toEqual('are great!');
+      });
+
+      test('it overwrites data', () => {
+        const scope = new Scope();
+        scope.setSDKProcessingMetadata({ dogs: 'are great!' });
+        scope.setSDKProcessingMetadata({ dogs: 'are really great!' });
+        scope.setSDKProcessingMetadata({ cats: 'are also great!' });
+        scope.setSDKProcessingMetadata({ obj: { nested1: 'value1', nested: 'value1' } });
+        scope.setSDKProcessingMetadata({ obj: { nested2: 'value2', nested: 'value2' } });
+
+        expect(scope['_sdkProcessingMetadata']).toEqual({
+          dogs: 'are really great!',
+          cats: 'are also great!',
+          obj: { nested2: 'value2', nested: 'value2', nested1: 'value1' },
+        });
+      });
+    });
+
+    test('set and get propagation context', () => {
+      const scope = new Scope();
+      const oldPropagationContext = scope.getPropagationContext();
+      scope.setPropagationContext({
+        traceId: '86f39e84263a4de99c326acab3bfe3bd',
+        spanId: '6e0c63257de34c92',
+        sampled: true,
+      });
+      expect(scope.getPropagationContext()).not.toEqual(oldPropagationContext);
+      expect(scope.getPropagationContext()).toEqual({
+        traceId: '86f39e84263a4de99c326acab3bfe3bd',
+        spanId: '6e0c63257de34c92',
+        sampled: true,
+      });
+    });
+
+    test('chaining', () => {
+      const scope = new Scope();
+      scope.setLevel('fatal').setUser({ id: '1' });
+      expect(scope['_level']).toEqual('fatal');
+      expect(scope['_user']).toEqual({ id: '1' });
+    });
+  });
+
+  describe('clone', () => {
+    test('basic inheritance', () => {
+      const parentScope = new Scope();
+      parentScope.setExtra('a', 1);
+      const scope = parentScope.clone();
+      expect(parentScope['_extra']).toEqual(scope['_extra']);
+    });
+
+    test('_requestSession clone', () => {
+      const parentScope = new Scope();
+      // eslint-disable-next-line deprecation/deprecation
+      parentScope.setRequestSession({ status: 'errored' });
+      const scope = parentScope.clone();
+      // eslint-disable-next-line deprecation/deprecation
+      expect(parentScope.getRequestSession()).toEqual(scope.getRequestSession());
+    });
+
+    test('parent changed inheritance', () => {
+      const parentScope = new Scope();
+      const scope = parentScope.clone();
+      parentScope.setExtra('a', 2);
+      expect(scope['_extra']).toEqual({});
+      expect(parentScope['_extra']).toEqual({ a: 2 });
+    });
+
+    test('child override inheritance', () => {
+      const parentScope = new Scope();
+      parentScope.setExtra('a', 1);
+
+      const scope = parentScope.clone();
+      scope.setExtra('a', 2);
+      expect(parentScope['_extra']).toEqual({ a: 1 });
+      expect(scope['_extra']).toEqual({ a: 2 });
+    });
+
+    test('child override should set the value of parent _requestSession', () => {
+      // Test that ensures if the status value of `status` of `_requestSession` is changed in a child scope
+      // that it should also change in parent scope because we are copying the reference to the object
+      const parentScope = new Scope();
+      // eslint-disable-next-line deprecation/deprecation
+      parentScope.setRequestSession({ status: 'errored' });
+
+      const scope = parentScope.clone();
+      // eslint-disable-next-line deprecation/deprecation
+      const requestSession = scope.getRequestSession();
+      if (requestSession) {
+        requestSession.status = 'ok';
+      }
+
+      // eslint-disable-next-line deprecation/deprecation
+      expect(parentScope.getRequestSession()).toEqual({ status: 'ok' });
+      // eslint-disable-next-line deprecation/deprecation
+      expect(scope.getRequestSession()).toEqual({ status: 'ok' });
+    });
+
+    test('should clone propagation context', () => {
+      const parentScope = new Scope();
+      const scope = parentScope.clone();
+
+      expect(scope.getScopeData().propagationContext).toEqual(parentScope.getScopeData().propagationContext);
+    });
+  });
+
+  test('clear', () => {
+    const scope = new Scope();
+    const oldPropagationContext = scope.getScopeData().propagationContext;
+    scope.setExtra('a', 2);
+    scope.setTag('a', 'b');
+    scope.setUser({ id: '1' });
+    scope.setFingerprint(['abcd']);
+    scope.addBreadcrumb({ message: 'test' });
+    // eslint-disable-next-line deprecation/deprecation
+    scope.setRequestSession({ status: 'ok' });
+    expect(scope['_extra']).toEqual({ a: 2 });
+    scope.clear();
+    expect(scope['_extra']).toEqual({});
+    expect(scope['_requestSession']).toEqual(undefined);
+    expect(scope['_propagationContext']).toEqual({
+      traceId: expect.any(String),
+      spanId: expect.any(String),
+      sampled: undefined,
+    });
+    expect(scope['_propagationContext']).not.toEqual(oldPropagationContext);
+  });
+
+  test('clearBreadcrumbs', () => {
+    const scope = new Scope();
+    scope.addBreadcrumb({ message: 'test' });
+    expect(scope['_breadcrumbs']).toHaveLength(1);
+    scope.clearBreadcrumbs();
+    expect(scope['_breadcrumbs']).toHaveLength(0);
+  });
+
+  describe('update', () => {
+    let scope: Scope;
+
+    beforeEach(() => {
+      scope = new Scope();
+      scope.setTags({ foo: '1', bar: '2' });
+      scope.setExtras({ foo: '1', bar: '2' });
+      scope.setContext('foo', { id: '1' });
+      scope.setContext('bar', { id: '2' });
+      scope.setUser({ id: '1337' });
+      scope.setLevel('info');
+      scope.setFingerprint(['foo']);
+      // eslint-disable-next-line deprecation/deprecation
+      scope.setRequestSession({ status: 'ok' });
+    });
+
+    test('given no data, returns the original scope', () => {
+      const updatedScope = scope.update();
+      expect(updatedScope).toEqual(scope);
+    });
+
+    test('given neither function, Scope or plain object, returns original scope', () => {
+      // @ts-expect-error we want to be able to update scope with string
+      const updatedScope = scope.update('wat');
+      expect(updatedScope).toEqual(scope);
+    });
+
+    test('given callback function, pass it the scope and returns original or modified scope', () => {
+      const cb = jest
+        .fn()
+        .mockImplementationOnce(v => v)
+        .mockImplementationOnce(v => {
+          v.setTag('foo', 'bar');
+          return v;
+        });
+
+      let updatedScope = scope.update(cb);
+      expect(cb).toHaveBeenNthCalledWith(1, scope);
+      expect(updatedScope).toEqual(scope);
+
+      updatedScope = scope.update(cb);
+      expect(cb).toHaveBeenNthCalledWith(2, scope);
+      expect(updatedScope).toEqual(scope);
+    });
+
+    test('given callback function, when it doesnt return instanceof Scope, ignore it and return original scope', () => {
+      const cb = jest.fn().mockImplementationOnce(_v => 'wat');
+      const updatedScope = scope.update(cb);
+      expect(cb).toHaveBeenCalledWith(scope);
+      expect(updatedScope).toEqual(scope);
+    });
+
+    test('given another instance of Scope, it should merge two together, with the passed scope having priority', () => {
+      const localScope = new Scope();
+      localScope.setTags({ bar: '3', baz: '4' });
+      localScope.setExtras({ bar: '3', baz: '4' });
+      localScope.setContext('bar', { id: '3' });
+      localScope.setContext('baz', { id: '4' });
+      localScope.setUser({ id: '42' });
+      localScope.setLevel('warning');
+      localScope.setFingerprint(['bar']);
+      (localScope as any)._requestSession = { status: 'ok' };
+
+      const updatedScope = scope.update(localScope) as any;
+
+      expect(updatedScope._tags).toEqual({
+        bar: '3',
+        baz: '4',
+        foo: '1',
+      });
+      expect(updatedScope._extra).toEqual({
+        bar: '3',
+        baz: '4',
+        foo: '1',
+      });
+      expect(updatedScope._contexts).toEqual({
+        bar: { id: '3' },
+        baz: { id: '4' },
+        foo: { id: '1' },
+      });
+      expect(updatedScope._user).toEqual({ id: '42' });
+      expect(updatedScope._level).toEqual('warning');
+      expect(updatedScope._fingerprint).toEqual(['bar']);
+      expect(updatedScope._requestSession.status).toEqual('ok');
+      // @ts-expect-error accessing private property for test
+      expect(updatedScope._propagationContext).toEqual(localScope._propagationContext);
+    });
+
+    test('given an empty instance of Scope, it should preserve all the original scope data', () => {
+      const updatedScope = scope.update(new Scope()) as any;
+
+      expect(updatedScope._tags).toEqual({
+        bar: '2',
+        foo: '1',
+      });
+      expect(updatedScope._extra).toEqual({
+        bar: '2',
+        foo: '1',
+      });
+      expect(updatedScope._contexts).toEqual({
+        bar: { id: '2' },
+        foo: { id: '1' },
+      });
+      expect(updatedScope._user).toEqual({ id: '1337' });
+      expect(updatedScope._level).toEqual('info');
+      expect(updatedScope._fingerprint).toEqual(['foo']);
+      expect(updatedScope._requestSession.status).toEqual('ok');
+    });
+
+    test('given a plain object, it should merge two together, with the passed object having priority', () => {
+      const localAttributes = {
+        contexts: { bar: { id: '3' }, baz: { id: '4' } },
+        extra: { bar: '3', baz: '4' },
+        fingerprint: ['bar'],
+        level: 'warning' as const,
+        tags: { bar: '3', baz: '4' },
+        user: { id: '42' },
+        // eslint-disable-next-line deprecation/deprecation
+        requestSession: { status: 'errored' as RequestSessionStatus },
+        propagationContext: {
+          traceId: '8949daf83f4a4a70bee4c1eb9ab242ed',
+          spanId: 'a024ad8fea82680e',
+          sampled: true,
+        },
+      };
+
+      const updatedScope = scope.update(localAttributes) as any;
+
+      expect(updatedScope._tags).toEqual({
+        bar: '3',
+        baz: '4',
+        foo: '1',
+      });
+      expect(updatedScope._extra).toEqual({
+        bar: '3',
+        baz: '4',
+        foo: '1',
+      });
+      expect(updatedScope._contexts).toEqual({
+        bar: { id: '3' },
+        baz: { id: '4' },
+        foo: { id: '1' },
+      });
+      expect(updatedScope._user).toEqual({ id: '42' });
+      expect(updatedScope._level).toEqual('warning');
+      expect(updatedScope._fingerprint).toEqual(['bar']);
+      expect(updatedScope._requestSession).toEqual({ status: 'errored' });
+      expect(updatedScope._propagationContext).toEqual({
+        traceId: '8949daf83f4a4a70bee4c1eb9ab242ed',
+        spanId: 'a024ad8fea82680e',
+        sampled: true,
+      });
+    });
+  });
+
   describe('global scope', () => {
     beforeEach(() => {
-      setGlobalScope(undefined);
+      clearGlobalScope();
     });
 
     it('works', () => {
@@ -131,12 +528,7 @@ describe('Scope', () => {
 
       expect(event).toEqual({
         message: 'foo',
-        sdkProcessingMetadata: {
-          propagationContext: {
-            spanId: expect.any(String),
-            traceId: expect.any(String),
-          },
-        },
+        sdkProcessingMetadata: {},
       });
     });
 
@@ -165,41 +557,17 @@ describe('Scope', () => {
         user: { id: '1', email: 'test@example.com' },
         tags: { tag1: 'aa', tag2: 'aa' },
         extra: { extra1: 'aa', extra2: 'aa' },
-        contexts: { os: { name: 'os1' }, culture: { display_name: 'name1' } },
+        contexts: {
+          os: { name: 'os1' },
+          culture: { display_name: 'name1' },
+        },
         fingerprint: ['dd', 'aa'],
         breadcrumbs: [breadcrumb2, breadcrumb1],
         sdkProcessingMetadata: {
           aa: 'aa',
-          propagationContext: {
-            spanId: '1',
-            traceId: '1',
-          },
         },
       });
     });
-  });
-
-  describe('getAttachments', () => {
-    /* eslint-disable deprecation/deprecation */
-    it('works without any data', async () => {
-      const scope = new Scope();
-
-      const actual = scope.getAttachments();
-      expect(actual).toEqual([]);
-    });
-
-    it('works with attachments', async () => {
-      const attachment1 = { filename: '1' } as Attachment;
-      const attachment2 = { filename: '2' } as Attachment;
-
-      const scope = new Scope();
-      scope.addAttachment(attachment1);
-      scope.addAttachment(attachment2);
-
-      const actual = scope.getAttachments();
-      expect(actual).toEqual([attachment1, attachment2]);
-    });
-    /* eslint-enable deprecation/deprecation */
   });
 
   describe('setClient() and getClient()', () => {
@@ -478,79 +846,169 @@ describe('Scope', () => {
       );
     });
   });
-});
 
-describe('isolation scope', () => {
-  describe('withIsolationScope()', () => {
-    it('will pass an isolation scope without Sentry.init()', done => {
-      expect.assertions(1);
-      withIsolationScope(scope => {
-        expect(scope).toBeDefined();
-        done();
-      });
+  describe('addBreadcrumb()', () => {
+    test('adds a breadcrumb', () => {
+      const scope = new Scope();
+
+      scope.addBreadcrumb({ message: 'hello world' }, 100);
+
+      expect((scope as any)._breadcrumbs[0]?.message).toEqual('hello world');
     });
 
-    it('will make the passed isolation scope the active isolation scope within the callback', done => {
-      expect.assertions(1);
-      withIsolationScope(scope => {
-        expect(getIsolationScope()).toBe(scope);
-        done();
-      });
+    test('adds a timestamp to new breadcrumbs', () => {
+      const scope = new Scope();
+
+      scope.addBreadcrumb({ message: 'hello world' }, 100);
+
+      expect((scope as any)._breadcrumbs[0]?.timestamp).toEqual(expect.any(Number));
     });
 
-    it('will pass an isolation scope that is different from the current active scope', done => {
-      expect.assertions(1);
-      withIsolationScope(scope => {
-        expect(getCurrentScope()).not.toBe(scope);
-        done();
-      });
-    });
+    test('overrides the `maxBreadcrumbs` defined in client options', () => {
+      const options = getDefaultTestClientOptions({ maxBreadcrumbs: 1 });
+      const client = new TestClient(options);
+      const scope = new Scope();
 
-    it('will always make the inner most passed scope the current scope when nesting calls', done => {
-      expect.assertions(1);
-      withIsolationScope(_scope1 => {
-        withIsolationScope(scope2 => {
-          expect(getIsolationScope()).toBe(scope2);
-          done();
-        });
-      });
+      scope.setClient(client);
+
+      scope.addBreadcrumb({ message: 'hello' }, 100);
+      scope.addBreadcrumb({ message: 'world' }, 100);
+      scope.addBreadcrumb({ message: '!' }, 100);
+
+      expect((scope as any)._breadcrumbs).toHaveLength(3);
     });
   });
 });
 
-describe('withActiveSpan()', () => {
-  beforeAll(() => {
-    addTracingExtensions();
-  });
-
+describe('withScope()', () => {
   beforeEach(() => {
-    const options = getDefaultTestClientOptions({ enableTracing: true });
-    const client = new TestClient(options);
-    const scope = new Scope();
-    const hub = new Hub(client, scope);
-    makeMain(hub); // eslint-disable-line deprecation/deprecation
+    getIsolationScope().clear();
+    getCurrentScope().clear();
+    getGlobalScope().clear();
   });
 
-  it('should set the active span within the callback', () => {
-    expect.assertions(2);
-    const inactiveSpan = startInactiveSpan({ name: 'inactive-span' });
-
-    expect(getActiveSpan()).not.toBe(inactiveSpan);
-
-    withActiveSpan(inactiveSpan!, () => {
-      expect(getActiveSpan()).toBe(inactiveSpan);
+  it('will make the passed scope the active scope within the callback', done => {
+    withScope(scope => {
+      expect(getCurrentScope()).toBe(scope);
+      done();
     });
   });
 
-  it('should create child spans when calling startSpan within the callback', done => {
-    expect.assertions(1);
-    const inactiveSpan = startInactiveSpan({ name: 'inactive-span' });
+  it('will pass a scope that is different from the current active isolation scope', done => {
+    withScope(scope => {
+      expect(getIsolationScope()).not.toBe(scope);
+      done();
+    });
+  });
 
-    withActiveSpan(inactiveSpan!, () => {
-      startSpan({ name: 'child-span' }, childSpan => {
-        expect(childSpan?.parentSpanId).toBe(inactiveSpan?.spanContext().spanId);
+  it('will always make the inner most passed scope the current isolation scope when nesting calls', done => {
+    withIsolationScope(_scope1 => {
+      withIsolationScope(scope2 => {
+        expect(getIsolationScope()).toBe(scope2);
         done();
       });
+    });
+  });
+
+  it('forks the scope when not passing any scope', done => {
+    const initialScope = getCurrentScope();
+    initialScope.setTag('aa', 'aa');
+
+    withScope(scope => {
+      expect(getCurrentScope()).toBe(scope);
+      scope.setTag('bb', 'bb');
+      expect(scope).not.toBe(initialScope);
+      expect(scope.getScopeData().tags).toEqual({ aa: 'aa', bb: 'bb' });
+      done();
+    });
+  });
+
+  it('forks the scope when passing undefined', done => {
+    const initialScope = getCurrentScope();
+    initialScope.setTag('aa', 'aa');
+
+    withScope(undefined, scope => {
+      expect(getCurrentScope()).toBe(scope);
+      scope.setTag('bb', 'bb');
+      expect(scope).not.toBe(initialScope);
+      expect(scope.getScopeData().tags).toEqual({ aa: 'aa', bb: 'bb' });
+      done();
+    });
+  });
+
+  it('sets the passed in scope as active scope', done => {
+    const initialScope = getCurrentScope();
+    initialScope.setTag('aa', 'aa');
+
+    const customScope = new Scope();
+
+    withScope(customScope, scope => {
+      expect(getCurrentScope()).toBe(customScope);
+      expect(scope).toBe(customScope);
+      done();
+    });
+  });
+});
+
+describe('withIsolationScope()', () => {
+  beforeEach(() => {
+    getIsolationScope().clear();
+    getCurrentScope().clear();
+    getGlobalScope().clear();
+  });
+
+  it('will make the passed isolation scope the active isolation scope within the callback', done => {
+    withIsolationScope(scope => {
+      expect(getIsolationScope()).toBe(scope);
+      done();
+    });
+  });
+
+  it('will pass an isolation scope that is different from the current active scope', done => {
+    withIsolationScope(scope => {
+      expect(getCurrentScope()).not.toBe(scope);
+      done();
+    });
+  });
+
+  it('will always make the inner most passed scope the current scope when nesting calls', done => {
+    withIsolationScope(_scope1 => {
+      withIsolationScope(scope2 => {
+        expect(getIsolationScope()).toBe(scope2);
+        done();
+      });
+    });
+  });
+
+  // Note: This is expected! In browser, we do not actually fork this
+  it('does not fork isolation scope when not passing any isolation scope', done => {
+    const isolationScope = getIsolationScope();
+
+    withIsolationScope(scope => {
+      expect(getIsolationScope()).toBe(scope);
+      expect(scope).toBe(isolationScope);
+      done();
+    });
+  });
+
+  it('does not fork isolation scope when passing undefined', done => {
+    const isolationScope = getIsolationScope();
+
+    withIsolationScope(undefined, scope => {
+      expect(getIsolationScope()).toBe(scope);
+      expect(scope).toBe(isolationScope);
+      done();
+    });
+  });
+
+  it('ignores passed in isolation scope', done => {
+    const isolationScope = getIsolationScope();
+    const customIsolationScope = new Scope();
+
+    withIsolationScope(customIsolationScope, scope => {
+      expect(getIsolationScope()).toBe(isolationScope);
+      expect(scope).toBe(isolationScope);
+      done();
     });
   });
 });

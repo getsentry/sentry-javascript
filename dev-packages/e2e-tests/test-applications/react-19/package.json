@@ -1,0 +1,52 @@
+{
+  "name": "react-19-test-app",
+  "version": "0.1.0",
+  "private": true,
+  "dependencies": {
+    "@sentry/react": "latest || *",
+    "history": "4.9.0",
+    "@types/history": "4.7.11",
+    "@types/node": "16.7.13",
+    "@types/react": "npm:types-react@rc",
+    "@types/react-dom": "npm:types-react-dom@rc",
+    "react": "19.0.0-rc-935180c7e0-20240524",
+    "react-dom": "19.0.0-rc-935180c7e0-20240524",
+    "react-scripts": "5.0.1",
+    "typescript": "4.9.5"
+  },
+  "scripts": {
+    "build": "react-scripts build",
+    "dev": "react-scripts start",
+    "start": "serve -s build",
+    "test": "playwright test",
+    "clean": "npx rimraf node_modules pnpm-lock.yaml",
+    "test:build": "pnpm install && pnpm build",
+    "test:assert": "pnpm test"
+  },
+  "eslintConfig": {
+    "extends": [
+      "react-app",
+      "react-app/jest"
+    ]
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.44.1",
+    "@sentry-internal/test-utils": "link:../../../test-utils",
+    "serve": "14.0.1"
+  },
+  "volta": {
+    "extends": "../../package.json"
+  }
+}

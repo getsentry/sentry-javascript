@@ -1,43 +1,63 @@
-import type { Client, DynamicSamplingContext, Scope, Span, Transaction } from '@sentry/types';
-import { dropUndefinedKeys } from '@sentry/utils';
+import type { Client, DynamicSamplingContext, Scope, Span } from '../types-hoist';
 
 import { DEFAULT_ENVIRONMENT } from '../constants';
-import { getClient, getCurrentScope } from '../exports';
-import { getRootSpan } from '../utils/getRootSpan';
-import { spanIsSampled, spanToJSON } from '../utils/spanUtils';
+import { getClient } from '../currentScopes';
+import { SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '../semanticAttributes';
+import {
+  baggageHeaderToDynamicSamplingContext,
+  dynamicSamplingContextToSentryBaggageHeader,
+} from '../utils-hoist/baggage';
+import { addNonEnumerableProperty, dropUndefinedKeys } from '../utils-hoist/object';
+import { hasTracingEnabled } from '../utils/hasTracingEnabled';
+import { getRootSpan, spanIsSampled, spanToJSON } from '../utils/spanUtils';
+
+/**
+ * If you change this value, also update the terser plugin config to
+ * avoid minification of the object property!
+ */
+const FROZEN_DSC_FIELD = '_frozenDsc';
+
+type SpanWithMaybeDsc = Span & {
+  [FROZEN_DSC_FIELD]?: Partial<DynamicSamplingContext> | undefined;
+};
+
+/**
+ * Freeze the given DSC on the given span.
+ */
+export function freezeDscOnSpan(span: Span, dsc: Partial<DynamicSamplingContext>): void {
+  const spanWithMaybeDsc = span as SpanWithMaybeDsc;
+  addNonEnumerableProperty(spanWithMaybeDsc, FROZEN_DSC_FIELD, dsc);
+}
 
 /**
  * Creates a dynamic sampling context from a client.
  *
  * Dispatches the `createDsc` lifecycle hook as a side effect.
  */
-export function getDynamicSamplingContextFromClient(
-  trace_id: string,
-  client: Client,
-  scope?: Scope,
-): DynamicSamplingContext {
+export function getDynamicSamplingContextFromClient(trace_id: string, client: Client): DynamicSamplingContext {
   const options = client.getOptions();
 
   const { publicKey: public_key } = client.getDsn() || {};
-  const { segment: user_segment } = (scope && scope.getUser()) || {};
 
   const dsc = dropUndefinedKeys({
     environment: options.environment || DEFAULT_ENVIRONMENT,
     release: options.release,
-    user_segment,
     public_key,
     trace_id,
   }) as DynamicSamplingContext;
 
-  client.emit && client.emit('createDsc', dsc);
+  client.emit('createDsc', dsc);
 
   return dsc;
 }
 
 /**
- * A Span with a frozen dynamic sampling context.
+ * Get the dynamic sampling context for the currently active scopes.
  */
-type TransactionWithV7FrozenDsc = Transaction & { _frozenDynamicSamplingContext?: DynamicSamplingContext };
+export function getDynamicSamplingContextFromScope(client: Client, scope: Scope): Partial<DynamicSamplingContext> {
+  const propagationContext = scope.getPropagationContext();
+  return propagationContext.dsc || getDynamicSamplingContextFromClient(propagationContext.traceId, client);
+}
 
 /**
  * Creates a dynamic sampling context from a span (and client and scope)
@@ -52,42 +72,60 @@ export function getDynamicSamplingContextFromSpan(span: Span): Readonly<Partial<
     return {};
   }
 
-  // passing emit=false here to only emit later once the DSC is actually populated
-  const dsc = getDynamicSamplingContextFromClient(spanToJSON(span).trace_id || '', client, getCurrentScope());
+  const rootSpan = getRootSpan(span);
 
-  // TODO (v8): Remove v7FrozenDsc as a Transaction will no longer have _frozenDynamicSamplingContext
-  const txn = getRootSpan(span) as TransactionWithV7FrozenDsc | undefined;
-  if (!txn) {
-    return dsc;
+  // For core implementation, we freeze the DSC onto the span as a non-enumerable property
+  const frozenDsc = (rootSpan as SpanWithMaybeDsc)[FROZEN_DSC_FIELD];
+  if (frozenDsc) {
+    return frozenDsc;
   }
 
-  // TODO (v8): Remove v7FrozenDsc as a Transaction will no longer have _frozenDynamicSamplingContext
-  // For now we need to avoid breaking users who directly created a txn with a DSC, where this field is still set.
-  // @see Transaction class constructor
-  const v7FrozenDsc = txn && txn._frozenDynamicSamplingContext;
-  if (v7FrozenDsc) {
-    return v7FrozenDsc;
+  // For OpenTelemetry, we freeze the DSC on the trace state
+  const traceState = rootSpan.spanContext().traceState;
+  const traceStateDsc = traceState && traceState.get('sentry.dsc');
+
+  // If the span has a DSC, we want it to take precedence
+  const dscOnTraceState = traceStateDsc && baggageHeaderToDynamicSamplingContext(traceStateDsc);
+
+  if (dscOnTraceState) {
+    return dscOnTraceState;
   }
 
-  // TODO (v8): Replace txn.metadata with txn.attributes[]
-  // We can't do this yet because attributes aren't always set yet.
-  // eslint-disable-next-line deprecation/deprecation
-  const { sampleRate: maybeSampleRate, source } = txn.metadata;
+  // Else, we generate it from the span
+  const dsc = getDynamicSamplingContextFromClient(span.spanContext().traceId, client);
+  const jsonSpan = spanToJSON(rootSpan);
+  const attributes = jsonSpan.data || {};
+  const maybeSampleRate = attributes[SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE];
+
   if (maybeSampleRate != null) {
     dsc.sample_rate = `${maybeSampleRate}`;
   }
 
   // We don't want to have a transaction name in the DSC if the source is "url" because URLs might contain PII
-  const jsonSpan = spanToJSON(txn);
+  const source = attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
 
   // after JSON conversion, txn.name becomes jsonSpan.description
-  if (source && source !== 'url') {
-    dsc.transaction = jsonSpan.description;
+  const name = jsonSpan.description;
+  if (source !== 'url' && name) {
+    dsc.transaction = name;
   }
 
-  dsc.sampled = String(spanIsSampled(txn));
+  // How can we even land here with hasTracingEnabled() returning false?
+  // Otel creates a Non-recording span in Tracing Without Performance mode when handling incoming requests
+  // So we end up with an active span that is not sampled (neither positively nor negatively)
+  if (hasTracingEnabled()) {
+    dsc.sampled = String(spanIsSampled(rootSpan));
+  }
 
-  client.emit && client.emit('createDsc', dsc);
+  client.emit('createDsc', dsc, rootSpan);
 
   return dsc;
+}
+
+/**
+ * Convert a Span to a baggage header.
+ */
+export function spanToBaggageHeader(span: Span): string | undefined {
+  const dsc = getDynamicSamplingContextFromSpan(span);
+  return dynamicSamplingContextToSentryBaggageHeader(dsc);
 }

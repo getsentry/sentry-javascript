@@ -1,32 +1,41 @@
-import { Breadcrumbs, Dedupe } from '@sentry/browser';
-import type { ServerRuntimeClientOptions } from '@sentry/core';
-import { Integrations as CoreIntegrations, getIntegrationsToSetup, initAndBind } from '@sentry/core';
-import type { StackParser } from '@sentry/types';
-import { createStackParser, nodeStackLineParser, stackParserFromStackParserOptions } from '@sentry/utils';
-
+import type { Client, Integration, Options, ServerRuntimeClientOptions, StackParser } from '@sentry/core';
+import {
+  createStackParser,
+  dedupeIntegration,
+  functionToStringIntegration,
+  getIntegrationsToSetup,
+  inboundFiltersIntegration,
+  initAndBind,
+  linkedErrorsIntegration,
+  nodeStackLineParser,
+  stackParserFromStackParserOptions,
+} from '@sentry/core';
 import { DenoClient } from './client';
-import { ContextLines, DenoContext, GlobalHandlers, NormalizePaths } from './integrations';
+import { breadcrumbsIntegration } from './integrations/breadcrumbs';
+import { denoContextIntegration } from './integrations/context';
+import { contextLinesIntegration } from './integrations/contextlines';
+import { globalHandlersIntegration } from './integrations/globalhandlers';
+import { normalizePathsIntegration } from './integrations/normalizepaths';
 import { makeFetchTransport } from './transports';
 import type { DenoOptions } from './types';
 
-export const defaultIntegrations = [
-  // Common
-  new CoreIntegrations.InboundFilters(),
-  new CoreIntegrations.FunctionToString(),
-  new CoreIntegrations.LinkedErrors(),
-  // From Browser
-  new Dedupe(),
-  new Breadcrumbs({
-    dom: false,
-    history: false,
-    xhr: false,
-  }),
-  // Deno Specific
-  new DenoContext(),
-  new ContextLines(),
-  new NormalizePaths(),
-  new GlobalHandlers(),
-];
+/** Get the default integrations for the Deno SDK. */
+export function getDefaultIntegrations(_options: Options): Integration[] {
+  // We return a copy of the defaultIntegrations here to avoid mutating this
+  return [
+    // Common
+    inboundFiltersIntegration(),
+    functionToStringIntegration(),
+    linkedErrorsIntegration(),
+    dedupeIntegration(),
+    // Deno Specific
+    breadcrumbsIntegration(),
+    denoContextIntegration(),
+    contextLinesIntegration(),
+    normalizePathsIntegration(),
+    globalHandlersIntegration(),
+  ];
+}
 
 const defaultStackParser: StackParser = createStackParser(nodeStackLineParser());
 
@@ -45,17 +54,6 @@ const defaultStackParser: StackParser = createStackParser(nodeStackLineParser())
  * init({
  *   dsn: '__DSN__',
  *   // ...
- * });
- * ```
- *
- * @example
- * ```
- *
- * import { configureScope } from 'npm:@sentry/deno';
- * configureScope((scope: Scope) => {
- *   scope.setExtra({ battery: 0.7 });
- *   scope.setTag({ user_mode: 'admin' });
- *   scope.setUser({ id: '4711' });
  * });
  * ```
  *
@@ -85,11 +83,10 @@ const defaultStackParser: StackParser = createStackParser(nodeStackLineParser())
  *
  * @see {@link DenoOptions} for documentation on configuration options.
  */
-export function init(options: DenoOptions = {}): void {
-  options.defaultIntegrations =
-    options.defaultIntegrations === false
-      ? []
-      : [...(Array.isArray(options.defaultIntegrations) ? options.defaultIntegrations : defaultIntegrations)];
+export function init(options: DenoOptions = {}): Client {
+  if (options.defaultIntegrations === undefined) {
+    options.defaultIntegrations = getDefaultIntegrations(options);
+  }
 
   const clientOptions: ServerRuntimeClientOptions = {
     ...options,
@@ -98,5 +95,5 @@ export function init(options: DenoOptions = {}): void {
     transport: options.transport || makeFetchTransport,
   };
 
-  initAndBind(DenoClient, clientOptions);
+  return initAndBind(DenoClient, clientOptions);
 }

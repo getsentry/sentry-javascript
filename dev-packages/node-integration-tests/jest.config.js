@@ -5,4 +5,5 @@ module.exports = {
   ...baseConfig,
   testMatch: ['**/test.ts'],
   setupFilesAfterEnv: ['./jest.setup.js'],
+  coverageReporters: ['json', 'lcov', 'clover'],
 };

@@ -6,7 +6,7 @@ import { getReplaySnapshot, isReplayEvent, shouldSkipReplayTest } from '../../..
 
 sentryTest(
   '[error-mode] should not start recording if an error occurred when the error was dropped',
-  async ({ getLocalTestPath, page, forceFlushReplay }) => {
+  async ({ getLocalTestUrl, page, forceFlushReplay }) => {
     if (shouldSkipReplayTest()) {
       sentryTest.skip();
     }
@@ -28,15 +28,15 @@ sentryTest(
       });
     });
 
-    const url = await getLocalTestPath({ testDir: __dirname });
+    const url = await getLocalTestUrl({ testDir: __dirname, skipDsnRouteHandler: true });
 
     await page.goto(url);
     await forceFlushReplay();
     expect(callsToSentry).toEqual(0);
 
-    await page.click('#error');
+    await page.locator('#error').click();
 
-    await page.click('#log');
+    await page.locator('#log').click();
     await forceFlushReplay();
 
     expect(callsToSentry).toEqual(0);

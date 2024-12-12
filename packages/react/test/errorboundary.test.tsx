@@ -1,11 +1,11 @@
 import { Scope, getClient, setCurrentClient } from '@sentry/browser';
-import type { Client } from '@sentry/types';
+import type { Client } from '@sentry/core';
 import { fireEvent, render, screen } from '@testing-library/react';
 import * as React from 'react';
 import { useState } from 'react';
 
 import type { ErrorBoundaryProps } from '../src/errorboundary';
-import { ErrorBoundary, UNKNOWN_COMPONENT, isAtLeastReact17, withErrorBoundary } from '../src/errorboundary';
+import { ErrorBoundary, UNKNOWN_COMPONENT, withErrorBoundary } from '../src/errorboundary';
 
 const mockCaptureException = jest.fn();
 const mockShowReportDialog = jest.fn();
@@ -35,12 +35,25 @@ function Bam(): JSX.Element {
   return <Boo title={title} />;
 }
 
+function EffectSpyFallback({ error }: { error: unknown }): JSX.Element {
+  const [counter, setCounter] = useState(0);
+
+  React.useEffect(() => {
+    setCounter(c => c + 1);
+  }, []);
+
+  return (
+    <span>
+      EffectSpyFallback {counter} - {(error as Error).message}
+    </span>
+  );
+}
+
 interface TestAppProps extends ErrorBoundaryProps {
   errorComp?: JSX.Element;
 }
 
-const TestApp: React.FC<TestAppProps> = ({ children, errorComp, ...props }) => {
-  // eslint-disable-next-line no-param-reassign
+const TestApp: React.FC<TestAppProps> = ({ children, errorComp, ...props }): any => {
   const customErrorComp = errorComp || <Bam />;
   const [isError, setError] = React.useState(false);
   return (
@@ -101,7 +114,7 @@ describe('ErrorBoundary', () => {
   it('renders null if not given a valid `fallback` prop function', () => {
     const { container } = render(
       // @ts-expect-error Passing wrong type on purpose
-      <ErrorBoundary fallback={() => 'Not a ReactElement'}>
+      <ErrorBoundary fallback={() => undefined}>
         <Bam />
       </ErrorBoundary>,
     );
@@ -116,6 +129,15 @@ describe('ErrorBoundary', () => {
       </ErrorBoundary>,
     );
     expect(container.innerHTML).toBe('<h1>Error Component</h1>');
+  });
+
+  it('renders a fallback that can use react hooks', () => {
+    const { container } = render(
+      <ErrorBoundary fallback={EffectSpyFallback}>
+        <Bam />
+      </ErrorBoundary>,
+    );
+    expect(container.innerHTML).toBe('<span>EffectSpyFallback 1 - boom</span>');
   });
 
   it('calls `onMount` when mounted', () => {
@@ -242,7 +264,7 @@ describe('ErrorBoundary', () => {
         captureContext: {
           contexts: { react: { componentStack: expect.any(String) } },
         },
-        mechanism: { handled: false },
+        mechanism: { handled: true },
       });
 
       expect(mockOnError.mock.calls[0][0]).toEqual(mockCaptureException.mock.calls[0][0]);
@@ -250,7 +272,7 @@ describe('ErrorBoundary', () => {
       // Check if error.cause -> react component stack
       const error = mockCaptureException.mock.calls[0][0];
       const cause = error.cause;
-      expect(cause.stack).toEqual(mockCaptureException.mock.calls[0][1].captureContext.contexts.react.componentStack);
+      expect(cause.stack).toEqual(mockCaptureException.mock.calls[0][1]?.captureContext.contexts.react.componentStack);
       expect(cause.name).toContain('React ErrorBoundary');
       expect(cause.message).toEqual(error.message);
     });
@@ -300,7 +322,7 @@ describe('ErrorBoundary', () => {
         captureContext: {
           contexts: { react: { componentStack: expect.any(String) } },
         },
-        mechanism: { handled: false },
+        mechanism: { handled: true },
       });
 
       // Check if error.cause -> react component stack
@@ -339,7 +361,7 @@ describe('ErrorBoundary', () => {
         captureContext: {
           contexts: { react: { componentStack: expect.any(String) } },
         },
-        mechanism: { handled: false },
+        mechanism: { handled: true },
       });
 
       expect(mockOnError.mock.calls[0][0]).toEqual(mockCaptureException.mock.calls[0][0]);
@@ -348,7 +370,7 @@ describe('ErrorBoundary', () => {
       const secondError = thirdError.cause;
       const firstError = secondError.cause;
       const cause = firstError.cause;
-      expect(cause.stack).toEqual(mockCaptureException.mock.calls[0][1].captureContext.contexts.react.componentStack);
+      expect(cause.stack).toEqual(mockCaptureException.mock.calls[0][1]?.captureContext.contexts.react.componentStack);
       expect(cause.name).toContain('React ErrorBoundary');
       expect(cause.message).toEqual(thirdError.message);
     });
@@ -383,7 +405,7 @@ describe('ErrorBoundary', () => {
         captureContext: {
           contexts: { react: { componentStack: expect.any(String) } },
         },
-        mechanism: { handled: false },
+        mechanism: { handled: true },
       });
 
       expect(mockOnError.mock.calls[0][0]).toEqual(mockCaptureException.mock.calls[0][0]);
@@ -392,7 +414,7 @@ describe('ErrorBoundary', () => {
       const cause = error.cause;
       // We need to make sure that recursive error.cause does not cause infinite loop
       expect(cause.stack).not.toEqual(
-        mockCaptureException.mock.calls[0][1].captureContext.contexts.react.componentStack,
+        mockCaptureException.mock.calls[0][1]?.captureContext.contexts.react.componentStack,
       );
       expect(cause.name).not.toContain('React ErrorBoundary');
     });
@@ -515,20 +537,47 @@ describe('ErrorBoundary', () => {
       expect(mockOnReset).toHaveBeenCalledTimes(1);
       expect(mockOnReset).toHaveBeenCalledWith(expect.any(Error), expect.any(String), expect.any(String));
     });
-  });
-});
 
-describe('isAtLeastReact17', () => {
-  test.each([
-    ['React 15 with no patch', '15.0', false],
-    ['React 15 with no patch and no minor', '15.5', false],
-    ['React 16', '16.0.4', false],
-    ['React 17', '17.0.0', true],
-    ['React 17 with no patch', '17.4', true],
-    ['React 17 with no patch and no minor', '17', true],
-    ['React 18', '18.1.0', true],
-    ['React 19', '19.0.0', true],
-  ])('%s', (_: string, input: string, output: ReturnType<typeof isAtLeastReact17>) => {
-    expect(isAtLeastReact17(input)).toBe(output);
+    it('sets `handled: true` when a fallback is provided', async () => {
+      render(
+        <TestApp fallback={({ resetError }) => <button data-testid="reset" onClick={resetError} />}>
+          <h1>children</h1>
+        </TestApp>,
+      );
+
+      expect(mockCaptureException).toHaveBeenCalledTimes(0);
+
+      const btn = screen.getByTestId('errorBtn');
+      fireEvent.click(btn);
+
+      expect(mockCaptureException).toHaveBeenCalledTimes(1);
+      expect(mockCaptureException).toHaveBeenLastCalledWith(expect.any(Object), {
+        captureContext: {
+          contexts: { react: { componentStack: expect.any(String) } },
+        },
+        mechanism: { handled: true },
+      });
+    });
+
+    it('sets `handled: false` when no fallback is provided', async () => {
+      render(
+        <TestApp>
+          <h1>children</h1>
+        </TestApp>,
+      );
+
+      expect(mockCaptureException).toHaveBeenCalledTimes(0);
+
+      const btn = screen.getByTestId('errorBtn');
+      fireEvent.click(btn);
+
+      expect(mockCaptureException).toHaveBeenCalledTimes(1);
+      expect(mockCaptureException).toHaveBeenLastCalledWith(expect.any(Object), {
+        captureContext: {
+          contexts: { react: { componentStack: expect.any(String) } },
+        },
+        mechanism: { handled: false },
+      });
+    });
   });
 });

@@ -1,10 +1,16 @@
 /* eslint-disable max-lines */
-
-import { DEFAULT_ENVIRONMENT, getClient } from '@sentry/core';
-import type { DebugImage, Envelope, Event, EventEnvelope, StackFrame, StackParser, Transaction } from '@sentry/types';
-import type { Profile, ThreadCpuProfile } from '@sentry/types/src/profiling';
-import { GLOBAL_OBJ, browserPerformanceTimeOrigin, forEachEnvelopeItem, logger, uuid4 } from '@sentry/utils';
-
+import type { DebugImage, Envelope, Event, EventEnvelope, Profile, Span, ThreadCpuProfile } from '@sentry/core';
+import {
+  DEFAULT_ENVIRONMENT,
+  browserPerformanceTimeOrigin,
+  forEachEnvelopeItem,
+  getClient,
+  getDebugImagesForResources,
+  logger,
+  spanToJSON,
+  timestampInSeconds,
+  uuid4,
+} from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
 import { WINDOW } from '../helpers';
 import type { JSSelfProfile, JSSelfProfileStack, JSSelfProfiler, JSSelfProfilerConstructor } from './jsSelfProfiling';
@@ -58,7 +64,8 @@ if (isUserAgentData(userAgentData)) {
       OS_PLATFORM_VERSION = ua.platformVersion || '';
 
       if (ua.fullVersionList && ua.fullVersionList.length > 0) {
-        const firstUa = ua.fullVersionList[ua.fullVersionList.length - 1];
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        const firstUa = ua.fullVersionList[ua.fullVersionList.length - 1]!;
         OS_BROWSER = `${firstUa.brand} ${firstUa.version}`;
       }
     })
@@ -143,8 +150,8 @@ export function createProfilePayload(
     ? start_timestamp
     : typeof event.start_timestamp === 'number'
       ? event.start_timestamp * 1000
-      : Date.now();
-  const transactionEndMs = typeof event.timestamp === 'number' ? event.timestamp * 1000 : Date.now();
+      : timestampInSeconds() * 1000;
+  const transactionEndMs = typeof event.timestamp === 'number' ? event.timestamp * 1000 : timestampInSeconds() * 1000;
 
   const profile: Profile = {
     event_id: profile_id,
@@ -196,13 +203,13 @@ export function isProfiledTransactionEvent(event: Event): event is ProfiledEvent
 }
 
 /*
-  See packages/tracing-internal/src/browser/router.ts
+  See packages/browser-utils/src/browser/router.ts
 */
 /**
  *
  */
-export function isAutomatedPageLoadTransaction(transaction: Transaction): boolean {
-  return transaction.op === 'pageload';
+export function isAutomatedPageLoadSpan(span: Span): boolean {
+  return spanToJSON(span).op === 'pageload';
 }
 
 /**
@@ -223,12 +230,13 @@ export function convertJSSelfProfileToSampledFormat(input: JSSelfProfile): Profi
     },
   };
 
-  if (!input.samples.length) {
+  const firstSample = input.samples[0];
+  if (!firstSample) {
     return profile;
   }
 
   // We assert samples.length > 0 above and timestamp should always be present
-  const start = input.samples[0].timestamp;
+  const start = firstSample.timestamp;
   // The JS SDK might change it's time origin based on some heuristic (see See packages/utils/src/time.ts)
   // when that happens, we need to ensure we are correcting the profile timings so the two timelines stay in sync.
   // Since JS self profiling time origin is always initialized to performance.timeOrigin, we need to adjust for
@@ -237,9 +245,7 @@ export function convertJSSelfProfileToSampledFormat(input: JSSelfProfile): Profi
     typeof performance.timeOrigin === 'number' ? performance.timeOrigin : browserPerformanceTimeOrigin || 0;
   const adjustForOriginChange = origin - (browserPerformanceTimeOrigin || origin);
 
-  for (let i = 0; i < input.samples.length; i++) {
-    const jsSample = input.samples[i];
-
+  input.samples.forEach((jsSample, i) => {
     // If sample has no stack, add an empty sample
     if (jsSample.stackId === undefined) {
       if (EMPTY_STACK_ID === undefined) {
@@ -254,7 +260,7 @@ export function convertJSSelfProfileToSampledFormat(input: JSSelfProfile): Profi
         stack_id: EMPTY_STACK_ID,
         thread_id: THREAD_ID_STRING,
       };
-      continue;
+      return;
     }
 
     let stackTop: JSSelfProfileStack | undefined = input.stacks[jsSample.stackId];
@@ -269,7 +275,7 @@ export function convertJSSelfProfileToSampledFormat(input: JSSelfProfile): Profi
       const frame = input.frames[stackTop.frameId];
 
       // If our frame has not been indexed yet, index it
-      if (profile.frames[stackTop.frameId] === undefined) {
+      if (frame && profile.frames[stackTop.frameId] === undefined) {
         profile.frames[stackTop.frameId] = {
           function: frame.name,
           abs_path: typeof frame.resourceId === 'number' ? input.resources[frame.resourceId] : undefined,
@@ -291,7 +297,7 @@ export function convertJSSelfProfileToSampledFormat(input: JSSelfProfile): Profi
     profile['stacks'][STACK_ID] = stack;
     profile['samples'][i] = sample;
     STACK_ID++;
-  }
+  });
 
   return profile;
 }
@@ -336,17 +342,10 @@ export function findProfiledTransactionsFromEnvelope(envelope: Envelope): Event[
   return events;
 }
 
-const debugIdStackParserCache = new WeakMap<StackParser, Map<string, StackFrame[]>>();
 /**
  * Applies debug meta data to an event from a list of paths to resources (sourcemaps)
  */
 export function applyDebugMetadata(resource_paths: ReadonlyArray<string>): DebugImage[] {
-  const debugIdMap = GLOBAL_OBJ._sentryDebugIds;
-
-  if (!debugIdMap) {
-    return [];
-  }
-
   const client = getClient();
   const options = client && client.getOptions();
   const stackParser = options && options.stackParser;
@@ -355,51 +354,7 @@ export function applyDebugMetadata(resource_paths: ReadonlyArray<string>): Debug
     return [];
   }
 
-  let debugIdStackFramesCache: Map<string, StackFrame[]>;
-  const cachedDebugIdStackFrameCache = debugIdStackParserCache.get(stackParser);
-  if (cachedDebugIdStackFrameCache) {
-    debugIdStackFramesCache = cachedDebugIdStackFrameCache;
-  } else {
-    debugIdStackFramesCache = new Map<string, StackFrame[]>();
-    debugIdStackParserCache.set(stackParser, debugIdStackFramesCache);
-  }
-
-  // Build a map of filename -> debug_id
-  const filenameDebugIdMap = Object.keys(debugIdMap).reduce<Record<string, string>>((acc, debugIdStackTrace) => {
-    let parsedStack: StackFrame[];
-
-    const cachedParsedStack = debugIdStackFramesCache.get(debugIdStackTrace);
-    if (cachedParsedStack) {
-      parsedStack = cachedParsedStack;
-    } else {
-      parsedStack = stackParser(debugIdStackTrace);
-      debugIdStackFramesCache.set(debugIdStackTrace, parsedStack);
-    }
-
-    for (let i = parsedStack.length - 1; i >= 0; i--) {
-      const stackFrame = parsedStack[i];
-      const file = stackFrame && stackFrame.filename;
-
-      if (stackFrame && file) {
-        acc[file] = debugIdMap[debugIdStackTrace] as string;
-        break;
-      }
-    }
-    return acc;
-  }, {});
-
-  const images: DebugImage[] = [];
-  for (const path of resource_paths) {
-    if (path && filenameDebugIdMap[path]) {
-      images.push({
-        type: 'sourcemap',
-        code_file: path,
-        debug_id: filenameDebugIdMap[path] as string,
-      });
-    }
-  }
-
-  return images;
+  return getDebugImagesForResources(stackParser, resource_paths);
 }
 
 /**
@@ -506,7 +461,7 @@ export function startJSSelfProfile(): JSSelfProfiler | undefined {
 /**
  * Determine if a profile should be profiled.
  */
-export function shouldProfileTransaction(transaction: Transaction): boolean {
+export function shouldProfileSpan(span: Span): boolean {
   // If constructor failed once, it will always fail, so we can early return.
   if (PROFILING_CONSTRUCTOR_FAILED) {
     if (DEBUG_BUILD) {
@@ -515,7 +470,7 @@ export function shouldProfileTransaction(transaction: Transaction): boolean {
     return false;
   }
 
-  if (!transaction.isRecording()) {
+  if (!span.isRecording()) {
     if (DEBUG_BUILD) {
       logger.log('[Profiling] Discarding profile because transaction was not sampled.');
     }
@@ -583,6 +538,9 @@ export function createProfilingEvent(
   return createProfilePayload(profile_id, start_timestamp, profile, event);
 }
 
+// TODO (v8): We need to obtain profile ids in @sentry-internal/tracing,
+// but we don't have access to this map because importing this map would
+// cause a circular dependency. We need to resolve this in v8.
 const PROFILE_MAP: Map<string, JSSelfProfile> = new Map();
 /**
  *

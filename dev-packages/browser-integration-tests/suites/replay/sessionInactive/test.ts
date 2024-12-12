@@ -14,7 +14,7 @@ import {
 // Session should be paused after 2s - keep in sync with init.js
 const SESSION_PAUSED = 2000;
 
-sentryTest('handles an inactive session', async ({ getLocalTestPath, page, browserName }) => {
+sentryTest('handles an inactive session', async ({ getLocalTestUrl, page, browserName }) => {
   // webkit is a bit flakey here, the ids are sometimes off by <number of total
   // nodes>, so seems like there is a race condition with checkout?
   if (shouldSkipReplayTest() || browserName === 'webkit') {
@@ -23,15 +23,7 @@ sentryTest('handles an inactive session', async ({ getLocalTestPath, page, brows
 
   const reqPromise0 = waitForReplayRequest(page, 0);
 
-  await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-    return route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ id: 'test-id' }),
-    });
-  });
-
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
 
   await page.goto(url);
   const req0 = await reqPromise0;
@@ -44,7 +36,7 @@ sentryTest('handles an inactive session', async ({ getLocalTestPath, page, brows
   const stringifiedSnapshot = normalize(fullSnapshots0[0]);
   expect(stringifiedSnapshot).toMatchSnapshot('snapshot-0.json');
 
-  await page.click('#button1');
+  await page.locator('#button1').click();
 
   // Now we wait for the session timeout, nothing should be sent in the meanwhile
   await new Promise(resolve => setTimeout(resolve, SESSION_PAUSED));
@@ -67,7 +59,7 @@ sentryTest('handles an inactive session', async ({ getLocalTestPath, page, brows
   const reqPromise1 = waitForReplayRequest(page);
 
   // Trigger an action, should resume the recording
-  await page.click('#button2');
+  await page.locator('#button2').click();
   const req1 = await reqPromise1;
 
   const replay3 = await getReplaySnapshot(page);

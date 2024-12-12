@@ -1,4 +1,4 @@
-import { TRACEPARENT_REGEXP } from '@sentry/utils';
+import { TRACEPARENT_REGEXP } from '@sentry/core';
 import { cleanupChildProcesses, createRunner } from '../../../../utils/runner';
 import type { TestAPIResponse } from '../server';
 
@@ -7,10 +7,12 @@ afterAll(() => {
 });
 
 test('Should assign `sentry-trace` header which sets parent trace id of an outgoing request.', async () => {
-  const runner = createRunner(__dirname, '..', 'server.ts').start();
+  const runner = createRunner(__dirname, 'server.ts').start();
 
   const response = await runner.makeRequest<TestAPIResponse>('get', '/test/express', {
-    'sentry-trace': '12312012123120121231201212312012-1121201211212012-0',
+    headers: {
+      'sentry-trace': '12312012123120121231201212312012-1121201211212012-0',
+    },
   });
 
   expect(response).toBeDefined();

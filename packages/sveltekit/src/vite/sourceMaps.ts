@@ -1,19 +1,18 @@
 import * as child_process from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
+import { escapeStringForRegex, uuid4 } from '@sentry/core';
 import { getSentryRelease } from '@sentry/node';
-import { escapeStringForRegex, uuid4 } from '@sentry/utils';
 import type { SentryVitePluginOptions } from '@sentry/vite-plugin';
 import { sentryVitePlugin } from '@sentry/vite-plugin';
-// @ts-expect-error -sorcery has no types :(
-import * as sorcery from 'sorcery';
 import type { Plugin } from 'vite';
 
+import MagicString from 'magic-string';
 import { WRAPPED_MODULE_SUFFIX } from './autoInstrument';
-import type { SupportedSvelteKitAdapters } from './detectAdapter';
 import type { GlobalSentryValues } from './injectGlobalValues';
 import { VIRTUAL_GLOBAL_VALUES_FILE, getGlobalValueInjectionCode } from './injectGlobalValues';
 import { getAdapterOutputDir, getHooksFileName, loadSvelteConfig } from './svelteConfig';
+import type { CustomSentryVitePluginOptions } from './types';
 
 // sorcery has no types, so these are some basic type definitions:
 type Chain = {
@@ -24,17 +23,9 @@ type Sorcery = {
   load(filepath: string): Promise<Chain>;
 };
 
-type SentryVitePluginOptionsOptionalInclude = Omit<SentryVitePluginOptions, 'include'> & {
-  include?: SentryVitePluginOptions['include'];
-};
-
-type CustomSentryVitePluginOptions = SentryVitePluginOptionsOptionalInclude & {
-  adapter: SupportedSvelteKitAdapters;
-};
-
 // storing this in the module scope because `makeCustomSentryVitePlugin` is called multiple times
 // and we only want to generate a uuid once in case we have to fall back to it.
-const release = detectSentryRelease();
+const releaseName = detectSentryRelease();
 
 /**
  * Creates a new Vite plugin that uses the unplugin-based Sentry Vite plugin to create
@@ -52,28 +43,49 @@ const release = detectSentryRelease();
  *
  * @returns the custom Sentry Vite plugin
  */
-export async function makeCustomSentryVitePlugin(options?: CustomSentryVitePluginOptions): Promise<Plugin> {
+export async function makeCustomSentryVitePlugins(options?: CustomSentryVitePluginOptions): Promise<Plugin[]> {
   const svelteConfig = await loadSvelteConfig();
 
   const usedAdapter = options?.adapter || 'other';
   const outputDir = await getAdapterOutputDir(svelteConfig, usedAdapter);
-  const hasSentryProperties = fs.existsSync(path.resolve(process.cwd(), 'sentry.properties'));
 
   const defaultPluginOptions: SentryVitePluginOptions = {
-    include: [`${outputDir}/client`, `${outputDir}/server`],
-    configFile: hasSentryProperties ? 'sentry.properties' : undefined,
-    release,
+    release: {
+      name: releaseName,
+    },
+    _metaOptions: {
+      telemetry: {
+        metaFramework: 'sveltekit',
+      },
+    },
   };
 
   const mergedOptions = {
     ...defaultPluginOptions,
     ...options,
+    release: {
+      ...defaultPluginOptions.release,
+      ...options?.release,
+    },
   };
-
-  const sentryPlugin: Plugin = sentryVitePlugin(mergedOptions);
-
   const { debug } = mergedOptions;
-  const { buildStart, renderChunk } = sentryPlugin;
+
+  const sentryPlugins: Plugin[] = await sentryVitePlugin(mergedOptions);
+
+  const sentryViteDebugIdUploadPlugin = sentryPlugins.find(
+    plugin => plugin.name === 'sentry-vite-debug-id-upload-plugin',
+  );
+
+  if (!sentryViteDebugIdUploadPlugin) {
+    debug &&
+      // eslint-disable-next-line no-console
+      console.warn(
+        'sentry-vite-debug-id-upload-plugin not found in sentryPlugins! Cannot modify plugin - returning default Sentry Vite plugins',
+      );
+    return sentryPlugins;
+  }
+
+  const restOfSentryVitePlugins = sentryPlugins.filter(plugin => plugin.name !== 'sentry-vite-debug-id-upload-plugin');
 
   let isSSRBuild = true;
 
@@ -84,19 +96,24 @@ export async function makeCustomSentryVitePlugin(options?: CustomSentryVitePlugi
   };
 
   const customPlugin: Plugin = {
-    name: 'sentry-upload-source-maps',
+    name: 'sentry-upload-sveltekit-source-maps',
     apply: 'build', // only apply this plugin at build time
     enforce: 'post', // this needs to be set to post, otherwise we don't pick up the output from the SvelteKit adapter
 
-    // These hooks are copied from the original Sentry Vite plugin.
-    // They're mostly responsible for options parsing and release injection.
-    buildStart,
-    renderChunk,
-
     // Modify the config to generate source maps
     config: config => {
-      // eslint-disable-next-line no-console
-      debug && console.log('[Source Maps Plugin] Enabeling source map generation');
+      const sourceMapsPreviouslyNotEnabled = !config.build?.sourcemap;
+      if (debug && sourceMapsPreviouslyNotEnabled) {
+        // eslint-disable-next-line no-console
+        console.log('[Source Maps Plugin] Enabling source map generation');
+        if (!mergedOptions.sourcemaps?.filesToDeleteAfterUpload) {
+          // eslint-disable-next-line no-console
+          console.warn(
+            `[Source Maps Plugin] We recommend setting the \`sourceMapsUploadOptions.sourcemaps.filesToDeleteAfterUpload\` option to clean up source maps after uploading.
+[Source Maps Plugin] Otherwise, source maps might be deployed to production, depending on your configuration`,
+          );
+        }
+      }
       return {
         ...config,
         build: {
@@ -114,8 +131,7 @@ export async function makeCustomSentryVitePlugin(options?: CustomSentryVitePlugi
           moduleSideEffects: true,
         };
       }
-      // @ts-expect-error - this hook exists on the plugin!
-      return sentryPlugin.resolveId(id, _importer, _ref);
+      return null;
     },
 
     load: id => {
@@ -138,16 +154,19 @@ export async function makeCustomSentryVitePlugin(options?: CustomSentryVitePlugi
     },
 
     transform: async (code, id) => {
-      let modifiedCode = code;
       // eslint-disable-next-line @sentry-internal/sdk/no-regexp-constructor -- not end user input + escaped anyway
       const isServerHooksFile = new RegExp(`/${escapeStringForRegex(serverHooksFile)}(.(js|ts|mjs|mts))?`).test(id);
 
       if (isServerHooksFile) {
-        const globalValuesImport = `; import "${VIRTUAL_GLOBAL_VALUES_FILE}";`;
-        modifiedCode = `${code}\n${globalValuesImport}\n`;
+        const ms = new MagicString(code);
+        ms.append(`\n; import "${VIRTUAL_GLOBAL_VALUES_FILE}";\n`);
+        return {
+          code: ms.toString(),
+          map: ms.generateMap({ hires: true }),
+        };
       }
-      // @ts-expect-error - this hook exists on the plugin!
-      return sentryPlugin.transform(modifiedCode, id);
+
+      return null;
     },
 
     // We need to start uploading source maps later than in the original plugin
@@ -166,7 +185,10 @@ export async function makeCustomSentryVitePlugin(options?: CustomSentryVitePlugi
       // eslint-disable-next-line no-console
       debug && console.log('[Source Maps Plugin] Flattening source maps');
 
-      jsFiles.forEach(async file => {
+      // @ts-expect-error - we're using dynamic import here and TS complains about that. It works though.
+      const sorcery = await import('sorcery');
+
+      for (const file of jsFiles) {
         try {
           await (sorcery as Sorcery).load(file).then(async chain => {
             if (!chain) {
@@ -202,17 +224,21 @@ export async function makeCustomSentryVitePlugin(options?: CustomSentryVitePlugi
           );
           await fs.promises.writeFile(mapFile, cleanedMapContent);
         }
-      });
+      }
 
       try {
+        // So here, we're just calling the original plugin's `writeBundle` method to upload the source maps.
+        // Our plugin hook expects output options to glob for source maps. We don't have this option in `closeBundle`.
+        // So we just pass in the `outDir` we determined earlier.
+        // Not pretty but my testing shows that it works.
         // @ts-expect-error - this hook exists on the plugin!
-        await sentryPlugin.writeBundle();
+        await sentryViteDebugIdUploadPlugin.writeBundle({ dir: outDir });
       } catch (_) {
         // eslint-disable-next-line no-console
         console.warn('[Source Maps Plugin] Failed to upload source maps!');
         // eslint-disable-next-line no-console
         console.log(
-          '[Source Maps Plugin] Please make sure, you specified a valid Sentry auth token, as well as your org and project slugs.',
+          '[Source Maps Plugin] Please make sure you specified a valid Sentry auth token, as well as your org and project slugs.',
         );
         // eslint-disable-next-line no-console
         console.log(
@@ -222,7 +248,7 @@ export async function makeCustomSentryVitePlugin(options?: CustomSentryVitePlugi
     },
   };
 
-  return customPlugin;
+  return [...restOfSentryVitePlugins, customPlugin];
 }
 
 function getFiles(dir: string): string[] {
@@ -243,7 +269,10 @@ function getFiles(dir: string): string[] {
 function detectSentryRelease(): string {
   let releaseFallback: string;
   try {
-    releaseFallback = child_process.execSync('git rev-parse HEAD', { stdio: 'ignore' }).toString().trim();
+    releaseFallback = child_process
+      .execSync('git rev-parse HEAD', { stdio: ['ignore', 'pipe', 'ignore'] })
+      .toString()
+      .trim();
   } catch (_) {
     // the command can throw for various reasons. Most importantly:
     // - git is not installed

@@ -1,14 +1,9 @@
-import type { Integration, Options } from '@sentry/types';
-import { logger } from '@sentry/utils';
+import { getCurrentScope } from '../../src/currentScopes';
+import type { Integration, Options } from '../../src/types-hoist';
 
-import { Hub, makeMain } from '../../src/hub';
-import {
-  addIntegration,
-  convertIntegrationFnToClass,
-  getIntegrationsToSetup,
-  installedIntegrations,
-  setupIntegration,
-} from '../../src/integration';
+import { addIntegration, getIntegrationsToSetup, installedIntegrations, setupIntegration } from '../../src/integration';
+import { setCurrentClient } from '../../src/sdk';
+import { logger } from '../../src/utils-hoist/logger';
 import { TestClient, getDefaultTestClientOptions } from '../mocks/client';
 
 function getTestClient(): TestClient {
@@ -40,7 +35,7 @@ type TestCase = [
   string, // test name
   Options['defaultIntegrations'], // default integrations
   Options['integrations'], // user-provided integrations
-  Array<string | string[]>, // expected resulst
+  Array<string | string[]>, // expected results
 ];
 
 describe('getIntegrationsToSetup', () => {
@@ -462,8 +457,16 @@ describe('setupIntegration', () => {
     expect(integration3.preprocessEvent).toHaveBeenCalledTimes(3);
     expect(integration4.preprocessEvent).toHaveBeenCalledTimes(0);
 
-    expect(integration1.preprocessEvent).toHaveBeenLastCalledWith({ event_id: '1b' }, {}, client1);
-    expect(integration3.preprocessEvent).toHaveBeenLastCalledWith({ event_id: '2c' }, {}, client2);
+    expect(integration1.preprocessEvent).toHaveBeenLastCalledWith(
+      { event_id: '1b' },
+      { event_id: expect.any(String) },
+      client1,
+    );
+    expect(integration3.preprocessEvent).toHaveBeenLastCalledWith(
+      { event_id: '2c' },
+      { event_id: expect.any(String) },
+      client2,
+    );
   });
 
   it('allows to mutate events in preprocessEvent', async () => {
@@ -489,7 +492,9 @@ describe('setupIntegration', () => {
     await client.flush();
 
     expect(sendEvent).toHaveBeenCalledTimes(1);
-    expect(sendEvent).toHaveBeenCalledWith(expect.objectContaining({ event_id: 'mutated' }), {});
+    expect(sendEvent).toHaveBeenCalledWith(expect.objectContaining({ event_id: 'mutated' }), {
+      event_id: expect.any(String),
+    });
   });
 
   it('binds processEvent for each client', () => {
@@ -536,12 +541,12 @@ describe('setupIntegration', () => {
 
     expect(integration1.processEvent).toHaveBeenLastCalledWith(
       expect.objectContaining({ event_id: '1b' }),
-      {},
+      { event_id: expect.any(String) },
       client1,
     );
     expect(integration3.processEvent).toHaveBeenLastCalledWith(
       expect.objectContaining({ event_id: '2c' }),
-      {},
+      { event_id: expect.any(String) },
       client2,
     );
   });
@@ -569,7 +574,9 @@ describe('setupIntegration', () => {
     await client.flush();
 
     expect(sendEvent).toHaveBeenCalledTimes(1);
-    expect(sendEvent).toHaveBeenCalledWith(expect.objectContaining({ event_id: 'mutated' }), {});
+    expect(sendEvent).toHaveBeenCalledWith(expect.objectContaining({ event_id: 'mutated' }), {
+      event_id: expect.any(String),
+    });
   });
 
   it('allows to drop events in processEvent', async () => {
@@ -617,9 +624,7 @@ describe('addIntegration', () => {
     }
 
     const client = getTestClient();
-    const hub = new Hub(client);
-    // eslint-disable-next-line deprecation/deprecation
-    makeMain(hub);
+    setCurrentClient(client);
 
     const integration = new CustomIntegration();
     addIntegration(integration);
@@ -635,9 +640,7 @@ describe('addIntegration', () => {
       setupOnce = jest.fn();
     }
 
-    const hub = new Hub();
-    // eslint-disable-next-line deprecation/deprecation
-    makeMain(hub);
+    getCurrentScope().setClient(undefined);
 
     const integration = new CustomIntegration();
     addIntegration(integration);
@@ -646,75 +649,59 @@ describe('addIntegration', () => {
     expect(warnings).toHaveBeenCalledTimes(1);
     expect(warnings).toHaveBeenCalledWith('Cannot add integration "test" because no SDK Client is available.');
   });
-});
 
-describe('convertIntegrationFnToClass', () => {
-  /* eslint-disable deprecation/deprecation */
-  it('works with a minimal integration', () => {
-    const integrationFn = () => ({
-      name: 'testName',
-      setupOnce: () => {},
-    });
-
-    const IntegrationClass = convertIntegrationFnToClass('testName', integrationFn);
-
-    expect(IntegrationClass.id).toBe('testName');
-
-    const integration = new IntegrationClass();
-    expect(integration).toEqual({
-      name: 'testName',
-      setupOnce: expect.any(Function),
-    });
-  });
-
-  it('works with options', () => {
-    const integrationFn = (_options: { num: number }) => ({
-      name: 'testName',
-      setupOnce: () => {},
-    });
-
-    const IntegrationClass = convertIntegrationFnToClass('testName', integrationFn);
-
-    expect(IntegrationClass.id).toBe('testName');
-
-    // not type safe options by default :(
-    new IntegrationClass();
-
-    const integration = new IntegrationClass({ num: 3 });
-    expect(integration).toEqual({
-      name: 'testName',
-      setupOnce: expect.any(Function),
-    });
-  });
-
-  it('works with integration hooks', () => {
+  it('triggers all hooks', () => {
     const setup = jest.fn();
     const setupOnce = jest.fn();
-    const processEvent = jest.fn();
-    const preprocessEvent = jest.fn();
+    const setupAfterAll = jest.fn();
 
-    const integrationFn = () => {
-      return {
-        name: 'testName',
-        setup,
-        setupOnce,
-        processEvent,
-        preprocessEvent,
-      };
-    };
+    class CustomIntegration implements Integration {
+      name = 'test';
+      setupOnce = setupOnce;
+      setup = setup;
+      afterAllSetup = setupAfterAll;
+    }
 
-    const IntegrationClass = convertIntegrationFnToClass('testName', integrationFn);
+    const client = getTestClient();
+    setCurrentClient(client);
+    client.init();
 
-    expect(IntegrationClass.id).toBe('testName');
+    const integration = new CustomIntegration();
+    addIntegration(integration);
 
-    const integration = new IntegrationClass();
-    expect(integration).toEqual({
-      name: 'testName',
-      setupOnce,
-      setup,
-      processEvent,
-      preprocessEvent,
-    });
+    expect(setupOnce).toHaveBeenCalledTimes(1);
+    expect(setup).toHaveBeenCalledTimes(1);
+    expect(setupAfterAll).toHaveBeenCalledTimes(1);
   });
-  /* eslint-enable deprecation/deprecation */
+
+  it('does not trigger hooks if already installed', () => {
+    const logs = jest.spyOn(logger, 'log');
+
+    class CustomIntegration implements Integration {
+      name = 'test';
+      setupOnce = jest.fn();
+      setup = jest.fn();
+      afterAllSetup = jest.fn();
+    }
+
+    const client = getTestClient();
+    setCurrentClient(client);
+    client.init();
+
+    const integration1 = new CustomIntegration();
+    const integration2 = new CustomIntegration();
+    addIntegration(integration1);
+
+    expect(integration1.setupOnce).toHaveBeenCalledTimes(1);
+    expect(integration1.setup).toHaveBeenCalledTimes(1);
+    expect(integration1.afterAllSetup).toHaveBeenCalledTimes(1);
+
+    addIntegration(integration2);
+
+    expect(integration2.setupOnce).toHaveBeenCalledTimes(0);
+    expect(integration2.setup).toHaveBeenCalledTimes(0);
+    expect(integration2.afterAllSetup).toHaveBeenCalledTimes(0);
+
+    expect(logs).toHaveBeenCalledWith('Integration skipped because it was already installed: test');
+  });
 });

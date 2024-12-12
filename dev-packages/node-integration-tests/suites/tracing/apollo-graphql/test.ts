@@ -1,35 +1,55 @@
-import { TestEnv, assertSentryTransaction, conditionalTest } from '../../../utils';
+import { createRunner } from '../../../utils/runner';
 
-// Node 10 is not supported by `graphql-js`
-// Ref: https://github.com/graphql/graphql-js/blob/main/package.json
-conditionalTest({ min: 12 })('GraphQL/Apollo Tests', () => {
-  test('should instrument GraphQL and Apollo Server.', async () => {
-    const env = await TestEnv.init(__dirname);
-    const envelope = await env.getEnvelopeRequest({ envelopeType: 'transaction' });
+// Graphql Instrumentation emits some spans by default on server start
+const EXPECTED_START_SERVER_TRANSACTION = {
+  transaction: 'Test Server Start',
+};
 
-    expect(envelope).toHaveLength(3);
+describe('GraphQL/Apollo Tests', () => {
+  test('should instrument GraphQL queries used from Apollo Server.', done => {
+    const EXPECTED_TRANSACTION = {
+      transaction: 'Test Transaction',
+      spans: expect.arrayContaining([
+        expect.objectContaining({
+          data: {
+            'graphql.operation.type': 'query',
+            'graphql.source': '{hello}',
+            'sentry.origin': 'auto.graphql.otel.graphql',
+          },
+          description: 'query',
+          status: 'ok',
+          origin: 'auto.graphql.otel.graphql',
+        }),
+      ]),
+    };
 
-    const transaction = envelope[2];
-    const parentSpanId = (transaction as any)?.contexts?.trace?.span_id;
-    const graphqlSpanId = (transaction as any)?.spans?.[0].span_id;
+    createRunner(__dirname, 'scenario-query.js')
+      .expect({ transaction: EXPECTED_START_SERVER_TRANSACTION })
+      .expect({ transaction: EXPECTED_TRANSACTION })
+      .start(done);
+  });
 
-    expect(parentSpanId).toBeDefined();
-    expect(graphqlSpanId).toBeDefined();
+  test('should instrument GraphQL mutations used from Apollo Server.', done => {
+    const EXPECTED_TRANSACTION = {
+      transaction: 'Test Transaction',
+      spans: expect.arrayContaining([
+        expect.objectContaining({
+          data: {
+            'graphql.operation.name': 'Mutation',
+            'graphql.operation.type': 'mutation',
+            'graphql.source': 'mutation Mutation($email: String) {\n  login(email: $email)\n}',
+            'sentry.origin': 'auto.graphql.otel.graphql',
+          },
+          description: 'mutation Mutation',
+          status: 'ok',
+          origin: 'auto.graphql.otel.graphql',
+        }),
+      ]),
+    };
 
-    assertSentryTransaction(transaction, {
-      transaction: 'test_transaction',
-      spans: [
-        {
-          description: 'execute',
-          op: 'graphql.execute',
-          parent_span_id: parentSpanId,
-        },
-        {
-          description: 'Query.hello',
-          op: 'graphql.resolve',
-          parent_span_id: graphqlSpanId,
-        },
-      ],
-    });
+    createRunner(__dirname, 'scenario-mutation.js')
+      .expect({ transaction: EXPECTED_START_SERVER_TRANSACTION })
+      .expect({ transaction: EXPECTED_TRANSACTION })
+      .start(done);
   });
 });

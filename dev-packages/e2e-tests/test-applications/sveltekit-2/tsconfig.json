@@ -9,10 +9,6 @@
     "sourceMap": true,
     "strict": true,
     "allowImportingTsExtensions": true
-  },
-  "ts-node": {
-    "esm": true,
-    "experimentalSpecifierResolution": "node"
   }
   // Path aliases are handled by https://kit.svelte.dev/docs/configuration#alias
   //

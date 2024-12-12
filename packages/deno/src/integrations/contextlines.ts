@@ -1,6 +1,5 @@
-import { convertIntegrationFnToClass } from '@sentry/core';
-import type { Event, Integration, IntegrationClass, IntegrationFn, StackFrame } from '@sentry/types';
-import { LRUMap, addContextToFrame } from '@sentry/utils';
+import type { Event, IntegrationFn, StackFrame } from '@sentry/core';
+import { LRUMap, addContextToFrame, defineIntegration } from '@sentry/core';
 
 const INTEGRATION_NAME = 'ContextLines';
 const FILE_CONTENT_CACHE = new LRUMap<string, string | null>(100);
@@ -47,25 +46,31 @@ interface ContextLinesOptions {
   frameContextLines?: number;
 }
 
-const denoContextLinesIntegration = ((options: ContextLinesOptions = {}) => {
+const _contextLinesIntegration = ((options: ContextLinesOptions = {}) => {
   const contextLines = options.frameContextLines !== undefined ? options.frameContextLines : DEFAULT_LINES_OF_CONTEXT;
 
   return {
     name: INTEGRATION_NAME,
-    // TODO v8: Remove this
-    setupOnce() {}, // eslint-disable-line @typescript-eslint/no-empty-function
     processEvent(event) {
       return addSourceContext(event, contextLines);
     },
   };
 }) satisfies IntegrationFn;
 
-/** Add node modules / packages to the event */
-// eslint-disable-next-line deprecation/deprecation
-export const ContextLines = convertIntegrationFnToClass(
-  INTEGRATION_NAME,
-  denoContextLinesIntegration,
-) as IntegrationClass<Integration & { processEvent: (event: Event) => Promise<Event> }>;
+/**
+ * Adds source context to event stacktraces.
+ *
+ * Enabled by default in the Deno SDK.
+ *
+ * ```js
+ * Sentry.init({
+ *   integrations: [
+ *     Sentry.contextLinesIntegration(),
+ *   ],
+ * })
+ * ```
+ */
+export const contextLinesIntegration = defineIntegration(_contextLinesIntegration);
 
 /** Processes an event and adds context lines */
 async function addSourceContext(event: Event, contextLines: number): Promise<Event> {

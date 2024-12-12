@@ -2,8 +2,10 @@ import { expect } from '@playwright/test';
 
 import { sentryTest } from '../../../utils/fixtures';
 import {
+  expectedCLSPerformanceSpan,
   expectedClickBreadcrumb,
   expectedFCPPerformanceSpan,
+  expectedFIDPerformanceSpan,
   expectedFPPerformanceSpan,
   expectedLCPPerformanceSpan,
   expectedMemoryPerformanceSpan,
@@ -21,7 +23,7 @@ import {
 
 sentryTest(
   'replay recording should contain default performance spans',
-  async ({ getLocalTestPath, page, browserName }) => {
+  async ({ getLocalTestUrl, page, browserName }) => {
     // We only test this against the NPM package and replay bundles
     // and only on chromium as most performance entries are only available in chromium
     if (shouldSkipReplayTest() || browserName !== 'chromium') {
@@ -31,15 +33,7 @@ sentryTest(
     const reqPromise0 = waitForReplayRequest(page, 0);
     const reqPromise1 = waitForReplayRequest(page, 1);
 
-    await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-      return route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({ id: 'test-id' }),
-      });
-    });
-
-    const url = await getLocalTestPath({ testDir: __dirname });
+    const url = await getLocalTestUrl({ testDir: __dirname });
 
     await page.goto(url);
     const replayEvent0 = getReplayEvent(await reqPromise0);
@@ -47,7 +41,7 @@ sentryTest(
 
     expect(replayEvent0).toEqual(getExpectedReplayEvent({ segment_id: 0 }));
 
-    await page.click('button');
+    await page.locator('#img-button').click();
 
     const replayEvent1 = getReplayEvent(await reqPromise1);
     const { performanceSpans: performanceSpans1 } = getCustomRecordingEvents(await reqPromise1);
@@ -62,6 +56,8 @@ sentryTest(
       expect.arrayContaining([
         expectedNavigationPerformanceSpan,
         expectedLCPPerformanceSpan,
+        expectedCLSPerformanceSpan,
+        expectedFIDPerformanceSpan,
         expectedFPPerformanceSpan,
         expectedFCPPerformanceSpan,
         expectedMemoryPerformanceSpan, // two memory spans - once per flush
@@ -80,7 +76,7 @@ sentryTest(
 
 sentryTest(
   'replay recording should contain a click breadcrumb when a button is clicked',
-  async ({ forceFlushReplay, getLocalTestPath, page, browserName }) => {
+  async ({ forceFlushReplay, getLocalTestUrl, page, browserName }) => {
     // TODO(replay): This is flakey on webkit where clicks are flakey
     if (shouldSkipReplayTest() || browserName === 'webkit') {
       sentryTest.skip();
@@ -91,20 +87,12 @@ sentryTest(
     const reqPromise2 = waitForReplayRequest(page, 2);
     const reqPromise3 = waitForReplayRequest(page, 3);
 
-    await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-      return route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({ id: 'test-id' }),
-      });
-    });
-
-    const url = await getLocalTestPath({ testDir: __dirname });
+    const url = await getLocalTestUrl({ testDir: __dirname });
 
     await page.goto(url);
     await reqPromise0;
 
-    await page.click('#error');
+    await page.locator('#error').click();
     await forceFlushReplay();
     const req1 = await reqPromise1;
     const content1 = getReplayRecordingContent(req1);
@@ -131,7 +119,7 @@ sentryTest(
       ]),
     );
 
-    await page.click('#img');
+    await page.locator('#img').click();
     await forceFlushReplay();
     const req2 = await reqPromise2;
     const content2 = getReplayRecordingContent(req2);
@@ -139,11 +127,12 @@ sentryTest(
       expect.arrayContaining([
         {
           ...expectedClickBreadcrumb,
-          message: 'body > button[title="Button title"]',
+          message: 'body > button#img-button[title="Button title"]',
           data: {
             nodeId: expect.any(Number),
             node: {
               attributes: {
+                id: 'img-button',
                 title: '****** *****',
               },
               id: expect.any(Number),
@@ -155,7 +144,7 @@ sentryTest(
       ]),
     );
 
-    await page.click('.sentry-unmask');
+    await page.locator('.sentry-unmask').click();
     await forceFlushReplay();
     const req3 = await reqPromise3;
     const content3 = getReplayRecordingContent(req3);
@@ -184,7 +173,7 @@ sentryTest(
 
 sentryTest(
   'replay recording should contain an "options" breadcrumb for Replay SDK configuration',
-  async ({ forceFlushReplay, getLocalTestPath, page, browserName }) => {
+  async ({ forceFlushReplay, getLocalTestUrl, page, browserName }) => {
     // TODO(replay): This is flakey on webkit where clicks are flakey
     if (shouldSkipReplayTest() || browserName === 'webkit') {
       sentryTest.skip();
@@ -193,20 +182,12 @@ sentryTest(
     const reqPromise0 = waitForReplayRequest(page, 0);
     const reqPromise1 = waitForReplayRequest(page, 1);
 
-    await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-      return route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({ id: 'test-id' }),
-      });
-    });
-
-    const url = await getLocalTestPath({ testDir: __dirname });
+    const url = await getLocalTestUrl({ testDir: __dirname });
 
     await page.goto(url);
     await forceFlushReplay();
 
-    await page.click('#error');
+    await page.locator('#error').click();
     await forceFlushReplay();
 
     const req0 = await reqPromise0;
@@ -227,6 +208,7 @@ sentryTest(
           networkCaptureBodies: true,
           networkRequestHasHeaders: true,
           networkResponseHasHeaders: true,
+          shouldRecordCanvas: false,
         },
       },
     ]);

@@ -3,12 +3,13 @@ import { expect } from '@playwright/test';
 import { sentryTest } from '../../../../utils/fixtures';
 import { envelopeRequestParser, waitForErrorRequestOnUrl } from '../../../../utils/helpers';
 
-sentryTest('should not add source context lines to errors from script files', async ({ getLocalTestPath, page }) => {
-  const url = await getLocalTestPath({ testDir: __dirname });
+sentryTest('should not add source context lines to errors from script files', async ({ getLocalTestUrl, page }) => {
+  const url = await getLocalTestUrl({ testDir: __dirname });
 
   const eventReqPromise = waitForErrorRequestOnUrl(page, url);
+  await page.waitForFunction('window.Sentry');
 
-  const clickPromise = page.click('#script-error-btn');
+  const clickPromise = page.locator('#script-error-btn').click();
 
   const [req] = await Promise.all([eventReqPromise, clickPromise]);
 

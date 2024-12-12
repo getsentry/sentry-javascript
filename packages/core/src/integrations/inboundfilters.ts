@@ -1,21 +1,23 @@
-import type { Client, Event, EventHint, Integration, IntegrationClass, IntegrationFn, StackFrame } from '@sentry/types';
-import { getEventDescription, logger, stringMatchesSomePattern } from '@sentry/utils';
+import type { Event, IntegrationFn, StackFrame } from '../types-hoist';
 
 import { DEBUG_BUILD } from '../debug-build';
-import { convertIntegrationFnToClass } from '../integration';
+import { defineIntegration } from '../integration';
+import { logger } from '../utils-hoist/logger';
+import { getEventDescription } from '../utils-hoist/misc';
+import { stringMatchesSomePattern } from '../utils-hoist/string';
 
 // "Script error." is hard coded into browsers for errors that it can't read.
 // this is the result of a script being pulled in from an external domain and CORS.
-const DEFAULT_IGNORE_ERRORS = [/^Script error\.?$/, /^Javascript error: Script error\.? on line 0$/];
-
-const DEFAULT_IGNORE_TRANSACTIONS = [
-  /^.*\/healthcheck$/,
-  /^.*\/healthy$/,
-  /^.*\/live$/,
-  /^.*\/ready$/,
-  /^.*\/heartbeat$/,
-  /^.*\/health$/,
-  /^.*\/healthz$/,
+const DEFAULT_IGNORE_ERRORS = [
+  /^Script error\.?$/,
+  /^Javascript error: Script error\.? on line 0$/,
+  /^ResizeObserver loop completed with undelivered notifications.$/, // The browser logs this when a ResizeObserver handler takes a bit longer. Usually this is not an actual issue though. It indicates slowness.
+  /^Cannot redefine property: googletag$/, // This is thrown when google tag manager is used in combination with an ad blocker
+  "undefined is not an object (evaluating 'a.L')", // Random error that happens but not actionable or noticeable to end-users.
+  'can\'t redefine non-configurable property "solana"', // Probably a browser extension or custom browser (Brave) throwing this error
+  "vv().getRestrictions is not a function. (In 'vv().getRestrictions(1,a)', 'vv().getRestrictions' is undefined)", // Error thrown by GTM, seemingly not affecting end-users
+  "Can't find variable: _AutofillCallbackHandler", // Unactionable error in instagram webview https://developers.facebook.com/community/threads/320013549791141/
+  /^Non-Error promise rejection captured with value: Object Not Found Matching Id:\d+, MethodName:simulateEvent, ParamCount:\d+$/, // unactionable error from CEFSharp, a .NET library that embeds chromium in .NET apps
 ];
 
 /** Options for the InboundFilters integration */
@@ -26,15 +28,12 @@ export interface InboundFiltersOptions {
   ignoreTransactions: Array<string | RegExp>;
   ignoreInternal: boolean;
   disableErrorDefaults: boolean;
-  disableTransactionDefaults: boolean;
 }
 
 const INTEGRATION_NAME = 'InboundFilters';
-const inboundFiltersIntegration = ((options: Partial<InboundFiltersOptions> = {}) => {
+const _inboundFiltersIntegration = ((options: Partial<InboundFiltersOptions> = {}) => {
   return {
     name: INTEGRATION_NAME,
-    // TODO v8: Remove this
-    setupOnce() {}, // eslint-disable-line @typescript-eslint/no-empty-function
     processEvent(event, _hint, client) {
       const clientOptions = client.getOptions();
       const mergedOptions = _mergeOptions(options, clientOptions);
@@ -43,24 +42,7 @@ const inboundFiltersIntegration = ((options: Partial<InboundFiltersOptions> = {}
   };
 }) satisfies IntegrationFn;
 
-/** Inbound filters configurable by the user */
-// eslint-disable-next-line deprecation/deprecation
-export const InboundFilters = convertIntegrationFnToClass(
-  INTEGRATION_NAME,
-  inboundFiltersIntegration,
-) as IntegrationClass<Integration & { preprocessEvent: (event: Event, hint: EventHint, client: Client) => void }> & {
-  new (
-    options?: Partial<{
-      allowUrls: Array<string | RegExp>;
-      denyUrls: Array<string | RegExp>;
-      ignoreErrors: Array<string | RegExp>;
-      ignoreTransactions: Array<string | RegExp>;
-      ignoreInternal: boolean;
-      disableErrorDefaults: boolean;
-      disableTransactionDefaults: boolean;
-    }>,
-  ): Integration;
-};
+export const inboundFiltersIntegration = defineIntegration(_inboundFiltersIntegration);
 
 function _mergeOptions(
   internalOptions: Partial<InboundFiltersOptions> = {},
@@ -74,11 +56,7 @@ function _mergeOptions(
       ...(clientOptions.ignoreErrors || []),
       ...(internalOptions.disableErrorDefaults ? [] : DEFAULT_IGNORE_ERRORS),
     ],
-    ignoreTransactions: [
-      ...(internalOptions.ignoreTransactions || []),
-      ...(clientOptions.ignoreTransactions || []),
-      ...(internalOptions.disableTransactionDefaults ? [] : DEFAULT_IGNORE_TRANSACTIONS),
-    ],
+    ignoreTransactions: [...(internalOptions.ignoreTransactions || []), ...(clientOptions.ignoreTransactions || [])],
     ignoreInternal: internalOptions.ignoreInternal !== undefined ? internalOptions.ignoreInternal : true,
   };
 }
@@ -93,6 +71,15 @@ function _shouldDropEvent(event: Event, options: Partial<InboundFiltersOptions>)
     DEBUG_BUILD &&
       logger.warn(
         `Event dropped due to being matched by \`ignoreErrors\` option.\nEvent: ${getEventDescription(event)}`,
+      );
+    return true;
+  }
+  if (_isUselessError(event)) {
+    DEBUG_BUILD &&
+      logger.warn(
+        `Event dropped due to not having an error message, error type or stacktrace.\nEvent: ${getEventDescription(
+          event,
+        )}`,
       );
     return true;
   }
@@ -170,7 +157,6 @@ function _getPossibleEventMessages(event: Event): string[] {
   let lastException;
   try {
     // @ts-expect-error Try catching to save bundle size
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     lastException = event.exception.values[event.exception.values.length - 1];
   } catch (e) {
     // try catching to save bundle size checking existence of variables
@@ -185,17 +171,12 @@ function _getPossibleEventMessages(event: Event): string[] {
     }
   }
 
-  if (DEBUG_BUILD && possibleMessages.length === 0) {
-    logger.error(`Could not extract message for event ${getEventDescription(event)}`);
-  }
-
   return possibleMessages;
 }
 
 function _isSentryError(event: Event): boolean {
   try {
     // @ts-expect-error can't be a sentry error if undefined
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     return event.exception.values[0].type === 'SentryError';
   } catch (e) {
     // ignore
@@ -229,4 +210,23 @@ function _getEventFilterUrl(event: Event): string | null {
     DEBUG_BUILD && logger.error(`Cannot extract url for event ${getEventDescription(event)}`);
     return null;
   }
+}
+
+function _isUselessError(event: Event): boolean {
+  if (event.type) {
+    // event is not an error
+    return false;
+  }
+
+  // We only want to consider events for dropping that actually have recorded exception values.
+  if (!event.exception || !event.exception.values || event.exception.values.length === 0) {
+    return false;
+  }
+
+  return (
+    // No top-level message
+    !event.message &&
+    // There are no exception values that have a stacktrace, a non-generic-Error type or value
+    !event.exception.values.some(value => value.stacktrace || (value.type && value.type !== 'Error') || value.value)
+  );
 }

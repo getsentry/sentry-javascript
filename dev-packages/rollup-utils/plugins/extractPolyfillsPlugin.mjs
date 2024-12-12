@@ -13,7 +13,7 @@ const POLYFILL_NAMES = new Set([
 ]);
 
 /**
- * Create a plugin which will replace function definitions of any of the above funcions with an `import` or `require`
+ * Create a plugin which will replace function definitions of any of the above functions with an `import` or `require`
  * statement pulling them in from a central source. Mimics tsc's `importHelpers` option.
  */
 export function makeExtractPolyfillsPlugin() {
@@ -40,10 +40,10 @@ export function makeExtractPolyfillsPlugin() {
         return null;
       }
 
-      // The index.js file of the tuils package will include identifiers named after polyfills so we would inject the
+      // The index.js file of the core package will include identifiers named after polyfills so we would inject the
       // polyfills, however that would override the exports so we should just skip that file.
-      const isUtilsPackage = process.cwd().endsWith('packages/utils');
-      if (isUtilsPackage && sourceFile === 'index.js') {
+      const isCorePackage = process.cwd().endsWith(`packages${path.sep}core`);
+      if (isCorePackage && sourceFile === 'index.js') {
         return null;
       }
 
@@ -190,11 +190,11 @@ function createImportOrRequireNode(polyfillNodes, currentSourceFile, moduleForma
     variableDeclarator,
   } = recast.types.builders;
 
-  // Since our polyfills live in `@sentry/utils`, if we're importing or requiring them there the path will have to be
+  // Since our polyfills live in `@sentry/core`, if we're importing or requiring them there the path will have to be
   // relative
-  const isUtilsPackage = process.cwd().endsWith('packages/utils');
+  const isCorePackage = process.cwd().endsWith(path.join('packages', 'core'));
   const importSource = literal(
-    isUtilsPackage ? `./${path.relative(path.dirname(currentSourceFile), 'buildPolyfills')}` : '@sentry/utils',
+    isCorePackage ? `.${path.sep}${path.relative(path.dirname(currentSourceFile), 'buildPolyfills')}` : '@sentry/core',
   );
 
   // This is the `x, y, z` of inside of `import { x, y, z }` or `var { x, y, z }`

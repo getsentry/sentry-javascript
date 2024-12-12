@@ -1,4 +1,4 @@
-import type { Event, EventHint } from '@sentry/types';
+import type { Event, EventHint } from '../../src/types-hoist';
 
 import { createTransport } from '../../src';
 import type { ServerRuntimeClientOptions } from '../../src/server-runtime-client';
@@ -11,7 +11,6 @@ function getDefaultClientOptions(options: Partial<ServerRuntimeClientOptions> = 
     integrations: [],
     transport: () => createTransport({ recordDroppedEvent: () => undefined }, _ => Promise.resolve({})),
     stackParser: () => [],
-    instrumenter: 'sentry',
     ...options,
   };
 }
@@ -78,8 +77,7 @@ describe('ServerRuntimeClient', () => {
       });
       client = new ServerRuntimeClient(options);
 
-      // @ts-expect-error accessing private method
-      const sendEnvelopeSpy = jest.spyOn(client, '_sendEnvelope');
+      const sendEnvelopeSpy = jest.spyOn(client, 'sendEnvelope');
 
       const id = client.captureCheckIn(
         { monitorSlug: 'foo', status: 'in_progress' },
@@ -91,6 +89,8 @@ describe('ServerRuntimeClient', () => {
           checkinMargin: 2,
           maxRuntime: 12333,
           timezone: 'Canada/Eastern',
+          failureIssueThreshold: 2,
+          recoveryThreshold: 3,
         },
       );
 
@@ -114,6 +114,8 @@ describe('ServerRuntimeClient', () => {
                 checkin_margin: 2,
                 max_runtime: 12333,
                 timezone: 'Canada/Eastern',
+                failure_issue_threshold: 2,
+                recovery_threshold: 3,
               },
             },
           ],
@@ -145,8 +147,7 @@ describe('ServerRuntimeClient', () => {
       const options = getDefaultClientOptions({ dsn: PUBLIC_DSN, serverName: 'bar', enabled: false });
       client = new ServerRuntimeClient(options);
 
-      // @ts-expect-error accessing private method
-      const sendEnvelopeSpy = jest.spyOn(client, '_sendEnvelope');
+      const sendEnvelopeSpy = jest.spyOn(client, 'sendEnvelope');
 
       client.captureCheckIn({ monitorSlug: 'foo', status: 'in_progress' });
 

@@ -1,10 +1,10 @@
 import { expect } from '@playwright/test';
 
-import { sentryTest } from '../../../utils/fixtures';
-import { envelopeRequestParser, getEnvelopeType } from '../../../utils/helpers';
+import { TEST_HOST, sentryTest } from '../../../utils/fixtures';
+import { envelopeRequestParser, getEnvelopeType, shouldSkipFeedbackTest } from '../../../utils/helpers';
 
-sentryTest('should capture feedback (@sentry-internal/feedback import)', async ({ getLocalTestPath, page }) => {
-  if (process.env.PW_BUNDLE) {
+sentryTest('should capture feedback', async ({ getLocalTestUrl, page }) => {
+  if (shouldSkipFeedbackTest()) {
     sentryTest.skip();
   }
 
@@ -23,15 +23,7 @@ sentryTest('should capture feedback (@sentry-internal/feedback import)', async (
     }
   });
 
-  await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-    return route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ id: 'test-id' }),
-    });
-  });
-
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname, handleLazyLoadedFeedback: true });
 
   await page.goto(url);
   await page.getByText('Report a Bug').click();
@@ -39,21 +31,29 @@ sentryTest('should capture feedback (@sentry-internal/feedback import)', async (
   await page.locator('[name="name"]').fill('Jane Doe');
   await page.locator('[name="email"]').fill('janedoe@example.org');
   await page.locator('[name="message"]').fill('my example feedback');
-  await page.getByLabel('Send Bug Report').click();
+  await page.locator('[data-sentry-feedback] .btn--primary').click();
 
   const feedbackEvent = envelopeRequestParser((await feedbackRequestPromise).request());
   expect(feedbackEvent).toEqual({
     type: 'feedback',
+    breadcrumbs: expect.any(Array),
     contexts: {
       feedback: {
         contact_email: 'janedoe@example.org',
         message: 'my example feedback',
         name: 'Jane Doe',
         source: 'widget',
-        url: expect.stringContaining('/dist/index.html'),
+        url: `${TEST_HOST}/index.html`,
+      },
+      trace: {
+        trace_id: expect.stringMatching(/\w{32}/),
+        span_id: expect.stringMatching(/\w{16}/),
       },
     },
     level: 'info',
+    tags: {
+      from: 'integration init',
+    },
     timestamp: expect.any(Number),
     event_id: expect.stringMatching(/\w{32}/),
     environment: 'production',
@@ -64,7 +64,7 @@ sentryTest('should capture feedback (@sentry-internal/feedback import)', async (
       packages: expect.anything(),
     },
     request: {
-      url: expect.stringContaining('/dist/index.html'),
+      url: `${TEST_HOST}/index.html`,
       headers: {
         'User-Agent': expect.stringContaining(''),
       },
