@@ -171,7 +171,7 @@ function _wrapEventTarget(target: string): void {
     return;
   }
 
-  fill(proto, 'addEventListener', function (original: VoidFunction,): (
+  fill(proto, 'addEventListener', function (original: VoidFunction): (
     ...args: Parameters<typeof WINDOW.addEventListener>
   ) => ReturnType<typeof WINDOW.addEventListener> {
     return function (this: unknown, eventName, fn, options): VoidFunction {
@@ -217,7 +217,7 @@ function _wrapEventTarget(target: string): void {
     };
   });
 
-  fill(proto, 'removeEventListener', function (originalRemoveEventListener: VoidFunction,): (
+  fill(proto, 'removeEventListener', function (originalRemoveEventListener: VoidFunction): (
     this: unknown,
     ...args: Parameters<typeof WINDOW.removeEventListener>
   ) => ReturnType<typeof WINDOW.removeEventListener> {

@@ -109,13 +109,10 @@ export class NodeClient extends ServerRuntimeClient<NodeClientOptions> {
         this._flushOutcomes();
       };
 
-      this._clientReportInterval = setInterval(
-        () => {
-          DEBUG_BUILD && logger.log('Flushing client reports based on interval.');
-          this._flushOutcomes();
-        },
-        clientOptions.clientReportFlushInterval ?? DEFAULT_CLIENT_REPORT_FLUSH_INTERVAL_MS,
-      )
+      this._clientReportInterval = setInterval(() => {
+        DEBUG_BUILD && logger.log('Flushing client reports based on interval.');
+        this._flushOutcomes();
+      }, clientOptions.clientReportFlushInterval ?? DEFAULT_CLIENT_REPORT_FLUSH_INTERVAL_MS)
         // Unref is critical for not preventing the process from exiting because the interval is active.
         .unref();
 
