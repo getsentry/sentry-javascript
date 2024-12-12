@@ -9,7 +9,7 @@ import { sentryVitePlugin } from '@sentry/vite-plugin';
 import type { Plugin, UserConfig } from 'vite';
 
 import MagicString from 'magic-string';
-import { WRAPPED_MODULE_SUFFIX } from './autoInstrument';
+import { WRAPPED_MODULE_SUFFIX } from './constants';
 import type { GlobalSentryValues } from './injectGlobalValues';
 import { VIRTUAL_GLOBAL_VALUES_FILE, getGlobalValueInjectionCode } from './injectGlobalValues';
 import { getAdapterOutputDir, getHooksFileName, loadSvelteConfig } from './svelteConfig';
