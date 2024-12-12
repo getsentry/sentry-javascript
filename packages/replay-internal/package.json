@@ -69,8 +69,8 @@
   "devDependencies": {
     "@babel/core": "^7.17.5",
     "@sentry-internal/replay-worker": "8.44.0",
-    "@sentry-internal/rrweb": "2.30.0",
-    "@sentry-internal/rrweb-snapshot": "2.30.0",
+    "@sentry-internal/rrweb": "2.31.0",
+    "@sentry-internal/rrweb-snapshot": "2.31.0",
     "fflate": "^0.8.1",
     "jest-matcher-utils": "^29.0.0",
     "jsdom-worker": "^0.2.1"
