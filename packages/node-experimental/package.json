@@ -1,6 +1,6 @@
 {
   "name": "@sentry/node-experimental",
-  "version": "7.120.1",
+  "version": "7.120.2",
   "description": "Experimental version of a Node SDK using OpenTelemetry for performance instrumentation",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/node-experimental",
@@ -50,11 +50,11 @@
     "@opentelemetry/sdk-trace-base": "1.21.0",
     "@opentelemetry/semantic-conventions": "1.21.0",
     "@prisma/instrumentation": "5.9.0",
-    "@sentry/core": "7.120.1",
-    "@sentry/node": "7.120.1",
-    "@sentry/opentelemetry": "7.120.1",
-    "@sentry/types": "7.120.1",
-    "@sentry/utils": "7.120.1"
+    "@sentry/core": "7.120.2",
+    "@sentry/node": "7.120.2",
+    "@sentry/opentelemetry": "7.120.2",
+    "@sentry/types": "7.120.2",
+    "@sentry/utils": "7.120.2"
   },
   "optionalDependencies": {
     "opentelemetry-instrumentation-fetch-node": "1.1.0"
