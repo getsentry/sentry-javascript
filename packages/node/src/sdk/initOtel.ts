@@ -13,7 +13,6 @@ import { createAddHookMessageChannel } from 'import-in-the-middle';
 import { DEBUG_BUILD } from '../debug-build';
 import { getOpenTelemetryInstrumentationToPreload } from '../integrations/tracing';
 import { SentryContextManager } from '../otel/contextManager';
-import type { EsmLoaderHookOptions } from '../types';
 import { isCjs } from '../utils/commonjs';
 import type { NodeClient } from './client';
 
@@ -34,30 +33,8 @@ export function initOpenTelemetry(client: NodeClient): void {
   client.traceProvider = provider;
 }
 
-type ImportInTheMiddleInitData = Pick<EsmLoaderHookOptions, 'include' | 'exclude'> & {
-  addHookMessagePort?: unknown;
-};
-
-interface RegisterOptions {
-  data?: ImportInTheMiddleInitData;
-  transferList?: unknown[];
-}
-
-function getRegisterOptions(esmHookConfig?: EsmLoaderHookOptions): RegisterOptions {
-  // TODO(v9): Make onlyIncludeInstrumentedModules: true the default behavior.
-  if (esmHookConfig?.onlyIncludeInstrumentedModules) {
-    const { addHookMessagePort } = createAddHookMessageChannel();
-    // If the user supplied include, we need to use that as a starting point or use an empty array to ensure no modules
-    // are wrapped if they are not hooked
-    // eslint-disable-next-line deprecation/deprecation
-    return { data: { addHookMessagePort, include: esmHookConfig.include || [] }, transferList: [addHookMessagePort] };
-  }
-
-  return { data: esmHookConfig };
-}
-
 /** Initialize the ESM loader. */
-export function maybeInitializeEsmLoader(esmHookConfig?: EsmLoaderHookOptions): void {
+export function maybeInitializeEsmLoader(): void {
   const [nodeMajor = 0, nodeMinor = 0] = process.versions.node.split('.').map(Number);
 
   // Register hook was added in v20.6.0 and v18.19.0
@@ -68,8 +45,12 @@ export function maybeInitializeEsmLoader(esmHookConfig?: EsmLoaderHookOptions): 
 
     if (!GLOBAL_OBJ._sentryEsmLoaderHookRegistered && importMetaUrl) {
       try {
+        const { addHookMessagePort } = createAddHookMessageChannel();
         // @ts-expect-error register is available in these versions
-        moduleModule.register('import-in-the-middle/hook.mjs', importMetaUrl, getRegisterOptions(esmHookConfig));
+        moduleModule.register('import-in-the-middle/hook.mjs', importMetaUrl, {
+          data: { addHookMessagePort, include: [] },
+          transferList: [addHookMessagePort],
+        });
         GLOBAL_OBJ._sentryEsmLoaderHookRegistered = true;
       } catch (error) {
         logger.warn('Failed to register ESM hook', error);
@@ -88,7 +69,6 @@ export function maybeInitializeEsmLoader(esmHookConfig?: EsmLoaderHookOptions): 
 interface NodePreloadOptions {
   debug?: boolean;
   integrations?: string[];
-  registerEsmLoaderHooks?: EsmLoaderHookOptions;
 }
 
 /**
@@ -105,7 +85,7 @@ export function preloadOpenTelemetry(options: NodePreloadOptions = {}): void {
   }
 
   if (!isCjs()) {
-    maybeInitializeEsmLoader(options.registerEsmLoaderHooks);
+    maybeInitializeEsmLoader();
   }
 
   // These are all integrations that we need to pre-load to ensure they are set up before any other code runs
