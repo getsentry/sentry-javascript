@@ -9,7 +9,8 @@
     "clean": "npx rimraf node_modules dist",
     "test:electron": "$(pnpm bin)/electron-rebuild && playwright test",
     "test:build": "pnpm run typecheck && pnpm run build",
-    "test:assert": "pnpm run test && pnpm run test:electron"
+    "test:assert": "pnpm run test && pnpm run test:electron",
+    "test:mjs": "node index.mjs"
   },
   "dependencies": {
     "@electron/rebuild": "^3.7.0",
@@ -19,7 +20,6 @@
     "@sentry/profiling-node": "latest || *",
     "electron": "^33.2.0"
   },
-  "devDependencies": {},
   "volta": {
     "extends": "../../package.json"
   },
