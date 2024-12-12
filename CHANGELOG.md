@@ -10,6 +10,16 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 8.45.0
+
+- feat(core): Add `handled` option to `captureConsoleIntegration` ([#14664](https://github.com/getsentry/sentry-javascript/pull/14664))
+- feat(browser): Attach virtual stack traces to `HttpClient` events ([#14515](https://github.com/getsentry/sentry-javascript/pull/14515))
+- fix(profiling-node): Guard invocation of native profiling methods ([#14676](https://github.com/getsentry/sentry-javascript/pull/14676))
+- fix: Disable ANR and Local Variables if debugger is enabled via CLI args ([#14643](https://github.com/getsentry/sentry-javascript/pull/14643))
+- fix(aws-serverless): Remove v8 layer as it overwrites the current layer for docs ([#14679](https://github.com/getsentry/sentry-javascript/pull/14679))
+- fix(nuxt): Inline nitro-utils function ([#14680](https://github.com/getsentry/sentry-javascript/pull/14680))
+- fix(profiling-node): Ensure profileId is added to transaction event ([#14681](https://github.com/getsentry/sentry-javascript/pull/14681))
+
 Work in this release was contributed by @anonrig. Thank you for your contribution!
 
 ## 8.44.0
