@@ -2,7 +2,7 @@ import { consoleSandbox } from '@sentry/core';
 import { captureException } from '@sentry/cloudflare';
 import type { HandleServerError } from '@sveltejs/kit';
 
-import { flushIfServerless } from './utils';
+import { flushIfServerless } from '../server-common/utils';
 
 // The SvelteKit default error handler just logs the error's stack trace to the console
 // see: https://github.com/sveltejs/kit/blob/369e7d6851f543a40c947e033bfc4a9506fdc0a8/packages/kit/src/runtime/server/index.js#L43
