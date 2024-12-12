@@ -25,6 +25,12 @@ export const createSentryPiniaPlugin: (options?: SentryPiniaPluginOptions) => Pi
   },
 ) => {
   const plugin: PiniaPlugin = ({ store }) => {
+    let transformedState = store.$state;
+    try {
+      transformedState = options.stateTransformer ? options.stateTransformer(store.$state) : store.$state;
+    } catch (_) {
+      // If stateTransformer throws, let's just use the unmodified state
+    }
     options.attachPiniaState !== false &&
       getGlobalScope().addEventProcessor((event, hint) => {
         try {
@@ -36,7 +42,7 @@ export const createSentryPiniaPlugin: (options?: SentryPiniaPluginOptions) => Pi
             ...(hint.attachments || []),
             {
               filename,
-              data: JSON.stringify(store.$state),
+              data: JSON.stringify(transformedState),
             },
           ];
         } catch (_) {
@@ -65,7 +71,6 @@ export const createSentryPiniaPlugin: (options?: SentryPiniaPluginOptions) => Pi
         }
 
         /* Set latest state to scope */
-        const transformedState = options.stateTransformer ? options.stateTransformer(store.$state) : store.$state;
         const scope = getCurrentScope();
         const currentState = scope.getScopeData().contexts.state;
 
