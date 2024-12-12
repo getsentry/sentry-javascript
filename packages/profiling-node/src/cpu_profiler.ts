@@ -164,10 +164,9 @@ export function importCppBindingsModule(): PrivateV8CpuProfilerBindings {
   }
 
   // #START_SENTRY_ESM_DIRNAME_SHIM
-  // const filename = fileURLToPath(import.meta.url);
-  // const __dirname = dirname(filename);
+  // const __dirname = dirname(fileURLToPath(import.meta.url));
   // #END_SENTRY_ESM_DIRNAME_SHIM
-  const built_from_source_path = resolve(__dirname, '..', `./sentry_cpu_profiler-${identifier}`);
+  const built_from_source_path = resolve(__dirname, '..', `sentry_cpu_profiler-${identifier}`);
   return require(`${built_from_source_path}.node`);
 }
 

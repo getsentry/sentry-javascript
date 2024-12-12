@@ -8,7 +8,7 @@ console.log('🧵 Starting ESM test');
 
 const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
 
-function assertUnpatechedRequire() {
+function assertUnpatchedRequire() {
   if (typeof require !== 'undefined') {
     // Test that globalThis.require is not defined by any side effects of the profiling
     // https://github.com/getsentry/sentry-javascript/issues/13662
@@ -30,5 +30,5 @@ Sentry.startSpan({ name: 'Precompile test' }, async () => {
   await wait(500);
 });
 
-assertUnpatechedRequire();
+assertUnpatchedRequire();
 console.log('✅ Require is not patched');

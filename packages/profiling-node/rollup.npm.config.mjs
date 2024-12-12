@@ -12,8 +12,7 @@ const require = createRequire(import.meta.url);
 `;
 
 const ESMDirnameShim = `
-const filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+const __dirname = dirname(fileURLToPath(import.meta.url));
 `;
 
 function makeESMImportShimPlugin(shim) {
