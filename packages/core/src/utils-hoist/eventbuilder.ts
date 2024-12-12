@@ -193,6 +193,7 @@ export function eventFromMessage(
           },
         ],
       };
+      addExceptionMechanism(event, { synthetic: true });
     }
   }
 
