@@ -101,7 +101,7 @@ const ANR_EVENT_WITH_DEBUG_META: Event = {
       {
         type: 'sourcemap',
         debug_id: 'aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaa',
-        code_file: expect.stringContaining('basic.'),
+        code_file: expect.stringContaining('basic'),
       },
     ],
   },
@@ -119,6 +119,14 @@ conditionalTest({ min: 16 })('should report ANR when event loop blocked', () => 
   test('ESM', done => {
     createRunner(__dirname, 'basic.mjs')
       .withMockSentryServer()
+      .expect({ event: ANR_EVENT_WITH_DEBUG_META })
+      .start(done);
+  });
+
+  test('multiple events via maxAnrEvents', done => {
+    createRunner(__dirname, 'basic-multiple.mjs')
+      .withMockSentryServer()
+      .expect({ event: ANR_EVENT_WITH_DEBUG_META })
       .expect({ event: ANR_EVENT_WITH_DEBUG_META })
       .start(done);
   });
