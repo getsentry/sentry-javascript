@@ -16,4 +16,5 @@ esbuild.buildSync({
   format: 'esm',
   bundle: true,
   loader: { '.node': 'copy' },
+  external: ['@sentry/node'],
 });
