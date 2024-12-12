@@ -15,66 +15,8 @@ import {
 } from '@sentry/core';
 import type { Handle, ResolveOptions } from '@sveltejs/kit';
 
-import { DEBUG_BUILD } from '../common/debug-build';
-import { flushIfServerless, getTracePropagationData, sendErrorToSentry } from './utils';
-
-export type SentryHandleOptions = {
-  /**
-   * Controls whether the SDK should capture errors and traces in requests that don't belong to a
-   * route defined in your SvelteKit application.
-   *
-   * By default, this option is set to `false` to reduce noise (e.g. bots sending random requests to your server).
-   *
-   * Set this option to `true` if you want to monitor requests events without a route. This might be useful in certain
-   * scenarios, for instance if you registered other handlers that handle these requests.
-   * If you set this option, you might want adjust the the transaction name in the `beforeSendTransaction`
-   * callback of your server-side `Sentry.init` options. You can also use `beforeSendTransaction` to filter out
-   * transactions that you still don't want to be sent to Sentry.
-   *
-   * @default false
-   */
-  handleUnknownRoutes?: boolean;
-
-  /**
-   * Controls if `sentryHandle` should inject a script tag into the page that enables instrumentation
-   * of `fetch` calls in `load` functions.
-   *
-   * @default true
-   */
-  injectFetchProxyScript?: boolean;
-};
-
-/**
- * Exported only for testing
- */
-export const FETCH_PROXY_SCRIPT = `
-    const f = window.fetch;
-    if(f){
-      window._sentryFetchProxy = function(...a){return f(...a)}
-      window.fetch = function(...a){return window._sentryFetchProxy(...a)}
-    }
-`;
-
-/**
- * Adds Sentry tracing <meta> tags to the returned html page.
- * Adds Sentry fetch proxy script to the returned html page if enabled in options.
- *
- * Exported only for testing
- */
-export function addSentryCodeToPage(options: { injectFetchProxyScript: boolean }): NonNullable<
-  ResolveOptions['transformPageChunk']
-> {
-  return ({ html }) => {
-    const metaTags = getTraceMetaTags();
-    const headWithMetaTags = metaTags ? `<head>\n${metaTags}` : '<head>';
-
-    const headWithFetchScript = options.injectFetchProxyScript ? `\n<script>${FETCH_PROXY_SCRIPT}</script>` : '';
-
-    const modifiedHead = `${headWithMetaTags}${headWithFetchScript}`;
-
-    return html.replace('<head>', modifiedHead);
-  };
-}
+import type { SentryHandleOptions } from '../server-common/handle';
+import { sentryHandleGeneric } from '../server-common/handle';
 
 /**
  * A SvelteKit handle function that wraps the request for Sentry error and

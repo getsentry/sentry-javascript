@@ -3,7 +3,7 @@ import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, sta
 import type { LoadEvent, ServerLoadEvent } from '@sveltejs/kit';
 
 import type { SentryWrappedFlag } from '../common/utils';
-import { flushIfServerless, sendErrorToSentry } from './utils';
+import { flushIfServerless, sendErrorToSentry } from '../server-common/utils';
 
 type PatchedLoadEvent = LoadEvent & SentryWrappedFlag;
 type PatchedServerLoadEvent = ServerLoadEvent & SentryWrappedFlag;
