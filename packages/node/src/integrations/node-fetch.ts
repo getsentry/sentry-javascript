@@ -1,25 +1,29 @@
 import { registerInstrumentations } from '@opentelemetry/instrumentation';
-import type { UndiciRequest, UndiciResponse } from '@opentelemetry/instrumentation-undici';
 import { UndiciInstrumentation } from '@opentelemetry/instrumentation-undici';
-import type { IntegrationFn, SanitizedRequestData } from '@sentry/core';
+import type { IntegrationFn } from '@sentry/core';
 import {
   LRUMap,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  addBreadcrumb,
   defineIntegration,
-  getBreadcrumbLogLevelFromHttpStatusCode,
   getClient,
-  getSanitizedUrlString,
   getTraceData,
   hasTracingEnabled,
-  parseUrl,
 } from '@sentry/core';
 import { shouldPropagateTraceForUrl } from '@sentry/opentelemetry';
 
 interface NodeFetchOptions {
   /**
+   * @deprecated Use `fetchBreadcrumbs` init option instead.
+   * ```js
+   * Sentry.init({
+   *   dsn: '__DSN__',
+   *   fetchBreadcrumbs: false,
+   * })
+   * ```
+   *
    * Whether breadcrumbs should be recorded for requests.
-   * Defaults to true
+   *
+   * Defaults to `true`
    */
   breadcrumbs?: boolean;
 
@@ -31,7 +35,6 @@ interface NodeFetchOptions {
 }
 
 const _nativeNodeFetchIntegration = ((options: NodeFetchOptions = {}) => {
-  const _breadcrumbs = typeof options.breadcrumbs === 'undefined' ? true : options.breadcrumbs;
   const _ignoreOutgoingRequests = options.ignoreOutgoingRequests;
 
   return {
@@ -77,66 +80,16 @@ const _nativeNodeFetchIntegration = ((options: NodeFetchOptions = {}) => {
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.otel.node_fetch',
           };
         },
-        responseHook: (_, { request, response }) => {
-          if (_breadcrumbs) {
-            addRequestBreadcrumb(request, response);
-          }
-        },
       });
 
       registerInstrumentations({ instrumentations: [instrumentation] });
     },
+    // eslint-disable-next-line deprecation/deprecation
+    breadcrumbsDisabled: options.breadcrumbs === false,
   };
 }) satisfies IntegrationFn;
 
 export const nativeNodeFetchIntegration = defineIntegration(_nativeNodeFetchIntegration);
-
-/** Add a breadcrumb for outgoing requests. */
-function addRequestBreadcrumb(request: UndiciRequest, response: UndiciResponse): void {
-  const data = getBreadcrumbData(request);
-  const statusCode = response.statusCode;
-  const level = getBreadcrumbLogLevelFromHttpStatusCode(statusCode);
-
-  addBreadcrumb(
-    {
-      category: 'http',
-      data: {
-        status_code: statusCode,
-        ...data,
-      },
-      type: 'http',
-      level,
-    },
-    {
-      event: 'response',
-      request,
-      response,
-    },
-  );
-}
-
-function getBreadcrumbData(request: UndiciRequest): Partial<SanitizedRequestData> {
-  try {
-    const url = new URL(request.path, request.origin);
-    const parsedUrl = parseUrl(url.toString());
-
-    const data: Partial<SanitizedRequestData> = {
-      url: getSanitizedUrlString(parsedUrl),
-      'http.method': request.method || 'GET',
-    };
-
-    if (parsedUrl.search) {
-      data['http.query'] = parsedUrl.search;
-    }
-    if (parsedUrl.hash) {
-      data['http.fragment'] = parsedUrl.hash;
-    }
-
-    return data;
-  } catch {
-    return {};
-  }
-}
 
 // Matching the behavior of the base instrumentation
 function getAbsoluteUrl(origin: string, path: string = '/'): string {
