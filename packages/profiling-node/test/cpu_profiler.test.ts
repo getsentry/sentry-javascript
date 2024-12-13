@@ -69,28 +69,28 @@ const assertValidMeasurements = (measurement: RawThreadCpuProfile['measurements'
 
 describe('Private bindings', () => {
   it('does not crash if collect resources is false', async () => {
-    PrivateCpuProfilerBindings.startProfiling('profiled-program');
+    PrivateCpuProfilerBindings.startProfiling!('profiled-program');
     await wait(100);
     expect(() => {
-      const profile = PrivateCpuProfilerBindings.stopProfiling('profiled-program', 0, 0, false);
+      const profile = PrivateCpuProfilerBindings.stopProfiling!('profiled-program', 0, 0, false);
       if (!profile) throw new Error('No profile');
     }).not.toThrow();
   });
 
   it('throws if invalid format is supplied', async () => {
-    PrivateCpuProfilerBindings.startProfiling('profiled-program');
+    PrivateCpuProfilerBindings.startProfiling!('profiled-program');
     await wait(100);
     expect(() => {
-      const profile = PrivateCpuProfilerBindings.stopProfiling('profiled-program', Number.MAX_SAFE_INTEGER, 0, false);
+      const profile = PrivateCpuProfilerBindings.stopProfiling!('profiled-program', Number.MAX_SAFE_INTEGER, 0, false);
       if (!profile) throw new Error('No profile');
     }).toThrow('StopProfiling expects a valid format type as second argument.');
   });
 
   it('collects resources', async () => {
-    PrivateCpuProfilerBindings.startProfiling('profiled-program');
+    PrivateCpuProfilerBindings.startProfiling!('profiled-program');
     await wait(100);
 
-    const profile = PrivateCpuProfilerBindings.stopProfiling('profiled-program', 0, 0, true);
+    const profile = PrivateCpuProfilerBindings.stopProfiling!('profiled-program', 0, 0, true);
     if (!profile) throw new Error('No profile');
 
     expect(profile.resources.length).toBeGreaterThan(0);
@@ -104,10 +104,10 @@ describe('Private bindings', () => {
   });
 
   it('does not collect resources', async () => {
-    PrivateCpuProfilerBindings.startProfiling('profiled-program');
+    PrivateCpuProfilerBindings.startProfiling!('profiled-program');
     await wait(100);
 
-    const profile = PrivateCpuProfilerBindings.stopProfiling('profiled-program', 0, 0, false);
+    const profile = PrivateCpuProfilerBindings.stopProfiling!('profiled-program', 0, 0, false);
     if (!profile) throw new Error('No profile');
 
     expect(profile.resources.length).toBe(0);
@@ -336,5 +336,28 @@ describe('Profiler bindings', () => {
     // @ts-expect-error deopt reasons are disabled for now as we need to figure out the backend support
     const hasDeoptimizedFrame = profile.frames.some(f => f.deopt_reasons && f.deopt_reasons.length > 0);
     expect(hasDeoptimizedFrame).toBe(true);
+  });
+
+  it('does not crash if the native startProfiling function is not available', async () => {
+    const original = PrivateCpuProfilerBindings.startProfiling;
+    PrivateCpuProfilerBindings.startProfiling = undefined;
+
+    expect(() => {
+      CpuProfilerBindings.startProfiling('profiled-program');
+    }).not.toThrow();
+
+    PrivateCpuProfilerBindings.startProfiling = original;
+  });
+
+  it('does not crash if the native stopProfiling function is not available', async () => {
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    const original = PrivateCpuProfilerBindings.stopProfiling;
+    PrivateCpuProfilerBindings.stopProfiling = undefined;
+
+    expect(() => {
+      CpuProfilerBindings.stopProfiling('profiled-program', 0);
+    }).not.toThrow();
+
+    PrivateCpuProfilerBindings.stopProfiling = original;
   });
 });

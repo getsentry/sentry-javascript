@@ -10,6 +10,43 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 8.45.0
+
+- feat(core): Add `handled` option to `captureConsoleIntegration` ([#14664](https://github.com/getsentry/sentry-javascript/pull/14664))
+- feat(browser): Attach virtual stack traces to `HttpClient` events ([#14515](https://github.com/getsentry/sentry-javascript/pull/14515))
+- feat(replay): Upgrade rrweb packages to 2.31.0 ([#14689](https://github.com/getsentry/sentry-javascript/pull/14689))
+- fix(aws-serverless): Remove v8 layer as it overwrites the current layer for docs ([#14679](https://github.com/getsentry/sentry-javascript/pull/14679))
+- fix(browser): Mark stack trace from `captureMessage` with `attachStacktrace: true` as synthetic ([#14668](https://github.com/getsentry/sentry-javascript/pull/14668))
+- fix(core): Mark stack trace from `captureMessage` with `attatchStackTrace: true` as synthetic ([#14670](https://github.com/getsentry/sentry-javascript/pull/14670))
+- fix(core): Set `level` in server runtime `captureException` ([#10587](https://github.com/getsentry/sentry-javascript/pull/10587))
+- fix(profiling-node): Guard invocation of native profiling methods ([#14676](https://github.com/getsentry/sentry-javascript/pull/14676))
+- fix(nuxt): Inline nitro-utils function ([#14680](https://github.com/getsentry/sentry-javascript/pull/14680))
+- fix(profiling-node): Ensure profileId is added to transaction event ([#14681](https://github.com/getsentry/sentry-javascript/pull/14681))
+- fix(react): Add React Router Descendant Routes support ([#14304](https://github.com/getsentry/sentry-javascript/pull/14304))
+- fix: Disable ANR and Local Variables if debugger is enabled via CLI args ([#14643](https://github.com/getsentry/sentry-javascript/pull/14643))
+
+Work in this release was contributed by @anonrig and @Zih0. Thank you for your contributions!
+
+## 8.44.0
+
+### Deprecations
+
+- **feat: Deprecate `autoSessionTracking` ([#14640](https://github.com/getsentry/sentry-javascript/pull/14640))**
+
+  Deprecates `autoSessionTracking`.
+  To enable session tracking, it is recommended to unset `autoSessionTracking` and ensure that either, in browser environments
+  the `browserSessionIntegration` is added, or in server environments the `httpIntegration` is added.
+
+  To disable session tracking, it is recommended to unset `autoSessionTracking` and to remove the `browserSessionIntegration` in
+  browser environments, or in server environments configure the `httpIntegration` with the `trackIncomingRequestsAsSessions` option set to `false`.
+
+### Other Changes
+
+- feat: Reword log message around unsent spans ([#14641](https://github.com/getsentry/sentry-javascript/pull/14641))
+- feat(opentelemetry): Set `response` context for http.server spans ([#14634](https://github.com/getsentry/sentry-javascript/pull/14634))
+- fix(google-cloud-serverless): Update homepage link in package.json ([#14411](https://github.com/getsentry/sentry-javascript/pull/14411))
+- fix(nuxt): Add unbuild config to not fail on warn ([#14662](https://github.com/getsentry/sentry-javascript/pull/14662))
+
 Work in this release was contributed by @robinvw1. Thank you for your contribution!
 
 ## 8.43.0
