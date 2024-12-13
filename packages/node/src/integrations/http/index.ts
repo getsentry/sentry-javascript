@@ -38,8 +38,14 @@ interface HttpOptions {
    *
    * Defaults to `true`.
    */
-  // TODO(v9): Remove the note above.
   trackIncomingRequestsAsSessions?: boolean;
+
+  /**
+   * Number of milliseconds until sessions tracked with `trackIncomingRequestsAsSessions` will be flushed as a session aggregate.
+   *
+   * Defaults to `60000` (60s).
+   */
+  sessionFlushingDelayMS?: number;
 
   /**
    * Do not capture spans or breadcrumbs for outgoing HTTP requests to URLs where the given callback returns `true`.
@@ -95,11 +101,13 @@ const instrumentSentryHttp = generateInstrumentOnce<{
   breadcrumbs?: HttpOptions['breadcrumbs'];
   ignoreOutgoingRequests?: HttpOptions['ignoreOutgoingRequests'];
   trackIncomingRequestsAsSessions?: HttpOptions['trackIncomingRequestsAsSessions'];
+  sessionFlushingDelayMS?: HttpOptions['sessionFlushingDelayMS'];
 }>(`${INTEGRATION_NAME}.sentry`, options => {
   return new SentryHttpInstrumentation({
     breadcrumbs: options?.breadcrumbs,
     ignoreOutgoingRequests: options?.ignoreOutgoingRequests,
     trackIncomingRequestsAsSessions: options?.trackIncomingRequestsAsSessions,
+    sessionFlushingDelayMS: options?.sessionFlushingDelayMS,
   });
 });
 

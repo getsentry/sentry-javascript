@@ -59,6 +59,13 @@ type SentryHttpInstrumentationOptions = InstrumentationConfig & {
    * Defaults to `true`.
    */
   trackIncomingRequestsAsSessions?: boolean;
+
+  /**
+   * Number of milliseconds until sessions tracked with `trackIncomingRequestsAsSessions` will be flushed as a session aggregate.
+   *
+   * Defaults to `60000` (60s).
+   */
+  sessionFlushingDelayMS?: number;
 };
 
 // We only want to capture request bodies up to 1mb.
@@ -212,6 +219,7 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
                     ([timestamp, value]) => ({
                       started: timestamp,
                       exited: value.exited,
+                      errored: value.errored,
                       crashed: value.crashed,
                     }),
                   );
@@ -222,10 +230,13 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
                   DEBUG_BUILD && logger.debug('Sending request session aggregate due to client flush');
                   flushPendingClientAggregates();
                 });
-                const timeout = setTimeout(() => {
-                  DEBUG_BUILD && logger.debug('Sending request session aggregate due to flushing schedule');
-                  flushPendingClientAggregates();
-                }, 60_000).unref();
+                const timeout = setTimeout(
+                  () => {
+                    DEBUG_BUILD && logger.debug('Sending request session aggregate due to flushing schedule');
+                    flushPendingClientAggregates();
+                  },
+                  instrumentation.getConfig().sessionFlushingDelayMS ?? 60_000,
+                ).unref();
               }
             }
           });
