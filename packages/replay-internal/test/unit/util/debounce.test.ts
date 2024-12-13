@@ -1,8 +1,8 @@
+import { describe, expect, it, vi } from 'vitest';
+
 import { useFakeTimers } from '../../utils/use-fake-timers';
 
 useFakeTimers();
-
-import { vi } from 'vitest';
 
 import { debounce } from '../../../src/util/debounce';
 
@@ -35,7 +35,7 @@ describe('Unit | util | debounce', () => {
     expect(callback).not.toHaveBeenCalled();
 
     vi.advanceTimersByTime(49);
-    // at this time, the callback shouldn't be invoked and with a new call, it should be devounced further.
+    // at this time, the callback shouldn't be invoked and with a new call, it should be debounced further.
     debouncedCallback();
     expect(callback).not.toHaveBeenCalled();
 

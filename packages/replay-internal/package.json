@@ -1,6 +1,6 @@
 {
   "name": "@sentry-internal/replay",
-  "version": "8.7.0",
+  "version": "8.44.0",
   "description": "User replays for Sentry",
   "main": "build/npm/cjs/index.js",
   "module": "build/npm/esm/index.js",
@@ -23,7 +23,7 @@
       "build/npm/types/index.d.ts": ["build/npm/types-ts3.8/index.d.ts"]
     }
   },
-  "files": ["cjs", "esm", "types", "types-ts3.8"],
+  "files": ["/build/npm"],
   "sideEffects": false,
   "publishConfig": {
     "access": "public"
@@ -41,16 +41,16 @@
     "build:transpile:watch": "yarn build:transpile --watch",
     "build:bundle:watch": "yarn build:bundle --watch",
     "build:types:watch": "tsc -p tsconfig.types.json --watch",
-    "build:tarball": "ts-node ../../scripts/prepack.ts --bundles && npm pack ./build/npm",
+    "build:tarball": "npm pack",
     "circularDepCheck": "madge --circular src/index.ts",
     "clean": "rimraf build sentry-replay-*.tgz",
     "fix": "run-s fix:biome fix:eslint",
     "fix:eslint": "eslint . --format stylish --fix",
     "fix:biome": "biome check --apply .",
     "lint": "eslint . --format stylish",
-    "test": "vitest",
+    "test": "vitest run",
     "test:watch": "vitest --watch",
-    "yalc:publish": "ts-node ../../scripts/prepack.ts --bundles && yalc publish ./build/npm --push --sig"
+    "yalc:publish": "yalc publish --push --sig"
   },
   "repository": {
     "type": "git",
@@ -64,18 +64,16 @@
   "homepage": "https://docs.sentry.io/platforms/javascript/session-replay/",
   "devDependencies": {
     "@babel/core": "^7.17.5",
-    "@sentry-internal/replay-worker": "8.7.0",
-    "@sentry-internal/rrweb": "2.15.0",
-    "@sentry-internal/rrweb-snapshot": "2.15.0",
+    "@sentry-internal/replay-worker": "8.44.0",
+    "@sentry-internal/rrweb": "2.31.0",
+    "@sentry-internal/rrweb-snapshot": "2.31.0",
     "fflate": "^0.8.1",
     "jest-matcher-utils": "^29.0.0",
     "jsdom-worker": "^0.2.1"
   },
   "dependencies": {
-    "@sentry-internal/browser-utils": "8.7.0",
-    "@sentry/core": "8.7.0",
-    "@sentry/types": "8.7.0",
-    "@sentry/utils": "8.7.0"
+    "@sentry-internal/browser-utils": "8.44.0",
+    "@sentry/core": "8.44.0"
   },
   "engines": {
     "node": ">=14.18"

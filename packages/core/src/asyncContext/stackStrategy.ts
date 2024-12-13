@@ -1,8 +1,7 @@
-import type { Client, Scope as ScopeInterface } from '@sentry/types';
-import { isThenable } from '@sentry/utils';
 import { getDefaultCurrentScope, getDefaultIsolationScope } from '../defaultScopes';
 import { Scope } from '../scope';
-
+import type { Client, Scope as ScopeInterface } from '../types-hoist';
+import { isThenable } from '../utils-hoist/is';
 import { getMainCarrier, getSentryCarrier } from './../carrier';
 import type { AsyncContextStrategy } from './types';
 
@@ -15,7 +14,7 @@ interface Layer {
  * This is an object that holds a stack of scopes.
  */
 export class AsyncContextStack {
-  private readonly _stack: Layer[];
+  private readonly _stack: [Layer, ...Layer[]];
   private _isolationScope: ScopeInterface;
 
   public constructor(scope?: ScopeInterface, isolationScope?: ScopeInterface) {
@@ -33,6 +32,7 @@ export class AsyncContextStack {
       assignedIsolationScope = isolationScope;
     }
 
+    // scope stack for domains or the process
     this._stack = [{ scope: assignedScope }];
     this._isolationScope = assignedIsolationScope;
   }
@@ -91,17 +91,10 @@ export class AsyncContextStack {
   }
 
   /**
-   * Returns the scope stack for domains or the process.
-   */
-  public getStack(): Layer[] {
-    return this._stack;
-  }
-
-  /**
    * Returns the topmost scope layer in the order domain > local > process.
    */
   public getStackTop(): Layer {
-    return this._stack[this._stack.length - 1];
+    return this._stack[this._stack.length - 1] as Layer;
   }
 
   /**
@@ -110,7 +103,7 @@ export class AsyncContextStack {
   private _pushScope(): ScopeInterface {
     // We want to clone the content of prev scope
     const scope = this.getScope().clone();
-    this.getStack().push({
+    this._stack.push({
       client: this.getClient(),
       scope,
     });
@@ -121,8 +114,8 @@ export class AsyncContextStack {
    * Pop a scope from the stack.
    */
   private _popScope(): boolean {
-    if (this.getStack().length <= 1) return false;
-    return !!this.getStack().pop();
+    if (this._stack.length <= 1) return false;
+    return !!this._stack.pop();
   }
 }
 

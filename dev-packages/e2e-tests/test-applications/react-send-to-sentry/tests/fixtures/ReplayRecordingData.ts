@@ -175,6 +175,7 @@ export const ReplayRecordingData = [
           decodedBodySize: expect.any(Number),
           encodedBodySize: expect.any(Number),
           size: expect.any(Number),
+          statusCode: 200,
         },
       },
     },
@@ -211,14 +212,54 @@ export const ReplayRecordingData = [
     data: {
       tag: 'performanceSpan',
       payload: {
-        op: 'largest-contentful-paint',
+        op: 'web-vital',
         description: 'largest-contentful-paint',
         startTimestamp: expect.any(Number),
         endTimestamp: expect.any(Number),
         data: {
           value: expect.any(Number),
           size: expect.any(Number),
-          nodeId: 16,
+          rating: expect.any(String),
+          nodeIds: [16],
+        },
+      },
+    },
+  },
+  {
+    type: 5,
+    timestamp: expect.any(Number),
+    data: {
+      tag: 'performanceSpan',
+      payload: {
+        op: 'web-vital',
+        description: 'cumulative-layout-shift',
+        startTimestamp: expect.any(Number),
+        endTimestamp: expect.any(Number),
+        data: {
+          value: expect.any(Number),
+          size: expect.any(Number),
+          rating: expect.any(String),
+          nodeIds: expect.any(Array),
+          attributions: expect.any(Array),
+        },
+      },
+    },
+  },
+  {
+    type: 5,
+    timestamp: expect.any(Number),
+    data: {
+      tag: 'performanceSpan',
+      payload: {
+        op: 'web-vital',
+        description: 'first-input-delay',
+        startTimestamp: expect.any(Number),
+        endTimestamp: expect.any(Number),
+        data: {
+          value: expect.any(Number),
+          size: expect.any(Number),
+          rating: expect.any(String),
+          nodeIds: [10],
         },
       },
     },

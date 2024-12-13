@@ -1,6 +1,5 @@
-import type { SentrySpan } from '@sentry/core';
-import { spanToJSON, startInactiveSpan, withActiveSpan } from '@sentry/core';
-import type { Span, SpanTimeInput, StartSpanOptions } from '@sentry/types';
+import type { Integration, SentrySpan, Span, SpanAttributes, SpanTimeInput, StartSpanOptions } from '@sentry/core';
+import { getClient, getCurrentScope, spanToJSON, startInactiveSpan, withActiveSpan } from '@sentry/core';
 import { WINDOW } from '../types';
 
 /**
@@ -41,6 +40,84 @@ export function startAndEndSpan(
     }
 
     return span;
+  });
+}
+
+interface StandaloneWebVitalSpanOptions {
+  name: string;
+  transaction?: string;
+  attributes: SpanAttributes;
+  startTime: number;
+}
+
+/**
+ * Starts an inactive, standalone span used to send web vital values to Sentry.
+ * DO NOT use this for arbitrary spans, as these spans require special handling
+ * during ingestion to extract metrics.
+ *
+ * This function adds a bunch of attributes and data to the span that's shared
+ * by all web vital standalone spans. However, you need to take care of adding
+ * the actual web vital value as an event to the span. Also, you need to assign
+ * a transaction name and some other values that are specific to the web vital.
+ *
+ * Ultimately, you also need to take care of ending the span to send it off.
+ *
+ * @param options
+ *
+ * @returns an inactive, standalone and NOT YET ended span
+ */
+export function startStandaloneWebVitalSpan(options: StandaloneWebVitalSpanOptions): Span | undefined {
+  const client = getClient();
+  if (!client) {
+    return;
+  }
+
+  const { name, transaction, attributes: passedAttributes, startTime } = options;
+
+  const { release, environment } = client.getOptions();
+  // We need to get the replay, user, and activeTransaction from the current scope
+  // so that we can associate replay id, profile id, and a user display to the span
+  const replay = client.getIntegrationByName<Integration & { getReplayId: () => string }>('Replay');
+  const replayId = replay && replay.getReplayId();
+
+  const scope = getCurrentScope();
+
+  const user = scope.getUser();
+  const userDisplay = user !== undefined ? user.email || user.id || user.ip_address : undefined;
+
+  let profileId: string | undefined;
+  try {
+    // @ts-expect-error skip optional chaining to save bundle size with try catch
+    profileId = scope.getScopeData().contexts.profile.profile_id;
+  } catch {
+    // do nothing
+  }
+
+  const attributes: SpanAttributes = {
+    release,
+    environment,
+
+    user: userDisplay || undefined,
+    profile_id: profileId || undefined,
+    replay_id: replayId || undefined,
+
+    transaction,
+
+    // Web vital score calculation relies on the user agent to account for different
+    // browsers setting different thresholds for what is considered a good/meh/bad value.
+    // For example: Chrome vs. Chrome Mobile
+    'user_agent.original': WINDOW.navigator && WINDOW.navigator.userAgent,
+
+    ...passedAttributes,
+  };
+
+  return startInactiveSpan({
+    name,
+    attributes,
+    startTime,
+    experimental: {
+      standalone: true,
+    },
   });
 }
 

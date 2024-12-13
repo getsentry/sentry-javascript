@@ -2,7 +2,9 @@ import { existsSync } from 'fs';
 import { hostname } from 'os';
 import { basename, resolve } from 'path';
 import { types } from 'util';
-import type { NodeOptions } from '@sentry/node';
+import type { Integration, Options, Scope, SdkMetadata, Span } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, logger } from '@sentry/core';
+import type { NodeClient, NodeOptions } from '@sentry/node';
 import {
   SDK_VERSION,
   captureException,
@@ -15,17 +17,12 @@ import {
   startSpanManual,
   withScope,
 } from '@sentry/node';
-import type { Integration, Options, Scope, SdkMetadata, Span } from '@sentry/types';
-import { isString, logger } from '@sentry/utils';
 import type { Context, Handler } from 'aws-lambda';
 import { performance } from 'perf_hooks';
-
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
-
 import { DEBUG_BUILD } from './debug-build';
 import { awsIntegration } from './integration/aws';
 import { awsLambdaIntegration } from './integration/awslambda';
-import { markEventUnhandled } from './utils';
+import { getAwsTraceData, markEventUnhandled } from './utils';
 
 const { isPromise } = types;
 
@@ -74,7 +71,7 @@ export function getDefaultIntegrations(_options: Options): Integration[] {
  *
  * @param options Configuration options for the SDK, @see {@link AWSLambdaOptions}.
  */
-export function init(options: NodeOptions = {}): void {
+export function init(options: NodeOptions = {}): NodeClient | undefined {
   const opts = {
     _metadata: {} as SdkMetadata,
     defaultIntegrations: getDefaultIntegrations(options),
@@ -93,7 +90,7 @@ export function init(options: NodeOptions = {}): void {
     version: SDK_VERSION,
   };
 
-  initWithoutDefaultIntegrations(opts);
+  return initWithoutDefaultIntegrations(opts);
 }
 
 /** */
@@ -141,7 +138,7 @@ export function tryPatchHandler(taskRoot: string, handlerPath: string): void {
     return;
   }
 
-  const [, handlerMod, handlerName] = match;
+  const [, handlerMod = '', handlerName = ''] = match;
 
   let obj: HandlerBag;
   try {
@@ -165,6 +162,12 @@ export function tryPatchHandler(taskRoot: string, handlerPath: string): void {
   }
   if (typeof obj !== 'function') {
     DEBUG_BUILD && logger.error(`${handlerPath} is not a function`);
+    return;
+  }
+
+  // Check for prototype pollution
+  if (functionName === '__proto__' || functionName === 'constructor' || functionName === 'prototype') {
+    DEBUG_BUILD && logger.error(`Invalid handler name: ${functionName}`);
     return;
   }
 
@@ -320,7 +323,9 @@ export function wrapHandler<TEvent, TResult>(
         throw e;
       } finally {
         clearTimeout(timeoutWarningTimer);
-        span?.end();
+        if (span && span.isRecording()) {
+          span.end();
+        }
         await flush(options.flushTimeout).catch(e => {
           DEBUG_BUILD && logger.error(e);
         });
@@ -328,16 +333,14 @@ export function wrapHandler<TEvent, TResult>(
       return rv;
     }
 
-    if (options.startTrace) {
-      const eventWithHeaders = event as { headers?: { [key: string]: string } };
+    // Only start a trace and root span if the handler is not already wrapped by Otel instrumentation
+    // Otherwise, we create two root spans (one from otel, one from our wrapper).
+    // If Otel instrumentation didn't work or was filtered by users, we still want to trace the handler.
+    // TODO(v9): Since bumping the OTEL Instrumentation, this is likely not needed anymore, we can possibly remove this
+    if (options.startTrace && !isWrappedByOtel(handler)) {
+      const traceData = getAwsTraceData(event as { headers?: Record<string, string> }, context);
 
-      const sentryTrace =
-        eventWithHeaders.headers && isString(eventWithHeaders.headers['sentry-trace'])
-          ? eventWithHeaders.headers['sentry-trace']
-          : undefined;
-      const baggage = eventWithHeaders.headers?.baggage;
-
-      return continueTrace({ sentryTrace, baggage }, () => {
+      return continueTrace({ sentryTrace: traceData['sentry-trace'], baggage: traceData.baggage }, () => {
         return startSpanManual(
           {
             name: context.functionName,
@@ -360,4 +363,20 @@ export function wrapHandler<TEvent, TResult>(
       return processResult(undefined);
     });
   };
+}
+
+/**
+ * Checks if Otel's AWSLambda instrumentation successfully wrapped the handler.
+ * Check taken from @opentelemetry/core
+ */
+function isWrappedByOtel(
+  // eslint-disable-next-line @typescript-eslint/ban-types
+  handler: Function & { __original?: unknown; __unwrap?: unknown; __wrapped?: boolean },
+): boolean {
+  return (
+    typeof handler === 'function' &&
+    typeof handler.__original === 'function' &&
+    typeof handler.__unwrap === 'function' &&
+    handler.__wrapped === true
+  );
 }

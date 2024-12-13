@@ -1,0 +1,31 @@
+{
+  "name": "solid",
+  "version": "0.0.0",
+  "description": "",
+  "scripts": {
+    "build": "vite build",
+    "clean": "npx rimraf node_modules pnpm-lock.yaml dist",
+    "dev": "vite",
+    "preview": "vite preview",
+    "start": "vite",
+    "test:prod": "TEST_ENV=production playwright test",
+    "test:build": "pnpm install && pnpm build",
+    "test:assert": "pnpm test:prod"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "@playwright/test": "^1.44.1",
+    "@sentry-internal/test-utils": "link:../../../test-utils",
+    "@sentry/core": "latest || *",
+    "autoprefixer": "^10.4.17",
+    "postcss": "^8.4.33",
+    "solid-devtools": "^0.29.2",
+    "tailwindcss": "^3.4.1",
+    "vite": "^5.4.10",
+    "vite-plugin-solid": "^2.8.2"
+  },
+  "dependencies": {
+    "solid-js": "^1.8.18",
+    "@sentry/solid": "latest || *"
+  }
+}

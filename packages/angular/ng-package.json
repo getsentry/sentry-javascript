@@ -5,5 +5,5 @@
     "entryFile": "src/index.ts"
   },
   "allowedNonPeerDependencies": ["@sentry/browser", "@sentry/core", "@sentry/utils", "@sentry/types", "tslib"],
-  "assets": ["README.md", "LICENSE"]
+  "assets": []
 }

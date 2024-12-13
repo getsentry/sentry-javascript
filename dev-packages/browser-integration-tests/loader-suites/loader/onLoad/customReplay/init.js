@@ -6,5 +6,7 @@ Sentry.onLoad(function () {
         useCompression: false,
       }),
     ],
+
+    replaysSessionSampleRate: 1,
   });
 });

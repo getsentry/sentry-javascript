@@ -1,25 +1,26 @@
-import { getCurrentScope } from '@sentry/core';
-import { functionToStringIntegration, inboundFiltersIntegration } from '@sentry/core';
 import {
-  captureSession,
+  consoleSandbox,
+  dedupeIntegration,
+  functionToStringIntegration,
   getClient,
+  getCurrentScope,
   getIntegrationsToSetup,
   getReportDialogEndpoint,
+  inboundFiltersIntegration,
   initAndBind,
   lastEventId,
-  startSession,
+  logger,
+  stackParserFromStackParserOptions,
+  supportsFetch,
 } from '@sentry/core';
-import type { DsnLike, Integration, Options, UserFeedback } from '@sentry/types';
-import { consoleSandbox, logger, stackParserFromStackParserOptions, supportsFetch } from '@sentry/utils';
-
-import { addHistoryInstrumentationHandler } from '@sentry-internal/browser-utils';
-import { dedupeIntegration } from '@sentry/core';
+import type { Client, DsnLike, Integration, Options, UserFeedback } from '@sentry/core';
 import type { BrowserClientOptions, BrowserOptions } from './client';
 import { BrowserClient } from './client';
 import { DEBUG_BUILD } from './debug-build';
 import { WINDOW } from './helpers';
 import { breadcrumbsIntegration } from './integrations/breadcrumbs';
 import { browserApiErrorsIntegration } from './integrations/browserapierrors';
+import { browserSessionIntegration } from './integrations/browsersession';
 import { globalHandlersIntegration } from './integrations/globalhandlers';
 import { httpContextIntegration } from './integrations/httpcontext';
 import { linkedErrorsIntegration } from './integrations/linkederrors';
@@ -27,12 +28,12 @@ import { defaultStackParser } from './stack-parsers';
 import { makeFetchTransport } from './transports/fetch';
 
 /** Get the default integrations for the browser SDK. */
-export function getDefaultIntegrations(_options: Options): Integration[] {
+export function getDefaultIntegrations(options: Options): Integration[] {
   /**
    * Note: Please make sure this stays in sync with Angular SDK, which re-exports
    * `getDefaultIntegrations` but with an adjusted set of integrations.
    */
-  return [
+  const integrations = [
     inboundFiltersIntegration(),
     functionToStringIntegration(),
     browserApiErrorsIntegration(),
@@ -42,6 +43,13 @@ export function getDefaultIntegrations(_options: Options): Integration[] {
     dedupeIntegration(),
     httpContextIntegration(),
   ];
+
+  // eslint-disable-next-line deprecation/deprecation
+  if (options.autoSessionTracking !== false) {
+    integrations.push(browserSessionIntegration());
+  }
+
+  return integrations;
 }
 
 function applyDefaultOptions(optionsArg: BrowserOptions = {}): BrowserOptions {
@@ -57,12 +65,21 @@ function applyDefaultOptions(optionsArg: BrowserOptions = {}): BrowserOptions {
     sendClientReports: true,
   };
 
+  // TODO: Instead of dropping just `defaultIntegrations`, we should simply
+  // call `dropUndefinedKeys` on the entire `optionsArg`.
+  // However, for this to work we need to adjust the `hasTracingEnabled()` logic
+  // first as it differentiates between `undefined` and the key not being in the object.
+  if (optionsArg.defaultIntegrations == null) {
+    delete optionsArg.defaultIntegrations;
+  }
+
   return { ...defaultOptions, ...optionsArg };
 }
 
 type ExtensionProperties = {
   chrome?: Runtime;
   browser?: Runtime;
+  nw?: unknown;
 };
 type Runtime = {
   runtime?: {
@@ -71,7 +88,12 @@ type Runtime = {
 };
 
 function shouldShowBrowserExtensionError(): boolean {
-  const windowWithMaybeExtension = WINDOW as typeof WINDOW & ExtensionProperties;
+  const windowWithMaybeExtension =
+    typeof WINDOW.window !== 'undefined' && (WINDOW as typeof WINDOW & ExtensionProperties);
+  if (!windowWithMaybeExtension) {
+    // No need to show the error if we're not in a browser window environment (e.g. service workers)
+    return false;
+  }
 
   const extensionKey = windowWithMaybeExtension.chrome ? 'chrome' : 'browser';
   const extensionObject = windowWithMaybeExtension[extensionKey];
@@ -79,13 +101,17 @@ function shouldShowBrowserExtensionError(): boolean {
   const runtimeId = extensionObject && extensionObject.runtime && extensionObject.runtime.id;
   const href = (WINDOW.location && WINDOW.location.href) || '';
 
-  const extensionProtocols = ['chrome-extension:', 'moz-extension:', 'ms-browser-extension:'];
+  const extensionProtocols = ['chrome-extension:', 'moz-extension:', 'ms-browser-extension:', 'safari-web-extension:'];
 
   // Running the SDK in a dedicated extension page and calling Sentry.init is fine; no risk of data leakage
   const isDedicatedExtensionPage =
     !!runtimeId && WINDOW === WINDOW.top && extensionProtocols.some(protocol => href.startsWith(`${protocol}//`));
 
-  return !!runtimeId && !isDedicatedExtensionPage;
+  // Running the SDK in NW.js, which appears like a browser extension but isn't, is also fine
+  // see: https://github.com/getsentry/sentry-javascript/issues/12668
+  const isNWjs = typeof windowWithMaybeExtension.nw !== 'undefined';
+
+  return !!runtimeId && !isDedicatedExtensionPage && !isNWjs;
 }
 
 /**
@@ -139,10 +165,10 @@ declare const __SENTRY_RELEASE__: string | undefined;
  *
  * @see {@link BrowserOptions} for documentation on configuration options.
  */
-export function init(browserOptions: BrowserOptions = {}): void {
+export function init(browserOptions: BrowserOptions = {}): Client | undefined {
   const options = applyDefaultOptions(browserOptions);
 
-  if (shouldShowBrowserExtensionError()) {
+  if (!options.skipBrowserExtensionCheck && shouldShowBrowserExtensionError()) {
     consoleSandbox(() => {
       // eslint-disable-next-line no-console
       console.error(
@@ -166,17 +192,14 @@ export function init(browserOptions: BrowserOptions = {}): void {
     transport: options.transport || makeFetchTransport,
   };
 
-  initAndBind(BrowserClient, clientOptions);
-
-  if (options.autoSessionTracking) {
-    startSessionTracking();
-  }
+  return initAndBind(BrowserClient, clientOptions);
 }
 
 /**
  * All properties the report dialog supports
  */
 export interface ReportDialogOptions {
+  // TODO(v9): Change this to  [key: string]: unknkown;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [key: string]: any;
   eventId?: string;
@@ -283,32 +306,6 @@ export function forceLoad(): void {
  */
 export function onLoad(callback: () => void): void {
   callback();
-}
-
-/**
- * Enable automatic Session Tracking for the initial page load.
- */
-function startSessionTracking(): void {
-  if (typeof WINDOW.document === 'undefined') {
-    DEBUG_BUILD && logger.warn('Session tracking in non-browser environment with @sentry/browser is not supported.');
-    return;
-  }
-
-  // The session duration for browser sessions does not track a meaningful
-  // concept that can be used as a metric.
-  // Automatically captured sessions are akin to page views, and thus we
-  // discard their duration.
-  startSession({ ignoreDuration: true });
-  captureSession();
-
-  // We want to create a session for every navigation as well
-  addHistoryInstrumentationHandler(({ from, to }) => {
-    // Don't create an additional session for the initial route or if the location did not change
-    if (from !== undefined && from !== to) {
-      startSession({ ignoreDuration: true });
-      captureSession();
-    }
-  });
 }
 
 /**

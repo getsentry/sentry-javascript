@@ -1,8 +1,8 @@
-import type { Client, ClientOptions } from '@sentry/types';
-import { consoleSandbox, logger } from '@sentry/utils';
 import { getCurrentScope } from './currentScopes';
+import type { Client, ClientOptions } from './types-hoist';
 
 import { DEBUG_BUILD } from './debug-build';
+import { consoleSandbox, logger } from './utils-hoist/logger';
 
 /** A class object that can instantiate Client objects. */
 export type ClientClass<F extends Client, O extends ClientOptions> = new (options: O) => F;
@@ -17,7 +17,7 @@ export type ClientClass<F extends Client, O extends ClientOptions> = new (option
 export function initAndBind<F extends Client, O extends ClientOptions>(
   clientClass: ClientClass<F, O>,
   options: O,
-): void {
+): Client {
   if (options.debug === true) {
     if (DEBUG_BUILD) {
       logger.enable();
@@ -35,6 +35,7 @@ export function initAndBind<F extends Client, O extends ClientOptions>(
   const client = new clientClass(options);
   setCurrentClient(client);
   client.init();
+  return client;
 }
 
 /**

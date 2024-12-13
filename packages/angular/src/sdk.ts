@@ -2,26 +2,28 @@ import { VERSION } from '@angular/core';
 import type { BrowserOptions } from '@sentry/browser';
 import {
   breadcrumbsIntegration,
+  init as browserInit,
+  browserSessionIntegration,
   globalHandlersIntegration,
   httpContextIntegration,
   linkedErrorsIntegration,
+  setContext,
 } from '@sentry/browser';
-import { init as browserInit, setContext } from '@sentry/browser';
+import type { Client, Integration } from '@sentry/core';
 import {
   applySdkMetadata,
   dedupeIntegration,
   functionToStringIntegration,
   inboundFiltersIntegration,
+  logger,
 } from '@sentry/core';
-import type { Integration } from '@sentry/types';
-import { logger } from '@sentry/utils';
 
 import { IS_DEBUG_BUILD } from './flags';
 
 /**
  * Get the default integrations for the Angular SDK.
  */
-export function getDefaultIntegrations(): Integration[] {
+export function getDefaultIntegrations(options: BrowserOptions = {}): Integration[] {
   // Don't include the BrowserApiErrors integration as it interferes with the Angular SDK's `ErrorHandler`:
   // BrowserApiErrors would catch certain errors before they reach the `ErrorHandler` and
   // thus provide a lower fidelity error than what `SentryErrorHandler`
@@ -30,7 +32,7 @@ export function getDefaultIntegrations(): Integration[] {
   // see:
   //  - https://github.com/getsentry/sentry-javascript/issues/5417#issuecomment-1453407097
   //  - https://github.com/getsentry/sentry-javascript/issues/2744
-  return [
+  const integrations = [
     inboundFiltersIntegration(),
     functionToStringIntegration(),
     breadcrumbsIntegration(),
@@ -39,12 +41,19 @@ export function getDefaultIntegrations(): Integration[] {
     dedupeIntegration(),
     httpContextIntegration(),
   ];
+
+  // eslint-disable-next-line deprecation/deprecation
+  if (options.autoSessionTracking !== false) {
+    integrations.push(browserSessionIntegration());
+  }
+
+  return integrations;
 }
 
 /**
  * Inits the Angular SDK
  */
-export function init(options: BrowserOptions): void {
+export function init(options: BrowserOptions): Client | undefined {
   const opts = {
     defaultIntegrations: getDefaultIntegrations(),
     ...options,
@@ -53,7 +62,7 @@ export function init(options: BrowserOptions): void {
   applySdkMetadata(opts, 'angular');
 
   checkAndSetAngularVersion();
-  browserInit(opts);
+  return browserInit(opts);
 }
 
 function checkAndSetAngularVersion(): void {

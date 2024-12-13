@@ -8,3 +8,7 @@ test("calling init shouldn't fail", () => {
   });
   expect(true).toBe(true);
 });
+
+test('should return client from init', () => {
+  expect(init({})).not.toBeUndefined();
+});

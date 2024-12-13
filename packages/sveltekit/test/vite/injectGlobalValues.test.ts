@@ -1,3 +1,5 @@
+import { describe, expect, it } from 'vitest';
+
 import { getGlobalValueInjectionCode } from '../../src/vite/injectGlobalValues';
 
 describe('getGlobalValueInjectionCode', () => {
@@ -7,18 +9,8 @@ describe('getGlobalValueInjectionCode', () => {
       something: 'else',
       __sentry_sveltekit_output_dir: '.svelte-kit/output',
     });
-    expect(injectionCode).toEqual(`var _global =
-  typeof window !== 'undefined' ?
-    window :
-    typeof globalThis !== 'undefined' ?
-      globalThis :
-      typeof global !== 'undefined' ?
-        global :
-        typeof self !== 'undefined' ?
-          self :
-          {};
-_global["something"] = "else";
-_global["__sentry_sveltekit_output_dir"] = ".svelte-kit/output";
+    expect(injectionCode).toEqual(`globalThis["something"] = "else";
+globalThis["__sentry_sveltekit_output_dir"] = ".svelte-kit/output";
 `);
 
     // Check that the code above is in fact valid and works as expected

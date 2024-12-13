@@ -1,4 +1,4 @@
-import { vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { sentryAstro } from '../../src/integration';
 
@@ -57,8 +57,14 @@ describe('sentryAstro integration', () => {
       project: 'my-project',
       telemetry: false,
       debug: false,
+      bundleSizeOptimizations: {},
       sourcemaps: {
         assets: ['out/**/*'],
+      },
+      _metaOptions: {
+        telemetry: {
+          metaFramework: 'astro',
+        },
       },
     });
   });
@@ -77,8 +83,14 @@ describe('sentryAstro integration', () => {
       project: 'my-project',
       telemetry: false,
       debug: false,
+      bundleSizeOptimizations: {},
       sourcemaps: {
         assets: ['dist/**/*'],
+      },
+      _metaOptions: {
+        telemetry: {
+          metaFramework: 'astro',
+        },
       },
     });
   });
@@ -104,8 +116,14 @@ describe('sentryAstro integration', () => {
       project: 'my-project',
       telemetry: false,
       debug: false,
+      bundleSizeOptimizations: {},
       sourcemaps: {
         assets: ['{.vercel,dist}/**/*'],
+      },
+      _metaOptions: {
+        telemetry: {
+          metaFramework: 'astro',
+        },
       },
     });
   });
@@ -136,8 +154,14 @@ describe('sentryAstro integration', () => {
       project: 'my-project',
       telemetry: true,
       debug: false,
+      bundleSizeOptimizations: {},
       sourcemaps: {
         assets: ['dist/server/**/*, dist/client/**/*'],
+      },
+      _metaOptions: {
+        telemetry: {
+          metaFramework: 'astro',
+        },
       },
     });
   });
@@ -274,7 +298,7 @@ describe('sentryAstro integration', () => {
 
   it.each([{ output: 'static' }, { output: undefined }])(
     "doesn't add middleware if in static mode (config %s)",
-    async config => {
+    async (config: any) => {
       const integration = sentryAstro({});
       const addMiddleware = vi.fn();
       const updateConfig = vi.fn();

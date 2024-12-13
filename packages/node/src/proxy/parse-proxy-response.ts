@@ -1,6 +1,6 @@
 /**
  * This code was originally forked from https://github.com/TooTallNate/proxy-agents/tree/b133295fd16f6475578b6b15bd9b4e33ecb0d0b7
- * With the following licence:
+ * With the following LICENSE:
  *
  * (The MIT License)
  *
@@ -30,7 +30,7 @@
 /* eslint-disable jsdoc/require-jsdoc */
 import type { IncomingHttpHeaders } from 'node:http';
 import type { Readable } from 'node:stream';
-import { logger } from '@sentry/utils';
+import { logger } from '@sentry/core';
 
 function debug(...args: unknown[]): void {
   logger.log('[https-proxy-agent:parse-proxy-response]', ...args);
@@ -96,7 +96,7 @@ export function parseProxyResponse(socket: Readable): Promise<{ connect: Connect
         return reject(new Error('No header received from proxy CONNECT response'));
       }
       const firstLineParts = firstLine.split(' ');
-      const statusCode = +firstLineParts[1];
+      const statusCode = +(firstLineParts[1] || 0);
       const statusText = firstLineParts.slice(2).join(' ');
       const headers: IncomingHttpHeaders = {};
       for (const header of headerParts) {

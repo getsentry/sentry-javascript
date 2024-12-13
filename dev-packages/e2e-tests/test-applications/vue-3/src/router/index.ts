@@ -21,6 +21,23 @@ const router = createRouter({
       path: '/users-error/:id',
       component: () => import('../views/UserIdErrorView.vue'),
     },
+    {
+      path: '/categories',
+      children: [
+        {
+          path: ':id',
+          component: () => import('../views/CategoryIdView.vue'),
+        },
+      ],
+    },
+    {
+      path: '/components',
+      component: () => import('../views/ComponentMainView.vue'),
+    },
+    {
+      path: '/cart',
+      component: () => import('../views/CartView.vue'),
+    },
   ],
 });
 

@@ -1,6 +1,6 @@
 {
   "name": "@sentry-internal/browser-integration-tests",
-  "version": "8.7.0",
+  "version": "8.44.0",
   "main": "index.js",
   "license": "MIT",
   "engines": {
@@ -9,7 +9,7 @@
   "private": true,
   "scripts": {
     "clean": "rimraf -g suites/**/dist loader-suites/**/dist tmp",
-    "install-browsers": "npx playwright install --with-deps",
+    "install-browsers": "[[ -z \"$SKIP_PLAYWRIGHT_BROWSER_INSTALL\" ]] && yarn npx playwright install --with-deps || echo 'Skipping browser installation'",
     "lint": "eslint . --format stylish",
     "fix": "eslint . --format stylish --fix",
     "type-check": "tsc",
@@ -32,22 +32,23 @@
     "test:loader:eager": "PW_BUNDLE=loader_eager yarn test:loader",
     "test:loader:tracing": "PW_BUNDLE=loader_tracing yarn test:loader",
     "test:loader:replay": "PW_BUNDLE=loader_replay yarn test:loader",
+    "test:loader:replay_buffer": "PW_BUNDLE=loader_replay_buffer yarn test:loader",
     "test:loader:full": "PW_BUNDLE=loader_tracing_replay yarn test:loader",
     "test:loader:debug": "PW_BUNDLE=loader_debug yarn test:loader",
-    "test:ci": "yarn test:all --reporter='line'",
+    "test:ci": "yarn test:all",
     "test:update-snapshots": "yarn test:all --update-snapshots",
     "test:detect-flaky": "ts-node scripts/detectFlakyTests.ts"
   },
   "dependencies": {
     "@babel/preset-typescript": "^7.16.7",
-    "@playwright/test": "^1.43.1",
-    "@sentry-internal/rrweb": "2.11.0",
-    "@sentry/browser": "8.7.0",
-    "axios": "1.6.7",
+    "@playwright/test": "^1.44.1",
+    "@sentry-internal/rrweb": "2.31.0",
+    "@sentry/browser": "8.44.0",
+    "axios": "1.7.7",
     "babel-loader": "^8.2.2",
     "html-webpack-plugin": "^5.5.0",
     "pako": "^2.1.0",
-    "webpack": "^5.90.3"
+    "webpack": "^5.95.0"
   },
   "devDependencies": {
     "@types/glob": "8.0.0",

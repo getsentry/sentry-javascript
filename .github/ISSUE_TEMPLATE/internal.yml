@@ -1,0 +1,13 @@
+name: 💡 [Internal] Blank Issue
+description: Only for Sentry Employees! Create an issue without a template.
+type: 'task'
+body:
+  - type: markdown
+    attributes:
+      value: Make sure to apply relevant labels and issue types before submitting.
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+    validations:
+      required: true

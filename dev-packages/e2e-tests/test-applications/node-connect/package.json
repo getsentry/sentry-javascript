@@ -12,9 +12,7 @@
   },
   "dependencies": {
     "@sentry/node": "latest || *",
-    "@sentry/types": "latest || *",
     "@sentry/core": "latest || *",
-    "@sentry/utils": "latest || *",
     "@sentry/opentelemetry": "latest || *",
     "@types/node": "18.15.1",
     "connect": "3.7.0",
@@ -22,8 +20,8 @@
     "ts-node": "10.9.1"
   },
   "devDependencies": {
-    "@sentry-internal/event-proxy-server": "link:../../../event-proxy-server",
-    "@playwright/test": "^1.38.1"
+    "@playwright/test": "^1.44.1",
+    "@sentry-internal/test-utils": "link:../../../test-utils"
   },
   "volta": {
     "extends": "../../package.json"

@@ -1,7 +1,7 @@
-import type { Client, IntegrationFn, WrappedFunction } from '@sentry/types';
-import { getOriginalFunction } from '@sentry/utils';
 import { getClient } from '../currentScopes';
 import { defineIntegration } from '../integration';
+import type { Client, IntegrationFn, WrappedFunction } from '../types-hoist';
+import { getOriginalFunction } from '../utils-hoist/object';
 
 let originalFunctionToString: () => void;
 
@@ -19,8 +19,7 @@ const _functionToStringIntegration = (() => {
       // intrinsics (like Function.prototype) might be immutable in some environments
       // e.g. Node with --frozen-intrinsics, XS (an embedded JavaScript engine) or SES (a JavaScript proposal)
       try {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        Function.prototype.toString = function (this: WrappedFunction, ...args: any[]): string {
+        Function.prototype.toString = function (this: WrappedFunction, ...args: unknown[]): string {
           const originalFunction = getOriginalFunction(this);
           const context =
             SETUP_CLIENTS.has(getClient() as Client) && originalFunction !== undefined ? originalFunction : this;

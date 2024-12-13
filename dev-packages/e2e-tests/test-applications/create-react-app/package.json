@@ -4,18 +4,13 @@
   "private": true,
   "dependencies": {
     "@sentry/react": "latest || *",
-    "@testing-library/jest-dom": "5.14.1",
-    "@testing-library/react": "13.0.0",
-    "@testing-library/user-event": "13.2.1",
-    "@types/jest": "27.0.1",
     "@types/node": "16.7.13",
     "@types/react": "18.0.0",
     "@types/react-dom": "18.0.0",
     "react": "18.2.0",
     "react-dom": "18.2.0",
     "react-scripts": "5.0.1",
-    "typescript": "4.9.5",
-    "web-vitals": "2.1.0"
+    "typescript": "4.9.5"
   },
   "scripts": {
     "start": "react-scripts start",
@@ -37,5 +32,13 @@
   },
   "volta": {
     "extends": "../../package.json"
+  },
+  "sentryTest": {
+    "variants": [
+      {
+        "build-command": "test:build-ts3.8",
+        "label": "create-react-app (TS 3.8)"
+      }
+    ]
   }
 }

@@ -1,4 +1,4 @@
-import type { Envelope, Transport, TransportMakeRequestResponse } from '@sentry/types';
+import type { Envelope, Transport, TransportMakeRequestResponse } from '@sentry/core';
 import { vi } from 'vitest';
 
 import type { Replay as ReplayIntegration } from '../../src/integration';
@@ -61,12 +61,8 @@ export async function mockSdk({ replayOptions, sentryOptions, autoStart = true }
       _initialized = value;
     }
 
-    public setupOnce(): void {
-      // do nothing
-    }
-
-    public initialize(): void {
-      return super._initialize();
+    public afterAllSetup(): void {
+      // do nothing, we need to manually initialize this
     }
   }
 
@@ -76,7 +72,7 @@ export async function mockSdk({ replayOptions, sentryOptions, autoStart = true }
     ...replayOptions,
   });
 
-  init({
+  const client = init({
     ...getDefaultClientOptions(),
     dsn: 'https://dsn@ingest.f00.f00/1',
     autoSessionTracking: false,
@@ -86,14 +82,14 @@ export async function mockSdk({ replayOptions, sentryOptions, autoStart = true }
     replaysOnErrorSampleRate: 0.0,
     ...sentryOptions,
     integrations: [replayIntegration],
-  });
+  })!;
 
-  // Instead of `setupOnce`, which is tricky to test, we call this manually here
-  replayIntegration['_setup']();
+  // Instead of `afterAllSetup`, which is tricky to test, we call this manually here
+  replayIntegration['_setup'](client);
 
   if (autoStart) {
     // Only exists in our mock
-    replayIntegration.initialize();
+    replayIntegration['_initialize'](client);
   }
 
   const replay = replayIntegration['_replay']!;

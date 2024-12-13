@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import type { Package } from '@sentry/types';
+import type { Package } from '@sentry/core';
 
 /**
  * Supported @sveltejs/adapters-[adapter] SvelteKit adapters
@@ -41,7 +41,7 @@ export async function detectAdapter(debug?: boolean): Promise<SupportedSvelteKit
 }
 
 /**
- * Imports the pacakge.json file and returns the parsed JSON object.
+ * Imports the package.json file and returns the parsed JSON object.
  */
 async function loadPackageJson(): Promise<Package | undefined> {
   const pkgFile = path.join(process.cwd(), 'package.json');

@@ -1,20 +1,17 @@
 import type { Debugger, InspectorNotification, Runtime } from 'node:inspector';
 import { Session } from 'node:inspector/promises';
-import { parentPort, workerData } from 'node:worker_threads';
-import type { StackParser } from '@sentry/types';
-import { createStackParser, nodeStackLineParser } from '@sentry/utils';
-import { createGetModuleFromFilename } from '../../utils/module';
+import { workerData } from 'node:worker_threads';
+import { consoleSandbox } from '@sentry/core';
 import type { LocalVariablesWorkerArgs, PausedExceptionEvent, RateLimitIncrement, Variables } from './common';
-import { createRateLimiter, hashFromStack } from './common';
+import { LOCAL_VARIABLES_KEY } from './common';
+import { createRateLimiter } from './common';
 
 const options: LocalVariablesWorkerArgs = workerData;
-
-const stackParser = createStackParser(nodeStackLineParser(createGetModuleFromFilename(options.basePath)));
 
 function log(...args: unknown[]): void {
   if (options.debug) {
     // eslint-disable-next-line no-console
-    console.log('[LocalVariables Worker]', ...args);
+    consoleSandbox(() => console.log('[LocalVariables Worker]', ...args));
   }
 }
 
@@ -88,8 +85,7 @@ let rateLimiter: RateLimitIncrement | undefined;
 
 async function handlePaused(
   session: Session,
-  stackParser: StackParser,
-  { reason, data, callFrames }: PausedExceptionEvent,
+  { reason, data: { objectId }, callFrames }: PausedExceptionEvent,
 ): Promise<void> {
   if (reason !== 'exception' && reason !== 'promiseRejection') {
     return;
@@ -97,17 +93,15 @@ async function handlePaused(
 
   rateLimiter?.();
 
-  // data.description contains the original error.stack
-  const exceptionHash = hashFromStack(stackParser, data?.description);
-
-  if (exceptionHash == undefined) {
+  if (objectId == undefined) {
     return;
   }
 
   const frames = [];
 
   for (let i = 0; i < callFrames.length; i++) {
-    const { scopeChain, functionName, this: obj } = callFrames[i];
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const { scopeChain, functionName, this: obj } = callFrames[i]!;
 
     const localScope = scopeChain.find(scope => scope.type === 'local');
 
@@ -122,7 +116,17 @@ async function handlePaused(
     }
   }
 
-  parentPort?.postMessage({ exceptionHash, frames });
+  // We write the local variables to a property on the error object. These can be read by the integration as the error
+  // event pass through the SDK event pipeline
+  await session.post('Runtime.callFunctionOn', {
+    functionDeclaration: `function() { this.${LOCAL_VARIABLES_KEY} = this.${LOCAL_VARIABLES_KEY} || ${JSON.stringify(
+      frames,
+    )}; }`,
+    silent: true,
+    objectId,
+  });
+
+  await session.post('Runtime.releaseObject', { objectId });
 }
 
 async function startDebugger(): Promise<void> {
@@ -140,13 +144,17 @@ async function startDebugger(): Promise<void> {
   session.on('Debugger.paused', (event: InspectorNotification<Debugger.PausedEventDataType>) => {
     isPaused = true;
 
-    handlePaused(session, stackParser, event.params as PausedExceptionEvent).then(
-      () => {
+    handlePaused(session, event.params as PausedExceptionEvent).then(
+      async () => {
         // After the pause work is complete, resume execution!
-        return isPaused ? session.post('Debugger.resume') : Promise.resolve();
+        if (isPaused) {
+          await session.post('Debugger.resume');
+        }
       },
-      _ => {
-        // ignore
+      async _ => {
+        if (isPaused) {
+          await session.post('Debugger.resume');
+        }
       },
     );
   });

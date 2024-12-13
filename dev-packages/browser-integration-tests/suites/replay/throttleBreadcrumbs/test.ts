@@ -15,14 +15,6 @@ sentryTest(
     const reqPromise0 = waitForReplayRequest(page, 0);
     const reqPromise1 = waitForReplayRequest(page, 1);
 
-    await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-      return route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({ id: 'test-id' }),
-      });
-    });
-
     const url = await getLocalTestUrl({ testDir: __dirname });
 
     await page.goto(url);
@@ -38,7 +30,7 @@ sentryTest(
     const spans = [...res0.performanceSpans, ...res1.performanceSpans];
     expect(breadcrumbs.filter(breadcrumb => breadcrumb.category === 'replay.throttled').length).toBe(1);
     // replay.throttled breadcrumb does *not* use the throttledAddEvent as we
-    // alwants want that breadcrumb to be present in replay
+    // always want that breadcrumb to be present in replay
     expect(breadcrumbs.length + spans.length).toBe(THROTTLE_LIMIT + 1);
   },
 );

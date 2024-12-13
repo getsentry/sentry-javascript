@@ -1,6 +1,6 @@
 {
   "name": "@sentry-internal/replay-canvas",
-  "version": "8.7.0",
+  "version": "8.44.0",
   "description": "Replay canvas integration",
   "main": "build/npm/cjs/index.js",
   "module": "build/npm/esm/index.js",
@@ -23,7 +23,7 @@
       "build/npm/types/index.d.ts": ["build/npm/types-ts3.8/index.d.ts"]
     }
   },
-  "files": ["cjs", "esm", "types", "types-ts3.8"],
+  "files": ["/build/npm"],
   "sideEffects": false,
   "scripts": {
     "build": "run-p build:transpile build:types build:bundle",
@@ -38,14 +38,14 @@
     "build:transpile:watch": "yarn build:transpile --watch",
     "build:bundle:watch": "yarn build:bundle --watch",
     "build:types:watch": "tsc -p tsconfig.types.json --watch",
-    "build:tarball": "ts-node ../../scripts/prepack.ts --bundles && npm pack ./build/npm",
+    "build:tarball": "npm pack",
     "circularDepCheck": "madge --circular src/index.ts",
     "clean": "rimraf build sentry-replay-*.tgz",
     "fix": "eslint . --format stylish --fix",
     "lint": "eslint . --format stylish",
-    "test": "jest",
-    "test:watch": "jest --watch",
-    "yalc:publish": "ts-node ../../scripts/prepack.ts --bundles && yalc publish ./build/npm --push --sig"
+    "test": "vitest run",
+    "test:watch": "vitest --watch",
+    "yalc:publish": "yalc publish --push --sig"
   },
   "publishConfig": {
     "access": "public"
@@ -61,14 +61,11 @@
   },
   "homepage": "https://docs.sentry.io/platforms/javascript/session-replay/",
   "devDependencies": {
-    "@babel/core": "^7.17.5",
-    "@sentry-internal/rrweb": "2.15.0"
+    "@sentry-internal/rrweb": "2.31.0"
   },
   "dependencies": {
-    "@sentry-internal/replay": "8.7.0",
-    "@sentry/core": "8.7.0",
-    "@sentry/types": "8.7.0",
-    "@sentry/utils": "8.7.0"
+    "@sentry-internal/replay": "8.44.0",
+    "@sentry/core": "8.44.0"
   },
   "engines": {
     "node": ">=14.18"

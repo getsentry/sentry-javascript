@@ -1,7 +1,7 @@
-import type { IntegrationFn } from '@sentry/types';
-import type { Event, EventHint } from '@sentry/types';
-import { isError, truncate } from '@sentry/utils';
 import { defineIntegration } from '../integration';
+import type { Event, EventHint, IntegrationFn } from '../types-hoist';
+import { isError } from '../utils-hoist/is';
+import { truncate } from '../utils-hoist/string';
 
 interface ZodErrorsOptions {
   key?: string;
@@ -63,7 +63,9 @@ function formatIssueTitle(issue: ZodIssue): SingleLevelZodIssue<ZodIssue> {
 function formatIssueMessage(zodError: ZodError): string {
   const errorKeyMap = new Set<string | number | symbol>();
   for (const iss of zodError.issues) {
-    if (iss.path) errorKeyMap.add(iss.path[0]);
+    if (iss.path && iss.path[0]) {
+      errorKeyMap.add(iss.path[0]);
+    }
   }
   const errorKeys = Array.from(errorKeyMap);
 

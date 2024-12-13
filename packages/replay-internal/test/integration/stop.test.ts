@@ -1,12 +1,15 @@
-import { vi } from 'vitest';
+/**
+ * @vitest-environment jsdom
+ */
+
 import type { MockInstance, MockedFunction } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import * as SentryBrowserUtils from '@sentry-internal/browser-utils';
 
 import { WINDOW } from '../../src/constants';
 import type { Replay } from '../../src/integration';
 import type { ReplayContainer } from '../../src/replay';
-import { clearSession } from '../../src/session/clearSession';
 import { addEvent } from '../../src/util/addEvent';
 import { createOptionsEvent } from '../../src/util/handleRecordingEmit';
 // mock functions need to be imported first
@@ -28,7 +31,7 @@ describe('Integration | stop', () => {
   let mockAddDomInstrumentationHandler: MockInstance;
   let mockRunFlush: MockRunFlush;
 
-  beforeAll(async () => {
+  beforeEach(async () => {
     vi.setSystemTime(new Date(BASE_TIMESTAMP));
     mockAddDomInstrumentationHandler = vi.spyOn(SentryBrowserUtils, 'addClickKeypressInstrumentationHandler');
 
@@ -37,33 +40,18 @@ describe('Integration | stop', () => {
     // @ts-expect-error private API
     mockRunFlush = vi.spyOn(replay, '_runFlush');
 
-    vi.runAllTimers();
-  });
-
-  beforeEach(() => {
-    vi.setSystemTime(new Date(BASE_TIMESTAMP));
-    replay.eventBuffer?.destroy();
+    await vi.runAllTimersAsync();
     vi.clearAllMocks();
   });
 
   afterEach(async () => {
-    vi.runAllTimers();
-    await new Promise(process.nextTick);
     vi.setSystemTime(new Date(BASE_TIMESTAMP));
-    sessionStorage.clear();
-    clearSession(replay);
-    replay['_initializeSessionForSampling']();
-    replay.setInitialState();
-    mockRecord.takeFullSnapshot.mockClear();
-    mockAddDomInstrumentationHandler.mockClear();
+    integration && (await integration.stop());
     Object.defineProperty(WINDOW, 'location', {
       value: prevLocation,
       writable: true,
     });
-  });
-
-  afterAll(() => {
-    integration && integration.stop();
+    vi.clearAllMocks();
   });
 
   it('does not upload replay if it was stopped and can resume replays afterwards', async () => {
@@ -102,7 +90,7 @@ describe('Integration | stop', () => {
 
     vi.advanceTimersByTime(ELAPSED);
 
-    const timestamp = +new Date(BASE_TIMESTAMP + ELAPSED + ELAPSED) / 1000;
+    const timestamp = +new Date(BASE_TIMESTAMP + ELAPSED + ELAPSED + ELAPSED) / 1000;
 
     const hiddenBreadcrumb = {
       type: 5,
@@ -119,7 +107,7 @@ describe('Integration | stop', () => {
 
     addEvent(replay, TEST_EVENT);
     WINDOW.dispatchEvent(new Event('blur'));
-    vi.runAllTimers();
+    await vi.runAllTimersAsync();
     await new Promise(process.nextTick);
     expect(replay).toHaveLastSentReplay({
       recordingPayloadHeader: { segment_id: 0 },
@@ -127,7 +115,7 @@ describe('Integration | stop', () => {
         // This event happens when we call `replay.start`
         {
           data: { isCheckout: true },
-          timestamp: BASE_TIMESTAMP + ELAPSED,
+          timestamp: BASE_TIMESTAMP + ELAPSED + ELAPSED,
           type: 2,
         },
         optionsEvent,
@@ -138,12 +126,14 @@ describe('Integration | stop', () => {
 
     // Session's last activity is last updated when we call `setup()` and *NOT*
     // when tab is blurred
-    expect(replay.session?.lastActivity).toBe(BASE_TIMESTAMP + ELAPSED);
+    expect(replay.session?.lastActivity).toBe(BASE_TIMESTAMP + ELAPSED + ELAPSED);
   });
 
   it('does not buffer new events after being stopped', async function () {
+    expect(replay.eventBuffer?.hasEvents).toBe(false);
+    expect(mockRunFlush).toHaveBeenCalledTimes(0);
     const TEST_EVENT = getTestEventIncremental({ timestamp: BASE_TIMESTAMP });
-    addEvent(replay, TEST_EVENT);
+    addEvent(replay, TEST_EVENT, true);
     expect(replay.eventBuffer?.hasEvents).toBe(true);
     expect(mockRunFlush).toHaveBeenCalledTimes(0);
 

@@ -1,7 +1,7 @@
-import { Scope, getCurrentScope, withActiveSpan } from '@sentry/core';
-import type { PropagationContext } from '@sentry/types';
-import { GLOBAL_OBJ, logger, uuid4 } from '@sentry/utils';
+import type { PropagationContext } from '@sentry/core';
+import { GLOBAL_OBJ, Scope, getActiveSpan, getRootSpan, logger, spanToJSON, startNewTrace } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
+import { TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION } from '../span-attributes-with-logic-attached';
 
 const commonPropagationContextMap = new WeakMap<object, PropagationContext>();
 
@@ -67,8 +67,8 @@ let nextjsEscapedAsyncStorage: AsyncLocalStorage<true>;
  * first time.
  */
 export function escapeNextjsTracing<T>(cb: () => T): T {
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
-  const MaybeGlobalAsyncLocalStorage = (GLOBAL_OBJ as any).AsyncLocalStorage;
+  const MaybeGlobalAsyncLocalStorage = (GLOBAL_OBJ as { AsyncLocalStorage?: new () => AsyncLocalStorage<true> })
+    .AsyncLocalStorage;
 
   if (!MaybeGlobalAsyncLocalStorage) {
     DEBUG_BUILD &&
@@ -85,14 +85,26 @@ export function escapeNextjsTracing<T>(cb: () => T): T {
   if (nextjsEscapedAsyncStorage.getStore()) {
     return cb();
   } else {
-    return withActiveSpan(null, () => {
-      getCurrentScope().setPropagationContext({
-        traceId: uuid4(),
-        spanId: uuid4().substring(16),
-      });
+    return startNewTrace(() => {
       return nextjsEscapedAsyncStorage.run(true, () => {
         return cb();
       });
     });
+  }
+}
+
+/**
+ * Ideally this function never lands in the develop branch.
+ *
+ * Drops the entire span tree this function was called in, if it was a span tree created by Next.js.
+ */
+export function dropNextjsRootContext(): void {
+  const nextJsOwnedSpan = getActiveSpan();
+  if (nextJsOwnedSpan) {
+    const rootSpan = getRootSpan(nextJsOwnedSpan);
+    const rootSpanAttributes = spanToJSON(rootSpan).data;
+    if (rootSpanAttributes?.['next.span_type']) {
+      getRootSpan(nextJsOwnedSpan)?.setAttribute(TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION, true);
+    }
   }
 }

@@ -1,5 +1,5 @@
 import { Scope, getClient, setCurrentClient } from '@sentry/browser';
-import type { Client } from '@sentry/types';
+import type { Client } from '@sentry/core';
 import { fireEvent, render, screen } from '@testing-library/react';
 import * as React from 'react';
 import { useState } from 'react';
@@ -272,7 +272,7 @@ describe('ErrorBoundary', () => {
       // Check if error.cause -> react component stack
       const error = mockCaptureException.mock.calls[0][0];
       const cause = error.cause;
-      expect(cause.stack).toEqual(mockCaptureException.mock.calls[0][1].captureContext.contexts.react.componentStack);
+      expect(cause.stack).toEqual(mockCaptureException.mock.calls[0][1]?.captureContext.contexts.react.componentStack);
       expect(cause.name).toContain('React ErrorBoundary');
       expect(cause.message).toEqual(error.message);
     });
@@ -370,7 +370,7 @@ describe('ErrorBoundary', () => {
       const secondError = thirdError.cause;
       const firstError = secondError.cause;
       const cause = firstError.cause;
-      expect(cause.stack).toEqual(mockCaptureException.mock.calls[0][1].captureContext.contexts.react.componentStack);
+      expect(cause.stack).toEqual(mockCaptureException.mock.calls[0][1]?.captureContext.contexts.react.componentStack);
       expect(cause.name).toContain('React ErrorBoundary');
       expect(cause.message).toEqual(thirdError.message);
     });
@@ -414,7 +414,7 @@ describe('ErrorBoundary', () => {
       const cause = error.cause;
       // We need to make sure that recursive error.cause does not cause infinite loop
       expect(cause.stack).not.toEqual(
-        mockCaptureException.mock.calls[0][1].captureContext.contexts.react.componentStack,
+        mockCaptureException.mock.calls[0][1]?.captureContext.contexts.react.componentStack,
       );
       expect(cause.name).not.toContain('React ErrorBoundary');
     });

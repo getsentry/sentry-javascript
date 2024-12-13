@@ -5,7 +5,7 @@
 This was vendored from: https://github.com/GoogleChrome/web-vitals: v3.5.2
 
 The commit SHA used is:
-[7b44bea0d5ba6629c5fd34c3a09cc683077871d0](https://github.com/GoogleChrome/web-vitals/tree/7b44bea0d5ba6629c5fd34c3a09cc683077871d0)
+[3d2b3dc8576cc003618952fa39902fab764a53e2](https://github.com/GoogleChrome/web-vitals/tree/3d2b3dc8576cc003618952fa39902fab764a53e2)
 
 Current vendored web vitals are:
 
@@ -17,15 +17,23 @@ Current vendored web vitals are:
 
 ## Notable Changes from web-vitals library
 
-This vendored web-vitals library is meant to be used in conjunction with the `@sentry/tracing` `BrowserTracing`
-integration. As such, logic around `BFCache` and multiple reports were removed from the library as our web-vitals only
-report once per pageload.
+This vendored web-vitals library is meant to be used in conjunction with the `@sentry/browser`
+`browserTracingIntegration`. As such, logic around `BFCache` and multiple reports were removed from the library as our
+web-vitals only report once per pageload.
 
 ## License
 
 [Apache 2.0](https://github.com/GoogleChrome/web-vitals/blob/master/LICENSE)
 
 ## CHANGELOG
+
+https://github.com/getsentry/sentry-javascript/pull/14439
+
+- Bumped from Web Vitals v3.5.2 to v4.2.4
+
+https://github.com/getsentry/sentry-javascript/pull/11391
+
+- Bumped from Web Vitals v3.0.4 to v3.5.2
 
 https://github.com/getsentry/sentry-javascript/pull/5987
 

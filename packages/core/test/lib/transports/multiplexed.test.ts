@@ -6,10 +6,17 @@ import type {
   EventItem,
   TransactionEvent,
   Transport,
-} from '@sentry/types';
-import { createClientReportEnvelope, createEnvelope, dsnFromString, parseEnvelope } from '@sentry/utils';
+} from '../../../src/types-hoist';
 
-import { createTransport, getEnvelopeEndpointWithUrlEncodedAuth, makeMultiplexedTransport } from '../../../src';
+import {
+  createClientReportEnvelope,
+  createEnvelope,
+  createTransport,
+  dsnFromString,
+  getEnvelopeEndpointWithUrlEncodedAuth,
+  makeMultiplexedTransport,
+  parseEnvelope,
+} from '../../../src';
 import { eventFromEnvelope } from '../../../src/transports/multiplexed';
 
 const DSN1 = 'https://1234@5678.ingest.sentry.io/4321';
@@ -111,7 +118,7 @@ describe('makeMultiplexedTransport', () => {
     const makeTransport = makeMultiplexedTransport(
       createTestTransport((url, _, env) => {
         expect(url).toBe(DSN2_URL);
-        expect(env[0].dsn).toBe(DSN2);
+        expect(env[0]?.dsn).toBe(DSN2);
       }),
       () => [DSN2],
     );
@@ -127,7 +134,7 @@ describe('makeMultiplexedTransport', () => {
       createTestTransport((url, release, env) => {
         expect(url).toBe(DSN2_URL);
         expect(release).toBe('something@1.0.0');
-        expect(env[0].dsn).toBe(DSN2);
+        expect(env[0]?.dsn).toBe(DSN2);
       }),
       () => [{ dsn: DSN2, release: 'something@1.0.0' }],
     );
@@ -143,7 +150,7 @@ describe('makeMultiplexedTransport', () => {
       createTestTransport((url, release, env) => {
         expect(url).toBe('http://google.com');
         expect(release).toBe('something@1.0.0');
-        expect(env[0].dsn).toBe(DSN2);
+        expect(env[0]?.dsn).toBe(DSN2);
       }),
       () => [{ dsn: DSN2, release: 'something@1.0.0' }],
     );

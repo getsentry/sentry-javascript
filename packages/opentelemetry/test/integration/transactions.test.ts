@@ -11,13 +11,14 @@ import {
   startSpanManual,
   withIsolationScope,
 } from '@sentry/core';
-import type { Event, TransactionEvent } from '@sentry/types';
-import { logger } from '@sentry/utils';
+import { logger } from '@sentry/core';
+import type { Event, TransactionEvent } from '@sentry/core';
 
 import { TraceState } from '@opentelemetry/core';
 import { SENTRY_TRACE_STATE_DSC } from '../../src/constants';
 import { SentrySpanProcessor } from '../../src/spanProcessor';
 import { startInactiveSpan, startSpan } from '../../src/trace';
+import { makeTraceState } from '../../src/utils/makeTraceState';
 import type { TestClientInterface } from '../helpers/TestClient';
 import { cleanupOtel, getProvider, mockSdkInit } from '../helpers/mockSdkInit';
 
@@ -80,7 +81,7 @@ describe('Integration | Transactions', () => {
     await client.flush();
 
     expect(transactions).toHaveLength(1);
-    const transaction = transactions[0];
+    const transaction = transactions[0]!;
 
     expect(transaction.breadcrumbs).toEqual([
       { message: 'test breadcrumb 1', timestamp: 123456 },
@@ -101,7 +102,6 @@ describe('Integration | Transactions', () => {
 
     expect(transaction.contexts?.trace).toEqual({
       data: {
-        'otel.kind': 'INTERNAL',
         'sentry.op': 'test op',
         'sentry.origin': 'auto.test',
         'sentry.source': 'task',
@@ -109,9 +109,9 @@ describe('Integration | Transactions', () => {
         'test.outer': 'test value',
       },
       op: 'test op',
-      span_id: expect.any(String),
+      span_id: expect.stringMatching(/[a-f0-9]{16}/),
       status: 'ok',
-      trace_id: expect.any(String),
+      trace_id: expect.stringMatching(/[a-f0-9]{32}/),
       origin: 'auto.test',
     });
 
@@ -121,7 +121,7 @@ describe('Integration | Transactions', () => {
       public_key: expect.any(String),
       sample_rate: '1',
       sampled: 'true',
-      trace_id: expect.any(String),
+      trace_id: expect.stringMatching(/[a-f0-9]{32}/),
       transaction: 'test name',
       release: '8.0.0',
     });
@@ -147,32 +147,30 @@ describe('Integration | Transactions', () => {
     expect(spans).toEqual([
       {
         data: {
-          'otel.kind': 'INTERNAL',
           'sentry.origin': 'manual',
         },
         description: 'inner span 1',
         origin: 'manual',
-        parent_span_id: expect.any(String),
-        span_id: expect.any(String),
+        parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
+        span_id: expect.stringMatching(/[a-f0-9]{16}/),
         start_timestamp: expect.any(Number),
         status: 'ok',
         timestamp: expect.any(Number),
-        trace_id: expect.any(String),
+        trace_id: expect.stringMatching(/[a-f0-9]{32}/),
       },
       {
         data: {
-          'otel.kind': 'INTERNAL',
           'test.inner': 'test value',
           'sentry.origin': 'manual',
         },
         description: 'inner span 2',
         origin: 'manual',
-        parent_span_id: expect.any(String),
-        span_id: expect.any(String),
+        parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
+        span_id: expect.stringMatching(/[a-f0-9]{16}/),
         start_timestamp: expect.any(Number),
         status: 'ok',
         timestamp: expect.any(Number),
-        trace_id: expect.any(String),
+        trace_id: expect.stringMatching(/[a-f0-9]{32}/),
       },
     ]);
   });
@@ -255,7 +253,6 @@ describe('Integration | Transactions', () => {
         contexts: expect.objectContaining({
           trace: {
             data: {
-              'otel.kind': 'INTERNAL',
               'sentry.op': 'test op',
               'sentry.origin': 'auto.test',
               'sentry.source': 'task',
@@ -263,12 +260,10 @@ describe('Integration | Transactions', () => {
               'sentry.sample_rate': 1,
             },
             op: 'test op',
-            span_id: expect.any(String),
+            span_id: expect.stringMatching(/[a-f0-9]{16}/),
             status: 'ok',
-            trace_id: expect.any(String),
+            trace_id: expect.stringMatching(/[a-f0-9]{32}/),
             origin: 'auto.test',
-            // local span ID from propagation context
-            parent_span_id: expect.any(String),
           },
         }),
         spans: [expect.any(Object), expect.any(Object)],
@@ -296,7 +291,6 @@ describe('Integration | Transactions', () => {
         contexts: expect.objectContaining({
           trace: {
             data: {
-              'otel.kind': 'INTERNAL',
               'sentry.op': 'test op b',
               'sentry.origin': 'manual',
               'sentry.source': 'custom',
@@ -304,12 +298,10 @@ describe('Integration | Transactions', () => {
               'sentry.sample_rate': 1,
             },
             op: 'test op b',
-            span_id: expect.any(String),
+            span_id: expect.stringMatching(/[a-f0-9]{16}/),
             status: 'ok',
-            trace_id: expect.any(String),
+            trace_id: expect.stringMatching(/[a-f0-9]{32}/),
             origin: 'manual',
-            // local span ID from propagation context
-            parent_span_id: expect.any(String),
           },
         }),
         spans: [expect.any(Object), expect.any(Object)],
@@ -334,12 +326,17 @@ describe('Integration | Transactions', () => {
     const traceId = 'd4cda95b652f4a1592b449d5929fda1b';
     const parentSpanId = '6e0c63257de34c92';
 
-    const spanContext = {
+    const traceState = makeTraceState({
+      dsc: undefined,
+      sampled: true,
+    });
+
+    const spanContext: SpanContext = {
       traceId,
       spanId: parentSpanId,
-      sampled: true,
       isRemote: true,
       traceFlags: TraceFlags.SAMPLED,
+      traceState,
     };
 
     mockSdkInit({ enableTracing: true, beforeSendTransaction });
@@ -373,14 +370,13 @@ describe('Integration | Transactions', () => {
         contexts: expect.objectContaining({
           trace: {
             data: {
-              'otel.kind': 'INTERNAL',
               'sentry.op': 'test op',
               'sentry.origin': 'auto.test',
               'sentry.source': 'task',
               'sentry.sample_rate': 1,
             },
             op: 'test op',
-            span_id: expect.any(String),
+            span_id: expect.stringMatching(/[a-f0-9]{16}/),
             parent_span_id: parentSpanId,
             status: 'ok',
             trace_id: traceId,
@@ -403,20 +399,19 @@ describe('Integration | Transactions', () => {
 
     // Checking the spans here, as they are circular to the transaction...
     const runArgs = beforeSendTransaction.mock.calls[0] as unknown as [TransactionEvent, unknown];
-    const spans = runArgs[0].spans || [];
+    const spans = runArgs[0]?.spans || [];
 
     // note: Currently, spans do not have any context/span added to them
     // This is the same behavior as for the "regular" SDKs
     expect(spans).toEqual([
       {
         data: {
-          'otel.kind': 'INTERNAL',
           'sentry.origin': 'manual',
         },
         description: 'inner span 1',
         origin: 'manual',
-        parent_span_id: expect.any(String),
-        span_id: expect.any(String),
+        parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
+        span_id: expect.stringMatching(/[a-f0-9]{16}/),
         start_timestamp: expect.any(Number),
         status: 'ok',
         timestamp: expect.any(Number),
@@ -424,13 +419,12 @@ describe('Integration | Transactions', () => {
       },
       {
         data: {
-          'otel.kind': 'INTERNAL',
           'sentry.origin': 'manual',
         },
         description: 'inner span 2',
         origin: 'manual',
-        parent_span_id: expect.any(String),
-        span_id: expect.any(String),
+        parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
+        span_id: expect.stringMatching(/[a-f0-9]{16}/),
         start_timestamp: expect.any(Number),
         status: 'ok',
         timestamp: expect.any(Number),
@@ -465,24 +459,22 @@ describe('Integration | Transactions', () => {
       throw new Error('No exporter found, aborting test...');
     }
 
-    let innerSpan1Id: string | undefined;
-    let innerSpan2Id: string | undefined;
-
     void startSpan({ name: 'test name' }, async () => {
-      const subSpan = startInactiveSpan({ name: 'inner span 1' });
-      innerSpan1Id = subSpan.spanContext().spanId;
-      subSpan.end();
-
-      startSpan({ name: 'inner span 2' }, innerSpan => {
-        innerSpan2Id = innerSpan.spanContext().spanId;
-      });
+      startInactiveSpan({ name: 'inner span 1' }).end();
+      startInactiveSpan({ name: 'inner span 2' }).end();
 
       // Pretend this is pending for 10 minutes
       await new Promise(resolve => setTimeout(resolve, 10 * 60 * 1000));
     });
 
-    // Child-spans have been added to the exporter, but they are pending since they are waiting for their parant
-    expect(exporter['_finishedSpans'].length).toBe(2);
+    // Child-spans have been added to the exporter, but they are pending since they are waiting for their parent
+    const finishedSpans1 = [];
+    exporter['_finishedSpanBuckets'].forEach(bucket => {
+      if (bucket) {
+        finishedSpans1.push(...bucket.spans);
+      }
+    });
+    expect(finishedSpans1.length).toBe(2);
     expect(beforeSendTransaction).toHaveBeenCalledTimes(0);
 
     // Now wait for 5 mins
@@ -494,18 +486,21 @@ describe('Integration | Transactions', () => {
     jest.advanceTimersByTime(1);
 
     // Old spans have been cleared away
-    expect(exporter['_finishedSpans'].length).toBe(0);
+    const finishedSpans2 = [];
+    exporter['_finishedSpanBuckets'].forEach(bucket => {
+      if (bucket) {
+        finishedSpans2.push(...bucket.spans);
+      }
+    });
+    expect(finishedSpans2.length).toBe(0);
 
     // Called once for the 'other span'
     expect(beforeSendTransaction).toHaveBeenCalledTimes(1);
 
     expect(logs).toEqual(
       expect.arrayContaining([
-        'SpanExporter has 1 unsent spans remaining',
-        'SpanExporter has 2 unsent spans remaining',
-        'SpanExporter exported 1 spans, 2 unsent spans remaining',
-        `SpanExporter dropping span inner span 1 (${innerSpan1Id}) because it is pending for more than 5 minutes.`,
-        `SpanExporter dropping span inner span 2 (${innerSpan2Id}) because it is pending for more than 5 minutes.`,
+        'SpanExporter dropped 2 spans because they were pending for more than 300 seconds.',
+        'SpanExporter exported 1 spans, 0 spans are waiting for their parent spans to finish',
       ]),
     );
   });
@@ -555,10 +550,16 @@ describe('Integration | Transactions', () => {
     jest.advanceTimersByTime(1);
 
     expect(transactions).toHaveLength(1);
-    expect(transactions[0].spans).toHaveLength(2);
+    expect(transactions[0]?.spans).toHaveLength(2);
 
     // No spans are pending
-    expect(exporter['_finishedSpans'].length).toBe(0);
+    const finishedSpans = [];
+    exporter['_finishedSpanBuckets'].forEach(bucket => {
+      if (bucket) {
+        finishedSpans.push(...bucket.spans);
+      }
+    });
+    expect(finishedSpans.length).toBe(0);
   });
 
   it('discards child spans that are finished after their parent span', async () => {
@@ -609,11 +610,17 @@ describe('Integration | Transactions', () => {
     jest.advanceTimersByTime(2);
 
     expect(transactions).toHaveLength(1);
-    expect(transactions[0].spans).toHaveLength(1);
+    expect(transactions[0]?.spans).toHaveLength(1);
 
     // subSpan2 is pending (and will eventually be cleaned up)
-    expect(exporter['_finishedSpans'].length).toBe(1);
-    expect(exporter['_finishedSpans'][0].name).toBe('inner span 2');
+    const finishedSpans: any = [];
+    exporter['_finishedSpanBuckets'].forEach(bucket => {
+      if (bucket) {
+        finishedSpans.push(...bucket.spans);
+      }
+    });
+    expect(finishedSpans.length).toBe(1);
+    expect(finishedSpans[0]?.name).toBe('inner span 2');
   });
 
   it('uses & inherits DSC on span trace state', async () => {

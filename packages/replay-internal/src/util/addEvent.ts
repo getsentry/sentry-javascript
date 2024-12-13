@@ -1,11 +1,10 @@
 import { EventType } from '@sentry-internal/rrweb';
 import { getClient } from '@sentry/core';
-import { logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
 import { EventBufferSizeExceededError } from '../eventBuffer/error';
 import type { AddEventResult, RecordingEvent, ReplayContainer, ReplayFrameEvent, ReplayPluginOptions } from '../types';
-import { logInfo } from './log';
+import { logger } from './logger';
 import { timestampToMs } from './timestamp';
 
 function isCustomEvent(event: RecordingEvent): event is ReplayFrameEvent {
@@ -55,17 +54,22 @@ async function _addEvent(
   event: RecordingEvent,
   isCheckout?: boolean,
 ): Promise<AddEventResult | null> {
-  if (!replay.eventBuffer) {
+  const { eventBuffer } = replay;
+
+  if (!eventBuffer || (eventBuffer.waitForCheckout && !isCheckout)) {
     return null;
   }
 
+  const isBufferMode = replay.recordingMode === 'buffer';
+
   try {
-    if (isCheckout && replay.recordingMode === 'buffer') {
-      replay.eventBuffer.clear();
+    if (isCheckout && isBufferMode) {
+      eventBuffer.clear();
     }
 
     if (isCheckout) {
-      replay.eventBuffer.hasCheckout = true;
+      eventBuffer.hasCheckout = true;
+      eventBuffer.waitForCheckout = false;
     }
 
     const replayOptions = replay.getOptions();
@@ -76,11 +80,21 @@ async function _addEvent(
       return;
     }
 
-    return await replay.eventBuffer.addEvent(eventAfterPossibleCallback);
+    return await eventBuffer.addEvent(eventAfterPossibleCallback);
   } catch (error) {
-    const reason = error && error instanceof EventBufferSizeExceededError ? 'addEventSizeExceeded' : 'addEvent';
+    const isExceeded = error && error instanceof EventBufferSizeExceededError;
+    const reason = isExceeded ? 'addEventSizeExceeded' : 'addEvent';
 
-    DEBUG_BUILD && logger.error(error);
+    if (isExceeded && isBufferMode) {
+      // Clear buffer and wait for next checkout
+      eventBuffer.clear();
+      eventBuffer.waitForCheckout = true;
+
+      return null;
+    }
+
+    replay.handleException(error);
+
     await replay.stop({ reason });
 
     const client = getClient();
@@ -109,10 +123,8 @@ export function shouldAddEvent(replay: ReplayContainer, event: RecordingEvent): 
 
   // Throw out events that are +60min from the initial timestamp
   if (timestampInMs > replay.getContext().initialTimestamp + replay.getOptions().maxReplayDuration) {
-    logInfo(
-      `[Replay] Skipping event with timestamp ${timestampInMs} because it is after maxReplayDuration`,
-      replay.getOptions()._experiments.traceInternals,
-    );
+    DEBUG_BUILD &&
+      logger.infoTick(`Skipping event with timestamp ${timestampInMs} because it is after maxReplayDuration`);
     return false;
   }
 
@@ -129,7 +141,7 @@ function maybeApplyCallback(
     }
   } catch (error) {
     DEBUG_BUILD &&
-      logger.error('[Replay] An error occured in the `beforeAddRecordingEvent` callback, skipping the event...', error);
+      logger.exception(error, 'An error occurred in the `beforeAddRecordingEvent` callback, skipping the event...');
     return null;
   }
 

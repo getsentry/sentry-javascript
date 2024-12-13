@@ -1,18 +1,18 @@
 // We export everything from both the client part of the SDK and from the server part.
-// Some of the exports collide, which is not allowed, unless we redifine the colliding
+// Some of the exports collide, which is not allowed, unless we redefine the colliding
 // exports in this file - which we do below.
 export * from './client';
 export * from './vite';
 export * from './server';
 
-import type { Integration, Options, StackParser } from '@sentry/types';
+import type { Client, Integration, Options, StackParser } from '@sentry/core';
 import type { HandleClientError, HandleServerError } from '@sveltejs/kit';
 
 import type * as clientSdk from './client';
 import type * as serverSdk from './server';
 
 /** Initializes Sentry SvelteKit SDK */
-export declare function init(options: Options | clientSdk.BrowserOptions | serverSdk.NodeOptions): void;
+export declare function init(options: Options | clientSdk.BrowserOptions | serverSdk.NodeOptions): Client | undefined;
 
 export declare function handleErrorWithSentry<T extends HandleClientError | HandleServerError>(handleError?: T): T;
 
@@ -52,6 +52,7 @@ export declare function lastEventId(): string | undefined;
 
 export declare const continueTrace: typeof clientSdk.continueTrace;
 
+// eslint-disable-next-line deprecation/deprecation
 export declare const metrics: typeof clientSdk.metrics & typeof serverSdk.metrics;
 
 export declare function trackComponent(options: clientSdk.TrackingOptions): ReturnType<typeof clientSdk.trackComponent>;

@@ -1,8 +1,8 @@
+import { describe, expect, it, vi } from 'vitest';
+
 import { useFakeTimers } from '../../../utils/use-fake-timers';
 
 useFakeTimers();
-
-import { vi } from 'vitest';
 
 import { _getResponseInfo } from '../../../../src/coreHandlers/util/fetchUtils';
 
@@ -132,7 +132,7 @@ describe('Unit | coreHandlers | util | fetchUtils', () => {
       ]);
 
       expect(res).toEqual({
-        _meta: { warnings: ['BODY_PARSE_ERROR'] },
+        _meta: { warnings: ['BODY_PARSE_TIMEOUT'] },
         headers: {},
         size: undefined,
       });

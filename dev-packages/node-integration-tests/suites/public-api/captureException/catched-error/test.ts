@@ -30,7 +30,7 @@ test('should work inside catch block', done => {
                       '',
                       'try {',
                     ],
-                    post_context: ['} catch (err) {', '  Sentry.captureException(err);', '}', ''],
+                    post_context: ['} catch (err) {', '  Sentry.captureException(err);', '}'],
                   }),
                 ]),
               },

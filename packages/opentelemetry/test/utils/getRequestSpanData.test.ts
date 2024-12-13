@@ -1,3 +1,4 @@
+/* eslint-disable deprecation/deprecation */
 import { SEMATTRS_HTTP_METHOD, SEMATTRS_HTTP_URL } from '@opentelemetry/semantic-conventions';
 
 import { getRequestSpanData } from '../../src/utils/getRequestSpanData';

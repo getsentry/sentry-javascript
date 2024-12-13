@@ -1,6 +1,6 @@
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 
-import type { Event } from '@sentry/types';
+import type { Event } from '@sentry/core';
 import type { Callback, Handler } from 'aws-lambda';
 
 import { init, wrapHandler } from '../src/sdk';
@@ -502,7 +502,7 @@ describe('AWSLambda', () => {
 
       expect(evtProcessor).toBeInstanceOf(Function);
       // @ts-expect-error just mocking around...
-      expect(evtProcessor(event).exception.values[0].mechanism).toEqual({
+      expect(evtProcessor(event).exception.values[0]?.mechanism).toEqual({
         handled: false,
         type: 'generic',
       });

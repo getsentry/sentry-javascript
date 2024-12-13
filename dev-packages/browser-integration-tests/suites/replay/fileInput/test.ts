@@ -18,7 +18,7 @@ function isInputMutation(
 
 sentryTest(
   'should not capture file input mutations',
-  async ({ forceFlushReplay, getLocalTestPath, page, browserName }) => {
+  async ({ forceFlushReplay, getLocalTestUrl, page, browserName }) => {
     // This seems to be flaky on webkit, so skipping there
     if (shouldSkipReplayTest() || browserName === 'webkit') {
       sentryTest.skip();
@@ -26,15 +26,7 @@ sentryTest(
 
     const reqPromise0 = waitForReplayRequest(page, 0);
 
-    await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-      return route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({ id: 'test-id' }),
-      });
-    });
-
-    const url = await getLocalTestPath({ testDir: __dirname });
+    const url = await getLocalTestUrl({ testDir: __dirname });
 
     await page.goto(url);
 

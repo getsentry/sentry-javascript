@@ -1,5 +1,6 @@
-import type { SerializedSession, Session, SessionContext, SessionStatus } from '@sentry/types';
-import { dropUndefinedKeys, timestampInSeconds, uuid4 } from '@sentry/utils';
+import type { SerializedSession, Session, SessionContext, SessionStatus } from './types-hoist';
+import { dropUndefinedKeys, timestampInSeconds, uuid4 } from './utils-hoist';
+
 /**
  * Creates a new `Session` object by setting certain default parameters. If optional @param context
  * is passed, the passed properties are applied to the session object.

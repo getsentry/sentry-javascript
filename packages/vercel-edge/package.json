@@ -1,7 +1,7 @@
 {
   "name": "@sentry/vercel-edge",
-  "version": "8.7.0",
-  "description": "Offical Sentry SDK for the Vercel Edge Runtime",
+  "version": "8.44.0",
+  "description": "Official Sentry SDK for the Vercel Edge Runtime",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/vercel-edge",
   "author": "Sentry",
@@ -9,7 +9,7 @@
   "engines": {
     "node": ">=14.18"
   },
-  "files": ["cjs", "esm", "types", "types-ts3.8"],
+  "files": ["/build"],
   "main": "build/cjs/index.js",
   "module": "build/esm/index.js",
   "types": "build/types/index.d.ts",
@@ -35,13 +35,16 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/core": "8.7.0",
-    "@sentry/types": "8.7.0",
-    "@sentry/utils": "8.7.0"
+    "@opentelemetry/api": "^1.9.0",
+    "@sentry/core": "8.44.0"
   },
   "devDependencies": {
-    "@edge-runtime/jest-environment": "2.2.3",
-    "@edge-runtime/types": "2.2.3"
+    "@edge-runtime/types": "3.0.1",
+    "@opentelemetry/core": "^1.29.0",
+    "@opentelemetry/resources": "^1.29.0",
+    "@opentelemetry/sdk-trace-base": "^1.29.0",
+    "@opentelemetry/semantic-conventions": "^1.28.0",
+    "@sentry/opentelemetry": "8.44.0"
   },
   "scripts": {
     "build": "run-p build:transpile build:types",
@@ -54,14 +57,14 @@
     "build:dev:watch": "yarn build:watch",
     "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",
     "build:types:watch": "tsc -p tsconfig.types.json --watch",
-    "build:tarball": "ts-node ../../scripts/prepack.ts && npm pack ./build",
+    "build:tarball": "npm pack",
     "circularDepCheck": "madge --circular src/index.ts",
     "clean": "rimraf build coverage sentry-vercel-edge-*.tgz",
     "fix": "eslint . --format stylish --fix",
     "lint": "eslint . --format stylish",
-    "test": "jest",
-    "test:watch": "jest --watch",
-    "yalc:publish": "ts-node ../../scripts/prepack.ts && yalc publish build --push --sig"
+    "test": "vitest run",
+    "test:watch": "vitest --watch",
+    "yalc:publish": "yalc publish --push --sig"
   },
   "volta": {
     "extends": "../../package.json"

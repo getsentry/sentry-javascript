@@ -27,4 +27,4 @@ export {
 import { feedbackIntegrationShim } from '@sentry-internal/integration-shims';
 export { feedbackIntegrationShim as feedbackAsyncIntegration, feedbackIntegrationShim as feedbackIntegration };
 
-export { replayIntegration } from '@sentry-internal/replay';
+export { replayIntegration, getReplay } from '@sentry-internal/replay';

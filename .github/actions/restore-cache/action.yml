@@ -1,6 +1,14 @@
 name: "Restore dependency & build cache"
 description: "Restore the dependency & build cache."
 
+inputs:
+  dependency_cache_key:
+    description: "The dependency cache key"
+    required: true
+  node_version:
+    description: "If set, temporarily set node version to default one before installing, then revert to this version after."
+    required: false
+
 runs:
   using: "composite"
   steps:
@@ -9,17 +17,26 @@ runs:
         uses: actions/cache/restore@v4
         with:
           path: ${{ env.CACHED_DEPENDENCY_PATHS }}
-          key: ${{ env.DEPENDENCY_CACHE_KEY }}
+          key: ${{ inputs.dependency_cache_key }}
 
-      - name: Check build cache
-        uses: actions/cache/restore@v4
-        id: build-cache
+      - name: Restore build artifacts
+        uses: actions/download-artifact@v4
         with:
-          path: ${{ env.CACHED_BUILD_PATHS }}
-          key: ${{ env.BUILD_CACHE_KEY }}
+          name: build-output
 
-      - name: Check if caches are restored
-        uses: actions/github-script@v6
-        if: steps.dep-cache.outputs.cache-hit != 'true' || steps.build-cache.outputs.cache-hit != 'true'
+      - name: Use default node version for install
+        if: inputs.node_version && steps.dep-cache.outputs.cache-hit != 'true'
+        uses: actions/setup-node@v4
         with:
-          script: core.setFailed('Dependency or build cache could not be restored - please re-run ALL jobs.')
+          node-version-file: 'package.json'
+
+      - name: Install dependencies
+        if: steps.dep-cache.outputs.cache-hit != 'true'
+        run: yarn install --ignore-engines --frozen-lockfile
+        shell: bash
+
+      - name: Revert node version to ${{ inputs.node_version }}
+        if: inputs.node_version && steps.dep-cache.outputs.cache-hit != 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node_version }}

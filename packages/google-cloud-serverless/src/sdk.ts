@@ -1,6 +1,6 @@
-import type { NodeOptions } from '@sentry/node';
+import type { Integration, Options, SdkMetadata } from '@sentry/core';
+import type { NodeClient, NodeOptions } from '@sentry/node';
 import { SDK_VERSION, getDefaultIntegrationsWithoutPerformance, init as initNode } from '@sentry/node';
-import type { Integration, Options, SdkMetadata } from '@sentry/types';
 
 import { googleCloudGrpcIntegration } from './integrations/google-cloud-grpc';
 import { googleCloudHttpIntegration } from './integrations/google-cloud-http';
@@ -26,7 +26,7 @@ export function getDefaultIntegrations(_options: Options): Integration[] {
 /**
  * @see {@link Sentry.init}
  */
-export function init(options: NodeOptions = {}): void {
+export function init(options: NodeOptions = {}): NodeClient | undefined {
   const opts = {
     _metadata: {} as SdkMetadata,
     defaultIntegrations: getDefaultIntegrations(options),
@@ -44,5 +44,5 @@ export function init(options: NodeOptions = {}): void {
     version: SDK_VERSION,
   };
 
-  initNode(opts);
+  return initNode(opts);
 }

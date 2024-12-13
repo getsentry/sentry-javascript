@@ -1,13 +1,17 @@
-import type { ClientOptions, Scope, SentrySpanArguments, Span, SpanTimeInput, StartSpanOptions } from '@sentry/types';
-import { generatePropagationContext, logger, propagationContextFromHeaders } from '@sentry/utils';
+/* eslint-disable max-lines */
+
 import type { AsyncContextStrategy } from '../asyncContext/types';
 import { getMainCarrier } from '../carrier';
+import type { ClientOptions, Scope, SentrySpanArguments, Span, SpanTimeInput, StartSpanOptions } from '../types-hoist';
 
 import { getClient, getCurrentScope, getIsolationScope, withScope } from '../currentScopes';
 
 import { getAsyncContextStrategy } from '../asyncContext';
 import { DEBUG_BUILD } from '../debug-build';
 import { SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '../semanticAttributes';
+import { logger } from '../utils-hoist/logger';
+import { generateTraceId } from '../utils-hoist/propagationContext';
+import { propagationContextFromHeaders } from '../utils-hoist/tracing';
 import { handleCallbackErrors } from '../utils/handleCallbackErrors';
 import { hasTracingEnabled } from '../utils/hasTracingEnabled';
 import { _getSpanForScope, _setSpanForScope } from '../utils/spanOnScope';
@@ -32,40 +36,47 @@ const SUPPRESS_TRACING_KEY = '__SENTRY_SUPPRESS_TRACING__';
  * You'll always get a span passed to the callback,
  * it may just be a non-recording span if the span is not sampled or if tracing is disabled.
  */
-export function startSpan<T>(context: StartSpanOptions, callback: (span: Span) => T): T {
+export function startSpan<T>(options: StartSpanOptions, callback: (span: Span) => T): T {
   const acs = getAcs();
   if (acs.startSpan) {
-    return acs.startSpan(context, callback);
+    return acs.startSpan(options, callback);
   }
 
-  const spanContext = normalizeContext(context);
+  const spanArguments = parseSentrySpanArguments(options);
+  const { forceTransaction, parentSpan: customParentSpan } = options;
 
-  return withScope(context.scope, scope => {
-    const parentSpan = getParentSpan(scope);
+  return withScope(options.scope, () => {
+    // If `options.parentSpan` is defined, we want to wrap the callback in `withActiveSpan`
+    const wrapper = getActiveSpanWrapper<T>(customParentSpan);
 
-    const shouldSkipSpan = context.onlyIfParent && !parentSpan;
-    const activeSpan = shouldSkipSpan
-      ? new SentryNonRecordingSpan()
-      : createChildOrRootSpan({
-          parentSpan,
-          spanContext,
-          forceTransaction: context.forceTransaction,
-          scope,
-        });
+    return wrapper(() => {
+      const scope = getCurrentScope();
+      const parentSpan = getParentSpan(scope);
 
-    _setSpanForScope(scope, activeSpan);
+      const shouldSkipSpan = options.onlyIfParent && !parentSpan;
+      const activeSpan = shouldSkipSpan
+        ? new SentryNonRecordingSpan()
+        : createChildOrRootSpan({
+            parentSpan,
+            spanArguments,
+            forceTransaction,
+            scope,
+          });
 
-    return handleCallbackErrors(
-      () => callback(activeSpan),
-      () => {
-        // Only update the span status if it hasn't been changed yet, and the span is not yet finished
-        const { status } = spanToJSON(activeSpan);
-        if (activeSpan.isRecording() && (!status || status === 'ok')) {
-          activeSpan.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
-        }
-      },
-      () => activeSpan.end(),
-    );
+      _setSpanForScope(scope, activeSpan);
+
+      return handleCallbackErrors(
+        () => callback(activeSpan),
+        () => {
+          // Only update the span status if it hasn't been changed yet, and the span is not yet finished
+          const { status } = spanToJSON(activeSpan);
+          if (activeSpan.isRecording() && (!status || status === 'ok')) {
+            activeSpan.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+          }
+        },
+        () => activeSpan.end(),
+      );
+    });
   });
 }
 
@@ -79,43 +90,50 @@ export function startSpan<T>(context: StartSpanOptions, callback: (span: Span) =
  * You'll always get a span passed to the callback,
  * it may just be a non-recording span if the span is not sampled or if tracing is disabled.
  */
-export function startSpanManual<T>(context: StartSpanOptions, callback: (span: Span, finish: () => void) => T): T {
+export function startSpanManual<T>(options: StartSpanOptions, callback: (span: Span, finish: () => void) => T): T {
   const acs = getAcs();
   if (acs.startSpanManual) {
-    return acs.startSpanManual(context, callback);
+    return acs.startSpanManual(options, callback);
   }
 
-  const spanContext = normalizeContext(context);
+  const spanArguments = parseSentrySpanArguments(options);
+  const { forceTransaction, parentSpan: customParentSpan } = options;
 
-  return withScope(context.scope, scope => {
-    const parentSpan = getParentSpan(scope);
+  return withScope(options.scope, () => {
+    // If `options.parentSpan` is defined, we want to wrap the callback in `withActiveSpan`
+    const wrapper = getActiveSpanWrapper<T>(customParentSpan);
 
-    const shouldSkipSpan = context.onlyIfParent && !parentSpan;
-    const activeSpan = shouldSkipSpan
-      ? new SentryNonRecordingSpan()
-      : createChildOrRootSpan({
-          parentSpan,
-          spanContext,
-          forceTransaction: context.forceTransaction,
-          scope,
-        });
+    return wrapper(() => {
+      const scope = getCurrentScope();
+      const parentSpan = getParentSpan(scope);
 
-    _setSpanForScope(scope, activeSpan);
+      const shouldSkipSpan = options.onlyIfParent && !parentSpan;
+      const activeSpan = shouldSkipSpan
+        ? new SentryNonRecordingSpan()
+        : createChildOrRootSpan({
+            parentSpan,
+            spanArguments,
+            forceTransaction,
+            scope,
+          });
 
-    function finishAndSetSpan(): void {
-      activeSpan.end();
-    }
+      _setSpanForScope(scope, activeSpan);
 
-    return handleCallbackErrors(
-      () => callback(activeSpan, finishAndSetSpan),
-      () => {
-        // Only update the span status if it hasn't been changed yet, and the span is not yet finished
-        const { status } = spanToJSON(activeSpan);
-        if (activeSpan.isRecording() && (!status || status === 'ok')) {
-          activeSpan.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
-        }
-      },
-    );
+      function finishAndSetSpan(): void {
+        activeSpan.end();
+      }
+
+      return handleCallbackErrors(
+        () => callback(activeSpan, finishAndSetSpan),
+        () => {
+          // Only update the span status if it hasn't been changed yet, and the span is not yet finished
+          const { status } = spanToJSON(activeSpan);
+          if (activeSpan.isRecording() && (!status || status === 'ok')) {
+            activeSpan.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+          }
+        },
+      );
+    });
   });
 }
 
@@ -128,28 +146,39 @@ export function startSpanManual<T>(context: StartSpanOptions, callback: (span: S
  * This function will always return a span,
  * it may just be a non-recording span if the span is not sampled or if tracing is disabled.
  */
-export function startInactiveSpan(context: StartSpanOptions): Span {
+export function startInactiveSpan(options: StartSpanOptions): Span {
   const acs = getAcs();
   if (acs.startInactiveSpan) {
-    return acs.startInactiveSpan(context);
+    return acs.startInactiveSpan(options);
   }
 
-  const spanContext = normalizeContext(context);
+  const spanArguments = parseSentrySpanArguments(options);
+  const { forceTransaction, parentSpan: customParentSpan } = options;
 
-  const scope = context.scope || getCurrentScope();
-  const parentSpan = getParentSpan(scope);
+  // If `options.scope` is defined, we use this as as a wrapper,
+  // If `options.parentSpan` is defined, we want to wrap the callback in `withActiveSpan`
+  const wrapper = options.scope
+    ? (callback: () => Span) => withScope(options.scope, callback)
+    : customParentSpan !== undefined
+      ? (callback: () => Span) => withActiveSpan(customParentSpan, callback)
+      : (callback: () => Span) => callback();
 
-  const shouldSkipSpan = context.onlyIfParent && !parentSpan;
+  return wrapper(() => {
+    const scope = getCurrentScope();
+    const parentSpan = getParentSpan(scope);
 
-  if (shouldSkipSpan) {
-    return new SentryNonRecordingSpan();
-  }
+    const shouldSkipSpan = options.onlyIfParent && !parentSpan;
 
-  return createChildOrRootSpan({
-    parentSpan,
-    spanContext,
-    forceTransaction: context.forceTransaction,
-    scope,
+    if (shouldSkipSpan) {
+      return new SentryNonRecordingSpan();
+    }
+
+    return createChildOrRootSpan({
+      parentSpan,
+      spanArguments,
+      forceTransaction,
+      scope,
+    });
   });
 }
 
@@ -231,7 +260,7 @@ export function suppressTracing<T>(callback: () => T): T {
  */
 export function startNewTrace<T>(callback: () => T): T {
   return withScope(scope => {
-    scope.setPropagationContext(generatePropagationContext());
+    scope.setPropagationContext({ traceId: generateTraceId() });
     DEBUG_BUILD && logger.info(`Starting a new trace with id ${scope.getPropagationContext().traceId}`);
     return withActiveSpan(null, callback);
   });
@@ -239,12 +268,12 @@ export function startNewTrace<T>(callback: () => T): T {
 
 function createChildOrRootSpan({
   parentSpan,
-  spanContext,
+  spanArguments,
   forceTransaction,
   scope,
 }: {
   parentSpan: SentrySpan | undefined;
-  spanContext: SentrySpanArguments;
+  spanArguments: SentrySpanArguments;
   forceTransaction?: boolean;
   scope: Scope;
 }): Span {
@@ -256,7 +285,7 @@ function createChildOrRootSpan({
 
   let span: Span;
   if (parentSpan && !forceTransaction) {
-    span = _startChildSpan(parentSpan, scope, spanContext);
+    span = _startChildSpan(parentSpan, scope, spanArguments);
     addChildSpanToSpan(parentSpan, span);
   } else if (parentSpan) {
     // If we forced a transaction but have a parent span, make sure to continue from the parent span, not the scope
@@ -268,7 +297,7 @@ function createChildOrRootSpan({
       {
         traceId,
         parentSpanId,
-        ...spanContext,
+        ...spanArguments,
       },
       scope,
       parentSampled,
@@ -290,7 +319,7 @@ function createChildOrRootSpan({
       {
         traceId,
         parentSpanId,
-        ...spanContext,
+        ...spanArguments,
       },
       scope,
       parentSampled,
@@ -312,19 +341,17 @@ function createChildOrRootSpan({
  * This converts StartSpanOptions to SentrySpanArguments.
  * For the most part (for now) we accept the same options,
  * but some of them need to be transformed.
- *
- * Eventually the StartSpanOptions will be more aligned with OpenTelemetry.
  */
-function normalizeContext(context: StartSpanOptions): SentrySpanArguments {
-  const exp = context.experimental || {};
+function parseSentrySpanArguments(options: StartSpanOptions): SentrySpanArguments {
+  const exp = options.experimental || {};
   const initialCtx: SentrySpanArguments = {
     isStandalone: exp.standalone,
-    ...context,
+    ...options,
   };
 
-  if (context.startTime) {
+  if (options.startTime) {
     const ctx: SentrySpanArguments & { startTime?: SpanTimeInput } = { ...initialCtx };
-    ctx.startTimestamp = spanTimeInputToSeconds(context.startTime);
+    ctx.startTimestamp = spanTimeInputToSeconds(options.startTime);
     delete ctx.startTime;
     return ctx;
   }
@@ -418,4 +445,12 @@ function getParentSpan(scope: Scope): SentrySpan | undefined {
   }
 
   return span;
+}
+
+function getActiveSpanWrapper<T>(parentSpan: Span | undefined | null): (callback: () => T) => T {
+  return parentSpan !== undefined
+    ? (callback: () => T) => {
+        return withActiveSpan(parentSpan, callback);
+      }
+    : (callback: () => T) => callback();
 }

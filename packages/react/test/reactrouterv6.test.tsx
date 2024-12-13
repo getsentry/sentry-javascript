@@ -25,7 +25,7 @@ import { BrowserClient } from '../src';
 import {
   reactRouterV6BrowserTracingIntegration,
   withSentryReactRouterV6Routing,
-  wrapUseRoutes,
+  wrapUseRoutesV6,
 } from '../src/reactrouterv6';
 
 const mockStartBrowserTracingPageLoadSpan = jest.fn();
@@ -137,7 +137,7 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
         </MemoryRouter>,
       );
 
-      expect(getCurrentScope().getScopeData()?.transactionName).toEqual('/');
+      expect(getCurrentScope().getScopeData().transactionName).toEqual('/');
     });
 
     it('skips pageload transaction with `instrumentPageLoad: false`', () => {
@@ -268,7 +268,7 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
       });
     });
 
-    it('works with paramaterized paths', () => {
+    it('works with parameterized paths', () => {
       const client = createMockBrowserClient();
       setCurrentClient(client);
 
@@ -391,6 +391,209 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
       });
     });
 
+    it('works with wildcard routes', () => {
+      const client = createMockBrowserClient();
+      setCurrentClient(client);
+
+      client.addIntegration(
+        reactRouterV6BrowserTracingIntegration({
+          useEffect: React.useEffect,
+          useLocation,
+          useNavigationType,
+          createRoutesFromChildren,
+          matchRoutes,
+        }),
+      );
+      const SentryRoutes = withSentryReactRouterV6Routing(Routes);
+
+      render(
+        <MemoryRouter initialEntries={['/']}>
+          <SentryRoutes>
+            <Route path="*" element={<Outlet />}>
+              <Route index element={<Navigate to="/projects/123/views/234" />} />
+              <Route path="account" element={<div>Account Page</div>} />
+              <Route path="projects">
+                <Route path="*" element={<Outlet />}>
+                  <Route path=":projectId" element={<div>Project Page</div>}>
+                    <Route index element={<div>Project Page Root</div>} />
+                    <Route element={<div>Editor</div>}>
+                      <Route path="views/:viewId" element={<div>View Canvas</div>} />
+                      <Route path="spaces/:spaceId" element={<div>Space Canvas</div>} />
+                    </Route>
+                  </Route>
+                </Route>
+              </Route>
+              <Route path="*" element={<div>No Match Page</div>} />
+            </Route>
+          </SentryRoutes>
+        </MemoryRouter>,
+      );
+
+      expect(mockStartBrowserTracingNavigationSpan).toHaveBeenCalledTimes(1);
+      expect(mockStartBrowserTracingNavigationSpan).toHaveBeenLastCalledWith(expect.any(BrowserClient), {
+        name: '/projects/:projectId/views/:viewId',
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
+        },
+      });
+    });
+
+    it('works with nested wildcard routes', () => {
+      const client = createMockBrowserClient();
+      setCurrentClient(client);
+
+      client.addIntegration(
+        reactRouterV6BrowserTracingIntegration({
+          useEffect: React.useEffect,
+          useLocation,
+          useNavigationType,
+          createRoutesFromChildren,
+          matchRoutes,
+        }),
+      );
+      const SentryRoutes = withSentryReactRouterV6Routing(Routes);
+
+      render(
+        <MemoryRouter initialEntries={['/']}>
+          <SentryRoutes>
+            <Route path="*" element={<Outlet />}>
+              <Route index element={<Navigate to="/projects/123/views/234" />} />
+              <Route path="account" element={<div>Account Page</div>} />
+              <Route path="projects">
+                <Route path="*" element={<Outlet />}>
+                  <Route path=":projectId" element={<div>Project Page</div>}>
+                    <Route index element={<div>Project Page Root</div>} />
+                    <Route element={<div>Editor</div>}>
+                      <Route path="*" element={<Outlet />}>
+                        <Route path="views/:viewId" element={<div>View Canvas</div>} />
+                        <Route path="spaces/:spaceId" element={<div>Space Canvas</div>} />
+                      </Route>
+                    </Route>
+                  </Route>
+                </Route>
+              </Route>
+              <Route path="*" element={<div>No Match Page</div>} />
+            </Route>
+          </SentryRoutes>
+        </MemoryRouter>,
+      );
+
+      expect(mockStartBrowserTracingNavigationSpan).toHaveBeenCalledTimes(1);
+      expect(mockStartBrowserTracingNavigationSpan).toHaveBeenLastCalledWith(expect.any(BrowserClient), {
+        name: '/projects/:projectId/views/:viewId',
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
+        },
+      });
+    });
+
+    it('works with descendant wildcard routes - pageload', () => {
+      const client = createMockBrowserClient();
+      setCurrentClient(client);
+
+      client.addIntegration(
+        reactRouterV6BrowserTracingIntegration({
+          useEffect: React.useEffect,
+          useLocation,
+          useNavigationType,
+          createRoutesFromChildren,
+          matchRoutes,
+        }),
+      );
+      const SentryRoutes = withSentryReactRouterV6Routing(Routes);
+
+      const DetailsRoutes = () => (
+        <SentryRoutes>
+          <Route path=":detailId" element={<div id="details">Details</div>} />
+        </SentryRoutes>
+      );
+
+      const ViewsRoutes = () => (
+        <SentryRoutes>
+          <Route index element={<div id="views">Views</div>} />
+          <Route path="views/:viewId/*" element={<DetailsRoutes />} />
+        </SentryRoutes>
+      );
+
+      const ProjectsRoutes = () => (
+        <SentryRoutes>
+          <Route path="projects/:projectId/*" element={<ViewsRoutes />}></Route>
+          <Route path="*" element={<div>No Match Page</div>} />
+        </SentryRoutes>
+      );
+
+      render(
+        <MemoryRouter initialEntries={['/projects/000/views/111/222']}>
+          <SentryRoutes>
+            <Route path="/*" element={<ProjectsRoutes />}></Route>
+          </SentryRoutes>
+        </MemoryRouter>,
+      );
+
+      expect(mockStartBrowserTracingPageLoadSpan).toHaveBeenCalledTimes(1);
+      expect(mockRootSpan.updateName).toHaveBeenLastCalledWith('/projects/:projectId/views/:viewId/:detailId');
+      expect(mockRootSpan.setAttribute).toHaveBeenLastCalledWith(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
+    });
+
+    it('works with descendant wildcard routes - navigation', () => {
+      const client = createMockBrowserClient();
+      setCurrentClient(client);
+
+      client.addIntegration(
+        reactRouterV6BrowserTracingIntegration({
+          useEffect: React.useEffect,
+          useLocation,
+          useNavigationType,
+          createRoutesFromChildren,
+          matchRoutes,
+        }),
+      );
+      const SentryRoutes = withSentryReactRouterV6Routing(Routes);
+
+      const DetailsRoutes = () => (
+        <SentryRoutes>
+          <Route path=":detailId" element={<div id="details">Details</div>} />
+        </SentryRoutes>
+      );
+
+      const ViewsRoutes = () => (
+        <SentryRoutes>
+          <Route index element={<div id="views">Views</div>} />
+          <Route path="views/:viewId/*" element={<DetailsRoutes />} />
+        </SentryRoutes>
+      );
+
+      const ProjectsRoutes = () => (
+        <SentryRoutes>
+          <Route path="projects/:projectId/*" element={<ViewsRoutes />}></Route>
+          <Route path="*" element={<div>No Match Page</div>} />
+        </SentryRoutes>
+      );
+
+      render(
+        <MemoryRouter initialEntries={['/']}>
+          <SentryRoutes>
+            <Route index element={<Navigate to="/projects/123/views/234/567" />} />
+            <Route path="/*" element={<ProjectsRoutes />}></Route>
+          </SentryRoutes>
+        </MemoryRouter>,
+      );
+
+      expect(mockStartBrowserTracingNavigationSpan).toHaveBeenCalledTimes(1);
+      expect(mockStartBrowserTracingNavigationSpan).toHaveBeenLastCalledWith(expect.any(BrowserClient), {
+        name: '/projects/:projectId/views/:viewId/:detailId',
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
+        },
+      });
+    });
+
     it("updates the scope's `transactionName` on a navigation", () => {
       const client = createMockBrowserClient();
       setCurrentClient(client);
@@ -417,11 +620,11 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
         </MemoryRouter>,
       );
 
-      expect(getCurrentScope().getScopeData()?.transactionName).toBe('/about/:page');
+      expect(getCurrentScope().getScopeData().transactionName).toBe('/about/:page');
     });
   });
 
-  describe('wrapUseRoutes', () => {
+  describe('wrapUseRoutesV6', () => {
     it('starts a pageload transaction', () => {
       const client = createMockBrowserClient();
       setCurrentClient(client);
@@ -436,7 +639,7 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
         }),
       );
 
-      const wrappedUseRoutes = wrapUseRoutes(useRoutes);
+      const wrappedUseRoutes = wrapUseRoutesV6(useRoutes);
 
       const Routes = () =>
         wrappedUseRoutes([
@@ -477,7 +680,7 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
         }),
       );
 
-      const wrappedUseRoutes = wrapUseRoutes(useRoutes);
+      const wrappedUseRoutes = wrapUseRoutesV6(useRoutes);
 
       const Routes = () =>
         wrappedUseRoutes([
@@ -493,7 +696,7 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
         </MemoryRouter>,
       );
 
-      expect(getCurrentScope().getScopeData()?.transactionName).toEqual('/');
+      expect(getCurrentScope().getScopeData().transactionName).toEqual('/');
     });
 
     it('skips pageload transaction with `instrumentPageLoad: false`', () => {
@@ -511,7 +714,7 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
         }),
       );
 
-      const wrappedUseRoutes = wrapUseRoutes(useRoutes);
+      const wrappedUseRoutes = wrapUseRoutesV6(useRoutes);
 
       const Routes = () =>
         wrappedUseRoutes([
@@ -545,7 +748,7 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
         }),
       );
 
-      const wrappedUseRoutes = wrapUseRoutes(useRoutes);
+      const wrappedUseRoutes = wrapUseRoutesV6(useRoutes);
 
       const Routes = () =>
         wrappedUseRoutes([
@@ -582,7 +785,8 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
           matchRoutes,
         }),
       );
-      const wrappedUseRoutes = wrapUseRoutes(useRoutes);
+
+      const wrappedUseRoutes = wrapUseRoutesV6(useRoutes);
 
       const Routes = () =>
         wrappedUseRoutes([
@@ -626,7 +830,8 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
           matchRoutes,
         }),
       );
-      const wrappedUseRoutes = wrapUseRoutes(useRoutes);
+
+      const wrappedUseRoutes = wrapUseRoutesV6(useRoutes);
 
       const Routes = () =>
         wrappedUseRoutes([
@@ -663,7 +868,7 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
       });
     });
 
-    it('works with paramaterized paths', () => {
+    it('works with parameterized paths', () => {
       const client = createMockBrowserClient();
       setCurrentClient(client);
 
@@ -676,7 +881,8 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
           matchRoutes,
         }),
       );
-      const wrappedUseRoutes = wrapUseRoutes(useRoutes);
+
+      const wrappedUseRoutes = wrapUseRoutesV6(useRoutes);
 
       const Routes = () =>
         wrappedUseRoutes([
@@ -726,7 +932,8 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
           matchRoutes,
         }),
       );
-      const wrappedUseRoutes = wrapUseRoutes(useRoutes);
+
+      const wrappedUseRoutes = wrapUseRoutesV6(useRoutes);
 
       const Routes = () =>
         wrappedUseRoutes([
@@ -782,7 +989,8 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
           matchRoutes,
         }),
       );
-      const wrappedUseRoutes = wrapUseRoutes(useRoutes);
+
+      const wrappedUseRoutes = wrapUseRoutesV6(useRoutes);
 
       const Routes = () =>
         wrappedUseRoutes([
@@ -849,6 +1057,229 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
       });
     });
 
+    it('works with wildcard routes', () => {
+      const client = createMockBrowserClient();
+      setCurrentClient(client);
+
+      client.addIntegration(
+        reactRouterV6BrowserTracingIntegration({
+          useEffect: React.useEffect,
+          useLocation,
+          useNavigationType,
+          createRoutesFromChildren,
+          matchRoutes,
+        }),
+      );
+
+      const wrappedUseRoutes = wrapUseRoutesV6(useRoutes);
+
+      const Routes = () =>
+        wrappedUseRoutes([
+          {
+            index: true,
+            element: <Navigate to="/param-page/1231/details/3212" />,
+          },
+          {
+            path: '*',
+            element: <></>,
+            children: [
+              {
+                path: 'profile',
+                element: <></>,
+              },
+              {
+                path: 'param-page',
+                element: <Outlet />,
+                children: [
+                  {
+                    path: '*',
+                    element: <Outlet />,
+                    children: [
+                      {
+                        path: ':id',
+                        element: <></>,
+                        children: [
+                          {
+                            element: <></>,
+                            path: 'details',
+                            children: [
+                              {
+                                element: <></>,
+                                path: ':superId',
+                              },
+                            ],
+                          },
+                        ],
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+        ]);
+
+      render(
+        <MemoryRouter initialEntries={['/']}>
+          <Routes />
+        </MemoryRouter>,
+      );
+
+      expect(mockStartBrowserTracingNavigationSpan).toHaveBeenCalledTimes(1);
+      expect(mockStartBrowserTracingNavigationSpan).toHaveBeenLastCalledWith(expect.any(BrowserClient), {
+        name: '/param-page/:id/details/:superId',
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
+        },
+      });
+    });
+
+    it('works with descendant wildcard routes - pageload', () => {
+      const client = createMockBrowserClient();
+      setCurrentClient(client);
+
+      client.addIntegration(
+        reactRouterV6BrowserTracingIntegration({
+          useEffect: React.useEffect,
+          useLocation,
+          useNavigationType,
+          createRoutesFromChildren,
+          matchRoutes,
+        }),
+      );
+
+      const wrappedUseRoutes = wrapUseRoutesV6(useRoutes);
+
+      const DetailsRoutes = () =>
+        wrappedUseRoutes([
+          {
+            path: ':detailId',
+            element: <div id="details">Details</div>,
+          },
+        ]);
+
+      const ViewsRoutes = () =>
+        wrappedUseRoutes([
+          {
+            index: true,
+            element: <div id="views">Views</div>,
+          },
+          {
+            path: 'views/:viewId/*',
+            element: <DetailsRoutes />,
+          },
+        ]);
+
+      const ProjectsRoutes = () =>
+        wrappedUseRoutes([
+          {
+            path: 'projects/:projectId/*',
+            element: <ViewsRoutes />,
+          },
+          {
+            path: '*',
+            element: <div>No Match Page</div>,
+          },
+        ]);
+
+      const Routes = () =>
+        wrappedUseRoutes([
+          {
+            path: '/*',
+            element: <ProjectsRoutes />,
+          },
+        ]);
+
+      render(
+        <MemoryRouter initialEntries={['/projects/123/views/456/789']}>
+          <Routes />
+        </MemoryRouter>,
+      );
+
+      expect(mockStartBrowserTracingPageLoadSpan).toHaveBeenCalledTimes(1);
+      expect(mockRootSpan.updateName).toHaveBeenLastCalledWith('/projects/:projectId/views/:viewId/:detailId');
+      expect(mockRootSpan.setAttribute).toHaveBeenLastCalledWith(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
+    });
+
+    it('works with descendant wildcard routes - navigation', () => {
+      const client = createMockBrowserClient();
+      setCurrentClient(client);
+
+      client.addIntegration(
+        reactRouterV6BrowserTracingIntegration({
+          useEffect: React.useEffect,
+          useLocation,
+          useNavigationType,
+          createRoutesFromChildren,
+          matchRoutes,
+        }),
+      );
+
+      const wrappedUseRoutes = wrapUseRoutesV6(useRoutes);
+
+      const DetailsRoutes = () =>
+        wrappedUseRoutes([
+          {
+            path: ':detailId',
+            element: <div id="details">Details</div>,
+          },
+        ]);
+
+      const ViewsRoutes = () =>
+        wrappedUseRoutes([
+          {
+            index: true,
+            element: <div id="views">Views</div>,
+          },
+          {
+            path: 'views/:viewId/*',
+            element: <DetailsRoutes />,
+          },
+        ]);
+
+      const ProjectsRoutes = () =>
+        wrappedUseRoutes([
+          {
+            path: 'projects/:projectId/*',
+            element: <ViewsRoutes />,
+          },
+          {
+            path: '*',
+            element: <div>No Match Page</div>,
+          },
+        ]);
+
+      const Routes = () =>
+        wrappedUseRoutes([
+          {
+            index: true,
+            element: <Navigate to="/projects/123/views/456/789" />,
+          },
+          {
+            path: '/*',
+            element: <ProjectsRoutes />,
+          },
+        ]);
+
+      render(
+        <MemoryRouter initialEntries={['/']}>
+          <Routes />
+        </MemoryRouter>,
+      );
+
+      expect(mockStartBrowserTracingNavigationSpan).toHaveBeenCalledTimes(1);
+      expect(mockStartBrowserTracingNavigationSpan).toHaveBeenLastCalledWith(expect.any(BrowserClient), {
+        name: '/projects/:projectId/views/:viewId/:detailId',
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
+        },
+      });
+    });
+
     it('does not add double slashes to URLS', () => {
       const client = createMockBrowserClient();
       setCurrentClient(client);
@@ -862,7 +1293,8 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
           matchRoutes,
         }),
       );
-      const wrappedUseRoutes = wrapUseRoutes(useRoutes);
+
+      const wrappedUseRoutes = wrapUseRoutesV6(useRoutes);
 
       const Routes = () =>
         wrappedUseRoutes([
@@ -920,7 +1352,8 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
           matchRoutes,
         }),
       );
-      const wrappedUseRoutes = wrapUseRoutes(useRoutes);
+
+      const wrappedUseRoutes = wrapUseRoutesV6(useRoutes);
 
       const Routes = () =>
         wrappedUseRoutes([
@@ -977,7 +1410,8 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
           matchRoutes,
         }),
       );
-      const wrappedUseRoutes = wrapUseRoutes(useRoutes);
+
+      const wrappedUseRoutes = wrapUseRoutesV6(useRoutes);
 
       const Routes = () =>
         wrappedUseRoutes([
@@ -997,7 +1431,7 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
         </MemoryRouter>,
       );
 
-      expect(getCurrentScope().getScopeData()?.transactionName).toBe('/about');
+      expect(getCurrentScope().getScopeData().transactionName).toBe('/about');
     });
   });
 });

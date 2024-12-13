@@ -1,6 +1,6 @@
 {
   "name": "@sentry/bun",
-  "version": "8.7.0",
+  "version": "8.44.0",
   "description": "Official Sentry SDK for bun",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/bun",
@@ -9,7 +9,7 @@
   "engines": {
     "node": ">=14.18"
   },
-  "files": ["cjs", "esm", "types", "types-ts3.8"],
+  "files": ["/build"],
   "main": "build/cjs/index.js",
   "module": "build/esm/index.js",
   "types": "build/types/index.d.ts",
@@ -35,11 +35,9 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/core": "8.7.0",
-    "@sentry/node": "8.7.0",
-    "@sentry/opentelemetry": "8.7.0",
-    "@sentry/types": "8.7.0",
-    "@sentry/utils": "8.7.0"
+    "@sentry/core": "8.44.0",
+    "@sentry/node": "8.44.0",
+    "@sentry/opentelemetry": "8.44.0"
   },
   "devDependencies": {
     "bun-types": "latest"
@@ -55,7 +53,7 @@
     "build:dev:watch": "yarn build:watch",
     "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",
     "build:types:watch": "tsc -p tsconfig.types.json --watch",
-    "build:tarball": "ts-node ../../scripts/prepack.ts && npm pack ./build",
+    "build:tarball": "npm pack",
     "circularDepCheck": "madge --circular src/index.ts",
     "clean": "rimraf build coverage sentry-bun-*.tgz",
     "fix": "eslint . --format stylish --fix",
@@ -64,7 +62,7 @@
     "test": "run-s install:bun test:bun",
     "test:bun": "bun test",
     "test:watch": "bun test --watch",
-    "yalc:publish": "ts-node ../../scripts/prepack.ts && yalc publish build --push --sig"
+    "yalc:publish": "yalc publish --push --sig"
   },
   "volta": {
     "extends": "../../package.json"

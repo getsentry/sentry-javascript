@@ -1,6 +1,7 @@
-import type { Breadcrumb, BreadcrumbHint } from '@sentry/types';
-import { consoleSandbox, dateTimestampInSeconds } from '@sentry/utils';
 import { getClient, getIsolationScope } from './currentScopes';
+import type { Breadcrumb, BreadcrumbHint } from './types-hoist';
+import { consoleSandbox } from './utils-hoist/logger';
+import { dateTimestampInSeconds } from './utils-hoist/time';
 
 /**
  * Default maximum number of breadcrumbs added to an event. Can be overwritten

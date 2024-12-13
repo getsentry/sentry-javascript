@@ -1,3 +1,5 @@
+import { describe, expect, it } from 'vitest';
+
 import { replayIntegration } from '../../src/integration';
 
 describe('Unit | multipleInstances', () => {

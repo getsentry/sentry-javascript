@@ -1,6 +1,5 @@
 import { SENTRY_XHR_DATA_KEY } from '@sentry-internal/browser-utils';
-import type { Breadcrumb, XhrBreadcrumbData } from '@sentry/types';
-import { logger } from '@sentry/utils';
+import type { Breadcrumb, XhrBreadcrumbData } from '@sentry/core';
 
 import { DEBUG_BUILD } from '../../debug-build';
 import type {
@@ -10,6 +9,7 @@ import type {
   ReplayNetworkRequestData,
   XhrHint,
 } from '../../types';
+import { logger } from '../../util/logger';
 import { addNetworkBreadcrumb } from './addNetworkBreadcrumb';
 import {
   buildNetworkRequestOrResponse,
@@ -25,7 +25,7 @@ import {
 
 /**
  * Capture an XHR breadcrumb to a replay.
- * This adds additional data (where approriate).
+ * This adds additional data (where appropriate).
  */
 export async function captureXhrBreadcrumbToReplay(
   breadcrumb: Breadcrumb & { data: XhrBreadcrumbData },
@@ -39,7 +39,7 @@ export async function captureXhrBreadcrumbToReplay(
     const result = makeNetworkReplayBreadcrumb('resource.xhr', data);
     addNetworkBreadcrumb(options.replay, result);
   } catch (error) {
-    DEBUG_BUILD && logger.error('[Replay] Failed to capture xhr breadcrumb', error);
+    DEBUG_BUILD && logger.exception(error, 'Failed to capture xhr breadcrumb');
   }
 }
 
@@ -136,8 +136,10 @@ function getResponseHeaders(xhr: XMLHttpRequest): Record<string, string> {
   }
 
   return headers.split('\r\n').reduce((acc: Record<string, string>, line: string) => {
-    const [key, value] = line.split(': ');
-    acc[key.toLowerCase()] = value;
+    const [key, value] = line.split(': ') as [string, string | undefined];
+    if (value) {
+      acc[key.toLowerCase()] = value;
+    }
     return acc;
   }, {});
 }
@@ -159,7 +161,7 @@ function _getXhrResponseBody(xhr: XMLHttpRequest): [string | undefined, NetworkM
     errors.push(e);
   }
 
-  DEBUG_BUILD && logger.warn('[Replay] Failed to get xhr response body', ...errors);
+  DEBUG_BUILD && logger.warn('Failed to get xhr response body', ...errors);
 
   return [undefined];
 }
@@ -195,12 +197,12 @@ export function _parseXhrResponse(
     if (!body) {
       return [undefined];
     }
-  } catch {
-    DEBUG_BUILD && logger.warn('[Replay] Failed to serialize body', body);
+  } catch (error) {
+    DEBUG_BUILD && logger.exception(error, 'Failed to serialize body', body);
     return [undefined, 'BODY_PARSE_ERROR'];
   }
 
-  DEBUG_BUILD && logger.info('[Replay] Skipping network body because of body type', body);
+  DEBUG_BUILD && logger.info('Skipping network body because of body type', body);
 
   return [undefined, 'UNPARSEABLE_BODY_TYPE'];
 }

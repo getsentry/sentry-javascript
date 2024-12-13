@@ -17,9 +17,9 @@
     "clean:build": "lerna run clean",
     "clean:caches": "yarn rimraf eslintcache .nxcache && yarn jest --clearCache",
     "clean:deps": "lerna clean --yes && rm -rf node_modules && yarn",
-    "clean:tarballs": "rimraf **/*.tgz",
-    "clean:all": "run-s clean:build clean:tarballs clean:caches clean:deps",
-    "codecov": "codecov",
+    "clean:tarballs": "rimraf {packages,dev-packages}/*/*.tgz",
+    "clean:watchman": "watchman watch-del \".\"",
+    "clean:all": "run-s clean:build clean:tarballs clean:caches clean:deps clean:watchman",
     "fix": "run-s fix:biome fix:prettier fix:lerna",
     "fix:lerna": "lerna run fix",
     "fix:biome": "biome check --write .",
@@ -32,17 +32,21 @@
     "lint:biome": "biome check .",
     "lint:prettier": "prettier \"**/*.md\" \"**/*.css\" --check",
     "postpublish": "lerna run --stream --concurrency 1 postpublish",
-    "test": "lerna run --ignore \"@sentry-internal/{browser-integration-tests,e2e-tests,integration-shims,node-integration-tests,overhead-metrics}\" test",
-    "test:unit": "lerna run --ignore \"@sentry-internal/{browser-integration-tests,e2e-tests,integration-shims,node-integration-tests,overhead-metrics}\" test:unit",
-    "test-ci-browser": "lerna run test --ignore \"@sentry/{bun,deno,node,profiling-node,serverless,google-cloud,nextjs,remix,gatsby,sveltekit,vercel-edge}\" --ignore \"@sentry-internal/{browser-integration-tests,e2e-tests,integration-shims,node-integration-tests,overhead-metrics}\"",
-    "test-ci-node": "ts-node ./scripts/node-unit-tests.ts",
-    "test-ci-bun": "lerna run test --scope @sentry/bun",
+    "test": "lerna run --ignore \"@sentry-internal/{browser-integration-tests,e2e-tests,integration-shims,node-integration-tests}\" test",
+    "test:unit": "lerna run --ignore \"@sentry-internal/{browser-integration-tests,e2e-tests,integration-shims,node-integration-tests}\" test:unit",
     "test:update-snapshots": "lerna run test:update-snapshots",
+    "test:pr": "nx affected -t test --exclude \"@sentry-internal/{browser-integration-tests,e2e-tests,integration-shims,node-integration-tests}\"",
+    "test:pr:browser": "UNIT_TEST_ENV=browser ts-node ./scripts/ci-unit-tests.ts --affected",
+    "test:pr:node": "UNIT_TEST_ENV=node ts-node ./scripts/ci-unit-tests.ts --affected",
+    "test:ci:browser": "UNIT_TEST_ENV=browser ts-node ./scripts/ci-unit-tests.ts",
+    "test:ci:node": "UNIT_TEST_ENV=node ts-node ./scripts/ci-unit-tests.ts",
+    "test:ci:bun": "lerna run test --scope @sentry/bun",
     "yalc:publish": "lerna run yalc:publish"
   },
   "volta": {
     "node": "18.20.3",
-    "yarn": "1.22.19"
+    "yarn": "1.22.22",
+    "pnpm": "9.4.0"
   },
   "workspaces": [
     "packages/angular",
@@ -52,6 +56,7 @@
     "packages/browser-utils",
     "packages/bun",
     "packages/core",
+    "packages/cloudflare",
     "packages/deno",
     "packages/ember",
     "packages/eslint-config-sdk",
@@ -60,8 +65,11 @@
     "packages/gatsby",
     "packages/google-cloud-serverless",
     "packages/integration-shims",
+    "packages/nestjs",
     "packages/nextjs",
+    "packages/nitro-utils",
     "packages/node",
+    "packages/nuxt",
     "packages/opentelemetry",
     "packages/profiling-node",
     "packages/react",
@@ -69,7 +77,8 @@
     "packages/replay-internal",
     "packages/replay-canvas",
     "packages/replay-worker",
-    "packages/solidjs",
+    "packages/solid",
+    "packages/solidstart",
     "packages/svelte",
     "packages/sveltekit",
     "packages/types",
@@ -82,14 +91,14 @@
     "dev-packages/bundle-analyzer-scenarios",
     "dev-packages/e2e-tests",
     "dev-packages/node-integration-tests",
-    "dev-packages/overhead-metrics",
-    "dev-packages/event-proxy-server",
+    "dev-packages/test-utils",
     "dev-packages/size-limit-gh-action",
+    "dev-packages/clear-cache-gh-action",
+    "dev-packages/external-contributor-gh-action",
     "dev-packages/rollup-utils"
   ],
   "devDependencies": {
     "@biomejs/biome": "^1.8.0",
-    "@codecov/rollup-plugin": "0.0.1-beta.5",
     "@rollup/plugin-commonjs": "^25.0.7",
     "@rollup/plugin-esm-shim": "^0.1.5",
     "@rollup/plugin-json": "^6.1.0",
@@ -99,17 +108,14 @@
     "@rollup/plugin-terser": "^0.4.4",
     "@rollup/plugin-typescript": "^11.1.6",
     "@rollup/pluginutils": "^5.1.0",
-    "@size-limit/file": "~11.1.0",
-    "@size-limit/webpack": "~11.1.0",
-    "@strictsoftware/typedoc-plugin-monorepo": "^0.3.1",
+    "@size-limit/file": "~11.1.6",
+    "@size-limit/webpack": "~11.1.6",
     "@types/jest": "^27.4.1",
     "@types/jsdom": "^21.1.6",
     "@types/node": "^14.18.0",
     "@vitest/coverage-v8": "^1.6.0",
-    "codecov": "^3.6.5",
     "deepmerge": "^4.2.2",
     "downlevel-dts": "~0.11.0",
-    "es-check": "7.1.0",
     "eslint": "7.32.0",
     "jest": "^27.5.1",
     "jest-environment-node": "^27.5.1",
@@ -117,24 +123,29 @@
     "lerna": "7.1.1",
     "madge": "7.0.0",
     "nodemon": "^2.0.16",
-    "npm-run-all": "^4.1.5",
+    "npm-run-all2": "^6.2.0",
     "prettier": "^3.1.1",
-    "replace-in-file": "^4.0.0",
-    "rimraf": "^3.0.2",
-    "rollup": "^4.13.0",
+    "rimraf": "^5.0.10",
+    "rollup": "^4.24.2",
     "rollup-plugin-cleanup": "^3.2.1",
     "rollup-plugin-license": "^3.3.1",
-    "size-limit": "~11.1.0",
+    "size-limit": "~11.1.6",
     "sucrase": "^3.35.0",
     "ts-jest": "^27.1.4",
     "ts-node": "10.9.1",
-    "typedoc": "^0.18.0",
     "typescript": "4.9.5",
     "vitest": "^1.6.0",
     "yalc": "^1.0.0-pre.53"
   },
+  "//_resolutions_comment": [
+    "Because new versions of strip-ansi, string-width, and wrap-ansi are ESM only packages,",
+    "we need to resolve them to the CommonJS versions.",
+    "This is a temporary solution until we can upgrade to a version of lerna that supports ESM packages"
+  ],
   "resolutions": {
-    "gauge/strip-ansi": "6.0.1"
+    "gauge/strip-ansi": "6.0.1",
+    "wide-align/string-width": "4.2.3",
+    "cliui/wrap-ansi": "7.0.0"
   },
   "version": "0.0.0",
   "name": "sentry-javascript",
@@ -143,6 +154,14 @@
     "printWidth": 120,
     "proseWrap": "always",
     "singleQuote": true,
-    "trailingComma": "all"
+    "trailingComma": "all",
+    "overrides": [
+      {
+        "files": "*.md",
+        "options": {
+          "proseWrap": "preserve"
+        }
+      }
+    ]
   }
 }

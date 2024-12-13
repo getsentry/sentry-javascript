@@ -1,4 +1,4 @@
-import type { FeedbackFormData, FeedbackInternalOptions } from '@sentry/types';
+import type { FeedbackFormData, FeedbackInternalOptions } from '@sentry/core';
 import type { OptionalFeedbackConfiguration } from '../core/types';
 
 /**
@@ -11,6 +11,10 @@ export function mergeOptions(
   return {
     ...defaultOptions,
     ...optionOverrides,
+    tags: {
+      ...defaultOptions.tags,
+      ...optionOverrides.tags,
+    },
     onFormOpen: () => {
       optionOverrides.onFormOpen && optionOverrides.onFormOpen();
       defaultOptions.onFormOpen && defaultOptions.onFormOpen();

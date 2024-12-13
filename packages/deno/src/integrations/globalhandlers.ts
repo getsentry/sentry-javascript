@@ -1,10 +1,5 @@
-import type { ServerRuntimeClient } from '@sentry/core';
-import { defineIntegration } from '@sentry/core';
-import { captureEvent } from '@sentry/core';
-import { getClient } from '@sentry/core';
-import { flush } from '@sentry/core';
-import type { Client, Event, IntegrationFn, Primitive, StackParser } from '@sentry/types';
-import { eventFromUnknownInput, isPrimitive } from '@sentry/utils';
+import type { Client, Event, IntegrationFn, Primitive, ServerRuntimeClient, StackParser } from '@sentry/core';
+import { captureEvent, defineIntegration, eventFromUnknownInput, flush, getClient, isPrimitive } from '@sentry/core';
 
 type GlobalHandlersIntegrationsOptionKeys = 'error' | 'unhandledrejection';
 

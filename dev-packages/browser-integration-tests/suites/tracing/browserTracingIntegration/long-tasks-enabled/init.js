@@ -7,6 +7,7 @@ Sentry.init({
   integrations: [
     Sentry.browserTracingIntegration({
       idleTimeout: 9000,
+      enableLongAnimationFrame: false,
     }),
   ],
   tracesSampleRate: 1,

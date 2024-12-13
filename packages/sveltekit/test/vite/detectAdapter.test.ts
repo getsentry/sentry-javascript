@@ -1,10 +1,10 @@
-import { vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { detectAdapter } from '../../src/vite/detectAdapter';
 
 let existsFile = true;
 const pkgJson = {
-  dependencies: {},
+  dependencies: {} as Record<string, string>,
 };
 describe('detectAdapter', () => {
   beforeEach(() => {

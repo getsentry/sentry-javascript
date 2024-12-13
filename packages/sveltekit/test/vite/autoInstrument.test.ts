@@ -1,4 +1,4 @@
-import { vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { canWrapLoad, makeAutoInstrumentationPlugin } from '../../src/vite/autoInstrument';
 
@@ -12,7 +12,6 @@ let fileContent: string | undefined;
 vi.mock('fs', async () => {
   const actual = await vi.importActual('fs');
   return {
-    // @ts-expect-error this exists, I promise!
     ...actual,
     promises: {
       // @ts-expect-error this also exists, I promise!

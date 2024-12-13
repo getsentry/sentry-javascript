@@ -1,3 +1,9 @@
+/**
+ * @vitest-environment jsdom
+ */
+
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { SENTRY_XHR_DATA_KEY } from '@sentry-internal/browser-utils';
 import type {
   Breadcrumb,
@@ -5,7 +11,7 @@ import type {
   FetchBreadcrumbHint,
   SentryWrappedXMLHttpRequest,
   XhrBreadcrumbHint,
-} from '@sentry/types';
+} from '@sentry/core';
 
 import { BASE_TIMESTAMP } from '../..';
 import { NETWORK_BODY_MAX_SIZE } from '../../../src/constants';
@@ -37,10 +43,10 @@ function getMockResponse(contentLength?: string, body?: string, headers?: Record
   const response = {
     headers: {
       has: (prop: string) => {
-        return !!internalHeaders[prop?.toLowerCase() ?? ''];
+        return !!internalHeaders[prop.toLowerCase() ?? ''];
       },
       get: (prop: string) => {
-        return internalHeaders[prop?.toLowerCase() ?? ''];
+        return internalHeaders[prop.toLowerCase() ?? ''];
       },
     },
     clone: () => response,

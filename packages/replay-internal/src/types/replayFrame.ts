@@ -1,13 +1,13 @@
-import type { Breadcrumb } from '@sentry/types';
+import type { Breadcrumb } from '@sentry/core';
 
 import type {
   HistoryData,
-  LargestContentfulPaintData,
   MemoryData,
   NavigationData,
   NetworkRequestData,
   PaintData,
   ResourceData,
+  WebVitalData,
 } from './performance';
 import type { ReplayEventTypeCustom } from './rrweb';
 
@@ -66,6 +66,14 @@ interface ReplayMutationFrameData {
 interface ReplayMutationFrame extends ReplayBaseBreadcrumbFrame {
   category: 'replay.mutations';
   data: ReplayMutationFrameData;
+}
+
+interface ReplayHydrationErrorFrameData {
+  url: string;
+}
+interface ReplayHydrationErrorFrame extends ReplayBaseBreadcrumbFrame {
+  category: 'replay.hydrate-error';
+  data: ReplayHydrationErrorFrameData;
 }
 
 interface ReplayKeyboardEventFrameData extends ReplayBaseDomFrameData {
@@ -146,6 +154,7 @@ export type ReplayBreadcrumbFrame =
   | ReplaySlowClickFrame
   | ReplayMultiClickFrame
   | ReplayMutationFrame
+  | ReplayHydrationErrorFrame
   | ReplayFeedbackFrame
   | ReplayBaseBreadcrumbFrame;
 
@@ -162,9 +171,9 @@ interface ReplayHistoryFrame extends ReplayBaseSpanFrame {
   op: 'navigation.push';
 }
 
-interface ReplayLargestContentfulPaintFrame extends ReplayBaseSpanFrame {
-  data: LargestContentfulPaintData;
-  op: 'largest-contentful-paint';
+interface ReplayWebVitalFrame extends ReplayBaseSpanFrame {
+  data: WebVitalData;
+  op: 'largest-contentful-paint' | 'cumulative-layout-shift' | 'first-input-delay' | 'interaction-to-next-paint';
 }
 
 interface ReplayMemoryFrame extends ReplayBaseSpanFrame {
@@ -196,7 +205,7 @@ export type ReplaySpanFrame =
   | ReplayBaseSpanFrame
   | ReplayHistoryFrame
   | ReplayRequestFrame
-  | ReplayLargestContentfulPaintFrame
+  | ReplayWebVitalFrame
   | ReplayMemoryFrame
   | ReplayNavigationFrame
   | ReplayPaintFrame

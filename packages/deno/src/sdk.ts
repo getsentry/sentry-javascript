@@ -1,14 +1,15 @@
-import type { ServerRuntimeClientOptions } from '@sentry/core';
+import type { Client, Integration, Options, ServerRuntimeClientOptions, StackParser } from '@sentry/core';
 import {
+  createStackParser,
   dedupeIntegration,
   functionToStringIntegration,
+  getIntegrationsToSetup,
   inboundFiltersIntegration,
+  initAndBind,
   linkedErrorsIntegration,
+  nodeStackLineParser,
+  stackParserFromStackParserOptions,
 } from '@sentry/core';
-import { getIntegrationsToSetup, initAndBind } from '@sentry/core';
-import type { Integration, Options, StackParser } from '@sentry/types';
-import { createStackParser, nodeStackLineParser, stackParserFromStackParserOptions } from '@sentry/utils';
-
 import { DenoClient } from './client';
 import { breadcrumbsIntegration } from './integrations/breadcrumbs';
 import { denoContextIntegration } from './integrations/context';
@@ -82,7 +83,7 @@ const defaultStackParser: StackParser = createStackParser(nodeStackLineParser())
  *
  * @see {@link DenoOptions} for documentation on configuration options.
  */
-export function init(options: DenoOptions = {}): void {
+export function init(options: DenoOptions = {}): Client {
   if (options.defaultIntegrations === undefined) {
     options.defaultIntegrations = getDefaultIntegrations(options);
   }
@@ -94,5 +95,5 @@ export function init(options: DenoOptions = {}): void {
     transport: options.transport || makeFetchTransport,
   };
 
-  initAndBind(DenoClient, clientOptions);
+  return initAndBind(DenoClient, clientOptions);
 }

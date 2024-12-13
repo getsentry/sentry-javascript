@@ -25,8 +25,8 @@ test('should inject `sentry-trace` and `baggage` into root loader returning an e
 
   const { sentryTrace, sentryBaggage } = await extractTraceAndBaggageFromMeta(page);
 
-  expect(sentryTrace).toEqual(expect.any(String));
-  expect(sentryBaggage).toEqual(expect.any(String));
+  expect(sentryTrace).toMatch(/.+/);
+  expect(sentryBaggage).toMatch(/.+/);
 
   const rootData = (await getRouteData(page))['root'];
 
@@ -41,8 +41,8 @@ test('should inject `sentry-trace` and `baggage` into root loader returning a pl
 
   const { sentryTrace, sentryBaggage } = await extractTraceAndBaggageFromMeta(page);
 
-  expect(sentryTrace).toEqual(expect.any(String));
-  expect(sentryBaggage).toEqual(expect.any(String));
+  expect(sentryTrace).toMatch(/.+/);
+  expect(sentryBaggage).toMatch(/.+/);
 
   const rootData = (await getRouteData(page))['root'];
 
@@ -59,8 +59,8 @@ test('should inject `sentry-trace` and `baggage` into root loader returning a `J
 
   const { sentryTrace, sentryBaggage } = await extractTraceAndBaggageFromMeta(page);
 
-  expect(sentryTrace).toEqual(expect.any(String));
-  expect(sentryBaggage).toEqual(expect.any(String));
+  expect(sentryTrace).toMatch(/.+/);
+  expect(sentryBaggage).toMatch(/.+/);
 
   const rootData = (await getRouteData(page))['root'];
 
@@ -77,8 +77,8 @@ test('should inject `sentry-trace` and `baggage` into root loader returning a de
 
   const { sentryTrace, sentryBaggage } = await extractTraceAndBaggageFromMeta(page);
 
-  expect(sentryTrace).toEqual(expect.any(String));
-  expect(sentryBaggage).toEqual(expect.any(String));
+  expect(sentryTrace).toMatch(/.+/);
+  expect(sentryBaggage).toMatch(/.+/);
 
   const rootData = (await getRouteData(page))['root'];
 
@@ -93,8 +93,8 @@ test('should inject `sentry-trace` and `baggage` into root loader returning `nul
 
   const { sentryTrace, sentryBaggage } = await extractTraceAndBaggageFromMeta(page);
 
-  expect(sentryTrace).toEqual(expect.any(String));
-  expect(sentryBaggage).toEqual(expect.any(String));
+  expect(sentryTrace).toMatch(/.+/);
+  expect(sentryBaggage).toMatch(/.+/);
 
   const rootData = (await getRouteData(page))['root'];
 
@@ -109,8 +109,8 @@ test('should inject `sentry-trace` and `baggage` into root loader returning `und
 
   const { sentryTrace, sentryBaggage } = await extractTraceAndBaggageFromMeta(page);
 
-  expect(sentryTrace).toEqual(expect.any(String));
-  expect(sentryBaggage).toEqual(expect.any(String));
+  expect(sentryTrace).toMatch(/.+/);
+  expect(sentryBaggage).toMatch(/.+/);
 
   const rootData = (await getRouteData(page))['root'];
 
@@ -130,8 +130,8 @@ test('should inject `sentry-trace` and `baggage` into root loader throwing a red
 
   const { sentryTrace, sentryBaggage } = await extractTraceAndBaggageFromMeta(page);
 
-  expect(sentryTrace).toEqual(expect.any(String));
-  expect(sentryBaggage).toEqual(expect.any(String));
+  expect(sentryTrace).toMatch(/.+/);
+  expect(sentryBaggage).toMatch(/.+/);
 
   const rootData = (await getRouteData(page))['root'];
 
@@ -151,8 +151,8 @@ test('should inject `sentry-trace` and `baggage` into root loader returning a re
 
   const { sentryTrace, sentryBaggage } = await extractTraceAndBaggageFromMeta(page);
 
-  expect(sentryTrace).toEqual(expect.any(String));
-  expect(sentryBaggage).toEqual(expect.any(String));
+  expect(sentryTrace).toMatch(/.+/);
+  expect(sentryBaggage).toMatch(/.+/);
 
   const rootData = (await getRouteData(page))['root'];
 

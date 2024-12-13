@@ -96,22 +96,31 @@ export type ResourceData = Pick<PerformanceResourceTiming, 'decodedBodySize' | '
   statusCode?: number;
 };
 
-export interface LargestContentfulPaintData {
+export interface WebVitalData {
   /**
    * Render time (in ms) of the LCP
    */
   value: number;
   size: number;
   /**
-   * The recording id of the LCP node. -1 if not found
+   * The rating as to whether the metric value is within the "good",
+   * "needs improvement", or "poor" thresholds of the metric.
    */
-  nodeId?: number;
+  rating: 'good' | 'needs-improvement' | 'poor';
+  /**
+   * The recording id of the web vital nodes. -1 if not found
+   */
+  nodeIds?: number[];
+  /**
+   * The layout shifts of a CLS metric
+   */
+  attributions?: { value: number; nodeIds: number[] | undefined }[];
 }
 
 /**
  * Entries that come from window.performance
  */
-export type AllPerformanceEntryData = PaintData | NavigationData | ResourceData | LargestContentfulPaintData;
+export type AllPerformanceEntryData = PaintData | NavigationData | ResourceData | WebVitalData;
 
 export interface MemoryData {
   memory: {

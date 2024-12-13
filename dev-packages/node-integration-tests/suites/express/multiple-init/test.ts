@@ -6,7 +6,6 @@ afterAll(() => {
 
 test('allows to call init multiple times', done => {
   const runner = createRunner(__dirname, 'server.ts')
-    .ignore('session', 'sessions')
     .expect({
       event: {
         exception: {
@@ -46,6 +45,17 @@ test('allows to call init multiple times', done => {
         tags: {
           global: 'tag',
           error: '3',
+        },
+      },
+    })
+    .expect({
+      event: {
+        exception: {
+          values: [
+            {
+              value: 'Final exception was captured',
+            },
+          ],
         },
       },
     })

@@ -11,7 +11,6 @@ conditionalTest({ min: 16 })('Prisma ORM Tests', () => {
             method: 'create',
             model: 'User',
             name: 'User.create',
-            'otel.kind': 'INTERNAL',
             'sentry.origin': 'auto.db.otel.prisma',
           },
           description: 'prisma:client:operation',
@@ -19,7 +18,6 @@ conditionalTest({ min: 16 })('Prisma ORM Tests', () => {
         }),
         expect.objectContaining({
           data: {
-            'otel.kind': 'INTERNAL',
             'sentry.origin': 'auto.db.otel.prisma',
           },
           description: 'prisma:client:serialize',
@@ -27,7 +25,6 @@ conditionalTest({ min: 16 })('Prisma ORM Tests', () => {
         }),
         expect.objectContaining({
           data: {
-            'otel.kind': 'INTERNAL',
             'sentry.origin': 'auto.db.otel.prisma',
           },
           description: 'prisma:client:connect',
@@ -35,7 +32,6 @@ conditionalTest({ min: 16 })('Prisma ORM Tests', () => {
         }),
         expect.objectContaining({
           data: {
-            'otel.kind': 'INTERNAL',
             'sentry.origin': 'auto.db.otel.prisma',
           },
           description: 'prisma:engine',
@@ -44,7 +40,6 @@ conditionalTest({ min: 16 })('Prisma ORM Tests', () => {
         expect.objectContaining({
           data: {
             'db.type': 'postgres',
-            'otel.kind': 'INTERNAL',
             'sentry.origin': 'auto.db.otel.prisma',
           },
           description: 'prisma:engine:connection',
@@ -55,7 +50,6 @@ conditionalTest({ min: 16 })('Prisma ORM Tests', () => {
             'db.statement': expect.stringContaining(
               'INSERT INTO "public"."User" ("createdAt","email","name") VALUES ($1,$2,$3) RETURNING "public"."User"."id", "public"."User"."createdAt", "public"."User"."email", "public"."User"."name" /* traceparent',
             ),
-            'otel.kind': 'INTERNAL',
             'sentry.origin': 'auto.db.otel.prisma',
             'db.system': 'prisma',
             'sentry.op': 'db',
@@ -67,7 +61,6 @@ conditionalTest({ min: 16 })('Prisma ORM Tests', () => {
         }),
         expect.objectContaining({
           data: {
-            'otel.kind': 'INTERNAL',
             'sentry.origin': 'auto.db.otel.prisma',
           },
           description: 'prisma:engine:serialize',
@@ -75,7 +68,6 @@ conditionalTest({ min: 16 })('Prisma ORM Tests', () => {
         }),
         expect.objectContaining({
           data: {
-            'otel.kind': 'INTERNAL',
             'sentry.origin': 'auto.db.otel.prisma',
           },
           description: 'prisma:engine:response_json_serialization',
@@ -86,7 +78,6 @@ conditionalTest({ min: 16 })('Prisma ORM Tests', () => {
             method: 'findMany',
             model: 'User',
             name: 'User.findMany',
-            'otel.kind': 'INTERNAL',
             'sentry.origin': 'auto.db.otel.prisma',
           },
           description: 'prisma:client:operation',
@@ -94,7 +85,6 @@ conditionalTest({ min: 16 })('Prisma ORM Tests', () => {
         }),
         expect.objectContaining({
           data: {
-            'otel.kind': 'INTERNAL',
             'sentry.origin': 'auto.db.otel.prisma',
           },
           description: 'prisma:client:serialize',
@@ -102,7 +92,6 @@ conditionalTest({ min: 16 })('Prisma ORM Tests', () => {
         }),
         expect.objectContaining({
           data: {
-            'otel.kind': 'INTERNAL',
             'sentry.origin': 'auto.db.otel.prisma',
           },
           description: 'prisma:engine',

@@ -1,7 +1,9 @@
 import { SentrySpan } from '@sentry/core';
-import type { StartSpanOptions } from '@sentry/types';
+import type { StartSpanOptions } from '@sentry/core';
 import { render } from '@testing-library/react';
 import { renderHook } from '@testing-library/react-hooks';
+// biome-ignore lint/correctness/noUnusedImports: Need React import for JSX
+import * as React from 'react';
 
 import { REACT_MOUNT_OP, REACT_RENDER_OP, REACT_UPDATE_OP } from '../src/constants';
 import { UNKNOWN_COMPONENT, useProfiler, withProfiler } from '../src/profiler';

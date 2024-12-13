@@ -4,6 +4,6 @@
   "include": ["src/**/*", "test/loader.js"],
 
   "compilerOptions": {
-    // package-specific options
+    "lib": ["DOM", "ES2018"]
   }
 }

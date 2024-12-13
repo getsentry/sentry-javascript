@@ -3,7 +3,7 @@ import { DOCUMENT } from '../../constants';
 /**
  * Creates <style> element for widget actor (button that opens the dialog)
  */
-export function createActorStyles(): HTMLStyleElement {
+export function createActorStyles(styleNonce?: string): HTMLStyleElement {
   const style = DOCUMENT.createElement('style');
   style.textContent = `
 .widget__actor {
@@ -57,6 +57,10 @@ export function createActorStyles(): HTMLStyleElement {
   }
 }
 `;
+
+  if (styleNonce) {
+    style.setAttribute('nonce', styleNonce);
+  }
 
   return style;
 }

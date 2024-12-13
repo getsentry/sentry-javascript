@@ -4,6 +4,7 @@
   "include": ["src/**/*"],
 
   "compilerOptions": {
+    "lib": ["DOM", "ES2018"],
     // package-specific options
     "esModuleInterop": true,
     "jsx": "react"

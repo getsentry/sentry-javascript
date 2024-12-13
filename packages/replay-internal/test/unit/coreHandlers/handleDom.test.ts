@@ -1,4 +1,10 @@
-import type { HandlerDataDom } from '@sentry/types';
+/**
+ * @vitest-environment jsdom
+ */
+
+import { describe, expect, test } from 'vitest';
+
+import type { HandlerDataDom } from '@sentry/core';
 
 import { handleDom } from '../../../src/coreHandlers/handleDom';
 

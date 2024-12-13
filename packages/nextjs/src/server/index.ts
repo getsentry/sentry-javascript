@@ -1,42 +1,49 @@
-import { applySdkMetadata, getClient, getGlobalScope } from '@sentry/core';
-import { getDefaultIntegrations, init as nodeInit } from '@sentry/node';
-import type { NodeOptions } from '@sentry/node';
-import { GLOBAL_OBJ, logger } from '@sentry/utils';
-
+import { context } from '@opentelemetry/api';
+import {
+  ATTR_HTTP_REQUEST_METHOD,
+  ATTR_HTTP_ROUTE,
+  ATTR_URL_QUERY,
+  SEMATTRS_HTTP_METHOD,
+  SEMATTRS_HTTP_TARGET,
+} from '@opentelemetry/semantic-conventions';
+import {
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  applySdkMetadata,
+  getCapturedScopesOnSpan,
+  getClient,
+  getCurrentScope,
+  getGlobalScope,
+  getIsolationScope,
+  getRootSpan,
+  setCapturedScopesOnSpan,
+  spanToJSON,
+} from '@sentry/core';
+import { GLOBAL_OBJ, extractTraceparentData, logger, stripUrlQueryAndFragment } from '@sentry/core';
+import type { EventProcessor } from '@sentry/core';
+import type { NodeClient, NodeOptions } from '@sentry/node';
+import { getDefaultIntegrations, httpIntegration, init as nodeInit } from '@sentry/node';
+import { getScopesFromContext } from '@sentry/opentelemetry';
 import { DEBUG_BUILD } from '../common/debug-build';
 import { devErrorSymbolicationEventProcessor } from '../common/devErrorSymbolicationEventProcessor';
 import { getVercelEnv } from '../common/getVercelEnv';
+import {
+  TRANSACTION_ATTR_SENTRY_ROUTE_BACKFILL,
+  TRANSACTION_ATTR_SENTRY_TRACE_BACKFILL,
+  TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION,
+} from '../common/span-attributes-with-logic-attached';
 import { isBuild } from '../common/utils/isBuild';
 import { distDirRewriteFramesIntegration } from './distDirRewriteFramesIntegration';
 
 export * from '@sentry/node';
-import type { EventProcessor } from '@sentry/types';
-import { httpIntegration } from './httpIntegration';
 
-export { httpIntegration };
-
-export { captureUnderscoreErrorException } from '../common/_error';
+export { captureUnderscoreErrorException } from '../common/pages-router-instrumentation/_error';
 
 const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
-  __rewriteFramesDistDir__?: string;
-  __sentryRewritesTunnelPath__?: string;
+  _sentryRewriteFramesDistDir?: string;
+  _sentryRewritesTunnelPath?: string;
 };
-
-// https://github.com/lforst/nextjs-fork/blob/9051bc44d969a6e0ab65a955a2fc0af522a83911/packages/next/src/server/lib/trace/constants.ts#L11
-const NEXTJS_SPAN_NAME_PREFIXES = [
-  'BaseServer.',
-  'LoadComponents.',
-  'NextServer.',
-  'createServer.',
-  'startServer.',
-  'NextNodeServer.',
-  'Render.',
-  'AppRender.',
-  'Router.',
-  'Node.',
-  'AppRouteRouteHandlers.',
-  'ResolveMetadata.',
-];
 
 /**
  * A passthrough error boundary for the server that doesn't depend on any react. Error boundaries don't catch SSR errors
@@ -81,19 +88,19 @@ export function showReportDialog(): void {
 }
 
 /** Inits the Sentry NextJS SDK on node. */
-export function init(options: NodeOptions): void {
+export function init(options: NodeOptions): NodeClient | undefined {
   if (isBuild()) {
     return;
   }
 
-  const customDefaultIntegrations = [
-    ...getDefaultIntegrations(options).filter(
-      integration =>
-        // Next.js comes with its own Http instrumentation for OTel which would lead to double spans for route handler requests
-        integration.name !== 'Http',
-    ),
-    httpIntegration(),
-  ];
+  const customDefaultIntegrations = getDefaultIntegrations(options)
+    .filter(integration => integration.name !== 'Http')
+    .concat(
+      // We are using the HTTP integration without instrumenting incoming HTTP requests because Next.js does that by itself.
+      httpIntegration({
+        disableIncomingRequestSpans: true,
+      }),
+    );
 
   // Turn off Next.js' own fetch instrumentation
   // https://github.com/lforst/nextjs-fork/blob/1994fd186defda77ad971c36dc3163db263c993f/packages/next/src/server/lib/patch-fetch.ts#L245
@@ -101,7 +108,7 @@ export function init(options: NodeOptions): void {
 
   // This value is injected at build time, based on the output directory specified in the build config. Though a default
   // is set there, we set it here as well, just in case something has gone wrong with the injection.
-  const distDirName = globalWithInjectedValues.__rewriteFramesDistDir__;
+  const distDirName = process.env._sentryRewriteFramesDistDir || globalWithInjectedValues._sentryRewriteFramesDistDir;
   if (distDirName) {
     customDefaultIntegrations.push(distDirRewriteFramesIntegration({ distDirName }));
   }
@@ -127,19 +134,67 @@ export function init(options: NodeOptions): void {
 
   applySdkMetadata(opts, 'nextjs', ['nextjs', 'node']);
 
-  nodeInit(opts);
-
-  const client = getClient();
-  client?.on('beforeSampling', ({ spanAttributes, spanName, parentSampled, parentContext }, samplingDecision) => {
-    // If we encounter a span emitted by Next.js, we do not want to sample it
-    // The reason for this is that the data quality of the spans varies, it is different per version of Next,
-    // and we need to keep our manual instrumentation around for the edge runtime anyhow.
-    // BUT we only do this if we don't have a parent span with a sampling decision yet (or if the parent is remote)
+  const client = nodeInit(opts);
+  client?.on('beforeSampling', ({ spanAttributes }, samplingDecision) => {
+    // There are situations where the Next.js Node.js server forwards requests for the Edge Runtime server (e.g. in
+    // middleware) and this causes spans for Sentry ingest requests to be created. These are not exempt from our tracing
+    // because we didn't get the chance to do `suppressTracing`, since this happens outside of userland.
+    // We need to drop these spans.
     if (
-      (spanAttributes['next.span_type'] || NEXTJS_SPAN_NAME_PREFIXES.some(prefix => spanName.startsWith(prefix))) &&
-      (parentSampled === undefined || parentContext?.isRemote)
+      // eslint-disable-next-line deprecation/deprecation
+      (typeof spanAttributes[SEMATTRS_HTTP_TARGET] === 'string' &&
+        // eslint-disable-next-line deprecation/deprecation
+        spanAttributes[SEMATTRS_HTTP_TARGET].includes('sentry_key') &&
+        // eslint-disable-next-line deprecation/deprecation
+        spanAttributes[SEMATTRS_HTTP_TARGET].includes('sentry_client')) ||
+      (typeof spanAttributes[ATTR_URL_QUERY] === 'string' &&
+        spanAttributes[ATTR_URL_QUERY].includes('sentry_key') &&
+        spanAttributes[ATTR_URL_QUERY].includes('sentry_client'))
     ) {
       samplingDecision.decision = false;
+    }
+  });
+
+  client?.on('spanStart', span => {
+    const spanAttributes = spanToJSON(span).data;
+
+    // What we do in this glorious piece of code, is hoist any information about parameterized routes from spans emitted
+    // by Next.js via the `next.route` attribute, up to the transaction by setting the http.route attribute.
+    if (typeof spanAttributes?.['next.route'] === 'string') {
+      const rootSpan = getRootSpan(span);
+      const rootSpanAttributes = spanToJSON(rootSpan).data;
+
+      // Only hoist the http.route attribute if the transaction doesn't already have it
+      if (
+        // eslint-disable-next-line deprecation/deprecation
+        (rootSpanAttributes?.[ATTR_HTTP_REQUEST_METHOD] || rootSpanAttributes?.[SEMATTRS_HTTP_METHOD]) &&
+        !rootSpanAttributes?.[ATTR_HTTP_ROUTE]
+      ) {
+        const route = spanAttributes['next.route'].replace(/\/route$/, '');
+        rootSpan.updateName(route);
+        rootSpan.setAttribute(ATTR_HTTP_ROUTE, route);
+      }
+    }
+
+    // We want to skip span data inference for any spans generated by Next.js. Reason being that Next.js emits spans
+    // with patterns (e.g. http.server spans) that will produce confusing data.
+    if (spanAttributes?.['next.span_type'] !== undefined) {
+      span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, 'auto');
+    }
+
+    // We want to fork the isolation scope for incoming requests
+    if (spanAttributes?.['next.span_type'] === 'BaseServer.handleRequest' && span === getRootSpan(span)) {
+      const scopes = getCapturedScopesOnSpan(span);
+
+      const isolationScope = (scopes.isolationScope || getIsolationScope()).clone();
+      const scope = scopes.scope || getCurrentScope();
+
+      const currentScopesPointer = getScopesFromContext(context.active());
+      if (currentScopesPointer) {
+        currentScopesPointer.isolationScope = isolationScope;
+      }
+
+      setCapturedScopesOnSpan(span, scope, isolationScope);
     }
   });
 
@@ -156,8 +211,10 @@ export function init(options: NodeOptions): void {
 
           // Filter out transactions for requests to the tunnel route
           if (
-            globalWithInjectedValues.__sentryRewritesTunnelPath__ &&
-            event.transaction === `POST ${globalWithInjectedValues.__sentryRewritesTunnelPath__}`
+            (globalWithInjectedValues._sentryRewritesTunnelPath &&
+              event.transaction === `POST ${globalWithInjectedValues._sentryRewritesTunnelPath}`) ||
+            (process.env._sentryRewritesTunnelPath &&
+              event.transaction === `POST ${process.env._sentryRewritesTunnelPath}`)
           ) {
             return null;
           }
@@ -167,9 +224,35 @@ export function init(options: NodeOptions): void {
             return null;
           }
 
-          // Filter out /404 transactions for pages-router which seem to be created excessively
-          if (event.transaction === '/404') {
+          // Filter out /404 transactions which seem to be created excessively
+          if (
+            // Pages router
+            event.transaction === '/404' ||
+            // App router (could be "GET /404", "POST /404", ...)
+            event.transaction?.match(/^(GET|HEAD|POST|PUT|DELETE|CONNECT|OPTIONS|TRACE|PATCH) \/(404|_not-found)$/)
+          ) {
             return null;
+          }
+
+          // Filter transactions that we explicitly want to drop.
+          if (event.contexts?.trace?.data?.[TRANSACTION_ATTR_SHOULD_DROP_TRANSACTION]) {
+            return null;
+          }
+
+          // Next.js 13 sometimes names the root transactions like this containing useless tracing.
+          if (event.transaction === 'NextServer.getRequestHandler') {
+            return null;
+          }
+
+          // Next.js 13 is not correctly picking up tracing data for trace propagation so we use a back-fill strategy
+          if (typeof event.contexts?.trace?.data?.[TRANSACTION_ATTR_SENTRY_TRACE_BACKFILL] === 'string') {
+            const traceparentData = extractTraceparentData(
+              event.contexts.trace.data[TRANSACTION_ATTR_SENTRY_TRACE_BACKFILL],
+            );
+
+            if (traceparentData?.parentSampled === false) {
+              return null;
+            }
           }
 
           return event;
@@ -216,11 +299,70 @@ export function init(options: NodeOptions): void {
     ),
   );
 
+  // Use the preprocessEvent hook instead of an event processor, so that the users event processors receive the most
+  // up-to-date value, but also so that the logic that detects changes to the transaction names to set the source to
+  // "custom", doesn't trigger.
+  client?.on('preprocessEvent', event => {
+    // Enhance route handler transactions
+    if (
+      event.type === 'transaction' &&
+      event.contexts?.trace?.data?.['next.span_type'] === 'BaseServer.handleRequest'
+    ) {
+      event.contexts.trace.data = event.contexts.trace.data || {};
+      event.contexts.trace.data[SEMANTIC_ATTRIBUTE_SENTRY_OP] = 'http.server';
+      event.contexts.trace.op = 'http.server';
+
+      if (event.transaction) {
+        event.transaction = stripUrlQueryAndFragment(event.transaction);
+      }
+
+      // eslint-disable-next-line deprecation/deprecation
+      const method = event.contexts.trace.data[SEMATTRS_HTTP_METHOD];
+      // eslint-disable-next-line deprecation/deprecation
+      const target = event.contexts?.trace?.data?.[SEMATTRS_HTTP_TARGET];
+      const route = event.contexts.trace.data[ATTR_HTTP_ROUTE];
+
+      if (typeof method === 'string' && typeof route === 'string') {
+        event.transaction = `${method} ${route.replace(/\/route$/, '')}`;
+        event.contexts.trace.data[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] = 'route';
+      }
+
+      // backfill transaction name for pages that would otherwise contain unparameterized routes
+      if (event.contexts.trace.data[TRANSACTION_ATTR_SENTRY_ROUTE_BACKFILL] && event.transaction !== 'GET /_app') {
+        event.transaction = `${method} ${event.contexts.trace.data[TRANSACTION_ATTR_SENTRY_ROUTE_BACKFILL]}`;
+      }
+
+      // Next.js overrides transaction names for page loads that throw an error
+      // but we want to keep the original target name
+      if (event.transaction === 'GET /_error' && target) {
+        event.transaction = `${method ? `${method} ` : ''}${target}`;
+      }
+    }
+
+    // Next.js 13 is not correctly picking up tracing data for trace propagation so we use a back-fill strategy
+    if (
+      event.type === 'transaction' &&
+      typeof event.contexts?.trace?.data?.[TRANSACTION_ATTR_SENTRY_TRACE_BACKFILL] === 'string'
+    ) {
+      const traceparentData = extractTraceparentData(event.contexts.trace.data[TRANSACTION_ATTR_SENTRY_TRACE_BACKFILL]);
+
+      if (traceparentData?.traceId) {
+        event.contexts.trace.trace_id = traceparentData.traceId;
+      }
+
+      if (traceparentData?.parentSpanId) {
+        event.contexts.trace.parent_span_id = traceparentData.parentSpanId;
+      }
+    }
+  });
+
   if (process.env.NODE_ENV === 'development') {
     getGlobalScope().addEventProcessor(devErrorSymbolicationEventProcessor);
   }
 
   DEBUG_BUILD && logger.log('SDK successfully initialized');
+
+  return client;
 }
 
 function sdkAlreadyInitialized(): boolean {
@@ -229,4 +371,4 @@ function sdkAlreadyInitialized(): boolean {
 
 export * from '../common';
 
-export { wrapApiHandlerWithSentry } from '../common/wrapApiHandlerWithSentry';
+export { wrapApiHandlerWithSentry } from '../common/pages-router-instrumentation/wrapApiHandlerWithSentry';

@@ -151,9 +151,9 @@ function normalizeEvent(event: sentryTypes.Event): sentryTypes.Event {
     event.start_timestamp = 0;
   }
 
-  if (event.exception?.values?.[0].stacktrace?.frames) {
+  if (event.exception?.values?.[0]?.stacktrace?.frames) {
     // Exclude Deno frames since these may change between versions
-    event.exception.values[0].stacktrace.frames = event.exception.values[0].stacktrace.frames.filter(
+    event.exception.values[0]!.stacktrace.frames = event.exception.values[0]?.stacktrace.frames.filter(
       frame => !frame.filename?.includes('deno:') && !frame.filename?.startsWith('ext:'),
     );
   }

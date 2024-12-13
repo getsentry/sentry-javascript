@@ -1,6 +1,6 @@
 {
   "name": "@sentry/svelte",
-  "version": "8.7.0",
+  "version": "8.44.0",
   "description": "Official Sentry SDK for Svelte",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/svelte",
@@ -9,7 +9,7 @@
   "engines": {
     "node": ">=14.18"
   },
-  "files": ["cjs", "esm", "types", "types-ts3.8"],
+  "files": ["/build"],
   "main": "build/cjs/index.js",
   "module": "build/esm/index.js",
   "types": "build/types/index.d.ts",
@@ -35,10 +35,8 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/browser": "8.7.0",
-    "@sentry/core": "8.7.0",
-    "@sentry/types": "8.7.0",
-    "@sentry/utils": "8.7.0",
+    "@sentry/browser": "8.44.0",
+    "@sentry/core": "8.44.0",
     "magic-string": "^0.30.0"
   },
   "peerDependencies": {
@@ -60,14 +58,14 @@
     "build:dev:watch": "yarn build:watch",
     "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",
     "build:types:watch": "tsc -p tsconfig.types.json --watch",
-    "build:tarball": "ts-node ../../scripts/prepack.ts && npm pack ./build",
+    "build:tarball": "npm pack",
     "circularDepCheck": "madge --circular src/index.ts",
     "clean": "rimraf build coverage sentry-svelte-*.tgz",
     "fix": "eslint . --format stylish --fix",
     "lint": "eslint . --format stylish",
     "test": "vitest run",
     "test:watch": "vitest --watch",
-    "yalc:publish": "ts-node ../../scripts/prepack.ts && yalc publish build --push --sig"
+    "yalc:publish": "yalc publish --push --sig"
   },
   "volta": {
     "extends": "../../package.json"

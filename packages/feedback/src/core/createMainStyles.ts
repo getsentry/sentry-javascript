@@ -1,4 +1,4 @@
-import type { FeedbackInternalOptions } from '@sentry/types';
+import type { FeedbackInternalOptions } from '@sentry/core';
 import { DOCUMENT } from '../constants';
 
 const PURPLE = 'rgba(88, 74, 192, 1)';
@@ -51,7 +51,12 @@ function getThemedCssVariables(theme: InternalTheme): string {
 /**
  * Creates <style> element for widget actor (button that opens the dialog)
  */
-export function createMainStyles({ colorScheme, themeDark, themeLight }: FeedbackInternalOptions): HTMLStyleElement {
+export function createMainStyles({
+  colorScheme,
+  themeDark,
+  themeLight,
+  styleNonce,
+}: FeedbackInternalOptions): HTMLStyleElement {
   const style = DOCUMENT.createElement('style');
   style.textContent = `
 :host {
@@ -85,6 +90,10 @@ ${
 }
 }
 `;
+
+  if (styleNonce) {
+    style.setAttribute('nonce', styleNonce);
+  }
 
   return style;
 }

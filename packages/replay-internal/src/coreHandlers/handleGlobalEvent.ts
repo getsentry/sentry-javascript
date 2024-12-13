@@ -1,10 +1,11 @@
-import type { Event, EventHint } from '@sentry/types';
-import { logger } from '@sentry/utils';
+import type { Event, EventHint } from '@sentry/core';
 
 import { DEBUG_BUILD } from '../debug-build';
 import type { ReplayContainer } from '../types';
 import { isErrorEvent, isFeedbackEvent, isReplayEvent, isTransactionEvent } from '../util/eventUtils';
 import { isRrwebError } from '../util/isRrwebError';
+import { logger } from '../util/logger';
+import { resetReplayIdOnDynamicSamplingContext } from '../util/resetReplayIdOnDynamicSamplingContext';
 import { addFeedbackBreadcrumb } from './util/addFeedbackBreadcrumb';
 import { shouldSampleForBufferEvent } from './util/shouldSampleForBufferEvent';
 
@@ -14,8 +15,8 @@ import { shouldSampleForBufferEvent } from './util/shouldSampleForBufferEvent';
 export function handleGlobalEventListener(replay: ReplayContainer): (event: Event, hint: EventHint) => Event | null {
   return Object.assign(
     (event: Event, hint: EventHint) => {
-      // Do nothing if replay has been disabled
-      if (!replay.isEnabled()) {
+      // Do nothing if replay has been disabled or paused
+      if (!replay.isEnabled() || replay.isPaused()) {
         return event;
       }
 
@@ -34,6 +35,8 @@ export function handleGlobalEventListener(replay: ReplayContainer): (event: Even
       // Ensure we do not add replay_id if the session is expired
       const isSessionActive = replay.checkAndHandleExpiredSession();
       if (!isSessionActive) {
+        // prevent exceeding replay durations by removing the expired replayId from the DSC
+        resetReplayIdOnDynamicSamplingContext();
         return event;
       }
 
@@ -50,7 +53,7 @@ export function handleGlobalEventListener(replay: ReplayContainer): (event: Even
       // Unless `captureExceptions` is enabled, we want to ignore errors coming from rrweb
       // As there can be a bunch of stuff going wrong in internals there, that we don't want to bubble up to users
       if (isRrwebError(event, hint) && !replay.getOptions()._experiments.captureExceptions) {
-        DEBUG_BUILD && logger.log('[Replay] Ignoring error from rrweb internals', event);
+        DEBUG_BUILD && logger.log('Ignoring error from rrweb internals', event);
         return null;
       }
 

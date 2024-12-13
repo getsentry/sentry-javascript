@@ -6,10 +6,10 @@ import { startSpan } from '@sentry/browser';
 import type { BrowserOptions } from '@sentry/browser';
 import * as Sentry from '@sentry/browser';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, applySdkMetadata } from '@sentry/core';
-import { GLOBAL_OBJ } from '@sentry/utils';
+import { GLOBAL_OBJ } from '@sentry/core';
 import Ember from 'ember';
 
-import type { TransactionSource } from '@sentry/types';
+import type { Client, TransactionSource } from '@sentry/core';
 import type { EmberSentryConfig, GlobalConfig, OwnConfig } from './types';
 
 function _getSentryInitConfig(): EmberSentryConfig['sentry'] {
@@ -21,7 +21,7 @@ function _getSentryInitConfig(): EmberSentryConfig['sentry'] {
 /**
  * Initialize the Sentry SDK for Ember.
  */
-export function init(_runtimeConfig?: BrowserOptions): void {
+export function init(_runtimeConfig?: BrowserOptions): Client | undefined {
   const environmentConfig = getOwnConfig<OwnConfig>().sentryConfig;
 
   assert('Missing configuration.', environmentConfig);
@@ -42,11 +42,11 @@ export function init(_runtimeConfig?: BrowserOptions): void {
   const sentryInitConfig = _getSentryInitConfig();
   Object.assign(sentryInitConfig, initConfig);
 
-  Sentry.init(initConfig);
+  const client = Sentry.init(initConfig);
 
   if (macroCondition(isDevelopingApp())) {
     if (environmentConfig.ignoreEmberOnErrorWarning) {
-      return;
+      return client;
     }
     next(null, function () {
       warn(
@@ -58,6 +58,8 @@ export function init(_runtimeConfig?: BrowserOptions): void {
       );
     });
   }
+
+  return client;
 }
 
 type RouteConstructor = new (...args: ConstructorParameters<typeof Route>) => Route;

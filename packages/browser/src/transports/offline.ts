@@ -1,14 +1,12 @@
-import type { OfflineStore, OfflineTransportOptions } from '@sentry/core';
-import { makeOfflineTransport } from '@sentry/core';
-import type { BaseTransportOptions, Envelope, Transport } from '@sentry/types';
-import { parseEnvelope, serializeEnvelope } from '@sentry/utils';
+import type { BaseTransportOptions, Envelope, OfflineStore, OfflineTransportOptions, Transport } from '@sentry/core';
+import { makeOfflineTransport, parseEnvelope, serializeEnvelope } from '@sentry/core';
 import { makeFetchTransport } from './fetch';
 
 // 'Store', 'promisifyRequest' and 'createStore' were originally copied from the 'idb-keyval' package before being
 // modified and simplified: https://github.com/jakearchibald/idb-keyval
 //
 // At commit: 0420a704fd6cbb4225429c536b1f61112d012fca
-// Original licence:
+// Original license:
 
 // Copyright 2016, Jake Archibald
 //
@@ -82,12 +80,13 @@ export function unshift(store: Store, value: Uint8Array | string, maxQueueSize: 
 export function shift(store: Store): Promise<Uint8Array | string | undefined> {
   return store(store => {
     return keys(store).then(keys => {
-      if (keys.length === 0) {
+      const firstKey = keys[0];
+      if (firstKey == null) {
         return undefined;
       }
 
-      return promisifyRequest(store.get(keys[0])).then(value => {
-        store.delete(keys[0]);
+      return promisifyRequest(store.get(firstKey)).then(value => {
+        store.delete(firstKey);
         return promisifyRequest(store.transaction).then(() => value);
       });
     });

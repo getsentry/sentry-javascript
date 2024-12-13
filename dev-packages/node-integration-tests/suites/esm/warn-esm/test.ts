@@ -5,7 +5,7 @@ afterAll(() => {
 });
 
 const esmWarning =
-  '[Sentry] You are using Node.js in ESM mode ("import syntax"). The Sentry Node.js SDK is not compatible with ESM in Node.js versions before 18.19.0 or before 20.6.0. Please either build your application with CommonJS ("require() syntax"), or use version 7.x of the Sentry Node.js SDK.';
+  '[Sentry] You are using Node.js in ESM mode ("import syntax"). The Sentry Node.js SDK is not compatible with ESM in Node.js versions before 18.19.0 or before 20.6.0. Please either build your application with CommonJS ("require() syntax"), or upgrade your Node.js version.';
 
 test("warns if using ESM on Node.js versions that don't support `register()`", async () => {
   const nodeMajorVersion = Number(process.versions.node.split('.')[0]);
@@ -13,7 +13,7 @@ test("warns if using ESM on Node.js versions that don't support `register()`", a
     return;
   }
 
-  const runner = createRunner(__dirname, 'server.mjs').ignore('session', 'sessions', 'event').start();
+  const runner = createRunner(__dirname, 'server.mjs').ignore('event').start();
 
   await runner.makeRequest('get', '/test/success');
 
@@ -26,7 +26,7 @@ test('does not warn if using ESM on Node.js versions that support `register()`',
     return;
   }
 
-  const runner = createRunner(__dirname, 'server.mjs').ignore('session', 'sessions', 'event').start();
+  const runner = createRunner(__dirname, 'server.mjs').ignore('event').start();
 
   await runner.makeRequest('get', '/test/success');
 
@@ -34,7 +34,7 @@ test('does not warn if using ESM on Node.js versions that support `register()`',
 });
 
 test('does not warn if using CJS', async () => {
-  const runner = createRunner(__dirname, 'server.js').ignore('session', 'sessions', 'event').start();
+  const runner = createRunner(__dirname, 'server.js').ignore('event').start();
 
   await runner.makeRequest('get', '/test/success');
 

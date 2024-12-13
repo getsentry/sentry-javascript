@@ -1,0 +1,41 @@
+{
+  "name": "react-17",
+  "version": "0.1.0",
+  "private": true,
+  "dependencies": {
+    "@sentry/react": "latest || *",
+    "@types/react": "17.0.2",
+    "@types/react-dom": "17.0.2",
+    "react": "17.0.2",
+    "react-dom": "17.0.2",
+    "react-router-dom": "~6.3.0",
+    "react-scripts": "5.0.1",
+    "typescript": "4.9.5"
+  },
+  "scripts": {
+    "build": "react-scripts build",
+    "dev": "react-scripts start",
+    "start": "serve -s build",
+    "test": "playwright test",
+    "clean": "npx rimraf node_modules pnpm-lock.yaml",
+    "test:build": "pnpm install && pnpm build",
+    "test:build-ts3.8": "pnpm install && pnpm add typescript@3.8 && pnpm build",
+    "test:build-canary": "pnpm install && pnpm add react@canary react-dom@canary && pnpm build",
+    "test:assert": "pnpm test"
+  },
+  "eslintConfig": {
+    "extends": ["react-app", "react-app/jest"]
+  },
+  "browserslist": {
+    "production": [">0.2%", "not dead", "not op_mini all"],
+    "development": ["last 1 chrome version", "last 1 firefox version", "last 1 safari version"]
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.44.1",
+    "@sentry-internal/test-utils": "link:../../../test-utils",
+    "serve": "14.0.1"
+  },
+  "volta": {
+    "extends": "../../package.json"
+  }
+}

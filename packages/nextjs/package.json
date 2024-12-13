@@ -1,6 +1,6 @@
 {
   "name": "@sentry/nextjs",
-  "version": "8.7.0",
+  "version": "8.44.0",
   "description": "Official Sentry SDK for Next.js",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/nextjs",
@@ -12,9 +12,11 @@
   "main": "build/cjs/index.server.js",
   "module": "build/esm/index.server.js",
   "types": "build/types/index.types.d.ts",
+  "files": ["/build"],
   "exports": {
     "./package.json": "./package.json",
     ".": {
+      "types": "./build/types/index.types.d.ts",
       "edge": {
         "import": "./build/esm/edge/index.js",
         "require": "./build/cjs/edge/index.js",
@@ -40,8 +42,15 @@
         "require": "./build/cjs/index.client.js"
       },
       "node": "./build/cjs/index.server.js",
-      "import": "./build/esm/index.server.js",
-      "types": "./build/types/index.types.d.ts"
+      "import": "./build/esm/index.server.js"
+    },
+    "./async-storage-shim": {
+      "import": {
+        "default": "./build/esm/config/templates/requestAsyncStorageShim.js"
+      },
+      "require": {
+        "default": "./build/cjs/config/templates/requestAsyncStorageShim.js"
+      }
     },
     "./import": {
       "import": {
@@ -63,19 +72,19 @@
     "access": "public"
   },
   "dependencies": {
-    "@opentelemetry/instrumentation-http": "0.51.1",
-    "@rollup/plugin-commonjs": "24.0.0",
-    "@sentry/core": "8.7.0",
-    "@sentry/node": "8.7.0",
-    "@sentry/opentelemetry": "8.7.0",
-    "@sentry/react": "8.7.0",
-    "@sentry/types": "8.7.0",
-    "@sentry/utils": "8.7.0",
-    "@sentry/vercel-edge": "8.7.0",
-    "@sentry/webpack-plugin": "2.16.0",
+    "@opentelemetry/api": "^1.9.0",
+    "@opentelemetry/semantic-conventions": "^1.28.0",
+    "@rollup/plugin-commonjs": "28.0.1",
+    "@sentry-internal/browser-utils": "8.44.0",
+    "@sentry/core": "8.44.0",
+    "@sentry/node": "8.44.0",
+    "@sentry/opentelemetry": "8.44.0",
+    "@sentry/react": "8.44.0",
+    "@sentry/vercel-edge": "8.44.0",
+    "@sentry/webpack-plugin": "2.22.7",
     "chalk": "3.0.0",
     "resolve": "1.22.8",
-    "rollup": "3.29.4",
+    "rollup": "3.29.5",
     "stacktrace-parser": "^0.1.10"
   },
   "devDependencies": {
@@ -84,14 +93,7 @@
     "next": "13.2.0"
   },
   "peerDependencies": {
-    "next": "^13.2.0 || ^14.0",
-    "react": "16.x || 17.x || 18.x",
-    "webpack": ">= 5.0.0"
-  },
-  "peerDependenciesMeta": {
-    "webpack": {
-      "optional": true
-    }
+    "next": "^13.2.0 || ^14.0 || ^15.0.0-rc.0"
   },
   "scripts": {
     "build": "run-p build:transpile build:types",
@@ -104,23 +106,19 @@
     "build:dev:watch": "yarn build:watch",
     "build:transpile:watch": "nodemon --ext ts --watch src scripts/buildRollup.ts",
     "build:types:watch": "tsc -p tsconfig.types.json --watch",
-    "build:tarball": "ts-node ../../scripts/prepack.ts && npm pack ./build",
+    "build:tarball": "npm pack",
     "circularDepCheck": "madge --circular src/index.client.ts && madge --circular src/edge/index.ts && madge --circular src/index.server.ts && madge --circular src/index.types.ts",
     "clean": "rimraf build coverage sentry-nextjs-*.tgz",
     "fix": "eslint . --format stylish --fix",
     "lint": "eslint . --format stylish",
     "test": "yarn test:unit",
-    "test:all": "run-s test:unit test:integration",
+    "test:all": "run-s test:unit",
     "test:unit": "jest",
-    "test:integration": "./test/run-integration-tests.sh && yarn test:types",
-    "test:integration:clean": "(cd test/integration && rimraf .cache node_modules build)",
-    "test:integration:client": "yarn playwright test test/integration/test/client/",
-    "test:integration:server": "(cd test/integration && yarn test:server)",
     "test:types": "cd test/types && yarn test",
     "test:watch": "jest --watch",
     "vercel:branch": "source vercel/set-up-branch-for-test-app-use.sh",
     "vercel:project": "source vercel/make-project-use-current-branch.sh",
-    "yalc:publish": "ts-node ../../scripts/prepack.ts && yalc publish build --push --sig"
+    "yalc:publish": "yalc publish --push --sig"
   },
   "volta": {
     "extends": "../../package.json"

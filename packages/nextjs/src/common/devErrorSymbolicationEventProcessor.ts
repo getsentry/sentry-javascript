@@ -1,6 +1,5 @@
-import { suppressTracing } from '@sentry/core';
-import type { Event, EventHint } from '@sentry/types';
-import { GLOBAL_OBJ } from '@sentry/utils';
+import type { Event, EventHint } from '@sentry/core';
+import { GLOBAL_OBJ, suppressTracing } from '@sentry/core';
 import type { StackFrame } from 'stacktrace-parser';
 import * as stackTraceParser from 'stacktrace-parser';
 
@@ -11,7 +10,7 @@ type OriginalStackFrameResponse = {
 };
 
 const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
-  __sentryBasePath?: string;
+  _sentryBasePath?: string;
 };
 
 async function resolveStackFrame(
@@ -32,7 +31,7 @@ async function resolveStackFrame(
       params.append(key, (frame[key as keyof typeof frame] ?? '').toString());
     });
 
-    let basePath = globalWithInjectedValues.__sentryBasePath ?? '';
+    let basePath = process.env._sentryBasePath ?? globalWithInjectedValues._sentryBasePath ?? '';
 
     // Prefix the basepath with a slash if it doesn't have one
     if (basePath !== '' && !basePath.match(/^\//)) {
@@ -78,9 +77,10 @@ function parseOriginalCodeFrame(codeFrame: string): {
   const preProcessedLines = codeFrame
     // Remove ASCII control characters that are used for syntax highlighting
     .replace(
-      // eslint-disable-next-line no-control-regex
+      /* eslint-disable no-control-regex */
       // biome-ignore lint/suspicious/noControlCharactersInRegex: Invalid
       /[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g, // https://stackoverflow.com/a/29497680
+      /* eslint-enable no-control-regex */
       '',
     )
     .split('\n')
@@ -147,7 +147,7 @@ export async function devErrorSymbolicationEventProcessor(event: Event, hint: Ev
         frames.map(frame => resolveStackFrame(frame, hint.originalException as Error)),
       );
 
-      if (event.exception?.values?.[0].stacktrace?.frames) {
+      if (event.exception?.values?.[0]?.stacktrace?.frames) {
         event.exception.values[0].stacktrace.frames = event.exception.values[0].stacktrace.frames.map(
           (frame, i, frames) => {
             const resolvedFrame = resolvedFrames[frames.length - 1 - i];

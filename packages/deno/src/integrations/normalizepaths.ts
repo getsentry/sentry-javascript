@@ -1,6 +1,5 @@
-import { defineIntegration } from '@sentry/core';
-import type { IntegrationFn } from '@sentry/types';
-import { createStackParser, dirname, nodeStackLineParser } from '@sentry/utils';
+import type { IntegrationFn } from '@sentry/core';
+import { createStackParser, defineIntegration, dirname, nodeStackLineParser } from '@sentry/core';
 
 const INTEGRATION_NAME = 'NormalizePaths';
 
@@ -21,25 +20,32 @@ function appRootFromErrorStack(error: Error): string | undefined {
           .filter(seg => seg !== ''), // remove empty segments
     ) as string[][];
 
-  if (paths.length == 0) {
+  const firstPath = paths[0];
+
+  if (!firstPath) {
     return undefined;
   }
 
   if (paths.length == 1) {
     // Assume the single file is in the root
-    return dirname(paths[0].join('/'));
+    return dirname(firstPath.join('/'));
   }
 
   // Iterate over the paths and bail out when they no longer have a common root
   let i = 0;
-  while (paths[0][i] && paths.every(w => w[i] === paths[0][i])) {
+  while (firstPath[i] && paths.every(w => w[i] === firstPath[i])) {
     i++;
   }
 
-  return paths[0].slice(0, i).join('/');
+  return firstPath.slice(0, i).join('/');
 }
 
 function getCwd(): string | undefined {
+  // Deno.permissions.querySync is not available on Deno Deploy
+  if (!Deno.permissions.querySync) {
+    return undefined;
+  }
+
   // We don't want to prompt for permissions so we only get the cwd if
   // permissions are already granted
   const permission = Deno.permissions.querySync({ name: 'read', path: './' });

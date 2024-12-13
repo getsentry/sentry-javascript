@@ -1,8 +1,6 @@
 import { conditionalTest } from '../../../utils';
 import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
 
-jest.setTimeout(20000);
-
 const { TS_VERSION } = process.env;
 const isOldTS = TS_VERSION && TS_VERSION.startsWith('3.');
 
@@ -27,8 +25,12 @@ conditionalTest({ min: 16 })('nestjs auto instrumentation', () => {
           'nestjs.callback': 'getHello',
           'nestjs.controller': 'AppController',
           'nestjs.type': 'request_context',
-          'otel.kind': 'INTERNAL',
-          'sentry.op': 'http',
+          'sentry.op': 'request_context.nestjs',
+          'sentry.origin': 'auto.http.otel.nestjs',
+          component: '@nestjs/core',
+          'http.method': 'GET',
+          'http.route': '/',
+          'http.url': '/',
         }),
       }),
     ]),

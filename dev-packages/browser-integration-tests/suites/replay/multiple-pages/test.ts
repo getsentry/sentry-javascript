@@ -1,9 +1,11 @@
 import { expect } from '@playwright/test';
 
-import { sentryTest } from '../../../utils/fixtures';
+import { TEST_HOST, sentryTest } from '../../../utils/fixtures';
 import {
+  expectedCLSPerformanceSpan,
   expectedClickBreadcrumb,
   expectedFCPPerformanceSpan,
+  expectedFIDPerformanceSpan,
   expectedFPPerformanceSpan,
   expectedLCPPerformanceSpan,
   expectedMemoryPerformanceSpan,
@@ -28,20 +30,12 @@ well as the correct DOM snapshots and updates are recorded and sent.
 */
 sentryTest(
   'record page navigations and performance entries across multiple pages',
-  async ({ getLocalTestPath, page, browserName }) => {
+  async ({ getLocalTestUrl, page, browserName }) => {
     // We only test this against the NPM package and replay bundles
     // and only on chromium as most performance entries are only available in chromium
     if (shouldSkipReplayTest() || browserName !== 'chromium') {
       sentryTest.skip();
     }
-
-    await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-      return route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({ id: 'test-id' }),
-      });
-    });
 
     const reqPromise0 = waitForReplayRequest(page, 0);
     const reqPromise1 = waitForReplayRequest(page, 1);
@@ -54,7 +48,7 @@ sentryTest(
     const reqPromise8 = waitForReplayRequest(page, 8);
     const reqPromise9 = waitForReplayRequest(page, 9);
 
-    const url = await getLocalTestPath({ testDir: __dirname });
+    const url = await getLocalTestUrl({ testDir: __dirname });
 
     const [req0] = await Promise.all([reqPromise0, page.goto(url)]);
     const replayEvent0 = getReplayEvent(req0);
@@ -78,11 +72,13 @@ sentryTest(
     const collectedPerformanceSpans = [...recording0.performanceSpans, ...recording1.performanceSpans];
     const collectedBreadcrumbs = [...recording0.breadcrumbs, ...recording1.breadcrumbs];
 
-    expect(collectedPerformanceSpans.length).toEqual(6);
+    expect(collectedPerformanceSpans.length).toBeGreaterThanOrEqual(6);
     expect(collectedPerformanceSpans).toEqual(
       expect.arrayContaining([
         expectedNavigationPerformanceSpan,
         expectedLCPPerformanceSpan,
+        expectedCLSPerformanceSpan,
+        expectedFIDPerformanceSpan,
         expectedFPPerformanceSpan,
         expectedFCPPerformanceSpan,
         expectedMemoryPerformanceSpan, // two memory spans - once per flush
@@ -116,11 +112,13 @@ sentryTest(
     const collectedPerformanceSpansAfterReload = [...recording2.performanceSpans, ...recording3.performanceSpans];
     const collectedBreadcrumbsAdterReload = [...recording2.breadcrumbs, ...recording3.breadcrumbs];
 
-    expect(collectedPerformanceSpansAfterReload.length).toEqual(6);
+    expect(collectedPerformanceSpansAfterReload.length).toBeGreaterThanOrEqual(6);
     expect(collectedPerformanceSpansAfterReload).toEqual(
       expect.arrayContaining([
         expectedReloadPerformanceSpan,
         expectedLCPPerformanceSpan,
+        expectedCLSPerformanceSpan,
+        expectedFIDPerformanceSpan,
         expectedFPPerformanceSpan,
         expectedFCPPerformanceSpan,
         expectedMemoryPerformanceSpan,
@@ -148,7 +146,8 @@ sentryTest(
           url: expect.stringContaining('page-0.html'),
           headers: {
             // @ts-expect-error this is fine
-            'User-Agent': expect.stringContaining(''),
+            'User-Agent': expect.any(String),
+            Referer: `${TEST_HOST}/index.html`,
           },
         },
       }),
@@ -170,7 +169,8 @@ sentryTest(
           url: expect.stringContaining('page-0.html'),
           headers: {
             // @ts-expect-error this is fine
-            'User-Agent': expect.stringContaining(''),
+            'User-Agent': expect.any(String),
+            Referer: `${TEST_HOST}/index.html`,
           },
         },
       }),
@@ -188,6 +188,8 @@ sentryTest(
       expect.arrayContaining([
         expectedNavigationPerformanceSpan,
         expectedLCPPerformanceSpan,
+        expectedCLSPerformanceSpan,
+        expectedFIDPerformanceSpan,
         expectedFPPerformanceSpan,
         expectedFCPPerformanceSpan,
         expectedMemoryPerformanceSpan,
@@ -210,13 +212,12 @@ sentryTest(
       getExpectedReplayEvent({
         segment_id: 6,
         urls: ['/spa'],
-
         request: {
-          // @ts-expect-error this is fine
-          url: expect.stringContaining('page-0.html'),
+          url: `${TEST_HOST}/spa`,
           headers: {
             // @ts-expect-error this is fine
-            'User-Agent': expect.stringContaining(''),
+            'User-Agent': expect.any(String),
+            Referer: `${TEST_HOST}/index.html`,
           },
         },
       }),
@@ -235,11 +236,11 @@ sentryTest(
         urls: [],
 
         request: {
-          // @ts-expect-error this is fine
-          url: expect.stringContaining('page-0.html'),
+          url: `${TEST_HOST}/spa`,
           headers: {
             // @ts-expect-error this is fine
-            'User-Agent': expect.stringContaining(''),
+            'User-Agent': expect.any(String),
+            Referer: `${TEST_HOST}/index.html`,
           },
         },
       }),
@@ -279,6 +280,14 @@ sentryTest(
     expect(replayEvent8).toEqual(
       getExpectedReplayEvent({
         segment_id: 8,
+        request: {
+          url: `${TEST_HOST}/index.html`,
+          headers: {
+            // @ts-expect-error this is fine
+            'User-Agent': expect.any(String),
+            Referer: `${TEST_HOST}/spa`,
+          },
+        },
       }),
     );
     expect(normalize(recording8.fullSnapshots)).toMatchSnapshot('seg-8-snap-full');
@@ -293,6 +302,14 @@ sentryTest(
       getExpectedReplayEvent({
         segment_id: 9,
         urls: [],
+        request: {
+          url: `${TEST_HOST}/index.html`,
+          headers: {
+            // @ts-expect-error this is fine
+            'User-Agent': expect.any(String),
+            Referer: `${TEST_HOST}/spa`,
+          },
+        },
       }),
     );
     expect(recording9.fullSnapshots.length).toEqual(0);
@@ -304,11 +321,13 @@ sentryTest(
     ];
     const collectedBreadcrumbsAfterIndexNavigation = [...recording8.breadcrumbs, ...recording9.breadcrumbs];
 
-    expect(collectedPerformanceSpansAfterIndexNavigation.length).toEqual(6);
+    expect(collectedPerformanceSpansAfterIndexNavigation.length).toBeGreaterThanOrEqual(6);
     expect(collectedPerformanceSpansAfterIndexNavigation).toEqual(
       expect.arrayContaining([
         expectedNavigationPerformanceSpan,
         expectedLCPPerformanceSpan,
+        expectedCLSPerformanceSpan,
+        expectedFIDPerformanceSpan,
         expectedFPPerformanceSpan,
         expectedFCPPerformanceSpan,
         expectedMemoryPerformanceSpan,

@@ -1,5 +1,5 @@
 import { expect } from '@playwright/test';
-import type { Event as SentryEvent } from '@sentry/types';
+import type { Event as SentryEvent } from '@sentry/core';
 
 import { sentryTest } from '../../../../utils/fixtures';
 import {
@@ -8,13 +8,13 @@ import {
   shouldSkipTracingTest,
 } from '../../../../utils/helpers';
 
-sentryTest('should capture interaction transaction. @firefox', async ({ browserName, getLocalTestPath, page }) => {
+sentryTest('should capture interaction transaction. @firefox', async ({ browserName, getLocalTestUrl, page }) => {
   const supportedBrowsers = ['chromium', 'firefox'];
 
   if (shouldSkipTracingTest() || !supportedBrowsers.includes(browserName)) {
     sentryTest.skip();
   }
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
 
   await page.goto(url);
   await getFirstSentryEnvelopeRequest<SentryEvent>(page);
@@ -33,9 +33,11 @@ sentryTest('should capture interaction transaction. @firefox', async ({ browserN
   expect(eventData.contexts).toMatchObject({ trace: { op: 'ui.action.click' } });
   expect(eventData.platform).toBe('javascript');
   expect(eventData.type).toBe('transaction');
-  expect(eventData.spans).toHaveLength(1);
 
-  const interactionSpan = eventData.spans![0];
+  const spans = eventData.spans?.filter(span => !span.op?.startsWith('ui.long-animation-frame'));
+  expect(spans).toHaveLength(1);
+
+  const interactionSpan = spans![0];
   expect(interactionSpan.op).toBe('ui.interaction.click');
   expect(interactionSpan.description).toBe('body > button.clicked');
   expect(interactionSpan.timestamp).toBeDefined();
@@ -47,14 +49,14 @@ sentryTest('should capture interaction transaction. @firefox', async ({ browserN
 
 sentryTest(
   'should create only one transaction per interaction @firefox',
-  async ({ browserName, getLocalTestPath, page }) => {
+  async ({ browserName, getLocalTestUrl, page }) => {
     const supportedBrowsers = ['chromium', 'firefox'];
 
     if (shouldSkipTracingTest() || !supportedBrowsers.includes(browserName)) {
       sentryTest.skip();
     }
 
-    const url = await getLocalTestPath({ testDir: __dirname });
+    const url = await getLocalTestUrl({ testDir: __dirname });
     await page.goto(url);
     await getFirstSentryEnvelopeRequest<SentryEvent>(page);
 
@@ -63,21 +65,22 @@ sentryTest(
       await page.waitForTimeout(1000);
       await page.locator('[data-test-id=interaction-button]').click();
       const envelope = await envelopePromise;
-      expect(envelope[0].spans).toHaveLength(1);
+      const spans = envelope[0].spans?.filter(span => !span.op?.startsWith('ui.long-animation-frame'));
+      expect(spans).toHaveLength(1);
     }
   },
 );
 
 sentryTest(
   'should use the component name for a clicked element when it is available',
-  async ({ browserName, getLocalTestPath, page }) => {
+  async ({ browserName, getLocalTestUrl, page }) => {
     const supportedBrowsers = ['chromium', 'firefox'];
 
     if (shouldSkipTracingTest() || !supportedBrowsers.includes(browserName)) {
       sentryTest.skip();
     }
 
-    const url = await getLocalTestPath({ testDir: __dirname });
+    const url = await getLocalTestUrl({ testDir: __dirname });
 
     await page.goto(url);
     await getFirstSentryEnvelopeRequest<SentryEvent>(page);
@@ -89,10 +92,10 @@ sentryTest(
     const envelopes = await envelopePromise;
     expect(envelopes).toHaveLength(1);
     const eventData = envelopes[0];
+    const spans = eventData.spans?.filter(span => !span.op?.startsWith('ui.long-animation-frame'));
+    expect(spans).toHaveLength(1);
 
-    expect(eventData.spans).toHaveLength(1);
-
-    const interactionSpan = eventData.spans![0];
+    const interactionSpan = spans![0];
     expect(interactionSpan.op).toBe('ui.interaction.click');
     expect(interactionSpan.description).toBe('body > AnnotatedButton');
   },
@@ -100,14 +103,14 @@ sentryTest(
 
 sentryTest(
   'should use the element name for a clicked element when no component name',
-  async ({ browserName, getLocalTestPath, page }) => {
+  async ({ browserName, getLocalTestUrl, page }) => {
     const supportedBrowsers = ['chromium', 'firefox'];
 
     if (shouldSkipTracingTest() || !supportedBrowsers.includes(browserName)) {
       sentryTest.skip();
     }
 
-    const url = await getLocalTestPath({ testDir: __dirname });
+    const url = await getLocalTestUrl({ testDir: __dirname });
 
     await page.goto(url);
     await getFirstSentryEnvelopeRequest<SentryEvent>(page);
@@ -120,9 +123,10 @@ sentryTest(
     expect(envelopes).toHaveLength(1);
 
     const eventData = envelopes[0];
-    expect(eventData.spans).toHaveLength(1);
+    const spans = eventData.spans?.filter(span => !span.op?.startsWith('ui.long-animation-frame'));
+    expect(spans).toHaveLength(1);
 
-    const interactionSpan = eventData.spans![0];
+    const interactionSpan = spans![0];
     expect(interactionSpan.op).toBe('ui.interaction.click');
     expect(interactionSpan.description).toBe('body > StyledButton');
   },

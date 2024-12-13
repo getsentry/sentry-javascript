@@ -1,5 +1,5 @@
 import { setTimeout } from '@sentry-internal/browser-utils';
-import type { ErrorEvent, Event, TransactionEvent, TransportMakeRequestResponse } from '@sentry/types';
+import type { ErrorEvent, Event, TransactionEvent, TransportMakeRequestResponse } from '@sentry/core';
 
 import type { ReplayContainer } from '../types';
 import { isErrorEvent, isTransactionEvent } from '../util/eventUtils';
@@ -68,10 +68,12 @@ function handleErrorEvent(replay: ReplayContainer, event: ErrorEvent): void {
     return;
   }
 
-  setTimeout(() => {
-    // Capture current event buffer as new replay
-    // This should never reject
-    // eslint-disable-next-line @typescript-eslint/no-floating-promises
-    replay.sendBufferedReplayOrFlush();
+  setTimeout(async () => {
+    try {
+      // Capture current event buffer as new replay
+      await replay.sendBufferedReplayOrFlush();
+    } catch (err) {
+      replay.handleException(err);
+    }
   });
 }

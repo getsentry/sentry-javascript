@@ -1,0 +1,21 @@
+{
+  "extends": "./tsconfig.json",
+
+  "compilerOptions": {
+    "declaration": true,
+    "declarationMap": true,
+    "emitDeclarationOnly": true,
+    "outDir": "./"
+  },
+
+  // These types are built separately because they are for a subpath export, which has problems if they are not in the root
+  "include": [
+    "src/solidrouter.client.ts",
+    "src/client/solidrouter.ts",
+    "src/solidrouter.server.ts",
+    "src/server/solidrouter.ts",
+    "src/solidrouter.ts"
+  ],
+  // Without this, we cannot output into the root dir
+  "exclude": []
+}

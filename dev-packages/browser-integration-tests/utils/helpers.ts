@@ -1,4 +1,5 @@
 import type { Page, Request } from '@playwright/test';
+import { parseEnvelope } from '@sentry/core';
 import type {
   Envelope,
   EnvelopeItem,
@@ -6,8 +7,8 @@ import type {
   Event,
   EventEnvelope,
   EventEnvelopeHeaders,
-} from '@sentry/types';
-import { parseEnvelope } from '@sentry/utils';
+  TransactionEvent,
+} from '@sentry/core';
 
 export const envelopeUrlRegex = /\.sentry\.io\/api\/\d+\/envelope\//;
 
@@ -65,13 +66,18 @@ const properFullEnvelopeParser = <T extends Envelope>(request: Request | null): 
 };
 
 function getEventAndTraceHeader(envelope: EventEnvelope): EventAndTraceHeader {
-  const event = envelope[1][0][1] as Event;
-  const trace = envelope[0].trace;
+  const event = envelope[1][0]?.[1] as Event | undefined;
+  const trace = envelope[0]?.trace;
+
+  if (!event || !trace) {
+    throw new Error('Could not get event or trace from envelope');
+  }
+
   return [event, trace];
 }
 
 export const properEnvelopeRequestParser = <T = Event>(request: Request | null, envelopeIndex = 1): T => {
-  return properEnvelopeParser(request)[0][envelopeIndex] as T;
+  return properEnvelopeParser(request)[0]?.[envelopeIndex] as T;
 };
 
 export const properFullEnvelopeRequestParser = <T extends Envelope>(request: Request | null): T => {
@@ -191,7 +197,7 @@ export async function waitForTransactionRequestOnUrl(page: Page, url: string): P
   return req;
 }
 
-export function waitForErrorRequest(page: Page): Promise<Request> {
+export function waitForErrorRequest(page: Page, callback?: (event: Event) => boolean): Promise<Request> {
   return page.waitForRequest(req => {
     const postData = req.postData();
     if (!postData) {
@@ -201,14 +207,25 @@ export function waitForErrorRequest(page: Page): Promise<Request> {
     try {
       const event = envelopeRequestParser(req);
 
-      return !event.type;
+      if (event.type) {
+        return false;
+      }
+
+      if (callback) {
+        return callback(event);
+      }
+
+      return true;
     } catch {
       return false;
     }
   });
 }
 
-export function waitForTransactionRequest(page: Page): Promise<Request> {
+export function waitForTransactionRequest(
+  page: Page,
+  callback?: (event: TransactionEvent) => boolean,
+): Promise<Request> {
   return page.waitForRequest(req => {
     const postData = req.postData();
     if (!postData) {
@@ -218,7 +235,15 @@ export function waitForTransactionRequest(page: Page): Promise<Request> {
     try {
       const event = envelopeRequestParser(req);
 
-      return event.type === 'transaction';
+      if (event.type !== 'transaction') {
+        return false;
+      }
+
+      if (callback) {
+        return callback(event as TransactionEvent);
+      }
+
+      return true;
     } catch {
       return false;
     }
@@ -238,15 +263,11 @@ export function shouldSkipTracingTest(): boolean {
 }
 
 /**
- * We can only test feedback tests in certain bundles/packages:
- * - NPM (ESM, CJS)
- * - CDN bundles that contain the Replay integration
- *
- * @returns `true` if we should skip the feedback test
+ * Today we always run feedback tests, but this can be used to guard this if we ever need to.
  */
 export function shouldSkipFeedbackTest(): boolean {
-  const bundle = process.env.PW_BUNDLE as string | undefined;
-  return bundle != null && !bundle.includes('feedback') && !bundle.includes('esm') && !bundle.includes('cjs');
+  // We always run these, in bundles the pluggable integration is automatically added
+  return false;
 }
 
 /**
@@ -262,9 +283,21 @@ export function shouldSkipMetricsTest(): boolean {
 }
 
 /**
+ * We only test feature flags integrations in certain bundles/packages:
+ * - NPM (ESM, CJS)
+ * - Not CDNs.
+ *
+ * @returns `true` if we should skip the feature flags test
+ */
+export function shouldSkipFeatureFlagsTest(): boolean {
+  const bundle = process.env.PW_BUNDLE as string | undefined;
+  return bundle != null && !bundle.includes('esm') && !bundle.includes('cjs');
+}
+
+/**
  * Waits until a number of requests matching urlRgx at the given URL arrive.
- * If the timout option is configured, this function will abort waiting, even if it hasn't reveived the configured
- * amount of requests, and returns all the events recieved up to that point in time.
+ * If the timeout option is configured, this function will abort waiting, even if it hasn't received the configured
+ * amount of requests, and returns all the events received up to that point in time.
  */
 async function getMultipleRequests<T>(
   page: Page,
@@ -358,7 +391,14 @@ async function getFirstSentryEnvelopeRequest<T>(
   url?: string,
   requestParser: (req: Request) => T = envelopeRequestParser as (req: Request) => T,
 ): Promise<T> {
-  return (await getMultipleSentryEnvelopeRequests<T>(page, 1, { url }, requestParser))[0];
+  const reqs = await getMultipleSentryEnvelopeRequests<T>(page, 1, { url }, requestParser);
+
+  const req = reqs[0];
+  if (!req) {
+    throw new Error('No request found');
+  }
+
+  return req;
 }
 
 export { runScriptInSandbox, getMultipleSentryEnvelopeRequests, getFirstSentryEnvelopeRequest, getSentryEvents };

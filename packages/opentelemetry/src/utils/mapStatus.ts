@@ -1,7 +1,11 @@
 import { SpanStatusCode } from '@opentelemetry/api';
-import { SEMATTRS_HTTP_STATUS_CODE, SEMATTRS_RPC_GRPC_STATUS_CODE } from '@opentelemetry/semantic-conventions';
+import {
+  ATTR_HTTP_RESPONSE_STATUS_CODE,
+  SEMATTRS_HTTP_STATUS_CODE,
+  SEMATTRS_RPC_GRPC_STATUS_CODE,
+} from '@opentelemetry/semantic-conventions';
 import { SPAN_STATUS_ERROR, SPAN_STATUS_OK, getSpanStatusFromHttpCode } from '@sentry/core';
-import type { SpanStatus } from '@sentry/types';
+import type { SpanAttributes, SpanStatus } from '@sentry/core';
 
 import type { AbstractSpan } from '../types';
 import { spanHasAttributes, spanHasStatus } from './spanTypes';
@@ -43,7 +47,14 @@ export function mapStatus(span: AbstractSpan): SpanStatus {
       return { code: SPAN_STATUS_OK };
       // If the span is already marked as erroneous we return that exact status
     } else if (status.code === SpanStatusCode.ERROR) {
-      if (typeof status.message === 'undefined' || isStatusErrorMessageValid(status.message)) {
+      if (typeof status.message === 'undefined') {
+        const inferredStatus = inferStatusFromAttributes(attributes);
+        if (inferredStatus) {
+          return inferredStatus;
+        }
+      }
+
+      if (status.message && isStatusErrorMessageValid(status.message)) {
         return { code: SPAN_STATUS_ERROR, message: status.message };
       } else {
         return { code: SPAN_STATUS_ERROR, message: 'unknown_error' };
@@ -52,8 +63,26 @@ export function mapStatus(span: AbstractSpan): SpanStatus {
   }
 
   // If the span status is UNSET, we try to infer it from HTTP or GRPC status codes.
+  const inferredStatus = inferStatusFromAttributes(attributes);
 
-  const httpCodeAttribute = attributes[SEMATTRS_HTTP_STATUS_CODE];
+  if (inferredStatus) {
+    return inferredStatus;
+  }
+
+  // We default to setting the spans status to ok.
+  if (status && status.code === SpanStatusCode.UNSET) {
+    return { code: SPAN_STATUS_OK };
+  } else {
+    return { code: SPAN_STATUS_ERROR, message: 'unknown_error' };
+  }
+}
+
+function inferStatusFromAttributes(attributes: SpanAttributes): SpanStatus | undefined {
+  // If the span status is UNSET, we try to infer it from HTTP or GRPC status codes.
+
+  // eslint-disable-next-line deprecation/deprecation
+  const httpCodeAttribute = attributes[ATTR_HTTP_RESPONSE_STATUS_CODE] || attributes[SEMATTRS_HTTP_STATUS_CODE];
+  // eslint-disable-next-line deprecation/deprecation
   const grpcCodeAttribute = attributes[SEMATTRS_RPC_GRPC_STATUS_CODE];
 
   const numberHttpCode =
@@ -63,7 +92,7 @@ export function mapStatus(span: AbstractSpan): SpanStatus {
         ? parseInt(httpCodeAttribute)
         : undefined;
 
-  if (numberHttpCode) {
+  if (typeof numberHttpCode === 'number') {
     return getSpanStatusFromHttpCode(numberHttpCode);
   }
 
@@ -71,10 +100,5 @@ export function mapStatus(span: AbstractSpan): SpanStatus {
     return { code: SPAN_STATUS_ERROR, message: canonicalGrpcErrorCodesMap[grpcCodeAttribute] || 'unknown_error' };
   }
 
-  // We default to setting the spans status to ok.
-  if (status && status.code === SpanStatusCode.UNSET) {
-    return { code: SPAN_STATUS_OK };
-  } else {
-    return { code: SPAN_STATUS_ERROR, message: 'unknown_error' };
-  }
+  return undefined;
 }

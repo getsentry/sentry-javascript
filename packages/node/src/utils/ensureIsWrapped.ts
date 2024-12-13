@@ -1,16 +1,23 @@
 import { isWrapped } from '@opentelemetry/core';
-import { hasTracingEnabled, isEnabled } from '@sentry/core';
-import { consoleSandbox } from '@sentry/utils';
+import { consoleSandbox, getClient, getGlobalScope, hasTracingEnabled, isEnabled } from '@sentry/core';
+import type { NodeClient } from '../sdk/client';
 import { isCjs } from './commonjs';
+import { createMissingInstrumentationContext } from './createMissingInstrumentationContext';
 
 /**
  * Checks and warns if a framework isn't wrapped by opentelemetry.
  */
 export function ensureIsWrapped(
-  maybeWrappedModule: unknown,
+  maybeWrappedFunction: unknown,
   name: 'express' | 'connect' | 'fastify' | 'hapi' | 'koa',
 ): void {
-  if (!isWrapped(maybeWrappedModule) && isEnabled() && hasTracingEnabled()) {
+  const client = getClient<NodeClient>();
+  if (
+    !client?.getOptions().disableInstrumentationWarnings &&
+    !isWrapped(maybeWrappedFunction) &&
+    isEnabled() &&
+    hasTracingEnabled()
+  ) {
     consoleSandbox(() => {
       if (isCjs()) {
         // eslint-disable-next-line no-console
@@ -24,5 +31,7 @@ export function ensureIsWrapped(
         );
       }
     });
+
+    getGlobalScope().setContext('missing_instrumentation', createMissingInstrumentationContext(name));
   }
 }

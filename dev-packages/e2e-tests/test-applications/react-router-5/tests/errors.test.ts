@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { waitForError, waitForTransaction } from '@sentry-internal/event-proxy-server';
+import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
 
 test('Sends correct error event', async ({ page }) => {
   const errorEventPromise = waitForError('react-router-5', event => {
@@ -24,8 +24,8 @@ test('Sends correct error event', async ({ page }) => {
   expect(errorEvent.transaction).toEqual('/');
 
   expect(errorEvent.contexts?.trace).toEqual({
-    trace_id: expect.any(String),
-    span_id: expect.any(String),
+    trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+    span_id: expect.stringMatching(/[a-f0-9]{16}/),
   });
 });
 

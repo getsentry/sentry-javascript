@@ -1,5 +1,5 @@
 import { SDK_VERSION, getClient } from '@sentry/core';
-import type { IntegrationFn } from '@sentry/types';
+import type { IntegrationFn } from '@sentry/core';
 import type { BrowserClient } from '../client';
 import { WINDOW } from '../helpers';
 
@@ -21,6 +21,7 @@ const LazyLoadableIntegrations = {
   rewriteFramesIntegration: 'rewriteframes',
   sessionTimingIntegration: 'sessiontiming',
   browserProfilingIntegration: 'browserprofiling',
+  moduleMetadataIntegration: 'modulemetadata',
 } as const;
 
 const WindowWithMaybeIntegration = WINDOW as {
@@ -31,7 +32,10 @@ const WindowWithMaybeIntegration = WINDOW as {
  * Lazy load an integration from the CDN.
  * Rejects if the integration cannot be loaded.
  */
-export async function lazyLoadIntegration(name: keyof typeof LazyLoadableIntegrations): Promise<IntegrationFn> {
+export async function lazyLoadIntegration(
+  name: keyof typeof LazyLoadableIntegrations,
+  scriptNonce?: string,
+): Promise<IntegrationFn> {
   const bundle = LazyLoadableIntegrations[name];
 
   // `window.Sentry` is only set when using a CDN bundle, but this method can also be used via the NPM package
@@ -43,7 +47,10 @@ export async function lazyLoadIntegration(name: keyof typeof LazyLoadableIntegra
 
   // Bail if the integration already exists
   const existing = sentryOnWindow[name];
-  if (typeof existing === 'function') {
+  // The `feedbackIntegration` is loaded by default in the CDN bundles,
+  // so we need to differentiate between the real integration and the shim.
+  // if only the shim exists, we still want to lazy load the real integration.
+  if (typeof existing === 'function' && !('_isShim' in existing)) {
     return existing;
   }
 
@@ -51,13 +58,25 @@ export async function lazyLoadIntegration(name: keyof typeof LazyLoadableIntegra
   const script = WINDOW.document.createElement('script');
   script.src = url;
   script.crossOrigin = 'anonymous';
+  script.referrerPolicy = 'origin';
+
+  if (scriptNonce) {
+    script.setAttribute('nonce', scriptNonce);
+  }
 
   const waitForLoad = new Promise<void>((resolve, reject) => {
     script.addEventListener('load', () => resolve());
     script.addEventListener('error', reject);
   });
 
-  WINDOW.document.body.appendChild(script);
+  const currentScript = WINDOW.document.currentScript;
+  const parent = WINDOW.document.body || WINDOW.document.head || (currentScript && currentScript.parentElement);
+
+  if (parent) {
+    parent.appendChild(script);
+  } else {
+    throw new Error(`Could not find parent element to insert lazy-loaded ${name} script`);
+  }
 
   try {
     await waitForLoad;

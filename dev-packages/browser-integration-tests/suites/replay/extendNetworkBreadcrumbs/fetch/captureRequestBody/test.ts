@@ -8,24 +8,16 @@ import {
   shouldSkipReplayTest,
 } from '../../../../../utils/replayHelpers';
 
-sentryTest('captures text request body', async ({ getLocalTestPath, page, browserName }) => {
+sentryTest('captures text request body', async ({ getLocalTestUrl, page, browserName }) => {
   if (shouldSkipReplayTest()) {
     sentryTest.skip();
   }
 
   const additionalHeaders = browserName === 'webkit' ? { 'content-type': 'text/plain' } : undefined;
 
-  await page.route('**/foo', route => {
+  await page.route('http://sentry-test.io/foo', route => {
     return route.fulfill({
       status: 200,
-    });
-  });
-
-  await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-    return route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ id: 'test-id' }),
     });
   });
 
@@ -34,19 +26,17 @@ sentryTest('captures text request body', async ({ getLocalTestPath, page, browse
     return getReplayPerformanceSpans(recordingEvents).some(span => span.op === 'resource.fetch');
   });
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
   await page.goto(url);
 
   await page.evaluate(() => {
-    /* eslint-disable */
-    fetch('http://localhost:7654/foo', {
+    fetch('http://sentry-test.io/foo', {
       method: 'POST',
       body: 'input body',
     }).then(() => {
       // @ts-expect-error Sentry is a global
       Sentry.captureException('test error');
     });
-    /* eslint-enable */
   });
 
   const request = await requestPromise;
@@ -63,7 +53,7 @@ sentryTest('captures text request body', async ({ getLocalTestPath, page, browse
       method: 'POST',
       request_body_size: 10,
       status_code: 200,
-      url: 'http://localhost:7654/foo',
+      url: 'http://sentry-test.io/foo',
     },
   });
 
@@ -80,7 +70,7 @@ sentryTest('captures text request body', async ({ getLocalTestPath, page, browse
         },
         response: additionalHeaders ? { headers: additionalHeaders } : undefined,
       },
-      description: 'http://localhost:7654/foo',
+      description: 'http://sentry-test.io/foo',
       endTimestamp: expect.any(Number),
       op: 'resource.fetch',
       startTimestamp: expect.any(Number),
@@ -88,24 +78,16 @@ sentryTest('captures text request body', async ({ getLocalTestPath, page, browse
   ]);
 });
 
-sentryTest('captures JSON request body', async ({ getLocalTestPath, page, browserName }) => {
+sentryTest('captures JSON request body', async ({ getLocalTestUrl, page, browserName }) => {
   if (shouldSkipReplayTest()) {
     sentryTest.skip();
   }
 
   const additionalHeaders = browserName === 'webkit' ? { 'content-type': 'text/plain' } : undefined;
 
-  await page.route('**/foo', route => {
+  await page.route('http://sentry-test.io/foo', route => {
     return route.fulfill({
       status: 200,
-    });
-  });
-
-  await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-    return route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ id: 'test-id' }),
     });
   });
 
@@ -114,19 +96,17 @@ sentryTest('captures JSON request body', async ({ getLocalTestPath, page, browse
     return getReplayPerformanceSpans(recordingEvents).some(span => span.op === 'resource.fetch');
   });
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
   await page.goto(url);
 
   await page.evaluate(() => {
-    /* eslint-disable */
-    fetch('http://localhost:7654/foo', {
+    fetch('http://sentry-test.io/foo', {
       method: 'POST',
       body: '{"foo":"bar"}',
     }).then(() => {
       // @ts-expect-error Sentry is a global
       Sentry.captureException('test error');
     });
-    /* eslint-enable */
   });
 
   const request = await requestPromise;
@@ -143,7 +123,7 @@ sentryTest('captures JSON request body', async ({ getLocalTestPath, page, browse
       method: 'POST',
       request_body_size: 13,
       status_code: 200,
-      url: 'http://localhost:7654/foo',
+      url: 'http://sentry-test.io/foo',
     },
   });
 
@@ -160,7 +140,7 @@ sentryTest('captures JSON request body', async ({ getLocalTestPath, page, browse
         },
         response: additionalHeaders ? { headers: additionalHeaders } : undefined,
       },
-      description: 'http://localhost:7654/foo',
+      description: 'http://sentry-test.io/foo',
       endTimestamp: expect.any(Number),
       op: 'resource.fetch',
       startTimestamp: expect.any(Number),
@@ -168,24 +148,16 @@ sentryTest('captures JSON request body', async ({ getLocalTestPath, page, browse
   ]);
 });
 
-sentryTest('captures non-text request body', async ({ getLocalTestPath, page, browserName }) => {
+sentryTest('captures non-text request body', async ({ getLocalTestUrl, page, browserName }) => {
   if (shouldSkipReplayTest()) {
     sentryTest.skip();
   }
 
   const additionalHeaders = browserName === 'webkit' ? { 'content-type': 'text/plain' } : undefined;
 
-  await page.route('**/foo', route => {
+  await page.route('http://sentry-test.io/foo', route => {
     return route.fulfill({
       status: 200,
-    });
-  });
-
-  await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-    return route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ id: 'test-id' }),
     });
   });
 
@@ -194,7 +166,7 @@ sentryTest('captures non-text request body', async ({ getLocalTestPath, page, br
     return getReplayPerformanceSpans(recordingEvents).some(span => span.op === 'resource.fetch');
   });
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
   await page.goto(url);
 
   await page.evaluate(() => {
@@ -202,15 +174,13 @@ sentryTest('captures non-text request body', async ({ getLocalTestPath, page, br
     body.append('name', 'Anne');
     body.append('age', '32');
 
-    /* eslint-disable */
-    fetch('http://localhost:7654/foo', {
+    fetch('http://sentry-test.io/foo', {
       method: 'POST',
       body: body,
     }).then(() => {
       // @ts-expect-error Sentry is a global
       Sentry.captureException('test error');
     });
-    /* eslint-enable */
   });
 
   const request = await requestPromise;
@@ -227,7 +197,7 @@ sentryTest('captures non-text request body', async ({ getLocalTestPath, page, br
       method: 'POST',
       request_body_size: 16,
       status_code: 200,
-      url: 'http://localhost:7654/foo',
+      url: 'http://sentry-test.io/foo',
     },
   });
 
@@ -244,7 +214,7 @@ sentryTest('captures non-text request body', async ({ getLocalTestPath, page, br
         },
         response: additionalHeaders ? { headers: additionalHeaders } : undefined,
       },
-      description: 'http://localhost:7654/foo',
+      description: 'http://sentry-test.io/foo',
       endTimestamp: expect.any(Number),
       op: 'resource.fetch',
       startTimestamp: expect.any(Number),
@@ -259,17 +229,9 @@ sentryTest('captures text request body when matching relative URL', async ({ get
 
   const additionalHeaders = browserName === 'webkit' ? { 'content-type': 'text/plain' } : undefined;
 
-  await page.route('**/foo', route => {
+  await page.route('http://sentry-test.io/foo', route => {
     return route.fulfill({
       status: 200,
-    });
-  });
-
-  await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-    return route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ id: 'test-id' }),
     });
   });
 
@@ -282,7 +244,6 @@ sentryTest('captures text request body when matching relative URL', async ({ get
   await page.goto(url);
 
   await page.evaluate(() => {
-    /* eslint-disable */
     fetch('/foo', {
       method: 'POST',
       body: 'input body',
@@ -290,7 +251,6 @@ sentryTest('captures text request body when matching relative URL', async ({ get
       // @ts-expect-error Sentry is a global
       Sentry.captureException('test error');
     });
-    /* eslint-enable */
   });
 
   const request = await requestPromise;
@@ -332,22 +292,14 @@ sentryTest('captures text request body when matching relative URL', async ({ get
   ]);
 });
 
-sentryTest('does not capture request body when URL does not match', async ({ getLocalTestPath, page }) => {
+sentryTest('does not capture request body when URL does not match', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipReplayTest()) {
     sentryTest.skip();
   }
 
-  await page.route('**/bar', route => {
+  await page.route('http://sentry-test.io/bar', route => {
     return route.fulfill({
       status: 200,
-    });
-  });
-
-  await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-    return route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ id: 'test-id' }),
     });
   });
 
@@ -356,19 +308,17 @@ sentryTest('does not capture request body when URL does not match', async ({ get
     return getReplayPerformanceSpans(recordingEvents).some(span => span.op === 'resource.fetch');
   });
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
   await page.goto(url);
 
   await page.evaluate(() => {
-    /* eslint-disable */
-    fetch('http://localhost:7654/bar', {
+    fetch('http://sentry-test.io/bar', {
       method: 'POST',
       body: 'input body',
     }).then(() => {
       // @ts-expect-error Sentry is a global
       Sentry.captureException('test error');
     });
-    /* eslint-enable */
   });
 
   const request = await requestPromise;
@@ -385,7 +335,7 @@ sentryTest('does not capture request body when URL does not match', async ({ get
       method: 'POST',
       request_body_size: 10,
       status_code: 200,
-      url: 'http://localhost:7654/bar',
+      url: 'http://sentry-test.io/bar',
     },
   });
 
@@ -409,7 +359,7 @@ sentryTest('does not capture request body when URL does not match', async ({ get
           },
         },
       },
-      description: 'http://localhost:7654/bar',
+      description: 'http://sentry-test.io/bar',
       endTimestamp: expect.any(Number),
       op: 'resource.fetch',
       startTimestamp: expect.any(Number),

@@ -1,4 +1,4 @@
-import { GLOBAL_OBJ } from '@sentry/utils';
+import { GLOBAL_OBJ } from '@sentry/core';
 
 import type { FutureConfig, ServerBuild } from './vendor/types';
 

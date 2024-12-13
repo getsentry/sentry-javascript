@@ -5,8 +5,8 @@ afterAll(() => {
 });
 
 test('should capture and send Express controller error with txn name if tracesSampleRate is 0', done => {
-  const runner = createRunner(__dirname, 'server.ts')
-    .ignore('session', 'sessions', 'transaction')
+  createRunner(__dirname, 'server.ts')
+    .ignore('transaction')
     .expect({
       event: {
         exception: {
@@ -33,7 +33,6 @@ test('should capture and send Express controller error with txn name if tracesSa
         transaction: 'GET /test/express/:id',
       },
     })
-    .start(done);
-
-  expect(() => runner.makeRequest('get', '/test/express/123')).rejects.toThrow();
+    .start(done)
+    .makeRequest('get', '/test/express/123', { expectError: true });
 });

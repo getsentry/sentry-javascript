@@ -1,5 +1,4 @@
-import { fill } from '@sentry/utils';
-import { getClient, getCurrentScope, setCurrentClient } from '../../../src';
+import { fill, getClient, getCurrentScope, setCurrentClient } from '../../../src';
 import { functionToStringIntegration } from '../../../src/integrations/functiontostring';
 import { TestClient, getDefaultTestClientOptions } from '../../mocks/client';
 
@@ -29,7 +28,7 @@ describe('FunctionToString', () => {
     expect(foo.bar.toString()).not.toBe(originalFunction);
 
     const fts = functionToStringIntegration();
-    getClient()?.addIntegration?.(fts);
+    getClient()?.addIntegration(fts);
 
     expect(foo.bar.toString()).toBe(originalFunction);
   });

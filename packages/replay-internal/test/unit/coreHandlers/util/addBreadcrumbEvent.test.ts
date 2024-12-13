@@ -1,3 +1,9 @@
+/**
+ * @vitest-environment jsdom
+ */
+
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { BASE_TIMESTAMP } from '../../..';
 import { addBreadcrumbEvent } from '../../../../src/coreHandlers/util/addBreadcrumbEvent';
 import type { EventBufferArray } from '../../../../src/eventBuffer/EventBufferArray';

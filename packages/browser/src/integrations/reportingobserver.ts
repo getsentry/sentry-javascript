@@ -1,6 +1,12 @@
-import { captureMessage, defineIntegration, getClient, withScope } from '@sentry/core';
-import type { Client, IntegrationFn } from '@sentry/types';
-import { GLOBAL_OBJ, supportsReportingObserver } from '@sentry/utils';
+import type { Client, IntegrationFn } from '@sentry/core';
+import {
+  GLOBAL_OBJ,
+  captureMessage,
+  defineIntegration,
+  getClient,
+  supportsReportingObserver,
+  withScope,
+} from '@sentry/core';
 
 const WINDOW = GLOBAL_OBJ as typeof GLOBAL_OBJ & Window;
 
@@ -46,6 +52,16 @@ interface ReportingObserverOptions {
   types?: ReportTypes[];
 }
 
+/** This is experimental and the types are not included with TypeScript, sadly. */
+interface ReportingObserverClass {
+  new (
+    handler: (reports: Report[]) => void,
+    options: { buffered?: boolean; types?: ReportTypes[] },
+  ): {
+    observe: () => void;
+  };
+}
+
 const SETUP_CLIENTS = new WeakMap<Client, boolean>();
 
 const _reportingObserverIntegration = ((options: ReportingObserverOptions = {}) => {
@@ -65,7 +81,7 @@ const _reportingObserverIntegration = ((options: ReportingObserverOptions = {}) 
         let details = 'No details available';
 
         if (report.body) {
-          // Object.keys doesn't work on ReportBody, as all properties are inheirted
+          // Object.keys doesn't work on ReportBody, as all properties are inherited
           const plainBody: {
             [key: string]: unknown;
           } = {};
@@ -99,13 +115,14 @@ const _reportingObserverIntegration = ((options: ReportingObserverOptions = {}) 
         return;
       }
 
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
-      const observer = new (WINDOW as any).ReportingObserver(handler, {
-        buffered: true,
-        types,
-      });
+      const observer = new (WINDOW as typeof WINDOW & { ReportingObserver: ReportingObserverClass }).ReportingObserver(
+        handler,
+        {
+          buffered: true,
+          types,
+        },
+      );
 
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       observer.observe();
     },
 

@@ -1,4 +1,3 @@
-import type { Event, Span, StartSpanOptions } from '@sentry/types';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -25,6 +24,7 @@ import {
 } from '../../../src/tracing';
 import { SentryNonRecordingSpan } from '../../../src/tracing/sentryNonRecordingSpan';
 import { startNewTrace } from '../../../src/tracing/trace';
+import type { Event, Span, StartSpanOptions } from '../../../src/types-hoist';
 import { _setSpanForScope } from '../../../src/utils/spanOnScope';
 import { getActiveSpan, getRootSpan, getSpanDescendants, spanIsSampled } from '../../../src/utils/spanUtils';
 import { TestClient, getDefaultTestClientOptions } from '../../mocks/client';
@@ -137,9 +137,9 @@ describe('startSpan', () => {
       const spans = getSpanDescendants(_span!);
 
       expect(spans).toHaveLength(2);
-      expect(spanToJSON(spans[1]).description).toEqual('SELECT * from users');
-      expect(spanToJSON(spans[1]).parent_span_id).toEqual(_span!.spanContext().spanId);
-      expect(spanToJSON(spans[1]).status).toEqual(isError ? 'internal_error' : undefined);
+      expect(spanToJSON(spans[1]!).description).toEqual('SELECT * from users');
+      expect(spanToJSON(spans[1]!).parent_span_id).toEqual(_span!.spanContext().spanId);
+      expect(spanToJSON(spans[1]!).status).toEqual(isError ? 'internal_error' : undefined);
     });
 
     it('allows for span to be mutated', async () => {
@@ -166,7 +166,7 @@ describe('startSpan', () => {
       const spans = getSpanDescendants(_span!);
 
       expect(spans).toHaveLength(2);
-      expect(spanToJSON(spans[1]).op).toEqual('db.query');
+      expect(spanToJSON(spans[1]!).op).toEqual('db.query');
     });
 
     it('correctly sets the span origin', async () => {
@@ -198,11 +198,11 @@ describe('startSpan', () => {
         },
         origin: 'auto.http.browser',
         description: 'GET users/[id]',
-        span_id: expect.any(String),
+        span_id: expect.stringMatching(/[a-f0-9]{16}/),
         start_timestamp: expect.any(Number),
         status: isError ? 'internal_error' : undefined,
         timestamp: expect.any(Number),
-        trace_id: expect.any(String),
+        trace_id: expect.stringMatching(/[a-f0-9]{32}/),
       });
     });
   });
@@ -271,6 +271,25 @@ describe('startSpan', () => {
     expect(getActiveSpan()).toBe(undefined);
   });
 
+  it('allows to pass a parentSpan', () => {
+    const parentSpan = new SentrySpan({ spanId: 'parent-span-id', sampled: true, name: 'parent-span' });
+
+    startSpan({ name: 'GET users/[id]', parentSpan }, span => {
+      expect(getActiveSpan()).toBe(span);
+      expect(spanToJSON(span).parent_span_id).toBe('parent-span-id');
+    });
+
+    expect(getActiveSpan()).toBe(undefined);
+  });
+
+  it('allows to pass parentSpan=null', () => {
+    startSpan({ name: 'GET users/[id]' }, () => {
+      startSpan({ name: 'GET users/[id]', parentSpan: null }, span => {
+        expect(spanToJSON(span).parent_span_id).toBe(undefined);
+      });
+    });
+  });
+
   it('allows to force a transaction with forceTransaction=true', async () => {
     const options = getDefaultTestClientOptions({ tracesSampleRate: 1.0 });
     client = new TestClient(options);
@@ -315,7 +334,7 @@ describe('startSpan', () => {
 
     const outerTraceId = outerTransaction?.contexts?.trace?.trace_id;
     // The inner transaction should be a child of the last span of the outer transaction
-    const innerParentSpanId = outerTransaction?.spans?.[0].id;
+    const innerParentSpanId = outerTransaction?.spans?.[0]?.id;
     const innerSpanId = innerTransaction?.contexts?.trace?.span_id;
 
     expect(outerTraceId).toBeDefined();
@@ -331,8 +350,8 @@ describe('startSpan', () => {
           'sentry.sample_rate': 1,
           'sentry.origin': 'manual',
         },
-        span_id: expect.any(String),
-        trace_id: expect.any(String),
+        span_id: expect.stringMatching(/[a-f0-9]{16}/),
+        trace_id: expect.stringMatching(/[a-f0-9]{32}/),
         origin: 'manual',
       },
     });
@@ -356,7 +375,7 @@ describe('startSpan', () => {
           'sentry.origin': 'manual',
         },
         parent_span_id: innerParentSpanId,
-        span_id: expect.any(String),
+        span_id: expect.stringMatching(/[a-f0-9]{16}/),
         trace_id: outerTraceId,
         origin: 'manual',
       },
@@ -653,13 +672,13 @@ describe('startSpanManual', () => {
     const parentSpan = new SentrySpan({ spanId: 'parent-span-id', sampled: true });
     _setSpanForScope(manualScope, parentSpan);
 
-    startSpanManual({ name: 'GET users/[id]', scope: manualScope }, (span, finish) => {
+    startSpanManual({ name: 'GET users/[id]', scope: manualScope }, span => {
       expect(getCurrentScope()).not.toBe(initialScope);
       expect(getCurrentScope()).toBe(manualScope);
       expect(getActiveSpan()).toBe(span);
       expect(spanToJSON(span).parent_span_id).toBe('parent-span-id');
 
-      finish();
+      span.end();
 
       // Is still the active span
       expect(getActiveSpan()).toBe(span);
@@ -667,6 +686,28 @@ describe('startSpanManual', () => {
 
     expect(getCurrentScope()).toBe(initialScope);
     expect(getActiveSpan()).toBe(undefined);
+  });
+
+  it('allows to pass a parentSpan', () => {
+    const parentSpan = new SentrySpan({ spanId: 'parent-span-id', sampled: true, name: 'parent-span' });
+
+    startSpanManual({ name: 'GET users/[id]', parentSpan }, span => {
+      expect(getActiveSpan()).toBe(span);
+      expect(spanToJSON(span).parent_span_id).toBe('parent-span-id');
+
+      span.end();
+    });
+
+    expect(getActiveSpan()).toBe(undefined);
+  });
+
+  it('allows to pass parentSpan=null', () => {
+    startSpan({ name: 'GET users/[id]' }, () => {
+      startSpanManual({ name: 'child', parentSpan: null }, span => {
+        expect(spanToJSON(span).parent_span_id).toBe(undefined);
+        span.end();
+      });
+    });
   });
 
   it('allows to force a transaction with forceTransaction=true', async () => {
@@ -717,7 +758,7 @@ describe('startSpanManual', () => {
 
     const outerTraceId = outerTransaction?.contexts?.trace?.trace_id;
     // The inner transaction should be a child of the last span of the outer transaction
-    const innerParentSpanId = outerTransaction?.spans?.[0].id;
+    const innerParentSpanId = outerTransaction?.spans?.[0]?.id;
     const innerSpanId = innerTransaction?.contexts?.trace?.span_id;
 
     expect(outerTraceId).toBeDefined();
@@ -733,8 +774,8 @@ describe('startSpanManual', () => {
           'sentry.sample_rate': 1,
           'sentry.origin': 'manual',
         },
-        span_id: expect.any(String),
-        trace_id: expect.any(String),
+        span_id: expect.stringMatching(/[a-f0-9]{16}/),
+        trace_id: expect.stringMatching(/[a-f0-9]{32}/),
         origin: 'manual',
       },
     });
@@ -758,7 +799,7 @@ describe('startSpanManual', () => {
           'sentry.origin': 'manual',
         },
         parent_span_id: innerParentSpanId,
-        span_id: expect.any(String),
+        span_id: expect.stringMatching(/[a-f0-9]{16}/),
         trace_id: outerTraceId,
         origin: 'manual',
       },
@@ -977,6 +1018,27 @@ describe('startInactiveSpan', () => {
     expect(getActiveSpan()).toBeUndefined();
   });
 
+  it('allows to pass a parentSpan', () => {
+    const parentSpan = new SentrySpan({ spanId: 'parent-span-id', sampled: true, name: 'parent-span' });
+
+    const span = startInactiveSpan({ name: 'GET users/[id]', parentSpan });
+
+    expect(spanToJSON(span).parent_span_id).toBe('parent-span-id');
+    expect(getActiveSpan()).toBe(undefined);
+
+    span.end();
+
+    expect(getActiveSpan()).toBeUndefined();
+  });
+
+  it('allows to pass parentSpan=null', () => {
+    startSpan({ name: 'outer' }, () => {
+      const span = startInactiveSpan({ name: 'GET users/[id]', parentSpan: null });
+      expect(spanToJSON(span).parent_span_id).toBe(undefined);
+      span.end();
+    });
+  });
+
   it('allows to force a transaction with forceTransaction=true', async () => {
     const options = getDefaultTestClientOptions({ tracesSampleRate: 1.0 });
     client = new TestClient(options);
@@ -995,7 +1057,7 @@ describe('startInactiveSpan', () => {
     startSpan({ name: 'outer transaction' }, () => {
       startSpan({ name: 'inner span' }, () => {
         const innerTransaction = startInactiveSpan({ name: 'inner transaction', forceTransaction: true });
-        innerTransaction?.end();
+        innerTransaction.end();
       });
     });
 
@@ -1018,7 +1080,7 @@ describe('startInactiveSpan', () => {
 
     const outerTraceId = outerTransaction?.contexts?.trace?.trace_id;
     // The inner transaction should be a child of the last span of the outer transaction
-    const innerParentSpanId = outerTransaction?.spans?.[0].id;
+    const innerParentSpanId = outerTransaction?.spans?.[0]?.id;
     const innerSpanId = innerTransaction?.contexts?.trace?.span_id;
 
     expect(outerTraceId).toBeDefined();
@@ -1034,8 +1096,8 @@ describe('startInactiveSpan', () => {
           'sentry.sample_rate': 1,
           'sentry.origin': 'manual',
         },
-        span_id: expect.any(String),
-        trace_id: expect.any(String),
+        span_id: expect.stringMatching(/[a-f0-9]{16}/),
+        trace_id: expect.stringMatching(/[a-f0-9]{32}/),
         origin: 'manual',
       },
     });
@@ -1059,7 +1121,7 @@ describe('startInactiveSpan', () => {
           'sentry.origin': 'manual',
         },
         parent_span_id: innerParentSpanId,
-        span_id: expect.any(String),
+        span_id: expect.stringMatching(/[a-f0-9]{16}/),
         trace_id: outerTraceId,
         origin: 'manual',
       },
@@ -1516,10 +1578,10 @@ describe('span hooks', () => {
 
         startSpanManual({ name: 'span5' }, span => {
           startInactiveSpan({ name: 'span4' });
-          span?.end();
+          span.end();
         });
 
-        span?.end();
+        span.end();
       });
     });
 

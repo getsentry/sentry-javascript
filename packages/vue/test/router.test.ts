@@ -1,26 +1,28 @@
+import { afterEach, describe, expect, it, vi } from 'vitest';
+
 import * as SentryBrowser from '@sentry/browser';
 import * as SentryCore from '@sentry/core';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
-import type { Span, SpanAttributes } from '@sentry/types';
+import type { Span, SpanAttributes } from '@sentry/core';
 
 import type { Route } from '../src/router';
 import { instrumentVueRouter } from '../src/router';
 
-const captureExceptionSpy = jest.spyOn(SentryBrowser, 'captureException');
-jest.mock('@sentry/core', () => {
-  const actual = jest.requireActual('@sentry/core');
+const captureExceptionSpy = vi.spyOn(SentryBrowser, 'captureException');
+vi.mock('@sentry/core', async () => {
+  const actual = await vi.importActual('@sentry/core');
   return {
     ...actual,
-    getActiveSpan: jest.fn().mockReturnValue({}),
+    getActiveSpan: vi.fn().mockReturnValue({}),
   };
 });
 
 const mockVueRouter = {
-  onError: jest.fn<void, [(error: Error) => void]>(),
-  beforeEach: jest.fn<void, [(from: Route, to: Route, next?: () => void) => void]>(),
+  onError: vi.fn<[(error: Error) => void]>(),
+  beforeEach: vi.fn<[(from: Route, to: Route, next?: () => void) => void]>(),
 };
 
-const mockNext = jest.fn();
+const mockNext = vi.fn();
 
 const testRoutes: Record<string, Route> = {
   initialPageloadRoute: { matched: [], params: {}, path: '', query: {} },
@@ -43,6 +45,14 @@ const testRoutes: Record<string, Route> = {
     path: '/accounts/4',
     query: {},
   },
+  nestedRoute: {
+    matched: [{ path: '/' }, { path: '/categories' }, { path: '/categories/:categoryId' }],
+    params: {
+      categoryId: '1',
+    },
+    path: '/categories/1',
+    query: {},
+  },
   namedRoute: {
     matched: [{ path: '/login' }],
     name: 'login-screen',
@@ -60,11 +70,11 @@ const testRoutes: Record<string, Route> = {
 
 describe('instrumentVueRouter()', () => {
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('should return instrumentation that instruments VueRouter.onError', () => {
-    const mockStartSpan = jest.fn();
+    const mockStartSpan = vi.fn();
     instrumentVueRouter(
       mockVueRouter,
       { routeLabel: 'name', instrumentPageLoad: true, instrumentNavigation: true },
@@ -74,7 +84,7 @@ describe('instrumentVueRouter()', () => {
     // check
     expect(mockVueRouter.onError).toHaveBeenCalledTimes(1);
 
-    const onErrorCallback = mockVueRouter.onError.mock.calls[0][0];
+    const onErrorCallback = mockVueRouter.onError.mock.calls[0]![0]!;
 
     const testError = new Error();
     onErrorCallback(testError);
@@ -85,12 +95,13 @@ describe('instrumentVueRouter()', () => {
 
   it.each([
     ['normalRoute1', 'normalRoute2', '/accounts/:accountId', 'route'],
+    ['normalRoute1', 'nestedRoute', '/categories/:categoryId', 'route'],
     ['normalRoute2', 'namedRoute', 'login-screen', 'custom'],
     ['normalRoute2', 'unmatchedRoute', '/e8733846-20ac-488c-9871-a5cbcb647294', 'url'],
   ])(
     'should return instrumentation that instruments VueRouter.beforeEach(%s, %s) for navigations',
     (fromKey, toKey, transactionName, transactionSource) => {
-      const mockStartSpan = jest.fn();
+      const mockStartSpan = vi.fn();
       instrumentVueRouter(
         mockVueRouter,
         { routeLabel: 'name', instrumentPageLoad: true, instrumentNavigation: true },
@@ -99,10 +110,11 @@ describe('instrumentVueRouter()', () => {
 
       // check
       expect(mockVueRouter.beforeEach).toHaveBeenCalledTimes(1);
-      const beforeEachCallback = mockVueRouter.beforeEach.mock.calls[0][0];
+      const beforeEachCallback = mockVueRouter.beforeEach.mock.calls[0]![0]!;
 
-      const from = testRoutes[fromKey];
-      const to = testRoutes[toKey];
+      const from = testRoutes[fromKey]!;
+      const to = testRoutes[toKey]!;
+      beforeEachCallback(to, testRoutes['initialPageloadRoute']!, mockNext); // fake initial pageload
       beforeEachCallback(to, from, mockNext);
 
       expect(mockStartSpan).toHaveBeenCalledTimes(1);
@@ -116,27 +128,28 @@ describe('instrumentVueRouter()', () => {
         op: 'navigation',
       });
 
-      expect(mockNext).toHaveBeenCalledTimes(1);
+      expect(mockNext).toHaveBeenCalledTimes(2);
     },
   );
 
   it.each([
     ['initialPageloadRoute', 'normalRoute1', '/books/:bookId/chapter/:chapterId', 'route'],
+    ['initialPageloadRoute', 'nestedRoute', '/categories/:categoryId', 'route'],
     ['initialPageloadRoute', 'namedRoute', 'login-screen', 'custom'],
     ['initialPageloadRoute', 'unmatchedRoute', '/e8733846-20ac-488c-9871-a5cbcb647294', 'url'],
   ])(
     'should return instrumentation that instruments VueRouter.beforeEach(%s, %s) for pageloads',
     (fromKey, toKey, transactionName, transactionSource) => {
       const mockRootSpan = {
-        getSpanJSON: jest.fn().mockReturnValue({ op: 'pageload' }),
-        updateName: jest.fn(),
-        setAttribute: jest.fn(),
-        setAttributes: jest.fn(),
+        getSpanJSON: vi.fn().mockReturnValue({ op: 'pageload' }),
+        updateName: vi.fn(),
+        setAttribute: vi.fn(),
+        setAttributes: vi.fn(),
       };
 
-      jest.spyOn(SentryCore, 'getRootSpan').mockImplementation(() => mockRootSpan as unknown as Span);
+      vi.spyOn(SentryCore, 'getRootSpan').mockImplementation(() => mockRootSpan as unknown as Span);
 
-      const mockStartSpan = jest.fn().mockImplementation(_ => {
+      const mockStartSpan = vi.fn().mockImplementation(_ => {
         return mockRootSpan;
       });
       instrumentVueRouter(
@@ -148,10 +161,10 @@ describe('instrumentVueRouter()', () => {
       // no span is started for page load
       expect(mockStartSpan).not.toHaveBeenCalled();
 
-      const beforeEachCallback = mockVueRouter.beforeEach.mock.calls[0][0];
+      const beforeEachCallback = mockVueRouter.beforeEach.mock.calls[0]![0]!;
 
-      const from = testRoutes[fromKey];
-      const to = testRoutes[toKey];
+      const from = testRoutes[fromKey]!;
+      const to = testRoutes[toKey]!;
 
       beforeEachCallback(to, from, mockNext);
       expect(mockVueRouter.beforeEach).toHaveBeenCalledTimes(1);
@@ -168,7 +181,7 @@ describe('instrumentVueRouter()', () => {
   );
 
   it('allows to configure routeLabel=path', () => {
-    const mockStartSpan = jest.fn();
+    const mockStartSpan = vi.fn();
     instrumentVueRouter(
       mockVueRouter,
       { routeLabel: 'path', instrumentPageLoad: true, instrumentNavigation: true },
@@ -176,10 +189,11 @@ describe('instrumentVueRouter()', () => {
     );
 
     // check
-    const beforeEachCallback = mockVueRouter.beforeEach.mock.calls[0][0];
+    const beforeEachCallback = mockVueRouter.beforeEach.mock.calls[0]![0]!;
 
-    const from = testRoutes.normalRoute1;
-    const to = testRoutes.namedRoute;
+    const from = testRoutes.normalRoute1!;
+    const to = testRoutes.namedRoute!;
+    beforeEachCallback(to, testRoutes['initialPageloadRoute']!, mockNext); // fake initial pageload
     beforeEachCallback(to, from, mockNext);
 
     // first startTx call happens when the instrumentation is initialized (for pageloads)
@@ -195,7 +209,7 @@ describe('instrumentVueRouter()', () => {
   });
 
   it('allows to configure routeLabel=name', () => {
-    const mockStartSpan = jest.fn();
+    const mockStartSpan = vi.fn();
     instrumentVueRouter(
       mockVueRouter,
       { routeLabel: 'name', instrumentPageLoad: true, instrumentNavigation: true },
@@ -203,10 +217,11 @@ describe('instrumentVueRouter()', () => {
     );
 
     // check
-    const beforeEachCallback = mockVueRouter.beforeEach.mock.calls[0][0];
+    const beforeEachCallback = mockVueRouter.beforeEach.mock.calls[0]![0]!;
 
-    const from = testRoutes.normalRoute1;
-    const to = testRoutes.namedRoute;
+    const from = testRoutes.normalRoute1!;
+    const to = testRoutes.namedRoute!;
+    beforeEachCallback(to, testRoutes['initialPageloadRoute']!, mockNext); // fake initial pageload
     beforeEachCallback(to, from, mockNext);
 
     // first startTx call happens when the instrumentation is initialized (for pageloads)
@@ -223,9 +238,9 @@ describe('instrumentVueRouter()', () => {
 
   it("doesn't overwrite a pageload transaction name it was set to custom before the router resolved the route", () => {
     const mockRootSpan = {
-      updateName: jest.fn(),
-      setAttribute: jest.fn(),
-      setAttributes: jest.fn(),
+      updateName: vi.fn(),
+      setAttribute: vi.fn(),
+      setAttributes: vi.fn(),
       name: '',
       getSpanJSON: () => ({
         op: 'pageload',
@@ -234,10 +249,10 @@ describe('instrumentVueRouter()', () => {
         },
       }),
     };
-    const mockStartSpan = jest.fn().mockImplementation(_ => {
+    const mockStartSpan = vi.fn().mockImplementation(_ => {
       return mockRootSpan;
     });
-    jest.spyOn(SentryCore, 'getRootSpan').mockImplementation(() => mockRootSpan as unknown as Span);
+    vi.spyOn(SentryCore, 'getRootSpan').mockImplementation(() => mockRootSpan as unknown as Span);
 
     instrumentVueRouter(
       mockVueRouter,
@@ -258,10 +273,10 @@ describe('instrumentVueRouter()', () => {
       },
     });
 
-    const beforeEachCallback = mockVueRouter.beforeEach.mock.calls[0][0];
+    const beforeEachCallback = mockVueRouter.beforeEach.mock.calls[0]![0]!;
 
-    const to = testRoutes['normalRoute1'];
-    const from = testRoutes['initialPageloadRoute'];
+    const to = testRoutes['normalRoute1']!;
+    const from = testRoutes['initialPageloadRoute']!;
 
     beforeEachCallback(to, from, mockNext);
 
@@ -277,14 +292,14 @@ describe('instrumentVueRouter()', () => {
   });
 
   it("updates the scope's `transactionName` when a route is resolved", () => {
-    const mockStartSpan = jest.fn().mockImplementation(_ => {
+    const mockStartSpan = vi.fn().mockImplementation(_ => {
       return {};
     });
 
-    const scopeSetTransactionNameSpy = jest.fn();
+    const scopeSetTransactionNameSpy = vi.fn();
 
     // @ts-expect-error - only creating a partial scope but that's fine
-    jest.spyOn(SentryCore, 'getCurrentScope').mockImplementation(() => ({
+    vi.spyOn(SentryCore, 'getCurrentScope').mockImplementation(() => ({
       setTransactionName: scopeSetTransactionNameSpy,
     }));
 
@@ -294,10 +309,10 @@ describe('instrumentVueRouter()', () => {
       mockStartSpan,
     );
 
-    const beforeEachCallback = mockVueRouter.beforeEach.mock.calls[0][0];
+    const beforeEachCallback = mockVueRouter.beforeEach.mock.calls[0]![0]!;
 
-    const from = testRoutes['initialPageloadRoute'];
-    const to = testRoutes['normalRoute1'];
+    const from = testRoutes['initialPageloadRoute']!;
+    const to = testRoutes['normalRoute1']!;
 
     beforeEachCallback(to, from, mockNext);
 
@@ -305,17 +320,17 @@ describe('instrumentVueRouter()', () => {
     expect(scopeSetTransactionNameSpy).toHaveBeenCalledWith('/books/:bookId/chapter/:chapterId');
   });
 
-  test.each([
+  it.each([
     [false, 0],
     [true, 1],
   ])(
     'should return instrumentation that considers the instrumentPageLoad = %p',
     (instrumentPageLoad, expectedCallsAmount) => {
       const mockRootSpan = {
-        updateName: jest.fn(),
-        setData: jest.fn(),
-        setAttribute: jest.fn(),
-        setAttributes: jest.fn(),
+        updateName: vi.fn(),
+        setData: vi.fn(),
+        setAttribute: vi.fn(),
+        setAttributes: vi.fn(),
         name: '',
         getSpanJSON: () => ({
           op: 'pageload',
@@ -324,9 +339,9 @@ describe('instrumentVueRouter()', () => {
           },
         }),
       };
-      jest.spyOn(SentryCore, 'getRootSpan').mockImplementation(() => mockRootSpan as unknown as Span);
+      vi.spyOn(SentryCore, 'getRootSpan').mockImplementation(() => mockRootSpan as unknown as Span);
 
-      const mockStartSpan = jest.fn();
+      const mockStartSpan = vi.fn();
       instrumentVueRouter(
         mockVueRouter,
         { routeLabel: 'name', instrumentPageLoad, instrumentNavigation: true },
@@ -336,21 +351,21 @@ describe('instrumentVueRouter()', () => {
       // check
       expect(mockVueRouter.beforeEach).toHaveBeenCalledTimes(1);
 
-      const beforeEachCallback = mockVueRouter.beforeEach.mock.calls[0][0];
-      beforeEachCallback(testRoutes['normalRoute1'], testRoutes['initialPageloadRoute'], mockNext);
+      const beforeEachCallback = mockVueRouter.beforeEach.mock.calls[0]![0]!;
+      beforeEachCallback(testRoutes['normalRoute1']!, testRoutes['initialPageloadRoute']!, mockNext);
 
       expect(mockRootSpan.updateName).toHaveBeenCalledTimes(expectedCallsAmount);
       expect(mockStartSpan).not.toHaveBeenCalled();
     },
   );
 
-  test.each([
+  it.each([
     [false, 0],
     [true, 1],
   ])(
     'should return instrumentation that considers the instrumentNavigation = %p',
     (instrumentNavigation, expectedCallsAmount) => {
-      const mockStartSpan = jest.fn();
+      const mockStartSpan = vi.fn();
       instrumentVueRouter(
         mockVueRouter,
         { routeLabel: 'name', instrumentPageLoad: true, instrumentNavigation },
@@ -360,25 +375,27 @@ describe('instrumentVueRouter()', () => {
       // check
       expect(mockVueRouter.beforeEach).toHaveBeenCalledTimes(1);
 
-      const beforeEachCallback = mockVueRouter.beforeEach.mock.calls[0][0];
-      beforeEachCallback(testRoutes['normalRoute2'], testRoutes['normalRoute1'], mockNext);
+      const beforeEachCallback = mockVueRouter.beforeEach.mock.calls[0]![0]!;
+      beforeEachCallback(testRoutes['normalRoute1']!, testRoutes['initialPageloadRoute']!, mockNext); // fake initial pageload
+      beforeEachCallback(testRoutes['normalRoute2']!, testRoutes['normalRoute1']!, mockNext);
 
       expect(mockStartSpan).toHaveBeenCalledTimes(expectedCallsAmount);
     },
   );
 
   it("doesn't throw when `next` is not available in the beforeEach callback (Vue Router 4)", () => {
-    const mockStartSpan = jest.fn();
+    const mockStartSpan = vi.fn();
     instrumentVueRouter(
       mockVueRouter,
       { routeLabel: 'path', instrumentPageLoad: true, instrumentNavigation: true },
       mockStartSpan,
     );
 
-    const beforeEachCallback = mockVueRouter.beforeEach.mock.calls[0][0];
+    const beforeEachCallback = mockVueRouter.beforeEach.mock.calls[0]![0]!;
 
-    const from = testRoutes.normalRoute1;
-    const to = testRoutes.namedRoute;
+    const from = testRoutes.normalRoute1!;
+    const to = testRoutes.namedRoute!;
+    beforeEachCallback(to, testRoutes['initialPageloadRoute']!, mockNext); // fake initial pageload
     beforeEachCallback(to, from, undefined);
 
     // first startTx call happens when the instrumentation is initialized (for pageloads)

@@ -4,6 +4,9 @@
   "include": ["utils/**/*.ts", "src/**/*.ts"],
 
   "compilerOptions": {
+    // Although this seems wrong to include `DOM` here, it's necessary to make
+    // global fetch available in tests in lower Node versions.
+    "lib": ["DOM", "ES2018"],
     // package-specific options
     "esModuleInterop": true,
     "types": ["node", "jest"]

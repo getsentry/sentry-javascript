@@ -1,14 +1,14 @@
 import { expect, test } from '@playwright/test';
-import { waitForError, waitForTransaction } from '@sentry-internal/event-proxy-server';
+import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
 
 test('Will capture error for SSR rendering error with a connected trace (Class Component)', async ({ page }) => {
-  const errorEventPromise = waitForError('nextjs-13-app-dir', errorEvent => {
+  const errorEventPromise = waitForError('nextjs-app-dir', errorEvent => {
     return errorEvent?.exception?.values?.[0]?.value === 'Pages SSR Error Class';
   });
 
-  const serverComponentTransaction = waitForTransaction('nextjs-13-app-dir', async transactionEvent => {
+  const serverComponentTransaction = waitForTransaction('nextjs-app-dir', async transactionEvent => {
     return (
-      transactionEvent?.transaction === '/pages-router/ssr-error-class' &&
+      transactionEvent?.transaction === 'GET /pages-router/ssr-error-class' &&
       (await errorEventPromise).contexts?.trace?.trace_id === transactionEvent.contexts?.trace?.trace_id
     );
   });
@@ -20,13 +20,13 @@ test('Will capture error for SSR rendering error with a connected trace (Class C
 });
 
 test('Will capture error for SSR rendering error with a connected trace (Functional Component)', async ({ page }) => {
-  const errorEventPromise = waitForError('nextjs-13-app-dir', errorEvent => {
+  const errorEventPromise = waitForError('nextjs-app-dir', errorEvent => {
     return errorEvent?.exception?.values?.[0]?.value === 'Pages SSR Error FC';
   });
 
-  const ssrTransactionPromise = waitForTransaction('nextjs-13-app-dir', async transactionEvent => {
+  const ssrTransactionPromise = waitForTransaction('nextjs-app-dir', async transactionEvent => {
     return (
-      transactionEvent?.transaction === '/pages-router/ssr-error-fc' &&
+      transactionEvent?.transaction === 'GET /pages-router/ssr-error-fc' &&
       (await errorEventPromise).contexts?.trace?.trace_id === transactionEvent.contexts?.trace?.trace_id
     );
   });

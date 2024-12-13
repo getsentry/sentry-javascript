@@ -4,12 +4,8 @@
   "private": true,
   "dependencies": {
     "@sentry/react": "latest || *",
-    "@testing-library/jest-dom": "5.14.1",
-    "@testing-library/react": "13.0.0",
-    "@testing-library/user-event": "13.2.1",
     "history": "4.9.0",
     "@types/history": "4.7.11",
-    "@types/jest": "27.0.1",
     "@types/node": "16.7.13",
     "@types/react": "18.0.0",
     "@types/react-dom": "18.0.0",
@@ -19,15 +15,14 @@
     "react-dom": "18.2.0",
     "react-router-dom": "5.3.4",
     "react-scripts": "5.0.1",
-    "typescript": "4.9.5",
-    "web-vitals": "2.1.0"
+    "typescript": "4.9.5"
   },
   "scripts": {
     "build": "react-scripts build",
     "start": "serve -s build",
     "test": "playwright test",
     "clean": "npx rimraf node_modules pnpm-lock.yaml",
-    "test:build": "pnpm install && npx playwright install && pnpm build",
+    "test:build": "pnpm install && pnpm build",
     "test:assert": "pnpm test"
   },
   "eslintConfig": {
@@ -38,8 +33,8 @@
     "development": ["last 1 chrome version", "last 1 firefox version", "last 1 safari version"]
   },
   "devDependencies": {
-    "@playwright/test": "^1.43.1",
-    "@sentry-internal/event-proxy-server": "link:../../../event-proxy-server",
+    "@playwright/test": "^1.44.1",
+    "@sentry-internal/test-utils": "link:../../../test-utils",
     "serve": "14.0.1"
   },
   "volta": {

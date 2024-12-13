@@ -48,11 +48,7 @@ describe('Server init()', () => {
     expect(nodeInit).toHaveBeenCalledTimes(1);
   });
 
-  it('sets runtime on scope', () => {
-    expect(SentryNode.getIsolationScope().getScopeData().tags).toEqual({});
-
-    init({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
-
-    expect(SentryNode.getIsolationScope().getScopeData().tags).toEqual({ runtime: 'node' });
+  it('returns client from init', () => {
+    expect(init({})).not.toBeUndefined();
   });
 });

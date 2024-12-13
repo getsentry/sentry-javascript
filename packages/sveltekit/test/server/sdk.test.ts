@@ -1,8 +1,9 @@
+import { afterEach, describe, expect, it, vi } from 'vitest';
+
 import * as SentryNode from '@sentry/node';
 import type { NodeClient } from '@sentry/node';
 import { SDK_VERSION, getClient } from '@sentry/node';
 
-import { vi } from 'vitest';
 import { init } from '../../src/server/sdk';
 
 const nodeInit = vi.spyOn(SentryNode, 'init');
@@ -40,14 +41,6 @@ describe('Sentry server SDK', () => {
       );
     });
 
-    it('sets the runtime tag on the isolation scope', () => {
-      expect(SentryNode.getIsolationScope().getScopeData().tags).toEqual({});
-
-      init({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
-
-      expect(SentryNode.getIsolationScope().getScopeData().tags).toEqual({ runtime: 'node' });
-    });
-
     it('adds rewriteFramesIntegration by default', () => {
       init({
         dsn: 'https://public@dsn.ingest.sentry.io/1337',
@@ -55,6 +48,10 @@ describe('Sentry server SDK', () => {
 
       const rewriteFramesIntegration = getClient<NodeClient>()?.getIntegrationByName('RewriteFrames');
       expect(rewriteFramesIntegration).toBeDefined();
+    });
+
+    it('returns client from init', () => {
+      expect(init({})).not.toBeUndefined();
     });
   });
 });

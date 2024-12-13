@@ -1,19 +1,25 @@
-import { vi } from 'vitest';
+/**
+ * @vitest-environment jsdom
+ */
+
 import type { MockedFunction } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { useFakeTimers } from '../utils/use-fake-timers';
 
 useFakeTimers();
 
 import * as SentryBrowserUtils from '@sentry-internal/browser-utils';
-import * as SentryUtils from '@sentry/utils';
+import * as SentryUtils from '@sentry/core';
 
 import { DEFAULT_FLUSH_MIN_DELAY, MAX_REPLAY_DURATION, WINDOW } from '../../src/constants';
+import type { Replay } from '../../src/integration';
 import type { ReplayContainer } from '../../src/replay';
 import { clearSession } from '../../src/session/clearSession';
 import type { EventBuffer } from '../../src/types';
 import { createPerformanceEntries } from '../../src/util/createPerformanceEntries';
 import { createPerformanceSpans } from '../../src/util/createPerformanceSpans';
+import { logger } from '../../src/util/logger';
 import * as SendReplay from '../../src/util/sendReplay';
 import { BASE_TIMESTAMP, mockRrweb, mockSdk } from '../index';
 import type { DomHandler } from '../types';
@@ -33,6 +39,7 @@ describe('Integration | flush', () => {
 
   const { record: mockRecord } = mockRrweb();
 
+  let integration: Replay;
   let replay: ReplayContainer;
   let mockSendReplay: MockSendReplay;
   let mockFlush: MockFlush;
@@ -45,7 +52,7 @@ describe('Integration | flush', () => {
       domHandler = handler;
     });
 
-    ({ replay } = await mockSdk());
+    ({ replay, integration } = await mockSdk());
 
     mockSendReplay = vi.spyOn(SendReplay, 'sendReplay');
     mockSendReplay.mockImplementation(
@@ -181,8 +188,8 @@ describe('Integration | flush', () => {
       segmentId: 0,
       eventContext: expect.anything(),
       session: expect.any(Object),
-      options: expect.any(Object),
       timestamp: expect.any(Number),
+      onError: expect.any(Function),
     });
 
     // Add this to test that segment ID increases
@@ -231,7 +238,7 @@ describe('Integration | flush', () => {
       segmentId: 1,
       eventContext: expect.anything(),
       session: expect.any(Object),
-      options: expect.any(Object),
+      onError: expect.any(Function),
       timestamp: expect.any(Number),
     });
 
@@ -329,7 +336,7 @@ describe('Integration | flush', () => {
   });
 
   it('logs warning if flushing initial segment without checkout', async () => {
-    replay.getOptions()._experiments.traceInternals = true;
+    logger.setConfig({ traceInternals: true });
 
     sessionStorage.clear();
     clearSession(replay);
@@ -402,11 +409,11 @@ describe('Integration | flush', () => {
       },
     ]);
 
-    replay.getOptions()._experiments.traceInternals = false;
+    logger.setConfig({ traceInternals: false });
   });
 
   it('logs warning if adding event that is after maxReplayDuration', async () => {
-    replay.getOptions()._experiments.traceInternals = true;
+    logger.setConfig({ traceInternals: true });
 
     const spyLogger = vi.spyOn(SentryUtils.logger, 'info');
 
@@ -434,12 +441,13 @@ describe('Integration | flush', () => {
     expect(mockSendReplay).toHaveBeenCalledTimes(0);
 
     expect(spyLogger).toHaveBeenLastCalledWith(
-      `[Replay] Skipping event with timestamp ${
+      '[Replay] ',
+      `Skipping event with timestamp ${
         BASE_TIMESTAMP + MAX_REPLAY_DURATION + 100
       } because it is after maxReplayDuration`,
     );
 
-    replay.getOptions()._experiments.traceInternals = false;
+    logger.setConfig({ traceInternals: false });
     spyLogger.mockRestore();
   });
 
@@ -483,5 +491,73 @@ describe('Integration | flush', () => {
 
     // Start again for following tests
     await replay.start();
+  });
+
+  it('resets flush lock if runFlush rejects/throws', async () => {
+    mockRunFlush.mockImplementation(
+      () =>
+        new Promise((resolve, reject) => {
+          reject(new Error('runFlush'));
+        }),
+    );
+    try {
+      await replay['_flush']();
+    } catch {
+      // do nothing
+    }
+    expect(replay['_flushLock']).toBeUndefined();
+  });
+
+  it('resets flush lock when flush is called multiple times before it resolves', async () => {
+    let _resolve;
+    mockRunFlush.mockImplementation(
+      () =>
+        new Promise(resolve => {
+          _resolve = resolve;
+        }),
+    );
+    const mockDebouncedFlush: MockedFunction<ReplayContainer['_debouncedFlush']> = vi.spyOn(replay, '_debouncedFlush');
+    mockDebouncedFlush.mockImplementation(vi.fn);
+    mockDebouncedFlush.cancel = vi.fn();
+
+    const results = [replay['_flush'](), replay['_flush']()];
+    expect(replay['_flushLock']).not.toBeUndefined();
+
+    _resolve && _resolve();
+    await Promise.all(results);
+    expect(replay['_flushLock']).toBeUndefined();
+    mockDebouncedFlush.mockRestore();
+  });
+
+  it('resets flush lock when flush is called multiple times before it rejects', async () => {
+    let _reject;
+    mockRunFlush.mockImplementation(
+      () =>
+        new Promise((_, reject) => {
+          _reject = reject;
+        }),
+    );
+    const mockDebouncedFlush: MockedFunction<ReplayContainer['_debouncedFlush']> = vi.spyOn(replay, '_debouncedFlush');
+    mockDebouncedFlush.mockImplementation(vi.fn);
+    mockDebouncedFlush.cancel = vi.fn();
+    expect(replay['_flushLock']).toBeUndefined();
+    replay['_flush']();
+    const result = replay['_flush']();
+    expect(replay['_flushLock']).not.toBeUndefined();
+
+    _reject && _reject(new Error('Throw runFlush'));
+    await result;
+    expect(replay['_flushLock']).toBeUndefined();
+    mockDebouncedFlush.mockRestore();
+  });
+
+  /**
+   * Assuming the user wants to record a session
+   * when calling flush() without replay being enabled
+   */
+  it('starts recording a session when replay is not enabled', () => {
+    integration.stop();
+    integration.flush();
+    expect(replay.isEnabled()).toBe(true);
   });
 });

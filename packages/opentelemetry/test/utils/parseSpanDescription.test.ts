@@ -1,12 +1,13 @@
+/* eslint-disable deprecation/deprecation */
 import type { Span } from '@opentelemetry/api';
 import { SpanKind } from '@opentelemetry/api';
 import {
+  ATTR_HTTP_ROUTE,
   SEMATTRS_DB_STATEMENT,
   SEMATTRS_DB_SYSTEM,
   SEMATTRS_FAAS_TRIGGER,
   SEMATTRS_HTTP_HOST,
   SEMATTRS_HTTP_METHOD,
-  SEMATTRS_HTTP_ROUTE,
   SEMATTRS_HTTP_STATUS_CODE,
   SEMATTRS_HTTP_TARGET,
   SEMATTRS_HTTP_URL,
@@ -141,7 +142,7 @@ describe('parseSpanDescription', () => {
 describe('descriptionForHttpMethod', () => {
   it.each([
     [
-      'works withhout attributes',
+      'works without attributes',
       'GET',
       {},
       'test name',
@@ -197,7 +198,7 @@ describe('descriptionForHttpMethod', () => {
         [SEMATTRS_HTTP_METHOD]: 'GET',
         [SEMATTRS_HTTP_URL]: 'https://www.example.com/my-path/123',
         [SEMATTRS_HTTP_TARGET]: '/my-path/123',
-        [SEMATTRS_HTTP_ROUTE]: '/my-path/:id',
+        [ATTR_HTTP_ROUTE]: '/my-path/:id',
       },
       'test name',
       SpanKind.CLIENT,
@@ -208,6 +209,25 @@ describe('descriptionForHttpMethod', () => {
           url: 'https://www.example.com/my-path/123',
         },
         source: 'route',
+      },
+    ],
+    [
+      'works with basic client GET with SpanKind.INTERNAL',
+      'GET',
+      {
+        [SEMATTRS_HTTP_METHOD]: 'GET',
+        [SEMATTRS_HTTP_URL]: 'https://www.example.com/my-path',
+        [SEMATTRS_HTTP_TARGET]: '/my-path',
+      },
+      'test name',
+      SpanKind.INTERNAL,
+      {
+        op: 'http',
+        description: 'test name',
+        data: {
+          url: 'https://www.example.com/my-path',
+        },
+        source: 'custom',
       },
     ],
   ])('%s', (_, httpMethod, attributes, name, kind, expected) => {
@@ -272,7 +292,7 @@ describe('getSanitizedUrl', () => {
         [SEMATTRS_HTTP_URL]: 'http://example.com/?what=true',
         [SEMATTRS_HTTP_METHOD]: 'GET',
         [SEMATTRS_HTTP_TARGET]: '/?what=true',
-        [SEMATTRS_HTTP_ROUTE]: '/my-route',
+        [ATTR_HTTP_ROUTE]: '/my-route',
         [SEMATTRS_HTTP_HOST]: 'example.com:80',
         [SEMATTRS_HTTP_STATUS_CODE]: 200,
       },
@@ -344,7 +364,7 @@ describe('getSanitizedUrl', () => {
         [SEMATTRS_HTTP_URL]: 'http://example.com/?what=true',
         [SEMATTRS_HTTP_METHOD]: 'GET',
         [SEMATTRS_HTTP_TARGET]: '/?what=true',
-        [SEMATTRS_HTTP_ROUTE]: '/my-route',
+        [ATTR_HTTP_ROUTE]: '/my-route',
         [SEMATTRS_HTTP_HOST]: 'example.com:80',
         [SEMATTRS_HTTP_STATUS_CODE]: 200,
       },

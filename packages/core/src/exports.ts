@@ -13,13 +13,17 @@ import type {
   SessionContext,
   SeverityLevel,
   User,
-} from '@sentry/types';
-import { GLOBAL_OBJ, isThenable, logger, timestampInSeconds, uuid4 } from '@sentry/utils';
+} from './types-hoist';
 
 import { DEFAULT_ENVIRONMENT } from './constants';
 import { getClient, getCurrentScope, getIsolationScope, withIsolationScope } from './currentScopes';
 import { DEBUG_BUILD } from './debug-build';
 import { closeSession, makeSession, updateSession } from './session';
+import { isThenable } from './utils-hoist/is';
+import { logger } from './utils-hoist/logger';
+import { uuid4 } from './utils-hoist/misc';
+import { timestampInSeconds } from './utils-hoist/time';
+import { GLOBAL_OBJ } from './utils-hoist/worldwide';
 import type { ExclusiveEventHintOrCaptureContext } from './utils/prepareEvent';
 import { parseEventHintOrCaptureContext } from './utils/prepareEvent';
 
@@ -30,18 +34,14 @@ import { parseEventHintOrCaptureContext } from './utils/prepareEvent';
  * @param hint Optional additional data to attach to the Sentry event.
  * @returns the id of the captured Sentry event.
  */
-export function captureException(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  exception: any,
-  hint?: ExclusiveEventHintOrCaptureContext,
-): string {
+export function captureException(exception: unknown, hint?: ExclusiveEventHintOrCaptureContext): string {
   return getCurrentScope().captureException(exception, parseEventHintOrCaptureContext(hint));
 }
 
 /**
  * Captures a message event and sends it to Sentry.
  *
- * @param exception The exception to capture.
+ * @param message The message to send to Sentry.
  * @param captureContext Define the level of the message or pass in additional data to attach to the message.
  * @returns the id of the captured message.
  */
@@ -56,7 +56,7 @@ export function captureMessage(message: string, captureContext?: CaptureContext 
 /**
  * Captures a manually created event and sends it to Sentry.
  *
- * @param exception The event to send to Sentry.
+ * @param event The event to send to Sentry.
  * @param hint Optional additional data to attach to the Sentry event.
  * @returns the id of the captured event.
  */
@@ -69,8 +69,7 @@ export function captureEvent(event: Event, hint?: EventHint): string {
  * @param name of the context
  * @param context Any kind of data. This data will be normalized.
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function setContext(name: string, context: { [key: string]: any } | null): void {
+export function setContext(name: string, context: { [key: string]: unknown } | null): void {
   getIsolationScope().setContext(name, context);
 }
 
@@ -189,8 +188,9 @@ export function withMonitor<T>(
         () => {
           finishCheckIn('ok');
         },
-        () => {
+        e => {
           finishCheckIn('error');
+          throw e;
         },
       );
     } else {

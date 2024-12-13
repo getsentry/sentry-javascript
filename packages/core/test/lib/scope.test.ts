@@ -1,4 +1,3 @@
-import type { Breadcrumb, Client, Event, RequestSessionStatus } from '@sentry/types';
 import {
   applyScopeDataToEvent,
   getCurrentScope,
@@ -7,6 +6,7 @@ import {
   withIsolationScope,
   withScope,
 } from '../../src';
+import type { Breadcrumb, Client, Event, RequestSessionStatus } from '../../src/types-hoist';
 
 import { Scope } from '../../src/scope';
 import { TestClient, getDefaultTestClientOptions } from '../mocks/client';
@@ -204,10 +204,27 @@ describe('Scope', () => {
       expect(scope['_user']).toEqual({});
     });
 
-    test('setProcessingMetadata', () => {
-      const scope = new Scope();
-      scope.setSDKProcessingMetadata({ dogs: 'are great!' });
-      expect(scope['_sdkProcessingMetadata'].dogs).toEqual('are great!');
+    describe('setProcessingMetadata', () => {
+      test('it works with no initial data', () => {
+        const scope = new Scope();
+        scope.setSDKProcessingMetadata({ dogs: 'are great!' });
+        expect(scope['_sdkProcessingMetadata'].dogs).toEqual('are great!');
+      });
+
+      test('it overwrites data', () => {
+        const scope = new Scope();
+        scope.setSDKProcessingMetadata({ dogs: 'are great!' });
+        scope.setSDKProcessingMetadata({ dogs: 'are really great!' });
+        scope.setSDKProcessingMetadata({ cats: 'are also great!' });
+        scope.setSDKProcessingMetadata({ obj: { nested1: 'value1', nested: 'value1' } });
+        scope.setSDKProcessingMetadata({ obj: { nested2: 'value2', nested: 'value2' } });
+
+        expect(scope['_sdkProcessingMetadata']).toEqual({
+          dogs: 'are really great!',
+          cats: 'are also great!',
+          obj: { nested2: 'value2', nested: 'value2', nested1: 'value1' },
+        });
+      });
     });
 
     test('set and get propagation context', () => {
@@ -244,8 +261,10 @@ describe('Scope', () => {
 
     test('_requestSession clone', () => {
       const parentScope = new Scope();
+      // eslint-disable-next-line deprecation/deprecation
       parentScope.setRequestSession({ status: 'errored' });
       const scope = parentScope.clone();
+      // eslint-disable-next-line deprecation/deprecation
       expect(parentScope.getRequestSession()).toEqual(scope.getRequestSession());
     });
 
@@ -271,15 +290,19 @@ describe('Scope', () => {
       // Test that ensures if the status value of `status` of `_requestSession` is changed in a child scope
       // that it should also change in parent scope because we are copying the reference to the object
       const parentScope = new Scope();
+      // eslint-disable-next-line deprecation/deprecation
       parentScope.setRequestSession({ status: 'errored' });
 
       const scope = parentScope.clone();
+      // eslint-disable-next-line deprecation/deprecation
       const requestSession = scope.getRequestSession();
       if (requestSession) {
         requestSession.status = 'ok';
       }
 
+      // eslint-disable-next-line deprecation/deprecation
       expect(parentScope.getRequestSession()).toEqual({ status: 'ok' });
+      // eslint-disable-next-line deprecation/deprecation
       expect(scope.getRequestSession()).toEqual({ status: 'ok' });
     });
 
@@ -299,6 +322,7 @@ describe('Scope', () => {
     scope.setUser({ id: '1' });
     scope.setFingerprint(['abcd']);
     scope.addBreadcrumb({ message: 'test' });
+    // eslint-disable-next-line deprecation/deprecation
     scope.setRequestSession({ status: 'ok' });
     expect(scope['_extra']).toEqual({ a: 2 });
     scope.clear();
@@ -332,6 +356,7 @@ describe('Scope', () => {
       scope.setUser({ id: '1337' });
       scope.setLevel('info');
       scope.setFingerprint(['foo']);
+      // eslint-disable-next-line deprecation/deprecation
       scope.setRequestSession({ status: 'ok' });
     });
 
@@ -436,6 +461,7 @@ describe('Scope', () => {
         level: 'warning' as const,
         tags: { bar: '3', baz: '4' },
         user: { id: '42' },
+        // eslint-disable-next-line deprecation/deprecation
         requestSession: { status: 'errored' as RequestSessionStatus },
         propagationContext: {
           traceId: '8949daf83f4a4a70bee4c1eb9ab242ed',
@@ -827,7 +853,7 @@ describe('Scope', () => {
 
       scope.addBreadcrumb({ message: 'hello world' }, 100);
 
-      expect((scope as any)._breadcrumbs[0].message).toEqual('hello world');
+      expect((scope as any)._breadcrumbs[0]?.message).toEqual('hello world');
     });
 
     test('adds a timestamp to new breadcrumbs', () => {
@@ -835,7 +861,7 @@ describe('Scope', () => {
 
       scope.addBreadcrumb({ message: 'hello world' }, 100);
 
-      expect((scope as any)._breadcrumbs[0].timestamp).toEqual(expect.any(Number));
+      expect((scope as any)._breadcrumbs[0]?.timestamp).toEqual(expect.any(Number));
     });
 
     test('overrides the `maxBreadcrumbs` defined in client options', () => {
@@ -984,16 +1010,5 @@ describe('withIsolationScope()', () => {
       expect(scope).toBe(isolationScope);
       done();
     });
-  });
-
-  it('Scope type is equal to Scope from @sentry/types', () => {
-    // We pass the Scope _class_ here to the callback,
-    // Which actually is typed as using the Scope from @sentry/types
-    // This should not TS-error, as we export the type from core as well
-    const scope = withScope((scope: Scope) => {
-      return scope;
-    });
-
-    expect(scope).toBeDefined();
   });
 });

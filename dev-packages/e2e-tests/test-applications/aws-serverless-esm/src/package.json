@@ -1,0 +1,5 @@
+{
+  "//": "This is a mock package.json file which is usually created by AWS when deploying the lambda. OTEL instrumentation tries to read this file to get the lambda version",
+  "name": "lambda",
+  "version": "1.0.0"
+}

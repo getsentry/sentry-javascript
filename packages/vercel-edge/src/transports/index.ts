@@ -1,6 +1,5 @@
-import { createTransport } from '@sentry/core';
-import type { BaseTransportOptions, Transport, TransportMakeRequestResponse, TransportRequest } from '@sentry/types';
-import { SentryError } from '@sentry/utils';
+import type { BaseTransportOptions, Transport, TransportMakeRequestResponse, TransportRequest } from '@sentry/core';
+import { SentryError, createTransport, suppressTracing } from '@sentry/core';
 
 export interface VercelEdgeTransportOptions extends BaseTransportOptions {
   /** Fetch API init parameters. */
@@ -89,14 +88,16 @@ export function makeEdgeTransport(options: VercelEdgeTransportOptions): Transpor
       ...options.fetchOptions,
     };
 
-    return fetch(options.url, requestOptions).then(response => {
-      return {
-        statusCode: response.status,
-        headers: {
-          'x-sentry-rate-limits': response.headers.get('X-Sentry-Rate-Limits'),
-          'retry-after': response.headers.get('Retry-After'),
-        },
-      };
+    return suppressTracing(() => {
+      return fetch(options.url, requestOptions).then(response => {
+        return {
+          statusCode: response.status,
+          headers: {
+            'x-sentry-rate-limits': response.headers.get('X-Sentry-Rate-Limits'),
+            'retry-after': response.headers.get('Retry-After'),
+          },
+        };
+      });
     });
   }
 

@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { waitForError } from '@sentry-internal/event-proxy-server';
+import { waitForError } from '@sentry-internal/test-utils';
 
 test('Captures exception correctly', async ({ page }) => {
   const errorEventPromise = waitForError('react-create-hash-router', event => {
@@ -24,7 +24,7 @@ test('Captures exception correctly', async ({ page }) => {
   expect(errorEvent.transaction).toEqual('/');
 
   expect(errorEvent.contexts?.trace).toEqual({
-    trace_id: expect.any(String),
-    span_id: expect.any(String),
+    trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+    span_id: expect.stringMatching(/[a-f0-9]{16}/),
   });
 });

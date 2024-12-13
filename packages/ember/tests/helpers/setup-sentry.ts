@@ -33,11 +33,11 @@ export function setupSentryTest(hooks: NestedHooks): void {
 
     // @ts-expect-error this is fine
     QUnit.onError = function ({ message }: { message: string }) {
-      errorMessages.push(message.split('Error: ')[1]);
+      errorMessages.push(message.split('Error: ')[1]!);
       return true;
     };
 
-    setupOnerror(function (error) {
+    setupOnerror(function (error: Error) {
       errorMessages.push(error.message);
       throw error;
     });
@@ -48,7 +48,7 @@ export function setupSentryTest(hooks: NestedHooks): void {
      * Will collect errors when run via testem in cli
      */
     window.onerror = error => {
-      errorMessages.push(error.toString().split('Error: ')[1]);
+      errorMessages.push(error.toString().split('Error: ')[1]!);
     };
   });
 

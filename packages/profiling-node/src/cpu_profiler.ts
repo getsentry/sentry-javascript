@@ -5,9 +5,21 @@ import { threadId } from 'node:worker_threads';
 import { familySync } from 'detect-libc';
 import { getAbi } from 'node-abi';
 
-import { GLOBAL_OBJ, logger } from '@sentry/utils';
+import { GLOBAL_OBJ, logger } from '@sentry/core';
 import { DEBUG_BUILD } from './debug-build';
-import type { PrivateV8CpuProfilerBindings, V8CpuProfilerBindings } from './types';
+import type {
+  PrivateV8CpuProfilerBindings,
+  RawChunkCpuProfile,
+  RawThreadCpuProfile,
+  V8CpuProfilerBindings,
+} from './types';
+import type { ProfileFormat } from './types';
+
+// #START_SENTRY_ESM_SHIM
+// When building for ESM, we shim require to use createRequire and __dirname.
+// We need to do this because .node extensions in esm are not supported.
+// The comment below this line exists as a placeholder for where to insert the shim.
+// #END_SENTRY_ESM_SHIM
 
 const stdlib = familySync();
 const platform = process.env['BUILD_PLATFORM'] || _platform();
@@ -34,7 +46,7 @@ export function importCppBindingsModule(): PrivateV8CpuProfilerBindings {
     return require(`${binaryPath}.node`);
   }
 
-  // We need the fallthrough so that in the end, we can fallback to the require dynamice require.
+  // We need the fallthrough so that in the end, we can fallback to the dynamic require.
   // This is for cases where precompiled binaries were not provided, but may have been compiled from source.
   if (platform === 'darwin') {
     if (arch === 'x64') {
@@ -131,6 +143,7 @@ export function importCppBindingsModule(): PrivateV8CpuProfilerBindings {
           return require('../sentry_cpu_profiler-linux-arm64-musl-127.node');
         }
       }
+
       if (stdlib === 'glibc') {
         if (abi === '93') {
           return require('../sentry_cpu_profiler-linux-arm64-glibc-93.node');
@@ -151,24 +164,51 @@ export function importCppBindingsModule(): PrivateV8CpuProfilerBindings {
 }
 
 const PrivateCpuProfilerBindings: PrivateV8CpuProfilerBindings = importCppBindingsModule();
-const CpuProfilerBindings: V8CpuProfilerBindings = {
-  startProfiling(name: string) {
+
+class Bindings implements V8CpuProfilerBindings {
+  public startProfiling(name: string): void {
     if (!PrivateCpuProfilerBindings) {
       DEBUG_BUILD && logger.log('[Profiling] Bindings not loaded, ignoring call to startProfiling.');
       return;
     }
 
+    if (typeof PrivateCpuProfilerBindings.startProfiling !== 'function') {
+      DEBUG_BUILD &&
+        logger.log('[Profiling] Native startProfiling function is not available, ignoring call to startProfiling.');
+      return;
+    }
+
     return PrivateCpuProfilerBindings.startProfiling(name);
-  },
-  stopProfiling(name: string) {
+  }
+
+  public stopProfiling(name: string, format: ProfileFormat.THREAD): RawThreadCpuProfile | null;
+  public stopProfiling(name: string, format: ProfileFormat.CHUNK): RawChunkCpuProfile | null;
+  public stopProfiling(
+    name: string,
+    format: ProfileFormat.CHUNK | ProfileFormat.THREAD,
+  ): RawThreadCpuProfile | RawChunkCpuProfile | null {
     if (!PrivateCpuProfilerBindings) {
       DEBUG_BUILD &&
         logger.log('[Profiling] Bindings not loaded or profile was never started, ignoring call to stopProfiling.');
       return null;
     }
-    return PrivateCpuProfilerBindings.stopProfiling(name, threadId, !!GLOBAL_OBJ._sentryDebugIds);
-  },
-};
+
+    if (typeof PrivateCpuProfilerBindings.stopProfiling !== 'function') {
+      DEBUG_BUILD &&
+        logger.log('[Profiling] Native stopProfiling function is not available, ignoring call to stopProfiling.');
+      return null;
+    }
+
+    return PrivateCpuProfilerBindings.stopProfiling(
+      name,
+      format as unknown as any,
+      threadId,
+      !!GLOBAL_OBJ._sentryDebugIds,
+    );
+  }
+}
+
+const CpuProfilerBindings = new Bindings();
 
 export { PrivateCpuProfilerBindings };
 export { CpuProfilerBindings };

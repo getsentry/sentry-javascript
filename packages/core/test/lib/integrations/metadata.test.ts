@@ -1,7 +1,15 @@
-import type { Event } from '@sentry/types';
-import { GLOBAL_OBJ, createStackParser, nodeStackLineParser, parseEnvelope } from '@sentry/utils';
+import type { Event } from '../../../src/types-hoist';
 
-import { captureException, createTransport, moduleMetadataIntegration, setCurrentClient } from '../../../src';
+import {
+  GLOBAL_OBJ,
+  captureException,
+  createStackParser,
+  createTransport,
+  moduleMetadataIntegration,
+  nodeStackLineParser,
+  parseEnvelope,
+  setCurrentClient,
+} from '../../../src';
 import { TestClient, getDefaultTestClientOptions } from '../../mocks/client';
 
 const stackParser = createStackParser(nodeStackLineParser());
@@ -29,7 +37,7 @@ describe('ModuleMetadata integration', () => {
       integrations: [moduleMetadataIntegration()],
       beforeSend: (event, _hint) => {
         // copy the frames since reverse in in-place
-        const lastFrame = [...(event.exception?.values?.[0].stacktrace?.frames || [])].reverse()[0];
+        const lastFrame = [...(event.exception?.values?.[0]?.stacktrace?.frames || [])].reverse()[0];
         // Ensure module_metadata is populated in beforeSend callback
         expect(lastFrame?.module_metadata).toEqual({ team: 'frontend' });
         return event;

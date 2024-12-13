@@ -1,8 +1,9 @@
-import type { Event, Exception, IntegrationFn, StackFrame } from '@sentry/types';
-import { logger } from '@sentry/utils';
 import { defineIntegration } from '../integration';
+import type { Event, Exception, IntegrationFn, StackFrame } from '../types-hoist';
 
 import { DEBUG_BUILD } from '../debug-build';
+import { logger } from '../utils-hoist/logger';
+import { getFramesFromEvent } from '../utils-hoist/stacktrace';
 
 const INTEGRATION_NAME = 'Dedupe';
 
@@ -106,8 +107,8 @@ function _isSameExceptionEvent(currentEvent: Event, previousEvent: Event): boole
 }
 
 function _isSameStacktrace(currentEvent: Event, previousEvent: Event): boolean {
-  let currentFrames = _getFramesFromEvent(currentEvent);
-  let previousFrames = _getFramesFromEvent(previousEvent);
+  let currentFrames = getFramesFromEvent(currentEvent);
+  let previousFrames = getFramesFromEvent(previousEvent);
 
   // If neither event has a stacktrace, they are assumed to be the same
   if (!currentFrames && !previousFrames) {
@@ -129,8 +130,10 @@ function _isSameStacktrace(currentEvent: Event, previousEvent: Event): boolean {
 
   // Otherwise, compare the two
   for (let i = 0; i < previousFrames.length; i++) {
-    const frameA = previousFrames[i];
-    const frameB = currentFrames[i];
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const frameA = previousFrames[i]!;
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const frameB = currentFrames[i]!;
 
     if (
       frameA.filename !== frameB.filename ||
@@ -172,18 +175,4 @@ function _isSameFingerprint(currentEvent: Event, previousEvent: Event): boolean 
 
 function _getExceptionFromEvent(event: Event): Exception | undefined {
   return event.exception && event.exception.values && event.exception.values[0];
-}
-
-function _getFramesFromEvent(event: Event): StackFrame[] | undefined {
-  const exception = event.exception;
-
-  if (exception) {
-    try {
-      // @ts-expect-error Object could be undefined
-      return exception.values[0].stacktrace.frames;
-    } catch (_oO) {
-      return undefined;
-    }
-  }
-  return undefined;
 }

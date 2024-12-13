@@ -1,7 +1,7 @@
-import type { Instrumentation } from '@opentelemetry/instrumentation';
-import { addOpenTelemetryInstrumentation } from '@sentry/opentelemetry';
+import { type Instrumentation, registerInstrumentations } from '@opentelemetry/instrumentation';
 
-const INSTRUMENTED: Record<string, Instrumentation> = {};
+/** Exported only for tests. */
+export const INSTRUMENTED: Record<string, Instrumentation> = {};
 
 /**
  * Instrument an OpenTelemetry instrumentation once.
@@ -13,10 +13,11 @@ export function generateInstrumentOnce<Options = unknown>(
 ): ((options?: Options) => void) & { id: string } {
   return Object.assign(
     (options?: Options) => {
-      if (INSTRUMENTED[name]) {
+      const instrumented = INSTRUMENTED[name];
+      if (instrumented) {
         // If options are provided, ensure we update them
         if (options) {
-          INSTRUMENTED[name].setConfig(options);
+          instrumented.setConfig(options);
         }
         return;
       }
@@ -24,7 +25,9 @@ export function generateInstrumentOnce<Options = unknown>(
       const instrumentation = creator(options);
       INSTRUMENTED[name] = instrumentation;
 
-      addOpenTelemetryInstrumentation(instrumentation);
+      registerInstrumentations({
+        instrumentations: [instrumentation],
+      });
     },
     { id: name },
   );

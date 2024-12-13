@@ -1,3 +1,14 @@
+import { getClient, getCurrentScope } from '../currentScopes';
+import { DEBUG_BUILD } from '../debug-build';
+import { createSpanEnvelope } from '../envelope';
+import { getMetricSummaryJsonForSpan } from '../metrics/metric-summary';
+import {
+  SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME,
+  SEMANTIC_ATTRIBUTE_PROFILE_ID,
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+} from '../semanticAttributes';
 import type {
   SentrySpanArguments,
   Span,
@@ -12,20 +23,11 @@ import type {
   TimedEvent,
   TransactionEvent,
   TransactionSource,
-} from '@sentry/types';
-import { dropUndefinedKeys, logger, timestampInSeconds, uuid4 } from '@sentry/utils';
-import { getClient, getCurrentScope } from '../currentScopes';
-import { DEBUG_BUILD } from '../debug-build';
-
-import { createSpanEnvelope } from '../envelope';
-import { getMetricSummaryJsonForSpan } from '../metrics/metric-summary';
-import {
-  SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME,
-  SEMANTIC_ATTRIBUTE_PROFILE_ID,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-} from '../semanticAttributes';
+} from '../types-hoist';
+import { logger } from '../utils-hoist/logger';
+import { dropUndefinedKeys } from '../utils-hoist/object';
+import { generateSpanId, generateTraceId } from '../utils-hoist/propagationContext';
+import { timestampInSeconds } from '../utils-hoist/time';
 import {
   TRACE_FLAG_NONE,
   TRACE_FLAG_SAMPLED,
@@ -73,8 +75,8 @@ export class SentrySpan implements Span {
    * @hidden
    */
   public constructor(spanContext: SentrySpanArguments = {}) {
-    this._traceId = spanContext.traceId || uuid4();
-    this._spanId = spanContext.spanId || uuid4().substring(16);
+    this._traceId = spanContext.traceId || generateTraceId();
+    this._spanId = spanContext.spanId || generateSpanId();
     this._startTime = spanContext.startTimestamp || timestampInSeconds();
 
     this._attributes = {};
@@ -107,6 +109,39 @@ export class SentrySpan implements Span {
     }
   }
 
+  /**
+   * This should generally not be used,
+   * but it is needed for being compliant with the OTEL Span interface.
+   *
+   * @hidden
+   * @internal
+   */
+  public addLink(_link: unknown): this {
+    return this;
+  }
+
+  /**
+   * This should generally not be used,
+   * but it is needed for being compliant with the OTEL Span interface.
+   *
+   * @hidden
+   * @internal
+   */
+  public addLinks(_links: unknown[]): this {
+    return this;
+  }
+
+  /**
+   * This should generally not be used,
+   * but it is needed for being compliant with the OTEL Span interface.
+   *
+   * @hidden
+   * @internal
+   */
+  public recordException(_exception: unknown, _time?: number | undefined): void {
+    // noop
+  }
+
   /** @inheritdoc */
   public spanContext(): SpanContextData {
     const { _spanId: spanId, _traceId: traceId, _sampled: sampled } = this;
@@ -118,18 +153,21 @@ export class SentrySpan implements Span {
   }
 
   /** @inheritdoc */
-  public setAttribute(key: string, value: SpanAttributeValue | undefined): void {
+  public setAttribute(key: string, value: SpanAttributeValue | undefined): this {
     if (value === undefined) {
       // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
       delete this._attributes[key];
     } else {
       this._attributes[key] = value;
     }
+
+    return this;
   }
 
   /** @inheritdoc */
-  public setAttributes(attributes: SpanAttributes): void {
+  public setAttributes(attributes: SpanAttributes): this {
     Object.keys(attributes).forEach(key => this.setAttribute(key, attributes[key]));
+    return this;
   }
 
   /**
@@ -157,6 +195,7 @@ export class SentrySpan implements Span {
    */
   public updateName(name: string): this {
     this._name = name;
+    this.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'custom');
     return this;
   }
 
@@ -261,7 +300,15 @@ export class SentrySpan implements Span {
 
     // if this is a standalone span, we send it immediately
     if (this._isStandaloneSpan) {
-      sendSpanEnvelope(createSpanEnvelope([this], client));
+      if (this._sampled) {
+        sendSpanEnvelope(createSpanEnvelope([this], client));
+      } else {
+        DEBUG_BUILD &&
+          logger.log('[Tracing] Discarding standalone span because its trace was not chosen to be sampled.');
+        if (client) {
+          client.recordDroppedEvent('sample_rate', 'span');
+        }
+      }
       return;
     }
 
@@ -342,7 +389,10 @@ export class SentrySpan implements Span {
 
     if (hasMeasurements) {
       DEBUG_BUILD &&
-        logger.log('[Measurements] Adding measurements to transaction', JSON.stringify(measurements, undefined, 2));
+        logger.log(
+          '[Measurements] Adding measurements to transaction event',
+          JSON.stringify(measurements, undefined, 2),
+        );
       transaction.measurements = measurements;
     }
 
@@ -382,10 +432,7 @@ function sendSpanEnvelope(envelope: SpanEnvelope): void {
     return;
   }
 
-  const transport = client.getTransport();
-  if (transport) {
-    transport.send(envelope).then(null, reason => {
-      DEBUG_BUILD && logger.error('Error while sending span:', reason);
-    });
-  }
+  // sendEnvelope should not throw
+  // eslint-disable-next-line @typescript-eslint/no-floating-promises
+  client.sendEnvelope(envelope);
 }

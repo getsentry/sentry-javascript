@@ -1,5 +1,6 @@
+import type { ContinuousThreadCpuProfile, ThreadCpuProfile } from '@sentry/core';
 import { CpuProfilerBindings, PrivateCpuProfilerBindings } from '../src/cpu_profiler';
-import type { RawThreadCpuProfile, ThreadCpuProfile } from '../src/types';
+import type { RawThreadCpuProfile } from '../src/types';
 
 // Required because we test a hypothetical long profile
 // and we cannot use advance timers as the c++ relies on
@@ -18,13 +19,16 @@ const fibonacci = (n: number): number => {
 };
 
 const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-const profiled = async (name: string, fn: () => void) => {
+const profiled = async (name: string, fn: () => void, format: 0 | 1 = 0) => {
   CpuProfilerBindings.startProfiling(name);
   await fn();
-  return CpuProfilerBindings.stopProfiling(name);
+  return CpuProfilerBindings.stopProfiling(name, format);
 };
 
-const assertValidSamplesAndStacks = (stacks: ThreadCpuProfile['stacks'], samples: ThreadCpuProfile['samples']) => {
+const assertValidSamplesAndStacks = (
+  stacks: ThreadCpuProfile['stacks'],
+  samples: ThreadCpuProfile['samples'] | ContinuousThreadCpuProfile['samples'],
+) => {
   expect(stacks.length).toBeGreaterThan(0);
   expect(samples.length).toBeGreaterThan(0);
   expect(stacks.length <= samples.length).toBe(true);
@@ -65,19 +69,28 @@ const assertValidMeasurements = (measurement: RawThreadCpuProfile['measurements'
 
 describe('Private bindings', () => {
   it('does not crash if collect resources is false', async () => {
-    PrivateCpuProfilerBindings.startProfiling('profiled-program');
+    PrivateCpuProfilerBindings.startProfiling!('profiled-program');
     await wait(100);
     expect(() => {
-      const profile = PrivateCpuProfilerBindings.stopProfiling('profiled-program', 0, false);
+      const profile = PrivateCpuProfilerBindings.stopProfiling!('profiled-program', 0, 0, false);
       if (!profile) throw new Error('No profile');
     }).not.toThrow();
   });
 
+  it('throws if invalid format is supplied', async () => {
+    PrivateCpuProfilerBindings.startProfiling!('profiled-program');
+    await wait(100);
+    expect(() => {
+      const profile = PrivateCpuProfilerBindings.stopProfiling!('profiled-program', Number.MAX_SAFE_INTEGER, 0, false);
+      if (!profile) throw new Error('No profile');
+    }).toThrow('StopProfiling expects a valid format type as second argument.');
+  });
+
   it('collects resources', async () => {
-    PrivateCpuProfilerBindings.startProfiling('profiled-program');
+    PrivateCpuProfilerBindings.startProfiling!('profiled-program');
     await wait(100);
 
-    const profile = PrivateCpuProfilerBindings.stopProfiling('profiled-program', 0, true);
+    const profile = PrivateCpuProfilerBindings.stopProfiling!('profiled-program', 0, 0, true);
     if (!profile) throw new Error('No profile');
 
     expect(profile.resources.length).toBeGreaterThan(0);
@@ -91,10 +104,10 @@ describe('Private bindings', () => {
   });
 
   it('does not collect resources', async () => {
-    PrivateCpuProfilerBindings.startProfiling('profiled-program');
+    PrivateCpuProfilerBindings.startProfiling!('profiled-program');
     await wait(100);
 
-    const profile = PrivateCpuProfilerBindings.stopProfiling('profiled-program', 0, false);
+    const profile = PrivateCpuProfilerBindings.stopProfiling!('profiled-program', 0, 0, false);
     if (!profile) throw new Error('No profile');
 
     expect(profile.resources.length).toBe(0);
@@ -159,27 +172,27 @@ describe('Profiler bindings', () => {
     CpuProfilerBindings.startProfiling('same-title');
     CpuProfilerBindings.startProfiling('same-title');
 
-    const first = CpuProfilerBindings.stopProfiling('same-title');
-    const second = CpuProfilerBindings.stopProfiling('same-title');
+    const first = CpuProfilerBindings.stopProfiling('same-title', 0);
+    const second = CpuProfilerBindings.stopProfiling('same-title', 0);
 
     expect(first).not.toBe(null);
     expect(second).toBe(null);
   });
 
-  it('weird cases', () => {
+  it('multiple calls with same title', () => {
     CpuProfilerBindings.startProfiling('same-title');
     expect(() => {
-      CpuProfilerBindings.stopProfiling('same-title');
-      CpuProfilerBindings.stopProfiling('same-title');
+      CpuProfilerBindings.stopProfiling('same-title', 0);
+      CpuProfilerBindings.stopProfiling('same-title', 0);
     }).not.toThrow();
   });
 
   it('does not crash if stopTransaction is called before startTransaction', () => {
-    expect(CpuProfilerBindings.stopProfiling('does not exist')).toBe(null);
+    expect(CpuProfilerBindings.stopProfiling('does not exist', 0)).toBe(null);
   });
 
   it('does crash if name is invalid', () => {
-    expect(() => CpuProfilerBindings.stopProfiling('')).toThrow();
+    expect(() => CpuProfilerBindings.stopProfiling('', 0)).toThrow();
     // @ts-expect-error test invalid input
     expect(() => CpuProfilerBindings.stopProfiling(undefined)).toThrow();
     // @ts-expect-error test invalid input
@@ -189,8 +202,8 @@ describe('Profiler bindings', () => {
   });
 
   it('does not throw if stopTransaction is called before startTransaction', () => {
-    expect(CpuProfilerBindings.stopProfiling('does not exist')).toBe(null);
-    expect(() => CpuProfilerBindings.stopProfiling('does not exist')).not.toThrow();
+    expect(CpuProfilerBindings.stopProfiling('does not exist', 0)).toBe(null);
+    expect(() => CpuProfilerBindings.stopProfiling('does not exist', 0)).not.toThrow();
   });
 
   it('compiles with eager logging by default', async () => {
@@ -200,6 +213,31 @@ describe('Profiler bindings', () => {
 
     if (!profile) fail('Profile is null');
     expect(profile.profiler_logging_mode).toBe('eager');
+  });
+
+  it('chunk format type', async () => {
+    const profile = await profiled(
+      'non nullable stack',
+      async () => {
+        await wait(1000);
+        fibonacci(36);
+        await wait(1000);
+      },
+      1,
+    );
+
+    if (!profile) fail('Profile is null');
+
+    for (const sample of profile.samples) {
+      if (!('timestamp' in sample)) {
+        throw new Error(`Sample ${JSON.stringify(sample)} has no timestamp`);
+      }
+      expect(sample.timestamp).toBeDefined();
+      // No older than a minute and not in the future. Timestamp is in seconds so convert to ms
+      // as the constructor expects ms.
+      expect(new Date((sample.timestamp as number) * 1e3).getTime()).toBeGreaterThan(Date.now() - 60 * 1e3);
+      expect(new Date((sample.timestamp as number) * 1e3).getTime()).toBeLessThanOrEqual(Date.now());
+    }
   });
 
   it('stacks are not null', async () => {
@@ -216,7 +254,7 @@ describe('Profiler bindings', () => {
   it('samples at ~99hz', async () => {
     CpuProfilerBindings.startProfiling('profile');
     await wait(100);
-    const profile = CpuProfilerBindings.stopProfiling('profile');
+    const profile = CpuProfilerBindings.stopProfiling('profile', 0);
 
     if (!profile) fail('Profile is null');
 
@@ -240,7 +278,7 @@ describe('Profiler bindings', () => {
   it('collects memory footprint', async () => {
     CpuProfilerBindings.startProfiling('profile');
     await wait(1000);
-    const profile = CpuProfilerBindings.stopProfiling('profile');
+    const profile = CpuProfilerBindings.stopProfiling('profile', 0);
 
     const heap_usage = profile?.measurements['memory_footprint'];
     if (!heap_usage) {
@@ -256,7 +294,7 @@ describe('Profiler bindings', () => {
   it('collects cpu usage', async () => {
     CpuProfilerBindings.startProfiling('profile');
     await wait(1000);
-    const profile = CpuProfilerBindings.stopProfiling('profile');
+    const profile = CpuProfilerBindings.stopProfiling('profile', 0);
 
     const cpu_usage = profile?.measurements['cpu_usage'];
     if (!cpu_usage) {
@@ -272,13 +310,13 @@ describe('Profiler bindings', () => {
   it('does not overflow measurement buffer if profile runs longer than 30s', async () => {
     CpuProfilerBindings.startProfiling('profile');
     await wait(35000);
-    const profile = CpuProfilerBindings.stopProfiling('profile');
+    const profile = CpuProfilerBindings.stopProfiling('profile', 0);
     expect(profile).not.toBe(null);
     expect(profile?.measurements?.['cpu_usage']?.values.length).toBeLessThanOrEqual(300);
     expect(profile?.measurements?.['memory_footprint']?.values.length).toBeLessThanOrEqual(300);
   });
 
-  // eslint-disable-next-line jest/no-disabled-tests
+  // eslint-disable-next-line @sentry-internal/sdk/no-skipped-tests
   it.skip('includes deopt reason', async () => {
     // https://github.com/petkaantonov/bluebird/wiki/Optimization-killers#52-the-object-being-iterated-is-not-a-simple-enumerable
     function iterateOverLargeHashTable() {
@@ -298,5 +336,28 @@ describe('Profiler bindings', () => {
     // @ts-expect-error deopt reasons are disabled for now as we need to figure out the backend support
     const hasDeoptimizedFrame = profile.frames.some(f => f.deopt_reasons && f.deopt_reasons.length > 0);
     expect(hasDeoptimizedFrame).toBe(true);
+  });
+
+  it('does not crash if the native startProfiling function is not available', async () => {
+    const original = PrivateCpuProfilerBindings.startProfiling;
+    PrivateCpuProfilerBindings.startProfiling = undefined;
+
+    expect(() => {
+      CpuProfilerBindings.startProfiling('profiled-program');
+    }).not.toThrow();
+
+    PrivateCpuProfilerBindings.startProfiling = original;
+  });
+
+  it('does not crash if the native stopProfiling function is not available', async () => {
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    const original = PrivateCpuProfilerBindings.stopProfiling;
+    PrivateCpuProfilerBindings.stopProfiling = undefined;
+
+    expect(() => {
+      CpuProfilerBindings.stopProfiling('profiled-program', 0);
+    }).not.toThrow();
+
+    PrivateCpuProfilerBindings.stopProfiling = original;
   });
 });

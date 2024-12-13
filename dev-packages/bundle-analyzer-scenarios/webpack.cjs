@@ -1,7 +1,7 @@
-const path = require('path');
-const { promises } = require('fs');
+const path = require('node:path');
+const { promises } = require('node:fs');
+const { parseArgs } = require('node:util');
 
-const inquirer = require('inquirer');
 const webpack = require('webpack');
 const BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPlugin;
 const HtmlWebpackPlugin = require('html-webpack-plugin');
@@ -9,20 +9,25 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 async function init() {
   const scenarios = await getScenariosFromDirectories();
 
-  const answers = await inquirer.prompt([
-    {
-      type: 'rawlist',
-      name: 'scenario',
-      message: 'Which scenario you want to run?',
-      choices: scenarios,
-      pageSize: scenarios.length,
-      loop: false,
-    },
-  ]);
+  const { values } = parseArgs({
+    args: process.argv.slice(2),
+    options: { scenario: { type: 'string', short: 's' }, list: { type: 'boolean', short: 'l' } },
+  });
 
-  console.log(`Bundling scenario: ${answers.scenario}`);
+  if (values.list) {
+    console.log('Available scenarios:', scenarios);
+    process.exit(0);
+  }
 
-  await runWebpack(answers.scenario);
+  if (!scenarios.some(scenario => scenario === values.scenario)) {
+    console.error('Invalid scenario:', values.scenario);
+    console.error('Available scenarios:', scenarios);
+    process.exit(1);
+  }
+
+  console.log(`Bundling scenario: ${values.scenario}`);
+
+  await runWebpack(values.scenario);
 }
 
 async function runWebpack(scenario) {

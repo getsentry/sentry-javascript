@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '@sentry-internal/event-proxy-server';
+import { waitForTransaction } from '@sentry-internal/test-utils';
 
 test('Propagates trace for outgoing http requests', async ({ baseURL, request }) => {
   const inboundTransactionPromise = waitForTransaction('nextjs-14', transactionEvent => {

@@ -1,20 +1,18 @@
 import * as child_process from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
+import { escapeStringForRegex, uuid4 } from '@sentry/core';
 import { getSentryRelease } from '@sentry/node';
-import { escapeStringForRegex, uuid4 } from '@sentry/utils';
 import type { SentryVitePluginOptions } from '@sentry/vite-plugin';
 import { sentryVitePlugin } from '@sentry/vite-plugin';
-// @ts-expect-error -sorcery has no types :(
-import * as sorcery from 'sorcery';
 import type { Plugin } from 'vite';
 
 import MagicString from 'magic-string';
 import { WRAPPED_MODULE_SUFFIX } from './autoInstrument';
-import type { SupportedSvelteKitAdapters } from './detectAdapter';
 import type { GlobalSentryValues } from './injectGlobalValues';
 import { VIRTUAL_GLOBAL_VALUES_FILE, getGlobalValueInjectionCode } from './injectGlobalValues';
 import { getAdapterOutputDir, getHooksFileName, loadSvelteConfig } from './svelteConfig';
+import type { CustomSentryVitePluginOptions } from './types';
 
 // sorcery has no types, so these are some basic type definitions:
 type Chain = {
@@ -23,10 +21,6 @@ type Chain = {
 };
 type Sorcery = {
   load(filepath: string): Promise<Chain>;
-};
-
-type CustomSentryVitePluginOptions = SentryVitePluginOptions & {
-  adapter: SupportedSvelteKitAdapters;
 };
 
 // storing this in the module scope because `makeCustomSentryVitePlugin` is called multiple times
@@ -58,6 +52,11 @@ export async function makeCustomSentryVitePlugins(options?: CustomSentryVitePlug
   const defaultPluginOptions: SentryVitePluginOptions = {
     release: {
       name: releaseName,
+    },
+    _metaOptions: {
+      telemetry: {
+        metaFramework: 'sveltekit',
+      },
     },
   };
 
@@ -103,10 +102,10 @@ export async function makeCustomSentryVitePlugins(options?: CustomSentryVitePlug
 
     // Modify the config to generate source maps
     config: config => {
-      const sourceMapsPreviouslyEnabled = !config.build?.sourcemap;
-      if (debug && sourceMapsPreviouslyEnabled) {
+      const sourceMapsPreviouslyNotEnabled = !config.build?.sourcemap;
+      if (debug && sourceMapsPreviouslyNotEnabled) {
         // eslint-disable-next-line no-console
-        console.log('[Source Maps Plugin] Enabeling source map generation');
+        console.log('[Source Maps Plugin] Enabling source map generation');
         if (!mergedOptions.sourcemaps?.filesToDeleteAfterUpload) {
           // eslint-disable-next-line no-console
           console.warn(
@@ -185,6 +184,9 @@ export async function makeCustomSentryVitePlugins(options?: CustomSentryVitePlug
       const jsFiles = getFiles(outDir).filter(file => file.endsWith('.js'));
       // eslint-disable-next-line no-console
       debug && console.log('[Source Maps Plugin] Flattening source maps');
+
+      // @ts-expect-error - we're using dynamic import here and TS complains about that. It works though.
+      const sorcery = await import('sorcery');
 
       for (const file of jsFiles) {
         try {
@@ -267,7 +269,10 @@ function getFiles(dir: string): string[] {
 function detectSentryRelease(): string {
   let releaseFallback: string;
   try {
-    releaseFallback = child_process.execSync('git rev-parse HEAD', { stdio: 'ignore' }).toString().trim();
+    releaseFallback = child_process
+      .execSync('git rev-parse HEAD', { stdio: ['ignore', 'pipe', 'ignore'] })
+      .toString()
+      .trim();
   } catch (_) {
     // the command can throw for various reasons. Most importantly:
     // - git is not installed

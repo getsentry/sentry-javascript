@@ -1,7 +1,4 @@
-import { captureException, defineIntegration } from '@sentry/core';
-import { getClient } from '@sentry/core';
-import { logger } from '@sentry/utils';
-
+import { captureException, defineIntegration, getClient, logger } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
 import type { NodeClient } from '../sdk/client';
 import { logAndExitProcess } from '../utils/errorhandling';

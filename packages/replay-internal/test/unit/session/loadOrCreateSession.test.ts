@@ -1,4 +1,9 @@
-import { vi } from 'vitest';
+/**
+ * @vitest-environment jsdom
+ */
+
+import type { MockedFunction } from 'vitest';
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { MAX_REPLAY_DURATION, SESSION_IDLE_EXPIRE_DURATION, WINDOW } from '../../../src/constants';
 import { makeSession } from '../../../src/session/Session';
@@ -8,9 +13,9 @@ import { loadOrCreateSession } from '../../../src/session/loadOrCreateSession';
 import { saveSession } from '../../../src/session/saveSession';
 import type { SessionOptions } from '../../../src/types';
 
-vi.mock('@sentry/utils', async () => {
+vi.mock('@sentry/core', async () => {
   return {
-    ...((await vi.importActual('@sentry/utils')) as { string: unknown }),
+    ...((await vi.importActual('@sentry/core')) as { string: unknown }),
     uuid4: vi.fn(() => 'test_session_uuid'),
   };
 });
@@ -51,8 +56,8 @@ describe('Unit | session | loadOrCreateSession', () => {
 
   afterEach(() => {
     WINDOW.sessionStorage.clear();
-    (CreateSession.createSession as vi.MockedFunction<typeof CreateSession.createSession>).mockClear();
-    (FetchSession.fetchSession as vi.MockedFunction<typeof FetchSession.fetchSession>).mockClear();
+    (CreateSession.createSession as MockedFunction<typeof CreateSession.createSession>).mockClear();
+    (FetchSession.fetchSession as MockedFunction<typeof FetchSession.fetchSession>).mockClear();
   });
 
   describe('stickySession: false', () => {

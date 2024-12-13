@@ -1,5 +1,5 @@
+import type { Integration } from '@sentry/core';
 import { browserTracingIntegration as originalBrowserTracingIntegration } from '@sentry/react';
-import type { Integration } from '@sentry/types';
 import { setGlobals, startPageloadSpan } from './performance';
 import type { RemixBrowserTracingIntegrationOptions } from './performance';
 /**
@@ -7,19 +7,13 @@ import type { RemixBrowserTracingIntegrationOptions } from './performance';
  * This integration will create pageload and navigation spans.
  */
 export function browserTracingIntegration(options: RemixBrowserTracingIntegrationOptions): Integration {
-  if (options.instrumentPageLoad === undefined) {
-    options.instrumentPageLoad = true;
-  }
-
-  if (options.instrumentNavigation === undefined) {
-    options.instrumentNavigation = true;
-  }
+  const { instrumentPageLoad = true, instrumentNavigation = true, useEffect, useLocation, useMatches } = options;
 
   setGlobals({
-    useEffect: options.useEffect,
-    useLocation: options.useLocation,
-    useMatches: options.useMatches,
-    instrumentNavigation: options.instrumentNavigation,
+    useEffect,
+    useLocation,
+    useMatches,
+    instrumentNavigation,
   });
 
   const browserTracingIntegrationInstance = originalBrowserTracingIntegration({
@@ -33,8 +27,8 @@ export function browserTracingIntegration(options: RemixBrowserTracingIntegratio
     afterAllSetup(client) {
       browserTracingIntegrationInstance.afterAllSetup(client);
 
-      if (options.instrumentPageLoad) {
-        startPageloadSpan();
+      if (instrumentPageLoad) {
+        startPageloadSpan(client);
       }
     },
   };

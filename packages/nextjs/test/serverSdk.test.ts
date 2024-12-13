@@ -1,12 +1,12 @@
+import { GLOBAL_OBJ } from '@sentry/core';
+import type { Integration } from '@sentry/core';
 import { getCurrentScope } from '@sentry/node';
 import * as SentryNode from '@sentry/node';
-import type { Integration } from '@sentry/types';
-import { GLOBAL_OBJ } from '@sentry/utils';
 
 import { init } from '../src/server';
 
 // normally this is set as part of the build process, so mock it here
-(GLOBAL_OBJ as typeof GLOBAL_OBJ & { __rewriteFramesDistDir__: string }).__rewriteFramesDistDir__ = '.next';
+(GLOBAL_OBJ as typeof GLOBAL_OBJ & { _sentryRewriteFramesDistDir: string })._sentryRewriteFramesDistDir = '.next';
 
 const nodeInit = jest.spyOn(SentryNode, 'init');
 
@@ -54,7 +54,7 @@ describe('Server init()', () => {
         // Integrations are tested separately, and we can't be more specific here without depending on the order in
         // which integrations appear in the array, which we can't guarantee.
         //
-        // TODO: If we upgrde to Jest 28+, we can follow Jest's example matcher and create an
+        // TODO: If we upgrade to Jest 28+, we can follow Jest's example matcher and create an
         // `expect.ArrayContainingInAnyOrder`. See
         // https://github.com/facebook/jest/blob/main/examples/expect-extend/toBeWithinRange.ts.
         defaultIntegrations: expect.any(Array),
@@ -92,7 +92,7 @@ describe('Server init()', () => {
     it('adds default integrations', () => {
       init({});
 
-      const nodeInitOptions = nodeInit.mock.calls[0][0] as ModifiedInitOptions;
+      const nodeInitOptions = nodeInit.mock.calls[0]?.[0] as ModifiedInitOptions;
       const integrationNames = nodeInitOptions.defaultIntegrations.map(integration => integration.name);
       const onUncaughtExceptionIntegration = findIntegrationByName(
         nodeInitOptions.defaultIntegrations,
@@ -106,10 +106,14 @@ describe('Server init()', () => {
     it('supports passing unrelated integrations through options', () => {
       init({ integrations: [SentryNode.consoleIntegration()] });
 
-      const nodeInitOptions = nodeInit.mock.calls[0][0] as ModifiedInitOptions;
+      const nodeInitOptions = nodeInit.mock.calls[0]?.[0] as ModifiedInitOptions;
       const consoleIntegration = findIntegrationByName(nodeInitOptions.integrations, 'Console');
 
       expect(consoleIntegration).toBeDefined();
     });
+  });
+
+  it('returns client from init', () => {
+    expect(init({})).not.toBeUndefined();
   });
 });

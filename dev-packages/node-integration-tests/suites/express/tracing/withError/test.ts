@@ -8,7 +8,7 @@ describe('express tracing experimental', () => {
   describe('CJS', () => {
     test('should apply the scope transactionName to error events', done => {
       createRunner(__dirname, 'server.js')
-        .ignore('session', 'sessions', 'transaction')
+        .ignore('transaction')
         .expect({
           event: {
             exception: {

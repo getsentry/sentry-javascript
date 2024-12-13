@@ -1,11 +1,14 @@
-import type { ExtendedError, Event as SentryEvent } from '@sentry/types';
+import type { ExtendedError, Event as SentryEvent } from '../../../src/types-hoist';
 
 import { extraErrorDataIntegration } from '../../../src/integrations/extraerrordata';
+
+import { TestClient, getDefaultTestClientOptions } from '../../mocks/client';
 
 const extraErrorData = extraErrorDataIntegration();
 let event: SentryEvent;
 
 describe('ExtraErrorData()', () => {
+  const testClient = new TestClient(getDefaultTestClientOptions({ maxValueLength: 250 }));
   beforeEach(() => {
     event = {};
   });
@@ -20,13 +23,34 @@ describe('ExtraErrorData()', () => {
       {
         originalException: error,
       },
-      {} as any,
+      testClient,
     ) as SentryEvent;
 
     expect(enhancedEvent.contexts).toEqual({
       TypeError: {
         baz: 42,
         foo: 'bar',
+      },
+    });
+  });
+
+  it('should use maxValueLength to truncate extra data', () => {
+    const error = new TypeError('foo') as ExtendedError;
+    error.baz = 42;
+    error.foo = 'a'.repeat(300);
+
+    const enhancedEvent = extraErrorData.processEvent?.(
+      event,
+      {
+        originalException: error,
+      },
+      testClient,
+    ) as SentryEvent;
+
+    expect(enhancedEvent.contexts).toEqual({
+      TypeError: {
+        baz: 42,
+        foo: `${'a'.repeat(250)}...`,
       },
     });
   });
@@ -40,7 +64,7 @@ describe('ExtraErrorData()', () => {
       {
         originalException: error,
       },
-      {} as any,
+      testClient,
     ) as SentryEvent;
 
     expect(enhancedEvent.contexts).toEqual({
@@ -65,7 +89,7 @@ describe('ExtraErrorData()', () => {
       {
         originalException: error,
       },
-      {} as any,
+      testClient,
     ) as SentryEvent;
 
     expect(enhancedEvent.contexts).toEqual({
@@ -93,7 +117,7 @@ describe('ExtraErrorData()', () => {
       {
         originalException: error,
       },
-      {} as any,
+      testClient,
     ) as SentryEvent;
 
     expect(enhancedEvent.contexts).toEqual({
@@ -112,14 +136,14 @@ describe('ExtraErrorData()', () => {
       {
         originalException: error,
       },
-      {} as any,
+      testClient,
     ) as SentryEvent;
 
     expect(enhancedEvent).toEqual(event);
   });
 
   it('should return event if there is no SentryEventHint', () => {
-    const enhancedEvent = extraErrorData.processEvent?.(event, {}, {} as any);
+    const enhancedEvent = extraErrorData.processEvent?.(event, {}, testClient);
 
     expect(enhancedEvent).toEqual(event);
   });
@@ -131,7 +155,7 @@ describe('ExtraErrorData()', () => {
         // @ts-expect-error Allow event to have extra properties
         notOriginalException: 'fooled you',
       },
-      {} as any,
+      testClient,
     );
 
     expect(enhancedEvent).toEqual(event);
@@ -153,7 +177,7 @@ describe('ExtraErrorData()', () => {
       {
         originalException: error,
       },
-      {} as any,
+      testClient,
     ) as SentryEvent;
 
     expect(enhancedEvent.contexts).toEqual({
@@ -180,7 +204,7 @@ describe('ExtraErrorData()', () => {
       {
         originalException: error,
       },
-      {} as any,
+      testClient,
     ) as SentryEvent;
 
     expect(enhancedEvent.contexts).toEqual({
@@ -204,7 +228,7 @@ describe('ExtraErrorData()', () => {
       {
         originalException: error,
       },
-      {} as any,
+      testClient,
     ) as SentryEvent;
 
     expect(enhancedEvent.contexts).toEqual({
@@ -217,7 +241,7 @@ describe('ExtraErrorData()', () => {
 
   it('captures Error causes when captureErrorCause = true (default)', () => {
     // Error.cause is only available from node 16 upwards
-    const nodeMajorVersion = parseInt(process.versions.node.split('.')[0]);
+    const nodeMajorVersion = parseInt(process.versions.node.split('.')[0]!);
     if (nodeMajorVersion < 16) {
       return;
     }
@@ -232,7 +256,7 @@ describe('ExtraErrorData()', () => {
       {
         originalException: error,
       },
-      {} as any,
+      testClient,
     ) as SentryEvent;
 
     expect(enhancedEvent.contexts).toEqual({
@@ -246,7 +270,7 @@ describe('ExtraErrorData()', () => {
 
   it("doesn't capture Error causes when captureErrorCause != true", () => {
     // Error.cause is only available from node 16 upwards
-    const nodeMajorVersion = parseInt(process.versions.node.split('.')[0]);
+    const nodeMajorVersion = parseInt(process.versions.node.split('.')[0]!);
     if (nodeMajorVersion < 16) {
       return;
     }
@@ -261,7 +285,7 @@ describe('ExtraErrorData()', () => {
       {
         originalException: error,
       },
-      {} as any,
+      testClient,
     ) as SentryEvent;
 
     expect(enhancedEvent.contexts).not.toEqual({

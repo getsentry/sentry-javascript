@@ -1,7 +1,4 @@
-import { SPAN_STATUS_ERROR, getActiveSpan, getRootSpan } from '@sentry/core';
-import { spanToJSON } from '@sentry/core';
-import { logger } from '@sentry/utils';
-
+import { SPAN_STATUS_ERROR, getActiveSpan, getRootSpan, logger, spanToJSON } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
 import { WINDOW } from '../helpers';
 

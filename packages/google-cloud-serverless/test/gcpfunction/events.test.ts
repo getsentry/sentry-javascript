@@ -1,7 +1,7 @@
 import * as domain from 'domain';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 
-import type { Event } from '@sentry/types';
+import type { Event } from '@sentry/core';
 import { wrapEventFunction } from '../../src/gcpfunction/events';
 import type { EventFunction, EventFunctionWithCallback } from '../../src/gcpfunction/general';
 
@@ -247,7 +247,7 @@ describe('wrapEventFunction', () => {
 
     expect(evtProcessor).toBeInstanceOf(Function);
     // @ts-expect-error just mocking around...
-    expect(evtProcessor(event).exception.values[0].mechanism).toEqual({
+    expect(evtProcessor(event).exception.values[0]?.mechanism).toEqual({
       handled: false,
       type: 'generic',
     });

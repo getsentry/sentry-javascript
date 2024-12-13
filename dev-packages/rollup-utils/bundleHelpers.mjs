@@ -48,6 +48,9 @@ export function makeBaseBundleConfig(options) {
     output: {
       format: 'iife',
       name: 'Sentry',
+      intro: () => {
+        return 'exports = window.Sentry || {};';
+      },
     },
     context: 'window',
     plugins: [rrwebBuildPlugin, markAsBrowserBuildPlugin],

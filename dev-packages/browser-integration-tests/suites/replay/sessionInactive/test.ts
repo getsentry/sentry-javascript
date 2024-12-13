@@ -14,7 +14,7 @@ import {
 // Session should be paused after 2s - keep in sync with init.js
 const SESSION_PAUSED = 2000;
 
-sentryTest('handles an inactive session', async ({ getLocalTestPath, page, browserName }) => {
+sentryTest('handles an inactive session', async ({ getLocalTestUrl, page, browserName }) => {
   // webkit is a bit flakey here, the ids are sometimes off by <number of total
   // nodes>, so seems like there is a race condition with checkout?
   if (shouldSkipReplayTest() || browserName === 'webkit') {
@@ -23,15 +23,7 @@ sentryTest('handles an inactive session', async ({ getLocalTestPath, page, brows
 
   const reqPromise0 = waitForReplayRequest(page, 0);
 
-  await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-    return route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ id: 'test-id' }),
-    });
-  });
-
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
 
   await page.goto(url);
   const req0 = await reqPromise0;

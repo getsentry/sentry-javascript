@@ -1,7 +1,6 @@
 import type { Context } from '@opentelemetry/api';
-import type { Scope } from '@sentry/types';
-import { addNonEnumerableProperty } from '@sentry/utils';
-
+import type { Scope } from '@sentry/core';
+import { addNonEnumerableProperty } from '@sentry/core';
 import { SENTRY_SCOPES_CONTEXT_KEY } from '../constants';
 import type { CurrentScopes } from '../types';
 

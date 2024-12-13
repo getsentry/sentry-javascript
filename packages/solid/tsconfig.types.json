@@ -1,0 +1,13 @@
+{
+  "extends": "./tsconfig.json",
+
+  "compilerOptions": {
+    "declaration": true,
+    "declarationMap": true,
+    "emitDeclarationOnly": true,
+    "outDir": "build/types"
+  },
+
+  "//": "This is built separately in tsconfig.solidrouter-types.json",
+  "exclude": ["src/solidrouter.ts"]
+}

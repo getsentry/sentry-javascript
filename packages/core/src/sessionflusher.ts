@@ -1,12 +1,12 @@
+import { getIsolationScope } from './currentScopes';
 import type {
   AggregationCounts,
   Client,
   RequestSessionStatus,
   SessionAggregates,
   SessionFlusherLike,
-} from '@sentry/types';
-import { dropUndefinedKeys } from '@sentry/utils';
-import { getIsolationScope } from './currentScopes';
+} from './types-hoist';
+import { dropUndefinedKeys } from './utils-hoist/object';
 
 type ReleaseHealthAttributes = {
   environment?: string;
@@ -14,29 +14,28 @@ type ReleaseHealthAttributes = {
 };
 
 /**
- * @inheritdoc
+ * @deprecated `SessionFlusher` is deprecated and will be removed in the next major version of the SDK.
  */
+// TODO(v9): The goal for the SessionFlusher is to become a stupidly simple mechanism to aggregate "Sessions" (actually "RequestSessions"). It should probably live directly inside the Http integration/instrumentation.
+// eslint-disable-next-line deprecation/deprecation
 export class SessionFlusher implements SessionFlusherLike {
   public readonly flushTimeout: number;
-  private _pendingAggregates: Record<number, AggregationCounts>;
+  private _pendingAggregates: Map<number, AggregationCounts>;
   private _sessionAttrs: ReleaseHealthAttributes;
-  // Cast to any so that it can use Node.js timeout
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private _intervalId: any;
+  // We adjust the type here to add the `unref()` part, as setInterval can technically return a number or a NodeJS.Timer
+  private readonly _intervalId: ReturnType<typeof setInterval> & { unref?: () => void };
   private _isEnabled: boolean;
   private _client: Client;
 
   public constructor(client: Client, attrs: ReleaseHealthAttributes) {
     this._client = client;
     this.flushTimeout = 60;
-    this._pendingAggregates = {};
+    this._pendingAggregates = new Map<number, AggregationCounts>();
     this._isEnabled = true;
 
     // Call to setInterval, so that flush is called every 60 seconds.
     this._intervalId = setInterval(() => this.flush(), this.flushTimeout * 1000);
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     if (this._intervalId.unref) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       this._intervalId.unref();
     }
     this._sessionAttrs = attrs;
@@ -48,15 +47,13 @@ export class SessionFlusher implements SessionFlusherLike {
     if (sessionAggregates.aggregates.length === 0) {
       return;
     }
-    this._pendingAggregates = {};
+    this._pendingAggregates = new Map<number, AggregationCounts>();
     this._client.sendSession(sessionAggregates);
   }
 
   /** Massages the entries in `pendingAggregates` and returns aggregated sessions */
   public getSessionAggregates(): SessionAggregates {
-    const aggregates: AggregationCounts[] = Object.keys(this._pendingAggregates).map((key: string) => {
-      return this._pendingAggregates[parseInt(key)];
-    });
+    const aggregates: AggregationCounts[] = Array.from(this._pendingAggregates.values());
 
     const sessionAggregates: SessionAggregates = {
       attrs: this._sessionAttrs,
@@ -82,12 +79,14 @@ export class SessionFlusher implements SessionFlusherLike {
       return;
     }
     const isolationScope = getIsolationScope();
+    // eslint-disable-next-line deprecation/deprecation
     const requestSession = isolationScope.getRequestSession();
 
     if (requestSession && requestSession.status) {
       this._incrementSessionStatusCount(requestSession.status, new Date());
       // This is not entirely necessarily but is added as a safe guard to indicate the bounds of a request and so in
       // case captureRequestSession is called more than once to prevent double count
+      // eslint-disable-next-line deprecation/deprecation
       isolationScope.setRequestSession(undefined);
       /* eslint-enable @typescript-eslint/no-unsafe-member-access */
     }
@@ -97,16 +96,17 @@ export class SessionFlusher implements SessionFlusherLike {
    * Increments status bucket in pendingAggregates buffer (internal state) corresponding to status of
    * the session received
    */
+  // eslint-disable-next-line deprecation/deprecation
   private _incrementSessionStatusCount(status: RequestSessionStatus, date: Date): number {
     // Truncate minutes and seconds on Session Started attribute to have one minute bucket keys
     const sessionStartedTrunc = new Date(date).setSeconds(0, 0);
-    this._pendingAggregates[sessionStartedTrunc] = this._pendingAggregates[sessionStartedTrunc] || {};
 
     // corresponds to aggregated sessions in one specific minute bucket
     // for example, {"started":"2021-03-16T08:00:00.000Z","exited":4, "errored": 1}
-    const aggregationCounts: AggregationCounts = this._pendingAggregates[sessionStartedTrunc];
-    if (!aggregationCounts.started) {
-      aggregationCounts.started = new Date(sessionStartedTrunc).toISOString();
+    let aggregationCounts = this._pendingAggregates.get(sessionStartedTrunc);
+    if (!aggregationCounts) {
+      aggregationCounts = { started: new Date(sessionStartedTrunc).toISOString() };
+      this._pendingAggregates.set(sessionStartedTrunc, aggregationCounts);
     }
 
     switch (status) {

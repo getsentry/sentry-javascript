@@ -4,7 +4,10 @@
   "include": ["src/**/*"],
 
   "compilerOptions": {
-    // package-specific options
+    // Note: using `dom` here is inaccurate for the vercel-edge runtime, but needed
+    // because @edge-runtime/types does not type things like fetch or RequestInit
+    // ref: https://github.com/vercel/edge-runtime/issues/506
+    "lib": ["DOM", "ES2018"],
     "types": ["@edge-runtime/types"]
   }
 }

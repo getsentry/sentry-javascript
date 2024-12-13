@@ -1,19 +1,11 @@
 import { expect } from '@playwright/test';
-import type { Event } from '@sentry/types';
+import type { Event } from '@sentry/core';
 
 import { sentryTest } from '../../../utils/fixtures';
 import { getMultipleSentryEnvelopeRequests } from '../../../utils/helpers';
 
 sentryTest('it captures console messages correctly', async ({ getLocalTestUrl, page }) => {
   const url = await getLocalTestUrl({ testDir: __dirname });
-
-  await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-    return route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ id: 'test-id' }),
-    });
-  });
 
   const [, events] = await Promise.all([page.goto(url), getMultipleSentryEnvelopeRequests<Event>(page, 7)]);
 
@@ -38,6 +30,7 @@ sentryTest('it captures console messages correctly', async ({ getLocalTestUrl, p
       extra: {
         arguments: ['console log'],
       },
+      message: 'console log',
     }),
   );
   expect(logEvent?.exception).toBeUndefined();
@@ -48,6 +41,7 @@ sentryTest('it captures console messages correctly', async ({ getLocalTestUrl, p
       extra: {
         arguments: ['console warn'],
       },
+      message: 'console warn',
     }),
   );
   expect(warnEvent?.exception).toBeUndefined();
@@ -58,6 +52,7 @@ sentryTest('it captures console messages correctly', async ({ getLocalTestUrl, p
       extra: {
         arguments: ['console info'],
       },
+      message: 'console info',
     }),
   );
   expect(infoEvent?.exception).toBeUndefined();
@@ -68,6 +63,7 @@ sentryTest('it captures console messages correctly', async ({ getLocalTestUrl, p
       extra: {
         arguments: ['console error'],
       },
+      message: 'console error',
     }),
   );
   expect(errorEvent?.exception).toBeUndefined();
@@ -78,6 +74,7 @@ sentryTest('it captures console messages correctly', async ({ getLocalTestUrl, p
       extra: {
         arguments: ['console trace'],
       },
+      message: 'console trace',
     }),
   );
   expect(traceEvent?.exception).toBeUndefined();
@@ -98,6 +95,11 @@ sentryTest('it captures console messages correctly', async ({ getLocalTestUrl, p
     }),
   );
   expect(errorWithErrorEvent?.exception?.values?.[0].value).toBe('console error with error object');
+  expect(errorWithErrorEvent?.exception?.values?.[0].mechanism).toEqual({
+    // TODO (v9): Adjust to true after changing the integration's default value
+    handled: false,
+    type: 'console',
+  });
   expect(traceWithErrorEvent).toEqual(
     expect.objectContaining({
       level: 'log',

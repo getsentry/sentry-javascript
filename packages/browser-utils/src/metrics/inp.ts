@@ -1,18 +1,27 @@
+import type { Span, SpanAttributes } from '@sentry/core';
 import {
   SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME,
   SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_UNIT,
   SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_VALUE,
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  browserPerformanceTimeOrigin,
+  dropUndefinedKeys,
   getActiveSpan,
-  getClient,
   getCurrentScope,
   getRootSpan,
+  htmlTreeAsString,
   spanToJSON,
-  startInactiveSpan,
 } from '@sentry/core';
-import type { Integration, SpanAttributes } from '@sentry/types';
-import { browserPerformanceTimeOrigin, dropUndefinedKeys, htmlTreeAsString } from '@sentry/utils';
-import { addInpInstrumentationHandler } from './instrument';
-import { getBrowserPerformanceAPI, msToSec } from './utils';
+import {
+  addInpInstrumentationHandler,
+  addPerformanceInstrumentationHandler,
+  isPerformanceEventTiming,
+} from './instrument';
+import { getBrowserPerformanceAPI, msToSec, startStandaloneWebVitalSpan } from './utils';
+
+const LAST_INTERACTIONS: number[] = [];
+const INTERACTIONS_SPAN_MAP = new Map<number, Span>();
 
 /**
  * Start tracking INP webvital events.
@@ -62,8 +71,7 @@ const INP_ENTRY_MAP: Record<string, 'click' | 'hover' | 'drag' | 'press'> = {
 /** Starts tracking the Interaction to Next Paint on the current page. */
 function _trackINP(): () => void {
   return addInpInstrumentationHandler(({ metric }) => {
-    const client = getClient();
-    if (!client || metric.value == undefined) {
+    if (metric.value == undefined) {
       return;
     }
 
@@ -73,60 +81,87 @@ function _trackINP(): () => void {
       return;
     }
 
+    const { interactionId } = entry;
     const interactionType = INP_ENTRY_MAP[entry.name];
 
-    const options = client.getOptions();
     /** Build the INP span, create an envelope from the span, and then send the envelope */
     const startTime = msToSec((browserPerformanceTimeOrigin as number) + entry.startTime);
     const duration = msToSec(metric.value);
-    const scope = getCurrentScope();
     const activeSpan = getActiveSpan();
     const rootSpan = activeSpan ? getRootSpan(activeSpan) : undefined;
 
-    const routeName = rootSpan ? spanToJSON(rootSpan).description : undefined;
-    const user = scope.getUser();
+    // We first try to lookup the span from our INTERACTIONS_SPAN_MAP,
+    // where we cache the route per interactionId
+    const cachedSpan = interactionId != null ? INTERACTIONS_SPAN_MAP.get(interactionId) : undefined;
 
-    // We need to get the replay, user, and activeTransaction from the current scope
-    // so that we can associate replay id, profile id, and a user display to the span
-    const replay = client.getIntegrationByName<Integration & { getReplayId: () => string }>('Replay');
+    const spanToUse = cachedSpan || rootSpan;
 
-    const replayId = replay && replay.getReplayId();
-
-    const userDisplay = user !== undefined ? user.email || user.id || user.ip_address : undefined;
-    let profileId: string | undefined = undefined;
-    try {
-      // @ts-expect-error skip optional chaining to save bundle size with try catch
-      profileId = scope.getScopeData().contexts.profile.profile_id;
-    } catch {
-      // do nothing
-    }
+    // Else, we try to use the active span.
+    // Finally, we fall back to look at the transactionName on the scope
+    const routeName = spanToUse ? spanToJSON(spanToUse).description : getCurrentScope().getScopeData().transactionName;
 
     const name = htmlTreeAsString(entry.target);
     const attributes: SpanAttributes = dropUndefinedKeys({
-      release: options.release,
-      environment: options.environment,
-      transaction: routeName,
-      [SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME]: metric.value,
-      user: userDisplay || undefined,
-      profile_id: profileId || undefined,
-      replay_id: replayId || undefined,
+      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.browser.inp',
+      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: `ui.interaction.${interactionType}`,
+      [SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME]: entry.duration,
     });
 
-    const span = startInactiveSpan({
+    const span = startStandaloneWebVitalSpan({
       name,
-      op: `ui.interaction.${interactionType}`,
+      transaction: routeName,
       attributes,
-      startTime: startTime,
-      experimental: {
-        standalone: true,
-      },
+      startTime,
     });
 
-    span.addEvent('inp', {
-      [SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_UNIT]: 'millisecond',
-      [SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_VALUE]: metric.value,
-    });
+    if (span) {
+      span.addEvent('inp', {
+        [SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_UNIT]: 'millisecond',
+        [SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_VALUE]: metric.value,
+      });
 
-    span.end(startTime + duration);
+      span.end(startTime + duration);
+    }
   });
+}
+
+/**
+ * Register a listener to cache route information for INP interactions.
+ * TODO(v9): `latestRoute` no longer needs to be passed in and will be removed in v9.
+ */
+export function registerInpInteractionListener(_latestRoute?: unknown): void {
+  const handleEntries = ({ entries }: { entries: PerformanceEntry[] }): void => {
+    const activeSpan = getActiveSpan();
+    const activeRootSpan = activeSpan && getRootSpan(activeSpan);
+
+    entries.forEach(entry => {
+      if (!isPerformanceEventTiming(entry) || !activeRootSpan) {
+        return;
+      }
+
+      const interactionId = entry.interactionId;
+      if (interactionId == null) {
+        return;
+      }
+
+      // If the interaction was already recorded before, nothing more to do
+      if (INTERACTIONS_SPAN_MAP.has(interactionId)) {
+        return;
+      }
+
+      // We keep max. 10 interactions in the list, then remove the oldest one & clean up
+      if (LAST_INTERACTIONS.length > 10) {
+        const last = LAST_INTERACTIONS.shift() as number;
+        INTERACTIONS_SPAN_MAP.delete(last);
+      }
+
+      // We add the interaction to the list of recorded interactions
+      // and store the span for this interaction
+      LAST_INTERACTIONS.push(interactionId);
+      INTERACTIONS_SPAN_MAP.set(interactionId, activeRootSpan);
+    });
+  };
+
+  addPerformanceInstrumentationHandler('event', handleEntries);
+  addPerformanceInstrumentationHandler('first-input', handleEntries);
 }

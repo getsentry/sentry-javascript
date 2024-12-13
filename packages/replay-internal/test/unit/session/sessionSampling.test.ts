@@ -1,3 +1,5 @@
+import { describe, expect, it } from 'vitest';
+
 import { makeSession } from '../../../src/session/Session';
 import { getSessionSampleType } from '../../../src/session/createSession';
 

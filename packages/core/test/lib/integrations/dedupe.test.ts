@@ -1,4 +1,4 @@
-import type { Exception, Event as SentryEvent, StackFrame, Stacktrace } from '@sentry/types';
+import type { Exception, Event as SentryEvent, StackFrame, Stacktrace } from '../../../src/types-hoist';
 
 import { _shouldDropEvent, dedupeIntegration } from '../../../src/integrations/dedupe';
 
@@ -80,14 +80,14 @@ describe('Dedupe', () => {
       const eventA = clone(messageEvent);
       const eventB = clone(messageEvent);
       eventB.message = 'EvilMorty';
-      eventB.exception.values[0].value = 'EvilMorty';
+      eventB.exception.values[0]!.value = 'EvilMorty';
       expect(_shouldDropEvent(eventA, eventB)).toBe(false);
     });
 
     it('should not drop if events have same messages, but different stacktraces', () => {
       const eventA = clone(messageEvent);
       const eventB = clone(messageEvent);
-      eventB.exception.values[0].stacktrace.frames[0].colno = 1337;
+      eventB.exception.values[0]!.stacktrace.frames[0]!.colno = 1337;
       expect(_shouldDropEvent(eventA, eventB)).toBe(false);
     });
 
@@ -131,21 +131,21 @@ describe('Dedupe', () => {
     it('should not drop if types are different', () => {
       const eventA = clone(exceptionEvent);
       const eventB = clone(exceptionEvent);
-      eventB.exception.values[0].type = 'TypeError';
+      eventB.exception.values[0]!.type = 'TypeError';
       expect(_shouldDropEvent(eventA, eventB)).toBe(false);
     });
 
     it('should not drop if values are different', () => {
       const eventA = clone(exceptionEvent);
       const eventB = clone(exceptionEvent);
-      eventB.exception.values[0].value = 'Expected number, got string';
+      eventB.exception.values[0]!.value = 'Expected number, got string';
       expect(_shouldDropEvent(eventA, eventB)).toBe(false);
     });
 
     it('should not drop if stacktraces are different', () => {
       const eventA = clone(exceptionEvent);
       const eventB = clone(exceptionEvent);
-      eventB.exception.values[0].stacktrace.frames[0].colno = 1337;
+      eventB.exception.values[0]!.stacktrace.frames[0]!.colno = 1337;
       expect(_shouldDropEvent(eventA, eventB)).toBe(false);
     });
 

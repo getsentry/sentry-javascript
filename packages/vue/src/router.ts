@@ -7,7 +7,7 @@ import {
   getRootSpan,
   spanToJSON,
 } from '@sentry/core';
-import type { Span, SpanAttributes, StartSpanOptions, TransactionSource } from '@sentry/types';
+import type { Span, SpanAttributes, StartSpanOptions, TransactionSource } from '@sentry/core';
 
 // The following type is an intersection of the Route type from VueRouter v2, v3, and v4.
 // This is not great, but kinda necessary to make it work with all versions at the same time.
@@ -50,18 +50,28 @@ export function instrumentVueRouter(
   },
   startNavigationSpanFn: (context: StartSpanOptions) => void,
 ): void {
+  let isFirstPageLoad = true;
+
   router.onError(error => captureException(error, { mechanism: { handled: false } }));
 
   router.beforeEach((to, from, next) => {
-    // According to docs we could use `from === VueRouter.START_LOCATION` but I couldnt get it working for Vue 2
+    // According to docs we could use `from === VueRouter.START_LOCATION` but I couldn't get it working for Vue 2
     // https://router.vuejs.org/api/#router-start-location
     // https://next.router.vuejs.org/api/#start-location
+    // Additionally, Nuxt does not provide the possibility to check for `from.matched.length === 0` (this is never 0).
+    // Therefore, a flag was added to track the page-load: isFirstPageLoad
 
     // from.name:
     // - Vue 2: null
     // - Vue 3: undefined
+    // - Nuxt: undefined
     // hence only '==' instead of '===', because `undefined == null` evaluates to `true`
-    const isPageLoadNavigation = from.name == null && from.matched.length === 0;
+    const isPageLoadNavigation =
+      (from.name == null && from.matched.length === 0) || (from.name === undefined && isFirstPageLoad);
+
+    if (isFirstPageLoad) {
+      isFirstPageLoad = false;
+    }
 
     const attributes: SpanAttributes = {
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.vue',
@@ -83,8 +93,10 @@ export function instrumentVueRouter(
     if (to.name && options.routeLabel !== 'path') {
       spanName = to.name.toString();
       transactionSource = 'custom';
-    } else if (to.matched[0] && to.matched[0].path) {
-      spanName = to.matched[0].path;
+    } else if (to.matched.length > 0) {
+      const lastIndex = to.matched.length - 1;
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      spanName = to.matched[lastIndex]!.path;
       transactionSource = 'route';
     }
 

@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { getPrivacyOptions } from '../../../src/util/getPrivacyOptions';
 

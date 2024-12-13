@@ -1,4 +1,10 @@
+/**
+ * @vitest-environment jsdom
+ */
+
 import 'jsdom-worker';
+
+import { describe, expect, it, vi } from 'vitest';
 
 import { BASE_TIMESTAMP } from '../..';
 import { REPLAY_MAX_EVENT_BUFFER_SIZE } from '../../../src/constants';

@@ -1,7 +1,7 @@
 import type { ReportDialogOptions } from '@sentry/browser';
 import { getClient, showReportDialog, withScope } from '@sentry/browser';
-import type { Scope } from '@sentry/types';
-import { logger } from '@sentry/utils';
+import { logger } from '@sentry/core';
+import type { Scope } from '@sentry/core';
 import hoistNonReactStatics from 'hoist-non-react-statics';
 import * as React from 'react';
 
@@ -77,6 +77,7 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
   private readonly _openFallbackReportDialog: boolean;
 
   private _lastEventId?: string;
+  private _cleanupHook?: () => void;
 
   public constructor(props: ErrorBoundaryProps) {
     super(props);
@@ -87,7 +88,7 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
     const client = getClient();
     if (client && props.showDialog) {
       this._openFallbackReportDialog = false;
-      client.on('afterSendEvent', event => {
+      this._cleanupHook = client.on('afterSendEvent', event => {
         if (!event.type && this._lastEventId && event.event_id === this._lastEventId) {
           showReportDialog({ ...props.dialogOptions, eventId: this._lastEventId });
         }
@@ -136,6 +137,11 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
     const { onUnmount } = this.props;
     if (onUnmount) {
       onUnmount(error, componentStack, eventId);
+    }
+
+    if (this._cleanupHook) {
+      this._cleanupHook();
+      this._cleanupHook = undefined;
     }
   }
 

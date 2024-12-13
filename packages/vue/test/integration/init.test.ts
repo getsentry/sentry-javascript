@@ -1,5 +1,12 @@
+/**
+ * @vitest-environment jsdom
+ */
+
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { createApp } from 'vue';
 
+import type { Client } from '@sentry/core';
 import type { Options } from '../../src/types';
 import * as Sentry from './../../src';
 
@@ -10,13 +17,13 @@ describe('Sentry.init', () => {
 
   beforeEach(() => {
     warnings = [];
-    jest.spyOn(console, 'warn').mockImplementation((message: unknown) => {
+    vi.spyOn(console, 'warn').mockImplementation((message: unknown) => {
       warnings.push(message);
     });
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('does not warn when correctly setup (Vue 3)', () => {
@@ -78,9 +85,7 @@ describe('Sentry.init', () => {
     app.mount(el);
 
     expect(warnings).toEqual([
-      `[@sentry/vue]: Misconfigured SDK. Vue specific errors will not be captured.
-Update your \`Sentry.init\` call with an appropriate config option:
-\`app\` (Application Instance - Vue 3) or \`Vue\` (Vue Constructor - Vue 2).`,
+      '[@sentry/vue]: Misconfigured SDK. Vue specific errors will not be captured. Update your `Sentry.init` call with an appropriate config option: `app` (Application Instance - Vue 3) or `Vue` (Vue Constructor - Vue 2).',
     ]);
   });
 
@@ -100,12 +105,16 @@ Update your \`Sentry.init\` call with an appropriate config option:
 
     expect(warnings).toEqual([]);
   });
+
+  it('returns client from init', () => {
+    expect(runInit({})).not.toBeUndefined();
+  });
 });
 
-function runInit(options: Partial<Options>): void {
+function runInit(options: Partial<Options>): Client | undefined {
   const integration = Sentry.vueIntegration();
 
-  Sentry.init({
+  return Sentry.init({
     dsn: PUBLIC_DSN,
     defaultIntegrations: false,
     integrations: [integration],

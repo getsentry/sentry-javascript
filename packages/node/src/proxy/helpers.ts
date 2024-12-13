@@ -1,6 +1,6 @@
 /**
  * This code was originally forked from https://github.com/TooTallNate/proxy-agents/tree/b133295fd16f6475578b6b15bd9b4e33ecb0d0b7
- * With the following licence:
+ * With the following LICENSE:
  *
  * (The MIT License)
  *

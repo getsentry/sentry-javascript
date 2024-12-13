@@ -1,6 +1,6 @@
 import { setTimeout } from '@sentry-internal/browser-utils';
 import { IncrementalSource, MouseInteractions, record } from '@sentry-internal/rrweb';
-import type { Breadcrumb } from '@sentry/types';
+import type { Breadcrumb } from '@sentry/core';
 
 import { WINDOW } from '../constants';
 import type {
@@ -40,6 +40,17 @@ type IncrementalMouseInteractionRecordingEvent = IncrementalRecordingEvent & {
   data: { type: MouseInteractions; id: number };
 };
 
+/** Any IncrementalSource for rrweb that we interpret as a kind of mutation. */
+const IncrementalMutationSources = new Set([
+  IncrementalSource.Mutation,
+  IncrementalSource.StyleSheetRule,
+  IncrementalSource.StyleDeclaration,
+  IncrementalSource.AdoptedStyleSheet,
+  IncrementalSource.CanvasMutation,
+  IncrementalSource.Selection,
+  IncrementalSource.MediaInteraction,
+]);
+
 /** Handle a click. */
 export function handleClick(clickDetector: ReplayClickDetector, clickBreadcrumb: Breadcrumb, node: HTMLElement): void {
   clickDetector.handleClick(clickBreadcrumb, node);
@@ -55,7 +66,7 @@ export class ClickDetector implements ReplayClickDetector {
   private _teardown: undefined | (() => void);
 
   private _threshold: number;
-  private _scollTimeout: number;
+  private _scrollTimeout: number;
   private _timeout: number;
   private _ignoreSelector: string;
 
@@ -76,7 +87,7 @@ export class ClickDetector implements ReplayClickDetector {
     // We want everything in s, but options are in ms
     this._timeout = slowClickConfig.timeout / 1000;
     this._threshold = slowClickConfig.threshold / 1000;
-    this._scollTimeout = slowClickConfig.scrollTimeout / 1000;
+    this._scrollTimeout = slowClickConfig.scrollTimeout / 1000;
     this._replay = replay;
     this._ignoreSelector = slowClickConfig.ignoreSelector;
     this._addBreadcrumbEvent = _addBreadcrumbEvent;
@@ -205,7 +216,7 @@ export class ClickDetector implements ReplayClickDetector {
   /** Generate matching breadcrumb(s) for the click. */
   private _generateBreadcrumbs(click: Click): void {
     const replay = this._replay;
-    const hadScroll = click.scrollAfter && click.scrollAfter <= this._scollTimeout;
+    const hadScroll = click.scrollAfter && click.scrollAfter <= this._scrollTimeout;
     const hadMutation = click.mutationAfter && click.mutationAfter <= this._threshold;
 
     const isSlowClick = !hadScroll && !hadMutation;
@@ -324,7 +335,7 @@ export function updateClickDetectorForRecordingEvent(clickDetector: ReplayClickD
     }
 
     const { source } = event.data;
-    if (source === IncrementalSource.Mutation) {
+    if (IncrementalMutationSources.has(source)) {
       clickDetector.registerMutation(event.timestamp);
     }
 

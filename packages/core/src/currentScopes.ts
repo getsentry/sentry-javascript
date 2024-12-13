@@ -1,9 +1,9 @@
-import type { Scope } from '@sentry/types';
-import type { Client } from '@sentry/types';
-import { getGlobalSingleton } from '@sentry/utils';
 import { getAsyncContextStrategy } from './asyncContext';
 import { getMainCarrier } from './carrier';
 import { Scope as ScopeClass } from './scope';
+import type { Client, Scope, TraceContext } from './types-hoist';
+import { dropUndefinedKeys } from './utils-hoist/object';
+import { getGlobalSingleton } from './utils-hoist/worldwide';
 
 /**
  * Get the currently active scope.
@@ -16,7 +16,7 @@ export function getCurrentScope(): Scope {
 
 /**
  * Get the currently active isolation scope.
- * The isolation scope is active for the current exection context.
+ * The isolation scope is active for the current execution context.
  */
 export function getIsolationScope(): Scope {
   const carrier = getMainCarrier();
@@ -119,4 +119,23 @@ export function withIsolationScope<T>(
  */
 export function getClient<C extends Client>(): C | undefined {
   return getCurrentScope().getClient<C>();
+}
+
+/**
+ * Get a trace context for the given scope.
+ */
+export function getTraceContextFromScope(scope: Scope): TraceContext {
+  const propagationContext = scope.getPropagationContext();
+
+  // TODO(v9): Use generateSpanId() instead of spanId
+  // eslint-disable-next-line deprecation/deprecation
+  const { traceId, spanId, parentSpanId } = propagationContext;
+
+  const traceContext: TraceContext = dropUndefinedKeys({
+    trace_id: traceId,
+    span_id: spanId,
+    parent_span_id: parentSpanId,
+  });
+
+  return traceContext;
 }

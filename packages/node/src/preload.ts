@@ -1,13 +1,14 @@
 import { preloadOpenTelemetry } from './sdk/initOtel';
+import { envToBool } from './utils/envToBool';
 
-const debug = !!process.env.SENTRY_DEBUG;
+const debug = envToBool(process.env.SENTRY_DEBUG);
 const integrationsStr = process.env.SENTRY_PRELOAD_INTEGRATIONS;
 
 const integrations = integrationsStr ? integrationsStr.split(',').map(integration => integration.trim()) : undefined;
 
 /**
- * The @sentry/node/preload export can be used with the node --import and --require args to preload the OTEL instrumentation,
- * without initializing the Sentry SDK.
+ * The @sentry/node/preload export can be used with the node --import and --require args to preload the OTEL
+ * instrumentation, without initializing the Sentry SDK.
  *
  * This is useful if you cannot initialize the SDK immediately, but still want to preload the instrumentation,
  * e.g. if you have to load the DSN from somewhere else.

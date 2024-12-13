@@ -1,13 +1,14 @@
-import type { Client, DynamicSamplingContext, Span } from '@sentry/types';
-import {
-  addNonEnumerableProperty,
-  dropUndefinedKeys,
-  dynamicSamplingContextToSentryBaggageHeader,
-} from '@sentry/utils';
+import type { Client, DynamicSamplingContext, Scope, Span } from '../types-hoist';
 
 import { DEFAULT_ENVIRONMENT } from '../constants';
 import { getClient } from '../currentScopes';
 import { SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '../semanticAttributes';
+import {
+  baggageHeaderToDynamicSamplingContext,
+  dynamicSamplingContextToSentryBaggageHeader,
+} from '../utils-hoist/baggage';
+import { addNonEnumerableProperty, dropUndefinedKeys } from '../utils-hoist/object';
+import { hasTracingEnabled } from '../utils/hasTracingEnabled';
 import { getRootSpan, spanIsSampled, spanToJSON } from '../utils/spanUtils';
 
 /**
@@ -51,6 +52,14 @@ export function getDynamicSamplingContextFromClient(trace_id: string, client: Cl
 }
 
 /**
+ * Get the dynamic sampling context for the currently active scopes.
+ */
+export function getDynamicSamplingContextFromScope(client: Client, scope: Scope): Partial<DynamicSamplingContext> {
+  const propagationContext = scope.getPropagationContext();
+  return propagationContext.dsc || getDynamicSamplingContextFromClient(propagationContext.traceId, client);
+}
+
+/**
  * Creates a dynamic sampling context from a span (and client and scope)
  *
  * @param span the span from which a few values like the root span name and sample rate are extracted.
@@ -63,18 +72,27 @@ export function getDynamicSamplingContextFromSpan(span: Span): Readonly<Partial<
     return {};
   }
 
-  const dsc = getDynamicSamplingContextFromClient(spanToJSON(span).trace_id || '', client);
-
   const rootSpan = getRootSpan(span);
-  if (!rootSpan) {
-    return dsc;
-  }
 
+  // For core implementation, we freeze the DSC onto the span as a non-enumerable property
   const frozenDsc = (rootSpan as SpanWithMaybeDsc)[FROZEN_DSC_FIELD];
   if (frozenDsc) {
     return frozenDsc;
   }
 
+  // For OpenTelemetry, we freeze the DSC on the trace state
+  const traceState = rootSpan.spanContext().traceState;
+  const traceStateDsc = traceState && traceState.get('sentry.dsc');
+
+  // If the span has a DSC, we want it to take precedence
+  const dscOnTraceState = traceStateDsc && baggageHeaderToDynamicSamplingContext(traceStateDsc);
+
+  if (dscOnTraceState) {
+    return dscOnTraceState;
+  }
+
+  // Else, we generate it from the span
+  const dsc = getDynamicSamplingContextFromClient(span.spanContext().traceId, client);
   const jsonSpan = spanToJSON(rootSpan);
   const attributes = jsonSpan.data || {};
   const maybeSampleRate = attributes[SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE];
@@ -87,13 +105,19 @@ export function getDynamicSamplingContextFromSpan(span: Span): Readonly<Partial<
   const source = attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
 
   // after JSON conversion, txn.name becomes jsonSpan.description
-  if (source && source !== 'url') {
-    dsc.transaction = jsonSpan.description;
+  const name = jsonSpan.description;
+  if (source !== 'url' && name) {
+    dsc.transaction = name;
   }
 
-  dsc.sampled = String(spanIsSampled(rootSpan));
+  // How can we even land here with hasTracingEnabled() returning false?
+  // Otel creates a Non-recording span in Tracing Without Performance mode when handling incoming requests
+  // So we end up with an active span that is not sampled (neither positively nor negatively)
+  if (hasTracingEnabled()) {
+    dsc.sampled = String(spanIsSampled(rootSpan));
+  }
 
-  client.emit('createDsc', dsc);
+  client.emit('createDsc', dsc, rootSpan);
 
   return dsc;
 }

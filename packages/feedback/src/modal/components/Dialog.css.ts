@@ -71,16 +71,32 @@ const DIALOG = `
   transform: translate(0, 0) scale(1);
   transition: transform 0.2s ease-in-out;
 }
+
 `;
 
 const DIALOG_HEADER = `
 .dialog__header {
   display: flex;
-  align-items: center;
+  gap: 4px;
   justify-content: space-between;
   font-weight: var(--dialog-header-weight, 600);
   margin: 0;
 }
+.dialog__title {
+  align-self: center;
+  width: var(--form-width, 272px);
+}
+
+@media (max-width: 600px) {
+  .dialog__title {
+    width: auto;
+  }
+}
+
+.dialog__position:has(.editor) .dialog__title {
+  width: auto;
+}
+
 
 .brand-link {
   display: inline-flex;
@@ -100,19 +116,17 @@ const FORM = `
 }
 
 .form__right {
-  width: var(--form-width, 272px);
+  flex: 0 0 auto;
   display: flex;
   overflow: auto;
   flex-direction: column;
   justify-content: space-between;
   gap: 20px;
-  flex: 1 0 auto;
+  width: var(--form-width, 100%);
 }
 
-@media (max-width: 600px) {
-  .form__right {
-    width: auto;
-  }
+.dialog__position:has(.editor) .form__right {
+  width: var(--form-width, 272px);
 }
 
 .form__top {
@@ -122,8 +136,8 @@ const FORM = `
 }
 
 .form__error-container {
-  color: var(--error-foreground);
-  fill: var(--error-foreground);
+  color: var(--error-color);
+  fill: var(--error-color);
 }
 
 .form__label {
@@ -273,7 +287,7 @@ const SUCCESS = `
 /**
  * Creates <style> element for widget dialog
  */
-export function createDialogStyles(): HTMLStyleElement {
+export function createDialogStyles(styleNonce?: string): HTMLStyleElement {
   const style = DOCUMENT.createElement('style');
 
   style.textContent = `
@@ -287,6 +301,10 @@ ${FORM}
 ${BUTTON}
 ${SUCCESS}
 `;
+
+  if (styleNonce) {
+    style.setAttribute('nonce', styleNonce);
+  }
 
   return style;
 }

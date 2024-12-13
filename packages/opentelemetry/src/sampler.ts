@@ -1,18 +1,27 @@
-import type { Attributes, Context, Span } from '@opentelemetry/api';
-import { SpanKind } from '@opentelemetry/api';
-import { isSpanContextValid, trace } from '@opentelemetry/api';
+import type { Attributes, Context, Span, TraceState as TraceStateInterface } from '@opentelemetry/api';
+import { SpanKind, isSpanContextValid, trace } from '@opentelemetry/api';
 import { TraceState } from '@opentelemetry/core';
 import type { Sampler, SamplingResult } from '@opentelemetry/sdk-trace-base';
 import { SamplingDecision } from '@opentelemetry/sdk-trace-base';
-import { SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, hasTracingEnabled, sampleSpan } from '@sentry/core';
-import type { Client, SpanAttributes } from '@sentry/types';
-import { logger } from '@sentry/utils';
+import {
+  ATTR_HTTP_REQUEST_METHOD,
+  ATTR_URL_FULL,
+  SEMATTRS_HTTP_METHOD,
+  SEMATTRS_HTTP_URL,
+} from '@opentelemetry/semantic-conventions';
+import type { Client, SpanAttributes } from '@sentry/core';
+import {
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
+  hasTracingEnabled,
+  logger,
+  sampleSpan,
+} from '@sentry/core';
 import { SENTRY_TRACE_STATE_SAMPLED_NOT_RECORDING, SENTRY_TRACE_STATE_URL } from './constants';
-
-import { SEMATTRS_HTTP_METHOD, SEMATTRS_HTTP_URL } from '@opentelemetry/semantic-conventions';
 import { DEBUG_BUILD } from './debug-build';
 import { getPropagationContextFromSpan } from './propagator';
 import { getSamplingDecision } from './utils/getSamplingDecision';
+import { inferSpanData } from './utils/parseSpanDescription';
 import { setIsSetup } from './utils/setupCheck';
 
 /**
@@ -37,53 +46,61 @@ export class SentrySampler implements Sampler {
   ): SamplingResult {
     const options = this._client.getOptions();
 
-    const parentSpan = trace.getSpan(context);
+    const parentSpan = getValidSpan(context);
     const parentContext = parentSpan?.spanContext();
 
-    let traceState = parentContext?.traceState || new TraceState();
-
-    // We always keep the URL on the trace state, so we can access it in the propagator
-    const url = spanAttributes[SEMATTRS_HTTP_URL];
-    if (url && typeof url === 'string') {
-      traceState = traceState.set(SENTRY_TRACE_STATE_URL, url);
-    }
-
     if (!hasTracingEnabled(options)) {
-      return { decision: SamplingDecision.NOT_RECORD, traceState };
+      return wrapSamplingDecision({ decision: undefined, context, spanAttributes });
     }
+
+    // `ATTR_HTTP_REQUEST_METHOD` is the new attribute, but we still support the old one, `SEMATTRS_HTTP_METHOD`, for now.
+    // eslint-disable-next-line deprecation/deprecation
+    const maybeSpanHttpMethod = spanAttributes[SEMATTRS_HTTP_METHOD] || spanAttributes[ATTR_HTTP_REQUEST_METHOD];
 
     // If we have a http.client span that has no local parent, we never want to sample it
     // but we want to leave downstream sampling decisions up to the server
-    if (
-      spanKind === SpanKind.CLIENT &&
-      spanAttributes[SEMATTRS_HTTP_METHOD] &&
-      (!parentSpan || parentContext?.isRemote)
-    ) {
-      return { decision: SamplingDecision.NOT_RECORD, traceState };
+    if (spanKind === SpanKind.CLIENT && maybeSpanHttpMethod && (!parentSpan || parentContext?.isRemote)) {
+      return wrapSamplingDecision({ decision: undefined, context, spanAttributes });
     }
 
     const parentSampled = parentSpan ? getParentSampled(parentSpan, traceId, spanName) : undefined;
+
+    // We want to pass the inferred name & attributes to the sampler method
+    const {
+      description: inferredSpanName,
+      data: inferredAttributes,
+      op,
+    } = inferSpanData(spanName, spanAttributes, spanKind);
+
+    const mergedAttributes = {
+      ...inferredAttributes,
+      ...spanAttributes,
+    };
+
+    if (op) {
+      mergedAttributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] = op;
+    }
 
     const mutableSamplingDecision = { decision: true };
     this._client.emit(
       'beforeSampling',
       {
-        spanAttributes: spanAttributes,
-        spanName: spanName,
+        spanAttributes: mergedAttributes,
+        spanName: inferredSpanName,
         parentSampled: parentSampled,
         parentContext: parentContext,
       },
       mutableSamplingDecision,
     );
     if (!mutableSamplingDecision.decision) {
-      return { decision: SamplingDecision.NOT_RECORD, traceState: traceState };
+      return wrapSamplingDecision({ decision: undefined, context, spanAttributes });
     }
 
     const [sampled, sampleRate] = sampleSpan(options, {
-      name: spanName,
-      attributes: spanAttributes,
+      name: inferredSpanName,
+      attributes: mergedAttributes,
       transactionContext: {
-        name: spanName,
+        name: inferredSpanName,
         parentSampled,
       },
       parentSampled,
@@ -93,28 +110,25 @@ export class SentrySampler implements Sampler {
       [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: sampleRate,
     };
 
-    const method = `${spanAttributes[SEMATTRS_HTTP_METHOD]}`.toUpperCase();
+    const method = `${maybeSpanHttpMethod}`.toUpperCase();
     if (method === 'OPTIONS' || method === 'HEAD') {
       DEBUG_BUILD && logger.log(`[Tracing] Not sampling span because HTTP method is '${method}' for ${spanName}`);
+
       return {
-        decision: SamplingDecision.NOT_RECORD,
+        ...wrapSamplingDecision({ decision: SamplingDecision.NOT_RECORD, context, spanAttributes }),
         attributes,
-        traceState: traceState.set(SENTRY_TRACE_STATE_SAMPLED_NOT_RECORDING, '1'),
       };
     }
 
     if (!sampled) {
       return {
-        decision: SamplingDecision.NOT_RECORD,
+        ...wrapSamplingDecision({ decision: SamplingDecision.NOT_RECORD, context, spanAttributes }),
         attributes,
-        traceState: traceState.set(SENTRY_TRACE_STATE_SAMPLED_NOT_RECORDING, '1'),
       };
     }
-
     return {
-      decision: SamplingDecision.RECORD_AND_SAMPLED,
+      ...wrapSamplingDecision({ decision: SamplingDecision.RECORD_AND_SAMPLED, context, spanAttributes }),
       attributes,
-      traceState,
     };
   }
 
@@ -151,4 +165,55 @@ function getParentSampled(parentSpan: Span, traceId: string, spanName: string): 
   }
 
   return undefined;
+}
+
+/**
+ * Wrap a sampling decision with data that Sentry needs to work properly with it.
+ * If you pass `decision: undefined`, it will be treated as `NOT_RECORDING`, but in contrast to passing `NOT_RECORDING`
+ * it will not propagate this decision to downstream Sentry SDKs.
+ */
+export function wrapSamplingDecision({
+  decision,
+  context,
+  spanAttributes,
+}: { decision: SamplingDecision | undefined; context: Context; spanAttributes: SpanAttributes }): SamplingResult {
+  const traceState = getBaseTraceState(context, spanAttributes);
+
+  // If the decision is undefined, we treat it as NOT_RECORDING, but we don't propagate this decision to downstream SDKs
+  // Which is done by not setting `SENTRY_TRACE_STATE_SAMPLED_NOT_RECORDING` traceState
+  if (decision == undefined) {
+    return { decision: SamplingDecision.NOT_RECORD, traceState };
+  }
+
+  if (decision === SamplingDecision.NOT_RECORD) {
+    return { decision, traceState: traceState.set(SENTRY_TRACE_STATE_SAMPLED_NOT_RECORDING, '1') };
+  }
+
+  return { decision, traceState };
+}
+
+function getBaseTraceState(context: Context, spanAttributes: SpanAttributes): TraceStateInterface {
+  const parentSpan = trace.getSpan(context);
+  const parentContext = parentSpan?.spanContext();
+
+  let traceState = parentContext?.traceState || new TraceState();
+
+  // We always keep the URL on the trace state, so we can access it in the propagator
+  // `ATTR_URL_FULL` is the new attribute, but we still support the old one, `ATTR_HTTP_URL`, for now.
+  // eslint-disable-next-line deprecation/deprecation
+  const url = spanAttributes[SEMATTRS_HTTP_URL] || spanAttributes[ATTR_URL_FULL];
+  if (url && typeof url === 'string') {
+    traceState = traceState.set(SENTRY_TRACE_STATE_URL, url);
+  }
+
+  return traceState;
+}
+
+/**
+ * If the active span is invalid, we want to ignore it as parent.
+ * This aligns with how otel tracers and default samplers handle these cases.
+ */
+function getValidSpan(context: Context): Span | undefined {
+  const span = trace.getSpan(context);
+  return span && isSpanContextValid(span.spanContext()) ? span : undefined;
 }

@@ -1,8 +1,6 @@
 import type { ServerResponse } from 'http';
-import { flush, setHttpStatus } from '@sentry/core';
-import type { Span } from '@sentry/types';
-import { fill, logger } from '@sentry/utils';
-
+import type { Span } from '@sentry/core';
+import { fill, flush, logger, setHttpStatus } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
 import type { ResponseEndMethod, WrappedResponseEndMethod } from '../types';
 
@@ -50,8 +48,6 @@ export function finishSpan(span: Span, res: ServerResponse): void {
 export async function flushSafelyWithTimeout(): Promise<void> {
   try {
     DEBUG_BUILD && logger.log('Flushing events...');
-    // We give things that are currently stuck in event processors a tiny bit more time to finish before flushing. 50ms was chosen very unscientifically.
-    await new Promise(resolve => setTimeout(resolve, 50));
     await flush(2000);
     DEBUG_BUILD && logger.log('Done flushing events');
   } catch (e) {

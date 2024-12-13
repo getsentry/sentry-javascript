@@ -1,11 +1,10 @@
 import { Worker } from 'node:worker_threads';
-import { defineIntegration } from '@sentry/core';
-import type { Event, Exception, IntegrationFn } from '@sentry/types';
-import { LRUMap, logger } from '@sentry/utils';
-
+import type { Event, EventHint, Exception, IntegrationFn } from '@sentry/core';
+import { defineIntegration, logger } from '@sentry/core';
 import type { NodeClient } from '../../sdk/client';
+import { isDebuggerEnabled } from '../../utils/debug';
 import type { FrameVariables, LocalVariablesIntegrationOptions, LocalVariablesWorkerArgs } from './common';
-import { functionNamesMatch, hashFrames } from './common';
+import { LOCAL_VARIABLES_KEY, functionNamesMatch } from './common';
 
 // This string is a placeholder that gets overwritten with the worker code.
 export const base64WorkerScript = '###LocalVariablesWorkerScript###';
@@ -20,23 +19,7 @@ function log(...args: unknown[]): void {
 export const localVariablesAsyncIntegration = defineIntegration(((
   integrationOptions: LocalVariablesIntegrationOptions = {},
 ) => {
-  const cachedFrames: LRUMap<string, FrameVariables[]> = new LRUMap(20);
-
-  function addLocalVariablesToException(exception: Exception): void {
-    const hash = hashFrames(exception?.stacktrace?.frames);
-
-    if (hash === undefined) {
-      return;
-    }
-
-    // Check if we have local variables for an exception that matches the hash
-    // remove is identical to get but also removes the entry from the cache
-    const cachedFrame = cachedFrames.remove(hash);
-
-    if (cachedFrame === undefined) {
-      return;
-    }
-
+  function addLocalVariablesToException(exception: Exception, localVariables: FrameVariables[]): void {
     // Filter out frames where the function name is `new Promise` since these are in the error.stack frames
     // but do not appear in the debugger call frames
     const frames = (exception.stacktrace?.frames || []).filter(frame => frame.function !== 'new Promise');
@@ -45,29 +28,41 @@ export const localVariablesAsyncIntegration = defineIntegration(((
       // Sentry frames are in reverse order
       const frameIndex = frames.length - i - 1;
 
-      // Drop out if we run out of frames to match up
-      if (!frames[frameIndex] || !cachedFrame[i]) {
+      const frameLocalVariables = localVariables[i];
+      const frame = frames[frameIndex];
+
+      if (!frame || !frameLocalVariables) {
+        // Drop out if we run out of frames to match up
         break;
       }
 
       if (
         // We need to have vars to add
-        cachedFrame[i].vars === undefined ||
+        frameLocalVariables.vars === undefined ||
         // We're not interested in frames that are not in_app because the vars are not relevant
-        frames[frameIndex].in_app === false ||
+        frame.in_app === false ||
         // The function names need to match
-        !functionNamesMatch(frames[frameIndex].function, cachedFrame[i].function)
+        !functionNamesMatch(frame.function, frameLocalVariables.function)
       ) {
         continue;
       }
 
-      frames[frameIndex].vars = cachedFrame[i].vars;
+      frame.vars = frameLocalVariables.vars;
     }
   }
 
-  function addLocalVariablesToEvent(event: Event): Event {
-    for (const exception of event.exception?.values || []) {
-      addLocalVariablesToException(exception);
+  function addLocalVariablesToEvent(event: Event, hint: EventHint): Event {
+    if (
+      hint.originalException &&
+      typeof hint.originalException === 'object' &&
+      LOCAL_VARIABLES_KEY in hint.originalException &&
+      Array.isArray(hint.originalException[LOCAL_VARIABLES_KEY])
+    ) {
+      for (const exception of event.exception?.values || []) {
+        addLocalVariablesToException(exception, hint.originalException[LOCAL_VARIABLES_KEY]);
+      }
+
+      hint.originalException[LOCAL_VARIABLES_KEY] = undefined;
     }
 
     return event;
@@ -93,10 +88,6 @@ export const localVariablesAsyncIntegration = defineIntegration(((
       worker.terminate();
     });
 
-    worker.on('message', ({ exceptionHash, frames }) => {
-      cachedFrames.set(exceptionHash, frames);
-    });
-
     worker.once('error', (err: Error) => {
       log('Worker error', err);
     });
@@ -111,10 +102,15 @@ export const localVariablesAsyncIntegration = defineIntegration(((
 
   return {
     name: 'LocalVariablesAsync',
-    setup(client: NodeClient) {
+    async setup(client: NodeClient) {
       const clientOptions = client.getOptions();
 
       if (!clientOptions.includeLocalVariables) {
+        return;
+      }
+
+      if (await isDebuggerEnabled()) {
+        logger.warn('Local variables capture has been disabled because the debugger was already enabled');
         return;
       }
 
@@ -136,8 +132,8 @@ export const localVariablesAsyncIntegration = defineIntegration(((
         },
       );
     },
-    processEvent(event: Event): Event {
-      return addLocalVariablesToEvent(event);
+    processEvent(event: Event, hint: EventHint): Event {
+      return addLocalVariablesToEvent(event, hint);
     },
   };
 }) satisfies IntegrationFn);

@@ -1,3 +1,9 @@
+/**
+ * @vitest-environment jsdom
+ */
+
+import { afterEach, beforeAll, describe, expect, it } from 'vitest';
+
 import { REPLAY_SESSION_KEY, WINDOW } from '../../../src/constants';
 import { fetchSession } from '../../../src/session/fetchSession';
 

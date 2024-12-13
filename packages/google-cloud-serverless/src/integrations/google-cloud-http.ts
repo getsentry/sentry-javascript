@@ -1,8 +1,13 @@
 import type * as common from '@google-cloud/common';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SentryNonRecordingSpan, defineIntegration, getClient } from '@sentry/core';
+import type { Client, IntegrationFn } from '@sentry/core';
+import {
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SentryNonRecordingSpan,
+  defineIntegration,
+  fill,
+  getClient,
+} from '@sentry/core';
 import { startInactiveSpan } from '@sentry/node';
-import type { Client, IntegrationFn } from '@sentry/types';
-import { fill } from '@sentry/utils';
 
 type RequestOptions = common.DecorateRequestOptions;
 type ResponseCallback = common.BodyResponseCallback;
@@ -65,5 +70,5 @@ function wrapRequestFunction(orig: RequestFunction): RequestFunction {
 /** Identifies service by its base url */
 function identifyService(apiEndpoint: string): string {
   const match = apiEndpoint.match(/^https:\/\/(\w+)\.googleapis.com$/);
-  return match ? match[1] : apiEndpoint.replace(/^(http|https)?:\/\//, '');
+  return match && match[1] ? match[1] : apiEndpoint.replace(/^(http|https)?:\/\//, '');
 }

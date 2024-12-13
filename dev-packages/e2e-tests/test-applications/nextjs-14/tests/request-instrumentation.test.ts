@@ -1,9 +1,9 @@
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '@sentry-internal/event-proxy-server';
+import { waitForTransaction } from '@sentry-internal/test-utils';
 
 test('Should send a transaction with a fetch span', async ({ page }) => {
   const transactionPromise = waitForTransaction('nextjs-14', async transactionEvent => {
-    return transactionEvent?.transaction === 'Page Server Component (/request-instrumentation)';
+    return transactionEvent?.transaction === 'GET /request-instrumentation';
   });
 
   await page.goto(`/request-instrumentation`);
@@ -15,7 +15,7 @@ test('Should send a transaction with a fetch span', async ({ page }) => {
   expect(transactionEvent.spans).toContainEqual(
     expect.objectContaining({
       data: expect.objectContaining({
-        'http.method': 'GET',
+        'http.request.method': 'GET',
         'sentry.op': 'http.client',
         'sentry.origin': 'auto.http.otel.node_fetch',
       }),

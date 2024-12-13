@@ -1,10 +1,9 @@
-import { spanIsSampled, spanToJSON } from '@sentry/core';
+import type { CustomSamplingContext, Span } from '@sentry/core';
+import { logger, spanIsSampled, spanToJSON, uuid4 } from '@sentry/core';
 import type { NodeClient } from '@sentry/node';
-import type { CustomSamplingContext, Span } from '@sentry/types';
-import { logger, uuid4 } from '@sentry/utils';
-
 import { CpuProfilerBindings } from './cpu_profiler';
 import { DEBUG_BUILD } from './debug-build';
+import type { RawThreadCpuProfile } from './types';
 import { isValidSampleRate } from './utils';
 
 export const MAX_PROFILE_DURATION_MS = 30 * 1000;
@@ -107,17 +106,13 @@ export function maybeProfileSpan(
  * @param profile_id
  * @returns
  */
-export function stopSpanProfile(
-  span: Span,
-  profile_id: string | undefined,
-): ReturnType<(typeof CpuProfilerBindings)['stopProfiling']> | null {
+export function stopSpanProfile(span: Span, profile_id: string | undefined): RawThreadCpuProfile | null {
   // Should not happen, but satisfy the type checker and be safe regardless.
   if (!profile_id) {
     return null;
   }
 
-  const profile = CpuProfilerBindings.stopProfiling(profile_id);
-
+  const profile = CpuProfilerBindings.stopProfiling(profile_id, 0);
   DEBUG_BUILD && logger.log(`[Profiling] stopped profiling of transaction: ${spanToJSON(span).description}`);
 
   // In case of an overlapping span, stopProfiling may return null and silently ignore the overlapping profile.

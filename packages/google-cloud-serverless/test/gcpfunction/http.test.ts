@@ -1,6 +1,6 @@
 import * as domain from 'domain';
 
-import type { Integration } from '@sentry/types';
+import type { Integration } from '@sentry/core';
 
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 
@@ -171,16 +171,17 @@ describe('GCPFunction', () => {
     await handleHttp(wrappedHandler);
 
     const initOptions = (mockInit as unknown as jest.SpyInstance).mock.calls[0];
-    const defaultIntegrations = initOptions[0].defaultIntegrations.map((i: Integration) => i.name);
+    const defaultIntegrations = initOptions[0]?.defaultIntegrations.map((i: Integration) => i.name);
 
     expect(defaultIntegrations).toContain('RequestData');
 
     expect(mockScope.setSDKProcessingMetadata).toHaveBeenCalledWith({
-      request: {
+      normalizedRequest: {
         method: 'POST',
-        url: '/path?q=query',
+        url: 'http://hostname/path?q=query',
         headers: { host: 'hostname', 'content-type': 'application/json' },
-        body: { foo: 'bar' },
+        query_string: 'q=query',
+        data: { foo: 'bar' },
       },
     });
   });

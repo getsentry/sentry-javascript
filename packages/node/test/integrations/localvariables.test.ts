@@ -2,7 +2,7 @@ import { createRateLimiter } from '../../src/integrations/local-variables/common
 import { createCallbackList } from '../../src/integrations/local-variables/local-variables-sync';
 import { NODE_MAJOR } from '../../src/nodeVersion';
 
-jest.setTimeout(20_000);
+jest.useFakeTimers();
 
 const describeIf = (condition: boolean) => (condition ? describe : describe.skip);
 
@@ -87,10 +87,13 @@ describeIf(NODE_MAJOR >= 18)('LocalVariables', () => {
 
       for (let i = 0; i < 7; i++) {
         increment();
+        jest.advanceTimersByTime(100);
       }
+
+      jest.advanceTimersByTime(1_000);
     });
 
-    it('does not call disable if not exceeded', done => {
+    it('does not call disable if not exceeded', () => {
       const increment = createRateLimiter(
         5,
         () => {
@@ -101,20 +104,17 @@ describeIf(NODE_MAJOR >= 18)('LocalVariables', () => {
         },
       );
 
-      let count = 0;
+      for (let i = 0; i < 4; i++) {
+        increment();
+        jest.advanceTimersByTime(200);
+      }
 
-      const timer = setInterval(() => {
-        for (let i = 0; i < 4; i++) {
-          increment();
-        }
+      jest.advanceTimersByTime(600);
 
-        count += 1;
-
-        if (count >= 5) {
-          clearInterval(timer);
-          done();
-        }
-      }, 1_000);
+      for (let i = 0; i < 4; i++) {
+        increment();
+        jest.advanceTimersByTime(200);
+      }
     });
 
     it('re-enables after timeout', done => {
@@ -134,7 +134,10 @@ describeIf(NODE_MAJOR >= 18)('LocalVariables', () => {
 
       for (let i = 0; i < 10; i++) {
         increment();
+        jest.advanceTimersByTime(100);
       }
+
+      jest.advanceTimersByTime(10_000);
     });
   });
 });

@@ -7,12 +7,12 @@ import type {
   ParameterizedString,
   Session,
   SeverityLevel,
-} from '@sentry/types';
-import { resolvedSyncPromise } from '@sentry/utils';
+} from '../../src/types-hoist';
 
 import { BaseClient } from '../../src/baseclient';
 import { initAndBind } from '../../src/sdk';
 import { createTransport } from '../../src/transports/base';
+import { resolvedSyncPromise } from '../../src/utils-hoist/syncpromise';
 
 export function getDefaultTestClientOptions(options: Partial<TestClientOptions> = {}): TestClientOptions {
   return {
@@ -63,7 +63,7 @@ export class TestClient extends BaseClient<TestClientOptions> {
     };
 
     const frames = this._options.stackParser(exception.stack || '', 1);
-    if (frames.length && event?.exception?.values?.[0]) {
+    if (frames.length && event.exception?.values?.[0]) {
       event.exception.values[0] = { ...event.exception.values[0], stacktrace: { frames } };
     }
 

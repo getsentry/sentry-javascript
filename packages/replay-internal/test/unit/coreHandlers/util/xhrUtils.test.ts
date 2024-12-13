@@ -1,3 +1,9 @@
+/**
+ * @vitest-environment jsdom
+ */
+
+import { describe, expect, it } from 'vitest';
+
 import { _parseXhrResponse } from '../../../../src/coreHandlers/util/xhrUtils';
 
 describe('Unit | coreHandlers | util | xhrUtils', () => {

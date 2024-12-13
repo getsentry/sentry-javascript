@@ -1,6 +1,6 @@
 /**
  * This code was originally forked from https://github.com/TooTallNate/proxy-agents/tree/b133295fd16f6475578b6b15bd9b4e33ecb0d0b7
- * With the following licence:
+ * With the following LICENSE:
  *
  * (The MIT License)
  *
@@ -32,7 +32,7 @@ import type * as http from 'node:http';
 import type { OutgoingHttpHeaders } from 'node:http';
 import * as net from 'node:net';
 import * as tls from 'node:tls';
-import { logger } from '@sentry/utils';
+import { logger } from '@sentry/core';
 import { Agent } from './base';
 import type { AgentConnectOpts } from './base';
 import { parseProxyResponse } from './parse-proxy-response';

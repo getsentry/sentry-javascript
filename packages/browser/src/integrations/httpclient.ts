@@ -1,13 +1,16 @@
 import { SENTRY_XHR_DATA_KEY, addXhrInstrumentationHandler } from '@sentry-internal/browser-utils';
-import { captureEvent, defineIntegration, getClient, isSentryRequestUrl } from '@sentry/core';
-import type { Client, IntegrationFn, Event as SentryEvent, SentryWrappedXMLHttpRequest } from '@sentry/types';
+import type { Client, IntegrationFn, Event as SentryEvent, SentryWrappedXMLHttpRequest } from '@sentry/core';
 import {
   GLOBAL_OBJ,
   addExceptionMechanism,
   addFetchInstrumentationHandler,
+  captureEvent,
+  defineIntegration,
+  getClient,
+  isSentryRequestUrl,
   logger,
   supportsNativeFetch,
-} from '@sentry/utils';
+} from '@sentry/core';
 
 import { DEBUG_BUILD } from '../debug-build';
 
@@ -70,6 +73,7 @@ function _fetchResponseHandler(
   requestInfo: RequestInfo,
   response: Response,
   requestInit?: RequestInit,
+  error?: unknown,
 ): void {
   if (_shouldCaptureResponse(options, response.status, response.url)) {
     const request = _getRequest(requestInfo, requestInit);
@@ -77,28 +81,8 @@ function _fetchResponseHandler(
     let requestHeaders, responseHeaders, requestCookies, responseCookies;
 
     if (_shouldSendDefaultPii()) {
-      [{ headers: requestHeaders, cookies: requestCookies }, { headers: responseHeaders, cookies: responseCookies }] = [
-        { cookieHeader: 'Cookie', obj: request },
-        { cookieHeader: 'Set-Cookie', obj: response },
-      ].map(({ cookieHeader, obj }) => {
-        const headers = _extractFetchHeaders(obj.headers);
-        let cookies;
-
-        try {
-          const cookieString = headers[cookieHeader] || headers[cookieHeader.toLowerCase()] || undefined;
-
-          if (cookieString) {
-            cookies = _parseCookieString(cookieString);
-          }
-        } catch (e) {
-          DEBUG_BUILD && logger.log(`Could not extract cookies from header ${cookieHeader}`);
-        }
-
-        return {
-          headers,
-          cookies,
-        };
-      });
+      [requestHeaders, requestCookies] = _parseCookieHeaders('Cookie', request);
+      [responseHeaders, responseCookies] = _parseCookieHeaders('Set-Cookie', response);
     }
 
     const event = _createEvent({
@@ -109,10 +93,31 @@ function _fetchResponseHandler(
       responseHeaders,
       requestCookies,
       responseCookies,
+      error,
     });
 
     captureEvent(event);
   }
+}
+
+function _parseCookieHeaders(
+  cookieHeader: string,
+  obj: Request | Response,
+): [Record<string, string>, Record<string, string> | undefined] {
+  const headers = _extractFetchHeaders(obj.headers);
+  let cookies;
+
+  try {
+    const cookieString = headers[cookieHeader] || headers[cookieHeader.toLowerCase()] || undefined;
+
+    if (cookieString) {
+      cookies = _parseCookieString(cookieString);
+    }
+  } catch {
+    // ignore it if parsing fails
+  }
+
+  return [headers, cookies];
 }
 
 /**
@@ -127,6 +132,7 @@ function _xhrResponseHandler(
   xhr: XMLHttpRequest,
   method: string,
   headers: Record<string, string>,
+  error?: unknown,
 ): void {
   if (_shouldCaptureResponse(options, xhr.status, xhr.responseURL)) {
     let requestHeaders, responseCookies, responseHeaders;
@@ -138,14 +144,14 @@ function _xhrResponseHandler(
         if (cookieString) {
           responseCookies = _parseCookieString(cookieString);
         }
-      } catch (e) {
-        DEBUG_BUILD && logger.log('Could not extract cookies from response headers');
+      } catch {
+        // ignore it if parsing fails
       }
 
       try {
         responseHeaders = _getXHRResponseHeaders(xhr);
-      } catch (e) {
-        DEBUG_BUILD && logger.log('Could not extract headers from response');
+      } catch {
+        // ignore it if parsing fails
       }
 
       requestHeaders = headers;
@@ -159,6 +165,7 @@ function _xhrResponseHandler(
       // Can't access request cookies from XHR
       responseHeaders,
       responseCookies,
+      error,
     });
 
     captureEvent(event);
@@ -192,7 +199,9 @@ function _getResponseSizeFromHeaders(headers?: Record<string, string>): number |
 function _parseCookieString(cookieString: string): Record<string, string> {
   return cookieString.split('; ').reduce((acc: Record<string, string>, cookie: string) => {
     const [key, value] = cookie.split('=');
-    acc[key] = value;
+    if (key && value) {
+      acc[key] = value;
+    }
     return acc;
   }, {});
 }
@@ -228,7 +237,9 @@ function _getXHRResponseHeaders(xhr: XMLHttpRequest): Record<string, string> {
 
   return headers.split('\r\n').reduce((acc: Record<string, string>, line: string) => {
     const [key, value] = line.split(': ');
-    acc[key] = value;
+    if (key && value) {
+      acc[key] = value;
+    }
     return acc;
   }, {});
 }
@@ -284,15 +295,15 @@ function _wrapFetch(client: Client, options: HttpClientOptions): void {
       return;
     }
 
-    const { response, args } = handlerData;
+    const { response, args, error, virtualError } = handlerData;
     const [requestInfo, requestInit] = args as [RequestInfo, RequestInit | undefined];
 
     if (!response) {
       return;
     }
 
-    _fetchResponseHandler(options, requestInfo, response as Response, requestInit);
-  });
+    _fetchResponseHandler(options, requestInfo, response as Response, requestInit, error || virtualError);
+  }, false);
 }
 
 /**
@@ -308,6 +319,8 @@ function _wrapXHR(client: Client, options: HttpClientOptions): void {
       return;
     }
 
+    const { error, virtualError } = handlerData;
+
     const xhr = handlerData.xhr as SentryWrappedXMLHttpRequest & XMLHttpRequest;
 
     const sentryXhrData = xhr[SENTRY_XHR_DATA_KEY];
@@ -319,7 +332,7 @@ function _wrapXHR(client: Client, options: HttpClientOptions): void {
     const { method, request_headers: headers } = sentryXhrData;
 
     try {
-      _xhrResponseHandler(options, xhr, method, headers);
+      _xhrResponseHandler(options, xhr, method, headers, error || virtualError);
     } catch (e) {
       DEBUG_BUILD && logger.warn('Error while extracting response event form XHR response', e);
     }
@@ -354,7 +367,12 @@ function _createEvent(data: {
   responseCookies?: Record<string, string>;
   requestHeaders?: Record<string, string>;
   requestCookies?: Record<string, string>;
+  error?: unknown;
 }): SentryEvent {
+  const client = getClient();
+  const virtualStackTrace = client && data.error && data.error instanceof Error ? data.error.stack : undefined;
+  // Remove the first frame from the stack as it's the HttpClient call
+  const stack = virtualStackTrace && client ? client.getOptions().stackParser(virtualStackTrace, 0, 1) : undefined;
   const message = `HTTP Client Error with status code: ${data.status}`;
 
   const event: SentryEvent = {
@@ -364,6 +382,7 @@ function _createEvent(data: {
         {
           type: 'Error',
           value: message,
+          stacktrace: stack ? { frames: stack } : undefined,
         },
       ],
     },

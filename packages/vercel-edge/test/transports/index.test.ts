@@ -1,5 +1,7 @@
-import type { EventEnvelope, EventItem } from '@sentry/types';
-import { createEnvelope, serializeEnvelope } from '@sentry/utils';
+import { afterAll, describe, expect, it, vi } from 'vitest';
+
+import { createEnvelope, serializeEnvelope } from '@sentry/core';
+import type { EventEnvelope, EventItem } from '@sentry/core';
 
 import type { VercelEdgeTransportOptions } from '../../src/transports';
 import { IsolatedPromiseBuffer, makeEdgeTransport } from '../../src/transports';
@@ -23,7 +25,7 @@ class Headers {
   }
 }
 
-const mockFetch = jest.fn();
+const mockFetch = vi.fn();
 
 const oldFetch = global.fetch;
 global.fetch = mockFetch;
@@ -57,7 +59,7 @@ describe('Edge Transport', () => {
 
   it('sets rate limit headers', async () => {
     const headers = {
-      get: jest.fn(),
+      get: vi.fn(),
     };
 
     mockFetch.mockImplementationOnce(() =>
@@ -110,8 +112,8 @@ describe('IsolatedPromiseBuffer', () => {
   it('should not call tasks until drained', async () => {
     const ipb = new IsolatedPromiseBuffer();
 
-    const task1 = jest.fn(() => Promise.resolve({}));
-    const task2 = jest.fn(() => Promise.resolve({}));
+    const task1 = vi.fn(() => Promise.resolve({}));
+    const task2 = vi.fn(() => Promise.resolve({}));
 
     await ipb.add(task1);
     await ipb.add(task2);
@@ -128,10 +130,10 @@ describe('IsolatedPromiseBuffer', () => {
   it('should not allow adding more items than the specified limit', async () => {
     const ipb = new IsolatedPromiseBuffer(3);
 
-    const task1 = jest.fn(() => Promise.resolve({}));
-    const task2 = jest.fn(() => Promise.resolve({}));
-    const task3 = jest.fn(() => Promise.resolve({}));
-    const task4 = jest.fn(() => Promise.resolve({}));
+    const task1 = vi.fn(() => Promise.resolve({}));
+    const task2 = vi.fn(() => Promise.resolve({}));
+    const task3 = vi.fn(() => Promise.resolve({}));
+    const task4 = vi.fn(() => Promise.resolve({}));
 
     await ipb.add(task1);
     await ipb.add(task2);
@@ -143,8 +145,8 @@ describe('IsolatedPromiseBuffer', () => {
   it('should not throw when one of the tasks throws when drained', async () => {
     const ipb = new IsolatedPromiseBuffer();
 
-    const task1 = jest.fn(() => Promise.resolve({}));
-    const task2 = jest.fn(() => Promise.reject(new Error()));
+    const task1 = vi.fn(() => Promise.resolve({}));
+    const task2 = vi.fn(() => Promise.reject(new Error()));
 
     await ipb.add(task1);
     await ipb.add(task2);

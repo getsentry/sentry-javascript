@@ -1,6 +1,6 @@
 import type { Context, ContextManager } from '@opentelemetry/api';
 import { getCurrentScope, getIsolationScope } from '@sentry/core';
-import type { Scope } from '@sentry/types';
+import type { Scope } from '@sentry/core';
 
 import {
   SENTRY_FORK_ISOLATION_SCOPE_CONTEXT_KEY,
@@ -31,8 +31,8 @@ export function wrapContextManagerClass<ContextManagerInstance extends ContextMa
 
   // @ts-expect-error TS does not like this, but we know this is fine
   class SentryContextManager extends ContextManagerClass {
-    public constructor() {
-      super();
+    public constructor(...args: unknown[]) {
+      super(...args);
       setIsSetup('SentryContextManager');
     }
     /**

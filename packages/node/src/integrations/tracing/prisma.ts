@@ -1,7 +1,7 @@
 // When importing CJS modules into an ESM module, we cannot import the named exports directly.
 import * as prismaInstrumentation from '@prisma/instrumentation';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, defineIntegration, spanToJSON } from '@sentry/core';
-import type { IntegrationFn } from '@sentry/types';
+import type { IntegrationFn } from '@sentry/core';
 import { generateInstrumentOnce } from '../../otel/instrument';
 
 const INTEGRATION_NAME = 'Prisma';
@@ -38,12 +38,30 @@ const _prismaIntegration = (() => {
 }) satisfies IntegrationFn;
 
 /**
- * Prisma integration
+ * Adds Sentry tracing instrumentation for the [prisma](https://www.npmjs.com/package/prisma) library.
  *
- * Capture tracing data for prisma.
- * Note: This requieres to set:
- * previewFeatures = ["tracing"]
- * For the prisma client.
- * See https://www.prisma.io/docs/concepts/components/prisma-client/opentelemetry-tracing for more details.
+ * For more information, see the [`prismaIntegration` documentation](https://docs.sentry.io/platforms/javascript/guides/node/configuration/integrations/prisma/).
+ *
+ * @example
+ *
+ * Make sure `previewFeatures = ["tracing"]` is set in the prisma client generator block. See the
+ * [prisma docs](https://www.prisma.io/docs/concepts/components/prisma-client/opentelemetry-tracing) for more details.
+ *
+ * ```prisma
+ * generator client {
+ *  provider = "prisma-client-js"
+ *  previewFeatures = ["tracing"]
+ * }
+ * ```
+ *
+ * Then you can use the integration like this:
+ *
+ * ```javascript
+ * const Sentry = require('@sentry/node');
+ *
+ * Sentry.init({
+ *  integrations: [Sentry.prismaIntegration()],
+ * });
+ * ```
  */
 export const prismaIntegration = defineIntegration(_prismaIntegration);

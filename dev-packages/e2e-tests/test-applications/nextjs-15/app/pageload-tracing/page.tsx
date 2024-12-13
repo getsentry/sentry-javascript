@@ -6,7 +6,7 @@ export default async function Page() {
 }
 
 export async function generateMetadata() {
-  (await fetch('http://example.com/')).text();
+  (await fetch('http://example.com/', { cache: 'no-store' })).text();
 
   return {
     title: 'my title',

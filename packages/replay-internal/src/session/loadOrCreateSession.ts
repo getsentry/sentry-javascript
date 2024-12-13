@@ -1,5 +1,6 @@
+import { DEBUG_BUILD } from '../debug-build';
 import type { Session, SessionOptions } from '../types';
-import { logInfoNextTick } from '../util/log';
+import { logger } from '../util/logger';
 import { createSession } from './createSession';
 import { fetchSession } from './fetchSession';
 import { shouldRefreshSession } from './shouldRefreshSession';
@@ -10,23 +11,21 @@ import { shouldRefreshSession } from './shouldRefreshSession';
  */
 export function loadOrCreateSession(
   {
-    traceInternals,
     sessionIdleExpire,
     maxReplayDuration,
     previousSessionId,
   }: {
     sessionIdleExpire: number;
     maxReplayDuration: number;
-    traceInternals?: boolean;
     previousSessionId?: string;
   },
   sessionOptions: SessionOptions,
 ): Session {
-  const existingSession = sessionOptions.stickySession && fetchSession(traceInternals);
+  const existingSession = sessionOptions.stickySession && fetchSession();
 
   // No session exists yet, just create a new one
   if (!existingSession) {
-    logInfoNextTick('[Replay] Creating new session', traceInternals);
+    DEBUG_BUILD && logger.infoTick('Creating new session');
     return createSession(sessionOptions, { previousSessionId });
   }
 
@@ -34,6 +33,6 @@ export function loadOrCreateSession(
     return existingSession;
   }
 
-  logInfoNextTick('[Replay] Session in sessionStorage is expired, creating new one...');
+  DEBUG_BUILD && logger.infoTick('Session in sessionStorage is expired, creating new one...');
   return createSession(sessionOptions, { previousSessionId: existingSession.id });
 }

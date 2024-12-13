@@ -1,10 +1,12 @@
-import { DOCUMENT } from '../../constants';
+import { DOCUMENT, TRIGGER_LABEL } from '../../constants';
 import { createActorStyles } from './Actor.css';
 import { FeedbackIcon } from './FeedbackIcon';
 
 export interface ActorProps {
   triggerLabel: string;
+  triggerAriaLabel: string;
   shadow: ShadowRoot;
+  styleNonce?: string;
 }
 
 export interface ActorComponent {
@@ -22,12 +24,12 @@ export interface ActorComponent {
 /**
  * The sentry-provided button to open the feedback modal
  */
-export function Actor({ triggerLabel, shadow }: ActorProps): ActorComponent {
+export function Actor({ triggerLabel, triggerAriaLabel, shadow, styleNonce }: ActorProps): ActorComponent {
   const el = DOCUMENT.createElement('button');
   el.type = 'button';
   el.className = 'widget__actor';
   el.ariaHidden = 'false';
-  el.ariaLabel = triggerLabel;
+  el.ariaLabel = triggerAriaLabel || triggerLabel || TRIGGER_LABEL;
   el.appendChild(FeedbackIcon());
   if (triggerLabel) {
     const label = DOCUMENT.createElement('span');
@@ -35,7 +37,7 @@ export function Actor({ triggerLabel, shadow }: ActorProps): ActorComponent {
     el.appendChild(label);
   }
 
-  const style = createActorStyles();
+  const style = createActorStyles(styleNonce);
 
   return {
     el,

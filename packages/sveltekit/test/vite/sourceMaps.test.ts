@@ -1,4 +1,4 @@
-import { vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { Plugin } from 'vite';
 import { makeCustomSentryVitePlugins } from '../../src/vite/sourceMaps';
@@ -14,6 +14,15 @@ vi.mock('@sentry/vite-plugin', async () => {
   return {
     ...original,
     sentryVitePlugin: () => [mockedSentryVitePlugin],
+  };
+});
+
+vi.mock('sorcery', async () => {
+  return {
+    load: vi.fn().mockResolvedValue({
+      apply: vi.fn().mockResolvedValue(undefined),
+      write: vi.fn().mockResolvedValue(undefined),
+    }),
   };
 });
 
@@ -79,7 +88,7 @@ describe('makeCustomSentryVitePlugin()', () => {
       // @ts-expect-error this function exists!
       plugin.configResolved({ build: { ssr: true } });
       // @ts-expect-error this function exists!
-      plugin.closeBundle();
+      await plugin.closeBundle();
       expect(mockedSentryVitePlugin.writeBundle).toHaveBeenCalledTimes(1);
     });
 
@@ -89,7 +98,7 @@ describe('makeCustomSentryVitePlugin()', () => {
       // @ts-expect-error this function exists!
       plugin.configResolved({ build: { ssr: false } });
       // @ts-expect-error this function exists!
-      plugin.closeBundle();
+      await plugin.closeBundle();
       expect(mockedSentryVitePlugin.writeBundle).not.toHaveBeenCalled();
     });
   });
@@ -110,7 +119,7 @@ describe('makeCustomSentryVitePlugin()', () => {
     // @ts-expect-error this function exists!
     plugin.configResolved({ build: { ssr: true } });
     // @ts-expect-error this function exists!
-    plugin.closeBundle();
+    await plugin.closeBundle();
 
     expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining('Failed to upload source maps'));
     expect(consoleLogSpy).toHaveBeenCalled();

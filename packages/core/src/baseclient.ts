@@ -29,27 +29,10 @@ import type {
   TransactionEvent,
   Transport,
   TransportMakeRequestResponse,
-} from '@sentry/types';
-import {
-  SentryError,
-  SyncPromise,
-  addItemToEnvelope,
-  checkOrSetAlreadyCaught,
-  createAttachmentEnvelopeItem,
-  dropUndefinedKeys,
-  isParameterizedString,
-  isPlainObject,
-  isPrimitive,
-  isThenable,
-  logger,
-  makeDsn,
-  rejectedSyncPromise,
-  resolvedSyncPromise,
-  uuid4,
-} from '@sentry/utils';
+} from './types-hoist';
 
 import { getEnvelopeEndpointWithUrlEncodedAuth } from './api';
-import { getIsolationScope } from './currentScopes';
+import { getCurrentScope, getIsolationScope, getTraceContextFromScope } from './currentScopes';
 import { DEBUG_BUILD } from './debug-build';
 import { createEventEnvelope, createSessionEnvelope } from './envelope';
 import type { IntegrationIndex } from './integration';
@@ -57,9 +40,18 @@ import { afterSetupIntegrations } from './integration';
 import { setupIntegration, setupIntegrations } from './integration';
 import type { Scope } from './scope';
 import { updateSession } from './session';
-import { getDynamicSamplingContextFromClient } from './tracing/dynamicSamplingContext';
+import { getDynamicSamplingContextFromScope } from './tracing/dynamicSamplingContext';
+import { createClientReportEnvelope } from './utils-hoist/clientreport';
+import { dsnToString, makeDsn } from './utils-hoist/dsn';
+import { addItemToEnvelope, createAttachmentEnvelopeItem } from './utils-hoist/envelope';
+import { SentryError } from './utils-hoist/error';
+import { isParameterizedString, isPlainObject, isPrimitive, isThenable } from './utils-hoist/is';
+import { consoleSandbox, logger } from './utils-hoist/logger';
+import { checkOrSetAlreadyCaught, uuid4 } from './utils-hoist/misc';
+import { SyncPromise, rejectedSyncPromise, resolvedSyncPromise } from './utils-hoist/syncpromise';
 import { parseSampleRate } from './utils/parseSampleRate';
 import { prepareEvent } from './utils/prepareEvent';
+import { showSpanDropWarning } from './utils/spanUtils';
 
 const ALREADY_SEEN_ERROR = "Not capturing exception because it's already been captured.";
 
@@ -149,13 +141,24 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
         url,
       });
     }
+
+    // TODO(v9): Remove this deprecation warning
+    const tracingOptions = ['enableTracing', 'tracesSampleRate', 'tracesSampler'] as const;
+    const undefinedOption = tracingOptions.find(option => option in options && options[option] == undefined);
+    if (undefinedOption) {
+      consoleSandbox(() => {
+        // eslint-disable-next-line no-console
+        console.warn(
+          `[Sentry] Deprecation warning: \`${undefinedOption}\` is set to undefined, which leads to tracing being enabled. In v9, a value of \`undefined\` will result in tracing being disabled.`,
+        );
+      });
+    }
   }
 
   /**
    * @inheritDoc
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  public captureException(exception: any, hint?: EventHint, scope?: Scope): string {
+  public captureException(exception: unknown, hint?: EventHint, scope?: Scope): string {
     const eventId = uuid4();
 
     // ensure we haven't captured this very object before
@@ -256,7 +259,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   }
 
   /**
-   * @see SdkMetadata in @sentry/types
+   * @see SdkMetadata
    *
    * @return The metadata of the SDK
    */
@@ -309,7 +312,15 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
 
   /** @inheritdoc */
   public init(): void {
-    if (this._isEnabled()) {
+    if (
+      this._isEnabled() ||
+      // Force integrations to be setup even if no DSN was set when we have
+      // Spotlight enabled. This is particularly important for browser as we
+      // don't support the `spotlight` option there and rely on the users
+      // adding the `spotlightBrowserIntegration()` to their integrations which
+      // wouldn't get initialized with the check below when there's no DSN set.
+      this._options.integrations.some(({ name }) => name.startsWith('Spotlight'))
+    ) {
       this._setupIntegrations();
     }
   }
@@ -369,10 +380,12 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   /**
    * @inheritDoc
    */
-  public recordDroppedEvent(reason: EventDropReason, category: DataCategory, _event?: Event): void {
-    // Note: we use `event` in replay, where we overwrite this hook.
-
+  public recordDroppedEvent(reason: EventDropReason, category: DataCategory, eventOrCount?: Event | number): void {
     if (this._options.sendClientReports) {
+      // TODO v9: We do not need the `event` passed as third argument anymore, and can possibly remove this overload
+      // If event is passed as third argument, we assume this is a count of 1
+      const count = typeof eventOrCount === 'number' ? eventOrCount : 1;
+
       // We want to track each category (error, transaction, session, replay_event) separately
       // but still keep the distinction between different type of outcomes.
       // We could use nested maps, but it's much easier to read and type this way.
@@ -380,10 +393,8 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
       // would be `Partial<Record<SentryRequestType, Partial<Record<Outcome, number>>>>`
       // With typescript 4.1 we could even use template literal types
       const key = `${reason}:${category}`;
-      DEBUG_BUILD && logger.log(`Adding outcome: "${key}"`);
-
-      // The following works because undefined + 1 === NaN and NaN is falsy
-      this._outcomes[key] = this._outcomes[key] + 1 || 1;
+      DEBUG_BUILD && logger.log(`Recording outcome: "${key}"${count > 1 ? ` (${count} times)` : ''}`);
+      this._outcomes[key] = (this._outcomes[key] || 0) + count;
     }
   }
 
@@ -391,37 +402,40 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   /* eslint-disable @typescript-eslint/unified-signatures */
 
   /** @inheritdoc */
-  public on(hook: 'spanStart', callback: (span: Span) => void): void;
+  public on(hook: 'spanStart', callback: (span: Span) => void): () => void;
 
   /** @inheritdoc */
-  public on(hook: 'spanEnd', callback: (span: Span) => void): void;
+  public on(hook: 'spanEnd', callback: (span: Span) => void): () => void;
 
   /** @inheritdoc */
-  public on(hook: 'idleSpanEnableAutoFinish', callback: (span: Span) => void): void;
+  public on(hook: 'idleSpanEnableAutoFinish', callback: (span: Span) => void): () => void;
 
   /** @inheritdoc */
-  public on(hook: 'beforeEnvelope', callback: (envelope: Envelope) => void): void;
+  public on(hook: 'beforeEnvelope', callback: (envelope: Envelope) => void): () => void;
 
   /** @inheritdoc */
-  public on(hook: 'beforeSendEvent', callback: (event: Event, hint?: EventHint) => void): void;
+  public on(hook: 'beforeSendEvent', callback: (event: Event, hint?: EventHint) => void): () => void;
 
   /** @inheritdoc */
-  public on(hook: 'preprocessEvent', callback: (event: Event, hint?: EventHint) => void): void;
+  public on(hook: 'preprocessEvent', callback: (event: Event, hint?: EventHint) => void): () => void;
 
   /** @inheritdoc */
-  public on(hook: 'afterSendEvent', callback: (event: Event, sendResponse: TransportMakeRequestResponse) => void): void;
+  public on(
+    hook: 'afterSendEvent',
+    callback: (event: Event, sendResponse: TransportMakeRequestResponse) => void,
+  ): () => void;
 
   /** @inheritdoc */
-  public on(hook: 'beforeAddBreadcrumb', callback: (breadcrumb: Breadcrumb, hint?: BreadcrumbHint) => void): void;
+  public on(hook: 'beforeAddBreadcrumb', callback: (breadcrumb: Breadcrumb, hint?: BreadcrumbHint) => void): () => void;
 
   /** @inheritdoc */
-  public on(hook: 'createDsc', callback: (dsc: DynamicSamplingContext) => void): void;
+  public on(hook: 'createDsc', callback: (dsc: DynamicSamplingContext, rootSpan?: Span) => void): () => void;
 
   /** @inheritdoc */
   public on(
     hook: 'beforeSendFeedback',
     callback: (feedback: FeedbackEvent, options?: { includeReplay: boolean }) => void,
-  ): void;
+  ): () => void;
 
   /** @inheritdoc */
   public on(
@@ -444,23 +458,35 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
       options: StartSpanOptions,
       traceOptions?: { sentryTrace?: string | undefined; baggage?: string | undefined },
     ) => void,
-  ): void;
+  ): () => void;
 
   /** @inheritdoc */
-  public on(hook: 'startNavigationSpan', callback: (options: StartSpanOptions) => void): void;
+  public on(hook: 'startNavigationSpan', callback: (options: StartSpanOptions) => void): () => void;
 
-  public on(hook: 'flush', callback: () => void): void;
+  public on(hook: 'flush', callback: () => void): () => void;
 
-  public on(hook: 'close', callback: () => void): void;
+  public on(hook: 'close', callback: () => void): () => void;
+
+  public on(hook: 'applyFrameMetadata', callback: (event: Event) => void): () => void;
 
   /** @inheritdoc */
-  public on(hook: string, callback: unknown): void {
-    if (!this._hooks[hook]) {
-      this._hooks[hook] = [];
-    }
+  public on(hook: string, callback: unknown): () => void {
+    const hooks = (this._hooks[hook] = this._hooks[hook] || []);
 
-    // @ts-expect-error We assue the types are correct
-    this._hooks[hook].push(callback);
+    // @ts-expect-error We assume the types are correct
+    hooks.push(callback);
+
+    // This function returns a callback execution handler that, when invoked,
+    // deregisters a callback. This is crucial for managing instances where callbacks
+    // need to be unregistered to prevent self-referencing in callback closures,
+    // ensuring proper garbage collection.
+    return () => {
+      // @ts-expect-error We assume the types are correct
+      const cbIndex = hooks.indexOf(callback);
+      if (cbIndex > -1) {
+        hooks.splice(cbIndex, 1);
+      }
+    };
   }
 
   /** @inheritdoc */
@@ -500,7 +526,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   public emit(hook: 'beforeAddBreadcrumb', breadcrumb: Breadcrumb, hint?: BreadcrumbHint): void;
 
   /** @inheritdoc */
-  public emit(hook: 'createDsc', dsc: DynamicSamplingContext): void;
+  public emit(hook: 'createDsc', dsc: DynamicSamplingContext, rootSpan?: Span): void;
 
   /** @inheritdoc */
   public emit(hook: 'beforeSendFeedback', feedback: FeedbackEvent, options?: { includeReplay: boolean }): void;
@@ -522,9 +548,13 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   public emit(hook: 'close'): void;
 
   /** @inheritdoc */
+  public emit(hook: 'applyFrameMetadata', event: Event): void;
+
+  /** @inheritdoc */
   public emit(hook: string, ...rest: unknown[]): void {
-    if (this._hooks[hook]) {
-      this._hooks[hook].forEach(callback => callback(...rest));
+    const callbacks = this._hooks[hook];
+    if (callbacks) {
+      callbacks.forEach(callback => callback(...rest));
     }
   }
 
@@ -536,7 +566,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
 
     if (this._isEnabled() && this._transport) {
       return this._transport.send(envelope).then(null, reason => {
-        DEBUG_BUILD && logger.error('Error while sending event:', reason);
+        DEBUG_BUILD && logger.error('Error while sending envelope:', reason);
         return reason;
       });
     }
@@ -640,7 +670,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   protected _prepareEvent(
     event: Event,
     hint: EventHint,
-    currentScope?: Scope,
+    currentScope = getCurrentScope(),
     isolationScope = getIsolationScope(),
   ): PromiseLike<Event | null> {
     const options = this.getOptions();
@@ -660,30 +690,18 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
         return evt;
       }
 
-      const propagationContext = {
-        ...isolationScope.getPropagationContext(),
-        ...(currentScope ? currentScope.getPropagationContext() : undefined),
+      evt.contexts = {
+        trace: getTraceContextFromScope(currentScope),
+        ...evt.contexts,
       };
 
-      const trace = evt.contexts && evt.contexts.trace;
-      if (!trace && propagationContext) {
-        const { traceId: trace_id, spanId, parentSpanId, dsc } = propagationContext;
-        evt.contexts = {
-          trace: dropUndefinedKeys({
-            trace_id,
-            span_id: spanId,
-            parent_span_id: parentSpanId,
-          }),
-          ...evt.contexts,
-        };
+      const dynamicSamplingContext = getDynamicSamplingContextFromScope(this, currentScope);
 
-        const dynamicSamplingContext = dsc ? dsc : getDynamicSamplingContextFromClient(trace_id, this);
+      evt.sdkProcessingMetadata = {
+        dynamicSamplingContext,
+        ...evt.sdkProcessingMetadata,
+      };
 
-        evt.sdkProcessingMetadata = {
-          dynamicSamplingContext,
-          ...evt.sdkProcessingMetadata,
-        };
-      }
       return evt;
     });
   }
@@ -768,18 +786,36 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
           return prepared;
         }
 
-        const result = processBeforeSend(options, prepared, hint);
+        const result = processBeforeSend(this, options, prepared, hint);
         return _validateBeforeSendResult(result, beforeSendLabel);
       })
       .then(processedEvent => {
         if (processedEvent === null) {
           this.recordDroppedEvent('before_send', dataCategory, event);
+          if (isTransaction) {
+            const spans = event.spans || [];
+            // the transaction itself counts as one span, plus all the child spans that are added
+            const spanCount = 1 + spans.length;
+            this.recordDroppedEvent('before_send', 'span', spanCount);
+          }
           throw new SentryError(`${beforeSendLabel} returned \`null\`, will not send event.`, 'log');
         }
 
         const session = currentScope && currentScope.getSession();
         if (!isTransaction && session) {
           this._updateSessionFromEvent(session, processedEvent);
+        }
+
+        if (isTransaction) {
+          const spanCountBefore =
+            (processedEvent.sdkProcessingMetadata && processedEvent.sdkProcessingMetadata.spanCountBeforeProcessing) ||
+            0;
+          const spanCountAfter = processedEvent.spans ? processedEvent.spans.length : 0;
+
+          const droppedSpanCount = spanCountBefore - spanCountAfter;
+          if (droppedSpanCount > 0) {
+            this.recordDroppedEvent('before_send', 'span', droppedSpanCount);
+          }
         }
 
         // None of the Sentry built event processor will update transaction name,
@@ -837,21 +873,48 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   protected _clearOutcomes(): Outcome[] {
     const outcomes = this._outcomes;
     this._outcomes = {};
-    return Object.keys(outcomes).map(key => {
+    return Object.entries(outcomes).map(([key, quantity]) => {
       const [reason, category] = key.split(':') as [EventDropReason, DataCategory];
       return {
         reason,
         category,
-        quantity: outcomes[key],
+        quantity,
       };
     });
   }
 
   /**
+   * Sends client reports as an envelope.
+   */
+  protected _flushOutcomes(): void {
+    DEBUG_BUILD && logger.log('Flushing outcomes...');
+
+    const outcomes = this._clearOutcomes();
+
+    if (outcomes.length === 0) {
+      DEBUG_BUILD && logger.log('No outcomes to send');
+      return;
+    }
+
+    // This is really the only place where we want to check for a DSN and only send outcomes then
+    if (!this._dsn) {
+      DEBUG_BUILD && logger.log('No dsn provided, will not send outcomes');
+      return;
+    }
+
+    DEBUG_BUILD && logger.log('Sending outcomes:', outcomes);
+
+    const envelope = createClientReportEnvelope(outcomes, this._options.tunnel && dsnToString(this._dsn));
+
+    // sendEnvelope should not throw
+    // eslint-disable-next-line @typescript-eslint/no-floating-promises
+    this.sendEnvelope(envelope);
+  }
+
+  /**
    * @inheritDoc
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  public abstract eventFromException(_exception: any, _hint?: EventHint): PromiseLike<Event>;
+  public abstract eventFromException(_exception: unknown, _hint?: EventHint): PromiseLike<Event>;
 
   /**
    * @inheritDoc
@@ -893,6 +956,7 @@ function _validateBeforeSendResult(
  * Process the matching `beforeSendXXX` callback.
  */
 function processBeforeSend(
+  client: Client,
   options: ClientOptions,
   event: Event,
   hint: EventHint,
@@ -910,12 +974,24 @@ function processBeforeSend(
         const processedSpan = beforeSendSpan(span);
         if (processedSpan) {
           processedSpans.push(processedSpan);
+        } else {
+          showSpanDropWarning();
+          client.recordDroppedEvent('before_send', 'span');
         }
       }
       event.spans = processedSpans;
     }
 
     if (beforeSendTransaction) {
+      if (event.spans) {
+        // We store the # of spans before processing in SDK metadata,
+        // so we can compare it afterwards to determine how many spans were dropped
+        const spanCountBefore = event.spans.length;
+        event.sdkProcessingMetadata = {
+          ...event.sdkProcessingMetadata,
+          spanCountBeforeProcessing: spanCountBefore,
+        };
+      }
       return beforeSendTransaction(event, hint);
     }
   }

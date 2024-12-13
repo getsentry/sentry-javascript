@@ -8,13 +8,13 @@ import {
   shouldSkipReplayTest,
 } from '../../../../../utils/replayHelpers';
 
-sentryTest('captures correct timestamps', async ({ getLocalTestPath, page, browserName }) => {
+sentryTest('captures correct timestamps', async ({ getLocalTestUrl, page, browserName }) => {
   // These are a bit flaky on non-chromium browsers
   if (shouldSkipReplayTest() || browserName !== 'chromium') {
     sentryTest.skip();
   }
 
-  await page.route('**/foo', route => {
+  await page.route('http://sentry-test.io/foo', route => {
     return route.fulfill({
       status: 200,
     });
@@ -34,14 +34,13 @@ sentryTest('captures correct timestamps', async ({ getLocalTestPath, page, brows
     return getReplayPerformanceSpans(recordingEvents).some(span => span.op === 'resource.xhr');
   });
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname, skipDsnRouteHandler: true });
   await page.goto(url);
 
   void page.evaluate(() => {
-    /* eslint-disable */
     const xhr = new XMLHttpRequest();
 
-    xhr.open('POST', 'http://localhost:7654/foo');
+    xhr.open('POST', 'http://sentry-test.io/foo');
     xhr.setRequestHeader('Accept', 'application/json');
     xhr.setRequestHeader('Content-Type', 'application/json');
     xhr.setRequestHeader('Cache', 'no-cache');
@@ -54,7 +53,6 @@ sentryTest('captures correct timestamps', async ({ getLocalTestPath, page, brows
         setTimeout(() => Sentry.captureException('test error', 0));
       }
     });
-    /* eslint-enable */
   });
 
   const request = await requestPromise;

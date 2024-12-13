@@ -7,7 +7,7 @@
   "compilerOptions": {
     "target": "es2018",
     "declarationMap": false,
-    "lib": ["dom", "es2018"],
+    "lib": ["DOM", "ES2018"],
     "baseUrl": "./"
   },
   "angularCompilerOptions": {

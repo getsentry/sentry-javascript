@@ -1,4 +1,4 @@
-import type { Event, EventHint } from '@sentry/types';
+import type { Event, EventHint } from '../../../src/types-hoist';
 
 import { applyZodErrorsToEvent } from '../../../src/integrations/zoderrors';
 
@@ -90,8 +90,8 @@ describe('applyZodErrorsToEvent()', () => {
       'zoderror.issues': [
         {
           ...issues[0],
-          path: issues[0].path.join('.'),
-          keys: JSON.stringify(issues[0].keys),
+          path: issues[0]?.path.join('.'),
+          keys: JSON.stringify(issues[0]?.keys),
           unionErrors: undefined,
         },
       ],

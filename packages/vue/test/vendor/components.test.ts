@@ -1,3 +1,5 @@
+import { beforeEach, describe, expect, it } from 'vitest';
+
 import { formatComponentName } from '../../src/vendor/components';
 
 describe('formatComponentName', () => {
@@ -75,6 +77,19 @@ describe('formatComponentName', () => {
 
           // assert
           expect(formattedName).toEqual('<FooBar1>');
+        });
+      });
+
+      describe('when the options have a __name', () => {
+        it('returns the __name', () => {
+          // arrange
+          vm.$options.__name = 'my-component-name';
+
+          // act
+          const formattedName = formatComponentName(vm);
+
+          // assert
+          expect(formattedName).toEqual('<MyComponentName>');
         });
       });
 

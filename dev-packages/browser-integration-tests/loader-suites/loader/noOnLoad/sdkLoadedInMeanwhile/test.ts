@@ -1,5 +1,5 @@
-import fs from 'fs';
-import path from 'path';
+import * as fs from 'fs';
+import * as path from 'path';
 import { expect } from '@playwright/test';
 
 import { TEST_HOST, sentryTest } from '../../../../utils/fixtures';
@@ -28,6 +28,8 @@ sentryTest('it does not download the SDK if the SDK was loaded in the meanwhile'
     });
   });
 
+  const tmpDir = await getLocalTestUrl({ testDir: __dirname, skipRouteHandler: true, skipDsnRouteHandler: true });
+
   await page.route(`${TEST_HOST}/*.*`, route => {
     const file = route.request().url().split('/').pop();
 
@@ -35,12 +37,13 @@ sentryTest('it does not download the SDK if the SDK was loaded in the meanwhile'
       cdnLoadedCount++;
     }
 
-    const filePath = path.resolve(__dirname, `./dist/${file}`);
+    const filePath = path.resolve(tmpDir, `./${file}`);
 
     return fs.existsSync(filePath) ? route.fulfill({ path: filePath }) : route.continue();
   });
 
-  const url = await getLocalTestUrl({ testDir: __dirname, skipRouteHandler: true });
+  const url = `${TEST_HOST}/index.html`;
+
   const req = await waitForErrorRequestOnUrl(page, url);
 
   const eventData = envelopeRequestParser(req);

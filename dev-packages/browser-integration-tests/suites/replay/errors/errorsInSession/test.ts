@@ -12,7 +12,7 @@ import {
 
 sentryTest(
   '[session-mode] replay event should contain an error id of an error that occurred during session recording',
-  async ({ getLocalTestPath, page, browserName, forceFlushReplay }) => {
+  async ({ getLocalTestUrl, page, browserName, forceFlushReplay }) => {
     // Skipping this in webkit because it is flakey there
     if (shouldSkipReplayTest() || browserName === 'webkit') {
       sentryTest.skip();
@@ -37,7 +37,7 @@ sentryTest(
       });
     });
 
-    const url = await getLocalTestPath({ testDir: __dirname });
+    const url = await getLocalTestUrl({ testDir: __dirname, skipDsnRouteHandler: true });
 
     await page.goto(url);
     const req0 = await reqPromise0;
@@ -85,7 +85,7 @@ sentryTest(
 
 sentryTest(
   '[session-mode] replay event should not contain an error id of a dropped error while recording',
-  async ({ getLocalTestPath, page, forceFlushReplay, browserName }) => {
+  async ({ getLocalTestUrl, page, forceFlushReplay, browserName }) => {
     // Skipping this in webkit because it is flakey there
     if (shouldSkipReplayTest() || browserName === 'webkit') {
       sentryTest.skip();
@@ -94,15 +94,7 @@ sentryTest(
     const reqPromise0 = waitForReplayRequest(page, 0);
     const reqPromise1 = waitForReplayRequest(page, 1);
 
-    await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-      return route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({ id: 'test-id' }),
-      });
-    });
-
-    const url = await getLocalTestPath({ testDir: __dirname });
+    const url = await getLocalTestUrl({ testDir: __dirname });
 
     await page.goto(url);
     await reqPromise0;

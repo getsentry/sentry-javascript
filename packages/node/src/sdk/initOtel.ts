@@ -3,20 +3,24 @@ import { DiagLogLevel, diag } from '@opentelemetry/api';
 import { Resource } from '@opentelemetry/resources';
 import { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
 import {
-  SEMRESATTRS_SERVICE_NAME,
+  ATTR_SERVICE_NAME,
+  ATTR_SERVICE_VERSION,
   SEMRESATTRS_SERVICE_NAMESPACE,
-  SEMRESATTRS_SERVICE_VERSION,
 } from '@opentelemetry/semantic-conventions';
-import { SDK_VERSION } from '@sentry/core';
+import { GLOBAL_OBJ, SDK_VERSION, consoleSandbox, logger } from '@sentry/core';
 import { SentryPropagator, SentrySampler, SentrySpanProcessor } from '@sentry/opentelemetry';
-import { GLOBAL_OBJ, consoleSandbox, logger } from '@sentry/utils';
-
+import { createAddHookMessageChannel } from 'import-in-the-middle';
+import { DEBUG_BUILD } from '../debug-build';
 import { getOpenTelemetryInstrumentationToPreload } from '../integrations/tracing';
 import { SentryContextManager } from '../otel/contextManager';
+import type { EsmLoaderHookOptions } from '../types';
 import { isCjs } from '../utils/commonjs';
 import type { NodeClient } from './client';
 
 declare const __IMPORT_META_URL_REPLACEMENT__: string;
+
+// About 277h - this must fit into new Array(len)!
+const MAX_MAX_SPAN_WAIT_DURATION = 1_000_000;
 
 /**
  * Initialize OpenTelemetry for Node.
@@ -30,9 +34,31 @@ export function initOpenTelemetry(client: NodeClient): void {
   client.traceProvider = provider;
 }
 
+type ImportInTheMiddleInitData = Pick<EsmLoaderHookOptions, 'include' | 'exclude'> & {
+  addHookMessagePort?: unknown;
+};
+
+interface RegisterOptions {
+  data?: ImportInTheMiddleInitData;
+  transferList?: unknown[];
+}
+
+function getRegisterOptions(esmHookConfig?: EsmLoaderHookOptions): RegisterOptions {
+  // TODO(v9): Make onlyIncludeInstrumentedModules: true the default behavior.
+  if (esmHookConfig?.onlyIncludeInstrumentedModules) {
+    const { addHookMessagePort } = createAddHookMessageChannel();
+    // If the user supplied include, we need to use that as a starting point or use an empty array to ensure no modules
+    // are wrapped if they are not hooked
+    // eslint-disable-next-line deprecation/deprecation
+    return { data: { addHookMessagePort, include: esmHookConfig.include || [] }, transferList: [addHookMessagePort] };
+  }
+
+  return { data: esmHookConfig };
+}
+
 /** Initialize the ESM loader. */
-export function maybeInitializeEsmLoader(): void {
-  const [nodeMajor, nodeMinor] = process.versions.node.split('.').map(Number);
+export function maybeInitializeEsmLoader(esmHookConfig?: EsmLoaderHookOptions): void {
+  const [nodeMajor = 0, nodeMinor = 0] = process.versions.node.split('.').map(Number);
 
   // Register hook was added in v20.6.0 and v18.19.0
   if (nodeMajor >= 22 || (nodeMajor === 20 && nodeMinor >= 6) || (nodeMajor === 18 && nodeMinor >= 19)) {
@@ -43,7 +69,7 @@ export function maybeInitializeEsmLoader(): void {
     if (!GLOBAL_OBJ._sentryEsmLoaderHookRegistered && importMetaUrl) {
       try {
         // @ts-expect-error register is available in these versions
-        moduleModule.register('@opentelemetry/instrumentation/hook.mjs', importMetaUrl);
+        moduleModule.register('import-in-the-middle/hook.mjs', importMetaUrl, getRegisterOptions(esmHookConfig));
         GLOBAL_OBJ._sentryEsmLoaderHookRegistered = true;
       } catch (error) {
         logger.warn('Failed to register ESM hook', error);
@@ -53,7 +79,7 @@ export function maybeInitializeEsmLoader(): void {
     consoleSandbox(() => {
       // eslint-disable-next-line no-console
       console.warn(
-        '[Sentry] You are using Node.js in ESM mode ("import syntax"). The Sentry Node.js SDK is not compatible with ESM in Node.js versions before 18.19.0 or before 20.6.0. Please either build your application with CommonJS ("require() syntax"), or use version 7.x of the Sentry Node.js SDK.',
+        '[Sentry] You are using Node.js in ESM mode ("import syntax"). The Sentry Node.js SDK is not compatible with ESM in Node.js versions before 18.19.0 or before 20.6.0. Please either build your application with CommonJS ("require() syntax"), or upgrade your Node.js version.',
       );
     });
   }
@@ -62,6 +88,7 @@ export function maybeInitializeEsmLoader(): void {
 interface NodePreloadOptions {
   debug?: boolean;
   integrations?: string[];
+  registerEsmLoaderHooks?: EsmLoaderHookOptions;
 }
 
 /**
@@ -78,7 +105,7 @@ export function preloadOpenTelemetry(options: NodePreloadOptions = {}): void {
   }
 
   if (!isCjs()) {
-    maybeInitializeEsmLoader();
+    maybeInitializeEsmLoader(options.registerEsmLoaderHooks);
   }
 
   // These are all integrations that we need to pre-load to ensure they are set up before any other code runs
@@ -107,13 +134,18 @@ export function setupOtel(client: NodeClient): BasicTracerProvider {
   const provider = new BasicTracerProvider({
     sampler: new SentrySampler(client),
     resource: new Resource({
-      [SEMRESATTRS_SERVICE_NAME]: 'node',
+      [ATTR_SERVICE_NAME]: 'node',
+      // eslint-disable-next-line deprecation/deprecation
       [SEMRESATTRS_SERVICE_NAMESPACE]: 'sentry',
-      [SEMRESATTRS_SERVICE_VERSION]: SDK_VERSION,
+      [ATTR_SERVICE_VERSION]: SDK_VERSION,
     }),
     forceFlushTimeoutMillis: 500,
+    spanProcessors: [
+      new SentrySpanProcessor({
+        timeout: _clampSpanProcessorTimeout(client.getOptions().maxSpanWaitDuration),
+      }),
+    ],
   });
-  provider.addSpanProcessor(new SentrySpanProcessor());
 
   // Initialize the provider
   provider.register({
@@ -122,6 +154,26 @@ export function setupOtel(client: NodeClient): BasicTracerProvider {
   });
 
   return provider;
+}
+
+/** Just exported for tests. */
+export function _clampSpanProcessorTimeout(maxSpanWaitDuration: number | undefined): number | undefined {
+  if (maxSpanWaitDuration == null) {
+    return undefined;
+  }
+
+  // We guard for a max. value here, because we create an array with this length
+  // So if this value is too large, this would fail
+  if (maxSpanWaitDuration > MAX_MAX_SPAN_WAIT_DURATION) {
+    DEBUG_BUILD &&
+      logger.warn(`\`maxSpanWaitDuration\` is too high, using the maximum value of ${MAX_MAX_SPAN_WAIT_DURATION}`);
+    return MAX_MAX_SPAN_WAIT_DURATION;
+  } else if (maxSpanWaitDuration <= 0 || Number.isNaN(maxSpanWaitDuration)) {
+    DEBUG_BUILD && logger.warn('`maxSpanWaitDuration` must be a positive number, using default value instead.');
+    return undefined;
+  }
+
+  return maxSpanWaitDuration;
 }
 
 /**

@@ -1,5 +1,5 @@
-import type { Client, MeasurementUnit, MetricsAggregator as MetricsAggregatorBase, Primitive } from '@sentry/types';
-import { timestampInSeconds } from '@sentry/utils';
+import type { Client, MeasurementUnit, MetricsAggregator as MetricsAggregatorBase, Primitive } from '../types-hoist';
+import { timestampInSeconds } from '../utils-hoist/time';
 import { updateMetricSummaryOnActiveSpan } from '../utils/spanUtils';
 import { DEFAULT_FLUSH_INTERVAL, MAX_WEIGHT, SET_METRIC_TYPE } from './constants';
 import { captureAggregateMetrics } from './envelope';
@@ -20,9 +20,8 @@ export class MetricsAggregator implements MetricsAggregatorBase {
   // that we store in memory.
   private _bucketsTotalWeight;
 
-  // Cast to any so that it can use Node.js timeout
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private readonly _interval: any;
+  // We adjust the type here to add the `unref()` part, as setInterval can technically return a number or a NodeJS.Timer
+  private readonly _interval: ReturnType<typeof setInterval> & { unref?: () => void };
 
   // SDKs are required to shift the flush interval by random() * rollup_in_seconds.
   // That shift is determined once per startup to create jittering.
@@ -40,10 +39,8 @@ export class MetricsAggregator implements MetricsAggregatorBase {
     this._buckets = new Map();
     this._bucketsTotalWeight = 0;
 
-    this._interval = setInterval(() => this._flush(), DEFAULT_FLUSH_INTERVAL) as any;
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    this._interval = setInterval(() => this._flush(), DEFAULT_FLUSH_INTERVAL);
     if (this._interval.unref) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       this._interval.unref();
     }
 

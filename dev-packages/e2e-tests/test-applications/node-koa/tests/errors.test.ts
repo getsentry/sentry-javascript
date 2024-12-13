@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { waitForError } from '@sentry-internal/event-proxy-server';
+import { waitForError } from '@sentry-internal/test-utils';
 
 test('Sends correct error event', async ({ baseURL }) => {
   const errorEventPromise = waitForError('node-koa', event => {
@@ -23,8 +23,8 @@ test('Sends correct error event', async ({ baseURL }) => {
   expect(errorEvent.transaction).toEqual('GET /test-exception/:id');
 
   expect(errorEvent.contexts?.trace).toEqual({
-    trace_id: expect.any(String),
-    span_id: expect.any(String),
-    parent_span_id: expect.any(String),
+    trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+    span_id: expect.stringMatching(/[a-f0-9]{16}/),
+    parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
   });
 });

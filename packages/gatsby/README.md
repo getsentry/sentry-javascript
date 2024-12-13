@@ -65,6 +65,24 @@ module.exports = {
 };
 ```
 
+Additionally, you can delete source map files after they have been uploaded by setting the `deleteSourcemapsAfterUpload`
+option to be `true`.
+
+```javascript
+module.exports = {
+  // ...
+  plugins: [
+    {
+      resolve: '@sentry/gatsby',
+      options: {
+        deleteSourcemapsAfterUpload: true,
+      },
+    },
+    // ...
+  ],
+};
+```
+
 ## Links
 
 - [Official SDK Docs](https://docs.sentry.io/quickstart/)

@@ -1,0 +1,8 @@
+{
+  "extends": "../tsconfig.json",
+
+  "compilerOptions": {
+    // nuxt-module-build uses the closest `tsconfig.json` to build the Nuxt module declarations
+    "declaration": true
+  }
+}

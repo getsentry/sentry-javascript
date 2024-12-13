@@ -1,48 +1,12 @@
-import {
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  captureException,
-  startSpan,
-} from '@sentry/node';
-import { addNonEnumerableProperty, objectify } from '@sentry/utils';
+import { addNonEnumerableProperty } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, startSpan } from '@sentry/node';
 import type { LoadEvent, ServerLoadEvent } from '@sveltejs/kit';
 
 import type { SentryWrappedFlag } from '../common/utils';
-import { isHttpError, isRedirect } from '../common/utils';
-import { flushIfServerless } from './utils';
+import { flushIfServerless, sendErrorToSentry } from './utils';
 
 type PatchedLoadEvent = LoadEvent & SentryWrappedFlag;
 type PatchedServerLoadEvent = ServerLoadEvent & SentryWrappedFlag;
-
-function sendErrorToSentry(e: unknown): unknown {
-  // In case we have a primitive, wrap it in the equivalent wrapper class (string -> String, etc.) so that we can
-  // store a seen flag on it.
-  const objectifiedErr = objectify(e);
-
-  // The error() helper is commonly used to throw errors in load functions: https://kit.svelte.dev/docs/modules#sveltejs-kit-error
-  // If we detect a thrown error that is an instance of HttpError, we don't want to capture 4xx errors as they
-  // could be noisy.
-  // Also the `redirect(...)` helper is used to redirect users from one page to another. We don't want to capture thrown
-  // `Redirect`s as they're not errors but expected behaviour
-  if (
-    isRedirect(objectifiedErr) ||
-    (isHttpError(objectifiedErr) && objectifiedErr.status < 500 && objectifiedErr.status >= 400)
-  ) {
-    return objectifiedErr;
-  }
-
-  captureException(objectifiedErr, {
-    mechanism: {
-      type: 'sveltekit',
-      handled: false,
-      data: {
-        function: 'load',
-      },
-    },
-  });
-
-  return objectifiedErr;
-}
 
 /**
  * @inheritdoc
@@ -81,7 +45,7 @@ export function wrapLoadWithSentry<T extends (...args: any) => any>(origLoad: T)
           () => wrappingTarget.apply(thisArg, args),
         );
       } catch (e) {
-        sendErrorToSentry(e);
+        sendErrorToSentry(e, 'load');
         throw e;
       } finally {
         await flushIfServerless();
@@ -146,7 +110,7 @@ export function wrapServerLoadWithSentry<T extends (...args: any) => any>(origSe
           () => wrappingTarget.apply(thisArg, args),
         );
       } catch (e: unknown) {
-        sendErrorToSentry(e);
+        sendErrorToSentry(e, 'load');
         throw e;
       } finally {
         await flushIfServerless();

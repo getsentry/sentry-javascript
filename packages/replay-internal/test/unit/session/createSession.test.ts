@@ -1,22 +1,27 @@
-import { vi } from 'vitest';
+/**
+ * @vitest-environment jsdom
+ */
+
+import type { MockedFunction } from 'vitest';
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import * as Sentry from '@sentry/core';
 
-import type { Hub } from '@sentry/types';
+import type { Hub } from '@sentry/core';
 import { WINDOW } from '../../../src/constants';
 import { createSession } from '../../../src/session/createSession';
 import { saveSession } from '../../../src/session/saveSession';
 
 vi.mock('./../../../src/session/saveSession');
 
-vi.mock('@sentry/utils', async () => {
+vi.mock('@sentry/core', async () => {
   return {
-    ...((await vi.importActual('@sentry/utils')) as { string: unknown }),
+    ...((await vi.importActual('@sentry/core')) as { string: unknown }),
     uuid4: vi.fn(() => 'test_session_id'),
   };
 });
 
-type CaptureEventMockType = vi.MockedFunction<typeof Sentry.captureEvent>;
+type CaptureEventMockType = MockedFunction<typeof Sentry.captureEvent>;
 
 describe('Unit | session | createSession', () => {
   const captureEventMock: CaptureEventMockType = vi.fn();

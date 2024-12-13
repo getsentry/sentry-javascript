@@ -3,7 +3,8 @@
   "vcs": {
     "enabled": true,
     "clientKind": "git",
-    "useIgnoreFile": true
+    "useIgnoreFile": true,
+    "defaultBranch": "develop"
   },
   "organizeImports": {
     "enabled": true
@@ -19,6 +20,9 @@
       },
       "complexity": {
         "all": false,
+        "useRegexLiterals": "error"
+      },
+      "complexity": {
         "useRegexLiterals": "error"
       },
       "suspicious": {
@@ -45,7 +49,12 @@
       ".angular/**",
       "angular.json",
       "ember/instance-initializers/**",
-      "ember/types.d.ts"
+      "ember/types.d.ts",
+      "solidstart/*.d.ts",
+      "solidstart/client/",
+      "solidstart/server/",
+      ".output",
+      ".vinxi"
     ]
   },
   "files": {
@@ -91,7 +100,8 @@
       "enabled": true
     },
     "parser": {
-      "allowComments": true
+      "allowComments": true,
+      "allowTrailingCommas": true
     }
   }
 }

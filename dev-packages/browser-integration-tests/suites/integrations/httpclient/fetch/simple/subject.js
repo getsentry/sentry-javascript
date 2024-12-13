@@ -1,4 +1,4 @@
-fetch('http://localhost:7654/foo', {
+fetch('http://sentry-test.io/foo', {
   method: 'GET',
   credentials: 'include',
   headers: {

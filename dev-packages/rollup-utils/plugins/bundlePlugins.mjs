@@ -63,8 +63,9 @@ export function makeIsDebugBuildPlugin(includeDebugging) {
 export function makeSetSDKSourcePlugin(sdkSource) {
   return replace({
     preventAssignment: false,
+    delimiters: ['', ''],
     values: {
-      __SENTRY_SDK_SOURCE__: JSON.stringify(sdkSource),
+      '/* __SENTRY_SDK_SOURCE__ */': `return ${JSON.stringify(sdkSource)};`,
     },
   });
 }
@@ -116,6 +117,8 @@ export function makeTerserPlugin() {
           '_integrations',
           // _meta is used to store metadata of replay network events
           '_meta',
+          // We store SDK metadata in the options
+          '_metadata',
           // Object we inject debug IDs into with bundler plugins
           '_sentryDebugIds',
           // These are used by instrument.ts in utils for identifying HTML elements & events
@@ -133,6 +136,10 @@ export function makeTerserPlugin() {
           '_sentryIsolationScope',
           // require-in-the-middle calls `Module._resolveFilename`. We cannot mangle this (AWS lambda layer bundle).
           '_resolveFilename',
+          // Set on e.g. the shim feedbackIntegration to be able to detect it
+          '_isShim',
+          // This is used in metadata integration
+          '_sentryModuleMetadata',
         ],
       },
     },

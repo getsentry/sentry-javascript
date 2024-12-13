@@ -1,5 +1,5 @@
+import type { Client } from '@sentry/core';
 import { WINDOW } from '@sentry/react';
-import type { Client } from '@sentry/types';
 import { JSDOM } from 'jsdom';
 import type { NEXT_DATA } from 'next/dist/shared/lib/utils';
 import Router from 'next/router';
@@ -29,16 +29,16 @@ jest.mock('next/router', () => {
             eventHandlers[type] = new Set();
           }
 
-          eventHandlers[type].add(handler);
+          eventHandlers[type]!.add(handler);
         },
         off: jest.fn((type: string, handler: (...args: any[]) => void) => {
           if (eventHandlers[type]) {
-            eventHandlers[type].delete(handler);
+            eventHandlers[type]!.delete(handler);
           }
         }),
         emit(type: string, ...eventArgs: any[]) {
           if (eventHandlers[type]) {
-            eventHandlers[type].forEach(eventHandler => {
+            eventHandlers[type]!.forEach(eventHandler => {
               eventHandler(...eventArgs);
             });
           }

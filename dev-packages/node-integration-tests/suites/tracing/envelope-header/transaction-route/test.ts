@@ -2,11 +2,10 @@ import { createRunner } from '../../../../utils/runner';
 
 test('envelope header for transaction event of route correct', done => {
   createRunner(__dirname, 'scenario.ts')
-    .ignore('session', 'sessions')
     .expectHeader({
       transaction: {
         trace: {
-          trace_id: expect.any(String),
+          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
           public_key: 'public',
           transaction: 'GET /route',
           environment: 'production',

@@ -1,16 +1,17 @@
 import { record } from '@sentry-internal/rrweb';
-import { browserPerformanceTimeOrigin } from '@sentry/utils';
+import { browserPerformanceTimeOrigin } from '@sentry/core';
 
 import { WINDOW } from '../constants';
 import type {
   AllPerformanceEntry,
   AllPerformanceEntryData,
   ExperimentalPerformanceResourceTiming,
-  LargestContentfulPaintData,
   NavigationData,
   PaintData,
+  ReplayContainer,
   ReplayPerformanceEntry,
   ResourceData,
+  WebVitalData,
 } from '../types';
 
 // Map entryType -> function to normalize data for event
@@ -25,6 +26,48 @@ const ENTRY_TYPES: Record<
   navigation: createNavigationEntry,
 };
 
+export interface Metric {
+  /**
+   * The current value of the metric.
+   */
+  value: number;
+
+  /**
+   * The rating as to whether the metric value is within the "good",
+   * "needs improvement", or "poor" thresholds of the metric.
+   */
+  rating: 'good' | 'needs-improvement' | 'poor';
+
+  /**
+   * Any performance entries relevant to the metric value calculation.
+   * The array may also be empty if the metric value was not based on any
+   * entries (e.g. a CLS value of 0 given no layout shifts).
+   */
+  entries: PerformanceEntry[] | LayoutShift[];
+}
+
+interface LayoutShift extends PerformanceEntry {
+  value: number;
+  sources: LayoutShiftAttribution[];
+  hadRecentInput: boolean;
+}
+
+interface LayoutShiftAttribution {
+  node?: Node;
+  previousRect: DOMRectReadOnly;
+  currentRect: DOMRectReadOnly;
+}
+
+/**
+ * Handler creater for web vitals
+ */
+export function webVitalHandler(
+  getter: (metric: Metric) => ReplayPerformanceEntry<AllPerformanceEntryData>,
+  replay: ReplayContainer,
+): (data: { metric: Metric }) => void {
+  return ({ metric }) => void replay.replayPerformanceEntries.push(getter(metric));
+}
+
 /**
  * Create replay performance entries from the browser performance entries.
  */
@@ -35,11 +78,12 @@ export function createPerformanceEntries(
 }
 
 function createPerformanceEntry(entry: AllPerformanceEntry): ReplayPerformanceEntry<AllPerformanceEntryData> | null {
-  if (!ENTRY_TYPES[entry.entryType]) {
+  const entryType = ENTRY_TYPES[entry.entryType];
+  if (!entryType) {
     return null;
   }
 
-  return ENTRY_TYPES[entry.entryType](entry);
+  return entryType(entry);
 }
 
 function getAbsoluteTime(time: number): number {
@@ -141,31 +185,86 @@ function createResourceEntry(
 }
 
 /**
- * Add a LCP event to the replay based on an LCP metric.
+ * Add a LCP event to the replay based on a LCP metric.
  */
-export function getLargestContentfulPaint(metric: {
-  value: number;
-  entries: PerformanceEntry[];
-}): ReplayPerformanceEntry<LargestContentfulPaintData> {
-  const entries = metric.entries;
-  const lastEntry = entries[entries.length - 1] as (PerformanceEntry & { element?: Element }) | undefined;
-  const element = lastEntry ? lastEntry.element : undefined;
+export function getLargestContentfulPaint(metric: Metric): ReplayPerformanceEntry<WebVitalData> {
+  const lastEntry = metric.entries[metric.entries.length - 1] as (PerformanceEntry & { element?: Node }) | undefined;
+  const node = lastEntry && lastEntry.element ? [lastEntry.element] : undefined;
+  return getWebVital(metric, 'largest-contentful-paint', node);
+}
 
+function isLayoutShift(entry: PerformanceEntry): entry is LayoutShift {
+  return (entry as LayoutShift).sources !== undefined;
+}
+
+/**
+ * Add a CLS event to the replay based on a CLS metric.
+ */
+export function getCumulativeLayoutShift(metric: Metric): ReplayPerformanceEntry<WebVitalData> {
+  const layoutShifts: WebVitalData['attributions'] = [];
+  const nodes: Node[] = [];
+  for (const entry of metric.entries) {
+    if (isLayoutShift(entry)) {
+      const nodeIds = [];
+      for (const source of entry.sources) {
+        if (source.node) {
+          nodes.push(source.node);
+          const nodeId = record.mirror.getId(source.node);
+          if (nodeId) {
+            nodeIds.push(nodeId);
+          }
+        }
+      }
+      layoutShifts.push({ value: entry.value, nodeIds: nodeIds.length ? nodeIds : undefined });
+    }
+  }
+
+  return getWebVital(metric, 'cumulative-layout-shift', nodes, layoutShifts);
+}
+
+/**
+ * Add a FID event to the replay based on a FID metric.
+ */
+export function getFirstInputDelay(metric: Metric): ReplayPerformanceEntry<WebVitalData> {
+  const lastEntry = metric.entries[metric.entries.length - 1] as (PerformanceEntry & { target?: Node }) | undefined;
+  const node = lastEntry && lastEntry.target ? [lastEntry.target] : undefined;
+  return getWebVital(metric, 'first-input-delay', node);
+}
+
+/**
+ * Add an INP event to the replay based on an INP metric.
+ */
+export function getInteractionToNextPaint(metric: Metric): ReplayPerformanceEntry<WebVitalData> {
+  const lastEntry = metric.entries[metric.entries.length - 1] as (PerformanceEntry & { target?: Node }) | undefined;
+  const node = lastEntry && lastEntry.target ? [lastEntry.target] : undefined;
+  return getWebVital(metric, 'interaction-to-next-paint', node);
+}
+
+/**
+ * Add an web vital event to the replay based on the web vital metric.
+ */
+function getWebVital(
+  metric: Metric,
+  name: string,
+  nodes: Node[] | undefined,
+  attributions?: WebVitalData['attributions'],
+): ReplayPerformanceEntry<WebVitalData> {
   const value = metric.value;
+  const rating = metric.rating;
 
   const end = getAbsoluteTime(value);
 
-  const data: ReplayPerformanceEntry<LargestContentfulPaintData> = {
-    type: 'largest-contentful-paint',
-    name: 'largest-contentful-paint',
+  return {
+    type: 'web-vital',
+    name,
     start: end,
     end,
     data: {
       value,
       size: value,
-      nodeId: element ? record.mirror.getId(element) : undefined,
+      rating,
+      nodeIds: nodes ? nodes.map(node => record.mirror.getId(node)) : undefined,
+      attributions,
     },
   };
-
-  return data;
 }

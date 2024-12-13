@@ -3,8 +3,8 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
+import { escapeStringForRegex, loadModule, logger } from '@sentry/core';
 import { getSentryRelease } from '@sentry/node';
-import { arrayify, escapeStringForRegex, loadModule, logger } from '@sentry/utils';
 import * as chalk from 'chalk';
 import { sync as resolveSync } from 'resolve';
 
@@ -14,6 +14,7 @@ import type { VercelCronsConfig } from '../common/types';
 import type {
   BuildContext,
   EntryPropertyObject,
+  IgnoreWarningsOption,
   NextConfigObject,
   SentryBuildOptions,
   WebpackConfigFunction,
@@ -36,7 +37,7 @@ let showedMissingGlobalErrorWarningMsg = false;
  *   - `plugins`, to add SentryWebpackPlugin
  *
  * @param userNextConfig The user's existing nextjs config, as passed to `withSentryConfig`
- * @param userSentryWebpackPluginOptions The user's SentryWebpackPlugin config, as passed to `withSentryConfig`
+ * @param userSentryOptions The user's SentryWebpackPlugin config, as passed to `withSentryConfig`
  * @returns The function to set as the nextjs config's `webpack` value
  */
 export function constructWebpackConfigFunction(
@@ -72,9 +73,7 @@ export function constructWebpackConfigFunction(
     // Add a loader which will inject code that sets global values
     addValueInjectionLoader(newConfig, userNextConfig, userSentryOptions, buildContext);
 
-    if (isServer) {
-      addOtelWarningIgnoreRule(newConfig);
-    }
+    addOtelWarningIgnoreRule(newConfig);
 
     let pagesDirPath: string | undefined;
     const maybePagesDirPath = path.join(projectDir, 'pages');
@@ -148,7 +147,7 @@ export function constructWebpackConfigFunction(
       );
     };
 
-    const possibleMiddlewareLocations = ['js', 'jsx', 'ts', 'tsx'].map(middlewareFileEnding => {
+    const possibleMiddlewareLocations = pageExtensions.map(middlewareFileEnding => {
       return path.join(middlewareLocationFolder, `middleware.${middlewareFileEnding}`);
     });
     const isMiddlewareResource = (resourcePath: string): boolean => {
@@ -164,7 +163,10 @@ export function constructWebpackConfigFunction(
       return (
         appDirPath !== undefined &&
         normalizedAbsoluteResourcePath.startsWith(appDirPath + path.sep) &&
-        !!normalizedAbsoluteResourcePath.match(/[\\/](page|layout|loading|head|not-found)\.(js|jsx|tsx)$/)
+        !!normalizedAbsoluteResourcePath.match(
+          // eslint-disable-next-line @sentry-internal/sdk/no-regexp-constructor
+          new RegExp(`[\\\\/](page|layout|loading|head|not-found)\\.(${pageExtensionRegex})$`),
+        )
       );
     };
 
@@ -173,7 +175,10 @@ export function constructWebpackConfigFunction(
       return (
         appDirPath !== undefined &&
         normalizedAbsoluteResourcePath.startsWith(appDirPath + path.sep) &&
-        !!normalizedAbsoluteResourcePath.match(/[\\/]route\.(js|jsx|ts|tsx)$/)
+        !!normalizedAbsoluteResourcePath.match(
+          // eslint-disable-next-line @sentry-internal/sdk/no-regexp-constructor
+          new RegExp(`[\\\\/]route\\.(${pageExtensionRegex})$`),
+        )
       );
     };
 
@@ -286,19 +291,25 @@ export function constructWebpackConfigFunction(
     }
 
     if (appDirPath) {
-      const hasGlobalErrorFile = ['global-error.js', 'global-error.jsx', 'global-error.ts', 'global-error.tsx'].some(
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        globalErrorFile => fs.existsSync(path.join(appDirPath!, globalErrorFile)),
-      );
+      const hasGlobalErrorFile = pageExtensions
+        .map(extension => `global-error.${extension}`)
+        .some(
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+          globalErrorFile => fs.existsSync(path.join(appDirPath!, globalErrorFile)),
+        );
 
-      if (!hasGlobalErrorFile && !showedMissingGlobalErrorWarningMsg) {
+      if (
+        !hasGlobalErrorFile &&
+        !showedMissingGlobalErrorWarningMsg &&
+        !process.env.SENTRY_SUPPRESS_GLOBAL_ERROR_HANDLER_FILE_WARNING
+      ) {
         // eslint-disable-next-line no-console
         console.log(
           `${chalk.yellow(
             'warn',
           )}  - It seems like you don't have a global error handler set up. It is recommended that you add a ${chalk.cyan(
             'global-error.js',
-          )} file with Sentry instrumentation so that React rendering errors are reported to Sentry. Read more: https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/#react-render-errors-in-app-router`,
+          )} file with Sentry instrumentation so that React rendering errors are reported to Sentry. Read more: https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/#react-render-errors-in-app-router (you can suppress this warning by setting SENTRY_SUPPRESS_GLOBAL_ERROR_HANDLER_FILE_WARNING=1 as environment variable)`,
         );
         showedMissingGlobalErrorWarningMsg = true;
       }
@@ -321,16 +332,28 @@ export function constructWebpackConfigFunction(
     // Symbolication for dev-mode errors is done elsewhere.
     if (!isDev) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { sentryWebpackPlugin } = loadModule('@sentry/webpack-plugin') as any;
+      const { sentryWebpackPlugin } = loadModule<{ sentryWebpackPlugin: any }>('@sentry/webpack-plugin') ?? {};
+
       if (sentryWebpackPlugin) {
         if (!userSentryOptions.sourcemaps?.disable) {
+          // TODO(v9): Remove this warning and print warning in case source map deletion is auto configured
+          if (!isServer && !userSentryOptions.sourcemaps?.deleteSourcemapsAfterUpload) {
+            // eslint-disable-next-line no-console
+            console.warn(
+              "[@sentry/nextjs] The Sentry SDK has enabled source map generation for your Next.js app. If you don't want to serve Source Maps to your users, either set the `deleteSourceMapsAfterUpload` option to true, or manually delete the source maps after the build. In future Sentry SDK versions `deleteSourceMapsAfterUpload` will default to `true`. If you do not want to generate and upload sourcemaps, set the `sourcemaps.disable` option in `withSentryConfig()`.",
+            );
+          }
+
           // `hidden-source-map` produces the same sourcemaps as `source-map`, but doesn't include the `sourceMappingURL`
           // comment at the bottom. For folks who aren't publicly hosting their sourcemaps, this is helpful because then
           // the browser won't look for them and throw errors into the console when it can't find them. Because this is a
           // front-end-only problem, and because `sentry-cli` handles sourcemaps more reliably with the comment than
           // without, the option to use `hidden-source-map` only applies to the client-side build.
-          newConfig.devtool =
-            isServer || userNextConfig.productionBrowserSourceMaps ? 'source-map' : 'hidden-source-map';
+          if (isServer || userNextConfig.productionBrowserSourceMaps) {
+            newConfig.devtool = 'source-map';
+          } else {
+            newConfig.devtool = 'hidden-source-map';
+          }
         }
 
         newConfig.plugins = newConfig.plugins || [];
@@ -479,7 +502,7 @@ function addFilesToWebpackEntryPoint(
   let newEntryPoint = currentEntryPoint;
 
   if (typeof currentEntryPoint === 'string' || Array.isArray(currentEntryPoint)) {
-    newEntryPoint = arrayify(currentEntryPoint);
+    newEntryPoint = Array.isArray(currentEntryPoint) ? currentEntryPoint : [currentEntryPoint];
     if (newEntryPoint.some(entry => filesToInsert.includes(entry))) {
       return;
     }
@@ -495,7 +518,7 @@ function addFilesToWebpackEntryPoint(
   // descriptor object (webpack 5+)
   else if (typeof currentEntryPoint === 'object' && 'import' in currentEntryPoint) {
     const currentImportValue = currentEntryPoint.import;
-    const newImportValue = arrayify(currentImportValue);
+    const newImportValue = Array.isArray(currentImportValue) ? currentImportValue : [currentImportValue];
     if (newImportValue.some(entry => filesToInsert.includes(entry))) {
       return;
     }
@@ -525,7 +548,9 @@ function addFilesToWebpackEntryPoint(
     );
   }
 
-  entryProperty[entryPointName] = newEntryPoint;
+  if (newEntryPoint) {
+    entryProperty[entryPointName] = newEntryPoint;
+  }
 }
 
 /**
@@ -548,6 +573,8 @@ function setUpModuleRules(newConfig: WebpackConfigObject): WebpackConfigObjectWi
 /**
  * Adds loaders to inject values on the global object based on user configuration.
  */
+// TODO(v9): Remove this loader and replace it with a nextConfig.env (https://web.archive.org/web/20240917153554/https://nextjs.org/docs/app/api-reference/next-config-js/env) or define based (https://github.com/vercel/next.js/discussions/71476) approach.
+// In order to remove this loader though we need to make sure the minimum supported Next.js version includes this PR (https://github.com/vercel/next.js/pull/61194), otherwise the nextConfig.env based approach will not work, as our SDK code is not processed by Next.js.
 function addValueInjectionLoader(
   newConfig: WebpackConfigObjectWithModuleRules,
   userNextConfig: NextConfigObject,
@@ -558,7 +585,7 @@ function addValueInjectionLoader(
 
   const isomorphicValues = {
     // `rewritesTunnel` set by the user in Next.js config
-    __sentryRewritesTunnelPath__:
+    _sentryRewritesTunnelPath:
       userSentryOptions.tunnelRoute !== undefined && userNextConfig.output !== 'export'
         ? `${userNextConfig.basePath ?? ''}${userSentryOptions.tunnelRoute}`
         : undefined,
@@ -568,21 +595,21 @@ function addValueInjectionLoader(
     SENTRY_RELEASE: buildContext.dev
       ? undefined
       : { id: userSentryOptions.release?.name ?? getSentryRelease(buildContext.buildId) },
-    __sentryBasePath: buildContext.dev ? userNextConfig.basePath : undefined,
+    _sentryBasePath: buildContext.dev ? userNextConfig.basePath : undefined,
   };
 
   const serverValues = {
     ...isomorphicValues,
     // Make sure that if we have a windows path, the backslashes are interpreted as such (rather than as escape
     // characters)
-    __rewriteFramesDistDir__: userNextConfig.distDir?.replace(/\\/g, '\\\\') || '.next',
+    _sentryRewriteFramesDistDir: userNextConfig.distDir?.replace(/\\/g, '\\\\') || '.next',
   };
 
   const clientValues = {
     ...isomorphicValues,
     // Get the path part of `assetPrefix`, minus any trailing slash. (We use a placeholder for the origin if
     // `assetPrefix` doesn't include one. Since we only care about the path, it doesn't matter what it is.)
-    __rewriteFramesAssetPrefixPath__: assetPrefix
+    _sentryRewriteFramesAssetPrefixPath: assetPrefix
       ? new URL(assetPrefix, 'http://dogs.are.great').pathname.replace(/\/$/, '')
       : '',
   };
@@ -631,6 +658,12 @@ const POTENTIAL_REQUEST_ASYNC_STORAGE_LOCATIONS = [
   // Introduced in Next.js 13.4.20
   // https://github.com/vercel/next.js/blob/e1bc270830f2fc2df3542d4ef4c61b916c802df3/packages/next/src/client/components/request-async-storage.external.ts
   'next/dist/client/components/request-async-storage.external.js',
+  // Introduced in Next.js 15.0.0-canary.180
+  // https://github.com/vercel/next.js/blob/541167b9b0fed6af9f36472e632863ffec41f18c/packages/next/src/server/app-render/work-unit-async-storage.external.ts
+  'next/dist/server/app-render/work-unit-async-storage.external.js',
+  // Introduced in Next.js 15.0.0-canary.182
+  // https://github.com/vercel/next.js/blob/f35159e5e80138ca7373f57b47edcaae3bcf1728/packages/next/src/client/components/work-unit-async-storage.external.ts
+  'next/dist/client/components/work-unit-async-storage.external.js',
 ];
 
 function getRequestAsyncStorageModuleLocation(
@@ -662,9 +695,28 @@ function getRequestAsyncStorageModuleLocation(
 
 function addOtelWarningIgnoreRule(newConfig: WebpackConfigObjectWithModuleRules): void {
   const ignoreRules = [
+    // Inspired by @matmannion: https://github.com/getsentry/sentry-javascript/issues/12077#issuecomment-2180307072
+    (warning, compilation) => {
+      // This is wrapped in try-catch because we are vendoring types for this hook and we can't be 100% sure that we are accessing API that is there
+      try {
+        if (!warning.module) {
+          return false;
+        }
+
+        const isDependencyThatMayRaiseCriticalDependencyMessage =
+          /@opentelemetry\/instrumentation/.test(warning.module.readableIdentifier(compilation.requestShortener)) ||
+          /@prisma\/instrumentation/.test(warning.module.readableIdentifier(compilation.requestShortener));
+        const isCriticalDependencyMessage = /Critical dependency/.test(warning.message);
+
+        return isDependencyThatMayRaiseCriticalDependencyMessage && isCriticalDependencyMessage;
+      } catch {
+        return false;
+      }
+    },
+    // We provide these objects in addition to the hook above to provide redundancy in case the hook fails.
     { module: /@opentelemetry\/instrumentation/, message: /Critical dependency/ },
     { module: /@prisma\/instrumentation/, message: /Critical dependency/ },
-  ];
+  ] satisfies IgnoreWarningsOption;
 
   if (newConfig.ignoreWarnings === undefined) {
     newConfig.ignoreWarnings = ignoreRules;

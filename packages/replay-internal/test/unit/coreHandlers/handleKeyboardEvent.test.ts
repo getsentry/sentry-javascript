@@ -1,3 +1,9 @@
+/**
+ * @vitest-environment jsdom
+ */
+
+import { describe, expect, it } from 'vitest';
+
 import { getKeyboardBreadcrumb } from '../../../src/coreHandlers/handleKeyboardEvent';
 
 describe('Unit | coreHandlers | handleKeyboardEvent', () => {
@@ -15,7 +21,7 @@ describe('Unit | coreHandlers | handleKeyboardEvent', () => {
     });
 
     it('returns null for event on contenteditable div', function () {
-      // JSOM does not support contentEditable properly :(
+      // JSDOM does not support contentEditable properly :(
       const target = document.createElement('div');
       Object.defineProperty(target, 'isContentEditable', {
         get: function () {

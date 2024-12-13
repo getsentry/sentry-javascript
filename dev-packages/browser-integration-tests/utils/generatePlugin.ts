@@ -1,10 +1,10 @@
 import fs from 'fs';
 import path from 'path';
-import type { Package } from '@sentry/types';
+import type { Package } from '@sentry/core';
 import HtmlWebpackPlugin, { createHtmlTagObject } from 'html-webpack-plugin';
 import type { Compiler } from 'webpack';
 
-import { addStaticAsset, addStaticAssetSymlink } from './staticAssets';
+import { addStaticAsset, symlinkAsset } from './staticAssets';
 
 const LOADER_TEMPLATE = fs.readFileSync(path.join(__dirname, '../fixtures/loader.js'), 'utf-8');
 const PACKAGES_DIR = path.join(__dirname, '..', '..', '..', 'packages');
@@ -24,16 +24,20 @@ const useLoader = bundleKey.startsWith('loader');
 
 // These are imports that, when using CDN bundles, are not included in the main CDN bundle.
 // In this case, if we encounter this import, we want to add this CDN bundle file instead
+// IMPORTANT NOTE: In order for this to work, you need to import this from browser like this:
+// import { httpClientIntegration } from '@sentry/browser';
+// You cannot use e.g. Sentry.httpClientIntegration, as this will not be detected
 const IMPORTED_INTEGRATION_CDN_BUNDLE_PATHS: Record<string, string> = {
   httpClientIntegration: 'httpclient',
   captureConsoleIntegration: 'captureconsole',
-  CaptureConsole: 'captureconsole',
   debugIntegration: 'debug',
   rewriteFramesIntegration: 'rewriteframes',
   contextLinesIntegration: 'contextlines',
   extraErrorDataIntegration: 'extraerrordata',
   reportingObserverIntegration: 'reportingobserver',
   sessionTimingIntegration: 'sessiontiming',
+  feedbackIntegration: 'feedback',
+  moduleMetadataIntegration: 'modulemetadata',
 };
 
 const BUNDLE_PATHS: Record<string, Record<string, string>> = {
@@ -55,6 +59,7 @@ const BUNDLE_PATHS: Record<string, Record<string, string>> = {
     loader_debug: 'build/bundles/bundle.debug.min.js',
     loader_tracing: 'build/bundles/bundle.tracing.min.js',
     loader_replay: 'build/bundles/bundle.replay.min.js',
+    loader_replay_buffer: 'build/bundles/bundle.replay.min.js',
     loader_tracing_replay: 'build/bundles/bundle.tracing.replay.debug.min.js',
   },
   integrations: {
@@ -96,6 +101,10 @@ export const LOADER_CONFIGS: Record<string, { options: Record<string, unknown>; 
     options: { replaysSessionSampleRate: 1, replaysOnErrorSampleRate: 1 },
     lazy: false,
   },
+  loader_replay_buffer: {
+    options: { replaysSessionSampleRate: 0, replaysOnErrorSampleRate: 1 },
+    lazy: false,
+  },
   loader_tracing_replay: {
     options: { tracesSampleRate: 1, replaysSessionSampleRate: 1, replaysOnErrorSampleRate: 1, debug: true },
     lazy: false,
@@ -128,8 +137,9 @@ function generateSentryAlias(): Record<string, string> {
 
       const modulePath = path.resolve(PACKAGES_DIR, packageName);
 
-      if (useCompiledModule && bundleKey && BUNDLE_PATHS[packageName]?.[bundleKey]) {
-        const bundlePath = path.resolve(modulePath, BUNDLE_PATHS[packageName][bundleKey]);
+      const bundleKeyPath = bundleKey && BUNDLE_PATHS[packageName]?.[bundleKey];
+      if (useCompiledModule && bundleKeyPath) {
+        const bundlePath = path.resolve(modulePath, bundleKeyPath);
 
         return [packageJSON['name'], bundlePath];
       }
@@ -166,7 +176,6 @@ class SentryScenarioGenerationPlugin {
         }
       : {};
 
-    // Checking if the current scenario has imported `@sentry/integrations`.
     compiler.hooks.normalModuleFactory.tap(this._name, factory => {
       factory.hooks.parser.for('javascript/auto').tap(this._name, parser => {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
@@ -175,8 +184,8 @@ class SentryScenarioGenerationPlugin {
           (statement: { specifiers: [{ imported: { name: string } }] }, source: string) => {
             const imported = statement.specifiers?.[0]?.imported?.name;
 
-            if (imported && IMPORTED_INTEGRATION_CDN_BUNDLE_PATHS[imported]) {
-              const bundleName = IMPORTED_INTEGRATION_CDN_BUNDLE_PATHS[imported];
+            const bundleName = imported && IMPORTED_INTEGRATION_CDN_BUNDLE_PATHS[imported];
+            if (bundleName) {
               this.requiredIntegrations.push(bundleName);
             } else if (source === '@sentry/wasm') {
               this.requiresWASMIntegration = true;
@@ -190,7 +199,7 @@ class SentryScenarioGenerationPlugin {
       HtmlWebpackPlugin.getHooks(compilation).alterAssetTags.tapAsync(this._name, (data, cb) => {
         if (useBundleOrLoader) {
           const bundleName = 'browser';
-          const bundlePath = BUNDLE_PATHS[bundleName][bundleKey];
+          const bundlePath = BUNDLE_PATHS[bundleName]?.[bundleKey];
 
           if (!bundlePath) {
             throw new Error(`Could not find bundle or loader for key ${bundleKey}`);
@@ -204,7 +213,10 @@ class SentryScenarioGenerationPlugin {
                 src: 'cdn.bundle.js',
               });
 
-          addStaticAssetSymlink(this.localOutPath, path.resolve(PACKAGES_DIR, bundleName, bundlePath), 'cdn.bundle.js');
+          symlinkAsset(
+            path.resolve(PACKAGES_DIR, bundleName, bundlePath),
+            path.join(this.localOutPath, 'cdn.bundle.js'),
+          );
 
           if (useLoader) {
             const loaderConfig = LOADER_CONFIGS[bundleKey];
@@ -215,10 +227,10 @@ class SentryScenarioGenerationPlugin {
                   '__LOADER_OPTIONS__',
                   JSON.stringify({
                     dsn: 'https://public@dsn.ingest.sentry.io/1337',
-                    ...loaderConfig.options,
+                    ...loaderConfig?.options,
                   }),
                 )
-                .replace('__LOADER_LAZY__', loaderConfig.lazy ? 'true' : 'false');
+                .replace('__LOADER_LAZY__', loaderConfig?.lazy ? 'true' : 'false');
             });
           }
 
@@ -235,42 +247,55 @@ class SentryScenarioGenerationPlugin {
               const fileName = `${integration}.bundle.js`;
 
               // We add the files, but not a script tag - they are lazy-loaded
-              addStaticAssetSymlink(
-                this.localOutPath,
+              symlinkAsset(
                 path.resolve(
                   PACKAGES_DIR,
                   'feedback',
-                  BUNDLE_PATHS['feedback'][integrationBundleKey].replace('[INTEGRATION_NAME]', integration),
+                  BUNDLE_PATHS['feedback']?.[integrationBundleKey]?.replace('[INTEGRATION_NAME]', integration) || '',
                 ),
-                fileName,
+                path.join(this.localOutPath, fileName),
               );
             });
           }
 
-          this.requiredIntegrations.forEach(integration => {
-            const fileName = `${integration}.bundle.js`;
-            addStaticAssetSymlink(
-              this.localOutPath,
-              path.resolve(
-                PACKAGES_DIR,
-                'browser',
-                BUNDLE_PATHS['integrations'][integrationBundleKey].replace('[INTEGRATION_NAME]', integration),
-              ),
-              fileName,
-            );
+          const baseIntegrationFileName = BUNDLE_PATHS['integrations']?.[integrationBundleKey];
 
-            const integrationObject = createHtmlTagObject('script', {
-              src: fileName,
+          if (baseIntegrationFileName) {
+            this.requiredIntegrations.forEach(integration => {
+              const fileName = `${integration}.bundle.js`;
+              symlinkAsset(
+                path.resolve(
+                  PACKAGES_DIR,
+                  'browser',
+                  baseIntegrationFileName.replace('[INTEGRATION_NAME]', integration),
+                ),
+                path.join(this.localOutPath, fileName),
+              );
+
+              if (integration === 'feedback') {
+                symlinkAsset(
+                  path.resolve(PACKAGES_DIR, 'feedback', 'build/bundles/feedback-modal.js'),
+                  path.join(this.localOutPath, 'feedback-modal.bundle.js'),
+                );
+                symlinkAsset(
+                  path.resolve(PACKAGES_DIR, 'feedback', 'build/bundles/feedback-screenshot.js'),
+                  path.join(this.localOutPath, 'feedback-screenshot.bundle.js'),
+                );
+              }
+
+              const integrationObject = createHtmlTagObject('script', {
+                src: fileName,
+              });
+
+              data.assetTags.scripts.unshift(integrationObject);
             });
+          }
 
-            data.assetTags.scripts.unshift(integrationObject);
-          });
-
-          if (this.requiresWASMIntegration && BUNDLE_PATHS['wasm'][integrationBundleKey]) {
-            addStaticAssetSymlink(
-              this.localOutPath,
-              path.resolve(PACKAGES_DIR, 'wasm', BUNDLE_PATHS['wasm'][integrationBundleKey]),
-              'wasm.bundle.js',
+          const baseWasmFileName = BUNDLE_PATHS['wasm']?.[integrationBundleKey];
+          if (this.requiresWASMIntegration && baseWasmFileName) {
+            symlinkAsset(
+              path.resolve(PACKAGES_DIR, 'wasm', baseWasmFileName),
+              path.join(this.localOutPath, 'wasm.bundle.js'),
             );
 
             const wasmObject = createHtmlTagObject('script', {

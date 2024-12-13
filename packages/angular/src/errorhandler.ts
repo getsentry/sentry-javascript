@@ -1,10 +1,10 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import type { ErrorHandler as AngularErrorHandler } from '@angular/core';
+import type { ErrorHandler as AngularErrorHandler, OnDestroy } from '@angular/core';
 import { Inject, Injectable } from '@angular/core';
 import * as Sentry from '@sentry/browser';
 import type { ReportDialogOptions } from '@sentry/browser';
-import type { Event } from '@sentry/types';
-import { isString } from '@sentry/utils';
+import { consoleSandbox, isString } from '@sentry/core';
+import type { Event } from '@sentry/core';
 
 import { runOutsideAngular } from './zone';
 
@@ -39,7 +39,8 @@ function extractHttpModuleError(error: HttpErrorResponse): string | Error {
   }
 
   // ... or an`ErrorEvent`, which can provide us with the message but no stack...
-  if (error.error instanceof ErrorEvent && error.error.message) {
+  // guarding `ErrorEvent` against `undefined` as it's not defined in Node environments
+  if (typeof ErrorEvent !== 'undefined' && error.error instanceof ErrorEvent && error.error.message) {
     return error.error.message;
   }
 
@@ -80,19 +81,26 @@ function isErrorOrErrorLikeObject(value: unknown): value is Error {
  * Implementation of Angular's ErrorHandler provider that can be used as a drop-in replacement for the stock one.
  */
 @Injectable({ providedIn: 'root' })
-class SentryErrorHandler implements AngularErrorHandler {
+class SentryErrorHandler implements AngularErrorHandler, OnDestroy {
   protected readonly _options: ErrorHandlerOptions;
 
-  /* indicates if we already registered our the afterSendEvent handler */
-  private _registeredAfterSendEventHandler;
+  /** The cleanup function is executed when the injector is destroyed. */
+  private _removeAfterSendEventListener?: () => void;
 
   public constructor(@Inject('errorHandlerOptions') options?: ErrorHandlerOptions) {
-    this._registeredAfterSendEventHandler = false;
-
     this._options = {
       logErrors: true,
       ...options,
     };
+  }
+
+  /**
+   * Method executed when the injector is destroyed.
+   */
+  public ngOnDestroy(): void {
+    if (this._removeAfterSendEventListener) {
+      this._removeAfterSendEventListener();
+    }
   }
 
   /**
@@ -111,24 +119,21 @@ class SentryErrorHandler implements AngularErrorHandler {
     // When in development mode, log the error to console for immediate feedback.
     if (this._options.logErrors) {
       // eslint-disable-next-line no-console
-      console.error(extractedError);
+      consoleSandbox(() => console.error(extractedError));
     }
 
     // Optionally show user dialog to provide details on what happened.
     if (this._options.showDialog) {
       const client = Sentry.getClient();
 
-      if (client && !this._registeredAfterSendEventHandler) {
-        client.on('afterSendEvent', (event: Event) => {
+      if (client && !this._removeAfterSendEventListener) {
+        this._removeAfterSendEventListener = client.on('afterSendEvent', (event: Event) => {
           if (!event.type && event.event_id) {
             runOutsideAngular(() => {
-              Sentry.showReportDialog({ ...this._options.dialogOptions, eventId: event.event_id! });
+              Sentry.showReportDialog({ ...this._options.dialogOptions, eventId: event.event_id });
             });
           }
         });
-
-        // We only want to register this hook once in the lifetime of the error handler
-        this._registeredAfterSendEventHandler = true;
       } else if (!client) {
         runOutsideAngular(() => {
           Sentry.showReportDialog({ ...this._options.dialogOptions, eventId });

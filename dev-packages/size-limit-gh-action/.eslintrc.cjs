@@ -7,7 +7,7 @@ module.exports = {
 
   overrides: [
     {
-      files: ['*.mjs'],
+      files: ['**/*.mjs'],
       extends: ['@sentry-internal/sdk/src/base'],
     },
   ],

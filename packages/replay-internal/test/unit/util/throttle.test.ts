@@ -1,3 +1,5 @@
+import { describe, expect, it, vi } from 'vitest';
+
 import { BASE_TIMESTAMP } from '../..';
 import { SKIPPED, THROTTLED, throttle } from '../../../src/util/throttle';
 import { useFakeTimers } from '../../utils/use-fake-timers';

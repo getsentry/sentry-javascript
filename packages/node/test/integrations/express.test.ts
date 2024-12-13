@@ -1,6 +1,6 @@
 import * as http from 'http';
 import { getCurrentScope, getIsolationScope, setAsyncContextStrategy, setCurrentClient, withScope } from '@sentry/core';
-import type { Scope } from '@sentry/types';
+import type { Scope } from '@sentry/core';
 import { expressErrorHandler } from '../../src/integrations/tracing/express';
 import { NodeClient } from '../../src/sdk/client';
 import { getDefaultNodeClientOptions } from '../helpers/getDefaultNodeClientOptions';
@@ -59,6 +59,7 @@ describe('expressErrorHandler()', () => {
 
     jest.spyOn<any, any>(client, '_captureRequestSession');
 
+    // eslint-disable-next-line deprecation/deprecation
     getIsolationScope().setRequestSession({ status: 'ok' });
 
     let isolationScope: Scope;
@@ -68,18 +69,20 @@ describe('expressErrorHandler()', () => {
     });
 
     setImmediate(() => {
+      // eslint-disable-next-line deprecation/deprecation
       expect(isolationScope.getRequestSession()).toEqual({ status: 'ok' });
       done();
     });
   });
 
   it('autoSessionTracking is enabled + requestHandler is not used -> does not set requestSession status on Crash', done => {
-    const options = getDefaultNodeClientOptions({ autoSessionTracking: false, release: '3.3' });
+    const options = getDefaultNodeClientOptions({ autoSessionTracking: true, release: '3.3' });
     client = new NodeClient(options);
     setCurrentClient(client);
 
     jest.spyOn<any, any>(client, '_captureRequestSession');
 
+    // eslint-disable-next-line deprecation/deprecation
     getIsolationScope().setRequestSession({ status: 'ok' });
 
     let isolationScope: Scope;
@@ -89,6 +92,7 @@ describe('expressErrorHandler()', () => {
     });
 
     setImmediate(() => {
+      // eslint-disable-next-line deprecation/deprecation
       expect(isolationScope.getRequestSession()).toEqual({ status: 'ok' });
       done();
     });
@@ -106,8 +110,10 @@ describe('expressErrorHandler()', () => {
     jest.spyOn<any, any>(client, '_captureRequestSession');
 
     withScope(() => {
+      // eslint-disable-next-line deprecation/deprecation
       getIsolationScope().setRequestSession({ status: 'ok' });
       sentryErrorMiddleware({ name: 'error', message: 'this is an error' }, req, res, () => {
+        // eslint-disable-next-line deprecation/deprecation
         expect(getIsolationScope().getRequestSession()).toEqual({ status: 'crashed' });
       });
     });
@@ -130,6 +136,7 @@ describe('expressErrorHandler()', () => {
     });
 
     setImmediate(() => {
+      // eslint-disable-next-line deprecation/deprecation
       expect(isolationScope.getRequestSession()).toEqual(undefined);
       done();
     });

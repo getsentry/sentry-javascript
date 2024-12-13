@@ -1,6 +1,6 @@
 import { EventEmitter } from 'events';
 
-import type { Transport } from '@sentry/types';
+import type { Transport } from '@sentry/core';
 
 import type { NodeClient } from '@sentry/node';
 import { _nodeProfilingIntegration } from '../src/integration';
@@ -35,7 +35,7 @@ describe('ProfilingIntegration', () => {
       getTransport: () => transport,
     } as unknown as NodeClient;
 
-    integration.setup(client);
+    integration?.setup?.(client);
 
     // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(transport.send).not.toHaveBeenCalled();
@@ -54,6 +54,7 @@ describe('ProfilingIntegration', () => {
       getOptions: () => {
         return {
           _metadata: {},
+          profilesSampleRate: 1,
         };
       },
       getDsn: () => {
@@ -64,7 +65,7 @@ describe('ProfilingIntegration', () => {
 
     const spy = jest.spyOn(client, 'on');
 
-    integration.setup(client);
+    integration?.setup?.(client);
 
     expect(spy).toHaveBeenCalledTimes(3);
     expect(spy).toHaveBeenCalledWith('spanStart', expect.any(Function));

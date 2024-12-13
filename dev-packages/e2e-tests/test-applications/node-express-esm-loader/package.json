@@ -11,11 +11,11 @@
   "dependencies": {
     "@sentry/node": "latest || *",
     "@sentry/opentelemetry": "latest || *",
-    "express": "4.19.2"
+    "express": "4.20.0"
   },
   "devDependencies": {
-    "@sentry-internal/event-proxy-server": "link:../../../event-proxy-server",
-    "@playwright/test": "^1.27.1"
+    "@playwright/test": "^1.44.1",
+    "@sentry-internal/test-utils": "link:../../../test-utils"
   },
   "volta": {
     "extends": "../../package.json"

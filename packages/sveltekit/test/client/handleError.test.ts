@@ -1,6 +1,7 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import * as SentrySvelte from '@sentry/svelte';
 import type { HandleClientError, NavigationEvent } from '@sveltejs/kit';
-import { vi } from 'vitest';
 
 import { handleErrorWithSentry } from '../../src/client/handleError';
 

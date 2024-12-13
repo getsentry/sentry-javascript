@@ -1,0 +1,49 @@
+name: "Install Playwright dependencies"
+description: "Installs Playwright dependencies and caches them."
+inputs:
+  browsers:
+    description: 'What browsers to install.'
+    default: 'chromium webkit firefox'
+  cwd:
+    description: 'The working directory to run Playwright in.'
+    default: '.'
+
+runs:
+  using: "composite"
+  steps:
+      - name: Get Playwright version
+        id: playwright-version
+        run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> $GITHUB_OUTPUT
+        shell: bash
+        working-directory: ${{ inputs.cwd }}
+
+
+      - name: Restore cached playwright binaries
+        uses: actions/cache/restore@v4
+        id: playwright-cache
+        with:
+          path: |
+            ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright-version.outputs.version }}
+
+      # We always install all browsers, if uncached
+      - name: Install Playwright dependencies (uncached)
+        run: npx playwright install chromium webkit firefox --with-deps
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        shell: bash
+        working-directory: ${{ inputs.cwd }}
+
+      - name: Install Playwright system dependencies only (cached)
+        run: npx playwright install-deps ${{ inputs.browsers || 'chromium webkit firefox' }}
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        shell: bash
+        working-directory: ${{ inputs.cwd }}
+
+      # Only store cache on develop branch
+      - name: Store cached playwright binaries
+        uses: actions/cache/save@v4
+        if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
+        with:
+          path: |
+            ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright-version.outputs.version }}

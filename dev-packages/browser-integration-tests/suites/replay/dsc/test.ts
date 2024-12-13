@@ -1,9 +1,14 @@
 import { expect } from '@playwright/test';
 import type * as Sentry from '@sentry/browser';
-import type { EventEnvelopeHeaders } from '@sentry/types';
+import type { EventEnvelopeHeaders } from '@sentry/core';
 
 import { sentryTest } from '../../../utils/fixtures';
-import { envelopeRequestParser, shouldSkipTracingTest, waitForTransactionRequest } from '../../../utils/helpers';
+import {
+  envelopeRequestParser,
+  shouldSkipTracingTest,
+  waitForErrorRequest,
+  waitForTransactionRequest,
+} from '../../../utils/helpers';
 import { getReplaySnapshot, shouldSkipReplayTest, waitForReplayRunning } from '../../../utils/replayHelpers';
 
 type TestWindow = Window & {
@@ -13,13 +18,13 @@ type TestWindow = Window & {
 
 sentryTest(
   'should add replay_id to dsc of transactions when in session mode',
-  async ({ getLocalTestPath, page, browserName }) => {
+  async ({ getLocalTestUrl, page, browserName }) => {
     // This is flaky on webkit, so skipping there...
     if (shouldSkipReplayTest() || shouldSkipTracingTest() || browserName === 'webkit') {
       sentryTest.skip();
     }
 
-    const url = await getLocalTestPath({ testDir: __dirname });
+    const url = await getLocalTestUrl({ testDir: __dirname });
     await page.goto(url);
 
     const transactionReq = waitForTransactionRequest(page);
@@ -53,7 +58,7 @@ sentryTest(
     expect(envHeader.trace).toEqual({
       environment: 'production',
       sample_rate: '1',
-      trace_id: expect.any(String),
+      trace_id: expect.stringMatching(/[a-f0-9]{32}/),
       public_key: 'public',
       replay_id: replay.session?.id,
       sampled: 'true',
@@ -63,13 +68,13 @@ sentryTest(
 
 sentryTest(
   'should not add replay_id to dsc of transactions when in buffer mode',
-  async ({ getLocalTestPath, page, browserName }) => {
+  async ({ getLocalTestUrl, page, browserName }) => {
     // This is flaky on webkit, so skipping there...
     if (shouldSkipReplayTest() || shouldSkipTracingTest() || browserName === 'webkit') {
       sentryTest.skip();
     }
 
-    const url = await getLocalTestPath({ testDir: __dirname });
+    const url = await getLocalTestUrl({ testDir: __dirname });
     await page.goto(url);
 
     const transactionReq = waitForTransactionRequest(page);
@@ -100,7 +105,7 @@ sentryTest(
     expect(envHeader.trace).toEqual({
       environment: 'production',
       sample_rate: '1',
-      trace_id: expect.any(String),
+      trace_id: expect.stringMatching(/[a-f0-9]{32}/),
       public_key: 'public',
       sampled: 'true',
     });
@@ -109,21 +114,13 @@ sentryTest(
 
 sentryTest(
   'should add replay_id to dsc of transactions when switching from buffer to session mode',
-  async ({ getLocalTestPath, page, browserName }) => {
+  async ({ getLocalTestUrl, page, browserName }) => {
     // This is flaky on webkit, so skipping there...
     if (shouldSkipReplayTest() || shouldSkipTracingTest() || browserName === 'webkit') {
       sentryTest.skip();
     }
 
-    await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-      return route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({ id: 'test-id' }),
-      });
-    });
-
-    const url = await getLocalTestPath({ testDir: __dirname });
+    const url = await getLocalTestUrl({ testDir: __dirname });
     await page.goto(url);
 
     const transactionReq = waitForTransactionRequest(page);
@@ -160,7 +157,7 @@ sentryTest(
     expect(envHeader.trace).toEqual({
       environment: 'production',
       sample_rate: '1',
-      trace_id: expect.any(String),
+      trace_id: expect.stringMatching(/[a-f0-9]{32}/),
       public_key: 'public',
       replay_id: replay.session?.id,
       sampled: 'true',
@@ -170,21 +167,13 @@ sentryTest(
 
 sentryTest(
   'should not add replay_id to dsc of transactions if replay is not enabled',
-  async ({ getLocalTestPath, page, browserName }) => {
+  async ({ getLocalTestUrl, page, browserName }) => {
     // This is flaky on webkit, so skipping there...
     if (shouldSkipReplayTest() || shouldSkipTracingTest() || browserName === 'webkit') {
       sentryTest.skip();
     }
 
-    await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-      return route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({ id: 'test-id' }),
-      });
-    });
-
-    const url = await getLocalTestPath({ testDir: __dirname });
+    const url = await getLocalTestUrl({ testDir: __dirname });
     await page.goto(url);
 
     const transactionReq = waitForTransactionRequest(page);
@@ -210,9 +199,75 @@ sentryTest(
     expect(envHeader.trace).toEqual({
       environment: 'production',
       sample_rate: '1',
-      trace_id: expect.any(String),
+      trace_id: expect.stringMatching(/[a-f0-9]{32}/),
       public_key: 'public',
       sampled: 'true',
     });
   },
 );
+
+sentryTest('should add replay_id to error DSC while replay is active', async ({ getLocalTestUrl, page }) => {
+  if (shouldSkipReplayTest()) {
+    sentryTest.skip();
+  }
+
+  const hasTracing = !shouldSkipTracingTest();
+
+  const url = await getLocalTestUrl({ testDir: __dirname });
+  await page.goto(url);
+
+  const error1Req = waitForErrorRequest(page, event => event.exception?.values?.[0].value === 'This is error #1');
+  const error2Req = waitForErrorRequest(page, event => event.exception?.values?.[0].value === 'This is error #2');
+
+  // We want to wait for the transaction to be done, to ensure we have a consistent test
+  const transactionReq = hasTracing ? waitForTransactionRequest(page) : Promise.resolve();
+
+  // Wait for this to be available
+  await page.waitForFunction('!!window.Replay');
+
+  // We have to start replay before we finish the transaction, otherwise the DSC will not be frozen with the Replay ID
+  await page.evaluate('window.Replay.start();');
+  await waitForReplayRunning(page);
+  await transactionReq;
+
+  await page.evaluate('window._triggerError(1)');
+
+  const error1Header = envelopeRequestParser(await error1Req, 0) as EventEnvelopeHeaders;
+  const replay = await getReplaySnapshot(page);
+
+  expect(replay.session?.id).toBeDefined();
+
+  expect(error1Header.trace).toBeDefined();
+  expect(error1Header.trace).toEqual({
+    environment: 'production',
+    trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+    public_key: 'public',
+    replay_id: replay.session?.id,
+    ...(hasTracing
+      ? {
+          sample_rate: '1',
+          sampled: 'true',
+        }
+      : {}),
+  });
+
+  // Now end replay and trigger another error, it should not have a replay_id in DSC anymore
+  await page.evaluate('window.Replay.stop();');
+  await page.waitForFunction('!window.Replay.getReplayId();');
+  await page.evaluate('window._triggerError(2)');
+
+  const error2Header = envelopeRequestParser(await error2Req, 0) as EventEnvelopeHeaders;
+
+  expect(error2Header.trace).toBeDefined();
+  expect(error2Header.trace).toEqual({
+    environment: 'production',
+    trace_id: expect.stringMatching(/[a-f0-9]{32}/),
+    public_key: 'public',
+    ...(hasTracing
+      ? {
+          sample_rate: '1',
+          sampled: 'true',
+        }
+      : {}),
+  });
+});

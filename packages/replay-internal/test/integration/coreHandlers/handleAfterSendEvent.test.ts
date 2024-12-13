@@ -1,11 +1,16 @@
-import { vi } from 'vitest';
+/**
+ * @vitest-environment jsdom
+ */
+
 import type { MockInstance } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+
 import { useFakeTimers } from '../../utils/use-fake-timers';
 
 useFakeTimers();
 
 import { getClient } from '@sentry/core';
-import type { ErrorEvent, Event } from '@sentry/types';
+import type { ErrorEvent, Event } from '@sentry/core';
 
 import { UNABLE_TO_SEND_REPLAY } from '../../../src/constants';
 import { handleAfterSendEvent } from '../../../src/coreHandlers/handleAfterSendEvent';

@@ -1,10 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '@sentry-internal/event-proxy-server';
-
-const authToken = process.env.E2E_TEST_AUTH_TOKEN;
-const sentryTestOrgSlug = process.env.E2E_TEST_SENTRY_ORG_SLUG;
-const sentryTestProject = process.env.E2E_TEST_SENTRY_TEST_PROJECT;
-const EVENT_POLLING_TIMEOUT = 90_000;
+import { waitForTransaction } from '@sentry-internal/test-utils';
 
 test('Sends an API route transaction', async ({ baseURL }) => {
   const pageloadTransactionEventPromise = waitForTransaction('node-connect', transactionEvent => {
@@ -46,9 +41,9 @@ test('Sends an API route transaction', async ({ baseURL }) => {
       'http.route': '/test-transaction',
     },
     op: 'http.server',
-    span_id: expect.any(String),
+    span_id: expect.stringMatching(/[a-f0-9]{16}/),
     status: 'ok',
-    trace_id: expect.any(String),
+    trace_id: expect.stringMatching(/[a-f0-9]{32}/),
     origin: 'auto.http.otel.http',
   });
 
@@ -58,15 +53,14 @@ test('Sends an API route transaction', async ({ baseURL }) => {
         {
           data: {
             'sentry.origin': 'manual',
-            'otel.kind': 'INTERNAL',
           },
           description: 'test-span',
-          parent_span_id: expect.any(String),
-          span_id: expect.any(String),
+          parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
+          span_id: expect.stringMatching(/[a-f0-9]{16}/),
           start_timestamp: expect.any(Number),
           status: 'ok',
           timestamp: expect.any(Number),
-          trace_id: expect.any(String),
+          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
           origin: 'manual',
         },
         {
@@ -76,16 +70,15 @@ test('Sends an API route transaction', async ({ baseURL }) => {
             'http.route': '/test-transaction',
             'connect.type': 'request_handler',
             'connect.name': '/test-transaction',
-            'otel.kind': 'INTERNAL',
           },
           op: 'request_handler.connect',
           description: '/test-transaction',
-          parent_span_id: expect.any(String),
-          span_id: expect.any(String),
+          parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
+          span_id: expect.stringMatching(/[a-f0-9]{16}/),
           start_timestamp: expect.any(Number),
           status: 'ok',
           timestamp: expect.any(Number),
-          trace_id: expect.any(String),
+          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
           origin: 'auto.http.otel.connect',
         },
       ],

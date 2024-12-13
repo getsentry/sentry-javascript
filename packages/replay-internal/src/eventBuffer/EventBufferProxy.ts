@@ -1,9 +1,8 @@
-import type { ReplayRecordingData } from '@sentry/types';
-import { logger } from '@sentry/utils';
+import type { ReplayRecordingData } from '@sentry/core';
 
 import { DEBUG_BUILD } from '../debug-build';
 import type { AddEventResult, EventBuffer, EventBufferType, RecordingEvent } from '../types';
-import { logInfo } from '../util/log';
+import { logger } from '../util/logger';
 import { EventBufferArray } from './EventBufferArray';
 import { EventBufferCompressionWorker } from './EventBufferCompressionWorker';
 
@@ -27,6 +26,11 @@ export class EventBufferProxy implements EventBuffer {
   }
 
   /** @inheritdoc */
+  public get waitForCheckout(): boolean {
+    return this._used.waitForCheckout;
+  }
+
+  /** @inheritdoc */
   public get type(): EventBufferType {
     return this._used.type;
   }
@@ -43,6 +47,12 @@ export class EventBufferProxy implements EventBuffer {
   /** @inheritdoc */
   public set hasCheckout(value: boolean) {
     this._used.hasCheckout = value;
+  }
+
+  /** @inheritdoc */
+  // eslint-disable-next-line @typescript-eslint/adjacent-overload-signatures
+  public set waitForCheckout(value: boolean) {
+    this._used.waitForCheckout = value;
   }
 
   /** @inheritDoc */
@@ -90,7 +100,7 @@ export class EventBufferProxy implements EventBuffer {
     } catch (error) {
       // If the worker fails to load, we fall back to the simple buffer.
       // Nothing more to do from our side here
-      logInfo('[Replay] Failed to load the compression worker, falling back to simple buffer');
+      DEBUG_BUILD && logger.exception(error, 'Failed to load the compression worker, falling back to simple buffer');
       return;
     }
 
@@ -100,7 +110,7 @@ export class EventBufferProxy implements EventBuffer {
 
   /** Switch the used buffer to the compression worker. */
   private async _switchToCompressionWorker(): Promise<void> {
-    const { events, hasCheckout } = this._fallback;
+    const { events, hasCheckout, waitForCheckout } = this._fallback;
 
     const addEventPromises: Promise<void>[] = [];
     for (const event of events) {
@@ -108,6 +118,7 @@ export class EventBufferProxy implements EventBuffer {
     }
 
     this._compression.hasCheckout = hasCheckout;
+    this._compression.waitForCheckout = waitForCheckout;
 
     // We switch over to the new buffer immediately - any further events will be added
     // after the previously buffered ones
@@ -116,8 +127,11 @@ export class EventBufferProxy implements EventBuffer {
     // Wait for original events to be re-added before resolving
     try {
       await Promise.all(addEventPromises);
+
+      // Can now clear fallback buffer as it's no longer necessary
+      this._fallback.clear();
     } catch (error) {
-      DEBUG_BUILD && logger.warn('[Replay] Failed to add events when switching buffers.', error);
+      DEBUG_BUILD && logger.exception(error, 'Failed to add events when switching buffers.');
     }
   }
 }

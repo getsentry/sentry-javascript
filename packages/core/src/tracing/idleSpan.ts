@@ -1,9 +1,10 @@
-import type { Span, SpanAttributes, StartSpanOptions } from '@sentry/types';
-import { logger, timestampInSeconds } from '@sentry/utils';
 import { getClient, getCurrentScope } from '../currentScopes';
+import type { Span, SpanAttributes, StartSpanOptions } from '../types-hoist';
 
 import { DEBUG_BUILD } from '../debug-build';
 import { SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON } from '../semanticAttributes';
+import { logger } from '../utils-hoist/logger';
+import { timestampInSeconds } from '../utils-hoist/time';
 import { hasTracingEnabled } from '../utils/hasTracingEnabled';
 import { _setSpanForScope } from '../utils/spanOnScope';
 import {
@@ -32,7 +33,7 @@ const FINISH_REASON_CANCELLED = 'cancelled';
 // unused
 const FINISH_REASON_DOCUMENT_HIDDEN = 'documentHidden';
 
-// unusued in this file, but used in BrowserTracing
+// unused in this file, but used in BrowserTracing
 const FINISH_REASON_INTERRUPTED = 'interactionInterrupted';
 
 type IdleSpanFinishReason =
@@ -96,6 +97,8 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
 
   let _autoFinishAllowed: boolean = !options.disableAutoFinish;
 
+  const _cleanupHooks: (() => void)[] = [];
+
   const {
     idleTimeout = TRACING_DEFAULTS.idleTimeout,
     finalTimeout = TRACING_DEFAULTS.finalTimeout,
@@ -113,37 +116,50 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
   const previousActiveSpan = getActiveSpan();
   const span = _startIdleSpan(startSpanOptions);
 
-  function _endSpan(timestamp: number = timestampInSeconds()): void {
-    // Ensure we end with the last span timestamp, if possible
-    const spans = getSpanDescendants(span).filter(child => child !== span);
+  // We patch span.end to ensure we can run some things before the span is ended
+  // eslint-disable-next-line @typescript-eslint/unbound-method
+  span.end = new Proxy(span.end, {
+    apply(target, thisArg, args: Parameters<Span['end']>) {
+      if (beforeSpanEnd) {
+        beforeSpanEnd(span);
+      }
 
-    // If we have no spans, we just end, nothing else to do here
-    if (!spans.length) {
-      span.end(timestamp);
-      return;
-    }
+      // Just ensuring that this keeps working, even if we ever have more arguments here
+      const [definedEndTimestamp, ...rest] = args;
+      const timestamp = definedEndTimestamp || timestampInSeconds();
+      const spanEndTimestamp = spanTimeInputToSeconds(timestamp);
 
-    const childEndTimestamps = spans
-      .map(span => spanToJSON(span).timestamp)
-      .filter(timestamp => !!timestamp) as number[];
-    const latestSpanEndTimestamp = childEndTimestamps.length ? Math.max(...childEndTimestamps) : undefined;
+      // Ensure we end with the last span timestamp, if possible
+      const spans = getSpanDescendants(span).filter(child => child !== span);
 
-    const spanEndTimestamp = spanTimeInputToSeconds(timestamp);
-    // In reality this should always exist here, but type-wise it may be undefined...
-    const spanStartTimestamp = spanToJSON(span).start_timestamp;
+      // If we have no spans, we just end, nothing else to do here
+      if (!spans.length) {
+        onIdleSpanEnded(spanEndTimestamp);
+        return Reflect.apply(target, thisArg, [spanEndTimestamp, ...rest]);
+      }
 
-    // The final endTimestamp should:
-    // * Never be before the span start timestamp
-    // * Be the latestSpanEndTimestamp, if there is one, and it is smaller than the passed span end timestamp
-    // * Otherwise be the passed end timestamp
-    // Final timestamp can never be after finalTimeout
-    const endTimestamp = Math.min(
-      spanStartTimestamp ? spanStartTimestamp + finalTimeout / 1000 : Infinity,
-      Math.max(spanStartTimestamp || -Infinity, Math.min(spanEndTimestamp, latestSpanEndTimestamp || Infinity)),
-    );
+      const childEndTimestamps = spans
+        .map(span => spanToJSON(span).timestamp)
+        .filter(timestamp => !!timestamp) as number[];
+      const latestSpanEndTimestamp = childEndTimestamps.length ? Math.max(...childEndTimestamps) : undefined;
 
-    span.end(endTimestamp);
-  }
+      // In reality this should always exist here, but type-wise it may be undefined...
+      const spanStartTimestamp = spanToJSON(span).start_timestamp;
+
+      // The final endTimestamp should:
+      // * Never be before the span start timestamp
+      // * Be the latestSpanEndTimestamp, if there is one, and it is smaller than the passed span end timestamp
+      // * Otherwise be the passed end timestamp
+      // Final timestamp can never be after finalTimeout
+      const endTimestamp = Math.min(
+        spanStartTimestamp ? spanStartTimestamp + finalTimeout / 1000 : Infinity,
+        Math.max(spanStartTimestamp || -Infinity, Math.min(spanEndTimestamp, latestSpanEndTimestamp || Infinity)),
+      );
+
+      onIdleSpanEnded(endTimestamp);
+      return Reflect.apply(target, thisArg, [endTimestamp, ...rest]);
+    },
+  });
 
   /**
    * Cancels the existing idle timeout, if there is one.
@@ -173,7 +189,7 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
     _idleTimeoutID = setTimeout(() => {
       if (!_finished && activities.size === 0 && _autoFinishAllowed) {
         _finishReason = FINISH_REASON_IDLE_TIMEOUT;
-        _endSpan(endTimestamp);
+        span.end(endTimestamp);
       }
     }, idleTimeout);
   }
@@ -186,7 +202,7 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
     _idleTimeoutID = setTimeout(() => {
       if (!_finished && _autoFinishAllowed) {
         _finishReason = FINISH_REASON_HEARTBEAT_FAILED;
-        _endSpan(endTimestamp);
+        span.end(endTimestamp);
       }
     }, childSpanTimeout);
   }
@@ -223,21 +239,19 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
     }
   }
 
-  function onIdleSpanEnded(): void {
+  function onIdleSpanEnded(endTimestamp: number): void {
     _finished = true;
     activities.clear();
 
-    if (beforeSpanEnd) {
-      beforeSpanEnd(span);
-    }
+    _cleanupHooks.forEach(cleanup => cleanup());
 
     _setSpanForScope(scope, previousActiveSpan);
 
     const spanJSON = spanToJSON(span);
 
-    const { timestamp: endTimestamp, start_timestamp: startTimestamp } = spanJSON;
+    const { start_timestamp: startTimestamp } = spanJSON;
     // This should never happen, but to make TS happy...
-    if (!endTimestamp || !startTimestamp) {
+    if (!startTimestamp) {
       return;
     }
 
@@ -267,7 +281,7 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
 
       // Add a delta with idle timeout so that we prevent false positives
       const timeoutWithMarginOfError = (finalTimeout + idleTimeout) / 1000;
-      const spanEndedBeforeFinalTimeout = childEndTimestamp - childStartTimestamp < timeoutWithMarginOfError;
+      const spanEndedBeforeFinalTimeout = childEndTimestamp - childStartTimestamp <= timeoutWithMarginOfError;
 
       if (DEBUG_BUILD) {
         const stringifiedSpan = JSON.stringify(childSpan, undefined, 2);
@@ -289,45 +303,47 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
     }
   }
 
-  client.on('spanStart', startedSpan => {
-    // If we already finished the idle span,
-    // or if this is the idle span itself being started,
-    // or if the started span has already been closed,
-    // we don't care about it for activity
-    if (_finished || startedSpan === span || !!spanToJSON(startedSpan).timestamp) {
-      return;
-    }
-
-    const allSpans = getSpanDescendants(span);
-
-    // If the span that was just started is a child of the idle span, we should track it
-    if (allSpans.includes(startedSpan)) {
-      _pushActivity(startedSpan.spanContext().spanId);
-    }
-  });
-
-  client.on('spanEnd', endedSpan => {
-    if (_finished) {
-      return;
-    }
-
-    _popActivity(endedSpan.spanContext().spanId);
-
-    if (endedSpan === span) {
-      onIdleSpanEnded();
-    }
-  });
-
-  client.on('idleSpanEnableAutoFinish', spanToAllowAutoFinish => {
-    if (spanToAllowAutoFinish === span) {
-      _autoFinishAllowed = true;
-      _restartIdleTimeout();
-
-      if (activities.size) {
-        _restartChildSpanTimeout();
+  _cleanupHooks.push(
+    client.on('spanStart', startedSpan => {
+      // If we already finished the idle span,
+      // or if this is the idle span itself being started,
+      // or if the started span has already been closed,
+      // we don't care about it for activity
+      if (_finished || startedSpan === span || !!spanToJSON(startedSpan).timestamp) {
+        return;
       }
-    }
-  });
+
+      const allSpans = getSpanDescendants(span);
+
+      // If the span that was just started is a child of the idle span, we should track it
+      if (allSpans.includes(startedSpan)) {
+        _pushActivity(startedSpan.spanContext().spanId);
+      }
+    }),
+  );
+
+  _cleanupHooks.push(
+    client.on('spanEnd', endedSpan => {
+      if (_finished) {
+        return;
+      }
+
+      _popActivity(endedSpan.spanContext().spanId);
+    }),
+  );
+
+  _cleanupHooks.push(
+    client.on('idleSpanEnableAutoFinish', spanToAllowAutoFinish => {
+      if (spanToAllowAutoFinish === span) {
+        _autoFinishAllowed = true;
+        _restartIdleTimeout();
+
+        if (activities.size) {
+          _restartChildSpanTimeout();
+        }
+      }
+    }),
+  );
 
   // We only start the initial idle timeout if we are not delaying the auto finish
   if (!options.disableAutoFinish) {
@@ -338,7 +354,7 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
     if (!_finished) {
       span.setStatus({ code: SPAN_STATUS_ERROR, message: 'deadline_exceeded' });
       _finishReason = FINISH_REASON_FINAL_TIMEOUT;
-      _endSpan();
+      span.end();
     }
   }, finalTimeout);
 

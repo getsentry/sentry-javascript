@@ -13,7 +13,7 @@ const Boom = require('@hapi/boom');
 
 const port = 5999;
 
-const init = async () => {
+const run = async () => {
   const server = Hapi.server({
     host: 'localhost',
     port,
@@ -65,4 +65,4 @@ const init = async () => {
   sendPortToRunner(port);
 };
 
-init();
+run();

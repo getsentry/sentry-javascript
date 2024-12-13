@@ -1,4 +1,4 @@
-import type { FeedbackInternalOptions } from '@sentry/types';
+import type { FeedbackInternalOptions } from '@sentry/core';
 import type { VNode } from 'preact';
 import { useMemo } from 'preact/hooks';
 import { SentryLogo } from './SentryLogo';
@@ -12,7 +12,7 @@ export function DialogHeader({ options }: Props): VNode {
 
   return (
     <h2 class="dialog__header">
-      {options.formTitle}
+      <span class="dialog__title">{options.formTitle}</span>
       {options.showBranding ? (
         <a
           class="brand-link"

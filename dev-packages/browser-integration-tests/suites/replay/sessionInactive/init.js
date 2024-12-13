@@ -18,5 +18,5 @@ Sentry.init({
 
 window.Replay._replay.timeouts = {
   sessionIdlePause: 1000, // this is usually 5min, but we want to test this with shorter times
-  sessionIdleExpire: 900000, // defayult: 15min
+  sessionIdleExpire: 900000, // default: 15min
 };

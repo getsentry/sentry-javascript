@@ -1,9 +1,7 @@
 import { clearCachedImplementation, getNativeImplementation } from '@sentry-internal/browser-utils';
-import { createTransport } from '@sentry/core';
-import type { Transport, TransportMakeRequestResponse, TransportRequest } from '@sentry/types';
-import { rejectedSyncPromise } from '@sentry/utils';
+import type { Transport, TransportMakeRequestResponse, TransportRequest } from '@sentry/core';
+import { createTransport, rejectedSyncPromise } from '@sentry/core';
 import type { WINDOW } from '../helpers';
-
 import type { BrowserTransportOptions } from './types';
 
 /**
@@ -29,7 +27,7 @@ export function makeFetchTransport(
       // Outgoing requests are usually cancelled when navigating to a different page, causing a "TypeError: Failed to
       // fetch" error and sending a "network_error" client-outcome - in Chrome, the request status shows "(cancelled)".
       // The `keepalive` flag keeps outgoing requests alive, even when switching pages. We want this since we're
-      // frequently sending events right before the user is switching pages (eg. whenfinishing navigation transactions).
+      // frequently sending events right before the user is switching pages (eg. when finishing navigation transactions).
       // Gotchas:
       // - `keepalive` isn't supported by Firefox
       // - As per spec (https://fetch.spec.whatwg.org/#http-network-or-cache-fetch):
@@ -47,6 +45,7 @@ export function makeFetchTransport(
     }
 
     try {
+      // TODO: This may need a `suppressTracing` call in the future when we switch the browser SDK to OTEL
       return nativeFetch(options.url, requestOptions).then(response => {
         pendingBodySize -= requestSize;
         pendingCount--;

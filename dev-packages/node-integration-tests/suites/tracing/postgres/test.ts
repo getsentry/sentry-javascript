@@ -1,5 +1,8 @@
 import { createRunner } from '../../../utils/runner';
 
+// When running docker compose, we need a larger timeout, as this takes some time...
+jest.setTimeout(75000);
+
 describe('postgres auto instrumentation', () => {
   test('should auto-instrument `pg` package', done => {
     const EXPECTED_TRANSACTION = {

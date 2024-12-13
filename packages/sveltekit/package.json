@@ -1,6 +1,6 @@
 {
   "name": "@sentry/sveltekit",
-  "version": "8.7.0",
+  "version": "8.44.0",
   "description": "Official Sentry SDK for SvelteKit",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/sveltekit",
@@ -9,7 +9,7 @@
   "engines": {
     "node": ">=16"
   },
-  "files": ["cjs", "esm", "types", "types-ts3.8"],
+  "files": ["/build"],
   "main": "build/cjs/index.server.js",
   "module": "build/esm/index.server.js",
   "browser": "build/esm/index.client.js",
@@ -17,37 +17,41 @@
   "exports": {
     "./package.json": "./package.json",
     ".": {
+      "types": "./build/types/index.types.d.ts",
       "browser": {
         "import": "./build/esm/index.client.js",
         "require": "./build/cjs/index.client.js"
       },
-      "node": "./build/cjs/index.server.js",
-      "types": "./build/types/index.types.d.ts"
+      "node": "./build/cjs/index.server.js"
     }
   },
   "publishConfig": {
     "access": "public"
   },
   "peerDependencies": {
-    "@sveltejs/kit": "1.x || 2.x"
+    "@sveltejs/kit": "1.x || 2.x",
+    "vite": "*"
+  },
+  "peerDependenciesMeta": {
+    "vite": {
+      "optional": true
+    }
   },
   "dependencies": {
-    "@sentry/core": "8.7.0",
-    "@sentry/node": "8.7.0",
-    "@sentry/opentelemetry": "8.7.0",
-    "@sentry/svelte": "8.7.0",
-    "@sentry/types": "8.7.0",
-    "@sentry/utils": "8.7.0",
-    "@sentry/vite-plugin": "2.14.2",
+    "@sentry/core": "8.44.0",
+    "@sentry/node": "8.44.0",
+    "@sentry/opentelemetry": "8.44.0",
+    "@sentry/svelte": "8.44.0",
+    "@sentry/vite-plugin": "2.22.6",
     "magic-string": "0.30.7",
     "magicast": "0.2.8",
-    "sorcery": "0.11.0"
+    "sorcery": "1.0.0"
   },
   "devDependencies": {
     "@babel/types": "7.20.7",
     "@sveltejs/kit": "^2.0.2",
     "svelte": "^4.2.8",
-    "vite": "^5.0.10"
+    "vite": "^5.4.10"
   },
   "scripts": {
     "build": "run-p build:transpile build:types",
@@ -58,7 +62,7 @@
     "build:dev:watch": "yarn build:watch",
     "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",
     "build:types:watch": "tsc -p tsconfig.types.json --watch",
-    "build:tarball": "ts-node ../../scripts/prepack.ts && npm pack ./build",
+    "build:tarball": "npm pack",
     "circularDepCheck": "madge --circular src/index.client.ts && madge --circular src/index.server.ts && madge --circular src/index.types.ts",
     "clean": "rimraf build coverage sentry-sveltekit-*.tgz",
     "fix": "eslint . --format stylish --fix",
@@ -66,7 +70,7 @@
     "test": "yarn test:unit",
     "test:unit": "vitest run",
     "test:watch": "vitest --watch",
-    "yalc:publish": "ts-node ../../scripts/prepack.ts && yalc publish build --push --sig"
+    "yalc:publish": "yalc publish --push --sig"
   },
   "volta": {
     "extends": "../../package.json"

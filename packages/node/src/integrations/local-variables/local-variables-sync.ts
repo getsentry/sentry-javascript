@@ -1,10 +1,9 @@
 import type { Debugger, InspectorNotification, Runtime, Session } from 'node:inspector';
-import { defineIntegration, getClient } from '@sentry/core';
-import type { Event, Exception, IntegrationFn, StackParser } from '@sentry/types';
-import { LRUMap, logger } from '@sentry/utils';
-
+import type { Event, Exception, IntegrationFn, StackFrame, StackParser } from '@sentry/core';
+import { LRUMap, defineIntegration, getClient, logger } from '@sentry/core';
 import { NODE_MAJOR } from '../../nodeVersion';
 import type { NodeClient } from '../../sdk/client';
+import { isDebuggerEnabled } from '../../utils/debug';
 import type {
   FrameVariables,
   LocalVariablesIntegrationOptions,
@@ -12,7 +11,29 @@ import type {
   RateLimitIncrement,
   Variables,
 } from './common';
-import { createRateLimiter, functionNamesMatch, hashFrames, hashFromStack } from './common';
+import { createRateLimiter, functionNamesMatch } from './common';
+
+/** Creates a unique hash from stack frames */
+export function hashFrames(frames: StackFrame[] | undefined): string | undefined {
+  if (frames === undefined) {
+    return;
+  }
+
+  // Only hash the 10 most recent frames (ie. the last 10)
+  return frames.slice(-10).reduce((acc, frame) => `${acc},${frame.function},${frame.lineno},${frame.colno}`, '');
+}
+
+/**
+ * We use the stack parser to create a unique hash from the exception stack trace
+ * This is used to lookup vars when the exception passes through the event processor
+ */
+export function hashFromStack(stackParser: StackParser, stack: string | undefined): string | undefined {
+  if (stack === undefined) {
+    return undefined;
+  }
+
+  return hashFrames(stackParser(stack, 1));
+}
 
 type OnPauseEvent = InspectorNotification<Debugger.PausedEventDataType>;
 export interface DebugSession {
@@ -236,23 +257,26 @@ const _localVariablesSyncIntegration = ((
       // Sentry frames are in reverse order
       const frameIndex = frames.length - i - 1;
 
+      const cachedFrameVariable = cachedFrame[i];
+      const frameVariable = frames[frameIndex];
+
       // Drop out if we run out of frames to match up
-      if (!frames[frameIndex] || !cachedFrame[i]) {
+      if (!frameVariable || !cachedFrameVariable) {
         break;
       }
 
       if (
         // We need to have vars to add
-        cachedFrame[i].vars === undefined ||
+        cachedFrameVariable.vars === undefined ||
         // We're not interested in frames that are not in_app because the vars are not relevant
-        frames[frameIndex].in_app === false ||
+        frameVariable.in_app === false ||
         // The function names need to match
-        !functionNamesMatch(frames[frameIndex].function, cachedFrame[i].function)
+        !functionNamesMatch(frameVariable.function, cachedFrameVariable.function)
       ) {
         continue;
       }
 
-      frames[frameIndex].vars = cachedFrame[i].vars;
+      frameVariable.vars = cachedFrameVariable.vars;
     }
   }
 
@@ -266,7 +290,7 @@ const _localVariablesSyncIntegration = ((
 
   return {
     name: INTEGRATION_NAME,
-    setupOnce() {
+    async setupOnce() {
       const client = getClient<NodeClient>();
       const clientOptions = client?.getOptions();
 
@@ -280,6 +304,11 @@ const _localVariablesSyncIntegration = ((
 
       if (unsupportedNodeVersion) {
         logger.log('The `LocalVariables` integration is only supported on Node >= v18.');
+        return;
+      }
+
+      if (await isDebuggerEnabled()) {
+        logger.warn('Local variables capture has been disabled because the debugger was already enabled');
         return;
       }
 
@@ -313,7 +342,8 @@ const _localVariablesSyncIntegration = ((
             // Because we're queuing up and making all these calls synchronously, we can potentially overflow the stack
             // For this reason we only attempt to get local variables for the first 5 frames
             for (let i = 0; i < Math.min(callFrames.length, 5); i++) {
-              const { scopeChain, functionName, this: obj } = callFrames[i];
+              // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+              const { scopeChain, functionName, this: obj } = callFrames[i]!;
 
               const localScope = scopeChain.find(scope => scope.type === 'local');
 

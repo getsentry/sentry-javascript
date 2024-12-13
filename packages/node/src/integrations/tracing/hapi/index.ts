@@ -1,24 +1,21 @@
 import { HapiInstrumentation } from '@opentelemetry/instrumentation-hapi';
+import type { IntegrationFn, Span } from '@sentry/core';
 import {
   SDK_VERSION,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SPAN_STATUS_ERROR,
   captureException,
   defineIntegration,
-  getActiveSpan,
   getClient,
   getDefaultIsolationScope,
   getIsolationScope,
-  getRootSpan,
+  logger,
   spanToJSON,
 } from '@sentry/core';
-import type { IntegrationFn, Span } from '@sentry/types';
-import { logger } from '@sentry/utils';
 import { DEBUG_BUILD } from '../../../debug-build';
 import { generateInstrumentOnce } from '../../../otel/instrument';
 import { ensureIsWrapped } from '../../../utils/ensureIsWrapped';
-import type { Boom, RequestEvent, ResponseObject, Server } from './types';
+import type { Request, RequestEvent, Server } from './types';
 
 const INTEGRATION_NAME = 'Hapi';
 
@@ -34,16 +31,22 @@ const _hapiIntegration = (() => {
 }) satisfies IntegrationFn;
 
 /**
- * Hapi integration
+ * Adds Sentry tracing instrumentation for [Hapi](https://hapi.dev/).
  *
- * Capture tracing data for Hapi.
  * If you also want to capture errors, you need to call `setupHapiErrorHandler(server)` after you set up your server.
+ *
+ * For more information, see the [hapi documentation](https://docs.sentry.io/platforms/javascript/guides/hapi/).
+ *
+ * @example
+ * ```javascript
+ * const Sentry = require('@sentry/node');
+ *
+ * Sentry.init({
+ *   integrations: [Sentry.hapiIntegration()],
+ * })
+ * ```
  */
 export const hapiIntegration = defineIntegration(_hapiIntegration);
-
-function isBoomObject(response: ResponseObject | Boom): response is Boom {
-  return response && (response as Boom).isBoom !== undefined;
-}
 
 function isErrorEvent(event: RequestEvent): event is RequestEvent {
   return event && (event as RequestEvent).error !== undefined;
@@ -68,7 +71,7 @@ export const hapiErrorPlugin = {
   register: async function (serverArg: Record<any, any>) {
     const server = serverArg as unknown as Server;
 
-    server.events.on('request', (request, event) => {
+    server.events.on({ name: 'request', channels: ['error'] }, (request: Request, event: RequestEvent) => {
       if (getIsolationScope() !== getDefaultIsolationScope()) {
         const route = request.route;
         if (route && route.path) {
@@ -79,18 +82,8 @@ export const hapiErrorPlugin = {
           logger.warn('Isolation scope is still the default isolation scope - skipping setting transactionName');
       }
 
-      const activeSpan = getActiveSpan();
-      const rootSpan = activeSpan ? getRootSpan(activeSpan) : undefined;
-
-      if (request.response && isBoomObject(request.response)) {
-        sendErrorToSentry(request.response);
-      } else if (isErrorEvent(event)) {
+      if (isErrorEvent(event)) {
         sendErrorToSentry(event.error);
-      }
-
-      if (rootSpan) {
-        rootSpan.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
-        rootSpan.end();
       }
     });
   },
@@ -98,6 +91,24 @@ export const hapiErrorPlugin = {
 
 /**
  * Add a Hapi plugin to capture errors to Sentry.
+ *
+ * @param server The Hapi server to attach the error handler to
+ *
+ * @example
+ * ```javascript
+ * const Sentry = require('@sentry/node');
+ * const Hapi = require('@hapi/hapi');
+ *
+ * const init = async () => {
+ *   const server = Hapi.server();
+ *
+ *   // all your routes here
+ *
+ *   await Sentry.setupHapiErrorHandler(server);
+ *
+ *   await server.start();
+ * };
+ * ```
  */
 export async function setupHapiErrorHandler(server: Server): Promise<void> {
   await server.register(hapiErrorPlugin);

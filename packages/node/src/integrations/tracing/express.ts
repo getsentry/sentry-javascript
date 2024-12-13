@@ -1,9 +1,16 @@
 import type * as http from 'node:http';
 import { ExpressInstrumentation } from '@opentelemetry/instrumentation-express';
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP, defineIntegration, getDefaultIsolationScope, spanToJSON } from '@sentry/core';
-import { captureException, getClient, getIsolationScope } from '@sentry/core';
-import type { IntegrationFn } from '@sentry/types';
-import { logger } from '@sentry/utils';
+import type { IntegrationFn } from '@sentry/core';
+import {
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  captureException,
+  defineIntegration,
+  getClient,
+  getDefaultIsolationScope,
+  getIsolationScope,
+  logger,
+  spanToJSON,
+} from '@sentry/core';
 import { DEBUG_BUILD } from '../../debug-build';
 import { generateInstrumentOnce } from '../../otel/instrument';
 import type { NodeClient } from '../../sdk/client';
@@ -60,10 +67,20 @@ const _expressIntegration = (() => {
 }) satisfies IntegrationFn;
 
 /**
- * Express integration
+ * Adds Sentry tracing instrumentation for [Express](https://expressjs.com/).
  *
- * Capture tracing data for express.
- * In order to capture exceptions, you have to call `setupExpressErrorHandler(app)` before any other middleware and after all controllers.
+ * If you also want to capture errors, you need to call `setupExpressErrorHandler(app)` after you set up your Express server.
+ *
+ * For more information, see the [express documentation](https://docs.sentry.io/platforms/javascript/guides/express/).
+ *
+ * @example
+ * ```javascript
+ * const Sentry = require('@sentry/node');
+ *
+ * Sentry.init({
+ *   integrations: [Sentry.expressIntegration()],
+ * })
+ * ```
  */
 export const expressIntegration = defineIntegration(_expressIntegration);
 
@@ -83,16 +100,18 @@ type ExpressMiddleware = (
   next: (error: MiddlewareError) => void,
 ) => void;
 
-/**
- * An Express-compatible error handler.
- */
-export function expressErrorHandler(options?: {
+interface ExpressHandlerOptions {
   /**
    * Callback method deciding whether error should be captured and sent to Sentry
    * @param error Captured middleware error
    */
   shouldHandleError?(this: void, error: MiddlewareError): boolean;
-}): ExpressMiddleware {
+}
+
+/**
+ * An Express-compatible error handler.
+ */
+export function expressErrorHandler(options?: ExpressHandlerOptions): ExpressMiddleware {
   return function sentryErrorMiddleware(
     error: MiddlewareError,
     _req: http.IncomingMessage,
@@ -103,6 +122,7 @@ export function expressErrorHandler(options?: {
 
     if (shouldHandleError(error)) {
       const client = getClient<NodeClient>();
+      // eslint-disable-next-line deprecation/deprecation
       if (client && client.getOptions().autoSessionTracking) {
         // Check if the `SessionFlusher` is instantiated on the client to go into this branch that marks the
         // `requestSession.status` as `Crashed`, and this check is necessary because the `SessionFlusher` is only
@@ -110,6 +130,7 @@ export function expressErrorHandler(options?: {
         // running in SessionAggregates mode
         const isSessionAggregatesMode = client['_sessionFlusher'] !== undefined;
         if (isSessionAggregatesMode) {
+          // eslint-disable-next-line deprecation/deprecation
           const requestSession = getIsolationScope().getRequestSession();
           // If an error bubbles to the `errorHandler`, then this is an unhandled error, and should be reported as a
           // Crashed session. The `_requestSession.status` is checked to ensure that this error is happening within
@@ -132,11 +153,34 @@ export function expressErrorHandler(options?: {
 }
 
 /**
- * Setup an error handler for Express.
+ * Add an Express error handler to capture errors to Sentry.
+ *
  * The error handler must be before any other middleware and after all controllers.
+ *
+ * @param app The Express instances
+ * @param options {ExpressHandlerOptions} Configuration options for the handler
+ *
+ * @example
+ * ```javascript
+ * const Sentry = require('@sentry/node');
+ * const express = require("express");
+ *
+ * const app = express();
+ *
+ * // Add your routes, etc.
+ *
+ * // Add this after all routes,
+ * // but before any and other error-handling middlewares are defined
+ * Sentry.setupExpressErrorHandler(app);
+ *
+ * app.listen(3000);
+ * ```
  */
-export function setupExpressErrorHandler(app: { use: (middleware: ExpressMiddleware) => unknown }): void {
-  app.use(expressErrorHandler());
+export function setupExpressErrorHandler(
+  app: { use: (middleware: ExpressMiddleware) => unknown },
+  options?: ExpressHandlerOptions,
+): void {
+  app.use(expressErrorHandler(options));
   ensureIsWrapped(app.use, 'express');
 }
 

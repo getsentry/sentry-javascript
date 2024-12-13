@@ -4,15 +4,10 @@ afterEach(() => {
   cleanupChildProcesses();
 });
 
-test('should aggregate successful sessions', async () => {
-  let _done: undefined | (() => void);
-  const promise = new Promise<void>(resolve => {
-    _done = resolve;
-  });
-
-  const runner = createRunner(__dirname, 'server.ts')
-    .ignore('transaction', 'event', 'session')
-    .expectError()
+test('should aggregate successful sessions', done => {
+  const runner = createRunner(__dirname, '..', 'server.ts')
+    .ignore('transaction', 'event')
+    .unignore('sessions')
     .expect({
       sessions: {
         aggregates: [
@@ -23,11 +18,9 @@ test('should aggregate successful sessions', async () => {
         ],
       },
     })
-    .start(_done);
+    .start(done);
 
-  runner.makeRequest('get', '/success');
-  runner.makeRequest('get', '/success_next');
-  runner.makeRequest('get', '/success_slow');
-
-  await promise;
+  runner.makeRequest('get', '/test/success');
+  runner.makeRequest('get', '/test/success_next');
+  runner.makeRequest('get', '/test/success_slow');
 });

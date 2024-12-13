@@ -2,7 +2,9 @@ export type {
   Breadcrumb,
   BreadcrumbHint,
   PolymorphicRequest,
+  // eslint-disable-next-line deprecation/deprecation
   Request,
+  RequestEventData,
   SdkInfo,
   Event,
   EventHint,
@@ -15,8 +17,8 @@ export type {
   Stacktrace,
   Thread,
   User,
-} from '@sentry/types';
-export type { AddRequestDataToEventOptions } from '@sentry/utils';
+} from '@sentry/core';
+export type { AddRequestDataToEventOptions } from '@sentry/core';
 
 export type { DenoOptions } from './types';
 
@@ -55,20 +57,26 @@ export {
   setMeasurement,
   getActiveSpan,
   getRootSpan,
+  getTraceData,
+  getTraceMetaTags,
   startSpan,
   startInactiveSpan,
   startSpanManual,
   startNewTrace,
+  suppressTracing,
+  // eslint-disable-next-line deprecation/deprecation
   metricsDefault as metrics,
   inboundFiltersIntegration,
   linkedErrorsIntegration,
   functionToStringIntegration,
   requestDataIntegration,
   captureConsoleIntegration,
+  // eslint-disable-next-line deprecation/deprecation
   debugIntegration,
   dedupeIntegration,
   extraErrorDataIntegration,
   rewriteFramesIntegration,
+  // eslint-disable-next-line deprecation/deprecation
   sessionTimingIntegration,
   zodErrorsIntegration,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,

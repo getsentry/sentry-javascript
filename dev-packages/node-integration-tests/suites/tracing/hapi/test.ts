@@ -1,7 +1,5 @@
 import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
 
-jest.setTimeout(20000);
-
 describe('hapi auto-instrumentation', () => {
   afterAll(async () => {
     cleanupChildProcesses();
@@ -52,9 +50,8 @@ describe('hapi auto-instrumentation', () => {
         },
       })
       .expect({ event: EXPECTED_ERROR_EVENT })
-      .expectError()
       .start(done)
-      .makeRequest('get', '/error');
+      .makeRequest('get', '/error', { expectError: true });
   });
 
   test('CJS - should assign parameterized transactionName to error.', done => {
@@ -66,9 +63,8 @@ describe('hapi auto-instrumentation', () => {
         },
       })
       .ignore('transaction')
-      .expectError()
       .start(done)
-      .makeRequest('get', '/error/123');
+      .makeRequest('get', '/error/123', { expectError: true });
   });
 
   test('CJS - should handle returned Boom errors in routes.', done => {
@@ -79,9 +75,8 @@ describe('hapi auto-instrumentation', () => {
         },
       })
       .expect({ event: EXPECTED_ERROR_EVENT })
-      .expectError()
       .start(done)
-      .makeRequest('get', '/boom-error');
+      .makeRequest('get', '/boom-error', { expectError: true });
   });
 
   test('CJS - should handle promise rejections in routes.', done => {
@@ -92,8 +87,7 @@ describe('hapi auto-instrumentation', () => {
         },
       })
       .expect({ event: EXPECTED_ERROR_EVENT })
-      .expectError()
       .start(done)
-      .makeRequest('get', '/promise-error');
+      .makeRequest('get', '/promise-error', { expectError: true });
   });
 });

@@ -1,3 +1,5 @@
+import { describe, expect, test, vi } from 'vitest';
+
 import { isSampled } from '../../../src/util/isSampled';
 
 // Note Math.random generates a value from 0 (inclusive) to <1 (1 exclusive).

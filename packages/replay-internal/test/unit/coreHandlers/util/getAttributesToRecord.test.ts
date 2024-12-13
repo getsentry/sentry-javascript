@@ -1,3 +1,5 @@
+import { expect, it } from 'vitest';
+
 import { getAttributesToRecord } from '../../../../src/coreHandlers/util/getAttributesToRecord';
 
 it('records only included attributes', function () {

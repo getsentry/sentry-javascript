@@ -1,10 +1,16 @@
+/**
+ * @vitest-environment jsdom
+ */
+
+import { beforeEach, expect, it, vi } from 'vitest';
+
 import { CanvasManager } from '@sentry-internal/rrweb';
 import { _replayCanvasIntegration, replayCanvasIntegration } from '../src/canvas';
 
-jest.mock('@sentry-internal/rrweb');
+vi.mock('@sentry-internal/rrweb');
 
 beforeEach(() => {
-  jest.clearAllMocks();
+  vi.clearAllMocks();
 });
 
 it('initializes with default options', () => {

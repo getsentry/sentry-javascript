@@ -4,7 +4,7 @@
   "include": ["test/**/*.ts", "vitest.config.ts", "test.setup.ts"],
 
   "compilerOptions": {
-    "types": ["node", "jest"],
+    "types": ["node"],
     "esModuleInterop": true,
     "allowJs": true,
     "noImplicitAny": true,

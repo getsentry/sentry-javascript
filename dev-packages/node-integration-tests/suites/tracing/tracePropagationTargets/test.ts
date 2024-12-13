@@ -24,7 +24,7 @@ test('HttpIntegration should instrument correct requests when tracePropagationTa
       expect(headers['sentry-trace']).toBeUndefined();
     })
     .start()
-    .then(SERVER_URL => {
+    .then(([SERVER_URL, closeTestServer]) => {
       createRunner(__dirname, 'scenario.ts')
         .withEnv({ SERVER_URL })
         .expect({
@@ -32,6 +32,6 @@ test('HttpIntegration should instrument correct requests when tracePropagationTa
             // we're not too concerned with the actual transaction here since this is tested elsewhere
           },
         })
-        .start(done);
+        .start(closeTestServer);
     });
 });

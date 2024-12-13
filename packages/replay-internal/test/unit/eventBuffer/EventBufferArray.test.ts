@@ -1,3 +1,5 @@
+import { describe, expect, it } from 'vitest';
+
 import { REPLAY_MAX_EVENT_BUFFER_SIZE } from '../../../src/constants';
 import { createEventBuffer } from '../../../src/eventBuffer';
 import { EventBufferSizeExceededError } from '../../../src/eventBuffer/error';

@@ -1,12 +1,13 @@
 import type { IncomingMessage } from 'http';
-import type { Event, EventProcessor } from '@sentry/types';
-import * as sentryUtils from '@sentry/utils';
 import type { RequestDataIntegrationOptions } from '../../../src';
 import { requestDataIntegration, setCurrentClient } from '../../../src';
+import type { Event, EventProcessor } from '../../../src/types-hoist';
 
 import { TestClient, getDefaultTestClientOptions } from '../../mocks/client';
 
-const addRequestDataToEventSpy = jest.spyOn(sentryUtils, 'addRequestDataToEvent');
+import * as requestDataModule from '../../../src/utils-hoist/requestdata';
+
+const addRequestDataToEventSpy = jest.spyOn(requestDataModule, 'addRequestDataToEvent');
 
 const headers = { ears: 'furry', nose: 'wet', tongue: 'spotted', cookie: 'favorite=zukes' };
 const method = 'wagging';
@@ -62,7 +63,7 @@ describe('`RequestData` integration', () => {
 
       void requestDataEventProcessor(event, {});
 
-      const passedOptions = addRequestDataToEventSpy.mock.calls[0][2];
+      const passedOptions = addRequestDataToEventSpy.mock.calls[0]?.[2];
 
       expect(passedOptions?.include).toEqual(expect.objectContaining({ ip: false, user: true }));
     });
@@ -72,7 +73,7 @@ describe('`RequestData` integration', () => {
 
       void requestDataEventProcessor(event, {});
 
-      const passedOptions = addRequestDataToEventSpy.mock.calls[0][2];
+      const passedOptions = addRequestDataToEventSpy.mock.calls[0]?.[2];
 
       expect(passedOptions?.include).toEqual(expect.objectContaining({ transaction: 'path' }));
     });
@@ -84,7 +85,7 @@ describe('`RequestData` integration', () => {
 
       void requestDataEventProcessor(event, {});
 
-      const passedOptions = addRequestDataToEventSpy.mock.calls[0][2];
+      const passedOptions = addRequestDataToEventSpy.mock.calls[0]?.[2];
 
       expect(passedOptions?.include?.request).toEqual(expect.arrayContaining(['data']));
       expect(passedOptions?.include?.request).not.toEqual(expect.arrayContaining(['cookies']));
@@ -97,7 +98,7 @@ describe('`RequestData` integration', () => {
 
       void requestDataEventProcessor(event, {});
 
-      const passedOptions = addRequestDataToEventSpy.mock.calls[0][2];
+      const passedOptions = addRequestDataToEventSpy.mock.calls[0]?.[2];
 
       expect(passedOptions?.include?.user).toEqual(expect.arrayContaining(['id']));
       expect(passedOptions?.include?.user).not.toEqual(expect.arrayContaining(['email']));

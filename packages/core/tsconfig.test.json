@@ -4,6 +4,7 @@
   "include": ["test/**/*"],
 
   "compilerOptions": {
+    "lib": ["DOM", "ES2018"],
     // should include all types from `./tsconfig.json` plus types for all test frameworks used
     "types": ["node", "jest"]
 

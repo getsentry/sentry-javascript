@@ -1,8 +1,9 @@
-import { flush } from '@sentry/node';
-import { logger } from '@sentry/utils';
+import { logger, objectify } from '@sentry/core';
+import { captureException, flush } from '@sentry/node';
 import type { RequestEvent } from '@sveltejs/kit';
 
 import { DEBUG_BUILD } from '../common/debug-build';
+import { isHttpError, isRedirect } from '../common/utils';
 
 /**
  * Takes a request event and extracts traceparent and DSC data
@@ -30,4 +31,42 @@ export async function flushIfServerless(): Promise<void> {
       DEBUG_BUILD && logger.log('Error while flushing events:\n', e);
     }
   }
+}
+
+/**
+ * Extracts a server-side sveltekit error, filters a couple of known errors we don't want to capture
+ * and captures the error via `captureException`.
+ *
+ * @param e error
+ *
+ * @returns an objectified version of @param e
+ */
+export function sendErrorToSentry(e: unknown, handlerFn: 'handle' | 'load' | 'serverRoute'): object {
+  // In case we have a primitive, wrap it in the equivalent wrapper class (string -> String, etc.) so that we can
+  // store a seen flag on it.
+  const objectifiedErr = objectify(e);
+
+  // The error() helper is commonly used to throw errors in load functions: https://kit.svelte.dev/docs/modules#sveltejs-kit-error
+  // If we detect a thrown error that is an instance of HttpError, we don't want to capture 4xx errors as they
+  // could be noisy.
+  // Also the `redirect(...)` helper is used to redirect users from one page to another. We don't want to capture thrown
+  // `Redirect`s as they're not errors but expected behaviour
+  if (
+    isRedirect(objectifiedErr) ||
+    (isHttpError(objectifiedErr) && objectifiedErr.status < 500 && objectifiedErr.status >= 400)
+  ) {
+    return objectifiedErr;
+  }
+
+  captureException(objectifiedErr, {
+    mechanism: {
+      type: 'sveltekit',
+      handled: false,
+      data: {
+        function: handlerFn,
+      },
+    },
+  });
+
+  return objectifiedErr;
 }

@@ -1,12 +1,18 @@
+import type { Client, StartSpanOptions } from '@sentry/core';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   getActiveSpan,
   getCurrentScope,
   getRootSpan,
+  isNodeEnv,
+  logger,
 } from '@sentry/core';
-import type { browserTracingIntegration as originalBrowserTracingIntegration } from '@sentry/react';
-import type { BrowserClient, ErrorBoundaryProps } from '@sentry/react';
+import type {
+  BrowserClient,
+  ErrorBoundaryProps,
+  browserTracingIntegration as originalBrowserTracingIntegration,
+} from '@sentry/react';
 import {
   WINDOW,
   getClient,
@@ -14,10 +20,7 @@ import {
   startBrowserTracingPageLoadSpan,
   withErrorBoundary,
 } from '@sentry/react';
-import type { StartSpanOptions } from '@sentry/types';
-import { isNodeEnv, logger } from '@sentry/utils';
 import * as React from 'react';
-
 import { DEBUG_BUILD } from '../utils/debug-build';
 import { getFutureFlagsBrowser, readRemixVersionFromLoader } from '../utils/futureFlags';
 
@@ -67,7 +70,7 @@ function isRemixV2(remixVersion: number | undefined): boolean {
   return remixVersion === 2 || getFutureFlagsBrowser()?.v2_errorBoundary || false;
 }
 
-export function startPageloadSpan(): void {
+export function startPageloadSpan(client: Client): void {
   const initPathName = getInitPathName();
 
   if (!initPathName) {
@@ -83,30 +86,26 @@ export function startPageloadSpan(): void {
     },
   };
 
-  const client = getClient<BrowserClient>();
-
-  if (!client) {
-    return;
-  }
-
   startBrowserTracingPageLoadSpan(client, spanContext);
 }
 
 function startNavigationSpan(matches: RouteMatch<string>[]): void {
+  const lastMatch = matches[matches.length - 1];
+
+  const client = getClient<BrowserClient>();
+
+  if (!client || !lastMatch) {
+    return;
+  }
+
   const spanContext: StartSpanOptions = {
-    name: matches[matches.length - 1].id,
+    name: lastMatch.id,
     op: 'navigation',
     attributes: {
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.remix',
       [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
     },
   };
-
-  const client = getClient<BrowserClient>();
-
-  if (!client) {
-    return;
-  }
 
   startBrowserTracingNavigationSpan(client, spanContext);
 }
@@ -148,8 +147,9 @@ export function withSentry<P extends Record<string, unknown>, R extends React.Co
     const matches = _useMatches();
 
     _useEffect(() => {
-      if (matches && matches.length) {
-        const routeName = matches[matches.length - 1].id;
+      const lastMatch = matches && matches[matches.length - 1];
+      if (lastMatch) {
+        const routeName = lastMatch.id;
         getCurrentScope().setTransactionName(routeName);
 
         const activeRootSpan = getActiveSpan();

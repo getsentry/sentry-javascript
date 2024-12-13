@@ -1,13 +1,11 @@
-import { getClient } from '@sentry/core';
 import type {
-  FeedbackDialog,
   FeedbackInternalOptions,
   FeedbackModalIntegration,
   FeedbackScreenshotIntegration,
   Integration,
   IntegrationFn,
-} from '@sentry/types';
-import { isBrowser, logger } from '@sentry/utils';
+} from '@sentry/core';
+import { getClient, isBrowser, logger } from '@sentry/core';
 import {
   ADD_SCREENSHOT_LABEL,
   CANCEL_BUTTON_LABEL,
@@ -44,7 +42,10 @@ type Unsubscribe = () => void;
 interface BuilderOptions {
   // The type here should be `keyof typeof LazyLoadableIntegrations`, but that'll cause a cicrular
   // dependency with @sentry/core
-  lazyLoadIntegration: (name: 'feedbackModalIntegration' | 'feedbackScreenshotIntegration') => Promise<IntegrationFn>;
+  lazyLoadIntegration: (
+    name: 'feedbackModalIntegration' | 'feedbackScreenshotIntegration',
+    scriptNonce?: string,
+  ) => Promise<IntegrationFn>;
   getModalIntegration?: null | (() => IntegrationFn);
   getScreenshotIntegration?: null | (() => IntegrationFn);
 }
@@ -56,7 +57,9 @@ export const buildFeedbackIntegration = ({
 }: BuilderOptions): IntegrationFn<
   Integration & {
     attachTo(el: Element | string, optionOverrides?: OverrideFeedbackConfiguration): Unsubscribe;
-    createForm(optionOverrides?: OverrideFeedbackConfiguration): Promise<FeedbackDialog>;
+    createForm(
+      optionOverrides?: OverrideFeedbackConfiguration,
+    ): Promise<ReturnType<FeedbackModalIntegration['createDialog']>>;
     createWidget(optionOverrides?: OverrideFeedbackConfiguration): ActorComponent;
     remove(): void;
   }
@@ -64,8 +67,10 @@ export const buildFeedbackIntegration = ({
   const feedbackIntegration = (({
     // FeedbackGeneralConfiguration
     id = 'sentry-feedback',
-    showBranding = true,
     autoInject = true,
+    showBranding = true,
+    isEmailRequired = false,
+    isNameRequired = false,
     showEmail = true,
     showName = true,
     enableScreenshot = true,
@@ -73,8 +78,9 @@ export const buildFeedbackIntegration = ({
       email: 'email',
       name: 'username',
     },
-    isNameRequired = false,
-    isEmailRequired = false,
+    tags,
+    styleNonce,
+    scriptNonce,
 
     // FeedbackThemeConfiguration
     colorScheme = 'system',
@@ -97,6 +103,7 @@ export const buildFeedbackIntegration = ({
     submitButtonLabel = SUBMIT_BUTTON_LABEL,
     successMessageText = SUCCESS_MESSAGE_TEXT,
     triggerLabel = TRIGGER_LABEL,
+    triggerAriaLabel = '',
 
     // FeedbackCallbacks
     onFormOpen,
@@ -115,12 +122,16 @@ export const buildFeedbackIntegration = ({
       showName,
       enableScreenshot,
       useSentryUser,
+      tags,
+      styleNonce,
+      scriptNonce,
 
       colorScheme,
       themeDark,
       themeLight,
 
       triggerLabel,
+      triggerAriaLabel,
       cancelButtonLabel,
       submitButtonLabel,
       confirmButtonLabel,
@@ -171,13 +182,15 @@ export const buildFeedbackIntegration = ({
       if (existing) {
         return existing as I;
       }
-      const integrationFn = (getter && getter()) || (await lazyLoadIntegration(functionMethodName));
+      const integrationFn = (getter && getter()) || (await lazyLoadIntegration(functionMethodName, scriptNonce));
       const integration = integrationFn();
       client && client.addIntegration(integration);
       return integration as I;
     };
 
-    const _loadAndRenderDialog = async (options: FeedbackInternalOptions): Promise<FeedbackDialog> => {
+    const _loadAndRenderDialog = async (
+      options: FeedbackInternalOptions,
+    ): Promise<ReturnType<FeedbackModalIntegration['createDialog']>> => {
       const screenshotRequired = options.enableScreenshot && isScreenshotSupported();
       const [modalIntegration, screenshotIntegration] = await Promise.all([
         _findIntegration<FeedbackModalIntegration>('FeedbackModal', getModalIntegration, 'feedbackModalIntegration'),
@@ -202,12 +215,24 @@ export const buildFeedbackIntegration = ({
           logger.error('[Feedback] Missing feedback screenshot integration. Proceeding without screenshots.');
       }
 
-      return modalIntegration.createDialog({
-        options,
+      const dialog = modalIntegration.createDialog({
+        options: {
+          ...options,
+          onFormClose: () => {
+            dialog && dialog.close();
+            options.onFormClose && options.onFormClose();
+          },
+          onFormSubmitted: () => {
+            dialog && dialog.close();
+            options.onFormSubmitted && options.onFormSubmitted();
+          },
+        },
         screenshotIntegration: screenshotRequired ? screenshotIntegration : undefined,
         sendFeedback,
         shadow: _createShadow(options),
       });
+
+      return dialog;
     };
 
     const _attachTo = (el: Element | string, optionOverrides: OverrideFeedbackConfiguration = {}): Unsubscribe => {
@@ -221,15 +246,11 @@ export const buildFeedbackIntegration = ({
         throw new Error('Unable to attach to target element');
       }
 
-      let dialog: FeedbackDialog | null = null;
+      let dialog: ReturnType<FeedbackModalIntegration['createDialog']> | null = null;
       const handleClick = async (): Promise<void> => {
         if (!dialog) {
           dialog = await _loadAndRenderDialog({
             ...mergedOptions,
-            onFormClose: () => {
-              dialog && dialog.close();
-              mergedOptions.onFormClose && mergedOptions.onFormClose();
-            },
             onFormSubmitted: () => {
               dialog && dialog.removeFromDom();
               mergedOptions.onFormSubmitted && mergedOptions.onFormSubmitted();
@@ -251,10 +272,16 @@ export const buildFeedbackIntegration = ({
     };
 
     const _createActor = (optionOverrides: OverrideFeedbackConfiguration = {}): ActorComponent => {
-      const shadow = _createShadow(_options);
-      const actor = Actor({ triggerLabel: _options.triggerLabel, shadow });
-      const mergedOptions = mergeOptions(_options, {
-        ...optionOverrides,
+      const mergedOptions = mergeOptions(_options, optionOverrides);
+      const shadow = _createShadow(mergedOptions);
+      const actor = Actor({
+        triggerLabel: mergedOptions.triggerLabel,
+        triggerAriaLabel: mergedOptions.triggerAriaLabel,
+        shadow,
+        styleNonce,
+      });
+      _attachTo(actor.el, {
+        ...mergedOptions,
         onFormOpen() {
           actor.hide();
         },
@@ -265,7 +292,6 @@ export const buildFeedbackIntegration = ({
           actor.show();
         },
       });
-      _attachTo(actor.el, mergedOptions);
       return actor;
     };
 
@@ -276,7 +302,11 @@ export const buildFeedbackIntegration = ({
           return;
         }
 
-        _createActor().appendToDom();
+        if (DOCUMENT.readyState === 'loading') {
+          DOCUMENT.addEventListener('DOMContentLoaded', () => _createActor().appendToDom());
+        } else {
+          _createActor().appendToDom();
+        }
       },
 
       /**
@@ -300,7 +330,9 @@ export const buildFeedbackIntegration = ({
        * Creates a new Form which you can
        * Accepts partial options to override any options passed to constructor.
        */
-      async createForm(optionOverrides: OverrideFeedbackConfiguration = {}): Promise<FeedbackDialog> {
+      async createForm(
+        optionOverrides: OverrideFeedbackConfiguration = {},
+      ): Promise<ReturnType<FeedbackModalIntegration['createDialog']>> {
         return _loadAndRenderDialog(mergeOptions(_options, optionOverrides));
       },
 

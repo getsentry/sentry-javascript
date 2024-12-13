@@ -6,10 +6,11 @@ import type {
   EventItem,
   Transport,
   TransportMakeRequestResponse,
-} from '@sentry/types';
-import { createEnvelope, dsnFromString, forEachEnvelopeItem } from '@sentry/utils';
+} from '../types-hoist';
 
 import { getEnvelopeEndpointWithUrlEncodedAuth } from '../api';
+import { dsnFromString } from '../utils-hoist/dsn';
+import { createEnvelope, forEachEnvelopeItem } from '../utils-hoist/envelope';
 
 interface MatchParam {
   /** The envelope to be sent */
@@ -135,14 +136,12 @@ export function makeMultiplexedTransport<TO extends BaseTransportOptions>(
         .filter((t): t is [string, Transport] => !!t);
 
       // If we have no transports to send to, use the fallback transport
-      if (transports.length === 0) {
-        // Don't override the DSN in the header for the fallback transport. '' is falsy
-        transports.push(['', fallbackTransport]);
-      }
+      // Don't override the DSN in the header for the fallback transport. '' is falsy
+      const transportsWithFallback: [string, Transport][] = transports.length ? transports : [['', fallbackTransport]];
 
-      const results = await Promise.all(
-        transports.map(([dsn, transport]) => transport.send(overrideDsn(envelope, dsn))),
-      );
+      const results = (await Promise.all(
+        transportsWithFallback.map(([dsn, transport]) => transport.send(overrideDsn(envelope, dsn))),
+      )) as [TransportMakeRequestResponse, ...TransportMakeRequestResponse[]];
 
       return results[0];
     }

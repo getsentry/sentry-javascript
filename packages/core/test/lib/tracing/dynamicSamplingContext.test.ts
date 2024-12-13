@@ -1,11 +1,12 @@
-import type { TransactionSource } from '@sentry/types';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  getClient,
   setCurrentClient,
 } from '../../../src';
 import { SentrySpan, getDynamicSamplingContextFromSpan, startInactiveSpan } from '../../../src/tracing';
 import { freezeDscOnSpan } from '../../../src/tracing/dynamicSamplingContext';
+import type { Span, SpanContextData, TransactionSource } from '../../../src/types-hoist';
 import { TestClient, getDefaultTestClientOptions } from '../../mocks/client';
 
 describe('getDynamicSamplingContextFromSpan', () => {
@@ -33,6 +34,27 @@ describe('getDynamicSamplingContextFromSpan', () => {
     expect(dynamicSamplingContext).toStrictEqual({ environment: 'myEnv' });
   });
 
+  test('uses frozen DSC from traceState', () => {
+    const rootSpan = {
+      spanContext() {
+        return {
+          traceId: '1234',
+          spanId: '12345',
+          traceFlags: 0,
+          traceState: {
+            get() {
+              return 'sentry-environment=myEnv2';
+            },
+          } as unknown as SpanContextData['traceState'],
+        };
+      },
+    } as Span;
+
+    const dynamicSamplingContext = getDynamicSamplingContextFromSpan(rootSpan);
+
+    expect(dynamicSamplingContext).toStrictEqual({ environment: 'myEnv2' });
+  });
+
   test('returns a new DSC, if no DSC was provided during rootSpan creation (via attributes)', () => {
     const rootSpan = startInactiveSpan({ name: 'tx' });
 
@@ -47,7 +69,7 @@ describe('getDynamicSamplingContextFromSpan', () => {
       environment: 'production',
       sampled: 'true',
       sample_rate: '0.56',
-      trace_id: expect.any(String),
+      trace_id: expect.stringMatching(/^[a-f0-9]{32}$/),
       transaction: 'tx',
     });
   });
@@ -64,7 +86,7 @@ describe('getDynamicSamplingContextFromSpan', () => {
       environment: 'production',
       sampled: 'true',
       sample_rate: '1',
-      trace_id: expect.any(String),
+      trace_id: expect.stringMatching(/^[a-f0-9]{32}$/),
       transaction: 'tx',
     });
   });
@@ -86,7 +108,7 @@ describe('getDynamicSamplingContextFromSpan', () => {
       environment: 'production',
       sampled: 'true',
       sample_rate: '0.56',
-      trace_id: expect.any(String),
+      trace_id: expect.stringMatching(/^[a-f0-9]{32}$/),
       transaction: 'tx',
     });
   });
@@ -121,6 +143,25 @@ describe('getDynamicSamplingContextFromSpan', () => {
       const dsc = getDynamicSamplingContextFromSpan(rootSpan);
 
       expect(dsc.transaction).toEqual('tx');
+    });
+  });
+
+  it("doesn't return the sampled flag in the DSC if in Tracing without Performance mode", () => {
+    const rootSpan = new SentrySpan({
+      name: 'tx',
+      sampled: undefined,
+    });
+
+    // Simulate TwP mode by deleting the tracesSampleRate option set in beforeEach
+    delete getClient()?.getOptions().tracesSampleRate;
+
+    const dynamicSamplingContext = getDynamicSamplingContextFromSpan(rootSpan);
+
+    expect(dynamicSamplingContext).toStrictEqual({
+      release: '1.0.1',
+      environment: 'production',
+      trace_id: expect.stringMatching(/^[a-f0-9]{32}$/),
+      transaction: 'tx',
     });
   });
 });

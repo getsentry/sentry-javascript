@@ -15,5 +15,5 @@ module.exports = {
     },
   ],
   // symlinks to the folders inside of `build`, created to simulate what's in the npm package
-  ignorePatterns: ['cjs/**', 'esm/**'],
+  ignorePatterns: ['cjs/**', 'esm/**', 'rollup.npm.config.mjs'],
 };

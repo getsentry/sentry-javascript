@@ -13,13 +13,14 @@ import {
   getRootSpan,
   spanToJSON,
 } from '@sentry/core';
-import type { Client, Integration, Span, TransactionSource } from '@sentry/types';
+import type { Client, Integration, Span, TransactionSource } from '@sentry/core';
 import hoistNonReactStatics from 'hoist-non-react-statics';
 import * as React from 'react';
+import type { ReactElement } from 'react';
 
 import type { Action, Location } from './types';
 
-// We need to disable eslint no-explict-any because any is required for the
+// We need to disable eslint no-explicit-any because any is required for the
 // react-router typings.
 type Match = { path: string; url: string; params: Record<string, any>; isExact: boolean }; // eslint-disable-line @typescript-eslint/no-explicit-any
 
@@ -32,7 +33,7 @@ export type RouteConfig = {
   [propName: string]: unknown;
   path?: string | string[];
   exact?: boolean;
-  component?: JSX.Element;
+  component?: ReactElement;
   routes?: RouteConfig[];
 };
 
@@ -143,10 +144,9 @@ function instrumentReactRouter(
     }
 
     const branches = matchRoutes(allRoutes, pathname, matchPath);
-    // eslint-disable-next-line @typescript-eslint/prefer-for-of
-    for (let x = 0; x < branches.length; x++) {
-      if (branches[x].match.isExact) {
-        return [branches[x].match.path, 'route'];
+    for (const branch of branches) {
+      if (branch.match.isExact) {
+        return [branch.match.path, 'route'];
       }
     }
 
@@ -199,7 +199,8 @@ function matchRoutes(
     const match = route.path
       ? matchPath(pathname, route)
       : branch.length
-        ? branch[branch.length - 1].match // use parent match
+        ? // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+          branch[branch.length - 1]!.match // use parent match
         : computeRootMatch(pathname); // use default "root" match
 
     if (match) {
@@ -222,7 +223,7 @@ function computeRootMatch(pathname: string): Match {
 
 /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access */
 export function withSentryRouting<P extends Record<string, any>, R extends React.ComponentType<P>>(Route: R): R {
-  const componentDisplayName = (Route as any).displayName || (Route as any).name;
+  const componentDisplayName = Route.displayName || Route.name;
 
   const WrappedRoute: React.FC<P> = (props: P) => {
     if (props && props.computedMatch && props.computedMatch.isExact) {

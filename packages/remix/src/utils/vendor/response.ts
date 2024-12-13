@@ -118,10 +118,10 @@ export function getRequestMatch(
   url: URL,
   matches: AgnosticRouteMatch[],
 ): AgnosticRouteMatch<string, AgnosticRouteObject> {
-  const match = matches.slice(-1)[0];
+  const match = matches.slice(-1)[0] as AgnosticRouteMatch<string, AgnosticRouteObject>;
 
   if (!isIndexRequestUrl(url) && match.route.id?.endsWith('/index')) {
-    return matches.slice(-2)[0];
+    return matches.slice(-2)[0] as AgnosticRouteMatch<string, AgnosticRouteObject>;
   }
 
   return match;

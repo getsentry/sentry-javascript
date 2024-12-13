@@ -9,7 +9,7 @@
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "playwright test",
-    "test:build": "pnpm install && npx playwright install && pnpm build",
+    "test:build": "pnpm install && pnpm build",
     "test:assert": "playwright test",
     "clean": "npx rimraf .angular node_modules pnpm-lock.yaml dist"
   },
@@ -29,11 +29,11 @@
     "zone.js": "~0.14.3"
   },
   "devDependencies": {
-    "@sentry-internal/event-proxy-server": "link:../../../event-proxy-server",
+    "@playwright/test": "^1.44.1",
+    "@sentry-internal/test-utils": "link:../../../test-utils",
     "@angular-devkit/build-angular": "^18.0.0",
     "@angular/cli": "^18.0.0",
     "@angular/compiler-cli": "^18.0.0",
-    "@playwright/test": "^1.41.1",
     "@types/jasmine": "~5.1.0",
     "http-server": "^14.1.1",
     "jasmine-core": "~5.1.0",
@@ -42,8 +42,7 @@
     "karma-coverage": "~2.2.0",
     "karma-jasmine": "~5.1.0",
     "karma-jasmine-html-reporter": "~2.1.0",
-    "typescript": "~5.4.5",
-    "wait-port": "1.0.4"
+    "typescript": "~5.4.5"
   },
   "volta": {
     "extends": "../../package.json"

@@ -1,7 +1,8 @@
 import { getWorkerURL } from '@sentry-internal/replay-worker';
 
+import { DEBUG_BUILD } from '../debug-build';
 import type { EventBuffer } from '../types';
-import { logInfo } from '../util/log';
+import { logger } from '../util/logger';
 import { EventBufferArray } from './EventBufferArray';
 import { EventBufferProxy } from './EventBufferProxy';
 
@@ -32,7 +33,7 @@ export function createEventBuffer({
     }
   }
 
-  logInfo('[Replay] Using simple buffer');
+  DEBUG_BUILD && logger.info('Using simple buffer');
   return new EventBufferArray();
 }
 
@@ -44,11 +45,11 @@ function _loadWorker(customWorkerUrl?: string): EventBufferProxy | void {
       return;
     }
 
-    logInfo(`[Replay] Using compression worker${customWorkerUrl ? ` from ${customWorkerUrl}` : ''}`);
+    DEBUG_BUILD && logger.info(`Using compression worker${customWorkerUrl ? ` from ${customWorkerUrl}` : ''}`);
     const worker = new Worker(workerUrl);
     return new EventBufferProxy(worker);
   } catch (error) {
-    logInfo('[Replay] Failed to create compression worker');
+    DEBUG_BUILD && logger.exception(error, 'Failed to create compression worker');
     // Fall back to use simple event buffer array
   }
 }

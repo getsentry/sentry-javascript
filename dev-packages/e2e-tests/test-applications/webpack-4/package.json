@@ -4,11 +4,12 @@
   "scripts": {
     "start": "serve -s build",
     "build": "node build.mjs",
-    "test:build": "pnpm install && npx playwright install && pnpm build",
+    "test:build": "pnpm install && pnpm build",
     "test:assert": "playwright test"
   },
   "devDependencies": {
-    "@playwright/test": "^1.42.1",
+    "@playwright/test": "^1.44.1",
+    "@sentry-internal/test-utils": "link:../../../test-utils",
     "@sentry/browser": "latest || *",
     "webpack": "^4.47.0",
     "terser-webpack-plugin": "^4.2.3",

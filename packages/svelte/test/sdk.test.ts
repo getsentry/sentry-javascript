@@ -1,8 +1,13 @@
+/**
+ * @vitest-environment jsdom
+ */
+
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { SDK_VERSION } from '@sentry/browser';
 import * as SentryBrowser from '@sentry/browser';
-import type { EventProcessor } from '@sentry/types';
+import type { EventProcessor } from '@sentry/core';
 
-import { vi } from 'vitest';
 import { detectAndReportSvelteKit, isSvelteKitApp, init as svelteInit } from '../src/sdk';
 
 let passedEventProcessor: EventProcessor | undefined;
@@ -69,6 +74,14 @@ describe('Initialize Svelte SDk', () => {
         },
       }),
     );
+  });
+
+  it('returns client from init', () => {
+    const client = svelteInit({
+      dsn: 'https://public@dsn.ingest.sentry.io/1337',
+    });
+
+    expect(client).not.toBeUndefined();
   });
 });
 

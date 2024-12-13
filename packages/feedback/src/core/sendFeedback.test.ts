@@ -49,7 +49,7 @@ describe('sendFeedback', () => {
         event_id: expect.any(String),
         sent_at: expect.any(String),
         trace: {
-          trace_id: expect.any(String),
+          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
           environment: 'production',
           public_key: 'dsn',
         },
@@ -61,8 +61,8 @@ describe('sendFeedback', () => {
             breadcrumbs: undefined,
             contexts: {
               trace: {
-                span_id: expect.any(String),
-                trace_id: expect.any(String),
+                span_id: expect.stringMatching(/[a-f0-9]{16}/),
+                trace_id: expect.stringMatching(/[a-f0-9]{32}/),
               },
               feedback: {
                 message: 'mi',
@@ -105,7 +105,7 @@ describe('sendFeedback', () => {
         event_id: expect.any(String),
         sent_at: expect.any(String),
         trace: {
-          trace_id: expect.any(String),
+          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
           environment: 'production',
           public_key: 'dsn',
         },
@@ -117,8 +117,8 @@ describe('sendFeedback', () => {
             breadcrumbs: undefined,
             contexts: {
               trace: {
-                span_id: expect.any(String),
-                trace_id: expect.any(String),
+                span_id: expect.stringMatching(/[a-f0-9]{16}/),
+                trace_id: expect.stringMatching(/[a-f0-9]{32}/),
               },
               feedback: {
                 name: 'doe',
@@ -157,7 +157,7 @@ describe('sendFeedback', () => {
         event_id: expect.any(String),
         sent_at: expect.any(String),
         trace: {
-          trace_id: expect.any(String),
+          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
           environment: 'production',
           public_key: 'dsn',
           sample_rate: '1',
@@ -172,8 +172,8 @@ describe('sendFeedback', () => {
             breadcrumbs: undefined,
             contexts: {
               trace: {
-                span_id: expect.any(String),
-                trace_id: expect.any(String),
+                span_id: expect.stringMatching(/[a-f0-9]{16}/),
+                trace_id: expect.stringMatching(/[a-f0-9]{32}/),
               },
               feedback: {
                 contact_email: 're@example.org',
@@ -221,7 +221,7 @@ describe('sendFeedback', () => {
         event_id: expect.any(String),
         sent_at: expect.any(String),
         trace: {
-          trace_id: expect.any(String),
+          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
           environment: 'production',
           public_key: 'dsn',
         },
@@ -233,8 +233,8 @@ describe('sendFeedback', () => {
             breadcrumbs: [{ message: 'test breadcrumb', timestamp: 12345 }],
             contexts: {
               trace: {
-                span_id: expect.any(String),
-                trace_id: expect.any(String),
+                span_id: expect.stringMatching(/[a-f0-9]{16}/),
+                trace_id: expect.stringMatching(/[a-f0-9]{32}/),
               },
               feedback: {
                 contact_email: 're@example.org',
@@ -275,7 +275,9 @@ describe('sendFeedback', () => {
         email: 're@example.org',
         message: 'mi',
       }),
-    ).rejects.toMatch('Unable to send Feedback. Invalid response from server.');
+    ).rejects.toMatch(
+      'Unable to send Feedback. This could be because of network issues, or because you are using an ad-blocker',
+    );
   });
 
   it('handles 0 transport error', async () => {
@@ -367,12 +369,12 @@ describe('sendFeedback', () => {
 
     const [feedbackEnvelope] = mockTransport.mock.calls;
 
-    expect(feedbackEnvelope[0]).toEqual([
+    expect(feedbackEnvelope?.[0]).toEqual([
       {
         event_id: eventId,
         sent_at: expect.any(String),
         trace: {
-          trace_id: expect.any(String),
+          trace_id: expect.stringMatching(/[a-f0-9]{32}/),
           environment: 'production',
           public_key: 'dsn',
         },
@@ -384,8 +386,8 @@ describe('sendFeedback', () => {
             breadcrumbs: undefined,
             contexts: {
               trace: {
-                span_id: expect.any(String),
-                trace_id: expect.any(String),
+                span_id: expect.stringMatching(/[a-f0-9]{16}/),
+                trace_id: expect.stringMatching(/[a-f0-9]{32}/),
               },
               feedback: {
                 contact_email: 're@example.org',

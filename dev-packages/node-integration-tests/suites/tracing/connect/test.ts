@@ -1,7 +1,5 @@
 import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
 
-jest.setTimeout(20000);
-
 describe('connect auto-instrumentation', () => {
   afterAll(async () => {
     cleanupChildProcesses();
@@ -15,7 +13,6 @@ describe('connect auto-instrumentation', () => {
           'connect.name': '/',
           'connect.type': 'request_handler',
           'http.route': '/',
-          'otel.kind': 'INTERNAL',
           'sentry.origin': 'auto.http.otel.connect',
           'sentry.op': 'request_handler.connect',
         }),
@@ -47,8 +44,7 @@ describe('connect auto-instrumentation', () => {
 
   test('CJS - should capture errors in `connect` middleware.', done => {
     createRunner(__dirname, 'scenario.js')
-      .ignore('transaction', 'session', 'sessions')
-      .expectError()
+      .ignore('transaction')
       .expect({ event: EXPECTED_EVENT })
       .start(done)
       .makeRequest('get', '/error');
@@ -56,9 +52,8 @@ describe('connect auto-instrumentation', () => {
 
   test('CJS - should report errored transactions.', done => {
     createRunner(__dirname, 'scenario.js')
-      .ignore('event', 'session', 'sessions')
+      .ignore('event')
       .expect({ transaction: { transaction: 'GET /error' } })
-      .expectError()
       .start(done)
       .makeRequest('get', '/error');
   });

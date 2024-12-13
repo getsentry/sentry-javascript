@@ -1,20 +1,28 @@
 import {
+  addNonEnumerableProperty,
+  extractQueryParamsFromUrl,
+  logger,
+  objectify,
+  stripUrlQueryAndFragment,
+  vercelWaitUntil,
+  winterCGRequestToRequestData,
+} from '@sentry/core';
+import type { RequestEventData, Scope, SpanAttributes } from '@sentry/core';
+import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   captureException,
   continueTrace,
+  flush,
   getActiveSpan,
   getClient,
   getCurrentScope,
+  getTraceMetaTags,
   setHttpStatus,
   startSpan,
   withIsolationScope,
 } from '@sentry/node';
-import type { Client, Scope, Span, SpanAttributes } from '@sentry/types';
-import { addNonEnumerableProperty, objectify, stripUrlQueryAndFragment } from '@sentry/utils';
 import type { APIContext, MiddlewareResponseHandler } from 'astro';
-
-import { getTracingMetaTags } from './meta';
 
 type MiddlewareOptions = {
   /**
@@ -85,19 +93,35 @@ async function instrumentRequest(
   }
   addNonEnumerableProperty(locals, '__sentry_wrapped__', true);
 
-  const { method, headers } = ctx.request;
+  const isDynamicPageRequest = checkIsDynamicPageRequest(ctx);
+
+  const request = ctx.request;
+
+  const { method, headers } = isDynamicPageRequest
+    ? request
+    : // headers can only be accessed in dynamic routes. Accessing `request.headers` in a static route
+      // will make the server log a warning.
+      { method: request.method, headers: undefined };
 
   return continueTrace(
     {
-      sentryTrace: headers.get('sentry-trace') || undefined,
-      baggage: headers.get('baggage'),
+      sentryTrace: headers?.get('sentry-trace') || undefined,
+      baggage: headers?.get('baggage'),
     },
     async () => {
-      // We store this on the current scope, not isolation scope,
-      // because we may have multiple requests nested inside each other
-      getCurrentScope().setSDKProcessingMetadata({ request: ctx.request });
+      getCurrentScope().setSDKProcessingMetadata({
+        // We store the request on the current scope, not isolation scope,
+        // because we may have multiple requests nested inside each other
+        normalizedRequest: (isDynamicPageRequest
+          ? winterCGRequestToRequestData(request)
+          : {
+              method,
+              url: request.url,
+              query_string: extractQueryParamsFromUrl(request.url),
+            }) satisfies RequestEventData,
+      });
 
-      if (options.trackClientIp) {
+      if (options.trackClientIp && isDynamicPageRequest) {
         getCurrentScope().setUser({ ip_address: ctx.clientAddress });
       }
 
@@ -131,50 +155,61 @@ async function instrumentRequest(
             op: 'http.server',
           },
           async span => {
-            const originalResponse = await next();
+            try {
+              const originalResponse = await next();
+              if (originalResponse.status) {
+                setHttpStatus(span, originalResponse.status);
+              }
 
-            if (span && originalResponse.status) {
-              setHttpStatus(span, originalResponse.status);
+              const client = getClient();
+              const contentType = originalResponse.headers.get('content-type');
+
+              const isPageloadRequest = contentType && contentType.startsWith('text/html');
+              if (!isPageloadRequest || !client) {
+                return originalResponse;
+              }
+
+              // Type case necessary b/c the body's ReadableStream type doesn't include
+              // the async iterator that is actually available in Node
+              // We later on use the async iterator to read the body chunks
+              // see https://github.com/microsoft/TypeScript/issues/39051
+              const originalBody = originalResponse.body as NodeJS.ReadableStream | null;
+              if (!originalBody) {
+                return originalResponse;
+              }
+
+              const decoder = new TextDecoder();
+
+              const newResponseStream = new ReadableStream({
+                start: async controller => {
+                  for await (const chunk of originalBody) {
+                    const html = typeof chunk === 'string' ? chunk : decoder.decode(chunk, { stream: true });
+                    const modifiedHtml = addMetaTagToHead(html);
+                    controller.enqueue(new TextEncoder().encode(modifiedHtml));
+                  }
+                  controller.close();
+                },
+              });
+
+              return new Response(newResponseStream, originalResponse);
+            } catch (e) {
+              sendErrorToSentry(e);
+              throw e;
             }
-
-            const scope = getCurrentScope();
-            const client = getClient();
-            const contentType = originalResponse.headers.get('content-type');
-
-            const isPageloadRequest = contentType && contentType.startsWith('text/html');
-            if (!isPageloadRequest || !client) {
-              return originalResponse;
-            }
-
-            // Type case necessary b/c the body's ReadableStream type doesn't include
-            // the async iterator that is actually available in Node
-            // We later on use the async iterator to read the body chunks
-            // see https://github.com/microsoft/TypeScript/issues/39051
-            const originalBody = originalResponse.body as NodeJS.ReadableStream | null;
-            if (!originalBody) {
-              return originalResponse;
-            }
-
-            const decoder = new TextDecoder();
-
-            const newResponseStream = new ReadableStream({
-              start: async controller => {
-                for await (const chunk of originalBody) {
-                  const html = typeof chunk === 'string' ? chunk : decoder.decode(chunk, { stream: true });
-                  const modifiedHtml = addMetaTagToHead(html, scope, client, span);
-                  controller.enqueue(new TextEncoder().encode(modifiedHtml));
-                }
-                controller.close();
-              },
-            });
-
-            return new Response(newResponseStream, originalResponse);
           },
         );
         return res;
-      } catch (e) {
-        sendErrorToSentry(e);
-        throw e;
+      } finally {
+        vercelWaitUntil(
+          (async () => {
+            // Flushes pending Sentry events with a 2-second timeout and in a way that cannot create unhandled promise rejections.
+            try {
+              await flush(2000);
+            } catch (e) {
+              logger.log('Error while flushing events:\n', e);
+            }
+          })(),
+        );
       }
       // TODO: flush if serverless (first extract function)
     },
@@ -185,13 +220,18 @@ async function instrumentRequest(
  * This function optimistically assumes that the HTML coming in chunks will not be split
  * within the <head> tag. If this still happens, we simply won't replace anything.
  */
-function addMetaTagToHead(htmlChunk: string, scope: Scope, client: Client, span?: Span): string {
+function addMetaTagToHead(htmlChunk: string): string {
   if (typeof htmlChunk !== 'string') {
     return htmlChunk;
   }
+  const metaTags = getTraceMetaTags();
 
-  const { sentryTrace, baggage } = getTracingMetaTags(span, scope, client);
-  const content = `<head>\n${sentryTrace}\n${baggage}\n`;
+  if (!metaTags) {
+    return htmlChunk;
+  }
+
+  const content = `<head>${metaTags}`;
+
   return htmlChunk.replace('<head>', content);
 }
 
@@ -271,5 +311,18 @@ function tryDecodeUrl(url: string): string | undefined {
     return decodeURI(url);
   } catch {
     return undefined;
+  }
+}
+
+/**
+ * Checks if the incoming request is a request for a dynamic (server-side rendered) page.
+ * We can check this by looking at the middleware's `clientAddress` context property because accessing
+ * this prop in a static route will throw an error which we can conveniently catch.
+ */
+function checkIsDynamicPageRequest(context: Parameters<MiddlewareResponseHandler>[0]): boolean {
+  try {
+    return context.clientAddress != null;
+  } catch {
+    return false;
   }
 }

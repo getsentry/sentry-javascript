@@ -3,7 +3,7 @@ import { expect } from '@playwright/test';
 import { sentryTest } from '../../../utils/fixtures';
 import { getReplayEvent, shouldSkipReplayTest, waitForReplayRequest } from '../../../utils/replayHelpers';
 
-sentryTest('should capture replays offline', async ({ getLocalTestPath, page }) => {
+sentryTest('should capture replays offline', async ({ getLocalTestUrl, page }) => {
   // makeBrowserOfflineTransport is not included in any CDN bundles
   if (shouldSkipReplayTest() || (process.env.PW_BUNDLE && process.env.PW_BUNDLE.startsWith('bundle'))) {
     sentryTest.skip();
@@ -12,15 +12,7 @@ sentryTest('should capture replays offline', async ({ getLocalTestPath, page }) 
   const reqPromise0 = waitForReplayRequest(page, 0);
   const reqPromise1 = waitForReplayRequest(page, 1);
 
-  await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-    return route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ id: 'test-id' }),
-    });
-  });
-
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
 
   // This would be the obvious way to test offline support but it doesn't appear to work!
   // await context.setOffline(true);

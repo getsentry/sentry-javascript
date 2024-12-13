@@ -1,8 +1,9 @@
-import type { AttachmentItem, EventEnvelope, EventItem, TransportMakeRequestResponse } from '@sentry/types';
-import type { PromiseBuffer } from '@sentry/utils';
-import { createEnvelope, resolvedSyncPromise, serializeEnvelope } from '@sentry/utils';
+import type { AttachmentItem, EventEnvelope, EventItem, TransportMakeRequestResponse } from '../../../src/types-hoist';
 
 import { createTransport } from '../../../src/transports/base';
+import { createEnvelope, serializeEnvelope } from '../../../src/utils-hoist/envelope';
+import type { PromiseBuffer } from '../../../src/utils-hoist/promisebuffer';
+import { resolvedSyncPromise } from '../../../src/utils-hoist/syncpromise';
 
 const ERROR_ENVELOPE = createEnvelope<EventEnvelope>({ event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2', sent_at: '123' }, [
   [{ type: 'event' }, { event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2' }] as EventItem,

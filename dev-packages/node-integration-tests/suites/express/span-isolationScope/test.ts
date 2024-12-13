@@ -6,7 +6,6 @@ afterAll(() => {
 
 test('correctly applies isolation scope to span', done => {
   createRunner(__dirname, 'server.ts')
-    .ignore('session', 'sessions')
     .expect({
       transaction: {
         transaction: 'GET /test/isolationScope',

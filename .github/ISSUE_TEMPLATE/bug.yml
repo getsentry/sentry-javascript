@@ -1,6 +1,6 @@
 name: 🐞 Bug Report
 description: Tell us about something that's not working the way we (probably) intend.
-labels: ['Type: Bug']
+type: 'bug'
 body:
   - type: checkboxes
     attributes:
@@ -31,18 +31,23 @@ body:
         setup.
       options:
         - '@sentry/browser'
-        - '@sentry/astro'
+        - '@sentry/node'
         - '@sentry/angular'
+        - '@sentry/astro'
         - '@sentry/aws-serverless'
         - '@sentry/bun'
+        - '@sentry/cloudflare'
         - '@sentry/deno'
         - '@sentry/ember'
         - '@sentry/gatsby'
         - '@sentry/google-cloud-serverless'
+        - '@sentry/nestjs'
         - '@sentry/nextjs'
-        - '@sentry/node'
+        - '@sentry/nuxt'
         - '@sentry/react'
         - '@sentry/remix'
+        - '@sentry/solid'
+        - '@sentry/solidstart'
         - '@sentry/svelte'
         - '@sentry/sveltekit'
         - '@sentry/vue'
@@ -56,7 +61,7 @@ body:
     attributes:
       label: SDK Version
       description: What version of the SDK are you using?
-      placeholder: ex. 7.8.0
+      placeholder: ex. 8.10.0
     validations:
       required: true
   - type: input
@@ -66,21 +71,26 @@ body:
       description:
         If you're using one of our framework-specific SDKs (`@sentry/react`, for example), what version of the
         _framework_ are you using?
-      placeholder: ex. React 17.0.0
+      placeholder: ex. React 18.3.0 or Next 14.0.0
   - type: input
     id: link-to-sentry
     attributes:
       label: Link to Sentry event
       description:
         If applicable, please provide a link to the affected event from your Sentry account. The event will only be
-        viewable by Sentry staff.
+        viewable by Sentry staff; however, the event URL will still appear on your public GitHub issue.
       placeholder: https://sentry.io/organizations/<org-slug>/issues/<issue-id>/events/<event-id>/?project=<project-id>
   - type: textarea
     id: sdk-setup
     attributes:
-      label: SDK Setup
-      description: How do you set up your Sentry SDK? Please show us your `Sentry.init` options.
+      label: Reproduction Example/SDK Setup
+      description:
+        To ensure that we can help you as fast as possible, please share a link to a reproduction example (GitHub repo or online code editor).
+        This enables us to quickly understand and address your issue.
+        If you do not post a link, kindly paste your `Sentry.init` code, so we can see how you set up Sentry.
       placeholder: |-
+        https://some-JS-online-code-editor.com/my-example
+
         ```javascript
         Sentry.init({
           dsn: __YOUR_DSN__

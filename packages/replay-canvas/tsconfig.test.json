@@ -1,10 +1,11 @@
 {
   "extends": "./tsconfig.json",
 
-  "include": ["test/**/*.ts", "jest.config.ts", "jest.setup.ts"],
+  "include": ["test/**/*.ts", "vite.config.ts"],
 
   "compilerOptions": {
-    "types": ["node", "jest"],
+    "lib": ["DOM", "ES2018"],
+    "types": ["node"],
     "esModuleInterop": true,
     "allowJs": true,
     "noImplicitAny": true,

@@ -1,13 +1,19 @@
 /* eslint-disable max-lines */
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, getActiveSpan, startInactiveSpan } from '@sentry/core';
-import { setMeasurement } from '@sentry/core';
-import type { Measurements, Span, SpanAttributes, StartSpanOptions } from '@sentry/types';
-import { browserPerformanceTimeOrigin, getComponentName, htmlTreeAsString, logger, parseUrl } from '@sentry/utils';
-
-import { spanToJSON } from '@sentry/core';
-import { DEBUG_BUILD } from '../debug-build';
-import { WINDOW } from '../types';
+import type { Measurements, Span, SpanAttributes, StartSpanOptions } from '@sentry/core';
 import {
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  browserPerformanceTimeOrigin,
+  getActiveSpan,
+  getComponentName,
+  htmlTreeAsString,
+  parseUrl,
+  setMeasurement,
+  spanToJSON,
+} from '@sentry/core';
+import { WINDOW } from '../types';
+import { trackClsAsStandaloneSpan } from './cls';
+import {
+  type PerformanceLongAnimationFrameTiming,
   addClsInstrumentationHandler,
   addFidInstrumentationHandler,
   addLcpInstrumentationHandler,
@@ -15,6 +21,7 @@ import {
   addTtfbInstrumentationHandler,
 } from './instrument';
 import { getBrowserPerformanceAPI, isMeasurementValue, msToSec, startAndEndSpan } from './utils';
+import { getActivationStart } from './web-vitals/lib/getActivationStart';
 import { getNavigationEntry } from './web-vitals/lib/getNavigationEntry';
 import { getVisibilityWatcher } from './web-vitals/lib/getVisibilityWatcher';
 
@@ -64,29 +71,33 @@ let _measurements: Measurements = {};
 let _lcpEntry: LargestContentfulPaint | undefined;
 let _clsEntry: LayoutShift | undefined;
 
+interface StartTrackingWebVitalsOptions {
+  recordClsStandaloneSpans: boolean;
+}
+
 /**
  * Start tracking web vitals.
  * The callback returned by this function can be used to stop tracking & ensure all measurements are final & captured.
  *
  * @returns A function that forces web vitals collection
  */
-export function startTrackingWebVitals(): () => void {
+export function startTrackingWebVitals({ recordClsStandaloneSpans }: StartTrackingWebVitalsOptions): () => void {
   const performance = getBrowserPerformanceAPI();
   if (performance && browserPerformanceTimeOrigin) {
     // @ts-expect-error we want to make sure all of these are available, even if TS is sure they are
     if (performance.mark) {
       WINDOW.performance.mark('sentry-tracing-init');
     }
-    const fidCallback = _trackFID();
-    const clsCallback = _trackCLS();
-    const lcpCallback = _trackLCP();
-    const ttfbCallback = _trackTtfb();
+    const fidCleanupCallback = _trackFID();
+    const lcpCleanupCallback = _trackLCP();
+    const ttfbCleanupCallback = _trackTtfb();
+    const clsCleanupCallback = recordClsStandaloneSpans ? trackClsAsStandaloneSpan() : _trackCLS();
 
     return (): void => {
-      fidCallback();
-      clsCallback();
-      lcpCallback();
-      ttfbCallback();
+      fidCleanupCallback();
+      lcpCleanupCallback();
+      ttfbCleanupCallback();
+      clsCleanupCallback && clsCleanupCallback();
     };
   }
 
@@ -98,26 +109,94 @@ export function startTrackingWebVitals(): () => void {
  */
 export function startTrackingLongTasks(): void {
   addPerformanceInstrumentationHandler('longtask', ({ entries }) => {
+    const parent = getActiveSpan();
+    if (!parent) {
+      return;
+    }
+
+    const { op: parentOp, start_timestamp: parentStartTimestamp } = spanToJSON(parent);
+
     for (const entry of entries) {
-      if (!getActiveSpan()) {
-        return;
-      }
       const startTime = msToSec((browserPerformanceTimeOrigin as number) + entry.startTime);
       const duration = msToSec(entry.duration);
 
-      const span = startInactiveSpan({
+      if (parentOp === 'navigation' && parentStartTimestamp && startTime < parentStartTimestamp) {
+        // Skip adding a span if the long task started before the navigation started.
+        // `startAndEndSpan` will otherwise adjust the parent's start time to the span's start
+        // time, potentially skewing the duration of the actual navigation as reported via our
+        // routing instrumentations
+        continue;
+      }
+
+      startAndEndSpan(parent, startTime, startTime + duration, {
         name: 'Main UI thread blocked',
         op: 'ui.long-task',
-        startTime,
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.browser.metrics',
         },
       });
-      if (span) {
-        span.end(startTime + duration);
-      }
     }
   });
+}
+
+/**
+ * Start tracking long animation frames.
+ */
+export function startTrackingLongAnimationFrames(): void {
+  // NOTE: the current web-vitals version (3.5.2) does not support long-animation-frame, so
+  // we directly observe `long-animation-frame` events instead of through the web-vitals
+  // `observe` helper function.
+  const observer = new PerformanceObserver(list => {
+    const parent = getActiveSpan();
+    if (!parent) {
+      return;
+    }
+    for (const entry of list.getEntries() as PerformanceLongAnimationFrameTiming[]) {
+      if (!entry.scripts[0]) {
+        continue;
+      }
+
+      const startTime = msToSec((browserPerformanceTimeOrigin as number) + entry.startTime);
+
+      const { start_timestamp: parentStartTimestamp, op: parentOp } = spanToJSON(parent);
+
+      if (parentOp === 'navigation' && parentStartTimestamp && startTime < parentStartTimestamp) {
+        // Skip adding the span if the long animation frame started before the navigation started.
+        // `startAndEndSpan` will otherwise adjust the parent's start time to the span's start
+        // time, potentially skewing the duration of the actual navigation as reported via our
+        // routing instrumentations
+        continue;
+      }
+
+      const duration = msToSec(entry.duration);
+
+      const attributes: SpanAttributes = {
+        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.browser.metrics',
+      };
+
+      const initialScript = entry.scripts[0];
+      const { invoker, invokerType, sourceURL, sourceFunctionName, sourceCharPosition } = initialScript;
+      attributes['browser.script.invoker'] = invoker;
+      attributes['browser.script.invoker_type'] = invokerType;
+      if (sourceURL) {
+        attributes['code.filepath'] = sourceURL;
+      }
+      if (sourceFunctionName) {
+        attributes['code.function'] = sourceFunctionName;
+      }
+      if (sourceCharPosition !== -1) {
+        attributes['browser.script.source_char_position'] = sourceCharPosition;
+      }
+
+      startAndEndSpan(parent, startTime, startTime + duration, {
+        name: 'Main UI thread blocked',
+        op: 'ui.long-animation-frame',
+        attributes,
+      });
+    }
+  });
+
+  observer.observe({ type: 'long-animation-frame', buffered: true });
 }
 
 /**
@@ -125,11 +204,11 @@ export function startTrackingLongTasks(): void {
  */
 export function startTrackingInteractions(): void {
   addPerformanceInstrumentationHandler('event', ({ entries }) => {
+    const parent = getActiveSpan();
+    if (!parent) {
+      return;
+    }
     for (const entry of entries) {
-      if (!getActiveSpan()) {
-        return;
-      }
-
       if (entry.name === 'click') {
         const startTime = msToSec((browserPerformanceTimeOrigin as number) + entry.startTime);
         const duration = msToSec(entry.duration);
@@ -148,28 +227,26 @@ export function startTrackingInteractions(): void {
           spanOptions.attributes['ui.component_name'] = componentName;
         }
 
-        const span = startInactiveSpan(spanOptions);
-        if (span) {
-          span.end(startTime + duration);
-        }
+        startAndEndSpan(parent, startTime, startTime + duration, spanOptions);
       }
     }
   });
 }
 
-export { startTrackingINP } from './inp';
+export { registerInpInteractionListener, startTrackingINP } from './inp';
 
-/** Starts tracking the Cumulative Layout Shift on the current page. */
+/**
+ * Starts tracking the Cumulative Layout Shift on the current page and collects the value and last entry
+ * to the `_measurements` object which ultimately is applied to the pageload span's measurements.
+ */
 function _trackCLS(): () => void {
   return addClsInstrumentationHandler(({ metric }) => {
-    const entry = metric.entries[metric.entries.length - 1];
+    const entry = metric.entries[metric.entries.length - 1] as LayoutShift | undefined;
     if (!entry) {
       return;
     }
-
-    DEBUG_BUILD && logger.log('[Measurements] Adding CLS');
     _measurements['cls'] = { value: metric.value, unit: '' };
-    _clsEntry = entry as LayoutShift;
+    _clsEntry = entry;
   }, true);
 }
 
@@ -181,7 +258,6 @@ function _trackLCP(): () => void {
       return;
     }
 
-    DEBUG_BUILD && logger.log('[Measurements] Adding LCP');
     _measurements['lcp'] = { value: metric.value, unit: 'millisecond' };
     _lcpEntry = entry as LargestContentfulPaint;
   }, true);
@@ -197,7 +273,6 @@ function _trackFID(): () => void {
 
     const timeOrigin = msToSec(browserPerformanceTimeOrigin as number);
     const startTime = msToSec(entry.startTime);
-    DEBUG_BUILD && logger.log('[Measurements] Adding FID');
     _measurements['fid'] = { value: metric.value, unit: 'millisecond' };
     _measurements['mark.fid'] = { value: timeOrigin + startTime, unit: 'second' };
   });
@@ -210,30 +285,41 @@ function _trackTtfb(): () => void {
       return;
     }
 
-    DEBUG_BUILD && logger.log('[Measurements] Adding TTFB');
     _measurements['ttfb'] = { value: metric.value, unit: 'millisecond' };
   });
 }
 
+interface AddPerformanceEntriesOptions {
+  /**
+   * Flag to determine if CLS should be recorded as a measurement on the span or
+   * sent as a standalone span instead.
+   */
+  recordClsOnPageloadSpan: boolean;
+}
+
 /** Add performance related spans to a transaction */
-export function addPerformanceEntries(span: Span): void {
+export function addPerformanceEntries(span: Span, options: AddPerformanceEntriesOptions): void {
   const performance = getBrowserPerformanceAPI();
-  if (!performance || !WINDOW.performance.getEntries || !browserPerformanceTimeOrigin) {
+  if (!performance || !performance.getEntries || !browserPerformanceTimeOrigin) {
     // Gatekeeper if performance API not available
     return;
   }
 
-  DEBUG_BUILD && logger.log('[Tracing] Adding & adjusting spans using Performance API');
   const timeOrigin = msToSec(browserPerformanceTimeOrigin);
 
   const performanceEntries = performance.getEntries();
 
   const { op, start_timestamp: transactionStartTime } = spanToJSON(span);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  performanceEntries.slice(_performanceCursor).forEach((entry: Record<string, any>) => {
+  performanceEntries.slice(_performanceCursor).forEach(entry => {
     const startTime = msToSec(entry.startTime);
-    const duration = msToSec(entry.duration);
+    const duration = msToSec(
+      // Inexplicably, Chrome sometimes emits a negative duration. We need to work around this.
+      // There is a SO post attempting to explain this, but it leaves one with open questions: https://stackoverflow.com/questions/23191918/peformance-getentries-and-negative-duration-display
+      // The way we clamp the value is probably not accurate, since we have observed this happen for things that may take a while to load, like for example the replay worker.
+      // TODO: Investigate why this happens and how to properly mitigate. For now, this is a workaround to prevent transactions being dropped due to negative duration spans.
+      Math.max(0, entry.duration),
+    );
 
     if (op === 'navigation' && transactionStartTime && timeOrigin + startTime < transactionStartTime) {
       return;
@@ -241,7 +327,7 @@ export function addPerformanceEntries(span: Span): void {
 
     switch (entry.entryType) {
       case 'navigation': {
-        _addNavigationSpans(span, entry, timeOrigin);
+        _addNavigationSpans(span, entry as PerformanceNavigationTiming, timeOrigin);
         break;
       }
       case 'mark':
@@ -255,20 +341,17 @@ export function addPerformanceEntries(span: Span): void {
         const shouldRecord = entry.startTime < firstHidden.firstHiddenTime;
 
         if (entry.name === 'first-paint' && shouldRecord) {
-          DEBUG_BUILD && logger.log('[Measurements] Adding FP');
           _measurements['fp'] = { value: entry.startTime, unit: 'millisecond' };
         }
         if (entry.name === 'first-contentful-paint' && shouldRecord) {
-          DEBUG_BUILD && logger.log('[Measurements] Adding FCP');
           _measurements['fcp'] = { value: entry.startTime, unit: 'millisecond' };
         }
         break;
       }
       case 'resource': {
-        _addResourceSpans(span, entry, entry.name as string, startTime, duration, timeOrigin);
+        _addResourceSpans(span, entry as PerformanceResourceTiming, entry.name, startTime, duration, timeOrigin);
         break;
       }
-      default:
       // Ignore other entry types.
     }
   });
@@ -280,24 +363,6 @@ export function addPerformanceEntries(span: Span): void {
   // Measurements are only available for pageload transactions
   if (op === 'pageload') {
     _addTtfbRequestTimeToMeasurements(_measurements);
-
-    ['fcp', 'fp', 'lcp'].forEach(name => {
-      if (!_measurements[name] || !transactionStartTime || timeOrigin >= transactionStartTime) {
-        return;
-      }
-      // The web vitals, fcp, fp, lcp, and ttfb, all measure relative to timeOrigin.
-      // Unfortunately, timeOrigin is not captured within the span span data, so these web vitals will need
-      // to be adjusted to be relative to span.startTimestamp.
-      const oldValue = _measurements[name].value;
-      const measurementTimestamp = timeOrigin + msToSec(oldValue);
-
-      // normalizedValue should be in milliseconds
-      const normalizedValue = Math.abs((measurementTimestamp - transactionStartTime) * 1000);
-      const delta = normalizedValue - oldValue;
-
-      DEBUG_BUILD && logger.log(`[Measurements] Normalized ${name} from ${oldValue} to ${normalizedValue} (${delta})`);
-      _measurements[name].value = normalizedValue;
-    });
 
     const fidMark = _measurements['mark.fid'];
     if (fidMark && _measurements['fid']) {
@@ -316,15 +381,27 @@ export function addPerformanceEntries(span: Span): void {
 
     // If FCP is not recorded we should not record the cls value
     // according to the new definition of CLS.
-    if (!('fcp' in _measurements)) {
+    // TODO: Check if the first condition is still necessary: `onCLS` already only fires once `onFCP` was called.
+    if (!('fcp' in _measurements) || !options.recordClsOnPageloadSpan) {
       delete _measurements.cls;
     }
 
-    Object.keys(_measurements).forEach(measurementName => {
-      setMeasurement(measurementName, _measurements[measurementName].value, _measurements[measurementName].unit);
+    Object.entries(_measurements).forEach(([measurementName, measurement]) => {
+      setMeasurement(measurementName, measurement.value, measurement.unit);
     });
 
-    _tagMetricInfo(span);
+    // Set timeOrigin which denotes the timestamp which to base the LCP/FCP/FP/TTFB measurements on
+    span.setAttribute('performance.timeOrigin', timeOrigin);
+
+    // In prerendering scenarios, where a page might be prefetched and pre-rendered before the user clicks the link,
+    // the navigation starts earlier than when the user clicks it. Web Vitals should always be based on the
+    // user-perceived time, so they are not reported from the actual start of the navigation, but rather from the
+    // time where the user actively started the navigation, for example by clicking a link.
+    // This is user action is called "activation" and the time between navigation and activation is stored in
+    // the `activationStart` attribute of the "navigation" PerformanceEntry.
+    span.setAttribute('performance.activationStart', getActivationStart());
+
+    _setWebVitalAttributes(span);
   }
 
   _lcpEntry = undefined;
@@ -332,113 +409,150 @@ export function addPerformanceEntries(span: Span): void {
   _measurements = {};
 }
 
-/** Create measure related spans */
+/**
+ * Create measure related spans.
+ * Exported only for tests.
+ */
 export function _addMeasureSpans(
   span: Span,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  entry: Record<string, any>,
+  entry: PerformanceEntry,
   startTime: number,
   duration: number,
   timeOrigin: number,
 ): number {
-  const measureStartTimestamp = timeOrigin + startTime;
-  const measureEndTimestamp = measureStartTimestamp + duration;
+  const navEntry = getNavigationEntry(false);
+  const requestTime = msToSec(navEntry ? navEntry.requestStart : 0);
+  // Because performance.measure accepts arbitrary timestamps it can produce
+  // spans that happen before the browser even makes a request for the page.
+  //
+  // An example of this is the automatically generated Next.js-before-hydration
+  // spans created by the Next.js framework.
+  //
+  // To prevent this we will pin the start timestamp to the request start time
+  // This does make duration inaccurate, so if this does happen, we will add
+  // an attribute to the span
+  const measureStartTimestamp = timeOrigin + Math.max(startTime, requestTime);
+  const startTimeStamp = timeOrigin + startTime;
+  const measureEndTimestamp = startTimeStamp + duration;
+
+  const attributes: SpanAttributes = {
+    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.resource.browser.metrics',
+  };
+
+  if (measureStartTimestamp !== startTimeStamp) {
+    attributes['sentry.browser.measure_happened_before_request'] = true;
+    attributes['sentry.browser.measure_start_time'] = measureStartTimestamp;
+  }
 
   startAndEndSpan(span, measureStartTimestamp, measureEndTimestamp, {
     name: entry.name as string,
     op: entry.entryType as string,
-    attributes: {
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.resource.browser.metrics',
-    },
+    attributes,
   });
 
   return measureStartTimestamp;
 }
 
 /** Instrument navigation entries */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function _addNavigationSpans(span: Span, entry: Record<string, any>, timeOrigin: number): void {
-  ['unloadEvent', 'redirect', 'domContentLoadedEvent', 'loadEvent', 'connect'].forEach(event => {
+function _addNavigationSpans(span: Span, entry: PerformanceNavigationTiming, timeOrigin: number): void {
+  (['unloadEvent', 'redirect', 'domContentLoadedEvent', 'loadEvent', 'connect'] as const).forEach(event => {
     _addPerformanceNavigationTiming(span, entry, event, timeOrigin);
   });
-  _addPerformanceNavigationTiming(span, entry, 'secureConnection', timeOrigin, 'TLS/SSL', 'connectEnd');
-  _addPerformanceNavigationTiming(span, entry, 'fetch', timeOrigin, 'cache', 'domainLookupStart');
+  _addPerformanceNavigationTiming(span, entry, 'secureConnection', timeOrigin, 'TLS/SSL');
+  _addPerformanceNavigationTiming(span, entry, 'fetch', timeOrigin, 'cache');
   _addPerformanceNavigationTiming(span, entry, 'domainLookup', timeOrigin, 'DNS');
+
   _addRequest(span, entry, timeOrigin);
 }
+
+type StartEventName =
+  | 'secureConnection'
+  | 'fetch'
+  | 'domainLookup'
+  | 'unloadEvent'
+  | 'redirect'
+  | 'connect'
+  | 'domContentLoadedEvent'
+  | 'loadEvent';
+
+type EndEventName =
+  | 'connectEnd'
+  | 'domainLookupStart'
+  | 'domainLookupEnd'
+  | 'unloadEventEnd'
+  | 'redirectEnd'
+  | 'connectEnd'
+  | 'domContentLoadedEventEnd'
+  | 'loadEventEnd';
 
 /** Create performance navigation related spans */
 function _addPerformanceNavigationTiming(
   span: Span,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  entry: Record<string, any>,
-  event: string,
+  entry: PerformanceNavigationTiming,
+  event: StartEventName,
   timeOrigin: number,
-  name?: string,
-  eventEnd?: string,
+  name: string = event,
 ): void {
-  const end = eventEnd ? (entry[eventEnd] as number | undefined) : (entry[`${event}End`] as number | undefined);
-  const start = entry[`${event}Start`] as number | undefined;
+  const eventEnd = _getEndPropertyNameForNavigationTiming(event) satisfies keyof PerformanceNavigationTiming;
+  const end = entry[eventEnd];
+  const start = entry[`${event}Start`];
   if (!start || !end) {
     return;
   }
   startAndEndSpan(span, timeOrigin + msToSec(start), timeOrigin + msToSec(end), {
-    op: 'browser',
-    name: name || event,
+    op: `browser.${name}`,
+    name: entry.name,
     attributes: {
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.browser.metrics',
     },
   });
 }
 
+function _getEndPropertyNameForNavigationTiming(event: StartEventName): EndEventName {
+  if (event === 'secureConnection') {
+    return 'connectEnd';
+  }
+  if (event === 'fetch') {
+    return 'domainLookupStart';
+  }
+  return `${event}End`;
+}
+
 /** Create request and response related spans */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function _addRequest(span: Span, entry: Record<string, any>, timeOrigin: number): void {
+function _addRequest(span: Span, entry: PerformanceNavigationTiming, timeOrigin: number): void {
+  const requestStartTimestamp = timeOrigin + msToSec(entry.requestStart as number);
+  const responseEndTimestamp = timeOrigin + msToSec(entry.responseEnd as number);
+  const responseStartTimestamp = timeOrigin + msToSec(entry.responseStart as number);
   if (entry.responseEnd) {
     // It is possible that we are collecting these metrics when the page hasn't finished loading yet, for example when the HTML slowly streams in.
     // In this case, ie. when the document request hasn't finished yet, `entry.responseEnd` will be 0.
     // In order not to produce faulty spans, where the end timestamp is before the start timestamp, we will only collect
     // these spans when the responseEnd value is available. The backend (Relay) would drop the entire span if it contained faulty spans.
-    startAndEndSpan(
-      span,
-      timeOrigin + msToSec(entry.requestStart as number),
-      timeOrigin + msToSec(entry.responseEnd as number),
-      {
-        op: 'browser',
-        name: 'request',
-        attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.browser.metrics',
-        },
+    startAndEndSpan(span, requestStartTimestamp, responseEndTimestamp, {
+      op: 'browser.request',
+      name: entry.name,
+      attributes: {
+        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.browser.metrics',
       },
-    );
+    });
 
-    startAndEndSpan(
-      span,
-      timeOrigin + msToSec(entry.responseStart as number),
-      timeOrigin + msToSec(entry.responseEnd as number),
-      {
-        op: 'browser',
-        name: 'response',
-        attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.browser.metrics',
-        },
+    startAndEndSpan(span, responseStartTimestamp, responseEndTimestamp, {
+      op: 'browser.response',
+      name: entry.name,
+      attributes: {
+        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.browser.metrics',
       },
-    );
+    });
   }
 }
 
-export interface ResourceEntry extends Record<string, unknown> {
-  initiatorType?: string;
-  transferSize?: number;
-  encodedBodySize?: number;
-  decodedBodySize?: number;
-  renderBlockingStatus?: string;
-}
-
-/** Create resource-related spans */
+/**
+ * Create resource-related spans.
+ * Exported only for tests.
+ */
 export function _addResourceSpans(
   span: Span,
-  entry: ResourceEntry,
+  entry: PerformanceResourceTiming,
   resourceUrl: string,
   startTime: number,
   duration: number,
@@ -459,9 +573,19 @@ export function _addResourceSpans(
   setResourceEntrySizeData(attributes, entry, 'encodedBodySize', 'http.response_content_length');
   setResourceEntrySizeData(attributes, entry, 'decodedBodySize', 'http.decoded_response_content_length');
 
-  if ('renderBlockingStatus' in entry) {
-    attributes['resource.render_blocking_status'] = entry.renderBlockingStatus;
+  // `deliveryType` is experimental and does not exist everywhere
+  const deliveryType = (entry as { deliveryType?: 'cache' | 'navigational-prefetch' | '' }).deliveryType;
+  if (deliveryType != null) {
+    attributes['http.response_delivery_type'] = deliveryType;
   }
+
+  // Types do not reflect this property yet
+  const renderBlockingStatus = (entry as { renderBlockingStatus?: 'render-blocking' | 'non-render-blocking' })
+    .renderBlockingStatus;
+  if (renderBlockingStatus) {
+    attributes['resource.render_blocking_status'] = renderBlockingStatus;
+  }
+
   if (parsedUrl.protocol) {
     attributes['url.scheme'] = parsedUrl.protocol.split(':').pop(); // the protocol returned by parseUrl includes a :, but OTEL spec does not, so we remove it.
   }
@@ -517,10 +641,8 @@ function _trackNavigator(span: Span): void {
 }
 
 /** Add LCP / CLS data to span to allow debugging */
-function _tagMetricInfo(span: Span): void {
+function _setWebVitalAttributes(span: Span): void {
   if (_lcpEntry) {
-    DEBUG_BUILD && logger.log('[Measurements] Adding LCP Data');
-
     // Capture Properties of the LCP element that contributes to the LCP.
 
     if (_lcpEntry.element) {
@@ -536,12 +658,23 @@ function _tagMetricInfo(span: Span): void {
       span.setAttribute('lcp.url', _lcpEntry.url.trim().slice(0, 200));
     }
 
+    if (_lcpEntry.loadTime != null) {
+      // loadTime is the time of LCP that's related to receiving the LCP element response..
+      span.setAttribute('lcp.loadTime', _lcpEntry.loadTime);
+    }
+
+    if (_lcpEntry.renderTime != null) {
+      // renderTime is loadTime + rendering time
+      // it's 0 if the LCP element is loaded from a 3rd party origin that doesn't send the
+      // `Timing-Allow-Origin` header.
+      span.setAttribute('lcp.renderTime', _lcpEntry.renderTime);
+    }
+
     span.setAttribute('lcp.size', _lcpEntry.size);
   }
 
   // See: https://developer.mozilla.org/en-US/docs/Web/API/LayoutShift
   if (_clsEntry && _clsEntry.sources) {
-    DEBUG_BUILD && logger.log('[Measurements] Adding CLS Data');
     _clsEntry.sources.forEach((source, index) =>
       span.setAttribute(`cls.source.${index + 1}`, htmlTreeAsString(source.node)),
     );
@@ -550,8 +683,8 @@ function _tagMetricInfo(span: Span): void {
 
 function setResourceEntrySizeData(
   attributes: SpanAttributes,
-  entry: ResourceEntry,
-  key: keyof Pick<ResourceEntry, 'transferSize' | 'encodedBodySize' | 'decodedBodySize'>,
+  entry: PerformanceResourceTiming,
+  key: keyof Pick<PerformanceResourceTiming, 'transferSize' | 'encodedBodySize' | 'decodedBodySize'>,
   dataKey: 'http.response_transfer_size' | 'http.response_content_length' | 'http.decoded_response_content_length',
 ): void {
   const entryVal = entry[key];
@@ -566,7 +699,7 @@ function setResourceEntrySizeData(
  * ttfb information is added via vendored web vitals library.
  */
 function _addTtfbRequestTimeToMeasurements(_measurements: Measurements): void {
-  const navEntry = getNavigationEntry();
+  const navEntry = getNavigationEntry(false);
   if (!navEntry) {
     return;
   }
@@ -574,7 +707,6 @@ function _addTtfbRequestTimeToMeasurements(_measurements: Measurements): void {
   const { responseStart, requestStart } = navEntry;
 
   if (requestStart <= responseStart) {
-    DEBUG_BUILD && logger.log('[Measurements] Adding TTFB Request Time');
     _measurements['ttfb.requestTime'] = {
       value: responseStart - requestStart,
       unit: 'millisecond',

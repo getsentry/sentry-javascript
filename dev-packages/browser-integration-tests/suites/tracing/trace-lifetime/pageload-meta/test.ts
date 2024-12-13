@@ -1,5 +1,5 @@
 import { expect } from '@playwright/test';
-import type { Event } from '@sentry/types';
+import type { Event } from '@sentry/core';
 import { sentryTest } from '../../../../utils/fixtures';
 import type { EventAndTraceHeader } from '../../../../utils/helpers';
 import { shouldSkipFeedbackTest } from '../../../../utils/helpers';
@@ -302,7 +302,7 @@ sentryTest('user feedback event after pageload has pageload traceId in headers',
     sentryTest.skip();
   }
 
-  const url = await getLocalTestUrl({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname, handleLazyLoadedFeedback: true });
 
   const pageloadEvent = await getFirstSentryEnvelopeRequest<Event>(page, url);
   const pageloadTraceContext = pageloadEvent.contexts?.trace;

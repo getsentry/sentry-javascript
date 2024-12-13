@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync } from 'fs';
+import { mkdirSync } from 'fs';
 import HtmlWebpackPlugin from 'html-webpack-plugin';
 import webpack from 'webpack';
 
@@ -12,49 +12,42 @@ export async function generatePage(
   outPath: string,
   outPageName: string = 'index.html',
 ): Promise<void> {
-  const localPath = `${outPath}/dist`;
-  const bundlePath = `${localPath}/${outPageName}}`;
+  mkdirSync(outPath, { recursive: true });
 
-  if (!existsSync(localPath)) {
-    mkdirSync(localPath, { recursive: true });
-  }
+  await new Promise<void>((resolve, reject) => {
+    const compiler = webpack(
+      webpackConfig({
+        entry: {
+          init: initPath,
+          subject: subjectPath,
+        },
+        output: {
+          path: outPath,
+          filename: '[name].bundle.js',
+        },
+        plugins: [
+          new SentryScenarioGenerationPlugin(outPath),
+          new HtmlWebpackPlugin({
+            filename: outPageName,
+            template: templatePath,
+            inject: 'body',
+          }),
+        ],
+      }),
+    );
 
-  if (!existsSync(bundlePath)) {
-    await new Promise<void>((resolve, reject) => {
-      const compiler = webpack(
-        webpackConfig({
-          entry: {
-            init: initPath,
-            subject: subjectPath,
-          },
-          output: {
-            path: localPath,
-            filename: '[name].bundle.js',
-          },
-          plugins: [
-            new SentryScenarioGenerationPlugin(localPath),
-            new HtmlWebpackPlugin({
-              filename: outPageName,
-              template: templatePath,
-              inject: 'body',
-            }),
-          ],
-        }),
-      );
+    compiler.run(err => {
+      if (err) {
+        reject(err);
+      }
 
-      compiler.run(err => {
+      compiler.close(err => {
         if (err) {
           reject(err);
         }
 
-        compiler.close(err => {
-          if (err) {
-            reject(err);
-          }
-
-          resolve();
-        });
+        resolve();
       });
     });
-  }
+  });
 }

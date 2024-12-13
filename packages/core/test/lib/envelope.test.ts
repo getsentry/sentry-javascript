@@ -1,4 +1,4 @@
-import type { Client, DsnComponents, DynamicSamplingContext, Event } from '@sentry/types';
+import type { Client, DsnComponents, DynamicSamplingContext, Event } from '../../src/types-hoist';
 
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
@@ -95,6 +95,13 @@ describe('createSpanEnvelope', () => {
     client = new TestClient(options);
     setCurrentClient(client);
     client.init();
+
+    // We want to avoid console errors in the tests
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    jest.resetAllMocks();
   });
 
   it('creates a span envelope', () => {
@@ -109,7 +116,7 @@ describe('createSpanEnvelope', () => {
 
     const spanEnvelope = createSpanEnvelope([span]);
 
-    const spanItem = spanEnvelope[1][0][1];
+    const spanItem = spanEnvelope[1]?.[0]?.[1];
     expect(spanItem).toEqual({
       data: {
         'sentry.origin': 'manual',
@@ -119,7 +126,7 @@ describe('createSpanEnvelope', () => {
       is_segment: true,
       origin: 'manual',
       span_id: expect.stringMatching(/^[0-9a-f]{16}$/),
-      segment_id: spanItem.segment_id,
+      segment_id: spanItem?.segment_id,
       start_timestamp: 1,
       timestamp: 2,
       trace_id: expect.stringMatching(/^[0-9a-f]{32}$/),
@@ -200,7 +207,7 @@ describe('createSpanEnvelope', () => {
 
     expect(beforeSendSpan).toHaveBeenCalled();
 
-    const spanItem = spanEnvelope[1][0][1];
+    const spanItem = spanEnvelope[1]?.[0]?.[1];
     expect(spanItem).toEqual({
       data: {
         'sentry.origin': 'manual',
@@ -209,7 +216,7 @@ describe('createSpanEnvelope', () => {
       is_segment: true,
       origin: 'manual',
       span_id: expect.stringMatching(/^[0-9a-f]{16}$/),
-      segment_id: spanItem.segment_id,
+      segment_id: spanItem?.segment_id,
       start_timestamp: 1,
       timestamp: 2,
       trace_id: expect.stringMatching(/^[0-9a-f]{32}$/),
@@ -235,7 +242,7 @@ describe('createSpanEnvelope', () => {
 
     expect(beforeSendSpan).toHaveBeenCalled();
 
-    const spanItem = spanEnvelope[1][0][1];
+    const spanItem = spanEnvelope[1]?.[0]?.[1];
     expect(spanItem).toEqual({
       data: {
         'sentry.origin': 'manual',
@@ -244,7 +251,7 @@ describe('createSpanEnvelope', () => {
       is_segment: true,
       origin: 'manual',
       span_id: expect.stringMatching(/^[0-9a-f]{16}$/),
-      segment_id: spanItem.segment_id,
+      segment_id: spanItem?.segment_id,
       start_timestamp: 1,
       timestamp: 2,
       trace_id: expect.stringMatching(/^[0-9a-f]{32}$/),

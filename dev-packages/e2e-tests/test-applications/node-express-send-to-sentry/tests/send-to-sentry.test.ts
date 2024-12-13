@@ -4,7 +4,7 @@ const EVENT_POLLING_TIMEOUT = 90_000;
 
 const authToken = process.env.E2E_TEST_AUTH_TOKEN;
 const sentryTestOrgSlug = process.env.E2E_TEST_SENTRY_ORG_SLUG;
-const sentryTestProject = process.env.E2E_TEST_SENTRY_TEST_PROJECT;
+const sentryTestProject = process.env.E2E_TEST_SENTRY_PROJECT;
 
 test('Sends exception to Sentry', async ({ baseURL }) => {
   const response = await fetch(`${baseURL}/test-error`);

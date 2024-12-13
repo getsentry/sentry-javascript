@@ -1,7 +1,11 @@
-import { vi } from 'vitest';
+/**
+ * @vitest-environment jsdom
+ */
+
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { getClient } from '@sentry/core';
-import type { Transport } from '@sentry/types';
+import type { Transport } from '@sentry/core';
 
 import { DEFAULT_FLUSH_MIN_DELAY, SESSION_IDLE_EXPIRE_DURATION } from '../../src/constants';
 import type { Replay } from '../../src/integration';
@@ -48,5 +52,25 @@ describe('Integration | start', () => {
     expect(replay).toHaveLastSentReplay({
       recordingPayloadHeader: { segment_id: 0 },
     });
+  });
+
+  it('does not start recording once replay is already in progress', async () => {
+    const startRecordingSpy = vi.spyOn(replay, 'startRecording').mockImplementation(() => undefined);
+
+    integration.start();
+    replay.start();
+    replay.start();
+
+    expect(startRecordingSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not start buffering once replay is already in progress', async () => {
+    const startRecordingSpy = vi.spyOn(replay, 'startRecording').mockImplementation(() => undefined);
+
+    integration.startBuffering();
+    replay.startBuffering();
+    replay.startBuffering();
+
+    expect(startRecordingSpy).toHaveBeenCalledTimes(1);
   });
 });

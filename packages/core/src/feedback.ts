@@ -1,16 +1,16 @@
-import type { EventHint, FeedbackEvent, SendFeedbackParams } from '@sentry/types';
-import { dropUndefinedKeys } from '@sentry/utils';
 import { getClient, getCurrentScope } from './currentScopes';
+import type { EventHint, FeedbackEvent, SendFeedbackParams } from './types-hoist';
+import { dropUndefinedKeys } from './utils-hoist/object';
 
 /**
  * Send user feedback to Sentry.
  */
 export function captureFeedback(
-  feedbackParams: SendFeedbackParams,
+  params: SendFeedbackParams,
   hint: EventHint & { includeReplay?: boolean } = {},
   scope = getCurrentScope(),
 ): string {
-  const { message, name, email, url, source, associatedEventId } = feedbackParams;
+  const { message, name, email, url, source, associatedEventId, tags } = params;
 
   const feedbackEvent: FeedbackEvent = {
     contexts: {
@@ -25,6 +25,7 @@ export function captureFeedback(
     },
     type: 'feedback',
     level: 'info',
+    tags,
   };
 
   const client = (scope && scope.getClient()) || getClient();

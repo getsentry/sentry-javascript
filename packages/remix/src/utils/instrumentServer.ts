@@ -1,45 +1,31 @@
 /* eslint-disable max-lines */
+import type { RequestEventData, Span, TransactionSource, WrappedFunction } from '@sentry/core';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  captureException,
-  continueTrace,
+  fill,
   getActiveSpan,
   getClient,
   getRootSpan,
-  handleCallbackErrors,
+  getTraceData,
   hasTracingEnabled,
-  setHttpStatus,
-  spanToJSON,
-  spanToTraceHeader,
-  startSpan,
-  withIsolationScope,
-} from '@sentry/core';
-import { getDynamicSamplingContextFromSpan } from '@sentry/opentelemetry';
-import type { Span, TransactionSource, WrappedFunction } from '@sentry/types';
-import {
-  addExceptionMechanism,
-  dynamicSamplingContextToSentryBaggageHeader,
-  fill,
   isNodeEnv,
-  isPrimitive,
   loadModule,
   logger,
-  objectify,
-} from '@sentry/utils';
-
+  setHttpStatus,
+  spanToJSON,
+  startSpan,
+  winterCGRequestToRequestData,
+  withIsolationScope,
+} from '@sentry/core';
+import { continueTrace } from '@sentry/opentelemetry';
 import { DEBUG_BUILD } from './debug-build';
+import { captureRemixServerException, errorHandleDataFunction, errorHandleDocumentRequestFunction } from './errors';
 import { getFutureFlagsServer, getRemixVersionFromBuild } from './futureFlags';
-import {
-  extractData,
-  getRequestMatch,
-  isDeferredData,
-  isResponse,
-  isRouteErrorResponse,
-  json,
-  matchServerRoutes,
-} from './vendor/response';
+import type { RemixOptions } from './remixOptions';
+import { createRoutes, getTransactionName } from './utils';
+import { extractData, isDeferredData, isResponse, isRouteErrorResponse, json } from './vendor/response';
 import type {
   AppData,
   AppLoadContext,
@@ -55,10 +41,8 @@ import type {
   ServerRoute,
   ServerRouteManifest,
 } from './vendor/types';
-import { normalizeRemixRequest } from './web-fetch';
 
 let FUTURE_FLAGS: FutureConfig | undefined;
-let IS_REMIX_V2: boolean | undefined;
 
 const redirectStatusCodes = new Set([301, 302, 303, 307, 308]);
 function isRedirectResponse(response: Response): boolean {
@@ -67,20 +51,6 @@ function isRedirectResponse(response: Response): boolean {
 
 function isCatchResponse(response: Response): boolean {
   return response.headers.get('X-Remix-Catch') != null;
-}
-
-async function extractResponseError(response: Response): Promise<unknown> {
-  const responseData = await extractData(response);
-
-  if (typeof responseData === 'string' && responseData.length > 0) {
-    return new Error(responseData);
-  }
-
-  if (response.statusText) {
-    return new Error(response.statusText);
-  }
-
-  return responseData;
 }
 
 /**
@@ -129,78 +99,7 @@ export function wrapHandleErrorWithSentry(
   };
 }
 
-/**
- * Captures an exception happened in the Remix server.
- *
- * @param err The error to capture.
- * @param name The name of the origin function.
- * @param request The request object.
- *
- * @returns A promise that resolves when the exception is captured.
- */
-export async function captureRemixServerException(err: unknown, name: string, request: Request): Promise<void> {
-  // Skip capturing if the thrown error is not a 5xx response
-  // https://remix.run/docs/en/v1/api/conventions#throwing-responses-in-loaders
-  if (IS_REMIX_V2 && isRouteErrorResponse(err) && err.status < 500) {
-    return;
-  }
-
-  if (isResponse(err) && err.status < 500) {
-    return;
-  }
-  // Skip capturing if the request is aborted as Remix docs suggest
-  // Ref: https://remix.run/docs/en/main/file-conventions/entry.server#handleerror
-  if (request.signal.aborted) {
-    DEBUG_BUILD && logger.warn('Skipping capture of aborted request');
-    return;
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let normalizedRequest: Record<string, unknown> = request as unknown as any;
-
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    normalizedRequest = normalizeRemixRequest(request as unknown as any);
-  } catch (e) {
-    DEBUG_BUILD && logger.warn('Failed to normalize Remix request');
-  }
-
-  const objectifiedErr = objectify(err);
-
-  captureException(isResponse(objectifiedErr) ? await extractResponseError(objectifiedErr) : objectifiedErr, scope => {
-    const activeSpan = getActiveSpan();
-    const rootSpan = activeSpan && getRootSpan(activeSpan);
-    const activeRootSpanName = rootSpan ? spanToJSON(rootSpan).description : undefined;
-
-    scope.setSDKProcessingMetadata({
-      request: {
-        ...normalizedRequest,
-        // When `route` is not defined, `RequestData` integration uses the full URL
-        route: activeRootSpanName
-          ? {
-              path: activeRootSpanName,
-            }
-          : undefined,
-      },
-    });
-
-    scope.addEventProcessor(event => {
-      addExceptionMechanism(event, {
-        type: 'instrument',
-        handled: false,
-        data: {
-          function: name,
-        },
-      });
-
-      return event;
-    });
-
-    return scope;
-  });
-}
-
-function makeWrappedDocumentRequestFunction(remixVersion?: number) {
+function makeWrappedDocumentRequestFunction(autoInstrumentRemix?: boolean, remixVersion?: number) {
   return function (origDocumentRequestFunction: HandleDocumentRequestFunction): HandleDocumentRequestFunction {
     return async function (
       this: unknown,
@@ -210,52 +109,52 @@ function makeWrappedDocumentRequestFunction(remixVersion?: number) {
       context: EntryContext,
       loadContext?: Record<string, unknown>,
     ): Promise<Response> {
-      const activeSpan = getActiveSpan();
-      const rootSpan = activeSpan && getRootSpan(activeSpan);
+      const documentRequestContext = {
+        request,
+        responseStatusCode,
+        responseHeaders,
+        context,
+        loadContext,
+      };
 
-      const name = rootSpan ? spanToJSON(rootSpan).description : undefined;
+      const isRemixV2 = FUTURE_FLAGS?.v2_errorBoundary || remixVersion === 2;
 
-      return startSpan(
-        {
-          // If we don't have a root span, `onlyIfParent` will lead to the span not being created anyhow
-          // So we don't need to care too much about the fallback name, it's just for typing purposes....
-          name: name || '<unknown>',
-          onlyIfParent: true,
-          attributes: {
-            method: request.method,
-            url: request.url,
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.remix',
-            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function.remix.document_request',
+      if (!autoInstrumentRemix) {
+        const activeSpan = getActiveSpan();
+        const rootSpan = activeSpan && getRootSpan(activeSpan);
+
+        const name = rootSpan ? spanToJSON(rootSpan).description : undefined;
+
+        return startSpan(
+          {
+            // If we don't have a root span, `onlyIfParent` will lead to the span not being created anyhow
+            // So we don't need to care too much about the fallback name, it's just for typing purposes....
+            name: name || '<unknown>',
+            onlyIfParent: true,
+            attributes: {
+              method: request.method,
+              url: request.url,
+              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.remix',
+              [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function.remix.document_request',
+            },
           },
-        },
-        () => {
-          return handleCallbackErrors(
-            () => {
-              return origDocumentRequestFunction.call(
-                this,
-                request,
-                responseStatusCode,
-                responseHeaders,
-                context,
-                loadContext,
-              );
-            },
-            err => {
-              const isRemixV1 = !FUTURE_FLAGS?.v2_errorBoundary && remixVersion !== 2;
-
-              // This exists to capture the server-side rendering errors on Remix v1
-              // On Remix v2, we capture SSR errors at `handleError`
-              // We also skip primitives here, as we can't dedupe them, and also we don't expect any primitive SSR errors.
-              if (isRemixV1 && !isPrimitive(err)) {
-                // eslint-disable-next-line @typescript-eslint/no-floating-promises
-                captureRemixServerException(err, 'documentRequest', request);
-              }
-
-              throw err;
-            },
-          );
-        },
-      );
+          () => {
+            return errorHandleDocumentRequestFunction.call(
+              this,
+              origDocumentRequestFunction,
+              documentRequestContext,
+              isRemixV2,
+            );
+          },
+        );
+      } else {
+        return errorHandleDocumentRequestFunction.call(
+          this,
+          origDocumentRequestFunction,
+          documentRequestContext,
+          isRemixV2,
+        );
+      }
     };
   };
 }
@@ -265,100 +164,54 @@ function makeWrappedDataFunction(
   id: string,
   name: 'action' | 'loader',
   remixVersion: number,
-  manuallyInstrumented: boolean,
+  autoInstrumentRemix?: boolean,
 ): DataFunction {
   return async function (this: unknown, args: DataFunctionArgs): Promise<Response | AppData> {
-    if (args.context.__sentry_express_wrapped__ && !manuallyInstrumented) {
-      return origFn.call(this, args);
-    }
+    const isRemixV2 = FUTURE_FLAGS?.v2_errorBoundary || remixVersion === 2;
 
-    return startSpan(
-      {
-        op: `function.remix.${name}`,
-        name: id,
-        attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.remix',
-          name,
+    if (!autoInstrumentRemix) {
+      return startSpan(
+        {
+          op: `function.remix.${name}`,
+          name: id,
+          attributes: {
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.remix',
+            name,
+          },
         },
-      },
-      span => {
-        return handleCallbackErrors(
-          async () => {
-            if (span) {
-              const options = getClient()?.getOptions();
-
-              // We only capture form data for `action` functions, when `sendDefaultPii` is enabled.
-              if (name === 'action' && options?.sendDefaultPii) {
-                try {
-                  // We clone the request for Remix be able to read the FormData later.
-                  const clonedRequest = args.request.clone();
-
-                  // This only will return the last name of multiple file uploads in a single FormData entry.
-                  // We can switch to `unstable_parseMultipartFormData` when it's stable.
-                  // https://remix.run/docs/en/main/utils/parse-multipart-form-data#unstable_parsemultipartformdata
-                  const formData = await clonedRequest.formData();
-
-                  formData.forEach((value, key) => {
-                    span.setAttribute(
-                      `remix.action_form_data.${key}`,
-                      typeof value === 'string' ? value : '[non-string value]',
-                    );
-                  });
-                } catch (e) {
-                  DEBUG_BUILD && logger.warn('Failed to read FormData from request', e);
-                }
-              }
-            }
-
-            return origFn.call(this, args);
-          },
-          err => {
-            const isRemixV2 = FUTURE_FLAGS?.v2_errorBoundary || remixVersion === 2;
-
-            // On Remix v2, we capture all unexpected errors (except the `Route Error Response`s / Thrown Responses) in `handleError` function.
-            // This is both for consistency and also avoid duplicates such as primitives like `string` or `number` being captured twice.
-            // Remix v1 does not have a `handleError` function, so we capture all errors here.
-            if (isRemixV2 ? isResponse(err) : true) {
-              // eslint-disable-next-line @typescript-eslint/no-floating-promises
-              captureRemixServerException(err, name, args.request);
-            }
-
-            throw err;
-          },
-        );
-      },
-    );
+        (span: Span) => {
+          return errorHandleDataFunction.call(this, origFn, name, args, isRemixV2, span);
+        },
+      );
+    } else {
+      return errorHandleDataFunction.call(this, origFn, name, args, isRemixV2);
+    }
   };
 }
 
 const makeWrappedAction =
-  (id: string, remixVersion: number, manuallyInstrumented: boolean) =>
+  (id: string, remixVersion: number, autoInstrumentRemix?: boolean) =>
   (origAction: DataFunction): DataFunction => {
-    return makeWrappedDataFunction(origAction, id, 'action', remixVersion, manuallyInstrumented);
+    return makeWrappedDataFunction(origAction, id, 'action', remixVersion, autoInstrumentRemix);
   };
 
 const makeWrappedLoader =
-  (id: string, remixVersion: number, manuallyInstrumented: boolean) =>
+  (id: string, remixVersion: number, autoInstrumentRemix?: boolean) =>
   (origLoader: DataFunction): DataFunction => {
-    return makeWrappedDataFunction(origLoader, id, 'loader', remixVersion, manuallyInstrumented);
+    return makeWrappedDataFunction(origLoader, id, 'loader', remixVersion, autoInstrumentRemix);
   };
 
 function getTraceAndBaggage(): {
   sentryTrace?: string;
   sentryBaggage?: string;
 } {
-  if (isNodeEnv() && hasTracingEnabled()) {
-    const span = getActiveSpan();
-    const rootSpan = span && getRootSpan(span);
+  if (isNodeEnv()) {
+    const traceData = getTraceData();
 
-    if (rootSpan) {
-      const dynamicSamplingContext = getDynamicSamplingContextFromSpan(rootSpan);
-
-      return {
-        sentryTrace: spanToTraceHeader(span),
-        sentryBaggage: dynamicSamplingContextToSentryBaggageHeader(dynamicSamplingContext),
-      };
-    }
+    return {
+      sentryTrace: traceData['sentry-trace'],
+      sentryBaggage: traceData.baggage,
+    };
   }
 
   return {};
@@ -409,147 +262,96 @@ function makeWrappedRootLoader(remixVersion: number) {
   };
 }
 
-/**
- * Creates routes from the server route manifest
- *
- * @param manifest
- * @param parentId
- */
-export function createRoutes(manifest: ServerRouteManifest, parentId?: string): ServerRoute[] {
-  return Object.entries(manifest)
-    .filter(([, route]) => route.parentId === parentId)
-    .map(([id, route]) => ({
-      ...route,
-      children: createRoutes(manifest, id),
-    }));
-}
-
-/**
- * Starts a new active span for the given request to be used by different `RequestHandler` wrappers.
- */
-export function startRequestHandlerSpan<T>(
-  {
-    name,
-    source,
-    sentryTrace,
-    baggage,
-    method,
-  }: {
-    name: string;
-    source: TransactionSource;
-    sentryTrace: string;
-    baggage: string;
-    method: string;
-  },
-  callback: (span: Span) => T,
-): T {
-  return continueTrace(
-    {
-      sentryTrace,
-      baggage,
-    },
-    () => {
-      return startSpan(
-        {
-          name,
-          attributes: {
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.remix',
-            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
-            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
-            method,
-          },
-        },
-        callback,
-      );
-    },
-  );
-}
-
-/**
- * Get transaction name from routes and url
- */
-export function getTransactionName(routes: ServerRoute[], url: URL): [string, TransactionSource] {
-  const matches = matchServerRoutes(routes, url.pathname);
-  const match = matches && getRequestMatch(url, matches);
-  return match === null ? [url.pathname, 'url'] : [match.route.id || 'no-route-id', 'route'];
-}
-
-function wrapRequestHandler(origRequestHandler: RequestHandler, build: ServerBuild): RequestHandler {
-  const routes = createRoutes(build.routes);
+function wrapRequestHandler(
+  origRequestHandler: RequestHandler,
+  build: ServerBuild | (() => ServerBuild | Promise<ServerBuild>),
+  autoInstrumentRemix: boolean,
+): RequestHandler {
+  let resolvedBuild: ServerBuild;
+  let routes: ServerRoute[];
+  let name: string;
+  let source: TransactionSource;
 
   return async function (this: unknown, request: RemixRequest, loadContext?: AppLoadContext): Promise<Response> {
-    // This means that the request handler of the adapter (ex: express) is already wrapped.
-    // So we don't want to double wrap it.
-    if (loadContext?.__sentry_express_wrapped__) {
-      return origRequestHandler.call(this, request, loadContext);
-    }
-
     const upperCaseMethod = request.method.toUpperCase();
-
     // We don't want to wrap OPTIONS and HEAD requests
     if (upperCaseMethod === 'OPTIONS' || upperCaseMethod === 'HEAD') {
       return origRequestHandler.call(this, request, loadContext);
     }
 
+    if (!autoInstrumentRemix) {
+      if (typeof build === 'function') {
+        resolvedBuild = await build();
+      } else {
+        resolvedBuild = build;
+      }
+
+      routes = createRoutes(resolvedBuild.routes);
+    }
+
     return withIsolationScope(async isolationScope => {
       const options = getClient()?.getOptions();
 
-      let normalizedRequest: Record<string, unknown> = request;
+      let normalizedRequest: RequestEventData = {};
 
       try {
-        normalizedRequest = normalizeRemixRequest(request);
+        normalizedRequest = winterCGRequestToRequestData(request);
       } catch (e) {
         DEBUG_BUILD && logger.warn('Failed to normalize Remix request');
       }
 
-      const url = new URL(request.url);
-      const [name, source] = getTransactionName(routes, url);
+      if (!autoInstrumentRemix) {
+        const url = new URL(request.url);
+        [name, source] = getTransactionName(routes, url);
 
-      isolationScope.setTransactionName(name);
-      isolationScope.setSDKProcessingMetadata({
-        request: {
-          ...normalizedRequest,
-          route: {
-            path: name,
-          },
-        },
-      });
+        isolationScope.setTransactionName(name);
+      }
+
+      isolationScope.setSDKProcessingMetadata({ normalizedRequest });
 
       if (!options || !hasTracingEnabled(options)) {
         return origRequestHandler.call(this, request, loadContext);
       }
 
-      return startRequestHandlerSpan(
+      return continueTrace(
         {
-          name,
-          source,
           sentryTrace: request.headers.get('sentry-trace') || '',
           baggage: request.headers.get('baggage') || '',
-          method: request.method,
         },
-        async span => {
-          const res = (await origRequestHandler.call(this, request, loadContext)) as Response;
+        async () => {
+          if (!autoInstrumentRemix) {
+            return startSpan(
+              {
+                name,
+                attributes: {
+                  [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.remix',
+                  [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
+                  [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
+                  method: request.method,
+                },
+              },
+              async span => {
+                const res = (await origRequestHandler.call(this, request, loadContext)) as Response;
 
-          if (isResponse(res)) {
-            setHttpStatus(span, res.status);
+                if (isResponse(res)) {
+                  setHttpStatus(span, res.status);
+                }
+
+                return res;
+              },
+            );
           }
 
-          return res;
+          return (await origRequestHandler.call(this, request, loadContext)) as Response;
         },
       );
     });
   };
 }
 
-/**
- * Instruments `remix` ServerBuild for performance tracing and error tracking.
- */
-export function instrumentBuild(build: ServerBuild, manuallyInstrumented: boolean = false): ServerBuild {
+function instrumentBuildCallback(build: ServerBuild, autoInstrumentRemix: boolean): ServerBuild {
   const routes: ServerRouteManifest = {};
-
   const remixVersion = getRemixVersionFromBuild(build);
-  IS_REMIX_V2 = remixVersion === 2;
-
   const wrappedEntry = { ...build.entry, module: { ...build.entry.module } };
 
   // Not keeping boolean flags like it's done for `requestHandler` functions,
@@ -558,7 +360,7 @@ export function instrumentBuild(build: ServerBuild, manuallyInstrumented: boolea
   // We should be able to wrap them, as they may not be wrapped before.
   const defaultExport = wrappedEntry.module.default as undefined | WrappedFunction;
   if (defaultExport && !defaultExport.__sentry_original__) {
-    fill(wrappedEntry.module, 'default', makeWrappedDocumentRequestFunction(remixVersion));
+    fill(wrappedEntry.module, 'default', makeWrappedDocumentRequestFunction(autoInstrumentRemix, remixVersion));
   }
 
   for (const [id, route] of Object.entries(build.routes)) {
@@ -566,12 +368,12 @@ export function instrumentBuild(build: ServerBuild, manuallyInstrumented: boolea
 
     const routeAction = wrappedRoute.module.action as undefined | WrappedFunction;
     if (routeAction && !routeAction.__sentry_original__) {
-      fill(wrappedRoute.module, 'action', makeWrappedAction(id, remixVersion, manuallyInstrumented));
+      fill(wrappedRoute.module, 'action', makeWrappedAction(id, remixVersion, autoInstrumentRemix));
     }
 
     const routeLoader = wrappedRoute.module.loader as undefined | WrappedFunction;
     if (routeLoader && !routeLoader.__sentry_original__) {
-      fill(wrappedRoute.module, 'loader', makeWrappedLoader(id, remixVersion, manuallyInstrumented));
+      fill(wrappedRoute.module, 'loader', makeWrappedLoader(id, remixVersion, autoInstrumentRemix));
     }
 
     // Entry module should have a loader function to provide `sentry-trace` and `baggage`
@@ -591,23 +393,59 @@ export function instrumentBuild(build: ServerBuild, manuallyInstrumented: boolea
   return { ...build, routes, entry: wrappedEntry };
 }
 
-function makeWrappedCreateRequestHandler(
-  origCreateRequestHandler: CreateRequestHandlerFunction,
-): CreateRequestHandlerFunction {
-  return function (this: unknown, build: ServerBuild, ...args: unknown[]): RequestHandler {
-    FUTURE_FLAGS = getFutureFlagsServer(build);
-    const newBuild = instrumentBuild(build, false);
-    const requestHandler = origCreateRequestHandler.call(this, newBuild, ...args);
+/**
+ * Instruments `remix` ServerBuild for performance tracing and error tracking.
+ */
+export function instrumentBuild(
+  build: ServerBuild | (() => ServerBuild | Promise<ServerBuild>),
+  options: RemixOptions,
+): ServerBuild | (() => ServerBuild | Promise<ServerBuild>) {
+  // eslint-disable-next-line deprecation/deprecation
+  const autoInstrumentRemix = options?.autoInstrumentRemix || false;
 
-    return wrapRequestHandler(requestHandler, newBuild);
-  };
+  if (typeof build === 'function') {
+    return function () {
+      const resolvedBuild = build();
+
+      if (resolvedBuild instanceof Promise) {
+        return resolvedBuild.then(build => {
+          FUTURE_FLAGS = getFutureFlagsServer(build);
+
+          return instrumentBuildCallback(build, autoInstrumentRemix);
+        });
+      } else {
+        FUTURE_FLAGS = getFutureFlagsServer(resolvedBuild);
+
+        return instrumentBuildCallback(resolvedBuild, autoInstrumentRemix);
+      }
+    };
+  } else {
+    FUTURE_FLAGS = getFutureFlagsServer(build);
+
+    return instrumentBuildCallback(build, autoInstrumentRemix);
+  }
 }
+
+const makeWrappedCreateRequestHandler = (options: RemixOptions) =>
+  function (origCreateRequestHandler: CreateRequestHandlerFunction): CreateRequestHandlerFunction {
+    return function (
+      this: unknown,
+      build: ServerBuild | (() => Promise<ServerBuild>),
+      ...args: unknown[]
+    ): RequestHandler {
+      const newBuild = instrumentBuild(build, options);
+      const requestHandler = origCreateRequestHandler.call(this, newBuild, ...args);
+
+      // eslint-disable-next-line deprecation/deprecation
+      return wrapRequestHandler(requestHandler, newBuild, options.autoInstrumentRemix || false);
+    };
+  };
 
 /**
  * Monkey-patch Remix's `createRequestHandler` from `@remix-run/server-runtime`
  * which Remix Adapters (https://remix.run/docs/en/v1/api/remix) use underneath.
  */
-export function instrumentServer(): void {
+export function instrumentServer(options: RemixOptions): void {
   const pkg = loadModule<{
     createRequestHandler: CreateRequestHandlerFunction;
   }>('@remix-run/server-runtime');
@@ -618,5 +456,5 @@ export function instrumentServer(): void {
     return;
   }
 
-  fill(pkg, 'createRequestHandler', makeWrappedCreateRequestHandler);
+  fill(pkg, 'createRequestHandler', makeWrappedCreateRequestHandler(options));
 }

@@ -1,10 +1,10 @@
+import { logger } from '@sentry/core';
 import type {
   FeedbackFormData,
   FeedbackInternalOptions,
   FeedbackScreenshotIntegration,
   SendFeedback,
-} from '@sentry/types';
-import { logger } from '@sentry/utils';
+} from '@sentry/core';
 import type { JSX, VNode } from 'preact';
 import { useCallback, useState } from 'preact/hooks';
 import { FEEDBACK_WIDGET_SOURCE } from '../../constants';
@@ -44,6 +44,7 @@ export function Form({
   screenshotInput,
 }: Props): VNode {
   const {
+    tags,
     addScreenshotButtonLabel,
     removeScreenshotButtonLabel,
     cancelButtonLabel,
@@ -58,7 +59,7 @@ export function Form({
     submitButtonLabel,
     isRequiredLabel,
   } = options;
-  // TODO: set a ref on the form, and whenever an input changes call proceessForm() and setError()
+  // TODO: set a ref on the form, and whenever an input changes call processForm() and setError()
   const [error, setError] = useState<null | string>(null);
 
   const [showScreenshotInput, setShowScreenshotInput] = useState(false);
@@ -120,13 +121,14 @@ export function Form({
               email: data.email,
               message: data.message,
               source: FEEDBACK_WIDGET_SOURCE,
+              tags,
             },
             { attachments: data.attachments },
           );
           onSubmitSuccess(data);
         } catch (error) {
           DEBUG_BUILD && logger.error(error);
-          setError('There was a problem submitting feedback, please wait and try again.');
+          setError(error as string);
           onSubmitError(error as Error);
         }
       } catch {
@@ -226,7 +228,11 @@ function LabelText({
   label,
   isRequired,
   isRequiredLabel,
-}: { label: string; isRequired: boolean; isRequiredLabel: string }): VNode {
+}: {
+  label: string;
+  isRequired: boolean;
+  isRequiredLabel: string;
+}): VNode {
   return (
     <span class="form__label__text">
       {label}

@@ -1,6 +1,6 @@
 import { defineIntegration, getActiveSpan, getRootSpan } from '@sentry/core';
-import type { EventEnvelope, IntegrationFn, Profile, Span } from '@sentry/types';
-import { logger } from '@sentry/utils';
+import { logger } from '@sentry/core';
+import type { EventEnvelope, IntegrationFn, Profile, Span } from '@sentry/core';
 
 import { DEBUG_BUILD } from '../debug-build';
 import { startProfileForSpan } from './startProfileForSpan';

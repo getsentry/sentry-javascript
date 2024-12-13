@@ -1,5 +1,11 @@
-import type { Client } from '@sentry/types';
-import { logger } from '@sentry/utils';
+/**
+ * @vitest-environment jsdom
+ */
+
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { logger } from '@sentry/core';
+import type { Client } from '@sentry/core';
 import { createApp } from 'vue';
 
 import * as Sentry from '../../src';
@@ -15,10 +21,10 @@ describe('Sentry.VueIntegration', () => {
   const globalRequest = globalThis.Request;
 
   beforeAll(() => {
-    globalThis.fetch = jest.fn();
+    globalThis.fetch = vi.fn();
     // @ts-expect-error This is a mock
-    globalThis.Response = jest.fn();
-    globalThis.Request = jest.fn();
+    globalThis.Response = vi.fn();
+    globalThis.Request = vi.fn();
   });
 
   afterAll(() => {
@@ -31,17 +37,17 @@ describe('Sentry.VueIntegration', () => {
     warnings = [];
     loggerWarnings = [];
 
-    jest.spyOn(logger, 'warn').mockImplementation((message: unknown) => {
+    vi.spyOn(logger, 'warn').mockImplementation((message: unknown) => {
       loggerWarnings.push(message);
     });
 
-    jest.spyOn(console, 'warn').mockImplementation((message: unknown) => {
+    vi.spyOn(console, 'warn').mockImplementation((message: unknown) => {
       warnings.push(message);
     });
   });
 
   afterEach(() => {
-    jest.resetAllMocks();
+    vi.resetAllMocks();
   });
 
   it('allows to initialize integration later', () => {

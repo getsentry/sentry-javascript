@@ -1,9 +1,17 @@
-import type { Event } from '@sentry/types';
+/**
+ * @vitest-environment jsdom
+ */
+
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { getClient } from '@sentry/core';
+import type { Event } from '@sentry/core';
 
 import { REPLAY_EVENT_NAME, SESSION_IDLE_EXPIRE_DURATION } from '../../../src/constants';
 import { handleGlobalEventListener } from '../../../src/coreHandlers/handleGlobalEvent';
 import type { ReplayContainer } from '../../../src/replay';
 import { makeSession } from '../../../src/session/Session';
+import * as resetReplayIdOnDynamicSamplingContextModule from '../../../src/util/resetReplayIdOnDynamicSamplingContext';
 import { Error } from '../../fixtures/error';
 import { Transaction } from '../../fixtures/transaction';
 import { resetSdkMock } from '../../mocks/resetSdkMock';
@@ -133,8 +141,8 @@ describe('Integration | coreHandlers | handleGlobalEvent', () => {
 
   it('tags errors and transactions with replay id for session samples', async () => {
     const { replay, integration } = await resetSdkMock({});
-    // @ts-expect-error protected but ok to use for testing
-    integration._initialize();
+    integration['_initialize'](getClient()!);
+
     const transaction = Transaction();
     const error = Error();
     expect(handleGlobalEventListener(replay)(transaction, {})).toEqual(
@@ -389,5 +397,41 @@ describe('Integration | coreHandlers | handleGlobalEvent', () => {
     };
 
     expect(handleGlobalEventListener(replay)(errorEvent, {})).toEqual(errorEvent);
+  });
+
+  it('does not add replayId if replay is paused', async () => {
+    const transaction = Transaction();
+    const error = Error();
+
+    replay['_isPaused'] = true;
+
+    expect(handleGlobalEventListener(replay)(transaction, {})).toEqual(
+      expect.not.objectContaining({
+        // no tags at all here by default
+        tags: expect.anything(),
+      }),
+    );
+    expect(handleGlobalEventListener(replay)(error, {})).toEqual(
+      expect.objectContaining({
+        tags: expect.not.objectContaining({ replayId: expect.anything() }),
+      }),
+    );
+  });
+
+  it('resets replayId on DSC when session expires', () => {
+    const errorEvent = Error();
+    const txEvent = Transaction();
+
+    vi.spyOn(replay, 'checkAndHandleExpiredSession').mockReturnValue(false);
+
+    const resetReplayIdSpy = vi.spyOn(
+      resetReplayIdOnDynamicSamplingContextModule,
+      'resetReplayIdOnDynamicSamplingContext',
+    );
+
+    handleGlobalEventListener(replay)(errorEvent, {});
+    handleGlobalEventListener(replay)(txEvent, {});
+
+    expect(resetReplayIdSpy).toHaveBeenCalledTimes(2);
   });
 });

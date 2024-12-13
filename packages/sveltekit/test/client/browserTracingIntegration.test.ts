@@ -1,7 +1,12 @@
+/**
+ * @vitest-environment jsdom
+ */
+
 /* eslint-disable @typescript-eslint/unbound-method */
-import type { Span } from '@sentry/types';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+import type { Span } from '@sentry/core';
 import { writable } from 'svelte/store';
-import { vi } from 'vitest';
 
 import { navigating, page } from '$app/stores';
 
@@ -55,7 +60,7 @@ describe('browserTracingIntegration', () => {
       return createdRootSpan as Span;
     });
 
-  const fakeClient = { getOptions: () => ({}), on: () => {} };
+  const fakeClient = { getOptions: () => ({}), on: () => {}, addEventProcessor: () => {} };
 
   const mockedRoutingSpan = {
     end: () => {},
@@ -286,7 +291,7 @@ describe('browserTracingIntegration', () => {
       // @ts-expect-error - the fakeClient doesn't satisfy Client but that's fine
       integration.afterAllSetup(fakeClient);
 
-      // window.location.pathame is "/" in tests
+      // window.location.pathname is "/" in tests
 
       // @ts-expect-error - page is a writable but the types say it's just readable
       navigating.set({

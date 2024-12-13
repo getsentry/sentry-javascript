@@ -1,5 +1,5 @@
 import { Scope, getGlobalScope, prepareEvent } from '@sentry/core';
-import type { Attachment, Breadcrumb, Client, ClientOptions, EventProcessor } from '@sentry/types';
+import type { Attachment, Breadcrumb, Client, ClientOptions, EventProcessor } from '@sentry/core';
 import { getIsolationScope } from '../../src';
 import { mockSdkInit } from '../helpers/mockSdkInit';
 
@@ -88,7 +88,11 @@ describe('Unit | Scope', () => {
   it('allows to set & get a client', () => {
     const scope = new Scope();
     expect(scope.getClient()).toBeUndefined();
-    const client = {} as Client;
+    const client = {
+      emit() {
+        // noop
+      },
+    } as unknown as Client;
     scope.setClient(client);
     expect(scope.getClient()).toBe(client);
   });
@@ -108,7 +112,10 @@ describe('Unit | Scope', () => {
         getEventProcessors() {
           return [eventProcessor];
         },
-      } as Client;
+        emit() {
+          // noop
+        },
+      } as unknown as Client;
       const processedEvent = await prepareEvent(
         options,
         event,

@@ -1,3 +1,4 @@
+import type { Span } from '@sentry/core';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
@@ -5,27 +6,18 @@ import {
   getCurrentScope,
   getDefaultIsolationScope,
   getIsolationScope,
-  getRootSpan,
+  getTraceMetaTags,
+  logger,
   setHttpStatus,
-  spanToTraceHeader,
+  startSpan,
+  winterCGRequestToRequestData,
   withIsolationScope,
 } from '@sentry/core';
-import { startSpan } from '@sentry/core';
-import { captureException, continueTrace } from '@sentry/node';
-import type { Span } from '@sentry/types';
-import {
-  dynamicSamplingContextToSentryBaggageHeader,
-  logger,
-  objectify,
-  winterCGRequestToRequestData,
-} from '@sentry/utils';
+import { continueTrace } from '@sentry/node';
 import type { Handle, ResolveOptions } from '@sveltejs/kit';
 
-import { getDynamicSamplingContextFromSpan } from '@sentry/opentelemetry';
-
 import { DEBUG_BUILD } from '../common/debug-build';
-import { isHttpError, isRedirect } from '../common/utils';
-import { flushIfServerless, getTracePropagationData } from './utils';
+import { flushIfServerless, getTracePropagationData, sendErrorToSentry } from './utils';
 
 export type SentryHandleOptions = {
   /**
@@ -62,32 +54,6 @@ export type SentryHandleOptions = {
   fetchProxyScriptNonce?: string;
 };
 
-function sendErrorToSentry(e: unknown): unknown {
-  // In case we have a primitive, wrap it in the equivalent wrapper class (string -> String, etc.) so that we can
-  // store a seen flag on it.
-  const objectifiedErr = objectify(e);
-
-  // similarly to the `load` function, we don't want to capture 4xx errors or redirects
-  if (
-    isRedirect(objectifiedErr) ||
-    (isHttpError(objectifiedErr) && objectifiedErr.status < 500 && objectifiedErr.status >= 400)
-  ) {
-    return objectifiedErr;
-  }
-
-  captureException(objectifiedErr, {
-    mechanism: {
-      type: 'sveltekit',
-      handled: false,
-      data: {
-        function: 'handle',
-      },
-    },
-  });
-
-  return objectifiedErr;
-}
-
 /**
  * Exported only for testing
  */
@@ -113,25 +79,14 @@ export function addSentryCodeToPage(options: SentryHandleOptions): NonNullable<R
   const nonce = fetchProxyScriptNonce ? `nonce="${fetchProxyScriptNonce}"` : '';
 
   return ({ html }) => {
-    const activeSpan = getActiveSpan();
-    const rootSpan = activeSpan ? getRootSpan(activeSpan) : undefined;
-    if (rootSpan) {
-      const traceparentData = spanToTraceHeader(rootSpan);
-      const dynamicSamplingContext = dynamicSamplingContextToSentryBaggageHeader(
-        getDynamicSamplingContextFromSpan(rootSpan),
-      );
-      const contentMeta = `<head>
-    <meta name="sentry-trace" content="${traceparentData}"/>
-    <meta name="baggage" content="${dynamicSamplingContext}"/>
-    `;
-      const contentScript = shouldInjectScript ? `<script ${nonce}>${FETCH_PROXY_SCRIPT}</script>` : '';
+    const metaTags = getTraceMetaTags();
+    const headWithMetaTags = metaTags ? `<head>\n${metaTags}` : '<head>';
 
-      const content = `${contentMeta}\n${contentScript}`;
+    const headWithFetchScript = shouldInjectScript ? `\n<script ${nonce}>${FETCH_PROXY_SCRIPT}</script>` : '';
 
-      return html.replace('<head>', content);
-    }
+    const modifiedHead = `${headWithMetaTags}${headWithFetchScript}`;
 
-    return html;
+    return html.replace('<head>', modifiedHead);
   };
 }
 
@@ -177,7 +132,9 @@ export function sentryHandle(handlerOptions?: SentryHandleOptions): Handle {
     return withIsolationScope(isolationScope => {
       // We only call continueTrace in the initial top level request to avoid
       // creating a new root span for the sub request.
-      isolationScope.setSDKProcessingMetadata({ request: winterCGRequestToRequestData(input.event.request.clone()) });
+      isolationScope.setSDKProcessingMetadata({
+        normalizedRequest: winterCGRequestToRequestData(input.event.request.clone()),
+      });
       return continueTrace(getTracePropagationData(input.event), () => instrumentHandle(input, options));
     });
   };
@@ -213,7 +170,9 @@ async function instrumentHandle(
         name: routeName,
       },
       async (span?: Span) => {
-        getCurrentScope().setSDKProcessingMetadata({ request: winterCGRequestToRequestData(event.request.clone()) });
+        getCurrentScope().setSDKProcessingMetadata({
+          normalizedRequest: winterCGRequestToRequestData(event.request.clone()),
+        });
         const res = await resolve(event, {
           transformPageChunk: addSentryCodeToPage(options),
         });
@@ -225,7 +184,7 @@ async function instrumentHandle(
     );
     return resolveResult;
   } catch (e: unknown) {
-    sendErrorToSentry(e);
+    sendErrorToSentry(e, 'handle');
     throw e;
   } finally {
     await flushIfServerless();

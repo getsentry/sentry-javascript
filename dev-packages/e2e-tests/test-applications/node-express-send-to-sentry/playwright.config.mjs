@@ -1,10 +1,5 @@
 import { devices } from '@playwright/test';
 
-// Fix urls not resolving to localhost on Node v17+
-// See: https://github.com/axios/axios/issues/3821#issuecomment-1413727575
-import { setDefaultResultOrder } from 'dns';
-setDefaultResultOrder('ipv4first');
-
 const expressPort = 3030;
 
 /**
@@ -28,7 +23,7 @@ const config = {
   /* Retry on CI only */
   retries: 0,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
-  reporter: 'list',
+  reporter: process.env.CI ? [['list'], ['junit', { outputFile: 'results.junit.xml' }]] : 'list',
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
     /* Maximum time each action such as `click()` can take. Defaults to 0 (no limit). */

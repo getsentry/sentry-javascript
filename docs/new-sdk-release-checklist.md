@@ -29,28 +29,24 @@ differ slightly for other SDKs depending on how they are structured and how they
 
 - [ ] Make sure that the tarball (`yarn build:tarball`) has all the necessary contents
 
-  For basic SDKs, this means that the tarball has at least these files:
+  For basic SDKs, this means that the tarball has at least these files - you can configure what is included in the
+  tarball via the `files` field in `package.json`:
 
-  - [ ] `cjs/<entrypoint>.js`
-  - [ ] `esm/<entrypoint>.js`
-  - [ ] `types/<entrypoint.d.ts>`
+  - [ ] `build/cjs/<entrypoint>.js` (or `build/npm/cjs/<entrypoint>.js`)
+  - [ ] `build/esm/<entrypoint>.js` (or `build/npm/esm/<entrypoint>.js`)
+  - [ ] `build/types/<entrypoint.d.ts>` (or `build/npm/types/<entrypoint>.js`)
   - [ ] `package.json`
     - [ ] Entry points registered in this file match the file structure above
   - [ ] `LICENSE`
   - [ ] `README.md`
-  - [ ] If your tarball should contain additional files outside `esm`, `cjs`, and `types` that are not listed above
-        (e.g. like Gatsby or Remix), be sure to add a package-specific `prepack.ts` script. In this script, you can copy
-        these additional files and make other adjustments.\
-         Check out the
-        [Gatsby script](https://github.com/getsentry/sentry-javascript/blob/acd7fbb56ed1859ce48f06a76143075108631c25/packages/gatsby/scripts/prepack.ts#L1)
-        as an example.\
-         It’s recommended to build and pack a tarball and then `yarn add path/to/tarball.tar.gz` it to your test app(s)
+  - [ ] Any additional files that should be part of the tarball
+  - [ ] It’s recommended to build and pack a tarball and then `yarn add path/to/tarball.tar.gz` it to your test app(s)
         to ensure that it has all the correct files.
 
 - [ ] Make sure `build.yml` CI script is correctly set up to cover tests for the new package
 
-  - [ ] Ensure dependent packages are correctly set for “Determine changed packages”
   - [ ] Ensure unit tests run correctly
+  - [ ] If it is a browser SDK, add it to `BROWSER_TEST_PACKAGES` in `scripts/ci-unit-tests.ts`
 
 - [ ] Make sure the file paths in the
       ["Upload Artifacts" job](https://github.com/getsentry/sentry-javascript/blob/e5c1486eed236b878f2c49d6a04be86093816ac9/.github/workflows/build.yml#L314-L349)

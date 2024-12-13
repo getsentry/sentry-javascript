@@ -38,7 +38,7 @@ Sentry.init({
   replaysSessionSampleRate: 1.0,
   replaysOnErrorSampleRate: 0.0,
 
-  debug: true,
+  debug: !!process.env.DEBUG,
 });
 
 const sentryCreateHashRouter = Sentry.wrapCreateBrowserRouter(createHashRouter);

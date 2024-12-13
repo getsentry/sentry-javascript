@@ -1,3 +1,5 @@
+import { beforeEach, describe, expect, it } from 'vitest';
+
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   getRootSpan,
@@ -5,9 +7,9 @@ import {
   spanIsSampled,
   spanToJSON,
 } from '@sentry/core';
+import type { EventEnvelopeHeaders, Span } from '@sentry/core';
 import { NodeClient, setCurrentClient } from '@sentry/node';
 import * as SentryNode from '@sentry/node';
-import type { EventEnvelopeHeaders, Span } from '@sentry/types';
 import type { Handle } from '@sveltejs/kit';
 import { redirect } from '@sveltejs/kit';
 import { vi } from 'vitest';
@@ -161,7 +163,7 @@ describe('sentryHandle', () => {
         await sentryHandle()({
           event: mockEvent(),
           resolve: async _ => {
-            // simulateing a nested load call:
+            // simulating a nested load call:
             await sentryHandle()({
               event: mockEvent({ route: { id: 'api/users/details/[id]', isSubRequest: true } }),
               resolve: resolve(type, isError),
@@ -208,7 +210,7 @@ describe('sentryHandle', () => {
         await sentryHandle()({
           event: mockEvent(),
           resolve: async _ => {
-            // simulateing a nested load call:
+            // simulating a nested load call:
             await sentryHandle()({
               event: mockEvent({ route: { id: 'api/users/details/[id]' } }),
               resolve: resolve(type, isError),
@@ -427,10 +429,14 @@ describe('addSentryCodeToPage', () => {
     </body>
   </html>`;
 
-  it('does not add meta tags if no active transaction', () => {
+  it("Adds add meta tags and fetch proxy script if there's no active transaction", () => {
     const transformPageChunk = addSentryCodeToPage({});
     const transformed = transformPageChunk({ html, done: true });
-    expect(transformed).toEqual(html);
+
+    expect(transformed).toContain('<meta name="sentry-trace"');
+    expect(transformed).toContain('<meta name="baggage"');
+    expect(transformed).not.toContain('sentry-transaction=');
+    expect(transformed).toContain(`<script >${FETCH_PROXY_SCRIPT}</script>`);
   });
 
   it('adds meta tags and the fetch proxy script if there is an active transaction', () => {
@@ -440,6 +446,7 @@ describe('addSentryCodeToPage', () => {
 
       expect(transformed).toContain('<meta name="sentry-trace"');
       expect(transformed).toContain('<meta name="baggage"');
+      expect(transformed).toContain('sentry-transaction=test');
       expect(transformed).toContain(`<script >${FETCH_PROXY_SCRIPT}</script>`);
     });
   });
@@ -451,18 +458,17 @@ describe('addSentryCodeToPage', () => {
 
       expect(transformed).toContain('<meta name="sentry-trace"');
       expect(transformed).toContain('<meta name="baggage"');
+      expect(transformed).toContain('sentry-transaction=test');
       expect(transformed).toContain(`<script nonce="123abc">${FETCH_PROXY_SCRIPT}</script>`);
     });
   });
 
   it('does not add the fetch proxy script if the `injectFetchProxyScript` option is false', () => {
     const transformPageChunk = addSentryCodeToPage({ injectFetchProxyScript: false });
-    SentryNode.startSpan({ name: 'test' }, () => {
-      const transformed = transformPageChunk({ html, done: true }) as string;
+    const transformed = transformPageChunk({ html, done: true }) as string;
 
-      expect(transformed).toContain('<meta name="sentry-trace"');
-      expect(transformed).toContain('<meta name="baggage"');
-      expect(transformed).not.toContain(`<script >${FETCH_PROXY_SCRIPT}</script>`);
-    });
+    expect(transformed).toContain('<meta name="sentry-trace"');
+    expect(transformed).toContain('<meta name="baggage"');
+    expect(transformed).not.toContain(`<script >${FETCH_PROXY_SCRIPT}</script>`);
   });
 });

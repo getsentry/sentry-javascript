@@ -1,4 +1,3 @@
-import { addBreadcrumb, defineIntegration, getClient } from '@sentry/core';
 import type {
   Client,
   FetchBreadcrumbData,
@@ -7,14 +6,18 @@ import type {
   HandlerDataFetch,
   IntegrationFn,
   Event as SentryEvent,
-} from '@sentry/types';
+} from '@sentry/core';
 import {
+  addBreadcrumb,
   addConsoleInstrumentationHandler,
   addFetchInstrumentationHandler,
+  defineIntegration,
+  getBreadcrumbLogLevelFromHttpStatusCode,
+  getClient,
   getEventDescription,
   safeJoin,
   severityLevelFromString,
-} from '@sentry/utils';
+} from '@sentry/core';
 
 interface BreadcrumbsOptions {
   console: boolean;
@@ -178,11 +181,14 @@ function _getFetchBreadcrumbHandler(client: Client): (handlerData: HandlerDataFe
         startTimestamp,
         endTimestamp,
       };
+      const level = getBreadcrumbLogLevelFromHttpStatusCode(data.status_code);
+
       addBreadcrumb(
         {
           category: 'fetch',
           data,
           type: 'http',
+          level,
         },
         hint,
       );

@@ -1,6 +1,6 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import * as SentryBrowser from '@sentry/browser';
-import type { Client, Event } from '@sentry/types';
+import type { Client, Event } from '@sentry/core';
 import { vi } from 'vitest';
 
 import { SentryErrorHandler, createErrorHandler } from '../src/errorhandler';
@@ -48,6 +48,11 @@ describe('SentryErrorHandler', () => {
   });
 
   describe('handleError method', () => {
+    const originalErrorEvent = globalThis.ErrorEvent;
+    afterEach(() => {
+      globalThis.ErrorEvent = originalErrorEvent;
+    });
+
     it('extracts `null` error', () => {
       createErrorHandler().handleError(null);
 
@@ -224,6 +229,18 @@ describe('SentryErrorHandler', () => {
 
       expect(captureExceptionSpy).toHaveBeenCalledTimes(1);
       expect(captureExceptionSpy).toHaveBeenCalledWith('Handled unknown error', captureExceptionEventHint);
+    });
+
+    it('handles ErrorEvent being undefined', () => {
+      const httpErr = new ErrorEvent('http', { message: 'sentry-http-test' });
+      const err = new HttpErrorResponse({ error: httpErr });
+
+      // @ts-expect-error - this is fine in this test
+      delete globalThis.ErrorEvent;
+
+      expect(() => {
+        createErrorHandler().handleError(err);
+      }).not.toThrow();
     });
 
     it('extracts an Error with `ngOriginalError`', () => {
@@ -531,6 +548,50 @@ describe('SentryErrorHandler', () => {
 
         expect(showReportDialogSpy).toBeCalledTimes(1);
       });
+    });
+
+    it('only registers the client "afterSendEvent" listener to open the dialog once', () => {
+      const unsubScribeSpy = vi.fn();
+      const client = {
+        cbs: [] as ((event: Event) => void)[],
+        on: vi.fn((_, cb) => {
+          client.cbs.push(cb);
+          return unsubScribeSpy;
+        }),
+      };
+
+      vi.spyOn(SentryBrowser, 'getClient').mockImplementation(() => client as unknown as Client);
+
+      const errorhandler = createErrorHandler({ showDialog: true });
+      expect(client.cbs).toHaveLength(0);
+
+      errorhandler.handleError(new Error('error 1'));
+      expect(client.cbs).toHaveLength(1);
+
+      errorhandler.handleError(new Error('error 2'));
+      errorhandler.handleError(new Error('error 3'));
+      expect(client.cbs).toHaveLength(1);
+    });
+
+    it('cleans up the "afterSendEvent" listener once the ErrorHandler is destroyed', () => {
+      const unsubScribeSpy = vi.fn();
+      const client = {
+        cbs: [] as ((event: Event) => void)[],
+        on: vi.fn((_, cb) => {
+          client.cbs.push(cb);
+          return unsubScribeSpy;
+        }),
+      };
+
+      vi.spyOn(SentryBrowser, 'getClient').mockImplementation(() => client as unknown as Client);
+
+      const errorhandler = createErrorHandler({ showDialog: true });
+
+      errorhandler.handleError(new Error('error 1'));
+      expect(client.cbs).toHaveLength(1);
+
+      errorhandler.ngOnDestroy();
+      expect(unsubScribeSpy).toHaveBeenCalledTimes(1);
     });
   });
 });

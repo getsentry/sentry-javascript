@@ -1,3 +1,5 @@
+// Important: This file cannot import anything other than the index file below.
+// This is the entry point to the lambda layer, which only contains the entire SDK bundled into the index file
 import * as Sentry from './index';
 
 const lambdaTaskRoot = process.env.LAMBDA_TASK_ROOT;
@@ -21,7 +23,9 @@ if (lambdaTaskRoot) {
     ),
   });
 
-  Sentry.tryPatchHandler(lambdaTaskRoot, handlerString);
+  if (typeof require !== 'undefined') {
+    Sentry.tryPatchHandler(lambdaTaskRoot, handlerString);
+  }
 } else {
   throw Error('LAMBDA_TASK_ROOT environment variable is not set');
 }

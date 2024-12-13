@@ -4,14 +4,17 @@ export {
   addFidInstrumentationHandler,
   addTtfbInstrumentationHandler,
   addLcpInstrumentationHandler,
+  addInpInstrumentationHandler,
 } from './metrics/instrument';
 
 export {
   addPerformanceEntries,
   startTrackingInteractions,
   startTrackingLongTasks,
+  startTrackingLongAnimationFrames,
   startTrackingWebVitals,
   startTrackingINP,
+  registerInpInteractionListener,
 } from './metrics/browserMetrics';
 
 export { addClickKeypressInstrumentationHandler } from './instrument/dom';

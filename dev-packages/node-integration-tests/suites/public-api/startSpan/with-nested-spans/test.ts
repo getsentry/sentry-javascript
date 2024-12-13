@@ -1,5 +1,6 @@
-import type { SpanJSON } from '@sentry/types';
-import { assertSentryTransaction, cleanupChildProcesses, createRunner } from '../../../../utils/runner';
+import type { SpanJSON } from '@sentry/core';
+import { assertSentryTransaction } from '../../../../utils/assertions';
+import { cleanupChildProcesses, createRunner } from '../../../../utils/runner';
 
 afterAll(() => {
   cleanupChildProcesses();
@@ -10,7 +11,7 @@ test('should report finished spans as children of the root transaction.', done =
     .expect({
       transaction: transaction => {
         const rootSpanId = transaction.contexts?.trace?.span_id;
-        const span3Id = transaction.spans?.[1].span_id;
+        const span3Id = transaction.spans?.[1]?.span_id;
 
         expect(rootSpanId).toEqual(expect.any(String));
         expect(span3Id).toEqual(expect.any(String));

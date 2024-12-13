@@ -1,0 +1,22 @@
+{
+  "name": "node-express-app",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "node src/run.mjs",
+    "test": "playwright test",
+    "clean": "npx rimraf node_modules pnpm-lock.yaml",
+    "test:build": "pnpm install",
+    "test:assert": "pnpm test"
+  },
+  "dependencies": {
+    "@sentry/aws-serverless": "* || latest"
+  },
+  "devDependencies": {
+    "@sentry-internal/test-utils": "link:../../../test-utils",
+    "@playwright/test": "^1.41.1"
+  },
+  "volta": {
+    "extends": "../../package.json"
+  }
+}

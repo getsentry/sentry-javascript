@@ -4,10 +4,10 @@
   "scripts": {
     "build": "remix build",
     "dev": "remix dev",
-    "start": "remix-serve build/index.js",
+    "start": "NODE_OPTIONS='--require=./instrument.server.cjs' remix-serve build/index.js",
     "typecheck": "tsc",
     "clean": "npx rimraf node_modules pnpm-lock.yaml",
-    "test:build": "pnpm install && npx playwright install && pnpm build",
+    "test:build": "pnpm install && pnpm build",
     "test:assert": "pnpm playwright test"
   },
   "dependencies": {
@@ -21,12 +21,11 @@
     "react-dom": "^18.2.0"
   },
   "devDependencies": {
-    "@sentry-internal/event-proxy-server": "link:../../../event-proxy-server",
-    "@playwright/test": "^1.36.2",
+    "@playwright/test": "^1.44.1",
+    "@sentry-internal/test-utils": "link:../../../test-utils",
     "@remix-run/dev": "2.7.2",
     "@remix-run/eslint-config": "2.7.2",
-    "@sentry/types": "latest || *",
-    "@sentry/utils": "latest || *",
+    "@sentry/core": "latest || *",
     "@types/react": "^18.0.35",
     "@types/react-dom": "^18.0.11",
     "eslint": "^8.38.0",

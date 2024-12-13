@@ -1,12 +1,13 @@
 import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
+import * as SentryCore from '@sentry/core';
+import type { Client, Span } from '@sentry/core';
 import * as SentryNode from '@sentry/node';
-import type { Client, Span } from '@sentry/types';
-import { vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { handleRequest, interpolateRouteFromUrlAndParams } from '../../src/server/middleware';
 
 vi.mock('../../src/server/meta', () => ({
-  getTracingMetaTags: () => ({
+  getTracingMetaTagValues: () => ({
     sentryTrace: '<meta name="sentry-trace" content="123">',
     baggage: '<meta name="baggage" content="abc">',
   }),
@@ -28,10 +29,20 @@ describe('sentryMiddleware', () => {
         setPropagationContext: vi.fn(),
         getSpan: getSpanMock,
         setSDKProcessingMetadata: setSDKProcessingMetadataMock,
+        getPropagationContext: () => ({}),
       } as any;
     });
     vi.spyOn(SentryNode, 'getActiveSpan').mockImplementation(getSpanMock);
     vi.spyOn(SentryNode, 'getClient').mockImplementation(() => ({}) as Client);
+    vi.spyOn(SentryNode, 'getTraceMetaTags').mockImplementation(
+      () => `
+    <meta name="sentry-trace" content="123">
+    <meta name="baggage" content="abc">
+    `,
+    );
+    vi.spyOn(SentryCore, 'getDynamicSamplingContextFromSpan').mockImplementation(() => ({
+      transaction: 'test',
+    }));
   });
 
   const nextResult = Promise.resolve(new Response(null, { status: 200, headers: new Headers() }));
@@ -138,55 +149,117 @@ describe('sentryMiddleware', () => {
     });
   });
 
-  it('attaches client IP if `trackClientIp=true`', async () => {
-    const middleware = handleRequest({ trackClientIp: true });
-    const ctx = {
-      request: {
-        method: 'GET',
-        url: '/users',
-        headers: new Headers({
-          'some-header': 'some-value',
-        }),
-      },
-      clientAddress: '192.168.0.1',
-      params: {},
-      url: new URL('https://myDomain.io/users/'),
-    };
-    const next = vi.fn(() => nextResult);
+  describe('track client IP address', () => {
+    it('attaches client IP if `trackClientIp=true` when handling dynamic page requests', async () => {
+      const middleware = handleRequest({ trackClientIp: true });
+      const ctx = {
+        request: {
+          method: 'GET',
+          url: '/users',
+          headers: new Headers({
+            'some-header': 'some-value',
+          }),
+        },
+        clientAddress: '192.168.0.1',
+        params: {},
+        url: new URL('https://myDomain.io/users/'),
+      };
+      const next = vi.fn(() => nextResult);
 
-    // @ts-expect-error, a partial ctx object is fine here
-    await middleware(ctx, next);
+      // @ts-expect-error, a partial ctx object is fine here
+      await middleware(ctx, next);
 
-    expect(setUserMock).toHaveBeenCalledWith({ ip_address: '192.168.0.1' });
+      expect(setUserMock).toHaveBeenCalledWith({ ip_address: '192.168.0.1' });
+    });
+
+    it("doesn't attach a client IP if `trackClientIp=true` when handling static page requests", async () => {
+      const middleware = handleRequest({ trackClientIp: true });
+
+      const ctx = {
+        request: {
+          method: 'GET',
+          url: '/users',
+          headers: new Headers({
+            'some-header': 'some-value',
+          }),
+        },
+        get clientAddress() {
+          throw new Error('clientAddress.get() should not be called in static page requests');
+        },
+        params: {},
+        url: new URL('https://myDomain.io/users/'),
+      };
+
+      const next = vi.fn(() => nextResult);
+
+      // @ts-expect-error, a partial ctx object is fine here
+      await middleware(ctx, next);
+
+      expect(setUserMock).not.toHaveBeenCalled();
+      expect(next).toHaveBeenCalledTimes(1);
+    });
   });
 
-  it('attaches request as SDK processing metadata', async () => {
-    const middleware = handleRequest({});
-    const ctx = {
-      request: {
-        method: 'GET',
-        url: '/users',
-        headers: new Headers({
-          'some-header': 'some-value',
-        }),
-      },
-      clientAddress: '192.168.0.1',
-      params: {},
-      url: new URL('https://myDomain.io/users/'),
-    };
-    const next = vi.fn(() => nextResult);
+  describe('request data', () => {
+    it('attaches request as SDK processing metadata in dynamic page requests', async () => {
+      const middleware = handleRequest({});
+      const ctx = {
+        request: {
+          method: 'GET',
+          url: '/users',
+          headers: new Headers({
+            'some-header': 'some-value',
+          }),
+        },
+        clientAddress: '192.168.0.1',
+        params: {},
+        url: new URL('https://myDomain.io/users/'),
+      };
+      const next = vi.fn(() => nextResult);
 
-    // @ts-expect-error, a partial ctx object is fine here
-    await middleware(ctx, next);
+      // @ts-expect-error, a partial ctx object is fine here
+      await middleware(ctx, next);
 
-    expect(setSDKProcessingMetadataMock).toHaveBeenCalledWith({
-      request: {
-        method: 'GET',
-        url: '/users',
-        headers: new Headers({
-          'some-header': 'some-value',
-        }),
-      },
+      expect(setSDKProcessingMetadataMock).toHaveBeenCalledWith({
+        normalizedRequest: {
+          method: 'GET',
+          url: '/users',
+          headers: {
+            'some-header': 'some-value',
+          },
+        },
+      });
+      expect(next).toHaveBeenCalledTimes(1);
+    });
+
+    it("doesn't attach request headers as processing metadata for static page requests", async () => {
+      const middleware = handleRequest({});
+      const ctx = {
+        request: {
+          method: 'GET',
+          url: '/users',
+          headers: new Headers({
+            'some-header': 'some-value',
+          }),
+        },
+        get clientAddress() {
+          throw new Error('clientAddress.get() should not be called in static page requests');
+        },
+        params: {},
+        url: new URL('https://myDomain.io/users/'),
+      };
+      const next = vi.fn(() => nextResult);
+
+      // @ts-expect-error, a partial ctx object is fine here
+      await middleware(ctx, next);
+
+      expect(setSDKProcessingMetadataMock).toHaveBeenCalledWith({
+        normalizedRequest: {
+          method: 'GET',
+          url: '/users',
+        },
+      });
+      expect(next).toHaveBeenCalledTimes(1);
     });
   });
 

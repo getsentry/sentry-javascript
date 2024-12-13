@@ -1,0 +1,29 @@
+{
+  "name": "node-fastify-5",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "ts-node src/app.ts",
+    "test": "playwright test",
+    "clean": "npx rimraf node_modules pnpm-lock.yaml",
+    "typecheck": "tsc",
+    "test:build": "pnpm install && pnpm run typecheck",
+    "test:assert": "pnpm test"
+  },
+  "dependencies": {
+    "@sentry/node": "latest || *",
+    "@sentry/core": "latest || *",
+    "@sentry/opentelemetry": "latest || *",
+    "@types/node": "22.7.5",
+    "fastify": "5.0.0",
+    "typescript": "5.6.3",
+    "ts-node": "10.9.2"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.44.1",
+    "@sentry-internal/test-utils": "link:../../../test-utils"
+  },
+  "volta": {
+    "extends": "../../package.json"
+  }
+}

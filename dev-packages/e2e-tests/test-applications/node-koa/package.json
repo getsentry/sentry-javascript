@@ -10,16 +10,16 @@
     "test:assert": "pnpm test"
   },
   "dependencies": {
+    "@koa/bodyparser": "^5.1.1",
     "@koa/router": "^12.0.1",
     "@sentry/node": "latest || *",
-    "@sentry/types": "latest || *",
     "@types/node": "18.15.1",
     "koa": "^2.15.2",
     "typescript": "4.9.5"
   },
   "devDependencies": {
-    "@sentry-internal/event-proxy-server": "link:../../../event-proxy-server",
-    "@playwright/test": "^1.27.1"
+    "@playwright/test": "^1.44.1",
+    "@sentry-internal/test-utils": "link:../../../test-utils"
   },
   "volta": {
     "extends": "../../package.json"

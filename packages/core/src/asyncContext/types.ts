@@ -1,4 +1,5 @@
-import type { Scope } from '@sentry/types';
+import type { Scope } from '../types-hoist';
+import type { getTraceData } from '../utils/traceData';
 import type {
   startInactiveSpan,
   startSpan,
@@ -64,4 +65,7 @@ export interface AsyncContextStrategy {
 
   /** Suppress tracing in the given callback, ensuring no spans are generated inside of it.  */
   suppressTracing?: typeof suppressTracing;
+
+  /** Get trace data as serialized string values for propagation via `sentry-trace` and `baggage`. */
+  getTraceData?: typeof getTraceData;
 }

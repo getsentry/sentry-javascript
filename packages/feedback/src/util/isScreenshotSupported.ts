@@ -17,6 +17,15 @@ export function isScreenshotSupported(): boolean {
   if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(NAVIGATOR.userAgent)) {
     return false;
   }
+  /**
+   * User agent on iPads show as Macintosh, so we need extra checks
+   *
+   * https://forums.developer.apple.com/forums/thread/119186
+   * https://stackoverflow.com/questions/60482650/how-to-detect-ipad-useragent-on-safari-browser
+   */
+  if (/Macintosh/i.test(NAVIGATOR.userAgent) && NAVIGATOR.maxTouchPoints && NAVIGATOR.maxTouchPoints > 1) {
+    return false;
+  }
   if (!isSecureContext) {
     return false;
   }

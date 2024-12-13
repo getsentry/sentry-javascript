@@ -15,6 +15,10 @@ faster, so we can get back to enjoying technology. If you want to join us
 
 # Official Sentry SDKs for JavaScript
 
+<a href="https://docs.sentry.io/platforms/javascript/" target="_blank">
+  <img src="https://github.com/user-attachments/assets/aedc2b46-9959-4b9e-8a23-6240062cefc5" alt="Sentry for JavaScript">
+</a>
+
 This is the next line of Sentry JavaScript SDKs, comprised in the `@sentry/` namespace. It will provide a more
 convenient interface and improved consistency between various JavaScript environments.
 
@@ -28,7 +32,7 @@ convenient interface and improved consistency between various JavaScript environ
 
 ## Contents
 
-- [Contributing](https://github.com/getsentry/sentry-javascript/blob/master/CONTRIBUTING.md)
+- [Contributing](https://github.com/getsentry/sentry-javascript/blob/develop/CONTRIBUTING.md)
 - [Supported Platforms](#supported-platforms)
 - [Installation and Usage](#installation-and-usage)
 - [Other Packages](#other-packages)
@@ -40,7 +44,6 @@ For each major JavaScript platform, there is a specific high-level SDK that prov
 package. Please refer to the README and instructions of those SDKs for more detailed information:
 
 - [`@sentry/browser`](https://github.com/getsentry/sentry-javascript/tree/master/packages/browser): SDK for Browsers
-- [`@sentry/bun`](https://github.com/getsentry/sentry-javascript/tree/master/packages/bun): SDK for Bun
 - [`@sentry/node`](https://github.com/getsentry/sentry-javascript/tree/master/packages/node): SDK for Node including
   integrations for Express
 - [`@sentry/angular`](https://github.com/getsentry/sentry-javascript/tree/master/packages/angular): Browser SDK for
@@ -52,18 +55,29 @@ package. Please refer to the README and instructions of those SDKs for more deta
 - [`@sentry/sveltekit`](https://github.com/getsentry/sentry-javascript/tree/master/packages/sveltekit): SDK for
   SvelteKit
 - [`@sentry/vue`](https://github.com/getsentry/sentry-javascript/tree/master/packages/vue): Browser SDK for Vue
+- [`@sentry/solid`](https://github.com/getsentry/sentry-javascript/tree/master/packages/solid): Browser SDK for Solid
 - [`@sentry/gatsby`](https://github.com/getsentry/sentry-javascript/tree/master/packages/gatsby): SDK for Gatsby
+- [`@sentry/nestjs`](https://github.com/getsentry/sentry-javascript/tree/master/packages/nestjs): SDK for NestJS
 - [`@sentry/nextjs`](https://github.com/getsentry/sentry-javascript/tree/master/packages/nextjs): SDK for Next.js
 - [`@sentry/remix`](https://github.com/getsentry/sentry-javascript/tree/master/packages/remix): SDK for Remix
 - [`@sentry/aws-serverless`](https://github.com/getsentry/sentry-javascript/tree/master/packages/aws-serverless): SDK
   for AWS Lambda Functions
-- [`@sentry/google-cloud-serverless`](https://github.com/getsentry/sentry-javascript/tree/master/packages/google-cloud):
+- [`@sentry/google-cloud-serverless`](https://github.com/getsentry/sentry-javascript/tree/master/packages/google-cloud-serverless):
   SDK for Google Cloud Functions
 - [`@sentry/electron`](https://github.com/getsentry/sentry-electron): SDK for Electron with support for native crashes
 - [`@sentry/react-native`](https://github.com/getsentry/sentry-react-native): SDK for React Native with support for
   native crashes
 - [`@sentry/capacitor`](https://github.com/getsentry/sentry-capacitor): SDK for Capacitor Apps and Ionic with support
   for native crashes
+- [`@sentry/bun`](https://github.com/getsentry/sentry-javascript/tree/master/packages/bun): SDK for Bun
+- [`@sentry/deno`](https://github.com/getsentry/sentry-javascript/tree/master/packages/deno): SDK for Deno
+- [`@sentry/cloudflare`](https://github.com/getsentry/sentry-javascript/tree/master/packages/cloudflare): SDK for
+  Cloudflare
+
+## Version Support Policy
+
+The current version of the SDK is 8.x. Version 7.x of the SDK will continue to receive critical bugfixes until end
+of 2024.
 
 ## Installation and Usage
 
@@ -77,14 +91,14 @@ yarn add @sentry/browser
 Setup and usage of these SDKs always follows the same principle.
 
 ```javascript
-import { init, captureMessage } from '@sentry/browser';
+import * as Sentry from '@sentry/browser';
 
-init({
+Sentry.init({
   dsn: '__DSN__',
   // ...
 });
 
-captureMessage('Hello, world!');
+Sentry.captureMessage('Hello, world!');
 ```
 
 ## Other Packages
@@ -97,10 +111,6 @@ below:
   Provides the integration for Session Replay.
 - [`@sentry/core`](https://github.com/getsentry/sentry-javascript/tree/master/packages/core): The base for all
   JavaScript SDKs with interfaces, type definitions and base classes.
-- [`@sentry/utils`](https://github.com/getsentry/sentry-javascript/tree/master/packages/utils): A set of helpers and
-  utility functions useful for various SDKs.
-- [`@sentry/types`](https://github.com/getsentry/sentry-javascript/tree/master/packages/types): Types used in all
-  packages.
 
 ## Bug Bounty Program
 
@@ -111,3 +121,11 @@ Our program is currently running on an invitation basis. If you're interested in
 to security@sentry.io and tell us, that you are interested in auditing this repository.
 
 For more details, please have a look at https://sentry.io/security/#vulnerability-disclosure.
+
+## Contributors
+
+Thanks to everyone who contributed to the Sentry JavaScript SDK!
+
+<a href="https://github.com/getsentry/sentry-javascript/graphs/contributors">
+  <img src="https://contributors-img.web.app/image?repo=getsentry/sentry-javascript" />
+</a>

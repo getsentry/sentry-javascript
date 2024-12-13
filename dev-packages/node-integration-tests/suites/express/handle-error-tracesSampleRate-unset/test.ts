@@ -5,8 +5,8 @@ afterAll(() => {
 });
 
 test('should capture and send Express controller error if tracesSampleRate is not set.', done => {
-  const runner = createRunner(__dirname, 'server.ts')
-    .ignore('session', 'sessions', 'transaction')
+  createRunner(__dirname, 'server.ts')
+    .ignore('transaction')
     .expect({
       event: {
         exception: {
@@ -32,7 +32,6 @@ test('should capture and send Express controller error if tracesSampleRate is no
         },
       },
     })
-    .start(done);
-
-  expect(() => runner.makeRequest('get', '/test/express/123')).rejects.toThrow();
+    .start(done)
+    .makeRequest('get', '/test/express/123', { expectError: true });
 });

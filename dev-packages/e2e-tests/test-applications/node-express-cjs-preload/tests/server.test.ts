@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { waitForError, waitForTransaction } from '@sentry-internal/event-proxy-server';
+import { waitForError, waitForTransaction } from '@sentry-internal/test-utils';
 
 test('Should record exceptions captured inside handlers', async ({ request }) => {
   const errorEventPromise = waitForError('node-express-cjs-preload', errorEvent => {
@@ -66,19 +66,18 @@ test('Should record a transaction for route with parameters', async ({ request }
       'express.name': 'query',
       'express.type': 'middleware',
       'http.route': '/',
-      'otel.kind': 'INTERNAL',
       'sentry.origin': 'auto.http.otel.express',
       'sentry.op': 'middleware.express',
     },
     op: 'middleware.express',
     description: 'query',
     origin: 'auto.http.otel.express',
-    parent_span_id: expect.any(String),
-    span_id: expect.any(String),
+    parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
+    span_id: expect.stringMatching(/[a-f0-9]{16}/),
     start_timestamp: expect.any(Number),
     status: 'ok',
     timestamp: expect.any(Number),
-    trace_id: expect.any(String),
+    trace_id: expect.stringMatching(/[a-f0-9]{32}/),
   });
 
   expect(spans).toContainEqual({
@@ -86,19 +85,18 @@ test('Should record a transaction for route with parameters', async ({ request }
       'express.name': 'expressInit',
       'express.type': 'middleware',
       'http.route': '/',
-      'otel.kind': 'INTERNAL',
       'sentry.origin': 'auto.http.otel.express',
       'sentry.op': 'middleware.express',
     },
     op: 'middleware.express',
     description: 'expressInit',
     origin: 'auto.http.otel.express',
-    parent_span_id: expect.any(String),
-    span_id: expect.any(String),
+    parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
+    span_id: expect.stringMatching(/[a-f0-9]{16}/),
     start_timestamp: expect.any(Number),
     status: 'ok',
     timestamp: expect.any(Number),
-    trace_id: expect.any(String),
+    trace_id: expect.stringMatching(/[a-f0-9]{32}/),
   });
 
   expect(spans).toContainEqual({
@@ -106,18 +104,17 @@ test('Should record a transaction for route with parameters', async ({ request }
       'express.name': '/test-transaction/:param',
       'express.type': 'request_handler',
       'http.route': '/test-transaction/:param',
-      'otel.kind': 'INTERNAL',
       'sentry.origin': 'auto.http.otel.express',
       'sentry.op': 'request_handler.express',
     },
     op: 'request_handler.express',
     description: '/test-transaction/:param',
     origin: 'auto.http.otel.express',
-    parent_span_id: expect.any(String),
-    span_id: expect.any(String),
+    parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
+    span_id: expect.stringMatching(/[a-f0-9]{16}/),
     start_timestamp: expect.any(Number),
     status: 'ok',
     timestamp: expect.any(Number),
-    trace_id: expect.any(String),
+    trace_id: expect.stringMatching(/[a-f0-9]{32}/),
   });
 });

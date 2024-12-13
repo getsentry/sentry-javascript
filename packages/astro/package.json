@@ -1,6 +1,6 @@
 {
   "name": "@sentry/astro",
-  "version": "8.7.0",
+  "version": "8.44.0",
   "description": "Official Sentry SDK for Astro",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/astro",
@@ -11,24 +11,24 @@
     "node": ">=18.14.1"
   },
   "type": "module",
-  "files": ["cjs", "esm", "types", "types-ts3.8", "import-hook.mjs", "loader-hook.mjs"],
+  "files": ["/build"],
   "main": "build/cjs/index.client.js",
   "module": "build/esm/index.server.js",
   "browser": "build/esm/index.client.js",
   "types": "build/types/index.types.d.ts",
   "exports": {
     ".": {
+      "types": "./build/types/index.types.d.ts",
       "node": "./build/esm/index.server.js",
       "browser": "./build/esm/index.client.js",
       "import": "./build/esm/index.client.js",
-      "require": "./build/cjs/index.server.js",
-      "types": "./build/types/index.types.d.ts"
+      "require": "./build/cjs/index.server.js"
     },
     "./middleware": {
+      "types": "./build/types/integration/middleware/index.types.d.ts",
       "node": "./build/esm/integration/middleware/index.js",
       "import": "./build/esm/integration/middleware/index.js",
-      "require": "./build/cjs/integration/middleware/index.js",
-      "types": "./build/types/integration/middleware/index.types.d.ts"
+      "require": "./build/cjs/integration/middleware/index.js"
     },
     "./import": {
       "import": {
@@ -45,19 +45,17 @@
     "access": "public"
   },
   "peerDependencies": {
-    "astro": ">=3.x || >=4.0.0-beta"
+    "astro": ">=3.x || >=4.0.0-beta || >=5.x"
   },
   "dependencies": {
-    "@sentry/browser": "8.7.0",
-    "@sentry/core": "8.7.0",
-    "@sentry/node": "8.7.0",
-    "@sentry/types": "8.7.0",
-    "@sentry/utils": "8.7.0",
-    "@sentry/vite-plugin": "^2.14.2"
+    "@sentry/browser": "8.44.0",
+    "@sentry/core": "8.44.0",
+    "@sentry/node": "8.44.0",
+    "@sentry/vite-plugin": "^2.22.6"
   },
   "devDependencies": {
     "astro": "^3.5.0",
-    "vite": "4.5.3"
+    "vite": "^5.4.10"
   },
   "scripts": {
     "build": "run-p build:transpile build:types",
@@ -68,7 +66,7 @@
     "build:dev:watch": "yarn build:watch",
     "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",
     "build:types:watch": "tsc -p tsconfig.types.json --watch",
-    "build:tarball": "ts-node ../../scripts/prepack.ts && npm pack ./build",
+    "build:tarball": "npm pack",
     "circularDepCheck": "madge --circular src/index.client.ts && madge --circular src/index.server.ts && madge --circular src/index.types.ts",
     "clean": "rimraf build coverage sentry-astro-*.tgz",
     "fix": "eslint . --format stylish --fix",
@@ -76,7 +74,7 @@
     "test": "yarn test:unit",
     "test:unit": "vitest run",
     "test:watch": "vitest --watch",
-    "yalc:publish": "ts-node ../../scripts/prepack.ts && yalc publish build --push --sig"
+    "yalc:publish": "yalc publish --push --sig"
   },
   "volta": {
     "extends": "../../package.json"

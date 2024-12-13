@@ -1,4 +1,4 @@
-import type { Client, Event, EventProcessor, Integration } from '@sentry/types';
+import type { Client, Event, EventProcessor, Integration } from '../../src/types-hoist';
 
 import { getClient, getCurrentScope } from '../../src';
 
@@ -9,7 +9,7 @@ export class TestIntegration implements Integration {
 
   public setupOnce(): void {
     const eventProcessor: EventProcessor = (event: Event) => {
-      if (!getClient()?.getIntegrationByName?.('TestIntegration')) {
+      if (!getClient()?.getIntegrationByName('TestIntegration')) {
         return event;
       }
 

@@ -1,6 +1,6 @@
 {
   "name": "@sentry/browser",
-  "version": "8.7.0",
+  "version": "8.44.0",
   "description": "Official Sentry SDK for browsers",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/browser",
@@ -9,7 +9,7 @@
   "engines": {
     "node": ">=14.18"
   },
-  "files": ["cjs", "esm", "types", "types-ts3.8"],
+  "files": ["/build/npm"],
   "main": "build/npm/cjs/index.js",
   "module": "build/npm/esm/index.js",
   "types": "build/npm/types/index.d.ts",
@@ -21,7 +21,7 @@
         "default": "./build/npm/esm/index.js"
       },
       "require": {
-        "types": "./build/npm.types/index.d.ts",
+        "types": "./build/npm/types/index.d.ts",
         "default": "./build/npm/cjs/index.js"
       }
     }
@@ -35,26 +35,19 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry-internal/browser-utils": "8.7.0",
-    "@sentry-internal/feedback": "8.7.0",
-    "@sentry-internal/replay": "8.7.0",
-    "@sentry-internal/replay-canvas": "8.7.0",
-    "@sentry/core": "8.7.0",
-    "@sentry/types": "8.7.0",
-    "@sentry/utils": "8.7.0"
+    "@sentry-internal/browser-utils": "8.44.0",
+    "@sentry-internal/feedback": "8.44.0",
+    "@sentry-internal/replay": "8.44.0",
+    "@sentry-internal/replay-canvas": "8.44.0",
+    "@sentry/core": "8.44.0"
   },
   "devDependencies": {
-    "@sentry-internal/integration-shims": "8.7.0",
-    "@types/md5": "2.1.33",
-    "btoa": "^1.2.1",
-    "fake-indexeddb": "^4.0.1",
-    "node-fetch": "^2.6.0",
-    "playwright": "^1.31.1",
-    "webpack": "^4.47.0"
+    "@sentry-internal/integration-shims": "8.44.0",
+    "fake-indexeddb": "^4.0.1"
   },
   "scripts": {
     "build": "run-p build:transpile build:bundle build:types",
-    "build:dev": "yarn build",
+    "build:dev": "run-p build:transpile build:types",
     "build:bundle": "rollup -c rollup.bundle.config.mjs",
     "build:transpile": "rollup -c rollup.npm.config.mjs",
     "build:types": "run-s build:types:core build:types:downlevel",
@@ -65,17 +58,15 @@
     "build:bundle:watch": "rollup -c rollup.bundle.config.mjs --watch",
     "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",
     "build:types:watch": "tsc -p tsconfig.types.json --watch",
-    "build:tarball": "ts-node ../../scripts/prepack.ts --bundles && npm pack ./build/npm",
+    "build:tarball": "npm pack",
     "circularDepCheck": "madge --circular src/index.ts",
     "clean": "rimraf build coverage .rpt2_cache sentry-browser-*.tgz",
     "fix": "eslint . --format stylish --fix",
     "lint": "eslint . --format stylish",
     "size:check": "cat build/bundles/bundle.min.js | gzip -9 | wc -c | awk '{$1=$1/1024; print \"ES2017: \",$1,\"kB\";}'",
-    "test": "yarn test:unit",
-    "test:unit": "jest",
-    "test:package": "node test/package/npm-build.js && rm test/package/tmp.js",
-    "test:unit:watch": "jest --watch",
-    "yalc:publish": "ts-node ../../scripts/prepack.ts --bundles && yalc publish ./build/npm --push --sig"
+    "test": "vitest run",
+    "test:watch": "vitest --watch",
+    "yalc:publish": "yalc publish --push --sig"
   },
   "volta": {
     "extends": "../../package.json"

@@ -1,6 +1,5 @@
-import type { HandlerDataXhr, SentryWrappedXMLHttpRequest, WrappedFunction } from '@sentry/types';
-
-import { addHandler, fill, isString, maybeInstrument, timestampInSeconds, triggerHandlers } from '@sentry/utils';
+import type { HandlerDataXhr, SentryWrappedXMLHttpRequest } from '@sentry/core';
+import { addHandler, isString, maybeInstrument, timestampInSeconds, triggerHandlers } from '@sentry/core';
 import { WINDOW } from '../types';
 
 export const SENTRY_XHR_DATA_KEY = '__sentry_xhr_v3__';
@@ -29,20 +28,28 @@ export function instrumentXHR(): void {
 
   const xhrproto = XMLHttpRequest.prototype;
 
-  fill(xhrproto, 'open', function (originalOpen: () => void): () => void {
-    return function (this: XMLHttpRequest & SentryWrappedXMLHttpRequest, ...args: unknown[]): void {
+  // eslint-disable-next-line @typescript-eslint/unbound-method
+  xhrproto.open = new Proxy(xhrproto.open, {
+    apply(originalOpen, xhrOpenThisArg: XMLHttpRequest & SentryWrappedXMLHttpRequest, xhrOpenArgArray) {
+      // NOTE: If you are a Sentry user, and you are seeing this stack frame,
+      //       it means the error, that was caused by your XHR call did not
+      //       have a stack trace. If you are using HttpClient integration,
+      //       this is the expected behavior, as we are using this virtual error to capture
+      //       the location of your XHR call, and group your HttpClient events accordingly.
+      const virtualError = new Error();
+
       const startTimestamp = timestampInSeconds() * 1000;
 
       // open() should always be called with two or more arguments
       // But to be on the safe side, we actually validate this and bail out if we don't have a method & url
-      const method = isString(args[0]) ? args[0].toUpperCase() : undefined;
-      const url = parseUrl(args[1]);
+      const method = isString(xhrOpenArgArray[0]) ? xhrOpenArgArray[0].toUpperCase() : undefined;
+      const url = parseUrl(xhrOpenArgArray[1]);
 
       if (!method || !url) {
-        return originalOpen.apply(this, args);
+        return originalOpen.apply(xhrOpenThisArg, xhrOpenArgArray);
       }
 
-      this[SENTRY_XHR_DATA_KEY] = {
+      xhrOpenThisArg[SENTRY_XHR_DATA_KEY] = {
         method,
         url,
         request_headers: {},
@@ -50,22 +57,22 @@ export function instrumentXHR(): void {
 
       // if Sentry key appears in URL, don't capture it as a request
       if (method === 'POST' && url.match(/sentry_key/)) {
-        this.__sentry_own_request__ = true;
+        xhrOpenThisArg.__sentry_own_request__ = true;
       }
 
       const onreadystatechangeHandler: () => void = () => {
         // For whatever reason, this is not the same instance here as from the outer method
-        const xhrInfo = this[SENTRY_XHR_DATA_KEY];
+        const xhrInfo = xhrOpenThisArg[SENTRY_XHR_DATA_KEY];
 
         if (!xhrInfo) {
           return;
         }
 
-        if (this.readyState === 4) {
+        if (xhrOpenThisArg.readyState === 4) {
           try {
             // touching statusCode in some platforms throws
             // an exception
-            xhrInfo.status_code = this.status;
+            xhrInfo.status_code = xhrOpenThisArg.status;
           } catch (e) {
             /* do nothing */
           }
@@ -73,64 +80,70 @@ export function instrumentXHR(): void {
           const handlerData: HandlerDataXhr = {
             endTimestamp: timestampInSeconds() * 1000,
             startTimestamp,
-            xhr: this,
+            xhr: xhrOpenThisArg,
+            virtualError,
           };
           triggerHandlers('xhr', handlerData);
         }
       };
 
-      if ('onreadystatechange' in this && typeof this.onreadystatechange === 'function') {
-        fill(this, 'onreadystatechange', function (original: WrappedFunction) {
-          return function (this: SentryWrappedXMLHttpRequest, ...readyStateArgs: unknown[]): void {
+      if ('onreadystatechange' in xhrOpenThisArg && typeof xhrOpenThisArg.onreadystatechange === 'function') {
+        xhrOpenThisArg.onreadystatechange = new Proxy(xhrOpenThisArg.onreadystatechange, {
+          apply(originalOnreadystatechange, onreadystatechangeThisArg, onreadystatechangeArgArray: unknown[]) {
             onreadystatechangeHandler();
-            return original.apply(this, readyStateArgs);
-          };
+            return originalOnreadystatechange.apply(onreadystatechangeThisArg, onreadystatechangeArgArray);
+          },
         });
       } else {
-        this.addEventListener('readystatechange', onreadystatechangeHandler);
+        xhrOpenThisArg.addEventListener('readystatechange', onreadystatechangeHandler);
       }
 
       // Intercepting `setRequestHeader` to access the request headers of XHR instance.
       // This will only work for user/library defined headers, not for the default/browser-assigned headers.
       // Request cookies are also unavailable for XHR, as `Cookie` header can't be defined by `setRequestHeader`.
-      fill(this, 'setRequestHeader', function (original: WrappedFunction) {
-        return function (this: SentryWrappedXMLHttpRequest, ...setRequestHeaderArgs: unknown[]): void {
-          const [header, value] = setRequestHeaderArgs;
+      xhrOpenThisArg.setRequestHeader = new Proxy(xhrOpenThisArg.setRequestHeader, {
+        apply(
+          originalSetRequestHeader,
+          setRequestHeaderThisArg: SentryWrappedXMLHttpRequest,
+          setRequestHeaderArgArray: unknown[],
+        ) {
+          const [header, value] = setRequestHeaderArgArray;
 
-          const xhrInfo = this[SENTRY_XHR_DATA_KEY];
+          const xhrInfo = setRequestHeaderThisArg[SENTRY_XHR_DATA_KEY];
 
           if (xhrInfo && isString(header) && isString(value)) {
             xhrInfo.request_headers[header.toLowerCase()] = value;
           }
 
-          return original.apply(this, setRequestHeaderArgs);
-        };
+          return originalSetRequestHeader.apply(setRequestHeaderThisArg, setRequestHeaderArgArray);
+        },
       });
 
-      return originalOpen.apply(this, args);
-    };
+      return originalOpen.apply(xhrOpenThisArg, xhrOpenArgArray);
+    },
   });
 
-  fill(xhrproto, 'send', function (originalSend: () => void): () => void {
-    return function (this: XMLHttpRequest & SentryWrappedXMLHttpRequest, ...args: unknown[]): void {
-      const sentryXhrData = this[SENTRY_XHR_DATA_KEY];
+  // eslint-disable-next-line @typescript-eslint/unbound-method
+  xhrproto.send = new Proxy(xhrproto.send, {
+    apply(originalSend, sendThisArg: XMLHttpRequest & SentryWrappedXMLHttpRequest, sendArgArray: unknown[]) {
+      const sentryXhrData = sendThisArg[SENTRY_XHR_DATA_KEY];
 
       if (!sentryXhrData) {
-        return originalSend.apply(this, args);
+        return originalSend.apply(sendThisArg, sendArgArray);
       }
 
-      if (args[0] !== undefined) {
-        sentryXhrData.body = args[0];
+      if (sendArgArray[0] !== undefined) {
+        sentryXhrData.body = sendArgArray[0];
       }
 
       const handlerData: HandlerDataXhr = {
         startTimestamp: timestampInSeconds() * 1000,
-        xhr: this,
+        xhr: sendThisArg,
       };
       triggerHandlers('xhr', handlerData);
 
-      return originalSend.apply(this, args);
-    };
+      return originalSend.apply(sendThisArg, sendArgArray);
+    },
   });
 }
 

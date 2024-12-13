@@ -1,3 +1,9 @@
+/**
+ * @vitest-environment jsdom
+ */
+
+import { describe, expect, it } from 'vitest';
+
 import { NETWORK_BODY_MAX_SIZE } from '../../../../src/constants';
 import {
   buildNetworkRequestOrResponse,
@@ -32,7 +38,7 @@ describe('Unit | coreHandlers | util | networkUtils', () => {
 
     it('works with string body', () => {
       expect(getBodySize('abcd')).toBe(4);
-      // Emojis are correctly counted as mutliple characters
+      // Emojis are correctly counted as multiple characters
       expect(getBodySize('With emoji: 😈')).toBe(16);
     });
 

@@ -3,7 +3,7 @@ import { DOCUMENT } from '../../constants';
 /**
  * Creates <style> element for widget dialog
  */
-export function createScreenshotInputStyles(): HTMLStyleElement {
+export function createScreenshotInputStyles(styleNonce?: string): HTMLStyleElement {
   const style = DOCUMENT.createElement('style');
 
   const surface200 = '#1A141F';
@@ -37,12 +37,14 @@ export function createScreenshotInputStyles(): HTMLStyleElement {
   width: 100%;
   height: 100%;
   position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .editor__canvas-container canvas {
-  width: 100%;
-  height: 100%;
   object-fit: contain;
+  position: relative;
 }
 
 .editor__crop-btn-group {
@@ -83,6 +85,10 @@ export function createScreenshotInputStyles(): HTMLStyleElement {
   border-top: none;
 }
 `;
+
+  if (styleNonce) {
+    style.setAttribute('nonce', styleNonce);
+  }
 
   return style;
 }

@@ -2,43 +2,47 @@
 import {
   addHistoryInstrumentationHandler,
   addPerformanceEntries,
+  registerInpInteractionListener,
   startTrackingINP,
   startTrackingInteractions,
+  startTrackingLongAnimationFrames,
   startTrackingLongTasks,
   startTrackingWebVitals,
 } from '@sentry-internal/browser-utils';
+import type { Client, IntegrationFn, Span, StartSpanOptions, TransactionSource } from '@sentry/core';
 import {
+  GLOBAL_OBJ,
   SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   TRACING_DEFAULTS,
+  browserPerformanceTimeOrigin,
+  generateTraceId,
   getActiveSpan,
   getClient,
   getCurrentScope,
+  getDomElement,
   getDynamicSamplingContextFromSpan,
   getIsolationScope,
   getRootSpan,
+  logger,
+  propagationContextFromHeaders,
   registerSpanErrorInstrumentation,
   spanIsSampled,
   spanToJSON,
   startIdleSpan,
 } from '@sentry/core';
-import type { Client, IntegrationFn, StartSpanOptions, TransactionSource } from '@sentry/types';
-import type { Span } from '@sentry/types';
-import {
-  browserPerformanceTimeOrigin,
-  generatePropagationContext,
-  getDomElement,
-  logger,
-  propagationContextFromHeaders,
-} from '@sentry/utils';
-
 import { DEBUG_BUILD } from '../debug-build';
 import { WINDOW } from '../helpers';
 import { registerBackgroundTabDetection } from './backgroundtab';
 import { defaultRequestInstrumentationOptions, instrumentOutgoingRequests } from './request';
 
 export const BROWSER_TRACING_INTEGRATION_ID = 'BrowserTracing';
+
+interface RouteInfo {
+  name: string | undefined;
+  source: TransactionSource | undefined;
+}
 
 /** Options for Browser Tracing integration */
 export interface BrowserTracingOptions {
@@ -97,6 +101,13 @@ export interface BrowserTracingOptions {
   enableLongTask: boolean;
 
   /**
+   * If true, Sentry will capture long animation frames and add them to the corresponding transaction.
+   *
+   * Default: false
+   */
+  enableLongAnimationFrame: boolean;
+
+  /**
    * If true, Sentry will capture first input delay and add it to the corresponding transaction.
    *
    * Default: true
@@ -118,6 +129,14 @@ export interface BrowserTracingOptions {
   traceXHR: boolean;
 
   /**
+   * Flag to disable tracking of long-lived streams, like server-sent events (SSE) via fetch.
+   * Do not enable this in case you have live streams or very long running streams.
+   *
+   * Default: false
+   */
+  trackFetchStreamPerformance: boolean;
+
+  /**
    * If true, Sentry will capture http timings and add them to the corresponding http spans.
    *
    * Default: true
@@ -131,6 +150,7 @@ export interface BrowserTracingOptions {
    */
   _experiments: Partial<{
     enableInteractions: boolean;
+    enableStandaloneClsSpans: boolean;
   }>;
 
   /**
@@ -154,6 +174,7 @@ const DEFAULT_BROWSER_TRACING_OPTIONS: BrowserTracingOptions = {
   instrumentPageLoad: true,
   markBackgroundSpan: true,
   enableLongTask: true,
+  enableLongAnimationFrame: true,
   enableInp: true,
   _experiments: {},
   ...defaultRequestInstrumentationOptions,
@@ -174,7 +195,8 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
   const {
     enableInp,
     enableLongTask,
-    _experiments: { enableInteractions },
+    enableLongAnimationFrame,
+    _experiments: { enableInteractions, enableStandaloneClsSpans },
     beforeStartSpan,
     idleTimeout,
     finalTimeout,
@@ -182,6 +204,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
     markBackgroundSpan,
     traceFetch,
     traceXHR,
+    trackFetchStreamPerformance,
     shouldCreateSpanForRequest,
     enableHTTPTimings,
     instrumentPageLoad,
@@ -191,20 +214,28 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
     ..._options,
   };
 
-  const _collectWebVitals = startTrackingWebVitals();
+  const _collectWebVitals = startTrackingWebVitals({ recordClsStandaloneSpans: enableStandaloneClsSpans || false });
 
   if (enableInp) {
     startTrackingINP();
   }
 
-  if (enableLongTask) {
+  if (
+    enableLongAnimationFrame &&
+    GLOBAL_OBJ.PerformanceObserver &&
+    PerformanceObserver.supportedEntryTypes &&
+    PerformanceObserver.supportedEntryTypes.includes('long-animation-frame')
+  ) {
+    startTrackingLongAnimationFrames();
+  } else if (enableLongTask) {
     startTrackingLongTasks();
   }
+
   if (enableInteractions) {
     startTrackingInteractions();
   }
 
-  const latestRoute: { name: string | undefined; source: TransactionSource | undefined } = {
+  const latestRoute: RouteInfo = {
     name: undefined,
     source: undefined,
   };
@@ -237,7 +268,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
       disableAutoFinish: isPageloadTransaction,
       beforeSpanEnd: span => {
         _collectWebVitals();
-        addPerformanceEntries(span);
+        addPerformanceEntries(span, { recordClsOnPageloadSpan: !enableStandaloneClsSpans });
       },
     });
 
@@ -264,16 +295,21 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
       let activeSpan: Span | undefined;
       let startingUrl: string | undefined = WINDOW.location && WINDOW.location.href;
 
+      function maybeEndActiveSpan(): void {
+        if (activeSpan && !spanToJSON(activeSpan).timestamp) {
+          DEBUG_BUILD && logger.log(`[Tracing] Finishing current active span with op: ${spanToJSON(activeSpan).op}`);
+          // If there's an open active span, we need to finish it before creating an new one.
+          activeSpan.end();
+        }
+      }
+
       client.on('startNavigationSpan', startSpanOptions => {
         if (getClient() !== client) {
           return;
         }
 
-        if (activeSpan) {
-          DEBUG_BUILD && logger.log(`[Tracing] Finishing current root span with op: ${spanToJSON(activeSpan).op}`);
-          // If there's an open transaction on the scope, we need to finish it before creating an new one.
-          activeSpan.end();
-        }
+        maybeEndActiveSpan();
+
         activeSpan = _createRouteSpan(client, {
           op: 'navigation',
           ...startSpanOptions,
@@ -284,12 +320,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
         if (getClient() !== client) {
           return;
         }
-
-        if (activeSpan) {
-          DEBUG_BUILD && logger.log(`[Tracing] Finishing current root span with op: ${spanToJSON(activeSpan).op}`);
-          // If there's an open transaction on the scope, we need to finish it before creating an new one.
-          activeSpan.end();
-        }
+        maybeEndActiveSpan();
 
         const sentryTrace = traceOptions.sentryTrace || getMetaContent('sentry-trace');
         const baggage = traceOptions.baggage || getMetaContent('baggage');
@@ -375,9 +406,14 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
         registerInteractionListener(idleTimeout, finalTimeout, childSpanTimeout, latestRoute);
       }
 
-      instrumentOutgoingRequests({
+      if (enableInp) {
+        registerInpInteractionListener();
+      }
+
+      instrumentOutgoingRequests(client, {
         traceFetch,
         traceXHR,
+        trackFetchStreamPerformance,
         tracePropagationTargets: client.getOptions().tracePropagationTargets,
         shouldCreateSpanForRequest,
         enableHTTPTimings,
@@ -412,8 +448,8 @@ export function startBrowserTracingPageLoadSpan(
  * This will only do something if a browser tracing integration has been setup.
  */
 export function startBrowserTracingNavigationSpan(client: Client, spanOptions: StartSpanOptions): Span | undefined {
-  getIsolationScope().setPropagationContext(generatePropagationContext());
-  getCurrentScope().setPropagationContext(generatePropagationContext());
+  getIsolationScope().setPropagationContext({ traceId: generateTraceId() });
+  getCurrentScope().setPropagationContext({ traceId: generateTraceId() });
 
   client.emit('startNavigationSpan', spanOptions);
 
@@ -439,7 +475,7 @@ function registerInteractionListener(
   idleTimeout: BrowserTracingOptions['idleTimeout'],
   finalTimeout: BrowserTracingOptions['finalTimeout'],
   childSpanTimeout: BrowserTracingOptions['childSpanTimeout'],
-  latestRoute: { name: string | undefined; source: TransactionSource | undefined },
+  latestRoute: RouteInfo,
 ): void {
   let inflightInteractionSpan: Span | undefined;
   const registerInteractionTransaction = (): void => {

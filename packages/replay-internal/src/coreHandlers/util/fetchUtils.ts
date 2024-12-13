@@ -1,6 +1,5 @@
 import { setTimeout } from '@sentry-internal/browser-utils';
-import type { Breadcrumb, FetchBreadcrumbData } from '@sentry/types';
-import { logger } from '@sentry/utils';
+import type { Breadcrumb, FetchBreadcrumbData } from '@sentry/core';
 
 import { DEBUG_BUILD } from '../../debug-build';
 import type {
@@ -11,6 +10,7 @@ import type {
   ReplayNetworkRequestData,
   ReplayNetworkRequestOrResponse,
 } from '../../types';
+import { logger } from '../../util/logger';
 import { addNetworkBreadcrumb } from './addNetworkBreadcrumb';
 import {
   buildNetworkRequestOrResponse,
@@ -26,7 +26,7 @@ import {
 
 /**
  * Capture a fetch breadcrumb to a replay.
- * This adds additional data (where approriate).
+ * This adds additional data (where appropriate).
  */
 export async function captureFetchBreadcrumbToReplay(
   breadcrumb: Breadcrumb & { data: FetchBreadcrumbData },
@@ -42,7 +42,7 @@ export async function captureFetchBreadcrumbToReplay(
     const result = makeNetworkReplayBreadcrumb('resource.fetch', data);
     addNetworkBreadcrumb(options.replay, result);
   } catch (error) {
-    DEBUG_BUILD && logger.error('[Replay] Failed to capture fetch breadcrumb', error);
+    DEBUG_BUILD && logger.exception(error, 'Failed to capture fetch breadcrumb');
   }
 }
 
@@ -192,7 +192,7 @@ function getResponseData(
 
     return buildNetworkRequestOrResponse(headers, size, undefined);
   } catch (error) {
-    DEBUG_BUILD && logger.warn('[Replay] Failed to serialize response body', error);
+    DEBUG_BUILD && logger.exception(error, 'Failed to serialize response body');
     // fallback
     return buildNetworkRequestOrResponse(headers, responseBodySize, undefined);
   }
@@ -209,7 +209,12 @@ async function _parseFetchResponseBody(response: Response): Promise<[string | un
     const text = await _tryGetResponseText(res);
     return [text];
   } catch (error) {
-    DEBUG_BUILD && logger.warn('[Replay] Failed to get text body from response', error);
+    if (error instanceof Error && error.message.indexOf('Timeout') > -1) {
+      DEBUG_BUILD && logger.warn('Parsing text body from response timed out');
+      return [undefined, 'BODY_PARSE_TIMEOUT'];
+    }
+
+    DEBUG_BUILD && logger.exception(error, 'Failed to get text body from response');
     return [undefined, 'BODY_PARSE_ERROR'];
   }
 }
@@ -279,7 +284,7 @@ function _tryCloneResponse(response: Response): Response | void {
     return response.clone();
   } catch (error) {
     // this can throw if the response was already consumed before
-    DEBUG_BUILD && logger.warn('[Replay] Failed to clone response body', error);
+    DEBUG_BUILD && logger.exception(error, 'Failed to clone response body');
   }
 }
 
@@ -299,8 +304,6 @@ function _tryGetResponseText(response: Response): Promise<string | undefined> {
       )
       .finally(() => clearTimeout(timeout));
   });
-
-  return _getResponseText(response);
 }
 
 async function _getResponseText(response: Response): Promise<string> {

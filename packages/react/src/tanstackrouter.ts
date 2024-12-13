@@ -1,12 +1,15 @@
-import { WINDOW, startBrowserTracingNavigationSpan, startBrowserTracingPageLoadSpan } from '@sentry/browser';
+import {
+  WINDOW,
+  browserTracingIntegration as originalBrowserTracingIntegration,
+  startBrowserTracingNavigationSpan,
+  startBrowserTracingPageLoadSpan,
+} from '@sentry/browser';
+import type { Integration } from '@sentry/core';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '@sentry/core';
-
-import { browserTracingIntegration as originalBrowserTracingIntegration } from '@sentry/browser';
-import type { Integration } from '@sentry/types';
 import type { VendoredTanstackRouter, VendoredTanstackRouterRouteMatch } from './vendor/tanstackrouter-types';
 
 /**
@@ -41,7 +44,7 @@ export function tanstackRouterBrowserTracingIntegration(
       if (instrumentPageLoad && initialWindowLocation) {
         const matchedRoutes = castRouterInstance.matchRoutes(
           initialWindowLocation.pathname,
-          initialWindowLocation.search,
+          castRouterInstance.options.parseSearch(initialWindowLocation.search),
           { preload: false, throwOnError: false },
         );
 
@@ -115,9 +118,9 @@ function routeMatchToParamSpanAttributes(match: VendoredTanstackRouterRouteMatch
   }
 
   const paramAttributes: Record<string, string> = {};
-  for (const key of Object.keys(match.params)) {
-    paramAttributes[`url.path.params.${key}`] = match.params[key];
-  }
+  Object.entries(match.params).forEach(([key, value]) => {
+    paramAttributes[`url.path.params.${key}`] = value;
+  });
 
   return paramAttributes;
 }

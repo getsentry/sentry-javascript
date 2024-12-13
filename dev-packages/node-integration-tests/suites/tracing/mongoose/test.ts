@@ -2,8 +2,6 @@ import { MongoMemoryServer } from 'mongodb-memory-server-global';
 
 import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
 
-jest.setTimeout(20000);
-
 describe('Mongoose experimental Test', () => {
   let mongoServer: MongoMemoryServer;
 

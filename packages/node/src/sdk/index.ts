@@ -1,4 +1,7 @@
+import type { Integration, Options } from '@sentry/core';
 import {
+  consoleSandbox,
+  dropUndefinedKeys,
   endSession,
   functionToStringIntegration,
   getClient,
@@ -8,38 +11,35 @@ import {
   hasTracingEnabled,
   inboundFiltersIntegration,
   linkedErrorsIntegration,
+  logger,
+  propagationContextFromHeaders,
   requestDataIntegration,
+  stackParserFromStackParserOptions,
   startSession,
 } from '@sentry/core';
 import {
+  enhanceDscWithOpenTelemetryRootSpanName,
   openTelemetrySetupCheck,
   setOpenTelemetryContextAsyncContextStrategy,
   setupEventContextTrace,
 } from '@sentry/opentelemetry';
-import type { Client, Integration, Options } from '@sentry/types';
-import {
-  consoleSandbox,
-  dropUndefinedKeys,
-  logger,
-  propagationContextFromHeaders,
-  stackParserFromStackParserOptions,
-} from '@sentry/utils';
 import { DEBUG_BUILD } from '../debug-build';
+import { childProcessIntegration } from '../integrations/childProcess';
 import { consoleIntegration } from '../integrations/console';
 import { nodeContextIntegration } from '../integrations/context';
 import { contextLinesIntegration } from '../integrations/contextlines';
-
 import { httpIntegration } from '../integrations/http';
 import { localVariablesIntegration } from '../integrations/local-variables';
 import { modulesIntegration } from '../integrations/modules';
 import { nativeNodeFetchIntegration } from '../integrations/node-fetch';
 import { onUncaughtExceptionIntegration } from '../integrations/onuncaughtexception';
 import { onUnhandledRejectionIntegration } from '../integrations/onunhandledrejection';
-import { spotlightIntegration } from '../integrations/spotlight';
+import { INTEGRATION_NAME as SPOTLIGHT_INTEGRATION_NAME, spotlightIntegration } from '../integrations/spotlight';
 import { getAutoPerformanceIntegrations } from '../integrations/tracing';
 import { makeNodeTransport } from '../transports';
 import type { NodeClientOptions, NodeOptions } from '../types';
 import { isCjs } from '../utils/commonjs';
+import { envToBool } from '../utils/envToBool';
 import { defaultStackParser, getSentryRelease } from './api';
 import { NodeClient } from './client';
 import { initOpenTelemetry, maybeInitializeEsmLoader } from './initOtel';
@@ -69,6 +69,7 @@ export function getDefaultIntegrationsWithoutPerformance(): Integration[] {
     contextLinesIntegration(),
     localVariablesIntegration(),
     nodeContextIntegration(),
+    childProcessIntegration(),
     ...getCjsOnlyIntegrations(),
   ];
 }
@@ -91,20 +92,21 @@ function shouldAddPerformanceIntegrations(options: Options): boolean {
   }
 
   // We want to ensure `tracesSampleRate` is not just undefined/null here
+  // eslint-disable-next-line deprecation/deprecation
   return options.enableTracing || options.tracesSampleRate != null || 'tracesSampler' in options;
 }
 
 /**
  * Initialize Sentry for Node.
  */
-export function init(options: NodeOptions | undefined = {}): void {
+export function init(options: NodeOptions | undefined = {}): NodeClient | undefined {
   return _init(options, getDefaultIntegrations);
 }
 
 /**
  * Initialize Sentry for Node, without any integrations added by default.
  */
-export function initWithoutDefaultIntegrations(options: NodeOptions | undefined = {}): void {
+export function initWithoutDefaultIntegrations(options: NodeOptions | undefined = {}): NodeClient {
   return _init(options, () => []);
 }
 
@@ -112,12 +114,12 @@ export function initWithoutDefaultIntegrations(options: NodeOptions | undefined 
  * Initialize Sentry for Node, without performance instrumentation.
  */
 function _init(
-  options: NodeOptions | undefined = {},
+  _options: NodeOptions | undefined = {},
   getDefaultIntegrationsImpl: (options: Options) => Integration[],
-): void {
-  const clientOptions = getClientOptions(options, getDefaultIntegrationsImpl);
+): NodeClient {
+  const options = getClientOptions(_options, getDefaultIntegrationsImpl);
 
-  if (clientOptions.debug === true) {
+  if (options.debug === true) {
     if (DEBUG_BUILD) {
       logger.enable();
     } else {
@@ -129,8 +131,8 @@ function _init(
     }
   }
 
-  if (!isCjs()) {
-    maybeInitializeEsmLoader();
+  if (!isCjs() && options.registerEsmLoaderHooks !== false) {
+    maybeInitializeEsmLoader(options.registerEsmLoaderHooks === true ? undefined : options.registerEsmLoaderHooks);
   }
 
   setOpenTelemetryContextAsyncContextStrategy();
@@ -138,35 +140,31 @@ function _init(
   const scope = getCurrentScope();
   scope.update(options.initialScope);
 
-  const client = new NodeClient(clientOptions);
-  // The client is on the current scope, from where it generally is inherited
-  getCurrentScope().setClient(client);
-
-  if (isEnabled(client)) {
-    client.init();
-  }
-
-  logger.log(`Running in ${isCjs() ? 'CommonJS' : 'ESM'} mode.`);
-
-  if (options.autoSessionTracking) {
-    startSessionTracking();
-  }
-
-  updateScopeFromEnvVariables();
-
-  if (options.spotlight) {
-    // force integrations to be setup even if no DSN was set
-    // If they have already been added before, they will be ignored anyhow
-    const integrations = client.getOptions().integrations;
-    for (const integration of integrations) {
-      client.addIntegration(integration);
-    }
-    client.addIntegration(
+  if (options.spotlight && !options.integrations.some(({ name }) => name === SPOTLIGHT_INTEGRATION_NAME)) {
+    options.integrations.push(
       spotlightIntegration({
         sidecarUrl: typeof options.spotlight === 'string' ? options.spotlight : undefined,
       }),
     );
   }
+
+  const client = new NodeClient(options);
+  // The client is on the current scope, from where it generally is inherited
+  getCurrentScope().setClient(client);
+
+  client.init();
+
+  logger.log(`Running in ${isCjs() ? 'CommonJS' : 'ESM'} mode.`);
+
+  // TODO(V9): Remove this code since all of the logic should be in an integration
+  // eslint-disable-next-line deprecation/deprecation
+  if (options.autoSessionTracking) {
+    startSessionTracking();
+  }
+
+  client.startClientReportTracking();
+
+  updateScopeFromEnvVariables();
 
   // If users opt-out of this, they _have_ to set up OpenTelemetry themselves
   // There is no way to use this SDK without OpenTelemetry!
@@ -175,7 +173,10 @@ function _init(
     validateOpenTelemetrySetup();
   }
 
+  enhanceDscWithOpenTelemetryRootSpanName(client);
   setupEventContextTrace(client);
+
+  return client;
 }
 
 /**
@@ -188,7 +189,12 @@ export function validateOpenTelemetrySetup(): void {
 
   const setup = openTelemetrySetupCheck();
 
-  const required = ['SentrySpanProcessor', 'SentryContextManager', 'SentryPropagator'] as const;
+  const required: ReturnType<typeof openTelemetrySetupCheck> = ['SentryContextManager', 'SentryPropagator'];
+
+  if (hasTracingEnabled()) {
+    required.push('SentrySpanProcessor');
+  }
+
   for (const k of required) {
     if (!setup.includes(k)) {
       logger.error(
@@ -199,7 +205,7 @@ export function validateOpenTelemetrySetup(): void {
 
   if (!setup.includes('SentrySampler')) {
     logger.warn(
-      'You have to set up the SentrySampler. Without this, the OpenTelemetry & Sentry integration may still work, but sample rates set for the Sentry SDK will not be respected.',
+      'You have to set up the SentrySampler. Without this, the OpenTelemetry & Sentry integration may still work, but sample rates set for the Sentry SDK will not be respected. If you use a custom sampler, make sure to use `wrapSamplingDecision`.',
     );
   }
 }
@@ -213,9 +219,20 @@ function getClientOptions(
   const autoSessionTracking =
     typeof release !== 'string'
       ? false
-      : options.autoSessionTracking === undefined
+      : // eslint-disable-next-line deprecation/deprecation
+        options.autoSessionTracking === undefined
         ? true
-        : options.autoSessionTracking;
+        : // eslint-disable-next-line deprecation/deprecation
+          options.autoSessionTracking;
+
+  if (options.spotlight == null) {
+    const spotlightEnv = envToBool(process.env.SENTRY_SPOTLIGHT, { strict: true });
+    if (spotlightEnv == null) {
+      options.spotlight = process.env.SENTRY_SPOTLIGHT;
+    } else {
+      options.spotlight = spotlightEnv;
+    }
+  }
 
   const tracesSampleRate = getTracesSampleRate(options.tracesSampleRate);
 
@@ -223,6 +240,7 @@ function getClientOptions(
     transport: makeNodeTransport,
     dsn: process.env.SENTRY_DSN,
     environment: process.env.SENTRY_ENVIRONMENT,
+    sendClientReports: true,
   });
 
   const overwriteOptions = dropUndefinedKeys({
@@ -287,8 +305,7 @@ function getTracesSampleRate(tracesSampleRate: NodeOptions['tracesSampleRate']):
  * for more details.
  */
 function updateScopeFromEnvVariables(): void {
-  const sentryUseEnvironment = (process.env.SENTRY_USE_ENVIRONMENT || '').toLowerCase();
-  if (!['false', 'n', 'no', 'off', '0'].includes(sentryUseEnvironment)) {
+  if (envToBool(process.env.SENTRY_USE_ENVIRONMENT) !== false) {
     const sentryTraceEnv = process.env.SENTRY_TRACE;
     const baggageEnv = process.env.SENTRY_BAGGAGE;
     const propagationContext = propagationContextFromHeaders(sentryTraceEnv, baggageEnv);
@@ -301,6 +318,7 @@ function updateScopeFromEnvVariables(): void {
  */
 function startSessionTracking(): void {
   const client = getClient<NodeClient>();
+  // eslint-disable-next-line deprecation/deprecation
   if (client && client.getOptions().autoSessionTracking) {
     client.initSessionFlusher();
   }
@@ -322,8 +340,4 @@ function startSessionTracking(): void {
       endSession();
     }
   });
-}
-
-function isEnabled(client: Client): boolean {
-  return client.getOptions().enabled !== false && client.getTransport() !== undefined;
 }

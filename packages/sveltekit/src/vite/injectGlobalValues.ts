@@ -1,4 +1,4 @@
-import type { InternalGlobal } from '@sentry/utils';
+import type { InternalGlobal } from '@sentry/core';
 
 export type GlobalSentryValues = {
   __sentry_sveltekit_output_dir?: string;
@@ -21,21 +21,9 @@ export function getGlobalValueInjectionCode(globalSentryValues: GlobalSentryValu
     return '';
   }
 
-  const sentryGlobal = '_global';
-
-  const globalCode = `var ${sentryGlobal} =
-  typeof window !== 'undefined' ?
-    window :
-    typeof globalThis !== 'undefined' ?
-      globalThis :
-      typeof global !== 'undefined' ?
-        global :
-        typeof self !== 'undefined' ?
-          self :
-          {};`;
   const injectedValuesCode = Object.entries(globalSentryValues)
-    .map(([key, value]) => `${sentryGlobal}["${key}"] = ${JSON.stringify(value)};`)
+    .map(([key, value]) => `globalThis["${key}"] = ${JSON.stringify(value)};`)
     .join('\n');
 
-  return `${globalCode}\n${injectedValuesCode}\n`;
+  return `${injectedValuesCode}\n`;
 }

@@ -31,15 +31,7 @@ sentryTest('should capture feedback', async ({ forceFlushReplay, getLocalTestUrl
     }
   });
 
-  await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-    return route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ id: 'test-id' }),
-    });
-  });
-
-  const url = await getLocalTestUrl({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname, handleLazyLoadedFeedback: true });
 
   await Promise.all([page.goto(url), page.getByText('Report a Bug').click(), reqPromise0]);
 
@@ -95,6 +87,7 @@ sentryTest('should capture feedback', async ({ forceFlushReplay, getLocalTestUrl
       },
     },
     level: 'info',
+    tags: {},
     timestamp: expect.any(Number),
     event_id: expect.stringMatching(/\w{32}/),
     environment: 'production',

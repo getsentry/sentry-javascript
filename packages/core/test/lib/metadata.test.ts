@@ -1,7 +1,9 @@
-import type { Event } from '@sentry/types';
-import { GLOBAL_OBJ, createStackParser, nodeStackLineParser } from '@sentry/utils';
+import type { Event } from '../../src/types-hoist';
 
 import { addMetadataToStackFrames, getMetadataForUrl, stripMetadataFromStackFrames } from '../../src/metadata';
+import { nodeStackLineParser } from '../../src/utils-hoist/node-stack-trace';
+import { createStackParser } from '../../src/utils-hoist/stacktrace';
+import { GLOBAL_OBJ } from '../../src/utils-hoist/worldwide';
 
 const parser = createStackParser(nodeStackLineParser());
 
@@ -51,7 +53,7 @@ describe('Metadata', () => {
   it('is added and stripped from stack frames', () => {
     addMetadataToStackFrames(parser, event);
 
-    expect(event.exception?.values?.[0].stacktrace?.frames).toEqual([
+    expect(event.exception?.values?.[0]?.stacktrace?.frames).toEqual([
       {
         filename: '<anonymous>',
         function: 'new Promise',
@@ -75,7 +77,7 @@ describe('Metadata', () => {
 
     stripMetadataFromStackFrames(event);
 
-    expect(event.exception?.values?.[0].stacktrace?.frames).toEqual([
+    expect(event.exception?.values?.[0]?.stacktrace?.frames).toEqual([
       {
         filename: '<anonymous>',
         function: 'new Promise',

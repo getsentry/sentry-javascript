@@ -21,6 +21,11 @@ yarn add @sentry/node
 
 ## Usage
 
+Sentry should be initialized as early in your app as possible. It is essential that you call `Sentry.init` before you
+require any other modules in your application, otherwise auto-instrumentation of these modules will **not** work.
+
+You need to create a file named `instrument.js` that imports and initializes Sentry:
+
 ```js
 // CJS Syntax
 const Sentry = require('@sentry/node');
@@ -33,26 +38,39 @@ Sentry.init({
 });
 ```
 
-Note that it is necessary to initialize Sentry **before you import any package that may be instrumented by us**.
+You need to require or import the `instrument.js` file before importing any other modules in your application. This is
+necessary to ensure that Sentry can automatically instrument all modules in your application:
 
-[More information on how to set up Sentry for Node in v8.](https://github.com/getsentry/sentry-javascript/blob/develop/docs/v8-node.md)
+```js
+// Import this first!
+import './instrument';
+
+// Now import other modules
+import http from 'http';
+
+// Your application code goes here
+```
 
 ### ESM Support
 
-Due to the way OpenTelemetry handles instrumentation, this only works out of the box for CommonJS (`require`)
-applications.
+When running your application in ESM mode, you should use the Node.js
+[`--import`](https://nodejs.org/api/cli.html#--importmodule) command line option to ensure that Sentry is loaded before
+the application code is evaluated.
 
-There is experimental support for running OpenTelemetry with ESM (`"type": "module"`):
+Adjust the Node.js call for your application to use the `--import` parameter and point it at `instrument.js`, which
+contains your `Sentry.init`() code:
 
 ```bash
-node --experimental-loader=@opentelemetry/instrumentation/hook.mjs ./app.js
+# Note: This is only available for Node v18.19.0 onwards.
+node --import ./instrument.mjs app.mjs
 ```
 
-You'll need to install `@opentelemetry/instrumentation` in your app to ensure this works.
+If it is not possible for you to pass the `--import` flag to the Node.js binary, you can alternatively use the
+`NODE_OPTIONS` environment variable as follows:
 
-See
-[OpenTelemetry Instrumentation Docs](https://github.com/open-telemetry/opentelemetry-js/tree/main/experimental/packages/opentelemetry-instrumentation#instrumentation-for-es-modules-in-nodejs-experimental)
-for details on this - but note that this is a) experimental, and b) does not work with all integrations.
+```bash
+NODE_OPTIONS="--import ./instrument.mjs" npm run start
+```
 
 ## Links
 

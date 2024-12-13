@@ -1,8 +1,6 @@
-import { logger } from '@sentry/utils';
-
 import { DEBUG_BUILD } from '../debug-build';
 import type { WorkerRequest, WorkerResponse } from '../types';
-import { logInfo } from '../util/log';
+import { logger } from '../util/logger';
 
 /**
  * Event buffer that uses a web worker to compress events.
@@ -20,7 +18,7 @@ export class WorkerHandler {
 
   /**
    * Ensure the worker is ready (or not).
-   * This will either resolve when the worker is ready, or reject if an error occured.
+   * This will either resolve when the worker is ready, or reject if an error occurred.
    */
   public ensureReady(): Promise<void> {
     // Ensure we only check once
@@ -57,7 +55,7 @@ export class WorkerHandler {
    * Destroy the worker.
    */
   public destroy(): void {
-    logInfo('[Replay] Destroying compression worker');
+    DEBUG_BUILD && logger.info('Destroying compression worker');
     this._worker.terminate();
   }
 
@@ -85,7 +83,7 @@ export class WorkerHandler {
 
         if (!response.success) {
           // TODO: Do some error handling, not sure what
-          DEBUG_BUILD && logger.error('[Replay]', response.response);
+          DEBUG_BUILD && logger.error('Error in compression worker: ', response.response);
 
           reject(new Error('Error in compression worker'));
           return;
