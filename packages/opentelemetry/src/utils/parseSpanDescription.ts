@@ -116,7 +116,7 @@ export function parseSpanDescription(span: AbstractSpan): SpanDescription {
 
 function descriptionForDbSystem({ attributes, name }: { attributes: Attributes; name: string }): SpanDescription {
   // if we already have a custom name, we don't overwrite it but only set the op
-  const userDefinedName = attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
+  const userDefinedName = attributes[SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME];
   if (typeof userDefinedName === 'string') {
     return {
       op: 'db',
