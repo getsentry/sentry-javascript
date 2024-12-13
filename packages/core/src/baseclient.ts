@@ -713,6 +713,16 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    * @param scope
    */
   protected _captureEvent(event: Event, hint: EventHint = {}, scope?: Scope): PromiseLike<string | undefined> {
+    if (DEBUG_BUILD && isErrorEvent(event)) {
+      logger.log(
+        `Captured error event \`${
+          (event.exception && event.exception.values && event.exception.values[0] && event.exception.values[0].value) ||
+          event.message ||
+          '<unknown>'
+        }\``,
+      );
+    }
+
     return this._processEvent(event, hint, scope).then(
       finalEvent => {
         return finalEvent.event_id;
