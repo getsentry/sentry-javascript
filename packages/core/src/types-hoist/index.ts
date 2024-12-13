@@ -106,12 +106,6 @@ export type {
   Session,
   SessionContext,
   SessionStatus,
-  // eslint-disable-next-line deprecation/deprecation
-  RequestSession,
-  // eslint-disable-next-line deprecation/deprecation
-  RequestSessionStatus,
-  // eslint-disable-next-line deprecation/deprecation
-  SessionFlusherLike,
   SerializedSession,
 } from './session';
 

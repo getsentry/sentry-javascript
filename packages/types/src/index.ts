@@ -137,7 +137,6 @@ import type {
   SessionAggregates as SessionAggregates_imported,
   SessionContext as SessionContext_imported,
   SessionEnvelope as SessionEnvelope_imported,
-  SessionFlusherLike as SessionFlusherLike_imported,
   SessionItem as SessionItem_imported,
   SessionStatus as SessionStatus_imported,
   SeverityLevel as SeverityLevel_imported,
@@ -428,9 +427,6 @@ export type RequestSession = RequestSession_imported;
 /** @deprecated This type has been moved to `@sentry/core`. */
 // eslint-disable-next-line deprecation/deprecation
 export type RequestSessionStatus = RequestSessionStatus_imported;
-/** @deprecated This type has been moved to `@sentry/core`. */
-// eslint-disable-next-line deprecation/deprecation
-export type SessionFlusherLike = SessionFlusherLike_imported;
 /** @deprecated This type has been moved to `@sentry/core`. */
 export type SerializedSession = SerializedSession_imported;
 /** @deprecated This type has been moved to `@sentry/core`. */

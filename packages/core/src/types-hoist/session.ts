@@ -54,27 +54,14 @@ export interface SessionAggregates {
   aggregates: Array<AggregationCounts>;
 }
 
-/**
- * @deprecated This type is deprecated and will be removed in the next major version of the SDK.
- */
-export interface SessionFlusherLike {
-  /**
-   * Increments the Session Status bucket in SessionAggregates Object corresponding to the status of the session
-   * captured
-   */
-  incrementSessionStatusCount(): void;
-
-  /** Empties Aggregate Buckets and Sends them to Transport Buffer */
-  flush(): void;
-
-  /** Clears setInterval and calls flush */
-  close(): void;
-}
-
 export interface AggregationCounts {
+  /** ISO Timestamp rounded to the second */
   started: string;
-  errored?: number;
+  /** Number of sessions that did not have errors */
   exited?: number;
+  /** Number of sessions that had handled errors */
+  errored?: number;
+  /** Number of sessions that had unhandled errors */
   crashed?: number;
 }
 
