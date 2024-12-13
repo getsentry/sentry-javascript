@@ -1,6 +1,6 @@
+import { SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME } from '@sentry/core';
 import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/node';
 import { cleanupChildProcesses, createRunner } from '../../../../utils/runner';
-import { SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME } from '@sentry/core';
 
 describe('express tracing', () => {
   afterAll(() => {

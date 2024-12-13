@@ -1,5 +1,5 @@
 import { expect } from '@playwright/test';
-import { SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME, type Event } from '@sentry/core';
+import { type Event, SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME } from '@sentry/core';
 
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
