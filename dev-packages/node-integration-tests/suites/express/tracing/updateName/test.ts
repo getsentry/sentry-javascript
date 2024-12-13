@@ -1,5 +1,6 @@
 import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/node';
 import { cleanupChildProcesses, createRunner } from '../../../../utils/runner';
+import { SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME } from '@sentry/core';
 
 describe('express tracing', () => {
   afterAll(() => {
@@ -58,7 +59,7 @@ describe('express tracing', () => {
               },
             });
             // ensure we delete the internal attribute once we're done with it
-            expect(txnEvent.contexts?.trace?.data?.['_sentry_span_name_set_by_user']).toBeUndefined();
+            expect(txnEvent.contexts?.trace?.data?.[SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME]).toBeUndefined();
           },
         })
         .start(done)
@@ -84,7 +85,7 @@ describe('express tracing', () => {
             },
           });
           // ensure we delete the internal attribute once we're done with it
-          expect(txnEvent.contexts?.trace?.data?.['_sentry_span_name_set_by_user']).toBeUndefined();
+          expect(txnEvent.contexts?.trace?.data?.[SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME]).toBeUndefined();
         },
       })
       .start(done)

@@ -1,3 +1,4 @@
+import { SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME } from './semanticAttributes';
 import { getDynamicSamplingContextFromSpan } from './tracing/dynamicSamplingContext';
 import type { SentrySpan } from './tracing/sentrySpan';
 import type {
@@ -97,9 +98,11 @@ export function createEventEnvelope(
   delete event.sdkProcessingMetadata;
   try {
     // @ts-expect-error - for bundle size we try/catch the access to this property
-    delete event.contexts.trace.data._sentry_span_name_set_by_user;
+    // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+    delete event.contexts.trace.data[SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME];
     // @ts-expect-error - for bundle size we try/catch the access to this property
-    event.spans.forEach(span => delete span.data._sentry_span_name_set_by_user);
+    // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+    event.spans.forEach(span => delete span.data[SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME]);
   } catch {
     // Do nothing
   }

@@ -4,6 +4,7 @@ import { getCurrentScope } from '../currentScopes';
 import { getMetricSummaryJsonForSpan, updateMetricSummaryOnSpan } from '../metrics/metric-summary';
 import type { MetricType } from '../metrics/types';
 import {
+  SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
@@ -335,6 +336,6 @@ export function updateSpanName(span: Span, name: string): void {
   span.updateName(name);
   span.setAttributes({
     [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
-    ['_sentry_span_name_set_by_user']: name,
+    [SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME]: name,
   });
 }

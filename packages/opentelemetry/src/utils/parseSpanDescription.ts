@@ -15,6 +15,7 @@ import {
 } from '@opentelemetry/semantic-conventions';
 import type { SpanAttributes, TransactionSource } from '@sentry/core';
 import {
+  SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
@@ -115,10 +116,11 @@ export function parseSpanDescription(span: AbstractSpan): SpanDescription {
 
 function descriptionForDbSystem({ attributes, name }: { attributes: Attributes; name: string }): SpanDescription {
   // if we already have a custom name, we don't overwrite it but only set the op
-  if (typeof attributes['_sentry_span_name_set_by_user'] === 'string') {
+  const userDefinedName = attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
+  if (typeof userDefinedName === 'string') {
     return {
       op: 'db',
-      description: attributes['_sentry_span_name_set_by_user'],
+      description: userDefinedName,
       source: (attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] as TransactionSource) || 'custom',
     };
   }
@@ -202,11 +204,10 @@ export function descriptionForHttpMethod(
 
   // If users (or in very rare occasions we) set the source to custom, we don't overwrite the name
   const alreadyHasCustomSource = attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] === 'custom';
+  const customSpanName = attributes[SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME];
 
   const useInferredDescription =
-    !alreadyHasCustomSource &&
-    attributes['_sentry_span_name_set_by_user'] == null &&
-    (isClientOrServerKind || !isManualSpan);
+    !alreadyHasCustomSource && customSpanName == null && (isClientOrServerKind || !isManualSpan);
 
   const { description, source } = useInferredDescription
     ? { description: inferredDescription, source: inferredSource }
@@ -302,12 +303,14 @@ export function getUserUpdatedNameAndSource(
   source: TransactionSource;
 } {
   const source = (attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] as TransactionSource) || fallbackSource;
+  const description = attributes[SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME];
 
-  if (attributes['_sentry_span_name_set_by_user'] && typeof attributes['_sentry_span_name_set_by_user'] === 'string')
+  if (description && typeof description === 'string') {
     return {
-      description: attributes['_sentry_span_name_set_by_user'],
+      description,
       source,
     };
+  }
 
   return { description: originalName, source };
 }

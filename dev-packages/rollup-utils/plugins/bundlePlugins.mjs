@@ -140,8 +140,6 @@ export function makeTerserPlugin() {
           '_isShim',
           // This is used in metadata integration
           '_sentryModuleMetadata',
-          // _sentry_span_name_set_by_user is set by the user and is used to store the original span name
-          '_sentry_span_name_set_by_user',
         ],
       },
     },

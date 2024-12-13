@@ -15,7 +15,7 @@ import {
   SEMATTRS_RPC_SERVICE,
 } from '@opentelemetry/semantic-conventions';
 
-import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 import {
   descriptionForHttpMethod,
   getSanitizedUrl,
@@ -108,7 +108,7 @@ describe('parseSpanDescription', () => {
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
         [SEMATTRS_DB_SYSTEM]: 'mysql',
         [SEMATTRS_DB_STATEMENT]: 'SELECT * from users',
-        ['_sentry_span_name_set_by_user']: 'custom name',
+        [SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME]: 'custom name',
       },
       'test name',
       SpanKind.CLIENT,
@@ -124,7 +124,7 @@ describe('parseSpanDescription', () => {
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
         [SEMATTRS_DB_SYSTEM]: 'mysql',
         [SEMATTRS_DB_STATEMENT]: 'SELECT * from users',
-        ['_sentry_span_name_set_by_user']: 'custom name',
+        [SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME]: 'custom name',
       },
       'test name',
       SpanKind.CLIENT,
@@ -179,7 +179,7 @@ describe('parseSpanDescription', () => {
       {
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
         [SEMATTRS_RPC_SERVICE]: 'rpc-test-service',
-        ['_sentry_span_name_set_by_user']: 'custom name',
+        [SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME]: 'custom name',
       },
       'test name',
       undefined,
@@ -194,7 +194,7 @@ describe('parseSpanDescription', () => {
       {
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
         [SEMATTRS_RPC_SERVICE]: 'rpc-test-service',
-        ['_sentry_span_name_set_by_user']: 'custom name',
+        [SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME]: 'custom name',
       },
       'test name',
       undefined,
@@ -236,7 +236,7 @@ describe('parseSpanDescription', () => {
       {
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
         [SEMATTRS_MESSAGING_SYSTEM]: 'test-messaging-system',
-        ['_sentry_span_name_set_by_user']: 'custom name',
+        [SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME]: 'custom name',
       },
       'test name',
       undefined,
@@ -251,7 +251,7 @@ describe('parseSpanDescription', () => {
       {
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
         [SEMATTRS_MESSAGING_SYSTEM]: 'test-messaging-system',
-        ['_sentry_span_name_set_by_user']: 'custom name',
+        [SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME]: 'custom name',
       },
       'test name',
       undefined,
@@ -293,7 +293,7 @@ describe('parseSpanDescription', () => {
       {
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
         [SEMATTRS_FAAS_TRIGGER]: 'test-faas-trigger',
-        ['_sentry_span_name_set_by_user']: 'custom name',
+        [SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME]: 'custom name',
       },
       'test name',
       undefined,
@@ -308,7 +308,7 @@ describe('parseSpanDescription', () => {
       {
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
         [SEMATTRS_FAAS_TRIGGER]: 'test-faas-trigger',
-        ['_sentry_span_name_set_by_user']: 'custom name',
+        [SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME]: 'custom name',
       },
       'test name',
       undefined,
@@ -465,7 +465,7 @@ describe('descriptionForHttpMethod', () => {
         [SEMATTRS_HTTP_TARGET]: '/my-path/123',
         [ATTR_HTTP_ROUTE]: '/my-path/:id',
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
-        ['_sentry_span_name_set_by_user']: 'custom name',
+        [SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME]: 'custom name',
       },
       'test name',
       SpanKind.CLIENT,
@@ -487,7 +487,7 @@ describe('descriptionForHttpMethod', () => {
         [SEMATTRS_HTTP_TARGET]: '/my-path/123',
         [ATTR_HTTP_ROUTE]: '/my-path/:id',
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
-        ['_sentry_span_name_set_by_user']: 'custom name',
+        [SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME]: 'custom name',
       },
       'test name',
       SpanKind.CLIENT,
@@ -655,30 +655,30 @@ describe('getSanitizedUrl', () => {
 });
 
 describe('getUserUpdatedNameAndSource', () => {
-  it('returns param name if `_sentry_span_name_set_by_user` attribute is not set', () => {
+  it('returns param name if `SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME` attribute is not set', () => {
     expect(getUserUpdatedNameAndSource('base name', {})).toEqual({ description: 'base name', source: 'custom' });
   });
 
-  it('returns param name with custom fallback source if `_sentry_span_name_set_by_user` attribute is not set', () => {
+  it('returns param name with custom fallback source if `SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME` attribute is not set', () => {
     expect(getUserUpdatedNameAndSource('base name', {}, 'route')).toEqual({
       description: 'base name',
       source: 'route',
     });
   });
 
-  it('returns param name if `_sentry_span_name_set_by_user` attribute is not a string', () => {
-    expect(getUserUpdatedNameAndSource('base name', { ['_sentry_span_name_set_by_user']: 123 })).toEqual({
+  it('returns param name if `SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME` attribute is not a string', () => {
+    expect(getUserUpdatedNameAndSource('base name', { [SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME]: 123 })).toEqual({
       description: 'base name',
       source: 'custom',
     });
   });
 
   it.each(['custom', 'task', 'url', 'route'])(
-    'returns `_sentry_span_name_set_by_user` attribute if is a string and source is %s',
+    'returns `SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME` attribute if is a string and source is %s',
     source => {
       expect(
         getUserUpdatedNameAndSource('base name', {
-          ['_sentry_span_name_set_by_user']: 'custom name',
+          [SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME]: 'custom name',
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
         }),
       ).toEqual({

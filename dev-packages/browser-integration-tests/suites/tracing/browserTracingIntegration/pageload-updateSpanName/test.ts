@@ -1,5 +1,5 @@
 import { expect } from '@playwright/test';
-import type { Event } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME, type Event } from '@sentry/core';
 
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
@@ -32,7 +32,7 @@ sentryTest(
       [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
     });
 
-    expect(traceContextData!._sentry_span_name_set_by_user).toBeUndefined();
+    expect(traceContextData![SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME]).toBeUndefined();
 
     expect(eventData.transaction).toBe('new name');
 
