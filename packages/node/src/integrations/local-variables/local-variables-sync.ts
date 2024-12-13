@@ -134,13 +134,13 @@ class AsyncSession implements DebugSession {
       const { add, next } = createCallbackList<Variables>(complete);
 
       for (const prop of props) {
-        if (prop?.value?.objectId && prop?.value.className === 'Array') {
+        if (prop.value?.objectId && prop.value.className === 'Array') {
           const id = prop.value.objectId;
           add(vars => this._unrollArray(id, prop.name, vars, next));
-        } else if (prop?.value?.objectId && prop?.value?.className === 'Object') {
+        } else if (prop.value?.objectId && prop.value.className === 'Object') {
           const id = prop.value.objectId;
           add(vars => this._unrollObject(id, prop.name, vars, next));
-        } else if (prop?.value) {
+        } else if (prop.value) {
           add(vars => this._unrollOther(prop, vars, next));
         }
       }
@@ -177,7 +177,7 @@ class AsyncSession implements DebugSession {
       vars[name] = props
         .filter(v => v.name !== 'length' && !isNaN(parseInt(v.name, 10)))
         .sort((a, b) => parseInt(a.name, 10) - parseInt(b.name, 10))
-        .map(v => v?.value?.value);
+        .map(v => v.value?.value);
 
       next(vars);
     });
@@ -189,7 +189,7 @@ class AsyncSession implements DebugSession {
   private _unrollObject(objectId: string, name: string, vars: Variables, next: (obj: Variables) => void): void {
     this._getProperties(objectId, props => {
       vars[name] = props
-        .map<[string, unknown]>(v => [v.name, v?.value?.value])
+        .map<[string, unknown]>(v => [v.name, v.value?.value])
         .reduce((obj, [key, val]) => {
           obj[key] = val;
           return obj;
@@ -235,7 +235,7 @@ const _localVariablesSyncIntegration = ((
   let shouldProcessEvent = false;
 
   function addLocalVariablesToException(exception: Exception): void {
-    const hash = hashFrames(exception?.stacktrace?.frames);
+    const hash = hashFrames(exception.stacktrace?.frames);
 
     if (hash === undefined) {
       return;
@@ -281,7 +281,7 @@ const _localVariablesSyncIntegration = ((
   }
 
   function addLocalVariablesToEvent(event: Event): Event {
-    for (const exception of event?.exception?.values || []) {
+    for (const exception of event.exception?.values || []) {
       addLocalVariablesToException(exception);
     }
 
@@ -327,7 +327,7 @@ const _localVariablesSyncIntegration = ((
             rateLimiter?.();
 
             // data.description contains the original error.stack
-            const exceptionHash = hashFromStack(stackParser, data?.description);
+            const exceptionHash = hashFromStack(stackParser, data.description);
 
             if (exceptionHash == undefined) {
               complete();
@@ -359,7 +359,7 @@ const _localVariablesSyncIntegration = ((
               } else {
                 const id = localScope.object.objectId;
                 add(frames =>
-                  session?.getLocalVariables(id, vars => {
+                  session.getLocalVariables(id, vars => {
                     frames[i] = { function: fn, vars };
                     next(frames);
                   }),
@@ -385,13 +385,13 @@ const _localVariablesSyncIntegration = ((
               max,
               () => {
                 logger.log('Local variables rate-limit lifted.');
-                session?.setPauseOnExceptions(true);
+                session.setPauseOnExceptions(true);
               },
               seconds => {
                 logger.log(
                   `Local variables rate-limit exceeded. Disabling capturing of caught exceptions for ${seconds} seconds.`,
                 );
-                session?.setPauseOnExceptions(false);
+                session.setPauseOnExceptions(false);
               },
             );
           }

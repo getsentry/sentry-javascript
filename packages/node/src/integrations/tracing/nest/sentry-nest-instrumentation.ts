@@ -137,7 +137,7 @@ export class SentryNestInstrumentation extends InstrumentationBase {
 
             target.prototype.canActivate = new Proxy(target.prototype.canActivate, {
               apply: (originalCanActivate, thisArgCanActivate, argsCanActivate) => {
-                const context: MinimalNestJsExecutionContext = argsCanActivate[0];
+                const context = argsCanActivate[0];
 
                 if (!context) {
                   return originalCanActivate.apply(thisArgCanActivate, argsCanActivate);
@@ -180,11 +180,11 @@ export class SentryNestInstrumentation extends InstrumentationBase {
 
             target.prototype.intercept = new Proxy(target.prototype.intercept, {
               apply: (originalIntercept, thisArgIntercept, argsIntercept) => {
-                const context: MinimalNestJsExecutionContext = argsIntercept[0];
-                const next: CallHandler = argsIntercept[1];
+                const context = argsIntercept[0] as MinimalNestJsExecutionContext | undefined;
+                const next = argsIntercept[1] as CallHandler | undefined;
 
                 const parentSpan = getActiveSpan();
-                let afterSpan: Span;
+                let afterSpan: Span | undefined;
 
                 // Check that we can reasonably assume that the target is an interceptor.
                 if (!context || !next || typeof next.handle !== 'function') {
@@ -228,7 +228,7 @@ export class SentryNestInstrumentation extends InstrumentationBase {
                   try {
                     returnedObservableInterceptMaybePromise = originalIntercept.apply(thisArgIntercept, argsIntercept);
                   } catch (e) {
-                    beforeSpan?.end();
+                    beforeSpan.end();
                     afterSpan?.end();
                     throw e;
                   }
@@ -245,7 +245,7 @@ export class SentryNestInstrumentation extends InstrumentationBase {
                         return observable;
                       },
                       e => {
-                        beforeSpan?.end();
+                        beforeSpan.end();
                         afterSpan?.end();
                         throw e;
                       },
@@ -254,7 +254,7 @@ export class SentryNestInstrumentation extends InstrumentationBase {
 
                   // handle sync interceptor
                   if (typeof returnedObservableInterceptMaybePromise.subscribe === 'function') {
-                    instrumentObservable(returnedObservableInterceptMaybePromise, afterSpan ?? parentSpan);
+                    instrumentObservable(returnedObservableInterceptMaybePromise, afterSpan);
                   }
 
                   return returnedObservableInterceptMaybePromise;
