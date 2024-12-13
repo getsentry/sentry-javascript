@@ -230,13 +230,10 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
                   DEBUG_BUILD && logger.debug('Sending request session aggregate due to client flush');
                   flushPendingClientAggregates();
                 });
-                const timeout = setTimeout(
-                  () => {
-                    DEBUG_BUILD && logger.debug('Sending request session aggregate due to flushing schedule');
-                    flushPendingClientAggregates();
-                  },
-                  instrumentation.getConfig().sessionFlushingDelayMS ?? 60_000,
-                ).unref();
+                const timeout = setTimeout(() => {
+                  DEBUG_BUILD && logger.debug('Sending request session aggregate due to flushing schedule');
+                  flushPendingClientAggregates();
+                }, instrumentation.getConfig().sessionFlushingDelayMS ?? 60_000).unref();
               }
             }
           });
