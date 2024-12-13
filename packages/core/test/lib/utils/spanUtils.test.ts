@@ -287,10 +287,21 @@ describe('spanToJSON', () => {
     });
   });
 
-  it('returns empty object for unknown span implementation', () => {
-    const span = { other: 'other' };
+  it('returns minimal object for unknown span implementation', () => {
+    const span = {
+      // This is the minimal interface we require from a span
+      spanContext: () => ({
+        spanId: 'SPAN-1',
+        traceId: 'TRACE-1',
+      }),
+    };
 
-    expect(spanToJSON(span as unknown as Span)).toEqual({});
+    expect(spanToJSON(span as unknown as Span)).toEqual({
+      span_id: 'SPAN-1',
+      trace_id: 'TRACE-1',
+      start_timestamp: 0,
+      data: {}
+    });
   });
 });
 

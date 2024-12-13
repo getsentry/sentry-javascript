@@ -144,7 +144,7 @@ export function spanToJSON(span: Span): SpanJSON {
   return {
     span_id,
     trace_id,
-    start_timestamp: timestampInSeconds(),
+    start_timestamp: 0,
     data: {},
   };
 }

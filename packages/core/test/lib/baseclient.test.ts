@@ -938,7 +938,6 @@ describe('BaseClient', () => {
         event_id: '972f45b826a248bba98e990878a177e1',
         spans: [
           {
-            data: { _sentry_extra_metrics: { M1: { value: 1 }, M2: { value: 2 } } },
             description: 'first-paint',
             timestamp: 1591603196.637835,
             op: 'paint',
@@ -946,6 +945,7 @@ describe('BaseClient', () => {
             span_id: '9e15bf99fbe4bc80',
             start_timestamp: 1591603196.637835,
             trace_id: '86f39e84263a4de99c326acab3bfe3bd',
+            data: {},
           },
           {
             description: 'first-contentful-paint',
@@ -955,6 +955,7 @@ describe('BaseClient', () => {
             span_id: 'aa554c1f506b0783',
             start_timestamp: 1591603196.637835,
             trace_id: '86f39e84263a4de99c326acab3bfe3bd',
+            data: {},
           },
         ],
         start_timestamp: 1591603196.614865,
@@ -1016,12 +1017,14 @@ describe('BaseClient', () => {
             span_id: '9e15bf99fbe4bc80',
             start_timestamp: 1591603196.637835,
             trace_id: '86f39e84263a4de99c326acab3bfe3bd',
+            data: {},
           },
           {
             description: 'second span',
             span_id: 'aa554c1f506b0783',
             start_timestamp: 1591603196.637835,
             trace_id: '86f39e84263a4de99c326acab3bfe3bd',
+            data: {},
           },
         ],
       };
@@ -1076,9 +1079,9 @@ describe('BaseClient', () => {
         transaction: '/dogs/are/great',
         type: 'transaction',
         spans: [
-          { span_id: 'span1', trace_id: 'trace1', start_timestamp: 1234 },
-          { span_id: 'span2', trace_id: 'trace1', start_timestamp: 1234 },
-          { span_id: 'span3', trace_id: 'trace1', start_timestamp: 1234 },
+          { span_id: 'span1', trace_id: 'trace1', start_timestamp: 1234, data: {} },
+          { span_id: 'span2', trace_id: 'trace1', start_timestamp: 1234, data: {} },
+          { span_id: 'span3', trace_id: 'trace1', start_timestamp: 1234, data: {} },
         ],
       });
 
@@ -1107,12 +1110,14 @@ describe('BaseClient', () => {
             span_id: '9e15bf99fbe4bc80',
             start_timestamp: 1591603196.637835,
             trace_id: '86f39e84263a4de99c326acab3bfe3bd',
+            data: {},
           },
           {
             description: 'second span',
             span_id: 'aa554c1f506b0783',
             start_timestamp: 1591603196.637835,
             trace_id: '86f39e84263a4de99c326acab3bfe3bd',
+            data: {},
           },
         ],
       };
@@ -1181,12 +1186,14 @@ describe('BaseClient', () => {
             span_id: '9e15bf99fbe4bc80',
             start_timestamp: 1591603196.637835,
             trace_id: '86f39e84263a4de99c326acab3bfe3bd',
+            data: {},
           },
           {
             description: 'second span',
             span_id: 'aa554c1f506b0783',
             start_timestamp: 1591603196.637835,
             trace_id: '86f39e84263a4de99c326acab3bfe3bd',
+            data: {},
           },
         ],
       };

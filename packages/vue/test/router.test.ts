@@ -13,7 +13,9 @@ vi.mock('@sentry/core', async () => {
   const actual = await vi.importActual('@sentry/core');
   return {
     ...actual,
-    getActiveSpan: vi.fn().mockReturnValue({}),
+    getActiveSpan: vi.fn().mockReturnValue({
+      spanContext: () => ({ traceId: '1234', spanId: '5678' }),
+    }),
   };
 });
 
