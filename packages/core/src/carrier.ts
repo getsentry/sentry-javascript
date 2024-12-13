@@ -27,8 +27,6 @@ export interface SentryCarrier {
   globalMetricsAggregators?: WeakMap<Client, MetricsAggregator> | undefined;
   logger?: Logger;
 
-  // TODO(v9): Do we still need those?
-  // --> Check with RN
   /** Overwrites TextEncoder used in `@sentry/core`, need for `react-native@0.73` and older */
   encodePolyfill?: (input: string) => Uint8Array;
   /** Overwrites TextDecoder used in `@sentry/core`, need for `react-native@0.73` and older */

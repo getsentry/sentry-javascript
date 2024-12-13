@@ -75,8 +75,6 @@ export function envelopeContainsItemType(envelope: Envelope, types: EnvelopeItem
  * Encode a string to UTF8 array.
  */
 function encodeUTF8(input: string): Uint8Array {
-  // TODO(v9): Do we actually still need this?
-  // --> Evaluate if RN still needs this
   const carrier = getSentryCarrier(GLOBAL_OBJ);
   return carrier.encodePolyfill ? carrier.encodePolyfill(input) : new TextEncoder().encode(input);
 }
@@ -85,8 +83,6 @@ function encodeUTF8(input: string): Uint8Array {
  * Decode a UTF8 array to string.
  */
 function decodeUTF8(input: Uint8Array): string {
-  // TODO(v9): Do we actually still need this?
-  // --> Evaluate if RN still needs this
   const carrier = getSentryCarrier(GLOBAL_OBJ);
   return carrier.decodePolyfill ? carrier.decodePolyfill(input) : new TextDecoder().decode(input);
 }
