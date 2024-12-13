@@ -19,7 +19,7 @@ export function addHistoryInstrumentationHandler(handler: (data: HandlerDataHist
 }
 
 function instrumentHistory(): void {
-  // This may also be triggered on `pushState`, but it may not always reliably be emitted by the browser
+  // The `popstate` event may also be triggered on `pushState`, but it may not always reliably be emitted by the browser
   // Which is why we also monkey-patch methods below, in addition to this
   WINDOW.addEventListener('popstate', () => {
     const to = WINDOW.location.href;
