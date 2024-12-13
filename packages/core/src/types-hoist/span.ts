@@ -243,9 +243,6 @@ export interface Span {
    *
    * You can ensure that your name is kept and not overwritten by calling `Sentry.updateSpanName(span, name)`
    *
-   * If you want to update a span name in a browser-only app, `span.updateName` and `Sentry.updateSpanName`
-   * are identical: In both cases, the name will not be overwritten by the Sentry SDK.
-   *
    * @param name the new name of the span
    */
   updateName(name: string): this;
