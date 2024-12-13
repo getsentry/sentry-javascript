@@ -10,7 +10,7 @@
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
     "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
     "test:prod": "TEST_ENV=production playwright test",
-    "test:build": "pnpm install && npx playwright install && pnpm build",
+    "test:build": "pnpm install && pnpm build",
     "test:assert": "pnpm test:prod"
   },
   "dependencies": {

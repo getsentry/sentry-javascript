@@ -12,7 +12,7 @@
     "build": "node build.mjs",
     "test": "playwright test",
     "clean": "npx rimraf node_modules pnpm-lock.yaml",
-    "test:build": "pnpm install && npx playwright install && pnpm build",
+    "test:build": "pnpm install && pnpm build",
     "test:assert": "pnpm test"
   },
   "browserslist": {

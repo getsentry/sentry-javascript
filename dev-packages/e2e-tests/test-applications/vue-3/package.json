@@ -11,7 +11,7 @@
     "build-only": "vite build",
     "type-check": "vue-tsc --build --force",
     "test": "playwright test",
-    "test:build": "pnpm install && npx playwright install && pnpm build",
+    "test:build": "pnpm install && pnpm build",
     "test:assert": "playwright test"
   },
   "dependencies": {
