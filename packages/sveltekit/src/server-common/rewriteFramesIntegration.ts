@@ -7,7 +7,7 @@ import {
   join,
   rewriteFramesIntegration as originalRewriteFramesIntegration,
 } from '@sentry/core';
-import { WRAPPED_MODULE_SUFFIX } from '../vite/autoInstrument';
+import { WRAPPED_MODULE_SUFFIX } from '../vite/constants';
 import type { GlobalWithSentryValues } from '../vite/injectGlobalValues';
 
 type StackFrameIteratee = (frame: StackFrame) => StackFrame;
@@ -53,8 +53,8 @@ export function rewriteFramesIteratee(frame: StackFrame): StackFrame {
   if (isWindowsFrame || startsWithSlash) {
     const filename = isWindowsFrame
       ? frame.filename
-          .replace(/^[a-zA-Z]:/, '') // remove Windows-style prefix
-          .replace(/\\/g, '/') // replace all `\\` instances with `/`
+        .replace(/^[a-zA-Z]:/, '') // remove Windows-style prefix
+        .replace(/\\/g, '/') // replace all `\\` instances with `/`
       : frame.filename;
 
     let strippedFilename;
