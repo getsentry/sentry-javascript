@@ -63,8 +63,8 @@ export function setupOtel(client: TestClientInterface): BasicTracerProvider {
       [ATTR_SERVICE_VERSION]: SDK_VERSION,
     }),
     forceFlushTimeoutMillis: 500,
+    spanProcessors: [new SentrySpanProcessor()],
   });
-  provider.addSpanProcessor(new SentrySpanProcessor());
 
   // We use a custom context manager to keep context in sync with sentry scope
   const SentryContextManager = wrapContextManagerClass(AsyncLocalStorageContextManager);

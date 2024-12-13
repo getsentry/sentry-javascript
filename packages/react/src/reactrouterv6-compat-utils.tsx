@@ -100,7 +100,13 @@ export function createV6CompatibleWrapCreateBrowserRouter<
     router.subscribe((state: RouterState) => {
       const location = state.location;
       if (state.historyAction === 'PUSH' || state.historyAction === 'POP') {
-        handleNavigation(location, routes, state.historyAction, version, undefined, basename);
+        handleNavigation({
+          location,
+          routes,
+          navigationType: state.historyAction,
+          version,
+          basename,
+        });
       }
     });
 
@@ -174,13 +180,14 @@ export function createV6CompatibleWrapUseRoutes(origUseRoutes: UseRoutes, versio
     return origUseRoutes;
   }
 
-  let isMountRenderPass: boolean = true;
+  const allRoutes: RouteObject[] = [];
 
   const SentryRoutes: React.FC<{
     children?: React.ReactNode;
     routes: RouteObject[];
     locationArg?: Partial<Location> | string;
   }> = (props: { children?: React.ReactNode; routes: RouteObject[]; locationArg?: Partial<Location> | string }) => {
+    const isMountRenderPass = React.useRef(true);
     const { routes, locationArg } = props;
 
     const Routes = origUseRoutes(routes, locationArg);
@@ -198,11 +205,21 @@ export function createV6CompatibleWrapUseRoutes(origUseRoutes: UseRoutes, versio
       const normalizedLocation =
         typeof stableLocationParam === 'string' ? { pathname: stableLocationParam } : stableLocationParam;
 
-      if (isMountRenderPass) {
-        updatePageloadTransaction(getActiveRootSpan(), normalizedLocation, routes);
-        isMountRenderPass = false;
+      if (isMountRenderPass.current) {
+        routes.forEach(route => {
+          allRoutes.push(...getChildRoutesRecursively(route));
+        });
+
+        updatePageloadTransaction(getActiveRootSpan(), normalizedLocation, routes, undefined, undefined, allRoutes);
+        isMountRenderPass.current = false;
       } else {
-        handleNavigation(normalizedLocation, routes, navigationType, version);
+        handleNavigation({
+          location: normalizedLocation,
+          routes,
+          navigationType,
+          version,
+          allRoutes,
+        });
       }
     }, [navigationType, stableLocationParam]);
 
@@ -215,14 +232,17 @@ export function createV6CompatibleWrapUseRoutes(origUseRoutes: UseRoutes, versio
   };
 }
 
-export function handleNavigation(
-  location: Location,
-  routes: RouteObject[],
-  navigationType: Action,
-  version: V6CompatibleVersion,
-  matches?: AgnosticDataRouteMatch,
-  basename?: string,
-): void {
+export function handleNavigation(opts: {
+  location: Location;
+  routes: RouteObject[];
+  navigationType: Action;
+  version: V6CompatibleVersion;
+  matches?: AgnosticDataRouteMatch;
+  basename?: string;
+  allRoutes?: RouteObject[];
+}): void {
+  const { location, routes, navigationType, version, matches, basename, allRoutes } = opts;
+
   const branches = Array.isArray(matches) ? matches : _matchRoutes(routes, location, basename);
 
   const client = getClient();
@@ -231,7 +251,18 @@ export function handleNavigation(
   }
 
   if ((navigationType === 'PUSH' || navigationType === 'POP') && branches) {
-    const [name, source] = getNormalizedName(routes, location, branches, basename);
+    let name,
+      source: TransactionSource = 'url';
+    const isInDescendantRoute = locationIsInsideDescendantRoute(location, allRoutes || routes);
+
+    if (isInDescendantRoute) {
+      name = prefixWithSlash(rebuildRoutePathFromAllRoutes(allRoutes || routes, location));
+      source = 'route';
+    }
+
+    if (!isInDescendantRoute || !name) {
+      [name, source] = getNormalizedName(routes, location, branches, basename);
+    }
 
     startBrowserTracingNavigationSpan(client, {
       name,
@@ -286,12 +317,91 @@ function sendIndexPath(pathBuilder: string, pathname: string, basename: string):
   return [formattedPath, 'route'];
 }
 
-function pathEndsWithWildcard(path: string, branch: RouteMatch<string>): boolean {
-  return (path.slice(-2) === '/*' && branch.route.children && branch.route.children.length > 0) || false;
+function pathEndsWithWildcard(path: string): boolean {
+  return path.endsWith('*');
 }
 
 function pathIsWildcardAndHasChildren(path: string, branch: RouteMatch<string>): boolean {
-  return (path === '*' && branch.route.children && branch.route.children.length > 0) || false;
+  return (pathEndsWithWildcard(path) && branch.route.children && branch.route.children.length > 0) || false;
+}
+
+function routeIsDescendant(route: RouteObject): boolean {
+  return !!(!route.children && route.element && route.path && route.path.endsWith('/*'));
+}
+
+function locationIsInsideDescendantRoute(location: Location, routes: RouteObject[]): boolean {
+  const matchedRoutes = _matchRoutes(routes, location) as RouteMatch[];
+
+  if (matchedRoutes) {
+    for (const match of matchedRoutes) {
+      if (routeIsDescendant(match.route) && pickSplat(match)) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
+function getChildRoutesRecursively(route: RouteObject, allRoutes: RouteObject[] = []): RouteObject[] {
+  if (route.children && !route.index) {
+    route.children.forEach(child => {
+      allRoutes.push(...getChildRoutesRecursively(child, allRoutes));
+    });
+  }
+
+  allRoutes.push(route);
+
+  return allRoutes;
+}
+
+function pickPath(match: RouteMatch): string {
+  return trimWildcard(match.route.path || '');
+}
+
+function pickSplat(match: RouteMatch): string {
+  return match.params['*'] || '';
+}
+
+function trimWildcard(path: string): string {
+  return path[path.length - 1] === '*' ? path.slice(0, -1) : path;
+}
+
+function trimSlash(path: string): string {
+  return path[path.length - 1] === '/' ? path.slice(0, -1) : path;
+}
+
+function prefixWithSlash(path: string): string {
+  return path[0] === '/' ? path : `/${path}`;
+}
+
+function rebuildRoutePathFromAllRoutes(allRoutes: RouteObject[], location: Location): string {
+  const matchedRoutes = _matchRoutes(allRoutes, location) as RouteMatch[];
+
+  if (!matchedRoutes || matchedRoutes.length === 0) {
+    return '';
+  }
+
+  for (const match of matchedRoutes) {
+    if (match.route.path && match.route.path !== '*') {
+      const path = pickPath(match);
+      const strippedPath = stripBasenameFromPathname(location.pathname, prefixWithSlash(match.pathnameBase));
+
+      return trimSlash(
+        trimSlash(path || '') +
+          prefixWithSlash(
+            rebuildRoutePathFromAllRoutes(
+              allRoutes.filter(route => route !== match.route),
+              {
+                pathname: strippedPath,
+              },
+            ),
+          ),
+      );
+    }
+  }
+
+  return '';
 }
 
 function getNormalizedName(
@@ -321,7 +431,7 @@ function getNormalizedName(
           pathBuilder += newPath;
 
           // If the path matches the current location, return the path
-          if (basename + branch.pathname === location.pathname) {
+          if (location.pathname.endsWith(basename + branch.pathname)) {
             if (
               // If the route defined on the element is something like
               // <Route path="/stores/:storeId/products/:productId" element={<div>Product</div>} />
@@ -330,13 +440,13 @@ function getNormalizedName(
               // eslint-disable-next-line deprecation/deprecation
               getNumberOfUrlSegments(pathBuilder) !== getNumberOfUrlSegments(branch.pathname) &&
               // We should not count wildcard operators in the url segments calculation
-              pathBuilder.slice(-2) !== '/*'
+              !pathEndsWithWildcard(pathBuilder)
             ) {
               return [(_stripBasename ? '' : basename) + newPath, 'route'];
             }
 
             // if the last character of the pathbuilder is a wildcard and there are children, remove the wildcard
-            if (pathEndsWithWildcard(pathBuilder, branch)) {
+            if (pathIsWildcardAndHasChildren(pathBuilder, branch)) {
               pathBuilder = pathBuilder.slice(0, -1);
             }
 
@@ -347,7 +457,11 @@ function getNormalizedName(
     }
   }
 
-  return [_stripBasename ? stripBasenameFromPathname(location.pathname, basename) : location.pathname, 'url'];
+  const fallbackTransactionName = _stripBasename
+    ? stripBasenameFromPathname(location.pathname, basename)
+    : location.pathname || '/';
+
+  return [fallbackTransactionName, 'url'];
 }
 
 function updatePageloadTransaction(
@@ -356,13 +470,25 @@ function updatePageloadTransaction(
   routes: RouteObject[],
   matches?: AgnosticDataRouteMatch,
   basename?: string,
+  allRoutes?: RouteObject[],
 ): void {
   const branches = Array.isArray(matches)
     ? matches
     : (_matchRoutes(routes, location, basename) as unknown as RouteMatch[]);
 
   if (branches) {
-    const [name, source] = getNormalizedName(routes, location, branches, basename);
+    let name,
+      source: TransactionSource = 'url';
+    const isInDescendantRoute = locationIsInsideDescendantRoute(location, allRoutes || routes);
+
+    if (isInDescendantRoute) {
+      name = prefixWithSlash(rebuildRoutePathFromAllRoutes(allRoutes || routes, location));
+      source = 'route';
+    }
+
+    if (!isInDescendantRoute || !name) {
+      [name, source] = getNormalizedName(routes, location, branches, basename);
+    }
 
     getCurrentScope().setTransactionName(name);
 
@@ -387,9 +513,11 @@ export function createV6CompatibleWithSentryReactRouterRouting<P extends Record<
     return Routes;
   }
 
-  let isMountRenderPass: boolean = true;
+  const allRoutes: RouteObject[] = [];
 
   const SentryRoutes: React.FC<P> = (props: P) => {
+    const isMountRenderPass = React.useRef(true);
+
     const location = _useLocation();
     const navigationType = _useNavigationType();
 
@@ -397,11 +525,21 @@ export function createV6CompatibleWithSentryReactRouterRouting<P extends Record<
       () => {
         const routes = _createRoutesFromChildren(props.children) as RouteObject[];
 
-        if (isMountRenderPass) {
-          updatePageloadTransaction(getActiveRootSpan(), location, routes);
-          isMountRenderPass = false;
+        if (isMountRenderPass.current) {
+          routes.forEach(route => {
+            allRoutes.push(...getChildRoutesRecursively(route));
+          });
+
+          updatePageloadTransaction(getActiveRootSpan(), location, routes, undefined, undefined, allRoutes);
+          isMountRenderPass.current = false;
         } else {
-          handleNavigation(location, routes, navigationType, version);
+          handleNavigation({
+            location,
+            routes,
+            navigationType,
+            version,
+            allRoutes,
+          });
         }
       },
       // `props.children` is purposely not included in the dependency array, because we do not want to re-run this effect

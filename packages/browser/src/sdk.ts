@@ -1,6 +1,4 @@
-import { addHistoryInstrumentationHandler } from '@sentry-internal/browser-utils';
 import {
-  captureSession,
   consoleSandbox,
   dedupeIntegration,
   functionToStringIntegration,
@@ -13,7 +11,6 @@ import {
   lastEventId,
   logger,
   stackParserFromStackParserOptions,
-  startSession,
   supportsFetch,
 } from '@sentry/core';
 import type { Client, DsnLike, Integration, Options, UserFeedback } from '@sentry/core';
@@ -23,6 +20,7 @@ import { DEBUG_BUILD } from './debug-build';
 import { WINDOW } from './helpers';
 import { breadcrumbsIntegration } from './integrations/breadcrumbs';
 import { browserApiErrorsIntegration } from './integrations/browserapierrors';
+import { browserSessionIntegration } from './integrations/browsersession';
 import { globalHandlersIntegration } from './integrations/globalhandlers';
 import { httpContextIntegration } from './integrations/httpcontext';
 import { linkedErrorsIntegration } from './integrations/linkederrors';
@@ -30,12 +28,12 @@ import { defaultStackParser } from './stack-parsers';
 import { makeFetchTransport } from './transports/fetch';
 
 /** Get the default integrations for the browser SDK. */
-export function getDefaultIntegrations(_options: Options): Integration[] {
+export function getDefaultIntegrations(options: Options): Integration[] {
   /**
    * Note: Please make sure this stays in sync with Angular SDK, which re-exports
    * `getDefaultIntegrations` but with an adjusted set of integrations.
    */
-  return [
+  const integrations = [
     inboundFiltersIntegration(),
     functionToStringIntegration(),
     browserApiErrorsIntegration(),
@@ -45,6 +43,13 @@ export function getDefaultIntegrations(_options: Options): Integration[] {
     dedupeIntegration(),
     httpContextIntegration(),
   ];
+
+  // eslint-disable-next-line deprecation/deprecation
+  if (options.autoSessionTracking !== false) {
+    integrations.push(browserSessionIntegration());
+  }
+
+  return integrations;
 }
 
 function applyDefaultOptions(optionsArg: BrowserOptions = {}): BrowserOptions {
@@ -187,19 +192,14 @@ export function init(browserOptions: BrowserOptions = {}): Client | undefined {
     transport: options.transport || makeFetchTransport,
   };
 
-  const client = initAndBind(BrowserClient, clientOptions);
-
-  if (options.autoSessionTracking) {
-    startSessionTracking();
-  }
-
-  return client;
+  return initAndBind(BrowserClient, clientOptions);
 }
 
 /**
  * All properties the report dialog supports
  */
 export interface ReportDialogOptions {
+  // TODO(v9): Change this to  [key: string]: unknkown;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [key: string]: any;
   eventId?: string;
@@ -306,32 +306,6 @@ export function forceLoad(): void {
  */
 export function onLoad(callback: () => void): void {
   callback();
-}
-
-/**
- * Enable automatic Session Tracking for the initial page load.
- */
-function startSessionTracking(): void {
-  if (typeof WINDOW.document === 'undefined') {
-    DEBUG_BUILD && logger.warn('Session tracking in non-browser environment with @sentry/browser is not supported.');
-    return;
-  }
-
-  // The session duration for browser sessions does not track a meaningful
-  // concept that can be used as a metric.
-  // Automatically captured sessions are akin to page views, and thus we
-  // discard their duration.
-  startSession({ ignoreDuration: true });
-  captureSession();
-
-  // We want to create a session for every navigation as well
-  addHistoryInstrumentationHandler(({ from, to }) => {
-    // Don't create an additional session for the initial route or if the location did not change
-    if (from !== undefined && from !== to) {
-      startSession({ ignoreDuration: true });
-      captureSession();
-    }
-  });
 }
 
 /**

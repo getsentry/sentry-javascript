@@ -94,6 +94,7 @@ class ScopeClass implements ScopeInterface {
   protected _session?: Session;
 
   /** Request Mode Session Status */
+  // eslint-disable-next-line deprecation/deprecation
   protected _requestSession?: RequestSession;
 
   /** The client on this scope */
@@ -130,6 +131,14 @@ class ScopeClass implements ScopeInterface {
     newScope._tags = { ...this._tags };
     newScope._extra = { ...this._extra };
     newScope._contexts = { ...this._contexts };
+    if (this._contexts.flags) {
+      // We need to copy the `values` array so insertions on a cloned scope
+      // won't affect the original array.
+      newScope._contexts.flags = {
+        values: [...this._contexts.flags.values],
+      };
+    }
+
     newScope._user = this._user;
     newScope._level = this._level;
     newScope._session = this._session;
@@ -222,6 +231,7 @@ class ScopeClass implements ScopeInterface {
   /**
    * @inheritDoc
    */
+  // eslint-disable-next-line deprecation/deprecation
   public getRequestSession(): RequestSession | undefined {
     return this._requestSession;
   }
@@ -229,6 +239,7 @@ class ScopeClass implements ScopeInterface {
   /**
    * @inheritDoc
    */
+  // eslint-disable-next-line deprecation/deprecation
   public setRequestSession(requestSession?: RequestSession): this {
     this._requestSession = requestSession;
     return this;
@@ -350,7 +361,8 @@ class ScopeClass implements ScopeInterface {
 
     const [scopeInstance, requestSession] =
       scopeToMerge instanceof Scope
-        ? [scopeToMerge.getScopeData(), scopeToMerge.getRequestSession()]
+        ? // eslint-disable-next-line deprecation/deprecation
+          [scopeToMerge.getScopeData(), scopeToMerge.getRequestSession()]
         : isPlainObject(scopeToMerge)
           ? [captureContext as ScopeContext, (captureContext as ScopeContext).requestSession]
           : [];

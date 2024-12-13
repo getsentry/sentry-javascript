@@ -34,7 +34,7 @@ sentryTest('should capture replays (@sentry-internal/replay export)', async ({ g
     event_id: expect.stringMatching(/\w{32}/),
     environment: 'production',
     sdk: {
-      integrations: [
+      integrations: expect.arrayContaining([
         'InboundFilters',
         'FunctionToString',
         'BrowserApiErrors',
@@ -43,8 +43,9 @@ sentryTest('should capture replays (@sentry-internal/replay export)', async ({ g
         'LinkedErrors',
         'Dedupe',
         'HttpContext',
+        'BrowserSession',
         'Replay',
-      ],
+      ]),
       version: SDK_VERSION,
       name: 'sentry.javascript.browser',
     },
@@ -71,7 +72,7 @@ sentryTest('should capture replays (@sentry-internal/replay export)', async ({ g
     event_id: expect.stringMatching(/\w{32}/),
     environment: 'production',
     sdk: {
-      integrations: [
+      integrations: expect.arrayContaining([
         'InboundFilters',
         'FunctionToString',
         'BrowserApiErrors',
@@ -80,8 +81,9 @@ sentryTest('should capture replays (@sentry-internal/replay export)', async ({ g
         'LinkedErrors',
         'Dedupe',
         'HttpContext',
+        'BrowserSession',
         'Replay',
-      ],
+      ]),
       version: SDK_VERSION,
       name: 'sentry.javascript.browser',
     },

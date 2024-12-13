@@ -21,6 +21,7 @@ export {
   addRequestDataToEvent,
   amqplibIntegration,
   anrIntegration,
+  disableAnrDetectionForCallback,
   captureCheckIn,
   captureConsoleIntegration,
   captureEvent,

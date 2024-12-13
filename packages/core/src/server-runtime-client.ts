@@ -42,6 +42,7 @@ export interface ServerRuntimeClientOptions extends ClientOptions<BaseTransportO
 export class ServerRuntimeClient<
   O extends ClientOptions & ServerRuntimeClientOptions = ServerRuntimeClientOptions,
 > extends BaseClient<O> {
+  // eslint-disable-next-line deprecation/deprecation
   protected _sessionFlusher: SessionFlusher | undefined;
 
   /**
@@ -59,7 +60,10 @@ export class ServerRuntimeClient<
    * @inheritDoc
    */
   public eventFromException(exception: unknown, hint?: EventHint): PromiseLike<Event> {
-    return resolvedSyncPromise(eventFromUnknownInput(this, this._options.stackParser, exception, hint));
+    const event = eventFromUnknownInput(this, this._options.stackParser, exception, hint);
+    event.level = 'error';
+
+    return resolvedSyncPromise(event);
   }
 
   /**
@@ -78,12 +82,14 @@ export class ServerRuntimeClient<
   /**
    * @inheritDoc
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  public captureException(exception: any, hint?: EventHint, scope?: Scope): string {
-    // Check if the flag `autoSessionTracking` is enabled, and if `_sessionFlusher` exists because it is initialised only
-    // when the `requestHandler` middleware is used, and hence the expectation is to have SessionAggregates payload
-    // sent to the Server only when the `requestHandler` middleware is used
+  public captureException(exception: unknown, hint?: EventHint, scope?: Scope): string {
+    // Check if `_sessionFlusher` exists because it is initialized (defined) only when the `autoSessionTracking` is enabled.
+    // The expectation is that session aggregates are only sent when `autoSessionTracking` is enabled.
+    // TODO(v9): Our goal in the future is to not have the `autoSessionTracking` option and instead rely on integrations doing the creation and sending of sessions. We will not have a central kill-switch for sessions.
+    // TODO(v9): This should move into the httpIntegration.
+    // eslint-disable-next-line deprecation/deprecation
     if (this._options.autoSessionTracking && this._sessionFlusher) {
+      // eslint-disable-next-line deprecation/deprecation
       const requestSession = getIsolationScope().getRequestSession();
 
       // Necessary checks to ensure this is code block is executed only within a request
@@ -100,9 +106,11 @@ export class ServerRuntimeClient<
    * @inheritDoc
    */
   public captureEvent(event: Event, hint?: EventHint, scope?: Scope): string {
-    // Check if the flag `autoSessionTracking` is enabled, and if `_sessionFlusher` exists because it is initialised only
-    // when the `requestHandler` middleware is used, and hence the expectation is to have SessionAggregates payload
-    // sent to the Server only when the `requestHandler` middleware is used
+    // Check if `_sessionFlusher` exists because it is initialized only when the `autoSessionTracking` is enabled.
+    // The expectation is that session aggregates are only sent when `autoSessionTracking` is enabled.
+    // TODO(v9): Our goal in the future is to not have the `autoSessionTracking` option and instead rely on integrations doing the creation and sending of sessions. We will not have a central kill-switch for sessions.
+    // TODO(v9): This should move into the httpIntegration.
+    // eslint-disable-next-line deprecation/deprecation
     if (this._options.autoSessionTracking && this._sessionFlusher) {
       const eventType = event.type || 'exception';
       const isException =
@@ -110,6 +118,7 @@ export class ServerRuntimeClient<
 
       // If the event is of type Exception, then a request session should be captured
       if (isException) {
+        // eslint-disable-next-line deprecation/deprecation
         const requestSession = getIsolationScope().getRequestSession();
 
         // Ensure that this is happening within the bounds of a request, and make sure not to override
@@ -134,12 +143,19 @@ export class ServerRuntimeClient<
     return super.close(timeout);
   }
 
-  /** Method that initialises an instance of SessionFlusher on Client */
+  /**
+   * Initializes an instance of SessionFlusher on the client which will aggregate and periodically flush session data.
+   *
+   * NOTICE: This method will implicitly create an interval that is periodically called.
+   * To clean up this resources, call `.close()` when you no longer intend to use the client.
+   * Not doing so will result in a memory leak.
+   */
   public initSessionFlusher(): void {
     const { release, environment } = this._options;
     if (!release) {
-      DEBUG_BUILD && logger.warn('Cannot initialise an instance of SessionFlusher if no release is provided!');
+      DEBUG_BUILD && logger.warn('Cannot initialize an instance of SessionFlusher if no release is provided!');
     } else {
+      // eslint-disable-next-line deprecation/deprecation
       this._sessionFlusher = new SessionFlusher(this, {
         release,
         environment,
@@ -214,6 +230,8 @@ export class ServerRuntimeClient<
   /**
    * Method responsible for capturing/ending a request session by calling `incrementSessionStatusCount` to increment
    * appropriate session aggregates bucket
+   *
+   * @deprecated This method should not be used or extended. It's functionality will move into the `httpIntegration` and not be part of any public API.
    */
   protected _captureRequestSession(): void {
     if (!this._sessionFlusher) {
