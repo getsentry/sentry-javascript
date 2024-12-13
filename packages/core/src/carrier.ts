@@ -13,7 +13,7 @@ export interface Carrier {
   __SENTRY__?: VersionedCarrier;
 }
 
-export type VersionedCarrier = {
+type VersionedCarrier = {
   version?: string;
 } & Record<Exclude<string, 'version'>, SentryCarrier>;
 
@@ -56,4 +56,24 @@ export function getSentryCarrier(carrier: Carrier): SentryCarrier {
   // Intentionally populating and returning the version of "this" SDK instance
   // rather than what's set in .version so that "this" SDK always gets its carrier
   return (__SENTRY__[SDK_VERSION] = __SENTRY__[SDK_VERSION] || {});
+}
+
+/**
+ * Returns a global singleton contained in the global `__SENTRY__[]` object.
+ *
+ * If the singleton doesn't already exist in `__SENTRY__`, it will be created using the given factory
+ * function and added to the `__SENTRY__` object.
+ *
+ * @param name name of the global singleton on __SENTRY__
+ * @param creator creator Factory function to create the singleton if it doesn't already exist on `__SENTRY__`
+ * @param obj (Optional) The global object on which to look for `__SENTRY__`, if not `GLOBAL_OBJ`'s return value
+ * @returns the singleton
+ */
+export function getGlobalSingleton<Prop extends keyof SentryCarrier>(
+  name: Prop,
+  creator: () => NonNullable<SentryCarrier[Prop]>,
+  obj = GLOBAL_OBJ,
+): NonNullable<SentryCarrier[Prop]> {
+  const carrier = getSentryCarrier(obj);
+  return carrier[name] || (carrier[name] = creator());
 }

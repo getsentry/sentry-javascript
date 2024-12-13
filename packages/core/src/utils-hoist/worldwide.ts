@@ -12,9 +12,8 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import type { Carrier, SentryCarrier, VersionedCarrier } from '../carrier';
+import type { Carrier } from '../carrier';
 import type { SdkSource } from './env';
-import { SDK_VERSION } from './version';
 
 /** Internal global with common properties and Sentry extensions  */
 export type InternalGlobal = {
@@ -53,32 +52,3 @@ export type InternalGlobal = {
 
 /** Get's the global object for the current JavaScript runtime */
 export const GLOBAL_OBJ = globalThis as unknown as InternalGlobal;
-
-/**
- * Returns a global singleton contained in the global `__SENTRY__[]` object.
- *
- * If the singleton doesn't already exist in `__SENTRY__`, it will be created using the given factory
- * function and added to the `__SENTRY__` object.
- *
- * @param name name of the global singleton on __SENTRY__
- * @param creator creator Factory function to create the singleton if it doesn't already exist on `__SENTRY__`
- * @param obj (Optional) The global object on which to look for `__SENTRY__`, if not `GLOBAL_OBJ`'s return value
- * @returns the singleton
- */
-export function getGlobalSingleton<Prop extends keyof SentryCarrier>(
-  name: Prop,
-  creator: () => NonNullable<SentryCarrier[Prop]>,
-  obj = GLOBAL_OBJ,
-): NonNullable<SentryCarrier[Prop]> {
-  const __SENTRY__ = getSentryCarrierObj(obj);
-  const versionedCarrier = (__SENTRY__[SDK_VERSION] = __SENTRY__[SDK_VERSION] || {});
-
-  return versionedCarrier[name] || (versionedCarrier[name] = creator());
-}
-
-function getSentryCarrierObj(
-  obj: Omit<InternalGlobal, '__SENTRY__'> & Partial<Pick<InternalGlobal, '__SENTRY__'>>,
-): VersionedCarrier {
-  // Set the Sentry carrier, if it does not exist yet
-  return obj.__SENTRY__ || (obj.__SENTRY__ = {});
-}

@@ -5,7 +5,7 @@ export { getBreadcrumbLogLevelFromHttpStatusCode } from './breadcrumb-log-level'
 export { getComponentName, getDomElement, getLocationHref, htmlTreeAsString } from './browser';
 export { dsnFromString, dsnToString, makeDsn } from './dsn';
 export { SentryError } from './error';
-export { GLOBAL_OBJ, getGlobalSingleton } from './worldwide';
+export { GLOBAL_OBJ } from './worldwide';
 export type { InternalGlobal } from './worldwide';
 export { addConsoleInstrumentationHandler } from './instrument/console';
 export { addFetchEndInstrumentationHandler, addFetchInstrumentationHandler } from './instrument/fetch';
