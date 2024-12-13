@@ -115,8 +115,6 @@ import type {
   ReplayRecordingMode as ReplayRecordingMode_imported,
   Request as Request_imported,
   RequestEventData as RequestEventData_imported,
-  RequestSession as RequestSession_imported,
-  RequestSessionStatus as RequestSessionStatus_imported,
   Runtime as Runtime_imported,
   SamplingContext as SamplingContext_imported,
   SanitizedRequestData as SanitizedRequestData_imported,
@@ -421,12 +419,6 @@ export type Session = Session_imported;
 export type SessionContext = SessionContext_imported;
 /** @deprecated This type has been moved to `@sentry/core`. */
 export type SessionStatus = SessionStatus_imported;
-/** @deprecated This type has been moved to `@sentry/core`. */
-// eslint-disable-next-line deprecation/deprecation
-export type RequestSession = RequestSession_imported;
-/** @deprecated This type has been moved to `@sentry/core`. */
-// eslint-disable-next-line deprecation/deprecation
-export type RequestSessionStatus = RequestSessionStatus_imported;
 /** @deprecated This type has been moved to `@sentry/core`. */
 export type SerializedSession = SerializedSession_imported;
 /** @deprecated This type has been moved to `@sentry/core`. */

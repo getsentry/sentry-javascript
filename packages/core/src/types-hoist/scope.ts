@@ -6,7 +6,7 @@ import type { Event, EventHint } from './event';
 import type { EventProcessor } from './eventprocessor';
 import type { Extra, Extras } from './extra';
 import type { Primitive } from './misc';
-import type { RequestSession, Session } from './session';
+import type { Session } from './session';
 import type { SeverityLevel } from './severity';
 import type { Span } from './span';
 import type { PropagationContext } from './tracing';
@@ -23,8 +23,6 @@ export interface ScopeContext {
   contexts: Contexts;
   tags: { [key: string]: Primitive };
   fingerprint: string[];
-  // eslint-disable-next-line deprecation/deprecation
-  requestSession: RequestSession;
   propagationContext: PropagationContext;
 }
 
@@ -166,22 +164,6 @@ export interface Scope {
    * Sets the `Session` on the scope
    */
   setSession(session?: Session): this;
-
-  /**
-   * Returns the `RequestSession` if there is one
-   *
-   * @deprecated Use `getSession()` and `setSession()` instead of `getRequestSession()` and `setRequestSession()`;
-   */
-  // eslint-disable-next-line deprecation/deprecation
-  getRequestSession(): RequestSession | undefined;
-
-  /**
-   * Sets the `RequestSession` on the scope
-   *
-   * @deprecated Use `getSession()` and `setSession()` instead of `getRequestSession()` and `setRequestSession()`;
-   */
-  // eslint-disable-next-line deprecation/deprecation
-  setRequestSession(requestSession?: RequestSession): this;
 
   /**
    * Updates the scope with provided data. Can work in three variations:

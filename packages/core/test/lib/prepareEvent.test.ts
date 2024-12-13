@@ -162,7 +162,6 @@ describe('parseEventHintOrCaptureContext', () => {
       contexts: { os: { name: 'linux' } },
       tags: { foo: 'bar' },
       fingerprint: ['xx', 'yy'],
-      requestSession: { status: 'ok' },
       propagationContext: {
         traceId: 'xxx',
         spanId: 'yyy',
@@ -175,8 +174,8 @@ describe('parseEventHintOrCaptureContext', () => {
 
   it('triggers a TS error if trying to mix ScopeContext & EventHint', () => {
     const actual = parseEventHintOrCaptureContext({
-      // @ts-expect-error We are specifically testing that this errors!
       user: { id: 'xxx' },
+      // @ts-expect-error We are specifically testing that this errors!
       mechanism: { handled: false },
     });
 

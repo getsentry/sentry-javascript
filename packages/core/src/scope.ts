@@ -13,7 +13,6 @@ import type {
   Extras,
   Primitive,
   PropagationContext,
-  RequestSession,
   Scope as ScopeInterface,
   ScopeContext,
   ScopeData,
@@ -93,10 +92,6 @@ class ScopeClass implements ScopeInterface {
   /** Session */
   protected _session?: Session;
 
-  /** Request Mode Session Status */
-  // eslint-disable-next-line deprecation/deprecation
-  protected _requestSession?: RequestSession;
-
   /** The client on this scope */
   protected _client?: Client;
 
@@ -145,7 +140,6 @@ class ScopeClass implements ScopeInterface {
     newScope._transactionName = this._transactionName;
     newScope._fingerprint = this._fingerprint;
     newScope._eventProcessors = [...this._eventProcessors];
-    newScope._requestSession = this._requestSession;
     newScope._attachments = [...this._attachments];
     newScope._sdkProcessingMetadata = { ...this._sdkProcessingMetadata };
     newScope._propagationContext = { ...this._propagationContext };
@@ -226,23 +220,6 @@ class ScopeClass implements ScopeInterface {
    */
   public getUser(): User | undefined {
     return this._user;
-  }
-
-  /**
-   * @inheritDoc
-   */
-  // eslint-disable-next-line deprecation/deprecation
-  public getRequestSession(): RequestSession | undefined {
-    return this._requestSession;
-  }
-
-  /**
-   * @inheritDoc
-   */
-  // eslint-disable-next-line deprecation/deprecation
-  public setRequestSession(requestSession?: RequestSession): this {
-    this._requestSession = requestSession;
-    return this;
   }
 
   /**
@@ -359,13 +336,12 @@ class ScopeClass implements ScopeInterface {
 
     const scopeToMerge = typeof captureContext === 'function' ? captureContext(this) : captureContext;
 
-    const [scopeInstance, requestSession] =
+    const scopeInstance =
       scopeToMerge instanceof Scope
-        ? // eslint-disable-next-line deprecation/deprecation
-          [scopeToMerge.getScopeData(), scopeToMerge.getRequestSession()]
+        ? scopeToMerge.getScopeData()
         : isPlainObject(scopeToMerge)
-          ? [captureContext as ScopeContext, (captureContext as ScopeContext).requestSession]
-          : [];
+          ? (captureContext as ScopeContext)
+          : undefined;
 
     const { tags, extra, user, contexts, level, fingerprint = [], propagationContext } = scopeInstance || {};
 
@@ -389,10 +365,6 @@ class ScopeClass implements ScopeInterface {
       this._propagationContext = propagationContext;
     }
 
-    if (requestSession) {
-      this._requestSession = requestSession;
-    }
-
     return this;
   }
 
@@ -409,7 +381,6 @@ class ScopeClass implements ScopeInterface {
     this._level = undefined;
     this._transactionName = undefined;
     this._fingerprint = undefined;
-    this._requestSession = undefined;
     this._session = undefined;
     _setSpanForScope(this, undefined);
     this._attachments = [];
