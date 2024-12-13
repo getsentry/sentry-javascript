@@ -96,16 +96,6 @@ export function createEventEnvelope(
   // have temporarily added, etc. Even if we don't happen to be using it at some point in the future, let's not get rid
   // of this `delete`, lest we miss putting it back in the next time the property is in use.)
   delete event.sdkProcessingMetadata;
-  try {
-    // @ts-expect-error - for bundle size we try/catch the access to this property
-    // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
-    delete event.contexts.trace.data[SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME];
-    // @ts-expect-error - for bundle size we try/catch the access to this property
-    // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
-    event.spans.forEach(span => delete span.data[SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME]);
-  } catch {
-    // Do nothing
-  }
 
   const eventItem: EventItem = [{ type: eventType }, event];
   return createEnvelope<EventEnvelope>(envelopeHeaders, [eventItem]);

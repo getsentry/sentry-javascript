@@ -106,12 +106,8 @@ export function parseSpanDescription(span: AbstractSpan): SpanDescription {
   const attributes = spanHasAttributes(span) ? span.attributes : {};
   const name = spanHasName(span) ? span.name : '<unknown>';
   const kind = getSpanKind(span);
-  // console.log('x parseSpanDesc', { attributes, name, kind });
 
-  const res = inferSpanData(name, attributes, kind);
-
-  // console.log('x parseSpanDesc res', res);
-  return res;
+  return inferSpanData(name, attributes, kind);
 }
 
 function descriptionForDbSystem({ attributes, name }: { attributes: Attributes; name: string }): SpanDescription {
