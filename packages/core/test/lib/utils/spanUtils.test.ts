@@ -300,7 +300,7 @@ describe('spanToJSON', () => {
       span_id: 'SPAN-1',
       trace_id: 'TRACE-1',
       start_timestamp: 0,
-      data: {}
+      data: {},
     });
   });
 });
