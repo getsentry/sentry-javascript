@@ -104,11 +104,13 @@ function applyDebugMeta(event: Event): void {
 
   if (filenameToDebugId.size > 0) {
     const images: DebugImage[] = [];
-    for (const [filename, debugId] of filenameToDebugId.entries()) {
+    for (const [filename, debug_id] of filenameToDebugId.entries()) {
+      const code_file = options.appRootPath ? normalizeUrlToBase(filename, options.appRootPath) : filename;
+
       images.push({
         type: 'sourcemap',
-        code_file: filename,
-        debug_id: debugId,
+        code_file,
+        debug_id,
       });
     }
     event.debug_meta = { images };
