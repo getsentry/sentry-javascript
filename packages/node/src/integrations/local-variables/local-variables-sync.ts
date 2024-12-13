@@ -3,6 +3,7 @@ import type { Event, Exception, IntegrationFn, StackFrame, StackParser } from '@
 import { LRUMap, defineIntegration, getClient, logger } from '@sentry/core';
 import { NODE_MAJOR } from '../../nodeVersion';
 import type { NodeClient } from '../../sdk/client';
+import { isDebuggerEnabled } from '../../utils/debug';
 import type {
   FrameVariables,
   LocalVariablesIntegrationOptions,
@@ -289,7 +290,7 @@ const _localVariablesSyncIntegration = ((
 
   return {
     name: INTEGRATION_NAME,
-    setupOnce() {
+    async setupOnce() {
       const client = getClient<NodeClient>();
       const clientOptions = client?.getOptions();
 
@@ -303,6 +304,11 @@ const _localVariablesSyncIntegration = ((
 
       if (unsupportedNodeVersion) {
         logger.log('The `LocalVariables` integration is only supported on Node >= v18.');
+        return;
+      }
+
+      if (await isDebuggerEnabled()) {
+        logger.warn('Local variables capture has been disabled because the debugger was already enabled');
         return;
       }
 
