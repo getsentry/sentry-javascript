@@ -6,9 +6,7 @@
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/ember",
   "author": "Sentry",
   "license": "MIT",
-  "keywords": [
-    "ember-addon"
-  ],
+  "keywords": ["ember-addon"],
   "publishConfig": {
     "access": "public"
   },

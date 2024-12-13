@@ -10,8 +10,7 @@
     "test:build": "pnpm install && pnpm copy:layer",
     "test:assert": "pnpm test"
   },
-  "dependencies": {
-  },
+  "dependencies": {},
   "devDependencies": {
     "@sentry-internal/test-utils": "link:../../../test-utils",
     "@playwright/test": "^1.44.1"

@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import { useRoute, useFetch } from '#imports'
+import { useFetch, useRoute } from '#imports';
 
 const route = useRoute();
 const param = route.params.param;
 
 const fetchError = async () => {
   await useFetch(`/api/param-error/${param}`);
-}
+};
 
 const fetchData = async () => {
   await useFetch(`/api/test-param/${param}`);

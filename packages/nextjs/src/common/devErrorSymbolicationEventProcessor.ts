@@ -77,8 +77,10 @@ function parseOriginalCodeFrame(codeFrame: string): {
   const preProcessedLines = codeFrame
     // Remove ASCII control characters that are used for syntax highlighting
     .replace(
-      // eslint-disable-next-line no-control-regex
+      /* eslint-disable no-control-regex */
+      // biome-ignore lint/suspicious/noControlCharactersInRegex: Invalid
       /[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g, // https://stackoverflow.com/a/29497680
+      /* eslint-enable no-control-regex */
       '',
     )
     .split('\n')

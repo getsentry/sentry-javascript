@@ -1,5 +1,5 @@
 <script lang="ts">
-  export let data
+export let data;
 </script>
 
 <h1>Server load error</h1>

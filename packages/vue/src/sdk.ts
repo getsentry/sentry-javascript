@@ -1,4 +1,4 @@
-import { SDK_VERSION, getDefaultIntegrations, init as browserInit } from '@sentry/browser';
+import { SDK_VERSION, init as browserInit, getDefaultIntegrations } from '@sentry/browser';
 
 import type { Client } from '@sentry/core';
 import { vueIntegration } from './integration';

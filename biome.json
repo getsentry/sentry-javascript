@@ -15,8 +15,12 @@
       "recommended": false,
       "correctness": {
         "all": false,
-        "noUnusedVariables": "error",
-        "noPrecisionLoss": "error"
+        "noPrecisionLoss": "error",
+        "noUnusedImports": "error"
+      },
+      "complexity": {
+        "all": false,
+        "useRegexLiterals": "error"
       },
       "complexity": {
         "useRegexLiterals": "error"
@@ -25,13 +29,12 @@
         "all": false,
         "noControlCharactersInRegex": "error"
       },
-      "nursery": {
-        "noUnusedImports": "error"
-      },
       "performance": {
         "all": true,
         "noAccumulatingSpread": "error",
-        "noDelete": "off"
+        "noDelete": "off",
+        "noBarrelFile": "off",
+        "noReExportAll": "off"
       }
     },
     "ignore": [
@@ -84,7 +87,7 @@
       "enabled": true,
       "quoteStyle": "single",
       "arrowParentheses": "asNeeded",
-      "trailingComma": "all",
+      "trailingCommas": "all",
       "lineEnding": "lf"
     },
     "parser": {

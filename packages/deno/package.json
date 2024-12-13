@@ -20,9 +20,7 @@
   "publishConfig": {
     "access": "public"
   },
-  "files": [
-    "/build"
-  ],
+  "files": ["/build"],
   "dependencies": {
     "@sentry/core": "8.45.0"
   },
@@ -62,14 +60,10 @@
   "nx": {
     "targets": {
       "build:transpile": {
-        "outputs": [
-          "{projectRoot}/build"
-        ]
+        "outputs": ["{projectRoot}/build"]
       },
       "build:types": {
-        "outputs": [
-          "{projectRoot}/build-types"
-        ]
+        "outputs": ["{projectRoot}/build-types"]
       }
     }
   }

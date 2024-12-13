@@ -9,13 +9,7 @@
   "engines": {
     "node": ">=16"
   },
-  "files": [
-    "/build",
-    "/client",
-    "/server",
-    "/*.d.ts",
-    "/*.d.ts.map"
-  ],
+  "files": ["/build", "/client", "/server", "/*.d.ts", "/*.d.ts.map"],
   "main": "build/cjs/index.server.js",
   "module": "build/esm/index.server.js",
   "browser": "build/esm/index.client.js",

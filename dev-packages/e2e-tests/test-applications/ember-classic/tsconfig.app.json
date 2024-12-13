@@ -10,12 +10,8 @@
     // work with TypeScript.
     "baseUrl": ".",
     "paths": {
-      "ember-classic/*": [
-        "app/*"
-      ],
-       "*": [
-        "types/*"
-      ],
+      "ember-classic/*": ["app/*"],
+      "*": ["types/*"]
     }
   },
   "include": ["app/**/*", "types/**/*"],

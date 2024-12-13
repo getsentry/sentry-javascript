@@ -1,5 +1,5 @@
 <script lang="ts">
-  export let data
+export let data;
 </script>
 
 <h1>Universal load error</h1>

@@ -1,4 +1,4 @@
-import type { Event as SentryEvent, ExtendedError } from '../../../src/types-hoist';
+import type { ExtendedError, Event as SentryEvent } from '../../../src/types-hoist';
 
 import { extraErrorDataIntegration } from '../../../src/integrations/extraerrordata';
 

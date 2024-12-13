@@ -9,9 +9,7 @@
   "engines": {
     "node": ">=16"
   },
-  "files": [
-    "/build"
-  ],
+  "files": ["/build"],
   "main": "build/cjs/index.server.js",
   "module": "build/esm/index.server.js",
   "browser": "build/esm/index.client.js",
@@ -81,16 +79,8 @@
   "nx": {
     "targets": {
       "build:transpile": {
-        "dependsOn": [
-          "^build:transpile",
-          "^build:types",
-          "build:types"
-        ],
-        "outputs": [
-          "{projectRoot}/build/cjs",
-          "{projectRoot}/build/esm",
-          "{projectRoot}/build/module"
-        ]
+        "dependsOn": ["^build:transpile", "^build:types", "build:types"],
+        "outputs": ["{projectRoot}/build/cjs", "{projectRoot}/build/esm", "{projectRoot}/build/module"]
       }
     }
   }

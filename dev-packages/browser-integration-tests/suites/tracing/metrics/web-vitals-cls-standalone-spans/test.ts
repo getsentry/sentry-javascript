@@ -1,6 +1,6 @@
 import type { Page } from '@playwright/test';
 import { expect } from '@playwright/test';
-import type { Event as SentryEvent, EventEnvelope, SpanEnvelope } from '@sentry/core';
+import type { EventEnvelope, Event as SentryEvent, SpanEnvelope } from '@sentry/core';
 
 import { sentryTest } from '../../../../utils/fixtures';
 import {

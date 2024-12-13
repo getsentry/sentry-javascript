@@ -1,13 +1,13 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
+import { onMount } from 'svelte';
 
-  export let data;
+export let data;
 
-  onMount(() => {
-      if (data.error) {
-        throw new Error('Client Error');
-      }
-  });
+onMount(() => {
+  if (data.error) {
+    throw new Error('Client Error');
+  }
+});
 </script>
 
 <p>

@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import ComponentOneView from './ComponentOneView.vue';
-import ComponentTwoView from './ComponentTwoView.vue';
+
 </script>
 
 <template>

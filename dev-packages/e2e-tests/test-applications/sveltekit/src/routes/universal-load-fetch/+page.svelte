@@ -1,6 +1,6 @@
 <script lang="ts">
-  export let data;
-  console.log(data);
+export let data;
+console.log(data);
 </script>
 
 <h2>Fetching in universal load</h2>

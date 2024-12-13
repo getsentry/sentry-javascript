@@ -1,5 +1,5 @@
 import { SENTRY_XHR_DATA_KEY, addXhrInstrumentationHandler } from '@sentry-internal/browser-utils';
-import type { Client, Event as SentryEvent, IntegrationFn, SentryWrappedXMLHttpRequest } from '@sentry/core';
+import type { Client, IntegrationFn, Event as SentryEvent, SentryWrappedXMLHttpRequest } from '@sentry/core';
 import {
   GLOBAL_OBJ,
   addExceptionMechanism,

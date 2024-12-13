@@ -1,4 +1,4 @@
-import type { HashRouter, MemoryRouter, RouteSectionProps, Router as BaseRouter, StaticRouter } from '@solidjs/router';
+import type { Router as BaseRouter, HashRouter, MemoryRouter, RouteSectionProps, StaticRouter } from '@solidjs/router';
 import { mergeProps, splitProps } from 'solid-js';
 import type { Component, JSX, ParentProps } from 'solid-js';
 import { createComponent } from 'solid-js/web';

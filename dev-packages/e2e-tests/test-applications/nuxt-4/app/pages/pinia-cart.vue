@@ -1,24 +1,24 @@
 <script setup lang="ts">
-import { ref } from '#imports'
-import { useCartStore } from '~~/stores/cart'
+import { useCartStore } from '~~/stores/cart';
+import { ref } from '#imports';
 
-const cart = useCartStore()
+const cart = useCartStore();
 
-const itemName = ref('')
+const itemName = ref('');
 
 function addItemToCart() {
-  if (!itemName.value) return
-  cart.addItem(itemName.value)
-  itemName.value = ''
+  if (!itemName.value) return;
+  cart.addItem(itemName.value);
+  itemName.value = '';
 }
 
 function throwError() {
-  throw new Error('This is an error')
+  throw new Error('This is an error');
 }
 
 function clearCart() {
   if (window.confirm('Are you sure you want to clear the cart?')) {
-    cart.rawItems = []
+    cart.rawItems = [];
   }
 }
 </script>

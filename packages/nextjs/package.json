@@ -12,9 +12,7 @@
   "main": "build/cjs/index.server.js",
   "module": "build/esm/index.server.js",
   "types": "build/types/index.types.d.ts",
-  "files": [
-    "/build"
-  ],
+  "files": ["/build"],
   "exports": {
     "./package.json": "./package.json",
     ".": {
@@ -67,9 +65,7 @@
   },
   "typesVersions": {
     "<4.9": {
-      "build/npm/types/index.d.ts": [
-        "build/npm/types-ts3.8/index.d.ts"
-      ]
+      "build/npm/types/index.d.ts": ["build/npm/types-ts3.8/index.d.ts"]
     }
   },
   "publishConfig": {

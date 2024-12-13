@@ -9,11 +9,7 @@
   "engines": {
     "node": ">=14.18"
   },
-  "files": [
-    "/build",
-    "/*.d.ts",
-    "/*.d.ts.map"
-  ],
+  "files": ["/build", "/*.d.ts", "/*.d.ts.map"],
   "main": "build/cjs/index.js",
   "module": "build/esm/index.js",
   "types": "build/types/index.d.ts",
@@ -90,11 +86,7 @@
   "nx": {
     "targets": {
       "build:types": {
-        "outputs": [
-          "{projectRoot}/build/types",
-          "{projectRoot}/*.d.ts",
-          "{projectRoot}/*.d.ts.map"
-        ]
+        "outputs": ["{projectRoot}/build/types", "{projectRoot}/*.d.ts", "{projectRoot}/*.d.ts.map"]
       }
     }
   },

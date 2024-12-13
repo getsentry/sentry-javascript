@@ -2,10 +2,10 @@ import { VERSION } from '@angular/core';
 import type { BrowserOptions } from '@sentry/browser';
 import {
   breadcrumbsIntegration,
+  init as browserInit,
   browserSessionIntegration,
   globalHandlersIntegration,
   httpContextIntegration,
-  init as browserInit,
   linkedErrorsIntegration,
   setContext,
 } from '@sentry/browser';

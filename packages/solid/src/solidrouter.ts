@@ -13,11 +13,11 @@ import {
 } from '@sentry/core';
 import type { Client, Integration, Span } from '@sentry/core';
 import type {
+  Router as BaseRouter,
   BeforeLeaveEventArgs,
   HashRouter,
   MemoryRouter,
   RouteSectionProps,
-  Router as BaseRouter,
   StaticRouter,
 } from '@solidjs/router';
 import { useBeforeLeave, useLocation } from '@solidjs/router';

@@ -9,11 +9,7 @@
   "engines": {
     "node": ">=16"
   },
-  "files": [
-    "/build",
-    "/*.d.ts",
-    "/*.d.ts.map"
-  ],
+  "files": ["/build", "/*.d.ts", "/*.d.ts.map"],
   "main": "build/cjs/nestjs/index.js",
   "module": "build/esm/nestjs/index.js",
   "types": "build/types/index.d.ts",
