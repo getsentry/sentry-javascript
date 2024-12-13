@@ -3,7 +3,7 @@ import { GLOBAL_OBJ } from './worldwide';
 interface VercelRequestContextGlobal {
   get?(): {
     waitUntil?: (task: Promise<unknown>) => void;
-  };
+  } | undefined;
 }
 
 /**

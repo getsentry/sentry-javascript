@@ -152,9 +152,7 @@ describe('startSpan', () => {
       try {
         await startSpan({ name: 'GET users/[id]' }, () => {
           return startSpan({ name: 'SELECT * from users' }, childSpan => {
-            if (childSpan) {
-              childSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'db.query');
-            }
+            childSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'db.query');
             return callback();
           });
         });

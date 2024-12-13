@@ -179,7 +179,7 @@ export function applyDebugIds(event: Event, stackParser: StackParser): void {
     event!.exception!.values!.forEach(exception => {
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       exception.stacktrace!.frames!.forEach(frame => {
-        if (filenameDebugIdMap && frame.filename) {
+        if (frame.filename) {
           frame.debug_id = filenameDebugIdMap[frame.filename];
         }
       });
