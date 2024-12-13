@@ -370,8 +370,6 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
     const clientReleaseOption = this._options.release;
     const clientEnvironmentOption = this._options.environment;
     if ('aggregates' in session) {
-      // TODO(v9): Remove eslint disable
-      // eslint-disable-next-line @sentry-internal/sdk/no-optional-chaining
       if (!session.attrs?.release && !clientReleaseOption) {
         DEBUG_BUILD && logger.warn(MISSING_RELEASE_FOR_SESSION_ERROR);
         return;
