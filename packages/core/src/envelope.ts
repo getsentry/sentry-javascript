@@ -1,4 +1,3 @@
-import { SEMANTIC_ATTRIBUTE_SENTRY_CUSTOM_SPAN_NAME } from './semanticAttributes';
 import { getDynamicSamplingContextFromSpan } from './tracing/dynamicSamplingContext';
 import type { SentrySpan } from './tracing/sentrySpan';
 import type {
