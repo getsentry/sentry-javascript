@@ -112,42 +112,41 @@ function ensureTimestampInSeconds(timestamp: number): number {
 // Note: Because of this, we currently have a circular type dependency (which we opted out of in package.json).
 // This is not avoidable as we need `spanToJSON` in `spanUtils.ts`, which in turn is needed by `span.ts` for backwards compatibility.
 // And `spanToJSON` needs the Span class from `span.ts` to check here.
-export function spanToJSON(span: Span): Partial<SpanJSON> {
+export function spanToJSON(span: Span): SpanJSON {
   if (spanIsSentrySpan(span)) {
     return span.getSpanJSON();
   }
 
-  try {
-    const { spanId: span_id, traceId: trace_id } = span.spanContext();
+  const { spanId: span_id, traceId: trace_id } = span.spanContext();
 
-    // Handle a span from @opentelemetry/sdk-base-trace's `Span` class
-    if (spanIsOpenTelemetrySdkTraceBaseSpan(span)) {
-      const { attributes, startTime, name, endTime, parentSpanId, status } = span;
+  // Handle a span from @opentelemetry/sdk-base-trace's `Span` class
+  if (spanIsOpenTelemetrySdkTraceBaseSpan(span)) {
+    const { attributes, startTime, name, endTime, parentSpanId, status } = span;
 
-      return dropUndefinedKeys({
-        span_id,
-        trace_id,
-        data: attributes,
-        description: name,
-        parent_span_id: parentSpanId,
-        start_timestamp: spanTimeInputToSeconds(startTime),
-        // This is [0,0] by default in OTEL, in which case we want to interpret this as no end time
-        timestamp: spanTimeInputToSeconds(endTime) || undefined,
-        status: getStatusMessage(status),
-        op: attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP],
-        origin: attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] as SpanOrigin | undefined,
-        _metrics_summary: getMetricSummaryJsonForSpan(span),
-      });
-    }
-
-    // Finally, at least we have `spanContext()`....
-    return {
+    return dropUndefinedKeys({
       span_id,
       trace_id,
-    };
-  } catch {
-    return {};
+      data: attributes,
+      description: name,
+      parent_span_id: parentSpanId,
+      start_timestamp: spanTimeInputToSeconds(startTime),
+      // This is [0,0] by default in OTEL, in which case we want to interpret this as no end time
+      timestamp: spanTimeInputToSeconds(endTime) || undefined,
+      status: getStatusMessage(status),
+      op: attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP],
+      origin: attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] as SpanOrigin | undefined,
+      _metrics_summary: getMetricSummaryJsonForSpan(span),
+    });
   }
+
+  // Finally, at least we have `spanContext()`....
+  // This should not actually happen in reality, but we need to handle it for type safety.
+  return {
+    span_id,
+    trace_id,
+    start_timestamp: timestampInSeconds(),
+    data: {},
+  };
 }
 
 function spanIsOpenTelemetrySdkTraceBaseSpan(span: Span): span is OpenTelemetrySdkTraceBaseSpan {
