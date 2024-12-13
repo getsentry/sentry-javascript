@@ -15,7 +15,6 @@ import { defineConfig } from 'rollup';
 import {
   makeCleanupPlugin,
   makeDebugBuildStatementReplacePlugin,
-  makeExtractPolyfillsPlugin,
   makeImportMetaUrlReplacePlugin,
   makeNodeResolvePlugin,
   makeRrwebBuildPlugin,
@@ -44,7 +43,6 @@ export function makeBaseNPMConfig(options = {}) {
   const debugBuildStatementReplacePlugin = makeDebugBuildStatementReplacePlugin();
   const importMetaUrlReplacePlugin = makeImportMetaUrlReplacePlugin();
   const cleanupPlugin = makeCleanupPlugin();
-  const extractPolyfillsPlugin = makeExtractPolyfillsPlugin();
   const rrwebBuildPlugin = makeRrwebBuildPlugin({
     excludeShadowDom: undefined,
     excludeIframe: undefined,
@@ -120,10 +118,6 @@ export function makeBaseNPMConfig(options = {}) {
       ...Object.keys(packageDotJSON.optionalDependencies || {}),
     ],
   };
-
-  if (addPolyfills) {
-    defaultBaseConfig.plugins.push(extractPolyfillsPlugin);
-  }
 
   return deepMerge(defaultBaseConfig, packageSpecificConfig, {
     // Plugins have to be in the correct order or everything breaks, so when merging we have to manually re-order them

@@ -107,6 +107,28 @@
   });
   ```
 
+## `@sentry/nuxt` and `@sentry/vue`
+
+- When component tracking is enabled, "update" spans are no longer created by default.
+  Add an `"update"` item to the `tracingOptions.hooks` option via the `vueIntegration()` to restore this behavior.
+
+  ```ts
+  Sentry.init({
+    integrations: [
+      Sentry.vueIntegration({
+        tracingOptions: {
+          trackComponents: true,
+          hooks: [
+            'mount',
+            'update', // <--
+            'unmount',
+          ],
+        },
+      }),
+    ],
+  });
+  ```
+
 ## `@sentry/astro`
 
 - Deprecated passing `dsn`, `release`, `environment`, `sampleRate`, `tracesSampleRate`, `replaysSessionSampleRate` to the integration. Use the runtime-specific `Sentry.init()` calls for passing these options instead.
@@ -136,3 +158,4 @@
 - Deprecated `addOpenTelemetryInstrumentation`. Use the `openTelemetryInstrumentations` option in `Sentry.init()` or your custom Sentry Client instead.
 - Deprecated `registerEsmLoaderHooks.include` and `registerEsmLoaderHooks.exclude`. Set `onlyIncludeInstrumentedModules: true` instead.
 - `registerEsmLoaderHooks` will only accept `true | false | undefined` in the future. The SDK will default to wrapping modules that are used as part of OpenTelemetry Instrumentation.
+- `httpIntegration({ spans: false })` is configured by default if `skipOpenTelemetrySetup: true` is set. You can still overwrite this if desired.

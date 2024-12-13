@@ -14,12 +14,6 @@ import {
   SyncPromise as SyncPromise_imported,
   TRACEPARENT_REGEXP as TRACEPARENT_REGEXP_imported,
   UNKNOWN_FUNCTION as UNKNOWN_FUNCTION_imported,
-  _asyncNullishCoalesce as _asyncNullishCoalesce_imported,
-  _asyncOptionalChain as _asyncOptionalChain_imported,
-  _asyncOptionalChainDelete as _asyncOptionalChainDelete_imported,
-  _nullishCoalesce as _nullishCoalesce_imported,
-  _optionalChain as _optionalChain_imported,
-  _optionalChainDelete as _optionalChainDelete_imported,
   addConsoleInstrumentationHandler as addConsoleInstrumentationHandler_imported,
   addContextToFrame as addContextToFrame_imported,
   addExceptionMechanism as addExceptionMechanism_imported,
@@ -640,24 +634,6 @@ export const extractRequestData = extractRequestData_imported;
 /** @deprecated Import from `@sentry/core` instead. */
 // eslint-disable-next-line deprecation/deprecation
 export const addRequestDataToEvent = addRequestDataToEvent_imported;
-
-/** @deprecated Import from `@sentry/core` instead. */
-export const _asyncNullishCoalesce = _asyncNullishCoalesce_imported;
-
-/** @deprecated Import from `@sentry/core` instead. */
-export const _asyncOptionalChain = _asyncOptionalChain_imported;
-
-/** @deprecated Import from `@sentry/core` instead. */
-export const _asyncOptionalChainDelete = _asyncOptionalChainDelete_imported;
-
-/** @deprecated Import from `@sentry/core` instead. */
-export const _nullishCoalesce = _nullishCoalesce_imported;
-
-/** @deprecated Import from `@sentry/core` instead. */
-export const _optionalChain = _optionalChain_imported;
-
-/** @deprecated Import from `@sentry/core` instead. */
-export const _optionalChainDelete = _optionalChainDelete_imported;
 
 /** @deprecated Import from `@sentry/core` instead. */
 // eslint-disable-next-line deprecation/deprecation

@@ -14,6 +14,7 @@ const sentryClient = Sentry.init({
   tracesSampleRate: 1,
 
   skipOpenTelemetrySetup: true,
+  integrations: [Sentry.httpIntegration({ spans: true })],
 });
 
 const sdk = new opentelemetry.NodeSDK({

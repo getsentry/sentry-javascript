@@ -177,10 +177,3 @@ export { SDK_VERSION } from './version';
 export { getDebugImagesForResources, getFilenameToDebugIdMap } from './debug-ids';
 export { escapeStringForRegex } from './vendor/escapeStringForRegex';
 export { supportsHistory } from './vendor/supportsHistory';
-
-export { _asyncNullishCoalesce } from './buildPolyfills/_asyncNullishCoalesce';
-export { _asyncOptionalChain } from './buildPolyfills/_asyncOptionalChain';
-export { _asyncOptionalChainDelete } from './buildPolyfills/_asyncOptionalChainDelete';
-export { _nullishCoalesce } from './buildPolyfills/_nullishCoalesce';
-export { _optionalChain } from './buildPolyfills/_optionalChain';
-export { _optionalChainDelete } from './buildPolyfills/_optionalChainDelete';

@@ -23,7 +23,7 @@ type VoidFunction = () => void;
 
 const options: WorkerStartData = workerData;
 let session: Session | undefined;
-let hasSentAnrEvent = false;
+let sentAnrEvents = 0;
 let mainDebugImages: Record<string, string> = {};
 
 function log(msg: string): void {
@@ -104,11 +104,13 @@ function applyDebugMeta(event: Event): void {
 
   if (filenameToDebugId.size > 0) {
     const images: DebugImage[] = [];
-    for (const [filename, debugId] of filenameToDebugId.entries()) {
+    for (const [filename, debug_id] of filenameToDebugId.entries()) {
+      const code_file = options.appRootPath ? normalizeUrlToBase(filename, options.appRootPath) : filename;
+
       images.push({
         type: 'sourcemap',
-        code_file: filename,
-        debug_id: debugId,
+        code_file,
+        debug_id,
       });
     }
     event.debug_meta = { images };
@@ -134,11 +136,11 @@ function applyScopeToEvent(event: Event, scope: ScopeData): void {
 }
 
 async function sendAnrEvent(frames?: StackFrame[], scope?: ScopeData): Promise<void> {
-  if (hasSentAnrEvent) {
+  if (sentAnrEvents >= options.maxAnrEvents) {
     return;
   }
 
-  hasSentAnrEvent = true;
+  sentAnrEvents += 1;
 
   await sendAbnormalSession();
 
@@ -179,11 +181,13 @@ async function sendAnrEvent(frames?: StackFrame[], scope?: ScopeData): Promise<v
   await transport.send(envelope);
   await transport.flush(2000);
 
-  // Delay for 5 seconds so that stdio can flush if the main event loop ever restarts.
-  // This is mainly for the benefit of logging or debugging.
-  setTimeout(() => {
-    process.exit(0);
-  }, 5_000);
+  if (sentAnrEvents >= options.maxAnrEvents) {
+    // Delay for 5 seconds so that stdio can flush if the main event loop ever restarts.
+    // This is mainly for the benefit of logging or debugging.
+    setTimeout(() => {
+      process.exit(0);
+    }, 5_000);
+  }
 }
 
 let debuggerPause: VoidFunction | undefined;
