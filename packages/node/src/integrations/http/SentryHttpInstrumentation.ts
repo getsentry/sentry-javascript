@@ -9,6 +9,7 @@ import type { AggregationCounts, Client, RequestEventData, SanitizedRequestData,
 import {
   addBreadcrumb,
   getBreadcrumbLogLevelFromHttpStatusCode,
+  getClient,
   getIsolationScope,
   getSanitizedUrlString,
   httpRequestToRequestData,
@@ -23,11 +24,11 @@ import { getRequestInfo } from './vendor/getRequestInfo';
 
 const clientToAggregatesMap = new Map<
   Client,
-  { [timestampRoundedToSeconds: string]: { exited: number; errored: number } }
+  { [timestampRoundedToSeconds: string]: { exited: number; crashed: number } }
 >();
 
 interface RequestSession {
-  status: 'ok' | 'errored';
+  status: 'ok' | 'crashed';
 }
 
 type Http = typeof http;
@@ -178,7 +179,8 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
             requestSession: { status: 'ok' },
           });
           response.once('close', () => {
-            const client = isolationScope.getClient();
+            // We need to grab the client off the current scope instead of the isolation scope because the isolation scope doesn't hold any client out of the box.
+            const client = getClient();
             const requestSession = isolationScope.getScopeData().sdkProcessingMetadata.requestSession as
               | RequestSession
               | undefined;
@@ -191,13 +193,13 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
               const existingClientAggregate = clientToAggregatesMap.get(client);
               if (existingClientAggregate) {
                 DEBUG_BUILD && logger.debug(`Recorded request session with status: ${requestSession.status}`);
-                const bucket = existingClientAggregate[dateBucketKey] || { errored: 0, exited: 0 };
-                bucket[requestSession.status === 'ok' ? 'exited' : 'errored']++;
+                const bucket = existingClientAggregate[dateBucketKey] || { crashed: 0, exited: 0 };
+                bucket[requestSession.status === 'ok' ? 'exited' : 'crashed']++;
                 existingClientAggregate[dateBucketKey] = bucket;
               } else {
                 DEBUG_BUILD && logger.debug('Opened new request session aggregate.');
-                const bucket = { errored: 0, exited: 0 };
-                bucket[requestSession.status === 'ok' ? 'exited' : 'errored']++;
+                const bucket = { crashed: 0, exited: 0 };
+                bucket[requestSession.status === 'ok' ? 'exited' : 'crashed']++;
                 const newClientAggregate = { [dateBucketKey]: bucket };
                 clientToAggregatesMap.set(client, newClientAggregate);
 
@@ -210,7 +212,7 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
                     ([timestamp, value]) => ({
                       started: timestamp,
                       exited: value.exited,
-                      errored: value.errored,
+                      crashed: value.crashed,
                     }),
                   );
                   client.sendSession({ aggregates: aggregatePayload });
@@ -223,7 +225,8 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
                 const timeout = setTimeout(() => {
                   DEBUG_BUILD && logger.debug('Sending request session aggregate due to flushing schedule');
                   flushPendingClientAggregates();
-                }, 60_000).unref();
+                  // TODO: Increase to 60s
+                }, 5_000).unref();
               }
             }
           });

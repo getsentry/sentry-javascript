@@ -2,12 +2,9 @@ import type { Integration, Options } from '@sentry/core';
 import {
   consoleSandbox,
   dropUndefinedKeys,
-  endSession,
   functionToStringIntegration,
-  getClient,
   getCurrentScope,
   getIntegrationsToSetup,
-  getIsolationScope,
   hasTracingEnabled,
   inboundFiltersIntegration,
   linkedErrorsIntegration,
@@ -15,7 +12,6 @@ import {
   propagationContextFromHeaders,
   requestDataIntegration,
   stackParserFromStackParserOptions,
-  startSession,
 } from '@sentry/core';
 import {
   enhanceDscWithOpenTelemetryRootSpanName,
@@ -155,13 +151,6 @@ function _init(
   client.init();
 
   logger.log(`Running in ${isCjs() ? 'CommonJS' : 'ESM'} mode.`);
-
-  // TODO(V9): Remove this code since all of the logic should be in an integration
-  // eslint-disable-next-line deprecation/deprecation
-  if (options.autoSessionTracking) {
-    startSessionTracking();
-  }
-
   client.startClientReportTracking();
 
   updateScopeFromEnvVariables();
@@ -311,33 +300,4 @@ function updateScopeFromEnvVariables(): void {
     const propagationContext = propagationContextFromHeaders(sentryTraceEnv, baggageEnv);
     getCurrentScope().setPropagationContext(propagationContext);
   }
-}
-
-/**
- * Enable automatic Session Tracking for the node process.
- */
-function startSessionTracking(): void {
-  const client = getClient<NodeClient>();
-  // eslint-disable-next-line deprecation/deprecation
-  if (client && client.getOptions().autoSessionTracking) {
-    client.initSessionFlusher();
-  }
-
-  startSession();
-
-  // Emitted in the case of healthy sessions, error of `mechanism.handled: true` and unhandledrejections because
-  // The 'beforeExit' event is not emitted for conditions causing explicit termination,
-  // such as calling process.exit() or uncaught exceptions.
-  // Ref: https://nodejs.org/api/process.html#process_event_beforeexit
-  process.on('beforeExit', () => {
-    const session = getIsolationScope().getSession();
-
-    // Only call endSession, if the Session exists on Scope and SessionStatus is not a
-    // Terminal Status i.e. Exited or Crashed because
-    // "When a session is moved away from ok it must not be updated anymore."
-    // Ref: https://develop.sentry.dev/sdk/sessions/
-    if (session && session.status !== 'ok') {
-      endSession();
-    }
-  });
 }

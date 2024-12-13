@@ -76,6 +76,8 @@ export class ServerRuntimeClient<
    * @inheritDoc
    */
   public captureException(exception: unknown, hint?: EventHint, scope?: Scope): string {
+    // TODO: Check if mechanism === unhandled
+    setCurrentRequestSessionCrashed();
     return super.captureException(exception, hint, scope);
   }
 
@@ -87,15 +89,7 @@ export class ServerRuntimeClient<
     const isException = !event.type && event.exception && event.exception.values && event.exception.values.length > 0;
     if (isException) {
       // TODO: Check if mechanism === unhandled
-      const isolationScope = getIsolationScope();
-      const requestSession = isolationScope.getScopeData().sdkProcessingMetadata.requestSession;
-      if (requestSession) {
-        isolationScope.setSDKProcessingMetadata({
-          requestSession: {
-            status: 'errored',
-          },
-        });
-      }
+      setCurrentRequestSessionCrashed();
     }
 
     return super.captureEvent(event, hint, scope);
@@ -207,5 +201,20 @@ export class ServerRuntimeClient<
       ? getDynamicSamplingContextFromSpan(span)
       : getDynamicSamplingContextFromScope(this, scope);
     return [dynamicSamplingContext, traceContext];
+  }
+}
+
+function setCurrentRequestSessionCrashed(): void {
+  const requestSession = getIsolationScope().getScopeData().sdkProcessingMetadata.requestSession as
+    | { status: 'ok' | 'crashed' }
+    | undefined;
+
+  if (requestSession) {
+    // We mutate instead of doing `setSdkProcessingMetadata` because the http integration stores away a particular
+    // isolationScope. If that isolation scope is forked, setting the processing metadata here will not mutate the
+    // original isolation scope that the http integration stored away.
+    requestSession.status = 'crashed';
+
+    // TODO maybe send 'errored' when handled exception?
   }
 }
