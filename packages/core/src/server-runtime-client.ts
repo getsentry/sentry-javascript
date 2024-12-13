@@ -79,8 +79,7 @@ export class ServerRuntimeClient<
    * @inheritDoc
    */
   public captureException(exception: unknown, hint?: EventHint, scope?: Scope): string {
-    // TODO: Check if mechanism === unhandled
-    setCurrentRequestSessionCrashed();
+    setCurrentRequestSessionErroredOrCrashed(hint);
     return super.captureException(exception, hint, scope);
   }
 
@@ -91,8 +90,7 @@ export class ServerRuntimeClient<
     // If the event is of type Exception, then a request session should be captured
     const isException = !event.type && event.exception && event.exception.values && event.exception.values.length > 0;
     if (isException) {
-      // TODO: Check if mechanism === unhandled
-      setCurrentRequestSessionCrashed();
+      setCurrentRequestSessionErroredOrCrashed(hint);
     }
 
     return super.captureEvent(event, hint, scope);
@@ -207,17 +205,25 @@ export class ServerRuntimeClient<
   }
 }
 
-function setCurrentRequestSessionCrashed(): void {
+function setCurrentRequestSessionErroredOrCrashed(eventHint?: EventHint): void {
+  const isHandledException = eventHint?.mechanism?.handled ?? true;
+
   const requestSession = getIsolationScope().getScopeData().sdkProcessingMetadata.requestSession as
-    | { status: 'ok' | 'crashed' }
+    | { status: 'ok' | 'errored' | 'crashed' }
     | undefined;
 
   if (requestSession) {
     // We mutate instead of doing `setSdkProcessingMetadata` because the http integration stores away a particular
     // isolationScope. If that isolation scope is forked, setting the processing metadata here will not mutate the
     // original isolation scope that the http integration stored away.
-    requestSession.status = 'crashed';
-
-    // TODO maybe send 'errored' when handled exception?
+    if (isHandledException) {
+      // A request session can go from "errored" -> "crashed" but not "crashed" -> "errored".
+      // Crashed (unhandled exception) is worse than errored (handled exception).
+      if (requestSession.status !== 'crashed') {
+        requestSession.status = 'errored';
+      }
+    } else {
+      requestSession.status = 'crashed';
+    }
   }
 }

@@ -24,11 +24,11 @@ import { getRequestInfo } from './vendor/getRequestInfo';
 
 const clientToAggregatesMap = new Map<
   Client,
-  { [timestampRoundedToSeconds: string]: { exited: number; crashed: number } }
+  { [timestampRoundedToSeconds: string]: { exited: number; crashed: number; errored: number } }
 >();
 
 interface RequestSession {
-  status: 'ok' | 'crashed';
+  status: 'ok' | 'errored' | 'crashed';
 }
 
 type Http = typeof http;
@@ -186,20 +186,20 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
               | undefined;
 
             if (client && requestSession) {
+              DEBUG_BUILD && logger.debug(`Recorded request session with status: ${requestSession.status}`);
+
               const roundedDate = new Date();
               roundedDate.setSeconds(0, 0);
               const dateBucketKey = roundedDate.toISOString();
 
               const existingClientAggregate = clientToAggregatesMap.get(client);
+              const bucket = existingClientAggregate?.[dateBucketKey] || { exited: 0, crashed: 0, errored: 0 };
+              bucket[({ ok: 'exited', crashed: 'crashed', errored: 'errored' } as const)[requestSession.status]]++;
+
               if (existingClientAggregate) {
-                DEBUG_BUILD && logger.debug(`Recorded request session with status: ${requestSession.status}`);
-                const bucket = existingClientAggregate[dateBucketKey] || { crashed: 0, exited: 0 };
-                bucket[requestSession.status === 'ok' ? 'exited' : 'crashed']++;
                 existingClientAggregate[dateBucketKey] = bucket;
               } else {
                 DEBUG_BUILD && logger.debug('Opened new request session aggregate.');
-                const bucket = { crashed: 0, exited: 0 };
-                bucket[requestSession.status === 'ok' ? 'exited' : 'crashed']++;
                 const newClientAggregate = { [dateBucketKey]: bucket };
                 clientToAggregatesMap.set(client, newClientAggregate);
 
@@ -225,8 +225,7 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
                 const timeout = setTimeout(() => {
                   DEBUG_BUILD && logger.debug('Sending request session aggregate due to flushing schedule');
                   flushPendingClientAggregates();
-                  // TODO: Increase to 60s
-                }, 5_000).unref();
+                }, 60_000).unref();
               }
             }
           });
