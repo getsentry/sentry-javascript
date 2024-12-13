@@ -23,9 +23,9 @@ function getMetricsAggregatorForClient(
   client: Client,
   Aggregator: MetricsAggregatorConstructor,
 ): MetricsAggregatorInterface {
-  const globalMetricsAggregators = getGlobalSingleton<WeakMap<Client, MetricsAggregatorInterface>>(
+  const globalMetricsAggregators = getGlobalSingleton(
     'globalMetricsAggregators',
-    () => new WeakMap(),
+    () => new WeakMap<Client, MetricsAggregatorInterface>(),
   );
 
   const aggregator = globalMetricsAggregators.get(client);

@@ -24,7 +24,7 @@ export const originalConsoleMethods: {
   [key in ConsoleLevel]?: (...args: unknown[]) => void;
 } = {};
 
-/** JSDoc */
+/** A Sentry Logger instance. */
 export interface Logger extends LoggerConsoleMethods {
   disable(): void;
   enable(): void;
