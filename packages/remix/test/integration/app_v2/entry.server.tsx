@@ -1,7 +1,3 @@
-if (process.env.USE_OTEL !== '1') {
-  require('../instrument.server.cjs');
-}
-
 import * as Sentry from '@sentry/remix';
 
 import type { EntryContext } from '@remix-run/node';

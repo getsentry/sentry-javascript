@@ -82,6 +82,10 @@ If you need to support older browsers, we recommend transpiling your code using 
 
 - When `skipOpenTelemetrySetup: true` is configured, `httpIntegration({ spans: false })` will be configured by default. This means that you no longer have to specify this yourself in this scenario. With this change, no spans are emitted once `skipOpenTelemetrySetup: true` is configured, without any further configuration being needed.
 
+### `@sentry/remix`
+
+- The Remix SDK now uses OpenTelemetry instrumentation by default. This is identical to have used the v7 SDK with `autoInstrumentRemix: true`.
+
 ### Uncategorized (TODO)
 
 - Next.js withSentryConfig returning Promise
@@ -114,6 +118,7 @@ It will be removed in a future major version.
 - [General](#general)
 - [Server-side SDKs (Node, Deno, Bun, ...)](#server-side-sdks-node-deno-bun-)
 - [Next.js SDK](#nextjs-sdk)
+- [Remix SDK](#remix-sdk)
 - [Vue/Nuxt SDK](#vuenuxt-sdk)
 
 ### General
@@ -135,6 +140,12 @@ It will be removed in a future major version.
 ### Next.js SDK
 
 - `experimental_captureRequestError`
+
+### Remix SDK
+
+- `options.autoInstrumentRemix`
+
+The `autoInstrumentRemix` has been removed from the Remix SDK. The default behaviour of the Remix SDK is now as if `autoInstrumentRemix` was set to `true`.
 
 ### Vue/Nuxt SDK
 

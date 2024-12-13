@@ -12,10 +12,7 @@
   "engines": {
     "node": ">=14.18"
   },
-  "files": [
-    "/build",
-    "/scripts"
-  ],
+  "files": ["/build", "/scripts"],
   "main": "build/cjs/index.server.js",
   "module": "build/esm/index.server.js",
   "browser": "build/esm/index.client.js",
@@ -43,9 +40,7 @@
   },
   "typesVersions": {
     "<4.9": {
-      "build/types/index.d.ts": [
-        "build/types-ts3.8/index.d.ts"
-      ]
+      "build/types/index.d.ts": ["build/types-ts3.8/index.d.ts"]
     }
   },
   "publishConfig": {
@@ -92,15 +87,10 @@
     "fix": "eslint . --format stylish --fix",
     "lint": "eslint . --format stylish",
     "test": "yarn test:unit",
-    "test:integration": "run-s test:integration:otel test:integration:legacy",
-    "test:integration:otel": "export USE_OTEL=1 && run-s test:integration:v1 test:integration:v2",
-    "test:integration:legacy": "export USE_OTEL=0 && run-s test:integration:v1 test:integration:v2",
+    "test:integration": "run-s test:integration:v1 test:integration:v2",
     "test:integration:v1": "run-s test:integration:clean test:integration:prepare test:integration:client test:integration:server",
     "test:integration:v2": "export REMIX_VERSION=2 && yarn test:integration:v1",
-    "test:integration:ci": "run-s test:integration:ci:otel test:integration:ci:legacy",
-    "test:integration:ci:otel": "USE_OTEL=1 yarn test:integration:ci:common",
-    "test:integration:ci:legacy": "USE_OTEL=0 yarn test:integration:ci:common",
-    "test:integration:ci:common": "run-s test:integration:clean test:integration:prepare test:integration:client:ci test:integration:server",
+    "test:integration:ci": "run-s test:integration:clean test:integration:prepare test:integration:client:ci test:integration:server",
     "test:integration:prepare": "(cd test/integration && yarn install)",
     "test:integration:clean": "(cd test/integration && rimraf .cache node_modules build)",
     "test:integration:client": "yarn playwright install-deps && yarn playwright test test/integration/test/client/ --project='chromium'",
@@ -113,8 +103,5 @@
   "volta": {
     "extends": "../../package.json"
   },
-  "sideEffects": [
-    "./esm/index.server.js",
-    "./src/index.server.ts"
-  ]
+  "sideEffects": ["./esm/index.server.js", "./src/index.server.ts"]
 }

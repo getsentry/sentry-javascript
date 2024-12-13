@@ -169,8 +169,7 @@ export function getRemixDefaultIntegrations(options: RemixOptions): Integration[
   return [
     ...getDefaultNodeIntegrations(options as NodeOptions).filter(integration => integration.name !== 'Http'),
     httpIntegration(),
-    // eslint-disable-next-line deprecation/deprecation
-    options.autoInstrumentRemix ? remixIntegration() : undefined,
+    remixIntegration(),
   ].filter(int => int) as Integration[];
 }
 
@@ -202,7 +201,7 @@ export function init(options: RemixOptions): NodeClient | undefined {
 
   const client = nodeInit(options as NodeOptions);
 
-  instrumentServer(options);
+  instrumentServer();
 
   return client;
 }

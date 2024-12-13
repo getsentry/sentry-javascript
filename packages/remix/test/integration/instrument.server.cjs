@@ -6,5 +6,4 @@ Sentry.init({
   tracePropagationTargets: ['example.org'],
   // Disabling to test series of envelopes deterministically.
   autoSessionTracking: false,
-  autoInstrumentRemix: process.env.USE_OTEL === '1',
 });
