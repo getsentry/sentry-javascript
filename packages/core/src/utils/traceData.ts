@@ -1,9 +1,9 @@
-import type { Scope, SerializedTraceData, Span } from '@sentry/types';
 import { getAsyncContextStrategy } from '../asyncContext';
 import { getMainCarrier } from '../carrier';
 import { getClient, getCurrentScope } from '../currentScopes';
 import { isEnabled } from '../exports';
 import { getDynamicSamplingContextFromScope, getDynamicSamplingContextFromSpan } from '../tracing';
+import type { Scope, SerializedTraceData, Span } from '../types-hoist';
 import { dynamicSamplingContextToSentryBaggageHeader } from '../utils-hoist/baggage';
 import { logger } from '../utils-hoist/logger';
 import { TRACEPARENT_REGEXP, generateSentryTraceHeader } from '../utils-hoist/tracing';

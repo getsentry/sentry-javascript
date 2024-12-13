@@ -3,12 +3,13 @@ import type {
   CallHandler,
   DynamicModule,
   ExecutionContext,
+  HttpServer,
   NestInterceptor,
   OnModuleInit,
 } from '@nestjs/common';
 import { Catch, Global, HttpException, Injectable, Logger, Module } from '@nestjs/common';
-import type { HttpServer } from '@nestjs/common';
 import { APP_INTERCEPTOR, BaseExceptionFilter } from '@nestjs/core';
+import type { Span } from '@sentry/core';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -16,12 +17,28 @@ import {
   getClient,
   getDefaultIsolationScope,
   getIsolationScope,
+  logger,
   spanToJSON,
 } from '@sentry/core';
-import { logger } from '@sentry/core';
-import type { Span } from '@sentry/types';
 import type { Observable } from 'rxjs';
 import { isExpectedError } from './helpers';
+
+// Partial extract of FastifyRequest interface
+// https://github.com/fastify/fastify/blob/87f9f20687c938828f1138f91682d568d2a31e53/types/request.d.ts#L41
+interface FastifyRequest {
+  routeOptions?: {
+    method?: string;
+    url?: string;
+  };
+}
+
+// Partial extract of ExpressRequest interface
+interface ExpressRequest {
+  route?: {
+    path?: string;
+  };
+  method?: string;
+}
 
 /**
  * Note: We cannot use @ syntax to add the decorators, so we add them directly below the classes as function wrappers.
@@ -52,11 +69,15 @@ class SentryTracingInterceptor implements NestInterceptor {
     }
 
     if (context.getType() === 'http') {
-      const req = context.switchToHttp().getRequest();
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      if (req.route) {
-        // eslint-disable-next-line @sentry-internal/sdk/no-optional-chaining,@typescript-eslint/no-unsafe-member-access
-        getIsolationScope().setTransactionName(`${req.method?.toUpperCase() || 'GET'} ${req.route.path}`);
+      const req = context.switchToHttp().getRequest() as FastifyRequest | ExpressRequest;
+      if ('routeOptions' in req && req.routeOptions && req.routeOptions.url) {
+        // fastify case
+        getIsolationScope().setTransactionName(
+          `${(req.routeOptions.method || 'GET').toUpperCase()} ${req.routeOptions.url}`,
+        );
+      } else if ('route' in req && req.route && req.route.path) {
+        // express case
+        getIsolationScope().setTransactionName(`${(req.method || 'GET').toUpperCase()} ${req.route.path}`);
       }
     }
 

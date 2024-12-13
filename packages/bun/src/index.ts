@@ -17,7 +17,7 @@ export type {
   Stacktrace,
   Thread,
   User,
-} from '@sentry/types';
+} from '@sentry/core';
 export type { AddRequestDataToEventOptions } from '@sentry/core';
 
 export {
@@ -71,6 +71,7 @@ export {
   extractRequestData,
   createGetModuleFromFilename,
   anrIntegration,
+  disableAnrDetectionForCallback,
   consoleIntegration,
   httpIntegration,
   nativeNodeFetchIntegration,

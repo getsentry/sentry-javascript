@@ -1,6 +1,7 @@
 import type { Context, Span, SpanContext, SpanOptions, Tracer } from '@opentelemetry/api';
-import { INVALID_SPANID, SpanStatusCode, TraceFlags, context, trace } from '@opentelemetry/api';
+import { SpanStatusCode, TraceFlags, context, trace } from '@opentelemetry/api';
 import { suppressTracing } from '@opentelemetry/core';
+import type { Client, DynamicSamplingContext, Scope, Span as SentrySpan, TraceContext } from '@sentry/core';
 import {
   SDK_VERSION,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
@@ -15,11 +16,9 @@ import {
   spanToJSON,
   spanToTraceContext,
 } from '@sentry/core';
-import type { Client, DynamicSamplingContext, Scope, Span as SentrySpan, TraceContext } from '@sentry/types';
 import { continueTraceAsRemoteSpan } from './propagator';
-
 import type { OpenTelemetryClient, OpenTelemetrySpanContext } from './types';
-import { getContextFromScope, getScopesFromContext } from './utils/contextData';
+import { getContextFromScope } from './utils/contextData';
 import { getSamplingDecision } from './utils/getSamplingDecision';
 import { makeTraceState } from './utils/makeTraceState';
 
@@ -179,40 +178,11 @@ function ensureTimestampInMilliseconds(timestamp: number): number {
 
 function getContext(scope: Scope | undefined, forceTransaction: boolean | undefined): Context {
   const ctx = getContextForScope(scope);
-  // Note: If the context is the ROOT_CONTEXT, no scope is attached
-  // Thus we will not use the propagation context in this case, which is desired
-  const actualScope = getScopesFromContext(ctx)?.scope;
   const parentSpan = trace.getSpan(ctx);
 
-  // In the case that we have no parent span, we need to "simulate" one to ensure the propagation context is correct
+  // In the case that we have no parent span, we start a new trace
+  // Note that if we continue a trace, we'll always have a remote parent span here anyhow
   if (!parentSpan) {
-    const client = getClient();
-
-    if (actualScope && client) {
-      const propagationContext = actualScope.getPropagationContext();
-
-      // We store the DSC as OTEL trace state on the span context
-      const traceState = makeTraceState({
-        parentSpanId: propagationContext.parentSpanId,
-        // Not defined yet, we want to pick this up on-demand only
-        dsc: undefined,
-        sampled: propagationContext.sampled,
-      });
-
-      const spanOptions: SpanContext = {
-        traceId: propagationContext.traceId,
-        // eslint-disable-next-line deprecation/deprecation
-        spanId: propagationContext.parentSpanId || propagationContext.spanId,
-        isRemote: true,
-        traceFlags: propagationContext.sampled ? TraceFlags.SAMPLED : TraceFlags.NONE,
-        traceState,
-      };
-
-      // Add remote parent span context,
-      return trace.setSpanContext(ctx, spanOptions);
-    }
-
-    // if we have no scope or client, we just return the context as-is
     return ctx;
   }
 
@@ -238,7 +208,6 @@ function getContext(scope: Scope | undefined, forceTransaction: boolean | undefi
 
   const traceState = makeTraceState({
     dsc,
-    parentSpanId: spanId !== INVALID_SPANID ? spanId : undefined,
     sampled,
   });
 

@@ -1,12 +1,3 @@
-import { addBreadcrumb, defineIntegration, getClient } from '@sentry/core';
-import {
-  addConsoleInstrumentationHandler,
-  addFetchInstrumentationHandler,
-  getBreadcrumbLogLevelFromHttpStatusCode,
-  getEventDescription,
-  safeJoin,
-  severityLevelFromString,
-} from '@sentry/core';
 import type {
   Client,
   Event as SentryEvent,
@@ -15,7 +6,18 @@ import type {
   HandlerDataConsole,
   HandlerDataFetch,
   IntegrationFn,
-} from '@sentry/types';
+} from '@sentry/core';
+import {
+  addBreadcrumb,
+  addConsoleInstrumentationHandler,
+  addFetchInstrumentationHandler,
+  defineIntegration,
+  getBreadcrumbLogLevelFromHttpStatusCode,
+  getClient,
+  getEventDescription,
+  safeJoin,
+  severityLevelFromString,
+} from '@sentry/core';
 
 interface BreadcrumbsOptions {
   console: boolean;

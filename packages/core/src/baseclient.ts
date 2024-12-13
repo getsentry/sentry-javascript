@@ -29,7 +29,7 @@ import type {
   TransactionEvent,
   Transport,
   TransportMakeRequestResponse,
-} from '@sentry/types';
+} from './types-hoist';
 
 import { getEnvelopeEndpointWithUrlEncodedAuth } from './api';
 import { getCurrentScope, getIsolationScope, getTraceContextFromScope } from './currentScopes';
@@ -158,8 +158,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   /**
    * @inheritDoc
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  public captureException(exception: any, hint?: EventHint, scope?: Scope): string {
+  public captureException(exception: unknown, hint?: EventHint, scope?: Scope): string {
     const eventId = uuid4();
 
     // ensure we haven't captured this very object before
@@ -260,7 +259,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   }
 
   /**
-   * @see SdkMetadata in @sentry/types
+   * @see SdkMetadata
    *
    * @return The metadata of the SDK
    */
@@ -915,8 +914,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   /**
    * @inheritDoc
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  public abstract eventFromException(_exception: any, _hint?: EventHint): PromiseLike<Event>;
+  public abstract eventFromException(_exception: unknown, _hint?: EventHint): PromiseLike<Event>;
 
   /**
    * @inheritDoc

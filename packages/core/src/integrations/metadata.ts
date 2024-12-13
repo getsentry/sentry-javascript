@@ -1,5 +1,5 @@
-import type { EventItem } from '@sentry/types';
 import { defineIntegration } from '../integration';
+import type { EventItem } from '../types-hoist';
 
 import { addMetadataToStackFrames, stripMetadataFromStackFrames } from '../metadata';
 import { forEachEnvelopeItem } from '../utils-hoist/envelope';

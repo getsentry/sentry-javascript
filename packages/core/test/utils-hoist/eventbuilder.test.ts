@@ -1,5 +1,5 @@
-import type { Client } from '@sentry/types';
-import { eventFromUnknownInput } from '../../src/utils-hoist/eventbuilder';
+import type { Client } from '../../src/types-hoist';
+import { eventFromMessage, eventFromUnknownInput } from '../../src/utils-hoist/eventbuilder';
 import { nodeStackLineParser } from '../../src/utils-hoist/node-stack-trace';
 import { createStackParser } from '../../src/utils-hoist/stacktrace';
 
@@ -152,5 +152,65 @@ describe('eventFromUnknownInput', () => {
   test('passing client directly', () => {
     const event = eventFromUnknownInput(fakeClient, stackParser, { foo: { bar: 'baz' }, prop: 1 });
     expect(event.exception?.values?.[0]?.value).toBe('Object captured as exception with keys: foo, prop');
+  });
+});
+
+describe('eventFromMessage', () => {
+  it('creates an event from a string message', () => {
+    const event = eventFromMessage(stackParser, 'Test Message');
+    expect(event).toEqual({
+      event_id: undefined, // this is undefined because the hint isn't passed
+      level: 'info',
+      message: 'Test Message',
+    });
+  });
+
+  it('attaches a synthetic exception if passed and `attachStackTrace` is true', () => {
+    const syntheticException = new Error('Test Message');
+    const event = eventFromMessage(
+      stackParser,
+      'Test Message',
+      'info',
+      { syntheticException, event_id: '123abc' },
+      true,
+    );
+
+    expect(event).toEqual({
+      event_id: '123abc',
+      exception: {
+        values: [
+          {
+            mechanism: {
+              handled: true,
+              synthetic: true,
+              type: 'generic',
+            },
+            stacktrace: {
+              frames: expect.any(Array),
+            },
+            value: 'Test Message',
+          },
+        ],
+      },
+      level: 'info',
+      message: 'Test Message',
+    });
+  });
+
+  it("doesn't attach a synthetic exception if `attachStackTrace` is false", () => {
+    const syntheticException = new Error('Test Message');
+    const event = eventFromMessage(
+      stackParser,
+      'Test Message',
+      'info',
+      { syntheticException, event_id: '123abc' },
+      false,
+    );
+
+    expect(event).toEqual({
+      event_id: '123abc',
+      level: 'info',
+      message: 'Test Message',
+    });
   });
 });

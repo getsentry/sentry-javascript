@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import type { Package } from '@sentry/types';
+import type { Package } from '@sentry/core';
 
 /**
  * Supported @sveltejs/adapters-[adapter] SvelteKit adapters

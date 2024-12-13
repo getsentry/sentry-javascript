@@ -4,7 +4,11 @@
   </a>
 </p>
 
-# Sentry JavaScript SDK Types
+# Sentry JavaScript SDK Types (DEPRECATED)
+
+> DEPRECATION NOTICE: The `@sentry/types` package is deprecated.
+> All exports have been moved to `@sentry/core`.
+> Import everything from `@sentry/core` instead.
 
 [![npm version](https://img.shields.io/npm/v/@sentry/types.svg)](https://www.npmjs.com/package/@sentry/types)
 [![npm dm](https://img.shields.io/npm/dm/@sentry/types.svg)](https://www.npmjs.com/package/@sentry/types)

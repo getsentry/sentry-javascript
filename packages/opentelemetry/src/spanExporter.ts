@@ -1,32 +1,36 @@
+/* eslint-disable max-lines */
 import type { Span } from '@opentelemetry/api';
 import { SpanKind } from '@opentelemetry/api';
 import type { ReadableSpan } from '@opentelemetry/sdk-trace-base';
 import { ATTR_HTTP_RESPONSE_STATUS_CODE, SEMATTRS_HTTP_STATUS_CODE } from '@opentelemetry/semantic-conventions';
-import {
-  captureEvent,
-  getCapturedScopesOnSpan,
-  getDynamicSamplingContextFromSpan,
-  getMetricSummaryJsonForSpan,
-  timedEventsToMeasurements,
+import type {
+  SpanAttributes,
+  SpanJSON,
+  SpanOrigin,
+  TraceContext,
+  TransactionEvent,
+  TransactionSource,
 } from '@sentry/core';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  captureEvent,
+  dropUndefinedKeys,
+  getCapturedScopesOnSpan,
+  getDynamicSamplingContextFromSpan,
+  getMetricSummaryJsonForSpan,
   getStatusMessage,
+  logger,
   spanTimeInputToSeconds,
+  timedEventsToMeasurements,
 } from '@sentry/core';
-import { dropUndefinedKeys, logger } from '@sentry/core';
-import type { SpanJSON, SpanOrigin, TraceContext, TransactionEvent, TransactionSource } from '@sentry/types';
-import { SENTRY_TRACE_STATE_PARENT_SPAN_ID } from './constants';
-
 import { DEBUG_BUILD } from './debug-build';
 import { SEMANTIC_ATTRIBUTE_SENTRY_PARENT_IS_REMOTE } from './semanticAttributes';
 import { getRequestSpanData } from './utils/getRequestSpanData';
 import type { SpanNode } from './utils/groupSpansWithParents';
-import { getLocalParentId } from './utils/groupSpansWithParents';
-import { groupSpansWithParents } from './utils/groupSpansWithParents';
+import { getLocalParentId, groupSpansWithParents } from './utils/groupSpansWithParents';
 import { mapStatus } from './utils/mapStatus';
 import { parseSpanDescription } from './utils/parseSpanDescription';
 
@@ -137,7 +141,9 @@ export class SentrySpanExporter {
     const remainingOpenSpanCount = finishedSpans.length - sentSpanCount;
 
     DEBUG_BUILD &&
-      logger.log(`SpanExporter exported ${sentSpanCount} spans, ${remainingOpenSpanCount} unsent spans remaining`);
+      logger.log(
+        `SpanExporter exported ${sentSpanCount} spans, ${remainingOpenSpanCount} spans are waiting for their parent spans to finish`,
+      );
 
     sentSpans.forEach(span => {
       const bucketEntry = this._spansToBucketEntry.get(span);
@@ -225,13 +231,14 @@ function parseSpan(span: ReadableSpan): { op?: string; origin?: SpanOrigin; sour
   return { origin, op, source };
 }
 
-function createTransactionForOtelSpan(span: ReadableSpan): TransactionEvent {
+/** Exported only for tests. */
+export function createTransactionForOtelSpan(span: ReadableSpan): TransactionEvent {
   const { op, description, data, origin = 'manual', source } = getSpanData(span);
   const capturedSpanScopes = getCapturedScopesOnSpan(span as unknown as Span);
 
   const sampleRate = span.attributes[SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE] as number | undefined;
 
-  const attributes = dropUndefinedKeys({
+  const attributes: SpanAttributes = dropUndefinedKeys({
     [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
     [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: sampleRate,
     [SEMANTIC_ATTRIBUTE_SENTRY_OP]: op,
@@ -242,15 +249,12 @@ function createTransactionForOtelSpan(span: ReadableSpan): TransactionEvent {
 
   const { traceId: trace_id, spanId: span_id } = span.spanContext();
 
-  const parentSpanIdFromTraceState = span.spanContext().traceState?.get(SENTRY_TRACE_STATE_PARENT_SPAN_ID);
-
   // If parentSpanIdFromTraceState is defined at all, we want it to take precedence
   // In that case, an empty string should be interpreted as "no parent span id",
   // even if `span.parentSpanId` is set
   // this is the case when we are starting a new trace, where we have a virtual span based on the propagationContext
   // We only want to continue the traceId in this case, but ignore the parent span
-  const parent_span_id =
-    typeof parentSpanIdFromTraceState === 'string' ? parentSpanIdFromTraceState || undefined : span.parentSpanId;
+  const parent_span_id = span.parentSpanId;
 
   const status = mapStatus(span);
 
@@ -264,12 +268,16 @@ function createTransactionForOtelSpan(span: ReadableSpan): TransactionEvent {
     status: getStatusMessage(status), // As per protocol, span status is allowed to be undefined
   });
 
-  const transactionEvent: TransactionEvent = {
+  const statusCode = attributes[ATTR_HTTP_RESPONSE_STATUS_CODE];
+  const responseContext = typeof statusCode === 'number' ? { response: { status_code: statusCode } } : undefined;
+
+  const transactionEvent: TransactionEvent = dropUndefinedKeys({
     contexts: {
       trace: traceContext,
       otel: {
         resource: span.resource.attributes,
       },
+      ...responseContext,
     },
     spans: [],
     start_timestamp: spanTimeInputToSeconds(span.startTime),
@@ -290,7 +298,7 @@ function createTransactionForOtelSpan(span: ReadableSpan): TransactionEvent {
       },
     }),
     _metrics_summary: getMetricSummaryJsonForSpan(span as unknown as Span),
-  };
+  });
 
   return transactionEvent;
 }

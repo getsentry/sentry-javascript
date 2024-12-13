@@ -1,6 +1,6 @@
-import type { MeasurementUnit, Span } from '@sentry/types';
-import type { MetricSummary } from '@sentry/types';
-import type { Primitive } from '@sentry/types';
+import type { MeasurementUnit, Span } from '../types-hoist';
+import type { MetricSummary } from '../types-hoist';
+import type { Primitive } from '../types-hoist';
 import { dropUndefinedKeys } from '../utils-hoist/object';
 import type { MetricType } from './types';
 

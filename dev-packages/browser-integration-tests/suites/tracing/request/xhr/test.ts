@@ -1,5 +1,5 @@
 import { expect } from '@playwright/test';
-import type { Event } from '@sentry/types';
+import type { Event } from '@sentry/core';
 
 import { sentryTest } from '../../../../utils/fixtures';
 import { getFirstSentryEnvelopeRequest, shouldSkipTracingTest } from '../../../../utils/helpers';
@@ -20,7 +20,7 @@ sentryTest('should create spans for XHR requests', async ({ getLocalTestUrl, pag
     expect(span).toMatchObject({
       description: `GET http://example.com/${index}`,
       parent_span_id: eventData.contexts?.trace?.span_id,
-      span_id: expect.any(String),
+      span_id: expect.stringMatching(/[a-f0-9]{16}/),
       start_timestamp: expect.any(Number),
       timestamp: expect.any(Number),
       trace_id: eventData.contexts?.trace?.trace_id,

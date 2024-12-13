@@ -1,4 +1,4 @@
-import type { DsnComponents, DsnLike, SdkInfo } from '@sentry/types';
+import type { DsnComponents, DsnLike, SdkInfo } from './types-hoist';
 import { dsnToString, makeDsn } from './utils-hoist/dsn';
 
 const SENTRY_API_VERSION = '7';
@@ -47,6 +47,7 @@ export function getEnvelopeEndpointWithUrlEncodedAuth(dsn: DsnComponents, tunnel
 export function getReportDialogEndpoint(
   dsnLike: DsnLike,
   dialogOptions: {
+    // TODO(v9): Change this to  [key: string]: unknown;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     [key: string]: any;
     user?: { name?: string; email?: string };

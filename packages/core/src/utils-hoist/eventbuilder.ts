@@ -9,7 +9,7 @@ import type {
   SeverityLevel,
   StackFrame,
   StackParser,
-} from '@sentry/types';
+} from '../types-hoist';
 
 import { isError, isErrorEvent, isParameterizedString, isPlainObject } from './is';
 import { addExceptionMechanism, addExceptionTypeValue } from './misc';
@@ -193,6 +193,7 @@ export function eventFromMessage(
           },
         ],
       };
+      addExceptionMechanism(event, { synthetic: true });
     }
   }
 

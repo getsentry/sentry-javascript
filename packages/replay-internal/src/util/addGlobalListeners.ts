@@ -3,7 +3,7 @@ import {
   addHistoryInstrumentationHandler,
 } from '@sentry-internal/browser-utils';
 import { addEventProcessor, getClient } from '@sentry/core';
-import type { DynamicSamplingContext } from '@sentry/types';
+import type { DynamicSamplingContext } from '@sentry/core';
 
 import { handleAfterSendEvent } from '../coreHandlers/handleAfterSendEvent';
 import { handleBeforeSendEvent } from '../coreHandlers/handleBeforeSendEvent';

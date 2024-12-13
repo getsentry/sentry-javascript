@@ -14,8 +14,6 @@
  * limitations under the License.
  */
 
-import type { FirstInputPolyfillCallback } from './types/polyfills';
-
 export * from './types/base';
 export * from './types/polyfills';
 
@@ -25,22 +23,6 @@ export * from './types/fid';
 export * from './types/inp';
 export * from './types/lcp';
 export * from './types/ttfb';
-
-// --------------------------------------------------------------------------
-// Web Vitals package globals
-// --------------------------------------------------------------------------
-
-export interface WebVitalsGlobal {
-  firstInputPolyfill: (onFirstInput: FirstInputPolyfillCallback) => void;
-  resetFirstInputPolyfill: () => void;
-  firstHiddenTime: number;
-}
-
-declare global {
-  interface Window {
-    webVitals: WebVitalsGlobal;
-  }
-}
 
 // --------------------------------------------------------------------------
 // Everything below is modifications to built-in modules.
@@ -78,7 +60,7 @@ declare global {
   // https://wicg.github.io/event-timing/#sec-performance-event-timing
   interface PerformanceEventTiming extends PerformanceEntry {
     duration: DOMHighResTimeStamp;
-    interactionId?: number;
+    interactionId: number;
   }
 
   // https://wicg.github.io/layout-instability/#sec-layout-shift-attribution
@@ -97,11 +79,17 @@ declare global {
 
   // https://w3c.github.io/largest-contentful-paint/#sec-largest-contentful-paint-interface
   interface LargestContentfulPaint extends PerformanceEntry {
-    renderTime: DOMHighResTimeStamp;
-    loadTime: DOMHighResTimeStamp;
-    size: number;
-    id: string;
-    url: string;
-    element?: Element;
+    readonly renderTime: DOMHighResTimeStamp;
+    readonly loadTime: DOMHighResTimeStamp;
+    readonly size: number;
+    readonly id: string;
+    readonly url: string;
+    readonly element: Element | null;
+  }
+
+  // https://w3c.github.io/long-animation-frame/#sec-PerformanceLongAnimationFrameTiming
+  interface PerformanceLongAnimationFrameTiming extends PerformanceEntry {
+    renderStart: DOMHighResTimeStamp;
+    duration: DOMHighResTimeStamp;
   }
 }

@@ -19,6 +19,11 @@
   In v9, we will streamline this behavior so that passing `undefined` will result in tracing being disabled, the same as not passing the option at all.
   If you are relying on `undefined` being passed in and having tracing enabled because of this, you should update your config to set e.g. `tracesSampleRate: 0` instead, which will also enable tracing in v9.
 
+- **The `autoSessionTracking` option is deprecated.**
+
+  To enable session tracking, it is recommended to unset `autoSessionTracking` and ensure that either, in browser environments the `browserSessionIntegration` is added, or in server environments the `httpIntegration` is added.
+  To disable session tracking, it is recommended unset `autoSessionTracking` and to remove the `browserSessionIntegration` in browser environments, or in server environments configure the `httpIntegration` with the `trackIncomingRequestsAsSessions` option set to `false`.
+
 ## `@sentry/utils`
 
 - **The `@sentry/utils` package has been deprecated. Import everything from `@sentry/core` instead.**
@@ -47,6 +52,10 @@
 - Deprecated `addTracingHeadersToFetchRequest` method - this was only meant for internal use and is not needed anymore.
 - Deprecated `generatePropagationContext()` in favor of using `generateTraceId()` directly.
 - Deprecated `spanId` field on `propagationContext` - this field will be removed in v9, and should neither be read or set anymore.
+- Deprecated `RequestSession` type. No replacements.
+- Deprecated `RequestSessionStatus` type. No replacements.
+- Deprecated `SessionFlusherLike` type. No replacements.
+- Deprecated `SessionFlusher`. No replacements.
 
 ## `@sentry/nestjs`
 
@@ -66,7 +75,16 @@
 
 ## `@sentry/types`
 
+- **The `@sentry/types` package has been deprecated. Import everything from `@sentry/core` instead.**
+
 - Deprecated `Request` in favor of `RequestEventData`.
+- Deprecated `RequestSession`. No replacements.
+- Deprecated `RequestSessionStatus`. No replacements.
+- Deprecated `SessionFlusherLike`. No replacements.
+
+## `@sentry/nuxt`
+
+- Deprecated `tracingOptions` in `Sentry.init()` in favor of passing the `vueIntegration()` to `Sentry.init({ integrations: [...] })` and setting `tracingOptions` there.
 
 ## `@sentry/vue`
 
@@ -96,6 +114,15 @@
 ## `@sentry/remix`
 
 - Deprecated `autoInstrumentRemix: false`. The next major version will default to behaving as if this option were `true` and the option itself will be removed.
+
+## `@sentry/react`
+
+- Deprecated `wrapUseRoutes`. Use `wrapUseRoutesV6` or `wrapUseRoutesV7` instead.
+- Deprecated `wrapCreateBrowserRouter`. Use `wrapCreateBrowserRouterV6` or `wrapCreateBrowserRouterV7` instead.
+
+## `@sentry/nextjs`
+
+- Deprecated `hideSourceMaps`. No replacements. The SDK emits hidden sourcemaps by default.
 
 ## `@sentry/opentelemetry`
 

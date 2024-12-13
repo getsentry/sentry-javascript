@@ -4,8 +4,8 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '@sentry/core';
 import { GLOBAL_OBJ, browserPerformanceTimeOrigin } from '@sentry/core';
+import type { Client, Span } from '@sentry/core';
 import { WINDOW, startBrowserTracingNavigationSpan, startBrowserTracingPageLoadSpan } from '@sentry/react';
-import type { Client, Span } from '@sentry/types';
 
 export const INCOMPLETE_APP_ROUTER_INSTRUMENTATION_TRANSACTION_NAME = 'incomplete-app-router-transaction';
 
@@ -129,7 +129,8 @@ export function appRouterInstrumentNavigation(client: Client): void {
 
 function transactionNameifyRouterArgument(target: string): string {
   try {
-    return new URL(target, 'http://some-random-base.com/').pathname;
+    // We provide an arbitrary base because we only care about the pathname and it makes URL parsing more resilient.
+    return new URL(target, 'http://example.com/').pathname;
   } catch {
     return '/';
   }

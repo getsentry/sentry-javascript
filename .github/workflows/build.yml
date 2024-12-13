@@ -387,7 +387,7 @@ jobs:
         if: github.event_name != 'pull_request'
 
       - name: Compute test coverage
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
 
@@ -491,7 +491,7 @@ jobs:
           NODE_VERSION: ${{ matrix.node }}
 
       - name: Compute test coverage
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
 
@@ -920,11 +920,6 @@ jobs:
         if: steps.restore-tarball-cache.outputs.cache-hit != 'true'
         run: yarn build:tarball
 
-      - name: Install Playwright
-        uses: ./.github/actions/install-playwright
-        with:
-          browsers: chromium
-
       - name: Get node version
         id: versions
         run: |
@@ -944,6 +939,12 @@ jobs:
         working-directory: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
         timeout-minutes: 7
         run: pnpm ${{ matrix.build-command || 'test:build' }}
+
+      - name: Install Playwright
+        uses: ./.github/actions/install-playwright
+        with:
+          browsers: chromium
+          cwd: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
 
       - name: Run E2E test
         working-directory: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
@@ -984,7 +985,7 @@ jobs:
 
   # - We skip optional tests on release branches
   job_optional_e2e_tests:
-    name: E2E ${{ matrix.label || matrix.test-application }} Test
+    name: E2E ${{ matrix.label || matrix.test-application }} Test (optional)
     # We only run E2E tests for non-fork PRs because the E2E tests require secrets to work and they can't be accessed from forks
     # We need to add the `always()` check here because the previous step has this as well :(
     # See: https://github.com/actions/runner/issues/2205
@@ -1039,11 +1040,6 @@ jobs:
         if: steps.restore-tarball-cache.outputs.cache-hit != 'true'
         run: yarn build:tarball
 
-      - name: Install Playwright
-        uses: ./.github/actions/install-playwright
-        with:
-          browsers: chromium
-
       - name: Get node version
         id: versions
         run: |
@@ -1063,6 +1059,12 @@ jobs:
         working-directory: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
         timeout-minutes: 7
         run: pnpm ${{ matrix.build-command || 'test:build' }}
+
+      - name: Install Playwright
+        uses: ./.github/actions/install-playwright
+        with:
+          browsers: chromium
+          cwd: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
 
       - name: Run E2E test
         working-directory: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
@@ -1408,6 +1410,10 @@ jobs:
           key: ${{ needs.job_build.outputs.dependency_cache_key }}
           enableCrossOsArchive: true
 
+      - name: Increase yarn network timeout on Windows
+        if: contains(matrix.os, 'windows')
+        run: yarn config set network-timeout 600000 -g
+
       - name: Install dependencies
         env:
           SKIP_PLAYWRIGHT_BROWSER_INSTALL: "1"
@@ -1417,10 +1423,6 @@ jobs:
       - name: Configure safe directory
         run: |
           git config --global --add safe.directory "*"
-
-      - name: Increase yarn network timeout on Windows
-        if: contains(matrix.os, 'windows')
-        run: yarn config set network-timeout 600000 -g
 
       - name: Setup python
         uses: actions/setup-python@v5

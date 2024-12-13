@@ -4,7 +4,7 @@ import type * as https from 'node:https';
 import { VERSION } from '@opentelemetry/core';
 import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
 import { InstrumentationBase, InstrumentationNodeModuleDefinition } from '@opentelemetry/instrumentation';
-import { getRequestInfo } from '@opentelemetry/instrumentation-http';
+import type { RequestEventData, SanitizedRequestData, Scope } from '@sentry/core';
 import {
   addBreadcrumb,
   getBreadcrumbLogLevelFromHttpStatusCode,
@@ -17,11 +17,10 @@ import {
   stripUrlQueryAndFragment,
   withIsolationScope,
 } from '@sentry/core';
-import type { RequestEventData, SanitizedRequestData, Scope } from '@sentry/types';
 import { DEBUG_BUILD } from '../../debug-build';
 import type { NodeClient } from '../../sdk/client';
 import { getRequestUrl } from '../../utils/getRequestUrl';
-
+import { getRequestInfo } from './vendor/getRequestInfo';
 type Http = typeof http;
 type Https = typeof https;
 
@@ -148,7 +147,9 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
         });
 
         const client = getClient<NodeClient>();
+        // eslint-disable-next-line deprecation/deprecation
         if (client && client.getOptions().autoSessionTracking) {
+          // eslint-disable-next-line deprecation/deprecation
           isolationScope.setRequestSession({ status: 'ok' });
         }
 
@@ -196,7 +197,7 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
             ? (argsCopy.shift() as http.RequestOptions)
             : undefined;
 
-        const { optionsParsed } = getRequestInfo(options, extraOptions);
+        const { optionsParsed } = getRequestInfo(instrumentation._diag, options, extraOptions);
 
         const request = original.apply(this, args) as ReturnType<typeof http.request>;
 

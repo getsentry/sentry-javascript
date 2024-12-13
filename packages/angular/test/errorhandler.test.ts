@@ -1,6 +1,6 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import * as SentryBrowser from '@sentry/browser';
-import type { Client, Event } from '@sentry/types';
+import type { Client, Event } from '@sentry/core';
 import { vi } from 'vitest';
 
 import { SentryErrorHandler, createErrorHandler } from '../src/errorhandler';
@@ -24,7 +24,10 @@ class CustomError extends Error {
 }
 
 class ErrorLikeShapedClass implements Partial<Error> {
-  constructor(public name: string, public message: string) {}
+  constructor(
+    public name: string,
+    public message: string,
+  ) {}
 }
 
 function createErrorEvent(message: string, innerError: any): ErrorEvent {

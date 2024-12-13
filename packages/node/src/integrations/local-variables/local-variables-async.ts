@@ -1,12 +1,10 @@
 import { Worker } from 'node:worker_threads';
-import { defineIntegration } from '@sentry/core';
-import { logger } from '@sentry/core';
-import type { Event, EventHint, Exception, IntegrationFn } from '@sentry/types';
-
+import type { Event, EventHint, Exception, IntegrationFn } from '@sentry/core';
+import { defineIntegration, logger } from '@sentry/core';
 import type { NodeClient } from '../../sdk/client';
+import { isDebuggerEnabled } from '../../utils/debug';
 import type { FrameVariables, LocalVariablesIntegrationOptions, LocalVariablesWorkerArgs } from './common';
-import { LOCAL_VARIABLES_KEY } from './common';
-import { functionNamesMatch } from './common';
+import { LOCAL_VARIABLES_KEY, functionNamesMatch } from './common';
 
 // This string is a placeholder that gets overwritten with the worker code.
 export const base64WorkerScript = '###LocalVariablesWorkerScript###';
@@ -104,10 +102,15 @@ export const localVariablesAsyncIntegration = defineIntegration(((
 
   return {
     name: 'LocalVariablesAsync',
-    setup(client: NodeClient) {
+    async setup(client: NodeClient) {
       const clientOptions = client.getOptions();
 
       if (!clientOptions.includeLocalVariables) {
+        return;
+      }
+
+      if (await isDebuggerEnabled()) {
+        logger.warn('Local variables capture has been disabled because the debugger was already enabled');
         return;
       }
 

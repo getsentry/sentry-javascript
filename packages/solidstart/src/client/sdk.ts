@@ -1,11 +1,11 @@
 import { applySdkMetadata } from '@sentry/core';
+import type { Client, Integration } from '@sentry/core';
 import type { BrowserOptions } from '@sentry/solid';
 import {
   browserTracingIntegration,
   getDefaultIntegrations as getDefaultSolidIntegrations,
   init as initSolidSDK,
 } from '@sentry/solid';
-import type { Client, Integration } from '@sentry/types';
 
 // Treeshakable guard to remove all code related to tracing
 declare const __SENTRY_TRACING__: boolean;

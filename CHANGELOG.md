@@ -10,6 +10,190 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+Work in this release was contributed by @anonrig. Thank you for your contribution!
+
+## 8.44.0
+
+### Deprecations
+
+- **feat: Deprecate `autoSessionTracking` ([#14640](https://github.com/getsentry/sentry-javascript/pull/14640))**
+
+  Deprecates `autoSessionTracking`.
+  To enable session tracking, it is recommended to unset `autoSessionTracking` and ensure that either, in browser environments
+  the `browserSessionIntegration` is added, or in server environments the `httpIntegration` is added.
+
+  To disable session tracking, it is recommended to unset `autoSessionTracking` and to remove the `browserSessionIntegration` in
+  browser environments, or in server environments configure the `httpIntegration` with the `trackIncomingRequestsAsSessions` option set to `false`.
+
+### Other Changes
+
+- feat: Reword log message around unsent spans ([#14641](https://github.com/getsentry/sentry-javascript/pull/14641))
+- feat(opentelemetry): Set `response` context for http.server spans ([#14634](https://github.com/getsentry/sentry-javascript/pull/14634))
+- fix(google-cloud-serverless): Update homepage link in package.json ([#14411](https://github.com/getsentry/sentry-javascript/pull/14411))
+- fix(nuxt): Add unbuild config to not fail on warn ([#14662](https://github.com/getsentry/sentry-javascript/pull/14662))
+
+Work in this release was contributed by @robinvw1. Thank you for your contribution!
+
+## 8.43.0
+
+### Important Changes
+
+- **feat(nuxt): Add option autoInjectServerSentry (no default import()) ([#14553](https://github.com/getsentry/sentry-javascript/pull/14553))**
+
+  Using the dynamic `import()` as the default behavior for initializing the SDK on the server-side did not work for every project.
+  The default behavior of the SDK has been changed, and you now need to **use the `--import` flag to initialize Sentry on the server-side** to leverage full functionality.
+
+  Example with `--import`:
+
+  ```bash
+  node --import ./.output/server/sentry.server.config.mjs .output/server/index.mjs
+  ```
+
+  In case you are not able to use the `--import` flag, you can enable auto-injecting Sentry in the `nuxt.config.ts` (comes with limitations):
+
+  ```ts
+  sentry: {
+    autoInjectServerSentry: 'top-level-import', // or 'experimental_dynamic-import'
+  },
+  ```
+
+- **feat(browser): Adds LaunchDarkly and OpenFeature integrations ([#14207](https://github.com/getsentry/sentry-javascript/pull/14207))**
+
+  Adds browser SDK integrations for tracking feature flag evaluations through the LaunchDarkly JS SDK and OpenFeature Web SDK:
+
+  ```ts
+  import * as Sentry from '@sentry/browser';
+
+  Sentry.init({
+    integrations: [
+      // Track LaunchDarkly feature flags
+      Sentry.launchDarklyIntegration(),
+      // Track OpenFeature feature flags
+      Sentry.openFeatureIntegration(),
+    ],
+  });
+  ```
+
+  - Read more about the [Feature Flags](https://develop.sentry.dev/sdk/expected-features/#feature-flags) feature in Sentry.
+  - Read more about the [LaunchDarkly SDK Integration](https://docs.sentry.io/platforms/javascript/configuration/integrations/launchdarkly/).
+  - Read more about the [OpenFeature SDK Integration](https://docs.sentry.io/platforms/javascript/configuration/integrations/openfeature/).
+
+- **feat(browser): Add `featureFlagsIntegration` for custom tracking of flag evaluations ([#14582](https://github.com/getsentry/sentry-javascript/pull/14582))**
+
+  Adds a browser integration to manually track feature flags with an API. Feature flags are attached to subsequent error events:
+
+  ```ts
+  import * as Sentry from '@sentry/browser';
+
+  const featureFlagsIntegrationInstance = Sentry.featureFlagsIntegration();
+
+  Sentry.init({
+    // Initialize the SDK with the feature flag integration
+    integrations: [featureFlagsIntegrationInstance],
+  });
+
+  // Manually track a feature flag
+  featureFlagsIntegrationInstance.addFeatureFlag('my-feature', true);
+  ```
+
+- **feat(astro): Add Astro 5 support ([#14613](https://github.com/getsentry/sentry-javascript/pull/14613))**
+
+  With this release, the Sentry Astro SDK officially supports Astro 5.
+
+### Deprecations
+
+- feat(nextjs): Deprecate typedef for `hideSourceMaps` ([#14594](https://github.com/getsentry/sentry-javascript/pull/14594))
+
+  The functionality of `hideSourceMaps` was removed in version 8 but was forgotten to be deprecated and removed.
+  It will be completely removed in the next major version.
+
+- feat(core): Deprecate APIs around `RequestSession`s ([#14566](https://github.com/getsentry/sentry-javascript/pull/14566))
+
+  The APIs around `RequestSession`s are mostly used internally.
+  Going forward the SDK will not expose concepts around `RequestSession`s.
+  Instead, functionality around server-side [Release Health](https://docs.sentry.io/product/releases/health/) will be managed in integrations.
+
+### Other Changes
+
+- feat(browser): Add `browserSessionIntegration` ([#14551](https://github.com/getsentry/sentry-javascript/pull/14551))
+- feat(core): Add `raw_security` envelope types ([#14562](https://github.com/getsentry/sentry-javascript/pull/14562))
+- feat(deps): Bump @opentelemetry/instrumentation from 0.55.0 to 0.56.0 ([#14625](https://github.com/getsentry/sentry-javascript/pull/14625))
+- feat(deps): Bump @sentry/cli from 2.38.2 to 2.39.1 ([#14626](https://github.com/getsentry/sentry-javascript/pull/14626))
+- feat(deps): Bump @sentry/rollup-plugin from 2.22.6 to 2.22.7 ([#14622](https://github.com/getsentry/sentry-javascript/pull/14622))
+- feat(deps): Bump @sentry/webpack-plugin from 2.22.6 to 2.22.7 ([#14623](https://github.com/getsentry/sentry-javascript/pull/14623))
+- feat(nestjs): Add fastify support ([#14549](https://github.com/getsentry/sentry-javascript/pull/14549))
+- feat(node): Add @vercel/ai instrumentation ([#13892](https://github.com/getsentry/sentry-javascript/pull/13892))
+- feat(node): Add `disableAnrDetectionForCallback` function ([#14359](https://github.com/getsentry/sentry-javascript/pull/14359))
+- feat(node): Add `trackIncomingRequestsAsSessions` option to http integration ([#14567](https://github.com/getsentry/sentry-javascript/pull/14567))
+- feat(nuxt): Add option `autoInjectServerSentry` (no default `import()`) ([#14553](https://github.com/getsentry/sentry-javascript/pull/14553))
+- feat(nuxt): Add warning when Netlify or Vercel build is discovered ([#13868](https://github.com/getsentry/sentry-javascript/pull/13868))
+- feat(nuxt): Improve serverless event flushing and scope isolation ([#14605](https://github.com/getsentry/sentry-javascript/pull/14605))
+- feat(opentelemetry): Stop looking at propagation context for span creation ([#14481](https://github.com/getsentry/sentry-javascript/pull/14481))
+- feat(opentelemetry): Update OpenTelemetry dependencies to `^1.29.0` ([#14590](https://github.com/getsentry/sentry-javascript/pull/14590))
+- feat(opentelemetry): Update OpenTelemetry dependencies to `1.28.0` ([#14547](https://github.com/getsentry/sentry-javascript/pull/14547))
+- feat(replay): Upgrade rrweb packages to 2.30.0 ([#14597](https://github.com/getsentry/sentry-javascript/pull/14597))
+- fix(core): Decode `filename` and `module` stack frame properties in Node stack parser ([#14544](https://github.com/getsentry/sentry-javascript/pull/14544))
+- fix(core): Filter out unactionable CEFSharp promise rejection error by default ([#14595](https://github.com/getsentry/sentry-javascript/pull/14595))
+- fix(nextjs): Don't show warning about devtool option ([#14552](https://github.com/getsentry/sentry-javascript/pull/14552))
+- fix(nextjs): Only apply tracing metadata to data fetcher data when data is an object ([#14575](https://github.com/getsentry/sentry-javascript/pull/14575))
+- fix(node): Guard against invalid `maxSpanWaitDuration` values ([#14632](https://github.com/getsentry/sentry-javascript/pull/14632))
+- fix(react): Match routes with `parseSearch` option in TanStack Router instrumentation ([#14328](https://github.com/getsentry/sentry-javascript/pull/14328))
+- fix(sveltekit): Fix git SHA not being picked up for release ([#14540](https://github.com/getsentry/sentry-javascript/pull/14540))
+- fix(types): Fix generic exports with default ([#14576](https://github.com/getsentry/sentry-javascript/pull/14576))
+
+Work in this release was contributed by @lsmurray. Thank you for your contribution!
+
+## 8.42.0
+
+### Important Changes
+
+- **feat(react): React Router v7 support (library) ([#14513](https://github.com/getsentry/sentry-javascript/pull/14513))**
+
+  This release adds support for [React Router v7 (library mode)](https://reactrouter.com/home#react-router-as-a-library).
+  Check out the docs on how to set up the integration: [Sentry React Router v7 Integration Docs](https://docs.sentry.io/platforms/javascript/guides/react/features/react-router/v7/)
+
+### Deprecations
+
+- **feat: Warn about source-map generation ([#14533](https://github.com/getsentry/sentry-javascript/pull/14533))**
+
+  In the next major version of the SDK we will change how source maps are generated when the SDK is added to an application.
+  Currently, the implementation varies a lot between different SDKs and can be difficult to understand.
+  Moving forward, our goal is to turn on source maps for every framework, unless we detect that they are explicitly turned off.
+  Additionally, if we end up enabling source maps, we will emit a log message that we did so.
+
+  With this particular release, we are emitting warnings that source map generation will change in the future and we print instructions on how to prepare for the next major.
+
+- **feat(nuxt): Deprecate `tracingOptions` in favor of `vueIntegration` ([#14530](https://github.com/getsentry/sentry-javascript/pull/14530))**
+
+  Currently it is possible to configure tracing options in two places in the Sentry Nuxt SDK:
+
+  - In `Sentry.init()`
+  - Inside `tracingOptions` in `Sentry.init()`
+
+  For tree-shaking purposes and alignment with the Vue SDK, it is now recommended to instead use the newly exported `vueIntegration()` and its `tracingOptions` option to configure tracing options in the Nuxt SDK:
+
+  ```ts
+  // sentry.client.config.ts
+  import * as Sentry from '@sentry/nuxt';
+
+  Sentry.init({
+    // ...
+    integrations: [
+      Sentry.vueIntegration({
+        tracingOptions: {
+          trackComponents: true,
+        },
+      }),
+    ],
+  });
+  ```
+
+### Other Changes
+
+- feat(browser-utils): Update `web-vitals` to v4.2.4 ([#14439](https://github.com/getsentry/sentry-javascript/pull/14439))
+- feat(nuxt): Expose `vueIntegration` ([#14526](https://github.com/getsentry/sentry-javascript/pull/14526))
+- fix(feedback): Handle css correctly in screenshot mode ([#14535](https://github.com/getsentry/sentry-javascript/pull/14535))
+
 ## 8.41.0
 
 ### Important Changes
@@ -17,7 +201,7 @@
 - **meta(nuxt): Require minimum Nuxt v3.7.0 ([#14473](https://github.com/getsentry/sentry-javascript/pull/14473))**
 
   We formalized that the Nuxt SDK is at minimum compatible with Nuxt version 3.7.0 and above.
-  Additionally, the SDK requires the implicit `nitropack` dependency to satisfy version `^2.6.1` and `ofetch` to satisfy `^1.3.3`.
+  Additionally, the SDK requires the implicit `nitropack` dependency to satisfy version `^2.10.0` and `ofetch` to satisfy `^1.4.0`.
   It is recommended to check your lock-files and manually upgrade these dependencies if they don't match the version ranges.
 
 ### Deprecations

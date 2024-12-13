@@ -12,7 +12,7 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import type { Client, MetricsAggregator, Scope } from '@sentry/types';
+import type { Client, MetricsAggregator, Scope } from '../types-hoist';
 
 import type { SdkSource } from './env';
 import type { logger } from './logger';
@@ -56,12 +56,10 @@ export type InternalGlobal = {
   onerror?: {
     (event: object | string, source?: string, lineno?: number, colno?: number, error?: Error): any;
     __SENTRY_INSTRUMENTED__?: true;
-    __SENTRY_LOADER__?: true;
   };
   onunhandledrejection?: {
     (event: unknown): boolean;
     __SENTRY_INSTRUMENTED__?: true;
-    __SENTRY_LOADER__?: true;
   };
   SENTRY_ENVIRONMENT?: string;
   SENTRY_DSN?: string;

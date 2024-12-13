@@ -1,6 +1,6 @@
 {
   "name": "@sentry-internal/e2e-tests",
-  "version": "8.41.0",
+  "version": "8.44.0",
   "license": "MIT",
   "private": true,
   "scripts": {
@@ -13,10 +13,11 @@
     "test:validate-test-app-setups": "ts-node validate-test-app-setups.ts",
     "test:prepare": "ts-node prepare.ts",
     "test:validate": "run-s test:validate-configuration test:validate-test-app-setups",
-    "clean": "rimraf tmp node_modules pnpm-lock.yaml && yarn clean:test-applications",
+    "clean": "rimraf tmp node_modules && yarn clean:test-applications && yarn clean:pnpm",
     "ci:build-matrix": "ts-node ./lib/getTestMatrix.ts",
     "ci:build-matrix-optional": "ts-node ./lib/getTestMatrix.ts --optional=true",
-    "clean:test-applications": "rimraf --glob test-applications/**/{node_modules,dist,build,.next,.sveltekit,pnpm-lock.yaml,.last-run.json,test-results} && pnpm store prune"
+    "clean:test-applications": "rimraf --glob test-applications/**/{node_modules,dist,build,.next,.sveltekit,pnpm-lock.yaml,.last-run.json,test-results}",
+    "clean:pnpm": "pnpm store prune"
   },
   "devDependencies": {
     "@types/glob": "8.0.0",
@@ -24,12 +25,11 @@
     "dotenv": "16.0.3",
     "esbuild": "0.20.0",
     "glob": "8.0.3",
-    "rimraf": "^5.0.0",
+    "rimraf": "^5.0.10",
     "ts-node": "10.9.1",
     "yaml": "2.2.2"
   },
   "volta": {
-    "extends": "../../package.json",
-    "pnpm": "9.4.0"
+    "extends": "../../package.json"
   }
 }

@@ -1,4 +1,4 @@
-import type { Scope } from '@sentry/types';
+import type { Scope } from '../types-hoist';
 import type { getTraceData } from '../utils/traceData';
 import type {
   startInactiveSpan,

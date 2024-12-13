@@ -2,8 +2,8 @@ import { TraceFlags, context, trace } from '@opentelemetry/api';
 import type { SpanProcessor } from '@opentelemetry/sdk-trace-base';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 import { logger } from '@sentry/core';
+import type { TransactionEvent } from '@sentry/core';
 import { SentrySpanProcessor } from '@sentry/opentelemetry';
-import type { TransactionEvent } from '@sentry/types';
 
 import * as Sentry from '../../src';
 import { cleanupOtel, getProvider, mockSdkInit } from '../helpers/mockSdkInit';
@@ -94,9 +94,9 @@ describe('Integration | Transactions', () => {
         'test.outer': 'test value',
       },
       op: 'test op',
-      span_id: expect.any(String),
+      span_id: expect.stringMatching(/[a-f0-9]{16}/),
       status: 'ok',
-      trace_id: expect.any(String),
+      trace_id: expect.stringMatching(/[a-f0-9]{32}/),
       origin: 'auto.test',
     });
 
@@ -107,7 +107,7 @@ describe('Integration | Transactions', () => {
       sample_rate: '1',
       sampled: 'true',
       release: '8.0.0',
-      trace_id: expect.any(String),
+      trace_id: expect.stringMatching(/[a-f0-9]{32}/),
       transaction: 'test name',
     });
 
@@ -136,12 +136,12 @@ describe('Integration | Transactions', () => {
         },
         description: 'inner span 1',
         origin: 'manual',
-        parent_span_id: expect.any(String),
-        span_id: expect.any(String),
+        parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
+        span_id: expect.stringMatching(/[a-f0-9]{16}/),
         start_timestamp: expect.any(Number),
         status: 'ok',
         timestamp: expect.any(Number),
-        trace_id: expect.any(String),
+        trace_id: expect.stringMatching(/[a-f0-9]{32}/),
       },
       {
         data: {
@@ -150,12 +150,12 @@ describe('Integration | Transactions', () => {
         },
         description: 'inner span 2',
         origin: 'manual',
-        parent_span_id: expect.any(String),
-        span_id: expect.any(String),
+        parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
+        span_id: expect.stringMatching(/[a-f0-9]{16}/),
         start_timestamp: expect.any(Number),
         status: 'ok',
         timestamp: expect.any(Number),
-        trace_id: expect.any(String),
+        trace_id: expect.stringMatching(/[a-f0-9]{32}/),
       },
     ]);
   });
@@ -245,9 +245,9 @@ describe('Integration | Transactions', () => {
               'sentry.sample_rate': 1,
             },
             op: 'test op',
-            span_id: expect.any(String),
+            span_id: expect.stringMatching(/[a-f0-9]{16}/),
             status: 'ok',
-            trace_id: expect.any(String),
+            trace_id: expect.stringMatching(/[a-f0-9]{32}/),
             origin: 'auto.test',
           },
         }),
@@ -283,9 +283,9 @@ describe('Integration | Transactions', () => {
               'sentry.sample_rate': 1,
             },
             op: 'test op b',
-            span_id: expect.any(String),
+            span_id: expect.stringMatching(/[a-f0-9]{16}/),
             status: 'ok',
-            trace_id: expect.any(String),
+            trace_id: expect.stringMatching(/[a-f0-9]{32}/),
             origin: 'manual',
           },
         }),
@@ -386,9 +386,9 @@ describe('Integration | Transactions', () => {
               'test.outer': 'test value',
               'sentry.sample_rate': 1,
             },
-            span_id: expect.any(String),
+            span_id: expect.stringMatching(/[a-f0-9]{16}/),
             status: 'ok',
-            trace_id: expect.any(String),
+            trace_id: expect.stringMatching(/[a-f0-9]{32}/),
             origin: 'manual',
           },
         }),
@@ -421,9 +421,9 @@ describe('Integration | Transactions', () => {
               'test.outer': 'test value b',
               'sentry.sample_rate': 1,
             },
-            span_id: expect.any(String),
+            span_id: expect.stringMatching(/[a-f0-9]{16}/),
             status: 'ok',
-            trace_id: expect.any(String),
+            trace_id: expect.stringMatching(/[a-f0-9]{32}/),
             origin: 'manual',
           },
         }),
@@ -494,7 +494,7 @@ describe('Integration | Transactions', () => {
               'sentry.sample_rate': 1,
             },
             op: 'test op',
-            span_id: expect.any(String),
+            span_id: expect.stringMatching(/[a-f0-9]{16}/),
             parent_span_id: parentSpanId,
             status: 'ok',
             trace_id: traceId,
@@ -528,8 +528,8 @@ describe('Integration | Transactions', () => {
         },
         description: 'inner span 1',
         origin: 'manual',
-        parent_span_id: expect.any(String),
-        span_id: expect.any(String),
+        parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
+        span_id: expect.stringMatching(/[a-f0-9]{16}/),
         start_timestamp: expect.any(Number),
         status: 'ok',
         timestamp: expect.any(Number),
@@ -541,8 +541,8 @@ describe('Integration | Transactions', () => {
         },
         description: 'inner span 2',
         origin: 'manual',
-        parent_span_id: expect.any(String),
-        span_id: expect.any(String),
+        parent_span_id: expect.stringMatching(/[a-f0-9]{16}/),
+        span_id: expect.stringMatching(/[a-f0-9]{16}/),
         start_timestamp: expect.any(Number),
         status: 'ok',
         timestamp: expect.any(Number),
@@ -620,7 +620,7 @@ describe('Integration | Transactions', () => {
     expect(logs).toEqual(
       expect.arrayContaining([
         'SpanExporter dropped 2 spans because they were pending for more than 300 seconds.',
-        'SpanExporter exported 1 spans, 0 unsent spans remaining',
+        'SpanExporter exported 1 spans, 0 spans are waiting for their parent spans to finish',
       ]),
     );
   });
@@ -680,7 +680,7 @@ describe('Integration | Transactions', () => {
 
     expect(spans).toHaveLength(2);
 
-    expect(spans[0]!.description).toEqual('inner span 1');
-    expect(spans[1]!.description).toEqual('inner span 2');
+    expect(spans).toContainEqual(expect.objectContaining({ description: 'inner span 1' }));
+    expect(spans).toContainEqual(expect.objectContaining({ description: 'inner span 2' }));
   });
 });

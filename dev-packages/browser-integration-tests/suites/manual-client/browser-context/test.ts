@@ -1,5 +1,5 @@
 import { expect } from '@playwright/test';
-import type { Event } from '@sentry/types';
+import type { Event } from '@sentry/core';
 
 import { sentryTest } from '../../../utils/fixtures';
 import { getFirstSentryEnvelopeRequest } from '../../../utils/helpers';
@@ -43,6 +43,8 @@ sentryTest('allows to setup a client manually & capture exceptions', async ({ ge
       version: expect.any(String),
       packages: [{ name: expect.any(String), version: expect.any(String) }],
     },
-    contexts: { trace: { trace_id: expect.any(String), span_id: expect.any(String) } },
+    contexts: {
+      trace: { trace_id: expect.stringMatching(/[a-f0-9]{32}/), span_id: expect.stringMatching(/[a-f0-9]{16}/) },
+    },
   });
 });

@@ -13,8 +13,6 @@ type ElectronProcess = { type?: string };
 
 // Electron renderers with nodeIntegration enabled are detected as Node.js so we specifically test for them
 function isElectronNodeRenderer(): boolean {
-  return (
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
-    (GLOBAL_OBJ as any).process !== undefined && ((GLOBAL_OBJ as any).process as ElectronProcess).type === 'renderer'
-  );
+  const process = (GLOBAL_OBJ as typeof GLOBAL_OBJ & { process?: ElectronProcess }).process;
+  return !!process && process.type === 'renderer';
 }

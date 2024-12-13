@@ -9,14 +9,13 @@
     "preview": "vite preview",
     "start": "vite",
     "test:prod": "TEST_ENV=production playwright test",
-    "test:build": "pnpm install && npx playwright install && pnpm build",
+    "test:build": "pnpm install && pnpm build",
     "test:assert": "pnpm test:prod"
   },
   "license": "MIT",
   "devDependencies": {
     "@playwright/test": "^1.44.1",
     "@sentry-internal/test-utils": "link:../../../test-utils",
-    "@sentry/types": "latest || *",
     "@sentry/core": "latest || *",
     "autoprefixer": "^10.4.17",
     "postcss": "^8.4.33",

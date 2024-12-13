@@ -1,4 +1,4 @@
-import type { Event } from '@sentry/types';
+import type { Event } from '@sentry/core';
 
 interface Sample {
   stack_id: number;
@@ -52,15 +52,15 @@ export interface RawChunkCpuProfile extends BaseProfile {
 }
 
 export interface PrivateV8CpuProfilerBindings {
-  startProfiling(name: string): void;
+  startProfiling?: (name: string) => void;
 
-  stopProfiling(
+  stopProfiling?(
     name: string,
     format: ProfileFormat.THREAD,
     threadId: number,
     collectResources: boolean,
   ): RawThreadCpuProfile | null;
-  stopProfiling(
+  stopProfiling?(
     name: string,
     format: ProfileFormat.CHUNK,
     threadId: number,

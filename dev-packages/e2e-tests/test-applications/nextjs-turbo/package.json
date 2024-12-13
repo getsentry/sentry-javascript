@@ -7,9 +7,9 @@
     "clean": "npx rimraf node_modules pnpm-lock.yaml",
     "test:prod": "TEST_ENV=production playwright test",
     "test:dev": "TEST_ENV=development playwright test",
-    "test:build": "pnpm install && npx playwright install && pnpm build",
-    "test:build-canary": "pnpm install && pnpm add next@canary && pnpm add react@canary && pnpm add react-dom@canary && npx playwright install && pnpm build",
-    "test:build-latest": "pnpm install && pnpm add next@latest && pnpm add react@rc && pnpm add react-dom@rc && npx playwright install && pnpm build",
+    "test:build": "pnpm install && pnpm build",
+    "test:build-canary": "pnpm install && pnpm add next@canary && pnpm add react@canary && pnpm add react-dom@canary && pnpm build",
+    "test:build-latest": "pnpm install && pnpm add next@latest && pnpm add react@rc && pnpm add react-dom@rc && pnpm build",
     "test:assert": "pnpm test:prod && pnpm test:dev"
   },
   "dependencies": {
@@ -35,7 +35,6 @@
     "@sentry/opentelemetry": "latest || *",
     "@sentry/react": "latest || *",
     "@sentry-internal/replay": "latest || *",
-    "@sentry/types": "latest || *",
     "@sentry/vercel-edge": "latest || *",
     "import-in-the-middle": "1.11.2"
   },

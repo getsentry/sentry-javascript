@@ -1,7 +1,7 @@
 {
   "extends": "../../tsconfig.json",
 
-  "include": ["src/**/*"],
+  "include": ["src/**/*", "build.config.ts"],
 
   "compilerOptions": {
     // package-specific options

@@ -1,9 +1,16 @@
 import type * as http from 'node:http';
 import { ExpressInstrumentation } from '@opentelemetry/instrumentation-express';
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP, defineIntegration, getDefaultIsolationScope, spanToJSON } from '@sentry/core';
-import { captureException, getClient, getIsolationScope } from '@sentry/core';
-import { logger } from '@sentry/core';
-import type { IntegrationFn } from '@sentry/types';
+import type { IntegrationFn } from '@sentry/core';
+import {
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  captureException,
+  defineIntegration,
+  getClient,
+  getDefaultIsolationScope,
+  getIsolationScope,
+  logger,
+  spanToJSON,
+} from '@sentry/core';
 import { DEBUG_BUILD } from '../../debug-build';
 import { generateInstrumentOnce } from '../../otel/instrument';
 import type { NodeClient } from '../../sdk/client';
@@ -115,6 +122,7 @@ export function expressErrorHandler(options?: ExpressHandlerOptions): ExpressMid
 
     if (shouldHandleError(error)) {
       const client = getClient<NodeClient>();
+      // eslint-disable-next-line deprecation/deprecation
       if (client && client.getOptions().autoSessionTracking) {
         // Check if the `SessionFlusher` is instantiated on the client to go into this branch that marks the
         // `requestSession.status` as `Crashed`, and this check is necessary because the `SessionFlusher` is only
@@ -122,6 +130,7 @@ export function expressErrorHandler(options?: ExpressHandlerOptions): ExpressMid
         // running in SessionAggregates mode
         const isSessionAggregatesMode = client['_sessionFlusher'] !== undefined;
         if (isSessionAggregatesMode) {
+          // eslint-disable-next-line deprecation/deprecation
           const requestSession = getIsolationScope().getRequestSession();
           // If an error bubbles to the `errorHandler`, then this is an unhandled error, and should be reported as a
           // Crashed session. The `_requestSession.status` is checked to ensure that this error is happening within

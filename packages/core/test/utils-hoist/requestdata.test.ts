@@ -1,7 +1,7 @@
 /* eslint-disable deprecation/deprecation */
 import type * as net from 'net';
 import { addRequestDataToEvent, extractPathForTransaction, extractRequestData } from '@sentry/core';
-import type { Event, PolymorphicRequest, TransactionSource, User } from '@sentry/types';
+import type { Event, PolymorphicRequest, TransactionSource, User } from '../../src/types-hoist';
 import { getClientIPAddress } from '../../src/utils-hoist/vendor/getIpAddress';
 
 describe('addRequestDataToEvent', () => {

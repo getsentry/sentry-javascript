@@ -1,4 +1,7 @@
+import type { Integration, Options } from '@sentry/core';
 import {
+  consoleSandbox,
+  dropUndefinedKeys,
   endSession,
   functionToStringIntegration,
   getClient,
@@ -8,15 +11,11 @@ import {
   hasTracingEnabled,
   inboundFiltersIntegration,
   linkedErrorsIntegration,
-  requestDataIntegration,
-  startSession,
-} from '@sentry/core';
-import {
-  consoleSandbox,
-  dropUndefinedKeys,
   logger,
   propagationContextFromHeaders,
+  requestDataIntegration,
   stackParserFromStackParserOptions,
+  startSession,
 } from '@sentry/core';
 import {
   enhanceDscWithOpenTelemetryRootSpanName,
@@ -24,13 +23,11 @@ import {
   setOpenTelemetryContextAsyncContextStrategy,
   setupEventContextTrace,
 } from '@sentry/opentelemetry';
-import type { Integration, Options } from '@sentry/types';
 import { DEBUG_BUILD } from '../debug-build';
+import { childProcessIntegration } from '../integrations/childProcess';
 import { consoleIntegration } from '../integrations/console';
 import { nodeContextIntegration } from '../integrations/context';
 import { contextLinesIntegration } from '../integrations/contextlines';
-
-import { childProcessIntegration } from '../integrations/childProcess';
 import { httpIntegration } from '../integrations/http';
 import { localVariablesIntegration } from '../integrations/local-variables';
 import { modulesIntegration } from '../integrations/modules';
@@ -159,6 +156,8 @@ function _init(
 
   logger.log(`Running in ${isCjs() ? 'CommonJS' : 'ESM'} mode.`);
 
+  // TODO(V9): Remove this code since all of the logic should be in an integration
+  // eslint-disable-next-line deprecation/deprecation
   if (options.autoSessionTracking) {
     startSessionTracking();
   }
@@ -220,9 +219,11 @@ function getClientOptions(
   const autoSessionTracking =
     typeof release !== 'string'
       ? false
-      : options.autoSessionTracking === undefined
+      : // eslint-disable-next-line deprecation/deprecation
+        options.autoSessionTracking === undefined
         ? true
-        : options.autoSessionTracking;
+        : // eslint-disable-next-line deprecation/deprecation
+          options.autoSessionTracking;
 
   if (options.spotlight == null) {
     const spotlightEnv = envToBool(process.env.SENTRY_SPOTLIGHT, { strict: true });
@@ -317,6 +318,7 @@ function updateScopeFromEnvVariables(): void {
  */
 function startSessionTracking(): void {
   const client = getClient<NodeClient>();
+  // eslint-disable-next-line deprecation/deprecation
   if (client && client.getOptions().autoSessionTracking) {
     client.initSessionFlusher();
   }

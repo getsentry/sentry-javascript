@@ -7,7 +7,7 @@ import type {
   ReplayEnvelope,
   ReplayEvent,
   TransportMakeRequestResponse,
-} from '@sentry/types';
+} from '../../../src/types-hoist';
 
 import {
   createClientReportEnvelope,

@@ -1,4 +1,4 @@
-import type { SeverityLevel } from '@sentry/types';
+import type { SeverityLevel } from '../types-hoist';
 
 /**
  * @deprecated This variable has been deprecated and will be removed in the next major version.

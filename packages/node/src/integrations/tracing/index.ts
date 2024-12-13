@@ -1,4 +1,4 @@
-import type { Integration } from '@sentry/types';
+import type { Integration } from '@sentry/core';
 import { instrumentOtelHttp } from '../http';
 
 import { amqplibIntegration, instrumentAmqplib } from './amqplib';
@@ -19,6 +19,7 @@ import { instrumentNest, nestIntegration } from './nest/nest';
 import { instrumentPostgres, postgresIntegration } from './postgres';
 import { instrumentRedis, redisIntegration } from './redis';
 import { instrumentTedious, tediousIntegration } from './tedious';
+import { instrumentVercelAi, vercelAIIntegration } from './vercelai';
 
 /**
  * With OTEL, all performance integrations will be added, as OTEL only initializes them when the patched package is actually required.
@@ -48,6 +49,7 @@ export function getAutoPerformanceIntegrations(): Integration[] {
     kafkaIntegration(),
     amqplibIntegration(),
     lruMemoizerIntegration(),
+    vercelAIIntegration(),
   ];
 }
 
@@ -78,5 +80,6 @@ export function getOpenTelemetryInstrumentationToPreload(): (((options?: any) =>
     instrumentTedious,
     instrumentGenericPool,
     instrumentAmqplib,
+    instrumentVercelAi,
   ];
 }

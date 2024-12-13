@@ -1,6 +1,6 @@
 import type { SpanContext } from '@opentelemetry/api';
 import { TraceFlags } from '@opentelemetry/api';
-import type { PropagationContext } from '@sentry/types';
+import type { PropagationContext } from '@sentry/core';
 import { makeTraceState } from './makeTraceState';
 
 /**
@@ -12,7 +12,6 @@ import { makeTraceState } from './makeTraceState';
 export function generateSpanContextForPropagationContext(propagationContext: PropagationContext): SpanContext {
   // We store the DSC as OTEL trace state on the span context
   const traceState = makeTraceState({
-    parentSpanId: propagationContext.parentSpanId,
     dsc: propagationContext.dsc,
     sampled: propagationContext.sampled,
   });
