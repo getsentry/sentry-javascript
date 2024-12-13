@@ -311,6 +311,7 @@ export function addPerformanceEntries(span: Span, options: AddPerformanceEntries
 
   const { op, start_timestamp: transactionStartTime } = spanToJSON(span);
 
+  performanceEntries.slice(_performanceCursor).forEach(entry => {
     const startTime = msToSec(entry.startTime);
     const duration = msToSec(
       // Inexplicably, Chrome sometimes emits a negative duration. We need to work around this.
