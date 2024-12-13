@@ -215,7 +215,7 @@ describe('addExceptionMechanism', () => {
 
     addExceptionMechanism(event);
 
-    expect(event.exception.values[0]?.mechanism).toEqual(defaultMechanism);
+    expect(event.exception.values[0].mechanism).toEqual(defaultMechanism);
   });
 
   it('prefers current values to defaults', () => {
@@ -226,7 +226,7 @@ describe('addExceptionMechanism', () => {
 
     addExceptionMechanism(event);
 
-    expect(event.exception.values[0]?.mechanism).toEqual(nonDefaultMechanism);
+    expect(event.exception.values[0].mechanism).toEqual(nonDefaultMechanism);
   });
 
   it('prefers incoming values to current values', () => {
@@ -239,7 +239,7 @@ describe('addExceptionMechanism', () => {
     addExceptionMechanism(event, newMechanism);
 
     // the new `handled` value took precedence
-    expect(event.exception.values[0]?.mechanism).toEqual({ type: 'instrument', handled: true, synthetic: true });
+    expect(event.exception.values[0].mechanism).toEqual({ type: 'instrument', handled: true, synthetic: true });
   });
 
   it('merges data values', () => {
@@ -251,7 +251,7 @@ describe('addExceptionMechanism', () => {
 
     addExceptionMechanism(event, newMechanism);
 
-    expect(event.exception.values[0]?.mechanism.data).toEqual({
+    expect(event.exception.values[0].mechanism.data).toEqual({
       function: 'addEventListener',
       handler: 'organizeShoes',
       target: 'closet',
