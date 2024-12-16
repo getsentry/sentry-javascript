@@ -45,7 +45,7 @@ export {
   getDefaultIsolationScope,
 } from './defaultScopes';
 export { setAsyncContextStrategy } from './asyncContext';
-export { getMainCarrier } from './carrier';
+export { getGlobalSingleton, getMainCarrier } from './carrier';
 export { makeSession, closeSession, updateSession } from './session';
 // eslint-disable-next-line deprecation/deprecation
 export { SessionFlusher } from './sessionflusher';
