@@ -10,21 +10,17 @@ export function getPossibleEventMessages(event: Event): string[] {
     possibleMessages.push(event.message);
   }
 
-  let lastException;
   try {
     // @ts-expect-error Try catching to save bundle size
-    lastException = event.exception.values[event.exception.values.length - 1];
-  } catch (e) {
-    // try catching to save bundle size checking existence of variables
-  }
-
-  if (lastException) {
-    if (lastException.value) {
+    const lastException = event.exception.values[event.exception.values.length - 1];
+    if (lastException && lastException.value) {
       possibleMessages.push(lastException.value);
       if (lastException.type) {
         possibleMessages.push(`${lastException.type}: ${lastException.value}`);
       }
     }
+  } catch (e) {
+    // ignore errors here
   }
 
   return possibleMessages;
