@@ -1,13 +1,13 @@
 /* eslint-disable complexity */
 import type { Envelope, Event, Session } from '@sentry/core';
-import { sentryCore } from '../build-test/index.js';
+import { forEachEnvelopeItem } from '@sentry/core';
 
 type EventOrSession = Event | Session;
 
 export function getNormalizedEvent(envelope: Envelope): Event | undefined {
   let event: Event | undefined;
 
-  sentryCore.forEachEnvelopeItem(envelope, item => {
+  forEachEnvelopeItem(envelope, item => {
     const [headers, body] = item;
 
     if (headers.type === 'event') {

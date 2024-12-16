@@ -2,7 +2,7 @@ import { assertEquals } from 'https://deno.land/std@0.202.0/assert/assert_equals
 import { assertSnapshot } from 'https://deno.land/std@0.202.0/testing/snapshot.ts';
 
 import type { Event } from '@sentry/core';
-import { sentryCore } from '../build-test/index.js';
+import { createStackParser, nodeStackLineParser } from '@sentry/core';
 import { DenoClient, getCurrentScope, getDefaultIntegrations } from '../build/index.mjs';
 
 import { getNormalizedEvent } from './normalize.ts';
@@ -13,7 +13,7 @@ function getTestClient(callback: (event?: Event) => void): DenoClient {
     dsn: 'https://233a45e5efe34c47a3536797ce15dafa@nothing.here/5650507',
     debug: true,
     integrations: getDefaultIntegrations({}),
-    stackParser: sentryCore.createStackParser(sentryCore.nodeStackLineParser()),
+    stackParser: createStackParser(nodeStackLineParser()),
     transport: makeTestTransport(envelope => {
       callback(getNormalizedEvent(envelope));
     }),

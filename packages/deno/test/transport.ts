@@ -5,7 +5,7 @@ import type {
   TransportMakeRequestResponse,
   TransportRequest,
 } from '@sentry/core';
-import { sentryCore } from '../build-test/index.js';
+import { createTransport, parseEnvelope } from '@sentry/core';
 
 export interface TestTransportOptions extends BaseTransportOptions {
   callback: (envelope: Envelope) => void;
@@ -17,13 +17,13 @@ export interface TestTransportOptions extends BaseTransportOptions {
 export function makeTestTransport(callback: (envelope: Envelope) => void) {
   return (options: BaseTransportOptions): Transport => {
     async function doCallback(request: TransportRequest): Promise<TransportMakeRequestResponse> {
-      await callback(sentryCore.parseEnvelope(request.body));
+      await callback(parseEnvelope(request.body));
 
       return Promise.resolve({
         statusCode: 200,
       });
     }
 
-    return sentryCore.createTransport(options, doCallback);
+    return createTransport(options, doCallback);
   };
 }
