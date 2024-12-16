@@ -16,5 +16,14 @@ esbuild.buildSync({
   format: 'esm',
   bundle: true,
   loader: { '.node': 'copy' },
-  external: ['@sentry/node', 'detect-libc', 'node-abi'],
+  banner: {
+    js: `
+        import { dirname } from 'node:path';
+        import { fileURLToPath } from 'node:url';
+        import { createRequire } from 'node:module';
+        const require = createRequire(import.meta.url);
+        const __filename = fileURLToPath(import.meta.url);
+        const __dirname = dirname(__filename);
+        `,
+  },
 });
