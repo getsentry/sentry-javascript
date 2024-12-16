@@ -1,5 +1,5 @@
 /* eslint-disable complexity */
-import type { Event, Session, Envelope } from '@sentry/core';
+import type { Envelope, Event, Session } from '@sentry/core';
 import { sentryCore } from '../build-test/index.js';
 
 type EventOrSession = Event | Session;
