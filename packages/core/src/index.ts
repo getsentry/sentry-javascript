@@ -45,7 +45,7 @@ export {
   getDefaultIsolationScope,
 } from './defaultScopes';
 export { setAsyncContextStrategy } from './asyncContext';
-export { getMainCarrier } from './carrier';
+export { getGlobalSingleton, getMainCarrier } from './carrier';
 export { makeSession, closeSession, updateSession } from './session';
 export { Scope } from './scope';
 export { notifyEventProcessors } from './eventProcessors';
