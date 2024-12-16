@@ -1,5 +1,6 @@
 import { EventEmitter } from 'stream';
-import { Client, Scope, ServerRuntimeClient, createTransport, withScope } from '@sentry/core';
+import { Scope, ServerRuntimeClient, createTransport, withScope } from '@sentry/core';
+import type { Client } from '@sentry/core';
 import { recordRequestSession } from '../../src/integrations/http/SentryHttpInstrumentation';
 
 jest.useFakeTimers();

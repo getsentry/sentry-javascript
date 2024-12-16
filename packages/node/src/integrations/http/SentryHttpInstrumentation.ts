@@ -2,7 +2,7 @@
 import type * as http from 'node:http';
 import type { IncomingMessage, RequestOptions } from 'node:http';
 import type * as https from 'node:https';
-import { EventEmitter } from 'node:stream';
+import type { EventEmitter } from 'node:stream';
 import { VERSION } from '@opentelemetry/core';
 import type { InstrumentationConfig } from '@opentelemetry/instrumentation';
 import { InstrumentationBase, InstrumentationNodeModuleDefinition } from '@opentelemetry/instrumentation';
@@ -509,10 +509,13 @@ export function recordRequestSession({
           DEBUG_BUILD && logger.debug('Sending request session aggregate due to client flush');
           flushPendingClientAggregates();
         });
-        const timeout = setTimeout(() => {
-          DEBUG_BUILD && logger.debug('Sending request session aggregate due to flushing schedule');
-          flushPendingClientAggregates();
-        }, sessionFlushingDelayMS ?? 60_000).unref();
+        const timeout = setTimeout(
+          () => {
+            DEBUG_BUILD && logger.debug('Sending request session aggregate due to flushing schedule');
+            flushPendingClientAggregates();
+          },
+          sessionFlushingDelayMS ?? 60_000,
+        ).unref();
       }
     }
   });
