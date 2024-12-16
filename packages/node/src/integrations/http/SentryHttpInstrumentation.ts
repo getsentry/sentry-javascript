@@ -175,7 +175,11 @@ export class SentryHttpInstrumentation extends InstrumentationBase<SentryHttpIns
         isolationScope.setTransactionName(bestEffortTransactionName);
 
         if (instrumentation.getConfig().trackIncomingRequestsAsSessions !== false) {
-          recordRequestSession({ requestIsolationScope: isolationScope, response });
+          recordRequestSession({
+            requestIsolationScope: isolationScope,
+            response,
+            sessionFlushingDelayMS: instrumentation.getConfig().sessionFlushingDelayMS ?? 60_000,
+          });
         }
 
         return withIsolationScope(isolationScope, () => {
@@ -512,7 +516,7 @@ export function recordRequestSession({
         const timeout = setTimeout(() => {
           DEBUG_BUILD && logger.debug('Sending request session aggregate due to flushing schedule');
           flushPendingClientAggregates();
-        }, sessionFlushingDelayMS ?? 60_000).unref();
+        }, sessionFlushingDelayMS).unref();
       }
     }
   });
